@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import { createClient } from "@/lib/supabase/server";
 import { CotizacionPdf, type ItemPdf } from "@/lib/pdf/cotizacion-pdf";
 
 // Se lee una sola vez al cargar el módulo, no en cada request.
 const LOGO_BUFFER = readFileSync(join(process.cwd(), "public", "logo-efameinsa.png"));
+
+// Fotos de producto: viven en public/productos/ (repo) y foto_path guarda la
+// ruta pública ("/productos/x.png"). basename() evita salirse de la carpeta
+// aunque foto_path viniera manipulado. En Vercel la carpeta se incluye vía
+// outputFileTracingIncludes (next.config.ts).
+function leerFotoProducto(fotoPath: string | null): Buffer | null {
+  if (!fotoPath) return null;
+  try {
+    return readFileSync(join(process.cwd(), "public", "productos", basename(fotoPath)));
+  } catch {
+    return null; // foto declarada pero archivo ausente: el PDF sale sin foto
+  }
+}
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,7 +34,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .from("cotizaciones")
     .select(
       `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, cliente_snapshot, created_at,
-       cotizacion_items(cantidad, precio_unitario, productos(marca, modelo, nombre, capacidad, categoria, ficha)),
+       cotizacion_items(cantidad, precio_unitario, productos(marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
        oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, telefono, celular, email_contacto)`,
     )
@@ -52,6 +65,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     email_contacto: string | null;
   } | null;
 
+  function listaDeFicha(ficha: Record<string, unknown> | null | undefined, clave: string): string[] {
+    const valor = ficha?.[clave];
+    return Array.isArray(valor) ? valor.filter((v): v is string => typeof v === "string") : [];
+  }
+
+  function textoDeFicha(ficha: Record<string, unknown> | null | undefined, clave: string): string | null {
+    const valor = ficha?.[clave];
+    return typeof valor === "string" && valor ? valor : null;
+  }
+
   const items: ItemPdf[] = (
     cotizacion.cotizacion_items as unknown as {
       cantidad: number;
@@ -63,20 +86,24 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         capacidad: string | null;
         categoria: string | null;
         ficha: Record<string, unknown> | null;
+        foto_path: string | null;
       } | null;
     }[]
   ).map((item) => {
     const ficha = item.productos?.ficha;
-    const caracteristicas = Array.isArray(ficha?.caracteristicas)
-      ? (ficha.caracteristicas as unknown[]).filter((c): c is string => typeof c === "string")
-      : [];
     return {
       nombre: item.productos?.nombre ?? "Producto",
       marca: item.productos?.marca ?? "—",
       modelo: item.productos?.modelo ?? "—",
       capacidad: item.productos?.capacidad ?? null,
       categoria: item.productos?.categoria ?? null,
-      caracteristicas,
+      calentamiento: textoDeFicha(ficha, "calentamiento"),
+      panel: textoDeFicha(ficha, "panel"),
+      controles: textoDeFicha(ficha, "controles"),
+      caracteristicas: listaDeFicha(ficha, "caracteristicas"),
+      dimensiones: listaDeFicha(ficha, "dimensiones"),
+      medidas: listaDeFicha(ficha, "medidas"),
+      fotoBuffer: leerFotoProducto(item.productos?.foto_path ?? null),
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,
     };

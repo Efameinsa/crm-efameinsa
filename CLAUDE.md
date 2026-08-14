@@ -54,6 +54,8 @@ Carpeta `C:\Users\diseno\Downloads\PROYECTO CRM EFAMEINSA\`:
 - `CONSOLIDADO CIERRE VENTAS - KATERINE TELLO 2026.xlsx` — detalle de ventas y objetivos.
 - **Migración histórica completa: AL FINAL del proyecto.** Día 1 solo se carga el índice mínimo de clientes (RUC/DNI + razón social + comercial de cartera) para deduplicación — script en `scripts/`.
 - `scripts/extraer-catalogos.mjs` genera seeds desde la hoja DATOS (usa el paquete npm `xlsx`; pasar rutas estilo Windows `C:/...`, nunca `/c/...`).
+- `scripts/seed-productos-modelos.mjs`: catálogo de ejemplo del piloto — los 4 equipos LG de las cotizaciones reales (`modelos de cotizacion/`), con características/dimensiones en `productos.ficha` y fotos en `public/productos/` (`foto_path`). Sustituir cuando gerencia entregue el catálogo y la lista de precios oficial.
+- El PDF de cotización replica el formato real de ambas series (`src/lib/pdf/`): identidad por serie en `series.ts` (⚠️ cuentas bancarias de OPEN transcritas por OCR — confirmar dígitos con Santos), una página por equipo con foto + características, desglose IGV 18%.
 
 ## Entorno de esta máquina (trabajo)
 

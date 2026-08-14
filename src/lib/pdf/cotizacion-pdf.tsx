@@ -19,7 +19,13 @@ export interface ItemPdf {
   modelo: string;
   capacidad: string | null;
   categoria: string | null;
+  calentamiento: string | null; // solo secadoras a gas
+  panel: string | null; // "Digital-Multifunción"
+  controles: string | null; // "220V/60Hz/1Ph"
   caracteristicas: string[];
+  dimensiones: string[]; // "Volumen del tambor: 207 litros", …
+  medidas: string[]; // "Ancho: 686 mm", …
+  fotoBuffer: Buffer | null;
   cantidad: number;
   precio_unitario: number;
 }
@@ -109,10 +115,10 @@ function crearEstilos(acento: string) {
     fichaTitulo: { fontSize: 9.5, fontFamily: "Helvetica-Bold", padding: 6 },
     specTh: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#FFFFFF", paddingVertical: 4, paddingHorizontal: 5, textAlign: "center" },
     specTd: { fontSize: 9, fontFamily: "Helvetica-Bold", paddingVertical: 4, paddingHorizontal: 5, textAlign: "center" },
-    caracTitulo: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 },
-    caracBullet: { flexDirection: "row", marginBottom: 2 },
+    caracTitulo: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 3 },
+    caracBullet: { flexDirection: "row", marginBottom: 1 },
     caracPunto: { width: 12, textAlign: "center" },
-    caracTexto: { flex: 1, fontSize: 8.5, textAlign: "justify" },
+    caracTexto: { flex: 1, fontSize: 8.5, textAlign: "justify", lineHeight: 1.3 },
 
     /* Secciones finales */
     seccionSubrayada: {
@@ -288,42 +294,117 @@ export function CotizacionPdf({
             <Text style={[estilos.totalValor, { color: identidad.acento }]}>{formatoMonto(total)}</Text>
           </View>
         </View>
+      </Page>
 
-        {/* ── Ficha técnica por ítem ── */}
-        {items.map((item, i) => (
-          <View key={i} style={estilos.ficha} wrap={false}>
-            <Text style={estilos.fichaTitulo}>
-              ITEM {ROMANOS[i] ?? i + 1}.- {item.nombre.toUpperCase()}
-            </Text>
-            <View style={[estilos.thFila, { borderTopWidth: 0.8, borderTopColor: CARBON }]}>
-              <Text style={[estilos.specTh, { width: "20%" }]}>Marca</Text>
-              <Text style={[estilos.specTh, { width: "30%" }]}>Modelo</Text>
-              <Text style={[estilos.specTh, { width: "25%" }]}>Capacidad</Text>
-              <Text style={[estilos.specTh, { width: "25%" }]}>Categoría</Text>
-            </View>
-            <View style={[estilos.tdFila, { borderTopColor: BORDE }]}>
-              <Text style={[estilos.specTd, { width: "20%" }]}>{item.marca}</Text>
-              <Text style={[estilos.specTd, { width: "30%" }]}>{item.modelo}</Text>
-              <Text style={[estilos.specTd, { width: "25%" }]}>{item.capacidad ?? "—"}</Text>
-              <Text style={[estilos.specTd, { width: "25%" }]}>{item.categoria ?? "—"}</Text>
-            </View>
-            {item.caracteristicas.length > 0 && (
-              <View style={{ padding: 8, borderTopWidth: 0.8, borderTopColor: BORDE }}>
-                <Text style={estilos.caracTitulo}>CARACTERISTICAS</Text>
-                {item.caracteristicas.map((c, j) => (
-                  <View key={j} style={estilos.caracBullet}>
-                    <Text style={estilos.caracPunto}>•</Text>
-                    <Text style={estilos.caracTexto}>{c}</Text>
-                  </View>
+      {/* ── Ficha técnica: un equipo por página, como los modelos reales.
+           (Con las fichas dentro de la página de la carta, una ficha más alta
+           que la página hacía que react-pdf comprimiera el texto encima de sí
+           mismo — "can't wrap between pages".) ── */}
+      {items.map((item, i) => {
+          // Columnas de especificación como en los modelos reales: Calentamiento
+          // solo aparece en secadoras a gas; si el producto no tiene ficha de
+          // panel/controles se muestra la categoría.
+          const columnas: { titulo: string; valor: string }[] = [
+            { titulo: "Marca", valor: item.marca },
+            { titulo: "Modelo", valor: item.modelo },
+            { titulo: "Capacidad", valor: item.capacidad ?? "—" },
+          ];
+          if (item.calentamiento) columnas.push({ titulo: "Calentamiento", valor: item.calentamiento });
+          if (item.panel) columnas.push({ titulo: "Panel computarizado", valor: item.panel });
+          if (item.controles) columnas.push({ titulo: "Controles Automático", valor: item.controles });
+          if (!item.panel && !item.controles) columnas.push({ titulo: "Categoría", valor: item.categoria ?? "—" });
+          const anchoCol = `${100 / columnas.length}%`;
+
+          const tieneDetalle =
+            item.caracteristicas.length > 0 || item.dimensiones.length > 0 || item.medidas.length > 0;
+
+          return (
+            <Page key={i} size="A4" style={estilos.page}>
+              {membrete}
+              {pie}
+              <View style={estilos.ficha}>
+              <Text style={estilos.fichaTitulo}>
+                ITEM {ROMANOS[i] ?? i + 1}.- {item.nombre.toUpperCase()}
+              </Text>
+              <View style={[estilos.thFila, { borderTopWidth: 0.8, borderTopColor: CARBON }]}>
+                {columnas.map((c, j) => (
+                  <Text key={j} style={[estilos.specTh, { width: anchoCol }]}>
+                    {c.titulo}
+                  </Text>
                 ))}
               </View>
-            )}
-          </View>
-        ))}
+              <View style={[estilos.tdFila, { borderTopColor: BORDE }]}>
+                {columnas.map((c, j) => (
+                  <Text key={j} style={[estilos.specTd, { width: anchoCol }]}>
+                    {c.valor}
+                  </Text>
+                ))}
+              </View>
 
-        {/* ── Condiciones ── */}
+              {(tieneDetalle || item.fotoBuffer) && (
+                <View style={{ flexDirection: "row", borderTopWidth: 0.8, borderTopColor: BORDE }}>
+                  {item.fotoBuffer && (
+                    <View style={{ width: "32%", padding: 12, justifyContent: "center" }}>
+                      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
+                      <Image src={item.fotoBuffer} style={{ width: "100%" }} />
+                    </View>
+                  )}
+                  <View
+                    style={{
+                      flex: 1,
+                      padding: 8,
+                      borderLeftWidth: item.fotoBuffer ? 0.8 : 0,
+                      borderLeftColor: BORDE,
+                    }}
+                  >
+                    {item.caracteristicas.length > 0 && (
+                      <>
+                        <Text style={estilos.caracTitulo}>CARACTERISTICAS</Text>
+                        {item.caracteristicas.map((c, j) => (
+                          <View key={j} style={estilos.caracBullet}>
+                            <Text style={estilos.caracPunto}>•</Text>
+                            <Text style={estilos.caracTexto}>{c}</Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+                    {item.dimensiones.length > 0 && (
+                      <>
+                        <Text style={[estilos.caracTitulo, { marginTop: 6 }]}>DIMENSIONES DE LA MAQUINA</Text>
+                        {item.dimensiones.map((d, j) => (
+                          <View key={j} style={estilos.caracBullet}>
+                            <Text style={estilos.caracPunto}>•</Text>
+                            <Text style={estilos.caracTexto}>{d}</Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+                    {item.medidas.length > 0 && (
+                      <>
+                        <Text style={[estilos.caracTitulo, { marginTop: 6 }]}>MEDIDAS GENERALES</Text>
+                        {item.medidas.map((m, j) => (
+                          <View key={j} style={estilos.caracBullet}>
+                            <Text style={estilos.caracPunto}>•</Text>
+                            <Text style={estilos.caracTexto}>{m}</Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+                  </View>
+                </View>
+              )}
+              </View>
+            </Page>
+          );
+        })}
+
+      {/* ── Página final: condiciones, validez, cuentas, importante/nota y firma ── */}
+      <Page size="A4" style={estilos.page}>
+        {membrete}
+        {pie}
+
         {condiciones && (
-          <View style={{ marginTop: 16 }} wrap={false}>
+          <View wrap={false}>
             <Text style={estilos.seccionSubrayada}>Condiciones comerciales:</Text>
             <Text style={estilos.parrafo}>{condiciones}</Text>
           </View>
