@@ -117,6 +117,9 @@ Diseñado y ejecutado el 2026-08-14 a pedido de Darwin (rechazo de cotización s
 
 **Aceptación — verificada end-to-end:** `notificar()` probado directo (no solo por tipo) con los 3 casos: por `user_id` (visible solo para el dueño, RLS confirmado que otro usuario NO la ve), por `rol` (fan-out a toda gerencia), y marcar como leída. Datos de pipeline reales sembrados (5 oportunidades de clientes reales de C5 en distintas etapas, una con cotización real pendiente de aprobación) para que el kanban y el embudo de gerencia se vean poblados en la demo. Pendiente de verificación manual en navegador: el flujo de arrastrar-soltar y la recepción real de un push (requiere activar el permiso desde la UI, no se puede probar por script).
 
+## B7 · Preparación del piloto — feedback de gerencia 14-08 (≈ 1–1.5 días)
+**Especificación completa y orden de ejecución: `docs/07-b7-preparacion-piloto.md`** (contexto en `docs/06-feedback-gerencia-2026-08-14.md`). El piloto arranca el lunes 18-08. Resumen: meta mensual + cuentas C1–C4; notificación push a gerencia por cada registro de Central; buscador global de clientes para gerencia (a quién pertenece); histórico consolidado por cliente (timeline de gestiones+cotizaciones+ventas, compras anteriores con precios, precio histórico visible al cotizar); duplicar cotización + inmutabilidad por triggers; fix de RLS para visibilidad por cartera en reasignaciones; dashboard "Mi gestión" con velocímetro SVG contra meta + drill-down por comercial en gerencia; scripts de backup/restauración con documento de continuidad.
+
 ## Pendientes externos (no bloquean B1–B4)
 - Respuestas de gerencia: criterio EFAMEINSA vs OPEN; tier piso del vendedor; campos mínimos de Central (Santos los tiene).
 - Decisión web Astro vs WordPress (sábado 2026-08-15).
