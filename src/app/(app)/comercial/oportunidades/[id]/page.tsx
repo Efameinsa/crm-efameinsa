@@ -19,26 +19,28 @@ export default async function OportunidadDetallePage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: oportunidad }, { data: motivos }, { data: productos }, { data: cotizaciones }] = await Promise.all([
-    supabase
-      .from("oportunidades")
-      .select(
-        "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
-      )
-      .eq("id", id)
-      .maybeSingle(),
-    supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase
-      .from("productos")
-      .select("id, marca, modelo, nombre, segmento, precios_producto(tier, precio)")
-      .eq("activo", true)
-      .order("marca"),
-    supabase
-      .from("cotizaciones")
-      .select("id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia")
-      .eq("oportunidad_id", id)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [{ data: oportunidad }, { data: motivos }, { data: productos }, { data: cotizaciones }, { data: resultados }] =
+    await Promise.all([
+      supabase
+        .from("oportunidades")
+        .select(
+          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
+        )
+        .eq("id", id)
+        .maybeSingle(),
+      supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
+      supabase
+        .from("productos")
+        .select("id, marca, modelo, nombre, segmento, precios_producto(tier, precio)")
+        .eq("activo", true)
+        .order("marca"),
+      supabase
+        .from("cotizaciones")
+        .select("id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia")
+        .eq("oportunidad_id", id)
+        .order("created_at", { ascending: false }),
+      supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre").eq("activo", true).order("id"),
+    ]);
 
   if (!oportunidad) notFound();
 
@@ -138,7 +140,7 @@ export default async function OportunidadDetallePage({
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <SeccionPanel titulo="Registrar gestión">
-            <RegistroRapido oportunidadId={oportunidad.id} />
+            <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} />
           </SeccionPanel>
 
           <SeccionPanel titulo="Cotizaciones">

@@ -26,9 +26,22 @@ function fechaISO(diasDesdeHoy: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function RegistroRapido({ oportunidadId }: { oportunidadId: string }) {
+export interface ResultadoGestion {
+  id: number;
+  codigo: string;
+  nombre: string;
+}
+
+export function RegistroRapido({
+  oportunidadId,
+  resultados = [],
+}: {
+  oportunidadId: string;
+  resultados?: ResultadoGestion[];
+}) {
   const [tipo, setTipo] = useState<(typeof TIPOS)[number][0]>("llamada");
   const [nota, setNota] = useState("");
+  const [resultadoId, setResultadoId] = useState<number | null>(null);
   const [proximaAccion, setProximaAccion] = useState("");
   const [proximaAccionAt, setProximaAccionAt] = useState("");
   const [enviando, startTransition] = useTransition();
@@ -36,6 +49,7 @@ export function RegistroRapido({ oportunidadId }: { oportunidadId: string }) {
   function limpiar() {
     setTipo("llamada");
     setNota("");
+    setResultadoId(null);
     setProximaAccion("");
     setProximaAccionAt("");
   }
@@ -46,6 +60,7 @@ export function RegistroRapido({ oportunidadId }: { oportunidadId: string }) {
         oportunidadId,
         tipo,
         nota,
+        resultadoId,
         proximaAccion,
         proximaAccionAt: proximaAccionAt || null,
       });
@@ -84,6 +99,29 @@ export function RegistroRapido({ oportunidadId }: { oportunidadId: string }) {
         onChange={(e) => setNota(e.target.value)}
         rows={3}
       />
+
+      {resultados.length > 0 && (
+        <div className="space-y-1.5">
+          <Label>¿En qué quedó? (opcional)</Label>
+          <div className="flex flex-wrap gap-2">
+            {resultados.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setResultadoId((actual) => (actual === r.id ? null : r.id))}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs transition-colors",
+                  resultadoId === r.id
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border text-muted-foreground hover:bg-accent",
+                )}
+              >
+                {r.nombre}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="proxima_accion">Próxima acción</Label>

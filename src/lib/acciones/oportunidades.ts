@@ -21,6 +21,7 @@ export async function registrarActividad(datos: {
   oportunidadId: string;
   tipo: (typeof TIPOS_ACTIVIDAD)[number];
   nota: string;
+  resultadoId?: number | null;
   proximaAccion: string;
   proximaAccionAt: string | null;
 }): Promise<{ error: string | null }> {
@@ -38,6 +39,7 @@ export async function registrarActividad(datos: {
     oportunidad_id: datos.oportunidadId,
     tipo: datos.tipo,
     nota: datos.nota || null,
+    resultado_id: datos.resultadoId ?? null,
     realizada_por: user.id,
   });
   if (errorActividad) return { error: errorActividad.message };
