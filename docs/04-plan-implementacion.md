@@ -103,6 +103,9 @@ crm-efameinsa/
 
 **Aceptación:** lead de prueba con UTM entra por API; gasto de un día en la tabla; dashboards muestran embudo y CPL reales.
 
+## B6 · Notificaciones push y rediseño UX (≈ 2–2.5 días)
+Diseñado el 2026-08-14 a pedido de Darwin (rechazo de cotización sin aviso al comercial + campos "intención"/"monto estimado" sin UI + vistas poco amigables). **Especificación completa y orden de tareas: `docs/05-diseno-ux-notificaciones.md`.** Resumen: centro de notificaciones in-app + Web Push (VAPID, sin servicios de pago) con 4 eventos v1; card "Calificación" (interés de compra Alta/Media/Baja + monto estimado + segmento); rediseño con `motion` (Mi día agrupado por urgencia con sheet de gestión rápida, pipeline kanban con drag & drop, embudo horizontal de gerencia con KPIs y % de conversión). Mockup visual aprobado por artifact "Rediseño CRM Efameinsa".
+
 ## Pendientes externos (no bloquean B1–B4)
 - Respuestas de gerencia: criterio EFAMEINSA vs OPEN; tier piso del vendedor; campos mínimos de Central (Santos los tiene).
 - Decisión web Astro vs WordPress (sábado 2026-08-15).
