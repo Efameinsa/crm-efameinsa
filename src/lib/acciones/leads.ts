@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { normalizarTelefono } from "@/lib/telefono";
+import { notificar } from "@/lib/notificaciones";
 import { esquemaCaptura } from "@/lib/validaciones/lead";
 
 export interface ResultadoDuplicado {
@@ -134,11 +135,27 @@ export async function asignarLead(
   comercialId: string,
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("asignar_lead", {
+  const { data: oportunidadId, error } = await supabase.rpc("asignar_lead", {
     p_lead_id: leadId,
     p_comercial_id: comercialId,
   });
   if (error) return { error: error.message };
+
+  const { data: oportunidad } = await supabase
+    .from("oportunidades")
+    .select("cuentas(razon_social)")
+    .eq("id", oportunidadId)
+    .maybeSingle();
+  const razonSocial =
+    (oportunidad?.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Nuevo contacto";
+
+  await notificar({
+    userId: comercialId,
+    tipo: "lead_asignado",
+    titulo: "Nuevo contacto asignado",
+    cuerpo: razonSocial,
+    url: `/comercial/oportunidades/${oportunidadId}`,
+  });
 
   revalidatePath("/central");
   return { error: null };

@@ -72,6 +72,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/leads|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // sw.js: un service worker servido detrás de una redirección lo rechaza
+    // el navegador ("script resource is behind a redirect") — nunca debe
+    // pasar por el proxy de auth, se sirve directo desde /public.
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|api/leads|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

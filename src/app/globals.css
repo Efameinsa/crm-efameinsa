@@ -13,6 +13,10 @@
   --efameinsa-carbon: #2c2e35;
   --efameinsa-gris: #6b6b6b;
 
+  /* Fondo del área de trabajo (distinto del blanco de tarjetas/popovers):
+     gris cálido con sesgo sutil al granate, no un gris neutro genérico. */
+  --app-bg: #f3f1f0;
+
   --background: #ffffff;
   --foreground: var(--efameinsa-carbon);
   --card: #ffffff;
@@ -48,6 +52,7 @@
 }
 
 @theme inline {
+  --color-app-bg: var(--app-bg);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

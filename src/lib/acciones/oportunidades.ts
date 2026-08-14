@@ -56,6 +56,34 @@ export async function registrarActividad(datos: {
   return { error: null };
 }
 
+// Interés de compra (INT_COMPRA del Excel original), monto estimado y
+// segmento — existían en el esquema desde B1 pero ninguna pantalla los
+// editaba. Guardado optimista, sin botón "Guardar" aparte (mismo espíritu
+// ≤15 s que el registro de actividad).
+export async function calificarOportunidad(datos: {
+  oportunidadId: string;
+  intencion: "alta" | "media" | "baja" | "sin_definir";
+  montoEstimado: number | null;
+  moneda: "PEN" | "USD";
+  segmento: "industrial" | "semi_industrial" | null;
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("oportunidades")
+    .update({
+      intencion: datos.intencion,
+      monto_estimado: datos.montoEstimado,
+      moneda: datos.moneda,
+      segmento: datos.segmento,
+    })
+    .eq("id", datos.oportunidadId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/comercial", "layout");
+  revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
+  return { error: null };
+}
+
 const ETAPAS_MANUALES: EtapaOportunidad[] = [
   "asignada",
   "filtrada",

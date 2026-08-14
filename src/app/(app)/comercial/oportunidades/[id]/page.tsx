@@ -7,6 +7,7 @@ import { RegistroRapido } from "@/components/crm/registro-rapido";
 import { CambiarEtapa } from "@/components/crm/cambiar-etapa";
 import { Cotizador } from "@/components/crm/cotizador";
 import { ListaCotizaciones } from "@/components/crm/lista-cotizaciones";
+import { CalificacionOportunidad } from "@/components/crm/calificacion-oportunidad";
 
 export default async function OportunidadDetallePage({
   params,
@@ -20,7 +21,7 @@ export default async function OportunidadDetallePage({
     supabase
       .from("oportunidades")
       .select(
-        "id, etapa, intencion, proxima_accion, proxima_accion_at, cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
+        "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -148,6 +149,21 @@ export default async function OportunidadDetallePage({
             ) : (
               <p className="text-muted-foreground">Sin próxima acción definida.</p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Calificación</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CalificacionOportunidad
+              oportunidadId={oportunidad.id}
+              intencionInicial={oportunidad.intencion}
+              montoInicial={oportunidad.monto_estimado}
+              monedaInicial={oportunidad.moneda}
+              segmentoInicial={oportunidad.segmento}
+            />
           </CardContent>
         </Card>
 

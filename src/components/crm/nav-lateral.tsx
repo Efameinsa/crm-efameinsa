@@ -2,28 +2,41 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  Inbox,
+  ClipboardList,
+  KanbanSquare,
+  FileText,
+  BarChart3,
+  TrendingUp,
+  CheckCircle2,
+  Users,
+  Package,
+  BookMarked,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RolUsuario } from "@/types/database";
 
-const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string }[]> = {
+const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icono: LucideIcon }[]> = {
   central: [
-    { href: "/central", etiqueta: "Bandeja" },
-    { href: "/central/captura", etiqueta: "Registrar contacto" },
+    { href: "/central", etiqueta: "Bandeja", icono: Inbox },
+    { href: "/central/captura", etiqueta: "Registrar contacto", icono: ClipboardList },
   ],
   comercial: [
-    { href: "/comercial", etiqueta: "Mi día" },
-    { href: "/comercial/oportunidades", etiqueta: "Mis oportunidades" },
+    { href: "/comercial", etiqueta: "Mi día", icono: ClipboardList },
+    { href: "/comercial/oportunidades", etiqueta: "Mis oportunidades", icono: KanbanSquare },
   ],
   gerencia: [
-    { href: "/gerencia", etiqueta: "Panel comercial" },
-    { href: "/gerencia/marketing", etiqueta: "Panel de marketing" },
-    { href: "/gerencia/aprobaciones", etiqueta: "Aprobaciones" },
-    { href: "/gerencia/cartera-liberable", etiqueta: "Cartera liberable" },
+    { href: "/gerencia", etiqueta: "Panel comercial", icono: BarChart3 },
+    { href: "/gerencia/marketing", etiqueta: "Panel de marketing", icono: TrendingUp },
+    { href: "/gerencia/aprobaciones", etiqueta: "Aprobaciones", icono: CheckCircle2 },
+    { href: "/gerencia/cartera-liberable", etiqueta: "Cartera liberable", icono: FileText },
   ],
   admin: [
-    { href: "/admin", etiqueta: "Usuarios" },
-    { href: "/admin/productos", etiqueta: "Productos y precios" },
-    { href: "/admin/catalogos", etiqueta: "Catálogos" },
+    { href: "/admin", etiqueta: "Usuarios", icono: Users },
+    { href: "/admin/productos", etiqueta: "Productos y precios", icono: Package },
+    { href: "/admin/catalogos", etiqueta: "Catálogos", icono: BookMarked },
   ],
 };
 
@@ -32,20 +45,25 @@ export function NavLateral({ rol }: { rol: RolUsuario }) {
   const enlaces = ENLACES_POR_ROL[rol];
 
   return (
-    <nav className="flex flex-col gap-1 p-3">
+    <nav className="flex flex-col gap-0.5 p-3">
       {enlaces.map((enlace) => {
         const activo = pathname === enlace.href;
+        const Icono = enlace.icono;
         return (
           <Link
             key={enlace.href}
             href={enlace.href}
             className={cn(
-              "rounded-md px-3 py-2 text-sm transition-colors",
+              "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150",
               activo
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             )}
           >
+            {activo && (
+              <span className="absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r bg-[var(--efameinsa-granate)]" />
+            )}
+            <Icono className="size-4 shrink-0" />
             {enlace.etiqueta}
           </Link>
         );

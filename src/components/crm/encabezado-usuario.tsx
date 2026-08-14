@@ -1,5 +1,6 @@
 import { cerrarSesion } from "@/lib/acciones/auth";
 import { Button } from "@/components/ui/button";
+import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
 import type { Perfil } from "@/types/database";
 
 const ETIQUETA_ROL: Record<Perfil["rol"], string> = {
@@ -19,11 +20,14 @@ export function EncabezadoUsuario({ perfil }: { perfil: Perfil }) {
           {perfil.codigo_comercial ? ` · ${perfil.codigo_comercial}` : ""}
         </p>
       </div>
-      <form action={cerrarSesion}>
-        <Button type="submit" variant="outline" size="sm">
-          Cerrar sesión
-        </Button>
-      </form>
+      <div className="flex items-center gap-3">
+        <CampanaNotificaciones userId={perfil.id} />
+        <form action={cerrarSesion}>
+          <Button type="submit" variant="outline" size="sm">
+            Cerrar sesión
+          </Button>
+        </form>
+      </div>
     </header>
   );
 }

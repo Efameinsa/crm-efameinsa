@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </aside>
       <div className="flex flex-1 flex-col">
         <EncabezadoUsuario perfil={perfil} />
-        <main className="flex-1 bg-secondary/40 p-6">{children}</main>
+        <main className="flex-1 bg-app-bg p-6">{children}</main>
       </div>
     </div>
   );

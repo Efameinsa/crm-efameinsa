@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { notificar } from "@/lib/notificaciones";
 
 export interface ItemCotizacion {
   producto_id: string;
@@ -29,8 +30,27 @@ export async function crearCotizacion(datos: {
   });
   if (error) return { error: error.message };
 
+  const cotizacionId = data as string;
+
+  const { data: cotizacion } = await supabase
+    .from("cotizaciones")
+    .select("codigo, total, moneda, estado_aprobacion, oportunidades(comercial_id, perfiles(nombre))")
+    .eq("id", cotizacionId)
+    .maybeSingle();
+
+  if (cotizacion?.estado_aprobacion === "pendiente_gerencia") {
+    const oportunidad = cotizacion.oportunidades as unknown as { perfiles: { nombre: string } | null } | null;
+    await notificar({
+      rol: "gerencia",
+      tipo: "cotizacion_pendiente",
+      titulo: `${cotizacion.codigo} requiere aprobación`,
+      cuerpo: `De ${oportunidad?.perfiles?.nombre ?? "un comercial"} · ${cotizacion.moneda} ${cotizacion.total}`,
+      url: "/gerencia/aprobaciones",
+    });
+  }
+
   revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
-  return { error: null, cotizacionId: data as string };
+  return { error: null, cotizacionId };
 }
 
 export async function enviarCotizacion(cotizacionId: string): Promise<{ error: string | null }> {
@@ -56,6 +76,19 @@ export async function registrarVenta(cotizacionId: string): Promise<{ error: str
   return { error: null };
 }
 
+async function comercialDeCotizacion(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cotizacionId: string,
+): Promise<{ comercialId: string | null; codigo: string | null }> {
+  const { data } = await supabase
+    .from("cotizaciones")
+    .select("codigo, oportunidades(comercial_id)")
+    .eq("id", cotizacionId)
+    .maybeSingle();
+  const oportunidad = data?.oportunidades as unknown as { comercial_id: string } | null;
+  return { comercialId: oportunidad?.comercial_id ?? null, codigo: data?.codigo ?? null };
+}
+
 export async function aprobarCotizacion(
   cotizacionId: string,
   nota: string,
@@ -65,6 +98,8 @@ export async function aprobarCotizacion(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sesión expirada" };
+
+  const { comercialId, codigo } = await comercialDeCotizacion(supabase, cotizacionId);
 
   const { error } = await supabase
     .from("cotizaciones")
@@ -77,6 +112,16 @@ export async function aprobarCotizacion(
     .eq("id", cotizacionId)
     .eq("estado_aprobacion", "pendiente_gerencia");
   if (error) return { error: error.message };
+
+  if (comercialId) {
+    await notificar({
+      userId: comercialId,
+      tipo: "cotizacion_aprobada",
+      titulo: `${codigo} aprobada`,
+      cuerpo: nota || "Ya puede enviarla al cliente.",
+      url: "/comercial/oportunidades",
+    });
+  }
 
   revalidatePath("/gerencia/aprobaciones");
   return { error: null };
@@ -94,6 +139,8 @@ export async function rechazarCotizacion(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sesión expirada" };
 
+  const { comercialId, codigo } = await comercialDeCotizacion(supabase, cotizacionId);
+
   const { error } = await supabase
     .from("cotizaciones")
     .update({
@@ -105,6 +152,16 @@ export async function rechazarCotizacion(
     .eq("id", cotizacionId)
     .eq("estado_aprobacion", "pendiente_gerencia");
   if (error) return { error: error.message };
+
+  if (comercialId) {
+    await notificar({
+      userId: comercialId,
+      tipo: "cotizacion_rechazada",
+      titulo: `${codigo} rechazada`,
+      cuerpo: nota,
+      url: "/comercial/oportunidades",
+    });
+  }
 
   revalidatePath("/gerencia/aprobaciones");
   return { error: null };
