@@ -18,64 +18,48 @@ export function LoginForm() {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="relative z-10 w-full max-w-sm"
     >
-      <div className="flex flex-col items-center gap-2 pb-7 text-center">
+      <div className="flex flex-col items-center gap-3 pb-6 text-center">
         <Image
-          src="/logo-efameinsa-transparente.png"
+          src="/logo-efameinsa-listo.png"
           alt="Efameinsa"
-          width={230}
-          height={37}
+          width={220}
+          height={92}
           priority
-          className="h-11 w-auto"
+          className="h-20 w-auto"
         />
-        <p className="text-sm text-white/60">CRM comercial</p>
+        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--efameinsa-granate)]">
+          CRM Comercial
+        </span>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-7 shadow-2xl backdrop-blur-sm">
+      <div className="rounded-2xl border border-border bg-card p-7 shadow-xl">
         <form action={accion} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-white/80">
-              Correo
-            </Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="username"
-              required
-              className="border-white/15 bg-white/[0.06] text-white placeholder:text-white/30 focus-visible:border-[var(--efameinsa-granate)] focus-visible:ring-[var(--efameinsa-granate)]/40"
-            />
+            <Label htmlFor="email">Correo</Label>
+            <Input id="email" name="email" type="email" autoComplete="username" required />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-white/80">
-              Contraseña
-            </Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="border-white/15 bg-white/[0.06] text-white placeholder:text-white/30 focus-visible:border-[var(--efameinsa-granate)] focus-visible:ring-[var(--efameinsa-granate)]/40"
-            />
+            <Label htmlFor="password">Contraseña</Label>
+            <Input id="password" name="password" type="password" autoComplete="current-password" required />
           </div>
           {estado.error && (
             <motion.p
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-sm text-red-300"
+              className="text-sm text-destructive"
             >
               {estado.error}
             </motion.p>
           )}
-          <Button
-            type="submit"
-            className="w-full bg-[var(--efameinsa-granate)] text-white hover:bg-[var(--efameinsa-granate)]/90"
-            disabled={enviando}
-          >
+          <Button type="submit" className="w-full" disabled={enviando}>
             {enviando ? "Ingresando…" : "Ingresar"}
           </Button>
         </form>
       </div>
+
+      <p className="mt-5 text-center text-xs text-muted-foreground">
+        Acceso exclusivo para personal autorizado de Efameinsa.
+      </p>
     </motion.div>
   );
 }
