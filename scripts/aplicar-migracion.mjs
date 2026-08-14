@@ -1,5 +1,8 @@
-// Aplica supabase/migrations/*.sql y supabase/seed.sql directamente contra la
-// base de datos, sin pasar por el SQL Editor del dashboard.
+// Aplica supabase/migrations/*.sql (solo las nuevas) y supabase/seed.sql
+// directamente contra la base de datos, sin pasar por el SQL Editor del
+// dashboard. Lleva registro de qué migraciones ya corrieron en la tabla
+// `_migraciones_aplicadas`, así que correr esto de nuevo tras agregar un
+// archivo nuevo en supabase/migrations/ solo ejecuta ese archivo.
 //
 // Uso:
 //   node --env-file=.env.local scripts/aplicar-migracion.mjs
@@ -27,26 +30,57 @@ const cliente = new Client({
   ssl: { rejectUnauthorized: false },
 });
 
-async function ejecutarArchivo(ruta) {
-  const sql = readFileSync(ruta, "utf8");
-  console.log(`→ Ejecutando ${ruta.replace(RAIZ, ".")}`);
-  await cliente.query(sql);
-}
-
 async function main() {
   await cliente.connect();
   try {
+    await cliente.query(
+      `create table if not exists _migraciones_aplicadas (
+         archivo text primary key,
+         aplicado_at timestamptz not null default now()
+       )`,
+    );
+
+    const { rows: aplicadas } = await cliente.query(
+      "select archivo from _migraciones_aplicadas",
+    );
+    const yaAplicadas = new Set(aplicadas.map((r) => r.archivo));
+
     const migraciones = readdirSync(DIR_MIGRACIONES)
       .filter((f) => f.endsWith(".sql"))
       .sort();
 
+    let pendientes = 0;
     for (const archivo of migraciones) {
-      await ejecutarArchivo(join(DIR_MIGRACIONES, archivo));
+      if (yaAplicadas.has(archivo)) {
+        console.log(`= Ya aplicada: ${archivo}`);
+        continue;
+      }
+      pendientes++;
+      const sql = readFileSync(join(DIR_MIGRACIONES, archivo), "utf8");
+      console.log(`→ Ejecutando ${archivo}`);
+      await cliente.query("begin");
+      try {
+        await cliente.query(sql);
+        await cliente.query(
+          "insert into _migraciones_aplicadas (archivo) values ($1)",
+          [archivo],
+        );
+        await cliente.query("commit");
+      } catch (err) {
+        await cliente.query("rollback");
+        throw err;
+      }
     }
 
-    await ejecutarArchivo(ARCHIVO_SEED);
+    // El seed es idempotente (ON CONFLICT DO NOTHING) — se re-ejecuta siempre.
+    console.log("→ Ejecutando seed.sql");
+    await cliente.query(readFileSync(ARCHIVO_SEED, "utf8"));
 
-    console.log("\n✓ Migración y seed aplicados correctamente.");
+    console.log(
+      pendientes > 0
+        ? `\n✓ ${pendientes} migración(es) nueva(s) aplicada(s) y seed corrido.`
+        : "\n✓ No había migraciones nuevas; seed corrido igual.",
+    );
   } finally {
     await cliente.end();
   }

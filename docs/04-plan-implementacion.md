@@ -59,13 +59,14 @@ crm-efameinsa/
 
 **Aceptación (verificable en cuanto exista el proyecto Supabase):** login funciona; cada rol aterriza en su home; fila en `accesos` con IP; un comercial no puede entrar a `/gerencia` ni ver oportunidades de otro comercial (RLS + guardia de rol).
 
-## B2 · Central: captura, triaje, asignación (≈ 1 día) — corazón del piloto
-1. Formulario de captura rápida (canal, área destino, nombre, teléfono, RUC/DNI, mensaje). Al escribir teléfono/documento → `BuscadorDedup` consulta en vivo y muestra cuenta existente + su comercial de cartera.
-2. Bandeja: tabla de leads `pendiente_triaje` con acciones: derivar a área / descartar / duplicado / asignar.
-3. `asignarLead()` (server action transaccional): crea/vincula `cuenta`, abre `oportunidad` (etapa `asignada`), inserta `asignaciones` con motivo correcto (`cartera_existente` si la cuenta tenía dueño), setea `asignado_a/at/por`.
-4. `scripts/indice-clientes.mjs`: lee los Excel (paquete `xlsx`, rutas `C:/...`) y genera CSV/SQL con RUC/DNI + razón social + comercial de cartera → cargar a `cuentas` (solo índice mínimo; migración completa AL FINAL).
+## B2 · Central: captura, triaje, asignación — ✅ COMPLETADO (2026-08-14)
+1. ~~Formulario de captura rápida~~ ✓ `central/captura` (`captura-form.tsx`): canal, área destino, nombre, teléfono, RUC/DNI, razón social, correo, mensaje. Búsqueda de duplicados en vivo (debounce 400ms) vía la server action `buscarDuplicado` (`lib/acciones/leads.ts`) — muestra la cuenta existente y de quién es la cartera, y avisa si ya hay OTRO lead pendiente con el mismo teléfono/documento.
+2. ~~Bandeja~~ ✓ `central/page.tsx`: lista leads `pendiente_triaje` con botones Asignar/Descartar. R1 se resolvió más simple de lo planeado: si el área destino no es `comercial`, el lead se guarda directo como `derivado_area` al capturarlo (no hace falta un botón "derivar" en la bandeja — nunca llega ahí). "Duplicado" quedó como server action (`marcarDuplicado`) sin botón dedicado en la UI todavía; agregarlo si en el piloto se ve necesario.
+3. ~~`asignarLead()` transaccional~~ ✓ pero como función SQL `asignar_lead()` (`supabase/migrations/0002_asignacion_leads.sql`, `security definer`), no como lógica en la server action — así el dedup + alta/vínculo de cuenta + oportunidad + update del lead + auditoría en `asignaciones` corren en una sola transacción de Postgres, sin riesgo de quedar a medias. La server action solo hace `supabase.rpc('asignar_lead', ...)`.
+4. ~~`scripts/indice-clientes.mjs`~~ ✓ y ya se corrió para C5 (Katerine Tello): **1158 cuentas reales** cargadas desde `CRM COMERCIAL5 2026-Katerine Tello.xlsx` (hoja PROSP., filtrando filas cabecera por `ITEM`), tipo_doc inferido por longitud (11=RUC, 8=DNI). Reutilizable para los demás comerciales en cuanto tengan usuario: `node --env-file=.env.local scripts/indice-clientes.mjs --archivo "<ruta.xlsx>" --comercial C1` (o el código que corresponda).
+5. `scripts/aplicar-migracion.mjs` ahora lleva registro de migraciones ya aplicadas (tabla `_migraciones_aplicadas`) — se puede volver a correr `npm run db:migrar` después de agregar una migración nueva sin que falle por objetos ya existentes.
 
-**Aceptación:** un lead entra, se detecta duplicado real del índice, se asigna a su comercial de cartera, y C5 lo ve en su vista (y nadie más — probar RLS con dos usuarios).
+**Aceptación — verificada con datos reales (no solo simulada):** se creó un lead de prueba con el RUC de un cliente real de C5 (HOSPEDAJE LA PRINCESA E.I.R.L.); el dedup lo encontró y mostró "cartera de Katerine Tello"; `asignar_lead()` infirió correctamente `motivo='cartera_existente'`; y logueada como C5, la oportunidad aparece vía RLS. Falta la prueba manual en navegador (clicks reales) — el mecanismo de datos/backend está probado end-to-end.
 
 ## B3 · Comercial: mi día y gestión ≤15 s (≈ 1 día) — cierra el piloto
 1. **Mi día:** oportunidades con `proxima_accion_at` = hoy/vencidas, leads recién asignados, cotizaciones por vencer SLA.
