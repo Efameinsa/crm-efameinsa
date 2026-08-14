@@ -9,7 +9,9 @@
     "lint": "eslint",
     "db:migrar": "node --env-file=.env.local scripts/aplicar-migracion.mjs",
     "db:usuarios-prueba": "node --env-file=.env.local scripts/crear-usuarios-prueba.mjs",
-    "db:comerciales": "node --env-file=.env.local scripts/crear-comerciales.mjs"
+    "db:comerciales": "node --env-file=.env.local scripts/crear-comerciales.mjs",
+    "db:backup": "node --env-file=.env.local scripts/backup-datos.mjs",
+    "db:restaurar": "node --env-file=.env.local scripts/restaurar-datos.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
