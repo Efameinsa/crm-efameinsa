@@ -32,7 +32,7 @@ export default async function OportunidadDetallePage({
       .order("marca"),
     supabase
       .from("cotizaciones")
-      .select("id, codigo, serie, estado, estado_aprobacion, total, moneda")
+      .select("id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia")
       .eq("oportunidad_id", id)
       .order("created_at", { ascending: false }),
   ]);

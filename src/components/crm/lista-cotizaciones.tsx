@@ -16,6 +16,7 @@ export interface CotizacionResumen {
   estado_aprobacion: string;
   total: number;
   moneda: string;
+  nota_gerencia: string | null;
 }
 
 const ETIQUETA_APROBACION: Record<string, string> = {
@@ -24,6 +25,12 @@ const ETIQUETA_APROBACION: Record<string, string> = {
   aprobada_gerencia: "Aprobada por gerencia",
   rechazada_gerencia: "Rechazada por gerencia",
 };
+
+function varianteBadge(estadoAprobacion: string): "destructive" | "secondary" {
+  return estadoAprobacion === "pendiente_gerencia" || estadoAprobacion === "rechazada_gerencia"
+    ? "destructive"
+    : "secondary";
+}
 
 export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionResumen[] }) {
   const router = useRouter();
@@ -74,18 +81,21 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
           const puedeVender = c.estado === "enviada" && (c.estado_aprobacion === "auto_aprobada" || c.estado_aprobacion === "aprobada_gerencia");
           return (
             <TableRow key={c.id}>
-              <TableCell className="font-mono text-xs">{c.codigo}</TableCell>
-              <TableCell>{c.serie}</TableCell>
-              <TableCell>
+              <TableCell className="font-mono text-xs align-top">{c.codigo}</TableCell>
+              <TableCell className="align-top">{c.serie}</TableCell>
+              <TableCell className="align-top">
                 {c.moneda} {c.total}
               </TableCell>
-              <TableCell>
-                <Badge variant={c.estado_aprobacion === "pendiente_gerencia" ? "destructive" : "secondary"}>
-                  {ETIQUETA_APROBACION[c.estado_aprobacion]}
-                </Badge>
+              <TableCell className="align-top">
+                <Badge variant={varianteBadge(c.estado_aprobacion)}>{ETIQUETA_APROBACION[c.estado_aprobacion]}</Badge>
+                {c.nota_gerencia && (
+                  <p className="mt-1 max-w-[220px] text-xs text-muted-foreground">
+                    &ldquo;{c.nota_gerencia}&rdquo;
+                  </p>
+                )}
               </TableCell>
-              <TableCell>{c.estado}</TableCell>
-              <TableCell className="flex justify-end gap-2">
+              <TableCell className="align-top">{c.estado}</TableCell>
+              <TableCell className="flex justify-end gap-2 align-top">
                 <a href={`/api/cotizaciones/${c.id}/pdf`} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">
                   Ver PDF
                 </a>

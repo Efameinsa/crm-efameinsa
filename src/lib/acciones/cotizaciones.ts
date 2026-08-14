@@ -56,7 +56,10 @@ export async function registrarVenta(cotizacionId: string): Promise<{ error: str
   return { error: null };
 }
 
-export async function aprobarCotizacion(cotizacionId: string): Promise<{ error: string | null }> {
+export async function aprobarCotizacion(
+  cotizacionId: string,
+  nota: string,
+): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -65,7 +68,12 @@ export async function aprobarCotizacion(cotizacionId: string): Promise<{ error: 
 
   const { error } = await supabase
     .from("cotizaciones")
-    .update({ estado_aprobacion: "aprobada_gerencia", aprobada_por: user.id, aprobada_at: new Date().toISOString() })
+    .update({
+      estado_aprobacion: "aprobada_gerencia",
+      aprobada_por: user.id,
+      aprobada_at: new Date().toISOString(),
+      nota_gerencia: nota || null,
+    })
     .eq("id", cotizacionId)
     .eq("estado_aprobacion", "pendiente_gerencia");
   if (error) return { error: error.message };
@@ -74,7 +82,12 @@ export async function aprobarCotizacion(cotizacionId: string): Promise<{ error: 
   return { error: null };
 }
 
-export async function rechazarCotizacion(cotizacionId: string): Promise<{ error: string | null }> {
+export async function rechazarCotizacion(
+  cotizacionId: string,
+  nota: string,
+): Promise<{ error: string | null }> {
+  if (!nota.trim()) return { error: "Indique por qué se rechaza (le sirve al comercial para volver a cotizar)" };
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -83,7 +96,12 @@ export async function rechazarCotizacion(cotizacionId: string): Promise<{ error:
 
   const { error } = await supabase
     .from("cotizaciones")
-    .update({ estado_aprobacion: "rechazada_gerencia", aprobada_por: user.id, aprobada_at: new Date().toISOString() })
+    .update({
+      estado_aprobacion: "rechazada_gerencia",
+      aprobada_por: user.id,
+      aprobada_at: new Date().toISOString(),
+      nota_gerencia: nota,
+    })
     .eq("id", cotizacionId)
     .eq("estado_aprobacion", "pendiente_gerencia");
   if (error) return { error: error.message };
