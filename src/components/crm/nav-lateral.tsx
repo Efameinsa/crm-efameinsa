@@ -14,6 +14,7 @@ import {
   Users,
   Package,
   BookMarked,
+  Gauge,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   ],
   comercial: [
     { href: "/comercial", etiqueta: "Mi día", icono: ClipboardList },
+    { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: Gauge },
     { href: "/comercial/oportunidades", etiqueta: "Mis oportunidades", icono: KanbanSquare },
     { href: "/comercial/cartera", etiqueta: "Mi cartera", icono: Building2 },
   ],

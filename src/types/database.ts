@@ -49,6 +49,7 @@ export interface Perfil {
   nombre: string;
   rol: RolUsuario;
   codigo_comercial: string | null;
+  meta_mensual: number | null;
   activo: boolean;
   created_at: string;
   updated_at: string;

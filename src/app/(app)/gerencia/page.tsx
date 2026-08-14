@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Kpi } from "@/components/crm/kpi";
 import { BarraEtapa } from "@/components/crm/barra-etapa";
+import { TablaPorComercial } from "@/components/crm/tabla-por-comercial";
 import type { EtapaOportunidad } from "@/types/database";
 
 const ETAPAS: EtapaOportunidad[] = ["asignada", "filtrada", "cotizada", "seguimiento", "potencial", "venta"];
@@ -32,15 +33,21 @@ export default async function GerenciaPage() {
   ] = await Promise.all([
     supabase.from("leads").select("id", { count: "exact", head: true }).eq("estado", "pendiente_triaje"),
     supabase.from("cotizaciones").select("id", { count: "exact", head: true }).eq("estado_aprobacion", "pendiente_gerencia"),
-    supabase.from("ventas").select("monto_total").gte("fecha_venta", inicioMes.toISOString().slice(0, 10)),
+    supabase.from("ventas").select("monto_total, oportunidades(comercial_id)").gte("fecha_venta", inicioMes.toISOString().slice(0, 10)),
     supabase.from("oportunidades").select("monto_estimado").not("etapa", "in", "(venta,rechazada,derivada)"),
     supabase.from("oportunidades").select("etapa, comercial_id"),
     supabase.from("cotizaciones").select("total, oportunidades(comercial_id)"),
     supabase.from("ventas").select("monto_total, oportunidades(comercial_id)"),
-    supabase.from("perfiles").select("id, nombre").eq("rol", "comercial").eq("activo", true),
+    supabase.from("perfiles").select("id, nombre, meta_mensual").eq("rol", "comercial").eq("activo", true),
   ]);
 
   const ventasDelMes = (ventasMes ?? []).reduce((acc, v) => acc + v.monto_total, 0);
+
+  const ventasMesPorComercial = new Map<string, number>();
+  for (const v of ventasMes ?? []) {
+    const comercialId = (v.oportunidades as unknown as { comercial_id: string } | null)?.comercial_id;
+    if (comercialId) ventasMesPorComercial.set(comercialId, (ventasMesPorComercial.get(comercialId) ?? 0) + v.monto_total);
+  }
   const pipelineEstimado = (oportunidadesAbiertas ?? []).reduce((acc, o) => acc + (o.monto_estimado ?? 0), 0);
 
   const conteosPorEtapa = ETAPAS.map((etapa) => ({
@@ -57,7 +64,9 @@ export default async function GerenciaPage() {
     const vendido = (ventasTodas ?? [])
       .filter((v) => (v.oportunidades as unknown as { comercial_id: string } | null)?.comercial_id === p.id)
       .reduce((acc, v) => acc + v.monto_total, 0);
-    return { nombre: p.nombre, abiertas, cotizado, vendido };
+    const vendidoMes = ventasMesPorComercial.get(p.id) ?? 0;
+    const pctMeta = p.meta_mensual ? Math.round((vendidoMes / p.meta_mensual) * 100) : null;
+    return { id: p.id, nombre: p.nombre, abiertas, cotizado, vendido, pctMeta };
   });
 
   return (
@@ -103,26 +112,7 @@ export default async function GerenciaPage() {
             <CardTitle>Por comercial</CardTitle>
           </CardHeader>
           <CardContent>
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2 font-medium">Comercial</th>
-                  <th className="pb-2 pl-2 text-right font-medium">Abiertas</th>
-                  <th className="pb-2 pl-2 text-right font-medium">Cotizado</th>
-                  <th className="pb-2 pl-2 text-right font-medium">Vendido</th>
-                </tr>
-              </thead>
-              <tbody>
-                {porComercial.map((c) => (
-                  <tr key={c.nombre} className="border-b border-border last:border-0">
-                    <td className="py-2 text-foreground">{c.nombre}</td>
-                    <td className="py-2 pl-2 text-right tabular-nums">{c.abiertas}</td>
-                    <td className="py-2 pl-2 text-right tabular-nums">{c.cotizado.toLocaleString("es-PE")}</td>
-                    <td className="py-2 pl-2 text-right tabular-nums">{c.vendido.toLocaleString("es-PE")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <TablaPorComercial filas={porComercial} />
           </CardContent>
         </Card>
       </div>
