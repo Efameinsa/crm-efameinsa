@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Phone, Mail, MapPin, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { RegistroRapido } from "@/components/crm/registro-rapido";
 import { CambiarEtapa } from "@/components/crm/cambiar-etapa";
 import { Cotizador } from "@/components/crm/cotizador";
 import { ListaCotizaciones } from "@/components/crm/lista-cotizaciones";
 import { CalificacionOportunidad } from "@/components/crm/calificacion-oportunidad";
-import { HistorialActividades } from "@/components/crm/historial-actividades";
+import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
@@ -44,12 +46,6 @@ export default async function OportunidadDetallePage({
 
   if (!oportunidad) notFound();
 
-  const { data: actividades } = await supabase
-    .from("actividades")
-    .select("id, tipo, nota, realizada_at")
-    .eq("oportunidad_id", id)
-    .order("realizada_at", { ascending: false });
-
   const cuenta = oportunidad.cuentas as unknown as {
     id: string;
     razon_social: string;
@@ -84,6 +80,12 @@ export default async function OportunidadDetallePage({
       }
     }
   }
+
+  // El feed de "contexto primero": la historia COMPLETA del cliente (todas
+  // sus oportunidades), no solo la de esta oportunidad puntual.
+  const { eventos } = cuenta?.id
+    ? await cargarHistorialCuenta(supabase, cuenta.id)
+    : { eventos: [] };
 
   return (
     <div className="space-y-4">
@@ -143,16 +145,25 @@ export default async function OportunidadDetallePage({
             <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} />
           </SeccionPanel>
 
+          {cuenta?.id && (
+            <SeccionPanel
+              titulo="Historial del cliente"
+              accion={
+                <Link href={`/comercial/cartera/${cuenta.id}`} className="text-xs font-medium text-primary hover:underline">
+                  Ver ficha completa →
+                </Link>
+              }
+            >
+              <HistorialCuenta eventos={eventos} />
+            </SeccionPanel>
+          )}
+
           <SeccionPanel titulo="Cotizaciones">
             <div className="space-y-4">
               <ListaCotizaciones cotizaciones={cotizaciones ?? []} />
               {(cotizaciones?.length ?? 0) > 0 && <div className="border-t border-border" />}
               <Cotizador oportunidadId={oportunidad.id} productos={productos ?? []} historialPrecios={historialPrecios} />
             </div>
-          </SeccionPanel>
-
-          <SeccionPanel titulo="Historial">
-            <HistorialActividades actividades={actividades ?? []} />
           </SeccionPanel>
         </div>
 
