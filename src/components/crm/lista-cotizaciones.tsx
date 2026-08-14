@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileDown } from "lucide-react";
+import { FileDown, CircleCheckBig } from "lucide-react";
 import { toast } from "sonner";
 import { enviarCotizacion, registrarVenta } from "@/lib/acciones/cotizaciones";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,13 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
         const aprobacion = ESTADO_APROBACION[c.estado_aprobacion];
 
         return (
-          <div key={c.id} className="rounded-lg border border-border bg-background p-3.5">
+          <div
+            key={c.id}
+            className={cn(
+              "rounded-lg border p-3.5",
+              puedeVender ? "border-[#1E7F4F]/40 bg-[#1E7F4F]/5" : "border-border bg-background",
+            )}
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <span className="font-mono text-xs font-semibold text-foreground">{c.codigo}</span>
@@ -96,6 +102,13 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
               </p>
             )}
 
+            {puedeVender && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-[#1E7F4F]">
+                <CircleCheckBig className="size-3.5" />
+                Enviada y aprobada — ya se puede cerrar la venta.
+              </p>
+            )}
+
             <div className="mt-2.5 flex items-center gap-3">
               <a
                 href={`/api/cotizaciones/${c.id}/pdf`}
@@ -112,7 +125,13 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
                 </Button>
               )}
               {puedeVender && (
-                <Button size="sm" disabled={enviando} onClick={() => onRegistrarVenta(c.id)}>
+                <Button
+                  size="sm"
+                  disabled={enviando}
+                  onClick={() => onRegistrarVenta(c.id)}
+                  className="bg-[#1E7F4F] hover:bg-[#1E7F4F]/90"
+                >
+                  <CircleCheckBig className="size-3.5" />
                   Registrar venta
                 </Button>
               )}

@@ -6,6 +6,7 @@ import {
   Inbox,
   ClipboardList,
   KanbanSquare,
+  Building2,
   FileText,
   BarChart3,
   TrendingUp,
@@ -26,6 +27,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   comercial: [
     { href: "/comercial", etiqueta: "Mi día", icono: ClipboardList },
     { href: "/comercial/oportunidades", etiqueta: "Mis oportunidades", icono: KanbanSquare },
+    { href: "/comercial/cartera", etiqueta: "Mi cartera", icono: Building2 },
   ],
   gerencia: [
     { href: "/gerencia", etiqueta: "Panel comercial", icono: BarChart3 },
@@ -44,10 +46,17 @@ export function NavLateral({ rol }: { rol: RolUsuario }) {
   const pathname = usePathname();
   const enlaces = ENLACES_POR_ROL[rol];
 
+  // El enlace activo es el de coincidencia más específica (más larga), no
+  // solo el primero cuyo prefijo calce — así una ruta anidada como
+  // /comercial/cartera/<id> resalta "Mi cartera" y no "Mi día".
+  const activoHref = enlaces
+    .filter((e) => pathname === e.href || pathname.startsWith(e.href + "/"))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
   return (
     <nav className="flex flex-col gap-0.5 p-3">
       {enlaces.map((enlace) => {
-        const activo = pathname === enlace.href;
+        const activo = enlace.href === activoHref;
         const Icono = enlace.icono;
         return (
           <Link

@@ -246,13 +246,18 @@ export function PipelineKanban({
         <DragOverlay>{activo && <Tarjeta op={activo} arrastrando />}</DragOverlay>
       </DndContext>
 
-      {cerradas.length > 0 && (
-        <p className="px-1 text-xs text-muted-foreground">
-          {cerradas.filter((o) => o.etapa === "venta").length} venta(s) ·{" "}
-          {cerradas.filter((o) => o.etapa === "rechazada").length} rechazada(s) ·{" "}
-          {cerradas.filter((o) => o.etapa === "derivada").length} derivada(s) este período.
-        </p>
-      )}
+      <div className="flex flex-wrap items-center gap-2 px-1 text-xs">
+        <span className="text-muted-foreground">Este período:</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1E7F4F]/10 px-2.5 py-1 font-semibold text-[#1E7F4F]">
+          {cerradas.filter((o) => o.etapa === "venta").length} venta(s)
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive">
+          {cerradas.filter((o) => o.etapa === "rechazada").length} rechazada(s)
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 font-semibold text-muted-foreground">
+          {cerradas.filter((o) => o.etapa === "derivada").length} derivada(s)
+        </span>
+      </div>
 
       <Dialog open={pendienteRechazo !== null} onOpenChange={(v) => !v && setPendienteRechazo(null)}>
         <DialogContent>
