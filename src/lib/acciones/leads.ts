@@ -6,6 +6,18 @@ import { normalizarTelefono } from "@/lib/telefono";
 import { notificar } from "@/lib/notificaciones";
 import { esquemaCaptura } from "@/lib/validaciones/lead";
 
+const CANAL_LABEL: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  llamada: "Llamada",
+  formulario_web: "Formulario web",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  email: "Correo",
+  presencial: "Presencial",
+  referido: "Referido",
+  otro: "Otro",
+};
+
 export interface ResultadoDuplicado {
   cuenta: { id: string; razon_social: string; comercial_nombre: string | null } | null;
   leadPendiente: { id: string; codigo: string | null; recibido_at: string } | null;
@@ -125,6 +137,20 @@ export async function registrarContacto(
     .single();
 
   if (error) return { error: error.message };
+
+  if (esComercial) {
+    const canalLegible = CANAL_LABEL[d.canal] ?? d.canal;
+    const cuerpo = d.razon_social
+      ? `${d.nombre_contacto} · ${canalLegible} · ${d.razon_social}`
+      : `${d.nombre_contacto} · ${canalLegible}`;
+    await notificar({
+      rol: "gerencia",
+      tipo: "lead_registrado",
+      titulo: "Nuevo contacto en Central",
+      cuerpo,
+      url: "/gerencia",
+    });
+  }
 
   revalidatePath("/central");
   return { error: null, codigo: lead.codigo ?? undefined };

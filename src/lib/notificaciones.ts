@@ -12,7 +12,8 @@ export type TipoNotificacion =
   | "lead_asignado"
   | "cotizacion_pendiente"
   | "cotizacion_aprobada"
-  | "cotizacion_rechazada";
+  | "cotizacion_rechazada"
+  | "lead_registrado";
 
 interface Destinatario {
   userId?: string;
