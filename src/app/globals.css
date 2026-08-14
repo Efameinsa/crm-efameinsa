@@ -41,13 +41,16 @@
   --chart-3: var(--efameinsa-gris);
   --chart-4: #b3261e;
   --chart-5: #d9d4d4;
-  --sidebar: var(--efameinsa-carbon);
+  /* Casi negro (más oscuro que --efameinsa-carbon, reservado para texto/
+     iconos): el sidebar es el panel de navegación permanente, no el "negro
+     de marca" del logo — se beneficia de más contraste con el resto de la app. */
+  --sidebar: #16171a;
   --sidebar-foreground: #ffffff;
   --sidebar-primary: var(--efameinsa-granate);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #3d3f47;
+  --sidebar-accent: #262830;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #3d3f47;
+  --sidebar-border: #262830;
   --sidebar-ring: var(--efameinsa-granate);
 }
 

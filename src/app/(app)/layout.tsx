@@ -9,13 +9,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-1">
       <aside className="flex w-60 flex-col bg-sidebar text-sidebar-foreground">
-        <div className="flex items-center gap-2 px-4 py-4">
+        <div className="flex items-center justify-center px-4 py-5">
           <Image
-            src="/logo-efameinsa.png"
+            src="/efameinsa-blanco.png"
             alt="Efameinsa"
-            width={140}
-            height={23}
-            className="h-6 w-auto brightness-0 invert"
+            width={442}
+            height={334}
+            className="h-20 w-auto"
             priority
           />
         </div>
