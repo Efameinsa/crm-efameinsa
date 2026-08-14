@@ -99,7 +99,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
                       <TableCell className="whitespace-nowrap font-mono text-xs">
                         {v.cotizaciones?.codigo ?? "—"} · {v.cotizaciones?.serie}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="max-w-[360px] whitespace-normal text-xs text-muted-foreground">
                         {(v.cotizaciones?.cotizacion_items ?? [])
                           .map(
                             (it) =>

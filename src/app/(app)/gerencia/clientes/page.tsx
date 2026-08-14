@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { normalizarTelefono } from "@/lib/telefono";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { TablaClientes } from "@/components/crm/tabla-clientes";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const LIMITE = 50;
 
@@ -111,52 +110,19 @@ export default async function ClientesGerenciaPage({
             {query ? "Sin resultados para esa búsqueda." : "Todavía no hay clientes registrados."}
           </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Comercial dueño</TableHead>
-                <TableHead>Zona</TableHead>
-                <TableHead className="text-right">Oport. abiertas</TableHead>
-                <TableHead>Última venta</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {cuentas.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell>
-                    <p className="font-medium text-foreground">{c.razon_social}</p>
-                    {c.tipo_doc !== "SIN_DOC" && (
-                      <p className="text-xs text-muted-foreground">
-                        {c.tipo_doc}: {c.num_doc}
-                      </p>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {c.perfiles ? (
-                      <span className="text-foreground">
-                        {c.perfiles.nombre}
-                        {c.perfiles.codigo_comercial ? ` (${c.perfiles.codigo_comercial})` : ""}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">Sin asignar</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{c.distrito ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{conteoAbiertas.get(c.id) ?? 0}</TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">
-                    {c.ultima_venta_at ? new Date(c.ultima_venta_at).toLocaleDateString("es-PE") : "Nunca"}
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/gerencia/clientes/${c.id}`} className="text-xs font-medium text-primary hover:underline">
-                      Ver
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <TablaClientes
+            filas={cuentas.map((c) => ({
+              id: c.id,
+              razonSocial: c.razon_social,
+              tipoDoc: c.tipo_doc,
+              numDoc: c.num_doc,
+              distrito: c.distrito,
+              comercialNombre: c.perfiles?.nombre ?? null,
+              comercialCodigo: c.perfiles?.codigo_comercial ?? null,
+              abiertas: conteoAbiertas.get(c.id) ?? 0,
+              ultimaVentaAt: c.ultima_venta_at,
+            }))}
+          />
         )}
       </SeccionPanel>
     </div>

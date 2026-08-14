@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { Search, ArrowDownUp } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, ArrowDownUp, ChevronRight } from "lucide-react";
 import {
   LineaTiempoCuenta,
   ETIQUETA_ACTIVIDAD,
@@ -135,10 +135,10 @@ function TablaHistorial({ eventos }: { eventos: EventoTimeline[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-28">Fecha</TableHead>
+            <TableHead className="w-24">Fecha</TableHead>
             <TableHead>Gestión</TableHead>
-            <TableHead className="w-36">Resultado</TableHead>
-            <TableHead className="w-14" />
+            <TableHead className="w-32">Resultado</TableHead>
+            <TableHead className="w-8" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -152,8 +152,18 @@ function TablaHistorial({ eventos }: { eventos: EventoTimeline[] }) {
 }
 
 function FilaHistorial({ evento }: { evento: EventoTimeline }) {
+  const router = useRouter();
+
   return (
-    <TableRow>
+    <TableRow
+      role="link"
+      tabIndex={0}
+      onClick={() => router.push(`/comercial/oportunidades/${evento.oportunidadId}`)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") router.push(`/comercial/oportunidades/${evento.oportunidadId}`);
+      }}
+      className="cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+    >
       <TableCell className="whitespace-nowrap align-top tabular-nums text-muted-foreground">
         {new Date(evento.fecha).toLocaleDateString("es-PE")}
       </TableCell>
@@ -201,9 +211,7 @@ function FilaHistorial({ evento }: { evento: EventoTimeline }) {
         )}
       </TableCell>
       <TableCell className="align-top">
-        <Link href={`/comercial/oportunidades/${evento.oportunidadId}`} className="text-xs text-primary hover:underline">
-          Ver
-        </Link>
+        <ChevronRight className="size-4 text-muted-foreground" />
       </TableCell>
     </TableRow>
   );
