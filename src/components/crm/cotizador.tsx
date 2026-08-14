@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface PrecioTier {
   tier: string;
@@ -36,6 +37,11 @@ interface ItemCarrito extends ItemCotizacion {
   precioPiso: number | null;
 }
 
+export interface HistorialPrecio {
+  precio: number;
+  fecha: string;
+}
+
 function precioTier(producto: Producto, tier: string): number | null {
   return producto.precios_producto.find((p) => p.tier === tier)?.precio ?? null;
 }
@@ -48,7 +54,15 @@ function tierInicial(producto: Producto): string {
   return producto.segmento === "semi_industrial" ? "optimo" : "base";
 }
 
-export function Cotizador({ oportunidadId, productos }: { oportunidadId: string; productos: Producto[] }) {
+export function Cotizador({
+  oportunidadId,
+  productos,
+  historialPrecios = {},
+}: {
+  oportunidadId: string;
+  productos: Producto[];
+  historialPrecios?: Record<string, HistorialPrecio>;
+}) {
   const router = useRouter();
   const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">("EFAMEINSA");
   const [productoSeleccionado, setProductoSeleccionado] = useState("");
@@ -163,6 +177,8 @@ export function Cotizador({ oportunidadId, productos }: { oportunidadId: string;
           <TableBody>
             {carrito.map((item, i) => {
               const bajoLista = item.precioPiso !== null && item.precio_unitario < item.precioPiso;
+              const historial = historialPrecios[item.producto_id];
+              const regalandoMargen = historial !== undefined && historial.precio > item.precio_unitario;
               return (
                 <TableRow key={i}>
                   <TableCell>
@@ -170,6 +186,17 @@ export function Cotizador({ oportunidadId, productos }: { oportunidadId: string;
                     {bajoLista && (
                       <p className="text-xs text-destructive">
                         Bajo lista (piso: {item.precioPiso}) — requerirá aprobación de gerencia
+                      </p>
+                    )}
+                    {historial && (
+                      <p
+                        className={cn(
+                          "text-xs",
+                          regalandoMargen ? "font-bold text-amber-700" : "text-muted-foreground",
+                        )}
+                      >
+                        📌 Este cliente compró este equipo a US$ {historial.precio.toLocaleString("es-PE")} el{" "}
+                        {new Date(historial.fecha).toLocaleDateString("es-PE")}
                       </p>
                     )}
                   </TableCell>

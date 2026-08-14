@@ -31,6 +31,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   ],
   gerencia: [
     { href: "/gerencia", etiqueta: "Panel comercial", icono: BarChart3 },
+    { href: "/gerencia/clientes", etiqueta: "Clientes", icono: Building2 },
     { href: "/gerencia/marketing", etiqueta: "Panel de marketing", icono: TrendingUp },
     { href: "/gerencia/aprobaciones", etiqueta: "Aprobaciones", icono: CheckCircle2 },
     { href: "/gerencia/cartera-liberable", etiqueta: "Cartera liberable", icono: FileText },

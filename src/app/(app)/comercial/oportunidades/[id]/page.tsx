@@ -57,6 +57,32 @@ export default async function OportunidadDetallePage({
     contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
   } | null;
 
+  // Precio histórico por producto A ESTA CUENTA (último precio de venta,
+  // sea cual sea la oportunidad en la que se cerró) — el cotizador lo usa
+  // para avisar si se está regalando margen frente a lo que ya pagó antes.
+  const historialPrecios: Record<string, { precio: number; fecha: string }> = {};
+  if (cuenta?.id) {
+    const { data: opsCuenta } = await supabase.from("oportunidades").select("id").eq("cuenta_id", cuenta.id);
+    const opIdsCuenta = (opsCuenta ?? []).map((o) => o.id);
+    if (opIdsCuenta.length > 0) {
+      const { data: ventasCuenta } = await supabase
+        .from("ventas")
+        .select("fecha_venta, cotizaciones(cotizacion_items(producto_id, precio_unitario))")
+        .in("oportunidad_id", opIdsCuenta)
+        .order("fecha_venta", { ascending: false });
+      for (const v of ventasCuenta ?? []) {
+        const items =
+          (v.cotizaciones as unknown as { cotizacion_items: { producto_id: string; precio_unitario: number }[] } | null)
+            ?.cotizacion_items ?? [];
+        for (const it of items) {
+          if (!(it.producto_id in historialPrecios)) {
+            historialPrecios[it.producto_id] = { precio: it.precio_unitario, fecha: v.fecha_venta };
+          }
+        }
+      }
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Encabezado: identidad de la cuenta + estado, siempre visible arriba */}
@@ -119,7 +145,7 @@ export default async function OportunidadDetallePage({
             <div className="space-y-4">
               <ListaCotizaciones cotizaciones={cotizaciones ?? []} />
               {(cotizaciones?.length ?? 0) > 0 && <div className="border-t border-border" />}
-              <Cotizador oportunidadId={oportunidad.id} productos={productos ?? []} />
+              <Cotizador oportunidadId={oportunidad.id} productos={productos ?? []} historialPrecios={historialPrecios} />
             </div>
           </SeccionPanel>
 

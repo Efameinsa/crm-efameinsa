@@ -79,10 +79,10 @@ export function RegistroRapido({ oportunidadId }: { oportunidadId: string }) {
       </div>
 
       <Textarea
-        placeholder="Nota (opcional)"
+        placeholder="Detalle de la gestión (ej.: tiene 20 lavanderías, presupuesto US$ 100 mil, su crédito sale el 15/09)…"
         value={nota}
         onChange={(e) => setNota(e.target.value)}
-        rows={2}
+        rows={3}
       />
 
       <div className="space-y-2">
