@@ -2,9 +2,9 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileDown, CircleCheckBig } from "lucide-react";
+import { FileDown, CircleCheckBig, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { enviarCotizacion, registrarVenta } from "@/lib/acciones/cotizaciones";
+import { duplicarCotizacion, enviarCotizacion, registrarVenta } from "@/lib/acciones/cotizaciones";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +56,17 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
       if (r.error) toast.error(r.error);
       else {
         toast.success("Venta registrada");
+        router.refresh();
+      }
+    });
+  }
+
+  function onDuplicar(id: string) {
+    startTransition(async () => {
+      const r = await duplicarCotizacion(id);
+      if (r.error) toast.error(r.error);
+      else {
+        toast.success(`${r.codigoNuevo} creada como copia de ${r.codigoViejo}`);
         router.refresh();
       }
     });
@@ -135,6 +146,10 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
                   Registrar venta
                 </Button>
               )}
+              <Button size="sm" variant="ghost" disabled={enviando} onClick={() => onDuplicar(c.id)}>
+                <Copy className="size-3.5" />
+                Duplicar
+              </Button>
             </div>
           </div>
         );

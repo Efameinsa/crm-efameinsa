@@ -53,6 +53,42 @@ export async function crearCotizacion(datos: {
   return { error: null, cotizacionId };
 }
 
+export async function duplicarCotizacion(
+  cotizacionId: string,
+): Promise<{ error: string | null; codigoNuevo?: string; codigoViejo?: string }> {
+  const supabase = await createClient();
+
+  const { data: original, error: errorOriginal } = await supabase
+    .from("cotizaciones")
+    .select("codigo, oportunidad_id, serie, condiciones, vigencia_dias, cotizacion_items(producto_id, cantidad, precio_unitario, tier_aplicado)")
+    .eq("id", cotizacionId)
+    .maybeSingle();
+  if (errorOriginal) return { error: errorOriginal.message };
+  if (!original) return { error: "Cotización no encontrada" };
+
+  const items = (original.cotizacion_items as { producto_id: string; cantidad: number; precio_unitario: number; tier_aplicado: string | null }[]) ?? [];
+  if (items.length === 0) return { error: "La cotización original no tiene ítems" };
+
+  const { data: nuevaId, error: errorRpc } = await supabase.rpc("crear_cotizacion", {
+    p_oportunidad_id: original.oportunidad_id,
+    p_serie: original.serie,
+    p_items: items.map((i) => ({
+      producto_id: i.producto_id,
+      cantidad: i.cantidad,
+      precio_unitario: i.precio_unitario,
+      tier_aplicado: i.tier_aplicado ?? undefined,
+    })),
+    p_condiciones: original.condiciones,
+    p_vigencia_dias: original.vigencia_dias,
+  });
+  if (errorRpc) return { error: errorRpc.message };
+
+  const { data: nueva } = await supabase.from("cotizaciones").select("codigo").eq("id", nuevaId as string).maybeSingle();
+
+  revalidatePath(`/comercial/oportunidades/${original.oportunidad_id}`);
+  return { error: null, codigoNuevo: nueva?.codigo ?? undefined, codigoViejo: original.codigo ?? undefined };
+}
+
 export async function enviarCotizacion(cotizacionId: string): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { error } = await supabase
