@@ -16,43 +16,48 @@ crm-efameinsa/
 │  └─ indice-clientes.mjs     # B2: índice mínimo RUC/DNI+comercial para dedup día 1
 ├─ public/                    # logo-efameinsa.png, iconos PWA
 └─ src/
-   ├─ middleware.ts           # sesión Supabase + registro en `accesos`
+   ├─ proxy.ts                # sesión Supabase + redirect por rol (era middleware.ts; Next 16 lo renombró)
    ├─ app/
    │  ├─ (auth)/login/
    │  ├─ (app)/               # layout con nav por rol
-   │  │  ├─ central/          # bandeja, captura, triaje, asignación
-   │  │  ├─ comercial/        # mi-dia/, oportunidades/[id], cotizador
-   │  │  ├─ gerencia/         # dashboard-comercial, dashboard-marketing,
-   │  │  │                    #   aprobaciones/, cartera-liberable/
-   │  │  └─ admin/            # usuarios, productos, precios, catalogos
+   │  │  ├─ central/          # bandeja ✓, captura (stub B1 → formulario real en B2)
+   │  │  ├─ comercial/        # mi-dia ✓, oportunidades ✓, cotizador (B4)
+   │  │  ├─ gerencia/         # panel comercial ✓, marketing (stub), aprobaciones ✓, cartera-liberable ✓
+   │  │  └─ admin/            # usuarios ✓, productos (stub B4), catalogos ✓
    │  └─ api/
-   │     ├─ leads/route.ts            # POST público con token (formularios web)
+   │     ├─ leads/route.ts            # POST público con token (formularios web) — B5
    │     ├─ webhooks/meta/route.ts    # Meta Lead Ads (B5)
    │     └─ cron/
    │        ├─ gasto-diario/route.ts  # Google Ads + Meta APIs (B5)
    │        └─ alertas/route.ts       # SLA 6pm y silencios (B4)
    ├─ components/
-   │  ├─ ui/                  # shadcn/ui
-   │  └─ crm/                 # RegistroRapido, BuscadorDedup, SelectorProximaAccion...
+   │  ├─ ui/                  # shadcn/ui ✓
+   │  └─ crm/                 # nav-lateral ✓, encabezado-usuario ✓; RegistroRapido, BuscadorDedup (B2/B3)
    ├─ lib/
-   │  ├─ supabase/{client,server,admin}.ts   # patrón @supabase/ssr
-   │  ├─ acciones/            # server actions: asignarLead, guardarCotizacion, cerrarVenta...
-   │  ├─ pdf/cotizacion.tsx   # @react-pdf/renderer, marca Efameinsa
+   │  ├─ supabase/{client,server,admin}.ts   # patrón @supabase/ssr ✓
+   │  ├─ auth.ts              # requerirPerfil / requerirRol ✓
+   │  ├─ acciones/            # auth.ts ✓ (login/logout); asignarLead, guardarCotizacion, cerrarVenta (B2-B4)
+   │  ├─ pdf/cotizacion.tsx   # @react-pdf/renderer, marca Efameinsa (B4)
    │  └─ validaciones/        # esquemas Zod
-   └─ types/database.ts       # supabase gen types typescript
+   └─ types/database.ts       # ✓ escrito a mano; reemplazar por `supabase gen types` cuando el proyecto esté enlazado
 ```
 
-## B1 · Fundaciones (≈ medio día)
-1. Scaffold: `npx create-next-app@latest . --typescript --tailwind --app --src-dir --import-alias "@/*"` (dentro de esta carpeta; ya hay CLAUDE.md/docs — no sobrescribir).
-2. `npx shadcn@latest init` + componentes base (button, card, table, dialog, form, badge, tabs).
-3. Crear proyecto Supabase (Free) desde el dashboard; guardar URL y keys en `.env.local` (ver `.env.example`).
-4. Aplicar `0001_esquema_inicial.sql` y `seed.sql` (SQL Editor del dashboard o `supabase db push` si instalan la CLI).
-5. `npm i @supabase/supabase-js @supabase/ssr zod` · auth con patrón @supabase/ssr (server client + middleware).
-6. Crear usuarios de prueba (admin, gerencia, central, C5) desde el dashboard + filas en `perfiles`.
-7. Middleware: refresca sesión, registra fila en `accesos` una vez por sesión nueva, y redirige por rol al entrar a `/`.
-8. Layout `(app)` con navegación según `perfiles.rol`. Colores marca: granate `#7E1210`, carbón `#2C2E35`.
+## B1 · Fundaciones — ✅ COMPLETADO (2026-08-14)
+1. ~~Scaffold~~ ✓ Next.js 16 (Turbopack) + TypeScript + Tailwind v4, en `src/`.
+2. ~~shadcn/ui~~ ✓ `init` + button, card, table, dialog, badge, tabs, input, label, select, textarea, dropdown-menu, sonner, separator, avatar. (`form` no se pudo instalar por el CLI en esta máquina — usar react-hook-form manual si hace falta en B2+, o reintentar `npx shadcn@latest add form`.)
+3. ~~`npm i @supabase/supabase-js @supabase/ssr zod`~~ ✓
+4. ~~Auth con patrón @supabase/ssr~~ ✓ `lib/supabase/{client,server,admin}.ts`, `src/proxy.ts` (refresca sesión + redirige por rol en `/` y `/login`), `lib/auth.ts` (`requerirPerfil` cacheado por request + `requerirRol` como guardia por sección en cada `(app)/<rol>/layout.tsx`).
+5. ~~Registro de accesos~~ ✓ pero en la server action de login (`lib/acciones/auth.ts`), no en el proxy — más simple y confiable que instrumentar cada request; solo se inserta una fila por inicio de sesión real, con IP de `x-forwarded-for`.
+6. ~~Layout `(app)` con nav por rol~~ ✓ `nav-lateral.tsx` + `encabezado-usuario.tsx` (con botón cerrar sesión), colores de marca aplicados en `globals.css` (granate `#7E1210` primario, carbón `#2C2E35`, Arial).
+7. ~~Páginas placeholder por rol~~ ✓ central (bandeja con query real a `leads`), comercial (mi día + oportunidades con queries reales), gerencia (embudo, aprobaciones, cartera liberable — todas con queries reales a Supabase), admin (usuarios, catálogos).
+8. `npm run build` y `npm run lint` limpios.
 
-**Aceptación:** login funciona; cada rol aterriza en su home; fila en `accesos` con IP.
+**Pendiente para que esto corra de verdad (requiere acceso a navegador — NO lo puede hacer un agente):**
+- Crear el proyecto en supabase.com (Free tier), copiar `.env.example` a `.env.local` y completar `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY`.
+- Pegar `supabase/migrations/0001_esquema_inicial.sql` y luego `supabase/seed.sql` en el SQL Editor del dashboard (o instalar la CLI de Supabase y usar `supabase db push` si prefieren).
+- Crear usuarios de prueba en Authentication → Users (uno por rol: admin, gerencia, central, y C5 comercial) y luego insertar su fila correspondiente en `perfiles` (mismo `id` que en auth.users) desde el SQL Editor.
+
+**Aceptación (verificable en cuanto exista el proyecto Supabase):** login funciona; cada rol aterriza en su home; fila en `accesos` con IP; un comercial no puede entrar a `/gerencia` ni ver oportunidades de otro comercial (RLS + guardia de rol).
 
 ## B2 · Central: captura, triaje, asignación (≈ 1 día) — corazón del piloto
 1. Formulario de captura rápida (canal, área destino, nombre, teléfono, RUC/DNI, mensaje). Al escribir teléfono/documento → `BuscadorDedup` consulta en vivo y muestra cuenta existente + su comercial de cartera.

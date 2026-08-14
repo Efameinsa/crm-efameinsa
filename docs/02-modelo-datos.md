@@ -57,7 +57,7 @@ Tabla `correlativos` + `siguiente_correlativo()` (SECURITY DEFINER, con lock de 
 `cotizaciones.cliente_snapshot` (jsonb) congela los datos del cliente al momento de cotizar: el PDF regenerado no cambia si la cuenta se edita después.
 
 ### Accesos
-`accesos` (user, IP, user agent, timestamp) — pedido explícito de gerencia para permitir acceso desde cualquier lugar con trazabilidad. Lo alimenta el middleware de Next.js en cada login/sesión nueva.
+`accesos` (user, IP, user agent, timestamp) — pedido explícito de gerencia para permitir acceso desde cualquier lugar con trazabilidad. Se registra una vez por login (server action `iniciarSesion` en `src/lib/acciones/auth.ts`), no en cada request — `src/proxy.ts` (antes `middleware.ts`; renombrado por Next 16) solo refresca la sesión y aplica los redirects por rol.
 
 ### RLS (resumen de la matriz)
 

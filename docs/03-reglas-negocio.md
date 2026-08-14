@@ -45,7 +45,7 @@ Criterio de negocio **pendiente de gerencia**. Mientras tanto el vendedor elige 
 
 ## R10 · Registro de accesos
 Cada sesión nueva inserta fila en `accesos` (user, IP, user agent). Acceso permitido desde cualquier lugar (con contraseña); gerencia puede revisar quién entró y desde dónde.
-**Implementación:** middleware de Next.js tras login/refresh de sesión.
+**Implementación:** hecho en B1 — se inserta en `accesos` dentro de la server action de login (`src/lib/acciones/auth.ts`), usando la IP de `x-forwarded-for`/`x-real-ip`. `src/proxy.ts` (convención `proxy`, reemplaza a `middleware.ts` desde Next 16) refresca la sesión y protege rutas.
 
 ## R11 · Velocidad de registro (adopción)
 Registrar una actividad ≤15 segundos: botones de tipo + nota corta opcional + próxima acción con fechas rápidas (hoy/mañana/próx. semana). Sin esta regla el CRM muere como murieron los Excel compartidos.
