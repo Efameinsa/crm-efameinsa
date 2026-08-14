@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { Phone, Mail, MapPin, FileText, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { LineaTiempoCuenta, type EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
+import { HistorialCuenta } from "@/components/crm/historial-cuenta";
+import type { EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -68,7 +69,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
       : await Promise.all([
           supabase
             .from("actividades")
-            .select("id, tipo, nota, realizada_at, oportunidad_id")
+            .select("id, tipo, nota, realizada_at, oportunidad_id, catalogo_resultados_gestion(codigo, nombre)")
             .in("oportunidad_id", opIds)
             .order("realizada_at", { ascending: false })
             .limit(LIMITE_ACTIVIDADES),
@@ -87,16 +88,18 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
         ]);
 
   const eventos: EventoTimeline[] = [
-    ...(actividades ?? []).map(
-      (a): EventoTimeline => ({
+    ...(actividades ?? []).map((a): EventoTimeline => {
+      const resultado = a.catalogo_resultados_gestion as unknown as { codigo: string; nombre: string } | null;
+      return {
         tipo: "actividad",
         id: a.id,
         fecha: a.realizada_at,
         oportunidadId: a.oportunidad_id,
         tipoActividad: a.tipo,
         nota: a.nota,
-      }),
-    ),
+        resultado,
+      };
+    }),
     ...(cotizaciones ?? []).map((c): EventoTimeline => {
       const { label, color } = etiquetaCotizacion(c.estado, c.estado_aprobacion);
       return {
@@ -209,7 +212,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
           )}
 
           <SeccionPanel titulo="Historial del cliente">
-            <LineaTiempoCuenta eventos={eventos} />
+            <HistorialCuenta eventos={eventos} />
           </SeccionPanel>
         </div>
 

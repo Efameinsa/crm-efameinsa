@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
   Phone,
@@ -18,7 +17,7 @@ import {
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 
-const ICONO_ACTIVIDAD: Record<string, LucideIcon> = {
+export const ICONO_ACTIVIDAD: Record<string, LucideIcon> = {
   llamada: Phone,
   whatsapp: MessageCircle,
   email: Mail,
@@ -29,7 +28,7 @@ const ICONO_ACTIVIDAD: Record<string, LucideIcon> = {
   otro: MoreHorizontal,
 };
 
-const ETIQUETA_ACTIVIDAD: Record<string, string> = {
+export const ETIQUETA_ACTIVIDAD: Record<string, string> = {
   llamada: "Llamada",
   whatsapp: "WhatsApp",
   email: "Correo",
@@ -40,11 +39,16 @@ const ETIQUETA_ACTIVIDAD: Record<string, string> = {
   otro: "Otro",
 };
 
-const COLOR_COTIZACION: Record<"ambar" | "verde" | "rojo", string> = {
+export const COLOR_COTIZACION: Record<"ambar" | "verde" | "rojo", string> = {
   ambar: "bg-amber-500/10 text-amber-700",
   verde: "bg-[#1E7F4F]/10 text-[#1E7F4F]",
   rojo: "bg-destructive/10 text-destructive",
 };
+
+export interface ResultadoGestionEvento {
+  codigo: string;
+  nombre: string;
+}
 
 export interface EventoActividad {
   tipo: "actividad";
@@ -53,6 +57,7 @@ export interface EventoActividad {
   oportunidadId: string;
   tipoActividad: string;
   nota: string | null;
+  resultado: ResultadoGestionEvento | null;
 }
 export interface EventoCotizacion {
   tipo: "cotizacion";
@@ -74,8 +79,6 @@ export interface EventoVenta {
   moneda: string;
 }
 export type EventoTimeline = EventoActividad | EventoCotizacion | EventoVenta;
-
-const MOSTRADOS_INICIAL = 25;
 
 function EventoFila({ evento }: { evento: EventoTimeline }) {
   const Icono =
@@ -114,12 +117,17 @@ function EventoFila({ evento }: { evento: EventoTimeline }) {
               {evento.moneda} {evento.monto.toLocaleString("es-PE")}
             </span>
           )}
+          {evento.tipo === "actividad" && evento.resultado && (
+            <span className="inline-flex rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-foreground">
+              {evento.resultado.nombre}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground">
             {new Date(evento.fecha).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })}
           </span>
         </div>
         {evento.tipo === "actividad" && evento.nota && (
-          <p className="mt-0.5 text-sm text-muted-foreground">{evento.nota}</p>
+          <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{evento.nota}</p>
         )}
         <Link
           href={`/comercial/oportunidades/${evento.oportunidadId}`}
@@ -132,44 +140,28 @@ function EventoFila({ evento }: { evento: EventoTimeline }) {
   );
 }
 
+// Renderiza la lista que le pasen, sin paginar ni filtrar — eso lo maneja
+// HistorialCuenta (dueño del estado de orden/filtro/expansión compartido
+// entre esta vista y la de tabla).
 export function LineaTiempoCuenta({ eventos }: { eventos: EventoTimeline[] }) {
-  const [expandido, setExpandido] = useState(false);
   const reducido = useReducedMotion();
-
-  if (eventos.length === 0) {
-    return <p className="text-sm text-muted-foreground">Sin historial registrado para este cliente todavía.</p>;
-  }
-
-  const visibles = expandido ? eventos : eventos.slice(0, MOSTRADOS_INICIAL);
-  const restantes = eventos.length - visibles.length;
 
   return (
     <div className="space-y-4">
-      <div className="space-y-4">
-        {visibles.map((evento, i) => (
-          <motion.div
-            key={`${evento.tipo}-${evento.id}`}
-            initial={reducido ? false : { opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative"
-          >
-            {i < visibles.length - 1 && (
-              <span className="absolute left-[15px] top-8 h-[calc(100%-4px)] w-px bg-border" aria-hidden />
-            )}
-            <EventoFila evento={evento} />
-          </motion.div>
-        ))}
-      </div>
-      {restantes > 0 && (
-        <button
-          type="button"
-          onClick={() => setExpandido(true)}
-          className="text-xs font-medium text-primary hover:underline"
+      {eventos.map((evento, i) => (
+        <motion.div
+          key={`${evento.tipo}-${evento.id}`}
+          initial={reducido ? false : { opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="relative"
         >
-          Ver historial completo ({restantes} más)
-        </button>
-      )}
+          {i < eventos.length - 1 && (
+            <span className="absolute left-[15px] top-8 h-[calc(100%-4px)] w-px bg-border" aria-hidden />
+          )}
+          <EventoFila evento={evento} />
+        </motion.div>
+      ))}
     </div>
   );
 }
