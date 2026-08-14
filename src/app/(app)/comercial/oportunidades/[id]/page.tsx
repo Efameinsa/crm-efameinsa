@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { RegistroRapido } from "@/components/crm/registro-rapido";
 import { CambiarEtapa } from "@/components/crm/cambiar-etapa";
+import { Cotizador } from "@/components/crm/cotizador";
+import { ListaCotizaciones } from "@/components/crm/lista-cotizaciones";
 
 export default async function OportunidadDetallePage({
   params,
@@ -14,7 +16,7 @@ export default async function OportunidadDetallePage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: oportunidad }, { data: motivos }] = await Promise.all([
+  const [{ data: oportunidad }, { data: motivos }, { data: productos }, { data: cotizaciones }] = await Promise.all([
     supabase
       .from("oportunidades")
       .select(
@@ -23,6 +25,16 @@ export default async function OportunidadDetallePage({
       .eq("id", id)
       .maybeSingle(),
     supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase
+      .from("productos")
+      .select("id, marca, modelo, nombre, segmento, precios_producto(tier, precio)")
+      .eq("activo", true)
+      .order("marca"),
+    supabase
+      .from("cotizaciones")
+      .select("id, codigo, serie, estado, estado_aprobacion, total, moneda")
+      .eq("oportunidad_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (!oportunidad) notFound();
@@ -77,6 +89,17 @@ export default async function OportunidadDetallePage({
           </CardHeader>
           <CardContent>
             <RegistroRapido oportunidadId={oportunidad.id} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Cotizaciones</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ListaCotizaciones cotizaciones={cotizaciones ?? []} />
+            <Separator />
+            <Cotizador oportunidadId={oportunidad.id} productos={productos ?? []} />
           </CardContent>
         </Card>
 

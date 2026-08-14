@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AprobarCotizacionBotones } from "@/components/crm/aprobar-cotizacion-botones";
 
 export default async function AprobacionesPage() {
   const supabase = await createClient();
@@ -26,6 +27,8 @@ export default async function AprobacionesPage() {
                 <TableHead>Serie</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Fecha</TableHead>
+                <TableHead>PDF</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -35,6 +38,19 @@ export default async function AprobacionesPage() {
                   <TableCell>{c.serie}</TableCell>
                   <TableCell>{c.moneda} {c.total}</TableCell>
                   <TableCell>{new Date(c.created_at).toLocaleDateString("es-PE")}</TableCell>
+                  <TableCell>
+                    <a
+                      href={`/api/cotizaciones/${c.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Ver
+                    </a>
+                  </TableCell>
+                  <TableCell>
+                    <AprobarCotizacionBotones cotizacionId={c.id} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

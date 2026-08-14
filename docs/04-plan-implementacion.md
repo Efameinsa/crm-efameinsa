@@ -81,15 +81,17 @@ crm-efameinsa/
 
 **Aceptación piloto — verificada end-to-end con las 4 cuentas reales:** lead nuevo → Central asigna (cliente nuevo, no solo existente) → comercial ve la asignación en "Mi día" → registra una gestión → cambia etapa a "filtrada" → Central ve la actividad → rechazar sin motivo queda bloqueado por la base de datos. **Pendiente:** desplegar a Vercel Hobby con URL compartible (ver sección de despliegue más abajo) y que Darwin/Santos prueben con clicks reales en el navegador.
 
-## B4 · Cotizador con PDF (≈ 1–1.5 días)
-1. Admin: alta de productos (foto a Storage) y listas de precios por tier.
-2. Cotizador: seleccionar productos → precios de lista visibles → si precio ofrecido < piso → banner "requiere aprobación de gerencia" y estado `pendiente_gerencia`.
-3. Bandeja de aprobaciones de gerencia (aprobar/rechazar con nota).
-4. PDF con `@react-pdf/renderer`: **diseño nuevo** (gerencia pidió rediseñar), marca Efameinsa (granate/carbón, Arial/Helvetica, logo desde `public/`), fotos estandarizadas, serie y correlativo, condiciones, vigencia. Guardar en Storage, `pdf_path` en la cotización.
-5. Registrar venta desde cotización aceptada (`cerrarVenta()`: crea `ventas`, etapa `venta`; el trigger actualiza `ultima_venta_at`).
-6. Cron de alertas: SLA 6 pm y silencios 2/3 meses.
+## B4 · Cotizador con PDF — ✅ COMPLETADO (2026-08-14)
+1. ~~Admin: alta de productos~~ ✓ `admin/productos` (`NuevoProductoForm` + `crearProducto()`): marca, modelo, nombre, segmento, categoría, capacidad, y precios por tier según segmento (3 para semi-industrial, 1 para industrial). **Foto a Storage: cortada del alcance** — no es core de la regla de negocio (aprobación de precios) y el bucket + UI de upload es trabajo aparte; `productos.foto_path` queda en el esquema para cuando se necesite.
+2. ~~Cotizador~~ ✓ `components/crm/cotizador.tsx`, embebido en el detalle de oportunidad: elegir serie y productos, precios de lista visibles por tier, banner en rojo si el precio ofrecido queda bajo el piso (tier `deseado` en semi-industrial, `base` en industrial — ⚠️ sigue pendiente que gerencia confirme si es ese el piso real). `crear_cotizacion()` (función SQL transaccional, migración 0005/0006) calcula `bajo_lista` por ítem y deja la cotización completa en `pendiente_gerencia` si algún ítem lo está.
+3. ~~Bandeja de aprobaciones~~ ✓ `gerencia/aprobaciones` con botones Aprobar/Rechazar (`aprobarCotizacion`/`rechazarCotizacion`) y enlace directo al PDF. Sin "nota" al rechazar por ahora — se puede agregar si en el piloto se pide.
+4. ~~PDF~~ ✓ `src/lib/pdf/cotizacion-pdf.tsx` + `api/cotizaciones/[id]/pdf/route.tsx`: diseño nuevo con la marca (granate/carbón, Helvetica como la fuente base más cercana a Arial sin depender de un TTF en el servidor, logo, tabla de equipos, condiciones, vigencia). **Se genera al vuelo en cada request, NO se guarda en Storage** (`pdf_path` queda sin usar) — más simple para el piloto; si hace falta el PDF exacto que se envió en su momento (auditoría), ahí sí habría que persistirlo.
+5. ~~Registrar venta~~ ✓ `registrar_venta()` (función SQL, migración 0005): crea `ventas`, pasa la cotización a `aceptada`, la oportunidad a etapa `venta` — el trigger de la migración 0001 actualiza `cuentas.ultima_venta_at` automáticamente (verificado).
+6. **Cron de alertas: cortado del alcance por ahora.** SLA 6pm y silencios 2/3 meses ya tienen su vista SQL (`v_oportunidades_inactivas`, migración 0001) consultable manualmente; el canal de notificación (¿email? ¿WhatsApp no tiene API en v1?) no está definido, y el cron en sí solo tiene sentido una vez desplegado en Vercel. Retomar en B5 o al desplegar.
 
-**Aceptación:** cotización bajo lista queda bloqueada hasta aprobación; PDF descargable con marca correcta; venta registrada alimenta `ultima_venta_at`.
+**Dos bugs reales más, mismo patrón que en B3** (un `CASE` con solo literales de texto no se castea solo al enum de la columna destino en un INSERT/UPDATE — sí funciona bien en una asignación `:=` de PL/pgSQL a una variable tipada): migración 0006 corrigió `estado_aprobacion` en `crear_cotizacion()`. Búsqueda exhaustiva confirmó que no queda ningún otro caso del mismo patrón en el esquema.
+
+**Aceptación — verificada end-to-end (producto real con 3 tiers → cotización bajo lista → bloqueo de envío → aprobación de gerencia → envío → venta → cartera actualizada):** todo el ciclo pasó. PDF verificado visualmente (renderizado a imagen) con marca, logo y datos correctos — el logo inicialmente no cargaba (bug real: `@react-pdf/renderer` intenta hacer `fetch()` de un string que parece ruta de archivo; se resolvió pasando el logo ya leído como `Buffer`, no como ruta).
 
 ## B5 · Marketing y gerencia (≈ 1.5 días)
 1. `POST /api/leads` con token (`LEADS_INGEST_TOKEN`): valida con Zod, crea lead con gclid/fbclid/UTM, `fuente` derivada. Agnóstico a Astro/WordPress.
