@@ -68,14 +68,18 @@ crm-efameinsa/
 
 **Aceptación — verificada con datos reales (no solo simulada):** se creó un lead de prueba con el RUC de un cliente real de C5 (HOSPEDAJE LA PRINCESA E.I.R.L.); el dedup lo encontró y mostró "cartera de Katerine Tello"; `asignar_lead()` infirió correctamente `motivo='cartera_existente'`; y logueada como C5, la oportunidad aparece vía RLS. Falta la prueba manual en navegador (clicks reales) — el mecanismo de datos/backend está probado end-to-end.
 
-## B3 · Comercial: mi día y gestión ≤15 s (≈ 1 día) — cierra el piloto
-1. **Mi día:** oportunidades con `proxima_accion_at` = hoy/vencidas, leads recién asignados, cotizaciones por vencer SLA.
-2. Detalle de oportunidad: datos de cuenta/contactos, historial de actividades, etapa actual.
-3. `RegistroRapido`: tipo de actividad (botones), nota opcional, próxima acción + fecha (hoy/mañana/próx. semana) — objetivo ≤15 s, medirlo.
-4. Cambio de etapa con validaciones (rechazo exige motivo del catálogo).
-5. Filtro: checklist SUNAT/redes → etapa `filtrada`.
+## B3 · Comercial: mi día y gestión ≤15 s — ✅ COMPLETADO (2026-08-14)
+1. ~~Mi día~~ ✓ `comercial/page.tsx`: oportunidades con `proxima_accion_at` ≤ hoy, MÁS las recién asignadas (etapa `asignada` sin fecha todavía) para que no se pierdan del radar. Cotizaciones por vencer SLA queda para B4 (no existen cotizaciones aún).
+2. ~~Detalle de oportunidad~~ ✓ `comercial/oportunidades/[id]/page.tsx`: cuenta, contactos, historial de actividades, etapa actual.
+3. ~~`RegistroRapido`~~ ✓ `components/crm/registro-rapido.tsx`: botones de tipo, nota opcional, próxima acción con atajos Hoy/Mañana/Próx. semana — un solo submit (`registrarActividad`) inserta la actividad y actualiza la próxima acción.
+4. ~~Cambio de etapa con validaciones~~ ✓ `components/crm/cambiar-etapa.tsx` + `cambiarEtapa()`: rechazar exige motivo (validado en cliente Y en la base con el constraint `rechazo_con_motivo` — se probó explícitamente que sin motivo la base lo rechaza). `cotizada`/`venta` quedaron fuera de las etapas manuales a propósito: se alcanzan por el flujo de cotizador/venta (B4), no por cambio manual.
+5. El checklist SUNAT/redes del plan original se simplificó a cambiar la etapa a "Filtrada (procede)" directamente — un checklist aparte no aportaba sobre lo que ya hace `CambiarEtapa`; se puede añadir si en el piloto real se pide más estructura.
 
-**Aceptación piloto (demo a gerencia):** flujo completo lead → Central → asignación → comercial registra gestión y avanza etapa. RLS verificado. Desplegado en Vercel Hobby con URL compartible.
+**Dos bugs reales encontrados y corregidos al verificar con datos de punta a punta** (no solo compilando):
+- Migración 0003: `asignar_lead()` fallaba con clientes **nuevos** (sin cuenta previa) — el `CASE` que infiere `tipo_doc` resolvía a `text` y Postgres no lo casteaba solo al enum `tipo_documento`. La prueba de B2 no lo agarró porque probó con un cliente ya existente (rama de código distinta). Con cliente nuevo fallaba siempre.
+- Migración 0004: Central no podía leer `actividades` — faltaba su policy de RLS (sí estaba documentada en `docs/02-modelo-datos.md` pero no implementada en la migración 0001).
+
+**Aceptación piloto — verificada end-to-end con las 4 cuentas reales:** lead nuevo → Central asigna (cliente nuevo, no solo existente) → comercial ve la asignación en "Mi día" → registra una gestión → cambia etapa a "filtrada" → Central ve la actividad → rechazar sin motivo queda bloqueado por la base de datos. **Pendiente:** desplegar a Vercel Hobby con URL compartible (ver sección de despliegue más abajo) y que Darwin/Santos prueben con clicks reales en el navegador.
 
 ## B4 · Cotizador con PDF (≈ 1–1.5 días)
 1. Admin: alta de productos (foto a Storage) y listas de precios por tier.

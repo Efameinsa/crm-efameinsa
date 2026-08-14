@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ export default async function OportunidadesPage() {
                 <TableHead>Etapa</TableHead>
                 <TableHead>Intención</TableHead>
                 <TableHead>Monto estimado</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -45,6 +47,14 @@ export default async function OportunidadesPage() {
                   <TableCell>{op.intencion}</TableCell>
                   <TableCell>
                     {op.monto_estimado ? `${op.moneda} ${op.monto_estimado}` : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Link
+                      href={`/comercial/oportunidades/${op.id}`}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Ver
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))}
