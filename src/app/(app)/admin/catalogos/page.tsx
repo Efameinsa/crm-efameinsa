@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SeccionPanel } from "@/components/crm/seccion-panel";
 
 export default async function CatalogosPage() {
   const supabase = await createClient();
@@ -11,48 +11,38 @@ export default async function CatalogosPage() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>Rubros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
+      <SeccionPanel titulo="Rubros">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nombre</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(rubros ?? []).map((r) => (
+              <TableRow key={r.id}>
+                <TableCell className="text-foreground">{r.nombre}</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(rubros ?? []).map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>{r.nombre}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Motivos de rechazo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
+            ))}
+          </TableBody>
+        </Table>
+      </SeccionPanel>
+      <SeccionPanel titulo="Motivos de rechazo">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nombre</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(motivos ?? []).map((m) => (
+              <TableRow key={m.id}>
+                <TableCell className="text-foreground">{m.nombre}</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(motivos ?? []).map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell>{m.nombre}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            ))}
+          </TableBody>
+        </Table>
+      </SeccionPanel>
     </div>
   );
 }

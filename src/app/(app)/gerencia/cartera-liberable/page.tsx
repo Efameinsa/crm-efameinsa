@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SeccionPanel } from "@/components/crm/seccion-panel";
 
 export default async function CarteraLiberablePage() {
   const supabase = await createClient();
@@ -11,42 +11,33 @@ export default async function CarteraLiberablePage() {
     .order("ultima_venta_at", { ascending: true, nullsFirst: true });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Cartera liberable (6+ meses sin venta)</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {!cuentas || cuentas.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No hay cuentas liberables por ahora.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Razón social</TableHead>
-                <TableHead>Última venta</TableHead>
-                <TableHead>Cartera desde</TableHead>
+    <SeccionPanel titulo="Cartera liberable (6+ meses sin venta)">
+      {!cuentas || cuentas.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No hay cuentas liberables por ahora.</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Razón social</TableHead>
+              <TableHead>Última venta</TableHead>
+              <TableHead>Cartera desde</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {cuentas.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell className="font-medium text-foreground">{c.razon_social}</TableCell>
+                <TableCell className="tabular-nums text-muted-foreground">
+                  {c.ultima_venta_at ? new Date(c.ultima_venta_at).toLocaleDateString("es-PE") : "Nunca"}
+                </TableCell>
+                <TableCell className="tabular-nums text-muted-foreground">
+                  {c.cartera_desde ? new Date(c.cartera_desde).toLocaleDateString("es-PE") : "—"}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {cuentas.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell>{c.razon_social}</TableCell>
-                  <TableCell>
-                    {c.ultima_venta_at
-                      ? new Date(c.ultima_venta_at).toLocaleDateString("es-PE")
-                      : "Nunca"}
-                  </TableCell>
-                  <TableCell>
-                    {c.cartera_desde
-                      ? new Date(c.cartera_desde).toLocaleDateString("es-PE")
-                      : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </SeccionPanel>
   );
 }

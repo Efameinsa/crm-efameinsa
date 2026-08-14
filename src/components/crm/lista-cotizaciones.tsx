@@ -2,11 +2,11 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { enviarCotizacion, registrarVenta } from "@/lib/acciones/cotizaciones";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export interface CotizacionResumen {
   id: string;
@@ -19,18 +19,20 @@ export interface CotizacionResumen {
   nota_gerencia: string | null;
 }
 
-const ETIQUETA_APROBACION: Record<string, string> = {
-  auto_aprobada: "Aprobada",
-  pendiente_gerencia: "Pendiente de gerencia",
-  aprobada_gerencia: "Aprobada por gerencia",
-  rechazada_gerencia: "Rechazada por gerencia",
+const ESTADO_APROBACION: Record<string, { etiqueta: string; clases: string }> = {
+  auto_aprobada: { etiqueta: "Aprobada", clases: "bg-[#1E7F4F]/10 text-[#1E7F4F]" },
+  pendiente_gerencia: { etiqueta: "Pendiente de gerencia", clases: "bg-amber-500/10 text-amber-700" },
+  aprobada_gerencia: { etiqueta: "Aprobada por gerencia", clases: "bg-[#1E7F4F]/10 text-[#1E7F4F]" },
+  rechazada_gerencia: { etiqueta: "Rechazada por gerencia", clases: "bg-destructive/10 text-destructive" },
 };
 
-function varianteBadge(estadoAprobacion: string): "destructive" | "secondary" {
-  return estadoAprobacion === "pendiente_gerencia" || estadoAprobacion === "rechazada_gerencia"
-    ? "destructive"
-    : "secondary";
-}
+const ESTADO_ENVIO: Record<string, string> = {
+  borrador: "Borrador",
+  enviada: "Enviada",
+  aceptada: "Aceptada",
+  perdida: "Perdida",
+  vencida: "Vencida",
+};
 
 export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionResumen[] }) {
   const router = useRouter();
@@ -64,56 +66,60 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Código</TableHead>
-          <TableHead>Serie</TableHead>
-          <TableHead>Total</TableHead>
-          <TableHead>Aprobación</TableHead>
-          <TableHead>Estado</TableHead>
-          <TableHead className="text-right">Acciones</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {cotizaciones.map((c) => {
-          const puedeEnviar = c.estado === "borrador" && (c.estado_aprobacion === "auto_aprobada" || c.estado_aprobacion === "aprobada_gerencia");
-          const puedeVender = c.estado === "enviada" && (c.estado_aprobacion === "auto_aprobada" || c.estado_aprobacion === "aprobada_gerencia");
-          return (
-            <TableRow key={c.id}>
-              <TableCell className="font-mono text-xs align-top">{c.codigo}</TableCell>
-              <TableCell className="align-top">{c.serie}</TableCell>
-              <TableCell className="align-top">
-                {c.moneda} {c.total}
-              </TableCell>
-              <TableCell className="align-top">
-                <Badge variant={varianteBadge(c.estado_aprobacion)}>{ETIQUETA_APROBACION[c.estado_aprobacion]}</Badge>
-                {c.nota_gerencia && (
-                  <p className="mt-1 max-w-[220px] text-xs text-muted-foreground">
-                    &ldquo;{c.nota_gerencia}&rdquo;
-                  </p>
-                )}
-              </TableCell>
-              <TableCell className="align-top">{c.estado}</TableCell>
-              <TableCell className="flex justify-end gap-2 align-top">
-                <a href={`/api/cotizaciones/${c.id}/pdf`} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">
-                  Ver PDF
-                </a>
-                {puedeEnviar && (
-                  <Button size="sm" variant="outline" disabled={enviando} onClick={() => onEnviar(c.id)}>
-                    Enviar
-                  </Button>
-                )}
-                {puedeVender && (
-                  <Button size="sm" disabled={enviando} onClick={() => onRegistrarVenta(c.id)}>
-                    Registrar venta
-                  </Button>
-                )}
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+    <div className="space-y-2">
+      {cotizaciones.map((c) => {
+        const puedeEnviar = c.estado === "borrador" && (c.estado_aprobacion === "auto_aprobada" || c.estado_aprobacion === "aprobada_gerencia");
+        const puedeVender = c.estado === "enviada" && (c.estado_aprobacion === "auto_aprobada" || c.estado_aprobacion === "aprobada_gerencia");
+        const aprobacion = ESTADO_APROBACION[c.estado_aprobacion];
+
+        return (
+          <div key={c.id} className="rounded-lg border border-border bg-background p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="font-mono text-xs font-semibold text-foreground">{c.codigo}</span>
+                <span className="text-xs text-muted-foreground">{c.serie}</span>
+                <span className="text-sm font-semibold tabular-nums text-foreground">
+                  {c.moneda} {c.total.toLocaleString("es-PE")}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-semibold", aprobacion.clases)}>
+                  {aprobacion.etiqueta}
+                </span>
+                <span className="text-[11px] text-muted-foreground">{ESTADO_ENVIO[c.estado] ?? c.estado}</span>
+              </div>
+            </div>
+
+            {c.nota_gerencia && (
+              <p className="mt-2 rounded-md bg-secondary px-2.5 py-1.5 text-xs text-muted-foreground">
+                &ldquo;{c.nota_gerencia}&rdquo;
+              </p>
+            )}
+
+            <div className="mt-2.5 flex items-center gap-3">
+              <a
+                href={`/api/cotizaciones/${c.id}/pdf`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                <FileDown className="size-3.5" />
+                Ver PDF
+              </a>
+              {puedeEnviar && (
+                <Button size="sm" variant="outline" disabled={enviando} onClick={() => onEnviar(c.id)}>
+                  Enviar
+                </Button>
+              )}
+              {puedeVender && (
+                <Button size="sm" disabled={enviando} onClick={() => onRegistrarVenta(c.id)}>
+                  Registrar venta
+                </Button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
+import { Phone, Mail, MapPin, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { RegistroRapido } from "@/components/crm/registro-rapido";
 import { CambiarEtapa } from "@/components/crm/cambiar-etapa";
 import { Cotizador } from "@/components/crm/cotizador";
 import { ListaCotizaciones } from "@/components/crm/lista-cotizaciones";
 import { CalificacionOportunidad } from "@/components/crm/calificacion-oportunidad";
+import { HistorialActividades } from "@/components/crm/historial-actividades";
+import { PuntoInteres } from "@/components/crm/punto-interes";
+import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { EtapaBadge } from "@/components/crm/etapa-badge";
 
 export default async function OportunidadDetallePage({
   params,
@@ -56,107 +58,97 @@ export default async function OportunidadDetallePage({
   } | null;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <div className="space-y-4 lg:col-span-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>{cuenta?.razon_social ?? "Cuenta sin nombre"}</CardTitle>
-              <Badge variant="secondary">{oportunidad.etapa}</Badge>
+    <div className="space-y-4">
+      {/* Encabezado: identidad de la cuenta + estado, siempre visible arriba */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-bold text-foreground">{cuenta?.razon_social ?? "Cuenta sin nombre"}</h1>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              {cuenta?.tipo_doc !== "SIN_DOC" && (
+                <span className="inline-flex items-center gap-1">
+                  <FileText className="size-3.5" />
+                  {cuenta?.tipo_doc}: {cuenta?.num_doc}
+                </span>
+              )}
+              {cuenta?.direccion && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="size-3.5" />
+                  {cuenta.direccion}
+                </span>
+              )}
+              <PuntoInteres intencion={oportunidad.intencion} />
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <p className="text-muted-foreground">
-              {cuenta?.tipo_doc !== "SIN_DOC" ? `${cuenta?.tipo_doc}: ${cuenta?.num_doc}` : "Sin documento"}
-              {cuenta?.direccion ? ` · ${cuenta.direccion}` : ""}
-            </p>
-            {cuenta?.contactos && cuenta.contactos.length > 0 && (
-              <div className="space-y-1">
-                {cuenta.contactos.map((c, i) => (
-                  <p key={i}>
-                    {c.nombre}
-                    {c.cargo ? ` (${c.cargo})` : ""} — {c.telefono ?? "sin teléfono"}
-                    {c.email ? ` · ${c.email}` : ""}
-                  </p>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+          <EtapaBadge etapa={oportunidad.etapa} />
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Registrar gestión</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RegistroRapido oportunidadId={oportunidad.id} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Cotizaciones</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ListaCotizaciones cotizaciones={cotizaciones ?? []} />
-            <Separator />
-            <Cotizador oportunidadId={oportunidad.id} productos={productos ?? []} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Historial</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!actividades || actividades.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin actividad registrada todavía.</p>
-            ) : (
-              <div className="space-y-3">
-                {actividades.map((a, i) => (
-                  <div key={a.id}>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Badge variant="secondary">{a.tipo}</Badge>
-                      <span className="text-muted-foreground">
-                        {new Date(a.realizada_at).toLocaleString("es-PE")}
-                      </span>
-                    </div>
-                    {a.nota && <p className="mt-1 text-sm">{a.nota}</p>}
-                    {i < actividades.length - 1 && <Separator className="mt-3" />}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {cuenta?.contactos && cuenta.contactos.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
+            {cuenta.contactos.map((c, i) => (
+              <span key={i} className="inline-flex items-center gap-3">
+                <span className="font-medium text-foreground">
+                  {c.nombre}
+                  {c.cargo ? ` (${c.cargo})` : ""}
+                </span>
+                {c.telefono && (
+                  <span className="inline-flex items-center gap-1">
+                    <Phone className="size-3.5" />
+                    {c.telefono}
+                  </span>
+                )}
+                {c.email && (
+                  <span className="inline-flex items-center gap-1">
+                    <Mail className="size-3.5" />
+                    {c.email}
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Próxima acción</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <SeccionPanel titulo="Registrar gestión">
+            <RegistroRapido oportunidadId={oportunidad.id} />
+          </SeccionPanel>
+
+          <SeccionPanel titulo="Cotizaciones">
+            <div className="space-y-4">
+              <ListaCotizaciones cotizaciones={cotizaciones ?? []} />
+              {(cotizaciones?.length ?? 0) > 0 && <div className="border-t border-border" />}
+              <Cotizador oportunidadId={oportunidad.id} productos={productos ?? []} />
+            </div>
+          </SeccionPanel>
+
+          <SeccionPanel titulo="Historial">
+            <HistorialActividades actividades={actividades ?? []} />
+          </SeccionPanel>
+        </div>
+
+        <div className="space-y-4">
+          <SeccionPanel titulo="Próxima acción">
             {oportunidad.proxima_accion ? (
-              <>
-                <p>{oportunidad.proxima_accion}</p>
-                <p className="text-muted-foreground">
+              <div>
+                <p className="text-sm text-foreground">{oportunidad.proxima_accion}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {oportunidad.proxima_accion_at
-                    ? new Date(oportunidad.proxima_accion_at).toLocaleDateString("es-PE")
+                    ? new Date(oportunidad.proxima_accion_at).toLocaleDateString("es-PE", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                      })
                     : ""}
                 </p>
-              </>
+              </div>
             ) : (
-              <p className="text-muted-foreground">Sin próxima acción definida.</p>
+              <p className="text-sm text-muted-foreground">Sin próxima acción definida.</p>
             )}
-          </CardContent>
-        </Card>
+          </SeccionPanel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Calificación</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <SeccionPanel titulo="Calificación">
             <CalificacionOportunidad
               oportunidadId={oportunidad.id}
               intencionInicial={oportunidad.intencion}
@@ -164,21 +156,12 @@ export default async function OportunidadDetallePage({
               monedaInicial={oportunidad.moneda}
               segmentoInicial={oportunidad.segmento}
             />
-          </CardContent>
-        </Card>
+          </SeccionPanel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Etapa</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CambiarEtapa
-              oportunidadId={oportunidad.id}
-              etapaActual={oportunidad.etapa}
-              motivos={motivos ?? []}
-            />
-          </CardContent>
-        </Card>
+          <SeccionPanel titulo="Etapa">
+            <CambiarEtapa oportunidadId={oportunidad.id} etapaActual={oportunidad.etapa} motivos={motivos ?? []} />
+          </SeccionPanel>
+        </div>
       </div>
     </div>
   );

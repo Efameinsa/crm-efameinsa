@@ -1,7 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { cn } from "@/lib/utils";
+
+const ETIQUETA_ROL: Record<string, string> = {
+  admin: "Administrador",
+  gerencia: "Gerencia",
+  central: "Central",
+  comercial: "Comercial",
+};
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -11,42 +18,48 @@ export default async function AdminPage() {
     .order("nombre", { ascending: true });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Usuarios</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {!perfiles || perfiles.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No hay perfiles todavía. Cree cuentas desde el dashboard de Supabase
-            (Authentication → Users) y agregue la fila correspondiente en{" "}
-            <code>perfiles</code>.
-          </p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Código</TableHead>
-                <TableHead>Estado</TableHead>
+    <SeccionPanel titulo="Usuarios">
+      {!perfiles || perfiles.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No hay perfiles todavía. Cree cuentas desde el dashboard de Supabase (Authentication →
+          Users) y agregue la fila correspondiente en <code>perfiles</code>.
+        </p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Rol</TableHead>
+              <TableHead>Código</TableHead>
+              <TableHead>Estado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {perfiles.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell className="font-medium text-foreground">{p.nombre}</TableCell>
+                <TableCell>
+                  <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
+                    {ETIQUETA_ROL[p.rol] ?? p.rol}
+                  </span>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{p.codigo_comercial ?? "—"}</TableCell>
+                <TableCell>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-xs font-medium",
+                      p.activo ? "text-[#1E7F4F]" : "text-muted-foreground",
+                    )}
+                  >
+                    <span className={cn("size-1.5 rounded-full", p.activo ? "bg-[#1E7F4F]" : "bg-muted-foreground/40")} />
+                    {p.activo ? "Activo" : "Inactivo"}
+                  </span>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {perfiles.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>{p.nombre}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{p.rol}</Badge>
-                  </TableCell>
-                  <TableCell>{p.codigo_comercial ?? "—"}</TableCell>
-                  <TableCell>{p.activo ? "Activo" : "Inactivo"}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </SeccionPanel>
   );
 }
