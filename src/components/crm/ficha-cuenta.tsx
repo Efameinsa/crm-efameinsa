@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Phone, Mail, MapPin, FileText, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { ResumenCuenta } from "@/components/crm/resumen-cuenta";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import type { EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +43,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   const { data: cuenta } = await supabase
     .from("cuentas")
     .select(
-      "id, razon_social, tipo_doc, num_doc, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, es_principal)",
+      "id, razon_social, tipo_doc, num_doc, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, es_principal)",
     )
     .eq("id", cuentaId)
     .maybeSingle();
@@ -171,6 +172,8 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
+          <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} />
+
           {ventasConDetalle.length > 0 && (
             <SeccionPanel titulo="Compras anteriores">
               <Table>
