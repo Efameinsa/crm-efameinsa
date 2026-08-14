@@ -64,7 +64,7 @@ export function HistorialCuenta({ eventos }: { eventos: EventoTimeline[] }) {
             onClick={() => setVista("tabla")}
             className={cn(
               "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-              vista === "tabla" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent",
+              vista === "tabla" ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-accent",
             )}
           >
             Tabla
@@ -74,7 +74,7 @@ export function HistorialCuenta({ eventos }: { eventos: EventoTimeline[] }) {
             onClick={() => setVista("timeline")}
             className={cn(
               "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-              vista === "timeline" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent",
+              vista === "timeline" ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-accent",
             )}
           >
             Línea de tiempo
