@@ -75,6 +75,6 @@ export const config = {
     // sw.js: un service worker servido detrás de una redirección lo rechaza
     // el navegador ("script resource is behind a redirect") — nunca debe
     // pasar por el proxy de auth, se sirve directo desde /public.
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|api/leads|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|api/leads|api/webhooks|api/gasto-campania|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
