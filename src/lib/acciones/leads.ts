@@ -5,18 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { normalizarTelefono } from "@/lib/telefono";
 import { notificar } from "@/lib/notificaciones";
 import { esquemaCaptura } from "@/lib/validaciones/lead";
-
-const CANAL_LABEL: Record<string, string> = {
-  whatsapp: "WhatsApp",
-  llamada: "Llamada",
-  formulario_web: "Formulario web",
-  facebook: "Facebook",
-  instagram: "Instagram",
-  email: "Correo",
-  presencial: "Presencial",
-  referido: "Referido",
-  otro: "Otro",
-};
+import { CANAL_LABEL } from "@/lib/canal-contacto";
 
 export interface ResultadoDuplicado {
   cuenta: { id: string; razon_social: string; comercial_nombre: string | null } | null;
