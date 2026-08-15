@@ -47,10 +47,10 @@ export function TablaCartera({ filas }: { filas: FilaCartera[] }) {
               }}
               className="cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
             >
-              <TableCell className="max-w-[280px]">
-                <span className="inline-flex items-start gap-2 font-medium text-foreground">
+              <TableCell className="max-w-[280px] whitespace-normal">
+                <span className="flex items-start gap-2 font-medium text-foreground">
                   <Building2 className="mt-0.5 size-3.5 flex-none text-muted-foreground" />
-                  <span className="line-clamp-2" title={c.razonSocial}>
+                  <span className="line-clamp-2 min-w-0" title={c.razonSocial}>
                     {c.razonSocial}
                   </span>
                 </span>

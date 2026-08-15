@@ -46,7 +46,7 @@ export function TablaClientes({ filas }: { filas: FilaCliente[] }) {
               }}
               className="cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
             >
-              <TableCell className="max-w-[320px]">
+              <TableCell className="max-w-[320px] whitespace-normal">
                 <p className="line-clamp-2 font-medium text-foreground" title={c.razonSocial}>
                   {c.razonSocial}
                 </p>
