@@ -204,6 +204,9 @@ export interface EmbudoTotales {
 export interface ResumenEmbudo {
   porCampania: EmbudoCampania[];
   totales: EmbudoTotales | null;
+  // Mismos totales pero contando solo el gasto del tramo con leads completos;
+  // null cuando todo el rango es comparable (entonces `totales` ya sirve).
+  totalesComparables: EmbudoTotales | null;
   leadsSinCampania: number;
   // Cuando hay gasto en un período pero los leads del CRM empiezan después
   // (Google borra los leads a los 60 días, así que los anteriores a la
@@ -338,11 +341,27 @@ export async function cargarEmbudoReal(
     .maybeSingle();
 
   const desdeConLeads = primerLead?.recibido_at ? primerLead.recibido_at.slice(0, 10) : null;
-  // Se tolera un día de margen para no alarmar por diferencias de zona horaria.
   const cplNoComparable =
     desdeConLeads !== null &&
     desdeConLeads > desde &&
     resumen.filas.some((f) => f.fecha < desdeConLeads);
 
-  return { porCampania, totales, leadsSinCampania, desdeConLeads, cplNoComparable };
+  // Cuando el rango incluye meses sin leads recuperables, se calcula además el
+  // costo por lead SOLO del tramo con datos completos — así gerencia tiene un
+  // número usable en vez de uno inflado o de un "—".
+  let totalesComparables: EmbudoTotales | null = null;
+  if (cplNoComparable && desdeConLeads && totales) {
+    const gastoComparable = resumen.filas
+      .filter((f) => f.fecha >= desdeConLeads && f.moneda === monedaPrincipal)
+      .reduce((s, f) => s + f.gasto, 0);
+    totalesComparables = {
+      ...totales,
+      gasto: gastoComparable,
+      cplReal: totales.leadsCrm > 0 ? gastoComparable / totales.leadsCrm : null,
+      costoPorVenta: totales.ventas > 0 ? gastoComparable / totales.ventas : null,
+      roas: gastoComparable > 0 && totales.montoVentas > 0 ? totales.montoVentas / gastoComparable : null,
+    };
+  }
+
+  return { porCampania, totales, totalesComparables, leadsSinCampania, desdeConLeads, cplNoComparable };
 }

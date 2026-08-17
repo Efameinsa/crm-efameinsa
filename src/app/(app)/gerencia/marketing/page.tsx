@@ -158,24 +158,25 @@ export default async function MarketingPage({
             </p>
             {embudo.cplNoComparable && embudo.desdeConLeads && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                <p className="text-xs font-semibold text-amber-700">
-                  El costo por lead de este período no es comparable
-                </p>
+                <p className="text-xs font-semibold text-amber-700">Faltan datos de leads en parte de este período</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Hay gasto registrado desde antes del{" "}
-                  {new Date(`${embudo.desdeConLeads}T00:00:00`).toLocaleDateString("es-PE", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                  , pero los leads solo se tienen desde esa fecha (Google borra los formularios a los 60 días y los
-                  anteriores no se pudieron recuperar). El cálculo divide el gasto de todo el rango entre menos leads
-                  de los que realmente hubo, así que sale <span className="font-medium text-foreground">más alto</span>{" "}
-                  de lo real. Para comparar de verdad, use un rango que empiece desde esa fecha.
+                  Solo se tienen leads desde el{" "}
+                  <span className="font-medium text-foreground">
+                    {new Date(`${embudo.desdeConLeads}T00:00:00`).toLocaleDateString("es-PE", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>{" "}
+                  — Google borra los formularios a los 60 días y los anteriores no se pudieron recuperar. Los números
+                  de abajo{" "}
+                  <span className="font-medium text-foreground">ya están calculados solo con ese tramo medible</span>,
+                  para que el costo por lead sea real y no salga inflado. En el gráfico de gasto, el período sin datos
+                  aparece en gris.
                 </p>
               </div>
             )}
-            <EmbudoReal totales={embudo.totales} />
+            <EmbudoReal totales={embudo.totalesComparables ?? embudo.totales} soloTramoMedible={embudo.totalesComparables !== null} />
             {embudo.leadsSinCampania > 0 && (
               <p className="text-[11px] text-muted-foreground">
                 Nota: {embudo.leadsSinCampania} lead{embudo.leadsSinCampania === 1 ? "" : "s"} de campañas sin gasto
@@ -187,7 +188,11 @@ export default async function MarketingPage({
       )}
 
       <SeccionPanel titulo={`Gasto por ${resumen.granularidad === "dia" ? "día" : "mes"}`}>
-        <GraficoGasto serie={resumen.serie} moneda={resumen.totalesPorMoneda[0]?.moneda ?? "USD"} />
+        <GraficoGasto
+          serie={resumen.serie}
+          moneda={resumen.totalesPorMoneda[0]?.moneda ?? "USD"}
+          desdeConLeads={embudo.cplNoComparable ? embudo.desdeConLeads : null}
+        />
       </SeccionPanel>
 
       {embudo.porCampania.length > 0 && (

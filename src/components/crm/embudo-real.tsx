@@ -16,7 +16,7 @@ function formatoMoneda(moneda: string, valor: number): string {
   return `${moneda} ${valor.toLocaleString("es-PE", { maximumFractionDigits: 2 })}`;
 }
 
-export function EmbudoReal({ totales }: { totales: EmbudoTotales }) {
+export function EmbudoReal({ totales, soloTramoMedible }: { totales: EmbudoTotales; soloTramoMedible?: boolean }) {
   const reducido = useReducedMotion();
 
   const etapas: Etapa[] = [
@@ -71,7 +71,7 @@ export function EmbudoReal({ totales }: { totales: EmbudoTotales }) {
         <Metrica
           etiqueta="Inversión"
           valor={formatoMoneda(totales.moneda, totales.gasto)}
-          ayuda="gasto en el período"
+          ayuda={soloTramoMedible ? "gasto del tramo con leads" : "gasto en el período"}
         />
         <Metrica
           etiqueta="Costo por lead real"
