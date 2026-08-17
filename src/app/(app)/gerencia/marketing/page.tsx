@@ -100,6 +100,23 @@ export default async function MarketingPage({
         </div>
       </div>
 
+      <p className="px-1 text-xs text-muted-foreground">
+        Mostrando datos del{" "}
+        <span className="font-medium text-foreground">
+          {new Date(`${desde}T00:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}
+        </span>{" "}
+        al{" "}
+        <span className="font-medium text-foreground">
+          {new Date(`${hasta}T00:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}
+        </span>
+        {resumen.filas.length > 0 && (
+          <>
+            {" "}
+            — {resumen.filas.length} registro{resumen.filas.length === 1 ? "" : "s"} de gasto en ese rango
+          </>
+        )}
+      </p>
+
       {resumen.totalesPorMoneda.length === 0 ? (
         <SeccionPanel titulo="Sin datos todavía">
           <p className="text-sm text-muted-foreground">
