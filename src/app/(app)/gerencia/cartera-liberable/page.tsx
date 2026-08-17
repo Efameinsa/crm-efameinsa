@@ -1,3 +1,4 @@
+import { fechaLima } from "@/lib/fechas";
 import { createClient } from "@/lib/supabase/server";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -28,10 +29,10 @@ export default async function CarteraLiberablePage() {
               <TableRow key={c.id}>
                 <TableCell className="font-medium text-foreground">{c.razon_social}</TableCell>
                 <TableCell className="tabular-nums text-muted-foreground">
-                  {c.ultima_venta_at ? new Date(c.ultima_venta_at).toLocaleDateString("es-PE") : "Nunca"}
+                  {c.ultima_venta_at ? fechaLima(c.ultima_venta_at) : "Nunca"}
                 </TableCell>
                 <TableCell className="tabular-nums text-muted-foreground">
-                  {c.cartera_desde ? new Date(c.cartera_desde).toLocaleDateString("es-PE") : "—"}
+                  {c.cartera_desde ? fechaLima(c.cartera_desde) : "—"}
                 </TableCell>
               </TableRow>
             ))}

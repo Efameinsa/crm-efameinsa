@@ -1,3 +1,4 @@
+import { fechaLima } from "@/lib/fechas";
 import { FileDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -41,7 +42,7 @@ export default async function AprobacionesPage() {
                     <p className="text-xs text-muted-foreground">
                       <span className="font-mono">{c.codigo}</span> · Serie {c.serie} · De{" "}
                       {oportunidad?.perfiles?.nombre ?? "un comercial"} ·{" "}
-                      {new Date(c.created_at).toLocaleDateString("es-PE")}
+                      {fechaLima(c.created_at)}
                     </p>
                   </div>
                   <span className="text-sm font-bold tabular-nums text-foreground">

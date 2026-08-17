@@ -1,3 +1,4 @@
+import { fechaLima, fechaCalendario } from "@/lib/fechas";
 import { notFound } from "next/navigation";
 import { Phone, Mail, MapPin, FileText, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -63,13 +64,13 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
           <span>
             Cliente desde{" "}
             <span className="font-medium text-foreground">
-              {cuenta.cartera_desde ? new Date(cuenta.cartera_desde).toLocaleDateString("es-PE") : "—"}
+              {fechaLima(cuenta.cartera_desde)}
             </span>
           </span>
           <span>
             Última venta{" "}
             <span className="font-medium text-foreground">
-              {cuenta.ultima_venta_at ? new Date(cuenta.ultima_venta_at).toLocaleDateString("es-PE") : "Nunca"}
+              {cuenta.ultima_venta_at ? fechaLima(cuenta.ultima_venta_at) : "Nunca"}
             </span>
           </span>
         </div>
@@ -94,7 +95,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
                   {ventasConDetalle.map((v, i) => (
                     <TableRow key={v.id}>
                       <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">
-                        {new Date(v.fecha_venta).toLocaleDateString("es-PE")}
+                        {fechaCalendario(v.fecha_venta)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap font-mono text-xs">
                         {v.cotizaciones?.codigo ?? "—"} · {v.cotizaciones?.serie}

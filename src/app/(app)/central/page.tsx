@@ -1,3 +1,4 @@
+import { fechaHoraLima } from "@/lib/fechas";
 import { Phone, MessageCircle, Globe, Megaphone, Camera, Mail, User, Users, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AsignarLeadDialog } from "@/components/crm/asignar-lead-dialog";
@@ -80,7 +81,7 @@ export default async function CentralPage() {
                 <div className="text-xs text-muted-foreground">
                   <span className="font-mono">{lead.codigo}</span>
                   <br />
-                  {new Date(lead.recibido_at).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
+                  {fechaHoraLima(lead.recibido_at)}
                 </div>
                 <div className="ml-auto flex gap-2">
                   <AsignarLeadDialog
