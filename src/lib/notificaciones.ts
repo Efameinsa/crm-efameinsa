@@ -91,3 +91,22 @@ async function enviarPush(userId: string, titulo: string, cuerpo?: string, url?:
     }),
   );
 }
+
+// Un lead que entra por ingesta automática (Google/Meta Lead Ads, formulario
+// web) necesita DOS avisos distintos, no uno:
+//   · Central  → es quien tiene que actuar: revisar y asignar a un comercial.
+//                Sin este aviso el lead se queda en la bandeja hasta que
+//                alguien entre a mirar por casualidad — justo la demora que
+//                gerencia señaló como problema en la demo.
+//   · Gerencia → visibilidad inmediata, antes de que se derive (acuerdo de
+//                la reunión del 14-08, evento `lead_registrado`).
+// El aviso a Central apunta a su bandeja; el de gerencia, a su panel.
+export async function notificarLeadEntrante(datos: {
+  titulo: string;
+  cuerpo: string;
+}): Promise<void> {
+  await Promise.all([
+    notificar({ rol: "central", tipo: "lead_registrado", titulo: datos.titulo, cuerpo: datos.cuerpo, url: "/central" }),
+    notificar({ rol: "gerencia", tipo: "lead_registrado", titulo: datos.titulo, cuerpo: datos.cuerpo, url: "/gerencia" }),
+  ]);
+}

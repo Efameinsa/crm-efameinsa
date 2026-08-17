@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CANAL_LABEL } from "@/lib/canal-contacto";
-import { notificar } from "@/lib/notificaciones";
+import { notificarLeadEntrante } from "@/lib/notificaciones";
 
 // Webhook nativo de Google Ads Lead Forms: Google hace POST directo a esta
 // URL en el instante en que el cliente envía el formulario — sin
@@ -169,19 +169,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Error guardando el lead" }, { status: 500 });
   }
 
-  // Mismo aviso a gerencia que un registro manual de Central (evento de B7.3),
-  // más la campaña de origen — con varios formularios corriendo en paralelo,
-  // saber de cuál vino es justo lo que gerencia necesita de un vistazo.
+  // Avisa a Central (que debe asignarlo) y a gerencia (que quiere enterarse
+  // antes de la derivación, acuerdo de la demo del 14-08). Se incluye la
+  // campaña de origen: con varios formularios en paralelo, saber de cuál vino
+  // es lo primero que se necesita para decidir a quién asignarlo.
   const cuerpo = [nombre || "Sin nombre", razonSocial, nombreCampania ?? CANAL_LABEL.formulario_web]
     .filter(Boolean)
     .join(" · ");
-  await notificar({
-    rol: "gerencia",
-    tipo: "lead_registrado",
-    titulo: "Nuevo contacto de Google Ads",
-    cuerpo,
-    url: "/central",
-  });
+  await notificarLeadEntrante({ titulo: "Nuevo contacto de Google Ads", cuerpo });
 
   console.log(`google-leads: lead ${creado.codigo} creado desde Google Ads`);
   return NextResponse.json({});

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { esquemaLeadExterno } from "@/lib/validaciones/lead-externo";
 import { CANAL_LABEL } from "@/lib/canal-contacto";
-import { notificar } from "@/lib/notificaciones";
+import { notificarLeadEntrante } from "@/lib/notificaciones";
 
 // Ingesta automática de leads: formularios de Lead Ads (Meta/Google) vía
 // Make.com, y a futuro el formulario de la web. `recibido_por` queda null
@@ -52,20 +52,15 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Mismo evento que la captura manual de Central (B7.3): gerencia se entera
-  // al momento de que entró un contacto comercial, antes de que se derive.
+  // A diferencia de la captura manual (donde Central es quien registra y por
+  // tanto ya lo sabe), acá el lead entra solo: hay que avisarle a Central para
+  // que lo asigne, y a gerencia para su visibilidad (evento de B7.3).
   if (esComercial) {
     const canalLegible = CANAL_LABEL[d.canal] ?? d.canal;
     const cuerpoNotif = d.razon_social
       ? `${d.nombre_contacto} · ${canalLegible} · ${d.razon_social}`
       : `${d.nombre_contacto} · ${canalLegible}`;
-    await notificar({
-      rol: "gerencia",
-      tipo: "lead_registrado",
-      titulo: "Nuevo contacto en Central",
-      cuerpo: cuerpoNotif,
-      url: "/gerencia",
-    });
+    await notificarLeadEntrante({ titulo: "Nuevo contacto automático", cuerpo: cuerpoNotif });
   }
 
   return NextResponse.json({ ok: true, id: lead.id, codigo: lead.codigo });
