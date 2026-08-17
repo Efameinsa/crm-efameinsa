@@ -8,6 +8,11 @@ import { EmbudoReal } from "@/components/crm/embudo-real";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
+// Todo el panel depende de searchParams (rango de fechas y plataforma) y de
+// datos que cambian con cada sincronización: nunca debe servirse desde caché,
+// o los filtros muestran los números del filtro anterior.
+export const dynamic = "force-dynamic";
+
 const ETIQUETA_PLATAFORMA: Record<string, string> = { google: "Google Ads", meta: "Meta Ads" };
 
 function pad(n: number): string {
@@ -266,10 +271,14 @@ export default async function MarketingPage({
   );
 }
 
+// prefetch={false}: los filtros cambian solo los searchParams de la MISMA
+// ruta, y el router de Next servía el payload ya cacheado — los números se
+// quedaban congelados en el filtro anterior aunque la URL cambiara.
 function ChipLink({ href, activo, children }: { href: string; activo: boolean; children: React.ReactNode }) {
   return (
     <Link
       href={href}
+      prefetch={false}
       className={cn(
         "rounded-full border px-3 py-1 text-xs transition-colors",
         activo ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent",
@@ -284,6 +293,7 @@ function ChipSegmento({ href, activo, children }: { href: string; activo: boolea
   return (
     <Link
       href={href}
+      prefetch={false}
       className={cn(
         "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
         activo ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground hover:bg-accent",
