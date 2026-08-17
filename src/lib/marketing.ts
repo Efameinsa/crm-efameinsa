@@ -155,3 +155,169 @@ export async function cargarResumenMarketing(
 
   return { filas, totalesPorMoneda, serie, granularidad, porCampania };
 }
+
+// ============================================================
+// EMBUDO REAL — lo que Google NO puede decirte
+// ============================================================
+// Google reporta sus propias "conversiones" (metrics.conversions), pero no
+// sabe cuáles de esos contactos resultaron reales: cuáles Central descartó
+// como spam, cuáles el comercial calificó, y cuáles terminaron en venta. Eso
+// solo lo sabe el CRM. Cruzando `leads.utm_campaign` (que guarda el
+// campaign_id de origen) con `campanias.campaign_id` se obtiene el embudo
+// real y el CPL/CAC/ROAS de verdad.
+//
+// ATRIBUCIÓN POR COHORTE: los leads se filtran por su fecha de llegada, y
+// luego se sigue su cadena (oportunidad → venta) SIN importar cuándo cerró la
+// venta. Un lead de enero que compra en agosto cuenta para enero, que es
+// cuando se pagó el anuncio que lo trajo. Filtrar las ventas por su propia
+// fecha rompería la relación gasto↔resultado.
+
+export interface EmbudoCampania {
+  campaignId: string;
+  nombre: string;
+  plataforma: string;
+  moneda: string;
+  gasto: number;
+  clics: number;
+  leadsReportados: number; // lo que dice Google
+  leadsCrm: number; // lo que realmente entró
+  oportunidades: number;
+  ventas: number;
+  montoVentas: number;
+  cplReal: number | null; // gasto / leads del CRM
+  costoPorVenta: number | null; // gasto / ventas
+  roas: number | null; // monto vendido / gasto
+}
+
+export interface EmbudoTotales {
+  leadsCrm: number;
+  oportunidades: number;
+  ventas: number;
+  montoVentas: number;
+  gasto: number;
+  moneda: string;
+  cplReal: number | null;
+  costoPorVenta: number | null;
+  roas: number | null;
+}
+
+export interface ResumenEmbudo {
+  porCampania: EmbudoCampania[];
+  totales: EmbudoTotales | null;
+  leadsSinCampania: number;
+}
+
+export async function cargarEmbudoReal(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  resumen: ResumenMarketing,
+  { desde, hasta }: { desde: string; hasta: string },
+): Promise<ResumenEmbudo> {
+  // Leads llegados en el rango que traen campaña de origen.
+  const { data: leads } = await supabase
+    .from("leads")
+    .select("id, utm_campaign, recibido_at")
+    .not("utm_campaign", "is", null)
+    .gte("recibido_at", `${desde}T00:00:00`)
+    .lte("recibido_at", `${hasta}T23:59:59`);
+
+  const filasLeads = leads ?? [];
+  const leadIds = filasLeads.map((l) => l.id);
+
+  // Oportunidades nacidas de esos leads, y ventas de esas oportunidades.
+  const { data: oportunidades } = leadIds.length
+    ? await supabase.from("oportunidades").select("id, lead_id").in("lead_id", leadIds)
+    : { data: [] as { id: string; lead_id: string | null }[] };
+  const filasOportunidades = oportunidades ?? [];
+  const oportunidadIds = filasOportunidades.map((o) => o.id);
+
+  const { data: ventas } = oportunidadIds.length
+    ? await supabase.from("ventas").select("oportunidad_id, monto_total").in("oportunidad_id", oportunidadIds)
+    : { data: [] as { oportunidad_id: string; monto_total: number }[] };
+  const filasVentas = ventas ?? [];
+
+  // Índices para recorrer la cadena lead → oportunidad → venta.
+  const campaniaPorLead = new Map(filasLeads.map((l) => [l.id, String(l.utm_campaign)]));
+  const leadPorOportunidad = new Map(filasOportunidades.map((o) => [o.id, o.lead_id]));
+
+  const acum = new Map<string, { leadsCrm: number; oportunidades: number; ventas: number; montoVentas: number }>();
+  const vacio = () => ({ leadsCrm: 0, oportunidades: 0, ventas: 0, montoVentas: 0 });
+
+  for (const l of filasLeads) {
+    const c = String(l.utm_campaign);
+    const a = acum.get(c) ?? vacio();
+    a.leadsCrm++;
+    acum.set(c, a);
+  }
+  for (const o of filasOportunidades) {
+    const c = o.lead_id ? campaniaPorLead.get(o.lead_id) : undefined;
+    if (!c) continue;
+    const a = acum.get(c) ?? vacio();
+    a.oportunidades++;
+    acum.set(c, a);
+  }
+  for (const v of filasVentas) {
+    const leadId = leadPorOportunidad.get(v.oportunidad_id);
+    const c = leadId ? campaniaPorLead.get(leadId) : undefined;
+    if (!c) continue;
+    const a = acum.get(c) ?? vacio();
+    a.ventas++;
+    a.montoVentas += v.monto_total;
+    acum.set(c, a);
+  }
+
+  // Se parte de las campañas CON GASTO en el rango (son las que importan para
+  // costo por lead); se les pega lo que produjeron según el CRM.
+  const porCampania: EmbudoCampania[] = resumen.porCampania.map((c) => {
+    const campaignIdExterno = (resumen.filas.find((f) => f.campanias?.id === c.id)?.campanias?.campaign_id) ?? "";
+    const a = acum.get(campaignIdExterno) ?? vacio();
+    return {
+      campaignId: campaignIdExterno,
+      nombre: c.nombre,
+      plataforma: c.plataforma,
+      moneda: c.moneda,
+      gasto: c.gasto,
+      clics: c.clics,
+      leadsReportados: c.leadsReportados,
+      leadsCrm: a.leadsCrm,
+      oportunidades: a.oportunidades,
+      ventas: a.ventas,
+      montoVentas: a.montoVentas,
+      cplReal: a.leadsCrm > 0 ? c.gasto / a.leadsCrm : null,
+      costoPorVenta: a.ventas > 0 ? c.gasto / a.ventas : null,
+      roas: c.gasto > 0 && a.montoVentas > 0 ? a.montoVentas / c.gasto : null,
+    };
+  });
+
+  // Leads con una campaña que no tiene gasto registrado en este rango (ej. la
+  // sincronización de gasto aún no corrió, o el lead vino de una campaña vieja).
+  const idsConGasto = new Set(porCampania.map((c) => c.campaignId));
+  let leadsSinCampania = 0;
+  for (const [campaignId, a] of acum) {
+    if (!idsConGasto.has(campaignId)) leadsSinCampania += a.leadsCrm;
+  }
+
+  const monedaPrincipal = resumen.totalesPorMoneda[0]?.moneda ?? "PEN";
+  const conGasto = porCampania.filter((c) => c.moneda === monedaPrincipal);
+  const totales: EmbudoTotales | null = conGasto.length
+    ? (() => {
+        const gasto = conGasto.reduce((s, c) => s + c.gasto, 0);
+        const leadsCrm = conGasto.reduce((s, c) => s + c.leadsCrm, 0);
+        const oportunidades = conGasto.reduce((s, c) => s + c.oportunidades, 0);
+        const ventas = conGasto.reduce((s, c) => s + c.ventas, 0);
+        const montoVentas = conGasto.reduce((s, c) => s + c.montoVentas, 0);
+        return {
+          gasto,
+          moneda: monedaPrincipal,
+          leadsCrm,
+          oportunidades,
+          ventas,
+          montoVentas,
+          cplReal: leadsCrm > 0 ? gasto / leadsCrm : null,
+          costoPorVenta: ventas > 0 ? gasto / ventas : null,
+          roas: gasto > 0 && montoVentas > 0 ? montoVentas / gasto : null,
+        };
+      })()
+    : null;
+
+  return { porCampania, totales, leadsSinCampania };
+}

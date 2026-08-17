@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { cargarResumenMarketing } from "@/lib/marketing";
+import { cargarResumenMarketing, cargarEmbudoReal } from "@/lib/marketing";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Kpi } from "@/components/crm/kpi";
 import { GraficoGasto } from "@/components/crm/grafico-gasto";
+import { EmbudoReal } from "@/components/crm/embudo-real";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,7 @@ export default async function MarketingPage({
 
   const supabase = await createClient();
   const resumen = await cargarResumenMarketing(supabase, { desde, hasta, plataforma });
+  const embudo = await cargarEmbudoReal(supabase, resumen, { desde, hasta });
 
   function hrefPreset(d: string, h: string): string {
     const params = new URLSearchParams({ desde: d, hasta: h });
@@ -146,48 +148,88 @@ export default async function MarketingPage({
         ))
       )}
 
+      {embudo.totales && (
+        <SeccionPanel titulo="Embudo real — de la inversión a la venta">
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Lo que la publicidad produjo <span className="font-medium text-foreground">según el CRM</span>, no según
+              lo que declara la plataforma. Cada venta se atribuye a la campaña que trajo al cliente, aunque haya
+              cerrado meses después.
+            </p>
+            <EmbudoReal totales={embudo.totales} />
+            {embudo.leadsSinCampania > 0 && (
+              <p className="text-[11px] text-muted-foreground">
+                Nota: {embudo.leadsSinCampania} lead{embudo.leadsSinCampania === 1 ? "" : "s"} de campañas sin gasto
+                registrado en este rango no {embudo.leadsSinCampania === 1 ? "está" : "están"} en el conteo de arriba.
+              </p>
+            )}
+          </div>
+        </SeccionPanel>
+      )}
+
       <SeccionPanel titulo={`Gasto por ${resumen.granularidad === "dia" ? "día" : "mes"}`}>
         <GraficoGasto serie={resumen.serie} moneda={resumen.totalesPorMoneda[0]?.moneda ?? "USD"} />
       </SeccionPanel>
 
-      {resumen.porCampania.length > 0 && (
-        <SeccionPanel titulo="Por campaña">
+      {embudo.porCampania.length > 0 && (
+        <SeccionPanel titulo="Rendimiento por campaña">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Campaña</TableHead>
-                  <TableHead>Plataforma</TableHead>
                   <TableHead className="text-right">Gasto</TableHead>
-                  <TableHead className="text-right">Impresiones</TableHead>
                   <TableHead className="text-right">Clics</TableHead>
-                  <TableHead className="text-right">CTR</TableHead>
-                  <TableHead className="text-right">Leads</TableHead>
-                  <TableHead className="text-right">CPL</TableHead>
+                  <TableHead className="text-right" title="Leads según Google / leads que realmente entraron al CRM">
+                    Leads
+                  </TableHead>
+                  <TableHead className="text-right">Oport.</TableHead>
+                  <TableHead className="text-right">Ventas</TableHead>
+                  <TableHead className="text-right">CPL real</TableHead>
+                  <TableHead className="text-right">ROAS</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {resumen.porCampania.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="max-w-[260px] whitespace-normal">
-                      <p className="line-clamp-2 font-medium text-foreground">{c.nombre}</p>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-muted-foreground">
-                      {ETIQUETA_PLATAFORMA[c.plataforma] ?? c.plataforma}
+                {embudo.porCampania.map((c) => (
+                  <TableRow key={c.campaignId || c.nombre}>
+                    <TableCell className="max-w-[220px] whitespace-normal">
+                      <p className="line-clamp-2 font-medium text-foreground" title={c.nombre}>
+                        {c.nombre}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {ETIQUETA_PLATAFORMA[c.plataforma] ?? c.plataforma}
+                      </p>
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-right tabular-nums">
                       {c.moneda} {c.gasto.toLocaleString("es-PE", { maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-right tabular-nums">
-                      {c.impresiones.toLocaleString("es-PE")}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-right tabular-nums">
                       {c.clics.toLocaleString("es-PE")}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-right tabular-nums">{c.ctr.toFixed(2)}%</TableCell>
-                    <TableCell className="whitespace-nowrap text-right tabular-nums">{c.leadsReportados}</TableCell>
                     <TableCell className="whitespace-nowrap text-right tabular-nums">
-                      {c.leadsReportados > 0 ? `${c.moneda} ${c.cpl.toFixed(2)}` : "—"}
+                      <span className="text-muted-foreground">{c.leadsReportados}</span>
+                      <span className="text-muted-foreground/50"> / </span>
+                      <span className="font-semibold text-foreground">{c.leadsCrm}</span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-right tabular-nums">{c.oportunidades}</TableCell>
+                    <TableCell
+                      className={cn(
+                        "whitespace-nowrap text-right font-semibold tabular-nums",
+                        c.ventas > 0 ? "text-[#1E7F4F]" : "text-muted-foreground",
+                      )}
+                    >
+                      {c.ventas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-right tabular-nums">
+                      {c.cplReal !== null ? `${c.moneda} ${c.cplReal.toFixed(2)}` : "—"}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "whitespace-nowrap text-right font-semibold tabular-nums",
+                        c.roas !== null && c.roas >= 1 ? "text-[#1E7F4F]" : "text-muted-foreground",
+                      )}
+                    >
+                      {c.roas !== null ? `${c.roas.toFixed(2)}×` : "—"}
                     </TableCell>
                   </TableRow>
                 ))}
