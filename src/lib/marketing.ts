@@ -205,6 +205,13 @@ export interface ResumenEmbudo {
   porCampania: EmbudoCampania[];
   totales: EmbudoTotales | null;
   leadsSinCampania: number;
+  // Cuando hay gasto en un período pero los leads del CRM empiezan después
+  // (Google borra los leads a los 60 días, así que los anteriores a la
+  // conexión del webhook son irrecuperables), el CPL sale inflado: divide
+  // gasto de N meses entre leads de menos meses. Se avisa en vez de mostrar
+  // un número engañoso como si fuera bueno.
+  desdeConLeads: string | null;
+  cplNoComparable: boolean;
 }
 
 export async function cargarEmbudoReal(
@@ -319,5 +326,23 @@ export async function cargarEmbudoReal(
       })()
     : null;
 
-  return { porCampania, totales, leadsSinCampania };
+  // ¿El rango de gasto empieza antes que el primer lead que tenemos?
+  // Se compara contra el lead más antiguo de TODA la base (no solo del rango),
+  // que marca desde cuándo el CRM tiene registro de leads publicitarios.
+  const { data: primerLead } = await supabase
+    .from("leads")
+    .select("recibido_at")
+    .not("utm_campaign", "is", null)
+    .order("recibido_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const desdeConLeads = primerLead?.recibido_at ? primerLead.recibido_at.slice(0, 10) : null;
+  // Se tolera un día de margen para no alarmar por diferencias de zona horaria.
+  const cplNoComparable =
+    desdeConLeads !== null &&
+    desdeConLeads > desde &&
+    resumen.filas.some((f) => f.fecha < desdeConLeads);
+
+  return { porCampania, totales, leadsSinCampania, desdeConLeads, cplNoComparable };
 }

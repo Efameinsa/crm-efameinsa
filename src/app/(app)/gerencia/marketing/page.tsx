@@ -139,9 +139,9 @@ export default async function MarketingPage({
               <Kpi etiqueta="Impresiones" valor={t.impresiones} />
               <Kpi etiqueta="Clics" valor={t.clics} sub={`CTR ${t.ctr.toFixed(2)}%`} />
               <Kpi
-                etiqueta="Leads reportados"
+                etiqueta="Conversiones (Google)"
                 valor={t.leadsReportados}
-                sub={t.leadsReportados > 0 ? `CPL ${t.moneda} ${t.cpl.toFixed(2)}` : "sin conversiones"}
+                sub="incluye llamadas y clics, no solo formularios"
               />
             </div>
           </div>
@@ -156,6 +156,25 @@ export default async function MarketingPage({
               lo que declara la plataforma. Cada venta se atribuye a la campaña que trajo al cliente, aunque haya
               cerrado meses después.
             </p>
+            {embudo.cplNoComparable && embudo.desdeConLeads && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                <p className="text-xs font-semibold text-amber-700">
+                  El costo por lead de este período no es comparable
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Hay gasto registrado desde antes del{" "}
+                  {new Date(`${embudo.desdeConLeads}T00:00:00`).toLocaleDateString("es-PE", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                  , pero los leads solo se tienen desde esa fecha (Google borra los formularios a los 60 días y los
+                  anteriores no se pudieron recuperar). El cálculo divide el gasto de todo el rango entre menos leads
+                  de los que realmente hubo, así que sale <span className="font-medium text-foreground">más alto</span>{" "}
+                  de lo real. Para comparar de verdad, use un rango que empiece desde esa fecha.
+                </p>
+              </div>
+            )}
             <EmbudoReal totales={embudo.totales} />
             {embudo.leadsSinCampania > 0 && (
               <p className="text-[11px] text-muted-foreground">
@@ -180,7 +199,7 @@ export default async function MarketingPage({
                   <TableHead>Campaña</TableHead>
                   <TableHead className="text-right">Gasto</TableHead>
                   <TableHead className="text-right">Clics</TableHead>
-                  <TableHead className="text-right" title="Leads según Google / leads que realmente entraron al CRM">
+                  <TableHead className="text-right" title="Conversiones que reporta Google (incluye llamadas y clics) / leads reales que entraron al CRM">
                     Leads
                   </TableHead>
                   <TableHead className="text-right">Oport.</TableHead>
