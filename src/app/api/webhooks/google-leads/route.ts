@@ -119,7 +119,23 @@ export async function POST(request: NextRequest) {
     if (existente) return NextResponse.json({});
   }
 
+  // Varios formularios pueden apuntar al mismo webhook (Google los distingue
+  // por form_id/campaign_id). Para que Central sepa de dónde viene el lead sin
+  // descifrar números, se resuelve el NOMBRE de la campaña contra `campanias`
+  // —que ya se sincroniza desde Google Ads— y se guarda eso en el mensaje.
   const partesMensaje = [...extras];
+  let nombreCampania: string | null = null;
+  if (lead.campaign_id) {
+    const { data: campania } = await admin
+      .from("campanias")
+      .select("nombre")
+      .eq("plataforma", "google")
+      .eq("campaign_id", String(lead.campaign_id))
+      .maybeSingle();
+    nombreCampania = campania?.nombre ?? null;
+  }
+  if (nombreCampania) partesMensaje.push(`Campaña: ${nombreCampania}`);
+  else if (lead.campaign_id) partesMensaje.push(`Campaña ID: ${lead.campaign_id}`);
   if (lead.form_id) partesMensaje.push(`Formulario: ${lead.form_id}`);
 
   const { data: creado, error } = await admin
@@ -153,10 +169,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Error guardando el lead" }, { status: 500 });
   }
 
-  // Mismo aviso a gerencia que un registro manual de Central (evento de B7.3).
-  const cuerpo = razonSocial
-    ? `${nombre || "Sin nombre"} · ${CANAL_LABEL.formulario_web} · ${razonSocial}`
-    : `${nombre || "Sin nombre"} · ${CANAL_LABEL.formulario_web}`;
+  // Mismo aviso a gerencia que un registro manual de Central (evento de B7.3),
+  // más la campaña de origen — con varios formularios corriendo en paralelo,
+  // saber de cuál vino es justo lo que gerencia necesita de un vistazo.
+  const cuerpo = [nombre || "Sin nombre", razonSocial, nombreCampania ?? CANAL_LABEL.formulario_web]
+    .filter(Boolean)
+    .join(" · ");
   await notificar({
     rol: "gerencia",
     tipo: "lead_registrado",
