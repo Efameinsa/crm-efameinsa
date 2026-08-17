@@ -27,6 +27,7 @@ export type CanalContacto =
 
 export type EstadoLead =
   | "pendiente_triaje"
+  | "historico" // importado de Google Ads, gestionado antes del CRM (ver migración 0016)
   | "derivado_area"
   | "asignado"
   | "duplicado"

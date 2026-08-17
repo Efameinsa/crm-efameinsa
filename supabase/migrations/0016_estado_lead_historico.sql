@@ -1,0 +1,22 @@
+-- ============================================================
+-- CRM EFAMEINSA · Migración 0016 · Estado 'historico' para leads (B10.6)
+-- ============================================================
+-- Se importan ~436 leads de Google Ads anteriores a la conexión del webhook
+-- (rescatados de las descargas manuales que marketing venía acumulando desde
+-- mayo). Gerencia confirma que TODOS fueron gestionados por Central en su
+-- momento, pero todavía no se sabe CÓMO — ese detalle llegará con los Excel
+-- del área comercial.
+--
+-- Ninguno de los estados existentes dice eso con honestidad:
+--   'pendiente_triaje' → falso, y llenaría la bandeja de Central con 436
+--                        tareas ya hechas
+--   'descartado'       → falso, no fueron rechazados
+--   'asignado'         → implica cuenta y oportunidad creadas, que no tenemos
+--
+-- 'historico' = entró por publicidad, ya se gestionó fuera del CRM, el
+-- desenlace se completará después. Sirve para alimentar el embudo de
+-- marketing (CPL real por campaña) sin ensuciar el flujo de trabajo diario.
+-- Todas las consultas de la app filtran por estados explícitos, así que
+-- agregar este valor no afecta ninguna pantalla existente.
+
+alter type estado_lead add value if not exists 'historico';
