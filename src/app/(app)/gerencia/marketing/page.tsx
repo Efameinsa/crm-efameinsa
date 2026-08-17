@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { cargarResumenMarketing, cargarEmbudoReal } from "@/lib/marketing";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -271,35 +270,38 @@ export default async function MarketingPage({
   );
 }
 
-// prefetch={false}: los filtros cambian solo los searchParams de la MISMA
-// ruta, y el router de Next servía el payload ya cacheado — los números se
-// quedaban congelados en el filtro anterior aunque la URL cambiara.
+// Se usa <a> y NO <Link> a propósito: los filtros solo cambian los
+// searchParams de la misma ruta, y el Router Cache de Next reutilizaba el
+// payload anterior (los números quedaban congelados en el filtro previo
+// aunque la URL sí cambiara; solo una recarga manual los actualizaba).
+// `prefetch={false}` y `force-dynamic` no bastaron porque el caché es de
+// cliente y no distingue searchParams. Una navegación normal del navegador
+// siempre pide la página al servidor — para un panel que debe reflejar el
+// filtro exacto, la corrección vale más que la transición sin recarga.
 function ChipLink({ href, activo, children }: { href: string; activo: boolean; children: React.ReactNode }) {
   return (
-    <Link
+    <a
       href={href}
-      prefetch={false}
       className={cn(
         "rounded-full border px-3 py-1 text-xs transition-colors",
         activo ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent",
       )}
     >
       {children}
-    </Link>
+    </a>
   );
 }
 
 function ChipSegmento({ href, activo, children }: { href: string; activo: boolean; children: React.ReactNode }) {
   return (
-    <Link
+    <a
       href={href}
-      prefetch={false}
       className={cn(
         "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
         activo ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground hover:bg-accent",
       )}
     >
       {children}
-    </Link>
+    </a>
   );
 }
