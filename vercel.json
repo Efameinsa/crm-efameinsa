@@ -1,5 +1,6 @@
 {
   "crons": [
     { "path": "/api/cron/gasto-diario", "schedule": "0 11 * * *" }
-  ]
+  ],
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)docs' ':(exclude)*.md' ':(exclude)scripts/data'"
 }
