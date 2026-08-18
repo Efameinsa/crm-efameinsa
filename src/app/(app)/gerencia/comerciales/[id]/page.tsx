@@ -2,8 +2,16 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PanelGestionComercial } from "@/components/crm/panel-gestion-comercial";
 
-export default async function ComercialGerenciaPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export const dynamic = "force-dynamic";
+
+export default async function ComercialGerenciaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ desde?: string; hasta?: string; historico?: string }>;
+}) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   const supabase = await createClient();
 
   const { data: perfil } = await supabase
@@ -15,5 +23,5 @@ export default async function ComercialGerenciaPage({ params }: { params: Promis
 
   if (!perfil) notFound();
 
-  return <PanelGestionComercial comercialId={id} nombre={perfil.nombre} />;
+  return <PanelGestionComercial comercialId={id} nombre={perfil.nombre} searchParams={sp} esGerencia />;
 }

@@ -1,4 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import { resolverPeriodo } from "@/lib/periodo";
+import { fechaCalendarioLarga } from "@/lib/fechas";
+import { ETIQUETA_VIA } from "@/lib/reportes";
+import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
+import { ChipsParam } from "@/components/crm/chips-param";
+import { TipoCambioInline } from "@/components/crm/tipo-cambio-inline";
 import { cargarResumenMarketing, cargarEmbudoReal } from "@/lib/marketing";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Kpi } from "@/components/crm/kpi";
@@ -14,120 +20,78 @@ export const dynamic = "force-dynamic";
 
 const ETIQUETA_PLATAFORMA: Record<string, string> = { google: "Google Ads", meta: "Meta Ads" };
 
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
-}
-function iso(d: Date): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
 export default async function MarketingPage({
   searchParams,
 }: {
   searchParams: Promise<{ desde?: string; hasta?: string; plataforma?: string }>;
 }) {
   const sp = await searchParams;
-  const hoy = new Date();
-  const inicioMesDefault = iso(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
-  const hoyIso = iso(hoy);
-  const inicioAnio = iso(new Date(hoy.getFullYear(), 0, 1));
-  const hace30 = iso(new Date(hoy.getTime() - 29 * 86_400_000));
-
-  const desde = sp.desde || inicioMesDefault;
-  const hasta = sp.hasta || hoyIso;
+  const periodo = resolverPeriodo(sp, "mes");
+  const { desde, hasta } = periodo;
   const plataforma: "google" | "meta" | undefined =
     sp.plataforma === "google" || sp.plataforma === "meta" ? sp.plataforma : undefined;
 
   const supabase = await createClient();
-  const resumen = await cargarResumenMarketing(supabase, { desde, hasta, plataforma });
+  const [resumen, { data: leadsPeriodo }] = await Promise.all([
+    cargarResumenMarketing(supabase, { desde, hasta, plataforma }),
+    supabase
+      .from("leads")
+      .select("fuente, canal, estado")
+      .gte("recibido_at", `${desde}T00:00:00`)
+      .lte("recibido_at", `${hasta}T23:59:59`),
+  ]);
   const embudo = await cargarEmbudoReal(supabase, resumen, { desde, hasta });
 
-  function hrefPreset(d: string, h: string): string {
-    const params = new URLSearchParams({ desde: d, hasta: h });
-    if (plataforma) params.set("plataforma", plataforma);
-    return `/gerencia/marketing?${params.toString()}`;
+  // Leads del período por origen (lo que declara el propio lead, no la
+  // plataforma): sirve para ver cuánto del flujo entrante es publicidad.
+  const porOrigen = new Map<string, { n: number; asignados: number; descartados: number }>();
+  for (const l of leadsPeriodo ?? []) {
+    const clave = l.fuente === "google_ads" || l.fuente === "meta_ads" ? l.fuente : `contacto_${l.canal}`;
+    const a = porOrigen.get(clave) ?? { n: 0, asignados: 0, descartados: 0 };
+    a.n++;
+    if (l.estado === "asignado") a.asignados++;
+    if (l.estado === "descartado") a.descartados++;
+    porOrigen.set(clave, a);
   }
-  function hrefPlataforma(p?: "google" | "meta"): string {
-    const params = new URLSearchParams({ desde, hasta });
-    if (p) params.set("plataforma", p);
-    return `/gerencia/marketing?${params.toString()}`;
-  }
-  const presetActivo = (d: string, h: string) => desde === d && hasta === h;
+  const origenes = Array.from(porOrigen.entries()).sort((a, b) => b[1].n - a[1].n);
+  const totalLeads = origenes.reduce((s, [, v]) => s + v.n, 0);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          <ChipLink href={hrefPreset(inicioMesDefault, hoyIso)} activo={presetActivo(inicioMesDefault, hoyIso)}>
-            Este mes
-          </ChipLink>
-          <ChipLink href={hrefPreset(hace30, hoyIso)} activo={presetActivo(hace30, hoyIso)}>
-            Últimos 30 días
-          </ChipLink>
-          <ChipLink href={hrefPreset(inicioAnio, hoyIso)} activo={presetActivo(inicioAnio, hoyIso)}>
-            Este año
-          </ChipLink>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
-            <ChipSegmento href={hrefPlataforma()} activo={!plataforma}>
-              Todos
-            </ChipSegmento>
-            <ChipSegmento href={hrefPlataforma("google")} activo={plataforma === "google"}>
-              Google
-            </ChipSegmento>
-            <ChipSegmento href={hrefPlataforma("meta")} activo={plataforma === "meta"}>
-              Meta
-            </ChipSegmento>
-          </div>
-          <form className="flex items-center gap-1.5" action="/gerencia/marketing">
-            {plataforma && <input type="hidden" name="plataforma" value={plataforma} />}
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desde}
-              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs text-foreground"
-            />
-            <span className="text-xs text-muted-foreground">a</span>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hasta}
-              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs text-foreground"
-            />
-            <button
-              type="submit"
-              className="h-8 rounded-md border border-border px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent"
-            >
-              Ir
-            </button>
-          </form>
-        </div>
-      </div>
+      <FiltroPeriodo
+        {...periodo}
+        presetActivo={periodo.preset}
+        presets={["mes", "mes_anterior", "30d", "90d", "anio", "12m"]}
+        extra={
+          <ChipsParam
+            nombre="plataforma"
+            valor={plataforma ?? null}
+            opciones={[
+              { valor: null, etiqueta: "Todas" },
+              { valor: "google", etiqueta: "Google" },
+              { valor: "meta", etiqueta: "Meta" },
+            ]}
+          />
+        }
+      />
 
       <p className="px-1 text-xs text-muted-foreground">
-        Mostrando datos del{" "}
-        <span className="font-medium text-foreground">
-          {new Date(`${desde}T00:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}
-        </span>{" "}
-        al{" "}
-        <span className="font-medium text-foreground">
-          {new Date(`${hasta}T00:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}
-        </span>
+        Del <span className="font-medium text-foreground">{fechaCalendarioLarga(desde)}</span> al{" "}
+        <span className="font-medium text-foreground">{fechaCalendarioLarga(hasta)}</span>
         {resumen.filas.length > 0 && (
           <>
             {" "}
             — {resumen.filas.length} registro{resumen.filas.length === 1 ? "" : "s"} de gasto en ese rango
           </>
         )}
+        {" "}· ventas convertidas al <TipoCambioInline valor={embudo.tcUsdPen} editable /> para ROAS y costo por venta
       </p>
 
       {resumen.totalesPorMoneda.length === 0 ? (
         <SeccionPanel titulo="Sin datos todavía">
           <p className="text-sm text-muted-foreground">
-            No hay gasto de campañas registrado en este período. Si recién conectaste Google Ads o Meta Ads, espera a
-            la próxima sincronización diaria o corre el respaldo histórico desde Make.
+            No hay gasto de campañas registrado en este período. Meta Ads se sincroniza solo cada mañana; Google Ads llega
+            desde Make.com. Si el período es reciente, espere a la próxima sincronización.
           </p>
         </SeccionPanel>
       ) : (
@@ -143,13 +107,42 @@ export default async function MarketingPage({
               <Kpi etiqueta="Impresiones" valor={t.impresiones} />
               <Kpi etiqueta="Clics" valor={t.clics} sub={`CTR ${t.ctr.toFixed(2)}%`} />
               <Kpi
-                etiqueta="Conversiones (Google)"
+                etiqueta="Conversiones (plataforma)"
                 valor={t.leadsReportados}
-                sub="incluye llamadas y clics, no solo formularios"
+                sub="lo que declara Google/Meta: incluye llamadas, clics y mensajes"
               />
             </div>
           </div>
         ))
+      )}
+
+      {totalLeads > 0 && (
+        <SeccionPanel titulo="Contactos entrantes por origen">
+          <div className="space-y-2">
+            {origenes.map(([clave, v]) => {
+              const p = (v.n / totalLeads) * 100;
+              return (
+                <div key={clave} className="grid grid-cols-[150px_1fr_auto] items-center gap-3 text-xs">
+                  <span className="truncate text-foreground" title={ETIQUETA_VIA[clave] ?? clave}>
+                    {ETIQUETA_VIA[clave] ?? clave}
+                  </span>
+                  <div className="h-5 overflow-hidden rounded-md bg-secondary">
+                    <div className="h-full rounded-md bg-primary/80" style={{ width: `${Math.max(p, 2)}%` }} />
+                  </div>
+                  <span className="w-40 text-right tabular-nums text-muted-foreground">
+                    <b className="text-foreground">{v.n}</b> · {Math.round(p)}%
+                    {v.asignados > 0 && <> · {v.asignados} asignado{v.asignados === 1 ? "" : "s"}</>}
+                    {v.descartados > 0 && <> · {v.descartados} descartado{v.descartados === 1 ? "" : "s"}</>}
+                  </span>
+                </div>
+              );
+            })}
+            <p className="pt-1 text-[11px] text-muted-foreground">
+              {totalLeads} contacto{totalLeads === 1 ? "" : "s"} recibido{totalLeads === 1 ? "" : "s"} en el período según lo que registró el CRM (Central o
+              webhook). Los que llegan por WhatsApp a la app del celular no pasan por aquí salvo que Central los registre.
+            </p>
+          </div>
+        </SeccionPanel>
       )}
 
       {embudo.totales && (
@@ -267,41 +260,5 @@ export default async function MarketingPage({
         </SeccionPanel>
       )}
     </div>
-  );
-}
-
-// Se usa <a> y NO <Link> a propósito: los filtros solo cambian los
-// searchParams de la misma ruta, y el Router Cache de Next reutilizaba el
-// payload anterior (los números quedaban congelados en el filtro previo
-// aunque la URL sí cambiara; solo una recarga manual los actualizaba).
-// `prefetch={false}` y `force-dynamic` no bastaron porque el caché es de
-// cliente y no distingue searchParams. Una navegación normal del navegador
-// siempre pide la página al servidor — para un panel que debe reflejar el
-// filtro exacto, la corrección vale más que la transición sin recarga.
-function ChipLink({ href, activo, children }: { href: string; activo: boolean; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      className={cn(
-        "rounded-full border px-3 py-1 text-xs transition-colors",
-        activo ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent",
-      )}
-    >
-      {children}
-    </a>
-  );
-}
-
-function ChipSegmento({ href, activo, children }: { href: string; activo: boolean; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      className={cn(
-        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-        activo ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground hover:bg-accent",
-      )}
-    >
-      {children}
-    </a>
   );
 }

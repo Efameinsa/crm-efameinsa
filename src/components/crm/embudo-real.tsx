@@ -74,15 +74,15 @@ export function EmbudoReal({ totales, soloTramoMedible }: { totales: EmbudoTotal
           ayuda={soloTramoMedible ? "gasto del tramo con leads" : "gasto en el período"}
         />
         <Metrica
-          etiqueta="Costo por lead real"
+          etiqueta="Costo por lead (CPL)"
           valor={totales.cplReal !== null ? formatoMoneda(totales.moneda, totales.cplReal) : "—"}
           ayuda={totales.cplReal !== null ? "inversión ÷ leads del CRM" : "sin leads en el período"}
           destacada
         />
         <Metrica
-          etiqueta="Costo por venta"
+          etiqueta="Costo por venta (CPA)"
           valor={totales.costoPorVenta !== null ? formatoMoneda(totales.moneda, totales.costoPorVenta) : "—"}
-          ayuda={totales.costoPorVenta !== null ? "inversión ÷ ventas" : "sin ventas todavía"}
+          ayuda={totales.costoPorVenta !== null ? "inversión ÷ ventas atribuidas" : "sin ventas atribuidas todavía"}
         />
         <Metrica
           etiqueta="Retorno (ROAS)"

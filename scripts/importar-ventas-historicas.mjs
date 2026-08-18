@@ -117,7 +117,10 @@ function parseMonto(raw) {
 function prepararFila(f) {
   const digitos = soloDigitos(f.numDoc);
   const tipoDoc = f.tipoDoc ?? inferirTipoDoc(digitos);
-  const fechaVenta = excelFechaAISO(f.fAccion) ?? excelFechaAISO(f.fEstado);
+  // F_ESTADO es la fecha en que se marcó la venta; F_ACCION es la PRÓXIMA acción
+  // (puede ser futura). La primera corrida usó F_ACCION y desplazó 259 ventas
+  // de mes (una quedó en el futuro) — corregido 2026-08-18.
+  const fechaVenta = excelFechaAISO(f.fEstado) ?? excelFechaAISO(f.fAccion);
   const { monto, moneda } = parseMonto(f.monto);
   return {
     ...f,
@@ -243,8 +246,8 @@ async function main() {
 
       const moneda = f.moneda ?? "USD";
       const { rows: opRows } = await cliente.query(
-        `insert into oportunidades (cuenta_id, comercial_id, etapa, monto_estimado, moneda, cerrada_at, created_at)
-         values ($1, $2, 'venta', $3, $4, $5, coalesce($5, now()))
+        `insert into oportunidades (cuenta_id, comercial_id, etapa, monto_estimado, moneda, cerrada_at, created_at, origen)
+         values ($1, $2, 'venta', $3, $4, $5, coalesce($5, now()), 'historico_excel')
          returning id`,
         [cuentaId, comercialId, f.monto ?? null, moneda, f.fechaVenta],
       );
@@ -259,8 +262,8 @@ async function main() {
 
       if (f.monto) {
         await cliente.query(
-          `insert into ventas (oportunidad_id, cotizacion_id, serie, fecha_venta, monto_total, moneda, registrada_por, notas)
-           values ($1, null, null, coalesce($2, current_date), $3, $4, $5, 'Importado de histórico — sin cotización asociada.')`,
+          `insert into ventas (oportunidad_id, cotizacion_id, serie, fecha_venta, monto_total, moneda, registrada_por, notas, origen)
+           values ($1, null, null, coalesce($2, current_date), $3, $4, $5, 'Importado de histórico — sin cotización asociada.', 'historico_excel')`,
           [oportunidadId, f.fechaVenta, f.monto, moneda, comercialId],
         );
         ventasCreadas++;

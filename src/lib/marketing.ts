@@ -215,13 +215,24 @@ export interface ResumenEmbudo {
   // un número engañoso como si fuera bueno.
   desdeConLeads: string | null;
   cplNoComparable: boolean;
+  tcUsdPen: number;
 }
 
+// tcUsdPen: las ventas están en USD y el gasto publicitario en PEN (Meta y
+// Google facturan en soles). ROAS/costo por venta comparan ambos, así que
+// las ventas se convierten a la moneda del gasto con el T.C. de gerencia
+// (tabla parametros). Antes se dividía USD entre PEN sin convertir.
 export async function cargarEmbudoReal(
   supabase: Awaited<ReturnType<typeof createClient>>,
   resumen: ResumenMarketing,
   { desde, hasta }: { desde: string; hasta: string },
 ): Promise<ResumenEmbudo> {
+  const { data: tcFila } = await supabase.from("parametros").select("valor").eq("clave", "tc_usd_pen").maybeSingle();
+  const tcUsdPen = Number(tcFila?.valor ?? 3.75);
+  const aMonedaGasto = (montoUsd: number, moneda: string, monedaGasto: string) => {
+    const usd = moneda === "PEN" ? montoUsd / tcUsdPen : montoUsd;
+    return monedaGasto === "PEN" ? usd * tcUsdPen : usd;
+  };
   // Leads llegados en el rango que traen campaña de origen.
   const { data: leads } = await supabase
     .from("leads")
@@ -241,8 +252,8 @@ export async function cargarEmbudoReal(
   const oportunidadIds = filasOportunidades.map((o) => o.id);
 
   const { data: ventas } = oportunidadIds.length
-    ? await supabase.from("ventas").select("oportunidad_id, monto_total").in("oportunidad_id", oportunidadIds)
-    : { data: [] as { oportunidad_id: string; monto_total: number }[] };
+    ? await supabase.from("ventas").select("oportunidad_id, monto_total, moneda").in("oportunidad_id", oportunidadIds)
+    : { data: [] as { oportunidad_id: string; monto_total: number; moneda: string }[] };
   const filasVentas = ventas ?? [];
 
   // Índices para recorrer la cadena lead → oportunidad → venta.
@@ -271,7 +282,7 @@ export async function cargarEmbudoReal(
     if (!c) continue;
     const a = acum.get(c) ?? vacio();
     a.ventas++;
-    a.montoVentas += v.monto_total;
+    a.montoVentas += v.moneda === "PEN" ? v.monto_total / tcUsdPen : v.monto_total; // en USD
     acum.set(c, a);
   }
 
@@ -279,7 +290,8 @@ export async function cargarEmbudoReal(
   // costo por lead); se les pega lo que produjeron según el CRM.
   const porCampania: EmbudoCampania[] = resumen.porCampania.map((c) => {
     const campaignIdExterno = (resumen.filas.find((f) => f.campanias?.id === c.id)?.campanias?.campaign_id) ?? "";
-    const a = acum.get(campaignIdExterno) ?? vacio();
+    const a0 = acum.get(campaignIdExterno) ?? vacio();
+    const a = { ...a0, montoVentas: aMonedaGasto(a0.montoVentas, "USD", c.moneda) };
     return {
       campaignId: campaignIdExterno,
       nombre: c.nombre,
@@ -363,5 +375,5 @@ export async function cargarEmbudoReal(
     };
   }
 
-  return { porCampania, totales, totalesComparables, leadsSinCampania, desdeConLeads, cplNoComparable };
+  return { porCampania, totales, totalesComparables, leadsSinCampania, desdeConLeads, cplNoComparable, tcUsdPen };
 }
