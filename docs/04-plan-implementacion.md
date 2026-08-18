@@ -161,3 +161,29 @@ Especificación completa: `docs/09-b9-feed-oportunidad-navegacion.md`. Tras revi
 - Decisión web Astro vs WordPress (sábado 2026-08-15).
 - Crear repo en GitHub (sin gh CLI: crear en github.com, `git remote add origin`, push) y conectar a Vercel.
 - Migración histórica completa de los Excel: AL FINAL del proyecto.
+
+## B12 · Reportes de gerencia fiables (2026-08-18) ✓
+
+Auditoría del flujo de información + reconstrucción de los paneles. Detalle
+completo, decisiones y limitaciones en `docs/bitacora-2026-08-18-reportes-gerencia.docx`.
+
+- **Agregación en Postgres** (`resumen_gerencia()`, `listar_clientes()`, vista
+  `v_ventas_detalle`, migraciones 0020/0021). Motivo: supabase-js corta en
+  1.000 filas sin avisar y `/gerencia` contaba en memoria; el panel del
+  comercial hacía `.in()` con ~800 uuids (URL demasiado larga → 0 en el
+  velocímetro). SECURITY DEFINER con autorización explícita: 9,6 s → 0,2 s.
+- **`origen`** en oportunidades/ventas (`crm` | `historico_excel`) — filtro
+  "Incluir histórico Excel" en todos los paneles.
+- **`parametros.tc_usd_pen`** editable inline por gerencia; ROAS/CPA convierten
+  moneda (antes dividían USD entre PEN).
+- Fechas "hoy/este mes" en hora Lima (`src/lib/periodo.ts`), no UTC del servidor.
+- Ventas históricas reimportadas con `fecha_venta = F_ESTADO` (la primera
+  carga usó F_ACCION: 259 ventas de mes equivocado).
+- Filtro compartido `FiltroPeriodo` (período/comercial/origen, router.push en
+  transición), `loading.tsx` en todos los paneles, cursor de mano global.
+- Clientes: paginación real (50/pág), búsqueda con retardo, filtros y orden.
+- Meta Ads conectado: `scripts/sync-meta-ads.mjs` (backfill) +
+  `api/cron/gasto-diario` (06:00 Lima, `vercel.json`).
+
+Pendiente: fijar T.C. real; deduplicar 833 cuentas sin documento; migrar
+Google Ads de Make al cron cuando haya credenciales; revisar metas por comercial.
