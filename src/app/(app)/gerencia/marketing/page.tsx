@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { resolverPeriodo } from "@/lib/periodo";
 import { fechaCalendarioLarga } from "@/lib/fechas";
@@ -173,7 +174,11 @@ export default async function MarketingPage({
                 </p>
               </div>
             )}
-            <EmbudoReal totales={embudo.totalesComparables ?? embudo.totales} soloTramoMedible={embudo.totalesComparables !== null} />
+            <EmbudoReal
+              totales={embudo.totalesComparables ?? embudo.totales}
+              soloTramoMedible={embudo.totalesComparables !== null}
+              hrefDetalle={`/gerencia/marketing/leads?desde=${desde}&hasta=${hasta}${plataforma ? `&plataforma=${plataforma}` : ""}`}
+            />
             {embudo.leadsSinCampania > 0 && (
               <p className="text-[11px] text-muted-foreground">
                 Nota: {embudo.leadsSinCampania} lead{embudo.leadsSinCampania === 1 ? "" : "s"} de campañas sin gasto
@@ -239,7 +244,17 @@ export default async function MarketingPage({
                         c.ventas > 0 ? "text-[#1E7F4F]" : "text-muted-foreground",
                       )}
                     >
-                      {c.ventas}
+                      {c.ventas > 0 ? (
+                        <Link
+                          href={`/gerencia/marketing/leads?desde=${desde}&hasta=${hasta}&campania=${encodeURIComponent(c.campaignId)}&filtro=ventas`}
+                          className="underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                          title="Ver estas ventas"
+                        >
+                          {c.ventas}
+                        </Link>
+                      ) : (
+                        c.ventas
+                      )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-right tabular-nums">
                       {c.cplReal !== null ? `${c.moneda} ${c.cplReal.toFixed(2)}` : "—"}
