@@ -14,20 +14,34 @@ interface Props {
   href?: string;
 }
 
+// Cuenta desde el valor mostrado hasta el nuevo CADA vez que cambia `hasta`.
+// Antes animaba una sola vez por montaje: al cambiar el filtro de período
+// (navegación sin recarga, el componente sigue montado) llegaba el número
+// nuevo pero se seguía viendo el anterior — gerencia veía "US$ 81.526" tanto
+// en "este mes" como en "últimos 12 meses".
 function useConteo(hasta: number, activo: boolean): number {
   const reducido = useReducedMotion();
   const [valor, setValor] = useState(reducido ? hasta : 0);
-  const yaAnimo = useRef(false);
+  const actual = useRef(reducido ? hasta : 0);
 
   useEffect(() => {
-    if (!activo || yaAnimo.current || reducido) return;
-    yaAnimo.current = true;
+    if (!activo) return;
+    if (reducido) {
+      actual.current = hasta;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setValor(hasta);
+      return;
+    }
+    const desde = actual.current;
+    if (desde === hasta) return;
     const inicio = performance.now();
     const duracion = 600;
     let cuadro: number;
     function paso(t: number) {
       const p = Math.min((t - inicio) / duracion, 1);
-      setValor(Math.round(hasta * (1 - Math.pow(1 - p, 3))));
+      const v = Math.round(desde + (hasta - desde) * (1 - Math.pow(1 - p, 3)));
+      actual.current = v;
+      setValor(v);
       if (p < 1) cuadro = requestAnimationFrame(paso);
     }
     cuadro = requestAnimationFrame(paso);

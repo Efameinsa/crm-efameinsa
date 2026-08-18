@@ -247,7 +247,7 @@ export function PipelineKanban({
       </DndContext>
 
       <div className="flex flex-wrap items-center gap-2 px-1 text-xs">
-        <span className="text-muted-foreground">Este período:</span>
+        <span className="text-muted-foreground">Cerradas en los últimos 90 días:</span>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1E7F4F]/10 px-2.5 py-1 font-semibold text-[#1E7F4F]">
           {cerradas.filter((o) => o.etapa === "venta").length} venta(s)
         </span>

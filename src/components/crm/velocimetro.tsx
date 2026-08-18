@@ -19,18 +19,29 @@ const FIN = punto(1);
 const PATH_ARCO = `M ${INICIO.x} ${INICIO.y} A ${RADIO} ${RADIO} 0 0 1 ${FIN.x} ${FIN.y}`;
 const MARCAS = [0, 0.5, 1].map(punto);
 
+// Igual que en kpi.tsx: cuenta desde el valor mostrado hasta el nuevo cada
+// vez que cambia (antes animaba una sola vez y el filtro de período no
+// actualizaba el monto).
 function useConteo(hasta: number, duracionMs: number, reducido: boolean | null): number {
   const [valor, setValor] = useState(reducido ? hasta : 0);
-  const yaAnimo = useRef(false);
+  const actual = useRef(reducido ? hasta : 0);
 
   useEffect(() => {
-    if (yaAnimo.current || reducido) return;
-    yaAnimo.current = true;
+    if (reducido) {
+      actual.current = hasta;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setValor(hasta);
+      return;
+    }
+    const desde = actual.current;
+    if (desde === hasta) return;
     const inicio = performance.now();
     let cuadro: number;
     function paso(t: number) {
       const p = Math.min((t - inicio) / duracionMs, 1);
-      setValor(Math.round(hasta * (1 - Math.pow(1 - p, 3))));
+      const v = Math.round(desde + (hasta - desde) * (1 - Math.pow(1 - p, 3)));
+      actual.current = v;
+      setValor(v);
       if (p < 1) cuadro = requestAnimationFrame(paso);
     }
     cuadro = requestAnimationFrame(paso);
