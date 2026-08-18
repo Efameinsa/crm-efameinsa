@@ -92,9 +92,25 @@ export interface ResumenGerencia {
   calidad_datos: CalidadDatos;
 }
 
+// Vías de adquisición: las primeras salen del lead real del CRM (atribución
+// exacta por campaña); las demás de la procedencia que declaró el comercial
+// en su hoja histórica (PROV_PROSP, migración 0022) — menos exacta pero es
+// lo que la empresa registró durante años.
 export const ETIQUETA_VIA: Record<string, string> = {
   google_ads: "Google Ads",
-  meta_ads: "Meta Ads",
+  meta_ads: "Meta Ads / campaña FB",
+  facebook: "Facebook (orgánico o pauta)",
+  publicidad: "Campaña (sin plataforma)",
+  web: "Página web (declarado)",
+  referido: "Referido por cliente/prospecto",
+  visita_ruta: "Visita en ruta",
+  punto_venta: "Punto de venta",
+  email_marketing: "Emailing",
+  linkedin: "LinkedIn",
+  olx: "OLX",
+  canal2: "Canal 2",
+  sin_procedencia: "Histórico sin procedencia",
+  otro: "Otra procedencia",
   cartera: "Cartera propia (sin lead)",
   historico_excel: "Histórico Excel",
   contacto_whatsapp: "WhatsApp entrante",

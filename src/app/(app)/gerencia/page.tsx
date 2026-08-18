@@ -191,9 +191,10 @@ export default async function GerenciaPage({
                 );
               })}
               <p className="pt-1 text-[11px] text-muted-foreground">
-                Se atribuye cada venta al lead que trajo al cliente (canal y campaña). &ldquo;Cartera propia&rdquo; = oportunidad abierta
-                sin lead de origen. Las ventas anteriores al CRM figuran como histórico Excel porque en esa hoja no se registraba el
-                origen.
+                Si la venta nace de un lead del CRM, se atribuye a su campaña exacta (Google Ads / Meta Ads). Si no, se usa la
+                procedencia que el comercial declaró en su hoja histórica (Facebook, página web, referido, visita en ruta…) —
+                menos exacta, pero es lo que la empresa registró durante años. &ldquo;Página web&rdquo; era el valor por defecto de esa
+                hoja: incluye orgánico y publicidad sin distinguir.
               </p>
             </div>
           )}
