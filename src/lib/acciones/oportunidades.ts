@@ -64,7 +64,7 @@ export async function registrarActividad(datos: {
 // ≤15 s que el registro de actividad).
 export async function calificarOportunidad(datos: {
   oportunidadId: string;
-  intencion: "alta" | "media" | "baja" | "sin_definir";
+  intencion: "alto_potencial" | "medio_alto" | "medio" | "medio_bajo" | "bajo" | "sin_definir";
   montoEstimado: number | null;
   moneda: "PEN" | "USD";
   segmento: "industrial" | "semi_industrial" | null;
