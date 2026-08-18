@@ -33,13 +33,22 @@ const admin = createClient(url, serviceKey, {
 
 const META_MENSUAL_PLACEHOLDER = 125000;
 
-// C1 Brenda y C4 Arianna son nombres reales conocidos de la entrevista;
-// C2/C3 quedan genéricos hasta tener la lista de personal de gerencia.
+// Nombres genéricos "Comercial Cx" a propósito (decisión de Darwin, 17-08-2026):
+// el histórico de R:\ mostró que el código cambia de dueño con el tiempo
+// (ej. C4: Clemencia Puente 2021-23 → Milagros Carhuamaca 2025 → Ariana
+// Flores 2026) y los nombres que se habían puesto de placeholder (C1=Brenda)
+// no coincidían con quien aparece hoy en los archivos (C1=Erika Arevalo).
+// En vez de perseguir el nombre correcto, el código YA ES el identificador
+// estable — quien tenga el código hoy hereda toda la cartera histórica de
+// ese código. C5 se deja con su nombre real (Katerine Tello) porque ahí no
+// hay ambigüedad: es la misma persona en los 7 años de archivo.
 const COMERCIALES = [
-  { email: "c1@efameinsa-crm.local", nombre: "Brenda", codigo_comercial: "C1" },
+  { email: "c1@efameinsa-crm.local", nombre: "Comercial C1", codigo_comercial: "C1" },
   { email: "c2@efameinsa-crm.local", nombre: "Comercial C2", codigo_comercial: "C2" },
   { email: "c3@efameinsa-crm.local", nombre: "Comercial C3", codigo_comercial: "C3" },
-  { email: "c4@efameinsa-crm.local", nombre: "Arianna", codigo_comercial: "C4" },
+  { email: "c4@efameinsa-crm.local", nombre: "Comercial C4", codigo_comercial: "C4" },
+  { email: "c8@efameinsa-crm.local", nombre: "Comercial C8", codigo_comercial: "C8" },
+  { email: "c9@efameinsa-crm.local", nombre: "Comercial C9", codigo_comercial: "C9" },
 ];
 
 function generarPassword() {
