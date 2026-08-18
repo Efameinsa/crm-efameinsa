@@ -18,6 +18,9 @@ export interface KpisGerencia {
   op_creadas: number;
   op_ganadas: number;
   op_rechazadas: number;
+  // Ventas del período que vienen del histórico Excel: nacieron cerradas,
+  // no pasaron por el embudo (que solo cuenta lo gestionado en el CRM).
+  ventas_historicas_periodo: number;
   leads_recibidos: number;
   leads_publicidad: number;
   leads_sin_asignar: number;

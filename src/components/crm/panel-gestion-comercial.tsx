@@ -114,6 +114,17 @@ export async function PanelGestionComercial({
               ) : (
                 <p className="mt-3 text-xs text-muted-foreground">Sin rechazos en el período.</p>
               )}
+              <p className="mt-3 border-t border-border pt-2 text-[11px] text-muted-foreground">
+                Solo oportunidades gestionadas en el CRM.
+                {k.ventas_historicas_periodo > 0 && (
+                  <>
+                    {" "}
+                    Además, {k.ventas_historicas_periodo} venta{k.ventas_historicas_periodo === 1 ? "" : "s"} del período viene
+                    {k.ventas_historicas_periodo === 1 ? "" : "n"} del histórico Excel (ya cerradas al importarse; cuentan en el velocímetro, no
+                    en la tasa de cierre).
+                  </>
+                )}
+              </p>
             </SeccionPanel>
 
             <SeccionPanel titulo="Clientes con mayor compra">

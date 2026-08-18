@@ -145,13 +145,13 @@ export default async function GerenciaPage({
           </p>
         </SeccionPanel>
 
-        <SeccionPanel titulo="Embudo de oportunidades">
+        <SeccionPanel titulo="Embudo del CRM">
           {totalEmbudo === 0 ? (
-            <p className="text-sm text-muted-foreground">No se crearon oportunidades en este período.</p>
+            <p className="text-sm text-muted-foreground">No se crearon oportunidades en el CRM en este período.</p>
           ) : (
             <div className="space-y-1">
               <p className="mb-2 text-[11px] text-muted-foreground">
-                {totalEmbudo} oportunidad{totalEmbudo === 1 ? "" : "es"} creada{totalEmbudo === 1 ? "" : "s"} en el período, por etapa actual
+                {totalEmbudo} oportunidad{totalEmbudo === 1 ? "" : "es"} creada{totalEmbudo === 1 ? "" : "s"} en el CRM en el período, por etapa actual
                 {(resumen.embudo.rechazada ?? 0) > 0 && <> · {resumen.embudo.rechazada} rechazada{resumen.embudo.rechazada === 1 ? "" : "s"}</>}
               </p>
               {ETAPAS.map((e) => (
@@ -159,11 +159,18 @@ export default async function GerenciaPage({
               ))}
               {tasaCierre !== null && (
                 <p className="pt-2 text-[11px] text-muted-foreground">
-                  Tasa de cierre del período: <b className="text-foreground">{tasaCierre}%</b> ({k.op_ganadas} ganadas de{" "}
-                  {k.op_ganadas + k.op_rechazadas} decididas)
+                  Tasa de cierre del período: <b className="text-foreground">{tasaCierre}%</b> ({k.op_ganadas} ganada{k.op_ganadas === 1 ? "" : "s"} de{" "}
+                  {k.op_ganadas + k.op_rechazadas} decidida{k.op_ganadas + k.op_rechazadas === 1 ? "" : "s"})
                 </p>
               )}
             </div>
+          )}
+          {k.ventas_historicas_periodo > 0 && (
+            <p className="mt-3 border-t border-border pt-2 text-[11px] text-muted-foreground">
+              Además, <b className="text-foreground">{k.ventas_historicas_periodo}</b> venta{k.ventas_historicas_periodo === 1 ? "" : "s"} del período
+              viene{k.ventas_historicas_periodo === 1 ? "" : "n"} del histórico Excel: se registraron ya cerradas y no pasaron por el embudo, por eso no
+              cuentan en la tasa de cierre (sí en &ldquo;Ventas del período&rdquo;).
+            </p>
           )}
         </SeccionPanel>
       </div>

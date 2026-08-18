@@ -246,8 +246,8 @@ export async function cargarEmbudoReal(
 
   // Oportunidades nacidas de esos leads, y ventas de esas oportunidades.
   const { data: oportunidades } = leadIds.length
-    ? await supabase.from("oportunidades").select("id, lead_id").in("lead_id", leadIds)
-    : { data: [] as { id: string; lead_id: string | null }[] };
+    ? await supabase.from("oportunidades").select("id, lead_id, etapa").in("lead_id", leadIds)
+    : { data: [] as { id: string; lead_id: string | null; etapa: string }[] };
   const filasOportunidades = oportunidades ?? [];
   const oportunidadIds = filasOportunidades.map((o) => o.id);
 
@@ -281,12 +281,23 @@ export async function cargarEmbudoReal(
     a.oportunidades++;
     acum.set(c, a);
   }
+  // "Ventas cerradas" = oportunidades GANADAS (etapa venta), no filas de la
+  // tabla ventas: las ventas históricas sin monto en el Excel no tienen fila
+  // en la tabla ventas pero son ventas reales (mostraba 3 cuando eran 5). El monto
+  // sí sale solo de las que lo tienen.
+  for (const o of filasOportunidades) {
+    if (o.etapa !== "venta") continue;
+    const c = o.lead_id ? campaniaPorLead.get(o.lead_id) : undefined;
+    if (!c) continue;
+    const a = acum.get(c) ?? vacio();
+    a.ventas++;
+    acum.set(c, a);
+  }
   for (const v of filasVentas) {
     const leadId = leadPorOportunidad.get(v.oportunidad_id);
     const c = leadId ? campaniaPorLead.get(leadId) : undefined;
     if (!c) continue;
     const a = acum.get(c) ?? vacio();
-    a.ventas++;
     a.montoVentas += v.moneda === "PEN" ? v.monto_total / tcUsdPen : v.monto_total; // en USD
     acum.set(c, a);
   }
