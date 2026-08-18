@@ -24,7 +24,9 @@ const ETAPAS: EtapaOportunidad[] = [
   "derivada",
 ];
 const ORDEN_ETAPA: Record<string, number> = Object.fromEntries(ETAPAS.map((e, i) => [e, i]));
-const ORDEN_INTERES: Record<string, number> = { alta: 3, media: 2, baja: 1, sin_definir: 0 };
+const ORDEN_INTERES: Record<string, number> = {
+  alto_potencial: 5, medio_alto: 4, medio: 3, medio_bajo: 2, bajo: 1, sin_definir: 0,
+};
 
 type Columna = "cuenta" | "etapa" | "interes" | "monto";
 type Direccion = "asc" | "desc";
@@ -191,7 +193,7 @@ function TablaOportunidades({
         <Chip activo={pref.interesFiltro === "todas"} onClick={() => actualizar({ interesFiltro: "todas" })}>
           Cualquier interés
         </Chip>
-        {(["alta", "media", "baja", "sin_definir"] as const)
+        {(["alto_potencial", "medio_alto", "medio", "medio_bajo", "bajo", "sin_definir"] as const)
           .filter((i) => conteoInteres[i])
           .map((i) => (
             <Chip key={i} activo={pref.interesFiltro === i} onClick={() => actualizar({ interesFiltro: i })}>

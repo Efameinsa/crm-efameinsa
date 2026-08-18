@@ -5,16 +5,13 @@ import { toast } from "sonner";
 import { calificarOportunidad } from "@/lib/acciones/oportunidades";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SelectConCriterio } from "@/components/crm/select-con-criterio";
+import { INTENCION_COMPRA } from "@/lib/catalogos-ui";
 import { cn } from "@/lib/utils";
+import type { Oportunidad } from "@/types/database";
 
-type Intencion = "alta" | "media" | "baja" | "sin_definir";
+type Intencion = Oportunidad["intencion"];
 type Segmento = "industrial" | "semi_industrial";
-
-const INTERESES: { valor: Intencion; etiqueta: string; punto: string }[] = [
-  { valor: "alta", etiqueta: "Alta", punto: "bg-primary" },
-  { valor: "media", etiqueta: "Media", punto: "bg-amber-500" },
-  { valor: "baja", etiqueta: "Baja", punto: "bg-muted-foreground/40" },
-];
 
 interface Props {
   oportunidadId: string;
@@ -58,28 +55,17 @@ export function CalificacionOportunidad({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Interés de compra</Label>
-        <div className="flex gap-2">
-          {INTERESES.map((i) => (
-            <button
-              key={i.valor}
-              type="button"
-              onClick={() => {
-                setIntencion(i.valor);
-                guardar({ intencion: i.valor });
-              }}
-              className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors",
-                intencion === i.valor
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:bg-accent",
-              )}
-            >
-              <span className={cn("size-2 rounded-full", i.punto)} />
-              {i.etiqueta}
-            </button>
-          ))}
-        </div>
+        <Label htmlFor="interes-compra">Interés de compra</Label>
+        <SelectConCriterio
+          id="interes-compra"
+          opciones={INTENCION_COMPRA}
+          value={intencion}
+          onValueChange={(v) => {
+            const nueva = v as Intencion;
+            setIntencion(nueva);
+            guardar({ intencion: nueva });
+          }}
+        />
       </div>
 
       <div className="space-y-2">

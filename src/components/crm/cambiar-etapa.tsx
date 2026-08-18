@@ -5,23 +5,18 @@ import { toast } from "sonner";
 import { cambiarEtapa } from "@/lib/acciones/oportunidades";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectConCriterio } from "@/components/crm/select-con-criterio";
+import { ETAPA_OPORTUNIDAD, type OpcionConCriterio } from "@/lib/catalogos-ui";
 import type { EtapaOportunidad } from "@/types/database";
 
-const ETAPAS: { valor: EtapaOportunidad; etiqueta: string }[] = [
-  { valor: "asignada", etiqueta: "Asignada" },
-  { valor: "filtrada", etiqueta: "Filtrada (procede)" },
-  { valor: "seguimiento", etiqueta: "En seguimiento" },
-  { valor: "potencial", etiqueta: "Potencial" },
-  { valor: "rechazada", etiqueta: "Rechazada" },
-  { valor: "derivada", etiqueta: "Derivada" },
-];
+// "cotizada" y "venta" quedan fuera a propósito: nacen del cotizador y del
+// botón Registrar venta, nunca de un cambio manual (ver B3/B9 en la
+// memoria del proyecto — evita que alguien "arrastre" una venta sin pasar
+// por el flujo que alimenta ultima_venta_at).
+const ETAPAS_VALIDAS = new Set<EtapaOportunidad>([
+  "asignada", "filtrada", "seguimiento", "potencial", "rechazada", "derivada",
+]);
+const ETAPAS: OpcionConCriterio[] = ETAPA_OPORTUNIDAD.filter((e) => ETAPAS_VALIDAS.has(e.valor as EtapaOportunidad));
 
 interface Props {
   oportunidadId: string;
@@ -57,35 +52,24 @@ export function CambiarEtapa({ oportunidadId, etapaActual, motivos }: Props) {
     <div className="space-y-3 rounded-md border border-border p-4">
       <div className="space-y-2">
         <Label htmlFor="etapa">Etapa</Label>
-        <Select value={etapa} onValueChange={(v) => setEtapa((v as EtapaOportunidad) ?? etapaActual)}>
-          <SelectTrigger id="etapa" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ETAPAS.map((e) => (
-              <SelectItem key={e.valor} value={e.valor}>
-                {e.etiqueta}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SelectConCriterio
+          id="etapa"
+          opciones={ETAPAS}
+          value={etapa}
+          onValueChange={(v) => setEtapa((v as EtapaOportunidad) ?? etapaActual)}
+        />
       </div>
 
       {etapa === "rechazada" && (
         <div className="space-y-2">
           <Label htmlFor="motivo">Motivo del rechazo</Label>
-          <Select value={motivoId} onValueChange={(v) => setMotivoId(v ?? "")}>
-            <SelectTrigger id="motivo" className="w-full">
-              <SelectValue placeholder="Seleccione…" />
-            </SelectTrigger>
-            <SelectContent>
-              {motivos.map((m) => (
-                <SelectItem key={m.id} value={String(m.id)}>
-                  {m.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SelectConCriterio
+            id="motivo"
+            opciones={motivos.map((m) => ({ valor: String(m.id), etiqueta: m.nombre, criterio: "" }))}
+            value={motivoId}
+            onValueChange={setMotivoId}
+            placeholder="Seleccione…"
+          />
         </div>
       )}
 
