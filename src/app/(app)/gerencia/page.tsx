@@ -129,9 +129,9 @@ export default async function GerenciaPage({
             clave: p.mes,
             etiqueta: new Date(`${p.mes}-01T12:00:00`).toLocaleDateString("es-PE", { month: "short", year: "2-digit" }),
             valor: p.ventas_usd,
+            valorTexto: p.ventas_usd >= 1000 ? `${Math.round(p.ventas_usd / 1000)}k` : String(Math.round(p.ventas_usd)),
             detalle: `${p.mes}: ${usd(p.ventas_usd)} en ${p.n_ventas} venta${p.n_ventas === 1 ? "" : "s"}`,
           }))}
-          formato={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(Math.round(v)))}
           resaltarUltima
         />
       </SeccionPanel>

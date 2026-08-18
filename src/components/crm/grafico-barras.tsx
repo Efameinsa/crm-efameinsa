@@ -7,6 +7,7 @@ export interface BarraDato {
   clave: string;
   etiqueta: string;
   valor: number;
+  valorTexto?: string; // etiqueta sobre la barra, ya formateada (los Server Components no pueden pasar funciones)
   detalle?: string; // tooltip
   apagada?: boolean; // tramo sin datos comparables, se pinta gris
 }
@@ -16,12 +17,10 @@ export interface BarraDato {
 // serie corta y el control fino del color/estado importa más que ejes ricos.
 export function GraficoBarras({
   datos,
-  formato,
   resaltarUltima,
   vacio = "Sin datos en este período.",
 }: {
   datos: BarraDato[];
-  formato: (v: number) => string;
   resaltarUltima?: boolean;
   vacio?: string;
 }) {
@@ -38,8 +37,8 @@ export function GraficoBarras({
           const altura = Math.max((d.valor / maximo) * 100, d.valor > 0 ? 3 : 0);
           const ultima = resaltarUltima && i === datos.length - 1;
           return (
-            <div key={d.clave} className="flex w-12 flex-none flex-col items-center gap-1" title={d.detalle ?? `${d.etiqueta}: ${formato(d.valor)}`}>
-              <span className="h-4 text-[10px] tabular-nums text-muted-foreground">{d.valor > 0 ? formato(d.valor) : ""}</span>
+            <div key={d.clave} className="flex w-12 flex-none flex-col items-center gap-1" title={d.detalle ?? `${d.etiqueta}: ${d.valorTexto ?? d.valor}`}>
+              <span className="h-4 text-[10px] tabular-nums text-muted-foreground">{d.valor > 0 ? (d.valorTexto ?? String(Math.round(d.valor))) : ""}</span>
               <div className="flex h-36 w-full items-end rounded-sm bg-secondary">
                 <motion.div
                   className={cn(
