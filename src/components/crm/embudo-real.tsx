@@ -21,7 +21,7 @@ export function EmbudoReal({ totales, soloTramoMedible }: { totales: EmbudoTotal
 
   const etapas: Etapa[] = [
     { etiqueta: "Leads en el CRM", ayuda: "contactos que realmente ingresaron", total: totales.leadsCrm },
-    { etiqueta: "Oportunidades", ayuda: "asignados a un comercial", total: totales.oportunidades },
+    { etiqueta: "Asignados a comercial", ayuda: "según el CRM o el registro de Central", total: totales.oportunidades },
     { etiqueta: "Ventas cerradas", ayuda: "terminaron en compra", total: totales.ventas, destacada: true },
   ];
   const maximo = Math.max(1, ...etapas.map((e) => e.total));

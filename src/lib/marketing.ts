@@ -236,7 +236,7 @@ export async function cargarEmbudoReal(
   // Leads llegados en el rango que traen campaña de origen.
   const { data: leads } = await supabase
     .from("leads")
-    .select("id, utm_campaign, recibido_at")
+    .select("id, utm_campaign, recibido_at, asignado_a")
     .not("utm_campaign", "is", null)
     .gte("recibido_at", `${desde}T00:00:00`)
     .lte("recibido_at", `${hasta}T23:59:59`);
@@ -269,9 +269,14 @@ export async function cargarEmbudoReal(
     a.leadsCrm++;
     acum.set(c, a);
   }
-  for (const o of filasOportunidades) {
-    const c = o.lead_id ? campaniaPorLead.get(o.lead_id) : undefined;
-    if (!c) continue;
+  // "Asignado a un comercial" = tiene oportunidad en el CRM O quedó asignado
+  // en el registro de Central (leads.asignado_a, cargado desde el maestro de
+  // Central para los leads históricos — scripts/enlazar-leads-central.mjs).
+  // Un lead cuenta una sola vez aunque tenga varias oportunidades.
+  const leadsConOportunidad = new Set(filasOportunidades.map((o) => o.lead_id).filter(Boolean));
+  for (const l of filasLeads) {
+    if (!leadsConOportunidad.has(l.id) && !l.asignado_a) continue;
+    const c = String(l.utm_campaign);
     const a = acum.get(c) ?? vacio();
     a.oportunidades++;
     acum.set(c, a);
