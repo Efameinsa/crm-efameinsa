@@ -10,6 +10,7 @@ import { reprogramarAccion } from "@/lib/acciones/oportunidades";
 import { crearTarea, actualizarTarea, eliminarTarea } from "@/lib/acciones/tareas";
 import { RegistroRapido, type ResultadoGestion, type MotivoRechazo } from "@/components/crm/registro-rapido";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
+import { SelectorHora } from "@/components/crm/selector-hora";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { fechaCalendarioLarga } from "@/lib/fechas";
@@ -340,13 +341,7 @@ export function AgendaMensual({
                   aria-label="Título de la tarea"
                 />
                 <div className="flex items-center gap-2">
-                  <input
-                    type="time"
-                    value={nuevaHora}
-                    onChange={(e) => setNuevaHora(e.target.value)}
-                    className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
-                    aria-label="Hora (opcional)"
-                  />
+                  <SelectorHora valor={nuevaHora || null} onCambiar={(h) => setNuevaHora(h ?? "")} />
                   <span className="text-[11px] text-muted-foreground">sin hora = todo el día</span>
                   <button
                     type="button"
@@ -458,19 +453,15 @@ export function AgendaMensual({
                   onCambiar={(f) => f && moverTarea(tareaAbierta.id, f)}
                   permitirQuitar={false}
                 />
-                <input
-                  type="time"
-                  value={tareaAbierta.hora ?? ""}
-                  onChange={(e) => {
-                    const hora = e.target.value || null;
+                <SelectorHora
+                  valor={tareaAbierta.hora}
+                  onCambiar={(hora) => {
                     setTareas((prev) => prev.map((t) => (t.id === tareaAbierta.id ? { ...t, hora } : t)));
                     startTransition(async () => {
                       const r = await actualizarTarea({ id: tareaAbierta.id, hora });
                       if (r.error) toast.error(r.error);
                     });
                   }}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
-                  aria-label="Hora"
                 />
               </div>
               <div className="flex gap-2">
@@ -556,13 +547,10 @@ export function AgendaMensual({
                       onCambiar={(f) => reprogramar(seleccionada.id, f, seleccionada.hora)}
                       etiquetaVacia="Elegir fecha"
                     />
-                    <input
-                      type="time"
-                      value={seleccionada.hora ?? ""}
-                      onChange={(e) => reprogramar(seleccionada.id, seleccionada.fecha, e.target.value || null)}
-                      disabled={!seleccionada.fecha}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground disabled:opacity-50"
-                      aria-label="Hora"
+                    <SelectorHora
+                      valor={seleccionada.hora}
+                      onCambiar={(hora) => reprogramar(seleccionada.id, seleccionada.fecha, hora)}
+                      deshabilitado={!seleccionada.fecha}
                     />
                   </span>
                 )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -10,11 +11,13 @@ import { cn } from "@/lib/utils";
 // calendario. Es EL selector de fecha del CRM: registro de gestión, filtros
 // de período, reprogramar y tareas — no volver al <input type="date"> nativo.
 //
-// El popover se posiciona con `position: fixed` calculado desde el botón:
-// dentro de contenedores con overflow (la animación del RegistroRapido, el
-// panel lateral con scroll) un popover absolute quedaba RECORTADO — se veía
-// solo la cabecera del mes (bug reportado por Darwin). Si no hay sitio
-// abajo, se abre hacia arriba.
+// El popover se posiciona con `position: fixed` calculado desde el botón y
+// se renderiza por PORTAL en el body: dentro de contenedores con overflow
+// (la animación del RegistroRapido, el panel lateral con scroll) un popover
+// absolute quedaba RECORTADO, y un fixed SIN portal dentro del panel lateral
+// (que se anima con translate-x, un transform) se anclaba al panel en vez
+// del viewport y caía fuera de pantalla — invisible (bug reportado por
+// Darwin dos veces). Si no hay sitio abajo, se abre hacia arriba.
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const DIAS_CORTOS = ["L", "M", "M", "J", "V", "S", "D"];
@@ -71,6 +74,7 @@ export function SelectorFecha({
   const [mesVista, setMesVista] = useState((valor ?? hoyISO()).slice(0, 7));
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const raiz = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
   const hoy = hoyISO();
 
@@ -88,7 +92,8 @@ export function SelectorFecha({
   useEffect(() => {
     if (!abierto) return;
     const clic = (e: MouseEvent) => {
-      if (raiz.current && !raiz.current.contains(e.target as Node)) setAbierto(false);
+      const t = e.target as Node;
+      if (!raiz.current?.contains(t) && !panel.current?.contains(t)) setAbierto(false);
     };
     const tecla = (e: KeyboardEvent) => {
       if (e.key === "Escape") { e.stopPropagation(); setAbierto(false); }
@@ -155,8 +160,9 @@ export function SelectorFecha({
         )}
       </button>
 
-      {abierto && pos && (
+      {abierto && pos && createPortal(
         <div
+          ref={panel}
           role="dialog"
           aria-label="Elegir fecha"
           style={{ position: "fixed", top: pos.top, left: pos.left, width: ANCHO_POPOVER }}
@@ -225,7 +231,8 @@ export function SelectorFecha({
               );
             })}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
