@@ -36,6 +36,17 @@ export interface KpisGerencia {
   cltv_recurrentes_usd: number;
   clientes_historicos: number;
   clientes_recurrentes_historicos: number;
+  // Ventas del período por razón social (pedido de Carlos 19-08: la
+  // proyección de importaciones y la cobranza se hacen por empresa).
+  // sin_serie = históricas del Excel sin razón social registrada.
+  ventas_serie: {
+    efameinsa_usd: number;
+    open_usd: number;
+    sin_serie_usd: number;
+    n_efameinsa: number;
+    n_open: number;
+    n_sin_serie: number;
+  };
   frecuencia_promedio: number;
 }
 
@@ -43,6 +54,9 @@ export interface PuntoMensual {
   mes: string; // YYYY-MM
   ventas_usd: number;
   n_ventas: number;
+  efameinsa_usd: number;
+  open_usd: number;
+  sin_serie_usd: number;
 }
 
 export interface FilaComercialResumen {

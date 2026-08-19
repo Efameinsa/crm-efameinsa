@@ -3,6 +3,12 @@
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 
+export interface SegmentoBarra {
+  etiqueta: string; // para el tooltip ("Efameinsa", "Open"…)
+  valor: number;
+  clase: string; // clase Tailwind del color (string, no función: viene de Server Components)
+}
+
 export interface BarraDato {
   clave: string;
   etiqueta: string;
@@ -10,6 +16,10 @@ export interface BarraDato {
   valorTexto?: string; // etiqueta sobre la barra, ya formateada (los Server Components no pueden pasar funciones)
   detalle?: string; // tooltip
   apagada?: boolean; // tramo sin datos comparables, se pinta gris
+  // Barras APILADAS (pedido de Carlos 19-08: Efameinsa vs Open por mes).
+  // Si se pasa, la barra se pinta por segmentos de abajo hacia arriba;
+  // `valor` sigue mandando en la escala y la etiqueta superior.
+  segmentos?: SegmentoBarra[];
 }
 
 // Gráfico de barras genérico (ventas por mes, gasto por día…). Mismo lenguaje
@@ -40,15 +50,35 @@ export function GraficoBarras({
             <div key={d.clave} className="flex w-12 flex-none flex-col items-center gap-1" title={d.detalle ?? `${d.etiqueta}: ${d.valorTexto ?? d.valor}`}>
               <span className="h-4 text-[10px] tabular-nums text-muted-foreground">{d.valor > 0 ? (d.valorTexto ?? String(Math.round(d.valor))) : ""}</span>
               <div className="flex h-36 w-full items-end rounded-sm bg-secondary">
-                <motion.div
-                  className={cn(
-                    "w-full rounded-sm",
-                    d.apagada ? "bg-muted-foreground/25" : ultima ? "bg-primary" : "bg-primary/70",
-                  )}
-                  initial={reducido ? false : { height: 0 }}
-                  animate={{ height: `${altura}%` }}
-                  transition={{ duration: 0.4, ease: "easeOut", delay: reducido ? 0 : Math.min(i * 0.03, 0.4) }}
-                />
+                {d.segmentos && d.valor > 0 ? (
+                  <motion.div
+                    className="flex w-full flex-col-reverse overflow-hidden rounded-sm"
+                    initial={reducido ? false : { height: 0 }}
+                    animate={{ height: `${altura}%` }}
+                    transition={{ duration: 0.4, ease: "easeOut", delay: reducido ? 0 : Math.min(i * 0.03, 0.4) }}
+                  >
+                    {d.segmentos
+                      .filter((s) => s.valor > 0)
+                      .map((s) => (
+                        <div
+                          key={s.etiqueta}
+                          className={cn("w-full", s.clase)}
+                          style={{ height: `${(s.valor / d.valor) * 100}%` }}
+                          title={`${s.etiqueta}: ${Math.round(s.valor).toLocaleString("es-PE")}`}
+                        />
+                      ))}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    className={cn(
+                      "w-full rounded-sm",
+                      d.apagada ? "bg-muted-foreground/25" : ultima ? "bg-primary" : "bg-primary/70",
+                    )}
+                    initial={reducido ? false : { height: 0 }}
+                    animate={{ height: `${altura}%` }}
+                    transition={{ duration: 0.4, ease: "easeOut", delay: reducido ? 0 : Math.min(i * 0.03, 0.4) }}
+                  />
+                )}
               </div>
               <span className={cn("whitespace-nowrap text-[10px]", ultima ? "font-semibold text-foreground" : "text-muted-foreground")}>
                 {d.etiqueta}

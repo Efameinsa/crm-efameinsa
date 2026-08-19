@@ -13,6 +13,7 @@ import { TablaPorComercial } from "@/components/crm/tabla-por-comercial";
 import { TipoCambioInline } from "@/components/crm/tipo-cambio-inline";
 import { CargaDerivacion } from "@/components/crm/carga-derivacion";
 import { CargaCotizaciones } from "@/components/crm/carga-cotizaciones";
+import { LeyendaSerie, barraMensualPorSerie } from "@/components/crm/leyenda-serie";
 import type { EtapaOportunidad } from "@/types/database";
 
 // Depende de searchParams y de datos vivos: nunca cachear.
@@ -125,17 +126,9 @@ export default async function GerenciaPage({
         <Kpi etiqueta="Pipeline abierto" valor={Math.round(k.pipeline_usd)} prefijo="US$ " sub={`${k.n_abiertas} oportunidad${k.n_abiertas === 1 ? "" : "es"} en curso hoy`} />
       </div>
 
-      <SeccionPanel titulo="Ventas por mes — últimos 12 meses">
-        <GraficoBarras
-          datos={resumen.serie_mensual.map((p) => ({
-            clave: p.mes,
-            etiqueta: new Date(`${p.mes}-01T12:00:00`).toLocaleDateString("es-PE", { month: "short", year: "2-digit" }),
-            valor: p.ventas_usd,
-            valorTexto: p.ventas_usd >= 1000 ? `${Math.round(p.ventas_usd / 1000)}k` : String(Math.round(p.ventas_usd)),
-            detalle: `${p.mes}: ${usd(p.ventas_usd)} en ${p.n_ventas} venta${p.n_ventas === 1 ? "" : "s"}`,
-          }))}
-          resaltarUltima
-        />
+      <SeccionPanel titulo="Ventas por mes — últimos 12 meses (Efameinsa vs Open)">
+        <GraficoBarras datos={resumen.serie_mensual.map(barraMensualPorSerie)} resaltarUltima />
+        <LeyendaSerie k={k} />
       </SeccionPanel>
 
       <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">

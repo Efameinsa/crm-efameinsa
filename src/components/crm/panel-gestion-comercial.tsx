@@ -8,6 +8,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Velocimetro } from "@/components/crm/velocimetro";
 import { Kpi } from "@/components/crm/kpi";
 import { GraficoBarras } from "@/components/crm/grafico-barras";
+import { LeyendaSerie, barraMensualPorSerie } from "@/components/crm/leyenda-serie";
 
 // Panel individual del comercial. Lo ve el propio comercial (/comercial/
 // mi-gestion) y gerencia (/gerencia/comerciales/[id]). Todos los números
@@ -86,17 +87,9 @@ export async function PanelGestionComercial({
             </div>
           </div>
 
-          <SeccionPanel titulo="Ventas por mes — últimos 12 meses">
-            <GraficoBarras
-              datos={resumen.serie_mensual.map((p) => ({
-                clave: p.mes,
-                etiqueta: new Date(`${p.mes}-01T12:00:00`).toLocaleDateString("es-PE", { month: "short", year: "2-digit" }),
-                valor: p.ventas_usd,
-                valorTexto: p.ventas_usd >= 1000 ? `${Math.round(p.ventas_usd / 1000)}k` : String(Math.round(p.ventas_usd)),
-                detalle: `${p.mes}: ${usd(p.ventas_usd)} en ${p.n_ventas} venta${p.n_ventas === 1 ? "" : "s"}`,
-              }))}
-              resaltarUltima
-            />
+          <SeccionPanel titulo="Ventas por mes — últimos 12 meses (Efameinsa vs Open)">
+            <GraficoBarras datos={resumen.serie_mensual.map(barraMensualPorSerie)} resaltarUltima />
+            <LeyendaSerie k={k} />
           </SeccionPanel>
 
           <div className="grid gap-3 lg:grid-cols-2">
