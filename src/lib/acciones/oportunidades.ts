@@ -24,10 +24,19 @@ export async function registrarActividad(datos: {
   resultadoId?: number | null;
   proximaAccion: string;
   proximaAccionAt: string | null;
+  // Metadatos de archivos YA subidos al bucket 'adjuntos' por el cliente
+  // (reunión 19-08: PDF/Word/fotos visibles en la ficha). Máximo 5.
+  adjuntos?: { path: string; nombre: string; tipo: string; tamano: number }[];
 }): Promise<{ error: string | null }> {
   if (!TIPOS_ACTIVIDAD.includes(datos.tipo)) {
     return { error: "Tipo de actividad inválido" };
   }
+  const adjuntos = (datos.adjuntos ?? []).slice(0, 5).map((a) => ({
+    path: String(a.path).slice(0, 300),
+    nombre: String(a.nombre).slice(0, 120),
+    tipo: String(a.tipo).slice(0, 100),
+    tamano: Number(a.tamano) || 0,
+  }));
 
   const supabase = await createClient();
   const {
@@ -41,6 +50,7 @@ export async function registrarActividad(datos: {
     nota: datos.nota || null,
     resultado_id: datos.resultadoId ?? null,
     realizada_por: user.id,
+    adjuntos,
   });
   if (errorActividad) return { error: errorActividad.message };
 

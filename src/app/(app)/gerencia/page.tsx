@@ -11,6 +11,7 @@ import { BarraEtapa } from "@/components/crm/barra-etapa";
 import { GraficoBarras } from "@/components/crm/grafico-barras";
 import { TablaPorComercial } from "@/components/crm/tabla-por-comercial";
 import { TipoCambioInline } from "@/components/crm/tipo-cambio-inline";
+import { CargaDerivacion } from "@/components/crm/carga-derivacion";
 import type { EtapaOportunidad } from "@/types/database";
 
 // Depende de searchParams y de datos vivos: nunca cachear.
@@ -225,6 +226,8 @@ export default async function GerenciaPage({
           </p>
         </SeccionPanel>
       </div>
+
+      <CargaDerivacion />
 
       {resumen.top_clientes.length > 0 && (
         <SeccionPanel titulo="Clientes con mayor compra en el período">

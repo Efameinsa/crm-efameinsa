@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { registrarActividad, cambiarEtapa } from "@/lib/acciones/oportunidades";
+import { createClient } from "@/lib/supabase/client";
+import { Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,6 +67,7 @@ export function RegistroRapido({
   const [proximaAccionAt, setProximaAccionAt] = useState("");
   const [accionEditada, setAccionEditada] = useState(false);
   const [motivoId, setMotivoId] = useState("");
+  const [archivos, setArchivos] = useState<File[]>([]);
   const [enviando, startTransition] = useTransition();
 
   const resultado = resultados.find((r) => r.id === resultadoId) ?? null;
@@ -79,6 +82,7 @@ export function RegistroRapido({
     setProximaAccionAt("");
     setAccionEditada(false);
     setMotivoId("");
+    setArchivos([]);
   }
 
   // Elegir "qué sigue" rellena la próxima acción — pero nunca pisa lo que el
@@ -102,6 +106,22 @@ export function RegistroRapido({
       return;
     }
     startTransition(async () => {
+      // Adjuntos primero (bucket privado 'adjuntos'; el server action solo
+      // guarda los metadatos). Si una subida falla, se avisa y NO se
+      // registra la gestión — mejor reintentar que perder el archivo.
+      const adjuntos: { path: string; nombre: string; tipo: string; tamano: number }[] = [];
+      if (archivos.length) {
+        const storage = createClient().storage.from("adjuntos");
+        for (const f of archivos) {
+          const path = `${oportunidadId}/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
+          const { error } = await storage.upload(path, f, { contentType: f.type || "application/octet-stream" });
+          if (error) {
+            toast.error(`No se pudo subir "${f.name}": ${error.message}`);
+            return;
+          }
+          adjuntos.push({ path, nombre: f.name, tipo: f.type, tamano: f.size });
+        }
+      }
       const r1 = await registrarActividad({
         oportunidadId,
         tipo,
@@ -109,6 +129,7 @@ export function RegistroRapido({
         resultadoId,
         proximaAccion: esRechazo ? "" : proximaAccion,
         proximaAccionAt: esRechazo ? null : proximaAccionAt || null,
+        adjuntos,
       });
       if (r1.error) {
         toast.error(r1.error);
@@ -148,6 +169,33 @@ export function RegistroRapido({
           onFocus={() => setExpandido(true)}
           rows={expandido ? 3 : 1}
         />
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-accent">
+            <Paperclip className="size-3" /> Adjuntar (PDF, Word, foto)
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.xls,.xlsx,image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const nuevos = Array.from(e.target.files ?? []);
+                const grandes = nuevos.filter((f) => f.size > 10 * 1024 * 1024);
+                if (grandes.length) toast.error(`Máximo 10 MB por archivo: ${grandes.map((f) => f.name).join(", ")}`);
+                setArchivos((prev) => [...prev, ...nuevos.filter((f) => f.size <= 10 * 1024 * 1024)].slice(0, 5));
+                setExpandido(true);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          {archivos.map((f, i) => (
+            <span key={i} className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] text-foreground">
+              📎 {f.name.length > 28 ? f.name.slice(0, 25) + "…" : f.name}
+              <button type="button" onClick={() => setArchivos((prev) => prev.filter((_, j) => j !== i))} aria-label="Quitar" className="cursor-pointer">
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+        </div>
       </Paso>
 
       {expandido && (

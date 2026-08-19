@@ -16,6 +16,35 @@ export interface AvisoLeadNuevo {
   mensaje?: string | null;
 }
 
+export interface AvisoLeadDerivado {
+  codigo?: string | null;
+  nombre: string;
+  razonSocial?: string | null;
+  telefono?: string | null;
+  canal: string;
+  comercial: string;      // a quién se derivó
+  derivadoPor?: string | null; // quién derivó (Central/gerencia)
+}
+
+// EL correo que gerencia realmente pidió (reunión 19-08): uno por
+// DERIVACIÓN, no por llegada. La URL se deriva de la del timbre cambiando
+// el path — así no hace falta otra variable en Vercel.
+export async function avisarLeadDerivadoN8n(datos: AvisoLeadDerivado): Promise<void> {
+  const base = process.env.N8N_LEAD_WEBHOOK_URL;
+  if (!base) return;
+  const url = base.replace("crm-lead-nuevo", "crm-lead-derivado");
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secreto: process.env.N8N_WEBHOOK_SECRET ?? "", ...datos }),
+      signal: AbortSignal.timeout(4000),
+    });
+  } catch (e) {
+    console.error("avisos-n8n: no se pudo avisar la derivación:", e instanceof Error ? e.message : e);
+  }
+}
+
 export async function avisarLeadNuevoN8n(datos: AvisoLeadNuevo): Promise<void> {
   const url = process.env.N8N_LEAD_WEBHOOK_URL;
   if (!url) return; // entorno sin n8n configurado: silencio, no error

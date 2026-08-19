@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AsignarLeadDialog } from "@/components/crm/asignar-lead-dialog";
 import { DescartarLeadBoton } from "@/components/crm/descartar-lead-boton";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { CargaDerivacion } from "@/components/crm/carga-derivacion";
 
 const ICONO_CANAL: Record<string, LucideIcon> = {
   whatsapp: MessageCircle,
@@ -48,6 +49,7 @@ export default async function CentralPage() {
   ]);
 
   return (
+    <div className="space-y-4">
     <SeccionPanel
       titulo="Bandeja de triaje"
       accion={
@@ -98,5 +100,7 @@ export default async function CentralPage() {
         </div>
       )}
     </SeccionPanel>
+    <CargaDerivacion />
+    </div>
   );
 }

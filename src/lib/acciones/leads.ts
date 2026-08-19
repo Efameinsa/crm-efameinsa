@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { normalizarTelefono } from "@/lib/telefono";
 import { notificar } from "@/lib/notificaciones";
-import { avisarLeadNuevoN8n } from "@/lib/avisos-n8n";
+import { avisarLeadNuevoN8n, avisarLeadDerivadoN8n } from "@/lib/avisos-n8n";
 import { esquemaCaptura } from "@/lib/validaciones/lead";
 import { CANAL_LABEL } from "@/lib/canal-contacto";
 
@@ -161,19 +161,24 @@ export async function asignarLead(
   comercialId: string,
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const { data: oportunidadId, error } = await supabase.rpc("asignar_lead", {
     p_lead_id: leadId,
     p_comercial_id: comercialId,
   });
   if (error) return { error: error.message };
 
-  const { data: oportunidad } = await supabase
-    .from("oportunidades")
-    .select("cuentas(razon_social)")
-    .eq("id", oportunidadId)
-    .maybeSingle();
+  const [{ data: oportunidad }, { data: lead }, { data: perfiles }] = await Promise.all([
+    supabase.from("oportunidades").select("cuentas(razon_social)").eq("id", oportunidadId).maybeSingle(),
+    supabase.from("leads").select("codigo, nombre_contacto, telefono, canal").eq("id", leadId).maybeSingle(),
+    supabase.from("perfiles").select("id, nombre").in("id", user ? [comercialId, user.id] : [comercialId]),
+  ]);
   const razonSocial =
     (oportunidad?.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Nuevo contacto";
+  const nombreComercial = perfiles?.find((p) => p.id === comercialId)?.nombre ?? "Comercial";
+  const nombreDeriva = user ? perfiles?.find((p) => p.id === user.id)?.nombre ?? null : null;
 
   await notificar({
     userId: comercialId,
@@ -181,6 +186,17 @@ export async function asignarLead(
     titulo: "Nuevo contacto asignado",
     cuerpo: razonSocial,
     url: `/comercial/oportunidades/${oportunidadId}`,
+  });
+  // Correo a gerencia por DERIVACIÓN (reunión 19-08: "una sola vez, cuando
+  // Central lo deriva, no cuando llega").
+  await avisarLeadDerivadoN8n({
+    codigo: lead?.codigo ?? null,
+    nombre: lead?.nombre_contacto ?? razonSocial,
+    razonSocial,
+    telefono: lead?.telefono ?? null,
+    canal: CANAL_LABEL[lead?.canal ?? ""] ?? lead?.canal ?? "—",
+    comercial: nombreComercial,
+    derivadoPor: nombreDeriva,
   });
 
   revalidatePath("/central");

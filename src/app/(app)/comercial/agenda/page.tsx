@@ -1,7 +1,7 @@
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
-import { AgendaMensual, type AccionAgenda, type HechaAgenda, type VentaAgenda, type HistItem } from "@/components/crm/agenda-mensual";
+import { AgendaMensual, type AccionAgenda, type HechaAgenda, type VentaAgenda, type HistItem, type TareaAgenda } from "@/components/crm/agenda-mensual";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +46,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     razonSocial: (o.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
   }));
 
-  const [{ data: hechasData }, { data: ventasData }, { data: histData }, { data: resultados }, { data: motivos }] = await Promise.all([
+  const [{ data: hechasData }, { data: ventasData }, { data: histData }, { data: resultados }, { data: motivos }, { data: tareasData }] = await Promise.all([
     supabase
       .from("actividades")
       .select("id, tipo, nota, realizada_at, oportunidades!inner(comercial_id, cuentas(razon_social))")
@@ -74,6 +74,13 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       : Promise.resolve({ data: [] as { oportunidad_id: string; tipo: string; nota: string | null; realizada_at: string }[] }),
     supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("id"),
     supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase
+      .from("tareas_agenda")
+      .select("id, titulo, fecha, hora, completada")
+      .eq("comercial_id", perfil.id)
+      .gte("fecha", inicioMes)
+      .lte("fecha", finMes)
+      .limit(500),
   ]);
 
   const hechas: HechaAgenda[] = (hechasData ?? []).map((a) => ({
@@ -112,6 +119,13 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       historial={historial}
       resultados={resultados ?? []}
       motivos={motivos ?? []}
+      tareas={(tareasData ?? []).map((t) => ({
+        id: t.id,
+        titulo: t.titulo,
+        fecha: String(t.fecha).slice(0, 10),
+        hora: t.hora ? String(t.hora).slice(0, 5) : null,
+        completada: t.completada,
+      })) as TareaAgenda[]}
     />
   );
 }

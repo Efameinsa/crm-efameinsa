@@ -174,6 +174,22 @@ function FilaHistorial({ evento }: { evento: EventoTimeline }) {
               {ETIQUETA_ACTIVIDAD[evento.tipoActividad] ?? evento.tipoActividad}
             </p>
             {evento.nota && <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{evento.nota}</p>}
+            {(evento.adjuntos ?? []).length > 0 && (
+              <p className="mt-1 flex flex-wrap gap-2">
+                {evento.adjuntos!.map((ad, i) => (
+                  <a
+                    key={i}
+                    href={ad.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+                  >
+                    📎 {ad.nombre}
+                  </a>
+                ))}
+              </p>
+            )}
           </>
         )}
         {evento.tipo === "cotizacion" && (

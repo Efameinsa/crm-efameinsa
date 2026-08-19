@@ -56,7 +56,7 @@ export async function cargarHistorialCuenta(
       : await Promise.all([
           supabase
             .from("actividades")
-            .select("id, tipo, nota, realizada_at, oportunidad_id, catalogo_resultados_gestion(codigo, nombre)")
+            .select("id, tipo, nota, realizada_at, oportunidad_id, adjuntos, catalogo_resultados_gestion(codigo, nombre)")
             .in("oportunidad_id", opIds)
             .order("realizada_at", { ascending: false })
             .limit(LIMITE_ACTIVIDADES),
@@ -74,6 +74,15 @@ export async function cargarHistorialCuenta(
             .order("fecha_venta", { ascending: false }),
         ]);
 
+  // URLs firmadas para los adjuntos (bucket privado): una sola llamada batch.
+  type AdjuntoMeta = { path: string; nombre: string };
+  const todasLasRutas = (actividades ?? []).flatMap((a) => ((a as { adjuntos?: AdjuntoMeta[] }).adjuntos ?? []).map((x) => x.path));
+  const urlPorRuta = new Map<string, string>();
+  if (todasLasRutas.length) {
+    const { data: firmadas } = await supabase.storage.from("adjuntos").createSignedUrls(todasLasRutas, 3600);
+    for (const f of firmadas ?? []) if (f.signedUrl && f.path) urlPorRuta.set(f.path, f.signedUrl);
+  }
+
   const eventos: EventoTimeline[] = [
     ...(actividades ?? []).map((a): EventoTimeline => {
       const resultado = a.catalogo_resultados_gestion as unknown as { codigo: string; nombre: string } | null;
@@ -85,6 +94,9 @@ export async function cargarHistorialCuenta(
         tipoActividad: a.tipo,
         nota: a.nota,
         resultado,
+        adjuntos: ((a as { adjuntos?: { path: string; nombre: string }[] }).adjuntos ?? [])
+          .map((x) => ({ nombre: x.nombre, url: urlPorRuta.get(x.path) ?? "" }))
+          .filter((x) => x.url),
       };
     }),
     ...(cotizaciones ?? []).map((c): EventoTimeline => {

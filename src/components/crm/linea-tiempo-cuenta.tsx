@@ -50,6 +50,10 @@ export interface ResultadoGestionEvento {
   nombre: string;
 }
 
+export interface AdjuntoEvento {
+  nombre: string;
+  url: string; // URL firmada de Storage (bucket privado 'adjuntos'), vence en 1 h
+}
 export interface EventoActividad {
   tipo: "actividad";
   id: string;
@@ -58,6 +62,7 @@ export interface EventoActividad {
   tipoActividad: string;
   nota: string | null;
   resultado: ResultadoGestionEvento | null;
+  adjuntos?: AdjuntoEvento[];
 }
 export interface EventoCotizacion {
   tipo: "cotizacion";
@@ -128,6 +133,22 @@ function EventoFila({ evento }: { evento: EventoTimeline }) {
         </div>
         {evento.tipo === "actividad" && evento.nota && (
           <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{evento.nota}</p>
+        )}
+        {evento.tipo === "actividad" && (evento.adjuntos ?? []).length > 0 && (
+          <p className="mt-1 flex flex-wrap gap-2">
+            {evento.adjuntos!.map((ad, i) => (
+              <a
+                key={i}
+                href={ad.url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+              >
+                📎 {ad.nombre}
+              </a>
+            ))}
+          </p>
         )}
         <Link
           href={`/comercial/oportunidades/${evento.oportunidadId}`}
