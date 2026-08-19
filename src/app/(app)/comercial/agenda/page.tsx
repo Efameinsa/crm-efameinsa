@@ -49,7 +49,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const [{ data: hechasData }, { data: ventasData }, { data: histData }, { data: resultados }, { data: motivos }, { data: tareasData }] = await Promise.all([
     supabase
       .from("actividades")
-      .select("id, tipo, nota, realizada_at, oportunidades!inner(comercial_id, cuentas(razon_social))")
+      .select("id, tipo, nota, realizada_at, oportunidad_id, oportunidades!inner(comercial_id, cuentas(razon_social))")
       .eq("oportunidades.comercial_id", perfil.id)
       .gte("realizada_at", `${inicioMes}T00:00:00`)
       .lte("realizada_at", `${finMes}T23:59:59`)
@@ -58,7 +58,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       .limit(400),
     supabase
       .from("ventas")
-      .select("id, fecha_venta, monto_total, moneda, oportunidades!inner(comercial_id, cuentas(razon_social))")
+      .select("id, fecha_venta, monto_total, moneda, oportunidad_id, oportunidades!inner(comercial_id, cuentas(razon_social))")
       .eq("oportunidades.comercial_id", perfil.id)
       .eq("origen", "crm")
       .gte("fecha_venta", inicioMes)
@@ -87,6 +87,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     id: a.id,
     tipo: a.tipo,
     nota: a.nota,
+    oportunidadId: a.oportunidad_id,
     fecha: String(a.realizada_at).slice(0, 10),
     razonSocial:
       ((a.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social) ?? "Cuenta sin nombre",
@@ -94,6 +95,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
 
   const ventas: VentaAgenda[] = (ventasData ?? []).map((v) => ({
     id: v.id,
+    oportunidadId: v.oportunidad_id,
     fecha: String(v.fecha_venta).slice(0, 10),
     monto: v.monto_total,
     moneda: v.moneda,

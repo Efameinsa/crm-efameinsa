@@ -32,10 +32,10 @@ export interface AccionAgenda {
   cuentaId: string;
   razonSocial: string;
 }
-export interface HechaAgenda { id: string; tipo: string; nota: string | null; fecha: string; razonSocial: string }
+export interface HechaAgenda { id: string; tipo: string; nota: string | null; fecha: string; razonSocial: string; oportunidadId: string }
 // Tarea personal (migración 0028): sin cliente; lo de clientes va por oportunidad.
 export interface TareaAgenda { id: string; titulo: string; fecha: string; hora: string | null; completada: boolean }
-export interface VentaAgenda { id: string; fecha: string; monto: number; moneda: string; razonSocial: string }
+export interface VentaAgenda { id: string; fecha: string; monto: number; moneda: string; razonSocial: string; oportunidadId: string }
 export interface HistItem { tipo: string; nota: string | null; fecha: string }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -90,6 +90,8 @@ export function AgendaMensual({
   }, [inicialAcciones, inicialTareas]);
   const [seleccion, setSeleccion] = useState<string | null>(null); // id de oportunidad
   const [tareaSel, setTareaSel] = useState<string | null>(null); // id de tarea personal
+  const [hechaSel, setHechaSel] = useState<string | null>(null); // gestión realizada (solo lectura)
+  const [ventaSel, setVentaSel] = useState<string | null>(null); // venta (solo lectura)
   const [agregarFecha, setAgregarFecha] = useState<string | null>(null); // día del "+ Agregar"
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [nuevaHora, setNuevaHora] = useState("");
@@ -117,7 +119,7 @@ export function AgendaMensual({
   }, [acciones, hechas, ventas, tareas]);
 
   const cerrar = useCallback(() => {
-    setSeleccion(null); setTareaSel(null); setAgregarFecha(null); setListaPanel(null); setReprogramando(false);
+    setSeleccion(null); setTareaSel(null); setHechaSel(null); setVentaSel(null); setAgregarFecha(null); setListaPanel(null); setReprogramando(false);
     setNuevoTitulo(""); setNuevaHora("");
   }, []);
   useEffect(() => {
@@ -167,7 +169,9 @@ export function AgendaMensual({
   const tareaArrastrada = arrastrando?.startsWith("t:") ? tareas.find((t) => "t:" + t.id === arrastrando) : null;
   const seleccionada = seleccion ? acciones.find((a) => a.id === seleccion) : null;
   const tareaAbierta = tareaSel ? tareas.find((t) => t.id === tareaSel) : null;
-  const abierto = !!seleccionada || !!listaPanel || !!tareaAbierta || !!agregarFecha;
+  const hechaAbierta = hechaSel ? hechas.find((h) => h.id === hechaSel) : null;
+  const ventaAbierta = ventaSel ? ventas.find((v) => v.id === ventaSel) : null;
+  const abierto = !!seleccionada || !!listaPanel || !!tareaAbierta || !!agregarFecha || !!hechaAbierta || !!ventaAbierta;
   const [anio, mesN] = mes.split("-").map(Number);
 
   return (
@@ -229,6 +233,8 @@ export function AgendaMensual({
                 hoyISO={hoy}
                 onSel={(id) => { cerrar(); setSeleccion(id); }}
                 onSelTarea={(id) => { cerrar(); setTareaSel(id); }}
+                onSelHecha={(id) => { cerrar(); setHechaSel(id); }}
+                onSelVenta={(id) => { cerrar(); setVentaSel(id); }}
                 onAgregar={(iso) => { cerrar(); setAgregarFecha(iso); }}
               />
             ))}
@@ -285,7 +291,11 @@ export function AgendaMensual({
                   ? `Agregar al ${fechaCalendarioLarga(agregarFecha)}`
                   : tareaAbierta
                     ? "Tarea personal"
-                    : "Detalle de la gestión"}
+                    : ventaAbierta
+                      ? "Venta cerrada"
+                      : hechaAbierta
+                        ? "Gestión realizada"
+                        : "Detalle de la gestión"}
           </span>
           <button type="button" onClick={cerrar} className="ml-auto rounded-md p-1.5 text-muted-foreground hover:bg-accent" aria-label="Cerrar">
             <X className="size-4" />
@@ -390,6 +400,47 @@ export function AgendaMensual({
                   </p>
                 )}
               </div>
+            </div>
+          )}
+
+          {hechaAbierta && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-lg font-bold leading-snug text-foreground">
+                  ✓ {TIPO_LABEL[hechaAbierta.tipo] ?? hechaAbierta.tipo}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{hechaAbierta.razonSocial}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Realizada el {fechaCalendarioLarga(hechaAbierta.fecha)}</p>
+              </div>
+              {hechaAbierta.nota && (
+                <p className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/50 p-3 text-sm text-foreground">{hechaAbierta.nota}</p>
+              )}
+              <button
+                type="button"
+                onClick={() => router.push(`/comercial/oportunidades/${hechaAbierta.oportunidadId}`)}
+                className="cursor-pointer text-sm font-bold text-primary hover:underline"
+              >
+                Abrir ficha completa →
+              </button>
+            </div>
+          )}
+
+          {ventaAbierta && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-lg font-bold leading-snug text-[#1E7F4F]">
+                  ✓ Venta {ventaAbierta.moneda === "PEN" ? "S/" : "US$"} {Number(ventaAbierta.monto).toLocaleString("es-PE")}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{ventaAbierta.razonSocial}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Cerrada el {fechaCalendarioLarga(ventaAbierta.fecha)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push(`/comercial/oportunidades/${ventaAbierta.oportunidadId}`)}
+                className="cursor-pointer text-sm font-bold text-primary hover:underline"
+              >
+                Abrir ficha completa →
+              </button>
             </div>
           )}
 
@@ -564,13 +615,15 @@ function Leyenda({ color, children }: { color: string; children: React.ReactNode
 }
 
 function Dia({
-  iso, dia, otroMes, esHoy, domingo, ultimaFila, datos, hoyISO, onSel, onSelTarea, onAgregar,
+  iso, dia, otroMes, esHoy, domingo, ultimaFila, datos, hoyISO, onSel, onSelTarea, onSelHecha, onSelVenta, onAgregar,
 }: {
   iso: string; dia: number; otroMes: boolean; esHoy: boolean; domingo: boolean; ultimaFila: boolean;
   datos?: { acciones: AccionAgenda[]; hechas: HechaAgenda[]; ventas: VentaAgenda[]; tareas: TareaAgenda[] };
   hoyISO: string;
   onSel: (id: string) => void;
   onSelTarea: (id: string) => void;
+  onSelHecha: (id: string) => void;
+  onSelVenta: (id: string) => void;
   onAgregar: (iso: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: iso });
@@ -579,10 +632,15 @@ function Dia({
   let n = 0;
   for (const v of datos?.ventas ?? []) {
     if (n++ < MAX) items.push(
-      <div key={`v${v.id}`} className="my-0.5 rounded-md border-l-[3px] border-[#1E7F4F] bg-[#1E7F4F]/10 px-1.5 py-0.5 text-[11.5px] leading-tight">
+      <button
+        key={`v${v.id}`}
+        type="button"
+        onClick={() => onSelVenta(v.id)}
+        className="my-0.5 block w-full cursor-pointer rounded-md border-l-[3px] border-[#1E7F4F] bg-[#1E7F4F]/10 px-1.5 py-0.5 text-left text-[11.5px] leading-tight transition-[filter] hover:brightness-95"
+      >
         <b className="text-[#1E7F4F]">✓ Venta {v.moneda === "PEN" ? "S/" : "US$"} {Number(v.monto).toLocaleString("es-PE")}</b>
         <span className="block truncate text-[10.5px] text-muted-foreground">{v.razonSocial}</span>
-      </div>,
+      </button>,
     );
   }
   for (const a of datos?.acciones ?? []) {
@@ -593,10 +651,16 @@ function Dia({
   }
   for (const h of datos?.hechas ?? []) {
     if (n++ < MAX) items.push(
-      <div key={`h${h.id}`} className="my-0.5 rounded-md border-l-[3px] border-muted-foreground/40 bg-secondary px-1.5 py-0.5 text-[11.5px] leading-tight text-muted-foreground" title={h.nota ?? undefined}>
+      <button
+        key={`h${h.id}`}
+        type="button"
+        onClick={() => onSelHecha(h.id)}
+        title={h.nota ?? undefined}
+        className="my-0.5 block w-full cursor-pointer rounded-md border-l-[3px] border-muted-foreground/40 bg-secondary px-1.5 py-0.5 text-left text-[11.5px] leading-tight text-muted-foreground transition-[filter] hover:brightness-95"
+      >
         <span className="line-through">✓ {TIPO_LABEL[h.tipo] ?? h.tipo}</span>
         <span className="block truncate text-[10.5px]">{h.razonSocial}</span>
-      </div>,
+      </button>,
     );
   }
 
