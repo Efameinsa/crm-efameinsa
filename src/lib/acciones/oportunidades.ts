@@ -54,6 +54,7 @@ export async function registrarActividad(datos: {
   if (errorOportunidad) return { error: errorOportunidad.message };
 
   revalidatePath("/comercial");
+  revalidatePath("/comercial/agenda");
   revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
   return { error: null };
 }
@@ -122,5 +123,35 @@ export async function cambiarEtapa(datos: {
 
   revalidatePath("/comercial");
   revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
+  return { error: null };
+}
+
+// Agenda: reprogramar la próxima acción (fecha y hora) desde el calendario —
+// arrastrar a otro día o editar en el panel lateral. La hora es opcional
+// (sin hora = todo el día). Supabase no falla cuando RLS filtra el update
+// (afecta 0 filas), por eso se revisa el .select() de vuelta.
+export async function reprogramarAccion(datos: {
+  oportunidadId: string;
+  fecha: string | null;
+  hora: string | null;
+}): Promise<{ error: string | null }> {
+  if (datos.fecha !== null && !/^\d{4}-\d{2}-\d{2}$/.test(datos.fecha)) {
+    return { error: "Fecha inválida" };
+  }
+  if (datos.hora !== null && !/^\d{2}:\d{2}$/.test(datos.hora)) {
+    return { error: "Hora inválida" };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("oportunidades")
+    .update({ proxima_accion_at: datos.fecha, proxima_accion_hora: datos.fecha ? datos.hora : null })
+    .eq("id", datos.oportunidadId)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { error: "Solo el dueño de la oportunidad puede reprogramarla" };
+
+  revalidatePath("/comercial/agenda");
+  revalidatePath("/comercial");
   return { error: null };
 }
