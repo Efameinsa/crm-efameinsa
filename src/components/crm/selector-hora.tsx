@@ -21,7 +21,7 @@ const OPCIONES: string[] = [];
 for (let h = 0; h < 24; h++) for (const m of ["00", "30"]) OPCIONES.push(`${String(h).padStart(2, "0")}:${m}`);
 
 /** "9" → "09:00", "14:45" → "14:45", "935" → "09:35"; inválido → null. */
-function normalizar(texto: string): string | null {
+export function normalizar(texto: string): string | null {
   const limpio = texto.trim();
   let m = limpio.match(/^(\d{1,2}):([0-5]\d)$/) ?? limpio.match(/^(\d{1,2})$/);
   if (!m && /^\d{3,4}$/.test(limpio)) m = [limpio, limpio.slice(0, -2), limpio.slice(-2)] as RegExpMatchArray;
@@ -32,7 +32,7 @@ function normalizar(texto: string): string | null {
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
-function coincide(opcion: string, q: string): boolean {
+export function coincide(opcion: string, q: string): boolean {
   const b = q.replace(/[^\d]/g, "");
   if (!b) return true;
   const a = opcion.replace(":", "");

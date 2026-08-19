@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { normalizarTelefono } from "@/lib/telefono";
+import { tokenizarBusqueda } from "@/lib/texto";
 import { notificar } from "@/lib/notificaciones";
 import { avisarLeadNuevoN8n, avisarLeadDerivadoN8n } from "@/lib/avisos-n8n";
 import { esquemaCaptura } from "@/lib/validaciones/lead";
@@ -298,12 +299,7 @@ export async function buscarCoincidencias(datos: {
     agregar((data ?? []).map((x) => x.cuentas as unknown as CuentaFila), "correo");
   }
   const texto = [datos.nombre, datos.razonSocial].filter(Boolean).join(" ");
-  const tokens = texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .split(/\s+/)
-    .filter((t) => t.length >= 3)
-    .slice(0, 4);
+  const tokens = tokenizarBusqueda(texto);
   if (tokens.length > 0 && out.size < 6) {
     let q = supabase.from("cuentas").select(CAMPOS);
     for (const t of tokens) q = q.ilike("razon_social", `%${t}%`);

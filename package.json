@@ -11,7 +11,9 @@
     "db:usuarios-prueba": "node --env-file=.env.local scripts/crear-usuarios-prueba.mjs",
     "db:comerciales": "node --env-file=.env.local scripts/crear-comerciales.mjs",
     "db:backup": "node --env-file=.env.local scripts/backup-datos.mjs",
-    "db:restaurar": "node --env-file=.env.local scripts/restaurar-datos.mjs"
+    "db:restaurar": "node --env-file=.env.local scripts/restaurar-datos.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -45,6 +47,7 @@
     "pg": "^8.23.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vitest": "^4.1.11",
     "xlsx": "^0.18.5"
   }
 }
