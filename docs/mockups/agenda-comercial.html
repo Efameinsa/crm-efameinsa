@@ -1,0 +1,307 @@
+<title>Agenda del comercial</title>
+<style>
+  :root {
+    --granate: #7e1210; --carbon: #2c2e35; --gris: #6b6b6b;
+    --bg: #f3f1f0; --card: #ffffff; --borde: #e5e2e2; --sec: #f4f2f2;
+    --verde: #1e7f4f; --ambar: #b45309; --rojo: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--carbon); font: 14px/1.45 Arial, "Segoe UI", sans-serif; }
+  .top { background: var(--card); border-bottom: 1px solid var(--borde); padding: 10px 22px; display: flex; align-items: center; gap: 14px; }
+  .marca { font-weight: 800; letter-spacing: .4px; color: var(--granate); font-size: 15px; }
+  .marca small { color: var(--gris); font-weight: 400; letter-spacing: 0; margin-left: 8px; }
+  .chip-demo { margin-left: auto; font-size: 11px; color: var(--gris); background: var(--sec); border: 1px dashed var(--borde); padding: 4px 10px; border-radius: 999px; }
+  .wrap { max-width: 1280px; margin: 18px auto; padding: 0 22px; }
+
+  .barra { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+  h1 { font-size: 18px; margin: 0 10px 0 0; }
+  .tabs { display: inline-flex; border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; background: var(--card); }
+  .tabs button { border: 0; background: transparent; padding: 7px 16px; font: inherit; font-size: 13px; color: var(--gris); cursor: pointer; }
+  .tabs button.act { background: var(--carbon); color: #fff; font-weight: 700; }
+  .tabs button:disabled { cursor: not-allowed; opacity: .55; }
+  .nav { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+  .nav b { font-size: 15px; min-width: 130px; text-align: center; }
+  .btn { border: 1px solid var(--borde); background: var(--card); border-radius: 8px; padding: 7px 14px; font: inherit; font-size: 13px; cursor: pointer; color: var(--carbon); }
+  .btn:hover { background: var(--sec); }
+  .btn.hoy { font-weight: 700; }
+  .sinfecha { border: 1px solid #f0d9a8; background: #fdf6e7; color: var(--ambar); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+
+  .cal { background: var(--card); border: 1px solid var(--borde); border-radius: 14px; box-shadow: 0 1px 3px rgba(44,46,53,.06); overflow: hidden; }
+  .cab, .fila { display: grid; grid-template-columns: repeat(6, 1fr) .42fr; }
+  .cab div { padding: 8px 10px; font-size: 10.5px; font-weight: 700; letter-spacing: .8px; color: var(--gris); border-bottom: 1px solid var(--borde); text-transform: uppercase; }
+  .dia { min-height: 118px; border-right: 1px solid var(--borde); border-bottom: 1px solid var(--borde); padding: 6px; position: relative; }
+  .dia:nth-child(7n) { border-right: 0; background: #faf9f8; }
+  .fila:last-child .dia { border-bottom: 0; }
+  .num { font-size: 12px; color: var(--gris); padding: 2px 5px; display: inline-block; }
+  .otro-mes .num { color: #c2bebc; }
+  .hoy-n { background: var(--granate); color: #fff; border-radius: 8px; font-weight: 700; }
+  .dia .add { position: absolute; bottom: 6px; left: 6px; right: 6px; text-align: center; font-size: 12px; color: var(--gris); border: 1px dashed var(--borde); border-radius: 7px; padding: 3px; opacity: 0; transition: opacity .12s; cursor: pointer; background: var(--card); }
+  .dia:hover .add { opacity: 1; }
+
+  .ev { display: block; width: 100%; text-align: left; border: 0; font: inherit; font-size: 12px; line-height: 1.3; border-radius: 7px; padding: 4px 7px 4px 9px; margin: 3px 0; cursor: pointer; background: #f7eded; color: var(--carbon); border-left: 3px solid var(--granate); }
+  .ev:hover { filter: brightness(.96); }
+  .ev b { font-weight: 700; }
+  .ev .cli { display: block; color: var(--gris); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev.venc { background: #fbeceb; border-left-color: var(--rojo); }
+  .ev.venc b { color: var(--rojo); }
+  .ev.hecha { background: var(--sec); border-left-color: #c9c5c3; color: var(--gris); }
+  .ev.hecha b { font-weight: 400; text-decoration: line-through; }
+  .ev.venta { background: #e9f4ee; border-left-color: var(--verde); }
+  .ev.venta b { color: var(--verde); text-decoration: none; }
+  .mas { font-size: 11.5px; color: var(--gris); padding: 2px 6px; cursor: pointer; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 16px; margin: 12px 2px; font-size: 12px; color: var(--gris); }
+  .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+  /* Panel lateral estilo Asana */
+  .velo { position: fixed; inset: 0; background: rgba(44,46,53,.28); opacity: 0; pointer-events: none; transition: opacity .18s; z-index: 40; }
+  .panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 92vw); background: var(--card); border-left: 1px solid var(--borde); box-shadow: -12px 0 32px rgba(44,46,53,.14); transform: translateX(102%); transition: transform .22s ease-out; z-index: 50; display: flex; flex-direction: column; }
+  body.abierto .velo { opacity: 1; pointer-events: auto; }
+  body.abierto .panel { transform: none; }
+  .p-top { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--borde); }
+  .p-top .btn.primario { background: var(--granate); color: #fff; border-color: var(--granate); font-weight: 700; }
+  .p-top .cerrar { margin-left: auto; font-size: 18px; line-height: 1; padding: 6px 10px; }
+  .p-cuerpo { overflow-y: auto; padding: 18px 22px 26px; }
+  .miga { font-size: 11.5px; color: var(--gris); margin-bottom: 6px; }
+  .p-cuerpo h2 { font-size: 19px; margin: 0 0 4px; line-height: 1.3; }
+  .metas { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px; }
+  .badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 10px; background: var(--sec); color: var(--gris); }
+  .badge.etapa { background: #f0e2e2; color: var(--granate); }
+  .badge.interes { background: #fdf3e2; color: var(--ambar); }
+  .campo { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: 13px; padding: 7px 0; border-bottom: 1px dashed var(--borde); }
+  .campo span { color: var(--gris); font-size: 12px; }
+  .campo select, .campo input[type=time], .campo input[type=date] { font: inherit; font-size: 13px; border: 1px solid var(--borde); border-radius: 7px; padding: 5px 8px; background: var(--card); color: var(--carbon); cursor: pointer; }
+  .seccion { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--gris); margin: 20px 0 8px; }
+  .gestion { border: 1px solid var(--borde); border-radius: 12px; padding: 14px; background: #fbfafa; }
+  .tipos { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tipos button { border: 1px solid var(--borde); background: var(--card); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 12px; cursor: pointer; color: var(--carbon); }
+  .tipos button.sel { border-color: var(--granate); background: #f7eded; color: var(--granate); font-weight: 700; }
+  .gestion textarea { width: 100%; min-height: 64px; border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; resize: vertical; background: var(--card); color: var(--carbon); }
+  .atajos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; font-size: 12px; color: var(--gris); }
+  .atajos button { border: 1px solid var(--borde); background: var(--card); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+  .guardar { margin-top: 12px; width: 100%; background: var(--carbon); color: #fff; border: 0; border-radius: 9px; padding: 10px; font: inherit; font-weight: 700; cursor: pointer; }
+  .hist { list-style: none; margin: 0; padding: 0; }
+  .hist li { display: grid; grid-template-columns: 78px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--borde); font-size: 12.5px; }
+  .hist .f { color: var(--gris); font-size: 11.5px; }
+  .hist .t { font-weight: 700; margin-right: 6px; }
+  .abrir { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--granate); font-weight: 700; text-decoration: none; }
+  .nota-pie { margin: 16px 2px 30px; font-size: 12px; color: var(--gris); }
+  kbd { border: 1px solid var(--borde); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 11px; background: var(--sec); }
+</style>
+
+<div class="top">
+  <span class="marca">EFAMEINSA <small>CRM Comercial · Katerine Tello (C5)</small></span>
+  <span class="chip-demo">Maqueta navegable — clientes reales de C5, gestiones de ejemplo</span>
+</div>
+
+<div class="wrap">
+  <div class="barra">
+    <h1>Agenda</h1>
+    <div class="tabs">
+      <button class="act">Mes</button>
+      <button disabled title="Se construye tras validar esta vista">Semana</button>
+      <button disabled title="Se construye tras validar esta vista">Día</button>
+    </div>
+    <button class="sinfecha" data-ev="sinfecha">Sin fecha (2)</button>
+    <div class="nav">
+      <button class="btn">‹</button>
+      <button class="btn hoy">Hoy</button>
+      <button class="btn">›</button>
+      <b>Agosto 2026</b>
+    </div>
+  </div>
+
+  <div class="cal">
+    <div class="cab"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
+    <div class="fila">
+      <div class="dia otro-mes"><span class="num">27</span></div>
+      <div class="dia otro-mes"><span class="num">28</span></div>
+      <div class="dia otro-mes"><span class="num">29</span></div>
+      <div class="dia otro-mes"><span class="num">30</span></div>
+      <div class="dia otro-mes"><span class="num">31</span></div>
+      <div class="dia"><span class="num">1</span></div>
+      <div class="dia"><span class="num">2</span></div>
+    </div>
+    <div class="fila">
+      <div class="dia"><span class="num">3</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num">4</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num">5</span>
+        <button class="ev hecha"><b>✓ Llamada</b><span class="cli">Kanam E.I.R.L.</span></button>
+        <span class="add">+ Agregar gestión</span>
+      </div>
+      <div class="dia"><span class="num">6</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num">7</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num">8</span></div>
+      <div class="dia"><span class="num">9</span></div>
+    </div>
+    <div class="fila">
+      <div class="dia"><span class="num">10</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num">11</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num">12</span>
+        <button class="ev hecha"><b>✓ Cotización enviada</b><span class="cli">Kanam E.I.R.L.</span></button>
+        <span class="add">+ Agregar gestión</span>
+      </div>
+      <div class="dia"><span class="num">13</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num">14</span>
+        <button class="ev venta"><b>✓ Venta US$ 3,590</b><span class="cli">Peña Flores Inosencio</span></button>
+        <button class="ev hecha"><b>✓ WhatsApp</b><span class="cli">Lavandería Ursiña</span></button>
+        <button class="ev hecha"><b>✓ Cotización enviada</b><span class="cli">Lavanderías Clean Wash</span></button>
+        <span class="mas">3 más</span>
+      </div>
+      <div class="dia"><span class="num">15</span>
+        <button class="ev venc" data-ev="ramirez"><b>Vencida · Llamar</b><span class="cli">Ramírez Bernachea Víctor</span></button>
+        <button class="ev venc"><b>Vencida · Seguimiento</b><span class="cli">Ccanre Peralta Luis</span></button>
+        <span class="mas">1 más</span>
+      </div>
+      <div class="dia"><span class="num">16</span></div>
+    </div>
+    <div class="fila">
+      <div class="dia"><span class="num">17</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num">18</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num hoy-n">19</span>
+        <button class="ev" data-ev="ursina"><b>10:00 Llamar</b><span class="cli">Lavandería Ursiña</span></button>
+        <button class="ev" data-ev="cleanwash"><b>15:30 Recotizar 17 kg</b><span class="cli">Lavanderías Clean Wash</span></button>
+        <span class="add">+ Agregar gestión</span>
+      </div>
+      <div class="dia"><span class="num">20</span>
+        <button class="ev"><b>09:00 Visita en planta</b><span class="cli">HHP Hoteles Hacienda del Perú</span></button>
+        <span class="add">+ Agregar gestión</span>
+      </div>
+      <div class="dia"><span class="num">21</span>
+        <button class="ev"><b>11:00 Llamada seguimiento</b><span class="cli">Kanam E.I.R.L.</span></button>
+        <span class="add">+ Agregar gestión</span>
+      </div>
+      <div class="dia"><span class="num">22</span>
+        <button class="ev"><b>Cierre semanal</b><span class="cli">Rechazos y agenda de la semana 35</span></button>
+      </div>
+      <div class="dia"><span class="num">23</span></div>
+    </div>
+    <div class="fila">
+      <div class="dia"><span class="num">24</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num">25</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia"><span class="num">26</span>
+        <button class="ev"><b>10:00 Llamar</b><span class="cli">Sociedad Hotelera del Sur</span></button>
+        <span class="add">+ Agregar gestión</span>
+      </div>
+      <div class="dia"><span class="num">27</span>
+        <button class="ev"><b>09:30 Cita en planta</b><span class="cli">San Agustín Paracas</span></button>
+        <span class="add">+ Agregar gestión</span>
+      </div>
+      <div class="dia"><span class="num">28</span>
+        <button class="ev"><b>12:00 Seguimiento ppto.</b><span class="cli">Hilandería de Algodón Peruano</span></button>
+        <span class="add">+ Agregar gestión</span>
+      </div>
+      <div class="dia"><span class="num">29</span></div>
+      <div class="dia"><span class="num">30</span></div>
+    </div>
+    <div class="fila">
+      <div class="dia"><span class="num">31</span><span class="add">+ Agregar gestión</span></div>
+      <div class="dia otro-mes"><span class="num">1</span></div>
+      <div class="dia otro-mes"><span class="num">2</span></div>
+      <div class="dia otro-mes"><span class="num">3</span></div>
+      <div class="dia otro-mes"><span class="num">4</span></div>
+      <div class="dia otro-mes"><span class="num">5</span></div>
+      <div class="dia otro-mes"><span class="num">6</span></div>
+    </div>
+  </div>
+
+  <div class="leyenda">
+    <span><i style="background:#f7eded;border-left:3px solid var(--granate)"></i>Próxima acción</span>
+    <span><i style="background:#fbeceb;border-left:3px solid var(--rojo)"></i>Vencida</span>
+    <span><i style="background:var(--sec);border-left:3px solid #c9c5c3"></i>Gestión realizada</span>
+    <span><i style="background:#e9f4ee;border-left:3px solid var(--verde)"></i>Venta</span>
+    <span style="margin-left:auto">Sábado laboral a ancho completo · domingo comprimido</span>
+  </div>
+
+  <p class="nota-pie">Clic en cualquier tarjeta abre el panel de detalle (patrón Asana). Se cierra con <kbd>Esc</kbd>, con la ✕ o haciendo clic afuera. Arrastrar una tarjeta a otro día la reprograma (en la versión real).</p>
+</div>
+
+<div class="velo" id="velo"></div>
+<aside class="panel" id="panel" role="dialog" aria-label="Detalle de la gestión">
+  <div class="p-top">
+    <button class="btn primario">Registrar gestión</button>
+    <span style="font-size:12px;color:var(--gris)">= qué pasó + programar la siguiente</span>
+    <button class="btn cerrar" id="cerrar" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="p-cuerpo" id="p-cuerpo"></div>
+</aside>
+
+<script>
+  const DATA = {
+    ursina: {
+      miga: "Mi cartera / Lavandería Ursiña",
+      titulo: "Llamar para definir capacidad: lavadora 17 kg vs 13 kg",
+      cliente: "ALVES CANAYO URSULA — LAVANDERÍA URSIÑA",
+      etapa: "Filtrada", interes: "Interés medio", monto: "US$ 6,994 estimado",
+      fecha: "2026-08-19", hora: "10:00",
+      hist: [
+        ["14 ago", "WhatsApp", "Le hablé por WhatsApp; levantar información del local y capacidad diaria."],
+        ["14 ago", "Visita", "Visitó el showroom, vio la Titan Max. Pide comparar consumo eléctrico."],
+        ["11 ago", "Llamada", "Primer contacto. Lavandería en crecimiento, evalúa segunda máquina."],
+      ],
+    },
+    cleanwash: {
+      miga: "Mi cartera / Lavanderías Clean Wash",
+      titulo: "Enviar recotización con equipo de 17 kg",
+      cliente: "CHÁVEZ RETAMOZO JOSÉ WALTER — LAVANDERÍAS CLEAN WASH",
+      etapa: "Cotizada", interes: "Interés medio-alto", monto: "US$ 9,000 estimado",
+      fecha: "2026-08-19", hora: "15:30",
+      hist: [
+        ["14 ago", "Email", "Enviada cotización; pide reunión y evaluar equipo de mayor capacidad."],
+        ["14 ago", "Visita", "Reunión en su local. Piso listo, decide entre 13 y 17 kg."],
+      ],
+    },
+    ramirez: {
+      miga: "Mi cartera / Ramírez Bernachea",
+      titulo: "Llamar — quedó de confirmar local",
+      cliente: "RAMÍREZ BERNACHEA VÍCTOR APOLINARIO",
+      etapa: "Asignada", interes: "Sin definir", monto: "Sin monto estimado",
+      fecha: "2026-08-15", hora: "",
+      vencida: true,
+      hist: [["14 ago", "Llamada", "Interesado; busca local en Huancayo. Volver a llamar el viernes."]],
+    },
+    sinfecha: {
+      miga: "Oportunidades abiertas",
+      titulo: "2 gestiones sin fecha programada",
+      cliente: "Estas oportunidades no aparecen en el calendario hasta que les pongas fecha",
+      etapa: "Pendientes", interes: "", monto: "",
+      lista: [
+        ["CHÁVEZ RETAMOZO — LAVANDERÍAS CLEAN WASH", "Filtrada · US$ 9,000 · sin próxima acción con fecha"],
+        ["ALVES CANAYO — LAVANDERÍA URSIÑA", "Filtrada · US$ 6,994 · “llamar mañana” sin fecha"],
+      ],
+    },
+  };
+
+  const cuerpo = document.getElementById("p-cuerpo");
+  function abrir(id) {
+    const d = DATA[id]; if (!d) return;
+    let html = `<div class="miga">${d.miga}</div><h2>${d.titulo}</h2>
+      <div class="metas">${d.etapa ? `<span class="badge etapa">${d.etapa}</span>` : ""}${d.interes ? `<span class="badge interes">${d.interes}</span>` : ""}${d.monto ? `<span class="badge">${d.monto}</span>` : ""}${d.vencida ? `<span class="badge" style="background:#fbeceb;color:var(--rojo)">Vencida — reprogramar</span>` : ""}</div>
+      <div class="campo"><span>Cliente</span><b style="font-size:13px">${d.cliente}</b></div>`;
+    if (d.lista) {
+      html += `<div class="seccion">Pendientes de fecha</div><ul class="hist">` +
+        d.lista.map(([a, b]) => `<li><span class="f">→</span><span><b>${a}</b><br><span style="color:var(--gris)">${b}</span> · <a class="abrir" style="margin:0" href="#">poner fecha</a></span></li>`).join("") + `</ul>`;
+    } else {
+      html += `
+      <div class="campo"><span>Fecha</span><span><input type="date" value="${d.fecha}"> <input type="time" value="${d.hora}" placeholder="—"> <small style="color:var(--gris)">sin hora = todo el día</small></span></div>
+      <div class="seccion">Registrar gestión (≤ 15 segundos)</div>
+      <div class="gestion">
+        <div class="tipos"><button class="sel">Llamada</button><button>WhatsApp</button><button>Email</button><button>Visita</button><button>Showroom</button></div>
+        <textarea placeholder="¿Qué pasó? Ej.: confirmó capacidad de 17 kg, pide precio con instalación…"></textarea>
+        <div class="atajos">Próxima acción: <button>Hoy</button><button>Mañana</button><button>Próx. semana</button><button>Elegir fecha…</button></div>
+        <button class="guardar">Guardar gestión y programar la siguiente</button>
+      </div>
+      <div class="seccion">Últimas gestiones</div>
+      <ul class="hist">${d.hist.map(([f, t, n]) => `<li><span class="f">${f}</span><span><span class="t">${t}</span>${n}</span></li>`).join("")}</ul>
+      <a class="abrir" href="#">Abrir ficha completa del cliente →</a>`;
+    }
+    cuerpo.innerHTML = html;
+    document.body.classList.add("abierto");
+  }
+  function cerrar() { document.body.classList.remove("abierto"); }
+  document.querySelectorAll("[data-ev]").forEach((b) => b.addEventListener("click", () => abrir(b.dataset.ev)));
+  document.querySelectorAll(".ev:not([data-ev])").forEach((b) => b.addEventListener("click", () => abrir(b.classList.contains("venc") ? "ramirez" : "ursina")));
+  document.getElementById("velo").addEventListener("click", cerrar);
+  document.getElementById("cerrar").addEventListener("click", cerrar);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrar(); });
+</script>
