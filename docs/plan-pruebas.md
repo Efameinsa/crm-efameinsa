@@ -4,6 +4,11 @@ Para ejecutar con Sonnet antes de la salida definitiva. Contexto: leer
 `CLAUDE.md` primero. Las lecciones de verificación que motivan cada grupo
 están al final — no saltárselas.
 
+**✅ Sección 1 (unitarias) EJECUTADA 2026-08-19** — `npm test` (Vitest), 103
+pruebas, todas verdes. `npm run test:watch` para desarrollo. Quedan
+pendientes las secciones 2-5 (funciones SQL, RLS, endpoints, humo de UI),
+que necesitan Supabase real y no son unitarias.
+
 ## 0. Preparación
 
 - Framework: **Vitest** (`npm i -D vitest`) para unitarias puras; las de base
