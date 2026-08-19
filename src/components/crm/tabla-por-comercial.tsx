@@ -27,7 +27,7 @@ export function TablaPorComercial({ filas }: { filas: FilaComercialResumen[] }) 
           <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
             <th className="pb-2 font-medium">Comercial</th>
             <th className="pb-2 pl-2 text-right font-medium">Vendido</th>
-            <th className="pb-2 pl-2 text-right font-medium" title="Ventas cerradas en el período">
+            <th className="pb-2 pl-2 text-right font-medium" title="Ventas cerradas en el período (+ las que no tienen monto en la hoja histórica)">
               Ventas
             </th>
             <th className="pb-2 pl-2 text-right font-medium" title="Clientes distintos que compraron">
@@ -36,7 +36,7 @@ export function TablaPorComercial({ filas }: { filas: FilaComercialResumen[] }) 
             <th className="pb-2 pl-2 text-right font-medium" title="Oportunidades abiertas hoy">
               Abiertas
             </th>
-            <th className="pb-2 pl-2 text-right font-medium" title="Cotizaciones enviadas en el período">
+            <th className="pb-2 pl-2 text-right font-medium" title="Cotizaciones registradas en el período (y cuántas de ellas se marcaron como enviadas)">
               Cotiz.
             </th>
             <th className="pb-2 pl-2 font-medium" title="Vendido ÷ (meta mensual × meses del período)">
@@ -65,10 +65,20 @@ export function TablaPorComercial({ filas }: { filas: FilaComercialResumen[] }) 
                 <td className="py-2 pl-2 text-right font-semibold tabular-nums text-foreground">
                   {Math.round(c.ventas_usd).toLocaleString("es-PE")}
                 </td>
-                <td className="py-2 pl-2 text-right tabular-nums">{c.n_ventas}</td>
+                <td className="py-2 pl-2 text-right tabular-nums">
+                  {c.n_ventas}
+                  {c.ventas_sin_monto > 0 && (
+                    <span className="ml-1 text-muted-foreground" title="Ventas del período sin monto en la hoja histórica: son ventas reales pero no suman dinero">
+                      +{c.ventas_sin_monto} s/monto
+                    </span>
+                  )}
+                </td>
                 <td className="py-2 pl-2 text-right tabular-nums">{c.clientes}</td>
                 <td className="py-2 pl-2 text-right tabular-nums">{c.op_abiertas}</td>
-                <td className="py-2 pl-2 text-right tabular-nums">{c.cot_enviadas}</td>
+                <td className="py-2 pl-2 text-right tabular-nums">
+                  {c.cot_creadas}
+                  {c.cot_creadas > 0 && <span className="ml-1 text-muted-foreground">({c.cot_enviadas} env.)</span>}
+                </td>
                 <td className="py-2 pl-2">
                   {pctMeta === null ? (
                     <span className="text-muted-foreground">—</span>

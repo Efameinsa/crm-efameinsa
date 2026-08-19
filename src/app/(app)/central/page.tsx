@@ -5,6 +5,7 @@ import { AsignarLeadDialog } from "@/components/crm/asignar-lead-dialog";
 import { DescartarLeadBoton } from "@/components/crm/descartar-lead-boton";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { CargaDerivacion } from "@/components/crm/carga-derivacion";
+import { CargaCotizaciones } from "@/components/crm/carga-cotizaciones";
 
 const ICONO_CANAL: Record<string, LucideIcon> = {
   whatsapp: MessageCircle,
@@ -104,6 +105,7 @@ export default async function CentralPage() {
       )}
     </SeccionPanel>
     <CargaDerivacion />
+    <CargaCotizaciones />
     </div>
   );
 }

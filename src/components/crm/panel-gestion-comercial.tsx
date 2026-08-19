@@ -77,7 +77,11 @@ export async function PanelGestionComercial({
             <div className="grid grid-cols-2 gap-3">
               <Kpi etiqueta="Ventas cerradas" valor={k.n_ventas} sub={`ticket promedio ${usd(k.ticket_promedio_usd)}`} />
               <Kpi etiqueta="Clientes que compraron" valor={k.clientes_con_venta} sub={`${k.clientes_nuevos} nuevos · ${k.clientes_recurrentes} recurrentes`} />
-              <Kpi etiqueta="Cotizaciones enviadas" valor={k.cot_enviadas} sub={yo ? `${usd(yo.cotizado_usd)} cotizados` : "en el período"} />
+              <Kpi
+                etiqueta="Cotizaciones registradas"
+                valor={k.cot_creadas}
+                sub={`${k.cot_enviadas} marcada${k.cot_enviadas === 1 ? "" : "s"} enviada${k.cot_enviadas === 1 ? "" : "s"}${yo && yo.cotizado_usd > 0 ? ` · ${usd(yo.cotizado_usd)} cotizados` : ""}`}
+              />
               <Kpi etiqueta="Pipeline propio" valor={Math.round(k.pipeline_usd)} prefijo="US$ " sub={`${k.n_abiertas} oportunidades abiertas hoy`} />
             </div>
           </div>

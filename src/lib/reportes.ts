@@ -25,6 +25,7 @@ export interface KpisGerencia {
   leads_publicidad: number;
   leads_sin_asignar: number;
   cot_por_aprobar: number;
+  cot_creadas: number;
   cot_enviadas: number;
   clientes_con_venta: number;
   clientes_nuevos: number;
@@ -58,8 +59,13 @@ export interface FilaComercialResumen {
   op_ganadas: number;
   op_rechazadas: number;
   pipeline_usd: number;
+  cot_creadas: number;
   cot_enviadas: number;
   cotizado_usd: number;
+  // Ventas del período sin fila en `ventas` (la hoja histórica no traía
+  // monto): cuentan como venta real pero no suman dinero — se muestran para
+  // que "0 vendido" no se lea como "0 ventas" (caso C8, reunión 19-08).
+  ventas_sin_monto: number;
 }
 
 export interface ViaAdquisicion {
