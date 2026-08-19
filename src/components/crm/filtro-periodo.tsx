@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CalendarDays, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ETIQUETA_PRESET, periodoPreset, type PresetPeriodo } from "@/lib/periodo";
+import { SelectorFecha } from "@/components/crm/selector-fecha";
 import { cn } from "@/lib/utils";
 
 // Un solo filtro para todos los paneles de gerencia. Cambia los searchParams
@@ -106,26 +107,11 @@ export function FiltroPeriodo({
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CalendarDays className="size-3.5" />
-            <input
-              type="date"
-              value={d}
-              max={h}
-              onChange={(e) => aplicarRango(e.target.value, h)}
-              className="h-8 cursor-pointer rounded-md border border-input bg-background px-2 text-xs text-foreground"
-              aria-label="Desde"
-            />
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <SelectorFecha valor={d} onCambiar={(f) => f && aplicarRango(f, h)} max={h} permitirQuitar={false} compacto etiquetaVacia="Desde" />
             <span>a</span>
-            <input
-              type="date"
-              value={h}
-              min={d}
-              onChange={(e) => aplicarRango(d, e.target.value)}
-              className="h-8 cursor-pointer rounded-md border border-input bg-background px-2 text-xs text-foreground"
-              aria-label="Hasta"
-            />
-          </label>
+            <SelectorFecha valor={h} onCambiar={(f) => f && aplicarRango(d, f)} min={d} permitirQuitar={false} compacto etiquetaVacia="Hasta" />
+          </span>
 
           {comerciales && (
             <select

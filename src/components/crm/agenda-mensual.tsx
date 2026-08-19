@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { reprogramarAccion } from "@/lib/acciones/oportunidades";
 import { crearTarea, actualizarTarea, eliminarTarea } from "@/lib/acciones/tareas";
 import { RegistroRapido, type ResultadoGestion, type MotivoRechazo } from "@/components/crm/registro-rapido";
+import { SelectorFecha } from "@/components/crm/selector-fecha";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { fechaCalendarioLarga } from "@/lib/fechas";
@@ -452,12 +453,10 @@ export function AgendaMensual({
               <span className="inline-block rounded-full bg-[#eef3f8] px-2.5 py-0.5 text-[11px] font-semibold text-[#2C5F8A]">Tarea personal</span>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="size-3.5" />
-                <input
-                  type="date"
-                  value={tareaAbierta.fecha}
-                  onChange={(e) => e.target.value && moverTarea(tareaAbierta.id, e.target.value)}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
-                  aria-label="Fecha"
+                <SelectorFecha
+                  valor={tareaAbierta.fecha}
+                  onCambiar={(f) => f && moverTarea(tareaAbierta.id, f)}
+                  permitirQuitar={false}
                 />
                 <input
                   type="time"
@@ -552,12 +551,10 @@ export function AgendaMensual({
                 </button>
                 {reprogramando && (
                   <span className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="date"
-                      value={seleccionada.fecha ?? ""}
-                      onChange={(e) => reprogramar(seleccionada.id, e.target.value || null, seleccionada.hora)}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
-                      aria-label="Fecha de la próxima acción"
+                    <SelectorFecha
+                      valor={seleccionada.fecha}
+                      onCambiar={(f) => reprogramar(seleccionada.id, f, seleccionada.hora)}
+                      etiquetaVacia="Elegir fecha"
                     />
                     <input
                       type="time"
