@@ -46,7 +46,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     razonSocial: (o.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
   }));
 
-  const [{ data: hechasData }, { data: ventasData }, { data: histData }, { data: resultados }] = await Promise.all([
+  const [{ data: hechasData }, { data: ventasData }, { data: histData }, { data: resultados }, { data: motivos }] = await Promise.all([
     supabase
       .from("actividades")
       .select("id, tipo, nota, realizada_at, oportunidades!inner(comercial_id, cuentas(razon_social))")
@@ -72,7 +72,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           .order("realizada_at", { ascending: false })
           .limit(80)
       : Promise.resolve({ data: [] as { oportunidad_id: string; tipo: string; nota: string | null; realizada_at: string }[] }),
-    supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre").eq("activo", true).order("id"),
+    supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("id"),
+    supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
   ]);
 
   const hechas: HechaAgenda[] = (hechasData ?? []).map((a) => ({
@@ -110,6 +111,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       ventas={ventas}
       historial={historial}
       resultados={resultados ?? []}
+      motivos={motivos ?? []}
     />
   );
 }

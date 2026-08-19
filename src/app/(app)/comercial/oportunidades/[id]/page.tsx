@@ -41,7 +41,7 @@ export default async function OportunidadDetallePage({
         .select("id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia")
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),
-      supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre").eq("activo", true).order("id"),
+      supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("id"),
     ]);
 
   if (!oportunidad) notFound();
@@ -142,7 +142,7 @@ export default async function OportunidadDetallePage({
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <SeccionPanel titulo="Registrar gestión">
-            <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} />
+            <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} motivos={motivos ?? []} />
           </SeccionPanel>
 
           {cuenta?.id && (

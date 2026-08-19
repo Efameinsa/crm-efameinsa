@@ -7,7 +7,7 @@ import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, use
 import { ChevronLeft, ChevronRight, X, CalendarDays, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { reprogramarAccion } from "@/lib/acciones/oportunidades";
-import { RegistroRapido, type ResultadoGestion } from "@/components/crm/registro-rapido";
+import { RegistroRapido, type ResultadoGestion, type MotivoRechazo } from "@/components/crm/registro-rapido";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { fechaCalendarioLarga } from "@/lib/fechas";
@@ -65,7 +65,7 @@ function diasDelMes(mes: string): { iso: string; dia: number; otroMes: boolean }
 }
 
 export function AgendaMensual({
-  mes, hoy, acciones: inicialAcciones, hechas, ventas, historial, resultados,
+  mes, hoy, acciones: inicialAcciones, hechas, ventas, historial, resultados, motivos = [],
 }: {
   mes: string;
   hoy: string;
@@ -74,6 +74,7 @@ export function AgendaMensual({
   ventas: VentaAgenda[];
   historial: Record<string, HistItem[]>;
   resultados: ResultadoGestion[];
+  motivos?: MotivoRechazo[];
 }) {
   const router = useRouter();
   const [acciones, setAcciones] = useState(inicialAcciones);
@@ -83,6 +84,7 @@ export function AgendaMensual({
   }, [inicialAcciones]);
   const [seleccion, setSeleccion] = useState<string | null>(null); // id de oportunidad
   const [listaPanel, setListaPanel] = useState<"sin_fecha" | "vencidas" | null>(null);
+  const [reprogramando, setReprogramando] = useState(false);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -100,7 +102,7 @@ export function AgendaMensual({
     return m;
   }, [acciones, hechas, ventas]);
 
-  const cerrar = useCallback(() => { setSeleccion(null); setListaPanel(null); }, []);
+  const cerrar = useCallback(() => { setSeleccion(null); setListaPanel(null); setReprogramando(false); }, []);
   useEffect(() => {
     const fn = (e: KeyboardEvent) => { if (e.key === "Escape") cerrar(); };
     document.addEventListener("keydown", fn);
@@ -280,30 +282,48 @@ export function AgendaMensual({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3">
-                <Clock className="size-4 text-muted-foreground" />
-                <input
-                  type="date"
-                  value={seleccionada.fecha ?? ""}
-                  onChange={(e) => reprogramar(seleccionada.id, e.target.value || null, seleccionada.hora)}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
-                  aria-label="Fecha de la próxima acción"
-                />
-                <input
-                  type="time"
-                  value={seleccionada.hora ?? ""}
-                  onChange={(e) => reprogramar(seleccionada.id, seleccionada.fecha, e.target.value || null)}
-                  disabled={!seleccionada.fecha}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground disabled:opacity-50"
-                  aria-label="Hora"
-                />
-                <span className="text-[11px] text-muted-foreground">sin hora = todo el día</span>
+              {/* Una sola fecha visible: la del "¿qué sigue?" del registro. Esta
+                  línea solo INFORMA lo programado; "Reprogramar" (o arrastrar en
+                  el calendario) es para mover sin registrar gestión. */}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="size-3.5" />
+                {seleccionada.fecha ? (
+                  <span>
+                    Programada: <b className="text-foreground">{fechaCalendarioLarga(seleccionada.fecha)}</b>
+                    {seleccionada.hora ? <b className="text-foreground">, {seleccionada.hora}</b> : " (todo el día)"}
+                  </span>
+                ) : (
+                  <span>Sin fecha programada</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setReprogramando((v) => !v)}
+                  className="cursor-pointer font-semibold text-primary hover:underline"
+                >
+                  {reprogramando ? "Listo" : "Reprogramar"}
+                </button>
+                {reprogramando && (
+                  <span className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="date"
+                      value={seleccionada.fecha ?? ""}
+                      onChange={(e) => reprogramar(seleccionada.id, e.target.value || null, seleccionada.hora)}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+                      aria-label="Fecha de la próxima acción"
+                    />
+                    <input
+                      type="time"
+                      value={seleccionada.hora ?? ""}
+                      onChange={(e) => reprogramar(seleccionada.id, seleccionada.fecha, e.target.value || null)}
+                      disabled={!seleccionada.fecha}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground disabled:opacity-50"
+                      aria-label="Hora"
+                    />
+                  </span>
+                )}
               </div>
 
-              <div>
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Registrar gestión</p>
-                <RegistroRapido oportunidadId={seleccionada.id} resultados={resultados} />
-              </div>
+              <RegistroRapido oportunidadId={seleccionada.id} resultados={resultados} motivos={motivos} />
 
               {(historial[seleccionada.id] ?? []).length > 0 && (
                 <div>
