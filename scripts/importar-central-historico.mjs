@@ -53,15 +53,19 @@ const excelFecha = (serial) => {
 function hora(v) {
   if (v == null) return null;
   if (typeof v === "number" && v > 0 && v < 1) {
-    const min = Math.round(v * 24 * 60);
+    const min = Math.round(v * 24 * 60) % 1440; // 0.99999 redondeaba a 24:00
     return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
   }
   const m = String(v).trim().toLowerCase().match(/^(\d{1,2})[:.](\d{2})\s*(am|pm|a\.m\.|p\.m\.)?/);
   if (!m) return null;
   let h = Number(m[1]);
+  const min = Number(m[2]);
   if (m[3]?.startsWith("p") && h < 12) h += 12;
   if (m[3]?.startsWith("a") && h === 12) h = 0;
-  return `${String(h).padStart(2, "0")}:${m[2]}`;
+  // Celdas sucias tipo "4.63" (decimal, no hora) producían "04:63" y
+  // reventaban el timestamptz — mejor sin hora que con hora inválida.
+  if (h > 23 || min > 59) return null;
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 const codigoPro = (s) => {
   const m = String(s ?? "").toUpperCase().replace(/O(?=\d)/g, "0").match(/PR?0?O?\s*-?\s*(\d{2,6})/);
