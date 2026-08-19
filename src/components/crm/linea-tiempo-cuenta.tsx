@@ -85,7 +85,7 @@ export interface EventoVenta {
 }
 export type EventoTimeline = EventoActividad | EventoCotizacion | EventoVenta;
 
-function EventoFila({ evento }: { evento: EventoTimeline }) {
+function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; oportunidadActualId?: string }) {
   const Icono =
     evento.tipo === "actividad"
       ? (ICONO_ACTIVIDAD[evento.tipoActividad] ?? MoreHorizontal)
@@ -150,12 +150,14 @@ function EventoFila({ evento }: { evento: EventoTimeline }) {
             ))}
           </p>
         )}
-        <Link
-          href={`/comercial/oportunidades/${evento.oportunidadId}`}
-          className="mt-0.5 inline-block text-xs text-primary hover:underline"
-        >
-          Ver oportunidad
-        </Link>
+        {evento.oportunidadId !== oportunidadActualId && (
+          <Link
+            href={`/comercial/oportunidades/${evento.oportunidadId}`}
+            className="mt-0.5 inline-block text-xs text-primary hover:underline"
+          >
+            Ver oportunidad
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -164,7 +166,7 @@ function EventoFila({ evento }: { evento: EventoTimeline }) {
 // Renderiza la lista que le pasen, sin paginar ni filtrar — eso lo maneja
 // HistorialCuenta (dueño del estado de orden/filtro/expansión compartido
 // entre esta vista y la de tabla).
-export function LineaTiempoCuenta({ eventos }: { eventos: EventoTimeline[] }) {
+export function LineaTiempoCuenta({ eventos, oportunidadActualId }: { eventos: EventoTimeline[]; oportunidadActualId?: string }) {
   const reducido = useReducedMotion();
 
   return (
@@ -180,7 +182,7 @@ export function LineaTiempoCuenta({ eventos }: { eventos: EventoTimeline[] }) {
           {i < eventos.length - 1 && (
             <span className="absolute left-[15px] top-8 h-[calc(100%-4px)] w-px bg-border" aria-hidden />
           )}
-          <EventoFila evento={evento} />
+          <EventoFila evento={evento} oportunidadActualId={oportunidadActualId} />
         </motion.div>
       ))}
     </div>

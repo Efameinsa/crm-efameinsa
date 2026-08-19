@@ -35,7 +35,11 @@ function textoBuscable(evento: EventoTimeline): string {
 // cartera reasignada llega con la pregunta del Excel que usaban antes —
 // "cuéntame la historia de este cliente" — y eso lo responde mejor una
 // tabla densa con la nota completa que una timeline con aire entre eventos.
-export function HistorialCuenta({ eventos }: { eventos: EventoTimeline[] }) {
+// oportunidadActualId: cuando el historial se muestra DENTRO del detalle de
+// una oportunidad, las filas de esa misma oportunidad no navegan (ir a la
+// página en la que ya estás parecía "un clic que no hace nada" — reporte de
+// Darwin 19-08); las de otras oportunidades del cliente sí.
+export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: EventoTimeline[]; oportunidadActualId?: string }) {
   const [vista, setVista] = useState<"tabla" | "timeline">("tabla");
   const [orden, setOrden] = useState<"reciente" | "antiguo">("reciente");
   const [busqueda, setBusqueda] = useState("");
@@ -111,9 +115,9 @@ export function HistorialCuenta({ eventos }: { eventos: EventoTimeline[] }) {
       {filtrados.length === 0 ? (
         <p className="text-sm text-muted-foreground">Sin resultados para &ldquo;{busqueda}&rdquo;.</p>
       ) : vista === "tabla" ? (
-        <TablaHistorial eventos={visibles} />
+        <TablaHistorial eventos={visibles} oportunidadActualId={oportunidadActualId} />
       ) : (
-        <LineaTiempoCuenta eventos={visibles} />
+        <LineaTiempoCuenta oportunidadActualId={oportunidadActualId} eventos={visibles} />
       )}
 
       {restantes > 0 && (
@@ -129,7 +133,7 @@ export function HistorialCuenta({ eventos }: { eventos: EventoTimeline[] }) {
   );
 }
 
-function TablaHistorial({ eventos }: { eventos: EventoTimeline[] }) {
+function TablaHistorial({ eventos, oportunidadActualId }: { eventos: EventoTimeline[]; oportunidadActualId?: string }) {
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -143,7 +147,7 @@ function TablaHistorial({ eventos }: { eventos: EventoTimeline[] }) {
         </TableHeader>
         <TableBody>
           {eventos.map((evento) => (
-            <FilaHistorial key={`${evento.tipo}-${evento.id}`} evento={evento} />
+            <FilaHistorial key={`${evento.tipo}-${evento.id}`} evento={evento} oportunidadActualId={oportunidadActualId} />
           ))}
         </TableBody>
       </Table>
@@ -151,18 +155,19 @@ function TablaHistorial({ eventos }: { eventos: EventoTimeline[] }) {
   );
 }
 
-function FilaHistorial({ evento }: { evento: EventoTimeline }) {
+function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline; oportunidadActualId?: string }) {
   const router = useRouter();
+  const navegable = evento.oportunidadId !== oportunidadActualId;
 
   return (
     <TableRow
-      role="link"
-      tabIndex={0}
-      onClick={() => router.push(`/comercial/oportunidades/${evento.oportunidadId}`)}
-      onKeyDown={(e) => {
+      role={navegable ? "link" : undefined}
+      tabIndex={navegable ? 0 : undefined}
+      onClick={navegable ? () => router.push(`/comercial/oportunidades/${evento.oportunidadId}`) : undefined}
+      onKeyDown={navegable ? (e) => {
         if (e.key === "Enter") router.push(`/comercial/oportunidades/${evento.oportunidadId}`);
-      }}
-      className="cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+      } : undefined}
+      className={navegable ? "cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none" : undefined}
     >
       <TableCell className="whitespace-nowrap align-top tabular-nums text-muted-foreground">
         {new Date(evento.fecha).toLocaleDateString("es-PE")}

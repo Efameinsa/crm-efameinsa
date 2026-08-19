@@ -154,7 +154,7 @@ export default async function OportunidadDetallePage({
                 </Link>
               }
             >
-              <HistorialCuenta eventos={eventos} />
+              <HistorialCuenta eventos={eventos} oportunidadActualId={oportunidad.id} />
             </SeccionPanel>
           )}
 
