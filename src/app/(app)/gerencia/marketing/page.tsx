@@ -33,28 +33,18 @@ export default async function MarketingPage({
     sp.plataforma === "google" || sp.plataforma === "meta" ? sp.plataforma : undefined;
 
   const supabase = await createClient();
-  const [resumen, { data: leadsPeriodo }] = await Promise.all([
+  // Leads por origen: agregado en Postgres (leads_por_origen, migración 0025)
+  // — con ~39k leads históricos de Central, traer filas al servidor Next
+  // truncaba en 1.000 sin avisar.
+  const [resumen, { data: porOrigenData }] = await Promise.all([
     cargarResumenMarketing(supabase, { desde, hasta, plataforma }),
-    supabase
-      .from("leads")
-      .select("fuente, canal, estado")
-      .gte("recibido_at", `${desde}T00:00:00`)
-      .lte("recibido_at", `${hasta}T23:59:59`),
+    supabase.rpc("leads_por_origen", { p_desde: desde, p_hasta: hasta }),
   ]);
   const embudo = await cargarEmbudoReal(supabase, resumen, { desde, hasta });
 
-  // Leads del período por origen (lo que declara el propio lead, no la
-  // plataforma): sirve para ver cuánto del flujo entrante es publicidad.
-  const porOrigen = new Map<string, { n: number; asignados: number; descartados: number }>();
-  for (const l of leadsPeriodo ?? []) {
-    const clave = l.fuente === "google_ads" || l.fuente === "meta_ads" ? l.fuente : `contacto_${l.canal}`;
-    const a = porOrigen.get(clave) ?? { n: 0, asignados: 0, descartados: 0 };
-    a.n++;
-    if (l.estado === "asignado") a.asignados++;
-    if (l.estado === "descartado") a.descartados++;
-    porOrigen.set(clave, a);
-  }
-  const origenes = Array.from(porOrigen.entries()).sort((a, b) => b[1].n - a[1].n);
+  const origenes = ((porOrigenData ?? []) as { clave: string; n: number; asignados: number; descartados: number }[]).map(
+    (o) => [o.clave, o] as const,
+  );
   const totalLeads = origenes.reduce((s, [, v]) => s + v.n, 0);
 
   return (
