@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { esquemaLeadExterno } from "@/lib/validaciones/lead-externo";
 import { CANAL_LABEL } from "@/lib/canal-contacto";
 import { notificarLeadEntrante } from "@/lib/notificaciones";
+import { avisarLeadNuevoN8n } from "@/lib/avisos-n8n";
 
 // Ingesta automática de leads: formularios de Lead Ads (Meta/Google) vía
 // Make.com, y a futuro el formulario de la web. `recibido_por` queda null
@@ -61,6 +62,16 @@ export async function POST(request: NextRequest) {
       ? `${d.nombre_contacto} · ${canalLegible} · ${d.razon_social}`
       : `${d.nombre_contacto} · ${canalLegible}`;
     await notificarLeadEntrante({ titulo: "Nuevo contacto automático", cuerpo: cuerpoNotif });
+    await avisarLeadNuevoN8n({
+      titulo: "Nuevo contacto automático",
+      codigo: lead.codigo,
+      nombre: d.nombre_contacto,
+      telefono: d.telefono || null,
+      email: d.email || null,
+      canal: d.canal,
+      razonSocial: d.razon_social || null,
+      mensaje: d.mensaje || null,
+    });
   }
 
   return NextResponse.json({ ok: true, id: lead.id, codigo: lead.codigo });

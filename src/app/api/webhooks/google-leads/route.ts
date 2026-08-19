@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CANAL_LABEL } from "@/lib/canal-contacto";
 import { notificarLeadEntrante } from "@/lib/notificaciones";
+import { avisarLeadNuevoN8n } from "@/lib/avisos-n8n";
 
 // Webhook nativo de Google Ads Lead Forms: Google hace POST directo a esta
 // URL en el instante en que el cliente envía el formulario — sin
@@ -177,6 +178,17 @@ export async function POST(request: NextRequest) {
     .filter(Boolean)
     .join(" · ");
   await notificarLeadEntrante({ titulo: "Nuevo contacto de Google Ads", cuerpo });
+  await avisarLeadNuevoN8n({
+    titulo: "Nuevo lead de Google Ads",
+    codigo: creado.codigo,
+    nombre: nombre || "Sin nombre",
+    telefono,
+    email,
+    canal: "formulario_web",
+    razonSocial,
+    campania: nombreCampania,
+    mensaje: partesMensaje.join(" · ") || null,
+  });
 
   console.log(`google-leads: lead ${creado.codigo} creado desde Google Ads`);
   return NextResponse.json({});

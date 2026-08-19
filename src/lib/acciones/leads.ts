@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { normalizarTelefono } from "@/lib/telefono";
 import { notificar } from "@/lib/notificaciones";
+import { avisarLeadNuevoN8n } from "@/lib/avisos-n8n";
 import { esquemaCaptura } from "@/lib/validaciones/lead";
 import { CANAL_LABEL } from "@/lib/canal-contacto";
 
@@ -138,6 +139,16 @@ export async function registrarContacto(
       titulo: "Nuevo contacto en Central",
       cuerpo,
       url: "/gerencia",
+    });
+    await avisarLeadNuevoN8n({
+      titulo: "Nuevo contacto registrado por Central",
+      codigo: lead.codigo,
+      nombre: d.nombre_contacto,
+      telefono: d.telefono || null,
+      email: d.email || null,
+      canal: d.canal,
+      razonSocial: d.razon_social || null,
+      mensaje: d.mensaje || null,
     });
   }
 
