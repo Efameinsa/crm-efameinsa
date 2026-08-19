@@ -78,14 +78,28 @@ export async function PanelGestionComercial({
             <div className="grid grid-cols-2 gap-3">
               <Kpi etiqueta="Ventas cerradas" valor={k.n_ventas} sub={`ticket promedio ${usd(k.ticket_promedio_usd)}`} />
               <Kpi etiqueta="Clientes que compraron" valor={k.clientes_con_venta} sub={`${k.clientes_nuevos} nuevos · ${k.clientes_recurrentes} recurrentes`} />
+              {/* "Cotizaciones EN EL CRM": el histórico Excel no trae las hojas
+                  de cotización, así que este número solo mide lo cotizado con
+                  el cotizador. Sin ese apellido se leía como toda la actividad
+                  del año (11 cotizaciones junto a 112 ventas). */}
               <Kpi
-                etiqueta="Cotizaciones registradas"
+                etiqueta="Cotizaciones en el CRM"
                 valor={k.cot_creadas}
                 sub={`${k.cot_enviadas} marcada${k.cot_enviadas === 1 ? "" : "s"} enviada${k.cot_enviadas === 1 ? "" : "s"}${yo && yo.cotizado_usd > 0 ? ` · ${usd(yo.cotizado_usd)} cotizados` : ""}`}
               />
               <Kpi etiqueta="Pipeline propio" valor={Math.round(k.pipeline_usd)} prefijo="US$ " sub={`${k.n_abiertas} oportunidades abiertas hoy`} />
             </div>
           </div>
+
+          {k.cot_historicas_periodo > 0 && (
+            <p className="rounded-lg border border-dashed border-border px-3 py-2 text-[11px] text-muted-foreground">
+              Además de las cotizaciones del CRM, en este período hay{" "}
+              <b className="text-foreground">{k.cot_historicas_periodo}</b> presupuesto
+              {k.cot_historicas_periodo === 1 ? "" : "s"} del histórico Excel. Solo se conocen los que
+              terminaron en venta —las hojas de cotización anteriores al CRM no se cargaron—, así que el
+              total realmente cotizado en esos meses fue mayor. Desde que se cotiza en el CRM, el conteo es exacto.
+            </p>
+          )}
 
           <SeccionPanel titulo="Ventas por mes — últimos 12 meses (Efameinsa vs Open)">
             <GraficoBarras datos={resumen.serie_mensual.map(barraMensualPorSerie)} resaltarUltima />

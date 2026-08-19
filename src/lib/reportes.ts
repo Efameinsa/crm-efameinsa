@@ -27,6 +27,11 @@ export interface KpisGerencia {
   cot_por_aprobar: number;
   cot_creadas: number;
   cot_enviadas: number;
+  // Presupuestos del histórico Excel en el período. Es un PISO, no el total:
+  // solo se conocen los que terminaron en venta (se importaron las ventas,
+  // no las hojas de cotización completas). Existe para que "11 cotizaciones"
+  // no se lea como toda la actividad del año cuando al lado hay 112 ventas.
+  cot_historicas_periodo: number;
   clientes_con_venta: number;
   clientes_nuevos: number;
   clientes_recurrentes: number;
@@ -76,6 +81,7 @@ export interface FilaComercialResumen {
   cot_creadas: number;
   cot_enviadas: number;
   cotizado_usd: number;
+  cot_historicas: number; // presupuestos del histórico Excel (solo los que vendieron)
   // Ventas del período sin fila en `ventas` (la hoja histórica no traía
   // monto): cuentan como venta real pero no suman dinero — se muestran para
   // que "0 vendido" no se lea como "0 ventas" (caso C8, reunión 19-08).

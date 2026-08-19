@@ -281,6 +281,12 @@ export default async function GerenciaPage({
             Leads de publicidad registrados desde el {cal.primer_lead_publicidad ? fechaCalendarioLarga(cal.primer_lead_publicidad) : "—"}: la
             atribución de ventas a campañas solo es posible desde esa fecha.
           </li>
+          <li>
+            La columna <b className="text-foreground">Cotiz.</b> cuenta lo cotizado <b className="text-foreground">en el CRM</b>. Del
+            histórico solo se conocen los presupuestos que terminaron en venta ({k.cot_historicas_periodo} en este período), porque se
+            importaron las ventas y no las hojas de cotización: comparar cotizaciones contra ventas solo es válido desde que se cotiza
+            en el CRM.
+          </li>
         </ul>
       </div>
     </div>

@@ -36,7 +36,10 @@ export function TablaPorComercial({ filas }: { filas: FilaComercialResumen[] }) 
             <th className="pb-2 pl-2 text-right font-medium" title="Oportunidades abiertas hoy">
               Abiertas
             </th>
-            <th className="pb-2 pl-2 text-right font-medium" title="Cotizaciones registradas en el período (y cuántas de ellas se marcaron como enviadas)">
+            <th
+              className="pb-2 pl-2 text-right font-medium"
+              title="Cotizaciones hechas en el CRM en el período (y cuántas se marcaron enviadas). Abajo, en gris, los presupuestos del histórico Excel: solo se conocen los que terminaron en venta, así que en esos meses se cotizó más de lo que dice."
+            >
               Cotiz.
             </th>
             <th className="pb-2 pl-2 font-medium" title="Vendido ÷ (meta mensual × meses del período)">
@@ -78,6 +81,11 @@ export function TablaPorComercial({ filas }: { filas: FilaComercialResumen[] }) 
                 <td className="py-2 pl-2 text-right tabular-nums">
                   {c.cot_creadas}
                   {c.cot_creadas > 0 && <span className="ml-1 text-muted-foreground">({c.cot_enviadas} env.)</span>}
+                  {c.cot_historicas > 0 && (
+                    <span className="block text-[10px] text-muted-foreground" title="Presupuestos del histórico Excel que terminaron en venta">
+                      +{c.cot_historicas} histórico
+                    </span>
+                  )}
                 </td>
                 <td className="py-2 pl-2">
                   {pctMeta === null ? (
