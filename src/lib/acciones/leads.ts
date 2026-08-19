@@ -231,3 +231,91 @@ export async function marcarDuplicado(
   revalidatePath("/central");
   return { error: null };
 }
+
+export interface CoincidenciaCartera {
+  cuentaId: string;
+  razonSocial: string;
+  comercialId: string | null;
+  comercialNombre: string | null;
+  codigoComercial: string | null;
+  ultimaVentaAt: string | null;
+  motivo: "documento" | "telefono" | "correo" | "nombre";
+}
+
+// Pre-filtro de la asignación (pedido de Carlos 19-08): antes de derivar,
+// Central ve a quién pertenece —o posiblemente pertenezca— el contacto,
+// buscando en TODO el histórico cargado por RUC/DNI, teléfono, correo y
+// nombre (tokens contra razón social y contra los contactos de cada cuenta).
+// El orden de los motivos ES el orden de confianza: documento > teléfono >
+// correo > nombre (puede haber muchas "María Leguía": el nombre solo
+// advierte, no decide).
+export async function buscarCoincidencias(datos: {
+  nombre?: string | null;
+  razonSocial?: string | null;
+  telefono?: string | null;
+  numDoc?: string | null;
+  email?: string | null;
+}): Promise<CoincidenciaCartera[]> {
+  const supabase = await createClient();
+  const CAMPOS = "id, razon_social, ultima_venta_at, comercial_id, perfiles(nombre, codigo_comercial)";
+  interface CuentaFila {
+    id: string;
+    razon_social: string;
+    ultima_venta_at: string | null;
+    comercial_id: string | null;
+    perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  }
+  const out = new Map<string, CoincidenciaCartera>();
+  const agregar = (filas: (CuentaFila | null)[] | null | undefined, motivo: CoincidenciaCartera["motivo"]) => {
+    for (const c of filas ?? []) {
+      if (!c || out.has(c.id)) continue;
+      const p = c.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
+      out.set(c.id, {
+        cuentaId: c.id,
+        razonSocial: c.razon_social,
+        comercialId: c.comercial_id,
+        comercialNombre: p?.nombre ?? null,
+        codigoComercial: p?.codigo_comercial ?? null,
+        ultimaVentaAt: c.ultima_venta_at,
+        motivo,
+      });
+    }
+  };
+
+  const numDoc = datos.numDoc?.replace(/\D/g, "") || null;
+  if (numDoc && numDoc.length >= 8) {
+    const { data } = await supabase.from("cuentas").select(CAMPOS).eq("num_doc", numDoc).limit(3);
+    agregar(data as unknown as CuentaFila[], "documento");
+  }
+  const tel = normalizarTelefono(datos.telefono ?? undefined);
+  if (tel) {
+    const { data } = await supabase.from("contactos").select(`cuentas(${CAMPOS})`).eq("telefono_normalizado", tel).limit(4);
+    agregar((data ?? []).map((x) => x.cuentas as unknown as CuentaFila), "telefono");
+  }
+  const email = datos.email?.trim().toLowerCase();
+  if (email && email.includes("@")) {
+    const { data } = await supabase.from("contactos").select(`cuentas(${CAMPOS})`).ilike("email", email).limit(4);
+    agregar((data ?? []).map((x) => x.cuentas as unknown as CuentaFila), "correo");
+  }
+  const texto = [datos.nombre, datos.razonSocial].filter(Boolean).join(" ");
+  const tokens = texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/\s+/)
+    .filter((t) => t.length >= 3)
+    .slice(0, 4);
+  if (tokens.length > 0 && out.size < 6) {
+    let q = supabase.from("cuentas").select(CAMPOS);
+    for (const t of tokens) q = q.ilike("razon_social", `%${t}%`);
+    const { data } = await q.limit(5);
+    agregar(data as unknown as CuentaFila[], "nombre");
+    if (out.size < 6) {
+      let q2 = supabase.from("contactos").select(`cuentas(${CAMPOS})`);
+      for (const t of tokens) q2 = q2.ilike("nombre", `%${t}%`);
+      const { data: d2 } = await q2.limit(5);
+      agregar((d2 ?? []).map((x) => x.cuentas as unknown as CuentaFila), "nombre");
+    }
+  }
+  const orden: Record<CoincidenciaCartera["motivo"], number> = { documento: 0, telefono: 1, correo: 2, nombre: 3 };
+  return [...out.values()].sort((a, b) => orden[a.motivo] - orden[b.motivo]).slice(0, 6);
+}

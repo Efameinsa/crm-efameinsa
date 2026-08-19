@@ -36,7 +36,7 @@ export default async function CentralPage() {
   const [{ data: leads }, { data: comerciales }] = await Promise.all([
     supabase
       .from("leads")
-      .select("id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, recibido_at")
+      .select("id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, recibido_at")
       .eq("estado", "pendiente_triaje")
       .order("recibido_at", { ascending: true })
       .limit(50),
@@ -88,8 +88,11 @@ export default async function CentralPage() {
                 <div className="ml-auto flex gap-2">
                   <AsignarLeadDialog
                     leadId={lead.id}
+                    nombre={lead.nombre_contacto}
+                    razonSocial={lead.razon_social}
                     telefono={lead.telefono}
                     numDoc={lead.num_doc}
+                    email={lead.email}
                     comerciales={comerciales ?? []}
                   />
                   <DescartarLeadBoton leadId={lead.id} />

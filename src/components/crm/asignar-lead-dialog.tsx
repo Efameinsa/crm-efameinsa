@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { asignarLead, buscarDuplicado, type ResultadoDuplicado } from "@/lib/acciones/leads";
+import { asignarLead, buscarCoincidencias, type CoincidenciaCartera } from "@/lib/acciones/leads";
+import { fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface Comercial {
   id: string;
@@ -30,28 +32,42 @@ interface Comercial {
 
 interface Props {
   leadId: string;
+  nombre: string | null;
+  razonSocial: string | null;
   telefono: string | null;
   numDoc: string | null;
+  email: string | null;
   comerciales: Comercial[];
 }
 
-export function AsignarLeadDialog({ leadId, telefono, numDoc, comerciales }: Props) {
+const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: boolean }> = {
+  documento: { etiqueta: "Mismo RUC/DNI", fuerte: true },
+  telefono: { etiqueta: "Mismo teléfono", fuerte: true },
+  correo: { etiqueta: "Mismo correo", fuerte: true },
+  nombre: { etiqueta: "Nombre similar", fuerte: false },
+};
+
+// Pre-filtro de derivación (pedido de Carlos 19-08): al abrir el diálogo se
+// busca a quién pertenece —o podría pertenecer— el contacto en TODO el
+// histórico (RUC/DNI, teléfono, correo, nombre). Un match fuerte preselecciona
+// al comercial de esa cartera (regla R3); los de nombre solo advierten:
+// puede haber muchas "María Leguía".
+export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, comerciales }: Props) {
   const [abierto, setAbierto] = useState(false);
-  const [duplicado, setDuplicado] = useState<ResultadoDuplicado | null>(null);
+  const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[] | null>(null);
   const [comercialId, setComercialId] = useState<string>("");
   const [enviando, startTransition] = useTransition();
 
   useEffect(() => {
     if (!abierto) return;
-    buscarDuplicado({ telefono: telefono ?? undefined, numDoc: numDoc ?? undefined }).then((r) => {
-      setDuplicado(r);
-      // Sugerencia automática (R3): si es cliente existente con dueño, preseleccionarlo.
-      if (r.cuenta) {
-        const dueño = comerciales.find((c) => c.nombre === r.cuenta?.comercial_nombre);
-        if (dueño) setComercialId(dueño.id);
-      }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCoincidencias(null);
+    buscarCoincidencias({ nombre, razonSocial, telefono, numDoc, email }).then((r) => {
+      setCoincidencias(r);
+      const fuerte = r.find((c) => MOTIVO[c.motivo].fuerte && c.comercialId);
+      if (fuerte) setComercialId(fuerte.comercialId!);
     });
-  }, [abierto, telefono, numDoc, comerciales]);
+  }, [abierto, nombre, razonSocial, telefono, numDoc, email]);
 
   function confirmar() {
     if (!comercialId) {
@@ -75,19 +91,56 @@ export function AsignarLeadDialog({ leadId, telefono, numDoc, comerciales }: Pro
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Asignar contacto</DialogTitle>
-          <DialogDescription>
-            Elija el comercial que va a atender este contacto.
-          </DialogDescription>
+          <DialogDescription>Elija el comercial que va a atender este contacto.</DialogDescription>
         </DialogHeader>
 
-        {duplicado?.cuenta && (
-          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
-            <p className="font-medium text-primary">
-              Cliente existente: {duplicado.cuenta.razon_social}
+        {coincidencias === null ? (
+          <p className="text-xs text-muted-foreground">Buscando en el histórico (RUC, teléfono, correo y nombre)…</p>
+        ) : coincidencias.length === 0 ? (
+          <p className="rounded-md border border-dashed border-border p-2.5 text-xs text-muted-foreground">
+            Sin coincidencias en el histórico: parece un contacto nuevo.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              Posiblemente pertenece a
             </p>
-            <p className="text-muted-foreground">
-              Cartera de: {duplicado.cuenta.comercial_nombre ?? "sin comercial asignado"}
-            </p>
+            {coincidencias.map((c) => {
+              const m = MOTIVO[c.motivo];
+              const elegible = !!c.comercialId;
+              return (
+                <button
+                  key={c.cuentaId}
+                  type="button"
+                  disabled={!elegible}
+                  onClick={() => elegible && setComercialId(c.comercialId!)}
+                  className={cn(
+                    "w-full rounded-lg border p-2.5 text-left text-xs transition-colors",
+                    elegible ? "cursor-pointer hover:bg-accent" : "cursor-default opacity-80",
+                    comercialId && c.comercialId === comercialId ? "border-primary bg-primary/5" : "border-border",
+                  )}
+                >
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <b className="text-foreground">{c.razonSocial}</b>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        m.fuerte ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : "bg-amber-500/10 text-amber-700",
+                      )}
+                    >
+                      {m.etiqueta}
+                    </span>
+                  </span>
+                  <span className="mt-0.5 block text-muted-foreground">
+                    {c.comercialNombre
+                      ? `Cartera de ${c.comercialNombre}${c.codigoComercial ? ` (${c.codigoComercial})` : ""}`
+                      : "Sin comercial de cartera"}
+                    {c.ultimaVentaAt ? ` · última venta ${fechaLima(c.ultimaVentaAt)}` : " · sin ventas registradas"}
+                    {elegible && " — clic para asignarle a su cartera"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
 
