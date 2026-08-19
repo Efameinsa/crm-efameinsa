@@ -27,6 +27,10 @@ export interface VentaConDetalle {
   monto_total: number;
   moneda: string;
   oportunidad_id: string;
+  // Nro de presupuesto del Excel histórico ("1505-24") cuando la venta no
+  // tiene cotización real en el sistema (migración 0027).
+  referencia_historica: string | null;
+  equipo_historico: string | null;
   cotizaciones: { codigo: string | null; serie: string; cotizacion_items: Item[] } | null;
 }
 
@@ -64,7 +68,7 @@ export async function cargarHistorialCuenta(
           supabase
             .from("ventas")
             .select(
-              "id, fecha_venta, monto_total, moneda, oportunidad_id, cotizacion_id, cotizaciones(codigo, serie, cotizacion_items(cantidad, precio_unitario, productos(marca, modelo, nombre)))",
+              "id, fecha_venta, monto_total, moneda, oportunidad_id, cotizacion_id, referencia_historica, equipo_historico, cotizaciones(codigo, serie, cotizacion_items(cantidad, precio_unitario, productos(marca, modelo, nombre)))",
             )
             .in("oportunidad_id", opIds)
             .order("fecha_venta", { ascending: false }),

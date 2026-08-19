@@ -98,15 +98,25 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
                         {fechaCalendario(v.fecha_venta)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap font-mono text-xs">
-                        {v.cotizaciones?.codigo ?? "—"} · {v.cotizaciones?.serie}
+                        {v.cotizaciones?.codigo ? (
+                          <>{v.cotizaciones.codigo} · {v.cotizaciones.serie}</>
+                        ) : v.referencia_historica ? (
+                          <span title="Nº de presupuesto del registro histórico — el documento vive en el archivo físico/correo de esa época">
+                            {v.referencia_historica} <span className="text-muted-foreground">(histórico)</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground" title="La hoja histórica no registró el número de presupuesto">sin registro</span>
+                        )}
                       </TableCell>
                       <TableCell className="max-w-[360px] whitespace-normal text-xs text-muted-foreground">
-                        {(v.cotizaciones?.cotizacion_items ?? [])
-                          .map(
-                            (it) =>
-                              `${it.cantidad}× ${it.productos?.marca ?? ""} ${it.productos?.modelo ?? ""} — US$ ${it.precio_unitario.toLocaleString("es-PE")} c/u`,
-                          )
-                          .join(" · ")}
+                        {(v.cotizaciones?.cotizacion_items ?? []).length > 0
+                          ? (v.cotizaciones?.cotizacion_items ?? [])
+                              .map(
+                                (it) =>
+                                  `${it.cantidad}× ${it.productos?.marca ?? ""} ${it.productos?.modelo ?? ""} — US$ ${it.precio_unitario.toLocaleString("es-PE")} c/u`,
+                              )
+                              .join(" · ")
+                          : v.equipo_historico ?? "—"}
                       </TableCell>
                       <TableCell
                         className={cnTotal(i === 0)}
