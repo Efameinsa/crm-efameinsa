@@ -5,7 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.5rem;
+  /* Retoque de modernización 19-08 (aprobado por Darwin, "sin salirse de los
+     colores corporativos"): esquinas más generosas y neutros ligeramente más
+     limpios. El granate/carbón de marca no se tocan. */
+  --radius: 0.65rem;
   --font-sans: Arial, "Segoe UI", sans-serif;
 
   /* Identidad Efameinsa — ver CLAUDE.md */
@@ -15,7 +18,7 @@
 
   /* Fondo del área de trabajo (distinto del blanco de tarjetas/popovers):
      gris cálido con sesgo sutil al granate, no un gris neutro genérico. */
-  --app-bg: #f3f1f0;
+  --app-bg: #f5f3f2;
 
   --background: #ffffff;
   --foreground: var(--efameinsa-carbon);
@@ -25,16 +28,16 @@
   --popover-foreground: var(--efameinsa-carbon);
   --primary: var(--efameinsa-granate);
   --primary-foreground: #ffffff;
-  --secondary: #f4f2f2;
+  --secondary: #f5f3f3;
   --secondary-foreground: var(--efameinsa-carbon);
-  --muted: #f4f2f2;
+  --muted: #f5f3f3;
   --muted-foreground: var(--efameinsa-gris);
-  --accent: #f4f2f2;
+  --accent: #f3eeed;
   --accent-foreground: var(--efameinsa-carbon);
   --destructive: #b3261e;
   --destructive-foreground: #ffffff;
-  --border: #e5e2e2;
-  --input: #e5e2e2;
+  --border: #e8e4e3;
+  --input: #e2dedd;
   --ring: var(--efameinsa-granate);
   --chart-1: var(--efameinsa-granate);
   --chart-2: var(--efameinsa-carbon);

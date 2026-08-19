@@ -9,6 +9,7 @@ import { Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SelectorFecha } from "@/components/crm/selector-fecha";
 import { cn } from "@/lib/utils";
 
 const TIPOS = [
@@ -251,34 +252,24 @@ export function RegistroRapido({
                 </div>
               ) : (
                 <div className="space-y-2">
+                  <Input
+                    placeholder="ej. Llamar para confirmar visita"
+                    value={proximaAccion}
+                    onChange={(e) => {
+                      setProximaAccion(e.target.value);
+                      setAccionEditada(true);
+                    }}
+                    aria-label="Próxima acción"
+                  />
                   <div className="flex flex-wrap items-center gap-2">
-                    <Input
-                      placeholder="ej. Llamar para confirmar visita"
-                      value={proximaAccion}
-                      onChange={(e) => {
-                        setProximaAccion(e.target.value);
+                    <SelectorFecha
+                      valor={proximaAccionAt || null}
+                      onCambiar={(f) => {
+                        setProximaAccionAt(f ?? "");
                         setAccionEditada(true);
                       }}
-                      className="min-w-[180px] flex-1"
-                      aria-label="Próxima acción"
+                      etiquetaVacia="¿Para cuándo?"
                     />
-                    <Input
-                      type="date"
-                      value={proximaAccionAt}
-                      onChange={(e) => {
-                        setProximaAccionAt(e.target.value);
-                        setAccionEditada(true);
-                      }}
-                      className="w-40"
-                      aria-label="Fecha de la próxima acción"
-                    />
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {([["Hoy", 0], ["Mañana", 1], ["Próx. semana", 7]] as const).map(([et, d]) => (
-                      <Button key={et} type="button" size="sm" variant="outline" onClick={() => { setProximaAccionAt(fechaISO(d)); setAccionEditada(true); }}>
-                        {et}
-                      </Button>
-                    ))}
                     {resultado?.accion_sugerida && !accionEditada && (
                       <span className="text-[11px] text-muted-foreground">sugerida por &ldquo;{resultado.nombre}&rdquo; — edítela si quiere</span>
                     )}
