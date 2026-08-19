@@ -28,6 +28,10 @@ interface Comercial {
   id: string;
   nombre: string;
   codigo_comercial: string | null;
+  // Código con el que operaba antes (Brenda: C1 hoy, C8 hasta junio 2026).
+  // Central sigue teniendo papeles viejos con el código anterior — verlo aquí
+  // evita la duda del ing. Carlos: "me sale C8, pero C8 ya no hay".
+  codigo_anterior?: string | null;
 }
 
 interface Props {
@@ -153,7 +157,9 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
             <SelectContent>
               {comerciales.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.nombre} {c.codigo_comercial ? `(${c.codigo_comercial})` : ""}
+                  {c.nombre} {c.codigo_comercial ? `(${c.codigo_comercial}` : ""}
+                  {c.codigo_comercial && c.codigo_anterior ? ` · antes ${c.codigo_anterior}` : ""}
+                  {c.codigo_comercial ? ")" : ""}
                 </SelectItem>
               ))}
             </SelectContent>

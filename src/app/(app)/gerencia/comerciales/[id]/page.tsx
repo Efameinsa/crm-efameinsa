@@ -16,12 +16,25 @@ export default async function ComercialGerenciaPage({
 
   const { data: perfil } = await supabase
     .from("perfiles")
-    .select("nombre")
+    .select("nombre, codigo_comercial, codigo_anterior")
     .eq("id", id)
     .eq("rol", "comercial")
     .maybeSingle();
 
   if (!perfil) notFound();
 
-  return <PanelGestionComercial comercialId={id} nombre={perfil.nombre} searchParams={sp} esGerencia />;
+  // "Brenda Taboada (C1 · antes C8)": su historial de ventas viene del código
+  // anterior, así que el encabezado lo dice en vez de dejar la duda.
+  const codigo = perfil.codigo_comercial
+    ? `${perfil.codigo_comercial}${perfil.codigo_anterior ? ` · antes ${perfil.codigo_anterior}` : ""}`
+    : null;
+
+  return (
+    <PanelGestionComercial
+      comercialId={id}
+      nombre={codigo ? `${perfil.nombre} (${codigo})` : perfil.nombre}
+      searchParams={sp}
+      esGerencia
+    />
+  );
 }

@@ -43,7 +43,7 @@ export default async function CentralPage() {
       .limit(50),
     supabase
       .from("perfiles")
-      .select("id, nombre, codigo_comercial")
+      .select("id, nombre, codigo_comercial, codigo_anterior")
       .eq("rol", "comercial")
       .eq("activo", true)
       .order("nombre"),
