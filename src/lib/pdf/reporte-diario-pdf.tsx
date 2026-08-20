@@ -205,7 +205,7 @@ export function ReporteDiarioPdf({
             seguimientos.map((s, i) => (
               <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
                 <Text style={{ width: "7%" }}>{s.hora ?? "—"}</Text>
-                <Text style={{ width: "27%" }}>{corta(s.cliente, 34)}</Text>
+                <Text style={{ width: "27%", paddingRight: 6 }}>{corta(s.cliente, 34)}</Text>
                 <Text style={{ width: "10%" }}>{TIPO[s.tipo] ?? s.tipo}</Text>
                 <Text style={{ width: "17%", color: s.efectivo ? CARBON : GRIS }}>
                   {s.resultado ?? (s.efectivo ? "Contactado" : "No contestó")}
@@ -232,7 +232,10 @@ export function ReporteDiarioPdf({
             cotizaciones.map((c, i) => (
               <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
                 <Text style={{ width: "14%" }}>{c.codigo ?? "—"}</Text>
-                <Text style={{ width: "46%" }}>{corta(c.cliente, 56)}</Text>
+                {/* paddingRight: sin él, un nombre largo llega hasta el borde
+                    de su celda y queda pegado a "Estado" — se leía
+                    "…LAVANDERIAS CLEANEnviado". */}
+                <Text style={{ width: "46%", paddingRight: 6 }}>{corta(c.cliente, 52)}</Text>
                 <Text style={{ width: "20%", color: GRIS }}>
                   {c.aprobacion === "pendiente_gerencia" ? "Por aprobar" : c.enviada ? "Enviado" : "Borrador"}
                 </Text>
@@ -248,7 +251,7 @@ export function ReporteDiarioPdf({
           ) : (
             ventas.map((v, i) => (
               <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
-                <Text style={{ width: "75%" }}>{corta(v.cliente, 80)}</Text>
+                <Text style={{ width: "75%", paddingRight: 6 }}>{corta(v.cliente, 78)}</Text>
                 <Text style={{ width: "25%", textAlign: "right", fontFamily: "Helvetica-Bold", color: VERDE }}>
                   {dinero(v.monto, v.moneda)}
                 </Text>
@@ -265,7 +268,7 @@ export function ReporteDiarioPdf({
               <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
                 <Text style={{ width: "12%" }}>{l.hora ?? "—"}</Text>
                 <Text style={{ width: "16%", color: GRIS }}>{l.codigo ?? "—"}</Text>
-                <Text style={{ width: "54%" }}>{corta(l.nombre, 60)}</Text>
+                <Text style={{ width: "54%", paddingRight: 6 }}>{corta(l.nombre, 56)}</Text>
                 <Text style={{ width: "18%", color: GRIS }}>{CANAL[l.canal] ?? l.canal}</Text>
               </View>
             ))
