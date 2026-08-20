@@ -8,6 +8,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Velocimetro } from "@/components/crm/velocimetro";
 import { Kpi } from "@/components/crm/kpi";
 import { GraficoBarras } from "@/components/crm/grafico-barras";
+import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { LeyendaSerie, barraMensualPorSerie } from "@/components/crm/leyenda-serie";
 
 // Panel individual del comercial. Lo ve el propio comercial (/comercial/
@@ -59,10 +60,17 @@ export async function PanelGestionComercial({
     <div className="space-y-4">
       <FiltroPeriodo {...periodo} presetActivo={periodo.preset} presets={PRESETS} incluirHistorico={esGerencia ? incluirHistorico : undefined} />
 
-      <p className="px-1 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+        <p className="text-xs text-muted-foreground">
         {nombre} · del <span className="font-medium text-foreground">{fechaCalendarioLarga(periodo.desde)}</span> al{" "}
         <span className="font-medium text-foreground">{fechaCalendarioLarga(periodo.hasta)}</span>
-      </p>
+        </p>
+        {/* El reporte es de UN día: solo tiene sentido cuando el filtro está
+            puesto sobre una fecha concreta (p. ej. al venir de Supervisión). */}
+        {periodo.desde === periodo.hasta && (
+          <BotonReporteDiario fecha={periodo.desde} comercialId={comercialId} etiqueta="Reporte del día (PDF)" compacto />
+        )}
+      </div>
 
       {!resumen || !k ? (
         <SeccionPanel titulo="Sin datos">

@@ -1,6 +1,7 @@
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
+import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { AgendaMensual, type AccionAgenda, type HechaAgenda, type VentaAgenda, type HistItem, type TareaAgenda } from "@/components/crm/agenda-mensual";
 
 export const dynamic = "force-dynamic";
@@ -112,6 +113,15 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   }
 
   return (
+    <div className="space-y-3">
+      {/* Cierre del día: genera el PDF con la gestión de hoy para mandarlo por
+          correo, en vez de armarlo a mano en Excel como hasta ahora. */}
+      <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm">
+        <p className="text-xs text-muted-foreground">
+          Al terminar el día, descargue el reporte de su gestión para enviarlo a gerencia.
+        </p>
+        <BotonReporteDiario fecha={hoy} etiqueta="Reporte de hoy" />
+      </div>
     <AgendaMensual
       mes={mes}
       hoy={hoy}
@@ -129,5 +139,6 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         completada: t.completada,
       })) as TareaAgenda[]}
     />
+    </div>
   );
 }
