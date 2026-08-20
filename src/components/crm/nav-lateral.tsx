@@ -17,6 +17,7 @@ import {
   Gauge,
   CalendarDays,
   ClipboardCheck,
+  PiggyBank,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/gerencia/supervision", etiqueta: "Supervisión diaria", icono: ClipboardCheck },
     { href: "/gerencia/clientes", etiqueta: "Clientes", icono: Building2 },
     { href: "/gerencia/marketing", etiqueta: "Panel de marketing", icono: TrendingUp },
+    { href: "/gerencia/finanzas", etiqueta: "Finanzas de mkt", icono: PiggyBank },
     { href: "/gerencia/aprobaciones", etiqueta: "Aprobaciones", icono: CheckCircle2 },
     { href: "/gerencia/cartera-liberable", etiqueta: "Cartera liberable", icono: FileText },
   ],
