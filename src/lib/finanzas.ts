@@ -48,6 +48,7 @@ export interface FinanzasMarketing {
     total_usd: number;
     con_2_o_mas: number;
     compras_promedio: number;
+    histograma: { tramo: string; desde: number; hasta: number; clientes: number }[];
     deciles: {
       decil: number;
       clientes: number;

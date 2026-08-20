@@ -6,6 +6,7 @@ import { ChevronDown } from "lucide-react";
 import { usd } from "@/lib/reportes";
 import { cn } from "@/lib/utils";
 import type { FinanzasMarketing } from "@/lib/finanzas";
+import { HistogramaCltv } from "@/components/crm/histograma-cltv";
 
 type Cltv = FinanzasMarketing["cltv"];
 
@@ -13,16 +14,21 @@ type Cltv = FinanzasMarketing["cltv"];
 // librerías: SVG a mano, como el resto de los gráficos del CRM.
 //
 //  · CAJA Y BIGOTES: cómo se reparten los valores. Va en ESCALA LOGARÍTMICA
-//    a propósito — el máximo (US$ 574.800) es unas 50 veces el tercer cuartil,
-//    así que en escala lineal la caja se aplastaría contra el borde izquierdo
-//    y no se vería nada. Cada marca del eje es ×10.
+//    a propósito — el cliente mayor vale decenas de veces el tercer cuartil,
+//    así que en escala lineal la caja ocuparía un 2 % del ancho y no se vería
+//    nada. Cada marca del eje es ×10. El factor exacto se calcula y se escribe
+//    en el pie del gráfico, para que el texto no envejezca con los datos.
 //  · PARETO: cuánta concentración hay. Barras por decil + acumulado, y al
 //    hacer clic en una barra se despliega QUIÉNES son esos clientes — sin la
 //    lista, el gráfico informa pero no deja actuar.
 
-const ANCHO = 600;
-const ALTO_CAJA = 120;
-const MARGEN = { izq: 20, der: 20, arr: 34, aba: 30 };
+// Más alto y con más margen que la primera versión: las etiquetas de mediana
+// y promedio se pisaban entre sí y con las marcas del eje cuando sus valores
+// caían cerca (mediana 3.790 y promedio 8.413 quedan a un dedo en escala log).
+// Ahora cada etiqueta tiene su propia banda horizontal.
+const ANCHO = 620;
+const ALTO_CAJA = 168;
+const MARGEN = { izq: 46, der: 46, arr: 46, aba: 46 };
 
 export function DistribucionCltv({ cltv }: { cltv: Cltv }) {
   const [abierto, setAbierto] = useState<number | null>(null);
@@ -45,12 +51,23 @@ export function DistribucionCltv({ cltv }: { cltv: Cltv }) {
   const marcas: number[] = [];
   for (let p = Math.ceil(minLog); p <= Math.floor(maxLog); p++) marcas.push(10 ** p);
 
-  const yCaja = MARGEN.arr + 24;
-  const altoCaja = 34;
+  // Alinea la etiqueta según lo cerca que esté del borde, para que no se salga
+  // del lienzo ni quede cortada.
+  const anclaje = (px: number) =>
+    px < MARGEN.izq + 70 ? "start" : px > ANCHO - MARGEN.der - 70 ? "end" : "middle";
+
+  const yCaja = MARGEN.arr + 8;
+  const altoCaja = 38;
   const promedioSobreQ3 = cltv.promedio_usd > cltv.q3_usd;
 
   return (
     <div className="space-y-6">
+      {/* Orden deliberado: primero la FORMA (histograma), después su RESUMEN
+          en cinco números (caja y bigotes) y al final la CONCENTRACIÓN
+          (Pareto). Cada uno responde una pregunta distinta y en ese orden se
+          entienden encadenados. */}
+      <HistogramaCltv cltv={cltv} />
+
       {/* ---------- Caja y bigotes ---------- */}
       <div>
         <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -67,8 +84,10 @@ export function DistribucionCltv({ cltv }: { cltv: Cltv }) {
             {/* eje */}
             {marcas.map((m) => (
               <g key={m}>
-                <line x1={x(m)} y1={MARGEN.arr - 6} x2={x(m)} y2={ALTO_CAJA - MARGEN.aba + 6} stroke="currentColor" strokeOpacity="0.18" strokeDasharray="2 3" />
-                <text x={x(m)} y={ALTO_CAJA - MARGEN.aba + 20} textAnchor="middle" fontSize="10" fill="currentColor">
+                {/* La rejilla llega solo hasta la caja; las cifras del eje van
+                    en la última banda, debajo de la etiqueta del promedio. */}
+                <line x1={x(m)} y1={yCaja - 4} x2={x(m)} y2={yCaja + altoCaja + 4} stroke="currentColor" strokeOpacity="0.18" strokeDasharray="2 3" />
+                <text x={x(m)} y={ALTO_CAJA - 8} textAnchor="middle" fontSize="9" fill="currentColor">
                   {m >= 1000 ? `${m / 1000}k` : m}
                 </text>
               </g>
@@ -90,25 +109,36 @@ export function DistribucionCltv({ cltv }: { cltv: Cltv }) {
               stroke="var(--primary)"
               strokeOpacity="0.5"
             />
-            {/* mediana */}
+            {/* Mediana: etiqueta ARRIBA de la caja, con guía vertical. */}
             <line x1={x(cltv.mediana_usd)} y1={yCaja} x2={x(cltv.mediana_usd)} y2={yCaja + altoCaja} stroke="var(--primary)" strokeWidth="2.5" />
-            <text x={x(cltv.mediana_usd)} y={yCaja - 8} textAnchor="middle" fontSize="10" fontWeight="bold" fill="var(--primary)">
+            <line x1={x(cltv.mediana_usd)} y1={MARGEN.arr - 14} x2={x(cltv.mediana_usd)} y2={yCaja} stroke="var(--primary)" strokeOpacity="0.35" strokeDasharray="2 2" />
+            <text x={x(cltv.mediana_usd)} y={MARGEN.arr - 18} textAnchor={anclaje(x(cltv.mediana_usd))} fontSize="10" fontWeight="bold" fill="var(--primary)">
               mediana {usd(cltv.mediana_usd)}
             </text>
-            {/* promedio */}
-            <g>
-              <circle cx={x(cltv.promedio_usd)} cy={yCaja + altoCaja / 2} r="4" fill="#1E7F4F" />
-              <text x={x(cltv.promedio_usd)} y={yCaja + altoCaja + 16} textAnchor="middle" fontSize="10" fill="#1E7F4F">
-                promedio {usd(cltv.promedio_usd)}
-              </text>
-            </g>
+            {/* Promedio: etiqueta ABAJO, en su propia banda. Nunca puede
+                chocar con la de la mediana aunque los valores estén juntos. */}
+            <circle cx={x(cltv.promedio_usd)} cy={yCaja + altoCaja / 2} r="4.5" fill="#1E7F4F" />
+            <line x1={x(cltv.promedio_usd)} y1={yCaja + altoCaja / 2} x2={x(cltv.promedio_usd)} y2={yCaja + altoCaja + 14} stroke="#1E7F4F" strokeOpacity="0.35" strokeDasharray="2 2" />
+            <text x={x(cltv.promedio_usd)} y={yCaja + altoCaja + 24} textAnchor={anclaje(x(cltv.promedio_usd))} fontSize="10" fontWeight="bold" fill="#1E7F4F">
+              promedio {usd(cltv.promedio_usd)}
+            </text>
+            {/* Extremos, en gris y pequeños, anclados a su borde para no
+                salirse del lienzo. */}
+            <text x={x(cltv.minimo_usd)} y={yCaja + altoCaja / 2 - 12} textAnchor="start" fontSize="8" fill="currentColor">
+              mín {usd(cltv.minimo_usd)}
+            </text>
+            <text x={x(cltv.maximo_usd)} y={yCaja + altoCaja / 2 - 12} textAnchor="end" fontSize="8" fill="currentColor">
+              máx {usd(cltv.maximo_usd)}
+            </text>
           </svg>
         </div>
         <p className="mt-1 text-[11px] text-muted-foreground">
           La caja abarca la mitad central de los clientes ({usd(cltv.q1_usd)} a {usd(cltv.q3_usd)}); los bigotes llegan al
           menor y al mayor. <b className="text-foreground">Escala logarítmica</b>: cada marca vale diez veces la
-          anterior, porque el cliente más grande vale unas 50 veces el tercer cuartil y en escala normal la caja no se
-          vería.
+          anterior, porque el cliente más grande vale{" "}
+          <b className="text-foreground">{(cltv.maximo_usd / (cltv.q3_usd || 1)).toFixed(0)} veces</b> el tercer cuartil
+          y en escala normal la caja ocuparía apenas el{" "}
+          {(((cltv.q3_usd - cltv.q1_usd) / (cltv.maximo_usd || 1)) * 100).toFixed(1)} % del ancho.
           {promedioSobreQ3 && (
             <>
               {" "}
