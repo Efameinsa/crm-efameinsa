@@ -5,7 +5,33 @@
 > que este proyecto YA cometió; cada uno costó una corrección en producción.
 > No es documentación decorativa: son trampas reales de esta base de datos.
 
-Versión 1.0 — 2026-08-20 · Elaborado por Santos Lenin Vilcachagua Ayala
+Versión 1.1 — 2026-08-20 · Elaborado por Santos Lenin Vilcachagua Ayala
+
+---
+
+## 0. Estado del proyecto al arrancar (leer antes que nada)
+
+Cambios recientes que afectan a este trabajo:
+
+- **La última migración aplicada es la `0039`.** La tuya es la **`0040`**. Antes
+  de escribirla, `ls supabase/migrations/` y confirma — si alguien subió otra
+  mientras tanto, usa el número siguiente. Dos migraciones con el mismo número
+  son un desorden difícil de deshacer.
+- **Existe `cotizaciones_historicas`** (migración 0036): 2.644 cotizaciones que
+  la empresa emitió ANTES del CRM. **No las cuentes en esta pantalla.** Aquí se
+  supervisa la actividad del día, y esos documentos son de antes; mezclarlos
+  haría que un comercial apareciera con 900 "cotizaciones de hoy". El indicador
+  de cotizaciones de este módulo sale **solo de la tabla `cotizaciones`**.
+- **El correlativo cambió** (migración 0038): ahora es por serie **y año**
+  (`siguiente_correlativo_anual`), y arranca en los números oficiales de la
+  empresa (EFAMEINSA 2176, OPEN 446). No lo toques; solo tenlo presente si ves
+  códigos tipo `Presu_2177-26`.
+- **Comerciales activos: 6** (C1 Brenda Taboada, C2, C3, C4, C5 Katerine Tello,
+  C9). El antiguo C8 fue fusionado con C1 y quedó desactivado: **no debe
+  aparecer** en esta pantalla. Brenda tiene `codigo_anterior = 'C8'`.
+- Datos reales disponibles hoy para probar: Katerine y Brenda son los únicos
+  dos comerciales trabajando de verdad. Los demás tienen poca o ninguna
+  actividad — eso es correcto, no es un bug que haya que "arreglar".
 
 ---
 
@@ -31,7 +57,7 @@ nadie, quién está trabajando su cartera y quién no.
 - **No** crear una tabla nueva de "seguimientos": todo sale de `actividades`,
   `oportunidades` y `cotizaciones`, que ya existen.
 - **No** tocar `resumen_gerencia`: esta pantalla usa su propia función. Esa ya
-  se recreó siete veces y cada recreación es riesgo.
+  se recreó ocho veces y cada recreación es riesgo.
 
 ---
 
@@ -70,7 +96,7 @@ supervisión diaria, no un reporte de período (ese ya existe en `/gerencia`).
 
 ---
 
-## 4. Diseño de datos — migración `0038_supervision_diaria.sql`
+## 4. Diseño de datos — migración `0040_supervision_diaria.sql`
 
 Crear **una** función. Toda la agregación va en Postgres, nunca en JavaScript
 (ver 8.1).
@@ -133,7 +159,7 @@ end $$;
 | `seguimientos_efectivos` | `actividades` con `realizada_por = comercial`, `(realizada_at at time zone 'America/Lima')::date = v_fecha`, tipo en la lista de 3.1, resultado distinto de `NO_CONTESTO` |
 | `intentos_sin_contacto` | igual pero con resultado `NO_CONTESTO` |
 | `por_tipo` | mismo filtro que efectivos, agrupado por `tipo` |
-| `cotizaciones` | `cotizaciones` unidas a `oportunidades` por `comercial_id`, con `(created_at at time zone 'America/Lima')::date = v_fecha` |
+| `cotizaciones` | tabla **`cotizaciones`** (las del CRM, NUNCA `cotizaciones_historicas` — ver sección 0) unida a `oportunidades` por `comercial_id`, con `(created_at at time zone 'America/Lima')::date = v_fecha` |
 | `ventas` / `monto_vendido_usd` | `ventas` con `fecha_venta = v_fecha` (columna `date`, **sin** conversión de zona) de oportunidades del comercial, `origen = 'crm'` |
 | `agenda_pendiente` | `oportunidades` del comercial, etapa abierta, `proxima_accion_at = v_fecha`, **sin** actividad registrada ese día |
 | `agenda_vencida` | `oportunidades` del comercial, etapa abierta, `proxima_accion_at < v_fecha` |
@@ -214,7 +240,7 @@ on conflict (clave) do nothing;
 1. Leer `CLAUDE.md` y esta sección 8 completa.
 2. Confirmar columnas reales de `parametros`, `actividades` y
    `catalogo_resultados_gestion` con una consulta — **no asumir**.
-3. Escribir `supabase/migrations/0038_supervision_diaria.sql`.
+3. Escribir `supabase/migrations/0040_supervision_diaria.sql`.
 4. Aplicar con `node --env-file=.env.local scripts/aplicar-migracion.mjs`.
 5. **Probar la función sola en SQL** con `set_config('request.jwt.claims', …)`
    como gerencia, antes de escribir una línea de UI. Ver 7.1.
