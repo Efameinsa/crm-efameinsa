@@ -38,7 +38,7 @@ export function TablaPorComercial({ filas }: { filas: FilaComercialResumen[] }) 
             </th>
             <th
               className="pb-2 pl-2 text-right font-medium"
-              title="Cotizaciones hechas en el CRM en el período (y cuántas se marcaron enviadas). Abajo, en gris, los presupuestos del histórico Excel: solo se conocen los que terminaron en venta, así que en esos meses se cotizó más de lo que dice."
+              title="Cotizaciones hechas en el CRM en el período (y cuántas se marcaron enviadas). Abajo, en gris, los presupuestos del archivo de documentos de la empresa, anteriores al CRM: solo figuran los que quedaron guardados en las carpetas."
             >
               Cotiz.
             </th>
@@ -82,8 +82,8 @@ export function TablaPorComercial({ filas }: { filas: FilaComercialResumen[] }) 
                   {c.cot_creadas}
                   {c.cot_creadas > 0 && <span className="ml-1 text-muted-foreground">({c.cot_enviadas} env.)</span>}
                   {c.cot_historicas > 0 && (
-                    <span className="block text-[10px] text-muted-foreground" title="Presupuestos del histórico Excel que terminaron en venta">
-                      +{c.cot_historicas} histórico
+                    <span className="block text-[10px] text-muted-foreground" title="Presupuestos del archivo de documentos de la empresa (anteriores al CRM)">
+                      +{c.cot_historicas} archivo
                     </span>
                   )}
                 </td>

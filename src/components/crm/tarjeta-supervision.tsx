@@ -17,7 +17,10 @@ const ETIQUETA_TIPO: Record<string, string> = {
 // conservando la fecha que se esté viendo.
 export function TarjetaSupervision({ c, meta, fecha }: { c: ComercialSupervision; meta: number; fecha: string }) {
   const pct = meta > 0 ? Math.round((c.seguimientos_efectivos / meta) * 100) : 0;
-  const sinActividad = c.seguimientos_efectivos === 0 && c.intentos_sin_contacto === 0;
+  // El total de presupuestos del día suma los del CRM y los del archivo: para
+  // fechas anteriores al CRM, todo lo que hizo el comercial está en el archivo.
+  const cotizaciones = c.cotizaciones + c.cotizaciones_archivo;
+  const sinActividad = c.seguimientos_efectivos === 0 && c.intentos_sin_contacto === 0 && cotizaciones === 0;
 
   return (
     <Link
@@ -71,7 +74,11 @@ export function TarjetaSupervision({ c, meta, fecha }: { c: ComercialSupervision
       <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
         {c.intentos_sin_contacto > 0 && <span>{c.intentos_sin_contacto} intento{c.intentos_sin_contacto === 1 ? "" : "s"} sin contacto</span>}
         <span className="flex items-center gap-1">
-          <FileText className="size-3" /> {c.cotizaciones} cotización{c.cotizaciones === 1 ? "" : "es"}
+          <FileText className="size-3" /> {cotizaciones} cotizaci{cotizaciones === 1 ? "ón" : "ones"}
+          {c.cotizaciones_archivo > 0 && c.cotizaciones > 0 && (
+            <span className="text-muted-foreground/70">({c.cotizaciones} CRM · {c.cotizaciones_archivo} archivo)</span>
+          )}
+          {c.cotizaciones_archivo > 0 && c.cotizaciones === 0 && <span className="text-muted-foreground/70">(del archivo)</span>}
         </span>
         {c.ventas > 0 && (
           <span className="flex items-center gap-1 font-semibold text-[#1E7F4F]">

@@ -78,14 +78,19 @@ export async function PanelGestionComercial({
             <div className="grid grid-cols-2 gap-3">
               <Kpi etiqueta="Ventas cerradas" valor={k.n_ventas} sub={`ticket promedio ${usd(k.ticket_promedio_usd)}`} />
               <Kpi etiqueta="Clientes que compraron" valor={k.clientes_con_venta} sub={`${k.clientes_nuevos} nuevos · ${k.clientes_recurrentes} recurrentes`} />
-              {/* "Cotizaciones EN EL CRM": el histórico Excel no trae las hojas
-                  de cotización, así que este número solo mide lo cotizado con
-                  el cotizador. Sin ese apellido se leía como toda la actividad
-                  del año (11 cotizaciones junto a 112 ventas). */}
+              {/* Total de presupuestos del período: los del CRM más los del
+                  archivo de documentos. Antes mostraba solo los del CRM (11 en
+                  2026) junto a 112 ventas, y se leía como que casi no cotizó
+                  — cuando en realidad emitió 990. El trabajo cuenta aunque se
+                  haya hecho fuera de la plataforma. */}
               <Kpi
-                etiqueta="Cotizaciones en el CRM"
-                valor={k.cot_creadas}
-                sub={`${k.cot_enviadas} marcada${k.cot_enviadas === 1 ? "" : "s"} enviada${k.cot_enviadas === 1 ? "" : "s"}${yo && yo.cotizado_usd > 0 ? ` · ${usd(yo.cotizado_usd)} cotizados` : ""}`}
+                etiqueta="Cotizaciones del período"
+                valor={k.cot_creadas + k.cot_historicas_periodo}
+                sub={
+                  k.cot_historicas_periodo > 0
+                    ? `${k.cot_creadas} en el CRM · ${k.cot_historicas_periodo} del archivo`
+                    : `${k.cot_enviadas} marcada${k.cot_enviadas === 1 ? "" : "s"} enviada${k.cot_enviadas === 1 ? "" : "s"}${yo && yo.cotizado_usd > 0 ? ` · ${usd(yo.cotizado_usd)} cotizados` : ""}`
+                }
               />
               <Kpi etiqueta="Pipeline propio" valor={Math.round(k.pipeline_usd)} prefijo="US$ " sub={`${k.n_abiertas} oportunidades abiertas hoy`} />
             </div>
@@ -93,11 +98,11 @@ export async function PanelGestionComercial({
 
           {k.cot_historicas_periodo > 0 && (
             <p className="rounded-lg border border-dashed border-border px-3 py-2 text-[11px] text-muted-foreground">
-              Además de las cotizaciones del CRM, en este período hay{" "}
-              <b className="text-foreground">{k.cot_historicas_periodo}</b> presupuesto
-              {k.cot_historicas_periodo === 1 ? "" : "s"} del histórico Excel. Solo se conocen los que
-              terminaron en venta —las hojas de cotización anteriores al CRM no se cargaron—, así que el
-              total realmente cotizado en esos meses fue mayor. Desde que se cotiza en el CRM, el conteo es exacto.
+              <b className="text-foreground">{k.cot_historicas_periodo}</b> de esas cotizaciones vienen del{" "}
+              <b className="text-foreground">archivo de documentos</b> de la empresa (los presupuestos que se
+              emitían antes del CRM, extraídos de las carpetas de Efameinsa y Open). Cuentan como gestión igual
+              que las del CRM. Solo aparecen las que quedaron guardadas como documento: si un presupuesto no se
+              archivó, no hay forma de saber que existió.
             </p>
           )}
 

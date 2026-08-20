@@ -12,7 +12,10 @@ export interface ComercialSupervision {
   intentos_sin_contacto: number;
   cumple_meta: boolean;
   por_tipo: Record<string, number>;
+  /** Cotizaciones hechas en el CRM ese día. */
   cotizaciones: number;
+  /** Cotizaciones de ese día que están en el archivo de documentos (previas al CRM). */
+  cotizaciones_archivo: number;
   ventas: number;
   monto_vendido_usd: number;
   agenda_pendiente: number;
@@ -24,6 +27,9 @@ export interface ComercialSupervision {
 export interface TotalesSupervision {
   seguimientos_efectivos: number;
   cotizaciones: number;
+  cotizaciones_archivo: number;
+  /** Documentos de ese día cuya firma no permitió identificar al asesor. */
+  cotizaciones_archivo_sin_asesor: number;
   ventas: number;
   comerciales_en_meta: number;
   comerciales_sin_actividad: number;

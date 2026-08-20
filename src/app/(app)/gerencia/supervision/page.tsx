@@ -42,7 +42,15 @@ export default async function SupervisionPage({
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi etiqueta="Seguimientos efectivos" valor={totales.seguimientos_efectivos} sub={`meta ${meta_seguimientos} por comercial`} />
-        <Kpi etiqueta="Cotizaciones ejecutadas" valor={totales.cotizaciones} sub="registradas en el CRM ese día" />
+        <Kpi
+          etiqueta="Cotizaciones ejecutadas"
+          valor={totales.cotizaciones + totales.cotizaciones_archivo + totales.cotizaciones_archivo_sin_asesor}
+          sub={
+            totales.cotizaciones_archivo + totales.cotizaciones_archivo_sin_asesor > 0
+              ? `${totales.cotizaciones} en el CRM · ${totales.cotizaciones_archivo + totales.cotizaciones_archivo_sin_asesor} del archivo`
+              : "registradas en el CRM ese día"
+          }
+        />
         <Kpi etiqueta="Ventas del día" valor={totales.ventas} sub="oportunidades cerradas" />
         <Kpi
           etiqueta="En meta"
@@ -52,11 +60,24 @@ export default async function SupervisionPage({
         />
       </div>
 
-      {totales.comerciales_sin_actividad > 0 && (
-        <p className="rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
-          <b className="text-foreground">{totales.comerciales_sin_actividad}</b> comercial
-          {totales.comerciales_sin_actividad === 1 ? "" : "es"} sin ninguna gestión registrada este día.
-        </p>
+      {(totales.comerciales_sin_actividad > 0 || totales.cotizaciones_archivo_sin_asesor > 0) && (
+        <div className="space-y-1 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+          {totales.comerciales_sin_actividad > 0 && (
+            <p>
+              <b className="text-foreground">{totales.comerciales_sin_actividad}</b> comercial
+              {totales.comerciales_sin_actividad === 1 ? "" : "es"} sin ninguna gestión registrada este día.
+            </p>
+          )}
+          {/* Sin esta línea el total del día no cuadraría con la suma de las
+              tarjetas y parecería un error de la pantalla. */}
+          {totales.cotizaciones_archivo_sin_asesor > 0 && (
+            <p>
+              <b className="text-foreground">{totales.cotizaciones_archivo_sin_asesor}</b> cotizaci
+              {totales.cotizaciones_archivo_sin_asesor === 1 ? "ón" : "ones"} de ese día no se pudo atribuir a un comercial:
+              el documento no traía el correo del asesor en la firma.
+            </p>
+          )}
+        </div>
       )}
 
       <SeccionPanel titulo="Gestión por comercial">

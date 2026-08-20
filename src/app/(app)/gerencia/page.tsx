@@ -282,10 +282,10 @@ export default async function GerenciaPage({
             atribución de ventas a campañas solo es posible desde esa fecha.
           </li>
           <li>
-            La columna <b className="text-foreground">Cotiz.</b> cuenta lo cotizado <b className="text-foreground">en el CRM</b>. Del
-            histórico solo se conocen los presupuestos que terminaron en venta ({k.cot_historicas_periodo} en este período), porque se
-            importaron las ventas y no las hojas de cotización: comparar cotizaciones contra ventas solo es válido desde que se cotiza
-            en el CRM.
+            La columna <b className="text-foreground">Cotiz.</b> suma lo cotizado en el CRM y los{" "}
+            <b className="text-foreground">{k.cot_historicas_periodo}</b> presupuestos del archivo de documentos de este período. Del
+            archivo solo aparece lo que quedó guardado como documento en las carpetas de la empresa: un presupuesto que no se archivó
+            no deja rastro, así que la cifra de los meses previos al CRM es un piso.
           </li>
         </ul>
       </div>
