@@ -39,10 +39,13 @@ export const ETIQUETA_ACTIVIDAD: Record<string, string> = {
   otro: "Otro",
 };
 
-export const COLOR_COTIZACION: Record<"ambar" | "verde" | "rojo", string> = {
+export const COLOR_COTIZACION: Record<"ambar" | "verde" | "rojo" | "neutro", string> = {
   ambar: "bg-amber-500/10 text-amber-700",
   verde: "bg-[#1E7F4F]/10 text-[#1E7F4F]",
   rojo: "bg-destructive/10 text-destructive",
+  // Las cotizaciones del archivo (anteriores al CRM) se pintan en gris: son
+  // historia, no algo sobre lo que se pueda actuar.
+  neutro: "bg-secondary text-muted-foreground",
 };
 
 export interface ResultadoGestionEvento {
@@ -68,11 +71,15 @@ export interface EventoCotizacion {
   tipo: "cotizacion";
   id: string;
   fecha: string;
-  oportunidadId: string;
+  // null en las cotizaciones del archivo histórico: se emitieron antes del
+  // CRM, así que no cuelgan de ninguna oportunidad y no hay adónde navegar.
+  oportunidadId: string | null;
   codigo: string | null;
   estadoLabel: string;
-  color: "ambar" | "verde" | "rojo";
-  monto: number;
+  color: "ambar" | "verde" | "rojo" | "neutro";
+  // null cuando el documento no imprimió un total (muchas cotizaciones son un
+  // menú de alternativas): se muestra el presupuesto sin cifra, no un cero.
+  monto: number | null;
   moneda: string;
 }
 export interface EventoVenta {
@@ -117,7 +124,7 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
             </span>
           )}
           {evento.tipo === "venta" && <span className="font-semibold text-[#1E7F4F]">Venta cerrada</span>}
-          {evento.tipo !== "actividad" && (
+          {evento.tipo !== "actividad" && evento.monto != null && (
             <span className="text-sm font-semibold tabular-nums text-foreground">
               {evento.moneda} {evento.monto.toLocaleString("es-PE")}
             </span>
@@ -150,7 +157,7 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
             ))}
           </p>
         )}
-        {evento.oportunidadId !== oportunidadActualId && (
+        {evento.oportunidadId != null && evento.oportunidadId !== oportunidadActualId && (
           <Link
             href={`/comercial/oportunidades/${evento.oportunidadId}`}
             className="mt-0.5 inline-block text-xs text-primary hover:underline"

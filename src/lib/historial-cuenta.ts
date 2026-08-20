@@ -50,6 +50,17 @@ export async function cargarHistorialCuenta(
   const { data: oportunidades } = await supabase.from("oportunidades").select("id").eq("cuenta_id", cuentaId);
   const opIds = (oportunidades ?? []).map((o) => o.id);
 
+  // Cotizaciones que la empresa emitió ANTES del CRM (tabla
+  // cotizaciones_historicas, 2.644 documentos de las unidades S: y T:).
+  // Cuelgan de la cuenta y no de una oportunidad, porque en su momento no
+  // existían las oportunidades: por eso se consultan aparte y no por opIds.
+  const { data: cotHistoricas } = await supabase
+    .from("cotizaciones_historicas")
+    .select("id, codigo, correlativo, anio, serie, fecha, monto_sin_igv, items, n_equipos")
+    .eq("cuenta_id", cuentaId)
+    .order("fecha", { ascending: false })
+    .limit(100);
+
   const [{ data: actividades }, { data: cotizaciones }, { data: ventas }] =
     opIds.length === 0
       ? [{ data: [] }, { data: [] }, { data: [] }]
@@ -113,6 +124,19 @@ export async function cargarHistorialCuenta(
         moneda: c.moneda,
       };
     }),
+    ...(cotHistoricas ?? []).map((c): EventoTimeline => ({
+      tipo: "cotizacion",
+      id: c.id,
+      // `fecha` es columna date: se le pone mediodía para que ordenar por
+      // instante no la corra al día anterior (lección de lib/fechas.ts).
+      fecha: c.fecha ? `${c.fecha}T12:00:00` : new Date(0).toISOString(),
+      oportunidadId: null,
+      codigo: c.codigo ?? (c.correlativo ? `${c.correlativo}-${String(c.anio ?? "").slice(2)}` : null),
+      estadoLabel: `${c.serie === "OPEN" ? "Open Investments" : "Efameinsa"} · del archivo`,
+      color: "neutro",
+      monto: c.monto_sin_igv,
+      moneda: "USD",
+    })),
     ...(ventas ?? []).map(
       (v): EventoTimeline => ({
         tipo: "venta",

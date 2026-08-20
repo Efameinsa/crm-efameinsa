@@ -201,7 +201,10 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
           <p className="text-sm font-semibold text-foreground">
             Cotización {evento.codigo ?? "—"}{" "}
             <span className="font-normal text-muted-foreground">
-              — {evento.moneda} {evento.monto.toLocaleString("es-PE")}
+              {/* Las del archivo no siempre traen total: el documento listaba
+                  alternativas para que el cliente eligiera. Se dice eso en vez
+                  de mostrar un cero que se leería como "cotizó gratis". */}
+              — {evento.monto != null ? `${evento.moneda} ${evento.monto.toLocaleString("es-PE")}` : "sin total en el documento"}
             </span>
           </p>
         )}
