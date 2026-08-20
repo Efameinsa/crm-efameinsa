@@ -10,7 +10,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Kpi } from "@/components/crm/kpi";
 import { EstadoResultados } from "@/components/crm/estado-resultados";
 import { TablaMesesFinanzas } from "@/components/crm/tabla-meses-finanzas";
-import { ParetoCltv } from "@/components/crm/pareto-cltv";
+import { DistribucionCltv } from "@/components/crm/distribucion-cltv";
 
 export const dynamic = "force-dynamic";
 
@@ -206,8 +206,8 @@ export default async function FinanzasMarketingPage({
         </SeccionPanel>
       </div>
 
-      <SeccionPanel titulo="Valor de vida del cliente (CLTV) — concentración">
-        <ParetoCltv cltv={f.cltv} />
+      <SeccionPanel titulo="Valor de vida del cliente (CLTV)">
+        <DistribucionCltv cltv={f.cltv} />
       </SeccionPanel>
 
       {f.top_clientes.length > 0 && (

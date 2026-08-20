@@ -40,12 +40,23 @@ export interface FinanzasMarketing {
     clientes: number;
     promedio_usd: number;
     mediana_usd: number;
+    q1_usd: number;
+    q3_usd: number;
     p90_usd: number;
+    minimo_usd: number;
     maximo_usd: number;
     total_usd: number;
     con_2_o_mas: number;
     compras_promedio: number;
-    deciles: { decil: number; clientes: number; monto_usd: number }[];
+    deciles: {
+      decil: number;
+      clientes: number;
+      monto_usd: number;
+      desde_usd: number;
+      hasta_usd: number;
+      /** Los mayores del decil (hasta 25), para desplegar al hacer clic. */
+      muestra: { cuenta_id: string; razon_social: string; total_usd: number; compras: number }[];
+    }[];
   };
   top_clientes: { cuenta_id: string; razon_social: string; compras: number; total_usd: number }[];
 }

@@ -26,11 +26,23 @@ import { readdirSync, writeFileSync, statSync } from "node:fs";
 const ejecutar = promisify(execFile);
 
 const arg = (n, def = null) => { const i = process.argv.indexOf(`--${n}`); return i !== -1 ? process.argv[i + 1] : def; };
-const UNIDADES = arg("unidad") ? [arg("unidad")] : ["T", "S"];
 const LIMITE = Number(arg("limite", "0")) || 0;
 const SALIDA = arg("salida", "scripts/data/cotizaciones-historicas.json");
-const SERIE = { T: "EFAMEINSA", S: "OPEN" };
 const CONCURRENCIA = 8;
+
+// Dónde vive el archivo de cotizaciones. Cada carpeta pertenece a una razón
+// social, y esa es la única forma de saberlo: los documentos de una y otra son
+// idénticos salvo el membrete. Las unidades S:/T: tienen 2026; O: guarda 2025
+// (y algo de 2024/2023) en dos carpetas, una por empresa.
+const FUENTES_POR_DEFECTO = [
+  { ruta: "T:/", serie: "EFAMEINSA" },
+  { ruta: "S:/", serie: "OPEN" },
+  { ruta: "O:/PRESUPUESTOS EFAMEINSA", serie: "EFAMEINSA" },
+  { ruta: "O:/PRESUPUESTO OPEN", serie: "OPEN" },
+];
+const FUENTES = arg("carpeta")
+  ? [{ ruta: arg("carpeta"), serie: arg("serie", "EFAMEINSA") }]
+  : FUENTES_POR_DEFECTO;
 
 const MESES = { enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7,
   agosto: 8, septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12 };
@@ -183,10 +195,11 @@ async function enLotes(items, n, fn) {
 }
 
 const cotizaciones = [];
-for (const unidad of UNIDADES) {
+for (const fuente of FUENTES) {
+  const base_ruta = fuente.ruta.endsWith("/") ? fuente.ruta : `${fuente.ruta}/`;
   let archivos;
-  try { archivos = readdirSync(`${unidad}:/`); }
-  catch { console.error(`No se pudo leer ${unidad}:/ — ¿está conectada la unidad?`); continue; }
+  try { archivos = readdirSync(base_ruta); }
+  catch { console.error(`No se pudo leer ${base_ruta} — ¿está conectada la unidad?`); continue; }
 
   // Word y PDF de la misma cotización comparten nombre base: se agrupan para
   // tener un registro por cotización y no uno por archivo.
@@ -194,16 +207,16 @@ for (const unidad of UNIDADES) {
   for (const nombre of archivos) {
     const m = nombre.match(/^(.*)\.(doc|docx|pdf)$/i);
     if (!m) continue;
-    const ruta = `${unidad}:/${nombre}`;
+    const ruta = `${base_ruta}${nombre}`;
     try { if (!statSync(ruta).isFile()) continue; } catch { continue; }
     const base = m[1].trim();
-    const g = porBase.get(base) ?? { base, unidad };
+    const g = porBase.get(base) ?? { base, serie: fuente.serie };
     if (/pdf/i.test(m[2])) g.pdf = ruta; else g.doc = ruta;
     porBase.set(base, g);
   }
   let grupos = [...porBase.values()];
   if (LIMITE) grupos = grupos.slice(0, LIMITE);
-  console.log(`${unidad}: (${SERIE[unidad]}) — ${grupos.length} cotizaciones…`);
+  console.log(`${base_ruta} (${fuente.serie}) — ${grupos.length} cotizaciones…`);
 
   const res = await enLotes(grupos, CONCURRENCIA, async (g) => {
     const nom = parsearNombre(g.base);
@@ -226,7 +239,7 @@ for (const unidad of UNIDADES) {
     const monto = p.subtotal ?? desdeTotal ?? null;
     const fuente = p.subtotal ? "subtotal" : desdeTotal ? "total_con_igv/1.18" : null;
     return {
-      serie: SERIE[g.unidad],
+      serie: g.serie,
       base: g.base,
       tieneDoc: Boolean(g.doc), tienePdf: Boolean(g.pdf),
       correlativo: d.correlativoDoc ?? dPdf.correlativoDoc ?? nom.correlativo,
