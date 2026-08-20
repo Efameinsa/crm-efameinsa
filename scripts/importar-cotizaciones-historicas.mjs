@@ -71,7 +71,7 @@ for (const x of cot) {
     x.serie, x.correlativo, x.anio,
     x.correlativo && x.anio ? `${x.correlativo}-${String(x.anio).slice(2)}` : null,
     x.fecha, (x.cliente ?? "(sin cliente)").slice(0, 300), t, x.correo, x.atencion,
-    perfil?.id ?? null, cod, x.items ?? [], x.montoSinIgv, x.fuenteMonto,
+    perfil?.id ?? null, cod, x.asesorNombre ?? null, x.items ?? [], x.montoSinIgv, x.fuenteMonto,
     x.preciosEquipos ?? [], x.nEquipos, x.validezDias, x.base,
     cuentaId,
   ]);
@@ -81,8 +81,8 @@ console.log("\nPLAN:");
 console.table([{
   cotizaciones: filas.length,
   "con asesor": filas.filter((f) => f[9]).length,
-  "con cuenta del CRM": filas.filter((f) => f[18]).length,
-  "con monto": filas.filter((f) => f[12] != null).length,
+  "con cuenta del CRM": filas.filter((f) => f[19]).length,
+  "con monto": filas.filter((f) => f[13] != null).length,
 }]);
 console.log(`  cuenta por teléfono: ${stats.cuentaTel} · por razón social: ${stats.cuentaRazon} · sin cruzar: ${stats.sinCuenta}`);
 console.log(`  sin código de asesor en el documento: ${stats.sinAsesor}`);
@@ -100,14 +100,14 @@ if (!APLICAR) {
 try {
   await c.query("begin");
   await c.query("truncate cotizaciones_historicas"); // recarga completa: la fuente son los documentos, no el CRM
-  const COLS = 19;
+  const COLS = 20;
   for (let i = 0; i < filas.length; i += 500) {
     const lote = filas.slice(i, i + 500);
     const vals = lote.map((_, j) => `(${Array.from({ length: COLS }, (_, k) => `$${j * COLS + k + 1}`).join(",")})`).join(",");
     await c.query(
       `insert into cotizaciones_historicas
        (serie, correlativo, anio, codigo, fecha, cliente, telefono, correo, atencion,
-        comercial_id, asesor_codigo, items, monto_sin_igv, fuente_monto, precios_equipos,
+        comercial_id, asesor_codigo, asesor_nombre, items, monto_sin_igv, fuente_monto, precios_equipos,
         n_equipos, validez_dias, archivo, cuenta_id)
        values ${vals} on conflict (serie, archivo) do nothing`,
       lote.flat(),
