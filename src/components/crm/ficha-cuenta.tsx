@@ -7,7 +7,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ResumenCuenta } from "@/components/crm/resumen-cuenta";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId: string; comoGerencia?: boolean }) {
   const supabase = await createClient();
@@ -92,7 +92,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ventasConDetalle.map((v, i) => (
+                  {ventasConDetalle.map((v) => (
                     <TableRow key={v.id}>
                       <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">
                         {fechaCalendario(v.fecha_venta)}
@@ -118,14 +118,29 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
                               .join(" · ")
                           : v.equipo_historico ?? "—"}
                       </TableCell>
-                      <TableCell
-                        className={cnTotal(i === 0)}
-                      >
+                      <TableCell className="text-right font-medium tabular-nums text-foreground">
                         {v.moneda} {v.monto_total.toLocaleString("es-PE")}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
+                {/* Total al pie, que es donde se busca en una tabla de compras.
+                    Se suma POR MONEDA: mezclar dólares y soles en un número
+                    daría una cifra que no significa nada. */}
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-xs font-semibold text-foreground">
+                      Total de {ventasConDetalle.length} compra{ventasConDetalle.length === 1 ? "" : "s"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {totalesPorMoneda(ventasConDetalle).map((t) => (
+                        <span key={t.moneda} className="block font-bold text-foreground">
+                          {t.moneda} {t.total.toLocaleString("es-PE")}
+                        </span>
+                      ))}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
               </Table>
             </SeccionPanel>
           )}
@@ -176,8 +191,9 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   );
 }
 
-function cnTotal(masReciente: boolean): string {
-  return masReciente
-    ? "text-right font-bold tabular-nums text-foreground"
-    : "text-right font-medium tabular-nums text-foreground";
+/** Suma las compras agrupando por moneda: sumar USD con PEN no significa nada. */
+function totalesPorMoneda(ventas: { moneda: string; monto_total: number }[]): { moneda: string; total: number }[] {
+  const acum = new Map<string, number>();
+  for (const v of ventas) acum.set(v.moneda, (acum.get(v.moneda) ?? 0) + v.monto_total);
+  return [...acum.entries()].map(([moneda, total]) => ({ moneda, total })).sort((a, b) => b.total - a.total);
 }
