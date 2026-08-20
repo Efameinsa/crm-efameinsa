@@ -16,6 +16,7 @@ import {
   BookMarked,
   Gauge,
   CalendarDays,
+  ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   ],
   gerencia: [
     { href: "/gerencia", etiqueta: "Panel comercial", icono: BarChart3 },
+    { href: "/gerencia/supervision", etiqueta: "Supervisión diaria", icono: ClipboardCheck },
     { href: "/gerencia/clientes", etiqueta: "Clientes", icono: Building2 },
     { href: "/gerencia/marketing", etiqueta: "Panel de marketing", icono: TrendingUp },
     { href: "/gerencia/aprobaciones", etiqueta: "Aprobaciones", icono: CheckCircle2 },
