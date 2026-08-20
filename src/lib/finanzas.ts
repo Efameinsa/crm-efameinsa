@@ -49,6 +49,9 @@ export interface FinanzasMarketing {
     con_2_o_mas: number;
     compras_promedio: number;
     histograma: { tramo: string; desde: number; hasta: number; clientes: number }[];
+    /** El valor de cada cliente, de menor a mayor: la curva de densidad, los
+     *  bigotes de Tukey y los puntos atípicos se calculan sobre los datos. */
+    valores: number[];
     deciles: {
       decil: number;
       clientes: number;
