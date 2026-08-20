@@ -1,65 +1,61 @@
+import { requerirRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { cn } from "@/lib/utils";
-
-const ETIQUETA_ROL: Record<string, string> = {
-  admin: "Administrador",
-  gerencia: "Gerencia",
-  central: "Central",
-  comercial: "Comercial",
-};
+import { NuevoUsuarioForm } from "./nuevo-usuario-form";
+import { FilaUsuario } from "./fila-usuario";
 
 export default async function AdminPage() {
+  // Segunda barrera: el layout ya filtra por rol, pero esta pantalla da de
+  // alta accesos al sistema y no se apoya en una sola comprobación.
+  const yo = await requerirRol(["admin"]);
+
   const supabase = await createClient();
   const { data: perfiles } = await supabase
     .from("perfiles")
-    .select("id, nombre, rol, codigo_comercial, activo")
+    .select("id, nombre, rol, codigo_comercial, activo, email_contacto")
+    .order("activo", { ascending: false })
     .order("nombre", { ascending: true });
 
+  const activos = perfiles?.filter((p) => p.activo).length ?? 0;
+
   return (
-    <SeccionPanel titulo="Usuarios">
-      {!perfiles || perfiles.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No hay perfiles todavía. Cree cuentas desde el dashboard de Supabase (Authentication →
-          Users) y agregue la fila correspondiente en <code>perfiles</code>.
+    <div className="space-y-6">
+      <SeccionPanel titulo="Crear usuario">
+        <NuevoUsuarioForm />
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          El código identifica la <b className="text-foreground">cartera</b>, no a la persona: cuando alguien
+          se va, su código pasa a quien lo reemplaza y con él todo el historial de esa cartera. Por eso un
+          comercial activo no puede quedarse sin código.
         </p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Rol</TableHead>
-              <TableHead>Código</TableHead>
-              <TableHead>Estado</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {perfiles.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-medium text-foreground">{p.nombre}</TableCell>
-                <TableCell>
-                  <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
-                    {ETIQUETA_ROL[p.rol] ?? p.rol}
-                  </span>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{p.codigo_comercial ?? "—"}</TableCell>
-                <TableCell>
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 text-xs font-medium",
-                      p.activo ? "text-[#1E7F4F]" : "text-muted-foreground",
-                    )}
-                  >
-                    <span className={cn("size-1.5 rounded-full", p.activo ? "bg-[#1E7F4F]" : "bg-muted-foreground/40")} />
-                    {p.activo ? "Activo" : "Inactivo"}
-                  </span>
-                </TableCell>
+      </SeccionPanel>
+
+      <SeccionPanel titulo={`Usuarios (${activos} activo${activos === 1 ? "" : "s"})`}>
+        {!perfiles || perfiles.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Todavía no hay usuarios.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre y correo</TableHead>
+                <TableHead>Tipo de usuario</TableHead>
+                <TableHead>Código</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </SeccionPanel>
+            </TableHeader>
+            <TableBody>
+              {perfiles.map((p) => (
+                <FilaUsuario key={p.id} perfil={p} esUsted={p.id === yo.id} />
+              ))}
+            </TableBody>
+          </Table>
+        )}
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          Desactivar no borra nada: la persona deja de entrar pero su historial, su cartera y sus cotizaciones
+          siguen donde están. Para pasar una cartera a otra persona, cámbiele el código al nuevo dueño.
+        </p>
+      </SeccionPanel>
+    </div>
   );
 }

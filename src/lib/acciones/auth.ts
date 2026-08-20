@@ -52,3 +52,32 @@ export async function cerrarSesion() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+// Cambiar la propia contraseña. Hace falta porque el alta de usuarios entrega
+// una clave temporal: repartir claves sin una forma de cambiarlas es dejar la
+// puerta abierta.
+//
+// Se vuelve a pedir la actual y se comprueba iniciando sesión con ella antes
+// de cambiar nada: `updateUser` no la verifica por su cuenta, así que sin este
+// paso bastaría con una sesión abierta —un equipo que quedó desbloqueado— para
+// quedarse con la cuenta de otro.
+export async function cambiarMiClave(formData: FormData): Promise<{ error: string | null }> {
+  const actual = String(formData.get("actual") ?? "");
+  const nueva = String(formData.get("nueva") ?? "");
+  if (nueva.length < 8) return { error: "La nueva contraseña debe tener al menos 8 caracteres" };
+  if (nueva === actual) return { error: "La nueva contraseña tiene que ser distinta de la actual" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { error: "Sesión expirada" };
+
+  const { error: errorActual } = await supabase.auth.signInWithPassword({ email: user.email, password: actual });
+  if (errorActual) return { error: "La contraseña actual no es correcta" };
+
+  const { error } = await supabase.auth.updateUser({ password: nueva });
+  if (error) return { error: error.message };
+
+  return { error: null };
+}

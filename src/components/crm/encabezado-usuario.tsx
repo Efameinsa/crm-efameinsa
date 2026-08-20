@@ -1,6 +1,7 @@
 import { cerrarSesion } from "@/lib/acciones/auth";
 import { Button } from "@/components/ui/button";
 import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
+import { CambiarClave } from "@/components/crm/cambiar-clave";
 import type { Perfil } from "@/types/database";
 
 const ETIQUETA_ROL: Record<Perfil["rol"], string> = {
@@ -22,6 +23,7 @@ export function EncabezadoUsuario({ perfil }: { perfil: Perfil }) {
       </div>
       <div className="flex items-center gap-3">
         <CampanaNotificaciones userId={perfil.id} />
+        <CambiarClave />
         <form action={cerrarSesion}>
           <Button type="submit" variant="outline" size="sm">
             Cerrar sesión
