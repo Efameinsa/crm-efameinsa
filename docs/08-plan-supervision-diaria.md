@@ -5,7 +5,7 @@
 > que este proyecto YA cometió; cada uno costó una corrección en producción.
 > No es documentación decorativa: son trampas reales de esta base de datos.
 
-Versión 1.1 — 2026-08-20 · Elaborado por Santos Lenin Vilcachagua Ayala
+Versión 1.2 — 2026-08-20 · Elaborado por Santos Lenin Vilcachagua Ayala
 
 ---
 
@@ -18,10 +18,13 @@ Cambios recientes que afectan a este trabajo:
   mientras tanto, usa el número siguiente. Dos migraciones con el mismo número
   son un desorden difícil de deshacer.
 - **Existe `cotizaciones_historicas`** (migración 0036): 2.644 cotizaciones que
-  la empresa emitió ANTES del CRM. **No las cuentes en esta pantalla.** Aquí se
-  supervisa la actividad del día, y esos documentos son de antes; mezclarlos
-  haría que un comercial apareciera con 900 "cotizaciones de hoy". El indicador
-  de cotizaciones de este módulo sale **solo de la tabla `cotizaciones`**.
+  la empresa emitió ANTES del CRM. **SÍ hay que contarlas** (corregido en la
+  migración 0041): tienen columna `fecha`, así que filtrando por día dan
+  exactamente las de ese día. La v1.0 de este plan decía lo contrario por un
+  miedo infundado, y el resultado fue que el 15 de julio —día con 17
+  presupuestos— la pantalla mostraba cero. Se devuelven separadas de las del
+  CRM (`cotizaciones` vs `cotizaciones_archivo`) para poder decir de dónde
+  sale cada parte.
 - **El correlativo cambió** (migración 0038): ahora es por serie **y año**
   (`siguiente_correlativo_anual`), y arranca en los números oficiales de la
   empresa (EFAMEINSA 2176, OPEN 446). No lo toques; solo tenlo presente si ves
@@ -159,7 +162,7 @@ end $$;
 | `seguimientos_efectivos` | `actividades` con `realizada_por = comercial`, `(realizada_at at time zone 'America/Lima')::date = v_fecha`, tipo en la lista de 3.1, resultado distinto de `NO_CONTESTO` |
 | `intentos_sin_contacto` | igual pero con resultado `NO_CONTESTO` |
 | `por_tipo` | mismo filtro que efectivos, agrupado por `tipo` |
-| `cotizaciones` | tabla **`cotizaciones`** (las del CRM, NUNCA `cotizaciones_historicas` — ver sección 0) unida a `oportunidades` por `comercial_id`, con `(created_at at time zone 'America/Lima')::date = v_fecha` |
+| `cotizaciones` / `cotizaciones_archivo` | las del CRM (tabla `cotizaciones` unida a `oportunidades`, `(created_at at time zone America/Lima)::date = v_fecha`) y las del archivo (`cotizaciones_historicas.fecha = v_fecha`), **por separado** |
 | `ventas` / `monto_vendido_usd` | `ventas` con `fecha_venta = v_fecha` (columna `date`, **sin** conversión de zona) de oportunidades del comercial, `origen = 'crm'` |
 | `agenda_pendiente` | `oportunidades` del comercial, etapa abierta, `proxima_accion_at = v_fecha`, **sin** actividad registrada ese día |
 | `agenda_vencida` | `oportunidades` del comercial, etapa abierta, `proxima_accion_at < v_fecha` |
