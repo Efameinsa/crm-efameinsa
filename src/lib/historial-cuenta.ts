@@ -32,6 +32,12 @@ export interface VentaConDetalle {
   referencia_historica: string | null;
   equipo_historico: string | null;
   cotizaciones: { codigo: string | null; serie: string; cotizacion_items: Item[] } | null;
+  // El presupuesto del archivo del que salió esta venta, encontrado por su Nº.
+  // Trae los equipos que se cotizaron —el dato que la hoja de ventas casi
+  // nunca registró (solo 39 de 626 ventas traen `equipo_historico`, mientras
+  // que 4.493 de 5.559 cotizaciones sí listan los equipos)— y la ruta para
+  // abrir el documento.
+  documentoArchivo: { id: string; items: string[]; tienePdf: boolean } | null;
 }
 
 export interface HistorialCuentaResultado {
@@ -47,8 +53,18 @@ export async function cargarHistorialCuenta(
   supabase: Awaited<ReturnType<typeof createClient>>,
   cuentaId: string,
 ): Promise<HistorialCuentaResultado> {
-  const { data: oportunidades } = await supabase.from("oportunidades").select("id").eq("cuenta_id", cuentaId);
+  const { data: oportunidades } = await supabase.from("oportunidades").select("id, origen").eq("cuenta_id", cuentaId);
   const opIds = (oportunidades ?? []).map((o) => o.id);
+  // Las oportunidades que vinieron del Excel son un cascarón: la creó el
+  // importador para poder colgar la venta, y su pantalla no tiene etapa que
+  // mover, ni próxima acción, ni cotizaciones que enviar — solo repite esta
+  // misma historia del cliente. Enlazar hacia ahí deja al comercial en una
+  // vista que parece la misma. Solo se navega a las que son un sitio de
+  // trabajo de verdad.
+  const opsConTrabajo = new Set(
+    (oportunidades ?? []).filter((o) => o.origen !== "historico_excel").map((o) => o.id),
+  );
+  const aDonde = (id: string | null) => (id && opsConTrabajo.has(id) ? id : null);
 
   // Cotizaciones que la empresa emitió ANTES del CRM (tabla
   // cotizaciones_historicas, 2.644 documentos de las unidades S: y T:).
@@ -95,13 +111,17 @@ export async function cargarHistorialCuenta(
   }
 
   // Nº de presupuesto → documento del archivo, para poder enlazar cada venta
-  // histórica con la cotización de la que salió. Si el mismo Nº aparece dos
-  // veces (el archivo tiene 223 duplicados por nombre de archivo distinto), se
-  // queda el que tiene PDF: es el único que se puede abrir.
-  const documentoPorCodigo = new Map<string, string>();
+  // histórica con la cotización de la que salió, y de paso saber QUÉ EQUIPOS
+  // llevaba. Si el mismo Nº aparece dos veces —pasa cuando el comercial tecleó
+  // mal el número dentro del documento y dos clientes distintos comparten
+  // código— se queda el que tiene PDF: es el único que se puede abrir.
+  const documentoPorCodigo = new Map<string, { id: string; items: string[]; tienePdf: boolean }>();
   for (const c of cotHistoricas ?? []) {
-    if (!c.codigo || !c.pdf_path) continue;
-    if (!documentoPorCodigo.has(c.codigo)) documentoPorCodigo.set(c.codigo, c.id);
+    if (!c.codigo) continue;
+    const previo = documentoPorCodigo.get(c.codigo);
+    // Con PDF gana: es el único que se puede abrir.
+    if (!previo || (!previo.tienePdf && c.pdf_path))
+      documentoPorCodigo.set(c.codigo, { id: c.id, items: c.items ?? [], tienePdf: Boolean(c.pdf_path) });
   }
 
   const eventos: EventoTimeline[] = [
@@ -111,7 +131,7 @@ export async function cargarHistorialCuenta(
         tipo: "actividad",
         id: a.id,
         fecha: a.realizada_at,
-        oportunidadId: a.oportunidad_id,
+        oportunidadId: aDonde(a.oportunidad_id),
         tipoActividad: a.tipo,
         nota: a.nota,
         resultado,
@@ -126,7 +146,7 @@ export async function cargarHistorialCuenta(
         tipo: "cotizacion",
         id: c.id,
         fecha: c.created_at,
-        oportunidadId: c.oportunidad_id,
+        oportunidadId: aDonde(c.oportunidad_id),
         codigo: c.codigo,
         estadoLabel: label,
         color,
@@ -167,16 +187,19 @@ export async function cargarHistorialCuenta(
         tipo: "venta",
         id: v.id,
         fecha: v.fecha_venta,
-        oportunidadId: v.oportunidad_id,
+        oportunidadId: aDonde(v.oportunidad_id),
         monto: v.monto_total,
         moneda: v.moneda,
         presupuesto: v.referencia_historica,
-        pdfUrl: documento ? `/api/cotizaciones-historicas/${documento}/pdf` : null,
+        pdfUrl: documento?.tienePdf ? `/api/cotizaciones-historicas/${documento.id}/pdf` : null,
       };
     }),
   ].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
-  const ventasConDetalle = (ventas ?? []) as unknown as VentaConDetalle[];
+  const ventasConDetalle = (ventas ?? []).map((v) => ({
+    ...v,
+    documentoArchivo: (v.referencia_historica ? documentoPorCodigo.get(v.referencia_historica) : undefined) ?? null,
+  })) as unknown as VentaConDetalle[];
 
   return { eventos, ventasConDetalle };
 }

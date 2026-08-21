@@ -101,14 +101,37 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
                         {v.cotizaciones?.codigo ? (
                           <>{v.cotizaciones.codigo} · {v.cotizaciones.serie}</>
                         ) : v.referencia_historica ? (
-                          <span title="Nº de presupuesto del registro histórico — el documento vive en el archivo físico/correo de esa época">
-                            {v.referencia_historica} <span className="text-muted-foreground">(histórico)</span>
-                          </span>
+                          // Antes decía que el documento "vive en el archivo
+                          // físico/correo de esa época". Ya no: está subido y
+                          // se abre desde acá. Cuando existe, el Nº es enlace.
+                          v.documentoArchivo?.tienePdf ? (
+                            <a
+                              href={`/api/cotizaciones-historicas/${v.documentoArchivo.id}/pdf`}
+                              target="_blank"
+                              rel="noreferrer"
+                              title="Abrir el presupuesto de esta compra"
+                              className="text-primary hover:underline"
+                            >
+                              {v.referencia_historica}
+                            </a>
+                          ) : (
+                            <span title="Nº de presupuesto del registro histórico. El documento no está en el archivo digitalizado.">
+                              {v.referencia_historica} <span className="text-muted-foreground">(histórico)</span>
+                            </span>
+                          )
                         ) : (
                           <span className="text-muted-foreground" title="La hoja histórica no registró el número de presupuesto">sin registro</span>
                         )}
                       </TableCell>
                       <TableCell className="max-w-[360px] whitespace-normal text-xs text-muted-foreground">
+                        {/* Tres fuentes, de la más precisa a la menos: los
+                            ítems de la cotización del CRM (con marca, modelo y
+                            precio); lo que la hoja de ventas anotó a mano (solo
+                            39 de 626 ventas lo traen); y, para el resto, los
+                            equipos que listaba el presupuesto del archivo del
+                            que salió la venta — 4.493 de 5.559 cotizaciones sí
+                            los traen, así que es lo que rescata la mayoría de
+                            las compras históricas. */}
                         {(v.cotizaciones?.cotizacion_items ?? []).length > 0
                           ? (v.cotizaciones?.cotizacion_items ?? [])
                               .map(
@@ -116,7 +139,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
                                   `${it.cantidad}× ${it.productos?.marca ?? ""} ${it.productos?.modelo ?? ""} — US$ ${it.precio_unitario.toLocaleString("es-PE")} c/u`,
                               )
                               .join(" · ")
-                          : v.equipo_historico ?? "—"}
+                          : (v.equipo_historico ?? (v.documentoArchivo?.items ?? []).join(" · ") ?? "") || "—"}
                       </TableCell>
                       <TableCell className="text-right font-medium tabular-nums text-foreground">
                         {v.moneda} {v.monto_total.toLocaleString("es-PE")}

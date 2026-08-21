@@ -61,7 +61,10 @@ export interface EventoActividad {
   tipo: "actividad";
   id: string;
   fecha: string;
-  oportunidadId: string;
+  // null cuando la oportunidad no es un sitio de trabajo: las que importó el
+  // Excel son un cascarón sin etapa ni acciones, y su pantalla solo repite
+  // esta misma historia. Entonces la fila no navega a ninguna parte.
+  oportunidadId: string | null;
   tipoActividad: string;
   nota: string | null;
   resultado: ResultadoGestionEvento | null;
@@ -71,8 +74,9 @@ export interface EventoCotizacion {
   tipo: "cotizacion";
   id: string;
   fecha: string;
-  // null en las cotizaciones del archivo histórico: se emitieron antes del
-  // CRM, así que no cuelgan de ninguna oportunidad y no hay adónde navegar.
+  // null en las del archivo (se emitieron antes del CRM, no cuelgan de
+  // ninguna oportunidad) y también cuando la oportunidad es un cascarón del
+  // Excel: en los dos casos no hay adónde navegar.
   oportunidadId: string | null;
   codigo: string | null;
   estadoLabel: string;
@@ -91,7 +95,7 @@ export interface EventoVenta {
   tipo: "venta";
   id: string;
   fecha: string;
-  oportunidadId: string;
+  oportunidadId: string | null;
   monto: number;
   moneda: string;
   // Nº de presupuesto del que salió la venta, cuando viene del Excel histórico.
