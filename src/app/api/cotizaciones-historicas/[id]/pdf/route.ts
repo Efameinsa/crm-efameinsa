@@ -48,7 +48,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
 
   if (!s3 || !R2_BUCKET) {
-    return NextResponse.json({ error: "El archivo de cotizaciones no está configurado" }, { status: 503 });
+    // Se dicen los NOMBRES que faltan, nunca los valores: sin esto, un 503
+    // seco obliga a adivinar cuál de las cuatro quedó mal escrita en Vercel.
+    const faltan = Object.entries({ R2_ACCOUNT_ID, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY })
+      .filter(([, v]) => !v)
+      .map(([k]) => k);
+    return NextResponse.json(
+      { error: "El archivo de cotizaciones no está configurado", faltan },
+      { status: 503 },
+    );
   }
 
   const supabase = await createClient();
