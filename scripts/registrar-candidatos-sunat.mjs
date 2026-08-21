@@ -156,27 +156,34 @@ await bd.connect();
 // arrastra espacios dobles y tildes del Excel ("VOLCAN COMPAÑÍA   MINERA SA")
 // y transcribir eso a mano pierde filas en silencio.
 //
-// Si el nombre normalizado cae en DOS cuentas, se salta: ahí no hay forma de
-// saber a cuál de las dos pertenece el resultado, y adivinar sería justo el
-// error que este flujo quiere evitar.
+// Si el nombre normalizado cae en VARIAS cuentas, el resultado se registra en
+// TODAS. Parece arriesgado y no lo es: cuando SUNAT devuelve una sola empresa
+// activa con ese nombre exacto, no existe otra empresa así en el Perú, así que
+// esas fichas del CRM son la misma. Cada una queda con su propio RUC sugerido
+// y la fusión posterior las une por documento. Antes se saltaban, y eso dejaba
+// trabadas justamente las que más falta hacía limpiar (NEWREST, LOGISMINSA,
+// HASS PERU: partidas en dos fichas cada una).
 const sinId = entradas.filter((e) => !e.cuentaId);
 if (sinId.length) {
   const { rows } = await bd.query("select id, razon_social from cuentas where tipo_doc = 'SIN_DOC'");
   const porNombre = new Map();
   for (const r of rows) {
     const clave = normalizar(r.razon_social);
-    porNombre.set(clave, porNombre.has(clave) ? "AMBIGUA" : r.id);
+    if (!porNombre.has(clave)) porNombre.set(clave, []);
+    porNombre.get(clave).push(r.id);
   }
-  const ambiguas = [];
+  const expandidas = [];
   for (const e of sinId) {
-    const hallado = porNombre.get(normalizar(e.razonSocial));
-    if (hallado === "AMBIGUA") ambiguas.push(e.razonSocial);
-    e.cuentaId = hallado && hallado !== "AMBIGUA" ? hallado : null;
+    const ids = porNombre.get(normalizar(e.razonSocial)) ?? [];
+    e.cuentaId = ids[0] ?? null;
+    // Las copias extra entran como entradas propias, con el mismo resultado.
+    for (const otro of ids.slice(1)) expandidas.push({ ...e, cuentaId: otro });
   }
-  if (ambiguas.length) {
-    console.log(`⚠️ ${ambiguas.length} con el nombre repetido en dos cuentas sin documento, se saltan: ${ambiguas.join(" · ").slice(0, 240)}`);
+  if (expandidas.length) {
+    entradas.push(...expandidas);
+    console.log(`↔ ${expandidas.length} ficha(s) más con el mismo nombre reciben el mismo resultado; la fusión las unirá por RUC.`);
   }
-  const perdidas = entradas.filter((e) => !e.cuentaId && !ambiguas.includes(e.razonSocial));
+  const perdidas = entradas.filter((e) => !e.cuentaId);
   if (perdidas.length) {
     console.log(`⚠️ ${perdidas.length} sin cuenta que coincida, se saltan: ${perdidas.map((e) => e.razonSocial).join(" · ").slice(0, 240)}`);
   }

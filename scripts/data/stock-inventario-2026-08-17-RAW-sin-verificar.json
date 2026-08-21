@@ -1,0 +1,1894 @@
+[
+  {
+    "archivo": "pagina-01.png",
+    "seccion": "LAVADORAS RIGIDAS",
+    "filas": [
+      {
+        "codigo": "I22297",
+        "modelo": "RX 135",
+        "descripcion": "LAVADORA IND RIGIDA MOD RX135 FUERZA 200G, X CONTROL, GPL, P.SUPERIOR INOX, P.LATERAL Y FRONTAL GRIS, BOILER FED. CON AGUJERO PARA TOLVA DE JARÓN, CAP 14 KG, 220/60(1PH), CUSH",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22298",
+        "modelo": null,
+        "descripcion": "LAVADORA IND RIGIDA MOD RX135 FUERZA 200G, X CONTROL, GPL, P.SUPERIOR INOX, P.LATERAL Y FRONTAL LATERAL, CILINDRO INOX, BOILER FED. CON AGUJERO PARA TOLVA DE JARÓN, CAP 14 KG, 220/60(1PH), CUSH",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "EXHIBICION",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25385",
+        "modelo": null,
+        "descripcion": "LAVADORA IND RIGIDA MOD RX180, FUERZA 1000, X CONTROL, CILINDRO INOX, BOILER FED + PREPARADO A VAPOR, CON AGUJERO PARA TOLVA DE JARÓN, CAP 18 KG, 220/60(1PH), CUSB",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25386",
+        "modelo": "RX 180",
+        "descripcion": "LAVADORA IND RIGIDA, MOD. RX180, FUERZA 1000, X CONTROL, CILINDRO INOX, BOILER FED + PREPARADO A VAPOR, CON AGUJERO PARA TOLVA DE JARÓN, CAP 18 KG, 220/60(1PH), CUSB",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25387",
+        "modelo": null,
+        "descripcion": "LAVADORA IND RIGIDA, MOD-RX180, FUERZA 1000, X CONTROL, FUERZA PLUS, PANEL FRONTAL Y LATERAL INOX, CILINDRO INOX, BOILER FED + PREPARADO A VAPOR, CON PUERTO USB, 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25382",
+        "modelo": null,
+        "descripcion": "LAVADORA IND RIGIDA MOD RX180, FUERZA 1000, X CONTROL, FUERZA 1005, CILINDRO INOX, BOILER FED + PREPARADO A VAPOR CON PUERTO USB, 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25383",
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA MOD RX240, CAP 24 KG, CONTROL X CONTROL, FUERZA 2000, CILINDRO INOX, BOILER FED + PREPARADO A VAPOR CON PUERTO USB, 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25384",
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD RXKD CAP 24 KG, CONTROL X CONTROL, FUERZA 1000, CILINDRO INOX, BOILER FED + PREPARADO A VAPOR CON PUERTO USB, 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25379",
+        "modelo": "RX240",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD RX240 CAP 24 KG, CONTROL X CONTROL, FUERZA 2000, PANEL SUPERIOR, FRONTAL Y LATERAL INOX, CILINDRO INOX, BOILER FED + PREPARADO A VAPOR, CON PUERTO USB, 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25380",
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD RX240, CAP 24 KG, CONTROL X CONTROL, FUERZA 2000, PANEL SUPERIOR, FRONTAL Y LATERAL INOX, CILINDRO INOX, BOILER FED + PREPARADO A VAPOR, CON PUERTO USB, 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25381",
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD RX240, CAP 24 KG, CONTROL X CONTROL, FUERZA 2000, PANEL SUPERIOR, FRONTAL Y LATERAL INOX, CILINDRO INOX, BOILER FED + PREPARADO A VAPOR, CON PUERTO USB, 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22560",
+        "modelo": "RX240",
+        "descripcion": "LAVADORA IND. RIGIDA PRIMUS MOD-RX240, CAP 24 KG, CONTROL X + FUERZA 1000, P. SUPERIOR / FRONTAL / LATERAL INOX., CILINDRO INOX., BOILER FED., PREPARADO VAPOR, CAP. 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25014",
+        "modelo": "RX289",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD. RX280, CAP 28 KG, FUERZA 1000, CONTROL X +, PANEL SUPERIOR, FRONTAL LATERAL INOXIDABLE, CILINDRO INOX., BOILER FED PREPARADO A VAPOR, CON PUERTO USB, 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25017",
+        "modelo": "RX289",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD. RX280, FUERZA 1000, CAP. 28 KG, CONTROL X +, PANEL SUPERIOR, FRONTAL Y LATERAL INOXIDABLE, CILINDRO INOX., BOILER PREPARADO A VAPOR, CON PUERTO USB, 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22551",
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD. RX280, FUERZA 2000, CONTROL X CAP 30KG, P. FRONTAL LATERAL, INOX., BOILER FED + PREP. PARA VAPOR, INOX., 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22817",
+        "modelo": "RX350",
+        "descripcion": "LAVADORA IND RIGIDA MOD-RX350, CONTROL X +, FUERZA 1000, CAP. 35KG, BOILER FED + PREPARADO VAPOR, PANEL SUPERIOR, FRONTAL Y LATERAL INOX, CILINDRO INOX., CAP.1380/60(2PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22816",
+        "modelo": null,
+        "descripcion": "LAVADORA IND RIGIDA MOD-RX350, CONTROL X +, FUERZA 1500, 35KG, BOILER FED + PREPARADO VAPOR, PANEL SUPERIOR, FRONTAL Y LATERAL INOX, CILINDRO INOX., CAP.1380/60(2PH)",
+        "cantidad": 1,
+        "marca": "PRIMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22899",
+        "modelo": "UCT040",
+        "descripcion": "LAVADORA INDUSTRIAL MOD UTC040, CONTROL GPL FUERZA 2000, CAP. TRIPLE 2000, INOXIDABLE, CILINDRO INOX., CAP. PREPARADO A VAPOR, 305/60(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22898",
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL MOD. UCTM10, CONTROL -MR, FUERZA 1000, PANEL FRONTAL SUPERIOR LATERAL INOX, CILINDRO INOX., PREPARADO A VAPOR, 2700/60H(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL MOD. UCT160, CONTROL -MR, FUERZA 1000, PANEL FRONTAL SUPERIOR, LATERAL INOX, CILINDRO INOX., PREPARADO A VAPOR, 2700/60H(2PH)",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "26/05/2025"
+      },
+      {
+        "codigo": null,
+        "modelo": "UCT360",
+        "descripcion": "LAVADORA INDUSTRIAL MOD. UCT160, CONTROL -MR, FUERZA 1000, PANEL FRONTAL SUPERIOR, LATERAL INOX, CILINDRO INOX., PREPARADO A VAPOR, 2700/60H(2PH)",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "26/05/2025"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL MOD. UCT160, CONTROL -MR, FUERZA 1000, PANEL FRONTAL SUPERIOR, LATERAL INOX, CILINDRO INOX., PREPARADO A VAPOR, 2700/60H(2PH)",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "26/05/2025"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL MOD. UCT160, CONTROL -MR, FUERZA 1000, PANEL FRONTAL SUPERIOR, LATERAL INOX, CILINDRO INOX., PREPARADO A VAPOR, 2700/60H(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25053",
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL MOD. UCT160, CONTROL -MR, FUERZA 1000, PANEL FRONTAL SUPERIOR, LATERAL INOX, CILINDRO INOX., PREPARADO A VAPOR, 2700/60H(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25055",
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL MOD. UCT160, CONTROL -MR, FUERZA 2700, PANEL FRONTAL SUPERIOR, LATERAL INOX, CILINDRO INOX., PREPARADO A VAPOR, 2700/60H(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21869",
+        "modelo": "UCG080",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA MOD. UCG CAP 36 KG, 220/60(1PH), CILINDRO INOXIDABLE, CAP. 36 KG, 220/60(1PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22476",
+        "modelo": "UCT380",
+        "descripcion": "LAVADORA IND. RIGIDA MOD-UCT040, CAP 36 KG, FUERZA 1000 GPD, CONTROL MR, CILINDRO INOXIDABLE PREPARADO A VAPOR, BOILER SUPERIOR, CAP.",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22476",
+        "modelo": null,
+        "descripcion": "LAVADORA IND. RIGIDA MOD-UCTM40 CAP 36 KG, FUERZA 1000 GPL, CONTROL MR, CILINDRO INOXIDABLE PREPARADO A VAPOR, BOILER SUPERIOR, CAP.",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22894",
+        "modelo": "UST530",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA MOD. UST530, CONTROL. UNLINC TOUCH, PANEL FRONTAL, LATERAL Y CILINDRO INOXIDABLE, DOBLE ROTACION, GAS NATURAL, CAP. 27 H, KG, 220/60(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "EXHIBICION",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22901",
+        "modelo": "UST530",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA MOD. UST530, CONTROL. UNLINC TOUCH, PANEL FRONTAL, LATERAL Y CILINDRO INOXIDABLE, DOBLE ROTACION, GAS NATURAL, CAP. 223 KG, 220/60(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "EXHIBICION",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25093",
+        "modelo": "UWT045",
+        "descripcion": "LAVADORA RIGIDA MOD. UWT045, CONTROL TOUCH, FUERZA 400KL, PANEL FRONTAL, LATERAL Y CILINDRO INOX, PREPARADO MANUAL, C/ DOSIFICADOR MANUAL, C/ DISPLAY TOUCHSCREEN(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25082",
+        "modelo": "UWT045",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, UNIMAC, MOD. UWT045, CONTROL UNLINC TOUCH, CAP. 25.5 KG, SIS, OPL, INOXIDABLE, CILINDRO INOX, PREPARADO PARA VAPOR, C/ DOSIFICADOR C/ DISPLAY MANUAL, C/ DISPLAY(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25287",
+        "modelo": "UWT065",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, UNIMAC, MOD. UWT065, CONTROL UNLINC TOUCH, CAP. 25.5 KG, SIS, OPL, INOXIDABLE, CILINDRO INOX, PREPARADO PARA VAPOR, C/ DOSIFICADOR C/ DISPLAY MANUAL, C/ DISPLAY(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "UWT065",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, UNIMAC, MOD. UWT065, FUERZA 4000, CONTROL UNLINC TOUCH, CAP. 25.5 KG, SIS, OPL, PREPARADO PARA VALOR, PANEL LATERAL, FRONTAL Y CILINDRO INOX., C/ DOSIFICADOR MANUAL, C/ DISPLAY(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      }
+    ]
+  },
+  {
+    "archivo": "pagina-02.png",
+    "seccion": null,
+    "filas": [
+      {
+        "codigo": "G2219",
+        "modelo": "UWT085",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA MOD. UW80RN-200D, CONTROL: M3H, CAP.38.5 KG, PREPARADO PARA VAPOR, PANEL LATERAL FRONTAL, C/ CILINDRO INOX, DOSIFICADOR MANUAL, C/ OFTSPRAY, (200V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2730",
+        "modelo": "UWT085",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD. UW80RN-200D, CONTROL: M3H, CAP.38.5 KG, PREPARADO PARA VAPOR, PANEL LATERAL FRONTAL Y CILINDRO INOX, CON DOSIFICADOR MANUAL, C/ OFTSPRAY.",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5268",
+        "modelo": "UWT085",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD. UW80R, FUERZA 300 G, CONTROL UNILUC TOUCH, CAP. 38.5 KG, M. RIEGO, SIS. GPL, PREP. PARA VAPOR, PANEL FRONTAL, C/ CILINDRO INOX, CON DOSIFICADOR MANUAL, C/ OFTSPRAY.",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5071",
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, UNIMAC, MOD UW110S, FUERZA 300G, CAP. 47.6KG, QPL, CONTROL UNILUC TOUCH PANEL LATERAL, FRONTAL Y CILINDRO INOX, PREPARADO PARA VAPOR, DOSIFICADOR MANUAL, C/ OFTSPRAY, P300/300/00Z3PH",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5072",
+        "modelo": "UWT185",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, UNIMAC, MOD UW110S, FUERZA 300G, CAP. 47.6KG, QPL, CONTROL UNILUC TOUCH PANEL LATERAL, FRONTAL, PREPARADO PARA VAPOR, DOSIFICADOR MANUAL, C/ OFTSPRAY, P300V/308/023PH",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, UNIMAC, MOD UW110S, FUERZA 300G, CAP. 47.6KG, QPL, CONTROL UNILUC TOUCH PANEL LATERAL, FRONTAL, PREPARADO PARA VAPOR, DOSIFICADOR MANUAL, C/ OFTSPRAY, P300V/308/023PH",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": "G5076",
+        "modelo": "UWT139",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD. UWT130, FUERZA 3000, CAP. SIKG, CONTROL UNILUC TOUCH, PANEL LATERAL / FRONTAL Y CILINDRO INOX, PREPARADO PARA VAPOR, DOSIFICADOR MANUAL, C/ OFTSPRAY, (22KV/30HZ/23PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2471",
+        "modelo": "UWT139",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA, MOD. UWT130, FUERZA 3000, CAP. SIKG, CONTROL UNILUC TOUCH, PANEL LATERAL / FRONTAL Y CILINDRO INOX, PREPARADO PARA VAPOR, DOSIFICADOR MANUAL, C/ OFTSPRAY, (22KV/30HZ/23PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5271",
+        "modelo": "UWT139",
+        "descripcion": "LAVADORA INDUSTRIAL RIGIDA MOD. UWT130, FUERZA 3000, CAP. SIKG, CONTROL UNILUC TOUCH, PANEL LATERAL / FRONTAL Y CILINDRO INOX, PREPARADO PARA VAPOR, DOSIFICADOR MANUAL, C/ OFTSPRAY, P30HV/30HZ/23PH",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G1786",
+        "modelo": "FX135",
+        "descripcion": "LAVADORA INDUST. FLOT. SOFTWASH MOD. FX135, FUERZA 600G, CONTROL X * PANEL FRONTAL LATERAL Y CILINDRO",
+        "cantidad": 1,
+        "marca": "PRAMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2293",
+        "modelo": "FX189",
+        "descripcion": "LAVADORA INDUSTRIAL FLOT., MOD. FX189, FUERZA 600 KG, CONTROL X * PANEL FRONTAL INOX, PANEL SUPERIOR, FRONTAL LATERAL Y CILINDRO INOX, CALENTAMIENTO BOILER FED. CAP. 180L X (220V+2/1PH)",
+        "cantidad": 1,
+        "marca": "PRAMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G1383",
+        "modelo": "FX280",
+        "descripcion": "LAVADORA INDUSTRIAL FLOT., MOD. FX280, CONTROL X * PANEL FRONTAL INOX, PANEL LATERAL ACERO INOX, CALENTAMIENTO BOILER FED. CAP. 180L X (220V+2/1PH)",
+        "cantidad": 1,
+        "marca": "PRAMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5063",
+        "modelo": "UY280",
+        "descripcion": "LAVADORA INDUSTRIAL FLOT., MOD. UY280, FUERZA 450G, UNILUC TOUCH, PANEL FRONTAL Y LATERAL INOX, CILINDRO",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5062",
+        "modelo": "UY450",
+        "descripcion": "LAVADORA INDUSTRIAL FLOT., MOD. UY450, FUERZA..., CALENTAMIENTO DIRECTO CON VAPOR, CAP. 45 KG, Q/22V/60HZ/1PH",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21266",
+        "modelo": "DX34L",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. DX34, CONTROL: DUAL DIGITAL, TEMPORIZADOR DE PANTALLA, PANEL ACERO GRIS, CALOR CALENTAMIENTO CON VAPOR DIRECTO, TAMBOR REFORZADO, CAP. 34 KG, (220V+60HZ/1PH)",
+        "cantidad": 1,
+        "marca": "PRAMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2731",
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. DX24N, CONTROL: X * PANEL FRONTAL LATERAL ACERO GRIS, CAP. 24KG, X GAS NATURAL, (220V/60HZ/1-3PH)",
+        "cantidad": 1,
+        "marca": "PRAMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2732",
+        "modelo": "DX24N",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. DX24N, CONTROL MICRODESSOR DOBLE ROTACION, CILINDRO GALVANIZADO, PANEL",
+        "cantidad": 1,
+        "marca": "PRAMUS",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5077",
+        "modelo": "UY280E",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UY280E, CONTROL: DUAL DIGITAL, ELECTRICO, 30KW, DOBLE ROTACION, CILINDRO GALVANIZADO, CAP. 45KG, (130V/60Hz/3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5078",
+        "modelo": "UY030E",
+        "descripcion": "SECADORA INDUSTRIAL UNIMAC, MOD. UY030, CONTROL: DUAL DIGITAL, CILINDRO GALVANIZADO, DOBLE ROTACION, ELECTRICO, CAP. (130V/60Hz/3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5079",
+        "modelo": "UY030E",
+        "descripcion": "SECADORA INDUSTRIAL UNIMAC, MOD. UY030, CONTROL: DUAL DIGITAL, CILINDRO GALVANIZADO, CAP. 34KG, (130V/60Hz/3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "EXHIBICION",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5050",
+        "modelo": "UY030N",
+        "descripcion": "SECADORA INDUSTRIAL UNIMAC, MOD. UY030, CONTROL: DUAL DIGITAL, A GAS NATURAL, DOBLE ROTACION, CILINDRO",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5081",
+        "modelo": "UY030N",
+        "descripcion": "SECADORA INDUSTRIAL UNIMAC, MOD. UY030, CONTROL: DUAL DIGITAL, GAS NATURAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CAP. (130V/60HZ/1PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5272",
+        "modelo": "UY030N",
+        "descripcion": "SECADORA INDUSTRIAL UNIMAC, MOD. UY030, CONTROL UNILUC TOUCH, GAS NATURAL, DOBLE ROTACION, CILINDRO INODABLE, PANEL FRONTAL DE ACERO INOXIDABLE, S/ OFTAIRY, CAP 25KG, X (220V/60HZ/1-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G1975",
+        "modelo": "UG55BE",
+        "descripcion": "SECADORA INDUSTRIAL UNIMAC, MOD. UG55BE, CONTROL: DUAL DIGITAL, ELECTRICO, DOBLE ROTACION, CILINDRO GALVANIZADO, CAP. (130V/60Hz/3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5073",
+        "modelo": "UY085E",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UY085E, CONTROL: DUAL DIGITAL, A GAS GLP, DOBLE ROTACION, CILINDRO INODABLE, PANEL FRONTAL DE ACERO INOXIDABLE, S/ OFTAIRY, CAP. 25 KG, X (220V/60HZ/1-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5256",
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UY085E, CONTROL: UNILUC TOUCH, A GAS GLP, DOBLE ROTACION, CILINDRO INODABLE, PANEL FRONTAL DE ACERO INOXIDABLE, S/ OFTAIRY, CAP. 25KG, X (220V/60HZ/1-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UY085E, CONTROL: UNILUC TOUCH, A GAS GLP, DOBLE ROTACION, CILINDRO GALVANIZADO, PANEL ESTANDAR, C/ OFTAIRY, CAP. 25 KG, X (220V/60HZ/1-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "UY155L",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UY085E, CONTROL: DUAL DIGITAL, A GAS GLP, DOBLE ROTACION, CILINDRO GALVANIZADO, PANEL ESTANDAR, C/ OFTAIRY, CAP. 25 KG, X (220V/60HZ/1-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UY085E, CONTROL: DUAL DIGITAL, A GAS GLP, DOBLE ROTACION, CILINDRO GALVANIZADO, PANEL ESTANDAR, C/ OFTAIRY, CAP. 25 KG, X (220V/60HZ/1-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UY085E, CONTROL: DUAL DIGITAL, A GAS GLP, DOBLE ROTACION, CILINDRO GALVANIZADO, PANEL ESTANDAR, C/ OFTAIRY, CAP. 25 KG, X (220V/60HZ/1-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      }
+    ]
+  },
+  {
+    "archivo": "pagina-03.png",
+    "seccion": null,
+    "filas": [
+      {
+        "codigo": "122737",
+        "modelo": "UT07SL",
+        "descripcion": "SECADORA INDUSTRIAL, MOD: UT07S. CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CAP: 34 KG, CAPACIDAD: 34 KG",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "GALVANIZADO, GAS NATURAL CAP 34KG, KJ220/80Hz1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD UT07S. CONTROL: DUAL DIGITAL, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, GAS NATURAL CAP 34KG, KJ220/80Hz1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07S CONTROL: DUAL DIGITAL, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, GAS NATURAL CAP 34KG, KJ220/80Hz1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "UT07SN",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07S CONTROL: UNILICH TOUCH, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, GAS NATURAL CAP 34KG, KJ220/80Hz1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "GALVANIZADO, GAS NATURAL CAP 34KG, KJ220/80Hz1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07S CONTROL: UNILICH TOUCH, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, GAS NATURAL CAP 34KG, KJ220/80Hz1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07S CONTROL: UNILICH TOUCH, DOBLE ROTACION, PANEL FRONTAL INOXIDABLE, CILINDRO GALVANIZADO, GAS NATURAL CAP 34KG, KJ220/80Hz1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07S CONTROL: UNILICH TOUCH, DOBLE ROTACION, PANEL FRONTAL INOXIDABLE, CILINDRO GALVANIZADO, GAS NATURAL CAP 34KG, KJ220/80Hz1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07S CONTROL: UNILICH TOUCH, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, GAS NATURAL CAP 34KG, KJ220/80Hz1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07S CONTROL: UNILICH TOUCH, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, GAS NATURAL CAP 34KG, KJ220/80Hz1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "UT07SL",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07S CONTROL: DUAL DIGITAL, PANEL ESTANDAR, CILINDRO GALVANIZADO, GAS GLP, CAP 34KG, XJ220/80HZ1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07S CONTROL: DUAL DIGITAL, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, GAS GLP, CAP 34KG, XJ220/80HZ1-3PH",
+        "cantidad": 1,
+        "marca": null,
+        "estado": null,
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": "G5257",
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD: UT07SE CONTROL: DUAL DIGITAL, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, GAS GLP, CAP 34KG, XJ220/80HZ1-3PH",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5258",
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07SE CONTROL: DUAL DIGITAL, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, CALENAMIENTO ELECTRICO, CAP: 34KG, KJ220/80HZ(2)PH",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5259",
+        "modelo": "UT07SE",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07S CONTROL: DUAL DIGITAL, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, CALENAMIENTO ELECTRICO, CAP: 34KG (2 220/80HZ(2)PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5260",
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07SE CONTROL: DUAL DIGITAL, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, CALENAMIENTO ELECTRICO, CAP: 34KG, KJ220/80HZ(2)PH",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5261",
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07SE CONTROL: DUAL DIGITAL, DOBLE ROTACION, PANEL ESTANDAR, CILINDRO GALVANIZADO, CALENAMIENTO, GAS GLP, PANEL ESTANDAR, OPTITRY, QJ220/80HZ (2-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5264",
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT07SE CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO INOXIDABLE, CALENAMIENTO, GAS GLP, PANEL ESTANDAR, OPTITRY, QJ220/80HZ (2-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5265",
+        "modelo": "UT.120L",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT120L CAP. 50KG, CONTROL: UNILICH TOUCH, DOBLE ROTACION, CILINDRO INOXIDABLE, CALENAMIENTO, GAS GLP, PANEL ESTANDAR, OPTITRY, QJ220/80HZ (2-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5266",
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT120L CAP. 120L, CAP. 50KG, CONTROL: UNILICH TOUCH, DOBLE ROTACION, CILINDRO INOXIDABLE, CALENAMIENTO, GAS GLP, PANEL ESTANDAR, OPTITRY, QJ220/80HZ (2-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "UT.120",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT120L CAP. 50KG, CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENAMIENTO, GAS GLP, PANEL ESTANDAR, OPTITRY, QJ220/80HZ (2-3PH)",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "UT.120",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT120L CAP. 50KG, CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENAMIENTO, GAS GLP, PANEL ESTANDAR, OPTITRY, QJ220/80HZ (2-3PH)",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "UT.120",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT120L CAP. 50KG, CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENAMIENTO, GAS GLP, PANEL ESTANDAR, OPTITRY, QJ220/80HZ (2-3PH)",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "UT.120",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT120L CAP. 50KG, CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENAMIENTO, ELECTRICO, PANEL ESTANDAR, OPTITRY, QJ220/80HZ (2-3PH)",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "UT.120",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT120L CAP. 50KG, CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENAMIENTO, ELECTRICO, PANEL ESTANDAR, OPTITRY, QJ220/80HZ (2-3PH)",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "30/08/2026"
+      },
+      {
+        "codigo": "G2479",
+        "modelo": "UT.170N",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT170N CAP. 60 KG, CONTROL: UNILICH TOUCH, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENAMIENTO, GAS NATURAL O OFTITRY, QJ220/60HZ(3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2491",
+        "modelo": "UT170N",
+        "descripcion": "SECADORA INDUSTRIAL, MOD. UT170 CONTROL: UNILICH TOUCH, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENAMIENTO GAS GLP,OPTITRY, QJ220/60HZ(3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2739",
+        "modelo": "UT200L",
+        "descripcion": "SECADORA INDUSTRIAL, MOD: UT200L CONTROL: UNILICH TOUCH, DOBLE ROTACION, CILINDRO INOXIDABLE, CAP: 80 KG, CALENAMIENTO ELECTRICO, OPTITRY, QJ220/80HZ(2-3PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5066",
+        "modelo": "UT200N",
+        "descripcion": "SECADORA INDUSTRIAL, MOD: UT200N CONTROL: UNILICH TOUCH, DOBLE ROTACION, CILINDRO INOXIDABLE, CAP: 50KG, GAS NATURAL O OFTITRY, QJ 220/60HZ(2PH)",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2225",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "EXHIBICION",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2226",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2453",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2454",
+        "modelo": null,
+        "descripcion": "SECADORA SEMI INDUSTRIAL PRIMUS, MOD:FDEE8GB54-3MW1, CAP: 10.5 KG, CONTROL FRONTAL, 220V/60HZ(1PH), TAMBOR GALVANIZADO, CONTROL HHEC ELECTRONIC, CALENAMIENTO: ELECTRICO 4600W 45\" MANDO",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2456",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2458",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2742",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2743",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2744",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2745",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2717",
+        "modelo": "NDENXAGS54-3MW1",
+        "descripcion": "SECADORA SEMI INDUSTRIAL UNIMAC, MOD: NDENXAGS54-3MW1, CAP: 10.2 KG, PUERTA SECADORA SOLIDA, CILINDRO GALVANIZADO, CONTROL QUANTUM HIS-A4, CALENAMIENTO: ELECTRICO, (220V/60HZ(2)PH)",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2746",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2749",
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G2228",
+        "modelo": "NDENS3S17-3MW1",
+        "descripcion": "SECADORA SEMI INDUSTRIAL UNIMAC ELECTRICO, PRIMUS, MOD: NDENS3S17-3MW1, CAP: 13.5 KG, TAMBOR GALVANIZADO, CONTROL QUANTUM GOLD, (220V/60HZ(2)PH), 2SA, 3450W",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "G5067",
+        "modelo": "FCU 2100/500",
+        "descripcion": "CALANDRIA UNIMAC, MOD.: FCU 2100/50 , UNILINC TOUCH , GAS NATURAL, VELOCIDAD AJUSTABLE, 220V/80HZ/3PH",
+        "cantidad": 1,
+        "marca": "UNIMAC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      }
+    ]
+  },
+  {
+    "archivo": "pagina-04.png",
+    "filas": [
+      {
+        "codigo": "I22902",
+        "modelo": "G18.35 (220V/1N)",
+        "descripcion": "CALANDRIA DE PLANCHADO, CILINDRO CROMADO, MOD: G18-35, 220V/1PH/60HZ/GHS, GRIS: CLARO, CALENTAMIENTO GLP",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": "I22901",
+        "modelo": "G21.35 (220V/1N)",
+        "descripcion": "CALANDRIA DE PLANCHADO, CILINDRO CROMADO, MOD: G21.35, 220V/60HZ/1N, GRIS: CLARO, CALENTAMIENTO GAS NATURAL",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": "I25024",
+        "modelo": "G26.35 (220V/3PH)",
+        "descripcion": "RODILLO PLANCHADORA DE SECADO, MARCA: GMP, MOD.: G26.35, CALEFACCIÓN ELÉCTRICA, CILINDRO CROMADO, CONTROL MICROPROCESADOR, POTENCIA CALORÍFICA: 34.2KW, 220V/60Z/3PH",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 3,
+        "marca": "GMP",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": "I25029",
+        "modelo": null,
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO MARCA GMP, MOD: G120.25 220V/60HZ/3PH",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": "I25030",
+        "modelo": "GMP120.25 (220V/3PH)",
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO MARCA GMP, MOD: G120.25 220V/60HZ/3PH",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25031",
+        "modelo": null,
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO MARCA GMP, MOD: G120.25 220V/60HZ/3PH",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25032",
+        "modelo": "GMP120.25 (220V/3N)",
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO MARCA GMP, MOD: G120.25 220V/60HZ/3N",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": "I25033",
+        "modelo": "GMP120.25 (220V/1N)",
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO MARCA GMP, MOD: G120.25 220V/60HZ/1N",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": "I22903",
+        "modelo": "GMP 160.30A (220V/3PH)",
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO, MARCA GMP, MOD: GMP 160.30A, VELOCIDAD: 2, CUBIERTA DE RODILLO: LANA DE ACERO + CUBIERTA DE ALGODÓN , 220V/60HZ/3PH",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22904",
+        "modelo": "E2 120.25 (220V/1N)",
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO, MARCA GMP, CONTROL: SHARP, VELOCIDAD: VARIABLE, MOD: E2 120 25, 220V/60HZ/1N",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25040",
+        "modelo": "E2 120.25 (220V/1N)",
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO, MARCA GMP, CONTROL: SHARP, VELOCIDAD: VARIABLE, MOD: E2 120.25, 220V/60HZ/1N",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I25039",
+        "modelo": "E2 140.25 (220V/1N)",
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO, MARCA GMP, CONTROL: SHARP, VELOCIDAD: VARIABLE, MOD: E2 140.25, 220V/60HZ/1N",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22905",
+        "modelo": "E2 140.25 (220V/1N)",
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO, MARCA GMP, CONTROL: SHARP, VELOCIDAD: VARIABLE, MOD: E2 140.25, 220V/60HZ/1N",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22906",
+        "modelo": "E2 160.30 (220V/3PH)",
+        "descripcion": "RODILLO PLANCHADOR ELECTRICO, MARCA GMP, CONTROL: SHARP, VELOCIDAD: VARIABLE, MOD: E2 160.30, 220V/60HZ/3PH",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22901",
+        "modelo": "E2 200.30",
+        "descripcion": "RODILLO DE PLANCHADOR ELECTRICO MOD: E2 200.30, 220V/60HZ/3N, VELOCIDAD: VARIABLE, EXTRACCION DE VAPORES, SI, CUBIERTA DEL RODILLO, LANA DE ACERO + FILTRO DE META-ARAMIDA 400G/M2, CONTROL SHARP-TOUCH",
+        "cantidad": 1,
+        "marca": "GMP",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      }
+    ]
+  },
+  {
+    "archivo": "pagina-05.png",
+    "seccion": "LAVADORAS EXTRACTORAS",
+    "filas": [
+      {
+        "codigo": "I22573",
+        "modelo": "GP50",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: GP50, CON CALENTAMIENTO A VAPOR, FUERZA: 350G, CAP: 50 KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "GP50",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: GP50, CON CALENTAMIENTO A VAPOR, CONTROL: TOUCH, FUERZA: 350G, CAP: 50 KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "GP50",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: GP50, CON CALENTAMIENTO A VAPOR, CONTROL: TOUCH, FUERZA: 350G, CAP: 50 KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "GP70",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: GP70, CON CALENTAMIENTO A VAPOR, CONTROL: TOUCH, FUERZA: 350G, CAP: 70 KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "GP70",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: GP70, CON CALENTAMIENTO A VAPOR, CONTROL: TOUCH, FUERZA: 350G, CAP: 70 KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "SS17",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: SS17, CON CALENTAMIENTO A VAPOR, PANEL SUPERIOR, FRONTAL Y CILINDRO INOXIDABLE, 320G, CAP 17KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": "I22175",
+        "modelo": "SS17",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: SS17-É, CON CALEFACCION ELECTRICA, PANEL SUPERIOR, FRONTAL Y CILINDRO INOXIDABLE, 320G, CAP 17KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22173",
+        "modelo": "SS23",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: SS23-É, CON CALEFACCION ELECTRICA, PANEL SUPERIOR, FRONTAL Y CILINDRO INOXIDABLE, 320G, CAP 23KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "SS23",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: SS23, CON CALENTAMIENTO A VAPOR, PANEL SUPERIOR, FRONTAL Y CILINDRO INOXIDABLE, 320G, CAP 23KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "SS23",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: SS23, CON CALENTAMIENTO A VAPOR, PANEL SUPERIOR, FRONTAL Y CILINDRO INOXIDABLE, 320G, CAP 23KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "SS23",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: SS23-É, CON CALEFACCION ELECTRICA, PANEL SUPERIOR, FRONTAL Y CILINDRO INOXIDABLE, 320G, CAP 23KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": "I22165",
+        "modelo": "SS40",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: SS40, CALENTAMIENTO A VAPOR, PANEL FRONTAL Y CILINDRO INOXIDABLE, 300G, CAP.: 40KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22167",
+        "modelo": "SS40",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: SS40, CALENTAMIENTO A VAPOR, PANEL FRONTAL Y CILINDRO INOXIDABLE, 300G, CAP.: 40KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "WET 17",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: WET 17, CON CALENTAMIENTO A VAPOR, PANEL SUPERIOR, FRONTAL Y CILINDRO INOXIDABLE, CONTROL: TOUCH, CON SEÑALES DE ALIMENTACIÓN, 300G, CAP 17KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      },
+      {
+        "codigo": null,
+        "modelo": "WET 23",
+        "descripcion": "LAVADORA EXTRACTORA SAILSTAR, MOD.: WET 23, CON CALENTAMIENTO A VAPOR, PANEL SUPERIOR, FRONTAL Y CILINDRO INOXIDABLE, CONTROL: TOUCH, CON SEÑALES DE ALIMENTACIÓN, 300G, CAP 17KG, (220V/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "POR LLEGAR",
+        "fecha_disponible": "07/09/2026"
+      }
+    ]
+  },
+  {
+    "archivo": "pagina-06.png",
+    "seccion": null,
+    "filas": [
+      {
+        "codigo": "I20763",
+        "modelo": "P15",
+        "descripcion": "LAVADORA AL SECO SAILSTAR MOD: P15 C/CALENTAMIENTO ELECTRICO CAP: 80KG 220V/60HZ: 130918",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "EXHIBICION",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21020",
+        "modelo": "BW50II",
+        "descripcion": "LAVADORA DE BARRERA SANITARIA MOD: BW-50II CAP: 50 KG S: G0060319",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 1,
+        "marca": null,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21882",
+        "modelo": "GDZ-20E",
+        "descripcion": "SECADORA ELECTRICA SAILSTAR, MOD.: GDZ-20E, CILINDRO INOXIDABLE, PANEL FRONTAL DE ACERO, CAP:20KG, (220/60/3PH)",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21881",
+        "modelo": "GZZ-50II",
+        "descripcion": "SECADORA A VAPOR CON PANEL DE ACERO INOX, CAP.: 50KG, 200V/3PH/60HZ",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 2,
+        "marca": null,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22577",
+        "modelo": "SAU45-II",
+        "descripcion": "PRENSA UTILITARIA, 220V/60GZ/3PH, 319KG",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22578",
+        "modelo": "SAU45-II",
+        "descripcion": "PRENSA UTILITARIA, 220V/60GZ/3PH, 319KG",
+        "cantidad": 1,
+        "marca": "SAILSTAR",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": null,
+        "descripcion": "",
+        "cantidad": 2,
+        "marca": null,
+        "estado": null,
+        "fecha_disponible": null
+      }
+    ]
+  },
+  {
+    "archivo": "pagina-07.png",
+    "seccion": "SECADORAS ADC - 2026",
+    "filas": [
+      {
+        "codigo": "I22323",
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD.: ADG-758V, SISTEMA OPL, PANEL ESTÁNDAR, CILINDRO GALVANIZADO, GAS GLP, CAP.: 34 KG, (220V/60HZ/1PH)",
+        "cantidad": 1,
+        "marca": "ADC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22324",
+        "modelo": "ADG-758V",
+        "descripcion": "SECADORA INDUSTRIAL, MOD.: ADG-758V, SISTEMA OPL, PANEL ESTÁNDAR, CILINDRO GALVANIZADO, GAS GLP, CAP.: 34 KG, (220V/60HZ/1PH)",
+        "cantidad": 1,
+        "marca": "ADC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22325",
+        "modelo": null,
+        "descripcion": "SECADORA INDUSTRIAL, MOD.: ADG-758V, SISTEMA OPL, PANEL ESTÁNDAR, CILINDRO GALVANIZADO, GAS GLP, CAP.: 34 KG, (220V/60HZ/1PH)",
+        "cantidad": 1,
+        "marca": "ADC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21009",
+        "modelo": "ADG-120I",
+        "descripcion": "SECADORA INDUSTRIAL, MOD.: ADG-120I, CAP.: 54KG, DOBLE ROTACION, PANEL FRONTAL Y CILINDRO INOX., GAS GLP, (220/60HZ/3PH)",
+        "cantidad": 1,
+        "marca": "ADC",
+        "estado": "PLANTA",
+        "fecha_disponible": null
+      }
+    ]
+  },
+  {
+    "archivo": "pagina-08.png",
+    "seccion": "MESA DE PLANCHADO / CALDERIN",
+    "filas": [
+      {
+        "codigo": "I22366",
+        "modelo": null,
+        "descripcion": "MESA DE PLANCHADO ASPIRANTE CON TERMOSTATO, SIDI MONDIAL MOD FENIX, 220/1/60HZ S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "EXHIBICION",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22369",
+        "modelo": "MESA DE PLANCHADO ASPIRANTE FENIX",
+        "descripcion": "MESA DE PLANCHADO ASPIRANTE CON TERMOSTATO, SIDI MONDIAL MOD FENIX, 220/1/60HZ S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22372",
+        "modelo": null,
+        "descripcion": "MESA DE PLANCHADO ASPIRANTE CON TERMOSTATO, SIDI MONDIAL MOD FENIX, 220/1/60HZ S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22380",
+        "modelo": null,
+        "descripcion": "MESA DE PLANCHADO ASPIRANTE CON TERMOSTATO, SIDI MUNDIAL MOD FENIX, 220/1/60HZ S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21041",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 2.3L MO. MINI 230/1/60HZ MOD. ARIES",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21043",
+        "modelo": "CALDERIN 2.3 L MOD. ARIES",
+        "descripcion": "CALDERIN CON PLANCHA 2.3L MO. MINI 230/1/60HZ MOD. ARIES",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21046",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 2.3L MO MINO 230/1/60HZ MOD. ARIES",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 2 PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21034",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 1.8L MO.MINI 230/1/60HZ MODELO ARIES S: 051005",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 2 PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21023",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 1.8L MO MINI 230/1/60HZ MODELO ARIES",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 2 PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22329",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 1.8 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22330",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 1.8 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22334",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 1.8 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22336",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 1.8 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22338",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 1.8 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22341",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 1.8 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22343",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 1.8 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22345",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 1.8 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "cantidad": 1,
+        "marca": null,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      }
+    ]
+  },
+  {
+    "archivo": "pagina-09.png",
+    "seccion": null,
+    "filas": [
+      {
+        "codigo": "I22348",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 4 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22350",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 4 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22355",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 4 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22356",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 4 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22357",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 4 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22358",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 4 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22361",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 4 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22362",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 4 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22363",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 4 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "ALMACEN 4° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22364",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA 4 LT CON PLANCHA, MOD. MINI 230/1/60HZ MOD: ARIES S:",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "CAJA EN EL 2° PISO",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21560",
+        "modelo": "CALDERIN 5 LT",
+        "descripcion": "CALDERIN MOD BR-8 CAP:5LT 6KW 220V/60HZ/3PH",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "EXIBICION",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I21561",
+        "modelo": null,
+        "descripcion": "CALDERIN CON PLANCHA DE MANO MOD: BR-1 CAP:5LT 3.3KW 220V/60HZ/3PH",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "EXIBICION",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22328",
+        "modelo": "PRENSA PLANCHADO NEUMATICA - CT-750/U",
+        "descripcion": "PRENSA NEUMATICA ASPIR. 2 PULSAD. SIDI MONDIAL MOD: CT-750/U, VAPOR EXTERNO PARA PLATO 220V/60HZ/1PH S: 284237",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "EXIBICION",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": "I22327",
+        "modelo": "PRENSA DE PLANCHADO MANUAL ST-702/U",
+        "descripcion": "PRENSA MANUAL SIDI MONDIAL MOD: ST-702/U, VAPOR EXTERNO PARA PLATO, ASPIRANTE INCORP. 220V/60HZ/ 1PH S: 284236",
+        "marca": null,
+        "cantidad": 1,
+        "estado": "EXIBICION",
+        "fecha_disponible": null
+      }
+    ]
+  },
+  {
+    "archivo": "pagina-10.png",
+    "seccion": "COCHES UTILITARIOS HM",
+    "filas": [
+      {
+        "descripcion": "COCHE UTILITARIO DE PLASTICO MOD. HM-401, 5\" LLANTAS, 130*80*88 CM , 2 RUEDAS FIJAS , 2 RUEDAS GIRATORIAS, CAPACIDAD 35 KG, COLOR: BLUE, POLIETILENO VIRGEN (PE)",
+        "codigo": "I25057",
+        "modelo": "HM-401",
+        "cantidad": 6,
+        "marca": null,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "descripcion": "CARRO DE IVANDERIA DE PLASTICO MOD. HM-408, 5\" LLANTAS, 110*79*84 CM , 2 RUEDAS FIJAS , 2 RUEDAS GIRATORIAS,CAPACIDAD 26 KG, COLOR: BLUE, POLIETILENO VIRGEN (PE)",
+        "codigo": "I25058",
+        "modelo": "HM-408",
+        "cantidad": 6,
+        "marca": null,
+        "estado": null,
+        "fecha_disponible": null
+      }
+    ]
+  },
+  {
+    "archivo": "pagina-11.png",
+    "seccion": "SECADORA SEMI INDUSTRIAL / LAVADORA SEMI INDUSTRIAL / EXHIBICIÓN EQUIPOS LG",
+    "filas": [
+      {
+        "codigo": null,
+        "modelo": "GIANT-C PLUS",
+        "marca": "LG",
+        "descripcion": "SECADORA C., MARCA: LG, C/SISTEMA COIN, MOD. GIANT-C+, CAP.: 10.2KG, VOLT. 220V/60HZ/1PH, MOD.: C.RP1329AN4S",
+        "cantidad": 8,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "GIANT-C PLUS STACK LOWER",
+        "marca": "LG",
+        "descripcion": "SECADORA C., MARCA: LG, GAS, C/S OPL, MOD.: GIANT-C PLUS APILABLE, CAP.: 10.2KG, 220/60/1PH, COD.: RP1329A7S",
+        "cantidad": 2,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "GIANT-C MAX STACK LOWER",
+        "marca": "LG",
+        "descripcion": "SECADORA C., GAS, MARCA: LG, C/SIS OPL, MOD.: GIANT-C MAX APILABLE, CAP.:10.2KG, 220V/60/1PH, COD.: CDG27MUCPS",
+        "cantidad": 7,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "GIANT-C MAX SINGLE",
+        "marca": "LG",
+        "descripcion": "SECADORA C., GAS, MARCA: LG, C/SIS OPL, MOD.: GIANT-C MAX SINGLE, CAP.:10.2KG, 220V/60/1PH, COD.: CDG27MSCPS",
+        "cantidad": 11,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "TITAN LIGHT STACK LOWER",
+        "marca": "LG",
+        "descripcion": "SECADORA C., GAS, MARCA: LG, C/S OPL, MOD.: TITAN LIGHT APILABLE, CAP15 KG, 220/60/1PH, COD.: CDT29MUCPS",
+        "cantidad": 23,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "TITAN LIGHT SINGLE",
+        "marca": "LG",
+        "descripcion": "SECADORA C., GAS, MARCA: LG, C/S OPL, MOD.: TITAN LIGHT SINGLE, CAP. 15 KG, 220/60/1PH, COD.: CDT29MSCPS",
+        "cantidad": 21,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "TITAN MAX STACK LOWER",
+        "marca": "LG",
+        "descripcion": "LAVADORA C., FLOT., MARCA: LG, MOD.: TITAN MAX APILABLE, CAP.:17KG, 220/60/1PH, COD:CWT29MDCRS",
+        "cantidad": 20,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "TITAN MAX SINGLE",
+        "marca": "LG",
+        "descripcion": "LAVADORA C., FLOT., MARCA: LG, MOD.: TITAN MAX SINGLE, CAP.:17KG, 220/60/1PH, COD.: CWT29MSORS",
+        "cantidad": 49,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "GIANT C MAX STACK LOWER",
+        "marca": "LG",
+        "descripcion": "LAVADORA C., FLOT., MARCA: LG, C/SIS OPL, MOD.: GIANT-C MAX APILABLE, CAP.: 13KG, 220/60/1PH, COD.: CWG27MDCRS",
+        "cantidad": 27,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "GIANT C MAX SINGLE",
+        "marca": "LG",
+        "descripcion": "LAVADORA C., FLOT., MARCA: LG, C/SIS OPL, MOD.: GIANT-C MAX SINGLE, CAP.: 13KG, 220/60/1PH, COD.: CWG27MSCRS",
+        "cantidad": 38,
+        "estado": null,
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "TITAN C",
+        "marca": "LG",
+        "descripcion": "SECADORA C., GAS, MARCA: LG; C/SISTEMA OPL, MOD.: TITAN-C, CAP.: 15KG, 220V/60HZ/1PH, COD.: TCD1870CGS, S: 810KWPV7U200",
+        "cantidad": 1,
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "TITAN LIGTH",
+        "marca": "LG",
+        "descripcion": "SECADORA C. GAS LG C/S OPL, MOD. TITAN LIGTH CAP.15KG,220V/60HZ/1PH COD.CDT29MSCPS, S:302KWGG7Z471",
+        "cantidad": 1,
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "TITAN LIGHT STACK LOWER",
+        "marca": "LG",
+        "descripcion": "SECADORA C GAS LG C/S OPL,MOD.TITAN LIGHT APIL CAP15 KG,220/60/1PH,COD:CDT29MUCPS,S:408KWAT2Z952",
+        "cantidad": 1,
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "GIANT-C+",
+        "marca": "LG",
+        "descripcion": "SECADORA LG C/SISTEMA COIN, MOD. GIANT-C+ CAP. 10.2 KG, VOLT. 220V/60HZ/1PH COD. RP1329AN4S",
+        "cantidad": 1,
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "GIANT-C MAX",
+        "marca": "LG",
+        "descripcion": "SECADORA C GAS LG C/SIS OPL,MOD:GIANT-C MAX APIL,CAP:10.2KG 220/60/1PH,COD:CDG27MUCPS,S:303KWDJ87698 / 303KWFN87683 / 303KWL87696",
+        "cantidad": 3,
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      },
+      {
+        "codigo": null,
+        "modelo": "GIANT-C MAX",
+        "marca": "LG",
+        "descripcion": "LAVADORA C FLOT. LG C/SIS OPL,MOD.GIANT-C MAX CAP:13KG,220/60/1PH,COD:CWG27MSCRS,S:405KWREM5278",
+        "cantidad": 1,
+        "estado": "EXHIBICIÓN",
+        "fecha_disponible": null
+      }
+    ]
+  }
+]

@@ -20,8 +20,7 @@
     "location": "LIMA",
     "status": "BAJA DE OFICIO"
    }
-  ],
-  "cuentaId": "102cf1bc-f3b7-49a0-8cd5-1b3c5dec9205"
+  ]
  },
  {
   "razonSocial": "AGRICOLA Y GANADERA CHAVIN DE HUANTAR SA",
@@ -32,8 +31,7 @@
     "location": "CASMA",
     "status": "ACTIVO"
    }
-  ],
-  "cuentaId": "65637f1f-f6ea-4ce2-b6b7-2cfd9270137f"
+  ]
  },
  {
   "razonSocial": "LOGISMINSA",
@@ -50,8 +48,7 @@
     "location": "AREQUIPA",
     "status": "BAJA DE OFICIO"
    }
-  ],
-  "cuentaId": "fa5740a6-7dbc-41b0-adde-42bf30929a2b"
+  ]
  },
  {
   "razonSocial": "CORPORACION CENTRAL SUAREZ SAC - AVIVA DEL PERU SOCIEDAD ANONIMA CERRADA",
@@ -62,8 +59,7 @@
     "location": "LIMA",
     "status": "ACTIVO"
    }
-  ],
-  "cuentaId": "dddbfac1-a021-4e3c-b6ef-00de58bf001c"
+  ]
  },
  {
   "razonSocial": "VIÑA MELGAREJO  CONSORCIO LAZARO",
@@ -86,8 +82,7 @@
     "location": "CARAVELI",
     "status": "BAJA DE OFICIO"
    }
-  ],
-  "cuentaId": "11fa00ee-12bb-4b4c-9cfb-d696280ed728"
+  ]
  },
  {
   "razonSocial": "CONSORCIO EL PORTAL DEL MARQUES SAC",
@@ -98,8 +93,7 @@
     "location": "LIMA",
     "status": "ACTIVO"
    }
-  ],
-  "cuentaId": "e687255e-14fa-40ad-ac91-753a9f66a04f"
+  ]
  },
  {
   "razonSocial": "GRUPO SANTA ELENA",
@@ -122,8 +116,7 @@
     "location": "CHICLAYO",
     "status": "BAJA DE OFICIO"
    }
-  ],
-  "cuentaId": "253a841e-e682-48b4-8d90-465265944199"
+  ]
  },
  {
   "razonSocial": "SERVICIOS GENERALES S.A.",
@@ -165,8 +158,7 @@
     "location": "CORONEL PORTILLO",
     "status": "ACTIVO"
    }
-  ],
-  "cuentaId": "c874fbfc-59c8-4bb0-b6f4-ed54b9721114"
+  ]
  },
  {
   "razonSocial": "OSWIL GROUP S.A.C.",
@@ -177,8 +169,7 @@
     "location": "MARISCAL NIETO",
     "status": "ACTIVO"
    }
-  ],
-  "cuentaId": "e2cf5571-ee6a-4c3b-95ca-723624c561f1"
+  ]
  },
  {
   "razonSocial": "HHP HOTELES HACIENDA DEL PERU S.R.L.",
@@ -189,8 +180,7 @@
     "location": "LIMA",
     "status": "ACTIVO"
    }
-  ],
-  "cuentaId": "8ea93fd0-1f08-4ddc-82a7-0d2a3f550ea6"
+  ]
  },
  {
   "razonSocial": "SIERRA MINERA CARAZ",
@@ -201,12 +191,10 @@
     "location": "LIMA",
     "status": "ACTIVO"
    }
-  ],
-  "cuentaId": "ae3e5ac3-8734-4acb-a170-1cf7eedbf540"
+  ]
  },
  {
   "razonSocial": "HOTEL CURASI",
-  "contributors": [],
-  "cuentaId": "b322e273-c0db-4964-b869-dca7a2ddc171"
+  "contributors": []
  }
 ]

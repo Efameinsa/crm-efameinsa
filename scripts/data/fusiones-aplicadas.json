@@ -1,6 +1,11 @@
 {
  "completados": [
   {
+   "cuenta": "CONGELADOS Y FRESCOS S.A.C. - MARINASOL S.A.",
+   "ruc": "20313176909",
+   "nombreSunat": "CONGELADOS Y FRESCOS S.A.C."
+  },
+  {
    "cuenta": "EMP DE COMERC MAYOR DE PRODUC HIDROB SA",
    "ruc": "20271407263",
    "nombreSunat": "EMP DE COMERC MAYOR DE PRODUC HIDROB SA"
@@ -16,6 +21,11 @@
    "nombreSunat": "HOTELERA CUSCO S.A."
   },
   {
+   "cuenta": "KONTUR  PERU OPERADOR DE TURISMO SAC",
+   "ruc": "20601529565",
+   "nombreSunat": "KONTUR PERU OPERADOR DE TURISMO SOCIEDAD ANONIMA CERRADA"
+  },
+  {
    "cuenta": "MINERA ENPROYEC SAC",
    "ruc": "20330791170",
    "nombreSunat": "MINERA ENPROYEC SAC"
@@ -28,109 +38,27 @@
  ],
  "fusionados": [
   {
-   "seVa": "AGRICOLA Y GANADERA CHAVIN DE HUANTAR SA",
-   "queda": "AGRICOLA Y GANADERA CHAVIN DE HUANTAR SA",
-   "ruc": "20402805294",
+   "seVa": "INVERSIONES DINSA MOTORS S.A.C.",
+   "queda": "INVERSIONES DINSA MOTORS S.A.C.",
+   "ruc": "20568357176",
    "historiaMudada": {
     "ops": 0,
-    "cots": 18,
-    "contactos": 1,
-    "leads": 15
-   }
-  },
-  {
-   "seVa": "AGROCASAGRANDE S.A.C.",
-   "queda": "AGROCASAGRANDE S.A.C.",
-   "ruc": "20601226015",
-   "historiaMudada": {
-    "ops": 0,
-    "cots": 9,
-    "contactos": 1,
-    "leads": 1
-   }
-  },
-  {
-   "seVa": "CORPORACION & INVERSIONES HAWAY SA",
-   "queda": "CORPORACION & INVERSIONES HAWAY SAC",
-   "ruc": "20557961730",
-   "historiaMudada": {
-    "ops": 1,
-    "cots": 9,
-    "contactos": 0,
-    "leads": 0
-   }
-  },
-  {
-   "seVa": "DERRAMA MAGISTERIAL",
-   "queda": "DERRAMA MAGISTERIAL",
-   "ruc": "20136424867",
-   "historiaMudada": {
-    "ops": 0,
-    "cots": 1,
+    "cots": 2,
     "contactos": 1,
     "leads": 0
    }
   },
   {
-   "seVa": "HHP HOTELES HACIENDA DEL PERU S.R.L.",
-   "queda": "HHP HOTELES HACIENDA DEL PERU S.R.L.",
-   "ruc": "20406464181",
+   "seVa": "WILLKA  TIKA SAC",
+   "queda": "WILLKA TIKA S.A.C.",
+   "ruc": "20317853085",
    "historiaMudada": {
     "ops": 0,
-    "cots": 11,
-    "contactos": 1,
-    "leads": 33
-   }
-  },
-  {
-   "seVa": "INVERSIONES EN TURISMO S.A. - HOTEL LAS DUNAS SUN RESORT",
-   "queda": "INVERSIONES EN TURISMO S.A.",
-   "ruc": "20104347691",
-   "historiaMudada": {
-    "ops": 0,
-    "cots": 10,
-    "contactos": 1,
-    "leads": 3
-   }
-  },
-  {
-   "seVa": "OSWIL GROUP S.A.C.",
-   "queda": "OSWILL GROUP SAC",
-   "ruc": "20604820422",
-   "historiaMudada": {
-    "ops": 0,
-    "cots": 11,
-    "contactos": 1,
-    "leads": 4
-   }
-  },
-  {
-   "seVa": "SOCIEDAD DE DESARROLLO DE HOTELES PERUANOS S.A.",
-   "queda": "SOCIEDAD DE DESARROLLO DE HOTELES PERUANOS S.A.",
-   "ruc": "20513215887",
-   "historiaMudada": {
-    "ops": 0,
-    "cots": 8,
+    "cots": 2,
     "contactos": 1,
     "leads": 5
    }
-  },
-  {
-   "seVa": "VIALO S.R.L. - EL MIRADOR DE VICHAYITO",
-   "queda": "VIALO S.R.L. - EL MIRADOR DE VICHAYITO",
-   "ruc": "20536979922",
-   "historiaMudada": {
-    "ops": 1,
-    "cots": 6,
-    "contactos": 1,
-    "leads": 0
-   }
   }
  ],
- "cambiosDeCartera": [
-  {
-   "cuenta": "SOCIEDAD DE DESARROLLO DE HOTELES PERUANOS S.A.",
-   "ruc": "20513215887"
-  }
- ]
+ "cambiosDeCartera": []
 }
