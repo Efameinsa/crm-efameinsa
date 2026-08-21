@@ -94,6 +94,16 @@ export async function cargarHistorialCuenta(
     for (const f of firmadas ?? []) if (f.signedUrl && f.path) urlPorRuta.set(f.path, f.signedUrl);
   }
 
+  // Nº de presupuesto → documento del archivo, para poder enlazar cada venta
+  // histórica con la cotización de la que salió. Si el mismo Nº aparece dos
+  // veces (el archivo tiene 223 duplicados por nombre de archivo distinto), se
+  // queda el que tiene PDF: es el único que se puede abrir.
+  const documentoPorCodigo = new Map<string, string>();
+  for (const c of cotHistoricas ?? []) {
+    if (!c.codigo || !c.pdf_path) continue;
+    if (!documentoPorCodigo.has(c.codigo)) documentoPorCodigo.set(c.codigo, c.id);
+  }
+
   const eventos: EventoTimeline[] = [
     ...(actividades ?? []).map((a): EventoTimeline => {
       const resultado = a.catalogo_resultados_gestion as unknown as { codigo: string; nombre: string } | null;
@@ -122,7 +132,11 @@ export async function cargarHistorialCuenta(
         color,
         monto: c.total,
         moneda: c.moneda,
-        pdfUrl: `/api/cotizaciones/${c.id}/pdf`,
+        // A propósito SIN pdfUrl: la cotización del CRM vive en su oportunidad,
+        // donde además de bajar el PDF se la envía, se la duplica y se registra
+        // la venta. Repetir acá solo una de esas acciones haría creer que la
+        // cronología es el lugar donde se opera, y escondería el resto. La fila
+        // ya lleva el enlace a la oportunidad.
       };
     }),
     ...(cotHistoricas ?? []).map((c): EventoTimeline => ({
@@ -143,16 +157,23 @@ export async function cargarHistorialCuenta(
       // subido o solo existe en .doc, y entonces no se ofrece nada.
       pdfUrl: c.pdf_path ? `/api/cotizaciones-historicas/${c.id}/pdf` : null,
     })),
-    ...(ventas ?? []).map(
-      (v): EventoTimeline => ({
+    ...(ventas ?? []).map((v): EventoTimeline => {
+      // "Venta cerrada — USD 9.618" a secas deja al comercial preguntándose de
+      // qué cotización salió. Las ventas importadas del Excel traen el Nº de
+      // presupuesto en `referencia_historica`, y ese documento suele estar en
+      // el archivo de la misma cuenta: se enlaza para poder abrirlo.
+      const documento = v.referencia_historica ? documentoPorCodigo.get(v.referencia_historica) : undefined;
+      return {
         tipo: "venta",
         id: v.id,
         fecha: v.fecha_venta,
         oportunidadId: v.oportunidad_id,
         monto: v.monto_total,
         moneda: v.moneda,
-      }),
-    ),
+        presupuesto: v.referencia_historica,
+        pdfUrl: documento ? `/api/cotizaciones-historicas/${documento}/pdf` : null,
+      };
+    }),
   ].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
   const ventasConDetalle = (ventas ?? []) as unknown as VentaConDetalle[];

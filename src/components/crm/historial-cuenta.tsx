@@ -157,7 +157,11 @@ function TablaHistorial({ eventos, oportunidadActualId }: { eventos: EventoTimel
 
 function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline; oportunidadActualId?: string }) {
   const router = useRouter();
-  const navegable = evento.oportunidadId !== oportunidadActualId;
+  // Sin `!= null` la fila prometía navegación que no existe: en la ficha del
+  // cliente no llega `oportunidadActualId`, así que las cotizaciones del
+  // archivo —que no cuelgan de ninguna oportunidad— salían con cursor de
+  // enlace y llevaban a /comercial/oportunidades/null.
+  const navegable = evento.oportunidadId != null && evento.oportunidadId !== oportunidadActualId;
 
   return (
     <TableRow
@@ -208,7 +212,15 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
             </span>
           </p>
         )}
-        {evento.tipo === "cotizacion" && evento.pdfUrl && (
+        {evento.tipo === "venta" && (
+          <p className="text-sm font-semibold text-[#1E7F4F]">
+            Venta cerrada — {evento.moneda} {evento.monto.toLocaleString("es-PE")}
+            {evento.presupuesto && (
+              <span className="font-normal text-muted-foreground"> · presupuesto {evento.presupuesto}</span>
+            )}
+          </p>
+        )}
+        {evento.tipo !== "actividad" && evento.pdfUrl && (
           <p className="mt-1">
             <a
               href={evento.pdfUrl}
@@ -217,13 +229,9 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
               onClick={(e) => e.stopPropagation()}
               className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
             >
-              <FileText className="size-3" /> Ver PDF
+              <FileText className="size-3" />
+              {evento.tipo === "venta" ? "Ver el presupuesto" : "Ver PDF"}
             </a>
-          </p>
-        )}
-        {evento.tipo === "venta" && (
-          <p className="text-sm font-semibold text-[#1E7F4F]">
-            Venta cerrada — {evento.moneda} {evento.monto.toLocaleString("es-PE")}
           </p>
         )}
       </TableCell>
@@ -248,7 +256,10 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
         )}
       </TableCell>
       <TableCell className="align-top">
-        <ChevronRight className="size-4 text-muted-foreground" />
+        {/* Solo donde de verdad se puede entrar: el chevrón en todas las filas
+            invitaba a hacer clic en las del archivo, que no llevan a ninguna
+            parte. */}
+        {navegable && <ChevronRight className="size-4 text-muted-foreground" />}
       </TableCell>
     </TableRow>
   );

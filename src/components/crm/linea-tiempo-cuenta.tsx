@@ -81,9 +81,10 @@ export interface EventoCotizacion {
   // menú de alternativas): se muestra el presupuesto sin cifra, no un cero.
   monto: number | null;
   moneda: string;
-  // Ruta del servidor que abre el PDF. En las del CRM lo genera al vuelo; en
-  // las del archivo devuelve una URL firmada del bucket privado, y solo existe
-  // si el documento ya se subió — por eso puede venir null.
+  // Solo en las del archivo: el documento ES la cotización, no hay ficha ni
+  // acciones detrás, así que la cronología es el único sitio desde donde
+  // abrirlo. Las del CRM no lo llevan — viven en su oportunidad, con todas sus
+  // acciones. Puede venir null si ese documento no se subió al bucket.
   pdfUrl?: string | null;
 }
 export interface EventoVenta {
@@ -93,6 +94,10 @@ export interface EventoVenta {
   oportunidadId: string;
   monto: number;
   moneda: string;
+  // Nº de presupuesto del que salió la venta, cuando viene del Excel histórico.
+  presupuesto?: string | null;
+  // El documento de ese presupuesto, si está en el archivo y ya subido.
+  pdfUrl?: string | null;
 }
 export type EventoTimeline = EventoActividad | EventoCotizacion | EventoVenta;
 
@@ -127,7 +132,14 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
               Cotización {evento.codigo ?? "—"} {evento.estadoLabel}
             </span>
           )}
-          {evento.tipo === "venta" && <span className="font-semibold text-[#1E7F4F]">Venta cerrada</span>}
+          {evento.tipo === "venta" && (
+            <span className="font-semibold text-[#1E7F4F]">
+              Venta cerrada
+              {evento.presupuesto && (
+                <span className="font-normal text-muted-foreground"> · presupuesto {evento.presupuesto}</span>
+              )}
+            </span>
+          )}
           {evento.tipo !== "actividad" && evento.monto != null && (
             <span className="text-sm font-semibold tabular-nums text-foreground">
               {evento.moneda} {evento.monto.toLocaleString("es-PE")}
@@ -161,7 +173,7 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
             ))}
           </p>
         )}
-        {evento.tipo === "cotizacion" && evento.pdfUrl && (
+        {evento.tipo !== "actividad" && evento.pdfUrl && (
           <p className="mt-1">
             <a
               href={evento.pdfUrl}
@@ -170,7 +182,8 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
               onClick={(e) => e.stopPropagation()}
               className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
             >
-              <FileText className="size-3" /> Ver PDF
+              <FileText className="size-3" />
+              {evento.tipo === "venta" ? "Ver el presupuesto" : "Ver PDF"}
             </a>
           </p>
         )}

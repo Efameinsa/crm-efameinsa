@@ -100,10 +100,25 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-semibold", aprobacion.clases)}>
-                  {aprobacion.etiqueta}
+                {/* "Aprobada · Borrador" se leía como una contradicción. Son dos
+                    ejes distintos: la aprobación de precio y el envío. Cuando
+                    la cotización entra en lista se auto-aprueba y esa etiqueta
+                    no dice nada, así que manda el estado de envío. El sello de
+                    aprobación se muestra solo cuando SÍ informa: pendiente,
+                    rechazada, o aprobada a mano por gerencia. */}
+                {c.estado_aprobacion !== "auto_aprobada" && (
+                  <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-semibold", aprobacion.clases)}>
+                    {aprobacion.etiqueta}
+                  </span>
+                )}
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                    c.estado === "borrador" ? "bg-secondary text-muted-foreground" : aprobacion.clases,
+                  )}
+                >
+                  {ESTADO_ENVIO[c.estado] ?? c.estado}
                 </span>
-                <span className="text-[11px] text-muted-foreground">{ESTADO_ENVIO[c.estado] ?? c.estado}</span>
               </div>
             </div>
 
