@@ -1,6 +1,7 @@
 import { fechaLima, fechaCalendario } from "@/lib/fechas";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Phone, Mail, MapPin, FileText, User } from "lucide-react";
+import { Phone, Mail, MapPin, FileText, User, FilePlus2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -34,6 +35,14 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
     }[]) ?? [];
 
   const { eventos, ventasConDetalle } = await cargarHistorialCuenta(supabase, cuentaId);
+
+  // Informes de cierre de este cliente. Los ve el comercial de la cartera,
+  // gerencia y Central (política de la migración 0049).
+  const { data: informes } = await supabase
+    .from("informes_cierre")
+    .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at")
+    .eq("cuenta_id", cuentaId)
+    .order("created_at", { ascending: false });
 
   return (
     <div className="space-y-4">
@@ -79,6 +88,64 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} />
+
+          {/* Informes de cierre: el documento que recibe Central para facturar,
+              cobrar y despachar. Va junto a las compras porque es el paso
+              siguiente de la misma historia: se cerró la venta, ahora hay que
+              ejecutarla. */}
+          <SeccionPanel
+            titulo="Informes de cierre"
+            accion={
+              <Link
+                href={`/comercial/informes/nuevo?cuenta=${cuenta.id}`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent"
+              >
+                <FilePlus2 className="size-3.5" /> Nuevo informe
+              </Link>
+            }
+          >
+            {(informes ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Todavía no hay informes. Se genera al cerrar una venta y es lo que Central necesita para facturar y
+                despachar.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {(informes ?? []).map((inf) => (
+                  <li
+                    key={inf.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
+                  >
+                    <span className="flex items-center gap-2.5 text-sm">
+                      <span className="font-mono text-xs font-semibold text-foreground">
+                        {inf.emitido_at ? `Nº ${inf.codigo}` : "Borrador"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {inf.serie === "OPEN" ? "Open Investments" : "Efameinsa"}
+                      </span>
+                      <span className="tabular-nums text-muted-foreground">{fechaCalendario(inf.fecha)}</span>
+                      <span className="font-semibold tabular-nums text-foreground">
+                        {inf.moneda} {Number(inf.monto_total).toLocaleString("es-PE")}
+                      </span>
+                      {!inf.emitido_at && (
+                        <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          sin numerar
+                        </span>
+                      )}
+                    </span>
+                    <a
+                      href={`/api/informes/${inf.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+                    >
+                      <FileText className="size-3" /> Ver PDF
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SeccionPanel>
 
           {ventasConDetalle.length > 0 && (
             <SeccionPanel titulo="Compras anteriores">

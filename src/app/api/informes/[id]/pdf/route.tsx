@@ -86,7 +86,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     />,
   );
 
-  const nombre = `Informe ${informe.serie} N${informe.codigo} - ${informe.asunto}`
+  const nombre = `Informe ${informe.serie} ${informe.codigo ? "N" + informe.codigo : "BORRADOR"} - ${informe.asunto}`
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\x20-\x7E]/g, "");

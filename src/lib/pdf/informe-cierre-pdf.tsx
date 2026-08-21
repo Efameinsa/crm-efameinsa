@@ -49,7 +49,8 @@ export interface ContactoInforme {
 export interface InformeCierrePdfProps {
   logoBuffer: Buffer;
   serie: "EFAMEINSA" | "OPEN";
-  codigo: string; // "004-2026"
+  /** "004-2026", o null mientras es borrador: el número se gasta al emitir. */
+  codigo: string | null;
   fecha: string; // "05/08/2026"
   referencia: string;
   asunto: string;
@@ -122,6 +123,13 @@ function crearEstilos(acento: string) {
     pieTexto: { fontSize: 8, color: GRIS },
 
     titulo: { textAlign: "center", fontSize: 11.5, fontFamily: "Helvetica-Bold", textDecoration: "underline", marginBottom: 16 },
+    // Marca de agua del borrador: cruzada y en gris claro, de modo que si
+    // alguien lo imprime o lo reenvía por error se vea de lejos que ese no es
+    // el documento que recibió Central.
+    marcaBorrador: {
+      position: "absolute", top: 360, left: 0, right: 0, textAlign: "center",
+      fontSize: 78, fontFamily: "Helvetica-Bold", color: "#E4E0DE", transform: "rotate(-28deg)",
+    },
 
     /* Ref. / Asunto / Fecha: etiquetas en columna fija para que los dos
        puntos queden alineados, como en el original. */
@@ -288,7 +296,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
 
   return (
     <Document
-      title={`Informe ${serie} N${codigo} — ${asunto}`}
+      title={`Informe ${serie} ${codigo ? `N${codigo}` : "(borrador)"} — ${asunto}`}
       author={firma.nombre}
       subject="Informe de cierre de ventas"
     >
@@ -313,13 +321,19 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
             <Text style={estilos.pieTexto}>{identidad.pie[identidad.pie.length - 1]}</Text>
             <Text
               style={estilos.pieTexto}
-              render={({ pageNumber }) => `Informe Nº ${codigo} · pág. ${pageNumber}`}
+              render={({ pageNumber }) => `${codigo ? `Informe Nº ${codigo}` : "BORRADOR sin numerar"} · pág. ${pageNumber}`}
             />
           </View>
         </View>
 
+        {!codigo && (
+          <Text style={estilos.marcaBorrador} fixed>
+            BORRADOR
+          </Text>
+        )}
+
         <Text style={estilos.titulo}>
-          {`INFORME Nº ${codigo} – VENTAS – ${identidad.nombreLegal.toUpperCase()}`}
+          {`INFORME Nº ${codigo ?? "(borrador, sin numerar)"} – VENTAS – ${identidad.nombreLegal.toUpperCase()}`}
         </Text>
 
         <View style={estilos.refFila}>

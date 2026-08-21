@@ -1,0 +1,270 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+import { INCLUYE_POR_DEFECTO } from "@/lib/informes";
+
+// Informe de cierre de ventas hacia Central (migraciones 0049 y 0050).
+//
+// La idea de la pantalla es que el comercial toque lo menos posible: el CRM
+// llena todo lo que ya sabe del cliente y del presupuesto, y él solo completa
+// lo que el sistema no puede adivinar — el reparto del pago, el despacho y las
+// observaciones. Por eso el trabajo pesado está acá, en el prellenado, y no en
+// el formulario.
+
+export interface ItemInformeEntrada {
+  bloque: "venta" | "gratuito";
+  descripcion: string;
+  cantidad: number;
+  precio_unitario: number;
+}
+
+export interface ContactoEntrada {
+  area?: string | null;
+  nombre?: string | null;
+  telefono?: string | null;
+  correo?: string | null;
+}
+
+export interface DatosInforme {
+  serie: "EFAMEINSA" | "OPEN";
+  presupuestoRef: string | null;
+  oportunidadId: string | null;
+  ventaId: string | null;
+  cotizacionId: string | null;
+  comprobante: "factura" | "boleta_ruc" | "boleta_dni";
+  clienteNuevo: boolean;
+  clienteNombre: string;
+  clienteDoc: string | null;
+  clienteDireccion: string | null;
+  clienteCorreo: string | null;
+  ordenCompra: string | null;
+  contactoVenta: ContactoEntrada;
+  contactoContabilidad: ContactoEntrada;
+  contactoDespacho: ContactoEntrada;
+  modalidadPago: string[];
+  formaPago: "transferencia" | "deposito" | null;
+  moneda: string;
+  notaCondiciones: string | null;
+  entregaFecha: string | null;
+  entregaHora: string | null;
+  entregaLugar: string | null;
+  entregaDireccion: string | null;
+  notaDespacho: string | null;
+  urgente: boolean;
+  incluye: string[];
+  gratis: string | null;
+  notaFinal: string | null;
+  items: ItemInformeEntrada[];
+}
+
+export interface PresupuestoDisponible {
+  id: string;
+  codigo: string | null;
+  serie: "EFAMEINSA" | "OPEN";
+  fecha: string | null;
+  monto: number | null;
+  items: string[];
+}
+
+export interface PrellenadoInforme {
+  cuenta: {
+    id: string;
+    razon_social: string;
+    num_doc: string | null;
+    direccion: string | null;
+    esNueva: boolean;
+  };
+  contactos: ContactoEntrada[];
+  presupuestos: PresupuestoDisponible[];
+  /** Cuántos campos del documento quedaron resueltos sin preguntar. */
+  camposResueltos: number;
+  camposTotales: number;
+}
+
+const CAMPOS_TOTALES = 26;
+
+// Todo lo que el CRM ya sabe de esta cuenta y que el formulario no tiene por
+// qué volver a pedir.
+export async function prellenarInforme(cuentaId: string): Promise<{ error: string | null; datos?: PrellenadoInforme }> {
+  const supabase = await createClient();
+
+  const { data: cuenta } = await supabase
+    .from("cuentas")
+    .select("id, razon_social, num_doc, direccion")
+    .eq("id", cuentaId)
+    .maybeSingle();
+  if (!cuenta) return { error: "Cliente no encontrado" };
+
+  const [{ data: contactos }, { data: historicas }, { data: ventas }] = await Promise.all([
+    supabase
+      .from("contactos")
+      .select("nombre, cargo, telefono, email, es_principal")
+      .eq("cuenta_id", cuentaId)
+      .order("es_principal", { ascending: false }),
+    supabase
+      .from("cotizaciones_historicas")
+      .select("id, codigo, serie, fecha, monto_sin_igv, items")
+      .eq("cuenta_id", cuentaId)
+      .order("fecha", { ascending: false })
+      .limit(20),
+    // "Cliente nuevo" del formato = todavía no nos compró. Se resuelve solo:
+    // el comercial no debería tener que acordarse.
+    supabase
+      .from("ventas")
+      .select("id, oportunidades!inner(cuenta_id)")
+      .eq("oportunidades.cuenta_id", cuentaId)
+      .limit(1),
+  ]);
+
+  const presupuestos = (historicas ?? []).map((c) => ({
+    id: c.id,
+    codigo: c.codigo,
+    serie: c.serie as "EFAMEINSA" | "OPEN",
+    fecha: c.fecha,
+    monto: c.monto_sin_igv,
+    items: c.items ?? [],
+  }));
+
+  // Se cuentan como resueltos los datos que salen de la cuenta y del contacto
+  // principal; el número que ve el comercial arriba de la pantalla.
+  const principal = (contactos ?? [])[0];
+  const resueltos =
+    3 + // razón social, asunto, cliente nuevo/antiguo
+    (cuenta.num_doc ? 1 : 0) +
+    (cuenta.direccion ? 2 : 0) + // dirección del cliente y destino del despacho
+    (principal ? 4 : 0) + // nombre, teléfono, correo, correo del cliente
+    (presupuestos.length ? 3 : 0) + // Nº de presupuesto, equipos, importes
+    INCLUYE_POR_DEFECTO.length +
+    1; // fecha
+
+  return {
+    error: null,
+    datos: {
+      cuenta: {
+        id: cuenta.id,
+        razon_social: cuenta.razon_social,
+        num_doc: cuenta.num_doc,
+        direccion: cuenta.direccion,
+        esNueva: (ventas ?? []).length === 0,
+      },
+      contactos: (contactos ?? []).map((c) => ({
+        area: c.cargo,
+        nombre: c.nombre,
+        telefono: c.telefono,
+        correo: c.email,
+      })),
+      presupuestos,
+      camposResueltos: Math.min(resueltos, CAMPOS_TOTALES),
+      camposTotales: CAMPOS_TOTALES,
+    },
+  };
+}
+
+function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
+  return {
+    serie: d.serie,
+    cuenta_id: cuentaId,
+    oportunidad_id: d.oportunidadId,
+    venta_id: d.ventaId,
+    cotizacion_id: d.cotizacionId,
+    presupuesto_ref: d.presupuestoRef,
+    asunto: d.clienteNombre,
+    comprobante: d.comprobante,
+    cliente_nuevo: d.clienteNuevo,
+    cliente_nombre: d.clienteNombre,
+    cliente_doc: d.clienteDoc,
+    cliente_direccion: d.clienteDireccion,
+    cliente_correo: d.clienteCorreo,
+    orden_compra: d.ordenCompra,
+    contacto_venta: d.contactoVenta,
+    contacto_contabilidad: d.contactoContabilidad,
+    contacto_despacho: d.contactoDespacho,
+    modalidad_pago: d.modalidadPago,
+    forma_pago: d.formaPago,
+    moneda: d.moneda,
+    // El total con IGV, que es lo que se cobra. Se calcula acá y no en el
+    // navegador: el importe del documento no puede depender de lo que
+    // mandó el cliente.
+    monto_total: Number(
+      (d.items.filter((i) => i.bloque !== "gratuito").reduce((a, i) => a + i.cantidad * i.precio_unitario, 0) * 1.18).toFixed(2),
+    ),
+    nota_condiciones: d.notaCondiciones,
+    entrega_fecha: d.entregaFecha,
+    entrega_hora: d.entregaHora,
+    entrega_lugar: d.entregaLugar,
+    entrega_direccion: d.entregaDireccion,
+    nota_despacho: d.notaDespacho,
+    urgente: d.urgente,
+    incluye: d.incluye,
+    gratis: d.gratis,
+    nota_final: d.notaFinal,
+    items: d.items,
+    creado_por: creadoPor,
+  };
+}
+
+function validar(d: DatosInforme): string | null {
+  if (!d.items.some((i) => i.bloque !== "gratuito")) return "El informe necesita al menos un equipo vendido";
+  if (d.items.some((i) => !i.descripcion.trim())) return "Hay un equipo sin descripción";
+  if (d.items.some((i) => i.cantidad <= 0)) return "La cantidad de un equipo tiene que ser mayor que cero";
+  if (d.modalidadPago.length === 0) return "Marque la modalidad de pago";
+  if (!d.entregaLugar?.trim()) return "Falta el lugar de entrega: sin eso logística no puede despachar";
+  return null;
+}
+
+export async function guardarBorradorInforme(
+  cuentaId: string,
+  datos: DatosInforme,
+  informeId?: string,
+): Promise<{ error: string | null; informeId?: string }> {
+  const problema = validar(datos);
+  if (problema) return { error: problema };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const fila = aFila(cuentaId, datos, user?.id ?? null);
+
+  if (informeId) {
+    const { error } = await supabase.from("informes_cierre").update(fila).eq("id", informeId);
+    if (error) return { error: error.message };
+    revalidatePath(`/comercial/cartera/${cuentaId}`);
+    return { error: null, informeId };
+  }
+
+  const { data, error } = await supabase.from("informes_cierre").insert(fila).select("id").single();
+  if (error) return { error: error.message };
+  revalidatePath(`/comercial/cartera/${cuentaId}`);
+  return { error: null, informeId: data.id };
+}
+
+// Acá se gasta el número. Antes de esto el documento es un borrador y el PDF
+// sale rotulado como tal.
+export async function emitirInforme(informeId: string): Promise<{ error: string | null; codigo?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("emitir_informe", { p_id: informeId });
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+
+  const { data: informe } = await supabase.from("informes_cierre").select("cuenta_id").eq("id", informeId).maybeSingle();
+  if (informe) revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
+  return { error: null, codigo: data as string };
+}
+
+export async function borrarBorradorInforme(informeId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data: informe } = await supabase
+    .from("informes_cierre")
+    .select("cuenta_id, emitido_at")
+    .eq("id", informeId)
+    .maybeSingle();
+  if (!informe) return { error: "Informe no encontrado" };
+  if (informe.emitido_at) return { error: "Un informe emitido no se borra" };
+
+  const { error } = await supabase.from("informes_cierre").delete().eq("id", informeId);
+  if (error) return { error: error.message };
+  revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
+  return { error: null };
+}
