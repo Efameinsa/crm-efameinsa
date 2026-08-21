@@ -7,6 +7,7 @@ import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ResumenCuenta } from "@/components/crm/resumen-cuenta";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
+import { GrupoEconomico } from "@/components/crm/grupo-economico";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -88,6 +89,8 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} />
+
+          <GrupoEconomico cuentaId={cuenta.id} comoGerencia={comoGerencia} />
 
           {/* Informes de cierre: el documento que recibe Central para facturar,
               cobrar y despachar. Va junto a las compras porque es el paso

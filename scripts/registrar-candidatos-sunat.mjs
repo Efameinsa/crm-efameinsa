@@ -47,6 +47,12 @@ function partes(nombre) {
 
 function clasificar(razonSocialCrm, contributors) {
   const crm = normalizar(razonSocialCrm);
+  // El CRM también trae nombres compuestos ("INVERSIONES EN TURISMO S.A. -
+  // HOTEL LAS DUNAS SUN RESORT": razón social y nombre del hotel). Se comparan
+  // las partes de los dos lados, si no la coincidencia se pierde. El aviso de
+  // "dos razones sociales" ya se encarga de bajarle la confianza a estos casos.
+  const crmPartes = partes(razonSocialCrm);
+  const encaja = (nombreSunat) => partes(nombreSunat).some((p) => crmPartes.includes(p));
   const activos = contributors.filter((c) => c.status === "ACTIVO");
 
   if (contributors.length === 0) {
@@ -61,7 +67,7 @@ function clasificar(razonSocialCrm, contributors) {
     };
   }
 
-  const exactos = activos.filter((c) => partes(c.name).includes(crm));
+  const exactos = activos.filter((c) => encaja(c.name));
 
   if (exactos.length === 1) {
     return {
@@ -107,13 +113,79 @@ function clasificar(razonSocialCrm, contributors) {
   };
 }
 
-const entradas = JSON.parse(readFileSync(RUTA, "utf8"));
+// Dos formatos de entrada. El .json es el completo; el .txt es compacto,
+// pensado para cargar tandas grandes a mano sin escribir JSON:
+//
+//   RAZON SOCIAL DEL CRM
+//     20136424867 | DERRAMA MAGISTERIAL | LIMA | ACTIVO
+//     20561119130 | EMPRESA DE TRANSPORTES ... | CHICLAYO | BAJA DE OFICIO
+//   OTRA RAZON SOCIAL   [tope]        <- "[tope]" = SUNAT devolvió las 30
+//     (sin sangría y sin líneas debajo = sin resultados)
+function leerCompacto(texto) {
+  const salida = [];
+  for (const linea of texto.split("\n")) {
+    const limpia = linea.replace(/\r$/, "");
+    if (!limpia.trim()) continue;
+    if (/^\s/.test(limpia)) {
+      const [ruc, name, location, status] = limpia.split("|").map((x) => x.trim());
+      salida[salida.length - 1].contributors.push({
+        ruc,
+        name,
+        location: location || null,
+        status: status || null,
+      });
+    } else {
+      const capped = /\[tope\]\s*$/.test(limpia);
+      salida.push({
+        razonSocial: limpia.replace(/\s*\[tope\]\s*$/, "").trim(),
+        capped,
+        contributors: [],
+      });
+    }
+  }
+  return salida;
+}
+
+const bruto = readFileSync(RUTA, "utf8");
+const entradas = RUTA.endsWith(".txt") ? leerCompacto(bruto) : JSON.parse(bruto);
 const bd = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 await bd.connect();
+
+// El formato compacto no trae el id: se resuelve por razón social NORMALIZADA
+// contra las cuentas sin documento. Normalizada y no exacta porque el CRM
+// arrastra espacios dobles y tildes del Excel ("VOLCAN COMPAÑÍA   MINERA SA")
+// y transcribir eso a mano pierde filas en silencio.
+//
+// Si el nombre normalizado cae en DOS cuentas, se salta: ahí no hay forma de
+// saber a cuál de las dos pertenece el resultado, y adivinar sería justo el
+// error que este flujo quiere evitar.
+const sinId = entradas.filter((e) => !e.cuentaId);
+if (sinId.length) {
+  const { rows } = await bd.query("select id, razon_social from cuentas where tipo_doc = 'SIN_DOC'");
+  const porNombre = new Map();
+  for (const r of rows) {
+    const clave = normalizar(r.razon_social);
+    porNombre.set(clave, porNombre.has(clave) ? "AMBIGUA" : r.id);
+  }
+  const ambiguas = [];
+  for (const e of sinId) {
+    const hallado = porNombre.get(normalizar(e.razonSocial));
+    if (hallado === "AMBIGUA") ambiguas.push(e.razonSocial);
+    e.cuentaId = hallado && hallado !== "AMBIGUA" ? hallado : null;
+  }
+  if (ambiguas.length) {
+    console.log(`⚠️ ${ambiguas.length} con el nombre repetido en dos cuentas sin documento, se saltan: ${ambiguas.join(" · ").slice(0, 240)}`);
+  }
+  const perdidas = entradas.filter((e) => !e.cuentaId && !ambiguas.includes(e.razonSocial));
+  if (perdidas.length) {
+    console.log(`⚠️ ${perdidas.length} sin cuenta que coincida, se saltan: ${perdidas.map((e) => e.razonSocial).join(" · ").slice(0, 240)}`);
+  }
+}
 
 const cuenta = { alta: 0, media: 0, baja: 0, ninguna: 0 };
 
 for (const e of entradas) {
+  if (!e.cuentaId) continue;
   const { resultado, confianza, motivo, elegido } = clasificar(e.razonSocial, e.contributors ?? []);
   const avisos = [motivo];
 
