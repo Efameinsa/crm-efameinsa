@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ArrowDownUp, ChevronRight } from "lucide-react";
+import { Search, ArrowDownUp, ChevronRight, FileText } from "lucide-react";
 import {
   LineaTiempoCuenta,
   ETIQUETA_ACTIVIDAD,
@@ -206,6 +206,19 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
                   de mostrar un cero que se leería como "cotizó gratis". */}
               — {evento.monto != null ? `${evento.moneda} ${evento.monto.toLocaleString("es-PE")}` : "sin total en el documento"}
             </span>
+          </p>
+        )}
+        {evento.tipo === "cotizacion" && evento.pdfUrl && (
+          <p className="mt-1">
+            <a
+              href={evento.pdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+            >
+              <FileText className="size-3" /> Ver PDF
+            </a>
           </p>
         )}
         {evento.tipo === "venta" && (

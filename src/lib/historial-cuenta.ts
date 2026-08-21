@@ -56,7 +56,7 @@ export async function cargarHistorialCuenta(
   // existían las oportunidades: por eso se consultan aparte y no por opIds.
   const { data: cotHistoricas } = await supabase
     .from("cotizaciones_historicas")
-    .select("id, codigo, correlativo, anio, serie, fecha, monto_sin_igv, items, n_equipos")
+    .select("id, codigo, correlativo, anio, serie, fecha, monto_sin_igv, items, n_equipos, pdf_path")
     .eq("cuenta_id", cuentaId)
     .order("fecha", { ascending: false })
     .limit(100);
@@ -122,6 +122,7 @@ export async function cargarHistorialCuenta(
         color,
         monto: c.total,
         moneda: c.moneda,
+        pdfUrl: `/api/cotizaciones/${c.id}/pdf`,
       };
     }),
     ...(cotHistoricas ?? []).map((c): EventoTimeline => ({
@@ -136,6 +137,11 @@ export async function cargarHistorialCuenta(
       color: "neutro",
       monto: c.monto_sin_igv,
       moneda: "USD",
+      // El enlace es a una ruta del servidor, no al bucket: la URL firmada se
+      // pide recién al hacer clic (vence en minutos) y así la política de
+      // cartera decide en ese momento. Sin pdf_path el documento aún no está
+      // subido o solo existe en .doc, y entonces no se ofrece nada.
+      pdfUrl: c.pdf_path ? `/api/cotizaciones-historicas/${c.id}/pdf` : null,
     })),
     ...(ventas ?? []).map(
       (v): EventoTimeline => ({

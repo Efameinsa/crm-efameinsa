@@ -81,6 +81,10 @@ export interface EventoCotizacion {
   // menú de alternativas): se muestra el presupuesto sin cifra, no un cero.
   monto: number | null;
   moneda: string;
+  // Ruta del servidor que abre el PDF. En las del CRM lo genera al vuelo; en
+  // las del archivo devuelve una URL firmada del bucket privado, y solo existe
+  // si el documento ya se subió — por eso puede venir null.
+  pdfUrl?: string | null;
 }
 export interface EventoVenta {
   tipo: "venta";
@@ -155,6 +159,19 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
                 📎 {ad.nombre}
               </a>
             ))}
+          </p>
+        )}
+        {evento.tipo === "cotizacion" && evento.pdfUrl && (
+          <p className="mt-1">
+            <a
+              href={evento.pdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+            >
+              <FileText className="size-3" /> Ver PDF
+            </a>
           </p>
         )}
         {evento.oportunidadId != null && evento.oportunidadId !== oportunidadActualId && (
