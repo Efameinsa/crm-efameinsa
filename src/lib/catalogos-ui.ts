@@ -18,15 +18,38 @@ export interface OpcionConCriterio {
   valor: string;
   etiqueta: string;
   criterio: string;
+  /** Clase Tailwind del punto de color, cuando la lista es una ESCALA y no un
+      conjunto de opciones sueltas. Ver COLOR_INTENCION. */
+  color?: string;
 }
 
+// Escala de calor del interés de compra: de verde lleno (casi venta) a gris
+// apagado (frío), pasando por ámbar. Se lee de un vistazo sin tener que
+// leer la etiqueta, que es lo que hace falta al recorrer una lista larga.
+//
+// POR QUÉ VERDE Y NO EL GRANATE DE MARCA: el granate es el color de los
+// enlaces y las acciones en toda la app, así que un punto granate se lee como
+// "esto se puede clicar". El verde ya significa "bien" acá (venta, cotización
+// aceptada), y "alto potencial" es justamente "casi venta".
+//
+// El color NUNCA va solo: siempre acompaña a la etiqueta escrita, para que
+// funcione en blanco y negro y para quien no distingue verde de ámbar.
+export const COLOR_INTENCION: Record<string, string> = {
+  alto_potencial: "bg-[#1E7F4F]",
+  medio_alto: "bg-[#1E7F4F]/55",
+  medio: "bg-amber-500",
+  medio_bajo: "bg-amber-500/50",
+  bajo: "bg-muted-foreground/45",
+  sin_definir: "border border-dashed border-muted-foreground/50 bg-transparent",
+};
+
 export const INTENCION_COMPRA: OpcionConCriterio[] = [
-  { valor: "alto_potencial", etiqueta: "Alto potencial", criterio: "Espera la orden de compra o el depósito" },
-  { valor: "medio_alto", etiqueta: "Medio alto", criterio: "Ya tiene local, o dio una fecha exacta" },
-  { valor: "medio", etiqueta: "Medio", criterio: "Está buscando ubicación" },
-  { valor: "medio_bajo", etiqueta: "Medio bajo", criterio: "Está buscando financiamiento" },
-  { valor: "bajo", etiqueta: "Bajo", criterio: "Solo quiere saber, sin intención concreta" },
-  { valor: "sin_definir", etiqueta: "Sin definir", criterio: "Todavía no se ha calificado" },
+  { valor: "alto_potencial", etiqueta: "Alto potencial", criterio: "Espera la orden de compra o el depósito", color: COLOR_INTENCION.alto_potencial },
+  { valor: "medio_alto", etiqueta: "Medio alto", criterio: "Ya tiene local, o dio una fecha exacta", color: COLOR_INTENCION.medio_alto },
+  { valor: "medio", etiqueta: "Medio", criterio: "Está buscando ubicación", color: COLOR_INTENCION.medio },
+  { valor: "medio_bajo", etiqueta: "Medio bajo", criterio: "Está buscando financiamiento", color: COLOR_INTENCION.medio_bajo },
+  { valor: "bajo", etiqueta: "Bajo", criterio: "Solo quiere saber, sin intención concreta", color: COLOR_INTENCION.bajo },
+  { valor: "sin_definir", etiqueta: "Sin definir", criterio: "Todavía no se ha calificado", color: COLOR_INTENCION.sin_definir },
 ];
 
 export const ETAPA_OPORTUNIDAD: OpcionConCriterio[] = [

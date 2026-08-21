@@ -9,8 +9,11 @@ export interface FilaCartera {
   razonSocial: string;
   documento: string;
   distrito: string | null;
-  contactos: number;
-  oportunidadesTotal: number;
+  /** Cuántas veces compró. Reemplazó al conteo de contactos: para decidir a
+      quién llamar importa más si el cliente ya compró que cuántos teléfonos
+      tiene guardados. */
+  compras: number;
+  totalUsd: number;
   oportunidadesActivas: number;
   ultimaVentaAt: string | null;
 }
@@ -29,8 +32,8 @@ export function TablaCartera({ filas }: { filas: FilaCartera[] }) {
             <TableHead>Cliente</TableHead>
             <TableHead>Documento</TableHead>
             <TableHead>Zona</TableHead>
-            <TableHead className="text-right">Contactos</TableHead>
-            <TableHead className="text-right">Oportunidades</TableHead>
+            <TableHead className="text-right">Compras</TableHead>
+            <TableHead className="text-right">Abiertas</TableHead>
             <TableHead>Última venta</TableHead>
             <TableHead className="w-8" />
           </TableRow>
@@ -57,13 +60,25 @@ export function TablaCartera({ filas }: { filas: FilaCartera[] }) {
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">{c.documento}</TableCell>
               <TableCell className="text-muted-foreground">{c.distrito ?? "—"}</TableCell>
-              <TableCell className="text-right tabular-nums">{c.contactos}</TableCell>
               <TableCell className="text-right tabular-nums">
-                {c.oportunidadesTotal}
-                {c.oportunidadesActivas > 0 && (
-                  <span className="ml-1 text-xs text-primary">
-                    ({c.oportunidadesActivas} activa{c.oportunidadesActivas === 1 ? "" : "s"})
-                  </span>
+                {c.compras > 0 ? (
+                  <>
+                    {c.compras}
+                    {c.totalUsd > 0 && (
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        US$ {Math.round(c.totalUsd).toLocaleString("es-PE")}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {c.oportunidadesActivas > 0 ? (
+                  <span className="font-semibold text-primary">{c.oportunidadesActivas}</span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
                 )}
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">

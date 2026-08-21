@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowUp, ArrowDown, ArrowUpDown, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowUp, ArrowDown, ArrowUpDown, ChevronRight, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PuntoInteres } from "@/components/crm/punto-interes";
@@ -123,6 +123,7 @@ function TablaOportunidades({
   busqueda: string;
   setBusqueda: (v: string) => void;
 }) {
+  const router = useRouter();
   const conteoEtapas = useMemo(() => {
     const c: Record<string, number> = {};
     for (const o of oportunidades) c[o.etapa] = (c[o.etapa] ?? 0) + 1;
@@ -230,13 +231,22 @@ function TablaOportunidades({
                   Monto estimado <IconoOrden col="monto" orden={pref.orden} direccion={pref.direccion} />
                 </button>
               </TableHead>
-              <TableHead />
+              <TableHead className="w-8" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtradas.map((op) => (
-              <TableRow key={op.id}>
-                <TableCell>{op.razon_social}</TableCell>
+              <TableRow
+                key={op.id}
+                role="link"
+                tabIndex={0}
+                onClick={() => router.push(`/comercial/oportunidades/${op.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") router.push(`/comercial/oportunidades/${op.id}`);
+                }}
+                className="cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+              >
+                <TableCell className="font-medium text-foreground">{op.razon_social}</TableCell>
                 <TableCell>
                   <EtapaBadge etapa={op.etapa} />
                 </TableCell>
@@ -246,10 +256,8 @@ function TablaOportunidades({
                 <TableCell className="text-right tabular-nums">
                   {op.monto_estimado ? `${op.moneda} ${op.monto_estimado.toLocaleString("es-PE")}` : "—"}
                 </TableCell>
-                <TableCell className="text-right">
-                  <Link href={`/comercial/oportunidades/${op.id}`} className="text-sm text-primary hover:underline">
-                    Ver
-                  </Link>
+                <TableCell>
+                  <ChevronRight className="size-4 text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ))}
