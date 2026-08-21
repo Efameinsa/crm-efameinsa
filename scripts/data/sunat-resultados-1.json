@@ -1,0 +1,212 @@
+[
+ {
+  "razonSocial": "DERRAMA MAGISTERIAL",
+  "contributors": [
+   {
+    "ruc": "20136424867",
+    "name": "DERRAMA MAGISTERIAL",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   },
+   {
+    "ruc": "20561119130",
+    "name": "EMPRESA DE TRANSPORTES DERRAMA MAGISTERIAL S.R.L.",
+    "location": "CHICLAYO",
+    "status": "BAJA DE OFICIO"
+   },
+   {
+    "ruc": "20502810198",
+    "name": "SINDICATO DE TRABAJADORES DE LA DERRAMA MAGISTERIAL",
+    "location": "LIMA",
+    "status": "BAJA DE OFICIO"
+   }
+  ],
+  "cuentaId": "102cf1bc-f3b7-49a0-8cd5-1b3c5dec9205"
+ },
+ {
+  "razonSocial": "AGRICOLA Y GANADERA CHAVIN DE HUANTAR SA",
+  "contributors": [
+   {
+    "ruc": "20402805294",
+    "name": "AGRICOLA Y GANADERA CHAVIN DE HUANTAR SA",
+    "location": "CASMA",
+    "status": "ACTIVO"
+   }
+  ],
+  "cuentaId": "65637f1f-f6ea-4ce2-b6b7-2cfd9270137f"
+ },
+ {
+  "razonSocial": "LOGISMINSA",
+  "contributors": [
+   {
+    "ruc": "20552956461",
+    "name": "LOGISTIC INDUSTRY & MINING SOCIEDAD ANONIMA - LOGISMINSA S.A.",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   },
+   {
+    "ruc": "20539402774",
+    "name": "LOGISTICA MINERA INTEGRAL MP SOCIEDAD ANOMIMA CERRADA - LOGISMIN S.A.C.",
+    "location": "AREQUIPA",
+    "status": "BAJA DE OFICIO"
+   }
+  ],
+  "cuentaId": "fa5740a6-7dbc-41b0-adde-42bf30929a2b"
+ },
+ {
+  "razonSocial": "CORPORACION CENTRAL SUAREZ SAC - AVIVA DEL PERU SOCIEDAD ANONIMA CERRADA",
+  "contributors": [
+   {
+    "ruc": "20603838701",
+    "name": "CORPORACION CENTRAL SUAREZ S.A.C.",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   }
+  ],
+  "cuentaId": "dddbfac1-a021-4e3c-b6ef-00de58bf001c"
+ },
+ {
+  "razonSocial": "VIÑA MELGAREJO  CONSORCIO LAZARO",
+  "contributors": [
+   {
+    "ruc": "10304926061",
+    "name": "VINA MELGAREJO CONSORCIO LAZARO",
+    "location": "CARAVELI",
+    "status": "ACTIVO"
+   },
+   {
+    "ruc": "10304930620",
+    "name": "MELGAREJO DE VINA EDUVIGES",
+    "location": "CARAVELI",
+    "status": "BAJA DEFINITIVA"
+   },
+   {
+    "ruc": "10304930450",
+    "name": "VINA MELGAREJO OLGA AURELIA",
+    "location": "CARAVELI",
+    "status": "BAJA DE OFICIO"
+   }
+  ],
+  "cuentaId": "11fa00ee-12bb-4b4c-9cfb-d696280ed728"
+ },
+ {
+  "razonSocial": "CONSORCIO EL PORTAL DEL MARQUES SAC",
+  "contributors": [
+   {
+    "ruc": "20491823098",
+    "name": "CONSORCIO EL PORTAL DEL MARQUES S.A.C",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   }
+  ],
+  "cuentaId": "e687255e-14fa-40ad-ac91-753a9f66a04f"
+ },
+ {
+  "razonSocial": "GRUPO SANTA ELENA",
+  "contributors": [
+   {
+    "ruc": "20603363061",
+    "name": "GRUPO GANADERO SANTA ELENA E.I.R.L.",
+    "location": "LIMA",
+    "status": "BAJA DE OFICIO"
+   },
+   {
+    "ruc": "20155261570",
+    "name": "GRUPO SANTA ELENA S.A.",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   },
+   {
+    "ruc": "20561231487",
+    "name": "GRUPO SANTA ELENA S.A.C",
+    "location": "CHICLAYO",
+    "status": "BAJA DE OFICIO"
+   }
+  ],
+  "cuentaId": "253a841e-e682-48b4-8d90-465265944199"
+ },
+ {
+  "razonSocial": "SERVICIOS GENERALES S.A.",
+  "capped": true,
+  "contributors": [
+   {
+    "ruc": "20614149656",
+    "name": "SERVICIOS GENERALES DE ADMINISTRACION Y CONTABILIDAD INMOBILIARIA S.A.C.",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   },
+   {
+    "ruc": "20532440760",
+    "name": "SERVICIOS GENERALES AGRO JARDIN E.I.R.L.",
+    "location": "ILO",
+    "status": "ACTIVO"
+   },
+   {
+    "ruc": "20610335501",
+    "name": "SERVICIOS GENERALES ALUM S.A.C.",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   },
+   {
+    "ruc": "20615044149",
+    "name": "SERVICIOS GENERALES AMBIENTALES ESPECIALIZADOS S.A.C.",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   },
+   {
+    "ruc": "20609772451",
+    "name": "SERVICIOS GENERALES LA ANTIGUA S.A.C.",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   },
+   {
+    "ruc": "20393307413",
+    "name": "SERVICIOS GENERALES DE ASESORIA TECNICA E.I.R.L.",
+    "location": "CORONEL PORTILLO",
+    "status": "ACTIVO"
+   }
+  ],
+  "cuentaId": "c874fbfc-59c8-4bb0-b6f4-ed54b9721114"
+ },
+ {
+  "razonSocial": "OSWIL GROUP S.A.C.",
+  "contributors": [
+   {
+    "ruc": "20604820422",
+    "name": "OSWIL GROUP S.A.C.",
+    "location": "MARISCAL NIETO",
+    "status": "ACTIVO"
+   }
+  ],
+  "cuentaId": "e2cf5571-ee6a-4c3b-95ca-723624c561f1"
+ },
+ {
+  "razonSocial": "HHP HOTELES HACIENDA DEL PERU S.R.L.",
+  "contributors": [
+   {
+    "ruc": "20406464181",
+    "name": "HHP HOTELES HACIENDA DEL PERU S.R.L.",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   }
+  ],
+  "cuentaId": "8ea93fd0-1f08-4ddc-82a7-0d2a3f550ea6"
+ },
+ {
+  "razonSocial": "SIERRA MINERA CARAZ",
+  "contributors": [
+   {
+    "ruc": "20612990680",
+    "name": "SIERRA MINERA CARAZ S.A.C",
+    "location": "LIMA",
+    "status": "ACTIVO"
+   }
+  ],
+  "cuentaId": "ae3e5ac3-8734-4acb-a170-1cf7eedbf540"
+ },
+ {
+  "razonSocial": "HOTEL CURASI",
+  "contributors": [],
+  "cuentaId": "b322e273-c0db-4964-b869-dca7a2ddc171"
+ }
+]
