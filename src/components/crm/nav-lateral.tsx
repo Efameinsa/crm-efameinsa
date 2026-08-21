@@ -18,6 +18,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   PiggyBank,
+  PackageCheck,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   central: [
     { href: "/central", etiqueta: "Bandeja", icono: Inbox },
     { href: "/central/captura", etiqueta: "Registrar contacto", icono: ClipboardList },
+    // El informe de cierre se le manda a Central para facturar, cobrar y
+    // despachar: hasta ahora era la única que no tenía dónde verlo.
+    { href: "/central/cierres", etiqueta: "Cierres de venta", icono: PackageCheck },
   ],
   comercial: [
     { href: "/comercial", etiqueta: "Mi día", icono: ClipboardList },

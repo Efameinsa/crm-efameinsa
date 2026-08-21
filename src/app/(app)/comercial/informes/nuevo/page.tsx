@@ -10,9 +10,9 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 export default async function NuevoInformePage({
   searchParams,
 }: {
-  searchParams: Promise<{ cuenta?: string }>;
+  searchParams: Promise<{ cuenta?: string; venta?: string }>;
 }) {
-  const { cuenta } = await searchParams;
+  const { cuenta, venta } = await searchParams;
   if (!cuenta) notFound();
 
   // El prellenado va con la sesión del usuario, así que RLS ya decide si esa
@@ -33,7 +33,7 @@ export default async function NuevoInformePage({
         <p className="mb-4 text-sm text-muted-foreground">
           El documento que recibe Central para facturar, cobrar y despachar.
         </p>
-        <FormularioInforme prellenado={datos} />
+        <FormularioInforme prellenado={datos} ventaPreseleccionada={venta} />
       </SeccionPanel>
     </div>
   );

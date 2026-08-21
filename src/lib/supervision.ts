@@ -18,6 +18,8 @@ export interface ComercialSupervision {
   cotizaciones_archivo: number;
   ventas: number;
   monto_vendido_usd: number;
+  /** Informes de cierre EMITIDOS ese día (los borradores no cuentan). */
+  informes_emitidos: number;
   agenda_pendiente: number;
   agenda_vencida: number;
   primera_gestion: string | null; // "HH:MM:SS" hora Lima
@@ -31,6 +33,7 @@ export interface TotalesSupervision {
   /** Documentos de ese día cuya firma no permitió identificar al asesor. */
   cotizaciones_archivo_sin_asesor: number;
   ventas: number;
+  informes_emitidos: number;
   comerciales_en_meta: number;
   comerciales_sin_actividad: number;
 }

@@ -67,6 +67,16 @@ export interface PresupuestoDisponible {
   items: string[];
 }
 
+export interface VentaSinInforme {
+  id: string;
+  oportunidadId: string;
+  fecha: string;
+  monto: number;
+  moneda: string;
+  /** Nº del presupuesto histórico del que salió, si lo trae. */
+  referencia: string | null;
+}
+
 export interface PrellenadoInforme {
   cuenta: {
     id: string;
@@ -77,6 +87,8 @@ export interface PrellenadoInforme {
   };
   contactos: ContactoEntrada[];
   presupuestos: PresupuestoDisponible[];
+  /** Ventas de este cliente que aún no tienen informe emitido. */
+  ventasSinInforme: VentaSinInforme[];
   /** Cuántos campos del documento quedaron resueltos sin preguntar. */
   camposResueltos: number;
   camposTotales: number;
@@ -96,7 +108,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     .maybeSingle();
   if (!cuenta) return { error: "Cliente no encontrado" };
 
-  const [{ data: contactos }, { data: historicas }, { data: ventas }] = await Promise.all([
+  const [{ data: contactos }, { data: historicas }, { data: ventas }, { data: informes }] = await Promise.all([
     supabase
       .from("contactos")
       .select("nombre, cargo, telefono, email, es_principal")
@@ -109,13 +121,29 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
       .order("fecha", { ascending: false })
       .limit(20),
     // "Cliente nuevo" del formato = todavía no nos compró. Se resuelve solo:
-    // el comercial no debería tener que acordarse.
+    // el comercial no debería tener que acordarse. Y de paso sirven para
+    // ofrecerle a cuál venta corresponde este informe.
     supabase
       .from("ventas")
-      .select("id, oportunidades!inner(cuenta_id)")
+      .select("id, fecha_venta, monto_total, moneda, referencia_historica, origen, oportunidades!inner(id, cuenta_id)")
       .eq("oportunidades.cuenta_id", cuentaId)
-      .limit(1),
+      .order("fecha_venta", { ascending: false }),
+    supabase.from("informes_cierre").select("venta_id").eq("cuenta_id", cuentaId).not("venta_id", "is", null),
   ]);
+
+  // Solo las ventas nacidas EN el CRM: las 626 importadas del Excel son
+  // anteriores al sistema y nadie va a emitirles un informe a destiempo.
+  const yaConInforme = new Set((informes ?? []).map((i) => i.venta_id));
+  const ventasSinInforme: VentaSinInforme[] = (ventas ?? [])
+    .filter((v) => v.origen === "crm" && !yaConInforme.has(v.id))
+    .map((v) => ({
+      id: v.id,
+      oportunidadId: (v.oportunidades as unknown as { id: string }).id,
+      fecha: v.fecha_venta,
+      monto: v.monto_total,
+      moneda: v.moneda,
+      referencia: v.referencia_historica,
+    }));
 
   const presupuestos = (historicas ?? []).map((c) => ({
     id: c.id,
@@ -155,6 +183,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
         correo: c.email,
       })),
       presupuestos,
+      ventasSinInforme,
       camposResueltos: Math.min(resueltos, CAMPOS_TOTALES),
       camposTotales: CAMPOS_TOTALES,
     },

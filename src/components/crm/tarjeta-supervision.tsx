@@ -85,6 +85,14 @@ export function TarjetaSupervision({ c, meta, fecha }: { c: ComercialSupervision
             <TrendingUp className="size-3" /> {c.ventas} venta{c.ventas === 1 ? "" : "s"} · {usd(c.monto_vendido_usd)}
           </span>
         )}
+        {/* Cerró la venta pero no emitió el informe: Central no puede
+            facturarla ni despacharla. Se dice el hueco, no se deduce. */}
+        {c.ventas > c.informes_emitidos && (
+          <span className="flex items-center gap-1 font-semibold text-amber-700">
+            <AlertTriangle className="size-3" />
+            {c.ventas - c.informes_emitidos} sin informe de cierre
+          </span>
+        )}
         {c.agenda_pendiente > 0 && <span>{c.agenda_pendiente} pendiente{c.agenda_pendiente === 1 ? "" : "s"} hoy</span>}
       </p>
     </Link>

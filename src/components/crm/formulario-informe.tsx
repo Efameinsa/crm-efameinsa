@@ -77,13 +77,28 @@ function Pastilla({
   );
 }
 
-export function FormularioInforme({ prellenado }: { prellenado: PrellenadoInforme }) {
+export function FormularioInforme({
+  prellenado,
+  ventaPreseleccionada,
+}: {
+  prellenado: PrellenadoInforme;
+  /** Cuando se llega desde el aviso de "Mi día", ya se sabe de qué venta es. */
+  ventaPreseleccionada?: string;
+}) {
   const router = useRouter();
   const [guardando, startTransition] = useTransition();
   const [informeId, setInformeId] = useState<string | null>(null);
   const [verTodo, setVerTodo] = useState(false);
 
-  const { cuenta, contactos, presupuestos } = prellenado;
+  const { cuenta, contactos, presupuestos, ventasSinInforme } = prellenado;
+
+  // A qué venta corresponde el informe. Atarlo es lo que después permite
+  // avisarle al comercial qué venta le quedó sin informe: sin esto el
+  // documento queda suelto y el sistema no puede echar de menos ninguno.
+  const [ventaId, setVentaId] = useState<string | null>(
+    ventaPreseleccionada ?? (ventasSinInforme.length === 1 ? ventasSinInforme[0].id : null),
+  );
+  const venta = ventasSinInforme.find((v) => v.id === ventaId) ?? null;
   const principal: ContactoEntrada = contactos[0] ?? {};
 
   const [presupuestoId, setPresupuestoId] = useState<string>(presupuestos[0]?.id ?? "");
@@ -151,9 +166,9 @@ export function FormularioInforme({ prellenado }: { prellenado: PrellenadoInform
     const contactoDespacho = contactos[contactoDespachoIdx] ?? principal;
     return {
       serie,
-      presupuestoRef: presupuesto?.codigo ?? null,
-      oportunidadId: null,
-      ventaId: null,
+      presupuestoRef: presupuesto?.codigo ?? venta?.referencia ?? null,
+      oportunidadId: venta?.oportunidadId ?? null,
+      ventaId: venta?.id ?? null,
       cotizacionId: null,
       comprobante,
       clienteNuevo,
@@ -246,6 +261,25 @@ export function FormularioInforme({ prellenado }: { prellenado: PrellenadoInform
 
       <section className="space-y-3">
         <h3 className="text-sm font-semibold text-foreground">Falta completar</h3>
+
+        {ventasSinInforme.length > 0 && (
+          <Campo etiqueta="¿De qué venta es este informe?" pista="solo las ventas registradas en el CRM">
+            <select
+              value={ventaId ?? ""}
+              onChange={(e) => setVentaId(e.target.value || null)}
+              className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+            >
+              <option value="">Sin atar a una venta</option>
+              {ventasSinInforme.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {new Date(`${v.fecha}T12:00:00`).toLocaleDateString("es-PE")} · {v.moneda}{" "}
+                  {Number(v.monto).toLocaleString("es-PE")}
+                  {v.referencia ? ` · presupuesto ${v.referencia}` : ""}
+                </option>
+              ))}
+            </select>
+          </Campo>
+        )}
 
         {presupuestos.length > 0 && (
           <Campo etiqueta="Presupuesto" pista="del archivo de este cliente">
