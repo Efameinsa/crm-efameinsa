@@ -1,0 +1,67 @@
+// Reporte de lo que falta en V:\LESLY, para entregarle a Lesly (logística).
+// Lee el cruce ya hecho (scripts/data/cruce-codificacion-equipos-*.json,
+// generado por cruzar-codificacion-equipos.mjs) y arma un Excel con:
+//   - Pendientes: código que no tiene catálogo y/o especificación técnica.
+//   - Códigos duplicados: el mismo CÓDIGO usado para dos equipos distintos
+//     en el Excel maestro (rompe la idea de que el código identifica un
+//     único producto — hay que pedir que se separen).
+//
+// Uso: node scripts/reporte-pendientes-lesly.mjs [ruta-al-cruce.json] [salida.xlsx]
+
+import XLSX from "xlsx";
+import { readFileSync } from "node:fs";
+
+const ENTRADA = process.argv[2] ?? "scripts/data/cruce-codificacion-equipos-2026-08-22.json";
+const SALIDA = process.argv[3] ?? "V:/SANTOS/Pendientes catalogo y especificaciones - para Lesly.xlsx";
+
+const datos = JSON.parse(readFileSync(ENTRADA, "utf-8"));
+
+function tieneSpec(d) {
+  return Boolean(d.especificacion) || Boolean(d.especificacionAprox?.length);
+}
+function tieneCat(d) {
+  return Boolean(d.catalogos?.length);
+}
+
+const pendientes = datos
+  .filter((d) => !tieneSpec(d) || !tieneCat(d))
+  .map((d) => ({
+    "CÓDIGO": d.codigo,
+    "MARCA": d.marca,
+    "EQUIPO": d.equipo,
+    "FALTA": !tieneSpec(d) && !tieneCat(d) ? "Catálogo y especificación técnica" : !tieneSpec(d) ? "Especificación técnica" : "Catálogo",
+  }))
+  // Los que falta TODO primero — son los más urgentes.
+  .sort((a, b) => (a["FALTA"] === b["FALTA"] ? a["CÓDIGO"].localeCompare(b["CÓDIGO"]) : a["FALTA"].localeCompare(b["FALTA"])));
+
+const conteo = {};
+for (const d of datos) conteo[d.codigo] = (conteo[d.codigo] ?? []).concat(d);
+const duplicados = Object.entries(conteo)
+  .filter(([, filas]) => filas.length > 1)
+  .flatMap(([codigo, filas]) =>
+    filas.map((d, i) => ({
+      "CÓDIGO": codigo,
+      "VARIANTE": i + 1,
+      "MARCA": d.marca,
+      "EQUIPO": d.equipo,
+    })),
+  );
+
+const wb = XLSX.utils.book_new();
+
+const hoja1 = XLSX.utils.json_to_sheet(pendientes);
+hoja1["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 90 }, { wch: 32 }];
+XLSX.utils.book_append_sheet(wb, hoja1, "Pendientes");
+
+const hoja2 = XLSX.utils.json_to_sheet(duplicados);
+hoja2["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 90 }];
+XLSX.utils.book_append_sheet(wb, hoja2, "Codigos duplicados");
+
+XLSX.writeFile(wb, SALIDA);
+
+console.log(`Pendientes: ${pendientes.length} códigos (de ${datos.length} filas / ${Object.keys(conteo).length} códigos únicos)`);
+console.log(`  - sin catálogo Y sin especificación: ${pendientes.filter((p) => p["FALTA"].includes("y")).length}`);
+console.log(`  - solo falta especificación técnica: ${pendientes.filter((p) => p["FALTA"] === "Especificación técnica").length}`);
+console.log(`  - solo falta catálogo: ${pendientes.filter((p) => p["FALTA"] === "Catálogo").length}`);
+console.log(`Códigos duplicados (mismo código, dos equipos distintos): ${duplicados.length / 2}`);
+console.log(`\nEscrito: ${SALIDA}`);
