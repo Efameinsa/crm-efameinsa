@@ -137,7 +137,25 @@ function Chip({ activo, onClick, children }: { activo: boolean; onClick: () => v
   );
 }
 
-export function Paginacion({ pagina, totalPaginas, total, desde, hasta }: { pagina: number; totalPaginas: number; total: number; desde: number; hasta: number }) {
+export function Paginacion({
+  pagina,
+  totalPaginas,
+  total,
+  desde,
+  hasta,
+  etiqueta = "cliente",
+  etiquetaPlural,
+}: {
+  pagina: number;
+  totalPaginas: number;
+  total: number;
+  desde: number;
+  hasta: number;
+  /** Nombre de la entidad paginada, en singular (ej. "oportunidad"). */
+  etiqueta?: string;
+  /** Plural, si no es tan simple como agregar una "s" (ej. "oportunidades"). */
+  etiquetaPlural?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -153,7 +171,7 @@ export function Paginacion({ pagina, totalPaginas, total, desde, hasta }: { pagi
   if (totalPaginas <= 1) {
     return (
       <p className="text-xs text-muted-foreground">
-        {total.toLocaleString("es-PE")} cliente{total === 1 ? "" : "s"}
+        {total.toLocaleString("es-PE")} {total === 1 ? etiqueta : (etiquetaPlural ?? `${etiqueta}s`)}
       </p>
     );
   }

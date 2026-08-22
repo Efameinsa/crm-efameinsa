@@ -217,6 +217,93 @@ export async function listarClientes(
   return data as unknown as { total: number; filas: FilaClienteListado[] };
 }
 
+export interface FilaOportunidadListado {
+  id: string;
+  etapa: string;
+  intencion: string;
+  monto_estimado: number | null;
+  moneda: string;
+  proxima_accion: string | null;
+  proxima_accion_at: string | null;
+  updated_at: string;
+  origen: string;
+  cuenta_id: string;
+  razon_social: string;
+  tipo_doc: string;
+  es_empresa: boolean;
+  cotizacion_estado: string | null;
+}
+
+export type OrdenOportunidades = "reciente" | "monto" | "proxima_accion" | "cuenta";
+export type TipoClienteFiltro = "empresa" | "persona";
+
+/** listar_oportunidades() (migración 0054): pagina en Postgres con los
+ *  filtros que Carlos pidió el 21-08 (empresa/persona, etapa, "para
+ *  retomar" por rango de fecha) — nunca traer oportunidades crudas al
+ *  servidor, un comercial como Katerine tiene miles. */
+export async function listarOportunidades(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  opciones: {
+    q?: string;
+    comercialId?: string | null;
+    etapa?: string | null;
+    tipoCliente?: TipoClienteFiltro | null;
+    desde?: string | null;
+    hasta?: string | null;
+    soloCrm?: boolean;
+    orden?: OrdenOportunidades;
+    limite?: number;
+    offset?: number;
+  },
+): Promise<{ total: number; filas: FilaOportunidadListado[] }> {
+  const { data, error } = await supabase.rpc("listar_oportunidades", {
+    p_q: opciones.q ?? null,
+    p_comercial: opciones.comercialId ?? null,
+    p_etapa: opciones.etapa ?? null,
+    p_tipo_cliente: opciones.tipoCliente ?? null,
+    p_desde: opciones.desde ?? null,
+    p_hasta: opciones.hasta ?? null,
+    p_solo_crm: opciones.soloCrm ?? false,
+    p_orden: opciones.orden ?? "reciente",
+    p_limite: opciones.limite ?? 50,
+    p_offset: opciones.offset ?? 0,
+  });
+  if (error) {
+    console.error("listar_oportunidades:", error.message);
+    return { total: 0, filas: [] };
+  }
+  return data as unknown as { total: number; filas: FilaOportunidadListado[] };
+}
+
+/** contar_oportunidades_por_etapa() (migración 0054): mismos filtros que
+ *  listar_oportunidades salvo la etapa misma — para que los conteos de las
+ *  pestañas coincidan con lo que se ve al hacer clic en cada una. */
+export async function contarOportunidadesPorEtapa(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  opciones: {
+    q?: string;
+    comercialId?: string | null;
+    tipoCliente?: TipoClienteFiltro | null;
+    desde?: string | null;
+    hasta?: string | null;
+    soloCrm?: boolean;
+  },
+): Promise<Record<string, number>> {
+  const { data, error } = await supabase.rpc("contar_oportunidades_por_etapa", {
+    p_q: opciones.q ?? null,
+    p_comercial: opciones.comercialId ?? null,
+    p_tipo_cliente: opciones.tipoCliente ?? null,
+    p_desde: opciones.desde ?? null,
+    p_hasta: opciones.hasta ?? null,
+    p_solo_crm: opciones.soloCrm ?? false,
+  });
+  if (error) {
+    console.error("contar_oportunidades_por_etapa:", error.message);
+    return {};
+  }
+  return data as unknown as Record<string, number>;
+}
+
 /** USD con separador peruano, sin decimales (para KPIs). */
 export function usd(n: number): string {
   return `US$ ${Math.round(n).toLocaleString("es-PE")}`;
