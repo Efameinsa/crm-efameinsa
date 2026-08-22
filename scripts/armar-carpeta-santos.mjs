@@ -13,10 +13,44 @@
 import { readFileSync, mkdirSync, copyFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
 
-const ENTRADA = process.argv[2] ?? "scripts/data/cruce-final-2026-08-22.json";
+const ENTRADA = process.argv[2] ?? "scripts/data/cruce-definitivo-2026-08-22.json";
 const RAIZ = process.argv[3] ?? "V:/SANTOS";
 
-const datos = JSON.parse(readFileSync(ENTRADA, "utf-8"));
+const bruto = JSON.parse(readFileSync(ENTRADA, "utf-8"));
+const datos = bruto.productos;
+// Avisos que solo se descubren leyendo el contenido de la ficha, indexados
+// por código para dejarlos visibles en la carpeta del producto afectado.
+const avisosPorCodigo = new Map();
+function agregarAviso(codigo, texto) {
+  avisosPorCodigo.set(codigo, [...(avisosPorCodigo.get(codigo) ?? []), texto]);
+}
+for (const m of bruto.malNombrados ?? []) {
+  agregarAviso(
+    m.codigoReal,
+    `La ficha de este producto está guardada en V:\\ con el código ${m.codigoEnElArchivo}, no con el suyo.\n` +
+      `  Archivo: ${m.ruta}\n  Se confirmó por su contenido: ${m.evidencia.join(", ")}`,
+  );
+  agregarAviso(
+    m.codigoEnElArchivo,
+    `OJO: el archivo guardado con este código ("${m.ruta.split(/[\\/]/).pop()}") en realidad describe al producto ${m.codigoReal}.`,
+  );
+}
+for (const d of bruto.discrepanciasDeModelo ?? []) {
+  // Se avisa a los DOS lados: al código con el que el archivo está guardado
+  // y al producto al que el contenido parece pertenecer. Quien abra
+  // cualquiera de las dos carpetas tiene que enterarse.
+  agregarAviso(
+    d.codigo,
+    `El archivo "${d.ruta.split(/[\\/]/).pop()}" está guardado con este código, pero su contenido\n` +
+      `  corresponde al producto ${d.pareceSer} (${d.equipoQueParece.slice(0, 70)}).\n` +
+      `  El Excel dice que este código es el modelo ${d.modeloSegunMaestro}. Confirmar de qué lado está el error.`,
+  );
+  agregarAviso(
+    d.pareceSer,
+    `Su ficha podría ser "${d.ruta.split(/[\\/]/).pop()}", que está guardada con el código ${d.codigo} y no con el suyo.\n` +
+      `  Archivo: ${d.ruta}`,
+  );
+}
 
 function nombreSeguro(s) {
   return s.replace(/[\\/:*?"<>|]/g, "-").trim();
@@ -66,9 +100,20 @@ for (const d of datos) {
   }
 
   // Se re-corre sobre la misma carpeta a medida que el cruce mejora — borrar
-  // primero evita dejar un FALTA.txt viejo en un código que ya se completó.
-  const rutaFalta = join(carpetaCodigo, "FALTA.txt");
-  if (existsSync(rutaFalta)) unlinkSync(rutaFalta);
+  // primero evita dejar un archivo viejo en un código que ya se resolvió.
+  for (const obsoleto of ["FALTA.txt", "OJO - revisar.txt"]) {
+    const r = join(carpetaCodigo, obsoleto);
+    if (existsSync(r)) unlinkSync(r);
+  }
+
+  const avisos = avisosPorCodigo.get(d.codigo);
+  if (avisos?.length) {
+    writeFileSync(
+      join(carpetaCodigo, "OJO - revisar.txt"),
+      `Código: ${d.codigo}\nEquipo: ${d.equipo}\n\n${avisos.join("\n\n")}\n`,
+      "utf-8",
+    );
+  }
 
   const faltaSpec = !tieneSpec && !d.revisar?.some((r) => r.tipo === "especificacion");
   const faltaCat = !tieneCat && !d.revisar?.some((r) => r.tipo === "catalogo");

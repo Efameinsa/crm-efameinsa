@@ -11,10 +11,13 @@
 import XLSX from "xlsx";
 import { readFileSync } from "node:fs";
 
-const ENTRADA = process.argv[2] ?? "scripts/data/cruce-final-2026-08-22.json";
+const ENTRADA = process.argv[2] ?? "scripts/data/cruce-definitivo-2026-08-22.json";
 const SALIDA = process.argv[3] ?? "V:/SANTOS/Pendientes catalogo y especificaciones - para Lesly.xlsx";
 
-const datos = JSON.parse(readFileSync(ENTRADA, "utf-8"));
+const bruto = JSON.parse(readFileSync(ENTRADA, "utf-8"));
+const datos = bruto.productos;
+const { malNombrados = [], intercambios = [], discrepanciasDeModelo = [] } = bruto;
+const soloNombre = (r) => r.split(/[\\/]/).pop();
 
 function tieneSpec(d) {
   return Boolean(d.especificacion) || Boolean(d.especificacionAprox?.length);
@@ -85,6 +88,46 @@ const hoja3 = XLSX.utils.json_to_sheet(duplicados);
 hoja3["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 90 }];
 XLSX.utils.book_append_sheet(wb, hoja3, "Codigos duplicados");
 
+// Estas tres hojas solo se pueden armar leyendo DENTRO de cada ficha: un
+// cruce por nombre de archivo no las ve. Son errores a corregir en origen.
+const filasMalNombradas = malNombrados.map((m) => ({
+  "ARCHIVO": soloNombre(m.ruta),
+  "GUARDADO COMO": m.codigoEnElArchivo,
+  "PERO SU CONTENIDO ES DE": m.codigoReal,
+  "EQUIPO SEGÚN EL MAESTRO": m.equipo,
+  "EVIDENCIA EN EL CONTENIDO": m.evidencia.join(", "),
+  "DETALLE": m.motivo,
+  "CARPETA": m.ruta,
+}));
+const hoja4 = XLSX.utils.json_to_sheet(filasMalNombradas);
+hoja4["!cols"] = [{ wch: 60 }, { wch: 15 }, { wch: 22 }, { wch: 60 }, { wch: 60 }, { wch: 70 }, { wch: 70 }];
+XLSX.utils.book_append_sheet(wb, hoja4, "Fichas mal nombradas");
+
+const filasIntercambios = intercambios.flatMap(([a, b]) =>
+  [a, b].map((x) => ({
+    "PAR": `${a.codigoReal} ↔ ${b.codigoReal}`,
+    "ARCHIVO": soloNombre(x.ruta),
+    "GUARDADO COMO": x.codigoEnElArchivo,
+    "DEBERÍA SER": x.codigoReal,
+    "EVIDENCIA": x.evidencia.join(", "),
+  })),
+);
+const hoja5 = XLSX.utils.json_to_sheet(filasIntercambios);
+hoja5["!cols"] = [{ wch: 20 }, { wch: 60 }, { wch: 15 }, { wch: 15 }, { wch: 70 }];
+XLSX.utils.book_append_sheet(wb, hoja5, "Codigos intercambiados");
+
+const filasDiscrepancia = discrepanciasDeModelo.map((d) => ({
+  "CÓDIGO": d.codigo,
+  "ARCHIVO": soloNombre(d.ruta),
+  "MODELO SEGÚN EL EXCEL": d.modeloSegunMaestro,
+  "EQUIPO SEGÚN EL EXCEL": d.equipoSegunMaestro,
+  "LA FICHA PARECE SER DE": d.pareceSer,
+  "EQUIPO DE ESE OTRO CÓDIGO": d.equipoQueParece,
+}));
+const hoja6 = XLSX.utils.json_to_sheet(filasDiscrepancia);
+hoja6["!cols"] = [{ wch: 12 }, { wch: 60 }, { wch: 22 }, { wch: 60 }, { wch: 22 }, { wch: 60 }];
+XLSX.utils.book_append_sheet(wb, hoja6, "Discrepancia Excel-ficha");
+
 XLSX.writeFile(wb, SALIDA);
 
 console.log(`Pendientes (nada encontrado): ${pendientes.length} códigos (de ${datos.length} filas / ${Object.keys(conteo).length} códigos únicos)`);
@@ -93,4 +136,5 @@ console.log(`  - solo falta especificación técnica: ${pendientes.filter((p) =>
 console.log(`  - solo falta catálogo: ${pendientes.filter((p) => p["FALTA"] === "Catálogo").length}`);
 console.log(`Por confirmar (hay candidatos, revisar cuál corresponde): ${new Set(porConfirmar.map((p) => p["CÓDIGO"])).size} códigos`);
 console.log(`Códigos duplicados (mismo código, dos equipos distintos): ${duplicados.length / 2}`);
+console.log(`Fichas mal nombradas: ${malNombrados.length} · intercambios: ${intercambios.length} · discrepancias Excel↔ficha: ${discrepanciasDeModelo.length}`);
 console.log(`\nEscrito: ${SALIDA}`);
