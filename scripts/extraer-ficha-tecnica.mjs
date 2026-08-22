@@ -118,7 +118,11 @@ const salida = [];
 let sinTexto = 0;
 
 for (const p of productos) {
-  const lineas = textoConParrafos(p.especificacion);
+  // Alguna ficha no es un .docx sino un PDF de brochure (CALE2160 usa el de
+  // la línea E2, confirmado por logística). De ahí no se extraen viñetas con
+  // esta plantilla: se deja sin ficha estructurada y se avisa.
+  const esDocx = /\.docx$/i.test(p.especificacion ?? "");
+  const lineas = esDocx ? textoConParrafos(p.especificacion) : [];
   if (lineas.length === 0) {
     sinTexto++;
     salida.push({ ...p, ficha: null });

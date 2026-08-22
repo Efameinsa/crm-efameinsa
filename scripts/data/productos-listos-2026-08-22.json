@@ -1952,7 +1952,8 @@
   },
   "especificacion": "V:\\LESLY\\LG ok\\ESPECIFICACIONES TECNICAS\\LAVGIA13-LavadoraSecadora giant c max 13-10.2 kg  OPL A GAS.docx",
   "catalogos": [
-   "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf"
+   "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf",
+   "V:\\LESLY\\SIDI MONDIAL\\CATALOGO\\SIDI MONDIAL ARIES-OMEGA.pdf"
   ],
   "capacidad": "13 kg",
   "calentamiento": null,
@@ -2224,7 +2225,9 @@
    "px": "804x937"
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UG050\\SECG501. SECADORA UG050 - DUAL DIGITAL - GALVANIZADO - ELÉCTRICO - 380V-60Hz-3Ph.docx",
-  "catalogos": [],
+  "catalogos": [
+   "V:/PROYECTO ASIGNADO - JEAN PAUL/CATÁLOGO/UG - UU 50 - 75/SECADORA-industrial-UU050-075.pdf"
+  ],
   "capacidad": "25 kg",
   "calentamiento": "ELÉCTRICA",
   "panel": "DUAL DIGITAL",
@@ -2295,7 +2298,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU552. SECADORA UT075-UNILICH TOUCH-DOBLE ROTACIÓN-GALVANIZADO-GN-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
   ],
   "capacidad": "34 kg",
   "calentamiento": "GAS",
@@ -2367,7 +2371,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU752. SECADORA UT075-UNILINC TOUCH-DOBLE ROTACION-INOX-C. INOX-GN-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
   ],
   "capacidad": "34 kg",
   "calentamiento": "GAS NATURAL",
@@ -2442,7 +2447,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU755. SECADORA UT075-UNILICH TOUCH -DOBLE ROTACION-INOXIDABLE-GLP-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
   ],
   "capacidad": "34 kg",
   "calentamiento": "GAS GLP",
@@ -2514,7 +2520,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120. SECADORA UT120-DUAL DIGITAL-GALVANIZADO-DOBLE ROTACIÓN-GLP -220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
   ],
   "capacidad": "55 kg",
   "calentamiento": "GAS GLP",
@@ -2589,7 +2596,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120E. SECADORA UT120-DUAL DIGITAL-GALVANIZADO- DOBLE ROTACIÓN -ELÉCTRICO-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
   ],
   "capacidad": "55 kg",
   "calentamiento": "ELÉCTRICO",
@@ -2653,17 +2661,18 @@
   "codigo": "SECU120E2",
   "marca": "UNIMAC",
   "equipo": "SECADORA INDUSTRIAL, MOD: UT120L, CAP: 50KG, CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENTAMIENTO: ELECTRICO, PANEL ESTÁNDAR,P(380V/60HZ/ 3PH)",
-  "confianza": "alta",
+  "confianza": "confirmada_por_logistica",
   "foto": "productos/secu120e2.png",
   "fotoOrigen": {
-   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120E2. SECADORA UT120-DUAL DIGITAL-DOBLE ROTACION -GALVANIZADO-ELÉCTRICO-380V.docx",
+   "ficha": "V:/PROYECTO ASIGNADO - JEAN PAUL/FICHAS TECNICAS/UT120/SECU120E2. SECADORA UT120-DUAL DIGITAL-DOBLE ROTACION -GALVANIZADO-ELÉCTRICO-380V.docx",
    "interno": "word/media/image2.png",
    "huella": "d033c1ccff86f49c",
    "px": "372x596"
   },
-  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120E2. SECADORA UT120-DUAL DIGITAL-DOBLE ROTACION -GALVANIZADO-ELÉCTRICO-380V.docx",
+  "especificacion": "V:/PROYECTO ASIGNADO - JEAN PAUL/FICHAS TECNICAS/UT120/SECU120E2. SECADORA UT120-DUAL DIGITAL-DOBLE ROTACION -GALVANIZADO-ELÉCTRICO-380V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
   ],
   "capacidad": "55 kg",
   "calentamiento": "ELÉCTRICO",
@@ -2740,7 +2749,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT170\\SECU1702. SECADORA UT170-UNILINC TOUCH-DOBLE ROTACION-GN-OPTIDRY-INOX-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
   ],
   "capacidad": "77 kg",
   "calentamiento": "GAS NATURAL",
@@ -2825,7 +2835,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT170\\SECU1701. SECADORA UT170-UNILINC TOUCH-DOBLE ROTACION-GN-OPTIDRY-GALVANIZADO-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
   ],
   "capacidad": "77 kg",
   "calentamiento": "GAS NATURAL",
@@ -2910,7 +2921,9 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT200\\SECU200. SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GLP-OPTIDRY-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf",
+   "V:\\02. SECADORAS\\UNIMAC\\UT120 - UG120\\SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GN-220V.pdf"
   ],
   "capacidad": "90 kg",
   "calentamiento": "GAS GLP",
@@ -2984,7 +2997,9 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT200\\SECU2001. SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GN-OPTIDRY-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf",
+   "V:\\02. SECADORAS\\UNIMAC\\UT120 - UG120\\SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GN-220V.pdf"
   ],
   "capacidad": "90 kg",
   "calentamiento": "GAS NATURAL",
@@ -3441,6 +3456,149 @@
   }
  },
  {
+  "codigo": "SECU30",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD: UT030E, CONTROL: DUAL DIGITAL,  ELECTRICO, 30KW, DOBLE ROTACION, CILINDRO GALVANIZADO, CAP 14KG, G (220V/60Hz/3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu30.png",
+  "fotoPrestadaDe": "SECU302",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT030\\SECU30. SECADORA UT030E-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-ELÉCTRICO-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "33f75e15995034f9",
+   "px": "137x245"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT030\\SECU30. SECADORA UT030E-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-ELÉCTRICO-220V.docx",
+  "catalogos": [
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT & UTT  030 - 055\\SECADORA UNIMAC_UT030-055.pdf"
+  ],
+  "capacidad": "14 kg",
+  "calentamiento": "ELÉCTRICA",
+  "panel": "DUAL DIGITAL",
+  "controles": null,
+  "ficha": {
+   "caracteristicas": [
+    "Programas preestablecidos y libres para control del usuario",
+    "Ejecución manual / automática",
+    "Programación de temperatura",
+    "Control de tiempo de trabajo y fin de ciclo",
+    "Sensor de control de temperatura",
+    "Programación de tiempo de rotación",
+    "Programación de tiempo de reposo reprogramable",
+    "Funciones especiales: ciclo antiarrugas al final del secado (rotación prolongada para evitar pliegue) y programa de enfriamiento gradual.",
+    "Programa de enfriamiento",
+    "Protector térmico",
+    "Alarma de fin de ciclo",
+    "Flujo de aire radial",
+    "Cilindro con doble rotación",
+    "TAMBOR",
+    "Fabricado en acero galvanizado",
+    "Con agujeros pulidos internamente y paletas especiales para voltear suavemente las prendas.",
+    "Provisto con paletas con ángulo y altura adecuados para mejor volteo de las prendas",
+    "PUERTA",
+    "Fabricado en acero con cerrojo magnético",
+    "Visor frontal en vidrio templado",
+    "Bisagras extra pesadas",
+    "SISTEMA DE TRANSMISION",
+    "Mediante eje de acero bonificado para soportar altas cargas dinámicas y mecánicas",
+    "Rodamientos mediante chumaceras de alta capacidad de carga",
+    "Poleas balanceadas estática y dinámicamente para evitar desgastes de fajas",
+    "Motores de ventilador y accionamiento de alta eficiencia para movimientos del cesto",
+    "Turbina de alta eficiencia balanceada estática y dinámicamente",
+    "CALEFACCION DE SECADO",
+    "Calentamiento eléctrico 21Kw",
+    "Flujo de aire radial: ventilador axial de 500cfm",
+    "Ducto de salida 6”"
+   ],
+   "dimensiones": [
+    "Volumen del tambor: 301 litros",
+    "Diámetro del tambor: 762 mm",
+    "Profundidad del tambor: 660 mm",
+    "Motor del ventilador: 0.5 KW",
+    "Diámetro de aire de salida: 150 mm",
+    "Flujo de aire: 500 cfm"
+   ],
+   "medidas": [
+    "Ancho: 826 mm",
+    "Profundidad: 1,994 mm",
+    "Altura: 1,732 mm",
+    "Peso: 169 kg"
+   ]
+  }
+ },
+ {
+  "codigo": "SECU301",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD: UT030E, CONTROL: DUAL DIGITAL,  ELECTRICO, 30KW, DOBLE ROTACION, CILINDRO GALVANIZADO, CAP 14KG, H (380V/60Hz/3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu301.png",
+  "fotoPrestadaDe": "SECU302",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT030\\SECU301. SECADORA UT030E-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-ELÉCTRICO-380V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "33f75e15995034f9",
+   "px": "137x245"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT030\\SECU301. SECADORA UT030E-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-ELÉCTRICO-380V.docx",
+  "catalogos": [
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT & UTT  030 - 055\\SECADORA UNIMAC_UT030-055.pdf"
+  ],
+  "capacidad": "14 kg",
+  "calentamiento": "ELÉCTRICA",
+  "panel": "DUAL DIGITAL",
+  "controles": null,
+  "ficha": {
+   "caracteristicas": [
+    "Programas preestablecidos y libres para control del usuario",
+    "Ejecución manual / automática",
+    "Programación de temperatura",
+    "Control de tiempo de trabajo y fin de ciclo",
+    "Sensor de control de temperatura",
+    "Programación de tiempo de rotación",
+    "Programación de tiempo de reposo reprogramable",
+    "Funciones especiales: ciclo antiarrugas al final del secado (rotación prolongada para evitar pliegue) y programa de enfriamiento gradual.",
+    "Programa de enfriamiento",
+    "Protector térmico",
+    "Alarma de fin de ciclo",
+    "Flujo de aire radial",
+    "Cilindro con doble rotación",
+    "TAMBOR",
+    "Fabricado en acero galvanizado",
+    "Con agujeros pulidos internamente y paletas especiales para voltear suavemente las prendas.",
+    "Provisto con paletas con ángulo y altura adecuados para mejor volteo de las prendas",
+    "PUERTA",
+    "Fabricado en acero con cerrojo magnético",
+    "Visor frontal en vidrio templado",
+    "Bisagras extra pesadas",
+    "SISTEMA DE TRANSMISION",
+    "Mediante eje de acero bonificado para soportar altas cargas dinámicas y mecánicas",
+    "Rodamientos mediante chumaceras de alta capacidad de carga",
+    "Poleas balanceadas estática y dinámicamente para evitar desgastes de fajas",
+    "Motores de ventilador y accionamiento de alta eficiencia para movimientos del cesto",
+    "Turbina de alta eficiencia balanceada estática y dinámicamente",
+    "CALEFACCION DE SECADO",
+    "Calentamiento eléctrico 21Kw",
+    "Flujo de aire radial: ventilador axial de 500cfm",
+    "Ducto de salida 6”"
+   ],
+   "dimensiones": [
+    "Volumen del tambor: 301 litros",
+    "Diámetro del tambor: 762 mm",
+    "Profundidad del tambor: 660 mm",
+    "Motor del ventilador: 0.5 KW",
+    "Diámetro de aire de salida: 150 mm",
+    "Flujo de aire: 500 cfm"
+   ],
+   "medidas": [
+    "Ancho: 826 mm",
+    "Profundidad: 1,994 mm",
+    "Altura: 1,732 mm",
+    "Peso: 169 kg",
+    "Peso de envío: 175 kg"
+   ]
+  }
+ },
+ {
   "codigo": "SECU303",
   "marca": "UNIMAC",
   "equipo": "SECADORA INDUSTRIAL, MOD: UT030N, CONTROL: DUAL DIGITAL,  GAS NATURAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CAP 14KG, X (220V/60Hz/1-3PH)",
@@ -3529,7 +3687,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75L. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-380V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
   ],
   "capacidad": "34 kg",
   "calentamiento": "GAS GLP",
@@ -3603,7 +3762,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU553. SECADORA UT075-DUAL DIGITAL DOBLE ROTACIÓN-GALVANIZADO-GN-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
   ],
   "capacidad": "34 kg",
   "calentamiento": "GAS NATURAL",
@@ -3679,7 +3839,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
   ],
   "capacidad": "34 kg",
   "calentamiento": "GAS",
@@ -3739,6 +3900,156 @@
   }
  },
  {
+  "codigo": "SEC75E2",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD. UT075E, CONTROL: DUAL DIGITAL, DOBLE ROTACION, PANEL ESTÁNDAR, CILINDRO GALVANIZADO, CALENTAMIENTO: ELÉCTRICO, CAP:34KG, H (380V/60HZ/3PH)",
+  "confianza": "confirmada_por_logistica",
+  "foto": "productos/sec75e2.png",
+  "fotoPrestadaDe": "SECU752",
+  "fotoOrigen": {
+   "ficha": "V:/PROYECTO ASIGNADO - JEAN PAUL/FICHAS TECNICAS/UT075/SECU75E2. SECADORA UT075-DUAL DIGITAL-GALVANIZADO-DOBLE ROTACION-ELECTRICO-380V.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "b8c0417db942204b",
+   "px": "1042x1221"
+  },
+  "especificacion": "V:/PROYECTO ASIGNADO - JEAN PAUL/FICHAS TECNICAS/UT075/SECU75E2. SECADORA UT075-DUAL DIGITAL-GALVANIZADO-DOBLE ROTACION-ELECTRICO-380V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
+  ],
+  "capacidad": "34 kg",
+  "calentamiento": "ELÉCTRICA",
+  "panel": "DUAL DIGITAL",
+  "controles": null,
+  "ficha": {
+   "caracteristicas": [
+    "Programas preestablecidos y libres para control del usuario",
+    "Ejecución manual / automática",
+    "Programación de temperatura",
+    "Control de tiempo de trabajo y fin de ciclo",
+    "Sensor de control de temperatura",
+    "Programación de tiempo de rotación",
+    "Programación de tiempo de reposo reprogramable",
+    "Funciones especiales: ciclo antiarrugas al final del secado (rotación prolongada para evitar pliegue) y programa de enfriamiento gradual.",
+    "Programa de enfriamiento",
+    "Protector térmico",
+    "Alarma de fin de ciclo",
+    "Flujo de aire radial",
+    "Doble rotación",
+    "TAMBOR",
+    "Fabricado en acero galvanizado",
+    "Con agujeros embutidos con micro pulido para evitar maltratar las prendas",
+    "Provisto con paletas con ángulo y altura adecuados para mejor volteo de las prendas",
+    "PUERTA",
+    "Fabricado en acero con cerrojo magnético",
+    "Visor frontal en vidrio templado",
+    "Bisagras extrapesadas",
+    "SISTEMA DE TRANSMISION",
+    "Mediante eje de acero bonificado para soportar altas cargas dinámicas y mecánicas",
+    "Rodamientos mediante chumaceras de alta capacidad de carga",
+    "Poleas balanceadas estática y dinámicamente para evitar desgastes de fajas",
+    "Motores de ventilador y accionamiento de alta eficiencia para movimientos del cesto",
+    "Turbina de alta eficiencia balanceada estática y dinámicamente",
+    "CALEFACCION DE SECADO",
+    "Calentamiento eléctrico",
+    "Válvulas de inyección directa",
+    "Piloto de encendido de alto rendimiento",
+    "Sensor de flama"
+   ],
+   "dimensiones": [
+    "Volumen del tambor: 634 litros",
+    "Diámetro del tambor: 940 mm",
+    "Profundidad del tambor: 914 mm",
+    "Motor del ventilador: 0.5 kW",
+    "Motor del cilindro: 0.5 kW",
+    "Diámetro de aire de salida: 200 mm",
+    "Potencia de calentamiento: 36 kW"
+   ],
+   "medidas": [
+    "Ancho: 980 mm",
+    "Profundidad: 1350 mm",
+    "Altura: 1960 mm",
+    "Peso: 330 kg",
+    "Peso de envío: 355 kg"
+   ]
+  }
+ },
+ {
+  "codigo": "SEC75E3",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD. UT075E, CONTROL: DUAL DIGITAL, PANEL ESTÁNDAR, CILINDRO GALVANIZADO, CALENTAMIENTO: ELÉCTRICO, CAP:34KG, G (220V/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/sec75e3.png",
+  "fotoPrestadaDe": "SECU752",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75E. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACIÓN -GALVANIZADO-ELECTRICO-220V.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "b8c0417db942204b",
+   "px": "1042x1221"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75E. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACIÓN -GALVANIZADO-ELECTRICO-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
+  ],
+  "capacidad": "34 kg",
+  "calentamiento": "ELÉCTRICA",
+  "panel": "DUAL DIGITAL",
+  "controles": null,
+  "ficha": {
+   "caracteristicas": [
+    "Programas preestablecidos y libres para control del usuario",
+    "Ejecución manual / automática",
+    "Programación de temperatura",
+    "Control de tiempo de trabajo y fin de ciclo",
+    "Sensor de control de temperatura",
+    "Programación de tiempo de rotación",
+    "Programación de tiempo de reposo reprogramable",
+    "Funciones especiales: ciclo antiarrugas al final del secado (rotación prolongada para evitar pliegue) y programa de enfriamiento gradual.",
+    "Programa de enfriamiento",
+    "Protector térmico",
+    "Alarma de fin de ciclo",
+    "Flujo de aire radial",
+    "Cilindro con rotación reversible",
+    "TAMBOR",
+    "Fabricado en acero galvanizado",
+    "Con agujeros embutidos con micro pulido para evitar maltratar las prendas",
+    "Provisto con paletas con ángulo y altura adecuados para mejor volteo de las prendas",
+    "PUERTA",
+    "Fabricado en acero con cerrojo magnético",
+    "Visor frontal en vidrio templado",
+    "Bisagras extra pesadas",
+    "SISTEMA DE TRANSMISION",
+    "Mediante eje de acero bonificado para soportar altas cargas dinámicas y mecánicas",
+    "Rodamientos mediante chumaceras de alta capacidad de carga",
+    "Poleas balanceadas estática y dinámicamente para evitar desgastes de fajas",
+    "Motores de ventilador y accionamiento de alta eficiencia para movimientos del cesto",
+    "Turbina de alta eficiencia balanceada estática y dinámicamente",
+    "CALEFACCION DE SECADO",
+    "Calentamiento eléctrico",
+    "Válvulas de inyección directa",
+    "Piloto de encendido de alto rendimiento",
+    "Sensor de flama"
+   ],
+   "dimensiones": [
+    "Volumen del tambor: 634 litros",
+    "Diámetro del tambor: 940 mm",
+    "Profundidad del tambor: 914 mm",
+    "Motor del ventilador: 0.5 kW",
+    "Motor del cilindro: 0.5 kW",
+    "Diámetro de aire de salida: 200 mm",
+    "Potencia de calentamiento: 36 kW"
+   ],
+   "medidas": [
+    "Ancho: 980 mm",
+    "Profundidad: 1350 mm",
+    "Altura: 1960 mm",
+    "Peso: 330 kg",
+    "Peso de envío: 355 kg"
+   ]
+  }
+ },
+ {
   "codigo": "SECU1202",
   "marca": "UNIMAC",
   "equipo": "SECADORA INDUSTRIAL, MOD: UT120L, CAP: 50KG, CONTROL: UNLINC TOUCH, DOBLE ROTACION, CILINDRO INOXIDABLE, CALENTAMIENTO: GAS GLP, PANEL ESTÁNDAR, C/ OPTIDRY, Q(220V/60HZ/ 3PH)",
@@ -3753,7 +4064,8 @@
   },
   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU1202. SECADORA UT120-UNILIC TOUCH-INOXIDABLE-GLP-DOBLE ROTACION-OPTYDRY-220V.docx",
   "catalogos": [
-   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
   ],
   "capacidad": "55 kg",
   "calentamiento": "GAS GLP",

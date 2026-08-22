@@ -77,7 +77,15 @@ const modeloPorCodigo = new Map();
 for (const c of contenido) if (c.modelo && !modeloPorCodigo.has(c.codigo)) modeloPorCodigo.set(c.codigo, c.modelo);
 const claveModelo = (p) => {
   const m = modeloPorCodigo.get(p.codigo);
-  return m ? `${p.marca}|${m.toUpperCase().replace(/[^A-Z0-9]/g, "")}` : null;
+  if (!m) return null;
+  let base = m.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  // La letra final después de los dígitos indica el calentamiento o la
+  // variante de línea (UT075E es la eléctrica, UT030N la de gas natural,
+  // UT055L), no un equipo distinto: por fuera son la misma máquina, así que
+  // para la FOTO cuentan como el mismo modelo. Para las especificaciones no
+  // se mezclan nunca: cada una sale de su propia ficha.
+  base = base.replace(/^([A-Z]+\d+)[A-Z]$/, "$1");
+  return `${p.marca}|${base}`;
 };
 
 if (APLICAR) mkdirSync(DESTINO, { recursive: true });
@@ -108,7 +116,7 @@ for (const p of productos) {
   // "sin_candidatos" esperan a Lesly: darles foto sería propagar un error
   // — SECU55 y SECU502, por ejemplo, son justo los dos que están
   // intercambiados entre sí.
-  if (!["alta", "media"].includes(p.especificacionConfianza)) {
+  if (!["alta", "media", "confirmada_por_logistica"].includes(p.especificacionConfianza)) {
     noConfirmados.push(p);
     continue;
   }

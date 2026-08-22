@@ -1,0 +1,17 @@
+{
+  "_nota": "Asignaciones confirmadas por el área de logística en la reunión del 2026-08-22. Mandan sobre cualquier deducción automática: acá el criterio es el de quien conoce los equipos. Las rutas se validan al aplicarlas — si un archivo se mueve o se renombra, el script avisa en vez de seguir en silencio.",
+  "catalogo": {
+    "SECU502": "V:/PROYECTO ASIGNADO - JEAN PAUL/CATÁLOGO/UT & UTT  030 - 055/SECADORA UNIMAC_UT030-055.pdf",
+    "SECU55": "V:/PROYECTO ASIGNADO - JEAN PAUL/CATÁLOGO/UT & UTT  030 - 055/SECADORA UNIMAC_UT030-055.pdf",
+    "SECG501": "V:/PROYECTO ASIGNADO - JEAN PAUL/CATÁLOGO/UG - UU 50 - 75/SECADORA-industrial-UU050-075.pdf"
+  },
+  "especificacion": {
+    "CALE2160": "V:/LESLY/GMP ok/CATALOGOS/BROCHURE - LINE- E2.pdf",
+    "SEC75E2": "V:/PROYECTO ASIGNADO - JEAN PAUL/FICHAS TECNICAS/UT075/SECU75E2. SECADORA UT075-DUAL DIGITAL-GALVANIZADO-DOBLE ROTACION-ELECTRICO-380V.docx",
+    "SECU120E2": "V:/PROYECTO ASIGNADO - JEAN PAUL/FICHAS TECNICAS/UT120/SECU120E2. SECADORA UT120-DUAL DIGITAL-DOBLE ROTACION -GALVANIZADO-ELÉCTRICO-380V.docx"
+  },
+  "_observaciones": {
+    "CALE2160": "Logística: el brochure de la línea E2 es general y trae las especificaciones de todos los modelos de la línea, así que hace de ficha técnica para este equipo.",
+    "SECU502_SECU55": "Logística confirmó que las fichas de ambos están en FICHAS TECNICAS/UT055, pero NO dijo cuál corresponde a cuál. El análisis del contenido indica que los archivos están intercambiados (el llamado SECU55 describe UNILINC TOUCH y el llamado SECU502, DUAL DIGITAL). Eso sigue pendiente de que lo confirmen."
+  }
+}

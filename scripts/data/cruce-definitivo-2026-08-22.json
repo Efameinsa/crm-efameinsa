@@ -1052,7 +1052,9 @@
    "carpeta": "SAILSTAR OK",
    "especificacion": "V:\\LESLY\\SAILSTAR OK\\ESPECIFICACIONES TECNICAS\\LAVW17-Lavador Centrifuga SS17 WET 17 kg_ Panel Tocuh vapor.DOC",
    "especificacionAprox": [],
-   "catalogos": [],
+   "catalogos": [
+    "V:\\LESLY\\SAILSTAR OK\\CATALAGO\\SS_17_23.pdf"
+   ],
    "revisar": [],
    "especificacionConfianza": "media",
    "especificacionEvidencia": [
@@ -1075,7 +1077,9 @@
    "carpeta": "SAILSTAR OK",
    "especificacion": "V:\\LESLY\\SAILSTAR OK\\ESPECIFICACIONES TECNICAS\\LAVW23-Lavador Centrifuga SS23 WET 23 kg_ Panel Tocuh vapor.DOC",
    "especificacionAprox": [],
-   "catalogos": [],
+   "catalogos": [
+    "V:\\LESLY\\SAILSTAR OK\\CATALAGO\\SS_17_23.pdf"
+   ],
    "revisar": [],
    "especificacionConfianza": "media",
    "especificacionEvidencia": [
@@ -1098,7 +1102,9 @@
    "carpeta": "SAILSTAR OK",
    "especificacion": "V:\\LESLY\\SAILSTAR OK\\ESPECIFICACIONES TECNICAS\\LAVP15-Seco P15 8-10 kg.doc",
    "especificacionAprox": [],
-   "catalogos": [],
+   "catalogos": [
+    "V:\\LESLY\\SAILSTAR OK\\CATALAGO\\LAVADORA_AL_SECO.pdf"
+   ],
    "revisar": [],
    "especificacionConfianza": "media",
    "especificacionEvidencia": [
@@ -1121,7 +1127,8 @@
    "especificacion": "V:\\LESLY\\LG ok\\ESPECIFICACIONES TECNICAS\\LAVGIA13-LavadoraSecadora giant c max 13-10.2 kg  OPL A GAS.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf"
+    "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf",
+    "V:\\LESLY\\SIDI MONDIAL\\CATALOGO\\SIDI MONDIAL ARIES-OMEGA.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "media",
@@ -1147,7 +1154,8 @@
    "especificacion": "V:\\LESLY\\LG ok\\ESPECIFICACIONES TECNICAS\\LAVGIA13-Lavadora Giant C Max 13 kg OPL Apilable.doc",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf"
+    "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf",
+    "V:\\LESLY\\SIDI MONDIAL\\CATALOGO\\SIDI MONDIAL ARIES-OMEGA.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "media",
@@ -1172,7 +1180,8 @@
    "especificacion": "V:\\LESLY\\LG ok\\ESPECIFICACIONES TECNICAS\\LAVGIA132-Lavadora Giant C Max 13 kg OPL.doc",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf"
+    "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf",
+    "V:\\LESLY\\SIDI MONDIAL\\CATALOGO\\SIDI MONDIAL ARIES-OMEGA.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "media",
@@ -1411,7 +1420,9 @@
    "carpeta": "ALLIANCE ok",
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UG050\\SECG501. SECADORA UG050 - DUAL DIGITAL - GALVANIZADO - ELÉCTRICO - 380V-60Hz-3Ph.docx",
    "especificacionAprox": [],
-   "catalogos": [],
+   "catalogos": [
+    "V:/PROYECTO ASIGNADO - JEAN PAUL/CATÁLOGO/UG - UU 50 - 75/SECADORA-industrial-UU050-075.pdf"
+   ],
    "revisar": [],
    "especificacionConfianza": "alta",
    "especificacionEvidencia": [
@@ -1422,7 +1433,8 @@
     "fases=3",
     "el archivo lleva este código"
    ],
-   "especificacionAviso": []
+   "especificacionAviso": [],
+   "catalogoConfirmadoPorLogistica": true
   },
   {
    "codigo": "SECU502",
@@ -1435,7 +1447,9 @@
    "carpeta": "ALLIANCE ok",
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT055\\SECU502. SECADORA UT055-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-220V.docx",
    "especificacionAprox": [],
-   "catalogos": [],
+   "catalogos": [
+    "V:/PROYECTO ASIGNADO - JEAN PAUL/CATÁLOGO/UT & UTT  030 - 055/SECADORA UNIMAC_UT030-055.pdf"
+   ],
    "revisar": [
     {
      "tipo": "especificacion",
@@ -1447,7 +1461,8 @@
      ]
     }
    ],
-   "especificacionConfianza": "ambiguo"
+   "especificacionConfianza": "ambiguo",
+   "catalogoConfirmadoPorLogistica": true
   },
   {
    "codigo": "SECU75L",
@@ -1461,7 +1476,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75L. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-380V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "alta",
@@ -1488,7 +1504,9 @@
    "carpeta": "ALLIANCE ok",
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT055\\SECU55. SECADORA UT055L-UNILINC TOUCH-OPTIDRY-DOBLE ROTACION-INOX-GLP-220V.1-3PH.docx",
    "especificacionAprox": [],
-   "catalogos": [],
+   "catalogos": [
+    "V:/PROYECTO ASIGNADO - JEAN PAUL/CATÁLOGO/UT & UTT  030 - 055/SECADORA UNIMAC_UT030-055.pdf"
+   ],
    "revisar": [
     {
      "tipo": "especificacion",
@@ -1500,7 +1518,8 @@
      ]
     }
    ],
-   "especificacionConfianza": "ambiguo"
+   "especificacionConfianza": "ambiguo",
+   "catalogoConfirmadoPorLogistica": true
   },
   {
    "codigo": "SECU553",
@@ -1514,7 +1533,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU553. SECADORA UT075-DUAL DIGITAL DOBLE ROTACIÓN-GALVANIZADO-GN-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "alta",
@@ -1542,7 +1562,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU552. SECADORA UT075-UNILICH TOUCH-DOBLE ROTACIÓN-GALVANIZADO-GN-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "alta",
@@ -1570,7 +1591,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU752. SECADORA UT075-UNILINC TOUCH-DOBLE ROTACION-INOX-C. INOX-GN-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "alta",
@@ -1598,7 +1620,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU755. SECADORA UT075-UNILICH TOUCH -DOBLE ROTACION-INOXIDABLE-GLP-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "alta",
@@ -1626,7 +1649,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "alta",
@@ -1650,37 +1674,17 @@
    "valorVenta": 9500,
    "modelo": "UT075E",
    "carpeta": "ALLIANCE ok",
-   "especificacion": null,
+   "especificacion": "V:/PROYECTO ASIGNADO - JEAN PAUL/FICHAS TECNICAS/UT075/SECU75E2. SECADORA UT075-DUAL DIGITAL-GALVANIZADO-DOBLE ROTACION-ELECTRICO-380V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
    ],
-   "revisar": [
-    {
-     "tipo": "especificacion",
-     "candidatos": [
-      "V:\\02. SECADORAS\\UNIMAC\\UT075\\SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-380V.docx",
-      "V:\\02. SECADORAS\\UNIMAC\\UT075\\SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-VAPOR-220V.docx",
-      "V:\\02. SECADORAS\\UNIMAC\\UT075\\SECADORA UT075-DUAL DIGITAL-GALVANIZADO-DOBLE ROTACION-ELECTRICO-380V.docx",
-      "V:\\02. SECADORAS\\UNIMAC\\UT075\\SECADORA UT075-DUAL DIGITAL-GALVANIZADO-ELECTRICO-220V.docx",
-      "V:\\02. SECADORAS\\UNIMAC\\UT075\\SECADORA UT075-DUAL DIGITAL-GALVANIZADO-ELECTRICO-380V.docx",
-      "V:\\02. SECADORAS\\UNIMAC\\UT075\\SECADORA UT075-DUAL DIGITAL-GALVANIZADO-GN-220V.docx",
-      "V:\\02. SECADORAS\\UNIMAC\\UT075\\SECADORA UT075-DUAL DIGITAL-GALVANIZADO-VAPOR-380V.docx",
-      "V:\\02. SECADORAS\\UNIMAC\\UT075\\SECADORA UT075-UNILINC TOUCH-DOBLE ROTACION-GALVANIZADO-VAPOR-380V.docx",
-      "V:\\02. SECADORAS\\UNIMAC\\UT075\\SECADORA UT075-UNILINC TOUCH-DOBLE ROTACION-INOX-GN-220V.docx",
-      "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU552. SECADORA UT075-UNILICH TOUCH-DOBLE ROTACIÓN-GALVANIZADO-GN-220V.docx",
-      "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU553. SECADORA UT075-DUAL DIGITAL DOBLE ROTACIÓN-GALVANIZADO-GN-220V.docx",
-      "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-220V.docx",
-      "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU752. SECADORA UT075-UNILINC TOUCH-DOBLE ROTACION-INOX-C. INOX-GN-220V.docx",
-      "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU755. SECADORA UT075-UNILICH TOUCH -DOBLE ROTACION-INOXIDABLE-GLP-220V.docx",
-      "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75E. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACIÓN -GALVANIZADO-ELECTRICO-220V.docx",
-      "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75E2. SECADORA UT075-DUAL DIGITAL-GALVANIZADO-DOBLE ROTACION-ELECTRICO-380V.docx",
-      "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75E3. SECADORA UT075-DUAL DIGITAL -GALVANIZADO-ELECTRICO-220V.docx",
-      "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75L. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-380V.docx"
-     ]
-    }
-   ],
-   "especificacionConfianza": "ambiguo"
+   "revisar": [],
+   "especificacionConfianza": "confirmada_por_logistica",
+   "especificacionEvidencia": [
+    "confirmada por logística"
+   ]
   },
   {
    "codigo": "SEC75E",
@@ -1694,7 +1698,8 @@
    "especificacion": null,
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
    ],
    "revisar": [
     {
@@ -1735,7 +1740,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75E. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACIÓN -GALVANIZADO-ELECTRICO-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UG - UU 50 - 75\\SECADORA-industrial-UU050-075.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "alta",
@@ -1761,7 +1767,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU1202. SECADORA UT120-UNILIC TOUCH-INOXIDABLE-GLP-DOBLE ROTACION-OPTYDRY-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
    ],
    "revisar": [
     {
@@ -1798,7 +1805,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120. SECADORA UT120-DUAL DIGITAL-GALVANIZADO-DOBLE ROTACIÓN-GLP -220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
    ],
    "revisar": [
     {
@@ -1836,7 +1844,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120E. SECADORA UT120-DUAL DIGITAL-GALVANIZADO- DOBLE ROTACIÓN -ELÉCTRICO-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
    ],
    "revisar": [
     {
@@ -1871,10 +1880,11 @@
    "valorVenta": 20999,
    "modelo": "UT120L",
    "carpeta": "ALLIANCE ok",
-   "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120E2. SECADORA UT120-DUAL DIGITAL-DOBLE ROTACION -GALVANIZADO-ELÉCTRICO-380V.docx",
+   "especificacion": "V:/PROYECTO ASIGNADO - JEAN PAUL/FICHAS TECNICAS/UT120/SECU120E2. SECADORA UT120-DUAL DIGITAL-DOBLE ROTACION -GALVANIZADO-ELÉCTRICO-380V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
    ],
    "revisar": [
     {
@@ -1887,16 +1897,9 @@
      ]
     }
    ],
-   "especificacionConfianza": "alta",
+   "especificacionConfianza": "confirmada_por_logistica",
    "especificacionEvidencia": [
-    "tipo=secadora",
-    "calentamiento=electrico",
-    "control=dual_digital",
-    "material=galvanizado",
-    "voltaje=380",
-    "fases=3",
-    "doble rotación",
-    "el archivo lleva este código"
+    "confirmada por logística"
    ],
    "especificacionAviso": []
   },
@@ -1912,7 +1915,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT170\\SECU1702. SECADORA UT170-UNILINC TOUCH-DOBLE ROTACION-GN-OPTIDRY-INOX-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "alta",
@@ -1940,7 +1944,8 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT170\\SECU1701. SECADORA UT170-UNILINC TOUCH-DOBLE ROTACION-GN-OPTIDRY-GALVANIZADO-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf"
    ],
    "revisar": [],
    "especificacionConfianza": "alta",
@@ -1967,7 +1972,9 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT200\\SECU200. SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GLP-OPTIDRY-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf",
+    "V:\\02. SECADORAS\\UNIMAC\\UT120 - UG120\\SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GN-220V.pdf"
    ],
    "revisar": [
     {
@@ -2004,7 +2011,9 @@
    "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT200\\SECU2001. SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GN-OPTIDRY-220V.docx",
    "especificacionAprox": [],
    "catalogos": [
-    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+    "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf",
+    "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT 120 - 200\\BROCHURE UT120-200.pdf",
+    "V:\\02. SECADORAS\\UNIMAC\\UT120 - UG120\\SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GN-220V.pdf"
    ],
    "revisar": [
     {
@@ -2533,13 +2542,16 @@
    "valorVenta": 10750,
    "modelo": "E2",
    "carpeta": "GMP ok",
-   "especificacion": null,
+   "especificacion": "V:/LESLY/GMP ok/CATALOGOS/BROCHURE - LINE- E2.pdf",
    "especificacionAprox": [],
    "catalogos": [
     "V:\\LESLY\\GMP ok\\CATALOGOS\\BROCHURE - LINE- E2.pdf"
    ],
    "revisar": [],
-   "especificacionConfianza": "sin_candidatos"
+   "especificacionConfianza": "confirmada_por_logistica",
+   "especificacionEvidencia": [
+    "confirmada por logística"
+   ]
   },
   {
    "codigo": "CALE2200",
