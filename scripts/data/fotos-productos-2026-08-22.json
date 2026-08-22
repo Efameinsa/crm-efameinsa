@@ -1,0 +1,939 @@
+[
+ {
+  "codigo": "LAV1351",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA IND.RIGIDA, MOD:RX135, FUERZA 100G, X CONTROL +, P. SUPERIOR, FRONTAL y LATERAL INOX., CILINDRO INOX, BOILER FED, CON AGUJERO PARA TOLVA DE JABÓN, CAP.14 KG,220/60/1PH, C/USB",
+  "confianza": "alta",
+  "foto": "productos/lav1351.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV1351 -LAVADORA RX135-X CONTROL PLUS-100G-INOX-220V-1PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV1351 -LAVADORA RX135-X CONTROL PLUS-100G-INOX-220V-1PH.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-rigida-primus-RX80-RX105-RX135.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV180",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA IND.RIGIDA, MOD: RX180, FUERZA 100G, X CONTROL, CILINDRO INOX, BOILER FED + PREPARADO A VAPOR, CON AGUJERO PARA TOLVA DE JABÓN, CAP.18 KG, X(220/60/1PH), C/USB",
+  "confianza": "alta",
+  "foto": "productos/lav180-v1.png",
+  "codigoDuplicado": true,
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV180-LAVADORA RX180-XCONTROL-100G-GRIS-220V-1PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV180-LAVADORA RX180-XCONTROL-100G-GRIS-220V-1PH.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-rigida-primus-RX180-RX240-RX280.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV1801",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA IND.RIGIDA, MOD: RX180, FUERZA 100G, X CONTROL FLEX PLUS, PANEL FRONTAL Y LATERAL INOX., CILINDRO INOX, BOILER FED, CON AGUJERO PARA TOLVA DE JABÓN, CAP.18 KG, X(220/60/1PH), C/USB",
+  "confianza": "alta",
+  "foto": "productos/lav1801.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV1801-LAVADORA RX180-X CONTROL FLEX-100G-INOX-220V-1PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV1801-LAVADORA RX180-X CONTROL FLEX-100G-INOX-220V-1PH.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-rigida-primus-RX180-RX240-RX280.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV240",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA INDUSTRIAL RIGIDA, MOD. RX240, CAP: 24 KG, CONTROL: X CONTROL, FUERZA 100G, CILINDRO INOX., BOILER FED + PREPARADO A VAPOR, CON PUERTO USB, X(220V/60HZ/1PH)",
+  "confianza": "alta",
+  "foto": "productos/lav240.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV240-LAVADORA RX240-XCONTROL-100G-GRIS-220V-1PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV240-LAVADORA RX240-XCONTROL-100G-GRIS-220V-1PH.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-rigida-primus-RX180-RX240-RX280.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV2401",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA INDUSTRIAL RIGIDA, MOD. RX240, CAP: 24 KG, CONTROL: X CONTROL, FUERZA 200G, PANEL SUPERIOR, FRONTAL Y LATERAL INOX., CILINDRO INOX., BOILER FED + PREPARADO A VAPOR, CON PUERTO USB, X(220V/60HZ/1PH)",
+  "confianza": "alta",
+  "foto": "productos/lav2401.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV2401-LAVADORA RX240-XCONTROL-200G-INOX-220V-1PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV2401-LAVADORA RX240-XCONTROL-200G-INOX-220V-1PH.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-rigida-primus-RX180-RX240-RX280.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV2402",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA IND. RIGIDA PRIMUS MOD:RX240, CAP:24 KG,  CONTROL X +. FUERZA: 100G, P. SUPERIOR / FRONTAL / LATERAL INOX., CILINDRO INOX, BOILER FED + PREPARADO VAPOR, 490 RPM,  220V/60HP/1PH",
+  "confianza": "alta",
+  "foto": "productos/lav2402.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV2402-LAVADORA RX240-X CONTROL PLUS-100G-INOX-220V-1PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV2402-LAVADORA RX240-X CONTROL PLUS-100G-INOX-220V-1PH.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-rigida-primus-RX180-RX240-RX280.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV280",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA INDUSTRIAL, RIDIGA, MOD. RX280, CAP: 28  KG, FUERZA 100G, CONTROL X + , PANEL SUPERIOR, FRONTAL LATERAL INOXIDABLE, CIL. INOX., BOILER FED + PREPARADO A VAPOR, CON PUERTO USB, P(380V/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/lav280-v1.png",
+  "codigoDuplicado": true,
+  "fotoOrigen": {
+   "ficha": "V:\\01. LAVADORAS\\PRIMUS\\RIGIDA\\LAVADORA RX280-X CONTROL PLUS-100G-INOX-380V-3PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\01. LAVADORAS\\PRIMUS\\RIGIDA\\LAVADORA RX280-X CONTROL PLUS-100G-INOX-380V-3PH.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-rigida-primus-RX180-RX240-RX280.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV350",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA INDUSTRIAL RIGIDA, MOD: RX350, FUERZA: 200G, CONTROL X,CAP 35KG, P. FRONTAL, LATERIAL INOX., BOILER FED + PREP. PARA VAPOR, CILINDRO INOX., X(220V/60HZ/1PH)",
+  "confianza": "alta",
+  "foto": "productos/lav350.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV350-LAVADORA RX350-XCONTROL-200G-INOX-220V-1PH.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "d24ba2b9fe5658d7",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV350-LAVADORA RX350-XCONTROL-200G-INOX-220V-1PH.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-rigida-primus-RX350-RX520.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV3501",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA IND. RIGIDA MOD.RX350, CONTROL X +, FUERZA:100G, CAP.: 35KG, BOILER FED + PREPARADO VAPOR, PANEL SUPERIOR, FRONTAL Y LATERAL INOX, CILNDRO INOX., P (380V/60/3PH)",
+  "confianza": "alta",
+  "foto": "productos/lav3501.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV3501-LAVADORA RX350-XCONTROL-100G-INOX-380V-3PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "c65b97c3c1b2066a",
+   "px": "385x580"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV3501-LAVADORA RX350-XCONTROL-100G-INOX-380V-3PH.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-rigida-primus-RX350-RX520.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV040",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA INDUSTRIAL, MOD: UCT040, CAP.:18KG, CONTROL M30, FUERZA: 200G, P.SUPERIOR, FRONTAL Y  LATERAL INOXIDABLE, CILINDRO INOX., CAL. PREPARADO A VAPOR, X(220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/lav040.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV040-LAVADORA UCT040-M30-INOX-200G-220V.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "f0a642264f991557",
+   "px": "420x560"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV040-LAVADORA UCT040-M30-INOX-200G-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uc20-uc100.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVA060",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL, MOD. UCT060, CONTROL M30, 200G, PANEL FRONTAL, SUPERIOR, LATERAL INOX, CILINDRO INOXIDABLE, CALENTAMIENTO PREPARADO A VAPOR, 27KG, X(220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/lava060-v1.png",
+  "codigoDuplicado": true,
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV060-LAVADORA UCT060-M30-INOX-200G-220V.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "f0a642264f991557",
+   "px": "420x560"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV060-LAVADORA UCT060-M30-INOX-200G-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uc20-uc100.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVA060",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL, MOD. UCT060, CONTROL: M9, FUERZA: 100G, PANEL FRONTAL, SUPERIOR, LATERAL INOX, CILINDRO INOXIDABLE, CALENTAMIENTO PREPARADO A VAPOR, 27KG, X(220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/lava060-v2.png",
+  "codigoDuplicado": true,
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV0601-LAVADORA UCT060-M9-INOX-100G-220V.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "f0a642264f991557",
+   "px": "420x560"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV0601-LAVADORA UCT060-M9-INOX-100G-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uc20-uc100.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVG080",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL RÍGIDA, MOD: UCG080, FUERZA: 200G, CONTROL M9, PANEL LATERAL,FRONTAL INOXIDABLE, CILINDRO INOXIDABLE, CAP: 36 KG, (220V/60HZ/1-3PH)",
+  "confianza": "media",
+  "foto": "productos/lavg080.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVG080-LAVADORA UCG080-M9-INOX-100G-220V.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "f0a642264f991557",
+   "px": "420x560"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVG080-LAVADORA UCG080-M9-INOX-100G-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uc20-uc100.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVT080",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA IND. RIGIDA MOD:UCT080 CAP: 36 KG, FUERZA 100G OPL, CONTROL M9, CILINDRO INOX, PREPARADO  A VAPOR, PANEL SUPERIOR, FRONTAL Y LATERAL INOX., (220V/60HZ/1-3PH), 15 AMP",
+  "confianza": "alta",
+  "foto": "productos/lavt080.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV080-LAVADORA UCT080-M9-INOX-100G-220V.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "f0a642264f991557",
+   "px": "420x560"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV080-LAVADORA UCT080-M9-INOX-100G-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uc20-uc100.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVUW045",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL RIGIDA, UNIMAC, MOD: UWT045, FUERZA 400G, CONTROL: UNILINC TOUCH, CAP:20KG, SIS. OPL, PANEL LATERAL, FRONTAL Y CILINDRO INOX., PREPARADA PARA VAPOR, CON DOSIFICADOR MANUAL, C/ OPTISPRAY, X (220V/60HZ/1-3 PH)",
+  "confianza": "alta",
+  "foto": "productos/lavuw045.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVUW045-LAVADORA UW045-UNILINC TOUCH-INOX-400G-OPTISPRAY-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "1a6e5205a001a96b",
+   "px": "204x347"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVUW045-LAVADORA UW045-UNILINC TOUCH-INOX-400G-OPTISPRAY-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\Ficha técnica _UW45-65_UniLincTouch.pdf",
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uw45-uw130-m30.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVW045",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL RIGIDA, UNIMAC, MOD: UWT045, FUERZA 400G, CONTROL: UNILINC TOUCH, CAP:20KG, SIS. OPL, PANEL LATERAL, FRONTAL Y CILINDRO INOX., PREPARADA PARA VAPOR, CON DOSIFICADOR MANUAL, C/ OPTISPRAY, P (380V/60HZ/3 PH)",
+  "confianza": "alta",
+  "foto": "productos/lavw045.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW045-LAVADORA UW045-UNILINC TOUCH-INOX-400G-OPTISPRAY-380V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "1a6e5205a001a96b",
+   "px": "204x347"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW045-LAVADORA UW045-UNILINC TOUCH-INOX-400G-OPTISPRAY-380V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\Ficha técnica _UW45-65_UniLincTouch.pdf",
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uw45-uw130-m30.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVW065",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL RIGIDA, MOD: UWT065, FUERZA: 400 G, CONTROL UNILINC TOUCH, CAP. 29.5 KG, SIS. OPL, PREPARADO PARA VAPOR,  PANEL LATERAL, FRONTAL Y CILINDRO INOX., C/ DOSIFICADOR MANUAL, C/ OTISPRAY, (220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/lavw065.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW065-LAVADORA UW065-UNILINC TOUCH-INOX-400G-OPTISPRAY-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "1a6e5205a001a96b",
+   "px": "204x347"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW065-LAVADORA UW065-UNILINC TOUCH-INOX-400G-OPTISPRAY-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\Ficha técnica _UW45-65_UniLincTouch.pdf",
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uw45-uw130-m30.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVW085",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL RIGIDA MOD: UW085N, 200G, CONTROL: M30, CAP:38.5 KG, PREPARADO PARA VAPOR, PANEL LATERAL, FRONTAL, CILINDRO INOX, S / DOSIFICADOR MANUAL, SIN OTISPRAY,  (220V/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/lavw085.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW085-LAVADORA UW085-M30-INOX-200G-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "f4a77621683331cd",
+   "px": "219x389"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW085-LAVADORA UW085-M30-INOX-200G-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\Ficha técnica UW85 -200 Unilinc touch_UW.pdf",
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uw45-uw130-m30.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVW0851",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL RIGIDA, MOD: UW085, FUERZA: 300 G, CONTROL UNILINC TOUCH, CAP. 38.5 KG,  M. RÍGIDO,  SIS. OPL, PREP. PARA VAPOR,  PANEL LATERAL, FRONTAL Y CILINDRO INOX., CON DOSIFICADOR MANUAL, C/ OPTISPRAY, (380V/60HZ/3PH)",
+  "confianza": "media",
+  "foto": "productos/lavw0851.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW0851-LAVADORA UW085-UNILINC TOUCH-INOX-300G-OPTISPRAY-380V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "1a6e5205a001a96b",
+   "px": "204x347"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW0851-LAVADORA UW085-UNILINC TOUCH-INOX-300G-OPTISPRAY-380V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\Ficha técnica UW85 -200 Unilinc touch_UW.pdf",
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uw45-uw130-m30.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVW0852",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL RIGIDA, MOD: UW085, FUERZA: 300 G, CONTROL UNILINC TOUCH, CAP. 38.5 KG,  M. RÍGIDO,  SIS. OPL, PREP. PARA VAPOR,  PANEL LATERAL, FRONTAL Y CILINDRO INOX., CON DOSIFICADOR MANUAL, C/ OPTISPRAY, (220V/60HZ/3PH)",
+  "confianza": "media",
+  "foto": "productos/lavw0852.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW0852-LAVADORA UW085-UNILINC TOUCH-INOX-300G-OPTISPRAY-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "1a6e5205a001a96b",
+   "px": "204x347"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW0852-LAVADORA UW085-UNILINC TOUCH-INOX-300G-OPTISPRAY-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\Ficha técnica UW85 -200 Unilinc touch_UW.pdf",
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uw45-uw130-m30.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVW1051",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL RIGIDA, UNIMAC, MOD:UWT105, FUERZA 300G, CAP: 47.6KG, OPL, CONTROL: UNILINC TOUCH, PANEL LATERAL, FRONTAL Y CILINDRO INOX, PREPARADO PARA VAPOR, DOSIFICADOR MANUAL, C/ OPTISPRAY, P(380V/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/lavw1051.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW1051-LAVADORA UW105-UNILINC TOUCH-INOX-300G-OPTISPRAY-380V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "1a6e5205a001a96b",
+   "px": "204x347"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW1051-LAVADORA UW105-UNILINC TOUCH-INOX-300G-OPTISPRAY-380V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\Ficha técnica UW85 -200 Unilinc touch_UW.pdf",
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uw45-uw130-m30.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVW105",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL, RIGIDA MOD: UWT130, FUERZA 300G, CAP:58KG, CONTROL UNILINC TOUCH, PANEL LATERAL / FRONTAL Y CILINDRO INOX, PREPARADO PARA VAPOR, DOSIFICADOR MANUAL, C/ OPTISPRAY, P(220V/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/lavw105.png",
+  "fotoOrigen": {
+   "ficha": "V:\\01. LAVADORAS\\UNIMAC\\SERIE UW\\CONTROL UNILINC TOUCH - 2025\\LAVADORA UW130-UNILINC TOUCH-INOX-300G-OPTISPRAY-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "1a6e5205a001a96b",
+   "px": "204x347"
+  },
+  "especificacion": "V:\\01. LAVADORAS\\UNIMAC\\SERIE UW\\CONTROL UNILINC TOUCH - 2025\\LAVADORA UW130-UNILINC TOUCH-INOX-300G-OPTISPRAY-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\Ficha técnica UW85 -200 Unilinc touch_UW.pdf",
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uw45-uw130-m30.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVW1302",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL, RIGIDA MOD: UWT130, FUERZA 300G, CAP:58KG, CONTROL: UNILINC TOUCH, PANEL LATERAL / FRONTAL Y CILINDRO INOX, PREPARADO PARA VAPOR, DOSIFICADOR MANUAL, C/ OPTISPRAY, Q(220V/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/lavw1302.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW1302-LAVADORA UW130-UNILINC TOUCH-INOX-300G-OPTISPRAY-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "1a6e5205a001a96b",
+   "px": "204x347"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW1302-LAVADORA UW130-UNILINC TOUCH-INOX-300G-OPTISPRAY-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\Ficha técnica UW85 -200 Unilinc touch_UW.pdf",
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uw45-uw130-m30.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVW1301",
+  "marca": "UNIMAC",
+  "equipo": "LAVADORA INDUSTRIAL, RIGIDA MOD: UWT130, FUERZA 300G, CAP:58KG, CONTROL UNILINC TOUCH, PANEL LATERAL / FRONTAL Y CILINDRO INOX, PREPARADO PARA VAPOR, DOSIFICADOR MANUAL, C/ OPTISPRAY, P(380V/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/lavw1301.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW1301-LAVADORA UW130-UNILINC TOUCH-INOX-300G-OPTISPRAY-380V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "1a6e5205a001a96b",
+   "px": "204x347"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVW1301-LAVADORA UW130-UNILINC TOUCH-INOX-300G-OPTISPRAY-380V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\Ficha técnica UW85 -200 Unilinc touch_UW.pdf",
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\ficha-tecnica-lavadora-uw45-uw130-m30.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV135S",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA INDUST. FLOT. SOFTWASH MOD. FX135, FUERZA 400G, CONTROL X +, PANEL FRONTAL, LATERAL Y  CILINDRO INOX,  CAP. 13.5KG, RPM: 1,075, X (220/60Hz/1PH)",
+  "confianza": "alta",
+  "foto": "productos/lav135s.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV1355-LAVADORA FX135-XCONTROL PLUS-SOFTWASH-400G-INOX-220V-1PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV1355-LAVADORA FX135-XCONTROL PLUS-SOFTWASH-400G-INOX-220V-1PH.docx",
+  "catalogos": []
+ },
+ {
+  "codigo": "LAV180",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA INDUST. FLOT. MOD. FX180, FUERZA 400G, CONTROL X +, PANEL SUPERIOR, FRONTAL, LATERAL Y CILINDRO INOX, CALENTAMIENTO BOILER FED, CAP.: 18KG, X (220/60HZ/1PH)",
+  "confianza": "media",
+  "foto": "productos/lav180-v2.png",
+  "codigoDuplicado": true,
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVF180-LAVADORA FX 180-CONTROL PLUS-400G-INOX 220V.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVF180-LAVADORA FX 180-CONTROL PLUS-400G-INOX 220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-flotante-primus-FX180-FX240-FX280.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV280",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA INDUST. FLOT. MOD. FX280, FUERZA 400G, CONTROL X, PANEL FRONTAL INOX., PANEL LATERAL GRIS, CILINDRO INOX., CALENTAMIENTO BOILER FED, CAP.: 28KG, Q (220/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/lav280-v2.png",
+  "codigoDuplicado": true,
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVF280-LAVADORA FX 280-CONTROL X-400G-220V.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAVF280-LAVADORA FX 280-CONTROL X-400G-220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-flotante-primus-FX180-FX240-FX280.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVTGIA13",
+  "marca": "LG",
+  "equipo": "LAVADORA SECADORA SEMI INDUSTRIAL TORRE A GAS GIANT C MAX  13 -10.2 KG 220/60HZ/1PH",
+  "confianza": "media",
+  "foto": "productos/lavtgia13.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\LG ok\\ESPECIFICACIONES TECNICAS\\LAVGIA13-LavadoraSecadora giant c max 13-10.2 kg  OPL A GAS.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "02bfc124bc46f74c",
+   "px": "282x736"
+  },
+  "especificacion": "V:\\LESLY\\LG ok\\ESPECIFICACIONES TECNICAS\\LAVGIA13-LavadoraSecadora giant c max 13-10.2 kg  OPL A GAS.docx",
+  "catalogos": [
+   "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf"
+  ]
+ },
+ {
+  "codigo": "LAVTMAX17",
+  "marca": "LG",
+  "equipo": "LAVADORA SECADORA SEMI INDUSTRIAL TORRE A GAS TITAN MAX  MAX  17 -15 KG 220/60HZ/1PH",
+  "confianza": "alta",
+  "foto": "productos/lavtmax17.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\LG ok\\ESPECIFICACIONES TECNICAS\\LAVTMAX17-LavadoraSecadora Titan  max 17-15 kg  OPL A GAS.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "2dac234e7c730558",
+   "px": "179x481"
+  },
+  "especificacion": "V:\\LESLY\\LG ok\\ESPECIFICACIONES TECNICAS\\LAVTMAX17-LavadoraSecadora Titan  max 17-15 kg  OPL A GAS.docx",
+  "catalogos": [
+   "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf"
+  ]
+ },
+ {
+  "codigo": "SECD24",
+  "marca": "PRIMUS",
+  "equipo": "SECADORA INDUSTRIAL, MOD. DX24, CONTROL: MICROPROCESSOR , DOBLE ROTACION, CILINDRO GALVANIZADO, PANEL FRONTAL y LATERAL ACERO GRIS, CAP. 24KG, A GAS NATURAL, X(220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/secd24.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\DX24\\SECD24. SECADORA DX 24 OPL MICROPROCESOR - C. GALVANIZADO - CAP. 24 KG - GAS NATURAL - 220V.60HZ.1-3.PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "1aefd7db6d3dd5a9",
+   "px": "400x680"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\DX24\\SECD24. SECADORA DX 24 OPL MICROPROCESOR - C. GALVANIZADO - CAP. 24 KG - GAS NATURAL - 220V.60HZ.1-3.PH.docx",
+  "catalogos": [
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\DX 24 - 34\\SECADORA PREMIUS - DX24-DX34.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU302",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD: UT030N, CONTROL: UNILINC TOUCH,  GAS NATURAL, DOBLE ROTACION, CILINDRO INOXIDABLE, PANEL FRONTAL DE ACERO INOXIDABLE,  C/ OPTIDRY, CAP 14KG, X (220V/60Hz/1-3PH)",
+  "confianza": "media",
+  "foto": "productos/secu302.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT030\\SECU302. SECADORA UT030-UNILINC TOUCH-DOBLE ROTACION-INOX-OPTYDRY-GN-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "33f75e15995034f9",
+   "px": "137x245"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT030\\SECU302. SECADORA UT030-UNILINC TOUCH-DOBLE ROTACION-INOX-OPTYDRY-GN-220V.docx",
+  "catalogos": [
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT & UTT  030 - 055\\SECADORA UNIMAC_UT030-055.pdf"
+  ]
+ },
+ {
+  "codigo": "SECG501",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD: UG050, CONTROL: DUAL DIGITAL,  ELECTRICO, 30KW, CILINDRO GALV., CAP 25KG, H (380V/60Hz/3PH)",
+  "confianza": "alta",
+  "foto": "productos/secg501.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UG050\\SECG501. SECADORA UG050 - DUAL DIGITAL - GALVANIZADO - ELÉCTRICO - 380V-60Hz-3Ph.docx",
+   "interno": "word/media/image3.jpeg",
+   "huella": "1311b8090eee3385",
+   "px": "804x937"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UG050\\SECG501. SECADORA UG050 - DUAL DIGITAL - GALVANIZADO - ELÉCTRICO - 380V-60Hz-3Ph.docx",
+  "catalogos": []
+ },
+ {
+  "codigo": "SECU552",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD. UT075, CONTROL: UNILICH TOUCH, DOBLE ROTACION, PANEL ESTÁNDAR, CILINDRO GALVANIZADO, GAS NATURAL, CAP:34KG, X(220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu552.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU552. SECADORA UT075-UNILICH TOUCH-DOBLE ROTACIÓN-GALVANIZADO-GN-220V.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "bf23dc8f48c4d2d7",
+   "px": "997x1166"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU552. SECADORA UT075-UNILICH TOUCH-DOBLE ROTACIÓN-GALVANIZADO-GN-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU752",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD. UT075, CONTROL: UNILICH TOUCH, DOBLE ROTACION, PANEL FRONTAL INOXIDABLE, CILINDRO INOXIDABLE, GAS NATURAL, CAP:34KG, X(220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu752.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU752. SECADORA UT075-UNILINC TOUCH-DOBLE ROTACION-INOX-C. INOX-GN-220V.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "b8c0417db942204b",
+   "px": "1042x1221"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU752. SECADORA UT075-UNILINC TOUCH-DOBLE ROTACION-INOX-C. INOX-GN-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU755",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD. UT075, CONTROL: UNILICH TOUCH, DOBLE ROTACION, PANEL ESTÁNDAR , CILINDRO INOXIDABLE, GAS GLP, CAP:34KG, X(220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu755.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU755. SECADORA UT075-UNILICH TOUCH -DOBLE ROTACION-INOXIDABLE-GLP-220V.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "dbd6f6e859bd6806",
+   "px": "889x1041"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU755. SECADORA UT075-UNILICH TOUCH -DOBLE ROTACION-INOXIDABLE-GLP-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU120",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD: UT120L, CAP: 50KG, CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENTAMIENTO: GAS GLP, PANEL ESTÁNDAR, Q(220V/60HZ/ 3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu120.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120. SECADORA UT120-DUAL DIGITAL-GALVANIZADO-DOBLE ROTACIÓN-GLP -220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "d033c1ccff86f49c",
+   "px": "372x596"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120. SECADORA UT120-DUAL DIGITAL-GALVANIZADO-DOBLE ROTACIÓN-GLP -220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU120E",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD: UT120L, CAP: 50KG, CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENTAMIENTO: ELECTRICO, PANEL ESTÁNDAR,  Q(220V/60HZ/ 3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu120e.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120E. SECADORA UT120-DUAL DIGITAL-GALVANIZADO- DOBLE ROTACIÓN -ELÉCTRICO-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "d033c1ccff86f49c",
+   "px": "372x596"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120E. SECADORA UT120-DUAL DIGITAL-GALVANIZADO- DOBLE ROTACIÓN -ELÉCTRICO-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU120E2",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD: UT120L, CAP: 50KG, CONTROL: DUAL DIGITAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CALENTAMIENTO: ELECTRICO, PANEL ESTÁNDAR,P(380V/60HZ/ 3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu120e2.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120E2. SECADORA UT120-DUAL DIGITAL-DOBLE ROTACION -GALVANIZADO-ELÉCTRICO-380V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "d033c1ccff86f49c",
+   "px": "372x596"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU120E2. SECADORA UT120-DUAL DIGITAL-DOBLE ROTACION -GALVANIZADO-ELÉCTRICO-380V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU1702",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD. UT170, CONTROL: UNILIC TOUCH, DOBLE ROTACION, CILINDRO INOXIDABLE, CAP.77KG, GAS NATURAL, C/ OPTIDRY, Q(220V/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu1702.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT170\\SECU1702. SECADORA UT170-UNILINC TOUCH-DOBLE ROTACION-GN-OPTIDRY-INOX-220V.docx",
+   "interno": "word/media/image1.jpg",
+   "huella": "6e9e46c59994d8f8",
+   "px": "420x560"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT170\\SECU1702. SECADORA UT170-UNILINC TOUCH-DOBLE ROTACION-GN-OPTIDRY-INOX-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+  ]
+ },
+ {
+  "codigo": "1SECU1701",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD. UT170, CONTROL: UNILIC TOUCH, DOBLE ROTACION, CILINDRO GALVANIZADO, CAP.77KG, GAS NATURAL, C/ OPTIDRY, Q(220V/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/1secu1701.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT170\\SECU1701. SECADORA UT170-UNILINC TOUCH-DOBLE ROTACION-GN-OPTIDRY-GALVANIZADO-220V.docx",
+   "interno": "word/media/image1.jpg",
+   "huella": "6e9e46c59994d8f8",
+   "px": "420x560"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT170\\SECU1701. SECADORA UT170-UNILINC TOUCH-DOBLE ROTACION-GN-OPTIDRY-GALVANIZADO-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU200",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD.: UT200L, CONTROL: UNILINC TOUCH, DOBLE ROTACION, CILINDRO INOXIDABLE, CAP. 90 KG, GAS GLP, C/ OPTIDRY, Q(220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu200.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT200\\SECU200. SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GLP-OPTIDRY-220V.docx",
+   "interno": "word/media/image1.jpg",
+   "huella": "6e9e46c59994d8f8",
+   "px": "420x560"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT200\\SECU200. SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GLP-OPTIDRY-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU2001",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD: UT200N, CONTROL: UNILINC TOUCH, DOBLE ROTACION, CILINDRO INOXIDABLE, CAP: 90KG, GAS NATURAL, C/ OPTIDRY , Q (220V/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu2001.png",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT200\\SECU2001. SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GN-OPTIDRY-220V.docx",
+   "interno": "word/media/image1.jpg",
+   "huella": "6e9e46c59994d8f8",
+   "px": "420x560"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT200\\SECU2001. SECADORA UT200-UNILINC TOUCH-DOBLE ROTACION-INOX-GN-OPTIDRY-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+  ]
+ },
+ {
+  "codigo": "SECA758",
+  "marca": "ADC",
+  "equipo": "SECADORA INDUSTRIAL, MOD.: ADG-758V, SISTEMA OPL, PANEL ESTÁNDAR, CILINDRO GALVANIZADO, GAS GLP, CAP.: 34 KG, (220V/60HZ/1PH)",
+  "confianza": "alta",
+  "foto": "productos/seca758.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ADC OK\\ESPCIFICACIONES TECNICAS\\SECA758-Secadora ADG-758V 34 kg_A gas.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "adcf5ef6c5b159bd",
+   "px": "300x492"
+  },
+  "especificacion": "V:\\LESLY\\ADC OK\\ESPCIFICACIONES TECNICAS\\SECA758-Secadora ADG-758V 34 kg_A gas.docx",
+  "catalogos": [
+   "V:\\LESLY\\ADC OK\\CATALOGOS\\AD50V-AD758V.pdf"
+  ]
+ },
+ {
+  "codigo": "SECA120",
+  "marca": "ADC",
+  "equipo": "SECADORA INDUSTRIAL, MOD.: ADG-120I, CAP.: 54KG, DOBLE ROTACION, PANEL FRONTAL Y CILINDRO INOX., GAS GLP, (220/60HZ/3PH)",
+  "confianza": "alta",
+  "foto": "productos/seca120.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ADC OK\\ESPCIFICACIONES TECNICAS\\SECA120-Secadora ADG-120i 54 kg_A gas Trifasico.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "03143c872723d06a",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ADC OK\\ESPCIFICACIONES TECNICAS\\SECA120-Secadora ADG-120i 54 kg_A gas Trifasico.docx",
+  "catalogos": [
+   "V:\\LESLY\\ADC OK\\CATALOGOS\\AD35i-AD120i.pdf",
+   "V:\\LESLY\\ADC OK\\CATALOGOS\\AD50V-AD758V.pdf"
+  ]
+ },
+ {
+  "codigo": "SECMAX15",
+  "marca": "LG",
+  "equipo": "SECADORA C., GAS, MARCA: LG, C/S OPL, MOD.: TITAN LIGHT APILABLE, CAP15 KG, 220/60/1PH, COD.: CDT29MUCPS",
+  "confianza": "alta",
+  "foto": "productos/secmax15.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\LG ok\\ESPECIFICACIONES TECNICAS\\SECMAX15-Secadora Titan Light 15 kg OPL A GAS APILABLE.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "e9f4b1ff0fd295d7",
+   "px": "282x533"
+  },
+  "especificacion": "V:\\LESLY\\LG ok\\ESPECIFICACIONES TECNICAS\\SECMAX15-Secadora Titan Light 15 kg OPL A GAS APILABLE.docx",
+  "catalogos": [
+   "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf"
+  ]
+ },
+ {
+  "codigo": "SECMAX152",
+  "marca": "LG",
+  "equipo": "SECADORA C., GAS, MARCA: LG,  C/S OPL, MOD.: TITAN LIGHT SINGLE, CAP. 15 KG, 220/60/1PH, COD.: CDT29MSCPS",
+  "confianza": "alta",
+  "foto": "productos/secmax152.png",
+  "fotoOrigen": {
+   "ficha": "V:\\02. SECADORAS\\LG\\Secadora Titan Light 15 kg OPL A GAS.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "e9f4b1ff0fd295d7",
+   "px": "282x533"
+  },
+  "especificacion": "V:\\02. SECADORAS\\LG\\Secadora Titan Light 15 kg OPL A GAS.docx",
+  "catalogos": [
+   "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf"
+  ]
+ },
+ {
+  "codigo": "SECEGI10",
+  "marca": "LG",
+  "equipo": "SECADORA SEMI INDUSTRIAL MARCA LG ELECTRICO GIANT C 10.2 KG, 220/60/1PH",
+  "confianza": "alta",
+  "foto": "productos/secegi10.png",
+  "fotoOrigen": {
+   "ficha": "V:\\02. SECADORAS\\LG\\Secadora Giant C+ Electrico 10.2 kg.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "e9f4b1ff0fd295d7",
+   "px": "282x533"
+  },
+  "especificacion": "V:\\02. SECADORAS\\LG\\Secadora Giant C+ Electrico 10.2 kg.docx",
+  "catalogos": [
+   "V:\\LESLY\\LG ok\\CATALOGOS\\Catalogo_equipos_semiindustriales_LG 2026.pdf"
+  ]
+ },
+ {
+  "codigo": "CAL2635",
+  "marca": "GMP",
+  "equipo": "RODILLO PLANCHADORA  DE SECADO, MARCA: GMP, MOD.: G26.35, CALEFACCIÓN ELECTRICA, CILINDRO CROMADO, CONTROL MICROPROCESADOR, POTENCIA CALORIFICA: 34.2KW, 220V/60Z/3PH",
+  "confianza": "alta",
+  "foto": "productos/cal2635.png",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\GMP ok\\ESPECIFICACIONES TECNICAS\\CAL2635-Rodillo Planchado G26-35 Electrico 220V.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "54396e358a785a8a",
+   "px": "350x214"
+  },
+  "especificacion": "V:\\LESLY\\GMP ok\\ESPECIFICACIONES TECNICAS\\CAL2635-Rodillo Planchado G26-35 Electrico 220V.docx",
+  "catalogos": [
+   "V:\\LESLY\\GMP ok\\CATALOGOS\\G14.25-G21.35.pdf"
+  ]
+ },
+ {
+  "codigo": "LAV135",
+  "marca": "PRIMUS",
+  "equipo": "LAVADORA IND.RIGIDA, MOD:RX135, FUERZA: 200G, X CONTROL, OPL, P.SUPERIOR INOX, P.LATERAL y FRONTAL GRIS, CILINDRO INOX, BOILER FED, CON AGUJERO PARA TOLVA DE JABÓN, CAP.14 KG, 220/60HZ/1PH, C/USB.",
+  "confianza": "alta",
+  "foto": "productos/lav135.png",
+  "fotoPrestadaDe": "LAV1351",
+  "fotoOrigen": {
+   "ficha": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV135-LAVADORA RX135-X CONTROL-200G-GRIS-220V-1PH.docx",
+   "interno": "word/media/image1.jpeg",
+   "huella": "5f14b1a54d03c707",
+   "px": "800x800"
+  },
+  "especificacion": "V:\\LESLY\\ALLIANCE ok\\ESPECIFICACIONES TECNICAS\\LAV135-LAVADORA RX135-X CONTROL-200G-GRIS-220V-1PH.docx",
+  "catalogos": [
+   "V:\\LESLY\\ALLIANCE ok\\CATALOGOS\\lavadora-rigida-primus-RX80-RX105-RX135.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU303",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD: UT030N, CONTROL: DUAL DIGITAL,  GAS NATURAL, DOBLE ROTACION, CILINDRO GALVANIZADO, CAP 14KG, X (220V/60Hz/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu303.png",
+  "fotoPrestadaDe": "SECU302",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT030\\SECU303. SECADORA UT030N-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GN-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "33f75e15995034f9",
+   "px": "137x245"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT030\\SECU303. SECADORA UT030N-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GN-220V.docx",
+  "catalogos": [
+   "V:\\PROYECTO ASIGNADO - JEAN PAUL\\CATÁLOGO\\UT & UTT  030 - 055\\SECADORA UNIMAC_UT030-055.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU75L",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL MOD. UT075, CONTROL: DUAL DIGITAL , DOBLE ROTACION, CILINDRO GALVANIZADO , PANEL ESTANDAR , CAP: 34 KG, A GAS GLP, (380V/60HZ/3PH), BLANCO",
+  "confianza": "alta",
+  "foto": "productos/secu75l.png",
+  "fotoPrestadaDe": "SECU752",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75L. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-380V.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "b8c0417db942204b",
+   "px": "1042x1221"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75L. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-380V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU553",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD. UT075, CONTROL: DUAL DIGITAL, DOBLE ROTACION, PANEL ESTÁNDAR, CILINDRO GALVANIZADO, GAS NATURAL, CAP:34KG, X(220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu553.png",
+  "fotoPrestadaDe": "SECU752",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU553. SECADORA UT075-DUAL DIGITAL DOBLE ROTACIÓN-GALVANIZADO-GN-220V.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "b8c0417db942204b",
+   "px": "1042x1221"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU553. SECADORA UT075-DUAL DIGITAL DOBLE ROTACIÓN-GALVANIZADO-GN-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU75",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD. UT075, CONTROL: DUAL DIGITAL, PANEL ESTÁNDAR , CILINDRO GALVANIZADO, GAS GLP, CAP:34KG, X(220V/60HZ/1-3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu75.png",
+  "fotoPrestadaDe": "SECU752",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-220V.docx",
+   "interno": "word/media/image2.jpeg",
+   "huella": "b8c0417db942204b",
+   "px": "1042x1221"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT075\\SECU75. SECADORA UT075-DUAL DIGITAL-DOBLE ROTACION-GALVANIZADO-GLP-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT075\\BROCHURE_UT075.pdf"
+  ]
+ },
+ {
+  "codigo": "SECU1202",
+  "marca": "UNIMAC",
+  "equipo": "SECADORA INDUSTRIAL, MOD: UT120L, CAP: 50KG, CONTROL: UNLINC TOUCH, DOBLE ROTACION, CILINDRO INOXIDABLE, CALENTAMIENTO: GAS GLP, PANEL ESTÁNDAR, C/ OPTIDRY, Q(220V/60HZ/ 3PH)",
+  "confianza": "alta",
+  "foto": "productos/secu1202.png",
+  "fotoPrestadaDe": "SECU120",
+  "fotoOrigen": {
+   "ficha": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU1202. SECADORA UT120-UNILIC TOUCH-INOXIDABLE-GLP-DOBLE ROTACION-OPTYDRY-220V.docx",
+   "interno": "word/media/image2.png",
+   "huella": "d033c1ccff86f49c",
+   "px": "372x596"
+  },
+  "especificacion": "V:\\PROYECTO ASIGNADO - JEAN PAUL\\FICHAS TECNICAS\\UT120\\SECU1202. SECADORA UT120-UNILIC TOUCH-INOXIDABLE-GLP-DOBLE ROTACION-OPTYDRY-220V.docx",
+  "catalogos": [
+   "V:\\02. SECADORAS\\UNIMAC\\UT200\\BROCHURE_UT120-200.pdf"
+  ]
+ }
+]
