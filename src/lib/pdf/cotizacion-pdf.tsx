@@ -32,6 +32,9 @@ export interface ItemPdf {
 
 export interface CotizacionPdfProps {
   logoBuffer: Buffer;
+  /** Papelería oficial escaneada. Si viene, reemplaza al membrete dibujado. */
+  membreteBuffer?: Buffer | null;
+  pieBuffer?: Buffer | null;
   serie: "EFAMEINSA" | "OPEN";
   numeroDocumento: string; // "5-26" (correlativo-año corto, como los modelos)
   fecha: string; // "14 de agosto de 2026"
@@ -69,6 +72,9 @@ function crearEstilos(acento: string) {
     },
 
     /* Membrete y pie (fijos en todas las páginas) */
+    // Con imagen: va de borde a borde, como el papel membretado impreso.
+    membreteImagen: { position: "absolute", top: 24, left: 48, right: 48 },
+    pieImagen: { position: "absolute", bottom: 20, left: 48, right: 48 },
     membrete: { position: "absolute", top: 26, left: 48, right: 48 },
     membreteFila: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
     logo: { width: 132 },
@@ -166,6 +172,8 @@ const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
 export function CotizacionPdf({
   logoBuffer,
+  membreteBuffer,
+  pieBuffer,
   serie,
   numeroDocumento,
   fecha,
@@ -184,7 +192,17 @@ export function CotizacionPdf({
   const total = subtotal + igv;
   const simbolo = moneda === "USD" ? "US$" : "S/";
 
-  const membrete = (
+  // Membrete: cuando hay imagen de la papelería oficial se usa esa, porque es
+  // exactamente el papel con el que la empresa imprime hoy (se extrajo de las
+  // fichas técnicas, donde venía como fondo de página). Si no la hay —el caso
+  // de OPEN, que todavía no la tiene— se dibuja como antes con el logo y los
+  // textos de la serie, así ninguna serie se queda sin encabezado.
+  const membrete = membreteBuffer ? (
+    <View style={estilos.membreteImagen} fixed>
+      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
+      <Image src={membreteBuffer} />
+    </View>
+  ) : (
     <View style={estilos.membrete} fixed>
       <View style={estilos.membreteFila}>
         {identidad.usaLogo ? (
@@ -206,7 +224,12 @@ export function CotizacionPdf({
     </View>
   );
 
-  const pie = (
+  const pie = pieBuffer ? (
+    <View style={estilos.pieImagen} fixed>
+      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
+      <Image src={pieBuffer} />
+    </View>
+  ) : (
     <View style={estilos.pie} fixed>
       {identidad.pie.map((linea, i) => (
         <Text key={i} style={i === 0 && serie === "EFAMEINSA" ? estilos.pieWeb : estilos.pieTexto}>
@@ -343,10 +366,43 @@ export function CotizacionPdf({
 
               {(tieneDetalle || item.fotoBuffer) && (
                 <View style={{ flexDirection: "row", borderTopWidth: 0.8, borderTopColor: BORDE }}>
-                  {item.fotoBuffer && (
-                    <View style={{ width: "32%", padding: 12, justifyContent: "center" }}>
-                      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
-                      <Image src={item.fotoBuffer} style={{ width: "100%" }} />
+                  {/* Columna izquierda: foto arriba y, debajo, las medidas.
+                      Antes las tres listas iban juntas a la derecha y una
+                      ficha con muchas viñetas se desbordaba a una segunda
+                      página casi vacía, dejando la foto huérfana arriba.
+                      Puestas acá aprovechan el hueco bajo la imagen y la
+                      ficha vuelve a entrar en una sola hoja, como los
+                      modelos impresos. */}
+                  {(item.fotoBuffer || item.dimensiones.length > 0 || item.medidas.length > 0) && (
+                    <View style={{ width: "34%", padding: 10 }}>
+                      {item.fotoBuffer && (
+                        <View style={{ justifyContent: "center", marginBottom: 10 }}>
+                          {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
+                          <Image src={item.fotoBuffer} style={{ width: "100%" }} />
+                        </View>
+                      )}
+                      {item.dimensiones.length > 0 && (
+                        <>
+                          <Text style={estilos.caracTitulo}>DIMENSIONES DE LA MAQUINA</Text>
+                          {item.dimensiones.map((d, j) => (
+                            <View key={j} style={estilos.caracBullet}>
+                              <Text style={estilos.caracPunto}>•</Text>
+                              <Text style={estilos.caracTexto}>{d}</Text>
+                            </View>
+                          ))}
+                        </>
+                      )}
+                      {item.medidas.length > 0 && (
+                        <>
+                          <Text style={[estilos.caracTitulo, { marginTop: 6 }]}>MEDIDAS GENERALES</Text>
+                          {item.medidas.map((m, j) => (
+                            <View key={j} style={estilos.caracBullet}>
+                              <Text style={estilos.caracPunto}>•</Text>
+                              <Text style={estilos.caracTexto}>{m}</Text>
+                            </View>
+                          ))}
+                        </>
+                      )}
                     </View>
                   )}
                   <View
@@ -364,28 +420,6 @@ export function CotizacionPdf({
                           <View key={j} style={estilos.caracBullet}>
                             <Text style={estilos.caracPunto}>•</Text>
                             <Text style={estilos.caracTexto}>{c}</Text>
-                          </View>
-                        ))}
-                      </>
-                    )}
-                    {item.dimensiones.length > 0 && (
-                      <>
-                        <Text style={[estilos.caracTitulo, { marginTop: 6 }]}>DIMENSIONES DE LA MAQUINA</Text>
-                        {item.dimensiones.map((d, j) => (
-                          <View key={j} style={estilos.caracBullet}>
-                            <Text style={estilos.caracPunto}>•</Text>
-                            <Text style={estilos.caracTexto}>{d}</Text>
-                          </View>
-                        ))}
-                      </>
-                    )}
-                    {item.medidas.length > 0 && (
-                      <>
-                        <Text style={[estilos.caracTitulo, { marginTop: 6 }]}>MEDIDAS GENERALES</Text>
-                        {item.medidas.map((m, j) => (
-                          <View key={j} style={estilos.caracBullet}>
-                            <Text style={estilos.caracPunto}>•</Text>
-                            <Text style={estilos.caracTexto}>{m}</Text>
                           </View>
                         ))}
                       </>

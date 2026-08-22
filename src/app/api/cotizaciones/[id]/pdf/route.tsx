@@ -8,6 +8,20 @@ import { CotizacionPdf, type ItemPdf } from "@/lib/pdf/cotizacion-pdf";
 // Se lee una sola vez al cargar el módulo, no en cada request.
 const LOGO_BUFFER = readFileSync(join(process.cwd(), "public", "logo-efameinsa.png"));
 
+// Papelería oficial de Efameinsa, extraída de las fichas técnicas (venía como
+// fondo de página). Con esto la cotización sale sobre el mismo membrete con
+// el que la empresa imprime. OPEN todavía no tiene el suyo: para esa serie el
+// PDF cae al membrete dibujado.
+function leerOpcional(archivo: string): Buffer | null {
+  try {
+    return readFileSync(join(process.cwd(), "public", archivo));
+  } catch {
+    return null;
+  }
+}
+const MEMBRETE_EFAMEINSA = leerOpcional("membrete-efameinsa-encabezado.png");
+const PIE_EFAMEINSA = leerOpcional("membrete-efameinsa-pie.png");
+
 // Fotos de producto: viven en public/productos/ (repo) y foto_path guarda la
 // ruta pública ("/productos/x.png"). basename() evita salirse de la carpeta
 // aunque foto_path viniera manipulado. En Vercel la carpeta se incluye vía
@@ -117,6 +131,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const buffer = await renderToBuffer(
     <CotizacionPdf
       logoBuffer={LOGO_BUFFER}
+      membreteBuffer={cotizacion.serie === "EFAMEINSA" ? MEMBRETE_EFAMEINSA : null}
+      pieBuffer={cotizacion.serie === "EFAMEINSA" ? PIE_EFAMEINSA : null}
       serie={cotizacion.serie}
       numeroDocumento={numeroDocumento}
       fecha={fecha}

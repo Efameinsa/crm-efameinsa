@@ -33,7 +33,7 @@ export default async function OportunidadDetallePage({
       supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
-        .select("id, marca, modelo, nombre, segmento, precios_producto(tier, precio)")
+        .select("id, sku, marca, modelo, nombre, capacidad, segmento, precios_producto(tier, precio)")
         .eq("activo", true)
         .order("marca"),
       supabase

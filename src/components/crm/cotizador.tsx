@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { crearCotizacion, type ItemCotizacion } from "@/lib/acciones/cotizaciones";
@@ -25,9 +25,11 @@ interface PrecioTier {
 
 interface Producto {
   id: string;
+  sku: string | null;
   marca: string;
   modelo: string;
   nombre: string;
+  capacidad: string | null;
   segmento: "industrial" | "semi_industrial";
   precios_producto: PrecioTier[];
 }
@@ -66,6 +68,19 @@ export function Cotizador({
   const router = useRouter();
   const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">("EFAMEINSA");
   const [productoSeleccionado, setProductoSeleccionado] = useState("");
+  // El catálogo pasó de 7 equipos a 65 al cargar el maestro: sin buscador,
+  // elegir uno era recorrer una lista larguísima. Se filtra por código,
+  // marca, modelo, nombre o capacidad, que es como los nombra la gente.
+  const [busquedaProducto, setBusquedaProducto] = useState("");
+  const productosFiltrados = useMemo(() => {
+    const q = busquedaProducto.trim().toLowerCase();
+    if (!q) return productos;
+    const partes = q.split(/\s+/);
+    return productos.filter((p) => {
+      const texto = `${p.sku ?? ""} ${p.marca} ${p.modelo} ${p.nombre} ${p.capacidad ?? ""}`.toLowerCase();
+      return partes.every((parte) => texto.includes(parte));
+    });
+  }, [productos, busquedaProducto]);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [condiciones, setCondiciones] = useState("Entrega: 15 días útiles. Garantía de fábrica.");
   const [vigenciaDias, setVigenciaDias] = useState(15);
@@ -146,16 +161,29 @@ export function Cotizador({
           </SelectContent>
         </Select>
 
+        <Input
+          value={busquedaProducto}
+          onChange={(e) => setBusquedaProducto(e.target.value)}
+          placeholder="Buscar equipo (código, marca, modelo, capacidad)…"
+          className="w-64"
+          aria-label="Buscar equipo"
+        />
+
         <Select value={productoSeleccionado} onValueChange={(v) => setProductoSeleccionado(v ?? "")}>
           <SelectTrigger className="flex-1">
-            <SelectValue placeholder="Elegir producto…" />
+            <SelectValue placeholder={`Elegir equipo… (${productosFiltrados.length})`} />
           </SelectTrigger>
           <SelectContent>
-            {productos.map((p) => (
+            {productosFiltrados.map((p) => (
               <SelectItem key={p.id} value={p.id}>
-                {p.marca} {p.modelo} — {p.nombre}
+                {p.sku ? `${p.sku} · ` : ""}
+                {p.marca} {p.modelo}
+                {p.capacidad ? ` · ${p.capacidad}` : ""} — {p.nombre}
               </SelectItem>
             ))}
+            {productosFiltrados.length === 0 && (
+              <div className="px-3 py-2 text-xs text-muted-foreground">Ningún equipo coincide con esa búsqueda.</div>
+            )}
           </SelectContent>
         </Select>
         <Button type="button" variant="outline" onClick={agregarProducto} disabled={!productoSeleccionado}>
