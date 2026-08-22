@@ -173,10 +173,20 @@ export default async function ComercialPage() {
   const supabase = await createClient();
   const hoy = new Date().toISOString().slice(0, 10);
 
+  // ⚠️ origen='crm' es obligatorio acá. Sin este filtro, el 21-08 se importaron
+  // ~23 mil oportunidades del Excel histórico (P1_F_Realizado, C3_Esperar…)
+  // con proxima_accion_at de años pasados — TODAS calzarían con
+  // "proxima_accion_at <= hoy" y esta pantalla, que hoy funciona bien y a
+  // Carlos le gustó ("esto está muy bien, la verdad"), quedaría con miles de
+  // "Vencidas" en vez de las pocas que el comercial debe atender hoy. Las
+  // históricas se trabajan desde "Mis oportunidades" (con sus propios
+  // filtros de etapa y fecha), no desde acá — mismo criterio que ya se usa
+  // para el embudo (migración 0023: "SOLO origen='crm'").
   const { data } = await supabase
     .from("oportunidades")
     .select("id, etapa, intencion, proxima_accion, proxima_accion_at, cuentas(razon_social)")
     .eq("comercial_id", perfil.id)
+    .eq("origen", "crm")
     .not("etapa", "in", "(venta,rechazada,derivada)")
     .or(`etapa.eq.asignada,proxima_accion_at.lte.${hoy}`)
     .order("proxima_accion_at", { ascending: true, nullsFirst: true });
@@ -201,7 +211,8 @@ export default async function ComercialPage() {
   const { data: inactivasData } = await supabase
     .from("v_oportunidades_inactivas")
     .select("id, etapa, intencion, motivo_inactividad, cuentas(razon_social)")
-    .eq("comercial_id", perfil.id);
+    .eq("comercial_id", perfil.id)
+    .eq("origen", "crm"); // mismo motivo que arriba: sin esto, todo el histórico calza
 
   const inactivas: FilaInactiva[] = (inactivasData ?? []).map((op) => ({
     id: op.id,
