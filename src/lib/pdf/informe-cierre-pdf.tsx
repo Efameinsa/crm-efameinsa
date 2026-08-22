@@ -294,6 +294,19 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
 
   const totalVenta = items.reduce((a, i) => a + i.cantidad * i.precio_unitario, 0) * (1 + IGV);
 
+  // La tabla de modalidad de pago replica el formato de papel (4 casillas
+  // fijas) a propósito — Central lo lee todos los días en el mismo sitio.
+  // Pero la política real de la empresa tiene más combinaciones que esas 4
+  // (Carlos, 21-08: "30% adelanto + 70% antes del despacho" no existía en la
+  // lista, y esa misma semana aceptaron "50/35/15"). En vez de rediseñar la
+  // tabla, cualquier modalidad marcada que no sea una de las 4 fijas se
+  // imprime como fila adicional, siempre con "X" (si está en la lista es
+  // porque se marcó o se escribió a propósito).
+  const modalidadExtra = modalidadPago.filter(
+    (m) => !MODALIDADES_PAGO.includes(m as (typeof MODALIDADES_PAGO)[number]),
+  );
+  const filasPago = [...MODALIDADES_PAGO, ...modalidadExtra];
+
   return (
     <Document
       title={`Informe ${serie} ${codigo ? `N${codigo}` : "(borrador)"} — ${asunto}`}
@@ -396,8 +409,8 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
         <Text style={estilos.seccion}>3. CONDICIONES DE VENTA</Text>
         <Text style={estilos.cajaTitulo}>Modalidad de pago:</Text>
         <View style={estilos.pagoTabla}>
-          {MODALIDADES_PAGO.map((m, i) => (
-            <View key={m} style={i === MODALIDADES_PAGO.length - 1 ? estilos.pagoUltima : estilos.pagoFila}>
+          {filasPago.map((m, i) => (
+            <View key={m} style={i === filasPago.length - 1 ? estilos.pagoUltima : estilos.pagoFila}>
               <Text style={estilos.pagoTexto}>{m}</Text>
               <Text style={estilos.pagoMarca}>{modalidadPago.includes(m) ? "X" : " "}</Text>
             </View>

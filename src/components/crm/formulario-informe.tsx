@@ -16,6 +16,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SelectorFecha } from "@/components/crm/selector-fecha";
+import { SelectorHora } from "@/components/crm/selector-hora";
 import { cn } from "@/lib/utils";
 
 // Informe de cierre de ventas: la pantalla que el comercial llena.
@@ -33,7 +35,12 @@ import { cn } from "@/lib/utils";
 // documento vale justamente porque SIEMPRE se ve igual — Central lo lee todos
 // los días y busca cada dato en el mismo sitio.
 
-const MODALIDADES = ["CONTADO", "CREDITO", "50% ADELANTO", "50% CREDITO"] as const;
+// Las 4 primeras son las casillas fijas del documento impreso (no tocar el
+// orden ni el texto: así las conoce Central). La 5ta es un preset nuevo
+// (Carlos, 21-08: "30% adelanto + 70% antes del despacho" es la política
+// general de la empresa y no existía en la lista) — se imprime como fila
+// adicional bajo la tabla fija, ver informe-cierre-pdf.tsx.
+const MODALIDADES = ["CONTADO", "CREDITO", "50% ADELANTO", "50% CREDITO", "30% ADELANTO + 70% ANTES DEL DESPACHO"] as const;
 
 const COMPROBANTES = [
   ["factura", "Factura"],
@@ -127,9 +134,25 @@ export function FormularioInforme({
   const [ordenCompra, setOrdenCompra] = useState("");
 
   const [modalidad, setModalidad] = useState<string[]>([]);
+  // Combinación negociada que no calza con ninguna casilla (ej. "50%
+  // adelanto + 35% antes del despacho + 15% a la puesta en marcha") — Carlos
+  // la pidió explícitamente porque esto pasa en la práctica y una lista fija
+  // nunca la va a cubrir toda.
+  const [modalidadOtra, setModalidadOtra] = useState("");
   const [formaPago, setFormaPago] = useState<"transferencia" | "deposito" | null>("transferencia");
   const [notaCondiciones, setNotaCondiciones] = useState("");
 
+  // "Ahí está mal. Eso es un error." (Darwin, 21-08, probando con un cliente
+  // real): eran texto libre puro. Pero el valor real más usado hoy NO es una
+  // fecha ("INMEDIATA AL PAGO DEL 50%", "Por confirmar") — reemplazar por un
+  // calendario/hora sin más habría perdido ese caso. Un selector para
+  // cuando SÍ hay fecha/hora concreta, texto libre para cuando no.
+  const [modoEntregaFecha, setModoEntregaFecha] = useState<"exacta" | "texto">("texto");
+  const [modoEntregaHora, setModoEntregaHora] = useState<"exacta" | "texto">("texto");
+  // El selector trabaja en ISO (YYYY-MM-DD); lo que se guarda/imprime es
+  // "DD/MM/AAAA" como el resto del documento — se separan para poder volver
+  // a abrir el selector en la misma fecha aunque se salga del modo "exacta".
+  const [entregaFechaIso, setEntregaFechaIso] = useState<string | null>(null);
   const [entregaFecha, setEntregaFecha] = useState("");
   const [entregaHora, setEntregaHora] = useState("Por confirmar");
   const [entregaLugar, setEntregaLugar] = useState("");
@@ -180,7 +203,7 @@ export function FormularioInforme({
       contactoVenta: principal,
       contactoContabilidad: principal,
       contactoDespacho,
-      modalidadPago: modalidad,
+      modalidadPago: modalidadOtra.trim() ? [...modalidad, modalidadOtra.trim()] : modalidad,
       formaPago,
       moneda: "USD",
       notaCondiciones: notaCondiciones || null,
@@ -386,16 +409,24 @@ export function FormularioInforme({
         </div>
 
         <Campo etiqueta="Modalidad de pago">
-          <div className="flex flex-wrap gap-1.5">
-            {MODALIDADES.map((m) => (
-              <Pastilla
-                key={m}
-                activa={modalidad.includes(m)}
-                onClick={() => setModalidad((xs) => (xs.includes(m) ? xs.filter((x) => x !== m) : [...xs, m]))}
-              >
-                {m}
-              </Pastilla>
-            ))}
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {MODALIDADES.map((m) => (
+                <Pastilla
+                  key={m}
+                  activa={modalidad.includes(m)}
+                  onClick={() => setModalidad((xs) => (xs.includes(m) ? xs.filter((x) => x !== m) : [...xs, m]))}
+                >
+                  {m}
+                </Pastilla>
+              ))}
+            </div>
+            <Input
+              value={modalidadOtra}
+              onChange={(e) => setModalidadOtra(e.target.value)}
+              placeholder="Otra combinación negociada (ej. 50% adelanto + 35% antes del despacho + 15% a la puesta en marcha)"
+              className="text-xs"
+            />
           </div>
         </Campo>
 
@@ -421,14 +452,60 @@ export function FormularioInforme({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Campo etiqueta="Fecha de entrega">
-            <Input
-              value={entregaFecha}
-              placeholder="INMEDIATA AL PAGO DEL 50%"
-              onChange={(e) => setEntregaFecha(e.target.value)}
-            />
+            <div className="space-y-1.5">
+              <div className="flex gap-1.5">
+                <Pastilla
+                  activa={modoEntregaFecha === "texto"}
+                  onClick={() => setModoEntregaFecha("texto")}
+                >
+                  Texto libre
+                </Pastilla>
+                <Pastilla activa={modoEntregaFecha === "exacta"} onClick={() => setModoEntregaFecha("exacta")}>
+                  Fecha exacta
+                </Pastilla>
+              </div>
+              {modoEntregaFecha === "exacta" ? (
+                <SelectorFecha
+                  valor={entregaFechaIso}
+                  onCambiar={(f) => {
+                    setEntregaFechaIso(f);
+                    setEntregaFecha(f ? new Date(`${f}T12:00:00`).toLocaleDateString("es-PE") : "");
+                  }}
+                />
+              ) : (
+                <Input
+                  value={entregaFecha}
+                  placeholder="INMEDIATA AL PAGO DEL 50% / Por confirmar"
+                  onChange={(e) => setEntregaFecha(e.target.value)}
+                />
+              )}
+            </div>
           </Campo>
           <Campo etiqueta="Hora de entrega">
-            <Input value={entregaHora} onChange={(e) => setEntregaHora(e.target.value)} />
+            <div className="space-y-1.5">
+              <div className="flex gap-1.5">
+                <Pastilla
+                  activa={modoEntregaHora === "texto"}
+                  onClick={() => setModoEntregaHora("texto")}
+                >
+                  Texto libre
+                </Pastilla>
+                <Pastilla
+                  activa={modoEntregaHora === "exacta"}
+                  onClick={() => {
+                    setModoEntregaHora("exacta");
+                    if (!/^\d{2}:\d{2}$/.test(entregaHora)) setEntregaHora("");
+                  }}
+                >
+                  Hora exacta
+                </Pastilla>
+              </div>
+              {modoEntregaHora === "exacta" ? (
+                <SelectorHora valor={entregaHora || null} onCambiar={(h) => setEntregaHora(h ?? "")} />
+              ) : (
+                <Input value={entregaHora} onChange={(e) => setEntregaHora(e.target.value)} />
+              )}
+            </div>
           </Campo>
         </div>
 
