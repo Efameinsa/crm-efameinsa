@@ -10,10 +10,10 @@
 //
 // Uso: node scripts/armar-carpeta-santos.mjs [ruta-al-cruce.json] [raiz-salida]
 
-import { readFileSync, mkdirSync, copyFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, mkdirSync, copyFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
 
-const ENTRADA = process.argv[2] ?? "scripts/data/cruce-codificacion-equipos-2026-08-22.json";
+const ENTRADA = process.argv[2] ?? "scripts/data/cruce-final-2026-08-22.json";
 const RAIZ = process.argv[3] ?? "V:/SANTOS";
 
 const datos = JSON.parse(readFileSync(ENTRADA, "utf-8"));
@@ -51,11 +51,36 @@ for (const d of datos) {
     }
   }
 
-  if (!tieneSpec || !tieneCat) {
-    const falta = !tieneSpec && !tieneCat ? "catálogo Y especificación técnica" : !tieneSpec ? "especificación técnica" : "catálogo";
+  // Candidatos ambiguos (barrido de todo V:\, sin match exacto o con más de
+  // uno) — se copian aparte para que Darwin los abra y elija, en vez de
+  // adivinar cuál corresponde.
+  for (const r of d.revisar ?? []) {
+    for (const candidato of r.candidatos) {
+      const destino = join(carpetaCodigo, "CANDIDATOS (revisar)", basename(candidato));
+      if (!existsSync(destino)) {
+        mkdirSync(join(carpetaCodigo, "CANDIDATOS (revisar)"), { recursive: true });
+        copyFileSync(candidato, destino);
+        archivos++;
+      }
+    }
+  }
+
+  // Se re-corre sobre la misma carpeta a medida que el cruce mejora — borrar
+  // primero evita dejar un FALTA.txt viejo en un código que ya se completó.
+  const rutaFalta = join(carpetaCodigo, "FALTA.txt");
+  if (existsSync(rutaFalta)) unlinkSync(rutaFalta);
+
+  const faltaSpec = !tieneSpec && !d.revisar?.some((r) => r.tipo === "especificacion");
+  const faltaCat = !tieneCat && !d.revisar?.some((r) => r.tipo === "catalogo");
+  const hayParaRevisar = d.revisar?.length > 0;
+  if (faltaSpec || faltaCat || hayParaRevisar) {
+    const partes = [];
+    if (faltaSpec) partes.push("especificación técnica (nada encontrado)");
+    if (faltaCat) partes.push("catálogo (nada encontrado)");
+    if (hayParaRevisar) partes.push("hay candidatos en CANDIDATOS (revisar) — confirmar cuál es");
     writeFileSync(
       join(carpetaCodigo, "FALTA.txt"),
-      `Código: ${d.codigo}\nMarca: ${d.marca}\nEquipo: ${d.equipo}\n\nFalta: ${falta}\n`,
+      `Código: ${d.codigo}\nMarca: ${d.marca}\nEquipo: ${d.equipo}\n\n${partes.join("\n")}\n`,
       "utf-8",
     );
   }
