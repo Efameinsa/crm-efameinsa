@@ -16,6 +16,11 @@ function leerOpcional(archivo: string): Buffer | null {
   try {
     return readFileSync(join(process.cwd(), "public", archivo));
   } catch {
+    // Que falte no rompe la cotización (se cae al membrete dibujado), pero
+    // tiene que quedar registrado: si no, el PDF sale con otro encabezado y
+    // nadie se entera. La causa habitual es haber agregado el archivo sin
+    // declararlo en outputFileTracingIncludes de next.config.ts.
+    console.warn(`[cotizacion-pdf] no se pudo leer public/${archivo}; se usa el membrete dibujado`);
     return null;
   }
 }
