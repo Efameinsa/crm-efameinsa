@@ -93,8 +93,6 @@ async function main() {
   const buffer = await renderToBuffer(
     <CotizacionPdf
       logoBuffer={leer("logo-efameinsa.png")!}
-      membreteBuffer={leer("membrete-efameinsa-encabezado.png")}
-      pieBuffer={leer("membrete-efameinsa-pie.png")}
       serie="EFAMEINSA"
       numeroDocumento="MUESTRA-26"
       fecha={new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}

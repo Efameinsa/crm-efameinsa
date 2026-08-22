@@ -32,9 +32,6 @@ export interface ItemPdf {
 
 export interface CotizacionPdfProps {
   logoBuffer: Buffer;
-  /** Papelería oficial escaneada. Si viene, reemplaza al membrete dibujado. */
-  membreteBuffer?: Buffer | null;
-  pieBuffer?: Buffer | null;
   serie: "EFAMEINSA" | "OPEN";
   numeroDocumento: string; // "5-26" (correlativo-año corto, como los modelos)
   fecha: string; // "14 de agosto de 2026"
@@ -71,19 +68,27 @@ function crearEstilos(acento: string) {
       lineHeight: 1.45,
     },
 
-    /* Membrete y pie (fijos en todas las páginas) */
-    // Con imagen: va de borde a borde, como el papel membretado impreso.
-    membreteImagen: { position: "absolute", top: 24, left: 48, right: 48 },
-    pieImagen: { position: "absolute", bottom: 20, left: 48, right: 48 },
+    /* Membrete y pie (fijos en todas las páginas).
+       Se dibujan con el logo en alta resolución (2345 px de ancho) y texto
+       vectorial, replicando la papelería oficial. Se probó con la papelería
+       escaneada y se descartó: al ser una imagen se veía borrosa al ampliar
+       y, sobre todo, su contenido venía pegado a la izquierda con relleno a
+       la derecha, así que el pie ocupaba media hoja y la línea quedaba corta.
+       Dibujado sale nítido a cualquier zoom y ocupa el ancho real. */
     membrete: { position: "absolute", top: 26, left: 48, right: 48 },
     membreteFila: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-    logo: { width: 132 },
+    logo: { width: 150 },
+    logoBloque: { flexDirection: "column" },
     wordmark: { fontSize: 15, fontFamily: "Helvetica-Bold", color: acento },
+    membreteRazon: { fontSize: 7.5, color: CARBON, marginTop: 2 },
     membreteSub: { fontSize: 8, color: GRIS, marginTop: 2 },
     membreteLinea: { borderBottomWidth: 1.2, borderBottomColor: acento, marginTop: 5 },
-    pie: { position: "absolute", bottom: 26, left: 48, right: 48, borderTopWidth: 0.8, borderTopColor: BORDE, paddingTop: 6 },
-    pieWeb: { fontSize: 9, fontFamily: "Helvetica-Bold", color: acento },
-    pieTexto: { fontSize: 8, color: GRIS },
+
+    pie: { position: "absolute", bottom: 24, left: 48, right: 48 },
+    pieWeb: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: acento, letterSpacing: 0.2 },
+    // La línea va DEBAJO de la web y encima de la dirección, como el papel.
+    pieLinea: { borderBottomWidth: 0.8, borderBottomColor: BORDE, marginTop: 2, marginBottom: 4 },
+    pieTexto: { fontSize: 8, color: CARBON, lineHeight: 1.35 },
 
     /* Encabezado de la carta */
     titulo: {
@@ -172,8 +177,6 @@ const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
 export function CotizacionPdf({
   logoBuffer,
-  membreteBuffer,
-  pieBuffer,
   serie,
   numeroDocumento,
   fecha,
@@ -192,30 +195,29 @@ export function CotizacionPdf({
   const total = subtotal + igv;
   const simbolo = moneda === "USD" ? "US$" : "S/";
 
-  // Membrete: cuando hay imagen de la papelería oficial se usa esa, porque es
-  // exactamente el papel con el que la empresa imprime hoy (se extrajo de las
-  // fichas técnicas, donde venía como fondo de página). Si no la hay —el caso
-  // de OPEN, que todavía no la tiene— se dibuja como antes con el logo y los
-  // textos de la serie, así ninguna serie se queda sin encabezado.
-  const membrete = membreteBuffer ? (
-    <View style={estilos.membreteImagen} fixed>
-      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
-      <Image src={membreteBuffer} />
-    </View>
-  ) : (
+  // Membrete calcado del papel oficial: logo a la izquierda con la razón
+  // social debajo, el rubro a la derecha, y la línea de la marca cruzando el
+  // ancho completo.
+  const membrete = (
     <View style={estilos.membrete} fixed>
       <View style={estilos.membreteFila}>
         {identidad.usaLogo ? (
-          // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML
-          <Image src={logoBuffer} style={estilos.logo} />
+          <View style={estilos.logoBloque}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
+            <Image src={logoBuffer} style={estilos.logo} />
+            <Text style={estilos.membreteRazon}>{identidad.nombreLegal}</Text>
+          </View>
         ) : (
-          <View>
+          <View style={estilos.logoBloque}>
             <Text style={estilos.wordmark}>{identidad.nombreLegal}</Text>
             <Text style={estilos.membreteSub}>{identidad.subtitulo}</Text>
           </View>
         )}
         {identidad.usaLogo && (
-          <Text style={[estilos.membreteSub, { maxWidth: 250, textAlign: "right" }]}>
+          // Ancho holgado y 7.5 pt para que el rubro entre en UNA línea, como
+          // en el papel: con menos espacio Helvetica lo partía en "Equipos
+          // Indus-/triales." y quedaba feo.
+          <Text style={[estilos.membreteSub, { width: 330, textAlign: "right", fontSize: 7.5 }]}>
             {identidad.subtitulo}
           </Text>
         )}
@@ -224,15 +226,14 @@ export function CotizacionPdf({
     </View>
   );
 
-  const pie = pieBuffer ? (
-    <View style={estilos.pieImagen} fixed>
-      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
-      <Image src={pieBuffer} />
-    </View>
-  ) : (
+  // Pie: la web en granate, la línea debajo cruzando toda la hoja, y los
+  // datos de contacto abajo — el mismo orden que el papel impreso.
+  const pie = (
     <View style={estilos.pie} fixed>
-      {identidad.pie.map((linea, i) => (
-        <Text key={i} style={i === 0 && serie === "EFAMEINSA" ? estilos.pieWeb : estilos.pieTexto}>
+      {serie === "EFAMEINSA" && <Text style={estilos.pieWeb}>{identidad.pie[0]}</Text>}
+      <View style={estilos.pieLinea} />
+      {identidad.pie.slice(serie === "EFAMEINSA" ? 1 : 0).map((linea, i) => (
+        <Text key={i} style={estilos.pieTexto}>
           {linea}
         </Text>
       ))}
