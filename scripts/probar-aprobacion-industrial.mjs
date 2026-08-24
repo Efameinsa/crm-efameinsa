@@ -115,7 +115,26 @@ try {
   ok(d.estado_aprobacion === "pendiente_gerencia", "una cotización mixta va a gerencia", d.estado_aprobacion);
   ok(d.requieren === 1 && d.items === 2, "y solo se decide sobre el industrial", `${d.requieren} de ${d.items}`);
 
-  // 5. No se puede enviar sin aprobar: es la barrera que protege al cliente.
+  // 5. Semi-industrial SIN precio piso: nadie definió hasta dónde se puede
+  //    bajar, así que el sistema no puede certificar el precio (migración 0068).
+  //    Es lo que dejó pasar US$ 21.394 en descuentos sin revisar.
+  const { rows: sinPiso } = await bd.query(`
+    select p.id, p.marca, p.modelo,
+           (select pp.precio from precios_producto pp where pp.producto_id = p.id and pp.vigente_hasta is null limit 1) precio
+      from productos p
+     where p.activo and p.segmento = 'semi_industrial'
+       and not exists (select 1 from precios_producto pp where pp.producto_id = p.id and pp.tier = 'deseado' and pp.vigente_hasta is null)
+     limit 1`);
+  if (sinPiso.length > 0) {
+    const e = await estado(await crear([{ producto_id: sinPiso[0].id, cantidad: 1, precio_unitario: Number(sinPiso[0].precio) }]));
+    ok(
+      e.estado_aprobacion === "pendiente_gerencia",
+      `un semi-industrial SIN precio piso va a gerencia (${sinPiso[0].marca} ${sinPiso[0].modelo})`,
+      e.estado_aprobacion,
+    );
+  }
+
+  // 6. No se puede enviar sin aprobar: es la barrera que protege al cliente.
   let bloqueado = false;
   try {
     await bd.query(`update cotizaciones set estado = 'enviada', enviada_at = now() where id = $1`, [idMix]);

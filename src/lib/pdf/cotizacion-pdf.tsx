@@ -1,5 +1,12 @@
-import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, NOTAS, IGV, ENTREGA_POR_DEFECTO } from "./series";
+
+// Sin partir palabras con guion. @react-pdf corta por sílabas cuando no entra
+// la palabra entera, y en la cabecera de la ficha salía "Panel computa-rizado"
+// y "Controles Au-tomático". Reportado el 24-08: «no debe tener "-"; si falta
+// espacio, la palabra entera va abajo». Devolver la palabra sin trocear es la
+// forma que da @react-pdf de apagarlo: pasa entera a la línea siguiente.
+Font.registerHyphenationCallback((palabra) => [palabra]);
 
 // Estructura calcada de las cotizaciones reales de ambas razones sociales
 // (Descargas/PROYECTO CRM EFAMEINSA/modelos de cotizacion): carta formal con

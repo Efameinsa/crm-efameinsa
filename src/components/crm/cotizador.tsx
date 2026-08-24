@@ -431,12 +431,18 @@ export function Cotizador({
   const hayIndustrial = carrito.some(
     (i) => productos.find((p) => p.id === i.producto_id)?.segmento === 'industrial',
   );
-  const iraAGerencia = hayBajoLista || hayIndustrial;
-  const motivoAprobacion = hayBajoLista
-    ? hayIndustrial
-      ? 'precio bajo lista y equipo industrial'
-      : 'precio bajo lista'
-    : 'equipo industrial';
+  // Un equipo sin precio piso tampoco puede darse por aprobado: nadie definió
+  // hasta dónde se puede bajar, así que el sistema no puede certificar que el
+  // precio esté bien (migración 0068).
+  const haySinPiso = carrito.some((i) => i.producto_id !== null && i.precioPiso === null);
+  const iraAGerencia = hayBajoLista || hayIndustrial || haySinPiso;
+  const motivoAprobacion = [
+    hayBajoLista && "precio bajo lista",
+    hayIndustrial && "equipo industrial",
+    haySinPiso && "equipo sin precio piso definido",
+  ]
+    .filter(Boolean)
+    .join(" y ");
 
   function confirmar() {
     if (carrito.length === 0) {
