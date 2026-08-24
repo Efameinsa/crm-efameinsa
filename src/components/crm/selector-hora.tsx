@@ -44,11 +44,19 @@ export function SelectorHora({
   onCambiar,
   deshabilitado = false,
   etiquetaVacia = "Hora",
+  horaAlAbrir = "08:00",
 }: {
   valor: string | null; // "HH:MM" o null = todo el día
   onCambiar: (hora: string | null) => void;
   deshabilitado?: boolean;
   etiquetaVacia?: string;
+  /**
+   * Dónde queda parada la lista al abrirse cuando todavía no hay hora
+   * elegida. Por defecto media mañana, que es cuando se agendan llamadas y
+   * visitas; el informe de cierre pasa el mediodía, porque las entregas se
+   * pactan a esa hora (pedido de Darwin, 23-08).
+   */
+  horaAlAbrir?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
@@ -68,8 +76,8 @@ export function SelectorHora({
   useLayoutEffect(() => {
     if (!abierto) return;
     reposicionar();
-    // Arranca viendo la hora elegida (o media mañana, horario laboral).
-    const idx = OPCIONES.findIndex((o) => o >= (valor ?? "08:00"));
+    // Arranca viendo la hora elegida (o la que pida quien lo usa).
+    const idx = OPCIONES.findIndex((o) => o >= (valor ?? horaAlAbrir));
     if (lista.current) lista.current.scrollTop = Math.max(0, idx * ALTO_FILA - ALTO_FILA);
   }, [abierto]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {

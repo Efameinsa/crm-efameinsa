@@ -184,6 +184,7 @@ function crearEstilos(acento: string) {
 
     montoTotal: { fontSize: 10.5, fontFamily: "Helvetica-Bold", marginTop: 4, marginBottom: 8 },
     /* Los cuatro campos que Central llena a mano cuando entra el pago. */
+    blancoAviso: { fontSize: 7, color: GRIS, marginTop: 4, marginBottom: 2 },
     blancoFila: { flexDirection: "row", gap: 26, marginBottom: 3 },
     blancoEtiqueta: { fontSize: 8.5, fontFamily: "Helvetica-Bold" },
     blancoLinea: { flex: 1, borderBottomWidth: 0.6, borderBottomColor: BORDE, marginLeft: 4 },
@@ -422,7 +423,11 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
         </View>
         <Text style={estilos.montoTotal}>{`MONTO TOTAL VENTA ${simbolo} ${monto(totalVenta)}`}</Text>
         {/* Estas cuatro casillas quedan en blanco a propósito: las llena
-            Central cuando el pago entra. */}
+            Central cuando el pago entra. El rótulo se agregó el 24-08 porque
+            sin él parecían campos que el CRM había dejado de imprimir —
+            Darwin lo leyó así probando el 23-08: «número de operación tampoco
+            sale, banco tampoco sale». */}
+        <Text style={estilos.blancoAviso}>A llenar por Central cuando se confirme el pago:</Text>
         <View style={estilos.blancoFila}>
           <Text style={estilos.blancoEtiqueta}>Banco:</Text>
           <View style={estilos.blancoLinea} />

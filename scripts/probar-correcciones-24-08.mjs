@@ -181,6 +181,47 @@ try {
     console.log(`  ⓘ ${cat[0].sin_sku} equipos siguen SIN código cargado: buscarlos por código no los encuentra.`);
   }
 
+  // === Bloque B · informe de cierre =========================================
+  const { rows: cuentaC5 } = await bd.query(
+    `select cuenta_id from oportunidades where comercial_id=$1 and cuenta_id is not null limit 1`,
+    [perfil.id],
+  );
+  const informe = await pedir(`/comercial/informes/nuevo?cuenta=${cuentaC5[0].cuenta_id}`);
+  ok(informe.status === 200, "Bloque B · la pantalla del informe carga");
+
+  const chunksInf = await fetch(`${URL_APP}/comercial/informes/nuevo?cuenta=${cuentaC5[0].cuenta_id}`, { headers: { cookie } }).then((r) => r.text());
+  const rutasInf = [...new Set(chunksInf.match(/\/_next\/static\/chunks\/[^"'\\]+\.js/g) ?? [])];
+  let jsInf = "";
+  for (const ruta of rutasInf) jsInf += await fetch(`${URL_APP}${ruta}`).then((r) => r.text()).catch(() => "");
+
+  // Tras minificar, `setModalidad((xs) => (xs[0] === m ? [] : [m]))` queda como
+  // `X=>X[0]===Y?[]:[Y]` con nombres de una letra: se busca esa forma, no los
+  // identificadores.
+  ok(
+    /(\w+)\[0\]\s*===\s*(\w+)\s*\?\s*\[\]\s*:\s*\[\2\]/.test(jsInf),
+    "B1 · las modalidades de pago son excluyentes",
+  );
+  ok(!jsInf.includes("Texto libre"), "B2/B3 · se quitó el modo texto libre de fecha y hora de entrega");
+  ok(jsInf.includes("Por confirmar"), "B2/B3 · queda la opción «Por confirmar»");
+  ok(jsInf.includes('"12:00"') || jsInf.includes("'12:00'"), "B3 · la hora de entrega abre hacia el mediodía");
+  ok(jsInf.includes("Otra persona"), "B4 · «Quién recibe» permite otra persona");
+  ok(jsInf.includes("DNI / CE"), "B4 · se le pide el documento");
+  ok(jsInf.includes("¿De qué presupuesto copio los equipos?"), "B5 · el combo de presupuesto se explica");
+  ok(jsInf.includes("los cargo a mano"), "B5 · se puede no usar ningún presupuesto");
+  ok(jsInf.includes("no tiene precio"), "B6 · avisa si un equipo va sin precio");
+
+  const { rows: colDoc } = await bd.query(
+    `select count(*) n from information_schema.columns where table_schema='public' and table_name='contactos' and column_name='documento'`,
+  );
+  ok(Number(colDoc[0].n) === 1, "B4 · contactos.documento existe (migración 0057)");
+
+  const { rows: cont } = await bd.query(
+    `select clave, ultimo from correlativos where clave like 'INFORME%' order by clave`,
+  );
+  ok(cont.every((c) => Number(c.ultimo) === 0), "B8 · los informes arrancan en Nº 1", cont.map((c) => `${c.clave}=${c.ultimo}`).join(", "));
+  const { rows: infEmit } = await bd.query(`select count(*) n from informes_cierre where emitido_at is not null`);
+  ok(Number(infEmit[0].n) === 0, "B8 · no quedan informes emitidos de prueba");
+
   // === A2 · Kanban ==========================================================
   const kanban = await pedir("/comercial/oportunidades?vista=kanban");
   const conteoTarjetas = (kanban.html.match(/\/comercial\/oportunidades\/[0-9a-f]{8}-/g) ?? []).length;

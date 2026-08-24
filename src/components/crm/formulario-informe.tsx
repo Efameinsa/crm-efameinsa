@@ -8,6 +8,7 @@ import { INCLUYE_POR_DEFECTO } from "@/lib/informes";
 import {
   guardarBorradorInforme,
   emitirInforme,
+  guardarContactoEntrega,
   type DatosInforme,
   type ItemInformeEntrada,
   type PrellenadoInforme,
@@ -19,6 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
 import { SelectorHora } from "@/components/crm/selector-hora";
 import { cn } from "@/lib/utils";
+import { fechaCalendario } from "@/lib/fechas";
+import { hoyLima } from "@/lib/periodo";
 
 // Informe de cierre de ventas: la pantalla que el comercial llena.
 //
@@ -34,6 +37,9 @@ import { cn } from "@/lib/utils";
 // la biblioteca de productos, que gerencia todavía no entrega; y este
 // documento vale justamente porque SIEMPRE se ve igual — Central lo lee todos
 // los días y busca cada dato en el mismo sitio.
+
+// Valor cuando la entrega todavia no tiene fecha u hora cerrada.
+const POR_CONFIRMAR = "Por confirmar";
 
 // Las 4 primeras son las casillas fijas del documento impreso (no tocar el
 // orden ni el texto: así las conoce Central). La 5ta es un preset nuevo
@@ -93,6 +99,7 @@ export function FormularioInforme({
   ventaPreseleccionada?: string;
 }) {
   const router = useRouter();
+  const hoyISO = hoyLima();
   const [guardando, startTransition] = useTransition();
   const [informeId, setInformeId] = useState<string | null>(null);
   const [verTodo, setVerTodo] = useState(false);
@@ -142,24 +149,27 @@ export function FormularioInforme({
   const [formaPago, setFormaPago] = useState<"transferencia" | "deposito" | null>("transferencia");
   const [notaCondiciones, setNotaCondiciones] = useState("");
 
-  // "Ahí está mal. Eso es un error." (Darwin, 21-08, probando con un cliente
-  // real): eran texto libre puro. Pero el valor real más usado hoy NO es una
-  // fecha ("INMEDIATA AL PAGO DEL 50%", "Por confirmar") — reemplazar por un
-  // calendario/hora sin más habría perdido ese caso. Un selector para
-  // cuando SÍ hay fecha/hora concreta, texto libre para cuando no.
-  const [modoEntregaFecha, setModoEntregaFecha] = useState<"exacta" | "texto">("texto");
-  const [modoEntregaHora, setModoEntregaHora] = useState<"exacta" | "texto">("texto");
+  // Entrega: solo calendario/reloj + pastilla "Por confirmar" (B2/B3 del
+  // plan 11). Los modos "texto libre" que existían hasta el 23-08 se
+  // quitaron a pedido de Darwin.
   // El selector trabaja en ISO (YYYY-MM-DD); lo que se guarda/imprime es
   // "DD/MM/AAAA" como el resto del documento — se separan para poder volver
-  // a abrir el selector en la misma fecha aunque se salga del modo "exacta".
+  // a abrir el selector en la misma fecha.
   const [entregaFechaIso, setEntregaFechaIso] = useState<string | null>(null);
   const [entregaFecha, setEntregaFecha] = useState("");
-  const [entregaHora, setEntregaHora] = useState("Por confirmar");
+  const [entregaHora, setEntregaHora] = useState(POR_CONFIRMAR);
   const [entregaLugar, setEntregaLugar] = useState("");
   const [entregaDireccion, setEntregaDireccion] = useState(cuenta.direccion ?? "");
   const [notaDespacho, setNotaDespacho] = useState("");
   const [urgente, setUrgente] = useState(false);
   const [contactoDespachoIdx, setContactoDespachoIdx] = useState(0);
+  // B4: quien recibe la entrega puede no estar entre los contactos de la
+  // cuenta. Si el cliente no tiene ninguno cargado, se arranca directamente
+  // en "otra persona" porque no hay nada que elegir.
+  const [otroRecibe, setOtroRecibe] = useState(contactos.length === 0);
+  const [otroNombre, setOtroNombre] = useState("");
+  const [otroDocumento, setOtroDocumento] = useState("");
+  const [otroTelefono, setOtroTelefono] = useState("");
 
   const [incluye, setIncluye] = useState<string[]>(INCLUYE_POR_DEFECTO);
   const [gratis, setGratis] = useState("");
@@ -171,6 +181,17 @@ export function FormularioInforme({
       .reduce((a, i) => a + i.cantidad * i.precio_unitario, 0);
     return { subtotal, igv: subtotal * 0.18, total: subtotal * 1.18 };
   }, [items]);
+
+  // Al elegir la venta, se engancha sola la cotización del archivo que lleva
+  // ese mismo Nº de presupuesto: es la que trae los equipos correctos y evita
+  // que el comercial tenga que adivinar cuál de la lista le toca (B5).
+  function alCambiarVenta(id: string | null) {
+    setVentaId(id);
+    const v = ventasSinInforme.find((x) => x.id === id);
+    if (!v?.referencia) return;
+    const calza = presupuestos.find((p) => p.codigo === v.referencia);
+    if (calza && calza.id !== presupuestoId) alCambiarPresupuesto(calza.id);
+  }
 
   function alCambiarPresupuesto(id: string) {
     setPresupuestoId(id);
@@ -186,7 +207,14 @@ export function FormularioInforme({
   }
 
   function datos(): DatosInforme {
-    const contactoDespacho = contactos[contactoDespachoIdx] ?? principal;
+    const contactoDespacho: ContactoEntrada = otroRecibe
+      ? {
+          nombre: otroNombre.trim() || null,
+          documento: otroDocumento.trim() || null,
+          telefono: otroTelefono.trim() || null,
+          area: "Recepción de despacho",
+        }
+      : contactos[contactoDespachoIdx] ?? principal;
     return {
       serie,
       presupuestoRef: presupuesto?.codigo ?? venta?.referencia ?? null,
@@ -220,9 +248,25 @@ export function FormularioInforme({
     };
   }
 
+  // B6: un equipo sin precio sale en el PDF con "Monto total 0,00" y nadie se
+  // entera hasta que el documento ya está enviado — le pasó a Darwin el 23-08.
+  // Se avisa, pero NO se bloquea: un equipo puede ir de regalo a propósito.
+  const sinPrecio = items.filter((i) => i.bloque !== "gratuito" && i.descripcion.trim() && i.precio_unitario <= 0);
+
   function guardar(): Promise<string | null> {
     return new Promise((resolver) => {
       startTransition(async () => {
+        // Si la entrega la recibe alguien nuevo, queda como contacto del
+        // cliente antes de guardar el informe (B4).
+        if (otroRecibe && otroNombre.trim()) {
+          const rc = await guardarContactoEntrega({
+            cuentaId: cuenta.id,
+            nombre: otroNombre,
+            documento: otroDocumento,
+            telefono: otroTelefono,
+          });
+          if (rc.error) toast.error(`No se pudo guardar el contacto: ${rc.error}`);
+        }
         const r = await guardarBorradorInforme(cuenta.id, datos(), informeId ?? undefined);
         if (r.error) {
           toast.error(r.error);
@@ -236,6 +280,13 @@ export function FormularioInforme({
   }
 
   async function verBorrador() {
+    if (sinPrecio.length > 0) {
+      toast.warning(
+        sinPrecio.length === 1
+          ? `“${sinPrecio[0].descripcion}” no tiene precio — saldrá en 0.00`
+          : `${sinPrecio.length} equipos sin precio — saldrán en 0.00`,
+      );
+    }
     // La pestaña se abre ANTES del await: si se abre después, el navegador la
     // bloquea porque ya no viene de un gesto directo del usuario (misma
     // lección que el botón del reporte diario).
@@ -289,14 +340,14 @@ export function FormularioInforme({
           <Campo etiqueta="¿De qué venta es este informe?" pista="solo las ventas registradas en el CRM">
             <select
               value={ventaId ?? ""}
-              onChange={(e) => setVentaId(e.target.value || null)}
+              onChange={(e) => alCambiarVenta(e.target.value || null)}
               className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
             >
               <option value="">Sin atar a una venta</option>
               {ventasSinInforme.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {new Date(`${v.fecha}T12:00:00`).toLocaleDateString("es-PE")} · {v.moneda}{" "}
-                  {Number(v.monto).toLocaleString("es-PE")}
+                  {fechaCalendario(v.fecha)}
+                  {v.fecha === hoyISO ? " (hoy)" : ""} · {v.moneda} {Number(v.monto).toLocaleString("es-PE")}
                   {v.referencia ? ` · presupuesto ${v.referencia}` : ""}
                 </option>
               ))}
@@ -304,17 +355,28 @@ export function FormularioInforme({
           </Campo>
         )}
 
+        {/* B5: Darwin, probando el 23-08: «yo no entiendo qué significa
+            presupuesto del archivo de este cliente… no sé qué significa este
+            combo box de dos y un equipo». Son las cotizaciones VIEJAS del
+            cliente, las que la empresa emitió en Word antes del CRM: están acá
+            solo para no volver a tipear los equipos. Ahora lo dice el rótulo,
+            se puede decir que ninguno, y al elegir la venta se preselecciona
+            sola la que corresponde por número de presupuesto. */}
         {presupuestos.length > 0 && (
-          <Campo etiqueta="Presupuesto" pista="del archivo de este cliente">
+          <Campo
+            etiqueta="¿De qué presupuesto copio los equipos?"
+            pista="cotizaciones que este cliente ya tenía en el archivo, de antes del CRM — es solo un atajo para no tipearlos"
+          >
             <select
               value={presupuestoId}
               onChange={(e) => alCambiarPresupuesto(e.target.value)}
               className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
             >
+              <option value="">De ninguno — los cargo a mano</option>
               {presupuestos.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.codigo ?? "sin número"} · {p.serie === "OPEN" ? "Open" : "Efameinsa"}
-                  {p.fecha ? ` · ${new Date(`${p.fecha}T12:00:00`).toLocaleDateString("es-PE")}` : ""}
+                  {p.fecha ? ` · ${fechaCalendario(p.fecha)}` : ""}
                   {p.items.length ? ` · ${p.items.length} equipo${p.items.length === 1 ? "" : "s"}` : ""}
                 </option>
               ))}
@@ -411,11 +473,16 @@ export function FormularioInforme({
         <Campo etiqueta="Modalidad de pago">
           <div className="space-y-2">
             <div className="flex flex-wrap gap-1.5">
+              {/* Excluyentes (corrección 24-08, B1): antes eran casillas
+                  sueltas y quedaban CONTADO + CRÉDITO + 50% ADELANTO marcadas
+                  a la vez —«no pueden ser todos los que yo cliqué ahí»—.
+                  Volver a pulsar la activa la desmarca, para poder dejar la
+                  modalidad solo en el texto libre de abajo. */}
               {MODALIDADES.map((m) => (
                 <Pastilla
                   key={m}
-                  activa={modalidad.includes(m)}
-                  onClick={() => setModalidad((xs) => (xs.includes(m) ? xs.filter((x) => x !== m) : [...xs, m]))}
+                  activa={modalidad[0] === m}
+                  onClick={() => setModalidad((xs) => (xs[0] === m ? [] : [m]))}
                 >
                   {m}
                 </Pastilla>
@@ -451,60 +518,50 @@ export function FormularioInforme({
         </Campo>
 
         <div className="grid gap-3 sm:grid-cols-2">
+          {/* Corrección 24-08 (B2/B3). El 21-08 se resolvió esto como
+              "Texto libre / Fecha exacta" porque el valor más usado en el Word
+              no es una fecha ("INMEDIATA AL PAGO DEL 50%"). Probándolo el
+              23-08 Darwin pidió lo contrario: «no entiendo por qué hay que
+              poner un texto libre… mejor con el calendario». Se conserva el
+              caso real —hay entregas sin fecha— pero como una pastilla "Por
+              confirmar" explícita, no como una caja de texto donde cada
+              comercial escribe lo que quiere. Decisión suya del 23-08, revierte
+              lo que había pedido Carlos. */}
           <Campo etiqueta="Fecha de entrega">
-            <div className="space-y-1.5">
-              <div className="flex gap-1.5">
-                <Pastilla
-                  activa={modoEntregaFecha === "texto"}
-                  onClick={() => setModoEntregaFecha("texto")}
-                >
-                  Texto libre
-                </Pastilla>
-                <Pastilla activa={modoEntregaFecha === "exacta"} onClick={() => setModoEntregaFecha("exacta")}>
-                  Fecha exacta
-                </Pastilla>
-              </div>
-              {modoEntregaFecha === "exacta" ? (
-                <SelectorFecha
-                  valor={entregaFechaIso}
-                  onCambiar={(f) => {
-                    setEntregaFechaIso(f);
-                    setEntregaFecha(f ? new Date(`${f}T12:00:00`).toLocaleDateString("es-PE") : "");
-                  }}
-                />
-              ) : (
-                <Input
-                  value={entregaFecha}
-                  placeholder="INMEDIATA AL PAGO DEL 50% / Por confirmar"
-                  onChange={(e) => setEntregaFecha(e.target.value)}
-                />
-              )}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <SelectorFecha
+                valor={entregaFechaIso}
+                onCambiar={(f) => {
+                  setEntregaFechaIso(f);
+                  setEntregaFecha(f ? fechaCalendario(f) : "");
+                }}
+                etiquetaVacia="Elegir fecha"
+              />
+              <Pastilla
+                activa={!entregaFechaIso && entregaFecha === POR_CONFIRMAR}
+                onClick={() => {
+                  setEntregaFechaIso(null);
+                  setEntregaFecha(entregaFecha === POR_CONFIRMAR ? "" : POR_CONFIRMAR);
+                }}
+              >
+                Por confirmar
+              </Pastilla>
             </div>
           </Campo>
           <Campo etiqueta="Hora de entrega">
-            <div className="space-y-1.5">
-              <div className="flex gap-1.5">
-                <Pastilla
-                  activa={modoEntregaHora === "texto"}
-                  onClick={() => setModoEntregaHora("texto")}
-                >
-                  Texto libre
-                </Pastilla>
-                <Pastilla
-                  activa={modoEntregaHora === "exacta"}
-                  onClick={() => {
-                    setModoEntregaHora("exacta");
-                    if (!/^\d{2}:\d{2}$/.test(entregaHora)) setEntregaHora("");
-                  }}
-                >
-                  Hora exacta
-                </Pastilla>
-              </div>
-              {modoEntregaHora === "exacta" ? (
-                <SelectorHora valor={entregaHora || null} onCambiar={(h) => setEntregaHora(h ?? "")} />
-              ) : (
-                <Input value={entregaHora} onChange={(e) => setEntregaHora(e.target.value)} />
-              )}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <SelectorHora
+                valor={/^\d{2}:\d{2}$/.test(entregaHora) ? entregaHora : null}
+                onCambiar={(h) => setEntregaHora(h ?? "")}
+                etiquetaVacia="Elegir hora"
+                horaAlAbrir="12:00"
+              />
+              <Pastilla
+                activa={entregaHora === POR_CONFIRMAR}
+                onClick={() => setEntregaHora(entregaHora === POR_CONFIRMAR ? "" : POR_CONFIRMAR)}
+              >
+                Por confirmar
+              </Pastilla>
             </div>
           </Campo>
         </div>
@@ -518,11 +575,19 @@ export function FormularioInforme({
           />
         </Campo>
 
-        {contactos.length > 0 && (
-          <Campo etiqueta="Quién recibe">
+        {/* B4: la entrega la puede recibir alguien que no está en la cuenta.
+            Se captura con su DNI —es lo que pide el transportista— y al
+            guardar el informe queda como contacto del cliente, para no
+            volver a escribirlo la próxima vez. */}
+        <Campo etiqueta="Quién recibe">
+          <div className="space-y-2">
             <select
-              value={contactoDespachoIdx}
-              onChange={(e) => setContactoDespachoIdx(Number(e.target.value))}
+              value={otroRecibe ? "otro" : String(contactoDespachoIdx)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setOtroRecibe(v === "otro");
+                if (v !== "otro") setContactoDespachoIdx(Number(v));
+              }}
               className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
             >
               {contactos.map((c, i) => (
@@ -530,9 +595,35 @@ export function FormularioInforme({
                   {c.nombre} {c.telefono ? `· ${c.telefono}` : ""} {c.area ? `· ${c.area}` : ""}
                 </option>
               ))}
+              <option value="otro">Otra persona…</option>
             </select>
-          </Campo>
-        )}
+            {otroRecibe && (
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Input
+                  value={otroNombre}
+                  onChange={(e) => setOtroNombre(e.target.value)}
+                  placeholder="Nombre y apellidos"
+                  aria-label="Nombre de quien recibe"
+                />
+                <Input
+                  value={otroDocumento}
+                  onChange={(e) => setOtroDocumento(e.target.value)}
+                  placeholder="DNI / CE"
+                  aria-label="Documento de quien recibe"
+                />
+                <Input
+                  value={otroTelefono}
+                  onChange={(e) => setOtroTelefono(e.target.value)}
+                  placeholder="Teléfono"
+                  aria-label="Teléfono de quien recibe"
+                />
+                <p className="text-[11px] text-muted-foreground sm:col-span-3">
+                  Se guardará como contacto de {cuenta.razon_social} para la próxima entrega.
+                </p>
+              </div>
+            )}
+          </div>
+        </Campo>
 
         <Campo etiqueta="Observaciones de despacho y postventa" pista="opcional">
           <Textarea

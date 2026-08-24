@@ -24,6 +24,8 @@ export interface ContactoEntrada {
   nombre?: string | null;
   telefono?: string | null;
   correo?: string | null;
+  /** DNI/CE de quien recibe la entrega (migración 0057). */
+  documento?: string | null;
 }
 
 export interface DatosInforme {
@@ -111,7 +113,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
   const [{ data: contactos }, { data: historicas }, { data: ventas }, { data: informes }] = await Promise.all([
     supabase
       .from("contactos")
-      .select("nombre, cargo, telefono, email, es_principal")
+      .select("nombre, cargo, telefono, email, documento, es_principal")
       .eq("cuenta_id", cuentaId)
       .order("es_principal", { ascending: false }),
     supabase
@@ -181,6 +183,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
         nombre: c.nombre,
         telefono: c.telefono,
         correo: c.email,
+        documento: c.documento,
       })),
       presupuestos,
       ventasSinInforme,
@@ -295,5 +298,64 @@ export async function borrarBorradorInforme(informeId: string): Promise<{ error:
   const { error } = await supabase.from("informes_cierre").delete().eq("id", informeId);
   if (error) return { error: error.message };
   revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
+  return { error: null };
+}
+
+/**
+ * Registra a la persona que va a recibir la entrega cuando no es ninguno de
+ * los contactos que ya tiene la cuenta (ítem B4 del plan 11).
+ *
+ * Darwin, probando el 23-08: «puede recibir la otra persona… debería de haber
+ * una opción de poner a otros y registrar ese otros. Y obviamente ese otros,
+ * con DNI, con lo que sea, debería irse guardando como un contacto dentro de
+ * este negocio». O sea: el dato no puede morir dentro del PDF, porque la
+ * próxima entrega a ese mismo cliente lo va a volver a necesitar.
+ *
+ * Nunca marca es_principal: quien recibe un despacho no desplaza al contacto
+ * comercial de la cuenta.
+ */
+export async function guardarContactoEntrega(datos: {
+  cuentaId: string;
+  nombre: string;
+  documento?: string | null;
+  telefono?: string | null;
+}): Promise<{ error: string | null }> {
+  const nombre = datos.nombre.trim();
+  if (!nombre) return { error: "El nombre de quien recibe no puede ir vacío" };
+
+  const supabase = await createClient();
+
+  // Si ya existe con ese nombre, se completan los huecos en vez de duplicarlo:
+  // la cartera ya arrastra bastantes duplicados del histórico.
+  const { data: existente } = await supabase
+    .from("contactos")
+    .select("id, documento, telefono")
+    .eq("cuenta_id", datos.cuentaId)
+    .ilike("nombre", nombre)
+    .maybeSingle();
+
+  if (existente) {
+    const parche: Record<string, string> = {};
+    if (!existente.documento && datos.documento?.trim()) parche.documento = datos.documento.trim();
+    if (!existente.telefono && datos.telefono?.trim()) parche.telefono = datos.telefono.trim();
+    if (Object.keys(parche).length) {
+      const { error } = await supabase.from("contactos").update(parche).eq("id", existente.id);
+      if (error) return { error: error.message };
+    }
+    revalidatePath(`/comercial/cartera/${datos.cuentaId}`);
+    return { error: null };
+  }
+
+  const { error } = await supabase.from("contactos").insert({
+    cuenta_id: datos.cuentaId,
+    nombre,
+    cargo: "Recepción de despacho",
+    documento: datos.documento?.trim() || null,
+    telefono: datos.telefono?.trim() || null,
+    es_principal: false,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/comercial/cartera/${datos.cuentaId}`);
   return { error: null };
 }
