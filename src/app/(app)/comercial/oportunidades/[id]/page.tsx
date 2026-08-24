@@ -124,6 +124,9 @@ export default async function OportunidadDetallePage({
       capacidad: pr.capacidad,
       segmento: pr.segmento,
       precios_producto: pr.precios_producto,
+      // "secadora eléctrica" es como la piden los clientes, pero esa palabra
+      // solo vive acá dentro, no en el nombre del equipo.
+      calentamiento: typeof ficha?.calentamiento === "string" ? ficha.calentamiento : null,
       sinFicha: largo("caracteristicas") + largo("dimensiones") + largo("medidas") === 0,
       sinFoto: !pr.foto_path,
     };

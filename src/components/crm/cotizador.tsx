@@ -33,10 +33,21 @@ interface Producto {
   capacidad: string | null;
   segmento: "industrial" | "semi_industrial";
   precios_producto: PrecioTier[];
+  /** Cómo calienta (Gas GLP, ELÉCTRICA, Gas natural…). Vive en la ficha, no en
+   *  el nombre, y es como la gente pide el equipo: "secadora eléctrica". */
+  calentamiento?: string | null;
   /** El equipo no tiene datos técnicos cargados: su página de ficha saldría
    *  vacía en el PDF que recibe el cliente. */
   sinFicha?: boolean;
   sinFoto?: boolean;
+}
+
+/**
+ * Quita acentos para comparar. Sin esto, "electrica" no encuentra "ELÉCTRICA"
+ * — y nadie escribe la tilde cuando busca a las apuradas.
+ */
+function sinTildes(t: string): string {
+  return t.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 }
 
 interface ItemCarrito extends ItemCotizacion {
@@ -117,11 +128,16 @@ function BuscadorEquipo({
   const elegido = productos.find((p) => p.id === seleccionado) ?? null;
 
   const coincidencias = useMemo(() => {
-    const q = texto.trim().toLowerCase();
+    const q = sinTildes(texto.trim());
     if (!q) return productos;
     const partes = q.split(/\s+/);
     return productos.filter((p) => {
-      const buscable = `${p.sku ?? ""} ${p.marca} ${p.modelo} ${p.nombre} ${p.capacidad ?? ""}`.toLowerCase();
+      // Se incluye el calentamiento: "secadora eléctrica" es como la piden los
+      // clientes, pero esa palabra solo existe dentro de la ficha, no en el
+      // nombre del equipo. Carlos lo probó el 24-08 y no encontraba nada.
+      const buscable = sinTildes(
+        `${p.sku ?? ""} ${p.marca} ${p.modelo} ${p.nombre} ${p.capacidad ?? ""} ${p.calentamiento ?? ""}`,
+      );
       return partes.every((parte) => buscable.includes(parte));
     });
   }, [productos, texto]);
@@ -245,9 +261,6 @@ export function Cotizador({
   const [vecesAgregado, setVecesAgregado] = useState(0);
   const [condiciones, setCondiciones] = useState(edicion?.condiciones ?? "Entrega: 15 días útiles. Garantía de fábrica.");
   const [vigenciaDias, setVigenciaDias] = useState(edicion?.vigenciaDias ?? 15);
-  // Equipo que todavía no está en el catálogo: se escribe a mano. Es una
-  // salida temporal mientras logística termina de cargar el inventario.
-  const [equipoLibre, setEquipoLibre] = useState("");
   const [enviando, startTransition] = useTransition();
 
   function agregarProducto() {
@@ -281,28 +294,6 @@ export function Cotizador({
 
   const total = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_unitario, 0);
   const hayBajoLista = carrito.some((i) => i.precioPiso !== null && i.precio_unitario < i.precioPiso);
-
-  // Equipo que no está en el catálogo. Salida temporal mientras logística
-  // termina de cargar el inventario: sin esto, lo que falta no se puede
-  // cotizar y el comercial queda esperando.
-  function agregarEquipoLibre() {
-    const texto = equipoLibre.trim();
-    if (!texto) return;
-    setCarrito((c) => [
-      ...c,
-      {
-        producto_id: null,
-        descripcion: texto,
-        nombre: texto,
-        cantidad: 1,
-        precio_unitario: 0,
-        precioPiso: null,
-        sinFicha: true,
-        fueraDeCatalogo: true,
-      },
-    ]);
-    setEquipoLibre("");
-  }
 
   function confirmar() {
     if (carrito.length === 0) {
@@ -384,29 +375,19 @@ export function Cotizador({
         </Button>
       </div>
 
-      {/* Mientras el inventario termina de cargarse, lo que no está en el
-          catálogo se escribe a mano. El equipo queda marcado como tal: sirve
-          para medir cuánto falta cargar, y su ficha técnica no sale en el PDF
-          porque no existe. */}
-      <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border p-2.5">
-        <span className="text-xs text-muted-foreground">¿No está en el catálogo?</span>
-        <Input
-          value={equipoLibre}
-          onChange={(e) => setEquipoLibre(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              agregarEquipoLibre();
-            }
-          }}
-          placeholder="Escriba el equipo tal como debe salir en la cotización"
-          className="min-w-[220px] flex-1"
-          aria-label="Equipo fuera de catálogo"
-        />
-        <Button type="button" variant="outline" size="sm" onClick={agregarEquipoLibre} disabled={!equipoLibre.trim()}>
-          Agregar a mano
-        </Button>
-      </div>
+      {/* ⚠️ ACÁ ESTABA "agregar equipo a mano", quitado el 24-08 por decisión de
+          Carlos en la reunión de las 14:17. El motivo NO es de interfaz, es
+          contable: la contadora exige que cotización, orden de compra, guía,
+          cierre, pedido y factura lleven todos el MISMO número y la misma
+          descripción del producto, o rechaza el expediente. Si el comercial
+          cotiza por fuera, el correlativo del sistema y el del documento que
+          recibió el cliente dejan de coincidir y se rompe esa trazabilidad.
+          «No hay que darle flexibilidad»; el producto que falte lo carga el
+          ADMINISTRADOR —copiando la ficha de uno parecido y ajustándola— y
+          recién ahí se cotiza. Mientras tanto la cotización se pausa y se pide
+          la ficha a logística.
+          La base sigue aceptando ítems con descripción libre (migración 0062):
+          eso queda para la carga del administrador, no para el comercial. */}
 
       {carrito.length > 0 && (
         <Table>
