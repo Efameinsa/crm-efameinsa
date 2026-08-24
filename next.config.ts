@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/cotizaciones/[id]/pdf": ["./public/logo-efameinsa.png", "./public/productos/**/*"],
     "/api/informes/[id]/pdf": ["./public/logo-efameinsa.png"],
+    "/api/reportes/central": ["./public/logo-efameinsa.png"],
     "/api/cotizaciones-historicas/[id]/pdf": ["./public/logo-efameinsa.png"],
   },
 };

@@ -31,6 +31,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // El informe de cierre se le manda a Central para facturar, cobrar y
     // despachar: hasta ahora era la única que no tenía dónde verlo.
     { href: "/central/cierres", etiqueta: "Cierres de venta", icono: PackageCheck },
+    { href: "/central/informe", etiqueta: "Informe del día", icono: FileText },
   ],
   // Orden pedido por Darwin el 23-08 (plan 11, C2): el día arranca en "Mi
   // día", sigue por la agenda y el tercer sitio es "Mis oportunidades" —
