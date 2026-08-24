@@ -39,6 +39,33 @@ export function fechaCalendario(fecha: string | null | undefined): string {
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
+/** Para columnas `timestamptz` en formato corto: "16 ago 2026" (hora de Lima). */
+export function fechaLimaCorta(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("es-PE", {
+    timeZone: ZONA,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/**
+ * Para lo agendado sobre columnas `date` + `time`: "vie 29/08" o
+ * "vie 29/08 · 10:00". Sin conversión de zona (ver la nota de arriba).
+ */
+export function fechaAgendada(fecha: string | null | undefined, hora?: string | null): string {
+  if (!fecha) return "sin fecha";
+  const m = String(fecha).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return String(fecha);
+  const dia = new Date(`${m[1]}-${m[2]}-${m[3]}T12:00:00`).toLocaleDateString("es-PE", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+  });
+  return hora ? `${dia} · ${String(hora).slice(0, 5)}` : dia;
+}
+
 /** Para columnas `date` en formato largo: "16 de agosto de 2026". */
 export function fechaCalendarioLarga(fecha: string | null | undefined): string {
   if (!fecha) return "—";

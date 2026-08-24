@@ -25,16 +25,38 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
 
   const supabase = await createClient();
 
-  // Abiertas: pocas por comercial (el grueso histórico está cerrado) — se
-  // traen todas para poder mostrar "Sin fecha" y las vencidas fuera del mes.
-  const { data: abiertas } = await supabase
-    .from("oportunidades")
-    .select("id, etapa, intencion, monto_estimado, moneda, proxima_accion, proxima_accion_at, proxima_accion_hora, cuenta_id, cuentas(razon_social)")
-    .eq("comercial_id", perfil.id)
-    .not("etapa", "in", "(venta,rechazada,derivada)")
-    .order("proxima_accion_at", { ascending: true });
+  // ⚠️ CORREGIDO 24-08 (docs/11-plan-correcciones-prueba-23-08.md, A1).
+  // ANTES esta consulta pedía TODAS las abiertas del comercial sin `limit`,
+  // confiando en que eran "pocas por comercial". Dejó de ser cierto con el
+  // import de los Excel: Katerine tiene 13.601 abiertas y Supabase corta en
+  // 1.000 filas SIN AVISAR (el mismo bug que ya rompió Mi cartera y los
+  // reportes de gerencia). Ordenadas por proxima_accion_at ascendente, esas
+  // 1.000 eran todas de 1900 —fechas basura que arrastró el import— así que
+  // la agenda jamás llegaba a 2026: había 75 acciones de agosto-2026 que el
+  // comercial no podía ver. Ahora se piden acotadas en Postgres, en tres
+  // baldes que son justo los que usa AgendaMensual (mes, vencidas, sin fecha).
+  const CAMPOS =
+    "id, etapa, intencion, monto_estimado, moneda, proxima_accion, proxima_accion_at, proxima_accion_hora, cuenta_id, cuentas(razon_social)";
+  const abiertasDe = () =>
+    supabase.from("oportunidades").select(CAMPOS).eq("comercial_id", perfil.id).not("etapa", "in", "(venta,rechazada,derivada)");
 
-  const acciones: AccionAgenda[] = (abiertas ?? []).map((o) => ({
+  // Las vencidas se traen de la MÁS RECIENTE hacia atrás: son las que todavía
+  // se pueden retomar. Lo de 1900 queda fuera por sí solo, sin filtro ad hoc.
+  const TOPE_VENCIDAS = 200;
+  const TOPE_SIN_FECHA = 100;
+
+  const [{ data: delMes }, { data: vencidasData }, { data: sinFechaData }] = await Promise.all([
+    abiertasDe()
+      .gte("proxima_accion_at", inicioMes)
+      .lte("proxima_accion_at", finMes)
+      .order("proxima_accion_at", { ascending: true })
+      .limit(600),
+    abiertasDe().lt("proxima_accion_at", hoy).order("proxima_accion_at", { ascending: false }).limit(TOPE_VENCIDAS),
+    abiertasDe().is("proxima_accion_at", null).order("updated_at", { ascending: false }).limit(TOPE_SIN_FECHA),
+  ]);
+
+  type FilaOportunidad = NonNullable<typeof delMes>[number];
+  const aAccion = (o: FilaOportunidad): AccionAgenda => ({
     id: o.id,
     etapa: o.etapa,
     intencion: o.intencion,
@@ -45,7 +67,15 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     hora: o.proxima_accion_hora ? String(o.proxima_accion_hora).slice(0, 5) : null,
     cuentaId: o.cuenta_id,
     razonSocial: (o.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
-  }));
+  });
+
+  // Una vencida de este mismo mes cae en los dos primeros baldes: se deduplica
+  // por id para no pintar la tarjeta repetida.
+  const porId = new Map<string, AccionAgenda>();
+  for (const o of [...(delMes ?? []), ...(vencidasData ?? []), ...(sinFechaData ?? [])]) {
+    if (!porId.has(o.id)) porId.set(o.id, aAccion(o));
+  }
+  const acciones: AccionAgenda[] = [...porId.values()];
 
   const [{ data: hechasData }, { data: ventasData }, { data: histData }, { data: resultados }, { data: motivos }, { data: tareasData }] = await Promise.all([
     supabase

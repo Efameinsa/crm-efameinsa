@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
+import { SelectorHora } from "@/components/crm/selector-hora";
 import { cn } from "@/lib/utils";
 
 const TIPOS = [
@@ -50,6 +51,13 @@ export interface MotivoRechazo {
 // "Quiere comprar" guía al flujo de venta, "Pidió cotización" al cotizador,
 // y "Sin interés" ofrece el rechazo con motivo ahí mismo (regla intacta:
 // sin motivo no hay rechazo).
+//
+// Corrección 24-08 (prueba de Darwin del 23-08): los chips de resultado
+// estaban bajo el rótulo "¿Qué sigue?", pero "sin interés / no contestó /
+// pidió cotización" responden a lo que PASÓ, no a lo que el comercial va a
+// hacer. Los chips se mudaron al paso 2 y el paso 3 quedó solo con la
+// próxima acción (qué + cuándo + a qué hora), que es lo que viaja a la
+// agenda.
 export function RegistroRapido({
   oportunidadId,
   resultados = [],
@@ -66,6 +74,7 @@ export function RegistroRapido({
   const [resultadoId, setResultadoId] = useState<number | null>(null);
   const [proximaAccion, setProximaAccion] = useState("");
   const [proximaAccionAt, setProximaAccionAt] = useState("");
+  const [proximaAccionHora, setProximaAccionHora] = useState<string | null>(null);
   const [accionEditada, setAccionEditada] = useState(false);
   const [motivoId, setMotivoId] = useState("");
   const [archivos, setArchivos] = useState<File[]>([]);
@@ -81,6 +90,7 @@ export function RegistroRapido({
     setResultadoId(null);
     setProximaAccion("");
     setProximaAccionAt("");
+    setProximaAccionHora(null);
     setAccionEditada(false);
     setMotivoId("");
     setArchivos([]);
@@ -104,6 +114,13 @@ export function RegistroRapido({
   function registrar() {
     if (esRechazo && !motivoId) {
       toast.error("Seleccione el motivo del rechazo");
+      return;
+    }
+    // 24-08: sin esto, volver a pulsar con el formulario recién limpiado
+    // registraba una "llamada" en blanco. Pasó de verdad en la prueba del
+    // 23-08 y esa gestión fantasma borró la próxima acción de la anterior.
+    if (!nota.trim() && resultadoId === null && !proximaAccion.trim() && archivos.length === 0) {
+      toast.error("Cuente qué pasó, elija en qué quedó o agende la próxima acción");
       return;
     }
     startTransition(async () => {
@@ -130,6 +147,8 @@ export function RegistroRapido({
         resultadoId,
         proximaAccion: esRechazo ? "" : proximaAccion,
         proximaAccionAt: esRechazo ? null : proximaAccionAt || null,
+        proximaAccionHora: esRechazo ? null : proximaAccionHora,
+        limpiarProximaAccion: esRechazo,
         adjuntos,
       });
       if (r1.error) {
@@ -206,15 +225,17 @@ export function RegistroRapido({
           transition={{ duration: 0.2, ease: "easeOut" }}
           className="space-y-4 overflow-hidden"
         >
-          <Paso n="3" titulo="¿Qué sigue?">
-            <div className="space-y-3">
+          <div className="space-y-3">
               {resultados.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {resultados.map((r) => (
-                    <Chip key={r.id} activo={resultadoId === r.id} onClick={() => elegirResultado(r)}>
-                      {r.nombre}
-                    </Chip>
-                  ))}
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-muted-foreground">¿En qué quedó?</p>
+                  <div className="flex flex-wrap gap-2">
+                    {resultados.map((r) => (
+                      <Chip key={r.id} activo={resultadoId === r.id} onClick={() => elegirResultado(r)}>
+                        {r.nombre}
+                      </Chip>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -230,7 +251,7 @@ export function RegistroRapido({
                 </p>
               )}
 
-              {esRechazo ? (
+              {esRechazo && (
                 <div className="space-y-1.5">
                   <p className="text-xs text-muted-foreground">La oportunidad se rechazará. ¿Por qué? (obligatorio)</p>
                   <select
@@ -250,34 +271,50 @@ export function RegistroRapido({
                     <p className="text-xs text-amber-700">Para rechazar, use el cambio de etapa en la ficha completa.</p>
                   )}
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  <Input
-                    placeholder="ej. Llamar para confirmar visita"
-                    value={proximaAccion}
-                    onChange={(e) => {
-                      setProximaAccion(e.target.value);
+              )}
+          </div>
+
+          {!esRechazo && (
+            <Paso n="3" titulo="¿Qué sigue?">
+              <div className="space-y-2">
+                <Input
+                  placeholder="ej. Llamar para confirmar visita"
+                  value={proximaAccion}
+                  onChange={(e) => {
+                    setProximaAccion(e.target.value);
+                    setAccionEditada(true);
+                  }}
+                  aria-label="Próxima acción"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <SelectorFecha
+                    valor={proximaAccionAt || null}
+                    onCambiar={(f) => {
+                      setProximaAccionAt(f ?? "");
+                      if (!f) setProximaAccionHora(null);
                       setAccionEditada(true);
                     }}
-                    aria-label="Próxima acción"
+                    etiquetaVacia="¿Para cuándo?"
                   />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <SelectorFecha
-                      valor={proximaAccionAt || null}
-                      onCambiar={(f) => {
-                        setProximaAccionAt(f ?? "");
-                        setAccionEditada(true);
-                      }}
-                      etiquetaVacia="¿Para cuándo?"
-                    />
-                    {resultado?.accion_sugerida && !accionEditada && (
-                      <span className="text-[11px] text-muted-foreground">sugerida por &ldquo;{resultado.nombre}&rdquo; — edítela si quiere</span>
-                    )}
-                  </div>
+                  <SelectorHora
+                    valor={proximaAccionHora}
+                    onCambiar={(h) => {
+                      setProximaAccionHora(h);
+                      setAccionEditada(true);
+                    }}
+                    deshabilitado={!proximaAccionAt}
+                    etiquetaVacia="¿A qué hora?"
+                  />
+                  {resultado?.accion_sugerida && !accionEditada && (
+                    <span className="text-[11px] text-muted-foreground">sugerida por &ldquo;{resultado.nombre}&rdquo; — edítela si quiere</span>
+                  )}
                 </div>
-              )}
-            </div>
-          </Paso>
+                <p className="text-[11px] text-muted-foreground">
+                  Lo que agende acá aparece en <b>Mi agenda</b> y en <b>Mi día</b>.
+                </p>
+              </div>
+            </Paso>
+          )}
 
           <Button onClick={registrar} disabled={enviando || (esRechazo && !motivoId)}>
             {enviando ? "Registrando…" : esRechazo ? "Registrar y rechazar" : "Registrar gestión"}

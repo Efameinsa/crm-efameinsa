@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { fechaAgendada, fechaLima } from "@/lib/fechas";
 
 const MOSTRADOS_INICIAL = 25;
 
@@ -174,7 +175,7 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
       className={navegable ? "cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none" : undefined}
     >
       <TableCell className="whitespace-nowrap align-top tabular-nums text-muted-foreground">
-        {new Date(evento.fecha).toLocaleDateString("es-PE")}
+        {fechaLima(evento.fecha)}
       </TableCell>
       <TableCell className="align-top py-2.5">
         {evento.tipo === "actividad" && (
@@ -183,6 +184,19 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
               {ETIQUETA_ACTIVIDAD[evento.tipoActividad] ?? evento.tipoActividad}
             </p>
             {evento.nota && <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{evento.nota}</p>}
+            {/* A qué se comprometió el comercial en esta gestión (migración
+                0056). Sin esto el historial contaba la mitad de la historia:
+                se veía "envié correo de cotización" pero no el "y quedé en
+                llamar el 29" — justo lo que Darwin echó en falta el 23-08. */}
+            {evento.proximaAccion && (
+              <p className="mt-1 text-xs text-foreground">
+                <span className="text-muted-foreground">Sigue: </span>
+                {evento.proximaAccion}
+                {evento.proximaAccionAt && (
+                  <span className="text-muted-foreground"> — {fechaAgendada(evento.proximaAccionAt, evento.proximaAccionHora)}</span>
+                )}
+              </p>
+            )}
             {(evento.adjuntos ?? []).length > 0 && (
               <p className="mt-1 flex flex-wrap gap-2">
                 {evento.adjuntos!.map((ad, i) => (

@@ -24,12 +24,22 @@ export async function registrarActividad(datos: {
   resultadoId?: number | null;
   proximaAccion: string;
   proximaAccionAt: string | null;
+  proximaAccionHora?: string | null;
+  // Rechazo: única vía para BORRAR la próxima acción desde acá (la
+  // oportunidad se cierra, no queda nada que agendar).
+  limpiarProximaAccion?: boolean;
   // Metadatos de archivos YA subidos al bucket 'adjuntos' por el cliente
   // (reunión 19-08: PDF/Word/fotos visibles en la ficha). Máximo 5.
   adjuntos?: { path: string; nombre: string; tipo: string; tamano: number }[];
 }): Promise<{ error: string | null }> {
   if (!TIPOS_ACTIVIDAD.includes(datos.tipo)) {
     return { error: "Tipo de actividad inválido" };
+  }
+  if (datos.proximaAccionAt && !/^\d{4}-\d{2}-\d{2}$/.test(datos.proximaAccionAt)) {
+    return { error: "Fecha de la próxima acción inválida" };
+  }
+  if (datos.proximaAccionHora && !/^\d{2}:\d{2}$/.test(datos.proximaAccionHora)) {
+    return { error: "Hora de la próxima acción inválida" };
   }
   const adjuntos = (datos.adjuntos ?? []).slice(0, 5).map((a) => ({
     path: String(a.path).slice(0, 300),
@@ -44,6 +54,8 @@ export async function registrarActividad(datos: {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sesión expirada" };
 
+  const accionRegistrada = datos.limpiarProximaAccion ? "" : datos.proximaAccion.trim();
+
   const { error: errorActividad } = await supabase.from("actividades").insert({
     oportunidad_id: datos.oportunidadId,
     tipo: datos.tipo,
@@ -51,17 +63,48 @@ export async function registrarActividad(datos: {
     resultado_id: datos.resultadoId ?? null,
     realizada_por: user.id,
     adjuntos,
+    // Copia histórica para el historial (migración 0056): a qué se comprometió
+    // el comercial en ESTA gestión, aunque después la próxima acción cambie.
+    proxima_accion: accionRegistrada || null,
+    proxima_accion_at: datos.limpiarProximaAccion ? null : datos.proximaAccionAt,
+    proxima_accion_hora: datos.limpiarProximaAccion || !datos.proximaAccionAt ? null : datos.proximaAccionHora ?? null,
   });
   if (errorActividad) return { error: errorActividad.message };
 
-  const { error: errorOportunidad } = await supabase
-    .from("oportunidades")
-    .update({
-      proxima_accion: datos.proximaAccion || null,
-      proxima_accion_at: datos.proximaAccionAt,
-    })
-    .eq("id", datos.oportunidadId);
-  if (errorOportunidad) return { error: errorOportunidad.message };
+  // 24-08: ANTES esto pisaba siempre proxima_accion/proxima_accion_at con lo
+  // que llegara, aunque llegara vacío. Consecuencia real (prueba de Darwin del
+  // 23-08 sobre Lavandería Buenos Aires): registró la gestión con "llamar el
+  // 29/08", el formulario se limpió y una segunda pasada con el formulario en
+  // blanco dejó la oportunidad en proxima_accion = null — la tarea nunca llegó
+  // a la agenda. Ahora una gestión SIN próxima acción no borra la que ya
+  // estaba agendada; para quitarla está el panel de la agenda
+  // (reprogramarAccion) o el rechazo.
+  const accion = datos.proximaAccion.trim();
+  const parche: Record<string, string | null> = {};
+  if (datos.limpiarProximaAccion) {
+    parche.proxima_accion = null;
+    parche.proxima_accion_at = null;
+    parche.proxima_accion_hora = null;
+  } else if (accion || datos.proximaAccionAt) {
+    parche.proxima_accion = accion || null;
+    parche.proxima_accion_at = datos.proximaAccionAt;
+    // Sin fecha no hay hora que valga (misma regla que reprogramarAccion).
+    parche.proxima_accion_hora = datos.proximaAccionAt ? datos.proximaAccionHora ?? null : null;
+  }
+
+  if (Object.keys(parche).length > 0) {
+    // Supabase no falla cuando RLS filtra el update (afecta 0 filas): se
+    // revisa el .select() de vuelta, igual que en reprogramarAccion.
+    const { data, error: errorOportunidad } = await supabase
+      .from("oportunidades")
+      .update(parche)
+      .eq("id", datos.oportunidadId)
+      .select("id");
+    if (errorOportunidad) return { error: errorOportunidad.message };
+    if (!data || data.length === 0) {
+      return { error: "La gestión quedó registrada, pero solo el dueño de la oportunidad puede programar la próxima acción" };
+    }
+  }
 
   revalidatePath("/comercial");
   revalidatePath("/comercial/agenda");

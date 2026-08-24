@@ -125,14 +125,20 @@ function Columna({
   etiqueta,
   droppable,
   oportunidades,
+  totalEtapa,
 }: {
   etapa: EtapaOportunidad;
   etiqueta: string;
   droppable: boolean;
   oportunidades: OportunidadKanban[];
+  // Cuántas hay REALMENTE en esta etapa con los filtros puestos. La columna
+  // solo muestra las primeras (ver POR_COLUMNA en la página): sin este dato,
+  // "12" parecería el total y el comercial daría por trabajada la etapa.
+  totalEtapa?: number;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: etapa, disabled: !droppable });
   const total = oportunidades.reduce((acc, o) => acc + (o.monto_estimado ?? 0), 0);
+  const hayMas = totalEtapa != null && totalEtapa > oportunidades.length;
 
   return (
     <div
@@ -146,7 +152,9 @@ function Columna({
       <div className="mb-2.5 flex items-baseline justify-between px-1">
         <b className="text-[11px] font-bold uppercase tracking-wide text-foreground">{etiqueta}</b>
         <small className="tabular-nums text-[11px] text-muted-foreground">
-          {oportunidades.length} · {total > 0 ? total.toLocaleString("es-PE") : 0}
+          {hayMas ? `${oportunidades.length} de ${totalEtapa!.toLocaleString("es-PE")}` : (totalEtapa ?? oportunidades.length).toLocaleString("es-PE")}
+          {" · "}
+          {total > 0 ? total.toLocaleString("es-PE") : 0}
         </small>
       </div>
       {oportunidades.map((op) => (
@@ -157,6 +165,11 @@ function Columna({
           Sin oportunidades
         </div>
       )}
+      {hayMas && (
+        <p className="px-1 pt-1 text-center text-[10px] text-muted-foreground">
+          +{(totalEtapa! - oportunidades.length).toLocaleString("es-PE")} más en la vista Tabla
+        </p>
+      )}
     </div>
   );
 }
@@ -164,9 +177,14 @@ function Columna({
 export function PipelineKanban({
   oportunidades: iniciales,
   motivos,
+  totalesPorEtapa,
 }: {
   oportunidades: OportunidadKanban[];
   motivos: { id: number; nombre: string }[];
+  // Conteos reales por etapa con los filtros aplicados (la página los calcula
+  // con contar_oportunidades_por_etapa). El tablero solo trae las primeras
+  // fichas de cada una, así que sin esto los números mentirían.
+  totalesPorEtapa?: Record<string, number>;
 }) {
   const [oportunidades, setOportunidades] = useState(iniciales);
   const [activoId, setActivoId] = useState<string | null>(null);
@@ -239,6 +257,7 @@ export function PipelineKanban({
               etiqueta={c.etiqueta}
               droppable={c.droppable}
               oportunidades={abiertas.filter((o) => o.etapa === c.etapa)}
+              totalEtapa={totalesPorEtapa?.[c.etapa]}
             />
           ))}
           <RechazadaDropzone cantidad={cerradas.filter((o) => o.etapa === "rechazada").length} />

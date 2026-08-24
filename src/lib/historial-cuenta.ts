@@ -83,7 +83,9 @@ export async function cargarHistorialCuenta(
       : await Promise.all([
           supabase
             .from("actividades")
-            .select("id, tipo, nota, realizada_at, oportunidad_id, adjuntos, catalogo_resultados_gestion(codigo, nombre)")
+            .select(
+              "id, tipo, nota, realizada_at, oportunidad_id, adjuntos, proxima_accion, proxima_accion_at, proxima_accion_hora, catalogo_resultados_gestion(codigo, nombre)",
+            )
             .in("oportunidad_id", opIds)
             .order("realizada_at", { ascending: false })
             .limit(LIMITE_ACTIVIDADES),
@@ -135,6 +137,9 @@ export async function cargarHistorialCuenta(
         tipoActividad: a.tipo,
         nota: a.nota,
         resultado,
+        proximaAccion: a.proxima_accion,
+        proximaAccionAt: a.proxima_accion_at,
+        proximaAccionHora: a.proxima_accion_hora ? String(a.proxima_accion_hora).slice(0, 5) : null,
         adjuntos: ((a as { adjuntos?: { path: string; nombre: string }[] }).adjuntos ?? [])
           .map((x) => ({ nombre: x.nombre, url: urlPorRuta.get(x.path) ?? "" }))
           .filter((x) => x.url),

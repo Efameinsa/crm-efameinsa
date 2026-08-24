@@ -12,10 +12,12 @@ import {
   MoreHorizontal,
   FileText,
   CircleCheckBig,
+  CalendarClock,
   type LucideIcon,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { fechaAgendada, fechaLimaCorta } from "@/lib/fechas";
 
 export const ICONO_ACTIVIDAD: Record<string, LucideIcon> = {
   llamada: Phone,
@@ -69,6 +71,11 @@ export interface EventoActividad {
   nota: string | null;
   resultado: ResultadoGestionEvento | null;
   adjuntos?: AdjuntoEvento[];
+  // A qué se comprometió el comercial en ESTA gestión (migración 0056).
+  // null en todo lo anterior al 24-08 y en las gestiones sin próxima acción.
+  proximaAccion?: string | null;
+  proximaAccionAt?: string | null;
+  proximaAccionHora?: string | null;
 }
 export interface EventoCotizacion {
   tipo: "cotizacion";
@@ -154,12 +161,22 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
               {evento.resultado.nombre}
             </span>
           )}
-          <span className="text-xs text-muted-foreground">
-            {new Date(evento.fecha).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })}
-          </span>
+          <span className="text-xs text-muted-foreground">{fechaLimaCorta(evento.fecha)}</span>
         </div>
         {evento.tipo === "actividad" && evento.nota && (
           <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{evento.nota}</p>
+        )}
+        {evento.tipo === "actividad" && evento.proximaAccion && (
+          <p className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-secondary px-2 py-1 text-xs text-foreground">
+            <CalendarClock className="size-3.5 shrink-0 text-muted-foreground" />
+            <span>
+              <span className="text-muted-foreground">Sigue: </span>
+              {evento.proximaAccion}
+              {evento.proximaAccionAt && (
+                <span className="text-muted-foreground"> — {fechaAgendada(evento.proximaAccionAt, evento.proximaAccionHora)}</span>
+              )}
+            </span>
+          </p>
         )}
         {evento.tipo === "actividad" && (evento.adjuntos ?? []).length > 0 && (
           <p className="mt-1 flex flex-wrap gap-2">

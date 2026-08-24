@@ -11,6 +11,13 @@ import type { EtapaOportunidad } from "@/types/database";
 export const dynamic = "force-dynamic";
 
 const POR_PAGINA = 50;
+// Tope de fichas POR COLUMNA del tablero (no global): con 40 la columna se
+// recorre con el pulgar sin volverse un archivo.
+const POR_COLUMNA = 40;
+// Las cinco etapas de trabajo del tablero — deben coincidir con COLUMNAS de
+// pipeline-kanban.tsx (venta/rechazada/derivada están cerradas, no se
+// arrastran).
+const ETAPAS_TABLERO: EtapaOportunidad[] = ["asignada", "filtrada", "cotizada", "seguimiento", "potencial"];
 const ORDENES: OrdenOportunidades[] = ["reciente", "monto", "proxima_accion", "cuenta"];
 const ETAPAS: EtapaOportunidad[] = [
   "asignada",
@@ -42,10 +49,18 @@ const ETAPAS: EtapaOportunidad[] = [
 //
 // La vista Kanban es harina de otro costal: es un tablero de trabajo diario
 // para arrastrar tarjetas, no un archivo — mostrar miles de tarjetas
-// históricas ahí sería inmanejable. Se acota a lo nacido en el CRM
-// (origen='crm') y a un tope de 500, sin paginar — mismo espíritu que el
-// tope de 90 días que ya tenía el resumen de cerradas. Lo histórico se
-// trabaja desde la Tabla.
+// históricas ahí sería inmanejable.
+//
+// ⚠️ CORREGIDO 24-08 (docs/11-plan-correcciones-prueba-23-08.md, A2). Antes se
+// acotaba a `soloCrm: true` fijo. Como TODAS las oportunidades de los
+// comerciales vienen del import de Excel (origen='historico_excel') y ninguna
+// tenía origen='crm', el tablero salía COMPLETAMENTE VACÍO: Darwin lo reportó
+// probando con C5 —«en Kanban no aparece ninguna etiqueta… no se ve el
+// trabajo que tienen que realizar»— con 15.772 oportunidades en la Tabla.
+// Ahora el tablero respeta los mismos filtros que la Tabla y trae las fichas
+// POR COLUMNA (las N más recientes de cada etapa), no las N más recientes en
+// total: si no, una sola etapa se comía el cupo y las demás quedaban vacías
+// igual. El encabezado de cada columna dice cuántas hay de verdad.
 export default async function OportunidadesPage({
   searchParams,
 }: {
@@ -82,8 +97,27 @@ export default async function OportunidadesPage({
   const totalGeneral = Object.values(conteos).reduce((a, b) => a + b, 0);
 
   if (vista === "kanban") {
-    const { filas } = await listarOportunidades(supabase, { soloCrm: true, orden: "reciente", limite: 500, offset: 0 });
-    const datos: OportunidadKanban[] = filas.map((op) => ({
+    // Una consulta por columna: cada etapa trae sus más recientes sin competir
+    // con las demás por el cupo. Si el usuario eligió una etapa en las
+    // pestañas, solo esa columna se llena (igual que hace la Tabla).
+    const columnas = await Promise.all(
+      ETAPAS_TABLERO.map(async (e) => {
+        if (etapa && etapa !== e) return [] as Awaited<ReturnType<typeof listarOportunidades>>["filas"];
+        const { filas } = await listarOportunidades(supabase, {
+          q,
+          etapa: e,
+          tipoCliente,
+          desde,
+          hasta,
+          soloCrm,
+          orden,
+          limite: POR_COLUMNA,
+          offset: 0,
+        });
+        return filas;
+      }),
+    );
+    const datos: OportunidadKanban[] = columnas.flat().map((op) => ({
       id: op.id,
       etapa: op.etapa as EtapaOportunidad,
       razon_social: op.razon_social,
@@ -110,10 +144,15 @@ export default async function OportunidadesPage({
           totalGeneral={totalGeneral}
         />
         <p className="text-xs text-muted-foreground">
-          El tablero muestra solo lo registrado directamente en el CRM (hasta 500, lo más reciente) — el histórico
-          importado de Excel se filtra y retoma desde la vista Tabla.
+          El tablero es para trabajar el día a día: muestra hasta {POR_COLUMNA} fichas por columna, las más recientes
+          según el orden elegido. El número junto a cada etapa dice cuántas hay en total — para verlas todas, filtrar
+          o paginar desde la vista Tabla.
         </p>
-        <PipelineKanban oportunidades={datos} motivos={motivos ?? []} />
+        <PipelineKanban
+          oportunidades={datos}
+          motivos={motivos ?? []}
+          totalesPorEtapa={conteos}
+        />
       </div>
     );
   }
