@@ -111,6 +111,7 @@ async function main() {
       vigenciaDias={15}
       firma={{
         nombre: "Katerine Tello",
+        cargo: "Ejecutivo Comercial Senior",
         telefono: "371-0006",
         celular: "981 488 958",
         email: "comercial5@efameinsa.com",
