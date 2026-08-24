@@ -11,7 +11,7 @@ export default async function AprobacionesPage() {
     .select(
       `id, codigo, serie, total, moneda, created_at,
        oportunidades(cuentas(razon_social), perfiles(nombre)),
-       cotizacion_items(id, cantidad, precio_lista, precio_unitario, bajo_lista, descripcion, productos(marca, modelo, nombre))`,
+       cotizacion_items(id, cantidad, precio_lista, precio_unitario, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento))`,
     )
     .eq("estado_aprobacion", "pendiente_gerencia")
     .order("created_at", { ascending: true });
@@ -28,7 +28,7 @@ export default async function AprobacionesPage() {
       }
     >
       {!cotizaciones || cotizaciones.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No hay cotizaciones por debajo de lista pendientes.</p>
+        <p className="text-sm text-muted-foreground">No hay cotizaciones esperando aprobación.</p>
       ) : (
         <div className="space-y-2">
           {cotizaciones.map((c) => {
@@ -42,10 +42,16 @@ export default async function AprobacionesPage() {
               precio_lista: number | null;
               precio_unitario: number;
               bajo_lista: boolean;
+              requiere_aprobacion: boolean;
               descripcion: string | null;
-              productos: { marca: string; modelo: string; nombre: string } | null;
+              productos: { marca: string; modelo: string; nombre: string; segmento: string } | null;
             }[]) ?? [];
+            // Lo que gerencia tiene que decidir: bajo lista O industrial
+            // (migración 0067). Se dice el motivo porque no es el mismo trabajo
+            // revisar un precio cedido que confirmar el de un industrial.
+            const porDecidir = items.filter((i) => i.requiere_aprobacion).length;
             const bajoLista = items.filter((i) => i.bajo_lista).length;
+            const industriales = items.filter((i) => i.requiere_aprobacion && !i.bajo_lista).length;
             return (
               <div key={c.id} className="rounded-lg border border-border bg-background p-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -60,7 +66,12 @@ export default async function AprobacionesPage() {
                       {oportunidad?.perfiles?.nombre ?? "un comercial"} ·{" "}
                       {fechaLima(c.created_at)} ·{" "}
                       <span className="font-semibold text-amber-700">
-                        {bajoLista} de {items.length} bajo lista
+                        {porDecidir} de {items.length} por revisar
+                        {bajoLista > 0 && industriales > 0
+                          ? ` (${bajoLista} bajo lista, ${industriales} industrial${industriales === 1 ? "" : "es"})`
+                          : bajoLista > 0
+                            ? " bajo lista"
+                            : " · industriales"}
                       </span>
                     </p>
                   </div>
@@ -90,6 +101,8 @@ export default async function AprobacionesPage() {
                       precioLista: i.precio_lista != null ? Number(i.precio_lista) : null,
                       precioUnitario: Number(i.precio_unitario),
                       bajoLista: i.bajo_lista,
+                      requiereAprobacion: i.requiere_aprobacion,
+                      esIndustrial: i.productos?.segmento === "industrial",
                     }))}
                   />
                 </div>

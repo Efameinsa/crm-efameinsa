@@ -414,6 +414,19 @@ export function Cotizador({
 
   const total = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_unitario, 0);
   const hayBajoLista = carrito.some((i) => i.precioPiso !== null && i.precio_unitario < i.precioPiso);
+  // Todo industrial pasa por gerencia aunque vaya al precio de lista (migración
+  // 0067): en industriales el precio de lista es un punto de partida, no un
+  // precio cerrado. Se avisa ACÁ, antes de guardar, para que la comercial no
+  // arme la cotización creyendo que la puede enviar de inmediato.
+  const hayIndustrial = carrito.some(
+    (i) => productos.find((p) => p.id === i.producto_id)?.segmento === 'industrial',
+  );
+  const iraAGerencia = hayBajoLista || hayIndustrial;
+  const motivoAprobacion = hayBajoLista
+    ? hayIndustrial
+      ? 'precio bajo lista y equipo industrial'
+      : 'precio bajo lista'
+    : 'equipo industrial';
 
   function confirmar() {
     if (carrito.length === 0) {
@@ -442,8 +455,8 @@ export function Cotizador({
           return;
         }
         toast.success(
-          hayBajoLista
-            ? "Cotización corregida — queda pendiente de aprobación de gerencia (precio bajo lista)"
+          iraAGerencia
+            ? `Cotización corregida — queda pendiente de aprobación de gerencia (${motivoAprobacion})`
             : "Cotización corregida",
         );
         router.push(`/comercial/oportunidades/${oportunidadId}`);
@@ -464,8 +477,8 @@ export function Cotizador({
         return;
       }
       toast.success(
-        hayBajoLista
-          ? "Cotización creada — queda pendiente de aprobación de gerencia (precio bajo lista)"
+        iraAGerencia
+          ? `Cotización creada — queda pendiente de aprobación de gerencia (${motivoAprobacion})`
           : "Cotización creada y aprobada automáticamente",
       );
       setCarrito([]);
@@ -652,6 +665,17 @@ export function Cotizador({
         </div>
         <p className="flex-1 text-right text-lg font-medium">Total: US$ {total.toFixed(2)}</p>
       </div>
+
+      {/* Se dice ANTES de guardar, no después: si va a quedar esperando a
+          gerencia, la comercial tiene que saberlo mientras todavía está
+          armando la cotización, no cuando quiera enviarla. */}
+      {carrito.length > 0 && iraAGerencia && (
+        <p className="flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-2 text-xs font-medium text-amber-800">
+          <TriangleAlert className="mt-px size-3.5 shrink-0" />
+          Esta cotización va a quedar esperando la aprobación de gerencia ({motivoAprobacion}). No se
+          podrá enviar al cliente hasta que la aprueben.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={confirmar} disabled={enviando || carrito.length === 0}>

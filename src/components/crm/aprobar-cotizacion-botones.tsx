@@ -25,6 +25,10 @@ export interface ItemAprobacion {
   precioLista: number | null;
   precioUnitario: number;
   bajoLista: boolean;
+  /** Gerencia tiene que decidir sobre este equipo: va bajo el piso, o es
+   *  industrial (migración 0067). */
+  requiereAprobacion: boolean;
+  esIndustrial: boolean;
 }
 
 /**
@@ -32,10 +36,15 @@ export interface ItemAprobacion {
  * «me despliega en los 5 ítems. El ítem 1 solamente quiere aprobar, porque los
  * otros 4 le están mandando el precio normal».
  *
- * Los equipos al precio de lista se muestran para dar contexto pero no se
- * deciden: el comercial no pidió nada sobre ellos. La decisión se toma solo
- * sobre los que van por debajo del piso, que es donde está la plata — «en las
- * LG la diferencia es bastante, unos 600 dólares, en algunos casos 800».
+ * Se decide sobre dos clases de equipo (migración 0067):
+ *  · los que van BAJO EL PRECIO PISO, que es donde está la plata — «en las LG
+ *    la diferencia es bastante, unos 600 dólares, en algunos casos 800»;
+ *  · los INDUSTRIALES, aunque vayan al precio de lista. Pedido del área
+ *    comercial el 24-08: «en semi industriales ya están definidos los precios,
+ *    pero en industriales por lo general se necesita aprobar por gerencia».
+ *
+ * Los semi-industriales al precio de lista se muestran para dar contexto pero
+ * no se deciden: sobre esos el comercial no pidió nada.
  */
 export function AprobarCotizacionBotones({
   cotizacionId,
@@ -52,7 +61,7 @@ export function AprobarCotizacionBotones({
   const [decisiones, setDecisiones] = useState<Record<string, boolean>>({});
   const [enviando, startTransition] = useTransition();
 
-  const porDecidir = useMemo(() => items.filter((i) => i.bajoLista), [items]);
+  const porDecidir = useMemo(() => items.filter((i) => i.requiereAprobacion), [items]);
   const sinDecidir = porDecidir.filter((i) => !(i.id in decisiones));
   const rechazados = porDecidir.filter((i) => decisiones[i.id] === false);
 
@@ -95,8 +104,9 @@ export function AprobarCotizacionBotones({
         <DialogHeader>
           <DialogTitle>Revisar precios equipo por equipo</DialogTitle>
           <DialogDescription>
-            Solo se decide sobre los equipos que van por debajo del precio de lista. Los demás se
-            cotizaron al precio normal y no necesitan su aprobación.
+            Se decide sobre los equipos que van por debajo del precio de lista y sobre todos los
+            industriales, donde el precio de lista es un punto de partida. Los semi-industriales al
+            precio de lista no necesitan su aprobación.
           </DialogDescription>
         </DialogHeader>
 
@@ -109,15 +119,27 @@ export function AprobarCotizacionBotones({
                 key={i.id}
                 className={cn(
                   "rounded-lg border p-3",
-                  !i.bajoLista && "border-border bg-secondary/40",
-                  i.bajoLista && decision === true && "border-[#1E7F4F]/50 bg-[#1E7F4F]/5",
-                  i.bajoLista && decision === false && "border-destructive/50 bg-destructive/5",
-                  i.bajoLista && decision === undefined && "border-amber-500/50 bg-amber-500/5",
+                  !i.requiereAprobacion && "border-border bg-secondary/40",
+                  i.requiereAprobacion && decision === true && "border-[#1E7F4F]/50 bg-[#1E7F4F]/5",
+                  i.requiereAprobacion && decision === false && "border-destructive/50 bg-destructive/5",
+                  i.requiereAprobacion && decision === undefined && "border-amber-500/50 bg-amber-500/5",
                 )}
               >
                 <p className="text-sm font-medium text-foreground">
                   {i.cantidad > 1 && <span className="text-muted-foreground">{i.cantidad} × </span>}
                   {i.nombre}
+                  {/* Por qué está acá: no es lo mismo revisar un precio cedido
+                      que confirmar el de un industrial al precio de lista. */}
+                  {i.requiereAprobacion && !i.bajoLista && i.esIndustrial && (
+                    <span className="ml-1.5 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                      Industrial
+                    </span>
+                  )}
+                  {i.bajoLista && (
+                    <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                      Bajo lista
+                    </span>
+                  )}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs tabular-nums">
                   <span className="text-muted-foreground">
@@ -131,7 +153,7 @@ export function AprobarCotizacionBotones({
                   )}
                 </div>
 
-                {i.bajoLista ? (
+                {i.requiereAprobacion ? (
                   <div className="mt-2 flex items-center gap-2">
                     <Button
                       size="sm"
@@ -149,7 +171,9 @@ export function AprobarCotizacionBotones({
                     </Button>
                   </div>
                 ) : (
-                  <p className="mt-1 text-[11px] text-muted-foreground">Al precio de lista</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Semi-industrial al precio de lista — no necesita su aprobación
+                  </p>
                 )}
               </div>
             );
