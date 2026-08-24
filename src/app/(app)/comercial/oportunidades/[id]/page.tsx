@@ -12,9 +12,11 @@ import { PuntoInteres } from "@/components/crm/punto-interes";
 import { SeccionPanel, SeccionPlegable } from "@/components/crm/seccion-panel";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
+import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { fechaAgendada, fechaHoraLima } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
+import type { TipoDocumento } from "@/lib/documento";
 
 // Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
 // el mismo nombre de canal que vio quien se lo derivó.
@@ -76,7 +78,7 @@ export default async function OportunidadDetallePage({
   const cuenta = oportunidad.cuentas as unknown as {
     id: string;
     razon_social: string;
-    tipo_doc: string;
+    tipo_doc: TipoDocumento;
     num_doc: string | null;
     direccion: string | null;
     contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
@@ -307,10 +309,23 @@ export default async function OportunidadDetallePage({
                 </SeccionPlegable>
               )}
 
-              <SeccionPlegable titulo="Contactos" cantidad={contactosCuenta.length}>
-                {/* Editables: el contacto principal es el que sale en la
-                    cotización como "Atención:", con su teléfono y correo. */}
-                {cuenta?.id && <ContactosEditables cuentaId={cuenta.id} contactos={contactosCuenta} />}
+              <SeccionPlegable titulo="Cliente y contactos" cantidad={contactosCuenta.length}>
+                {/* Editables: es lo que se imprime en la cotización. El RUC y la
+                    razón social van en el bloque del cliente; el contacto
+                    principal, en el "Atención:" con su teléfono y correo. */}
+                {cuenta?.id && (
+                  <>
+                    <div className="mb-3">
+                      <IdentidadCuenta
+                        cuentaId={cuenta.id}
+                        tipoDoc={cuenta.tipo_doc}
+                        numDoc={cuenta.num_doc}
+                        razonSocial={cuenta.razon_social}
+                      />
+                    </div>
+                    <ContactosEditables cuentaId={cuenta.id} contactos={contactosCuenta} />
+                  </>
+                )}
               </SeccionPlegable>
             </>
           )}

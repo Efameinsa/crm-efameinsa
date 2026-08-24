@@ -9,6 +9,7 @@ import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { GrupoEconomico } from "@/components/crm/grupo-economico";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
+import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { Badge } from "@/components/ui/badge";
 
 export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId: string; comoGerencia?: boolean }) {
@@ -113,8 +114,18 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
           </SeccionPanel>
         </div>
 
-        <SeccionPanel titulo={`Contactos (${contactos.length})`}>
-          {/* Editables: es lo que se imprime en la cotización (24-08). */}
+        <SeccionPanel titulo={`Cliente y contactos (${contactos.length})`}>
+          {/* Editables: es lo que se imprime en la cotización (24-08). El RUC y la
+              razón social salen del bloque del cliente; el contacto principal, del
+              "Atención:". */}
+          <div className="mb-3">
+            <IdentidadCuenta
+              cuentaId={cuenta.id}
+              tipoDoc={cuenta.tipo_doc}
+              numDoc={cuenta.num_doc}
+              razonSocial={cuenta.razon_social}
+            />
+          </div>
           <ContactosEditables cuentaId={cuenta.id} contactos={contactos} />
         </SeccionPanel>
       </div>
