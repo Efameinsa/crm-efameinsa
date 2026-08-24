@@ -18,6 +18,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { fechaCalendario } from "@/lib/fechas";
+import { buscarEquipos } from "@/lib/buscar-equipo";
 
 interface PrecioTier {
   tier: string;
@@ -40,14 +41,6 @@ interface Producto {
    *  vacía en el PDF que recibe el cliente. */
   sinFicha?: boolean;
   sinFoto?: boolean;
-}
-
-/**
- * Quita acentos para comparar. Sin esto, "electrica" no encuentra "ELÉCTRICA"
- * — y nadie escribe la tilde cuando busca a las apuradas.
- */
-function sinTildes(t: string): string {
-  return t.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 }
 
 interface ItemCarrito extends ItemCotizacion {
@@ -108,8 +101,8 @@ function etiquetaEquipo(p: Producto): string {
 //
 // Ahora es un autocompletador de verdad: se escribe y aparecen las
 // coincidencias debajo, con teclado. El texto que se muestra lo controlamos
-// nosotros, así que no hay UUID posible. Ojo con el dato: 7 de los 65 equipos
-// no tienen código cargado (5 LG, 1 Primus, 1 Girbau) — buscar por código no
+// nosotros, así que no hay UUID posible. Ojo con el dato: 5 de los 65 equipos
+// activos no tienen código cargado (4 LG y 1 Primus) — buscar por código no
 // los encuentra, hay que buscarlos por marca o modelo.
 function BuscadorEquipo({
   productos,
@@ -127,20 +120,12 @@ function BuscadorEquipo({
 
   const elegido = productos.find((p) => p.id === seleccionado) ?? null;
 
-  const coincidencias = useMemo(() => {
-    const q = sinTildes(texto.trim());
-    if (!q) return productos;
-    const partes = q.split(/\s+/);
-    return productos.filter((p) => {
-      // Se incluye el calentamiento: "secadora eléctrica" es como la piden los
-      // clientes, pero esa palabra solo existe dentro de la ficha, no en el
-      // nombre del equipo. Carlos lo probó el 24-08 y no encontraba nada.
-      const buscable = sinTildes(
-        `${p.sku ?? ""} ${p.marca} ${p.modelo} ${p.nombre} ${p.capacidad ?? ""} ${p.calentamiento ?? ""}`,
-      );
-      return partes.every((parte) => buscable.includes(parte));
-    });
-  }, [productos, texto]);
+  // La búsqueda vive en lib/buscar-equipo.ts, con pruebas: es la pieza que
+  // decide si el comercial encuentra lo que va a cotizar. El 24-08 Brenda buscó
+  // «secadoras electricas primus semi industrial modelo fde y nde» y no salió
+  // nada — se exigía que TODAS las palabras coincidieran, y ni «secadoras» en
+  // plural ni «modelo» están en ningún equipo del catálogo.
+  const coincidencias = useMemo(() => buscarEquipos(productos, texto), [productos, texto]);
 
   useEffect(() => {
     function fuera(e: MouseEvent) {
@@ -213,7 +198,7 @@ function BuscadorEquipo({
           ))}
           {coincidencias.length === 0 && (
             <li className="px-2 py-2 text-xs text-muted-foreground">
-              Ningún equipo coincide con “{texto.trim()}”. Pruebe por marca o modelo — 7 equipos no tienen código
+              Ningún equipo coincide con “{texto.trim()}”. Pruebe por marca o modelo — 5 equipos no tienen código
               cargado.
             </li>
           )}
