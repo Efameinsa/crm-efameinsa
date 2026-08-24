@@ -10,9 +10,14 @@
 // El teléfono fijo 371-0006 / 371-0502 es el de la empresa y lo comparten
 // todos; el celular y el correo son de cada persona.
 //
-// ⚠️ Solo están cargados C1 y C5, que son los que enviaron su firma. Los demás
-// quedan pendientes y el script los lista al final: mientras tanto sus
-// cotizaciones siguen saliendo sin datos de contacto.
+// EL CORREO EN OPEN NO SE DEDUCE. Se creía que bastaba con cambiarle el dominio
+// al de Efameinsa, porque así lo hace Katerine (C5). Pero la firma que Ariana
+// (C4) mandó con el logo de OPEN INVESTMENTS conserva @efameinsa.com. Deducirlo
+// le imprimía un correo que puede no existir. Por eso `emailOpen` es un dato
+// por persona; cuando falta, se sigue deduciendo.
+//
+// ⚠️ Faltan C2, C3, C9 y PV, que todavía no enviaron su firma. El script los
+// lista al final: mientras tanto sus cotizaciones salen sin datos de contacto.
 //
 // Uso: node --env-file=.env.local scripts/cargar-firmas-comerciales.mjs [--aplicar]
 
@@ -29,6 +34,19 @@ const FIRMAS = [
     telefono: FIJO,
     celular: "922 387 534",
     email: "comercial1@efameinsa.com",
+    // Brenda no mandó su firma de OPEN: se deduce como hasta ahora.
+    emailOpen: null,
+  },
+  {
+    codigo: "C4",
+    nombre: "Ariana Flores",
+    cargo: "Área Comercial",
+    telefono: FIJO,
+    celular: "946 372 890",
+    email: "comercial4@efameinsa.com",
+    // Su firma de OPEN mantiene el dominio de Efameinsa: está en la imagen que
+    // ella misma envió, con el logo de OPEN INVESTMENTS S.A.C.
+    emailOpen: "comercial4@efameinsa.com",
   },
   {
     codigo: "C5",
@@ -37,6 +55,7 @@ const FIRMAS = [
     telefono: FIJO,
     celular: "981 488 958",
     email: "comercial5@efameinsa.com",
+    emailOpen: "comercial5@openinvestments.com.pe",
   },
 ];
 
@@ -65,8 +84,10 @@ if (!APLICAR) {
 let tocados = 0;
 for (const f of FIRMAS) {
   const { rowCount } = await bd.query(
-    `update perfiles set cargo=$2, telefono=$3, celular=$4, email_contacto=$5 where codigo_comercial=$1`,
-    [f.codigo, f.cargo, f.telefono, f.celular, f.email],
+    `update perfiles set nombre = $6, cargo = $2, telefono = $3, celular = $4,
+            email_contacto = $5, email_open = $7
+      where codigo_comercial = $1`,
+    [f.codigo, f.cargo, f.telefono, f.celular, f.email, f.nombre, f.emailOpen],
   );
   if (rowCount === 0) console.log(`  ⚠ no existe el comercial ${f.codigo}`);
   else tocados += rowCount;

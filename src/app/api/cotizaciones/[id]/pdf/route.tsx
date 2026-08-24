@@ -38,7 +38,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, entrega_lugar, cliente_snapshot, created_at,
        cotizacion_items(cantidad, precio_unitario, descripcion, productos(marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
        oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
-       perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto)`,
+       perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -66,6 +66,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     telefono: string | null;
     celular: string | null;
     email_contacto: string | null;
+    email_open: string | null;
   } | null;
 
   function listaDeFicha(ficha: Record<string, unknown> | null | undefined, clave: string): string[] {
@@ -174,8 +175,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         telefono: perfilComercial?.telefono ?? null,
         celular: perfilComercial?.celular ?? null,
         // El dominio del correo cambia con la razón social con la que se
-        // cotiza (ver correoEnSerie en series.ts).
-        email: correoEnSerie(perfilComercial?.email_contacto ?? null, cotizacion.serie),
+        // cotiza — salvo quien tenga cargado su correo de OPEN, que no siempre
+        // cambia de dominio (ver correoEnSerie en series.ts).
+        email: correoEnSerie(
+          perfilComercial?.email_contacto ?? null,
+          cotizacion.serie,
+          perfilComercial?.email_open ?? null,
+        ),
       }}
     />,
   );
