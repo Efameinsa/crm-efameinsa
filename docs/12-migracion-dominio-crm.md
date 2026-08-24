@@ -75,56 +75,79 @@ incluyen ninguno de Efameinsa. Lo más probable es que lo tenga quien montó la 
 antes; el dominio principal sigue apuntando al hosting viejo
 (`207.58.172.236`, `cloud1000.im-global.net`).
 
-**El registro exacto que pide Vercel** (leído del panel el 24-08):
+**Vercel pide DOS registros, no uno.** El texto completo del panel (24-08):
 
-| Campo | Valor |
+> This domain is linked to another Vercel account. To use it with this project,
+> add a TXT record at `_vercel.efameinsa.com` to verify ownership.
+
+| Tipo | Nombre | Valor |
+|---|---|---|
+| CNAME | `crm` | `c3c215f42848dc6d.vercel-dns-017.com.` |
+| TXT | `_vercel` | `vc-domain-verify=crm.efameinsa.com,82a11dac39233ba31d6d` |
+
+⚠️ **El CNAME que ya está puesto NO es el que Vercel pide.** Hoy resuelve a
+`cname.vercel-dns.com` (76.76.21.164 / 66.33.60.34), el destino genérico y
+antiguo; el panel pide uno específico de este proyecto
+(`c3c215f42848dc6d.vercel-dns-017.com` → 216.198.79.65 / 64.29.17.65). El
+genérico sigue resolviendo, así que puede que funcionara igual — pero el panel
+valida contra el suyo, y con este hosting no conviene apostar: **pedir los dos
+cambios en el mismo mensaje** y cerrar el tema de una vez.
+
+### Lo demás está limpio (auditado el 24-08, para no volver a molestarlos)
+
+| Comprobación | Resultado |
 |---|---|
-| Tipo | `TXT` |
-| Nombre / Host | `_vercel` |
-| Valor | `vc-domain-verify=crm.efameinsa.com,82a11dac39233ba31d6d` |
-| TTL | el mínimo que permita el panel |
+| CAA en `efameinsa.com` | **ninguno** — nada impide emitir el certificado |
+| DNSSEC | no está firmado — sin riesgo de fallo de validación |
+| A / AAAA en `crm` | ninguno propio — no hay conflicto con el CNAME |
+| `_vercel.efameinsa.com` | vacío — falta crearlo |
 
-En la mayoría de paneles el "Nombre" es relativo a la zona, así que `_vercel`
-dentro de `efameinsa.com` crea **`_vercel.efameinsa.com`**. Si el panel del
-hosting pide el nombre completo, ese es el que hay que escribir. Ojo: **el valor
-lleva una coma y no lleva comillas** — algunos paneles las agregan solos, y eso
-está bien; lo que no puede pasar es que alguien parta el valor en dos campos por
-la coma.
+Con esos dos registros **no hace falta nada más del hosting**.
 
 ### Correo para el hosting (listo para enviar)
 
-> **Asunto:** Registro TXT de verificación para crm.efameinsa.com
+> **Asunto:** Dos registros DNS para terminar de habilitar crm.efameinsa.com
 >
 > Buen día,
 >
-> Gracias por crear el CNAME de `crm.efameinsa.com` — está correcto y ya resuelve
-> a Vercel.
+> Gracias por crear el subdominio `crm.efameinsa.com`. Al conectarlo con el
+> proveedor nos pide dos ajustes para poder emitir el certificado. Son estos, y
+> con ellos queda terminado:
 >
-> Para terminar de habilitarlo falta **un registro TXT**, que es el que Vercel
-> usa para verificar la propiedad del dominio:
+> **1) Modificar el CNAME que ya existe** (cambia solo el valor):
 >
 > | Campo | Valor |
 > |---|---|
-> | **Tipo** | TXT |
-> | **Nombre / Host** | `_vercel` |
-> | **Valor** | `vc-domain-verify=crm.efameinsa.com,82a11dac39233ba31d6d` |
-> | **TTL** | el mínimo disponible |
+> | Tipo | CNAME |
+> | Nombre / Host | `crm` |
+> | Valor **nuevo** | `c3c215f42848dc6d.vercel-dns-017.com.` |
 >
-> El valor va completo, **incluida la coma**, en un solo campo.
+> _(hoy apunta a `cname.vercel-dns.com`; es el mismo proveedor, pero necesitamos
+> el destino específico de nuestro proyecto)_
 >
-> Es un registro de solo lectura: **no cambia a dónde apunta el dominio, no
-> afecta al correo ni a la web actual**. Solo sirve para que Vercel confirme que
-> el dominio nos pertenece.
+> **2) Crear un registro TXT nuevo:**
 >
-> Quedamos atentos para confirmar en cuanto esté creado. Gracias.
+> | Campo | Valor |
+> |---|---|
+> | Tipo | TXT |
+> | Nombre / Host | `_vercel` |
+> | Valor | `vc-domain-verify=crm.efameinsa.com,82a11dac39233ba31d6d` |
+> | TTL | el mínimo disponible |
+>
+> El valor del TXT va completo **en un solo campo, incluida la coma**.
+>
+> Ninguno de los dos afecta al correo ni a la web actual: el CNAME es del
+> subdominio `crm` únicamente, y el TXT es solo de verificación.
+>
+> Quedamos atentos para confirmar. Gracias.
 
-*(Si por teléfono es más rápido: "necesito un TXT en `_vercel` con el valor
-`vc-domain-verify=crm.efameinsa.com,82a11dac39233ba31d6d`; no afecta al correo
-ni a la web".)*
+*(Por teléfono: "en la zona de efameinsa.com necesito cambiar el valor del CNAME
+`crm` a `c3c215f42848dc6d.vercel-dns-017.com` y crear un TXT `_vercel` con el
+valor que les paso; no toca el correo ni la web".)*
 
 **Camino alternativo:** que la otra cuenta de Vercel que tiene el dominio lo
-libere. Más limpio, pero exige saber quién la controla y que responda — el TXT
-no depende de nadie más que del hosting.
+libere. Más limpio, pero exige saber quién la controla y que responda — los dos
+registros no dependen de nadie más que del hosting.
 
 ### Cómo saber cuándo quedó
 

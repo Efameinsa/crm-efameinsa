@@ -71,7 +71,20 @@ const [txtSub, txtApex, cname] = await Promise.all([
   dns(`_vercel.${apex}`, "TXT"),
   dns(host, "CNAME"),
 ]);
-ok(cname.some((c) => c.includes("vercel-dns")), `${host} apunta a Vercel por CNAME`, cname.join(", ") || "sin CNAME");
+// Vercel dejó de repartir el genérico `cname.vercel-dns.com` y ahora asigna un
+// destino POR PROYECTO. El genérico sigue resolviendo, pero el panel valida
+// contra el suyo: si no calza, el dominio se queda en "Verification Required"
+// aunque el TXT esté perfecto. Es lo que pasó el 24-08.
+const CNAME_ESPERADO = "c3c215f42848dc6d.vercel-dns-017.com";
+const cnameOk = cname.some((c) => c.replace(/\.$/, "") === CNAME_ESPERADO);
+ok(cnameOk, `${host} apunta al CNAME de este proyecto`, cname.join(", ") || "sin CNAME");
+if (!cnameOk && cname.some((c) => c.includes("vercel-dns"))) {
+  console.log(
+    `\n  Apunta a Vercel, pero al destino GENÉRICO y no al de este proyecto.\n` +
+      `  esperado: ${CNAME_ESPERADO}\n` +
+      `  hallado : ${cname.join(", ")}\n`,
+  );
+}
 
 // El valor que pide Vercel para este dominio, leído del panel el 24-08. Se
 // comprueba el valor y no solo la existencia del registro: un TXT con el valor
