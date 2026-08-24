@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { calificarOportunidad } from "@/lib/acciones/oportunidades";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ export function CalificacionOportunidad({
   monedaInicial,
   segmentoInicial,
 }: Props) {
+  const router = useRouter();
   const [intencion, setIntencion] = useState<Intencion>(intencionInicial);
   const [monto, setMonto] = useState<string>(montoInicial != null ? String(montoInicial) : "");
   const [moneda, setMoneda] = useState<"PEN" | "USD">(monedaInicial);
@@ -48,7 +50,13 @@ export function CalificacionOportunidad({
         moneda: nuevaMoneda,
         segmento: nuevoSegmento,
       });
-      if (resultado.error) toast.error(resultado.error);
+      if (resultado.error) {
+        toast.error(resultado.error);
+        return;
+      }
+      // Igual que en CambiarEtapa: el interés y el monto se pintan tambien en
+      // la cabecera de la ficha y en los tableros, que son del servidor.
+      router.refresh();
     });
   }
 

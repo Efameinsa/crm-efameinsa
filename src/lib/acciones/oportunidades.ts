@@ -124,7 +124,9 @@ export async function calificarOportunidad(datos: {
   segmento: "industrial" | "semi_industrial" | null;
 }): Promise<{ error: string | null }> {
   const supabase = await createClient();
-  const { error } = await supabase
+  // .select() de vuelta por lo mismo que en cambiarEtapa: sin esto, un update
+  // filtrado por RLS pasa por bueno y la calificación parece guardada.
+  const { data, error } = await supabase
     .from("oportunidades")
     .update({
       intencion: datos.intencion,
@@ -132,8 +134,12 @@ export async function calificarOportunidad(datos: {
       moneda: datos.moneda,
       segmento: datos.segmento,
     })
-    .eq("id", datos.oportunidadId);
+    .eq("id", datos.oportunidadId)
+    .select("id");
   if (error) return { error: error.message };
+  if (!data || data.length === 0) {
+    return { error: "Solo el dueño de la oportunidad puede calificarla" };
+  }
 
   revalidatePath("/comercial", "layout");
   revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
@@ -164,17 +170,25 @@ export async function cambiarEtapa(datos: {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  // Con .select() de vuelta: Supabase NO devuelve error cuando RLS filtra el
+  // update (afecta 0 filas) y la pantalla diría "Etapa actualizada" sin que se
+  // haya movido nada. Misma lección que reprogramarAccion y registrarActividad.
+  const { data, error } = await supabase
     .from("oportunidades")
     .update({
       etapa: datos.etapa,
       motivo_rechazo_id: datos.etapa === "rechazada" ? datos.motivoRechazoId : null,
       cerrada_at: datos.etapa === "rechazada" ? new Date().toISOString() : null,
     })
-    .eq("id", datos.oportunidadId);
+    .eq("id", datos.oportunidadId)
+    .select("id");
   if (error) return { error: error.message };
+  if (!data || data.length === 0) {
+    return { error: "Solo el dueño de la oportunidad puede cambiarle la etapa" };
+  }
 
   revalidatePath("/comercial");
+  revalidatePath("/comercial/oportunidades");
   revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
   return { error: null };
 }

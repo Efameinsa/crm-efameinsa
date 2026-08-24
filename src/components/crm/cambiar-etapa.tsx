@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cambiarEtapa } from "@/lib/acciones/oportunidades";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,12 @@ interface Props {
 }
 
 export function CambiarEtapa({ oportunidadId, etapaActual, motivos }: Props) {
+  // 24-08: sin este refresh el cambio SÍ se guardaba, pero la pantalla seguía
+  // mostrando la etapa vieja —el badge de la cabecera, el tablero, Mi día— hasta
+  // recargar a mano. En la capacitación se leyó como «no me quiere actualizar la
+  // etapa». revalidatePath invalida la caché del servidor; el cliente necesita
+  // que se le diga que vuelva a pedir la página.
+  const router = useRouter();
   const [etapa, setEtapa] = useState<EtapaOportunidad>(etapaActual);
   const [motivoId, setMotivoId] = useState<string>("");
   const [enviando, startTransition] = useTransition();
@@ -45,6 +52,7 @@ export function CambiarEtapa({ oportunidadId, etapaActual, motivos }: Props) {
         return;
       }
       toast.success("Etapa actualizada");
+      router.refresh();
     });
   }
 

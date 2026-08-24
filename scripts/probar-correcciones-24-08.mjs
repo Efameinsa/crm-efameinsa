@@ -63,10 +63,16 @@ async function pedir(ruta) {
 }
 
 // ---- Oportunidad de trabajo: una abierta de C5 -----------------------------
+// ⚠️ Desde el 24-08 el equipo trabaja de verdad en esta base. Antes se tomaba
+// la oportunidad más reciente, que ahora es justo la que alguien puede estar
+// mirando en pantalla. Se elige una que NADIE haya tocado en las últimas 12
+// horas: sigue siendo real (por eso la prueba vale), pero no pisa trabajo en
+// curso ni confunde a un comercial viendo cambiar algo solo.
 const { rows: candidatas } = await bd.query(
   `select o.id, o.proxima_accion, o.proxima_accion_at, o.proxima_accion_hora, cu.razon_social
      from oportunidades o join cuentas cu on cu.id = o.cuenta_id
     where o.comercial_id = $1 and o.etapa not in ('venta','rechazada','derivada')
+      and o.updated_at < now() - interval '12 hours'
     order by o.updated_at desc limit 1`,
   [perfil.id],
 );
@@ -231,12 +237,23 @@ try {
   );
   ok(Number(colDoc[0].n) === 1, "B4 · contactos.documento existe (migración 0057)");
 
-  const { rows: cont } = await bd.query(
-    `select clave, ultimo from correlativos where clave like 'INFORME%' order by clave`,
+  // B8 se comprobaba como "los contadores están en 0", que solo era cierto
+  // antes de arrancar. Lo que hay que sostener en el tiempo es que la
+  // numeración EMPEZÓ en 1 y no se salta números.
+  const { rows: emitidos } = await bd.query(
+    `select serie, correlativo, codigo from informes_cierre where emitido_at is not null order by serie, correlativo`,
   );
-  ok(cont.every((c) => Number(c.ultimo) === 0), "B8 · los informes arrancan en Nº 1", cont.map((c) => `${c.clave}=${c.ultimo}`).join(", "));
-  const { rows: infEmit } = await bd.query(`select count(*) n from informes_cierre where emitido_at is not null`);
-  ok(Number(infEmit[0].n) === 0, "B8 · no quedan informes emitidos de prueba");
+  if (emitidos.length === 0) {
+    const { rows: cont } = await bd.query(`select clave, ultimo from correlativos where clave like 'INFORME%'`);
+    ok(cont.every((c) => Number(c.ultimo) === 0), "B8 · sin informes emitidos, los contadores siguen en 0");
+  } else {
+    const porSerie = {};
+    for (const e of emitidos) (porSerie[e.serie] ??= []).push(Number(e.correlativo));
+    for (const [serie, nums] of Object.entries(porSerie)) {
+      const correlativo = nums.every((n, i) => n === i + 1);
+      ok(correlativo, `B8 · la serie ${serie} numera desde 1 y sin saltos`, nums.join(", "));
+    }
+  }
 
   // === C5 · una sola ficha ==================================================
   ok(!ficha.html.includes("Ver ficha completa"), "C5 · se fue el enlace «Ver ficha completa»");
