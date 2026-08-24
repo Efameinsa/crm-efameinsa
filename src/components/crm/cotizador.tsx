@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { crearCotizacion, editarCotizacion, type ItemCotizacion } from "@/lib/acciones/cotizaciones";
@@ -38,6 +39,15 @@ interface Producto {
   /** Cómo calienta (Gas GLP, ELÉCTRICA, Gas natural…). Vive en la ficha, no en
    *  el nombre, y es como la gente pide el equipo: "secadora eléctrica". */
   calentamiento?: string | null;
+  panel?: string | null;
+  controles?: string | null;
+  /** Ruta pública de la foto ("/productos/x.png"), para la vista previa. */
+  fotoPath?: string | null;
+  /** Las primeras de la ficha: alcanzan para reconocer el equipo sin traerse
+   *  la ficha completa de los 65 al navegador. */
+  primerasCaracteristicas?: string[];
+  nCaracteristicas?: number;
+  nDimensiones?: number;
   /** El equipo no tiene datos técnicos cargados: su página de ficha saldría
    *  vacía en el PDF que recibe el cliente. */
   sinFicha?: boolean;
@@ -120,8 +130,6 @@ function BuscadorEquipo({
   const [resaltado, setResaltado] = useState(0);
   const contenedor = useRef<HTMLDivElement>(null);
 
-  const elegido = productos.find((p) => p.id === seleccionado) ?? null;
-
   // La búsqueda vive en lib/buscar-equipo.ts, con pruebas: es la pieza que
   // decide si el comercial encuentra lo que va a cotizar. El 24-08 Brenda buscó
   // «secadoras electricas primus semi industrial modelo fde y nde» y no salió
@@ -177,9 +185,9 @@ function BuscadorEquipo({
         role="combobox"
         aria-autocomplete="list"
       />
-      {elegido && !abierto && (
-        <p className="mt-1 text-[11px] text-muted-foreground">Elegido: {etiquetaEquipo(elegido)}</p>
-      )}
+      {/* Antes acá decía "Elegido: …". Lo reemplaza la vista previa completa
+          que se dibuja debajo del buscador: repetir el nombre no ayudaba a
+          confirmar que el equipo es el correcto. */}
       {abierto && (
         <ul className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
           {coincidencias.slice(0, 40).map((p, i) => (
@@ -215,6 +223,125 @@ function BuscadorEquipo({
   );
 }
 
+/**
+ * Vista previa del equipo elegido, ANTES de agregarlo a la cotización.
+ *
+ * Pedido de Darwin el 24-08: «cuando se agrega el producto debería haber una
+ * vista previa como para asegurarse de que ese es».
+ *
+ * El caso que lo motiva ya ocurrió: Brenda agregó la LG TITAN-18 a un cliente
+ * real y se enteró de que no tenía datos técnicos recién al abrir el PDF, con
+ * la hoja de especificaciones en blanco. Para entonces el error ya estaba en un
+ * documento.
+ *
+ * CRITERIOS DE INTERFAZ, y por qué cada uno:
+ *
+ *  · VA ANTES DE CONFIRMAR, no después. Revisar sirve mientras todavía se puede
+ *    cambiar de opinión sin costo. Aparece al elegir y se va al agregar.
+ *  · LA FOTO MANDA. Reconocer una máquina de un vistazo es mucho más rápido y
+ *    más seguro que leer "LAVTMAX17"; los códigos se parecen entre sí y ahí es
+ *    donde se equivoca la gente apurada.
+ *  · LOS AVISOS VAN DONDE SE DECIDE. "Sin ficha técnica" ya salía en la lista
+ *    del buscador, pero en letra chica y mientras se navega. Acá se dice fuerte
+ *    y con la consecuencia: qué va a ver el cliente.
+ *  · SE MUESTRA EL PRECIO QUE SE VA A APLICAR. Así no hay sorpresa al agregar.
+ *  · NO ESTORBA. Es un bloque compacto y el botón Agregar sigue a la vista; no
+ *    hay que cerrarlo ni confirmarlo para seguir.
+ */
+function VistaPreviaEquipo({ producto }: { producto: Producto }) {
+  const precio = precioTier(producto, tierInicial(producto));
+  const piso = precioTier(producto, tierPiso(producto));
+  const placa = [
+    producto.capacidad,
+    producto.calentamiento,
+    producto.panel,
+    producto.controles,
+  ].filter(Boolean) as string[];
+
+  return (
+    <div className="mt-2 rounded-lg border border-border bg-secondary/30 p-3">
+      <div className="flex gap-3">
+        {/* Sin next/image a propósito: son PNG de public/ servidos tal cual, y
+            acá se usan a 88 px — no hay nada que optimizar y sí un componente
+            menos del que depender. */}
+        {producto.fotoPath ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={producto.fotoPath}
+            alt={`${producto.marca} ${producto.modelo}`}
+            className="shrink-0 rounded-md border border-border bg-white object-contain p-1"
+            style={{ width: 88, height: 88 }}
+          />
+        ) : (
+          <div
+            className="flex shrink-0 items-center justify-center rounded-md border border-dashed border-border text-[10px] text-muted-foreground"
+            style={{ width: 88, height: 88 }}
+          >
+            Sin foto
+          </div>
+        )}
+
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">
+            {producto.marca} {producto.modelo}
+          </p>
+          <p className="text-xs text-muted-foreground">{producto.nombre}</p>
+
+          {placa.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {placa.map((d) => (
+                <span key={d} className="rounded-full bg-background px-2 py-0.5 text-[10px] font-medium text-foreground">
+                  {d}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {producto.sku ? <span className="font-mono">{producto.sku}</span> : "Sin código"}
+            {precio != null && (
+              <>
+                {" · "}
+                <span className="font-semibold text-foreground">US$ {precio.toLocaleString("es-PE")}</span>
+                {piso != null && piso !== precio && ` · piso US$ ${piso.toLocaleString("es-PE")}`}
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Las primeras viñetas de la ficha: es lo que confirma que es el equipo
+          y no otro parecido del mismo modelo. */}
+      {(producto.primerasCaracteristicas?.length ?? 0) > 0 && (
+        <ul className="mt-2.5 space-y-0.5 border-t border-border pt-2">
+          {producto.primerasCaracteristicas!.map((c, i) => (
+            <li key={i} className="flex gap-1.5 text-[11px] text-muted-foreground">
+              <span aria-hidden>•</span>
+              <span className="line-clamp-1">{c}</span>
+            </li>
+          ))}
+          <li className="pt-0.5 text-[11px] text-muted-foreground/80">
+            {producto.nCaracteristicas} características y {producto.nDimensiones} medidas van completas en el PDF.
+          </li>
+        </ul>
+      )}
+
+      {producto.sinFicha && (
+        <p className="mt-2 flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2 py-1.5 text-[11px] font-medium text-amber-800">
+          <TriangleAlert className="mt-px size-3.5 shrink-0" />
+          Este equipo no tiene ficha técnica cargada: el cliente recibirá la hoja de especificaciones en blanco.
+          Pídasela a logística antes de enviar la cotización.
+        </p>
+      )}
+      {!producto.sinFicha && producto.sinFoto && (
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Sin foto cargada: la ficha del PDF sale sin imagen del equipo.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function Cotizador({
   oportunidadId,
   productos,
@@ -239,7 +366,10 @@ export function Cotizador({
         cantidad: i.cantidad,
         precio_unitario: i.precio_unitario,
         precioPiso: i.precioPiso,
-        sinFicha: false,
+        // Se resuelve contra el catálogo, no se asume `false`. Al reabrir un
+        // borrador que ya traía un equipo sin ficha, el aviso desaparecía y el
+        // comercial lo enviaba creyendo que estaba bien.
+        sinFicha: Boolean(productos.find((p) => p.id === i.producto_id)?.sinFicha),
         fueraDeCatalogo: i.producto_id === null,
       })) ?? [],
   );
@@ -250,6 +380,8 @@ export function Cotizador({
   const [vigenciaDias, setVigenciaDias] = useState(edicion?.vigenciaDias ?? 15);
   const [entregaLugar, setEntregaLugar] = useState<string>(edicion?.entregaLugar ?? ENTREGA_POR_DEFECTO);
   const [enviando, startTransition] = useTransition();
+
+  const productoElegido = productos.find((p) => p.id === productoSeleccionado) ?? null;
 
   function agregarProducto() {
     const producto = productos.find((p) => p.id === productoSeleccionado);
@@ -370,6 +502,10 @@ export function Cotizador({
           Agregar
         </Button>
       </div>
+
+      {/* Vista previa del equipo elegido, antes de agregarlo: revisar sirve
+          mientras todavía se puede cambiar de opinión sin costo. */}
+      {productoElegido && <VistaPreviaEquipo producto={productoElegido} />}
 
       {/* ⚠️ ACÁ ESTABA "agregar equipo a mano", quitado el 24-08 por decisión de
           Carlos en la reunión de las 14:17. El motivo NO es de interfaz, es

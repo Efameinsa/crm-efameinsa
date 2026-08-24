@@ -112,14 +112,21 @@ export default async function OportunidadDetallePage({
     }
   }
 
-  // El cotizador solo necesita SABER si el equipo tiene ficha técnica, no la
-  // ficha entera: mandarle los 65 objetos completos al navegador engordaría la
-  // página para nada. El aviso existe porque el 24-08 Brenda cotizó a un cliente
+  // Lo que el cotizador necesita de cada equipo para que el comercial pueda
+  // CONFIRMAR que eligió el correcto antes de agregarlo: foto, datos de placa y
+  // las primeras características. No la ficha entera — mandar los 65 objetos
+  // completos al navegador engordaría la página para nada, y con la foto y tres
+  // viñetas ya se reconoce el equipo.
+  //
+  // El aviso de "sin ficha" existe porque el 24-08 Brenda cotizó a un cliente
   // real un equipo sin datos técnicos (LG TITAN-18) y se enteró recién al abrir
   // el PDF, cuando la página de la ficha salió vacía.
   const productosCotizador = (productos ?? []).map((pr) => {
     const ficha = pr.ficha as Record<string, unknown> | null;
-    const largo = (clave: string) => (Array.isArray(ficha?.[clave]) ? (ficha![clave] as unknown[]).length : 0);
+    const lista = (clave: string) =>
+      Array.isArray(ficha?.[clave]) ? (ficha![clave] as unknown[]).filter((x): x is string => typeof x === "string") : [];
+    const texto = (clave: string) => (typeof ficha?.[clave] === "string" && ficha[clave] ? (ficha[clave] as string) : null);
+    const caracteristicas = lista("caracteristicas");
     return {
       id: pr.id,
       sku: pr.sku,
@@ -131,8 +138,15 @@ export default async function OportunidadDetallePage({
       precios_producto: pr.precios_producto,
       // "secadora eléctrica" es como la piden los clientes, pero esa palabra
       // solo vive acá dentro, no en el nombre del equipo.
-      calentamiento: typeof ficha?.calentamiento === "string" ? ficha.calentamiento : null,
-      sinFicha: largo("caracteristicas") + largo("dimensiones") + largo("medidas") === 0,
+      calentamiento: texto("calentamiento"),
+      panel: texto("panel"),
+      controles: texto("controles"),
+      fotoPath: pr.foto_path,
+      // Tres bastan para reconocerlo; el resto va en el PDF.
+      primerasCaracteristicas: caracteristicas.slice(0, 3),
+      nCaracteristicas: caracteristicas.length,
+      nDimensiones: lista("dimensiones").length + lista("medidas").length,
+      sinFicha: caracteristicas.length + lista("dimensiones").length + lista("medidas").length === 0,
       sinFoto: !pr.foto_path,
     };
   });
