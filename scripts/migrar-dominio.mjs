@@ -73,9 +73,24 @@ const [txtSub, txtApex, cname] = await Promise.all([
 ]);
 ok(cname.some((c) => c.includes("vercel-dns")), `${host} apunta a Vercel por CNAME`, cname.join(", ") || "sin CNAME");
 
-const hayTxt = txtSub.length > 0 || txtApex.length > 0;
+// El valor que pide Vercel para este dominio, leído del panel el 24-08. Se
+// comprueba el valor y no solo la existencia del registro: un TXT con el valor
+// mal copiado se ve igual de "presente" por DNS y Vercel lo rechaza igual.
+const TXT_ESPERADO = "vc-domain-verify=crm.efameinsa.com,82a11dac39233ba31d6d";
+
+const todosLosTxt = [...txtSub, ...txtApex];
+const hayTxt = todosLosTxt.length > 0;
 if (hayTxt) {
-  ok(true, "existe el TXT _vercel de propiedad", [...txtSub, ...txtApex].join(" · "));
+  const calza = todosLosTxt.some((t) => t.trim() === TXT_ESPERADO);
+  ok(calza, "existe el TXT _vercel con el valor correcto", todosLosTxt.join(" · "));
+  if (!calza) {
+    console.log(
+      `\n  Hay un TXT pero NO es el que Vercel espera.\n` +
+        `  esperado: ${TXT_ESPERADO}\n` +
+        `  hallado : ${todosLosTxt.join(" · ")}\n` +
+        `  Suele ser el valor partido por la coma, o con comillas de más.\n`,
+    );
+  }
 } else {
   aviso(`no existe TXT en _vercel.${host} ni en _vercel.${apex}`);
   console.log(

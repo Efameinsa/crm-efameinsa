@@ -75,48 +75,56 @@ incluyen ninguno de Efameinsa. Lo más probable es que lo tenga quien montó la 
 antes; el dominio principal sigue apuntando al hosting viejo
 (`207.58.172.236`, `cloud1000.im-global.net`).
 
-**Cómo se resuelve — hay dos caminos:**
+**El registro exacto que pide Vercel** (leído del panel el 24-08):
 
-**A) El TXT de propiedad (el que no depende de terceros).** Vercel muestra en
-pantalla, junto al aviso, el registro exacto a crear. Tiene esta forma:
+| Campo | Valor |
+|---|---|
+| Tipo | `TXT` |
+| Nombre / Host | `_vercel` |
+| Valor | `vc-domain-verify=crm.efameinsa.com,82a11dac39233ba31d6d` |
+| TTL | el mínimo que permita el panel |
 
-| Tipo | Nombre | Valor |
-|---|---|---|
-| TXT | `_vercel` o `_vercel.crm` | `vc-domain-verify=...` |
+En la mayoría de paneles el "Nombre" es relativo a la zona, así que `_vercel`
+dentro de `efameinsa.com` crea **`_vercel.efameinsa.com`**. Si el panel del
+hosting pide el nombre completo, ese es el que hay que escribir. Ojo: **el valor
+lleva una coma y no lleva comillas** — algunos paneles las agregan solos, y eso
+está bien; lo que no puede pasar es que alguien parta el valor en dos campos por
+la coma.
 
-⚠️ **Copiarlo literal del panel de Vercel.** El nombre cambia según si Vercel
-pide verificar el subdominio o el dominio raíz, y el valor es único por cuenta.
-Reescribirlo de memoria es la forma más rápida de perder otro día — ya pasó una
-vez con este hosting, que configuró mal el subdominio a la primera.
+### Correo para el hosting (listo para enviar)
 
-**B) Que la otra cuenta de Vercel lo libere.** Más limpio, pero exige saber
-quién la controla y que responda. El camino A no depende de eso.
-
-### Correo para el hosting
-
-> Asunto: Registro TXT de verificación para crm.efameinsa.com
+> **Asunto:** Registro TXT de verificación para crm.efameinsa.com
 >
 > Buen día,
 >
-> Gracias por crear el CNAME de `crm.efameinsa.com`, está correcto y ya resuelve
+> Gracias por crear el CNAME de `crm.efameinsa.com` — está correcto y ya resuelve
 > a Vercel.
 >
-> Para terminar de habilitarlo necesitamos **un registro TXT más**. Es el que
-> Vercel pide para verificar la propiedad del dominio:
+> Para terminar de habilitarlo falta **un registro TXT**, que es el que Vercel
+> usa para verificar la propiedad del dominio:
 >
-> - **Tipo:** TXT
-> - **Nombre / Host:** `_vercel` _(o `_vercel.crm` — ver la nota de abajo)_
-> - **Valor:** `vc-domain-verify=...` _(pegar aquí el valor EXACTO del panel)_
-> - **TTL:** el mínimo que permita el panel
+> | Campo | Valor |
+> |---|---|
+> | **Tipo** | TXT |
+> | **Nombre / Host** | `_vercel` |
+> | **Valor** | `vc-domain-verify=crm.efameinsa.com,82a11dac39233ba31d6d` |
+> | **TTL** | el mínimo disponible |
+>
+> El valor va completo, **incluida la coma**, en un solo campo.
 >
 > Es un registro de solo lectura: **no cambia a dónde apunta el dominio, no
 > afecta al correo ni a la web actual**. Solo sirve para que Vercel confirme que
-> el dominio es nuestro.
+> el dominio nos pertenece.
 >
-> Quedamos atentos para confirmar en cuanto esté creado.
+> Quedamos atentos para confirmar en cuanto esté creado. Gracias.
 
-*(Si por teléfono es más rápido que por correo, el pedido es una sola línea:
-"crear un TXT en `_vercel` con el valor que les paso".)*
+*(Si por teléfono es más rápido: "necesito un TXT en `_vercel` con el valor
+`vc-domain-verify=crm.efameinsa.com,82a11dac39233ba31d6d`; no afecta al correo
+ni a la web".)*
+
+**Camino alternativo:** que la otra cuenta de Vercel que tiene el dominio lo
+libere. Más limpio, pero exige saber quién la controla y que responda — el TXT
+no depende de nadie más que del hosting.
 
 ### Cómo saber cuándo quedó
 
