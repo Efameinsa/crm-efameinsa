@@ -162,6 +162,25 @@ try {
   ok(js.includes("¿En qué quedó?"), "C1 · los chips de resultado pasaron a «¿Qué pasó?»");
   ok(js.includes("¿A qué hora?"), "A1 · el formulario ofrece hora para la próxima acción");
 
+  // === A3 / A4 / B9 · cotizador =============================================
+  ok(
+    js.includes("Buscar equipo por código, marca, modelo o capacidad"),
+    "A3 · el buscador de equipo es un autocompletador de un solo control",
+  );
+  ok(js.includes('aria-autocomplete'), "A3 · el buscador expone autocompletado accesible");
+  ok(!/SelectValue[^]{0,200}Elegir equipo/.test(js), "A4 · ya no queda el Select que mostraba el UUID");
+  ok(js.includes("Precio unit. (US$)") && js.includes("Subtotal (US$)"), "B9 · el cotizador rotula la moneda");
+
+  // El catálogo tiene que responder a lo que el comercial teclea de verdad.
+  const { rows: cat } = await bd.query(
+    `select count(*) filter (where marca ilike '%LG%') lg,
+            count(*) filter (where sku is null) sin_sku, count(*) total from productos where activo`,
+  );
+  ok(Number(cat[0].lg) > 0, "A3 · el catálogo tiene equipos LG que buscar", `${cat[0].lg} LG de ${cat[0].total}`);
+  if (Number(cat[0].sin_sku) > 0) {
+    console.log(`  ⓘ ${cat[0].sin_sku} equipos siguen SIN código cargado: buscarlos por código no los encuentra.`);
+  }
+
   // === A2 · Kanban ==========================================================
   const kanban = await pedir("/comercial/oportunidades?vista=kanban");
   const conteoTarjetas = (kanban.html.match(/\/comercial\/oportunidades\/[0-9a-f]{8}-/g) ?? []).length;
