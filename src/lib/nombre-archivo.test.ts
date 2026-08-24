@@ -39,16 +39,22 @@ describe("textoParaNombreArchivo", () => {
 });
 
 describe("cabeceraArchivo", () => {
-  it("manda el nombre dos veces: sin tildes y en UTF-8", () => {
-    const c = cabeceraArchivo("Presu_2195-26, Nataly Ludeña gallardo");
-    expect(c).toContain('filename="Presu_2195-26, Nataly Ludena gallardo.pdf"');
-    expect(c).toContain("filename*=UTF-8''");
-    expect(decodeURIComponent(c.split("filename*=UTF-8''")[1])).toBe(
-      "Presu_2195-26, Nataly Ludeña gallardo.pdf",
+  // Decisión de Darwin el 24-08: la eñe sale como "n". El archivo viaja por
+  // correo y a Windows ajenos, donde una eñe todavía se vuelve "Ã±".
+  it("pasa la eñe y las tildes a letras simples", () => {
+    expect(cabeceraArchivo("Presu_2195-26, Nataly Ludeña gallardo")).toBe(
+      'inline; filename="Presu_2195-26, Nataly Ludena gallardo.pdf"',
+    );
+    expect(cabeceraArchivo("Presu_1-26, MINERA CHINALCO PERÚ S.A")).toBe(
+      'inline; filename="Presu_1-26, MINERA CHINALCO PERU S.A.pdf"',
     );
   });
 
-  it("el respaldo ASCII nunca lleva comillas que rompan la cabecera", () => {
+  it("no manda el nombre por otro lado con las tildes puestas", () => {
+    expect(cabeceraArchivo("Presu_1-26, BAÑOS TURCOS")).not.toContain("filename*");
+  });
+
+  it("nunca lleva comillas que rompan la cabecera", () => {
     const c = cabeceraArchivo('Presu_1-26, HOSTAL "LA JOYA"');
     const ascii = c.split('filename="')[1].split('"')[0];
     expect(ascii).not.toContain('"');

@@ -48,7 +48,14 @@ export function textoParaNombreArchivo(texto: string, maximo = 90): string {
   return limpio.length > maximo ? `${limpio.slice(0, maximo).trim()}…` : limpio;
 }
 
-/** Sin tildes ni eñes, para el respaldo ASCII de la cabecera. */
+/**
+ * Sin tildes ni eñes.
+ *
+ * Decisión de Darwin el 24-08: «cuando haya una letra como ñ debería salir
+ * como n, para que no haya tanto problema». Es un archivo que va a viajar por
+ * correo, a Windows ajenos y a carpetas compartidas, donde una eñe todavía
+ * puede volverse «Ã±». Un nombre plano se abre en todas partes.
+ */
 function soloAscii(texto: string): string {
   return texto
     .normalize("NFD")
@@ -72,7 +79,11 @@ export function cabeceraArchivo(nombreSinExtension: string, extension = "pdf"): 
   // Si de la limpieza no queda nada, igual tiene que descargarse con ALGO: un
   // archivo llamado ".pdf" no se abre en Windows.
   const base = textoParaNombreArchivo(nombreSinExtension) || "documento";
-  const nombre = `${base}.${extension}`;
-  const ascii = soloAscii(nombre) || `documento.${extension}`;
-  return `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombre)}`;
+  // Se manda SOLO la versión sin tildes. Se probó con el nombre real
+  // codificado en UTF-8 (`filename*`), que es lo que recomienda el estándar,
+  // pero se descartó a pedido: el archivo termina en correos, en Windows
+  // ajenos y en carpetas compartidas, y ahí una eñe todavía se convierte en
+  // «Ã±». Un solo nombre plano se abre igual en todas partes.
+  const nombre = soloAscii(`${base}.${extension}`) || `documento.${extension}`;
+  return `inline; filename="${nombre}"`;
 }
