@@ -118,7 +118,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const creada = new Date(cotizacion.created_at);
   // Numeración del documento impreso como en los modelos: "{correlativo}-{yy}".
-  const numeroDocumento = `${cotizacion.correlativo}-${String(creada.getFullYear()).slice(-2)}`;
+  // Un borrador todavía no tiene número —se le asigna al enviarlo, migración
+  // 0064— y sale marcado como tal: si alguien imprime un borrador, tiene que
+  // ser imposible confundirlo con el documento que se le mandó al cliente.
+  const numeroDocumento =
+    cotizacion.correlativo != null
+      ? `${cotizacion.correlativo}-${String(creada.getFullYear()).slice(-2)}`
+      : null;
   const fecha = creada.toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" });
 
   const buffer = await renderToBuffer(
@@ -155,7 +161,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${cotizacion.codigo}.pdf"`,
+      "Content-Disposition": `inline; filename="${cotizacion.codigo ?? "Presupuesto BORRADOR"}.pdf"`,
     },
   });
 }

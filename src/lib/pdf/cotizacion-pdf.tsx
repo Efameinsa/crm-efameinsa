@@ -33,7 +33,9 @@ export interface ItemPdf {
 export interface CotizacionPdfProps {
   logoBuffer: Buffer;
   serie: "EFAMEINSA" | "OPEN";
-  numeroDocumento: string; // "5-26" (correlativo-año corto, como los modelos)
+  /** "5-26" (correlativo-año corto, como los modelos). NULL en un borrador:
+   *  el número se asigna al enviar la cotización (migración 0064). */
+  numeroDocumento: string | null;
   fecha: string; // "14 de agosto de 2026"
   cliente: {
     razon_social: string;
@@ -247,7 +249,12 @@ export function CotizacionPdf({
         {membrete}
         {pie}
 
-        <Text style={estilos.titulo}>COTIZACION N° {numeroDocumento}</Text>
+        {/* Sin número = borrador. Se dice con todas las letras para que no
+            haya forma de confundir una impresión de trabajo con el documento
+            que se le mandó al cliente (migración 0064). */}
+        <Text style={estilos.titulo}>
+          {numeroDocumento ? `COTIZACION N° ${numeroDocumento}` : "COTIZACION — BORRADOR SIN NUMERAR"}
+        </Text>
         <Text style={estilos.fecha}>Lima, {fecha}</Text>
 
         <View style={estilos.clienteBloque}>
@@ -381,43 +388,20 @@ export function CotizacionPdf({
 
               {(tieneDetalle || item.fotoBuffer) && (
                 <View style={{ flexDirection: "row", borderTopWidth: 0.8, borderTopColor: BORDE }}>
-                  {/* Columna izquierda: foto arriba y, debajo, las medidas.
-                      Antes las tres listas iban juntas a la derecha y una
-                      ficha con muchas viñetas se desbordaba a una segunda
-                      página casi vacía, dejando la foto huérfana arriba.
-                      Puestas acá aprovechan el hueco bajo la imagen y la
-                      ficha vuelve a entrar en una sola hoja, como los
-                      modelos impresos. */}
-                  {(item.fotoBuffer || item.dimensiones.length > 0 || item.medidas.length > 0) && (
-                    <View style={{ width: "34%", padding: 10 }}>
-                      {item.fotoBuffer && (
-                        <View style={{ justifyContent: "center", marginBottom: 10 }}>
-                          {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
-                          <Image src={item.fotoBuffer} style={{ width: "100%" }} />
-                        </View>
-                      )}
-                      {item.dimensiones.length > 0 && (
-                        <>
-                          <Text style={estilos.caracTitulo}>DIMENSIONES DE LA MAQUINA</Text>
-                          {item.dimensiones.map((d, j) => (
-                            <View key={j} style={estilos.caracBullet}>
-                              <Text style={estilos.caracPunto}>•</Text>
-                              <Text style={estilos.caracTexto}>{d}</Text>
-                            </View>
-                          ))}
-                        </>
-                      )}
-                      {item.medidas.length > 0 && (
-                        <>
-                          <Text style={[estilos.caracTitulo, { marginTop: 6 }]}>MEDIDAS GENERALES</Text>
-                          {item.medidas.map((m, j) => (
-                            <View key={j} style={estilos.caracBullet}>
-                              <Text style={estilos.caracPunto}>•</Text>
-                              <Text style={estilos.caracTexto}>{m}</Text>
-                            </View>
-                          ))}
-                        </>
-                      )}
+                  {/* A la izquierda va la foto y nada más; las dimensiones, las
+                      medidas y la descripción van todas a la derecha. Es como
+                      lo corrigió el ing. Carlos el 24-08 mirando el PDF
+                      impreso, y coincide con los modelos en papel.
+
+                      Antes las medidas iban abajo de la foto para aprovechar el
+                      hueco y evitar que una ficha larga se desbordara. Ese
+                      riesgo baja solo con este orden: en la columna ancha cada
+                      viñeta ocupa menos líneas que en la angosta, así que el
+                      alto total de la ficha no sube. */}
+                  {item.fotoBuffer && (
+                    <View style={{ width: "32%", padding: 10, justifyContent: "flex-start" }}>
+                      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
+                      <Image src={item.fotoBuffer} style={{ width: "100%" }} />
                     </View>
                   )}
                   <View
@@ -435,6 +419,35 @@ export function CotizacionPdf({
                           <View key={j} style={estilos.caracBullet}>
                             <Text style={estilos.caracPunto}>•</Text>
                             <Text style={estilos.caracTexto}>{c}</Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+                    {item.dimensiones.length > 0 && (
+                      <>
+                        <Text
+                          style={[
+                            estilos.caracTitulo,
+                            item.caracteristicas.length > 0 ? { marginTop: 8 } : {},
+                          ]}
+                        >
+                          DIMENSIONES DE LA MAQUINA
+                        </Text>
+                        {item.dimensiones.map((d, j) => (
+                          <View key={j} style={estilos.caracBullet}>
+                            <Text style={estilos.caracPunto}>•</Text>
+                            <Text style={estilos.caracTexto}>{d}</Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+                    {item.medidas.length > 0 && (
+                      <>
+                        <Text style={[estilos.caracTitulo, { marginTop: 8 }]}>MEDIDAS GENERALES</Text>
+                        {item.medidas.map((m, j) => (
+                          <View key={j} style={estilos.caracBullet}>
+                            <Text style={estilos.caracPunto}>•</Text>
+                            <Text style={estilos.caracTexto}>{m}</Text>
                           </View>
                         ))}
                       </>

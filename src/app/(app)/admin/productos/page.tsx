@@ -1,20 +1,44 @@
 import { createClient } from "@/lib/supabase/server";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { NuevoProductoForm } from "./nuevo-producto-form";
+import { NuevoProductoForm, type ProductoPlantilla } from "./nuevo-producto-form";
 
 export default async function ProductosPage() {
   const supabase = await createClient();
   const { data: productos } = await supabase
     .from("productos")
-    .select("id, marca, modelo, nombre, segmento, precios_producto(tier, precio)")
+    .select("id, sku, marca, modelo, nombre, segmento, categoria, capacidad, ficha, precios_producto(tier, precio)")
     .eq("activo", true)
     .order("marca");
 
+  // Plantillas para "copiar la ficha de un equipo parecido": solo sirven las
+  // que TIENEN ficha; copiar una vacía no ahorraría nada.
+  const plantillas: ProductoPlantilla[] = (productos ?? [])
+    .map((p) => {
+      const f = (p.ficha ?? {}) as Record<string, unknown>;
+      const lista = (k: string) =>
+        Array.isArray(f[k]) ? (f[k] as unknown[]).filter((x): x is string => typeof x === "string") : [];
+      const txt = (k: string) => (typeof f[k] === "string" && f[k] ? (f[k] as string) : null);
+      return {
+        id: p.id,
+        etiqueta: `${p.marca} ${p.modelo} — ${p.nombre}`,
+        segmento: p.segmento as "industrial" | "semi_industrial",
+        categoria: p.categoria,
+        capacidad: p.capacidad,
+        caracteristicas: lista("caracteristicas"),
+        dimensiones: lista("dimensiones"),
+        medidas: lista("medidas"),
+        calentamiento: txt("calentamiento"),
+        panel: txt("panel"),
+        controles: txt("controles"),
+      };
+    })
+    .filter((p) => p.caracteristicas.length > 0);
+
   return (
     <div className="space-y-4">
-      <SeccionPanel titulo="Nuevo producto">
-        <NuevoProductoForm />
+      <SeccionPanel titulo="Nuevo equipo">
+        <NuevoProductoForm plantillas={plantillas} />
       </SeccionPanel>
 
       <SeccionPanel titulo="Catálogo">

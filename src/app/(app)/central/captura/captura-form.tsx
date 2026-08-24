@@ -28,21 +28,10 @@ const CANALES = [
   ["otro", "Otro"],
 ] as const;
 
-const AREAS = [
-  ["comercial", "Comercial"],
-  ["servicio_tecnico", "Servicio técnico"],
-  ["postventa", "Postventa"],
-  ["rrhh", "RR. HH."],
-  ["proveedores", "Proveedores"],
-  ["administracion", "Administración"],
-  ["otros", "Otros"],
-] as const;
-
 let temporizadorBusqueda: ReturnType<typeof setTimeout> | null = null;
 
 export function CapturaForm() {
   const formRef = useRef<HTMLFormElement>(null);
-  const [area, setArea] = useState<string>("comercial");
   const [duplicado, setDuplicado] = useState<ResultadoDuplicado | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [enviando, startTransition] = useTransition();
@@ -69,18 +58,16 @@ export function CapturaForm() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
+      // Todo contacto registrado acá es comercial (ver el comentario del
+      // formulario): el área destino ya no se elige.
+      formData.set("area_destino", "comercial");
       const resultado = await registrarContacto(formData);
       if (resultado.error) {
         toast.error(resultado.error);
         return;
       }
-      toast.success(
-        area === "comercial"
-          ? `Registrado ${resultado.codigo} — pasa a la bandeja de asignación.`
-          : `Registrado ${resultado.codigo} — derivado al área correspondiente.`,
-      );
+      toast.success(`Registrado ${resultado.codigo} — pasa a la bandeja de asignación.`);
       formRef.current?.reset();
-      setArea("comercial");
       setDuplicado(null);
       formRef.current?.querySelector<HTMLInputElement>("#nombre_contacto")?.focus();
     });
@@ -104,34 +91,18 @@ export function CapturaForm() {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="area_destino">Área destino</Label>
-          <Select
-            name="area_destino"
-            value={area}
-            onValueChange={(valor) => setArea(valor ?? "comercial")}
-            required
-          >
-            <SelectTrigger id="area_destino" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AREAS.map(([valor, etiqueta]) => (
-                <SelectItem key={valor} value={valor}>
-                  {etiqueta}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {/* La consecuencia de este campo no era obvia y costó un prospecto
-              el 24-08: se eligió "Otros" para alguien que pedía cotización de
-              equipos, y el contacto salió de la cola comercial. */}
-          <p className="mt-1 text-xs text-muted-foreground">
-            {area === "comercial"
-              ? "Va a la bandeja de triaje para asignarlo a un comercial."
-              : "No va a la cola comercial: queda registrado en «Derivados a otras áreas», desde donde se puede devolver."}
-          </p>
-        </div>
+        {/* Acá había un selector de "Área destino". Lo quitó el ing. Carlos el
+            24-08: «que no tenga la opción de otras áreas». Lo que no es
+            comercial —servicio técnico, RR. HH., proveedores— sigue su camino
+            en el ERP y no tiene nada que hacer en el CRM.
+
+            No es solo simplificar la pantalla: elegir un área distinta sacaba
+            al contacto de la cola comercial sin que se notara, y ese mismo día
+            costó un prospecto que pedía cotización de equipos y se registró
+            como "Otros". Todo lo que entra por acá va a la bandeja de triaje.
+            El campo `area_destino` sigue existiendo en la base para el
+            histórico importado; el formulario lo manda siempre en 'comercial'
+            (ver registrarContacto). */}
       </div>
 
       <div className="space-y-2">

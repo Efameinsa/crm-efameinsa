@@ -68,8 +68,16 @@ export default async function CentralPage() {
       .eq("rol", "comercial")
       .eq("activo", true)
       .order("nombre"),
-    // Lo mandado a otras áreas: existía en la base y no se veía en ninguna
-    // pantalla, así que un área mal elegida hacía desaparecer al prospecto.
+    // Red de seguridad, ya no una función de la pantalla. El ing. Carlos quitó
+    // la opción de derivar a otras áreas el 24-08 («que no tenga la opción de
+    // otras áreas»; lo no comercial se queda en el ERP), así que Central no
+    // puede volver a crear uno de estos desde el formulario.
+    //
+    // Pero la API pública /api/leads todavía acepta `area_destino`, y un
+    // contacto en ese estado no aparece en ninguna otra pantalla: fue así como
+    // el 24-08 se perdió un prospecto que pedía cotización de equipos. Se
+    // sigue consultando y el panel se muestra SOLO si hay algo — en operación
+    // normal no está, y si alguna vez entra uno, se ve y se puede devolver.
     supabase
       .from("leads")
       .select("id, codigo, canal, area_destino, nombre_contacto, razon_social, mensaje, recibido_at")
@@ -151,7 +159,7 @@ export default async function CentralPage() {
         </p>
       )}
     </SeccionPanel>
-    <DerivadosOtrasAreas leads={derivados ?? []} />
+    {derivados && derivados.length > 0 && <DerivadosOtrasAreas leads={derivados} />}
     <ConsolidadoCentral />
     <CargaDerivacion />
     <CargaCotizaciones />

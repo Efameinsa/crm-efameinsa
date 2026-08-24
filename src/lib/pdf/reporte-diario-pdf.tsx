@@ -55,8 +55,22 @@ export interface ReporteDiarioProps {
   agenda: { pendiente_hoy: number; vencidas: number; manana: number };
 }
 
+// Márgenes: el ing. Carlos, 24-08, sobre este reporte impreso — el texto salía
+// apretado y llegando al borde. 32 pt son 11 mm, por debajo del margen que
+// muchas impresoras láser no pueden imprimir (suelen reservar ~13 mm), así que
+// la última columna se recortaba en papel aunque en pantalla se viera entera.
+// 40 pt ≈ 14 mm entra en cualquier impresora, y el interlineado da aire a las
+// filas sin sumar páginas.
 const e = StyleSheet.create({
-  pagina: { paddingTop: 28, paddingBottom: 40, paddingHorizontal: 32, fontSize: 8.5, color: CARBON, fontFamily: "Helvetica" },
+  pagina: {
+    paddingTop: 32,
+    paddingBottom: 52,
+    paddingHorizontal: 40,
+    fontSize: 8.5,
+    lineHeight: 1.35,
+    color: CARBON,
+    fontFamily: "Helvetica",
+  },
   cabecera: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 },
   logo: { width: 132 },
   tituloBloque: { alignItems: "flex-end" },
@@ -82,13 +96,13 @@ const e = StyleSheet.create({
   seccionTitulo: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#FFFFFF", letterSpacing: 0.3 },
   seccionTotal: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#FFFFFF" },
 
-  fila: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: BORDE, paddingVertical: 3.5, paddingHorizontal: 4 },
+  fila: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: BORDE, paddingVertical: 4.5, paddingHorizontal: 5 },
   filaAlterna: { backgroundColor: FILA_GRIS },
-  th: { flexDirection: "row", paddingVertical: 3, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: BORDE },
+  th: { flexDirection: "row", paddingVertical: 4, paddingHorizontal: 5, borderBottomWidth: 1, borderBottomColor: BORDE },
   thTexto: { fontSize: 6.5, color: GRIS, textTransform: "uppercase", fontFamily: "Helvetica-Bold" },
-  vacio: { fontSize: 8, color: GRIS, fontStyle: "italic", paddingVertical: 6, paddingHorizontal: 4 },
+  vacio: { fontSize: 8, color: GRIS, fontStyle: "italic", paddingVertical: 7, paddingHorizontal: 5 },
 
-  pie: { position: "absolute", bottom: 20, left: 32, right: 32, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 0.5, borderTopColor: BORDE, paddingTop: 5 },
+  pie: { position: "absolute", bottom: 26, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 0.5, borderTopColor: BORDE, paddingTop: 5 },
   pieTexto: { fontSize: 6.5, color: GRIS },
 });
 
@@ -231,7 +245,7 @@ export function ReporteDiarioPdf({
           ) : (
             cotizaciones.map((c, i) => (
               <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
-                <Text style={{ width: "14%" }}>{c.codigo ?? "—"}</Text>
+                <Text style={{ width: "14%" }}>{c.codigo ?? "Borrador"}</Text>
                 {/* paddingRight: sin él, un nombre largo llega hasta el borde
                     de su celda y queda pegado a "Estado" — se leía
                     "…LAVANDERIAS CLEANEnviado". */}

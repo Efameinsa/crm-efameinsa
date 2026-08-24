@@ -202,7 +202,7 @@ export function InformeCentralPdf({
             {contactos.map((c, i) => (
               <View key={c.codigo ?? i} wrap={false}>
                 <View style={[e.tdFila, ...(i % 2 ? [e.zebra] : [])]}>
-                  <Text style={[e.td, { width: "13%" }]}>{c.codigo ?? "—"}</Text>
+                  <Text style={[e.td, { width: "13%" }]}>{c.codigo ?? "Borrador"}</Text>
                   <Text style={[e.td, { width: "10%" }]}>{c.hora}</Text>
                   <Text style={[e.td, { width: "11%" }]}>{ETIQUETA_CANAL[c.canal] ?? c.canal}</Text>
                   <Text style={[e.td, { width: "32%" }]}>

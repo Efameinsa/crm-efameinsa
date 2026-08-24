@@ -10,6 +10,7 @@ import { Kpi } from "@/components/crm/kpi";
 import { GraficoBarras } from "@/components/crm/grafico-barras";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { LeyendaSerie, barraMensualPorSerie } from "@/components/crm/leyenda-serie";
+import { CotizacionesDelPeriodo } from "@/components/crm/cotizaciones-del-periodo";
 
 // Panel individual del comercial. Lo ve el propio comercial (/comercial/
 // mi-gestion) y gerencia (/gerencia/comerciales/[id]). Todos los números
@@ -113,6 +114,11 @@ export async function PanelGestionComercial({
               archivó, no hay forma de saber que existió.
             </p>
           )}
+
+          {/* El número de arriba dice cuántas; esto dice cuáles, y deja
+              abrirlas. Pedido de Carlos el 24-08 desde supervisión: veía "3
+              cotizaciones" y no podía revisar ninguna. */}
+          <CotizacionesDelPeriodo comercialId={comercialId} desde={periodo.desde} hasta={periodo.hasta} />
 
           <SeccionPanel titulo="Ventas por mes — últimos 12 meses (Efameinsa vs Open)">
             <GraficoBarras datos={resumen.serie_mensual.map(barraMensualPorSerie)} resaltarUltima />

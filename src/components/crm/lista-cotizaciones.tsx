@@ -43,7 +43,9 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
       const r = await enviarCotizacion(id);
       if (r.error) toast.error(r.error);
       else {
-        toast.success("Cotización enviada");
+        // El número se asigna recién ahora (migración 0064): vale la pena
+        // decirlo, es el que el cliente va a ver en el PDF.
+        toast.success(r.codigo ? `Enviada como ${r.codigo}` : "Cotización enviada");
         router.refresh();
       }
     });
@@ -66,7 +68,9 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
       const r = await duplicarCotizacion(id);
       if (r.error) toast.error(r.error);
       else {
-        toast.success(`${r.codigoNuevo} creada como copia de ${r.codigoViejo}`);
+        toast.success(
+          `Copia de ${r.codigoViejo ?? "la cotización"} creada como borrador — recibe su número al enviarla`,
+        );
         router.refresh();
       }
     });
@@ -93,7 +97,16 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <span className="font-mono text-xs font-semibold text-foreground">{c.codigo}</span>
+                {/* Un borrador todavía no gastó número: el correlativo se
+                    asigna al enviarlo (migración 0064). */}
+                <span
+                  className={cn(
+                    "font-mono text-xs font-semibold",
+                    c.codigo ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {c.codigo ?? "Sin número"}
+                </span>
                 <span className="text-xs text-muted-foreground">{c.serie}</span>
                 <span className="text-sm font-semibold tabular-nums text-foreground">
                   {c.moneda} {c.total.toLocaleString("es-PE")}
