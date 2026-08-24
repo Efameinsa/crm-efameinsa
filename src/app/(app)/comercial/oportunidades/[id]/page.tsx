@@ -148,6 +148,13 @@ export default async function OportunidadDetallePage({
       nDimensiones: lista("dimensiones").length + lista("medidas").length,
       sinFicha: caracteristicas.length + lista("dimensiones").length + lista("medidas").length === 0,
       sinFoto: !pr.foto_path,
+      // La foto es la de un equipo HERMANO, porque el Word de este trae un
+      // pantallazo en vez de una foto de producto. Son 10 equipos; la lista y
+      // el motivo salen de scripts/auditar-fichas-productos.mjs.
+      fotoPrestadaDe:
+        typeof (ficha?.origen as Record<string, unknown> | undefined)?.foto_prestada_de === "string"
+          ? (((ficha!.origen as Record<string, unknown>).foto_prestada_de) as string)
+          : null,
     };
   });
 

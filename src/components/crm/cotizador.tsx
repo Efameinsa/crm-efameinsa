@@ -52,6 +52,9 @@ interface Producto {
    *  vacía en el PDF que recibe el cliente. */
   sinFicha?: boolean;
   sinFoto?: boolean;
+  /** SKU del equipo hermano cuya foto se está mostrando. Pasa cuando el Word
+   *  de este equipo trae un pantallazo en vez de una foto de producto. */
+  fotoPrestadaDe?: string | null;
 }
 
 interface ItemCarrito extends ItemCotizacion {
@@ -331,6 +334,13 @@ function VistaPreviaEquipo({ producto }: { producto: Producto }) {
           <TriangleAlert className="mt-px size-3.5 shrink-0" />
           Este equipo no tiene ficha técnica cargada: el cliente recibirá la hoja de especificaciones en blanco.
           Pídasela a logística antes de enviar la cotización.
+        </p>
+      )}
+      {producto.fotoPrestadaDe && (
+        <p className="mt-2 flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2 py-1.5 text-[11px] font-medium text-amber-800">
+          <TriangleAlert className="mt-px size-3.5 shrink-0" />
+          La foto es la de {producto.fotoPrestadaDe}, un equipo hermano: la ficha de este trae un
+          pantallazo en vez de una foto. Revise que la imagen corresponda antes de enviar.
         </p>
       )}
       {!producto.sinFicha && producto.sinFoto && (
