@@ -33,7 +33,9 @@
 import { Client } from "pg";
 import sharp from "sharp";
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { join, basename } from "node:path";
 
 const APLICAR = process.argv.includes("--aplicar");
 const SOLO = process.argv.includes("--solo") ? process.argv[process.argv.indexOf("--solo") + 1] : null;
@@ -145,13 +147,48 @@ async function recortarEquipo(buf) {
 const bd = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 await bd.connect();
 
-const { rows } = await bd.query(
-  `select id, sku, marca, modelo, foto_path, ficha from productos
-    where ficha->'origen'->>'foto_prestada_de' is not null
-    order by sku`,
+// A quién le hace falta el rescate. Dos casos, y el segundo apareció el 24-08
+// al revisar la LAV180 (PRIMUS RX180 gris):
+//
+//   a) Los que muestran la foto de otro equipo (`foto_prestada_de`).
+//   b) Los que COMPARTEN su archivo de foto con otro equipo. El cargador
+//      prefirió la imagen "limpia" del .docx sobre el pantallazo — pero esa
+//      imagen limpia es la foto GENÉRICA del catálogo de la marca, la misma en
+//      todas las fichas de la familia. Hay una compartida por NUEVE equipos.
+//      El pantallazo, en cambio, es del modelo concreto: en el de la LAV180 se
+//      ve la máquina GRIS —como dice su propio nombre de archivo— y la pestaña
+//      del navegador dice "RX80_OPL_XCnt". La genérica es plateada.
+//
+// Compartir foto no siempre está mal: la UWT130 en 220V y en 380V es la misma
+// máquina. Por eso no se toca al que no tiene pantallazo propio del cual sacar
+// algo mejor — y por eso el recorte se revisa antes de aplicarlo.
+// ⚠️ Se compara por CONTENIDO, no por nombre de archivo. Los duplicados tienen
+// nombres distintos —lav180-v1.png, lav1801.png, lav240.png…— y los mismos
+// bytes adentro, así que agrupar por `foto_path` no encontraba casi ninguno.
+const { rows: todos } = await bd.query(
+  `select id, sku, marca, modelo, foto_path, ficha from productos where activo order by sku`,
 );
 
-console.log(`Equipos que hoy muestran la foto de otro: ${rows.length}\n`);
+const porContenido = new Map();
+for (const p of todos) {
+  if (!p.foto_path) continue;
+  const archivo = join(DESTINO, basename(p.foto_path));
+  if (!existsSync(archivo)) continue;
+  const h = createHash("sha1").update(readFileSync(archivo)).digest("hex");
+  if (!porContenido.has(h)) porContenido.set(h, []);
+  porContenido.get(h).push(p.id);
+}
+const compartenCon = new Map();
+for (const ids of porContenido.values()) for (const id of ids) compartenCon.set(id, ids.length);
+
+const rows = todos
+  .filter((p) => {
+    if (p.ficha?.origen?.foto_rescatada_de_pantallazo) return false; // ya rescatado
+    return Boolean(p.ficha?.origen?.foto_prestada_de) || (compartenCon.get(p.id) ?? 1) > 1;
+  })
+  .map((p) => ({ ...p, comparten: compartenCon.get(p.id) ?? 1 }));
+
+console.log(`Equipos con foto ajena o compartida: ${rows.length}\n`);
 let rescatados = 0;
 
 for (const p of rows) {
@@ -162,10 +199,7 @@ for (const p of rows) {
     continue;
   }
   const capturas = imagenesDe(docx).filter((i) => PANTALLAS.has(i.px));
-  if (capturas.length === 0) {
-    console.log(`  ${String(p.sku).padEnd(11)} su ficha no tiene pantallazo del que rescatar`);
-    continue;
-  }
+  if (capturas.length === 0) continue; // sin pantallazo no hay nada mejor que ofrecer
 
   const r = await recortarEquipo(capturas[0].buf);
   if (!r) {
@@ -175,7 +209,7 @@ for (const p of rows) {
 
   const archivo = `${String(p.sku).toLowerCase()}.png`;
   console.log(
-    `  ${String(p.sku).padEnd(11)} ${p.marca} ${p.modelo} · pantallazo ${capturas[0].px} → equipo ${r.caja} → ${archivo}`,
+    `  ${String(p.sku).padEnd(11)} ${String(p.marca + " " + p.modelo).padEnd(24)} comparten ${p.comparten} · pantallazo ${capturas[0].px} → ${r.caja} → ${archivo}`,
   );
   rescatados++;
 
