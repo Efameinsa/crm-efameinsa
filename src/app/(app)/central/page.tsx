@@ -8,6 +8,7 @@ import { CargaDerivacion } from "@/components/crm/carga-derivacion";
 import { CargaCotizaciones } from "@/components/crm/carga-cotizaciones";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
 import { ConsolidadoCentral } from "@/components/crm/consolidado-central";
+import { DerivadosOtrasAreas } from "@/components/crm/derivados-otras-areas";
 
 // La bandeja tiene que mostrar lo que acaba de entrar: sin esto Next servía
 // una versión cacheada y un contacto recién registrado no aparecía hasta que
@@ -45,7 +46,7 @@ const ETIQUETA_CANAL: Record<string, string> = {
 export default async function CentralPage() {
   const supabase = await createClient();
 
-  const [{ data: leads, count: totalPendientes }, { data: comerciales }] = await Promise.all([
+  const [{ data: leads, count: totalPendientes }, { data: comerciales }, { data: derivados }] = await Promise.all([
     // ⚠️ El orden es de MÁS ANTIGUO a más nuevo a propósito: la cola se atiende
     // por antigüedad, que es de lo que se trata bajar las 36 horas de
     // asignación. Pero con `limit(50)` y 62 pendientes, los 12 más recientes
@@ -67,6 +68,14 @@ export default async function CentralPage() {
       .eq("rol", "comercial")
       .eq("activo", true)
       .order("nombre"),
+    // Lo mandado a otras áreas: existía en la base y no se veía en ninguna
+    // pantalla, así que un área mal elegida hacía desaparecer al prospecto.
+    supabase
+      .from("leads")
+      .select("id, codigo, canal, area_destino, nombre_contacto, razon_social, mensaje, recibido_at")
+      .eq("estado", "derivado_area")
+      .order("recibido_at", { ascending: false })
+      .limit(50),
   ]);
 
   return (
@@ -142,6 +151,7 @@ export default async function CentralPage() {
         </p>
       )}
     </SeccionPanel>
+    <DerivadosOtrasAreas leads={derivados ?? []} />
     <ConsolidadoCentral />
     <CargaDerivacion />
     <CargaCotizaciones />

@@ -315,3 +315,30 @@ export async function buscarCoincidencias(datos: {
   const orden: Record<CoincidenciaCartera["motivo"], number> = { documento: 0, telefono: 1, correo: 2, nombre: 3 };
   return [...out.values()].sort((a, b) => orden[a.motivo] - orden[b.motivo]).slice(0, 6);
 }
+
+/**
+ * Devuelve a la cola de triaje comercial un contacto que se registró con el
+ * área equivocada.
+ *
+ * 24-08: Central registró un prospecto que pedía cotización de equipos de
+ * lavandería eligiendo área "otros". Al no ser comercial, el lead quedó en
+ * 'derivado_area' y salió de la bandeja — y como ninguna pantalla leía ese
+ * estado, desapareció sin que nadie se enterara. De ahí la pregunta de Central,
+ * «¿cuántos minutos se demora para ingreso?»: entraba al instante, pero no se
+ * veía por ningún lado.
+ */
+export async function devolverLeadAComercial(leadId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("leads")
+    .update({ estado: "pendiente_triaje", area_destino: "comercial" })
+    .eq("id", leadId)
+    .eq("estado", "derivado_area")
+    .select("id");
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) {
+    return { error: "Ese contacto ya no está derivado a otra área" };
+  }
+  revalidatePath("/central");
+  return { error: null };
+}

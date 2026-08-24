@@ -123,6 +123,14 @@ export function CapturaForm() {
               ))}
             </SelectContent>
           </Select>
+          {/* La consecuencia de este campo no era obvia y costó un prospecto
+              el 24-08: se eligió "Otros" para alguien que pedía cotización de
+              equipos, y el contacto salió de la cola comercial. */}
+          <p className="mt-1 text-xs text-muted-foreground">
+            {area === "comercial"
+              ? "Va a la bandeja de triaje para asignarlo a un comercial."
+              : "No va a la cola comercial: queda registrado en «Derivados a otras áreas», desde donde se puede devolver."}
+          </p>
         </div>
       </div>
 
