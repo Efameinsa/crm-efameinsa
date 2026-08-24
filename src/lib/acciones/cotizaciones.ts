@@ -241,3 +241,40 @@ export async function editarCotizacion(datos: {
   if (cot) revalidatePath(`/comercial/oportunidades/${cot.oportunidad_id}`);
   return { error: null };
 }
+
+/**
+ * Borra una cotización que nunca salió al cliente.
+ *
+ * Pedido de Katerine (C5) el 24-08: probando el cotizador le quedaron varios
+ * borradores del mismo cliente y no sabía cuál era el bueno.
+ *
+ * La regla de verdad está en la política de la migración 0065 — la base no
+ * deja borrar una cotización enviada aunque alguien llame a esto directamente.
+ * Acá se repite para poder dar un mensaje que se entienda en vez de un error
+ * de permisos.
+ */
+export async function eliminarCotizacion(cotizacionId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: cot } = await supabase
+    .from("cotizaciones")
+    .select("codigo, estado, enviada_at, oportunidad_id")
+    .eq("id", cotizacionId)
+    .maybeSingle();
+  if (!cot) return { error: "La cotización no existe" };
+  if (cot.estado !== "borrador" || cot.enviada_at) {
+    return { error: `${cot.codigo ?? "Esa cotización"} ya salió al cliente y no se borra` };
+  }
+
+  // `.select()` de vuelta: si RLS filtra la fila, el delete no da error,
+  // simplemente no borra nada.
+  const { data, error } = await supabase.from("cotizaciones").delete().eq("id", cotizacionId).select("id");
+  if (error) return { error: limpiarError(error.message) };
+  if (!data || data.length === 0) {
+    return { error: "No se pudo borrar: solo el comercial dueño de la oportunidad puede hacerlo" };
+  }
+
+  revalidatePath(`/comercial/oportunidades/${cot.oportunidad_id}`);
+  revalidatePath("/comercial", "layout");
+  return { error: null };
+}

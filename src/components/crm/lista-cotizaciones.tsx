@@ -2,9 +2,15 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileDown, CircleCheckBig, Copy, Pencil } from "lucide-react";
+import { FileDown, CircleCheckBig, Copy, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { duplicarCotizacion, enviarCotizacion, registrarVenta } from "@/lib/acciones/cotizaciones";
+import {
+  duplicarCotizacion,
+  eliminarCotizacion,
+  enviarCotizacion,
+  registrarVenta,
+} from "@/lib/acciones/cotizaciones";
+import { fechaHoraLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +23,8 @@ export interface CotizacionResumen {
   total: number;
   moneda: string;
   nota_gerencia: string | null;
+  created_at: string;
+  enviada_at: string | null;
 }
 
 const ESTADO_APROBACION: Record<string, { etiqueta: string; clases: string }> = {
@@ -63,6 +71,21 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
     });
   }
 
+  function onBorrar(c: CotizacionResumen) {
+    // La base tampoco lo permite (migración 0065), pero conviene no ofrecer un
+    // botón que va a fallar.
+    if (c.estado !== "borrador" || c.codigo) return;
+    if (!confirm(`¿Borrar este borrador del ${fechaHoraLima(c.created_at)}? No tiene número asignado, así que no deja hueco en la serie.`)) return;
+    startTransition(async () => {
+      const r = await eliminarCotizacion(c.id);
+      if (r.error) toast.error(r.error);
+      else {
+        toast.success("Borrador eliminado");
+        router.refresh();
+      }
+    });
+  }
+
   function onDuplicar(id: string) {
     startTransition(async () => {
       const r = await duplicarCotizacion(id);
@@ -82,10 +105,15 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
 
   return (
     <div className="space-y-2">
-      {cotizaciones.map((c) => {
+      {cotizaciones.map((c, i) => {
         const puedeEnviar = c.estado === "borrador" && (c.estado_aprobacion === "auto_aprobada" || c.estado_aprobacion === "aprobada_gerencia");
         const puedeVender = c.estado === "enviada" && (c.estado_aprobacion === "auto_aprobada" || c.estado_aprobacion === "aprobada_gerencia");
         const aprobacion = ESTADO_APROBACION[c.estado_aprobacion];
+        // La lista viene ordenada de más nueva a más vieja. Katerine (C5) tenía
+        // varios borradores del mismo cliente y no sabía cuál era el último,
+        // así que el primero lleva el cartel y todos muestran su hora.
+        const esUltima = i === 0;
+        const esBorradorSinNumero = c.estado === "borrador" && !c.codigo;
 
         return (
           <div
@@ -105,12 +133,20 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
                     c.codigo ? "text-foreground" : "text-muted-foreground",
                   )}
                 >
-                  {c.codigo ?? "Sin número"}
+                  {/* "Sin número" a secas se leía como que algo falló, y ese
+                      mismo día Katerine rehizo la misma cotización creyendo que
+                      no se había guardado. Ahora dice qué falta, no qué no hay. */}
+                  {c.codigo ?? "Recibe número al enviar"}
                 </span>
                 <span className="text-xs text-muted-foreground">{c.serie}</span>
                 <span className="text-sm font-semibold tabular-nums text-foreground">
                   {c.moneda} {c.total.toLocaleString("es-PE")}
                 </span>
+                {esUltima && cotizaciones.length > 1 && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    La más reciente
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {/* "Aprobada · Borrador" se leía como una contradicción. Son dos
@@ -134,6 +170,13 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
                 </span>
               </div>
             </div>
+
+            {/* Cuándo se armó. Con varios borradores del mismo cliente era
+                imposible saber cuál era el último (C5, 24-08). */}
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Creada el {fechaHoraLima(c.created_at)}
+              {c.enviada_at ? ` · enviada el ${fechaHoraLima(c.enviada_at)}` : ""}
+            </p>
 
             {c.nota_gerencia && (
               <p className="mt-2 rounded-md bg-secondary px-2.5 py-1.5 text-xs text-muted-foreground">
@@ -192,6 +235,22 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
                 <Copy className="size-3.5" />
                 Duplicar
               </Button>
+              {/* Al final y separado, para que no se apriete por error. Solo un
+                  borrador SIN número: uno que ya tiene número comprometió su
+                  correlativo con contabilidad, y una enviada la tiene el
+                  cliente. La base lo impide igual (migración 0065). */}
+              {esBorradorSinNumero && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={enviando}
+                  onClick={() => onBorrar(c)}
+                  className="ml-auto text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="size-3.5" />
+                  Borrar
+                </Button>
+              )}
             </div>
           </div>
         );

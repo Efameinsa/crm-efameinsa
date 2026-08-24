@@ -59,7 +59,9 @@ export default async function OportunidadDetallePage({
         .order("marca"),
       supabase
         .from("cotizaciones")
-        .select("id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at")
+        .select(
+          "id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at",
+        )
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),
       supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("id"),
