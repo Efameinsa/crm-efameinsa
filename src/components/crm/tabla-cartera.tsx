@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Building2, ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { fechaLima } from "@/lib/fechas";
 
 export interface FilaCartera {
   id: string;
@@ -82,7 +83,7 @@ export function TablaCartera({ filas }: { filas: FilaCartera[] }) {
                 )}
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">
-                {c.ultimaVentaAt ? new Date(c.ultimaVentaAt).toLocaleDateString("es-PE") : "Nunca"}
+                {c.ultimaVentaAt ? fechaLima(c.ultimaVentaAt) : "Nunca"}
               </TableCell>
               <TableCell>
                 <ChevronRight className="size-4 text-muted-foreground" />

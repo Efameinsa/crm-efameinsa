@@ -216,12 +216,17 @@ export function AgendaMensual({
 
       <DndContext sensors={sensors} onDragStart={(e) => setArrastrando(String(e.active.id))} onDragEnd={onDragEnd}>
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <div className="grid grid-cols-[repeat(6,1fr)_0.45fr] border-b border-border">
+          {/* C3 (plan 11): las siete columnas miden lo mismo. Antes el
+              domingo iba a 0.45fr y a Darwin le leyó como maquetación rota
+              —«hay algunas columnas que son más anchas que otras»—; la celda
+              además bajó de 112 a 92 px de alto, que era lo de «está
+              demasiado grande». */}
+          <div className="grid grid-cols-7 border-b border-border">
             {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => (
               <div key={d} className="px-2.5 py-2 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">{d}</div>
             ))}
           </div>
-          <div className="grid grid-cols-[repeat(6,1fr)_0.45fr]">
+          <div className="grid grid-cols-7">
             {dias.map((d, i) => (
               <Dia
                 key={d.iso}
@@ -653,7 +658,7 @@ function Dia({
     <div
       ref={setNodeRef}
       className={cn(
-        "group min-h-[112px] border-b border-r border-border p-1.5 transition-colors last:border-r-0",
+        "group min-h-[92px] border-b border-r border-border p-1.5 transition-colors last:border-r-0",
         domingo && "border-r-0 bg-[#faf9f8]",
         ultimaFila && "border-b-0",
         isOver && "bg-primary/5 ring-2 ring-inset ring-primary/40",

@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import type { FilaOportunidadListado } from "@/lib/reportes";
+import { fechaCalendario } from "@/lib/fechas";
 
 // Presentacional pura: la página ya trae la fila filtrada, ordenada y
 // paginada desde listar_oportunidades() (migración 0054) — antes esta tabla
@@ -74,7 +75,7 @@ export function TablaOportunidades({ filas }: { filas: FilaOportunidadListado[] 
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {op.proxima_accion_at ? (
                   <>
-                    {new Date(op.proxima_accion_at).toLocaleDateString("es-PE")}
+                    {fechaCalendario(op.proxima_accion_at)}
                     {op.proxima_accion && <span className="ml-1 text-xs">· {op.proxima_accion}</span>}
                   </>
                 ) : (

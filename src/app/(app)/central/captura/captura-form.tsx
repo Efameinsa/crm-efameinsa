@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { fechaHoraLima } from "@/lib/fechas";
 
 const CANALES = [
   ["whatsapp", "WhatsApp"],
@@ -164,7 +165,7 @@ export function CapturaForm() {
       {duplicado?.leadPendiente && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
           Ya hay un contacto pendiente de asignar con estos mismos datos: {duplicado.leadPendiente.codigo}{" "}
-          (recibido el {new Date(duplicado.leadPendiente.recibido_at).toLocaleString("es-PE")}).
+          (recibido el {fechaHoraLima(duplicado.leadPendiente.recibido_at)}).
         </div>
       )}
 

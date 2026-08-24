@@ -32,11 +32,15 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // despachar: hasta ahora era la única que no tenía dónde verlo.
     { href: "/central/cierres", etiqueta: "Cierres de venta", icono: PackageCheck },
   ],
+  // Orden pedido por Darwin el 23-08 (plan 11, C2): el día arranca en "Mi
+  // día", sigue por la agenda y el tercer sitio es "Mis oportunidades" —
+  // «es lo que tienes que revisar diariamente»—; la gestión y la cartera se
+  // consultan, no se trabajan a diario.
   comercial: [
     { href: "/comercial", etiqueta: "Mi día", icono: ClipboardList },
-    { href: "/comercial/agenda", etiqueta: "Agenda", icono: CalendarDays },
-    { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: Gauge },
+    { href: "/comercial/agenda", etiqueta: "Mi agenda", icono: CalendarDays },
     { href: "/comercial/oportunidades", etiqueta: "Mis oportunidades", icono: KanbanSquare },
+    { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: Gauge },
     { href: "/comercial/cartera", etiqueta: "Mi cartera", icono: Building2 },
   ],
   gerencia: [

@@ -12,6 +12,7 @@ import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
+import { fechaAgendada } from "@/lib/fechas";
 
 export default async function OportunidadDetallePage({
   params,
@@ -26,7 +27,7 @@ export default async function OportunidadDetallePage({
       supabase
         .from("oportunidades")
         .select(
-          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -172,14 +173,13 @@ export default async function OportunidadDetallePage({
             {oportunidad.proxima_accion ? (
               <div>
                 <p className="text-sm text-foreground">{oportunidad.proxima_accion}</p>
+                {/* proxima_accion_at es columna `date`: pasarla por new Date()
+                    la leía como medianoche UTC y en Lima mostraba el día
+                    anterior (A5 del plan 11). */}
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {oportunidad.proxima_accion_at
-                    ? new Date(oportunidad.proxima_accion_at).toLocaleDateString("es-PE", {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                      })
-                    : ""}
+                    ? fechaAgendada(oportunidad.proxima_accion_at, oportunidad.proxima_accion_hora)
+                    : "Sin fecha"}
                 </p>
               </div>
             ) : (

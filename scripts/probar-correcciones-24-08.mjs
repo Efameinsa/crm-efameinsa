@@ -31,7 +31,23 @@ const ok = (b, t, extra = "") => {
 // ---- Sesión real de C5 -----------------------------------------------------
 const { data: perfil } = await admin.from("perfiles").select("id, nombre").ilike("codigo_comercial", "C5").single();
 const { data: usuario } = await admin.auth.admin.getUserById(perfil.id);
-const { data: enlace } = await admin.auth.admin.generateLink({ type: "magiclink", email: usuario.user.email });
+// Supabase limita los magic link por correo: corriendo esto varias veces
+// seguidas devuelve null sin explicar. Se reintenta con espera creciente.
+let enlace = null;
+for (let intento = 1; intento <= 5 && !enlace; intento++) {
+  const r = await admin.auth.admin.generateLink({ type: "magiclink", email: usuario.user.email });
+  enlace = r.data?.properties ? r.data : null;
+  if (!enlace) {
+    const espera = intento * 15;
+    console.log(`  (magic link limitado — reintento ${intento}/5 en ${espera}s: ${r.error?.message ?? "sin detalle"})`);
+    await new Promise((r) => setTimeout(r, espera * 1000));
+  }
+}
+if (!enlace) {
+  console.error("No se pudo abrir sesión de prueba (rate limit de Supabase). Reintentar en un rato.");
+  await bd.end();
+  process.exit(1);
+}
 const anon = createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
 const { data: sesion } = await anon.auth.verifyOtp({ token_hash: enlace.properties.hashed_token, type: "magiclink" });
 const ref = new URL(NEXT_PUBLIC_SUPABASE_URL).hostname.split(".")[0];
@@ -221,6 +237,26 @@ try {
   ok(cont.every((c) => Number(c.ultimo) === 0), "B8 · los informes arrancan en Nº 1", cont.map((c) => `${c.clave}=${c.ultimo}`).join(", "));
   const { rows: infEmit } = await bd.query(`select count(*) n from informes_cierre where emitido_at is not null`);
   ok(Number(infEmit[0].n) === 0, "B8 · no quedan informes emitidos de prueba");
+
+  // === Grupo 5 · A6 / C2 / C3 ==============================================
+  const miDia = await pedir("/comercial");
+  ok(miDia.status === 200, "A6 · Mi día carga");
+  ok(!miDia.html.includes("No tiene acciones pendientes para hoy"), "A6 · Mi día ya no sale vacío");
+  ok(/Vencidas|Recién asignadas|Para hoy/.test(miDia.html), "A6 · Mi día muestra sus grupos");
+  ok(miDia.html.includes("más en Mis oportunidades") || miDia.html.includes("sin primer contacto más"),
+    "A6 · avisa cuántas quedan fuera del tope");
+
+  // Por posición en el HTML, no por regex con huecos: el markup del sidebar
+  // cambia de tamaño y una distancia fija se rompe sola.
+  const ordenNav = ["Mi día", "Mi agenda", "Mis oportunidades", "Mi gestión", "Mi cartera"].map((n) => miDia.html.indexOf(n));
+  ok(
+    ordenNav.every((i, n) => i >= 0 && (n === 0 || i > ordenNav[n - 1])),
+    "C2 · el sidebar va Mi día → Mi agenda → Mis oportunidades → Mi gestión → Mi cartera",
+  );
+
+  const agendaHtml = await pedir("/comercial/agenda?mes=2026-08");
+  ok(agendaHtml.html.includes("grid-cols-7"), "C3 · la agenda tiene siete columnas iguales");
+  ok(!agendaHtml.html.includes("repeat(6,1fr)_0.45fr"), "C3 · se fue la columna de domingo angosta");
 
   // === A2 · Kanban ==========================================================
   const kanban = await pedir("/comercial/oportunidades?vista=kanban");

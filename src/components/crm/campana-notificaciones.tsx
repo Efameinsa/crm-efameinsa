@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { marcarNotificacionLeida, marcarTodasLeidas } from "@/lib/acciones/notificaciones";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { fechaLima } from "@/lib/fechas";
 
 interface Notificacion {
   id: string;
@@ -25,7 +26,7 @@ function tiempoRelativo(iso: string): string {
   if (minutos < 60) return `hace ${minutos} min`;
   const horas = Math.round(minutos / 60);
   if (horas < 24) return `hace ${horas} h`;
-  return new Date(iso).toLocaleDateString("es-PE");
+  return fechaLima(iso);
 }
 
 export function CampanaNotificaciones({ userId }: { userId: string }) {

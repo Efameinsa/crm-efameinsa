@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { CalloutActivarNotificaciones } from "@/components/crm/callout-activar-notificaciones";
 import { cn } from "@/lib/utils";
+import { hoyLima } from "@/lib/periodo";
 
 interface FilaMiDia {
   id: string;
@@ -171,38 +172,72 @@ function GrupoSinInforme({ filas }: { filas: VentaSinInformeFila[] }) {
 export default async function ComercialPage() {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
-  const hoy = new Date().toISOString().slice(0, 10);
+  // Antes: new Date().toISOString() — eso es UTC. A las 7 pm de Lima el
+  // servidor ya cree que es mañana y "Para hoy" se vaciaba (A5 del plan 11).
+  const hoy = hoyLima();
 
-  // ⚠️ origen='crm' es obligatorio acá. Sin este filtro, el 21-08 se importaron
-  // ~23 mil oportunidades del Excel histórico (P1_F_Realizado, C3_Esperar…)
-  // con proxima_accion_at de años pasados — TODAS calzarían con
-  // "proxima_accion_at <= hoy" y esta pantalla, que hoy funciona bien y a
-  // Carlos le gustó ("esto está muy bien, la verdad"), quedaría con miles de
-  // "Vencidas" en vez de las pocas que el comercial debe atender hoy. Las
-  // históricas se trabajan desde "Mis oportunidades" (con sus propios
-  // filtros de etapa y fecha), no desde acá — mismo criterio que ya se usa
-  // para el embudo (migración 0023: "SOLO origen='crm'").
-  const { data } = await supabase
-    .from("oportunidades")
-    .select("id, etapa, intencion, proxima_accion, proxima_accion_at, cuentas(razon_social)")
-    .eq("comercial_id", perfil.id)
-    .eq("origen", "crm")
-    .not("etapa", "in", "(venta,rechazada,derivada)")
-    .or(`etapa.eq.asignada,proxima_accion_at.lte.${hoy}`)
-    .order("proxima_accion_at", { ascending: true, nullsFirst: true });
+  // ⚠️ HISTORIA DE ESTE FILTRO (leer antes de tocarlo).
+  //
+  // Hasta el 24-08 acá había un `.eq("origen", "crm")`. La razón era buena: el
+  // 21-08 se importaron ~23 mil oportunidades del Excel con proxima_accion_at
+  // de años pasados (algunas de 1900), y TODAS calzan con "<= hoy" — sin
+  // filtro, "Vencidas" mostraba miles de filas.
+  //
+  // Pero ninguna oportunidad de los comerciales tiene origen='crm': todas
+  // vienen del import. O sea que el filtro no acotaba la pantalla, la vaciaba.
+  // Darwin lo reportó el 23-08 —«en Mi día supuestamente están todos los
+  // pendientes para hoy; aparece por defecto vacío»— y es el mismo agujero que
+  // dejaba el Kanban en blanco.
+  //
+  // La solución no es el origen sino el ALCANCE: se piden tres consultas
+  // acotadas en Postgres, y las vencidas se traen de la más reciente hacia
+  // atrás y con tope. Lo de 1900 queda fuera solo, sin filtro ad hoc, y el
+  // comercial ve lo que de verdad puede retomar.
+  const TOPE_VENCIDAS = 60;
+  const TOPE_NUEVAS = 40;
+  const CAMPOS_MI_DIA = "id, etapa, intencion, proxima_accion, proxima_accion_at, cuentas(razon_social)";
+  const abiertasDe = () =>
+    supabase
+      .from("oportunidades")
+      .select(CAMPOS_MI_DIA)
+      .eq("comercial_id", perfil.id)
+      .not("etapa", "in", "(venta,rechazada,derivada)");
 
-  const oportunidades: FilaMiDia[] = (data ?? []).map((op) => ({
+  const [{ data: hoyData }, { data: vencidasData, count: vencidasTotal }, { data: nuevasData, count: nuevasTotal }] = await Promise.all([
+    abiertasDe().eq("proxima_accion_at", hoy).order("proxima_accion_hora", { ascending: true, nullsFirst: true }),
+    supabase
+      .from("oportunidades")
+      .select(CAMPOS_MI_DIA, { count: "exact" })
+      .eq("comercial_id", perfil.id)
+      .not("etapa", "in", "(venta,rechazada,derivada)")
+      .lt("proxima_accion_at", hoy)
+      .order("proxima_accion_at", { ascending: false })
+      .limit(TOPE_VENCIDAS),
+    supabase
+      .from("oportunidades")
+      .select(CAMPOS_MI_DIA, { count: "exact" })
+      .eq("comercial_id", perfil.id)
+      .eq("etapa", "asignada")
+      .is("proxima_accion_at", null)
+      .order("created_at", { ascending: false })
+      .limit(TOPE_NUEVAS),
+  ]);
+
+  const aFila = (op: NonNullable<typeof hoyData>[number]): FilaMiDia => ({
     id: op.id,
     etapa: op.etapa,
     intencion: op.intencion,
     proxima_accion: op.proxima_accion,
     proxima_accion_at: op.proxima_accion_at,
     razon_social: (op.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
-  }));
+  });
 
-  const vencidas = oportunidades.filter((o) => o.proxima_accion_at && o.proxima_accion_at < hoy);
-  const nuevas = oportunidades.filter((o) => o.etapa === "asignada" && !o.proxima_accion_at);
-  const paraHoy = oportunidades.filter((o) => !vencidas.includes(o) && !nuevas.includes(o));
+  const paraHoy = (hoyData ?? []).map(aFila);
+  const vencidas = (vencidasData ?? []).map(aFila);
+  const nuevas = (nuevasData ?? []).map(aFila);
+  const oportunidades = [...paraHoy, ...vencidas, ...nuevas];
+  const vencidasOcultas = Math.max(0, (vencidasTotal ?? vencidas.length) - vencidas.length);
+  const nuevasOcultas = Math.max(0, (nuevasTotal ?? nuevas.length) - nuevas.length);
 
   // Distinta de "Vencidas": no depende de proxima_accion_at, sino de los
   // umbrales del manual de Efameinsa (1 mes prospecto / 3 meses cotización,
@@ -212,7 +247,16 @@ export default async function ComercialPage() {
     .from("v_oportunidades_inactivas")
     .select("id, etapa, intencion, motivo_inactividad, cuentas(razon_social)")
     .eq("comercial_id", perfil.id)
-    .eq("origen", "crm"); // mismo motivo que arriba: sin esto, todo el histórico calza
+    // ⚠️ ACÁ el filtro por origen SÍ se mantiene, y a propósito (24-08).
+    // Medido con datos reales: sin él, "Corresponde cerrar" mostraría 724
+    // filas a Brenda, 5.438 a C4 y 12.814 a Katerine — son oportunidades del
+    // Excel que ya pasaron los umbrales del manual (1 mes prospecto / 3 meses
+    // cotización, migración 0018). No es un bug de la pantalla: es que el
+    // histórico entero está vencido. Cerrar eso en bloque es decisión de
+    // gerencia (con qué motivo, y si se cierran o se reasignan), no algo que
+    // el CRM deba empujarle a cada comercial en su pantalla de inicio.
+    // Queda como pregunta abierta en el plan 11 junto con D1.
+    .eq("origen", "crm");
 
   const inactivas: FilaInactiva[] = (inactivasData ?? []).map((op) => ({
     id: op.id,
@@ -264,8 +308,27 @@ export default async function ComercialPage() {
                   hasta que Central reciba el informe. */}
               <GrupoSinInforme filas={sinInforme} />
               <Grupo titulo="Vencidas" filas={vencidas} urgencia="vencida" />
+              {vencidasOcultas > 0 && (
+                <p className="-mt-3 text-xs text-muted-foreground">
+                  Se muestran las {vencidas.length} más recientes ·{" "}
+                  <Link href="/comercial/oportunidades" className="font-medium text-primary hover:underline">
+                    hay {vencidasOcultas.toLocaleString("es-PE")} vencidas más en Mis oportunidades
+                  </Link>
+                </p>
+              )}
               <Grupo titulo="Para hoy" filas={paraHoy} urgencia="hoy" />
               <Grupo titulo="Recién asignadas" filas={nuevas} urgencia="nueva" />
+              {nuevasOcultas > 0 && (
+                <p className="-mt-3 text-xs text-muted-foreground">
+                  Se muestran las {nuevas.length} más recientes ·{" "}
+                  <Link
+                    href="/comercial/oportunidades?etapa=asignada"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    hay {nuevasOcultas.toLocaleString("es-PE")} sin primer contacto más
+                  </Link>
+                </p>
+              )}
               <GrupoCorrespondeCerrar filas={inactivas} />
             </>
           )}
