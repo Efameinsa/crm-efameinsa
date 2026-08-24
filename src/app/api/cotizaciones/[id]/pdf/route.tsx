@@ -3,7 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { readFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import { createClient } from "@/lib/supabase/server";
-import { CotizacionPdf, type ItemPdf } from "@/lib/pdf/cotizacion-pdf";
+import { CotizacionPdf, type ItemPdf, type SeccionFicha } from "@/lib/pdf/cotizacion-pdf";
 import { correoEnSerie } from "@/lib/pdf/series";
 
 // Se lee una sola vez al cargar el módulo, no en cada request.
@@ -78,6 +78,26 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return typeof valor === "string" && valor ? valor : null;
   }
 
+  /**
+   * Las torres lavadora-secadora son dos máquinas y su ficha trae un bloque
+   * para cada una (`ficha.secciones`). Se pasan tal cual para que el PDF las
+   * imprima rotuladas; un equipo simple no tiene esta clave y sale como
+   * siempre.
+   */
+  function seccionesDeFicha(ficha: Record<string, unknown> | null | undefined): SeccionFicha[] | undefined {
+    const valor = ficha?.secciones;
+    if (!Array.isArray(valor) || valor.length < 2) return undefined;
+    return valor.map((s) => {
+      const sec = s as Record<string, unknown>;
+      return {
+        titulo: typeof sec.titulo === "string" ? sec.titulo : null,
+        caracteristicas: listaDeFicha(sec, "caracteristicas"),
+        dimensiones: listaDeFicha(sec, "dimensiones"),
+        medidas: listaDeFicha(sec, "medidas"),
+      };
+    });
+  }
+
   const items: ItemPdf[] = (
     cotizacion.cotizacion_items as unknown as {
       cantidad: number;
@@ -110,6 +130,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       caracteristicas: listaDeFicha(ficha, "caracteristicas"),
       dimensiones: listaDeFicha(ficha, "dimensiones"),
       medidas: listaDeFicha(ficha, "medidas"),
+      secciones: seccionesDeFicha(ficha),
       fotoBuffer: leerFotoProducto(item.productos?.foto_path ?? null),
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,

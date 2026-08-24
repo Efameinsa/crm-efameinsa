@@ -85,6 +85,10 @@ async function main() {
     caracteristicas: lista(p.ficha, "caracteristicas"),
     dimensiones: lista(p.ficha, "dimensiones"),
     medidas: lista(p.ficha, "medidas"),
+    // Las torres traen sus dos máquinas separadas (ficha.secciones).
+    secciones: Array.isArray(p.ficha?.secciones) && (p.ficha.secciones as unknown[]).length > 1
+      ? (p.ficha.secciones as { titulo: string | null; caracteristicas: string[]; dimensiones: string[]; medidas: string[] }[])
+      : undefined,
     fotoBuffer: p.foto_path ? leer(join("productos", basename(p.foto_path))) : null,
     cantidad: 1,
     precio_unitario: Number(p.precio ?? 0),

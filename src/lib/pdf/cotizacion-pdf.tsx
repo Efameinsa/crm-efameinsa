@@ -13,6 +13,14 @@ const GRIS = "#6B6B6B";
 const BORDE = "#B9B4B2";
 const FILA_GRIS = "#EDEAE9";
 
+export interface SeccionFicha {
+  /** "LAVADORA", "SECADORA". Null en un equipo de una sola máquina. */
+  titulo: string | null;
+  caracteristicas: string[];
+  dimensiones: string[];
+  medidas: string[];
+}
+
 export interface ItemPdf {
   nombre: string;
   marca: string;
@@ -25,6 +33,14 @@ export interface ItemPdf {
   caracteristicas: string[];
   dimensiones: string[]; // "Volumen del tambor: 207 litros", …
   medidas: string[]; // "Ancho: 686 mm", …
+  /**
+   * Equipos que son DOS máquinas en una: las torres lavadora-secadora traen en
+   * su ficha un bloque para cada una. Cuando existe, se imprime así —"I.
+   * LAVADORA" y "II. SECADORA", cada una con lo suyo— igual que el documento en
+   * papel. Aplanarlas se leía como si todo fuera de la lavadora, que fue el
+   * reporte del área comercial del 24-08.
+   */
+  secciones?: SeccionFicha[];
   fotoBuffer: Buffer | null;
   cantidad: number;
   precio_unitario: number;
@@ -129,6 +145,9 @@ function crearEstilos(acento: string) {
     fichaTitulo: { fontSize: 9.5, fontFamily: "Helvetica-Bold", padding: 6 },
     specTh: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#FFFFFF", paddingVertical: 4, paddingHorizontal: 5, textAlign: "center" },
     specTd: { fontSize: 9, fontFamily: "Helvetica-Bold", paddingVertical: 4, paddingHorizontal: 5, textAlign: "center" },
+    // Rótulo de máquina dentro de una torre ("I. LAVADORA"): un escalón por
+    // encima de CARACTERISTICAS, como en el impreso.
+    maquinaTitulo: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 4 },
     caracTitulo: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 3 },
     caracBullet: { flexDirection: "row", marginBottom: 1 },
     caracPunto: { width: 12, textAlign: "center" },
@@ -412,46 +431,67 @@ export function CotizacionPdf({
                       borderLeftColor: BORDE,
                     }}
                   >
-                    {item.caracteristicas.length > 0 && (
-                      <>
-                        <Text style={estilos.caracTitulo}>CARACTERISTICAS</Text>
-                        {item.caracteristicas.map((c, j) => (
-                          <View key={j} style={estilos.caracBullet}>
-                            <Text style={estilos.caracPunto}>•</Text>
-                            <Text style={estilos.caracTexto}>{c}</Text>
-                          </View>
-                        ))}
-                      </>
-                    )}
-                    {item.dimensiones.length > 0 && (
-                      <>
-                        <Text
-                          style={[
-                            estilos.caracTitulo,
-                            item.caracteristicas.length > 0 ? { marginTop: 8 } : {},
-                          ]}
-                        >
-                          DIMENSIONES DE LA MAQUINA
-                        </Text>
-                        {item.dimensiones.map((d, j) => (
-                          <View key={j} style={estilos.caracBullet}>
-                            <Text style={estilos.caracPunto}>•</Text>
-                            <Text style={estilos.caracTexto}>{d}</Text>
-                          </View>
-                        ))}
-                      </>
-                    )}
-                    {item.medidas.length > 0 && (
-                      <>
-                        <Text style={[estilos.caracTitulo, { marginTop: 8 }]}>MEDIDAS GENERALES</Text>
-                        {item.medidas.map((m, j) => (
-                          <View key={j} style={estilos.caracBullet}>
-                            <Text style={estilos.caracPunto}>•</Text>
-                            <Text style={estilos.caracTexto}>{m}</Text>
-                          </View>
-                        ))}
-                      </>
-                    )}
+                    {/* Una torre lavadora-secadora son DOS máquinas y su ficha
+                        trae un bloque para cada una. Se imprimen separadas y
+                        rotuladas —"I. LAVADORA", "II. SECADORA"— como el
+                        documento en papel. Un equipo normal tiene una sola
+                        sección sin rótulo y sale exactamente igual que antes. */}
+                    {(item.secciones ?? [
+                      {
+                        titulo: null,
+                        caracteristicas: item.caracteristicas,
+                        dimensiones: item.dimensiones,
+                        medidas: item.medidas,
+                      },
+                    ]).map((sec, s) => (
+                      <View key={s} style={s > 0 ? { marginTop: 10 } : undefined}>
+                        {sec.titulo && (
+                          <Text style={estilos.maquinaTitulo}>
+                            {ROMANOS[s] ?? s + 1}. {sec.titulo}
+                          </Text>
+                        )}
+                        {sec.caracteristicas.length > 0 && (
+                          <>
+                            <Text style={estilos.caracTitulo}>CARACTERISTICAS</Text>
+                            {sec.caracteristicas.map((c, j) => (
+                              <View key={j} style={estilos.caracBullet}>
+                                <Text style={estilos.caracPunto}>•</Text>
+                                <Text style={estilos.caracTexto}>{c}</Text>
+                              </View>
+                            ))}
+                          </>
+                        )}
+                        {sec.dimensiones.length > 0 && (
+                          <>
+                            <Text
+                              style={[
+                                estilos.caracTitulo,
+                                sec.caracteristicas.length > 0 ? { marginTop: 8 } : {},
+                              ]}
+                            >
+                              DIMENSIONES DE LA MAQUINA
+                            </Text>
+                            {sec.dimensiones.map((d, j) => (
+                              <View key={j} style={estilos.caracBullet}>
+                                <Text style={estilos.caracPunto}>•</Text>
+                                <Text style={estilos.caracTexto}>{d}</Text>
+                              </View>
+                            ))}
+                          </>
+                        )}
+                        {sec.medidas.length > 0 && (
+                          <>
+                            <Text style={[estilos.caracTitulo, { marginTop: 8 }]}>MEDIDAS GENERALES</Text>
+                            {sec.medidas.map((m, j) => (
+                              <View key={j} style={estilos.caracBullet}>
+                                <Text style={estilos.caracPunto}>•</Text>
+                                <Text style={estilos.caracTexto}>{m}</Text>
+                              </View>
+                            ))}
+                          </>
+                        )}
+                      </View>
+                    ))}
                   </View>
                 </View>
               )}

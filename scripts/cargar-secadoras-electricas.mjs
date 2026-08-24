@@ -148,7 +148,15 @@ function fichaDe(archivo) {
     if (!actual) continue;
     const limpia = actual === "caracteristicas" ? linea : unirDigitos(linea);
     if (limpia.length < 6 || limpia.length > 320) continue;
-    if (/^(marca|modelo|capacidad|panel|controles|autom[aá]tico|item\b)/i.test(limpia)) continue;
+
+    // Los rótulos de la tabla de cabecera ("Panel computarizado", "Controles
+    // Automático") no son características. Pero el filtro original miraba solo
+    // con qué palabra EMPIEZA la línea y se comía viñetas reales:
+    //     «Paneles superiores, frontales y laterales estándar disponible en blanco»
+    // Un rótulo no pasa de dos o tres palabras, así que se exige también corto.
+    if (/^item\b/i.test(limpia)) continue;
+    if (limpia.length < 40 && /^(marca|modelo|capacidad|panel|controles|autom[aá]tico)\b/i.test(limpia)) continue;
+
     bloques[actual].push(limpia);
   }
   const parear = (xs) =>
@@ -261,12 +269,30 @@ for (const eq of EQUIPOS) {
 
   // Un solo tier, igual que cargar-productos-catalogo.mjs: el maestro trae una
   // sola columna de precio y los tres niveles los define gerencia.
+  // El precio solo se toca si cambió. Correr esto dos veces el mismo día
+  // cerraba el precio vigente y después chocaba con la unicidad de
+  // (producto_id, tier, vigente_desde) — que es por FECHA. Resultado: el
+  // equipo se quedaba sin ningún precio vigente y desaparecía del cotizador.
   if (m.precio > 0) {
-    await bd.query(`update precios_producto set vigente_hasta = now() where producto_id = $1 and vigente_hasta is null`, [id]);
-    await bd.query(
-      `insert into precios_producto (producto_id, tier, precio, vigente_desde) values ($1, 'optimo', $2, now())`,
-      [id, m.precio],
+    const { rows: vigentes } = await bd.query(
+      `select precio from precios_producto where producto_id = $1 and tier = 'optimo' and vigente_hasta is null`,
+      [id],
     );
+    const sinCambio = vigentes.some((v) => Number(v.precio) === m.precio);
+    if (!sinCambio) {
+      await bd.query(
+        `update precios_producto set vigente_hasta = now() where producto_id = $1 and vigente_hasta is null`,
+        [id],
+      );
+      // `do update` reabre la fila del mismo día en vez de duplicarla.
+      await bd.query(
+        `insert into precios_producto (producto_id, tier, precio, vigente_desde)
+         values ($1, 'optimo', $2, now())
+         on conflict (producto_id, tier, vigente_desde)
+         do update set precio = excluded.precio, vigente_hasta = null`,
+        [id, m.precio],
+      );
+    }
   }
   console.log(`  ✓ cargado`);
 }
