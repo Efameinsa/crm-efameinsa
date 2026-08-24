@@ -7,6 +7,16 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { CargaDerivacion } from "@/components/crm/carga-derivacion";
 import { CargaCotizaciones } from "@/components/crm/carga-cotizaciones";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
+import { ConsolidadoCentral } from "@/components/crm/consolidado-central";
+
+// La bandeja tiene que mostrar lo que acaba de entrar: sin esto Next servía
+// una versión cacheada y un contacto recién registrado no aparecía hasta que
+// algo más invalidara la página.
+export const dynamic = "force-dynamic";
+
+// Tope de la bandeja. Alto a propósito: recortar la cola de triaje sin avisar
+// es lo que dejaba invisibles los contactos del día.
+const TOPE_BANDEJA = 300;
 
 const ICONO_CANAL: Record<string, LucideIcon> = {
   whatsapp: MessageCircle,
@@ -35,13 +45,22 @@ const ETIQUETA_CANAL: Record<string, string> = {
 export default async function CentralPage() {
   const supabase = await createClient();
 
-  const [{ data: leads }, { data: comerciales }] = await Promise.all([
+  const [{ data: leads, count: totalPendientes }, { data: comerciales }] = await Promise.all([
+    // ⚠️ El orden es de MÁS ANTIGUO a más nuevo a propósito: la cola se atiende
+    // por antigüedad, que es de lo que se trata bajar las 36 horas de
+    // asignación. Pero con `limit(50)` y 62 pendientes, los 12 más recientes
+    // —o sea, TODO lo que entraba hoy— quedaban fuera de la consulta y Central
+    // no los veía nunca. Se pide el conteo exacto y un tope que no recorte en
+    // silencio; si algún día se pasa, la pantalla lo dice.
     supabase
       .from("leads")
-      .select("id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, utm_campaign, recibido_at")
+      .select(
+        "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, utm_campaign, recibido_at",
+        { count: "exact" },
+      )
       .eq("estado", "pendiente_triaje")
       .order("recibido_at", { ascending: true })
-      .limit(50),
+      .limit(TOPE_BANDEJA),
     supabase
       .from("perfiles")
       .select("id, nombre, codigo_comercial, codigo_anterior")
@@ -57,7 +76,8 @@ export default async function CentralPage() {
       accion={
         leads && leads.length > 0 ? (
           <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
-            {leads.length} pendiente{leads.length === 1 ? "" : "s"}
+            {(totalPendientes ?? leads.length).toLocaleString("es-PE")} pendiente
+            {(totalPendientes ?? leads.length) === 1 ? "" : "s"}
           </span>
         ) : undefined
       }
@@ -115,7 +135,14 @@ export default async function CentralPage() {
           })}
         </div>
       )}
+      {leads && totalPendientes != null && totalPendientes > leads.length && (
+        <p className="mt-3 text-xs text-amber-700">
+          Se muestran los {leads.length} más antiguos de {totalPendientes.toLocaleString("es-PE")}. Al asignar o
+          descartar, aparecen los siguientes.
+        </p>
+      )}
     </SeccionPanel>
+    <ConsolidadoCentral />
     <CargaDerivacion />
     <CargaCotizaciones />
     </div>

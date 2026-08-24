@@ -7,6 +7,7 @@ import { PuntoInteres } from "@/components/crm/punto-interes";
 import { CalloutActivarNotificaciones } from "@/components/crm/callout-activar-notificaciones";
 import { cn } from "@/lib/utils";
 import { hoyLima } from "@/lib/periodo";
+import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
 
 interface FilaMiDia {
   id: string;
@@ -296,8 +297,12 @@ export default async function ComercialPage() {
       <CalloutActivarNotificaciones />
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle>Mi día</CardTitle>
+          {/* Para el WhatsApp o la llamada que le entra directo: lo registra
+              acá y Central lo deriva, en vez de mandarlo por correo para que
+              lo vuelvan a tipear. */}
+          <PasarContactoCentral />
         </CardHeader>
         <CardContent className="space-y-5">
           {oportunidades.length === 0 && inactivas.length === 0 && sinInforme.length === 0 ? (

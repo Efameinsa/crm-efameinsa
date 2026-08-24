@@ -20,6 +20,9 @@ export interface ComercialSupervision {
   monto_vendido_usd: number;
   /** Informes de cierre EMITIDOS ese día (los borradores no cuentan). */
   informes_emitidos: number;
+  /** Leads que Central le derivó ese día (migración 0059). Es el numerador
+   *  sin el cual "3 cotizaciones" no dice si trabajó bien o mal. */
+  derivados: number;
   agenda_pendiente: number;
   agenda_vencida: number;
   primera_gestion: string | null; // "HH:MM:SS" hora Lima
@@ -34,6 +37,7 @@ export interface TotalesSupervision {
   cotizaciones_archivo_sin_asesor: number;
   ventas: number;
   informes_emitidos: number;
+  derivados: number;
   comerciales_en_meta: number;
   comerciales_sin_actividad: number;
 }
