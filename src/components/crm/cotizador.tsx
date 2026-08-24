@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import { fechaCalendario } from "@/lib/fechas";
 import { buscarEquipos } from "@/lib/buscar-equipo";
+import { ENTREGA_POR_DEFECTO, LUGARES_ENTREGA } from "@/lib/pdf/series";
 
 interface PrecioTier {
   tier: string;
@@ -58,6 +59,7 @@ export interface BorradorEnEdicion {
   serie: "EFAMEINSA" | "OPEN";
   condiciones: string | null;
   vigenciaDias: number;
+  entregaLugar: string | null;
   items: {
     producto_id: string | null;
     descripcion: string | null;
@@ -246,6 +248,7 @@ export function Cotizador({
   const [vecesAgregado, setVecesAgregado] = useState(0);
   const [condiciones, setCondiciones] = useState(edicion?.condiciones ?? "Entrega: 15 días útiles. Garantía de fábrica.");
   const [vigenciaDias, setVigenciaDias] = useState(edicion?.vigenciaDias ?? 15);
+  const [entregaLugar, setEntregaLugar] = useState<string>(edicion?.entregaLugar ?? ENTREGA_POR_DEFECTO);
   const [enviando, startTransition] = useTransition();
 
   function agregarProducto() {
@@ -300,6 +303,7 @@ export function Cotizador({
           items,
           condiciones,
           vigenciaDias,
+          entregaLugar,
         });
         if (r.error) {
           toast.error(r.error);
@@ -315,7 +319,14 @@ export function Cotizador({
         return;
       }
 
-      const resultado = await crearCotizacion({ oportunidadId, serie, items, condiciones, vigenciaDias });
+      const resultado = await crearCotizacion({
+        oportunidadId,
+        serie,
+        items,
+        condiciones,
+        vigenciaDias,
+        entregaLugar,
+      });
       if (resultado.error) {
         toast.error(resultado.error);
         return;
@@ -462,6 +473,33 @@ export function Cotizador({
       <div className="space-y-2">
         <Label htmlFor="condiciones">Condiciones</Label>
         <Textarea id="condiciones" value={condiciones} onChange={(e) => setCondiciones(e.target.value)} rows={2} />
+      </div>
+
+      {/* Sale impreso como el punto 1 de "Importante". Hasta el 24-08 era un
+          texto fijo; se elige por cotización porque lo acordado cambia con cada
+          cliente (migración 0066). */}
+      <div className="space-y-2">
+        <Label htmlFor="entrega">Lugar de entrega</Label>
+        <Select
+          value={entregaLugar}
+          onValueChange={(v) => setEntregaLugar(typeof v === "string" ? v : ENTREGA_POR_DEFECTO)}
+        >
+          <SelectTrigger id="entrega" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {LUGARES_ENTREGA.map((l) => (
+              <SelectItem key={l} value={l}>
+                {l}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {entregaLugar !== ENTREGA_POR_DEFECTO && (
+          <p className="text-xs text-amber-700">
+            Está comprometiendo el traslado. Asegúrese de que el flete esté considerado en el precio.
+          </p>
+        )}
       </div>
 
       <div className="flex items-end gap-4">

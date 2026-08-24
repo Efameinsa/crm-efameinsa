@@ -99,6 +99,7 @@ async function main() {
       logoBuffer={leer("logo-efameinsa.png")!}
       serie="EFAMEINSA"
       numeroDocumento="MUESTRA-26"
+      entregaLugar={null}
       fecha={new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}
       cliente={{
         razon_social: "LAVANDERÍA INDUSTRIAL DEL SUR S.A.C.",

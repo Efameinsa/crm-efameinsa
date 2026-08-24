@@ -71,13 +71,34 @@ export function correoEnSerie(correo: string | null, serie: "EFAMEINSA" | "OPEN"
   return usuario ? `${usuario}@${DOMINIO_SERIE[serie]}` : correo;
 }
 
-// Texto idéntico al de los modelos reales (página final).
-export const PUNTOS_IMPORTANTES = [
-  // 24-08: decía "Entrega en agencias en la ciudad de Lima", que es lo que
-  // traían los modelos viejos en Word. Brenda lo corrigió el primer día: la
-  // entrega es EN PLANTA, y prometerle al cliente una agencia en Lima es un
-  // compromiso de despacho que la empresa no está asumiendo.
+/**
+ * Las tres formas de entrega que la empresa maneja, para elegir por cotización.
+ *
+ * El primer punto de "Importante" decía "Entrega en agencias en la ciudad de
+ * Lima" —lo que traían los modelos viejos en Word— y Brenda lo hizo corregir el
+ * 24-08: la entrega es EN PLANTA, y prometer una agencia en Lima es un
+ * compromiso de flete que la empresa no estaba asumiendo. Ese mismo día otra
+ * comercial pidió poder decir justamente eso, o "en almacenes del cliente".
+ *
+ * No se contradicen: lo que estaba mal era que el texto fuera FIJO y prometiera
+ * algo que no siempre se cumple. Elegido por cotización, dice lo que de verdad
+ * se acordó con ese cliente.
+ *
+ * ⚠️ La tercera opción compromete flete hasta el cliente. Está acá porque se
+ * pidió, pero conviene que gerencia decida si cualquiera puede ofrecerla.
+ */
+export const LUGARES_ENTREGA = [
   "Entrega en nuestras instalaciones.",
+  "Entrega en agencia de transporte en la ciudad de Lima.",
+  "Entrega en los almacenes del cliente.",
+] as const;
+
+/** La conservadora: es la que sale si nadie elige otra cosa. */
+export const ENTREGA_POR_DEFECTO = LUGARES_ENTREGA[0];
+
+// Texto idéntico al de los modelos reales (página final). El punto 1 lo pone
+// la cotización (ver `entregaLugar` en cotizacion-pdf.tsx).
+export const PUNTOS_IMPORTANTES = [
   "Incluye juego de manuales de operación, servicio técnico y mantenimiento.",
   "La garantía cubre cualquier defecto de fábrica, no por causas externas al equipo y/o por falta de mantenimiento por servicio técnico autorizado.",
   "Asesoría para instalación (punto de agua, energía eléctrica, descarga y/o lo requerido para su operación).",

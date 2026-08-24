@@ -35,7 +35,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data: cotizacion } = await supabase
     .from("cotizaciones")
     .select(
-      `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, cliente_snapshot, created_at,
+      `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, entrega_lugar, cliente_snapshot, created_at,
        cotizacion_items(cantidad, precio_unitario, descripcion, productos(marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
        oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto)`,
@@ -167,6 +167,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       moneda={cotizacion.moneda}
       condiciones={cotizacion.condiciones}
       vigenciaDias={cotizacion.vigencia_dias}
+      entregaLugar={cotizacion.entrega_lugar}
       firma={{
         nombre: perfilComercial?.nombre ?? "Área Comercial",
         cargo: perfilComercial?.cargo ?? null,

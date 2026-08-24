@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
-import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, NOTAS, IGV } from "./series";
+import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, NOTAS, IGV, ENTREGA_POR_DEFECTO } from "./series";
 
 // Estructura calcada de las cotizaciones reales de ambas razones sociales
 // (Descargas/PROYECTO CRM EFAMEINSA/modelos de cotizacion): carta formal con
@@ -66,6 +66,9 @@ export interface CotizacionPdfProps {
   moneda: string;
   condiciones: string | null;
   vigenciaDias: number;
+  /** Cláusula de entrega, punto 1 de "Importante". NULL = la de por defecto
+   *  (en nuestras instalaciones). Se elige por cotización desde el 24-08. */
+  entregaLugar: string | null;
   firma: {
     nombre: string;
     cargo: string | null;
@@ -207,6 +210,7 @@ export function CotizacionPdf({
   moneda,
   condiciones,
   vigenciaDias,
+  entregaLugar,
   firma,
 }: CotizacionPdfProps) {
   const identidad = IDENTIDAD_SERIE[serie];
@@ -548,7 +552,9 @@ export function CotizacionPdf({
         {/* ── Importante / Nota ── */}
         <View style={{ marginTop: 18 }} wrap={false}>
           <Text style={estilos.seccionSubrayada}>Importante:</Text>
-          {PUNTOS_IMPORTANTES.map((p, i) => (
+          {/* El punto 1 es el lugar de entrega, que se elige por cotización
+              (migración 0066). Los demás son fijos y vienen de los modelos. */}
+          {[entregaLugar ?? ENTREGA_POR_DEFECTO, ...PUNTOS_IMPORTANTES].map((p, i) => (
             <View key={i} style={estilos.listaNumerada}>
               <Text style={estilos.listaNumero}>{i + 1}.</Text>
               <Text style={estilos.listaTexto}>{p}</Text>

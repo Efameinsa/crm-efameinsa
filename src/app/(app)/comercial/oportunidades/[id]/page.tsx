@@ -60,7 +60,7 @@ export default async function OportunidadDetallePage({
       supabase
         .from("cotizaciones")
         .select(
-          "id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at",
+          "id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at, entrega_lugar",
         )
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),
@@ -158,6 +158,7 @@ export default async function OportunidadDetallePage({
         serie: borrador.serie as "EFAMEINSA" | "OPEN",
         condiciones: borrador.condiciones,
         vigenciaDias: borrador.vigencia_dias,
+        entregaLugar: borrador.entrega_lugar,
         items: (itemsBorrador ?? []).map((i) => {
           const pr = i.productos as unknown as { marca: string; modelo: string; nombre: string } | null;
           return {

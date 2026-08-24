@@ -23,12 +23,31 @@ function limpiarError(mensaje: string): string {
   return mensaje.replace(/^[A-Z0-9]{5}:\s*/, "");
 }
 
+/**
+ * El lugar de entrega es parte del documento pero NO viaja dentro de
+ * `crear_cotizacion`: se escribe justo después, mientras la cotización sigue
+ * siendo borrador.
+ *
+ * Se hace así para no cambiarle la firma a una función de la base que ya está
+ * en uso desde tres sitios. El trigger de inmutabilidad lo congela igual en
+ * cuanto el documento se envía (migración 0066), que es lo que importa.
+ */
+async function guardarEntrega(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cotizacionId: string,
+  entregaLugar: string | null | undefined,
+): Promise<void> {
+  if (!entregaLugar) return;
+  await supabase.from("cotizaciones").update({ entrega_lugar: entregaLugar }).eq("id", cotizacionId);
+}
+
 export async function crearCotizacion(datos: {
   oportunidadId: string;
   serie: "EFAMEINSA" | "OPEN";
   items: ItemCotizacion[];
   condiciones: string;
   vigenciaDias: number;
+  entregaLugar?: string | null;
 }): Promise<{ error: string | null; cotizacionId?: string }> {
   if (datos.items.length === 0) return { error: "Agregue al menos un producto" };
 
@@ -43,6 +62,7 @@ export async function crearCotizacion(datos: {
   if (error) return { error: error.message };
 
   const cotizacionId = data as string;
+  await guardarEntrega(supabase, cotizacionId, datos.entregaLugar);
 
   const { data: cotizacion } = await supabase
     .from("cotizaciones")
@@ -221,6 +241,7 @@ export async function editarCotizacion(datos: {
   items: ItemCotizacion[];
   condiciones: string;
   vigenciaDias: number;
+  entregaLugar?: string | null;
 }): Promise<{ error: string | null }> {
   if (datos.items.length === 0) return { error: "La cotización necesita al menos un equipo" };
 
@@ -232,6 +253,8 @@ export async function editarCotizacion(datos: {
     p_vigencia_dias: datos.vigenciaDias,
   });
   if (error) return { error: limpiarError(error.message) };
+
+  await guardarEntrega(supabase, datos.cotizacionId, datos.entregaLugar);
 
   const { data: cot } = await supabase
     .from("cotizaciones")
