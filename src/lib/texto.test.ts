@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tokenizarBusqueda } from "./texto";
+import { nombrePropio, tokenizarBusqueda } from "./texto";
 
 // Alimenta el pre-filtro de derivación (buscarCoincidencias) — el caso real
 // que Carlos validó en vivo fue "María Leguía" → debía encontrar a
@@ -29,5 +29,33 @@ describe("tokenizarBusqueda", () => {
 
   it("solo ruido corto → sin tokens", () => {
     expect(tokenizarBusqueda("SA CV LA")).toEqual([]);
+  });
+});
+
+describe("nombrePropio", () => {
+  it("pasa un nombre en mayúsculas a primera letra mayúscula", () => {
+    expect(nombrePropio("JUAN PEREZ GONZALES")).toBe("Juan Perez Gonzales");
+  });
+
+  it("deja las partículas en minúscula, salvo al principio", () => {
+    expect(nombrePropio("MARIA DE LOS ANGELES")).toBe("Maria de los Angeles");
+    expect(nombrePropio("DE LA CRUZ ROJAS")).toBe("De la Cruz Rojas");
+  });
+
+  it("no toca lo que ya tiene minúsculas", () => {
+    expect(nombrePropio("Jorge McDonald")).toBe("Jorge McDonald");
+    expect(nombrePropio("LG Perú")).toBe("LG Perú");
+  });
+
+  it("respeta guiones y apóstrofos", () => {
+    expect(nombrePropio("JEAN-PIERRE D'ANGELO")).toBe("Jean-Pierre D'Angelo");
+  });
+
+  it("normaliza los espacios de más", () => {
+    expect(nombrePropio("  ANA   TORRES  ")).toBe("Ana Torres");
+  });
+
+  it("con cadena vacía no revienta", () => {
+    expect(nombrePropio("   ")).toBe("");
   });
 });

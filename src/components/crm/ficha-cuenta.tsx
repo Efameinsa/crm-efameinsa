@@ -7,7 +7,8 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ResumenCuenta } from "@/components/crm/resumen-cuenta";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { GrupoEconomico } from "@/components/crm/grupo-economico";
-import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores, ListaContactos } from "@/components/crm/secciones-cliente";
+import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
+import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { Badge } from "@/components/ui/badge";
 
 export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId: string; comoGerencia?: boolean }) {
@@ -16,7 +17,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   const { data: cuenta } = await supabase
     .from("cuentas")
     .select(
-      "id, razon_social, tipo_doc, num_doc, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, es_principal)",
+      "id, razon_social, tipo_doc, num_doc, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, es_principal)",
     )
     .eq("id", cuentaId)
     .maybeSingle();
@@ -31,6 +32,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
       cargo: string | null;
       telefono: string | null;
       email: string | null;
+      documento: string | null;
       es_principal: boolean;
     }[]) ?? [];
 
@@ -112,7 +114,8 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
         </div>
 
         <SeccionPanel titulo={`Contactos (${contactos.length})`}>
-          <ListaContactos contactos={contactos} />
+          {/* Editables: es lo que se imprime en la cotización (24-08). */}
+          <ContactosEditables cuentaId={cuenta.id} contactos={contactos} />
         </SeccionPanel>
       </div>
     </div>

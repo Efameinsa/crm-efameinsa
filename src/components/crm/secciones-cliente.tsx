@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Phone, Mail, FileText, User, FilePlus2 } from "lucide-react";
+import { FileText, FilePlus2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fechaCalendario } from "@/lib/fechas";
 import type { VentaConDetalle } from "@/lib/historial-cuenta";
@@ -185,42 +185,6 @@ export function TablaComprasAnteriores({ ventas }: { ventas: VentaConDetalle[] }
   );
 }
 
-export function ListaContactos({ contactos }: { contactos: ContactoCuenta[] }) {
-  if (contactos.length === 0) {
-    return <p className="text-sm text-muted-foreground">Sin contactos registrados.</p>;
-  }
-  return (
-    <div className="space-y-3">
-      {contactos.map((c) => (
-        <div key={c.id} className="rounded-lg border border-border p-3">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <User className="size-3.5 text-muted-foreground" />
-            {c.nombre}
-            {c.es_principal && (
-              <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                Principal
-              </span>
-            )}
-          </p>
-          {c.cargo && <p className="text-xs text-muted-foreground">{c.cargo}</p>}
-          <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
-            {c.telefono && (
-              <p className="flex items-center gap-1">
-                <Phone className="size-3.5" />
-                {c.telefono}
-              </p>
-            )}
-            {c.email && (
-              <p className="flex items-center gap-1">
-                <Mail className="size-3.5" />
-                {c.email}
-              </p>
-            )}
-            {/* DNI de quien recibe la entrega (migración 0057). */}
-            {c.documento && <p className="flex items-center gap-1">DNI/CE: {c.documento}</p>}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+// ListaContactos vivía acá: era la vista de solo lectura de los contactos.
+// La reemplazó ContactosEditables el 24-08 — el contacto es lo que se imprime
+// en la cotización y tenía que poder corregirse.

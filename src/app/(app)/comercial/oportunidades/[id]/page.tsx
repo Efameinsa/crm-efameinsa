@@ -10,7 +10,8 @@ import { CalificacionOportunidad } from "@/components/crm/calificacion-oportunid
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { SeccionPanel, SeccionPlegable } from "@/components/crm/seccion-panel";
-import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores, ListaContactos } from "@/components/crm/secciones-cliente";
+import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
+import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { fechaAgendada, fechaHoraLima } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
@@ -307,7 +308,9 @@ export default async function OportunidadDetallePage({
               )}
 
               <SeccionPlegable titulo="Contactos" cantidad={contactosCuenta.length}>
-                <ListaContactos contactos={contactosCuenta} />
+                {/* Editables: el contacto principal es el que sale en la
+                    cotización como "Atención:", con su teléfono y correo. */}
+                {cuenta?.id && <ContactosEditables cuentaId={cuenta.id} contactos={contactosCuenta} />}
               </SeccionPlegable>
             </>
           )}
