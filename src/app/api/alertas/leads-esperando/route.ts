@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CANAL_LABEL } from "@/lib/canal-contacto";
+import { enlaceApp } from "@/lib/url-app";
 
 // Consultado por n8n cada 15 min (workflow "CRM · SLA leads esperando"):
 // devuelve los leads que llevan demasiado esperando, para escalar por correo.
@@ -84,6 +85,6 @@ export async function GET(request: NextRequest) {
     total: pendientes.length + sinPrimeraGestion.length,
     pendientes,
     sin_primera_gestion: sinPrimeraGestion,
-    url_bandeja: "https://crm-efameinsa.vercel.app/central",
+    url_bandeja: enlaceApp("/central"),
   });
 }

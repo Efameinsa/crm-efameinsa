@@ -31,7 +31,7 @@ function leerArgumento(nombre, porDefecto) {
 }
 
 const APLICAR = process.argv.includes("--aplicar");
-const URL_CRM = leerArgumento("url", "https://crm-efameinsa.vercel.app");
+const URL_CRM = leerArgumento("url", "https://crm.efameinsa.com");
 
 function haceMeses(fecha, meses) {
   const d = new Date(fecha);

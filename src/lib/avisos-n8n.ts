@@ -1,3 +1,4 @@
+import { enlaceApp } from "@/lib/url-app";
 // Aviso saliente a n8n por cada lead nuevo (pedido de gerencia 18-08:
 // "correo por cada lead"). El CRM NO envía correos (sin SMTP): dispara un
 // webhook a n8n y n8n hace el Gmail — el CRM sigue siendo la fuente de
@@ -55,7 +56,7 @@ export async function avisarLeadNuevoN8n(datos: AvisoLeadNuevo): Promise<void> {
       body: JSON.stringify({
         secreto: process.env.N8N_WEBHOOK_SECRET ?? "",
         ...datos,
-        url_bandeja: "https://crm-efameinsa.vercel.app/central",
+        url_bandeja: enlaceApp("/central"),
         recibido: new Date().toISOString(),
       }),
       signal: AbortSignal.timeout(4000),

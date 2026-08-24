@@ -14,7 +14,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const URL_APP = process.argv[2] ?? "https://crm-efameinsa.vercel.app";
+const URL_APP = process.argv[2] ?? "https://crm.efameinsa.com";
 const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY } = process.env;
 
 const admin = createClient(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
