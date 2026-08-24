@@ -163,3 +163,100 @@ Darwin duda del orden actual (asignada → filtrada → cotizada → seguimiento
 | 6 | C5, D1 | Requieren decisión de Darwin/Carlos antes de codificar. |
 
 **Ojo con el deploy:** hoy lunes es el primer día real del equipo. No deployar a media mañana algo a medio verificar; agrupar en deploys verificados. Los ítems 1–2 son los más urgentes porque tocan lo que los comerciales usan desde hoy.
+
+---
+
+# Resultado de la ejecución (lunes 24-08, 07:30–08:45)
+
+Todo el plan quedó aplicado y en producción salvo **D1**, que por diseño no se
+toca sin Carlos. Cinco commits, cada uno verificado con sesión real de Katerine
+(C5) contra `next start` — 42 comprobaciones en
+`scripts/probar-correcciones-24-08.mjs`, que trabaja sobre una oportunidad de
+producción y restaura todo lo que escribe.
+
+| Commit | Cubre |
+|---|---|
+| `5692c55` | A1, A2, C1, C4 |
+| `76beff9` | A3, A4, B9 |
+| `44825c1` | B1–B8 |
+| `381892b` | A5, A6, C2, C3 |
+| `2c3eaeb` | C5 |
+
+## Lo que el plan no había previsto y salió al ejecutarlo
+
+**1. La agenda tenía un segundo bug, independiente de A1.** Aunque la gestión
+hubiera guardado bien la próxima acción, la agenda igual no la habría mostrado:
+pedía TODAS las oportunidades abiertas del comercial sin `limit`, y Katerine
+tiene 13.601 — Supabase corta en 1.000 sin avisar. Ordenadas por
+`proxima_accion_at` ascendente, esas 1.000 eran todas de **1900** (fechas basura
+del import), así que la agenda nunca llegaba a 2026: había **75 acciones de
+agosto-2026 invisibles**. Es el mismo bug de las 1.000 filas que ya había roto
+Mi cartera y los reportes de gerencia.
+
+**2. A6 tenía la misma raíz que A2, no una propia.** "Mi día" no estaba vacío
+por su lógica de filtros sino por `origen='crm'` — el mismo filtro que dejaba el
+Kanban en blanco. Ninguna oportunidad de los comerciales tiene ese origen.
+
+**3. B7 no era un fallo.** Banco, Fecha, Nº OP y Monto salen en blanco a
+propósito: las llena Central cuando entra el pago, igual que en el formato de
+papel. Solo faltaba que el PDF lo dijera.
+
+**4. Media A3 era un problema de datos, no de código.** "CK120" y "SEGMAX 15"
+no existen en el catálogo: **7 de los 65 equipos están cargados sin código**
+(5 LG, 1 Primus, 1 Girbau). Buscar por código nunca los iba a encontrar.
+→ **Pendiente para Lesly/logística: completar esos 7 códigos.**
+
+**5. B8 tocaba numeración con historia.** `INFORME-OPEN-2026` estaba en 4 sin
+ningún informe OPEN en la base, lo que encaja con el "INFORME OPEN Nº004-2026"
+que existe en papel. Se advirtió que resetearlo puede duplicar documentos reales
+y **Darwin decidió resetearlo igual**; queda dicho en
+`scripts/reiniciar-correlativos-informes.mjs`.
+
+## Decisiones que quedaron abiertas
+
+**"Corresponde cerrar" sigue filtrado por `origen='crm'`, a propósito.** Medido
+con datos reales, sin el filtro mostraría **724** oportunidades a Brenda,
+**5.438** a C4 y **12.814** a Katerine: el histórico entero ya pasó los umbrales
+del manual (1 mes prospecto / 3 meses cotización, migración 0018). No es un
+fallo de la pantalla. Cerrar eso en bloque —con qué motivo, y si se cierran o se
+reasignan— es decisión de gerencia, no algo que el CRM deba empujarle a cada
+comercial al abrir sesión. **Va junto con D1 en la conversación con Carlos.**
+
+## D1 — el orden del pipeline, con los datos a la vista
+
+Orden actual del enum: `asignada → filtrada → cotizada → seguimiento →
+potencial → venta → rechazada → derivada`.
+
+Volumen real hoy:
+
+| Etapa | Oportunidades | De qué estado del Excel viene |
+|---|---:|---|
+| filtrada | 11.355 | `P1_F_REALIZADO`, `P1_F_REALIZ_Y_COTIZADO` |
+| seguimiento | 6.895 | `C3_ESPERAR`, `C3_NO_RESPONDE`, `P2_ESPERAR`, `P2_NO_RESPONDE`, `C2_REU_SHOWROOM`, `C2_REU_ONLINE`, `H_ESPERAR` |
+| rechazada | 2.481 | `C4_RDO_*`, `P3_RDO_*` |
+| venta | 1.297 | `C4_VENTA` |
+| asignada | 1.294 | sin estado / `P1_F_PENDIENTE` |
+| cotizada | 1.291 | `C1_PTO_CONF`, `C1_PTO_VECES`, `C1_GC_XAPROBAR`, `P3_R_COTIZAR` |
+| potencial | **68** | solo `C3_SEG_POTENCIAL` |
+| derivada | 36 | `C4_RDO_DERIVADO` |
+
+**El hallazgo que conviene llevarle a Carlos no es el orden, es que
+`seguimiento` no es una posición del embudo.** Mezcla estados de ANTES de
+cotizar (`P2_*`, `C2_REU_*` — reuniones y esperas de prospecto) con estados de
+DESPUÉS de cotizar (`C3_*` — esperando respuesta a la cotización). Por eso
+"cotizada antes que seguimiento" se lee raro: 6.895 oportunidades están en un
+cajón que significa dos cosas distintas.
+
+Y `potencial` tiene **68 de 24.717** — es un estado que en la práctica casi no
+se usa, no una etapa del embudo.
+
+**Preguntas concretas para Carlos:**
+1. ¿`seguimiento` debe partirse en dos (seguimiento de prospecto / seguimiento
+   de cotización), o es un solo cajón a propósito?
+2. ¿`potencial` es una etapa o una calificación? Con 68 casos parece lo segundo
+   — y ya existe el campo `intencion` (alto potencial / medio / bajo) para eso.
+3. Las 2.481 rechazadas con motivo "Sin precisar (import histórico)": ¿se
+   reasignan a un motivo real, se dan de baja, o quedan recuperables?
+
+**No se cambió nada del pipeline.** Cualquier reordenamiento es migración de
+datos + kanban + embudo de gerencia, y se dimensiona aparte.
