@@ -179,9 +179,23 @@ export function CapturaForm() {
         <Input id="email" name="email" type="email" />
       </div>
 
+      {/* Es el campo que decide a qué comercial conviene derivarlo y con qué
+          preparación llama. Se rotuló como pregunta y con ejemplo porque
+          "Mensaje / consulta" se leía como opcional y se dejaba vacío: el
+          comercial recibía entonces un nombre y un teléfono, sin saber qué
+          pidió. (Brenda, 24-08: «cada nuevo prospecto tiene diferente interés
+          de compra».) */}
       <div className="space-y-2">
-        <Label htmlFor="mensaje">Mensaje / consulta</Label>
-        <Textarea id="mensaje" name="mensaje" rows={3} />
+        <Label htmlFor="mensaje">¿Qué solicita?</Label>
+        <Textarea
+          id="mensaje"
+          name="mensaje"
+          rows={3}
+          placeholder="Qué equipo pide, capacidad, para qué uso y cualquier dato que ayude al comercial. ej.: secadora 25 kg a vapor para lavandería en Surco; pregunta por precio y tiempo de entrega."
+        />
+        <p className="text-xs text-muted-foreground">
+          Lo que escriba acá es lo primero que ve el comercial al abrir el contacto.
+        </p>
       </div>
 
       <Button type="submit" disabled={enviando}>

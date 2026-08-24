@@ -12,7 +12,22 @@ import { PuntoInteres } from "@/components/crm/punto-interes";
 import { SeccionPanel, SeccionPlegable } from "@/components/crm/seccion-panel";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores, ListaContactos } from "@/components/crm/secciones-cliente";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
-import { fechaAgendada } from "@/lib/fechas";
+import { fechaAgendada, fechaHoraLima } from "@/lib/fechas";
+import { SolicitudLead } from "@/components/crm/solicitud-lead";
+
+// Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
+// el mismo nombre de canal que vio quien se lo derivó.
+const ETIQUETA_CANAL_LEAD: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  llamada: "llamada",
+  formulario_web: "el formulario de la web",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  email: "correo",
+  presencial: "visita presencial",
+  referido: "referido",
+  otro: "otro canal",
+};
 
 export default async function OportunidadDetallePage({
   params,
@@ -27,7 +42,7 @@ export default async function OportunidadDetallePage({
       supabase
         .from("oportunidades")
         .select(
-          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, leads(codigo, canal, mensaje, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -46,6 +61,14 @@ export default async function OportunidadDetallePage({
     ]);
 
   if (!oportunidad) notFound();
+
+  const lead = oportunidad.leads as unknown as {
+    codigo: string | null;
+    canal: string;
+    mensaje: string | null;
+    utm_campaign: string | null;
+    recibido_at: string | null;
+  } | null;
 
   const cuenta = oportunidad.cuentas as unknown as {
     id: string;
@@ -185,6 +208,21 @@ export default async function OportunidadDetallePage({
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
+          {/* LO PRIMERO, antes de registrar nada: qué pidió este prospecto.
+              Va arriba de todo porque es lo que el comercial necesita leer
+              antes de levantar el teléfono. Pedido de Brenda el 24-08: «cada
+              nuevo prospecto tiene diferente interés de compra». */}
+          {lead && (
+            <SeccionPanel titulo="Solicitud del prospecto">
+              <SolicitudLead mensaje={lead.mensaje} campania={lead.utm_campaign} compacto />
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Entró por {ETIQUETA_CANAL_LEAD[lead.canal] ?? lead.canal}
+                {lead.recibido_at ? ` · ${fechaHoraLima(lead.recibido_at)}` : ""}
+                {lead.codigo ? ` · ${lead.codigo}` : ""}
+              </p>
+            </SeccionPanel>
+          )}
+
           <SeccionPanel titulo="Registrar gestión">
             <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} motivos={motivos ?? []} />
           </SeccionPanel>

@@ -6,6 +6,7 @@ import { DescartarLeadBoton } from "@/components/crm/descartar-lead-boton";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { CargaDerivacion } from "@/components/crm/carga-derivacion";
 import { CargaCotizaciones } from "@/components/crm/carga-cotizaciones";
+import { SolicitudLead } from "@/components/crm/solicitud-lead";
 
 const ICONO_CANAL: Record<string, LucideIcon> = {
   whatsapp: MessageCircle,
@@ -37,7 +38,7 @@ export default async function CentralPage() {
   const [{ data: leads }, { data: comerciales }] = await Promise.all([
     supabase
       .from("leads")
-      .select("id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, recibido_at")
+      .select("id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, utm_campaign, recibido_at")
       .eq("estado", "pendiente_triaje")
       .order("recibido_at", { ascending: true })
       .limit(50),
@@ -70,34 +71,45 @@ export default async function CentralPage() {
             return (
               <div
                 key={lead.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-background p-3.5 shadow-sm"
+                className="rounded-lg border border-border bg-background p-3.5 shadow-sm"
               >
-                <span className="flex size-9 flex-none items-center justify-center rounded-full bg-secondary text-foreground">
-                  <Icono className="size-4" />
-                </span>
-                <div className="min-w-[180px] flex-1">
-                  <p className="text-sm font-semibold text-foreground">{lead.nombre_contacto ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {lead.razon_social ?? "Sin razón social"} · {ETIQUETA_CANAL[lead.canal] ?? lead.canal}
-                  </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="flex size-9 flex-none items-center justify-center rounded-full bg-secondary text-foreground">
+                    <Icono className="size-4" />
+                  </span>
+                  <div className="min-w-[180px] flex-1">
+                    <p className="text-sm font-semibold text-foreground">{lead.nombre_contacto ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {lead.razon_social ?? "Sin razón social"} · {ETIQUETA_CANAL[lead.canal] ?? lead.canal}
+                    </p>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-mono">{lead.codigo}</span>
+                    <br />
+                    {fechaHoraLima(lead.recibido_at)}
+                  </div>
+                  <div className="ml-auto flex gap-2">
+                    <AsignarLeadDialog
+                      leadId={lead.id}
+                      nombre={lead.nombre_contacto}
+                      razonSocial={lead.razon_social}
+                      telefono={lead.telefono}
+                      numDoc={lead.num_doc}
+                      email={lead.email}
+                      mensaje={lead.mensaje}
+                      comerciales={comerciales ?? []}
+                    />
+                    <DescartarLeadBoton leadId={lead.id} />
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  <span className="font-mono">{lead.codigo}</span>
-                  <br />
-                  {fechaHoraLima(lead.recibido_at)}
-                </div>
-                <div className="ml-auto flex gap-2">
-                  <AsignarLeadDialog
-                    leadId={lead.id}
-                    nombre={lead.nombre_contacto}
-                    razonSocial={lead.razon_social}
-                    telefono={lead.telefono}
-                    numDoc={lead.num_doc}
-                    email={lead.email}
-                    comerciales={comerciales ?? []}
-                  />
-                  <DescartarLeadBoton leadId={lead.id} />
-                </div>
+
+                {/* QUÉ PIDIÓ el prospecto. El dato siempre se guardó en
+                    leads.mensaje pero no se mostraba en ninguna pantalla, así
+                    que Central derivaba a ciegas y el comercial recibía un
+                    nombre y un teléfono. Brenda lo pidió el primer día de uso:
+                    «necesito ver el detalle de la solicitud de cada prospecto
+                    nuevo, ya que cada uno tiene diferente interés de compra». */}
+                <SolicitudLead mensaje={lead.mensaje} campania={lead.utm_campaign} />
               </div>
             );
           })}

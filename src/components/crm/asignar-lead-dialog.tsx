@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { SolicitudLead } from "@/components/crm/solicitud-lead";
 
 interface Comercial {
   id: string;
@@ -41,6 +42,8 @@ interface Props {
   telefono: string | null;
   numDoc: string | null;
   email: string | null;
+  /** Lo que pidió el prospecto: sin esto Central deriva a ciegas. */
+  mensaje?: string | null;
   comerciales: Comercial[];
 }
 
@@ -56,7 +59,7 @@ const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: 
 // histórico (RUC/DNI, teléfono, correo, nombre). Un match fuerte preselecciona
 // al comercial de esa cartera (regla R3); los de nombre solo advierten:
 // puede haber muchas "María Leguía".
-export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, comerciales }: Props) {
+export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[] | null>(null);
   const [comercialId, setComercialId] = useState<string>("");
@@ -97,6 +100,12 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
           <DialogTitle>Asignar contacto</DialogTitle>
           <DialogDescription>Elija el comercial que va a atender este contacto.</DialogDescription>
         </DialogHeader>
+
+        {/* Se repite acá a propósito: es el dato que decide a QUIÉN conviene
+            derivarlo, y en este diálogo es donde se toma la decisión. */}
+        <div className="rounded-md border border-border bg-secondary/40 p-2.5">
+          <SolicitudLead mensaje={mensaje ?? null} compacto />
+        </div>
 
         {coincidencias === null ? (
           <p className="text-xs text-muted-foreground">Buscando en el histórico (RUC, teléfono, correo y nombre)…</p>
