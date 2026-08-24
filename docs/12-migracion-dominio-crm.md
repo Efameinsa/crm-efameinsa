@@ -59,6 +59,77 @@ donde el proyecto `crm-efameinsa` no aparece.
 
 **No hay que tocar variables de entorno en Vercel.** Ninguna guarda el dominio.
 
+> **24-08:** este paso se hizo y Vercel respondió *Verification Required*. Seguir en 1b.
+
+## 1b. Si Vercel dice «Verification Required» (es lo que pasó el 24-08)
+
+Añadir el dominio devolvió **Verification Required**. Comprobado por DNS: **no
+existe ningún TXT** en `_vercel.crm.efameinsa.com` ni en `_vercel.efameinsa.com`.
+
+**Qué significa:** el dominio ya está reclamado en **otra cuenta de Vercel**, y
+Vercel exige demostrar que es nuestro antes de dejarlo usar. No es un error de
+configuración del CNAME — ese está bien.
+
+Se descartó que sea la cuenta personal de Darwin (`dsva97`): sus 32 proyectos no
+incluyen ninguno de Efameinsa. Lo más probable es que lo tenga quien montó la web
+antes; el dominio principal sigue apuntando al hosting viejo
+(`207.58.172.236`, `cloud1000.im-global.net`).
+
+**Cómo se resuelve — hay dos caminos:**
+
+**A) El TXT de propiedad (el que no depende de terceros).** Vercel muestra en
+pantalla, junto al aviso, el registro exacto a crear. Tiene esta forma:
+
+| Tipo | Nombre | Valor |
+|---|---|---|
+| TXT | `_vercel` o `_vercel.crm` | `vc-domain-verify=...` |
+
+⚠️ **Copiarlo literal del panel de Vercel.** El nombre cambia según si Vercel
+pide verificar el subdominio o el dominio raíz, y el valor es único por cuenta.
+Reescribirlo de memoria es la forma más rápida de perder otro día — ya pasó una
+vez con este hosting, que configuró mal el subdominio a la primera.
+
+**B) Que la otra cuenta de Vercel lo libere.** Más limpio, pero exige saber
+quién la controla y que responda. El camino A no depende de eso.
+
+### Correo para el hosting
+
+> Asunto: Registro TXT de verificación para crm.efameinsa.com
+>
+> Buen día,
+>
+> Gracias por crear el CNAME de `crm.efameinsa.com`, está correcto y ya resuelve
+> a Vercel.
+>
+> Para terminar de habilitarlo necesitamos **un registro TXT más**. Es el que
+> Vercel pide para verificar la propiedad del dominio:
+>
+> - **Tipo:** TXT
+> - **Nombre / Host:** `_vercel` _(o `_vercel.crm` — ver la nota de abajo)_
+> - **Valor:** `vc-domain-verify=...` _(pegar aquí el valor EXACTO del panel)_
+> - **TTL:** el mínimo que permita el panel
+>
+> Es un registro de solo lectura: **no cambia a dónde apunta el dominio, no
+> afecta al correo ni a la web actual**. Solo sirve para que Vercel confirme que
+> el dominio es nuestro.
+>
+> Quedamos atentos para confirmar en cuanto esté creado.
+
+*(Si por teléfono es más rápido que por correo, el pedido es una sola línea:
+"crear un TXT en `_vercel` con el valor que les paso".)*
+
+### Cómo saber cuándo quedó
+
+```
+node --env-file=.env.local scripts/migrar-dominio.mjs
+```
+
+Lo primero que imprime es si el TXT ya existe y qué valor tiene. Consulta por
+DNS-over-HTTPS contra Cloudflare, así que no depende de la caché del equipo.
+Cuando aparezca, Vercel lo valida solo en unos minutos y emite el certificado.
+
+---
+
 ## 2. Después, corre esto
 
 ```

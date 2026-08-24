@@ -44,16 +44,60 @@ async function pedir(url, opciones = {}) {
 
 console.log(`Dominio nuevo: ${NUEVO}\nDominio viejo: ${VIEJO}\n`);
 
+const host = new URL(NUEVO).hostname;
+const apex = host.split(".").slice(-2).join(".");
+
+/** Consulta DNS por DoH: no depende de nslookup ni del resolutor del equipo. */
+async function dns(nombre, tipo) {
+  try {
+    const r = await fetch(`https://cloudflare-dns.com/dns-query?name=${nombre}&type=${tipo}`, {
+      headers: { accept: "application/dns-json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const j = await r.json();
+    return (j.Answer ?? []).map((a) => String(a.data).replace(/^"|"$/g, ""));
+  } catch {
+    return [];
+  }
+}
+
+// ── 0. ¿Vercel está esperando el TXT de propiedad? ──────────────────────────
+// "Verification Required" en el panel = el dominio ya está reclamado en OTRA
+// cuenta de Vercel, y hay que demostrar que es nuestro con un TXT. Se comprueba
+// antes que nada porque explica el resto de fallos.
+console.log("=== VERIFICACIÓN DE PROPIEDAD ===");
+const [txtSub, txtApex, cname] = await Promise.all([
+  dns(`_vercel.${host}`, "TXT"),
+  dns(`_vercel.${apex}`, "TXT"),
+  dns(host, "CNAME"),
+]);
+ok(cname.some((c) => c.includes("vercel-dns")), `${host} apunta a Vercel por CNAME`, cname.join(", ") || "sin CNAME");
+
+const hayTxt = txtSub.length > 0 || txtApex.length > 0;
+if (hayTxt) {
+  ok(true, "existe el TXT _vercel de propiedad", [...txtSub, ...txtApex].join(" · "));
+} else {
+  aviso(`no existe TXT en _vercel.${host} ni en _vercel.${apex}`);
+  console.log(
+    "\n  Si el panel de Vercel dice «Verification Required», es esto: el dominio\n" +
+      "  ya está reclamado en otra cuenta de Vercel y hay que demostrar que es\n" +
+      "  nuestro. Vercel muestra en pantalla el registro EXACTO a crear (nombre\n" +
+      "  y valor); hay que pedírselo al hosting tal cual, sin reescribirlo.\n" +
+      "  Ver docs/12-migracion-dominio-crm.md, sección 1b.\n",
+  );
+}
+
 // ── 1. ¿Responde por HTTPS? ─────────────────────────────────────────────────
-console.log("=== EL DOMINIO ===");
+console.log("\n=== EL DOMINIO ===");
 const login = await pedir(`${NUEVO}/login`);
 if (login.status === 0) {
   ok(false, "responde por HTTPS", login.error);
   console.log(
-    "\n  El CNAME está puesto pero el dominio todavía NO está añadido al proyecto\n" +
-      "  en Vercel (por eso no hay certificado). Ese paso es manual y está en\n" +
-      "  docs/12-migracion-dominio-crm.md, sección 1. El resto de esta prueba\n" +
-      "  no tiene sentido hasta que eso esté hecho.\n",
+    hayTxt
+      ? "\n  El TXT ya está: Vercel puede tardar unos minutos en validarlo y emitir\n" +
+        "  el certificado. Volver a correr esto en un rato.\n"
+      : "\n  Sin el TXT de verificación, Vercel no emite el certificado. Ese es el\n" +
+        "  paso bloqueante ahora mismo.\n",
   );
   process.exit(1);
 }
