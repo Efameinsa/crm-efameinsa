@@ -42,15 +42,21 @@ export async function CotizacionesDelPeriodo({
   const supabase = await createClient();
 
   const [{ data: crm }, { data: archivo }] = await Promise.all([
+    // Solo las que SALIERON al cliente, y fechadas por el día en que salieron.
+    // Pedido de gerencia el 24-08: «que muestre solo cotizaciones del período
+    // ejecutadas o enviadas, no borradores». Un borrador no es trabajo
+    // entregado: no tiene número, puede no enviarse nunca y aparecía inflando
+    // el conteo — en la foto que mandaron, 2 de las 4 eran borradores.
     supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, total, moneda, estado, created_at, oportunidades!inner(comercial_id, cuentas(razon_social))",
+        "id, codigo, serie, total, moneda, estado, enviada_at, oportunidades!inner(comercial_id, cuentas(razon_social))",
       )
       .eq("oportunidades.comercial_id", comercialId)
-      .gte("created_at", `${desde}T00:00:00-05:00`)
-      .lte("created_at", `${hasta}T23:59:59-05:00`)
-      .order("created_at", { ascending: false })
+      .not("enviada_at", "is", null)
+      .gte("enviada_at", `${desde}T00:00:00-05:00`)
+      .lte("enviada_at", `${hasta}T23:59:59-05:00`)
+      .order("enviada_at", { ascending: false })
       .limit(TOPE),
     supabase
       .from("cotizaciones_historicas")
@@ -70,7 +76,7 @@ export async function CotizacionesDelPeriodo({
         codigo: c.codigo,
         serie: c.serie as string,
         cliente: op?.cuentas?.razon_social ?? "Cliente sin nombre",
-        fecha: fechaLima(c.created_at),
+        fecha: fechaLima(c.enviada_at as string),
         monto: Number(c.total),
         moneda: c.moneda as string,
         estado: c.estado as string,
@@ -96,7 +102,7 @@ export async function CotizacionesDelPeriodo({
 
   return (
     <SeccionPanel
-      titulo="Cotizaciones del período"
+      titulo="Cotizaciones enviadas en el período"
       accion={
         filas.length > 0 ? (
           <span className="text-xs text-muted-foreground">{filas.length}</span>
@@ -104,7 +110,9 @@ export async function CotizacionesDelPeriodo({
       }
     >
       {filas.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Sin cotizaciones en el período.</p>
+        <p className="text-sm text-muted-foreground">
+          No envió ninguna cotización en el período. Los borradores sin enviar no cuentan acá.
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -121,8 +129,7 @@ export async function CotizacionesDelPeriodo({
               {filas.map((f) => (
                 <tr key={f.id} className="border-b border-border last:border-0">
                   <td className="py-1.5 whitespace-nowrap font-mono text-foreground">
-                    {/* Sin número = borrador todavía sin enviar (migración 0064). */}
-                    {f.codigo ?? <span className="text-muted-foreground">Borrador</span>}
+                      {f.codigo ?? <span className="text-muted-foreground">—</span>}
                     <span className="ml-1.5 font-sans text-[10px] text-muted-foreground">{f.serie}</span>
                   </td>
                   <td className="max-w-[18rem] truncate py-1.5 pl-2 text-foreground" title={f.cliente}>

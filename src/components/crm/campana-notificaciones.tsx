@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { marcarNotificacionLeida, marcarTodasLeidas } from "@/lib/acciones/notificaciones";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fechaLima } from "@/lib/fechas";
+import { alertaSilenciada, prepararAlerta, silenciarAlerta, sonarAlerta } from "@/lib/sonido-alerta";
 
 interface Notificacion {
   id: string;
@@ -19,6 +20,25 @@ interface Notificacion {
   leida_at: string | null;
   created_at: string;
 }
+
+/**
+ * Cómo se anuncia cada clase de aviso.
+ *
+ * El encabezado es lo primero que se lee, así que dice QUÉ PASÓ en dos
+ * palabras; el detalle va debajo. «Nuevo ingreso» es el texto que pidió Central
+ * el 24-08 para los prospectos que entran.
+ */
+const ESTILO_AVISO: Record<
+  string,
+  { encabezado: string; accion: string; duracion: number; tono: "success" | "info" | "warning" | "error" }
+> = {
+  lead_registrado: { encabezado: "Nuevo ingreso", accion: "Ver bandeja", duracion: 12000, tono: "info" },
+  lead_asignado: { encabezado: "Le derivaron un prospecto", accion: "Atenderlo", duracion: 12000, tono: "info" },
+  cotizacion_aprobada: { encabezado: "Gerencia aprobó su cotización", accion: "Enviarla", duracion: 14000, tono: "success" },
+  cotizacion_rechazada: { encabezado: "Gerencia devolvió su cotización", accion: "Corregirla", duracion: 14000, tono: "warning" },
+  cotizacion_pendiente: { encabezado: "Una cotización espera su aprobación", accion: "Revisarla", duracion: 12000, tono: "warning" },
+  otro: { encabezado: "Aviso nuevo", accion: "Ver", duracion: 8000, tono: "info" },
+};
 
 function tiempoRelativo(iso: string): string {
   const minutos = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -33,9 +53,43 @@ export function CampanaNotificaciones({ userId }: { userId: string }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
+  // Lectura perezosa: en el servidor no hay localStorage y `alertaSilenciada`
+  // devuelve false sin romperse. No hay desajuste de hidratación porque el
+  // desplegable solo se dibuja al abrirlo.
+  const [silenciada, setSilenciada] = useState(alertaSilenciada);
   const contenedorRef = useRef<HTMLDivElement>(null);
 
   const noLeidas = notificaciones.filter((n) => !n.leida_at).length;
+
+  /**
+   * El aviso que ve y oye la persona cuando entra algo nuevo.
+   *
+   * Criterios, pedidos el 24-08 («un pitido simpático que no malogre la
+   * experiencia» y «una ventanita que diga nuevo ingreso»):
+   *
+   *  · NO INTERRUMPE. Es un aviso al costado, no un modal: quien está
+   *    escribiendo una cotización sigue escribiendo. Un modal en medio de una
+   *    llamada con un cliente es peor que no avisar.
+   *  · DICE QUÉ HACER. Lleva el botón que lleva al sitio, así el aviso se
+   *    resuelve en un clic en vez de obligar a buscar dónde pasó.
+   *  · DURA SEGÚN IMPORTE. Un lead nuevo o una aprobación se quedan más tiempo
+   *    en pantalla que un aviso informativo.
+   *  · EL SONIDO ES OPCIONAL Y SE RECUERDA (ver lib/sonido-alerta.ts).
+   */
+  function avisar(n: Notificacion) {
+    sonarAlerta(n.id);
+    const info = ESTILO_AVISO[n.tipo] ?? ESTILO_AVISO.otro;
+    toast[info.tono](info.encabezado, {
+      description: [n.titulo, n.cuerpo].filter(Boolean).join(" — "),
+      duration: info.duracion,
+      action: n.url
+        ? {
+            label: info.accion,
+            onClick: () => router.push(n.url!),
+          }
+        : undefined,
+    });
+  }
 
   useEffect(() => {
     const supabase = createClient();
@@ -57,14 +111,22 @@ export function CampanaNotificaciones({ userId }: { userId: string }) {
         (payload) => {
           const nueva = payload.new as Notificacion;
           setNotificaciones((prev) => [nueva, ...prev].slice(0, 15));
-          toast(nueva.titulo, { description: nueva.cuerpo ?? undefined });
+          avisar(nueva);
         },
       )
       .subscribe();
 
+    // Deja el audio autorizado con el primer clic: si no, el primer aviso del
+    // día llegaría mudo porque el navegador todavía no permite sonido.
+    const soltarPreparacion = prepararAlerta();
+
     return () => {
       supabase.removeChannel(canal);
+      soltarPreparacion();
     };
+    // `avisar` no entra en las dependencias a propósito: se recrearía en cada
+    // render y volvería a suscribir el canal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   useEffect(() => {
@@ -111,11 +173,30 @@ export function CampanaNotificaciones({ userId }: { userId: string }) {
         <div className="absolute right-0 top-11 z-50 w-80 rounded-xl border border-border bg-popover shadow-lg">
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
             <span className="text-sm font-semibold">Notificaciones</span>
-            {noLeidas > 0 && (
-              <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" onClick={alMarcarTodas}>
-                Marcar todas como leídas
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              {noLeidas > 0 && (
+                <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" onClick={alMarcarTodas}>
+                  Marcar todas como leídas
+                </Button>
+              )}
+              {/* Silenciar el pitido sin perder el aviso en pantalla. La
+                  decisión se recuerda en este navegador: quien trabaja al lado
+                  de un cliente lo apaga una vez y listo. */}
+              <button
+                type="button"
+                onClick={() => {
+                  const nuevo = !silenciada;
+                  setSilenciada(nuevo);
+                  silenciarAlerta(nuevo);
+                  if (!nuevo) sonarAlerta(`prueba-${Date.now()}`);
+                }}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+                aria-label={silenciada ? "Activar el sonido de los avisos" : "Silenciar el sonido de los avisos"}
+                title={silenciada ? "Sonido apagado" : "Sonido encendido"}
+              >
+                {silenciada ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+              </button>
+            </div>
           </div>
           <div className="max-h-96 overflow-y-auto">
             {notificaciones.length === 0 ? (

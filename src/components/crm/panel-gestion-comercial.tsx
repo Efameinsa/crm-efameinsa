@@ -92,13 +92,22 @@ export async function PanelGestionComercial({
                   2026) junto a 112 ventas, y se leía como que casi no cotizó
                   — cuando en realidad emitió 990. El trabajo cuenta aunque se
                   haya hecho fuera de la plataforma. */}
+              {/* ENVIADAS, no creadas. Pedido de gerencia el 24-08: «que
+                  muestre solo cotizaciones del período ejecutadas o enviadas,
+                  no borradores». Un borrador no tiene número, puede no salir
+                  nunca y contarlo inflaba el trabajo: en la foto que mandaron,
+                  2 de 4 eran borradores. */}
               <Kpi
-                etiqueta="Cotizaciones del período"
-                valor={k.cot_creadas + k.cot_historicas_periodo}
+                etiqueta="Cotizaciones enviadas"
+                valor={k.cot_enviadas + k.cot_historicas_periodo}
                 sub={
                   k.cot_historicas_periodo > 0
-                    ? `${k.cot_creadas} en el CRM · ${k.cot_historicas_periodo} del archivo`
-                    : `${k.cot_enviadas} marcada${k.cot_enviadas === 1 ? "" : "s"} enviada${k.cot_enviadas === 1 ? "" : "s"}${yo && yo.cotizado_usd > 0 ? ` · ${usd(yo.cotizado_usd)} cotizados` : ""}`
+                    ? `${k.cot_enviadas} en el CRM · ${k.cot_historicas_periodo} del archivo`
+                    : k.cot_creadas > k.cot_enviadas
+                      ? `${k.cot_creadas - k.cot_enviadas} en borrador sin enviar${yo && yo.cotizado_usd > 0 ? ` · ${usd(yo.cotizado_usd)} cotizados` : ""}`
+                      : yo && yo.cotizado_usd > 0
+                        ? `${usd(yo.cotizado_usd)} cotizados`
+                        : "salieron al cliente"
                 }
               />
               <Kpi etiqueta="Pipeline propio" valor={Math.round(k.pipeline_usd)} prefijo="US$ " sub={`${k.n_abiertas} oportunidades abiertas hoy`} />
