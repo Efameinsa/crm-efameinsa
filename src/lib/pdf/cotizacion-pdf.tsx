@@ -50,6 +50,7 @@ export interface CotizacionPdfProps {
   vigenciaDias: number;
   firma: {
     nombre: string;
+    cargo: string | null;
     telefono: string | null;
     celular: string | null;
     email: string | null;
@@ -519,7 +520,11 @@ export function CotizacionPdf({
             )}
             <View style={estilos.firmaDatos}>
               <Text style={estilos.negrita}>{firma.nombre}</Text>
-              <Text style={estilos.negrita}>Área Comercial</Text>
+              {/* El cargo venía quemado como "Área Comercial". Las firmas
+                  reales dicen "Ejecutivo Comercial" y "Ejecutivo Comercial
+                  Senior", y el Senior no es adorno: es jerarquía frente al
+                  cliente (migración 0058). */}
+              <Text style={estilos.negrita}>{firma.cargo ?? "Área Comercial"}</Text>
               {firma.telefono && <Text>Teléfono : {firma.telefono}</Text>}
               {firma.celular && <Text>Celular  : {firma.celular}</Text>}
               {firma.email && <Text>Email    : {firma.email}</Text>}

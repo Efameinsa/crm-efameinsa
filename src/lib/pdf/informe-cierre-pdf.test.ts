@@ -73,3 +73,20 @@ describe("informe de cierre en PDF", () => {
     expect(pdf.length).toBeGreaterThan(5000);
   });
 });
+
+// Firma del comercial: hasta el 24-08 salía solo el nombre, porque
+// perfiles.telefono/celular/email_contacto estaban en null y el PDF solo pinta
+// lo que existe. Lo reportó Brenda el primer día de uso real.
+describe("correo según razón social", () => {
+  it("mantiene el usuario y cambia el dominio", async () => {
+    const { correoEnSerie } = await import("./series");
+    expect(correoEnSerie("comercial5@efameinsa.com", "OPEN")).toBe("comercial5@openinvestments.com.pe");
+    expect(correoEnSerie("comercial5@efameinsa.com", "EFAMEINSA")).toBe("comercial5@efameinsa.com");
+    expect(correoEnSerie("comercial1@openinvestments.com.pe", "EFAMEINSA")).toBe("comercial1@efameinsa.com");
+  });
+
+  it("sin correo cargado devuelve null en vez de inventar uno", async () => {
+    const { correoEnSerie } = await import("./series");
+    expect(correoEnSerie(null, "OPEN")).toBeNull();
+  });
+});

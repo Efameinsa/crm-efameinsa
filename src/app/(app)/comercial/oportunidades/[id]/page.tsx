@@ -34,7 +34,7 @@ export default async function OportunidadDetallePage({
       supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
-        .select("id, sku, marca, modelo, nombre, capacidad, segmento, precios_producto(tier, precio)")
+        .select("id, sku, marca, modelo, nombre, capacidad, segmento, ficha, foto_path, precios_producto(tier, precio)")
         .eq("activo", true)
         .order("marca"),
       supabase
@@ -81,6 +81,28 @@ export default async function OportunidadDetallePage({
       }
     }
   }
+
+  // El cotizador solo necesita SABER si el equipo tiene ficha técnica, no la
+  // ficha entera: mandarle los 65 objetos completos al navegador engordaría la
+  // página para nada. El aviso existe porque el 24-08 Brenda cotizó a un cliente
+  // real un equipo sin datos técnicos (LG TITAN-18) y se enteró recién al abrir
+  // el PDF, cuando la página de la ficha salió vacía.
+  const productosCotizador = (productos ?? []).map((pr) => {
+    const ficha = pr.ficha as Record<string, unknown> | null;
+    const largo = (clave: string) => (Array.isArray(ficha?.[clave]) ? (ficha![clave] as unknown[]).length : 0);
+    return {
+      id: pr.id,
+      sku: pr.sku,
+      marca: pr.marca,
+      modelo: pr.modelo,
+      nombre: pr.nombre,
+      capacidad: pr.capacidad,
+      segmento: pr.segmento,
+      precios_producto: pr.precios_producto,
+      sinFicha: largo("caracteristicas") + largo("dimensiones") + largo("medidas") === 0,
+      sinFoto: !pr.foto_path,
+    };
+  });
 
   // El feed de "contexto primero": la historia COMPLETA del cliente (todas
   // sus oportunidades), no solo la de esta oportunidad puntual. `ventasConDetalle`
@@ -177,7 +199,7 @@ export default async function OportunidadDetallePage({
             <div className="space-y-4">
               <ListaCotizaciones cotizaciones={cotizaciones ?? []} />
               {(cotizaciones?.length ?? 0) > 0 && <div className="border-t border-border" />}
-              <Cotizador oportunidadId={oportunidad.id} productos={productos ?? []} historialPrecios={historialPrecios} />
+              <Cotizador oportunidadId={oportunidad.id} productos={productosCotizador} historialPrecios={historialPrecios} />
             </div>
           </SeccionPanel>
 

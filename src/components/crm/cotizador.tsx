@@ -33,11 +33,16 @@ interface Producto {
   capacidad: string | null;
   segmento: "industrial" | "semi_industrial";
   precios_producto: PrecioTier[];
+  /** El equipo no tiene datos técnicos cargados: su página de ficha saldría
+   *  vacía en el PDF que recibe el cliente. */
+  sinFicha?: boolean;
+  sinFoto?: boolean;
 }
 
 interface ItemCarrito extends ItemCotizacion {
   nombre: string;
   precioPiso: number | null;
+  sinFicha: boolean;
 }
 
 export interface HistorialPrecio {
@@ -167,6 +172,7 @@ function BuscadorEquipo({
                 )}
               >
                 {etiquetaEquipo(p)}
+                {p.sinFicha && <span className="ml-1.5 text-[11px] font-semibold text-amber-700">· sin ficha técnica</span>}
               </button>
             </li>
           ))}
@@ -221,6 +227,7 @@ export function Cotizador({
         precio_unitario: precio,
         tier_aplicado: tierInicio,
         precioPiso: precioTier(producto, tierPiso(producto)),
+        sinFicha: Boolean(producto.sinFicha),
       },
     ]);
     setProductoSeleccionado("");
@@ -314,6 +321,15 @@ export function Cotizador({
                 <TableRow key={i}>
                   <TableCell>
                     {item.nombre}
+                    {/* Sin esto el comercial se entera al abrir el PDF, con la
+                        cotización ya hecha: la página de ficha técnica de ese
+                        equipo sale en blanco delante del cliente. */}
+                    {item.sinFicha && (
+                      <p className="text-xs font-semibold text-amber-700">
+                        ⚠ Este equipo no tiene ficha técnica cargada — su página saldrá vacía en el PDF. Avise a
+                        logística antes de enviarlo.
+                      </p>
+                    )}
                     {bajoLista && (
                       <p className="text-xs text-destructive">
                         Bajo lista (piso: US$ {item.precioPiso}) — requerirá aprobación de gerencia

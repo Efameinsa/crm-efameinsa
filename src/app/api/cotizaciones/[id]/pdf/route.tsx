@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import { createClient } from "@/lib/supabase/server";
 import { CotizacionPdf, type ItemPdf } from "@/lib/pdf/cotizacion-pdf";
+import { correoEnSerie } from "@/lib/pdf/series";
 
 // Se lee una sola vez al cargar el módulo, no en cada request.
 const LOGO_BUFFER = readFileSync(join(process.cwd(), "public", "logo-efameinsa.png"));
@@ -37,7 +38,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, cliente_snapshot, created_at,
        cotizacion_items(cantidad, precio_unitario, productos(marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
        oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
-       perfiles!cotizaciones_creada_por_fkey(nombre, telefono, celular, email_contacto)`,
+       perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto)`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -61,6 +62,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const perfilComercial = cotizacion.perfiles as unknown as {
     nombre: string;
+    cargo: string | null;
     telefono: string | null;
     celular: string | null;
     email_contacto: string | null;
@@ -136,9 +138,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       vigenciaDias={cotizacion.vigencia_dias}
       firma={{
         nombre: perfilComercial?.nombre ?? "Área Comercial",
+        cargo: perfilComercial?.cargo ?? null,
         telefono: perfilComercial?.telefono ?? null,
         celular: perfilComercial?.celular ?? null,
-        email: perfilComercial?.email_contacto ?? null,
+        // El dominio del correo cambia con la razón social con la que se
+        // cotiza (ver correoEnSerie en series.ts).
+        email: correoEnSerie(perfilComercial?.email_contacto ?? null, cotizacion.serie),
       }}
     />,
   );

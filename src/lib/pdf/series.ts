@@ -52,9 +52,32 @@ export const IDENTIDAD_SERIE: Record<"EFAMEINSA" | "OPEN", IdentidadSerie> = {
   },
 };
 
+/**
+ * Dominio de correo de cada razón social. La firma del comercial cambia con la
+ * serie: Katerine firma comercial5@efameinsa.com en una y
+ * comercial5@openinvestments.com.pe en la otra (verificado con las firmas
+ * reales que enviaron el 24-08). El usuario del correo es el mismo, cambia el
+ * dominio — así no hay que guardar dos correos por persona.
+ */
+const DOMINIO_SERIE: Record<"EFAMEINSA" | "OPEN", string> = {
+  EFAMEINSA: "efameinsa.com",
+  OPEN: "openinvestments.com.pe",
+};
+
+/** Correo del comercial en la razón social con la que está cotizando. */
+export function correoEnSerie(correo: string | null, serie: "EFAMEINSA" | "OPEN"): string | null {
+  if (!correo) return null;
+  const usuario = correo.split("@")[0];
+  return usuario ? `${usuario}@${DOMINIO_SERIE[serie]}` : correo;
+}
+
 // Texto idéntico al de los modelos reales (página final).
 export const PUNTOS_IMPORTANTES = [
-  "Entrega en agencias en la ciudad de Lima.",
+  // 24-08: decía "Entrega en agencias en la ciudad de Lima", que es lo que
+  // traían los modelos viejos en Word. Brenda lo corrigió el primer día: la
+  // entrega es EN PLANTA, y prometerle al cliente una agencia en Lima es un
+  // compromiso de despacho que la empresa no está asumiendo.
+  "Entrega en nuestras instalaciones.",
   "Incluye juego de manuales de operación, servicio técnico y mantenimiento.",
   "La garantía cubre cualquier defecto de fábrica, no por causas externas al equipo y/o por falta de mantenimiento por servicio técnico autorizado.",
   "Asesoría para instalación (punto de agua, energía eléctrica, descarga y/o lo requerido para su operación).",
