@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send } from "lucide-react";
-import { registrarContacto } from "@/lib/acciones/leads";
+import { Search, Send } from "lucide-react";
+import { buscarCoincidencias, registrarContacto, type CoincidenciaCartera } from "@/lib/acciones/leads";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -43,8 +43,53 @@ const CANALES = [
 
 export function PasarContactoCentral() {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  // El temporizador vive en un ref, no en un global del módulo: si no, dos
+  // instancias del diálogo se pisarían el mismo timeout.
+  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [abierto, setAbierto] = useState(false);
+  const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[]>([]);
   const [enviando, startTransition] = useTransition();
+
+  /**
+   * Busca el cliente mientras se escribe la empresa o el RUC.
+   *
+   * Lo pidió el ing. Carlos en la charla del 24-08: «acá no le he puesto para
+   * que tenga una búsqueda… hay que tener una búsqueda, de todas maneras»,
+   * porque si no hay que tipear todo de nuevo cada vez.
+   *
+   * Busca SOLO en la cartera de quien lo usa: las políticas de `cuentas` no le
+   * dejan ver las de otros comerciales, y eso es deliberado — Carlos insistió
+   * en no compartir información entre comerciales. Si el cliente es de otro,
+   * Central lo resuelve al derivar, que es donde vive la búsqueda completa.
+   */
+  function buscar() {
+    if (temporizador.current) clearTimeout(temporizador.current);
+    const form = formRef.current;
+    if (!form) return;
+    const dato = (n: string) => (form.elements.namedItem(n) as HTMLInputElement | null)?.value ?? "";
+    const razonSocial = dato("razon_social");
+    const numDoc = dato("num_doc");
+    if (razonSocial.trim().length < 3 && numDoc.replace(/\D/g, "").length < 8) {
+      setCoincidencias([]);
+      return;
+    }
+    temporizador.current = setTimeout(async () => {
+      setCoincidencias(await buscarCoincidencias({ razonSocial, numDoc }));
+    }, 400);
+  }
+
+  function usar(c: CoincidenciaCartera) {
+    const form = formRef.current;
+    if (!form) return;
+    // Se completa la EMPRESA, nunca la persona: Carlos fue explícito —
+    // «si has recibido la llamada con otra persona completamente distinta, eso
+    // sí tiene que permitirte digitar la persona de contacto. No vamos a
+    // confiar solamente en lo que arroja la ficha».
+    (form.elements.namedItem("razon_social") as HTMLInputElement).value = c.razonSocial;
+    setCoincidencias([]);
+    (form.elements.namedItem("nombre_contacto") as HTMLInputElement)?.focus();
+  }
 
   function enviar(formData: FormData) {
     // area_destino siempre comercial: este atajo existe para contactos de
@@ -57,6 +102,7 @@ export function PasarContactoCentral() {
         return;
       }
       toast.success(`Contacto ${r.codigo ?? ""} enviado a Central`.trim());
+      setCoincidencias([]);
       setAbierto(false);
       router.refresh();
     });
@@ -80,7 +126,7 @@ export function PasarContactoCentral() {
           </DialogDescription>
         </DialogHeader>
 
-        <form action={enviar} className="space-y-3">
+        <form ref={formRef} action={enviar} className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="pc-nombre">Nombre del contacto *</Label>
@@ -108,12 +154,35 @@ export function PasarContactoCentral() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="pc-razon">Empresa</Label>
-              <Input id="pc-razon" name="razon_social" autoComplete="off" />
+              <Input id="pc-razon" name="razon_social" autoComplete="off" onChange={buscar} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="pc-doc">RUC / DNI</Label>
-              <Input id="pc-doc" name="num_doc" inputMode="numeric" autoComplete="off" />
+              <Input id="pc-doc" name="num_doc" inputMode="numeric" autoComplete="off" onChange={buscar} />
             </div>
+
+            {coincidencias.length > 0 && (
+              <div className="space-y-1 rounded-md border border-primary/30 bg-primary/5 p-2.5 sm:col-span-2">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                  <Search className="size-3.5" />
+                  Ya está en su cartera — toque para completar la empresa
+                </p>
+                {coincidencias.map((c) => (
+                  <button
+                    key={c.cuentaId}
+                    type="button"
+                    onClick={() => usar(c)}
+                    className="block w-full cursor-pointer truncate rounded px-1.5 py-1 text-left text-xs text-foreground hover:bg-accent"
+                  >
+                    {c.razonSocial}
+                    <span className="ml-1.5 text-muted-foreground">por {c.motivo}</span>
+                  </button>
+                ))}
+                <p className="px-1.5 pt-0.5 text-[11px] text-muted-foreground">
+                  El nombre del contacto escríbalo igual: puede ser otra persona de la misma empresa.
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="pc-email">Correo</Label>
               <Input id="pc-email" name="email" type="email" autoComplete="off" />
