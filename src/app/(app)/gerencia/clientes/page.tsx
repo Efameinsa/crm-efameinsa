@@ -28,7 +28,7 @@ export default async function ClientesGerenciaPage({
 
   const supabase = await createClient();
   const [{ data: comerciales }, { total, filas }] = await Promise.all([
-    supabase.from("perfiles").select("id, nombre").eq("rol", "comercial").eq("activo", true).order("codigo_comercial"),
+    supabase.from("perfiles").select("id, nombre").eq("rol", "comercial").eq("activo", true).eq("es_prueba", false).order("codigo_comercial"),
     listarClientes(supabase, {
       q,
       comercialId,

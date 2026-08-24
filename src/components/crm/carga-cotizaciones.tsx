@@ -24,7 +24,7 @@ export async function CargaCotizaciones() {
       .select("created_at, enviada_at, oportunidades!inner(comercial_id)")
       .gte("created_at", `${hace30}T00:00:00-05:00`)
       .limit(2000),
-    supabase.from("perfiles").select("id, nombre, codigo_comercial").eq("rol", "comercial").eq("activo", true).order("codigo_comercial"),
+    supabase.from("perfiles").select("id, nombre, codigo_comercial").eq("rol", "comercial").eq("activo", true).eq("es_prueba", false).order("codigo_comercial"),
   ]);
 
   const filas = (comerciales ?? []).map((c) => {

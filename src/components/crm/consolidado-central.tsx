@@ -38,7 +38,10 @@ export async function ConsolidadoCentral() {
   const { count: sinAsignar } = await supabase
     .from("leads")
     .select("id", { count: "exact", head: true })
-    .eq("estado", "pendiente_triaje");
+    .eq("estado", "pendiente_triaje")
+    // Los contactos de la cuenta de práctica no son trabajo pendiente de
+    // Central (migración 0072).
+    .eq("es_prueba", false);
 
   // Sin botón de PDF a propósito: el reporte diario que existe es POR
   // COMERCIAL, y bajarlo desde acá le daría a Central un documento vacío. El
