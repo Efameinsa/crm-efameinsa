@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { Phone, Mail, MapPin, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
@@ -10,7 +9,8 @@ import { ListaCotizaciones } from "@/components/crm/lista-cotizaciones";
 import { CalificacionOportunidad } from "@/components/crm/calificacion-oportunidad";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { PuntoInteres } from "@/components/crm/punto-interes";
-import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { SeccionPanel, SeccionPlegable } from "@/components/crm/seccion-panel";
+import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores, ListaContactos } from "@/components/crm/secciones-cliente";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { fechaAgendada } from "@/lib/fechas";
 
@@ -83,10 +83,31 @@ export default async function OportunidadDetallePage({
   }
 
   // El feed de "contexto primero": la historia COMPLETA del cliente (todas
-  // sus oportunidades), no solo la de esta oportunidad puntual.
-  const { eventos } = cuenta?.id
+  // sus oportunidades), no solo la de esta oportunidad puntual. `ventasConDetalle`
+  // ya venía en el mismo viaje y antes se descartaba; ahora alimenta la sección
+  // "Compras anteriores" que se trajo desde la ficha del cliente (C5).
+  const { eventos, ventasConDetalle } = cuenta?.id
     ? await cargarHistorialCuenta(supabase, cuenta.id)
-    : { eventos: [] };
+    : { eventos: [], ventasConDetalle: [] };
+
+  // Informes de cierre y contactos completos del cliente: las otras dos
+  // secciones que vivían solo en "Ver ficha completa".
+  const { data: informes } = cuenta?.id
+    ? await supabase
+        .from("informes_cierre")
+        .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at")
+        .eq("cuenta_id", cuenta.id)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
+  const { data: contactosData } = cuenta?.id
+    ? await supabase
+        .from("contactos")
+        .select("id, nombre, cargo, telefono, email, documento, es_principal")
+        .eq("cuenta_id", cuenta.id)
+        .order("es_principal", { ascending: false })
+    : { data: [] };
+  const contactosCuenta = contactosData ?? [];
 
   return (
     <div className="space-y-4">
@@ -147,14 +168,7 @@ export default async function OportunidadDetallePage({
           </SeccionPanel>
 
           {cuenta?.id && (
-            <SeccionPanel
-              titulo="Historial del cliente"
-              accion={
-                <Link href={`/comercial/cartera/${cuenta.id}`} className="text-xs font-medium text-primary hover:underline">
-                  Ver ficha completa →
-                </Link>
-              }
-            >
+            <SeccionPanel titulo="Historial del cliente">
               <HistorialCuenta eventos={eventos} oportunidadActualId={oportunidad.id} />
             </SeccionPanel>
           )}
@@ -166,6 +180,32 @@ export default async function OportunidadDetallePage({
               <Cotizador oportunidadId={oportunidad.id} productos={productos ?? []} historialPrecios={historialPrecios} />
             </div>
           </SeccionPanel>
+
+          {/* C5 (plan 11): lo que antes obligaba a irse a "Ver ficha completa"
+              —que tenía MENOS cosas que esta pantalla y por eso confundía—
+              ahora vive acá, plegado. Cerrar una venta ya no exige cambiar de
+              página: el informe para Central se crea desde este mismo sitio. */}
+          {cuenta?.id && (
+            <>
+              <SeccionPlegable
+                titulo="Informes de cierre"
+                cantidad={(informes ?? []).length}
+                accion={<AccionNuevoInforme cuentaId={cuenta.id} />}
+              >
+                <ListaInformesCierre informes={informes ?? []} />
+              </SeccionPlegable>
+
+              {ventasConDetalle.length > 0 && (
+                <SeccionPlegable titulo="Compras anteriores" cantidad={ventasConDetalle.length}>
+                  <TablaComprasAnteriores ventas={ventasConDetalle} />
+                </SeccionPlegable>
+              )}
+
+              <SeccionPlegable titulo="Contactos" cantidad={contactosCuenta.length}>
+                <ListaContactos contactos={contactosCuenta} />
+              </SeccionPlegable>
+            </>
+          )}
         </div>
 
         <div className="space-y-4">

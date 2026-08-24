@@ -238,6 +238,14 @@ try {
   const { rows: infEmit } = await bd.query(`select count(*) n from informes_cierre where emitido_at is not null`);
   ok(Number(infEmit[0].n) === 0, "B8 · no quedan informes emitidos de prueba");
 
+  // === C5 · una sola ficha ==================================================
+  ok(!ficha.html.includes("Ver ficha completa"), "C5 · se fue el enlace «Ver ficha completa»");
+  for (const seccion of ["Informes de cierre", "Contactos"]) {
+    ok(ficha.html.includes(seccion), `C5 · la oportunidad ya trae «${seccion}»`);
+  }
+  ok(ficha.html.includes("Nuevo informe"), "C5 · el informe de cierre se crea sin salir de la oportunidad");
+  ok(ficha.html.includes("<details"), "C5 · las secciones traídas vienen plegadas");
+
   // === Grupo 5 · A6 / C2 / C3 ==============================================
   const miDia = await pedir("/comercial");
   ok(miDia.status === 200, "A6 · Mi día carga");
