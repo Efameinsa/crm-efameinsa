@@ -1,3 +1,4 @@
+import { cabeceraArchivo } from "@/lib/nombre-archivo";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { readFileSync } from "node:fs";
@@ -86,15 +87,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     />,
   );
 
-  const nombre = `Informe ${informe.serie} ${informe.codigo ? "N" + informe.codigo : "BORRADOR"} - ${informe.asunto}`
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\x20-\x7E]/g, "");
+  // El asunto es texto libre y puede traer barras o comillas, que Windows no
+  // admite en un nombre de archivo (ver lib/nombre-archivo.ts). Antes se le
+  // quitaban las tildes a la fuerza para que entrara en la cabecera; ahora la
+  // cabecera manda el nombre real codificado y el respaldo sin tildes, as\u00ed que
+  // el archivo se guarda como est\u00e1 escrito.
+  const nombre = `Informe ${informe.serie} ${informe.codigo ? "N" + informe.codigo : "BORRADOR"} - ${informe.asunto}`;
 
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${nombre}.pdf"`,
+      "Content-Disposition": cabeceraArchivo(nombre),
       "Cache-Control": "no-store",
     },
   });

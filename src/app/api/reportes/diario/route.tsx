@@ -1,3 +1,4 @@
+import { cabeceraArchivo } from "@/lib/nombre-archivo";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { readFileSync } from "node:fs";
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
       "Content-Type": "application/pdf",
       // inline: se abre en el visor del navegador y desde ahí se descarga o
       // se adjunta al correo, que es el flujo que describió gerencia.
-      "Content-Disposition": `inline; filename="${nombre}"`,
+      "Content-Disposition": cabeceraArchivo(nombre),
       "Cache-Control": "no-store",
     },
   });

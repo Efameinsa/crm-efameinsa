@@ -5,6 +5,7 @@ import { join, basename } from "node:path";
 import { createClient } from "@/lib/supabase/server";
 import { CotizacionPdf, type ItemPdf, type SeccionFicha } from "@/lib/pdf/cotizacion-pdf";
 import { correoEnSerie } from "@/lib/pdf/series";
+import { cabeceraArchivo } from "@/lib/nombre-archivo";
 
 // Se lee una sola vez al cargar el módulo, no en cada request.
 const LOGO_BUFFER = readFileSync(join(process.cwd(), "public", "logo-efameinsa.png"));
@@ -189,7 +190,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${cotizacion.codigo ?? "Presupuesto BORRADOR"}.pdf"`,
+      // "Presu_2195-26, WAYRA INMOBILIARIA.pdf": pedido del área comercial el
+      // 24-08 — «cosa que lo que descarga ya está listo para enviar por
+      // correo», sin renombrarlo a mano. El borrador todavía no tiene número.
+      "Content-Disposition": cabeceraArchivo(
+        `${cotizacion.codigo ?? "Presupuesto BORRADOR"}, ${snapshot.razon_social}`,
+      ),
     },
   });
 }
