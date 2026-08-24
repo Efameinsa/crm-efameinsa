@@ -31,10 +31,12 @@ const ETIQUETA_CANAL_LEAD: Record<string, string> = {
 
 export default async function OportunidadDetallePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ editar?: string }>;
 }) {
-  const { id } = await params;
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   const supabase = await createClient();
 
   const [{ data: oportunidad }, { data: motivos }, { data: productos }, { data: cotizaciones }, { data: resultados }] =
@@ -54,7 +56,7 @@ export default async function OportunidadDetallePage({
         .order("marca"),
       supabase
         .from("cotizaciones")
-        .select("id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia")
+        .select("id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at")
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),
       supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("id"),
@@ -126,6 +128,41 @@ export default async function OportunidadDetallePage({
       sinFoto: !pr.foto_path,
     };
   });
+
+  // ?editar=<id> → el cotizador corrige ese borrador en vez de crear uno nuevo.
+  // Se exige que sea de ESTA oportunidad y que siga sin enviarse: una vez que
+  // el documento salió al cliente, no se toca (migración 0062). La base lo
+  // vuelve a comprobar; acá es para no ofrecer una pantalla que va a fallar.
+  const borrador = (cotizaciones ?? []).find(
+    (c) => c.id === sp.editar && c.estado === "borrador" && !c.enviada_at,
+  );
+  const { data: itemsBorrador } = borrador
+    ? await supabase
+        .from("cotizacion_items")
+        .select("producto_id, descripcion, cantidad, precio_unitario, precio_lista, productos(marca, modelo, nombre)")
+        .eq("cotizacion_id", borrador.id)
+    : { data: null };
+
+  const edicion = borrador
+    ? {
+        cotizacionId: borrador.id,
+        codigo: borrador.codigo,
+        serie: borrador.serie as "EFAMEINSA" | "OPEN",
+        condiciones: borrador.condiciones,
+        vigenciaDias: borrador.vigencia_dias,
+        items: (itemsBorrador ?? []).map((i) => {
+          const pr = i.productos as unknown as { marca: string; modelo: string; nombre: string } | null;
+          return {
+            producto_id: i.producto_id,
+            descripcion: i.descripcion,
+            nombre: pr ? `${pr.marca} ${pr.modelo} — ${pr.nombre}` : (i.descripcion ?? "Equipo sin nombre"),
+            cantidad: i.cantidad,
+            precio_unitario: Number(i.precio_unitario),
+            precioPiso: i.precio_lista != null ? Number(i.precio_lista) : null,
+          };
+        }),
+      }
+    : undefined;
 
   // El feed de "contexto primero": la historia COMPLETA del cliente (todas
   // sus oportunidades), no solo la de esta oportunidad puntual. `ventasConDetalle`
@@ -233,11 +270,16 @@ export default async function OportunidadDetallePage({
             </SeccionPanel>
           )}
 
-          <SeccionPanel titulo="Cotizaciones">
+          <SeccionPanel titulo="Cotizaciones" id="cotizador">
             <div className="space-y-4">
               <ListaCotizaciones cotizaciones={cotizaciones ?? []} />
               {(cotizaciones?.length ?? 0) > 0 && <div className="border-t border-border" />}
-              <Cotizador oportunidadId={oportunidad.id} productos={productosCotizador} historialPrecios={historialPrecios} />
+              <Cotizador
+                oportunidadId={oportunidad.id}
+                productos={productosCotizador}
+                historialPrecios={historialPrecios}
+                edicion={edicion}
+              />
             </div>
           </SeccionPanel>
 

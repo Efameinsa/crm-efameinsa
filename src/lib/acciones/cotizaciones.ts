@@ -5,7 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { notificar } from "@/lib/notificaciones";
 
 export interface ItemCotizacion {
-  producto_id: string;
+  /** null cuando el equipo todavía no está en el catálogo (migración 0062). */
+  producto_id: string | null;
+  /** Escrita a mano; obligatoria si no hay producto_id. */
+  descripcion?: string | null;
   cantidad: number;
   precio_unitario: number;
   tier_aplicado?: string;
@@ -200,5 +203,40 @@ export async function rechazarCotizacion(
   }
 
   revalidatePath("/gerencia/aprobaciones");
+  return { error: null };
+}
+
+/**
+ * Corrige una cotización que todavía no se envió.
+ *
+ * Pedido de Brenda el 24-08, primer día de uso real: hasta entonces un error de
+ * tipeo obligaba a duplicar la cotización y quemar un número. La regla de
+ * gerencia —una cotización no cambia de precio bajo el mismo número— sigue
+ * intacta: la función de la base rechaza cualquier edición en cuanto el
+ * documento se envía (migración 0062).
+ */
+export async function editarCotizacion(datos: {
+  cotizacionId: string;
+  items: ItemCotizacion[];
+  condiciones: string;
+  vigenciaDias: number;
+}): Promise<{ error: string | null }> {
+  if (datos.items.length === 0) return { error: "La cotización necesita al menos un equipo" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("editar_cotizacion", {
+    p_cotizacion_id: datos.cotizacionId,
+    p_items: datos.items,
+    p_condiciones: datos.condiciones || null,
+    p_vigencia_dias: datos.vigenciaDias,
+  });
+  if (error) return { error: error.message.replace(/^.*?:s*/, "") };
+
+  const { data: cot } = await supabase
+    .from("cotizaciones")
+    .select("oportunidad_id")
+    .eq("id", datos.cotizacionId)
+    .maybeSingle();
+  if (cot) revalidatePath(`/comercial/oportunidades/${cot.oportunidad_id}`);
   return { error: null };
 }

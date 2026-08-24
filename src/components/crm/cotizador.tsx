@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { crearCotizacion, type ItemCotizacion } from "@/lib/acciones/cotizaciones";
+import { crearCotizacion, editarCotizacion, type ItemCotizacion } from "@/lib/acciones/cotizaciones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +43,25 @@ interface ItemCarrito extends ItemCotizacion {
   nombre: string;
   precioPiso: number | null;
   sinFicha: boolean;
+  /** Escrito a mano porque el equipo no está en el catálogo todavía. */
+  fueraDeCatalogo?: boolean;
+}
+
+/** Un borrador que se está corrigiendo en vez de crear uno nuevo. */
+export interface BorradorEnEdicion {
+  cotizacionId: string;
+  codigo: string | null;
+  serie: "EFAMEINSA" | "OPEN";
+  condiciones: string | null;
+  vigenciaDias: number;
+  items: {
+    producto_id: string | null;
+    descripcion: string | null;
+    nombre: string;
+    cantidad: number;
+    precio_unitario: number;
+    precioPiso: number | null;
+  }[];
 }
 
 export interface HistorialPrecio {
@@ -197,20 +216,38 @@ export function Cotizador({
   oportunidadId,
   productos,
   historialPrecios = {},
+  edicion,
 }: {
   oportunidadId: string;
   productos: Producto[];
   historialPrecios?: Record<string, HistorialPrecio>;
+  /** Cuando viene, el cotizador corrige ese borrador en vez de crear uno. */
+  edicion?: BorradorEnEdicion;
 }) {
   const router = useRouter();
-  const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">("EFAMEINSA");
+  const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(edicion?.serie ?? "EFAMEINSA");
   const [productoSeleccionado, setProductoSeleccionado] = useState("");
-  const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
+  const [carrito, setCarrito] = useState<ItemCarrito[]>(
+    () =>
+      edicion?.items.map((i) => ({
+        producto_id: i.producto_id,
+        descripcion: i.descripcion,
+        nombre: i.nombre,
+        cantidad: i.cantidad,
+        precio_unitario: i.precio_unitario,
+        precioPiso: i.precioPiso,
+        sinFicha: false,
+        fueraDeCatalogo: i.producto_id === null,
+      })) ?? [],
+  );
   // Sube en cada "Agregar" y hace de `key` del buscador: lo remonta limpio,
   // para que la caja no se quede con el equipo anterior escrito.
   const [vecesAgregado, setVecesAgregado] = useState(0);
-  const [condiciones, setCondiciones] = useState("Entrega: 15 días útiles. Garantía de fábrica.");
-  const [vigenciaDias, setVigenciaDias] = useState(15);
+  const [condiciones, setCondiciones] = useState(edicion?.condiciones ?? "Entrega: 15 días útiles. Garantía de fábrica.");
+  const [vigenciaDias, setVigenciaDias] = useState(edicion?.vigenciaDias ?? 15);
+  // Equipo que todavía no está en el catálogo: se escribe a mano. Es una
+  // salida temporal mientras logística termina de cargar el inventario.
+  const [equipoLibre, setEquipoLibre] = useState("");
   const [enviando, startTransition] = useTransition();
 
   function agregarProducto() {
@@ -245,24 +282,64 @@ export function Cotizador({
   const total = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_unitario, 0);
   const hayBajoLista = carrito.some((i) => i.precioPiso !== null && i.precio_unitario < i.precioPiso);
 
+  // Equipo que no está en el catálogo. Salida temporal mientras logística
+  // termina de cargar el inventario: sin esto, lo que falta no se puede
+  // cotizar y el comercial queda esperando.
+  function agregarEquipoLibre() {
+    const texto = equipoLibre.trim();
+    if (!texto) return;
+    setCarrito((c) => [
+      ...c,
+      {
+        producto_id: null,
+        descripcion: texto,
+        nombre: texto,
+        cantidad: 1,
+        precio_unitario: 0,
+        precioPiso: null,
+        sinFicha: true,
+        fueraDeCatalogo: true,
+      },
+    ]);
+    setEquipoLibre("");
+  }
+
   function confirmar() {
     if (carrito.length === 0) {
       toast.error("Agregue al menos un producto");
       return;
     }
+    const items = carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, tier_aplicado }) => ({
+      producto_id,
+      descripcion,
+      cantidad,
+      precio_unitario,
+      tier_aplicado,
+    }));
+
     startTransition(async () => {
-      const resultado = await crearCotizacion({
-        oportunidadId,
-        serie,
-        items: carrito.map(({ producto_id, cantidad, precio_unitario, tier_aplicado }) => ({
-          producto_id,
-          cantidad,
-          precio_unitario,
-          tier_aplicado,
-        })),
-        condiciones,
-        vigenciaDias,
-      });
+      if (edicion) {
+        const r = await editarCotizacion({
+          cotizacionId: edicion.cotizacionId,
+          items,
+          condiciones,
+          vigenciaDias,
+        });
+        if (r.error) {
+          toast.error(r.error);
+          return;
+        }
+        toast.success(
+          hayBajoLista
+            ? "Cotización corregida — queda pendiente de aprobación de gerencia (precio bajo lista)"
+            : "Cotización corregida",
+        );
+        router.push(`/comercial/oportunidades/${oportunidadId}`);
+        router.refresh();
+        return;
+      }
+
+      const resultado = await crearCotizacion({ oportunidadId, serie, items, condiciones, vigenciaDias });
       if (resultado.error) {
         toast.error(resultado.error);
         return;
@@ -279,8 +356,14 @@ export function Cotizador({
 
   return (
     <div className="space-y-4">
+      {edicion && (
+        <p className="rounded-md border border-primary/30 bg-primary/5 p-2.5 text-xs text-foreground">
+          Corrigiendo la cotización <b>{edicion.codigo ?? "en borrador"}</b>. Mantiene su número; al enviarla queda
+          cerrada y ya no se podrá modificar.
+        </p>
+      )}
       <div className="flex gap-3">
-        <Select value={serie} onValueChange={(v) => setSerie((v as typeof serie) ?? "EFAMEINSA")}>
+        <Select value={serie} onValueChange={(v) => setSerie((v as typeof serie) ?? "EFAMEINSA")} disabled={Boolean(edicion)}>
           <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>
@@ -301,6 +384,30 @@ export function Cotizador({
         </Button>
       </div>
 
+      {/* Mientras el inventario termina de cargarse, lo que no está en el
+          catálogo se escribe a mano. El equipo queda marcado como tal: sirve
+          para medir cuánto falta cargar, y su ficha técnica no sale en el PDF
+          porque no existe. */}
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border p-2.5">
+        <span className="text-xs text-muted-foreground">¿No está en el catálogo?</span>
+        <Input
+          value={equipoLibre}
+          onChange={(e) => setEquipoLibre(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              agregarEquipoLibre();
+            }
+          }}
+          placeholder="Escriba el equipo tal como debe salir en la cotización"
+          className="min-w-[220px] flex-1"
+          aria-label="Equipo fuera de catálogo"
+        />
+        <Button type="button" variant="outline" size="sm" onClick={agregarEquipoLibre} disabled={!equipoLibre.trim()}>
+          Agregar a mano
+        </Button>
+      </div>
+
       {carrito.length > 0 && (
         <Table>
           <TableHeader>
@@ -315,7 +422,9 @@ export function Cotizador({
           <TableBody>
             {carrito.map((item, i) => {
               const bajoLista = item.precioPiso !== null && item.precio_unitario < item.precioPiso;
-              const historial = historialPrecios[item.producto_id];
+              // Un equipo fuera de catálogo no tiene historial de precio a este
+              // cliente: no existe como producto todavía.
+              const historial = item.producto_id ? historialPrecios[item.producto_id] : undefined;
               const regalandoMargen = historial !== undefined && historial.precio > item.precio_unitario;
               return (
                 <TableRow key={i}>
@@ -324,7 +433,12 @@ export function Cotizador({
                     {/* Sin esto el comercial se entera al abrir el PDF, con la
                         cotización ya hecha: la página de ficha técnica de ese
                         equipo sale en blanco delante del cliente. */}
-                    {item.sinFicha && (
+                    {item.fueraDeCatalogo && (
+                      <p className="text-xs font-semibold text-amber-700">
+                        Fuera de catálogo — escrito a mano, sin ficha técnica en el PDF
+                      </p>
+                    )}
+                    {!item.fueraDeCatalogo && item.sinFicha && (
                       <p className="text-xs font-semibold text-amber-700">
                         ⚠ Este equipo no tiene ficha técnica cargada — su página saldrá vacía en el PDF. Avise a
                         logística antes de enviarlo.
@@ -399,9 +513,16 @@ export function Cotizador({
         <p className="flex-1 text-right text-lg font-medium">Total: US$ {total.toFixed(2)}</p>
       </div>
 
-      <Button onClick={confirmar} disabled={enviando || carrito.length === 0}>
-        {enviando ? "Creando…" : "Crear cotización"}
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button onClick={confirmar} disabled={enviando || carrito.length === 0}>
+          {enviando ? "Guardando…" : edicion ? "Guardar cambios" : "Crear cotización"}
+        </Button>
+        {edicion && (
+          <Button type="button" variant="ghost" onClick={() => router.push(`/comercial/oportunidades/${oportunidadId}`)}>
+            Cancelar
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

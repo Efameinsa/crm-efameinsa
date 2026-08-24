@@ -36,7 +36,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .from("cotizaciones")
     .select(
       `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, cliente_snapshot, created_at,
-       cotizacion_items(cantidad, precio_unitario, productos(marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
+       cotizacion_items(cantidad, precio_unitario, descripcion, productos(marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
        oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto)`,
     )
@@ -82,6 +82,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     cotizacion.cotizacion_items as unknown as {
       cantidad: number;
       precio_unitario: number;
+      descripcion: string | null;
       productos: {
         marca: string;
         modelo: string;
@@ -95,7 +96,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   ).map((item) => {
     const ficha = item.productos?.ficha;
     return {
-      nombre: item.productos?.nombre ?? "Producto",
+      // Equipo escrito a mano (migración 0062): no está en el catálogo
+      // todavía, así que lo único que lo describe es lo que tecleó el
+      // comercial. Sin ficha, no genera página de especificaciones.
+      nombre: item.productos?.nombre ?? item.descripcion ?? "Producto",
       marca: item.productos?.marca ?? "—",
       modelo: item.productos?.modelo ?? "—",
       capacidad: item.productos?.capacidad ?? null,

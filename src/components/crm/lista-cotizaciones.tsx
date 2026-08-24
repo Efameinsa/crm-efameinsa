@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileDown, CircleCheckBig, Copy } from "lucide-react";
+import { FileDown, CircleCheckBig, Copy, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { duplicarCotizacion, enviarCotizacion, registrarVenta } from "@/lib/acciones/cotizaciones";
 import { Button } from "@/components/ui/button";
@@ -145,6 +145,20 @@ export function ListaCotizaciones({ cotizaciones }: { cotizaciones: CotizacionRe
                 <FileDown className="size-3.5" />
                 Ver PDF
               </a>
+              {/* Solo mientras es borrador: en cuanto se envía queda cerrada
+                  y hay que duplicarla, que es la regla de gerencia de siempre
+                  (migración 0062). */}
+              {c.estado === "borrador" && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={enviando}
+                  onClick={() => router.push(`?editar=${c.id}#cotizador`)}
+                >
+                  <Pencil className="size-3.5" />
+                  Corregir
+                </Button>
+              )}
               {puedeEnviar && (
                 <Button size="sm" variant="outline" disabled={enviando} onClick={() => onEnviar(c.id)}>
                   Enviar

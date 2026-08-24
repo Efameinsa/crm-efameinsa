@@ -325,7 +325,20 @@ export function CotizacionPdf({
            (Con las fichas dentro de la página de la carta, una ficha más alta
            que la página hacía que react-pdf comprimiera el texto encima de sí
            mismo — "can't wrap between pages".) ── */}
-      {items.map((item, i) => {
+      {items
+        .filter((item) => {
+          // Un equipo escrito a mano (todavía no está en el catálogo, migración
+          // 0062) no tiene nada que poner en la ficha: su página saldría en
+          // blanco delante del cliente. Mejor no generarla — el equipo igual
+          // aparece en la tabla de la propuesta con su precio.
+          const tieneAlgoQueDecir =
+            item.caracteristicas.length > 0 ||
+            item.dimensiones.length > 0 ||
+            item.medidas.length > 0 ||
+            Boolean(item.panel || item.controles || item.calentamiento);
+          return tieneAlgoQueDecir;
+        })
+        .map((item, i) => {
           // Columnas de especificación como en los modelos reales: Calentamiento
           // solo aparece en secadoras a gas; si el producto no tiene ficha de
           // panel/controles se muestra la categoría.
