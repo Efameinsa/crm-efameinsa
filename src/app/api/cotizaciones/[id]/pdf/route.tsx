@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CotizacionPdf, type ItemPdf, type SeccionFicha } from "@/lib/pdf/cotizacion-pdf";
 import { correoEnSerie } from "@/lib/pdf/series";
 import { cabeceraArchivo } from "@/lib/nombre-archivo";
+import { quitarPaginasEnBlanco } from "@/lib/pdf/paginas-en-blanco";
 
 // Se lee una sola vez al cargar el módulo, no en cada request.
 const LOGO_BUFFER = readFileSync(join(process.cwd(), "public", "logo-efameinsa.png"));
@@ -187,7 +188,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     />,
   );
 
-  return new NextResponse(new Uint8Array(buffer), {
+  // Red de seguridad: si alguna ficha se pasó del alto por poco, react-pdf deja
+  // una hoja con el membrete y nada más. Al cliente no le llega.
+  const { pdf: limpio, quitadas } = await quitarPaginasEnBlanco(new Uint8Array(buffer));
+  if (quitadas.length > 0) {
+    // Se avisa aunque el documento salga bien: cada aviso es una ficha que se
+    // pasó del alto y conviene mirarla, no dejarla tapada por la red.
+    console.warn(`[cotizacion ${id}] hojas en blanco quitadas: ${quitadas.join(", ")}`);
+  }
+
+  return new NextResponse(new Uint8Array(limpio), {
     headers: {
       "Content-Type": "application/pdf",
       // "Presu_2195-26, WAYRA INMOBILIARIA.pdf": pedido del área comercial el
