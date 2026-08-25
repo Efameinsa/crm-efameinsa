@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RedirigirLeadBoton } from "@/components/crm/redirigir-lead-boton";
+import { UrgenciaBoton } from "@/components/crm/urgencia-boton";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -112,6 +113,22 @@ export default async function DerivadosPage({
         .in("oportunidad_id", opIds)
     : { data: [] };
 
+  // Las urgencias ya enviadas: para mostrarle a Central cuándo avisó y que no
+  // dispare dos veces por impaciencia (la segunda escala a gerencia).
+  const { data: urgencias } = ids.length
+    ? await supabase
+        .from("recordatorios_urgencia")
+        .select("lead_id, created_at")
+        .in("lead_id", ids)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+  const urgenciasPorLead = new Map<string, { ultima: string; total: number }>();
+  for (const u of urgencias ?? []) {
+    const previo = urgenciasPorLead.get(u.lead_id);
+    // Vienen ordenadas de la más nueva a la más vieja: la primera es la última enviada.
+    urgenciasPorLead.set(u.lead_id, { ultima: previo?.ultima ?? u.created_at, total: (previo?.total ?? 0) + 1 });
+  }
+
   const opPorLead = new Map((ops ?? []).map((o) => [o.lead_id as string, o]));
   const cotsPorOp = new Map<string, typeof cots>();
   for (const c of cots ?? []) {
@@ -175,6 +192,7 @@ export default async function DerivadosPage({
                 const etapa = op ? ETIQUETA_ETAPA[op.etapa as string] : null;
                 const misCots = op ? (cotsPorOp.get(op.id) ?? []) : [];
                 const com = l.asignado_a ? nombreDe.get(l.asignado_a) : null;
+                const urg = urgenciasPorLead.get(l.id);
                 return (
                   <TableRow key={l.id}>
                     <TableCell className="max-w-[220px] align-top">
@@ -207,6 +225,11 @@ export default async function DerivadosPage({
                       >
                         {etapa?.texto ?? "Sin abrir todavía"}
                       </span>
+                      {urg && (
+                        <span className="mt-1 block text-[11px] font-semibold text-destructive">
+                          🚨 Urgencia enviada{urg.total > 1 ? ` ×${urg.total}` : ""} · {fechaHoraLima(urg.ultima)}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="align-top text-xs">
                       {misCots.length === 0 ? (
@@ -229,14 +252,26 @@ export default async function DerivadosPage({
                       )}
                     </TableCell>
                     <TableCell className="align-top">
-                      {/* Corregir a quién se derivó. Va en la fila porque es
-                          acá donde Central se da cuenta del error. */}
-                      <RedirigirLeadBoton
-                        leadId={l.id}
-                        contacto={l.nombre_contacto ?? l.codigo ?? "el contacto"}
-                        comercialActual={l.asignado_a}
-                        comerciales={comerciales ?? []}
-                      />
+                      {/* Las dos acciones de Central sobre lo ya derivado:
+                          corregir a quién fue, y avisar con urgencia que el
+                          cliente está esperando. Van en la fila porque es acá
+                          donde ella se entera del problema. */}
+                      <div className="flex items-center gap-0.5">
+                        <RedirigirLeadBoton
+                          leadId={l.id}
+                          contacto={l.nombre_contacto ?? l.codigo ?? "el contacto"}
+                          comercialActual={l.asignado_a}
+                          comerciales={comerciales ?? []}
+                        />
+                        {l.asignado_a && (
+                          <UrgenciaBoton
+                            leadId={l.id}
+                            contacto={l.nombre_contacto ?? l.codigo ?? "el contacto"}
+                            comercial={com ? `${com.codigo_comercial ?? ""}${com.codigo_comercial ? " · " : ""}${com.nombre}` : "el comercial"}
+                            totalUrgencias={urg?.total ?? 0}
+                          />
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

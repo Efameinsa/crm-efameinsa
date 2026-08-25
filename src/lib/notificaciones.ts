@@ -13,7 +13,9 @@ export type TipoNotificacion =
   | "cotizacion_pendiente"
   | "cotizacion_aprobada"
   | "cotizacion_rechazada"
-  | "lead_registrado";
+  | "lead_registrado"
+  // Central avisa que un cliente está esperando y nadie lo atiende (25-08).
+  | "urgencia";
 
 interface Destinatario {
   userId?: string;

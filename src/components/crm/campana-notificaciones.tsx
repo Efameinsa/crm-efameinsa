@@ -37,6 +37,11 @@ const ESTILO_AVISO: Record<
   cotizacion_aprobada: { encabezado: "Gerencia aprobó su cotización", accion: "Enviarla", duracion: 14000, tono: "success" },
   cotizacion_rechazada: { encabezado: "Gerencia devolvió su cotización", accion: "Corregirla", duracion: 14000, tono: "warning" },
   cotizacion_pendiente: { encabezado: "Una cotización espera su aprobación", accion: "Revisarla", duracion: 12000, tono: "warning" },
+  // La única que NO se va sola (duración infinita): existe porque un cliente
+  // ya reclamó que lo dejaron esperando (25-08, Mi Casita Facilita). Si esta
+  // ventanita desapareciera a los 12 segundos como las demás, un comercial
+  // que fue al baño vuelve y no se entera. Se queda hasta que la toque.
+  urgencia: { encabezado: "🚨 Urgente — un cliente está esperando", accion: "Atenderlo ya", duracion: Infinity, tono: "error" },
   otro: { encabezado: "Aviso nuevo", accion: "Ver", duracion: 8000, tono: "info" },
 };
 
@@ -82,6 +87,8 @@ export function CampanaNotificaciones({ userId }: { userId: string }) {
     toast[info.tono](info.encabezado, {
       description: [n.titulo, n.cuerpo].filter(Boolean).join(" — "),
       duration: info.duracion,
+      // La de urgencia no se cierra sola: dale una equis para cerrarla a mano.
+      closeButton: !Number.isFinite(info.duracion),
       action: n.url
         ? {
             label: info.accion,

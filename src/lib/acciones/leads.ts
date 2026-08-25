@@ -448,3 +448,63 @@ void perfiles;
   revalidatePath("/central/derivados");
   return { error: null };
 }
+
+/**
+ * El recordatorio de urgencia: Central le avisa al comercial que un cliente
+ * está esperando y nadie lo atiende.
+ *
+ * Nació el 25-08: Mi Casita Facilita escribió por formulario, volvió por
+ * WhatsApp y le dijo a Central que C5 «se demora en hacerle caso». Central
+ * veía la demora en «Lo que derivé» pero su única herramienta era reclamar
+ * por WhatsApp, fuera del sistema y sin rastro.
+ *
+ * Qué pasa al disparar (migración 0082):
+ *  · Al comercial le llega EN VIVO: ventanita que no se cierra sola, sonido
+ *    y push al celular, con el botón que abre la oportunidad.
+ *  · Queda registrado — la lista de derivados muestra cuándo se avisó.
+ *  · Del SEGUNDO aviso por el mismo contacto en adelante, gerencia también se
+ *    entera: si el recordatorio no bastó, ya no es un olvido.
+ */
+export async function enviarUrgencia(
+  leadId: string,
+  mensaje: string,
+): Promise<{ error: string | null; avisoNumero?: number }> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("enviar_urgencia", {
+    p_lead_id: leadId,
+    p_mensaje: mensaje || null,
+  });
+  if (error) return { error: error.message };
+
+  const r = data as {
+    comercial_id: string;
+    comercial_nombre: string | null;
+    comercial_codigo: string | null;
+    oportunidad_id: string | null;
+    aviso_numero: number;
+    contacto: string;
+  };
+
+  const detalle = mensaje.trim() || "Central pide atenderlo de inmediato.";
+  await notificar({
+    userId: r.comercial_id,
+    tipo: "urgencia",
+    titulo: `${r.contacto} está esperando que lo atiendan`,
+    cuerpo: detalle,
+    url: r.oportunidad_id ? `/comercial/oportunidades/${r.oportunidad_id}` : "/comercial",
+  });
+
+  if (r.aviso_numero >= 2) {
+    await notificar({
+      rol: "gerencia",
+      tipo: "urgencia",
+      titulo: `${r.contacto} sigue sin ser atendido`,
+      cuerpo: `Central ya envió ${r.aviso_numero} avisos de urgencia a ${r.comercial_codigo ?? r.comercial_nombre ?? "su comercial"}. ${detalle}`,
+      url: "/gerencia",
+    });
+  }
+
+  revalidatePath("/central/derivados");
+  return { error: null, avisoNumero: r.aviso_numero };
+}
