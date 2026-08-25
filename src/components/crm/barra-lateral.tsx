@@ -63,16 +63,23 @@ export function BarraLateral({ rol, esPostventa }: { rol: RolUsuario; esPostvent
         />
       </div>
       <NavLateral rol={rol} esPostventa={esPostventa} plegada={plegada} />
-      <button
-        type="button"
-        onClick={alternar}
-        className="mt-auto flex cursor-pointer items-center justify-center gap-2 border-t border-sidebar-accent/40 px-3 py-3 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        title={plegada ? "Expandir el menú" : "Contraer el menú"}
-        aria-label={plegada ? "Expandir el menú" : "Contraer el menú"}
-      >
-        {plegada ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-        {!plegada && "Contraer menú"}
-      </button>
+      {/* A continuación de la lista, como un ítem más — pegado al borde
+          inferior de la pantalla nadie lo veía (reportado 25-08). */}
+      <div className="px-3">
+        <button
+          type="button"
+          onClick={alternar}
+          className={cn(
+            "flex w-full cursor-pointer items-center gap-2.5 rounded-md border border-dashed border-sidebar-accent/60 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            plegada ? "justify-center px-0" : "px-3",
+          )}
+          title={plegada ? "Expandir el menú" : "Contraer el menú"}
+          aria-label={plegada ? "Expandir el menú" : "Contraer el menú"}
+        >
+          {plegada ? <PanelLeftOpen className="size-4 shrink-0" /> : <PanelLeftClose className="size-4 shrink-0" />}
+          {!plegada && "Contraer menú"}
+        </button>
+      </div>
     </aside>
   );
 }
