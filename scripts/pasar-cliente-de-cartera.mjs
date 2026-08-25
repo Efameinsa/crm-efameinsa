@@ -12,13 +12,25 @@
 //       fecha de hoy: es el dato que después decide si el cliente vuelve a
 //       estar liberable a los 6 meses sin venta.
 //
-//   NO  las oportunidades viejas. Registran quién hizo ESE trabajo en su
-//       momento; cambiarles el dueño movería ventas y gestiones de un año a
-//       los números de otra persona. Y no hace falta para que el nuevo dueño
-//       las vea: la RLS de oportunidades (migración 0013) ya deja ver las de
-//       cualquier cuenta que esté en tu cartera, sea de quien sea la
-//       oportunidad. Se queda la historia con quien la hizo y la ve quien la
-//       gestiona.
+//   SÍ  las oportunidades ABIERTAS (asignada, filtrada, cotizada, seguimiento,
+//       potencial). Son trabajo pendiente, y el trabajo pendiente sobre un
+//       cliente es de quien tiene el cliente.
+//
+//       ⚠️ ESTO CAMBIÓ EL 25-08 Y EL MOTIVO IMPORTA. La primera versión las
+//       dejaba todas con el dueño anterior, apoyándose en que la RLS de la
+//       migración 0013 deja ver las oportunidades de cualquier cuenta de tu
+//       cartera. Ver no es gestionar: «Mis oportunidades»
+//       (listar_oportunidades, migración 0054), el tablero Kanban, Mi día y la
+//       agenda filtran todos por `oportunidades.comercial_id`. Resultado con
+//       SAYWA: a Brenda el cliente le salía en Mi cartera y en ningún lado
+//       más —no lo podía gestionar— y a Ariana le seguía apareciendo en su
+//       tablero un «Llamar al cliente» de un cliente que ya no es suyo.
+//
+//   NO  las oportunidades CERRADAS (venta, rechazada, derivada). Son historia
+//       terminada: registran quién hizo ese trabajo, y moverlas llevaría las
+//       ventas y los rechazos de un año a los números de otra persona. El
+//       nuevo dueño las ve igual —para eso sí alcanza la RLS de la 0013— en el
+//       historial de la ficha del cliente.
 //
 //   SÍ  las cotizaciones del archivo de ese cliente que hubieran quedado
 //       sueltas: se enganchan a la cuenta. Es lo que Brenda reportó el 25-08
@@ -33,6 +45,11 @@ import { Client } from "pg";
 
 const [documento, codigoDestino] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const APLICAR = process.argv.includes("--aplicar");
+
+// Las cinco etapas de trabajo del tablero. Las otras tres —venta, rechazada,
+// derivada— son cierres. La misma lista está en ETAPAS_TABLERO de
+// src/app/(app)/comercial/oportunidades/page.tsx.
+const ETAPAS_ABIERTAS = ["asignada", "filtrada", "cotizada", "seguimiento", "potencial"];
 
 if (!documento || !codigoDestino) {
   console.error("Uso: pasar-cliente-de-cartera.mjs <RUC|DNI> <CODIGO_COMERCIAL> [--aplicar]");
@@ -100,19 +117,33 @@ const { rows: sueltas } = await bd.query(
 );
 
 const { rows: ops } = await bd.query(
-  `select o.etapa, o.created_at, p.codigo_comercial
+  `select o.id, o.etapa, o.created_at, o.proxima_accion, p.codigo_comercial,
+          o.etapa::text = any($2::text[]) as abierta
      from oportunidades o left join perfiles p on p.id = o.comercial_id
     where o.cuenta_id = $1 order by o.created_at`,
-  [cuenta.id],
+  [cuenta.id, ETAPAS_ABIERTAS],
 );
+// Las que ya son del destino no se anuncian como movimiento: no hay nada que
+// mover y listarlas haría pensar que el traspaso toca más de lo que toca.
+const aMover = ops.filter((o) => o.abierta && o.codigo_comercial !== destino.codigo_comercial);
+const cerradas = ops.filter((o) => !o.abierta);
 
 console.log(`\n${cuenta.razon_social}  (${cuenta.tipo_doc} ${cuenta.num_doc})`);
 console.log(`  hoy es de : ${cuenta.dueno_codigo ?? "—"} ${cuenta.dueno ?? "sin comercial"}`);
 console.log(`  pasa a    : ${destino.codigo_comercial} ${destino.nombre}`);
 console.log(`  última venta: ${cuenta.ultima_venta_at ? String(cuenta.ultima_venta_at).slice(0, 10) : "nunca"}`);
-console.log(`\n  oportunidades que NO cambian de dueño (${ops.length}):`);
-for (const o of ops) {
-  console.log(`     ${o.etapa.padEnd(12)} ${String(o.created_at).slice(0, 10)}  de ${o.codigo_comercial ?? "—"}`);
+console.log(`\n  oportunidades ABIERTAS que pasan a ${destino.codigo_comercial} (${aMover.length}):`);
+for (const o of aMover) {
+  const fecha = new Date(o.created_at).toISOString().slice(0, 10);
+  const accion = o.proxima_accion ? ` · ${o.proxima_accion}` : "";
+  console.log(
+    `     ${o.etapa.padEnd(12)} ${fecha}  de ${o.codigo_comercial ?? "—"}${accion}`,
+  );
+}
+if (aMover.length === 0) console.log("     (ninguna — el cliente pasa sin trabajo pendiente)");
+console.log(`\n  oportunidades CERRADAS que se quedan con quien las trabajó (${cerradas.length}):`);
+for (const o of cerradas) {
+  console.log(`     ${o.etapa.padEnd(12)} ${new Date(o.created_at).toISOString().slice(0, 10)}  de ${o.codigo_comercial ?? "—"}`);
 }
 console.log(`\n  cotizaciones del archivo que se enganchan a la ficha (${sueltas.length}):`);
 for (const s of sueltas) {
@@ -129,12 +160,17 @@ await bd.query(`update cuentas set comercial_id = $2, cartera_desde = current_da
   cuenta.id,
   destino.id,
 ]);
+const { rowCount: movidas } = await bd.query(
+  `update oportunidades set comercial_id = $1, updated_at = now() where id = any($2::uuid[])`,
+  [destino.id, aMover.map((o) => o.id)],
+);
 const { rowCount: enganchadas } = await bd.query(
   `update cotizaciones_historicas set cuenta_id = $1 where id = any($2::uuid[])`,
   [cuenta.id, sueltas.map((s) => s.id)],
 );
 
 console.log(`\n✓ ${cuenta.razon_social} pasó a ${destino.codigo_comercial} ${destino.nombre}.`);
+console.log(`✓ ${movidas} oportunidad(es) abiertas ahora se gestionan desde su cartera.`);
 console.log(`✓ ${enganchadas} cotización(es) del archivo enganchadas a su ficha.`);
-console.log(`  Las ${ops.length} oportunidades anteriores siguen a nombre de quien las trabajó.\n`);
+console.log(`  Las ${cerradas.length} oportunidades cerradas siguen a nombre de quien las trabajó.\n`);
 await bd.end();
