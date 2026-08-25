@@ -175,7 +175,7 @@ function PanelDetalle({
           <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
             Características completas
           </p>
-          <ul className="space-y-1 pr-1 text-[11px] leading-snug text-muted-foreground">
+          <ul className="space-y-1 break-words pr-1 text-[11px] leading-snug text-muted-foreground">
             {equipo.caracteristicas!.map((c, i) =>
               esSubtituloDeFicha(c) ? (
                 <li key={i} className="pt-1.5 text-[10px] font-bold uppercase tracking-wide text-foreground first:pt-0">
@@ -276,11 +276,14 @@ export function BuscadorEquiposModal({
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="flex h-9 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-sm text-muted-foreground shadow-xs transition-colors hover:bg-accent"
+        className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-sm text-muted-foreground shadow-xs transition-colors hover:bg-accent"
         aria-haspopup="dialog"
       >
         <Search className="size-4 flex-none" />
-        <span className="truncate">Buscar y agregar equipos… (código, marca, «secadora a gas», «rodillo eléctrico»)</span>
+        <span className="truncate">
+          Buscar y agregar equipos…
+          <span className="hidden xl:inline"> (código, marca, «secadora a gas», «rodillo eléctrico»)</span>
+        </span>
         {totalEquipos > 0 && (
           <span className="ml-auto flex-none rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
             {totalEquipos} en la cotización
@@ -292,7 +295,7 @@ export function BuscadorEquiposModal({
         {/* El botoncito de cierre de la esquina era fácil de no ver (reportado
             25-08): se apaga y el cierre vive en un botón con nombre al lado del
             buscador, más el «Listo» del pie y Esc. */}
-        <DialogContent className="flex h-[86vh] max-w-5xl flex-col gap-3 sm:max-w-5xl" showCloseButton={false}>
+        <DialogContent className="flex h-[88vh] w-[min(64rem,calc(100vw-2rem))] max-w-none flex-col gap-3 overflow-hidden" showCloseButton={false}>
           <DialogTitle className="sr-only">Buscar y agregar equipos</DialogTitle>
           <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -331,8 +334,8 @@ export function BuscadorEquiposModal({
           </button>
           </div>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr_340px]">
-            <ul ref={listaRef} className="space-y-1 overflow-y-auto pr-1" role="listbox" aria-label="Equipos">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr_280px] xl:grid-cols-[1fr_340px]">
+            <ul ref={listaRef} className="space-y-1 overflow-y-auto overflow-x-hidden pr-1" role="listbox" aria-label="Equipos">
               {coincidencias.map((p, i) => (
                 <li key={p.id}>
                   <button
@@ -360,20 +363,21 @@ export function BuscadorEquiposModal({
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">{p.nombre}</span>
                     </span>
+                    {/* Apilado en vertical a propósito: en laptop, contador y
+                        stock lado a lado desbordaban la fila — la cantidad
+                        quedaba fuera de vista y aparecía scroll horizontal. */}
                     <span className="flex flex-none flex-col items-end gap-1">
                       {p.precio != null && (
                         <span className="text-sm font-semibold tabular-nums text-foreground">{monto(p.precio)}</span>
                       )}
-                      <span className="flex items-center gap-1.5">
-                        {(enCarrito[p.id] ?? 0) > 0 && (
-                          <Contador
-                            unidades={enCarrito[p.id]}
-                            onSumar={() => onAgregar(p)}
-                            onRestar={() => onRestar(p.id)}
-                          />
-                        )}
-                        <BadgeStock stock={p.stock} />
-                      </span>
+                      {(enCarrito[p.id] ?? 0) > 0 && (
+                        <Contador
+                          unidades={enCarrito[p.id]}
+                          onSumar={() => onAgregar(p)}
+                          onRestar={() => onRestar(p.id)}
+                        />
+                      )}
+                      <BadgeStock stock={p.stock} />
                     </span>
                   </button>
                 </li>

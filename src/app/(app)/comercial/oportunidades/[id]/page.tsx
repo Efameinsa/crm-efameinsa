@@ -276,6 +276,27 @@ export default async function OportunidadDetallePage({
             ))}
           </div>
         )}
+
+        {/* Corregir lo que se acaba de leer, sin viajar al fondo de la página
+            (pedido 25-08): el RUC, la razón social y los contactos se editan
+            acá mismo, plegados para no estorbar la lectura. */}
+        {cuenta?.id && (
+          <details className="group mt-3 border-t border-border pt-2">
+            <summary className="cursor-pointer list-none text-xs font-medium text-primary hover:underline [&::-webkit-details-marker]:hidden">
+              <span className="group-open:hidden">Corregir datos del cliente y contactos ▾</span>
+              <span className="hidden group-open:inline">Cerrar edición ▴</span>
+            </summary>
+            <div className="mt-3 space-y-3">
+              <IdentidadCuenta
+                cuentaId={cuenta.id}
+                tipoDoc={cuenta.tipo_doc}
+                numDoc={cuenta.num_doc}
+                razonSocial={cuenta.razon_social}
+              />
+              <ContactosEditables cuentaId={cuenta.id} contactos={contactosCuenta} />
+            </div>
+          </details>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -338,24 +359,6 @@ export default async function OportunidadDetallePage({
                 </SeccionPlegable>
               )}
 
-              <SeccionPlegable titulo="Cliente y contactos" cantidad={contactosCuenta.length}>
-                {/* Editables: es lo que se imprime en la cotización. El RUC y la
-                    razón social van en el bloque del cliente; el contacto
-                    principal, en el "Atención:" con su teléfono y correo. */}
-                {cuenta?.id && (
-                  <>
-                    <div className="mb-3">
-                      <IdentidadCuenta
-                        cuentaId={cuenta.id}
-                        tipoDoc={cuenta.tipo_doc}
-                        numDoc={cuenta.num_doc}
-                        razonSocial={cuenta.razon_social}
-                      />
-                    </div>
-                    <ContactosEditables cuentaId={cuenta.id} contactos={contactosCuenta} />
-                  </>
-                )}
-              </SeccionPlegable>
             </>
           )}
         </div>
