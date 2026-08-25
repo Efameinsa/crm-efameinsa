@@ -74,10 +74,10 @@ function Miniatura({ equipo, grande = false }: { equipo: EquipoElegible; grande?
       <span
         className={cn(
           "flex flex-none items-center justify-center rounded-md bg-secondary text-muted-foreground",
-          grande ? "h-44 w-full" : "size-12",
+          grande ? "h-56 w-full" : "size-14",
         )}
       >
-        <ImageOff className={grande ? "size-8" : "size-4"} />
+        <ImageOff className={grande ? "size-8" : "size-5"} />
       </span>
     );
   }
@@ -89,7 +89,7 @@ function Miniatura({ equipo, grande = false }: { equipo: EquipoElegible; grande?
       loading="lazy"
       className={cn(
         "flex-none rounded-md bg-white object-contain",
-        grande ? "h-44 w-full border border-border p-2" : "size-12 border border-border p-0.5",
+        grande ? "h-56 w-full border border-border p-2" : "size-14 border border-border p-0.5",
       )}
     />
   );
@@ -219,7 +219,7 @@ export function BuscadorEquiposModal({
       </button>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
-        <DialogContent className="max-w-4xl gap-3">
+        <DialogContent className="flex h-[86vh] max-w-4xl flex-col gap-3 sm:max-w-4xl">
           <DialogTitle className="sr-only">Buscar equipo</DialogTitle>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -245,7 +245,7 @@ export function BuscadorEquiposModal({
             />
           </div>
 
-          <div className="grid h-[60vh] grid-cols-1 gap-3 sm:grid-cols-[1fr_260px]">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr_280px]">
             <ul ref={listaRef} className="space-y-1 overflow-y-auto pr-1" role="listbox" aria-label="Equipos">
               {coincidencias.map((p, i) => (
                 <li key={p.id}>
