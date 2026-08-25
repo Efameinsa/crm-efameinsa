@@ -43,6 +43,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/comercial", etiqueta: "Mi día", icono: ClipboardList },
     { href: "/comercial/agenda", etiqueta: "Mi agenda", icono: CalendarDays },
     { href: "/comercial/oportunidades", etiqueta: "Mis oportunidades", icono: KanbanSquare },
+    { href: "/comercial/cotizaciones", etiqueta: "Mis cotizaciones", icono: FileText },
     { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: Gauge },
     { href: "/comercial/cartera", etiqueta: "Mi cartera", icono: Building2 },
   ],
