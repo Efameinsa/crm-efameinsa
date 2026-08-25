@@ -111,131 +111,6 @@ function tierInicial(producto: Producto): string {
   return producto.segmento === "semi_industrial" ? "optimo" : "base";
 }
 
-/**
- * Vista previa del equipo elegido, ANTES de agregarlo a la cotización.
- *
- * Pedido de Darwin el 24-08: «cuando se agrega el producto debería haber una
- * vista previa como para asegurarse de que ese es».
- *
- * El caso que lo motiva ya ocurrió: Brenda agregó la LG TITAN-18 a un cliente
- * real y se enteró de que no tenía datos técnicos recién al abrir el PDF, con
- * la hoja de especificaciones en blanco. Para entonces el error ya estaba en un
- * documento.
- *
- * CRITERIOS DE INTERFAZ, y por qué cada uno:
- *
- *  · VA ANTES DE CONFIRMAR, no después. Revisar sirve mientras todavía se puede
- *    cambiar de opinión sin costo. Aparece al elegir y se va al agregar.
- *  · LA FOTO MANDA. Reconocer una máquina de un vistazo es mucho más rápido y
- *    más seguro que leer "LAVTMAX17"; los códigos se parecen entre sí y ahí es
- *    donde se equivoca la gente apurada.
- *  · LOS AVISOS VAN DONDE SE DECIDE. "Sin ficha técnica" ya salía en la lista
- *    del buscador, pero en letra chica y mientras se navega. Acá se dice fuerte
- *    y con la consecuencia: qué va a ver el cliente.
- *  · SE MUESTRA EL PRECIO QUE SE VA A APLICAR. Así no hay sorpresa al agregar.
- *  · NO ESTORBA. Es un bloque compacto y el botón Agregar sigue a la vista; no
- *    hay que cerrarlo ni confirmarlo para seguir.
- */
-function VistaPreviaEquipo({ producto }: { producto: Producto }) {
-  const precio = precioTier(producto, tierInicial(producto));
-  const piso = precioReferencia(producto);
-  const placa = [
-    producto.capacidad,
-    producto.calentamiento,
-    producto.panel,
-    producto.controles,
-  ].filter(Boolean) as string[];
-
-  return (
-    <div className="mt-2 rounded-lg border border-border bg-secondary/30 p-3">
-      <div className="flex gap-3">
-        {/* Sin next/image a propósito: son PNG de public/ servidos tal cual, y
-            acá se usan a 88 px — no hay nada que optimizar y sí un componente
-            menos del que depender. */}
-        {producto.fotoPath ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={producto.fotoPath}
-            alt={`${producto.marca} ${producto.modelo}`}
-            className="shrink-0 rounded-md border border-border bg-white object-contain p-1"
-            style={{ width: 88, height: 88 }}
-          />
-        ) : (
-          <div
-            className="flex shrink-0 items-center justify-center rounded-md border border-dashed border-border text-[10px] text-muted-foreground"
-            style={{ width: 88, height: 88 }}
-          >
-            Sin foto
-          </div>
-        )}
-
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">
-            {producto.marca} {producto.modelo}
-          </p>
-          <p className="text-xs text-muted-foreground">{producto.nombre}</p>
-
-          {placa.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {placa.map((d) => (
-                <span key={d} className="rounded-full bg-background px-2 py-0.5 text-[10px] font-medium text-foreground">
-                  {d}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            {producto.sku ? <span className="font-mono">{producto.sku}</span> : "Sin código"}
-            {precio != null && (
-              <>
-                {" · "}
-                <span className="font-semibold text-foreground">US$ {precio.toLocaleString("es-PE")}</span>
-                {piso != null && piso !== precio && ` · piso US$ ${piso.toLocaleString("es-PE")}`}
-              </>
-            )}
-          </p>
-        </div>
-      </div>
-
-      {/* Las primeras viñetas de la ficha: es lo que confirma que es el equipo
-          y no otro parecido del mismo modelo. */}
-      {(producto.primerasCaracteristicas?.length ?? 0) > 0 && (
-        <ul className="mt-2.5 space-y-0.5 border-t border-border pt-2">
-          {producto.primerasCaracteristicas!.map((c, i) => (
-            <li key={i} className="flex gap-1.5 text-[11px] text-muted-foreground">
-              <span aria-hidden>•</span>
-              <span className="line-clamp-1">{c}</span>
-            </li>
-          ))}
-          <li className="pt-0.5 text-[11px] text-muted-foreground/80">
-            {producto.nCaracteristicas} características y {producto.nDimensiones} medidas van completas en el PDF.
-          </li>
-        </ul>
-      )}
-
-      {producto.sinFicha && (
-        <p className="mt-2 flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2 py-1.5 text-[11px] font-medium text-amber-800">
-          <TriangleAlert className="mt-px size-3.5 shrink-0" />
-          Este equipo no tiene ficha técnica cargada: el cliente recibirá la hoja de especificaciones en blanco.
-          Pídasela a logística antes de enviar la cotización.
-        </p>
-      )}
-      {producto.fotoPrestadaDe && (
-        <p className="mt-2 flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2 py-1.5 text-[11px] font-medium text-amber-800">
-          <TriangleAlert className="mt-px size-3.5 shrink-0" />
-          La foto es la de {producto.fotoPrestadaDe}, un equipo hermano: la ficha de este trae un
-          pantallazo en vez de una foto. Revise que la imagen corresponda antes de enviar.
-        </p>
-      )}
-      {!producto.sinFicha && producto.sinFoto && (
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          Sin foto cargada: la ficha del PDF sale sin imagen del equipo.
-        </p>
-      )}
-    </div>
-  );
-}
 
 export function Cotizador({
   oportunidadId,
@@ -251,7 +126,6 @@ export function Cotizador({
 }) {
   const router = useRouter();
   const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(edicion?.serie ?? "EFAMEINSA");
-  const [productoSeleccionado, setProductoSeleccionado] = useState("");
   const [carrito, setCarrito] = useState<ItemCarrito[]>(
     () =>
       edicion?.items.map((i) => ({
@@ -268,15 +142,11 @@ export function Cotizador({
         fueraDeCatalogo: i.producto_id === null,
       })) ?? [],
   );
-  // Sube en cada "Agregar" y hace de `key` del buscador: lo remonta limpio,
-  // para que la caja no se quede con el equipo anterior escrito.
-  const [vecesAgregado, setVecesAgregado] = useState(0);
   const [condiciones, setCondiciones] = useState(edicion?.condiciones ?? "Entrega: 15 días útiles. Garantía de fábrica.");
   const [vigenciaDias, setVigenciaDias] = useState(edicion?.vigenciaDias ?? 15);
   const [entregaLugar, setEntregaLugar] = useState<string>(edicion?.entregaLugar ?? ENTREGA_POR_DEFECTO);
   const [enviando, startTransition] = useTransition();
 
-  const productoElegido = productos.find((p) => p.id === productoSeleccionado) ?? null;
 
   // Lo que el selector grande necesita mostrar de cada equipo: el precio de
   // referencia ya resuelto y el stock del Excel de Lesly.
@@ -284,10 +154,22 @@ export function Cotizador({
     () => productos.map((p) => ({ ...p, precio: precioReferencia(p) })),
     [productos],
   );
+  const cantidadesEnCarrito = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const i of carrito) if (i.producto_id) m[i.producto_id] = (m[i.producto_id] ?? 0) + i.cantidad;
+    return m;
+  }, [carrito]);
 
-  function agregarProducto() {
-    const producto = productos.find((p) => p.id === productoSeleccionado);
-    if (!producto) return;
+  // El clic en el selector AGREGA directo (pedido 25-08): elegir y después
+  // apretar «Agregar» era confirmar dos veces lo mismo, porque el modal ya
+  // muestra foto, precio, stock y avisos antes del clic. Un segundo clic en el
+  // mismo equipo suma una unidad, no crea otra línea.
+  function agregarProducto(producto: Producto) {
+    const yaEsta = carrito.findIndex((i) => i.producto_id === producto.id);
+    if (yaEsta >= 0) {
+      setCarrito((c) => c.map((item, idx) => (idx === yaEsta ? { ...item, cantidad: item.cantidad + 1 } : item)));
+      return;
+    }
     const tierInicio = tierInicial(producto);
     const precio = precioTier(producto, tierInicio) ?? 0;
     setCarrito((c) => [
@@ -302,8 +184,10 @@ export function Cotizador({
         sinFicha: Boolean(producto.sinFicha),
       },
     ]);
-    setProductoSeleccionado("");
-    setVecesAgregado((n) => n + 1);
+  }
+
+  function quitarProducto(productoId: string) {
+    setCarrito((c) => c.filter((i) => i.producto_id !== productoId));
   }
 
   function actualizarItem(i: number, cambios: Partial<ItemCarrito>) {
@@ -408,23 +292,19 @@ export function Cotizador({
           </SelectContent>
         </Select>
 
-        {/* El selector grande (pedido 25-08): ventana con miniaturas, stock del
-            Excel de Lesly y detalle al pasar el mouse, porque los nombres del
-            maestro no caben en un desplegable angosto. */}
+        {/* El selector grande (pedido 25-08): el clic AGREGA. La ventana queda
+            abierta para cargar varios equipos seguidos — una cotización real
+            trae 4 a 6 — y muestra cuáles ya están y cuántas unidades. */}
         <BuscadorEquiposModal
-          key={vecesAgregado}
           productos={equiposParaElegir}
-          seleccionado={productoSeleccionado}
-          onSeleccionar={setProductoSeleccionado}
+          enCarrito={cantidadesEnCarrito}
+          onAgregar={(e) => { const p = productos.find((x) => x.id === e.id); if (p) agregarProducto(p); }}
+          onQuitar={quitarProducto}
         />
-        <Button type="button" variant="outline" onClick={agregarProducto} disabled={!productoSeleccionado}>
-          Agregar
-        </Button>
       </div>
 
       {/* Vista previa del equipo elegido, antes de agregarlo: revisar sirve
           mientras todavía se puede cambiar de opinión sin costo. */}
-      {productoElegido && <VistaPreviaEquipo producto={productoElegido} />}
 
       {/* ⚠️ ACÁ ESTABA "agregar equipo a mano", quitado el 24-08 por decisión de
           Carlos en la reunión de las 14:17. El motivo NO es de interfaz, es

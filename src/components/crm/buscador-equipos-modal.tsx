@@ -21,11 +21,13 @@ import { cn } from "@/lib/utils";
  * verdad confirma— solo aparecía después de elegir. De ahí salió el caso de la
  * SECU502: se eligió por el texto y el PDF llevó otra máquina.
  *
- * CÓMO QUEDA. Clic en la caja → se abre esta ventana. A la izquierda, los
- * resultados con su miniatura, código, stock y precio. A la derecha, el equipo
- * bajo el mouse (o el resaltado con las flechas) en grande: foto, precio,
- * calentamiento, panel, voltaje y las primeras características. Se confirma
- * con clic o Enter; Escape cierra.
+ * EL CLIC AGREGA, sin paso intermedio (mismo pedido, segunda vuelta): «al
+ * señalar el producto ya debería quedar señalado, solo necesitaría un botón de
+ * quitar». Elegir acá y después apretar «Agregar» afuera era confirmar dos
+ * veces lo mismo — la confirmación visual ya ocurrió, con la foto delante.
+ * Y LA VENTANA QUEDA ABIERTA: una cotización real lleva 4 a 6 equipos y se
+ * cargan todos de una pasada. Cada fila muestra cuántas unidades lleva; otro
+ * clic suma una; «Quitar» vive en el panel del equipo; «Listo» o Esc cierran.
  *
  * EL STOCK sale del propio Excel de Lesly (columna STOCK, guardada al cargar
  * cada equipo). No es inventario en vivo: es lo que dice el maestro, y así se
@@ -98,14 +100,22 @@ function Miniatura({ equipo, grande = false }: { equipo: EquipoElegible; grande?
 const monto = (n: number) => `US$ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`;
 
 /** El panel derecho: el equipo bajo el mouse, en grande y sin hacer clic. */
-function PanelDetalle({ equipo }: { equipo: EquipoElegible | null }) {
+function PanelDetalle({
+  equipo,
+  unidades,
+  onQuitar,
+}: {
+  equipo: EquipoElegible | null;
+  unidades: number;
+  onQuitar: (productoId: string) => void;
+}) {
   if (!equipo) {
     return (
       <div className="hidden h-full flex-col items-center justify-center gap-2 text-center text-xs text-muted-foreground sm:flex">
         <Search className="size-6" />
         Pase el mouse por un equipo
         <br />
-        para verlo acá sin elegirlo.
+        para verlo acá sin agregarlo.
       </div>
     );
   }
@@ -131,6 +141,20 @@ function PanelDetalle({ equipo }: { equipo: EquipoElegible | null }) {
         )}
         <BadgeStock stock={equipo.stock} />
       </div>
+      {/* El estado del equipo en la cotización, y el único botón que hace
+          falta: Quitar. Agregar es el clic en la fila. */}
+      {unidades > 0 && (
+        <div className="flex items-center justify-between rounded-md bg-primary/10 px-2 py-1.5">
+          <span className="text-xs font-semibold text-primary">En la cotización: ×{unidades}</span>
+          <button
+            type="button"
+            onClick={() => onQuitar(equipo.id)}
+            className="cursor-pointer text-xs font-medium text-destructive hover:underline"
+          >
+            Quitar
+          </button>
+        </div>
+      )}
       {specs.length > 0 && (
         <dl className="space-y-0.5 text-xs">
           {specs.map(([k, v]) => (
@@ -168,12 +192,15 @@ function PanelDetalle({ equipo }: { equipo: EquipoElegible | null }) {
 
 export function BuscadorEquiposModal({
   productos,
-  seleccionado,
-  onSeleccionar,
+  enCarrito,
+  onAgregar,
+  onQuitar,
 }: {
   productos: EquipoElegible[];
-  seleccionado: string;
-  onSeleccionar: (id: string) => void;
+  /** producto_id → unidades ya en la cotización, para los badges. */
+  enCarrito: Record<string, number>;
+  onAgregar: (p: EquipoElegible) => void;
+  onQuitar: (productoId: string) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
@@ -182,7 +209,7 @@ export function BuscadorEquiposModal({
 
   const coincidencias = useMemo(() => buscarEquipos(productos, texto), [productos, texto]);
   const enFoco = coincidencias[resaltado] ?? coincidencias[0] ?? null;
-  const elegido = productos.find((p) => p.id === seleccionado) ?? null;
+  const totalEquipos = Object.values(enCarrito).reduce((a, b) => a + b, 0);
 
   // El resaltado vuelve arriba con cada búsqueda; si quedara fuera de rango, el
   // panel mostraría un equipo que ya no está en la lista.
@@ -191,12 +218,6 @@ export function BuscadorEquiposModal({
     listaRef.current?.querySelector('[data-resaltado="true"]')?.scrollIntoView({ block: "nearest" });
   }, [resaltado]);
 
-  function elegir(p: EquipoElegible) {
-    onSeleccionar(p.id);
-    setAbierto(false);
-    setTexto("");
-  }
-
   return (
     <>
       {/* La caja de siempre, pero es la puerta a la ventana grande: los nombres
@@ -204,23 +225,21 @@ export function BuscadorEquiposModal({
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className={cn(
-          "flex h-9 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-sm shadow-xs transition-colors hover:bg-accent",
-          !elegido && "text-muted-foreground",
-        )}
+        className="flex h-9 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-sm text-muted-foreground shadow-xs transition-colors hover:bg-accent"
         aria-haspopup="dialog"
       >
-        <Search className="size-4 flex-none text-muted-foreground" />
-        <span className="truncate">
-          {elegido
-            ? `${elegido.sku ? `${elegido.sku} · ` : ""}${elegido.marca} ${elegido.modelo}${elegido.capacidad ? ` · ${elegido.capacidad}` : ""}`
-            : "Buscar equipo… (código, marca, modelo, «secadora a gas», «rodillo eléctrico»)"}
-        </span>
+        <Search className="size-4 flex-none" />
+        <span className="truncate">Buscar y agregar equipos… (código, marca, «secadora a gas», «rodillo eléctrico»)</span>
+        {totalEquipos > 0 && (
+          <span className="ml-auto flex-none rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+            {totalEquipos} en la cotización
+          </span>
+        )}
       </button>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent className="flex h-[86vh] max-w-4xl flex-col gap-3 sm:max-w-4xl">
-          <DialogTitle className="sr-only">Buscar equipo</DialogTitle>
+          <DialogTitle className="sr-only">Buscar y agregar equipos</DialogTitle>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -236,7 +255,7 @@ export function BuscadorEquiposModal({
                   setResaltado((i) => Math.max(i - 1, 0));
                 } else if (e.key === "Enter" && enFoco) {
                   e.preventDefault();
-                  elegir(enFoco);
+                  onAgregar(enFoco);
                 }
               }}
               placeholder="Código, marca, modelo, capacidad o cómo lo pide el cliente…"
@@ -252,13 +271,14 @@ export function BuscadorEquiposModal({
                   <button
                     type="button"
                     role="option"
-                    aria-selected={p.id === seleccionado}
+                    aria-selected={(enCarrito[p.id] ?? 0) > 0}
                     data-resaltado={i === resaltado}
                     onMouseEnter={() => setResaltado(i)}
-                    onClick={() => elegir(p)}
+                    onClick={() => onAgregar(p)}
                     className={cn(
                       "flex w-full cursor-pointer items-center gap-2.5 rounded-md border p-2 text-left transition-colors",
                       i === resaltado ? "border-primary/40 bg-accent" : "border-transparent",
+                      (enCarrito[p.id] ?? 0) > 0 && "bg-primary/5",
                     )}
                   >
                     <Miniatura equipo={p} />
@@ -275,7 +295,14 @@ export function BuscadorEquiposModal({
                       {p.precio != null && (
                         <span className="text-sm font-semibold tabular-nums text-foreground">{monto(p.precio)}</span>
                       )}
-                      <BadgeStock stock={p.stock} />
+                      <span className="flex items-center gap-1">
+                        {(enCarrito[p.id] ?? 0) > 0 && (
+                          <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                            ✓ ×{enCarrito[p.id]}
+                          </span>
+                        )}
+                        <BadgeStock stock={p.stock} />
+                      </span>
                     </span>
                   </button>
                 </li>
@@ -289,13 +316,26 @@ export function BuscadorEquiposModal({
                 </li>
               )}
             </ul>
-            <PanelDetalle equipo={enFoco} />
+            <PanelDetalle
+              equipo={enFoco}
+              unidades={enFoco ? (enCarrito[enFoco.id] ?? 0) : 0}
+              onQuitar={onQuitar}
+            />
           </div>
 
-          <p className="text-[11px] text-muted-foreground">
-            El stock es el de la CODIFICACIÓN DE EQUIPOS de Lesly, no un inventario en vivo. ↑↓ para moverse, Enter
-            para elegir, Esc para cerrar.
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] text-muted-foreground">
+              Clic o Enter agregan; otro clic suma una unidad. El stock es el de la CODIFICACIÓN de Lesly, no un
+              inventario en vivo.
+            </p>
+            <button
+              type="button"
+              onClick={() => setAbierto(false)}
+              className="flex-none cursor-pointer rounded-md bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Listo{totalEquipos > 0 ? ` (${totalEquipos} equipo${totalEquipos === 1 ? "" : "s"})` : ""}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </>
