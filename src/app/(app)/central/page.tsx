@@ -66,7 +66,7 @@ export default async function CentralPage() {
       .limit(TOPE_BANDEJA),
     supabase
       .from("perfiles")
-      .select("id, nombre, codigo_comercial, codigo_anterior")
+      .select("id, nombre, codigo_comercial, codigo_anterior, es_postventa")
       .eq("rol", "comercial")
       .eq("activo", true)
       .order("nombre"),

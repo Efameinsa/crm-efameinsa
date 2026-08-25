@@ -160,6 +160,11 @@ export async function registrarContacto(
 export async function asignarLead(
   leadId: string,
   comercialId: string,
+  // Solo cuando el destino es el área de postventa: de qué clase es el caso
+  // (garantía / repuesto / mantenimiento). La función lo exige — sin esto la
+  // vista de postventa no distingue un reclamo de garantía de un pedido de
+  // repuesto (migración 0080).
+  tipoPostventa?: string | null,
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const {
@@ -168,6 +173,7 @@ export async function asignarLead(
   const { data: oportunidadId, error } = await supabase.rpc("asignar_lead", {
     p_lead_id: leadId,
     p_comercial_id: comercialId,
+    p_tipo_postventa: tipoPostventa ?? null,
   });
   if (error) return { error: error.message };
 

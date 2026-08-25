@@ -29,6 +29,8 @@ interface Comercial {
   id: string;
   nombre: string;
   codigo_comercial: string | null;
+  /** Post Venta usa el CRM como un comercial, pero lo que recibe son casos, no ventas (0075). */
+  es_postventa?: boolean;
   // Código con el que operaba antes (Brenda: C1 hoy, C8 hasta junio 2026).
   // Central sigue teniendo papeles viejos con el código anterior — verlo aquí
   // evita la duda del ing. Carlos: "me sale C8, pero C8 ya no hay".
@@ -63,7 +65,12 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
   const [abierto, setAbierto] = useState(false);
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[] | null>(null);
   const [comercialId, setComercialId] = useState<string>("");
+  const [tipoPostventa, setTipoPostventa] = useState<string>("");
   const [enviando, startTransition] = useTransition();
+
+  // Derivar a Post Venta es derivar un CASO, no entregar un cliente: hay que
+  // decir de qué clase es, y la cartera del comercial no se toca (0080).
+  const esPostventa = comerciales.find((c) => c.id === comercialId)?.es_postventa === true;
 
   useEffect(() => {
     if (!abierto) return;
@@ -81,8 +88,12 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
       toast.error("Seleccione un comercial");
       return;
     }
+    if (esPostventa && !tipoPostventa) {
+      toast.error("Indique de qué clase es el caso de postventa");
+      return;
+    }
     startTransition(async () => {
-      const resultado = await asignarLead(leadId, comercialId);
+      const resultado = await asignarLead(leadId, comercialId, esPostventa ? tipoPostventa : null);
       if (resultado.error) {
         toast.error(resultado.error);
         return;
@@ -174,6 +185,25 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
             </SelectContent>
           </Select>
         </div>
+
+        {esPostventa && (
+          <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <Label htmlFor="tipo-postventa">¿De qué clase es el caso?</Label>
+            <Select value={tipoPostventa} onValueChange={(valor) => setTipoPostventa(valor ?? "")}>
+              <SelectTrigger id="tipo-postventa" className="w-full bg-card">
+                <SelectValue placeholder="Seleccione…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="garantia">Garantía — el equipo no está operativo</SelectItem>
+                <SelectItem value="repuesto">Repuesto</SelectItem>
+                <SelectItem value="mantenimiento">Mantenimiento preventivo</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              El cliente sigue en la cartera de su comercial: postventa recibe el caso, no el cliente.
+            </p>
+          </div>
+        )}
 
         <DialogFooter>
           <Button onClick={confirmar} disabled={enviando}>
