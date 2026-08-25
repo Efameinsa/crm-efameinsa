@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, PackageX, ImageOff } from "lucide-react";
+import { Search, PackageX, ImageOff, X } from "lucide-react";
 import { buscarEquipos } from "@/lib/buscar-equipo";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -190,16 +190,54 @@ function PanelDetalle({
   );
 }
 
+/**
+ * Las unidades se cambian con botones explícitos, no repitiendo el clic.
+ * Primera versión: cada clic sobre la fila sumaba una unidad — y un doble
+ * clic sin querer dejaba ×2 sin que nadie lo pidiera (reportado el 25-08).
+ * Ahora el clic AGREGA solo la primera vez; después la cantidad se maneja
+ * con − / +, y el − en 1 quita el equipo.
+ */
+function Contador({
+  unidades,
+  onSumar,
+  onRestar,
+}: {
+  unidades: number;
+  onSumar: () => void;
+  onRestar: () => void;
+}) {
+  const boton =
+    "flex size-6 cursor-pointer items-center justify-center rounded-md border border-border bg-background text-sm font-bold leading-none text-foreground transition-colors hover:bg-accent";
+  return (
+    <span
+      className="flex items-center gap-1 rounded-full bg-primary/10 px-1 py-0.5"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button type="button" aria-label="Quitar una unidad" className={boton} onClick={onRestar}>
+        −
+      </button>
+      <span className="min-w-5 text-center text-xs font-bold tabular-nums text-primary">{unidades}</span>
+      <button type="button" aria-label="Sumar una unidad" className={boton} onClick={onSumar}>
+        +
+      </button>
+    </span>
+  );
+}
+
 export function BuscadorEquiposModal({
   productos,
   enCarrito,
   onAgregar,
+  onRestar,
   onQuitar,
 }: {
   productos: EquipoElegible[];
   /** producto_id → unidades ya en la cotización, para los badges. */
   enCarrito: Record<string, number>;
+  /** Suma una unidad (o agrega el equipo si no estaba). */
   onAgregar: (p: EquipoElegible) => void;
+  /** Resta una unidad; en 1, quita el equipo. */
+  onRestar: (productoId: string) => void;
   onQuitar: (productoId: string) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
@@ -238,9 +276,13 @@ export function BuscadorEquiposModal({
       </button>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
-        <DialogContent className="flex h-[86vh] max-w-4xl flex-col gap-3 sm:max-w-4xl">
+        {/* El botoncito de cierre de la esquina era fácil de no ver (reportado
+            25-08): se apaga y el cierre vive en un botón con nombre al lado del
+            buscador, más el «Listo» del pie y Esc. */}
+        <DialogContent className="flex h-[86vh] max-w-4xl flex-col gap-3 sm:max-w-4xl" showCloseButton={false}>
           <DialogTitle className="sr-only">Buscar y agregar equipos</DialogTitle>
-          <div className="relative">
+          <div className="flex items-center gap-2">
+          <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               autoFocus
@@ -255,13 +297,25 @@ export function BuscadorEquiposModal({
                   setResaltado((i) => Math.max(i - 1, 0));
                 } else if (e.key === "Enter" && enFoco) {
                   e.preventDefault();
-                  onAgregar(enFoco);
+                  // Igual que el clic: agrega solo si no estaba. Repetir Enter
+                  // no infla la cantidad — para eso está el «+».
+                  if (!(enCarrito[enFoco.id] ?? 0)) onAgregar(enFoco);
                 }
               }}
               placeholder="Código, marca, modelo, capacidad o cómo lo pide el cliente…"
               className="pl-8"
               aria-label="Buscar equipo"
             />
+          </div>
+          <button
+            type="button"
+            onClick={() => setAbierto(false)}
+            className="flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            aria-label="Cerrar el buscador"
+          >
+            <X className="size-4" />
+            Cerrar
+          </button>
           </div>
 
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr_280px]">
@@ -274,7 +328,9 @@ export function BuscadorEquiposModal({
                     aria-selected={(enCarrito[p.id] ?? 0) > 0}
                     data-resaltado={i === resaltado}
                     onMouseEnter={() => setResaltado(i)}
-                    onClick={() => onAgregar(p)}
+                    onClick={() => {
+                      if (!(enCarrito[p.id] ?? 0)) onAgregar(p);
+                    }}
                     className={cn(
                       "flex w-full cursor-pointer items-center gap-2.5 rounded-md border p-2 text-left transition-colors",
                       i === resaltado ? "border-primary/40 bg-accent" : "border-transparent",
@@ -295,11 +351,13 @@ export function BuscadorEquiposModal({
                       {p.precio != null && (
                         <span className="text-sm font-semibold tabular-nums text-foreground">{monto(p.precio)}</span>
                       )}
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1.5">
                         {(enCarrito[p.id] ?? 0) > 0 && (
-                          <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
-                            ✓ ×{enCarrito[p.id]}
-                          </span>
+                          <Contador
+                            unidades={enCarrito[p.id]}
+                            onSumar={() => onAgregar(p)}
+                            onRestar={() => onRestar(p.id)}
+                          />
                         )}
                         <BadgeStock stock={p.stock} />
                       </span>
@@ -325,7 +383,7 @@ export function BuscadorEquiposModal({
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] text-muted-foreground">
-              Clic o Enter agregan; otro clic suma una unidad. El stock es el de la CODIFICACIÓN de Lesly, no un
+              Clic o Enter agregan el equipo; las unidades se cambian con − y +. El stock es el de la CODIFICACIÓN de Lesly, no un
               inventario en vivo.
             </p>
             <button

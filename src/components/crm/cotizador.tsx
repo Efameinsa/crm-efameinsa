@@ -190,6 +190,15 @@ export function Cotizador({
     setCarrito((c) => c.filter((i) => i.producto_id !== productoId));
   }
 
+  // Resta una unidad desde el selector; el − en 1 quita el equipo.
+  function restarProducto(productoId: string) {
+    setCarrito((c) =>
+      c
+        .map((i) => (i.producto_id === productoId ? { ...i, cantidad: i.cantidad - 1 } : i))
+        .filter((i) => i.cantidad > 0),
+    );
+  }
+
   function actualizarItem(i: number, cambios: Partial<ItemCarrito>) {
     setCarrito((c) => c.map((item, idx) => (idx === i ? { ...item, ...cambios } : item)));
   }
@@ -299,6 +308,7 @@ export function Cotizador({
           productos={equiposParaElegir}
           enCarrito={cantidadesEnCarrito}
           onAgregar={(e) => { const p = productos.find((x) => x.id === e.id); if (p) agregarProducto(p); }}
+          onRestar={restarProducto}
           onQuitar={quitarProducto}
         />
       </div>
