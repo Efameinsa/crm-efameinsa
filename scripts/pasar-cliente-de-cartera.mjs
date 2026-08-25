@@ -117,7 +117,7 @@ const { rows: sueltas } = await bd.query(
 );
 
 const { rows: ops } = await bd.query(
-  `select o.id, o.etapa, o.created_at, o.proxima_accion, p.codigo_comercial,
+  `select o.id, o.etapa, o.created_at, o.proxima_accion, o.lead_id, p.codigo_comercial,
           o.etapa::text = any($2::text[]) as abierta
      from oportunidades o left join perfiles p on p.id = o.comercial_id
     where o.cuenta_id = $1 order by o.created_at`,
@@ -164,6 +164,16 @@ const { rowCount: movidas } = await bd.query(
   `update oportunidades set comercial_id = $1, updated_at = now() where id = any($2::uuid[])`,
   [destino.id, aMover.map((o) => o.id)],
 );
+// El contacto que originó cada oportunidad movida viaja con ella. Si no, la
+// bandeja de derivados de Central y el SLA siguen diciendo que ese lead está
+// con el comercial anterior, y el nuevo dueño no aparece como quien lo atiende.
+// Solo los que siguen derivados: los históricos del Excel registran a quién se
+// le asignó en su momento y eso no se reescribe.
+const { rowCount: leadsMovidos } = await bd.query(
+  `update leads set asignado_a = $1, updated_at = now()
+    where id = any($2::uuid[]) and estado = 'asignado'`,
+  [destino.id, aMover.map((o) => o.lead_id).filter(Boolean)],
+);
 const { rowCount: enganchadas } = await bd.query(
   `update cotizaciones_historicas set cuenta_id = $1 where id = any($2::uuid[])`,
   [cuenta.id, sueltas.map((s) => s.id)],
@@ -171,6 +181,7 @@ const { rowCount: enganchadas } = await bd.query(
 
 console.log(`\n✓ ${cuenta.razon_social} pasó a ${destino.codigo_comercial} ${destino.nombre}.`);
 console.log(`✓ ${movidas} oportunidad(es) abiertas ahora se gestionan desde su cartera.`);
+console.log(`✓ ${leadsMovidos} contacto(s) derivados apuntan ahora a ${destino.codigo_comercial}.`);
 console.log(`✓ ${enganchadas} cotización(es) del archivo enganchadas a su ficha.`);
 console.log(`  Las ${cerradas.length} oportunidades cerradas siguen a nombre de quien las trabajó.\n`);
 await bd.end();
