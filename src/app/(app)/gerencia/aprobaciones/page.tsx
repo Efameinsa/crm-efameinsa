@@ -30,7 +30,7 @@ export default async function AprobacionesPage() {
     .select(
       `id, codigo, serie, total, moneda, created_at,
        oportunidades(cuentas(razon_social), perfiles(nombre)),
-       cotizacion_items(id, cantidad, precio_lista, precio_unitario, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento))`,
+       cotizacion_items(id, cantidad, precio_lista, precio_unitario, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
     )
     .eq("estado_aprobacion", "pendiente_gerencia")
     .order("created_at", { ascending: true });
@@ -64,7 +64,7 @@ export default async function AprobacionesPage() {
               bajo_lista: boolean;
               requiere_aprobacion: boolean;
               descripcion: string | null;
-              productos: { marca: string; modelo: string; nombre: string; segmento: string } | null;
+              productos: { marca: string; modelo: string; nombre: string; segmento: string; foto_path: string | null } | null;
             }[]) ?? [];
             // Desde la migración 0074 gerencia decide una sola cosa: equipos
             // cotizados por debajo del precio de referencia. Se muestra cuánto
@@ -120,6 +120,7 @@ export default async function AprobacionesPage() {
                       bajoLista: i.bajo_lista,
                       requiereAprobacion: i.requiere_aprobacion,
                       esIndustrial: i.productos?.segmento === "industrial",
+                      fotoPath: i.productos?.foto_path ?? null,
                     }))}
                   />
                 </div>

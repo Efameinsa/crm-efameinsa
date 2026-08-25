@@ -31,6 +31,9 @@ export interface ItemAprobacion {
    *  referencia. */
   requiereAprobacion: boolean;
   esIndustrial: boolean;
+  /** Para que gerencia VEA qué máquina está aprobando (pedido 25-08: revisó
+   *  el coche CO408 y preguntó por la imagen — la vista nunca la tuvo). */
+  fotoPath?: string | null;
 }
 
 /**
@@ -129,6 +132,14 @@ export function AprobarCotizacionBotones({
                   i.requiereAprobacion && decision === undefined && "border-amber-500/50 bg-amber-500/5",
                 )}
               >
+                <div className="flex items-start gap-2.5">
+                {i.fotoPath ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- foto local chica
+                  <img src={i.fotoPath} alt="" loading="lazy" className="size-14 flex-none rounded-md border border-border bg-white object-contain p-0.5" />
+                ) : (
+                  <span className="flex size-14 flex-none items-center justify-center rounded-md bg-secondary text-[9px] text-muted-foreground">sin foto</span>
+                )}
+                <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground">
                   {i.cantidad > 1 && <span className="text-muted-foreground">{i.cantidad} × </span>}
                   {i.nombre}
@@ -223,6 +234,8 @@ export function AprobarCotizacionBotones({
                     Al precio de referencia o por encima — no necesita su aprobación
                   </p>
                 )}
+                </div>
+                </div>
               </div>
             );
           })}
