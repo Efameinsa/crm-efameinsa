@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             priority
           />
         </div>
-        <NavLateral rol={perfil.rol} />
+        <NavLateral rol={perfil.rol} esPostventa={perfil.es_postventa ?? false} />
       </aside>
       <div className="flex flex-1 flex-col">
         <EncabezadoUsuario perfil={perfil} />

@@ -19,6 +19,8 @@ import {
   ClipboardCheck,
   PiggyBank,
   PackageCheck,
+  Wrench,
+  LifeBuoy,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,9 +62,22 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   ],
 };
 
-export function NavLateral({ rol }: { rol: RolUsuario }) {
+// Postventa entra como un comercial más —«le das el acceso a la parte
+// comercial, o sea, como si fuera un comercial» (Carlos, 25-08)— pero su día no
+// es vender: es responder garantías, cotizar repuestos y seguir despachos y
+// puestas en marcha. Por eso conserva las herramientas comerciales y suma las
+// dos pantallas suyas arriba, que es lo que abre al llegar.
+const ENLACES_POSTVENTA = [
+  { href: "/postventa", etiqueta: "Postventa", icono: Wrench },
+  { href: "/postventa/agenda", etiqueta: "Agenda de despachos", icono: CalendarDays },
+  { href: "/postventa/soporte", etiqueta: "Soporte técnico", icono: LifeBuoy },
+  { href: "/comercial/oportunidades", etiqueta: "Mis casos", icono: KanbanSquare },
+  { href: "/comercial/cartera", etiqueta: "Clientes", icono: Building2 },
+];
+
+export function NavLateral({ rol, esPostventa = false }: { rol: RolUsuario; esPostventa?: boolean }) {
   const pathname = usePathname();
-  const enlaces = ENLACES_POR_ROL[rol];
+  const enlaces = esPostventa ? ENLACES_POSTVENTA : ENLACES_POR_ROL[rol];
 
   // El enlace activo es el de coincidencia más específica (más larga), no
   // solo el primero cuyo prefijo calce — así una ruta anidada como

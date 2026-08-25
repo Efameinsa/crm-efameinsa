@@ -3,9 +3,28 @@ import { FileDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AprobarCotizacionBotones } from "@/components/crm/aprobar-cotizacion-botones";
+import { HistorialAprobaciones } from "@/components/crm/historial-aprobaciones";
+
+export const dynamic = "force-dynamic";
 
 export default async function AprobacionesPage() {
   const supabase = await createClient();
+  // Lo ya resuelto. Pedido del ing. Carlos el 25-08: «si ya aprobaste, no
+  // puedes ver lo que aprobaste, entonces tiene que haber un historial… para
+  // saber por qué me manda Brenda». Sin esto, aprobar borraba la evidencia de
+  // qué se había aprobado y a qué precio, que es justo lo que hay que poder
+  // mirar cuando el mismo comercial vuelve a pedir un descuento parecido.
+  const { data: historial } = await supabase
+    .from("cotizaciones")
+    .select(
+      `id, codigo, serie, total, moneda, estado, estado_aprobacion, aprobada_at, nota_gerencia, enviada_at,
+       oportunidades(cuentas(razon_social), perfiles(nombre)),
+       cotizacion_items(cantidad, precio_lista, precio_unitario, bajo_lista, aprobado, descripcion, productos(marca, modelo, nombre))`,
+    )
+    .in("estado_aprobacion", ["aprobada_gerencia", "rechazada_gerencia"])
+    .order("aprobada_at", { ascending: false, nullsFirst: false })
+    .limit(30);
+
   const { data: cotizaciones } = await supabase
     .from("cotizaciones")
     .select(
@@ -17,6 +36,7 @@ export default async function AprobacionesPage() {
     .order("created_at", { ascending: true });
 
   return (
+    <div className="space-y-4">
     <SeccionPanel
       titulo="Cotizaciones pendientes de aprobación"
       accion={
@@ -109,5 +129,7 @@ export default async function AprobacionesPage() {
         </div>
       )}
     </SeccionPanel>
+    <HistorialAprobaciones filas={historial ?? []} />
+    </div>
   );
 }

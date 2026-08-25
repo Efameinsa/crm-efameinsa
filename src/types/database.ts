@@ -52,8 +52,38 @@ export interface Perfil {
   codigo_comercial: string | null;
   meta_mensual: number | null;
   activo: boolean;
+  /** Cuenta de práctica: su trabajo no entra en ningún indicador (0072). */
+  es_prueba?: boolean;
+  /** Área de postventa: usa el CRM como comercial, pero no vende (0075). */
+  es_postventa?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/** Clase de caso que Central deriva a postventa (migración 0075). */
+export type TipoPostventa = "garantia" | "repuesto" | "mantenimiento";
+
+export interface ServicioPostventa {
+  id: string;
+  cuenta_id: string | null;
+  cliente_texto: string | null;
+  fecha_confirmacion: string | null;
+  ubicacion: string | null;
+  equipo: string | null;
+  tipo_servicio: string;
+  observaciones: string | null;
+  monto: number | null;
+  moneda: string;
+  forma_pago: string | null;
+  confirmacion_abono: string | null;
+  prueba_embalaje: string | null;
+  fecha_despacho: string | null;
+  despacho_nota: string | null;
+  planos_preinstalacion: string | null;
+  puesta_en_marcha: string | null;
+  puesta_nota: string | null;
+  completado: boolean;
+  informe: string | null;
 }
 
 export interface Lead {
