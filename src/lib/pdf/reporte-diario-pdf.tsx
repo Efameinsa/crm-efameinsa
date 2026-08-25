@@ -53,6 +53,14 @@ export interface ReporteDiarioProps {
   leads: { codigo: string | null; nombre: string; canal: string; hora: string | null }[];
   complementarias: { titulo: string; hora: string | null }[];
   agenda: { pendiente_hoy: number; vencidas: number; manana: number };
+  /** Reunión 25-08 (ing. Carlos): el reporte debe mostrar QUÉ hay planificado
+   *  para el día siguiente, no solo cuántos — «para ver cómo se están
+   *  gestionando». */
+  planificacion_manana: {
+    fecha: string;
+    gestiones: { cliente: string; accion: string | null; hora: string | null; etapa: string }[];
+    tareas: { titulo: string; hora: string | null }[];
+  };
 }
 
 // Márgenes: el ing. Carlos, 24-08, sobre este reporte impreso — el texto salía
@@ -109,6 +117,10 @@ const e = StyleSheet.create({
 const TIPO: Record<string, string> = {
   llamada: "Llamada", whatsapp: "WhatsApp", email: "Correo", visita: "Visita", showroom: "Showroom",
 };
+const ETAPA: Record<string, string> = {
+  asignada: "Recibido", filtrada: "Filtrado", cotizada: "Cotizado",
+  seguimiento: "Seguimiento", potencial: "Negociación",
+};
 const CANAL: Record<string, string> = {
   whatsapp: "WhatsApp", llamada: "Llamada", formulario_web: "Web", facebook: "Facebook",
   instagram: "Instagram", email: "Correo", presencial: "Presencial", referido: "Referido", otro: "Otro",
@@ -139,7 +151,7 @@ function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: string; su
 }
 
 export function ReporteDiarioPdf({
-  logoBuffer, fecha, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda,
+  logoBuffer, fecha, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -301,6 +313,40 @@ export function ReporteDiarioPdf({
                 <Text style={{ width: "88%" }}>{corta(a.titulo, 110)}</Text>
               </View>
             ))
+          )}
+        </Seccion>
+
+        <Seccion
+          titulo="6. PLANIFICACIÓN DEL DÍA SIGUIENTE"
+          total={planificacion_manana.gestiones.length + planificacion_manana.tareas.length}
+        >
+          {planificacion_manana.gestiones.length + planificacion_manana.tareas.length === 0 ? (
+            <Text style={e.vacio}>Sin gestiones programadas para el día siguiente.</Text>
+          ) : (
+            <>
+              <View style={e.th}>
+                <Text style={[e.thTexto, { width: "8%" }]}>Hora</Text>
+                <Text style={[e.thTexto, { width: "42%" }]}>Cliente / tarea</Text>
+                <Text style={[e.thTexto, { width: "14%" }]}>Etapa</Text>
+                <Text style={[e.thTexto, { width: "36%" }]}>Qué se planificó</Text>
+              </View>
+              {planificacion_manana.gestiones.map((g, i) => (
+                <View key={`g${i}`} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                  <Text style={{ width: "8%" }}>{g.hora ?? "—"}</Text>
+                  <Text style={{ width: "42%", paddingRight: 6 }}>{corta(g.cliente, 48)}</Text>
+                  <Text style={{ width: "14%", color: GRIS }}>{ETAPA[g.etapa] ?? g.etapa}</Text>
+                  <Text style={{ width: "36%", color: GRIS }}>{g.accion ? corta(g.accion, 60) : "Seguimiento programado"}</Text>
+                </View>
+              ))}
+              {planificacion_manana.tareas.map((t, i) => (
+                <View key={`t${i}`} style={[e.fila, ...((planificacion_manana.gestiones.length + i) % 2 ? [e.filaAlterna] : [])]}>
+                  <Text style={{ width: "8%" }}>{t.hora ?? "—"}</Text>
+                  <Text style={{ width: "42%", paddingRight: 6 }}>{corta(t.titulo, 48)}</Text>
+                  <Text style={{ width: "14%", color: GRIS }}>Tarea</Text>
+                  <Text style={{ width: "36%", color: GRIS }}>Actividad propia de agenda</Text>
+                </View>
+              ))}
+            </>
           )}
         </Seccion>
 

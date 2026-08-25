@@ -61,6 +61,7 @@ export async function GET(request: Request) {
       leads={r.leads}
       complementarias={r.complementarias}
       agenda={r.agenda}
+      planificacion_manana={r.planificacion_manana}
     />,
   );
 

@@ -618,10 +618,14 @@ function Dia({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: iso });
   const MAX = 3;
+  // «N más» dejó de ser texto muerto: el gerente lo señaló en la reunión del
+  // 25-08 — en el calendario de Katerine veía «5 más, 2 más…» sin poder
+  // abrirlos. Ahora se arma la lista COMPLETA y el corte es solo visual: el
+  // botón la despliega y vuelve a plegar en la misma celda.
+  const [expandido, setExpandido] = useState(false);
   const items: React.ReactNode[] = [];
-  let n = 0;
   for (const v of datos?.ventas ?? []) {
-    if (n++ < MAX) items.push(
+    items.push(
       <button
         key={`v${v.id}`}
         type="button"
@@ -634,13 +638,13 @@ function Dia({
     );
   }
   for (const a of datos?.acciones ?? []) {
-    if (n++ < MAX) items.push(<Tarjeta key={a.id} a={a} vencida={!!a.fecha && a.fecha < hoyISO} onSel={onSel} />);
+    items.push(<Tarjeta key={a.id} a={a} vencida={!!a.fecha && a.fecha < hoyISO} onSel={onSel} />);
   }
   for (const t of datos?.tareas ?? []) {
-    if (n++ < MAX) items.push(<TarjetaTarea key={t.id} t={t} onSel={onSelTarea} />);
+    items.push(<TarjetaTarea key={t.id} t={t} onSel={onSelTarea} />);
   }
   for (const h of datos?.hechas ?? []) {
-    if (n++ < MAX) items.push(
+    items.push(
       <button
         key={`h${h.id}`}
         type="button"
@@ -673,8 +677,16 @@ function Dia({
       >
         {dia}
       </span>
-      {items}
-      {n > MAX && <span className="px-1 text-[11px] text-muted-foreground">{n - MAX} más</span>}
+      {expandido ? items : items.slice(0, MAX)}
+      {items.length > MAX && (
+        <button
+          type="button"
+          onClick={() => setExpandido((v) => !v)}
+          className="w-full cursor-pointer rounded-md px-1 py-0.5 text-left text-[11px] font-semibold text-primary hover:bg-accent"
+        >
+          {expandido ? "▴ ver menos" : `▾ ${items.length - MAX} más`}
+        </button>
+      )}
       {!otroMes && (
         <button
           type="button"
