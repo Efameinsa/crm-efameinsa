@@ -4,7 +4,6 @@ import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PuntoInteres } from "@/components/crm/punto-interes";
-import { CalloutActivarNotificaciones } from "@/components/crm/callout-activar-notificaciones";
 import { cn } from "@/lib/utils";
 import { hoyLima } from "@/lib/periodo";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
@@ -294,8 +293,6 @@ export default async function ComercialPage() {
 
   return (
     <div className="space-y-5">
-      <CalloutActivarNotificaciones />
-
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle>Mi día</CardTitle>
