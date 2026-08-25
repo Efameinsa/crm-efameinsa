@@ -58,7 +58,7 @@ export default async function CentralPage() {
     supabase
       .from("leads")
       .select(
-        "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, utm_campaign, recibido_at",
+        "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, utm_campaign, recibido_at, es_prueba",
         { count: "exact" },
       )
       .eq("estado", "pendiente_triaje")
@@ -92,7 +92,13 @@ export default async function CentralPage() {
   // dentro del diálogo de asignar porque el problema era justamente que Central
   // no lo sabía ANTES de decidir: el 25-08 tenía 24 repetidos de 43 delante y
   // el único botón que le servía decía «Descartar».
-  const coincidencias = await coincidenciasDeLaBandeja(supabase, leads ?? []);
+  // El contacto de prueba del aviso sonoro queda fuera del cruce: coincide con
+  // la cuenta de práctica y saldría con la cinta «ya derivado» justo encima del
+  // único contacto que Central SÍ tiene que derivar para oír el pitido.
+  const coincidencias = await coincidenciasDeLaBandeja(
+    supabase,
+    (leads ?? []).filter((l) => !l.es_prueba),
+  );
   const repetidos = [...coincidencias.values()].filter((c) => c.clase === "duplicado").length;
 
   return (
