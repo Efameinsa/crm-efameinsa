@@ -100,31 +100,54 @@ function nota(ctx: AudioContext, hz: number, empiezaEn: number, dura: number, vo
   osc.stop(t + dura + 0.02);
 }
 
+/**
+ * Ejecuta `tocar` con el contexto de audio LISTO, esperando la reanudación si
+ * hace falta.
+ *
+ * EL BUG QUE ESTO CORRIGE (25-08, reportado con C0 en laptop): Chrome
+ * SUSPENDE el AudioContext de una pestaña en segundo plano o con la laptop
+ * en batería. El código anterior llamaba resume() —que es asíncrono— y
+ * comprobaba el estado EN LA MISMA LÍNEA: la reanudación aún no había
+ * terminado, leía «suspended» y se rendía sin sonar. El aviso salía en la
+ * campanita, mudo; y al tocar el altavoz (un clic nuevo) el contexto ya
+ * estaba corriendo y "mágicamente" sonaba. Ahora se espera la promesa y se
+ * toca al despertar. Solo queda mudo el caso que Chrome no permite de
+ * verdad: cero interacción con la página desde que cargó.
+ */
+function conAudioListo(tocar: (ctx: AudioContext) => void): void {
+  const ctx = contextoAudio();
+  if (!ctx) return;
+  const intentar = () => {
+    try {
+      tocar(ctx);
+    } catch {
+      /* que no suene nunca puede romper la pantalla */
+    }
+  };
+  if (ctx.state === "running") {
+    intentar();
+    return;
+  }
+  void ctx
+    .resume()
+    .then(() => {
+      if ((ctx.state as string) === "running") intentar();
+    })
+    .catch(() => {});
+}
+
 /** Suena el aviso. Nunca lanza: si no se puede, no suena y ya. */
 export function sonarAlerta(idAviso: string): void {
   if (alertaSilenciada()) return;
   if (yaSonoEnOtraPestana(idAviso)) return;
-
-  const ctx = contextoAudio();
-  if (!ctx) return;
-  // Suspendido = el navegador todavía no permite sonido en esta pestaña.
-  if (ctx.state === "suspended") {
-    void ctx.resume().catch(() => {});
-    if (ctx.state === "suspended") return;
-  }
-
-  try {
-    // Volumen duplicado el 24-08 a pedido: en la oficina el anterior se perdía
-    // entre el ruido. Duplicar la amplitud son +6 dB, que es lo que se oye como
-    // "el doble de fuerte"; sigue siendo un pitido corto y con rampa, no un
-    // timbre. Si quedara alto, estos dos números son lo único que hay que bajar.
-    // 25-08, segunda subida a pedido: 0.06→0.12 (ayer) →0.24. Otros +6 dB
-    // percibidos como el doble. De acá en adelante conviene tocar la salida
-    // del sistema, no la síntesis: 0.5 ya es zona de saturación.
-    motivo(ctx, 0);
-  } catch {
-    /* que no suene nunca puede romper la pantalla */
-  }
+  // Volumen duplicado el 24-08 a pedido: en la oficina el anterior se perdía
+  // entre el ruido. Duplicar la amplitud son +6 dB, que es lo que se oye como
+  // "el doble de fuerte"; sigue siendo un pitido corto y con rampa, no un
+  // timbre. Si quedara alto, los números de motivo() son lo único que hay que
+  // bajar. 25-08, segunda subida a pedido: 0.06→0.12 (ayer) →0.24. Otros
+  // +6 dB percibidos como el doble. De acá en adelante conviene tocar la
+  // salida del sistema, no la síntesis: 0.5 ya es zona de saturación.
+  conAudioListo((ctx) => motivo(ctx, 0));
 }
 
 /** Las dos notas del aviso, para poder repetirlas. */
@@ -143,19 +166,11 @@ function motivo(ctx: AudioContext, desde: number): void {
 export function sonarCampanada(idAviso: string): void {
   if (alertaSilenciada()) return;
   if (yaSonoEnOtraPestana(idAviso)) return;
-  const ctx = contextoAudio();
-  if (!ctx) return;
-  if (ctx.state === "suspended") {
-    void ctx.resume().catch(() => {});
-    if (ctx.state === "suspended") return;
-  }
-  try {
+  conAudioListo((ctx) => {
     motivo(ctx, 0);
     motivo(ctx, 0.38);
     motivo(ctx, 0.76);
-  } catch {
-    /* que no suene nunca puede romper la pantalla */
-  }
+  });
 }
 
 /**

@@ -15,7 +15,19 @@ const ETIQUETA_TIPO: Record<string, string> = {
 // tabla-por-comercial.tsx (barra de progreso hacia la meta) y linea-tiempo-
 // cuenta.tsx (colores ámbar/verde). Fila entera clickeable hacia su detalle,
 // conservando la fecha que se esté viendo.
-export function TarjetaSupervision({ c, meta, fecha }: { c: ComercialSupervision; meta: number; fecha: string }) {
+export function TarjetaSupervision({
+  c,
+  meta,
+  fecha,
+  esPostventa = false,
+}: {
+  c: ComercialSupervision;
+  meta: number;
+  fecha: string;
+  /** Postventa se muestra (pedido 25-08) pero rotulada: sus gestiones son
+   *  casos de garantía/repuestos, no ventas, y no compite con la meta. */
+  esPostventa?: boolean;
+}) {
   const pct = meta > 0 ? Math.round((c.seguimientos_efectivos / meta) * 100) : 0;
   // El total de presupuestos del día suma los del CRM y los del archivo: para
   // fechas anteriores al CRM, todo lo que hizo el comercial está en el archivo.
@@ -32,6 +44,11 @@ export function TarjetaSupervision({ c, meta, fecha }: { c: ComercialSupervision
           <p className="font-semibold text-foreground">
             {c.nombre}
             {c.codigo && <span className="ml-1 font-normal text-muted-foreground">({c.codigo}{c.codigo_anterior ? ` · antes ${c.codigo_anterior}` : ""})</span>}
+            {esPostventa && (
+              <span className="ml-1.5 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                PV · Postventa
+              </span>
+            )}
           </p>
           {(c.primera_gestion || c.ultima_gestion) && (
             <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">

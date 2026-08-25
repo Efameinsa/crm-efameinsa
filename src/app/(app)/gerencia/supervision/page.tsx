@@ -35,10 +35,12 @@ export default async function SupervisionPage({
   }
 
   const { totales, meta_seguimientos } = resumen;
-  // Postventa vuelve a venir en la función desde la 0078 —Central necesita
-  // contarla— pero acá no entra: se compara contra la meta de 30 seguimientos
-  // y un caso de garantía no es una gestión de venta.
+  // Postventa TAMBIÉN se muestra (pedido de gerencia 25-08: «hay que mostrar
+  // PV»), pero aparte: su tarjeta va después de las comerciales y NO entra al
+  // KPI «En meta» — un caso de garantía no es una gestión de venta y medirla
+  // contra la meta de 30 seguimientos sería injusto en ambas direcciones.
   const comerciales = resumen.comerciales.filter((c) => !c.es_postventa);
+  const postventa = resumen.comerciales.filter((c) => c.es_postventa);
 
   return (
     <div className="space-y-4">
@@ -88,6 +90,9 @@ export default async function SupervisionPage({
         <div className="grid gap-3 lg:grid-cols-2">
           {comerciales.map((c) => (
             <TarjetaSupervision key={c.id} c={c} meta={meta_seguimientos} fecha={fecha} />
+          ))}
+          {postventa.map((c) => (
+            <TarjetaSupervision key={c.id} c={c} meta={meta_seguimientos} fecha={fecha} esPostventa />
           ))}
         </div>
         <p className="mt-3 text-[11px] text-muted-foreground">
