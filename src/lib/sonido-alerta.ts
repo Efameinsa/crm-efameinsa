@@ -118,8 +118,11 @@ export function sonarAlerta(idAviso: string): void {
     // entre el ruido. Duplicar la amplitud son +6 dB, que es lo que se oye como
     // "el doble de fuerte"; sigue siendo un pitido corto y con rampa, no un
     // timbre. Si quedara alto, estos dos números son lo único que hay que bajar.
-    nota(ctx, 880, 0, 0.11, 0.12);
-    nota(ctx, 1174.7, 0.09, 0.13, 0.1);
+    // 25-08, segunda subida a pedido: 0.06→0.12 (ayer) →0.24. Otros +6 dB
+    // percibidos como el doble. De acá en adelante conviene tocar la salida
+    // del sistema, no la síntesis: 0.5 ya es zona de saturación.
+    nota(ctx, 880, 0, 0.11, 0.24);
+    nota(ctx, 1174.7, 0.09, 0.13, 0.2);
   } catch {
     /* que no suene nunca puede romper la pantalla */
   }
