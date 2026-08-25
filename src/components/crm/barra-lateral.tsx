@@ -52,7 +52,7 @@ export function BarraLateral({ rol, esPostventa }: { rol: RolUsuario; esPostvent
         plegada ? "w-14" : "w-60",
       )}
     >
-      <div className={cn("flex items-center justify-center py-5", plegada ? "px-1" : "px-4")}>
+      <div className={cn("flex h-[120px] flex-none items-center justify-center", plegada ? "px-1" : "px-4")}>
         <Image
           src="/efameinsa-blanco.png"
           alt="Efameinsa"
@@ -77,7 +77,7 @@ export function BarraLateral({ rol, esPostventa }: { rol: RolUsuario; esPostvent
           aria-label={plegada ? "Expandir el menú" : "Contraer el menú"}
         >
           {plegada ? <PanelLeftOpen className="size-4 shrink-0" /> : <PanelLeftClose className="size-4 shrink-0" />}
-          {!plegada && "Contraer menú"}
+          {!plegada && "Contraer"}
         </button>
       </div>
     </aside>
