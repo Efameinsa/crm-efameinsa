@@ -62,12 +62,26 @@ export function TarjetaSupervision({ c, meta, fecha }: { c: ComercialSupervision
       {sinActividad ? (
         <p className="mt-2 rounded-md bg-secondary px-2 py-1.5 text-[11px] text-muted-foreground">Sin actividad registrada este día.</p>
       ) : (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {Object.entries(c.por_tipo).map(([tipo, n]) => (
-            <span key={tipo} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-foreground">
-              {ETIQUETA_TIPO[tipo] ?? tipo}: {n}
-            </span>
-          ))}
+        <div className="mt-2">
+          {/* La cuenta VISIBLE, para que los chips cuadren con el número
+              grande. El gerente, 25-08: «acá abajito dice 17 llamadas pero
+              acá dice 15... ¿cómo cuadro el conteo? no tiene sentido». Los
+              chips cuentan TODO intento por vía (conteste o no); el número
+              de la meta solo cuenta contactos reales. Esta línea muestra la
+              resta para que nadie tenga que deducirla. */}
+          {c.intentos_sin_contacto > 0 && (
+            <p className="text-[10px] text-muted-foreground">
+              {c.seguimientos_efectivos + c.intentos_sin_contacto} gestiones en total = {c.seguimientos_efectivos} con
+              contacto real + {c.intentos_sin_contacto} que no contestaron
+            </p>
+          )}
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {Object.entries(c.por_tipo).map(([tipo, n]) => (
+              <span key={tipo} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-foreground">
+                {ETIQUETA_TIPO[tipo] ?? tipo}: {n}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 

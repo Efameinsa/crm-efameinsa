@@ -22,6 +22,7 @@ import {
   Send,
   Wrench,
   LifeBuoy,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,12 +47,14 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/comercial/agenda", etiqueta: "Mi agenda", icono: CalendarDays },
     { href: "/comercial/oportunidades", etiqueta: "Mis oportunidades", icono: KanbanSquare },
     { href: "/comercial/cotizaciones", etiqueta: "Mis cotizaciones", icono: FileText },
+    { href: "/comercial/potenciales", etiqueta: "Mis potenciales", icono: Target },
     { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: Gauge },
     { href: "/comercial/cartera", etiqueta: "Mi cartera", icono: Building2 },
   ],
   gerencia: [
     { href: "/gerencia", etiqueta: "Panel comercial", icono: BarChart3 },
     { href: "/gerencia/supervision", etiqueta: "Supervisión diaria", icono: ClipboardCheck },
+    { href: "/gerencia/potenciales", etiqueta: "Potenciales", icono: Target },
     { href: "/gerencia/clientes", etiqueta: "Clientes", icono: Building2 },
     { href: "/gerencia/marketing", etiqueta: "Panel de marketing", icono: TrendingUp },
     { href: "/gerencia/finanzas", etiqueta: "Finanzas de mkt", icono: PiggyBank },

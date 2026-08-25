@@ -83,11 +83,17 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
    *  · EL SONIDO ES OPCIONAL Y SE RECUERDA (ver lib/sonido-alerta.ts).
    */
   function avisar(n: Notificacion) {
-    // Para Central, un prospecto nuevo es SU evento (la miden por la entrega
-    // rápida, 25-08): campanada triple y ventanita que no se cierra sola.
-    const esLeadParaCentral = rol === "central" && n.tipo === "lead_registrado";
-    if (esLeadParaCentral) sonarCampanada(n.id);
+    // La campanada triple suena EN TODAS LAS CUENTAS cuando el aviso exige
+    // hacer algo (orden del 25-08: «para que sientan la presión al menos del
+    // sonido»): prospecto nuevo (Central y gerencia), lead derivado
+    // (comercial), cotización por aprobar (gerencia) y urgencia. Los avisos
+    // informativos (aprobada/rechazada) conservan el pitido corto.
+    const exigeAccion = ["lead_registrado", "lead_asignado", "cotizacion_pendiente", "urgencia"].includes(n.tipo);
+    if (exigeAccion) sonarCampanada(n.id);
     else sonarAlerta(n.id);
+    // Para Central, el prospecto nuevo además se queda en pantalla hasta que
+    // lo toque (la miden por la entrega rápida).
+    const esLeadParaCentral = rol === "central" && n.tipo === "lead_registrado";
     const info = ESTILO_AVISO[n.tipo] ?? ESTILO_AVISO.otro;
     const duracion = esLeadParaCentral ? Infinity : info.duracion;
     toast[info.tono](info.encabezado, {

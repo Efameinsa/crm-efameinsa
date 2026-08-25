@@ -222,3 +222,24 @@ export async function reprogramarAccion(datos: {
   revalidatePath("/comercial");
   return { error: null };
 }
+
+/**
+ * Fija (o quita, con fecha null) la fecha proyectada de cierre — el cuadro
+ * semanal de potenciales del ing. Carlos (25-08): «si no lo cierras, lo pasas
+ * al siguiente día y lo jalas». La base valida que sea el dueño o backoffice
+ * (migración 0084).
+ */
+export async function proyectarCierre(
+  oportunidadId: string,
+  fecha: string | null,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("proyectar_cierre", {
+    p_oportunidad: oportunidadId,
+    p_fecha: fecha,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/comercial/potenciales");
+  revalidatePath("/gerencia/potenciales");
+  return { error: null };
+}
