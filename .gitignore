@@ -16,3 +16,7 @@ scripts/aplicar-cambios-comercial-22-08.mjs
 scripts/detectar-cambios-comercial-22-08.mjs
 scripts/data/cambios-comercial-22-08.json
 scripts/data/stock-inventario-*-RAW-sin-verificar.json
+
+# Derivados de la conversión de fichas .doc (se regeneran desde V: con Word).
+scripts/data/fichas-convertidas/
+scripts/data/fichas-a-convertir.txt
