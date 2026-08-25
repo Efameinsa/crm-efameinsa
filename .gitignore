@@ -8,3 +8,11 @@ out/
 next-env.d.ts
 .DS_Store
 backups/
+
+# Datos de trabajo que se quedan fuera a propósito (ver commit ccc1f26).
+# Se volvieron a colar el 25-08 con un `git add scripts`; la regla lo evita.
+scripts/actualizar-correos-produccion.mjs
+scripts/aplicar-cambios-comercial-22-08.mjs
+scripts/detectar-cambios-comercial-22-08.mjs
+scripts/data/cambios-comercial-22-08.json
+scripts/data/stock-inventario-*-RAW-sin-verificar.json
