@@ -129,9 +129,14 @@ const corta = (s: string | null, n: number) => (!s ? "—" : s.length > n ? `${s
 const dinero = (m: number, mon: string) => `${mon === "PEN" ? "S/" : "US$"} ${Math.round(m).toLocaleString("es-PE")}`;
 
 function Seccion({ titulo, total, children }: { titulo: string; total: string | number; children: React.ReactNode }) {
+  // La sección SÍ puede partirse entre páginas. Con wrap={false} el día de 19
+  // seguimientos de Katerine (25-08) superaba el alto de la hoja y react-pdf
+  // recortaba las filas por dentro — se leía media nota y nada más. El corte
+  // se prohíbe POR FILA (cada fila lleva wrap={false}), y minPresenceAhead
+  // evita que la cabecera granate quede sola al pie de la página.
   return (
-    <View style={e.seccion} wrap={false}>
-      <View style={e.seccionCabecera}>
+    <View style={e.seccion}>
+      <View style={e.seccionCabecera} minPresenceAhead={40}>
         <Text style={e.seccionTitulo}>{titulo}</Text>
         <Text style={e.seccionTotal}>TOTAL: {total}</Text>
       </View>
@@ -185,7 +190,9 @@ export function ReporteDiarioPdf({
           <View style={e.barraFondo}>
             <View style={[e.barraRelleno, { width: `${pct}%`, backgroundColor: cumple ? VERDE : GRANATE }]} />
           </View>
-          <Text style={{ fontSize: 7, color: GRIS, marginTop: 4 }}>
+          {/* marginTop 10, no 4: la barra pintaba encima de esta leyenda
+              (reportado 25-08 con el reporte de Katerine). */}
+          <Text style={{ fontSize: 7, color: GRIS, marginTop: 10 }}>
             {cumple
               ? "Meta diaria cumplida."
               : `Faltan ${resumen.meta_seguimientos - resumen.seguimientos_efectivos} para la meta.`}
@@ -229,14 +236,18 @@ export function ReporteDiarioPdf({
             <Text style={e.vacio}>Sin seguimientos registrados este día.</Text>
           ) : (
             seguimientos.map((s, i) => (
-              <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+              <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
                 <Text style={{ width: "7%" }}>{s.hora ?? "—"}</Text>
-                <Text style={{ width: "27%", paddingRight: 6 }}>{corta(s.cliente, 34)}</Text>
+                <Text style={{ width: "27%", paddingRight: 6 }}>{corta(s.cliente, 70)}</Text>
                 <Text style={{ width: "10%" }}>{TIPO[s.tipo] ?? s.tipo}</Text>
                 <Text style={{ width: "17%", color: s.efectivo ? CARBON : GRIS }}>
                   {s.resultado ?? (s.efectivo ? "Contactado" : "No contestó")}
                 </Text>
-                <Text style={{ width: "39%", color: GRIS }}>{corta(s.nota, 120)}</Text>
+                {/* 400 y no 120: el reporte se usa para LEER la gestión, no
+                    solo para contarla («no se puede ver lo que sigue»,
+                    25-08). Ahora que la fila crece y la sección salta de
+                    página, la nota entra completa en la práctica. */}
+                <Text style={{ width: "39%", color: GRIS }}>{corta(s.nota, 400)}</Text>
               </View>
             ))
           )}
@@ -256,7 +267,7 @@ export function ReporteDiarioPdf({
             <Text style={e.vacio}>Sin presupuestos generados este día.</Text>
           ) : (
             cotizaciones.map((c, i) => (
-              <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+              <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
                 <Text style={{ width: "14%" }}>{c.codigo ?? "Borrador"}</Text>
                 {/* paddingRight: sin él, un nombre largo llega hasta el borde
                     de su celda y queda pegado a "Estado" — se leía
@@ -276,7 +287,7 @@ export function ReporteDiarioPdf({
             <Text style={e.vacio}>Sin ventas cerradas este día.</Text>
           ) : (
             ventas.map((v, i) => (
-              <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+              <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
                 <Text style={{ width: "75%", paddingRight: 6 }}>{corta(v.cliente, 78)}</Text>
                 <Text style={{ width: "25%", textAlign: "right", fontFamily: "Helvetica-Bold", color: VERDE }}>
                   {dinero(v.monto, v.moneda)}
@@ -291,7 +302,7 @@ export function ReporteDiarioPdf({
             <Text style={e.vacio}>Central no derivó contactos este día.</Text>
           ) : (
             leads.map((l, i) => (
-              <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+              <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
                 <Text style={{ width: "12%" }}>{l.hora ?? "—"}</Text>
                 <Text style={{ width: "16%", color: GRIS }}>{l.codigo ?? "—"}</Text>
                 <Text style={{ width: "54%", paddingRight: 6 }}>{corta(l.nombre, 56)}</Text>
@@ -308,7 +319,7 @@ export function ReporteDiarioPdf({
             </Text>
           ) : (
             complementarias.map((a, i) => (
-              <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+              <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
                 <Text style={{ width: "12%" }}>{a.hora ?? "—"}</Text>
                 <Text style={{ width: "88%" }}>{corta(a.titulo, 110)}</Text>
               </View>
@@ -331,7 +342,7 @@ export function ReporteDiarioPdf({
                 <Text style={[e.thTexto, { width: "36%" }]}>Qué se planificó</Text>
               </View>
               {planificacion_manana.gestiones.map((g, i) => (
-                <View key={`g${i}`} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                <View key={`g${i}`} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
                   <Text style={{ width: "8%" }}>{g.hora ?? "—"}</Text>
                   <Text style={{ width: "42%", paddingRight: 6 }}>{corta(g.cliente, 48)}</Text>
                   <Text style={{ width: "14%", color: GRIS }}>{ETAPA[g.etapa] ?? g.etapa}</Text>
@@ -339,7 +350,7 @@ export function ReporteDiarioPdf({
                 </View>
               ))}
               {planificacion_manana.tareas.map((t, i) => (
-                <View key={`t${i}`} style={[e.fila, ...((planificacion_manana.gestiones.length + i) % 2 ? [e.filaAlterna] : [])]}>
+                <View key={`t${i}`} wrap={false} style={[e.fila, ...((planificacion_manana.gestiones.length + i) % 2 ? [e.filaAlterna] : [])]}>
                   <Text style={{ width: "8%" }}>{t.hora ?? "—"}</Text>
                   <Text style={{ width: "42%", paddingRight: 6 }}>{corta(t.titulo, 48)}</Text>
                   <Text style={{ width: "14%", color: GRIS }}>Tarea</Text>
