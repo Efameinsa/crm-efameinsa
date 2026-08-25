@@ -7,6 +7,9 @@ export interface ComercialSupervision {
   id: string;
   nombre: string;
   codigo: string | null;
+  /** Postventa: cuenta como carga de Central, pero no compite en la meta de
+   *  seguimientos ni en el ranking de ventas (migraciones 0075 y 0078). */
+  es_postventa?: boolean;
   codigo_anterior: string | null;
   seguimientos_efectivos: number;
   intentos_sin_contacto: number;

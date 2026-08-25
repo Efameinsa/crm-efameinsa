@@ -376,3 +376,69 @@ export async function devolverLeadAComercial(leadId: string): Promise<{ error: s
   revalidatePath("/central");
   return { error: null };
 }
+
+/**
+ * Corrige una derivación equivocada: el contacto pasa al comercial que
+ * correspondía.
+ *
+ * Central lo pidió el 25-08 — «quiero verificar a quién derivé para poder
+ * redireccionar a otra comercial, ya que hubo un error al asignar». Hasta hoy
+ * una derivación era definitiva y un error de un clic se arreglaba por
+ * WhatsApp, con el contacto en la bandeja de quien no le correspondía.
+ *
+ * El límite lo pone la base (migración 0079): si el comercial anterior ya
+ * cotizó, ya registró una gestión o el cliente ya era suyo de antes, esto deja
+ * de ser un error de asignación y pasa a ser un traspaso de cartera, que
+ * decide gerencia. El mensaje que vuelve lo dice con esas palabras.
+ */
+export async function redirigirLead(
+  leadId: string,
+  comercialId: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: anterior } = await supabase
+    .from("leads")
+    .select("codigo, nombre_contacto, asignado_a")
+    .eq("id", leadId)
+    .maybeSingle();
+
+  const { data: oportunidadId, error } = await supabase.rpc("redirigir_lead", {
+    p_lead_id: leadId,
+    p_comercial_id: comercialId,
+  });
+  if (error) return { error: error.message };
+
+  const { data: perfiles } = await supabase
+    .from("perfiles")
+    .select("id, nombre")
+    .in("id", [comercialId, anterior?.asignado_a].filter(Boolean) as string[]);
+void perfiles;
+
+  // Al nuevo se le avisa como en cualquier derivación. Al anterior también:
+  // el contacto le desaparece de la lista y sin aviso parecería un error del
+  // sistema.
+  await notificar({
+    userId: comercialId,
+    tipo: "lead_asignado",
+    titulo: "Contacto reasignado a usted",
+    cuerpo: anterior?.nombre_contacto ?? "Nuevo contacto",
+    url: oportunidadId ? `/comercial/oportunidades/${oportunidadId}` : "/comercial",
+  });
+  if (anterior?.asignado_a && anterior.asignado_a !== comercialId) {
+    await notificar({
+      userId: anterior.asignado_a,
+      tipo: "lead_asignado",
+      titulo: "Un contacto pasó a otro comercial",
+      cuerpo: `${anterior?.nombre_contacto ?? anterior?.codigo ?? "Un contacto"} — Central corrigió la derivación`,
+      url: "/comercial",
+    });
+  }
+
+  revalidatePath("/central");
+  revalidatePath("/central/derivados");
+  return { error: null };
+}

@@ -34,7 +34,11 @@ export default async function SupervisionPage({
     );
   }
 
-  const { comerciales, totales, meta_seguimientos } = resumen;
+  const { totales, meta_seguimientos } = resumen;
+  // Postventa vuelve a venir en la función desde la 0078 —Central necesita
+  // contarla— pero acá no entra: se compara contra la meta de 30 seguimientos
+  // y un caso de garantía no es una gestión de venta.
+  const comerciales = resumen.comerciales.filter((c) => !c.es_postventa);
 
   return (
     <div className="space-y-4">

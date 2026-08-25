@@ -31,6 +31,10 @@ export async function ConsolidadoCentral() {
 
   // Solo los que tuvieron movimiento: una tabla con cinco filas en cero no se
   // lee, se saltea.
+  // Postventa entra: para Central, derivarle una llamada de garantía es
+  // trabajo suyo igual que derivar un prospecto a un comercial. Lo reportó
+  // ella el 25-08 — «estaría faltando lo de PV»— y era cierto también en el
+  // total: 18 derivados y el consolidado mostraba 15 (migración 0078).
   const conMovimiento = datos.comerciales.filter(
     (c) => c.derivados > 0 || c.cotizaciones > 0 || c.seguimientos_efectivos > 0 || c.ventas > 0,
   );

@@ -8,6 +8,7 @@ import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RedirigirLeadBoton } from "@/components/crm/redirigir-lead-boton";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -165,6 +166,7 @@ export default async function DerivadosPage({
                 <TableHead>Demoró</TableHead>
                 <TableHead>En qué quedó</TableHead>
                 <TableHead>Cotizaciones</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -225,6 +227,16 @@ export default async function DerivadosPage({
                           </Link>
                         ))
                       )}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {/* Corregir a quién se derivó. Va en la fila porque es
+                          acá donde Central se da cuenta del error. */}
+                      <RedirigirLeadBoton
+                        leadId={l.id}
+                        contacto={l.nombre_contacto ?? l.codigo ?? "el contacto"}
+                        comercialActual={l.asignado_a}
+                        comerciales={comerciales ?? []}
+                      />
                     </TableCell>
                   </TableRow>
                 );
