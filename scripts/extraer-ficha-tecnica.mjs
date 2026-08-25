@@ -142,7 +142,21 @@ for (const p of productos) {
     // rótulos sueltos no.
     const limpia = actual === "caracteristicas" ? linea : unirDigitos(linea);
     if (limpia.length < 6 || limpia.length > 320) continue;
-    if (/^(marca|modelo|capacidad|panel|controles|autom[aá]tico|item\b)/i.test(limpia)) continue;
+    // Los rótulos de la tabla de cabecera ("Marca", "Panel computarizado") se
+    // repiten dentro del cuerpo y no son características.
+    //
+    // OJO CON "panel": este filtro se comía además el SUBTÍTULO de sección
+    // «PANELES» / «PANEL FRONTAL» y la viñeta «Panel superior e inferior en
+    // acero estructural…», y así se perdieron en 24 fichas de secadora —
+    // detectado el 25-08 comparando el PDF de la SECA758 contra su Word.
+    // Un rótulo de tabla va en minúsculas y es corto; el subtítulo va en
+    // MAYÚSCULAS y la viñeta es una frase larga. Esas dos excepciones lo
+    // separan sin tocar el resto.
+    const esRotuloDeTabla =
+      /^(marca|modelo|capacidad|panel|controles|autom[aá]tico|item\b)/i.test(limpia) &&
+      limpia !== limpia.toUpperCase() &&
+      limpia.length <= 60;
+    if (esRotuloDeTabla) continue;
     bloques[actual].push(limpia);
   }
 

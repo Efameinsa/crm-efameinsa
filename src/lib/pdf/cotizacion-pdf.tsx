@@ -1,5 +1,6 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, NOTAS, IGV, ENTREGA_POR_DEFECTO } from "./series";
+import { clasificarFicha } from "@/lib/ficha-tecnica";
 
 // Sin partir palabras con guion. @react-pdf corta por sílabas cuando no entra
 // la palabra entera, y en la cabecera de la ficha salía "Panel computa-rizado"
@@ -159,6 +160,9 @@ function crearEstilos(acento: string) {
     // encima de CARACTERISTICAS, como en el impreso.
     maquinaTitulo: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 4 },
     caracTitulo: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 3 },
+    // Subtítulo dentro de CARACTERISTICAS: negrita, sin viñeta y sangrado a la
+    // altura del texto de las viñetas, como en la ficha en papel.
+    caracSubtitulo: { fontSize: 8.5, fontFamily: "Helvetica-Bold", marginLeft: 12, marginBottom: 2 },
     caracBullet: { flexDirection: "row", marginBottom: 1 },
     caracPunto: { width: 12, textAlign: "center" },
     caracTexto: { flex: 1, fontSize: 8.5, textAlign: "justify", lineHeight: 1.3 },
@@ -464,12 +468,23 @@ export function CotizacionPdf({
                         {sec.caracteristicas.length > 0 && (
                           <>
                             <Text style={estilos.caracTitulo}>CARACTERISTICAS</Text>
-                            {sec.caracteristicas.map((c, j) => (
-                              <View key={j} style={estilos.caracBullet}>
-                                <Text style={estilos.caracPunto}>•</Text>
-                                <Text style={estilos.caracTexto}>{c}</Text>
-                              </View>
-                            ))}
+                            {/* TAMBOR, PUERTA, PANEL FRONTAL… son el título del
+                                bloque que viene debajo, no una característica.
+                                Con viñeta salían al mismo nivel que sus propias
+                                características y el cliente leía el nombre de la
+                                pieza como si fuera una prestación. */}
+                            {clasificarFicha(sec.caracteristicas).map((c, j) =>
+                              c.esSubtitulo ? (
+                                <Text key={j} style={[estilos.caracSubtitulo, j > 0 ? { marginTop: 5 } : {}]}>
+                                  {c.texto}
+                                </Text>
+                              ) : (
+                                <View key={j} style={estilos.caracBullet}>
+                                  <Text style={estilos.caracPunto}>•</Text>
+                                  <Text style={estilos.caracTexto}>{c.texto}</Text>
+                                </View>
+                              ),
+                            )}
                           </>
                         )}
                         {sec.dimensiones.length > 0 && (
