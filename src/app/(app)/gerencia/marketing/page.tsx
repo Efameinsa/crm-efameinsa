@@ -42,7 +42,13 @@ export default async function MarketingPage({
   ]);
   const embudo = await cargarEmbudoReal(supabase, resumen, { desde, hasta });
 
-  const origenes = ((porOrigenData ?? []) as { clave: string; n: number; asignados: number; descartados: number }[]).map(
+  const origenes = ((porOrigenData ?? []) as {
+    clave: string;
+    n: number;
+    asignados: number;
+    descartados: number;
+    duplicados?: number;
+  }[]).map(
     (o) => [o.clave, o] as const,
   );
   const totalLeads = origenes.reduce((s, [, v]) => s + v.n, 0);
@@ -124,6 +130,10 @@ export default async function MarketingPage({
                     <b className="text-foreground">{v.n}</b> · {Math.round(p)}%
                     {v.asignados > 0 && <> · {v.asignados} asignado{v.asignados === 1 ? "" : "s"}</>}
                     {v.descartados > 0 && <> · {v.descartados} descartado{v.descartados === 1 ? "" : "s"}</>}
+                    {/* Repetidos: el contacto llegó y costó plata, pero ya
+                        estaba registrado. Ni asignado ni descartado — sin esta
+                        línea la diferencia quedaba sin explicación. */}
+                    {(v.duplicados ?? 0) > 0 && <> · {v.duplicados} repetido{v.duplicados === 1 ? "" : "s"}</>}
                   </span>
                 </div>
               );

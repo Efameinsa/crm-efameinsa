@@ -7,6 +7,8 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { CargaDerivacion } from "@/components/crm/carga-derivacion";
 import { CargaCotizaciones } from "@/components/crm/carga-cotizaciones";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
+import { AvisoCoincidencia } from "@/components/crm/aviso-coincidencia";
+import { coincidenciasDeLaBandeja } from "@/lib/central/coincidencias-bandeja";
 import { ConsolidadoCentral } from "@/components/crm/consolidado-central";
 import { DerivadosOtrasAreas } from "@/components/crm/derivados-otras-areas";
 
@@ -86,15 +88,29 @@ export default async function CentralPage() {
       .limit(50),
   ]);
 
+  // Cuáles de los que están en la bandeja ya están en el sistema. Va acá y no
+  // dentro del diálogo de asignar porque el problema era justamente que Central
+  // no lo sabía ANTES de decidir: el 25-08 tenía 24 repetidos de 43 delante y
+  // el único botón que le servía decía «Descartar».
+  const coincidencias = await coincidenciasDeLaBandeja(supabase, leads ?? []);
+  const repetidos = [...coincidencias.values()].filter((c) => c.clase === "duplicado").length;
+
   return (
     <div className="space-y-4">
     <SeccionPanel
       titulo="Bandeja de triaje"
       accion={
         leads && leads.length > 0 ? (
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
-            {(totalPendientes ?? leads.length).toLocaleString("es-PE")} pendiente
-            {(totalPendientes ?? leads.length) === 1 ? "" : "s"}
+          <span className="flex items-center gap-2">
+            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
+              {(totalPendientes ?? leads.length).toLocaleString("es-PE")} pendiente
+              {(totalPendientes ?? leads.length) === 1 ? "" : "s"}
+            </span>
+            {repetidos > 0 && (
+              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+                {repetidos} ya derivado{repetidos === 1 ? "" : "s"}
+              </span>
+            )}
           </span>
         ) : undefined
       }
@@ -146,6 +162,10 @@ export default async function CentralPage() {
                     nombre y un teléfono. Brenda lo pidió el primer día de uso:
                     «necesito ver el detalle de la solicitud de cada prospecto
                     nuevo, ya que cada uno tiene diferente interés de compra». */}
+                {coincidencias.has(lead.id) && (
+                  <AvisoCoincidencia leadId={lead.id} c={coincidencias.get(lead.id)!} />
+                )}
+
                 <SolicitudLead mensaje={lead.mensaje} campania={lead.utm_campaign} />
               </div>
             );

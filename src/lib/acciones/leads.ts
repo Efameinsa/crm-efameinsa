@@ -204,33 +204,67 @@ export async function asignarLead(
   return { error: null };
 }
 
-export async function descartarLead(leadId: string): Promise<{ error: string | null }> {
+// Las tres salidas de la bandeja comparten el mismo candado: solo actúan sobre
+// un contacto que TODAVÍA está pendiente de triaje. Sin `.select()`, cuando la
+// condición no se cumple Postgres actualiza cero filas y no devuelve error —
+// la pantalla cantaba «Contacto descartado» y no había pasado nada. Ocurre de
+// verdad con la bandeja abierta en dos pestañas, que es como trabaja Central.
+async function salirDeLaBandeja(
+  leadId: string,
+  cambios: Record<string, unknown>,
+): Promise<{ error: string | null }> {
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("leads")
-    .update({ estado: "descartado" })
+    .update(cambios)
     .eq("id", leadId)
-    .eq("estado", "pendiente_triaje");
+    .eq("estado", "pendiente_triaje")
+    .select("id");
   if (error) return { error: error.message };
-
+  if (!data || data.length === 0) {
+    return { error: "Ese contacto ya salió de la bandeja. Recargue la página." };
+  }
   revalidatePath("/central");
   return { error: null };
+}
+
+export async function descartarLead(leadId: string): Promise<{ error: string | null }> {
+  return salirDeLaBandeja(leadId, { estado: "descartado" });
 }
 
 export async function marcarDuplicado(
   leadId: string,
   duplicadoDeId: string,
 ): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("leads")
-    .update({ estado: "duplicado", duplicado_de: duplicadoDeId })
-    .eq("id", leadId)
-    .eq("estado", "pendiente_triaje");
-  if (error) return { error: error.message };
+  return salirDeLaBandeja(leadId, { estado: "duplicado", duplicado_de: duplicadoDeId });
+}
 
-  revalidatePath("/central");
-  return { error: null };
+/**
+ * Saca de la bandeja un contacto que YA está en el sistema, vinculándolo a la
+ * cuenta que le corresponde.
+ *
+ * POR QUÉ NO SIRVE «DESCARTAR» PARA ESTO. En el CRM `descartado` significa que
+ * el contacto no procedía —spam, número equivocado, alguien que no compra— y
+ * el panel de marketing de gerencia lo muestra literal: «campaña X · N
+ * descartados». Estos contactos sí procedieron: se derivaron y se trabajaron,
+ * y alguno hasta llegó a cotización. Marcarlos como descartados haría figurar
+ * a la campaña que trajo esos clientes como una campaña que trae basura, y el
+ * costo por lead que ve gerencia saldría mentiroso.
+ *
+ * `duplicado` dice la verdad —el contacto llegó, pero ya estaba registrado— y
+ * `cuenta_id` deja el rastro de a quién corresponde, que es justamente para lo
+ * que existe esa columna («vinculado tras dedup», migración 0001).
+ *
+ * `duplicado_de` se queda en null a propósito: apunta a otro LEAD, y en el caso
+ * que originó todo esto el registro original no es un lead sino la cuenta que
+ * nació del Excel de Central (el mismo contacto entró por llamada, se anotó ahí
+ * y se derivó, y aparte entró por el formulario de publicidad).
+ */
+export async function marcarLeadYaGestionado(
+  leadId: string,
+  cuentaId: string,
+): Promise<{ error: string | null }> {
+  return salirDeLaBandeja(leadId, { estado: "duplicado", cuenta_id: cuentaId });
 }
 
 export interface CoincidenciaCartera {

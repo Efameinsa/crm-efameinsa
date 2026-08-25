@@ -272,7 +272,7 @@ export default async function LeadsMarketingPage({
                               ganada ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : asignado ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground",
                             )}
                           >
-                            {ganada ? "Venta" : asignado ? "Asignado" : l.estado === "historico" ? "Gestionado fuera del CRM" : l.estado === "pendiente_triaje" ? "Pendiente de triaje" : l.estado}
+                            {ganada ? "Venta" : asignado ? "Asignado" : l.estado === "historico" ? "Gestionado fuera del CRM" : l.estado === "pendiente_triaje" ? "Pendiente de triaje" : l.estado === "duplicado" ? "Repetido, ya estaba registrado" : l.estado}
                           </span>
                         </TableCell>
                       )}
