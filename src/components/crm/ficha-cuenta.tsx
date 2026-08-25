@@ -7,6 +7,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ResumenCuenta } from "@/components/crm/resumen-cuenta";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { GrupoEconomico } from "@/components/crm/grupo-economico";
+import { ReasignarCarteraBoton } from "@/components/crm/reasignar-cartera-boton";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
@@ -26,6 +27,17 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   if (!cuenta) notFound();
 
   const dueno = cuenta.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
+
+  // Para el botón de reasignar; solo en la vista de gerencia.
+  const { data: comerciales } = comoGerencia
+    ? await supabase
+        .from("perfiles")
+        .select("id, nombre, codigo_comercial")
+        .eq("rol", "comercial")
+        .eq("activo", true)
+        .eq("es_prueba", false)
+        .order("codigo_comercial")
+    : { data: null };
   const contactos =
     (cuenta.contactos as unknown as {
       id: string;
@@ -69,7 +81,17 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
             </div>
           </div>
           {comoGerencia && (
-            <Badge>Cartera de: {dueno?.nombre ?? "Sin asignar"}{dueno?.codigo_comercial ? ` (${dueno.codigo_comercial})` : ""}</Badge>
+            <div className="flex items-center gap-2">
+              <Badge>Cartera de: {dueno?.nombre ?? "Sin asignar"}{dueno?.codigo_comercial ? ` (${dueno.codigo_comercial})` : ""}</Badge>
+              {/* Reasignar donde se LEE de quién es (pedido 25-08). Solo
+                  gerencia/admin; la base lo vuelve a exigir (migración 0080). */}
+              <ReasignarCarteraBoton
+                cuentaId={cuenta.id}
+                razonSocial={cuenta.razon_social}
+                comercialActual={cuenta.comercial_id}
+                comerciales={comerciales ?? []}
+              />
+            </div>
           )}
         </div>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground">

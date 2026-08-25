@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { errorDocumento, type TipoDocumento } from "@/lib/documento";
+import { notificar } from "@/lib/notificaciones";
 
 // El resumen narrativo vive en cuentas.notas (existe desde B1, sin UI hasta
 // ahora). La RLS ya resuelve quién puede editar: cuentas_comercial (FOR ALL,
@@ -103,4 +104,52 @@ export async function actualizarIdentidadCuenta(datos: {
   revalidatePath("/comercial", "layout");
   revalidatePath("/gerencia", "layout");
   return { error: null, avisoDuplicado };
+}
+
+/**
+ * Pasa el cliente —y sus oportunidades abiertas— a otra cartera.
+ *
+ * Nació el 25-08 tras dos traspasos por script el mismo día (SAYWA → Brenda,
+ * ANDES PRIME → Katerine, ambos por orden del ingeniero). El candado es el de
+ * siempre: la regla del 14-08 hace de esto una decisión de gerencia, así que
+ * la base exige es_backoffice() y esta acción solo se ofrece en la ficha de
+ * gerencia. Central corrige errores de derivación con lo suyo (0079).
+ */
+export async function reasignarCartera(
+  cuentaId: string,
+  comercialId: string,
+): Promise<{ error: string | null; movidas?: number }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reasignar_cartera", {
+    p_cuenta_id: cuentaId,
+    p_comercial_id: comercialId,
+  });
+  if (error) return { error: error.message };
+
+  const r = data as { anterior: string | null; oportunidades_movidas: number; leads_movidos: number };
+  const { data: cuenta } = await supabase.from("cuentas").select("razon_social").eq("id", cuentaId).maybeSingle();
+  const nombre = cuenta?.razon_social ?? "Un cliente";
+
+  // Los dos se enteran: al nuevo le llega trabajo, y al anterior el cliente le
+  // desaparece de la cartera — sin aviso parecería un error del sistema.
+  await notificar({
+    userId: comercialId,
+    tipo: "lead_asignado",
+    titulo: "Cliente asignado a su cartera",
+    cuerpo: `${nombre} — decisión de gerencia`,
+    url: `/comercial/cartera/${cuentaId}`,
+  });
+  if (r.anterior && r.anterior !== comercialId) {
+    await notificar({
+      userId: r.anterior,
+      tipo: "lead_asignado",
+      titulo: "Un cliente pasó a otra cartera",
+      cuerpo: `${nombre} — decisión de gerencia`,
+      url: "/comercial/cartera",
+    });
+  }
+
+  revalidatePath(`/gerencia/clientes/${cuentaId}`);
+  revalidatePath("/gerencia/clientes");
+  return { error: null, movidas: r.oportunidades_movidas };
 }
