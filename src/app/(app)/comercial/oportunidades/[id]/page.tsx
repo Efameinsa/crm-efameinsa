@@ -17,7 +17,6 @@ import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { fechaAgendada, fechaHoraLima } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
 import type { TipoDocumento } from "@/lib/documento";
-import { esSubtituloDeFicha } from "@/lib/ficha-tecnica";
 
 // Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
 // el mismo nombre de canal que vio quien se lo derivó.
@@ -143,11 +142,12 @@ export default async function OportunidadDetallePage({
       panel: texto("panel"),
       controles: texto("controles"),
       fotoPath: pr.foto_path,
-      // Tres bastan para reconocerlo; el resto va en el PDF. Los títulos de
-      // bloque (TAMBOR, PUERTA…) no entran: la vista previa sirve para
-      // reconocer el equipo y "TAMBOR" no distingue una secadora de otra.
-      primerasCaracteristicas: caracteristicas.filter((c) => !esSubtituloDeFicha(c)).slice(0, 3),
-      nCaracteristicas: caracteristicas.filter((c) => !esSubtituloDeFicha(c)).length,
+      // La ficha completa viaja al selector (reunión con gerencia 25-08: «la
+      // idea es que la característica completa se muestre»). Con los títulos
+      // de bloque incluidos, porque el panel los pinta como secciones. Son
+      // ~29 líneas por equipo, 172 KB los 95: asumible en una pantalla de
+      // trabajo, y evita un viaje al servidor por cada hover.
+      caracteristicas,
       nDimensiones: lista("dimensiones").length + lista("medidas").length,
       sinFicha: caracteristicas.length + lista("dimensiones").length + lista("medidas").length === 0,
       sinFoto: !pr.foto_path,

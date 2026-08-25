@@ -43,10 +43,9 @@ interface Producto {
   controles?: string | null;
   /** Ruta pública de la foto ("/productos/x.png"), para la vista previa. */
   fotoPath?: string | null;
-  /** Las primeras de la ficha: alcanzan para reconocer el equipo sin traerse
-   *  la ficha completa de los 65 al navegador. */
-  primerasCaracteristicas?: string[];
-  nCaracteristicas?: number;
+  /** La ficha completa, títulos de bloque incluidos: el selector la muestra
+   *  entera (reunión con gerencia 25-08). */
+  caracteristicas?: string[];
   nDimensiones?: number;
   /** El equipo no tiene datos técnicos cargados: su página de ficha saldría
    *  vacía en el PDF que recibe el cliente. */

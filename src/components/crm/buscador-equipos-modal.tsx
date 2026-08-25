@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, PackageX, ImageOff, X } from "lucide-react";
 import { buscarEquipos } from "@/lib/buscar-equipo";
+import { esSubtituloDeFicha } from "@/lib/ficha-tecnica";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -46,8 +47,8 @@ export interface EquipoElegible {
   panel?: string | null;
   controles?: string | null;
   fotoPath?: string | null;
-  primerasCaracteristicas?: string[];
-  nCaracteristicas?: number;
+  /** La ficha completa, títulos de bloque incluidos. */
+  caracteristicas?: string[];
   sinFicha?: boolean;
   fotoPrestadaDe?: string | null;
   /** Unidades según la columna STOCK del Excel de Lesly. null = sin dato. */
@@ -165,18 +166,30 @@ function PanelDetalle({
           ))}
         </dl>
       )}
-      {(equipo.primerasCaracteristicas?.length ?? 0) > 0 && (
-        <ul className="space-y-0.5 border-t border-border pt-1.5 text-[11px] text-muted-foreground">
-          {equipo.primerasCaracteristicas!.map((c, i) => (
-            <li key={i} className="flex gap-1">
-              <span className="text-foreground">•</span>
-              <span className="line-clamp-2">{c}</span>
-            </li>
-          ))}
-          {(equipo.nCaracteristicas ?? 0) > equipo.primerasCaracteristicas!.length && (
-            <li className="italic">…y {equipo.nCaracteristicas! - equipo.primerasCaracteristicas!.length} más en el PDF.</li>
-          )}
-        </ul>
+      {/* La ficha COMPLETA (reunión con gerencia 25-08: «la característica
+          completa se muestre»). Los títulos de bloque —TAMBOR, PUERTA,
+          PROGRAMADOR— se pintan como secciones, igual que en el PDF, y la
+          lista corre bajo su propio scroll para no empujar la foto. */}
+      {(equipo.caracteristicas?.length ?? 0) > 0 && (
+        <div className="border-t border-border pt-1.5">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+            Características completas
+          </p>
+          <ul className="space-y-1 pr-1 text-[11px] leading-snug text-muted-foreground">
+            {equipo.caracteristicas!.map((c, i) =>
+              esSubtituloDeFicha(c) ? (
+                <li key={i} className="pt-1.5 text-[10px] font-bold uppercase tracking-wide text-foreground first:pt-0">
+                  {c}
+                </li>
+              ) : (
+                <li key={i} className="flex gap-1.5">
+                  <span className="flex-none text-foreground">•</span>
+                  <span>{c}</span>
+                </li>
+              ),
+            )}
+          </ul>
+        </div>
       )}
       {equipo.sinFicha && (
         <p className="rounded-md bg-amber-500/10 p-1.5 text-[11px] font-semibold text-amber-800">
@@ -279,7 +292,7 @@ export function BuscadorEquiposModal({
         {/* El botoncito de cierre de la esquina era fácil de no ver (reportado
             25-08): se apaga y el cierre vive en un botón con nombre al lado del
             buscador, más el «Listo» del pie y Esc. */}
-        <DialogContent className="flex h-[86vh] max-w-4xl flex-col gap-3 sm:max-w-4xl" showCloseButton={false}>
+        <DialogContent className="flex h-[86vh] max-w-5xl flex-col gap-3 sm:max-w-5xl" showCloseButton={false}>
           <DialogTitle className="sr-only">Buscar y agregar equipos</DialogTitle>
           <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -318,7 +331,7 @@ export function BuscadorEquiposModal({
           </button>
           </div>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr_280px]">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr_340px]">
             <ul ref={listaRef} className="space-y-1 overflow-y-auto pr-1" role="listbox" aria-label="Equipos">
               {coincidencias.map((p, i) => (
                 <li key={p.id}>
