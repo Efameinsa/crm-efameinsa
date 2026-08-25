@@ -56,6 +56,8 @@ interface Producto {
   fotoPrestadaDe?: string | null;
   /** Unidades según la columna STOCK del Excel de Lesly. null = sin dato. */
   stock?: number | null;
+  /** Descripción del maestro de Lesly: solo alimenta la búsqueda del selector. */
+  descripcion?: string | null;
 }
 
 interface ItemCarrito extends ItemCotizacion {

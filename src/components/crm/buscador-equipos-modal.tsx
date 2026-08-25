@@ -55,6 +55,9 @@ export interface EquipoElegible {
   stock?: number | null;
   /** Precio de referencia ya resuelto (el del maestro). */
   precio?: number | null;
+  /** Descripción del maestro de Lesly: solo alimenta la búsqueda, no se pinta
+   *  (la tarjeta ya muestra la ficha completa). */
+  descripcion?: string | null;
 }
 
 function BadgeStock({ stock }: { stock: number | null | undefined }) {

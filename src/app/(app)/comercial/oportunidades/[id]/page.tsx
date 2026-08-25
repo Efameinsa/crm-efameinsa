@@ -151,6 +151,9 @@ export default async function OportunidadDetallePage({
       calentamiento: texto("calentamiento"),
       panel: texto("panel"),
       controles: texto("controles"),
+      // El texto del maestro de Lesly, para que la búsqueda entienda el
+      // vocabulario de las comerciales («x control», «boiler fed», «200g»…).
+      descripcion: texto("descripcion_maestro"),
       fotoPath: pr.foto_path,
       // La ficha completa viaja al selector (reunión con gerencia 25-08: «la
       // idea es que la característica completa se muestre»). Con los títulos

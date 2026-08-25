@@ -31,6 +31,9 @@ const CATALOGO: (EquipoBuscable & { id: string })[] = [
     nombre: "LAVADORA IND.RIGIDA",
     capacidad: "15 kg",
     calentamiento: null,
+    // La descripción del maestro2 de Lesly (25-08), tal cual la fila.
+    descripcion:
+      "LAVADORA IND.RIGIDA, MOD:RX135, FUERZA: 200G, X CONTROL, OPL, P.SUPERIOR INOX, P.LATERAL y FRONTAL GRIS, CILINDRO INOX, BOILER FED, CON AGUJERO PARA TOLVA DE JABÓN, CAP.14 KG, 220/60HZ/1PH, C/USB.",
   },
   {
     id: "titanmax",
@@ -93,5 +96,20 @@ describe("buscarEquipos", () => {
   it("nunca devuelve menos que la búsqueda estricta", () => {
     // "secadora" coincide con tres equipos; la estricta manda y salen los tres.
     expect(ids("secadora").sort()).toEqual(["fde", "nde", "titanmax"]);
+  });
+});
+
+// La descripción del maestro de Lesly entra al texto buscable (25-08): es el
+// vocabulario con el que las comerciales piden las máquinas, y hasta ahora
+// solo vivía en el Excel.
+describe("búsqueda por la descripción del maestro", () => {
+  it("«lavadora x control 200g» encuentra la RX135 aunque el nombre no lo diga", () => {
+    const r = buscarEquipos(CATALOGO, "lavadora x control 200g");
+    expect(r.map((e) => e.id)).toContain("rx135");
+  });
+
+  it("«boiler fed» encuentra por la descripción", () => {
+    const r = buscarEquipos(CATALOGO, "boiler fed");
+    expect(r[0]?.id).toBe("rx135");
   });
 });
