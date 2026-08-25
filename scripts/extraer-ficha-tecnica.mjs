@@ -94,7 +94,9 @@ function datosDeCabecera(lineas) {
   // como "04520 kg". Se pierde algún número partido entre párrafos, que es
   // mejor que inventar uno.
   const cabecera = lineas.slice(0, 12).map(unirDigitos).join(" | ");
-  const capacidad = cabecera.match(/(\d+(?:[.,]\d+)?)\s*(kg|lb|libras)\b/i);
+  // Con rango: «14-16 kg» es una capacidad real (los UT030, 25-08). El patrón
+  // de un solo número la aplanaba a «16 kg».
+  const capacidad = cabecera.match(/(\d+(?:[.,]\d+)?(?:\s*-\s*\d+(?:[.,]\d+)?)?)\s*(kg|lb|libras)\b/i);
   const controles = cabecera.match(/(\d{3}\s*V?\s*\/\s*\d{2}\s*Hz?\s*\/\s*[\d-]+\s*(?:PH|N|Ph)?)/i);
   const calentamiento = cabecera.match(/\b(GAS\s*(?:GLP|NATURAL|GLP\s*\/\s*NATURAL)?|EL[EÉ]CTRICO|EL[EÉ]CTRICA|VAPOR)\b/i);
   const panel = cabecera.match(/\b(UNILI\w*\s*C?\s*TOUCH|DUAL\s*DIGITAL|X\s*CONTROL(?:\s*(?:PLUS|FLEX|\+))?|M\s?30|M\s?0?9|DIGITAL[- ]?MULTIFUNCI[OÓ]N|MICROPROCES\w+|SHARP)\b/i);
