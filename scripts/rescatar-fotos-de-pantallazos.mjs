@@ -181,10 +181,27 @@ for (const p of todos) {
 const compartenCon = new Map();
 for (const ids of porContenido.values()) for (const id of ids) compartenCon.set(id, ids.length);
 
+/** ¿La foto que hoy tiene el equipo es, ella misma, un pantallazo? */
+function suFotoEsPantallazo(p) {
+  if (!p.foto_path) return false;
+  const archivo = join(DESTINO, basename(p.foto_path));
+  if (!existsSync(archivo)) return false;
+  const buf = readFileSync(archivo);
+  if (buf.length < 24 || buf.slice(1, 4).toString() !== "PNG") return false;
+  return PANTALLAS.has(`${buf.readUInt32BE(16)}x${buf.readUInt32BE(20)}`);
+}
+
 const rows = todos
   .filter((p) => {
     if (p.ficha?.origen?.foto_rescatada_de_pantallazo) return false; // ya rescatado
-    return Boolean(p.ficha?.origen?.foto_prestada_de) || (compartenCon.get(p.id) ?? 1) > 1;
+    // Los dos casos originales: foto prestada de un equipo hermano, o la misma
+    // imagen repetida en varios equipos.
+    if (p.ficha?.origen?.foto_prestada_de || (compartenCon.get(p.id) ?? 1) > 1) return true;
+    // Y el que faltaba, encontrado al cargar la SECU55 el 25-08: un equipo con
+    // foto PROPIA y única, que sin embargo es un pantallazo de navegador. No
+    // era ajena ni compartida, así que se caía del filtro y su captura —con
+    // pestañas y barra de tareas— se iba a la cotización del cliente.
+    return suFotoEsPantallazo(p);
   })
   .map((p) => ({ ...p, comparten: compartenCon.get(p.id) ?? 1 }));
 
