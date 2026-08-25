@@ -295,7 +295,7 @@ export function BuscadorEquiposModal({
         {/* El botoncito de cierre de la esquina era fácil de no ver (reportado
             25-08): se apaga y el cierre vive en un botón con nombre al lado del
             buscador, más el «Listo» del pie y Esc. */}
-        <DialogContent className="flex h-[88vh] w-[min(64rem,calc(100vw-2rem))] max-w-none flex-col gap-3 overflow-hidden" showCloseButton={false}>
+        <DialogContent className="flex h-[88vh] w-[min(64rem,calc(100vw-2rem))] max-w-none flex-col gap-3 overflow-hidden sm:max-w-none" showCloseButton={false}>
           <DialogTitle className="sr-only">Buscar y agregar equipos</DialogTitle>
           <div className="flex items-center gap-2">
           <div className="relative flex-1">
