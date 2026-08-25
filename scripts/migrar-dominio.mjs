@@ -182,10 +182,24 @@ if (!SUPABASE_SERVICE_ROLE_KEY) {
 
     // R2: el archivo de cotizaciones se sirve por URL firmada desde el servidor,
     // así que si esto funciona, R2 no necesita nada por el cambio de dominio.
-    const { data: hist } = await admin.from("cotizaciones_historicas").select("id").not("pdf_path", "is", null).limit(1);
+    //
+    // EL PDF TIENE QUE SER DE SU CARTERA. La primera versión tomaba cualquiera
+    // con pdf_path y salía un 404 que parecía falla del dominio: era la sesión
+    // de C5 pidiendo un presupuesto de Brenda, o sea el RLS trabajando bien
+    // (25-08, comprobado abriendo el mismo PDF con la sesión de su dueña —
+    // 307 hacia R2 en los dos dominios). Sin este filtro, la verificación
+    // miente en rojo.
+    const { data: hist } = await admin
+      .from("cotizaciones_historicas")
+      .select("id")
+      .not("pdf_path", "is", null)
+      .eq("comercial_id", perfil.id)
+      .limit(1);
     if (hist?.length) {
       const pdf = await pedir(`${NUEVO}/api/cotizaciones-historicas/${hist[0].id}/pdf`, { headers: { cookie } });
       ok([200, 302, 307].includes(pdf.status), "un PDF del archivo (R2) se abre desde el dominio nuevo", `HTTP ${pdf.status}`);
+    } else {
+      aviso(`${perfil.nombre} no tiene PDFs en el archivo: no se pudo probar R2 con su sesión`);
     }
   }
 }
