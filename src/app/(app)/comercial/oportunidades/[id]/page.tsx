@@ -154,6 +154,8 @@ export default async function OportunidadDetallePage({
       // La foto es la de un equipo HERMANO, porque el Word de este trae un
       // pantallazo en vez de una foto de producto. Son 10 equipos; la lista y
       // el motivo salen de scripts/auditar-fichas-productos.mjs.
+      // Stock según la columna del Excel de Lesly, guardado al cargar el equipo.
+      stock: typeof ficha?.stock_referencia === "number" ? (ficha.stock_referencia as number) : null,
       fotoPrestadaDe:
         typeof (ficha?.origen as Record<string, unknown> | undefined)?.foto_prestada_de === "string"
           ? (((ficha!.origen as Record<string, unknown>).foto_prestada_de) as string)

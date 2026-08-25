@@ -19,7 +19,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { fechaCalendario } from "@/lib/fechas";
-import { buscarEquipos } from "@/lib/buscar-equipo";
+import { BuscadorEquiposModal } from "@/components/crm/buscador-equipos-modal";
 import { ENTREGA_POR_DEFECTO, LUGARES_ENTREGA } from "@/lib/pdf/series";
 
 interface PrecioTier {
@@ -55,6 +55,8 @@ interface Producto {
   /** SKU del equipo hermano cuya foto se está mostrando. Pasa cuando el Word
    *  de este equipo trae un pantallazo en vez de una foto de producto. */
   fotoPrestadaDe?: string | null;
+  /** Unidades según la columna STOCK del Excel de Lesly. null = sin dato. */
+  stock?: number | null;
 }
 
 interface ItemCarrito extends ItemCotizacion {
@@ -107,132 +109,6 @@ function precioReferencia(producto: Producto): number | null {
 
 function tierInicial(producto: Producto): string {
   return producto.segmento === "semi_industrial" ? "optimo" : "base";
-}
-
-function etiquetaEquipo(p: Producto): string {
-  return `${p.sku ? `${p.sku} · ` : ""}${p.marca} ${p.modelo}${p.capacidad ? ` · ${p.capacidad}` : ""} — ${p.nombre}`;
-}
-
-// Un SOLO control para elegir equipo (corrección 24-08, ítems A3 y A4).
-//
-// ANTES eran dos: una caja "Buscar equipo" y, al lado, un <Select> con los 65
-// equipos. Escribir en la caja solo filtraba la lista del Select —que está
-// cerrado— así que desde fuera el buscador parecía muerto: Darwin tecleó "LG"
-// y "Segmax 15" y no vio nada («no aparece ninguna opción o un
-// autocompletador»). Y al elegir del Select salía el UUID del producto en vez
-// del nombre, porque Radix pierde el texto del ítem cuando el filtro lo
-// desmonta y cae al `value` crudo.
-//
-// Ahora es un autocompletador de verdad: se escribe y aparecen las
-// coincidencias debajo, con teclado. El texto que se muestra lo controlamos
-// nosotros, así que no hay UUID posible. Ojo con el dato: 5 de los 65 equipos
-// activos no tienen código cargado (4 LG y 1 Primus) — buscar por código no
-// los encuentra, hay que buscarlos por marca o modelo.
-function BuscadorEquipo({
-  productos,
-  seleccionado,
-  onSeleccionar,
-}: {
-  productos: Producto[];
-  seleccionado: string;
-  onSeleccionar: (id: string) => void;
-}) {
-  const [texto, setTexto] = useState("");
-  const [abierto, setAbierto] = useState(false);
-  const [resaltado, setResaltado] = useState(0);
-  const contenedor = useRef<HTMLDivElement>(null);
-
-  // La búsqueda vive en lib/buscar-equipo.ts, con pruebas: es la pieza que
-  // decide si el comercial encuentra lo que va a cotizar. El 24-08 Brenda buscó
-  // «secadoras electricas primus semi industrial modelo fde y nde» y no salió
-  // nada — se exigía que TODAS las palabras coincidieran, y ni «secadoras» en
-  // plural ni «modelo» están en ningún equipo del catálogo.
-  const coincidencias = useMemo(() => buscarEquipos(productos, texto), [productos, texto]);
-
-  useEffect(() => {
-    function fuera(e: MouseEvent) {
-      if (contenedor.current && !contenedor.current.contains(e.target as Node)) setAbierto(false);
-    }
-    document.addEventListener("mousedown", fuera);
-    return () => document.removeEventListener("mousedown", fuera);
-  }, []);
-
-  function elegir(p: Producto) {
-    onSeleccionar(p.id);
-    setTexto(etiquetaEquipo(p));
-    setAbierto(false);
-  }
-
-  return (
-    <div ref={contenedor} className="relative flex-1">
-      <Input
-        value={texto}
-        onChange={(e) => {
-          setTexto(e.target.value);
-          setResaltado(0);
-          setAbierto(true);
-          // Si estaba elegido y se vuelve a escribir, deja de estarlo: así el
-          // botón Agregar no mete un equipo distinto del que se ve escrito.
-          if (seleccionado) onSeleccionar("");
-        }}
-        onFocus={() => setAbierto(true)}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setAbierto(true);
-            setResaltado((i) => Math.min(i + 1, coincidencias.length - 1));
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setResaltado((i) => Math.max(i - 1, 0));
-          } else if (e.key === "Enter" && abierto && coincidencias[resaltado]) {
-            e.preventDefault();
-            elegir(coincidencias[resaltado]);
-          } else if (e.key === "Escape") {
-            setAbierto(false);
-          }
-        }}
-        placeholder="Buscar equipo por código, marca, modelo o capacidad…"
-        aria-label="Buscar equipo"
-        aria-expanded={abierto}
-        role="combobox"
-        aria-autocomplete="list"
-      />
-      {/* Antes acá decía "Elegido: …". Lo reemplaza la vista previa completa
-          que se dibuja debajo del buscador: repetir el nombre no ayudaba a
-          confirmar que el equipo es el correcto. */}
-      {abierto && (
-        <ul className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
-          {coincidencias.slice(0, 40).map((p, i) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                onMouseEnter={() => setResaltado(i)}
-                onClick={() => elegir(p)}
-                className={cn(
-                  "w-full cursor-pointer rounded-sm px-2 py-1.5 text-left text-sm",
-                  i === resaltado ? "bg-accent text-accent-foreground" : "text-foreground",
-                )}
-              >
-                {etiquetaEquipo(p)}
-                {p.sinFicha && <span className="ml-1.5 text-[11px] font-semibold text-amber-700">· sin ficha técnica</span>}
-              </button>
-            </li>
-          ))}
-          {coincidencias.length === 0 && (
-            <li className="px-2 py-2 text-xs text-muted-foreground">
-              Ningún equipo coincide con “{texto.trim()}”. Pruebe por marca o modelo — 5 equipos no tienen código
-              cargado.
-            </li>
-          )}
-          {coincidencias.length > 40 && (
-            <li className="px-2 py-1.5 text-[11px] text-muted-foreground">
-              Mostrando 40 de {coincidencias.length} — siga escribiendo para acotar.
-            </li>
-          )}
-        </ul>
-      )}
-    </div>
-  );
 }
 
 /**
@@ -402,6 +278,13 @@ export function Cotizador({
 
   const productoElegido = productos.find((p) => p.id === productoSeleccionado) ?? null;
 
+  // Lo que el selector grande necesita mostrar de cada equipo: el precio de
+  // referencia ya resuelto y el stock del Excel de Lesly.
+  const equiposParaElegir = useMemo(
+    () => productos.map((p) => ({ ...p, precio: precioReferencia(p) })),
+    [productos],
+  );
+
   function agregarProducto() {
     const producto = productos.find((p) => p.id === productoSeleccionado);
     if (!producto) return;
@@ -525,9 +408,12 @@ export function Cotizador({
           </SelectContent>
         </Select>
 
-        <BuscadorEquipo
+        {/* El selector grande (pedido 25-08): ventana con miniaturas, stock del
+            Excel de Lesly y detalle al pasar el mouse, porque los nombres del
+            maestro no caben en un desplegable angosto. */}
+        <BuscadorEquiposModal
           key={vecesAgregado}
-          productos={productos}
+          productos={equiposParaElegir}
           seleccionado={productoSeleccionado}
           onSeleccionar={setProductoSeleccionado}
         />
