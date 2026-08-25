@@ -114,8 +114,12 @@ export function sonarAlerta(idAviso: string): void {
   }
 
   try {
-    nota(ctx, 880, 0, 0.11, 0.06);
-    nota(ctx, 1174.7, 0.09, 0.13, 0.05);
+    // Volumen duplicado el 24-08 a pedido: en la oficina el anterior se perdía
+    // entre el ruido. Duplicar la amplitud son +6 dB, que es lo que se oye como
+    // "el doble de fuerte"; sigue siendo un pitido corto y con rampa, no un
+    // timbre. Si quedara alto, estos dos números son lo único que hay que bajar.
+    nota(ctx, 880, 0, 0.11, 0.12);
+    nota(ctx, 1174.7, 0.09, 0.13, 0.1);
   } catch {
     /* que no suene nunca puede romper la pantalla */
   }
