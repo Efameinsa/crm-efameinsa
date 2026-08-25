@@ -19,6 +19,7 @@ import {
   ClipboardCheck,
   PiggyBank,
   PackageCheck,
+  Send,
   Wrench,
   LifeBuoy,
   type LucideIcon,
@@ -32,6 +33,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/central/captura", etiqueta: "Registrar contacto", icono: ClipboardList },
     // El informe de cierre se le manda a Central para facturar, cobrar y
     // despachar: hasta ahora era la única que no tenía dónde verlo.
+    { href: "/central/derivados", etiqueta: "Lo que derivé", icono: Send },
     { href: "/central/cierres", etiqueta: "Cierres de venta", icono: PackageCheck },
     { href: "/central/informe", etiqueta: "Informe del día", icono: FileText },
   ],

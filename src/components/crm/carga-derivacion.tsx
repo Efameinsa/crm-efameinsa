@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -58,9 +59,16 @@ export async function CargaDerivacion() {
               const max = Math.max(1, ...filas.map((x) => x.semana));
               return (
                 <tr key={f.id} className="border-b border-border last:border-0">
-                  <td className="py-1.5 text-foreground">
-                    {f.nombre}
-                    {f.codigo && <span className="ml-1 text-muted-foreground">({f.codigo})</span>}
+                  <td className="py-1.5">
+                    {/* El nombre lleva a la lista. Central veía el número y no
+                        podía abrir cuáles: «solo veo lo que registré» (25-08). */}
+                    <Link
+                      href={`/central/derivados?comercial=${f.id}`}
+                      className="text-foreground hover:text-primary hover:underline"
+                    >
+                      {f.nombre}
+                      {f.codigo && <span className="ml-1 text-muted-foreground">({f.codigo})</span>}
+                    </Link>
                   </td>
                   <td className="py-1.5 pl-2 text-right tabular-nums">{f.hoy}</td>
                   <td className="py-1.5 pl-2">
@@ -76,7 +84,11 @@ export async function CargaDerivacion() {
               );
             })}
             <tr className="font-semibold">
-              <td className="pt-2 text-foreground">Total derivados</td>
+              <td className="pt-2">
+                <Link href="/central/derivados" className="text-foreground hover:text-primary hover:underline">
+                  Total derivados
+                </Link>
+              </td>
               <td className="pt-2 pl-2 text-right tabular-nums">{totales.hoy}</td>
               <td className="pt-2 pl-2 text-right tabular-nums">{totales.semana}</td>
               <td className="pt-2 pl-2 text-right tabular-nums">{totales.mes}</td>
