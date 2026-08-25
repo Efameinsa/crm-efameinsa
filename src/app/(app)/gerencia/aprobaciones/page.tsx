@@ -46,12 +46,13 @@ export default async function AprobacionesPage() {
               descripcion: string | null;
               productos: { marca: string; modelo: string; nombre: string; segmento: string } | null;
             }[]) ?? [];
-            // Lo que gerencia tiene que decidir: bajo lista O industrial
-            // (migración 0067). Se dice el motivo porque no es el mismo trabajo
-            // revisar un precio cedido que confirmar el de un industrial.
+            // Desde la migración 0074 gerencia decide una sola cosa: equipos
+            // cotizados por debajo del precio de referencia. Se muestra cuánto
+            // se está cediendo en total, que es la pregunta real.
             const porDecidir = items.filter((i) => i.requiere_aprobacion).length;
-            const bajoLista = items.filter((i) => i.bajo_lista).length;
-            const industriales = items.filter((i) => i.requiere_aprobacion && !i.bajo_lista).length;
+            const cedido = items
+              .filter((i) => i.bajo_lista && i.precio_lista != null)
+              .reduce((s, i) => s + (Number(i.precio_lista) - Number(i.precio_unitario)) * i.cantidad, 0);
             return (
               <div key={c.id} className="rounded-lg border border-border bg-background p-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -66,12 +67,8 @@ export default async function AprobacionesPage() {
                       {oportunidad?.perfiles?.nombre ?? "un comercial"} ·{" "}
                       {fechaLima(c.created_at)} ·{" "}
                       <span className="font-semibold text-amber-700">
-                        {porDecidir} de {items.length} por revisar
-                        {bajoLista > 0 && industriales > 0
-                          ? ` (${bajoLista} bajo lista, ${industriales} industrial${industriales === 1 ? "" : "es"})`
-                          : bajoLista > 0
-                            ? " bajo lista"
-                            : " · industriales"}
+                        {porDecidir} de {items.length} por debajo de la referencia
+                        {cedido > 0 && ` · se ceden ${c.moneda} ${Math.round(cedido).toLocaleString("es-PE")}`}
                       </span>
                     </p>
                   </div>

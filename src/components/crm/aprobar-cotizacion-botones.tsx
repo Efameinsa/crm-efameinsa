@@ -22,11 +22,13 @@ export interface ItemAprobacion {
   id: string;
   nombre: string;
   cantidad: number;
+  /** Precio contra el que se mide la rebaja (migración 0074). */
   precioLista: number | null;
   precioUnitario: number;
   bajoLista: boolean;
-  /** Gerencia tiene que decidir sobre este equipo: va bajo el piso, o es
-   *  industrial (migración 0067). */
+  /** Gerencia tiene que decidir sobre este equipo. Desde la migración 0074 eso
+   *  significa una sola cosa: el precio pedido está por debajo de la
+   *  referencia. */
   requiereAprobacion: boolean;
   esIndustrial: boolean;
 }
@@ -36,15 +38,17 @@ export interface ItemAprobacion {
  * «me despliega en los 5 ítems. El ítem 1 solamente quiere aprobar, porque los
  * otros 4 le están mandando el precio normal».
  *
- * Se decide sobre dos clases de equipo (migración 0067):
- *  · los que van BAJO EL PRECIO PISO, que es donde está la plata — «en las LG
- *    la diferencia es bastante, unos 600 dólares, en algunos casos 800»;
- *  · los INDUSTRIALES, aunque vayan al precio de lista. Pedido del área
- *    comercial el 24-08: «en semi industriales ya están definidos los precios,
- *    pero en industriales por lo general se necesita aprobar por gerencia».
+ * QUÉ SE DECIDE ACÁ: solo los equipos que van POR DEBAJO del precio de
+ * referencia. Ser industrial ya no basta — Carlos lo revirtió el 25-08:
+ * «coticemos el precio de lista nada más; la función debería ser cuando quieres
+ * reducir ese precio» (migración 0074).
  *
- * Los semi-industriales al precio de lista se muestran para dar contexto pero
- * no se deciden: sobre esos el comercial no pidió nada.
+ * POR QUÉ LA COMPARACIÓN SE VE ASÍ DE GRANDE. Con la regla anterior le llegaban
+ * industriales cotizados al precio de lista, y la pantalla mostraba referencia y
+ * pedido como dos datos chiquitos y parejos. Su reacción, mirándolo en vivo:
+ * «me aparece el precio base, precio de lista $8,999, pero YO NO SÉ QUÉ PRECIO
+ * ME ESTÁS PIDIENDO». Ahora los dos números y la rebaja —en plata y en
+ * porcentaje— son lo primero que se ve de cada equipo.
  */
 export function AprobarCotizacionBotones({
   cotizacionId,
@@ -104,9 +108,9 @@ export function AprobarCotizacionBotones({
         <DialogHeader>
           <DialogTitle>Revisar precios equipo por equipo</DialogTitle>
           <DialogDescription>
-            Se decide sobre los equipos que van por debajo del precio de lista y sobre todos los
-            industriales, donde el precio de lista es un punto de partida. Los semi-industriales al
-            precio de lista no necesitan su aprobación.
+            Solo se decide sobre los equipos cotizados <b>por debajo del precio de referencia</b>. Al
+            precio de referencia o por encima, el comercial cotiza y envía sin pedir permiso, sea
+            industrial o semi-industrial.
           </DialogDescription>
         </DialogHeader>
 
@@ -128,30 +132,74 @@ export function AprobarCotizacionBotones({
                 <p className="text-sm font-medium text-foreground">
                   {i.cantidad > 1 && <span className="text-muted-foreground">{i.cantidad} × </span>}
                   {i.nombre}
-                  {/* Por qué está acá: no es lo mismo revisar un precio cedido
-                      que confirmar el de un industrial al precio de lista. */}
-                  {i.requiereAprobacion && !i.bajoLista && i.esIndustrial && (
-                    <span className="ml-1.5 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                      Industrial
-                    </span>
-                  )}
-                  {i.bajoLista && (
-                    <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
-                      Bajo lista
-                    </span>
-                  )}
-                </p>
-                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs tabular-nums">
-                  <span className="text-muted-foreground">
-                    Precio lista {i.precioLista != null ? monto(i.precioLista) : "—"}
+                  <span className="ml-1.5 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    {i.esIndustrial ? "Industrial" : "Semi-industrial"}
                   </span>
-                  <span className="font-semibold text-foreground">Pide {monto(i.precioUnitario)}</span>
-                  {diferencia != null && diferencia < 0 && (
-                    <span className="font-semibold text-destructive">
-                      {monto(diferencia)} por unidad
-                    </span>
-                  )}
+                </p>
+
+                {/* Referencia contra lo que piden, uno al lado del otro. Es el
+                    pedido textual del 25-08: «la vista del gerente debe ver
+                    cuál es el precio de referencia vs el precio reducido». */}
+                <div className="mt-2 grid grid-cols-3 gap-2 text-center tabular-nums">
+                  <div className="rounded-md bg-secondary/60 px-2 py-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Referencia
+                    </p>
+                    <p className="text-sm text-foreground">
+                      {i.precioLista != null ? monto(i.precioLista) : "sin precio cargado"}
+                    </p>
+                  </div>
+                  <div
+                    className={cn(
+                      "rounded-md px-2 py-1.5",
+                      i.bajoLista ? "bg-destructive/10" : "bg-secondary/60",
+                    )}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Piden
+                    </p>
+                    <p
+                      className={cn(
+                        "text-sm font-bold",
+                        i.bajoLista ? "text-destructive" : "text-foreground",
+                      )}
+                    >
+                      {monto(i.precioUnitario)}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-secondary/60 px-2 py-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Diferencia
+                    </p>
+                    {diferencia == null || diferencia === 0 ? (
+                      <p className="text-sm text-muted-foreground">—</p>
+                    ) : (
+                      <p
+                        className={cn(
+                          "text-sm font-bold",
+                          diferencia < 0 ? "text-destructive" : "text-[#1E7F4F]",
+                        )}
+                      >
+                        {diferencia < 0 ? "−" : "+"}
+                        {monto(Math.abs(diferencia))}
+                        {i.precioLista ? (
+                          <span className="block text-[11px] font-semibold">
+                            {diferencia < 0 ? "−" : "+"}
+                            {Math.abs((diferencia / i.precioLista) * 100).toLocaleString("es-PE", {
+                              maximumFractionDigits: 1,
+                            })}{" "}
+                            %
+                          </span>
+                        ) : null}
+                      </p>
+                    )}
+                  </div>
                 </div>
+                {i.cantidad > 1 && diferencia != null && diferencia < 0 && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Por las {i.cantidad} unidades se ceden {monto(Math.abs(diferencia) * i.cantidad)}.
+                  </p>
+                )}
 
                 {i.requiereAprobacion ? (
                   <div className="mt-2 flex items-center gap-2">
@@ -171,8 +219,8 @@ export function AprobarCotizacionBotones({
                     </Button>
                   </div>
                 ) : (
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Semi-industrial al precio de lista — no necesita su aprobación
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    Al precio de referencia o por encima — no necesita su aprobación
                   </p>
                 )}
               </div>

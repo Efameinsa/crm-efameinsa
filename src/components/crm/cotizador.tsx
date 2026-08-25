@@ -92,8 +92,17 @@ function precioTier(producto: Producto, tier: string): number | null {
   return producto.precios_producto.find((p) => p.tier === tier)?.precio ?? null;
 }
 
-function tierPiso(producto: Producto): string {
-  return producto.segmento === "semi_industrial" ? "deseado" : "base";
+// El precio contra el que se mide si la cotización va rebajada. Espeja
+// precio_referencia_producto() de la migración 0074: el piso pactado, y
+// mientras gerencia no lo cargue, el mejor precio disponible. Sin la caída a
+// 'optimo', los 7 semi-industriales que todavía no tienen 'deseado' salían
+// como "sin piso" y pedían aprobación aun cotizados al precio de lista.
+function precioReferencia(producto: Producto): number | null {
+  for (const tier of ["deseado", "medio", "base", "optimo"]) {
+    const p = precioTier(producto, tier);
+    if (p !== null) return p;
+  }
+  return null;
 }
 
 function tierInicial(producto: Producto): string {
@@ -253,7 +262,7 @@ function BuscadorEquipo({
  */
 function VistaPreviaEquipo({ producto }: { producto: Producto }) {
   const precio = precioTier(producto, tierInicial(producto));
-  const piso = precioTier(producto, tierPiso(producto));
+  const piso = precioReferencia(producto);
   const placa = [
     producto.capacidad,
     producto.calentamiento,
@@ -406,7 +415,7 @@ export function Cotizador({
         cantidad: 1,
         precio_unitario: precio,
         tier_aplicado: tierInicio,
-        precioPiso: precioTier(producto, tierPiso(producto)),
+        precioPiso: precioReferencia(producto),
         sinFicha: Boolean(producto.sinFicha),
       },
     ]);
@@ -423,23 +432,18 @@ export function Cotizador({
   }
 
   const total = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_unitario, 0);
+  // Gerencia decide UNA sola cosa: equipos por debajo del precio de referencia
+  // (migración 0074). Ser industrial dejó de bastar — el ing. Carlos lo revirtió
+  // el 25-08: «coticemos el precio de lista nada más; la función debería ser
+  // cuando quieres reducir ese precio». Se avisa ACÁ, antes de guardar, para que
+  // la comercial sepa si la puede enviar de inmediato.
   const hayBajoLista = carrito.some((i) => i.precioPiso !== null && i.precio_unitario < i.precioPiso);
-  // Todo industrial pasa por gerencia aunque vaya al precio de lista (migración
-  // 0067): en industriales el precio de lista es un punto de partida, no un
-  // precio cerrado. Se avisa ACÁ, antes de guardar, para que la comercial no
-  // arme la cotización creyendo que la puede enviar de inmediato.
-  const hayIndustrial = carrito.some(
-    (i) => productos.find((p) => p.id === i.producto_id)?.segmento === 'industrial',
-  );
-  // Un equipo sin precio piso tampoco puede darse por aprobado: nadie definió
-  // hasta dónde se puede bajar, así que el sistema no puede certificar que el
-  // precio esté bien (migración 0068).
-  const haySinPiso = carrito.some((i) => i.producto_id !== null && i.precioPiso === null);
-  const iraAGerencia = hayBajoLista || hayIndustrial || haySinPiso;
+  // Un equipo sin NINGÚN precio cargado no se puede contrastar contra nada.
+  const haySinPrecio = carrito.some((i) => i.producto_id !== null && i.precioPiso === null);
+  const iraAGerencia = hayBajoLista || haySinPrecio;
   const motivoAprobacion = [
-    hayBajoLista && "precio bajo lista",
-    hayIndustrial && "equipo industrial",
-    haySinPiso && "equipo sin precio piso definido",
+    hayBajoLista && "precio por debajo de la referencia",
+    haySinPrecio && "equipo sin precio cargado",
   ]
     .filter(Boolean)
     .join(" y ");
@@ -588,7 +592,7 @@ export function Cotizador({
                     )}
                     {bajoLista && (
                       <p className="text-xs text-destructive">
-                        Bajo lista (piso: US$ {item.precioPiso}) — requerirá aprobación de gerencia
+                        Por debajo de la referencia (US$ {item.precioPiso}) — requerirá aprobación de gerencia
                       </p>
                     )}
                     {historial && (
