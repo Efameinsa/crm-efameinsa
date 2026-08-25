@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { analizarCaptura, registrarContacto, type AnalisisCaptura, type CoincidenciaCartera } from "@/lib/acciones/leads";
 import { createClient } from "@/lib/supabase/client";
-import { ImagePlus, Paperclip, X } from "lucide-react";
+import { ImagePlus, Paperclip, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -209,7 +209,11 @@ export function CapturaForm() {
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} onPaste={onPaste} className="space-y-4 max-w-xl">
+    // El formulario a la izquierda y el análisis de coincidencias en columna
+    // aparte a la derecha (pedido 25-08): cuando los avisos aparecían entre
+    // los campos, empujaban hacia abajo justo lo que Central estaba llenando.
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+    <form ref={formRef} onSubmit={onSubmit} onPaste={onPaste} className="min-w-0 flex-1 space-y-4 lg:max-w-xl">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="canal">Canal</Label>
@@ -266,46 +270,6 @@ export function CapturaForm() {
           <Input id="email" name="email" type="email" onChange={onCambioDatos} />
         </div>
       </div>
-
-      {buscando && <p className="text-xs text-muted-foreground">Buscando en la cartera…</p>}
-
-      {/* A quién pertenece —o podría pertenecer— lo que se está escribiendo.
-          Documento/teléfono/correo son coincidencias fuertes; el nombre solo
-          advierte (puede haber muchas "María Leguía"). El registro NO se
-          bloquea: Central registra igual y decide en la derivación, ya
-          sabiendo de quién es la cartera. */}
-      {analisis && analisis.coincidencias.length > 0 && (
-        <div className="space-y-1.5 rounded-md border border-primary/30 bg-primary/5 p-3">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-primary">
-            Posiblemente ya está en el sistema
-          </p>
-          {analisis.coincidencias.map((c) => {
-            const m = MOTIVO[c.motivo];
-            return (
-              <p key={c.cuentaId} className={cn("text-sm", m.fuerte ? "text-foreground" : "text-muted-foreground")}>
-                <b>{c.razonSocial}</b>
-                {" — "}
-                {c.comercialNombre
-                  ? `cartera de ${c.comercialNombre}${c.codigoComercial ? ` (${c.codigoComercial})` : ""}`
-                  : "sin comercial asignado actualmente"}
-                <span className={cn("ml-2 rounded-full px-2 py-0.5 text-[11px]", m.fuerte ? "bg-primary/10 font-semibold text-primary" : "bg-secondary")}>
-                  {m.etiqueta}
-                </span>
-                {c.ultimaVentaAt && (
-                  <span className="ml-2 text-[11px] text-muted-foreground">última venta {fechaLima(c.ultimaVentaAt)}</span>
-                )}
-              </p>
-            );
-          })}
-        </div>
-      )}
-
-      {analisis?.leadPendiente && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-          Ya hay un contacto pendiente de asignar con estos mismos datos: {analisis.leadPendiente.codigo}{" "}
-          (recibido el {fechaHoraLima(analisis.leadPendiente.recibido_at)}).
-        </div>
-      )}
 
       {/* Es el campo que decide a qué comercial conviene derivarlo y con qué
           preparación llama. Se rotuló como pregunta y con ejemplo porque
@@ -401,5 +365,66 @@ export function CapturaForm() {
         {enviando ? "Registrando…" : "Registrar"}
       </Button>
     </form>
+
+    {/* A quién pertenece —o podría pertenecer— lo que se está escribiendo.
+        Documento/teléfono/correo son coincidencias fuertes; el nombre solo
+        advierte (puede haber muchas "María Leguía"). El registro NO se
+        bloquea: Central registra igual y decide en la derivación, ya
+        sabiendo de quién es la cartera. En pantalla chica la columna cae
+        debajo del formulario. */}
+    <aside className="min-w-0 space-y-3 lg:sticky lg:top-4 lg:w-96 lg:flex-none">
+      <div className="rounded-md border border-border bg-secondary/30 p-3">
+        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <Search className="size-3.5" />
+          Coincidencias en el sistema
+        </p>
+        {buscando && <p className="text-xs text-muted-foreground">Buscando en la cartera…</p>}
+        {!buscando && (!analisis || analisis.coincidencias.length === 0) && (
+          <p className="text-xs text-muted-foreground">
+            Mientras escribe el nombre, teléfono o RUC/DNI, acá aparece si el contacto ya está en el
+            sistema y de qué comercial es la cartera.
+          </p>
+        )}
+        {!buscando && analisis && analisis.coincidencias.length > 0 && (
+          <div className="space-y-2">
+            {analisis.coincidencias.map((c) => {
+              const m = MOTIVO[c.motivo];
+              return (
+                <div
+                  key={c.cuentaId}
+                  className={cn(
+                    "rounded-md border p-2.5 text-sm",
+                    m.fuerte ? "border-primary/30 bg-primary/5 text-foreground" : "border-border bg-background text-muted-foreground",
+                  )}
+                >
+                  <p className="font-semibold">{c.razonSocial}</p>
+                  <p className="text-xs">
+                    {c.comercialNombre
+                      ? `Cartera de ${c.comercialNombre}${c.codigoComercial ? ` (${c.codigoComercial})` : ""}`
+                      : "Sin comercial asignado actualmente"}
+                  </p>
+                  <p className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className={cn("rounded-full px-2 py-0.5 text-[11px]", m.fuerte ? "bg-primary/10 font-semibold text-primary" : "bg-secondary")}>
+                      {m.etiqueta}
+                    </span>
+                    {c.ultimaVentaAt && (
+                      <span className="text-[11px] text-muted-foreground">última venta {fechaLima(c.ultimaVentaAt)}</span>
+                    )}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {analisis?.leadPendiente && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          Ya hay un contacto pendiente de asignar con estos mismos datos: {analisis.leadPendiente.codigo}{" "}
+          (recibido el {fechaHoraLima(analisis.leadPendiente.recibido_at)}).
+        </div>
+      )}
+    </aside>
+    </div>
   );
 }
