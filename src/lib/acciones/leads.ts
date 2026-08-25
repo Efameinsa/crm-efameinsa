@@ -6,7 +6,7 @@ import { normalizarTelefono } from "@/lib/telefono";
 import { tokenizarBusqueda } from "@/lib/texto";
 import { notificar } from "@/lib/notificaciones";
 import { avisarLeadNuevoN8n, avisarLeadDerivadoN8n } from "@/lib/avisos-n8n";
-import { esquemaCaptura } from "@/lib/validaciones/lead";
+import { esquemaCaptura, esquemaAdjuntosLead, type AdjuntoLead } from "@/lib/validaciones/lead";
 import { CANAL_LABEL } from "@/lib/canal-contacto";
 
 export interface ResultadoDuplicado {
@@ -101,6 +101,21 @@ export async function registrarContacto(
   }
   const d = datos.data;
 
+  // La foto o el PDF que el prospecto mandó por WhatsApp (pedido de Central
+  // 25-08). El formulario ya los subió al bucket 'adjuntos'; acá solo llegan
+  // los metadatos, como en las gestiones (0029/0082).
+  let adjuntos: AdjuntoLead[] = [];
+  const adjuntosBruto = formData.get("adjuntos");
+  if (typeof adjuntosBruto === "string" && adjuntosBruto) {
+    try {
+      const r = esquemaAdjuntosLead.safeParse(JSON.parse(adjuntosBruto));
+      if (!r.success) return { error: "Los adjuntos no son válidos. Quítelos y vuelva a agregarlos." };
+      adjuntos = r.data;
+    } catch {
+      return { error: "Los adjuntos no son válidos. Quítelos y vuelva a agregarlos." };
+    }
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -122,6 +137,7 @@ export async function registrarContacto(
       razon_social: d.razon_social || null,
       email: d.email || null,
       mensaje: d.mensaje || null,
+      adjuntos,
       recibido_por: user.id,
     })
     .select("codigo")
@@ -149,7 +165,16 @@ export async function registrarContacto(
       email: d.email || null,
       canal: d.canal,
       razonSocial: d.razon_social || null,
-      mensaje: d.mensaje || null,
+      // El correo no lleva los archivos: solo avisa que existen (se ven en el CRM).
+      mensaje:
+        [
+          d.mensaje,
+          adjuntos.length
+            ? `Incluye ${adjuntos.length} archivo${adjuntos.length === 1 ? "" : "s"} adjunto${adjuntos.length === 1 ? "" : "s"} (ver en el CRM)`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" — ") || null,
     });
   }
 
@@ -354,6 +379,32 @@ export async function buscarCoincidencias(datos: {
   }
   const orden: Record<CoincidenciaCartera["motivo"], number> = { documento: 0, telefono: 1, correo: 2, nombre: 3 };
   return [...out.values()].sort((a, b) => orden[a.motivo] - orden[b.motivo]).slice(0, 6);
+}
+
+export interface AnalisisCaptura {
+  coincidencias: CoincidenciaCartera[];
+  leadPendiente: ResultadoDuplicado["leadPendiente"];
+}
+
+// Análisis en vivo del formulario de captura (pedido de Central 25-08): que
+// nombre, teléfono y RUC/DNI funcionen «también como buscador automático para
+// analizar si le corresponde posiblemente a un comercial». Antes de este
+// cambio el formulario solo avisaba por teléfono/documento exactos
+// (buscarDuplicado); ahora usa el MISMO pre-filtro de cartera que el diálogo
+// de asignar —documento > teléfono > correo > nombre— y además mantiene el
+// aviso de contacto pendiente repetido en la bandeja.
+export async function analizarCaptura(datos: {
+  nombre?: string | null;
+  razonSocial?: string | null;
+  telefono?: string | null;
+  numDoc?: string | null;
+  email?: string | null;
+}): Promise<AnalisisCaptura> {
+  const [coincidencias, duplicado] = await Promise.all([
+    buscarCoincidencias(datos),
+    buscarDuplicado({ telefono: datos.telefono ?? undefined, numDoc: datos.numDoc ?? undefined }),
+  ]);
+  return { coincidencias, leadPendiente: duplicado.leadPendiente };
 }
 
 /**

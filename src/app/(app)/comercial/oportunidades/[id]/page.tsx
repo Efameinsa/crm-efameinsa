@@ -16,6 +16,9 @@ import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { fechaAgendada, fechaHoraLima } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
+import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
+import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
+import type { AdjuntoLead } from "@/lib/validaciones/lead";
 import type { TipoDocumento } from "@/lib/documento";
 
 // Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
@@ -47,7 +50,7 @@ export default async function OportunidadDetallePage({
       supabase
         .from("oportunidades")
         .select(
-          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, leads(codigo, canal, mensaje, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, leads(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -73,9 +76,16 @@ export default async function OportunidadDetallePage({
     codigo: string | null;
     canal: string;
     mensaje: string | null;
+    adjuntos: AdjuntoLead[] | null;
     utm_campaign: string | null;
     recibido_at: string | null;
   } | null;
+
+  // La foto o el PDF que el prospecto mandó por WhatsApp y Central adjuntó al
+  // registrar (25-08): el comercial la ve junto a la solicitud, sin pedirla.
+  const adjuntosLead = lead?.adjuntos?.length
+    ? ((await firmarAdjuntosDeLeads(supabase, [{ id: "lead", adjuntos: lead.adjuntos }])).get("lead") ?? [])
+    : [];
 
   const cuenta = oportunidad.cuentas as unknown as {
     id: string;
@@ -308,6 +318,7 @@ export default async function OportunidadDetallePage({
           {lead && (
             <SeccionPanel titulo="Solicitud del prospecto">
               <SolicitudLead mensaje={lead.mensaje} campania={lead.utm_campaign} compacto />
+              <AdjuntosLead adjuntos={adjuntosLead} />
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Entró por {ETIQUETA_CANAL_LEAD[lead.canal] ?? lead.canal}
                 {lead.recibido_at ? ` · ${fechaHoraLima(lead.recibido_at)}` : ""}

@@ -10,6 +10,8 @@ import { SolicitudLead } from "@/components/crm/solicitud-lead";
 import { AvisoCoincidencia } from "@/components/crm/aviso-coincidencia";
 import { coincidenciasDeLaBandeja } from "@/lib/central/coincidencias-bandeja";
 import { ConsolidadoCentral } from "@/components/crm/consolidado-central";
+import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
+import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import { DerivadosOtrasAreas } from "@/components/crm/derivados-otras-areas";
 
 // La bandeja tiene que mostrar lo que acaba de entrar: sin esto Next servía
@@ -58,7 +60,7 @@ export default async function CentralPage() {
     supabase
       .from("leads")
       .select(
-        "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, utm_campaign, recibido_at, es_prueba",
+        "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, adjuntos, utm_campaign, recibido_at, es_prueba",
         { count: "exact" },
       )
       .eq("estado", "pendiente_triaje")
@@ -100,6 +102,10 @@ export default async function CentralPage() {
     (leads ?? []).filter((l) => !l.es_prueba),
   );
   const repetidos = [...coincidencias.values()].filter((c) => c.clase === "duplicado").length;
+
+  // Fotos/PDF que Central adjuntó al registrar (25-08): URLs firmadas en una
+  // sola llamada batch, como en el historial de cuenta.
+  const adjuntosPorLead = await firmarAdjuntosDeLeads(supabase, leads ?? []);
 
   return (
     <div className="space-y-4">
@@ -173,6 +179,7 @@ export default async function CentralPage() {
                 )}
 
                 <SolicitudLead mensaje={lead.mensaje} campania={lead.utm_campaign} />
+                {adjuntosPorLead.has(lead.id) && <AdjuntosLead adjuntos={adjuntosPorLead.get(lead.id)!} />}
               </div>
             );
           })}
