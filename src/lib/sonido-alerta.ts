@@ -121,8 +121,38 @@ export function sonarAlerta(idAviso: string): void {
     // 25-08, segunda subida a pedido: 0.06→0.12 (ayer) →0.24. Otros +6 dB
     // percibidos como el doble. De acá en adelante conviene tocar la salida
     // del sistema, no la síntesis: 0.5 ya es zona de saturación.
-    nota(ctx, 880, 0, 0.11, 0.24);
-    nota(ctx, 1174.7, 0.09, 0.13, 0.2);
+    motivo(ctx, 0);
+  } catch {
+    /* que no suene nunca puede romper la pantalla */
+  }
+}
+
+/** Las dos notas del aviso, para poder repetirlas. */
+function motivo(ctx: AudioContext, desde: number): void {
+  nota(ctx, 880, desde, 0.11, 0.24);
+  nota(ctx, 1174.7, desde + 0.09, 0.13, 0.2);
+}
+
+/**
+ * La campanada de prospecto nuevo para Central: el mismo motivo TRES veces
+ * seguidas (~1 s). Pedido del 25-08: «un sonido mucho más fuerte» — subir la
+ * amplitud ya no se puede sin saturar (ver arriba), así que la notoriedad
+ * viene por duración y repetición, que al oído rinde más que el volumen.
+ * A ella la miden por la entrega rápida de leads: este es su timbre.
+ */
+export function sonarCampanada(idAviso: string): void {
+  if (alertaSilenciada()) return;
+  if (yaSonoEnOtraPestana(idAviso)) return;
+  const ctx = contextoAudio();
+  if (!ctx) return;
+  if (ctx.state === "suspended") {
+    void ctx.resume().catch(() => {});
+    if (ctx.state === "suspended") return;
+  }
+  try {
+    motivo(ctx, 0);
+    motivo(ctx, 0.38);
+    motivo(ctx, 0.76);
   } catch {
     /* que no suene nunca puede romper la pantalla */
   }

@@ -22,7 +22,7 @@ export function EncabezadoUsuario({ perfil }: { perfil: Perfil }) {
         </p>
       </div>
       <div className="flex items-center gap-3">
-        <CampanaNotificaciones userId={perfil.id} />
+        <CampanaNotificaciones userId={perfil.id} rol={perfil.rol} />
         <CambiarClave />
         <form action={cerrarSesion}>
           <Button type="submit" variant="outline" size="sm">

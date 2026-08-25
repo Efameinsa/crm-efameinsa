@@ -9,7 +9,8 @@ import { marcarNotificacionLeida, marcarTodasLeidas } from "@/lib/acciones/notif
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fechaLima } from "@/lib/fechas";
-import { alertaSilenciada, prepararAlerta, silenciarAlerta, sonarAlerta } from "@/lib/sonido-alerta";
+import { alertaSilenciada, prepararAlerta, silenciarAlerta, sonarAlerta, sonarCampanada } from "@/lib/sonido-alerta";
+import type { RolUsuario } from "@/types/database";
 
 interface Notificacion {
   id: string;
@@ -54,7 +55,7 @@ function tiempoRelativo(iso: string): string {
   return fechaLima(iso);
 }
 
-export function CampanaNotificaciones({ userId }: { userId: string }) {
+export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: RolUsuario }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
@@ -82,13 +83,18 @@ export function CampanaNotificaciones({ userId }: { userId: string }) {
    *  · EL SONIDO ES OPCIONAL Y SE RECUERDA (ver lib/sonido-alerta.ts).
    */
   function avisar(n: Notificacion) {
-    sonarAlerta(n.id);
+    // Para Central, un prospecto nuevo es SU evento (la miden por la entrega
+    // rápida, 25-08): campanada triple y ventanita que no se cierra sola.
+    const esLeadParaCentral = rol === "central" && n.tipo === "lead_registrado";
+    if (esLeadParaCentral) sonarCampanada(n.id);
+    else sonarAlerta(n.id);
     const info = ESTILO_AVISO[n.tipo] ?? ESTILO_AVISO.otro;
+    const duracion = esLeadParaCentral ? Infinity : info.duracion;
     toast[info.tono](info.encabezado, {
       description: [n.titulo, n.cuerpo].filter(Boolean).join(" — "),
-      duration: info.duracion,
-      // La de urgencia no se cierra sola: dale una equis para cerrarla a mano.
-      closeButton: !Number.isFinite(info.duracion),
+      duration: duracion,
+      // La que no se cierra sola lleva una equis para cerrarla a mano.
+      closeButton: !Number.isFinite(duracion),
       action: n.url
         ? {
             label: info.accion,
@@ -135,6 +141,25 @@ export function CampanaNotificaciones({ userId }: { userId: string }) {
     // render y volvería a suscribir el canal.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  // Mientras Central tenga un prospecto SIN LEER: el título de la pestaña se
+  // marca en rojo (se ve aunque esté en otra pestaña) y la campanada se repite
+  // cada 2 minutos. Deja de insistir en cuanto lo abre o lo marca como leído.
+  // Chrome espacia los timers de pestañas en segundo plano, pero un intervalo
+  // de 2 minutos sobrevive a esa restricción.
+  const leadsSinLeer = rol === "central" ? notificaciones.filter((n) => !n.leida_at && n.tipo === "lead_registrado").length : 0;
+
+  useEffect(() => {
+    if (rol !== "central") return;
+    const base = document.title.replace(/^🔴 \(\d+\) /, "");
+    document.title = leadsSinLeer > 0 ? `🔴 (${leadsSinLeer}) ${base}` : base;
+  }, [rol, leadsSinLeer]);
+
+  useEffect(() => {
+    if (rol !== "central" || leadsSinLeer === 0) return;
+    const timer = setInterval(() => sonarCampanada(`repique-${Date.now()}`), 120000);
+    return () => clearInterval(timer);
+  }, [rol, leadsSinLeer]);
 
   useEffect(() => {
     function alClickearFuera(e: MouseEvent) {

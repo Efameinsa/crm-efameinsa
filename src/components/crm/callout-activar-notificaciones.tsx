@@ -16,11 +16,32 @@ export function CalloutActivarNotificaciones() {
     // solo se puede saber en el cliente, después de montar. Coincide con el
     // render del servidor (oculto) hasta entonces — no hay hidratación
     // desincronizada, solo una decisión que no puede tomarse antes.
-    if (!soportaPush()) return;
-    if (typeof Notification !== "undefined" && Notification.permission === "granted") return;
-    if (localStorage.getItem(CLAVE_DESCARTADO)) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVisible(true);
+    //
+    // Dos correcciones del 25-08 (Central llevaba CERO suscripciones y nadie
+    // se enteró):
+    //  · «Descartar» ya no es para siempre: vuelve a ofrecerse a los 7 días.
+    //  · Permiso concedido ≠ suscripción viva. Se verifica la suscripción DE
+    //    VERDAD en el service worker; si el permiso está pero la suscripción
+    //    no, el aviso vuelve a salir.
+    (async () => {
+      if (!soportaPush()) return;
+      try {
+        const descartado = Number(localStorage.getItem(CLAVE_DESCARTADO));
+        if (descartado && Date.now() - descartado < 7 * 24 * 3600 * 1000) return;
+      } catch {
+        /* sin almacenamiento: se ofrece igual */
+      }
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        try {
+          const reg = await navigator.serviceWorker.getRegistration();
+          const sub = await reg?.pushManager.getSubscription();
+          if (sub) return; // permiso Y suscripción: no hay nada que ofrecer
+        } catch {
+          return;
+        }
+      }
+      setVisible(true);
+    })();
   }, []);
 
   if (!visible) return null;
@@ -38,7 +59,9 @@ export function CalloutActivarNotificaciones() {
   }
 
   function descartar() {
-    localStorage.setItem(CLAVE_DESCARTADO, "1");
+    // Con fecha: a los 7 días vuelve a ofrecerse (un «1» viejo cuenta como
+    // vencido, así los que lo descartaron para siempre lo vuelven a ver).
+    localStorage.setItem(CLAVE_DESCARTADO, String(Date.now()));
     setVisible(false);
   }
 
