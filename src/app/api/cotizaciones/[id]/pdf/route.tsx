@@ -156,16 +156,24 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     });
   }
 
-  // La ficha en papel abre "ESPECIFICACIONES TÉCNICAS" con la capacidad
-  // ("Capacidad: 55 kg"), pero el parser que arma `ficha.dimensiones` la
-  // descarta a propósito (la confunde con el rótulo repetido de la tabla de
-  // cabecera — ver esRotuloDeTabla en extraer-ficha-tecnica.mjs). En vez de
-  // arreglar esa extracción línea por línea, se antepone acá con el dato que
-  // YA es confiable: `productos.capacidad`, la misma columna que usa la tabla
-  // de arriba del PDF.
+  // La ficha en papel de MUCHOS equipos abre "ESPECIFICACIONES TÉCNICAS" con
+  // la capacidad ("Capacidad: 55 kg"), pero el parser que arma
+  // `ficha.dimensiones` la descarta a propósito (la confunde con el rótulo
+  // repetido de la tabla de cabecera — ver esRotuloDeTabla en
+  // extraer-ficha-tecnica.mjs). En vez de arreglar esa extracción línea por
+  // línea, se antepone acá con el dato que YA es confiable:
+  // `productos.capacidad`, la misma columna que usa la tabla de arriba del
+  // PDF.
+  //
+  // Pero NO todas las fichas traen esa línea ahí (reportado 26-08 con la
+  // LAV180-V1/LAV1801: su Word nunca menciona la capacidad dentro de
+  // ESPECIFICACIONES TÉCNICAS, solo en la tabla de cabecera) — para esas,
+  // `ficha.sinCapacidadEnEspecificaciones` desactiva el agregado y se
+  // respeta el Word tal cual.
   function dimensionesConCapacidad(ficha: Record<string, unknown> | null | undefined, capacidad: string | null): string[] {
     const lista = listaDeFicha(ficha, "dimensiones");
     if (!capacidad) return lista;
+    if (ficha?.sinCapacidadEnEspecificaciones === true) return lista;
     if (lista.some((l) => /^capacidad\s*:/i.test(l))) return lista;
     return [`Capacidad: ${capacidad}`, ...lista];
   }

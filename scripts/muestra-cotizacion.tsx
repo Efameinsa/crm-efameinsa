@@ -87,10 +87,12 @@ async function main() {
     caracteristicasTitulo: texto(p.ficha, "caracteristicasTitulo"),
     disenoConstruccion: lista(p.ficha, "disenoConstruccion"),
     // Igual que en route.tsx: "Capacidad" se antepone con el dato confiable
-    // de productos.capacidad en vez de confiar en el parseo de la ficha.
-    dimensiones: p.capacidad
-      ? [`Capacidad: ${p.capacidad}`, ...lista(p.ficha, "dimensiones")]
-      : lista(p.ficha, "dimensiones"),
+    // de productos.capacidad en vez de confiar en el parseo de la ficha,
+    // salvo que la ficha marque que su Word real no la trae ahí.
+    dimensiones:
+      p.capacidad && p.ficha?.sinCapacidadEnEspecificaciones !== true
+        ? [`Capacidad: ${p.capacidad}`, ...lista(p.ficha, "dimensiones")]
+        : lista(p.ficha, "dimensiones"),
     dimensionesTitulo: texto(p.ficha, "dimensionesTitulo"),
     medidas: lista(p.ficha, "medidas"),
     medidasTitulo: texto(p.ficha, "medidasTitulo"),
