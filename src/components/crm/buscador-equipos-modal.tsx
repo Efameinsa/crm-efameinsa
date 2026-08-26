@@ -103,6 +103,19 @@ function Miniatura({ equipo, grande = false }: { equipo: EquipoElegible; grande?
 
 const monto = (n: number) => `US$ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`;
 
+/**
+ * El material del tambor (galvanizado/inoxidable) es lo primero que pregunta
+ * un cliente y antes solo aparecía escondido dentro de "Características
+ * completas", bajo el título TAMBOR. En las 32 fichas que traen ese bloque el
+ * patrón es siempre el mismo —el título va seguido de una sola línea con el
+ * material ("Fabricado en acero inoxidable de alta resistencia.")—, así que
+ * se saca esa línea a la lista rápida de specs, junto a Capacidad/Voltaje.
+ */
+function materialTambor(caracteristicas: string[] | undefined): string | null {
+  const idx = caracteristicas?.findIndex((c) => c.trim().toUpperCase() === "TAMBOR") ?? -1;
+  return idx === -1 ? null : (caracteristicas![idx + 1] ?? null);
+}
+
 /** El panel derecho: el equipo bajo el mouse, en grande y sin hacer clic. */
 function PanelDetalle({
   equipo,
@@ -128,6 +141,7 @@ function PanelDetalle({
     equipo.calentamiento && ["Calentamiento", equipo.calentamiento],
     equipo.panel && ["Panel", equipo.panel],
     equipo.controles && ["Voltaje", equipo.controles],
+    materialTambor(equipo.caracteristicas) && ["Tambor", materialTambor(equipo.caracteristicas)],
   ].filter(Boolean) as [string, string][];
   return (
     <div className="hidden h-full flex-col gap-2 overflow-y-auto sm:flex">
