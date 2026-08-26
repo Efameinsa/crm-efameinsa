@@ -138,7 +138,18 @@ export default async function OportunidadDetallePage({
     const lista = (clave: string) =>
       Array.isArray(ficha?.[clave]) ? (ficha![clave] as unknown[]).filter((x): x is string => typeof x === "string") : [];
     const texto = (clave: string) => (typeof ficha?.[clave] === "string" && ficha[clave] ? (ficha[clave] as string) : null);
-    const caracteristicas = lista("caracteristicas");
+    // Algunas fichas (las reprocesadas, ej. la familia UT120) separan
+    // "DISEÑO DE CONSTRUCCIÓN" (TAMBOR/PUERTA/PANELES/CALEFACCION) de
+    // "caracteristicas" para que el PDF las imprima como bloques propios.
+    // El buscador necesita la ficha COMPLETA (gerencia 25-08), así que junta
+    // ambas — en el orden real de la ficha si la trae (`ordenSecciones`),
+    // si no en el orden de siempre.
+    const ordenSecciones = Array.isArray(ficha?.ordenSecciones)
+      ? (ficha!.ordenSecciones as unknown[]).filter((x): x is string => typeof x === "string")
+      : ["caracteristicas", "disenoConstruccion", "dimensiones", "medidas"];
+    const caracteristicas = ordenSecciones
+      .filter((clave) => clave === "caracteristicas" || clave === "disenoConstruccion")
+      .flatMap((clave) => lista(clave));
     return {
       id: pr.id,
       sku: pr.sku,
