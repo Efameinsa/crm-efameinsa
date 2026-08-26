@@ -64,8 +64,10 @@ export interface ItemPdf {
    */
   secciones?: SeccionFicha[];
   fotoBuffer: Buffer | null;
-  /** Logo del fabricante (UniMac…), junto a la foto — falta para casi todas
-   *  las marcas todavía; null cuando no hay archivo cargado (26-08). */
+  /** Logo del fabricante (UniMac…), junto a la foto — por producto, no por
+   *  marca: la foto de un equipo puede traer el logo ya impreso encima, y
+   *  agregarlo de nuevo lo duplica (visto en la 1SECU1701, 26-08). Null
+   *  salvo que alguien haya confirmado que hace falta para ese producto. */
   logoMarcaBuffer: Buffer | null;
   /** Foto del panel de control (ej. UniLinc Touch), compartida entre todos
    *  los equipos que usan el mismo panel — null cuando no hay archivo

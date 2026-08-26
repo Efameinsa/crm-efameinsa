@@ -86,10 +86,11 @@ function foto(p: string | null): Buffer | null {
     return null;
   }
 }
-function logoMarca(marca: string | null): Buffer | null {
-  if (!marca) return null;
+// Por producto, no por marca — cada foto es distinta (ver route.tsx).
+function logoMarca(sku: string | null): Buffer | null {
+  if (!sku) return null;
   try {
-    return readFileSync(join(process.cwd(), "public", "marcas", `${marca.trim().toLowerCase().replace(/\s+/g, "-")}.png`));
+    return readFileSync(join(process.cwd(), "public", "productos", `${sku.toLowerCase()}-logo.png`));
   } catch {
     return null;
   }
@@ -122,7 +123,7 @@ const itemsPdf: ItemPdf[] = items.map((i) => ({
   medidasTitulo: texto(i.ficha, "medidasTitulo"),
   secciones: secciones(i.ficha),
   fotoBuffer: foto(i.foto_path),
-  logoMarcaBuffer: logoMarca(i.marca ?? null),
+  logoMarcaBuffer: logoMarca(i.sku ?? null),
   panelImagenBuffer: imagenPanel(i.sku ?? null),
   cantidad: i.cantidad,
   precio_unitario: Number(i.precio_unitario),

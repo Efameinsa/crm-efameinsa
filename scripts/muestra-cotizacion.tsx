@@ -106,9 +106,9 @@ async function main() {
         }[])
       : undefined,
     fotoBuffer: p.foto_path ? leer(join("productos", basename(p.foto_path))) : null,
-    logoMarcaBuffer: leer(join("marcas", `${p.marca.trim().toLowerCase().replace(/\s+/g, "-")}.png`)),
-    // Por producto, no por nombre de panel — dos equipos con el mismo panel
-    // pueden tener fichas .docx distintas (ver route.tsx).
+    // Por producto, no por marca/nombre de panel — cada foto es distinta (ver
+    // route.tsx).
+    logoMarcaBuffer: leer(join("productos", `${p.sku.toLowerCase()}-logo.png`)),
     panelImagenBuffer: leer(join("productos", `${p.sku.toLowerCase()}-panel.png`)),
     cantidad: 1,
     precio_unitario: Number(p.precio ?? 0),

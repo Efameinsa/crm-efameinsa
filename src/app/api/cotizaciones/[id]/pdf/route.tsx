@@ -25,15 +25,21 @@ function leerFotoProducto(fotoPath: string | null): Buffer | null {
   }
 }
 
-// Logo del fabricante (UniMac, Primus…), junto a la foto del equipo — está en
-// la ficha original y faltaba en la cotización (reportado 26-08 con la
-// SECU1202 al lado del Word). Vive en public/marcas/<marca>.png; solo hay
-// logo para las marcas que ya se cargaron ahí, las demás siguen sin logo.
-function leerLogoMarca(marca: string | null | undefined): Buffer | null {
-  if (!marca) return null;
-  const archivo = marca.trim().toLowerCase().replace(/\s+/g, "-");
+// Logo del fabricante (UniMac, Primus…), junto a la foto del equipo — estaba
+// en la ficha original y faltaba en la cotización (reportado 26-08 con la
+// SECU1202 al lado del Word).
+//
+// NO es por marca: se probó así primero y salió mal en la 1SECU1701 — su
+// propia foto YA trae el logo impreso encima (es una foto de catálogo del
+// fabricante), y el logo agregado quedaba duplicado (unimac-mal.png en la
+// captura que mandó Darwin). Cada foto de producto es distinta: unas ya
+// traen el logo, otras no. Por eso, igual que el panel, va por producto —
+// public/productos/<sku>-logo.png— y solo existe donde alguien miró la foto y
+// confirmó que hace falta agregarlo.
+function leerLogoMarca(sku: string | null | undefined): Buffer | null {
+  if (!sku) return null;
   try {
-    return readFileSync(join(process.cwd(), "public", "marcas", `${archivo}.png`));
+    return readFileSync(join(process.cwd(), "public", "productos", `${sku.toLowerCase()}-logo.png`));
   } catch {
     return null;
   }
@@ -190,7 +196,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       medidasTitulo: textoDeFicha(ficha, "medidasTitulo"),
       secciones: seccionesDeFicha(ficha),
       fotoBuffer: leerFotoProducto(item.productos?.foto_path ?? null),
-      logoMarcaBuffer: leerLogoMarca(item.productos?.marca ?? null),
+      logoMarcaBuffer: leerLogoMarca(item.productos?.sku ?? null),
       panelImagenBuffer: leerImagenPanel(item.productos?.sku ?? null),
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,

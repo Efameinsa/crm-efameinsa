@@ -12,11 +12,7 @@ const nextConfig: NextConfig = {
   // dentro de la función serverless: como estáticos ya se sirven por URL,
   // pero eso es otra cosa que poder leerlos con readFileSync.
   outputFileTracingIncludes: {
-    "/api/cotizaciones/[id]/pdf": [
-      "./public/logo-efameinsa.png",
-      "./public/productos/**/*",
-      "./public/marcas/**/*",
-    ],
+    "/api/cotizaciones/[id]/pdf": ["./public/logo-efameinsa.png", "./public/productos/**/*"],
     "/api/informes/[id]/pdf": ["./public/logo-efameinsa.png"],
     "/api/reportes/central": ["./public/logo-efameinsa.png"],
     "/api/cotizaciones-historicas/[id]/pdf": ["./public/logo-efameinsa.png"],
