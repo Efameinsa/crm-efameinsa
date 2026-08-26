@@ -10,11 +10,12 @@
 // El teléfono fijo 371-0006 / 371-0502 es el de la empresa y lo comparten
 // todos; el celular y el correo son de cada persona.
 //
-// EL CORREO EN OPEN NO SE DEDUCE. Se creía que bastaba con cambiarle el dominio
-// al de Efameinsa, porque así lo hace Katerine (C5). Pero la firma que Ariana
-// (C4) mandó con el logo de OPEN INVESTMENTS conserva @efameinsa.com. Deducirlo
-// le imprimía un correo que puede no existir. Por eso `emailOpen` es un dato
-// por persona; cuando falta, se sigue deduciendo.
+// EL CORREO EN OPEN NO SE DEDUCE. Se guarda por persona (`emailOpen`) porque no
+// todos cambian de dominio de la misma forma, y una deducción equivocada
+// imprime un correo que puede no existir. La firma que Ariana (C4) mandó el
+// 24-08 decía @efameinsa.com, pero el 26-08 reportó que eso estaba mal: su
+// correo de OPEN es comercial4@openinvestments.com.pe y sí está activo.
+// Cuando el dato falta, se sigue deduciendo cambiando el dominio.
 //
 // ⚠️ Faltan C2, C3, C9 y PV, que todavía no enviaron su firma. El script los
 // lista al final: mientras tanto sus cotizaciones salen sin datos de contacto.
@@ -44,9 +45,10 @@ const FIRMAS = [
     telefono: FIJO,
     celular: "946 372 890",
     email: "comercial4@efameinsa.com",
-    // Su firma de OPEN mantiene el dominio de Efameinsa: está en la imagen que
-    // ella misma envió, con el logo de OPEN INVESTMENTS S.A.C.
-    emailOpen: "comercial4@efameinsa.com",
+    // 26-08: Ariana reportó que su correo de OPEN sí es el de dominio propio y
+    // está activo — la firma que había enviado el 24-08 (con @efameinsa.com)
+    // estaba mal. Corregido a comercial4@openinvestments.com.pe.
+    emailOpen: "comercial4@openinvestments.com.pe",
   },
   {
     codigo: "C5",

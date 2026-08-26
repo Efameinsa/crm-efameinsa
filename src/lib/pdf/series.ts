@@ -69,13 +69,12 @@ const DOMINIO_SERIE: Record<"EFAMEINSA" | "OPEN", string> = {
  *
  * ⚠️ EL DE OPEN NO SE DEDUCE SIEMPRE. La regla de cambiar el dominio se
  * estableció mirando la firma de Katerine (C5), donde efectivamente cambia a
- * openinvestments.com.pe. Pero la firma que Ariana (C4) envió con el logo de
- * OPEN INVESTMENTS conserva @efameinsa.com. Deducirlo le imprimía un correo que
- * puede no existir, y la respuesta del cliente rebotaría sin que nadie se
- * entere.
- *
- * Por eso se guarda por persona (`perfiles.email_open`, migración 0070) y solo
- * se deduce cuando no está cargado — así nadie se queda sin correo.
+ * openinvestments.com.pe. La primera firma que Ariana (C4) envió, el 24-08,
+ * conservaba @efameinsa.com — pero el 26-08 reportó que ese dato estaba mal:
+ * su correo real de OPEN es comercial4@openinvestments.com.pe y sí está
+ * activo. Por eso el correo de OPEN se guarda por persona
+ * (`perfiles.email_open`, migración 0070) en vez de asumir una regla única, y
+ * solo se deduce cuando no está cargado — así nadie se queda sin correo.
  */
 export function correoEnSerie(
   correo: string | null,
