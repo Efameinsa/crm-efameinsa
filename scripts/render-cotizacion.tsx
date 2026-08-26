@@ -62,6 +62,14 @@ const lista = (f: Record<string, unknown> | null, k: string): string[] =>
   Array.isArray(f?.[k]) ? (f![k] as unknown[]).filter((v): v is string => typeof v === "string") : [];
 const texto = (f: Record<string, unknown> | null, k: string): string | null =>
   typeof f?.[k] === "string" && f[k] ? (f[k] as string) : null;
+type ClaveSeccion = "caracteristicas" | "disenoConstruccion" | "dimensiones" | "medidas";
+const CLAVES_SECCION: ClaveSeccion[] = ["caracteristicas", "disenoConstruccion", "dimensiones", "medidas"];
+function orden(f: Record<string, unknown> | null): ClaveSeccion[] | null {
+  const v = f?.ordenSecciones;
+  if (!Array.isArray(v)) return null;
+  const claves = v.filter((c): c is ClaveSeccion => CLAVES_SECCION.includes(c as ClaveSeccion));
+  return claves.length === CLAVES_SECCION.length ? claves : null;
+}
 function secciones(f: Record<string, unknown> | null): SeccionFicha[] | undefined {
   const v = f?.secciones;
   if (!Array.isArray(v) || v.length < 2) return undefined;
@@ -76,6 +84,7 @@ function secciones(f: Record<string, unknown> | null): SeccionFicha[] | undefine
       dimensionesTitulo: texto(sec, "dimensionesTitulo"),
       medidas: lista(sec, "medidas"),
       medidasTitulo: texto(sec, "medidasTitulo"),
+      ordenSecciones: orden(sec),
     };
   });
 }
@@ -123,6 +132,7 @@ const itemsPdf: ItemPdf[] = items.map((i) => ({
   dimensionesTitulo: texto(i.ficha, "dimensionesTitulo"),
   medidas: lista(i.ficha, "medidas"),
   medidasTitulo: texto(i.ficha, "medidasTitulo"),
+  ordenSecciones: orden(i.ficha),
   secciones: secciones(i.ficha),
   fotoBuffer: foto(i.foto_path),
   logoMarcaBuffer: logoMarca(i.sku ?? null),

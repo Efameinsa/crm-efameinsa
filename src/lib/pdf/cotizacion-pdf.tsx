@@ -41,6 +41,13 @@ export interface SeccionFicha {
   medidas: string[];
   /** Rótulo real de la ficha ("DIMENSIONES GENERALES" en Alliance/UniMac). */
   medidasTitulo: string | null;
+  /**
+   * Orden real de los 4 bloques en la ficha en papel — no es fijo entre
+   * plantillas: la de UT120/UT170 abre con "AUTOMATIZACIÓN…" y la de la
+   * LAV040 abre con "DISEÑO DE CONSTRUCCIÓN" (reportado 26-08, con la ficha
+   * de la LAV040 al lado). Si falta, se usa el orden de siempre.
+   */
+  ordenSecciones: ("caracteristicas" | "disenoConstruccion" | "dimensiones" | "medidas")[] | null;
 }
 
 export interface ItemPdf {
@@ -59,6 +66,7 @@ export interface ItemPdf {
   dimensionesTitulo: string | null;
   medidas: string[]; // "Ancho: 686 mm", …
   medidasTitulo: string | null;
+  ordenSecciones: ("caracteristicas" | "disenoConstruccion" | "dimensiones" | "medidas")[] | null;
   /**
    * Equipos que son DOS máquinas en una: las torres lavadora-secadora traen en
    * su ficha un bloque para cada una. Cuando existe, se imprime así —"I.
@@ -504,22 +512,25 @@ export function CotizacionPdf({
                         dimensionesTitulo: item.dimensionesTitulo,
                         medidas: item.medidas,
                         medidasTitulo: item.medidasTitulo,
+                        ordenSecciones: item.ordenSecciones,
                       },
                     ]).map((sec, s) => {
-                      // Bloques con viñetas + su título; se listan en el mismo
-                      // orden que la ficha en papel: CARACTERÍSTICAS, DISEÑO DE
-                      // CONSTRUCCIÓN, especificaciones técnicas, dimensiones
-                      // generales. El rótulo de las dos últimas no es fijo: la
-                      // plantilla Alliance/UniMac y la LG/GMP usan palabras
-                      // distintas para lo mismo (ver extraer-ficha-tecnica.mjs),
-                      // así que se imprime el que trajo la ficha y solo se cae
-                      // al de siempre cuando no se guardó ninguno.
-                      const bloques = [
-                        { titulo: sec.caracteristicasTitulo ?? "CARACTERÍSTICAS", lineas: sec.caracteristicas },
-                        { titulo: "DISEÑO DE CONSTRUCCIÓN", lineas: sec.disenoConstruccion },
-                        { titulo: sec.dimensionesTitulo ?? "DIMENSIONES DE LA MÁQUINA", lineas: sec.dimensiones },
-                        { titulo: sec.medidasTitulo ?? "MEDIDAS GENERALES", lineas: sec.medidas },
-                      ].filter((b) => b.lineas.length > 0);
+                      // Bloques con viñetas + su título. El rótulo de dos de
+                      // ellos no es fijo entre plantillas (ver
+                      // extraer-ficha-tecnica.mjs), así que se imprime el que
+                      // trajo la ficha y solo se cae al de siempre cuando no
+                      // se guardó ninguno. El ORDEN tampoco es fijo —
+                      // reportado 26-08 con la LAV040, que abre con "DISEÑO DE
+                      // CONSTRUCCIÓN" en vez de "AUTOMATIZACIÓN…"— así que se
+                      // reordena según `ordenSecciones` cuando la ficha lo trae.
+                      const porClave = {
+                        caracteristicas: { titulo: sec.caracteristicasTitulo ?? "CARACTERÍSTICAS", lineas: sec.caracteristicas },
+                        disenoConstruccion: { titulo: "DISEÑO DE CONSTRUCCIÓN", lineas: sec.disenoConstruccion },
+                        dimensiones: { titulo: sec.dimensionesTitulo ?? "DIMENSIONES DE LA MÁQUINA", lineas: sec.dimensiones },
+                        medidas: { titulo: sec.medidasTitulo ?? "MEDIDAS GENERALES", lineas: sec.medidas },
+                      };
+                      const orden = sec.ordenSecciones ?? ["caracteristicas", "disenoConstruccion", "dimensiones", "medidas"];
+                      const bloques = orden.map((clave) => porClave[clave]).filter((b) => b.lineas.length > 0);
                       return (
                         <View key={s} style={s > 0 ? { marginTop: 10 } : undefined}>
                           {sec.titulo && (

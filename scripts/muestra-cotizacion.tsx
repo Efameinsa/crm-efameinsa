@@ -94,6 +94,9 @@ async function main() {
     dimensionesTitulo: texto(p.ficha, "dimensionesTitulo"),
     medidas: lista(p.ficha, "medidas"),
     medidasTitulo: texto(p.ficha, "medidasTitulo"),
+    ordenSecciones: Array.isArray(p.ficha?.ordenSecciones)
+      ? (p.ficha.ordenSecciones as ("caracteristicas" | "disenoConstruccion" | "dimensiones" | "medidas")[])
+      : null,
     // Las torres traen sus dos máquinas separadas (ficha.secciones).
     secciones: Array.isArray(p.ficha?.secciones) && (p.ficha.secciones as unknown[]).length > 1
       ? (p.ficha.secciones as {
@@ -105,6 +108,7 @@ async function main() {
           dimensionesTitulo: string | null;
           medidas: string[];
           medidasTitulo: string | null;
+          ordenSecciones: ("caracteristicas" | "disenoConstruccion" | "dimensiones" | "medidas")[] | null;
         }[])
       : undefined,
     fotoBuffer: p.foto_path ? leer(join("productos", basename(p.foto_path))) : null,

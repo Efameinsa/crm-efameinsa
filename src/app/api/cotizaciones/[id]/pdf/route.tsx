@@ -121,6 +121,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return typeof valor === "string" && valor ? valor : null;
   }
 
+  const CLAVES_SECCION = ["caracteristicas", "disenoConstruccion", "dimensiones", "medidas"] as const;
+  type ClaveSeccion = (typeof CLAVES_SECCION)[number];
+
+  function ordenDeFicha(ficha: Record<string, unknown> | null | undefined): ClaveSeccion[] | null {
+    const valor = ficha?.ordenSecciones;
+    if (!Array.isArray(valor)) return null;
+    const claves = valor.filter((v): v is ClaveSeccion => CLAVES_SECCION.includes(v as ClaveSeccion));
+    return claves.length === CLAVES_SECCION.length ? claves : null;
+  }
+
   /**
    * Las torres lavadora-secadora son dos máquinas y su ficha trae un bloque
    * para cada una (`ficha.secciones`). Se pasan tal cual para que el PDF las
@@ -141,6 +151,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         dimensionesTitulo: textoDeFicha(sec, "dimensionesTitulo"),
         medidas: listaDeFicha(sec, "medidas"),
         medidasTitulo: textoDeFicha(sec, "medidasTitulo"),
+        ordenSecciones: ordenDeFicha(sec),
       };
     });
   }
@@ -196,6 +207,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       dimensionesTitulo: textoDeFicha(ficha, "dimensionesTitulo"),
       medidas: listaDeFicha(ficha, "medidas"),
       medidasTitulo: textoDeFicha(ficha, "medidasTitulo"),
+      ordenSecciones: ordenDeFicha(ficha),
       secciones: seccionesDeFicha(ficha),
       fotoBuffer: leerFotoProducto(item.productos?.foto_path ?? null),
       logoMarcaBuffer: leerLogoMarca(item.productos?.sku ?? null),

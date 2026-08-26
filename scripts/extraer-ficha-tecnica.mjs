@@ -154,6 +154,11 @@ for (const p of productos) {
   // cabecera que encendió cada clave, tal como la escribió la ficha, para que
   // el PDF imprima el rótulo correcto en vez de uno inventado.
   const titulos = { caracteristicas: null, dimensiones: null, medidas: null };
+  // El ORDEN de los 4 bloques tampoco es fijo entre plantillas: la de
+  // UT120/UT170 abre con "AUTOMATIZACIÓN…" y la de la LAV040 abre con
+  // "DISEÑO DE CONSTRUCCIÓN" — detectado el 26-08 con la ficha de la LAV040
+  // al lado del PDF. Se guarda en el orden en que realmente aparecen.
+  const ordenSecciones = [];
   let actual = null;
   for (const linea of lineas) {
     const sec = seccionDe(linea);
@@ -170,6 +175,7 @@ for (const p of productos) {
       if (actual && titulos[actual] === null) {
         titulos[actual] = conTildes(linea.replace(/\s+/g, " ").trim());
       }
+      if (actual && !ordenSecciones.includes(actual)) ordenSecciones.push(actual);
       continue;
     }
     if (!actual) continue;
@@ -228,6 +234,7 @@ for (const p of productos) {
       dimensionesTitulo: titulos.dimensiones,
       medidas: [...new Set(parear(bloques.medidas))],
       medidasTitulo: titulos.medidas,
+      ordenSecciones,
     },
   });
 }
