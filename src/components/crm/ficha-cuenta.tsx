@@ -19,7 +19,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   const { data: cuenta } = await supabase
     .from("cuentas")
     .select(
-      "id, razon_social, tipo_doc, num_doc, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, es_principal)",
+      "id, razon_social, tipo_doc, num_doc, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, direccion, es_principal)",
     )
     .eq("id", cuentaId)
     .maybeSingle();
@@ -52,6 +52,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
       telefono: string | null;
       email: string | null;
       documento: string | null;
+      direccion: string | null;
       es_principal: boolean;
     }[]) ?? [];
 
@@ -152,7 +153,6 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               tipoDoc={cuenta.tipo_doc}
               numDoc={cuenta.num_doc}
               razonSocial={cuenta.razon_social}
-              direccion={cuenta.direccion}
             />
           </div>
           <ContactosEditables cuentaId={cuenta.id} contactos={contactos} />

@@ -23,6 +23,14 @@ import { createClient } from "@/lib/supabase/server";
  * La cotización YA EMITIDA no cambia: su `cliente_snapshot` se congeló al
  * crearla, que es la regla de inmutabilidad de siempre. Esto arregla lo que
  * saldrá de acá en adelante.
+ *
+ * La dirección se sumó el 26-08, a pedido de Darwin: un cliente puede tener
+ * varias sedes/contactos en lugares distintos, así que va por contacto y no
+ * por cuenta — la cotización imprime la del contacto principal (migración
+ * que agrega `contactos.direccion` y cambia `crear_cotizacion`). Si el
+ * principal no tiene dirección cargada, se sigue usando `cuentas.direccion`
+ * (el dato que ya traían las cuentas importadas) para no perder lo que ya
+ * salía impreso.
  */
 export async function guardarContacto(datos: {
   contactoId?: string;
@@ -32,6 +40,7 @@ export async function guardarContacto(datos: {
   telefono: string;
   email: string;
   documento: string;
+  direccion: string;
   esPrincipal: boolean;
 }): Promise<{ error: string | null }> {
   const nombre = datos.nombre.trim().replace(/\s+/g, " ");
@@ -45,6 +54,7 @@ export async function guardarContacto(datos: {
     telefono: datos.telefono.trim() || null,
     email: datos.email.trim() || null,
     documento: datos.documento.trim() || null,
+    direccion: datos.direccion.trim() || null,
     es_principal: datos.esPrincipal,
   };
 

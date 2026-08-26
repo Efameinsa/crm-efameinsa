@@ -26,6 +26,8 @@ export interface ContactoEntrada {
   correo?: string | null;
   /** DNI/CE de quien recibe la entrega (migración 0057). */
   documento?: string | null;
+  /** Dirección de este contacto/sede (migración 0086). */
+  direccion?: string | null;
 }
 
 export interface DatosInforme {
@@ -113,7 +115,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
   const [{ data: contactos }, { data: historicas }, { data: ventas }, { data: informes }] = await Promise.all([
     supabase
       .from("contactos")
-      .select("nombre, cargo, telefono, email, documento, es_principal")
+      .select("nombre, cargo, telefono, email, documento, direccion, es_principal")
       .eq("cuenta_id", cuentaId)
       .order("es_principal", { ascending: false }),
     supabase
@@ -159,10 +161,13 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
   // Se cuentan como resueltos los datos que salen de la cuenta y del contacto
   // principal; el número que ve el comercial arriba de la pantalla.
   const principal = (contactos ?? [])[0];
+  // Dirección: la del contacto principal si la tiene; si no, la de la cuenta
+  // (migración 0086 — antes era solo cuenta.direccion).
+  const direccionCliente = principal?.direccion ?? cuenta.direccion;
   const resueltos =
     3 + // razón social, asunto, cliente nuevo/antiguo
     (cuenta.num_doc ? 1 : 0) +
-    (cuenta.direccion ? 2 : 0) + // dirección del cliente y destino del despacho
+    (direccionCliente ? 2 : 0) + // dirección del cliente y destino del despacho
     (principal ? 4 : 0) + // nombre, teléfono, correo, correo del cliente
     (presupuestos.length ? 3 : 0) + // Nº de presupuesto, equipos, importes
     INCLUYE_POR_DEFECTO.length +
@@ -175,7 +180,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
         id: cuenta.id,
         razon_social: cuenta.razon_social,
         num_doc: cuenta.num_doc,
-        direccion: cuenta.direccion,
+        direccion: direccionCliente,
         esNueva: (ventas ?? []).length === 0,
       },
       contactos: (contactos ?? []).map((c) => ({
@@ -183,6 +188,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
         nombre: c.nombre,
         telefono: c.telefono,
         correo: c.email,
+        direccion: c.direccion,
         documento: c.documento,
       })),
       presupuestos,

@@ -34,13 +34,10 @@ export async function actualizarResumenCuenta(
 }
 
 /**
- * Vincular el cliente a un RUC / DNI y corregir su razón social y dirección.
+ * Vincular el cliente a un RUC / DNI y corregir su razón social.
  *
  * Pedido de Darwin el 24-08, junto con la edición de contactos: «ahí también
- * debería poder vincularse a un RUC y/o razón social». La dirección se sumó
- * el 26-08: es un dato que ya viajaba a la cotización y al informe de cierre
- * (`v_cuenta.direccion` en la función que arma el snapshot, migración 0012),
- * pero no había dónde corregirlo.
+ * debería poder vincularse a un RUC y/o razón social».
  *
  * Hace falta porque 5.158 de las ~16.000 cuentas están como SIN_DOC: cuando el
  * contacto entra por la web o por WhatsApp, Central lo registra con el nombre
@@ -51,17 +48,19 @@ export async function actualizarResumenCuenta(
  *
  * NO cambia una cotización ya emitida: su `cliente_snapshot` se congeló al
  * crearla (migración 0012). Corrige lo que salga de acá en adelante.
+ *
+ * La dirección NO va acá: probado el 26-08 y descartado porque un cliente
+ * puede tener varias sedes. Vive por contacto (`guardarContacto` en
+ * contactos.ts) y la cotización imprime la del contacto principal.
  */
 export async function actualizarIdentidadCuenta(datos: {
   cuentaId: string;
   tipoDoc: TipoDocumento;
   numDoc: string;
   razonSocial: string;
-  direccion: string;
 }): Promise<{ error: string | null; avisoDuplicado?: string }> {
   const razonSocial = datos.razonSocial.trim().replace(/\s+/g, " ");
   if (!razonSocial) return { error: "La razón social no puede ir vacía" };
-  const direccion = datos.direccion.trim().replace(/\s+/g, " ") || null;
 
   const problema = errorDocumento(datos.tipoDoc, datos.numDoc);
   if (problema) return { error: problema };
@@ -98,7 +97,7 @@ export async function actualizarIdentidadCuenta(datos: {
   // cero filas (mismo bug de siempre).
   const { data, error } = await supabase
     .from("cuentas")
-    .update({ tipo_doc: datos.tipoDoc, num_doc: numDoc, razon_social: razonSocial, direccion })
+    .update({ tipo_doc: datos.tipoDoc, num_doc: numDoc, razon_social: razonSocial })
     .eq("id", datos.cuentaId)
     .select("id");
   if (error) return { error: error.message };

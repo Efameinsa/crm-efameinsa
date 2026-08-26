@@ -235,7 +235,7 @@ export default async function OportunidadDetallePage({
   const { data: contactosData } = cuenta?.id
     ? await supabase
         .from("contactos")
-        .select("id, nombre, cargo, telefono, email, documento, es_principal")
+        .select("id, nombre, cargo, telefono, email, documento, direccion, es_principal")
         .eq("cuenta_id", cuenta.id)
         .order("es_principal", { ascending: false })
     : { data: [] };
@@ -307,7 +307,6 @@ export default async function OportunidadDetallePage({
                 tipoDoc={cuenta.tipo_doc}
                 numDoc={cuenta.num_doc}
                 razonSocial={cuenta.razon_social}
-                direccion={cuenta.direccion}
               />
               <ContactosEditables cuentaId={cuenta.id} contactos={contactosCuenta} />
             </div>

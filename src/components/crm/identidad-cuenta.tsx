@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, MapPin, Pencil, TriangleAlert } from "lucide-react";
+import { FileText, Pencil, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { actualizarIdentidadCuenta } from "@/lib/acciones/cuentas";
 import { errorDocumento, type TipoDocumento } from "@/lib/documento";
@@ -26,15 +26,19 @@ const TIPOS: [TipoDocumento, string][] = [
 ];
 
 /**
- * El RUC, la razón social y la dirección del cliente, editables.
+ * El RUC y la razón social del cliente, editables.
  *
  * Es lo que la cotización y el informe de cierre imprimen en el bloque del
  * cliente, y lo que contabilidad necesita para que cotización, orden de
  * compra, guía y factura cuadren. Un tercio de las cuentas está sin documento
  * porque el contacto entra por la web con el nombre de una persona y nada
  * más; el RUC aparece después, hablando, y hasta el 24-08 no había dónde
- * anotarlo. La dirección se sumó el 26-08: ya viajaba a los documentos, pero
- * no había forma de corregirla.
+ * anotarlo.
+ *
+ * La dirección NO se edita acá (probado el 26-08 y descartado): un cliente
+ * puede tener varias sedes/contactos en lugares distintos, así que vive en
+ * cada contacto (`ContactosEditables`) y la cotización imprime la del
+ * contacto marcado como principal.
  *
  * El RUC se valida con el módulo 11 de SUNAT antes de guardarlo: un dígito
  * cambiado no lo nota nadie hasta que rebota el expediente.
@@ -44,13 +48,11 @@ export function IdentidadCuenta({
   tipoDoc,
   numDoc,
   razonSocial,
-  direccion,
 }: {
   cuentaId: string;
   tipoDoc: TipoDocumento;
   numDoc: string | null;
   razonSocial: string;
-  direccion: string | null;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -58,14 +60,13 @@ export function IdentidadCuenta({
     tipoDoc,
     numDoc: numDoc ?? "",
     razonSocial,
-    direccion: direccion ?? "",
   });
   const [guardando, startTransition] = useTransition();
 
   const problema = editando ? errorDocumento(campos.tipoDoc, campos.numDoc) : null;
 
   function abrir() {
-    setCampos({ tipoDoc, numDoc: numDoc ?? "", razonSocial, direccion: direccion ?? "" });
+    setCampos({ tipoDoc, numDoc: numDoc ?? "", razonSocial });
     setEditando(true);
   }
 
@@ -100,12 +101,6 @@ export function IdentidadCuenta({
               `${tipoDoc}: ${numDoc}`
             )}
           </p>
-          {direccion && (
-            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="size-3.5" />
-              {direccion}
-            </p>
-          )}
         </div>
         <Button size="sm" variant="ghost" onClick={abrir}>
           <Pencil className="size-3.5" />
@@ -182,24 +177,8 @@ export function IdentidadCuenta({
       </div>
       <p className="text-[11px] text-muted-foreground">
         El tipo y número de documento también se imprimen en la cotización, sin RUC/DNI si queda
-        «Todavía sin documento».
+        «Todavía sin documento». La dirección se corrige en los contactos, más abajo.
       </p>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="ic-direccion" className="text-xs">
-          Dirección
-        </Label>
-        <Input
-          id="ic-direccion"
-          value={campos.direccion}
-          onChange={(e) => setCampos({ ...campos, direccion: e.target.value })}
-          placeholder="Dirección física del cliente"
-        />
-        <p className="text-[11px] text-muted-foreground">
-          Se imprime en la cotización y en el informe de cierre. Si queda vacía, esos documentos
-          salen sin dirección.
-        </p>
-      </div>
 
       {problema && (
         <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">

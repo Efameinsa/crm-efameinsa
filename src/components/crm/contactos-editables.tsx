@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Phone, Pencil, Plus, Trash2, User, WandSparkles } from "lucide-react";
+import { Mail, MapPin, Phone, Pencil, Plus, Trash2, User, WandSparkles } from "lucide-react";
 import { toast } from "sonner";
 import { eliminarContacto, guardarContacto } from "@/lib/acciones/contactos";
 import { nombrePropio } from "@/lib/texto";
@@ -17,18 +17,30 @@ export interface ContactoEditable {
   telefono: string | null;
   email: string | null;
   documento: string | null;
+  direccion: string | null;
   es_principal: boolean;
 }
 
-const VACIO = { nombre: "", cargo: "", telefono: "", email: "", documento: "", esPrincipal: false };
+const VACIO = {
+  nombre: "",
+  cargo: "",
+  telefono: "",
+  email: "",
+  documento: "",
+  direccion: "",
+  esPrincipal: false,
+};
 type Campos = typeof VACIO;
 
 /**
  * Contactos del cliente, editables en el sitio.
  *
- * Es lo que se imprime en la cotización: el "Atención:", el teléfono y el
- * correo salen del contacto marcado como principal. Hasta el 24-08 no había
- * manera de corregirlos, y casi todos los nombres vienen del histórico
+ * Es lo que se imprime en la cotización: el "Atención:", el teléfono, el
+ * correo y la dirección salen del contacto marcado como principal — la
+ * dirección se sumó el 26-08, porque un mismo cliente puede tener varias
+ * sedes y cada una debería llevar la dirección de a quién se le está
+ * cotizando, no una sola dirección fija por cliente. Hasta el 24-08 nada de
+ * esto se podía corregir, y casi todos los nombres vienen del histórico
  * escritos enteros en MAYÚSCULAS — por eso el botón de la varita, que los pasa
  * a "Primera Letra Mayúscula" de una vez.
  *
@@ -56,6 +68,7 @@ export function ContactosEditables({
         telefono: c.telefono ?? "",
         email: c.email ?? "",
         documento: c.documento ?? "",
+        direccion: c.direccion ?? "",
         esPrincipal: c.es_principal,
       });
     } else {
@@ -170,6 +183,21 @@ export function ContactosEditables({
         </div>
       </div>
 
+      <div className="space-y-1.5">
+        <Label htmlFor="c-direccion" className="text-xs">
+          Dirección
+        </Label>
+        <Input
+          id="c-direccion"
+          value={campos.direccion}
+          onChange={(e) => setCampos({ ...campos, direccion: e.target.value })}
+          placeholder="Dirección física de este contacto"
+        />
+        <p className="text-[11px] text-muted-foreground">
+          Se imprime en la cotización y el informe de cierre solo si este es el contacto principal.
+        </p>
+      </div>
+
       <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground">
         <input
           type="checkbox"
@@ -177,7 +205,8 @@ export function ContactosEditables({
           onChange={(e) => setCampos({ ...campos, esPrincipal: e.target.checked })}
           className="size-3.5 accent-primary"
         />
-        Es el contacto principal — es el que sale en la cotización
+        Es el contacto principal — su nombre, teléfono, correo y dirección son los que salen en la
+        cotización
       </label>
 
       <div className="flex items-center gap-2">
@@ -228,6 +257,12 @@ export function ContactosEditables({
                     </p>
                   )}
                   {c.documento && <p>DNI/CE: {c.documento}</p>}
+                  {c.direccion && (
+                    <p className="flex items-center gap-1">
+                      <MapPin className="size-3.5" />
+                      {c.direccion}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
