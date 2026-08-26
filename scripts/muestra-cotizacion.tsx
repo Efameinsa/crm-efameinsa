@@ -84,6 +84,7 @@ async function main() {
     panel: (p.ficha?.panel as string) ?? null,
     controles: (p.ficha?.controles as string) ?? null,
     caracteristicas: lista(p.ficha, "caracteristicas"),
+    caracteristicasTitulo: texto(p.ficha, "caracteristicasTitulo"),
     disenoConstruccion: lista(p.ficha, "disenoConstruccion"),
     // Igual que en route.tsx: "Capacidad" se antepone con el dato confiable
     // de productos.capacidad en vez de confiar en el parseo de la ficha.
@@ -98,6 +99,7 @@ async function main() {
       ? (p.ficha.secciones as {
           titulo: string | null;
           caracteristicas: string[];
+          caracteristicasTitulo: string | null;
           disenoConstruccion: string[];
           dimensiones: string[];
           dimensionesTitulo: string | null;

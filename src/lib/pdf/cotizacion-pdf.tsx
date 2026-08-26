@@ -25,6 +25,9 @@ export interface SeccionFicha {
   /** "LAVADORA", "SECADORA". Null en un equipo de una sola máquina. */
   titulo: string | null;
   caracteristicas: string[];
+  /** Rótulo real de la ficha ("AUTOMATIZACIÓN, SEGURIDAD Y CONTROL" en
+   *  Alliance/UniMac); si falta, se imprime "CARACTERÍSTICAS". */
+  caracteristicasTitulo: string | null;
   /**
    * Bloque "DISEÑO DE CONSTRUCCIÓN" de la ficha original (TAMBOR, PUERTA,
    * PANELES…) — se imprime aparte de CARACTERÍSTICAS cuando la ficha lo trae
@@ -50,6 +53,7 @@ export interface ItemPdf {
   panel: string | null; // "Digital-Multifunción"
   controles: string | null; // "220V/60Hz/1Ph"
   caracteristicas: string[];
+  caracteristicasTitulo: string | null;
   disenoConstruccion: string[];
   dimensiones: string[]; // "Volumen del tambor: 207 litros", …
   dimensionesTitulo: string | null;
@@ -494,6 +498,7 @@ export function CotizacionPdf({
                       {
                         titulo: null,
                         caracteristicas: item.caracteristicas,
+                        caracteristicasTitulo: item.caracteristicasTitulo,
                         disenoConstruccion: item.disenoConstruccion,
                         dimensiones: item.dimensiones,
                         dimensionesTitulo: item.dimensionesTitulo,
@@ -510,7 +515,7 @@ export function CotizacionPdf({
                       // así que se imprime el que trajo la ficha y solo se cae
                       // al de siempre cuando no se guardó ninguno.
                       const bloques = [
-                        { titulo: "CARACTERÍSTICAS", lineas: sec.caracteristicas },
+                        { titulo: sec.caracteristicasTitulo ?? "CARACTERÍSTICAS", lineas: sec.caracteristicas },
                         { titulo: "DISEÑO DE CONSTRUCCIÓN", lineas: sec.disenoConstruccion },
                         { titulo: sec.dimensionesTitulo ?? "DIMENSIONES DE LA MÁQUINA", lineas: sec.dimensiones },
                         { titulo: sec.medidasTitulo ?? "MEDIDAS GENERALES", lineas: sec.medidas },

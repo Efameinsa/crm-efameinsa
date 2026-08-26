@@ -70,6 +70,7 @@ function secciones(f: Record<string, unknown> | null): SeccionFicha[] | undefine
     return {
       titulo: typeof sec.titulo === "string" ? sec.titulo : null,
       caracteristicas: lista(sec, "caracteristicas"),
+      caracteristicasTitulo: texto(sec, "caracteristicasTitulo"),
       disenoConstruccion: lista(sec, "disenoConstruccion"),
       dimensiones: lista(sec, "dimensiones"),
       dimensionesTitulo: texto(sec, "dimensionesTitulo"),
@@ -116,6 +117,7 @@ const itemsPdf: ItemPdf[] = items.map((i) => ({
   panel: texto(i.ficha, "panel"),
   controles: texto(i.ficha, "controles"),
   caracteristicas: lista(i.ficha, "caracteristicas"),
+  caracteristicasTitulo: texto(i.ficha, "caracteristicasTitulo"),
   disenoConstruccion: lista(i.ficha, "disenoConstruccion"),
   dimensiones: lista(i.ficha, "dimensiones"),
   dimensionesTitulo: texto(i.ficha, "dimensionesTitulo"),

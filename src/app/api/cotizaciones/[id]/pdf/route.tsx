@@ -135,6 +135,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       return {
         titulo: typeof sec.titulo === "string" ? sec.titulo : null,
         caracteristicas: listaDeFicha(sec, "caracteristicas"),
+        caracteristicasTitulo: textoDeFicha(sec, "caracteristicasTitulo"),
         disenoConstruccion: listaDeFicha(sec, "disenoConstruccion"),
         dimensiones: listaDeFicha(sec, "dimensiones"),
         dimensionesTitulo: textoDeFicha(sec, "dimensionesTitulo"),
@@ -189,6 +190,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       panel: textoDeFicha(ficha, "panel"),
       controles: textoDeFicha(ficha, "controles"),
       caracteristicas: listaDeFicha(ficha, "caracteristicas"),
+      caracteristicasTitulo: textoDeFicha(ficha, "caracteristicasTitulo"),
       disenoConstruccion: listaDeFicha(ficha, "disenoConstruccion"),
       dimensiones: dimensionesConCapacidad(ficha, item.productos?.capacidad ?? null),
       dimensionesTitulo: textoDeFicha(ficha, "dimensionesTitulo"),

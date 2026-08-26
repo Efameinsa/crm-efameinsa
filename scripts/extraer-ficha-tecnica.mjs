@@ -92,7 +92,8 @@ function conTildes(titulo) {
   return titulo
     .replace(/\bTECNICAS?\b/gi, (m) => (m.length === 8 ? "TÉCNICAS" : "TÉCNICA"))
     .replace(/\bMAQUINA\b/gi, "MÁQUINA")
-    .replace(/\bCONSTRUCCION\b/gi, "CONSTRUCCIÓN");
+    .replace(/\bCONSTRUCCION\b/gi, "CONSTRUCCIÓN")
+    .replace(/\bAUTOMATIZACION\b/gi, "AUTOMATIZACIÓN");
 }
 
 function seccionDe(linea) {
@@ -148,17 +149,25 @@ for (const p of productos) {
   }
 
   const bloques = { caracteristicas: [], disenoConstruccion: [], dimensiones: [], medidas: [] };
-  // El rótulo REAL de "dimensiones"/"medidas" no es fijo entre plantillas
-  // (ver el comentario de SECCIONES): se guarda la primera cabecera que
-  // encendió cada clave, tal como la escribió la ficha, para que el PDF
-  // imprima el rótulo correcto en vez de uno inventado.
-  const titulos = { dimensiones: null, medidas: null };
+  // El rótulo REAL de "caracteristicas"/"dimensiones"/"medidas" no es fijo
+  // entre plantillas (ver el comentario de SECCIONES): se guarda la primera
+  // cabecera que encendió cada clave, tal como la escribió la ficha, para que
+  // el PDF imprima el rótulo correcto en vez de uno inventado.
+  const titulos = { caracteristicas: null, dimensiones: null, medidas: null };
   let actual = null;
   for (const linea of lineas) {
     const sec = seccionDe(linea);
-    if (sec !== undefined) {
+    // Un match de SECCIONES solo cuenta como encabezado nuevo si CAMBIA de
+    // bloque. Si ya estábamos en esa misma clave, no es un encabezado — es
+    // una viñeta o subtítulo que por casualidad empieza con la misma palabra
+    // del patrón. Pasó con «PROGRAMADOR UNILINC TOUCH»: el patrón que
+    // detecta el encabezado «AUTOMATIZACIÓN, SEGURIDAD Y CONTROL» también
+    // acepta líneas que empiezan con «PROGRAMADOR» sueltas, y esa viñeta
+    // — la primera de la sección, un subtítulo real — se descartaba entera.
+    // Detectado el 26-08 comparando el PDF de la SECU1701 contra su Word.
+    if (sec !== undefined && sec.clave !== actual) {
       actual = sec.clave; // null corta la captura (bloque de precio/garantía)
-      if (actual && titulos[actual] === null && (actual === "dimensiones" || actual === "medidas")) {
+      if (actual && titulos[actual] === null) {
         titulos[actual] = conTildes(linea.replace(/\s+/g, " ").trim());
       }
       continue;
@@ -213,6 +222,7 @@ for (const p of productos) {
     ...datosDeCabecera(lineas),
     ficha: {
       caracteristicas: [...new Set(bloques.caracteristicas)],
+      caracteristicasTitulo: titulos.caracteristicas,
       disenoConstruccion: [...new Set(bloques.disenoConstruccion)],
       dimensiones: [...new Set(parear(bloques.dimensiones))],
       dimensionesTitulo: titulos.dimensiones,
