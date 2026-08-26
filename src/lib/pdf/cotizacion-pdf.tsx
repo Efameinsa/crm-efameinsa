@@ -472,7 +472,9 @@ export function CotizacionPdf({
                       viñeta ocupa menos líneas que en la angosta, así que el
                       alto total de la ficha no sube. */}
                   {item.fotoBuffer && (
-                    <View style={{ width: "32%", padding: 10, justifyContent: "flex-start" }}>
+                    // 53% ≈ 32% + 65% (pedido de Santos 26-08: la foto salía
+                    // muy chica al lado de una ficha larga).
+                    <View style={{ width: "53%", padding: 10, justifyContent: "flex-start" }}>
                       {/* Logo del fabricante, foto del equipo y foto del panel
                           de control, en ese orden — como en la ficha original
                           (pedido 26-08, con la referencia que armó Darwin de
