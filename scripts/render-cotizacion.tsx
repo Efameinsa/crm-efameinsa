@@ -42,7 +42,7 @@ const c = cots[0];
 
 const { rows: items } = await bd.query(
   `select i.cantidad, i.precio_unitario, i.descripcion,
-          p.marca, p.modelo, p.nombre, p.capacidad, p.categoria, p.ficha, p.foto_path
+          p.sku, p.marca, p.modelo, p.nombre, p.capacidad, p.categoria, p.ficha, p.foto_path
      from cotizacion_items i left join productos p on p.id = i.producto_id
     where i.cotizacion_id = $1`,
   [ID],
@@ -94,10 +94,12 @@ function logoMarca(marca: string | null): Buffer | null {
     return null;
   }
 }
-function imagenPanel(panel: string | null): Buffer | null {
-  if (!panel) return null;
+// Por producto, no por nombre de panel — dos equipos con el mismo panel
+// pueden tener fichas .docx distintas (ver route.tsx).
+function imagenPanel(sku: string | null): Buffer | null {
+  if (!sku) return null;
   try {
-    return readFileSync(join(process.cwd(), "public", "paneles", `${panel.trim().toLowerCase().replace(/\s+/g, "-")}.png`));
+    return readFileSync(join(process.cwd(), "public", "productos", `${sku.toLowerCase()}-panel.png`));
   } catch {
     return null;
   }
@@ -121,7 +123,7 @@ const itemsPdf: ItemPdf[] = items.map((i) => ({
   secciones: secciones(i.ficha),
   fotoBuffer: foto(i.foto_path),
   logoMarcaBuffer: logoMarca(i.marca ?? null),
-  panelImagenBuffer: imagenPanel(texto(i.ficha, "panel")),
+  panelImagenBuffer: imagenPanel(i.sku ?? null),
   cantidad: i.cantidad,
   precio_unitario: Number(i.precio_unitario),
 }));

@@ -40,15 +40,20 @@ function leerLogoMarca(marca: string | null | undefined): Buffer | null {
 }
 
 // Foto del panel de control (UniLinc Touch, X Control…), junto a la foto del
-// equipo — también estaba en la ficha original y faltaba en la cotización
-// (reportado 26-08, con una comercial pidiéndola puntualmente). Vive en
-// public/paneles/<panel>.png; un mismo panel lo comparten varios equipos, así
-// que se carga una vez por nombre de panel, no por producto.
-function leerImagenPanel(panel: string | null | undefined): Buffer | null {
-  if (!panel) return null;
-  const archivo = panel.trim().toLowerCase().replace(/\s+/g, "-");
+// equipo — reportado 26-08 puntualmente para la SECU1202, con su ficha al
+// lado (V:\...\UT120\SECU1202....docx) para confirmar que esa imagen SÍ está
+// en ESA ficha. NO es una imagen genérica por nombre de panel: dos equipos
+// con el mismo panel («UNILINC TOUCH») pueden tener fichas .docx distintas, y
+// que una no traiga foto de panel no significa que la otra tampoco —
+// corregido el mismo 26-08 tras verse en la SECU1701, que heredó por error la
+// foto de la SECU1202 solo por compartir el nombre del panel. Por eso vive en
+// public/productos/<sku>-panel.png —igual que foto_path, por producto— y solo
+// existe el archivo para las fichas donde alguien confirmó la imagen a mano.
+// Es opcional: si no está el archivo, la ficha sale sin esa imagen y nada más.
+function leerImagenPanel(sku: string | null | undefined): Buffer | null {
+  if (!sku) return null;
   try {
-    return readFileSync(join(process.cwd(), "public", "paneles", `${archivo}.png`));
+    return readFileSync(join(process.cwd(), "public", "productos", `${sku.toLowerCase()}-panel.png`));
   } catch {
     return null;
   }
@@ -67,7 +72,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .from("cotizaciones")
     .select(
       `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, entrega_lugar, cliente_snapshot, created_at,
-       cotizacion_items(cantidad, precio_unitario, descripcion, productos(marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
+       cotizacion_items(cantidad, precio_unitario, descripcion, productos(sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
        oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
     )
@@ -153,6 +158,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       precio_unitario: number;
       descripcion: string | null;
       productos: {
+        sku: string;
         marca: string;
         modelo: string;
         nombre: string;
@@ -185,7 +191,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       secciones: seccionesDeFicha(ficha),
       fotoBuffer: leerFotoProducto(item.productos?.foto_path ?? null),
       logoMarcaBuffer: leerLogoMarca(item.productos?.marca ?? null),
-      panelImagenBuffer: leerImagenPanel(textoDeFicha(ficha, "panel")),
+      panelImagenBuffer: leerImagenPanel(item.productos?.sku ?? null),
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,
     };

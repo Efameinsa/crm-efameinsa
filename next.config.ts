@@ -16,7 +16,6 @@ const nextConfig: NextConfig = {
       "./public/logo-efameinsa.png",
       "./public/productos/**/*",
       "./public/marcas/**/*",
-      "./public/paneles/**/*",
     ],
     "/api/informes/[id]/pdf": ["./public/logo-efameinsa.png"],
     "/api/reportes/central": ["./public/logo-efameinsa.png"],
