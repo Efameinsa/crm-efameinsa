@@ -39,6 +39,21 @@ function leerLogoMarca(marca: string | null | undefined): Buffer | null {
   }
 }
 
+// Foto del panel de control (UniLinc Touch, X Control…), junto a la foto del
+// equipo — también estaba en la ficha original y faltaba en la cotización
+// (reportado 26-08, con una comercial pidiéndola puntualmente). Vive en
+// public/paneles/<panel>.png; un mismo panel lo comparten varios equipos, así
+// que se carga una vez por nombre de panel, no por producto.
+function leerImagenPanel(panel: string | null | undefined): Buffer | null {
+  if (!panel) return null;
+  const archivo = panel.trim().toLowerCase().replace(/\s+/g, "-");
+  try {
+    return readFileSync(join(process.cwd(), "public", "paneles", `${archivo}.png`));
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -170,6 +185,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       secciones: seccionesDeFicha(ficha),
       fotoBuffer: leerFotoProducto(item.productos?.foto_path ?? null),
       logoMarcaBuffer: leerLogoMarca(item.productos?.marca ?? null),
+      panelImagenBuffer: leerImagenPanel(textoDeFicha(ficha, "panel")),
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,
     };

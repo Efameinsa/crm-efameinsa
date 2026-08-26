@@ -94,6 +94,14 @@ function logoMarca(marca: string | null): Buffer | null {
     return null;
   }
 }
+function imagenPanel(panel: string | null): Buffer | null {
+  if (!panel) return null;
+  try {
+    return readFileSync(join(process.cwd(), "public", "paneles", `${panel.trim().toLowerCase().replace(/\s+/g, "-")}.png`));
+  } catch {
+    return null;
+  }
+}
 
 const itemsPdf: ItemPdf[] = items.map((i) => ({
   nombre: i.nombre ?? i.descripcion ?? "Producto",
@@ -113,6 +121,7 @@ const itemsPdf: ItemPdf[] = items.map((i) => ({
   secciones: secciones(i.ficha),
   fotoBuffer: foto(i.foto_path),
   logoMarcaBuffer: logoMarca(i.marca ?? null),
+  panelImagenBuffer: imagenPanel(texto(i.ficha, "panel")),
   cantidad: i.cantidad,
   precio_unitario: Number(i.precio_unitario),
 }));

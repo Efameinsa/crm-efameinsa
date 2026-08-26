@@ -67,6 +67,10 @@ export interface ItemPdf {
   /** Logo del fabricante (UniMac…), junto a la foto — falta para casi todas
    *  las marcas todavía; null cuando no hay archivo cargado (26-08). */
   logoMarcaBuffer: Buffer | null;
+  /** Foto del panel de control (ej. UniLinc Touch), compartida entre todos
+   *  los equipos que usan el mismo panel — null cuando no hay archivo
+   *  cargado para ese panel todavía (26-08). */
+  panelImagenBuffer: Buffer | null;
   cantidad: number;
   precio_unitario: number;
 }
@@ -455,13 +459,19 @@ export function CotizacionPdf({
                       alto total de la ficha no sube. */}
                   {item.fotoBuffer && (
                     <View style={{ width: "32%", padding: 10, justifyContent: "flex-start" }}>
-                      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
-                      <Image src={item.fotoBuffer} style={{ width: "100%" }} />
-                      {/* Logo del fabricante, debajo de la foto — así sale en
-                          la ficha original y faltaba en la cotización (26-08). */}
+                      {/* Logo del fabricante, foto del equipo y foto del panel
+                          de control, en ese orden — como en la ficha original
+                          (pedido 26-08, con la referencia que armó Darwin de
+                          la SECU1202 al lado). Antes solo salía la foto. */}
                       {item.logoMarcaBuffer && (
                         // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML
-                        <Image src={item.logoMarcaBuffer} style={{ width: "40%", marginTop: 8 }} />
+                        <Image src={item.logoMarcaBuffer} style={{ width: "40%", alignSelf: "center", marginBottom: 8 }} />
+                      )}
+                      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
+                      <Image src={item.fotoBuffer} style={{ width: "100%" }} />
+                      {item.panelImagenBuffer && (
+                        // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML
+                        <Image src={item.panelImagenBuffer} style={{ width: "90%", alignSelf: "center", marginTop: 8 }} />
                       )}
                     </View>
                   )}

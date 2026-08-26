@@ -107,6 +107,9 @@ async function main() {
       : undefined,
     fotoBuffer: p.foto_path ? leer(join("productos", basename(p.foto_path))) : null,
     logoMarcaBuffer: leer(join("marcas", `${p.marca.trim().toLowerCase().replace(/\s+/g, "-")}.png`)),
+    panelImagenBuffer: texto(p.ficha, "panel")
+      ? leer(join("paneles", `${texto(p.ficha, "panel")!.trim().toLowerCase().replace(/\s+/g, "-")}.png`))
+      : null,
     cantidad: 1,
     precio_unitario: Number(p.precio ?? 0),
   }));
