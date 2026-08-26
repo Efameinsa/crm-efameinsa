@@ -305,6 +305,7 @@ export default async function OportunidadDetallePage({
                 tipoDoc={cuenta.tipo_doc}
                 numDoc={cuenta.num_doc}
                 razonSocial={cuenta.razon_social}
+                direccion={cuenta.direccion}
               />
               <ContactosEditables cuentaId={cuenta.id} contactos={contactosCuenta} />
             </div>

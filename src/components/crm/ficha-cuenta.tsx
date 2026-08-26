@@ -146,6 +146,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               tipoDoc={cuenta.tipo_doc}
               numDoc={cuenta.num_doc}
               razonSocial={cuenta.razon_social}
+              direccion={cuenta.direccion}
             />
           </div>
           <ContactosEditables cuentaId={cuenta.id} contactos={contactos} />
