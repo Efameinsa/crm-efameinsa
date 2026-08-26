@@ -191,7 +191,12 @@ export async function cargarHistorialCuenta(
       return {
         tipo: "venta",
         id: v.id,
-        fecha: v.fecha_venta,
+        // `fecha_venta` es columna date: se le pone mediodía por la misma
+        // razón que a la cotización histórica de arriba — sin esto,
+        // fechaLima() la corre un día atrás (medianoche UTC es la tarde
+        // anterior en Lima). Reportado el 26-08: una venta de HOY salía
+        // fechada ayer en el historial del cliente.
+        fecha: `${v.fecha_venta}T12:00:00`,
         oportunidadId: aDonde(v.oportunidad_id),
         monto: v.monto_total,
         moneda: v.moneda,
