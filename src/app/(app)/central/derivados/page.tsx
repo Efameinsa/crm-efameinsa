@@ -46,6 +46,14 @@ const ETIQUETA_ETAPA: Record<string, { texto: string; clase: string }> = {
   derivada: { texto: "Pasado a otro", clase: "bg-secondary text-muted-foreground" },
 };
 
+const ETIQUETA_MOTIVO: Record<string, string> = {
+  nuevo_lead: "Cliente nuevo",
+  cartera_existente: "Ya era su cartera",
+  liberacion_6_meses: "Liberado (6 meses sin venta)",
+  decision_gerencia: "Decisión de gerencia",
+  reemplazo: "Reemplazo de personal",
+};
+
 const ETIQUETA_CANAL: Record<string, string> = {
   whatsapp: "WhatsApp",
   llamada: "Llamada",
@@ -115,6 +123,17 @@ export default async function DerivadosPage({
 
   // Las urgencias ya enviadas: para mostrarle a Central cuándo avisó y que no
   // dispare dos veces por impaciencia (la segunda escala a gerencia).
+  // El motivo por el que se le entregó a ESE comercial (pedido de un
+  // comercial 26-08: «para saber por qué se derivó a tal comercial»). Vive en
+  // `asignaciones`, no en `leads` — es la tabla que registra quién decidió
+  // qué y por qué (0001). Un caso de postventa sobre un cliente que ya
+  // existía no deja fila ahí (0080), así que sale sin motivo, no en blanco
+  // por error.
+  const { data: asignaciones } = ids.length
+    ? await supabase.from("asignaciones").select("lead_id, motivo").in("lead_id", ids)
+    : { data: [] };
+  const motivoPorLead = new Map((asignaciones ?? []).map((a) => [a.lead_id as string, a.motivo as string]));
+
   const { data: urgencias } = ids.length
     ? await supabase
         .from("recordatorios_urgencia")
@@ -173,12 +192,14 @@ export default async function DerivadosPage({
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <Table className="min-w-[1000px]">
+          <Table className="min-w-[1250px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Contacto</TableHead>
+                <TableHead>Qué solicita</TableHead>
                 <TableHead>Vía</TableHead>
                 <TableHead>Derivado a</TableHead>
+                <TableHead>Motivo</TableHead>
                 <TableHead>Cuándo</TableHead>
                 <TableHead>Demoró</TableHead>
                 <TableHead>En qué quedó</TableHead>
@@ -202,10 +223,16 @@ export default async function DerivadosPage({
                         <span className="block text-[11px] text-muted-foreground">{l.telefono}</span>
                       )}
                     </TableCell>
+                    <TableCell className="max-w-[240px] align-top text-xs text-muted-foreground">
+                      {l.mensaje ?? "—"}
+                    </TableCell>
                     <TableCell className="align-top text-xs">{ETIQUETA_CANAL[l.canal] ?? l.canal}</TableCell>
                     <TableCell className="align-top text-xs">
                       <b>{com?.codigo_comercial ?? "—"}</b>
                       <span className="block text-[11px] text-muted-foreground">{com?.nombre ?? ""}</span>
+                    </TableCell>
+                    <TableCell className="align-top text-xs text-muted-foreground">
+                      {ETIQUETA_MOTIVO[motivoPorLead.get(l.id) ?? ""] ?? "—"}
                     </TableCell>
                     <TableCell className="align-top text-xs tabular-nums">
                       {l.asignado_at ? fechaHoraLima(l.asignado_at) : "—"}
