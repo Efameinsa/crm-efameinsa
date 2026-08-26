@@ -72,6 +72,7 @@ async function main() {
   }
 
   const lista = (f: Record<string, unknown>, k: string) => (Array.isArray(f?.[k]) ? (f[k] as string[]) : []);
+  const texto = (f: Record<string, unknown>, k: string) => (typeof f?.[k] === "string" ? (f[k] as string) : null);
 
   const items = rows.map((p) => ({
     nombre: p.nombre,
@@ -83,13 +84,29 @@ async function main() {
     panel: (p.ficha?.panel as string) ?? null,
     controles: (p.ficha?.controles as string) ?? null,
     caracteristicas: lista(p.ficha, "caracteristicas"),
-    dimensiones: lista(p.ficha, "dimensiones"),
+    disenoConstruccion: lista(p.ficha, "disenoConstruccion"),
+    // Igual que en route.tsx: "Capacidad" se antepone con el dato confiable
+    // de productos.capacidad en vez de confiar en el parseo de la ficha.
+    dimensiones: p.capacidad
+      ? [`Capacidad: ${p.capacidad}`, ...lista(p.ficha, "dimensiones")]
+      : lista(p.ficha, "dimensiones"),
+    dimensionesTitulo: texto(p.ficha, "dimensionesTitulo"),
     medidas: lista(p.ficha, "medidas"),
+    medidasTitulo: texto(p.ficha, "medidasTitulo"),
     // Las torres traen sus dos máquinas separadas (ficha.secciones).
     secciones: Array.isArray(p.ficha?.secciones) && (p.ficha.secciones as unknown[]).length > 1
-      ? (p.ficha.secciones as { titulo: string | null; caracteristicas: string[]; dimensiones: string[]; medidas: string[] }[])
+      ? (p.ficha.secciones as {
+          titulo: string | null;
+          caracteristicas: string[];
+          disenoConstruccion: string[];
+          dimensiones: string[];
+          dimensionesTitulo: string | null;
+          medidas: string[];
+          medidasTitulo: string | null;
+        }[])
       : undefined,
     fotoBuffer: p.foto_path ? leer(join("productos", basename(p.foto_path))) : null,
+    logoMarcaBuffer: leer(join("marcas", `${p.marca.trim().toLowerCase().replace(/\s+/g, "-")}.png`)),
     cantidad: 1,
     precio_unitario: Number(p.precio ?? 0),
   }));

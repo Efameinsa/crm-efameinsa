@@ -63,21 +63,37 @@ function unirDigitos(s) {
 
 // Hay dos plantillas de ficha conviviendo. La de Alliance (Primus/Unimac)
 // titula "DISEÑO DE CONSTRUCCION" + "ESPECIFICACIONES TECNICAS" +
-// "DIMENSIONES"; la de LG y GMP usa "CARACTERISTICAS" + "DIMENSIONES DE LA
-// MAQUINA" + "MEDIDAS GENERALES" (los mismos rótulos que ya imprime el PDF
-// de cotización). El orden importa: "DIMENSIONES DE LA MAQUINA" tiene que
-// probarse antes que "DIMENSIONES" a secas, o se la lleva la regla corta.
+// "DIMENSIONES GENERALES"; la de LG y GMP usa "CARACTERISTICAS" +
+// "DIMENSIONES DE LA MAQUINA" + "MEDIDAS GENERALES". El orden importa:
+// "DIMENSIONES DE LA MAQUINA" tiene que probarse antes que "DIMENSIONES" a
+// secas, o se la lleva la regla corta.
+//
+// "DISEÑO DE CONSTRUCCION" (TAMBOR, PUERTA, PANELES…) va a SU PROPIA clave,
+// no a "caracteristicas": hasta el 26-08 se mezclaban y esa sección entera
+// desaparecía del PDF, que solo sabía imprimir un bloque de viñetas
+// (detectado comparando el PDF de la SECU1202 contra su Word).
 const SECCIONES = [
   { clave: "dimensiones", re: /^DIMENSIONES\s+DE\s+LA\s+M[AÁ]QUINA/i },
   { clave: "dimensiones", re: /^ESPECIFICACIONES?\s+T[EÉ]CNICAS?/i },
   { clave: "medidas", re: /^MEDIDAS\s+GENERALES/i },
   { clave: "medidas", re: /^DIMENSIONES\b/i },
-  { clave: "caracteristicas", re: /^DISE[NÑ]O DE CONSTRUCCI[OÓ]N/i },
+  { clave: "disenoConstruccion", re: /^DISE[NÑ]O DE CONSTRUCCI[OÓ]N/i },
   { clave: "caracteristicas", re: /^CARACTER[IÍ]STICAS\b/i },
   { clave: "caracteristicas", re: /^AUTOMATIZACI[OÓ]N|^PROGRAMADOR\b/i },
   { clave: "caracteristicas", re: /^MONITOREO Y CONTROL|^SEGURIDAD Y ALARMAS/i },
   { clave: null, re: /^PRECIO\b|^TIEMPO DE ENTREGA|^GARANT[IÍ]A\b|^FORMA DE PAGO|^SALDO\b/i },
 ];
+
+// El Word no siempre lleva la tilde en MAYÚSCULAS ("ESPECIFICACIONES
+// TECNICAS", "DISEÑO DE CONSTRUCCION"), pero el PDF sí debe llevarla (pedido
+// 26-08: «respeta las tildes aunque sea mayúscula»). Se corrige el rótulo
+// capturado en vez de copiarlo tal cual.
+function conTildes(titulo) {
+  return titulo
+    .replace(/\bTECNICAS?\b/gi, (m) => (m.length === 8 ? "TÉCNICAS" : "TÉCNICA"))
+    .replace(/\bMAQUINA\b/gi, "MÁQUINA")
+    .replace(/\bCONSTRUCCION\b/gi, "CONSTRUCCIÓN");
+}
 
 function seccionDe(linea) {
   for (const s of SECCIONES) if (s.re.test(linea)) return s;
@@ -131,18 +147,27 @@ for (const p of productos) {
     continue;
   }
 
-  const bloques = { caracteristicas: [], dimensiones: [], medidas: [] };
+  const bloques = { caracteristicas: [], disenoConstruccion: [], dimensiones: [], medidas: [] };
+  // El rótulo REAL de "dimensiones"/"medidas" no es fijo entre plantillas
+  // (ver el comentario de SECCIONES): se guarda la primera cabecera que
+  // encendió cada clave, tal como la escribió la ficha, para que el PDF
+  // imprima el rótulo correcto en vez de uno inventado.
+  const titulos = { dimensiones: null, medidas: null };
   let actual = null;
   for (const linea of lineas) {
     const sec = seccionDe(linea);
     if (sec !== undefined) {
       actual = sec.clave; // null corta la captura (bloque de precio/garantía)
+      if (actual && titulos[actual] === null && (actual === "dimensiones" || actual === "medidas")) {
+        titulos[actual] = conTildes(linea.replace(/\s+/g, " ").trim());
+      }
       continue;
     }
     if (!actual) continue;
     // Las viñetas útiles tienen algo de sustancia; los restos de tabla y los
     // rótulos sueltos no.
-    const limpia = actual === "caracteristicas" ? linea : unirDigitos(linea);
+    const esTextoLibre = actual === "caracteristicas" || actual === "disenoConstruccion";
+    const limpia = esTextoLibre ? linea : unirDigitos(linea);
     if (limpia.length < 6 || limpia.length > 320) continue;
     // Los rótulos de la tabla de cabecera ("Marca", "Panel computarizado") se
     // repiten dentro del cuerpo y no son características.
@@ -154,10 +179,17 @@ for (const p of productos) {
     // Un rótulo de tabla va en minúsculas y es corto; el subtítulo va en
     // MAYÚSCULAS y la viñeta es una frase larga. Esas dos excepciones lo
     // separan sin tocar el resto.
+    //
+    // OJO CON "capacidad": el mismo filtro se comía «Capacidad : 55 kg», la
+    // primera línea de ESPECIFICACIONES TÉCNICAS en la plantilla Alliance —
+    // detectado el 26-08 comparando el PDF de la SECU1202 contra su Word. Un
+    // rótulo repetido no lleva dos puntos; un dato sí, así que se excluye
+    // cualquier línea con ":" del filtro.
     const esRotuloDeTabla =
       /^(marca|modelo|capacidad|panel|controles|autom[aá]tico|item\b)/i.test(limpia) &&
       limpia !== limpia.toUpperCase() &&
-      limpia.length <= 60;
+      limpia.length <= 60 &&
+      !limpia.includes(":");
     if (esRotuloDeTabla) continue;
     bloques[actual].push(limpia);
   }
@@ -181,8 +213,11 @@ for (const p of productos) {
     ...datosDeCabecera(lineas),
     ficha: {
       caracteristicas: [...new Set(bloques.caracteristicas)],
+      disenoConstruccion: [...new Set(bloques.disenoConstruccion)],
       dimensiones: [...new Set(parear(bloques.dimensiones))],
+      dimensionesTitulo: titulos.dimensiones,
       medidas: [...new Set(parear(bloques.medidas))],
+      medidasTitulo: titulos.medidas,
     },
   });
 }
@@ -192,6 +227,7 @@ if (APLICAR) writeFileSync(SALIDA, JSON.stringify(salida, null, 1));
 const con = (f) => salida.filter((s) => s.ficha?.[f]?.length).length;
 console.log(`Productos procesados        : ${salida.length}`);
 console.log(`  con características       : ${con("caracteristicas")}`);
+console.log(`  con diseño de construcción: ${con("disenoConstruccion")}`);
 console.log(`  con dimensiones técnicas  : ${con("dimensiones")}`);
 console.log(`  con medidas generales     : ${con("medidas")}`);
 console.log(`  con capacidad detectada   : ${salida.filter((s) => s.capacidad).length}`);

@@ -70,8 +70,11 @@ function secciones(f: Record<string, unknown> | null): SeccionFicha[] | undefine
     return {
       titulo: typeof sec.titulo === "string" ? sec.titulo : null,
       caracteristicas: lista(sec, "caracteristicas"),
+      disenoConstruccion: lista(sec, "disenoConstruccion"),
       dimensiones: lista(sec, "dimensiones"),
+      dimensionesTitulo: texto(sec, "dimensionesTitulo"),
       medidas: lista(sec, "medidas"),
+      medidasTitulo: texto(sec, "medidasTitulo"),
     };
   });
 }
@@ -79,6 +82,14 @@ function foto(p: string | null): Buffer | null {
   if (!p) return null;
   try {
     return readFileSync(join(process.cwd(), "public", "productos", basename(p)));
+  } catch {
+    return null;
+  }
+}
+function logoMarca(marca: string | null): Buffer | null {
+  if (!marca) return null;
+  try {
+    return readFileSync(join(process.cwd(), "public", "marcas", `${marca.trim().toLowerCase().replace(/\s+/g, "-")}.png`));
   } catch {
     return null;
   }
@@ -94,10 +105,14 @@ const itemsPdf: ItemPdf[] = items.map((i) => ({
   panel: texto(i.ficha, "panel"),
   controles: texto(i.ficha, "controles"),
   caracteristicas: lista(i.ficha, "caracteristicas"),
+  disenoConstruccion: lista(i.ficha, "disenoConstruccion"),
   dimensiones: lista(i.ficha, "dimensiones"),
+  dimensionesTitulo: texto(i.ficha, "dimensionesTitulo"),
   medidas: lista(i.ficha, "medidas"),
+  medidasTitulo: texto(i.ficha, "medidasTitulo"),
   secciones: secciones(i.ficha),
   fotoBuffer: foto(i.foto_path),
+  logoMarcaBuffer: logoMarca(i.marca ?? null),
   cantidad: i.cantidad,
   precio_unitario: Number(i.precio_unitario),
 }));

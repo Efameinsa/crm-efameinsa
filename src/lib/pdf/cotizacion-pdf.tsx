@@ -25,8 +25,19 @@ export interface SeccionFicha {
   /** "LAVADORA", "SECADORA". Null en un equipo de una sola máquina. */
   titulo: string | null;
   caracteristicas: string[];
+  /**
+   * Bloque "DISEÑO DE CONSTRUCCIÓN" de la ficha original (TAMBOR, PUERTA,
+   * PANELES…) — se imprime aparte de CARACTERÍSTICAS cuando la ficha lo trae
+   * separado. Ausente en la mayoría de productos todavía sin reprocesar.
+   */
+  disenoConstruccion: string[];
   dimensiones: string[];
+  /** Rótulo real de la ficha ("ESPECIFICACIONES TÉCNICAS" en la plantilla
+   *  Alliance/UniMac); si falta, se usa el de la plantilla LG/GMP. */
+  dimensionesTitulo: string | null;
   medidas: string[];
+  /** Rótulo real de la ficha ("DIMENSIONES GENERALES" en Alliance/UniMac). */
+  medidasTitulo: string | null;
 }
 
 export interface ItemPdf {
@@ -39,8 +50,11 @@ export interface ItemPdf {
   panel: string | null; // "Digital-Multifunción"
   controles: string | null; // "220V/60Hz/1Ph"
   caracteristicas: string[];
+  disenoConstruccion: string[];
   dimensiones: string[]; // "Volumen del tambor: 207 litros", …
+  dimensionesTitulo: string | null;
   medidas: string[]; // "Ancho: 686 mm", …
+  medidasTitulo: string | null;
   /**
    * Equipos que son DOS máquinas en una: las torres lavadora-secadora traen en
    * su ficha un bloque para cada una. Cuando existe, se imprime así —"I.
@@ -50,6 +64,9 @@ export interface ItemPdf {
    */
   secciones?: SeccionFicha[];
   fotoBuffer: Buffer | null;
+  /** Logo del fabricante (UniMac…), junto a la foto — falta para casi todas
+   *  las marcas todavía; null cuando no hay archivo cargado (26-08). */
+  logoMarcaBuffer: Buffer | null;
   cantidad: number;
   precio_unitario: number;
 }
@@ -374,6 +391,7 @@ export function CotizacionPdf({
           // aparece en la tabla de la propuesta con su precio.
           const tieneAlgoQueDecir =
             item.caracteristicas.length > 0 ||
+            item.disenoConstruccion.length > 0 ||
             item.dimensiones.length > 0 ||
             item.medidas.length > 0 ||
             Boolean(item.panel || item.controles || item.calentamiento);
@@ -395,7 +413,10 @@ export function CotizacionPdf({
           const anchoCol = `${100 / columnas.length}%`;
 
           const tieneDetalle =
-            item.caracteristicas.length > 0 || item.dimensiones.length > 0 || item.medidas.length > 0;
+            item.caracteristicas.length > 0 ||
+            item.disenoConstruccion.length > 0 ||
+            item.dimensiones.length > 0 ||
+            item.medidas.length > 0;
 
           return (
             <Page key={i} size="A4" style={estilos.page}>
@@ -436,6 +457,12 @@ export function CotizacionPdf({
                     <View style={{ width: "32%", padding: 10, justifyContent: "flex-start" }}>
                       {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
                       <Image src={item.fotoBuffer} style={{ width: "100%" }} />
+                      {/* Logo del fabricante, debajo de la foto — así sale en
+                          la ficha original y faltaba en la cotización (26-08). */}
+                      {item.logoMarcaBuffer && (
+                        // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML
+                        <Image src={item.logoMarcaBuffer} style={{ width: "40%", marginTop: 8 }} />
+                      )}
                     </View>
                   )}
                   <View
@@ -455,69 +482,59 @@ export function CotizacionPdf({
                       {
                         titulo: null,
                         caracteristicas: item.caracteristicas,
+                        disenoConstruccion: item.disenoConstruccion,
                         dimensiones: item.dimensiones,
+                        dimensionesTitulo: item.dimensionesTitulo,
                         medidas: item.medidas,
+                        medidasTitulo: item.medidasTitulo,
                       },
-                    ]).map((sec, s) => (
-                      <View key={s} style={s > 0 ? { marginTop: 10 } : undefined}>
-                        {sec.titulo && (
-                          <Text style={estilos.maquinaTitulo}>
-                            {ROMANOS[s] ?? s + 1}. {sec.titulo}
-                          </Text>
-                        )}
-                        {sec.caracteristicas.length > 0 && (
-                          <>
-                            <Text style={estilos.caracTitulo}>CARACTERISTICAS</Text>
-                            {/* TAMBOR, PUERTA, PANEL FRONTAL… son el título del
-                                bloque que viene debajo, no una característica.
-                                Con viñeta salían al mismo nivel que sus propias
-                                características y el cliente leía el nombre de la
-                                pieza como si fuera una prestación. */}
-                            {clasificarFicha(sec.caracteristicas).map((c, j) =>
-                              c.esSubtitulo ? (
-                                <Text key={j} style={[estilos.caracSubtitulo, j > 0 ? { marginTop: 5 } : {}]}>
-                                  {c.texto}
-                                </Text>
-                              ) : (
-                                <View key={j} style={estilos.caracBullet}>
-                                  <Text style={estilos.caracPunto}>•</Text>
-                                  <Text style={estilos.caracTexto}>{c.texto}</Text>
-                                </View>
-                              ),
-                            )}
-                          </>
-                        )}
-                        {sec.dimensiones.length > 0 && (
-                          <>
-                            <Text
-                              style={[
-                                estilos.caracTitulo,
-                                sec.caracteristicas.length > 0 ? { marginTop: 8 } : {},
-                              ]}
-                            >
-                              DIMENSIONES DE LA MAQUINA
+                    ]).map((sec, s) => {
+                      // Bloques con viñetas + su título; se listan en el mismo
+                      // orden que la ficha en papel: CARACTERÍSTICAS, DISEÑO DE
+                      // CONSTRUCCIÓN, especificaciones técnicas, dimensiones
+                      // generales. El rótulo de las dos últimas no es fijo: la
+                      // plantilla Alliance/UniMac y la LG/GMP usan palabras
+                      // distintas para lo mismo (ver extraer-ficha-tecnica.mjs),
+                      // así que se imprime el que trajo la ficha y solo se cae
+                      // al de siempre cuando no se guardó ninguno.
+                      const bloques = [
+                        { titulo: "CARACTERÍSTICAS", lineas: sec.caracteristicas },
+                        { titulo: "DISEÑO DE CONSTRUCCIÓN", lineas: sec.disenoConstruccion },
+                        { titulo: sec.dimensionesTitulo ?? "DIMENSIONES DE LA MÁQUINA", lineas: sec.dimensiones },
+                        { titulo: sec.medidasTitulo ?? "MEDIDAS GENERALES", lineas: sec.medidas },
+                      ].filter((b) => b.lineas.length > 0);
+                      return (
+                        <View key={s} style={s > 0 ? { marginTop: 10 } : undefined}>
+                          {sec.titulo && (
+                            <Text style={estilos.maquinaTitulo}>
+                              {ROMANOS[s] ?? s + 1}. {sec.titulo}
                             </Text>
-                            {sec.dimensiones.map((d, j) => (
-                              <View key={j} style={estilos.caracBullet}>
-                                <Text style={estilos.caracPunto}>•</Text>
-                                <Text style={estilos.caracTexto}>{d}</Text>
-                              </View>
-                            ))}
-                          </>
-                        )}
-                        {sec.medidas.length > 0 && (
-                          <>
-                            <Text style={[estilos.caracTitulo, { marginTop: 8 }]}>MEDIDAS GENERALES</Text>
-                            {sec.medidas.map((m, j) => (
-                              <View key={j} style={estilos.caracBullet}>
-                                <Text style={estilos.caracPunto}>•</Text>
-                                <Text style={estilos.caracTexto}>{m}</Text>
-                              </View>
-                            ))}
-                          </>
-                        )}
-                      </View>
-                    ))}
+                          )}
+                          {bloques.map((b, bi) => (
+                            <View key={b.titulo} style={bi > 0 ? { marginTop: 8 } : undefined}>
+                              <Text style={estilos.caracTitulo}>{b.titulo}</Text>
+                              {/* TAMBOR, PUERTA, PANEL FRONTAL… son el título del
+                                  bloque que viene debajo, no una característica.
+                                  Con viñeta salían al mismo nivel que sus propias
+                                  características y el cliente leía el nombre de
+                                  la pieza como si fuera una prestación. */}
+                              {clasificarFicha(b.lineas).map((c, j) =>
+                                c.esSubtitulo ? (
+                                  <Text key={j} style={[estilos.caracSubtitulo, j > 0 ? { marginTop: 5 } : {}]}>
+                                    {c.texto}
+                                  </Text>
+                                ) : (
+                                  <View key={j} style={estilos.caracBullet}>
+                                    <Text style={estilos.caracPunto}>•</Text>
+                                    <Text style={estilos.caracTexto}>{c.texto}</Text>
+                                  </View>
+                                ),
+                              )}
+                            </View>
+                          ))}
+                        </View>
+                      );
+                    })}
                   </View>
                 </View>
               )}

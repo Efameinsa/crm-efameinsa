@@ -25,6 +25,20 @@ function leerFotoProducto(fotoPath: string | null): Buffer | null {
   }
 }
 
+// Logo del fabricante (UniMac, Primus…), junto a la foto del equipo — está en
+// la ficha original y faltaba en la cotización (reportado 26-08 con la
+// SECU1202 al lado del Word). Vive en public/marcas/<marca>.png; solo hay
+// logo para las marcas que ya se cargaron ahí, las demás siguen sin logo.
+function leerLogoMarca(marca: string | null | undefined): Buffer | null {
+  if (!marca) return null;
+  const archivo = marca.trim().toLowerCase().replace(/\s+/g, "-");
+  try {
+    return readFileSync(join(process.cwd(), "public", "marcas", `${archivo}.png`));
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -95,10 +109,27 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       return {
         titulo: typeof sec.titulo === "string" ? sec.titulo : null,
         caracteristicas: listaDeFicha(sec, "caracteristicas"),
+        disenoConstruccion: listaDeFicha(sec, "disenoConstruccion"),
         dimensiones: listaDeFicha(sec, "dimensiones"),
+        dimensionesTitulo: textoDeFicha(sec, "dimensionesTitulo"),
         medidas: listaDeFicha(sec, "medidas"),
+        medidasTitulo: textoDeFicha(sec, "medidasTitulo"),
       };
     });
+  }
+
+  // La ficha en papel abre "ESPECIFICACIONES TÉCNICAS" con la capacidad
+  // ("Capacidad: 55 kg"), pero el parser que arma `ficha.dimensiones` la
+  // descarta a propósito (la confunde con el rótulo repetido de la tabla de
+  // cabecera — ver esRotuloDeTabla en extraer-ficha-tecnica.mjs). En vez de
+  // arreglar esa extracción línea por línea, se antepone acá con el dato que
+  // YA es confiable: `productos.capacidad`, la misma columna que usa la tabla
+  // de arriba del PDF.
+  function dimensionesConCapacidad(ficha: Record<string, unknown> | null | undefined, capacidad: string | null): string[] {
+    const lista = listaDeFicha(ficha, "dimensiones");
+    if (!capacidad) return lista;
+    if (lista.some((l) => /^capacidad\s*:/i.test(l))) return lista;
+    return [`Capacidad: ${capacidad}`, ...lista];
   }
 
   const items: ItemPdf[] = (
@@ -131,10 +162,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       panel: textoDeFicha(ficha, "panel"),
       controles: textoDeFicha(ficha, "controles"),
       caracteristicas: listaDeFicha(ficha, "caracteristicas"),
-      dimensiones: listaDeFicha(ficha, "dimensiones"),
+      disenoConstruccion: listaDeFicha(ficha, "disenoConstruccion"),
+      dimensiones: dimensionesConCapacidad(ficha, item.productos?.capacidad ?? null),
+      dimensionesTitulo: textoDeFicha(ficha, "dimensionesTitulo"),
       medidas: listaDeFicha(ficha, "medidas"),
+      medidasTitulo: textoDeFicha(ficha, "medidasTitulo"),
       secciones: seccionesDeFicha(ficha),
       fotoBuffer: leerFotoProducto(item.productos?.foto_path ?? null),
+      logoMarcaBuffer: leerLogoMarca(item.productos?.marca ?? null),
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,
     };
