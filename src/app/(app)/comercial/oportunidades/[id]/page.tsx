@@ -57,7 +57,7 @@ export default async function OportunidadDetallePage({
       supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
-        .select("id, sku, marca, modelo, nombre, capacidad, segmento, ficha, foto_path, precios_producto(tier, precio)")
+        .select("id, sku, marca, modelo, nombre, capacidad, segmento, ficha, foto_path, precios_producto(tier, precio, vigente_hasta)")
         .eq("activo", true)
         .order("marca"),
       supabase
@@ -147,7 +147,15 @@ export default async function OportunidadDetallePage({
       nombre: pr.nombre,
       capacidad: pr.capacidad,
       segmento: pr.segmento,
-      precios_producto: pr.precios_producto,
+      // Solo el precio VIGENTE por tier. La consulta trae todo el historial
+      // de precios_producto (nada filtra vigente_hasta), y el cotizador
+      // hacía `.find(p => p.tier === tier)` — sin ordenar por fecha, podía
+      // devolver un precio viejo si Postgres regresaba primero la fila
+      // vencida. Pasó real: la SECGIA102 cotizaba a 2490 (vencido el 25-08)
+      // en vez de 2090 (el vigente), reportado el 26-08.
+      precios_producto: (pr.precios_producto as { tier: string; precio: number; vigente_hasta: string | null }[]).filter(
+        (p) => p.vigente_hasta === null,
+      ),
       // "secadora eléctrica" es como la piden los clientes, pero esa palabra
       // solo vive acá dentro, no en el nombre del equipo.
       calentamiento: texto("calentamiento"),

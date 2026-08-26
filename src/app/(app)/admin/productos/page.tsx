@@ -7,7 +7,7 @@ export default async function ProductosPage() {
   const supabase = await createClient();
   const { data: productos } = await supabase
     .from("productos")
-    .select("id, sku, marca, modelo, nombre, segmento, categoria, capacidad, ficha, precios_producto(tier, precio)")
+    .select("id, sku, marca, modelo, nombre, segmento, categoria, capacidad, ficha, precios_producto(tier, precio, vigente_hasta)")
     .eq("activo", true)
     .order("marca");
 
@@ -67,11 +67,15 @@ export default async function ProductosPage() {
                     </span>
                   </TableCell>
                   <TableCell className="space-x-2 text-xs tabular-nums text-muted-foreground">
-                    {(p.precios_producto as { tier: string; precio: number }[]).map((pr) => (
-                      <span key={pr.tier} className="capitalize">
-                        {pr.tier}: {pr.precio.toLocaleString("es-PE")}
-                      </span>
-                    ))}
+                    {/* Solo el vigente: sin este filtro se listaban también los
+                        precios vencidos, con el mismo tier repetido (26-08). */}
+                    {(p.precios_producto as { tier: string; precio: number; vigente_hasta: string | null }[])
+                      .filter((pr) => pr.vigente_hasta === null)
+                      .map((pr) => (
+                        <span key={pr.tier} className="capitalize">
+                          {pr.tier}: {pr.precio.toLocaleString("es-PE")}
+                        </span>
+                      ))}
                   </TableCell>
                 </TableRow>
               ))}
