@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
 import { Phone, Mail, MapPin, FileText } from "lucide-react";
+import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { RegistroRapido } from "@/components/crm/registro-rapido";
@@ -70,7 +70,9 @@ export default async function OportunidadDetallePage({
       supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("id"),
     ]);
 
-  if (!oportunidad) notFound();
+  if (!oportunidad) {
+    return <RegistroNoDisponible volverHref="/comercial/mi-gestion" volverTexto="Volver a mi gestión" />;
+  }
 
   const lead = oportunidad.leads as unknown as {
     codigo: string | null;

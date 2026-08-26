@@ -1,6 +1,6 @@
 import { fechaLima } from "@/lib/fechas";
-import { notFound } from "next/navigation";
 import { MapPin, FileText } from "lucide-react";
+import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -24,7 +24,13 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
     .eq("id", cuentaId)
     .maybeSingle();
 
-  if (!cuenta) notFound();
+  if (!cuenta) {
+    return comoGerencia ? (
+      <RegistroNoDisponible volverHref="/gerencia/clientes" volverTexto="Volver a clientes" />
+    ) : (
+      <RegistroNoDisponible volverHref="/comercial/cartera" volverTexto="Volver a mi cartera" />
+    );
+  }
 
   const dueno = cuenta.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
 
