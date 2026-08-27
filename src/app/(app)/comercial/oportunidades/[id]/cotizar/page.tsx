@@ -14,12 +14,13 @@ export const dynamic = "force-dynamic";
  */
 export default async function NuevaCotizacionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const contexto = await cargarContextoCotizador(id);
+  const resultado = await cargarContextoCotizador(id);
 
-  if (!contexto) {
+  if (resultado.estado !== "editable") {
     return <RegistroNoDisponible volverHref="/comercial/mi-gestion" volverTexto="Volver a mi gestión" />;
   }
 
+  const { contexto } = resultado;
   return (
     <PantallaCotizador
       oportunidadId={contexto.oportunidadId}

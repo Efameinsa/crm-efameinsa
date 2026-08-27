@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { fechaCalendario } from "@/lib/fechas";
 import { BuscadorEquiposModal } from "@/components/crm/buscador-equipos-modal";
+import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
 import { ENTREGA_POR_DEFECTO, IGV, LUGARES_ENTREGA } from "@/lib/pdf/series";
 import type {
   BorradorEnEdicion,
@@ -187,6 +188,14 @@ export function PantallaCotizador({
   const [confirmando, setConfirmando] = useState(false);
   const [confirmada, setConfirmada] = useState<{ codigo: string | null } | null>(null);
   const [ocupado, startTransition] = useTransition();
+
+  // Se decide UNA vez, al entrar, y no se vuelve a mirar. Si dependiera del
+  // carrito en vivo —«ábrelo si está vacío»— bastaría que la pantalla se
+  // volviera a montar después del primer equipo para que la ventana se cerrara
+  // sola, que es el bug que reportó Darwin el 27-08. La causa de aquel montaje
+  // ya está arreglada en `guardarBorradorCotizacion`; esto es para que, si algo
+  // vuelve a provocarlo, no se lleve la ventana puesta.
+  const [abrirBuscadorAlEntrar] = useState(() => !edicion && carrito.length === 0);
 
   // ── El catálogo, tal como lo consume el selector grande ──────────────────
   const equiposParaElegir = useMemo(
@@ -445,7 +454,10 @@ export function PantallaCotizador({
       }
       setConfirmando(false);
       setConfirmada({ codigo: r.codigo ?? null });
-      router.refresh();
+      // Sin router.refresh(): `enviarCotizacion` ya revalidó `/comercial`, y
+      // pedir otro refresco encima solo hace que el servidor vuelva a resolver
+      // esta ruta. Da igual si igual ocurre — el servidor devuelve la misma
+      // pantalla de confirmada— pero no hay para qué provocarlo.
     });
   }
 
@@ -458,36 +470,17 @@ export function PantallaCotizador({
   // número y la cierra; el documento sale por correo o por WhatsApp, a mano,
   // como siempre. El botón decía «Enviar al cliente» y prometía algo que el
   // sistema no hace (corregido por Darwin el 27-08).
-  if (confirmada) {
+  // Es el MISMO panel que dibuja el servidor al abrir `/cotizar/<id>` de una
+  // cotización ya confirmada. Que las dos vías terminen igual es lo que hace
+  // que un refresco a destiempo deje de importar.
+  if (confirmada && cotizacionId) {
     return (
-      <div className="mx-auto max-w-xl py-16 text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[#1E7F4F]/10 text-[#1E7F4F]">
-          <Check className="size-6" />
-        </div>
-        <h1 className="mt-4 text-xl font-bold text-foreground">
-          Cotización confirmada{confirmada.codigo ? ` como ${confirmada.codigo}` : ""}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Ya tiene su número de la serie {serie} y el documento queda cerrado: para cambiarle algo hay que duplicarla.
-        </p>
-        <p className="mt-3 text-sm font-medium text-foreground">
-          Falta lo último, y eso va por fuera del CRM: descargue el PDF y mándeselo al cliente por correo o WhatsApp.
-        </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <a
-            href={`/api/cotizaciones/${cotizacionId}/pdf`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <FileDown className="size-4" />
-            Descargar el PDF para el cliente
-          </a>
-          <Button variant="outline" onClick={() => { router.push(volverHref); router.refresh(); }}>
-            Volver a la oportunidad
-          </Button>
-        </div>
-      </div>
+      <CotizacionConfirmada
+        cotizacionId={cotizacionId}
+        codigo={confirmada.codigo}
+        serie={serie}
+        volverHref={volverHref}
+      />
     );
   }
 
@@ -577,7 +570,7 @@ export function PantallaCotizador({
             }}
             onRestar={restarProducto}
             onQuitar={quitarProducto}
-            abrirAlEntrar={!edicion && carrito.length === 0}
+            abrirAlEntrar={abrirBuscadorAlEntrar}
           />
 
           {carrito.length === 0 ? (

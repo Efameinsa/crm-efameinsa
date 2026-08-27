@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, PackageX, ImageOff, X } from "lucide-react";
+import { Search, PackageX, ImageOff, X, ArrowRight } from "lucide-react";
 import { buscarEquipos } from "@/lib/buscar-equipo";
 import { esSubtituloDeFicha } from "@/lib/ficha-tecnica";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -27,8 +27,14 @@ import { cn } from "@/lib/utils";
  * quitar». Elegir acá y después apretar «Agregar» afuera era confirmar dos
  * veces lo mismo — la confirmación visual ya ocurrió, con la foto delante.
  * Y LA VENTANA QUEDA ABIERTA: una cotización real lleva 4 a 6 equipos y se
- * cargan todos de una pasada. Cada fila muestra cuántas unidades lleva; otro
- * clic suma una; «Quitar» vive en el panel del equipo; «Listo» o Esc cierran.
+ * cargan todos de una pasada. Cada fila muestra cuántas unidades lleva, con
+ * − / + para cambiarlas y ✕ para sacar el equipo entero; «Continuar con la
+ * cotización» o Esc cierran.
+ *
+ * Que quede abierta costó un bug (27-08): al elegir el PRIMER equipo la ventana
+ * se cerraba sola. No era cosa del modal — el autoguardado creaba el borrador,
+ * revalidaba la ruta y el refresco volvía a montar la pantalla entera. Está
+ * arreglado en `guardarBorradorCotizacion`, que ya no revalida nada.
  *
  * EL STOCK sale del propio Excel de Lesly (columna STOCK, guardada al cargar
  * cada equipo). No es inventario en vivo: es lo que dice el maestro, y así se
@@ -506,15 +512,36 @@ export function BuscadorEquiposModal({
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] text-muted-foreground">
-              Clic o Enter agregan el equipo; las unidades se cambian con − y +. El stock es el de la CODIFICACIÓN de Lesly, no un
-              inventario en vivo.
+              Clic o Enter agregan el equipo; las unidades se cambian con − y +, y ✕ lo quita. El stock es el de la
+              CODIFICACIÓN de Lesly, no un inventario en vivo.
             </p>
+            {/* «Listo (4 equipos)» describía un trámite, no el paso siguiente
+                (27-08). Lo que de verdad pasa al apretarlo es volver a la
+                cotización con los equipos puestos, así que eso dice — y con el
+                número adelante, porque es la cuenta que la comercial quiere
+                confirmar antes de salir. Sin equipos no hay nada que continuar:
+                ahí es un «Cerrar» discreto. */}
             <button
               type="button"
               onClick={() => setAbierto(false)}
-              className="flex-none cursor-pointer rounded-md bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              className={cn(
+                "group/continuar flex flex-none cursor-pointer items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-all",
+                totalEquipos > 0
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 hover:shadow-primary/40"
+                  : "border border-border text-muted-foreground hover:bg-accent",
+              )}
             >
-              Listo{totalEquipos > 0 ? ` (${totalEquipos} equipo${totalEquipos === 1 ? "" : "s"})` : ""}
+              {totalEquipos > 0 ? (
+                <>
+                  <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs tabular-nums">
+                    {totalEquipos}
+                  </span>
+                  Continuar con la cotización
+                  <ArrowRight className="size-4 transition-transform group-hover/continuar:translate-x-0.5" />
+                </>
+              ) : (
+                "Cerrar"
+              )}
             </button>
           </div>
         </DialogContent>

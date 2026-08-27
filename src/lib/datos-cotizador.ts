@@ -154,16 +154,29 @@ async function cargarHistorialPrecios(
 }
 
 /**
- * Devuelve null cuando la oportunidad no existe o no es de este comercial (RLS
- * ya la filtra), y cuando se pidió corregir un borrador que no se puede tocar:
- * uno de otra oportunidad, o uno que ya salió al cliente (migración 0062). La
- * base lo vuelve a comprobar; acá es para no dibujar una pantalla que va a
- * fallar al guardar.
+ * Los tres finales posibles de la pantalla de cotizar.
+ *
+ * «cerrada» existe aparte de «no-disponible» porque no es un error: es una
+ * cotización que YA se confirmó. Se llega ahí al confirmarla —el refresco que
+ * dispara `enviarCotizacion` vuelve a pedir esta ruta— y al abrir el enlace de
+ * una vieja. Tratarla como «no disponible» borraba el aviso de éxito y la
+ * dejaba sin el PDF, que es justo lo que la comercial iba a buscar.
+ */
+export type ResultadoCotizador =
+  | { estado: "editable"; contexto: ContextoCotizador }
+  | { estado: "cerrada"; cotizacionId: string; codigo: string | null; serie: string }
+  | { estado: "no-disponible" };
+
+/**
+ * Devuelve «no-disponible» cuando la oportunidad no existe o no es de este
+ * comercial (RLS ya la filtra), y cuando el borrador pedido es de otra
+ * oportunidad. La base vuelve a comprobar todo al guardar; acá es para no
+ * dibujar una pantalla que va a fallar.
  */
 export async function cargarContextoCotizador(
   oportunidadId: string,
   cotizacionId?: string,
-): Promise<ContextoCotizador | null> {
+): Promise<ResultadoCotizador> {
   const supabase = await createClient();
 
   const [{ data: oportunidad }, { data: productos }] = await Promise.all([
@@ -181,7 +194,7 @@ export async function cargarContextoCotizador(
       .order("marca"),
   ]);
 
-  if (!oportunidad) return null;
+  if (!oportunidad) return { estado: "no-disponible" };
 
   const cuenta = oportunidad.cuentas as unknown as {
     id: string;
@@ -206,7 +219,13 @@ export async function cargarContextoCotizador(
       .eq("id", cotizacionId)
       .maybeSingle();
 
-    if (!cot || cot.oportunidad_id !== oportunidadId || cot.estado !== "borrador" || cot.enviada_at) return null;
+    if (!cot || cot.oportunidad_id !== oportunidadId) return { estado: "no-disponible" };
+
+    // Ya salió al cliente: no se edita, se duplica (migración 0062). No es un
+    // error — se muestra cerrada, con su número y su PDF.
+    if (cot.estado !== "borrador" || cot.enviada_at) {
+      return { estado: "cerrada", cotizacionId: cot.id, codigo: cot.codigo, serie: cot.serie };
+    }
 
     borrador = {
       cotizacionId: cot.id,
@@ -238,21 +257,24 @@ export async function cargarContextoCotizador(
   }
 
   return {
-    oportunidadId,
-    cuenta: cuenta
-      ? {
-          razonSocial: cuenta.razon_social,
-          tipoDoc: cuenta.tipo_doc,
-          numDoc: cuenta.num_doc,
-          direccion: cuenta.direccion,
-        }
-      : null,
-    contacto: contacto ? { nombre: contacto.nombre, cargo: contacto.cargo, telefono: contacto.telefono } : null,
-    solicitud: lead?.mensaje ?? null,
-    productos: (productos ?? []).map((pr) =>
-      mapearProducto(pr as unknown as Parameters<typeof mapearProducto>[0]),
-    ),
-    historialPrecios: cuenta?.id ? await cargarHistorialPrecios(supabase, cuenta.id) : {},
-    borrador,
+    estado: "editable",
+    contexto: {
+      oportunidadId,
+      cuenta: cuenta
+        ? {
+            razonSocial: cuenta.razon_social,
+            tipoDoc: cuenta.tipo_doc,
+            numDoc: cuenta.num_doc,
+            direccion: cuenta.direccion,
+          }
+        : null,
+      contacto: contacto ? { nombre: contacto.nombre, cargo: contacto.cargo, telefono: contacto.telefono } : null,
+      solicitud: lead?.mensaje ?? null,
+      productos: (productos ?? []).map((pr) =>
+        mapearProducto(pr as unknown as Parameters<typeof mapearProducto>[0]),
+      ),
+      historialPrecios: cuenta?.id ? await cargarHistorialPrecios(supabase, cuenta.id) : {},
+      borrador,
+    },
   };
 }

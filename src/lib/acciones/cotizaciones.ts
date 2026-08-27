@@ -106,10 +106,15 @@ export async function guardarBorradorCotizacion(datos: {
 
     const cotizacionId = data as string;
     await guardarEntrega(supabase, cotizacionId, datos.entregaLugar);
-    // Solo al NACER el borrador: para que aparezca en la lista de la
-    // oportunidad si la comercial se va antes de terminarlo. Los guardados
-    // siguientes no revalidan nada — son uno por tecla.
-    revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
+    // NO se revalida nada acá. Se hacía al nacer el borrador —para que
+    // apareciera en la lista de la oportunidad— y costaba caro: `revalidatePath`
+    // dentro de una Server Action refresca EL ÁRBOL DE LA RUTA ACTUAL, y como
+    // el autoguardado acababa de mover la URL a /cotizar/<id>, ese refresco
+    // resolvía otro segmento de ruta y volvía a montar la pantalla entera. El
+    // síntoma que reportó Darwin el 27-08: la ventana de equipos se cerraba
+    // sola al elegir el PRIMER equipo (y solo el primero — es el único que crea
+    // el borrador). La lista de la oportunidad se refresca igual al volver:
+    // `volver()` hace router.refresh().
     return { error: null, cotizacionId, estadoAprobacion: await estadoAprobacionDe(supabase, cotizacionId) };
   }
 

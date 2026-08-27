@@ -1,16 +1,16 @@
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { PantallaCotizador } from "@/components/crm/pantalla-cotizador";
+import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
 import { cargarContextoCotizador } from "@/lib/datos-cotizador";
 
 export const dynamic = "force-dynamic";
 
 /**
- * El borrador que ya existe: se entra acá desde «Corregir» y desde el propio
- * autoguardado, que reescribe la URL en cuanto crea la fila.
+ * El borrador que ya existe: se entra acá desde «Continuar y confirmar» y desde
+ * el propio autoguardado, que reescribe la URL en cuanto crea la fila.
  *
- * `cargarContextoCotizador` devuelve null —y la pantalla muestra el aviso de
- * siempre— si el borrador es de otra oportunidad o si ya salió al cliente: una
- * cotización enviada no se modifica, se duplica (migración 0062).
+ * Tres finales: se edita, ya está confirmada (con su número y su PDF), o el
+ * enlace apunta a algo que no es de esta oportunidad.
  */
 export default async function CorregirCotizacionPage({
   params,
@@ -18,17 +18,25 @@ export default async function CorregirCotizacionPage({
   params: Promise<{ id: string; cotizacionId: string }>;
 }) {
   const { id, cotizacionId } = await params;
-  const contexto = await cargarContextoCotizador(id, cotizacionId);
+  const resultado = await cargarContextoCotizador(id, cotizacionId);
+  const volverHref = `/comercial/oportunidades/${id}`;
 
-  if (!contexto) {
+  if (resultado.estado === "no-disponible") {
+    return <RegistroNoDisponible volverHref={volverHref} volverTexto="Volver a la oportunidad" />;
+  }
+
+  if (resultado.estado === "cerrada") {
     return (
-      <RegistroNoDisponible
-        volverHref={`/comercial/oportunidades/${id}`}
-        volverTexto="Volver a la oportunidad"
+      <CotizacionConfirmada
+        cotizacionId={resultado.cotizacionId}
+        codigo={resultado.codigo}
+        serie={resultado.serie}
+        volverHref={volverHref}
       />
     );
   }
 
+  const { contexto } = resultado;
   return (
     <PantallaCotizador
       oportunidadId={contexto.oportunidadId}
