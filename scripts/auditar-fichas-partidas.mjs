@@ -30,7 +30,12 @@
 
 import { writeFileSync } from "node:fs";
 import { Client } from "pg";
+import XLSX from "xlsx";
 import { esComodin } from "./lib-fusionar-cuentas.mjs";
+
+// Adónde va el Excel. En Descargas y no en el repo: son 665 clientes y el
+// archivo se abre para mirarlo, no para versionarlo.
+const EXCEL = "C:/Users/diseno/Downloads/fichas-partidas-crm-27-08.xlsx";
 
 const bd = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 await bd.connect();
@@ -99,6 +104,64 @@ seccion("LISTAS PARA FUSIONAR — la ficha sin documento está vacía", listas);
 seccion("¿GRUPO ECONÓMICO? — dos documentos distintos (caso Moncal)", gruposEconomicos);
 
 writeFileSync("docs/fichas-partidas-27-08.txt", informe, "utf8");
+
+// ── El mismo censo en Excel, para poder filtrar y ordenar ──────────────────
+// Una fila por FICHA, no por cliente, con un número de grupo que las junta:
+// así se puede ordenar por plata o por comercial sin perder de vista cuáles
+// van con cuáles. La columna «decisión» queda vacía a propósito, para que la
+// llenen Carlos o el comercial y me la devuelvan.
+const libro = XLSX.utils.book_new();
+const hoja = (nombre, lista, nota) => {
+  const filas = [];
+  lista.forEach((fichas, i) => {
+    const total = fichas.reduce((s, f) => s + Number(f.vendido), 0);
+    fichas.forEach((f, j) => filas.push({
+      grupo: i + 1,
+      cliente: j === 0 ? fichas[0].razon_social : "",
+      ficha: f.razon_social,
+      documento: f.num_doc ?? "(sin documento)",
+      comercial: f.duenio ?? "sin dueño",
+      departamento: f.departamento ?? "",
+      oportunidades: f.ops,
+      ventas: f.ventas,
+      vendido_usd: Number(f.vendido),
+      gestiones: f.gestiones,
+      presupuestos: f.presupuestos,
+      contactos: f.contactos,
+      total_del_grupo_usd: j === 0 ? total : "",
+      decision: "",
+      id: f.id,
+    }));
+    filas.push({});
+  });
+  const h = XLSX.utils.json_to_sheet(filas.length ? filas : [{ aviso: nota }]);
+  h["!cols"] = [{ wch: 6 }, { wch: 44 }, { wch: 44 }, { wch: 15 }, { wch: 10 }, { wch: 14 },
+                { wch: 13 }, { wch: 7 }, { wch: 13 }, { wch: 10 }, { wch: 13 }, { wch: 10 },
+                { wch: 18 }, { wch: 22 }, { wch: 38 }];
+  h["!autofilter"] = { ref: h["!ref"] };
+  XLSX.utils.book_append_sheet(libro, h, nombre);
+};
+
+const resumen = [
+  { grupo: "De comerciales DISTINTOS", clientes: reparto.length, ventas_usd: plataDe(reparto),
+    que_hacer: "Lo decide gerencia: fusionar define de quién es el cliente y de quién son sus ventas" },
+  { grupo: "Mismo dueño, con historia", clientes: conHistoria.length, ventas_usd: plataDe(conHistoria),
+    que_hacer: "Fusionar (caso San Agustín). Sin conflicto de cartera" },
+  { grupo: "Listas, la vacía no arrastra nada", clientes: listas.length, ventas_usd: plataDe(listas),
+    que_hacer: "Fusionar sin riesgo: la ficha sin documento está vacía" },
+  { grupo: "Dos documentos distintos", clientes: gruposEconomicos.length, ventas_usd: plataDe(gruposEconomicos),
+    que_hacer: "Grupo económico, NO fusión (caso Moncal): dos RUC vivos de la misma casa" },
+];
+const hr = XLSX.utils.json_to_sheet(resumen);
+hr["!cols"] = [{ wch: 36 }, { wch: 10 }, { wch: 14 }, { wch: 90 }];
+XLSX.utils.book_append_sheet(libro, hr, "RESUMEN");
+
+hoja("1 comerciales distintos", reparto);
+hoja("2 mismo dueño", conHistoria);
+hoja("3 listas", listas);
+hoja("4 dos RUC", gruposEconomicos);
+XLSX.writeFile(libro, EXCEL);
+function plataDe(l) { return l.reduce((s, f) => s + f.reduce((t, x) => t + Number(x.vendido), 0), 0); }
 
 const plata = (l) => l.reduce((s, fichas) => s + fichas.reduce((t, f) => t + Number(f.vendido), 0), 0);
 console.log(`\n${"─".repeat(70)}`);
