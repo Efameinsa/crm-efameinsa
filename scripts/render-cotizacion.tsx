@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { Client } from "pg";
-import { CotizacionPdf, type ItemPdf, type SeccionFicha } from "../src/lib/pdf/cotizacion-pdf";
+import { CotizacionPdf, type ItemPdf, type SeccionFicha, type BloqueFicha } from "../src/lib/pdf/cotizacion-pdf";
 import { correoEnSerie } from "../src/lib/pdf/series";
 
 if (!process.env.DATABASE_URL) {
@@ -33,6 +33,7 @@ await bd.connect();
 
 const { rows: cots } = await bd.query(
   `select c.codigo, c.correlativo, c.serie, c.moneda, c.condiciones, c.vigencia_dias, c.entrega_lugar,
+          c.tiempo_entrega, c.garantia, c.forma_pago, c.saldo,
           c.cliente_snapshot, c.created_at, c.oportunidad_id, c.creada_por
      from cotizaciones c where c.id = $1`,
   [ID],
@@ -135,6 +136,9 @@ const itemsPdf: ItemPdf[] = items.map((i) => ({
   medidas: lista(i.ficha, "medidas"),
   medidasTitulo: texto(i.ficha, "medidasTitulo"),
   ordenSecciones: orden(i.ficha),
+  // La descripción leída del Word (paso 3 de fichas-v), que manda sobre los
+  // cuatro cajones cuando existe.
+  bloques: Array.isArray(i.ficha?.bloques) ? i.ficha.bloques : undefined,
   secciones: secciones(i.ficha),
   // La foto del color elegido, igual que en route.tsx (migración 0088).
   fotoBuffer: foto(

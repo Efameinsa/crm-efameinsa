@@ -34,14 +34,41 @@ function limpiarError(mensaje: string): string {
  * Se hace así para no cambiarle la firma a una función de la base que ya está
  * en uso desde tres sitios. El trigger de inmutabilidad lo congela igual en
  * cuanto el documento se envía (migración 0066), que es lo que importa.
+ *
+ * Desde el 27-08 el mismo UPDATE lleva las condiciones comerciales de la ficha.
  */
+
+/**
+ * Las cuatro columnas de la tabla de condiciones que cierra cada ficha del PDF
+ * (migración 0094). No pasan por `crear_cotizacion` ni por `editar_cotizacion`
+ * —esas dos funciones ya se rompieron tres veces por tocarlas de más— sino por
+ * el mismo UPDATE que el lugar de entrega.
+ */
+export interface CondicionesFicha {
+  tiempoEntrega: string | null;
+  garantia: string | null;
+  formaPago: string | null;
+  saldo: string | null;
+}
+
 async function guardarEntrega(
   supabase: Awaited<ReturnType<typeof createClient>>,
   cotizacionId: string,
   entregaLugar: string | null | undefined,
+  condicionesFicha?: CondicionesFicha,
 ): Promise<void> {
-  if (!entregaLugar) return;
-  await supabase.from("cotizaciones").update({ entrega_lugar: entregaLugar }).eq("id", cotizacionId);
+  const campos: Record<string, string | null> = {};
+  if (entregaLugar) campos.entrega_lugar = entregaLugar;
+  if (condicionesFicha) {
+    // Cadena vacía = celda vacía en la ficha, que es lo que pide el estándar
+    // para un dato que todavía no se acordó. Se guarda como NULL.
+    campos.tiempo_entrega = condicionesFicha.tiempoEntrega?.trim() || null;
+    campos.garantia = condicionesFicha.garantia?.trim() || null;
+    campos.forma_pago = condicionesFicha.formaPago?.trim() || null;
+    campos.saldo = condicionesFicha.saldo?.trim() || null;
+  }
+  if (Object.keys(campos).length === 0) return;
+  await supabase.from("cotizaciones").update(campos).eq("id", cotizacionId);
 }
 
 /** El estado de aprobación que calculó la BASE, que es el que manda. */
@@ -84,6 +111,7 @@ export async function guardarBorradorCotizacion(datos: {
   condiciones: string;
   vigenciaDias: number;
   entregaLugar?: string | null;
+  condicionesFicha?: CondicionesFicha;
 }): Promise<{ error: string | null; cotizacionId: string | null; estadoAprobacion?: string }> {
   const supabase = await createClient();
 
@@ -108,7 +136,7 @@ export async function guardarBorradorCotizacion(datos: {
     if (error) return { error: limpiarError(error.message), cotizacionId: null };
 
     const cotizacionId = data as string;
-    await guardarEntrega(supabase, cotizacionId, datos.entregaLugar);
+    await guardarEntrega(supabase, cotizacionId, datos.entregaLugar, datos.condicionesFicha);
     // NO se revalida nada acá. Se hacía al nacer el borrador —para que
     // apareciera en la lista de la oportunidad— y costaba caro: `revalidatePath`
     // dentro de una Server Action refresca EL ÁRBOL DE LA RUTA ACTUAL, y como
@@ -129,7 +157,7 @@ export async function guardarBorradorCotizacion(datos: {
   });
   if (error) return { error: limpiarError(error.message), cotizacionId: datos.cotizacionId };
 
-  await guardarEntrega(supabase, datos.cotizacionId, datos.entregaLugar);
+  await guardarEntrega(supabase, datos.cotizacionId, datos.entregaLugar, datos.condicionesFicha);
   return {
     error: null,
     cotizacionId: datos.cotizacionId,

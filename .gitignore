@@ -22,3 +22,9 @@ scripts/data/fichas-convertidas/
 scripts/data/fichas-a-convertir.txt
 scripts/data/reporte-revision.pdf
 scripts/data/cierre-revision.pdf
+
+# Lectura de las fichas técnicas del Excel de Lesly (docs/15): 205 MB de
+# imágenes, PDF de prueba y vistas que se regeneran desde V: con los pasos
+# fichas-v-01 a fichas-v-12. Lo que sí va al repo es el resultado: las fotos en
+# public/productos y la descripción cargada en la base.
+scripts/data/fichas-v/

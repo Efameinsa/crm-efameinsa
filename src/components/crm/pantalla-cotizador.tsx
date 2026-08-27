@@ -83,6 +83,16 @@ const monto = (n: number) => n.toLocaleString("es-PE", { minimumFractionDigits: 
 
 const CONDICIONES_POR_DEFECTO = "Entrega: 15 días útiles. Garantía de fábrica.";
 
+// Las cuatro columnas de la tabla que cierra cada ficha del PDF (migración
+// 0094). Se ofrecen ya escritas porque son las de casi todas las cotizaciones
+// —salen de las que están cargadas en la base— y la comercial solo corrige
+// cuando lo acordado con el cliente es otro. Vaciar una deja su celda en
+// blanco, que es lo que pide el estándar para un dato todavía sin acordar.
+const TIEMPO_ENTREGA_POR_DEFECTO = "Inmediata";
+const GARANTIA_POR_DEFECTO = "24 meses";
+const FORMA_PAGO_POR_DEFECTO = "30 % con la O/C";
+const SALDO_POR_DEFECTO = "70 % antes del despacho";
+
 /** El sello de la barra superior: qué sabe la base de lo que hay en pantalla. */
 type EstadoGuardado =
   | { tipo: "limpio"; hora?: string }
@@ -178,6 +188,10 @@ export function PantallaCotizador({
   const [condiciones, setCondiciones] = useState(edicion?.condiciones ?? CONDICIONES_POR_DEFECTO);
   const [vigenciaDias, setVigenciaDias] = useState(edicion?.vigenciaDias ?? 15);
   const [entregaLugar, setEntregaLugar] = useState<string>(edicion?.entregaLugar ?? ENTREGA_POR_DEFECTO);
+  const [tiempoEntrega, setTiempoEntrega] = useState(edicion?.tiempoEntrega ?? TIEMPO_ENTREGA_POR_DEFECTO);
+  const [garantia, setGarantia] = useState(edicion?.garantia ?? GARANTIA_POR_DEFECTO);
+  const [formaPago, setFormaPago] = useState(edicion?.formaPago ?? FORMA_PAGO_POR_DEFECTO);
+  const [saldo, setSaldo] = useState(edicion?.saldo ?? SALDO_POR_DEFECTO);
 
   const [cotizacionId, setCotizacionId] = useState<string | null>(edicion?.cotizacionId ?? null);
   // Lo que la BASE dice de la aprobación. Solo importa para un caso, pero es un
@@ -829,8 +843,53 @@ export function PantallaCotizador({
               />
             </div>
 
+            {/* Las cuatro columnas de la tabla que cierra cada ficha del PDF
+                (migración 0094). Antes vivían revueltas dentro del texto libre
+                de abajo —«Entrega: Inmediata. Garantía de 24 meses.»— y de ahí
+                no se puede armar una tabla: cada comercial lo escribía distinto.
+                El «Saldo» no sale en las fichas de coches: ese juego de
+                columnas es de cuatro. */}
             <div className="space-y-2">
-              <Label htmlFor="condiciones">Condiciones</Label>
+              <p className="text-sm font-medium">Condiciones de cada ficha</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="tiempo-entrega" className="text-xs font-normal text-muted-foreground">
+                    Tiempo de entrega
+                  </Label>
+                  <Input id="tiempo-entrega" value={tiempoEntrega} onChange={(e) => setTiempoEntrega(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="garantia" className="text-xs font-normal text-muted-foreground">
+                    Garantía
+                  </Label>
+                  <Input id="garantia" value={garantia} onChange={(e) => setGarantia(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="forma-pago" className="text-xs font-normal text-muted-foreground">
+                    Forma de pago
+                  </Label>
+                  <Input id="forma-pago" value={formaPago} onChange={(e) => setFormaPago(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="saldo" className="text-xs font-normal text-muted-foreground">
+                    Saldo
+                  </Label>
+                  <Input id="saldo" value={saldo} onChange={(e) => setSaldo(e.target.value)} />
+                </div>
+              </div>
+              {/* Estos cuatro campos se guardan pero HOY NO SE IMPRIMEN: la
+                  tabla de condiciones al pie de cada ficha se quitó el 27-08
+                  porque repetía el precio del resumen. Quedan cargados a la
+                  espera de que Darwin decida si se usan para armar el texto de
+                  condiciones de la última página o se retiran. */}
+              <p className="text-[11px] text-muted-foreground">
+                Se guardan con la cotización. Por ahora no se imprimen: las condiciones que ve el cliente son las
+                de la última página.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="condiciones">Condiciones (texto de la última página)</Label>
               <Textarea id="condiciones" value={condiciones} onChange={(e) => setCondiciones(e.target.value)} rows={3} />
             </div>
           </div>

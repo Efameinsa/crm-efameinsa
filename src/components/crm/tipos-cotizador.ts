@@ -71,6 +71,12 @@ export interface BorradorEnEdicion {
   condiciones: string | null;
   vigenciaDias: number;
   entregaLugar: string | null;
+  /** Las cuatro columnas de la tabla de condiciones que cierra cada ficha del
+   *  PDF (migración 0094). */
+  tiempoEntrega: string | null;
+  garantia: string | null;
+  formaPago: string | null;
+  saldo: string | null;
   /** Lo que dice la BASE sobre la aprobación del precio. Manda sobre el cálculo
    *  de la pantalla: un borrador que gerencia YA aprobó se puede enviar aunque
    *  sus precios sigan por debajo de la referencia. */

@@ -45,14 +45,19 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
+    "canvas": "^3.2.3",
     "docx": "^9.7.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.2.108",
     "pg": "^8.23.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.11",
     "xlsx": "^0.18.5"
+  },
+  "allowScripts": {
+    "canvas@3.2.3": true
   }
 }

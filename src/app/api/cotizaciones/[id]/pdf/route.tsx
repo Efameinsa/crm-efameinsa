@@ -3,7 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { readFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import { createClient } from "@/lib/supabase/server";
-import { CotizacionPdf, type ItemPdf, type SeccionFicha } from "@/lib/pdf/cotizacion-pdf";
+import { CotizacionPdf, type ItemPdf, type SeccionFicha, type BloqueFicha } from "@/lib/pdf/cotizacion-pdf";
 import { correoEnSerie } from "@/lib/pdf/series";
 import { cabeceraArchivo } from "@/lib/nombre-archivo";
 import { quitarPaginasEnBlanco } from "@/lib/pdf/paginas-en-blanco";
@@ -77,7 +77,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data: cotizacion } = await supabase
     .from("cotizaciones")
     .select(
-      `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, entrega_lugar, cliente_snapshot, created_at,
+      `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, entrega_lugar,
+       tiempo_entrega, garantia, forma_pago, saldo, cliente_snapshot, created_at,
        cotizacion_items(cantidad, precio_unitario, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
        oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
@@ -237,6 +238,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       medidas: listaDeFicha(ficha, "medidas"),
       medidasTitulo: textoDeFicha(ficha, "medidasTitulo"),
       ordenSecciones: ordenDeFicha(ficha),
+      // La descripción leída del Word tal como está (paso 3 de fichas-v). Cuando
+      // existe manda sobre los cuatro cajones de arriba: es la ficha en su
+      // orden, con sus títulos, subtítulos y viñetas.
+      bloques: Array.isArray(ficha?.bloques) ? (ficha.bloques as BloqueFicha[]) : undefined,
       secciones: seccionesDeFicha(ficha),
       fotoBuffer: leerFotoProducto(fotoDelItem(ficha, item.color, item.productos?.foto_path ?? null)),
       logoMarcaBuffer: leerLogoMarca(item.productos?.sku ?? null),

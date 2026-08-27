@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, NOTAS, IGV, ENTREGA_POR_DEFECTO } from "./series";
 import { clasificarFicha } from "@/lib/ficha-tecnica";
+import { encajarEnCaja } from "./medir-imagen";
 
 // Sin partir palabras con guion. @react-pdf corta por sílabas cuando no entra
 // la palabra entera, y en la cabecera de la ficha salía "Panel computa-rizado"
@@ -20,6 +21,175 @@ const CARBON = "#2C2E35";
 const GRIS = "#6B6B6B";
 const BORDE = "#B9B4B2";
 const FILA_GRIS = "#EDEAE9";
+
+/* ── Norma de maquetación de la ficha de producto ────────────────────────────
+   `docs/14-estandar-ficha-cotizacion.md`. Los tres juegos de reglas que
+   entregó Darwin el 27-08 (lavadoras y secadoras, coches, prensa de planchado)
+   son la misma norma con tres juegos de columnas; acá viven sus números.
+
+   El ancho útil de la hoja es exactamente 170 mm: A4 (210) menos 20 mm de
+   margen a cada lado. Esos 20 mm no son arbitrarios — el membrete está
+   construido a esa distancia, y el borde izquierdo de la tabla tiene que
+   coincidir con el logo o la desalineación se ve al imprimir. */
+const ANCHO_TABLA = 170;
+const COLUMNA_IMAGENES = 60;
+const COLUMNA_DESCRIPCION = 110;
+const PADDING_CELDA = 1.9;
+const GRIS_ENCABEZADO = "#767171";
+const BORDE_FICHA = "#1A1A1A";
+
+/** Cajas de las tres imágenes de la ficha, en mm (ancho × alto máximo).
+ *  La imagen se escala hasta tocar el primer lado que llegue al límite: por eso
+ *  el logo UNIMAC sale de 27 × 12.3 y el SIDI MONDIAL de 20.4 × 14, y los dos
+ *  son correctos. Ver `encajarEnCaja`. */
+const CAJA_LOGO = { ancho: 27, alto: 14 };
+const CAJA_PRODUCTO = { ancho: 54, alto: 96 };
+const CAJA_PANEL = { ancho: 35, alto: 32 };
+/** Separación entre una imagen y la siguiente dentro de la columna. */
+const AIRE_ENTRE_BLOQUES = 8;
+
+/** Juegos de columnas de especificaciones (suman 170 mm exactos). */
+const COLUMNAS_EQUIPO_6 = [18, 22, 27, 32, 33, 38];
+const COLUMNAS_EQUIPO_4 = [41, 31, 51, 47];
+const COLUMNAS_COCHE = [25, 29, 29, 87];
+
+/**
+ * Reparto para un juego de columnas que no es ninguno de los tres previstos
+ * (un equipo al que le falta el calentamiento, por ejemplo). La norma lo deja
+ * escrito: se conserva la suma de 170 mm, se reparte en proporción al rótulo
+ * más largo de cada columna y ninguna baja de 18 mm.
+ */
+function repartirColumnas(rotulos: string[]): number[] {
+  const MINIMO = 18;
+  const pesos = rotulos.map((r) => Math.max(r.length, 1));
+  const fijas = new Array(rotulos.length).fill(false);
+  const anchos = new Array(rotulos.length).fill(0);
+
+  for (;;) {
+    const disponible = ANCHO_TABLA - anchos.reduce((a, b, i) => a + (fijas[i] ? b : 0), 0);
+    const pesoLibre = pesos.reduce((a, p, i) => a + (fijas[i] ? 0 : p), 0);
+    let seFijoAlguna = false;
+    for (let i = 0; i < rotulos.length; i++) {
+      if (fijas[i]) continue;
+      anchos[i] = (pesos[i] / pesoLibre) * disponible;
+      if (anchos[i] < MINIMO) {
+        anchos[i] = MINIMO;
+        fijas[i] = true;
+        seFijoAlguna = true;
+      }
+    }
+    if (!seFijoAlguna) break;
+  }
+  // El redondeo no puede robarle milímetros al total: lo que sobre o falte se
+  // le devuelve a la columna más ancha, que es donde menos se nota.
+  return ajustarASuma(anchos);
+}
+
+/**
+ * Cuerpo de letra que hace entrar un valor en su columna.
+ *
+ * Los anchos de columna son fijos (los manda el estándar) pero los valores no:
+ * el modelo «LAVTMAX17» de la torre LG no entra en los 22 mm de «Modelo» a 10 pt
+ * y se montaba encima de la capacidad. Como es una sola palabra, tampoco puede
+ * partirse —el documento no lleva guiones de corte, decisión del 24-08— así que
+ * lo único que queda es achicarla lo justo. Se mide la palabra más larga con el
+ * ancho medio de la Helvetica Bold (0.62 em), que sobreestima un poco: es
+ * preferible que se achique de más a que invada la celda vecina.
+ */
+function tamanoQueEntra(texto: string, anchoMm: number, base: number, minimo = 7): number {
+  const disponiblePt = anchoMm * 2.8346 - 5; // menos el padding horizontal de la celda
+  const masLarga = Math.max(...texto.split(/\s+/).map((p) => p.length), 0);
+  if (masLarga === 0) return base;
+  const anchoPt = masLarga * base * 0.62;
+  if (anchoPt <= disponiblePt) return base;
+  return Math.max(minimo, Math.floor((disponiblePt / (masLarga * 0.62)) * 10) / 10);
+}
+
+/**
+ * Alto aproximado de la descripción, en milímetros.
+ *
+ * Hace falta para decidir si el bloque de imágenes se puede centrar en
+ * vertical. @react-pdf no sabe partir una celda con el contenido centrado: al
+ * centrar una ficha larga, la descripción entera se iba a la página siguiente y
+ * la primera quedaba con la foto sola (visto el 27-08 en la RX180). Así que se
+ * centra solo cuando la ficha entra en una página, que es justo el caso en el
+ * que se notaba el problema —la foto arriba y media celda vacía debajo—.
+ *
+ * La estimación es a ojo de buen cubero pero por lo alto: 110 mm de ancho a
+ * 9 pt dan unos 62 caracteres por línea, y cada línea ocupa 4.1 mm.
+ */
+function altoEstimadoDescripcion(bloques: BloqueFicha[]): number {
+  const ANCHO_CARACTERES = 62;
+  const ALTO_LINEA = 4.1;
+  let mm = 0;
+  for (const b of bloques) {
+    if (b.t === "titulo") mm += 9.5;
+    else if (b.t === "subtitulo") mm += 8.5;
+    else if (b.t === "dato") mm += ALTO_LINEA + 1;
+    else mm += Math.max(1, Math.ceil(b.texto.length / ANCHO_CARACTERES)) * ALTO_LINEA + 1;
+  }
+  return mm;
+}
+
+/** Alto libre de la fila del cuerpo en la primera página de la ficha. */
+const ALTO_FILA_CUERPO = 268 - (29.4 + 10.5 + 9.5 + 9.5) - 2 * PADDING_CELDA;
+
+/** Ancho de cada rótulo conocido en su juego de columnas completo. */
+const ANCHO_CANONICO: Record<string, number> = {
+  Marca: 18,
+  Modelo: 22,
+  Capacidad: 27,
+  Calentamiento: 32,
+  "Panel computarizado": 33,
+  "Controles Automático": 38,
+  Volumen: 29,
+  "Stock / Colores": 87,
+  Color: 29,
+};
+
+/** Redondea a un decimal sin que el total deje de ser 170 mm exactos. */
+function ajustarASuma(anchos: number[]): number[] {
+  const redondeados = anchos.map((a) => Math.round(a * 10) / 10);
+  const masAncha = redondeados.indexOf(Math.max(...redondeados));
+  redondeados[masAncha] += Math.round((ANCHO_TABLA - redondeados.reduce((a, b) => a + b, 0)) * 10) / 10;
+  return redondeados;
+}
+
+/**
+ * Anchos de la fila de especificaciones.
+ *
+ * Los tres juegos del estándar salen tal cual. Para una combinación que no está
+ * prevista —una lavadora sin calentamiento cargado, por ejemplo— se estiran los
+ * anchos canónicos de cada columna hasta volver a sumar 170: así la ficha
+ * conserva las proporciones de la norma en vez de repartir por largo de rótulo,
+ * que le daba 54 mm a «Controles Automático» y 25 a «Capacidad». El reparto por
+ * rótulo queda para las columnas que no son ninguna de las conocidas.
+ */
+function anchosEspecificaciones(rotulos: string[], esCoche: boolean): number[] {
+  if (esCoche && rotulos.length === 4) return COLUMNAS_COCHE;
+  if (rotulos.length === 6) return COLUMNAS_EQUIPO_6;
+  if (rotulos.length === 4 && rotulos[2] === "Calentamiento") return COLUMNAS_EQUIPO_4;
+  if (rotulos.every((r) => ANCHO_CANONICO[r])) {
+    const base = rotulos.map((r) => ANCHO_CANONICO[r]);
+    const factor = ANCHO_TABLA / base.reduce((a, b) => a + b, 0);
+    return ajustarASuma(base.map((b) => b * factor));
+  }
+  return repartirColumnas(rotulos);
+}
+
+/**
+ * Un renglón de la descripción, con el papel que cumple en la ficha original.
+ *
+ *   titulo    — rótulo subrayado que abre una sección
+ *   subtitulo — rótulo en negrita de adentro (TAMBOR, PUERTA…)
+ *   vineta    — un ítem de la lista
+ *   dato      — «Largo : 1100 mm», que se maqueta en dos columnas
+ */
+export type BloqueFicha =
+  | { t: "titulo"; texto: string }
+  | { t: "subtitulo"; texto: string }
+  | { t: "vineta"; texto: string }
+  | { t: "dato"; rotulo: string; valor: string };
 
 export interface SeccionFicha {
   /** "LAVADORA", "SECADORA". Null en un equipo de una sola máquina. */
@@ -89,6 +259,18 @@ export interface ItemPdf {
    * reporte del área comercial del 24-08.
    */
   secciones?: SeccionFicha[];
+  /**
+   * La descripción LEÍDA DE LA FICHA TAL COMO ESTÁ: una lista ordenada de
+   * bloques con su tipo, en el mismo orden en que aparecen en el Word de Lesly
+   * (`scripts/fichas-v-03-extraer.mjs`).
+   *
+   * Manda sobre los cuatro cajones de arriba —características, diseño,
+   * especificaciones, medidas—, que reordenaban la ficha y perdían todo lo que
+   * no encajara en ellos. Pedido de Darwin el 27-08: «reconoce sus títulos,
+   * subtítulos y cada ítem con su viñeta, con su misma estructura, y ponlo
+   * fielmente en la cotización».
+   */
+  bloques?: BloqueFicha[];
   fotoBuffer: Buffer | null;
   /** Logo del fabricante (UniMac…), junto a la foto — por producto, no por
    *  marca: la foto de un equipo puede traer el logo ya impreso encima, y
@@ -126,6 +308,10 @@ export interface CotizacionPdfProps {
   /** Cláusula de entrega, punto 1 de "Importante". NULL = la de por defecto
    *  (en nuestras instalaciones). Se elige por cotización desde el 24-08. */
   entregaLugar: string | null;
+  /* Las condiciones por columnas (tiempo de entrega, garantía, forma de pago y
+     saldo) se guardan en la cotización desde la migración 0094 pero HOY NO SE
+     IMPRIMEN: la tabla al pie de cada ficha se quitó el 27-08 porque repetía el
+     precio del resumen. Si vuelven, entran por acá. */
   firma: {
     nombre: string;
     cargo: string | null;
@@ -138,9 +324,14 @@ export interface CotizacionPdfProps {
 function crearEstilos(acento: string) {
   return StyleSheet.create({
     page: {
-      paddingTop: 92,
-      paddingBottom: 78,
-      paddingHorizontal: 48,
+      // 29.4 mm hasta el borde superior de la tabla, 20 mm de margen lateral y
+      // nada por debajo de los 268 mm (297 − 29). Son las tres medidas duras
+      // del estándar: el borde de la tabla cae sobre el logo del membrete y el
+      // colchón inferior es el mismo que el superior, que es lo que da simetría
+      // a la hoja impresa.
+      paddingTop: 83.4,
+      paddingBottom: 82.2,
+      paddingHorizontal: 56.7,
       fontSize: 10,
       fontFamily: "Helvetica",
       color: CARBON,
@@ -154,7 +345,7 @@ function crearEstilos(acento: string) {
        y, sobre todo, su contenido venía pegado a la izquierda con relleno a
        la derecha, así que el pie ocupaba media hoja y la línea quedaba corta.
        Dibujado sale nítido a cualquier zoom y ocupa el ancho real. */
-    membrete: { position: "absolute", top: 26, left: 48, right: 48 },
+    membrete: { position: "absolute", top: 26, left: 56.7, right: 56.7 },
     membreteFila: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
     logo: { width: 150 },
     logoBloque: { flexDirection: "column" },
@@ -163,7 +354,7 @@ function crearEstilos(acento: string) {
     membreteSub: { fontSize: 8, color: GRIS, marginTop: 2 },
     membreteLinea: { borderBottomWidth: 1.2, borderBottomColor: acento, marginTop: 5 },
 
-    pie: { position: "absolute", bottom: 24, left: 48, right: 48 },
+    pie: { position: "absolute", bottom: 24, left: 56.7, right: 56.7 },
     pieWeb: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: acento, letterSpacing: 0.2 },
     // La línea va DEBAJO de la web y encima de la dirección, como el papel.
     pieLinea: { borderBottomWidth: 0.8, borderBottomColor: BORDE, marginTop: 2, marginBottom: 4 },
@@ -200,21 +391,68 @@ function crearEstilos(acento: string) {
     totalValor: { width: "18%", fontSize: 9, fontFamily: "Helvetica-Bold", textAlign: "right", paddingVertical: 5, paddingHorizontal: 5 },
     totalDestacado: { backgroundColor: FILA_GRIS },
 
-    /* Ficha por ítem */
-    ficha: { borderWidth: 0.8, borderColor: CARBON, marginTop: 16 },
-    fichaTitulo: { fontSize: 9.5, fontFamily: "Helvetica-Bold", padding: 6 },
-    specTh: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#FFFFFF", paddingVertical: 4, paddingHorizontal: 5, textAlign: "center" },
-    specTd: { fontSize: 9, fontFamily: "Helvetica-Bold", paddingVertical: 4, paddingHorizontal: 5, textAlign: "center" },
+    /* ── Ficha por ítem — norma de maquetación ─────────────────────────────
+       Todas las medidas salen de docs/14-estandar-ficha-cotizacion.md, que a
+       su vez se midió sobre las fichas en papel. Van en milímetros a propósito:
+       es un documento para imprimir, y con porcentajes el ancho de la tabla
+       cambiaba con el margen de la hoja. No cambiar ningún número de acá sin
+       volver a correr `node scripts/auditar-ficha-cotizacion.mjs`. */
+    fichaTabla: { width: `${ANCHO_TABLA}mm`, borderWidth: 0.5, borderColor: BORDE_FICHA },
+
+    filaTitulo: { minHeight: "10.5mm", justifyContent: "center", paddingLeft: 8 },
+    textoTitulo: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#000000" },
+
+    filaEspec: { flexDirection: "row", borderTopWidth: 0.5, borderTopColor: BORDE_FICHA },
+    celdaEspec: { minHeight: "9.5mm", justifyContent: "center", alignItems: "center", paddingHorizontal: 2 },
+    bordeIzquierdo: { borderLeftWidth: 0.5, borderLeftColor: BORDE_FICHA },
+    // Interlineado corto a propósito: «Panel computarizado» y «Controles
+    // Automático» ocupan dos líneas —es el comportamiento esperado, no un
+    // error— y con el interlineado por defecto la fila crecía de 9.5 a 10.4 mm
+    // y empujaba hacia abajo toda la ficha.
+    textoEncabezado: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: "#FFFFFF", textAlign: "center", lineHeight: 1.15 },
+    textoValor: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#000000", textAlign: "center", lineHeight: 1.15 },
+
+    filaCuerpo: { flexDirection: "row", borderTopWidth: 0.5, borderTopColor: BORDE_FICHA },
+    celdaImagenes: {
+      width: `${COLUMNA_IMAGENES}mm`,
+      paddingTop: `${PADDING_CELDA}mm`,
+      paddingBottom: `${PADDING_CELDA}mm`,
+      paddingHorizontal: `${PADDING_CELDA}mm`,
+      alignItems: "center",
+    },
+    celdaDescripcion: {
+      width: `${COLUMNA_DESCRIPCION}mm`,
+      paddingTop: `${PADDING_CELDA}mm`,
+      paddingBottom: `${PADDING_CELDA}mm`,
+      paddingHorizontal: `${PADDING_CELDA}mm`,
+      borderLeftWidth: 0.5,
+      borderLeftColor: BORDE_FICHA,
+    },
+
     // Rótulo de máquina dentro de una torre ("I. LAVADORA"): un escalón por
-    // encima de CARACTERISTICAS, como en el impreso.
-    maquinaTitulo: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 4 },
-    caracTitulo: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 3 },
-    // Subtítulo dentro de CARACTERISTICAS: negrita, sin viñeta y sangrado a la
-    // altura del texto de las viñetas, como en la ficha en papel.
-    caracSubtitulo: { fontSize: 8.5, fontFamily: "Helvetica-Bold", marginLeft: 12, marginBottom: 2 },
-    caracBullet: { flexDirection: "row", marginBottom: 1 },
-    caracPunto: { width: 12, textAlign: "center" },
-    caracTexto: { flex: 1, fontSize: 8.5, textAlign: "justify", lineHeight: 1.3 },
+    // encima del título de sección, como en el impreso.
+    maquinaTitulo: { fontSize: 10.5, fontFamily: "Helvetica-Bold", marginBottom: 4, color: "#000000" },
+    seccionTitulo: {
+      fontSize: 10,
+      fontFamily: "Helvetica-Bold",
+      textDecoration: "underline",
+      lineHeight: 1.3,
+      marginBottom: 6,
+      color: "#000000",
+    },
+    // Subtítulo dentro de una sección (TAMBOR, PUERTA, PROGRAMADOR DUAL
+    // DIGITAL…): negrita y SIN sangría — va al ras del título de sección, no a
+    // la altura de las viñetas. Medido en la ficha de la UT055.
+    subtitulo: { fontSize: 9.5, fontFamily: "Helvetica-Bold", marginTop: 8, marginBottom: 4, color: "#000000" },
+    vineta: { flexDirection: "row", paddingLeft: "6.35mm", marginTop: 1.5, marginBottom: 1.5 },
+    vinetaPunto: { width: "6.35mm", fontSize: 9, color: "#000000" },
+    vinetaTexto: { flex: 1, fontSize: 9, lineHeight: 1.28, textAlign: "justify", color: "#000000" },
+    // Listas de «dato : valor» (dimensiones y medidas): tabla invisible de dos
+    // columnas con los dos puntos alineados en vertical. El estándar lo exige
+    // explícitamente —«prohibido alinear con espacios o tabulaciones»— porque
+    // con espacios la columna se descuadra en cuanto cambia una palabra.
+    datoRotulo: { width: "42.8mm", fontSize: 9, lineHeight: 1.28, color: "#000000" },
+    datoValor: { flex: 1, fontSize: 9, lineHeight: 1.28, color: "#000000" },
 
     /* Secciones finales */
     seccionSubrayada: {
@@ -256,6 +494,17 @@ function crearEstilos(acento: string) {
 
 function formatoMonto(v: number): string {
   return v.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Parte «Largo: 43 5/16" (1100 mm)» en rótulo y valor para la tabla invisible
+ * de dos columnas de dimensiones y medidas. Devuelve null cuando la línea no
+ * tiene esa forma —pasa en fichas viejas— y entonces sale como viñeta normal.
+ */
+function partirDato(linea: string): [string, string] | null {
+  const i = linea.indexOf(":");
+  if (i <= 0 || i === linea.length - 1) return null;
+  return [linea.slice(0, i).trim(), linea.slice(i + 1).trim()];
 }
 
 const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
@@ -418,7 +667,13 @@ export function CotizacionPdf({
       {/* ── Ficha técnica: un equipo por página, como los modelos reales.
            (Con las fichas dentro de la página de la carta, una ficha más alta
            que la página hacía que react-pdf comprimiera el texto encima de sí
-           mismo — "can't wrap between pages".) ── */}
+           mismo — "can't wrap between pages".)
+
+           La maquetación es la del estándar (docs/14): tabla de 170 mm con
+           cuatro filas —título, encabezado gris, valores y cuerpo— y la tabla
+           de condiciones comerciales cerrando el ítem. Una ficha larga continúa
+           en la página siguiente con la celda de imágenes vacía, que es
+           exactamente lo que hace react-pdf al partir la fila. ── */}
       {items
         .filter((item) => {
           // Un equipo escrito a mano (todavía no está en el catálogo, migración
@@ -435,24 +690,91 @@ export function CotizacionPdf({
           return tieneAlgoQueDecir;
         })
         .map((item, i) => {
-          // Columnas de especificación como en los modelos reales: Calentamiento
-          // solo aparece en secadoras a gas; si el producto no tiene ficha de
-          // panel/controles se muestra la categoría.
-          const columnas: { titulo: string; valor: string }[] = [
-            { titulo: "Marca", valor: item.marca },
-            { titulo: "Modelo", valor: item.modelo },
-            { titulo: "Capacidad", valor: item.capacidad ?? "—" },
-          ];
-          if (item.calentamiento) columnas.push({ titulo: "Calentamiento", valor: item.calentamiento });
-          if (item.panel) columnas.push({ titulo: "Panel computarizado", valor: item.panel });
-          if (item.controles) columnas.push({ titulo: "Controles Automático", valor: item.controles });
-          // El color elegido manda sobre la lista de disponibles: al cliente se
-          // le está ofreciendo ESE, y la foto de arriba ya es la de ese color.
-          if (item.color) columnas.push({ titulo: "Color", valor: item.color });
-          else if (item.colores.length > 0)
-            columnas.push({ titulo: "Color disponible", valor: item.colores.join(" / ") });
-          if (!item.panel && !item.controles) columnas.push({ titulo: "Categoría", valor: item.categoria ?? "—" });
-          const anchoCol = `${100 / columnas.length}%`;
+          /* ── Familia de ficha ──
+             El estándar distingue dos. Los coches de transporte y accesorios no
+             tienen logo de fábrica ni panel de control que mostrar: llevan
+             cuatro columnas —la última, ancha, para los colores de stock— y una
+             sola imagen centrada también en vertical. Todo lo demás es un
+             EQUIPO: hasta tres imágenes alineadas arriba y el juego de columnas
+             que le corresponda según lo que tenga cargado. */
+          const esCoche =
+            (item.categoria ?? "").toLowerCase() === "coche" ||
+            (!item.panel && !item.controles && !item.calentamiento && item.colores.length > 0);
+
+          const columnas: { titulo: string; valor: string }[] = esCoche
+            ? [
+                { titulo: "Marca", valor: item.marca },
+                { titulo: "Modelo", valor: item.modelo },
+                { titulo: "Volumen", valor: item.capacidad ?? "" },
+                // El color elegido manda sobre la lista de disponibles: al
+                // cliente se le está ofreciendo ESE, y la foto ya es la de ese
+                // color.
+                {
+                  titulo: item.color ? "Color" : "Stock / Colores",
+                  valor: item.color ?? item.colores.join(" / "),
+                },
+              ]
+            : [
+                { titulo: "Marca", valor: item.marca },
+                { titulo: "Modelo", valor: item.modelo },
+                ...(item.capacidad ? [{ titulo: "Capacidad", valor: item.capacidad }] : []),
+                ...(item.calentamiento ? [{ titulo: "Calentamiento", valor: item.calentamiento }] : []),
+                ...(item.panel ? [{ titulo: "Panel computarizado", valor: item.panel }] : []),
+                ...(item.controles ? [{ titulo: "Controles Automático", valor: item.controles }] : []),
+                ...(item.color ? [{ titulo: "Color", valor: item.color }] : []),
+              ];
+          const anchosEspec = anchosEspecificaciones(
+            columnas.map((c) => c.titulo),
+            esCoche,
+          );
+
+
+          /* Imágenes: cada una escalada hasta tocar el primer lado de su caja.
+             En los coches solo va la foto del producto. */
+          const imagenes: { datos: Buffer; ancho: number; alto?: number }[] = [];
+          if (!esCoche && item.logoMarcaBuffer) {
+            imagenes.push({
+              datos: item.logoMarcaBuffer,
+              ...encajarEnCaja(item.logoMarcaBuffer, CAJA_LOGO.ancho, CAJA_LOGO.alto),
+            });
+          }
+          if (item.fotoBuffer) {
+            imagenes.push({
+              datos: item.fotoBuffer,
+              ...encajarEnCaja(item.fotoBuffer, CAJA_PRODUCTO.ancho, CAJA_PRODUCTO.alto),
+            });
+          }
+          if (!esCoche && item.panelImagenBuffer) {
+            imagenes.push({
+              datos: item.panelImagenBuffer,
+              ...encajarEnCaja(item.panelImagenBuffer, CAJA_PANEL.ancho, CAJA_PANEL.alto),
+            });
+          }
+
+          // ¿La ficha entra en una sola página? De eso depende cómo se centra
+          // en vertical el bloque de imágenes (ver más abajo).
+          //
+          // Con la ficha vieja —la que todavía no se releyó del Word y no tiene
+          // `bloques`— se estima igual, con sus cuatro listas: dar por hecho que
+          // no cabe dejaba la foto de un coche a media celda por debajo del
+          // centro (visto el 27-08 al cargar el catálogo).
+          const bloquesParaMedir: BloqueFicha[] =
+            item.bloques ??
+            [
+              ...(item.secciones ?? [
+                {
+                  caracteristicas: item.caracteristicas,
+                  disenoConstruccion: item.disenoConstruccion,
+                  dimensiones: item.dimensiones,
+                  medidas: item.medidas,
+                },
+              ]).flatMap((s) => [...s.caracteristicas, ...s.disenoConstruccion, ...s.dimensiones, ...s.medidas]),
+            ].map((texto) => ({ t: "vineta", texto }));
+          const cabeEnUnaPagina = altoEstimadoDescripcion(bloquesParaMedir) <= ALTO_FILA_CUERPO;
+          /** Alto del bloque de imágenes con sus separaciones, en mm. */
+          const altoBloqueImagenes = imagenes.every((i) => i.alto)
+            ? imagenes.reduce((suma, i) => suma + (i.alto ?? 0), 0) + AIRE_ENTRE_BLOQUES * (imagenes.length - 1)
+            : null;
 
           const tieneDetalle =
             item.caracteristicas.length > 0 ||
@@ -464,138 +786,258 @@ export function CotizacionPdf({
             <Page key={i} size="A4" style={estilos.page}>
               {membrete}
               {pie}
-              <View style={estilos.ficha}>
-              <Text style={estilos.fichaTitulo}>
-                ITEM {ROMANOS[i] ?? i + 1}.- {item.nombre.toUpperCase()}
-              </Text>
-              <View style={[estilos.thFila, { borderTopWidth: 0.8, borderTopColor: CARBON }]}>
-                {columnas.map((c, j) => (
-                  <Text key={j} style={[estilos.specTh, { width: anchoCol }]}>
-                    {c.titulo}
+              <View style={estilos.fichaTabla}>
+                {/* Fila 1 — título del ítem */}
+                <View style={estilos.filaTitulo}>
+                  <Text style={estilos.textoTitulo}>
+                    ITEM {ROMANOS[i] ?? i + 1}.- {item.nombre.toUpperCase()}
                   </Text>
-                ))}
-              </View>
-              <View style={[estilos.tdFila, { borderTopColor: BORDE }]}>
-                {columnas.map((c, j) => (
-                  <Text key={j} style={[estilos.specTd, { width: anchoCol }]}>
-                    {c.valor}
-                  </Text>
-                ))}
-              </View>
-
-              {(tieneDetalle || item.fotoBuffer) && (
-                <View style={{ flexDirection: "row", borderTopWidth: 0.8, borderTopColor: BORDE }}>
-                  {/* A la izquierda va la foto y nada más; las dimensiones, las
-                      medidas y la descripción van todas a la derecha. Es como
-                      lo corrigió el ing. Carlos el 24-08 mirando el PDF
-                      impreso, y coincide con los modelos en papel.
-
-                      Antes las medidas iban abajo de la foto para aprovechar el
-                      hueco y evitar que una ficha larga se desbordara. Ese
-                      riesgo baja solo con este orden: en la columna ancha cada
-                      viñeta ocupa menos líneas que en la angosta, así que el
-                      alto total de la ficha no sube. */}
-                  {item.fotoBuffer && (
-                    // 38%: proporción ideal entre foto y texto (pedido de
-                    // Santos 26-08, con la imagen de referencia). El 53%
-                    // anterior dejaba el panel de foto demasiado grande.
-                    <View style={{ width: "38%", padding: 10, justifyContent: "flex-start" }}>
-                      {/* Logo del fabricante, foto del equipo y foto del panel
-                          de control, en ese orden — como en la ficha original
-                          (pedido 26-08, con la referencia que armó Darwin de
-                          la SECU1202 al lado). Antes solo salía la foto. */}
-                      {item.logoMarcaBuffer && (
-                        // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML
-                        <Image src={item.logoMarcaBuffer} style={{ width: "40%", alignSelf: "center", marginBottom: 8 }} />
-                      )}
-                      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
-                      <Image src={item.fotoBuffer} style={{ width: "100%" }} />
-                      {item.panelImagenBuffer && (
-                        // 54% (90% -40%, pedido de Santos 26-08 con la
-                        // SECUT055V al lado: el panel salía gigante frente a
-                        // la foto del equipo).
-                        // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML
-                        <Image src={item.panelImagenBuffer} style={{ width: "54%", alignSelf: "center", marginTop: 8 }} />
-                      )}
-                    </View>
-                  )}
-                  <View
-                    style={{
-                      flex: 1,
-                      padding: 8,
-                      borderLeftWidth: item.fotoBuffer ? 0.8 : 0,
-                      borderLeftColor: BORDE,
-                    }}
-                  >
-                    {/* Una torre lavadora-secadora son DOS máquinas y su ficha
-                        trae un bloque para cada una. Se imprimen separadas y
-                        rotuladas —"I. LAVADORA", "II. SECADORA"— como el
-                        documento en papel. Un equipo normal tiene una sola
-                        sección sin rótulo y sale exactamente igual que antes. */}
-                    {(item.secciones ?? [
-                      {
-                        titulo: null,
-                        caracteristicas: item.caracteristicas,
-                        caracteristicasTitulo: item.caracteristicasTitulo,
-                        disenoConstruccion: item.disenoConstruccion,
-                        dimensiones: item.dimensiones,
-                        dimensionesTitulo: item.dimensionesTitulo,
-                        medidas: item.medidas,
-                        medidasTitulo: item.medidasTitulo,
-                        ordenSecciones: item.ordenSecciones,
-                      },
-                    ]).map((sec, s) => {
-                      // Bloques con viñetas + su título. El rótulo de dos de
-                      // ellos no es fijo entre plantillas (ver
-                      // extraer-ficha-tecnica.mjs), así que se imprime el que
-                      // trajo la ficha y solo se cae al de siempre cuando no
-                      // se guardó ninguno. El ORDEN tampoco es fijo —
-                      // reportado 26-08 con la LAV040, que abre con "DISEÑO DE
-                      // CONSTRUCCIÓN" en vez de "AUTOMATIZACIÓN…"— así que se
-                      // reordena según `ordenSecciones` cuando la ficha lo trae.
-                      const porClave = {
-                        caracteristicas: { titulo: sec.caracteristicasTitulo ?? "CARACTERÍSTICAS", lineas: sec.caracteristicas },
-                        disenoConstruccion: { titulo: "DISEÑO DE CONSTRUCCIÓN", lineas: sec.disenoConstruccion },
-                        dimensiones: { titulo: sec.dimensionesTitulo ?? "DIMENSIONES DE LA MÁQUINA", lineas: sec.dimensiones },
-                        medidas: { titulo: sec.medidasTitulo ?? "MEDIDAS GENERALES", lineas: sec.medidas },
-                      };
-                      const orden = sec.ordenSecciones ?? ["caracteristicas", "disenoConstruccion", "dimensiones", "medidas"];
-                      const bloques = orden.map((clave) => porClave[clave]).filter((b) => b.lineas.length > 0);
-                      return (
-                        <View key={s} style={s > 0 ? { marginTop: 10 } : undefined}>
-                          {sec.titulo && (
-                            <Text style={estilos.maquinaTitulo}>
-                              {ROMANOS[s] ?? s + 1}. {sec.titulo}
-                            </Text>
-                          )}
-                          {bloques.map((b, bi) => (
-                            <View key={b.titulo} style={bi > 0 ? { marginTop: 8 } : undefined}>
-                              <Text style={estilos.caracTitulo}>{b.titulo}</Text>
-                              {/* TAMBOR, PUERTA, PANEL FRONTAL… son el título del
-                                  bloque que viene debajo, no una característica.
-                                  Con viñeta salían al mismo nivel que sus propias
-                                  características y el cliente leía el nombre de
-                                  la pieza como si fuera una prestación. */}
-                              {clasificarFicha(b.lineas).map((c, j) =>
-                                c.esSubtitulo ? (
-                                  <Text key={j} style={[estilos.caracSubtitulo, j > 0 ? { marginTop: 5 } : {}]}>
-                                    {c.texto}
-                                  </Text>
-                                ) : (
-                                  <View key={j} style={estilos.caracBullet}>
-                                    <Text style={estilos.caracPunto}>•</Text>
-                                    <Text style={estilos.caracTexto}>{c.texto}</Text>
-                                  </View>
-                                ),
-                              )}
-                            </View>
-                          ))}
-                        </View>
-                      );
-                    })}
-                  </View>
                 </View>
-              )}
+
+                {/* Fila 2 — encabezado de especificaciones */}
+                <View style={[estilos.filaEspec, { backgroundColor: GRIS_ENCABEZADO }]}>
+                  {columnas.map((c, j) => (
+                    <View
+                      key={j}
+                      style={[
+                        estilos.celdaEspec,
+                        { width: `${anchosEspec[j]}mm` },
+                        ...(j > 0 ? [estilos.bordeIzquierdo] : []),
+                      ]}
+                    >
+                      <Text style={[estilos.textoEncabezado, { fontSize: tamanoQueEntra(c.titulo, anchosEspec[j], 9.5, 8) }]}>
+                        {c.titulo}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Fila 3 — valores */}
+                <View style={estilos.filaEspec}>
+                  {columnas.map((c, j) => (
+                    <View
+                      key={j}
+                      style={[
+                        estilos.celdaEspec,
+                        { width: `${anchosEspec[j]}mm` },
+                        ...(j > 0 ? [estilos.bordeIzquierdo] : []),
+                      ]}
+                    >
+                      <Text style={[estilos.textoValor, { fontSize: tamanoQueEntra(c.valor, anchosEspec[j], 10) }]}>
+                        {c.valor}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Fila 4 — imágenes (60 mm) y descripción (110 mm) */}
+                {(tieneDetalle || imagenes.length > 0) && (
+                  <View style={estilos.filaCuerpo}>
+                    {/* A la izquierda van las imágenes y nada más; dimensiones,
+                        medidas y descripción van todas a la derecha. Es como lo
+                        corrigió el ing. Carlos el 24-08 mirando el PDF impreso,
+                        y coincide con los modelos en papel.
+
+                        La celda existe SIEMPRE, aunque el equipo no tenga foto:
+                        es la que dibuja el divisor vertical de la fila, y el
+                        estándar lo mantiene incluso en las páginas de
+                        continuación, donde va vacía. */}
+                    <View
+                      style={[
+                        estilos.celdaImagenes,
+                        // El bloque de imágenes va centrado —en vertical y en
+                        // horizontal— siempre que la ficha entre en una página.
+                        // Lo pidió Darwin el 27-08 mirando la RX180: la foto
+                        // arriba dejaba media celda vacía debajo y el equipo se
+                        // veía descolgado. En una ficha que sigue en la página
+                        // siguiente NO se centra: @react-pdf no sabe partir una
+                        // celda centrada y se llevaba la descripción entera a la
+                        // hoja de atrás, dejando la primera con la foto sola.
+                        { justifyContent: cabeEnUnaPagina ? "center" : "flex-start" },
+                        // En la ficha que sigue en otra página, la fila ocupa
+                        // todo el alto disponible —hasta los 268 mm—, así que
+                        // el centro se puede calcular: se baja el bloque la
+                        // mitad del hueco que le sobra. Así la foto queda
+                        // centrada también en las fichas largas.
+                        ...(cabeEnUnaPagina || altoBloqueImagenes === null
+                          ? []
+                          : [{ paddingTop: `${Math.max(0, (ALTO_FILA_CUERPO - altoBloqueImagenes) / 2)}mm` }]),
+                      ]}
+                    >
+                      {imagenes.map((img, k) => (
+                        // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML
+                        <Image
+                          key={k}
+                          src={img.datos}
+                          style={{
+                            width: `${img.ancho}mm`,
+                            ...(img.alto ? { height: `${img.alto}mm` } : {}),
+                            // El bloque va centrado, así que ya no hay aire
+                            // superior: solo la separación entre imágenes.
+                            marginTop: k === 0 ? 0 : `${AIRE_ENTRE_BLOQUES}mm`,
+                          }}
+                        />
+                      ))}
+                    </View>
+
+                    <View style={estilos.celdaDescripcion}>
+                      {/* La ficha leída tal como está: se imprime en su orden y
+                          con sus propios rótulos. Cuando el producto todavía no
+                          se reprocesó, se cae al armado por secciones de
+                          siempre, que está debajo. */}
+                      {item.bloques && item.bloques.length > 0
+                        ? item.bloques.map((b, j) => {
+                            if (b.t === "titulo")
+                              return (
+                                <Text key={j} style={[estilos.seccionTitulo, ...(j > 0 ? [{ marginTop: 10 }] : [])]}>
+                                  {b.texto}
+                                </Text>
+                              );
+                            if (b.t === "subtitulo")
+                              return (
+                                <Text key={j} style={estilos.subtitulo}>
+                                  {b.texto}
+                                </Text>
+                              );
+                            if (b.t === "dato")
+                              return (
+                                <View key={j} style={estilos.vineta}>
+                                  <Text style={estilos.vinetaPunto}>•</Text>
+                                  <Text style={estilos.datoRotulo}>{b.rotulo}</Text>
+                                  <Text style={estilos.datoValor}>: {b.valor}</Text>
+                                </View>
+                              );
+                            return (
+                              <View key={j} style={estilos.vineta}>
+                                <Text style={estilos.vinetaPunto}>•</Text>
+                                <Text style={estilos.vinetaTexto}>{b.texto}</Text>
+                              </View>
+                            );
+                          })
+                        : null}
+                      {/* Una torre lavadora-secadora son DOS máquinas y su ficha
+                          trae un bloque para cada una. Se imprimen separadas y
+                          rotuladas —"I. LAVADORA", "II. SECADORA"— como el
+                          documento en papel. Un equipo normal tiene una sola
+                          sección sin rótulo y sale exactamente igual que antes. */}
+                      {(item.bloques && item.bloques.length > 0
+                        ? []
+                        : item.secciones ?? [
+                        {
+                          titulo: null,
+                          caracteristicas: item.caracteristicas,
+                          caracteristicasTitulo: item.caracteristicasTitulo,
+                          disenoConstruccion: item.disenoConstruccion,
+                          dimensiones: item.dimensiones,
+                          dimensionesTitulo: item.dimensionesTitulo,
+                          medidas: item.medidas,
+                          medidasTitulo: item.medidasTitulo,
+                          ordenSecciones: item.ordenSecciones,
+                        },
+                      ]
+                      ).map((sec, s) => {
+                        // Bloques con viñetas + su título. El rótulo de dos de
+                        // ellos no es fijo entre plantillas (ver
+                        // extraer-ficha-tecnica.mjs), así que se imprime el que
+                        // trajo la ficha y solo se cae al de siempre cuando no
+                        // se guardó ninguno. El ORDEN tampoco es fijo —
+                        // reportado 26-08 con la LAV040, que abre con "DISEÑO DE
+                        // CONSTRUCCIÓN" en vez de "AUTOMATIZACIÓN…"— así que se
+                        // reordena según `ordenSecciones` cuando la ficha lo trae.
+                        const porClave = {
+                          caracteristicas: {
+                            titulo: sec.caracteristicasTitulo ?? "CARACTERÍSTICAS",
+                            lineas: sec.caracteristicas,
+                            esListaDeDatos: false,
+                          },
+                          disenoConstruccion: {
+                            titulo: "DISEÑO DE CONSTRUCCIÓN",
+                            lineas: sec.disenoConstruccion,
+                            esListaDeDatos: false,
+                          },
+                          dimensiones: {
+                            titulo: sec.dimensionesTitulo ?? "DIMENSIONES DE LA MÁQUINA",
+                            lineas: sec.dimensiones,
+                            esListaDeDatos: true,
+                          },
+                          medidas: {
+                            titulo: sec.medidasTitulo ?? "MEDIDAS GENERALES",
+                            lineas: sec.medidas,
+                            esListaDeDatos: true,
+                          },
+                        };
+                        const orden = sec.ordenSecciones ?? ["caracteristicas", "disenoConstruccion", "dimensiones", "medidas"];
+                        // Una línea vacía en la ficha imprimía una viñeta sola,
+                        // colgando debajo de su subtítulo (visto en PANELES de la
+                        // UT120L). No es contenido: se descarta.
+                        const bloques = orden
+                          .map((clave) => ({ ...porClave[clave], lineas: porClave[clave].lineas.filter((l) => l.trim()) }))
+                          .filter((b) => b.lineas.length > 0);
+                        return (
+                          <View key={s} style={s > 0 ? { marginTop: 10 } : undefined}>
+                            {sec.titulo && (
+                              <Text style={estilos.maquinaTitulo}>
+                                {ROMANOS[s] ?? s + 1}. {sec.titulo}
+                              </Text>
+                            )}
+                            {bloques.map((b, bi) => (
+                              <View key={b.titulo}>
+                                <Text style={[estilos.seccionTitulo, ...(bi > 0 || s > 0 ? [{ marginTop: 10 }] : [])]}>
+                                  {b.titulo.toUpperCase()}
+                                </Text>
+                                {b.esListaDeDatos
+                                  ? /* Dimensiones y medidas: tabla invisible de
+                                       dos columnas con los dos puntos alineados
+                                       en vertical. Una línea que no traiga
+                                       «rótulo: valor» sale como viñeta normal. */
+                                    b.lineas.map((linea, j) => {
+                                      const dato = partirDato(linea);
+                                      return (
+                                        <View key={j} style={estilos.vineta}>
+                                          <Text style={estilos.vinetaPunto}>•</Text>
+                                          {dato ? (
+                                            <>
+                                              <Text style={estilos.datoRotulo}>{dato[0]}</Text>
+                                              <Text style={estilos.datoValor}>: {dato[1]}</Text>
+                                            </>
+                                          ) : (
+                                            <Text style={estilos.vinetaTexto}>{linea}</Text>
+                                          )}
+                                        </View>
+                                      );
+                                    })
+                                  : /* TAMBOR, PUERTA, PANEL FRONTAL… son el título del
+                                       bloque que viene debajo, no una característica.
+                                       Con viñeta salían al mismo nivel que sus propias
+                                       características y el cliente leía el nombre de
+                                       la pieza como si fuera una prestación. */
+                                    clasificarFicha(b.lineas).map((c, j) =>
+                                      c.esSubtitulo ? (
+                                        <Text key={j} style={estilos.subtitulo}>
+                                          {c.texto}
+                                        </Text>
+                                      ) : (
+                                        <View key={j} style={estilos.vineta}>
+                                          <Text style={estilos.vinetaPunto}>•</Text>
+                                          <Text style={estilos.vinetaTexto}>{c.texto}</Text>
+                                        </View>
+                                      ),
+                                    )}
+                              </View>
+                            ))}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {/* La ficha NO lleva tabla de condiciones al pie.
+                    Se probó el 27-08 con precio, tiempo de entrega, garantía,
+                    forma de pago y saldo, y Darwin la sacó: esos datos ya van
+                    en las condiciones de la cotización y en la firma del
+                    comercial, en la última página. Repetirlos por equipo
+                    duplicaba el precio que el cliente ya vio en el resumen. */}
               </View>
             </Page>
           );

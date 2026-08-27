@@ -214,7 +214,7 @@ export async function cargarContextoCotizador(
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_lista, color, productos(marca, modelo, nombre))",
+        "id, codigo, serie, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_lista, color, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
@@ -234,6 +234,10 @@ export async function cargarContextoCotizador(
       condiciones: cot.condiciones,
       vigenciaDias: cot.vigencia_dias,
       entregaLugar: cot.entrega_lugar,
+      tiempoEntrega: cot.tiempo_entrega,
+      garantia: cot.garantia,
+      formaPago: cot.forma_pago,
+      saldo: cot.saldo,
       estadoAprobacion: cot.estado_aprobacion,
       notaGerencia: cot.nota_gerencia,
       items: (cot.cotizacion_items as unknown as {
