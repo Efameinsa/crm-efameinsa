@@ -162,16 +162,19 @@ function PanelDetalle({
         )}
         <BadgeStock stock={equipo.stock} />
       </div>
-      {/* El estado del equipo en la cotización, y el único botón que hace
-          falta: Quitar. Agregar es el clic en la fila. */}
+      {/* El estado del equipo en la cotización. El «quitar» también está acá
+          —es donde mira quien está inspeccionando el equipo— pero desde el
+          27-08 el de verdad vive en la propia fila, junto a las unidades: en
+          este panel pasaba desapercibido. */}
       {unidades > 0 && (
         <div className="flex items-center justify-between rounded-md bg-primary/10 px-2 py-1.5">
           <span className="text-xs font-semibold text-primary">En la cotización: ×{unidades}</span>
           <button
             type="button"
             onClick={() => onQuitar(equipo.id)}
-            className="cursor-pointer text-xs font-medium text-destructive hover:underline"
+            className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-destructive/30 px-1.5 py-0.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
           >
+            <X className="size-3" />
             Quitar
           </button>
         </div>
@@ -234,10 +237,12 @@ function Contador({
   unidades,
   onSumar,
   onRestar,
+  onQuitar,
 }: {
   unidades: number;
   onSumar: () => void;
   onRestar: () => void;
+  onQuitar: () => void;
 }) {
   const boton =
     "flex size-6 cursor-pointer items-center justify-center rounded-md border border-border bg-background text-sm font-bold leading-none text-foreground transition-colors hover:bg-accent";
@@ -252,6 +257,20 @@ function Contador({
       <span className="min-w-5 text-center text-xs font-bold tabular-nums text-primary">{unidades}</span>
       <button type="button" aria-label="Sumar una unidad" className={boton} onClick={onSumar}>
         +
+      </button>
+      {/* Sacar el equipo entero, al lado de donde se cambian las unidades
+          (27-08). Vivía solo en el panel de la derecha y ahí no se veía: para
+          deshacerse de un equipo con 3 unidades había que apretar «−» tres
+          veces o descubrir el botón del previsualizador. */}
+      <span className="mx-0.5 h-4 w-px bg-primary/25" />
+      <button
+        type="button"
+        aria-label="Quitar el equipo de la cotización"
+        title="Quitar el equipo de la cotización"
+        className="flex size-6 cursor-pointer items-center justify-center rounded-md border border-transparent text-muted-foreground transition-colors hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+        onClick={onQuitar}
+      >
+        <X className="size-3.5" />
       </button>
     </span>
   );
@@ -296,25 +315,45 @@ export function BuscadorEquiposModal({
 
   return (
     <>
-      {/* La caja de siempre, pero es la puerta a la ventana grande: los nombres
-          del maestro no caben en un desplegable angosto. */}
-      <button
-        type="button"
-        onClick={() => setAbierto(true)}
-        className="flex h-10 w-full min-w-0 items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-sm text-muted-foreground shadow-xs transition-colors hover:bg-accent"
-        aria-haspopup="dialog"
-      >
-        <Search className="size-4 flex-none" />
-        <span className="truncate">
-          Buscar y agregar equipos…
-          <span className="hidden xl:inline"> (código, marca, «secadora a gas», «rodillo eléctrico»)</span>
-        </span>
-        {totalEquipos > 0 && (
-          <span className="ml-auto flex-none rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-            {totalEquipos} en la cotización
-          </span>
+      {/* La puerta a la ventana grande. Parecía un campo de formulario más y en
+          la pantalla del cotizador se perdía entre los paneles (27-08), cuando
+          es LA acción de esa pantalla: sin equipos no hay cotización. Ahora es
+          una tarjeta con halo, y el halo late solo mientras la cotización está
+          vacía — cumplido su trabajo, se calma y deja de pedir atención. */}
+      <div className="relative">
+        {totalEquipos === 0 && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -inset-1 rounded-2xl bg-primary/25 blur-md motion-safe:animate-pulse"
+          />
         )}
-      </button>
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          className={cn(
+            "relative flex h-14 w-full min-w-0 cursor-pointer items-center gap-3 rounded-xl border bg-card px-4 text-left transition-all",
+            totalEquipos === 0
+              ? "border-primary ring-4 ring-primary/15 hover:ring-primary/30"
+              : "border-primary/40 hover:border-primary hover:bg-accent",
+          )}
+          aria-haspopup="dialog"
+        >
+          <span className="flex size-9 flex-none items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Search className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-foreground">Buscar y agregar equipos</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              Código, marca, capacidad o como lo pide el cliente: «secadora a gas», «rodillo eléctrico»…
+            </span>
+          </span>
+          {totalEquipos > 0 && (
+            <span className="flex-none rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+              {totalEquipos} en la cotización
+            </span>
+          )}
+        </button>
+      </div>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
         {/* El botoncito de cierre de la esquina era fácil de no ver (reportado
@@ -363,8 +402,12 @@ export function BuscadorEquiposModal({
             <ul ref={listaRef} className="space-y-1 overflow-y-auto overflow-x-hidden pr-1" role="listbox" aria-label="Equipos">
               {coincidencias.map((p, i) => (
                 <li key={p.id}>
-                  <button
-                    type="button"
+                  {/* Es un div y no un <button> porque adentro lleva los suyos
+                      —las unidades y el quitar—, y un botón dentro de otro es
+                      HTML inválido: el navegador puede tragarse el clic del de
+                      adentro. El teclado no pierde nada: se navega con las
+                      flechas desde el buscador, no tabulando la lista. */}
+                  <div
                     role="option"
                     aria-selected={(enCarrito[p.id] ?? 0) > 0}
                     data-resaltado={i === resaltado}
@@ -400,11 +443,12 @@ export function BuscadorEquiposModal({
                           unidades={enCarrito[p.id]}
                           onSumar={() => onAgregar(p)}
                           onRestar={() => onRestar(p.id)}
+                          onQuitar={() => onQuitar(p.id)}
                         />
                       )}
                       <BadgeStock stock={p.stock} />
                     </span>
-                  </button>
+                  </div>
                 </li>
               ))}
               {coincidencias.length === 0 && (

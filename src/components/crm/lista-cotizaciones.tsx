@@ -237,15 +237,23 @@ export function ListaCotizaciones({
                   <FileDown className="size-3" />
                   Ver PDF
                 </a>
-                <button
-                  type="button"
-                  disabled={ocupado}
-                  onClick={() => onDuplicar(c.id)}
-                  className="inline-flex items-center gap-1 text-muted-foreground hover:underline"
-                >
-                  <Copy className="size-3" />
-                  Duplicar
-                </button>
+                {/* Duplicar NO se ofrece en un borrador: duplicar existe para
+                    versionar un documento que ya está cerrado —una cotización
+                    confirmada no se toca, se copia (regla de gerencia de
+                    siempre, migración 0062)—. Un borrador todavía se edita, así
+                    que copiarlo solo deja dos borradores casi iguales del mismo
+                    cliente, que es justo el lío que reportó Katerine el 24-08. */}
+                {!esBorrador && (
+                  <button
+                    type="button"
+                    disabled={ocupado}
+                    onClick={() => onDuplicar(c.id)}
+                    className="inline-flex items-center gap-1 text-muted-foreground hover:underline"
+                  >
+                    <Copy className="size-3" />
+                    Duplicar
+                  </button>
+                )}
                 {/* Solo un borrador SIN número: uno que ya tiene número
                     comprometió su correlativo con contabilidad, y una enviada la
                     tiene el cliente. La base lo impide igual (migración 0065). */}

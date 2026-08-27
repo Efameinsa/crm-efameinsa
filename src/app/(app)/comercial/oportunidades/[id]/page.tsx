@@ -267,6 +267,16 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
         </div>
 
         <div className="space-y-4">
+          {/* PRIMERO, arriba de todo (27-08). La columna derecha es el riel de
+              acciones y cotizar es la que pesa: es por lo que el comercial
+              entra a esta pantalla. Calificación y Etapa se tocan una vez cada
+              tanto, así que bajan. Armar el documento ya no vive acá — se abre
+              `/cotizar`, una pantalla entera para eso; lo que queda es el
+              estado de lo cotizado y el botón para empezar. */}
+          <SeccionPanel titulo="Cotizaciones" id="cotizador">
+            <ListaCotizaciones cotizaciones={cotizaciones ?? []} oportunidadId={oportunidad.id} />
+          </SeccionPanel>
+
           <SeccionPanel titulo="Calificación">
             <CalificacionOportunidad
               oportunidadId={oportunidad.id}
@@ -279,14 +289,6 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
 
           <SeccionPanel titulo="Etapa">
             <CambiarEtapa oportunidadId={oportunidad.id} etapaActual={oportunidad.etapa} motivos={motivos ?? []} />
-          </SeccionPanel>
-
-          {/* La columna derecha es el riel de acciones —qué sigue, cómo va, en
-              qué etapa está— y cotizar es la acción que más pesa. Armar el
-              documento ya no vive acá: se abre `/cotizar`, una pantalla entera
-              para eso (27-08). Lo que queda es el estado de lo cotizado. */}
-          <SeccionPanel titulo="Cotizaciones" id="cotizador">
-            <ListaCotizaciones cotizaciones={cotizaciones ?? []} oportunidadId={oportunidad.id} />
           </SeccionPanel>
         </div>
       </div>
