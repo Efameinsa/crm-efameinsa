@@ -74,8 +74,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
 // puestas en marcha. Por eso conserva las herramientas comerciales y suma las
 // dos pantallas suyas arriba, que es lo que abre al llegar.
 const ENLACES_POSTVENTA = [
-  { href: "/postventa", etiqueta: "Postventa", icono: Wrench },
+  { href: "/postventa", etiqueta: "Mi día", icono: Wrench },
   { href: "/postventa/agenda", etiqueta: "Agenda de despachos", icono: CalendarDays },
+  { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
   { href: "/postventa/soporte", etiqueta: "Soporte técnico", icono: LifeBuoy },
   { href: "/comercial/oportunidades", etiqueta: "Mis casos", icono: KanbanSquare },
   { href: "/comercial/cartera", etiqueta: "Clientes", icono: Building2 },

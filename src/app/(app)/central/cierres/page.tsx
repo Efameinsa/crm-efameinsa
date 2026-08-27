@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fechaCalendario } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChecksPedidoCentral } from "@/components/crm/checks-pedido-central";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,17 @@ export default async function CierresCentralPage() {
   const filas = (data ?? []) as unknown as FilaInforme[];
   const urgentes = filas.filter((f) => f.urgente).length;
 
+  // El estado del pedido de cada cierre: si Central ya lo ejecutó en el ERP, si
+  // está liquidado y si postventa acusó recibo. Va en una sola consulta por la
+  // lista entera y no una por fila (migración 0087).
+  const { data: pedidos } = await supabase
+    .from("servicios_postventa")
+    .select("informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at")
+    .in("informe_cierre_id", filas.map((f) => f.id));
+  const pedidoPorInforme = new Map(
+    (pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]),
+  );
+
   return (
     <SeccionPanel
       titulo="Cierres de venta"
@@ -82,6 +94,7 @@ export default async function CierresCentralPage() {
                 <TableHead className="text-right">Monto</TableHead>
                 <TableHead>Pago</TableHead>
                 <TableHead>Despacho</TableHead>
+                <TableHead>Pedido</TableHead>
                 <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
@@ -133,6 +146,17 @@ export default async function CierresCentralPage() {
                     ) : (
                       "—"
                     )}
+                  </TableCell>
+                  {/* Los dos checks que liberan el pedido a postventa. */}
+                  <TableCell className="align-top">
+                    <ChecksPedidoCentral
+                      informeId={f.id}
+                      cliente={f.cliente_nombre}
+                      numeroPedido={(pedidoPorInforme.get(f.id)?.numero_pedido_erp as string | null) ?? null}
+                      pedidoEjecutado={pedidoPorInforme.get(f.id)?.pedido_ejecutado_at != null}
+                      liquidacion={pedidoPorInforme.get(f.id)?.liquidacion_at != null}
+                      aprobadoPostventa={pedidoPorInforme.get(f.id)?.aprobado_at != null}
+                    />
                   </TableCell>
                   <TableCell className="align-top">
                     <a
