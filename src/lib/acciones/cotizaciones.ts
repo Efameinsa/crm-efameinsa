@@ -12,6 +12,9 @@ export interface ItemCotizacion {
   cantidad: number;
   precio_unitario: number;
   tier_aplicado?: string;
+  /** Color con el que se ofrece este equipo, elegido en el buscador (migración
+   *  0088). null/ausente = no se eligió: el PDF lista los disponibles. */
+  color?: string | null;
 }
 
 /**
@@ -192,7 +195,7 @@ export async function cambiarSerieBorrador(datos: {
   const { data: original } = await supabase
     .from("cotizaciones")
     .select(
-      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, tier_aplicado)",
+      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, tier_aplicado, color)",
     )
     .eq("id", datos.cotizacionId)
     .maybeSingle();
@@ -208,6 +211,7 @@ export async function cambiarSerieBorrador(datos: {
       cantidad: number;
       precio_unitario: number;
       tier_aplicado: string | null;
+      color: string | null;
     }[]) ?? [];
   if (items.length === 0) return { error: "El borrador no tiene equipos" };
 
@@ -220,6 +224,7 @@ export async function cambiarSerieBorrador(datos: {
       cantidad: i.cantidad,
       precio_unitario: i.precio_unitario,
       tier_aplicado: i.tier_aplicado ?? undefined,
+      color: i.color,
     })),
     p_condiciones: original.condiciones,
     p_vigencia_dias: original.vigencia_dias,
@@ -250,7 +255,7 @@ export async function duplicarCotizacion(
 
   const { data: original, error: errorOriginal } = await supabase
     .from("cotizaciones")
-    .select("codigo, oportunidad_id, serie, condiciones, vigencia_dias, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, tier_aplicado)")
+    .select("codigo, oportunidad_id, serie, condiciones, vigencia_dias, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, tier_aplicado, color)")
     .eq("id", cotizacionId)
     .maybeSingle();
   if (errorOriginal) return { error: errorOriginal.message };
@@ -263,6 +268,7 @@ export async function duplicarCotizacion(
       cantidad: number;
       precio_unitario: number;
       tier_aplicado: string | null;
+      color: string | null;
     }[]) ?? [];
   if (items.length === 0) return { error: "La cotización original no tiene ítems" };
 
@@ -277,6 +283,9 @@ export async function duplicarCotizacion(
       cantidad: i.cantidad,
       precio_unitario: i.precio_unitario,
       tier_aplicado: i.tier_aplicado ?? undefined,
+      // El color elegido es parte de lo que se le ofreció al cliente: sin él,
+      // la copia saldría con otro color y otra foto en el PDF.
+      color: i.color,
     })),
     p_condiciones: original.condiciones,
     p_vigencia_dias: original.vigencia_dias,

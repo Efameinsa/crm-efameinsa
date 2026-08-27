@@ -78,7 +78,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .from("cotizaciones")
     .select(
       `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, entrega_lugar, cliente_snapshot, created_at,
-       cotizacion_items(cantidad, precio_unitario, descripcion, productos(sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
+       cotizacion_items(cantidad, precio_unitario, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
        oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
     )
@@ -178,11 +178,30 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return [`Capacidad: ${capacidad}`, ...lista];
   }
 
+  /**
+   * La foto del color que se eligió para este cliente (migración 0088). Los
+   * coches de transporte tienen una foto por color en `ficha.fotos_por_color`;
+   * sin color elegido —o si ese color no tiene foto propia— se usa la del
+   * producto, como siempre. `leerFotoProducto` valida la ruta igual.
+   */
+  function fotoDelItem(
+    ficha: Record<string, unknown> | null | undefined,
+    color: string | null,
+    fotoPath: string | null,
+  ): string | null {
+    if (!color) return fotoPath;
+    const mapa = ficha?.fotos_por_color;
+    if (typeof mapa !== "object" || mapa === null) return fotoPath;
+    const ruta = (mapa as Record<string, unknown>)[color];
+    return typeof ruta === "string" ? ruta : fotoPath;
+  }
+
   const items: ItemPdf[] = (
     cotizacion.cotizacion_items as unknown as {
       cantidad: number;
       precio_unitario: number;
       descripcion: string | null;
+      color: string | null;
       productos: {
         sku: string;
         marca: string;
@@ -209,6 +228,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       panel: textoDeFicha(ficha, "panel"),
       controles: textoDeFicha(ficha, "controles"),
       colores: listaDeFicha(ficha, "colores"),
+      color: item.color,
       caracteristicas: listaDeFicha(ficha, "caracteristicas"),
       caracteristicasTitulo: textoDeFicha(ficha, "caracteristicasTitulo"),
       disenoConstruccion: listaDeFicha(ficha, "disenoConstruccion"),
@@ -218,7 +238,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       medidasTitulo: textoDeFicha(ficha, "medidasTitulo"),
       ordenSecciones: ordenDeFicha(ficha),
       secciones: seccionesDeFicha(ficha),
-      fotoBuffer: leerFotoProducto(item.productos?.foto_path ?? null),
+      fotoBuffer: leerFotoProducto(fotoDelItem(ficha, item.color, item.productos?.foto_path ?? null)),
       logoMarcaBuffer: leerLogoMarca(item.productos?.sku ?? null),
       panelImagenBuffer: leerImagenPanel(item.productos?.sku ?? null),
       cantidad: item.cantidad,

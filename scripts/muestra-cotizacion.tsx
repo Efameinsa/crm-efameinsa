@@ -84,6 +84,7 @@ async function main() {
     panel: (p.ficha?.panel as string) ?? null,
     controles: (p.ficha?.controles as string) ?? null,
     colores: lista(p.ficha, "colores"),
+    color: null,
     caracteristicas: lista(p.ficha, "caracteristicas"),
     caracteristicasTitulo: texto(p.ficha, "caracteristicasTitulo"),
     disenoConstruccion: lista(p.ficha, "disenoConstruccion"),

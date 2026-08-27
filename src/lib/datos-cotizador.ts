@@ -214,7 +214,7 @@ export async function cargarContextoCotizador(
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_lista, productos(marca, modelo, nombre))",
+        "id, codigo, serie, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_lista, color, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
@@ -242,6 +242,7 @@ export async function cargarContextoCotizador(
         cantidad: number;
         precio_unitario: number;
         precio_lista: number | null;
+        color: string | null;
         productos: { marca: string; modelo: string; nombre: string } | null;
       }[]).map((i) => ({
         producto_id: i.producto_id,
@@ -252,6 +253,9 @@ export async function cargarContextoCotizador(
         cantidad: i.cantidad,
         precio_unitario: Number(i.precio_unitario),
         precioPiso: i.precio_lista != null ? Number(i.precio_lista) : null,
+        // Reabrir un borrador tiene que devolver el equipo tal como se eligió,
+        // color incluido: si no, el próximo autoguardado lo borraría.
+        color: i.color,
       })),
     };
   }

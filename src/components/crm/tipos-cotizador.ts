@@ -84,5 +84,7 @@ export interface BorradorEnEdicion {
     cantidad: number;
     precio_unitario: number;
     precioPiso: number | null;
+    /** Color con el que se estaba ofreciendo el equipo (migración 0088). */
+    color: string | null;
   }[];
 }

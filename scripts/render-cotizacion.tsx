@@ -41,7 +41,7 @@ if (cots.length === 0) throw new Error("No existe esa cotización");
 const c = cots[0];
 
 const { rows: items } = await bd.query(
-  `select i.cantidad, i.precio_unitario, i.descripcion,
+  `select i.cantidad, i.precio_unitario, i.descripcion, i.color,
           p.sku, p.marca, p.modelo, p.nombre, p.capacidad, p.categoria, p.ficha, p.foto_path
      from cotizacion_items i left join productos p on p.id = i.producto_id
     where i.cotizacion_id = $1`,
@@ -126,6 +126,7 @@ const itemsPdf: ItemPdf[] = items.map((i) => ({
   panel: texto(i.ficha, "panel"),
   controles: texto(i.ficha, "controles"),
   colores: lista(i.ficha, "colores"),
+  color: i.color ?? null,
   caracteristicas: lista(i.ficha, "caracteristicas"),
   caracteristicasTitulo: texto(i.ficha, "caracteristicasTitulo"),
   disenoConstruccion: lista(i.ficha, "disenoConstruccion"),
@@ -135,7 +136,10 @@ const itemsPdf: ItemPdf[] = items.map((i) => ({
   medidasTitulo: texto(i.ficha, "medidasTitulo"),
   ordenSecciones: orden(i.ficha),
   secciones: secciones(i.ficha),
-  fotoBuffer: foto(i.foto_path),
+  // La foto del color elegido, igual que en route.tsx (migración 0088).
+  fotoBuffer: foto(
+    (i.color && (i.ficha?.fotos_por_color as Record<string, string> | undefined)?.[i.color]) || i.foto_path,
+  ),
   logoMarcaBuffer: logoMarca(i.sku ?? null),
   panelImagenBuffer: imagenPanel(i.sku ?? null),
   cantidad: i.cantidad,

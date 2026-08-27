@@ -172,6 +172,7 @@ export function PantallaCotizador({
         // comercial lo enviaba creyendo que estaba bien.
         sinFicha: Boolean(productos.find((p) => p.id === i.producto_id)?.sinFicha),
         fueraDeCatalogo: i.producto_id === null,
+        color: i.color,
       })) ?? [],
   );
   const [condiciones, setCondiciones] = useState(edicion?.condiciones ?? CONDICIONES_POR_DEFECTO);
@@ -207,6 +208,13 @@ export function PantallaCotizador({
     for (const i of carrito) if (i.producto_id) m[i.producto_id] = (m[i.producto_id] ?? 0) + i.cantidad;
     return m;
   }, [carrito]);
+  /** El color con el que cada equipo ya está en la cotización, para que el
+   *  buscador muestre cuál está elegido y no solo cuál se está mirando. */
+  const coloresEnCarrito = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const i of carrito) if (i.producto_id && i.color) m[i.producto_id] = i.color;
+    return m;
+  }, [carrito]);
 
   // ── Autoguardado ─────────────────────────────────────────────────────────
   // Lo que se le manda a la base, ya serializado: comparar esta cadena con la
@@ -215,12 +223,13 @@ export function PantallaCotizador({
   const payload = useMemo(
     () =>
       JSON.stringify({
-        items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, tier_aplicado }) => ({
+        items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, tier_aplicado, color }) => ({
           producto_id,
           descripcion,
           cantidad,
           precio_unitario,
           tier_aplicado,
+          color,
         })),
         condiciones,
         vigenciaDias,
@@ -326,10 +335,19 @@ export function PantallaCotizador({
   // El clic en el selector AGREGA directo (pedido 25-08): elegir y después
   // apretar «Agregar» era confirmar dos veces lo mismo, porque el modal ya
   // muestra foto, precio, stock y avisos antes del clic.
-  function agregarProducto(producto: ProductoCotizable) {
+  /**
+   * `color` llega cuando el equipo se eligió por una de sus miniaturas de color
+   * en el buscador (los coches de transporte). Sin color, el equipo se cotiza
+   * como siempre y el PDF lista los colores disponibles.
+   */
+  function agregarProducto(producto: ProductoCotizable, color?: string) {
     const yaEsta = carrito.findIndex((i) => i.producto_id === producto.id);
     if (yaEsta >= 0) {
-      setCarrito((c) => c.map((item, idx) => (idx === yaEsta ? { ...item, cantidad: item.cantidad + 1 } : item)));
+      setCarrito((c) =>
+        c.map((item, idx) =>
+          idx === yaEsta ? { ...item, cantidad: item.cantidad + 1, color: color ?? item.color } : item,
+        ),
+      );
       return;
     }
     const tierInicio = tierInicial(producto);
@@ -343,8 +361,24 @@ export function PantallaCotizador({
         tier_aplicado: tierInicio,
         precioPiso: precioReferencia(producto),
         sinFicha: Boolean(producto.sinFicha),
+        color: color ?? null,
       },
     ]);
+  }
+
+  /**
+   * Clic en una miniatura de color del buscador. Si el equipo ya está en la
+   * cotización le cambia el color —sin sumar otra unidad, que es lo que hace el
+   * clic en la fila—; si no está, lo agrega ya con ese color.
+   */
+  function elegirColor(productoId: string, color: string) {
+    const i = carrito.findIndex((item) => item.producto_id === productoId);
+    if (i >= 0) {
+      actualizarItem(i, { color });
+      return;
+    }
+    const producto = productos.find((p) => p.id === productoId);
+    if (producto) agregarProducto(producto, color);
   }
 
   function restarProducto(productoId: string) {
@@ -564,6 +598,8 @@ export function PantallaCotizador({
           <BuscadorEquiposModal
             productos={equiposParaElegir}
             enCarrito={cantidadesEnCarrito}
+            coloresEnCarrito={coloresEnCarrito}
+            onElegirColor={elegirColor}
             onAgregar={(e) => {
               const p = productos.find((x) => x.id === e.id);
               if (p) agregarProducto(p);
@@ -601,7 +637,11 @@ export function PantallaCotizador({
                     )}
                   >
                     <div className="flex flex-wrap items-start gap-3">
-                      <Miniatura fotoPath={producto?.fotoPath} />
+                      {/* La foto sigue al color elegido: es la que va a salir en
+                          el PDF, así que se ve acá antes de mandarlo. */}
+                      <Miniatura
+                        fotoPath={(item.color && producto?.fotosPorColor?.[item.color]) || producto?.fotoPath}
+                      />
 
                       <div className="min-w-[12rem] flex-1">
                         <p className="text-sm font-medium text-foreground">
@@ -610,6 +650,25 @@ export function PantallaCotizador({
                         </p>
                         {producto?.capacidad && (
                           <p className="text-xs text-muted-foreground">{producto.capacidad}</p>
+                        )}
+                        {/* El color se elige en el buscador, pero se corrige acá
+                            sin tener que sacar y volver a poner el equipo. */}
+                        {(producto?.colores?.length ?? 0) > 0 && (
+                          <label className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            Color
+                            <select
+                              className="cursor-pointer rounded-md border border-border bg-background px-1.5 py-0.5 text-xs font-medium text-foreground"
+                              value={item.color ?? ""}
+                              onChange={(e) => actualizarItem(i, { color: e.target.value || null })}
+                            >
+                              <option value="">Todos los disponibles</option>
+                              {producto!.colores!.map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
                         )}
                       </div>
 

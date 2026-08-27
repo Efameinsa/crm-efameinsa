@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, PackageX, ImageOff, X, ArrowRight } from "lucide-react";
+import { Search, PackageX, ImageOff, X, ArrowRight, Check } from "lucide-react";
 import { buscarEquipos } from "@/lib/buscar-equipo";
 import { esSubtituloDeFicha } from "@/lib/ficha-tecnica";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -131,10 +131,15 @@ function materialTambor(caracteristicas: string[] | undefined): string | null {
 function PanelDetalle({
   equipo,
   unidades,
+  colorElegido,
+  onElegirColor,
   onQuitar,
 }: {
   equipo: EquipoElegible | null;
   unidades: number;
+  /** El color con el que este equipo YA está en la cotización, si está. */
+  colorElegido: string | null;
+  onElegirColor?: (productoId: string, color: string) => void;
   onQuitar: (productoId: string) => void;
 }) {
   // Coches de transporte: el mismo código se fabrica en varios colores y cada
@@ -162,32 +167,49 @@ function PanelDetalle({
     materialTambor(equipo.caracteristicas) && ["Tambor", materialTambor(equipo.caracteristicas)],
   ].filter(Boolean) as [string, string][];
   const fotosPorColor = Object.entries(equipo.fotosPorColor ?? {});
-  const colorElegido = colorVisto?.equipoId === equipo.id ? colorVisto.color : (fotosPorColor[0]?.[0] ?? null);
+  // Qué foto se está viendo: la del color bajo el mouse; si no se está mirando
+  // ninguno, la del color YA elegido para la cotización; si tampoco, la primera.
+  const colorEnPantalla =
+    colorVisto?.equipoId === equipo.id ? colorVisto.color : (colorElegido ?? fotosPorColor[0]?.[0] ?? null);
   return (
     <div className="hidden h-full flex-col gap-2 overflow-y-auto sm:flex">
-      <Miniatura equipo={equipo} grande src={(colorElegido && equipo.fotosPorColor?.[colorElegido]) || equipo.fotoPath} />
+      <Miniatura
+        equipo={equipo}
+        grande
+        src={(colorEnPantalla && equipo.fotosPorColor?.[colorEnPantalla]) || equipo.fotoPath}
+      />
       {/* Las fotos de cada color, cuando el equipo se fabrica en más de uno.
-          Cambian la foto grande al pasar el mouse: el comercial ve el coche
-          del color que le está ofreciendo al cliente, no una foto genérica. */}
+          Pasar el mouse muestra ese color en grande; el CLIC lo elige, y desde
+          ahí viaja al ítem de la cotización y al PDF (migración 0088). Antes
+          solo cambiaba la vista previa y la elección se perdía al agregar el
+          equipo — reportado el 27-08: «selecciono blanco y no aparece en el
+          PDF». */}
       {fotosPorColor.length > 1 && (
         <div className="flex flex-wrap items-center gap-1">
           {fotosPorColor.map(([color, ruta]) => (
             <button
               key={color}
               type="button"
+              title={`Cotizar el ${equipo.modelo} en ${color}`}
               onMouseEnter={() => setColorVisto({ equipoId: equipo.id, color })}
               onFocus={() => setColorVisto({ equipoId: equipo.id, color })}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onElegirColor?.(equipo.id, color);
+              }}
               className={cn(
                 "flex cursor-pointer items-center gap-1 rounded-md border px-1 py-0.5 text-[10px] font-medium transition-colors",
                 colorElegido === color
                   ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:bg-secondary",
+                  : colorEnPantalla === color
+                    ? "border-border bg-secondary text-foreground"
+                    : "border-border text-muted-foreground hover:bg-secondary",
               )}
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- foto local chica */}
               <img src={ruta} alt="" loading="lazy" className="size-7 rounded bg-white object-contain" />
               {color}
+              {colorElegido === color && <Check className="size-3" />}
             </button>
           ))}
         </div>
@@ -322,6 +344,8 @@ function Contador({
 export function BuscadorEquiposModal({
   productos,
   enCarrito,
+  coloresEnCarrito,
+  onElegirColor,
   onAgregar,
   onRestar,
   onQuitar,
@@ -330,6 +354,11 @@ export function BuscadorEquiposModal({
   productos: EquipoElegible[];
   /** producto_id → unidades ya en la cotización, para los badges. */
   enCarrito: Record<string, number>;
+  /** producto_id → color con el que ya está en la cotización. */
+  coloresEnCarrito?: Record<string, string>;
+  /** Elige el color de un equipo: lo agrega con ese color si no estaba, o le
+   *  cambia el color si ya estaba (sin sumar otra unidad). */
+  onElegirColor?: (productoId: string, color: string) => void;
   /** Suma una unidad (o agrega el equipo si no estaba). */
   onAgregar: (p: EquipoElegible) => void;
   /** Resta una unidad; en 1, quita el equipo. */
@@ -506,6 +535,8 @@ export function BuscadorEquiposModal({
             <PanelDetalle
               equipo={enFoco}
               unidades={enFoco ? (enCarrito[enFoco.id] ?? 0) : 0}
+              colorElegido={enFoco ? (coloresEnCarrito?.[enFoco.id] ?? null) : null}
+              onElegirColor={onElegirColor}
               onQuitar={onQuitar}
             />
           </div>

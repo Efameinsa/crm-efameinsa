@@ -67,6 +67,12 @@ export interface ItemPdf {
    * cotización.
    */
   colores: string[];
+  /**
+   * El color que se eligió para ESTE cliente (`cotizacion_items.color`,
+   * migración 0088). Cuando existe, la ficha dice «Color: Blanco» en vez de
+   * listar los disponibles, y la foto es la de ese color.
+   */
+  color: string | null;
   caracteristicas: string[];
   caracteristicasTitulo: string | null;
   disenoConstruccion: string[];
@@ -383,6 +389,10 @@ export function CotizacionPdf({
                 <Text style={{ color: GRIS, fontSize: 8.5 }}>
                   MARCA: {item.marca.toUpperCase()} · MODELO: {item.modelo.toUpperCase()}
                   {item.capacidad ? ` · ${item.capacidad}` : ""}
+                  {/* El color elegido va también en la tabla de precios: es la
+                      página que el cliente lee, y dos coches del mismo modelo
+                      en colores distintos se distinguen solo por acá. */}
+                  {item.color ? ` · COLOR: ${item.color.toUpperCase()}` : ""}
                 </Text>
               </Text>
               <Text style={[estilos.td, estilos.cCant]}>{item.cantidad}</Text>
@@ -436,7 +446,11 @@ export function CotizacionPdf({
           if (item.calentamiento) columnas.push({ titulo: "Calentamiento", valor: item.calentamiento });
           if (item.panel) columnas.push({ titulo: "Panel computarizado", valor: item.panel });
           if (item.controles) columnas.push({ titulo: "Controles Automático", valor: item.controles });
-          if (item.colores.length > 0) columnas.push({ titulo: "Color disponible", valor: item.colores.join(" / ") });
+          // El color elegido manda sobre la lista de disponibles: al cliente se
+          // le está ofreciendo ESE, y la foto de arriba ya es la de ese color.
+          if (item.color) columnas.push({ titulo: "Color", valor: item.color });
+          else if (item.colores.length > 0)
+            columnas.push({ titulo: "Color disponible", valor: item.colores.join(" / ") });
           if (!item.panel && !item.controles) columnas.push({ titulo: "Categoría", valor: item.categoria ?? "—" });
           const anchoCol = `${100 / columnas.length}%`;
 
