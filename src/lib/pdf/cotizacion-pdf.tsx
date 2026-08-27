@@ -472,9 +472,10 @@ export function CotizacionPdf({
                       viñeta ocupa menos líneas que en la angosta, así que el
                       alto total de la ficha no sube. */}
                   {item.fotoBuffer && (
-                    // 53% ≈ 32% + 65% (pedido de Santos 26-08: la foto salía
-                    // muy chica al lado de una ficha larga).
-                    <View style={{ width: "53%", padding: 10, justifyContent: "flex-start" }}>
+                    // 38%: proporción ideal entre foto y texto (pedido de
+                    // Santos 26-08, con la imagen de referencia). El 53%
+                    // anterior dejaba el panel de foto demasiado grande.
+                    <View style={{ width: "38%", padding: 10, justifyContent: "flex-start" }}>
                       {/* Logo del fabricante, foto del equipo y foto del panel
                           de control, en ese orden — como en la ficha original
                           (pedido 26-08, con la referencia que armó Darwin de
@@ -486,8 +487,11 @@ export function CotizacionPdf({
                       {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
                       <Image src={item.fotoBuffer} style={{ width: "100%" }} />
                       {item.panelImagenBuffer && (
+                        // 54% (90% -40%, pedido de Santos 26-08 con la
+                        // SECUT055V al lado: el panel salía gigante frente a
+                        // la foto del equipo).
                         // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML
-                        <Image src={item.panelImagenBuffer} style={{ width: "90%", alignSelf: "center", marginTop: 8 }} />
+                        <Image src={item.panelImagenBuffer} style={{ width: "54%", alignSelf: "center", marginTop: 8 }} />
                       )}
                     </View>
                   )}
