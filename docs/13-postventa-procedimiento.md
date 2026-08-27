@@ -578,3 +578,45 @@ Santos entregó el «MANUAL DE NORMAS LABORALES, FUNCIONES, PROCEDIMIENTOS Y SIS
 **Cuidado tomado con los datos existentes:** las 174 filas de `servicios_postventa` vienen del Excel y 106 siguen pendientes. La cola de trabajo **no** se filtra por `origen='crm'` (habría salido vacía — el mismo error que vació el Kanban en el plan 11), no se les exige el acuse que nunca tuvieron, y donde el monto pagado no se cargó la pantalla dice «pago sin registrar» en vez de afirmar un saldo que nadie verificó.
 
 **Falta de la fase 2:** carga de adjuntos en el informe de cierre (los campos y la vista ya están; falta el subidor), fotos y firma en el informe de puesta en marcha, pantalla del almacén, bandeja de Finanzas, envío del plano desde el sistema.
+
+---
+
+## Corrección del 27-08 (tarde) · Cómo se reparte el trabajo de verdad
+
+Conversación de Darwin con **Ariana (C4)**. Corrige una suposición de este documento: yo había modelado que Central deriva casos de postventa a cualquiera. No es así.
+
+> «A mí no me derivan las llamadas. Las llamadas van a ir para **Hever**, directamente… tanto respuesta, mantenimiento, todo le va a llegar a él. **Siempre y cuando sea un prospecto nuevo que requiera mantenimiento, ahí sí me derivan** — que no se le haya cotizado ni nada, pero que tenga nuestro equipo.»
+
+**Las dos rutas son distintas y no compiten:**
+
+| | Hever (PV) | Ariana (C4) |
+|---|---|---|
+| **De dónde llega el trabajo** | Central le deriva **todas** las llamadas entrantes: garantía, repuesto, mantenimiento | **Sale a buscarlo**: pide los files a Lesly y llama a clientes de 2024-2025 que compraron equipo y nunca hicieron mantenimiento |
+| **Excepción** | — | Central le deriva el **prospecto nuevo** que pide mantenimiento y ya tiene nuestro equipo |
+| **Qué es** | Atención reactiva | **Prospección sobre la base instalada** |
+
+Lo de Ariana no es atender casos: es exactamente la **campaña de reactivación** que el §3 paso 10 identificó como la mejora de mayor retorno del módulo — y resulta que ya existe, a mano, con files de papel y un Excel propio. Va por la ruta de 2024; 2025 ya lo terminó.
+
+### La decisión que ordena el modelo
+
+De los clientes de la ruta de Ariana que ya estaban en el CRM, **41 son de la cartera de otro comercial** (25 de C5, 15 de C1, 1 de C9). En la de Hever, **137**.
+
+**La cuenta no cambia de dueño.** El cliente es de quien lo vendió (regla 1 del proyecto, migración 0080); lo que se le asigna a Ariana o a Hever es la **oportunidad de mantenimiento**. Esto obligó a un ajuste: la política que deja a postventa abrir la ficha de un cliente ajeno exigía `es_postventa()`, así que Ariana habría tenido la oportunidad en su lista y, al hacer clic, no habría visto nada. Ahora usa `puede_postventa()` — la pregunta correcta no es «¿es del área?» sino «¿puede hacer este trabajo?» (migración 0095).
+
+### Lo importado
+
+Ambos Excel usan el mismo layout de 30 columnas que los CRM comerciales, y los códigos de `ESTADO` son los de `docs/08-taxonomia-oficial-efameinsa.md`, ya confirmados por gerencia. Con `scripts/importar-crm-mantenimiento.mjs`:
+
+- **40 cuentas** nuevas · **169 contactos** · **220 oportunidades** de mantenimiento · **493 gestiones** con su fecha real.
+- Ariana: 103 clientes, todos en `filtrada` (su Excel solo usa `P1_F_Realizado` y `P1_F_Realiz_Y_Cotizado`).
+- Hever: 165 clientes repartidos en seis etapas, incluidas **17 ventas** de servicio.
+
+**23 duplicados evitados.** Cruzar solo por `num_doc` exacto habría creado cuentas repetidas: el Excel escribe a las personas naturales con su DNI de 8 dígitos y el CRM las tiene con su RUC de 10 (`10` + DNI + verificador), y varias cuentas existentes no tenían documento cargado. El resolvedor cruza por documento, por la equivalencia DNI↔RUC y por razón social exacta cuando es inequívoca, y de paso **completa el documento** que faltaba, que es lo que evita el próximo duplicado.
+
+**Dos correcciones de datos, dichas para que queden en el registro:** dos gestiones venían fechadas en 2027 sobre un archivo llamado «CRM 2026» — se les restó un año, que es la lectura evidente. Y la columna del equipo del cliente no se importó a ningún campo estructurado: no hay dónde ponerla todavía. Vive dentro del texto de las gestiones; su sitio propio es `equipos_instalados`, cuando haya número de serie.
+
+### Lo que esto cambia del plan
+
+- El §4 («Los casos que deriva Central») describe el trabajo de **Hever**, no el de todos.
+- Falta una vista que el plan no tenía: **la ruta de mantenimiento** — a quién llamar, cuándo se le llamó por última vez y qué contestó. Hoy Ariana la ve como oportunidades en su pipeline, que funciona pero no está pensado para una campaña.
+- La cuenta `PV` se llama «Post Venta»; la persona es **Hever**. Conviene ponerle su nombre.
