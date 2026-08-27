@@ -7,7 +7,7 @@ import { requerirPerfil } from "@/lib/auth";
 // comercial que llegue acá por la URL vuelve a lo suyo.
 export default async function PostventaLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
-  if (!perfil.es_postventa && perfil.rol !== "gerencia" && perfil.rol !== "admin") {
+  if (!perfil.es_postventa && !perfil.hace_postventa && perfil.rol !== "gerencia" && perfil.rol !== "admin") {
     redirect(perfil.rol === "central" ? "/central" : "/comercial");
   }
   return <>{children}</>;

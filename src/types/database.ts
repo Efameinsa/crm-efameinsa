@@ -56,6 +56,8 @@ export interface Perfil {
   es_prueba?: boolean;
   /** Área de postventa: usa el CRM como comercial, pero no vende (0075). */
   es_postventa?: boolean;
+  /** Comercial que además atiende postventa de sus clientes (migración 0093). */
+  hace_postventa?: boolean;
   created_at: string;
   updated_at: string;
 }

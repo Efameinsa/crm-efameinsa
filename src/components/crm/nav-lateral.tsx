@@ -82,18 +82,32 @@ const ENLACES_POSTVENTA = [
   { href: "/comercial/cartera", etiqueta: "Clientes", icono: Building2 },
 ];
 
+// Las pantallas del área, sin las dos comerciales que ENLACES_POSTVENTA suma
+// para la cuenta PV: un comercial ya las tiene arriba y repetirlas confundiría.
+const ENLACES_AREA_POSTVENTA = ENLACES_POSTVENTA.filter((e) => e.href.startsWith("/postventa"));
+
 export function NavLateral({
   rol,
   esPostventa = false,
+  hacePostventa = false,
   plegada = false,
 }: {
   rol: RolUsuario;
   esPostventa?: boolean;
+  /**
+   * Comercial que además atiende postventa de sus clientes (migración 0093).
+   * A diferencia de `esPostventa`, no le cambia el mundo: le SUMA una sección.
+   * Cambiarle la barra entera a alguien por tener un segundo sombrero lo
+   * desorienta, y además le sacaría las herramientas con las que vende.
+   */
+  hacePostventa?: boolean;
   /** Barra contraída: solo íconos, el nombre va al tooltip. */
   plegada?: boolean;
 }) {
   const pathname = usePathname();
-  const enlaces = esPostventa ? ENLACES_POSTVENTA : ENLACES_POR_ROL[rol];
+  const base = esPostventa ? ENLACES_POSTVENTA : ENLACES_POR_ROL[rol];
+  const extra = !esPostventa && hacePostventa ? ENLACES_AREA_POSTVENTA : [];
+  const enlaces = [...base, ...extra];
 
   // El enlace activo es el de coincidencia más específica (más larga), no
   // solo el primero cuyo prefijo calce — así una ruta anidada como
@@ -104,12 +118,24 @@ export function NavLateral({
 
   return (
     <nav className="flex flex-col gap-0.5 p-3">
-      {enlaces.map((enlace) => {
+      {enlaces.map((enlace, i) => {
         const activo = enlace.href === activoHref;
         const Icono = enlace.icono;
+        // El rótulo va una sola vez, arriba del primer enlace del área. Es una
+        // etiqueta y no solo un color a propósito: se lee igual en blanco y
+        // negro y para quien no distingue bien los tonos.
+        const abreSeccion = extra.length > 0 && i === base.length;
         return (
+          <div key={enlace.href} className="contents">
+            {abreSeccion &&
+              (plegada ? (
+                <hr className="my-2 border-sidebar-border" />
+              ) : (
+                <p className="mt-4 mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                  Postventa
+                </p>
+              ))}
           <Link
-            key={enlace.href}
             href={enlace.href}
             title={plegada ? enlace.etiqueta : undefined}
             className={cn(
@@ -123,9 +149,10 @@ export function NavLateral({
             {activo && (
               <span className="absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r bg-[var(--efameinsa-granate)]" />
             )}
-            <Icono className="size-4 shrink-0" />
+            <Icono className={cn("size-4 shrink-0", i >= base.length && !activo && "text-[#4A6670]")} />
             {!plegada && enlace.etiqueta}
           </Link>
+          </div>
         );
       })}
     </nav>

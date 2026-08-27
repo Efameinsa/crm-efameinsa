@@ -13,6 +13,10 @@ export interface ComercialSupervision {
   codigo_anterior: string | null;
   seguimientos_efectivos: number;
   intentos_sin_contacto: number;
+  /** Gestiones sobre casos de postventa: se muestran, no cuentan para la meta
+   *  de venta (migración 0093). */
+  gestiones_postventa: number;
+  hace_postventa?: boolean;
   cumple_meta: boolean;
   por_tipo: Record<string, number>;
   /** Cotizaciones hechas en el CRM ese día. */

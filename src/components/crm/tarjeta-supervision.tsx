@@ -73,8 +73,21 @@ export function TarjetaSupervision({
           />
         </div>
         <span className="shrink-0 text-xs font-semibold tabular-nums text-foreground">
+          {/* El rótulo aparece solo cuando hay postventa que distinguir: en los
+              demás no agrega nada y ensuciaría siete tarjetas. */}
+          {c.gestiones_postventa > 0 && (
+            <span className="mr-1 font-normal text-muted-foreground">Gestiones de venta</span>
+          )}
           {c.seguimientos_efectivos} / {meta}
         </span>
+        {/* La carga de postventa, aparte del número de la meta. Sin esto,
+            quien atiende garantías media mañana parece que no trabajó; con
+            esto se ve su día completo y la meta sigue midiendo la venta. */}
+        {c.gestiones_postventa > 0 && (
+          <span className="shrink-0 rounded-full bg-[#4A6670]/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#4A6670]">
+            Postventa {c.gestiones_postventa}
+          </span>
+        )}
       </div>
 
       {sinActividad ? (

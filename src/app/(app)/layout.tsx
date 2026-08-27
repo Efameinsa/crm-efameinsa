@@ -8,7 +8,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-1">
-      <BarraLateral rol={perfil.rol} esPostventa={perfil.es_postventa ?? false} />
+      <BarraLateral
+        rol={perfil.rol}
+        esPostventa={perfil.es_postventa ?? false}
+        hacePostventa={perfil.hace_postventa ?? false}
+      />
       <div className="flex flex-1 flex-col">
         <EncabezadoUsuario perfil={perfil} />
         {/* El aviso para activar las notificaciones del equipo vive acá, no en
