@@ -5,7 +5,8 @@ import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { registrarActividad, cambiarEtapa } from "@/lib/acciones/oportunidades";
 import { createClient } from "@/lib/supabase/client";
-import { Paperclip, X } from "lucide-react";
+import { Paperclip, X, type LucideIcon } from "lucide-react";
+import { ICONO_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,16 +14,41 @@ import { SelectorFecha } from "@/components/crm/selector-fecha";
 import { SelectorHora } from "@/components/crm/selector-hora";
 import { cn } from "@/lib/utils";
 
-const TIPOS = [
+// SIGUEN SIENDO CHIPS, NO UN DESPLEGABLE (decisión 27-08, con «Reu online» ya
+// son nueve). Esto es un solo clic dentro de un registro que tiene que caber en
+// 15 segundos (R11): un combobox obliga a abrir, leer y elegir —tres gestos por
+// uno— y esconde las opciones justo cuando lo que se busca es reconocerlas de
+// un vistazo. Con etiquetas cortas y una sola elección, los chips ganan hasta
+// diez o doce opciones; el desplegable recién compensa cuando hay que buscar.
+//
+// Lo que sí hacía falta con nueve era JERARQUÍA. Van en dos grupos:
+//
+//   · CONTACTO — hubo cliente del otro lado. Cuentan en la supervisión diaria
+//     y en el informe a gerencia (migración 0090).
+//   · SIN CONTACTO — anotaciones internas. No cuentan, y ahora el rótulo lo
+//     dice: antes se elegía «Otro» sin saber que esa gestión desaparecía de
+//     los reportes.
+//
+// «Reu online» entró el 27-08 a pedido de Darwin: las reuniones por Meet o Zoom
+// se anotaban como «Llamada» —donde se confundían con el teléfono— o como
+// «Otro», donde quedaban fuera de todos los números. Va junto a «Visita» porque
+// es eso: la reunión con el cliente cuando ir hasta allá no da.
+const TIPOS_CONTACTO = [
   ["llamada", "Llamada"],
   ["whatsapp", "WhatsApp"],
   ["email", "Correo"],
   ["visita", "Visita"],
+  ["reunion_online", "Reu online"],
   ["showroom", "Showroom"],
+] as const;
+
+const TIPOS_INTERNOS = [
   ["filtro", "Filtro"],
   ["nota", "Nota"],
   ["otro", "Otro"],
 ] as const;
+
+type TipoGestion = (typeof TIPOS_CONTACTO)[number][0] | (typeof TIPOS_INTERNOS)[number][0];
 
 function fechaISO(diasDesdeHoy: number): string {
   const d = new Date();
@@ -69,7 +95,7 @@ export function RegistroRapido({
 }) {
   const reducido = useReducedMotion();
   const [expandido, setExpandido] = useState(false);
-  const [tipo, setTipo] = useState<(typeof TIPOS)[number][0]>("llamada");
+  const [tipo, setTipo] = useState<TipoGestion>("llamada");
   const [nota, setNota] = useState("");
   const [resultadoId, setResultadoId] = useState<number | null>(null);
   const [proximaAccion, setProximaAccion] = useState("");
@@ -173,8 +199,22 @@ export function RegistroRapido({
     <div className="space-y-4 rounded-md border border-border p-4">
       <Paso n="1" titulo="¿Qué hiciste?">
         <div className="flex flex-wrap gap-2">
-          {TIPOS.map(([valor, etiqueta]) => (
-            <Chip key={valor} activo={tipo === valor} onClick={() => setTipo(valor)}>
+          {TIPOS_CONTACTO.map(([valor, etiqueta]) => (
+            <Chip key={valor} activo={tipo === valor} onClick={() => setTipo(valor)} icono={ICONO_ACTIVIDAD[valor]}>
+              {etiqueta}
+            </Chip>
+          ))}
+        </div>
+        {/* El segundo grupo, más apagado y rotulado: son anotaciones, no
+            contacto, y no entran en la supervisión ni en el informe diario.
+            Decirlo evita el malentendido de siempre — registrar en «Otro» y
+            después aparecer sin actividad ante gerencia. */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            No cuenta como contacto
+          </span>
+          {TIPOS_INTERNOS.map(([valor, etiqueta]) => (
+            <Chip key={valor} activo={tipo === valor} onClick={() => setTipo(valor)} icono={ICONO_ACTIVIDAD[valor]}>
               {etiqueta}
             </Chip>
           ))}
@@ -337,16 +377,31 @@ function Paso({ n, titulo, children }: { n: string; titulo: string; children: Re
   );
 }
 
-function Chip({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({
+  activo,
+  onClick,
+  children,
+  icono: Icono,
+}: {
+  activo: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  /** El mismo ícono con el que esa gestión sale después en la línea de tiempo,
+   *  la agenda y el reporte: reconocer «el del teléfono» es más rápido que leer
+   *  nueve etiquetas, y hace que la misma cosa se vea igual en todas partes. */
+  icono?: LucideIcon;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={activo}
       className={cn(
-        "cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors",
+        "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
         activo ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border text-muted-foreground hover:bg-accent",
       )}
     >
+      {Icono && <Icono className="size-3.5" />}
       {children}
     </button>
   );

@@ -42,7 +42,7 @@ export interface HistItem { tipo: string; nota: string | null; fecha: string }
 
 const TIPO_LABEL: Record<string, string> = {
   llamada: "Llamada", whatsapp: "WhatsApp", email: "Correo", visita: "Visita",
-  showroom: "Showroom", filtro: "Filtro", nota: "Nota", otro: "Gestión",
+  reunion_online: "Reunión online", showroom: "Showroom", filtro: "Filtro", nota: "Nota", otro: "Gestión",
 };
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 

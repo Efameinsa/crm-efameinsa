@@ -9,6 +9,7 @@ const TIPOS_ACTIVIDAD = [
   "whatsapp",
   "email",
   "visita",
+  "reunion_online",
   "showroom",
   "filtro",
   "nota",

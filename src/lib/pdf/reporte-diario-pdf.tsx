@@ -116,6 +116,7 @@ const e = StyleSheet.create({
 
 const TIPO: Record<string, string> = {
   llamada: "Llamada", whatsapp: "WhatsApp", email: "Correo", visita: "Visita", showroom: "Showroom",
+  reunion_online: "Reunión online",
 };
 const ETAPA: Record<string, string> = {
   asignada: "Recibido", filtrada: "Filtrado", cotizada: "Cotizado",

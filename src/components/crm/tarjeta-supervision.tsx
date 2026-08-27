@@ -9,6 +9,7 @@ const ETIQUETA_TIPO: Record<string, string> = {
   whatsapp: "WhatsApp",
   email: "Correo",
   visita: "Visitas",
+  reunion_online: "Reuniones online",
 };
 
 // Tarjeta de supervisión de un comercial en un día. Mismo lenguaje visual que
