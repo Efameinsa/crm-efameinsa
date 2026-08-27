@@ -79,6 +79,15 @@ export async function fusionar(bd, destinoId, origenId, { carteraId, nombreOfici
   await bd.query("update leads set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
   await bd.query("update asignaciones set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
   await bd.query("update informes_cierre set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
+  // Las tablas de postventa (migraciones 0075 y 0087). Sin esto, fusionar una
+  // cuenta con despachos o informes los dejaría colgando de una ficha borrada
+  // —o la clave foránea impediría el borrado a mitad de la fusión—. Hoy la
+  // mayoría de las cuentas no tiene ninguna de estas filas; el día que las
+  // tenga, el que fusione no se va a acordar de esto.
+  await bd.query("update servicios_postventa set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
+  await bd.query("update soporte_tecnico     set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
+  await bd.query("update informes_servicio   set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
+  await bd.query("update equipos_instalados  set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
   // Si alguna de las dos era madre de un grupo, sus hijas pasan a la que queda.
   await bd.query("update cuentas set cuenta_padre_id = $1 where cuenta_padre_id = $2", [destinoId, origenId]);
 
