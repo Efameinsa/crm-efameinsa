@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowRightLeft } from "lucide-react";
+import { ArrowRightLeft, UserCheck } from "lucide-react";
 import { redirigirLead } from "@/lib/acciones/leads";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,11 +35,14 @@ export function RedirigirLeadBoton({
   contacto,
   comercialActual,
   comerciales,
+  supervisores = [],
 }: {
   leadId: string;
   contacto: string;
   comercialActual: string | null;
   comerciales: { id: string; nombre: string; codigo_comercial: string | null }[];
+  /** A quién llamar por el código. Sin esto, el campo del PIN es un callejón. */
+  supervisores?: { id: string; nombre: string }[];
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -127,18 +130,40 @@ export function RedirigirLeadBoton({
             corrección la habilita un supervisor, no quien se equivocó. */}
         <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
           <Label htmlFor="pin">Código del supervisor</Label>
-          <input
-            id="pin"
-            inputMode="numeric"
-            autoComplete="off"
-            maxLength={4}
-            placeholder="0000"
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            className="h-11 w-28 rounded-md border border-input bg-background text-center font-mono text-xl tracking-[0.3em]"
-          />
+          <div className="flex items-start gap-3">
+            <input
+              id="pin"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={4}
+              placeholder="0000"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              className="h-11 w-28 flex-none rounded-md border border-input bg-background text-center font-mono text-xl tracking-[0.3em]"
+            />
+            {/* CON NOMBRE Y APELLIDO. Pedir «el código del supervisor» sin decir
+                de quién dejaba a Central sin saber a quién llamar, y el control
+                se vuelve un callejón (corregido el 27-08, el mismo día). */}
+            <div className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">
+              {supervisores.length > 0 ? (
+                <>
+                  <span className="flex items-center gap-1 font-semibold text-foreground">
+                    <UserCheck className="size-3.5 flex-none" />
+                    Pídaselo a cualquiera de ellos:
+                  </span>
+                  <ul className="mt-0.5">
+                    {supervisores.map((s) => (
+                      <li key={s.id}>· {s.nombre}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <span>Pídaselo a gerencia.</span>
+              )}
+            </div>
+          </div>
           <p className="text-[11px] leading-snug text-muted-foreground">
-            Pídaselo a gerencia: lo tiene en su barra lateral y cambia cada dos minutos. Sirve para{" "}
+            Lo tiene en su barra lateral, en <b>«PIN de autorización»</b>. Cambia cada dos minutos y sirve para{" "}
             <b>una sola</b> corrección.
           </p>
         </div>

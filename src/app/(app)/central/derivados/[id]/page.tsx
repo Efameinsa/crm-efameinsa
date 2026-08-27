@@ -18,6 +18,7 @@ import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
 import { LineaTiempoCuenta, type EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { RedirigirLeadBoton } from "@/components/crm/redirigir-lead-boton";
+import { cargarSupervisores } from "@/lib/supervisores";
 import { UrgenciaBoton } from "@/components/crm/urgencia-boton";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +51,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
 
   const opId = fila.oportunidad?.id ?? null;
 
-  const [{ data: actividades }, { data: asignacion }, { data: leadCrudo }, { data: comerciales }] = await Promise.all([
+  const [{ data: actividades }, { data: asignacion }, { data: leadCrudo }, { data: comerciales }, supervisores] = await Promise.all([
     opId
       ? supabase
           .from("actividades")
@@ -76,6 +77,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
       .eq("activo", true)
       .eq("es_prueba", false)
       .order("codigo_comercial"),
+    cargarSupervisores(supabase),
   ]);
 
   // Quién registró el contacto y quién decidió la derivación: son nombres
@@ -245,6 +247,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
                 contacto={contacto}
                 comercialActual={fila.asignadoA}
                 comerciales={comerciales ?? []}
+                supervisores={supervisores}
               />
               {fila.asignadoA && (
                 <UrgenciaBoton

@@ -6,6 +6,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
 import { ChipsParam } from "@/components/crm/chips-param";
 import { TarjetaDerivado } from "@/components/crm/tarjeta-derivado";
+import { cargarSupervisores } from "@/lib/supervisores";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -50,7 +51,7 @@ export default async function DerivadosPage({
   const busqueda = (sp.q ?? "").trim();
   const supabase = await createClient();
 
-  const [{ data: comerciales }, derivados] = await Promise.all([
+  const [{ data: comerciales }, supervisores, derivados] = await Promise.all([
     supabase
       .from("perfiles")
       .select("id, nombre, codigo_comercial")
@@ -58,6 +59,7 @@ export default async function DerivadosPage({
       .eq("activo", true)
       .eq("es_prueba", false)
       .order("codigo_comercial"),
+    cargarSupervisores(supabase),
     cargarDerivados(supabase, {
       desde: periodo.desde,
       hasta: periodo.hasta,
@@ -135,7 +137,7 @@ export default async function DerivadosPage({
       ) : (
         <div className="space-y-2">
           {visibles.map((fila) => (
-            <TarjetaDerivado key={fila.id} fila={fila} comerciales={comerciales ?? []} />
+            <TarjetaDerivado key={fila.id} fila={fila} comerciales={comerciales ?? []} supervisores={supervisores} />
           ))}
         </div>
       )}

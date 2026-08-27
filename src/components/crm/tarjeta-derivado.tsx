@@ -50,9 +50,11 @@ const CLASE_FOCO: Record<string, string> = {
 export function TarjetaDerivado({
   fila,
   comerciales,
+  supervisores,
 }: {
   fila: DerivadoFila;
   comerciales: { id: string; nombre: string; codigo_comercial: string | null }[];
+  supervisores?: { id: string; nombre: string }[];
 }) {
   const etapa = fila.oportunidad ? ETIQUETA_ETAPA[fila.oportunidad.etapa] : null;
   const alerta = fila.alerta ? CLASE_ALERTA[fila.alerta] : null;
@@ -179,6 +181,7 @@ export function TarjetaDerivado({
             contacto={contacto}
             comercialActual={fila.asignadoA}
             comerciales={comerciales}
+            supervisores={supervisores}
           />
           {fila.asignadoA && (
             <UrgenciaBoton
