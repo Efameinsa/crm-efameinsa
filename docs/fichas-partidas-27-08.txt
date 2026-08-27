@@ -1,0 +1,2768 @@
+
+==============================================================================
+DE COMERCIALES DISTINTOS — lo decide gerencia, no un script — 128 clientes
+==============================================================================
+
+  MINERA BOROO MISQUICHILCA SA   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 20209133394 · C5 · 4 op · 1 venta(s) US$ 96,999 · 21 gestiones · 9 ppto · 1 contactos
+
+  NEWREST PERU SAC   [2 fichas]
+      sin documento · C1 · 1 op · 1 venta(s) US$ 20,299 · 1 gestiones · 8 ppto · 1 contactos
+      RUC 20381235051 · C5 · 4 op · 1 venta(s) US$ 3,599 · 4 gestiones · 4 ppto · 2 contactos
+
+  CONSTRUCTORA CONCEPCION SAC   [2 fichas]
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20109116051 · C5 · 6 op · 1 venta(s) US$ 21,950 · 10 gestiones · 0 ppto · 2 contactos
+
+  NATUCULTURA SA   [4 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 4 ppto · 2 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20451871286 · C1 · 3 op · 1 venta(s) US$ 18,800 · 3 gestiones · 8 ppto · 3 contactos
+
+  CORDOVA VIVAS WILFREDO   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 4 ppto · 1 contactos
+      RUC 10238576038 · C5 · 2 op · 1 venta(s) US$ 13,813.56 · 24 gestiones · 0 ppto · 1 contactos
+
+  CORPORACION HOTELERA SAN ANDRES SAC   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 20493040309 · C4 · 5 op · 1 venta(s) US$ 11,440.67 · 7 gestiones · 4 ppto · 3 contactos
+
+  VITTORIOS EIRL   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+      RUC 20568716672 · C5 · 6 op · 2 venta(s) US$ 8,462.08 · 6 gestiones · 0 ppto · 1 contactos
+
+  AQUA EXPEDITIONS S.A.C.   [2 fichas]
+      sin documento · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+      RUC 20493584821 · C1 · 4 op · 1 venta(s) US$ 7,500 · 11 gestiones · 2 ppto · 3 contactos
+
+  HOSTAL RESIDENCIAL PISCIS S.A.C.   [2 fichas]
+      RUC 20554869131 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 1 venta(s) US$ 7,494.22 · 0 gestiones · 0 ppto · 0 contactos
+
+  RAMOS CAYPO FRANCO NOE   [2 fichas]
+      RUC 75338137 · C5 · 2 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 2 contactos
+      sin documento · C1 · 1 op · 1 venta(s) US$ 7,118.65 · 8 gestiones · 3 ppto · 1 contactos
+
+  GARCIA ANGELES ALEJANDRINA.   [2 fichas]
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10073276964 · C5 · 6 op · 2 venta(s) US$ 6,699 · 10 gestiones · 6 ppto · 4 contactos
+
+  AQPM  INVERSIONES EIRL   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 0 contactos
+      RUC 20610887911 · C9 · 3 op · 1 venta(s) US$ 6,470 · 3 gestiones · 0 ppto · 2 contactos
+
+  DANIA JESSENIA CABELLO CARRILLO - 
+SIEMPRE TIZA   [3 fichas]
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+      RUC 10465733140 · C4 · 3 op · 1 venta(s) US$ 5,813.69 · 3 gestiones · 5 ppto · 2 contactos
+
+  PERU VACATION RENTALS SOCIEDAD ANÓNIMA CERRADA - PEVARENT SAC   [2 fichas]
+      RUC 20600869982 · C5 · 2 op · 0 venta(s) US$ 0 · 9 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 1 op · 1 venta(s) US$ 5,508.48 · 6 gestiones · 0 ppto · 0 contactos
+
+  BERMEO LABAN LUIS EDGARDO   [2 fichas]
+      sin documento · C9 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+      RUC 10443018234 · C5 · 2 op · 1 venta(s) US$ 4,366 · 6 gestiones · 0 ppto · 1 contactos
+
+  NATURAL FIBERS EXPORT  SAC   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 20600201817 · C4 · 6 op · 1 venta(s) US$ 3,850 · 6 gestiones · 4 ppto · 2 contactos
+
+  MINERA VICUS SAC   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 20466890465 · C5 · 3 op · 1 venta(s) US$ 3,520 · 3 gestiones · 4 ppto · 1 contactos
+
+  FLORIDA INN SAC   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 20530210937 · C5 · 4 op · 1 venta(s) US$ 3,520 · 8 gestiones · 1 ppto · 2 contactos
+
+  CUSCO THAILAND SPA E.I.R.L.   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20606212187 · C1 · 2 op · 1 venta(s) US$ 3,389.83 · 2 gestiones · 0 ppto · 1 contactos
+
+  CONSORCIO EL PORTAL DEL MARQUES SAC   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 14 ppto · 1 contactos
+      RUC 20491823098 · C5 · 3 op · 1 venta(s) US$ 3,250 · 5 gestiones · 1 ppto · 2 contactos
+
+  LIMA AIRPORT PARTNERS SRL   [3 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 5 ppto · 1 contactos
+      RUC 20501577252 · C5 · 2 op · 1 venta(s) US$ 2,900 · 8 gestiones · 0 ppto · 1 contactos
+
+  FLORES BUITRON LUIS   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 10157500266 · C5 · 2 op · 1 venta(s) US$ 2,008.47 · 2 gestiones · 2 ppto · 1 contactos
+
+  SUNSET MANCORA S.R.L   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20602538339 · C4 · 2 op · 1 venta(s) US$ 1,950 · 2 gestiones · 0 ppto · 1 contactos
+
+  COMERCIALIZADORA ABYSEM SAC   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 7 gestiones · 0 ppto · 0 contactos
+      RUC 20605616276 · C5 · 3 op · 1 venta(s) US$ 1,390 · 28 gestiones · 2 ppto · 2 contactos
+
+  LALUPU    VILLEGAS DE HERNANDEZ SUSANA YSABEL   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 42517821 · C4 · 3 op · 1 venta(s) US$ 685 · 3 gestiones · 0 ppto · 2 contactos
+
+  TEFANO ANDRE E.I.R.L   [2 fichas]
+      RUC 20604059071 · C5 · 2 op · 0 venta(s) US$ 0 · 17 gestiones · 1 ppto · 0 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MINERA LAS BAMBAS S.A.   [2 fichas]
+      RUC 20538428524 · C5 · 2 op · 0 venta(s) US$ 0 · 9 gestiones · 1 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ROYAL CLEAN S. A. C.   [2 fichas]
+      RUC 20605091572 · C5 · 2 op · 0 venta(s) US$ 0 · 31 gestiones · 2 ppto · 0 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 1 ppto · 1 contactos
+
+  TECNOLOGIA Y EQUIPAMIENTO KANG S.A.C   [2 fichas]
+      RUC 20602216609 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+      sin documento · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  CAHUANA HINCHO MARIA ANTONIETA   [2 fichas]
+      RUC 10737597631 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+
+  DE LA PUENTE TUESTA LEONCIO ARTURO   [2 fichas]
+      RUC 10258140716 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  HOTEL LA JOYA SAC   [3 fichas]
+      RUC 20488387074 · C5 · 1 op · 0 venta(s) US$ 0 · 13 gestiones · 1 ppto · 0 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+
+  MARINA DE GUERRA DEL PERU   [2 fichas]
+      RUC 20153408191 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 2 ppto · 0 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  RICHARD RUMALDO CLEMENTE -HOSTAL ANAIS   [2 fichas]
+      RUC 10100402313 · C5 · 3 op · 0 venta(s) US$ 0 · 8 gestiones · 0 ppto · 0 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+
+  CASIA ORELLANA VLADIMIR   [2 fichas]
+      RUC 10215458780 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 0 contactos
+      sin documento · C4 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+
+  MEDINA HUERTA ANIBAL CESAR -
+HOSTAL FLORENCIA   [2 fichas]
+      RUC 10316765471 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 0 contactos
+      sin documento · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  INDUSTRIAS ASOCIADAS DEL NORTE S.A.C.   [2 fichas]
+      RUC 20612574970 · C5 · 2 op · 0 venta(s) US$ 0 · 8 gestiones · 1 ppto · 0 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 6 gestiones · 1 ppto · 1 contactos
+
+  DISTRIBUIDORA Y SERVICIOS GENERALES MARYVIC E.I.R.L.   [2 fichas]
+      RUC 20603320531 · C5 · 6 op · 0 venta(s) US$ 0 · 40 gestiones · 5 ppto · 2 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HOTELES VJO E.I.R.L   [2 fichas]
+      RUC 20612041866 · C9 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 2 ppto · 1 contactos
+      sin documento · C2 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SIERRA ANTAPITE S.A.C.   [2 fichas]
+      RUC 20601434335 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+
+  CMO HOREM S.A.C. - HOSTAL EL CARMELO - MENDIETA ILLATOPA JOHN IVAN   [2 fichas]
+      RUC 44100422 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  NEGOCIOS Y MULTISERVICIOS GENERALES DIRA E.I.R.L.   [2 fichas]
+      RUC 20529534991 · C4 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  CLASSIC LAVANDERIAS S.A.C.   [2 fichas]
+      RUC 20605574018 · C5 · 8 op · 0 venta(s) US$ 0 · 8 gestiones · 1 ppto · 1 contactos
+      sin documento · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES CCOSCO S.A.C.   [2 fichas]
+      RUC 20514909084 · C4 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 7 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  EVOLUTION GASTRONOMIC E.I.R.L.   [2 fichas]
+      RUC 20562669681 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  LENNY KIDS SAC   [2 fichas]
+      RUC 20502141768 · C1 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALIANZA COLOR S.A.C.   [3 fichas]
+      RUC 20601197171 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 2 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 2 op · 0 venta(s) US$ 0 · 10 gestiones · 1 ppto · 1 contactos
+
+  EMPRESA COMUNAL Y SERVICIOS MULTIPLES HUARAUCACA   [2 fichas]
+      RUC 20489612748 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 2 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 2 ppto · 1 contactos
+
+  GRUPO SANTA ELENA S.A.   [2 fichas]
+      RUC 20155261570 · C5 · 5 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 3 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LIMPIEZA INTEGRAL Y LAVANDERIA ECOEXPRESS E.I.R.L.   [2 fichas]
+      RUC 20603689101 · C4 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+
+  SERVICIOS DE SALUD MONTEFIORI SAC   [2 fichas]
+      RUC 20461665820 · C5 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 2 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  CORPORACION BIOMEDICA PERU S.A.C.   [2 fichas]
+      RUC 20604407479 · C4 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  CENTRAL PERU DISTRIBUCIONES S.A.C.   [2 fichas]
+      RUC 20608516302 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ELECTRO FERRO CENTRO S.A.C. - EFC SAC   [2 fichas]
+      RUC 20503141389 · C5 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 2 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+
+  OPERADOR NACIONAL DE HOTELES DEL PERU SAC   [2 fichas]
+      RUC 20600873521 · C4 · 5 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 2 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  GRAN HOTEL LAS ZARZAS S.A.C   [2 fichas]
+      RUC 20603123931 · C4 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+
+  NEGOCIOS E INVERSIONES JAM LOK SRL   [2 fichas]
+      RUC 20606592427 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AURA HOTEL SAC   [2 fichas]
+      RUC 20487936813 · C4 · 4 op · 0 venta(s) US$ 0 · 4 gestiones · 2 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  GATE GOURMET PERU S.R.L.   [2 fichas]
+      RUC 20341848955 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 4 ppto · 1 contactos
+
+  MR JEFF SELVA SAC   [2 fichas]
+      RUC 20603692927 · C4 · 4 op · 0 venta(s) US$ 0 · 4 gestiones · 8 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GRUPO GUERRERO INVERSIONES S.A.C. - LAVA YA   [2 fichas]
+      RUC 20603856083 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  COMERCIO PERU FENIX E.I.R.L.   [2 fichas]
+      RUC 20606042150 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 2 ppto · 1 contactos
+
+  OR ILLARY E.I.R.L.   [2 fichas]
+      RUC 20601395852 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 0 contactos
+
+  COMPAÑIA DE EMPRENDIMIENTOS LLIMPHUY S.A.C.   [2 fichas]
+      RUC 20605395059 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  TEXTIL ESAY PERU SOCIEDAD ANONIMA CERRADA   [2 fichas]
+      RUC 20609467461 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  DESTILERIA LA CARAVEDO S.R.L   [2 fichas]
+      RUC 20524386241 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  BELMOND PERU S.A.   [2 fichas]
+      RUC 20334539149 · C4 · 4 op · 0 venta(s) US$ 0 · 9 gestiones · 3 ppto · 2 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 6 ppto · 1 contactos
+
+  CORPORACION VASCO S.A.C. - JACKY FORM   [2 fichas]
+      RUC 20513613939 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  GOMEZ RAU JORGE FIDENCIO   [2 fichas]
+      RUC 10801901188 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  MARTINEZ AYLLON JUAN FRANCISCO  -LAVANDERIA LAVAFAST   [3 fichas]
+      RUC 10411318031 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SOLIS VASQUEZ JAVIER FELIX   [2 fichas]
+      RUC 10156829256 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  ABENGOA PERU S.A.   [2 fichas]
+      RUC 20253757931 · C4 · 7 op · 0 venta(s) US$ 0 · 7 gestiones · 0 ppto · 3 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RUIZ ESPEJO SANTOS OCTAVIO   [2 fichas]
+      RUC 10194215661 · C9 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 2 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  SERVICIOS GENERALES S.A   [2 fichas]
+      RUC 20158915724 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 11 ppto · 1 contactos
+
+  REATEGUI PALLETE EDGAR MARTIN   [2 fichas]
+      RUC 10087997621 · C4 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  CORPORACION REAL FLOR S.A.C.   [2 fichas]
+      RUC 20602176631 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  CORPORACION CENTRAL SUAREZ SAC - AVIVA DEL PERU SOCIEDAD ANONIMA CERRADA   [2 fichas]
+      sin documento · C4 · 9 op · 0 venta(s) US$ 0 · 9 gestiones · 16 ppto · 1 contactos
+      RUC 20600827066 · C5 · 1 op · 0 venta(s) US$ 0 · 31 gestiones · 0 ppto · 1 contactos
+
+  COMPLEJO TURISTICO LAS PONCIANAS S.A.C.   [2 fichas]
+      RUC 20282926866 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  IMPERIAL KNITS S.R.L.   [2 fichas]
+      RUC 20604862923 · C4 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  LOAIZA TTAMIÑA BERTHA ROSA   [2 fichas]
+      RUC 10721404302 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  MANUELITA FYH S.A.C.   [2 fichas]
+      RUC 20411051782 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 0 contactos
+
+  BRIMASA SOLUTIONS E.I.R.L.   [2 fichas]
+      RUC 20612221112 · C4 · 2 op · 0 venta(s) US$ 0 · 6 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 8 gestiones · 1 ppto · 1 contactos
+
+  JENNIFHER S.A.C.   [2 fichas]
+      RUC 20535084646 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 2 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  AGROINDUSTRIA FRUTOS DE ORO S.A.C.   [2 fichas]
+      RUC 20606844159 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 2 ppto · 1 contactos
+
+  PERUVIAN FIT S.A.C.   [2 fichas]
+      RUC 20552669569 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+
+  ALIAGA BAZAN LEILA LIBERTAD   [2 fichas]
+      RUC 10424329831 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  PEÑA FLORES INOSENCIO   [2 fichas]
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      RUC 10419151225 · C5 · 1 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 0 contactos
+
+  LE PARIS HOTEL E.I.R.L.   [2 fichas]
+      RUC 20602670881 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 3 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 1 contactos
+
+  GRUPO VITA S.A.C.   [2 fichas]
+      RUC 20602311873 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  MINISTERIO DEL INTERIOR   [2 fichas]
+      RUC 20131366966 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  PAQUIYAURI CHAHUAYLACC LUCIA   [2 fichas]
+      RUC 10205949238 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  UNITED TRANSPORT SERVICES DEL PERU S.A.   [3 fichas]
+      RUC 20552892551 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  EDAL MEDIC SAC   [2 fichas]
+      RUC 20608554476 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  NETO EXPLORER E.I.R.L.   [2 fichas]
+      RUC 20527771863 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  AQUAMAR INVESTMENTS INC. S.A.C.   [2 fichas]
+      RUC 20393622521 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+
+  EDALEX FACTORY S.A.C.   [2 fichas]
+      RUC 20608955870 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+
+  SC SOLUTIONS E.I.R.L.   [2 fichas]
+      RUC 20451575636 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  PARODI SANCHEZ FRANCO   [2 fichas]
+      RUC 10485938848 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  AGRICOLA LOS MEDANOS S.A.   [2 fichas]
+      RUC 20389426891 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SANTI TEXTILES E.I.R.L.   [2 fichas]
+      RUC 20609508320 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  BAUTISTA CHAVEZ ALDINER LUCAS   [2 fichas]
+      RUC 10745739569 · C5 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 2 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  SANCHEZ VALENZUELA ZANDY FLOR   [2 fichas]
+      RUC 10761942552 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  GARCIA ZAPATA YTALO   [2 fichas]
+      RUC 10426588361 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C4 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 0 contactos
+
+  GLOBAL SCIENTIFIC S.A.C.   [2 fichas]
+      RUC 20603370628 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALTA COCINA S.A.C.   [2 fichas]
+      RUC 20610026487 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ECOGLOW LAVANDERIAS S.A.C.   [2 fichas]
+      RUC 20611708573 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  DIMERC PERU SAC   [3 fichas]
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20537321190 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  ESPLEY GROUP SAC   [3 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 1 ppto · 1 contactos
+      RUC 20517627039 · C5 · 1 op · 0 venta(s) US$ 0 · 8 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  SANCHES CCANQUI MARISOL   [2 fichas]
+      RUC 10409326159 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  URQUIZO VASQUEZ KEVIN MANUEL   [2 fichas]
+      RUC 10730865681 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  GONZALES
+FUENTES LOURDES MIREYA   [2 fichas]
+      RUC 10167179598 · C9 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 2 ppto · 1 contactos
+      sin documento · C5 · 2 op · 0 venta(s) US$ 0 · 14 gestiones · 0 ppto · 0 contactos
+
+  SERVICIOS MEDICOS ASOCIADOS SAN FRANCISCO DE
+ASIS S.A.C.   [2 fichas]
+      RUC 20480141947 · C9 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C5 · 2 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 0 contactos
+
+  TURISMO COSTA DEL SOL SA - COSTA DEL SOL   [3 fichas]
+      RUC 20356883749 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 2 ppto · 1 contactos
+
+  BAUTISTA ALVAREZ MARIA LUISA   [2 fichas]
+      RUC 10406426241 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  PYF INVERSIONES GENERALES S.A.C.   [3 fichas]
+      RUC 20612261211 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  HUISA SOLIS MAGDALENA   [2 fichas]
+      RUC 10479178742 · C5 · 1 op · 0 venta(s) US$ 0 · 16 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 9 ppto · 1 contactos
+
+  CACHI BACON ROBERTO   [2 fichas]
+      RUC 10464233569 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      sin documento · C9 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 0 contactos
+
+  MONTENEGRO SANCHEZ HUGO
+ENRIQUE   [3 fichas]
+      RUC 10401615259 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      sin documento · C9 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 0 contactos
+      sin documento · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  QUISPE JUCHASARA SONIA   [2 fichas]
+      RUC 10757953396 · C5 · 1 op · 0 venta(s) US$ 0 · 8 gestiones · 0 ppto · 1 contactos
+      sin documento · C9 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 0 contactos
+
+  MONTES ALVIS ERIC ENRIQUE   [2 fichas]
+      RUC 44053733 · C9 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 8 gestiones · 0 ppto · 0 contactos
+
+  CALIPREST S.A.C.   [2 fichas]
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20603867638 · C1 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 4 ppto · 1 contactos
+
+  OPTIMUS EQUIPMENT S.A.C.   [2 fichas]
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20600553268 · C1 · 2 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 1 contactos
+
+  HACIENDA HOTEL MACACONA E.I.R.L   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20601736269 · C1 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 1 ppto · 1 contactos
+
+  HOTEL SOMBRERO DE PAJA E.I.R.L.   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20603523939 · PV · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  DEXTER LAUNDRY  SERVICE SAC   [3 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 12 gestiones · 0 ppto · 0 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 20606376414 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+
+  VILLA MANUELITA  HOTEL EIRL   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 20535078751 · C4 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+
+  AMAZON INVERSIONES & TURISMO EIRL   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 4 ppto · 1 contactos
+      RUC 20601424429 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  ARCOIRIS  EXPRESS EIRL   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 2 ppto · 1 contactos
+      RUC 20604665010 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+==============================================================================
+CON HISTORIA EN LAS DOS, MISMO DUEÑO — mirar de a una (caso San Agustín) — 447 clientes
+==============================================================================
+
+  HILANDERIA DE ALGODÓN PERUANO S.A   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 59 gestiones · 0 ppto · 0 contactos
+      RUC 20418108151 · C5 · 5 op · 3 venta(s) US$ 194,400 · 5 gestiones · 3 ppto · 2 contactos
+
+  SAN FERNANDO  SA   [3 fichas]
+      RUC 20100154308 · C1 · 6 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 3 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 2 op · 1 venta(s) US$ 50,211.87 · 16 gestiones · 2 ppto · 1 contactos
+
+  MINERA TITAN DEL PERU SRL - MINERA CROACIA E.I.R.L.   [2 fichas]
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 20460352674 · C4 · 3 op · 1 venta(s) US$ 11,650 · 3 gestiones · 0 ppto · 2 contactos
+
+  MENDOZA GARCIA WILVER - HOSPEDAJE REAL   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10101693321 · C5 · 12 op · 2 venta(s) US$ 9,049 · 12 gestiones · 3 ppto · 2 contactos
+
+  HOSTAL LENIN Y DIEGO S.R.L   [2 fichas]
+      RUC 20487424677 · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 1 op · 1 venta(s) US$ 7,500 · 7 gestiones · 0 ppto · 1 contactos
+
+  PALACIOS VILLENA COLAGIO JUAN - HOTEL REMANDO   [2 fichas]
+      sin documento · C5 · 1 op · 1 venta(s) US$ 3,699 · 1 gestiones · 1 ppto · 1 contactos
+      RUC 10042168586 · C5 · 2 op · 1 venta(s) US$ 3,771.18 · 7 gestiones · 0 ppto · 1 contactos
+
+  LAVANDERIA INDUSTRIAL LAVECO SAC   [2 fichas]
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20607562530 · C4 · 7 op · 2 venta(s) US$ 6,900 · 7 gestiones · 7 ppto · 2 contactos
+
+  GUERRERO AMASIFEN CRISTIAN - 
+EOD EQUIPAMIENTO   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10478035794 · C5 · 2 op · 1 venta(s) US$ 6,685.59 · 3 gestiones · 5 ppto · 1 contactos
+
+  CORPORACION IBEROAMERICANA DE TURISMO S.A.C. - GRAN HOTEL BOLIVAR   [2 fichas]
+      RUC 20472915933 · C5 · 1 op · 0 venta(s) US$ 0 · 48 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 2 op · 1 venta(s) US$ 6,500 · 2 gestiones · 3 ppto · 1 contactos
+
+  PEREZ QUISPE ROSALINA- CHOCCA CASTILLO AMADEO - 
+HOSPEDAJE ALEX   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10237152234 · C5 · 1 op · 1 venta(s) US$ 3,799 · 4 gestiones · 1 ppto · 1 contactos
+
+  AMUDIO  VERA LILIANA  ROCIO   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 5 ppto · 1 contactos
+      RUC 10403792247 · C1 · 3 op · 1 venta(s) US$ 3,798 · 3 gestiones · 2 ppto · 2 contactos
+
+  MENDOZA HINCHO AGUSTIN -  HOSPEDAJE MENDOZA   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10238942697 · C5 · 2 op · 1 venta(s) US$ 3,750 · 2 gestiones · 2 ppto · 1 contactos
+
+  CHOQUEHUANCA CHIPANA FRANCISCO - 
+HOSTAL SAN ANTONIO   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10023852956 · C5 · 4 op · 1 venta(s) US$ 3,699 · 4 gestiones · 0 ppto · 2 contactos
+
+  CLINICA SAN PABLO S.A.C   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20107463705 · C5 · 4 op · 1 venta(s) US$ 3,275 · 38 gestiones · 0 ppto · 1 contactos
+
+  HORNA BERMUDEZ LASTENIA GISELLE -ONDA BLU   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 10 gestiones · 0 ppto · 0 contactos
+      RUC 10255740135 · C5 · 2 op · 1 venta(s) US$ 2,872.88 · 3 gestiones · 3 ppto · 1 contactos
+
+  JK&M BARRERA  E.I.R.L   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20605324933 · C5 · 3 op · 1 venta(s) US$ 1,563.56 · 26 gestiones · 1 ppto · 1 contactos
+
+  SM SUMINISTROS SRL   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20454422415 · C5 · 3 op · 1 venta(s) US$ 1,490 · 8 gestiones · 3 ppto · 1 contactos
+
+  PERUANA DE INSPECCION Y SERVICIOS SOCIEDAD ANONIMA CERRADA - 
+PISER S.A.C.   [2 fichas]
+      RUC 20525568564 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+
+  BALDERA FALEN DIANA LORENA -
+AUSTIN INVERSIONES   [2 fichas]
+      RUC 10750212081 · C5 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GOMES CARRANZA HILDER DOMEL   [2 fichas]
+      RUC 10761757844 · C5 · 2 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+
+  AYALA PURIZACA GLORIA ESMILDA - 
+HOSTAL REYNA   [2 fichas]
+      RUC 10099068286 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GRUPO IMPORTADOR JUVAL E.I.R.L.   [2 fichas]
+      RUC 20602551963 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SEVENTH HEAVEN S.R.L   [2 fichas]
+      RUC 20601646367 · C5 · 2 op · 0 venta(s) US$ 0 · 7 gestiones · 0 ppto · 0 contactos
+      sin documento · sin dueño · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  YARLEQUE ALCEDO HILDEBRANDO-
+Q'ORIANKA   [2 fichas]
+      RUC 10467776857 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+
+  RIVERA TRIGOSO JORGE RICARDO - LAVANDERIA AREMIS   [2 fichas]
+      RUC 10452869107 · C5 · 2 op · 0 venta(s) US$ 0 · 11 gestiones · 2 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+
+  BELLOTA CAVANACONSA RODO -  HOTEL MAYU   [2 fichas]
+      RUC 10404472483 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 1 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SOLES OQUENDO DENISSE  - LAVANDERIA LIMPIECITO   [2 fichas]
+      RUC 10408634844 · C5 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GUARDAPUCLLA GIBAJA YULISSA - 
+EL MARISCAL HOSPEDAJE   [2 fichas]
+      RUC 10456661012 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+
+  CONSORCIO DE INGENIEROS EJECUTORES MINEROS S.A. - 
+CIEMSA   [2 fichas]
+      RUC 20101250572 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HOSTAL MARIA JOSE E.I.R.L.   [2 fichas]
+      RUC 20514614441 · C5 · 2 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CHUQUILLANQUI MARAVI PEDRO - 
+CLEAN & DRY   [2 fichas]
+      RUC 15381090652 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 1 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RIOS OCHOA ISABEL CRISTINA - 
+CASTILLO DE LA FANTASÍA   [2 fichas]
+      RUC 10201082132 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 0 contactos
+
+  CHAVEZ RETAMOZO JOSE WALTER -  LAVANDERIAS CLEAN WASH   [2 fichas]
+      RUC 10201124617 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 2 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 1 contactos
+
+  LA CASONA  DE PISCO EIRL   [2 fichas]
+      RUC 20494388007 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  YOSHIRO CONTRATISTAS GENERALES S.A.C.   [2 fichas]
+      RUC 20573876459 · C4 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES GRUPO LIANG S.A.C. - 
+HOTEL ROSEDALE   [2 fichas]
+      RUC 20601038626 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MEDINA QUISPE SANDRA ROXANA - 
+LAVANDERÍA BURBUJITAS CHANNA   [2 fichas]
+      RUC 10701823988 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  COM ALT DE PROD NO TRAD Y DES EN LAT AME - 
+CANDELA PERU   [2 fichas]
+      RUC 20110804483 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  ACHIN ARDILES JUAN MIGUEL - 
+SOTEXAR PERU ACABADOS TEXTILES   [2 fichas]
+      RUC 10107632951 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CLINICA ESPECIALISTAS MEDICOS E.I.R.L. - 
+ESMEDIC E.I.R.L.   [2 fichas]
+      RUC 20393094592 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  DISTRIBUIDORA FERRETERA LA UNION SRL - 
+DF UNION SRL   [2 fichas]
+      RUC 20495627722 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES SKYVIEW S.A.C - 
+SKYVIEW   [2 fichas]
+      RUC 20544680839 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INGA NOLASCO DE GORDILLO MIRTHA SONIA -  GORDILLO INGA CLAUDIA ELIZABETH   [3 fichas]
+      RUC 10104744970 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C4 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SERVICIOS INDUSTRIALES DE LA MARINA S.A. - 
+SIMA PERU S. A.   [2 fichas]
+      RUC 20100003351 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MARIN VELASQUEZ ROBERT ERNESTO - 
+HOSTAL LUNAHUANA - SAHARA VIP E.I.R.L. -   [3 fichas]
+      RUC 10329133082 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES VASQUEZ COTRINA SAC   [2 fichas]
+      RUC 20605597395 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FERNANDEZ PACHECO, MIGUEL ARTEMIO   [2 fichas]
+      RUC 42867918 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SANCHEZ VILLARREAL, HUMBERTO JUVENAL   [2 fichas]
+      RUC 06618802 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LAZO DEL CARPIO, MILAGROS ANTONIETA   [2 fichas]
+      RUC 10447837981 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  YACHACHIN GOMEZ VDA DE MENDOZA ZONIA URSULA -  EL OASIS   [2 fichas]
+      RUC 10071071184 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  YANA QUISPE, RODOLFO   [2 fichas]
+      RUC 43565111 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  POMA GORA, JHONNY RICHARD   [2 fichas]
+      RUC 10101588055 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 6 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MULATILLO LAZO, DUAY IVAN   [2 fichas]
+      RUC 46143783 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ROAYA S.A.C CONTRATISTAS GENERALES - 
+ROAYA S.A.C   [2 fichas]
+      RUC 20120046307 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ADT SERVICIOS GENERALES E.I.R.L. - 
+LAVANDERIA LAVA FAST   [2 fichas]
+      RUC 20550059585 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  EMPRESA HOTELERA LIBERTAD S.A.C -
+LIBERTAD HOTEL   [2 fichas]
+      RUC 20482664106 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ROQUE HUAMANCONDOR RENAN LUIS - 
+ROQUE LAVANDERÍAS   [2 fichas]
+      RUC 10329148942 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  JUAN ARTURO GAMEZ RAMOS  - LAVANDERIA LAS PRADERAS   [2 fichas]
+      RUC 47541326 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TANDEM TEXTIL S.A.C.   [2 fichas]
+      RUC 20392817167 · C4 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 2 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RM FABRICACIONES & SERVICIOS INDUSTRIALES S.A.C. - 
+RM FASERVIND SAC   [2 fichas]
+      RUC 20602994954 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ORM SERVICIOS CORPORATIVOS S.A.C. - 
+LAVANDERIA SANTA CLARA   [2 fichas]
+      RUC 20514783633 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ROMERO AVILA VILMA SARAI - 
+IMPORTS BIOMED PERU   [2 fichas]
+      RUC 10414392399 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RIVERA LUICHO JUSTO GERMAN   [2 fichas]
+      RUC 10423746896 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GONZALES PECHO YURI WALDO - ZARATE EXPRESS   [2 fichas]
+      RUC 10400548922 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CERNADES CRUZ JULIA AURELIA - 
+A-IAM COLLECTION   [2 fichas]
+      RUC 10296968701 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TOMATEO EULOGIO GLADYS  - LAVANDERIA SAGITA   [2 fichas]
+      RUC 10405605134 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MELLADO MACERA JESUS - 
+EL CAFETALERO DOS   [2 fichas]
+      RUC 10463830164 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ANSILANS MEDICAL S.A.C.   [2 fichas]
+      RUC 20601136415 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 1 ppto · 1 contactos
+
+  ABOLLANEDA MONDALGO CRISTIAN   [2 fichas]
+      RUC 70129394 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BRAZZAN VALDIVIA KATERIN JOCELIN - 
+LOJA PET   [2 fichas]
+      RUC 10422969000 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SOCIEDAD MINERA DE RESPONSABILIDAD LIMITADA DON RAFO 2 -  SMRLTDA DON RAFO 2   [2 fichas]
+      RUC 20507931171 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  FUNDICION CHILCA S.A.  - FUCSA   [2 fichas]
+      RUC 20538728757 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  KÖSTER SAENZ FEDERICO GUILLERMO GUSTAVO - HOTEL VILLA DEL CARMEN   [2 fichas]
+      RUC 10004563803 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORPORACION ATARAXIA S.A.C.   [2 fichas]
+      RUC 20607981249 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  AGÜERO CABALLERO CHRISTIAN SOLING   [2 fichas]
+      RUC 10481261355 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GOVEA FLORES  JUAN CARLOS   [2 fichas]
+      RUC 10100757821 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  OFICINA  GENREAL DE INFRAESTRUCTURA   [2 fichas]
+      RUC 20563198240 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES & NEGOCIOS ELSA E.I.R.L.   [2 fichas]
+      RUC 20603043210 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  MARCELO MATIAS NELY LOLA
+LAVANDERÍA SUHAMEY   [2 fichas]
+      RUC 10040023173 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ROMERO AYLAS  LUCIA GUILLAYN   [2 fichas]
+      RUC 10411689382 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FERNANDEZ  VELASQUEZ SANDRO ROBERTO   [2 fichas]
+      RUC 10102110990 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CASTILLO TESEN  JUAN JONATHAN   [2 fichas]
+      RUC 10415747492 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  POLINO SEGAMA CARLOS  ALBERTO   [2 fichas]
+      RUC 10412269417 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  COMERCIALIZADORA  PLR S.A.C   [2 fichas]
+      RUC 20605881824 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RAMIREZ  ROQUE BASILIA GREGORIA   [2 fichas]
+      RUC 10221025186 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CHAVEZ HUARANCA DE CCAPA, CONCEPCION BEATRIZ   [2 fichas]
+      RUC 10293488253 · C5 · 4 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FUMYLIMP PERU S.R.L   [2 fichas]
+      RUC 20606194120 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CHAMBI  SALAS FELIPE   [2 fichas]
+      RUC 01516503 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ORTEGA BERNA, JENNY ROSA   [2 fichas]
+      RUC 20489545293 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AYALA CASTRO  RONAL JHOAN   [2 fichas]
+      RUC 45483654 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BACA PUMA LUIS - HOSPEDAJE  LUBA   [2 fichas]
+      RUC 10247817897 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ZAMATA QUISPE  MARIA LUZ   [2 fichas]
+      RUC 72635883 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MENDOZA FLORES   FREDDY JAIME   [2 fichas]
+      RUC 42395352 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  DE LA CRUZ YUPANQUI RAFAEL MARTIN  - HOTEL PUNTO SUR LODGE   [2 fichas]
+      RUC 10101382287 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FLORES PEÑA  MARVIN AUGUSTO   [2 fichas]
+      RUC 20543535371 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  DELGADO HUAMANI JUAN AUGUSTO  -
+EL HUERTO HOSTEL   [2 fichas]
+      RUC 10220890231 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HUAMANI  JUAN FRANCISCO   [2 fichas]
+      RUC 80447439 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALAVENA PLASIER  ALFA FERNANDA MILAGROS   [2 fichas]
+      RUC 71428387 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ZEGARRA VILLANUEVA, LUIGGI MATHEWS   [2 fichas]
+      RUC 71609154 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CASTILLO IZARRA JUAN JOSE - 
+HOSPEDAJE SUCRE   [2 fichas]
+      RUC 10200241512 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PAQUIRACHI PARINANGO RUTH LIVIA - 
+CREACIONES RUTH   [2 fichas]
+      RUC 10103993429 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CONSORCIO B Y C SAC. - 
+HOTEL TORRE NORTE   [2 fichas]
+      RUC 20481016151 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FERNANDEZ CARHUAMACA DENIS LUCIO - 
+LAVADO TOTAL EXPRESS   [2 fichas]
+      RUC 10404700311 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  NUÑEZ QUISPE ALDO  -
+CARITAS FELICES   [2 fichas]
+      RUC 10081593057 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PALOMARES MORALES LIMBERTH ROOSEVELT - 
+LAVANDERIA P&S   [2 fichas]
+      RUC 10404753822 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ROSSELL PERRY JUAN CARLOS - 
+WHITE CENTER   [2 fichas]
+      RUC 10078667058 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LEVITA ROZAN RAUL - 
+HOSTAL TU HOGAR   [2 fichas]
+      RUC 10602409347 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  IZOLIVA SERVICIOS GENERALES E.I.R.L. - 
+HOTEL LOS GLADIOLOS   [2 fichas]
+      RUC 20570599829 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LEON ALTAMIRANO  LUIS ALBERTO - PAREJA AGUILAR, URSULA   [2 fichas]
+      RUC 10551290 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TRIGOSO CORTEZ ANGELICA - 
+HOTEL POSEIDON   [2 fichas]
+      RUC 10334056703 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CENTRO DE CONVENCIONES LA LLAMITA E.I.R.L.   [2 fichas]
+      RUC 20568779241 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RAMIREZ RENGIFO GLASI VALERIA - 
+RESIDENCIAL EL AMIGO   [2 fichas]
+      RUC 10011344238 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RODRYMARI SAC   [2 fichas]
+      RUC 20524875013 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  DISTRIBUIDORA SIERRA NEVADA SAC   [2 fichas]
+      RUC 20531014708 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MENDOZA RAMOS, ARIANA BEATRIZ   [2 fichas]
+      RUC 72317792 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AGÜERO CABALLERO CARMEN RITA   [2 fichas]
+      RUC 10442531990 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CABRERA CHICCHON OSWALD ALONZO - 
+ODALY´S SALON   [2 fichas]
+      RUC 10708435908 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CIA DE INVERSIONES DIMAVIK EIRL - 
+HOSPEDAJE EBENEZER   [2 fichas]
+      RUC 20600858859 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TENIENTE GUZMAN EDGAR SATURNINO - HOTEL EL DORADO   [2 fichas]
+      RUC 10453461071 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ADRIANZEN BOBADILLA VICTOR HUGO . HOSPEDAJE LUNA NEGRA   [2 fichas]
+      RUC 10028220851 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MAIHUIRE CARRASCO JOHN - 
+HOSPEDAJE SAN SALVADOR   [2 fichas]
+      RUC 10443217733 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PROGRAMA INTEGRAL NACIONAL PARA EL BIENESTAR FAMILIAR - INABIF   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 2 contactos
+      RUC 20507920722 · C5 · 2 op · 0 venta(s) US$ 0 · 5 gestiones · 1 ppto · 2 contactos
+
+  CONDE HUAYTA  SMITH   [2 fichas]
+      RUC 43559251 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ARTESANIAS MON REPOS S.A   [2 fichas]
+      RUC 20100873410 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AGÜERO SOLORZANO LUZMILA ELIZABETH   [2 fichas]
+      RUC 10404147558 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HUAYCHANI MAMANI LITO EDGAR -  LAVANDERIA SUPER OK   [2 fichas]
+      RUC 00795906 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  C´INNOVA FUTURO INGENIERIA Y CONSTRUCCION S.A.C. - LAVANDERIA INNOVA   [2 fichas]
+      RUC 20560034106 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MARCELO MATIAS IRENO VICTOR  - DISTRIBUIDORA MARCELO EIRL   [2 fichas]
+      RUC 20606241667 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ARMINGLO PORTOCARRERO HERNANDEZ  - CASA AIKA EIRL   [2 fichas]
+      RUC 10433838560 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALCAS INFANTE NOELIA MARIVI - 
+IMPERIAL SUITE HOSTAL   [2 fichas]
+      RUC 10036756093 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GÖTTLICH E.I.R.L.   [2 fichas]
+      RUC 20608411799 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ZAMBRANO OSORIO ADRIANA DEL VALLE - 
+OLIFRESH LAVANDERÍA   [2 fichas]
+      RUC 15603761798 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AGÜERO ZORRILLA FLORENCIA FLORDELIA   [2 fichas]
+      RUC 46957073 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CHIPANA HURTADO MAXIMO JESUS -  HOTEL CASONA UGARTE LEON   [2 fichas]
+      RUC 10204019776 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PAUCAR DIAZ HECTOR SEBASTIAN  - LAUNDRY SERVICE CASA BLANCA   [2 fichas]
+      RUC 10784639024 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SAMANA COLCA SCRL-   [2 fichas]
+      RUC 30643157 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALIAGA ROJAS CARLOS JAVIER - LA  PASCANA   [2 fichas]
+      RUC 10410449108 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ESPINOZA GARAY ZENAIDA -  BELEN CASA HOSPEDAJE   [2 fichas]
+      RUC 10471308604 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CALDERON DE PALACO FELICITAS JUDITH  - HOSTAL PIRAMIDE   [2 fichas]
+      RUC 10294787823 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BARBARAN ALVAREZ LINO -  MILLENNIUM INVERSIONES & NEGOC   [2 fichas]
+      RUC 10434980271 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES D.L.H. E.I.R.L. -   [2 fichas]
+      RUC 20600739621 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GONZALES MARTINEZ JESSICA KARINA  HOSPEDAJE CLARO   [2 fichas]
+      RUC 10076368797 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SOTO AUCCACUSI VENANCIA - 
+INVERSIONES Y SERVICIOS VENY   [2 fichas]
+      RUC 10238098225 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CARRASCO AGÜERO IVAN RAUL   [2 fichas]
+      RUC 10471266863 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GÜERE ZEVALLOS ERIKA GIOVANA   [2 fichas]
+      RUC 10412279315 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MEDINA MUNCIVAYES JOSEPH EMANUEL -  LAVANDERIA DULCE FRAGANCIA   [2 fichas]
+      RUC 10436381528 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CHIMOY RETAMOSO DELIA ROXANA - 
+HOGAR DE ESPERANZA   [2 fichas]
+      RUC 10102344371 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  CASAHUANCA COMPAÑIA HOTELERA SOCIEDAD ANONIMA CERRADA - 
+HOTEL LAS VIÑAS - OLIMPICO   [2 fichas]
+      RUC 20609526034 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  DURAN LOAYZA CASIMIRO - 
+LA TERRAZA INN & CONVENCIONES   [2 fichas]
+      RUC 10232600981 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TAMANI AQUINO JOAO FELIPE - 
+HOSPEDAJE ANTONELLA   [2 fichas]
+      RUC 10758876051 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AMAYO MONTENEGRO MARIO HERNAN - 
+CATARENE   [2 fichas]
+      RUC 10054162354 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  JOYERIA ALEXANDRA SRL.   [2 fichas]
+      RUC 20424857565 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 4 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  OPERADOR TURISTICO  LOS ANDES SAC  -O TAND SAC   [3 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20603402791 · C1 · 2 op · 0 venta(s) US$ 0 · 6 gestiones · 6 ppto · 1 contactos
+
+  EVANGELISTA INFANTES MARCO ELDER   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 7 ppto · 2 contactos
+      RUC 10407551228 · C1 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 2 contactos
+
+  FUNDACION PERUANA DE CANCER   [2 fichas]
+      RUC 20137741378 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MAXLIM OPERACIONES SRL   [2 fichas]
+      RUC 20600001397 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  OPERADORA SURPERU S.A.   [2 fichas]
+      RUC 20544268873 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CHAMBI ARISACA MILAGROS MARIBEL - LAVANDERIA CHAARIS   [2 fichas]
+      RUC 10426810081 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CERJIM E.I.R.L. - HOTEL LOS ALPES   [2 fichas]
+      RUC 20604851441 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TERESA CHASQUEROS TERRONES   [2 fichas]
+      RUC 43873025 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MARANATA MALOMA S.A.C.   [2 fichas]
+      RUC 20606923113 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SILVA SAYAGO ABELINO   [2 fichas]
+      RUC 10479826574 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TURISMO EL TAMBO S.A.C.   [2 fichas]
+      RUC 20515601164 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  VITA HOTELES E INVERSIONES E.I.R.L.   [2 fichas]
+      RUC 20608401734 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GUISTI TORRES LUIS ALBERTO   [2 fichas]
+      RUC 10448957395 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GRUPO HAA E.I.R.L   [2 fichas]
+      RUC 20600626036 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SORIA SCHULER MILUSKA   [2 fichas]
+      RUC 41706458 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALEX VEGA MEDINA   [2 fichas]
+      RUC 77240930 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PERSY VILCHEZ CASTILLO   [2 fichas]
+      RUC 27850026 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  VALLEJOS MALDONADO URSULA MARIELLA   [2 fichas]
+      RUC 10707566782 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LEON HILARIO FRISHER JOHN   [2 fichas]
+      RUC 20600343654 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BRICEÑO GARCIA SARA   [2 fichas]
+      RUC 10803552903 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MARIA ANGELICA VASQUEZ LOPEZ   [2 fichas]
+      RUC 41524505 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CADENA HOTELERA SAN MARINO SAC   [2 fichas]
+      RUC 20450472370 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CARRANZA SIMEON MARGIT DELANEY   [2 fichas]
+      RUC 10463850246 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PERU BELMOND HOTELS S.A.   [2 fichas]
+      RUC 20424044203 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ONG COOPERAZIONE INTERNAZIONALE   [2 fichas]
+      RUC 20511733333 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CLINICA CAYETANO HEREDIA   [2 fichas]
+      RUC 20485947273 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  CONSORCIO EDIFICACIONES LIMA 2023   [2 fichas]
+      RUC 20611008521 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HOTELES HEIDINGER S.A.C.   [2 fichas]
+      RUC 20568388306 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CHAVEZ ALVAREZ ERNESTO   [2 fichas]
+      RUC 10417443997 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  CIA VASSALLO M E.I.R.L. - ORIGENES HOTEL BOUTIQUE & SPA   [2 fichas]
+      RUC 20602042252 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RAMOS RAMOS LIDIA - HOSPEDAJE DON CALUCHO   [2 fichas]
+      RUC 10043021147 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FIERRO PAREDES JESSICA NORKA   [2 fichas]
+      RUC 10297039542 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PALOMINO ALLCCA KARI MARIEL   [2 fichas]
+      RUC 10068117157 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PERU MEDICAL CENTER S.R.L. - 
+CLINICA AVANSALUD   [2 fichas]
+      RUC 20517736326 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GARCIA HINOJOSA RUBEN   [2 fichas]
+      RUC 10803996780 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CARLOS JOSE CHACON BARTOLO   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 10436445453 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  SILVERA LOPEZ MARLENI   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 44407716 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  TALARA FOOD SAC   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 20526226896 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  MOYA VENTURO MARIA ANGELICA   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10442415868 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  PROGRAMA NACIONAL DE INVERSIONES EN SALUD - PRONIS   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20601765226 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  BERNABE CAJO LORENA DEL PILAR   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10400260520 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  LAURA ADCO FITSROY LEONEL   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10703129663 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  ROMERO ARMAS RICARDO LUIS   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      RUC 10212843631 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ESAU CARLOS LLACUA DE LA CRUZ   [2 fichas]
+      RUC 44971374 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HUAPAYA TORREANI MARIA DEL PILAR   [2 fichas]
+      RUC 10102013838 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GADEA GUILLEN TONNY JEFFERSON - HOSPEDAJE EL CONQUISTADOR   [2 fichas]
+      RUC 10458869150 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GRUPO ENMI S.A.C.   [2 fichas]
+      RUC 20477692991 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SERVICIOS Y SUMINISTROS PATAZ S.A.C.   [2 fichas]
+      RUC 20604922551 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CONSORCIO HOTEL DAK MARLIN IN S.A.C   [2 fichas]
+      RUC 20603169566 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SERVICIOS GENERALES ZIDEY E.I.R.L.   [2 fichas]
+      RUC 20605476130 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BARRENACHEA ROMERO ZILA - HOTEL HUAYHUASH   [2 fichas]
+      RUC 10152220435 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RIVERA CARDENAS WUILDER   [2 fichas]
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      RUC 43479753 · C5 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+
+  GRUPO PERUANO SUIZA S.A.C.   [2 fichas]
+      RUC 20564291669 · C5 · 1 op · 0 venta(s) US$ 0 · 62 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SAGUMA CARRANZA MARISOL   [2 fichas]
+      RUC 10463901606 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALMONACID ALANIA JHONATAN - LAVANDERIA STEVEN   [2 fichas]
+      RUC 77322916 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES TURISTICAS DEL CAMPO S.A.C - HOSTAL LA ARBOLEDA   [2 fichas]
+      RUC 20601622450 · C5 · 2 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 2 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MULTIPRODUCTOS SCABARROZZI E.I.R.L.   [2 fichas]
+      RUC 20605037152 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RAMIREZ DE LA CRUZ FLOR   [2 fichas]
+      RUC 42301370 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HUAMAN TREJO ELIZABETH CARMEN   [2 fichas]
+      RUC 10434813901 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FAMILY LAUNDRY S.A.C.   [2 fichas]
+      RUC 20608372530 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PROMOTORA Y SERVICIOS LAMBAYEQUE S.A.C. - PROSERLA SAC   [2 fichas]
+      RUC 20479813877 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  DABRO INVERSIONES E.I.R.L. - LAVANDERIA LA ESPUMITA   [2 fichas]
+      RUC 20606624728 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CLÍNICA SUAREZ LOARDO E.I.R.L. - 777 HOSPEDAJE   [2 fichas]
+      RUC 20606692758 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TOLENTINO ZAMBRANO RUDE BETSABE   [2 fichas]
+      RUC 10157595658 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GALINDO CONDE FELICITAS - HOSPEDAJE MARISOL   [2 fichas]
+      RUC 10282258001 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HOSPEDAJE CEMAYU LODGE EMPRESA INDIVIDUAL DE RESPONSABILIDAD LIMITADA   [2 fichas]
+      RUC 20601914540 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  SERVICIOS MULTIPLES Y TRANSPORTES LEON DE HASA SCRL   [2 fichas]
+      RUC 20605108513 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GRAPHICS MMG PERU E.I.R.L.   [2 fichas]
+      RUC 20545037093 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES LOS POSTES E.I.R.L.   [2 fichas]
+      RUC 20545492611 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALLENDE QUISPE ELIAS RENZO   [2 fichas]
+      RUC 71117173 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GLOBAL TRADE LEADER SAC   [2 fichas]
+      RUC 20565785525 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CU MEDICAL ASOCIADOS S.A.C.- GRUPO YBECU   [2 fichas]
+      RUC 20607885002 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  QUIÑONES ORTIZ PEDRO   [2 fichas]
+      RUC 10484438639 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORPORACION EMPRESARIAL AIME E.I.R.L   [2 fichas]
+      RUC 20608325931 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORPORACION PUKARAJU S.A.C.   [2 fichas]
+      RUC 20609563614 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  EMPRESA DE TRANSPORTES TERRESTRES ISSA S.A.C.   [2 fichas]
+      RUC 20600352840 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORPORACIÓN & NEGOCIOS SAGITARIO S.A.C. - HOSTAL GENOVA   [2 fichas]
+      RUC 20548880662 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES HOTELERAS FANNY VIOLETA DEL CARMEN MANRIQUE MACAGGI EIRL   [2 fichas]
+      RUC 20604759707 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LAVANDERÍA TODO LIMPIO S.R.L.   [2 fichas]
+      RUC 20608367153 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  EMPRESA DE NEGOCIOS MALLQUI E.I.R.L.   [2 fichas]
+      RUC 20601689546 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CHAVEZ ALIAGA EDILSON JHOEL   [2 fichas]
+      RUC 76757731 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  JANED PARAISO NATURAL S.A.C.   [2 fichas]
+      RUC 20487858081 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ORTIZ ZORRILLA ADELA - HS DELIRIO   [2 fichas]
+      RUC 10095887657 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORPORACION DE SOCIOS LA SEGUNDA MOQUEGUA   [2 fichas]
+      RUC 20608260308 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LOPEZ MATAZOGLIO PERCY ALFONSO - DISFRACES ANGELOS   [2 fichas]
+      RUC 10224048012 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CASAIDEAL PROYECTO 18 S.A.C.   [2 fichas]
+      RUC 20605145249 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AGUILAR AZAÑERO BEATRIZ MILEIDY   [2 fichas]
+      RUC 10484310586 · C5 · 1 op · 0 venta(s) US$ 0 · 8 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LUYO ASENCIO JOSE LUIS   [2 fichas]
+      RUC 10430342082 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ARANCIBIA CONDOR MIGUEL   [2 fichas]
+      RUC 10410723480 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CONSORCIO PREMIER CONTRATISTAS GENERALES SAC   [2 fichas]
+      RUC 20607570621 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GRUPO VANA CONTRATISTAS Y CONSULTORES GENERALES ASUNTA S.A.C   [2 fichas]
+      RUC 20600223837 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HOSPEDAJE SIU FLOWERS INN E.I.R.L.   [2 fichas]
+      RUC 20609319934 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  DHL GLOBAL FORWARDING PERU S.A.   [2 fichas]
+      RUC 20307328471 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  EXTRA CLEANERS S.A.C.   [2 fichas]
+      RUC 20609369109 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ROSALES YANAC NOLBERTO EDGAR   [2 fichas]
+      RUC 10423979289 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PALOMINO PEREZ YURI VLADIMIR - CORPORACION COSILEC S.A.C.   [2 fichas]
+      RUC 20611314206 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES IRURI SCRL   [2 fichas]
+      RUC 20532368392 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LAVANDERIA Y SERVICIOS ABZUL E.I.R.L.   [2 fichas]
+      RUC 20610334637 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ASTUHUAMAN NINAHUANCA LUIS ALBERTO -SERVICIOS GENERALES ROLANDO´S   [2 fichas]
+      RUC 10452852719 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CENTRO CAMPESTRE EL TAMBO S.A.C.   [2 fichas]
+      RUC 20611621621 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GUTIERREZ ABURTO ROSARIO MARIBEL   [2 fichas]
+      RUC 10427401583 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MAGIC MOMENTS S.R.L.   [2 fichas]
+      RUC 20605094512 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HUAMAN VILCA RUTH ERIKA - LAVANDERIA LOS LEONES   [2 fichas]
+      RUC 10739433008 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  WC ESTRATEGIAS & DESARROLLO S.A.C.   [2 fichas]
+      RUC 20610874577 · C5 · 1 op · 0 venta(s) US$ 0 · 61 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES JCJS S.A.C   [2 fichas]
+      RUC 20612603171 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TICONA URRUCHI YOLITA CECILIA   [2 fichas]
+      RUC 10222719017 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HHP HOTELES HACIENDA DEL PERU S.R.L. - BANCO DE CREDITO DEL PERU   [2 fichas]
+      RUC 20100047218 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AYA-MIND&SPIRIT EIRL   [2 fichas]
+      RUC 20611351080 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GAMARRA SALAS WILVER - GAMARRA SALAS VILMA PATRICIA -ANDEAN ATOQ HOSPEDAJE   [2 fichas]
+      RUC 10239809109 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RIMAC QUIROZ NILTON RIVER   [2 fichas]
+      RUC 43573259 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SERVICIOS GENERALES FALLCHA S.R.L.   [2 fichas]
+      RUC 20600697502 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CARDENAS VALENZUELA MARVIN HAGGLER - FULL CLEAN   [2 fichas]
+      RUC 10410012893 · C5 · 2 op · 0 venta(s) US$ 0 · 66 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AGROPECUARIA POLLITEKU E.I.R.L.   [2 fichas]
+      RUC 20603828438 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LUCERO CLEAN EXPRESS E.I.R.L   [2 fichas]
+      RUC 20610643605 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALPACA EXPEDITIONS E.I.R.L.   [2 fichas]
+      RUC 20490768948 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GOBIERNO REGIONAL ICA   [2 fichas]
+      RUC 20452393817 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BERRU CASTILLO SERVICIOS GENERALES S.A.C. - LAVANDERIA POWER CLEAN   [2 fichas]
+      RUC 20610817735 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES V & B S.R.L.   [2 fichas]
+      RUC 20491605856 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SERVICIOS GENERALES IR S.A.C.   [2 fichas]
+      RUC 20613048414 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MULTISERVICIOS JCP Y AHC S.A.C.   [2 fichas]
+      RUC 20610578986 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  YAPA INVERSIONES S.A.   [2 fichas]
+      RUC 20607666726 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FERNANDEZ VENTOCILLA DIANA ELIZABETH - FUNDO SION   [2 fichas]
+      RUC 46853641 · C5 · 1 op · 0 venta(s) US$ 0 · 25 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ESCALANTE CORDOVA EDHIT VICTORIA   [2 fichas]
+      RUC 10251351819 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  COMPAÑIA NAVIERA NATALIA SAC   [2 fichas]
+      RUC 20537243709 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  VELA ARISTA MARIA DEL PILAR   [2 fichas]
+      RUC 10434543121 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AMAO CONTRATISTAS GENERALES S.A.C.   [2 fichas]
+      RUC 20602769675 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  VASQUEZ ALARCON GEISSLER FERNANDO   [2 fichas]
+      RUC 10419985860 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  APONTE DE CROSBY ZENA JUDITH - HOSPEDAJE PICAFLOR   [2 fichas]
+      RUC 10227011853 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES INMOBILIARIAS SEIS S.A.C.- SENDA INMOBILARIA   [2 fichas]
+      RUC 20603903693 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MOSTACERO ALANIA JUAN CARLOS ENRIQUE - HOTEL BALCOXA   [2 fichas]
+      RUC 10455089552 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RODSUMA SALUD S.A.C.   [2 fichas]
+      RUC 20506254940 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MINERIA Y CONSTRUCCION JJ SRL   [2 fichas]
+      RUC 20607382086 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SAN AGUSTIN AREQUIPA S.A.C.   [2 fichas]
+      RUC 20537197910 · C5 · 1 op · 0 venta(s) US$ 0 · 29 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CASA PUCLLANA S.A.C.   [2 fichas]
+      RUC 20603463278 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES NATURAL GREEN E.I.R.L.   [2 fichas]
+      RUC 20601318521 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  JEAN'S TUCSSON CORPORATION S.A.C.   [2 fichas]
+      RUC 20523797922 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  NUXIING EMPRENDEDORA S.A.C.   [2 fichas]
+      RUC 20612322121 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MACHACA ALVAREZ LUIS YORDANO - HOSTAL CISNE   [2 fichas]
+      RUC 10464731852 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CONTRATISTAS EJECUTORES MAHOMI INGENIEROS S.A.C.   [2 fichas]
+      RUC 20408064822 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RAFFO TASAYCO OLGA ANGELICA   [2 fichas]
+      RUC 10076073215 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  EVEREST ANDINO GOLD S.A.C. (ADYSEM S.A.C.)   [2 fichas]
+      RUC 20614091224 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORPORACION TURISTICA LAS HAMACAS S.A.C. - GOBIERNO REGIONAL SAN MARTIN   [2 fichas]
+      RUC 20531375808 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AVILA AQUINO GLADYS MARLYN - HOTEL MARBEN   [2 fichas]
+      RUC 10444485456 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MARCHAN LLANOS ALEXIS JEANPIER   [2 fichas]
+      RUC 73811405 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PERU LNG S.R.L. - HUNT LNG OPERATING COMPANY S.A.C.   [2 fichas]
+      RUC 20506342563 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  URETA PEREZ KIARA STEPHANI - HOTEL SPA MACHU PICCHU   [2 fichas]
+      RUC 10729453094 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MEDICAL HEALTHCARE SOCIEDAD ANONIMA CERRADA   [2 fichas]
+      RUC 20611300701 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  DELGADO PININ YSAURO - LAVANDERRIA MANANTIAL AZUL - CORONADO CHAMAYA OLINDA   [2 fichas]
+      RUC 10427148888 · C5 · 1 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MEGO DELGADO GILMER - MEGO DELGADO DILCIA   [2 fichas]
+      RUC 10763883481 · C5 · 1 op · 0 venta(s) US$ 0 · 17 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CELIS SALAZAR JORDI JESUS   [2 fichas]
+      RUC 10733715401 · C5 · 2 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 2 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SUAREZ ARIAS LUIS ENRIQUE - CAPCHA NUÑEZ MELINA   [2 fichas]
+      RUC 10200668176 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CONSTRUCTORA MANDOR SOCIEDAD ANONIMA CERRADA- AUKA HOTEL   [2 fichas]
+      RUC 20490935518 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES ROSA MARIA ARIAS ROQUE E.I.R.L.   [2 fichas]
+      RUC 20511008086 · C5 · 3 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  JARA QUIROZ LUCIO- MEZA SEGURA JUDITH ESTHER   [2 fichas]
+      RUC 10194021904 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TRANSPORTES VEGA PIUNDO S.A.C - JARA QUIROZ LUCIO   [2 fichas]
+      RUC 20607761907 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MAYANGA PRINCIPE IRVIN CARLOS   [2 fichas]
+      RUC 45451334 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALVARADO CONDO IVAN   [2 fichas]
+      RUC 10443587646 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SONCCO QUISPE RUTH YOLANDA   [2 fichas]
+      RUC 73954748 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CACHA DEXTRE JHONATAN BARNARD   [2 fichas]
+      RUC 10712156436 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AVELLANEDA AGUILAR KATHYA BRIGUITH   [2 fichas]
+      RUC 10720453971 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LAURA PICHARDO ANTHONY ALEJANDRO   [2 fichas]
+      RUC 10765672444 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MAMANI POMA JOSE LUIS   [2 fichas]
+      RUC 10449308170 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ORTIZ ARZAPALO MARINA MERLY   [2 fichas]
+      RUC 10425749973 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AYUDA AMBIENTAL SANITARIA E.I.R.L.   [2 fichas]
+      RUC 20613409115 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BRIGIDA ALEYDA DOMINGUEZ PERALTA   [2 fichas]
+      RUC 03495203 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HUAQUISTO MIRANDA SORIA PATRICIA   [2 fichas]
+      RUC 10412014923 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LIMO CUBAS JOSE MIGUEL   [2 fichas]
+      RUC 10428830763 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CARMER PERU S.A.C.   [2 fichas]
+      RUC 20608308033 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  DREMIN SOLUCIONES S.A.C.   [2 fichas]
+      RUC 20612402222 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ROMERO VALENCIA FELIX ALBERTO   [2 fichas]
+      RUC 10257614811 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  VALENZUELA ZERPA ABRAHAM BICENCIO   [2 fichas]
+      RUC 10709166455 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SERVICIOS MULTIPLES TEO & PA E.I.R.L   [2 fichas]
+      RUC 20613155971 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CARRERA MIRANDA ANGELO GIUSSEPE   [2 fichas]
+      RUC 10754020933 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BASALDUA QUINCHO FRANK PETER   [2 fichas]
+      RUC 10106259793 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORPORACION INMOBILIARIA SEVARO S.A.C.   [2 fichas]
+      RUC 20605822291 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ANCO BEGAZO JUSTINA ROSA   [2 fichas]
+      RUC 10306550026 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  TRANSPORTES TOUR LIBERTADORES E.I.R.L.   [2 fichas]
+      RUC 20614614065 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 2 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  QUISPE AIME DAVID - LAVANDERIAS EXPRESS CUSCO - CORPORACION EMPRESARIAL AIME E.I.R.L   [2 fichas]
+      RUC 10413756001 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LAVANDERIA LAVA LIMPIO SOCIEDAD COMERCIAL DE RESPONSABILIDAD LIMITADA   [2 fichas]
+      RUC 20512946969 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORPORATION MAFED S.A.C.   [2 fichas]
+      RUC 20613352067 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  DAMIAN LOPEZ MELINA DE LOS ANGELES - GLC CONSORCIO FERRETERO S.A.C.   [2 fichas]
+      RUC 10761470341 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SERVICIOS VALLE DE TAMBO E.I.R.L.   [2 fichas]
+      RUC 20613487523 · C5 · 1 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CANAZA LLATAS HUBERT ELI   [2 fichas]
+      RUC 10453136898 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HANCO HUILLCA NIEVES - HOTEL ARCO IRIS   [2 fichas]
+      RUC 10465290507 · C5 · 1 op · 0 venta(s) US$ 0 · 7 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  VASQUEZ VIVANCO SATURNINO EDUARDO - DIAZ GARCIA CID UNAY GUSTWILL   [2 fichas]
+      RUC 10718131427 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SRS INGENIEROS S.A.C.   [2 fichas]
+      RUC 20608938479 · C5 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BUBACS SERVIS SOCIEDAD ANONIMA CERRADA-BUBACS SERVIS SAC   [2 fichas]
+      RUC 20510643136 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CARHUALLANQUI TOVAR ROGER AUGUSTO   [2 fichas]
+      RUC 41433104 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALVAREZ SOTO WILLY   [2 fichas]
+      RUC 42728583 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HOTEL ACOSTA E.I.R.L.   [2 fichas]
+      RUC 20612672718 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  OSKAR GROUP S.R.L.- HOTEL QUIJOTE   [2 fichas]
+      RUC 20610385304 · C5 · 1 op · 0 venta(s) US$ 0 · 12 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CELIS SALAZAR JORDI JESUS - HERNANDEZ VASQUEZ LUZ MARIA   [2 fichas]
+      RUC 80064412 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GRUPO OPERADOR DE LAVANDERIA VPEM E.I.R.L   [2 fichas]
+      RUC 20615328791 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ENOTURISTICA EIRL - HOSTERIA SUIZA S.A.C.   [2 fichas]
+      RUC 20608740521 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  DREAMS HOUSE CUSCO TRAVEL & ACCOMMODATION EMPRESA INDIVIDUAL DE RESPONSABILIDAD LIMITADA   [2 fichas]
+      RUC 20613972481 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INVERSIONES VILLA SAN MARIA DE LAS NIEVES S.A.C. -FAMCAVEL SERVICIOS GENERALES E.I.R.L.   [2 fichas]
+      RUC 20569100349 · C5 · 2 op · 0 venta(s) US$ 0 · 11 gestiones · 0 ppto · 2 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FORISAL S.A.C - LAVANDERIA FORISAL   [2 fichas]
+      RUC 20614552060 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BERMEO GUERRERO JANEBT - LAVANDERIA HANDLER EXPRESS   [2 fichas]
+      RUC 10468872230 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SGP IMPLEMENTA SAC   [2 fichas]
+      RUC 20558354896 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  JIMENEZ SCHMIDT KARIM NICYSA- RICHARD RUMALDO CLEMENTE   [2 fichas]
+      RUC 10043095299 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  VILLARREAL BIENES & SERVICIOS S.A.C. - VISTO LAVANDERIA   [2 fichas]
+      RUC 20609414741 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BLUE SOLUCIONES S.A.C.   [2 fichas]
+      RUC 20602683410 · C5 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HUAMAN FERNANDEZ ISMERIA   [2 fichas]
+      RUC 10167522896 · C5 · 1 op · 0 venta(s) US$ 0 · 21 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CASTAÑEDA CURI CRISTIAN ERICK   [2 fichas]
+      RUC 10418485073 · C5 · 1 op · 0 venta(s) US$ 0 · 21 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GRUPO CIMENTA S.A.C.   [2 fichas]
+      RUC 20601471311 · C5 · 1 op · 0 venta(s) US$ 0 · 14 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  COMERCIO CIPRIANI E.I.R.L.   [2 fichas]
+      RUC 20608804693 · C5 · 1 op · 0 venta(s) US$ 0 · 14 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BARRENECHEA MUJICA JAVIER AUGUSTO   [2 fichas]
+      RUC 10102885282 · C5 · 1 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HUARIBAY CAHUANA LAURO   [2 fichas]
+      RUC 21526675 · C5 · 1 op · 0 venta(s) US$ 0 · 11 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  OPERACION Y GESTION
+ INMOBILIARIA DIAR S.A.C   [2 fichas]
+      RUC 20535530875 · C5 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CANCHO HOROSTEGUI ANGEL ALFREDO   [2 fichas]
+      RUC 41303903 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CENTENO LEGUIA JAMES   [2 fichas]
+      RUC 70223264 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FELIX EDGARDO JIMENES PURIZADA   [2 fichas]
+      RUC 40229551 · C5 · 1 op · 0 venta(s) US$ 0 · 15 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  KATA ALPACA EIRL   [2 fichas]
+      RUC 20602909183 · C5 · 1 op · 0 venta(s) US$ 0 · 8 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  EDMILSON QUIROZ LOZANO   [2 fichas]
+      RUC 10465595821 · C5 · 1 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  EVENTOS ALADINO   [2 fichas]
+      RUC 10211217150 · C5 · 1 op · 0 venta(s) US$ 0 · 17 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BUS SERVICE AUTOMOTRIZ S.A.C   [2 fichas]
+      RUC 20518889444 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  REDES HUANCANE   [2 fichas]
+      RUC 20363839500 · C5 · 1 op · 0 venta(s) US$ 0 · 15 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LIMA FARFAN HENRY -LIMA FARFAN ROXANA   [2 fichas]
+      RUC 10250618421 · C5 · 1 op · 0 venta(s) US$ 0 · 11 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LA PREVIA'R KARAOKE & HOSPEDAJE S.A.C.   [2 fichas]
+      RUC 20602666744 · C5 · 1 op · 0 venta(s) US$ 0 · 7 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GOMEZ CUSIRRAMOS ANIKA VIRGINIA   [2 fichas]
+      RUC 10103823884 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PIPA CRUZ JULIE ROXANA   [2 fichas]
+      RUC 10418578926 · C5 · 1 op · 0 venta(s) US$ 0 · 12 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CASTAÑEDA ALVAREZ JORGE JOHNNY   [2 fichas]
+      RUC 10192498525 · C5 · 1 op · 0 venta(s) US$ 0 · 14 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CUEVA TORRICO CATHERINE VIOLETA   [2 fichas]
+      RUC 10464604648 · C5 · 1 op · 0 venta(s) US$ 0 · 24 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SMART FACILITY R&M S.A.C.   [2 fichas]
+      RUC 20601240476 · C5 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  INDUSTRIAS CENTAURO S.R.L.   [2 fichas]
+      RUC 20605466606 · C5 · 1 op · 0 venta(s) US$ 0 · 14 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MOLINA VARGAS KEVIN ANTONIO   [2 fichas]
+      RUC 10722217468 · C5 · 1 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PAULOT SEGURA EDI VILTON   [2 fichas]
+      RUC 10444362214 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  REPELL CORP S.A.C.   [2 fichas]
+      RUC 20615224473 · C5 · 1 op · 0 venta(s) US$ 0 · 8 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PALACIOS ANCIETA JOAN CRISTIAN   [2 fichas]
+      RUC 10421805861 · C5 · 1 op · 0 venta(s) US$ 0 · 7 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ORREGO ROMAN ELKI   [2 fichas]
+      RUC 73334086 · C5 · 1 op · 0 venta(s) US$ 0 · 8 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  DISEC SOCIEDAD COMERCIAL DE RESPONSABILIDAD LIMITADA DISEC SRL   [2 fichas]
+      RUC 20111328804 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MARSPRO S.A.C. - COMUNIDAD CAMPESINA CHAVIN   [2 fichas]
+      RUC 20614857995 · C5 · 1 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORDOBA QUISPE GENOVEVA - SOLIS SONCCO GERMAN BENITO   [2 fichas]
+      RUC 44024680 · C5 · 1 op · 0 venta(s) US$ 0 · 7 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORDOBA QUISPE EVA REGINA- SOLIS SONCCO GERMAN BENITO   [2 fichas]
+      RUC 42691587 · C5 · 1 op · 0 venta(s) US$ 0 · 7 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LAUREANO LAZARO ADNA   [2 fichas]
+      RUC 10208941190 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CALDERON MASIAS LUIS ALBERTO   [2 fichas]
+      RUC 10436064654 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ANDEX SOLUTION E.I.R.L.   [2 fichas]
+      RUC 20614435284 · C5 · 1 op · 0 venta(s) US$ 0 · 10 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORPORACION LUJIME S.A.C.-VASQUEZ PAICO GUILLERMO LEONEL   [2 fichas]
+      RUC 20607202037 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ACOSTA ORUNA ROSA ALBINA - HOTEL ACOSTA E.I.R.L.   [2 fichas]
+      RUC 10195559894 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  MINERIA SINGULARIDAD S.A.C.   [2 fichas]
+      RUC 20515398776 · C5 · 2 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SALAZAR GUERRA OLINDA - DOMINGUEZ ANAYA ALBERTO FIDENCIANO   [2 fichas]
+      RUC 10227029990 · C5 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RAMIREZ BERNACHEA VICTOR APOLINARIO - DEPAMIA S.A.C   [2 fichas]
+      RUC 20610605169 · C5 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  RAMIREZ BERNACHE AYDEE FLORINDA -HOTEL BOLOGNESI   [2 fichas]
+      RUC 10433948420 · C5 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SALUD DE SABIDURIA  SAC   [2 fichas]
+      RUC 20555406321 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RENE  ANTONIO CUBAS TEJADA   [3 fichas]
+      RUC 27965486 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 0 contactos
+
+  COMPAÑÍA NACIONAL DE CHOCOLATES DE PERU   [2 fichas]
+      RUC 20514884789 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  REYES  ESQUIVEL LADY DIANA   [3 fichas]
+      RUC 10445000952 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  INVERSIONES CONTI EIRL   [2 fichas]
+      RUC 20506793573 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  NUÑEZ CHINININ HUGO ALDO   [2 fichas]
+      RUC 98813948 · C1 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+
+  LAVANDERIA EL BLANCO - HUAYTA VALENCIA DE CARRASCO JUDITH   [2 fichas]
+      RUC 10403532237 · C1 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+
+  LEON CHINCHAY  ROSA VIRGINIA   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10161239441 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  HOTELES FENIX S.A.C.   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20602395961 · C1 · 2 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 2 contactos
+
+  ESTABLECIMIENTO  DE HOSPEDAJE  JOSE LUIS SAC   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20501798933 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  HUARAUYA  JUSTINIANO CARMELA   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10418373364 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  EMPRESA DE TRANSPORTE  Y TURISMO SULLAN EXPRESS SAC   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20427652956 · C1 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 2 contactos
+
+  ALIAGA KEVIN VARGAS  HOTEL EL SOL   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10704766616 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  VIGO LLICAN LIDIA MILAGROS - 
+J&R SOLUCIONES EMPRESARIALES   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10192576739 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  YUNCAR  OTERO JUAN JOSE   [3 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10443444373 · C1 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 3 ppto · 2 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  SALOME  ORDOÑEZ EVELYN VANESSA   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10449099813 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  HUAYPAR  DE LA CRUZ TEOFILO   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10249509570 · C1 · 2 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 2 contactos
+
+  WESTPHALIA  ALIMENTOS SAC   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20546793517 · C1 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 2 ppto · 3 contactos
+
+  TAIPE QUISPE  ALEX JAIME   [3 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10427638427 · C1 · 3 op · 0 venta(s) US$ 0 · 12 gestiones · 4 ppto · 2 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  FORONDA DE TREJO  HIDLDA VERONICA   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10105326136 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  APAZA LOAYZA JORDAN  ALDAIR   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10700800755 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  AMESQUITA  BUSTAMANTE VICTOR MARTIN   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10452096817 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  GUILLEN VILLAFUERTE  HAYDEE   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10410019375 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  TS TRASNPORT  & HOTELES  SAC -HOTEL REAL PLAZA   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20605732802 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  EMPREA COMUNAL DE SERVICIO  TUMILACA POCATA COCORE TALA ECOSER   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20606009951 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  MIRANDA  GUARNIZA  HERNA EVARISTO   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10455360701 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  CABRERA  AMARO NARDA IVONNE   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20544447 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  MALQUI  VALERA JOJHAN VICTOR   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10435001390 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  HUGO CACERES  RAMOS   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 46559990 · C1 · 1 op · 0 venta(s) US$ 0 · 7 gestiones · 1 ppto · 1 contactos
+
+  MIGUEL ANGEL CHAMORRO  PORRAS   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 71507444 · C1 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 1 ppto · 1 contactos
+
+  GONZALES   LIMAY MARCO TULIO   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10086565710 · C1 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 1 contactos
+
+  TORIBIO TAARA  FELIX ROBERTO   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10040780292 · C1 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 1 contactos
+
+  MAMANI  COPA JULIA   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 01866789 · C1 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 1 contactos
+
+  WESTFALI FRUIT  PERU SAC   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20600886491 · C1 · 1 op · 0 venta(s) US$ 0 · 10 gestiones · 4 ppto · 1 contactos
+
+  J & N  TINTORERIAS SAC   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20611146826 · C1 · 1 op · 0 venta(s) US$ 0 · 10 gestiones · 3 ppto · 1 contactos
+
+  GRUPO XONAS E.I.R.L   [2 fichas]
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 0 contactos
+      RUC 20604627584 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 3 ppto · 1 contactos
+
+  VICCRIS CLEAN SERVICE S.A.C.//GARCIA  MOGOLLOON VICTOR   [2 fichas]
+      RUC 20604922624 · C1 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SANCHEZ HUAMAN ELIDA OLIVIA   [2 fichas]
+      RUC 10416149904 · C4 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BECERRA ROJAS SEBASTIAN   [2 fichas]
+      RUC 10757514678 · C4 · 1 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SALAZAR TASILLA CARMEN ROSA   [2 fichas]
+      RUC 10456194473 · C4 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BOADA GUTIERREZ PIERO ADOLFO   [2 fichas]
+      RUC 10732072999 · C4 · 1 op · 0 venta(s) US$ 0 · 14 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  ROJAS PLAZA BOUTIQUE S.R.L.   [2 fichas]
+      RUC 20612296066 · C4 · 1 op · 0 venta(s) US$ 0 · 10 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ASMAT VERA CLAUDIA PATRICIA   [2 fichas]
+      RUC 10447811028 · C4 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BARZOLA BALDEON BERENISS GUADALUPE   [2 fichas]
+      RUC 10705455916 · C4 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CALLI OLVEA JAVIER   [2 fichas]
+      RUC 10450357567 · C4 · 1 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  RAMOS BAIZ ELIAS   [2 fichas]
+      RUC 10401549256 · C4 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  FIGUEROA CHAVEZ MIGUEL ANGEL   [2 fichas]
+      RUC 10282711392 · C4 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GARCIA CASTILLA DIANA EDITH   [2 fichas]
+      RUC 10434628542 · C4 · 1 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 0 contactos
+
+  CORDOVA VENTURO LUIS HARRY   [2 fichas]
+      RUC 10062373763 · C4 · 1 op · 0 venta(s) US$ 0 · 4 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 0 contactos
+
+  CUSTODIO DAMIAN LUIS GUSTAVO   [2 fichas]
+      RUC 10462187811 · C4 · 1 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CORDOVA  FLORES ROSSANNA OTILIA   [2 fichas]
+      RUC 10156206518 · C1 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 16 gestiones · 3 ppto · 1 contactos
+
+  CLUB  SOCIAL MIRAFLORES   [2 fichas]
+      RUC 20111032271 · C1 · 3 op · 0 venta(s) US$ 0 · 4 gestiones · 3 ppto · 2 contactos
+      sin documento · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+==============================================================================
+LISTAS PARA FUSIONAR — la ficha sin documento está vacía — 20 clientes
+==============================================================================
+
+  CHUSI CHOA NELLY FELICIA   [2 fichas]
+      RUC 10200484733 · C1 · 5 op · 1 venta(s) US$ 15,398 · 14 gestiones · 7 ppto · 2 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  HOTEL INTERNACIONAL   [2 fichas]
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 10084246714 · C5 · 5 op · 1 venta(s) US$ 3,520 · 5 gestiones · 0 ppto · 1 contactos
+
+  ANAYA VELASQUEZ ALEXANDER RUBEN   [2 fichas]
+      RUC 10408103377 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C4 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 0 contactos
+
+  AHREN CONTRATISTAS GENERALES S.A.C   [2 fichas]
+      RUC 20494637074 · C4 · 4 op · 0 venta(s) US$ 0 · 4 gestiones · 1 ppto · 2 contactos
+      sin documento · C4 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  BLUE MARLIN BEACH CLUB SA   [2 fichas]
+      RUC 20205605500 · C1 · 4 op · 0 venta(s) US$ 0 · 6 gestiones · 0 ppto · 3 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  LAVANDERIA EL PINAR EIRL   [2 fichas]
+      RUC 20492469867 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  GLOBAL FRANQUICIAS INTERNACIONAL S.A.C. - HOSTAL MILENIUM   [2 fichas]
+      RUC 20552124813 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 0 contactos
+
+  RAMON ESLAVA RAMIREZ   [2 fichas]
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 10269616577 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  DANIEL LEONARDO CALDERON CORONEL   [2 fichas]
+      RUC 10480596353 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  MAMANI QUISPE LUIS ANGEL   [2 fichas]
+      RUC 20607335371 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  APAZA MACHICAO WILBER   [2 fichas]
+      RUC 10462569152 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  INVERSIONES EN INMUEBLES LIMA S.A.C.   [2 fichas]
+      RUC 20508185864 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  METAX INDUSTRIA Y COMERCIO S.A.C.   [2 fichas]
+      RUC 20501701956 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 0 contactos
+
+  HOSTAL SUREÑO   [2 fichas]
+      RUC 10425649529 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  GUZMAN RAMOS REYNA   [2 fichas]
+      RUC 41215002 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C5 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  TRABAJOS MARITIMOS  - TRAMARSA   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 20101395031 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  CAMA CRUZ  ROSA MARIA   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 10105212343 · C1 · 5 op · 0 venta(s) US$ 0 · 9 gestiones · 6 ppto · 3 contactos
+
+  GESTION DE SERVICIOS AMBIENTALES SAC   [2 fichas]
+      RUC 20507850091 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  CARPIO SOLANO NORBERTO   [2 fichas]
+      RUC 10401945640 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+
+  SOCIEDAD DE DESARROLLO DE HOTELES PERUANOS SA   [2 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 20513215887 · C1 · 4 op · 0 venta(s) US$ 0 · 5 gestiones · 8 ppto · 4 contactos
+
+==============================================================================
+¿GRUPO ECONÓMICO? — dos documentos distintos (caso Moncal) — 70 clientes
+==============================================================================
+
+  FAMILY FARMS PERÚ S.R.L. - AGROINVERSIONES VALLE Y PAMPA PERU SOCIEDAD ANONIMA   [3 fichas]
+      sin documento · C4 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 0 ppto · 1 contactos
+      RUC 20100130204 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20606133139 · C5 · 3 op · 2 venta(s) US$ 30,949 · 3 gestiones · 0 ppto · 1 contactos
+
+  HORTIFRUT PERU SAC   [3 fichas]
+      RUC 20559912353 · C1 · 1 op · 0 venta(s) US$ 0 · 16 gestiones · 0 ppto · 1 contactos
+      sin documento · C1 · 2 op · 1 venta(s) US$ 12,050 · 4 gestiones · 8 ppto · 1 contactos
+      RUC 20602822533 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  SANDOVAL MALDONADO NORMA ELIZABETH   [3 fichas]
+      RUC 20610629831 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 46326018 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10703308959 · C5 · 3 op · 1 venta(s) US$ 11,270.34 · 3 gestiones · 0 ppto · 1 contactos
+
+  HELGUERO VASQUEZ RENZO   [2 fichas]
+      RUC 47996593 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 10479965931 · C5 · 3 op · 1 venta(s) US$ 10,338.98 · 3 gestiones · 0 ppto · 1 contactos
+
+  NATURALEZA QUE ENCANTA S.A.C. - LAS PIRKAS   [2 fichas]
+      RUC 20480659458 · C5 · 3 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 1 contactos
+      RUC 20603817541 · C5 · 3 op · 2 venta(s) US$ 7,316.61 · 3 gestiones · 0 ppto · 1 contactos
+
+  ALVES CANAYO URSULA - LAVANDERIA URSIÑA   [2 fichas]
+      RUC 08078747 · C5 · 1 op · 0 venta(s) US$ 0 · 9 gestiones · 0 ppto · 1 contactos
+      RUC 10426224556 · C5 · 3 op · 1 venta(s) US$ 6,583.9 · 3 gestiones · 3 ppto · 1 contactos
+
+  DIAZ CARDENAS LUIS ENRIQUE   [2 fichas]
+      RUC 44071591 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 10440715911 · C5 · 2 op · 1 venta(s) US$ 3,750 · 2 gestiones · 0 ppto · 1 contactos
+
+  RIVERA PACHERRES ROSA PIERINA   [2 fichas]
+      RUC 10706573432 · C9 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 70657343 · C5 · 2 op · 1 venta(s) US$ 3,750 · 2 gestiones · 0 ppto · 2 contactos
+
+  GARMES SOCIEDAD COMERCIAL DE RESPONSABILIDAD LIMITADA - ECO VALLEY LAUNDRY   [2 fichas]
+      RUC 20609051915 · C5 · 1 op · 0 venta(s) US$ 0 · 10 gestiones · 0 ppto · 0 contactos
+      RUC 10411497602 · C5 · 3 op · 1 venta(s) US$ 3,750 · 3 gestiones · 4 ppto · 1 contactos
+
+  ARREGUI CUADROS RAFAEL FERNANDO   [2 fichas]
+      RUC 75465464 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 10081629230 · C5 · 8 op · 1 venta(s) US$ 3,500 · 8 gestiones · 0 ppto · 1 contactos
+
+  CORPORACION HILLSONG S.A.C.   [2 fichas]
+      RUC 20614553694 · C5 · 3 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 0 contactos
+      RUC 20514553694 · C1 · 2 op · 1 venta(s) US$ 2,599 · 8 gestiones · 2 ppto · 1 contactos
+
+  MUÑOZ MARTINEZ DENIS RENGILO   [2 fichas]
+      RUC 42467252 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 41681470 · C5 · 3 op · 1 venta(s) US$ 2,150 · 3 gestiones · 2 ppto · 1 contactos
+
+  ESPINOZA ALVINO NERI FELIPA - HOTEL CELIS   [2 fichas]
+      RUC 10008374410 · C5 · 1 op · 0 venta(s) US$ 0 · 22 gestiones · 2 ppto · 0 contactos
+      RUC 00837441 · C5 · 1 op · 1 venta(s) US$ 1,999 · 1 gestiones · 2 ppto · 1 contactos
+
+  OJANAMA GURIS REYNA - HOSTAL REYBET   [2 fichas]
+      RUC 10704504859 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 10056110599 · C5 · 3 op · 1 venta(s) US$ 1,999 · 3 gestiones · 1 ppto · 1 contactos
+
+  MULTISERVICIOS VALLE DE TAMBO E.I.R.L.   [2 fichas]
+      RUC 10308463538 · C5 · 2 op · 0 venta(s) US$ 0 · 16 gestiones · 1 ppto · 0 contactos
+      RUC 20613408429 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  RAVICHAGUA CUBA RAUL AGLIBERTO   [2 fichas]
+      RUC 10437448065 · C5 · 2 op · 0 venta(s) US$ 0 · 6 gestiones · 1 ppto · 0 contactos
+      RUC 20607473 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CLEAN SERVICE S.A.C.   [2 fichas]
+      RUC 20481550816 · C5 · 3 op · 0 venta(s) US$ 0 · 22 gestiones · 2 ppto · 0 contactos
+      RUC 20482017925 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  CHECCA CCAMA SANDRA LISSET - LAVANDERIA EYF   [2 fichas]
+      RUC 10482882400 · C5 · 2 op · 0 venta(s) US$ 0 · 4 gestiones · 1 ppto · 0 contactos
+      RUC 48288240 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  PAUCCA HUASHUAYO YURI ELVER   [2 fichas]
+      RUC 10454006548 · C5 · 2 op · 0 venta(s) US$ 0 · 10 gestiones · 0 ppto · 0 contactos
+      RUC 10708856598 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  HUACHO UCHUYPUMA ROMEL YONEL   [2 fichas]
+      RUC 41948771 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 10419487711 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  ROMAN SEGURA MELVIN   [2 fichas]
+      RUC 43749035 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 10437490355 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  JOSSELIN & PARIS E.I.R.L.   [2 fichas]
+      RUC 20510704291 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 20600207351 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  GUTIERREZ ORTIZ DE ORUE LORD - HOSTAL IMPERIAL   [2 fichas]
+      RUC 10096651215 · C4 · 3 op · 0 venta(s) US$ 0 · 18 gestiones · 1 ppto · 1 contactos
+      RUC 10107231094 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  TAPIA ROBLES CRISTIAN EDUARDO   [2 fichas]
+      RUC 03882874 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 10038828741 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  SOTO CELIS YONER   [2 fichas]
+      RUC 73440108 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 10734401086 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  VALDEZ SANTILLAN TEOFILO   [2 fichas]
+      RUC 10452119396 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 45211939 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SALDANA SULCA MELISSA GABRIELLA   [2 fichas]
+      RUC 10104694115 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 10469411 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GARCIA ANAYA MATIASA   [2 fichas]
+      RUC 10239142759 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 44236421 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  HINOSTROZA MACURI PAUL CRISTOBAL   [2 fichas]
+      RUC 20532737932 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 43482939 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  SOLANO MEDINA ERNESTO ANTONIO   [2 fichas]
+      RUC 10218444 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 10102184446 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  GRUPO HOTELERO SOLEC SOCIEDAD ANONIMA CERRADA   [3 fichas]
+      RUC 20601721539 · C4 · 5 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 2 contactos
+      RUC 20610101896 · C1 · 1 op · 0 venta(s) US$ 0 · 5 gestiones · 1 ppto · 1 contactos
+      RUC 206101018962060807527620601721539 · PV · 1 op · 0 venta(s) US$ 0 · 10 gestiones · 0 ppto · 1 contactos
+
+  CORPORACION HOTELERA JJ S.A.C. - HOSTAL ARIANA - HOS PAY PAY   [2 fichas]
+      RUC 70130139 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 20603605447 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  GARRIDO SAAVEDRA JOSE ESTEBAN   [2 fichas]
+      RUC 03597848 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 2 ppto · 1 contactos
+      RUC 10035978483 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  MILLARES ARISTA PEDRO HERIBERTO   [2 fichas]
+      RUC 10410328921 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 46125621 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+
+  NINA LAZARO DE MONTAÑO BONIFACIA - INKAMERICA HOSPEDAJE   [2 fichas]
+      RUC 10068836501 · C4 · 5 op · 0 venta(s) US$ 0 · 5 gestiones · 1 ppto · 1 contactos
+      RUC 09469962 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ROBLES NOLASCO NIEREN - INVERSIONES MAMAY E.I.R.L.   [2 fichas]
+      RUC 20509897043 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 1 contactos
+      RUC 44935663 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  AGRICOLA LA CANDELARIA S.A.   [2 fichas]
+      RUC 20164793738 · C4 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 2 contactos
+      RUC 941700834 · sin dueño · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  LAVANDERIA TOP CLEAN EMPRESA INDIVIDUAL DE RESPONSABILIDAD LIMITADA - LAVANDERIA TOP CLEAN E.I.R.L.   [2 fichas]
+      RUC 20450605868 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 20548112681 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  VARGAS DIAZ LUIS EDUARDO   [2 fichas]
+      RUC 72856425 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 10728564259 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  CORPORACION ANGELES V & F E.I.R.L.   [2 fichas]
+      RUC 20603410425 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 10736855718 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  FUNES REQUENA MARIA GRACIELA   [2 fichas]
+      RUC 10444377505 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 10078277748 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  YAPU RIVERA JANISSE NATIVIDAD   [2 fichas]
+      RUC 10431131752 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 2 ppto · 1 contactos
+      RUC 43113175 · C1 · 1 op · 0 venta(s) US$ 0 · 8 gestiones · 0 ppto · 1 contactos
+
+  PLASTINDUSTRIA SOCIEDAD ANONIMA CERRADA - PLASTINDUSTRIA SAC   [2 fichas]
+      RUC 20518433637 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 20601972604 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  VASQUEZ VALCARCEL CRHISTIAN BRADY   [2 fichas]
+      RUC 10462121496 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+      RUC 20521336618 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  NAVARRETE CANEPA MARIO WALTER   [2 fichas]
+      RUC 10227028390 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 42121797 · C4 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+
+  RODRIGUEZ GUIMAREY LUCERO MILAGROS PAOLA   [2 fichas]
+      RUC 10755473249 · C4 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 75547324 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  MODA & ACCESORIOS IMPORT S.A.C.   [2 fichas]
+      RUC 20603619596 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 43206251 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  VILLANUEVA ROMERO MONICA ANALI   [2 fichas]
+      RUC 42359613 · C5 · 3 op · 0 venta(s) US$ 0 · 3 gestiones · 3 ppto · 1 contactos
+      RUC 10423596819 · C1 · 2 op · 0 venta(s) US$ 0 · 3 gestiones · 0 ppto · 1 contactos
+
+  LOREÑA MORALES, JOSEPH WILLIS   [2 fichas]
+      RUC 45401890 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 10454018902 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  FARROÑAN DAVILA ISAI JAFET NATANAEL   [2 fichas]
+      RUC 76473008 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 76473006 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  ALVAREZ HUAYLLANI BETSI SHEYLA   [2 fichas]
+      RUC 71076007 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 20131377062 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  CANO OCHANTE DINO UBALDO   [2 fichas]
+      RUC 10199255661 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 10702917455 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  ROSALES ARELLANO ROOSEVELT MAYDA   [2 fichas]
+      RUC 21288629 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 10212886292 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  PAUCAR HINOSTROZA VASTHI - LAVANDERIA LIZ   [3 fichas]
+      RUC 10434045806 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 44140869 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 20611549718 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  HORNA CARRERA JUANA YOLANDA   [2 fichas]
+      RUC 18042287 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 1 contactos
+      RUC 10180422876 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  DURAND SANCHEZ WILMER JOSE   [2 fichas]
+      RUC 20529264080 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 20605356444 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  IBAÑEZ FERNANDEZ JENIFER MARGARITA - LAVANDERIA J & J ARTLIM   [2 fichas]
+      RUC 15606823042 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 10097963164 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  VICTOR JOEL VELARDE QUEVEDO   [2 fichas]
+      RUC 10411971479 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 20608867687 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  GARCIA CAMPOS JOSEFINA ANGELICA   [2 fichas]
+      RUC 75781713 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 10757817131 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 1 ppto · 1 contactos
+
+  MEDINA FEIJOO ALFONSO ALEJANDRO   [2 fichas]
+      RUC 10002121382 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 00237958 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  PAULINO JAQUE FERNANDO CESAR - HOSTAL GEMINIS   [2 fichas]
+      RUC 10404160481 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 1 contactos
+      RUC 72100285 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  VIDAL GUILLEN MARIA FERNANDA   [2 fichas]
+      RUC 10729291132 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 43727503 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  OSORIO RIVERA DAVID JESUS   [2 fichas]
+      RUC 10204049802 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 0 ppto · 1 contactos
+      RUC 10445414854 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  HUAMAN ARDILES NOEMI - SACRED VALLEY ARIN`S HOUSE   [2 fichas]
+      RUC 10463130715 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 1 contactos
+      RUC 20612164364 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SOLIDARIDAD EN MARCHA   [2 fichas]
+      RUC 10730499600 · C5 · 2 op · 0 venta(s) US$ 0 · 2 gestiones · 1 ppto · 1 contactos
+      RUC 20117999221 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SERAFIN MENDOZA  ANTONY HORLEANS   [3 fichas]
+      RUC 74285494 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 20607835234 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  BUENA VISTA GAS S.A.C.   [3 fichas]
+      RUC 20596981397 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      RUC 20556981397 · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+      sin documento · C5 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 0 contactos
+
+  SIERRA SACRED VALLEY E.I.R.L.   [2 fichas]
+      RUC 20614252686 · C1 · 1 op · 0 venta(s) US$ 0 · 3 gestiones · 1 ppto · 1 contactos
+      RUC 40723635 · C1 · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  ARA FOODS   INDUSTRY SAC   [3 fichas]
+      sin documento · C1 · 0 op · 0 venta(s) US$ 0 · 0 gestiones · 2 ppto · 1 contactos
+      RUC 2055177155620610089136 · PV · 1 op · 0 venta(s) US$ 0 · 5 gestiones · 0 ppto · 1 contactos
+      RUC 20610089136 · PV · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+
+  NEGOCIACIONES DANNA EIRL   [2 fichas]
+      RUC 205632220784 · PV · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
+      RUC 20563220784 · PV · 1 op · 0 venta(s) US$ 0 · 1 gestiones · 0 ppto · 1 contactos
