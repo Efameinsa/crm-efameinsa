@@ -312,6 +312,36 @@ export function slaCaso(
   return { estado: "verde", horas, limite };
 }
 
+/**
+ * La serie escondida dentro de la descripción del equipo.
+ *
+ * El área escribe la máquina y su serie en una sola frase, como en su Excel y
+ * en los informes del manual: «LAVADORA TITAN MAX S: 509KWSB0A214», «CALDERA
+ * GENERADORA DE VAPOR EFAMEIN S: EFAC1215», «SECADORA … SERIE: 707KWVQ1V255».
+ * Sacarla de ahí es lo que permite enlazar un informe viejo con la ficha de la
+ * máquina, sin pedirle a nadie que vuelva a tipear nada.
+ *
+ * Se aceptan las variantes que aparecen en los documentos reales —`S:`, `S/N`,
+ * `SERIE:`, con o sin espacio— y también la del manual con el typo («SERE:»),
+ * porque está en un informe emitido y ese informe existe.
+ *
+ * LOS DOS PUNTOS SON OBLIGATORIOS y no es un capricho: sin ellos, la `S` de
+ * «LAVADORA-SECADORA APILABLE» se lee como marca de serie y devuelve
+ * «ECADORA». Lo agarró la prueba antes que la pantalla.
+ */
+export function seriesDeTexto(texto: string | null | undefined): string[] {
+  if (!texto) return [];
+  const encontradas = texto.matchAll(
+    /(?:\bS\/N\s*[:.]?|\b(?:S|SN|SERE|SERIES|SERIE)\s*[:.])\s*([A-Z0-9][A-Z0-9-]{4,})/gi,
+  );
+  const vistas = new Set<string>();
+  for (const m of encontradas) {
+    const serie = m[1].toUpperCase().replace(/[.,;]$/, "");
+    if (!vistas.has(serie)) vistas.add(serie);
+  }
+  return [...vistas];
+}
+
 // Los tipos de servicio del manual (ítem XII), tal como los nombra el área.
 export const TIPOS_SERVICIO = [
   { valor: "puesta_en_marcha", etiqueta: "Puesta en marcha" },

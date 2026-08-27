@@ -266,7 +266,7 @@ function TablaHistorica({ filas }: { filas: ServicioPostventa[] }) {
         <TableBody>
           {filas.map((s) => (
             <TableRow key={s.id}>
-              <TableCell className="max-w-[200px] align-top text-xs font-medium">
+              <TableCell className="max-w-[220px] align-top text-xs font-medium whitespace-normal break-words">
                 {s.cliente_texto ?? "—"}
                 {s.fecha_confirmacion && (
                   <span className="block text-[11px] font-normal text-muted-foreground">
@@ -278,7 +278,7 @@ function TablaHistorica({ filas }: { filas: ServicioPostventa[] }) {
                 <span className="line-clamp-4 whitespace-pre-line">{s.equipo ?? "—"}</span>
               </TableCell>
               <TableCell className="align-top text-xs">{s.tipo_servicio}</TableCell>
-              <TableCell className="max-w-[160px] align-top text-[11px] text-muted-foreground">
+              <TableCell className="max-w-[160px] align-top text-[11px] text-muted-foreground whitespace-normal break-words">
                 {s.ubicacion ?? "—"}
               </TableCell>
               <TableCell className="align-top text-right text-xs tabular-nums">
