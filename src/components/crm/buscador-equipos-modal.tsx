@@ -46,6 +46,8 @@ export interface EquipoElegible {
   calentamiento?: string | null;
   panel?: string | null;
   controles?: string | null;
+  /** Colores en los que existe el equipo (coches de transporte, principalmente). */
+  colores?: string[];
   fotoPath?: string | null;
   /** La ficha completa, títulos de bloque incluidos. */
   caracteristicas?: string[];
@@ -141,6 +143,7 @@ function PanelDetalle({
     equipo.calentamiento && ["Calentamiento", equipo.calentamiento],
     equipo.panel && ["Panel", equipo.panel],
     equipo.controles && ["Voltaje", equipo.controles],
+    equipo.colores && equipo.colores.length > 0 && ["Color", equipo.colores.join(" / ")],
     materialTambor(equipo.caracteristicas) && ["Tambor", materialTambor(equipo.caracteristicas)],
   ].filter(Boolean) as [string, string][];
   return (
@@ -260,6 +263,7 @@ export function BuscadorEquiposModal({
   onAgregar,
   onRestar,
   onQuitar,
+  abrirAlEntrar = false,
 }: {
   productos: EquipoElegible[];
   /** producto_id → unidades ya en la cotización, para los badges. */
@@ -269,8 +273,12 @@ export function BuscadorEquiposModal({
   /** Resta una unidad; en 1, quita el equipo. */
   onRestar: (productoId: string) => void;
   onQuitar: (productoId: string) => void;
+  /** Se abre solo al montar. En una cotización nueva y vacía, buscar el primer
+   *  equipo es lo ÚNICO que se puede hacer: pedir un clic para llegar ahí es
+   *  pedirlo por nada. */
+  abrirAlEntrar?: boolean;
 }) {
-  const [abierto, setAbierto] = useState(false);
+  const [abierto, setAbierto] = useState(abrirAlEntrar);
   const [texto, setTexto] = useState("");
   const [resaltado, setResaltado] = useState(0);
   const listaRef = useRef<HTMLUListElement>(null);
@@ -293,7 +301,7 @@ export function BuscadorEquiposModal({
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-sm text-muted-foreground shadow-xs transition-colors hover:bg-accent"
+        className="flex h-10 w-full min-w-0 items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-sm text-muted-foreground shadow-xs transition-colors hover:bg-accent"
         aria-haspopup="dialog"
       >
         <Search className="size-4 flex-none" />

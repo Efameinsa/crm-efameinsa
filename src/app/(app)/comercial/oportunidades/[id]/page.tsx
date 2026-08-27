@@ -1,10 +1,9 @@
-import { Phone, Mail, MapPin, FileText } from "lucide-react";
+import { Phone, Mail, MapPin, FileText, CalendarClock } from "lucide-react";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { RegistroRapido } from "@/components/crm/registro-rapido";
 import { CambiarEtapa } from "@/components/crm/cambiar-etapa";
-import { Cotizador } from "@/components/crm/cotizador";
 import { ListaCotizaciones } from "@/components/crm/lista-cotizaciones";
 import { CalificacionOportunidad } from "@/components/crm/calificacion-oportunidad";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
@@ -35,17 +34,11 @@ const ETIQUETA_CANAL_LEAD: Record<string, string> = {
   otro: "otro canal",
 };
 
-export default async function OportunidadDetallePage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ editar?: string }>;
-}) {
-  const [{ id }, sp] = await Promise.all([params, searchParams]);
+export default async function OportunidadDetallePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: oportunidad }, { data: motivos }, { data: productos }, { data: cotizaciones }, { data: resultados }] =
+  const [{ data: oportunidad }, { data: motivos }, { data: cotizaciones }, { data: resultados }] =
     await Promise.all([
       supabase
         .from("oportunidades")
@@ -55,11 +48,6 @@ export default async function OportunidadDetallePage({
         .eq("id", id)
         .maybeSingle(),
       supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
-      supabase
-        .from("productos")
-        .select("id, sku, marca, modelo, nombre, capacidad, segmento, ficha, foto_path, precios_producto(tier, precio, vigente_hasta)")
-        .eq("activo", true)
-        .order("marca"),
       supabase
         .from("cotizaciones")
         .select(
@@ -97,141 +85,6 @@ export default async function OportunidadDetallePage({
     direccion: string | null;
     contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
   } | null;
-
-  // Precio histórico por producto A ESTA CUENTA (último precio de venta,
-  // sea cual sea la oportunidad en la que se cerró) — el cotizador lo usa
-  // para avisar si se está regalando margen frente a lo que ya pagó antes.
-  const historialPrecios: Record<string, { precio: number; fecha: string }> = {};
-  if (cuenta?.id) {
-    const { data: opsCuenta } = await supabase.from("oportunidades").select("id").eq("cuenta_id", cuenta.id);
-    const opIdsCuenta = (opsCuenta ?? []).map((o) => o.id);
-    if (opIdsCuenta.length > 0) {
-      const { data: ventasCuenta } = await supabase
-        .from("ventas")
-        .select("fecha_venta, cotizaciones(cotizacion_items(producto_id, precio_unitario))")
-        .in("oportunidad_id", opIdsCuenta)
-        .order("fecha_venta", { ascending: false });
-      for (const v of ventasCuenta ?? []) {
-        const items =
-          (v.cotizaciones as unknown as { cotizacion_items: { producto_id: string; precio_unitario: number }[] } | null)
-            ?.cotizacion_items ?? [];
-        for (const it of items) {
-          if (!(it.producto_id in historialPrecios)) {
-            historialPrecios[it.producto_id] = { precio: it.precio_unitario, fecha: v.fecha_venta };
-          }
-        }
-      }
-    }
-  }
-
-  // Lo que el cotizador necesita de cada equipo para que el comercial pueda
-  // CONFIRMAR que eligió el correcto antes de agregarlo: foto, datos de placa y
-  // las primeras características. No la ficha entera — mandar los 65 objetos
-  // completos al navegador engordaría la página para nada, y con la foto y tres
-  // viñetas ya se reconoce el equipo.
-  //
-  // El aviso de "sin ficha" existe porque el 24-08 Brenda cotizó a un cliente
-  // real un equipo sin datos técnicos (LG TITAN-18) y se enteró recién al abrir
-  // el PDF, cuando la página de la ficha salió vacía.
-  const productosCotizador = (productos ?? []).map((pr) => {
-    const ficha = pr.ficha as Record<string, unknown> | null;
-    const lista = (clave: string) =>
-      Array.isArray(ficha?.[clave]) ? (ficha![clave] as unknown[]).filter((x): x is string => typeof x === "string") : [];
-    const texto = (clave: string) => (typeof ficha?.[clave] === "string" && ficha[clave] ? (ficha[clave] as string) : null);
-    // Algunas fichas (las reprocesadas, ej. la familia UT120) separan
-    // "DISEÑO DE CONSTRUCCIÓN" (TAMBOR/PUERTA/PANELES/CALEFACCION) de
-    // "caracteristicas" para que el PDF las imprima como bloques propios.
-    // El buscador necesita la ficha COMPLETA (gerencia 25-08), así que junta
-    // ambas — en el orden real de la ficha si la trae (`ordenSecciones`),
-    // si no en el orden de siempre.
-    const ordenSecciones = Array.isArray(ficha?.ordenSecciones)
-      ? (ficha!.ordenSecciones as unknown[]).filter((x): x is string => typeof x === "string")
-      : ["caracteristicas", "disenoConstruccion", "dimensiones", "medidas"];
-    const caracteristicas = ordenSecciones
-      .filter((clave) => clave === "caracteristicas" || clave === "disenoConstruccion")
-      .flatMap((clave) => lista(clave));
-    return {
-      id: pr.id,
-      sku: pr.sku,
-      marca: pr.marca,
-      modelo: pr.modelo,
-      nombre: pr.nombre,
-      capacidad: pr.capacidad,
-      segmento: pr.segmento,
-      // Solo el precio VIGENTE por tier. La consulta trae todo el historial
-      // de precios_producto (nada filtra vigente_hasta), y el cotizador
-      // hacía `.find(p => p.tier === tier)` — sin ordenar por fecha, podía
-      // devolver un precio viejo si Postgres regresaba primero la fila
-      // vencida. Pasó real: la SECGIA102 cotizaba a 2490 (vencido el 25-08)
-      // en vez de 2090 (el vigente), reportado el 26-08.
-      precios_producto: (pr.precios_producto as { tier: string; precio: number; vigente_hasta: string | null }[]).filter(
-        (p) => p.vigente_hasta === null,
-      ),
-      // "secadora eléctrica" es como la piden los clientes, pero esa palabra
-      // solo vive acá dentro, no en el nombre del equipo.
-      calentamiento: texto("calentamiento"),
-      panel: texto("panel"),
-      controles: texto("controles"),
-      // El texto del maestro de Lesly, para que la búsqueda entienda el
-      // vocabulario de las comerciales («x control», «boiler fed», «200g»…).
-      descripcion: texto("descripcion_maestro"),
-      fotoPath: pr.foto_path,
-      // La ficha completa viaja al selector (reunión con gerencia 25-08: «la
-      // idea es que la característica completa se muestre»). Con los títulos
-      // de bloque incluidos, porque el panel los pinta como secciones. Son
-      // ~29 líneas por equipo, 172 KB los 95: asumible en una pantalla de
-      // trabajo, y evita un viaje al servidor por cada hover.
-      caracteristicas,
-      nDimensiones: lista("dimensiones").length + lista("medidas").length,
-      sinFicha: caracteristicas.length + lista("dimensiones").length + lista("medidas").length === 0,
-      sinFoto: !pr.foto_path,
-      // La foto es la de un equipo HERMANO, porque el Word de este trae un
-      // pantallazo en vez de una foto de producto. Son 10 equipos; la lista y
-      // el motivo salen de scripts/auditar-fichas-productos.mjs.
-      // Stock según la columna del Excel de Lesly, guardado al cargar el equipo.
-      stock: typeof ficha?.stock_referencia === "number" ? (ficha.stock_referencia as number) : null,
-      fotoPrestadaDe:
-        typeof (ficha?.origen as Record<string, unknown> | undefined)?.foto_prestada_de === "string"
-          ? (((ficha!.origen as Record<string, unknown>).foto_prestada_de) as string)
-          : null,
-    };
-  });
-
-  // ?editar=<id> → el cotizador corrige ese borrador en vez de crear uno nuevo.
-  // Se exige que sea de ESTA oportunidad y que siga sin enviarse: una vez que
-  // el documento salió al cliente, no se toca (migración 0062). La base lo
-  // vuelve a comprobar; acá es para no ofrecer una pantalla que va a fallar.
-  const borrador = (cotizaciones ?? []).find(
-    (c) => c.id === sp.editar && c.estado === "borrador" && !c.enviada_at,
-  );
-  const { data: itemsBorrador } = borrador
-    ? await supabase
-        .from("cotizacion_items")
-        .select("producto_id, descripcion, cantidad, precio_unitario, precio_lista, productos(marca, modelo, nombre)")
-        .eq("cotizacion_id", borrador.id)
-    : { data: null };
-
-  const edicion = borrador
-    ? {
-        cotizacionId: borrador.id,
-        codigo: borrador.codigo,
-        serie: borrador.serie as "EFAMEINSA" | "OPEN",
-        condiciones: borrador.condiciones,
-        vigenciaDias: borrador.vigencia_dias,
-        entregaLugar: borrador.entrega_lugar,
-        items: (itemsBorrador ?? []).map((i) => {
-          const pr = i.productos as unknown as { marca: string; modelo: string; nombre: string } | null;
-          return {
-            producto_id: i.producto_id,
-            descripcion: i.descripcion,
-            nombre: pr ? `${pr.marca} ${pr.modelo} — ${pr.nombre}` : (i.descripcion ?? "Equipo sin nombre"),
-            cantidad: i.cantidad,
-            precio_unitario: Number(i.precio_unitario),
-            precioPiso: i.precio_lista != null ? Number(i.precio_lista) : null,
-          };
-        }),
-      }
-    : undefined;
 
   // El feed de "contexto primero": la historia COMPLETA del cliente (todas
   // sus oportunidades), no solo la de esta oportunidad puntual. `ventasConDetalle`
@@ -282,6 +135,34 @@ export default async function OportunidadDetallePage({
               )}
               <PuntoInteres intencion={oportunidad.intencion} />
             </div>
+
+            {/* La próxima acción es ESTADO, no un panel: se escribe en
+                «Registrar gestión» —treinta centímetros a la izquierda— y ya se
+                repite en Mi día, Mi agenda y la tabla de oportunidades. Ocupaba
+                la cabecera de la columna derecha, que es el sitio de las cosas
+                que se HACEN. Acá dice lo mismo en una línea y, cuando falta,
+                deja de ser un texto gris que nadie mira: una oportunidad sin
+                siguiente paso es justo lo que mide la supervisión diaria. */}
+            {oportunidad.proxima_accion ? (
+              <p className="mt-2 inline-flex flex-wrap items-center gap-1.5 text-xs text-foreground">
+                <CalendarClock className="size-3.5 text-muted-foreground" />
+                <span className="font-medium">{oportunidad.proxima_accion}</span>
+                {/* proxima_accion_at es columna `date`: pasarla por new Date()
+                    la leía como medianoche UTC y en Lima mostraba el día
+                    anterior (A5 del plan 11). */}
+                <span className="text-muted-foreground">
+                  ·{" "}
+                  {oportunidad.proxima_accion_at
+                    ? fechaAgendada(oportunidad.proxima_accion_at, oportunidad.proxima_accion_hora)
+                    : "sin fecha"}
+                </span>
+              </p>
+            ) : (
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-800">
+                <CalendarClock className="size-3.5" />
+                Sin próxima acción — agéndela al registrar la gestión
+              </p>
+            )}
           </div>
           <EtapaBadge etapa={oportunidad.etapa} />
         </div>
@@ -361,19 +242,6 @@ export default async function OportunidadDetallePage({
             </SeccionPanel>
           )}
 
-          <SeccionPanel titulo="Cotizaciones" id="cotizador">
-            <div className="space-y-4">
-              <ListaCotizaciones cotizaciones={cotizaciones ?? []} />
-              {(cotizaciones?.length ?? 0) > 0 && <div className="border-t border-border" />}
-              <Cotizador
-                oportunidadId={oportunidad.id}
-                productos={productosCotizador}
-                historialPrecios={historialPrecios}
-                edicion={edicion}
-              />
-            </div>
-          </SeccionPanel>
-
           {/* C5 (plan 11): lo que antes obligaba a irse a "Ver ficha completa"
               —que tenía MENOS cosas que esta pantalla y por eso confundía—
               ahora vive acá, plegado. Cerrar una venta ya no exige cambiar de
@@ -399,24 +267,6 @@ export default async function OportunidadDetallePage({
         </div>
 
         <div className="space-y-4">
-          <SeccionPanel titulo="Próxima acción">
-            {oportunidad.proxima_accion ? (
-              <div>
-                <p className="text-sm text-foreground">{oportunidad.proxima_accion}</p>
-                {/* proxima_accion_at es columna `date`: pasarla por new Date()
-                    la leía como medianoche UTC y en Lima mostraba el día
-                    anterior (A5 del plan 11). */}
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {oportunidad.proxima_accion_at
-                    ? fechaAgendada(oportunidad.proxima_accion_at, oportunidad.proxima_accion_hora)
-                    : "Sin fecha"}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Sin próxima acción definida.</p>
-            )}
-          </SeccionPanel>
-
           <SeccionPanel titulo="Calificación">
             <CalificacionOportunidad
               oportunidadId={oportunidad.id}
@@ -429,6 +279,14 @@ export default async function OportunidadDetallePage({
 
           <SeccionPanel titulo="Etapa">
             <CambiarEtapa oportunidadId={oportunidad.id} etapaActual={oportunidad.etapa} motivos={motivos ?? []} />
+          </SeccionPanel>
+
+          {/* La columna derecha es el riel de acciones —qué sigue, cómo va, en
+              qué etapa está— y cotizar es la acción que más pesa. Armar el
+              documento ya no vive acá: se abre `/cotizar`, una pantalla entera
+              para eso (27-08). Lo que queda es el estado de lo cotizado. */}
+          <SeccionPanel titulo="Cotizaciones" id="cotizador">
+            <ListaCotizaciones cotizaciones={cotizaciones ?? []} oportunidadId={oportunidad.id} />
           </SeccionPanel>
         </div>
       </div>

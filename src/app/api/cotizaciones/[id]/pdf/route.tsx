@@ -208,6 +208,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       calentamiento: textoDeFicha(ficha, "calentamiento"),
       panel: textoDeFicha(ficha, "panel"),
       controles: textoDeFicha(ficha, "controles"),
+      colores: listaDeFicha(ficha, "colores"),
       caracteristicas: listaDeFicha(ficha, "caracteristicas"),
       caracteristicasTitulo: textoDeFicha(ficha, "caracteristicasTitulo"),
       disenoConstruccion: listaDeFicha(ficha, "disenoConstruccion"),

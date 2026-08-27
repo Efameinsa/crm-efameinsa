@@ -125,6 +125,7 @@ const itemsPdf: ItemPdf[] = items.map((i) => ({
   calentamiento: texto(i.ficha, "calentamiento"),
   panel: texto(i.ficha, "panel"),
   controles: texto(i.ficha, "controles"),
+  colores: lista(i.ficha, "colores"),
   caracteristicas: lista(i.ficha, "caracteristicas"),
   caracteristicasTitulo: texto(i.ficha, "caracteristicasTitulo"),
   disenoConstruccion: lista(i.ficha, "disenoConstruccion"),

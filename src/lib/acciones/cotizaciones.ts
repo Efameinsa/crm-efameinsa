@@ -41,36 +41,114 @@ async function guardarEntrega(
   await supabase.from("cotizaciones").update({ entrega_lugar: entregaLugar }).eq("id", cotizacionId);
 }
 
-export async function crearCotizacion(datos: {
+/** El estado de aprobación que calculó la BASE, que es el que manda. */
+async function estadoAprobacionDe(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cotizacionId: string,
+): Promise<string | undefined> {
+  const { data } = await supabase
+    .from("cotizaciones")
+    .select("estado_aprobacion")
+    .eq("id", cotizacionId)
+    .maybeSingle();
+  return data?.estado_aprobacion ?? undefined;
+}
+
+/**
+ * Autoguarda la cotización que se está armando.
+ *
+ * POR QUÉ. Hasta el 27-08 el carrito vivía solo en la memoria del navegador y
+ * recién tocaba la base al apretar «Crear cotización»: si sonaba el teléfono y
+ * la comercial se iba a otra pantalla, los seis equipos se perdían. Ahora la
+ * pantalla del cotizador siempre está editando un BORRADOR REAL — la fila nace
+ * con el primer equipo y se reescribe con cada cambio.
+ *
+ * Se apoya en algo que ya era cierto: un borrador no gasta correlativo (el
+ * número se asigna al enviarlo, migración 0064) y se puede borrar mientras no
+ * haya salido al cliente (0065). Por eso crear la fila temprano no compromete
+ * nada con contabilidad.
+ *
+ * NO avisa a gerencia. Ese aviso lo manda `finalizarCotizacion`, cuando la
+ * comercial dice que terminó: si saliera desde acá, gerencia recibiría una
+ * campanada por cada tecla.
+ */
+export async function guardarBorradorCotizacion(datos: {
+  /** null la primera vez: el borrador todavía no existe. */
+  cotizacionId: string | null;
   oportunidadId: string;
   serie: "EFAMEINSA" | "OPEN";
   items: ItemCotizacion[];
   condiciones: string;
   vigenciaDias: number;
   entregaLugar?: string | null;
-}): Promise<{ error: string | null; cotizacionId?: string }> {
-  if (datos.items.length === 0) return { error: "Agregue al menos un producto" };
-
+}): Promise<{ error: string | null; cotizacionId: string | null; estadoAprobacion?: string }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("crear_cotizacion", {
-    p_oportunidad_id: datos.oportunidadId,
-    p_serie: datos.serie,
+
+  // Un borrador sin equipos no es un documento a medio hacer: no es nada. La
+  // base tampoco lo acepta (ambas funciones exigen al menos un ítem), así que
+  // quitar el último equipo BORRA el borrador y la pantalla vuelve a estar en
+  // blanco. Volver a agregar uno crea otro — sin número de por medio, no cuesta.
+  if (datos.items.length === 0) {
+    if (!datos.cotizacionId) return { error: null, cotizacionId: null };
+    const { error } = await eliminarCotizacion(datos.cotizacionId);
+    return { error, cotizacionId: error ? datos.cotizacionId : null };
+  }
+
+  if (!datos.cotizacionId) {
+    const { data, error } = await supabase.rpc("crear_cotizacion", {
+      p_oportunidad_id: datos.oportunidadId,
+      p_serie: datos.serie,
+      p_items: datos.items,
+      p_condiciones: datos.condiciones || null,
+      p_vigencia_dias: datos.vigenciaDias,
+    });
+    if (error) return { error: limpiarError(error.message), cotizacionId: null };
+
+    const cotizacionId = data as string;
+    await guardarEntrega(supabase, cotizacionId, datos.entregaLugar);
+    // Solo al NACER el borrador: para que aparezca en la lista de la
+    // oportunidad si la comercial se va antes de terminarlo. Los guardados
+    // siguientes no revalidan nada — son uno por tecla.
+    revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
+    return { error: null, cotizacionId, estadoAprobacion: await estadoAprobacionDe(supabase, cotizacionId) };
+  }
+
+  const { error } = await supabase.rpc("editar_cotizacion", {
+    p_cotizacion_id: datos.cotizacionId,
     p_items: datos.items,
     p_condiciones: datos.condiciones || null,
     p_vigencia_dias: datos.vigenciaDias,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: limpiarError(error.message), cotizacionId: datos.cotizacionId };
 
-  const cotizacionId = data as string;
-  await guardarEntrega(supabase, cotizacionId, datos.entregaLugar);
+  await guardarEntrega(supabase, datos.cotizacionId, datos.entregaLugar);
+  return {
+    error: null,
+    cotizacionId: datos.cotizacionId,
+    estadoAprobacion: await estadoAprobacionDe(supabase, datos.cotizacionId),
+  };
+}
+
+/**
+ * La comercial terminó de armar el borrador.
+ *
+ * No escribe nada: el documento ya está guardado desde el primer equipo. Lo que
+ * hace es el aviso que antes salía al crear la cotización — cuando el precio
+ * quedó por debajo de la referencia y hay que esperar a gerencia.
+ */
+export async function finalizarCotizacion(
+  cotizacionId: string,
+): Promise<{ error: string | null; estadoAprobacion?: string }> {
+  const supabase = await createClient();
 
   const { data: cotizacion } = await supabase
     .from("cotizaciones")
-    .select("codigo, total, moneda, estado_aprobacion, oportunidades(comercial_id, cuentas(razon_social), perfiles(nombre))")
+    .select("total, moneda, estado_aprobacion, oportunidad_id, oportunidades(cuentas(razon_social), perfiles(nombre))")
     .eq("id", cotizacionId)
     .maybeSingle();
+  if (!cotizacion) return { error: "La cotización no existe" };
 
-  if (cotizacion?.estado_aprobacion === "pendiente_gerencia") {
+  if (cotizacion.estado_aprobacion === "pendiente_gerencia") {
     const oportunidad = cotizacion.oportunidades as unknown as {
       cuentas: { razon_social: string } | null;
       perfiles: { nombre: string } | null;
@@ -86,8 +164,78 @@ export async function crearCotizacion(datos: {
     });
   }
 
-  revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
-  return { error: null, cotizacionId };
+  revalidatePath(`/comercial/oportunidades/${cotizacion.oportunidad_id}`);
+  revalidatePath("/comercial", "layout");
+  return { error: null, estadoAprobacion: cotizacion.estado_aprobacion };
+}
+
+/**
+ * Cambia la serie (EFAMEINSA ↔ OPEN) de un borrador ya empezado.
+ *
+ * La serie es lo único del documento que la base congela desde el insert —el
+ * trigger de inmutabilidad la bloquea aunque siga en borrador (migración
+ * 0066)—, porque de ella cuelga el correlativo. Así que no se «edita»: se
+ * levanta un borrador nuevo con los mismos equipos y se borra el viejo. Sin
+ * esto, elegir mal la serie obligaba a rearmar los seis equipos a mano.
+ */
+export async function cambiarSerieBorrador(datos: {
+  cotizacionId: string;
+  serie: "EFAMEINSA" | "OPEN";
+}): Promise<{ error: string | null; cotizacionId?: string }> {
+  const supabase = await createClient();
+
+  const { data: original } = await supabase
+    .from("cotizaciones")
+    .select(
+      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, tier_aplicado)",
+    )
+    .eq("id", datos.cotizacionId)
+    .maybeSingle();
+  if (!original) return { error: "La cotización no existe" };
+  if (original.estado !== "borrador" || original.enviada_at) {
+    return { error: "Esta cotización ya salió al cliente: su serie no se cambia" };
+  }
+
+  const items =
+    (original.cotizacion_items as {
+      producto_id: string | null;
+      descripcion: string | null;
+      cantidad: number;
+      precio_unitario: number;
+      tier_aplicado: string | null;
+    }[]) ?? [];
+  if (items.length === 0) return { error: "El borrador no tiene equipos" };
+
+  const { data, error } = await supabase.rpc("crear_cotizacion", {
+    p_oportunidad_id: original.oportunidad_id,
+    p_serie: datos.serie,
+    p_items: items.map((i) => ({
+      producto_id: i.producto_id,
+      descripcion: i.descripcion,
+      cantidad: i.cantidad,
+      precio_unitario: i.precio_unitario,
+      tier_aplicado: i.tier_aplicado ?? undefined,
+    })),
+    p_condiciones: original.condiciones,
+    p_vigencia_dias: original.vigencia_dias,
+  });
+  if (error) return { error: limpiarError(error.message) };
+
+  const nuevoId = data as string;
+  await guardarEntrega(supabase, nuevoId, original.entrega_lugar);
+
+  // Primero se crea y recién después se borra: si el borrado fallara, queda un
+  // borrador de más —visible y borrable— en vez de perder el trabajo.
+  const { error: errorBorrado } = await eliminarCotizacion(datos.cotizacionId);
+  if (errorBorrado) {
+    return {
+      error: `Se creó el borrador en ${datos.serie}, pero el anterior quedó en la lista: bórrelo a mano.`,
+      cotizacionId: nuevoId,
+    };
+  }
+
+  revalidatePath(`/comercial/oportunidades/${original.oportunidad_id}`);
+  return { error: null, cotizacionId: nuevoId };
 }
 
 export async function duplicarCotizacion(
@@ -224,44 +372,6 @@ export async function resolverAprobacionCotizacion(datos: {
 
   revalidatePath("/gerencia/aprobaciones");
   revalidatePath("/comercial", "layout");
-  return { error: null };
-}
-
-/**
- * Corrige una cotización que todavía no se envió.
- *
- * Pedido de Brenda el 24-08, primer día de uso real: hasta entonces un error de
- * tipeo obligaba a duplicar la cotización y quemar un número. La regla de
- * gerencia —una cotización no cambia de precio bajo el mismo número— sigue
- * intacta: la función de la base rechaza cualquier edición en cuanto el
- * documento se envía (migración 0062).
- */
-export async function editarCotizacion(datos: {
-  cotizacionId: string;
-  items: ItemCotizacion[];
-  condiciones: string;
-  vigenciaDias: number;
-  entregaLugar?: string | null;
-}): Promise<{ error: string | null }> {
-  if (datos.items.length === 0) return { error: "La cotización necesita al menos un equipo" };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("editar_cotizacion", {
-    p_cotizacion_id: datos.cotizacionId,
-    p_items: datos.items,
-    p_condiciones: datos.condiciones || null,
-    p_vigencia_dias: datos.vigenciaDias,
-  });
-  if (error) return { error: limpiarError(error.message) };
-
-  await guardarEntrega(supabase, datos.cotizacionId, datos.entregaLugar);
-
-  const { data: cot } = await supabase
-    .from("cotizaciones")
-    .select("oportunidad_id")
-    .eq("id", datos.cotizacionId)
-    .maybeSingle();
-  if (cot) revalidatePath(`/comercial/oportunidades/${cot.oportunidad_id}`);
   return { error: null };
 }
 

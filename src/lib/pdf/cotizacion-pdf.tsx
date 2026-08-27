@@ -59,6 +59,14 @@ export interface ItemPdf {
   calentamiento: string | null; // solo secadoras a gas
   panel: string | null; // "Digital-Multifunción"
   controles: string | null; // "220V/60Hz/1Ph"
+  /**
+   * Colores en los que existe el equipo (coches de transporte, principalmente).
+   * Sale de `ficha.colores`, sincronizado desde el maestro2 (columna EQUIPO,
+   * "COLOR: AZUL/WHITE/GREY…") — reportado 26-08 con la CO402: el dato ya
+   * estaba en la ficha (descripcion_maestro) pero nunca se mostraba en la
+   * cotización.
+   */
+  colores: string[];
   caracteristicas: string[];
   caracteristicasTitulo: string | null;
   disenoConstruccion: string[];
@@ -412,6 +420,7 @@ export function CotizacionPdf({
             item.disenoConstruccion.length > 0 ||
             item.dimensiones.length > 0 ||
             item.medidas.length > 0 ||
+            item.colores.length > 0 ||
             Boolean(item.panel || item.controles || item.calentamiento);
           return tieneAlgoQueDecir;
         })
@@ -427,6 +436,7 @@ export function CotizacionPdf({
           if (item.calentamiento) columnas.push({ titulo: "Calentamiento", valor: item.calentamiento });
           if (item.panel) columnas.push({ titulo: "Panel computarizado", valor: item.panel });
           if (item.controles) columnas.push({ titulo: "Controles Automático", valor: item.controles });
+          if (item.colores.length > 0) columnas.push({ titulo: "Color disponible", valor: item.colores.join(" / ") });
           if (!item.panel && !item.controles) columnas.push({ titulo: "Categoría", valor: item.categoria ?? "—" });
           const anchoCol = `${100 / columnas.length}%`;
 
