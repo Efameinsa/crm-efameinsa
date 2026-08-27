@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { NavLateral } from "@/components/crm/nav-lateral";
+import { PinSupervisor } from "@/components/crm/pin-supervisor";
 import { cn } from "@/lib/utils";
 import type { RolUsuario } from "@/types/database";
 
@@ -63,6 +64,12 @@ export function BarraLateral({ rol, esPostventa }: { rol: RolUsuario; esPostvent
         />
       </div>
       <NavLateral rol={rol} esPostventa={esPostventa} plegada={plegada} />
+
+      {/* El código con el que gerencia autoriza que Central corrija una
+          derivación (0092). Vive acá porque es donde el supervisor lo tiene a
+          mano cuando lo llaman, sin salir de lo que estaba haciendo. */}
+      {(rol === "gerencia" || rol === "admin") && <PinSupervisor plegada={plegada} />}
+
       {/* A continuación de la lista, como un ítem más — pegado al borde
           inferior de la pantalla nadie lo veía (reportado 25-08). */}
       <div className="px-3">

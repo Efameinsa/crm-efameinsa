@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 /**
  * Corregir a quién se derivó un contacto.
@@ -43,23 +44,31 @@ export function RedirigirLeadBoton({
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [destino, setDestino] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [pin, setPin] = useState("");
   const [enviando, startTransition] = useTransition();
 
   const opciones = comerciales.filter((c) => c.id !== comercialActual);
+  const listo = Boolean(destino) && motivo.trim().length >= 10 && pin.length === 4;
 
   function guardar() {
-    if (!destino) return;
+    if (!listo) return;
     startTransition(async () => {
-      const r = await redirigirLead(leadId, destino);
+      const r = await redirigirLead(leadId, destino, pin, motivo);
       if (r.error) {
         // Los avisos de la base son largos a propósito (explican por qué no se
         // puede y qué hacer), así que se muestran completos.
         toast.error(r.error, { duration: 9000 });
+        // El código se quema al usarse: si algo falló después de validarlo, el
+        // que está en pantalla ya no sirve y hay que pedir otro.
+        setPin("");
         return;
       }
       toast.success("Contacto reasignado");
       setAbierto(false);
       setDestino("");
+      setMotivo("");
+      setPin("");
       router.refresh();
     });
   }
@@ -100,8 +109,42 @@ export function RedirigirLeadBoton({
           </select>
         </div>
 
+        {/* El motivo NO es burocracia: es lo único que después va a explicar
+            por qué se derivó mal. El PIN evita que la corrección pase en
+            silencio; esto es lo que se lee cuando se quiere entender. */}
+        <div className="space-y-1.5">
+          <Label htmlFor="motivo">¿Por qué hay que corregirlo?</Label>
+          <Textarea
+            id="motivo"
+            rows={2}
+            placeholder="ej.: lo derivé a comercial por la coincidencia de cliente, pero pedía mantenimiento"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+          />
+        </div>
+
+        {/* La caja de Plaza Vea, tal cual lo pidió el ing. Carlos el 27-08: la
+            corrección la habilita un supervisor, no quien se equivocó. */}
+        <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+          <Label htmlFor="pin">Código del supervisor</Label>
+          <input
+            id="pin"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={4}
+            placeholder="0000"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            className="h-11 w-28 rounded-md border border-input bg-background text-center font-mono text-xl tracking-[0.3em]"
+          />
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Pídaselo a gerencia: lo tiene en su barra lateral y cambia cada dos minutos. Sirve para{" "}
+            <b>una sola</b> corrección.
+          </p>
+        </div>
+
         <DialogFooter>
-          <Button disabled={enviando || !destino} onClick={guardar}>
+          <Button disabled={enviando || !listo} onClick={guardar}>
             Reasignar
           </Button>
         </DialogFooter>

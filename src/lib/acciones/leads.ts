@@ -451,6 +451,8 @@ export async function devolverLeadAComercial(leadId: string): Promise<{ error: s
 export async function redirigirLead(
   leadId: string,
   comercialId: string,
+  pin: string,
+  motivo: string,
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const {
@@ -463,11 +465,17 @@ export async function redirigirLead(
     .eq("id", leadId)
     .maybeSingle();
 
-  const { data: oportunidadId, error } = await supabase.rpc("redirigir_lead", {
+  // Pasa por `redirigir_lead_con_pin` (0092), que valida el código del
+  // supervisor, lo quema y deja registrado quién autorizó y por qué antes de
+  // mover nada. La versión sin autorización quedó revocada en la base: no es
+  // que la pantalla decida pedir el PIN, es que ya no hay otra puerta.
+  const { data: oportunidadId, error } = await supabase.rpc("redirigir_lead_con_pin", {
     p_lead_id: leadId,
     p_comercial_id: comercialId,
+    p_pin: pin,
+    p_motivo: motivo,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
 
   const { data: perfiles } = await supabase
     .from("perfiles")
