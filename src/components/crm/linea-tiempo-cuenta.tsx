@@ -1,45 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Phone,
-  MessageCircle,
-  Mail,
-  Building2,
-  Store,
-  Filter,
-  StickyNote,
-  MoreHorizontal,
-  FileText,
-  CircleCheckBig,
-  CalendarClock,
-  type LucideIcon,
-} from "lucide-react";
+import { MoreHorizontal, FileText, CircleCheckBig, CalendarClock } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { fechaAgendada, fechaLimaCorta } from "@/lib/fechas";
+import { ETIQUETA_ACTIVIDAD, ICONO_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 
-export const ICONO_ACTIVIDAD: Record<string, LucideIcon> = {
-  llamada: Phone,
-  whatsapp: MessageCircle,
-  email: Mail,
-  visita: Building2,
-  showroom: Store,
-  filtro: Filter,
-  nota: StickyNote,
-  otro: MoreHorizontal,
-};
-
-export const ETIQUETA_ACTIVIDAD: Record<string, string> = {
-  llamada: "Llamada",
-  whatsapp: "WhatsApp",
-  email: "Correo",
-  visita: "Visita",
-  showroom: "Showroom",
-  filtro: "Filtro",
-  nota: "Nota",
-  otro: "Otro",
-};
+// Se re-exportan para no tocar a quien ya las importaba desde acá.
+export { ETIQUETA_ACTIVIDAD, ICONO_ACTIVIDAD };
 
 export const COLOR_COTIZACION: Record<"ambar" | "verde" | "rojo" | "neutro", string> = {
   ambar: "bg-amber-500/10 text-amber-700",
