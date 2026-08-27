@@ -29,6 +29,10 @@ export interface ProductoCotizable {
   colores?: string[];
   /** Ruta pública de la foto ("/productos/x.png"), para la vista previa. */
   fotoPath?: string | null;
+  /** Una foto por color, cuando el equipo se fabrica en varios (los coches de
+   *  transporte de ropa): { "Azul": "/productos/co402.png", … }. Cada una sale
+   *  del Word que Lesly hizo para ese color. */
+  fotosPorColor?: Record<string, string>;
   /** La ficha completa, títulos de bloque incluidos: el selector la muestra
    *  entera (reunión con gerencia 25-08). */
   caracteristicas?: string[];

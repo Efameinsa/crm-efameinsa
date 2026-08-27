@@ -40,6 +40,14 @@ export interface ContextoCotizador {
  * real un equipo sin datos técnicos (LG TITAN-18) y se enteró recién al abrir
  * el PDF, cuando la página de la ficha salió vacía.
  */
+/** `ficha.fotos_por_color` es jsonb libre: solo pasan los pares color → ruta. */
+function mapaDeFotos(valor: unknown): Record<string, string> {
+  if (typeof valor !== "object" || valor === null || Array.isArray(valor)) return {};
+  return Object.fromEntries(
+    Object.entries(valor as Record<string, unknown>).filter((par): par is [string, string] => typeof par[1] === "string"),
+  );
+}
+
 function mapearProducto(pr: {
   id: string;
   sku: string | null;
@@ -92,6 +100,10 @@ function mapearProducto(pr: {
     // vocabulario de las comerciales («x control», «boiler fed», «200g»…).
     descripcion: texto("descripcion_maestro"),
     fotoPath: pr.foto_path,
+    // Los coches de transporte se fabrican en varios colores y Lesly hizo un
+    // Word (con su foto) por color: el selector las muestra como miniaturas
+    // para que el comercial vea el que le está ofreciendo al cliente.
+    fotosPorColor: mapaDeFotos(ficha?.fotos_por_color),
     caracteristicas,
     nDimensiones: lista("dimensiones").length + lista("medidas").length,
     sinFicha: caracteristicas.length + lista("dimensiones").length + lista("medidas").length === 0,
