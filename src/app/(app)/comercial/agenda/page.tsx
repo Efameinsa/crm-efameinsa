@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { AgendaMensual, type AccionAgenda, type HechaAgenda, type VentaAgenda, type HistItem, type TareaAgenda } from "@/components/crm/agenda-mensual";
+import { SemanaPotenciales } from "@/components/crm/semana-potenciales";
+import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { cargarPotenciales, lunesSemana } from "@/lib/potenciales-semana";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +27,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const finMes = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
 
   const supabase = await createClient();
+  const lunes = lunesSemana();
 
   // ⚠️ CORREGIDO 24-08 (docs/11-plan-correcciones-prueba-23-08.md, A1).
   // ANTES esta consulta pedía TODAS las abiertas del comercial sin `limit`,
@@ -134,6 +138,9 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       ((v.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social) ?? "Cuenta sin nombre",
   }));
 
+  // La proyección de la semana que va al pie (ing. Carlos, 27-08).
+  const { potenciales } = await cargarPotenciales(lunes, perfil.id);
+
   const historial: Record<string, HistItem[]> = {};
   for (const h of histData ?? []) {
     if (!historial[h.oportunidad_id]) historial[h.oportunidad_id] = [];
@@ -169,6 +176,17 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         completada: t.completada,
       })) as TareaAgenda[]}
     />
+
+      {/* AL PIE DE LA AGENDA, todos los días (ing. Carlos, 27-08): «el lunes
+          aparece el cliente A, el cliente B, acá 10.000, acá 20… y al final de
+          la semana el total que debería vender. Esto todos los días que se
+          muestre en tu agenda».
+          Es el MISMO cuadro de «Mis potenciales» —mismo componente, mismos
+          números— y no una versión aparte: dos totales que no cuadran entre
+          dos pantallas son peores que no mostrarlos. */}
+      <SeccionPanel titulo="Lo que proyecta cerrar esta semana">
+        <SemanaPotenciales lunes={lunes} potenciales={potenciales} esGerencia={false} hoyISO={hoy} />
+      </SeccionPanel>
     </div>
   );
 }

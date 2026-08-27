@@ -133,3 +133,87 @@ export async function cargarPotenciales(
 
   return { potenciales, tc };
 }
+
+/* ------------------------------------------------------------------ */
+/* El mismo cuadro, en datos: para la agenda y para el reporte diario  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Pedido del ing. Carlos, reunión 27-08: «esto todos los días que se muestre
+ * en tu agenda, acá abajo» — lunes a sábado, los clientes de cada día con su
+ * monto, la suma del día y el total de la semana, que es lo que el comercial
+ * dice que va a vender.
+ *
+ * Vive acá y no dentro de la pantalla porque ahora lo dibujan tres sitios —la
+ * vista de potenciales, la agenda y el PDF del reporte— y tienen que dar el
+ * MISMO número. Un total que no cuadra entre dos pantallas es peor que no
+ * mostrarlo.
+ *
+ * Seis días, no cinco: acá se trabaja el sábado.
+ */
+const DIA_CORTO = ["lun", "mar", "mié", "jue", "vie", "sáb"];
+
+export interface ClienteProyectado {
+  cliente: string;
+  presupuesto: string | null;
+  monto: number;
+}
+
+export interface DiaProyectado {
+  iso: string;
+  etiqueta: string;
+  total: number;
+  clientes: ClienteProyectado[];
+}
+
+export interface ProyeccionSemana {
+  lunes: string;
+  dias: DiaProyectado[];
+  /** En etapa «potencial» pero sin fecha: el reclamo natural del cuadro. */
+  porUbicar: ClienteProyectado[];
+  totalSemana: number;
+  totalPorUbicar: number;
+}
+
+export function resumirSemana(lunes: string, potenciales: Potencial[]): ProyeccionSemana {
+  const dias = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(`${lunes}T12:00:00`);
+    d.setDate(d.getDate() + i);
+    return { iso: d.toISOString().slice(0, 10), etiqueta: `${DIA_CORTO[i]} ${d.getDate()}` };
+  });
+
+  const aCliente = (p: Potencial): ClienteProyectado => ({
+    cliente: p.cliente,
+    presupuesto: p.presupuesto,
+    monto: p.montoUsd ?? 0,
+  });
+
+  const porDia = new Map<string, ClienteProyectado[]>(dias.map((d) => [d.iso, []]));
+  const porUbicar: ClienteProyectado[] = [];
+
+  for (const p of potenciales) {
+    const enSemana =
+      p.cierreProyectado !== null && p.cierreProyectado >= dias[0].iso && p.cierreProyectado <= dias[5].iso;
+    if (enSemana) porDia.get(p.cierreProyectado!)!.push(aCliente(p));
+    // «Por ubicar» es SIN FECHA, literal. Antes caía acá también lo que tenía
+    // fecha de otra semana, y eso es lo que hacía ilegible la columna —el ing.
+    // Carlos, 27-08: «esto por ubicar dificulta un poco la vista, ¿qué es
+    // esto?»—: el comercial abría una oportunidad a ponerle fecha y ya la
+    // tenía, para otro día. Lo de otra semana simplemente no es de esta semana.
+    else if (p.etapa === "potencial" && p.cierreProyectado === null) porUbicar.push(aCliente(p));
+  }
+
+  const suma = (xs: ClienteProyectado[]) => xs.reduce((s, x) => s + x.monto, 0);
+  const detalle = dias.map((d) => {
+    const clientes = porDia.get(d.iso)!.sort((a, b) => b.monto - a.monto);
+    return { ...d, clientes, total: suma(clientes) };
+  });
+
+  return {
+    lunes,
+    dias: detalle,
+    porUbicar: porUbicar.sort((a, b) => b.monto - a.monto),
+    totalSemana: detalle.reduce((s, d) => s + d.total, 0),
+    totalPorUbicar: suma(porUbicar),
+  };
+}

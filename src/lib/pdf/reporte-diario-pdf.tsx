@@ -1,4 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
+import type { ProyeccionSemana } from "@/lib/potenciales-semana";
 
 // Reporte diario de gestión del comercial. Reemplaza la agenda que hoy se
 // arma a mano en Excel y se exporta a PDF (ejemplo del ing. Carlos:
@@ -27,6 +28,9 @@ const FILA_GRIS = "#F4F2F1";
 
 export interface ReporteDiarioProps {
   logoBuffer: Buffer;
+  /** La proyección de la semana (ing. Carlos, 27-08). Opcional: si un día no
+   *  se puede calcular, el reporte sale igual sin esa sección. */
+  proyeccion?: ProyeccionSemana;
   fecha: string; // "jueves, 20 de agosto de 2026"
   comercial: { nombre: string; codigo: string | null };
   resumen: {
@@ -157,7 +161,7 @@ function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: string; su
 }
 
 export function ReporteDiarioPdf({
-  logoBuffer, fecha, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana,
+  logoBuffer, fecha, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -361,6 +365,74 @@ export function ReporteDiarioPdf({
             </>
           )}
         </Seccion>
+
+        {/* Pedido del ing. Carlos, 27-08: «en su reporte diario se debería
+            mostrar acá abajo un resumen… el lunes aparece el cliente A, el
+            cliente B, acá 10.000, acá 20… y al final de la semana el total que
+            debería vender». Va al final porque no es lo que HIZO hoy —eso son
+            las seis secciones de arriba— sino contra qué se mide la semana.
+            El sábado, ese total es el que se contrasta con lo vendido. */}
+        {proyeccion && (
+          <Seccion titulo="7. PROYECCIÓN DE LA SEMANA" total={proyeccion.dias.reduce((s, d) => s + d.clientes.length, 0)}>
+            {proyeccion.totalSemana === 0 && proyeccion.porUbicar.length === 0 ? (
+              <Text style={e.vacio}>Sin oportunidades proyectadas para esta semana.</Text>
+            ) : (
+              <>
+                <View style={e.th}>
+                  <Text style={[e.thTexto, { width: "12%" }]}>Día</Text>
+                  <Text style={[e.thTexto, { width: "58%" }]}>Cliente</Text>
+                  <Text style={[e.thTexto, { width: "15%" }]}>Presupuesto</Text>
+                  <Text style={[e.thTexto, { width: "15%", textAlign: "right" }]}>Monto US$</Text>
+                </View>
+
+                {proyeccion.dias.map((d) =>
+                  d.clientes.length === 0 ? null : (
+                    <View key={d.iso} wrap={false}>
+                      {d.clientes.map((c, i) => (
+                        <View key={`${d.iso}-${i}`} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                          <Text style={{ width: "12%", color: GRIS }}>{i === 0 ? d.etiqueta : ""}</Text>
+                          <Text style={{ width: "58%", paddingRight: 6 }}>{corta(c.cliente, 58)}</Text>
+                          <Text style={{ width: "15%", color: GRIS }}>{c.presupuesto ?? "—"}</Text>
+                          <Text style={{ width: "15%", textAlign: "right" }}>
+                            {Math.round(c.monto).toLocaleString("es-PE")}
+                          </Text>
+                        </View>
+                      ))}
+                      <View style={e.fila}>
+                        <Text style={{ width: "70%", textAlign: "right", color: GRIS, paddingRight: 6 }}>
+                          Total {d.etiqueta}
+                        </Text>
+                        <Text style={{ width: "30%", textAlign: "right", fontFamily: "Helvetica-Bold" }}>
+                          US$ {Math.round(d.total).toLocaleString("es-PE")}
+                        </Text>
+                      </View>
+                    </View>
+                  ),
+                )}
+
+                <View style={[e.fila, { borderTopWidth: 1, borderTopColor: GRANATE, marginTop: 3 }]} wrap={false}>
+                  <Text style={{ width: "70%", textAlign: "right", fontFamily: "Helvetica-Bold", paddingRight: 6 }}>
+                    PROYECTADO DE LA SEMANA
+                  </Text>
+                  <Text style={{ width: "30%", textAlign: "right", fontFamily: "Helvetica-Bold", color: GRANATE }}>
+                    US$ {Math.round(proyeccion.totalSemana).toLocaleString("es-PE")}
+                  </Text>
+                </View>
+
+                {/* Lo que está en negociación pero sin fecha. Se muestra aparte
+                    y NO suma al proyectado: si sumara, el número de la semana
+                    diría algo que el comercial no se comprometió a cerrar. */}
+                {proyeccion.porUbicar.length > 0 && (
+                  <Text style={[e.vacio, { marginTop: 4 }]}>
+                    Además, {proyeccion.porUbicar.length} oportunidad(es) en negociación por US${" "}
+                    {Math.round(proyeccion.totalPorUbicar).toLocaleString("es-PE")} siguen SIN fecha de cierre: hay que
+                    ubicarlas en un día o moverlas de etapa.
+                  </Text>
+                )}
+              </>
+            )}
+          </Seccion>
+        )}
 
         <View style={e.pie} fixed>
           <Text style={e.pieTexto}>Generado automáticamente por el CRM de Efameinsa</Text>

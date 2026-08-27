@@ -54,7 +54,11 @@ export function SemanaPotenciales({
   const porUbicar: Potencial[] = [];
   for (const p of potenciales) {
     if (enSemana(p)) porDia.get(p.cierreProyectado!)!.push(p);
-    else if (p.etapa === "potencial") porUbicar.push(p);
+    // Sin fecha, literal. Hasta el 27-08 caía acá también lo que tenía fecha
+    // de OTRA semana, y por eso la columna era ilegible («esto por ubicar
+    // dificulta un poco la vista, ¿qué es esto?», ing. Carlos): se abría una
+    // oportunidad a ponerle fecha y ya la tenía, para otro día.
+    else if (p.etapa === "potencial" && p.cierreProyectado === null) porUbicar.push(p);
   }
   const totalSemana = [...porDia.values()].flat().reduce((s, p) => s + (p.montoUsd ?? 0), 0);
 

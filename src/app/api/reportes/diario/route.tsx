@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { ReporteDiarioPdf } from "@/lib/pdf/reporte-diario-pdf";
+import { cargarPotenciales, lunesSemana, resumirSemana } from "@/lib/potenciales-semana";
 
 // PDF del cierre del día del comercial. La autorización real la hace la
 // función SQL (el propio comercial o backoffice); acá solo se comprueba que
@@ -42,6 +43,20 @@ export async function GET(request: Request) {
   }
 
   const r = data as unknown as Parameters<typeof ReporteDiarioPdf>[0] & { fecha: string };
+
+  // La proyección de la semana (ing. Carlos, 27-08). Se calcula ACÁ y no dentro
+  // de `reporte_diario_comercial`: esa función ya se redefinió una decena de
+  // veces y es la que sostiene el informe que gerencia recibe todos los días.
+  // Sumarle un bloque más por una sección nueva es apostar el reporte entero;
+  // desde acá, si algo falla, el PDF sale igual sin esa sección.
+  let proyeccion;
+  try {
+    const lunes = lunesSemana(fecha);
+    const { potenciales } = await cargarPotenciales(lunes, comercialId);
+    proyeccion = resumirSemana(lunes, potenciales);
+  } catch {
+    proyeccion = undefined;
+  }
   const fechaLarga = new Date(`${fecha}T12:00:00`).toLocaleDateString("es-PE", {
     weekday: "long",
     day: "numeric",
@@ -62,6 +77,7 @@ export async function GET(request: Request) {
       complementarias={r.complementarias}
       agenda={r.agenda}
       planificacion_manana={r.planificacion_manana}
+      proyeccion={proyeccion}
     />,
   );
 
