@@ -524,3 +524,57 @@ Responde el *«cómo se le mide»* de Carlos. Postventa **no se mide en soles ve
 ## Anexo · Nota de procedimiento ajena a postventa (misma reunión)
 
 **Fichas técnicas:** ya no hay que reportarle nada a Importaciones. *«Solamente va a seguir siendo copiado por un tema procedimental, pero él no hace nada de esas fichas: lo hacemos nosotros.»* El procedimiento queda: se copia la ficha existente, se modifica, y **al terminar se le pasa a Santos**, que recién ahí hace lo suyo.
+
+---
+
+## Anexo · Lo que aportó el manual del área (87 páginas, 2025)
+
+Santos entregó el «MANUAL DE NORMAS LABORALES, FUNCIONES, PROCEDIMIENTOS Y SISTEMA ERP — ÁREA POST-VENTA». Confirma casi todo lo relevado el 27-08 y agrega piezas que faltaban. Se tomó lo que sigue vivo; el papeleo no.
+
+**Lo que se incorporó al diseño:**
+
+| Del manual | Cómo entró al sistema |
+|---|---|
+| **La APERTURA** (ítems XIII y XIV): la orden de trabajo con la que se programa un despacho o un servicio. En el manual se imprime, la firma Finanzas, la sella Contabilidad, se saca copia para Almacén y otra para el técnico. | Son los campos del pedido y su estado. El documento se genera cuando hace falta; las firmas son el registro de quién marcó cada paso. |
+| **Los tipos de servicio** (ítem XII), textuales: puesta en marcha · garantía · preventivo · correctivo · visita de preinstalación · evaluación. Más capacitación y entrega, que el ítem XXII agrega. | Enum `tipo_servicio_pv` en la migración 0087. |
+| **El FORMATO DE LLAMADA** (ítem IV): fecha de compra, fecha de entrega y n.º de guía, contacto, problema, último mantenimiento, protocolo de prueba, garantía, provincia, fecha de puesta en marcha, cambios correctivos, programación. | Es, campo por campo, la ficha del equipo. Por eso `equipos_instalados` los tiene: el manual obliga a escribirlos a mano sobre una máquina que no estaba registrada en ningún lado. |
+| **Garantía de 24 meses**, en los dos formatos de cierre. | Valor por defecto de `garantia_meses`. Falta confirmar desde cuándo corre en Lima. |
+| **Preventivo «cada 04 a 06 meses»** (correo del ítem V) y «trimestral, semestral o anual según el uso» (ítem XXI). | Seis meses por defecto para `proximo_mantenimiento`, ajustable. |
+| **Los CICLOS**: «en los equipos LG se deberá contar los ciclos de lavado» (ítem XXI). | `ciclos_inicial` / `ciclos_ultimo` en el equipo, capturados en cada informe. |
+| **El PROTOCOLO DE PRUEBAS** (ítem XX): formato con parámetros, registro fotográfico y tres firmas — supervisor, inspector y técnico. Postventa lo registra en un «INFORME CONTROL DE PROTOCOLOS». | `protocolo_prueba_ref` en el pedido, junto al check de prueba y embalaje. |
+| **Los cinco formatos de informe** (anexos 1-5): entrega · preinstalación/evaluación · puesta en marcha · mantenimiento preventivo · informe técnico. Comparten cabecera: cliente, asunto, fecha de visita, fecha de informe, quién lo elabora, técnico, equipo con serie, trabajo realizado, accesorios, observaciones, y registro fotográfico obligatorio. | Una sola tabla `informes_servicio` con un tipo. Cinco tablas casi iguales se desincronizan. |
+| **Nombres y DNI de las personas capacitadas** (anexo 4). | `capacitados jsonb`. |
+| **Datos que se piden al recibir una llamada** (ítem III): razón social, RUC/DNI, teléfonos, correo, tipo de negocio, capacidad; y para servicio técnico, **problema, serie, video y foto de la placa**. | Es el formulario de un caso. Pedir la serie primero es lo que trae el historial del equipo. |
+| **Confirmación de pago** (ítem XXIX): correo de postventa a Finanzas con copia obligatoria a gerencia, respuesta de Finanzas, impresión, firma y sello. | Confirma el diagnóstico D4. Se reemplaza por la bandeja «Pagos por confirmar» con un botón. |
+| **Condiciones de preinstalación por equipo** (ítem XIII, clientes Lima): lavadora — caño jardinero, tubería de descarga, conexión eléctrica; secadora — conexión eléctrica, salida de vahos, accesorios. Y en qué piso va el equipo. | Checklist del paso de preinstalación verificada. |
+| **Parámetros de prueba** (paso 9 del ítem XVIII): lavado normal 36 min, lavado largo 41, solo centrifugado 11, secadora 40. Tipo de ciclo, prenda, peso, tiempo, detergente, mantenimiento diario. | Valores por defecto del informe de puesta en marcha. |
+| **Embalaje y rotulado** (ítem XV): plástico y strech film, rótulo con nombre del cliente, fotos y videos de las pruebas, avisos de FRÁGIL en los cuatro lados; jaula tipo ardilla o cerrado en provincia, con costo adicional. | Checklist de la respuesta del almacén. |
+| **Ventanas horarias**: derivación de llamadas solo 10:00-12:00 y 14:00-17:00; entrega de repuestos L-V 14:00-18:00 y sábados 9:00-12:00; recojo en planta 8:00-17:30 sin 13:00-14:00. | Validación al programar. |
+| **Datos de recojo en planta** (ítem XXVII): nombre, DNI, celular, empresa de transporte, RUC, placa, marca de vehículo, licencia, día y hora exacta. | Formulario de entrega en instalaciones, y el aviso a portería. |
+
+**Lo que se dejó afuera a propósito:**
+
+- **Las tres copias de colores del informe técnico** (blanca al cliente, verde a logística, amarilla a producción). Un informe digital firmado en pantalla no necesita triplicado.
+- **Las firmas y sellos en papel de la apertura** (ítem XIII: imprimir, llevar a Finanzas, llevar a Contabilidad, sacar copia, entregar copia a Almacén, recoger la copia de Almacén para dársela al técnico). Es el ejemplo más claro de lo que Carlos llamó «muy burocrático».
+- **Las tres agendas paralelas** del ítem XXV —resumen de despachos, calendario e informe diario— más las dos de mantenimientos (sector público y privadas) y el «cronograma macro anual». Son seis documentos con la misma información. En el CRM es una agenda con vistas.
+- **«Se procederá a borrar de la agenda al día siguiente»** (ítem XXV). Es precisamente lo que hace imposible reconstruir un despacho tres meses después. Nada se borra: se completa.
+- **La aprobación de gerencia en cada paso** (deriva la llamada, aprueba la apertura, aprueba la redacción del informe antes de enviarlo al cliente, aprueba la movilidad). Queda como una decisión pendiente: sostenerla como está, o dejar la aprobación solo donde cambia algo — plata, garantía o un compromiso con el cliente.
+- **Movilidad y viáticos** (ítems XXVI y XXVIII): InDrive, aprobación de RR.HH., viáticos por provincia. Es un circuito de administración, no de postventa. Los campos existen en la apertura; el flujo, no.
+
+**Preguntas que el manual respondió** (salen de la lista del §9): la garantía es de **24 meses**; el preventivo se recomienda **cada 4 a 6 meses**, ajustable según uso. Sigue abierta la de **desde cuándo corre la garantía en Lima**.
+
+---
+
+## Estado de la implementación
+
+**Fase 1 — desplegada el 27-08-2026** (migración `0087_postventa_flujo.sql`, commit `ad5135b`):
+
+- Central marca **pedido ejecutado** y **liquidación** desde `/central/cierres`, anota el n.º de pedido del ERP, y con los dos checks el pedido se libera a postventa con notificación.
+- Bandeja **Nuevos pedidos** en `/postventa` con el botón **Aprobar**; Central ve el acuse como «En ejecución».
+- **Ficha del pedido** en `/postventa/pedidos/[id]`: tres bloques, diez pasos con autor y fecha, chip de «qué lo frena», documentos del expediente.
+- **Agenda** en `/postventa/agenda`: orden por urgencia, tres pestañas, buscador, filtros, filas clickables.
+- **Equipos instalados** en `/postventa/equipos`: búsqueda por serie, garantía calculada, ciclos, uso estimado e historial.
+
+**Cuidado tomado con los datos existentes:** las 174 filas de `servicios_postventa` vienen del Excel y 106 siguen pendientes. La cola de trabajo **no** se filtra por `origen='crm'` (habría salido vacía — el mismo error que vació el Kanban en el plan 11), no se les exige el acuse que nunca tuvieron, y donde el monto pagado no se cargó la pantalla dice «pago sin registrar» en vez de afirmar un saldo que nadie verificó.
+
+**Falta de la fase 2:** carga de adjuntos en el informe de cierre (los campos y la vista ya están; falta el subidor), fotos y firma en el informe de puesta en marcha, pantalla del almacén, bandeja de Finanzas, envío del plano desde el sistema.
