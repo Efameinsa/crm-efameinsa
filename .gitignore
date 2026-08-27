@@ -21,3 +21,4 @@ scripts/data/stock-inventario-*-RAW-sin-verificar.json
 scripts/data/fichas-convertidas/
 scripts/data/fichas-a-convertir.txt
 scripts/data/reporte-revision.pdf
+scripts/data/cierre-revision.pdf
