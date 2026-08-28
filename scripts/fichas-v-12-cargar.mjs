@@ -25,6 +25,9 @@
 //   1. Actualiza cada producto del Excel con SU FICHA: la descripción leída del
 //      Word (`ficha.bloques`, en su orden y con sus rótulos) y los datos de la
 //      tabla técnica (panel, controles, calentamiento).
+//      Del mismo renglón salen el stock y la ubicación: es el dato que el
+//      comercial ve en el cotizador y el reporte ya resolvió cuál de los
+//      libros de Lesly manda. Un renglón en blanco no borra el del CRM.
 //   2. Copia sus imágenes ya preparadas a `public/productos/`: <sku>.png la del
 //      equipo, <sku>-logo.png la de la marca y <sku>-panel.png la vista de
 //      complemento.
@@ -106,7 +109,7 @@ const { rows: existentes } = await bd.query(
 );
 const porSku = new Map(existentes.map((p) => [p.sku.toUpperCase(), p]));
 
-const plan = { actualiza: [], crea: [], fueraSinFicha: [], retira: [], precios: [], fotos: 0 };
+const plan = { actualiza: [], crea: [], fueraSinFicha: [], retira: [], precios: [], stock: [], fotos: 0 };
 
 for (const f of fichas) {
   const sku = f.codigo.toUpperCase();
@@ -130,6 +133,19 @@ for (const [sku, datos] of universo) {
   plan.precios.push({ sku, de: vigente, a: Number(datos.precio), nuevo: !actual });
 }
 
+// Stock y ubicación: el mismo renglón del Excel que trae el precio.
+for (const [sku, datos] of universo) {
+  if (!enCatalogo(sku)) continue;
+  const fichaActual = porSku.get(sku)?.ficha ?? {};
+  const stockActual = typeof fichaActual.stock_referencia === "number" ? fichaActual.stock_referencia : null;
+  const ubicActual = fichaActual.ubicacion_maestro ?? null;
+  const ubicNueva = datos.ubicacion ? String(datos.ubicacion).toUpperCase() : null;
+  const cambia = { sku };
+  if (datos.stock != null && datos.stock !== stockActual) cambia.stock = { de: stockActual, a: datos.stock };
+  if (ubicNueva && ubicNueva !== ubicActual) cambia.ubicacion = { de: ubicActual, a: ubicNueva };
+  if (cambia.stock || cambia.ubicacion) plan.stock.push(cambia);
+}
+
 console.log(`Actualizar con su ficha: ${plan.actualiza.length}`);
 console.log(`Crear con ficha: ${plan.crea.length}  ${plan.crea.map((f) => f.codigo).join(", ")}`);
 console.log(`Del maestro SIN ficha (no entran al catálogo): ${plan.fueraSinFicha.length}`);
@@ -139,6 +155,13 @@ for (const a of plan.fueraSinFicha) {
 console.log(`Retirar: ${plan.retira.length}  ${plan.retira.map((p) => p.sku).join(", ")}`);
 console.log(`Precios que cambian: ${plan.precios.length}`);
 for (const p of plan.precios) console.log(`   · ${p.sku.padEnd(10)} ${p.de ?? "(sin precio)"} → ${p.a}${p.nuevo ? " (producto nuevo)" : ""}`);
+console.log(`Stock / ubicación que cambian: ${plan.stock.length}`);
+for (const s of plan.stock) {
+  const partes = [];
+  if (s.stock) partes.push(`stock ${s.stock.de ?? "(sin dato)"} → ${s.stock.a}`);
+  if (s.ubicacion) partes.push(`ubicación ${s.ubicacion.de ?? "(sin dato)"} → ${s.ubicacion.a}`);
+  console.log(`   · ${s.sku.padEnd(10)} ${partes.join(" · ")}`);
+}
 
 if (!APLICAR) {
   console.log("\nEnsayo. Nada se escribió. Con --aplicar se ejecuta.");
@@ -200,6 +223,16 @@ try {
       descripcion_maestro: datosExcel?.equipo ?? null,
       nombre_ficha: (datosExcel?.archivo ?? "").split("/").pop()?.replace(/\.docx?$/i, "") ?? null,
     };
+
+    // CUÁNTOS HAY Y DÓNDE ESTÁN. Van en el mismo renglón del Excel que el
+    // precio y el comercial ve el stock en el cotizador, pero la carga los
+    // dejaba pasar: solo conservaba lo que la ficha ya tuviera. Así los
+    // códigos nuevos entraban sin stock (los seis coches, el 28-08) y un
+    // cambio del maestro no llegaba (el SECU752 pasó de 1 a 2 y el CRM
+    // seguía en 1). Un renglón en blanco NO borra lo que el CRM ya sabe: el
+    // reporte no distingue «cero» de «Lesly no lo escribió».
+    if (datosExcel?.stock != null) ficha.stock_referencia = datosExcel.stock;
+    if (datosExcel?.ubicacion) ficha.ubicacion_maestro = String(datosExcel.ubicacion).toUpperCase();
     if (color) {
       ficha.color = color;
       delete ficha.fotos_por_color;
