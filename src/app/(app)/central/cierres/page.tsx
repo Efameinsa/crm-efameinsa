@@ -6,6 +6,8 @@ import { fechaCalendario } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChecksPedidoCentral } from "@/components/crm/checks-pedido-central";
+import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
+import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +40,7 @@ interface FilaInforme {
   entrega_fecha: string | null;
   modalidad_pago: string[];
   cuenta_id: string;
+  adjuntos: AdjuntoCierre[] | null;
   perfiles: { nombre: string; codigo_comercial: string | null } | null;
 }
 
@@ -48,7 +51,7 @@ export default async function CierresCentralPage() {
   const { data } = await supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial)",
+      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, adjuntos, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial)",
     )
     .not("emitido_at", "is", null)
     .order("emitido_at", { ascending: false })
@@ -56,6 +59,11 @@ export default async function CierresCentralPage() {
 
   const filas = (data ?? []) as unknown as FilaInforme[];
   const urgentes = filas.filter((f) => f.urgente).length;
+
+  // El expediente de cada cierre: la OC que mandó el cliente, el voucher, la
+  // cotización firmada. Se firma la lista entera de una vez y no un archivo por
+  // llamada: son 200 filas (migración 0099).
+  const adjuntosPorInforme = await firmarAdjuntosDeCierres(supabase, filas);
 
   // El estado del pedido de cada cierre: si Central ya lo ejecutó en el ERP, si
   // está liquidado y si postventa acusó recibo. Va en una sola consulta por la
@@ -95,6 +103,7 @@ export default async function CierresCentralPage() {
                 <TableHead>Pago</TableHead>
                 <TableHead>Despacho</TableHead>
                 <TableHead>Pedido</TableHead>
+                <TableHead>Documentos</TableHead>
                 <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
@@ -157,6 +166,12 @@ export default async function CierresCentralPage() {
                       liquidacion={pedidoPorInforme.get(f.id)?.liquidacion_at != null}
                       aprobadoPostventa={pedidoPorInforme.get(f.id)?.aprobado_at != null}
                     />
+                  </TableCell>
+                  {/* El expediente. Central también adjunta acá: cuando el
+                      cliente le manda el voucher a ella y no al comercial, el
+                      papel entra por donde llegó (migración 0099). */}
+                  <TableCell className="max-w-[260px] align-top">
+                    <AdjuntosCierre informeId={f.id} adjuntos={adjuntosPorInforme.get(f.id) ?? []} emitido compacto />
                   </TableCell>
                   <TableCell className="align-top">
                     <a

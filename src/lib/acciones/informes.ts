@@ -1,8 +1,10 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { INCLUYE_POR_DEFECTO } from "@/lib/informes";
+import { esquemaAdjuntoNuevo, MAX_ADJUNTOS, type AdjuntoCierre, type AdjuntoNuevo } from "@/lib/adjuntos-cierre";
 
 // Informe de cierre de ventas hacia Central (migraciones 0049 y 0050).
 //
@@ -419,4 +421,88 @@ export async function guardarContactoEntrega(datos: {
 
   revalidatePath(`/comercial/cartera/${datos.cuentaId}`);
   return { error: null };
+}
+
+// ── Expediente del cierre: orden de compra, voucher, acuerdos ───────────────
+//
+// Brenda (C1), 28-08: «quiero una opción para poder adjuntar documentos, como
+// fotos o PDFs de vouchers». Los archivos los sube el navegador directo al
+// bucket privado 'adjuntos' (mismo camino que los adjuntos de gestión, 0029);
+// acá solo se guardan los metadatos, y con ellos quién los subió y cuándo —
+// que es lo que después permite responderle a Central "esto lo mandó C1 el
+// jueves" sin abrir un chat.
+//
+// SIEMPRE AGREGA, nunca reemplaza la lista: dos personas pueden estar
+// adjuntando al mismo expediente (la comercial manda la OC, Central pega el
+// voucher) y un update ciego borraría lo del otro.
+export async function agregarAdjuntosInforme(
+  informeId: string,
+  nuevos: AdjuntoNuevo[],
+): Promise<{ error: string | null; adjuntos?: AdjuntoCierre[] }> {
+  const revisados = z.array(esquemaAdjuntoNuevo).min(1).max(MAX_ADJUNTOS).safeParse(nuevos);
+  if (!revisados.success) return { error: "El documento no tiene un formato válido" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: informe } = await supabase
+    .from("informes_cierre")
+    .select("cuenta_id, adjuntos")
+    .eq("id", informeId)
+    .maybeSingle();
+  if (!informe) return { error: "Informe no encontrado" };
+
+  const previos = (informe.adjuntos ?? []) as AdjuntoCierre[];
+  // Reintentar una subida que falló a medias no puede duplicar la fila.
+  const yaEstan = new Set(previos.map((a) => a.path));
+  const agregados: AdjuntoCierre[] = revisados.data
+    .filter((a) => !yaEstan.has(a.path))
+    .map((a) => ({ ...a, subido_por: user?.id ?? null, subido_at: new Date().toISOString() }));
+  if (agregados.length === 0) return { error: null, adjuntos: previos };
+
+  if (previos.length + agregados.length > MAX_ADJUNTOS) {
+    return { error: `El expediente admite hasta ${MAX_ADJUNTOS} documentos` };
+  }
+
+  const adjuntos = [...previos, ...agregados];
+  const { error } = await supabase.from("informes_cierre").update({ adjuntos }).eq("id", informeId);
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+
+  revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
+  revalidatePath("/central/cierres");
+  return { error: null, adjuntos };
+}
+
+/**
+ * Quitar solo se puede mientras el informe es borrador: después de emitido, el
+ * expediente es append-only y la base lo vuelve a exigir (migración 0099).
+ *
+ * El archivo se queda en Storage a propósito: el bucket no tiene política de
+ * borrado (0029) y un adjunto sin metadatos es inofensivo, mientras que
+ * borrarlo de verdad sería irreversible desde un botón de la UI.
+ */
+export async function quitarAdjuntoInforme(
+  informeId: string,
+  path: string,
+): Promise<{ error: string | null; adjuntos?: AdjuntoCierre[] }> {
+  const supabase = await createClient();
+  const { data: informe } = await supabase
+    .from("informes_cierre")
+    .select("cuenta_id, adjuntos, emitido_at, codigo")
+    .eq("id", informeId)
+    .maybeSingle();
+  if (!informe) return { error: "Informe no encontrado" };
+  if (informe.emitido_at) {
+    return { error: `El informe Nº ${informe.codigo} ya se emitió: sus documentos ya no se quitan` };
+  }
+
+  const adjuntos = ((informe.adjuntos ?? []) as AdjuntoCierre[]).filter((a) => a.path !== path);
+  const { error } = await supabase.from("informes_cierre").update({ adjuntos }).eq("id", informeId);
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+
+  revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
+  revalidatePath("/central/cierres");
+  return { error: null, adjuntos };
 }

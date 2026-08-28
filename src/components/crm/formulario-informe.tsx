@@ -3,18 +3,21 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronDown, FileText, Plus, Trash2 } from "lucide-react";
-import { INCLUYE_POR_DEFECTO } from "@/lib/informes";
+import { ChevronDown, FileText, Plus, Trash2, TriangleAlert } from "lucide-react";
+import { INCLUYE_POR_DEFECTO, avisosDeIdentidad } from "@/lib/informes";
 import {
   guardarBorradorInforme,
   emitirInforme,
   guardarContactoEntrega,
+  quitarAdjuntoInforme,
   type DatosInforme,
   type ItemInformeEntrada,
   type PrellenadoInforme,
   type PresupuestoDisponible,
   type ContactoEntrada,
 } from "@/lib/acciones/informes";
+import { ChipAdjunto, PastillasAdjuntar, subirArchivosCierre, type AdjuntoPendiente } from "@/components/crm/adjuntos-cierre";
+import { MAX_ADJUNTOS, type TipoAdjunto } from "@/lib/adjuntos-cierre";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -96,9 +99,9 @@ function Pastilla({
  *
  * Del archivo viejo solo se conoce el NOMBRE del equipo, así que las cantidades
  * y los precios quedan en cero y el comercial los escribe. Las cotizaciones del
- * CRM, en cambio, traen el renglón entero —cantidad y precio ya cotizados—, así
- * que se copian tal cual: es la misma cotización que el cliente aceptó, y
- * volver a teclearla es donde se cuelan los errores.
+ * CRM, en cambio, traen el renglón entero —cantidad y precio ya aprobados—, así
+ * que se copian tal cual: es la misma cotización que el cliente aceptó y volver
+ * a teclearla es donde se cuelan los errores.
  */
 function equiposDe(p: PresupuestoDisponible | undefined): ItemInformeEntrada[] {
   if (!p) return [];
@@ -195,6 +198,13 @@ export function FormularioInforme({
   const [gratis, setGratis] = useState("");
   const [notaFinal, setNotaFinal] = useState("");
 
+  // Expediente: la OC del cliente, el voucher, la cotización firmada. Los
+  // archivos esperan en el navegador y suben al guardar, cuando el informe ya
+  // tiene id — así adjuntar algo no obliga a crear antes un borrador a medias
+  // (mismo camino que el registro de gestión).
+  const [pendientes, setPendientes] = useState<AdjuntoPendiente[]>([]);
+  const [subidos, setSubidos] = useState<{ tipo: string; nombre: string; path: string }[]>([]);
+
   const totales = useMemo(() => {
     const subtotal = items
       .filter((i) => i.bloque !== "gratuito")
@@ -268,6 +278,15 @@ export function FormularioInforme({
     };
   }
 
+  // A quién se le factura. Hasta hoy la razón social y el RUC eran dos cajas
+  // de texto enterradas en "Ver y editar lo prellenado": se podían cambiar sin
+  // que nada avisara, y el PDF salía diciendo una cosa mientras la cartera
+  // decía otra. La regla vive en lib/informes.ts, con sus pruebas.
+  const avisosIdentidad = avisosDeIdentidad(
+    { nombre: clienteNombre, doc: clienteDoc },
+    { razonSocial: cuenta.razon_social, numDoc: cuenta.num_doc },
+  );
+
   // B6: un equipo sin precio sale en el PDF con "Monto total 0,00" y nadie se
   // entera hasta que el documento ya está enviado — le pasó a Darwin el 23-08.
   // Se avisa, pero NO se bloquea: un equipo puede ir de regalo a propósito.
@@ -294,8 +313,43 @@ export function FormularioInforme({
           return;
         }
         setInformeId(r.informeId!);
+
+        // Los adjuntos van después: recién acá el informe tiene id, que es la
+        // carpeta donde viven los archivos. Si una subida falla se corta —el
+        // borrador queda guardado, pero no se emite un cierre al que le falta
+        // el voucher que la comercial creyó haber mandado.
+        if (pendientes.length) {
+          const ra = await subirArchivosCierre(r.informeId!, pendientes);
+          if (ra.error) {
+            toast.error(ra.error);
+            resolver(null);
+            return;
+          }
+          setSubidos((ra.adjuntos ?? []).map((a) => ({ tipo: a.tipo, nombre: a.nombre, path: a.path })));
+          setPendientes([]);
+        }
+
         resolver(r.informeId!);
       });
+    });
+  }
+
+  function agregarPendientes(tipo: TipoAdjunto, archivos: File[]) {
+    setPendientes((xs) =>
+      [...xs, ...archivos.map((archivo) => ({ tipo, archivo }))].slice(0, Math.max(0, MAX_ADJUNTOS - subidos.length)),
+    );
+  }
+
+  function quitarSubido(indice: number) {
+    const doc = subidos[indice];
+    if (!informeId || !doc?.path) {
+      setSubidos((xs) => xs.filter((_, i) => i !== indice));
+      return;
+    }
+    startTransition(async () => {
+      const r = await quitarAdjuntoInforme(informeId, doc.path);
+      if (r.error) toast.error(r.error);
+      else setSubidos((xs) => xs.filter((_, i) => i !== indice));
     });
   }
 
@@ -320,6 +374,26 @@ export function FormularioInforme({
   }
 
   async function emitir() {
+    // Lo que se revisa ANTES de gastar el número. Ninguna de las dos cosas
+    // bloquea —hay ventas legítimas a una razón social distinta de la ficha, y
+    // hay cierres donde los papeles llegan después— pero las dos tienen que
+    // pasar por delante de los ojos del comercial, porque después el documento
+    // ya está en manos de Central.
+    if (avisosIdentidad.length > 0) {
+      const detalle = avisosIdentidad.map((a) => `· ${a}`).join("\n");
+      if (!confirm(`Revise a quién se le factura:\n\n${detalle}\n\n¿Emitir igual el informe?`)) return;
+    }
+    if (subidos.length === 0 && pendientes.length === 0) {
+      if (
+        !confirm(
+          "Este cierre va sin ningún documento adjunto: ni orden de compra, ni voucher, ni la cotización.\n\n" +
+            "Se pueden agregar después de emitido, pero Central los va a pedir.\n\n¿Emitir igual?",
+        )
+      ) {
+        return;
+      }
+    }
+
     const id = await guardar();
     if (!id) return;
     startTransition(async () => {
@@ -355,6 +429,42 @@ export function FormularioInforme({
 
       <section className="space-y-3">
         <h3 className="text-sm font-semibold text-foreground">Falta completar</h3>
+
+        {/* A QUIÉN SE LE FACTURA. Antes esto vivía plegado, en dos cajas de
+            texto dentro de "Ver y editar lo prellenado", y el comercial emitía
+            sin haberlo leído nunca. Es el control que pidió Carlos el 27-08
+            (migración 0087) y va arriba de todo porque es el dato que, si sale
+            mal, obliga a anular la factura. */}
+        <div
+          className={cn(
+            "rounded-lg border px-3.5 py-2.5",
+            avisosIdentidad.length > 0 ? "border-amber-500/50 bg-amber-500/5" : "border-border bg-background",
+          )}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Se le factura a
+            </span>
+            <button
+              type="button"
+              onClick={() => setVerTodo(true)}
+              className="text-[11px] text-primary hover:underline"
+            >
+              Corregir
+            </button>
+          </div>
+          <p className="text-sm font-semibold text-foreground">{clienteNombre || "—"}</p>
+          <p className="font-mono text-xs text-muted-foreground">
+            {clienteDoc.trim() || "sin RUC / DNI"}
+            {serie === "OPEN" ? " · factura Open Investments" : " · factura Efameinsa"}
+          </p>
+          {avisosIdentidad.map((aviso, i) => (
+            <p key={i} className="mt-1.5 flex items-start gap-1.5 text-[11px] text-amber-700">
+              <TriangleAlert className="mt-0.5 size-3 flex-none" />
+              {aviso}
+            </p>
+          ))}
+        </div>
 
         {ventasSinInforme.length > 0 && (
           <Campo etiqueta="¿De qué venta es este informe?" pista="solo las ventas registradas en el CRM">
@@ -660,6 +770,40 @@ export function FormularioInforme({
           <input type="checkbox" checked={urgente} onChange={(e) => setUrgente(e.target.checked)} className="size-4" />
           Pedido urgente
         </label>
+
+        {/* Pedido de Brenda (C1) el 28-08: los papeles del cierre —la OC que
+            mandó el cliente, el voucher del depósito, la cotización firmada—
+            hoy viven en su WhatsApp y Central se los pide por chat. Acá viajan
+            con el documento. Se suben al guardar o al emitir. */}
+        {/* OJO: esto NO va dentro de <Campo>. Campo es un <label>, y un
+            <input type="file"> dentro de un label se dispara al pulsar
+            CUALQUIER punto del label — incluidas las pastillas de categoría y
+            la X de quitar. Se abriría el selector de archivos de la nada. */}
+        <div className="block">
+          <span className="text-xs font-semibold text-foreground">Documentos del expediente</span>
+          <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
+            opcional — el voucher también se puede adjuntar después de emitido
+          </span>
+          <div className="mt-1 space-y-2">
+            <PastillasAdjuntar onArchivos={agregarPendientes} deshabilitado={guardando} />
+            {(subidos.length > 0 || pendientes.length > 0) && (
+              <div className="flex flex-wrap gap-1.5">
+                {subidos.map((d, i) => (
+                  <ChipAdjunto key={d.path || i} tipo={d.tipo} nombre={d.nombre} onQuitar={() => quitarSubido(i)} />
+                ))}
+                {pendientes.map((p, i) => (
+                  <ChipAdjunto
+                    key={`p${i}`}
+                    tipo={p.tipo}
+                    nombre={p.archivo.name}
+                    pendiente
+                    onQuitar={() => setPendientes((xs) => xs.filter((_, j) => j !== i))}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
       {verTodo && (

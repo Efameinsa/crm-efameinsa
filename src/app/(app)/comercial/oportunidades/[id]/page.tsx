@@ -10,6 +10,7 @@ import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { SeccionPanel, SeccionPlegable } from "@/components/crm/seccion-panel";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
+import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
@@ -110,10 +111,11 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
   const { data: informes } = cuenta?.id
     ? await supabase
         .from("informes_cierre")
-        .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at")
+        .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos")
         .eq("cuenta_id", cuenta.id)
         .order("created_at", { ascending: false })
     : { data: [] };
+  const adjuntosPorInforme = await firmarAdjuntosDeCierres(supabase, informes ?? []);
 
   const { data: contactosData } = cuenta?.id
     ? await supabase
@@ -346,7 +348,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
                 cantidad={(informes ?? []).length}
                 accion={<AccionNuevoInforme cuentaId={cuenta.id} />}
               >
-                <ListaInformesCierre informes={informes ?? []} />
+                <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} />
               </SeccionPlegable>
 
               {ventasConDetalle.length > 0 && (

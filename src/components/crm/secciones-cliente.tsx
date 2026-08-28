@@ -2,6 +2,8 @@ import Link from "next/link";
 import { FileText, FilePlus2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fechaCalendario } from "@/lib/fechas";
+import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
+import type { AdjuntoCierreFirmado } from "@/lib/adjuntos-cierre";
 import type { VentaConDetalle } from "@/lib/historial-cuenta";
 
 // Las tres secciones que sabían del CLIENTE y solo vivían en "Ver ficha
@@ -48,7 +50,14 @@ export function AccionNuevoInforme({ cuentaId }: { cuentaId: string }) {
   );
 }
 
-export function ListaInformesCierre({ informes }: { informes: InformeCuenta[] }) {
+export function ListaInformesCierre({
+  informes,
+  adjuntosPorInforme,
+}: {
+  informes: InformeCuenta[];
+  /** El expediente de cada informe, ya con sus URLs firmadas (migración 0099). */
+  adjuntosPorInforme?: Map<string, AdjuntoCierreFirmado[]>;
+}) {
   if (informes.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -59,32 +68,45 @@ export function ListaInformesCierre({ informes }: { informes: InformeCuenta[] })
   return (
     <ul className="space-y-2">
       {informes.map((inf) => (
-        <li key={inf.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
-          <span className="flex items-center gap-2.5 text-sm">
-            <span className="font-mono text-xs font-semibold text-foreground">
-              {inf.emitido_at ? `Nº ${inf.codigo}` : "Borrador"}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {inf.serie === "OPEN" ? "Open Investments" : "Efameinsa"}
-            </span>
-            <span className="tabular-nums text-muted-foreground">{fechaCalendario(inf.fecha)}</span>
-            <span className="font-semibold tabular-nums text-foreground">
-              {inf.moneda} {Number(inf.monto_total).toLocaleString("es-PE")}
-            </span>
-            {!inf.emitido_at && (
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                sin numerar
+        <li key={inf.id} className="space-y-2 rounded-lg border border-border px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="flex items-center gap-2.5 text-sm">
+              <span className="font-mono text-xs font-semibold text-foreground">
+                {inf.emitido_at ? `Nº ${inf.codigo}` : "Borrador"}
               </span>
-            )}
-          </span>
-          <a
-            href={`/api/informes/${inf.id}/pdf`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
-          >
-            <FileText className="size-3" /> Ver PDF
-          </a>
+              <span className="text-xs text-muted-foreground">
+                {inf.serie === "OPEN" ? "Open Investments" : "Efameinsa"}
+              </span>
+              <span className="tabular-nums text-muted-foreground">{fechaCalendario(inf.fecha)}</span>
+              <span className="font-semibold tabular-nums text-foreground">
+                {inf.moneda} {Number(inf.monto_total).toLocaleString("es-PE")}
+              </span>
+              {!inf.emitido_at && (
+                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                  sin numerar
+                </span>
+              )}
+            </span>
+            <a
+              href={`/api/informes/${inf.id}/pdf`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+            >
+              <FileText className="size-3" /> Ver PDF
+            </a>
+          </div>
+
+          {/* El expediente: la OC del cliente, el voucher, la cotización
+              firmada. Sobre un informe ya emitido se sigue pudiendo AGREGAR
+              —con crédito a 30 días el voucher llega un mes después de que
+              Central facturó— pero no quitar (migración 0099). */}
+          <AdjuntosCierre
+            informeId={inf.id}
+            adjuntos={adjuntosPorInforme?.get(inf.id) ?? []}
+            emitido={inf.emitido_at != null}
+            compacto
+          />
         </li>
       ))}
     </ul>

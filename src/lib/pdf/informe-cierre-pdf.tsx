@@ -84,6 +84,13 @@ export interface InformeCierrePdfProps {
   notaFinal: string | null;
   items: ItemInforme[];
   itemsGratuitos: ItemInforme[];
+  /**
+   * El expediente que acompaña al cierre (migración 0099). En el papel va solo
+   * la LISTA: el PDF se imprime y se archiva, y embeber vouchers lo volvería
+   * ilegible. Está para que Central sepa qué documentos existen y los busque
+   * en el CRM — y para que se note cuando falta uno.
+   */
+  adjuntos: { etiqueta: string; nombre: string }[];
   firma: {
     nombre: string;
     telefono: string | null;
@@ -286,7 +293,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
     logoBuffer, serie, codigo, fecha, referencia, asunto, presupuestoRef,
     comprobante, clienteNuevo, cliente, contactoVenta, contactoContabilidad, contactoDespacho,
     modalidadPago, formaPago, moneda, notaCondiciones, entrega, notaDespacho, urgente,
-    incluye, gratis, notaFinal, items, itemsGratuitos, firma,
+    incluye, gratis, notaFinal, items, itemsGratuitos, adjuntos, firma,
   } = props;
 
   const identidad = IDENTIDAD_SERIE[serie];
@@ -490,6 +497,24 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
         )}
 
         {gratis && <Text style={estilos.gratis}>GRATIS: {gratis}</Text>}
+
+        {/* El expediente digital. Va la lista, no los archivos: este PDF se
+            imprime y se archiva, y pegarle vouchers lo volvería ilegible.
+            Sirve para que Central sepa qué existe —y para que se note cuando
+            falta algo (migración 0099). */}
+        {adjuntos.length > 0 && (
+          <>
+            <Text style={estilos.notaEtiqueta}>Documentos adjuntos (en el CRM):</Text>
+            {adjuntos.map((a, i) => (
+              <View key={i} style={estilos.bullet}>
+                <Text style={estilos.bulletMarca}>•</Text>
+                <Text style={estilos.bulletTexto}>
+                  {a.etiqueta}: {a.nombre}
+                </Text>
+              </View>
+            ))}
+          </>
+        )}
 
         <View style={estilos.firmaBloque} wrap={false}>
           {identidad.usaLogo ? (

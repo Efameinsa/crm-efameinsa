@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@/lib/supabase/server";
 import { InformeCierrePdf, type ItemInforme } from "@/lib/pdf/informe-cierre-pdf";
+import { etiquetaTipo, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
 
 // PDF del informe de cierre de ventas que se le manda a Central.
 // La autorización la hace RLS (migración 0049): el comercial ve los de SU
@@ -78,6 +79,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       notaFinal={informe.nota_final}
       items={guardados.filter((i) => i.bloque !== "gratuito")}
       itemsGratuitos={guardados.filter((i) => i.bloque === "gratuito")}
+      adjuntos={((informe.adjuntos ?? []) as AdjuntoCierre[]).map((a) => ({
+        etiqueta: etiquetaTipo(a.tipo),
+        nombre: a.nombre,
+      }))}
       firma={{
         nombre: comercial?.nombre ?? "Área Comercial",
         telefono: comercial?.telefono ?? null,

@@ -41,6 +41,7 @@ const BASE: InformeCierrePdfProps = {
   notaFinal: null,
   items: [{ descripcion: "SECADORA INDUSTRIAL", cantidad: 1, precio_unitario: 21500 }],
   itemsGratuitos: [],
+  adjuntos: [],
   firma: { nombre: "Katerine Tello", telefono: null, celular: "999000111", email: "comercial5@efameinsa.com" },
 };
 
@@ -66,6 +67,20 @@ describe("informe de cierre en PDF", () => {
       notaDespacho: "Llevar frágil.",
     });
     expect(pdf.toString("latin1").startsWith("%PDF-")).toBe(true);
+  });
+
+  // El expediente del cierre (migración 0099): en el papel va la lista de
+  // documentos, no los archivos.
+  it("lista los documentos adjuntos sin romper el maquetado", async () => {
+    const pdf = await render({
+      codigo: "002-2026",
+      adjuntos: [
+        { etiqueta: "Orden de compra", nombre: "4510105315.PDF" },
+        { etiqueta: "Voucher / pago", nombre: "voucher-bcp-28-08.jpg" },
+      ],
+    });
+    expect(pdf.toString("latin1").startsWith("%PDF-")).toBe(true);
+    expect(pdf.length).toBeGreaterThan(5000);
   });
 
   it("aguanta la entrega sin fecha ni hora cerradas", async () => {

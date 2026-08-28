@@ -9,6 +9,7 @@ import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { GrupoEconomico } from "@/components/crm/grupo-economico";
 import { ReasignarCarteraBoton } from "@/components/crm/reasignar-cartera-boton";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
+import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { Badge } from "@/components/ui/badge";
@@ -62,9 +63,10 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   // gerencia y Central (política de la migración 0049).
   const { data: informes } = await supabase
     .from("informes_cierre")
-    .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at")
+    .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos")
     .eq("cuenta_id", cuentaId)
     .order("created_at", { ascending: false });
+  const adjuntosPorInforme = await firmarAdjuntosDeCierres(supabase, informes ?? []);
 
   return (
     <div className="space-y-4">
@@ -129,7 +131,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               ejecutarla. El contenido vive en secciones-cliente.tsx, compartido
               con la ficha de oportunidad (C5 del plan 11). */}
           <SeccionPanel titulo="Informes de cierre" accion={<AccionNuevoInforme cuentaId={cuenta.id} />}>
-            <ListaInformesCierre informes={informes ?? []} />
+            <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} />
           </SeccionPanel>
 
           {ventasConDetalle.length > 0 && (
