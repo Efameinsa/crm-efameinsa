@@ -7,6 +7,7 @@ import { CompendioGestion } from "@/components/crm/compendio-gestion";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { fechaCalendario } from "@/lib/fechas";
+import { cn } from "@/lib/utils";
 import type { AdjuntoCierreFirmado } from "@/lib/adjuntos-cierre";
 import type { Compendio } from "@/lib/compendio-cierre";
 
@@ -66,7 +67,11 @@ export function ExpedienteCierre({
           </Button>
         }
       />
-      <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
+      {/* El `sm:` no es un detalle: el diálogo base trae `sm:max-w-sm` y un
+          `max-w-4xl` suelto no le gana de 640 px para arriba —pedía cuatro veces
+          el ancho y salía en 24 rem, en una columna flaca con el compendio
+          apretado abajo—. Con el prefijo, el ancho es el que se pide. */}
+      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>
             Informe N.º {codigo} · {serie === "OPEN" ? "Open Investments" : "Efameinsa"}
@@ -74,9 +79,21 @@ export function ExpedienteCierre({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div>
-            <p className="text-base font-semibold text-foreground">{cliente}</p>
-            {clienteDoc && <p className="font-mono text-xs text-muted-foreground">{clienteDoc}</p>}
+          {/* De quién es y cómo abrirlo, en el mismo renglón: el PDF es lo
+              primero que Central busca y antes quedaba al final del scroll. */}
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-3">
+            <div className="min-w-[220px]">
+              <p className="text-base font-semibold leading-tight text-foreground">{cliente}</p>
+              {clienteDoc && <p className="font-mono text-xs text-muted-foreground">{clienteDoc}</p>}
+            </div>
+            <a
+              href={`/api/informes/${informeId}/pdf`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            >
+              <FileText className="size-4" /> Abrir el informe en PDF
+            </a>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
@@ -93,30 +110,28 @@ export function ExpedienteCierre({
             </Dato>
           </div>
 
-          {entregaLugar && (
-            <div className="rounded-md border border-border bg-secondary/40 p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Dónde va</p>
-              <p className="mt-0.5 whitespace-pre-line text-sm">{entregaLugar}</p>
+          {/* Dónde va y qué papeles llegaron: los dos lados de una misma
+              pregunta —¿puedo despachar esto?— y ahora se ven juntos sin
+              scroll, que es para lo que sirve el ancho. */}
+          <div className={cn("grid gap-3", entregaLugar && "lg:grid-cols-2")}>
+            {entregaLugar && (
+              <div className="rounded-md border border-border bg-secondary/40 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Dónde va</p>
+                <p className="mt-1 whitespace-pre-line text-sm leading-snug">{entregaLugar}</p>
+              </div>
+            )}
+            <div className="rounded-md border border-border p-3">
+              <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                Documentos del expediente
+                <span className="rounded-full bg-secondary px-1.5 text-[11px] font-semibold tabular-nums text-foreground">
+                  {adjuntos.length}
+                </span>
+              </p>
+              <AdjuntosCierre informeId={informeId} adjuntos={adjuntos} emitido />
             </div>
-          )}
-
-          <div>
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              Documentos del expediente
-            </p>
-            <AdjuntosCierre informeId={informeId} adjuntos={adjuntos} emitido />
           </div>
 
           {compendio && <CompendioGestion compendio={compendio} />}
-
-          <a
-            href={`/api/informes/${informeId}/pdf`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
-          >
-            <FileText className="size-4" /> Abrir el informe en PDF
-          </a>
         </div>
       </DialogContent>
     </Dialog>

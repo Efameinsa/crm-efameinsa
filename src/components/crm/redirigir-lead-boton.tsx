@@ -85,7 +85,7 @@ export function RedirigirLeadBoton({
           </Button>
         }
       />
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Corregir la derivación</DialogTitle>
           <DialogDescription>

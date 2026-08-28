@@ -65,7 +65,7 @@ export function AgregarCotizacionVieja({ anioActual }: { anioActual: number }) {
   return (
     <Dialog open={abierto} onOpenChange={setAbierto}>
       <DialogTrigger render={<Button size="sm" variant="outline">Agregar una de otro año</Button>} />
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Agregar una cotización de otro año</DialogTitle>
           <DialogDescription>

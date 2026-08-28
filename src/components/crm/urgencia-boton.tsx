@@ -79,7 +79,7 @@ export function UrgenciaBoton({
           </Button>
         }
       />
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Recordatorio de urgencia</DialogTitle>
           <DialogDescription>

@@ -107,7 +107,7 @@ export function AprobarCotizacionBotones({
   return (
     <Dialog open={abierto} onOpenChange={setAbierto}>
       <DialogTrigger render={<Button size="sm">Revisar</Button>} />
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Revisar precios equipo por equipo</DialogTitle>
           <DialogDescription>
