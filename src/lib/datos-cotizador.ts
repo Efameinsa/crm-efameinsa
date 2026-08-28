@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { contenidoDeFicha } from "@/lib/ficha-tecnica";
 import type { TipoDocumento } from "@/lib/documento";
 import type { BorradorEnEdicion, HistorialPrecio, ProductoCotizable } from "@/components/crm/tipos-cotizador";
 
@@ -65,35 +66,11 @@ function mapearProducto(pr: {
     Array.isArray(ficha?.[clave]) ? (ficha![clave] as unknown[]).filter((x): x is string => typeof x === "string") : [];
   const texto = (clave: string) => (typeof ficha?.[clave] === "string" && ficha[clave] ? (ficha[clave] as string) : null);
 
-  // Algunas fichas (las reprocesadas, ej. la familia UT120) separan
-  // "DISEÑO DE CONSTRUCCIÓN" (TAMBOR/PUERTA/PANELES/CALEFACCION) de
-  // "caracteristicas" para que el PDF las imprima como bloques propios. El
-  // buscador las junta —en el orden real de la ficha si lo trae.
-  const ordenSecciones = Array.isArray(ficha?.ordenSecciones)
-    ? (ficha!.ordenSecciones as unknown[]).filter((x): x is string => typeof x === "string")
-    : ["caracteristicas", "disenoConstruccion", "dimensiones", "medidas"];
-  const caracteristicasEnCajones = ordenSecciones
-    .filter((clave) => clave === "caracteristicas" || clave === "disenoConstruccion")
-    .flatMap((clave) => lista(clave));
-
-  /* La descripción leída del Word de Lesly (paso 3 de fichas-v) llega en
-     `bloques`, con su tipo: título, subtítulo, viñeta y dato. Desde el 27-08 las
-     fichas se cargan SOLO así, y cuando existe manda sobre los cuatro cajones
-     viejos —igual que en el PDF—. Sin mirarla, los 16 equipos cargados de cero
-     (los seis coches por color entre ellos) salían en el buscador sin una sola
-     característica y con el aviso «Sin ficha técnica cargada», aunque su ficha
-     estaba completa. Lo vio Darwin el 28-08 mientras cotizaban coches. */
-  const bloques = Array.isArray(ficha?.bloques)
-    ? (ficha!.bloques as unknown[]).filter(
-        (b): b is { t?: string; texto: string } =>
-          typeof b === "object" && b !== null && typeof (b as { texto?: unknown }).texto === "string",
-      )
-    : [];
-  const datosDeBloques = bloques.filter((b) => b.t === "dato");
-  const caracteristicas = bloques.length
-    ? bloques.filter((b) => b.t !== "dato").map((b) => b.texto)
-    : caracteristicasEnCajones;
-  const nDimensiones = bloques.length ? datosDeBloques.length : lista("dimensiones").length + lista("medidas").length;
+  // Las dos formas de guardar la ficha —los cuatro cajones viejos y `bloques`,
+  // la descripción leída del Word— se resuelven en un solo lugar: la pantalla
+  // miraba solo los cajones y marcaba «sin ficha» a los equipos cargados de
+  // cero, con su ficha completa en la base (28-08, en plena cotización).
+  const { caracteristicas, nDimensiones, sinFicha } = contenidoDeFicha(ficha);
 
   return {
     id: pr.id,
@@ -127,7 +104,7 @@ function mapearProducto(pr: {
     fotosPorColor: mapaDeFotos(ficha?.fotos_por_color),
     caracteristicas,
     nDimensiones,
-    sinFicha: caracteristicas.length + nDimensiones === 0,
+    sinFicha,
     sinFoto: !pr.foto_path,
     // Stock según la columna del Excel de Lesly, guardado al cargar el equipo.
     stock: typeof ficha?.stock_referencia === "number" ? (ficha.stock_referencia as number) : null,
