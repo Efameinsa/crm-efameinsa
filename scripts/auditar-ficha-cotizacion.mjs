@@ -180,6 +180,40 @@ async function auditar(ruta) {
         );
     }
 
+    /* NINGÚN TEXTO SE SALE DE SU CASILLA. Un código sin espacios más ancho que
+       su columna no se puede partir, y @react-pdf lo dibuja igual: el modelo
+       «GIANT C MAX(CWG27MDCRSCDG27MUCPS)» de la LAVTGIA13 se salió y tapó la
+       casilla de al lado en una cotización real (28-08). Se detecta cuando la
+       caja de un texto cruza una raya vertical de la tabla. */
+    // Acá sirven también las rayas cortas: las casillas de la fila de
+    // especificaciones miden 9.5 mm de alto y quedaban fuera de `verticales`.
+    const separadores = trazos.filter((t) => t.x1 - t.x0 < 1.5 && t.y1 - t.y0 > 3);
+    for (const item of texto.items) {
+      if (!item.str.trim() || !item.width) continue;
+      const x0 = item.transform[4] / MM;
+      const x1 = x0 + item.width / MM;
+      // La raya tiene que estar a la altura del texto: el pie de página también
+      // cruza el eje de una columna, pero 200 mm más abajo.
+      const y = (pagina.view[3] - item.transform[5]) / MM;
+      const cruzada = separadores.find((v) => v.x0 > x0 + 0.3 && v.x0 < x1 - 0.3 && y >= v.y0 - 1 && y <= v.y1 + 1);
+      if (cruzada) {
+        const aviso = `p${n}: «${item.str.trim().slice(0, 40)}» se sale de su casilla (cruza la línea de ${cruzada.x0.toFixed(1)} mm)`;
+        if (!fallos.includes(aviso)) fallos.push(aviso);
+      }
+    }
+
+    /* NINGÚN RESTO DE CÓDIGO DE WORD. Las fichas hechas con WPS guardan las
+       imágenes vinculadas como un campo INCLUDEPICTURE con la ruta del disco de
+       quien la escribió; leída como texto, esa instrucción salió impresa arriba
+       de las características de la LAVTMAX17, delante del cliente. */
+    const RESTOS_DE_WORD = /INCLUDEPICTURE|MERGEFORMAT|\\\*\s*MERGEFORMAT|HYPERLINK\s+"|AppData\\Local\\Temp/i;
+    for (const item of texto.items) {
+      if (RESTOS_DE_WORD.test(item.str)) {
+        fallos.push(`p${n}: resto de código de Word impreso: «${item.str.trim().slice(0, 60)}»`);
+        break;
+      }
+    }
+
     // Ningún contenido puede bajar de los 268 mm. El pie del membrete empieza
     // en 273, así que lo que caiga en esa franja de 5 mm —y solo eso— es
     // contenido invadiendo el colchón.

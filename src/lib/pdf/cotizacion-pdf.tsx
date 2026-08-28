@@ -96,13 +96,45 @@ function repartirColumnas(rotulos: string[]): number[] {
  * ancho medio de la Helvetica Bold (0.62 em), que sobreestima un poco: es
  * preferible que se achique de más a que invada la celda vecina.
  */
+/**
+ * Corta lo que no entra en la casilla ni al tamaño mínimo.
+ *
+ * Las palabras nunca se parten con guion (pedido del 24-08), y por eso un
+ * código sin espacios más ancho que su columna se salía de la casilla y tapaba
+ * la de al lado: pasó con el modelo «GIANT C MAX(CWG27MDCRSCDG27MUCPS)» de la
+ * LAVTGIA13 en una cotización real. Se corta en un renglón nuevo —sin guion—,
+ * primero por los bordes naturales del código —el paréntesis, la barra— y solo
+ * si aun así no entra, a lo ancho de la casilla.
+ */
+/** Ancho medio de una letra de la Helvetica-Bold, en ems. Con 0.62 —el ancho
+ *  de la minúscula— los modelos en MAYÚSCULA con dígitos («CWG27MDCRS») daban
+ *  la cuenta justa y se salían igual de la casilla. */
+const ANCHO_MEDIO_LETRA = 0.7;
+
+function partirLoQueNoEntra(texto: string, anchoMm: number, tamano: number): string {
+  const maximo = Math.max(4, Math.floor((anchoMm * 2.8346 - 5) / (tamano * ANCHO_MEDIO_LETRA)));
+  const aRenglones = (t: string): string[] =>
+    t.length <= maximo ? [t] : (t.match(new RegExp(`.{1,${maximo}}`, "g")) ?? [t]);
+  return texto
+    .split(/(\s+)/)
+    .map((token) =>
+      /\s/.test(token) || token.length <= maximo
+        ? token
+        : token
+            .split(/(?<=[)\/\-–])(?=.)/)
+            .flatMap(aRenglones)
+            .join("\n"),
+    )
+    .join("");
+}
+
 function tamanoQueEntra(texto: string, anchoMm: number, base: number, minimo = 7): number {
   const disponiblePt = anchoMm * 2.8346 - 5; // menos el padding horizontal de la celda
   const masLarga = Math.max(...texto.split(/\s+/).map((p) => p.length), 0);
   if (masLarga === 0) return base;
-  const anchoPt = masLarga * base * 0.62;
+  const anchoPt = masLarga * base * ANCHO_MEDIO_LETRA;
   if (anchoPt <= disponiblePt) return base;
-  return Math.max(minimo, Math.floor((disponiblePt / (masLarga * 0.62)) * 10) / 10);
+  return Math.max(minimo, Math.floor((disponiblePt / (masLarga * ANCHO_MEDIO_LETRA)) * 10) / 10);
 }
 
 /**
@@ -308,7 +340,13 @@ export interface CotizacionPdfProps {
   /** Cláusula de entrega, punto 1 de "Importante". NULL = la de por defecto
    *  (en nuestras instalaciones). Se elige por cotización desde el 24-08. */
   entregaLugar: string | null;
-  /* Las condiciones por columnas (tiempo de entrega, garantía, forma de pago y
+  /** La garantía acordada con este cliente ("24 meses", "12 meses de fábrica"…).
+   *  Se escribe por cotización y se imprime en las condiciones de la última
+   *  página (28-08). NULL —cotizaciones viejas, o el dato todavía sin acordar—
+   *  no imprime la línea: es preferible que falte a que el documento prometa
+   *  una garantía que nadie acordó. */
+  garantia: string | null;
+  /* Las otras tres condiciones por columnas (tiempo de entrega, forma de pago y
      saldo) se guardan en la cotización desde la migración 0094 pero HOY NO SE
      IMPRIMEN: la tabla al pie de cada ficha se quitó el 27-08 porque repetía el
      precio del resumen. Si vuelven, entran por acá. */
@@ -373,6 +411,10 @@ function crearEstilos(acento: string) {
     negrita: { fontFamily: "Helvetica-Bold" },
     atencion: { fontFamily: "Helvetica-Bold", marginBottom: 10 },
     parrafo: { textAlign: "justify", marginBottom: 14 },
+    /* Un párrafo que sigue pegado al de abajo: el texto libre de condiciones
+       cuando debajo va la línea de la garantía, para que se lean como un solo
+       bloque y no como dos secciones. */
+    parrafoJunto: { textAlign: "justify", marginBottom: 6 },
 
     /* Tabla resumen */
     resumenTitulo: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 6 },
@@ -520,6 +562,7 @@ export function CotizacionPdf({
   condiciones,
   vigenciaDias,
   entregaLugar,
+  garantia,
   firma,
 }: CotizacionPdfProps) {
   const identidad = IDENTIDAD_SERIE[serie];
@@ -829,7 +872,7 @@ export function CotizacionPdf({
                       ]}
                     >
                       <Text style={[estilos.textoValor, { fontSize: tamanoQueEntra(c.valor, anchosEspec[j], 10) }]}>
-                        {c.valor}
+                        {partirLoQueNoEntra(c.valor, anchosEspec[j], tamanoQueEntra(c.valor, anchosEspec[j], 10))}
                       </Text>
                     </View>
                   ))}
@@ -1053,10 +1096,24 @@ export function CotizacionPdf({
         {membrete}
         {pie}
 
-        {condiciones && (
+        {/* La garantía va acá, con el resto de lo que se acordó, y no en una
+            tabla al pie de cada ficha: esa tabla se sacó el 27-08 (ver
+            docs/14). Sale en su propia línea, rotulada, porque es de las
+            primeras cosas que el cliente busca y hasta el 28-08 solo existía
+            perdida dentro del texto libre —«Garantía de fábrica»—, donde cada
+            comercial la escribía distinta y no se podía cambiar por cliente. */}
+        {(condiciones || garantia) && (
           <View wrap={false}>
             <Text style={estilos.seccionSubrayada}>Condiciones comerciales:</Text>
-            <Text style={estilos.parrafo}>{condiciones}</Text>
+            {condiciones && (
+              <Text style={garantia ? estilos.parrafoJunto : estilos.parrafo}>{condiciones}</Text>
+            )}
+            {garantia && (
+              <Text style={estilos.parrafo}>
+                <Text style={estilos.negrita}>Garantía: </Text>
+                {garantia}
+              </Text>
+            )}
           </View>
         )}
 

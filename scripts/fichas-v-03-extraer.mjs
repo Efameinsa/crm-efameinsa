@@ -64,6 +64,15 @@ const EMU_POR_MM = 36000;
 
 const sinEtiquetas = (xml) =>
   xml
+    // Los CÓDIGOS DE CAMPO de Word no son texto de la ficha: son la instrucción
+    // que Word ejecuta para dibujar algo. `<w:instrText>` guardaba
+    // «INCLUDEPICTURE "C:\Users\COMERC~3\AppData\…\wps1.png" \* MERGEFORMATINET»
+    // —la imagen vinculada del Word de la LAVTMAX17, hecho con WPS— y esa línea
+    // salió impresa arriba de las características en una cotización real
+    // (28-08). Lo mismo con `<w:delText>`, que es texto YA borrado con control
+    // de cambios.
+    .replace(/<w:instrText[\s\S]*?<\/w:instrText>/g, "")
+    .replace(/<w:delText[\s\S]*?<\/w:delText>/g, "")
     .replace(/<w:tab\b[^>]*\/>/g, "\t")
     .replace(/<w:br\b[^>]*\/>/g, " ")
     .replace(/<[^>]+>/g, "")
@@ -182,9 +191,23 @@ function rangosDeFilas(xml) {
   return rangos.sort((a, b) => a.inicio - b.inicio);
 }
 
-/** Texto plano de una tabla, celda por celda. */
+/**
+ * Texto plano de una tabla, celda por celda.
+ *
+ * Cada párrafo de la celda es un renglón y se conserva como tal: pegados uno
+ * tras otro salían modelos inventados —«TITAN MAXTITAN LIGHT» en la LAVTMAX17,
+ * «GIANT C MAX(CWG27MDCRSCDG27MUCPS)» en la LAVTGIA13, que además se salía de
+ * su casilla y tapaba la de al lado (visto en una cotización real el 28-08)—.
+ * En la ficha en papel son dos líneas: son dos máquinas, la lavadora y la
+ * secadora de la torre.
+ */
 function celdasDeTabla(xmlTabla) {
-  return [...xmlTabla.matchAll(/<w:tc(?:\s[^>]*)?>([\s\S]*?)<\/w:tc>/g)].map((m) => limpio(sinEtiquetas(m[1])));
+  return [...xmlTabla.matchAll(/<w:tc(?:\s[^>]*)?>([\s\S]*?)<\/w:tc>/g)].map((m) =>
+    [...m[1].matchAll(/<w:p(?:\s[^>]*)?(?:\/>|>([\s\S]*?)<\/w:p>)/g)]
+      .map((p) => limpio(sinEtiquetas(p[1] ?? "")))
+      .filter(Boolean)
+      .join("\n") || limpio(sinEtiquetas(m[1])),
+  );
 }
 
 // ---------- qué es cada tabla ----------
@@ -367,6 +390,17 @@ async function extraerFicha(rutaDocx) {
     // maquetación; tomar toda mayúscula en negrita como título convertía
     // TAMBOR, PUERTA y PANELES en secciones, y el cliente leía el nombre de la
     // pieza al mismo nivel que «DISEÑO DE CONSTRUCCIÓN».
+    // Un título NUMERADO sigue siendo un título. Las fichas de torre abren cada
+    // máquina con «I. LAVADORA» y «II. SECADORA» como lista numerada, en
+    // negrita: impresas como viñeta, la cotización empezaba con un «• LAVADORA»
+    // suelto arriba de las características (visto el 28-08 en la LAVTGIA13).
+    const tituloNumerado = esVineta && p.negrita && mayusculas && texto.length <= 30 && !/[.:;,]$/.test(texto);
+    if (tituloNumerado) {
+      seccionActual = texto;
+      bloques.push({ t: "titulo", texto });
+      continue;
+    }
+
     if (!esVineta && texto.length <= 80) {
       const esTitulo = usaSubrayado ? p.subrayado : p.negrita && mayusculas;
       if (esTitulo) {

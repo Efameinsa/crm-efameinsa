@@ -179,8 +179,43 @@ node  scripts/fichas-v-10-servidor.mjs           # http://localhost:4173 para re
 node  scripts/auditar-ficha-cotizacion.mjs scripts/data/fichas-v/pdf/*.pdf
 ```
 
-Nada de esto toca la base ni el catálogo: todo queda en
-`scripts/data/fichas-v/`.
+Los pasos 1 a 11 no tocan la base ni el catálogo: todo queda en
+`scripts/data/fichas-v/`. El paso 12 es el que carga, y **no se corre hasta que
+la auditoría de los 120 PDF diga OK en todos**.
+
+---
+
+## 9. Lo que NUNCA puede llegar a una cotización
+
+Estas dos las tiene que cazar `auditar-ficha-cotizacion.mjs`, sobre los PDF de
+prueba del paso 9, ANTES de cargar. Las dos llegaron al cliente el 28-08 y por
+eso son regla y no criterio.
+
+**Ningún resto de código de Word.** Word guarda las imágenes vinculadas como un
+campo —`INCLUDEPICTURE "C:\Users\COMERC~3\AppData\…\wps1.png" \* MERGEFORMATINET`—
+y las fichas hechas con WPS traen unos cuantos. Leído como texto, eso se imprime
+arriba de las características. En el paso 3 se descartan `<w:instrText>` y
+`<w:delText>`; el auditor rechaza el PDF si aparece `INCLUDEPICTURE`,
+`MERGEFORMAT`, `HYPERLINK "` o una ruta de `AppData\Local\Temp`.
+
+**Ningún texto fuera de su casilla.** Las palabras no se parten con guion
+(24-08), así que un modelo sin espacios más ancho que su columna se dibuja
+encima de la de al lado: pasó con `GIANT C MAX(CWG27MDCRSCDG27MUCPS)`. Hay dos
+defensas y hacen falta las dos:
+
+- El valor se corta en un renglón nuevo —sin guion— por el paréntesis o la
+  barra, y si aun así no entra, a lo ancho de la casilla (`partirLoQueNoEntra`).
+- El auditor mide cada texto y falla si su caja cruza una raya vertical de la
+  tabla.
+
+Y de raíz: **cada párrafo de una celda es un renglón**. Pegados uno tras otro
+salían modelos que no existen —«TITAN MAXTITAN LIGHT»—; en la ficha son dos
+líneas porque son dos máquinas, la lavadora y la secadora de la torre.
+
+**Un título numerado sigue siendo un título.** Las fichas de torre abren cada
+máquina con «I. LAVADORA» y «II. SECADORA» como lista numerada en negrita:
+tratarlas como viñeta dejaba un «• LAVADORA» suelto arriba de las
+características.
 
 ---
 
