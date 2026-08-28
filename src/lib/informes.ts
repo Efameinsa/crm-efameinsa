@@ -9,11 +9,15 @@
 // pidió justamente poder cambiarlos por cotización ("bonos adicionales" /
 // "beneficios generales"), sobre todo con empresa mediana-grande.
 export const INCLUYE_POR_DEFECTO = [
-  "36 meses de garantía",
+  // La garantía SALIÓ de esta lista el 28-08: ahora es un campo propio del
+  // cierre (`informes_cierre.garantia`, migración 0104) con su casilla a la
+  // vista y su línea rotulada en el PDF. Acá dentro era un renglón de texto
+  // que nadie veía —la lista vive plegada— y que había que editar a mano.
   "Juego de manuales de operación, mantenimiento e instalación.",
   "Planos y asesoría para instalación (punto de agua, energía eléctrica, descarga y/o lo requerido para su operación).",
   "Asesoría y capacitación VIRTUAL con nuestros técnicos especializados para la conexión y puesta en marcha, las veces que sean necesarias.",
 ];
+
 
 /**
  * Los avisos de "a quién se le está facturando" que la pantalla del cierre

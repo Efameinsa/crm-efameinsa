@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronDown, FileText, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { INCLUYE_POR_DEFECTO, avisosDeIdentidad } from "@/lib/informes";
+import { GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES } from "@/lib/pdf/series";
 import {
   guardarBorradorInforme,
   emitirInforme,
@@ -171,6 +172,11 @@ export function FormularioInforme({
   const [modalidadOtra, setModalidadOtra] = useState("");
   const [formaPago, setFormaPago] = useState<"transferencia" | "deposito" | null>("transferencia");
   const [notaCondiciones, setNotaCondiciones] = useState("");
+  // La garantía del cierre (migración 0104). Arranca con la que se le cotizó a
+  // este cliente —el papel que firmó— y solo si no hay cotización cae en la de
+  // por defecto. Antes era el primer renglón de «Incluye», dentro de la sección
+  // plegada: no aparecía, y para cambiarla había que ir a buscarla ahí.
+  const [garantia, setGarantia] = useState(presupuestos[0]?.garantia ?? GARANTIA_POR_DEFECTO);
 
   // Entrega: solo calendario/reloj + pastilla "Por confirmar" (B2/B3 del
   // plan 11). Los modos "texto libre" que existían hasta el 23-08 se
@@ -228,6 +234,11 @@ export function FormularioInforme({
     const p = presupuestos.find((x) => x.id === id);
     if (!p) return;
     setSerie(p.serie);
+    // La garantía del cierre es la que se cotizó: si el papel que el cliente
+    // firmó dice 12 meses, el informe a Central no puede decir 24. Solo las
+    // cotizaciones del CRM la traen; las del archivo viejo no la tienen
+    // registrada y se queda la que ya estaba.
+    if (p.garantia) setGarantia(p.garantia);
     // Solo se pisan los equipos si el comercial todavía no puso precios: si ya
     // estuvo escribiendo, cambiar de presupuesto no puede borrarle el trabajo.
     const intacto = items.every((i) => i.precio_unitario === 0);
@@ -265,6 +276,7 @@ export function FormularioInforme({
       formaPago,
       moneda: "USD",
       notaCondiciones: notaCondiciones || null,
+      garantia: garantia.trim() || null,
       entregaFecha: entregaFecha || null,
       entregaHora: entregaHora || null,
       entregaLugar: entregaLugar || null,
@@ -637,6 +649,40 @@ export function FormularioInforme({
             <Pastilla activa={formaPago === "deposito"} onClick={() => setFormaPago("deposito")}>
               Depósito
             </Pastilla>
+          </div>
+        </Campo>
+
+        {/* GARANTÍA (28-08). Va acá, con el resto de las condiciones de venta y
+            a la vista, porque de este plazo salen dos cosas: lo que Central le
+            confirma al cliente y el `garantia_hasta` con el que postventa
+            atiende después cada serie. Hasta hoy era un renglón de texto
+            escondido en «Incluye», dentro de la sección plegada. */}
+        <Campo
+          etiqueta="Garantía"
+          pista={
+            presupuesto?.garantia
+              ? `la que se cotizó en ${presupuesto.codigo ?? "el presupuesto elegido"}`
+              : "sale impresa en las condiciones de venta"
+          }
+        >
+          <div className="space-y-1.5">
+            <Input
+              value={garantia}
+              onChange={(e) => setGarantia(e.target.value)}
+              placeholder="Sin garantía en el documento"
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {GARANTIAS_FRECUENTES.map((g) => (
+                <Pastilla key={g} activa={garantia.trim().toLowerCase() === g.toLowerCase()} onClick={() => setGarantia(g)}>
+                  {g}
+                </Pastilla>
+              ))}
+            </div>
+            {!garantia.trim() && (
+              <p className="text-[11px] text-amber-700">
+                Vacío: el informe sale sin línea de garantía y postventa no sabrá hasta cuándo cubre el equipo.
+              </p>
+            )}
           </div>
         </Campo>
 

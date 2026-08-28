@@ -130,6 +130,10 @@ async function main() {
       serie="EFAMEINSA"
       numeroDocumento="MUESTRA-26"
       entregaLugar={null}
+      garantia="24 meses"
+      tiempoEntrega="Inmediata"
+      formaPago="30 % con la O/C"
+      saldo="70 % antes del despacho"
       fecha={new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}
       cliente={{
         razon_social: "LAVANDERÍA INDUSTRIAL DEL SUR S.A.C.",

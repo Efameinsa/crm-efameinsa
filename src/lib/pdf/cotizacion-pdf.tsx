@@ -2,6 +2,7 @@ import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/
 import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, NOTAS, IGV, ENTREGA_POR_DEFECTO } from "./series";
 import { clasificarFicha } from "@/lib/ficha-tecnica";
 import { encajarEnCaja } from "./medir-imagen";
+import { ajustarEspecificaciones } from "./ajustar-especificaciones";
 
 // Sin partir palabras con guion. @react-pdf corta por sílabas cuando no entra
 // la palabra entera, y en la cabecera de la ficha salía "Panel computa-rizado"
@@ -83,58 +84,6 @@ function repartirColumnas(rotulos: string[]): number[] {
   // El redondeo no puede robarle milímetros al total: lo que sobre o falte se
   // le devuelve a la columna más ancha, que es donde menos se nota.
   return ajustarASuma(anchos);
-}
-
-/**
- * Cuerpo de letra que hace entrar un valor en su columna.
- *
- * Los anchos de columna son fijos (los manda el estándar) pero los valores no:
- * el modelo «LAVTMAX17» de la torre LG no entra en los 22 mm de «Modelo» a 10 pt
- * y se montaba encima de la capacidad. Como es una sola palabra, tampoco puede
- * partirse —el documento no lleva guiones de corte, decisión del 24-08— así que
- * lo único que queda es achicarla lo justo. Se mide la palabra más larga con el
- * ancho medio de la Helvetica Bold (0.62 em), que sobreestima un poco: es
- * preferible que se achique de más a que invada la celda vecina.
- */
-/**
- * Corta lo que no entra en la casilla ni al tamaño mínimo.
- *
- * Las palabras nunca se parten con guion (pedido del 24-08), y por eso un
- * código sin espacios más ancho que su columna se salía de la casilla y tapaba
- * la de al lado: pasó con el modelo «GIANT C MAX(CWG27MDCRSCDG27MUCPS)» de la
- * LAVTGIA13 en una cotización real. Se corta en un renglón nuevo —sin guion—,
- * primero por los bordes naturales del código —el paréntesis, la barra— y solo
- * si aun así no entra, a lo ancho de la casilla.
- */
-/** Ancho medio de una letra de la Helvetica-Bold, en ems. Con 0.62 —el ancho
- *  de la minúscula— los modelos en MAYÚSCULA con dígitos («CWG27MDCRS») daban
- *  la cuenta justa y se salían igual de la casilla. */
-const ANCHO_MEDIO_LETRA = 0.7;
-
-function partirLoQueNoEntra(texto: string, anchoMm: number, tamano: number): string {
-  const maximo = Math.max(4, Math.floor((anchoMm * 2.8346 - 5) / (tamano * ANCHO_MEDIO_LETRA)));
-  const aRenglones = (t: string): string[] =>
-    t.length <= maximo ? [t] : (t.match(new RegExp(`.{1,${maximo}}`, "g")) ?? [t]);
-  return texto
-    .split(/(\s+)/)
-    .map((token) =>
-      /\s/.test(token) || token.length <= maximo
-        ? token
-        : token
-            .split(/(?<=[)\/\-–])(?=.)/)
-            .flatMap(aRenglones)
-            .join("\n"),
-    )
-    .join("");
-}
-
-function tamanoQueEntra(texto: string, anchoMm: number, base: number, minimo = 7): number {
-  const disponiblePt = anchoMm * 2.8346 - 5; // menos el padding horizontal de la celda
-  const masLarga = Math.max(...texto.split(/\s+/).map((p) => p.length), 0);
-  if (masLarga === 0) return base;
-  const anchoPt = masLarga * base * ANCHO_MEDIO_LETRA;
-  if (anchoPt <= disponiblePt) return base;
-  return Math.max(minimo, Math.floor((disponiblePt / (masLarga * ANCHO_MEDIO_LETRA)) * 10) / 10);
 }
 
 /**
@@ -340,16 +289,23 @@ export interface CotizacionPdfProps {
   /** Cláusula de entrega, punto 1 de "Importante". NULL = la de por defecto
    *  (en nuestras instalaciones). Se elige por cotización desde el 24-08. */
   entregaLugar: string | null;
-  /** La garantía acordada con este cliente ("24 meses", "12 meses de fábrica"…).
-   *  Se escribe por cotización y se imprime en las condiciones de la última
-   *  página (28-08). NULL —cotizaciones viejas, o el dato todavía sin acordar—
-   *  no imprime la línea: es preferible que falte a que el documento prometa
-   *  una garantía que nadie acordó. */
+  /* ── Las cuatro condiciones comerciales (migración 0094) ──────────────────
+     Se guardaban desde el 27-08 y NO se imprimían: la tabla que las llevaba al
+     pie de cada ficha se había quitado ese mismo día por repetir el precio del
+     resumen, y quedaron esperando dónde ponerlas. Darwin lo resolvió el 28-08
+     —«en las cotizaciones que se generan en pdf no aparecen estas cositas»—:
+     van en las condiciones de la última página, cada una en su renglón
+     rotulado. Es donde el estándar decía que tenían que estar (docs/14 §
+     "Tres cosas se apartan de la norma").
+
+     Cada una es independiente: la que venga vacía no imprime su renglón, que
+     es lo que pide el estándar para un dato todavía sin acordar. Las
+     cotizaciones anteriores al 27-08 no tienen ninguna y su bloque sale solo
+     con el texto libre, como siempre. */
+  tiempoEntrega: string | null;
   garantia: string | null;
-  /* Las otras tres condiciones por columnas (tiempo de entrega, forma de pago y
-     saldo) se guardan en la cotización desde la migración 0094 pero HOY NO SE
-     IMPRIMEN: la tabla al pie de cada ficha se quitó el 27-08 porque repetía el
-     precio del resumen. Si vuelven, entran por acá. */
+  formaPago: string | null;
+  saldo: string | null;
   firma: {
     nombre: string;
     cargo: string | null;
@@ -415,6 +371,11 @@ function crearEstilos(acento: string) {
        cuando debajo va la línea de la garantía, para que se lean como un solo
        bloque y no como dos secciones. */
     parrafoJunto: { textAlign: "justify", marginBottom: 6 },
+    /* Los renglones de lo acordado (entrega, garantía, pago, saldo): juntos
+       entre sí —son una sola lista, no cuatro párrafos— y separados de lo que
+       sigue igual que un párrafo. */
+    condicionesLista: { marginBottom: 14 },
+    condicionLinea: { marginBottom: 2 },
 
     /* Tabla resumen */
     resumenTitulo: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 6 },
@@ -562,11 +523,26 @@ export function CotizacionPdf({
   condiciones,
   vigenciaDias,
   entregaLugar,
+  tiempoEntrega,
   garantia,
+  formaPago,
+  saldo,
   firma,
 }: CotizacionPdfProps) {
   const identidad = IDENTIDAD_SERIE[serie];
   const estilos = crearEstilos(identidad.acento);
+
+  // El orden es el de la tabla del estándar (docs/14 § 3), que es el orden en
+  // el que se negocia: cuándo llega, cuánto la cubro, cómo se paga y qué queda
+  // pendiente. Lo que no se acordó no ocupa un renglón vacío en el documento.
+  const condicionesAcordadas = (
+    [
+      ["Tiempo de entrega", tiempoEntrega],
+      ["Garantía", garantia],
+      ["Forma de pago", formaPago],
+      ["Saldo", saldo],
+    ] as [string, string | null][]
+  ).filter((c): c is [string, string] => Boolean(c[1]?.trim()));
 
   const subtotal = items.reduce((acc, i) => acc + i.cantidad * i.precio_unitario, 0);
   const igv = subtotal * IGV;
@@ -771,10 +747,18 @@ export function CotizacionPdf({
                 ...(item.controles ? [{ titulo: "Controles Automático", valor: item.controles }] : []),
                 ...(item.color ? [{ titulo: "Color", valor: item.color }] : []),
               ];
-          const anchosEspec = anchosEspecificaciones(
-            columnas.map((c) => c.titulo),
-            esCoche,
+          /* Los anchos del estándar son el punto de partida; si a una columna no
+             le entra su contenido, se lo presta la que va sobrada y cada casilla
+             queda repartida en cuatro renglones como mucho, sin cortar palabras
+             (28-08, mirando el modelo de la torre LG). */
+          const espec = ajustarEspecificaciones(
+            columnas,
+            anchosEspecificaciones(
+              columnas.map((c) => c.titulo),
+              esCoche,
+            ),
           );
+          const anchosEspec = espec.anchos;
 
 
           /* Imágenes: cada una escalada hasta tocar el primer lado de su caja.
@@ -853,8 +837,8 @@ export function CotizacionPdf({
                         ...(j > 0 ? [estilos.bordeIzquierdo] : []),
                       ]}
                     >
-                      <Text style={[estilos.textoEncabezado, { fontSize: tamanoQueEntra(c.titulo, anchosEspec[j], 9.5, 8) }]}>
-                        {c.titulo}
+                      <Text style={[estilos.textoEncabezado, { fontSize: espec.casillas[j].tamanoTitulo }]}>
+                        {espec.casillas[j].titulo}
                       </Text>
                     </View>
                   ))}
@@ -871,8 +855,8 @@ export function CotizacionPdf({
                         ...(j > 0 ? [estilos.bordeIzquierdo] : []),
                       ]}
                     >
-                      <Text style={[estilos.textoValor, { fontSize: tamanoQueEntra(c.valor, anchosEspec[j], 10) }]}>
-                        {partirLoQueNoEntra(c.valor, anchosEspec[j], tamanoQueEntra(c.valor, anchosEspec[j], 10))}
+                      <Text style={[estilos.textoValor, { fontSize: espec.casillas[j].tamanoValor }]}>
+                        {espec.casillas[j].valor}
                       </Text>
                     </View>
                   ))}
@@ -1096,23 +1080,28 @@ export function CotizacionPdf({
         {membrete}
         {pie}
 
-        {/* La garantía va acá, con el resto de lo que se acordó, y no en una
-            tabla al pie de cada ficha: esa tabla se sacó el 27-08 (ver
-            docs/14). Sale en su propia línea, rotulada, porque es de las
-            primeras cosas que el cliente busca y hasta el 28-08 solo existía
-            perdida dentro del texto libre —«Garantía de fábrica»—, donde cada
-            comercial la escribía distinta y no se podía cambiar por cliente. */}
-        {(condiciones || garantia) && (
+        {/* Lo acordado, rotulado renglón por renglón, y no dentro de un párrafo
+            de texto libre: hasta el 28-08 todo esto vivía revuelto en una sola
+            frase —«Entrega: 15 días útiles. Garantía de fábrica.»— que cada
+            comercial escribía distinta. El texto libre se queda arriba, para la
+            cláusula que no entre en ninguno de los cuatro renglones. */}
+        {(condiciones || condicionesAcordadas.length > 0) && (
           <View wrap={false}>
             <Text style={estilos.seccionSubrayada}>Condiciones comerciales:</Text>
             {condiciones && (
-              <Text style={garantia ? estilos.parrafoJunto : estilos.parrafo}>{condiciones}</Text>
-            )}
-            {garantia && (
-              <Text style={estilos.parrafo}>
-                <Text style={estilos.negrita}>Garantía: </Text>
-                {garantia}
+              <Text style={condicionesAcordadas.length > 0 ? estilos.parrafoJunto : estilos.parrafo}>
+                {condiciones}
               </Text>
+            )}
+            {condicionesAcordadas.length > 0 && (
+              <View style={estilos.condicionesLista}>
+                {condicionesAcordadas.map(([rotulo, valor]) => (
+                  <Text key={rotulo} style={estilos.condicionLinea}>
+                    <Text style={estilos.negrita}>{rotulo}: </Text>
+                    {valor}
+                  </Text>
+                ))}
+              </View>
             )}
           </View>
         )}

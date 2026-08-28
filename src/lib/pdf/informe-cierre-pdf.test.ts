@@ -33,6 +33,7 @@ const BASE: InformeCierrePdfProps = {
   formaPago: "transferencia",
   moneda: "USD",
   notaCondiciones: null,
+  garantia: "24 meses",
   entrega: { fecha: "29/08/2026", hora: "12:00", lugar: "Plaza Norte", direccion: "Av. Siempre Viva 123" },
   notaDespacho: null,
   urgente: true,

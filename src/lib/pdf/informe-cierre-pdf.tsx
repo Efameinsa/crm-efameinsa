@@ -71,6 +71,13 @@ export interface InformeCierrePdfProps {
   formaPago: "transferencia" | "deposito" | null;
   moneda: string;
   notaCondiciones: string | null;
+  /**
+   * La garantía acordada, tal como va impresa (migración 0104). Hasta el 28-08
+   * no era un campo: viajaba como el primer renglón de `incluye` —«36 meses de
+   * garantía»— dentro de una lista plegada que el comercial no veía. NULL, o los
+   * informes viejos que la llevan adentro de `incluye`, no imprimen esta línea.
+   */
+  garantia: string | null;
   entrega: {
     fecha: string | null;
     hora: string | null;
@@ -292,7 +299,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
   const {
     logoBuffer, serie, codigo, fecha, referencia, asunto, presupuestoRef,
     comprobante, clienteNuevo, cliente, contactoVenta, contactoContabilidad, contactoDespacho,
-    modalidadPago, formaPago, moneda, notaCondiciones, entrega, notaDespacho, urgente,
+    modalidadPago, formaPago, moneda, notaCondiciones, garantia, entrega, notaDespacho, urgente,
     incluye, gratis, notaFinal, items, itemsGratuitos, adjuntos, firma,
   } = props;
 
@@ -428,6 +435,16 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
           <Casilla estilos={estilos} marcada={formaPago === "transferencia"} texto="Transferencia" />
           <Casilla estilos={estilos} marcada={formaPago === "deposito"} texto="Depósito" />
         </View>
+        {/* La garantía, rotulada y con las condiciones de venta, que es donde
+            Central y postventa la buscan: de acá sale el plazo que después
+            fija `garantia_hasta` de cada equipo instalado. Antes estaba al
+            final del documento, como un renglón más de «Incluye» (28-08). */}
+        {garantia && (
+          <View style={estilos.datoFila}>
+            <Text style={estilos.datoEtiqueta}>Garantía:</Text>
+            <Text style={estilos.datoValor}>{garantia}</Text>
+          </View>
+        )}
         <Text style={estilos.montoTotal}>{`MONTO TOTAL VENTA ${simbolo} ${monto(totalVenta)}`}</Text>
         {/* Estas cuatro casillas quedan en blanco a propósito: las llena
             Central cuando el pago entra. El rótulo se agregó el 24-08 porque

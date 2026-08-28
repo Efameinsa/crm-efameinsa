@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { fechaCalendario } from "@/lib/fechas";
 import { BuscadorEquiposModal } from "@/components/crm/buscador-equipos-modal";
 import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
-import { ENTREGA_POR_DEFECTO, IGV, LUGARES_ENTREGA } from "@/lib/pdf/series";
+import { ENTREGA_POR_DEFECTO, GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES, IGV, LUGARES_ENTREGA } from "@/lib/pdf/series";
 import type {
   BorradorEnEdicion,
   HistorialPrecio,
@@ -81,11 +81,13 @@ function tierInicial(producto: ProductoCotizable): string {
 
 const monto = (n: number) => n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// Ya NO dice «Garantía de fábrica»: desde el 28-08 la garantía tiene su propio
-// campo y su propia línea impresa, y dejarla también acá hacía que el mismo
-// documento prometiera dos cosas distintas ("Garantía de fábrica" arriba,
-// "Garantía: 24 meses" abajo).
-const CONDICIONES_POR_DEFECTO = "Entrega: 15 días útiles.";
+// VACÍO a propósito desde el 28-08. Decía «Entrega: 15 días útiles. Garantía de
+// fábrica.» y las dos cosas ya tienen su campo y su renglón impreso: dejarlas
+// también acá hacía que el mismo documento prometiera dos entregas y dos
+// garantías distintas. Este texto queda para la cláusula que NO entra en
+// ninguno de los cuatro renglones —y la mayoría de las veces no hace falta
+// ninguna.
+const CONDICIONES_POR_DEFECTO = "";
 
 // Las cuatro columnas de la tabla que cierra cada ficha del PDF (migración
 // 0094). Se ofrecen ya escritas porque son las de casi todas las cotizaciones
@@ -93,14 +95,8 @@ const CONDICIONES_POR_DEFECTO = "Entrega: 15 días útiles.";
 // cuando lo acordado con el cliente es otro. Vaciar una deja su celda en
 // blanco, que es lo que pide el estándar para un dato todavía sin acordar.
 const TIEMPO_ENTREGA_POR_DEFECTO = "Inmediata";
-const GARANTIA_POR_DEFECTO = "24 meses";
 const FORMA_PAGO_POR_DEFECTO = "30 % con la O/C";
 const SALDO_POR_DEFECTO = "70 % antes del despacho";
-
-// Las garantías que se acuerdan de verdad, para dejarlas en un clic. NO es una
-// lista cerrada: el campo sigue siendo de texto libre porque lo que se pacta a
-// veces no es un plazo redondo ("12 meses de fábrica, 6 meses en la resistencia").
-const GARANTIAS_FRECUENTES = ["12 meses", "24 meses", "36 meses", "Garantía de fábrica"];
 
 /** El sello de la barra superior: qué sabe la base de lo que hay en pantalla. */
 type EstadoGuardado =
@@ -905,15 +901,20 @@ export function PantallaCotizador({
               />
             </div>
 
-            {/* Las cuatro columnas de la tabla que cierra cada ficha del PDF
-                (migración 0094). Antes vivían revueltas dentro del texto libre
-                de abajo —«Entrega: Inmediata. Garantía de 24 meses.»— y de ahí
-                no se puede armar una tabla: cada comercial lo escribía distinto.
-                El «Saldo» no sale en las fichas de coches: ese juego de
-                columnas es de cuatro. */}
+            {/* ── Lo acordado, los cuatro datos que van impresos ───────────
+                Son las columnas de la tabla del estándar (migración 0094).
+                Hasta el 28-08 se guardaban y NO salían en el PDF —la tabla que
+                las llevaba al pie de cada ficha se había quitado el 27-08 por
+                repetir el precio— y el comercial las llenaba para nada; lo que
+                el cliente leía seguía siendo el párrafo de texto libre de más
+                abajo, donde cada uno escribía la entrega y la garantía a su
+                manera. Ahora cada una es un renglón rotulado de la última
+                página, y por eso están acá arriba y juntas: se ven, se
+                cambian y salen. Vaciar una la borra del documento, que es lo
+                que pide el estándar para lo que todavía no se acordó. */}
             <div className="space-y-2">
-              <p className="text-sm font-medium">Condiciones de cada ficha</p>
-              <div className="grid grid-cols-2 gap-2">
+              <p className="text-sm font-medium">Condiciones comerciales</p>
+              <div className="space-y-2">
                 <div className="space-y-1">
                   <Label htmlFor="tiempo-entrega" className="text-xs font-normal text-muted-foreground">
                     Tiempo de entrega
@@ -924,35 +925,113 @@ export function PantallaCotizador({
                   <Label htmlFor="garantia" className="text-xs font-normal text-muted-foreground">
                     Garantía
                   </Label>
-                  <Input id="garantia" value={garantia} onChange={(e) => setGarantia(e.target.value)} />
+                  <Input
+                    id="garantia"
+                    value={garantia}
+                    onChange={(e) => setGarantia(e.target.value)}
+                    placeholder="Sin garantía en el documento"
+                  />
+                  {/* Los plazos que se pactan de verdad, en un clic. El campo
+                      sigue siendo libre: lo acordado no siempre es redondo. */}
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {GARANTIAS_FRECUENTES.map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setGarantia(g)}
+                        className={cn(
+                          "rounded-full border px-2.5 py-1 text-xs transition-colors",
+                          garantia.trim().toLowerCase() === g.toLowerCase()
+                            ? "border-primary bg-primary/10 font-semibold text-primary"
+                            : "border-border text-muted-foreground hover:bg-secondary",
+                        )}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="forma-pago" className="text-xs font-normal text-muted-foreground">
-                    Forma de pago
-                  </Label>
-                  <Input id="forma-pago" value={formaPago} onChange={(e) => setFormaPago(e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="saldo" className="text-xs font-normal text-muted-foreground">
-                    Saldo
-                  </Label>
-                  <Input id="saldo" value={saldo} onChange={(e) => setSaldo(e.target.value)} />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="forma-pago" className="text-xs font-normal text-muted-foreground">
+                      Forma de pago
+                    </Label>
+                    <Input id="forma-pago" value={formaPago} onChange={(e) => setFormaPago(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="saldo" className="text-xs font-normal text-muted-foreground">
+                      Saldo
+                    </Label>
+                    <Input id="saldo" value={saldo} onChange={(e) => setSaldo(e.target.value)} />
+                  </div>
                 </div>
               </div>
-              {/* Estos cuatro campos se guardan pero HOY NO SE IMPRIMEN: la
-                  tabla de condiciones al pie de cada ficha se quitó el 27-08
-                  porque repetía el precio del resumen. Quedan cargados a la
-                  espera de que Darwin decida si se usan para armar el texto de
-                  condiciones de la última página o se retiran. */}
-              <p className="text-[11px] text-muted-foreground">
-                Se guardan con la cotización. Por ahora no se imprimen: las condiciones que ve el cliente son las
-                de la última página.
-              </p>
+              {/* Se muestra tal cual va a salir impreso. Es la única forma de
+                  que se note lo que falta: un renglón vacío no se imprime y,
+                  sin esta vista, nadie se entera hasta que el PDF ya está en
+                  el correo del cliente. */}
+              <div className="rounded-md border border-dashed border-border bg-secondary/40 px-2.5 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Sale impreso en la última página
+                </p>
+                {[
+                  ["Tiempo de entrega", tiempoEntrega],
+                  ["Garantía", garantia],
+                  ["Forma de pago", formaPago],
+                  ["Saldo", saldo],
+                ].filter(([, v]) => v.trim()).length === 0 ? (
+                  <p className="mt-1 text-[11px] text-amber-700">
+                    Sin ninguna condición: el cliente no va a leer ni entrega ni garantía.
+                  </p>
+                ) : (
+                  <ul className="mt-1 space-y-0.5">
+                    {[
+                      ["Tiempo de entrega", tiempoEntrega],
+                      ["Garantía", garantia],
+                      ["Forma de pago", formaPago],
+                      ["Saldo", saldo],
+                    ]
+                      .filter(([, v]) => v.trim())
+                      .map(([rotulo, valor]) => (
+                        <li key={rotulo} className="text-[11px] text-foreground">
+                          <span className="font-semibold">{rotulo}:</span> {valor}
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="condiciones">Condiciones (texto de la última página)</Label>
-              <Textarea id="condiciones" value={condiciones} onChange={(e) => setCondiciones(e.target.value)} rows={3} />
+              <Label htmlFor="condiciones">Otra cláusula</Label>
+              <Textarea
+                id="condiciones"
+                value={condiciones}
+                onChange={(e) => setCondiciones(e.target.value)}
+                rows={3}
+                placeholder="Solo si hay algo acordado que no entre en los cuatro renglones de arriba. Sale sobre ellos, en la última página."
+              />
+              {/* Los borradores viejos —y el que pegue el texto de otra
+                  cotización— traen la entrega y la garantía metidas acá
+                  dentro. Ahora que además se imprimen en su renglón, el mismo
+                  documento diría dos veces la misma cosa, y a veces distinta:
+                  «Entrega: 15 días útiles» arriba contra «Tiempo de entrega:
+                  Inmediata» abajo. */}
+              {(() => {
+                const repetidos = [
+                  garantia.trim() && /garant[íi]a/i.test(condiciones) ? "la garantía" : null,
+                  tiempoEntrega.trim() && /entrega/i.test(condiciones) ? "la entrega" : null,
+                  (formaPago.trim() || saldo.trim()) && /pago|saldo|adelanto/i.test(condiciones) ? "el pago" : null,
+                ].filter(Boolean);
+                if (repetidos.length === 0) return null;
+                return (
+                  <p className="flex items-start gap-1.5 text-[11px] text-amber-700">
+                    <TriangleAlert className="mt-px size-3.5 shrink-0" />
+                    Este texto también menciona {repetidos.join(" y ")}, que ahora sale{repetidos.length > 1 ? "n" : ""} en
+                    su propio renglón. Quítelo de acá para que el PDF no lo diga dos veces.
+                  </p>
+                );
+              })()}
             </div>
           </div>
 

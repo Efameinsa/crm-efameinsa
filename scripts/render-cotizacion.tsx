@@ -172,6 +172,10 @@ const buffer = await renderToBuffer(
     condiciones={c.condiciones}
     vigenciaDias={c.vigencia_dias}
     entregaLugar={c.entrega_lugar}
+    garantia={c.garantia}
+    tiempoEntrega={c.tiempo_entrega}
+    formaPago={c.forma_pago}
+    saldo={c.saldo}
     firma={{
       nombre: perfiles[0]?.nombre ?? "Área Comercial",
       cargo: perfiles[0]?.cargo ?? null,

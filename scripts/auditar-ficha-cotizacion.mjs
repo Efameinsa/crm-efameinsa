@@ -7,10 +7,14 @@
 // pdfjs: cada borde de la tabla llega como un trazo con su caja, y cada imagen
 // con su matriz de transformación, que es de donde salen los milímetros.
 //
+// Se corre con tsx: mide los textos con la misma tabla de anchos de la
+// Helvetica-Bold que usa el generador (src/lib/pdf/ajustar-especificaciones.ts).
+//
 // Uso:
-//   node scripts/auditar-ficha-cotizacion.mjs scripts/data/*.pdf
+//   npx tsx scripts/auditar-ficha-cotizacion.mjs scripts/data/*.pdf
 
 import { getDocument, OPS } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { anchoDeTexto } from "../src/lib/pdf/ajustar-especificaciones.ts";
 
 const MM = 72 / 25.4;
 const TOL = 0.6; // mm
@@ -196,9 +200,53 @@ async function auditar(ruta) {
       // cruza el eje de una columna, pero 200 mm más abajo.
       const y = (pagina.view[3] - item.transform[5]) / MM;
       const cruzada = separadores.find((v) => v.x0 > x0 + 0.3 && v.x0 < x1 - 0.3 && y >= v.y0 - 1 && y <= v.y1 + 1);
+      // pdfjs junta en un solo renglón los textos de dos casillas vecinas
+      // cuando las dos están llenas, separados por un espacio. Eso no es un
+      // desborde: se distingue mirando QUÉ letra cae sobre la raya. Si es el
+      // espacio, son dos casillas; si es una letra, el texto la está pisando.
+      const tamano = Math.abs(item.transform[0]) || 10;
+      let pegoteDeDosCasillas = false;
       if (cruzada) {
+        let x = x0;
+        for (const letra of item.str) {
+          const ancho = anchoDeTexto(letra, tamano) / MM;
+          if (cruzada.x0 >= x - 0.2 && cruzada.x0 <= x + ancho + 0.2) {
+            pegoteDeDosCasillas = letra === " ";
+            break;
+          }
+          x += ancho;
+        }
+      }
+      if (cruzada && !pegoteDeDosCasillas) {
         const aviso = `p${n}: «${item.str.trim().slice(0, 40)}» se sale de su casilla (cruza la línea de ${cruzada.x0.toFixed(1)} mm)`;
         if (!fallos.includes(aviso)) fallos.push(aviso);
+      }
+    }
+
+    /* NINGUNA COLUMNA CON MÁS DE CUATRO RENGLONES (regla de Darwin, 28-08). En
+       la fila de especificaciones se pierde el sentido de la tabla si una
+       casilla se apila: el modelo de la torre llegó a cinco renglones. Se
+       cuentan los renglones distintos dentro de cada casilla, entre el borde de
+       arriba de la tabla y el comienzo del cuerpo. */
+    if (abreFicha) {
+      const lineasTabla = [...new Set(deTabla.map((t) => Math.round(t.y0 * 10) / 10))].sort((a, b) => a - b);
+      // Debajo de la fila del título del ítem, que ocupa el ancho entero.
+      const bandaArriba = lineasTabla[1] ?? arriba;
+      const bandaAbajo = divisor.y0;
+      const cortes = [izquierda, ...separadores.map((s) => s.x0), derecha]
+        .filter((x, i, a) => a.findIndex((y) => Math.abs(y - x) < 0.5) === i)
+        .sort((a, b) => a - b);
+      for (let k = 0; k < cortes.length - 1; k++) {
+        const alturas = new Set();
+        for (const item of texto.items) {
+          if (!item.str.trim()) continue;
+          const x = item.transform[4] / MM;
+          const y = (pagina.view[3] - item.transform[5]) / MM;
+          if (x > cortes[k] - 0.5 && x < cortes[k + 1] && y > bandaArriba && y < bandaAbajo)
+            alturas.add(Math.round(y * 2) / 2);
+        }
+        if (alturas.size > 4)
+          fallos.push(`p${n}: la columna que empieza en ${cortes[k].toFixed(1)} mm tiene ${alturas.size} renglones (máximo 4)`);
       }
     }
 

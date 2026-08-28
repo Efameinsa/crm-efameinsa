@@ -66,6 +66,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       formaPago={informe.forma_pago}
       moneda={informe.moneda}
       notaCondiciones={informe.nota_condiciones}
+      garantia={informe.garantia}
       entrega={{
         fecha: informe.entrega_fecha,
         hora: informe.entrega_hora,

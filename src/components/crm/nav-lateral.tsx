@@ -49,6 +49,11 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/comercial/agenda", etiqueta: "Mi agenda", icono: CalendarDays },
     { href: "/comercial/oportunidades", etiqueta: "Mis oportunidades", icono: KanbanSquare },
     { href: "/comercial/cotizaciones", etiqueta: "Mis cotizaciones", icono: FileText },
+    // Los cierres, al lado de las cotizaciones: son los dos documentos que
+    // produce el comercial y hasta el 28-08 solo uno se podía volver a mirar
+    // (el informe se abría una vez, al emitirlo, y después había que buscarlo
+    // dentro de la ficha del cliente o pedírselo a Central).
+    { href: "/comercial/cierres", etiqueta: "Mis cierres", icono: PackageCheck },
     { href: "/comercial/potenciales", etiqueta: "Mis potenciales", icono: Target },
     { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: Gauge },
     { href: "/comercial/cartera", etiqueta: "Mi cartera", icono: Building2 },

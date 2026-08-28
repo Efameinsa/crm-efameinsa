@@ -176,7 +176,7 @@ node  scripts/fichas-v-07-recortar-pantallazos.mjs   # rescatar el equipo de una
 node  scripts/fichas-v-11-vista.mjs              # la ficha como la ve Lesly
 npx tsx scripts/fichas-v-09-todas.tsx            # una cotización de prueba por ficha
 node  scripts/fichas-v-10-servidor.mjs           # http://localhost:4173 para revisarlas
-node  scripts/auditar-ficha-cotizacion.mjs scripts/data/fichas-v/pdf/*.pdf
+npx tsx scripts/auditar-ficha-cotizacion.mjs scripts/data/fichas-v/pdf/*.pdf
 ```
 
 Los pasos 1 a 11 no tocan la base ni el catálogo: todo queda en

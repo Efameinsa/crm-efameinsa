@@ -102,6 +102,10 @@ const buffer = await renderToBuffer(
     condiciones={null}
     vigenciaDias={15}
     entregaLugar={null}
+    garantia={null}
+    tiempoEntrega={null}
+    formaPago={null}
+    saldo={null}
     firma={{
       nombre: "Comercial de pruebas",
       cargo: "Área Comercial",

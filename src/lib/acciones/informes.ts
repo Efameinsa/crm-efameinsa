@@ -52,6 +52,8 @@ export interface DatosInforme {
   formaPago: "transferencia" | "deposito" | null;
   moneda: string;
   notaCondiciones: string | null;
+  /** Lo acordado de garantía, impreso en las condiciones de venta (0104). */
+  garantia: string | null;
   entregaFecha: string | null;
   entregaHora: string | null;
   entregaLugar: string | null;
@@ -73,6 +75,9 @@ export interface PresupuestoDisponible {
   items: string[];
   /** De dónde sale: el cotizador del CRM o el archivo de documentos viejos. */
   fuente: "crm" | "archivo";
+  /** Solo las del CRM: la garantía que se le cotizó a ESE cliente, para que el
+   *  cierre no vuelva a preguntarla ni contradiga el papel que el cliente firmó. */
+  garantia?: string | null;
   /** Solo las del CRM: si todavía está en borrador, para decirlo en la lista. */
   estado?: string | null;
   /** Solo las del CRM: los renglones tal como se cotizaron, con cantidad y
@@ -144,7 +149,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, estado, total, created_at, enviada_at, oportunidades!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, descripcion, productos(marca, modelo, nombre))",
+        "id, codigo, serie, estado, total, garantia, created_at, enviada_at, oportunidades!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, descripcion, productos(marca, modelo, nombre))",
       )
       .eq("oportunidades.cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
@@ -198,6 +203,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
       monto: c.total,
       items: lineas.map((l) => l.descripcion),
       fuente: "crm" as const,
+      garantia: c.garantia,
       estado: c.estado,
       lineas,
     };
@@ -228,6 +234,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     (principal ? 4 : 0) + // nombre, teléfono, correo, correo del cliente
     (presupuestos.length ? 3 : 0) + // Nº de presupuesto, equipos, importes
     INCLUYE_POR_DEFECTO.length +
+    1 + // la garantía: heredada de la cotización o la de por defecto (0104)
     1; // fecha
 
   return {
@@ -285,6 +292,7 @@ function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
       (d.items.filter((i) => i.bloque !== "gratuito").reduce((a, i) => a + i.cantidad * i.precio_unitario, 0) * 1.18).toFixed(2),
     ),
     nota_condiciones: d.notaCondiciones,
+    garantia: d.garantia,
     entrega_fecha: d.entregaFecha,
     entrega_hora: d.entregaHora,
     entrega_lugar: d.entregaLugar,

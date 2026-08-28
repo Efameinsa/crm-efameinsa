@@ -282,6 +282,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       condiciones={cotizacion.condiciones}
       vigenciaDias={cotizacion.vigencia_dias}
       entregaLugar={cotizacion.entrega_lugar}
+      garantia={cotizacion.garantia}
+      tiempoEntrega={cotizacion.tiempo_entrega}
+      formaPago={cotizacion.forma_pago}
+      saldo={cotizacion.saldo}
       firma={{
         nombre: perfilComercial?.nombre ?? "Área Comercial",
         cargo: perfilComercial?.cargo ?? null,

@@ -112,6 +112,26 @@ export const LUGARES_ENTREGA = [
 /** La conservadora: es la que sale si nadie elige otra cosa. */
 export const ENTREGA_POR_DEFECTO = LUGARES_ENTREGA[0];
 
+/**
+ * La garantía que se ofrece cuando no hay nada acordado todavía.
+ *
+ * Vive acá, con el resto de los textos por defecto del documento, porque la
+ * usan LOS DOS papeles: la cotización que ve el cliente y el informe de cierre
+ * que va a Central. Que dijeran cosas distintas es exactamente lo que pasaba
+ * hasta el 28-08 — el cierre prometía «36 meses de garantía» (quemado en la
+ * lista «Incluye») contra los 24 de la cotización, del manual de postventa y
+ * del cálculo de `garantia_hasta` del parque instalado (migración 0087).
+ *
+ * Si gerencia confirma que la garantía comercial es otra, se cambia acá y
+ * cambia en los dos documentos a la vez.
+ */
+export const GARANTIA_POR_DEFECTO = "24 meses";
+
+/** Las garantías que se acuerdan de verdad, para dejarlas en un clic. NO es una
+ *  lista cerrada: el campo sigue siendo de texto libre porque lo que se pacta a
+ *  veces no es un plazo redondo ("12 meses de fábrica, 6 en la resistencia"). */
+export const GARANTIAS_FRECUENTES = ["12 meses", "24 meses", "36 meses", "Garantía de fábrica"];
+
 // Texto idéntico al de los modelos reales (página final). El punto 1 lo pone
 // la cotización (ver `entregaLugar` en cotizacion-pdf.tsx).
 export const PUNTOS_IMPORTANTES = [

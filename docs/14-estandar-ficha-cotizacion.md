@@ -408,6 +408,30 @@ Al convertir una cotización existente, verificar en este orden:
 
 ---
 
+## 10 bis. La fila de especificaciones: cuatro renglones como máximo
+
+Los anchos de columna de arriba son el punto de partida, no una jaula. Cuando el
+contenido no entra —el modelo de la torre LG es «GIANT C MAX (CWG27MDCRS
+CDG27MUCPS)»— la casilla se apila hasta volverse ilegible: llegó a cinco
+renglones, con un guion de corte incluido. Reglas, en este orden (Darwin, 28-08):
+
+1. **Ninguna casilla pasa de CUATRO renglones.**
+2. **Ninguna palabra se parte**: nunca aparece un guion de corte. Los cortes que
+   la palabra ya trae escritos —el guion de «Digital-Multifunción», la barra de
+   «GLP/NATURAL», el paréntesis— sí sirven para pasar de renglón.
+3. Si a una columna le falta ancho, **se lo presta la que va sobrada**, sin bajar
+   de 14 mm y sin que a la que presta se le parta lo suyo. Que el rótulo quede en
+   dos renglones («Controles / Automático») es correcto y esperado.
+4. Recién después se achica la letra (10 → 7.5 pt el valor, 9.5 → 8 pt el
+   rótulo), y en último caso se corta la palabra, sin guion.
+
+Todo se decide midiendo con los anchos reales de la Helvetica-Bold
+(`src/lib/pdf/ajustar-especificaciones.ts`, con sus pruebas). Estimar con un
+ancho medio de letra fue lo que dejó pasar el desborde: 0.62 em es el ancho de
+la minúscula y un modelo en mayúsculas con dígitos anda por 0.70.
+
+---
+
 ## 11. Auditoría automática
 
 El estándar trae un script en Python con `pdfplumber`. La máquina de trabajo no
@@ -415,8 +439,13 @@ tiene Python, así que en el repo vive el equivalente en Node, que hace las mism
 comprobaciones leyendo la lista de operadores del PDF:
 
 ```bash
-node scripts/auditar-ficha-cotizacion.mjs scripts/data/*.pdf
+npx tsx scripts/auditar-ficha-cotizacion.mjs scripts/data/*.pdf
 ```
+
+Además de la geometría, rechaza el PDF si un texto **se sale de su casilla**, si
+una columna de especificaciones pasa de **cuatro renglones** o si quedó impreso
+un **resto de código de Word** (`INCLUDEPICTURE`, `MERGEFORMAT`, una ruta de
+`AppData\Local\Temp`). Las tres llegaron a una cotización real el 28-08.
 
 Devuelve código distinto de cero si algo falla. Para generar el PDF de una
 cotización real sin pasar por el navegador:
