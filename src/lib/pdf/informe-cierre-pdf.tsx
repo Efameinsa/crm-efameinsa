@@ -98,6 +98,18 @@ export interface InformeCierrePdfProps {
    * en el CRM — y para que se note cuando falta uno.
    */
   adjuntos: { etiqueta: string; nombre: string }[];
+  /**
+   * Cómo se hizo la venta, en una línea y unos hitos. Carlos lo pidió el 28-08
+   * como parte del expediente —«y CRM, que es un compendio solamente de esta
+   * operación: cómo se hizo la gestión»— y el 28 por la tarde decidió que va en
+   * la pantalla Y en el papel. En el papel va CORTO: el PDF se archiva, y lo
+   * que Central necesita del camino son cuatro datos y media docena de fechas.
+   */
+  compendio?: {
+    comercial: string;
+    resumen: string;
+    hitos: { fecha: string; tipo: string; detalle: string | null }[];
+  } | null;
   firma: {
     nombre: string;
     telefono: string | null;
@@ -300,7 +312,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
     logoBuffer, serie, codigo, fecha, referencia, asunto, presupuestoRef,
     comprobante, clienteNuevo, cliente, contactoVenta, contactoContabilidad, contactoDespacho,
     modalidadPago, formaPago, moneda, notaCondiciones, garantia, entrega, notaDespacho, urgente,
-    incluye, gratis, notaFinal, items, itemsGratuitos, adjuntos, firma,
+    incluye, gratis, notaFinal, items, itemsGratuitos, adjuntos, compendio, firma,
   } = props;
 
   const identidad = IDENTIDAD_SERIE[serie];
@@ -531,6 +543,24 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
               </View>
             ))}
           </>
+        )}
+
+        {compendio && (
+          <View wrap={false}>
+            <Text style={estilos.notaEtiqueta}>Cómo se hizo la venta (registro del CRM):</Text>
+            <Text style={estilos.bulletTexto}>
+              {compendio.comercial} · {compendio.resumen}
+            </Text>
+            {compendio.hitos.slice(0, 6).map((h, i) => (
+              <View key={i} style={estilos.bullet}>
+                <Text style={estilos.bulletMarca}>•</Text>
+                <Text style={estilos.bulletTexto}>
+                  {h.fecha} — {h.tipo}
+                  {h.detalle ? `: ${h.detalle.slice(0, 160)}` : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
         )}
 
         <View style={estilos.firmaBloque} wrap={false}>

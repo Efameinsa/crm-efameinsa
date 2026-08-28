@@ -6,6 +6,8 @@ import { join } from "node:path";
 import { createClient } from "@/lib/supabase/server";
 import { InformeCierrePdf, type ItemInforme } from "@/lib/pdf/informe-cierre-pdf";
 import { etiquetaTipo, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
+import { cargarCompendio, oportunidadDelInforme } from "@/lib/compendio-cierre";
+import { fechaCalendario } from "@/lib/fechas";
 
 // PDF del informe de cierre de ventas que se le manda a Central.
 // La autorización la hace RLS (migración 0049): el comercial ve los de SU
@@ -40,6 +42,27 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     celular: string | null;
     email_contacto: string | null;
   } | null;
+
+  // El compendio de la gestión va también en el papel (decisión del 28-08). Si
+  // falla, el informe sale igual sin esa sección: es un agregado al documento,
+  // no el documento — y este PDF es el que Central necesita para facturar.
+  let compendio = null;
+  try {
+    const c = await cargarCompendio(await oportunidadDelInforme(informe));
+    if (c) {
+      compendio = {
+        comercial: c.comercial + (c.codigoComercial ? ` (${c.codigoComercial})` : ""),
+        resumen: c.resumen,
+        hitos: c.hitos.map((h) => ({
+          fecha: fechaCalendario(h.fecha.slice(0, 10)),
+          tipo: h.tipo,
+          detalle: h.detalle,
+        })),
+      };
+    }
+  } catch {
+    // Sin compendio, con informe.
+  }
 
   const buffer = await renderToBuffer(
     <InformeCierrePdf
@@ -84,6 +107,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         etiqueta: etiquetaTipo(a.tipo),
         nombre: a.nombre,
       }))}
+      compendio={compendio}
       firma={{
         nombre: comercial?.nombre ?? "Área Comercial",
         telefono: comercial?.telefono ?? null,

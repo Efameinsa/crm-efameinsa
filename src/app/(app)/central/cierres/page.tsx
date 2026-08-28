@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { FileText, Truck } from "lucide-react";
 import { requerirRol } from "@/lib/auth";
@@ -8,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ChecksPedidoCentral } from "@/components/crm/checks-pedido-central";
 import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
 import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
+import { CompendioGestion } from "@/components/crm/compendio-gestion";
+import { cargarCompendio, oportunidadDelInforme, type Compendio } from "@/lib/compendio-cierre";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +43,8 @@ interface FilaInforme {
   entrega_fecha: string | null;
   modalidad_pago: string[];
   cuenta_id: string;
+  oportunidad_id: string | null;
+  venta_id: string | null;
   adjuntos: AdjuntoCierre[] | null;
   perfiles: { nombre: string; codigo_comercial: string | null } | null;
 }
@@ -51,7 +56,7 @@ export default async function CierresCentralPage() {
   const { data } = await supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, adjuntos, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial)",
+      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial)",
     )
     .not("emitido_at", "is", null)
     .order("emitido_at", { ascending: false })
@@ -74,6 +79,25 @@ export default async function CierresCentralPage() {
     .in("informe_cierre_id", filas.map((f) => f.id));
   const pedidoPorInforme = new Map(
     (pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]),
+  );
+
+  // EL COMPENDIO DE LA GESTIÓN, que es lo que Carlos pidió para que Central
+  // pueda dejar el correo: los documentos ya estaban acá, el camino no. Se arma
+  // para los 20 cierres más recientes —los que se están trabajando— porque cada
+  // uno son tres consultas y la cola trae doscientos.
+  //
+  // Los veinte van EN PARALELO. En fila tardaban 5,2 s —cada compendio son
+  // cuatro consultas y veinte por cuatro son ochenta esperas encadenadas— y una
+  // cola de trabajo que tarda cinco segundos en abrir se deja de abrir.
+  const compendios = new Map<string, Compendio>(
+    (
+      await Promise.all(
+        filas.slice(0, 20).map(async (f): Promise<[string, Compendio] | null> => {
+          const compendio = await cargarCompendio(await oportunidadDelInforme(f));
+          return compendio ? [f.id, compendio] : null;
+        }),
+      )
+    ).filter((x): x is [string, Compendio] => x !== null),
   );
 
   return (
@@ -109,7 +133,8 @@ export default async function CierresCentralPage() {
             </TableHeader>
             <TableBody>
               {filas.map((f) => (
-                <TableRow key={f.id} className={f.urgente ? "bg-destructive/5" : undefined}>
+                <Fragment key={f.id}>
+                <TableRow className={f.urgente ? "bg-destructive/5" : undefined}>
                   <TableCell className="whitespace-nowrap align-top">
                     <span className="font-mono text-xs font-semibold text-foreground">Nº {f.codigo}</span>
                     <span className="block text-[11px] text-muted-foreground">
@@ -185,6 +210,18 @@ export default async function CierresCentralPage() {
                     </a>
                   </TableCell>
                 </TableRow>
+                {/* El compendio va DEBAJO de su fila y no en una celda: es un
+                    texto que se lee, no un dato que se compara con el de al
+                    lado. Solo en los cierres recientes, que son los que se
+                    están trabajando. */}
+                {compendios.has(f.id) && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="bg-secondary/30 px-3 pb-3 pt-0">
+                      <CompendioGestion compendio={compendios.get(f.id)!} />
+                    </TableCell>
+                  </TableRow>
+                )}
+                </Fragment>
               ))}
             </TableBody>
           </Table>
