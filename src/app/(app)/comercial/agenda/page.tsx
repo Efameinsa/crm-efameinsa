@@ -104,6 +104,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       .from("ventas")
       .select("id, fecha_venta, monto_total, moneda, oportunidad_id, oportunidades!inner(comercial_id, cuentas(razon_social))")
       .eq("oportunidades.comercial_id", perfil.id)
+      .is("anulada_at", null)
       .gte("fecha_venta", inicioMes)
       .lte("fecha_venta", finMes)
       .limit(200),

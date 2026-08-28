@@ -252,7 +252,11 @@ export async function cargarEmbudoReal(
   const oportunidadIds = filasOportunidades.map((o) => o.id);
 
   const { data: ventas } = oportunidadIds.length
-    ? await supabase.from("ventas").select("oportunidad_id, monto_total, moneda").in("oportunidad_id", oportunidadIds)
+    ? await supabase
+        .from("ventas")
+        .select("oportunidad_id, monto_total, moneda")
+        .in("oportunidad_id", oportunidadIds)
+        .is("anulada_at", null)
     : { data: [] as { oportunidad_id: string; monto_total: number; moneda: string }[] };
   const filasVentas = ventas ?? [];
 

@@ -75,6 +75,9 @@ export interface EventoVenta {
   oportunidadId: string | null;
   monto: number;
   moneda: string;
+  // Anulada por gerencia: se queda en el historial porque pasó, pero no se
+  // lee como una venta buena (reunión 28-08).
+  anulada?: boolean;
   // Nº de presupuesto del que salió la venta, cuando viene del Excel histórico.
   presupuesto?: string | null;
   // El documento de ese presupuesto, si está en el archivo y ya subido.
@@ -114,8 +117,8 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
             </span>
           )}
           {evento.tipo === "venta" && (
-            <span className="font-semibold text-[#1E7F4F]">
-              Venta cerrada
+            <span className={evento.anulada ? "font-semibold text-muted-foreground line-through" : "font-semibold text-[#1E7F4F]"}>
+              {evento.anulada ? "Venta anulada" : "Venta cerrada"}
               {evento.presupuesto && (
                 <span className="font-normal text-muted-foreground"> · presupuesto {evento.presupuesto}</span>
               )}

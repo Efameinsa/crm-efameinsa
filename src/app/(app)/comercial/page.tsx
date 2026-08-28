@@ -275,6 +275,9 @@ export default async function ComercialPage() {
     )
     .eq("oportunidades.comercial_id", perfil.id)
     .eq("origen", "crm")
+    // Una venta anulada no cuenta: el cierre se queda con su número, pero el
+    // récord no lo suma (reunión con gerencia del 28-08, migración 0110).
+    .is("anulada_at", null)
     .order("fecha_venta", { ascending: false });
 
   const sinInforme: VentaSinInformeFila[] = (ventasData ?? [])

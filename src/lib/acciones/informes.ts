@@ -161,6 +161,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
       .from("ventas")
       .select("id, fecha_venta, monto_total, moneda, referencia_historica, origen, oportunidades!inner(id, cuenta_id)")
       .eq("oportunidades.cuenta_id", cuentaId)
+      .is("anulada_at", null)
       .order("fecha_venta", { ascending: false }),
     supabase.from("informes_cierre").select("venta_id").eq("cuenta_id", cuentaId).not("venta_id", "is", null),
   ]);
@@ -513,4 +514,69 @@ export async function quitarAdjuntoInforme(
   revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
   revalidatePath("/central/cierres");
   return { error: null, adjuntos };
+}
+
+// ------------------------------------------------------------
+// ANULAR UN CIERRE (reunión con gerencia del 28-08).
+//
+// «No, eliminar le diría que no, mejor anular nada más, que quede ahí.» El
+// documento no se borra: se queda con su número y su historia y deja de contar.
+// Lo ejecuta Central o gerencia —nunca quien lo emitió— con el código de dos
+// minutos del supervisor. Toda la regla vive en la migración 0110; acá solo se
+// pasa el pedido y se refrescan las pantallas que cambian.
+
+export interface CierreEnJuego {
+  codigo: string;
+  cliente: string;
+  monto: number;
+  moneda: string;
+  anulado: boolean;
+  tieneVenta: boolean;
+  pedidoErp: string | null;
+  ejecutado: boolean;
+  enPostventa: boolean;
+}
+
+/** Qué se lleva por delante esta anulación. Se mira ANTES de pedir el código. */
+export async function cierreEnJuego(informeId: string): Promise<CierreEnJuego | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("cierre_en_juego", { p_informe: informeId });
+  const f = (data as unknown as Record<string, unknown>[] | null)?.[0];
+  if (!f) return null;
+  return {
+    codigo: String(f.codigo ?? ""),
+    cliente: String(f.cliente ?? ""),
+    monto: Number(f.monto ?? 0),
+    moneda: String(f.moneda ?? "USD"),
+    anulado: Boolean(f.anulado),
+    tieneVenta: Boolean(f.tiene_venta),
+    pedidoErp: (f.pedido_erp as string | null) ?? null,
+    ejecutado: Boolean(f.ejecutado),
+    enPostventa: Boolean(f.en_postventa),
+  };
+}
+
+export async function anularCierre(
+  informeId: string,
+  motivo: string,
+  pin: string,
+): Promise<{ error: string | null; codigo?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("anular_cierre", {
+    p_informe: informeId,
+    p_motivo: motivo,
+    p_pin: pin,
+  });
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+
+  const resultado = (data ?? {}) as { codigo?: string };
+  const { data: informe } = await supabase
+    .from("informes_cierre")
+    .select("cuenta_id")
+    .eq("id", informeId)
+    .maybeSingle();
+  revalidatePath("/central/cierres");
+  revalidatePath("/gerencia/cierres");
+  if (informe) revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
+  return { error: null, codigo: resultado.codigo };
 }

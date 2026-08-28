@@ -97,7 +97,7 @@ export async function cargarHistorialCuenta(
           supabase
             .from("ventas")
             .select(
-              "id, fecha_venta, monto_total, moneda, oportunidad_id, cotizacion_id, referencia_historica, equipo_historico, cotizaciones(codigo, serie, cotizacion_items(cantidad, precio_unitario, productos(marca, modelo, nombre)))",
+              "id, fecha_venta, monto_total, moneda, oportunidad_id, cotizacion_id, referencia_historica, equipo_historico, anulada_at, cotizaciones(codigo, serie, cotizacion_items(cantidad, precio_unitario, productos(marca, modelo, nombre)))",
             )
             .in("oportunidad_id", opIds)
             .order("fecha_venta", { ascending: false }),
@@ -200,6 +200,7 @@ export async function cargarHistorialCuenta(
         oportunidadId: aDonde(v.oportunidad_id),
         monto: v.monto_total,
         moneda: v.moneda,
+        anulada: v.anulada_at != null,
         presupuesto: v.referencia_historica,
         pdfUrl: documento?.tienePdf ? `/api/cotizaciones-historicas/${documento.id}/pdf` : null,
       };

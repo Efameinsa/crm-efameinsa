@@ -88,6 +88,7 @@ export async function cargarCierreSemanal(lunes: string, comercialId: string): P
         .from("ventas")
         .select("fecha_venta, monto_total, moneda, oportunidades!inner(comercial_id, cuentas(razon_social))")
         .eq("oportunidades.comercial_id", comercialId)
+        .is("anulada_at", null)
         .gte("fecha_venta", lunes)
         .lte("fecha_venta", sabado)
         .limit(300),

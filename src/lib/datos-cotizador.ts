@@ -137,6 +137,9 @@ async function cargarHistorialPrecios(
     .from("ventas")
     .select("fecha_venta, cotizaciones(cotizacion_items(producto_id, precio_unitario))")
     .in("oportunidad_id", opIds)
+    // Una venta anulada nunca fue un precio de verdad: no sienta precedente
+    // para el cotizador (reunión con gerencia del 28-08, migración 0110).
+    .is("anulada_at", null)
     .order("fecha_venta", { ascending: false });
 
   for (const v of ventas ?? []) {

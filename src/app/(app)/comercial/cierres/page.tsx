@@ -55,7 +55,7 @@ export default async function MisCierresPage({
   let consulta = supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, cliente_nombre, cliente_doc, monto_total, moneda, urgente, cuentas!inner(comercial_id)",
+      "id, codigo, serie, fecha, emitido_at, cliente_nombre, cliente_doc, monto_total, moneda, urgente, anulado_at, anulado_motivo, cuentas!inner(comercial_id)",
       { count: "exact" },
     )
     .eq("cuentas.comercial_id", perfil.id);
@@ -131,7 +131,11 @@ export default async function MisCierresPage({
               title="Abrir el informe de cierre"
               className={cn(
                 "flex flex-wrap items-center gap-3 rounded-md border p-2.5 transition-colors hover:bg-accent",
-                f.urgente ? "border-destructive/40 bg-destructive/5" : "border-border",
+                f.anulado_at
+                  ? "border-dashed border-border bg-secondary/30"
+                  : f.urgente
+                    ? "border-destructive/40 bg-destructive/5"
+                    : "border-border",
               )}
             >
               <span className="w-24 flex-none font-mono text-xs font-semibold text-foreground">
@@ -162,12 +166,21 @@ export default async function MisCierresPage({
                   sin numerar
                 </span>
               )}
-              {f.urgente && (
+              {f.urgente && !f.anulado_at && (
                 <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
                   URGENTE
                 </span>
               )}
               <FileText className="size-3.5 text-muted-foreground" />
+              {/* Un cierre anulado tiene que contestar solo la pregunta con la
+                  que el comercial lo va a mirar: por qué, y que le toca emitir
+                  uno nuevo (reunión con gerencia del 28-08). */}
+              {f.anulado_at && (
+                <span className="w-full text-[11px] leading-snug text-muted-foreground">
+                  <span className="font-semibold uppercase text-foreground">Anulado</span>
+                  {f.anulado_motivo ? ` · ${f.anulado_motivo}` : ""} · hay que emitir un cierre nuevo.
+                </span>
+              )}
             </a>
           ))}
         </div>

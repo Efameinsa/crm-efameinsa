@@ -94,7 +94,11 @@ export default async function LeadsMarketingPage({
 
   const opIds = ops.map((o) => o.id);
   const { data: ventasData } = opIds.length
-    ? await supabase.from("ventas").select("oportunidad_id, fecha_venta, monto_total, moneda").in("oportunidad_id", opIds)
+    ? await supabase
+        .from("ventas")
+        .select("oportunidad_id, fecha_venta, monto_total, moneda")
+        .in("oportunidad_id", opIds)
+        .is("anulada_at", null)
     : { data: [] as Venta[] };
   const ventasPorOp = new Map<string, Venta[]>();
   for (const v of (ventasData ?? []) as Venta[]) { if (!ventasPorOp.has(v.oportunidad_id)) ventasPorOp.set(v.oportunidad_id, []); ventasPorOp.get(v.oportunidad_id)!.push(v); }

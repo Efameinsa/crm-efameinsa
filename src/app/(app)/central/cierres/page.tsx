@@ -6,6 +6,7 @@ import { fechaCalendario } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ChecksPedidoCentral } from "@/components/crm/checks-pedido-central";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
+import { AnularCierreBoton } from "@/components/crm/anular-cierre-boton";
 import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
 import { cargarCompendio, oportunidadDelInforme, type Compendio } from "@/lib/compendio-cierre";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ export const dynamic = "force-dynamic";
 const PESTANAS = [
   { clave: "por_liberar", etiqueta: "Por liberar" },
   { clave: "liberados", etiqueta: "Liberados" },
+  { clave: "anulados", etiqueta: "Anulados" },
   { clave: "todos", etiqueta: "Todos" },
 ] as const;
 
@@ -59,6 +61,8 @@ interface FilaInforme {
   oportunidad_id: string | null;
   venta_id: string | null;
   adjuntos: AdjuntoCierre[] | null;
+  anulado_at: string | null;
+  anulado_motivo: string | null;
   perfiles: { nombre: string; codigo_comercial: string | null } | null;
 }
 
@@ -75,7 +79,7 @@ export default async function CierresCentralPage({
   const { data } = await supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial)",
+      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial)",
     )
     .not("emitido_at", "is", null)
     .order("emitido_at", { ascending: false })
@@ -101,8 +105,16 @@ export default async function CierresCentralPage({
     const p = pedidoPorInforme.get(id);
     return p?.pedido_ejecutado_at != null && p?.liquidacion_at != null;
   };
-  const porLiberar = todas.filter((f) => !liberado(f.id));
-  const filas = pestana === "por_liberar" ? porLiberar : pestana === "liberados" ? todas.filter((f) => liberado(f.id)) : todas;
+  // Un cierre anulado no es trabajo de nadie: no está por liberar ni liberado.
+  // Tiene su propia pestaña para poder encontrarlo cuando alguien pregunte qué
+  // pasó con ese número, que es justamente para lo que se anula en vez de
+  // borrar (reunión 28-08).
+  const anulado = (f: FilaInforme) => f.anulado_at != null;
+  const porLiberar = todas.filter((f) => !liberado(f.id) && !anulado(f));
+  const anulados = todas.filter(anulado);
+  const liberados = todas.filter((f) => liberado(f.id) && !anulado(f));
+  const filas =
+    pestana === "por_liberar" ? porLiberar : pestana === "liberados" ? liberados : pestana === "anulados" ? anulados : todas;
   const urgentes = porLiberar.filter((f) => f.urgente).length;
 
   // EL COMPENDIO DE LA GESTIÓN, que es lo que Carlos pidió para que Central
@@ -126,7 +138,14 @@ export default async function CierresCentralPage({
       accion={
         <div className="flex flex-wrap items-center gap-1.5">
           {PESTANAS.map((p) => {
-            const n = p.clave === "por_liberar" ? porLiberar.length : p.clave === "todos" ? todas.length : todas.length - porLiberar.length;
+            const n =
+              p.clave === "por_liberar"
+                ? porLiberar.length
+                : p.clave === "liberados"
+                  ? liberados.length
+                  : p.clave === "anulados"
+                    ? anulados.length
+                    : todas.length;
             return (
               <Link
                 key={p.clave}
@@ -163,13 +182,18 @@ export default async function CierresCentralPage({
           {filas.map((f) => {
             const pedido = pedidoPorInforme.get(f.id);
             const yaLiberado = liberado(f.id);
+            const estaAnulado = anulado(f);
             const documentos = adjuntosPorInforme.get(f.id) ?? [];
             return (
               <article
                 key={f.id}
                 className={cn(
                   "rounded-lg border p-3",
-                  f.urgente && !yaLiberado ? "border-destructive/40 bg-destructive/5" : "border-border",
+                  estaAnulado
+                    ? "border-dashed border-border bg-secondary/30"
+                    : f.urgente && !yaLiberado
+                      ? "border-destructive/40 bg-destructive/5"
+                      : "border-border",
                 )}
               >
                 <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
@@ -182,12 +206,17 @@ export default async function CierresCentralPage({
                       >
                         {f.cliente_nombre}
                       </Link>
-                      {f.urgente && !yaLiberado && (
+                      {estaAnulado && (
+                        <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
+                          Anulado
+                        </span>
+                      )}
+                      {f.urgente && !yaLiberado && !estaAnulado && (
                         <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
                           URGENTE
                         </span>
                       )}
-                      {yaLiberado && (
+                      {yaLiberado && !estaAnulado && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 text-[10px] font-bold text-[#1E7F4F]">
                           <CheckCircle2 className="size-3" />
                           {pedido?.aprobado_at ? "EN POSTVENTA" : "LIBERADO"}
@@ -215,7 +244,12 @@ export default async function CierresCentralPage({
                           <Truck className="size-3" /> entrega {fechaCalendario(f.entrega_fecha)}
                         </span>
                       )}
-                      {documentos.length === 0 && (
+                      {estaAnulado && f.anulado_motivo && (
+                        <span className="w-full text-muted-foreground">
+                          Anulado: {f.anulado_motivo}
+                        </span>
+                      )}
+                      {documentos.length === 0 && !estaAnulado && (
                         <span className="flex items-center gap-1 font-medium text-amber-700">
                           <Package className="size-3" /> sin documentos adjuntos
                         </span>
@@ -225,6 +259,7 @@ export default async function CierresCentralPage({
 
                   {/* Lo accionable, a la derecha y siempre en el mismo lugar. */}
                   <div className="flex flex-wrap items-center gap-2">
+                    {!estaAnulado && <AnularCierreBoton informeId={f.id} codigo={f.codigo} />}
                     <ExpedienteCierre
                       informeId={f.id}
                       codigo={f.codigo}
@@ -239,6 +274,7 @@ export default async function CierresCentralPage({
                       adjuntos={documentos}
                       compendio={compendios.get(f.id) ?? null}
                     />
+                    {!estaAnulado && (
                     <ChecksPedidoCentral
                       informeId={f.id}
                       cliente={f.cliente_nombre}
@@ -247,6 +283,7 @@ export default async function CierresCentralPage({
                       liquidacion={pedido?.liquidacion_at != null}
                       aprobadoPostventa={pedido?.aprobado_at != null}
                     />
+                    )}
                   </div>
                 </div>
               </article>

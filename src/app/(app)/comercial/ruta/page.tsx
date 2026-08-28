@@ -133,6 +133,7 @@ export default async function RutaMantenimientoPage({
             .from("ventas")
             .select("fecha_venta, oportunidades!inner(cuenta_id)")
             .in("oportunidades.cuenta_id", cuentaIds)
+            .is("anulada_at", null)
             .order("fecha_venta", { ascending: false })
             .limit(2000)
         : Promise.resolve({ data: [] }),
