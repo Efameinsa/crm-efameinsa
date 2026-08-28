@@ -42,7 +42,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
         .select("id, nombre, codigo_comercial")
         .eq("rol", "comercial")
         .eq("activo", true)
-        .eq("es_prueba", false)
+        .eq("es_prueba", false).eq("es_soporte", false)
         .order("codigo_comercial")
     : { data: null };
   const contactos =

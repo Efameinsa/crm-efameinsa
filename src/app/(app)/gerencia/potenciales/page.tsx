@@ -23,7 +23,7 @@ export default async function PotencialesGerenciaPage({
     .select("id, nombre, codigo_comercial")
     .eq("rol", "comercial")
     .eq("activo", true)
-    .eq("es_prueba", false)
+    .eq("es_prueba", false).eq("es_soporte", false)
     .order("codigo_comercial");
 
   const lunes = lunesSemana(sp.semana);

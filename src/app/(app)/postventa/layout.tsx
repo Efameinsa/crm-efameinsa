@@ -13,7 +13,9 @@ import { requerirPerfil } from "@/lib/auth";
 // abrir la ficha del cliente aunque la cuenta sea de otro.
 export default async function PostventaLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
-  if (!perfil.es_postventa && perfil.rol !== "gerencia" && perfil.rol !== "admin") {
+  // La cuenta de soporte (0101) entra: su trabajo es que los demás sepan usar
+  // estas pantallas, y no se puede enseñar lo que no se ve.
+  if (!perfil.es_postventa && !perfil.es_soporte && perfil.rol !== "gerencia" && perfil.rol !== "admin") {
     redirect(perfil.rol === "central" ? "/central" : "/comercial");
   }
   return <>{children}</>;

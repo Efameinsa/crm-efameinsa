@@ -28,10 +28,12 @@ export function BarraLateral({
   rol,
   esPostventa,
   hacePostventa = false,
+  esSoporte = false,
 }: {
   rol: RolUsuario;
   esPostventa: boolean;
   hacePostventa?: boolean;
+  esSoporte?: boolean;
 }) {
   const [plegada, setPlegada] = useState(false);
 
@@ -71,7 +73,7 @@ export function BarraLateral({
           priority
         />
       </div>
-      <NavLateral rol={rol} esPostventa={esPostventa} hacePostventa={hacePostventa} plegada={plegada} />
+      <NavLateral rol={rol} esPostventa={esPostventa} hacePostventa={hacePostventa} esSoporte={esSoporte} plegada={plegada} />
 
       {/* El código con el que gerencia autoriza que Central corrija una
           derivación (0092). Vive acá porque es donde el supervisor lo tiene a

@@ -206,7 +206,7 @@ export async function cargarDerivados(
     .from("leads")
     .select(CAMPOS_LEAD)
     .eq("estado", "asignado")
-    .eq("es_prueba", false)
+    .eq("es_prueba", false).eq("es_soporte", false)
     .gte("asignado_at", `${f.desde}T00:00:00-05:00`)
     .lte("asignado_at", `${f.hasta}T23:59:59-05:00`);
   if (f.comercial) q = q.eq("asignado_a", f.comercial);

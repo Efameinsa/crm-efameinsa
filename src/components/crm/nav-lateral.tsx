@@ -24,6 +24,7 @@ import {
   LifeBuoy,
   Target,
   Route,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/gerencia/marketing", etiqueta: "Panel de marketing", icono: TrendingUp },
     { href: "/gerencia/finanzas", etiqueta: "Finanzas de mkt", icono: PiggyBank },
     { href: "/gerencia/aprobaciones", etiqueta: "Aprobaciones", icono: CheckCircle2 },
+    { href: "/gerencia/reportes", etiqueta: "Cierre del día", icono: FileText },
+    { href: "/gerencia/accesos", etiqueta: "Accesos y equipos", icono: ShieldCheck },
     { href: "/gerencia/cartera-liberable", etiqueta: "Cartera liberable", icono: FileText },
   ],
   admin: [
@@ -109,10 +112,16 @@ export function NavLateral({
   rol,
   esPostventa = false,
   hacePostventa = false,
+  esSoporte = false,
   plegada = false,
 }: {
   rol: RolUsuario;
   esPostventa?: boolean;
+  /**
+   * Acompaña a los usuarios (0101): ve las dos barras porque su trabajo es que
+   * los demás sepan usarlas.
+   */
+  esSoporte?: boolean;
   /**
    * Comercial que además vende mantenimiento y repuestos (migración 0093).
    * Le suma un enlace, no le cambia la barra: sigue siendo comercial.
@@ -128,7 +137,17 @@ export function NavLateral({
   // vende el servicio y ahí termina su trabajo —«yo no tengo nada que ver con
   // cuándo lo vas a ejecutar»—. Despachos, equipos instalados y casos son de
   // quien ejecuta, no de quien vende.
-  const enlaces = esPostventa
+  // La cuenta de soporte (0101) ve las dos barras: la del comercial entera y
+  // las pantallas del área. Al pegarlas hay que renombrar «Mi día» del área,
+  // que si no aparece dos veces con el mismo nombre y nadie sabe cuál es cuál.
+  const enlaces = esSoporte
+    ? [
+        ...ENLACES_POR_ROL[rol],
+        ...ENLACES_POSTVENTA.filter((e) => e.href.startsWith("/postventa") || e.href === "/comercial/ruta").map((e) =>
+          e.href === "/postventa" ? { ...e, etiqueta: "Postventa" } : e,
+        ),
+      ]
+    : esPostventa
     ? ENLACES_POSTVENTA
     : hacePostventa
       ? [...ENLACES_POR_ROL[rol], ENLACE_RUTA]

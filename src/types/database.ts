@@ -58,6 +58,8 @@ export interface Perfil {
   es_postventa?: boolean;
   /** Comercial que además atiende postventa de sus clientes (migración 0093). */
   hace_postventa?: boolean;
+  /** Acompaña a los usuarios: ve las dos barras y no se le mide como comercial (0101). */
+  es_soporte?: boolean;
   created_at: string;
   updated_at: string;
 }

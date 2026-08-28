@@ -41,7 +41,7 @@ export default async function GerenciaPage({
 
   const supabase = await createClient();
   const [{ data: comerciales }, resumen] = await Promise.all([
-    supabase.from("perfiles").select("id, nombre").eq("rol", "comercial").eq("activo", true).eq("es_prueba", false).order("codigo_comercial"),
+    supabase.from("perfiles").select("id, nombre").eq("rol", "comercial").eq("activo", true).eq("es_prueba", false).eq("es_soporte", false).order("codigo_comercial"),
     cargarResumenGerencia(supabase, { ...periodo, comercialId, incluirHistorico }),
   ]);
 
