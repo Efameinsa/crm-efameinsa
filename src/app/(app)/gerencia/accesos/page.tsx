@@ -3,7 +3,7 @@ import { Laptop, Smartphone, Tablet, MapPin, ShieldAlert, HelpCircle } from "luc
 import { createClient } from "@/lib/supabase/server";
 import { requerirRol } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { fechaHoraLima } from "@/lib/fechas";
+import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { describirEquipo, haceCuanto, huellaEquipo, ipsDeLaOficina, zonaDeAcceso } from "@/lib/accesos";
 import { ubicarIps } from "@/lib/geoip";
 import { MapaAccesos, type PuntoAcceso } from "@/components/crm/mapa-accesos";
@@ -53,6 +53,8 @@ export default async function AccesosPage({ searchParams }: { searchParams: Prom
   ]);
 
   const accesos = (accesosData ?? []) as unknown as Acceso[];
+  // El más viejo que queda: es «desde cuándo» hay registro.
+  const desdeCuando = accesos.length ? accesos[accesos.length - 1].created_at : null;
   const oficina = ipsDeLaOficina(accesos.map((a) => ({ ip: a.ip, user_id: a.user_id })));
   const persona = new Map(
     (perfiles ?? []).map((p) => [
@@ -235,9 +237,13 @@ export default async function AccesosPage({ searchParams }: { searchParams: Prom
           </div>
         )}
         <p className="mt-3 max-w-prose text-xs text-muted-foreground">
-          Se registran los ingresos con correo y contraseña, que es como entra todo el mundo. Todavía no se bloquea
-          ningún equipo: eso es el paso siguiente, y antes hay que decidir qué pasa cuando alguien viaja o cambia de
-          laptop.
+          {/* Desde cuándo hay registro. Se lee del dato y no está escrito a
+              mano: el 28-08 se borró todo lo anterior por pedido de gerencia, y
+              una pantalla que no dice desde cuándo mide hace creer que lo que
+              muestra es todo lo que pasó. */}
+          Registro desde el <strong>{fechaCalendario((desdeCuando ?? "").slice(0, 10))}</strong>. Se anotan los
+          ingresos con correo y contraseña, que es como entra todo el mundo. Todavía no se bloquea ningún equipo: eso
+          es el paso siguiente, y antes hay que decidir qué pasa cuando alguien viaja o cambia de laptop.
         </p>
       </SeccionPanel>
     </div>
