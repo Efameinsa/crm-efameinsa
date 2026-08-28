@@ -8,7 +8,8 @@ import { createServerClient } from "@supabase/ssr";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-const BASE = "http://localhost:3100";
+// Por defecto el dev local; con BASE=https://crm.efameinsa.com verifica producción.
+const BASE = process.env.BASE ?? "http://localhost:3100";
 
 async function sesion(correo) {
   const { data: link, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: correo });
