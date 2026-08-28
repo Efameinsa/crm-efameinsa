@@ -52,6 +52,8 @@ export interface DerivadoFila {
   asignadoAt: string | null;
   asignadoA: string | null;
   cuentaId: string | null;
+  /** Fila del banco de pruebas: solo se ve pidiéndola y no cuenta en ningún número. */
+  esPrueba: boolean;
   comercial: { id: string; nombre: string; codigo_comercial: string | null } | null;
   motivo: string | null;
   oportunidad: {
@@ -170,6 +172,9 @@ interface Filtros {
   comercial?: string | null;
   busqueda?: string;
   limite?: number;
+  /** Trae también las derivaciones del banco de pruebas (para ensayar el
+   *  circuito sin tocar nada real). Por defecto quedan fuera. */
+  incluirPruebas?: boolean;
 }
 
 type LeadCrudo = {
@@ -185,10 +190,11 @@ type LeadCrudo = {
   asignado_at: string | null;
   asignado_a: string | null;
   cuenta_id: string | null;
+  es_prueba: boolean;
 };
 
 const CAMPOS_LEAD =
-  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, asignado_at, asignado_a, cuenta_id";
+  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, asignado_at, asignado_a, cuenta_id, es_prueba";
 
 /**
  * Las derivaciones del período con todo su rastro. Va en consultas separadas
@@ -208,9 +214,9 @@ export async function cargarDerivados(
     .from("leads")
     .select(CAMPOS_LEAD)
     .eq("estado", "asignado")
-    .eq("es_prueba", false)
     .gte("asignado_at", `${f.desde}T00:00:00-05:00`)
     .lte("asignado_at", `${f.hasta}T23:59:59-05:00`);
+  if (!f.incluirPruebas) q = q.eq("es_prueba", false);
   if (f.comercial) q = q.eq("asignado_a", f.comercial);
   const busqueda = (f.busqueda ?? "").trim();
   if (busqueda)
@@ -323,6 +329,7 @@ async function armar(
       asignadoAt: l.asignado_at,
       asignadoA: l.asignado_a,
       cuentaId: l.cuenta_id,
+      esPrueba: Boolean(l.es_prueba),
       comercial: l.asignado_a ? (perfilPorId.get(l.asignado_a) ?? null) : null,
       motivo: motivoPorLead.get(l.id) ?? null,
       oportunidad: op,

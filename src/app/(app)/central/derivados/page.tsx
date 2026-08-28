@@ -44,7 +44,7 @@ const ORDEN_FOCO: FocoDerivado[] = ["sin_atender", "en_gestion", "cotizado", "ce
 export default async function DerivadosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; q?: string; foco?: string }>;
+  searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; q?: string; foco?: string; practica?: string }>;
 }) {
   const sp = await searchParams;
   const periodo = resolverPeriodo(sp, "30d");
@@ -54,10 +54,11 @@ export default async function DerivadosPage({
   const [{ data: comerciales }, supervisores, derivados] = await Promise.all([
     supabase
       .from("perfiles")
-      .select("id, nombre, codigo_comercial")
+      // Los perfiles de práctica viajan también: el diálogo los ofrece solo
+      // cuando el contacto que se corrige es del banco de pruebas.
+      .select("id, nombre, codigo_comercial, es_prueba")
       .eq("rol", "comercial")
       .eq("activo", true)
-      .eq("es_prueba", false)
       .order("codigo_comercial"),
     cargarSupervisores(supabase),
     cargarDerivados(supabase, {
@@ -65,6 +66,9 @@ export default async function DerivadosPage({
       hasta: periodo.hasta,
       comercial: sp.comercial ?? null,
       busqueda,
+      // Con «?practica=1» trae además el banco de pruebas, para ensayar el
+      // circuito sin tocar nada real. La vista de todos los días no cambia.
+      incluirPruebas: sp.practica === "1",
     }),
   ]);
 

@@ -72,10 +72,11 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
     supabase.from("leads").select("id, adjuntos, recibido_por").eq("id", id).maybeSingle(),
     supabase
       .from("perfiles")
-      .select("id, nombre, codigo_comercial")
+      // Con los de práctica incluidos: el diálogo decide a quién ofrecer
+      // según sea un contacto real o del banco de pruebas.
+      .select("id, nombre, codigo_comercial, es_prueba")
       .eq("rol", "comercial")
       .eq("activo", true)
-      .eq("es_prueba", false)
       .order("codigo_comercial"),
     cargarSupervisores(supabase),
   ]);
@@ -247,6 +248,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
                 contacto={contacto}
                 comercialActual={fila.asignadoA}
                 comerciales={comerciales ?? []}
+                esPrueba={fila.esPrueba}
                 supervisores={supervisores}
               />
               {fila.asignadoA && (

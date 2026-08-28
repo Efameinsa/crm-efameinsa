@@ -36,12 +36,15 @@ export function RedirigirLeadBoton({
   contacto,
   comercialActual,
   comerciales,
+  esPrueba = false,
   supervisores = [],
 }: {
   leadId: string;
   contacto: string;
   comercialActual: string | null;
-  comerciales: { id: string; nombre: string; codigo_comercial: string | null }[];
+  comerciales: { id: string; nombre: string; codigo_comercial: string | null; es_prueba?: boolean }[];
+  /** El contacto es del banco de pruebas: ahí sí se ofrece el comercial C0. */
+  esPrueba?: boolean;
   /** A quién llamar por el código. Sin esto, el campo del PIN es un callejón. */
   supervisores?: { id: string; nombre: string }[];
 }) {
@@ -55,7 +58,9 @@ export function RedirigirLeadBoton({
   const [sinPinHasta, setSinPinHasta] = useState<string | null>(null);
   const [enviando, startTransition] = useTransition();
 
-  const opciones = comerciales.filter((c) => c.id !== comercialActual);
+  // Los perfiles de práctica (C0) solo se ofrecen cuando lo que se corrige es
+  // un contacto de práctica: en una derivación real serían una trampa.
+  const opciones = comerciales.filter((c) => c.id !== comercialActual && (esPrueba || !c.es_prueba));
   const sinPin = sinPinHasta !== null;
   const listo = Boolean(destino) && motivo.trim().length >= 10 && (sinPin || pin.length === 4);
 

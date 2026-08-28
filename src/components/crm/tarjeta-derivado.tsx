@@ -53,7 +53,7 @@ export function TarjetaDerivado({
   supervisores,
 }: {
   fila: DerivadoFila;
-  comerciales: { id: string; nombre: string; codigo_comercial: string | null }[];
+  comerciales: { id: string; nombre: string; codigo_comercial: string | null; es_prueba?: boolean }[];
   supervisores?: { id: string; nombre: string }[];
 }) {
   const etapa = fila.oportunidad ? ETIQUETA_ETAPA[fila.oportunidad.etapa] : null;
@@ -181,6 +181,7 @@ export function TarjetaDerivado({
             contacto={contacto}
             comercialActual={fila.asignadoA}
             comerciales={comerciales}
+            esPrueba={fila.esPrueba}
             supervisores={supervisores}
           />
           {fila.asignadoA && (
