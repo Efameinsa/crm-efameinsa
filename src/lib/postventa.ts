@@ -412,7 +412,12 @@ export function seriesDeTexto(texto: string | null | undefined): string[] {
   return [...vistas];
 }
 
-// Los tipos de servicio del manual (ítem XII), tal como los nombra el área.
+// Los tipos de servicio del manual (ítem XII), tal como los nombra el área, más
+// los cuatro que la reunión del 27-08 aclaró que son los informes que de verdad
+// se emiten (D9): el de llamada, el de revisión al recibir un equipo, el final
+// y el informe técnico de servicio. Los ocho primeros describen QUÉ se hizo;
+// estos cuatro, QUÉ documento volvió — comparten tabla porque comparten
+// cabecera, fotos y conformidad del cliente (migración 0096).
 export const TIPOS_SERVICIO = [
   { valor: "puesta_en_marcha", etiqueta: "Puesta en marcha" },
   { valor: "garantia", etiqueta: "Servicio técnico por garantía" },
@@ -422,6 +427,10 @@ export const TIPOS_SERVICIO = [
   { valor: "evaluacion", etiqueta: "Evaluación / levantamiento de observaciones" },
   { valor: "capacitacion", etiqueta: "Capacitación" },
   { valor: "entrega", etiqueta: "Entrega de equipo o repuesto" },
+  { valor: "llamada", etiqueta: "Informe de llamada" },
+  { valor: "revision", etiqueta: "Revisión al recibir el equipo" },
+  { valor: "informe_final", etiqueta: "Informe final" },
+  { valor: "tecnico", etiqueta: "Informe técnico de servicio" },
 ] as const;
 
 export function etiquetaTipoServicio(tipo: string): string {

@@ -304,3 +304,46 @@ qué trae el EJB. No antes.
 corre la garantía en Lima · si se puede despachar sin cancelación total y quién lo autoriza ·
 fichas de repuestos y mantenimiento (Lesly quedó en mandarlas hoy junto con formatos de
 informes, planos de preinstalación y la carpeta de evidencias).
+
+---
+
+## 10. Estado de ejecución (28-08-2026)
+
+Los cuatro paquetes del §9 están **desplegados y verificados contra el HTML que
+devuelve el servidor**, con sesiones reales de Ariana, de Hever, de gerencia, de
+un comercial raso y de la cuenta de práctica. Los scripts de comprobación quedan
+en `scripts/_verificar-*.mjs` (no versionados: son la prueba, no el producto).
+
+| # | Paquete | Estado |
+|---|---|---|
+| A1 | Navegación por rol + guard | ✅ Ariana no ve ni entra a `/postventa`; le queda su ruta |
+| A2 | Precios tapados en el servidor | ✅ el HTML servido al área no contiene los montos |
+| A3 | Renombres Calendario / Casos | ✅ con redirección de la ruta vieja |
+| A4 | Timeline desde la asignación | ✅ tres hitos arriba de «Registrar gestión» |
+| B5 | Calendario semana/mes/día | ✅ semana por defecto, lunes a sábado, «por programar» arriba |
+| C6 | Registro guiado por serie | ✅ `/postventa/casos/nuevo`, tres momentos, tres desenlaces |
+| C7 | `informes_servicio` con fotos | ✅ desde la ficha de la máquina, con ciclos y conformidad |
+| C8 | Derivación sin almacén | ✅ registra, agenda y deja el texto de WhatsApp listo |
+| D9 | `/comercial/ruta` | ✅ 103 clientes de Ariana, gestión de un clic |
+
+**Tres cosas que aparecieron al construir y no estaban en el plan:**
+
+1. **La ficha de una máquina devolvía 404 siempre.** La consulta pedía
+   `cuentas.documento` y esa columna se llama `num_doc`: fallaba entera. Nadie
+   lo había notado porque el parque instalado todavía es chico y a la ficha se
+   llegaba poco.
+2. **La cuenta de práctica no podía emitir un informe** (`new row violates
+   row-level security policy`). La política de la 0092 es correcta; lo que
+   fallaba es que la columna `es_prueba` tenía `default false` y la aplicación
+   no la mandaba nunca. Migración 0097: el default lo pone la base.
+3. **Postventa no encontraba al cliente que llama por primera vez.** Para
+   registrar un caso sin serie fichada hay que elegir el cliente, y la política
+   de la 0081 solo dejaba ver las cuentas donde ya había un caso. Migración
+   0098, acotada a `es_postventa()` —el área— y cerrada al banco de pruebas.
+
+**Lo que sigue cortado a propósito** (D8): almacén, Finanzas, órdenes de
+inventario. Nada de eso se toca hasta saber qué trae el módulo comercial del
+ERP. Y siguen abiertas las preguntas del §9: desde cuándo corre la garantía en
+Lima · si se puede despachar sin cancelación total y quién lo autoriza · las
+fichas de repuestos y de mantenimiento que Lesly quedó en mandar, que son las
+que hoy impiden que postventa cotice desde el CRM.

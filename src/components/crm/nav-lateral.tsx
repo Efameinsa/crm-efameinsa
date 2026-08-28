@@ -87,7 +87,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
 const ENLACES_POSTVENTA = [
   { href: "/postventa", etiqueta: "Mi día", icono: Wrench },
   { href: "/postventa/agenda", etiqueta: "Calendario", icono: CalendarDays },
-  { href: "/postventa/soporte", etiqueta: "Casos", icono: LifeBuoy },
+  { href: "/postventa/casos", etiqueta: "Casos", icono: LifeBuoy },
   { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
   { href: "/comercial/ruta", etiqueta: "Ruta de mantenimiento", icono: Route },
   { href: "/comercial/oportunidades", etiqueta: "Mis ventas de servicio", icono: KanbanSquare },

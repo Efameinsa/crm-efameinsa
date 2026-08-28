@@ -353,6 +353,16 @@ export async function guardarInformeServicio(datos: {
   capacitacion?: Record<string, boolean>;
   conformeNombre?: string | null;
   conformeDoc?: string | null;
+  asunto?: string | null;
+  /**
+   * Fotos YA subidas al bucket privado `adjuntos` por el cliente; acá solo se
+   * guardan los metadatos, igual que en el registro de gestión. El manual las
+   * exige en los cinco formatos —«todo proceso contará con un registro
+   * fotográfico que será adjuntado en el informe»— y son lo que Carlos quiere
+   * poder mostrar cuando el cliente reclama: «venga el informe, la foto… ahí
+   * está la hora y fecha, no hay problema». Máximo 10.
+   */
+  fotos?: { path: string; nombre: string; tipo: string; tamano: number }[];
 }) {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -381,6 +391,13 @@ export async function guardarInformeServicio(datos: {
       capacitacion: datos.capacitacion ?? {},
       cliente_conforme_nombre: datos.conformeNombre?.trim() || null,
       cliente_conforme_doc: datos.conformeDoc?.trim() || null,
+      asunto: datos.asunto?.trim() || null,
+      fotos: (datos.fotos ?? []).slice(0, 10).map((f) => ({
+        path: String(f.path).slice(0, 300),
+        nombre: String(f.nombre).slice(0, 120),
+        tipo: String(f.tipo).slice(0, 100),
+        tamano: Number(f.tamano) || 0,
+      })),
       emitido_at: new Date().toISOString(),
     })
     .select("id")
@@ -417,7 +434,7 @@ export async function guardarInformeServicio(datos: {
     revalidatePath(`/postventa/equipos/${datos.equipoId}`);
   }
 
-  revalidatePath("/postventa/soporte");
+  revalidatePath("/postventa/casos");
   return { error: null as string | null, id: informe?.id as string | undefined };
 }
 

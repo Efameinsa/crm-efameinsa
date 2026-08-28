@@ -4,6 +4,7 @@ import { ArrowLeft, ShieldCheck, ShieldOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { InformeServicioNuevo } from "@/components/crm/informe-servicio-nuevo";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { estadoGarantia, etiquetaTipoServicio } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,10 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
 
   const { data } = await supabase
     .from("equipos_instalados")
-    .select("*, cuentas(id, razon_social, documento)")
+    // La columna del documento se llama num_doc: pedirla como `documento`
+    // hacía fallar la consulta entera y la ficha devolvía 404 para TODA
+    // máquina. Encontrado el 28-08 al montar el informe acá.
+    .select("*, cuentas(id, razon_social, num_doc)")
     .eq("id", id)
     .single();
   if (!data) notFound();
@@ -40,7 +44,7 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
     .order("ejecutado_at", { ascending: false })
     .limit(50);
 
-  const cuenta = data.cuentas as unknown as { id: string; razon_social: string; documento: string | null } | null;
+  const cuenta = data.cuentas as unknown as { id: string; razon_social: string; num_doc: string | null } | null;
   const garantia = estadoGarantia(data.garantia_hasta as string | null);
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const mantenimientoVencido = data.proximo_mantenimiento != null && (data.proximo_mantenimiento as string) <= hoy;
@@ -141,7 +145,17 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
         </dl>
       </div>
 
-      <SeccionPanel titulo="Historial del equipo">
+      <SeccionPanel
+        titulo="Historial del equipo"
+        accion={
+          <InformeServicioNuevo
+            equipoId={id}
+            cuentaId={cuenta?.id ?? null}
+            equipoTexto={[data.modelo_texto, data.serie ? `S: ${data.serie}` : null].filter(Boolean).join(" ") || null}
+            ciclosActuales={(data.ciclos_ultimo as number | null) ?? null}
+          />
+        }
+      >
         {!informes || informes.length === 0 ? (
           <p className="max-w-prose text-sm text-muted-foreground">
             Todavía no hay informes cargados para esta máquina. Cada puesta en marcha, garantía o mantenimiento que se
