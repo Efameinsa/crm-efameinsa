@@ -129,8 +129,10 @@ const fichas = datos.fichas.map((f) => {
     if (primerPantallazo) primerPantallazo.recortar = true;
   }
 
-  // Corrección a mano: gana siempre sobre la heurística.
-  const arreglo = correcciones[f.codigo];
+  // Corrección a mano: gana siempre sobre la heurística. Viven en el bloque
+  // `porFicha` del archivo; se leía el nivel de arriba y por eso las dos
+  // correcciones que confirmó Darwin el 27-08 nunca se estaban aplicando.
+  const arreglo = correcciones.porFicha?.[f.codigo] ?? correcciones[f.codigo];
   if (arreglo?.roles) {
     imagenes.forEach((img, i) => {
       const rol = arreglo.roles[String(i + 1)];

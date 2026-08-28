@@ -30,7 +30,11 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSy
 import { inflateRawSync } from "node:zlib";
 import { join, dirname, basename } from "node:path";
 
-const EXCEL = "V:/Fichas tecnicas por codigo.xlsx";
+// La v2 (28-08) cambió de columnas —estrenó «DATO VIGENTE SEGUN»— y agregó las
+// hojas REVISAR CON LESLY y CAMBIOS VS V1. Por eso las columnas ya no se toman
+// por posición sino por su título, y la hoja se localiza por su nombre: el
+// reporte lo rehace un script y va a seguir creciendo.
+const EXCEL = process.argv[2] ?? "V:/Fichas tecnicas por codigo v2.xlsx";
 const SALIDA = "scripts/data/fichas-v/lista.json";
 
 /** Descomprime el xlsx a mano: hace falta el relleno de cada celda y las
@@ -109,6 +113,29 @@ function resolverArchivo(rutaEscrita, codigo) {
 const libro = XLSX.readFile(EXCEL);
 const zip = leerZip(EXCEL);
 
+/** El archivo XML de una hoja, por su nombre. Antes iba fijo a sheet3.xml, que
+ *  dejó de ser NO ENCONTRADOS en cuanto el reporte estrenó hojas nuevas. */
+function xmlDeHoja(nombre) {
+  const wbXml = zip.get("xl/workbook.xml").toString("utf8");
+  const rels = zip.get("xl/_rels/workbook.xml.rels").toString("utf8");
+  const hoja = [...wbXml.matchAll(/<sheet[^>]*name="([^"]+)"[^>]*r:id="([^"]+)"/g)].find((m) => m[1] === nombre);
+  if (!hoja) throw new Error(`El Excel no tiene la hoja «${nombre}»`);
+  const destino = new RegExp(`Id="${hoja[2]}"[^>]*Target="([^"]+)"`).exec(rels)?.[1];
+  return "xl/" + String(destino).replace(/^\/?xl\//, "");
+}
+
+/** Índice de cada columna por su título, para que agregar una no rompa nada. */
+function columnas(filas) {
+  const titulos = (filas[0] ?? []).map((t) => String(t ?? "").toUpperCase().trim());
+  return (...alternativas) => {
+    for (const a of alternativas) {
+      const i = titulos.findIndex((t) => t === a.toUpperCase() || t.startsWith(a.toUpperCase()));
+      if (i !== -1) return i;
+    }
+    return -1;
+  };
+}
+
 const limpio = (v) => String(v ?? "").replace(/\s+/g, " ").trim();
 const numero = (v) => {
   const n = Number(String(v ?? "").replace(/[^\d.,-]/g, "").replace(",", ""));
@@ -120,49 +147,60 @@ const sinFicha = [];
 
 // ---------- ENCONTRADOS ----------
 const encontrados = XLSX.utils.sheet_to_json(libro.Sheets["ENCONTRADOS"], { header: 1, blankrows: false, defval: "" });
+const cE = columnas(encontrados);
+const iRuta = cE("RUTA COMPLETA");
 for (const f of encontrados.slice(1)) {
-  const codigo = limpio(f[0]);
+  const codigo = limpio(f[cE("CODIGO")]);
   if (!codigo) continue;
-  const archivo = resolverArchivo(limpio(f[11]), codigo);
+  const archivo = resolverArchivo(limpio(f[iRuta]), codigo);
   const fila = {
     codigo,
-    equipo: limpio(f[1]),
-    marca: limpio(f[2]),
-    stock: numero(f[3]),
-    ubicacion: limpio(f[4]) || null,
-    precio: numero(f[5]),
+    equipo: limpio(f[cE("EQUIPO")]),
+    marca: limpio(f[cE("MARCA")]),
+    stock: numero(f[cE("STOCK")]),
+    ubicacion: limpio(f[cE("UBICACION")]) || null,
+    precio: numero(f[cE("PRECIO")]),
     hoja: "ENCONTRADOS",
-    rutaExcel: limpio(f[11]),
+    excels: limpio(f[cE("EN QUE EXCELS")]) || null,
+    vigenteSegun: limpio(f[cE("DATO VIGENTE SEGUN")]) || null,
+    rutaExcel: limpio(f[iRuta]),
     archivo,
     tipo: archivo ? (archivo.toLowerCase().endsWith(".docx") ? "DOCX" : "DOC") : null,
-    otrosArchivos: limpio(f[12]) || null,
+    otrosArchivos: limpio(f[cE("ARCHIVOS")]) || null,
   };
   (archivo ? productos : sinFicha).push(fila);
 }
 
 // ---------- NO ENCONTRADOS (solo los amarillos) ----------
-const coloresNoEnc = coloresDeHoja(zip, "xl/worksheets/sheet3.xml");
+const coloresNoEnc = coloresDeHoja(zip, xmlDeHoja("NO ENCONTRADOS"));
 const noEncontrados = XLSX.utils.sheet_to_json(libro.Sheets["NO ENCONTRADOS"], { header: 1, blankrows: false, defval: "" });
+const cN = columnas(noEncontrados);
+const iQuePasa = cN("QUE PASA");
 noEncontrados.slice(1).forEach((f, i) => {
-  const codigo = limpio(f[0]);
+  const codigo = limpio(f[cN("CODIGO")]);
   if (!codigo) return;
   const fila = i + 2;
   const relleno = coloresNoEnc.get(`A${fila}`) ?? coloresNoEnc.get(`B${fila}`) ?? "";
   const amarillo = relleno === "FFFFFF00";
-  const archivo = amarillo ? resolverArchivo(limpio(f[7]), codigo) : null;
+  const archivo = amarillo ? resolverArchivo(limpio(f[iQuePasa]), codigo) : null;
   const datos = {
     codigo,
-    equipo: limpio(f[1]),
-    marca: limpio(f[2]),
-    stock: numero(f[3]),
-    ubicacion: limpio(f[4]) || null,
-    precio: numero(f[5]),
+    equipo: limpio(f[cN("EQUIPO")]),
+    marca: limpio(f[cN("MARCA")]),
+    stock: numero(f[cN("STOCK")]),
+    ubicacion: limpio(f[cN("UBICACION")]) || null,
+    precio: numero(f[cN("PRECIO")]),
     hoja: "NO ENCONTRADOS",
     color: amarillo ? "amarillo" : relleno === "FFFF0000" ? "rojo" : relleno || "sin color",
-    rutaExcel: limpio(f[7]),
+    excels: limpio(f[cN("EN QUE EXCELS")]) || null,
+    vigenteSegun: limpio(f[cN("DATO VIGENTE SEGUN")]) || null,
+    rutaExcel: limpio(f[iQuePasa]),
     archivo,
     tipo: archivo ? (archivo.toLowerCase().endsWith(".docx") ? "DOCX" : "DOC") : null,
-    quePasa: limpio(f[7]),
+    quePasa: limpio(f[iQuePasa]),
+    // La v2 dice, cuando puede, con qué otro código está la misma máquina.
+    pista: limpio(f[cN("PISTA")]) || null,
+    ojo: limpio(f[cN("OJO")]) || null,
   };
   (archivo ? productos : sinFicha).push(datos);
 });

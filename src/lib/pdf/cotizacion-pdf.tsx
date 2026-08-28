@@ -681,6 +681,11 @@ export function CotizacionPdf({
           // blanco delante del cliente. Mejor no generarla — el equipo igual
           // aparece en la tabla de la propuesta con su precio.
           const tieneAlgoQueDecir =
+            // La descripción leída del Word manda sobre los cuatro cajones
+            // viejos, y desde el 27-08 la mayoría de las fichas solo trae esto.
+            // Sin mirarlo, los coches por color —que no tienen panel ni
+            // calentamiento— salían sin su página de ficha.
+            (item.bloques?.length ?? 0) > 0 ||
             item.caracteristicas.length > 0 ||
             item.disenoConstruccion.length > 0 ||
             item.dimensiones.length > 0 ||
