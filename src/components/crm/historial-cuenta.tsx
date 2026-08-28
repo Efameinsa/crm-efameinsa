@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { textoLegible } from "@/lib/texto";
 import { fechaAgendada, fechaLima } from "@/lib/fechas";
 
 const MOSTRADOS_INICIAL = 25;
@@ -183,7 +184,7 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
             <p className="text-sm font-semibold text-foreground">
               {ETIQUETA_ACTIVIDAD[evento.tipoActividad] ?? evento.tipoActividad}
             </p>
-            {evento.nota && <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{evento.nota}</p>}
+            {evento.nota && <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{textoLegible(evento.nota)}</p>}
             {/* A qué se comprometió el comercial en esta gestión (migración
                 0056). Sin esto el historial contaba la mitad de la historia:
                 se veía "envié correo de cotización" pero no el "y quedé en

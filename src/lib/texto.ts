@@ -45,3 +45,56 @@ export function nombrePropio(texto: string): string {
     })
     .join(" ");
 }
+
+/**
+ * Un párrafo escrito TODO EN MAYÚSCULAS —o todo en minúsculas— puesto en
+ * castellano legible.
+ *
+ * Carlos, 28-08, mirando los seguimientos: «siguen registrando… todo el tipo
+ * de… visualmente se ve bien complicado; creo que lo vi en postventa, que
+ * escriben todo en mayúscula». Y en la misma frase el reparo que ordena esta
+ * función: «pero eso podría dar un error de marcas».
+ *
+ * Por eso NO se toca el dato: esto se aplica al mostrar. Y por eso hay dos
+ * salvaguardas antes de bajar nada a minúscula:
+ *
+ *   · Si el texto ya mezcla mayúsculas y minúsculas, se devuelve tal cual —
+ *     quien escribió así lo escribió a propósito.
+ *   · Las marcas, las siglas y todo lo que lleva un dígito se quedan como
+ *     están: «LG», «GMP», «SAC», «IGV», «RX280», «220V», «UT075». Poner
+ *     «Lg titan max 17kg» sería cambiar el nombre del equipo, que es peor que
+ *     el problema que se quiere arreglar.
+ */
+const INTOCABLES = new Set([
+  // Marcas y fabricantes con los que trabaja la casa.
+  "LG", "GMP", "UNIMAC", "PRIMUS", "EFAMEIN", "EFAMEINSA", "OPEN", "SIDI", "MONDIAL", "ADC", "SAILSTAR",
+  "IPSO", "ELECTROLUX", "SPEED", "QUEEN", "MIELE", "GIRBAU", "HUEBSCH", "MAYTAG", "WHIRLPOOL", "SAMSUNG",
+  // Formas societarias y documentos.
+  "SAC", "S.A.C.", "SA", "S.A.", "SRL", "S.R.L.", "EIRL", "E.I.R.L.", "SAA", "EPS", "RUC", "DNI", "CE",
+  // Vocabulario del negocio que se lee mejor en sigla.
+  "IGV", "OC", "PDF", "CRM", "ERP", "OPL", "GLP", "GNC", "GN", "KG", "HP", "BHP", "HZ", "PH", "V", "W", "KW",
+  "PVC", "INOX", "N", "N°", "NRO", "TM", "USD", "PEN", "IP", "USB", "WA", "OK",
+]);
+
+export function textoLegible(texto: string | null | undefined): string {
+  const limpio = (texto ?? "").trim();
+  if (!limpio) return "";
+  // Ya está escrito en mixto: no se toca.
+  if (limpio !== limpio.toUpperCase() && limpio !== limpio.toLowerCase()) return limpio;
+
+  const suavizado = limpio
+    .split(/(\s+)/)
+    .map((token) => {
+      if (/^\s+$/.test(token)) return token;
+      const desnudo = token.replace(/[^\p{L}\p{N}.°]/gu, "");
+      // Un dígito adentro casi siempre es un modelo o una medida: RX280, 220V,
+      // 17KG, UT075. Bajarlo a minúscula lo vuelve otro equipo.
+      if (/\d/.test(desnudo)) return token;
+      if (INTOCABLES.has(desnudo.toUpperCase())) return token.toUpperCase();
+      return token.toLowerCase();
+    })
+    .join("");
+
+  // Mayúscula al empezar y después de punto, signo de cierre o salto de línea.
+  return suavizado.replace(/(^|[.!?¡¿:;\n]\s*)(\p{Ll})/gu, (_, antes, letra) => antes + letra.toUpperCase());
+}

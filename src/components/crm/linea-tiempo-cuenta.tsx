@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MoreHorizontal, FileText, CircleCheckBig, CalendarClock } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { textoLegible } from "@/lib/texto";
 import { fechaAgendada, fechaLimaCorta } from "@/lib/fechas";
 import { ETIQUETA_ACTIVIDAD, ICONO_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 
@@ -133,7 +134,7 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
           <span className="text-xs text-muted-foreground">{fechaLimaCorta(evento.fecha)}</span>
         </div>
         {evento.tipo === "actividad" && evento.nota && (
-          <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{evento.nota}</p>
+          <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{textoLegible(evento.nota)}</p>
         )}
         {evento.tipo === "actividad" && evento.proximaAccion && (
           <p className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-secondary px-2 py-1 text-xs text-foreground">

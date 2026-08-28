@@ -81,7 +81,11 @@ function tierInicial(producto: ProductoCotizable): string {
 
 const monto = (n: number) => n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const CONDICIONES_POR_DEFECTO = "Entrega: 15 días útiles. Garantía de fábrica.";
+// Ya NO dice «Garantía de fábrica»: desde el 28-08 la garantía tiene su propio
+// campo y su propia línea impresa, y dejarla también acá hacía que el mismo
+// documento prometiera dos cosas distintas ("Garantía de fábrica" arriba,
+// "Garantía: 24 meses" abajo).
+const CONDICIONES_POR_DEFECTO = "Entrega: 15 días útiles.";
 
 // Las cuatro columnas de la tabla que cierra cada ficha del PDF (migración
 // 0094). Se ofrecen ya escritas porque son las de casi todas las cotizaciones
@@ -92,6 +96,11 @@ const TIEMPO_ENTREGA_POR_DEFECTO = "Inmediata";
 const GARANTIA_POR_DEFECTO = "24 meses";
 const FORMA_PAGO_POR_DEFECTO = "30 % con la O/C";
 const SALDO_POR_DEFECTO = "70 % antes del despacho";
+
+// Las garantías que se acuerdan de verdad, para dejarlas en un clic. NO es una
+// lista cerrada: el campo sigue siendo de texto libre porque lo que se pacta a
+// veces no es un plazo redondo ("12 meses de fábrica, 6 meses en la resistencia").
+const GARANTIAS_FRECUENTES = ["12 meses", "24 meses", "36 meses", "Garantía de fábrica"];
 
 /** El sello de la barra superior: qué sabe la base de lo que hay en pantalla. */
 type EstadoGuardado =
@@ -248,8 +257,16 @@ export function PantallaCotizador({
         condiciones,
         vigenciaDias,
         entregaLugar,
+        // Las cuatro condiciones de la migración 0094 viajaban solo en la
+        // pantalla: se escribían, se veían y al recargar habían desaparecido,
+        // porque nunca entraron a este payload (que es lo único que se guarda).
+        // Corregido el 28-08, al empezar a imprimirse la garantía.
+        tiempoEntrega,
+        garantia,
+        formaPago,
+        saldo,
       }),
-    [carrito, condiciones, vigenciaDias, entregaLugar],
+    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo],
   );
 
   const payloadRef = useRef(payload);
@@ -269,6 +286,10 @@ export function PantallaCotizador({
       condiciones: string;
       vigenciaDias: number;
       entregaLugar: string;
+      tiempoEntrega: string;
+      garantia: string;
+      formaPago: string;
+      saldo: string;
     };
     const r = await guardarBorradorCotizacion({
       cotizacionId: idRef.current,
@@ -278,6 +299,12 @@ export function PantallaCotizador({
       condiciones: datos.condiciones,
       vigenciaDias: datos.vigenciaDias,
       entregaLugar: datos.entregaLugar,
+      condicionesFicha: {
+        tiempoEntrega: datos.tiempoEntrega,
+        garantia: datos.garantia,
+        formaPago: datos.formaPago,
+        saldo: datos.saldo,
+      },
     });
 
     if (r.error) {
@@ -733,20 +760,55 @@ export function PantallaCotizador({
                         esta línea se puede enviar hoy o espera a gerencia. */}
                     {(bajoLista || item.sinFicha || item.fueraDeCatalogo || historial) && (
                       <div className="mt-2 space-y-1 border-t border-border pt-2">
+                        {/* EL AVISO CRECE CON EL DESCUENTO. Carlos lo pidió el
+                            28-08 mirando el cotizador: «esto te pediría que lo
+                            pongas que esté un poquito más de alerta, un poquito
+                            más grande… el aviso cuando es muy bajo el precio».
+                            Un 5% y un 44% no son la misma conversación: el
+                            primero se autoriza solo, el segundo hay que ir a
+                            defenderlo. Por eso el porcentaje va en grande y a
+                            partir del 25% el aviso se pone rojo. */}
                         {bajoLista && item.precioPiso !== null && (
-                          <p className="flex flex-wrap items-center gap-1.5 text-xs text-amber-800">
-                            <TriangleAlert className="size-3.5 flex-none" />
-                            {descuento.toFixed(1)}% por debajo de la referencia (US$ {monto(item.precioPiso)}) — requiere
-                            aprobación de gerencia
+                          <div
+                            className={cn(
+                              "flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border p-2",
+                              descuento >= 25
+                                ? "border-destructive/50 bg-destructive/10"
+                                : "border-amber-400 bg-amber-50",
+                            )}
+                          >
+                            <TriangleAlert
+                              className={cn(
+                                "flex-none",
+                                descuento >= 25 ? "size-5 text-destructive" : "size-4 text-amber-700",
+                              )}
+                            />
+                            <span
+                              className={cn(
+                                "font-bold tabular-nums",
+                                descuento >= 25 ? "text-lg text-destructive" : "text-base text-amber-800",
+                              )}
+                            >
+                              −{descuento.toFixed(1)}%
+                            </span>
+                            <span
+                              className={cn(
+                                "text-xs font-semibold",
+                                descuento >= 25 ? "text-destructive" : "text-amber-900",
+                              )}
+                            >
+                              por debajo de la referencia (US$ {monto(item.precioPiso)}) — requiere aprobación de
+                              gerencia
+                            </span>
                             <button
                               type="button"
                               onClick={() => actualizarItem(i, { precio_unitario: item.precioPiso! })}
-                              className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                             >
                               <RotateCcw className="size-3" />
                               volver al precio de referencia
                             </button>
-                          </p>
+                          </div>
                         )}
                         {item.fueraDeCatalogo && (
                           <p className="text-xs font-semibold text-amber-700">

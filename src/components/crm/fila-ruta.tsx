@@ -8,6 +8,7 @@ import { AlertTriangle, ArrowRight, Loader2, PhoneOff, Phone, MessageCircle, Fil
 import { gestionRapidaRuta, type BotonRuta } from "@/lib/acciones/ruta";
 import { textoMantenimiento, diasDeAtraso, type FilaRuta } from "@/lib/ruta-mantenimiento";
 import { fechaCalendario } from "@/lib/fechas";
+import { textoLegible } from "@/lib/texto";
 import { cn } from "@/lib/utils";
 
 /**
@@ -107,7 +108,7 @@ export function FilaRutaMantenimiento({
           </p>
           {fila.ultimaNota && (
             <p className="mt-1 line-clamp-2 max-w-prose text-xs leading-snug text-muted-foreground">
-              «{fila.ultimaNota}»
+              «{textoLegible(fila.ultimaNota)}»
             </p>
           )}
         </div>
