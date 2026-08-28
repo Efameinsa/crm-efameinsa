@@ -12,6 +12,7 @@ import {
   type DatosInforme,
   type ItemInformeEntrada,
   type PrellenadoInforme,
+  type PresupuestoDisponible,
   type ContactoEntrada,
 } from "@/lib/acciones/informes";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,32 @@ function Pastilla({
   );
 }
 
+/**
+ * Los equipos con los que arranca el informe cuando se elige un presupuesto.
+ *
+ * Del archivo viejo solo se conoce el NOMBRE del equipo, así que las cantidades
+ * y los precios quedan en cero y el comercial los escribe. Las cotizaciones del
+ * CRM, en cambio, traen el renglón entero —cantidad y precio ya cotizados—, así
+ * que se copian tal cual: es la misma cotización que el cliente aceptó, y
+ * volver a teclearla es donde se cuelan los errores.
+ */
+function equiposDe(p: PresupuestoDisponible | undefined): ItemInformeEntrada[] {
+  if (!p) return [];
+  if (p.lineas?.length)
+    return p.lineas.map((l) => ({
+      bloque: "venta" as const,
+      descripcion: l.descripcion,
+      cantidad: l.cantidad,
+      precio_unitario: l.precio_unitario,
+    }));
+  return (p.items ?? []).map((nombre) => ({
+    bloque: "venta" as const,
+    descripcion: nombre,
+    cantidad: 1,
+    precio_unitario: 0,
+  }));
+}
+
 export function FormularioInforme({
   prellenado,
   ventaPreseleccionada,
@@ -122,14 +149,7 @@ export function FormularioInforme({
   // documento imprime la ficha técnica completa y el archivo solo guarda el
   // nombre del equipo, así que el comercial completa marca y modelo — que es
   // exactamente lo que hoy escribe a mano en el Word.
-  const [items, setItems] = useState<ItemInformeEntrada[]>(() =>
-    (presupuestos[0]?.items ?? []).map((nombre) => ({
-      bloque: "venta" as const,
-      descripcion: nombre,
-      cantidad: 1,
-      precio_unitario: 0,
-    })),
-  );
+  const [items, setItems] = useState<ItemInformeEntrada[]>(() => equiposDe(presupuestos[0]));
 
   const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(presupuestos[0]?.serie ?? "EFAMEINSA");
   const [comprobante, setComprobante] = useState<"factura" | "boleta_ruc" | "boleta_dni">("factura");
@@ -201,9 +221,7 @@ export function FormularioInforme({
     // Solo se pisan los equipos si el comercial todavía no puso precios: si ya
     // estuvo escribiendo, cambiar de presupuesto no puede borrarle el trabajo.
     const intacto = items.every((i) => i.precio_unitario === 0);
-    if (intacto) {
-      setItems(p.items.map((nombre) => ({ bloque: "venta" as const, descripcion: nombre, cantidad: 1, precio_unitario: 0 })));
-    }
+    if (intacto) setItems(equiposDe(p));
   }
 
   function datos(): DatosInforme {
@@ -220,7 +238,9 @@ export function FormularioInforme({
       presupuestoRef: presupuesto?.codigo ?? venta?.referencia ?? null,
       oportunidadId: venta?.oportunidadId ?? null,
       ventaId: venta?.id ?? null,
-      cotizacionId: null,
+      // Si el presupuesto elegido es una cotización del CRM, el informe queda
+      // atado a ella: es la trazabilidad que el archivo viejo no puede dar.
+      cotizacionId: presupuesto?.fuente === "crm" ? presupuesto.id : null,
       comprobante,
       clienteNuevo,
       clienteNombre,
@@ -365,7 +385,7 @@ export function FormularioInforme({
         {presupuestos.length > 0 && (
           <Campo
             etiqueta="¿De qué presupuesto copio los equipos?"
-            pista="cotizaciones que este cliente ya tenía en el archivo, de antes del CRM — es solo un atajo para no tipearlos"
+            pista="las cotizaciones que le hiciste a este cliente en el CRM y, más abajo, las que ya tenía en el archivo de antes — es un atajo para no tipearlos"
           >
             <select
               value={presupuestoId}
@@ -375,9 +395,11 @@ export function FormularioInforme({
               <option value="">De ninguno — los cargo a mano</option>
               {presupuestos.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.codigo ?? "sin número"} · {p.serie === "OPEN" ? "Open" : "Efameinsa"}
+                  {p.codigo ?? (p.fuente === "crm" && p.estado === "borrador" ? "borrador sin enviar" : "sin número")} ·{" "}
+                  {p.serie === "OPEN" ? "Open" : "Efameinsa"}
                   {p.fecha ? ` · ${fechaCalendario(p.fecha)}` : ""}
                   {p.items.length ? ` · ${p.items.length} equipo${p.items.length === 1 ? "" : "s"}` : ""}
+                  {p.fuente === "archivo" ? " · del archivo" : ""}
                 </option>
               ))}
             </select>

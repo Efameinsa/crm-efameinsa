@@ -69,6 +69,13 @@ export interface PresupuestoDisponible {
   fecha: string | null;
   monto: number | null;
   items: string[];
+  /** De dónde sale: el cotizador del CRM o el archivo de documentos viejos. */
+  fuente: "crm" | "archivo";
+  /** Solo las del CRM: si todavía está en borrador, para decirlo en la lista. */
+  estado?: string | null;
+  /** Solo las del CRM: los renglones tal como se cotizaron, con cantidad y
+   *  precio, así el informe no arranca con todos los precios en cero. */
+  lineas?: { descripcion: string; cantidad: number; precio_unitario: number }[];
 }
 
 export interface VentaSinInforme {
@@ -112,7 +119,8 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     .maybeSingle();
   if (!cuenta) return { error: "Cliente no encontrado" };
 
-  const [{ data: contactos }, { data: historicas }, { data: ventas }, { data: informes }] = await Promise.all([
+  const [{ data: contactos }, { data: historicas }, { data: delCotizador }, { data: ventas }, { data: informes }] =
+    await Promise.all([
     supabase
       .from("contactos")
       .select("nombre, cargo, telefono, email, documento, direccion, es_principal")
@@ -123,6 +131,21 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
       .select("id, codigo, serie, fecha, monto_sin_igv, items")
       .eq("cuenta_id", cuentaId)
       .order("fecha", { ascending: false })
+      .limit(20),
+    // ⚠️ LAS COTIZACIONES DEL PROPIO CRM (28-08). Hasta hoy esta pantalla solo
+    // miraba el archivo de documentos viejos, y el archivo es todo anterior al
+    // cotizador. Brenda cotizó en el CRM con serie OPEN, fue a hacer su cierre
+    // de venta, y en la lista solo le salían los EFAMEINSA del archivo: su
+    // propia cotización —la de la venta que estaba cerrando— no figuraba en
+    // ninguna parte. No era un filtro por serie: era que las del CRM no se
+    // consultaban. Van primero en la lista porque son las de ahora.
+    supabase
+      .from("cotizaciones")
+      .select(
+        "id, codigo, serie, estado, total, created_at, enviada_at, oportunidades!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, descripcion, productos(marca, modelo, nombre))",
+      )
+      .eq("oportunidades.cuenta_id", cuentaId)
+      .order("created_at", { ascending: false })
       .limit(20),
     // "Cliente nuevo" del formato = todavía no nos compró. Se resuelve solo:
     // el comercial no debería tener que acordarse. Y de paso sirven para
@@ -149,14 +172,46 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
       referencia: v.referencia_historica,
     }));
 
-  const presupuestos = (historicas ?? []).map((c) => ({
+  type ItemCotizado = {
+    cantidad: number;
+    precio_unitario: number;
+    descripcion: string | null;
+    productos: { marca: string; modelo: string; nombre: string } | null;
+  };
+  // El rótulo del equipo es el mismo que usa el cuadro de potenciales.
+  const delCrm: PresupuestoDisponible[] = (delCotizador ?? []).map((c) => {
+    const lineas = ((c.cotizacion_items as unknown as ItemCotizado[]) ?? []).map((i) => {
+      const prod = i.productos;
+      return {
+        descripcion: prod ? `${prod.nombre} ${prod.marca} ${prod.modelo}` : (i.descripcion ?? "Equipo"),
+        cantidad: i.cantidad,
+        precio_unitario: Number(i.precio_unitario),
+      };
+    });
+    return {
+      id: c.id,
+      codigo: c.codigo,
+      serie: c.serie as "EFAMEINSA" | "OPEN",
+      fecha: (c.enviada_at ?? c.created_at)?.slice(0, 10) ?? null,
+      monto: c.total,
+      items: lineas.map((l) => l.descripcion),
+      fuente: "crm" as const,
+      estado: c.estado,
+      lineas,
+    };
+  });
+
+  const delArchivo: PresupuestoDisponible[] = (historicas ?? []).map((c) => ({
     id: c.id,
     codigo: c.codigo,
     serie: c.serie as "EFAMEINSA" | "OPEN",
     fecha: c.fecha,
     monto: c.monto_sin_igv,
     items: c.items ?? [],
+    fuente: "archivo" as const,
   }));
+
+  const presupuestos = [...delCrm, ...delArchivo];
 
   // Se cuentan como resueltos los datos que salen de la cuenta y del contacto
   // principal; el número que ve el comercial arriba de la pantalla.
