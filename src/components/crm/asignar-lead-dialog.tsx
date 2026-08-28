@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { asignarLead, buscarCoincidencias, type CoincidenciaCartera } from "@/lib/acciones/leads";
+import { TriangleAlert } from "lucide-react";
+import { asignarLead, buscarCoincidencias, carteraEnJuego, type CoincidenciaCartera } from "@/lib/acciones/leads";
 import { fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,6 +68,14 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
   const [comercialId, setComercialId] = useState<string>("");
   const [tipoPostventa, setTipoPostventa] = useState<string>("");
   const [enviando, startTransition] = useTransition();
+  /**
+   * A quién le quitaría el cliente esta derivación (0107). Se pregunta cada vez
+   * que cambia el comercial elegido, para poder avisarlo ANTES —con nombre y
+   * apellido— en vez de que la cartera se mueva en silencio, que es lo que
+   * pasaba hasta el 28-08.
+   */
+  const [traspaso, setTraspaso] = useState<{ razonSocial: string; duenoNombre: string; duenoCodigo: string | null } | null>(null);
+  const [pin, setPin] = useState("");
 
   // Derivar a Post Venta es derivar un CASO, no entregar un cliente: hay que
   // decir de qué clase es, y la cartera del comercial no se toca (0080).
@@ -83,6 +92,24 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
     });
   }, [abierto, nombre, razonSocial, telefono, numDoc, email]);
 
+  // Cada vez que cambia el comercial elegido, se le pregunta a la base si esa
+  // derivación movería la cartera de alguien.
+  useEffect(() => {
+    if (!abierto || !comercialId || esPostventa) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpiar el aviso al cambiar de destino
+      setTraspaso(null);
+      return;
+    }
+    let vivo = true;
+    carteraEnJuego(leadId, comercialId).then((r) => {
+      if (!vivo) return;
+      setTraspaso(r);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [abierto, comercialId, esPostventa, leadId]);
+
   function confirmar() {
     if (!comercialId) {
       toast.error("Seleccione un comercial");
@@ -93,12 +120,14 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
       return;
     }
     startTransition(async () => {
-      const resultado = await asignarLead(leadId, comercialId, esPostventa ? tipoPostventa : null);
+      const resultado = await asignarLead(leadId, comercialId, esPostventa ? tipoPostventa : null, pin || null);
       if (resultado.error) {
-        toast.error(resultado.error);
+        // La base distingue el caso: no es un error, es una autorización que
+        // falta. El aviso ya está en pantalla con su casilla para el código.
+        toast.error(resultado.error, { duration: 9000 });
         return;
       }
-      toast.success("Lead asignado");
+      toast.success(traspaso ? "Contacto asignado y cartera traspasada" : "Contacto asignado");
       setAbierto(false);
     });
   }
@@ -205,9 +234,52 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
           </div>
         )}
 
+        {/* EL AVISO DE CARTERA (0107). Hasta el 28-08 esto pasaba en silencio:
+            derivar un cliente que ya tenía dueño se lo quitaba, y quedaba
+            registrado como «decisión de gerencia» sin que gerencia lo supiera.
+            Ahora se dice antes, con nombre y apellido, y si igual se hace lo
+            autoriza el supervisor con su código. */}
+        {traspaso && (
+          <div className="space-y-2 rounded-lg border-2 border-amber-400 bg-amber-50 p-3">
+            <p className="flex items-start gap-2 text-sm font-semibold text-amber-900">
+              <TriangleAlert className="mt-0.5 size-4 flex-none" />
+              Este cliente ya es de {traspaso.duenoNombre}
+              {traspaso.duenoCodigo ? ` (${traspaso.duenoCodigo})` : ""}
+            </p>
+            <p className="text-xs leading-snug text-amber-900">
+              <strong>{traspaso.razonSocial}</strong> está en su cartera. Derivarlo a otro comercial{" "}
+              <strong>le cambia el dueño al cliente</strong>, no solo a este contacto. Eso lo autoriza gerencia.
+            </p>
+            <label className="block space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-amber-900">
+                Código del supervisor
+              </span>
+              <input
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                inputMode="numeric"
+                placeholder="4 dígitos"
+                className="w-32 rounded-md border border-amber-400 bg-background px-2 py-1.5 text-center font-mono text-lg tracking-[0.3em] outline-none"
+              />
+            </label>
+            <p className="text-[11px] text-amber-900/80">
+              Se lo pide a gerencia: lo tiene en su pantalla y dura dos minutos. Si no corresponde traspasar la
+              cartera, elija al comercial que ya lo atiende.
+            </p>
+          </div>
+        )}
+
         <DialogFooter>
-          <Button onClick={confirmar} disabled={enviando}>
-            {enviando ? "Asignando…" : "Confirmar asignación"}
+          <Button
+            onClick={confirmar}
+            disabled={enviando || (!!traspaso && pin.length !== 4)}
+            variant={traspaso ? "destructive" : "default"}
+          >
+            {enviando
+              ? "Asignando…"
+              : traspaso
+                ? "Traspasar la cartera y asignar"
+                : "Confirmar asignación"}
           </Button>
         </DialogFooter>
       </DialogContent>

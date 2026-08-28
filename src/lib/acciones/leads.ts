@@ -190,17 +190,30 @@ export async function asignarLead(
   // vista de postventa no distingue un reclamo de garantía de un pedido de
   // repuesto (migración 0080).
   tipoPostventa?: string | null,
-): Promise<{ error: string | null }> {
+  /** El código del supervisor, cuando la derivación mueve la cartera (0107). */
+  pin?: string | null,
+): Promise<{ error: string | null; requierePin?: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data: oportunidadId, error } = await supabase.rpc("asignar_lead", {
+  // Pasa por `asignar_lead_con_pin` (0107): si la derivación le quitaría el
+  // cliente a otro comercial, la base exige el código del supervisor. La
+  // versión sin autorización quedó revocada, así que esta no es la puerta
+  // amable — es la única que hay.
+  const { data: oportunidadId, error } = await supabase.rpc("asignar_lead_con_pin", {
     p_lead_id: leadId,
     p_comercial_id: comercialId,
     p_tipo_postventa: tipoPostventa ?? null,
+    p_pin: pin ?? null,
   });
-  if (error) return { error: error.message };
+  if (error) {
+    const requierePin = /DERIVACION_MUEVE_CARTERA/.test(error.message);
+    return {
+      error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "").replace(/^DERIVACION_MUEVE_CARTERA:\s*/, ""),
+      requierePin,
+    };
+  }
 
   const [{ data: oportunidad }, { data: lead }, { data: perfiles }] = await Promise.all([
     supabase.from("oportunidades").select("cuentas(razon_social)").eq("id", oportunidadId).maybeSingle(),
@@ -566,4 +579,28 @@ export async function enviarUrgencia(
 
   revalidatePath("/central/derivados");
   return { error: null, avisoNumero: r.aviso_numero };
+}
+
+/**
+ * ¿Esta derivación le quita el cliente a otro comercial?
+ *
+ * Se pregunta ANTES de derivar, para poder avisarlo en pantalla con nombre y
+ * apellido en vez de dejar que pase en silencio (migración 0107). Devuelve
+ * `null` cuando no hay nada que advertir, que es el caso normal.
+ */
+export async function carteraEnJuego(
+  leadId: string,
+  comercialId: string,
+): Promise<{ razonSocial: string; duenoNombre: string; duenoCodigo: string | null } | null> {
+  if (!leadId || !comercialId) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("cartera_en_juego", {
+    p_lead_id: leadId,
+    p_comercial_id: comercialId,
+  });
+  if (error) return null;
+  const fila = (data as { razon_social: string; dueno_nombre: string; dueno_codigo: string | null }[] | null)?.[0];
+  return fila
+    ? { razonSocial: fila.razon_social, duenoNombre: fila.dueno_nombre, duenoCodigo: fila.dueno_codigo }
+    : null;
 }

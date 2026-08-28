@@ -109,7 +109,7 @@ const { data: lead, error: eLead } = await central.db
 ok(!eLead && !!lead, `Central registra el contacto${eLead ? ` — ${eLead.message}` : ` (${lead?.codigo})`}`);
 if (!lead) { await pg.end(); process.exit(1); }
 
-const { data: oportunidadId, error: eAsig } = await central.db.rpc("asignar_lead", {
+const { data: oportunidadId, error: eAsig } = await central.db.rpc("asignar_lead_con_pin", {
   p_lead_id: lead.id,
   p_comercial_id: comercial.id,
   p_motivo: null,
