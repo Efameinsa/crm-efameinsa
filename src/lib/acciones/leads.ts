@@ -362,34 +362,45 @@ export async function buscarCoincidencias(datos: {
   };
 
   const numDoc = datos.numDoc?.replace(/\D/g, "") || null;
-  if (numDoc && numDoc.length >= 8) {
-    const { data } = await supabase.from("cuentas").select(CAMPOS).eq("num_doc", numDoc).limit(3);
-    agregar(data as unknown as CuentaFila[], "documento");
-  }
   const tel = normalizarTelefono(datos.telefono ?? undefined);
-  if (tel) {
-    const { data } = await supabase.from("contactos").select(`cuentas(${CAMPOS})`).eq("telefono_normalizado", tel).limit(4);
-    agregar((data ?? []).map((x) => x.cuentas as unknown as CuentaFila), "telefono");
-  }
   const email = datos.email?.trim().toLowerCase();
-  if (email && email.includes("@")) {
-    const { data } = await supabase.from("contactos").select(`cuentas(${CAMPOS})`).ilike("email", email).limit(4);
-    agregar((data ?? []).map((x) => x.cuentas as unknown as CuentaFila), "correo");
-  }
-  const texto = [datos.nombre, datos.razonSocial].filter(Boolean).join(" ");
-  const tokens = tokenizarBusqueda(texto);
-  if (tokens.length > 0 && out.size < 6) {
-    let q = supabase.from("cuentas").select(CAMPOS);
-    for (const t of tokens) q = q.ilike("razon_social", `%${t}%`);
-    const { data } = await q.limit(5);
-    agregar(data as unknown as CuentaFila[], "nombre");
-    if (out.size < 6) {
-      let q2 = supabase.from("contactos").select(`cuentas(${CAMPOS})`);
-      for (const t of tokens) q2 = q2.ilike("nombre", `%${t}%`);
-      const { data: d2 } = await q2.limit(5);
-      agregar((d2 ?? []).map((x) => x.cuentas as unknown as CuentaFila), "nombre");
-    }
-  }
+  const tokens = tokenizarBusqueda([datos.nombre, datos.razonSocial].filter(Boolean).join(" "));
+
+  // LAS CINCO BÚSQUEDAS SALEN JUNTAS, no una detrás de otra.
+  //
+  // Iban en fila para ahorrarse las de nombre cuando el documento o el teléfono
+  // ya habían encontrado algo. Pero eso ahorraba una consulta a costa de sumar
+  // los tiempos de todas, y esto corre mientras Central TECLEA: cada pausa
+  // pagaba la suma completa antes de decirle si el cliente ya era de alguien
+  // («se reportan demoras al ingreso de bandeja», 28-08). El orden de prioridad
+  // no se pierde: se aplica al juntar los resultados, que es donde siempre
+  // estuvo — documento, teléfono, correo y recién después nombre.
+  const nada = Promise.resolve({ data: null });
+
+  let qCuentas = supabase.from("cuentas").select(CAMPOS);
+  for (const t of tokens) qCuentas = qCuentas.ilike("razon_social", `%${t}%`);
+  let qContactos = supabase.from("contactos").select(`cuentas(${CAMPOS})`);
+  for (const t of tokens) qContactos = qContactos.ilike("nombre", `%${t}%`);
+
+  const [doc, telef, correo, nomCuenta, nomContacto] = await Promise.all([
+    numDoc && numDoc.length >= 8
+      ? supabase.from("cuentas").select(CAMPOS).eq("num_doc", numDoc).limit(3)
+      : nada,
+    tel ? supabase.from("contactos").select(`cuentas(${CAMPOS})`).eq("telefono_normalizado", tel).limit(4) : nada,
+    email && email.includes("@")
+      ? supabase.from("contactos").select(`cuentas(${CAMPOS})`).ilike("email", email).limit(4)
+      : nada,
+    tokens.length > 0 ? qCuentas.limit(5) : nada,
+    tokens.length > 0 ? qContactos.limit(5) : nada,
+  ]);
+
+  const deContacto = (d: unknown) => ((d ?? []) as { cuentas: unknown }[]).map((x) => x.cuentas as CuentaFila);
+
+  agregar(doc.data as unknown as CuentaFila[], "documento");
+  agregar(deContacto(telef.data), "telefono");
+  agregar(deContacto(correo.data), "correo");
+  agregar(nomCuenta.data as unknown as CuentaFila[], "nombre");
+  agregar(deContacto(nomContacto.data), "nombre");
   const orden: Record<CoincidenciaCartera["motivo"], number> = { documento: 0, telefono: 1, correo: 2, nombre: 3 };
   return [...out.values()].sort((a, b) => orden[a.motivo] - orden[b.motivo]).slice(0, 6);
 }

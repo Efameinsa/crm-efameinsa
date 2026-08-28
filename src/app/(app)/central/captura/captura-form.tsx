@@ -72,6 +72,11 @@ const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: 
 };
 
 let temporizadorBusqueda: ReturnType<typeof setTimeout> | null = null;
+// Cada búsqueda lleva número. La consulta de «EDGAR» puede volver DESPUÉS que la
+// de «EDGAR LINO CUTIPA» —salen mientras se teclea y no tardan lo mismo— y sin
+// esto la respuesta vieja pisaba a la nueva: la pantalla mostraba coincidencias
+// que ya no correspondían a lo escrito, o el «buscando…» se quedaba prendido.
+let ultimaBusqueda = 0;
 
 export function CapturaForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -115,8 +120,10 @@ export function CapturaForm() {
       return;
     }
     temporizadorBusqueda = setTimeout(async () => {
+      const mia = ++ultimaBusqueda;
       setBuscando(true);
       const resultado = await analizarCaptura(datos);
+      if (mia !== ultimaBusqueda) return; // llegó tarde: ya hay una más nueva en camino
       setAnalisis(resultado);
       setBuscando(false);
     }, 500);
