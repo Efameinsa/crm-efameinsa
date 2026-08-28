@@ -67,7 +67,8 @@ const { rows: productos } = await bd.query(
 );
 // Lo que la carga de hoy movió en el catálogo, preguntándoselo a la base.
 const { rows: movimientos } = await bd.query(
-  `select 'alta' as que, sku, nombre, null::numeric as precio from productos where created_at::date = current_date
+  `select 'alta' as que, sku, nombre, null::numeric as precio
+      from productos where created_at::date = current_date and activo
    union all
    select 'retiro', sku, nombre, null from productos where not activo and updated_at::date = current_date
    union all

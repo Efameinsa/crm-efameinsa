@@ -46,13 +46,21 @@ const retiradosDelMaestro = filas.filter((f) => f.enSistema === "retirado");
 // Los que están EN EL CATÁLOGO sin ficha: los coches por modelo también están
 // sin ficha, pero salieron del catálogo y ya se cuentan como retiro.
 const activosSinFicha = faltantes.filter((f) => f.enSistema !== "retirado");
-const recuperablesActivos = () => recuperables.filter((f) => f.enSistema !== "retirado");
-const perdidasActivas = () => perdidas.filter((f) => f.enSistema !== "retirado");
+const recuperablesActivos = () => recuperables;
+const perdidasActivas = () => perdidas;
 const falta = (f, k) => (f.pendientes.find((x) => x.startsWith("La tabla de cabecera"))?.includes(k) ? "falta" : "");
 /** Los archivos que HOY están en V: para un código que no se pudo cargar. */
 const pista = (f) => f.pendientes.map((x) => /(?:hay hoy|empiezan con ese código): (.+)$/.exec(x)?.[1]).find(Boolean) ?? "";
 /** Qué pasó, sin repetir la pista: esa va en su propia columna. */
 const quePasa = (f) => f.pendientes[0].replace(/;? ?(?:en la carpeta hay hoy|En V: hay archivos que empiezan con ese código): .+$/, "");
+
+/** Por qué un producto salió del catálogo hoy. */
+const porQueSale = (sku) =>
+  ["CO401", "CO402", "CO408"].includes(sku)
+    ? "Su equipo ahora está codificado por color (CO401A, CO402A/B/G, CO408A/B)"
+    : faltantes.some((f) => f.codigo === sku)
+      ? "Está en el maestro pero sin ficha: al sistema solo suben los que tienen su Word"
+      : "El maestro v2 ya no lo lista; el mismo equipo figura con otro código";
 
 // =========================================================================
 // EXCEL
@@ -72,7 +80,7 @@ const hojaResumen = XLSX.utils.aoa_to_sheet([
   ["LO QUE ENTRÓ AL SISTEMA", ""],
   ["Códigos en el maestro de Lesly", resumen.totalExcel],
   ["Cargados con su ficha (descripción + fotos del Word)", resumen.cargadas],
-  ["Del maestro sin ficha: quedan activos, sin descripción ni foto", resumen.sinFicha],
+  ["Del maestro sin ficha: quedan FUERA del catálogo", resumen.sinFicha],
   ["Productos que el maestro ya no lista y se retiraron del sistema", resumen.retirados],
   [],
   ["LO QUE MOVIÓ LA CARGA DE HOY", ""],
@@ -97,7 +105,7 @@ const hojaResumen = XLSX.utils.aoa_to_sheet([
   ["CÓMO LEER ESTE ARCHIVO", ""],
   ["Todas las fichas", "una fila por código del maestro y todo lo que se detectó"],
   ["Cambios de hoy", "altas, retiros y precios que aplicó esta carga"],
-  ["Falta la ficha", `los ${resumen.sinFicha} códigos que entraron sin Word`],
+  ["Falta la ficha", `los ${resumen.sinFicha} códigos del maestro que no tienen Word`],
   ["Fotos por mejorar", "las que se imprimen con menos calidad de la debida"],
   ["Misma foto", "equipos distintos que muestran la misma imagen: confirmar"],
   ["Sin logo", "fichas donde no aparece el logo de la marca"],
@@ -141,11 +149,9 @@ hoja(
     "PRECIO NUEVO US$": m.precio ?? "",
     "POR QUÉ":
       m.que === "alta"
-        ? "Figura en el maestro v2 y no existía en el CRM"
+        ? "Figura en el maestro v2 con ficha y no existía en el CRM"
         : m.que === "retiro"
-          ? ["CO401", "CO402", "CO408"].includes(m.sku)
-            ? "Su equipo pasó a estar codificado por color (CO401A, CO402A/B/G, CO408A/B)"
-            : "El maestro v2 ya no lo lista; el mismo equipo figura con otro código"
+          ? porQueSale(m.sku)
           : "El libro más nuevo de Lesly (MODIF. UT120 26-08) trae este precio",
   })),
   [22, 12, 60, 17, 70],
@@ -394,7 +400,7 @@ const cuerpo = [
     [
       ["Códigos del maestro de equipos", String(resumen.totalExcel)],
       ["Cargados con su ficha: descripción y fotos", String(resumen.cargadas)],
-      ["Del maestro sin ficha: entran igual, sin descripción ni foto", String(resumen.sinFicha)],
+      ["Del maestro sin ficha: quedan fuera del catálogo", String(resumen.sinFicha)],
       ["Retirados hoy del catálogo del CRM", String(resumen.retirosHoy ?? 0)],
     ],
     [78, 22],
@@ -430,10 +436,7 @@ const cuerpo = [
   tabla(
     ["Código", "Por qué"],
     movs("retiro").map((m) => [
-      m.sku,
-      ["CO401", "CO402", "CO408"].includes(m.sku)
-        ? "Su equipo ahora está codificado por color (CO401A, CO402A/B/G, CO408A/B)"
-        : "El maestro ya no lo lista: el mismo equipo figura con otro código",
+      m.sku, porQueSale(m.sku),
     ]),
     [16, 84],
   ),
@@ -451,11 +454,12 @@ const cuerpo = [
   ),
 
   new Paragraph({ children: [new PageBreak()] }),
-  tituloSeccion(`3 · Los ${activosSinFicha.length} códigos que entraron sin ficha`),
+  tituloSeccion(`3 · Los ${faltantes.length} códigos que quedaron fuera del catálogo`),
   parrafo(
-    "Estos códigos figuran en el maestro pero no tienen Word, así que en el CRM están sin descripción ni foto: su " +
-      "cotización sale con la página de ficha en blanco. En casi todos el equipo SÍ tiene ficha, pero guardada con otro " +
-      "código —el mismo equipo está codificado de dos maneras en los Excels—, y eso es lo que hay que unificar.",
+    "Estos códigos figuran en el maestro pero no tienen Word. Al sistema suben únicamente los que tienen ficha, así que " +
+      "quedaron fuera del catálogo: un producto sin descripción ni foto no se puede cotizar. En casi todos el equipo SÍ " +
+      "tiene ficha, pero guardada con otro código —el mismo equipo está codificado de dos maneras en los Excels—, y eso " +
+      "es lo que hay que unificar para que entren.",
   ),
   subtitulo("El equipo existe, pero con otro código"),
   tabla(

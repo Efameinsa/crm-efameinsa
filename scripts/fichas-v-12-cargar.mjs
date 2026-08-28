@@ -11,10 +11,12 @@
 //     color pasa a ser un producto propio y los códigos por modelo
 //     (CO401/CO402/CO408) se retiran, aunque el maestro todavía los liste: su
 //     equipo ya está codificado por color.
-//   · EL MAESTRO MANDA, AL PIE DE LA LETRA — cuando el mismo equipo aparece con
-//     dos códigos (SEC75E ≡ SECU75E, CALM23 ≡ CALMI23, LAV135S ≡ LAV1355…),
-//     queda el que figura en el maestro. El otro se retira aunque tenga ficha,
-//     y el que quedó vive sin descripción hasta que Lesly mande su Word.
+//   · SOLO ENTRA LO QUE TIENE FICHA — al sistema suben únicamente los códigos
+//     de la hoja ENCONTRADOS, los que tienen su Word (Darwin, 28-08). Los que
+//     el maestro lista sin ficha —casi todos el mismo equipo codificado dos
+//     veces: SEC75E ≡ SECU75E, CALM23 ≡ CALMI23, LAV135S ≡ LAV1355…— quedan
+//     FUERA del catálogo hasta que Lesly unifique el código y mande el Word.
+//     Un producto sin descripción ni foto no se puede cotizar.
 //   · LOS PRECIOS SE ACTUALIZAN con este Excel: el libro más nuevo de Lesly
 //     (MODIF. UT120 26-08) subió los coches y varias UT075.
 //
@@ -26,13 +28,12 @@
 //   2. Copia sus imágenes ya preparadas a `public/productos/`: <sku>.png la del
 //      equipo, <sku>-logo.png la de la marca y <sku>-panel.png la vista de
 //      complemento.
-//   3. Da de alta los códigos nuevos de Lesly. Los que el maestro trae SIN
-//      ficha quedan activos igual, sin descripción ni foto.
+//   3. Da de alta los códigos nuevos de Lesly que traen ficha.
 //   4. Pone el precio del maestro donde cambió: cierra el vigente
 //      (`vigente_hasta = hoy`) y abre uno nuevo, sin borrar el anterior.
-//   5. RETIRA (activo = false) los productos que no figuran en el Excel. No se
-//      borra nada: las cotizaciones viejas siguen apuntando a su producto y el
-//      histórico queda intacto.
+//   5. RETIRA (activo = false) todo lo demás: lo que no figura en el Excel y
+//      también lo que figura sin ficha. No se borra nada: las cotizaciones
+//      viejas siguen apuntando a su producto y el histórico queda intacto.
 //
 // Uso:
 //   node --env-file=.env.local scripts/fichas-v-12-cargar.mjs            (ensayo)
@@ -48,19 +49,18 @@ const IMAGENES = "scripts/data/fichas-v/imagenes-listas.json";
 const LISTA = "scripts/data/fichas-v/lista.json";
 const DESTINO_FOTOS = "public/productos";
 
-/** Decisión de Darwin (28-08): los coches se cotizan por color, así que el
- *  código por modelo sale del catálogo aunque el maestro lo siga listando. */
-const RETIRAR_AUNQUE_ESTEN = new Set(["CO401", "CO402", "CO408"]);
-
 const { fichas } = JSON.parse(readFileSync(FICHAS, "utf-8"));
 const { fichas: imagenes } = JSON.parse(readFileSync(IMAGENES, "utf-8"));
 const lista = JSON.parse(readFileSync(LISTA, "utf-8"));
 
-/** Todo el catálogo de Lesly: con ficha y sin ella. */
+/** Todo lo que el maestro nombra, con ficha y sin ella: de acá salen los datos
+ *  (precio, marca) de cada código. */
 const universo = new Map(
   [...lista.productos, ...lista.sinFicha].map((p) => [p.codigo.toUpperCase(), p]),
 );
-const enCatalogo = (sku) => universo.has(sku) && !RETIRAR_AUNQUE_ESTEN.has(sku);
+/** El catálogo del CRM son los ENCONTRADOS: los que tienen su Word. */
+const conFicha = new Set(fichas.map((f) => f.codigo.toUpperCase()));
+const enCatalogo = (sku) => conFicha.has(sku);
 
 /** Categoría y segmento para un código que todavía no existe en el CRM. */
 function clasificar(equipo) {
@@ -94,13 +94,6 @@ function colorDeLaFicha(archivo) {
   return null;
 }
 
-/** El modelo, para un código sin ficha: lo dice su propia descripción del
- *  maestro («…, MOD. UT075E, CONTROL…»). `productos.modelo` es obligatorio. */
-function modeloDelEquipo(equipo, sku) {
-  const m = /\bMOD(?:ELO)?\s*[.:]?\s*([A-Z0-9][A-Z0-9\-./ ]{1,18}?)\s*(?:,|$)/i.exec(String(equipo ?? ""));
-  return m ? m[1].trim() : sku;
-}
-
 const bd = new Client({ connectionString: process.env.DATABASE_URL });
 await bd.connect();
 
@@ -113,19 +106,17 @@ const { rows: existentes } = await bd.query(
 );
 const porSku = new Map(existentes.map((p) => [p.sku.toUpperCase(), p]));
 
-const plan = { actualiza: [], crea: [], activaSinFicha: [], retira: [], precios: [], fotos: 0 };
+const plan = { actualiza: [], crea: [], fueraSinFicha: [], retira: [], precios: [], fotos: 0 };
 
 for (const f of fichas) {
   const sku = f.codigo.toUpperCase();
-  if (!enCatalogo(sku)) continue; // no debería pasar: las fichas salen del maestro
   (porSku.has(sku) ? plan.actualiza : plan.crea).push(f);
 }
 
-// Códigos del maestro que no tienen ficha: entran igual, sin descripción.
-const conFicha = new Set(fichas.map((f) => f.codigo.toUpperCase()));
+// Códigos que el maestro lista sin ficha: no entran al catálogo.
 for (const [sku, datos] of universo) {
-  if (conFicha.has(sku) || !enCatalogo(sku)) continue;
-  plan.activaSinFicha.push({ sku, datos, existe: porSku.has(sku), activo: porSku.get(sku)?.activo ?? false });
+  if (conFicha.has(sku)) continue;
+  plan.fueraSinFicha.push({ sku, equipo: datos.equipo, estaba: porSku.get(sku)?.activo ? "activo" : "fuera" });
 }
 
 plan.retira = existentes.filter((p) => p.activo && !enCatalogo(p.sku.toUpperCase()));
@@ -141,9 +132,9 @@ for (const [sku, datos] of universo) {
 
 console.log(`Actualizar con su ficha: ${plan.actualiza.length}`);
 console.log(`Crear con ficha: ${plan.crea.length}  ${plan.crea.map((f) => f.codigo).join(", ")}`);
-console.log(`Del maestro SIN ficha (quedan activos, sin descripción): ${plan.activaSinFicha.length}`);
-for (const a of plan.activaSinFicha) {
-  console.log(`   · ${a.sku.padEnd(10)} ${a.existe ? (a.activo ? "ya activo" : "estaba retirado → se reactiva") : "no existe → se crea"}`);
+console.log(`Del maestro SIN ficha (no entran al catálogo): ${plan.fueraSinFicha.length}`);
+for (const a of plan.fueraSinFicha) {
+  console.log(`   · ${a.sku.padEnd(10)} ${a.estaba === "activo" ? "estaba activo → se retira" : "ya estaba fuera"}`);
 }
 console.log(`Retirar: ${plan.retira.length}  ${plan.retira.map((p) => p.sku).join(", ")}`);
 console.log(`Precios que cambian: ${plan.precios.length}`);
@@ -225,30 +216,7 @@ try {
     }
   }
 
-  // ---------- 3 · los del maestro sin ficha ----------
-  for (const { sku, datos, existe } of plan.activaSinFicha) {
-    if (existe) {
-      await bd.query("update productos set activo = true, updated_at = now() where id = $1", [porSku.get(sku).id]);
-    } else {
-      const { categoria, segmento } = clasificar(datos.equipo ?? "");
-      const { rows } = await bd.query(
-        `insert into productos (sku, marca, modelo, nombre, categoria, segmento, ficha, activo)
-         values ($1,$2,$3,$4,$5,$6,$7,true) returning id`,
-        [
-          sku,
-          datos.marca || "SIN MARCA",
-          modeloDelEquipo(datos.equipo, sku),
-          (datos.equipo ?? sku).split(",")[0].trim(),
-          categoria,
-          segmento,
-          { origen_descripcion: "sin ficha: el maestro no tiene el Word de este código", leida_at: new Date().toISOString().slice(0, 10) },
-        ],
-      );
-      idPorSku.set(sku, rows[0].id);
-    }
-  }
-
-  // ---------- 4 · los precios del maestro ----------
+  // ---------- 3 · los precios del maestro ----------
   for (const p of plan.precios) {
     const id = idPorSku.get(p.sku);
     if (!id) continue;
@@ -267,7 +235,7 @@ try {
     );
   }
 
-  // ---------- 5 · lo que sale del catálogo ----------
+  // ---------- 4 · lo que sale del catálogo ----------
   for (const p of plan.retira) {
     await bd.query("update productos set activo = false, updated_at = now() where id = $1", [p.id]);
   }
@@ -275,7 +243,7 @@ try {
   await bd.query("commit");
   console.log(
     `\n✓ ${plan.actualiza.length} actualizados · ${plan.crea.length} creados · ` +
-      `${plan.activaSinFicha.length} sin ficha activos · ${plan.precios.length} precios · ` +
+      `${plan.precios.length} precios · ` +
       `${plan.retira.length} retirados · ${plan.fotos} imágenes copiadas`,
   );
 } catch (e) {
