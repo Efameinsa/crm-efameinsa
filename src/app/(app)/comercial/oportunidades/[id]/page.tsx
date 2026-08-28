@@ -16,6 +16,9 @@ import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { fechaAgendada, fechaHoraLima } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
+import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
+import { demora, haceCuanto, ETIQUETA_MOTIVO } from "@/lib/derivados-central";
+import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
 import type { TipoDocumento } from "@/lib/documento";
@@ -34,6 +37,14 @@ const ETIQUETA_CANAL_LEAD: Record<string, string> = {
   otro: "otro canal",
 };
 
+// Un día sin tocar un contacto que ya le derivaron es tarde: el mismo umbral
+// con el que Central marca la demora en su bandeja. Vive fuera del componente
+// porque mirar el reloj no es algo que se pueda hacer durante el render.
+function llevaDemasiadoSinGestion(asignadoAt: string | null): boolean {
+  if (!asignadoAt) return false;
+  return Date.now() - new Date(asignadoAt).getTime() > 864e5;
+}
+
 export default async function OportunidadDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -43,7 +54,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
       supabase
         .from("oportunidades")
         .select(
-          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, leads(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -112,6 +123,77 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
         .order("es_principal", { ascending: false })
     : { data: [] };
   const contactosCuenta = contactosData ?? [];
+
+  // ── La ruta del contacto, desde antes de que fuera suyo ──────────────────
+  //
+  // Central ya la tenía y el comercial no: su línea de tiempo arrancaba en su
+  // primera gestión, así que el reloj con el que se lo mide era invisible del
+  // lado de quien tiene que correrlo. Carlos lo pidió textual el 27-08 mirando
+  // la pantalla de Ariana —«pero comienza desde su gestión, no comienza desde
+  // el inicio, que es cuando te lo entregaron»— porque es la base de la
+  // medición y de la reasignación: «te lo derivé a las 2:05 y no has hecho
+  // absolutamente nada».
+  //
+  // No se inventa ningún dato: son los mismos tres hitos que Central ve, con
+  // el mismo componente. Lo único nuevo es quién los mira.
+  const [{ data: asignacion }, { data: primeraGestion }] = await Promise.all([
+    oportunidad.lead_id
+      ? supabase
+          .from("asignaciones")
+          .select("motivo, decidida_por, created_at")
+          .eq("lead_id", oportunidad.lead_id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("actividades")
+      .select("tipo, realizada_at")
+      .eq("oportunidad_id", id)
+      .order("realizada_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const { data: quienDerivo } = asignacion?.decidida_por
+    ? await supabase.from("perfiles").select("nombre").eq("id", asignacion.decidida_por).maybeSingle()
+    : { data: null };
+
+  // Cuándo pasó a ser suya: la asignación si la hay, y si no la creación de la
+  // oportunidad, que es el instante en que apareció en su lista.
+  const asignadoAt = asignacion?.created_at ?? oportunidad.created_at ?? null;
+  const sinGestion = !primeraGestion;
+
+  const rutaDelContacto: Hito[] = [
+    {
+      titulo: "Llegó a Central",
+      fecha: lead?.recibido_at ?? null,
+      detalle: lead ? (ETIQUETA_CANAL_LEAD[lead.canal] ?? lead.canal) : null,
+      pendiente: "Sin registro de ingreso",
+    },
+    {
+      titulo: "Se lo derivaron a usted",
+      fecha: asignadoAt,
+      demora: demora(lead?.recibido_at ?? null, asignadoAt),
+      detalle: [
+        quienDerivo?.nombre ? `por ${quienDerivo.nombre}` : null,
+        asignacion?.motivo ? (ETIQUETA_MOTIVO[asignacion.motivo] ?? asignacion.motivo) : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      pendiente: "Sin derivar",
+    },
+    {
+      titulo: "Su primer contacto",
+      fecha: primeraGestion?.realizada_at ?? null,
+      demora: demora(asignadoAt, primeraGestion?.realizada_at ?? null),
+      detalle: primeraGestion ? (ETIQUETA_ACTIVIDAD[primeraGestion.tipo] ?? primeraGestion.tipo) : null,
+      pendiente: asignadoAt
+        ? `Todavía sin gestión registrada — se lo derivaron ${haceCuanto(asignadoAt)}`
+        : "Todavía sin gestión registrada",
+      alerta: sinGestion && llevaDemasiadoSinGestion(asignadoAt),
+    },
+  ];
 
   return (
     <div className="space-y-4">
@@ -229,6 +311,17 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
                 {lead.recibido_at ? ` · ${fechaHoraLima(lead.recibido_at)}` : ""}
                 {lead.codigo ? ` · ${lead.codigo}` : ""}
               </p>
+            </SeccionPanel>
+          )}
+
+          {/* Antes de registrar nada: el reloj que ya viene corriendo. Va
+              arriba de «Registrar gestión» a propósito — es la pantalla donde
+              se destraba, no solo donde se mira. Solo para lo que entró por
+              Central: las oportunidades importadas del Excel no tuvieron
+              derivación y mostrarles una ruta vacía sería ruido. */}
+          {lead && (
+            <SeccionPanel titulo="Cómo llegó este contacto">
+              <RutaDerivacion hitos={rutaDelContacto} />
             </SeccionPanel>
           )}
 
