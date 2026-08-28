@@ -23,6 +23,7 @@ import {
   Wrench,
   LifeBuoy,
   Target,
+  Route,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -86,30 +87,46 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
 const ENLACES_POSTVENTA = [
   { href: "/postventa", etiqueta: "Mi día", icono: Wrench },
   { href: "/postventa/agenda", etiqueta: "Calendario", icono: CalendarDays },
-  { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
   { href: "/postventa/soporte", etiqueta: "Casos", icono: LifeBuoy },
+  { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
+  { href: "/comercial/ruta", etiqueta: "Ruta de mantenimiento", icono: Route },
   { href: "/comercial/oportunidades", etiqueta: "Mis ventas de servicio", icono: KanbanSquare },
   { href: "/comercial/cartera", etiqueta: "Clientes", icono: Building2 },
 ];
 
+// Lo único que un comercial que además vende mantenimiento (`hace_postventa`,
+// 0093) ve de más: su campaña. No es una pantalla del área —no ejecuta nada—,
+// es su pipeline mirado como campaña de llamadas.
+const ENLACE_RUTA = { href: "/comercial/ruta", etiqueta: "Ruta de mantenimiento", icono: Route };
+
 export function NavLateral({
   rol,
   esPostventa = false,
+  hacePostventa = false,
   plegada = false,
 }: {
   rol: RolUsuario;
   esPostventa?: boolean;
+  /**
+   * Comercial que además vende mantenimiento y repuestos (migración 0093).
+   * Le suma un enlace, no le cambia la barra: sigue siendo comercial.
+   */
+  hacePostventa?: boolean;
   /** Barra contraída: solo íconos, el nombre va al tooltip. */
   plegada?: boolean;
 }) {
   const pathname = usePathname();
-  // Un comercial que además vende mantenimiento (`hace_postventa`, 0093) ve la
-  // barra de un comercial y nada más. Hasta el 27-08 se le sumaban las
-  // pantallas del área, y Carlos lo cortó mirando el menú de Ariana: ella
+  // Un comercial que además vende mantenimiento ve la barra de un comercial
+  // más su ruta, y nada del área. Hasta el 27-08 se le sumaban las cuatro
+  // pantallas de postventa, y Carlos lo cortó mirando el menú de Ariana: ella
   // vende el servicio y ahí termina su trabajo —«yo no tengo nada que ver con
   // cuándo lo vas a ejecutar»—. Despachos, equipos instalados y casos son de
   // quien ejecuta, no de quien vende.
-  const enlaces = esPostventa ? ENLACES_POSTVENTA : ENLACES_POR_ROL[rol];
+  const enlaces = esPostventa
+    ? ENLACES_POSTVENTA
+    : hacePostventa
+      ? [...ENLACES_POR_ROL[rol], ENLACE_RUTA]
+      : ENLACES_POR_ROL[rol];
 
   // El enlace activo es el de coincidencia más específica (más larga), no
   // solo el primero cuyo prefijo calce — así una ruta anidada como
