@@ -200,13 +200,15 @@ export async function cargarDerivados(
   supabase: Awaited<ReturnType<typeof createClient>>,
   f: Filtros,
 ): Promise<DerivadoFila[]> {
-  const { data: perfiles } = await supabase.from("perfiles").select("id, nombre, codigo_comercial");
+  // Los perfiles no dependen de los leads, así que se piden JUNTO con ellos y
+  // no antes: era un viaje de ida y vuelta entero esperando de gusto.
+  const perfilesP = supabase.from("perfiles").select("id, nombre, codigo_comercial");
 
   let q = supabase
     .from("leads")
     .select(CAMPOS_LEAD)
     .eq("estado", "asignado")
-    .eq("es_prueba", false).eq("es_soporte", false)
+    .eq("es_prueba", false)
     .gte("asignado_at", `${f.desde}T00:00:00-05:00`)
     .lte("asignado_at", `${f.hasta}T23:59:59-05:00`);
   if (f.comercial) q = q.eq("asignado_a", f.comercial);
@@ -216,7 +218,10 @@ export async function cargarDerivados(
       `codigo.ilike.%${busqueda}%,nombre_contacto.ilike.%${busqueda}%,telefono.ilike.%${busqueda}%,razon_social.ilike.%${busqueda}%`,
     );
 
-  const { data: leads } = await q.order("asignado_at", { ascending: false }).limit(f.limite ?? 400);
+  const [{ data: leads }, { data: perfiles }] = await Promise.all([
+    q.order("asignado_at", { ascending: false }).limit(f.limite ?? 400),
+    perfilesP,
+  ]);
   return armar(supabase, (leads ?? []) as LeadCrudo[], perfiles ?? []);
 }
 

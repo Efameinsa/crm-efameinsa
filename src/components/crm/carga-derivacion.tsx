@@ -25,10 +25,10 @@ export async function CargaDerivacion() {
       .eq("estado", "asignado")
       // Los contactos sintéticos de la cuenta de práctica no son carga de
       // Central ni de nadie (migración 0072).
-      .eq("es_prueba", false).eq("es_soporte", false)
+      .eq("es_prueba", false)
       .gte("asignado_at", `${hace30}T00:00:00`)
       .limit(2000),
-    supabase.from("perfiles").select("id, nombre, codigo_comercial").eq("rol", "comercial").eq("activo", true).eq("es_prueba", false).eq("es_soporte", false).order("codigo_comercial"),
+    supabase.from("perfiles").select("id, nombre, codigo_comercial").eq("rol", "comercial").eq("activo", true).eq("es_prueba", false).order("codigo_comercial"),
     supabase.from("leads").select("id", { count: "exact", head: true }).eq("estado", "pendiente_triaje"),
   ]);
 
