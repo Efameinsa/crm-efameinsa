@@ -4,6 +4,7 @@ import { ArrowLeft, FileText, MessageCircle, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
+import { EquipoConSeries } from "@/components/crm/equipo-con-series";
 import { fechaCalendario } from "@/lib/fechas";
 import {
   queLoFrena,
@@ -13,6 +14,7 @@ import {
   puedeVerPrecios,
   sinPrecios,
   estadoPago,
+  seriesDeTexto,
   ETIQUETA_ESTADO_PAGO,
   type ServicioPostventa,
 } from "@/lib/postventa";
@@ -68,6 +70,17 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
         .single()
     : { data: null };
 
+  // Las series que nombra el equipo, para poder abrir la máquina desde acá: es
+  // el eje de la trazabilidad (D6) y hasta hoy era texto muerto en un renglón
+  // gris. Se piden solo las de este pedido.
+  const seriesDelPedido = seriesDeTexto(servicio.equipo);
+  const { data: equiposDelPedido } = seriesDelPedido.length
+    ? await supabase.from("equipos_instalados").select("id, serie").in("serie", seriesDelPedido)
+    : { data: [] };
+  const fichaPorSerie = new Map(
+    (equiposDelPedido ?? []).map((e) => [String(e.serie).toUpperCase(), e.id as string]),
+  );
+
   const frena = queLoFrena(servicio);
   const saldo = saldoPendiente(servicio);
   const total = Number(servicio.monto ?? 0);
@@ -101,7 +114,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                 </span>
               )}
             </div>
-            <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground">{servicio.equipo ?? "Sin equipo"}</p>
+            <EquipoConSeries texto={servicio.equipo} fichaPorSerie={fichaPorSerie} className="mt-1" />
             <p className="mt-1 font-mono text-[11px] text-muted-foreground">
               {informe?.codigo ? `Cierre Nº ${informe.codigo}` : "Sin informe de cierre"}
               {servicio.numero_pedido_erp && ` · Pedido ERP ${servicio.numero_pedido_erp}`}
