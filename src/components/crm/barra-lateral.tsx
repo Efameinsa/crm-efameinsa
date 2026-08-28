@@ -27,11 +27,9 @@ const CLAVE = "crm-sidebar-plegada";
 export function BarraLateral({
   rol,
   esPostventa,
-  hacePostventa = false,
 }: {
   rol: RolUsuario;
   esPostventa: boolean;
-  hacePostventa?: boolean;
 }) {
   const [plegada, setPlegada] = useState(false);
 
@@ -71,7 +69,7 @@ export function BarraLateral({
           priority
         />
       </div>
-      <NavLateral rol={rol} esPostventa={esPostventa} hacePostventa={hacePostventa} plegada={plegada} />
+      <NavLateral rol={rol} esPostventa={esPostventa} plegada={plegada} />
 
       {/* El código con el que gerencia autoriza que Central corrija una
           derivación (0092). Vive acá porque es donde el supervisor lo tiene a

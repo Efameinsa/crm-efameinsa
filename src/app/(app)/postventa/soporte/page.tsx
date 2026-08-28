@@ -90,7 +90,7 @@ export default async function SoportePostventaPage() {
 
   return (
     <SeccionPanel
-      titulo="Informes de soporte técnico"
+      titulo="Historial de casos e incidencias"
       accion={
         <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
           {total} informe{total === 1 ? "" : "s"}

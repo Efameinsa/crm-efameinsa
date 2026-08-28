@@ -10,6 +10,9 @@ import {
   slaCaso,
   etiquetaEtapaPostventa,
   etiquetaResponsable,
+  puedeVerPrecios,
+  estadoPago,
+  ETIQUETA_ESTADO_PAGO,
   type ServicioPostventa,
 } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
@@ -86,6 +89,9 @@ export default async function PostventaPage() {
       .is("fecha_despacho", null),
   ]);
 
+  // Al área no se le nombra plata: en la bandeja, donde antes iba el monto de
+  // la venta, va en qué está el pago (Carlos, 27-08).
+  const verPrecios = puedeVerPrecios(perfil);
   const gestion = (enGestion ?? []) as unknown as ServicioPostventa[];
   const atrasados = gestion.filter((s) => s.fecha_despacho && s.fecha_despacho < hoy && !s.despachado_at);
   const alDia = gestion.filter((s) => !atrasados.includes(s));
@@ -123,7 +129,11 @@ export default async function PostventaPage() {
                   </Link>
                   <p className="line-clamp-2 text-xs text-muted-foreground">{s.equipo ?? "Sin equipo"}</p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {s.monto ? `${s.moneda} ${Number(s.monto).toLocaleString("es-PE")}` : "sin monto"}
+                    {verPrecios
+                      ? s.monto
+                        ? `${s.moneda} ${Number(s.monto).toLocaleString("es-PE")}`
+                        : "sin monto"
+                      : ETIQUETA_ESTADO_PAGO[estadoPago(s)]}
                     {s.forma_pago && ` · ${s.forma_pago}`}
                     {s.modalidad && ` · ${s.modalidad}`}
                     {s.pedido_ejecutado_at && ` · liberado ${fechaHoraLima(s.pedido_ejecutado_at)}`}
@@ -140,7 +150,7 @@ export default async function PostventaPage() {
         titulo="Para esta semana"
         accion={
           <Link href="/postventa/agenda" className="text-xs font-medium text-primary hover:underline">
-            Ver la agenda completa
+            Ver el calendario completo
           </Link>
         }
       >

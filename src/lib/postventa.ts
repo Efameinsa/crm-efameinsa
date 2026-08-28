@@ -59,7 +59,30 @@ export interface ServicioPostventa {
   guia: string | null;
   recibe_nombre: string | null;
   cerrado_at: string | null;
+  /**
+   * El pago, resuelto ANTES de tapar las cifras (ver `sinPrecios`).
+   *
+   * No viene de la base: lo calcula el servidor. Existe porque el estado del
+   * pago se deducía de los montos, y a quien no puede verlos había que
+   * seguir diciéndole si el pedido está cobrado — sin decirle cuánto.
+   */
+  pago_estado?: EstadoPago;
 }
+
+/**
+ * El pago dicho sin plata: es lo único que postventa necesita saber para
+ * decidir un despacho.
+ *
+ * `sin_registrar` no es «no pagó»: es «nadie cargó el dato». Casi todas las
+ * filas del Excel están así y afirmarles un saldo sería inventarlo.
+ */
+export type EstadoPago = "completo" | "parcial" | "sin_registrar";
+
+export const ETIQUETA_ESTADO_PAGO: Record<EstadoPago, string> = {
+  completo: "Pagado completo",
+  parcial: "Pago parcial",
+  sin_registrar: "Pago sin registrar",
+};
 
 export type ResponsablePaso = "postventa" | "almacen" | "finanzas" | "cliente" | "central";
 
@@ -108,6 +131,53 @@ export function saldoPendiente(s: ServicioPostventa): number {
   return Math.max(0, Number(s.monto) - Number(s.monto_pagado ?? 0));
 }
 
+/**
+ * En qué está el pago, mirando los montos crudos.
+ *
+ * Se calcula UNA vez en el servidor, antes de que `sinPrecios` borre las
+ * cifras. Después, `bloquesPedido` lee este campo y no vuelve a mirar los
+ * montos: si los mirara, un pedido con `monto` en null —que es lo que queda
+ * tras tapar— daría saldo cero y se leería «pagado», que es justo lo contrario
+ * de lo que pasa.
+ */
+export function estadoPago(s: ServicioPostventa): EstadoPago {
+  if (s.pago_estado) return s.pago_estado;
+  const pagado =
+    saldoPendiente(s) === 0 || s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
+  if (pagado) return "completo";
+  // Las filas del Excel nunca cargaron el monto pagado: la columna era texto y
+  // casi todas están vacías. Decir «falta el saldo» sobre una venta que quizá
+  // se cobró hace un año sería inventar un dato.
+  const desconocido =
+    s.informe_cierre_id == null && Number(s.monto_pagado ?? 0) === 0 && s.pago_confirmado_at == null;
+  return desconocido ? "sin_registrar" : "parcial";
+}
+
+/**
+ * El pedido sin una sola cifra de venta, para quien no debe verlas.
+ *
+ * «Como política es eso: ni almacén ni postventa deberían tener acceso a los
+ * precios… que puedas mirar la forma de pago sí, pero que no te muestre el
+ * detalle» (Carlos, 27-08).
+ *
+ * Se tapa en el SERVIDOR y no con CSS: lo que no debe verse no viaja al
+ * navegador. Y se resuelve el estado del pago antes de borrar, porque después
+ * ya no hay con qué deducirlo.
+ */
+export function sinPrecios(s: ServicioPostventa): ServicioPostventa {
+  return { ...s, pago_estado: estadoPago(s), monto: null, monto_pagado: null };
+}
+
+/**
+ * Quién ve las cifras de la venta. Gerencia y admin, todo; el área de
+ * postventa, nada. Un comercial que además hace postventa (0093) SÍ las ve:
+ * es vendedor y cotiza — la política es sobre el área, no sobre el sombrero.
+ */
+export function puedeVerPrecios(perfil: { rol: string; es_postventa?: boolean | null }): boolean {
+  if (perfil.rol === "gerencia" || perfil.rol === "admin") return true;
+  return !perfil.es_postventa;
+}
+
 export function esProvincia(s: ServicioPostventa): boolean {
   return s.modalidad === "provincia";
 }
@@ -120,15 +190,15 @@ export function esProvincia(s: ServicioPostventa): boolean {
  */
 export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   const saldo = saldoPendiente(s);
-  const pagado = saldo === 0 || s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
   const provincia = esProvincia(s);
 
-  // En las filas que vinieron del Excel el pago nunca se cargó como monto: la
-  // columna era texto y muchas están vacías. Decir «falta el saldo de US$
-  // 10.000» sobre una venta que quizá está cobrada hace un año sería inventar
-  // un dato. Cuando no se sabe, la pantalla dice que no se sabe.
-  const pagoDesconocido =
-    !pagado && s.informe_cierre_id == null && Number(s.monto_pagado ?? 0) === 0 && s.pago_confirmado_at == null;
+  // El estado del pago se le pregunta a `estadoPago`, nunca a los montos: si la
+  // ficha viene con las cifras tapadas (`sinPrecios`) los montos ya no están y
+  // mirarlos daría saldo cero, o sea «pagado», que es lo contrario del dato.
+  // Cuando no se sabe, la pantalla dice que no se sabe.
+  const estado = estadoPago(s);
+  const pagado = estado === "completo";
+  const pagoDesconocido = estado === "sin_registrar";
 
   const preparacion: PasoPedido[] = [
     {

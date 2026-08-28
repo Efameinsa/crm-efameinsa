@@ -72,42 +72,44 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
 // comercial, o sea, como si fuera un comercial» (Carlos, 25-08)— pero su día no
 // es vender: es responder garantías, cotizar repuestos y seguir despachos y
 // puestas en marcha. Por eso conserva las herramientas comerciales y suma las
-// dos pantallas suyas arriba, que es lo que abre al llegar.
+// pantallas suyas arriba, que es lo que abre al llegar.
+//
+// Tres nombres cambiaron el 27-08, y los tres porque el nombre le mintió a
+// Carlos mientras miraba la pantalla:
+//   · «Agenda de despachos» → **Calendario**: él mismo lo rebautizó al pedir
+//     verlo por semana —«¿qué voy a hacer mañana, qué voy a hacer en la
+//     semana?»—; «agenda» le sonaba a lista informativa, y lo era.
+//   · «Soporte técnico» → **Casos**: es la palabra con la que Central ya deriva.
+//   · «Mis casos» → **Mis ventas de servicio**: preguntó textual «¿qué viene a
+//     ser mis casos?». Son sus oportunidades de mantenimiento y repuestos, no
+//     los casos técnicos — que ahora sí se llaman así.
 const ENLACES_POSTVENTA = [
   { href: "/postventa", etiqueta: "Mi día", icono: Wrench },
-  { href: "/postventa/agenda", etiqueta: "Agenda de despachos", icono: CalendarDays },
+  { href: "/postventa/agenda", etiqueta: "Calendario", icono: CalendarDays },
   { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
-  { href: "/postventa/soporte", etiqueta: "Soporte técnico", icono: LifeBuoy },
-  { href: "/comercial/oportunidades", etiqueta: "Mis casos", icono: KanbanSquare },
+  { href: "/postventa/soporte", etiqueta: "Casos", icono: LifeBuoy },
+  { href: "/comercial/oportunidades", etiqueta: "Mis ventas de servicio", icono: KanbanSquare },
   { href: "/comercial/cartera", etiqueta: "Clientes", icono: Building2 },
 ];
-
-// Las pantallas del área, sin las dos comerciales que ENLACES_POSTVENTA suma
-// para la cuenta PV: un comercial ya las tiene arriba y repetirlas confundiría.
-const ENLACES_AREA_POSTVENTA = ENLACES_POSTVENTA.filter((e) => e.href.startsWith("/postventa"));
 
 export function NavLateral({
   rol,
   esPostventa = false,
-  hacePostventa = false,
   plegada = false,
 }: {
   rol: RolUsuario;
   esPostventa?: boolean;
-  /**
-   * Comercial que además atiende postventa de sus clientes (migración 0093).
-   * A diferencia de `esPostventa`, no le cambia el mundo: le SUMA una sección.
-   * Cambiarle la barra entera a alguien por tener un segundo sombrero lo
-   * desorienta, y además le sacaría las herramientas con las que vende.
-   */
-  hacePostventa?: boolean;
   /** Barra contraída: solo íconos, el nombre va al tooltip. */
   plegada?: boolean;
 }) {
   const pathname = usePathname();
-  const base = esPostventa ? ENLACES_POSTVENTA : ENLACES_POR_ROL[rol];
-  const extra = !esPostventa && hacePostventa ? ENLACES_AREA_POSTVENTA : [];
-  const enlaces = [...base, ...extra];
+  // Un comercial que además vende mantenimiento (`hace_postventa`, 0093) ve la
+  // barra de un comercial y nada más. Hasta el 27-08 se le sumaban las
+  // pantallas del área, y Carlos lo cortó mirando el menú de Ariana: ella
+  // vende el servicio y ahí termina su trabajo —«yo no tengo nada que ver con
+  // cuándo lo vas a ejecutar»—. Despachos, equipos instalados y casos son de
+  // quien ejecuta, no de quien vende.
+  const enlaces = esPostventa ? ENLACES_POSTVENTA : ENLACES_POR_ROL[rol];
 
   // El enlace activo es el de coincidencia más específica (más larga), no
   // solo el primero cuyo prefijo calce — así una ruta anidada como
@@ -118,23 +120,11 @@ export function NavLateral({
 
   return (
     <nav className="flex flex-col gap-0.5 p-3">
-      {enlaces.map((enlace, i) => {
+      {enlaces.map((enlace) => {
         const activo = enlace.href === activoHref;
         const Icono = enlace.icono;
-        // El rótulo va una sola vez, arriba del primer enlace del área. Es una
-        // etiqueta y no solo un color a propósito: se lee igual en blanco y
-        // negro y para quien no distingue bien los tonos.
-        const abreSeccion = extra.length > 0 && i === base.length;
         return (
           <div key={enlace.href} className="contents">
-            {abreSeccion &&
-              (plegada ? (
-                <hr className="my-2 border-sidebar-border" />
-              ) : (
-                <p className="mt-4 mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/45">
-                  Postventa
-                </p>
-              ))}
           <Link
             href={enlace.href}
             title={plegada ? enlace.etiqueta : undefined}
@@ -149,7 +139,7 @@ export function NavLateral({
             {activo && (
               <span className="absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r bg-[var(--efameinsa-granate)]" />
             )}
-            <Icono className={cn("size-4 shrink-0", i >= base.length && !activo && "text-[#4A6670]")} />
+            <Icono className="size-4 shrink-0" />
             {!plegada && enlace.etiqueta}
           </Link>
           </div>

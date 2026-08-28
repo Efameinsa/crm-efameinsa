@@ -136,6 +136,41 @@ export async function confirmarPago(servicioId: string, montoPagado: number) {
 }
 
 /**
+ * El pedido quedó cobrado del todo, dicho por quien no ve las cifras.
+ *
+ * Postventa no puede tipear cuánto entró —no ve el total (Carlos, 27-08)— así
+ * que su única confirmación posible es «ya está cobrado». El monto lo pone el
+ * servidor leyéndolo de la fila: la cifra nunca pasa por el navegador, ni de
+ * ida ni de vuelta.
+ */
+export async function confirmarPagoCompleto(servicioId: string) {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { data: fila } = await supabase
+    .from("servicios_postventa")
+    .select("monto")
+    .eq("id", servicioId)
+    .single();
+  if (!fila) return falla("No se encontró el pedido");
+
+  const { error } = await supabase
+    .from("servicios_postventa")
+    .update({
+      // Sin monto cargado (las filas viejas del Excel) no hay cifra que
+      // igualar: alcanza con la marca y la fecha, que es lo que destraba el
+      // paso. Inventar un 0 diría «cobró cero», que es otra cosa.
+      ...(fila.monto != null ? { monto_pagado: fila.monto } : {}),
+      pago_confirmado_at: new Date().toISOString(),
+      pago_confirmado_por: perfil.id,
+      confirmacion_abono: "SI",
+    })
+    .eq("id", servicioId);
+  if (error) return falla(error.message);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  return ok();
+}
+
+/**
  * La dirección, confirmada por teléfono con el cliente.
  *
  * Se guarda con quién la confirmó porque el error de dirección es el clásico

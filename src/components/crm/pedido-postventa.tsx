@@ -7,6 +7,7 @@ import { Check, CircleDashed, OctagonAlert, Loader2 } from "lucide-react";
 import {
   bloquesPedido,
   saldoPendiente,
+  estadoPago,
   etiquetaResponsable,
   type ServicioPostventa,
   type PasoPedido,
@@ -15,6 +16,7 @@ import {
   aprobarPedido,
   marcarPaso,
   confirmarPago,
+  confirmarPagoCompleto,
   verificarDireccion,
   programarDespacho,
   registrarDespacho,
@@ -58,13 +60,31 @@ type Formulario =
   | { tipo: "puesta" }
   | { tipo: "cerrar" };
 
-export function PedidoPostventa({ servicio }: { servicio: ServicioPostventa }) {
+export function PedidoPostventa({
+  servicio,
+  /**
+   * Si esta pantalla puede nombrar plata. En falso —el área de postventa— el
+   * `servicio` llega sin montos desde el servidor, así que acá no hay cifra
+   * que esconder: lo que cambia es que el pago se confirma entero o nada,
+   * porque un pago parcial no se puede tipear sin ver el total.
+   */
+  verPrecios = true,
+}: {
+  servicio: ServicioPostventa;
+  verPrecios?: boolean;
+}) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [form, setForm] = useState<Formulario>(null);
 
   const bloques = bloquesPedido(servicio);
   const saldo = saldoPendiente(servicio);
+  // «No se despacha con saldo pendiente sin autorización». Con las cifras
+  // tapadas no hay saldo que mirar —`monto` viene en null y restar daría
+  // cero—, así que se pregunta por el estado, que es el mismo dato sin número.
+  // Sin esto, tapar los precios habría borrado el campo obligatorio de «quién
+  // autorizó», que es justo el que defiende al área cuando el despacho sale.
+  const pagoIncompleto = verPrecios ? saldo > 0 : estadoPago(servicio) !== "completo";
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
   function correr(fn: () => Promise<{ error: string | null }>, exito: string) {
@@ -235,8 +255,12 @@ export function PedidoPostventa({ servicio }: { servicio: ServicioPostventa }) {
         campos={[{ nombre: "protocolo", etiqueta: "N.º de protocolo de prueba", requerido: false }]}
       />
 
+      {/* Con precios a la vista se puede registrar un pago parcial: se escribe
+          cuánto lleva pagado. Sin precios —postventa— la única confirmación
+          posible es «ya está cobrado del todo»: pedirle una cifra a quien no
+          puede ver el total sería pedirle que adivine. */}
       <Cuadro
-        abierto={form?.tipo === "pago"}
+        abierto={form?.tipo === "pago" && verPrecios}
         cerrar={() => setForm(null)}
         titulo="Confirmar el pago"
         descripcion={`Total del pedido: ${servicio.moneda} ${Number(servicio.monto ?? 0).toLocaleString("es-PE")}. Escriba cuánto lleva pagado el cliente en total, no el último abono.`}
@@ -259,6 +283,17 @@ export function PedidoPostventa({ servicio }: { servicio: ServicioPostventa }) {
             requerido: true,
           },
         ]}
+      />
+
+      <Cuadro
+        abierto={form?.tipo === "pago" && !verPrecios}
+        cerrar={() => setForm(null)}
+        titulo="Confirmar el pago"
+        descripcion="Confirme solo cuando Finanzas dé el pedido por cobrado del todo. Si el cliente todavía debe, deje el paso pendiente: el despacho con saldo necesita autorización y queda registrada."
+        boton="El pedido está cobrado"
+        pendiente={pendiente}
+        onEnviar={() => correr(() => confirmarPagoCompleto(servicio.id), "Pago confirmado")}
+        campos={[]}
       />
 
       <Cuadro
@@ -331,8 +366,10 @@ export function PedidoPostventa({ servicio }: { servicio: ServicioPostventa }) {
         cerrar={() => setForm(null)}
         titulo="Registrar la salida"
         descripcion={
-          saldo > 0
-            ? `Ojo: quedan ${servicio.moneda} ${saldo.toLocaleString("es-PE")} por cobrar. Para despachar igual hay que decir quién lo autorizó.`
+          pagoIncompleto
+            ? verPrecios
+              ? `Ojo: quedan ${servicio.moneda} ${saldo.toLocaleString("es-PE")} por cobrar. Para despachar igual hay que decir quién lo autorizó.`
+              : "Ojo: el pedido no figura cobrado del todo. Para despachar igual hay que decir quién lo autorizó."
             : "En provincia, la garantía del equipo empieza a correr con esta fecha."
         }
         boton="Registrar despacho"
@@ -359,7 +396,7 @@ export function PedidoPostventa({ servicio }: { servicio: ServicioPostventa }) {
           { nombre: "recibe", etiqueta: "Quién recibe", requerido: false },
           { nombre: "doc", etiqueta: "DNI de quien recibe", requerido: false },
           { nombre: "telefono", etiqueta: "Su teléfono", requerido: false },
-          ...(saldo > 0
+          ...(pagoIncompleto
             ? [{ nombre: "motivo", etiqueta: "Quién autorizó despachar con saldo, y por qué", area: true, requerido: true }]
             : []),
         ]}

@@ -5,7 +5,17 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
 import { fechaCalendario } from "@/lib/fechas";
-import { queLoFrena, saldoPendiente, avancePedido, etiquetaResponsable, type ServicioPostventa } from "@/lib/postventa";
+import {
+  queLoFrena,
+  saldoPendiente,
+  avancePedido,
+  etiquetaResponsable,
+  puedeVerPrecios,
+  sinPrecios,
+  estadoPago,
+  ETIQUETA_ESTADO_PAGO,
+  type ServicioPostventa,
+} from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -35,12 +45,20 @@ const ETIQUETA_ADJUNTO: Record<string, string> = {
 
 export default async function PedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requerirPerfil();
+  const perfil = await requerirPerfil();
   const supabase = await createClient();
 
   const { data } = await supabase.from("servicios_postventa").select("*").eq("id", id).single();
   if (!data) notFound();
-  const servicio = data as unknown as ServicioPostventa;
+
+  // Las cifras de la venta se tapan acá, en el servidor, antes de armar la
+  // pantalla: al navegador de postventa no le llega ningún monto (Carlos,
+  // 27-08). Lo que sí le llega es en qué está el pago, que es lo que necesita
+  // para decidir si despacha.
+  const verPrecios = puedeVerPrecios(perfil);
+  const crudo = data as unknown as ServicioPostventa;
+  const servicio = verPrecios ? crudo : sinPrecios(crudo);
+  const pago = estadoPago(servicio);
 
   const { data: informe } = servicio.informe_cierre_id
     ? await supabase
@@ -116,7 +134,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          {total > 0 && (
+          {verPrecios && total > 0 && (
             <>
               <span className="font-mono text-sm font-bold tabular-nums text-foreground">
                 {servicio.moneda} {total.toLocaleString("es-PE")}
@@ -132,6 +150,23 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                 {saldo > 0 && ` · faltan ${servicio.moneda} ${saldo.toLocaleString("es-PE")}`}
               </span>
             </>
+          )}
+          {/* Sin cifras: el pago dicho como estado. Es lo que decide el
+              despacho —«si yo no sé si ha pagado completo o parcial, no voy a
+              poder hacer mi trabajo»— sin exponer la venta. */}
+          {!verPrecios && (
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                pago === "completo"
+                  ? "bg-[#1E7F4F]/10 text-[#1E7F4F]"
+                  : pago === "parcial"
+                    ? "bg-amber-500/10 text-amber-800"
+                    : "bg-secondary text-muted-foreground",
+              )}
+            >
+              {ETIQUETA_ESTADO_PAGO[pago]}
+            </span>
           )}
           <span className="text-xs text-muted-foreground">
             {avance.hechos} de {avance.total} pasos
@@ -163,7 +198,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
-      <PedidoPostventa servicio={servicio} />
+      <PedidoPostventa servicio={servicio} verPrecios={verPrecios} />
 
       {/* Los documentos del expediente. Antes venían impresos dentro del file
           que Finanzas bajaba; ahora son estos. */}

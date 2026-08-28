@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaLima, fechaCalendario } from "@/lib/fechas";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { queLoFrena, etiquetaResponsable, type ServicioPostventa } from "@/lib/postventa";
+import { queLoFrena, etiquetaResponsable, puedeVerPrecios, type ServicioPostventa } from "@/lib/postventa";
+import { requerirPerfil } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,9 @@ export default async function AgendaPostventaPage({
   const busqueda = (sp.q ?? "").trim();
   const estado = sp.estado ?? "";
   const supabase = await createClient();
+  // La columna «Monto» del Excel histórico no se le muestra al área: es la
+  // venta del equipo, y esa cifra no es de su interés (Carlos, 27-08).
+  const verPrecios = puedeVerPrecios(await requerirPerfil());
 
   // OJO CON EL FILTRO POR ORIGEN. Hoy las 174 filas de la tabla vienen del
   // Excel («origen = excel») y 106 siguen pendientes: filtrar la cola de
@@ -114,7 +118,7 @@ export default async function AgendaPostventaPage({
 
   return (
     <SeccionPanel
-      titulo="Agenda de postventa"
+      titulo="Calendario de atenciones"
       accion={
         <div className="flex flex-wrap items-center gap-1.5">
           {PESTANAS.map((p) => (
@@ -194,7 +198,7 @@ export default async function AgendaPostventaPage({
             ))}
         </div>
       ) : (
-        <TablaHistorica filas={filas} />
+        <TablaHistorica filas={filas} verPrecios={verPrecios} />
       )}
     </SeccionPanel>
   );
@@ -245,7 +249,7 @@ function FilaAgenda({ servicio: s, alerta }: { servicio: ServicioPostventa; aler
  * "mejoró" al traerlo porque es el documento con el que trabajaron años y tiene
  * que poder leerse igual. Lo único que se le agregó es el buscador.
  */
-function TablaHistorica({ filas }: { filas: ServicioPostventa[] }) {
+function TablaHistorica({ filas, verPrecios }: { filas: ServicioPostventa[]; verPrecios: boolean }) {
   return (
     <div className="overflow-x-auto">
       <Table className="min-w-[1100px]">
@@ -255,7 +259,7 @@ function TablaHistorica({ filas }: { filas: ServicioPostventa[] }) {
             <TableHead>Equipo</TableHead>
             <TableHead>Servicio</TableHead>
             <TableHead>Ubicación</TableHead>
-            <TableHead className="text-right">Monto</TableHead>
+            {verPrecios && <TableHead className="text-right">Monto</TableHead>}
             <TableHead>Abono</TableHead>
             <TableHead>Prueba</TableHead>
             <TableHead>Despacho</TableHead>
@@ -281,9 +285,11 @@ function TablaHistorica({ filas }: { filas: ServicioPostventa[] }) {
               <TableCell className="max-w-[160px] align-top text-[11px] text-muted-foreground whitespace-normal break-words">
                 {s.ubicacion ?? "—"}
               </TableCell>
-              <TableCell className="align-top text-right text-xs tabular-nums">
-                {s.monto != null ? `${s.moneda} ${Number(s.monto).toLocaleString("es-PE")}` : "—"}
-              </TableCell>
+              {verPrecios && (
+                <TableCell className="align-top text-right text-xs tabular-nums">
+                  {s.monto != null ? `${s.moneda} ${Number(s.monto).toLocaleString("es-PE")}` : "—"}
+                </TableCell>
+              )}
               <TableCell className="align-top text-xs">{s.confirmacion_abono ?? "—"}</TableCell>
               <TableCell className="align-top text-xs">{s.prueba_embalaje ?? "—"}</TableCell>
               <TableCell className="align-top text-xs tabular-nums">
