@@ -191,6 +191,14 @@ try {
       calentamiento: f.cabecera.calentamiento ?? null,
       origen_descripcion: "ficha word de Lesly",
       leida_at: new Date().toISOString().slice(0, 10),
+      // Con qué palabras lo piden las comerciales. El buscador del cotizador
+      // solo mira sku, marca, modelo, nombre, capacidad y esto: sin la
+      // descripción del maestro, un equipo recién cargado solo aparecía
+      // tecleando su código. Y el nombre del Word agrega el vocabulario de
+      // Lesly —«COCHE DE TRANSPORTE DE ROPA» para los HM-402, que el maestro
+      // llama «CARRO DE LVANDERIA»—.
+      descripcion_maestro: datosExcel?.equipo ?? null,
+      nombre_ficha: (datosExcel?.archivo ?? "").split("/").pop()?.replace(/\.docx?$/i, "") ?? null,
     };
     if (color) {
       ficha.color = color;

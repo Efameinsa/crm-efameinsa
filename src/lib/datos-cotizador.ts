@@ -72,9 +72,28 @@ function mapearProducto(pr: {
   const ordenSecciones = Array.isArray(ficha?.ordenSecciones)
     ? (ficha!.ordenSecciones as unknown[]).filter((x): x is string => typeof x === "string")
     : ["caracteristicas", "disenoConstruccion", "dimensiones", "medidas"];
-  const caracteristicas = ordenSecciones
+  const caracteristicasEnCajones = ordenSecciones
     .filter((clave) => clave === "caracteristicas" || clave === "disenoConstruccion")
     .flatMap((clave) => lista(clave));
+
+  /* La descripción leída del Word de Lesly (paso 3 de fichas-v) llega en
+     `bloques`, con su tipo: título, subtítulo, viñeta y dato. Desde el 27-08 las
+     fichas se cargan SOLO así, y cuando existe manda sobre los cuatro cajones
+     viejos —igual que en el PDF—. Sin mirarla, los 16 equipos cargados de cero
+     (los seis coches por color entre ellos) salían en el buscador sin una sola
+     característica y con el aviso «Sin ficha técnica cargada», aunque su ficha
+     estaba completa. Lo vio Darwin el 28-08 mientras cotizaban coches. */
+  const bloques = Array.isArray(ficha?.bloques)
+    ? (ficha!.bloques as unknown[]).filter(
+        (b): b is { t?: string; texto: string } =>
+          typeof b === "object" && b !== null && typeof (b as { texto?: unknown }).texto === "string",
+      )
+    : [];
+  const datosDeBloques = bloques.filter((b) => b.t === "dato");
+  const caracteristicas = bloques.length
+    ? bloques.filter((b) => b.t !== "dato").map((b) => b.texto)
+    : caracteristicasEnCajones;
+  const nDimensiones = bloques.length ? datosDeBloques.length : lista("dimensiones").length + lista("medidas").length;
 
   return {
     id: pr.id,
@@ -98,15 +117,17 @@ function mapearProducto(pr: {
     colores: lista("colores"),
     // El texto del maestro de Lesly, para que la búsqueda entienda el
     // vocabulario de las comerciales («x control», «boiler fed», «200g»…).
-    descripcion: texto("descripcion_maestro"),
+    // Y el nombre del Word de Lesly, que trae el vocabulario de la casa: el
+    // maestro llama «CARRO DE LVANDERIA» a lo que todos piden como coche.
+    descripcion: [texto("descripcion_maestro"), texto("nombre_ficha")].filter(Boolean).join(" · ") || null,
     fotoPath: pr.foto_path,
     // Los coches de transporte se fabrican en varios colores y Lesly hizo un
     // Word (con su foto) por color: el selector las muestra como miniaturas
     // para que el comercial vea el que le está ofreciendo al cliente.
     fotosPorColor: mapaDeFotos(ficha?.fotos_por_color),
     caracteristicas,
-    nDimensiones: lista("dimensiones").length + lista("medidas").length,
-    sinFicha: caracteristicas.length + lista("dimensiones").length + lista("medidas").length === 0,
+    nDimensiones,
+    sinFicha: caracteristicas.length + nDimensiones === 0,
     sinFoto: !pr.foto_path,
     // Stock según la columna del Excel de Lesly, guardado al cargar el equipo.
     stock: typeof ficha?.stock_referencia === "number" ? (ficha.stock_referencia as number) : null,
