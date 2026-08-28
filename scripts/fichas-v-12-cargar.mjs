@@ -86,6 +86,32 @@ function clasificar(equipo) {
   return { categoria, segmento };
 }
 
+/**
+ * Apilable o no, en los equipos LG.
+ *
+ * En LG la misma máquina se vende en dos versiones y el maestro las distingue
+ * con una palabra: «GIANT-C MAX APILABLE» contra «GIANT-C MAX SINGLE». Sin eso
+ * en el nombre, LAVMA17 y LAVMA172 salían las dos como «LAVADORA C.» en el
+ * buscador y en la cotización, y el comercial no podía saber cuál estaba
+ * jalando (Darwin, 28-08). Solo LG: ninguna otra marca lo declara.
+ *
+ * No se adivina: si ni el maestro ni el nombre del Word lo dicen, se deja en
+ * blanco y sale en el reporte para que Lesly lo declare.
+ */
+function montajeLG(datosExcel, ficha) {
+  const marca = `${ficha?.cabecera?.marca ?? ""} ${datosExcel?.marca ?? ""}`.toUpperCase();
+  if (!/\bLG\b/.test(marca)) return null;
+  const equipo = (datosExcel?.equipo ?? "").toUpperCase();
+  if (!/LAVADORA|SECADORA/.test(equipo)) return null;
+  // La torre ya es el par lavadora + secadora: la palabra no aplica.
+  if (/TORRE/.test(equipo)) return null;
+  const texto = `${equipo} ${(datosExcel?.archivo ?? "").toUpperCase()}`;
+  if (/\bNO\s+APILABLE\b/.test(texto)) return "No apilable";
+  if (/\bAPILABLE\b|\bSTACK/.test(texto)) return "Apilable";
+  if (/\bSINGLE\b/.test(texto)) return "No apilable";
+  return null;
+}
+
 /** El color de un coche sale del nombre de su Word (…HM 402 AZUL.docx), que es
  *  como Lesly separó las fichas. Sin él, los tres colores del HM-402 se
  *  llamarían igual en la lista del comercial. */
@@ -188,7 +214,19 @@ try {
     // solo si el nombre no lo trae ya («…MOD. HM-402» lo trae).
     const modelo = f.cabecera.modelo ?? "";
     const conModelo = modelo && !base.toUpperCase().includes(modelo.toUpperCase()) ? `${base} ${modelo}` : base;
-    const nombre = color ? `${conModelo} ${color}`.replace(/\s+/g, " ").trim() : base;
+    // En LG el nombre lleva además si es apilable: es lo único que distingue a
+    // la LAVMA17 de la LAVMA172 en la lista y en la cotización.
+    const montaje = montajeLG(datosExcel, f);
+    // Algunos nombres ya la traen («…GIAN C + APILABLE 10.2»): no se repite.
+    const yaLoDice =
+      montaje === "Apilable"
+        ? /\bAPILABLE\b/.test(base.toUpperCase()) && !/\bNO\s+APILABLE\b/.test(base.toUpperCase())
+        : /\bNO\s+APILABLE\b/.test(base.toUpperCase());
+    const nombre = color
+      ? `${conModelo} ${color}`.replace(/\s+/g, " ").trim()
+      : montaje && !yaLoDice
+        ? `${base} ${montaje.toUpperCase()}`.replace(/\s+/g, " ").trim()
+        : base;
     const { categoria, segmento } = clasificar(f.equipo ?? "");
 
     // Las imágenes preparadas, con el nombre que espera el PDF.
@@ -222,6 +260,8 @@ try {
       // llama «CARRO DE LVANDERIA»—.
       descripcion_maestro: datosExcel?.equipo ?? null,
       nombre_ficha: (datosExcel?.archivo ?? "").split("/").pop()?.replace(/\.docx?$/i, "") ?? null,
+      // Solo LG lo declara; en el resto queda en null y no se muestra nada.
+      montaje,
     };
 
     // CUÁNTOS HAY Y DÓNDE ESTÁN. Van en el mismo renglón del Excel que el

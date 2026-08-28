@@ -226,6 +226,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       capacidad: item.productos?.capacidad ?? null,
       categoria: item.productos?.categoria ?? null,
       calentamiento: textoDeFicha(ficha, "calentamiento"),
+      montaje: textoDeFicha(ficha, "montaje"),
       panel: textoDeFicha(ficha, "panel"),
       controles: textoDeFicha(ficha, "controles"),
       colores: listaDeFicha(ficha, "colores"),

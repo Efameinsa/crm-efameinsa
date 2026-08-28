@@ -18,6 +18,8 @@ export interface ProductoCotizable {
   modelo: string;
   nombre: string;
   capacidad: string | null;
+  /** «Apilable» / «No apilable». Solo lo declaran los equipos LG. */
+  montaje?: string | null;
   segmento: "industrial" | "semi_industrial";
   precios_producto: PrecioTier[];
   /** Cómo calienta (Gas GLP, ELÉCTRICA, Gas natural…). Vive en la ficha, no en

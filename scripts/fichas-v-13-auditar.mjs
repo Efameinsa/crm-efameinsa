@@ -149,6 +149,14 @@ const filas = universo.map((p) => {
     if (nb < MIN_BLOQUES) pendientes.push(`Descripción muy corta (${nb} líneas; la media de las fichas es 50)`);
     const faltanCab = ["capacidad", "calentamiento", "panel"].filter((k) => !f.cabecera?.[k]);
     if (faltanCab.length) pendientes.push(`La tabla de cabecera no dice: ${faltanCab.join(", ")}`);
+    // En LG la misma máquina se vende apilable y no apilable, y el maestro lo
+    // dice con una palabra. Cuando no la dice, el comercial no puede saber cuál
+    // está cotizando: se le pide a Lesly.
+    const esLG = /\bLG\b/.test(`${f.cabecera?.marca ?? ""} ${p.marca ?? ""}`.toUpperCase());
+    const texto = `${(p.equipo ?? "").toUpperCase()} ${(p.archivo ?? "").toUpperCase()}`;
+    if (esLG && /LAVADORA|SECADORA/.test(texto) && !/TORRE/.test(texto) && !/APILABLE|SINGLE|STACK/.test(texto))
+      pendientes.push("No dice si es apilable o no (en LG la misma máquina viene de las dos formas)");
+
     const marcaExcel = (p.marca ?? "").toUpperCase().replace(/[^A-Z]/g, "");
     const marcaFicha = (f.cabecera?.marca ?? "").toUpperCase().replace(/[^A-Z]/g, "");
     if (marcaExcel && marcaFicha && !marcaFicha.startsWith(marcaExcel) && !marcaExcel.startsWith(marcaFicha))

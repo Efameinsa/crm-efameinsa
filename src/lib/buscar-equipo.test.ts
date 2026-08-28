@@ -113,3 +113,23 @@ describe("búsqueda por la descripción del maestro", () => {
     expect(r[0]?.id).toBe("rx135");
   });
 });
+
+describe("apilable y no apilable (LG)", () => {
+  /* En LG la misma máquina se vende de las dos formas y el maestro lo escribe
+     como «SINGLE», que no es como lo pide nadie: por eso el montaje viaja
+     aparte y entra en el texto contra el que se busca (28-08). */
+  const lg = [
+    { sku: "LAVMA17", marca: "LG", modelo: "TITAN MAX", nombre: "LAVADORA C. APILABLE", montaje: "Apilable",
+      descripcion: "LAVADORA C., FLOT., MARCA: LG, MOD.: TITAN MAX APILABLE, CAP:17KG" },
+    { sku: "LAVMA172", marca: "LG", modelo: "TITAN MAX", nombre: "LAVADORA C. NO APILABLE", montaje: "No apilable",
+      descripcion: "LAVADORA C., FLOT., MARCA: LG, MOD.: TITAN MAX SINGLE, CAP:17KG" },
+  ];
+
+  it("«no apilable» encuentra la que no lo es, aunque el maestro diga SINGLE", () => {
+    expect(buscarEquipos(lg, "no apilable")[0].sku).toBe("LAVMA172");
+  });
+
+  it("«apilable» sigue devolviendo las dos, con la apilable primero", () => {
+    expect(buscarEquipos(lg, "titan max apilable")[0].sku).toBe("LAVMA17");
+  });
+});

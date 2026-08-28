@@ -206,6 +206,8 @@ export interface ItemPdf {
   marca: string;
   modelo: string;
   capacidad: string | null;
+  /** «Apilable» / «No apilable», solo en los LG que lo declaran. */
+  montaje?: string | null;
   categoria: string | null;
   calentamiento: string | null; // solo secadoras a gas
   panel: string | null; // "Digital-Multifunción"
@@ -660,6 +662,9 @@ export function CotizacionPdf({
                   {/* El color elegido va también en la tabla de precios: es la
                       página que el cliente lee, y dos coches del mismo modelo
                       en colores distintos se distinguen solo por acá. */}
+                  {/* En LG la misma máquina se vende apilable y no apilable:
+                      sin esto, el cliente no sabe cuál le están cotizando. */}
+                  {item.montaje ? ` · ${item.montaje.toUpperCase()}` : ""}
                   {item.color ? ` · COLOR: ${item.color.toUpperCase()}` : ""}
                 </Text>
               </Text>

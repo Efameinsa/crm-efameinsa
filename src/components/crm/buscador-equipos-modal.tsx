@@ -48,6 +48,9 @@ export interface EquipoElegible {
   modelo: string;
   nombre: string;
   capacidad: string | null;
+  /** «Apilable» / «No apilable»: solo lo declara LG, y es lo único que separa a
+   *  la LAVMA17 de la LAVMA172. */
+  montaje?: string | null;
   segmento: "industrial" | "semi_industrial";
   calentamiento?: string | null;
   panel?: string | null;
@@ -160,6 +163,9 @@ function PanelDetalle({
   }
   const specs = [
     equipo.capacidad && ["Capacidad", equipo.capacidad],
+    // En LG la misma máquina viene apilable y no apilable: es lo único que las
+    // distingue, y el comercial tiene que verlo antes de agregarla.
+    equipo.montaje && ["Montaje", equipo.montaje],
     equipo.calentamiento && ["Calentamiento", equipo.calentamiento],
     equipo.panel && ["Panel", equipo.panel],
     equipo.controles && ["Voltaje", equipo.controles],

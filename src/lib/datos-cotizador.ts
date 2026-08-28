@@ -89,6 +89,7 @@ function mapearProducto(pr: {
     // "secadora eléctrica" es como la piden los clientes, pero esa palabra solo
     // vive acá dentro, no en el nombre del equipo.
     calentamiento: texto("calentamiento"),
+    montaje: texto("montaje"),
     panel: texto("panel"),
     controles: texto("controles"),
     colores: lista("colores"),

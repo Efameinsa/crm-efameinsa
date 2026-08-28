@@ -46,6 +46,9 @@ export interface EquipoBuscable {
   capacidad?: string | null;
   /** «ELÉCTRICA», «GAS»… vive en la ficha, no en el nombre, y es como lo piden. */
   calentamiento?: string | null;
+  /** «Apilable» / «No apilable» de los LG: el maestro escribe «SINGLE», y
+   *  nadie busca eso. */
+  montaje?: string | null;
   /** La descripción del maestro de Lesly (CODIFICACION DE EQUIPOS2, 25-08):
    *  «FUERZA 200G, X CONTROL, BOILER FED, TOLVA DE JABÓN…» — el vocabulario
    *  exacto con el que las comerciales piden las máquinas. */
@@ -55,7 +58,7 @@ export interface EquipoBuscable {
 /** Todo el texto contra el que se busca un equipo, ya normalizado. */
 export function textoBuscable(p: EquipoBuscable): string {
   return sinTildes(
-    [p.sku ?? "", p.marca, p.modelo, p.nombre, p.capacidad ?? "", p.calentamiento ?? "", p.descripcion ?? ""].join(" "),
+    [p.sku ?? "", p.marca, p.modelo, p.nombre, p.capacidad ?? "", p.calentamiento ?? "", p.montaje ?? "", p.descripcion ?? ""].join(" "),
   );
 }
 
