@@ -1,0 +1,231 @@
+// ============================================================
+// CRM EFAMEINSA · Leer un informe de cierre de postventa (.doc)
+// ============================================================
+// El área cierra cada venta de servicio o de repuesto con un informe en Word
+// —el mismo formato desde 2024— y esos informes son el único registro que
+// existe de ese trabajo: no hay un Excel maestro de postventa como el de los
+// comerciales. Acá se lee lo que cada informe declara de sí mismo.
+//
+// Lo usan el censo (`_censo-cierres-postventa.mjs`) y la importación
+// (`importar-cierres-postventa.mjs`). Vive en un solo archivo a propósito: dos
+// copias del lector se habrían separado al primer formato raro, y entonces el
+// censo diría una cosa y la carga haría otra.
+
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+import WordExtractor from "word-extractor";
+
+/**
+ * Las carpetas de R:\ tal como las dejó Darwin el 27-08.
+ *
+ * «BRENDA 2023» NO ESTÁ y no es un olvido: sus 80 archivos son byte a byte los
+ * mismos de «CIERRES DE POST VENTA 2026» —adentro dicen 2026— así que alguien
+ * copió la carpeta equivocada al renombrarla. Cargarla duplicaría los cierres
+ * de Hever con otro dueño y otro año. Decisión de Darwin (28-08): ignorarla.
+ */
+export const CARPETAS = [
+  { clave: "hever-2026", ruta: "COPIA DE CIERRES DE POST VENTA 2026" },
+  { clave: "brenda-2024", ruta: "COPIA DE CIERRES POST VENTA BRENDA 2024" },
+  { clave: "brenda-2025", ruta: "COPIA DE CIERRES POST VENTA BRENDA 2025" },
+  { clave: "brenda-2026", ruta: "COPIA DE CIERRES POST VENTA BRENDA ENERO - ABRIL 2026" },
+];
+
+export const extractor = new WordExtractor();
+
+/** Todos los .doc de una carpeta, sin los archivos de bloqueo de Word (~$…). */
+export function listarInformes(dir) {
+  const salida = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name);
+    if (e.isDirectory()) salida.push(...listarInformes(p));
+    else if (/\.docx?$/i.test(e.name) && !e.name.startsWith("~$")) salida.push(p);
+  }
+  return salida;
+}
+
+const norm = (s) => (s ?? "").replace(/\s+/g, " ").trim();
+
+const MONEDA = String.raw`(US\$|U\$D|U\$\$|USD|S\/\.?)?`;
+const CIFRA = String.raw`([\d][\d.,]*\d)`;
+
+const ROTULOS = new Set([
+  "ITEM", "ÍTEM", "DESCRIPCION", "DESCRIPCIÓN", "CONCEPTO", "CANT", "CANTIDAD", "PRECIO", "UNITARIO",
+  "SUB", "TOTAL", "IGV", "UND", "USD", "US", "U", "D", "S", "P", "SOLES", "DOLARES", "DÓLARES",
+  "INCLUIDO", "ESPECIAL", "PARCIAL", "N", "Nº", "N°", "EQUIPOS",
+]);
+
+const REPUESTOS =
+  /REPUESTO|KIT\b|RESISTENCIA|CONTACTOR|VALVULA|VÁLVULA|RODAMIENTO|CORREA|BOMBA|SENSOR|TARJETA|EMPAQUETADURA|MANGUERA|TERMOSTATO|FUSIBLE|POLEA|CHUMACERA|RELE|RELÉ|SUMINISTRO DE/i;
+const SERVICIOS =
+  /SERVICIO DE MANTENIMIENTO|MANTENIMIENTO (PREVENTIVO|CORRECTIVO)|SERVICIO T[EÉ]CNICO|REVISI[OÓ]N T[EÉ]CNICA|DIAGN[OÓ]STICO|SERVICIO DE REPARACI[OÓ]N|SERVICIO DE INSTALACI[OÓ]N|CAPACITACI[OÓ]N/i;
+// La máquina tiene que estar AL PRINCIPIO del ítem: «VARIADOR PARA RODILLO
+// PLANCHADOR MARCA: GMP» es un repuesto de un rodillo, no un rodillo.
+const EQUIPOS =
+  /^(?:[IVX\d]{1,3}[\s|.)-]*)?(LAVADORA|SECADORA|CALDERA|CENTRIFUGA|CENTRÍFUGA|PLANCHADORA|RODILLO (?:DE PLANCHADO|ELECTRICO|ELÉCTRICO|PLANCHADOR)|CALANDRA|MESA (?:DE PLANCHADO|DESMANCHADORA)|COCHE TRANSPORTADOR|HIDROLAVADORA|TERMA|GENERADOR DE VAPOR|T[UÚ]NEL)/i;
+
+/**
+ * ¿Es la fila de títulos de la tabla?
+ *
+ * Se quitan tabulaciones, símbolos de moneda y puntuación: si lo que queda son
+ * puras palabras de encabezado, la línea es el título. Contar rótulos no
+ * alcanzaba —fragmentos como «SUB TOTAL + IGV» quedaban pegados al primer ítem
+ * y lo volvían ilegible— y leer desde «ÍTEM» sin saltar nada era peor: lo que
+ * se clasificaba era el encabezado de la tabla y no lo que se vendió.
+ */
+function esTitulo(linea) {
+  const palabras = linea
+    .replace(/[\t|+$.,:/()°ºª%-]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (palabras.length === 0) return true;
+  if (palabras.length <= 2 && /^(?:[IVX]{1,4}|\d{1,3})$/i.test(palabras[0])) return true;
+  return palabras.every((p) => ROTULOS.has(p.toUpperCase()));
+}
+
+/** Lo que el informe declara de sí mismo. */
+export function leerCierre(texto, archivo) {
+  const t = texto.replace(/\r/g, "\n");
+
+  const cab = t.match(/INFORME\s*N[º°o]?\s*[:\s]*([\d]{1,5})\s*-?\s*(\d{2,4})?[^\n]*/i);
+  const correlativo = cab ? Number(cab[1]) : null;
+  const anioCab = cab && cab[2] ? Number(cab[2].length === 2 ? "20" + cab[2] : cab[2]) : null;
+
+  const fechaM = t.match(/Fecha\s*:?\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/i);
+  const fecha = fechaM
+    ? `${fechaM[3].length === 2 ? "20" + fechaM[3] : fechaM[3]}-${String(fechaM[2]).padStart(2, "0")}-${String(fechaM[1]).padStart(2, "0")}`
+    : null;
+
+  const ruc = (t.match(/\bRUC\s*:?\s*(\d{11})\b/i) ?? t.match(/\b(\d{11})\b/))?.[1] ?? null;
+  const dni = t.match(/\bDNI\s*:?\s*(\d{8})\b/i)?.[1] ?? null;
+
+  // El «Asunto» a veces viene con el RUC pegado adelante —«10446037817 - QUISPE
+  // TAPIA ALBERTINA»— porque quien escribió el informe copió la línea entera de
+  // la factura. El documento ya se guarda en su columna: en la razón social
+  // estorba y además la deja distinta de la del CRM, que es lo que se usa para
+  // buscar al cliente.
+  const cliente =
+    (norm(t.match(/Asunto\s*:?\s*([^\n]+)/i)?.[1]) || norm(t.match(/\bCLIENTE\s*:\s*([^\n]+)/i)?.[1]) || "")
+      .replace(/^\d{8,11}\s*[-–—]\s*/, "")
+      // Y a veces arranca con el resto de los dos puntos del rótulo.
+      .replace(/^[\s:–—-]+/, "")
+      .trim() || null;
+
+  const presupuesto = norm(t.match(/presupuesto\s*(?:N[º°o]?\s*)?([\d]{1,5}\s*-\s*\d{2})/i)?.[1])?.replace(/\s+/g, "");
+
+  // EL TOTAL. Cada quien lo escribió a su manera —«MONTO TOTAL:», «TOTAL»,
+  // «TOTAL, INCLUIDO IGV», «TOTAL incl. IGV»— y la cifra suele caer en la celda
+  // siguiente de la tabla, o en la línea siguiente, con tabulaciones en medio.
+  // Manda la etiqueta más específica: el monto declarado de la venta antes que
+  // el total de la tabla, porque es el que se cobró.
+  const plata = (etiqueta) => {
+    const m = t.match(new RegExp(`${etiqueta}[^\\d\\n]{0,60}?\\n?[^\\d\\n]{0,20}?${MONEDA}\\s*${CIFRA}`, "i"));
+    if (!m) return null;
+    const crudo = m[2].replace(/\s/g, "");
+    const valor = /,\d{2}$/.test(crudo)
+      ? Number(crudo.replace(/\./g, "").replace(",", "."))
+      : Number(crudo.replace(/,/g, ""));
+    if (!Number.isFinite(valor) || valor <= 0) return null;
+    return { monto: valor, moneda: /S\//i.test(m[1] ?? "") ? "PEN" : "USD" };
+  };
+  const total =
+    plata(String.raw`MONTO\s+TOTAL\s+VENTA`) ??
+    plata(String.raw`MONTO\s+TOTAL`) ??
+    plata(String.raw`TOTAL[, ]*\s*(?:incl\.?|INCLUIDO)\s*(?:EL\s*)?IGV`) ??
+    plata(String.raw`\bTOTAL\b(?!\s*VENTA)`);
+
+  // Las series, con el pedazo de texto que las precede: ahí viven la marca, el
+  // modelo y la capacidad de esa máquina.
+  const series = [];
+  for (const m of t.matchAll(/\bSERIE\s*:?\s*([A-Z0-9][A-Z0-9-]{3,})/gi)) {
+    const serie = m[1].toUpperCase();
+    if (series.some((s) => s.serie === serie)) continue;
+    const antes = norm(t.slice(Math.max(0, m.index - 220), m.index)).slice(-160);
+    series.push({ serie, descripcion: antes || null });
+  }
+
+  const iTabla = t.search(/[ÍI]TEM|CONCEPTO\s*\|?\s*CANT/i);
+  const primerItem = (
+    iTabla >= 0
+      ? t
+          .slice(iTabla)
+          .split("\n")
+          .filter((l) => !esTitulo(l.replace(/\t/g, " ")))
+          .slice(0, 8)
+          .join(" ")
+      : t.slice(0, 600)
+  )
+    .replace(/\s+/g, " ")
+    .slice(0, 600);
+
+  const itemServicio = SERVICIOS.test(primerItem);
+  const itemRepuesto = REPUESTOS.test(primerItem);
+  // Un equipo vendido viene con su ficha: marca y modelo debajo del nombre. Un
+  // mantenimiento «de la lavadora tal» nombra la máquina, pero no la ficha así.
+  const itemEquipo = EQUIPOS.test(primerItem.trim()) && /MARCA\s*:/i.test(primerItem) && !itemServicio;
+
+  // La regla, invertida a propósito: en un cierre de POSTVENTA, lo que no es un
+  // servicio ni una máquina es un repuesto. Enumerar nombres de piezas no
+  // termina nunca —termistor, faja, ensamblaje de rodillo, ducto, filtro de
+  // pelusa, variador, cable vulcanizado— y cada nombre que faltaba dejaba el
+  // cierre «sin clasificar», que en la práctica significaba sin importar.
+  const tipo = itemEquipo
+    ? "equipo"
+    : itemServicio
+      ? itemRepuesto
+        ? "mantenimiento+repuesto"
+        : "mantenimiento"
+      : primerItem.trim().length < 10
+        ? "sin_clasificar"
+        : "repuesto";
+
+  // Lo que hay que mirar a mano antes de cargarlo: un cierre de postventa de
+  // más de US$ 3.000 es raro —los mantenimientos y repuestos andan en cientos
+  // de dólares— así que si es tan caro y no está marcado como equipo, o al
+  // revés, alguien tiene que confirmarlo.
+  const caro = (total?.moneda === "PEN" ? (total?.monto ?? 0) / 3.7 : (total?.monto ?? 0)) > 3000;
+
+  return {
+    archivo: archivo.replace(/\\/g, "/"),
+    correlativo,
+    anio: anioCab ?? (fecha ? Number(fecha.slice(0, 4)) : null),
+    fecha,
+    cliente,
+    ruc,
+    dni,
+    presupuesto: presupuesto ?? null,
+    monto: total?.monto ?? null,
+    moneda: total?.moneda ?? null,
+    series,
+    tipo,
+    dudoso: tipo === "sin_clasificar" || (caro && tipo !== "equipo"),
+    primerItem,
+    // EFAMEINSA y OPEN son dos razones sociales distintas, con series de
+    // cotización separadas: la carpeta lo dice.
+    razonSocial: /\/OPEN\//i.test(archivo) ? "OPEN" : /\/EFAMEINSA\//i.test(archivo) ? "EFAMEINSA" : null,
+  };
+}
+
+/** Lee todos los informes de las carpetas de R:\ y devuelve sus fichas. */
+export async function leerTodos(raiz = "R:/", carpetas = CARPETAS) {
+  const salida = [];
+  for (const { clave, ruta } of carpetas) {
+    const dir = join(raiz, ruta);
+    let archivos;
+    try {
+      archivos = listarInformes(dir);
+    } catch {
+      salida.push({ origen: clave, archivo: dir, error: "la carpeta no está en R:\\" });
+      continue;
+    }
+    for (const a of archivos) {
+      try {
+        const d = await extractor.extract(a);
+        salida.push({ origen: clave, ...leerCierre(`${d.getBody()}\n${d.getTextboxes?.() ?? ""}`, a) });
+      } catch (e) {
+        salida.push({ origen: clave, archivo: a.replace(/\\/g, "/"), error: e.message });
+      }
+    }
+  }
+  return salida;
+}
