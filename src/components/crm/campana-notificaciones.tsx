@@ -63,9 +63,11 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
   // devuelve false sin romperse. No hay desajuste de hidratación porque el
   // desplegable solo se dibuja al abrirlo.
   const [silenciada, setSilenciada] = useState(alertaSilenciada);
+  /** Sin leer en toda la base, no solo entre las 15 que se muestran. */
+  const [sinLeerTotal, setSinLeerTotal] = useState(0);
   const contenedorRef = useRef<HTMLDivElement>(null);
 
-  const noLeidas = notificaciones.filter((n) => !n.leida_at).length;
+  const noLeidas = Math.max(notificaciones.filter((n) => !n.leida_at).length, sinLeerTotal);
 
   /**
    * El aviso que ve y oye la persona cuando entra algo nuevo.
@@ -113,14 +115,39 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
   useEffect(() => {
     const supabase = createClient();
 
-    supabase
-      .from("notificaciones")
-      .select("id, tipo, titulo, cuerpo, url, leida_at, created_at")
-      .order("created_at", { ascending: false })
-      .limit(15)
-      .then(({ data }) => {
-        if (data) setNotificaciones(data);
-      });
+    /**
+     * Releer la lista desde la base.
+     *
+     * Existe además del canal en vivo porque el canal no siempre llega: basta
+     * que el navegador duerma la pestaña, que se caiga el websocket o que la
+     * laptop vuelva de suspensión para que el aviso entre a la base y la
+     * campana se quede apagada hasta que la persona recargue. Le pasó a Brenda
+     * el 28-08: «no se están prendiendo el color cuando le llegan las
+     * notificaciones». Se relee al volver a la pestaña y cada minuto.
+     */
+    async function refrescar() {
+      const { data } = await supabase
+        .from("notificaciones")
+        .select("id, tipo, titulo, cuerpo, url, leida_at, created_at")
+        .order("created_at", { ascending: false })
+        .limit(15);
+      if (data) setNotificaciones(data);
+      // Las sin leer se cuentan aparte: si quedaron más atrás de las 15
+      // últimas, la campana igual tiene que prenderse.
+      const { count } = await supabase
+        .from("notificaciones")
+        .select("id", { count: "exact", head: true })
+        .is("leida_at", null);
+      setSinLeerTotal(count ?? 0);
+    }
+
+    refrescar();
+    const alVolver = () => {
+      if (document.visibilityState === "visible") refrescar();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("focus", alVolver);
+    const repaso = setInterval(refrescar, 60000);
 
     const canal = supabase
       .channel("notificaciones-propias")
@@ -130,6 +157,7 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
         (payload) => {
           const nueva = payload.new as Notificacion;
           setNotificaciones((prev) => [nueva, ...prev].slice(0, 15));
+          setSinLeerTotal((n) => n + 1);
           avisar(nueva);
         },
       )
@@ -142,6 +170,9 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
     return () => {
       supabase.removeChannel(canal);
       soltarPreparacion();
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("focus", alVolver);
+      clearInterval(repaso);
     };
     // `avisar` no entra en las dependencias a propósito: se recrearía en cada
     // render y volvería a suscribir el canal.
@@ -180,6 +211,7 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
   async function alClickearNotificacion(n: Notificacion) {
     if (!n.leida_at) {
       setNotificaciones((prev) => prev.map((x) => (x.id === n.id ? { ...x, leida_at: new Date().toISOString() } : x)));
+      setSinLeerTotal((v) => Math.max(0, v - 1));
       await marcarNotificacionLeida(n.id);
     }
     setAbierto(false);
@@ -188,6 +220,7 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
 
   async function alMarcarTodas() {
     setNotificaciones((prev) => prev.map((x) => ({ ...x, leida_at: x.leida_at ?? new Date().toISOString() })));
+    setSinLeerTotal(0);
     await marcarTodasLeidas();
   }
 

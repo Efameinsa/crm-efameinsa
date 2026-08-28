@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { proyectarCierre } from "@/lib/acciones/oportunidades";
 import { cn } from "@/lib/utils";
+import { fechaCalendario } from "@/lib/fechas";
 import type { Potencial } from "@/lib/potenciales-semana";
 
 /**
@@ -52,6 +53,12 @@ export function SemanaPotenciales({
   const enSemana = (p: Potencial) => p.cierreProyectado !== null && p.cierreProyectado >= dias[0].iso && p.cierreProyectado <= dias[5].iso;
   const porDia = new Map<string, Potencial[]>(dias.map((d) => [d.iso, []]));
   const porUbicar: Potencial[] = [];
+  // En negociación pero con la fecha fuera de la semana que se está mirando.
+  // Hasta el 28-08 estos desaparecían de la pantalla: no entraban en ningún día
+  // y «Por ubicar» solo acepta los que no tienen fecha. Así se perdió de vista
+  // el COUNTRY CLUB LOS CONDORES, proyectado para el domingo 30 —el cuadro
+  // llega hasta el sábado—, aunque su etapa dijera Potencial.
+  const enOtraFecha: Potencial[] = [];
   for (const p of potenciales) {
     if (enSemana(p)) porDia.get(p.cierreProyectado!)!.push(p);
     // Sin fecha, literal. Hasta el 27-08 caía acá también lo que tenía fecha
@@ -59,7 +66,9 @@ export function SemanaPotenciales({
     // dificulta un poco la vista, ¿qué es esto?», ing. Carlos): se abría una
     // oportunidad a ponerle fecha y ya la tenía, para otro día.
     else if (p.etapa === "potencial" && p.cierreProyectado === null) porUbicar.push(p);
+    else if (p.etapa === "potencial") enOtraFecha.push(p);
   }
+  enOtraFecha.sort((a, b) => (a.cierreProyectado ?? "").localeCompare(b.cierreProyectado ?? ""));
   const totalSemana = [...porDia.values()].flat().reduce((s, p) => s + (p.montoUsd ?? 0), 0);
 
   const semanaVecina = (delta: number) => {
@@ -122,6 +131,25 @@ export function SemanaPotenciales({
         </div>
       </div>
 
+      {/* En negociación, con fecha para otro día: no se mezclan con la semana
+          —el cuadro sirve para proyectar ESTOS seis días— pero tampoco pueden
+          desaparecer, que es lo que pasaba hasta el 28-08. */}
+      {enOtraFecha.length > 0 && (
+        <div className="rounded-lg border border-border">
+          <div className="border-b border-border px-3 py-2">
+            <p className="text-xs font-bold">En negociación, proyectadas para otra fecha ({enOtraFecha.length})</p>
+            <p className="text-[11px] text-muted-foreground">
+              Están en Potencial pero su cierre cae fuera de esta semana. Cámbieles la fecha para traerlas al cuadro.
+            </p>
+          </div>
+          <div className="grid gap-1.5 p-1.5 sm:grid-cols-2 lg:grid-cols-4">
+            {enOtraFecha.map((p) => (
+              <TarjetaPotencial key={p.id} p={p} esGerencia={esGerencia} vencido={false} conFecha />
+            ))}
+          </div>
+        </div>
+      )}
+
       <p className="text-[11px] text-muted-foreground">
         Entran las oportunidades en negociación y cualquier otra abierta con fecha proyectada esta semana. El monto es
         el de la última cotización enviada (o el estimado si aún no hay). Si un cierre no se dio, cámbiele la fecha —
@@ -131,7 +159,18 @@ export function SemanaPotenciales({
   );
 }
 
-function TarjetaPotencial({ p, esGerencia, vencido }: { p: Potencial; esGerencia: boolean; vencido: boolean }) {
+function TarjetaPotencial({
+  p,
+  esGerencia,
+  vencido,
+  conFecha = false,
+}: {
+  p: Potencial;
+  esGerencia: boolean;
+  vencido: boolean;
+  /** Fuera de la semana la fecha es el dato que falta para entender la tarjeta. */
+  conFecha?: boolean;
+}) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -156,6 +195,11 @@ function TarjetaPotencial({ p, esGerencia, vencido }: { p: Potencial; esGerencia
           </span>
           {esGerencia && <span className="rounded-full bg-secondary px-1.5 text-[10px] font-semibold">{p.comercialCodigo ?? "—"}</span>}
         </span>
+        {conFecha && p.cierreProyectado && (
+          <span className="mt-0.5 block text-[10px] font-semibold text-muted-foreground">
+            Cierre proyectado: {fechaCalendario(p.cierreProyectado)}
+          </span>
+        )}
         {vencido && <span className="mt-0.5 block text-[10px] font-semibold text-destructive">No cerró — jalarlo a otro día</span>}
       </summary>
 
