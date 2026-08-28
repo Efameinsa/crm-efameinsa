@@ -81,6 +81,21 @@ export async function GET(request: Request) {
     />,
   );
 
+  // Queda grabado, y la última generación del día pisa a la anterior: «la que
+  // se genere al cierre del día debería ser la que queda» (Carlos, 28-08). Se
+  // guarda DESPUÉS de dibujar el PDF y sin bloquear la respuesta si falla: el
+  // reporte que la persona está esperando no se cae porque el registro no pudo
+  // escribirse.
+  try {
+    await supabase.rpc("guardar_reporte_diario", {
+      p_comercial: comercialId,
+      p_fecha: fecha,
+      p_contenido: { ...r, proyeccion, fecha_larga: fechaLarga },
+    });
+  } catch {
+    // Sin registro, pero con reporte. Es el orden correcto de prioridades.
+  }
+
   const nombre = `Reporte ${r.comercial.codigo ?? ""} ${fecha}.pdf`.replace(/\s+/g, " ").trim();
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
