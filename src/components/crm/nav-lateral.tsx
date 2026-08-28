@@ -86,6 +86,12 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
 //     los casos técnicos — que ahora sí se llaman así.
 const ENLACES_POSTVENTA = [
   { href: "/postventa", etiqueta: "Mi día", icono: Wrench },
+  // Carlos lo pidió entrando con la cuenta de Hever el 28-08 a las 10:10:
+  // «¿en postventa no tenemos agenda?… ¿dónde genero mi agenda?». El calendario
+  // responde cuándo se atiende a un cliente; la agenda es otra cosa —es donde
+  // están el reporte del día y el cierre de la semana— y al armarle el menú del
+  // área se la habíamos quitado.
+  { href: "/comercial/agenda", etiqueta: "Mi agenda", icono: ClipboardList },
   { href: "/postventa/agenda", etiqueta: "Calendario", icono: CalendarDays },
   { href: "/postventa/casos", etiqueta: "Casos", icono: LifeBuoy },
   { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
