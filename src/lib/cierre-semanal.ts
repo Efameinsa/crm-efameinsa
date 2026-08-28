@@ -18,8 +18,12 @@ import { cargarPotenciales, resumirSemana, type ProyeccionSemana } from "@/lib/p
  *  · PROYECTADO: el mismo `resumirSemana()` que dibuja el cuadro de potenciales
  *    y el pie de la agenda. Tiene que ser el mismo o el cierre discutiría
  *    contra una cifra que el comercial nunca vio.
- *  · VENDIDO: las ventas del CRM de esa semana. `origen = 'crm'` deja fuera las
- *    importadas del Excel histórico, que no son de esta jornada.
+ *  · VENDIDO: TODAS las ventas de esa semana, hayan nacido en el CRM o hayan
+ *    llegado por el import del Excel del comercial (28-08). Antes se filtraba
+ *    `origen = 'crm'` y el cierre de Katerine daba «vendido cero» la semana en
+ *    que había vendido US$ 21.000: la venta existía, pero como el dato entró
+ *    por la migración, su propio cierre la ignoraba mientras el reporte de
+ *    gerencia sí la contaba. La semana ya acota la consulta.
  *  · Todo en dólares, con el tipo de cambio de `parametros` — el mismo que usa
  *    el cuadro de potenciales.
  *
@@ -84,7 +88,6 @@ export async function cargarCierreSemanal(lunes: string, comercialId: string): P
         .from("ventas")
         .select("fecha_venta, monto_total, moneda, oportunidades!inner(comercial_id, cuentas(razon_social))")
         .eq("oportunidades.comercial_id", comercialId)
-        .eq("origen", "crm")
         .gte("fecha_venta", lunes)
         .lte("fecha_venta", sabado)
         .limit(300),

@@ -92,11 +92,18 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       .not("nota", "like", "[Histórico%")
       .order("realizada_at", { ascending: false })
       .limit(400),
+    // ⚠️ SIN filtro por `origen` (28-08). Antes pedía solo `origen = 'crm'` y
+    // el mes de Katerine salía en blanco: sus ocho ventas de agosto —incluida
+    // la de US$ 21.000 de SAN AGUSTIN PARACAS del 22— entraron por el import
+    // de su Excel, así que quedaron como `historico_excel`. Ella las cerró
+    // este mes; que el dato haya llegado por una migración es asunto nuestro,
+    // no suyo. Gerencia ya las cuenta (reportes.ts no filtra por origen) y la
+    // agenda las escondía: la misma tabla daba dos números distintos. El mes
+    // acota la consulta, así que el histórico viejo no se cuela.
     supabase
       .from("ventas")
       .select("id, fecha_venta, monto_total, moneda, oportunidad_id, oportunidades!inner(comercial_id, cuentas(razon_social))")
       .eq("oportunidades.comercial_id", perfil.id)
-      .eq("origen", "crm")
       .gte("fecha_venta", inicioMes)
       .lte("fecha_venta", finMes)
       .limit(200),
