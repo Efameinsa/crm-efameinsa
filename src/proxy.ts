@@ -48,11 +48,23 @@ export async function proxy(request: NextRequest) {
   if (user) {
     const { data: perfil } = await supabase
       .from("perfiles")
-      .select("rol")
+      .select("rol, es_postventa, es_operaciones")
       .eq("id", user.id)
       .single();
 
-    const home = perfil ? RUTA_POR_ROL[perfil.rol] : null;
+    // A DÓNDE CAE CADA UNO AL ENTRAR. Por rol a secas, postventa y la cuenta
+    // de operaciones aterrizaban en «Mi día» del comercial —una pantalla que
+    // para ellas sale vacía y que ni siquiera figura en su menú—. Ahora cada
+    // una entra por donde trabaja: operaciones por sus autorizaciones (0114) y
+    // postventa por su día (no confundir con `hace_postventa`, el comercial
+    // que además vende mantenimiento: ese sigue siendo comercial).
+    const home = !perfil
+      ? null
+      : perfil.es_operaciones
+        ? "/operaciones"
+        : perfil.es_postventa && perfil.rol === "comercial"
+          ? "/postventa"
+          : RUTA_POR_ROL[perfil.rol];
 
     if (esRutaLogin && home) {
       const url = request.nextUrl.clone();

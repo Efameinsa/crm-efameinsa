@@ -25,6 +25,7 @@ import {
   Target,
   Route,
   ShieldCheck,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -113,11 +114,16 @@ const ENLACES_POSTVENTA = [
 // es su pipeline mirado como campaña de llamadas.
 const ENLACE_RUTA = { href: "/comercial/ruta", etiqueta: "Ruta de mantenimiento", icono: Route };
 
+// La pantalla del administrador de operaciones (0114): el código que dicta y
+// lo que se hizo con él.
+const ENLACE_OPERACIONES = { href: "/operaciones", etiqueta: "Autorizaciones", icono: KeyRound };
+
 export function NavLateral({
   rol,
   esPostventa = false,
   hacePostventa = false,
   esSoporte = false,
+  esOperaciones = false,
   plegada = false,
 }: {
   rol: RolUsuario;
@@ -127,6 +133,11 @@ export function NavLateral({
    * los demás sepan usarlas.
    */
   esSoporte?: boolean;
+  /**
+   * Administrador de operaciones (0114): su trabajo es autorizar, así que su
+   * menú abre por ahí y no por ocho pantallas que no son suyas.
+   */
+  esOperaciones?: boolean;
   /**
    * Comercial que además vende mantenimiento y repuestos (migración 0093).
    * Le suma un enlace, no le cambia la barra: sigue siendo comercial.
@@ -145,18 +156,40 @@ export function NavLateral({
   // La cuenta de soporte (0101) ve las dos barras: la del comercial entera y
   // las pantallas del área. Al pegarlas hay que renombrar «Mi día» del área,
   // que si no aparece dos veces con el mismo nombre y nadie sabe cuál es cuál.
-  const enlaces = esSoporte
+  // POR QUÉ ESTA CUENTA VA POR SECCIONES Y LAS DEMÁS NO.
+  //
+  // Lesly no tiene cartera, ni oportunidades, ni cotizaciones, ni cierres: su
+  // perfil no tiene código comercial. Y sin embargo su menú abría con ocho
+  // pantallas tituladas «Mi día», «Mis oportunidades», «Mi cartera»… que le
+  // salían las ocho vacías. Están ahí a propósito desde la 0101 —tiene que ver
+  // lo mismo que ve un comercial para poder acompañarlo—, así que no se quitan:
+  // se agrupan y se dice qué son. Un menú de trece enlaces pegados, donde los
+  // ocho primeros no son de uno y no lo aclara nada, no es un menú, es una
+  // adivinanza.
+  //
+  // Y el orden cambia: primero lo que ella sí hace —autorizar y postventa—, y
+  // al final lo que mira para ayudar a otros.
+  const secciones: { titulo?: string; enlaces: typeof ENLACES_POSTVENTA }[] = esSoporte
     ? [
-        ...ENLACES_POR_ROL[rol],
-        ...ENLACES_POSTVENTA.filter((e) => e.href.startsWith("/postventa") || e.href === "/comercial/ruta").map((e) =>
-          e.href === "/postventa" ? { ...e, etiqueta: "Postventa" } : e,
-        ),
+        ...(esOperaciones ? [{ titulo: "Operaciones", enlaces: [ENLACE_OPERACIONES] }] : []),
+        {
+          titulo: "Postventa",
+          enlaces: ENLACES_POSTVENTA.filter(
+            (e) => e.href.startsWith("/postventa") || e.href === "/comercial/ruta",
+          ).map((e) => (e.href === "/postventa" ? { ...e, etiqueta: "Mi día en postventa" } : e)),
+        },
+        { titulo: "Como lo ve un comercial", enlaces: ENLACES_POR_ROL[rol] },
       ]
-    : esPostventa
-    ? ENLACES_POSTVENTA
-    : hacePostventa
-      ? [...ENLACES_POR_ROL[rol], ENLACE_RUTA]
-      : ENLACES_POR_ROL[rol];
+    : [
+        {
+          enlaces: esPostventa
+            ? ENLACES_POSTVENTA
+            : hacePostventa
+              ? [...ENLACES_POR_ROL[rol], ENLACE_RUTA]
+              : ENLACES_POR_ROL[rol],
+        },
+      ];
+  const enlaces = secciones.flatMap((s) => s.enlaces);
 
   // El enlace activo es el de coincidencia más específica (más larga), no
   // solo el primero cuyo prefijo calce — así una ruta anidada como
@@ -167,7 +200,21 @@ export function NavLateral({
 
   return (
     <nav className="flex flex-col gap-0.5 p-3">
-      {enlaces.map((enlace) => {
+      {secciones.map((seccion, s) => (
+        <div key={seccion.titulo ?? s} className="contents">
+          {seccion.titulo && !plegada && (
+            <p
+              className={cn(
+                "px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40",
+                s > 0 && "pt-4",
+              )}
+            >
+              {seccion.titulo}
+            </p>
+          )}
+          {/* Plegada no hay dónde escribir el título: una línea separa igual. */}
+          {seccion.titulo && plegada && s > 0 && <span className="my-2 h-px bg-sidebar-accent/60" />}
+          {seccion.enlaces.map((enlace) => {
         const activo = enlace.href === activoHref;
         const Icono = enlace.icono;
         return (
@@ -191,7 +238,9 @@ export function NavLateral({
           </Link>
           </div>
         );
-      })}
+          })}
+        </div>
+      ))}
     </nav>
   );
 }

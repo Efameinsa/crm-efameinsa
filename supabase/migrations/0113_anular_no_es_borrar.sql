@@ -13,7 +13,7 @@
 -- deja de contar. Es la regla del ERP que ya usan, traída tal cual.
 --
 -- Y no lo hace quien se equivocó: «el comercial no puede hacer absolutamente
--- nada de cambios». Anula Central o gerencia, con el código de dos minutos del
+-- nada de cambios». Anula Central o gerencia, con el código de diez minutos del
 -- supervisor —el mismo mecanismo de la 0092 y la 0107— y dejando escrito por
 -- qué. «Central le dirá: oye Leslie, necesito anular esto. Código, anula.»
 

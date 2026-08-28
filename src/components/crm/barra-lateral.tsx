@@ -29,11 +29,14 @@ export function BarraLateral({
   esPostventa,
   hacePostventa = false,
   esSoporte = false,
+  esOperaciones = false,
 }: {
   rol: RolUsuario;
   esPostventa: boolean;
   hacePostventa?: boolean;
   esSoporte?: boolean;
+  /** Administrador de operaciones (0114): dicta el código, no ejecuta. */
+  esOperaciones?: boolean;
 }) {
   const [plegada, setPlegada] = useState(false);
 
@@ -73,12 +76,22 @@ export function BarraLateral({
           priority
         />
       </div>
-      <NavLateral rol={rol} esPostventa={esPostventa} hacePostventa={hacePostventa} esSoporte={esSoporte} plegada={plegada} />
+      <NavLateral
+        rol={rol}
+        esPostventa={esPostventa}
+        hacePostventa={hacePostventa}
+        esSoporte={esSoporte}
+        esOperaciones={esOperaciones}
+        plegada={plegada}
+      />
 
-      {/* El código con el que gerencia autoriza que Central corrija una
-          derivación (0092). Vive acá porque es donde el supervisor lo tiene a
-          mano cuando lo llaman, sin salir de lo que estaba haciendo. */}
-      {(rol === "gerencia" || rol === "admin") && <PinSupervisor plegada={plegada} />}
+      {/* El código con el que se autoriza una corrección. Desde el 28-08 no lo
+          tiene solo gerencia: también el administrador de operaciones, porque
+          sin gerencia conectada no se autorizaba nada y eso es justo lo que
+          Carlos quiso evitar —«mañana no estás… Lesly se encarga»— (0114).
+          Vive acá porque es donde lo tiene a mano cuando la llaman, sin salir
+          de lo que estaba haciendo. */}
+      {(rol === "gerencia" || rol === "admin" || esOperaciones) && <PinSupervisor plegada={plegada} />}
 
       {/* A continuación de la lista, como un ítem más — pegado al borde
           inferior de la pantalla nadie lo veía (reportado 25-08). */}

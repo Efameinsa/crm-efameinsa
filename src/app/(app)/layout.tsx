@@ -13,6 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         esPostventa={perfil.es_postventa ?? false}
         hacePostventa={perfil.hace_postventa ?? false}
         esSoporte={perfil.es_soporte ?? false}
+        esOperaciones={perfil.es_operaciones ?? false}
       />
       <div className="flex flex-1 flex-col">
         <EncabezadoUsuario perfil={perfil} />

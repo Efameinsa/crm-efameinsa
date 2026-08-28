@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
  * venta ya está contando y si postventa ya está despachando la máquina—.
  * Después hay que escribir por qué, que es lo que va a leer el comercial cuando
  * pregunte qué pasó con su cierre. Y recién al final el código del supervisor,
- * que dura dos minutos: quien se equivocó no anula lo suyo.
+ * que dura diez minutos: quien se equivocó no anula lo suyo.
  */
 export function AnularCierreBoton({ informeId, codigo }: { informeId: string; codigo: string }) {
   const [abierto, setAbierto] = useState(false);
@@ -125,7 +125,7 @@ export function AnularCierreBoton({ informeId, codigo }: { informeId: string; co
               className="w-32 rounded-md border border-amber-400 bg-background px-2 py-1.5 text-center font-mono text-lg tracking-[0.3em] outline-none"
             />
             <span className="block text-[11px] text-amber-900/80">
-              Se lo pide a gerencia: lo tiene en su pantalla y dura dos minutos.
+              Se lo pide a gerencia: lo tiene en su pantalla y dura diez minutos.
             </span>
           </label>
         </div>

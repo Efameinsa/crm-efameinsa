@@ -60,6 +60,7 @@ export interface Perfil {
   hace_postventa?: boolean;
   /** Acompaña a los usuarios: ve las dos barras y no se le mide como comercial (0101). */
   es_soporte?: boolean;
+  es_operaciones?: boolean;
   created_at: string;
   updated_at: string;
 }
