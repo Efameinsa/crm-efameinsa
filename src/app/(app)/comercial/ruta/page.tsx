@@ -34,12 +34,26 @@ export const dynamic = "force-dynamic";
 
 const PESTANAS: ColumnaRuta[] = ["por_llamar", "llamados", "cotizados", "cerrados"];
 
+/**
+ * Cuántas filas se pintan de entrada.
+ *
+ * Con los tres años de cierres importados esta pantalla pasó a tener 248 filas
+ * para Ariana, y pintarlas todas mandaba 800 KB de HTML por una lista que se
+ * trabaja de a diez llamadas. Se muestran las primeras y el resto está a un
+ * clic — el orden ya pone arriba lo que hay que hacer hoy, así que la fila 200
+ * no es urgente por definición.
+ */
+const POR_PAGINA = 40;
+
 interface OportunidadRuta {
   id: string;
   etapa: string;
   proxima_accion: string | null;
   proxima_accion_at: string | null;
   created_at: string;
+  cerrada_at: string | null;
+  monto_estimado: number | null;
+  moneda: string | null;
   cuenta_id: string | null;
   cuentas: {
     id: string;
@@ -54,7 +68,7 @@ interface OportunidadRuta {
 export default async function RutaMantenimientoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string; q?: string }>;
+  searchParams: Promise<{ ver?: string; q?: string; todos?: string }>;
 }) {
   const sp = await searchParams;
   const pestana: ColumnaRuta = PESTANAS.includes(sp.ver as ColumnaRuta) ? (sp.ver as ColumnaRuta) : "por_llamar";
@@ -71,7 +85,7 @@ export default async function RutaMantenimientoPage({
   let consulta = supabase
     .from("oportunidades")
     .select(
-      "id, etapa, proxima_accion, proxima_accion_at, created_at, cuenta_id, cuentas(id, razon_social, distrito, provincia, ultima_venta_at, comercial_id)",
+      "id, etapa, proxima_accion, proxima_accion_at, created_at, cerrada_at, monto_estimado, moneda, cuenta_id, cuentas(id, razon_social, distrito, provincia, ultima_venta_at, comercial_id)",
     )
     .eq("tipo_postventa", "mantenimiento")
     .limit(500);
@@ -84,7 +98,8 @@ export default async function RutaMantenimientoPage({
 
   // La última gestión de cada oportunidad y el equipo de cada cliente, en dos
   // consultas y no en 103: la lista completa cabe de sobra en memoria.
-  const [{ data: actividades }, { data: equipos }, { data: perfiles }] = await Promise.all([
+  const [{ data: actividades }, { data: equipos }, { data: perfiles }, { data: contactos }, { data: ventas }] =
+    await Promise.all([
     ids.length
       ? supabase
           .from("actividades")
@@ -99,8 +114,29 @@ export default async function RutaMantenimientoPage({
           .select("cuenta_id, serie, modelo_texto, ultimo_mantenimiento, fecha_venta")
           .in("cuenta_id", cuentaIds)
       : Promise.resolve({ data: [] }),
-    supabase.from("perfiles").select("id, nombre"),
-  ]);
+      supabase.from("perfiles").select("id, nombre"),
+      // El teléfono al que hay que llamar. Sin esto, cada llamada empieza
+      // abriendo la ficha del cliente.
+      cuentaIds.length
+        ? supabase
+            .from("contactos")
+            .select("cuenta_id, nombre, telefono, es_principal")
+            .in("cuenta_id", cuentaIds)
+            .not("telefono", "is", null)
+        : Promise.resolve({ data: [] }),
+      // Cuándo compró de verdad. `cuentas.ultima_venta_at` está vacío en la
+      // mayoría de estos clientes —viene del CRM, y estas ventas son de los
+      // Excel y de los informes—, y una columna que dice «—» en ocho de cada
+      // diez filas no informa nada.
+      cuentaIds.length
+        ? supabase
+            .from("ventas")
+            .select("fecha_venta, oportunidades!inner(cuenta_id)")
+            .in("oportunidades.cuenta_id", cuentaIds)
+            .order("fecha_venta", { ascending: false })
+            .limit(2000)
+        : Promise.resolve({ data: [] }),
+    ]);
 
   const ultimaGestion = new Map<string, { realizada_at: string; nota: string | null }>();
   for (const a of (actividades ?? []) as { oportunidad_id: string; realizada_at: string; nota: string | null }[]) {
@@ -131,6 +167,28 @@ export default async function RutaMantenimientoPage({
 
   const nombrePorPerfil = new Map((perfiles ?? []).map((p) => [p.id as string, p.nombre as string]));
 
+  // Un contacto por cuenta: manda el marcado como principal.
+  const contactoPorCuenta = new Map<string, { nombre: string | null; telefono: string | null }>();
+  for (const c of (contactos ?? []) as {
+    cuenta_id: string;
+    nombre: string | null;
+    telefono: string | null;
+    es_principal: boolean | null;
+  }[]) {
+    const previo = contactoPorCuenta.get(c.cuenta_id);
+    if (!previo || c.es_principal) contactoPorCuenta.set(c.cuenta_id, { nombre: c.nombre, telefono: c.telefono });
+  }
+
+  const ultimaCompra = new Map<string, string>();
+  for (const v of (ventas ?? []) as unknown as {
+    fecha_venta: string;
+    oportunidades: { cuenta_id: string } | null;
+  }[]) {
+    const cuentaId = v.oportunidades?.cuenta_id;
+    // Vienen de la más nueva a la más vieja: la primera de cada cuenta manda.
+    if (cuentaId && !ultimaCompra.has(cuentaId)) ultimaCompra.set(cuentaId, v.fecha_venta);
+  }
+
   const filas: FilaRuta[] = lista.map((o) => {
     const gestion = ultimaGestion.get(o.id);
     const equipo = o.cuenta_id ? equipoPorCuenta.get(o.cuenta_id) : undefined;
@@ -141,7 +199,11 @@ export default async function RutaMantenimientoPage({
       razonSocial: o.cuentas?.razon_social ?? "Cliente sin identificar",
       zona: o.cuentas?.distrito ?? o.cuentas?.provincia ?? null,
       etapa: o.etapa,
-      compraAt: o.cuentas?.ultima_venta_at ?? equipo?.fecha_venta ?? null,
+      compraAt:
+        (o.cuenta_id ? ultimaCompra.get(o.cuenta_id) : null) ??
+        o.cuentas?.ultima_venta_at ??
+        equipo?.fecha_venta ??
+        null,
       ultimoMantenimiento: equipo?.ultimo_mantenimiento ?? null,
       serie: equipo?.serie ?? null,
       equipo: equipo?.modelo_texto ?? null,
@@ -149,6 +211,11 @@ export default async function RutaMantenimientoPage({
       ultimaNota: gestion?.nota ?? null,
       proximaAccion: o.proxima_accion,
       proximaAccionAt: o.proxima_accion_at,
+      monto: o.monto_estimado,
+      moneda: o.moneda,
+      cerradaAt: o.cerrada_at,
+      contacto: o.cuenta_id ? (contactoPorCuenta.get(o.cuenta_id)?.nombre ?? null) : null,
+      telefono: o.cuenta_id ? (contactoPorCuenta.get(o.cuenta_id)?.telefono ?? null) : null,
       carteraDe:
         duenoCuenta && duenoCuenta !== perfil.id ? (nombrePorPerfil.get(duenoCuenta) ?? "otro comercial") : null,
     };
@@ -167,6 +234,9 @@ export default async function RutaMantenimientoPage({
     ),
     hoy,
   );
+  const todos = sp.todos === "1";
+  const mostradas = todos ? visibles : visibles.slice(0, POR_PAGINA);
+  const cerrada = pestana === "cerrados" || pestana === "cotizados";
 
   return (
     <SeccionPanel
@@ -221,9 +291,17 @@ export default async function RutaMantenimientoPage({
         </p>
       ) : (
         <div className="space-y-2">
-          {visibles.map((f) => (
-            <FilaRutaMantenimiento key={f.id} fila={f} hoy={hoy} />
+          {mostradas.map((f) => (
+            <FilaRutaMantenimiento key={f.id} fila={f} hoy={hoy} cerrada={cerrada} />
           ))}
+          {mostradas.length < visibles.length && (
+            <Link
+              href={`/comercial/ruta?ver=${pestana}&todos=1${busqueda ? `&q=${encodeURIComponent(busqueda)}` : ""}`}
+              className="block rounded-md border border-dashed border-border p-2.5 text-center text-xs font-medium text-primary hover:bg-accent"
+            >
+              Ver los {visibles.length - mostradas.length} restantes
+            </Link>
+          )}
         </div>
       )}
     </SeccionPanel>

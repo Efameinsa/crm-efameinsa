@@ -81,12 +81,18 @@ export default async function CasosPostventaPage() {
   const supabase = await createClient();
   const verTodo = perfil.rol === "gerencia" || perfil.rol === "admin";
 
+  // UN CASO ES UN CASO: lo que llegó por Central o se registró acá mismo
+  // (origen = crm). Las campañas de mantenimiento y los tres años de cierres
+  // importados también tienen `tipo_postventa`, y sin este filtro llenaban esta
+  // lista con 145 clientes por llamar que no son casos abiertos — esos viven en
+  // la ruta de mantenimiento, que es otra pregunta y otra pantalla.
   let consultaCasos = supabase
     .from("oportunidades")
     .select(
       "id, etapa, intencion, tipo_postventa, serie_texto, codigo_error, created_at, proxima_accion, proxima_accion_at, equipo_id, cuentas(razon_social)",
     )
     .not("tipo_postventa", "is", null)
+    .eq("origen", "crm")
     .not("etapa", "in", "(venta,rechazada)")
     .order("created_at", { ascending: false })
     .limit(60);
@@ -142,7 +148,12 @@ export default async function CasosPostventaPage() {
         {abiertos.length === 0 ? (
           <p className="max-w-prose text-sm text-muted-foreground">
             No hay casos abiertos. Acá caen los que deriva Central y los que se registran acá mismo cuando el cliente
-            llama — empezando por el número de serie, que es lo que trae garantía, ciclos y último mantenimiento.
+            llama — empezando por el número de serie, que es lo que trae garantía, ciclos y último mantenimiento. Los
+            clientes a los que hay que ofrecerles el mantenimiento no son casos: están en{" "}
+            <Link href="/comercial/ruta" className="font-medium text-primary hover:underline">
+              la ruta de mantenimiento
+            </Link>
+            .
           </p>
         ) : (
           <div className="space-y-2">

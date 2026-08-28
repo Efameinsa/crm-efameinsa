@@ -39,6 +39,22 @@ export interface FilaRuta {
   proximaAccion: string | null;
   proximaAccionAt: string | null;
   /**
+   * Lo que se vendió, cuando el cierre ya ocurrió. Solo se usa en «Cotizados» y
+   * «Cerrados»: en la cola de llamadas la cifra no ayuda a decidir a quién
+   * llamar y ocupa el lugar de lo que sí —hace cuánto no se le hace el
+   * mantenimiento—.
+   */
+  monto: number | null;
+  moneda: string | null;
+  cerradaAt: string | null;
+  /**
+   * A quién se llama y a qué número. Es una campaña de llamadas: sin el
+   * teléfono en la fila, cada llamada empieza abriendo la ficha, y ahí se va el
+   * presupuesto de 15 segundos de la regla 11.
+   */
+  contacto: string | null;
+  telefono: string | null;
+  /**
    * El cliente es de la cartera de otro comercial. No cambia de dueño —regla 1
    * del proyecto y migración 0080—: lo que es de ella es la oportunidad de
    * mantenimiento. Se muestra para que sepa con quién está hablando.

@@ -83,6 +83,36 @@ function esTitulo(linea) {
   return palabras.every((p) => ROTULOS.has(p.toUpperCase()));
 }
 
+/**
+ * La descripción de la máquina, sin el encabezado de la tabla pegado adelante.
+ *
+ * El texto que precede a la serie arrastra la fila de títulos —«PRECIO UNITARIO
+ * + IGV USD PRECIO + IGV USD I SERVICIO DE MANTENIMIENTO PREVENTIVO DE
+ * LAVADORA…»— y así quedó escrito en las 216 fichas de la primera carga: en la
+ * pantalla del parque instalado se leía el encabezado, no la máquina.
+ *
+ * La máquina empieza donde empieza su nombre, así que se corta desde la PRIMERA
+ * mención de un tipo de equipo. La primera y no la última: «MESA DE PLANCHADO
+ * ASPIRANTE SOPLANTE CON CALDERIN … CAPACIDAD: CALDERA DE 5 LITROS» es una mesa
+ * de planchado, y quedarse con la última mención la fichaba como «CALDERA DE 5
+ * LITROS».
+ */
+export function descripcionEquipo(texto) {
+  if (!texto) return null;
+  const limpio = texto.replace(/\s+/g, " ").trim();
+  const nombres =
+    /(LAVADORA|SECADORA|CALDERA|CENTRIFUGA|CENTRÍFUGA|PLANCHADORA|RODILLO|CALANDRA|MESA DE PLANCHADO|MESA DESMANCHADORA|COCHE|HIDROLAVADORA|TERMA|GENERADOR DE VAPOR|T[UÚ]NEL)/i;
+  const corte = limpio.search(nombres);
+  const desde = corte >= 0 ? limpio.slice(corte) : limpio;
+  return (
+    desde
+      // Restos del encabezado cuando el informe no nombra la máquina.
+      .replace(/^(?:[\s|.:+-]|CANT\.?|CANTIDAD|PRECIO|UNITARIO|SUB\s*TOTAL|TOTAL|IGV|USD|US\$|U\$D|S\/\.?|ITEM|[IVX]{1,3}\b)+/i, "")
+      .trim()
+      .slice(0, 200) || null
+  );
+}
+
 /** Lo que el informe declara de sí mismo. */
 export function leerCierre(texto, archivo) {
   const t = texto.replace(/\r/g, "\n");
@@ -139,9 +169,13 @@ export function leerCierre(texto, archivo) {
   const series = [];
   for (const m of t.matchAll(/\bSERIE\s*:?\s*([A-Z0-9][A-Z0-9-]{3,})/gi)) {
     const serie = m[1].toUpperCase();
+    // Una serie de máquina siempre trae dígitos —280067, EFAC1228,
+    // 309KWGG53903—. Sin este filtro, un renglón partido metió «ERMISTOR» al
+    // parque instalado como si fuera una máquina.
+    if (!/\d/.test(serie)) continue;
     if (series.some((s) => s.serie === serie)) continue;
-    const antes = norm(t.slice(Math.max(0, m.index - 220), m.index)).slice(-160);
-    series.push({ serie, descripcion: antes || null });
+    const antes = norm(t.slice(Math.max(0, m.index - 260), m.index));
+    series.push({ serie, descripcion: descripcionEquipo(antes) });
   }
 
   const iTabla = t.search(/[ÍI]TEM|CONCEPTO\s*\|?\s*CANT/i);

@@ -75,10 +75,23 @@ export default async function PostventaPage() {
       .or(`fecha_despacho.lte.${enUnaSemana},puesta_en_marcha.lte.${enUnaSemana}`)
       .order("fecha_despacho", { ascending: true, nullsFirst: false })
       .limit(40),
+    // UN CASO ES UN CASO, no todo lo que tiene tipo_postventa. Desde que
+    // entraron los tres años de cierres y las campañas de mantenimiento
+    // (origen = historico_excel), esta caja mostraba 145 clientes por llamar
+    // bajo el rótulo «casos derivados por Central», que no lo eran: son la
+    // ruta de mantenimiento y tienen su propia pantalla.
+    //
+    // Acá el filtro por origen SÍ corresponde —al revés que en la cola de
+    // pedidos del plan 11—: lo que nació en el CRM es un caso de verdad, o
+    // porque Central lo derivó o porque alguien lo registró en /postventa/casos.
     supabase
       .from("oportunidades")
       .select("id, etapa, intencion, tipo_postventa, created_at, cuentas(razon_social)")
       .eq("comercial_id", perfil.id)
+      .eq("origen", "crm")
+      // Y con tipo: un contacto comercial derivado a Hever —que también vende—
+      // no es un caso técnico y no va en esta caja.
+      .not("tipo_postventa", "is", null)
       .not("etapa", "in", "(venta,rechazada)")
       .order("created_at", { ascending: false })
       .limit(30),
@@ -95,6 +108,17 @@ export default async function PostventaPage() {
   const gestion = (enGestion ?? []) as unknown as ServicioPostventa[];
   const atrasados = gestion.filter((s) => s.fecha_despacho && s.fecha_despacho < hoy && !s.despachado_at);
   const alDia = gestion.filter((s) => !atrasados.includes(s));
+
+  // CUÁNTOS ATRASADOS SE MUESTRAN ACÁ. Hay 40 pendientes de 2025 y de junio en
+  // la cola heredada del Excel, y ponerlos todos en «Mi día» reproduce
+  // exactamente lo que Carlos reclamó mirando la agenda: «primero debería salir
+  // lo último que están gestionando», no el año pasado. Se muestran los cinco
+  // más recientes —lo que más chance tiene de destrabarse— y el resto se cuenta
+  // con un enlace a la lista, que es donde se trabaja la cola vieja.
+  const ATRASADOS_EN_MI_DIA = 5;
+  const atrasadosVisibles = [...atrasados]
+    .sort((a, b) => (b.fecha_despacho ?? "").localeCompare(a.fecha_despacho ?? ""))
+    .slice(0, ATRASADOS_EN_MI_DIA);
 
   return (
     <div className="space-y-4">
@@ -155,9 +179,18 @@ export default async function PostventaPage() {
         }
       >
         {atrasados.length > 0 && (
-          <p className="mb-2 flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs font-semibold text-amber-900">
+          <p className="mb-2 flex flex-wrap items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs font-semibold text-amber-900">
             <AlertTriangle className="size-3.5" />
-            {atrasados.length} con la fecha ya vencida.
+            {atrasados.length} con la fecha ya vencida
+            {atrasados.length > ATRASADOS_EN_MI_DIA && (
+              <>
+                {" "}
+                · acá van los {ATRASADOS_EN_MI_DIA} más recientes,
+                <Link href="/postventa/agenda?ver=lista&estado=atrasados" className="underline hover:no-underline">
+                  ver los {atrasados.length} en la lista
+                </Link>
+              </>
+            )}
           </p>
         )}
         {gestion.length === 0 ? (
@@ -172,7 +205,7 @@ export default async function PostventaPage() {
           </Vacio>
         ) : (
           <div className="space-y-1.5">
-            {[...atrasados, ...alDia].map((s) => {
+            {[...alDia, ...atrasadosVisibles].map((s) => {
               const frena = queLoFrena(s);
               const vencido = s.fecha_despacho && s.fecha_despacho < hoy && !s.despachado_at;
               return (

@@ -4,10 +4,10 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowRight, Loader2, PhoneOff, FileText, CalendarClock } from "lucide-react";
+import { AlertTriangle, ArrowRight, Loader2, PhoneOff, Phone, MessageCircle, FileText, CalendarClock } from "lucide-react";
 import { gestionRapidaRuta, type BotonRuta } from "@/lib/acciones/ruta";
 import { textoMantenimiento, diasDeAtraso, type FilaRuta } from "@/lib/ruta-mantenimiento";
-import { fechaCalendario, fechaLima } from "@/lib/fechas";
+import { fechaCalendario } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 
 /**
@@ -22,7 +22,22 @@ import { cn } from "@/lib/utils";
  * cargado, que es el momento en que la llamada vale plata. El correlativo es el
  * único de la casa (D7 del plan 16): postventa no numera aparte.
  */
-export function FilaRutaMantenimiento({ fila, hoy }: { fila: FilaRuta; hoy: string }) {
+export function FilaRutaMantenimiento({
+  fila,
+  hoy,
+  cerrada = false,
+}: {
+  fila: FilaRuta;
+  hoy: string;
+  /**
+   * El cierre ya ocurrió (pestañas «Cotizados» y «Cerrados»). Ahí los tres
+   * botones no van: registrar «llamé, no contesta» sobre una venta ya hecha no
+   * significa nada, y encima reabriría el seguimiento de algo terminado. En su
+   * lugar se muestra lo que de verdad se quiere ver de un cierre: qué se vendió
+   * y cuándo.
+   */
+  cerrada?: boolean;
+}) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [hecha, setHecha] = useState<string | null>(null);
@@ -58,6 +73,30 @@ export function FilaRutaMantenimiento({ fila, hoy }: { fila: FilaRuta; hoy: stri
           >
             {fila.razonSocial}
           </Link>
+          {/* El teléfono, en la fila y clicable. Es una campaña de llamadas:
+              tenerlo que buscar en la ficha convierte una llamada de dos
+              minutos en una de cuatro. El wa.me sale del hábito de la casa —la
+              API de WhatsApp es v2, el enlace ya funciona hoy—. */}
+          {fila.telefono && !cerrada && (
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
+              <a
+                href={`tel:${fila.telefono.replace(/[^\d+]/g, "")}`}
+                className="inline-flex items-center gap-1 font-mono font-semibold text-foreground hover:text-primary hover:underline"
+              >
+                <Phone className="size-3" />
+                {fila.telefono}
+              </a>
+              <a
+                href={`https://wa.me/51${fila.telefono.replace(/\D/g, "").slice(-9)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-[#128C7E] hover:underline"
+              >
+                <MessageCircle className="size-3" /> WhatsApp
+              </a>
+              {fila.contacto && <span className="text-muted-foreground">{fila.contacto}</span>}
+            </p>
+          )}
           <p className="text-[11px] text-muted-foreground">
             {fila.zona ?? "sin zona"}
             {/* El cliente no cambia de dueño: lo que es de ella es la
@@ -79,12 +118,25 @@ export function FilaRutaMantenimiento({ fila, hoy }: { fila: FilaRuta; hoy: stri
             {mant.alerta && <AlertTriangle className="mr-0.5 inline size-3" />}
             {mant.texto}
           </Dato>
-          <Dato titulo="Últ. llamada">{fila.ultimaGestionAt ? fechaLima(fila.ultimaGestionAt) : "nunca"}</Dato>
+          <Dato titulo="Últ. llamada">{fila.ultimaGestionAt ? fechaCalendario(fila.ultimaGestionAt.slice(0, 10)) : "nunca"}</Dato>
         </div>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {hecha ? (
+        {cerrada ? (
+          <p className="text-xs font-medium text-foreground">
+            {fila.monto != null ? (
+              <>
+                {fila.moneda ?? "USD"} {Number(fila.monto).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+              </>
+            ) : (
+              <span className="text-muted-foreground">sin monto registrado</span>
+            )}
+            {fila.cerradaAt && (
+              <span className="font-normal text-muted-foreground"> · {fechaCalendario(fila.cerradaAt.slice(0, 10))}</span>
+            )}
+          </p>
+        ) : hecha ? (
           <p className="text-xs font-medium text-emerald-800">{hecha}</p>
         ) : (
           <>
@@ -118,10 +170,10 @@ export function FilaRutaMantenimiento({ fila, hoy }: { fila: FilaRuta; hoy: stri
         )}
 
         <span className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
-          {atraso != null && atraso > 0 && (
+          {!cerrada && atraso != null && atraso > 0 && (
             <span className="font-medium text-amber-700">{atraso} d de atraso</span>
           )}
-          {fila.proximaAccion && (
+          {!cerrada && fila.proximaAccion && (
             <span className="hidden sm:inline">
               {fila.proximaAccion}
               {fila.proximaAccionAt && ` · ${fechaCalendario(fila.proximaAccionAt)}`}

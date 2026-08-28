@@ -28,6 +28,11 @@ function fila(p: Partial<FilaRuta> = {}): FilaRuta {
     ultimaNota: null,
     proximaAccion: null,
     proximaAccionAt: null,
+    monto: null,
+    moneda: null,
+    cerradaAt: null,
+    contacto: null,
+    telefono: null,
     carteraDe: null,
     ...p,
   };

@@ -22,6 +22,9 @@ export const dynamic = "force-dynamic";
  * Se busca por serie porque la serie es lo que el cliente lee en la placa.
  */
 
+/** Cuántas máquinas se pintan de entrada; el resto, a un clic. */
+const POR_PAGINA = 40;
+
 interface FilaEquipo {
   id: string;
   serie: string;
@@ -31,11 +34,16 @@ interface FilaEquipo {
   fecha_despacho: string | null;
   garantia_hasta: string | null;
   ciclos_ultimo: number | null;
+  ultimo_mantenimiento: string | null;
   proximo_mantenimiento: string | null;
   cuentas: { razon_social: string } | null;
 }
 
-export default async function EquiposPage({ searchParams }: { searchParams: Promise<{ q?: string; ver?: string }> }) {
+export default async function EquiposPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; ver?: string; todos?: string }>;
+}) {
   const sp = await searchParams;
   const busqueda = (sp.q ?? "").trim();
   const ver = sp.ver ?? "";
@@ -44,9 +52,10 @@ export default async function EquiposPage({ searchParams }: { searchParams: Prom
 
   let q = supabase
     .from("equipos_instalados")
-    .select("id, serie, cliente_texto, modelo_texto, ubicacion, fecha_despacho, garantia_hasta, ciclos_ultimo, proximo_mantenimiento, cuentas(razon_social)", {
-      count: "exact",
-    });
+    .select(
+      "id, serie, cliente_texto, modelo_texto, ubicacion, fecha_despacho, garantia_hasta, ciclos_ultimo, ultimo_mantenimiento, proximo_mantenimiento, cuentas(razon_social)",
+      { count: "exact" },
+    );
 
   if (busqueda) {
     const patron = `%${busqueda}%`;
@@ -56,20 +65,54 @@ export default async function EquiposPage({ searchParams }: { searchParams: Prom
   if (ver === "vencida") q = q.lt("garantia_hasta", hoy);
   if (ver === "mantenimiento") q = q.lte("proximo_mantenimiento", hoy);
 
-  const { data, count } = await q.order("fecha_despacho", { ascending: false, nullsFirst: false }).limit(300);
+  // EL ORDEN. Ordenaba por fecha de despacho, y eso servía cuando el parque
+  // eran diez máquinas recién despachadas. Con las 226 que entraron de los
+  // cierres de 2024-2026 —que no tienen despacho registrado, porque el informe
+  // era de un servicio, no de la venta— lo primero que se veía era lo único que
+  // no hacía falta mirar. Ahora manda el preventivo: arriba lo que ya venció,
+  // después lo que vence antes. Es la lista con la que se llama.
+  const { data, count } = await q
+    .order("proximo_mantenimiento", { ascending: true, nullsFirst: false })
+    .order("fecha_despacho", { ascending: false, nullsFirst: false })
+    .limit(400);
   const equipos = (data ?? []) as unknown as FilaEquipo[];
+  const todos = sp.todos === "1";
+  const mostrados = todos ? equipos : equipos.slice(0, POR_PAGINA);
+  const vencidos = equipos.filter((e) => e.proximo_mantenimiento != null && e.proximo_mantenimiento <= hoy).length;
+
+  // Los filtros conservan la búsqueda: filtrar «en garantía» después de buscar
+  // un cliente borraba la búsqueda y devolvía el parque entero.
+  const conBusqueda = (clave: string) => {
+    const p = new URLSearchParams();
+    if (clave) p.set("ver", clave);
+    if (busqueda) p.set("q", busqueda);
+    const cola = p.toString();
+    return `/postventa/equipos${cola ? `?${cola}` : ""}`;
+  };
 
   const filtros = [
     { clave: "", etiqueta: "Todos" },
+    { clave: "mantenimiento", etiqueta: "Mantenimiento vencido" },
     { clave: "garantia", etiqueta: "En garantía" },
     { clave: "vencida", etiqueta: "Fuera de garantía" },
-    { clave: "mantenimiento", etiqueta: "Mantenimiento vencido" },
   ];
 
   return (
     <SeccionPanel
       titulo="Equipos instalados"
-      accion={<span className="text-xs text-muted-foreground">{count ?? 0} máquinas</span>}
+      accion={
+        <div className="flex items-center gap-2 text-xs">
+          {vencidos > 0 && ver !== "mantenimiento" && (
+            <Link
+              href={conBusqueda("mantenimiento")}
+              className="rounded-full bg-amber-100 px-2.5 py-0.5 font-semibold text-amber-900 hover:bg-amber-200"
+            >
+              {vencidos} con el mantenimiento vencido
+            </Link>
+          )}
+          <span className="text-muted-foreground">{count ?? 0} máquinas</span>
+        </div>
+      }
     >
       <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
         <label className="flex flex-1 items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5">
@@ -85,7 +128,7 @@ export default async function EquiposPage({ searchParams }: { searchParams: Prom
         {filtros.map((f) => (
           <Link
             key={f.clave || "todos"}
-            href={`/postventa/equipos${f.clave ? `?ver=${f.clave}` : ""}`}
+            href={conBusqueda(f.clave)}
             className={cn(
               "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
               ver === f.clave
@@ -115,7 +158,7 @@ export default async function EquiposPage({ searchParams }: { searchParams: Prom
         </div>
       ) : (
         <div className="space-y-1.5">
-          {equipos.map((e) => {
+          {mostrados.map((e) => {
             const garantia = estadoGarantia(e.garantia_hasta);
             const mantenimientoVencido = e.proximo_mantenimiento != null && e.proximo_mantenimiento <= hoy;
             return (
@@ -150,8 +193,17 @@ export default async function EquiposPage({ searchParams }: { searchParams: Prom
                     {garantia.etiqueta}
                   </span>
                   <br />
+                  {/* De estas máquinas casi ninguna tiene despacho —entraron
+                      por un informe de servicio, no por la venta del equipo—:
+                      repetir «sin despacho registrado» 200 veces era ruido. Lo
+                      que sí se sabe, y es lo que se usa para llamar, es cuándo
+                      fue el último mantenimiento. */}
                   <span className="text-muted-foreground">
-                    {e.fecha_despacho ? `despachado ${fechaCalendario(e.fecha_despacho)}` : "sin despacho registrado"}
+                    {e.fecha_despacho
+                      ? `despachado ${fechaCalendario(e.fecha_despacho)}`
+                      : e.ultimo_mantenimiento
+                        ? `último mantenimiento ${fechaCalendario(e.ultimo_mantenimiento)}`
+                        : "sin historial de servicio"}
                     {e.ciclos_ultimo != null && ` · ${e.ciclos_ultimo.toLocaleString("es-PE")} ciclos`}
                   </span>
                   {mantenimientoVencido && (
@@ -163,6 +215,14 @@ export default async function EquiposPage({ searchParams }: { searchParams: Prom
               </Link>
             );
           })}
+          {mostrados.length < equipos.length && (
+            <Link
+              href={`${conBusqueda(ver)}${conBusqueda(ver).includes("?") ? "&" : "?"}todos=1`}
+              className="block rounded-md border border-dashed border-border p-2.5 text-center text-xs font-medium text-primary hover:bg-accent"
+            >
+              Ver las {equipos.length - mostrados.length} restantes
+            </Link>
+          )}
         </div>
       )}
     </SeccionPanel>
