@@ -5,6 +5,8 @@ import { requerirRol } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaHoraLima } from "@/lib/fechas";
 import { describirEquipo, haceCuanto, huellaEquipo, ipsDeLaOficina, zonaDeAcceso } from "@/lib/accesos";
+import { ubicarIps } from "@/lib/geoip";
+import { MapaAccesos, type PuntoAcceso } from "@/components/crm/mapa-accesos";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -80,8 +82,47 @@ export default async function AccesosPage({ searchParams }: { searchParams: Prom
   const bitacora = (soloFuera ? accesos.filter((a) => zonaDeAcceso(a.ip, oficina).fuera) : accesos).slice(0, 80);
   const fueraTotal = accesos.filter((a) => zonaDeAcceso(a.ip, oficina).fuera).length;
 
+  // Dónde está cada equipo. Se piden las IP de los últimos ingresos: las que ya
+  // se consultaron alguna vez salen de la base sin volver a preguntarle a
+  // nadie, y de las nuevas se resuelven unas pocas por carga para que la
+  // pantalla no espere a un tercero (migración 0103).
+  const ubicaciones = await ubicarIps(conectados.map((c) => c.acceso.ip ?? "").filter(Boolean));
+
+  // Un punto por lugar, con toda la gente que entró desde ahí.
+  const porLugar = new Map<string, PuntoAcceso>();
+  for (const { acceso, quien } of conectados) {
+    const u = acceso.ip ? ubicaciones.get(acceso.ip) : undefined;
+    if (!u || u.lat == null || u.lon == null) continue;
+    const clave = `${u.lat},${u.lon}`;
+    if (!porLugar.has(clave)) {
+      porLugar.set(clave, {
+        lat: u.lat,
+        lon: u.lon,
+        lugar: u.etiqueta,
+        proveedor: u.proveedor,
+        ip: u.ip,
+        personas: [],
+        esOficina: oficina.has(u.ip),
+      });
+    }
+    porLugar.get(clave)!.personas.push({ nombre: quien!.nombre, cuando: haceCuanto(acceso.created_at) });
+  }
+  const puntos = [...porLugar.values()];
+
   return (
     <div className="space-y-4">
+      <SeccionPanel
+        titulo="Dónde están los equipos"
+        accion={<span className="text-xs text-muted-foreground">{puntos.length} lugares</span>}
+      >
+        <p className="mb-3 max-w-prose text-xs text-muted-foreground">
+          Desde dónde se está gestionando, que es lo mismo que decir dónde está la laptop. La ubicación sale de la IP:
+          eso ubica <strong>la central del proveedor</strong>, no a la persona, así que sirve para distinguir Lima de
+          Arequipa o del extranjero, y no para saber en qué calle está. Por eso son círculos y no alfileres.
+        </p>
+        <MapaAccesos puntos={puntos} />
+      </SeccionPanel>
+
       <SeccionPanel
         titulo="Quién está usando el CRM"
         accion={<span className="text-xs text-muted-foreground">{conectados.length} usuarios con acceso registrado</span>}
@@ -122,12 +163,19 @@ export default async function AccesosPage({ searchParams }: { searchParams: Prom
                   <p className="font-medium text-foreground">{haceCuanto(acceso.created_at)}</p>
                   <p className="text-muted-foreground">{fechaHoraLima(acceso.created_at)}</p>
                 </div>
-                <div className="w-[168px] text-right text-xs">
+                <div className="w-[200px] text-right text-xs">
                   <p className={cn("flex items-center justify-end gap-1 font-semibold", zona.fuera ? "text-amber-800" : "text-muted-foreground")}>
                     {zona.fuera ? <ShieldAlert className="size-3.5" /> : <MapPin className="size-3.5" />}
                     {zona.etiqueta}
                   </p>
-                  <p className="font-mono text-[11px] text-muted-foreground">{acceso.ip ?? "sin IP"}</p>
+                  {/* Dónde estaba el equipo. Cuando la IP todavía no se pudo
+                      ubicar se muestra la IP a secas: es lo que hay. */}
+                  <p className="text-[11px] text-foreground">
+                    {(acceso.ip ? ubicaciones.get(acceso.ip)?.etiqueta : null) ?? acceso.ip ?? "sin IP"}
+                  </p>
+                  <p className="truncate font-mono text-[11px] text-muted-foreground">
+                    {(acceso.ip ? ubicaciones.get(acceso.ip)?.proveedor : null) ?? acceso.ip ?? ""}
+                  </p>
                 </div>
               </div>
             );
