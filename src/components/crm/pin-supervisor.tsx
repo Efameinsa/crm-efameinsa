@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils";
  * El código con el que gerencia autoriza que Central corrija una derivación.
  *
  * FORMATO DE TOKEN DE BANCO (idea de Darwin, 27-08): cuatro dígitos grandes y
- * un anillo que se va vaciando con los segundos que le quedan. La duración —dos
- * minutos— no se elige acá: la manda la base, que es la misma que después
- * valida (migración 0092). Si el navegador y el servidor tuvieran cada uno su
- * reloj, el supervisor podría estar dictando un código que ya venció.
+ * un anillo que se va vaciando con los segundos que le quedan. La duración —diez
+ * minutos desde el 28-08— no se elige acá: la manda la base, que es la misma que
+ * después valida (migraciones 0093 y 0110). Si el navegador y el servidor
+ * tuvieran cada uno su reloj, el supervisor podría estar dictando un código que
+ * ya venció.
  *
  * NO SE MUESTRA SOLO. Hay que pedirlo, y se esconde apenas vence. Un código
  * permanente en la barra lateral lo ve quien pase por detrás, sale en cualquier
@@ -24,7 +25,9 @@ import { cn } from "@/lib/utils";
  * un código se corrigen cinco cosas seguidas.
  */
 
-const DURACION = 120;
+/** Diez minutos, los mismos que manda la base (migración 0110). Acá solo se
+ *  dibuja el reloj: el tiempo que vale es el `expiraEn` del servidor. */
+const DURACION = 600;
 
 export function PinSupervisor({ plegada = false }: { plegada?: boolean }) {
   const [codigo, setCodigo] = useState<string | null>(null);

@@ -3,7 +3,8 @@
 // Es el mismo que ve el supervisor en su barra lateral: se deriva de la semilla
 // que vive en la base, así que no hay ninguna puerta de atrás — se calcula igual
 // que lo hace el sistema. Se muestra el de esta ventana y el de la siguiente
-// para poder dictarlo sin que se venza en la mitad de la frase.
+// para poder dictarlo sin que se venza en la mitad de la frase. Desde el 28-08
+// la ventana es de diez minutos (migración 0110).
 //
 // Uso: node --env-file=.env.local scripts/_pin-supervisor-ahora.mjs [nombre]
 import { Client } from "pg";
@@ -22,8 +23,10 @@ if (sup.length === 0) {
 }
 
 const { rows: v } = await bd.query(
+  // Los segundos que le quedan salen de la propia ventana de la base, para que
+  // el script no mienta si mañana cambia la duración (hoy, 10 minutos).
   `select ventana_pin_actual() as ventana,
-          (120 - (floor(extract(epoch from now()))::bigint % 120))::int as quedan,
+          ((ventana_pin_actual() + 1) * 600 - floor(extract(epoch from now())))::int as quedan,
           to_char(now() at time zone 'America/Lima', 'HH24:MI:SS') as hora`,
 );
 const ventana = BigInt(v[0].ventana);
@@ -35,7 +38,7 @@ for (const s of sup) {
   );
   console.log(`\nSupervisor: ${s.nombre} (${s.rol})`);
   console.log(`   Código de AHORA .... ${c[0].ahora}   (vence en ${v[0].quedan} s, ${v[0].hora} en Lima)`);
-  console.log(`   El siguiente ....... ${c[0].siguiente}   (los dos minutos que siguen)`);
+  console.log(`   El siguiente ....... ${c[0].siguiente}   (los diez minutos que siguen)`);
 }
 
 // Si Central ya falló cinco veces, ningún código va a entrar: hay que esperar.
