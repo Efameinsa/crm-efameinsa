@@ -4,35 +4,45 @@ import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaLima, fechaCalendario } from "@/lib/fechas";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { queLoFrena, etiquetaResponsable, puedeVerPrecios, type ServicioPostventa } from "@/lib/postventa";
+import { queLoFrena, etiquetaResponsable, puedeVerPrecios, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
+import {
+  CalendarioPostventa,
+  type VistaCalendario,
+} from "@/components/crm/calendario-postventa";
+import {
+  eventoDeCaso,
+  eventosDePedido,
+  filtrarPorZona,
+  sinFecha as pedidosSinFecha,
+  type CasoAgendable,
+  type EventoCalendario,
+} from "@/lib/calendario-postventa";
+import { diasDelMes, diasDeSemana, lunesDe } from "@/lib/calendario";
 import { requerirPerfil } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 /**
- * La agenda del área.
+ * El calendario del área, con la lista al lado.
  *
- * Tres cosas cambian respecto de la versión que Carlos miró el 27-08:
+ * Nació como «agenda de despachos»: una lista ordenada por fecha de despacho
+ * ascendente sobre una tabla que arrancó con 240 filas de 2025, así que lo
+ * primero que se veía era el año pasado. Carlos la rebautizó mientras la
+ * miraba, pidiendo lo que le faltaba: «el lunes vamos a atender dos clientes,
+ * uno en La Victoria, otro en el Centro… ¿qué voy a hacer mañana, qué voy a
+ * hacer en la semana?».
  *
- * 1. EL ORDEN. Antes salía primero lo más viejo —«casi lo del año pasado»—
- *    porque ordenaba por fecha de despacho ascendente sobre una tabla que
- *    arrancó con 240 filas importadas de 2025. Ahora se agrupa por urgencia:
- *    atrasados, esta semana, más adelante, y al final lo que no tiene fecha,
- *    que es donde el trabajo desaparece sin que nadie lo note.
+ * Por eso son DOS pantallas en una, y ninguna sobra: el calendario responde
+ * «¿cuándo?» y la lista responde «¿qué me falta?». El área hace las dos cosas.
  *
- * 2. DOS PESTAÑAS. Lo importado del Excel es historia y no se toca —él mismo lo
- *    dijo: «acá no se puede tocar, es información histórica»— pero mezclado con
- *    la cola de trabajo la tapaba. Vive en su pestaña, con buscador.
- *
- * 3. SE PUEDE CLIQUEAR. Cada fila abre la ficha del pedido. Era el otro reclamo.
- *
- * Los filtros son enlaces y el buscador es un form GET: la pantalla sigue
- * siendo un Server Component y anda sin JavaScript.
+ * Y sigue siendo un Server Component: los filtros son enlaces y el buscador es
+ * un form GET, así que anda sin JavaScript.
  */
 
 const PESTANAS = [
-  { clave: "gestion", etiqueta: "En gestión" },
+  { clave: "calendario", etiqueta: "Calendario" },
+  { clave: "lista", etiqueta: "Lista" },
   { clave: "historico", etiqueta: "Histórico del Excel" },
   { clave: "completados", etiqueta: "Completados" },
 ] as const;
@@ -49,24 +59,133 @@ const FILTROS_ESTADO = [
 export default async function AgendaPostventaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string; q?: string; estado?: string }>;
+  searchParams: Promise<{ ver?: string; q?: string; estado?: string; vista?: string; fecha?: string; zona?: string }>;
 }) {
   const sp = await searchParams;
-  const pestana: Pestana = (PESTANAS.find((p) => p.clave === sp.ver)?.clave ?? "gestion") as Pestana;
+  // «gestion» era el nombre viejo de la lista: los enlaces que quedaron dando
+  // vueltas —y el guardado en favoritos de quien la usa todos los días— tienen
+  // que seguir llevando a la misma pantalla.
+  const pedida = sp.ver === "gestion" ? "lista" : sp.ver;
+  const pestana: Pestana = (PESTANAS.find((p) => p.clave === pedida)?.clave ?? "calendario") as Pestana;
   const busqueda = (sp.q ?? "").trim();
   const estado = sp.estado ?? "";
   const supabase = await createClient();
+  const perfil = await requerirPerfil();
   // La columna «Monto» del Excel histórico no se le muestra al área: es la
   // venta del equipo, y esa cifra no es de su interés (Carlos, 27-08).
-  const verPrecios = puedeVerPrecios(await requerirPerfil());
+  const verPrecios = puedeVerPrecios(perfil);
 
+  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+
+  if (pestana === "calendario") {
+    const vista: VistaCalendario = (["semana", "mes", "dia"] as const).includes(sp.vista as VistaCalendario)
+      ? (sp.vista as VistaCalendario)
+      : "semana";
+    const fecha = /^\d{4}-\d{2}-\d{2}$/.test(sp.fecha ?? "") ? (sp.fecha as string) : hoy;
+    const zona = sp.zona === "lima" || sp.zona === "provincia" ? sp.zona : "";
+
+    // El rango que se está mirando, para no traerse la tabla entera.
+    const dias =
+      vista === "mes"
+        ? diasDelMes(fecha.slice(0, 7)).map((d) => d.iso)
+        : vista === "semana"
+          ? diasDeSemana(lunesDe(fecha))
+          : [fecha];
+    const desde = dias[0];
+    const hasta = dias[dias.length - 1];
+
+    const verTodo = perfil.rol === "gerencia" || perfil.rol === "admin";
+    let consultaCasos = supabase
+      .from("oportunidades")
+      .select(
+        "id, etapa, intencion, tipo_postventa, proxima_accion, proxima_accion_at, proxima_accion_hora, cuentas(razon_social, departamento, distrito)",
+      )
+      .not("tipo_postventa", "is", null)
+      .gte("proxima_accion_at", desde)
+      .lte("proxima_accion_at", hasta)
+      .limit(300);
+    if (!verTodo) consultaCasos = consultaCasos.eq("comercial_id", perfil.id);
+
+    const [{ data: pedidos }, { data: casos }, { data: abiertos }] = await Promise.all([
+      supabase
+        .from("servicios_postventa")
+        .select("*")
+        .or(
+          `and(fecha_despacho.gte.${desde},fecha_despacho.lte.${hasta}),and(puesta_en_marcha.gte.${desde},puesta_en_marcha.lte.${hasta})`,
+        )
+        .limit(400),
+      consultaCasos,
+      supabase
+        .from("servicios_postventa")
+        .select("id, cliente_texto, equipo, despacho_nota, completado, fecha_despacho, puesta_en_marcha")
+        .eq("completado", false)
+        .is("fecha_despacho", null)
+        .is("puesta_en_marcha", null)
+        .limit(200),
+    ]);
+
+    const listaPedidos = ((pedidos ?? []) as unknown as ServicioPostventa[]).map((s) =>
+      verPrecios ? s : sinPrecios(s),
+    );
+    const eventosPedidos = listaPedidos.flatMap(eventosDePedido);
+    const eventosCasos = ((casos ?? []) as unknown as {
+      id: string;
+      etapa: string;
+      intencion: string | null;
+      tipo_postventa: string | null;
+      proxima_accion: string | null;
+      proxima_accion_at: string | null;
+      proxima_accion_hora: string | null;
+      cuentas: { razon_social: string; departamento: string | null; distrito: string | null } | null;
+    }[])
+      .map((c): CasoAgendable => {
+        const dep = (c.cuentas?.departamento ?? "").toUpperCase();
+        return {
+          id: c.id,
+          tipo_postventa: c.tipo_postventa,
+          intencion: c.intencion,
+          etapa: c.etapa,
+          proxima_accion: c.proxima_accion,
+          proxima_accion_at: c.proxima_accion_at,
+          proxima_accion_hora: c.proxima_accion_hora,
+          cliente: c.cuentas?.razon_social ?? "Cliente sin nombre",
+          zona: dep ? (dep === "LIMA" ? "lima" : "provincia") : null,
+        };
+      })
+      .map(eventoDeCaso)
+      .filter((e): e is EventoCalendario => e !== null);
+
+    const eventos = filtrarPorZona([...eventosPedidos, ...eventosCasos], zona);
+    const porProgramar = pedidosSinFecha((abiertos ?? []) as unknown as ServicioPostventa[]).map((s) => ({
+      id: s.id,
+      cliente: s.cliente_texto ?? "Cliente sin nombre",
+      equipo: s.equipo,
+      nota: s.despacho_nota,
+    }));
+
+    return (
+      <SeccionPanel titulo="Calendario de atenciones" accion={<Pestanas pestana={pestana} busqueda={busqueda} />}>
+        <CalendarioPostventa
+          vista={vista}
+          fecha={fecha}
+          hoy={hoy}
+          zona={zona}
+          eventos={eventos}
+          porProgramar={porProgramar}
+        />
+      </SeccionPanel>
+    );
+  }
+
+  // ── Las tres pestañas de lista ────────────────────────────────────────────
+  //
   // OJO CON EL FILTRO POR ORIGEN. Hoy las 174 filas de la tabla vienen del
   // Excel («origen = excel») y 106 siguen pendientes: filtrar la cola de
   // trabajo por `origen = crm` la dejaría vacía el primer día y escondería
   // justo lo que hay que resolver. Es el mismo error que vació el Kanban en el
   // plan 11. Lo que separa las pestañas es si está pendiente, no de dónde vino.
   let q = supabase.from("servicios_postventa").select("*", { count: "exact" });
-  if (pestana === "gestion") q = q.eq("completado", false);
+  if (pestana === "lista") q = q.eq("completado", false);
   if (pestana === "historico") q = q.eq("origen", "excel");
   if (pestana === "completados") q = q.eq("completado", true);
 
@@ -81,10 +200,9 @@ export default async function AgendaPostventaPage({
     .order("updated_at", { ascending: false })
     .limit(400);
 
-  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const enUnaSemana = new Date(new Date().getTime() + 7 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
-  let filas = (data ?? []) as unknown as ServicioPostventa[];
+  let filas = ((data ?? []) as unknown as ServicioPostventa[]).map((s) => (verPrecios ? s : sinPrecios(s)));
   if (estado === "atrasados") filas = filas.filter((s) => s.fecha_despacho && s.fecha_despacho < hoy && !s.despachado_at);
   if (estado === "detenidos") filas = filas.filter((s) => queLoFrena(s)?.grave);
 
@@ -97,9 +215,7 @@ export default async function AgendaPostventaPage({
     },
     {
       titulo: "Esta semana",
-      filas: filas.filter(
-        (s) => s.fecha_despacho && s.fecha_despacho >= hoy && s.fecha_despacho <= enUnaSemana,
-      ),
+      filas: filas.filter((s) => s.fecha_despacho && s.fecha_despacho >= hoy && s.fecha_despacho <= enUnaSemana),
     },
     {
       titulo: "Más adelante",
@@ -112,32 +228,14 @@ export default async function AgendaPostventaPage({
   ];
   // En completados y en el histórico la urgencia no significa nada: es un
   // archivo, y lo que se busca ahí es un cliente, no un vencimiento.
-  const agrupar = pestana === "gestion";
+  const agrupar = pestana === "lista";
   const yaDespachados = filas.filter((s) => s.despachado_at && s.fecha_despacho && s.fecha_despacho < hoy);
   if (agrupar && yaDespachados.length) grupos.push({ titulo: "Despachados, esperando cierre", filas: yaDespachados });
 
   return (
     <SeccionPanel
       titulo="Calendario de atenciones"
-      accion={
-        <div className="flex flex-wrap items-center gap-1.5">
-          {PESTANAS.map((p) => (
-            <Link
-              key={p.clave}
-              href={`/postventa/agenda?ver=${p.clave}`}
-              className={cn(
-                "rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors",
-                pestana === p.clave
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {p.etiqueta}
-            </Link>
-          ))}
-          <span className="text-xs text-muted-foreground">{count ?? 0}</span>
-        </div>
-      }
+      accion={<Pestanas pestana={pestana} busqueda={busqueda} conteo={count ?? 0} />}
     >
       <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
         <input type="hidden" name="ver" value={pestana} />
@@ -151,11 +249,11 @@ export default async function AgendaPostventaPage({
             className="w-full min-w-[160px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </label>
-        {pestana === "gestion" &&
+        {pestana === "lista" &&
           FILTROS_ESTADO.map((f) => (
             <Link
               key={f.clave || "todos"}
-              href={`/postventa/agenda?ver=gestion${f.clave ? `&estado=${f.clave}` : ""}${busqueda ? `&q=${encodeURIComponent(busqueda)}` : ""}`}
+              href={`/postventa/agenda?ver=lista${f.clave ? `&estado=${f.clave}` : ""}${busqueda ? `&q=${encodeURIComponent(busqueda)}` : ""}`}
               className={cn(
                 "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
                 estado === f.clave
@@ -201,6 +299,28 @@ export default async function AgendaPostventaPage({
         <TablaHistorica filas={filas} verPrecios={verPrecios} />
       )}
     </SeccionPanel>
+  );
+}
+
+function Pestanas({ pestana, busqueda, conteo }: { pestana: Pestana; busqueda: string; conteo?: number }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {PESTANAS.map((p) => (
+        <Link
+          key={p.clave}
+          href={`/postventa/agenda?ver=${p.clave}${busqueda ? `&q=${encodeURIComponent(busqueda)}` : ""}`}
+          className={cn(
+            "rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors",
+            pestana === p.clave
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {p.etiqueta}
+        </Link>
+      ))}
+      {conteo !== undefined && <span className="text-xs text-muted-foreground">{conteo}</span>}
+    </div>
   );
 }
 

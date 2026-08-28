@@ -14,6 +14,7 @@ import { SelectorHora } from "@/components/crm/selector-hora";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { fechaCalendarioLarga } from "@/lib/fechas";
+import { MESES, sumarMes, diasDelMes } from "@/lib/calendario";
 import { cn } from "@/lib/utils";
 
 // Agenda mensual con panel lateral (patrón validado con gerencia sobre el
@@ -44,30 +45,9 @@ const TIPO_LABEL: Record<string, string> = {
   llamada: "Llamada", whatsapp: "WhatsApp", email: "Correo", visita: "Visita",
   reunion_online: "Reunión online", showroom: "Showroom", filtro: "Filtro", nota: "Nota", otro: "Gestión",
 };
-const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-
-function sumarMes(mes: string, delta: number): string {
-  const [y, m] = mes.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
-  return d.toISOString().slice(0, 10).slice(0, 7);
-}
-// Grilla lunes-a-domingo que cubre el mes completo.
-function diasDelMes(mes: string): { iso: string; dia: number; otroMes: boolean }[] {
-  const [y, m] = mes.split("-").map(Number);
-  const primero = new Date(Date.UTC(y, m - 1, 1));
-  const offset = (primero.getUTCDay() + 6) % 7; // lunes = 0
-  const inicio = new Date(primero);
-  inicio.setUTCDate(1 - offset);
-  const dias = [];
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(inicio);
-    d.setUTCDate(inicio.getUTCDate() + i);
-    const iso = d.toISOString().slice(0, 10);
-    dias.push({ iso, dia: d.getUTCDate(), otroMes: !iso.startsWith(mes) });
-  }
-  // recortar la última semana si es toda de otro mes
-  return dias.length && dias[35].otroMes && dias.slice(35).every((x) => x.otroMes) ? dias.slice(0, 35) : dias;
-}
+// MESES, sumarMes y diasDelMes viven en @/lib/calendario: el calendario de
+// postventa (plan 16 §5) usa la misma grilla y dos copias se habrían ido
+// separando hasta que una empezara la semana en domingo.
 
 export function AgendaMensual({
   mes, hoy, acciones: inicialAcciones, hechas, ventas, historial, resultados, motivos = [], tareas: inicialTareas = [],
