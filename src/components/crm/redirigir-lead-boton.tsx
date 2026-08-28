@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowRightLeft, UserCheck } from "lucide-react";
 import { redirigirLead } from "@/lib/acciones/leads";
+import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -49,10 +50,19 @@ export function RedirigirLeadBoton({
   const [destino, setDestino] = useState("");
   const [motivo, setMotivo] = useState("");
   const [pin, setPin] = useState("");
+  // Gerencia puede levantar el código por un rato (migración 0111). Se pregunta
+  // al abrir: si el servidor no lo va a mirar, la pantalla no puede exigirlo.
+  const [sinPinHasta, setSinPinHasta] = useState<string | null>(null);
   const [enviando, startTransition] = useTransition();
 
   const opciones = comerciales.filter((c) => c.id !== comercialActual);
-  const listo = Boolean(destino) && motivo.trim().length >= 10 && pin.length === 4;
+  const sinPin = sinPinHasta !== null;
+  const listo = Boolean(destino) && motivo.trim().length >= 10 && (sinPin || pin.length === 4);
+
+  useEffect(() => {
+    if (!abierto) return;
+    permisoSinPin().then((r) => setSinPinHasta(r.hasta));
+  }, [abierto]);
 
   function guardar() {
     if (!listo) return;
@@ -126,47 +136,61 @@ export function RedirigirLeadBoton({
           />
         </div>
 
-        {/* La caja de Plaza Vea, tal cual lo pidió el ing. Carlos el 27-08: la
-            corrección la habilita un supervisor, no quien se equivocó. */}
-        <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
-          <Label htmlFor="pin">Código del supervisor</Label>
-          <div className="flex items-start gap-3">
-            <input
-              id="pin"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={4}
-              placeholder="0000"
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              className="h-11 w-28 flex-none rounded-md border border-input bg-background text-center font-mono text-xl tracking-[0.3em]"
-            />
-            {/* CON NOMBRE Y APELLIDO. Pedir «el código del supervisor» sin decir
-                de quién dejaba a Central sin saber a quién llamar, y el control
-                se vuelve un callejón (corregido el 27-08, el mismo día). */}
-            <div className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">
-              {supervisores.length > 0 ? (
-                <>
-                  <span className="flex items-center gap-1 font-semibold text-foreground">
-                    <UserCheck className="size-3.5 flex-none" />
-                    Pídaselo a cualquiera de ellos:
-                  </span>
-                  <ul className="mt-0.5">
-                    {supervisores.map((s) => (
-                      <li key={s.id}>· {s.nombre}</li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <span>Pídaselo a gerencia.</span>
-              )}
-            </div>
+        {sinPin ? (
+          /* Gerencia levantó el código por hoy (28-08): el servidor no lo va a
+             mirar, así que la pantalla tampoco lo pide. El motivo sigue siendo
+             obligatorio y la corrección se registra igual, marcada como hecha
+             sin código. */
+          <div className="space-y-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-[12px] leading-snug">
+            <p className="font-semibold text-foreground">Hoy no hace falta el código del supervisor.</p>
+            <p className="text-muted-foreground">
+              Gerencia autorizó corregir sin PIN hasta el final del día. La corrección igual queda registrada con su
+              motivo, y mañana el código vuelve a pedirse.
+            </p>
           </div>
-          <p className="text-[11px] leading-snug text-muted-foreground">
-            Lo tiene en su barra lateral, en <b>«PIN de autorización»</b>. Cambia cada dos minutos y sirve para{" "}
-            <b>una sola</b> corrección.
-          </p>
-        </div>
+        ) : (
+          /* La caja de Plaza Vea, tal cual lo pidió el ing. Carlos el 27-08: la
+             corrección la habilita un supervisor, no quien se equivocó. */
+          <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+            <Label htmlFor="pin">Código del supervisor</Label>
+            <div className="flex items-start gap-3">
+              <input
+                id="pin"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={4}
+                placeholder="0000"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                className="h-11 w-28 flex-none rounded-md border border-input bg-background text-center font-mono text-xl tracking-[0.3em]"
+              />
+              {/* CON NOMBRE Y APELLIDO. Pedir «el código del supervisor» sin decir
+                  de quién dejaba a Central sin saber a quién llamar, y el control
+                  se vuelve un callejón (corregido el 27-08, el mismo día). */}
+              <div className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">
+                {supervisores.length > 0 ? (
+                  <>
+                    <span className="flex items-center gap-1 font-semibold text-foreground">
+                      <UserCheck className="size-3.5 flex-none" />
+                      Pídaselo a cualquiera de ellos:
+                    </span>
+                    <ul className="mt-0.5">
+                      {supervisores.map((s) => (
+                        <li key={s.id}>· {s.nombre}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <span>Pídaselo a gerencia.</span>
+                )}
+              </div>
+            </div>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              Lo tiene en su barra lateral, en <b>«PIN de autorización»</b>. Cambia cada diez minutos y sirve para{" "}
+              <b>una sola</b> corrección.
+            </p>
+          </div>
+        )}
 
         <DialogFooter>
           <Button disabled={enviando || !listo} onClick={guardar}>

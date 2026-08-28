@@ -499,7 +499,20 @@ export async function redirigirLead(
     p_pin: pin,
     p_motivo: motivo,
   });
-  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  if (error) {
+    const mensaje = error.message.replace(/^[A-Z0-9]{5}:\s*/, "");
+    // Por qué se rechazó, anotado desde acá y no desde la función: la llamada
+    // entera es UNA transacción y al fallar se deshace todo lo que ella hubiera
+    // escrito. Sin este rastro, el 28-08 no hubo forma de saber si el problema
+    // era el código o el límite de la 0079 — Central reportó «el PIN no
+    // funciona» y en la base no había ni un intento fallido registrado.
+    if (user) {
+      await supabase
+        .from("intentos_pin_supervisor")
+        .insert({ solicitante_id: user.id, detalle: mensaje.slice(0, 200) });
+    }
+    return { error: mensaje };
+  }
 
   const { data: perfiles } = await supabase
     .from("perfiles")
