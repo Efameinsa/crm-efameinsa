@@ -150,10 +150,20 @@ De las reuniones del 28-08 y de la revisión del catálogo:
    cambiar la suya** («eso no va», Carlos, 28-08).
 4. **Tres accesos que Carlos pidió**: un comercial, gerencia comercial y
    central, con usuario y contraseña.
-5. **Ariana (C4) tiene 169 ventas que no son suyas** — mantenimientos del
-   histórico de postventa, ~US$321 mil, 2023–2026. Decisión tomada: pertenecen
-   a postventa con referencia a C8 (Brenda); Ariana debe **verlas pero no
-   contabilizarlas**; su primera venta es el cierre N.º 10.
+5. ~~Ariana (C4) tiene ventas que no son suyas~~ — **RESUELTO el 29-08
+   (migración 0124)**: eran 145 mantenimientos importados de los informes de
+   R:\ (US$ 88.522 + S/ 139.493 aprox.), no 169. Pasaron a Post Venta (PV);
+   la campaña de llamadas (103 oportunidades) sigue siendo suya. La vista de
+   servicios ahora es **completa** para quien tiene la llave
+   (`hace_postventa`, la reparte Lesly desde `/operaciones/permisos`): todo
+   el histórico de mantenimientos, repuestos y el parque instalado — ver no
+   es contabilizar. A Ariana la llave le queda abierta (es su oficio). El
+   **cierre N.º 10 de OPEN-2026 quedó reservado** para su primera venta
+   (`correlativos_reservas`): el contador lo salta y al emitir ella lo
+   recibe. OJO: sus 385 ventas de `historico_excel` sin `documento_origen`
+   (las del maestro de Lesly) **no se tocaron** — existían antes de la
+   importación y no fueron el reclamo de Carlos; si gerencia quiere revisarlas,
+   es una conversación aparte.
 6. **Retirar el resultado de gestión `FUTURO`**, duplicado de `COMPRA_FUTURO`.
 7. **Reconocer las redes seguras de la oficina** para el control de accesos, y
    pedir autorización cuando un laptop se conecta desde fuera.

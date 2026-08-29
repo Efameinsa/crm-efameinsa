@@ -62,8 +62,9 @@ export default async function PermisosPage() {
       >
         <p className="mb-3 max-w-prose text-sm leading-snug text-muted-foreground">
           Un comercial cotiza mantenimiento cada tanto —dos o tres al mes entre todos—. Se le abre la vista cuando lo
-          pide y <strong className="text-foreground">se le cierra cuando termina</strong>: mientras está abierta ve las
-          cotizaciones de mantenimiento del área.
+          pide y <strong className="text-foreground">se le cierra cuando termina</strong>: mientras está abierta ve
+          completo el histórico de servicios del área —mantenimientos, repuestos y el parque instalado—, que es lo que
+          hace falta para cotizar con criterio. Ver no es sumar: esas ventas siguen siendo de postventa.
         </p>
 
         {abiertos.length > 0 && (

@@ -78,10 +78,19 @@ export default async function RutaMantenimientoPage({
   const supabase = await createClient();
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
-  // Gerencia y admin ven la campaña entera; cada quien, la suya. La RLS ya lo
-  // garantiza — este filtro es para no traer de la base lo que igual se iba a
-  // descartar.
-  const verTodo = perfil.rol === "gerencia" || perfil.rol === "admin";
+  // Quien tiene la llave de servicios ve la campaña entera — Carlos, 28-08:
+  // «veo que ha sido el último mantenimiento del equipo… ya pasó más de un
+  // año, agarro, reviso, gestiono, cotizo. Solo si tiene acceso a la
+  // información; si no, agarra el archivador». Eso vale para el área
+  // (es_postventa), para Ariana y para el comercial al que operaciones le
+  // abrió la vista (hace_postventa, 0116). Ver no es contabilizar: cada venta
+  // sigue siendo de su dueño. La RLS (0124) ya lo garantiza — este filtro es
+  // para no traer de la base lo que igual se iba a descartar.
+  const verTodo =
+    perfil.rol === "gerencia" ||
+    perfil.rol === "admin" ||
+    Boolean(perfil.es_postventa) ||
+    Boolean(perfil.hace_postventa);
   let consulta = supabase
     .from("oportunidades")
     .select(
