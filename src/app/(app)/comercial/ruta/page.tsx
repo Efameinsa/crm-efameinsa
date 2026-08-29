@@ -1,14 +1,21 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { FilaRutaMantenimiento } from "@/components/crm/fila-ruta";
+import { FiltrosRuta } from "@/components/crm/filtros-ruta";
 import {
   columnaDe,
+  filtrarRuta,
   ordenarRuta,
   ETIQUETA_COLUMNA,
+  ETIQUETA_COMPRA,
+  ETIQUETA_LLAMADA,
+  ETIQUETA_MANTENIMIENTO,
   type ColumnaRuta,
+  type EstadoCompra,
+  type EstadoLlamada,
+  type EstadoMantenimiento,
   type FilaRuta,
 } from "@/lib/ruta-mantenimiento";
 import { cn } from "@/lib/utils";
@@ -65,14 +72,32 @@ interface OportunidadRuta {
   } | null;
 }
 
+/** Solo se acepta lo que el desplegable ofrece: la URL la escribe cualquiera. */
+function opcion<T extends string>(valor: string | undefined, validas: Record<T, string>): T | null {
+  return valor && valor in validas ? (valor as T) : null;
+}
+
 export default async function RutaMantenimientoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string; q?: string; todos?: string }>;
+  searchParams: Promise<{
+    ver?: string;
+    q?: string;
+    todos?: string;
+    mant?: string;
+    compra?: string;
+    llamada?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const pestana: ColumnaRuta = PESTANAS.includes(sp.ver as ColumnaRuta) ? (sp.ver as ColumnaRuta) : "por_llamar";
   const busqueda = (sp.q ?? "").trim();
+  const filtros = {
+    mant: opcion<EstadoMantenimiento>(sp.mant, ETIQUETA_MANTENIMIENTO),
+    compra: opcion<EstadoCompra>(sp.compra, ETIQUETA_COMPRA),
+    llamada: opcion<EstadoLlamada>(sp.llamada, ETIQUETA_LLAMADA),
+    q: busqueda,
+  };
 
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -231,22 +256,27 @@ export default async function RutaMantenimientoPage({
     };
   });
 
-  const cuenta = (c: ColumnaRuta) => filas.filter((f) => columnaDe(f, hoy) === c).length;
-  const patron = busqueda.toLowerCase();
-  const visibles = ordenarRuta(
-    filas.filter(
-      (f) =>
-        columnaDe(f, hoy) === pestana &&
-        (!patron ||
-          f.razonSocial.toLowerCase().includes(patron) ||
-          (f.zona ?? "").toLowerCase().includes(patron) ||
-          (f.serie ?? "").toLowerCase().includes(patron)),
-    ),
-    hoy,
-  );
+  // Los conteos de las pestañas respetan los filtros: si se armó la tanda «los
+  // que nunca se hicieron mantenimiento», lo que interesa saber es cuántos de
+  // ESOS quedan por llamar y cuántos ya cerraron, no el total de la campaña.
+  const porColumna = (c: ColumnaRuta) => filas.filter((f) => columnaDe(f, hoy) === c);
+  const cuenta = (c: ColumnaRuta) => filtrarRuta(porColumna(c), hoy, filtros).length;
+
+  const enPestana = porColumna(pestana);
+  const visibles = ordenarRuta(filtrarRuta(enPestana, hoy, filtros), hoy);
   const todos = sp.todos === "1";
   const mostradas = todos ? visibles : visibles.slice(0, POR_PAGINA);
   const cerrada = pestana === "cerrados" || pestana === "cotizados";
+
+  // Cambiar de pestaña conserva la tanda que se estaba trabajando.
+  const conFiltros = (extra: Record<string, string>) => {
+    const p = new URLSearchParams(extra);
+    if (busqueda) p.set("q", busqueda);
+    if (filtros.mant) p.set("mant", filtros.mant);
+    if (filtros.compra) p.set("compra", filtros.compra);
+    if (filtros.llamada) p.set("llamada", filtros.llamada);
+    return `/comercial/ruta?${p.toString()}`;
+  };
 
   return (
     <SeccionPanel
@@ -256,58 +286,70 @@ export default async function RutaMantenimientoPage({
           {PESTANAS.map((p) => (
             <Link
               key={p}
-              href={`/comercial/ruta?ver=${p}${busqueda ? `&q=${encodeURIComponent(busqueda)}` : ""}`}
+              href={conFiltros({ ver: p })}
               className={cn(
-                "rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors",
-                pestana === p ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground",
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors",
+                pestana === p
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground",
               )}
             >
-              {ETIQUETA_COLUMNA[p]} {cuenta(p)}
+              {ETIQUETA_COLUMNA[p]}
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.5 text-xs font-bold tabular-nums",
+                  pestana === p ? "bg-primary-foreground/20" : "bg-background/70 text-foreground",
+                )}
+              >
+                {cuenta(p)}
+              </span>
             </Link>
           ))}
         </div>
       }
     >
-      <p className="mb-3 max-w-prose text-xs text-muted-foreground">
+      <p className="mb-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
         Clientes de la base instalada a los que hay que ofrecerles el mantenimiento. Arriba, lo que nunca se llamó y
         lo más atrasado; después, lo que lleva más tiempo sin mantenimiento. La cuenta sigue siendo del comercial que
         la vendió: acá está la oportunidad de mantenimiento, no el cliente.
       </p>
 
-      <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
-        <input type="hidden" name="ver" value={pestana} />
-        <label className="flex flex-1 items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5">
-          <Search className="size-3.5 flex-none text-muted-foreground" />
-          <input
-            type="search"
-            name="q"
-            defaultValue={busqueda}
-            placeholder="Cliente, zona o serie"
-            className="w-full min-w-[160px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </label>
-        <button type="submit" className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-accent">
-          Buscar
-        </button>
-      </form>
+      <FiltrosRuta
+        q={busqueda}
+        mant={filtros.mant}
+        compra={filtros.compra}
+        llamada={filtros.llamada}
+        visibles={visibles.length}
+        total={enPestana.length}
+      />
 
       {visibles.length === 0 ? (
-        <p className="max-w-prose text-sm text-muted-foreground">
-          {busqueda
-            ? `Nada que coincida con «${busqueda}».`
-            : pestana === "por_llamar"
-              ? "No queda nadie por llamar hoy. Los recontactos programados están en «Llamados»."
-              : "Todavía no hay nada acá."}
-        </p>
+        <div className="rounded-xl border border-dashed border-border p-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            {busqueda || filtros.mant || filtros.compra || filtros.llamada
+              ? "Ningún cliente de esta pestaña cumple con lo que se pidió."
+              : pestana === "por_llamar"
+                ? "No queda nadie por llamar hoy. Los recontactos programados están en «Llamados»."
+                : "Todavía no hay nada acá."}
+          </p>
+          {(busqueda || filtros.mant || filtros.compra || filtros.llamada) && (
+            <Link
+              href={`/comercial/ruta?ver=${pestana}`}
+              className="mt-2 inline-block text-sm font-semibold text-primary hover:underline"
+            >
+              Quitar los filtros
+            </Link>
+          )}
+        </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {mostradas.map((f) => (
             <FilaRutaMantenimiento key={f.id} fila={f} hoy={hoy} cerrada={cerrada} />
           ))}
           {mostradas.length < visibles.length && (
             <Link
-              href={`/comercial/ruta?ver=${pestana}&todos=1${busqueda ? `&q=${encodeURIComponent(busqueda)}` : ""}`}
-              className="block rounded-md border border-dashed border-border p-2.5 text-center text-xs font-medium text-primary hover:bg-accent"
+              href={conFiltros({ ver: pestana, todos: "1" })}
+              className="block rounded-lg border border-dashed border-border p-3 text-center text-sm font-semibold text-primary hover:bg-accent"
             >
               Ver los {visibles.length - mostradas.length} restantes
             </Link>

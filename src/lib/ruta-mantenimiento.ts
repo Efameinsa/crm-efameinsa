@@ -149,22 +149,137 @@ export function ordenarRuta(filas: FilaRuta[], hoy: string): FilaRuta[] {
 }
 
 /**
- * El texto de la columna «Últ. mantenimiento», que es el que dispara la venta.
- *
- * El «nunca» con ⚠ no es decoración: es la maniobra que Carlos describió sin
- * llamarla así —«verifico que nunca le hemos hecho el preventivo, le cotizo el
- * repuesto y también el preventivo»—. Y «no registrado» no es «nunca»: de las
- * 103 cuentas de la ruta, la mayoría no tiene su equipo fichado todavía, y
- * afirmarle a Ariana que a ese cliente nunca se le hizo un mantenimiento sería
- * inventarle un argumento que puede quedar mal en la llamada.
+ * Cada cuántos meses toca el preventivo (manual del área, confirmado el 27-08:
+ * entre 4 y 6). Pasado ese plazo la máquina está vencida y la llamada tiene
+ * argumento.
  */
-export function textoMantenimiento(f: FilaRuta, hoy: string): { texto: string; alerta: boolean } {
+export const MESES_PREVENTIVO = 6;
+
+/** Meses redondeados desde una fecha, con la misma cuenta en toda la pantalla. */
+export function mesesDesde(desde: string | null, hoy: string): number | null {
+  const d = diasEntre(desde, hoy);
+  return d == null ? null : Math.round(d / 30);
+}
+
+/**
+ * LOS TRES FILTROS DE LA CAZA (pedido de gerencia, 29-08: «debería poder
+ * filtrarse también por último mantenimiento, compró, llamada, para poder
+ * buscar por ahí oportunidades»).
+ *
+ * Las 249 filas de «Por llamar» no se trabajan de arriba abajo: se trabajan por
+ * tandas —«hoy llamo a los que compraron hace más de dos años y nunca se
+ * hicieron el preventivo»—. Ese recorte es el que el orden por sí solo no da,
+ * porque el orden pone algo arriba pero no saca de la lista lo que hoy no toca.
+ * Cada eje responde una pregunta distinta:
+ *
+ *   · mantenimiento → ¿tiene argumento la llamada?
+ *   · compra        → ¿hace cuánto es cliente? (el equipo de 2023 está vencido
+ *                     aunque nadie lo haya fichado)
+ *   · llamada       → ¿ya lo trabajé o está virgen?
+ */
+export type EstadoMantenimiento = "nunca" | "vencido" | "al_dia" | "sin_dato";
+export type EstadoCompra = "menos_1a" | "entre_1_2a" | "mas_2a" | "sin_dato";
+export type EstadoLlamada = "nunca" | "hace_mas_30d" | "reciente";
+
+// Las etiquetas van cortas a propósito: cada desplegable ya lleva su rótulo al
+// lado («Mantenimiento», «Compró», «Llamada»), y con la frase entera adentro
+// los tres no entraban en una fila y se apilaban.
+export const ETIQUETA_MANTENIMIENTO: Record<EstadoMantenimiento, string> = {
+  nunca: "nunca se le hizo",
+  vencido: `vencido · ${MESES_PREVENTIVO}+ meses`,
+  al_dia: "al día",
+  sin_dato: "sin registro",
+};
+
+export const ETIQUETA_COMPRA: Record<EstadoCompra, string> = {
+  menos_1a: "hace menos de 1 año",
+  entre_1_2a: "hace 1 a 2 años",
+  mas_2a: "hace más de 2 años",
+  sin_dato: "sin registro",
+};
+
+export const ETIQUETA_LLAMADA: Record<EstadoLlamada, string> = {
+  nunca: "nunca",
+  hace_mas_30d: "hace 30 días o más",
+  reciente: "en los últimos 30 días",
+};
+
+/**
+ * En qué estado está el mantenimiento de esa máquina: lo que dispara la venta.
+ *
+ * El «nunca» no es decoración: es la maniobra que Carlos describió sin llamarla
+ * así —«verifico que nunca le hemos hecho el preventivo, le cotizo el repuesto
+ * y también el preventivo»—. Y «no registrado» NO es «nunca»: de las cuentas de
+ * la ruta, la mayoría no tiene su equipo fichado todavía, y afirmarle a Ariana
+ * que a ese cliente nunca se le hizo un mantenimiento sería inventarle un
+ * argumento que puede quedar mal en la llamada.
+ */
+export function estadoMantenimiento(f: FilaRuta, hoy: string): EstadoMantenimiento {
   if (f.ultimoMantenimiento) {
-    const dias = diasEntre(f.ultimoMantenimiento, hoy) ?? 0;
-    const meses = Math.round(dias / 30);
-    // El preventivo es cada 4-6 meses (manual del área, confirmado el 27-08).
-    return { texto: meses <= 1 ? "este mes" : `hace ${meses} meses`, alerta: meses >= 6 };
+    const meses = mesesDesde(f.ultimoMantenimiento, hoy) ?? 0;
+    return meses >= MESES_PREVENTIVO ? "vencido" : "al_dia";
   }
-  if (f.compraAt) return { texto: "nunca", alerta: true };
-  return { texto: "no registrado", alerta: false };
+  return f.compraAt ? "nunca" : "sin_dato";
+}
+
+/** Hace cuánto es cliente: el otro reloj de la campaña. */
+export function estadoCompra(f: FilaRuta, hoy: string): EstadoCompra {
+  const d = diasEntre(f.compraAt, hoy);
+  if (d == null) return "sin_dato";
+  if (d < 365) return "menos_1a";
+  if (d < 730) return "entre_1_2a";
+  return "mas_2a";
+}
+
+/** Si ya se trabajó o está virgen. 30 días es el mes de la campaña. */
+export function estadoLlamada(f: FilaRuta, hoy: string): EstadoLlamada {
+  if (!f.ultimaGestionAt) return "nunca";
+  const d = diasEntre(f.ultimaGestionAt.slice(0, 10), hoy) ?? 0;
+  return d >= 30 ? "hace_mas_30d" : "reciente";
+}
+
+export interface FiltrosRuta {
+  mant?: EstadoMantenimiento | null;
+  compra?: EstadoCompra | null;
+  llamada?: EstadoLlamada | null;
+  /** Cliente, zona, serie, equipo, contacto o teléfono. */
+  q?: string | null;
+}
+
+/** Los tres ejes se cruzan con Y: cada uno recorta sobre lo que dejó el anterior. */
+export function filtrarRuta(filas: FilaRuta[], hoy: string, filtros: FiltrosRuta): FilaRuta[] {
+  const patron = (filtros.q ?? "").trim().toLowerCase();
+  const soloDigitos = patron.replace(/\D/g, "");
+  return filas.filter((f) => {
+    if (filtros.mant && estadoMantenimiento(f, hoy) !== filtros.mant) return false;
+    if (filtros.compra && estadoCompra(f, hoy) !== filtros.compra) return false;
+    if (filtros.llamada && estadoLlamada(f, hoy) !== filtros.llamada) return false;
+    if (!patron) return true;
+    return (
+      f.razonSocial.toLowerCase().includes(patron) ||
+      (f.zona ?? "").toLowerCase().includes(patron) ||
+      (f.serie ?? "").toLowerCase().includes(patron) ||
+      (f.equipo ?? "").toLowerCase().includes(patron) ||
+      (f.contacto ?? "").toLowerCase().includes(patron) ||
+      // Se busca también por teléfono: en la campaña el cliente devuelve la
+      // llamada y lo único que se tiene es el número en la pantalla.
+      (soloDigitos.length >= 3 && (f.telefono ?? "").replace(/\D/g, "").includes(soloDigitos))
+    );
+  });
+}
+
+/**
+ * Antigüedad en palabras: «hoy», «hace 6 días», «hace 14 meses», «hace 3 años».
+ *
+ * La fecha sola no dice nada en una campaña —12/03/2024 hay que restarlo
+ * mentalmente en cada fila—; el «hace cuánto» es lo que decide si se llama.
+ */
+export function haceCuantoDias(dias: number | null): string {
+  if (dias == null) return "—";
+  if (dias <= 0) return "hoy";
+  if (dias === 1) return "ayer";
+  if (dias < 45) return `hace ${dias} días`;
+  const meses = Math.round(dias / 30);
+  if (meses < 24) return `hace ${meses} meses`;
+  return `hace ${Math.floor(dias / 365)} años`;
 }

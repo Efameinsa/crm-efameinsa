@@ -4,8 +4,12 @@ import {
   diasEntre,
   diasSinMantenimiento,
   diasDeAtraso,
+  estadoCompra,
+  estadoLlamada,
+  estadoMantenimiento,
+  filtrarRuta,
+  haceCuantoDias,
   ordenarRuta,
-  textoMantenimiento,
   type FilaRuta,
 } from "./ruta-mantenimiento";
 
@@ -125,29 +129,68 @@ describe("ordenarRuta", () => {
   });
 });
 
-describe("textoMantenimiento", () => {
-  it("marca el «nunca» con alerta: es la venta cruzada", () => {
-    expect(textoMantenimiento(fila({ compraAt: "2024-03-01" }), HOY)).toEqual({ texto: "nunca", alerta: true });
-  });
-
-  it("no confunde «no registrado» con «nunca»", () => {
-    // La mayoría de las 103 cuentas todavía no tiene su equipo fichado en el
-    // parque instalado. Decirle a Ariana «nunca» sería darle un argumento que
-    // puede quedar mal en la llamada.
-    expect(textoMantenimiento(fila(), HOY)).toEqual({ texto: "no registrado", alerta: false });
-  });
-
-  it("avisa cuando ya pasó el intervalo del preventivo (4-6 meses)", () => {
-    expect(textoMantenimiento(fila({ ultimoMantenimiento: "2026-08-20" }), HOY).alerta).toBe(false);
-    expect(textoMantenimiento(fila({ ultimoMantenimiento: "2026-02-01" }), HOY).alerta).toBe(true);
-    expect(textoMantenimiento(fila({ ultimoMantenimiento: "2026-08-10" }), HOY).texto).toBe("este mes");
-  });
-});
-
 describe("diasDeAtraso", () => {
   it("no cuenta como atraso lo que todavía no vence", () => {
     expect(diasDeAtraso(fila({ proximaAccionAt: "2026-09-10" }), HOY)).toBeNull();
     expect(diasDeAtraso(fila({ proximaAccionAt: HOY }), HOY)).toBe(0);
     expect(diasDeAtraso(fila({ proximaAccionAt: "2026-08-21" }), HOY)).toBe(7);
+  });
+});
+
+describe("los tres ejes con los que se arma la tanda del día", () => {
+  it("separa «nunca» de «no registrado», que es la diferencia que importa", () => {
+    expect(estadoMantenimiento(fila({ compraAt: "2024-03-01" }), HOY)).toBe("nunca");
+    expect(estadoMantenimiento(fila(), HOY)).toBe("sin_dato");
+    expect(estadoMantenimiento(fila({ ultimoMantenimiento: "2026-02-01" }), HOY)).toBe("vencido");
+    expect(estadoMantenimiento(fila({ ultimoMantenimiento: "2026-08-01" }), HOY)).toBe("al_dia");
+  });
+
+  it("clasifica hace cuánto es cliente", () => {
+    expect(estadoCompra(fila(), HOY)).toBe("sin_dato");
+    expect(estadoCompra(fila({ compraAt: "2026-05-01" }), HOY)).toBe("menos_1a");
+    expect(estadoCompra(fila({ compraAt: "2025-03-01" }), HOY)).toBe("entre_1_2a");
+    expect(estadoCompra(fila({ compraAt: "2023-01-15" }), HOY)).toBe("mas_2a");
+  });
+
+  it("distingue al que nunca se llamó del que se llamó hace un mes", () => {
+    expect(estadoLlamada(fila(), HOY)).toBe("nunca");
+    expect(estadoLlamada(fila({ ultimaGestionAt: "2026-08-26T10:00:00Z" }), HOY)).toBe("reciente");
+    expect(estadoLlamada(fila({ ultimaGestionAt: "2026-06-01T10:00:00Z" }), HOY)).toBe("hace_mas_30d");
+  });
+});
+
+describe("filtrarRuta", () => {
+  const nuncaMant = fila({ id: "a", razonSocial: "ADRA PERU", compraAt: "2023-02-01", telefono: "972094462" });
+  const alDia = fila({ id: "b", razonSocial: "LAVANDERIA SOL", compraAt: "2026-01-10", ultimoMantenimiento: "2026-07-01" });
+  const sinNada = fila({ id: "c", razonSocial: "CLIENTE SIN IDENTIFICAR", serie: "202510801141" });
+  const TODAS = [nuncaMant, alDia, sinNada];
+
+  it("cruza los tres ejes con Y: la tanda es el corte, no una suma de listas", () => {
+    expect(filtrarRuta(TODAS, HOY, { mant: "nunca" }).map((f) => f.id)).toEqual(["a"]);
+    expect(filtrarRuta(TODAS, HOY, { mant: "nunca", compra: "mas_2a" }).map((f) => f.id)).toEqual(["a"]);
+    // El mismo cliente, pedido con una compra que no es la suya: no aparece.
+    expect(filtrarRuta(TODAS, HOY, { mant: "nunca", compra: "menos_1a" })).toEqual([]);
+  });
+
+  it("sin filtros no recorta nada", () => {
+    expect(filtrarRuta(TODAS, HOY, {})).toHaveLength(3);
+  });
+
+  it("busca por nombre, por serie y por teléfono", () => {
+    expect(filtrarRuta(TODAS, HOY, { q: "adra" }).map((f) => f.id)).toEqual(["a"]);
+    expect(filtrarRuta(TODAS, HOY, { q: "2025108" }).map((f) => f.id)).toEqual(["c"]);
+    // El cliente devuelve la llamada y lo único que hay es el número.
+    expect(filtrarRuta(TODAS, HOY, { q: "972 094 462" }).map((f) => f.id)).toEqual(["a"]);
+  });
+});
+
+describe("haceCuantoDias", () => {
+  it("dice la antigüedad como se dice en la llamada", () => {
+    expect(haceCuantoDias(0)).toBe("hoy");
+    expect(haceCuantoDias(1)).toBe("ayer");
+    expect(haceCuantoDias(12)).toBe("hace 12 días");
+    expect(haceCuantoDias(420)).toBe("hace 14 meses");
+    expect(haceCuantoDias(1100)).toBe("hace 3 años");
+    expect(haceCuantoDias(null)).toBe("—");
   });
 });
