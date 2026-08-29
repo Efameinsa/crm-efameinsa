@@ -108,7 +108,17 @@ const MAPA_ESTADO = {
   "P1_F_REALIZADO": { etapa: "filtrada" },
   // ⚠️ Pregunta para Carlos (§9 del plan): ¿"derivado" o "datos actualizados"?
   "P1_F_DERIV_ACTUA": { etapa: "filtrada", dudoso: true },
-  "C3_SEG_POTENCIAL": { etapa: "potencial" },
+  // «Potencial» significa dos cosas distintas y no hay que confundirlas. En el
+  // Excel, `C3_Seg_Potencial` es una etiqueta congelada el día que el comercial
+  // tocó la fila por última vez —hay filas de 2021—. En el CRM, desde el cuadro
+  // semanal del 25-08, `etapa='potencial'` significa «lo que voy a cerrar ESTA
+  // semana» y alimenta «LO QUE QUEDÓ PENDIENTE» del reporte. Traducirlo literal
+  // llenó los reportes de Brenda y de Katerine de clientes que nadie negocia
+  // (29-08: «no sabemos por qué nos sale como potenciales» — y era verdad).
+  // Va a `seguimiento`, como sus hermanos C3_ESPERAR / C3_NO_RESPONDE /
+  // C3_NEGOCIAR: sigue en cartera, pero no reclama una semana que no le toca.
+  // A `potencial` se llega SOLO trabajando dentro del CRM.
+  "C3_SEG_POTENCIAL": { etapa: "seguimiento" },
   "C1_PTO_VECES": { etapa: "cotizada" },
   // motivoRechazoId 441 = "Sin precisar (import histórico)": el plan (§9,
   // pregunta 4) deja explícitamente para Carlos si estos 1.678 clientes

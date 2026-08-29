@@ -604,3 +604,187 @@ export function BuscadorEquiposModal({
     </>
   );
 }
+
+/**
+ * El MISMO buscador, para cambiar el equipo de una línea que ya está en la
+ * cotización.
+ *
+ * Es la pieza central de corregir una cotización numerada (migración 0123,
+ * `docs/20`): cada línea del documento es un botón y un clic trae esta
+ * ventana. Se reusa el buscador del cotizador a propósito — la comercial lo usa
+ * todos los días, y una pantalla que se abre seis veces al año no puede tener
+ * reglas propias.
+ *
+ * TRES DIFERENCIAS con el de agregar, y las tres tienen motivo:
+ *
+ * 1. ABRE ESCRITO con el modelo que está puesto. El 90 % de las correcciones es
+ *    la variante de al lado —apilable en vez de no apilable, gas en vez de
+ *    eléctrica—, así que las dos aparecen juntas de entrada, y el error que
+ *    esto arregla (la TITAN contra la TITAN MAX) se ve de un vistazo.
+ * 2. UN CLIC ELIGE Y CIERRA. Al agregar, la ventana queda abierta porque se
+ *    cargan cuatro o seis equipos de una pasada; reemplazar es una cosa, y es
+ *    una sola.
+ * 3. EL EQUIPO ACTUAL SE MARCA y no se puede elegir: cambiarlo por sí mismo no
+ *    es una corrección, y en una lista de variantes casi idénticas es el clic
+ *    más fácil de dar por error.
+ */
+export function ReemplazarEquipoModal({
+  abierto,
+  linea,
+  actual,
+  productos,
+  onReemplazar,
+  onCerrar,
+}: {
+  abierto: boolean;
+  /** Número de línea, tal como se ve en la cotización (1, 2, 3…). */
+  linea: number;
+  /** El equipo que está puesto ahora: se marca y da el texto de arranque. */
+  actual: { id: string | null; nombre: string; sku: string | null; modelo: string | null };
+  productos: EquipoElegible[];
+  onReemplazar: (p: EquipoElegible) => void;
+  onCerrar: () => void;
+}) {
+  // ABRE ESCRITO con el modelo que está puesto: el 90 % de las correcciones es
+  // la variante de al lado, así que las dos aparecen juntas de entrada.
+  //
+  // Se inicializa acá y no en un efecto: quien lo usa lo monta con
+  // `key={línea}`, así que abrir OTRA línea trae un componente nuevo con su
+  // propio texto de arranque. Sincronizarlo con un efecto dejaba puesto el
+  // texto de la línea anterior durante un render.
+  const [texto, setTexto] = useState(() => actual.modelo ?? "");
+  const [resaltado, setResaltado] = useState(0);
+  const listaRef = useRef<HTMLUListElement>(null);
+
+  const coincidencias = useMemo(() => buscarEquipos(productos, texto), [productos, texto]);
+  const enFoco = coincidencias[resaltado] ?? coincidencias[0] ?? null;
+
+  useEffect(() => {
+    listaRef.current?.querySelector('[data-resaltado="true"]')?.scrollIntoView({ block: "nearest" });
+  }, [resaltado]);
+
+  function elegir(p: EquipoElegible) {
+    if (p.id === actual.id) return;
+    onReemplazar(p);
+    onCerrar();
+  }
+
+  return (
+    <Dialog open={abierto} onOpenChange={(v) => !v && onCerrar()}>
+      <DialogContent
+        className="flex h-[88vh] w-[min(64rem,calc(100vw-2rem))] max-w-none flex-col gap-3 overflow-hidden sm:max-w-none"
+        showCloseButton={false}
+      >
+        <div>
+          <DialogTitle className="text-base font-bold text-foreground">
+            Cambiar el equipo de la línea {linea}
+          </DialogTitle>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            Ahora dice: <span className="font-medium text-foreground">{actual.nombre}</span>
+            {actual.sku ? ` · ${actual.sku}` : ""}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              autoFocus
+              value={texto}
+              onChange={(e) => {
+                setTexto(e.target.value);
+                setResaltado(0);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setResaltado((i) => Math.min(i + 1, coincidencias.length - 1));
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setResaltado((i) => Math.max(i - 1, 0));
+                } else if (e.key === "Enter" && enFoco) {
+                  e.preventDefault();
+                  elegir(enFoco);
+                }
+              }}
+              placeholder="Código, marca, modelo, capacidad o cómo lo pide el cliente…"
+              className="pl-8"
+              aria-label="Buscar el equipo correcto"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            <X className="size-4" />
+            Cancelar
+          </button>
+        </div>
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr_280px] xl:grid-cols-[1fr_340px]">
+          <ul ref={listaRef} className="space-y-1 overflow-y-auto overflow-x-hidden pr-1" role="listbox" aria-label="Equipos">
+            {coincidencias.map((p, i) => {
+              const esActual = p.id === actual.id;
+              return (
+                <li key={p.id}>
+                  <div
+                    role="option"
+                    aria-selected={esActual}
+                    aria-disabled={esActual}
+                    data-resaltado={i === resaltado}
+                    onMouseEnter={() => setResaltado(i)}
+                    onClick={() => elegir(p)}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 rounded-md border p-2 text-left transition-colors",
+                      esActual ? "cursor-default border-border bg-secondary/60" : "cursor-pointer border-transparent",
+                      !esActual && i === resaltado && "border-primary/40 bg-accent",
+                    )}
+                  >
+                    <Miniatura equipo={p} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-foreground">
+                        <span className="font-mono text-xs font-bold text-primary">{p.sku ?? "s/cód"}</span>
+                        {" · "}
+                        {p.marca} {p.modelo}
+                        {p.capacidad ? ` · ${p.capacidad}` : ""}
+                      </span>
+                      <span className="block truncate text-xs text-muted-foreground">{p.nombre}</span>
+                    </span>
+                    <span className="flex flex-none flex-col items-end gap-1">
+                      {esActual ? (
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                          el que está puesto
+                        </span>
+                      ) : (
+                        p.precio != null && (
+                          <span className="text-sm font-semibold tabular-nums text-foreground">{monto(p.precio)}</span>
+                        )
+                      )}
+                      <BadgeStock stock={p.stock} enVivo={p.stockEnVivo} />
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+            {coincidencias.length === 0 && (
+              <li className="flex flex-col items-center gap-2 p-6 text-center text-xs text-muted-foreground">
+                <PackageX className="size-6" />
+                Ningún equipo del catálogo coincide con &laquo;{texto.trim()}&raquo;.
+                <br />
+                El catálogo es el Excel de Lesly: si el equipo no está ahí, no se puede cotizar desde acá.
+              </li>
+            )}
+          </ul>
+          <PanelDetalle equipo={enFoco} unidades={0} colorElegido={null} onQuitar={() => {}} />
+        </div>
+
+        <p className="text-[11px] text-muted-foreground">
+          Un clic —o Enter— pone ese equipo en la línea {linea} y cierra esta ventana.{" "}
+          <span className="font-medium text-foreground">La cantidad y el precio no se tocan</span>: lo que se está
+          corrigiendo es qué equipo se le ofreció al cliente.
+        </p>
+      </DialogContent>
+    </Dialog>
+  );
+}

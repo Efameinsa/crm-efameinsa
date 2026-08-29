@@ -68,10 +68,26 @@ export interface HistorialPrecio {
   fecha: string;
 }
 
+/**
+ * La ventana de corrección que abrió el código del supervisor (migración
+ * 0123). Mientras vive, la cotización emitida se puede reescribir conservando
+ * su número.
+ */
+export interface CorreccionAbierta {
+  /** ISO. La pantalla dibuja el reloj contra esto, no contra su propio conteo. */
+  expiraEn: string;
+  /** Quién dictó el código: va a la vista, porque es quien responde por esto. */
+  autorizo: string;
+  /** Lo que escribió el comercial al pedirlo. */
+  motivo: string;
+}
+
 /** El borrador que la pantalla está editando. */
 export interface BorradorEnEdicion {
   cotizacionId: string;
   codigo: string | null;
+  /** Cuántas veces salió este número. 1 = como se emitió (migración 0123). */
+  version?: number;
   serie: "EFAMEINSA" | "OPEN";
   condiciones: string | null;
   vigenciaDias: number;

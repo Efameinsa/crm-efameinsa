@@ -1,9 +1,13 @@
 # Corregir una cotización ya numerada — mapa de la experiencia
 
-**Escrito el 29-08-2026.** Diseño de la pantalla que pidió el ing. Carlos en la
-reunión del 28-08 (transcripción `28-08-2026 14.19.txt`), con el reparto que
-confirmó Lesly (operaciones) el 29-08. Todavía no está construido: esto es lo
-que se va a construir y por qué cada cosa está donde está.
+**Escrito el 29-08-2026 y CONSTRUIDO el mismo día** (migración 0123). Sale de lo
+que pidió el ing. Carlos en la reunión del 28-08 (transcripción
+`28-08-2026 14.19.txt`), con el reparto que confirmó Lesly (operaciones) el
+29-08. Este documento explica por qué cada cosa está donde está; lo que se
+apartó del diseño al construirlo está marcado y explicado.
+
+Mockup navegable de la experiencia: `docs/mockups/corregir-cotizacion.html`.
+Se verifica con `scripts/_verificar-correccion-cotizacion.mjs`.
 
 ---
 
@@ -306,15 +310,27 @@ cotización que ya se vendió descuadra el cierre y el récord del comercial. No
 corrige: primero se anula el cierre —que es el procedimiento que ya existe— y
 después se corrige. La pantalla lo dice con el número del cierre en la mano.
 
-**2. La corrección deja un precio bajo el piso de lista.** Vuelve a pedir
-aprobación de gerencia, igual que al cotizar (migración 0064, aprobación por
-ítem). La corrección se guarda, pero el PDF corregido no se libera hasta que
-gerencia resuelva. El código de corrección no puede ser una puerta trasera al
-descuento.
+**2. La corrección deja un precio bajo el piso de lista.** No se guarda: se
+rechaza nombrando el equipo, el precio pedido y el de lista. El código de
+corrección no puede ser una puerta trasera al descuento.
 
-**3. Postventa ya está despachando la máquina.** Si hay un pedido o una puesta en
-marcha enganchada a esa venta, cambiar el equipo del papel no cambia la máquina
-que va en el camión. Se avisa con el caso a la vista.
+> **Cambió al construirlo.** El diseño decía «se guarda pero el PDF no se
+> libera hasta que gerencia resuelva». No se puede: una cotización **enviada**
+> no admite el estado `pendiente_gerencia` —lo prohíbe el check
+> `enviada_requiere_aprobacion` desde la migración 0001—, así que dejarla a
+> medias rompería el documento. Se rechaza antes de tocar nada, con un mensaje
+> que dice qué hacer.
+>
+> **La excepción que sí pasa:** un descuento que gerencia YA firmó en ese mismo
+> documento se conserva, siempre que la corrección no lo ahonde. Sin esto,
+> arreglar el equipo de una cotización con descuento aprobado —justo el caso
+> típico de un leasing— sería imposible.
+
+**3. Postventa ya está despachando la máquina.** Cambiar el equipo del papel no
+cambia la máquina que va en el camión. En la práctica viaja con el freno 1
+—postventa solo arranca después del cierre—, así que el aviso es uno solo y
+dice las dos cosas: el número del cierre a anular y cuántos equipos ya tienen
+su serie comprometida.
 
 ---
 
@@ -362,8 +378,19 @@ No es el diseño, es lo que va a costar trabajo si se olvida.
   tres veces (`docs/memoria/crm-no-copiar-funciones-cotizacion.md`).
 - **Mirar el último número de migración antes de crear la suya.** Han chocado
   tres veces.
-- **Verificación**, como siempre en la casa: sesión real de un comercial
-  —comprobando que **sin código no puede**, que con un código vencido tampoco, y
-  que no puede tocar la cotización de otro—, sesión real de Lesly para ver la
-  bitácora, PDF antes y después leído con `pdfjs-dist`, y la cotización de
-  prueba creada y borrada. El catálogo y las cotizaciones reales no se tocan.
+- **La verificación corre en una transacción que se deshace**
+  (`scripts/_verificar-correccion-cotizacion.mjs`). Acá no alcanzaba con «crear
+  lo suyo y borrarlo»: **emitir una cotización de prueba gasta un correlativo de
+  la serie real**, y un número gastado en una prueba es un hueco que la
+  contadora ve. Se pudo hacer así porque el correlativo vive en una tabla
+  (`correlativos`) y no en una secuencia — un `rollback` también lo devuelve.
+  Lo que no se puede probar dentro de una transacción es la pantalla, porque el
+  servidor abre su propia conexión: para eso la ventana de corrección se crea de
+  verdad, se mira la pantalla, se comprueba el PDF y se borra la ventana sin
+  guardar nada.
+- **Lo que la verificación afirma**, además de que funcione: que sin código no
+  se puede, que con un código inventado tampoco, que la misma autorización no
+  sirve dos veces, que un comercial no toca la cotización de otro, que un
+  precio bajo lista se rechaza, que el correlativo y el estado `enviada` no se
+  mueven, que la versión anterior queda archivada entera, y que abrir la
+  pantalla no escribe nada.

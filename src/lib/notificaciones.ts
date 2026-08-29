@@ -14,6 +14,9 @@ export type TipoNotificacion =
   | "cotizacion_aprobada"
   | "cotizacion_rechazada"
   | "lead_registrado"
+  // Se usó el código que dictó operaciones o gerencia: quien autorizó tiene que
+  // enterarse de para qué sirvió (migración 0123).
+  | "cotizacion_corregida"
   // Central avisa que un cliente está esperando y nadie lo atiende (25-08).
   | "urgencia";
 

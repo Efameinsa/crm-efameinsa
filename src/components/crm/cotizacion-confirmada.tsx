@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CorregirCotizacionBoton } from "@/components/crm/corregir-cotizacion-boton";
 
 /**
  * La cotización ya tiene número y está cerrada.
@@ -19,17 +20,27 @@ import { Button } from "@/components/ui/button";
  * Y dice con todas las letras que el CRM no manda nada: confirmar le pone el
  * número; el documento sale por correo o WhatsApp, a mano (corrección de
  * Darwin, 27-08).
+ *
+ * ACÁ NO ESTÁ «DUPLICAR», y se quitó a propósito el 29-08. Era el sustituto de
+ * corregir —«para cambiarle algo hay que duplicarla»— y en esta pantalla se
+ * leía como «así se arreglan los errores», que es justo lo que no hay que hacer
+ * cuando el número ya salió al banco. Duplicar sigue existiendo en la lista de
+ * la oportunidad, donde su trabajo es otro: arrancar una cotización nueva
+ * reusando los equipos de una anterior.
  */
 export function CotizacionConfirmada({
   cotizacionId,
   codigo,
   serie,
   volverHref,
+  version = 1,
 }: {
   cotizacionId: string;
   codigo: string | null;
   serie: string;
   volverHref: string;
+  /** Cuántas veces salió este número; 1 = como se emitió (migración 0123). */
+  version?: number;
 }) {
   return (
     <div className="mx-auto max-w-xl py-16 text-center">
@@ -40,8 +51,15 @@ export function CotizacionConfirmada({
         Cotización confirmada{codigo ? ` como ${codigo}` : ""}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Ya tiene su número de la serie {serie} y el documento queda cerrado: para cambiarle algo hay que duplicarla.
+        Ya tiene su número de la serie {serie} y el documento queda cerrado: corregirlo necesita autorización de
+        operaciones o gerencia.
       </p>
+      {version > 1 && (
+        <p className="mt-2 text-xs font-medium text-primary">
+          Va por la versión {version}: se corrigió {version - 1} {version === 2 ? "vez" : "veces"} conservando el mismo
+          número.
+        </p>
+      )}
       <p className="mt-3 text-sm font-medium text-foreground">
         Falta lo último, y eso va por fuera del CRM: descargue el PDF y mándeselo al cliente por correo o WhatsApp.
       </p>
@@ -55,7 +73,13 @@ export function CotizacionConfirmada({
           <FileDown className="size-4" />
           Descargar el PDF para el cliente
         </a>
-        <Button variant="outline" render={<Link href={volverHref}>Volver a la oportunidad</Link>} />
+        {/* En segundo plano, con contorno: lo normal es bajar el PDF y
+            mandarlo. Corregir es la excepción —5 a 10 veces al año— y el texto
+            de arriba ya avisó que cuesta una autorización. */}
+        <CorregirCotizacionBoton cotizacionId={cotizacionId} codigo={codigo} volverHref={volverHref} />
+      </div>
+      <div className="mt-4">
+        <Button variant="ghost" size="sm" render={<Link href={volverHref}>Volver a la oportunidad</Link>} />
       </div>
     </div>
   );

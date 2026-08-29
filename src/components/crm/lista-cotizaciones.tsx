@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { duplicarCotizacion, eliminarCotizacion, registrarVenta } from "@/lib/acciones/cotizaciones";
 import { fechaHoraLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
+import { CorregirCotizacionBoton } from "@/components/crm/corregir-cotizacion-boton";
 import { cn } from "@/lib/utils";
 
 /**
@@ -253,6 +254,18 @@ export function ListaCotizaciones({
                     <Copy className="size-3" />
                     Duplicar
                   </button>
+                )}
+                {/* Corregir conservando el número: para cuando duplicar NO
+                    sirve porque el número ya salió al banco (migración 0123).
+                    Va acá, junto a «Duplicar», porque es la misma decisión
+                    tomada al revés y conviene verlas juntas. */}
+                {!esBorrador && (
+                  <CorregirCotizacionBoton
+                    cotizacionId={c.id}
+                    codigo={c.codigo}
+                    volverHref={`/comercial/oportunidades/${oportunidadId}`}
+                    variante="enlace"
+                  />
                 )}
                 {/* Solo un borrador SIN número: uno que ya tiene número
                     comprometió su correlativo con contabilidad, y una enviada la

@@ -142,10 +142,15 @@ De las reuniones del 28-08 y de la revisión del catálogo:
 2. **Editar una cotización ya numerada conservando el número** — el caso del
    leasing: al banco no se le puede cambiar el número. Ocurre 5 a 10 veces al
    año sobre 3.000 cotizaciones. Referencia que dio Carlos: como HubSpot, un
-   editor antes de generar el PDF. **La experiencia ya está mapeada en
-   `docs/20-corregir-cotizacion-numerada.md`** (mockup navegable en
-   `docs/mockups/corregir-cotizacion.html`); falta construirlo y llevarle a
-   Carlos las tres decisiones de la §5 de ese documento.
+   editor antes de generar el PDF. ~~Falta construirlo~~ — **HECHO el 29-08
+   (migración 0123)**: lo corrige el comercial dueño con el código de cuatro
+   dígitos que dictan operaciones o gerencia; cada línea de la cotización es un
+   botón que abre el buscador en modo reemplazar; se ve el antes/después y el
+   PDF real antes de guardar; la versión anterior queda archivada entera.
+   Diseño en `docs/20-corregir-cotizacion-numerada.md`, mockup en
+   `docs/mockups/corregir-cotizacion.html`. **Quedan las tres decisiones de la
+   §5** para llevarle a Carlos, sobre todo si el PDF corregido debe declararse
+   como versión 2 (hoy no dice nada).
 3. **La cuenta maestra de contraseñas**, y **quitarle al gestor la opción de
    cambiar la suya** («eso no va», Carlos, 28-08).
 4. **Tres accesos que Carlos pidió**: un comercial, gerencia comercial y

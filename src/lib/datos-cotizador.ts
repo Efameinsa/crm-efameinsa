@@ -1,7 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { contenidoDeFicha } from "@/lib/ficha-tecnica";
 import type { TipoDocumento } from "@/lib/documento";
-import type { BorradorEnEdicion, HistorialPrecio, ProductoCotizable } from "@/components/crm/tipos-cotizador";
+import type {
+  BorradorEnEdicion,
+  CorreccionAbierta,
+  HistorialPrecio,
+  ProductoCotizable,
+} from "@/components/crm/tipos-cotizador";
 
 /**
  * Todo lo que la PANTALLA del cotizador necesita, en un solo viaje.
@@ -28,6 +33,8 @@ export interface ContextoCotizador {
   historialPrecios: Record<string, HistorialPrecio>;
   /** El borrador que se está corrigiendo, si se entró a uno. */
   borrador?: BorradorEnEdicion;
+  /** Solo en modo corrección: la autorización que está corriendo. */
+  correccion?: CorreccionAbierta;
 }
 
 /**
@@ -166,7 +173,10 @@ async function cargarHistorialPrecios(
  */
 export type ResultadoCotizador =
   | { estado: "editable"; contexto: ContextoCotizador }
-  | { estado: "cerrada"; cotizacionId: string; codigo: string | null; serie: string }
+  | { estado: "cerrada"; cotizacionId: string; codigo: string | null; serie: string; version: number }
+  /** Modo corrección sin autorización viva: se pidió el código y venció, o se
+   *  llegó por el enlace sin pasar por el cuadro que lo pide. */
+  | { estado: "sin-autorizacion"; cotizacionId: string; codigo: string | null }
   | { estado: "no-disponible" };
 
 /**
@@ -178,6 +188,14 @@ export type ResultadoCotizador =
 export async function cargarContextoCotizador(
   oportunidadId: string,
   cotizacionId?: string,
+  /**
+   * «correccion» entra a una cotización YA EMITIDA para reescribirla
+   * conservando su número (migración 0123). Es el mismo cargador porque es la
+   * misma pantalla: el catálogo, el stock y el historial de precios se
+   * resuelven igual. Lo único que cambia es que un documento cerrado deja de
+   * ser el final del camino — siempre que haya una autorización corriendo.
+   */
+  modo: "borrador" | "correccion" = "borrador",
 ): Promise<ResultadoCotizador> {
   const supabase = await createClient();
 
@@ -221,26 +239,45 @@ export async function cargarContextoCotizador(
   const contacto = contactos.find((c) => c.es_principal) ?? contactos[0] ?? null;
 
   let borrador: BorradorEnEdicion | undefined;
+  let correccion: CorreccionAbierta | undefined;
   if (cotizacionId) {
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_lista, color, productos(marca, modelo, nombre))",
+        "id, codigo, serie, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_lista, color, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
 
     if (!cot || cot.oportunidad_id !== oportunidadId) return { estado: "no-disponible" };
+    const emitida = cot.estado !== "borrador" || Boolean(cot.enviada_at);
 
-    // Ya salió al cliente: no se edita, se duplica (migración 0062). No es un
-    // error — se muestra cerrada, con su número y su PDF.
-    if (cot.estado !== "borrador" || cot.enviada_at) {
-      return { estado: "cerrada", cotizacionId: cot.id, codigo: cot.codigo, serie: cot.serie };
+    if (modo === "correccion") {
+      // Corregir un borrador no existe: un borrador se edita y ya. Se manda a
+      // la pantalla de siempre en vez de dar un error que no dice nada.
+      if (!emitida) return { estado: "no-disponible" };
+      const { data: ventana } = await supabase.rpc("correccion_abierta", { p_cotizacion: cot.id });
+      const abierta = ventana as { expira_at: string; autorizo: string; motivo: string } | null;
+      // La base lo vuelve a comprobar al guardar; acá es para no dibujar una
+      // pantalla que va a rebotar.
+      if (!abierta) return { estado: "sin-autorizacion", cotizacionId: cot.id, codigo: cot.codigo };
+      correccion = { expiraEn: abierta.expira_at, autorizo: abierta.autorizo, motivo: abierta.motivo };
+    } else if (emitida) {
+      // Ya salió al cliente: no se edita (migración 0062). No es un error — se
+      // muestra cerrada, con su número, su PDF y la puerta a corregirla.
+      return {
+        estado: "cerrada",
+        cotizacionId: cot.id,
+        codigo: cot.codigo,
+        serie: cot.serie,
+        version: cot.version ?? 1,
+      };
     }
 
     borrador = {
       cotizacionId: cot.id,
       codigo: cot.codigo,
+      version: cot.version ?? 1,
       serie: cot.serie as "EFAMEINSA" | "OPEN",
       condiciones: cot.condiciones,
       vigenciaDias: cot.vigencia_dias,
@@ -304,6 +341,7 @@ export async function cargarContextoCotizador(
       }),
       historialPrecios: cuenta?.id ? await cargarHistorialPrecios(supabase, cuenta.id) : {},
       borrador,
+      correccion,
     },
   };
 }

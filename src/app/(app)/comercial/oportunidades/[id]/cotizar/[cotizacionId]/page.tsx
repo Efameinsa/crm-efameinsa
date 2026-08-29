@@ -21,7 +21,9 @@ export default async function CorregirCotizacionPage({
   const resultado = await cargarContextoCotizador(id, cotizacionId);
   const volverHref = `/comercial/oportunidades/${id}`;
 
-  if (resultado.estado === "no-disponible") {
+  // «sin-autorizacion» no sale por acá —es de la ruta /corregir— pero el tipo
+  // es común a las dos, así que se cierra igual que lo no disponible.
+  if (resultado.estado === "no-disponible" || resultado.estado === "sin-autorizacion") {
     return <RegistroNoDisponible volverHref={volverHref} volverTexto="Volver a la oportunidad" />;
   }
 
@@ -31,6 +33,7 @@ export default async function CorregirCotizacionPage({
         cotizacionId={resultado.cotizacionId}
         codigo={resultado.codigo}
         serie={resultado.serie}
+        version={resultado.version}
         volverHref={volverHref}
       />
     );

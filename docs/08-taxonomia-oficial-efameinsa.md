@@ -46,7 +46,7 @@ Por eso el informe anterior decía "solo 22 filas con monto, imposible derivar v
 | `C3_No_Responde` | No responde. **Indicador: 3 meses sin respuesta → Rechazado** | `seguimiento` |
 | `C3_Esperar` | Respondió, sin decisión final; pide otra fecha. **3 meses sin responder → Rechazado** | `seguimiento` |
 | `C3_Negociar` | Quiere mejor precio o un beneficio adicional para decidir | `seguimiento` |
-| `C3_Seg_Potencial` | **Pidió esperar para depositar el adelanto, o está emitiendo la OC** | `potencial` |
+| `C3_Seg_Potencial` | **Pidió esperar para depositar el adelanto, o está emitiendo la OC** | `seguimiento` (ver nota ↓) |
 | **`C4_VENTA`** | **Aceptó la cotización y se convierte en CLIENTE** | **`venta`** |
 | `C4_Rdo_FUTURO` | Rechazado; no sospechoso → va a hoja "rechazado futuro" | `rechazada` |
 | `C4_Rdo_DAR_BAJA` | Rechazado; vendedor lo notó nervioso, se considera **peligroso** | `rechazada` |
@@ -95,5 +95,32 @@ Ejemplo real del manual: `2,435 * 4390 // 1982 * 3980 // 8950 * 9658 * S/ 1950`
 ## Lo que esto valida de nuestro diseño
 
 - `C1_GC_xAprobar` **es exactamente la regla R5** que construimos (bajo lista → aprueba gerencia). No la inventamos; ya existía en su manual desde 2020.
-- Nuestro enum `etapa_oportunidad` (`asignada, filtrada, cotizada, seguimiento, potencial, venta, rechazada, derivada`) mapea casi 1:1. Incluso `potencial` coincide con su `C3_Seg_Potencial`.
+- Nuestro enum `etapa_oportunidad` (`asignada, filtrada, cotizada, seguimiento, potencial, venta, rechazada, derivada`) mapea casi 1:1.
+
+### La excepción: `potencial` NO es `C3_Seg_Potencial` (corregido el 29-08)
+
+Aquí decía que las dos coincidían, y por eso la importación tradujo
+`C3_Seg_Potencial` → `etapa='potencial'`. Era cierto en agosto, cuando esto se
+escribió, y dejó de serlo el **25-08**: con el cuadro semanal del ing. Carlos,
+`potencial` pasó a significar **«lo que voy a cerrar esta semana»** y es lo que
+alimenta «3. LO QUE QUEDÓ PENDIENTE» del reporte semanal.
+
+En el Excel, en cambio, `C3_Seg_Potencial` es una etiqueta **congelada el día
+que el comercial tocó la fila por última vez**. Hay filas de 2021.
+
+El resultado se vio el 29-08: a Brenda le salían 9 clientes «pendientes» y a
+Katerine 25, ninguno en negociación. *«No sabemos por qué nos sale como
+potenciales»* — y no era culpa de ellas, nunca los marcaron.
+
+Desde ahora:
+
+- `C3_Seg_Potencial` importa como **`seguimiento`**, igual que sus hermanos
+  `C3_Esperar`, `C3_No_Responde` y `C3_Negociar`. Sigue en cartera, con todo su
+  historial, pero no reclama una semana que no le toca.
+- **A `potencial` se llega SOLO trabajando dentro del CRM.** Es una promesa que
+  hace el comercial, no una etiqueta que hereda de un archivo.
+- Saneo de lo ya importado: `scripts/sanear-potenciales-fosiles.mjs` (63
+  oportunidades, reversible con `--revertir`). Respetó las negociaciones vivas
+  —las que tienen gestión o cotización hecha dentro del CRM—, que sí deben
+  seguir apareciendo en «Por ubicar» hasta que se les ponga fecha de cierre.
 - La separación `canal` (cómo llegó) vs `fuente/utm` (qué campaña lo trajo) es correcta: su sistema nunca capturó la fuente real (ver `docs/09` sobre nomenclatura de Central).

@@ -50,7 +50,10 @@ const ETAPA_POR_ESTADO = {
   P3_RDO_FUTURO: "rechazada", P3_RDO_DARBAJA: "rechazada",
   C1_GC_XAPROBAR: "cotizada", C1_PTO_SIN_CONF: "cotizada", C1_PTO_CONF: "cotizada",
   C3_NO_RESPONDE: "seguimiento", C3_ESPERAR: "seguimiento", C3_NEGOCIAR: "seguimiento",
-  C3_SEG_POTENCIAL: "potencial",
+  // Ver la nota larga en extraer-oportunidades-historicas.mjs: el `potencial`
+  // del Excel es una etiqueta vieja; el del CRM es «cierro esta semana». No
+  // son lo mismo, así que el estado importado va a `seguimiento`.
+  C3_SEG_POTENCIAL: "seguimiento",
   C4_VENTA: "venta", VENTA: "venta",
   C4_RDO_FUTURO: "rechazada", C4_RDO_DAR_BAJA: "rechazada", C4_RDO_COMPET: "rechazada",
 };
