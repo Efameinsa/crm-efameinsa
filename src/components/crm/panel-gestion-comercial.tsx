@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { SEMANAS_POR_MES, esSemanal, resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
+import { esSemanal, resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
+import { cargarPulsoSemana } from "@/lib/pulso-semana";
 import { cargarResumenGerencia, usd } from "@/lib/reportes";
 import { fechaCalendarioLarga } from "@/lib/fechas";
 import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
@@ -11,6 +12,8 @@ import { GraficoBarras } from "@/components/crm/grafico-barras";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { LeyendaSerie, barraMensualPorSerie } from "@/components/crm/leyenda-serie";
 import { CotizacionesDelPeriodo } from "@/components/crm/cotizaciones-del-periodo";
+import { BarraSemana } from "@/components/crm/barra-semana";
+import { cn } from "@/lib/utils";
 
 // Panel individual del comercial. Lo ve el propio comercial (/comercial/
 // mi-gestion) y gerencia (/gerencia/comerciales/[id]). Todos los números
@@ -36,7 +39,13 @@ export async function PanelGestionComercial({
   const incluirHistorico = searchParams.historico !== "no";
   const supabase = await createClient();
 
-  const [resumen, { data: rechazadas }] = await Promise.all([
+  // Con el período en una semana, el velocímetro se cambia por la barra de
+  // los tres tramos: los dos dirían el mismo porcentaje de ventas, y la barra
+  // además cuenta las gestiones y las cotizaciones. Fuera de la semana la
+  // barra no aplica —mide una semana, no un trimestre— y vuelve el velocímetro.
+  const semanal = esSemanal(periodo.preset);
+
+  const [resumen, { data: rechazadas }, pulsos] = await Promise.all([
     cargarResumenGerencia(supabase, { ...periodo, comercialId, incluirHistorico }),
     supabase
       .from("oportunidades")
@@ -45,7 +54,10 @@ export async function PanelGestionComercial({
       .eq("etapa", "rechazada")
       .gte("cerrada_at", `${periodo.desde}T00:00:00`)
       .lte("cerrada_at", `${periodo.hasta}T23:59:59`),
+    // periodo.desde ES el lunes cuando el preset es semanal.
+    semanal ? cargarPulsoSemana(supabase, periodo.desde, comercialId) : Promise.resolve([]),
   ]);
+  const pulso = pulsos[0];
 
   const k = resumen?.kpis;
   const yo = resumen?.por_comercial[0];
@@ -79,27 +91,22 @@ export async function PanelGestionComercial({
         </SeccionPanel>
       ) : (
         <>
-          <div className="grid gap-3 lg:grid-cols-[1fr_1.4fr]">
-            <SeccionPanel
-              titulo={
-                esSemanal(periodo.preset)
-                  ? "Meta de la semana"
-                  : periodo.preset === "mes"
+          {semanal && pulso && (
+            <BarraSemana pulso={pulso} titulo={esGerencia ? `La semana de ${nombre.split(" ")[0]}` : "Su semana"} />
+          )}
+
+          <div className={cn("grid gap-3", !semanal && "lg:grid-cols-[1fr_1.4fr]")}>
+            {!semanal && (
+              <SeccionPanel
+                titulo={
+                  periodo.preset === "mes"
                     ? "Meta del mes"
                     : `Meta del período (${k.meses_periodo} mes${k.meses_periodo === 1 ? "" : "es"})`
-              }
-            >
-              <Velocimetro ventasMes={Math.round(k.ventas_usd_equiv)} meta={yo && yo.meta_periodo > 0 ? yo.meta_periodo : null} />
-              {/* La meta semanal es la mensual repartida (ver cargarResumenGerencia).
-                  Se dice acá para que nadie la compare con la del mes y crea que
-                  le bajaron el objetivo. */}
-              {esSemanal(periodo.preset) && yo && yo.meta_periodo > 0 && (
-                <p className="mt-2 text-center text-[11px] text-muted-foreground">
-                  Su meta mensual repartida entre las{" "}
-                  {SEMANAS_POR_MES.toLocaleString("es-PE", { maximumFractionDigits: 2 })} semanas del mes.
-                </p>
-              )}
-            </SeccionPanel>
+                }
+              >
+                <Velocimetro ventasMes={Math.round(k.ventas_usd_equiv)} meta={yo && yo.meta_periodo > 0 ? yo.meta_periodo : null} />
+              </SeccionPanel>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <Kpi etiqueta="Ventas cerradas" valor={k.n_ventas} sub={`ticket promedio ${usd(k.ticket_promedio_usd)}`} />

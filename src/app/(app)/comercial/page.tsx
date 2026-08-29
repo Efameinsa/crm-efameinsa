@@ -7,6 +7,9 @@ import { PuntoInteres } from "@/components/crm/punto-interes";
 import { cn } from "@/lib/utils";
 import { hoyLima } from "@/lib/periodo";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
+import { BarraSemana } from "@/components/crm/barra-semana";
+import { cargarPulsoSemana } from "@/lib/pulso-semana";
+import { lunesDe } from "@/lib/calendario";
 
 interface FilaMiDia {
   id: string;
@@ -294,8 +297,15 @@ export default async function ComercialPage() {
       };
     });
 
+  // La barra de la semana va ARRIBA de todo y no en «Mi gestión»: es lo
+  // primero que ve el comercial al entrar, que es cuando la barra puede
+  // cambiarle el día. En «Mi gestión» estaría a dos clics y no la vería nadie.
+  const [pulso] = await cargarPulsoSemana(supabase, lunesDe(hoy), perfil.id);
+
   return (
     <div className="space-y-5">
+      {pulso && <BarraSemana pulso={pulso} href="/comercial/mi-gestion" />}
+
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle>Mi día</CardTitle>
