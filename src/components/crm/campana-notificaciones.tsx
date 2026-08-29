@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { marcarNotificacionLeida, marcarTodasLeidas } from "@/lib/acciones/notificaciones";
+import { marcarLeidasDelDestino, marcarNotificacionLeida, marcarTodasLeidas } from "@/lib/acciones/notificaciones";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fechaLima } from "@/lib/fechas";
@@ -57,6 +57,7 @@ function tiempoRelativo(iso: string): string {
 
 export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: RolUsuario }) {
   const router = useRouter();
+  const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   // Lectura perezosa: en el servidor no hay localStorage y `alertaSilenciada`
@@ -126,19 +127,28 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
      * notificaciones». Se relee al volver a la pestaña y cada minuto.
      */
     async function refrescar() {
-      const { data } = await supabase
-        .from("notificaciones")
-        .select("id, tipo, titulo, cuerpo, url, leida_at, created_at")
-        .order("created_at", { ascending: false })
-        .limit(15);
-      if (data) setNotificaciones(data);
-      // Las sin leer se cuentan aparte: si quedaron más atrás de las 15
-      // últimas, la campana igual tiene que prenderse.
-      const { count } = await supabase
-        .from("notificaciones")
-        .select("id", { count: "exact", head: true })
-        .is("leida_at", null);
-      setSinLeerTotal(count ?? 0);
+      const columnas = "id, tipo, titulo, cuerpo, url, leida_at, created_at";
+      // DOS consultas, no una. Antes se pedían solo las 15 más recientes y el
+      // número se contaba aparte sobre toda la base: si una pendiente quedaba
+      // más atrás de esas 15, la campana marcaba «2» y la lista salía toda en
+      // gris. Le pasó a Brenda el 29-08 (dos avisos del 24 con 45 encima).
+      // Ahora las pendientes se piden explícitamente y van primero: lo que
+      // dice el número es exactamente lo que se ve arriba de la lista.
+      const [recientes, pendientes] = await Promise.all([
+        supabase.from("notificaciones").select(columnas).order("created_at", { ascending: false }).limit(15),
+        supabase
+          .from("notificaciones")
+          .select(columnas, { count: "exact" })
+          .is("leida_at", null)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]);
+
+      const sinLeer = pendientes.data ?? [];
+      const vistos = new Set(sinLeer.map((n) => n.id));
+      const leidas = (recientes.data ?? []).filter((n) => !vistos.has(n.id));
+      if (recientes.data || pendientes.data) setNotificaciones([...sinLeer, ...leidas]);
+      setSinLeerTotal(pendientes.count ?? sinLeer.length);
     }
 
     refrescar();
@@ -178,6 +188,43 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
     // render y volvería a suscribir el canal.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  /**
+   * Llegar al sitio del aviso ES atenderlo.
+   *
+   * Un aviso no es una tarea aparte: existe para llevar a la persona a un
+   * lugar. Cuando ya está en ese lugar —haya entrado por la campana, por la
+   * agenda, por el pipeline o por un enlace— el aviso cumplió y se apaga.
+   *
+   * Sin esto, la campana acumulaba avisos ya atendidos: la persona hacía el
+   * trabajo pero nunca tocaba la campana, y el número se quedaba encendido
+   * para siempre señalando algo que ya no existía.
+   *
+   * La comparación es exacta contra la ruta: estar en el pipeline NO apaga el
+   * aviso de una oportunidad concreta, solo entrar a esa oportunidad.
+   */
+  // Se calcula fuera del efecto para no viajar al servidor en cada navegación:
+  // si en esta ruta no hay nada pendiente, no hay nada que apagar. Es fiable
+  // porque `refrescar` ya trae TODAS las pendientes, no solo las 15 últimas.
+  const pendientesDeEstaRuta = notificaciones
+    .filter((n) => !n.leida_at && n.url === ruta)
+    .map((n) => n.id)
+    .join(",");
+
+  useEffect(() => {
+    if (!pendientesDeEstaRuta) return;
+    const ids = new Set(pendientesDeEstaRuta.split(","));
+    let vigente = true;
+    marcarLeidasDelDestino(ruta).then(() => {
+      if (!vigente) return;
+      const ahora = new Date().toISOString();
+      setNotificaciones((prev) => prev.map((n) => (ids.has(n.id) ? { ...n, leida_at: n.leida_at ?? ahora } : n)));
+      setSinLeerTotal((v) => Math.max(0, v - ids.size));
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [ruta, pendientesDeEstaRuta]);
 
   // Mientras Central tenga un prospecto SIN LEER: el título de la pestaña se
   // marca en rojo (se ve aunque esté en otra pestaña) y la campanada se repite

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { marcarLeidasDeOportunidad } from "@/lib/acciones/notificaciones";
 import type { EtapaOportunidad } from "@/types/database";
 
 const TIPOS_ACTIVIDAD = [
@@ -106,6 +107,11 @@ export async function registrarActividad(datos: {
       return { error: "La gestión quedó registrada, pero solo el dueño de la oportunidad puede programar la próxima acción" };
     }
   }
+
+  // Gestionar el prospecto ES atender el aviso que lo anunció: se apaga solo,
+  // aunque la persona haya entrado por la agenda y nunca haya tocado la
+  // campana (reclamo de Brenda del 29-08).
+  await marcarLeidasDeOportunidad(datos.oportunidadId);
 
   revalidatePath("/comercial");
   revalidatePath("/comercial/agenda");
