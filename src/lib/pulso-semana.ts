@@ -18,23 +18,25 @@ import { lunesDe, sumarDias } from "@/lib/calendario";
  *
  * DE DÓNDE SALE CADA REFERENCIA (ninguna es inventada acá):
  *  · Gestiones → `perfiles.meta_gestiones_diarias` × 6 días, porque en
- *    Efameinsa se trabaja hasta el sábado. Desde la migración 0117 la meta es
- *    de cada uno —30 al día, 35 Katerine— y `parametros.meta_seguimientos_diarios`
- *    quedó de respaldo para quien no tenga la suya. Se cuentan con la MISMA
- *    definición que la supervisión diaria —efectivas, sin los NO_CONTESTO, sin
- *    las de postventa— o el comercial vería 130 acá y 150 allá contra la misma
- *    meta.
- *  · Cotizaciones → `perfiles.meta_cotizaciones_semanal` (36, y 42 Katerine),
- *    que sale del embudo real de 2026: 5 gestiones efectivas dan 1 cotización y
- *    10 cotizaciones dan 1 venta, con un ticket promedio de US$ 8.714. Con 180
- *    gestiones a la semana eso da 36 cotizaciones y US$ 31.400 — o sea que el
- *    embudo cierra con la meta de dinero, que es lo único que importa que
- *    cierre. Si la meta no está puesta, cae al promedio propio del comercial,
- *    contando el CRM Y el archivo de documentos: mirando solo el CRM el
- *    promedio da cero (todas las enviadas son de esta misma semana) y las 27
- *    cotizaciones de Brenda se verían como una barra vacía.
- *  · Ventas → la meta mensual de RRHH repartida entre las semanas del mes, el
- *    mismo reparto que usa el panel (ver `cargarResumenGerencia`).
+ *    Efameinsa se trabaja hasta el sábado. La meta es de cada uno desde la
+ *    migración 0117 y `parametros.meta_seguimientos_diarios` quedó de respaldo
+ *    para quien no tenga la suya. Se cuentan con la MISMA definición que la
+ *    supervisión diaria —efectivas, sin los NO_CONTESTO, sin las de postventa—
+ *    o el comercial vería 130 acá y 150 allá contra la misma meta.
+ *  · Cotizaciones → `perfiles.meta_cotizaciones_semanal`. Si no está puesta,
+ *    cae al promedio propio del comercial, contando el CRM Y el archivo de
+ *    documentos: mirando solo el CRM el promedio da cero (todas las enviadas
+ *    son de esta misma semana) y las 27 cotizaciones de Brenda se verían como
+ *    una barra vacía.
+ *  · Ventas → `perfiles.meta_mensual` repartida entre las semanas del mes, el
+ *    mismo reparto que usa el panel (ver `cargarResumenGerencia`). Hay UNA sola
+ *    meta de dinero por comercial en toda la aplicación, a propósito: dos —una
+ *    semanal y otra mensual— serían dos verdades sobre la misma persona.
+ *
+ * LOS NÚMEROS DE HOY los fijó gerencia el 29-08 (migración 0122): 35 gestiones
+ * al día —210 a la semana—, 50 cotizaciones y US$ 32.000 vendidos, que salen de
+ * una meta mensual de US$ 138.667 repartida entre las 4,33 semanas. No se
+ * tocan desde acá: son columnas justamente para poder cambiarlos sin desplegar.
  */
 
 /** Semanas hacia atrás que se miran para el promedio de cotizaciones. */
