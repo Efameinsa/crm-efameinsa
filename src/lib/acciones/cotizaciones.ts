@@ -389,6 +389,37 @@ export async function resolverAprobacionCotizacion(datos: {
   }
 
   const supabase = await createClient();
+
+  // QUIÉN ESTÁ APRETANDO EL BOTÓN, antes de nada (reporte del 29-08: el
+  // ingeniero, que SÍ es gerencia, quiso rechazar un precio bajo lo óptimo y le
+  // salió «Solo gerencia aprueba precios bajo lista»). La pantalla se protege
+  // por rol al abrirla, pero eso pasa UNA vez: si la pestaña queda abierta y
+  // mientras tanto en el navegador se entra con otra cuenta —rutina acá, el
+  // ingeniero revisa entrando con la de cada quien—, el clic sale con la sesión
+  // nueva y la base lo rebota con una frase que no dice ni quién está entrando
+  // ni qué hacer. Se comprueba acá para poder decirlo con nombre.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      error:
+        "Su sesión se cerró. Vuelva a entrar con la cuenta de gerencia: la cotización sigue esperando, no se perdió nada.",
+    };
+  }
+  const { data: quien } = await supabase
+    .from("perfiles")
+    .select("nombre, rol")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!quien || (quien.rol !== "gerencia" && quien.rol !== "admin")) {
+    return {
+      error: quien
+        ? `Los precios bajo lista los aprueba gerencia, y en este navegador está entrando como ${quien.nombre} (${quien.rol}). Cierre sesión y entre con la cuenta de gerencia.`
+        : "Su sesión se cerró. Vuelva a entrar con la cuenta de gerencia.",
+    };
+  }
+
   const { comercialId } = await comercialDeCotizacion(supabase, datos.cotizacionId);
 
   const { data, error } = await supabase.rpc("resolver_aprobacion_cotizacion", {

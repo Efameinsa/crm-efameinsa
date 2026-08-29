@@ -71,6 +71,7 @@ export function AprobarCotizacionBotones({
   const porDecidir = useMemo(() => items.filter((i) => i.requiereAprobacion), [items]);
   const sinDecidir = porDecidir.filter((i) => !(i.id in decisiones));
   const rechazados = porDecidir.filter((i) => decisiones[i.id] === false);
+  const faltaNota = rechazados.length > 0 && !nota.trim();
 
   function decidir(id: string, aprobado: boolean) {
     setDecisiones((d) => ({ ...d, [id]: aprobado }));
@@ -249,20 +250,30 @@ export function AprobarCotizacionBotones({
             id="nota"
             value={nota}
             onChange={(e) => setNota(e.target.value)}
-            placeholder="ej. Se puede bajar hasta 3800 por unidad, no más."
+            placeholder={
+              rechazados.length > 0
+                ? "Por qué se rechaza. Ej.: se puede bajar hasta 3800 por unidad, no más."
+                : "ej. Se puede bajar hasta 3800 por unidad, no más."
+            }
             rows={2}
+            // Rechazar sin decir por qué no sirve de nada: el comercial vuelve
+            // a cotizar a ciegas. Se marca el campo en vez de dejar que el
+            // botón falle después (29-08).
+            className={cn(faltaNota && "border-destructive focus-visible:border-destructive")}
           />
         </div>
 
         <DialogFooter>
           <span className="mr-auto self-center text-xs text-muted-foreground">
             {sinDecidir.length > 0
-              ? `${sinDecidir.length} equipo(s) sin decidir`
-              : rechazados.length > 0
-                ? `${rechazados.length} rechazado(s)`
-                : "Todo aprobado"}
+              ? `Falta decidir ${sinDecidir.length} equipo(s)`
+              : faltaNota
+                ? "Escriba por qué se rechaza"
+                : rechazados.length > 0
+                  ? `${rechazados.length} rechazado(s)`
+                  : "Todo aprobado"}
           </span>
-          <Button disabled={enviando || sinDecidir.length > 0} onClick={guardar}>
+          <Button disabled={enviando || sinDecidir.length > 0 || faltaNota} onClick={guardar}>
             Guardar decisión
           </Button>
         </DialogFooter>
