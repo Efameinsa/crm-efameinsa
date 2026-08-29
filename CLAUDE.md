@@ -2,16 +2,28 @@
 
 CRM a medida para EFAMEINSA (equipos de lavandería industrial y semi-industrial, Perú). Reemplaza el proceso actual basado en Excel (un archivo por vendedor + archivo maestro de Central). La misma empresa factura bajo dos razones sociales: **EFAMEINSA** y **OPEN** (Open Investments) — dos series de cotización separadas.
 
+## ⚠️ EMPEZAR POR ACÁ
+
+**`docs/19-estado-y-continuidad.md`** — dónde está el sistema hoy, quién es
+quién, qué quedó pendiente, cómo se trabaja y las trampas conocidas. Se lee
+primero, antes de tocar nada.
+
 ## Estado del proyecto
 
-- **Fase actual:** arquitectura cerrada y validada con gerencia (reunión 2026-08-14). Toca ejecutar el plan de implementación.
-- **Compromiso con gerencia:** piloto funcional en ~2 días desde el arranque; un avance visible al día siguiente de la reunión. Priorizar SIEMPRE lo que se ve funcionando (login → bandeja Central → vista comercial) sobre lo perfecto.
-- **Plan de trabajo:** `docs/04-plan-implementacion.md` — bloques B1–B5 en orden, con criterios de aceptación. Empezar por B1.
-- **Modelo de datos:** `supabase/migrations/0001_esquema_inicial.sql` es la fuente de verdad. Explicación en `docs/02-modelo-datos.md`. Reglas de negocio en `docs/03-reglas-negocio.md`.
+- **EN PRODUCCIÓN Y EN USO DIARIO** desde el 25-08-2026: https://crm.efameinsa.com.
+  No es un piloto. Hay comerciales cotizando, Central derivando y cierres
+  emitiéndose todos los días: **cada cambio toca datos reales**.
+- **El servidor local (`npm run dev`, puerto 3100) apunta a la base de
+  producción.** Lo que se prueba ahí es real.
+- **Modelo de datos:** las migraciones de `supabase/migrations/` son la fuente
+  de verdad, en orden y con la explicación del porqué en cada cabecera.
+  Panorama en `docs/02-modelo-datos.md`; reglas en `docs/03-reglas-negocio.md`.
+- **Historia de las decisiones:** `docs/06`, `10`, `11`, `13`, `16`, `17`, `18`
+  — cada plan salió de una reunión con gerencia y cita lo que se pidió.
 
 ## Stack (decidido, no rediscutir)
 
-- **Next.js 15** (App Router, TypeScript) en `src/`
+- **Next.js 16** (App Router + Turbopack, TypeScript) en `src/`
 - **Supabase**: Postgres + Auth (email/password, cuentas creadas por admin) + RLS + Storage (fotos de producto, PDFs de cotización)
 - **Vercel**: hosting + route handlers para webhooks (`/api/webhooks/meta`, `/api/leads`) + Vercel Cron (gasto publicitario diario, alertas)
 - **Tailwind CSS + shadcn/ui** para UI rápida y consistente
@@ -41,6 +53,22 @@ CRM a medida para EFAMEINSA (equipos de lavandería industrial y semi-industrial
 - Roles: `admin`, `gerencia`, `central`, `comercial` (C1–C10). RLS: cada comercial ve SOLO su cartera; Central ve la bandeja de leads; gerencia ve todo.
 - UI en español, trato de usted, marca escrita "Efameinsa" en texto corrido.
 
+## Cómo se trabaja acá (no negociable)
+
+- **Nada se da por bueno sin abrirlo.** El patrón de la casa son scripts
+  `scripts/_verificar-*.mjs` que entran con **sesiones reales** de cada cuenta
+  (magic link + `verifyOtp`), piden las páginas al servidor y afirman contra el
+  HTML que devuelve — nunca contra lo que uno supone. Comprueban también quién
+  NO puede hacer cada cosa.
+- **Una verificación no escribe sobre datos reales.** Crea lo suyo y lo borra.
+  El catálogo, los precios y las cotizaciones son del negocio.
+- **Los PDF se verifican con `pdfjs-dist`**, comparando texto y dibujos página
+  por página contra cotizaciones reales de referencia.
+- **Antes de crear una migración, mirar el último número**: han chocado tres
+  veces por trabajar dos sesiones en paralelo sobre el mismo repo.
+- **Los scripts con `_` delante no se comprometen**: son de trabajo.
+- **Commits en español**, explicando el porqué y citando a quien lo pidió.
+
 ## Identidad de marca (para PDF de cotización y pantallas)
 
 - Granate `#7E1210` (primario), carbón `#2C2E35` (negro de marca digital), gris `#6B6B6B`.
@@ -64,7 +92,11 @@ Carpeta `C:\Users\diseno\Downloads\PROYECTO CRM EFAMEINSA\`:
 - Windows 11, Node portable v24 en AppData, **sin Python ni poppler ni gh CLI**.
 - PDFs se verifican renderizando con `pdfjs-dist` + `canvas` (npm) y leyendo los PNG.
 - HTML→PDF de documentos: `msedge.exe --headless --print-to-pdf`.
-- Repo GitHub: pendiente de crear/push (sin gh CLI: crear el repo en github.com y `git remote add` + push con credenciales del navegador).
+- Repo: `https://github.com/Efameinsa/crm-efameinsa`, rama `main`.
+- **Vercel: el proyecto vive en la cuenta `corporacionefameinsa.sa@gmail.com`**,
+  no en la personal de Darwin. Los despliegues se miran desde ahí. Vercel
+  construye siempre el commit más nuevo: si ese no compila, se congela todo lo
+  que haya detrás.
 
 ## Integraciones (v1 tarde / v2)
 

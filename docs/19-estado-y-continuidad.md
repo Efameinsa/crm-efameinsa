@@ -1,0 +1,206 @@
+# Estado del CRM y cómo continuar
+
+**Escrito el 28-08-2026, al cambiar de cuenta de trabajo.** Este documento es el
+punto de entrada: quien llegue nuevo lee esto primero y con eso puede seguir sin
+preguntar lo que ya está decidido.
+
+Lo demás vive en el repositorio y en la base. Nada importante depende de una
+conversación: si algo solo estaba en un chat, es que faltaba escribirlo.
+
+---
+
+## 1. Qué es esto y en qué punto está
+
+CRM a medida para EFAMEINSA (equipos de lavandería industrial, Perú), en
+**producción y en uso diario** desde el 25-08-2026 en **https://crm.efameinsa.com**.
+Reemplazó el Excel por vendedor + el maestro de Central.
+
+No es un piloto: hay comerciales cotizando, Central derivando contactos y
+cierres de venta emitiéndose todos los días. **Cada cambio toca datos reales.**
+
+| | |
+|---|---|
+| Clientes | ~16.300 cuentas, ~13.900 contactos |
+| Contactos históricos | ~39.400 leads |
+| Catálogo | 147 productos (121 activos), todos con ficha, precio y foto |
+| Cotizaciones | ~25.500 oportunidades cargadas |
+| Cierres de venta emitidos | EFAMEINSA 001, OPEN 001–005 (correlativos arrancados el 28-08) |
+
+**Stack:** Next.js 16 (App Router, Turbopack) · Supabase (Postgres + Auth + RLS +
+Storage) · Vercel · Tailwind + shadcn/ui · vitest · @react-pdf/renderer.
+
+---
+
+## 2. Quién es quién
+
+| Persona | Cuenta | Qué hace |
+|---|---|---|
+| **Ing. Carlos** | gerencia | Gerente. Decide las reglas de negocio. Las reuniones con él son la fuente de verdad. |
+| **Santos Vilcachagua** | gerencia | Gerencia comercial. Los documentos hacia gerencia se firman con su nombre. |
+| **Darwin** | admin | Quien desarrolla y administra el CRM (el usuario de estas sesiones). |
+| **Central** | `central@efameinsa.com` | Recibe TODO contacto entrante y lo deriva. Emite pedidos y libera cierres. |
+| **Lesly** | `lesly@efameinsa.com` | **Operaciones** (rol propio, migración 0115). Autoriza, reparte permisos, mantiene el catálogo y el maestro de precios. |
+| **Brenda Taboada** | C1 (antes C8) | Comercial. Fue postventa 5 años: el histórico de postventa es suyo como C8. |
+| **Katerine Tello** | C5 | Comercial. |
+| **Ariana Flores** | C4 | Comercial que además vende mantenimiento y repuestos. |
+| **Postventa** | `postventa@efameinsa.com` | Hever. Ejecuta despachos, puestas en marcha y garantías. |
+
+Hay además cuentas de **práctica** (`central0@`, `comercial0@gmail.com`,
+`postventa2@`) aisladas por `es_prueba` / `es_cuenta_prueba()`: sirven para
+capacitar sin ensuciar reportes.
+
+---
+
+## 3. Las reglas que no se rediscuten
+
+Salieron de reuniones con gerencia; están en `docs/01`, `03`, `06`, `10`, `13`,
+`18` y en las cabeceras de las migraciones. Las que más se olvidan:
+
+1. **El catálogo es sagrado.** Los productos, sus fichas y sus precios salen del
+   maestro de Lesly (`CODIFICACION DE EQUIPOS PARA MARKETING.xlsx`, columna
+   «VALOR DE VENTA»). **No se tocan datos de productos para probar nada.** Si
+   una verificación necesita un producto, lo crea y lo borra.
+2. **Anular, no borrar.** Un cierre equivocado se anula: queda el documento con
+   su número, deja de contar y el correlativo sigue. Vale para todo lo que ya
+   salió a un cliente.
+3. **El comercial no corrige lo suyo.** Toda corrección la ejecuta Central o
+   gerencia con el código de autorización del supervisor (dura 10 minutos).
+4. **La serie del equipo es el eje de la trazabilidad.** La misma serie viaja
+   del almacén al cliente y de ahí a `equipos_instalados` con su garantía.
+5. **Los precios se versionan**: cambiar uno vence el vigente y abre otro; el
+   histórico es lo que el cotizador usa para decirle al comercial a cuánto se
+   le vendió antes a ese cliente.
+6. **Registrar una gestión tiene que costar ≤15 segundos.** Es la regla de
+   adopción: si algo tarda más, no se usa.
+
+---
+
+## 4. Lo que se construyó en la última tanda (26 al 28-08)
+
+Cada una tiene su migración con la explicación completa en la cabecera.
+
+**Postventa** (`docs/13`, `16`, `17`): el caso arranca por la serie del equipo,
+calendario, ruta de mantenimiento, precios tapados para quien no debe verlos, e
+importación de 390 cierres de postventa de los Word de `R:\`.
+
+**Central** (`0107`, `0110`): derivar un contacto ya no le quita el cliente a
+nadie en silencio — avisa y pide el código del supervisor. La cola de cierres se
+escanea y el expediente se abre en un modal.
+
+**Operaciones — el puesto de Lesly** (`0114`–`0121`): rol propio; dicta el
+código que autoriza anular un cierre y corregir una derivación (pero **no**
+traspasar cartera, que sigue en gerencia); reparte el permiso temporal para que
+un comercial cotice mantenimiento; mantiene el catálogo y las listas del
+sistema.
+
+**El catálogo de operaciones** (`/operaciones/catalogo`): se busca con la MISMA
+función del cotizador (`buscarEquipos`), cada equipo abre su **hoja técnica tal
+como sale impresa** y editable encima, con vista previa del PDF real. El
+catálogo es también el almacén: el stock se ve en la tarjeta.
+
+**Cosas que se arreglaron y conviene no volver a romper** están en la sección 7.
+
+---
+
+## 5. Cómo se trabaja acá
+
+**Migraciones.** Numeradas, en `supabase/migrations/`, con una cabecera larga
+que explica POR QUÉ, citando a quien lo pidió. Se aplican con un script
+`node --env-file=.env.local` contra `DATABASE_URL`. ⚠️ **Verificar el último
+número antes de crear una**: han chocado tres veces por trabajar dos sesiones en
+paralelo.
+
+**Verificación.** No se da por buena una pantalla sin abrirla. El patrón de la
+casa son scripts `scripts/_verificar-*.mjs` que:
+- entran con **sesiones reales** de cada cuenta (magic link + `verifyOtp`),
+- piden las páginas al servidor y afirman contra el **HTML que devuelve**,
+- comprueban también **quién NO puede** hacer cada cosa,
+- y **no escriben sobre datos reales**: crean lo suyo y lo borran.
+
+Los PDF se verifican con `pdfjs-dist`, comparando texto y dibujos página por
+página contra tres cotizaciones reales de referencia.
+
+**Idioma.** Todo el dominio en español: tablas, columnas, rutas, UI, nombres de
+funciones y comentarios. Los mensajes de la interfaz están escritos para quien
+los va a leer trabajando, no para un programador.
+
+**Commits.** En español, explicando el porqué y citando la frase de quien lo
+pidió cuando la hay. Terminan con los dos trailers de coautoría.
+
+**Los scripts `_`-prefijados no se comprometen**: son de trabajo.
+
+---
+
+## 6. Lo que quedó pendiente
+
+De las reuniones del 28-08 y de la revisión del catálogo:
+
+1. **Cargar el almacén de verdad.** `inventario_equipos` está vacía. Mientras
+   tanto el stock que se ve es `ficha.stock_referencia`, la cifra que trajo el
+   maestro (288 máquinas en 84 modelos), rotulada «(ref.)». Si Lesly entrega el
+   Excel con las series, se importa.
+2. **Editar una cotización ya numerada conservando el número** — el caso del
+   leasing: al banco no se le puede cambiar el número. Ocurre 5 a 10 veces al
+   año sobre 3.000 cotizaciones. Referencia que dio Carlos: como HubSpot, un
+   editor antes de generar el PDF.
+3. **La cuenta maestra de contraseñas**, y **quitarle al gestor la opción de
+   cambiar la suya** («eso no va», Carlos, 28-08).
+4. **Tres accesos que Carlos pidió**: un comercial, gerencia comercial y
+   central, con usuario y contraseña.
+5. **Ariana (C4) tiene 169 ventas que no son suyas** — mantenimientos del
+   histórico de postventa, ~US$321 mil, 2023–2026. Decisión tomada: pertenecen
+   a postventa con referencia a C8 (Brenda); Ariana debe **verlas pero no
+   contabilizarlas**; su primera venta es el cierre N.º 10.
+6. **Retirar el resultado de gestión `FUTURO`**, duplicado de `COMPRA_FUTURO`.
+7. **Reconocer las redes seguras de la oficina** para el control de accesos, y
+   pedir autorización cuando un laptop se conecta desde fuera.
+8. **32 cierres de postventa** esperan confirmación humana en
+   `docs/cierres-postventa-a-confirmar.xlsx`.
+
+---
+
+## 7. Trampas conocidas (leer antes de tocar)
+
+Cada una costó un rato de depuración y ninguna da error a la vista:
+
+- **RLS por fila.** Una política que llama a una función de rol sin envolverla en
+  `(select …)` se ejecuta **una vez por fila**. Dos políticas así hacían que
+  escribir un nombre en la captura de Central tardara 8,8 segundos (0109).
+- **Filtrar una columna que no existe en esa tabla** no falla fila por fila:
+  PostgREST devuelve la consulta ENTERA vacía. Un `.eq("es_soporte", false)`
+  sobre `leads` dejó a Central sin su historial, sin ningún error.
+- **`sm:max-w-*` gana a `max-w-*`** en el diálogo base: pedir `max-w-3xl` sin el
+  prefijo `sm:` deja el modal en 24 rem.
+- **La ficha impresa sale de `ficha.bloques`**, no de los cuatro cajones viejos
+  (`caracteristicas`, `dimensiones`…). Los 121 activos usan `bloques`.
+- **`tier` es un enum** (`tier_precio`): comparar contra texto falla.
+- **Un precio por producto, tier y DÍA** (`uq_precio_vigente`): dos correcciones
+  el mismo día se pisan, no se apilan.
+- **Varios productos comparten modelo** (cada color de coche es un producto):
+  nunca buscar un producto por `modelo` para actuar sobre él, siempre por `id`.
+- **Las fotos viven en dos sitios**: las 296 originales en `public/productos/` y
+  las subidas en el bucket `productos` con prefijo `storage:`. Usar `rutaFoto()`.
+- **Vercel construye siempre el commit más nuevo**: si ese no compila, se cae
+  todo lo que hay detrás. Un archivo sin commitear tuvo la producción congelada
+  45 minutos con ocho commits en cola.
+
+---
+
+## 8. Entorno
+
+- Windows 11, Node portable v24 en AppData. Sin Python, sin poppler, sin `gh`.
+- Repo: `https://github.com/Efameinsa/crm-efameinsa`, rama `main`.
+- **Vercel**: el proyecto vive en la cuenta **corporacionefameinsa.sa@gmail.com**,
+  no en la personal de Darwin. Los despliegues se miran desde ahí.
+- Servidor local: `npm run dev` en el puerto 3100 — **apunta a la base de
+  producción**, así que lo que se pruebe ahí es real.
+- `.env.local` tiene `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`.
+
+---
+
+## 9. Rutina diaria que no se puede olvidar
+
+**El informe para gerencia se arma TODOS los días**, 30 minutos antes de la
+salida: jueves 16:30, lunes 18:30, sábado 11:30, el resto 17:30. Se genera con
+`scripts/informe-diario.mjs`. Lo firma Santos.
