@@ -36,6 +36,8 @@ export interface EquipoCatalogo {
   caracteristicas: number;
   tieneFicha: boolean;
   precios: { tier: string; precio: number }[];
+  /** Cuántas hay en el almacén (0117); null si ese modelo todavía no se cargó. */
+  disponibles: number | null;
 }
 
 export interface SaludCatalogo {
@@ -66,11 +68,17 @@ export async function cargarCatalogo(
   // Se piden TODOS, incluidos los inactivos: un equipo apagado por error es
   // invisible para el comercial y hasta hoy también lo era para quien podría
   // volver a prenderlo.
-  const { data } = await supabase
+  const [{ data }, { data: stock }] = await Promise.all([
+    supabase
     .from("productos")
     .select("id, sku, marca, modelo, nombre, categoria, segmento, capacidad, activo, foto_path, ficha, precios_producto(tier, precio, vigente_hasta)")
     .order("marca")
-    .order("modelo");
+    .order("modelo"),
+    supabase.rpc("stock_por_producto"),
+  ]);
+  const enAlmacen = new Map<string, number>(
+    ((stock ?? []) as { producto_id: string; disponibles: number }[]).map((x) => [x.producto_id, x.disponibles]),
+  );
 
   const equipos: EquipoCatalogo[] = (data ?? []).map((p) => {
     const ficha = (p.ficha ?? null) as Record<string, unknown> | null;
@@ -96,6 +104,7 @@ export async function cargarCatalogo(
       caracteristicas: lista(ficha, "caracteristicas").length + lista(ficha, "dimensiones").length,
       tieneFicha: ficha != null && Object.keys(ficha).length > 0,
       precios,
+      disponibles: enAlmacen.has(p.id as string) ? (enAlmacen.get(p.id as string) ?? 0) : null,
     };
   });
 

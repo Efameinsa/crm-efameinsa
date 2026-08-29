@@ -213,6 +213,16 @@ function FilaEquipo({ equipo: e }: { equipo: EquipoCatalogo }) {
             </span>
           )}
           {e.tieneFicha && <span className="text-[11px] text-muted-foreground">{e.caracteristicas} líneas de ficha</span>}
+          {e.disponibles !== null && (
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                e.disponibles > 0 ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : "bg-amber-500/15 text-amber-800",
+              )}
+            >
+              {e.disponibles} en almacén
+            </span>
+          )}
         </div>
 
         {/* Las dos preguntas que siguen a «lo encontré»: cómo se lee y cómo se

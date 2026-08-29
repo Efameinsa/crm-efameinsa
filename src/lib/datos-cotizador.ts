@@ -196,6 +196,15 @@ export async function cargarContextoCotizador(
       .order("marca"),
   ]);
 
+  // Cuántas hay en el almacén (0117). Va en la misma pantalla porque la
+  // pregunta «¿se lo puedo prometer para esta semana?» se hace mientras se
+  // arma la cotización, no después; averiguarlo por teléfono es lo que hoy
+  // hace que se prometan entregas que no existen.
+  const { data: stock } = await supabase.rpc("stock_por_producto");
+  const disponiblesPorProducto = new Map<string, number>(
+    ((stock ?? []) as { producto_id: string; disponibles: number }[]).map((s) => [s.producto_id, s.disponibles]),
+  );
+
   if (!oportunidad) return { estado: "no-disponible" };
 
   const cuenta = oportunidad.cuentas as unknown as {
@@ -280,9 +289,19 @@ export async function cargarContextoCotizador(
         : null,
       contacto: contacto ? { nombre: contacto.nombre, cargo: contacto.cargo, telefono: contacto.telefono } : null,
       solicitud: lead?.mensaje ?? null,
-      productos: (productos ?? []).map((pr) =>
-        mapearProducto(pr as unknown as Parameters<typeof mapearProducto>[0]),
-      ),
+      productos: (productos ?? []).map((pr) => {
+        const base = mapearProducto(pr as unknown as Parameters<typeof mapearProducto>[0]);
+        // El almacén manda donde ya está cargado. Donde todavía no, se deja
+        // la cifra del maestro en vez de decir «sin stock», que sería peor
+        // que no decir nada: haría rechazar ventas por un almacén a medio
+        // cargar.
+        const enVivo = disponiblesPorProducto.has(pr.id as string);
+        return {
+          ...base,
+          stock: enVivo ? (disponiblesPorProducto.get(pr.id as string) ?? 0) : base.stock,
+          stockEnVivo: enVivo,
+        };
+      }),
       historialPrecios: cuenta?.id ? await cargarHistorialPrecios(supabase, cuenta.id) : {},
       borrador,
     },

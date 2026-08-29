@@ -56,6 +56,7 @@ export interface EquipoElegible {
   panel?: string | null;
   controles?: string | null;
   /** Colores en los que existe el equipo (coches de transporte, principalmente). */
+  stockEnVivo?: boolean;
   colores?: string[];
   fotoPath?: string | null;
   /** Una foto por color, cuando Lesly hizo ficha de cada uno. */
@@ -73,16 +74,33 @@ export interface EquipoElegible {
   descripcion?: string | null;
 }
 
-function BadgeStock({ stock }: { stock: number | null | undefined }) {
+/**
+ * Cuántas hay. Y de dónde sale ese número, que no es un detalle: hasta el
+ * 28-08 el único stock que se veía acá era `ficha.stock_referencia`, una
+ * cifra copiada del Excel del maestro que envejece el día que se carga. Con
+ * el almacén cargado (migración 0117) el número es un conteo de máquinas con
+ * su serie, y entonces sí se puede prometer una entrega mirándolo.
+ *
+ * Mientras el almacén se termina de cargar conviven los dos, y se dicen
+ * distinto: «en almacén» es lo que hay, «referencia» es lo que decía el Excel.
+ */
+function BadgeStock({ stock, enVivo }: { stock: number | null | undefined; enVivo?: boolean }) {
   if (stock === null || stock === undefined) {
     return <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">stock s/d</span>;
   }
   if (stock === 0) {
-    return <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">sin stock</span>;
+    return (
+      <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+        {enVivo ? "sin stock en almacén" : "sin stock"}
+      </span>
+    );
   }
   return (
-    <span className="rounded-full bg-[#1E7F4F]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#1E7F4F]">
-      {stock} en stock
+    <span
+      title={enVivo ? "Máquinas en el almacén, contadas por su número de serie" : "Cifra de referencia del maestro, no un conteo del almacén"}
+      className="rounded-full bg-[#1E7F4F]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#1E7F4F]"
+    >
+      {stock} {enVivo ? "en almacén" : "en stock (ref.)"}
     </span>
   );
 }
@@ -231,7 +249,7 @@ function PanelDetalle({
         {equipo.precio != null && (
           <span className="text-base font-bold tabular-nums text-foreground">{monto(equipo.precio)}</span>
         )}
-        <BadgeStock stock={equipo.stock} />
+        <BadgeStock stock={equipo.stock} enVivo={equipo.stockEnVivo} />
       </div>
       {/* El estado del equipo en la cotización. El «quitar» también está acá
           —es donde mira quien está inspeccionando el equipo— pero desde el
@@ -524,7 +542,7 @@ export function BuscadorEquiposModal({
                           onQuitar={() => onQuitar(p.id)}
                         />
                       )}
-                      <BadgeStock stock={p.stock} />
+                      <BadgeStock stock={p.stock} enVivo={p.stockEnVivo} />
                     </span>
                   </div>
                 </li>

@@ -27,6 +27,9 @@ export interface ProductoCotizable {
   calentamiento?: string | null;
   panel?: string | null;
   controles?: string | null;
+  /** Si el número de arriba lo puso el almacén (0117) y no el Excel. Un
+   *  conteo de verdad y una cifra copiada a mano no se leen igual. */
+  stockEnVivo?: boolean;
   /** Colores en los que existe el equipo (coches de transporte, sobre todo). */
   colores?: string[];
   /** Ruta pública de la foto ("/productos/x.png"), para la vista previa. */

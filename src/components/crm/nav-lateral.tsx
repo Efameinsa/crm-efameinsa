@@ -14,6 +14,7 @@ import {
   Users,
   Package,
   BookMarked,
+  Boxes,
   Gauge,
   CalendarDays,
   ClipboardCheck,
@@ -80,6 +81,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/operaciones", etiqueta: "Autorizaciones", icono: KeyRound },
     { href: "/operaciones/permisos", etiqueta: "Permisos", icono: ShieldCheck },
     { href: "/operaciones/catalogo", etiqueta: "El catálogo", icono: Package },
+    { href: "/operaciones/inventario", etiqueta: "El almacén", icono: Boxes },
     { href: "/admin/catalogos", etiqueta: "Listas del sistema", icono: BookMarked },
   ],
   admin: [
