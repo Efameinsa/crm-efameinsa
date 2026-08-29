@@ -60,6 +60,8 @@ export interface EquipoEditable {
   fichaTexto: string;
   precios: { tier: string; precio: number }[];
   disponibles: number | null;
+  stockReferencia: number | null;
+  ubicacionMaestro: string | null;
 }
 
 export const EQUIPO_NUEVO: EquipoEditable = {
@@ -81,6 +83,8 @@ export const EQUIPO_NUEVO: EquipoEditable = {
   fichaTexto: "# CARACTERÍSTICAS\n- ",
   precios: [],
   disponibles: null,
+  stockReferencia: null,
+  ubicacionMaestro: null,
 };
 
 
@@ -502,7 +506,11 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
         </label>
         {!esNuevo && (
           <span className="text-[11px] text-muted-foreground">
-            {d.disponibles === null ? "stock sin cargar" : d.disponibles > 0 ? `${d.disponibles} en almacén` : "sin stock"}
+            {d.disponibles !== null
+              ? `${d.disponibles} en almacén`
+              : d.stockReferencia !== null
+                ? `${d.stockReferencia} en stock según el maestro${d.ubicacionMaestro ? ` (${d.ubicacionMaestro})` : ""}`
+                : "stock sin cargar"}
           </span>
         )}
       </div>

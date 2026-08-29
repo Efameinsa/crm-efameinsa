@@ -38,8 +38,18 @@ export interface EquipoCatalogo {
   caracteristicas: number;
   tieneFicha: boolean;
   precios: { tier: string; precio: number }[];
-  /** Cuántas hay en el almacén (0117); null si ese modelo todavía no se cargó. */
+  /** Cuántas hay en el almacén del CRM (0117); null si ese modelo no se cargó. */
   disponibles: number | null;
+  /**
+   * Lo que decía el maestro de Lesly cuando se cargó el catálogo
+   * (`ficha.stock_referencia`). Es el número que el comercial viene viendo
+   * en el cotizador desde antes de que existiera el almacén: no es un
+   * conteo, es una foto de ese día, pero es lo único que hay hasta que el
+   * almacén se cargue.
+   */
+  stockReferencia: number | null;
+  /** Dónde decía el maestro que estaban («PLANTA», casi siempre). */
+  ubicacionMaestro: string | null;
   /** La descripción impresa, ya como texto editable (ver ficha-texto.ts). */
   fichaTexto: string;
   /** Si la ida y vuelta de esa ficha es exacta; si no, se mira pero no se edita. */
@@ -113,6 +123,8 @@ export async function cargarCatalogo(
       tieneFicha: ficha != null && Object.keys(ficha).length > 0,
       precios,
       disponibles: enAlmacen.has(p.id as string) ? (enAlmacen.get(p.id as string) ?? 0) : null,
+      stockReferencia: typeof ficha?.stock_referencia === "number" ? (ficha.stock_referencia as number) : null,
+      ubicacionMaestro: texto(ficha, "ubicacion_maestro"),
       fichaTexto: bloques.length ? bloquesATexto(bloques) : "",
       fichaEditable: bloques.length > 0 && fichaEsEditable(bloques),
     };

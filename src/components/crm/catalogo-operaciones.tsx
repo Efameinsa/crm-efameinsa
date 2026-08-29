@@ -50,11 +50,11 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
     let lista = equipos.filter((e) => (verInactivos ? true : e.activo));
     if (categoria) lista = lista.filter((e) => (e.categoria ?? "sin categoría").toLowerCase() === categoria);
     if (soloProblemas) lista = lista.filter(problema);
-    if (soloConStock) lista = lista.filter((e) => (e.disponibles ?? 0) > 0);
+    if (soloConStock) lista = lista.filter((e) => stockDe(e).cantidad > 0);
     return buscarEquipos(lista, texto);
   }, [equipos, texto, soloProblemas, soloConStock, verInactivos, categoria]);
 
-  const enAlmacen = equipos.reduce((a, e) => a + (e.disponibles ?? 0), 0);
+  const enAlmacen = equipos.filter((e) => e.activo).reduce((a, e) => a + stockDe(e).cantidad, 0);
 
   return (
     <div className="space-y-4">
@@ -173,7 +173,35 @@ function aEditable(e: EquipoCatalogo): EquipoEditable {
     fichaTexto: e.fichaTexto,
     precios: e.precios,
     disponibles: e.disponibles,
+    stockReferencia: e.stockReferencia,
+    ubicacionMaestro: e.ubicacionMaestro,
   };
+}
+
+/**
+ * Cuántas hay de este equipo, y de dónde sale el número.
+ *
+ * La misma regla del cotizador (`datos-cotizador.ts`), para que las dos
+ * pantallas digan lo mismo: el almacén manda donde está cargado; donde no,
+ * se muestra la cifra del maestro rotulada como referencia. Decir «sin
+ * stock» por un almacén a medio cargar sería peor que no decir nada.
+ */
+function stockDe(e: EquipoCatalogo): { cantidad: number; etiqueta: string; titulo: string } {
+  if (e.disponibles !== null) {
+    return {
+      cantidad: e.disponibles,
+      etiqueta: e.disponibles > 0 ? `${e.disponibles} en almacén` : "sin stock en almacén",
+      titulo: "Máquinas del almacén, contadas por su número de serie",
+    };
+  }
+  if (e.stockReferencia !== null) {
+    return {
+      cantidad: e.stockReferencia,
+      etiqueta: e.stockReferencia > 0 ? `${e.stockReferencia} en stock (ref.)` : "sin stock (ref.)",
+      titulo: `Cifra del maestro${e.ubicacionMaestro ? ` — ${e.ubicacionMaestro}` : ""}, no un conteo del almacén`,
+    };
+  }
+  return { cantidad: 0, etiqueta: "stock sin cargar", titulo: "Ni el almacén ni el maestro dicen cuántas hay" };
 }
 
 function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -256,18 +284,26 @@ function TarjetaEquipo({ equipo: e, onAbrir }: { equipo: EquipoCatalogo; onAbrir
             ))
           )}
 
-          {/* El stock, acá y no en otra pantalla: es un dato del equipo. */}
+          {/* EL STOCK, EL MISMO NÚMERO QUE VE EL COMERCIAL.
+
+              Hasta hoy acá decía «stock sin cargar» para todos —porque el
+              almacén del CRM está vacío— mientras el cotizador mostraba
+              «8 en stock» para 84 equipos. Dos pantallas de la misma
+              empresa contestando distinto la misma pregunta.
+
+              El número es uno: manda el almacén donde esté cargado, y
+              donde no, la cifra del maestro. Lo que cambia es el rótulo,
+              porque no son lo mismo: «en almacén» son máquinas contadas
+              por su serie; «(ref.)» es lo que decía el Excel el día que
+              se cargó. */}
           <span
+            title={stockDe(e).titulo}
             className={cn(
               "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
-              (e.disponibles ?? 0) > 0 ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : "bg-secondary text-muted-foreground",
+              stockDe(e).cantidad > 0 ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : "bg-secondary text-muted-foreground",
             )}
           >
-            {e.disponibles === null
-              ? "stock sin cargar"
-              : e.disponibles > 0
-                ? `${e.disponibles} en almacén`
-                : "sin stock"}
+            {stockDe(e).etiqueta}
           </span>
 
           {!e.tieneFicha && (
