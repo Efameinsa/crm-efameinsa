@@ -327,7 +327,7 @@ casan**. Tarea:
 - **No** tocar el correlativo de cotizaciones ni el de informes.
 - **No** crear una tabla nueva de «estados»: el `ESTADO` del Excel se traduce a
   `etapa` + `intencion` + `proxima_accion`, que ya existen.
-- **No** aplicar nada del Excel de SUNAT (`docs/ruc-a-confirmar.xlsx`) —
+- **No** aplicar nada del Excel de SUNAT (se genera con `scripts/lista-ruc-a-confirmar.mjs`; no se versiona) —
   Carlos pidió tiempo para revisarlo. Palabras suyas: *«esto es un poquito
   delicado, si cambio el RUC se le atribuye todo a este nuevo, todas las
   cotizaciones, todos los registros».*

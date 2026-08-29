@@ -28,3 +28,11 @@ scripts/data/cierre-revision.pdf
 # fichas-v-01 a fichas-v-12. Lo que sí va al repo es el resultado: las fotos en
 # public/productos y la descripción cargada en la base.
 scripts/data/fichas-v/
+
+# Documentos de coordinación y salidas de scripts: se generan cuando hacen falta
+# (scripts/lista-ruc-a-confirmar.mjs, lista-asesores-cotizaciones.mjs,
+# importar-cierres-postventa.mjs) y llevan datos de clientes. No se versionan.
+docs/*.xlsx
+docs/*.xls
+docs/*.docx
+docs/fichas-partidas-*.txt

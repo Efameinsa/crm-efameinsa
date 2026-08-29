@@ -155,7 +155,8 @@ De las reuniones del 28-08 y de la revisión del catálogo:
 7. **Reconocer las redes seguras de la oficina** para el control de accesos, y
    pedir autorización cuando un laptop se conecta desde fuera.
 8. **32 cierres de postventa** esperan confirmación humana en
-   `docs/cierres-postventa-a-confirmar.xlsx`.
+   el Excel que genera `scripts/importar-cierres-postventa.mjs` (no se
+   versiona: lleva nombres de clientes y montos).
 
 ---
 
