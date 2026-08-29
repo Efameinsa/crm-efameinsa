@@ -1019,3 +1019,17 @@ mientras se trabajaba (los coches se están separando por color: CO401A) y el
 Excel quedó desfasado en esos renglones; CALM231, CO402, CO408, SECNSEN y
 SECU754 siguen sin ficha (rojos del Excel); y las CALE2120/CALE2200 cierran con
 un cartel publicitario donde las demás traen la botonera.
+
+**29-08 (viernes), lo que se hizo y lo que quedó abierto.** Tres pedidos de
+gerencia mirando la pantalla en vivo, más un hallazgo grave:
+
+- **Ruta de mantenimiento rediseñada** — tres filtros que se cruzan, tandas de
+  un clic, los tres datos de la llamada en cuadros con color. Ver
+  [[crm-ruta-mantenimiento-filtros]].
+- **Cuadro de corregir cotización** — contador de caracteres del motivo y el
+  código en cuatro casillas grandes, compartido con las otras tres pantallas que
+  piden código. Ver [[crm-campo-codigo-autorizacion]].
+- **La llave de gerencia** (migración 0127, aplicada): el control de permiso
+  dejaba pasar a quien no tiene perfil. Ver [[crm-permisos-null-en-la-base]].
+- **Proyecto grande planteado y sin construir:** meter los 3 TB del servidor de
+  la empresa dentro del CRM. Ver [[servidor-archivos-empresa]] y `docs/21`.

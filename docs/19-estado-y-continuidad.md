@@ -98,6 +98,35 @@ función del cotizador (`buscarEquipos`), cada equipo abre su **hoja técnica ta
 como sale impresa** y editable encima, con vista previa del PDF real. El
 catálogo es también el almacén: el stock se ve en la tarjeta.
 
+### Lo del 29-08 (pedidos de gerencia, mirando la pantalla en vivo)
+
+**Ruta de mantenimiento, rediseñada** (`/comercial/ruta`). Se pidió textual:
+«el botón ficha es muy pequeño, si compró o no no es tan visible, así como
+último mantenimiento; debería poder filtrarse también por último mantenimiento,
+compró, llamada, para poder buscar por ahí oportunidades». Ahora los tres datos
+que deciden la llamada son tres cuadros con color propio (rojo = **NUNCA** se le
+hizo el preventivo, ámbar = vencido, verde = al día, gris = sin registro), la
+tarjeta lleva ese mismo semáforo en una barra lateral, «Ver ficha» es un botón
+del porte de los otros tres, y hay **tres filtros que se cruzan** —mantenimiento,
+compró, llamada— más tres **tandas** de un clic. Con «nunca le hicimos
+mantenimiento», Ariana pasa de 250 por llamar a **77 con argumento**. La decisión
+vive en `src/lib/ruta-mantenimiento.ts` (`estadoMantenimiento`, `estadoCompra`,
+`estadoLlamada`, `filtrarRuta`), con pruebas.
+
+**El cuadro de corregir una cotización numerada.** Dos pedidos: «debe decir
+cuántos caracteres debe tener la razón por la que se corrige» —el mínimo de 15
+lo exige la base desde la 0123 y no se decía en ninguna parte— y «el estilo de
+letra de los códigos me parece muy delgado». Ahora el motivo lleva contador vivo
+(«13 de 15 caracteres mínimos» → «✓ 60 caracteres») y el pie dice qué falta en
+vez de dejar el botón apagado y mudo. El código de cuatro dígitos pasó a ser
+`src/components/crm/campo-codigo.tsx`: **cuatro casillas grandes en negrita**,
+un solo `input` transparente encima (pegar, borrar y el teclado numérico siguen
+funcionando). Se adoptó también en anular un cierre, asignar contacto y corregir
+una derivación, en ámbar.
+
+**La llave de gerencia** (`0127`, ya aplicada). Ver la sección 7: es la trampa
+más cara del día.
+
 **Cosas que se arreglaron y conviene no volver a romper** están en la sección 7.
 
 ---
@@ -186,12 +215,53 @@ De las reuniones del 28-08 y de la revisión del catálogo:
    pegada dentro de esa carpeta la filtra la deduplicación por contenido de
    `scripts/lib/cierres-postventa.mjs`. Total importado: 605 informes,
    US$ 336 mil + S/ 190 mil, parque instalado en 314 máquinas.
+9. **El archivo histórico del servidor** (`\\192.168.10.210`, 2 935 GB de PDF,
+   fotos de instalación y videos) dentro del CRM. Planteado por gerencia el
+   29-08; el plan completo, con lo que se encontró mirando el servidor y las
+   tres piezas de la solución, está en **`docs/21`**. No se construyó nada
+   todavía: falta el piloto sobre `W:\FOTOS\PRIVADO` y tres datos que solo
+   puede dar la empresa (subida de internet de la oficina, si el servidor está
+   siempre encendido, y si un comercial puede ver las fotos de clientes de
+   otro).
+10. **Siete equipos de la ruta de Ariana siguen sin código** para Lesly, y las
+    tres preguntas de pipeline para Carlos siguen sin respuesta (vienen del
+    plan 11).
+11. **Hay cuatro cuentas con rol `gerencia`** y las aprobaciones de precio se
+    están firmando con la genérica de la semilla: los tres visto bueno del
+    29-08 (`Presu_514`, `516`, `517`) y los dos rechazos del 28-08 quedaron a
+    nombre de **`gerencia@efameinsa-crm.local`**, no de kycabrejos ni de
+    crcabrejos, que son las cuentas de gerencia de verdad. El registro de quién
+    autorizó un descuento debería decir una persona. Preguntar a gerencia si se
+    retira esa cuenta (y la de `soypuromarketing@gmail.com`, que es Santos).
 
 ---
 
 ## 7. Trampas conocidas (leer antes de tocar)
 
 Cada una costó un rato de depuración y ninguna da error a la vista:
+
+- **`if not funcion_booleana()` NO entra cuando la función devuelve `null`.**
+  `es_backoffice()` era `rol_actual() in ('gerencia','admin')`, y `null in (…)`
+  es `null`. Resultado: el control `if not es_backoffice() then raise` **dejaba
+  pasar a quien no tiene perfil** — se comprobó contra producción que una
+  llamada SIN NINGUNA SESIÓN atravesaba el control de gerencia de
+  `resolver_aprobacion_cotizacion`. Eran **catorce funciones** con el mismo
+  patrón. Arreglado en la `0127` con `coalesce(…, false)`. Regla: toda función
+  de permiso devuelve sí o no, nunca «no se sabe».
+- **Un `raise exception` de permiso tiene que decir CON QUÉ CUENTA se está
+  entrando.** La pantalla se protege por rol **al abrirla, una sola vez**; el
+  clic viaja después con la cookie que el navegador tenga en ese momento, y la
+  cookie es una sola para todas las pestañas. El 29-08 gerencia reportó que el
+  ingeniero no podía rechazar un precio bajo lista: se verificó de punta a punta
+  que **sí puede** (rechazo real sobre su propia cotización, dentro de una
+  transacción deshecha), así que el aviso solo pudo salir de una sesión que en
+  ese instante no era de gerencia. Ahora el mensaje nombra la cuenta.
+- **`truncate` (`white-space: nowrap`) infla el ancho MÍNIMO de la página.** La
+  columna de contenido del layout es un flex sin `min-w-0`, así que una línea
+  que no corta estira la pantalla entera —1 772 px— y hasta angosta la barra
+  lateral. Para recortar una línea usar **`line-clamp-1`**, que no toca el ancho
+  mínimo. (`overflow-hidden` en un bloque NO lo arregla: la regla del tamaño
+  mínimo automático es de los ítems flex, no de los bloques.)
 
 - **RLS por fila.** Una política que llama a una función de rol sin envolverla en
   `(select …)` se ejecuta **una vez por fila**. Dos políticas así hacían que

@@ -23,3 +23,9 @@
 - [Lesly es operaciones, y el reporte diario](crm-cuenta-soporte-y-reporte-diario.md) — rol propio: autoriza, reparte permisos y mantiene el catálogo; no es gerencia ni mueve cartera
 - [Sesiones concurrentes en el CRM](crm-sesiones-concurrentes.md) — varias sesiones sobre la misma carpeta: stagear archivo por archivo, nunca `git commit -a`
 - [Continuidad al cambiar de cuenta](continuidad-cuenta-claude.md) — todo lo necesario vive en el repo: CLAUDE.md apunta a docs/19-estado-y-continuidad.md
+- [Referencia congelada en el ítem](crm-referencia-congelada-en-el-item.md) — cambiar un precio del catálogo desalinea los borradores vivos; 0128 los re-mide, el trigger queda pendiente
+- [Ruta de mantenimiento con filtros](crm-ruta-mantenimiento-filtros.md) — la campaña se trabaja por tandas: mantenimiento, compró y llamada se cruzan; 250 por llamar → 77 con argumento
+- [Campo del código de autorización](crm-campo-codigo-autorizacion.md) — cuatro casillas grandes (campo-codigo.tsx); todo mínimo de caracteres se anuncia antes, no al fallar
+- [Permisos con null en la base](crm-permisos-null-en-la-base.md) — «if not es_backoffice()» no entraba con null: 14 funciones dejaban pasar a quien no tiene perfil; 0127 aplicada
+- [Verificar antes de confirmar](verificar-antes-de-confirmar.md) — probar el camino entero, no la puerta: Darwin le repite a una persona lo que yo le digo
+- [Servidor de archivos de la empresa](servidor-archivos-empresa.md) — servidor `\\192.168.10.210`, 2.9 TB, fotos POR CLIENTE; plan para verlas desde el CRM en docs/21

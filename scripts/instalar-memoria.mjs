@@ -16,6 +16,11 @@
  *
  * Sin argumentos instala; con `--recoger` hace lo contrario: trae al repositorio
  * lo que se haya escrito en la memoria local, para poder commitearlo.
+ *
+ * `--proyecto <ruta>` apunta a la carpeta desde la que se abrió Claude Code,
+ * que no siempre es la del repositorio:
+ *
+ *     node scripts/instalar-memoria.mjs --recoger --proyecto "C:\Users\diseno\.local\bin"
  */
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { join, resolve } from "path";
@@ -30,11 +35,25 @@ const ORIGEN = join(REPO, "docs", "memoria");
  * queda como `C--Users-x-Proyectos-y`.
  */
 function carpetaDeMemoria(rutaProyecto) {
-  const clave = rutaProyecto.replace(/[\\/:]/g, "-");
+  // El punto también se convierte en guion: `C:\Users\x\.local\bin` queda como
+  // `C--Users-x--local-bin`. Sin esa parte, recoger desde una ruta con carpeta
+  // oculta apuntaba a un directorio que no existe.
+  const clave = rutaProyecto.replace(/[\\/:.]/g, "-");
   return join(homedir(), ".claude", "projects", clave, "memory");
 }
 
-const destino = carpetaDeMemoria(REPO);
+/**
+ * De qué carpeta se instala o se recoge.
+ *
+ * Por defecto, la que le corresponde al repositorio. Pero la carpeta depende de
+ * DÓNDE se abrió Claude Code, no de dónde está el proyecto: hasta el 29-08 las
+ * sesiones se abrieron desde `C:\Users\diseno\.local\bin`, así que la memoria
+ * viva era la de esa ruta y un `--recoger` a secas traía la del repo, que
+ * estaba vieja. Con `--proyecto <ruta>` se recoge de la que de verdad se usó.
+ */
+const iProyecto = process.argv.indexOf("--proyecto");
+const rutaProyecto = iProyecto !== -1 ? process.argv[iProyecto + 1] : REPO;
+const destino = carpetaDeMemoria(rutaProyecto);
 const recoger = process.argv.includes("--recoger");
 
 if (recoger) {
