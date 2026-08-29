@@ -57,7 +57,8 @@ if (recoger) {
   }
   mkdirSync(destino, { recursive: true });
   let n = 0;
-  for (const archivo of readdirSync(ORIGEN).filter((f) => f.endsWith(".md"))) {
+  // El README explica el mecanismo, no es un recuerdo: no se instala.
+  for (const archivo of readdirSync(ORIGEN).filter((f) => f.endsWith(".md") && f !== "README.md")) {
     writeFileSync(join(destino, archivo), readFileSync(join(ORIGEN, archivo)));
     n++;
   }

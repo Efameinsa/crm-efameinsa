@@ -8,6 +8,11 @@ CRM a medida para EFAMEINSA (equipos de lavandería industrial y semi-industrial
 quién, qué quedó pendiente, cómo se trabaja y las trampas conocidas. Se lee
 primero, antes de tocar nada.
 
+**En una máquina nueva**, además: `node scripts/instalar-memoria.mjs` — instala
+la memoria del proyecto (`docs/memoria/`) donde Claude Code la lee sola. La
+memoria vive en el disco y no viaja; el repositorio sí. Antes de cambiar de
+máquina, `--recoger` trae de vuelta lo que se haya escrito.
+
 ## Estado del proyecto
 
 - **EN PRODUCCIÓN Y EN USO DIARIO** desde el 25-08-2026: https://crm.efameinsa.com.
