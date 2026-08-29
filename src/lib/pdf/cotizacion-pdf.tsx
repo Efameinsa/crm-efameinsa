@@ -813,7 +813,15 @@ export function CotizacionPdf({
             ? imagenes.reduce((suma, i) => suma + (i.alto ?? 0), 0) + AIRE_ENTRE_BLOQUES * (imagenes.length - 1)
             : null;
 
+          // OJO CON `bloques`: hoy las 121 fichas del catálogo imprimen desde
+          // ahí, no desde los cuatro cajones viejos. Sin nombrarlo acá, un
+          // equipo cuya ficha es solo `bloques` Y todavía no tiene foto salía
+          // con el encabezado —marca, modelo, capacidad— y SIN una sola línea
+          // de descripción: la fila del cuerpo no se dibujaba. Se ve al cargar
+          // un equipo nuevo, que es justo cuando todavía no tiene foto
+          // (encontrado el 28-08 probando la hoja editable).
           const tieneDetalle =
+            (item.bloques?.length ?? 0) > 0 ||
             item.caracteristicas.length > 0 ||
             item.disenoConstruccion.length > 0 ||
             item.dimensiones.length > 0 ||

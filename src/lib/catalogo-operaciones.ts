@@ -32,6 +32,7 @@ export interface EquipoCatalogo {
   calentamiento: string | null;
   montaje: string | null;
   panel: string | null;
+  controles: string | null;
   descripcion: string | null;
   colores: string[];
   caracteristicas: number;
@@ -105,6 +106,7 @@ export async function cargarCatalogo(
       calentamiento: texto(ficha, "calentamiento"),
       montaje: texto(ficha, "montaje"),
       panel: texto(ficha, "panel"),
+      controles: texto(ficha, "controles"),
       descripcion: texto(ficha, "descripcion"),
       colores: lista(ficha, "colores"),
       caracteristicas: lista(ficha, "caracteristicas").length + lista(ficha, "dimensiones").length,

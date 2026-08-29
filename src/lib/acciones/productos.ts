@@ -100,22 +100,46 @@ export interface DatosEquipo {
   capacidad: string | null;
   segmento: "industrial" | "semi_industrial";
   activo: boolean;
+  /** Las tres casillas del encabezado que viven dentro de la ficha y no en la
+   *  tabla de productos: son columnas de la hoja técnica, no datos sueltos. */
+  calentamiento: string | null;
+  panel: string | null;
+  controles: string | null;
+  colores: string[];
   /** La descripción impresa, en el texto de la pantalla. */
   fichaTexto: string;
 }
 
+/** Arma la ficha nueva SOBRE la que ya estaba, sin perder lo que no se edita. */
+function mezclarFicha(anterior: Record<string, unknown>, datos: DatosEquipo) {
+  return {
+    ...anterior,
+    bloques: textoABloques(datos.fichaTexto),
+    calentamiento: datos.calentamiento?.trim() || null,
+    panel: datos.panel?.trim() || null,
+    controles: datos.controles?.trim() || null,
+    colores: datos.colores.map((c) => c.trim()).filter(Boolean),
+  };
+}
+
+function revisar(datos: DatosEquipo): string | null {
+  if (datos.nombre.trim().length < 3) return "El nombre necesita al menos tres letras";
+  if (datos.marca.trim() === "" || datos.modelo.trim() === "") return "Marca y modelo son obligatorios";
+  return null;
+}
+
 export async function guardarEquipo(id: string, datos: DatosEquipo): Promise<{ error: string | null }> {
-  if (datos.nombre.trim().length < 3) return { error: "El nombre necesita al menos tres letras" };
-  if (datos.marca.trim() === "" || datos.modelo.trim() === "") return { error: "Marca y modelo son obligatorios" };
+  const mal = revisar(datos);
+  if (mal) return { error: mal };
 
   const supabase = await createClient();
   const { data: actual } = await supabase.from("productos").select("ficha").eq("id", id).maybeSingle();
   if (!actual) return { error: "Ese equipo ya no está en el catálogo" };
 
-  const bloques = textoABloques(datos.fichaTexto);
-  if (bloques.length === 0) return { error: "La ficha no puede quedar vacía: es lo que sale impreso" };
-
-  const ficha = { ...((actual.ficha ?? {}) as Record<string, unknown>), bloques };
+  const ficha = mezclarFicha((actual.ficha ?? {}) as Record<string, unknown>, datos);
+  if ((ficha.bloques as unknown[]).length === 0) {
+    return { error: "La ficha no puede quedar vacía: es lo que sale impreso" };
+  }
 
   const { error } = await supabase
     .from("productos")
@@ -123,7 +147,7 @@ export async function guardarEquipo(id: string, datos: DatosEquipo): Promise<{ e
       nombre: datos.nombre.trim(),
       marca: datos.marca.trim(),
       modelo: datos.modelo.trim(),
-      sku: datos.sku?.trim() || null,
+      sku: datos.sku?.trim().toUpperCase() || null,
       categoria: datos.categoria?.trim() || null,
       capacidad: datos.capacidad?.trim() || null,
       segmento: datos.segmento,
@@ -134,8 +158,58 @@ export async function guardarEquipo(id: string, datos: DatosEquipo): Promise<{ e
 
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
   revalidatePath("/operaciones/catalogo");
-  revalidatePath("/operaciones/inventario");
   return { error: null };
+}
+
+/**
+ * Cargar un equipo nuevo con LA MISMA HOJA con la que se corrige uno existente
+ * (pedido del 28-08). Antes eran dos formularios distintos —uno para crear, con
+ * los cuatro cajones viejos, y otro para editar—, y dos formas de escribir la
+ * misma ficha es la manera segura de que las fichas nuevas salgan distintas de
+ * las que ya están.
+ */
+export async function crearEquipoDesdeFicha(
+  datos: DatosEquipo,
+  precioBase: number | null,
+): Promise<{ error: string | null; id?: string }> {
+  const mal = revisar(datos);
+  if (mal) return { error: mal };
+
+  const supabase = await createClient();
+  const ficha = mezclarFicha({}, datos);
+  if ((ficha.bloques as unknown[]).length === 0) {
+    return { error: "Escriba la ficha: sin ella la cotización sale con la hoja técnica vacía" };
+  }
+
+  const { data, error } = await supabase
+    .from("productos")
+    .insert({
+      nombre: datos.nombre.trim(),
+      marca: datos.marca.trim(),
+      modelo: datos.modelo.trim(),
+      sku: datos.sku?.trim().toUpperCase() || null,
+      categoria: datos.categoria?.trim() || null,
+      capacidad: datos.capacidad?.trim() || null,
+      segmento: datos.segmento,
+      activo: datos.activo,
+      ficha,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+
+  if (precioBase && precioBase > 0) {
+    const tier = datos.segmento === "semi_industrial" ? "optimo" : "base";
+    const { error: ep } = await supabase.rpc("fijar_precio_producto", {
+      p_producto: data.id,
+      p_tier: tier,
+      p_precio: precioBase,
+    });
+    if (ep) return { error: "El equipo se creó, pero el precio no: " + ep.message };
+  }
+
+  revalidatePath("/operaciones/catalogo");
+  return { error: null, id: data.id as string };
 }
 
 export async function fijarPrecio(
