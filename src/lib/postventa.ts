@@ -450,7 +450,14 @@ export function estadoGarantia(hasta: string | null): {
   porVencer: boolean;
 } {
   if (!hasta) return { vigente: false, diasRestantes: null, etiqueta: "Sin garantía registrada", porVencer: false };
-  const dias = Math.round((new Date(hasta + "T12:00:00").getTime() - Date.now()) / 864e5);
+  // Días de CALENDARIO, no milisegundos. Restando instantes, una garantía
+  // vencida ayer seguía dando «en garantía» durante media tarde: la diferencia
+  // caía en −0.3 días, que redondea a −0, y −0 < 0 es falso. La garantía se
+  // mide por fecha, y la fecha que manda es la de Lima.
+  const hoyLima = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" }));
+  const hoy = Date.UTC(hoyLima.getFullYear(), hoyLima.getMonth(), hoyLima.getDate());
+  const [anio, mes, dia] = hasta.split("-").map(Number);
+  const dias = Math.round((Date.UTC(anio, (mes ?? 1) - 1, dia ?? 1) - hoy) / 864e5);
   if (dias < 0) return { vigente: false, diasRestantes: dias, etiqueta: "Fuera de garantía", porVencer: false };
   const meses = Math.round(dias / 30);
   return {

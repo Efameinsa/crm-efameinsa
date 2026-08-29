@@ -45,9 +45,18 @@ describe("seriesDeTexto", () => {
 
 describe("estadoGarantia", () => {
   it("distingue vigente de vencida y avisa cuando está por vencer", () => {
-    const enUnAnio = new Date(new Date().getTime() + 365 * 864e5).toISOString().slice(0, 10);
-    const enUnMes = new Date(new Date().getTime() + 30 * 864e5).toISOString().slice(0, 10);
-    const ayer = new Date(new Date().getTime() - 864e5).toISOString().slice(0, 10);
+    // Fechas contadas desde HOY EN LIMA, que es como las mide la función: con
+    // fechas UTC, después de las 19:00 de Lima «ayer» ya era otro día y la
+    // prueba fallaba sola todas las noches.
+    const hoyLima = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" }));
+    const enDias = (n) => {
+      const d = new Date(hoyLima);
+      d.setDate(d.getDate() + n);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+    const enUnAnio = enDias(365);
+    const enUnMes = enDias(30);
+    const ayer = enDias(-1);
 
     expect(estadoGarantia(enUnAnio).vigente).toBe(true);
     expect(estadoGarantia(enUnAnio).porVencer).toBe(false);
