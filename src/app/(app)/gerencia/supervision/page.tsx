@@ -89,10 +89,10 @@ export default async function SupervisionPage({
       <SeccionPanel titulo="Gestión por comercial">
         <div className="grid gap-3 lg:grid-cols-2">
           {comerciales.map((c) => (
-            <TarjetaSupervision key={c.id} c={c} meta={meta_seguimientos} fecha={fecha} />
+            <TarjetaSupervision key={c.id} c={c} meta={c.meta_gestiones ?? meta_seguimientos} fecha={fecha} />
           ))}
           {postventa.map((c) => (
-            <TarjetaSupervision key={c.id} c={c} meta={meta_seguimientos} fecha={fecha} esPostventa />
+            <TarjetaSupervision key={c.id} c={c} meta={c.meta_gestiones ?? meta_seguimientos} fecha={fecha} esPostventa />
           ))}
         </div>
         <p className="mt-3 text-[11px] text-muted-foreground">

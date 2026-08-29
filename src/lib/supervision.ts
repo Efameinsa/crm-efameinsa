@@ -18,6 +18,9 @@ export interface ComercialSupervision {
   gestiones_postventa: number;
   hace_postventa?: boolean;
   cumple_meta: boolean;
+  /** La meta de gestiones de ESTA persona (migración 0117). Puede no venir en
+   *  respuestas viejas cacheadas; se cae al global. */
+  meta_gestiones?: number;
   por_tipo: Record<string, number>;
   /** Cotizaciones hechas en el CRM ese día. */
   cotizaciones: number;

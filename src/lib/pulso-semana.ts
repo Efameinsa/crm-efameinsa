@@ -17,21 +17,22 @@ import { lunesDe, sumarDias } from "@/lib/calendario";
  * propia referencia y los tres significan lo mismo: qué tan lleno está lo suyo.
  *
  * DE DÓNDE SALE CADA REFERENCIA (ninguna es inventada acá):
- *  · Gestiones → `parametros.meta_seguimientos_diarios` × 6 días, porque en
- *    Efameinsa se trabaja hasta el sábado. La meta diaria la mueve gerencia sin
- *    redeploy —hoy está en 35, o sea 210 por semana— y se lee de ahí, no se
- *    copia acá: la supervisión diaria ya califica contra ese mismo número.
- *    Y se cuentan con la MISMA definición que la supervisión diaria —efectivas,
- *    sin los NO_CONTESTO, sin las de postventa— o el comercial vería 130 acá y
- *    150 allá contra la misma meta.
- *  · Cotizaciones → su propio promedio semanal, contando las del CRM Y las del
- *    archivo de documentos. Gerencia no fijó meta de cotizaciones; inventarle
- *    una sería peor que compararlo consigo mismo. El archivo es imprescindible
- *    acá: TODAS las cotizaciones enviadas desde el CRM son de esta misma semana
- *    (el cotizador se estrenó el 27-08), así que mirando solo el CRM el
- *    promedio daba cero y las 27 cotizaciones de Brenda se veían como una barra
- *    vacía. Con el archivo, su semana normal son 15, y esas 27 se leen como lo
- *    que son: su mejor semana.
+ *  · Gestiones → `perfiles.meta_gestiones_diarias` × 6 días, porque en
+ *    Efameinsa se trabaja hasta el sábado. Desde la migración 0117 la meta es
+ *    de cada uno —30 al día, 35 Katerine— y `parametros.meta_seguimientos_diarios`
+ *    quedó de respaldo para quien no tenga la suya. Se cuentan con la MISMA
+ *    definición que la supervisión diaria —efectivas, sin los NO_CONTESTO, sin
+ *    las de postventa— o el comercial vería 130 acá y 150 allá contra la misma
+ *    meta.
+ *  · Cotizaciones → `perfiles.meta_cotizaciones_semanal` (36, y 42 Katerine),
+ *    que sale del embudo real de 2026: 5 gestiones efectivas dan 1 cotización y
+ *    10 cotizaciones dan 1 venta, con un ticket promedio de US$ 8.714. Con 180
+ *    gestiones a la semana eso da 36 cotizaciones y US$ 31.400 — o sea que el
+ *    embudo cierra con la meta de dinero, que es lo único que importa que
+ *    cierre. Si la meta no está puesta, cae al promedio propio del comercial,
+ *    contando el CRM Y el archivo de documentos: mirando solo el CRM el
+ *    promedio da cero (todas las enviadas son de esta misma semana) y las 27
+ *    cotizaciones de Brenda se verían como una barra vacía.
  *  · Ventas → la meta mensual de RRHH repartida entre las semanas del mes, el
  *    mismo reparto que usa el panel (ver `cargarResumenGerencia`).
  */
@@ -72,6 +73,9 @@ interface FilaPerfil {
   nombre: string;
   codigo_comercial: string | null;
   meta_mensual: number | null;
+  /** Metas propias (migración 0117). NULL = cae al respaldo de siempre. */
+  meta_gestiones_diarias: number | null;
+  meta_cotizaciones_semanal: number | null;
 }
 
 const iso = (d: string) => d.slice(0, 10);
@@ -96,7 +100,7 @@ export async function cargarPulsoSemana(
 
   let qPerfiles = supabase
     .from("perfiles")
-    .select("id, nombre, codigo_comercial, meta_mensual")
+    .select("id, nombre, codigo_comercial, meta_mensual, meta_gestiones_diarias, meta_cotizaciones_semanal")
     .eq("rol", "comercial")
     .eq("activo", true);
   if (comercialId) qPerfiles = qPerfiles.eq("id", comercialId);
@@ -239,8 +243,11 @@ export async function cargarPulsoSemana(
     const metaMensual = Number(p.meta_mensual) || 0;
     const metaSemanalUsd = metaMensual > 0 ? Math.round(metaMensual / SEMANAS_POR_MES) : null;
 
-    const porSemana = semanasPorComercial.get(p.id);
-    const promedioCots = promedioSemanal(porSemana);
+    // La meta propia manda; el parámetro global es el respaldo de quien no
+    // tenga la suya, y el promedio propio el último recurso.
+    const metaGestionesDiaria = p.meta_gestiones_diarias ?? metaDiaria;
+    const promedioCots = promedioSemanal(semanasPorComercial.get(p.id));
+    const metaCots = p.meta_cotizaciones_semanal ?? promedioCots;
 
     return {
       comercialId: p.id,
@@ -253,16 +260,20 @@ export async function cargarPulsoSemana(
           clave: "gestiones",
           etiqueta: "Gestiones",
           hecho: gestionesPorComercial.get(p.id) ?? 0,
-          objetivo: metaDiaria * DIAS_LABORABLES,
-          origenObjetivo: `${metaDiaria} al día × ${DIAS_LABORABLES} días, la meta de gerencia`,
+          objetivo: metaGestionesDiaria * DIAS_LABORABLES,
+          origenObjetivo: `${metaGestionesDiaria} al día × ${DIAS_LABORABLES} días, su meta`,
           esDinero: false,
         },
         {
           clave: "cotizaciones",
           etiqueta: "Cotizaciones",
           hecho: cotsPorComercial.get(p.id) ?? 0,
-          objetivo: promedioCots,
-          origenObjetivo: promedioCots ? "su promedio de las últimas semanas" : "todavía sin historial para comparar",
+          objetivo: metaCots,
+          origenObjetivo: p.meta_cotizaciones_semanal
+            ? "su meta semanal de cotizaciones"
+            : metaCots
+              ? "su promedio de las últimas semanas"
+              : "todavía sin historial para comparar",
           esDinero: false,
         },
         {
