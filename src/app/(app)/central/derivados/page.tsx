@@ -7,6 +7,7 @@ import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
 import { ChipsParam } from "@/components/crm/chips-param";
 import { TarjetaDerivado } from "@/components/crm/tarjeta-derivado";
 import { cargarSupervisores } from "@/lib/supervisores";
+import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -51,6 +52,12 @@ export default async function DerivadosPage({
   const busqueda = (sp.q ?? "").trim();
   const supabase = await createClient();
 
+  // Mientras gerencia tenga levantado el código (permiso por el día), la
+  // pantalla trabaja en modo ensayo: se ven también los contactos de práctica y
+  // el diálogo ofrece al comercial C0. Vence solo a la medianoche.
+  const { hasta: sinPinHasta } = await permisoSinPin();
+  const modoEnsayo = sinPinHasta !== null;
+
   const [{ data: comerciales }, supervisores, derivados] = await Promise.all([
     supabase
       .from("perfiles")
@@ -68,7 +75,7 @@ export default async function DerivadosPage({
       busqueda,
       // Con «?practica=1» trae además el banco de pruebas, para ensayar el
       // circuito sin tocar nada real. La vista de todos los días no cambia.
-      incluirPruebas: sp.practica === "1",
+      incluirPruebas: sp.practica === "1" || modoEnsayo,
     }),
   ]);
 
@@ -141,7 +148,13 @@ export default async function DerivadosPage({
       ) : (
         <div className="space-y-2">
           {visibles.map((fila) => (
-            <TarjetaDerivado key={fila.id} fila={fila} comerciales={comerciales ?? []} supervisores={supervisores} />
+            <TarjetaDerivado
+              key={fila.id}
+              fila={fila}
+              comerciales={comerciales ?? []}
+              supervisores={supervisores}
+              modoEnsayo={modoEnsayo}
+            />
           ))}
         </div>
       )}

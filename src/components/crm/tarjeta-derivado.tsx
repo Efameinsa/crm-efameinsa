@@ -51,9 +51,12 @@ export function TarjetaDerivado({
   fila,
   comerciales,
   supervisores,
+  modoEnsayo = false,
 }: {
   fila: DerivadoFila;
   comerciales: { id: string; nombre: string; codigo_comercial: string | null; es_prueba?: boolean }[];
+  /** Gerencia levantó el código por hoy: se puede ensayar contra C0. */
+  modoEnsayo?: boolean;
   supervisores?: { id: string; nombre: string }[];
 }) {
   const etapa = fila.oportunidad ? ETIQUETA_ETAPA[fila.oportunidad.etapa] : null;
@@ -181,7 +184,7 @@ export function TarjetaDerivado({
             contacto={contacto}
             comercialActual={fila.asignadoA}
             comerciales={comerciales}
-            esPrueba={fila.esPrueba}
+            esPrueba={fila.esPrueba || modoEnsayo}
             supervisores={supervisores}
           />
           {fila.asignadoA && (

@@ -19,6 +19,7 @@ import { LineaTiempoCuenta, type EventoTimeline } from "@/components/crm/linea-t
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { RedirigirLeadBoton } from "@/components/crm/redirigir-lead-boton";
 import { cargarSupervisores } from "@/lib/supervisores";
+import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { UrgenciaBoton } from "@/components/crm/urgencia-boton";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,11 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
 
   const fila = await cargarDerivado(supabase, id);
   if (!fila) notFound();
+
+  // Mientras el código esté levantado por gerencia (permiso del día), la ficha
+  // deja ensayar la corrección contra el comercial de pruebas.
+  const { hasta: sinPinHasta } = await permisoSinPin();
+  const modoEnsayo = sinPinHasta !== null;
 
   const opId = fila.oportunidad?.id ?? null;
 
@@ -248,7 +254,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
                 contacto={contacto}
                 comercialActual={fila.asignadoA}
                 comerciales={comerciales ?? []}
-                esPrueba={fila.esPrueba}
+                esPrueba={fila.esPrueba || modoEnsayo}
                 supervisores={supervisores}
               />
               {fila.asignadoA && (
