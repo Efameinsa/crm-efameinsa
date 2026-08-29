@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 /**
  * Corregir a quién se derivó un contacto.
@@ -100,47 +101,64 @@ export function RedirigirLeadBoton({
     <Dialog open={abierto} onOpenChange={setAbierto}>
       <DialogTrigger
         render={
-          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs">
-            <ArrowRightLeft className="size-3.5" />
+          /* Con nombre y de tamaño usable: el ícono suelto de 28 px no se
+             encontraba y no decía qué hacía (Darwin, 28-08). */
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5">
+            <ArrowRightLeft className="size-4" />
+            <span className="hidden sm:inline">Corregir</span>
           </Button>
         }
       />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Corregir la derivación</DialogTitle>
+          {/* Corto a propósito: el detalle de cuándo se puede y cuándo no lo
+              dice la base al intentarlo, con su motivo. Explicarlo todo acá de
+              antemano era un párrafo que nadie lee (28-08). */}
           <DialogDescription>
-            <b>{contacto}</b> pasa al comercial que corresponda. Solo se puede si el actual todavía no lo trabajó: si
-            ya cotizó o registró gestiones, el traspaso lo autoriza gerencia.
+            <b>{contacto}</b> pasa al comercial que corresponda.
           </DialogDescription>
         </DialogHeader>
 
+        {/* Elegir a quién: botones grandes en vez de un desplegable. Son cinco
+            comerciales, se ven todos de un vistazo y se elige de un toque. */}
         <div className="space-y-1.5">
-          <Label htmlFor="destino">Derivar ahora a</Label>
-          <select
-            id="destino"
-            value={destino}
-            onChange={(e) => setDestino(e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">Elegir comercial…</option>
+          <Label>Pasarlo a</Label>
+          <div className="grid grid-cols-2 gap-1.5">
             {opciones.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.codigo_comercial ? `${c.codigo_comercial} · ` : ""}
-                {c.nombre}
-              </option>
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setDestino(c.id)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors",
+                  destino === c.id
+                    ? "border-primary bg-primary/10 font-semibold text-foreground"
+                    : "border-border hover:bg-accent",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex size-7 flex-none items-center justify-center rounded-full text-[11px] font-bold",
+                    destino === c.id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+                  )}
+                >
+                  {c.codigo_comercial ?? "—"}
+                </span>
+                <span className="min-w-0 truncate">{c.nombre}</span>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
         {/* El motivo NO es burocracia: es lo único que después va a explicar
-            por qué se derivó mal. El PIN evita que la corrección pase en
-            silencio; esto es lo que se lee cuando se quiere entender. */}
+            por qué se derivó mal. */}
         <div className="space-y-1.5">
-          <Label htmlFor="motivo">¿Por qué hay que corregirlo?</Label>
+          <Label htmlFor="motivo">¿Por qué?</Label>
           <Textarea
             id="motivo"
             rows={2}
-            placeholder="ej.: lo derivé a comercial por la coincidencia de cliente, pero pedía mantenimiento"
+            placeholder="ej.: pedía mantenimiento, no una máquina nueva"
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
           />
@@ -151,19 +169,15 @@ export function RedirigirLeadBoton({
              mirar, así que la pantalla tampoco lo pide. El motivo sigue siendo
              obligatorio y la corrección se registra igual, marcada como hecha
              sin código. */
-          <div className="space-y-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-[12px] leading-snug">
-            <p className="font-semibold text-foreground">Hoy no hace falta el código del supervisor.</p>
-            <p className="text-muted-foreground">
-              Gerencia autorizó corregir sin PIN hasta el final del día. La corrección igual queda registrada con su
-              motivo, y mañana el código vuelve a pedirse.
-            </p>
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-[12px] leading-snug">
+            <p className="font-semibold text-foreground">Hoy no hace falta el código.</p>
+            <p className="text-muted-foreground">Gerencia lo levantó por el día. La corrección queda registrada igual.</p>
           </div>
         ) : (
           /* La caja de Plaza Vea, tal cual lo pidió el ing. Carlos el 27-08: la
              corrección la habilita un supervisor, no quien se equivocó. */
-          <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
-            <Label htmlFor="pin">Código del supervisor</Label>
-            <div className="flex items-start gap-3">
+          <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+            <div className="flex items-center gap-3">
               <input
                 id="pin"
                 inputMode="numeric"
@@ -172,33 +186,34 @@ export function RedirigirLeadBoton({
                 placeholder="0000"
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                className="h-11 w-28 flex-none rounded-md border border-input bg-background text-center font-mono text-xl tracking-[0.3em]"
+                className="h-12 w-28 flex-none rounded-lg border border-input bg-background text-center font-mono text-2xl tracking-[0.3em]"
               />
-              {/* CON NOMBRE Y APELLIDO. Pedir «el código del supervisor» sin decir
-                  de quién dejaba a Central sin saber a quién llamar, y el control
-                  se vuelve un callejón (corregido el 27-08, el mismo día). */}
-              <div className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">
-                {supervisores.length > 0 ? (
-                  <>
-                    <span className="flex items-center gap-1 font-semibold text-foreground">
-                      <UserCheck className="size-3.5 flex-none" />
-                      Pídaselo a cualquiera de ellos:
-                    </span>
-                    <ul className="mt-0.5">
-                      {supervisores.map((s) => (
-                        <li key={s.id}>· {s.nombre}</li>
-                      ))}
-                    </ul>
-                  </>
-                ) : (
-                  <span>Pídaselo a gerencia.</span>
-                )}
+              <div className="min-w-0 flex-1">
+                <Label htmlFor="pin" className="text-sm">
+                  Código del supervisor
+                </Label>
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  Cambia cada 10 min · sirve para una corrección
+                </p>
               </div>
             </div>
-            <p className="text-[11px] leading-snug text-muted-foreground">
-              Lo tiene en su barra lateral, en <b>«PIN de autorización»</b>. Cambia cada diez minutos y sirve para{" "}
-              <b>una sola</b> corrección.
-            </p>
+            {/* CON NOMBRE Y APELLIDO. Pedir «el código del supervisor» sin decir
+                de quién dejaba a Central sin saber a quién llamar (27-08). La
+                lista la da la base, con el mismo criterio con que valida (0117). */}
+            {supervisores.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                <span className="mr-0.5 inline-flex items-center gap-1 font-semibold text-foreground">
+                  <UserCheck className="size-3.5" />
+                  Pídaselo a:
+                </span>
+                {supervisores.map((s) => (
+                  <span key={s.id} className="rounded-full bg-background px-2 py-0.5 text-muted-foreground">
+                    {s.nombre}
+                    {s.rol && s.rol !== "gerencia" ? ` · ${s.rol}` : ""}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -213,7 +228,7 @@ export function RedirigirLeadBoton({
             </p>
           )}
           <Button disabled={enviando || !listo} onClick={guardar}>
-            {enviando ? "Reasignando…" : "Reasignar"}
+            {enviando ? "Pasando el contacto…" : "Pasar el contacto"}
           </Button>
         </DialogFooter>
       </DialogContent>

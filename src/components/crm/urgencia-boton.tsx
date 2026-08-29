@@ -71,11 +71,12 @@ export function UrgenciaBoton({
         render={
           <Button
             size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+            variant="outline"
+            className="h-8 gap-1.5 border-destructive/40 px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
             title="Enviar recordatorio de urgencia"
           >
-            <Siren className="size-3.5" />
+            <Siren className="size-4" />
+            <span className="hidden sm:inline">Urgencia</span>
           </Button>
         }
       />

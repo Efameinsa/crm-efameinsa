@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, FileDown, MessageSquareText, Phone, Siren } from "lucide-react";
+import { AlertTriangle, FileDown, MessageSquareText, Phone, Siren } from "lucide-react";
 import { fechaHoraLima } from "@/lib/fechas";
 import {
   demora,
@@ -128,7 +128,18 @@ export function TarjetaDerivado({
               {etapa?.texto ?? "Sin abrir todavía"}
             </span>
             {alerta && (
-              <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", alerta.clase)}>{alerta.texto}</span>
+              /* La alerta es el motivo por el que Central mira esta pantalla:
+                 va con ícono y borde, no como un chip más (28-08). */
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold",
+                  alerta.clase,
+                  fila.alerta === "demora" ? "border-destructive/40" : "border-amber-500/40",
+                )}
+              >
+                <AlertTriangle className="size-3.5" />
+                {alerta.texto}
+              </span>
             )}
           </div>
 
@@ -184,8 +195,8 @@ export function TarjetaDerivado({
       {/* Las dos acciones de Central sobre lo ya derivado: corregir a quién
           fue, y avisar con urgencia que el cliente está esperando. Van sobre
           la fila (z-10) porque el resto de la tarjeta es un enlace a la ficha. */}
-      <div className="relative z-10 flex flex-none flex-col items-end justify-between gap-1">
-        <div className="flex items-center gap-0.5">
+      <div className="relative z-10 flex flex-none flex-col items-end justify-center gap-1">
+        <div className="flex items-center gap-1.5">
           <RedirigirLeadBoton
             leadId={fila.id}
             contacto={contacto}
@@ -205,10 +216,6 @@ export function TarjetaDerivado({
             />
           )}
         </div>
-        <span className="hidden items-center gap-0.5 text-xs font-medium text-primary md:inline-flex">
-          Ver gestión
-          <ChevronRight className="size-3.5" />
-        </span>
       </div>
 
       {/* El enlace va al final del DOM y cubre la tarjeta: toda ella navega,
