@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -100,6 +100,9 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
   const [copiadaDe, setCopiadaDe] = useState<string | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [fotoLocal, setFotoLocal] = useState<string | null>(null);
+  const [fotoPendiente, setFotoPendiente] = useState<Blob | null>(null);
+  const [arrastrando, setArrastrando] = useState(false);
+  const inputFoto = useRef<HTMLInputElement>(null);
 
   const yaCargadas: CasillaEquipo[] = [
     d.capacidad && "capacidad",
@@ -113,12 +116,14 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
   const tipo = tipoDeCategoria(d.categoria);
 
   /**
-   * Sube la foto ya acomodada: el archivo grande no viaja por la red y el
-   * almacenamiento no junta megas que después nadie mira.
+   * Elegir la foto. Se acomoda en el navegador antes de que viaje nada: a la
+   * caja de la ficha, centrada sobre blanco y comprimida.
+   *
+   * Si el equipo TODAVÍA NO EXISTE, la foto espera y se sube al guardarlo. La
+   * versión anterior desactivaba el botón mientras el equipo era nuevo, que es
+   * justo cuando uno tiene la foto a mano.
    */
-  function subirFoto(archivo: File) {
-    const id = equipo.id;
-    if (!id) return;
+  function elegirFoto(archivo: File) {
     setSubiendoFoto(true);
     void (async () => {
       const lista = await prepararFoto(archivo);
@@ -127,29 +132,38 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
         setSubiendoFoto(false);
         return;
       }
-      const supabase = createClient();
-      const ruta = `${id}-${Date.now()}.jpg`;
-      const { error } = await supabase.storage
-        .from("productos")
-        .upload(ruta, lista.archivo, { contentType: "image/jpeg", upsert: true });
-      if (error) {
-        toast.error(error.message);
-        setSubiendoFoto(false);
-        return;
-      }
-      const r = await fijarFotoProducto(id, ruta);
-      setSubiendoFoto(false);
-      if (r.error) {
-        toast.error(r.error);
-        return;
-      }
       setFotoLocal(URL.createObjectURL(lista.archivo));
       const kb = Math.round(lista.bytes / 1024);
+
+      if (!equipo.id) {
+        setFotoPendiente(lista.archivo);
+        setSubiendoFoto(false);
+        toast.success(`Foto lista: ${lista.ancho}×${lista.alto} px, ${kb} KB. Se sube al guardar.`);
+        return;
+      }
+
+      const error = await subirAlAlmacen(equipo.id, lista.archivo);
+      setSubiendoFoto(false);
+      if (error) {
+        toast.error(error);
+        return;
+      }
       toast.success(`Foto lista: ${lista.ancho}×${lista.alto} px, ${kb} KB.`);
       router.refresh();
     })();
   }
 
+  /** Sube el archivo ya preparado y lo deja apuntado en el equipo. */
+  async function subirAlAlmacen(id: string, blob: Blob): Promise<string | null> {
+    const supabase = createClient();
+    const ruta = `${id}-${Date.now()}.jpg`;
+    const { error } = await supabase.storage
+      .from("productos")
+      .upload(ruta, blob, { contentType: "image/jpeg", upsert: true });
+    if (error) return error.message;
+    const r = await fijarFotoProducto(id, ruta);
+    return r.error;
+  }
   function guardar() {
     empezar(async () => {
       const datos: DatosEquipo = {
@@ -174,6 +188,12 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
         if (r.error) {
           toast.error(r.error);
           return;
+        }
+        // La foto elegida antes de que el equipo existiera: ahora sí tiene
+        // dónde colgarse.
+        if (fotoPendiente && r.id) {
+          const eFoto = await subirAlAlmacen(r.id, fotoPendiente);
+          if (eFoto) toast.error(`El equipo se creó, pero la foto no: ${eFoto}`);
         }
         toast.success(`${d.marca} ${d.modelo} entró al catálogo.`);
       } else {
@@ -325,7 +345,32 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
 
         {/* Foto y descripción */}
         <div className="grid gap-px bg-border md:grid-cols-[34%_1fr]">
-          <div className="flex flex-col items-center justify-center gap-2 bg-card p-4">
+          {/* LA FOTO.
+              Se elige con un botón que dispara el input por referencia, no con
+              una etiqueta envolviendo un input escondido: dentro del diálogo
+              esa forma no abría nada —y encima el input estaba `disabled`
+              mientras el equipo era nuevo, así que al cargar uno no se podía
+              elegir foto de ninguna manera (reportado 28-08)—.
+
+              También se puede soltar la imagen encima, que es lo que la mano
+              intenta primero cuando la foto está en el escritorio. */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setArrastrando(true);
+            }}
+            onDragLeave={() => setArrastrando(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setArrastrando(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) elegirFoto(f);
+            }}
+            className={cn(
+              "flex flex-col items-center justify-center gap-2 bg-card p-4 transition-colors",
+              arrastrando && "bg-primary/5 outline-dashed outline-2 -outline-offset-4 outline-primary/40",
+            )}
+          >
             {fotoLocal || d.fotoPath ? (
               <Image
                 src={fotoLocal ?? rutaFoto(d.fotoPath!)}
@@ -336,33 +381,40 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
                 unoptimized
               />
             ) : (
-              <span className="py-8 text-center text-xs text-muted-foreground">Todavía sin foto</span>
-            )}
-
-            {/* La foto se acomoda antes de subirla: recortada a la caja de la
-                ficha (54 × 96 mm), centrada sobre blanco y comprimida. Las que
-                ya están pesan hasta 650 KB cada una; esa es la cuenta que no
-                conviene repetir. */}
-            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-accent">
-              {subiendoFoto ? <Loader2 className="size-3.5 animate-spin" /> : <Camera className="size-3.5" />}
-              {subiendoFoto ? "Subiendo…" : d.fotoPath || fotoLocal ? "Cambiar la foto" : "Agregar foto"}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={subiendoFoto || esNuevo}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  e.target.value = "";
-                  if (f) subirFoto(f);
-                }}
-              />
-            </label>
-            {esNuevo && (
-              <span className="text-center text-[10px] leading-snug text-muted-foreground">
-                Guarde el equipo primero y después súbale la foto.
+              <span className="py-8 text-center text-xs text-muted-foreground">
+                {arrastrando ? "Suelte la imagen acá" : "Todavía sin foto"}
               </span>
             )}
+
+            {/* La imagen se acomoda ANTES de subir: a la caja de la ficha
+                (54 × 96 mm), centrada sobre blanco y comprimida. Las 296 que ya
+                están pesan 44 MB entre todas; esa es la cuenta que no conviene
+                repetir. */}
+            <button
+              type="button"
+              onClick={() => inputFoto.current?.click()}
+              disabled={subiendoFoto}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-accent disabled:opacity-60"
+            >
+              {subiendoFoto ? <Loader2 className="size-3.5 animate-spin" /> : <Camera className="size-3.5" />}
+              {subiendoFoto ? "Preparando…" : d.fotoPath || fotoLocal ? "Cambiar la foto" : "Agregar foto"}
+            </button>
+            <input
+              ref={inputFoto}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) elegirFoto(f);
+              }}
+            />
+            <span className="text-center text-[10px] leading-snug text-muted-foreground">
+              {fotoPendiente
+                ? "Se sube al guardar el equipo."
+                : "Elíjala o arrástrela acá. Se acomoda sola a la hoja."}
+            </span>
           </div>
 
           <div className="space-y-px bg-card p-3">
