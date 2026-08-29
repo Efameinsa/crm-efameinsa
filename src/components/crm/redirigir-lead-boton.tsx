@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -177,18 +178,11 @@ export function RedirigirLeadBoton({
           /* La caja de Plaza Vea, tal cual lo pidió el ing. Carlos el 27-08: la
              corrección la habilita un supervisor, no quien se equivocó. */
           <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
-            <div className="flex items-center gap-3">
-              <input
-                id="pin"
-                inputMode="numeric"
-                autoComplete="off"
-                maxLength={4}
-                placeholder="0000"
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                className="h-12 w-28 flex-none rounded-lg border border-input bg-background text-center font-mono text-2xl tracking-[0.3em]"
-              />
-              <div className="min-w-0 flex-1">
+            {/* La etiqueta arriba y las casillas debajo: con las cuatro cifras
+                grandes ya no queda ancho para ponerlas al lado en un diálogo
+                angosto. */}
+            <div className="space-y-1.5">
+              <div>
                 <Label htmlFor="pin" className="text-sm">
                   Código del supervisor
                 </Label>
@@ -196,6 +190,7 @@ export function RedirigirLeadBoton({
                   Cambia cada 10 min · sirve para una corrección
                 </p>
               </div>
+              <CampoCodigo id="pin" valor={pin} onChange={setPin} tono="amber" />
             </div>
             {/* CON NOMBRE Y APELLIDO. Pedir «el código del supervisor» sin decir
                 de quién dejaba a Central sin saber a quién llamar (27-08). La

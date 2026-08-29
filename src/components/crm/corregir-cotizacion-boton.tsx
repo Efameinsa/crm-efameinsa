@@ -3,10 +3,19 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { KeyRound, PencilLine, TriangleAlert } from "lucide-react";
+import { Check, Hash, KeyRound, PencilLine, TriangleAlert } from "lucide-react";
 import { abrirCorreccion, frenosDeCorreccion, type FrenosCorreccion } from "@/lib/acciones/correccion-cotizacion";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+
+/**
+ * Lo mínimo que tiene que decir el motivo, y lo mismo que exige la base
+ * (`abrir_correccion_cotizacion`, migración 0123). Está acá para poder
+ * anunciarlo antes de escribir, en vez de rebotar el intento después.
+ */
+const MINIMO_MOTIVO = 15;
 
 /**
  * Pedir corregir una cotización que ya salió con su número.
@@ -75,7 +84,9 @@ export function CorregirCotizacionBoton({
   }
 
   const puede = frenos?.puede === true;
-  const listo = puede && pin.length === 4 && motivo.trim().length >= 15;
+  const largoMotivo = motivo.trim().length;
+  const motivoOk = largoMotivo >= MINIMO_MOTIVO;
+  const listo = puede && pin.length === 4 && motivoOk;
 
   return (
     <Dialog open={abierto} onOpenChange={alAbrir}>
@@ -96,7 +107,19 @@ export function CorregirCotizacionBoton({
       />
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Corregir la cotización {codigo ?? ""}</DialogTitle>
+          <DialogTitle className="flex flex-wrap items-center gap-2">
+            <span className="flex size-8 flex-none items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <PencilLine className="size-4" />
+            </span>
+            Corregir la cotización
+            {codigo && (
+              // El número, en el mismo tipo con el que sale impreso: acá se está
+              // tocando un documento que el cliente ya tiene en la mano.
+              <span className="rounded-md bg-secondary px-2 py-0.5 font-mono text-sm font-bold text-foreground">
+                {codigo}
+              </span>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
         {frenos === null ? (
@@ -117,60 +140,131 @@ export function CorregirCotizacionBoton({
           </>
         ) : (
           <>
-            <div className="space-y-3">
-              <p className="text-sm leading-snug text-muted-foreground">
-                <b className="text-foreground">El número no cambia.</b> El cliente ya la tiene con este número y así va
-                a quedar — por eso existe esta opción y no simplemente duplicarla. La versión de hoy queda archivada
-                entera, por si el banco pregunta qué decía el documento que recibió.
-              </p>
+            <div className="space-y-4">
+              {/* La regla de la casa, y el motivo por el que esta pantalla
+                  existe. Va destacada: es lo primero que hay que entender antes
+                  de tocar nada. */}
+              <div className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 p-3">
+                <Hash className="mt-0.5 size-4 flex-none text-primary" />
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  <b className="text-foreground">El número no cambia.</b> El cliente ya la tiene con este número y así
+                  va a quedar — por eso existe esta opción y no simplemente duplicarla. La versión de hoy queda
+                  archivada entera, por si el banco pregunta qué decía el documento que recibió.
+                </p>
+              </div>
 
-              <label className="block space-y-1">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  ¿Qué está mal?
-                </span>
+              <Paso numero={1} titulo="¿Qué está mal?">
                 <textarea
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
                   rows={3}
                   autoFocus
                   placeholder="Ej.: el cliente pidió apilable y salió la variante equivocada. Ya está presentada en el banco con este número."
-                  className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+                  className={cn(
+                    "w-full resize-y rounded-lg border-2 bg-background px-3 py-2 text-sm leading-relaxed outline-none transition-colors placeholder:text-muted-foreground/70",
+                    motivoOk ? "border-emerald-400/60 focus:border-emerald-500" : "border-input focus:border-primary",
+                  )}
                 />
-                <span className="text-[11px] text-muted-foreground">
-                  Es lo que le va a leer a operaciones para pedirle el código, y lo que queda en el registro.
-                </span>
-              </label>
+                {/* Cuántos caracteres faltan, dicho antes de que el botón se
+                    niegue a funcionar (gerencia, 29-08: «debe decir cuántos
+                    caracteres debe tener la razón por la que se corrige»). El
+                    mínimo lo pone la base —15, migración 0123—: tres palabras
+                    no alcanzan para entender qué pasó dentro de seis meses. */}
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <span className="text-xs leading-snug text-muted-foreground">
+                    Es lo que le va a leer a operaciones para pedirle el código, y lo que queda en el registro.
+                  </span>
+                  <span
+                    className={cn(
+                      "flex-none text-xs font-semibold tabular-nums",
+                      motivoOk ? "text-emerald-700" : "text-muted-foreground",
+                    )}
+                  >
+                    {motivoOk ? (
+                      <>
+                        <Check className="mr-0.5 inline size-3.5" />
+                        {largoMotivo} caracteres
+                      </>
+                    ) : (
+                      `${largoMotivo} de ${MINIMO_MOTIVO} caracteres mínimos`
+                    )}
+                  </span>
+                </div>
+              </Paso>
 
-              <label className="block space-y-1 rounded-lg border-2 border-primary/40 bg-primary/5 p-3">
-                <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
-                  <KeyRound className="size-3.5" />
-                  Código de autorización
-                </span>
-                <input
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  inputMode="numeric"
-                  placeholder="4 dígitos"
-                  className="w-32 rounded-md border border-primary/40 bg-background px-2 py-1.5 text-center font-mono text-lg tracking-[0.3em] outline-none focus:border-primary"
-                />
-                <span className="block text-[11px] text-muted-foreground">
+              <Paso numero={2} titulo="Código de autorización" icono={KeyRound} destacado>
+                <CampoCodigo valor={pin} onChange={setPin} />
+                <p className="text-xs leading-snug text-muted-foreground">
                   Pídaselo a <b className="text-foreground">operaciones o a gerencia</b>: lo tienen en su pantalla, dura
                   diez minutos y sirve para esta corrección.
-                </span>
-              </label>
+                </p>
+              </Paso>
             </div>
 
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setAbierto(false)} disabled={enviando}>
-                Cancelar
-              </Button>
-              <Button onClick={confirmar} disabled={enviando || !listo}>
-                {enviando ? "Comprobando…" : "Abrir para corregir"}
-              </Button>
+            <DialogFooter className="items-center gap-2">
+              {/* Un botón apagado sin decir por qué se lee como una falla del
+                  sistema. Acá dice qué falta. */}
+              <span className="text-xs text-muted-foreground sm:mr-auto">
+                {largoMotivo === 0
+                  ? `Escriba qué está mal: mínimo ${MINIMO_MOTIVO} caracteres`
+                  : !motivoOk
+                    ? `Faltan ${MINIMO_MOTIVO - largoMotivo} caracteres del motivo`
+                    : pin.length < 4
+                      ? "Falta el código de cuatro dígitos"
+                      : "Listo para abrirla"}
+              </span>
+              <span className="flex items-center gap-2">
+                <Button variant="ghost" onClick={() => setAbierto(false)} disabled={enviando}>
+                  Cancelar
+                </Button>
+                <Button onClick={confirmar} disabled={enviando || !listo}>
+                  {enviando ? "Comprobando…" : "Abrir para corregir"}
+                </Button>
+              </span>
             </DialogFooter>
           </>
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Un paso del trámite, numerado.
+ *
+ * El orden no es estético: el motivo va antes que el código porque es lo que el
+ * comercial le lee al supervisor por teléfono para pedírselo. Numerarlo lo dice
+ * sin tener que explicarlo, para quien abre esta pantalla dos veces al año.
+ */
+function Paso({
+  numero,
+  titulo,
+  icono: Icono,
+  destacado,
+  children,
+}: {
+  numero: number;
+  titulo: string;
+  icono?: React.ComponentType<{ className?: string }>;
+  /** El paso que necesita a otra persona: se enmarca para que no se pase por alto. */
+  destacado?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn("space-y-2", destacado && "rounded-xl border-2 border-primary/30 bg-primary/5 p-3")}>
+      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
+        <span
+          className={cn(
+            "flex size-5 flex-none items-center justify-center rounded-full text-[11px] font-black",
+            destacado ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+          )}
+        >
+          {numero}
+        </span>
+        {Icono && <Icono className="size-3.5 text-primary" />}
+        {titulo}
+      </p>
+      {children}
+    </div>
   );
 }

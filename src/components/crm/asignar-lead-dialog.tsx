@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 
 interface Comercial {
   id: string;
@@ -285,13 +286,7 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
               <span className="text-[11px] font-semibold uppercase tracking-wide text-amber-900">
                 Código del supervisor
               </span>
-              <input
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                inputMode="numeric"
-                placeholder="4 dígitos"
-                className="w-32 rounded-md border border-amber-400 bg-background px-2 py-1.5 text-center font-mono text-lg tracking-[0.3em] outline-none"
-              />
+              <CampoCodigo valor={pin} onChange={setPin} tono="amber" />
             </label>
             <p className="text-[11px] text-amber-900/80">
               Se lo pide a gerencia: lo tiene en su pantalla y dura dos minutos. Si no corresponde traspasar la
