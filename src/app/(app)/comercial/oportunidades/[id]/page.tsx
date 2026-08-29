@@ -3,6 +3,7 @@ import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { RegistroRapido } from "@/components/crm/registro-rapido";
+import { PideServicioBoton } from "@/components/crm/pide-servicio-boton";
 import { CambiarEtapa } from "@/components/crm/cambiar-etapa";
 import { ListaCotizaciones } from "@/components/crm/lista-cotizaciones";
 import { CalificacionOportunidad } from "@/components/crm/calificacion-oportunidad";
@@ -329,6 +330,17 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
 
           <SeccionPanel titulo="Registrar gestión">
             <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} motivos={motivos ?? []} />
+            {/* Justo debajo de donde se anota la llamada, porque es ahí donde
+                se descubre: el 29-08 Brenda escribió «no desea equipos… desea
+                mmto, repuestos, se le indicó que se va a derivar con
+                postventa» y no tenía dónde apretar para que eso ocurriera.
+                Central no lee las notas de gestión. */}
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+              <PideServicioBoton oportunidadId={oportunidad.id} />
+              <span className="text-[11px] text-muted-foreground">
+                Si al llamar resulta que no quiere equipos: quiere mantenimiento, repuestos o tiene una garantía.
+              </span>
+            </div>
           </SeccionPanel>
 
           {cuenta?.id && (

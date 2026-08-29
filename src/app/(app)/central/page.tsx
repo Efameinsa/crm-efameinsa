@@ -47,6 +47,13 @@ const ETIQUETA_CANAL: Record<string, string> = {
   otro: "Otro",
 };
 
+/** Las tres clases de caso que atiende postventa (migración 0080). */
+const ETIQUETA_TIPO_PV: Record<string, string> = {
+  garantia: "Garantía",
+  repuesto: "Repuestos",
+  mantenimiento: "Mantenimiento preventivo",
+};
+
 export default async function CentralPage() {
   const supabase = await createClient();
 
@@ -60,7 +67,7 @@ export default async function CentralPage() {
     supabase
       .from("leads")
       .select(
-        "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, adjuntos, utm_campaign, recibido_at, es_prueba",
+        "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, adjuntos, utm_campaign, recibido_at, es_prueba, sugerido_a, sugerido_tipo, sugerido_por",
         { count: "exact" },
       )
       .eq("estado", "pendiente_triaje")
@@ -102,6 +109,11 @@ export default async function CentralPage() {
     (leads ?? []).filter((l) => !l.es_prueba),
   );
   const repetidos = [...coincidencias.values()].filter((c) => c.clase === "duplicado").length;
+
+  // Quién avisó, cuando el contacto lo mandó un comercial desde la ficha de su
+  // cliente (migración 0125): Central tiene que poder ver de quién salió sin
+  // abrir nada.
+  const nombrePorId = new Map((comerciales ?? []).map((c) => [c.id as string, c.nombre as string]));
 
   // Fotos/PDF que Central adjuntó al registrar (25-08): URLs firmadas en una
   // sola llamada batch, como en el historial de cuenta.
@@ -163,10 +175,31 @@ export default async function CentralPage() {
                       email={lead.email}
                       mensaje={lead.mensaje}
                       comerciales={comerciales ?? []}
+                      sugerencia={
+                        lead.sugerido_a
+                          ? {
+                              comercialId: lead.sugerido_a,
+                              tipo: lead.sugerido_tipo,
+                              quien: nombrePorId.get(lead.sugerido_por ?? "") ?? null,
+                            }
+                          : null
+                      }
                     />
                     <DescartarLeadBoton leadId={lead.id} />
                   </div>
                 </div>
+
+                {/* Un aviso de un comercial no es un contacto más de la cola:
+                    ya se habló con el cliente y ya hay una propuesta. Se ve
+                    antes de abrir nada, porque cambia el orden en que Central
+                    atiende la bandeja. */}
+                {lead.sugerido_a && (
+                  <p className="mt-2 rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1.5 text-xs text-foreground">
+                    <b>{nombrePorId.get(lead.sugerido_por ?? "") ?? "Un comercial"}</b> ya habló con este cliente y
+                    propone <b className="text-primary">{nombrePorId.get(lead.sugerido_a) ?? "Post Venta"}</b>
+                    {lead.sugerido_tipo ? ` · ${ETIQUETA_TIPO_PV[lead.sugerido_tipo] ?? lead.sugerido_tipo}` : ""}
+                  </p>
+                )}
 
                 {/* QUÉ PIDIÓ el prospecto. El dato siempre se guardó en
                     leads.mensaje pero no se mostraba en ninguna pantalla, así

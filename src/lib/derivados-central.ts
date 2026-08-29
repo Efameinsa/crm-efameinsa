@@ -215,10 +215,41 @@ export async function cargarDerivados(
     .lte("asignado_at", `${f.hasta}T23:59:59-05:00`);
   if (f.comercial) q = q.eq("asignado_a", f.comercial);
   const busqueda = (f.busqueda ?? "").trim();
-  if (busqueda)
-    q = q.or(
-      `codigo.ilike.%${busqueda}%,nombre_contacto.ilike.%${busqueda}%,telefono.ilike.%${busqueda}%,razon_social.ilike.%${busqueda}%`,
-    );
+  if (busqueda) {
+    // TAMBIÉN POR EL NOMBRE DEL CLIENTE, no solo por lo que trajo el contacto.
+    //
+    // El 29-08 Central dio por perdido el PRO-09015: buscó «HUAYPAR» —la razón
+    // social que ve en el título de la ficha y la que usa para hablar de ese
+    // cliente— y no salió nada, así que concluyó que el contacto no estaba en
+    // sus derivados. Estaba: lo había derivado ella misma dos días antes, pero
+    // el contacto entró por el formulario de Google Ads con el nombre «hotel
+    // dubai» y sin razón social. «HUAYPAR DE LA CRUZ TEOFILO» vive en la
+    // CUENTA, que hasta acá no se miraba.
+    //
+    // Con 300 derivaciones en 30 días, un contacto que no aparece al buscarlo
+    // por el nombre del cliente es un contacto perdido — que es exactamente la
+    // queja que hizo nacer esta pantalla, entrando por otra puerta.
+    //
+    // Va en dos consultas y no en un filtro anidado porque PostgREST no combina
+    // un `or` sobre la tabla con un `or` sobre la relación: se resuelven las
+    // cuentas que coinciden y sus ids entran al mismo `or`.
+    const { data: cuentas } = await supabase
+      .from("cuentas")
+      .select("id")
+      .or(`razon_social.ilike.%${busqueda}%,num_doc.ilike.%${busqueda}%`)
+      .limit(200);
+    const ids = (cuentas ?? []).map((c) => c.id as string);
+
+    const condiciones = [
+      `codigo.ilike.%${busqueda}%`,
+      `nombre_contacto.ilike.%${busqueda}%`,
+      `telefono.ilike.%${busqueda}%`,
+      `razon_social.ilike.%${busqueda}%`,
+      `num_doc.ilike.%${busqueda}%`,
+      ...(ids.length > 0 ? [`cuenta_id.in.(${ids.join(",")})`] : []),
+    ];
+    q = q.or(condiciones.join(","));
+  }
 
   const [{ data: leads }, { data: perfiles }] = await Promise.all([
     q.order("asignado_at", { ascending: false }).limit(f.limite ?? 400),
@@ -257,7 +288,10 @@ async function armar(
 
   // Las actividades se piden ascendentes para quedarse en una sola pasada con
   // la PRIMERA (el tiempo hasta el primer contacto) y con la última.
-  const [{ data: cots }, { data: acts }, { data: asignaciones }, { data: urgencias }] = await Promise.all([
+  const cuentaIds = [...new Set(leads.map((l) => l.cuenta_id).filter((x): x is string => Boolean(x)))];
+
+  const [{ data: cots }, { data: acts }, { data: asignaciones }, { data: cuentas }, { data: urgencias }] =
+    await Promise.all([
     opIds.length
       ? supabase
           .from("cotizaciones")
@@ -273,6 +307,14 @@ async function armar(
           .order("realizada_at")
       : Promise.resolve({ data: [] as { oportunidad_id: string; tipo: string; nota: string | null; realizada_at: string }[] }),
     supabase.from("asignaciones").select("lead_id, motivo").in("lead_id", ids),
+    // El nombre del CLIENTE. Muchos contactos entran por el formulario de la
+    // web sin razón social —el PRO-09015 llegó como «hotel dubai»— y el nombre
+    // por el que todos lo llaman está en la cuenta. Sin esto, buscar por ese
+    // nombre encontraba la fila pero la fila mostraba otro nombre, que confunde
+    // más que no encontrarla.
+    cuentaIds.length
+      ? supabase.from("cuentas").select("id, razon_social").in("id", cuentaIds)
+      : Promise.resolve({ data: [] as { id: string; razon_social: string }[] }),
     supabase
       .from("recordatorios_urgencia")
       .select("lead_id, created_at")
@@ -282,6 +324,7 @@ async function armar(
 
   const opPorLead = new Map((ops ?? []).map((o) => [o.lead_id as string, o]));
   const motivoPorLead = new Map((asignaciones ?? []).map((a) => [a.lead_id as string, a.motivo as string]));
+  const cuentaPorId = new Map((cuentas ?? []).map((c) => [c.id as string, c.razon_social as string]));
 
   const cotsPorOp = new Map<string, CotizacionResumen[]>();
   for (const c of (cots ?? []) as unknown as (CotizacionResumen & { oportunidad_id: string })[]) {
@@ -316,7 +359,9 @@ async function armar(
       id: l.id,
       codigo: l.codigo,
       nombreContacto: l.nombre_contacto,
-      razonSocial: l.razon_social,
+      // El del lead si lo trajo; si no, el de la cuenta, que es el nombre por
+      // el que la empresa conoce a ese cliente.
+      razonSocial: l.razon_social ?? (l.cuenta_id ? (cuentaPorId.get(l.cuenta_id) ?? null) : null),
       telefono: l.telefono,
       email: l.email,
       canal: l.canal,

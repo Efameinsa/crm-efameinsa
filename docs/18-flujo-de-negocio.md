@@ -163,6 +163,14 @@ mantenimiento vencido.
 7. **Cada quien ve lo suyo.** Postventa no ve precios de venta pero sí el estado del pago;
    quien vende no ve la ejecución; el cliente es del comercial que lo vendió aunque otro le
    venda el mantenimiento.
+8. **Quien se entera avisa; quien puede, decide.** Agregada el 29-08 (migración 0125). El
+   comercial descubre al teléfono que el cliente no quiere equipos sino mantenimiento, pero el
+   que deriva es Central: entre los dos no había camino, y la decisión moría en una nota de
+   gestión que Central no lee. Ahora el comercial avisa desde la ficha de su cliente y el
+   contacto entra a la bandeja de triaje con los datos puestos y la propuesta escrita
+   —«Post Venta · mantenimiento»—; Central confirma. **No es redirigir**: redirigir movería la
+   oportunidad y le entregaría el cliente a postventa, contra la regla 7 y la migración 0080.
+   Es un caso nuevo para el mismo cliente.
 
 ---
 

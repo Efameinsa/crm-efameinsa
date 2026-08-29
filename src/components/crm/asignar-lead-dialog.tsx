@@ -48,7 +48,15 @@ interface Props {
   /** Lo que pidió el prospecto: sin esto Central deriva a ciegas. */
   mensaje?: string | null;
   comerciales: Comercial[];
+  /** El comercial que avisó ya propuso destino y clase (migración 0125). */
+  sugerencia?: { comercialId: string | null; tipo: string | null; quien: string | null } | null;
 }
+
+const ETIQUETA_TIPO: Record<string, string> = {
+  garantia: "Garantía",
+  repuesto: "Repuestos",
+  mantenimiento: "Mantenimiento preventivo",
+};
 
 const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: boolean }> = {
   documento: { etiqueta: "Mismo RUC/DNI", fuerte: true },
@@ -62,11 +70,13 @@ const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: 
 // histórico (RUC/DNI, teléfono, correo, nombre). Un match fuerte preselecciona
 // al comercial de esa cartera (regla R3); los de nombre solo advierten:
 // puede haber muchas "María Leguía".
-export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales }: Props) {
+export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales, sugerencia }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[] | null>(null);
-  const [comercialId, setComercialId] = useState<string>("");
-  const [tipoPostventa, setTipoPostventa] = useState<string>("");
+  // Si el aviso vino de un comercial, el diálogo abre con su propuesta puesta:
+  // Central confirma en vez de volver a elegir lo que ya está decidido.
+  const [comercialId, setComercialId] = useState<string>(sugerencia?.comercialId ?? "");
+  const [tipoPostventa, setTipoPostventa] = useState<string>(sugerencia?.tipo ?? "");
   const [enviando, startTransition] = useTransition();
   /**
    * A quién le quitaría el cliente esta derivación (0107). Se pregunta cada vez
@@ -87,10 +97,16 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
     setCoincidencias(null);
     buscarCoincidencias({ nombre, razonSocial, telefono, numDoc, email }).then((r) => {
       setCoincidencias(r);
+      // La coincidencia de cartera preselecciona al comercial dueño… salvo que
+      // un comercial ya haya dicho a dónde va esto. Un aviso de «pide
+      // servicio» viene JUSTAMENTE de un cliente que ya tiene dueño, así que
+      // sin esta salvedad el dueño le ganaba siempre a Post Venta y el
+      // diálogo abría con lo contrario de lo que se pidió.
+      if (sugerencia?.comercialId) return;
       const fuerte = r.find((c) => MOTIVO[c.motivo].fuerte && c.comercialId);
       if (fuerte) setComercialId(fuerte.comercialId!);
     });
-  }, [abierto, nombre, razonSocial, telefono, numDoc, email]);
+  }, [abierto, nombre, razonSocial, telefono, numDoc, email, sugerencia?.comercialId]);
 
   // Cada vez que cambia el comercial elegido, se le pregunta a la base si esa
   // derivación movería la cartera de alguien.
@@ -140,6 +156,21 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
           <DialogTitle>Asignar contacto</DialogTitle>
           <DialogDescription>Elija el comercial que va a atender este contacto.</DialogDescription>
         </DialogHeader>
+
+        {/* Cuando el aviso lo mandó un comercial, se dice de entrada: no es un
+            contacto que llegó de la calle, es uno que ya se habló y viene con
+            una propuesta. Central decide igual — puede cambiarla— pero ya no
+            tiene que reconstruir la conversación. */}
+        {sugerencia?.comercialId && (
+          <p className="rounded-md border border-primary/40 bg-primary/5 p-2.5 text-xs leading-snug text-foreground">
+            {sugerencia.quien ? <b>{sugerencia.quien}</b> : <b>El comercial</b>} ya habló con este cliente y propone{" "}
+            <b className="text-primary">
+              {comerciales.find((c) => c.id === sugerencia.comercialId)?.nombre ?? "Post Venta"}
+              {sugerencia.tipo ? ` · ${ETIQUETA_TIPO[sugerencia.tipo] ?? sugerencia.tipo}` : ""}
+            </b>
+            . Ya está elegido abajo; cámbielo si corresponde otra cosa.
+          </p>
+        )}
 
         {/* Se repite acá a propósito: es el dato que decide a QUIÉN conviene
             derivarlo, y en este diálogo es donde se toma la decisión. */}
