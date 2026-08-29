@@ -49,7 +49,7 @@ describe("estadoGarantia", () => {
     // fechas UTC, después de las 19:00 de Lima «ayer» ya era otro día y la
     // prueba fallaba sola todas las noches.
     const hoyLima = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" }));
-    const enDias = (n) => {
+    const enDias = (n: number) => {
       const d = new Date(hoyLima);
       d.setDate(d.getDate() + n);
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
