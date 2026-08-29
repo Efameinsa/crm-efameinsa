@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { AlertTriangle, Boxes, Plus, Search, TriangleAlert } from "lucide-react";
 import { buscarEquipos } from "@/lib/buscar-equipo";
+import { rutaFoto } from "@/lib/foto-producto";
+import { AccionesEquipo } from "@/components/crm/acciones-equipo";
 import type { EquipoCatalogo, SaludCatalogo } from "@/lib/catalogo-operaciones";
 import { FichaTecnicaEditor, EQUIPO_NUEVO, type EquipoEditable } from "@/components/crm/ficha-tecnica-editor";
 import { Button } from "@/components/ui/button";
@@ -187,7 +189,13 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
 
       <div className="grid gap-2 lg:grid-cols-2">
         {resultados.map((e) => (
-          <TarjetaEquipo key={e.id} equipo={e} nueva={e.id === recienCargado} onAbrir={() => setAbierto(aEditable(e))} />
+          <TarjetaEquipo
+            key={e.id}
+            equipo={e}
+            nueva={e.id === recienCargado}
+            onAbrir={() => setAbierto(aEditable(e))}
+            onDuplicar={() => setAbierto(duplicado(e))}
+          />
         ))}
       </div>
 
@@ -231,6 +239,22 @@ type Filtro =
 /** Le falta algo para poder cotizarse: precio, ficha o foto. */
 function incompleto(e: EquipoCatalogo): boolean {
   return e.precios.length === 0 || !e.tieneFicha || !e.fotoPath;
+}
+
+/**
+ * La copia de un equipo, lista para editarse: sin id —así se guarda como uno
+ * nuevo—, sin código y sin foto, que son de la máquina y no de la plantilla.
+ * El nombre avisa que es una copia, para que no se guarde igual sin querer.
+ */
+function duplicado(e: EquipoCatalogo): EquipoEditable {
+  return {
+    ...aEditable(e),
+    id: null,
+    sku: null,
+    fotoPath: null,
+    nombre: `${e.nombre} (copia)`,
+    disponibles: null,
+  };
 }
 
 function aEditable(e: EquipoCatalogo): EquipoEditable {
@@ -314,11 +338,13 @@ function TarjetaEquipo({
   equipo: e,
   nueva = false,
   onAbrir,
+  onDuplicar,
 }: {
   equipo: EquipoCatalogo;
   /** Recién cargado: sube al principio y se resalta hasta que se lo vea. */
   nueva?: boolean;
   onAbrir: () => void;
+  onDuplicar: () => void;
 }) {
   const falta = incompleto(e);
   return (
@@ -344,7 +370,7 @@ function TarjetaEquipo({
       <div className="size-20 flex-none overflow-hidden rounded-md border border-border bg-white">
         {e.fotoPath ? (
           <Image
-            src={`/productos/${e.fotoPath.split("/").pop()}`}
+            src={rutaFoto(e.fotoPath)}
             alt={`${e.marca} ${e.modelo}`}
             width={80}
             height={80}
@@ -372,6 +398,14 @@ function TarjetaEquipo({
               fuera del catálogo
             </span>
           )}
+          <span className="ml-auto">
+            <AccionesEquipo
+              nombre={`${e.marca} ${e.modelo}`}
+              equipoId={e.id}
+              onEditar={onAbrir}
+              onDuplicar={onDuplicar}
+            />
+          </span>
         </p>
         <p className="truncate text-xs text-muted-foreground">{e.nombre}</p>
         <p className="mt-0.5 flex flex-wrap gap-x-2 text-[11px] text-muted-foreground">

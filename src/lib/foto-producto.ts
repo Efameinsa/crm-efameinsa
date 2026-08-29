@@ -93,3 +93,20 @@ async function cargarImagen(archivo: File): Promise<HTMLImageElement | ImageBitm
     img.src = url;
   });
 }
+
+/**
+ * Dónde está la foto de un equipo.
+ *
+ * Las 296 que vinieron con el proyecto viven en `public/productos/`; las que
+ * sube operaciones van al almacenamiento y su `foto_path` empieza con
+ * «storage:» (migración 0121). Vive acá, en un solo lugar, porque la primera
+ * versión la resolvía cada pantalla por su cuenta: la ficha la mostraba bien y
+ * la tarjeta del catálogo la buscaba en la carpeta del repositorio, así que un
+ * equipo con la foto recién subida aparecía sin foto en la lista.
+ */
+export function rutaFoto(fotoPath: string): string {
+  if (fotoPath.startsWith("storage:")) {
+    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${fotoPath.slice(8)}`;
+  }
+  return `/productos/${fotoPath.split("/").pop()}`;
+}

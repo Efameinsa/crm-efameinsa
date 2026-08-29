@@ -318,3 +318,49 @@ export async function fichaDeReferencia(categoria: string): Promise<{
     },
   };
 }
+
+/**
+ * Quitar un equipo del catálogo.
+ *
+ * BORRAR NO SIEMPRE SE PUEDE, y es mejor decirlo que dejar que la base lo
+ * rechace con su propio idioma. Si el equipo ya se cotizó alguna vez, sus
+ * líneas viven dentro de cotizaciones que se le mandaron a clientes: borrarlo
+ * dejaría esas cotizaciones sin qué imprimir. En ese caso no se borra, se
+ * apaga —«fuera del catálogo»— que es lo que de verdad se quiere: que el
+ * comercial deje de encontrarlo.
+ */
+export async function eliminarEquipo(id: string): Promise<{ error: string | null; apagado?: boolean }> {
+  const supabase = await createClient();
+
+  const { count } = await supabase
+    .from("cotizacion_items")
+    .select("id", { count: "exact", head: true })
+    .eq("producto_id", id);
+
+  if ((count ?? 0) > 0) {
+    const { error } = await supabase.from("productos").update({ activo: false }).eq("id", id);
+    if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+    revalidatePath("/operaciones/catalogo");
+    return {
+      error: null,
+      apagado: true,
+    };
+  }
+
+  // Los precios cuelgan del equipo y no tienen sentido sin él.
+  await supabase.from("precios_producto").delete().eq("producto_id", id);
+  const { error } = await supabase.from("productos").delete().eq("id", id);
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+  revalidatePath("/operaciones/catalogo");
+  return { error: null, apagado: false };
+}
+
+/** Cuántas veces se cotizó este equipo: decide si se puede borrar o solo apagar. */
+export async function vecesCotizado(id: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("cotizacion_items")
+    .select("id", { count: "exact", head: true })
+    .eq("producto_id", id);
+  return count ?? 0;
+}

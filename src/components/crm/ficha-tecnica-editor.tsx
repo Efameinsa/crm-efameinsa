@@ -16,7 +16,7 @@ import {
 } from "@/lib/acciones/productos";
 import { TIPOS_EQUIPO, casillasDe, tipoDeCategoria, type CasillaEquipo } from "@/lib/tipos-equipo";
 import { createClient } from "@/lib/supabase/client";
-import { prepararFoto } from "@/lib/foto-producto";
+import { prepararFoto, rutaFoto } from "@/lib/foto-producto";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -566,14 +566,6 @@ export function FichaTecnicaEditor({
       </div>
     </div>
   );
-}
-
-/** Dónde está la foto: en el repositorio o subida al almacenamiento (0121). */
-function rutaFoto(fotoPath: string): string {
-  if (fotoPath.startsWith("storage:")) {
-    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${fotoPath.slice(8)}`;
-  }
-  return `/productos/${fotoPath.split("/").pop()}`;
 }
 
 const ROTULO: Record<CasillaEquipo, string> = {
