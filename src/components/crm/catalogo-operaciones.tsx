@@ -28,33 +28,52 @@ import { cn } from "@/lib/utils";
  */
 export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalogo[]; salud: SaludCatalogo }) {
   const [texto, setTexto] = useState("");
-  const [soloProblemas, setSoloProblemas] = useState(false);
-  const [soloConStock, setSoloConStock] = useState(false);
-  const [verInactivos, setVerInactivos] = useState(false);
-  const [categoria, setCategoria] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState<Filtro>({ tipo: "todas" });
   const [abierto, setAbierto] = useState<EquipoEditable | null>(null);
+  // El que se acaba de cargar: sube al principio y se resalta un rato. Sin
+  // esto, un equipo nuevo cae en su lugar alfabético entre ciento veinte y
+  // hay que ir a buscarlo (reportado 28-08: «ahora se me perdió y no lo veo»).
+  const [recienCargado, setRecienCargado] = useState<string | null>(null);
+
+  const activos = useMemo(() => equipos.filter((e) => e.activo), [equipos]);
 
   const categorias = useMemo(() => {
     const c = new Map<string, number>();
-    for (const e of equipos) {
-      if (!e.activo && !verInactivos) continue;
+    for (const e of activos) {
       const k = (e.categoria ?? "sin categoría").toLowerCase();
       c.set(k, (c.get(k) ?? 0) + 1);
     }
     return [...c.entries()].sort((a, b) => b[1] - a[1]);
-  }, [equipos, verInactivos]);
+  }, [activos]);
 
-  const problema = (e: EquipoCatalogo) => e.precios.length === 0 || !e.tieneFicha || !e.fotoPath;
+  const conteos = useMemo(
+    () => ({
+      sinStock: activos.filter((e) => stockDe(e).cantidad === 0).length,
+      incompletos: activos.filter(incompleto).length,
+    }),
+    [activos],
+  );
 
   const resultados = useMemo(() => {
-    let lista = equipos.filter((e) => (verInactivos ? true : e.activo));
-    if (categoria) lista = lista.filter((e) => (e.categoria ?? "sin categoría").toLowerCase() === categoria);
-    if (soloProblemas) lista = lista.filter(problema);
-    if (soloConStock) lista = lista.filter((e) => stockDe(e).cantidad > 0);
-    return buscarEquipos(lista, texto);
-  }, [equipos, texto, soloProblemas, soloConStock, verInactivos, categoria]);
+    const lista = filtro.tipo === "fuera" ? equipos.filter((e) => !e.activo) : activos;
+    const filtrada =
+      filtro.tipo === "categoria"
+        ? lista.filter((e) => (e.categoria ?? "sin categoría").toLowerCase() === filtro.valor)
+        : filtro.tipo === "incompletos"
+          ? lista.filter(incompleto)
+          : filtro.tipo === "con_stock"
+            ? lista.filter((e) => stockDe(e).cantidad > 0)
+            : filtro.tipo === "sin_stock"
+              ? lista.filter((e) => stockDe(e).cantidad === 0)
+              : lista;
+    const encontrados = buscarEquipos(filtrada, texto);
+    // El recién cargado va primero, esté donde esté en el orden.
+    if (!recienCargado) return encontrados;
+    const nuevo = encontrados.find((e) => e.id === recienCargado);
+    return nuevo ? [nuevo, ...encontrados.filter((e) => e.id !== recienCargado)] : encontrados;
+  }, [equipos, activos, texto, filtro, recienCargado]);
 
-  const enAlmacen = equipos.filter((e) => e.activo).reduce((a, e) => a + stockDe(e).cantidad, 0);
+  const enAlmacen = activos.reduce((a, e) => a + stockDe(e).cantidad, 0);
 
   return (
     <div className="space-y-4">
@@ -72,9 +91,15 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
             </p>
           ))}
           {salud.sinPrecio > 0 && (
-            <p className="text-xs text-amber-900">
-              {salud.sinPrecio} equipos activos sin precio vigente: el comercial los encuentra y no los puede cotizar.
-            </p>
+            <button
+              type="button"
+              onClick={() => setFiltro({ tipo: "incompletos" })}
+              className="block text-left text-xs text-amber-900 underline decoration-amber-400 underline-offset-2 hover:text-amber-950"
+            >
+              {salud.sinPrecio}
+              {salud.sinPrecio === 1 ? " equipo activo sin precio vigente" : " equipos activos sin precio vigente"}: el
+              comercial los encuentra y no los puede cotizar. Pulse para verlos.
+            </button>
           )}
           {salud.sinFicha > 0 && (
             <p className="text-xs text-amber-900">
@@ -101,39 +126,68 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
           </Button>
         </div>
 
+        {/* UN FILTRO A LA VEZ.
+            Antes se podían encender varios —categoría, con stock, incompletos,
+            inactivos— y el resultado era una intersección que nadie pedía: se
+            marcaba «coche» y «con stock» y salía vacío sin que quedara claro
+            cuál de los dos filtraba. Ahora es una sola pregunta a la vez, y
+            volver a pulsar la apaga. */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <Pastilla activa={categoria === null} onClick={() => setCategoria(null)}>
-            Todas
+          <Pastilla activa={filtro.tipo === "todas"} onClick={() => setFiltro({ tipo: "todas" })}>
+            Todas {activos.length}
           </Pastilla>
           {categorias.map(([c, n]) => (
-            <Pastilla key={c} activa={categoria === c} onClick={() => setCategoria(categoria === c ? null : c)}>
+            <Pastilla
+              key={c}
+              activa={filtro.tipo === "categoria" && filtro.valor === c}
+              onClick={() => setFiltro(filtro.tipo === "categoria" && filtro.valor === c ? { tipo: "todas" } : { tipo: "categoria", valor: c })}
+            >
               {c} {n}
             </Pastilla>
           ))}
           <span className="mx-1 h-4 w-px bg-border" />
-          <Pastilla activa={soloConStock} onClick={() => setSoloConStock(!soloConStock)}>
+          <Pastilla
+            activa={filtro.tipo === "con_stock"}
+            onClick={() => setFiltro(filtro.tipo === "con_stock" ? { tipo: "todas" } : { tipo: "con_stock" })}
+            titulo="Los que se pueden prometer hoy"
+          >
             <Boxes className="mr-1 inline size-3" />
-            Con stock {enAlmacen > 0 ? enAlmacen : ""}
+            Con stock {enAlmacen}
           </Pastilla>
-          <Pastilla activa={soloProblemas} onClick={() => setSoloProblemas(!soloProblemas)}>
-            Solo incompletos
+          <Pastilla
+            activa={filtro.tipo === "sin_stock"}
+            onClick={() => setFiltro(filtro.tipo === "sin_stock" ? { tipo: "todas" } : { tipo: "sin_stock" })}
+            titulo="Para encontrarlos y actualizarles la cantidad"
+          >
+            Sin stock {conteos.sinStock}
           </Pastilla>
-          <Pastilla activa={verInactivos} onClick={() => setVerInactivos(!verInactivos)}>
-            Ver inactivos {salud.inactivos}
+          <Pastilla
+            activa={filtro.tipo === "incompletos"}
+            onClick={() => setFiltro(filtro.tipo === "incompletos" ? { tipo: "todas" } : { tipo: "incompletos" })}
+            titulo="Sin precio, sin ficha o sin foto"
+          >
+            Incompletos {conteos.incompletos}
+          </Pastilla>
+          <Pastilla
+            activa={filtro.tipo === "fuera"}
+            onClick={() => setFiltro(filtro.tipo === "fuera" ? { tipo: "todas" } : { tipo: "fuera" })}
+            titulo="Apagados en su momento —versiones viejas del mismo equipo, o modelos que se dejaron de traer—. El comercial no los ve; desde acá se pueden volver a prender."
+          >
+            Fuera del catálogo {salud.inactivos}
           </Pastilla>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          {resultados.length === equipos.length
+          {resultados.length === activos.length
             ? `${resultados.length} equipos`
-            : `${resultados.length} de ${equipos.length}`}
+            : `${resultados.length} de ${activos.length}`}
           {texto.trim() && resultados.length === 0 && " — si acá no sale, al comercial tampoco le sale."}
         </p>
       </div>
 
       <div className="grid gap-2 lg:grid-cols-2">
         {resultados.map((e) => (
-          <TarjetaEquipo key={e.id} equipo={e} onAbrir={() => setAbierto(aEditable(e))} />
+          <TarjetaEquipo key={e.id} equipo={e} nueva={e.id === recienCargado} onAbrir={() => setAbierto(aEditable(e))} />
         ))}
       </div>
 
@@ -146,11 +200,37 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
                 : `${abierto?.marca} ${abierto?.modelo} — así sale impreso`}
             </DialogTitle>
           </DialogHeader>
-          {abierto && <FichaTecnicaEditor equipo={abierto} onListo={() => setAbierto(null)} />}
+          {abierto && (
+            <FichaTecnicaEditor
+              equipo={abierto}
+              onListo={(id) => {
+                setAbierto(null);
+                if (id) {
+                  setFiltro({ tipo: "todas" });
+                  setTexto("");
+                  setRecienCargado(id);
+                  window.setTimeout(() => setRecienCargado(null), 12000);
+                }
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
   );
+}
+
+type Filtro =
+  | { tipo: "todas" }
+  | { tipo: "categoria"; valor: string }
+  | { tipo: "con_stock" }
+  | { tipo: "sin_stock" }
+  | { tipo: "incompletos" }
+  | { tipo: "fuera" };
+
+/** Le falta algo para poder cotizarse: precio, ficha o foto. */
+function incompleto(e: EquipoCatalogo): boolean {
+  return e.precios.length === 0 || !e.tieneFicha || !e.fotoPath;
 }
 
 function aEditable(e: EquipoCatalogo): EquipoEditable {
@@ -204,10 +284,21 @@ function stockDe(e: EquipoCatalogo): { cantidad: number; etiqueta: string; titul
   return { cantidad: 0, etiqueta: "stock sin cargar", titulo: "Ni el almacén ni el maestro dicen cuántas hay" };
 }
 
-function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () => void; children: React.ReactNode }) {
+function Pastilla({
+  activa,
+  onClick,
+  titulo,
+  children,
+}: {
+  activa: boolean;
+  onClick: () => void;
+  titulo?: string;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
+      title={titulo}
       onClick={onClick}
       className={cn(
         "rounded-full px-2.5 py-0.5 text-xs font-medium capitalize transition-colors",
@@ -219,8 +310,17 @@ function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () 
   );
 }
 
-function TarjetaEquipo({ equipo: e, onAbrir }: { equipo: EquipoCatalogo; onAbrir: () => void }) {
-  const incompleto = e.precios.length === 0 || !e.tieneFicha || !e.fotoPath;
+function TarjetaEquipo({
+  equipo: e,
+  nueva = false,
+  onAbrir,
+}: {
+  equipo: EquipoCatalogo;
+  /** Recién cargado: sube al principio y se resalta hasta que se lo vea. */
+  nueva?: boolean;
+  onAbrir: () => void;
+}) {
+  const falta = incompleto(e);
   return (
     <article
       role="button"
@@ -230,7 +330,13 @@ function TarjetaEquipo({ equipo: e, onAbrir }: { equipo: EquipoCatalogo; onAbrir
       title="Abrir la ficha para verla o corregirla"
       className={cn(
         "flex cursor-pointer gap-3 rounded-lg border p-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/40",
-        !e.activo ? "border-dashed border-border bg-secondary/30" : incompleto ? "border-amber-300" : "border-border",
+        nueva
+          ? "border-primary bg-primary/5 ring-2 ring-primary/30 motion-safe:animate-pulse"
+          : !e.activo
+            ? "border-dashed border-border bg-secondary/30"
+            : falta
+              ? "border-amber-300"
+              : "border-border",
       )}
     >
       {/* La foto que va a salir impresa. Verla acá evita el caso de la foto
@@ -256,9 +362,14 @@ function TarjetaEquipo({ equipo: e, onAbrir }: { equipo: EquipoCatalogo; onAbrir
             {e.marca} {e.modelo}
           </span>
           {e.sku && <span className="font-mono text-[10px] text-muted-foreground">{e.sku}</span>}
+          {nueva && (
+            <span className="rounded-full bg-primary px-1.5 text-[10px] font-bold uppercase text-primary-foreground">
+              recién cargado
+            </span>
+          )}
           {!e.activo && (
             <span className="rounded-full bg-foreground/10 px-1.5 text-[10px] font-bold uppercase text-muted-foreground">
-              inactivo
+              fuera del catálogo
             </span>
           )}
         </p>

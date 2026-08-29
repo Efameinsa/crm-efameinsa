@@ -89,7 +89,15 @@ export const EQUIPO_NUEVO: EquipoEditable = {
 
 
 
-export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable; onListo: () => void }) {
+export function FichaTecnicaEditor({
+  equipo,
+  onListo,
+}: {
+  equipo: EquipoEditable;
+  /** Al terminar. Con el id cuando el equipo se acaba de crear, para poder
+   *  llevarlo arriba de la lista y resaltarlo. */
+  onListo: (id?: string) => void;
+}) {
   const esNuevo = equipo.id === null;
   const [d, setD] = useState(equipo);
   const [bloques, setBloques] = useState<BloqueFicha[]>(() => textoABloques(equipo.fichaTexto));
@@ -169,6 +177,18 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
     return r.error;
   }
   function guardar() {
+    // EL PRECIO SE REVISA ACÁ, no después.
+    //
+    // Un equipo sin precio entra al catálogo igual, el comercial lo encuentra
+    // y no lo puede cotizar: el error aparece recién en el aviso de la
+    // pantalla, cuando ya está cargado y hay que ir a buscarlo entre ciento
+    // veinte (reportado 28-08). Se avisa cuando todavía se puede escribir.
+    const monto = Number(precio);
+    if (!precio.trim() || !Number.isFinite(monto) || monto <= 0) {
+      toast.error("Falta el precio. Sin precio el comercial lo encuentra pero no lo puede cotizar.");
+      return;
+    }
+
     empezar(async () => {
       const datos: DatosEquipo = {
         nombre: d.nombre,
@@ -200,6 +220,9 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
           if (eFoto) toast.error(`El equipo se creó, pero la foto no: ${eFoto}`);
         }
         toast.success(`${d.marca} ${d.modelo} entró al catálogo.`);
+        onListo(r.id);
+        router.refresh();
+        return;
       } else {
         const r = await guardarEquipo(equipo.id!, datos);
         if (r.error) {
