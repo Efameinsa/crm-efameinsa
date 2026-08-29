@@ -162,10 +162,14 @@ De las reuniones del 28-08 y de la revisión del catálogo:
    servicios ahora es **completa** para quien tiene la llave
    (`hace_postventa`, la reparte Lesly desde `/operaciones/permisos`): todo
    el histórico de mantenimientos, repuestos y el parque instalado — ver no
-   es contabilizar. A Ariana la llave le queda abierta (es su oficio). El
-   **cierre N.º 10 de OPEN-2026 quedó reservado** para su primera venta
-   (`correlativos_reservas`): el contador lo salta y al emitir ella lo
-   recibe. OJO: sus 385 ventas de `historico_excel` sin `documento_origen`
+   es contabilizar. A Ariana la llave le queda abierta (es su oficio). Su
+   primera venta ya está: **OPEN 010-2026, emitido el 29-08** (Congregación de
+   Religiosas Mercedarias Misioneras, mantenimiento preventivo de su ruta,
+   US$ 680 + IGV, presupuesto a mano 420-26) — la reserva de
+   `correlativos_reservas` se consumió, el contador sigue en 5 y saltará el
+   10\. Se registró directo en la base porque postventa aún no cotiza en el
+   CRM; desde ahora todo lo suyo suma con normalidad.
+   OJO: sus 385 ventas de `historico_excel` sin `documento_origen`
    (las del maestro de Lesly) **no se tocaron** — existían antes de la
    importación y no fueron el reclamo de Carlos; si gerencia quiere revisarlas,
    es una conversación aparte.
