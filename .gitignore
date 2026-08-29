@@ -29,6 +29,10 @@ scripts/data/cierre-revision.pdf
 # public/productos y la descripción cargada en la base.
 scripts/data/fichas-v/
 
+# Los PDF que baja scripts/revisar-cotizaciones.mjs para repasarlos: son copias
+# de lo que ya está en producción, se vuelven a bajar cuando hagan falta.
+scripts/data/repaso-cotizaciones/
+
 # Documentos de coordinación y salidas de scripts: se generan cuando hacen falta
 # (scripts/lista-ruc-a-confirmar.mjs, lista-asesores-cotizaciones.mjs,
 # importar-cierres-postventa.mjs) y llevan datos de clientes. No se versionan.
