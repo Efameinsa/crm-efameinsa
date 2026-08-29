@@ -4,10 +4,19 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, FileText, ImageOff, Plus, Trash2 } from "lucide-react";
+import { Camera, Check, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { bloquesATexto, textoABloques, type BloqueFicha } from "@/lib/ficha-texto";
-import { crearEquipoDesdeFicha, fijarPrecio, guardarEquipo, type DatosEquipo } from "@/lib/acciones/productos";
+import {
+  crearEquipoDesdeFicha,
+  fichaDeReferencia,
+  fijarFotoProducto,
+  fijarPrecio,
+  guardarEquipo,
+  type DatosEquipo,
+} from "@/lib/acciones/productos";
 import { TIPOS_EQUIPO, casillasDe, tipoDeCategoria, type CasillaEquipo } from "@/lib/tipos-equipo";
+import { createClient } from "@/lib/supabase/client";
+import { prepararFoto } from "@/lib/foto-producto";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -74,12 +83,7 @@ export const EQUIPO_NUEVO: EquipoEditable = {
   disponibles: null,
 };
 
-const ETIQUETA_TIPO: Record<BloqueFicha["t"], string> = {
-  titulo: "Título",
-  subtitulo: "Subtítulo",
-  vineta: "Viñeta",
-  dato: "Dato",
-};
+
 
 export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable; onListo: () => void }) {
   const esNuevo = equipo.id === null;
@@ -93,6 +97,9 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
 
   // Un equipo nuevo empieza por la pregunta: qué se está cargando.
   const [eligiendoTipo, setEligiendoTipo] = useState(esNuevo);
+  const [copiadaDe, setCopiadaDe] = useState<string | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [fotoLocal, setFotoLocal] = useState<string | null>(null);
 
   const yaCargadas: CasillaEquipo[] = [
     d.capacidad && "capacidad",
@@ -104,6 +111,44 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
   ].filter(Boolean) as CasillaEquipo[];
   const casillas = casillasDe(d.categoria, yaCargadas);
   const tipo = tipoDeCategoria(d.categoria);
+
+  /**
+   * Sube la foto ya acomodada: el archivo grande no viaja por la red y el
+   * almacenamiento no junta megas que después nadie mira.
+   */
+  function subirFoto(archivo: File) {
+    const id = equipo.id;
+    if (!id) return;
+    setSubiendoFoto(true);
+    void (async () => {
+      const lista = await prepararFoto(archivo);
+      if (!lista) {
+        toast.error("Ese archivo no se pudo leer como imagen");
+        setSubiendoFoto(false);
+        return;
+      }
+      const supabase = createClient();
+      const ruta = `${id}-${Date.now()}.jpg`;
+      const { error } = await supabase.storage
+        .from("productos")
+        .upload(ruta, lista.archivo, { contentType: "image/jpeg", upsert: true });
+      if (error) {
+        toast.error(error.message);
+        setSubiendoFoto(false);
+        return;
+      }
+      const r = await fijarFotoProducto(id, ruta);
+      setSubiendoFoto(false);
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      setFotoLocal(URL.createObjectURL(lista.archivo));
+      const kb = Math.round(lista.bytes / 1024);
+      toast.success(`Foto lista: ${lista.ancho}×${lista.alto} px, ${kb} KB.`);
+      router.refresh();
+    })();
+  }
 
   function guardar() {
     empezar(async () => {
@@ -163,10 +208,35 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
             <button
               key={t.clave}
               type="button"
-              onClick={() => {
-                setD({ ...d, categoria: t.clave });
-                setEligiendoTipo(false);
-              }}
+              onClick={() =>
+                empezar(async () => {
+                  // Se parte de un equipo real del mismo tipo: la hoja
+                  // abre llena y solo hay que corregir las letras. Si no
+                  // hubiera ninguno de ese tipo, se abre en blanco.
+                  const r = await fichaDeReferencia(t.clave);
+                  if (r.referencia) {
+                    setD({
+                      ...d,
+                      categoria: t.clave,
+                      nombre: r.referencia.nombre,
+                      marca: r.referencia.marca,
+                      modelo: r.referencia.modelo,
+                      capacidad: r.referencia.capacidad,
+                      segmento: r.referencia.segmento,
+                      calentamiento: r.referencia.calentamiento,
+                      panel: r.referencia.panel,
+                      controles: r.referencia.controles,
+                      montaje: r.referencia.montaje,
+                      colores: r.referencia.colores,
+                    });
+                    setBloques(textoABloques(r.referencia.fichaTexto));
+                    setCopiadaDe(r.referencia.de);
+                  } else {
+                    setD({ ...d, categoria: t.clave });
+                  }
+                  setEligiendoTipo(false);
+                })
+              }
               className="group rounded-xl border border-border p-4 text-left transition-all hover:border-primary hover:bg-accent/40 hover:shadow-sm"
             >
               <p className="text-sm font-semibold text-foreground">{t.nombre}</p>
@@ -187,6 +257,14 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
 
   return (
     <div className="space-y-4">
+      {/* De dónde salió lo que está escrito. Sin decirlo, se guarda la
+          ficha de otro equipo creyendo que es la nueva. */}
+      {copiadaDe && (
+        <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-snug text-amber-900">
+          Está partiendo de la ficha de <strong>{copiadaDe}</strong>: cambie el nombre, la marca, el modelo y lo que
+          no corresponda antes de guardar.
+        </p>
+      )}
       {/* ── LA HOJA ─────────────────────────────────────────────────── */}
       <div className="overflow-hidden rounded-xl border border-border shadow-sm ring-1 ring-black/[0.03]">
         {/* Título del ítem */}
@@ -247,10 +325,10 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
 
         {/* Foto y descripción */}
         <div className="grid gap-px bg-border md:grid-cols-[34%_1fr]">
-          <div className="flex items-center justify-center bg-card p-4">
-            {d.fotoPath ? (
+          <div className="flex flex-col items-center justify-center gap-2 bg-card p-4">
+            {fotoLocal || d.fotoPath ? (
               <Image
-                src={`/productos/${d.fotoPath.split("/").pop()}`}
+                src={fotoLocal ?? rutaFoto(d.fotoPath!)}
                 alt={`${d.marca} ${d.modelo}`}
                 width={240}
                 height={240}
@@ -258,9 +336,31 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
                 unoptimized
               />
             ) : (
-              <span className="flex flex-col items-center gap-2 py-10 text-center text-xs text-muted-foreground">
-                <ImageOff className="size-6 opacity-40" />
-                Sin foto todavía
+              <span className="py-8 text-center text-xs text-muted-foreground">Todavía sin foto</span>
+            )}
+
+            {/* La foto se acomoda antes de subirla: recortada a la caja de la
+                ficha (54 × 96 mm), centrada sobre blanco y comprimida. Las que
+                ya están pesan hasta 650 KB cada una; esa es la cuenta que no
+                conviene repetir. */}
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-accent">
+              {subiendoFoto ? <Loader2 className="size-3.5 animate-spin" /> : <Camera className="size-3.5" />}
+              {subiendoFoto ? "Subiendo…" : d.fotoPath || fotoLocal ? "Cambiar la foto" : "Agregar foto"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={subiendoFoto || esNuevo}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (f) subirFoto(f);
+                }}
+              />
+            </label>
+            {esNuevo && (
+              <span className="text-center text-[10px] leading-snug text-muted-foreground">
+                Guarde el equipo primero y después súbale la foto.
               </span>
             )}
           </div>
@@ -272,8 +372,12 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
                 bloque={b}
                 onCambiar={(nuevo) => setBloques(bloques.map((x, j) => (j === i ? nuevo : x)))}
                 onBorrar={() => setBloques(bloques.filter((_, j) => j !== i))}
-                onAgregarDebajo={() =>
-                  setBloques([...bloques.slice(0, i + 1), { t: "vineta", texto: "" }, ...bloques.slice(i + 1)])
+                onInsertar={(t) =>
+                  setBloques([
+                    ...bloques.slice(0, i + 1),
+                    t === "dato" ? { t, rotulo: "", valor: "" } : { t, texto: "" },
+                    ...bloques.slice(i + 1),
+                  ])
                 }
               />
             ))}
@@ -381,6 +485,14 @@ export function FichaTecnicaEditor({ equipo, onListo }: { equipo: EquipoEditable
   );
 }
 
+/** Dónde está la foto: en el repositorio o subida al almacenamiento (0121). */
+function rutaFoto(fotoPath: string): string {
+  if (fotoPath.startsWith("storage:")) {
+    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${fotoPath.slice(8)}`;
+  }
+  return `/productos/${fotoPath.split("/").pop()}`;
+}
+
 const ROTULO: Record<CasillaEquipo, string> = {
   capacidad: "Capacidad",
   calentamiento: "Calentamiento",
@@ -439,37 +551,35 @@ function Casilla({
   );
 }
 
-/** Una línea de la descripción, con su forma y su texto. */
+/**
+ * Una línea de la descripción.
+ *
+ * SIN RÓTULOS A LA VISTA. Antes cada línea llevaba delante un desplegable que
+ * decía «Viñeta», «Título», «Viñeta»… — una columna de palabras repetidas que
+ * no es la ficha y que estorba justo lo que se viene a hacer, que es leerla.
+ * La forma ya se ve: un título es granate y va en mayúsculas, una viñeta tiene
+ * su punto. Los controles aparecen al acercar el mouse y desaparecen al irse.
+ */
 function LineaFicha({
   bloque,
   onCambiar,
   onBorrar,
-  onAgregarDebajo,
+  onInsertar,
 }: {
   bloque: BloqueFicha;
   onCambiar: (b: BloqueFicha) => void;
   onBorrar: () => void;
-  onAgregarDebajo: () => void;
+  onInsertar: (t: BloqueFicha["t"]) => void;
 }) {
-  return (
-    <div className="group flex items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors hover:bg-accent/50">
-      <select
-        value={bloque.t}
-        onChange={(e) => {
-          const t = e.target.value as BloqueFicha["t"];
-          if (t === "dato") onCambiar({ t, rotulo: bloque.texto ?? bloque.rotulo ?? "", valor: bloque.valor ?? "" });
-          else onCambiar({ t, texto: bloque.texto ?? [bloque.rotulo, bloque.valor].filter(Boolean).join(": ") });
-        }}
-        title="Qué es esta línea en la hoja impresa"
-        className="w-[70px] flex-none cursor-pointer rounded border-none bg-transparent text-[10px] uppercase tracking-wide text-muted-foreground/70 outline-none transition-colors hover:text-foreground focus:text-foreground"
-      >
-        {(Object.keys(ETIQUETA_TIPO) as BloqueFicha["t"][]).map((t) => (
-          <option key={t} value={t}>
-            {ETIQUETA_TIPO[t]}
-          </option>
-        ))}
-      </select>
+  const [menu, setMenu] = useState(false);
 
+  function cambiarTipo(t: BloqueFicha["t"]) {
+    if (t === "dato") onCambiar({ t, rotulo: bloque.texto ?? bloque.rotulo ?? "", valor: bloque.valor ?? "" });
+    else onCambiar({ t, texto: bloque.texto ?? [bloque.rotulo, bloque.valor].filter(Boolean).join(": ") });
+  }
+
+  return (
+    <div className="group relative flex items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors hover:bg-accent/50">
       {bloque.t === "dato" ? (
         <span className="flex min-w-0 flex-1 items-baseline gap-1">
           <input
@@ -487,8 +597,8 @@ function LineaFicha({
           />
         </span>
       ) : (
-        <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-          {bloque.t === "vineta" && <span className="text-[10px] text-muted-foreground">●</span>}
+        <span className={cn("flex min-w-0 flex-1 items-baseline gap-1.5", bloque.t === "subtitulo" && "pl-1")}>
+          {bloque.t === "vineta" && <span className="text-[9px] text-muted-foreground">●</span>}
           <input
             value={bloque.texto ?? ""}
             onChange={(e) => onCambiar({ ...bloque, texto: e.target.value })}
@@ -497,7 +607,7 @@ function LineaFicha({
             }
             className={cn(
               "min-w-0 flex-1 rounded border-b border-transparent bg-transparent px-1 outline-none transition-colors focus:border-primary",
-              bloque.t === "titulo" && "text-[11px] font-bold uppercase tracking-wide text-[#7E1210]",
+              bloque.t === "titulo" && "mt-1 text-[11px] font-bold uppercase tracking-wide text-[#7E1210]",
               bloque.t === "subtitulo" && "text-xs font-semibold text-foreground",
               bloque.t === "vineta" && "text-xs text-foreground",
             )}
@@ -505,14 +615,15 @@ function LineaFicha({
         </span>
       )}
 
-      <span className="flex flex-none gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      {/* Los controles, solo al acercarse. */}
+      <span className="flex flex-none items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <button
           type="button"
-          onClick={onAgregarDebajo}
-          title="Agregar una línea debajo"
+          onClick={() => setMenu(!menu)}
+          title="Insertar una línea debajo"
           className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
-          <Plus className="size-3" />
+          <Plus className="size-3.5" />
         </button>
         <button
           type="button"
@@ -520,10 +631,72 @@ function LineaFicha({
           title="Quitar esta línea"
           className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
         >
-          <Trash2 className="size-3" />
+          <Trash2 className="size-3.5" />
         </button>
       </span>
+
+      {menu && (
+        <>
+          <span className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
+          <div className="absolute right-0 top-full z-20 mt-0.5 w-52 overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+            <p className="border-b border-border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              Insertar debajo
+            </p>
+            {(["vineta", "dato", "subtitulo", "titulo"] as BloqueFicha["t"][]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => {
+                  onInsertar(t);
+                  setMenu(false);
+                }}
+                className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs hover:bg-accent"
+              >
+                <MuestraTipo t={t} />
+              </button>
+            ))}
+            <p className="border-t border-border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              Esta línea es
+            </p>
+            {(["vineta", "dato", "subtitulo", "titulo"] as BloqueFicha["t"][]).map((t) => (
+              <button
+                key={"c" + t}
+                type="button"
+                onClick={() => {
+                  cambiarTipo(t);
+                  setMenu(false);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs hover:bg-accent",
+                  bloque.t === t && "bg-primary/5 font-semibold",
+                )}
+              >
+                <MuestraTipo t={t} />
+                {bloque.t === t && <Check className="ml-auto size-3 text-primary" />}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+/** Cómo se ve cada forma, dibujada en vez de nombrada. */
+function MuestraTipo({ t }: { t: BloqueFicha["t"] }) {
+  if (t === "titulo") return <span className="text-[10px] font-bold uppercase tracking-wide text-[#7E1210]">Título</span>;
+  if (t === "subtitulo") return <span className="text-xs font-semibold text-foreground">Subtítulo</span>;
+  if (t === "dato")
+    return (
+      <span className="text-xs">
+        <span className="font-semibold">Rótulo</span>
+        <span className="text-muted-foreground">: valor</span>
+      </span>
+    );
+  return (
+    <span className="flex items-center gap-1.5 text-xs">
+      <span className="text-[9px] text-muted-foreground">●</span> Viñeta
+    </span>
   );
 }
 

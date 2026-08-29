@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { textoABloques } from "@/lib/ficha-texto";
+import { bloquesATexto, textoABloques, type BloqueFicha } from "@/lib/ficha-texto";
 
 /** Una viñeta por línea, que es como se pega desde la ficha en Word. */
 function lineas(formData: FormData, campo: string): string[] {
@@ -229,4 +229,92 @@ export async function fijarPrecio(
   revalidatePath("/operaciones/catalogo");
   const r = (data ?? {}) as { anterior?: number | null; sin_cambio?: boolean };
   return { error: null, anterior: r.anterior ?? null, sinCambio: Boolean(r.sin_cambio) };
+}
+
+/**
+ * Guardar la ruta de la foto recién subida (migración 0121).
+ *
+ * El archivo lo sube el navegador directo al almacenamiento —ya acomodado a la
+ * caja de la ficha y comprimido, ver `foto-producto.ts`—; acá solo queda dejar
+ * dicho en el equipo dónde está. Se guarda con el prefijo «storage:» para que
+ * el PDF sepa de dónde leerla: sin prefijo son las 296 que vinieron con el
+ * proyecto, en `public/productos/`.
+ */
+export async function fijarFotoProducto(id: string, ruta: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("productos").update({ foto_path: `storage:${ruta}` }).eq("id", id);
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+  revalidatePath("/operaciones/catalogo");
+  return { error: null };
+}
+
+/**
+ * La ficha de un equipo del catálogo, para usarla de referencia al cargar uno
+ * nuevo (28-08: «debe salir un producto de referencia, o sea toda esa ventana
+ * ya llenada, para que el gestor solo edite las letras que ya están»).
+ *
+ * Se elige el equipo del tipo pedido con la ficha MÁS COMPLETA: es el que menos
+ * le falta por escribir a quien está cargando. No se copia el código ni la foto
+ * —esos son de la máquina, no de la plantilla— y el nombre, la marca y el
+ * modelo vienen para reemplazarse, no para dejarse.
+ */
+export async function fichaDeReferencia(categoria: string): Promise<{
+  error: string | null;
+  referencia?: {
+    de: string;
+    nombre: string;
+    marca: string;
+    modelo: string;
+    capacidad: string | null;
+    segmento: "industrial" | "semi_industrial";
+    calentamiento: string | null;
+    panel: string | null;
+    controles: string | null;
+    montaje: string | null;
+    colores: string[];
+    fichaTexto: string;
+  };
+}> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("productos")
+    .select("nombre, marca, modelo, capacidad, segmento, ficha")
+    .eq("activo", true)
+    .eq("categoria", categoria)
+    .limit(40);
+
+  const candidatos = (data ?? [])
+    .map((p) => {
+      const ficha = (p.ficha ?? {}) as Record<string, unknown>;
+      const bloques = Array.isArray(ficha.bloques) ? (ficha.bloques as BloqueFicha[]) : [];
+      return { p, ficha, bloques };
+    })
+    .filter((c) => c.bloques.length > 0)
+    .sort((a, b) => b.bloques.length - a.bloques.length);
+
+  const mejor = candidatos[0];
+  if (!mejor) return { error: "Todavía no hay ningún equipo de ese tipo para usar de referencia" };
+
+  const texto = (k: string) =>
+    typeof mejor.ficha[k] === "string" && mejor.ficha[k] ? (mejor.ficha[k] as string) : null;
+
+  return {
+    error: null,
+    referencia: {
+      de: `${mejor.p.marca} ${mejor.p.modelo}`,
+      nombre: mejor.p.nombre as string,
+      marca: mejor.p.marca as string,
+      modelo: mejor.p.modelo as string,
+      capacidad: (mejor.p.capacidad as string | null) ?? null,
+      segmento: mejor.p.segmento as "industrial" | "semi_industrial",
+      calentamiento: texto("calentamiento"),
+      panel: texto("panel"),
+      controles: texto("controles"),
+      montaje: texto("montaje"),
+      colores: Array.isArray(mejor.ficha.colores)
+        ? (mejor.ficha.colores as unknown[]).filter((x): x is string => typeof x === "string")
+        : [],
+      fichaTexto: bloquesATexto(mejor.bloques),
+    },
+  };
 }

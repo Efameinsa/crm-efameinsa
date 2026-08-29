@@ -28,10 +28,36 @@ const LOGO_BUFFER = readFileSync(join(process.cwd(), "public", "logo-efameinsa.p
 // outputFileTracingIncludes (next.config.ts).
 function leerFotoProducto(fotoPath: string | null): Buffer | null {
   if (!fotoPath) return null;
+  if (fotoPath.startsWith(PREFIJO_SUBIDA)) return null; // esa se baja aparte, ver bajarFotoSubida
   try {
     return readFileSync(join(process.cwd(), "public", "productos", basename(fotoPath)));
   } catch {
     return null; // foto declarada pero archivo ausente: el PDF sale sin foto
+  }
+}
+
+/**
+ * Las fotos subidas desde la pantalla (migración 0121).
+ *
+ * Las 296 que vinieron con el proyecto viven en `public/productos/` y se leen
+ * del disco. Las que carga operaciones no pueden vivir ahí —en producción el
+ * disco es de solo lectura— así que van al almacenamiento y su `foto_path`
+ * empieza con «storage:». El PDF tiene que poder imprimir las dos sin
+ * enterarse de la diferencia.
+ */
+export const PREFIJO_SUBIDA = "storage:";
+
+async function bajarFotoSubida(fotoPath: string | null): Promise<Buffer | null> {
+  if (!fotoPath || !fotoPath.startsWith(PREFIJO_SUBIDA)) return null;
+  const ruta = fotoPath.slice(PREFIJO_SUBIDA.length);
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return null;
+  try {
+    const r = await fetch(`${base}/storage/v1/object/public/productos/${ruta}`);
+    if (!r.ok) return null;
+    return Buffer.from(await r.arrayBuffer());
+  } catch {
+    return null; // sin foto antes que sin cotización
   }
 }
 
@@ -205,7 +231,7 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
     return typeof ruta === "string" ? ruta : fotoPath;
   }
 
-  const items: ItemPdf[] = (
+  const items: ItemPdf[] = await Promise.all((
     cotizacion.cotizacion_items as unknown as {
       cantidad: number;
       precio_unitario: number;
@@ -222,7 +248,7 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
         foto_path: string | null;
       } | null;
     }[]
-  ).map((item) => {
+  ).map(async (item) => {
     const ficha = item.productos?.ficha;
     return {
       // Equipo escrito a mano (migración 0062): no está en el catálogo
@@ -252,13 +278,16 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
       // orden, con sus títulos, subtítulos y viñetas.
       bloques: Array.isArray(ficha?.bloques) ? (ficha.bloques as BloqueFicha[]) : undefined,
       secciones: seccionesDeFicha(ficha),
-      fotoBuffer: leerFotoProducto(fotoDelItem(ficha, item.color, item.productos?.foto_path ?? null)),
+      // Del disco o del almacenamiento, según de dónde venga (0121).
+      fotoBuffer:
+        leerFotoProducto(fotoDelItem(ficha, item.color, item.productos?.foto_path ?? null)) ??
+        (await bajarFotoSubida(fotoDelItem(ficha, item.color, item.productos?.foto_path ?? null))),
       logoMarcaBuffer: leerLogoMarca(item.productos?.sku ?? null),
       panelImagenBuffer: leerImagenPanel(item.productos?.sku ?? null),
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,
     };
-  });
+  }));
 
   const creada = new Date(cotizacion.created_at);
   // Numeración del documento impreso como en los modelos: "{correlativo}-{yy}".
