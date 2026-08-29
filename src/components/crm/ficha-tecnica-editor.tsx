@@ -59,6 +59,9 @@ export interface EquipoEditable {
   fotoPath: string | null;
   fichaTexto: string;
   precios: { tier: string; precio: number }[];
+  /** De qué equipo se copió, cuando es un duplicado. Cambia el título y
+   *  evita la pregunta del tipo: los datos ya vienen. */
+  duplicadoDe?: string | null;
   disponibles: number | null;
   stockReferencia: number | null;
   ubicacionMaestro: string | null;
@@ -108,8 +111,9 @@ export function FichaTecnicaEditor({
   const set = <K extends keyof EquipoEditable>(k: K, v: EquipoEditable[K]) => setD({ ...d, [k]: v });
 
   // Un equipo nuevo empieza por la pregunta: qué se está cargando.
-  const [eligiendoTipo, setEligiendoTipo] = useState(esNuevo);
-  const [copiadaDe, setCopiadaDe] = useState<string | null>(null);
+  // Un duplicado no pregunta qué es: ya lo sabe, viene del equipo copiado.
+  const [eligiendoTipo, setEligiendoTipo] = useState(esNuevo && !equipo.duplicadoDe);
+  const [copiadaDe, setCopiadaDe] = useState<string | null>(equipo.duplicadoDe ?? null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [fotoLocal, setFotoLocal] = useState<string | null>(null);
   const [fotoPendiente, setFotoPendiente] = useState<Blob | null>(null);
@@ -308,8 +312,17 @@ export function FichaTecnicaEditor({
           ficha de otro equipo creyendo que es la nueva. */}
       {copiadaDe && (
         <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-snug text-amber-900">
-          Está partiendo de la ficha de <strong>{copiadaDe}</strong>: cambie el nombre, la marca, el modelo y lo que
-          no corresponda antes de guardar.
+          {equipo.duplicadoDe ? (
+            <>
+              Duplicado de <strong>{copiadaDe}</strong>. Todavía no está guardado: cambie el nombre, el modelo y el
+              código antes de hacerlo, o quedarán dos equipos iguales en el catálogo.
+            </>
+          ) : (
+            <>
+              Está partiendo de la ficha de <strong>{copiadaDe}</strong>: cambie el nombre, la marca, el modelo y lo
+              que no corresponda antes de guardar.
+            </>
+          )}
         </p>
       )}
       {/* ── LA HOJA ─────────────────────────────────────────────────── */}

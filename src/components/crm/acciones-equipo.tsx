@@ -14,8 +14,11 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
  *
  * VA EN UN MENÚ Y NO EN TRES BOTONES. La tarjeta ya lleva marca, modelo,
  * código, categoría, precio y stock; tres botones más por fila convierten una
- * lista de ciento veinte equipos en una pared de controles. El menú aparece al
- * acercar el mouse, que es cuando hace falta.
+ * lista de ciento veinte equipos en una pared de controles.
+ *
+ * PERO EL MENÚ SE VE. La primera versión lo escondía hasta pasar el mouse —y
+ * encima faltaba la clase que lo hacía reaccionar, así que no aparecía nunca—.
+ * Un control que hay que adivinar dónde está no existe.
  *
  * DUPLICAR ABRE LA HOJA, NO CREA NADA. Un duplicado silencioso es un equipo
  * repetido en el catálogo, que es justo el problema que ya tiene: cinco UT075
@@ -68,8 +71,14 @@ export function AccionesEquipo({
           type="button"
           onClick={() => setMenu(!menu)}
           title="Qué hacer con este equipo"
-          className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100 data-[abierto=true]:opacity-100"
-          data-abierto={menu}
+          // SE VE SIEMPRE, no solo al pasar el mouse.
+          //
+          // La primera versión lo escondía con `opacity-0` hasta el hover, y
+          // además faltaba la clase `group` en la tarjeta, así que no aparecía
+          // nunca: «no visualizo esos tres puntos» (28-08). Aun arreglando el
+          // group, esconder la única puerta a editar, duplicar y quitar es
+          // pedirle a quien la busca que adivine dónde pasar el mouse.
+          className="rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground group-hover:text-muted-foreground"
         >
           <MoreVertical className="size-4" />
         </button>

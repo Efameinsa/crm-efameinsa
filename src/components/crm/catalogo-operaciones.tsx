@@ -203,9 +203,11 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>
-              {abierto?.id === null
-                ? "Cargar un equipo al catálogo"
-                : `${abierto?.marca} ${abierto?.modelo} — así sale impreso`}
+              {abierto?.duplicadoDe
+                ? `Duplicado de ${abierto.duplicadoDe} — sin guardar`
+                : abierto?.id === null
+                  ? "Cargar un equipo al catálogo"
+                  : `${abierto?.marca} ${abierto?.modelo} — así sale impreso`}
             </DialogTitle>
           </DialogHeader>
           {abierto && (
@@ -253,6 +255,7 @@ function duplicado(e: EquipoCatalogo): EquipoEditable {
     sku: null,
     fotoPath: null,
     nombre: `${e.nombre} (copia)`,
+    duplicadoDe: `${e.marca} ${e.modelo}`,
     disponibles: null,
   };
 }
@@ -355,7 +358,7 @@ function TarjetaEquipo({
       onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && onAbrir()}
       title="Abrir la ficha para verla o corregirla"
       className={cn(
-        "flex cursor-pointer gap-3 rounded-lg border p-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/40",
+        "group flex cursor-pointer gap-3 rounded-lg border p-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/40",
         nueva
           ? "border-primary bg-primary/5 ring-2 ring-primary/30 motion-safe:animate-pulse"
           : !e.activo
