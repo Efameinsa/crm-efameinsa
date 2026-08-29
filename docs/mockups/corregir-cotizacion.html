@@ -1,0 +1,840 @@
+<title>Corregir la 500-26</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+  :root {
+    --granate: #7E1210;
+    --granate-suave: rgba(126, 18, 16, .09);
+    --carbon: #2C2E35;
+    --papel: #F4F4F6;
+    --tarjeta: #FFFFFF;
+    --tinta: #24262B;
+    --tinta-2: #5E6067;
+    --tinta-3: #8A8C93;
+    --borde: #DFDFE4;
+    --borde-fuerte: #C4C4CC;
+    --verde: #1E7F4F;
+    --verde-suave: rgba(30, 127, 79, .10);
+    --ambar: #9A5B08;
+    --ambar-suave: rgba(180, 111, 8, .12);
+    --sombra: 0 1px 2px rgba(24, 26, 31, .06), 0 8px 24px -12px rgba(24, 26, 31, .18);
+    --radio: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --granate: #D4605B;
+      --granate-suave: rgba(212, 96, 91, .14);
+      --carbon: #E6E3E2;
+      --papel: #17181C;
+      --tarjeta: #1F2126;
+      --tinta: #E9E7E6;
+      --tinta-2: #A9ABB3;
+      --tinta-3: #7B7D85;
+      --borde: #33353C;
+      --borde-fuerte: #474A53;
+      --verde: #4FBE87;
+      --verde-suave: rgba(79, 190, 135, .13);
+      --ambar: #E3A257;
+      --ambar-suave: rgba(227, 162, 87, .13);
+      --sombra: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+    }
+  }
+  :root[data-theme="dark"] {
+    --granate: #D4605B;
+    --granate-suave: rgba(212, 96, 91, .14);
+    --carbon: #E6E3E2;
+    --papel: #17181C;
+    --tarjeta: #1F2126;
+    --tinta: #E9E7E6;
+    --tinta-2: #A9ABB3;
+    --tinta-3: #7B7D85;
+    --borde: #33353C;
+    --borde-fuerte: #474A53;
+    --verde: #4FBE87;
+    --verde-suave: rgba(79, 190, 135, .13);
+    --ambar: #E3A257;
+    --ambar-suave: rgba(227, 162, 87, .13);
+    --sombra: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: "IBM Plex Sans", -apple-system, Segoe UI, sans-serif;
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: Archivo, "IBM Plex Sans", sans-serif; text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  .envoltura { max-width: 62rem; margin: 0 auto; padding: 0 1.5rem 6rem; }
+
+  /* ── Cabecera ─────────────────────────────────────── */
+  header.tapa {
+    border-bottom: 1px solid var(--borde);
+    background: var(--tarjeta);
+    padding: 3.5rem 0 2.5rem;
+    margin-bottom: 3rem;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--granate);
+    font-weight: 600;
+  }
+  h1 { font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 700; letter-spacing: -.025em; line-height: 1.05; margin-top: .9rem; }
+  .bajada { max-width: 40rem; margin-top: 1.1rem; font-size: 1.08rem; color: var(--tinta-2); }
+  .credito {
+    margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--borde);
+    display: flex; flex-wrap: wrap; gap: 1.75rem;
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem; color: var(--tinta-3);
+  }
+  .credito b { display: block; color: var(--tinta); font-weight: 500; font-size: .8rem; }
+
+  /* ── Cita ─────────────────────────────────────────── */
+  blockquote {
+    margin: 2rem 0; padding: 1.4rem 0 1.4rem 1.6rem;
+    border-left: 3px solid var(--granate);
+    font-size: 1.14rem; line-height: 1.55; color: var(--tinta);
+  }
+  blockquote strong { font-weight: 600; }
+  blockquote cite {
+    display: block; margin-top: .85rem; font-style: normal;
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem;
+    letter-spacing: .05em; color: var(--tinta-3);
+  }
+
+  section { margin-top: 3.5rem; }
+  .prosa { max-width: 40rem; }
+  .prosa p + p { margin-top: 1rem; }
+  h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -.018em; }
+  h3 { font-size: 1.1rem; font-weight: 600; margin-top: 2rem; }
+  .rotulo-seccion {
+    font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--tinta-3); font-weight: 500; margin-bottom: .5rem;
+  }
+
+  /* ── Paso ─────────────────────────────────────────── */
+  .paso { margin-top: 4rem; }
+  .paso-tapa { display: flex; gap: 1.1rem; align-items: baseline; max-width: 42rem; }
+  .paso-num {
+    flex: none; width: 2.1rem; height: 2.1rem; border-radius: 50%;
+    background: var(--granate); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "IBM Plex Mono", monospace; font-size: .82rem; font-weight: 600;
+    transform: translateY(.35rem);
+  }
+  .paso-quien {
+    font-family: "IBM Plex Mono", monospace; font-size: .7rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--tinta-3);
+  }
+  .paso h3 { margin-top: .1rem; font-size: 1.45rem; letter-spacing: -.015em; }
+  .paso .prosa { margin-top: 1rem; margin-left: 3.2rem; }
+  @media (max-width: 560px) { .paso .prosa { margin-left: 0; } }
+
+  /* ── Marco de pantalla ────────────────────────────── */
+  .pantalla {
+    margin-top: 1.75rem;
+    border: 1px solid var(--borde-fuerte);
+    border-radius: var(--radio);
+    overflow: hidden;
+    background: var(--tarjeta);
+    box-shadow: var(--sombra);
+  }
+  .barra-ruta {
+    display: flex; align-items: center; gap: .55rem;
+    padding: .55rem .8rem;
+    border-bottom: 1px solid var(--borde);
+    background: color-mix(in srgb, var(--tarjeta) 92%, var(--tinta) 8%);
+  }
+  .semaforo { display: flex; gap: .3rem; }
+  .semaforo i { width: .55rem; height: .55rem; border-radius: 50%; background: var(--borde-fuerte); display: block; }
+  .ruta {
+    font-family: "IBM Plex Mono", monospace; font-size: .72rem; color: var(--tinta-2);
+    background: var(--papel); border-radius: 5px; padding: .18rem .55rem;
+  }
+  .lienzo { padding: 1.25rem; }
+  .lienzo-ancho { overflow-x: auto; }
+
+  /* ── Piezas de UI ─────────────────────────────────── */
+  .franja-correccion {
+    border: 1px solid var(--granate);
+    border-left: 4px solid var(--granate);
+    background: var(--granate-suave);
+    border-radius: 8px; padding: .85rem 1rem;
+  }
+  .franja-correccion h4 { font-size: 1rem; font-weight: 600; color: var(--granate); }
+  .franja-correccion p { font-size: .82rem; color: var(--tinta-2); margin-top: .2rem; }
+
+  .linea-equipo {
+    display: flex; gap: .85rem; align-items: center; width: 100%; text-align: left;
+    border: 1px solid var(--borde); border-radius: 8px; padding: .7rem .8rem;
+    background: var(--tarjeta); color: inherit; font: inherit; cursor: pointer;
+    transition: border-color .14s, background .14s, box-shadow .14s;
+  }
+  .linea-equipo:hover, .linea-equipo:focus-visible {
+    border-color: var(--granate); background: var(--granate-suave);
+    box-shadow: 0 0 0 3px var(--granate-suave); outline: none;
+  }
+  .linea-equipo:hover .cambiar, .linea-equipo:focus-visible .cambiar { opacity: 1; }
+  .cambiar {
+    margin-left: auto; flex: none; opacity: .45; transition: opacity .14s;
+    font-family: "IBM Plex Mono", monospace; font-size: .72rem; font-weight: 600;
+    color: var(--granate); white-space: nowrap;
+  }
+  .foto {
+    flex: none; width: 3.1rem; height: 3.1rem; border-radius: 6px;
+    background: color-mix(in srgb, var(--tinta) 8%, var(--tarjeta));
+    display: flex; align-items: center; justify-content: center;
+    color: var(--tinta-3); font-size: 1.3rem;
+  }
+  .linea-titulo { font-size: .92rem; font-weight: 600; line-height: 1.3; }
+  .linea-datos { font-family: "IBM Plex Mono", monospace; font-size: .74rem; color: var(--tinta-2); margin-top: .18rem; }
+
+  .pastilla {
+    display: inline-flex; align-items: center; gap: .3rem;
+    border-radius: 99px; padding: .12rem .5rem;
+    font-family: "IBM Plex Mono", monospace; font-size: .66rem; font-weight: 600;
+  }
+  .pastilla.verde { background: var(--verde-suave); color: var(--verde); }
+  .pastilla.ambar { background: var(--ambar-suave); color: var(--ambar); }
+  .pastilla.gris { background: color-mix(in srgb, var(--tinta) 8%, var(--tarjeta)); color: var(--tinta-2); }
+  .pastilla.granate { background: var(--granate-suave); color: var(--granate); }
+
+  .boton {
+    display: inline-flex; align-items: center; gap: .45rem;
+    border-radius: 7px; padding: .5rem .95rem; border: 1px solid transparent;
+    font-family: "IBM Plex Sans", sans-serif; font-size: .84rem; font-weight: 600;
+    cursor: pointer;
+  }
+  .boton.lleno { background: var(--granate); color: #fff; }
+  .boton.vacio { border-color: var(--borde-fuerte); background: var(--tarjeta); color: var(--tinta); }
+  .boton.tenue { background: none; color: var(--tinta-2); font-weight: 500; padding-left: 0; }
+
+  .campo {
+    border: 1px solid var(--borde-fuerte); border-radius: 7px;
+    padding: .5rem .7rem; font-size: .85rem; color: var(--tinta-2);
+    background: var(--tarjeta);
+  }
+
+  .fila-lista {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1rem;
+    padding: .8rem .9rem; border: 1px solid var(--borde); border-radius: 8px;
+  }
+  .fila-lista + .fila-lista { margin-top: .5rem; }
+  .num { font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600; }
+  .cliente { font-size: .9rem; font-weight: 500; flex: 1 1 14rem; }
+  .meta { font-family: "IBM Plex Mono", monospace; font-size: .72rem; color: var(--tinta-3); }
+
+  .pila { display: flex; flex-direction: column; gap: .6rem; }
+  .entre { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+
+  /* ── Diff ─────────────────────────────────────────── */
+  .diff { border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; }
+  .diff-tapa {
+    padding: .55rem .9rem; border-bottom: 1px solid var(--borde);
+    background: color-mix(in srgb, var(--tarjeta) 92%, var(--tinta) 8%);
+    font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--tinta-2); font-weight: 600;
+  }
+  .diff-fila {
+    display: grid; grid-template-columns: 5rem 1fr auto 1fr; gap: .7rem;
+    align-items: center; padding: .6rem .9rem; font-size: .85rem;
+  }
+  .diff-fila + .diff-fila { border-top: 1px solid var(--borde); }
+  .diff-rotulo { font-family: "IBM Plex Mono", monospace; font-size: .72rem; color: var(--tinta-3); }
+  .antes { color: var(--tinta-3); text-decoration: line-through; }
+  .flecha { color: var(--granate); font-weight: 700; }
+  .despues { font-weight: 600; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  @media (max-width: 640px) {
+    .diff-fila { grid-template-columns: 1fr; gap: .15rem; }
+    .flecha { display: none; }
+  }
+
+  /* ── Modal ────────────────────────────────────────── */
+  .velo {
+    position: fixed; inset: 0; background: rgba(12, 13, 16, .55);
+    display: none; align-items: center; justify-content: center; padding: 1.25rem; z-index: 50;
+  }
+  .velo[data-abierto="true"] { display: flex; }
+  .modal {
+    width: min(56rem, 100%); max-height: 88vh; display: flex; flex-direction: column;
+    background: var(--tarjeta); border: 1px solid var(--borde-fuerte);
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 24px 64px -20px rgba(0, 0, 0, .5);
+  }
+  .modal-tapa { padding: 1rem 1.1rem .8rem; border-bottom: 1px solid var(--borde); }
+  .modal-cuerpo { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 0; }
+  @media (max-width: 720px) { .modal-cuerpo { grid-template-columns: 1fr; } .modal-panel { display: none; } }
+  .modal-lista { overflow-y: auto; padding: .6rem; border-right: 1px solid var(--borde); }
+  .modal-panel { padding: 1.1rem; overflow-y: auto; background: color-mix(in srgb, var(--tarjeta) 94%, var(--tinta) 6%); }
+  .opcion {
+    display: flex; gap: .75rem; align-items: center; width: 100%; text-align: left;
+    padding: .55rem .6rem; border-radius: 7px; border: 1px solid transparent;
+    background: none; color: inherit; font: inherit; cursor: pointer;
+  }
+  .opcion:hover { background: var(--granate-suave); }
+  .opcion[data-resaltado="true"] { background: var(--granate-suave); border-color: var(--granate); }
+  .opcion[data-actual="true"] { opacity: .62; }
+  .modal-pie {
+    padding: .75rem 1.1rem; border-top: 1px solid var(--borde);
+    display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+    background: color-mix(in srgb, var(--tarjeta) 94%, var(--tinta) 6%);
+  }
+  .pista {
+    font-family: "IBM Plex Mono", monospace; font-size: .7rem; color: var(--tinta-3);
+  }
+  kbd {
+    font-family: "IBM Plex Mono", monospace; font-size: .68rem;
+    border: 1px solid var(--borde-fuerte); border-bottom-width: 2px;
+    border-radius: 4px; padding: .05rem .3rem; color: var(--tinta-2);
+  }
+
+  /* ── Bloques informativos ─────────────────────────── */
+  .rejilla { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); margin-top: 1.5rem; }
+  .nota {
+    border: 1px solid var(--borde); border-radius: var(--radio);
+    padding: 1.1rem; background: var(--tarjeta);
+  }
+  .nota.freno { border-left: 3px solid var(--ambar); }
+  .nota.decision { border-left: 3px solid var(--granate); }
+  .nota h4 { font-size: .95rem; font-weight: 600; line-height: 1.35; }
+  .nota p { font-size: .87rem; color: var(--tinta-2); margin-top: .5rem; }
+  .nota .recomendacion {
+    margin-top: .7rem; padding-top: .7rem; border-top: 1px dashed var(--borde);
+    font-size: .82rem; color: var(--tinta);
+  }
+  .nota .recomendacion b { color: var(--granate); font-weight: 600; }
+
+  table.reparto { width: 100%; border-collapse: collapse; margin-top: 1.5rem; font-size: .88rem; }
+  table.reparto th {
+    text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--borde-fuerte);
+    font-family: "IBM Plex Mono", monospace; font-size: .7rem; letter-spacing: .1em;
+    text-transform: uppercase; font-weight: 600;
+  }
+  table.reparto th:first-child { color: var(--verde); }
+  table.reparto th:last-child { color: var(--tinta-3); }
+  table.reparto td { padding: .5rem .7rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
+  table.reparto td:last-child { color: var(--tinta-3); }
+
+  footer.cierre {
+    margin-top: 5rem; padding-top: 1.5rem; border-top: 1px solid var(--borde);
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem; color: var(--tinta-3);
+    display: flex; flex-wrap: wrap; gap: .5rem 1.5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<header class="tapa">
+  <div class="envoltura">
+    <p class="eyebrow">CRM Efameinsa · mapa de experiencia</p>
+    <h1>Corregir la 500&#8209;26<br>sin cambiarle el número</h1>
+    <p class="bajada">
+      Al banco no se le puede mandar otra numeración: un número más son treinta días más de espera
+      para que salga el leasing. Esta es la pantalla que permite arreglar el documento y dejarlo con
+      el mismo número — y todo lo que la frena.
+    </p>
+    <div class="credito">
+      <span><b>Lo pidió</b>ing. Carlos · reunión del 28-08</span>
+      <span><b>Lo ejecuta</b>Operaciones — la cuenta de Lesly</span>
+      <span><b>Cuántas veces</b>5 a 10 al año, sobre 3.000</span>
+      <span><b>Estado</b>diseño, sin construir</span>
+    </div>
+  </div>
+</header>
+
+<div class="envoltura">
+
+  <section>
+    <p class="rotulo-seccion">Por qué existe</p>
+    <h2>El número es lo único que no se puede volver a emitir</h2>
+    <div class="prosa">
+      <p style="margin-top:1rem">
+        Una cotización emitida gasta un número de su serie, ese número sale al cliente
+        —y muchas veces al banco— y hoy la única salida ante un error es emitir otra,
+        que sale con el número siguiente.
+      </p>
+    </div>
+    <blockquote>
+      «no puedes variar el número, sobre todo mucho ocurre con el <strong>banco, que es leasing, y
+      tenemos varios leasing</strong>. Al banco no le puedes dar otra numeración.
+      <strong>Un número más, se demora un mes más en que salga la operación.</strong>
+      Le tienes que dar exactamente el mismo número.»
+      <cite>ing. Carlos — 28-08-2026</cite>
+    </blockquote>
+    <div class="prosa">
+      <p>
+        El caso que lo destapó: una cotización de Lesly llevaba el equipo equivocado — el cliente
+        pidió <b>apilable</b> y el documento decía <b>no apilable</b>. Esa se salvó porque todavía no
+        había salido al cliente. La siguiente puede no salvarse.
+      </p>
+      <p>
+        De la frecuencia sale la regla de diseño que gobierna todo lo demás: <b>esta pantalla la
+        abre alguien que la usó por última vez hace dos meses</b>. No se aprende, no se recuerda,
+        no se consulta un manual. Se abre y se entiende.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="rotulo-seccion">El recorrido</p>
+    <h2>Cinco pasos, dos personas</h2>
+
+    <!-- PASO 1 -->
+    <article class="paso">
+      <div class="paso-tapa">
+        <span class="paso-num">1</span>
+        <div>
+          <p class="paso-quien">El comercial</p>
+          <h3>Pide la corrección desde su propia cotización</h3>
+        </div>
+      </div>
+      <div class="prosa">
+        <p>
+          El comercial no corrige lo suyo — la misma regla que ya gobierna anular un cierre.
+          Lo que sí hace es pedirlo, y escribir qué está mal: él habló con el cliente, Lesly no.
+        </p>
+        <p>
+          <b>Duplicar sigue siendo lo primero y lo normal</b>, para el 99 % de los casos. El camino
+          nuevo va debajo, en letra chica, y el propio botón enseña cuándo usarlo.
+        </p>
+      </div>
+      <div class="pantalla">
+        <div class="barra-ruta">
+          <span class="semaforo"><i></i><i></i><i></i></span>
+          <span class="ruta">/comercial/oportunidades/…/cotizar/500-26</span>
+        </div>
+        <div class="lienzo" style="text-align:center; padding-block:2rem">
+          <div style="width:2.6rem;height:2.6rem;border-radius:50%;background:var(--verde-suave);color:var(--verde);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:1.2rem">&#10003;</div>
+          <h4 style="margin-top:.8rem;font-size:1.15rem">Cotización confirmada como 500-26</h4>
+          <p style="font-size:.85rem;color:var(--tinta-2);margin-top:.35rem;max-width:26rem;margin-inline:auto">
+            Ya tiene su número de la serie Open y el documento queda cerrado.
+          </p>
+          <div style="display:flex;gap:.6rem;justify-content:center;margin-top:1.1rem;flex-wrap:wrap">
+            <span class="boton vacio">Descargar el PDF</span>
+            <span class="boton lleno">Duplicar para cotizar de nuevo</span>
+          </div>
+          <div style="margin-top:1.4rem;padding-top:1rem;border-top:1px dashed var(--borde);max-width:30rem;margin-inline:auto">
+            <span class="boton tenue" style="justify-content:center;width:100%">Pedir una corrección de este documento</span>
+            <p style="font-size:.76rem;color:var(--tinta-3);margin-top:.15rem">
+              Solo cuando el número no se puede cambiar: leasing, expediente ya presentado.
+            </p>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- PASO 2 -->
+    <article class="paso">
+      <div class="paso-tapa">
+        <span class="paso-num">2</span>
+        <div>
+          <p class="paso-quien">Operaciones</p>
+          <h3>Lo ve en «Corregir cotizaciones»</h3>
+        </div>
+      </div>
+      <div class="prosa">
+        <p>
+          Entrada nueva en la barra lateral de Lesly, debajo de «Autorizaciones». Arriba, lo que
+          los comerciales pidieron y nadie tocó. Abajo, el buscador de siempre — pero sobre todas
+          las cotizaciones, no solo las de un comercial.
+        </p>
+        <p>
+          Se busca <b>por número</b>, que es como las nombran hablando: «la 500-26».
+        </p>
+      </div>
+      <div class="pantalla">
+        <div class="barra-ruta">
+          <span class="semaforo"><i></i><i></i><i></i></span>
+          <span class="ruta">/operaciones/cotizaciones</span>
+        </div>
+        <div class="lienzo">
+          <p class="diff-tapa" style="border:0;background:none;padding:0 0 .55rem">Pedidos pendientes · 1</p>
+          <div class="fila-lista" style="border-left:3px solid var(--granate)">
+            <span class="num">N.º 500-26 · Open</span>
+            <span class="cliente">INVERSIONES NACIONALES TURÍSTICAS S.A.</span>
+            <span class="boton lleno" style="padding:.35rem .8rem">Corregir</span>
+            <p style="flex-basis:100%;font-size:.83rem;color:var(--tinta-2);margin-top:.3rem">
+              «El cliente pidió apilable y salió la variante no apilable. Ya está en el banco con
+              este número.» — <span class="meta">Lesly Ríos, hoy 09:12</span>
+            </p>
+          </div>
+
+          <div style="height:1.6rem"></div>
+
+          <div class="entre" style="margin-bottom:.6rem">
+            <span class="campo" style="flex:1 1 18rem;color:var(--tinta-3)">Buscar por número o por cliente…</span>
+            <span class="meta">2.658 cotizaciones emitidas</span>
+          </div>
+          <div class="fila-lista">
+            <span class="num">N.º 499-26 · Open</span>
+            <span class="cliente">TEXTIL SAN JACINTO S.A.</span>
+            <span class="meta">Katerine Tello · 27-08 · US$ 21.300,00</span>
+            <span class="boton vacio" style="padding:.3rem .7rem">Corregir</span>
+          </div>
+          <div class="fila-lista">
+            <span class="num">N.º 2184-26 · Efameinsa</span>
+            <span class="cliente">HOTELES DEL SUR S.A.C.</span>
+            <span class="pastilla gris">corregida 1 vez</span>
+            <span class="meta">Brenda Taboada · 26-08 · US$ 8.999,00</span>
+            <span class="boton vacio" style="padding:.3rem .7rem">Corregir</span>
+          </div>
+          <div class="fila-lista" style="opacity:.7">
+            <span class="num">N.º 1549-25 · Efameinsa</span>
+            <span class="cliente">SAYWA LODGE S.A.C.</span>
+            <span class="pastilla ambar">del archivo — no se regenera</span>
+            <span class="meta">Brenda Taboada · 09-2025</span>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- PASO 3 -->
+    <article class="paso">
+      <div class="paso-tapa">
+        <span class="paso-num">3</span>
+        <div>
+          <p class="paso-quien">Operaciones</p>
+          <h3>Un clic en el equipo y vuelve el buscador</h3>
+        </div>
+      </div>
+      <div class="prosa">
+        <p>
+          Es el cotizador que ya existe, con otro traje. Que sea el mismo importa: Lesly ya cotiza,
+          ya conoce esa pantalla, y una pantalla que se usa seis veces al año no puede tener reglas
+          propias.
+        </p>
+        <p>
+          <b>Cada línea de la cotización es un botón.</b> Un clic en cualquier parte y se abre el
+          mismo buscador grande del cotizador, con foto, ficha y stock — pero en modo reemplazar.
+        </p>
+      </div>
+      <div class="pantalla">
+        <div class="barra-ruta">
+          <span class="semaforo"><i></i><i></i><i></i></span>
+          <span class="ruta">/operaciones/cotizaciones/500-26/corregir</span>
+        </div>
+        <div class="lienzo">
+          <div class="franja-correccion">
+            <h4>Corrigiendo la cotización N.º 500-26 · Open</h4>
+            <p>El número, el cliente y la fecha no cambian. Es de Lesly Ríos · INVERSIONES NACIONALES TURÍSTICAS S.A.</p>
+          </div>
+
+          <p class="pista" style="margin:1.1rem 0 .5rem">Los equipos — clic en uno para cambiarlo</p>
+          <div class="pila">
+            <button class="linea-equipo" type="button" data-abre-modal>
+              <span class="foto">&#9636;</span>
+              <span>
+                <span class="linea-titulo">LAVADORA TITAN 25 kg — no apilable</span>
+                <span class="linea-datos">LAVMA172 · 1 unidad · US$ 8.999,00</span>
+              </span>
+              <span class="cambiar">cambiar &#8646;</span>
+            </button>
+            <button class="linea-equipo" type="button" data-abre-modal>
+              <span class="foto">&#9636;</span>
+              <span>
+                <span class="linea-titulo">SECADORA A GAS 25 kg</span>
+                <span class="linea-datos">SECA758 · 1 unidad · US$ 3.451,00</span>
+              </span>
+              <span class="cambiar">cambiar &#8646;</span>
+            </button>
+          </div>
+
+          <p class="pista" style="margin:1.1rem 0 .5rem">Lo que sale impreso</p>
+          <div style="display:grid;gap:.5rem;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr))">
+            <span class="campo">Entrega: 15 días útiles</span>
+            <span class="campo">Garantía: 1 año de fábrica</span>
+            <span class="campo">Pago: 50 % adelanto</span>
+            <span class="campo">Saldo: contra entrega</span>
+          </div>
+        </div>
+      </div>
+      <p class="pista" style="margin-left:3.2rem;margin-top:.6rem">
+        &#9757; Los dos equipos son botones de verdad en esta página: haga clic en uno.
+      </p>
+    </article>
+
+    <!-- PASO 4 -->
+    <article class="paso">
+      <div class="paso-tapa">
+        <span class="paso-num">4</span>
+        <div>
+          <p class="paso-quien">Operaciones</p>
+          <h3>Ve qué cambia, y el PDF real, antes de guardar</h3>
+        </div>
+      </div>
+      <div class="prosa">
+        <p>
+          Al pie, siempre visible, el antes y el después dicho en las frases que el comercial va a
+          leer. El motivo es obligatorio: es lo que queda en la bitácora.
+        </p>
+        <p>
+          <b>«Ver el PDF corregido» abre el documento real</b>, el mismo que sale al cliente. Es el
+          único control que de verdad sirve: cambiar el equipo cambia la página entera de la ficha
+          técnica, y eso solo se ve mirándolo.
+        </p>
+      </div>
+      <div class="pantalla">
+        <div class="lienzo">
+          <div class="diff">
+            <p class="diff-tapa">Qué cambia en la 500-26</p>
+            <div class="diff-fila">
+              <span class="diff-rotulo">Línea 1</span>
+              <span class="antes">TITAN 25 kg no apilable</span>
+              <span class="flecha">&rarr;</span>
+              <span class="despues">TITAN MAX 25 kg apilable</span>
+            </div>
+            <div class="diff-fila">
+              <span class="diff-rotulo">Total</span>
+              <span class="antes tabular">US$ 12.450,00</span>
+              <span class="flecha">&rarr;</span>
+              <span class="despues tabular">US$ 12.980,00</span>
+            </div>
+          </div>
+          <div style="margin-top:.9rem">
+            <p class="pista" style="margin-bottom:.35rem">Por qué se corrige — obligatorio</p>
+            <p class="campo" style="line-height:1.5">
+              El cliente pidió apilable y salió la variante equivocada. La 500-26 ya está presentada
+              en el banco, no se puede renumerar.
+            </p>
+          </div>
+          <div class="entre" style="margin-top:1rem">
+            <span class="boton vacio">Ver el PDF corregido</span>
+            <span class="boton lleno">Guardar la corrección</span>
+          </div>
+          <p class="pista" style="margin-top:.6rem;color:var(--ambar)">
+            El total sube US$ 530. Guardar va a pedir confirmarlo con el monto escrito.
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- PASO 5 -->
+    <article class="paso">
+      <div class="paso-tapa">
+        <span class="paso-num">5</span>
+        <div>
+          <p class="paso-quien">El comercial</p>
+          <h3>Se entera, con el antes y el después</h3>
+        </div>
+      </div>
+      <div class="prosa">
+        <p>
+          Nadie descubre por casualidad que su documento cambió. Y la versión anterior queda
+          archivada completa: si el banco pregunta qué decía el papel que recibió, hay con qué
+          responderle.
+        </p>
+      </div>
+      <div class="pantalla">
+        <div class="lienzo" style="max-width:30rem">
+          <div style="display:flex;gap:.7rem">
+            <span style="flex:none;width:2rem;height:2rem;border-radius:50%;background:var(--granate-suave);color:var(--granate);display:flex;align-items:center;justify-content:center">&#9679;</span>
+            <div>
+              <p style="font-size:.9rem;font-weight:600">Operaciones corrigió tu cotización 500-26</p>
+              <p style="font-size:.83rem;color:var(--tinta-2);margin-top:.2rem">
+                Línea 1: TITAN no apilable &rarr; TITAN MAX apilable. Total US$ 12.980,00.
+                Lo hizo Lesly Ríos. El número no cambió.
+              </p>
+              <p style="margin-top:.5rem"><span class="boton tenue" style="font-size:.8rem">Ver el PDF corregido</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section>
+    <p class="rotulo-seccion">El reparto</p>
+    <h2>Qué se corrige y qué es la identidad del documento</h2>
+    <div class="prosa"><p style="margin-top:1rem">
+      Lo de la derecha es lo que el banco ya tiene. No aparece como campo bloqueado — aparece como
+      dato impreso, sin caja de texto, porque un campo gris invita a intentarlo.
+    </p></div>
+    <div class="lienzo-ancho">
+      <table class="reparto">
+        <thead><tr><th>Se corrige</th><th>No se toca nunca</th></tr></thead>
+        <tbody>
+          <tr><td>El equipo de cada línea</td><td>El número y la serie</td></tr>
+          <tr><td>Cantidad, precio y color</td><td>El cliente</td></tr>
+          <tr><td>La descripción escrita a mano</td><td>El comercial dueño</td></tr>
+          <tr><td>Entrega, garantía, forma de pago, saldo</td><td>La fecha de emisión</td></tr>
+          <tr><td>Condiciones y vigencia</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <p class="rotulo-seccion">Los frenos</p>
+    <h2>Tres veces en que corregir hace daño</h2>
+    <div class="prosa"><p style="margin-top:1rem">
+      Se avisan antes de abrir la pantalla, igual que ya hace el aviso de «qué se lleva por delante»
+      al anular un cierre.
+    </p></div>
+    <div class="rejilla">
+      <div class="nota freno">
+        <h4>Ya hay un cierre de venta emitido</h4>
+        <p>
+          Cambiar el monto de algo ya vendido descuadra el cierre y el récord del comercial.
+          Primero se anula el cierre — el procedimiento que ya existe — y después se corrige.
+          La pantalla lo dice con el número del cierre a la vista.
+        </p>
+      </div>
+      <div class="nota freno">
+        <h4>La corrección deja un precio bajo el piso</h4>
+        <p>
+          Vuelve a pedir aprobación de gerencia, ítem por ítem, igual que al cotizar. Se guarda,
+          pero el PDF corregido no se libera hasta que gerencia resuelva: operaciones no puede
+          tener una puerta trasera al descuento.
+        </p>
+      </div>
+      <div class="nota freno">
+        <h4>Postventa ya está despachando la máquina</h4>
+        <p>
+          Cambiar el equipo del papel no cambia la máquina que va en el camión. Si hay un pedido o
+          una puesta en marcha enganchada, se avisa con el caso delante.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="rotulo-seccion">Para la próxima reunión</p>
+    <h2>Tres cosas que decide Carlos</h2>
+    <div class="rejilla">
+      <div class="nota decision">
+        <h4>¿El PDF corregido dice que es una corrección?</h4>
+        <p>
+          Un renglón discreto («Versión 2 · corregida el 29-08») es honesto y protege a la empresa,
+          pero el banco puede leerlo como que el expediente cambió.
+        </p>
+        <p class="recomendacion">
+          <b>Se propone:</b> que no salga nada impreso — el propósito de todo esto es que el banco
+          no note diferencia — y que la traza quede completa dentro del CRM.
+        </p>
+      </div>
+      <div class="nota decision">
+        <h4>¿Lesly necesita el código de gerencia?</h4>
+        <p>
+          Si ella ejecuta la corrección y ella dicta el código, el código sobra: ella <i>es</i> la
+          autorización. La alternativa es pedirle una segunda llave a gerencia.
+        </p>
+        <p class="recomendacion">
+          <b>Se propone:</b> que baste con que quede firmada con su nombre. Cambiarlo después es
+          agregar un campo, no rehacer la pantalla.
+        </p>
+      </div>
+      <div class="nota decision">
+        <h4>¿Se corrige una cotización de cualquier antigüedad?</h4>
+        <p>
+          Una de hace ocho meses ya no está en ningún expediente vivo; corregirla es reescribir
+          el pasado.
+        </p>
+        <p class="recomendacion">
+          <b>Se propone:</b> dejarlo abierto y que la bitácora lo muestre, en vez de poner un plazo
+          que un día va a estorbar.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="cierre">
+    <span>CRM Efameinsa · docs/20-corregir-cotizacion-numerada.md</span>
+    <span>Diseño, sin construir · 29-08-2026</span>
+  </footer>
+</div>
+
+<!-- ── El buscador en modo reemplazar ────────────────── -->
+<div class="velo" id="velo" data-abierto="false" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+  <div class="modal">
+    <div class="modal-tapa">
+      <h4 id="modal-titulo" style="font-size:1.02rem;font-weight:600">Cambiar el equipo de la línea 1</h4>
+      <p style="font-size:.8rem;color:var(--tinta-3);margin-top:.1rem">
+        Ahora dice: LAVADORA TITAN 25 kg — no apilable · LAVMA172
+      </p>
+      <div style="margin-top:.7rem;display:flex;gap:.5rem;align-items:center">
+        <span class="campo mono" style="flex:1;color:var(--tinta)">titan<span style="color:var(--granate)">|</span></span>
+        <button class="boton vacio" type="button" data-cierra-modal>Cancelar</button>
+      </div>
+      <p class="pista" style="margin-top:.4rem">Abre escrito con el modelo actual: la variante que se busca casi siempre está al lado.</p>
+    </div>
+    <div class="modal-cuerpo">
+      <div class="modal-lista">
+        <button class="opcion" type="button" data-actual="true" data-cierra-modal>
+          <span class="foto">&#9636;</span>
+          <span>
+            <span class="linea-titulo">LAVADORA TITAN 25 kg — no apilable</span>
+            <span class="linea-datos">LAVMA172 · US$ 8.999</span>
+          </span>
+          <span class="pastilla gris" style="margin-left:auto">actual</span>
+        </button>
+        <button class="opcion" type="button" data-resaltado="true" data-cierra-modal>
+          <span class="foto">&#9636;</span>
+          <span>
+            <span class="linea-titulo">LAVADORA TITAN MAX 25 kg — apilable</span>
+            <span class="linea-datos">LAVMA17 · US$ 9.400</span>
+          </span>
+          <span class="pastilla verde" style="margin-left:auto">4 en almacén</span>
+        </button>
+        <button class="opcion" type="button" data-cierra-modal>
+          <span class="foto">&#9636;</span>
+          <span>
+            <span class="linea-titulo">LAVADORA TITAN 18 kg — no apilable</span>
+            <span class="linea-datos">LAVMA181 · US$ 7.250</span>
+          </span>
+          <span class="pastilla ambar" style="margin-left:auto">sin stock</span>
+        </button>
+        <button class="opcion" type="button" data-cierra-modal>
+          <span class="foto">&#9636;</span>
+          <span>
+            <span class="linea-titulo">LAVADORA CENTRÍFUGA TITAN 35 kg</span>
+            <span class="linea-datos">LAVMA352 · US$ 11.900</span>
+          </span>
+          <span class="pastilla verde" style="margin-left:auto">2 en almacén</span>
+        </button>
+      </div>
+      <div class="modal-panel">
+        <div class="foto" style="width:100%;height:9rem;font-size:2rem;border-radius:8px">&#9636;</div>
+        <p style="font-weight:600;font-size:.95rem;margin-top:.8rem">LAVADORA TITAN MAX 25 kg — apilable</p>
+        <p class="linea-datos">LG · LAVMA17 · semi-industrial</p>
+        <ul style="margin:.8rem 0 0;padding-left:1.1rem;font-size:.83rem;color:var(--tinta-2);line-height:1.7">
+          <li>Capacidad 25 kg · apilable con secadora</li>
+          <li>Calentamiento eléctrico</li>
+          <li>Panel digital, 12 programas</li>
+          <li>Dimensiones 720 × 815 × 1.100 mm</li>
+        </ul>
+        <p style="margin-top:.9rem;padding:.6rem .7rem;border-radius:7px;background:var(--ambar-suave);color:var(--ambar);font-size:.8rem;line-height:1.45">
+          El precio de lista de este equipo es US$ 9.400. La cotización dice US$ 8.999 — se mantiene.
+        </p>
+      </div>
+    </div>
+    <div class="modal-pie">
+      <span class="pista">Un clic elige y cierra. Reemplazar es una cosa, y es una sola.</span>
+      <span class="pista"><kbd>Esc</kbd> cancela</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var velo = document.getElementById("velo");
+    function abrir() { velo.dataset.abierto = "true"; }
+    function cerrar() { velo.dataset.abierto = "false"; }
+    document.querySelectorAll("[data-abre-modal]").forEach(function (b) {
+      b.addEventListener("click", abrir);
+    });
+    document.querySelectorAll("[data-cierra-modal]").forEach(function (b) {
+      b.addEventListener("click", cerrar);
+    });
+    velo.addEventListener("click", function (e) { if (e.target === velo) cerrar(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrar(); });
+  })();
+</script>

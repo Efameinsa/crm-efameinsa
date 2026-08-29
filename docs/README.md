@@ -23,6 +23,7 @@ hoy. Si algo del código los contradice, el que está mal es el código.
 | [`15-reglas-lectura-de-fichas.md`](15-reglas-lectura-de-fichas.md) | Cómo se leen las fichas del Word para cargar un equipo |
 | [`16-postventa-ux-flujo.md`](16-postventa-ux-flujo.md) | El flujo de trabajo del área |
 | [`18-flujo-de-negocio.md`](18-flujo-de-negocio.md) | Cómo viaja la información entre Central, comercial y postventa |
+| [`20-corregir-cotizacion-numerada.md`](20-corregir-cotizacion-numerada.md) | **Sin construir.** Corregir una cotización conservando su número — el caso del leasing |
 | [`respaldo-y-restauracion.md`](respaldo-y-restauracion.md) | Cómo se respalda y cómo se restaura |
 
 ## [`memoria/`](memoria/)
