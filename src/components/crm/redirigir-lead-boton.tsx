@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ArrowRightLeft, UserCheck } from "lucide-react";
 import { redirigirLead } from "@/lib/acciones/leads";
 import { permisoSinPin } from "@/lib/acciones/seguridad";
+import { faltasParaReasignar, puedeReasignar } from "@/lib/faltas-reasignacion";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -62,7 +63,11 @@ export function RedirigirLeadBoton({
   // un contacto de práctica: en una derivación real serían una trampa.
   const opciones = comerciales.filter((c) => c.id !== comercialActual && (esPrueba || !c.es_prueba));
   const sinPin = sinPinHasta !== null;
-  const listo = Boolean(destino) && motivo.trim().length >= 10 && (sinPin || pin.length === 4);
+  // Qué falta y si ya se puede: la regla vive en @/lib/faltas-reasignacion,
+  // que es donde se prueba.
+  const estado = { destinos: opciones.length, destino, motivo, pin, sinPin };
+  const falta = faltasParaReasignar(estado);
+  const listo = puedeReasignar(estado);
 
   useEffect(() => {
     if (!abierto) return;
@@ -197,9 +202,18 @@ export function RedirigirLeadBoton({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="sm:flex-col sm:items-stretch sm:gap-2">
+          {/* Un botón gris que no dice por qué está gris es una pared. Acá se
+              enumera lo que falta, en el mismo orden del formulario: Central
+              reportó el 28-08 que «el botón reasignar está inhabilitado» sin
+              tener cómo saber qué le faltaba. */}
+          {falta.length > 0 && (
+            <p className="text-[11px] leading-snug text-amber-800">
+              Para habilitar «Reasignar» falta: {falta.join(" · ")}
+            </p>
+          )}
           <Button disabled={enviando || !listo} onClick={guardar}>
-            Reasignar
+            {enviando ? "Reasignando…" : "Reasignar"}
           </Button>
         </DialogFooter>
       </DialogContent>
