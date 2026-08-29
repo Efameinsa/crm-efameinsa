@@ -79,8 +79,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   operaciones: [
     { href: "/operaciones", etiqueta: "Autorizaciones", icono: KeyRound },
     { href: "/operaciones/permisos", etiqueta: "Permisos", icono: ShieldCheck },
-    { href: "/admin/productos", etiqueta: "Productos y precios", icono: Package },
-    { href: "/admin/catalogos", etiqueta: "Catálogos", icono: BookMarked },
+    { href: "/operaciones/catalogo", etiqueta: "El catálogo", icono: Package },
+    { href: "/admin/catalogos", etiqueta: "Listas del sistema", icono: BookMarked },
   ],
   admin: [
     { href: "/admin", etiqueta: "Usuarios", icono: Users },
