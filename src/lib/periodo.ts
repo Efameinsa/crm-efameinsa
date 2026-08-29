@@ -3,6 +3,8 @@
 // "mañana" en el servidor, y "este mes" el día 31 a la noche daba el mes
 // siguiente vacío. Todo lo que dependa de "hoy" pasa por acá.
 
+import { lunesDe } from "@/lib/calendario";
+
 const ZONA = "America/Lima";
 
 export interface Periodo {
@@ -10,7 +12,18 @@ export interface Periodo {
   hasta: string; // YYYY-MM-DD
 }
 
-export type PresetPeriodo = "mes" | "mes_anterior" | "30d" | "90d" | "anio" | "12m" | "todo";
+/**
+ * La semana va PRIMERO, y no por orden alfabético.
+ *
+ * Pedido de Darwin (28-08): «cada semana es importante, más importante que
+ * mensual o período», para comerciales y para gerencia. La empresa ya vive en
+ * semanas —los potenciales se proyectan por semana y el cierre se hace el
+ * sábado (`cierre-semanal.ts`)—, así que el filtro de los paneles tenía que
+ * hablar el mismo idioma. La semana empieza el LUNES, igual que en
+ * `calendario.ts`: de ahí sale `lunesDe`, para no tener dos aritméticas que se
+ * separen con el tiempo.
+ */
+export type PresetPeriodo = "semana" | "semana_anterior" | "mes" | "mes_anterior" | "30d" | "90d" | "anio" | "12m" | "todo";
 
 const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -38,6 +51,15 @@ function finMes(iso: string): string {
 
 export function periodoPreset(preset: PresetPeriodo, hoy = hoyLima()): Periodo {
   switch (preset) {
+    case "semana":
+      return { desde: lunesDe(hoy), hasta: hoy };
+    case "semana_anterior": {
+      const lunesPasado = sumarDias(lunesDe(hoy), -7);
+      // Hasta el domingo, no hasta el sábado: en Efameinsa la semana laboral
+      // termina el sábado, pero si alguien registró algo un domingo —una
+      // gestión desde el celular— cortar el viernes/sábado lo escondería.
+      return { desde: lunesPasado, hasta: sumarDias(lunesPasado, 6) };
+    }
     case "mes":
       return { desde: inicioMes(hoy), hasta: hoy };
     case "mes_anterior": {
@@ -60,6 +82,22 @@ export function periodoPreset(preset: PresetPeriodo, hoy = hoyLima()): Periodo {
   }
 }
 
+/**
+ * En orden de prioridad: si un rango coincide con dos presets (un lunes 1 de
+ * mes es a la vez «esta semana» y «este mes»), gana el primero de la lista.
+ */
+const TODOS_LOS_PRESETS: PresetPeriodo[] = [
+  "semana",
+  "semana_anterior",
+  "mes",
+  "mes_anterior",
+  "30d",
+  "90d",
+  "anio",
+  "12m",
+  "todo",
+];
+
 /** Lee ?desde&hasta de la URL; si faltan o están mal, cae al preset dado. */
 export function resolverPeriodo(
   sp: { desde?: string; hasta?: string },
@@ -69,7 +107,7 @@ export function resolverPeriodo(
   const desdeOk = sp.desde && RE_FECHA.test(sp.desde) ? sp.desde : null;
   const hastaOk = sp.hasta && RE_FECHA.test(sp.hasta) ? sp.hasta : null;
   if (desdeOk && hastaOk && desdeOk <= hastaOk) {
-    const preset = (["mes", "mes_anterior", "30d", "90d", "anio", "12m", "todo"] as PresetPeriodo[]).find((p) => {
+    const preset = TODOS_LOS_PRESETS.find((p) => {
       const r = periodoPreset(p, hoy);
       return r.desde === desdeOk && r.hasta === hastaOk;
     });
@@ -78,7 +116,24 @@ export function resolverPeriodo(
   return { ...periodoPreset(porDefecto, hoy), preset: porDefecto };
 }
 
+/**
+ * Semanas que tiene un mes, para bajar la meta mensual a meta semanal.
+ *
+ * 52 semanas ÷ 12 meses. No es 4: con 4 la meta semanal queda 8% alta y el
+ * velocímetro nunca llega, que es exactamente lo que hace que un tablero deje
+ * de mirarse. Las metas las fija RRHH en mensual (`perfiles.meta_mensual`) y
+ * ahí se quedan; el CRM solo la reparte para poder mostrarla en la semana.
+ */
+export const SEMANAS_POR_MES = 52 / 12;
+
+/** ¿El período elegido es una semana? Cambia cómo se lee la meta. */
+export function esSemanal(preset: PresetPeriodo | null | undefined): boolean {
+  return preset === "semana" || preset === "semana_anterior";
+}
+
 export const ETIQUETA_PRESET: Record<PresetPeriodo, string> = {
+  semana: "Esta semana",
+  semana_anterior: "Semana anterior",
   mes: "Este mes",
   mes_anterior: "Mes anterior",
   "30d": "Últimos 30 días",
