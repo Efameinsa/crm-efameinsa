@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { resolverPeriodo } from "@/lib/periodo";
+import { SEMANAS_POR_MES, esSemanal, resolverPeriodo } from "@/lib/periodo";
 import { cargarResumenGerencia, ETIQUETA_VIA, usd } from "@/lib/reportes";
 import { fechaCalendarioLarga } from "@/lib/fechas";
 import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
@@ -35,7 +35,7 @@ export default async function GerenciaPage({
   searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; historico?: string }>;
 }) {
   const sp = await searchParams;
-  const periodo = resolverPeriodo(sp, "mes");
+  const periodo = resolverPeriodo(sp, "semana");
   const comercialId = sp.comercial || null;
   const incluirHistorico = sp.historico !== "no";
 
@@ -135,8 +135,17 @@ export default async function GerenciaPage({
         <SeccionPanel titulo="Rendimiento por comercial">
           <TablaPorComercial filas={resumen.por_comercial} />
           <p className="mt-3 text-[11px] text-muted-foreground">
-            % meta = vendido en el período ÷ (meta mensual × {k.meses_periodo} mes{k.meses_periodo === 1 ? "" : "es"}). Clic en una fila para ver el
-            detalle.
+            {esSemanal(periodo.preset) ? (
+              <>
+                % meta = vendido en la semana ÷ meta semanal (la meta mensual de RRHH repartida entre las{" "}
+                {SEMANAS_POR_MES.toLocaleString("es-PE", { maximumFractionDigits: 2 })} semanas del mes).
+              </>
+            ) : (
+              <>
+                % meta = vendido en el período ÷ (meta mensual × {k.meses_periodo} mes{k.meses_periodo === 1 ? "" : "es"}).
+              </>
+            )}{" "}
+            Clic en una fila para ver el detalle.
           </p>
         </SeccionPanel>
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
+import { SEMANAS_POR_MES, esSemanal, resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
 import { cargarResumenGerencia, usd } from "@/lib/reportes";
 import { fechaCalendarioLarga } from "@/lib/fechas";
 import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
@@ -19,7 +19,7 @@ import { CotizacionesDelPeriodo } from "@/components/crm/cotizaciones-del-period
 // excede el largo de URL de PostgREST y devolvía vacío: el velocímetro
 // mostraba 0 aunque hubiera ventas (reportado por Darwin 2026-08-18).
 
-const PRESETS: PresetPeriodo[] = ["mes", "mes_anterior", "90d", "anio", "12m"];
+const PRESETS: PresetPeriodo[] = ["semana", "semana_anterior", "mes", "mes_anterior", "90d", "anio", "12m"];
 
 export async function PanelGestionComercial({
   comercialId,
@@ -32,7 +32,7 @@ export async function PanelGestionComercial({
   searchParams: { desde?: string; hasta?: string; historico?: string };
   esGerencia: boolean;
 }) {
-  const periodo = resolverPeriodo(searchParams, "mes");
+  const periodo = resolverPeriodo(searchParams, "semana");
   const incluirHistorico = searchParams.historico !== "no";
   const supabase = await createClient();
 
@@ -80,8 +80,25 @@ export async function PanelGestionComercial({
       ) : (
         <>
           <div className="grid gap-3 lg:grid-cols-[1fr_1.4fr]">
-            <SeccionPanel titulo={periodo.preset === "mes" ? "Meta del mes" : `Meta del período (${k.meses_periodo} mes${k.meses_periodo === 1 ? "" : "es"})`}>
+            <SeccionPanel
+              titulo={
+                esSemanal(periodo.preset)
+                  ? "Meta de la semana"
+                  : periodo.preset === "mes"
+                    ? "Meta del mes"
+                    : `Meta del período (${k.meses_periodo} mes${k.meses_periodo === 1 ? "" : "es"})`
+              }
+            >
               <Velocimetro ventasMes={Math.round(k.ventas_usd_equiv)} meta={yo && yo.meta_periodo > 0 ? yo.meta_periodo : null} />
+              {/* La meta semanal es la mensual repartida (ver cargarResumenGerencia).
+                  Se dice acá para que nadie la compare con la del mes y crea que
+                  le bajaron el objetivo. */}
+              {esSemanal(periodo.preset) && yo && yo.meta_periodo > 0 && (
+                <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                  Su meta mensual repartida entre las{" "}
+                  {SEMANAS_POR_MES.toLocaleString("es-PE", { maximumFractionDigits: 2 })} semanas del mes.
+                </p>
+              )}
             </SeccionPanel>
 
             <div className="grid grid-cols-2 gap-3">

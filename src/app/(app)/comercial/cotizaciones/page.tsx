@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * año». Y lo confirmó Brenda el 25-08 con un caso concreto: su 1549-25 de SAYWA
  * «no está en el sistema».
  *
- * Estaba. Lo que no había era cómo llegar: «Mi gestión» abre en el mes en curso
+ * Estaba. Lo que no había era cómo llegar: «Mi gestión» abre en la semana en curso
  * y su lista corta en 60 documentos por fecha, así que uno de septiembre de 2025
  * quedaba fuera del alcance por más que se eligiera «Todo». Con 2.142
  * documentos suyos en el archivo, filtrar por fecha no alcanza — hace falta

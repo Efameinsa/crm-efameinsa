@@ -42,7 +42,10 @@ export function TablaPorComercial({ filas }: { filas: FilaComercialResumen[] }) 
             >
               Cotiz.
             </th>
-            <th className="pb-2 pl-2 font-medium" title="Vendido ÷ (meta mensual × meses del período)">
+            <th
+              className="pb-2 pl-2 font-medium"
+              title="Vendido ÷ la meta que le toca al período: la meta mensual multiplicada por los meses del rango, o repartida entre las semanas del mes si el filtro está en una semana. La nota debajo de la tabla dice cuál se está usando."
+            >
               % meta
             </th>
           </tr>

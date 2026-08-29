@@ -103,3 +103,45 @@ describe("resolverPeriodo", () => {
     expect(r.hasta).toBe("2026-08-19");
   });
 });
+
+/**
+ * La semana es el período que más se mira (pedido de Darwin 28-08: «cada
+ * semana es importante, más importante que mensual»), así que se prueba con
+ * los bordes que rompen: el propio lunes, el domingo, y el cruce de mes.
+ */
+describe("semana", () => {
+  it("empieza el lunes y llega hasta hoy", () => {
+    // 2026-08-28 es viernes; su lunes es el 24.
+    expect(periodoPreset("semana", "2026-08-28")).toEqual({ desde: "2026-08-24", hasta: "2026-08-28" });
+  });
+
+  it("un lunes, la semana es ese solo día", () => {
+    expect(periodoPreset("semana", "2026-08-24")).toEqual({ desde: "2026-08-24", hasta: "2026-08-24" });
+  });
+
+  it("el domingo todavía pertenece a la semana que arrancó el lunes", () => {
+    expect(periodoPreset("semana", "2026-08-30")).toEqual({ desde: "2026-08-24", hasta: "2026-08-30" });
+  });
+
+  it("una semana a caballo entre dos meses no se corta el día 1", () => {
+    // Martes 1 de septiembre: su lunes es el 31 de agosto.
+    expect(periodoPreset("semana", "2026-09-01")).toEqual({ desde: "2026-08-31", hasta: "2026-09-01" });
+  });
+
+  it("semana anterior: lunes a domingo completos, sin pisar la actual", () => {
+    expect(periodoPreset("semana_anterior", "2026-08-28")).toEqual({ desde: "2026-08-17", hasta: "2026-08-23" });
+  });
+
+  it("semana anterior pega con la actual: no hay días perdidos entre las dos", () => {
+    const anterior = periodoPreset("semana_anterior", "2026-08-28");
+    const actual = periodoPreset("semana", "2026-08-28");
+    const diaSiguiente = new Date(`${anterior.hasta}T12:00:00Z`);
+    diaSiguiente.setUTCDate(diaSiguiente.getUTCDate() + 1);
+    expect(diaSiguiente.toISOString().slice(0, 10)).toBe(actual.desde);
+  });
+
+  it("un rango de lunes a hoy se reconoce como «esta semana», no como rango suelto", () => {
+    const r = periodoPreset("semana");
+    expect(resolverPeriodo({ desde: r.desde, hasta: r.hasta }).preset).toBe("semana");
+  });
+});

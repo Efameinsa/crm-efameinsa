@@ -34,7 +34,7 @@ interface Props {
   extra?: React.ReactNode;
 }
 
-const PRESETS_DEFECTO: PresetPeriodo[] = ["mes", "mes_anterior", "30d", "anio", "12m", "todo"];
+const PRESETS_DEFECTO: PresetPeriodo[] = ["semana", "semana_anterior", "mes", "mes_anterior", "30d", "anio", "12m", "todo"];
 
 export function FiltroPeriodo({
   desde,

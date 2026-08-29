@@ -1,4 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
+import { SEMANAS_POR_MES, esSemanal, type PresetPeriodo } from "@/lib/periodo";
 
 // Tipos del jsonb que devuelven resumen_gerencia() y listar_clientes()
 // (migraciones 0020/0021). Toda la agregación vive en Postgres: acá solo se
@@ -153,9 +154,22 @@ export const ETIQUETA_VIA: Record<string, string> = {
   contacto_otro: "Otro contacto",
 };
 
+/**
+ * `preset` no cambia la consulta —el rango ya la acota— pero sí cómo se lee la
+ * META. `resumen_gerencia()` la calcula como meta_mensual × meses del rango,
+ * con un piso de 1 mes: pedirle una semana devolvía la meta del mes entero, y
+ * el velocímetro del comercial marcaba 20% un viernes en que había cumplido.
+ * Cuando el período es una semana, la meta se reparte acá.
+ */
 export async function cargarResumenGerencia(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  opciones: { desde: string; hasta: string; comercialId?: string | null; incluirHistorico?: boolean },
+  opciones: {
+    desde: string;
+    hasta: string;
+    comercialId?: string | null;
+    incluirHistorico?: boolean;
+    preset?: PresetPeriodo | null;
+  },
 ): Promise<ResumenGerencia | null> {
   const { data, error } = await supabase.rpc("resumen_gerencia", {
     p_desde: opciones.desde,
@@ -167,7 +181,13 @@ export async function cargarResumenGerencia(
     console.error("resumen_gerencia:", error.message);
     return null;
   }
-  return data as unknown as ResumenGerencia;
+  const resumen = data as unknown as ResumenGerencia;
+  if (esSemanal(opciones.preset)) {
+    for (const c of resumen.por_comercial ?? []) {
+      c.meta_periodo = Math.round(c.meta_periodo / SEMANAS_POR_MES);
+    }
+  }
+  return resumen;
 }
 
 export interface FilaClienteListado {
