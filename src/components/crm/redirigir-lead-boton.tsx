@@ -47,7 +47,7 @@ export function RedirigirLeadBoton({
   /** El contacto es del banco de pruebas: ahí sí se ofrece el comercial C0. */
   esPrueba?: boolean;
   /** A quién llamar por el código. Sin esto, el campo del PIN es un callejón. */
-  supervisores?: { id: string; nombre: string }[];
+  supervisores?: { id: string; nombre: string; rol?: string }[];
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
