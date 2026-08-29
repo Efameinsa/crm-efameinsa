@@ -1,9 +1,9 @@
 # Corregir una cotización ya numerada — mapa de la experiencia
 
 **Escrito el 29-08-2026.** Diseño de la pantalla que pidió el ing. Carlos en la
-reunión del 28-08 (transcripción `28-08-2026 14.19.txt`). Todavía no está
-construido: esto es lo que se va a construir y por qué cada cosa está donde
-está.
+reunión del 28-08 (transcripción `28-08-2026 14.19.txt`), con el reparto que
+confirmó Lesly (operaciones) el 29-08. Todavía no está construido: esto es lo
+que se va a construir y por qué cada cosa está donde está.
 
 ---
 
@@ -29,9 +29,9 @@ corregida le cuesta a la empresa **un mes de financiamiento**.
 Cinco a diez veces al año sobre unas 3.000 cotizaciones. Él mismo puso la
 prioridad: *«mapeémoslo, eso no es urgente… pero para que lo pongamos en agenda,
 porque sí ocurre»*. **De ahí sale la regla de diseño principal de este
-documento: la pantalla tiene que ser obvia para alguien que la usa una vez cada
-dos meses.** No se aprende, no se recuerda, no se consulta un manual: se abre y
-se entiende.
+documento: la pantalla la abre alguien que la usó por última vez hace dos
+meses.** No se aprende, no se recuerda, no se consulta un manual: se abre y se
+entiende.
 
 ### El caso que lo destapó
 
@@ -42,118 +42,156 @@ Carlos dejó planteado el otro caso, el que no tiene salida.
 
 ---
 
-## 2. Quién hace la corrección
+## 2. Quién corrige, y quién da la llave
 
-En la reunión se dijeron dos cosas que conviene no confundir:
+**Corrige el comercial. La llave la dan operaciones o gerencia.** Es lo que dijo
+Carlos con todas las letras y lo que confirmó Lesly el 29-08:
 
-> «Esa opción también debería pedir autorización, o sea, **no lo tiene que hacer
-> el gestor**. Si tu gestor quiere modificar esta cotización, viene el
-> administrador, pone la clave y ya modifica.»
+> «Si tu gestor quiere modificar esta cotización, **viene el administrador, pone
+> la clave y ya modifica**.»
+> — ing. Carlos, 28-08
 
-> «Necesitaría **una vista que Leslie pueda configurar** para poder editar esos
-> campos… O sea, abrir la cotización. **Sí, Leslie tendría esa opción.**»
+Y tiene sentido más allá de la autoridad: **el comercial es el único que sabe
+qué pidió el cliente**. Habló con él, tiene el correo, sabe si era apilable o
+no. Poner a operaciones a adivinar el equipo correcto agrega un intermediario
+que no tiene la información — y le agrega a Lesly una pantalla de edición para
+usar seis veces al año.
 
-Lo firme es lo primero: **el comercial no corrige lo suyo**, que es la misma
-regla que ya gobierna anular un cierre y corregir una derivación (`docs/19` §3).
-Lo segundo define dónde vive la pantalla: **en la cuenta de operaciones**, el
-puesto de Lesly (*administrador de autorizaciones en la parte operativa*, sus
-palabras).
+### Consecuencia de diseño: operaciones no gana ninguna pantalla
 
-**Decisión de diseño:** la corrección la ejecuta **operaciones**, y el comercial
-la **pide**. Así el motivo lo escribe quien conoce el error —el comercial habló
-con el cliente, Lesly no— y la mano que toca el documento es la que tiene la
-autoridad. Gerencia y admin entran igual que operaciones.
+Lesly hace exactamente lo que ya hace hoy para anular un cierre y para corregir
+una derivación: **atiende el teléfono y dicta el código**. El mismo código
+rotativo de cuatro dígitos, el mismo reloj de diez minutos, el mismo `ámbito`
+que ya acepta a operaciones, gerencia y admin (`validar_codigo_autorizacion`,
+migraciones 0114 y 0116).
 
-> **Pendiente de confirmar con Carlos:** si Lesly ejecuta y Lesly dicta el
-> código, el código sobra — ella *es* la autorización. Queda por decidir si su
-> propia corrección necesita además el código de gerencia (segunda llave) o si
-> basta con que quede firmada con su nombre. Este documento asume lo segundo;
-> cambiarlo es agregar un campo, no rehacer la pantalla.
+Y la corrección aparece sola en la bitácora que ella ya mira todos los días,
+«Lo que se autorizó», junto a los cierres anulados. Un tipo de fila más, no una
+sección más.
+
+### Dónde vive la puerta
+
+En la cotización misma, en los dos lugares donde el comercial ya la tiene
+delante:
+
+1. **La pantalla de confirmación** (`CotizacionConfirmada`), justo después de
+   emitirla y cada vez que vuelve a entrar.
+2. **La lista de cotizaciones** — la de la oportunidad y «Mis cotizaciones»,
+   que es donde busca una vieja por su número.
+
+Ruta: `/comercial/oportunidades/[id]/cotizar/[cotizacionId]/corregir`.
+
+### Se va «Duplicar»
+
+Hasta ahora, la pantalla de confirmación ofrecía **duplicar** como única salida:
+*«el documento queda cerrado: para cambiarle algo hay que duplicarla»*. Con
+«Corregir» esa oferta deja de tener sentido en ese lugar — duplicar era el
+sustituto de corregir, y ahora hay corregir. La pantalla de confirmación queda
+con dos acciones y nada más:
+
+```
+  [ Descargar el PDF ]      [ Corregir esta cotización ]
+```
+
+> **Queda por decidir:** «Duplicar» también aparece en la lista de cotizaciones
+> de la oportunidad (`lista-cotizaciones.tsx`), donde su trabajo es otro —
+> arrancar una cotización nueva reusando los equipos de una anterior para el
+> mismo cliente, sin tener que volver a buscarlos. **Recomendación:** dejarlo
+> ahí y quitarlo solo de la pantalla de confirmación, que es donde se leía como
+> «así se arreglan los errores». Si tampoco lo quieren ahí, es borrar un botón.
 
 ---
 
 ## 3. El recorrido, de punta a punta
 
-Cinco pasos. Ninguno tiene vocabulario de sistema.
+Cuatro pasos y una llamada telefónica.
 
 ```
-   El comercial                     Operaciones (Lesly)
-   ────────────                     ───────────────────
- 1 Pide la corrección   ──────►  2 La ve en su lista
-   (desde su cotización)            «Corregir cotizaciones»
-   escribe qué está mal                    │
-                                           ▼
-                                  3 Abre la cotización
-                                    y la corrige
-                                    · clic en el equipo → buscador
-                                    · cantidad, precio, color
-                                    · entrega, garantía, pago
-                                           │
-                                           ▼
-                                  4 Ve qué cambia y el PDF real
-                                    antes de guardar
-                                           │
- 5 Le llega la campanada  ◄──────────────┘
-   con el PDF corregido,
-   mismo número
+   El comercial                        Operaciones o gerencia
+   ────────────                        ──────────────────────
+ 1 Abre su cotización y toca
+   «Corregir esta cotización»
+           │
+           ▼
+ 2 Escribe qué está mal
+   y pide el código        ──teléfono──►  Lo dicta desde su pantalla
+                           ◄─────────────  (4 dígitos, 10 minutos,
+           │                                sirve para UNA corrección)
+           ▼
+ 3 Corrige
+   · clic en el equipo → buscador
+   · cantidad, precio, color
+   · entrega, garantía, pago
+           │
+           ▼
+ 4 Ve qué cambia y el PDF real,          Le aparece en «Lo que se
+   y guarda ──────────────────────────►  autorizó», con el motivo
+   Mismo número.                          y el antes/después
 ```
 
-### Paso 1 — El comercial pide la corrección
+### Paso 1 — La puerta, donde ya está mirando
 
-En la cotización ya confirmada (`CotizacionConfirmada`, la pantalla que hoy dice
-*«el documento queda cerrado: para cambiarle algo hay que duplicarla»*) aparece
-un segundo camino:
-
-- **Duplicar** — sigue siendo lo normal y lo primero. Sirve para el 99 % de los
-  casos: el cliente cambió de idea, se cotiza de nuevo con número nuevo.
-- **Pedir una corrección** — en letra más chica, debajo, con el motivo escrito:
-  *«solo cuando el número no se puede cambiar (leasing, expediente ya
-  presentado)»*. Se abre un cuadro con una sola pregunta: **¿qué está mal?**
-
-El texto del botón le enseña al comercial cuándo usarlo sin que nadie se lo
-explique. Es el mismo recurso que ya usa «Anular» frente a «Eliminar».
-
-### Paso 2 — La lista: «Corregir cotizaciones»
-
-Entrada nueva en la barra lateral de operaciones, debajo de «Autorizaciones»:
+En la pantalla de confirmación:
 
 ```
-  Autorizaciones            (existe)
-  Corregir cotizaciones     ← nueva
-  Permisos                  (existe)
-  El catálogo               (existe)
-  Listas del sistema        (existe)
+  ┌──────────────────────────────────────────────────────────┐
+  │                          ✓                               │
+  │            Cotización confirmada como 500-26             │
+  │      Ya tiene su número de la serie Open. El documento   │
+  │      queda cerrado: corregirlo necesita autorización.    │
+  │                                                          │
+  │      [ Descargar el PDF ]  [ Corregir esta cotización ]  │
+  └──────────────────────────────────────────────────────────┘
 ```
 
-La pantalla tiene **dos partes**, y la de arriba es la que la hace útil:
+«Corregir» va en segundo plano —contorno, no relleno—: lo normal es descargar
+el PDF y mandarlo. Corregir es la excepción, y el texto de arriba ya avisó que
+cuesta una autorización, así que nadie lo toca por curiosidad.
 
-**Pedidos pendientes** — lo que los comerciales pidieron corregir y todavía nadie
-tocó. Vacío casi siempre; cuando hay algo, es lo primero que se ve, con el
-motivo que escribió el comercial. Cero pedidos se dice sin drama: *«no hay nada
-pendiente de corregir»*.
+En las listas es un enlace más, junto a «Ver PDF», y **solo aparece en las
+emitidas**: un borrador se edita sin pedirle permiso a nadie, porque no gastó
+número.
 
-**Buscar cualquier cotización** — el mismo buscador de «Mis cotizaciones»
-(`/comercial/cotizaciones`), pero sobre **todas**, no solo las de un comercial.
-Se busca **por número**, que es como las nombran hablando («la 500-26»), y por
-cliente. Cada fila:
+### Paso 2 — El motivo primero, después el código
+
+Un solo cuadro, en este orden, que es el orden en que ocurre la llamada:
 
 ```
-  N.º 500-26 · Open      INVERSIONES NACIONALES TURÍSTICAS S.A.
-  Lesly Ríos · 28-08-2026 · US$ 12.450,00              [ Corregir ]
+  ┌──────────────────────────────────────────────────────────┐
+  │  Corregir la cotización N.º 500-26 · Open                │
+  │                                                          │
+  │  El número no cambia. El cliente ya la tiene con este    │
+  │  número y así va a quedar.                               │
+  │                                                          │
+  │  ¿Qué está mal?                                          │
+  │  ┌────────────────────────────────────────────────────┐  │
+  │  │ El cliente pidió apilable y salió la variante      │  │
+  │  │ equivocada. Ya está presentada en el banco.        │  │
+  │  └────────────────────────────────────────────────────┘  │
+  │                                                          │
+  │  Código de autorización        ┌──┬──┬──┬──┐             │
+  │  Pídaselo a operaciones o a    │  │  │  │  │             │
+  │  gerencia.                     └──┴──┴──┴──┘             │
+  │                                                          │
+  │                        [ Cancelar ]  [ Abrir para corregir ] │
+  └──────────────────────────────────────────────────────────┘
 ```
 
-Y si ya se corrigió alguna vez, lo dice en la misma fila: `corregida 1 vez`.
+**El motivo va antes del código a propósito**: es lo que el comercial le lee a
+Lesly por teléfono para pedírselo. Escribirlo primero es prepararse la llamada,
+no llenar un campo.
 
-**Lo que NO aparece acá:** los borradores (esos los arregla el comercial solo, no
-gastaron número) y las cotizaciones del archivo histórico (son PDF del pasado,
-no hay nada que regenerar). Si alguien busca una del archivo, la fila lo dice en
-vez de callarse.
+**Y el código se pide para ABRIR, no para guardar.** El código dura diez
+minutos y corregir toma más que eso: pedirlo al final significaría que se vence
+mientras el comercial elige el equipo, y tendría que llamar dos veces. Validarlo
+al abrir deja la corrección autorizada durante media hora — una autorización,
+una corrección, la misma regla de siempre («se quema al usarse»).
 
-### Paso 3 — La pantalla de corrección
+### Paso 3 — Un clic en el equipo y vuelve el buscador
 
-Es **el cotizador que ya existe** (`pantalla-cotizador.tsx`), con otro traje. Que
-sea el mismo importa: Lesly ya cotiza, ya conoce esa pantalla, y una pantalla
-que se usa seis veces al año no puede tener reglas propias.
+Es **el cotizador que ya existe** (`pantalla-cotizador.tsx`), con otro traje.
+Que sea el mismo importa: el comercial cotiza todos los días en esa pantalla, y
+una pantalla que se usa seis veces al año no puede tener reglas propias.
 
 Arriba, una franja granate que no deja dudar de dónde está uno:
 
@@ -161,9 +199,11 @@ Arriba, una franja granate que no deja dudar de dónde está uno:
   ┌────────────────────────────────────────────────────────────────┐
   │  Corrigiendo la cotización N.º 500-26 · Open                   │
   │  El número, el cliente y la fecha no cambian.                  │
-  │  Es de Lesly Ríos · INVERSIONES NACIONALES TURÍSTICAS S.A.     │
+  │  Autorizó Lesly Ríos · quedan 26 minutos                       │
   └────────────────────────────────────────────────────────────────┘
 ```
+
+El reloj no es adorno: dice hasta cuándo vale la autorización que ya consiguió.
 
 **Lo que se puede tocar**, y nada más:
 
@@ -216,10 +256,10 @@ Y lo demás sigue igual que en el cotizador: `−` / `+` para la cantidad, el co
 si el equipo tiene colores, `✕` para sacar la línea entera, y el buscador de
 siempre para **agregar** una que faltaba.
 
-### Paso 4 — Ver qué cambia, antes de guardar
+### Paso 4 — Ver qué cambia, y el PDF real, antes de guardar
 
-Al pie, siempre visible, un panel corto con **el antes y el después**. No un
-registro técnico: las frases que el comercial va a leer.
+Al pie, siempre visible, **el antes y el después**. No un registro técnico: las
+frases que va a leer quien autorizó.
 
 ```
   Qué cambia en la 500-26
@@ -227,8 +267,6 @@ registro técnico: las frases que el comercial va a leer.
   Línea 1   LAVADORA TITAN no apilable  →  TITAN MAX apilable
   Total     US$ 12.450,00               →  US$ 12.980,00
   ─────────────────────────────────────────────────────────
-  Por qué:  [ el cliente pidió apilable y salió la variante ]
-            [ equivocada — pedido de Lesly Ríos             ]
 
   [ Ver el PDF corregido ]            [ Guardar la corrección ]
 ```
@@ -238,34 +276,30 @@ cliente—, igual que hace hoy la hoja técnica en el catálogo de operaciones. 
 el único control que de verdad sirve: la ficha del equipo cambia la página
 entera, y eso solo se ve mirándolo.
 
-**El motivo es obligatorio.** Si el pedido vino de un comercial ya viene escrito
-y se puede completar. Es lo que va a quedar en la bitácora y lo que va a leer el
-comercial.
-
 **Guardar exige un segundo toque** cuando el cambio mueve la plata: si el total
 sube o baja, el botón pide confirmar con el monto nuevo dicho en palabras. Un
 equipo cambiado es un error corregido; un total cambiado es un compromiso
 distinto con el cliente.
 
-### Paso 5 — Después de guardar
+### Y después de guardar
 
 1. **El número no se movió.** El documento sigue siendo la 500-26.
-2. **Le llega la campanada al comercial**: *«Operaciones corrigió tu cotización
-   500-26»*, con el antes/después y el enlace al PDF nuevo. Nadie se entera por
-   casualidad de que su documento cambió.
-3. **Queda en la bitácora de operaciones**, en la misma lista de «Lo que se
-   autorizó» que ya se mira todos los días: qué se corrigió, de quién era, quién
-   lo pidió, por qué y cuándo.
-4. **La versión anterior no se pierde.** Queda archivada completa —equipos,
-   precios, totales—: si el banco pregunta qué decía el documento que recibió, hay
-   con qué responderle.
+2. **Le aparece a quien autorizó**, en «Lo que se autorizó» de operaciones:
+   qué se corrigió, de quién era, con qué motivo y el antes/después. Quien dio
+   la llave ve para qué se usó, sin tener que preguntar.
+3. **La versión anterior no se pierde.** Queda archivada completa —equipos,
+   precios, totales—: si el banco pregunta qué decía el documento que recibió,
+   hay con qué responderle.
+4. **La cotización queda marcada** como «corregida 1 vez» en las listas, con la
+   fecha. No se esconde que el documento cambió.
 
 ---
 
 ## 4. Los frenos
 
-Tres situaciones en las que corregir hace daño. Se avisan **antes** de abrir la
-pantalla, como ya hace `cierreEnJuego()` al anular un cierre.
+Tres situaciones en las que corregir hace daño. Se avisan **antes de pedir el
+código** —no después—, como ya hace `cierreEnJuego()` al anular un cierre: nadie
+llama a Lesly para que le den permiso a algo que no se va a poder hacer.
 
 **1. La cotización ya tiene un cierre de venta emitido.** Cambiar el monto de una
 cotización que ya se vendió descuadra el cierre y el récord del comercial. No se
@@ -275,7 +309,7 @@ después se corrige. La pantalla lo dice con el número del cierre en la mano.
 **2. La corrección deja un precio bajo el piso de lista.** Vuelve a pedir
 aprobación de gerencia, igual que al cotizar (migración 0064, aprobación por
 ítem). La corrección se guarda, pero el PDF corregido no se libera hasta que
-gerencia resuelva. No se le puede dar a operaciones una puerta trasera al
+gerencia resuelva. El código de corrección no puede ser una puerta trasera al
 descuento.
 
 **3. Postventa ya está despachando la máquina.** Si hay un pedido o una puesta en
@@ -286,8 +320,7 @@ que va en el camión. Se avisa con el caso a la vista.
 
 ## 5. Lo que hay que decidirle a Carlos
 
-Tres preguntas que no se resuelven desde acá. Se le llevan con la pantalla
-armada, que es como se decidió todo lo demás.
+Se le llevan con la pantalla armada, que es como se decidió todo lo demás.
 
 1. **¿El PDF corregido dice que es una corrección?** Un renglón discreto
    («Versión 2 · corregida el 29-08-2026») es honesto y protege a la empresa,
@@ -295,7 +328,7 @@ armada, que es como se decidió todo lo demás.
    que el documento salga idéntico y la traza viva solo adentro del CRM.
    **Recomendación:** que no salga nada impreso —el propósito de todo esto es
    que el banco no note diferencia— y que la traza quede completa adentro.
-2. **¿Lesly necesita el código de gerencia para su propia corrección?** (§2).
+2. **¿«Duplicar» se va también de la lista de la oportunidad?** (§2).
 3. **¿Se puede corregir una cotización de cualquier antigüedad?** Una de hace
    ocho meses ya no está en ningún expediente vivo; corregirla es reescribir el
    pasado. **Recomendación:** dejarlo abierto y que la bitácora lo muestre, en
@@ -312,16 +345,25 @@ No es el diseño, es lo que va a costar trabajo si se olvida.
   gerencia pidió lo contrario en su momento: *«les ha pasado que el mismo número
   de cotización se envía al cliente con dos precios distintos»* (`docs/06`). Las
   dos reglas conviven: se corrige **versionando bajo el mismo número**, con quién,
-  cuándo y por qué — no abriendo la edición.
-- **Una sola puerta:** una función `corregir_cotizacion_emitida()` `security
-  definer` que archiva la versión vigente y recién entonces escribe. El trigger
-  sigue rechazando todo lo demás.
+  cuándo, por qué y quién autorizó — no abriendo la edición.
+- **El código ya existe y no se reinventa.** `validar_codigo_autorizacion(pin,
+  ámbito)` con ámbito `operaciones` ya resuelve exactamente «operaciones o
+  gerencia» (migración 0116). Se suma un ámbito propio si conviene distinguirlo
+  en la bitácora, no una mecánica nueva.
+- **Autorizar abre una ventana, no ejecuta.** Validar el código inserta la
+  autorización —que se quema, `unique_violation` mediante— y habilita esa
+  cotización para ese comercial por un rato. Guardar comprueba que la ventana
+  siga viva; vencida, se pide el código otra vez.
+- **Una sola puerta de escritura:** una función `corregir_cotizacion_emitida()`
+  `security definer` que archiva la versión vigente y recién entonces escribe.
+  El trigger sigue rechazando todo lo demás.
 - **`editar_cotizacion` y `crear_cotizacion` NO se copian para hacer la nueva.**
   Se parcha la definición viva con regexp. Copiarlas revivió reglas revertidas
   tres veces (`docs/memoria/crm-no-copiar-funciones-cotizacion.md`).
 - **Mirar el último número de migración antes de crear la suya.** Han chocado
   tres veces.
-- **Verificación**, como siempre en la casa: sesión real de Lesly, sesión real
-  de un comercial —comprobando que el comercial **no** puede—, PDF antes y
-  después leído con `pdfjs-dist`, y la cotización de prueba creada y borrada. El
-  catálogo y las cotizaciones reales no se tocan.
+- **Verificación**, como siempre en la casa: sesión real de un comercial
+  —comprobando que **sin código no puede**, que con un código vencido tampoco, y
+  que no puede tocar la cotización de otro—, sesión real de Lesly para ver la
+  bitácora, PDF antes y después leído con `pdfjs-dist`, y la cotización de
+  prueba creada y borrada. El catálogo y las cotizaciones reales no se tocan.
