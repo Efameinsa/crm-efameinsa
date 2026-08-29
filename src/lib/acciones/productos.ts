@@ -105,6 +105,7 @@ export interface DatosEquipo {
   calentamiento: string | null;
   panel: string | null;
   controles: string | null;
+  montaje: string | null;
   colores: string[];
   /** La descripción impresa, en el texto de la pantalla. */
   fichaTexto: string;
@@ -118,6 +119,7 @@ function mezclarFicha(anterior: Record<string, unknown>, datos: DatosEquipo) {
     calentamiento: datos.calentamiento?.trim() || null,
     panel: datos.panel?.trim() || null,
     controles: datos.controles?.trim() || null,
+    montaje: datos.montaje?.trim() || null,
     colores: datos.colores.map((c) => c.trim()).filter(Boolean),
   };
 }

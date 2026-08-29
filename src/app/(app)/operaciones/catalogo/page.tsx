@@ -1,6 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -29,17 +27,7 @@ export default async function CatalogoPage() {
   const { equipos, salud } = await cargarCatalogo(supabase);
 
   return (
-    <SeccionPanel
-      titulo="El catálogo"
-      accion={
-        <Link
-          href="/admin/productos"
-          className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90"
-        >
-          <Plus className="size-3.5" /> Cargar un equipo
-        </Link>
-      }
-    >
+    <SeccionPanel titulo="El catálogo">
       <CatalogoOperaciones equipos={equipos} salud={salud} />
     </SeccionPanel>
   );

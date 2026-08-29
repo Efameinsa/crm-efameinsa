@@ -167,6 +167,7 @@ function aEditable(e: EquipoCatalogo): EquipoEditable {
     calentamiento: e.calentamiento,
     panel: e.panel,
     controles: e.controles,
+    montaje: e.montaje,
     colores: e.colores,
     fotoPath: e.fotoPath,
     fichaTexto: e.fichaTexto,
