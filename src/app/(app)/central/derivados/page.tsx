@@ -38,7 +38,7 @@ export const dynamic = "force-dynamic";
  * en la ficha de la derivación.
  */
 
-const PRESETS: PresetPeriodo[] = ["mes", "mes_anterior", "30d", "anio", "todo"];
+const PRESETS: PresetPeriodo[] = ["semana", "semana_anterior", "mes", "mes_anterior", "30d", "anio", "todo"];
 
 const ORDEN_FOCO: FocoDerivado[] = ["sin_atender", "en_gestion", "cotizado", "cerrado"];
 
@@ -73,9 +73,6 @@ export default async function DerivadosPage({
       hasta: periodo.hasta,
       comercial: sp.comercial ?? null,
       busqueda,
-      // Con «?practica=1» trae además el banco de pruebas, para ensayar el
-      // circuito sin tocar nada real. La vista de todos los días no cambia.
-      incluirPruebas: sp.practica === "1" || modoEnsayo,
     }),
   ]);
 

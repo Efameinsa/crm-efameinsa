@@ -172,9 +172,6 @@ interface Filtros {
   comercial?: string | null;
   busqueda?: string;
   limite?: number;
-  /** Trae también las derivaciones del banco de pruebas (para ensayar el
-   *  circuito sin tocar nada real). Por defecto quedan fuera. */
-  incluirPruebas?: boolean;
 }
 
 type LeadCrudo = {
@@ -216,7 +213,6 @@ export async function cargarDerivados(
     .eq("estado", "asignado")
     .gte("asignado_at", `${f.desde}T00:00:00-05:00`)
     .lte("asignado_at", `${f.hasta}T23:59:59-05:00`);
-  if (!f.incluirPruebas) q = q.eq("es_prueba", false);
   if (f.comercial) q = q.eq("asignado_a", f.comercial);
   const busqueda = (f.busqueda ?? "").trim();
   if (busqueda)

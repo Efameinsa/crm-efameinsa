@@ -73,6 +73,13 @@ export function TarjetaDerivado({
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <h3 className="text-sm font-semibold text-foreground">{fila.nombreContacto ?? "Sin nombre"}</h3>
+            {/* El banco de pruebas se ve, pero se ve que es de prueba: no cuenta
+                en ningún reporte y está para ensayar el circuito. */}
+            {fila.esPrueba && (
+              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                Práctica
+              </span>
+            )}
             {fila.razonSocial && fila.razonSocial !== fila.nombreContacto && (
               <span className="text-xs text-muted-foreground">{fila.razonSocial}</span>
             )}
