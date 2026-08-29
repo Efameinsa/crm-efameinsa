@@ -145,7 +145,12 @@ diccionario — no se adivina con reglas de acentuación.
   descripción.
 - Los números de parte y códigos de barras sueltos que la plantilla de UniMac
   pone antes del primer título («-24130-381000»): no son descripción y al
-  cliente le aparecían como dos viñetas sin explicación.
+  cliente le aparecían como dos viñetas sin explicación. Pueden venir en
+  negrita, así que se los descarta tanto si salen como viñeta como si salen
+  como subtítulo.
+- **El texto de los cuadros flotantes.** Lo que flota encima de la hoja —una
+  etiqueta pegada sobre la foto— no es el hilo del documento. Ver la regla del
+  punto 9.
 
 ---
 
@@ -211,6 +216,18 @@ defensas y hacen falta las dos:
 Y de raíz: **cada párrafo de una celda es un renglón**. Pegados uno tras otro
 salían modelos que no existen —«TITAN MAXTITAN LIGHT»—; en la ficha son dos
 líneas porque son dos máquinas, la lavadora y la secadora de la torre.
+
+**Ninguna etiqueta pegada encima de la foto.** La ficha de la SECNDE lleva siete
+cuadros de texto flotantes que dicen «Modelo 2023», encima de la imagen. Leídos
+como si fueran descripción abrían la máquina con catorce «Modelo 2023» seguidos
+—el doble, porque Word guarda cada forma dos veces: la moderna y una de repuesto
+para un Word viejo— y además pegaban su texto al párrafo que las contiene
+(«2413011176000121031010468610Modelo»). Llegó al cliente el 28-08 en las
+Presu_511-26 y Presu_512-26. Desde el 29-08 el lector vacía cada
+`<w:txbxContent>` antes de recorrer los párrafos; el porqué y el cuidado de no
+correr las posiciones están en `lib-ficha-docx.mjs`. Lo mismo pasa con las
+etiquetas de color de los coches («Blanco», «Gris»): el color es un dato del
+producto, no una línea de su descripción.
 
 **Un título numerado sigue siendo un título.** Las fichas de torre abren cada
 máquina con «I. LAVADORA» y «II. SECADORA» como lista numerada en negrita:
