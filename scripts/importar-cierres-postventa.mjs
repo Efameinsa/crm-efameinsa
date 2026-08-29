@@ -10,14 +10,14 @@
 //   · De las carpetas de Brenda hay que sacar SOLO mantenimientos y repuestos.
 //     Los cierres de EQUIPO no entran: esas ventas son del comercial que las
 //     hizo, no del área, y ya están en el histórico de su Excel.
-//   · La carpeta «BRENDA 2023» se ignora: sus 80 archivos son byte a byte los
-//     de «CIERRES DE POST VENTA 2026» de Hever —adentro dicen 2026—, así que
-//     alguien copió la carpeta equivocada al renombrarla.
+//   · La carpeta «BRENDA 2023» se ignoró el 28-08 (era una copia de la de
+//     Hever); el 29-08 la llenaron con los 272 informes de 2023 de verdad y
+//     entró a la lista — la copia mala que quedó pegada adentro la mata la
+//     deduplicación por contenido de `leerTodos`.
 //
-// A QUIÉN SE LE ASIGNA CADA UNO (decisión de Darwin, 28-08): mantenimientos a
-// Ariana y repuestos a Hever, que es el reparto de oficios del plan 16 — ella
-// vende el mantenimiento, él atiende el equipo. Un cierre que es servicio CON
-// repuestos va a Ariana: lo que se vendió es el servicio.
+// A QUIÉN SE LE ASIGNA: todo a Post Venta (Carlos, 28-08 por la tarde:
+// «todas esas ventas de postventa pertenecen a postventa propiamente») — ver
+// DUENO_POR_TIPO abajo, que es donde vive la regla y su historia.
 //
 // LA CUENTA NO CAMBIA DE DUEÑO. De los 217 clientes de estos informes, 188 ya
 // están en el CRM y la mayoría son de la cartera de otro comercial. Eso no se
@@ -42,10 +42,17 @@ const APLICAR = process.argv.includes("--aplicar");
 // metió una venta de equipo de S/ 406.915 como si fuera un repuesto.
 const A_CONFIRMAR = "docs/cierres-postventa-a-confirmar.xlsx";
 
-// Un cierre de servicio es de Ariana; uno de repuesto, de Hever.
+// TODO el histórico es de Post Venta. La regla original (28-08 por la mañana)
+// mandaba los mantenimientos a Ariana, y ese mismo día por la tarde Carlos la
+// tumbó al ver el tablero de ella inflado: «todas esas ventas de postventa
+// pertenecen a postventa propiamente, vamos a llevarlo ahí». La migración 0124
+// ya movió a PV los 145 que se habían cargado con la regla vieja; desde
+// entonces, lo que se importe —incluidos los dudosos que se confirmen— cae
+// directo en PV. Ariana lo VE por la llave de servicios, pero no lo suma: su
+// primera venta es el cierre N.º 10.
 const DUENO_POR_TIPO = {
-  mantenimiento: "C4",
-  "mantenimiento+repuesto": "C4",
+  mantenimiento: "PV",
+  "mantenimiento+repuesto": "PV",
   repuesto: "PV",
 };
 

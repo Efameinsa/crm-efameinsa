@@ -11,20 +11,27 @@
 // copias del lector se habrían separado al primer formato raro, y entonces el
 // censo diría una cosa y la carga haría otra.
 
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import WordExtractor from "word-extractor";
 
 /**
- * Las carpetas de R:\ tal como las dejó Darwin el 27-08.
+ * Las carpetas de R:\ tal como las dejó Darwin el 27-08, más «BRENDA 2023»
+ * desde el 29-08.
  *
- * «BRENDA 2023» NO ESTÁ y no es un olvido: sus 80 archivos son byte a byte los
- * mismos de «CIERRES DE POST VENTA 2026» —adentro dicen 2026— así que alguien
- * copió la carpeta equivocada al renombrarla. Cargarla duplicaría los cierres
- * de Hever con otro dueño y otro año. Decisión de Darwin (28-08): ignorarla.
+ * La historia de la 2023: el 28-08 sus 80 archivos eran byte a byte los de
+ * «CIERRES DE POST VENTA 2026» de Hever —alguien copió la carpeta equivocada
+ * al renombrarla— y se ignoró. El 29-08 la volvieron a llenar con los 272
+ * informes de 2023 de verdad… pero la copia mala sigue pegada adentro, en sus
+ * subcarpetas EFAMEINSA/ y OPEN/. Por eso `leerTodos` deduplica POR CONTENIDO
+ * (huella md5): un archivo cuyo contenido ya apareció en otra carpeta no se
+ * lee dos veces, viva donde viva. Hever-2026 va primero para que los
+ * duplicados mueran ahí.
  */
 export const CARPETAS = [
   { clave: "hever-2026", ruta: "COPIA DE CIERRES DE POST VENTA 2026" },
+  { clave: "brenda-2023", ruta: "COPIA DE CIERRES POST VENTA BRENDA 2023" },
   { clave: "brenda-2024", ruta: "COPIA DE CIERRES POST VENTA BRENDA 2024" },
   { clave: "brenda-2025", ruta: "COPIA DE CIERRES POST VENTA BRENDA 2025" },
   { clave: "brenda-2026", ruta: "COPIA DE CIERRES POST VENTA BRENDA ENERO - ABRIL 2026" },
@@ -240,9 +247,18 @@ export function leerCierre(texto, archivo) {
   };
 }
 
-/** Lee todos los informes de las carpetas de R:\ y devuelve sus fichas. */
+/**
+ * Lee todos los informes de las carpetas de R:\ y devuelve sus fichas.
+ *
+ * Deduplica POR CONTENIDO: el mismo archivo copiado a dos carpetas (la copia
+ * de Hever pegada dentro de «BRENDA 2023») se lee una sola vez, en la primera
+ * carpeta de la lista donde aparezca. Sin esto, esos 80 informes entrarían de
+ * nuevo con otra ruta y `documento_origen` no los detendría.
+ */
 export async function leerTodos(raiz = "R:/", carpetas = CARPETAS) {
   const salida = [];
+  const vistos = new Set();
+  let duplicados = 0;
   for (const { clave, ruta } of carpetas) {
     const dir = join(raiz, ruta);
     let archivos;
@@ -254,6 +270,12 @@ export async function leerTodos(raiz = "R:/", carpetas = CARPETAS) {
     }
     for (const a of archivos) {
       try {
+        const huella = createHash("md5").update(readFileSync(a)).digest("hex");
+        if (vistos.has(huella)) {
+          duplicados++;
+          continue;
+        }
+        vistos.add(huella);
         const d = await extractor.extract(a);
         salida.push({ origen: clave, ...leerCierre(`${d.getBody()}\n${d.getTextboxes?.() ?? ""}`, a) });
       } catch (e) {
@@ -261,5 +283,6 @@ export async function leerTodos(raiz = "R:/", carpetas = CARPETAS) {
       }
     }
   }
+  if (duplicados) console.log(`  ${duplicados} archivos con contenido repetido en otra carpeta: se leen una sola vez`);
   return salida;
 }

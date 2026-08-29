@@ -167,9 +167,16 @@ De las reuniones del 28-08 y de la revisión del catálogo:
 6. **Retirar el resultado de gestión `FUTURO`**, duplicado de `COMPRA_FUTURO`.
 7. **Reconocer las redes seguras de la oficina** para el control de accesos, y
    pedir autorización cuando un laptop se conecta desde fuera.
-8. **32 cierres de postventa** esperan confirmación humana en
+8. **39 cierres de postventa** esperan confirmación humana en
    el Excel que genera `scripts/importar-cierres-postventa.mjs` (no se
-   versiona: lleva nombres de clientes y montos).
+   versiona: lleva nombres de clientes y montos). Eran 32; el 29-08 se
+   sumaron 7 al cargar la carpeta «BRENDA 2023» — la llenaron con los 272
+   informes de verdad (243 de 2023, 10 de fines de 2022) y entraron 215
+   cierres más, **todos a Post Venta** (la regla mantenimiento→Ariana murió
+   con la decisión de Carlos del 28-08). La copia mala de Hever que sigue
+   pegada dentro de esa carpeta la filtra la deduplicación por contenido de
+   `scripts/lib/cierres-postventa.mjs`. Total importado: 605 informes,
+   US$ 336 mil + S/ 190 mil, parque instalado en 314 máquinas.
 
 ---
 
