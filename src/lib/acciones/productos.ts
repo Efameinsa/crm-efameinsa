@@ -107,6 +107,20 @@ export interface DatosEquipo {
   controles: string | null;
   montaje: string | null;
   colores: string[];
+  /**
+   * Cuántas hay, escrito a mano por operaciones (`ficha.stock_referencia`).
+   *
+   * ES UN NÚMERO SUELTO, A PROPÓSITO. No cuenta series, no se descuenta al
+   * vender, no depende del almacén: es lo que Lesly sabe que hay. Vivía en la
+   * ficha desde la carga del maestro y era de solo lectura, así que envejecía
+   * sin que nadie pudiera corregirlo — y es el número que el comercial ve en
+   * el cotizador (`datos-cotizador.ts`) cuando decide si promete entrega.
+   *
+   * Convive con el conteo del almacén (migración 0117), que sí cuenta máquinas
+   * por su serie. Son dos cosas distintas y la pantalla las nombra distinto:
+   * «en almacén» es lo contado, esto es lo que dice operaciones.
+   */
+  stockReferencia: number | null;
   /** La descripción impresa, en el texto de la pantalla. */
   fichaTexto: string;
 }
@@ -121,6 +135,11 @@ function mezclarFicha(anterior: Record<string, unknown>, datos: DatosEquipo) {
     controles: datos.controles?.trim() || null,
     montaje: datos.montaje?.trim() || null,
     colores: datos.colores.map((c) => c.trim()).filter(Boolean),
+    // `null` es «no sé cuántas hay», que no es lo mismo que 0 («no queda
+    // ninguna»). El cotizador distingue las dos: una dice «stock s/d» y la
+    // otra «sin stock», y al comercial le cambian la frase que le dice al
+    // cliente. Por eso se guarda el null en vez de borrar la clave.
+    stock_referencia: datos.stockReferencia,
   };
 }
 

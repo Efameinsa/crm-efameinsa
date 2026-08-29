@@ -257,6 +257,10 @@ function duplicado(e: EquipoCatalogo): EquipoEditable {
     nombre: `${e.nombre} (copia)`,
     duplicadoDe: `${e.marca} ${e.modelo}`,
     disponibles: null,
+    // El stock es de la máquina, no de la plantilla: se copia la ficha, no las
+    // unidades que hay en planta. Heredarlo publicaría en el cotizador un
+    // «hay 12» de un modelo que todavía no existe.
+    stockReferencia: null,
   };
 }
 

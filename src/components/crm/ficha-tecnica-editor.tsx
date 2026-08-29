@@ -208,6 +208,7 @@ export function FichaTecnicaEditor({
         controles: d.controles,
         montaje: d.montaje,
         colores: d.colores,
+        stockReferencia: d.stockReferencia,
         fichaTexto: bloquesATexto(bloques),
       };
 
@@ -540,15 +541,12 @@ export function FichaTecnicaEditor({
             {d.activo ? "En el catálogo — el comercial lo encuentra" : "Fuera del catálogo — el comercial no lo ve"}
           </span>
         </label>
-        {!esNuevo && (
-          <span className="text-[11px] text-muted-foreground">
-            {d.disponibles !== null
-              ? `${d.disponibles} en almacén`
-              : d.stockReferencia !== null
-                ? `${d.stockReferencia} en stock según el maestro${d.ubicacionMaestro ? ` (${d.ubicacionMaestro})` : ""}`
-                : "stock sin cargar"}
-          </span>
-        )}
+        <CampoStock
+          valor={d.stockReferencia}
+          onChange={(v) => set("stockReferencia", v)}
+          enAlmacen={d.disponibles}
+          ubicacion={d.ubicacionMaestro}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
@@ -789,6 +787,71 @@ function MuestraTipo({ t }: { t: BloqueFicha["t"] }) {
 }
 
 /** Campo con el rótulo dentro, arriba: ocupa una línea en vez de dos. */
+/**
+ * El stock, escrito a mano por operaciones.
+ *
+ * Acá había una etiqueta de solo lectura: decía cuántas había y no dejaba
+ * corregirlo. El número salía del maestro el día de la carga y envejecía solo,
+ * aunque es el que el comercial mira en el cotizador antes de prometerle una
+ * entrega al cliente. Lesly lo sabe y hasta hoy tenía que pedir que alguien lo
+ * tocara por detrás.
+ *
+ * NO DEPENDE DE NADA, que es el pedido: no cuenta series, no se descuenta al
+ * vender, no lo pisa ningún proceso. Ella escribe el número y ese es.
+ *
+ * Vacío ≠ 0. Vacío es «no sé»; 0 es «no queda ninguna». El cotizador las dice
+ * distinto —«stock s/d» y «sin stock»—, así que el campo respeta la
+ * diferencia en vez de convertir el vacío en cero.
+ *
+ * Cuando el almacén (0117) tiene máquinas cargadas de ese modelo, el conteo
+ * por serie se muestra al lado. No lo corrige ni lo pisa: son dos números que
+ * responden preguntas distintas, y ver que no coinciden es justamente la
+ * información útil.
+ */
+function CampoStock({
+  valor,
+  onChange,
+  enAlmacen,
+  ubicacion,
+}: {
+  valor: number | null;
+  onChange: (v: number | null) => void;
+  enAlmacen: number | null;
+  ubicacion: string | null;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <label className="relative block">
+        <input
+          value={valor ?? ""}
+          inputMode="numeric"
+          placeholder="—"
+          onChange={(e) => {
+            const limpio = e.target.value.replace(/[^\d]/g, "");
+            onChange(limpio === "" ? null : Number(limpio));
+          }}
+          className="h-[44px] w-24 rounded-lg border border-border bg-card px-3 pt-4 text-center font-mono text-sm outline-none transition-colors focus:border-primary"
+        />
+        <span className="pointer-events-none absolute left-0 right-0 top-1 text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Stock
+        </span>
+      </label>
+      <span className="max-w-[13rem] text-[11px] leading-tight text-muted-foreground">
+        {enAlmacen !== null ? (
+          <>
+            El almacén tiene <strong className="text-foreground">{enAlmacen}</strong> con serie
+            {enAlmacen !== valor && valor !== null && " — no coinciden"}
+          </>
+        ) : valor === null ? (
+          "Vacío es «no sé cuántas hay». Escriba 0 si no queda ninguna."
+        ) : (
+          <>Lo que ve el comercial al cotizar{ubicacion ? ` · ${ubicacion}` : ""}</>
+        )}
+      </span>
+    </div>
+  );
+}
+
 function CampoFlotante({
   etiqueta,
   valor,
