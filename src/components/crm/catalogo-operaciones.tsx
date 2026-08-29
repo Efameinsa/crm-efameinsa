@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, Eye, FileText, Search, TriangleAlert } from "lucide-react";
+import { AlertTriangle, FileText, Search, TriangleAlert } from "lucide-react";
+import { FichaEquipoModal } from "@/components/crm/ficha-equipo-modal";
 import { buscarEquipos } from "@/lib/buscar-equipo";
 import type { EquipoCatalogo, SaludCatalogo } from "@/lib/catalogo-operaciones";
 import { Input } from "@/components/ui/input";
@@ -225,24 +226,25 @@ function FilaEquipo({ equipo: e }: { equipo: EquipoCatalogo }) {
           )}
         </div>
 
-        {/* Las dos preguntas que siguen a «lo encontré»: cómo se lee y cómo se
-            imprime. La vista previa arma la cotización de verdad. */}
+        {/* Lo que sigue a «lo encontré»: abrirlo para leerlo o corregirlo, y
+            verlo impreso en cualquiera de las dos razones sociales. */}
         <div className="mt-2 flex flex-wrap gap-1.5">
+          <FichaEquipoModal equipo={e} fichaTexto={e.fichaTexto} editable={e.fichaEditable} />
           <a
             href={`/api/productos/${e.id}/vista-previa`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-accent"
           >
-            <Eye className="size-3" /> Vista previa de la cotización
+            <FileText className="size-3" /> Ver como Efameinsa
           </a>
           <a
             href={`/api/productos/${e.id}/vista-previa?serie=OPEN`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-accent"
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-accent"
           >
-            <FileText className="size-3" /> en Open
+            <FileText className="size-3" /> Ver como Open
           </a>
         </div>
       </div>

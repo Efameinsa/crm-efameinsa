@@ -1,24 +1,23 @@
 import { redirect } from "next/navigation";
-import { Ban, KeyRound } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { CodigoAutorizacion } from "@/components/crm/codigo-autorizacion";
 import { fechaHoraLima } from "@/lib/fechas";
 
 export const dynamic = "force-dynamic";
 
 /**
- * La pantalla del administrador de operaciones (reunión con gerencia del 28-08).
+ * Autorizaciones: qué se autorizó, y el código para autorizar lo siguiente.
  *
- * «Mañana no estás… Lesly se encarga, le cedemos la posta. Cualquier
- * autorización, ella tiene que ingresar para dar autorización.»
+ * ANTES ERA UN INSTRUCTIVO. La primera versión explicaba en tres párrafos
+ * cuándo la iban a llamar y qué pasaba después — «¿son instrucciones?», con
+ * razón. Un instructivo se lee una vez; esta pantalla se abre todos los días.
  *
- * Su trabajo entero cabe en dos preguntas, y esta pantalla contesta las dos:
- * qué código dicto ahora, y qué se hizo con los que dicté. Lo primero está en
- * la barra —donde lo tiene a mano cuando la llaman por teléfono, sin salir de
- * lo que estaba haciendo— y acá se explica cuándo se pide. Lo segundo es la
- * lista de abajo, que es la parte que convierte «dar un código» en autorizar:
- * dictar a ciegas y no volver a saber qué pasó no es autorizar, es adivinar.
+ * Lo que se mira a diario es el HISTORIAL —qué se anuló, quién lo pidió y por
+ * qué—, así que ocupa la pantalla. El código va al costado, con su reloj, que
+ * es donde la mano lo busca cuando suena el teléfono. Lo demás cabe en un
+ * renglón: no hace falta explicar el procedimiento a quien lo hace.
  */
 
 interface FilaBitacora {
@@ -46,46 +45,7 @@ export default async function OperacionesPage() {
   const filas = (data ?? []) as unknown as FilaBitacora[];
 
   return (
-    <div className="space-y-4">
-      <SeccionPanel titulo="Autorizaciones">
-        <div className="space-y-3">
-          <p className="max-w-prose text-sm leading-snug text-muted-foreground">
-            Su código está en la barra de la izquierda. <strong className="text-foreground">No se muestra solo</strong>:
-            hay que pedirlo, dura diez minutos y sirve para una corrección. Si hacen falta dos, son dos llamadas.
-          </p>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-border p-3">
-              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                <KeyRound className="size-3.5" /> Cuándo se lo van a pedir
-              </p>
-              <p className="mt-1 text-sm leading-snug text-foreground">
-                Central encuentra un cierre equivocado —el equipo no es, el monto no coincide con el voucher— y
-                necesita anularlo. La llama, usted dicta el código y ella anula.
-              </p>
-            </div>
-            <div className="rounded-lg border border-border p-3">
-              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                <Ban className="size-3.5" /> Qué pasa después
-              </p>
-              <p className="mt-1 text-sm leading-snug text-foreground">
-                El informe se queda con su número y deja de contar; la venta se anula con él y el comercial emite uno
-                nuevo. Nada se borra.
-              </p>
-            </div>
-          </div>
-
-          {/* Lo que su código NO abre. Vale decirlo: es la diferencia entre una
-              facultad acotada y una llave maestra, y es lo que hace que se
-              pueda delegar sin miedo. */}
-          <p className="max-w-prose rounded-md border border-dashed border-border bg-secondary/40 p-2.5 text-xs leading-snug text-muted-foreground">
-            Su código autoriza <strong className="text-foreground">anular un cierre</strong> y{" "}
-            <strong className="text-foreground">corregir una derivación</strong>. Mover la cartera de un comercial a
-            otro sigue siendo de gerencia: eso es plata de alguien y se autoriza aparte.
-          </p>
-        </div>
-      </SeccionPanel>
-
+    <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
       <SeccionPanel
         titulo="Lo que se autorizó"
         accion={
@@ -96,8 +56,8 @@ export default async function OperacionesPage() {
       >
         {filas.length === 0 ? (
           <p className="max-w-prose text-sm text-muted-foreground">
-            Todavía no se anuló ningún cierre. Cuando Central anule uno con un código, aparece acá con el motivo que
-            escribió y quién lo autorizó.
+            Todavía no se autorizó ninguna corrección. Cuando Central anule un cierre con su código, aparece acá con el
+            motivo que escribió, a quién le tocaba ese cierre y quién lo autorizó.
           </p>
         ) : (
           <div className="space-y-2">
@@ -124,6 +84,18 @@ export default async function OperacionesPage() {
           </div>
         )}
       </SeccionPanel>
+
+      <aside className="space-y-3">
+        <CodigoAutorizacion />
+
+        {/* Lo único que hace falta recordar, en un renglón: hasta dónde llega
+            este código. El procedimiento no se explica acá — lo hace ella. */}
+        <p className="rounded-lg border border-dashed border-border bg-secondary/40 p-3 text-[11px] leading-snug text-muted-foreground">
+          Sirve para <strong className="text-foreground">anular un cierre</strong> y{" "}
+          <strong className="text-foreground">corregir una derivación</strong>. Traspasar la cartera de un comercial a
+          otro lo sigue autorizando gerencia.
+        </p>
+      </aside>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { textoABloques } from "@/lib/ficha-texto";
 
 /** Una viñeta por línea, que es como se pega desde la ficha en Word. */
 function lineas(formData: FormData, campo: string): string[] {
@@ -78,4 +79,78 @@ export async function crearProducto(formData: FormData): Promise<{ error: string
 
   revalidatePath("/admin/productos");
   return { error: null };
+}
+
+/**
+ * Editar un equipo del catálogo (migración 0119).
+ *
+ * La ficha se guarda MEZCLADA sobre la que ya estaba, no reemplazada: en
+ * `ficha` viven además cosas que esta pantalla no toca —las fotos por color de
+ * los coches, el orden de las secciones, la marca del maestro, las dos torres
+ * lavadora-secadora con su bloque por máquina—. Escribir un objeto nuevo encima
+ * borraría todo eso sin avisar.
+ */
+
+export interface DatosEquipo {
+  nombre: string;
+  marca: string;
+  modelo: string;
+  sku: string | null;
+  categoria: string | null;
+  capacidad: string | null;
+  segmento: "industrial" | "semi_industrial";
+  activo: boolean;
+  /** La descripción impresa, en el texto de la pantalla. */
+  fichaTexto: string;
+}
+
+export async function guardarEquipo(id: string, datos: DatosEquipo): Promise<{ error: string | null }> {
+  if (datos.nombre.trim().length < 3) return { error: "El nombre necesita al menos tres letras" };
+  if (datos.marca.trim() === "" || datos.modelo.trim() === "") return { error: "Marca y modelo son obligatorios" };
+
+  const supabase = await createClient();
+  const { data: actual } = await supabase.from("productos").select("ficha").eq("id", id).maybeSingle();
+  if (!actual) return { error: "Ese equipo ya no está en el catálogo" };
+
+  const bloques = textoABloques(datos.fichaTexto);
+  if (bloques.length === 0) return { error: "La ficha no puede quedar vacía: es lo que sale impreso" };
+
+  const ficha = { ...((actual.ficha ?? {}) as Record<string, unknown>), bloques };
+
+  const { error } = await supabase
+    .from("productos")
+    .update({
+      nombre: datos.nombre.trim(),
+      marca: datos.marca.trim(),
+      modelo: datos.modelo.trim(),
+      sku: datos.sku?.trim() || null,
+      categoria: datos.categoria?.trim() || null,
+      capacidad: datos.capacidad?.trim() || null,
+      segmento: datos.segmento,
+      activo: datos.activo,
+      ficha,
+    })
+    .eq("id", id);
+
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+  revalidatePath("/operaciones/catalogo");
+  revalidatePath("/operaciones/inventario");
+  return { error: null };
+}
+
+export async function fijarPrecio(
+  productoId: string,
+  tier: string,
+  precio: number,
+): Promise<{ error: string | null; anterior?: number | null; sinCambio?: boolean }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fijar_precio_producto", {
+    p_producto: productoId,
+    p_tier: tier,
+    p_precio: precio,
+  });
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+  revalidatePath("/operaciones/catalogo");
+  const r = (data ?? {}) as { anterior?: number | null; sin_cambio?: boolean };
+  return { error: null, anterior: r.anterior ?? null, sinCambio: Boolean(r.sin_cambio) };
 }

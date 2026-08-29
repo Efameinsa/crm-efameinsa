@@ -1,4 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
+import { bloquesATexto, fichaEsEditable, type BloqueFicha } from "@/lib/ficha-texto";
 
 /**
  * El catálogo visto por quien lo mantiene.
@@ -38,6 +39,10 @@ export interface EquipoCatalogo {
   precios: { tier: string; precio: number }[];
   /** Cuántas hay en el almacén (0117); null si ese modelo todavía no se cargó. */
   disponibles: number | null;
+  /** La descripción impresa, ya como texto editable (ver ficha-texto.ts). */
+  fichaTexto: string;
+  /** Si la ida y vuelta de esa ficha es exacta; si no, se mira pero no se edita. */
+  fichaEditable: boolean;
 }
 
 export interface SaludCatalogo {
@@ -82,6 +87,7 @@ export async function cargarCatalogo(
 
   const equipos: EquipoCatalogo[] = (data ?? []).map((p) => {
     const ficha = (p.ficha ?? null) as Record<string, unknown> | null;
+    const bloques = (Array.isArray(ficha?.bloques) ? ficha.bloques : []) as BloqueFicha[];
     const precios = ((p.precios_producto ?? []) as { tier: string; precio: number; vigente_hasta: string | null }[])
       .filter((x) => x.vigente_hasta === null)
       .map((x) => ({ tier: x.tier, precio: Number(x.precio) }));
@@ -105,6 +111,8 @@ export async function cargarCatalogo(
       tieneFicha: ficha != null && Object.keys(ficha).length > 0,
       precios,
       disponibles: enAlmacen.has(p.id as string) ? (enAlmacen.get(p.id as string) ?? 0) : null,
+      fichaTexto: bloques.length ? bloquesATexto(bloques) : "",
+      fichaEditable: bloques.length > 0 && fichaEsEditable(bloques),
     };
   });
 
