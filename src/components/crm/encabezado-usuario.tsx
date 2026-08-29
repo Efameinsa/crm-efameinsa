@@ -9,6 +9,7 @@ const ETIQUETA_ROL: Record<Perfil["rol"], string> = {
   gerencia: "Gerencia",
   central: "Central",
   comercial: "Comercial",
+  operaciones: "Operaciones",
 };
 
 export function EncabezadoUsuario({ perfil }: { perfil: Perfil }) {

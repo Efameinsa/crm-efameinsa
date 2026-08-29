@@ -71,6 +71,17 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/gerencia/accesos", etiqueta: "Accesos y equipos", icono: ShieldCheck },
     { href: "/gerencia/cartera-liberable", etiqueta: "Cartera liberable", icono: FileText },
   ],
+  // OPERACIONES (0115). Su día no es vender: es autorizar lo que los demás
+  // no pueden corregir solos, repartir los permisos que se dan y se quitan,
+  // y mantener el maestro del que salen los precios. Tres cosas, tres
+  // enlaces — y ninguno dice «mis», porque nada de esto es de ella: es de la
+  // empresa y ella lo administra.
+  operaciones: [
+    { href: "/operaciones", etiqueta: "Autorizaciones", icono: KeyRound },
+    { href: "/operaciones/permisos", etiqueta: "Permisos", icono: ShieldCheck },
+    { href: "/admin/productos", etiqueta: "Productos y precios", icono: Package },
+    { href: "/admin/catalogos", etiqueta: "Catálogos", icono: BookMarked },
+  ],
   admin: [
     { href: "/admin", etiqueta: "Usuarios", icono: Users },
     { href: "/admin/productos", etiqueta: "Productos y precios", icono: Package },
@@ -169,15 +180,20 @@ export function NavLateral({
   //
   // Y el orden cambia: primero lo que ella sí hace —autorizar y postventa—, y
   // al final lo que mira para ayudar a otros.
-  const secciones: { titulo?: string; enlaces: typeof ENLACES_POSTVENTA }[] = esSoporte
+  const enlacesDelArea = ENLACES_POSTVENTA.filter(
+    (e) => e.href.startsWith("/postventa") || e.href === "/comercial/ruta",
+  ).map((e) => (e.href === "/postventa" ? { ...e, etiqueta: "Mi día en postventa" } : e));
+
+  const secciones: { titulo?: string; enlaces: typeof ENLACES_POSTVENTA }[] =
+    rol === "operaciones"
+      ? [
+          { titulo: "Operaciones", enlaces: ENLACES_POR_ROL[rol] },
+          { titulo: "Postventa", enlaces: enlacesDelArea },
+        ]
+      : esSoporte
     ? [
         ...(esOperaciones ? [{ titulo: "Operaciones", enlaces: [ENLACE_OPERACIONES] }] : []),
-        {
-          titulo: "Postventa",
-          enlaces: ENLACES_POSTVENTA.filter(
-            (e) => e.href.startsWith("/postventa") || e.href === "/comercial/ruta",
-          ).map((e) => (e.href === "/postventa" ? { ...e, etiqueta: "Mi día en postventa" } : e)),
-        },
+        { titulo: "Postventa", enlaces: enlacesDelArea },
         { titulo: "Como lo ve un comercial", enlaces: ENLACES_POR_ROL[rol] },
       ]
     : [

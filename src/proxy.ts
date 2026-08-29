@@ -6,6 +6,7 @@ const RUTA_POR_ROL: Record<string, string> = {
   gerencia: "/gerencia",
   central: "/central",
   comercial: "/comercial",
+  operaciones: "/operaciones",
 };
 
 export async function proxy(request: NextRequest) {

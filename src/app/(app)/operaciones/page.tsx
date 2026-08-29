@@ -37,7 +37,8 @@ interface FilaBitacora {
 
 export default async function OperacionesPage() {
   const perfil = await requerirPerfil();
-  const puede = perfil.es_operaciones || perfil.rol === "gerencia" || perfil.rol === "admin";
+  const puede =
+    perfil.rol === "operaciones" || perfil.es_operaciones || perfil.rol === "gerencia" || perfil.rol === "admin";
   if (!puede) redirect("/comercial");
 
   const supabase = await createClient();
@@ -78,8 +79,9 @@ export default async function OperacionesPage() {
               facultad acotada y una llave maestra, y es lo que hace que se
               pueda delegar sin miedo. */}
           <p className="max-w-prose rounded-md border border-dashed border-border bg-secondary/40 p-2.5 text-xs leading-snug text-muted-foreground">
-            Su código autoriza correcciones <strong className="text-foreground">operativas</strong>. Mover la cartera de
-            un comercial a otro sigue siendo de gerencia: eso es plata de alguien y se autoriza aparte.
+            Su código autoriza <strong className="text-foreground">anular un cierre</strong> y{" "}
+            <strong className="text-foreground">corregir una derivación</strong>. Mover la cartera de un comercial a
+            otro sigue siendo de gerencia: eso es plata de alguien y se autoriza aparte.
           </p>
         </div>
       </SeccionPanel>
