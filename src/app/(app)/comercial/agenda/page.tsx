@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { BotonCierreSemanal } from "@/components/crm/boton-cierre-semanal";
+import { BotonReporteMensual } from "@/components/crm/boton-reporte-mensual";
+import { mesPorDefecto } from "@/lib/cierre-mensual";
 import { AgendaMensual, type AccionAgenda, type HechaAgenda, type VentaAgenda, type HistItem, type TareaAgenda } from "@/components/crm/agenda-mensual";
 import { SemanaPotenciales } from "@/components/crm/semana-potenciales";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -174,6 +176,12 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
               el mismo hábito a distinta escala: «tiene que analizarse día a
               día, semanalmente» (ing. Carlos, 27-08). Está siempre, no solo el
               sábado — a mitad de semana sirve para ver cuánto falta. */}
+          {/* Y el mes, al lado de los otros dos (ing. Carlos, 31-08: «que los
+              comerciales también puedan descargar su reporte mensual»). Es la
+              misma escalera, leída de izquierda a derecha: el mes, la semana
+              y el día, con el de hoy —el de todos los días— al final. Trae elegido el mes
+              que corresponde según en qué día se esté — ver `mesPorDefecto`. */}
+          <BotonReporteMensual mes={mesPorDefecto(hoy)} />
           <BotonCierreSemanal semana={lunes} />
           <BotonReporteDiario fecha={hoy} etiqueta="Reporte de hoy" />
         </div>
