@@ -111,7 +111,7 @@ export default async function PostventaPage() {
       // Kanban, no compite acá por la primera mirada del día.
       supabase
         .from("oportunidades")
-        .select("id, tipo_postventa, intencion, created_at, cuentas(razon_social)")
+        .select("id, tipo_postventa, serie_texto, codigo_error, created_at, cuentas(razon_social)")
         .eq("comercial_id", perfil.id)
         .eq("origen", "crm")
         .eq("etapa", "asignada")
@@ -150,7 +150,7 @@ export default async function PostventaPage() {
 
   const verPrecios = puedeVerPrecios(perfil);
 
-  // ── La bandeja única: «Llegó y espera su acuse» ───────────────────────────
+  // ── La bandeja única: «Sin atender todavía» ───────────────────────────────
   const itemsPedidos: ItemBandeja[] = (nuevos as unknown as ServicioPostventa[] | null ?? []).map((s) => {
     // El filtro de la consulta ya exige `pedido_ejecutado_at` no nulo.
     const reloj = relojPedido(s.pedido_ejecutado_at as string);
@@ -176,19 +176,25 @@ export default async function PostventaPage() {
   const itemsCasos: ItemBandeja[] = ((casos ?? []) as unknown as {
     id: string;
     tipo_postventa: string | null;
-    intencion: string | null;
+    serie_texto: string | null;
+    codigo_error: string | null;
     created_at: string;
     cuentas: { razon_social: string } | null;
   }[]).map((c) => {
     const sla = slaCaso(c.tipo_postventa, c.created_at, false);
     const tipo = c.tipo_postventa;
+    // NO `c.intencion`: es la intención de COMPRA («alto_potencial»,
+    // «sin_definir»...), un dato comercial que no describe el caso técnico y
+    // que salía crudo en pantalla («· sin_definir»). Lo que sí describe el
+    // caso es la serie del equipo o el código de error, cuando los hay.
+    const detalle = c.codigo_error ? `error ${c.codigo_error}` : c.serie_texto ? `serie ${c.serie_texto}` : null;
     return {
       clave: `caso-${c.id}`,
       href: `/comercial/oportunidades/${c.id}`,
       icono: tipo === "garantia" ? ShieldCheck : tipo === "repuesto" ? PackageSearch : Wrench,
       cliente: c.cuentas?.razon_social ?? "Cliente sin nombre",
       etiqueta: tipo ? (ETIQUETA_TIPO_CASO[tipo] ?? tipo) : "Sin clasificar",
-      detalle: c.intencion,
+      detalle,
       estado: sla.estado,
       horas: sla.horas,
       limite: sla.limite,
@@ -244,7 +250,7 @@ export default async function PostventaPage() {
       </div>
 
       <SeccionPanel
-        titulo="Llegó y espera su acuse"
+        titulo="Sin atender todavía"
         accion={
           bandeja.length > 0 ? (
             <span
@@ -261,8 +267,8 @@ export default async function PostventaPage() {
       >
         {bandeja.length === 0 ? (
           <Vacio>
-            Nada esperando acuse. Acá caen los pedidos que libera Central, los casos recién asignados y las
-            atenciones que Central acaba de devolver al área — apenas se registren, antes de tomarlos.
+            Nada por atender. Acá caen los pedidos que libera Central, los casos recién asignados y las atenciones
+            que Central acaba de devolver al área — apenas se registren, antes de que alguien las tome.
           </Vacio>
         ) : (
           <div className="space-y-2">
