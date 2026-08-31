@@ -370,6 +370,10 @@ export async function borrarBorradorInforme(informeId: string): Promise<{ error:
   const { error } = await supabase.from("informes_cierre").delete().eq("id", informeId);
   if (error) return { error: error.message };
   revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
+  // También la lista del comercial: desde el 31-08 el botón de borrar vive ahí
+  // (pedido de Brenda), y sin esto la fila borrada seguía en pantalla hasta
+  // recargar a mano.
+  revalidatePath("/comercial/cierres");
   return { error: null };
 }
 

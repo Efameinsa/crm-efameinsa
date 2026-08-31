@@ -7,6 +7,7 @@ import { fechaCalendario } from "@/lib/fechas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { BorrarBorradorBoton } from "@/components/crm/borrar-borrador-boton";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,24 @@ export default async function MisCierresPage({
     .order("created_at", { ascending: false })
     .range((pag - 1) * POR_PAGINA, pag * POR_PAGINA - 1);
 
+  // EL CONTADOR TIENE QUE DECIR QUÉ CUENTA. Decía «6 informes» juntando
+  // emitidos, borradores y anulados en un número solo, y por eso al ing. Carlos
+  // no le cuadró («acá tiene uno y dos, no sé cómo está la contabilización»,
+  // 31-08): Brenda ve 6 y en la lista hay 4 con número. Son tres cosas
+  // distintas y ahora se dicen por separado.
+  const contar = (aplicar: (q: ReturnType<typeof consultaBase>) => ReturnType<typeof consultaBase>) =>
+    aplicar(consultaBase());
+  const consultaBase = () =>
+    supabase
+      .from("informes_cierre")
+      .select("id, cuentas!inner(comercial_id)", { count: "exact", head: true })
+      .eq("cuentas.comercial_id", perfil.id);
+  const [{ count: nBorradores }, { count: nAnulados }] = await Promise.all([
+    contar((q) => q.is("emitido_at", null).is("anulado_at", null)),
+    contar((q) => q.not("anulado_at", "is", null)),
+  ]);
+  const nEmitidos = (count ?? 0) - (nBorradores ?? 0) - (nAnulados ?? 0);
+
   const filas = data ?? [];
   const hayMas = (count ?? 0) > pag * POR_PAGINA;
   const enlace = (p: number) =>
@@ -84,8 +103,16 @@ export default async function MisCierresPage({
     <SeccionPanel
       titulo="Mis cierres"
       accion={
-        <span className="text-xs text-muted-foreground">
-          {(count ?? 0).toLocaleString("es-PE")} {count === 1 ? "informe" : "informes"}
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">
+            {nEmitidos.toLocaleString("es-PE")} {nEmitidos === 1 ? "emitido" : "emitidos"}
+          </span>
+          {(nBorradores ?? 0) > 0 && (
+            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-700">
+              {nBorradores} {nBorradores === 1 ? "borrador" : "borradores"}
+            </span>
+          )}
+          {(nAnulados ?? 0) > 0 && <span>· {nAnulados} anulados</span>}
         </span>
       }
     >
@@ -119,18 +146,27 @@ export default async function MisCierresPage({
             : "Todavía no tiene cierres. El informe se genera al cerrar una venta y es lo que Central necesita para facturar y despachar."}
         </p>
       ) : (
-        <div className="space-y-1.5">
+        // La grilla mide ~49rem: en pantalla angosta se desplaza dentro de su
+        // caja en vez de romper la alineación, que es lo que se vino a arreglar.
+        <div className="-mx-1 overflow-x-auto px-1">
+        <div className="min-w-[50rem] space-y-1.5">
           {filas.map((f) => (
-            // Toda la fila abre el PDF, como en «Mis cotizaciones»: no hay que
-            // apuntarle a un botón chico.
-            <a
+            // LAS COLUMNAS TIENEN QUE CAER SIEMPRE EN EL MISMO SITIO. Brenda
+            // mandó el pantallazo el 31-08 con la fecha y el monto marcados a
+            // mano: en las filas de borrador estaban corridos. La causa era la
+            // maquetación, no los datos — la fila era `flex` con el nombre del
+            // cliente en `flex-1`, así que la etiqueta «sin numerar», que solo
+            // tienen los borradores, le robaba ancho al nombre y arrastraba
+            // fecha, monto y serie hacia la izquierda. Con grilla de columnas
+            // fijas, las opcionales viven en su propia celda y no mueven nada.
+            //
+            // La fila entera sigue abriendo el PDF, pero con un enlace estirado
+            // por encima en vez de envolver todo: así adentro puede haber un
+            // botón de verdad (borrar) sin anidar un <button> dentro de un <a>.
+            <div
               key={f.id}
-              href={`/api/informes/${f.id}/pdf`}
-              target="_blank"
-              rel="noreferrer"
-              title="Abrir el informe de cierre"
               className={cn(
-                "flex flex-wrap items-center gap-3 rounded-md border p-2.5 transition-colors hover:bg-accent",
+                "relative grid grid-cols-[6rem_minmax(11rem,1fr)_5.5rem_7rem_5.5rem_10rem_3.5rem] items-center gap-3 rounded-md border p-2.5 transition-colors hover:bg-accent",
                 f.anulado_at
                   ? "border-dashed border-border bg-secondary/30"
                   : f.urgente
@@ -138,51 +174,75 @@ export default async function MisCierresPage({
                     : "border-border",
               )}
             >
-              <span className="w-24 flex-none font-mono text-xs font-semibold text-foreground">
+              <a
+                href={`/api/informes/${f.id}/pdf`}
+                target="_blank"
+                rel="noreferrer"
+                title="Abrir el informe de cierre"
+                aria-label={`Abrir el informe de ${f.cliente_nombre}`}
+                className="absolute inset-0 rounded-md"
+              />
+              <span className="truncate font-mono text-xs font-semibold text-foreground">
                 {f.emitido_at ? `Nº ${f.codigo}` : "Borrador"}
               </span>
-              <span className="min-w-[200px] flex-1 text-sm text-foreground">
+              <span className="min-w-0 truncate text-sm text-foreground">
                 {f.cliente_nombre}
                 {f.cliente_doc && (
                   <span className="ml-2 font-mono text-[11px] text-muted-foreground">{f.cliente_doc}</span>
                 )}
               </span>
-              <span className="w-24 text-xs tabular-nums text-muted-foreground">{fechaCalendario(f.fecha)}</span>
-              <span className="w-28 text-right text-xs tabular-nums text-foreground">
+              <span className="text-xs tabular-nums text-muted-foreground">{fechaCalendario(f.fecha)}</span>
+              <span className="text-right text-xs tabular-nums text-foreground">
                 {f.moneda} {Number(f.monto_total).toLocaleString("es-PE")}
               </span>
               <span
                 className={cn(
-                  "w-24 rounded-full px-2 py-0.5 text-center text-[10px] font-semibold",
+                  "rounded-full px-2 py-0.5 text-center text-[10px] font-semibold",
                   f.serie === "OPEN" ? "bg-secondary text-muted-foreground" : "bg-primary/10 text-primary",
                 )}
               >
                 {f.serie === "OPEN" ? "Open" : "Efameinsa"}
               </span>
-              {/* Un cierre sin numerar todavía no llegó a Central: mientras se
+              {/* Las etiquetas variables, todas en una sola celda de ancho fijo.
+                  Un cierre sin numerar todavía no llegó a Central: mientras se
                   vea así, se puede terminar. */}
-              {!f.emitido_at && (
-                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                  sin numerar
-                </span>
-              )}
-              {f.urgente && !f.anulado_at && (
-                <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
-                  URGENTE
-                </span>
-              )}
-              <FileText className="size-3.5 text-muted-foreground" />
+              <span className="flex flex-wrap items-center justify-end gap-1">
+                {!f.emitido_at && (
+                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                    sin numerar
+                  </span>
+                )}
+                {f.urgente && !f.anulado_at && (
+                  <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
+                    URGENTE
+                  </span>
+                )}
+              </span>
+              <span className="flex items-center justify-end gap-0.5">
+                <FileText className="size-3.5 flex-none text-muted-foreground" />
+                {/* Borrar el borrador: pedido de Brenda el 31-08, autorizado por
+                    Santos. Solo aparece si no está emitido; la base lo vuelve a
+                    exigir con la política `informes_borra`. */}
+                {!f.emitido_at && !f.anulado_at && (
+                  <BorrarBorradorBoton
+                    informeId={f.id}
+                    cliente={f.cliente_nombre}
+                    monto={`${f.moneda} ${Number(f.monto_total).toLocaleString("es-PE")}`}
+                  />
+                )}
+              </span>
               {/* Un cierre anulado tiene que contestar solo la pregunta con la
                   que el comercial lo va a mirar: por qué, y que le toca emitir
                   uno nuevo (reunión con gerencia del 28-08). */}
               {f.anulado_at && (
-                <span className="w-full text-[11px] leading-snug text-muted-foreground">
+                <span className="col-span-full text-[11px] leading-snug text-muted-foreground">
                   <span className="font-semibold uppercase text-foreground">Anulado</span>
                   {f.anulado_motivo ? ` · ${f.anulado_motivo}` : ""} · hay que emitir un cierre nuevo.
                 </span>
               )}
-            </a>
+            </div>
           ))}
+        </div>
         </div>
       )}
 
