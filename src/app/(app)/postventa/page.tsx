@@ -171,7 +171,10 @@ export default async function PostventaPage() {
       clave: `pedido-${s.id}`,
       href: `/postventa/pedidos/${s.id}`,
       icono: Inbox,
-      cliente: s.cliente_texto ?? "Cliente sin nombre",
+      // El texto importado trae el RUC pegado adelante («20000000102 - HOTEL…»)
+      // y las atenciones no: dos formatos para el mismo cliente en la misma
+      // lista confunden (Santos, 31-08). El RUC se quita solo para mostrar.
+      cliente: (s.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, ""),
       etiqueta: "Nuevo pedido",
       detalle: verPrecios
         ? s.monto
