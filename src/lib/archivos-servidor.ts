@@ -63,6 +63,48 @@ export function enlaceFirmado(rutaAbsoluta: string, segundos = VIGENCIA_SEGUNDOS
   return u.toString();
 }
 
+export interface ElementoCarpeta {
+  nombre: string;
+  tipo: "archivo" | "carpeta";
+  ext?: string;
+  peso?: number | null;
+  modificado?: string | null;
+}
+
+/**
+ * Qué hay en la carpeta de UN cliente en el servidor.
+ *
+ * Es lo que arma la vista «Documentos del servidor» de la ficha: las carpetas
+ * del servidor están organizadas por cliente, y esta llamada le pregunta a UNA
+ * de ellas qué contiene. La firma lleva el prefijo «carpeta:» a propósito, para
+ * que un enlace de archivo no sirva como enlace de listado ni al revés.
+ *
+ * Devuelve `null` si el servidor no está configurado o no responde: la pantalla
+ * muestra su cartel de «no disponible» y sigue — nunca se cuelga esperando a
+ * una máquina apagada.
+ */
+export async function listarCarpetaServidor(
+  rutaCarpeta: string,
+  msEspera = 2500,
+): Promise<{ elementos: ElementoCarpeta[]; truncado: boolean } | null> {
+  if (!servidorDeArchivosActivo()) return null;
+  const rutaB64 = Buffer.from(rutaCarpeta, "utf8").toString("base64url");
+  const vence = Math.floor(Date.now() / 1000) + VIGENCIA_SEGUNDOS;
+  const firma = createHmac("sha256", secreto()).update(`carpeta:${rutaB64}.${vence}`).digest("base64url");
+  const u = new URL("/carpeta", base());
+  u.searchParams.set("p", rutaB64);
+  u.searchParams.set("e", String(vence));
+  u.searchParams.set("s", firma);
+  try {
+    const r = await fetch(u, { signal: AbortSignal.timeout(msEspera), cache: "no-store" });
+    if (!r.ok) return null;
+    const j = (await r.json()) as { elementos: ElementoCarpeta[]; truncado: boolean };
+    return { elementos: j.elementos ?? [], truncado: Boolean(j.truncado) };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * ¿Está vivo el servidor de archivos?
  *

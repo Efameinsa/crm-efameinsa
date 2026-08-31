@@ -244,5 +244,7 @@ los afecta a los tres), `src/app/(app)/postventa/*` completo,
 ## 4 · Fuera de alcance de este plan (queda en docs/22)
 
 El cierre semanal del área en dos bloques (M/G5), el registro de llamada G8, el
-módulo de almacén (postergado por Santos), la segunda cuenta del área (Daisy), y
-los informes del servidor de archivos (esperando al ingeniero de sistemas).
+módulo de almacén (postergado por Santos) y la segunda cuenta del área (Daisy).
+Las vistas de los documentos del servidor —informes, fotos y videos— tienen su
+propio plan completo en `docs/24-vistas-documentos-del-servidor.md`, que se
+puede ejecutar antes, después o intercalado con este sin pisarse.
