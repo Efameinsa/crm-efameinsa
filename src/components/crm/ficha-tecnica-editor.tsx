@@ -574,6 +574,16 @@ export function FichaTecnicaEditor({
         <Button onClick={guardar} disabled={enviando}>
           {enviando ? "Guardando…" : esNuevo ? "Cargar el equipo al catálogo" : "Guardar los cambios"}
         </Button>
+        {/* SALIR SIN GUARDAR, DICHO CON TODAS LAS LETRAS.
+            Se podía desde el principio —la X de la esquina, Esc, un clic
+            afuera— pero ninguna de las tres lo dice, y quien acaba de soltar
+            un Word equivocado no está para adivinar si cerrar pierde algo o
+            deja el equipo a medio cargar (Santos, 31-08). No pregunta dos
+            veces: nada de esto se escribió todavía, y una confirmación en cada
+            salida molesta más de lo que salva. */}
+        <Button variant="ghost" onClick={() => onListo()} disabled={enviando}>
+          Cancelar
+        </Button>
         {!esNuevo && (
           <>
             <a

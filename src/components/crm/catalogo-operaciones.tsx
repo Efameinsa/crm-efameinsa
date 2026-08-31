@@ -211,9 +211,15 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
             <DialogTitle>
               {abierto?.duplicadoDe
                 ? `Duplicado de ${abierto.duplicadoDe} — sin guardar`
-                : abierto?.id === null
-                  ? "Cargar un equipo al catálogo"
-                  : `${abierto?.marca} ${abierto?.modelo} — así sale impreso`}
+                : // DE QUÉ WORD SALIÓ. Una ficha leída de un archivo equivocado
+                  // abre igual de llena y de creíble que la correcta: lo único
+                  // que delata el error es el nombre del archivo, así que va en
+                  // el título y no escondido adentro (Santos, 31-08).
+                  abierto?.leidaDe
+                  ? `Leída de ${abierto.leidaDe} — sin guardar`
+                  : abierto?.id === null
+                    ? "Cargar un equipo al catálogo"
+                    : `${abierto?.marca} ${abierto?.modelo} — así sale impreso`}
             </DialogTitle>
           </DialogHeader>
           {abierto && (
