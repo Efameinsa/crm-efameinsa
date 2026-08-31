@@ -63,6 +63,28 @@ export function enlaceFirmado(rutaAbsoluta: string, segundos = VIGENCIA_SEGUNDOS
   return u.toString();
 }
 
+/**
+ * La URL firmada de una carpeta, para abrirla como PÁGINA en pestaña nueva.
+ *
+ * Es el mismo armado que usa `listarCarpetaServidor`, pero devolviendo la URL
+ * en vez de hacer el fetch: en la fase 1 (sin certificado) el navegador no
+ * puede LEER datos http desde la página https del CRM, pero sí NAVEGAR — así
+ * que la ficha ofrece botones que abren la carpeta-página del servicio.
+ * `q` filtra por nombre en el servidor (los informes de UNA serie).
+ */
+export function enlaceCarpetaFirmado(rutaCarpeta: string, q?: string, segundos = VIGENCIA_SEGUNDOS): string | null {
+  if (!servidorDeArchivosActivo()) return null;
+  const rutaB64 = Buffer.from(rutaCarpeta, "utf8").toString("base64url");
+  const vence = Math.floor(Date.now() / 1000) + segundos;
+  const firma = createHmac("sha256", secreto()).update(`carpeta:${rutaB64}.${vence}`).digest("base64url");
+  const u = new URL("/carpeta", base());
+  u.searchParams.set("p", rutaB64);
+  u.searchParams.set("e", String(vence));
+  u.searchParams.set("s", firma);
+  if (q) u.searchParams.set("q", q);
+  return u.toString();
+}
+
 export interface ElementoCarpeta {
   nombre: string;
   tipo: "archivo" | "carpeta";

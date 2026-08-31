@@ -157,3 +157,54 @@ export async function reasignarCartera(
   revalidatePath("/gerencia/clientes");
   return { error: null, movidas: r.oportunidades_movidas };
 }
+
+/**
+ * Vincula (o cambia) la carpeta del servidor de la oficina de este cliente.
+ *
+ * Plan 24, fase 1: el vínculo vive en `cuentas.carpetas_servidor` (0135) por
+ * clase — { informes: "X:\S. PRIVADO\...", fotos: "W:\FOTOS\..." }. La
+ * ruta tiene que existir en el índice `carpetas_servidor`: la URL de un form
+ * la escribe cualquiera, y este es el único lugar donde se valida que la
+ * carpeta es una de las del servidor y no una ruta inventada.
+ *
+ * Lo puede hacer cualquier usuario que vea la ficha (las políticas de
+ * `cuentas` mandan) y es reversible con `ruta = null`.
+ */
+export async function vincularCarpetaServidor(datos: {
+  cuentaId: string;
+  clase: "informes" | "fotos";
+  ruta: string | null;
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  if (datos.ruta !== null) {
+    const { data: carpeta } = await supabase
+      .from("carpetas_servidor")
+      .select("ruta, clase")
+      .eq("ruta", datos.ruta)
+      .maybeSingle();
+    if (!carpeta) return { error: "Esa carpeta no está en el índice del servidor. Corra el indexador si es nueva." };
+    if (carpeta.clase !== datos.clase) return { error: "Esa carpeta es de otra clase de documentos." };
+  }
+
+  const { data: cuenta, error: e1 } = await supabase
+    .from("cuentas")
+    .select("carpetas_servidor")
+    .eq("id", datos.cuentaId)
+    .maybeSingle();
+  if (e1 || !cuenta) return { error: "No se encontró la ficha del cliente." };
+
+  const actual = (cuenta.carpetas_servidor ?? {}) as Record<string, string>;
+  if (datos.ruta === null) delete actual[datos.clase];
+  else actual[datos.clase] = datos.ruta;
+
+  const { error } = await supabase
+    .from("cuentas")
+    .update({ carpetas_servidor: Object.keys(actual).length ? actual : null })
+    .eq("id", datos.cuentaId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/comercial/cartera/${datos.cuentaId}`);
+  revalidatePath(`/gerencia/clientes/${datos.cuentaId}`);
+  return { error: null };
+}

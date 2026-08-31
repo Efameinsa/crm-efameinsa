@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ShieldCheck, ShieldOff } from "lucide-react";
+import { ArrowLeft, ExternalLink, FolderOpen, ShieldCheck, ShieldOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
+import { enlaceCarpetaFirmado } from "@/lib/archivos-servidor";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { InformeServicioNuevo } from "@/components/crm/informe-servicio-nuevo";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
@@ -32,7 +33,7 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
     // La columna del documento se llama num_doc: pedirla como `documento`
     // hacía fallar la consulta entera y la ficha devolvía 404 para TODA
     // máquina. Encontrado el 28-08 al montar el informe acá.
-    .select("*, cuentas(id, razon_social, num_doc)")
+    .select("*, cuentas(id, razon_social, num_doc, carpetas_servidor)")
     .eq("id", id)
     .single();
   if (!data) notFound();
@@ -44,7 +45,18 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
     .order("ejecutado_at", { ascending: false })
     .limit(50);
 
-  const cuenta = data.cuentas as unknown as { id: string; razon_social: string; num_doc: string | null } | null;
+  const cuenta = data.cuentas as unknown as {
+    id: string;
+    razon_social: string;
+    num_doc: string | null;
+    carpetas_servidor: Record<string, string> | null;
+  } | null;
+  // Los informes de ESTA serie en el servidor de la oficina (plan 24, V2):
+  // la carpeta de informes del cliente, ya filtrada por el número de serie.
+  const enlaceInformesServidor =
+    cuenta?.carpetas_servidor?.informes && data.serie
+      ? enlaceCarpetaFirmado(cuenta.carpetas_servidor.informes, String(data.serie))
+      : null;
   const garantia = estadoGarantia(data.garantia_hasta as string | null);
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const mantenimientoVencido = data.proximo_mantenimiento != null && (data.proximo_mantenimiento as string) <= hoy;
@@ -148,12 +160,25 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
       <SeccionPanel
         titulo="Historial del equipo"
         accion={
-          <InformeServicioNuevo
-            equipoId={id}
-            cuentaId={cuenta?.id ?? null}
-            equipoTexto={[data.modelo_texto, data.serie ? `S: ${data.serie}` : null].filter(Boolean).join(" ") || null}
-            ciclosActuales={(data.ciclos_ultimo as number | null) ?? null}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            {enlaceInformesServidor && (
+              <a
+                href={enlaceInformesServidor}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <FolderOpen className="size-3.5" /> Informes de esta serie en el servidor
+                <ExternalLink className="size-3" />
+              </a>
+            )}
+            <InformeServicioNuevo
+              equipoId={id}
+              cuentaId={cuenta?.id ?? null}
+              equipoTexto={[data.modelo_texto, data.serie ? `S: ${data.serie}` : null].filter(Boolean).join(" ") || null}
+              ciclosActuales={(data.ciclos_ultimo as number | null) ?? null}
+            />
+          </div>
         }
       >
         {!informes || informes.length === 0 ? (

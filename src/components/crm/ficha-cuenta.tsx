@@ -17,6 +17,7 @@ import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { Badge } from "@/components/ui/badge";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
+import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor";
 
 export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId: string; comoGerencia?: boolean }) {
   const supabase = await createClient();
@@ -24,7 +25,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   const { data: cuenta } = await supabase
     .from("cuentas")
     .select(
-      "id, razon_social, tipo_doc, num_doc, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, direccion, es_principal)",
+      "id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, carpetas_servidor, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, direccion, es_principal)",
     )
     .eq("id", cuentaId)
     .maybeSingle();
@@ -185,6 +186,17 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
           </SeccionPanel>
 
           <GrupoEconomico cuentaId={cuenta.id} comoGerencia={comoGerencia} />
+
+          {/* La «riqueza de postventa»: los informes y las fotos que viven en
+              el servidor de la oficina, a un clic desde la ficha (plan 24,
+              fase 1). Si el servidor de archivos no está configurado, el
+              panel entero desaparece — no se anuncia lo que no existe. */}
+          <DocumentosDelServidor
+            cuentaId={cuenta.id}
+            razonSocial={cuenta.razon_social}
+            nombreComercial={cuenta.nombre_comercial as string | null}
+            carpetas={cuenta.carpetas_servidor as Record<string, string> | null}
+          />
 
           {/* Informes de cierre: el documento que recibe Central para facturar,
               cobrar y despachar. Va junto a las compras porque es el paso
