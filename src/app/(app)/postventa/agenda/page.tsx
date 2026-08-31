@@ -19,6 +19,7 @@ import {
 } from "@/lib/calendario-postventa";
 import { diasDelMes, diasDeSemana, lunesDe } from "@/lib/calendario";
 import { requerirPerfil } from "@/lib/auth";
+import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -155,6 +156,32 @@ export default async function AgendaPostventaPage({
       .map(eventoDeCaso)
       .filter((e): e is EventoCalendario => e !== null);
 
+    // LO QUE SE PUEDE AGENDAR EN UNA CASILLA. Santos, 31-08, mirando la semana:
+    // «no veo que se pueda agendar nada el martes ni miércoles ni otros días
+    // que vienen». El calendario mostraba lo ya programado y nada más. Lo que
+    // el área agenda es una atención ya diagnosticada a la que le falta día,
+    // hora y técnico — el paso de Planificación—, así que se traen esas para
+    // poder elegirlas desde el día que se está mirando.
+    const { data: aProgramar } = await supabase
+      .from("atenciones")
+      .select("id, tipo, detalle, cliente_texto, cuentas(razon_social)")
+      .eq("etapa", "diagnostico")
+      .is("cerrado_at", null)
+      .order("solicitado_at", { ascending: true })
+      .limit(50);
+    const atencionesPorProgramar = ((aProgramar ?? []) as unknown as {
+      id: string;
+      tipo: string;
+      detalle: string | null;
+      cliente_texto: string | null;
+      cuentas: { razon_social: string } | null;
+    }[]).map((a) => ({
+      id: a.id,
+      cliente: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre",
+      tipo: ETIQUETA_TIPO_ATENCION[a.tipo as keyof typeof ETIQUETA_TIPO_ATENCION] ?? a.tipo,
+      detalle: a.detalle,
+    }));
+
     const eventos = filtrarPorZona([...eventosPedidos, ...eventosCasos], zona);
     const porProgramar = pedidosSinFecha((abiertos ?? []) as unknown as ServicioPostventa[]).map((s) => ({
       id: s.id,
@@ -180,6 +207,7 @@ export default async function AgendaPostventaPage({
           zona={zona}
           eventos={eventos}
           porProgramar={porProgramar}
+          atencionesPorProgramar={atencionesPorProgramar}
         />
       </SeccionPanel>
     );

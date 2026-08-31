@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AgendarEnDia, type AtencionPorProgramar } from "@/components/crm/agendar-en-dia";
 import { ChevronLeft, ChevronRight, CalendarClock } from "lucide-react";
 import {
   agruparPorDia,
@@ -54,6 +55,7 @@ export function CalendarioPostventa({
   zona,
   eventos,
   porProgramar,
+  atencionesPorProgramar,
 }: {
   vista: VistaCalendario;
   /** Día ancla: define la semana, el mes o el día que se está mirando. */
@@ -62,6 +64,13 @@ export function CalendarioPostventa({
   zona: string;
   eventos: EventoCalendario[];
   porProgramar: { id: string; cliente: string; equipo: string | null; nota: string | null }[];
+  /**
+   * Las atenciones ya diagnosticadas que esperan día, hora y técnico. Son lo
+   * que se puede agendar desde una casilla del calendario: sin esto, la
+   * pantalla era de solo lectura y no se podía poner nada en el martes ni en el
+   * miércoles (Santos, 31-08).
+   */
+  atencionesPorProgramar: AtencionPorProgramar[];
 }) {
   const porDia = agruparPorDia(eventos);
   const lunes = lunesDe(fecha);
@@ -163,9 +172,9 @@ export function CalendarioPostventa({
         </div>
       )}
 
-      {vista === "semana" && <Semana lunes={lunes} hoy={hoy} porDia={porDia} enlace={enlace} />}
-      {vista === "mes" && <Mes mes={mes} hoy={hoy} porDia={porDia} enlace={enlace} />}
-      {vista === "dia" && <Dia fecha={fecha} porDia={porDia} />}
+      {vista === "semana" && <Semana lunes={lunes} hoy={hoy} porDia={porDia} enlace={enlace} porProgramar={atencionesPorProgramar} />}
+      {vista === "mes" && <Mes mes={mes} hoy={hoy} porDia={porDia} enlace={enlace} porProgramar={atencionesPorProgramar} />}
+      {vista === "dia" && <Dia fecha={fecha} porDia={porDia} porProgramar={atencionesPorProgramar} />}
 
       <Leyenda />
     </div>
@@ -177,11 +186,13 @@ function Semana({
   hoy,
   porDia,
   enlace,
+  porProgramar,
 }: {
   lunes: string;
   hoy: string;
   porDia: Map<string, EventoCalendario[]>;
   enlace: (c: { vista?: string; fecha?: string }) => string;
+  porProgramar: AtencionPorProgramar[];
 }) {
   const dias = diasDeSemana(lunes);
   return (
@@ -212,6 +223,7 @@ function Semana({
                 <Tarjeta key={e.clave} evento={e} />
               ))}
             </div>
+            <AgendarEnDia fecha={iso} porProgramar={porProgramar} />
           </div>
         );
       })}
@@ -224,11 +236,13 @@ function Mes({
   hoy,
   porDia,
   enlace,
+  porProgramar,
 }: {
   mes: string;
   hoy: string;
   porDia: Map<string, EventoCalendario[]>;
   enlace: (c: { vista?: string; fecha?: string }) => string;
+  porProgramar: AtencionPorProgramar[];
 }) {
   const dias = diasDelMes(mes);
   return (
@@ -274,6 +288,7 @@ function Mes({
                       +{eventos.length - 3} más
                     </Link>
                   )}
+                  {!d.otroMes && <AgendarEnDia fecha={d.iso} porProgramar={porProgramar} compacto />}
                 </div>
               </div>
             );
@@ -284,10 +299,23 @@ function Mes({
   );
 }
 
-function Dia({ fecha, porDia }: { fecha: string; porDia: Map<string, EventoCalendario[]> }) {
+function Dia({
+  fecha,
+  porDia,
+  porProgramar,
+}: {
+  fecha: string;
+  porDia: Map<string, EventoCalendario[]>;
+  porProgramar: AtencionPorProgramar[];
+}) {
   const eventos = porDia.get(fecha) ?? [];
   if (eventos.length === 0) {
-    return <p className="text-sm text-muted-foreground">Nada agendado para este día.</p>;
+    return (
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">Nada agendado para este día.</p>
+        <AgendarEnDia fecha={fecha} porProgramar={porProgramar} />
+      </div>
+    );
   }
   return (
     <div className="space-y-1.5">
@@ -313,6 +341,9 @@ function Dia({ fecha, porDia }: { fecha: string; porDia: Map<string, EventoCalen
           </div>
         </Link>
       ))}
+      {/* Un día con algo agendado tiene que dejar agendar más: es el caso
+          normal, no la excepción. */}
+      <AgendarEnDia fecha={fecha} porProgramar={porProgramar} />
     </div>
   );
 }
