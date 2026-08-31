@@ -5,25 +5,21 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   AlertTriangle,
-  Check,
   Cpu,
   Loader2,
   Phone,
   Search,
   ShieldCheck,
   Truck,
-  FileText,
-  Copy,
+  Send,
 } from "lucide-react";
 import {
   buscarSerie,
   buscarClientes,
   registrarCaso,
-  textoDerivacion,
   type FichaSerie,
 } from "@/lib/acciones/casos";
-import { SelectorFecha } from "@/components/crm/selector-fecha";
-import { SelectorHora } from "@/components/crm/selector-hora";
+import { registrarAtencion } from "@/lib/acciones/atenciones";
 import { fechaCalendario } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 
@@ -42,13 +38,33 @@ import { cn } from "@/lib/utils";
  * la ficha del equipo.
  */
 
+/**
+ * LOS CUATRO TIPOS DE ATENCIÓN (nota del ing. Carlos, 31-08). Antes eran tres
+ * —garantía, repuesto, mantenimiento— y mezclaban dos preguntas distintas:
+ * «qué pidió el cliente» con «quién paga». Garantía no es un tipo de pedido, es
+ * una forma de cobrarlo. Ahora acá se elige SOLO qué pidió; si se cobra o no se
+ * decide en el diagnóstico, cuando se sabe.
+ *
+ * Los dos primeros van por la pista técnica y los dos últimos por la comercial,
+ * tal como él lo escribió: «atención de solicitud de repuesto/mtto, aquí se
+ * aplica el proceso regular de clasificación y etapas de un gestor comercial».
+ */
 const TIPOS = [
-  { valor: "garantia", etiqueta: "Garantía", icono: ShieldCheck, ayuda: "El equipo está en garantía y falla" },
-  { valor: "repuesto", etiqueta: "Repuesto", icono: Cpu, ayuda: "Pide una pieza" },
-  { valor: "mantenimiento", etiqueta: "Mantenimiento", icono: Truck, ayuda: "Preventivo o correctivo" },
+  { valor: "problema_tecnico", etiqueta: "Problema técnico", icono: AlertTriangle, ayuda: "La máquina falla" },
+  { valor: "puesta_en_marcha", etiqueta: "Puesta en marcha", icono: ShieldCheck, ayuda: "Instalación y arranque" },
+  { valor: "solicitud_repuesto", etiqueta: "Repuesto", icono: Cpu, ayuda: "Pide una pieza" },
+  { valor: "solicitud_mantenimiento", etiqueta: "Mantenimiento", icono: Truck, ayuda: "Preventivo o correctivo" },
 ] as const;
 
 type Tipo = (typeof TIPOS)[number]["valor"];
+
+/** El puente con el enum de tres valores que todavía usa el resto del CRM. */
+const TIPO_VIEJO: Record<Tipo, "garantia" | "repuesto" | "mantenimiento"> = {
+  problema_tecnico: "garantia",
+  puesta_en_marcha: "garantia",
+  solicitud_repuesto: "repuesto",
+  solicitud_mantenimiento: "mantenimiento",
+};
 
 export function RegistroCaso() {
   const router = useRouter();
@@ -63,17 +79,12 @@ export function RegistroCaso() {
   const [clientes, setClientes] = useState<{ id: string; razonSocial: string; documento: string | null }[]>([]);
   const [cuenta, setCuenta] = useState<{ id: string; razonSocial: string } | null>(null);
 
-  const [tipo, setTipo] = useState<Tipo>("garantia");
+  const [tipo, setTipo] = useState<Tipo>("problema_tecnico");
   const [problema, setProblema] = useState("");
   const [codigoError, setCodigoError] = useState("");
 
-  const [fecha, setFecha] = useState("");
-  const [hora, setHora] = useState("");
-  const [tecnico, setTecnico] = useState("");
-  const [mensaje, setMensaje] = useState<string | null>(null);
 
   const cuentaId = ficha?.cuentaId ?? cuenta?.id ?? null;
-  const cliente = ficha?.cliente ?? cuenta?.razonSocial ?? null;
 
   function mirarSerie() {
     const s = serie.trim();
@@ -95,7 +106,40 @@ export function RegistroCaso() {
     startTransition(async () => setClientes(await buscarClientes(textoCliente)));
   }
 
-  function registrar(desenlace: "telefono" | "derivar" | "cotizar") {
+  /**
+   * El camino nuevo (0132): registrar NO crea la atención, crea el aviso en la
+   * bandeja de Central. La atención nace cuando Central la devuelve al área.
+   */
+  function derivarACentral() {
+    if (!cuentaId) {
+      toast.error("Falta el cliente: Central no puede derivar un caso sin cliente");
+      return;
+    }
+    startTransition(async () => {
+      const r = await registrarAtencion({
+        cuentaId,
+        tipo,
+        detalle: problema,
+        equipoId: ficha?.equipoId ?? null,
+        serie: ficha?.serie ?? serie.trim() ?? null,
+        codigoError: codigoError || null,
+      });
+      if (r.error) {
+        toast.error(r.error, { duration: 8000 });
+        return;
+      }
+      toast.success(
+        r.repetido
+          ? `Este cliente ya tenía un caso igual sin derivar (${r.codigo}). No se duplicó.`
+          : `Registrado como ${r.codigo}. Está en la bandeja de Central para que lo derive.`,
+        { duration: 7000 },
+      );
+      router.push("/postventa/atenciones");
+    });
+  }
+
+  function resolverEnLaLlamada() {
+    const desenlace = "telefono" as const;
     if (!cuentaId) {
       toast.error("Falta el cliente: sin cliente el caso no se puede archivar en ningún lado");
       return;
@@ -103,36 +147,19 @@ export function RegistroCaso() {
     startTransition(async () => {
       const r = await registrarCaso({
         cuentaId,
-        tipo,
+        // El camino viejo sigue usando el enum de tres valores. Se traduce acá
+        // en vez de migrarlo: lo usan la derivación de Central (0080, 0107) y
+        // la ruta de mantenimiento, y cambiarlo hoy es apagar el CRM.
+        tipo: TIPO_VIEJO[tipo],
         problema,
         codigoError: codigoError || null,
         equipoId: ficha?.equipoId ?? null,
         serieTexto: ficha?.serie ?? serie.trim() ?? null,
         desenlace,
-        atencion: desenlace === "derivar" ? { fecha, hora: hora || null, tecnico: tecnico || null } : null,
+        atencion: null,
       });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
-        return;
-      }
-      if (desenlace === "cotizar") {
-        toast.success("Caso registrado. Abriendo el cotizador…");
-        router.push(`/comercial/oportunidades/${r.id}/cotizar`);
-        return;
-      }
-      if (desenlace === "derivar") {
-        setMensaje(
-          await textoDerivacion({
-            cliente: cliente ?? "Cliente",
-            serie: ficha?.serie ?? serie.trim() ?? null,
-            equipo: ficha?.equipo ?? null,
-            problema,
-            codigoError: codigoError || null,
-            fecha,
-            hora: hora || null,
-          }),
-        );
-        toast.success("Atención programada. Ya está en el calendario del área.");
         return;
       }
       toast.success("Caso resuelto y cerrado, con su informe de llamada.");
@@ -140,46 +167,6 @@ export function RegistroCaso() {
     });
   }
 
-  // Cuando la derivación ya se registró, la pantalla se convierte en el mensaje
-  // para mandar: hoy el circuito real con el almacén es WhatsApp (D8: no se
-  // inventa la orden de almacén hasta saber qué trae el ERP).
-  if (mensaje) {
-    return (
-      <div className="space-y-3">
-        <p className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
-          <Check className="size-4" /> Atención programada para el {fechaCalendario(fecha)}
-          {hora && ` a las ${hora}`}. Ya aparece en el calendario.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Falta avisarle al almacén o al técnico. Este es el mensaje, con todo lo que se olvida a mano:
-        </p>
-        <pre className="max-w-prose whitespace-pre-wrap rounded-md border border-border bg-muted/40 p-3 text-xs leading-relaxed">
-          {mensaje}
-        </pre>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(mensaje).then(
-                () => toast.success("Copiado. Péguelo en el WhatsApp del almacén."),
-                () => toast.error("No se pudo copiar; selecciónelo a mano"),
-              );
-            }}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
-          >
-            <Copy className="size-3.5" /> Copiar el mensaje
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/postventa/casos")}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent"
-          >
-            Ir a los casos
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-5">
@@ -338,48 +325,50 @@ export function RegistroCaso() {
       </Paso>
 
       {/* ── 3 · ¿QUÉ HACEMOS? ────────────────────────────────────────────── */}
+      {/*
+        ACÁ CAMBIÓ LA REGLA, el 31-08, en la reunión con Lesly:
+
+          «Cualquier caso que venga, que reciba posventa, tiene que ser derivado
+           a Central. Lo que él va a registrar tiene que llegar a la Central para
+           que la Central también le vuelva a enviar, si le corresponde atender
+           la posventa o le corresponde atender a las comerciales.»
+
+        Y sobre este formulario, textual: «mal asunto… voy a arreglar este
+        formulario». Tenía tres salidas y dos se quedaban el caso: «programar la
+        atención» y «cotizar» creaban la oportunidad a nombre de postventa sin
+        pasar por el reparto. El reparto no es un trámite: es quien decide si el
+        cliente que llama por un repuesto en realidad es una venta de equipos.
+
+        Programar sigue existiendo —Lesly lo validó tal cual— pero DESPUÉS, en la
+        ficha de la atención, cuando Central la devolvió. Cotizar, igual: desde
+        la oportunidad que nace del reparto.
+      */}
       <Paso numero={3} titulo="¿Qué hacemos?">
-        <div className="grid gap-2 lg:grid-cols-3">
-          <Desenlace
-            icono={Phone}
-            titulo="Resuelto por teléfono"
-            ayuda="Queda el informe de llamada y el caso se cierra."
-            pendiente={pendiente}
-            onClick={() => registrar("telefono")}
-          />
-          <div className="rounded-lg border border-border p-3">
+        <div className="grid gap-2 lg:grid-cols-2">
+          <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <Truck className="size-4" /> Derivar a técnico
+              <Send className="size-4" /> Derivar a Central
             </p>
             <p className="mb-2 text-[11px] text-muted-foreground">
-              Programa la atención y la deja en el calendario, con el mensaje listo para el almacén.
+              Va a la bandeja de Central con la sugerencia ya puesta. Central decide si lo atiende el área o un
+              comercial, y cuando lo devuelve aparece en «Atenciones» para programarlo.
             </p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <SelectorFecha valor={fecha || null} onCambiar={(f) => setFecha(f ?? "")} etiquetaVacia="Elegir el día" />
-              <SelectorHora valor={hora || null} onCambiar={(h) => setHora(h ?? "")} />
-            </div>
-            <input
-              value={tecnico}
-              onChange={(e) => setTecnico(e.target.value)}
-              placeholder="Técnico (opcional)"
-              className="mt-1.5 w-full rounded-md border border-border bg-background px-2 py-1 text-xs outline-none"
-            />
             <button
               type="button"
-              disabled={pendiente || !fecha}
-              onClick={() => registrar("derivar")}
-              className="mt-2 inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              disabled={pendiente || !cuentaId || problema.trim().length < 10}
+              onClick={() => derivarACentral()}
+              className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
-              {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <Truck className="size-3.5" />}
-              Programar la atención
+              {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+              Registrar y derivar a Central
             </button>
           </div>
           <Desenlace
-            icono={FileText}
-            titulo="Cotizar repuesto o mantenimiento"
-            ayuda="Abre el cotizador con el cliente cargado, con el correlativo de siempre."
+            icono={Phone}
+            titulo="Resuelto en la misma llamada"
+            ayuda="No hay nada que repartir: queda el registro y el caso se cierra acá."
             pendiente={pendiente}
-            onClick={() => registrar("cotizar")}
+            onClick={() => resolverEnLaLlamada()}
           />
         </div>
         {!cuentaId && (

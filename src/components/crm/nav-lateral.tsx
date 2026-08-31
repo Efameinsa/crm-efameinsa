@@ -114,6 +114,9 @@ const ENLACES_POSTVENTA = [
   // área se la habíamos quitado.
   { href: "/comercial/agenda", etiqueta: "Mi agenda", icono: ClipboardList },
   { href: "/postventa/agenda", etiqueta: "Calendario", icono: CalendarDays },
+  // La pista técnica (0131): las nueve etapas que dictó el ing. Carlos el
+  // 31-08. Va arriba de «Casos» porque es el trabajo del día del área.
+  { href: "/postventa/atenciones", etiqueta: "Atenciones", icono: Wrench },
   { href: "/postventa/casos", etiqueta: "Casos", icono: LifeBuoy },
   { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
   { href: "/comercial/ruta", etiqueta: "Ruta de mantenimiento", icono: Route },

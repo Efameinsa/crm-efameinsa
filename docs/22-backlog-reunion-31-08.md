@@ -189,11 +189,64 @@ cotiza preventivo + repuesto y sigue el ciclo comercial normal.
 **G6. Crear la atención desde el calendario** (ver B1): hoy el calendario del
 área es solo lectura, y es donde el área espera agendar.
 
-### Lo que hay que preguntarle a Lesly
+### G7 · TODO PASA POR CENTRAL, SIEMPRE (reunión con Lesly, 31-08 11:45)
 
-Entre Planificación y Atención: ¿quién asigna el técnico, postventa o almacén?
-¿Qué dispara la alerta a almacén? ¿Qué campos lleva el informe del técnico?
-¿Cómo se declara la conformidad? ¿Y quién cierra?
+Esto corrige el modelo, no lo agrega. Textual: *«cualquier caso que venga, que
+reciba postventa, tiene que ser derivado a Central. Lo que él va a registrar
+tiene que llegar a la Central para que la Central también le vuelva a enviar,
+si le corresponde atender la posventa o le corresponde atender a las
+comerciales»*.
+
+Hoy el formulario deja que **postventa se autogestione el caso** sin pasar por
+Central, y sobre eso la reacción fue *«mal asunto… voy a arreglar este
+formulario»*. La razón de fondo: **no es postventa quien decide si el caso es
+suyo o de un comercial** — eso lo decide Central, que es la que reparte. Un
+caso que postventa se queda directamente se saltea el reparto y desaparece de
+la contabilidad de Central.
+
+Consecuencia para el diseño: `/postventa/casos/nuevo` deja de crear una
+atención propia y pasa a **registrar y derivar a Central**; la atención nace
+recién cuando Central la devuelve al área.
+
+**Lo que sí está bien y no se toca:** la vista de programar —día, hora y qué
+técnico— *«me parece que está bien, pero más orientado a su información de él
+como gestión, porque lo va a poner en el calendario»*. Es además la que después
+alimenta la orden al almacén: *«le estás mandando una orden que vamos a derivar
+al técnico tal, en tal hora»*.
+
+**G8 · Y le falta el registro de llamada del comercial.** *«Lo que deberíamos
+agregarle es esa opción que tienen las comerciales para su registro de llamada,
+que de lo que ellas registran le envían a la Central»*. O sea: el
+`RegistroRapido` que ya usa el comercial, en postventa, con el envío a Central.
+Es reutilizar un componente que existe, no construir otro.
+
+### G9 · Dos personas en postventa a la vez (reunión con Lesly, 31-08 11:47)
+
+Hoy el área es una sola cuenta. Quieren que un asistente (Daisy) registre en
+paralelo mientras el titular atiende: *«él tiene que avanzar pero como no tiene
+apoyo se está demorando en registrar»*.
+
+**Decisión tomada en la reunión: usuario nuevo, NO compartir el mismo** —
+*«sería otro usuario para que no se pisen entre ellos»*— pero **viendo y
+tocando la misma información**, y sabiendo quién hizo qué: *«lo que hace ese
+usuario se modifica, lo vamos a poder ver»*.
+
+⚠️ **Esto hoy no funciona, y no es un permiso: es una consulta.** Tres pantallas
+del área filtran el trabajo por `comercial_id = perfil.id`
+(`postventa/agenda/page.tsx:107`, `postventa/casos/page.tsx:99`,
+`postventa/page.tsx:90`), así que la segunda cuenta abriría el área **vacía**:
+no vería ni un caso del titular. Postventa no es una cartera personal como la de
+un comercial — es un **área**, y sus pantallas tienen que mostrar el trabajo del
+área con la marca de quién lo hizo, no «lo mío». La tabla `atenciones` (0131) ya
+está preparada así: lectura para todo el que sea postventa, y `asignado_a` para
+decir de quién es cada una.
+
+### Lo que todavía falta preguntar (quedó fuera de la reunión)
+
+Almacén completo — **postergado por decisión de Santos el 31-08**: *«el almacén
+hablamos después porque todavía falta mucho para pensar en ese módulo»*. Cuando
+se retome: ¿quién asigna el técnico, postventa o almacén? ¿Qué campos lleva el
+informe del técnico? ¿Cómo se declara la conformidad?
 
 ---
 
