@@ -73,7 +73,7 @@ export default async function InformeServicioPage({ params }: { params: Promise<
   return (
     <div className="space-y-4">
       <Link
-        href="/postventa/casos"
+        href="/postventa/atenciones?ver=historico"
         className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" /> Volver a los informes

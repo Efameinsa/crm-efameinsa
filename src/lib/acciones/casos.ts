@@ -207,6 +207,7 @@ export async function registrarCaso(datos: {
 
   revalidatePath("/postventa");
   revalidatePath("/postventa/casos");
+  revalidatePath("/postventa/atenciones");
   revalidatePath("/postventa/agenda");
   return { error: null, id: caso.id as string };
 }

@@ -435,6 +435,7 @@ export async function guardarInformeServicio(datos: {
   }
 
   revalidatePath("/postventa/casos");
+  revalidatePath("/postventa/atenciones");
   return { error: null as string | null, id: informe?.id as string | undefined };
 }
 
