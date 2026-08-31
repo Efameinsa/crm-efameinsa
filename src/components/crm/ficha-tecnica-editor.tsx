@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import {
 import { TIPOS_EQUIPO, casillasDe, tipoDeCategoria, type CasillaEquipo } from "@/lib/tipos-equipo";
 import { createClient } from "@/lib/supabase/client";
 import { prepararFoto, rutaFoto } from "@/lib/foto-producto";
+import { leerFichaDeWord } from "@/lib/leer-ficha-word";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -65,10 +66,12 @@ export interface EquipoEditable {
   /** De qué Word se leyó, cuando Lesly arrastró la ficha. Igual que el
    *  duplicado, no pregunta qué se está cargando: el Word ya lo dijo. */
   leidaDe?: string | null;
-  /** La foto que traía ese Word, ya recortada como la muestra el documento.
-   *  Entra por el mismo camino que una foto elegida a mano: se acomoda a la
-   *  caja de la hoja y espera al guardado. */
-  fotoInicial?: File | null;
+  /** La foto que traía ese Word: recortada como la muestra el documento y ya
+   *  acomodada a la caja de la hoja (`leerFichaDeWord` la deja lista). Espera
+   *  al guardado, igual que una elegida a mano. */
+  fotoLista?: Blob | null;
+  /** Para verla mientras tanto, sin volver a leer el archivo. */
+  fotoUrl?: string | null;
   disponibles: number | null;
   stockReferencia: number | null;
   ubicacionMaestro: string | null;
@@ -99,6 +102,26 @@ export const EQUIPO_NUEVO: EquipoEditable = {
 
 
 
+/**
+ * Sube el archivo ya preparado y lo deja apuntado en el equipo.
+ *
+ * Vive fuera del componente porque no usa nada de él: recibe el id y la imagen.
+ * Adentro, el compilador de React marcaba el `Date.now()` del nombre del
+ * archivo como impuro —aunque solo corra al pulsar un botón—, y suprimir la
+ * regla habría sido tapar el aviso en vez de sacar del cuerpo del componente lo
+ * que nunca fue suyo.
+ */
+async function subirAlAlmacen(id: string, blob: Blob): Promise<string | null> {
+  const supabase = createClient();
+  const ruta = `${id}-${Date.now()}.jpg`;
+  const { error } = await supabase.storage
+    .from("productos")
+    .upload(ruta, blob, { contentType: "image/jpeg", upsert: true });
+  if (error) return error.message;
+  const r = await fijarFotoProducto(id, ruta);
+  return r.error;
+}
+
 export function FichaTecnicaEditor({
   equipo,
   onListo,
@@ -110,22 +133,106 @@ export function FichaTecnicaEditor({
 }) {
   const esNuevo = equipo.id === null;
   const [d, setD] = useState(equipo);
-  const [bloques, setBloques] = useState<BloqueFicha[]>(() => textoABloques(equipo.fichaTexto));
-  const [precio, setPrecio] = useState(String(equipo.precios[0]?.precio ?? ""));
+  const [bloques, ponerBloques] = useState<BloqueFicha[]>(() => textoABloques(equipo.fichaTexto));
+  const [precio, ponerPrecio] = useState(String(equipo.precios[0]?.precio ?? ""));
   const [enviando, empezar] = useTransition();
   const router = useRouter();
 
-  const set = <K extends keyof EquipoEditable>(k: K, v: EquipoEditable[K]) => setD({ ...d, [k]: v });
+  const set = <K extends keyof EquipoEditable>(k: K, v: EquipoEditable[K]) => {
+    setTocado(true);
+    setConfirmandoSalida(false);
+    setD({ ...d, [k]: v });
+  };
 
   // Un equipo nuevo empieza por la pregunta: qué se está cargando.
   // Un duplicado no pregunta qué es: ya lo sabe, viene del equipo copiado.
   const [eligiendoTipo, setEligiendoTipo] = useState(esNuevo && !equipo.duplicadoDe && !equipo.leidaDe);
   const [copiadaDe, setCopiadaDe] = useState<string | null>(equipo.duplicadoDe ?? null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
-  const [fotoLocal, setFotoLocal] = useState<string | null>(null);
-  const [fotoPendiente, setFotoPendiente] = useState<Blob | null>(null);
+  // La del Word ya viene lista y con su URL: la hoja la recibe, no la fabrica.
+  const [fotoLocal, setFotoLocal] = useState<string | null>(equipo.fotoUrl ?? null);
+  const [fotoPendiente, setFotoPendiente] = useState<Blob | null>(equipo.fotoLista ?? null);
   const [arrastrando, setArrastrando] = useState(false);
   const inputFoto = useRef<HTMLInputElement>(null);
+
+  // ── Salir sin guardar ──────────────────────────────────────────────
+  //
+  // «Por si la señorita se equivoca de Word y quiere cancelar dicha acción»
+  // (Santos, 31-08, después de que le pasara). Se podía —la X, Esc, un clic
+  // afuera— pero ninguna de las tres lo dice.
+  //
+  // Y NO PREGUNTA SIEMPRE. Cancelar una hoja recién abierta no tiene nada que
+  // confirmar: no se escribió nada todavía y preguntar convierte el arrepentirse
+  // en dos pasos. Solo si ella ya escribió algo, el botón pide un segundo clic
+  // —ahí sí hay trabajo que perder, y el botón está al lado del de guardar—.
+  const [tocado, setTocado] = useState(false);
+  const [confirmandoSalida, setConfirmandoSalida] = useState(false);
+  const [ficha, setFicha] = useState(equipo.leidaDe ?? null);
+  const [cambiandoWord, setCambiandoWord] = useState(false);
+  const [arrastrandoWord, setArrastrandoWord] = useState(false);
+  const inputWord = useRef<HTMLInputElement>(null);
+
+  /** Cualquier cambio de ella cuenta, venga del campo que venga. */
+  const setBloques = (v: BloqueFicha[]) => {
+    setTocado(true);
+    setConfirmandoSalida(false);
+    ponerBloques(v);
+  };
+  const setPrecio = (v: string) => {
+    setTocado(true);
+    setConfirmandoSalida(false);
+    ponerPrecio(v);
+  };
+
+  /**
+   * Cambiar el Word sin salir de la hoja.
+   *
+   * Es lo que uno quiere hacer de verdad cuando se equivocó de archivo: no
+   * cancelar y volver a empezar, sino traer el correcto. Reemplaza todo lo que
+   * vino del Word —cabecera, descripción y foto— y deja lo que no sale de él:
+   * el precio y el código, que Lesly ya pudo haber escrito.
+   */
+  function cambiarWord(archivo: File) {
+    setCambiandoWord(true);
+    void (async () => {
+      try {
+        const { equipo: leido, bloques: cuantos, fotoIlegible } = await leerFichaDeWord(archivo);
+        setD((antes) => ({
+          ...antes,
+          nombre: leido.nombre,
+          marca: leido.marca,
+          modelo: leido.modelo,
+          sku: antes.sku ?? leido.sku,
+          categoria: leido.categoria,
+          segmento: leido.segmento,
+          capacidad: leido.capacidad,
+          panel: leido.panel,
+          controles: leido.controles,
+          calentamiento: leido.calentamiento,
+        }));
+        ponerBloques(textoABloques(leido.fichaTexto));
+        setFicha(leido.leidaDe ?? null);
+        setConfirmandoSalida(false);
+        setFotoPendiente(leido.fotoLista ?? null);
+        setFotoLocal(leido.fotoUrl ?? null);
+        if (fotoIlegible) toast.warning("La ficha trae una imagen que el navegador no sabe abrir. Todo lo demás sí se leyó.");
+        toast.success(`Ahora se está leyendo ${leido.leidaDe}: ${cuantos} líneas de descripción.`);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : String(e));
+      } finally {
+        setCambiandoWord(false);
+      }
+    })();
+  }
+
+  /** Salir sin guardar. Pregunta una sola vez, y solo si hay algo que perder. */
+  function cancelar() {
+    if (!tocado || confirmandoSalida) {
+      onListo();
+      return;
+    }
+    setConfirmandoSalida(true);
+  }
 
   const yaCargadas: CasillaEquipo[] = [
     d.capacidad && "capacidad",
@@ -155,6 +262,7 @@ export function FichaTecnicaEditor({
         setSubiendoFoto(false);
         return;
       }
+      setTocado(true);
       setFotoLocal(URL.createObjectURL(lista.archivo));
       const kb = Math.round(lista.bytes / 1024);
 
@@ -176,31 +284,8 @@ export function FichaTecnicaEditor({
     })();
   }
 
-  // La foto que venía dentro del Word entra sola, por el mismo camino que una
-  // elegida a mano: se acomoda a la caja de la hoja y espera al guardado. Así
-  // Lesly abre la hoja y la ve, en vez de tener que ir a buscarla ella.
-  const fotoDelWord = equipo.fotoInicial ?? null;
-  const yaEntro = useRef(false);
-  useEffect(() => {
-    if (!fotoDelWord || yaEntro.current) return;
-    yaEntro.current = true;
-    elegirFoto(fotoDelWord);
-    // elegirFoto se define en este mismo render y no cambia de comportamiento:
-    // depender de ella volvería a disparar el efecto en cada tecla.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fotoDelWord]);
 
-  /** Sube el archivo ya preparado y lo deja apuntado en el equipo. */
-  async function subirAlAlmacen(id: string, blob: Blob): Promise<string | null> {
-    const supabase = createClient();
-    const ruta = `${id}-${Date.now()}.jpg`;
-    const { error } = await supabase.storage
-      .from("productos")
-      .upload(ruta, blob, { contentType: "image/jpeg", upsert: true });
-    if (error) return error.message;
-    const r = await fijarFotoProducto(id, ruta);
-    return r.error;
-  }
+
   function guardar() {
     // EL PRECIO SE REVISA ACÁ, no después.
     //
@@ -302,7 +387,7 @@ export function FichaTecnicaEditor({
                       montaje: r.referencia.montaje,
                       colores: r.referencia.colores,
                     });
-                    setBloques(textoABloques(r.referencia.fichaTexto));
+                    ponerBloques(textoABloques(r.referencia.fichaTexto));
                     setCopiadaDe(r.referencia.de);
                   } else {
                     setD({ ...d, categoria: t.clave });
@@ -347,6 +432,61 @@ export function FichaTecnicaEditor({
           )}
         </p>
       )}
+      {/* DE QUÉ WORD SALIÓ, Y CÓMO CAMBIARLO SIN SALIR.
+          Una ficha leída del archivo equivocado abre igual de llena y de
+          creíble que la correcta: lo único que delata el error es el nombre del
+          archivo, así que se dice arriba. Y al lado va lo que uno quiere hacer
+          de verdad al darse cuenta —traer el correcto—, en vez de cancelar y
+          volver a empezar (Santos, 31-08). Se puede soltar encima o elegirlo. */}
+      {ficha && (
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setArrastrandoWord(true);
+          }}
+          onDragLeave={() => setArrastrandoWord(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setArrastrandoWord(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) cambiarWord(f);
+          }}
+          className={cn(
+            "flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-xs transition-colors",
+            arrastrandoWord && "border-primary bg-primary/5",
+          )}
+        >
+          {cambiandoWord ? (
+            <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+          ) : (
+            <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+          )}
+          <span className="text-muted-foreground">
+            {arrastrandoWord ? "Suelte el Word correcto acá" : "Leída de"}
+          </span>
+          {!arrastrandoWord && <strong className="font-medium text-foreground">{ficha}</strong>}
+          <button
+            type="button"
+            onClick={() => inputWord.current?.click()}
+            disabled={cambiandoWord || enviando}
+            className="cursor-pointer text-muted-foreground underline underline-offset-2 hover:text-primary disabled:opacity-60"
+          >
+            {cambiandoWord ? "leyendo…" : "¿no es esa? cambiar el Word"}
+          </button>
+          <input
+            ref={inputWord}
+            type="file"
+            accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) cambiarWord(f);
+            }}
+          />
+        </div>
+      )}
+
       {/* ── LA HOJA ─────────────────────────────────────────────────── */}
       <div className="overflow-hidden rounded-xl border border-border shadow-sm ring-1 ring-black/[0.03]">
         {/* Título del ítem */}
@@ -574,16 +714,18 @@ export function FichaTecnicaEditor({
         <Button onClick={guardar} disabled={enviando}>
           {enviando ? "Guardando…" : esNuevo ? "Cargar el equipo al catálogo" : "Guardar los cambios"}
         </Button>
-        {/* SALIR SIN GUARDAR, DICHO CON TODAS LAS LETRAS.
-            Se podía desde el principio —la X de la esquina, Esc, un clic
-            afuera— pero ninguna de las tres lo dice, y quien acaba de soltar
-            un Word equivocado no está para adivinar si cerrar pierde algo o
-            deja el equipo a medio cargar (Santos, 31-08). No pregunta dos
-            veces: nada de esto se escribió todavía, y una confirmación en cada
-            salida molesta más de lo que salva. */}
-        <Button variant="ghost" onClick={() => onListo()} disabled={enviando}>
-          Cancelar
+        {/* SALIR SIN GUARDAR, DICHO CON TODAS LAS LETRAS. Ver `cancelar()`. */}
+        <Button
+          variant={confirmandoSalida ? "destructive" : "ghost"}
+          onClick={cancelar}
+          disabled={enviando}
+          title={confirmandoSalida ? "Se pierde lo escrito en esta hoja" : undefined}
+        >
+          {confirmandoSalida ? "Sí, salir sin guardar" : "Cancelar"}
         </Button>
+        {confirmandoSalida && (
+          <span className="text-[11px] text-muted-foreground">Se pierde lo escrito. Pulse cualquier campo para seguir editando.</span>
+        )}
         {!esNuevo && (
           <>
             <a
