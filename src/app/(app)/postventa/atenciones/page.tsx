@@ -141,6 +141,19 @@ export default async function AtencionesPage({
                 hrefBase="/postventa/atenciones"
               />
             </section>
+            <section className="space-y-1.5">
+              <h3 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                Despachos completados
+              </h3>
+              <ColaDespachos
+                pestana="completados"
+                verValue="historico"
+                busqueda={(sp.q ?? "").trim()}
+                estado={sp.estado ?? ""}
+                verPrecios={puedeVerPrecios(perfil)}
+                hrefBase="/postventa/atenciones"
+              />
+            </section>
           </div>
         )}
       </SeccionPanel>

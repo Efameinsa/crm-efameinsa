@@ -22,7 +22,6 @@ import {
   PackageCheck,
   Send,
   Wrench,
-  LifeBuoy,
   Target,
   Route,
   ShieldCheck,
@@ -96,28 +95,27 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
 // puestas en marcha. Por eso conserva las herramientas comerciales y suma las
 // pantallas suyas arriba, que es lo que abre al llegar.
 //
-// Tres nombres cambiaron el 27-08, y los tres porque el nombre le mintió a
-// Carlos mientras miraba la pantalla:
-//   · «Agenda de despachos» → **Calendario**: él mismo lo rebautizó al pedir
-//     verlo por semana —«¿qué voy a hacer mañana, qué voy a hacer en la
-//     semana?»—; «agenda» le sonaba a lista informativa, y lo era.
-//   · «Soporte técnico» → **Casos**: es la palabra con la que Central ya deriva.
-//   · «Mis casos» → **Mis ventas de servicio**: preguntó textual «¿qué viene a
-//     ser mis casos?». Son sus oportunidades de mantenimiento y repuestos, no
-//     los casos técnicos — que ahora sí se llaman así.
+// Nombres que cambiaron por el mismo motivo: le mintieron a Carlos mientras
+// miraba la pantalla. «Agenda de despachos» → **Calendario** (27-08, al
+// pedir verlo por semana). «Soporte técnico» → «Casos» → **Atenciones**
+// (31-08, plan 23): «Casos», la «Lista» del calendario y el historial de
+// informes eran cuatro puertas al mismo trabajo técnico — se unifican en una
+// sola entrada, sin migrar una fila. «Mis casos» → **Mis ventas de
+// servicio**: preguntó textual «¿qué viene a ser mis casos?», y son sus
+// oportunidades de mantenimiento y repuestos, no los casos técnicos.
+//
+// «Mi agenda» salió del menú del área el 31-08 (plan 23, etapa 2): el
+// calendario y Atenciones ya cubren sus dos razones de ser —agendar y ver el
+// reporte del día/cierre semanal, que ahora viven en «Mi día»—; seguía
+// abierta solo para Ariana y los demás comerciales que además venden
+// mantenimiento, que sí la conservan como comercial (`ENLACE_RUTA` más
+// abajo no la incluye porque ya la tienen en `ENLACES_POR_ROL.comercial`).
 const ENLACES_POSTVENTA = [
   { href: "/postventa", etiqueta: "Mi día", icono: Wrench },
-  // Carlos lo pidió entrando con la cuenta de Hever el 28-08 a las 10:10:
-  // «¿en postventa no tenemos agenda?… ¿dónde genero mi agenda?». El calendario
-  // responde cuándo se atiende a un cliente; la agenda es otra cosa —es donde
-  // están el reporte del día y el cierre de la semana— y al armarle el menú del
-  // área se la habíamos quitado.
-  { href: "/comercial/agenda", etiqueta: "Mi agenda", icono: ClipboardList },
   { href: "/postventa/agenda", etiqueta: "Calendario", icono: CalendarDays },
-  // La pista técnica (0131): las nueve etapas que dictó el ing. Carlos el
-  // 31-08. Va arriba de «Casos» porque es el trabajo del día del área.
+  // La pista técnica (0131) más los casos, despachos e histórico que hasta el
+  // 31-08 vivían repartidos en cuatro pantallas (plan 23).
   { href: "/postventa/atenciones", etiqueta: "Atenciones", icono: Wrench },
-  { href: "/postventa/casos", etiqueta: "Casos", icono: LifeBuoy },
   { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
   { href: "/comercial/ruta", etiqueta: "Ruta de mantenimiento", icono: Route },
   { href: "/comercial/oportunidades", etiqueta: "Mis ventas de servicio", icono: KanbanSquare },

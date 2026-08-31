@@ -15,7 +15,7 @@ import type { ServicioPostventa } from "@/lib/postventa";
  * con un cuaderno, un Excel y un grupo de WhatsApp llevando lo mismo.
  */
 
-export type OrigenEvento = "pedido" | "caso";
+export type OrigenEvento = "pedido" | "caso" | "tarea";
 
 export interface EventoCalendario {
   /** Único en la grilla: un mismo pedido aporta despacho y puesta en marcha. */
@@ -46,6 +46,7 @@ export const COLOR_EVENTO: Record<string, string> = {
   garantia: "border-l-amber-500 bg-amber-50",
   repuesto: "border-l-violet-600 bg-violet-50",
   caso: "border-l-slate-500 bg-slate-50",
+  tarea: "border-l-neutral-400 bg-neutral-50",
 };
 
 export const ETIQUETA_EVENTO: Record<string, string> = {
@@ -55,6 +56,7 @@ export const ETIQUETA_EVENTO: Record<string, string> = {
   garantia: "Garantía",
   repuesto: "Repuesto",
   caso: "Atención",
+  tarea: "Personal",
 };
 
 export function colorEvento(tipo: string): string {
@@ -176,4 +178,38 @@ export function agruparPorDia(eventos: EventoCalendario[]): Map<string, EventoCa
 export function filtrarPorZona(eventos: EventoCalendario[], zona: string): EventoCalendario[] {
   if (zona !== "lima" && zona !== "provincia") return eventos;
   return eventos.filter((e) => e.zona === zona || e.zona == null);
+}
+
+export interface TareaAgendable {
+  id: string;
+  titulo: string;
+  fecha: string;
+  hora: string | null;
+  completada: boolean;
+}
+
+/**
+ * La tarea personal como evento del calendario del área.
+ *
+ * No es un evento suelto: sigue siendo la misma fila de `tareas_agenda` que
+ * ya existía (0028) — sencillamente hasta el 31-08 solo se veía en «Mi
+ * agenda» y no donde el área realmente mira el día (Santos: «se crean desde
+ * ahí pero se ven en otra pantalla, lo cual es absurdo»). Se edita en el
+ * mismo sitio de siempre: el enlace lleva a «Mi agenda», no a una pantalla
+ * nueva que habría que construir dos veces.
+ */
+export function eventoDeTarea(t: TareaAgendable): EventoCalendario {
+  return {
+    clave: `tarea-${t.id}`,
+    fecha: t.fecha,
+    hora: t.hora,
+    tipo: "tarea",
+    titulo: t.titulo,
+    cliente: "Personal",
+    ubicacion: null,
+    zona: null,
+    href: "/comercial/agenda",
+    origen: "tarea",
+    hecho: t.completada,
+  };
 }

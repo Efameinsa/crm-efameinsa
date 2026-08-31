@@ -5,6 +5,12 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaLima, fechaHoraLima } from "@/lib/fechas";
 import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
+import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
+import { BotonCierreSemanal } from "@/components/crm/boton-cierre-semanal";
+import { BotonReporteMensual } from "@/components/crm/boton-reporte-mensual";
+import { hoyLima } from "@/lib/periodo";
+import { lunesSemana } from "@/lib/potenciales-semana";
+import { mesPorDefecto } from "@/lib/cierre-mensual";
 import {
   queLoFrena,
   slaCaso,
@@ -120,8 +126,19 @@ export default async function PostventaPage() {
     .sort((a, b) => (b.fecha_despacho ?? "").localeCompare(a.fecha_despacho ?? ""))
     .slice(0, ATRASADOS_EN_MI_DIA);
 
+  const hoyIso = hoyLima();
+  const lunes = lunesSemana();
+
   return (
     <div className="space-y-4">
+      {/* «Mi agenda» salió del menú del área (plan 23, etapa 2): estos tres
+          botones eran la única razón por la que seguía abierta. */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <BotonReporteMensual mes={mesPorDefecto(hoyIso)} compacto />
+        <BotonCierreSemanal semana={lunes} compacto />
+        <BotonReporteDiario fecha={hoyIso} compacto />
+      </div>
+
       <SeccionPanel
         titulo="Nuevos pedidos"
         accion={
