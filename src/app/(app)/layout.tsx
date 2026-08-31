@@ -1,4 +1,6 @@
 import { requerirPerfil } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { contarAtencionesAbiertas, contarBandejaMiDia } from "@/lib/contadores-postventa";
 import { BarraLateral } from "@/components/crm/barra-lateral";
 import { EncabezadoUsuario } from "@/components/crm/encabezado-usuario";
 import { CalloutActivarNotificaciones } from "@/components/crm/callout-activar-notificaciones";
@@ -6,6 +8,21 @@ import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
+
+  // Los contadores del menú (plan 23, etapa 5) solo se piden para quien ve
+  // la sección Postventa de la barra: cuatro consultas `head: true` de más en
+  // CADA navegación de gerencia, central o un comercial normal no le sirven a
+  // nadie.
+  const veSeccionPostventa = Boolean(perfil.es_postventa) || Boolean(perfil.es_soporte);
+  let contadorMiDia: number | undefined;
+  let contadorAtenciones: number | undefined;
+  if (veSeccionPostventa) {
+    const supabase = await createClient();
+    [contadorMiDia, contadorAtenciones] = await Promise.all([
+      contarBandejaMiDia(supabase, perfil.id),
+      contarAtencionesAbiertas(supabase),
+    ]);
+  }
 
   return (
     <div className="flex min-h-screen flex-1">
@@ -15,6 +32,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         hacePostventa={perfil.hace_postventa ?? false}
         esSoporte={perfil.es_soporte ?? false}
         esOperaciones={perfil.es_operaciones ?? false}
+        contadorMiDia={contadorMiDia}
+        contadorAtenciones={contadorAtenciones}
       />
       <div className="flex flex-1 flex-col">
         <EncabezadoUsuario perfil={perfil} />

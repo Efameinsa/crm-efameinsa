@@ -140,9 +140,14 @@ export function NavLateral({
   esSoporte = false,
   esOperaciones = false,
   plegada = false,
+  contadorMiDia,
+  contadorAtenciones,
 }: {
   rol: RolUsuario;
   esPostventa?: boolean;
+  /** Las dos colas del área (plan 23, etapa 5): «el número es el llamado a la acción». */
+  contadorMiDia?: number;
+  contadorAtenciones?: number;
   /**
    * Acompaña a los usuarios (0101): ve las dos barras porque su trabajo es que
    * los demás sepan usarlas.
@@ -247,6 +252,14 @@ export function NavLateral({
           {seccion.enlaces.map((enlace) => {
         const activo = enlace.href === activoHref;
         const Icono = enlace.icono;
+        // Las dos colas del área, y solo esas dos: un número en cada entrada
+        // del menú deja de significar «lo urgente» y vuelve a ser ruido.
+        const contador =
+          enlace.href === "/postventa"
+            ? contadorMiDia
+            : enlace.href === "/postventa/atenciones"
+              ? contadorAtenciones
+              : undefined;
         return (
           <div key={enlace.href} className="contents">
           <Link
@@ -264,7 +277,21 @@ export function NavLateral({
               <span className="absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r bg-[var(--efameinsa-granate)]" />
             )}
             <Icono className="size-4 shrink-0" />
-            {!plegada && enlace.etiqueta}
+            {!plegada && (
+              <span className="flex flex-1 items-center justify-between gap-2">
+                {enlace.etiqueta}
+                {Boolean(contador) && (
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                      activo ? "bg-sidebar-primary-foreground/20" : "bg-sidebar-accent/70",
+                    )}
+                  >
+                    {contador}
+                  </span>
+                )}
+              </span>
+            )}
           </Link>
           </div>
         );

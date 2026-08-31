@@ -30,6 +30,8 @@ export function BarraLateral({
   hacePostventa = false,
   esSoporte = false,
   esOperaciones = false,
+  contadorMiDia,
+  contadorAtenciones,
 }: {
   rol: RolUsuario;
   esPostventa: boolean;
@@ -37,6 +39,9 @@ export function BarraLateral({
   esSoporte?: boolean;
   /** Administrador de operaciones (0114): dicta el código, no ejecuta. */
   esOperaciones?: boolean;
+  /** Las dos colas del área (plan 23, etapa 5): «el número es el llamado a la acción». */
+  contadorMiDia?: number;
+  contadorAtenciones?: number;
 }) {
   const [plegada, setPlegada] = useState(false);
 
@@ -83,6 +88,8 @@ export function BarraLateral({
         esSoporte={esSoporte}
         esOperaciones={esOperaciones}
         plegada={plegada}
+        contadorMiDia={contadorMiDia}
+        contadorAtenciones={contadorAtenciones}
       />
 
       {/* El código con el que se autoriza una corrección. Desde el 28-08 no lo
