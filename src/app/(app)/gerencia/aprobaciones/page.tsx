@@ -1,9 +1,11 @@
 import { fechaLima } from "@/lib/fechas";
-import { FileDown } from "lucide-react";
+import { ChevronRight, FileDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AprobarCotizacionBotones } from "@/components/crm/aprobar-cotizacion-botones";
 import { HistorialAprobaciones } from "@/components/crm/historial-aprobaciones";
+import { CompendioGestion } from "@/components/crm/compendio-gestion";
+import { cargarCompendio, type Compendio } from "@/lib/compendio-cierre";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +30,32 @@ export default async function AprobacionesPage() {
   const { data: cotizaciones } = await supabase
     .from("cotizaciones")
     .select(
-      `id, codigo, serie, total, moneda, created_at,
+      `id, codigo, serie, total, moneda, created_at, oportunidad_id,
        oportunidades(cuentas(razon_social), perfiles(nombre)),
        cotizacion_items(id, cantidad, precio_lista, precio_unitario, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
     )
     .eq("estado_aprobacion", "pendiente_gerencia")
     .order("created_at", { ascending: true });
+
+  // CÓMO SE LLEGÓ HASTA ACÁ, antes de decidir el precio. Pedido del ing.
+  // Carlos el 31-08 por WhatsApp, mirando una cotización de COINREFRI que
+  // pedía 16,3 % por debajo de la referencia: «es indispensable que me permita
+  // verificar el detalle de esta gestión del cliente… un desplegable para ver
+  // el seguimiento o histórico, a fin de entender el perfil por el cual se le
+  // pretende ofertar un precio muy por debajo de lo establecido».
+  //
+  // Es el MISMO compendio que ya viaja en el expediente de cierre, no una
+  // vista nueva: la pregunta de gerencia es la misma antes y después de la
+  // venta —cómo se hizo esta gestión—, y dos pantallas que la contesten
+  // distinto sería peor que una.
+  const compendios = new Map<string, Compendio>();
+  await Promise.all(
+    (cotizaciones ?? []).map(async (c) => {
+      if (!c.oportunidad_id) return;
+      const compendio = await cargarCompendio(c.oportunidad_id);
+      if (compendio) compendios.set(c.id, compendio);
+    }),
+  );
 
   return (
     <div className="space-y-4">
@@ -96,6 +118,21 @@ export default async function AprobacionesPage() {
                     {c.moneda} {c.total.toLocaleString("es-PE")}
                   </span>
                 </div>
+                {compendios.has(c.id) && (
+                  <details className="group mt-2.5 rounded-lg border border-border bg-secondary/40">
+                    <summary className="flex cursor-pointer list-none items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-accent">
+                      <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
+                      Ver la gestión de este cliente
+                      <span className="font-normal text-muted-foreground">
+                        · {compendios.get(c.id)!.gestiones}{" "}
+                        {compendios.get(c.id)!.gestiones === 1 ? "gestión" : "gestiones"}
+                      </span>
+                    </summary>
+                    <div className="p-2 pt-0">
+                      <CompendioGestion compendio={compendios.get(c.id)!} titulo="Cómo se llegó hasta acá" />
+                    </div>
+                  </details>
+                )}
                 <div className="mt-2.5 flex items-center justify-between gap-3">
                   <a
                     href={`/api/cotizaciones/${c.id}/pdf`}

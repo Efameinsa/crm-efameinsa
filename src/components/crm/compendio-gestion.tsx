@@ -19,13 +19,26 @@ import { cn } from "@/lib/utils";
  * reuniones —las que costaron plata y tiempo— y las tres últimas antes del
  * cierre. Una lista de cuarenta llamadas no la lee nadie; seis líneas cuentan
  * la misma historia y se leen en diez segundos.
+ *
+ * DESDE EL 31-08 TAMBIÉN SE USA ANTES DE LA VENTA, en las aprobaciones de
+ * precio. Por eso el título es un parámetro y el paso «Cerrado» solo aparece
+ * si de verdad cerró: ahí la gestión está viva, y poner «Cerrado —» era
+ * mentirle a quien está por decidir.
  */
-export function CompendioGestion({ compendio, compacto = false }: { compendio: Compendio; compacto?: boolean }) {
+export function CompendioGestion({
+  compendio,
+  compacto = false,
+  titulo = "Cómo se hizo la venta",
+}: {
+  compendio: Compendio;
+  compacto?: boolean;
+  titulo?: string;
+}) {
   const c = compendio;
   return (
     <div className="rounded-lg border border-border bg-background p-3">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <h4 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Cómo se hizo la venta</h4>
+        <h4 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{titulo}</h4>
         <p className="text-[11px] text-muted-foreground">
           {c.comercial}
           {c.codigoComercial && ` · ${c.codigoComercial}`}
@@ -33,35 +46,39 @@ export function CompendioGestion({ compendio, compacto = false }: { compendio: C
       </div>
 
       {/* La línea de tiempo, en una sola fila: entró → se derivó → primer
-          contacto → se cerró. Es la que gerencia mira para medir. */}
+          contacto → se cerró. Es la que gerencia mira para medir.
+          Las flechas se arman uniendo los pasos que EXISTEN, no colgándole una
+          a cada uno: en una gestión todavía abierta no hay «Cerrado», y la
+          flecha suelta al final quedaba apuntando a la nada. */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-        {c.recibidoAt && (
-          <>
-            <Paso icono={<Inbox className="size-3" />} titulo="Entró" detalle={`${fechaCalendario(c.recibidoAt.slice(0, 10))}${c.origenCanal ? ` por ${c.origenCanal}` : ""}`} />
-            <ArrowRight className="size-3 text-muted-foreground" />
-          </>
-        )}
-        {c.primeraGestionAt && (
-          <>
-            <Paso titulo="Primer contacto" detalle={fechaCalendario(c.primeraGestionAt.slice(0, 10))} />
-            <ArrowRight className="size-3 text-muted-foreground" />
-          </>
-        )}
-        {c.cotizaciones.length > 0 && (
-          <>
+        {[
+          c.recibidoAt ? (
             <Paso
+              key="entro"
+              icono={<Inbox className="size-3" />}
+              titulo="Entró"
+              detalle={`${fechaCalendario(c.recibidoAt.slice(0, 10))}${c.origenCanal ? ` por ${c.origenCanal}` : ""}`}
+            />
+          ) : null,
+          c.primeraGestionAt ? (
+            <Paso key="contacto" titulo="Primer contacto" detalle={fechaCalendario(c.primeraGestionAt.slice(0, 10))} />
+          ) : null,
+          c.cotizaciones.length > 0 ? (
+            <Paso
+              key="cotizado"
               icono={<FileText className="size-3" />}
               titulo={c.cotizaciones.length === 1 ? "Cotizado" : `${c.cotizaciones.length} cotizaciones`}
               detalle={c.cotizaciones.map((q) => q.codigo).join(", ")}
             />
-            <ArrowRight className="size-3 text-muted-foreground" />
-          </>
-        )}
-        <Paso
-          titulo="Cerrado"
-          detalle={c.cerradaAt ? fechaCalendario(c.cerradaAt.slice(0, 10)) : "—"}
-          fuerte
-        />
+          ) : null,
+          c.cerradaAt ? (
+            <Paso key="cerrado" titulo="Cerrado" detalle={fechaCalendario(c.cerradaAt.slice(0, 10))} fuerte />
+          ) : null,
+        ]
+          .filter((p): p is React.ReactElement => p !== null)
+          .flatMap((paso, i) =>
+            i === 0 ? [paso] : [<ArrowRight key={`f${i}`} className="size-3 text-muted-foreground" />, paso],
+          )}
         {c.diasDeCiclo != null && (
           <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground">
             {c.diasDeCiclo} {c.diasDeCiclo === 1 ? "día" : "días"} en total
