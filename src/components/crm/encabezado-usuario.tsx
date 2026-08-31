@@ -2,6 +2,7 @@ import { cerrarSesion } from "@/lib/acciones/auth";
 import { Button } from "@/components/ui/button";
 import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
 import { CambiarClave } from "@/components/crm/cambiar-clave";
+import { BotonAtrasApp } from "@/components/crm/boton-atras-app";
 import type { Perfil } from "@/types/database";
 
 const ETIQUETA_ROL: Record<Perfil["rol"], string> = {
@@ -15,12 +16,17 @@ const ETIQUETA_ROL: Record<Perfil["rol"], string> = {
 export function EncabezadoUsuario({ perfil }: { perfil: Perfil }) {
   return (
     <header className="flex items-center justify-between border-b border-border bg-background px-6 py-3">
-      <div>
-        <p className="text-sm font-medium text-foreground">{perfil.nombre}</p>
-        <p className="text-xs text-muted-foreground">
-          {ETIQUETA_ROL[perfil.rol]}
-          {perfil.codigo_comercial ? ` · ${perfil.codigo_comercial}` : ""}
-        </p>
+      <div className="flex items-center gap-2">
+        {/* Solo se dibuja con la aplicación instalada, que no tiene la flecha
+            del navegador. Ver el componente. */}
+        <BotonAtrasApp />
+        <div>
+          <p className="text-sm font-medium text-foreground">{perfil.nombre}</p>
+          <p className="text-xs text-muted-foreground">
+            {ETIQUETA_ROL[perfil.rol]}
+            {perfil.codigo_comercial ? ` · ${perfil.codigo_comercial}` : ""}
+          </p>
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <CampanaNotificaciones userId={perfil.id} rol={perfil.rol} />

@@ -2,6 +2,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { BarraLateral } from "@/components/crm/barra-lateral";
 import { EncabezadoUsuario } from "@/components/crm/encabezado-usuario";
 import { CalloutActivarNotificaciones } from "@/components/crm/callout-activar-notificaciones";
+import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
@@ -24,8 +25,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             depende del aviso (la miden por la entrega rápida de leads). Se
             oculta solo cuando el permiso ya está concedido y hay suscripción
             viva, así que no estorba a quien ya lo activó. */}
-        <div className="px-6 pt-6 empty:hidden">
+        {/* Los dos avisos van juntos y en este orden: primero el que hace que
+            los prospectos lleguen a tiempo, después el de instalar. Los dos se
+            descartan y los dos se ocultan solos cuando ya no hacen falta, así
+            que lo habitual es que acá no haya nada. `AplicacionInstalable`
+            además registra el service worker: aunque no dibuje nada, tiene que
+            estar montado en todas las pantallas. */}
+        <div className="flex flex-col gap-3 px-6 pt-6 empty:hidden">
           <CalloutActivarNotificaciones />
+          <AplicacionInstalable />
         </div>
         <main className="flex-1 bg-app-bg p-6">{children}</main>
       </div>

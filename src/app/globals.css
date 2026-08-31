@@ -178,3 +178,26 @@ body {
     cursor: not-allowed;
   }
 }
+/* --------------------------------------------------------------------------
+   El CRM corriendo INSTALADO (ventana propia, sin barra de direcciones).
+
+   Santos, 31-08-2026: «simulando una aplicación de escritorio». Acá no se
+   rediseña nada — solo se corrigen los dos detalles que delatan que por dentro
+   hay un navegador. El atributo lo pone `AplicacionInstalable` al montar, y la
+   consulta `display-mode` cubre el caso de abrir la ventana instalada antes de
+   que corra el JavaScript.
+   -------------------------------------------------------------------------- */
+@media (display-mode: standalone) {
+  html,
+  body {
+    /* El rebote elástico al llegar al final de una lista (y el "tirar para
+       recargar" del celular) se ven como una falla en una ventana que no tiene
+       barra del navegador. Dentro de la aplicación no hay a dónde rebotar. */
+    overscroll-behavior: none;
+  }
+}
+
+html[data-modo-app="instalada"],
+html[data-modo-app="instalada"] body {
+  overscroll-behavior: none;
+}

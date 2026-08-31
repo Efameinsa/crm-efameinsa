@@ -88,6 +88,13 @@ export const config = {
     // sw.js: un service worker servido detrás de una redirección lo rechaza
     // el navegador ("script resource is behind a redirect") — nunca debe
     // pasar por el proxy de auth, se sirve directo desde /public.
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    //
+    // manifest.webmanifest: la misma trampa, por otro camino. El navegador
+    // pide el manifiesto SIN cookies (crossorigin anónimo por defecto), así
+    // que detrás del proxy siempre sería "sin sesión" y recibiría el HTML del
+    // login en lugar del JSON — el botón «Instalar» nunca aparecería. Se
+    // agregó el 31-08-2026 con la aplicación instalable; el aviso de que esto
+    // iba a pasar estaba escrito desde agosto en las notas del bug de sw.js.
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

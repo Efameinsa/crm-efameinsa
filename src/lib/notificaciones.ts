@@ -60,13 +60,13 @@ export async function notificar(datos: DatosNotificacion): Promise<void> {
       const { data } = await admin.from("perfiles").select("id").eq("rol", datos.rol).eq("activo", true);
       userIds = (data ?? []).map((p) => p.id);
     }
-    await Promise.all(userIds.map((id) => enviarPush(id, datos.titulo, datos.cuerpo, datos.url)));
+    await Promise.all(userIds.map((id) => enviarPush(id, datos)));
   } catch (err) {
     console.error("notificar(): fallo al enviar push", err);
   }
 }
 
-async function enviarPush(userId: string, titulo: string, cuerpo?: string, url?: string): Promise<void> {
+async function enviarPush(userId: string, datos: DatosNotificacion): Promise<void> {
   const admin = createAdminClient();
   const { data: suscripciones } = await admin
     .from("push_suscripciones")
@@ -75,7 +75,17 @@ async function enviarPush(userId: string, titulo: string, cuerpo?: string, url?:
 
   if (!suscripciones || suscripciones.length === 0) return;
 
-  const payload = JSON.stringify({ title: titulo, body: cuerpo ?? "", url: url ?? "/" });
+  // `tipo` viaja desde el 31-08-2026 para que el service worker pueda tratar
+  // distinto lo que es distinto: una urgencia de Central se queda en pantalla
+  // hasta que la toquen (`requireInteraction`), igual que la ventanita dentro
+  // del CRM; el resto se va solo y se agrupa por destino para no apilar diez
+  // avisos del mismo sitio.
+  const payload = JSON.stringify({
+    title: datos.titulo,
+    body: datos.cuerpo ?? "",
+    url: datos.url ?? "/",
+    tipo: datos.tipo,
+  });
 
   await Promise.all(
     suscripciones.map(async (s) => {
