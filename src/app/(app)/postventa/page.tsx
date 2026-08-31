@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { AlertTriangle, Wrench, PackageSearch, ShieldCheck, Inbox, ArrowRight } from "lucide-react";
+import { AlertTriangle, Wrench, PackageSearch, ShieldCheck, Inbox, ArrowRight, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { fechaLima, fechaHoraLima } from "@/lib/fechas";
+import { fechaLima } from "@/lib/fechas";
 import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { BotonCierreSemanal } from "@/components/crm/boton-cierre-semanal";
@@ -11,12 +11,12 @@ import { BotonReporteMensual } from "@/components/crm/boton-reporte-mensual";
 import { hoyLima } from "@/lib/periodo";
 import { lunesSemana } from "@/lib/potenciales-semana";
 import { mesPorDefecto } from "@/lib/cierre-mensual";
+import { relojAtencion, ETIQUETA_TIPO_ATENCION, type TipoAtencion } from "@/lib/atenciones";
 import {
   queLoFrena,
   slaCaso,
-  etiquetaEtapaPostventa,
-  etiquetaResponsable,
   puedeVerPrecios,
+  sinPrecios,
   estadoPago,
   ETIQUETA_ESTADO_PAGO,
   type ServicioPostventa,
@@ -26,25 +26,61 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 /**
- * Con lo que postventa arranca el día.
+ * Con lo que postventa arranca el día. Plan 23, etapa 3: «Mi día» es una
+ * BANDEJA, no un tablero — una sola pregunta: ¿qué llegó y espera que yo lo
+ * tome?
  *
- * Antes esta pantalla listaba todo lo pendiente ordenado por fecha, y como el
- * Excel traía 57 filas vencidas de 2025, lo primero que se veía era el año
- * pasado. Carlos lo dijo mirándola: «primero debería salir lo último que están
- * gestionando». Así que ahora responde otra pregunta: **qué tengo que hacer
- * ahora**. Todo lo demás se mudó a la agenda, que es donde se busca.
- *
- * Tres bloques y ninguno más:
- *   · lo que Central acaba de liberar y espera el acuse,
- *   · lo que vence hoy o ya venció,
- *   · los casos con su reloj corriendo.
+ * Hasta el 31-08 esa pregunta se contestaba en tres cajas separadas (pedidos,
+ * casos, y un resumen de la semana que duplicaba el Calendario) con tres
+ * relojes distintos. Ahora es una sola lista ordenada por urgencia real —el
+ * mismo criterio que ya usan `relojAtencion` y `slaCaso`— y un segundo bloque
+ * con SOLO lo de hoy: la semana entera es del Calendario, no de acá.
  */
 
-const ETIQUETA_TIPO: Record<string, string> = {
+const ETIQUETA_TIPO_CASO: Record<string, string> = {
   garantia: "Garantía",
   repuesto: "Repuesto",
   mantenimiento: "Mantenimiento",
 };
+
+const ICONO_TIPO_ATENCION: Record<TipoAtencion, LucideIcon> = {
+  puesta_en_marcha: Wrench,
+  problema_tecnico: AlertTriangle,
+  solicitud_repuesto: PackageSearch,
+  solicitud_mantenimiento: Wrench,
+};
+
+type EstadoUrgencia = "rojo" | "ambar" | "verde";
+const ORDEN_URGENCIA: Record<EstadoUrgencia, number> = { rojo: 0, ambar: 1, verde: 2 };
+
+interface ItemBandeja {
+  clave: string;
+  href: string;
+  icono: LucideIcon;
+  cliente: string;
+  etiqueta: string;
+  detalle: string | null;
+  estado: EstadoUrgencia;
+  horas: number;
+  limite: number;
+  recienLlegado: boolean;
+  /**
+   * Solo los pedidos tienen el acuse de un clic (Carlos: «yo pongo como
+   * postventa aprobado»). Va como acción propia y no como enlace de la fila
+   * entera: un botón dentro de un `<a>` es un clic que hace dos cosas a la
+   * vez.
+   */
+  servicioIdParaAprobar?: string;
+}
+
+/** Lo mismo que `relojAtencion`, para el único origen que no tenía reloj propio. */
+const LIMITE_PEDIDO_HORAS = 24;
+function relojPedido(desde: string): { estado: EstadoUrgencia; horas: number } {
+  const horas = (Date.now() - new Date(desde).getTime()) / 36e5;
+  if (horas > LIMITE_PEDIDO_HORAS) return { estado: "rojo", horas };
+  if (horas > LIMITE_PEDIDO_HORAS * 0.6) return { estado: "ambar", horas };
+  return { estado: "verde", horas };
+}
 
 function Vacio({ children }: { children: React.ReactNode }) {
   return <p className="max-w-prose text-sm text-muted-foreground">{children}</p>;
@@ -54,80 +90,148 @@ export default async function PostventaPage() {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-  const enUnaSemana = new Date(new Date().getTime() + 7 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-
-  const [{ data: nuevos }, { data: enGestion }, { data: casos }, { count: sinFecha }] = await Promise.all([
-    // Liberados por Central (los dos checks) y todavía sin acuse.
-    supabase
-      .from("servicios_postventa")
-      .select("*")
-      .not("pedido_ejecutado_at", "is", null)
-      .not("liquidacion_at", "is", null)
-      .is("aprobado_at", null)
-      .eq("completado", false)
-      .order("pedido_ejecutado_at", { ascending: false })
-      .limit(20),
-    // Lo abierto con fecha para hoy, para esta semana, o ya vencida. Lo de más
-    // adelante no compite por la atención de hoy.
-    //
-    // SIN filtrar por `aprobado_at` a propósito: las 106 filas pendientes que
-    // vinieron del Excel nunca pasaron por el acuse, y exigirlo dejaría la
-    // pantalla vacía escondiendo el trabajo real. El acuse ordena los pedidos
-    // NUEVOS; no es un requisito para ver lo que ya estaba en curso.
-    supabase
-      .from("servicios_postventa")
-      .select("*")
-      .eq("completado", false)
-      .or(`fecha_despacho.lte.${enUnaSemana},puesta_en_marcha.lte.${enUnaSemana}`)
-      .order("fecha_despacho", { ascending: true, nullsFirst: false })
-      .limit(40),
-    // UN CASO ES UN CASO, no todo lo que tiene tipo_postventa. Desde que
-    // entraron los tres años de cierres y las campañas de mantenimiento
-    // (origen = historico_excel), esta caja mostraba 145 clientes por llamar
-    // bajo el rótulo «casos derivados por Central», que no lo eran: son la
-    // ruta de mantenimiento y tienen su propia pantalla.
-    //
-    // Acá el filtro por origen SÍ corresponde —al revés que en la cola de
-    // pedidos del plan 11—: lo que nació en el CRM es un caso de verdad, o
-    // porque Central lo derivó o porque alguien lo registró en /postventa/casos.
-    supabase
-      .from("oportunidades")
-      .select("id, etapa, intencion, tipo_postventa, created_at, cuentas(razon_social)")
-      .eq("comercial_id", perfil.id)
-      .eq("origen", "crm")
-      // Y con tipo: un contacto comercial derivado a Hever —que también vende—
-      // no es un caso técnico y no va en esta caja.
-      .not("tipo_postventa", "is", null)
-      .not("etapa", "in", "(venta,rechazada)")
-      .order("created_at", { ascending: false })
-      .limit(30),
-    supabase
-      .from("servicios_postventa")
-      .select("id", { count: "exact", head: true })
-      .eq("completado", false)
-      .is("fecha_despacho", null),
-  ]);
-
-  // Al área no se le nombra plata: en la bandeja, donde antes iba el monto de
-  // la venta, va en qué está el pago (Carlos, 27-08).
-  const verPrecios = puedeVerPrecios(perfil);
-  const gestion = (enGestion ?? []) as unknown as ServicioPostventa[];
-  const atrasados = gestion.filter((s) => s.fecha_despacho && s.fecha_despacho < hoy && !s.despachado_at);
-  const alDia = gestion.filter((s) => !atrasados.includes(s));
-
-  // CUÁNTOS ATRASADOS SE MUESTRAN ACÁ. Hay 40 pendientes de 2025 y de junio en
-  // la cola heredada del Excel, y ponerlos todos en «Mi día» reproduce
-  // exactamente lo que Carlos reclamó mirando la agenda: «primero debería salir
-  // lo último que están gestionando», no el año pasado. Se muestran los cinco
-  // más recientes —lo que más chance tiene de destrabarse— y el resto se cuenta
-  // con un enlace a la lista, que es donde se trabaja la cola vieja.
-  const ATRASADOS_EN_MI_DIA = 5;
-  const atrasadosVisibles = [...atrasados]
-    .sort((a, b) => (b.fecha_despacho ?? "").localeCompare(a.fecha_despacho ?? ""))
-    .slice(0, ATRASADOS_EN_MI_DIA);
-
   const hoyIso = hoyLima();
   const lunes = lunesSemana();
+
+  const [{ data: nuevos }, { data: casos }, { data: atencionesNuevas }, { data: hoyProgramado }, { count: atrasados }] =
+    await Promise.all([
+      // Liberados por Central (los dos checks) y todavía sin acuse.
+      supabase
+        .from("servicios_postventa")
+        .select("*")
+        .not("pedido_ejecutado_at", "is", null)
+        .not("liquidacion_at", "is", null)
+        .is("aprobado_at", null)
+        .eq("completado", false)
+        .order("pedido_ejecutado_at", { ascending: false })
+        .limit(20),
+      // UN CASO ES UN CASO, y acá solo los que TODAVÍA no se tomaron
+      // («asignada» es justo lo que la propia pantalla vieja llamaba «sin
+      // atender»): lo que ya está en curso se sigue en Atenciones o en el
+      // Kanban, no compite acá por la primera mirada del día.
+      supabase
+        .from("oportunidades")
+        .select("id, tipo_postventa, intencion, created_at, cuentas(razon_social)")
+        .eq("comercial_id", perfil.id)
+        .eq("origen", "crm")
+        .eq("etapa", "asignada")
+        .not("tipo_postventa", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(30),
+      // Las atenciones que Central acaba de devolver al área («registro»):
+      // falta tomarlas y verificar la garantía. Es la misma pista de 9 etapas
+      // de Atenciones, mirada desde el único paso que apremia por definición.
+      supabase
+        .from("atenciones")
+        .select("id, cuenta_id, cliente_texto, tipo, etapa, detalle, solicitado_at, atendido_at, cerrado_at, cuentas(razon_social)")
+        .eq("etapa", "registro")
+        .is("cerrado_at", null)
+        .order("solicitado_at", { ascending: true })
+        .limit(30),
+      // Lo programado PARA HOY, y nada más: la semana completa es del
+      // Calendario (duplicarla acá era una de las tres redundancias del
+      // diagnóstico del plan 23).
+      supabase
+        .from("servicios_postventa")
+        .select("*")
+        .eq("completado", false)
+        .or(`fecha_despacho.eq.${hoy},puesta_en_marcha.eq.${hoy}`)
+        .limit(40),
+      // Los atrasados se cuentan, no se listan acá: la lista vive en
+      // Atenciones → Despachos, que es donde de verdad se trabaja la cola
+      // vieja del Excel.
+      supabase
+        .from("servicios_postventa")
+        .select("id", { count: "exact", head: true })
+        .eq("completado", false)
+        .lt("fecha_despacho", hoy)
+        .is("despachado_at", null),
+    ]);
+
+  const verPrecios = puedeVerPrecios(perfil);
+
+  // ── La bandeja única: «Llegó y espera su acuse» ───────────────────────────
+  const itemsPedidos: ItemBandeja[] = (nuevos as unknown as ServicioPostventa[] | null ?? []).map((s) => {
+    // El filtro de la consulta ya exige `pedido_ejecutado_at` no nulo.
+    const reloj = relojPedido(s.pedido_ejecutado_at as string);
+    return {
+      clave: `pedido-${s.id}`,
+      href: `/postventa/pedidos/${s.id}`,
+      icono: Inbox,
+      cliente: s.cliente_texto ?? "Cliente sin nombre",
+      etiqueta: "Nuevo pedido",
+      detalle: verPrecios
+        ? s.monto
+          ? `${s.moneda} ${Number(s.monto).toLocaleString("es-PE")}`
+          : "sin monto"
+        : ETIQUETA_ESTADO_PAGO[estadoPago(s)],
+      estado: reloj.estado,
+      horas: reloj.horas,
+      limite: LIMITE_PEDIDO_HORAS,
+      recienLlegado: reloj.horas < 1,
+      servicioIdParaAprobar: s.id,
+    };
+  });
+
+  const itemsCasos: ItemBandeja[] = ((casos ?? []) as unknown as {
+    id: string;
+    tipo_postventa: string | null;
+    intencion: string | null;
+    created_at: string;
+    cuentas: { razon_social: string } | null;
+  }[]).map((c) => {
+    const sla = slaCaso(c.tipo_postventa, c.created_at, false);
+    const tipo = c.tipo_postventa;
+    return {
+      clave: `caso-${c.id}`,
+      href: `/comercial/oportunidades/${c.id}`,
+      icono: tipo === "garantia" ? ShieldCheck : tipo === "repuesto" ? PackageSearch : Wrench,
+      cliente: c.cuentas?.razon_social ?? "Cliente sin nombre",
+      etiqueta: tipo ? (ETIQUETA_TIPO_CASO[tipo] ?? tipo) : "Sin clasificar",
+      detalle: c.intencion,
+      estado: sla.estado,
+      horas: sla.horas,
+      limite: sla.limite,
+      recienLlegado: sla.horas < 1,
+    };
+  });
+
+  const itemsAtenciones: ItemBandeja[] = ((atencionesNuevas ?? []) as unknown as {
+    id: string;
+    cliente_texto: string | null;
+    tipo: TipoAtencion;
+    etapa: "registro";
+    detalle: string | null;
+    solicitado_at: string;
+    atendido_at: string | null;
+    cerrado_at: string | null;
+    cuentas: { razon_social: string } | null;
+  }[]).map((a) => {
+    const reloj = relojAtencion(a as unknown as Parameters<typeof relojAtencion>[0]);
+    return {
+      clave: `atencion-${a.id}`,
+      href: `/postventa/atenciones/${a.id}`,
+      icono: ICONO_TIPO_ATENCION[a.tipo] ?? Wrench,
+      cliente: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre",
+      etiqueta: ETIQUETA_TIPO_ATENCION[a.tipo],
+      detalle: a.detalle,
+      estado: reloj.estado,
+      horas: reloj.horas,
+      limite: reloj.limite,
+      recienLlegado: reloj.horas < 1,
+    };
+  });
+
+  const bandeja = [...itemsAtenciones, ...itemsCasos, ...itemsPedidos].sort((a, b) => {
+    const porUrgencia = ORDEN_URGENCIA[a.estado] - ORDEN_URGENCIA[b.estado];
+    return porUrgencia !== 0 ? porUrgencia : b.horas - a.horas;
+  });
+  const enRojo = bandeja.filter((i) => i.estado === "rojo").length;
+
+  // ── Hoy ────────────────────────────────────────────────────────────────
+  const listaHoy = (hoyProgramado as unknown as ServicioPostventa[] | null ?? []).map((s) =>
+    verPrecios ? s : sinPrecios(s),
+  );
 
   return (
     <div className="space-y-4">
@@ -140,106 +244,111 @@ export default async function PostventaPage() {
       </div>
 
       <SeccionPanel
-        titulo="Nuevos pedidos"
+        titulo="Llegó y espera su acuse"
         accion={
-          nuevos && nuevos.length > 0 ? (
-            <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
-              {nuevos.length} esperando acuse
+          bandeja.length > 0 ? (
+            <span
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                enRojo > 0 ? "bg-destructive/10 text-destructive" : "bg-primary px-2.5 text-primary-foreground",
+              )}
+            >
+              {bandeja.length}
+              {enRojo > 0 && ` · ${enRojo} pasada${enRojo === 1 ? "" : "s"} de tiempo`}
             </span>
           ) : undefined
         }
       >
-        {!nuevos || nuevos.length === 0 ? (
+        {bandeja.length === 0 ? (
           <Vacio>
-            No hay pedidos nuevos. Aparecen acá en cuanto Central marca «pedido ejecutado» y «liquidación» sobre un
-            cierre de venta — con todo lo que el comercial adjuntó, sin esperar el file impreso.
+            Nada esperando acuse. Acá caen los pedidos que libera Central, los casos recién asignados y las
+            atenciones que Central acaba de devolver al área — apenas se registren, antes de tomarlos.
           </Vacio>
         ) : (
           <div className="space-y-2">
-            {(nuevos as unknown as ServicioPostventa[]).map((s) => (
-              <div
-                key={s.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/25 bg-primary/5 p-3"
-              >
-                <span className="flex size-9 flex-none items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Inbox className="size-4" />
-                </span>
-                <div className="min-w-[220px] flex-1">
-                  <Link href={`/postventa/pedidos/${s.id}`} className="text-sm font-semibold hover:underline">
-                    {s.cliente_texto ?? "Cliente sin nombre"}
+            {bandeja.map((item) => {
+              const Icono = item.icono;
+              return (
+                <div
+                  key={item.clave}
+                  className={cn(
+                    "flex flex-wrap items-center gap-3 rounded-lg border p-3",
+                    item.estado === "rojo" ? "border-destructive/30 bg-destructive/5" : "border-border bg-background",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-9 flex-none items-center justify-center rounded-full",
+                      item.estado === "rojo"
+                        ? "bg-destructive/10 text-destructive"
+                        : item.estado === "ambar"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-secondary text-foreground",
+                    )}
+                  >
+                    <Icono className="size-4" />
+                  </span>
+                  <Link href={item.href} className="min-w-[220px] flex-1 hover:underline">
+                    <p className="text-sm font-semibold text-foreground">{item.cliente}</p>
+                    <p className="line-clamp-1 text-xs text-muted-foreground no-underline">
+                      {item.etiqueta}
+                      {item.detalle && ` · ${item.detalle}`}
+                    </p>
                   </Link>
-                  <p className="line-clamp-2 text-xs text-muted-foreground">{s.equipo ?? "Sin equipo"}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {verPrecios
-                      ? s.monto
-                        ? `${s.moneda} ${Number(s.monto).toLocaleString("es-PE")}`
-                        : "sin monto"
-                      : ETIQUETA_ESTADO_PAGO[estadoPago(s)]}
-                    {s.forma_pago && ` · ${s.forma_pago}`}
-                    {s.modalidad && ` · ${s.modalidad}`}
-                    {s.pedido_ejecutado_at && ` · liberado ${fechaHoraLima(s.pedido_ejecutado_at)}`}
-                  </p>
+                  <span
+                    className={cn(
+                      "text-right text-[11px] font-semibold",
+                      item.estado === "rojo"
+                        ? "text-destructive"
+                        : item.estado === "ambar"
+                          ? "text-amber-700"
+                          : "text-muted-foreground",
+                    )}
+                  >
+                    {item.recienLlegado ? "recién llegado" : `${Math.round(item.horas)} h · límite ${item.limite} h`}
+                  </span>
+                  {item.servicioIdParaAprobar ? (
+                    <AprobarPedidoBoton servicioId={item.servicioIdParaAprobar} />
+                  ) : (
+                    <ArrowRight className="size-3.5 flex-none text-muted-foreground" />
+                  )}
                 </div>
-                <AprobarPedidoBoton servicioId={s.id} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </SeccionPanel>
 
       <SeccionPanel
-        titulo="Para esta semana"
+        titulo="Hoy"
         accion={
           <Link href="/postventa/agenda" className="text-xs font-medium text-primary hover:underline">
-            Ver el calendario completo
+            Ver la semana completa
           </Link>
         }
       >
-        {atrasados.length > 0 && (
+        {(atrasados ?? 0) > 0 && (
           <p className="mb-2 flex flex-wrap items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs font-semibold text-amber-900">
             <AlertTriangle className="size-3.5" />
-            {atrasados.length} con la fecha ya vencida
-            {atrasados.length > ATRASADOS_EN_MI_DIA && (
-              <>
-                {" "}
-                · acá van los {ATRASADOS_EN_MI_DIA} más recientes,
-                <Link href="/postventa/agenda?ver=lista&estado=atrasados" className="underline hover:no-underline">
-                  ver los {atrasados.length} en la lista
-                </Link>
-              </>
-            )}
+            {atrasados} despacho{atrasados === 1 ? "" : "s"} con la fecha ya vencida ·{" "}
+            <Link href="/postventa/atenciones?ver=despachos&estado=atrasados" className="underline hover:no-underline">
+              ver la lista completa
+            </Link>
           </p>
         )}
-        {gestion.length === 0 ? (
-          <Vacio>
-            Nada con fecha para esta semana.
-            {(sinFecha ?? 0) > 0 && (
-              <>
-                {" "}
-                Hay <strong>{sinFecha}</strong> pendientes sin fecha en la agenda: sin fecha, un compromiso desaparece.
-              </>
-            )}
-          </Vacio>
+        {listaHoy.length === 0 ? (
+          <Vacio>Nada programado para hoy.</Vacio>
         ) : (
           <div className="space-y-1.5">
-            {[...alDia, ...atrasadosVisibles].map((s) => {
+            {listaHoy.map((s) => {
               const frena = queLoFrena(s);
-              const vencido = s.fecha_despacho && s.fecha_despacho < hoy && !s.despachado_at;
               return (
                 <Link
                   key={s.id}
                   href={`/postventa/pedidos/${s.id}`}
-                  className={cn(
-                    "flex flex-wrap items-start gap-3 rounded-md border p-2.5 transition-colors hover:bg-accent",
-                    vencido ? "border-amber-300 bg-amber-50/60" : "border-border",
-                  )}
+                  className="flex flex-wrap items-start gap-3 rounded-md border border-border p-2.5 transition-colors hover:bg-accent"
                 >
-                  <span
-                    className={cn(
-                      "w-20 flex-none font-mono text-xs font-semibold tabular-nums",
-                      vencido ? "text-amber-800" : "text-foreground",
-                    )}
-                  >
+                  <span className="w-20 flex-none font-mono text-xs font-semibold tabular-nums text-foreground">
                     {fechaLima(s.fecha_despacho ?? s.puesta_en_marcha)}
                   </span>
                   <div className="min-w-[200px] flex-1">
@@ -253,7 +362,7 @@ export default async function PostventaPage() {
                         frena.grave ? "bg-amber-100 text-amber-900" : "bg-secondary text-muted-foreground",
                       )}
                     >
-                      {frena.grave ? frena.texto : etiquetaResponsable(frena.responsable)}
+                      {frena.texto}
                     </span>
                   )}
                   <ArrowRight className="mt-1 size-3.5 flex-none text-muted-foreground" />
@@ -263,90 +372,7 @@ export default async function PostventaPage() {
           </div>
         )}
       </SeccionPanel>
-
-      <SeccionPanel
-        titulo="Casos derivados por Central"
-        accion={
-          casos && casos.length > 0 ? (
-            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
-              {casos.length} abierto{casos.length === 1 ? "" : "s"}
-            </span>
-          ) : undefined
-        }
-      >
-        {!casos || casos.length === 0 ? (
-          <Vacio>
-            Todavía no le derivaron ningún caso. Cuando Central registre una llamada de garantía, de repuesto o de
-            mantenimiento y se la asigne, va a aparecer acá.
-          </Vacio>
-        ) : (
-          <div className="space-y-2">
-            {casos.map((c) => {
-              const tipo = c.tipo_postventa as string | null;
-              const cuenta = c.cuentas as unknown as { razon_social: string } | null;
-              const atendido = c.etapa !== "asignada";
-              const sla = slaCaso(tipo, c.created_at as string, atendido);
-              return (
-                <Link
-                  key={c.id}
-                  href={`/comercial/oportunidades/${c.id}`}
-                  className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-background p-3 shadow-sm transition-colors hover:bg-accent"
-                >
-                  <span
-                    className={cn(
-                      "flex size-9 flex-none items-center justify-center rounded-full",
-                      sla.estado === "rojo"
-                        ? "bg-destructive/10 text-destructive"
-                        : sla.estado === "ambar"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-secondary text-foreground",
-                    )}
-                  >
-                    {tipo === "garantia" ? (
-                      <ShieldCheck className="size-4" />
-                    ) : tipo === "repuesto" ? (
-                      <PackageSearch className="size-4" />
-                    ) : (
-                      <Wrench className="size-4" />
-                    )}
-                  </span>
-                  <div className="min-w-[200px] flex-1">
-                    <p className="text-sm font-semibold text-foreground">{cuenta?.razon_social ?? "Cliente sin nombre"}</p>
-                    <p className="line-clamp-1 text-xs text-muted-foreground">
-                      {tipo ? (ETIQUETA_TIPO[tipo] ?? tipo) : "Sin clasificar"} · {c.intencion ?? "sin detalle"}
-                    </p>
-                  </div>
-                  <div className="text-right text-xs">
-                    <span className="rounded-full bg-secondary px-2 py-0.5 font-medium text-foreground">
-                      {etiquetaEtapaPostventa(c.etapa as string)}
-                    </span>
-                    <br />
-                    {!atendido && (
-                      <span
-                        className={cn(
-                          "text-[11px] font-semibold",
-                          sla.estado === "rojo"
-                            ? "text-destructive"
-                            : sla.estado === "ambar"
-                              ? "text-amber-700"
-                              : "text-muted-foreground",
-                        )}
-                      >
-                        {sla.horas < 1
-                          ? "recién llegado"
-                          : `${Math.round(sla.horas)} h sin atender · límite ${sla.limite} h`}
-                      </span>
-                    )}
-                    {atendido && (
-                      <span className="text-[11px] text-muted-foreground">{fechaHoraLima(c.created_at as string)}</span>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </SeccionPanel>
     </div>
   );
 }
+
