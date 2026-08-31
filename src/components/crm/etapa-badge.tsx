@@ -9,6 +9,9 @@ const CONFIG: Record<string, { etiqueta: string; clases: string }> = {
   venta: { etiqueta: "Venta", clases: "bg-[#1E7F4F]/10 text-[#1E7F4F]" },
   rechazada: { etiqueta: "Rechazada", clases: "bg-destructive/10 text-destructive" },
   derivada: { etiqueta: "Derivada", clases: "bg-secondary text-muted-foreground" },
+  // 0130: el archivo de los Excel. Se dibuja apagado y con borde punteado —
+  // está ahí, se puede leer y buscar, pero no reclama nada hoy.
+  historico: { etiqueta: "Histórico", clases: "border border-dashed border-border bg-transparent text-muted-foreground" },
 };
 
 export function EtapaBadge({ etapa }: { etapa: string }) {

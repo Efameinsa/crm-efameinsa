@@ -44,7 +44,11 @@ export type EtapaOportunidad =
   | "potencial"
   | "venta"
   | "rechazada"
-  | "derivada";
+  | "derivada"
+  // El archivo de los Excel históricos (0130). No es una etapa «cerrada»: la
+  // oportunidad sigue siendo del comercial y se puede retomar con un clic. Lo
+  // que deja de hacer es contar como trabajo pendiente del día.
+  | "historico";
 
 export type SerieCotizacion = "EFAMEINSA" | "OPEN";
 

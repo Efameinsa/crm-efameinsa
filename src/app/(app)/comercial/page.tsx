@@ -199,12 +199,18 @@ export default async function ComercialPage() {
   const TOPE_VENCIDAS = 60;
   const TOPE_NUEVAS = 40;
   const CAMPOS_MI_DIA = "id, etapa, intencion, proxima_accion, proxima_accion_at, cuentas(razon_social)";
+  //
+  // 31-08 (migración 0130): a las tres cerradas se sumó `historico`. Brenda
+  // veía 1.035 vencidas cuando las suyas de verdad son 41 — las otras 994 eran
+  // etiquetas congeladas del Excel que nadie tocó desde el import del 18-08.
+  // No es un filtro escondido: son visibles en su propia pestaña de «Mis
+  // oportunidades» y en la ficha del cliente, con botón para retomarlas.
   const abiertasDe = () =>
     supabase
       .from("oportunidades")
       .select(CAMPOS_MI_DIA)
       .eq("comercial_id", perfil.id)
-      .not("etapa", "in", "(venta,rechazada,derivada)");
+      .not("etapa", "in", "(venta,rechazada,derivada,historico)");
 
   const [{ data: hoyData }, { data: vencidasData, count: vencidasTotal }, { data: nuevasData, count: nuevasTotal }] = await Promise.all([
     abiertasDe().eq("proxima_accion_at", hoy).order("proxima_accion_hora", { ascending: true, nullsFirst: true }),
@@ -212,7 +218,7 @@ export default async function ComercialPage() {
       .from("oportunidades")
       .select(CAMPOS_MI_DIA, { count: "exact" })
       .eq("comercial_id", perfil.id)
-      .not("etapa", "in", "(venta,rechazada,derivada)")
+      .not("etapa", "in", "(venta,rechazada,derivada,historico)")
       .lt("proxima_accion_at", hoy)
       .order("proxima_accion_at", { ascending: false })
       .limit(TOPE_VENCIDAS),

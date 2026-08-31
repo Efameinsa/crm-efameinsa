@@ -15,6 +15,7 @@ import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
+import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { fechaAgendada, fechaHoraLima } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
@@ -395,7 +396,22 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           </SeccionPanel>
 
           <SeccionPanel titulo="Etapa">
-            <CambiarEtapa oportunidadId={oportunidad.id} etapaActual={oportunidad.etapa} motivos={motivos ?? []} />
+            {/* Si viene del archivo de los Excel (0130), lo primero no es
+                elegir etapa a mano: es decidir si se retoma. El botón la
+                devuelve a seguimiento con la próxima acción para hoy y deja
+                escrito quién la sacó — el selector de abajo no dejaría rastro. */}
+            {oportunidad.etapa === "historico" ? (
+              <div className="space-y-3 rounded-md border border-dashed border-border p-4">
+                <p className="text-xs text-muted-foreground">
+                  Esta oportunidad está en el <span className="font-semibold text-foreground">histórico</span>: vino de
+                  los Excel de agosto y nadie la retomó dentro del CRM, así que no cuenta como pendiente. Sigue siendo
+                  suya y conserva todo su historial.
+                </p>
+                <TrabajarHistoricaBoton oportunidadId={oportunidad.id} />
+              </div>
+            ) : (
+              <CambiarEtapa oportunidadId={oportunidad.id} etapaActual={oportunidad.etapa} motivos={motivos ?? []} />
+            )}
           </SeccionPanel>
         </div>
       </div>

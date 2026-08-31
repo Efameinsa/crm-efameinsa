@@ -7,6 +7,7 @@ import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import type { FilaOportunidadListado } from "@/lib/reportes";
 import { fechaCalendario } from "@/lib/fechas";
+import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 
 // Presentacional pura: la página ya trae la fila filtrada, ordenada y
 // paginada desde listar_oportunidades() (migración 0054) — antes esta tabla
@@ -25,7 +26,7 @@ export function TablaOportunidades({ filas }: { filas: FilaOportunidadListado[] 
             <TableHead>Interés</TableHead>
             <TableHead className="text-right">Monto estimado</TableHead>
             <TableHead>Para retomar</TableHead>
-            <TableHead className="w-8" />
+            <TableHead className="w-8" aria-label="Acciones" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -82,8 +83,14 @@ export function TablaOportunidades({ filas }: { filas: FilaOportunidadListado[] 
                   op.proxima_accion || "—"
                 )}
               </TableCell>
-              <TableCell>
-                <ChevronRight className="size-4 text-muted-foreground" />
+              <TableCell className="text-right">
+                {/* En la pestaña «Histórico» (0130) la fila deja de ser solo un
+                    enlace: trae la puerta de vuelta al trabajo del día. */}
+                {op.etapa === "historico" ? (
+                  <TrabajarHistoricaBoton oportunidadId={op.id} compacto />
+                ) : (
+                  <ChevronRight className="size-4 text-muted-foreground" />
+                )}
               </TableCell>
             </TableRow>
           ))}

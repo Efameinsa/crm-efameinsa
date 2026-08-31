@@ -16,6 +16,7 @@ import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { Badge } from "@/components/ui/badge";
+import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 
 export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId: string; comoGerencia?: boolean }) {
   const supabase = await createClient();
@@ -78,6 +79,16 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
     .order("proxima_accion_at", { ascending: true, nullsFirst: false })
     .limit(50);
 
+  // ACÁ SÍ SE VEN LAS DEL HISTÓRICO, a propósito (0130). Se archivaron para
+  // que no llenen el Kanban ni «Mi día», no para esconderlas: la ficha del
+  // cliente es justo donde se las va a buscar —«¿a este señor qué le
+  // cotizamos en 2022?»— y desde acá se retoman con un clic.
+  //
+  // El orden lo pone el servidor por fecha; acá se reordena por lo que le
+  // importa a quien mira: primero lo que se está trabajando, después el
+  // archivo, y al final lo cerrado (que cuenta la historia pero no pide nada).
+  // Son 34 como máximo en el cliente más cargado, así que ordenar en memoria
+  // no tiene costo.
   const oportunidades = ((oportunidadesCuenta ?? []) as unknown as {
     id: string;
     etapa: string;
@@ -89,7 +100,8 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
     cerrada_at: string | null;
     comercial_id: string | null;
     perfiles: { nombre: string; codigo_comercial: string | null } | null;
-  }[]);
+  }[]).sort((a, b) => rangoOportunidad(a) - rangoOportunidad(b));
+  const enHistorico = oportunidades.filter((o) => o.etapa === "historico").length;
 
   // Informes de cierre de este cliente. Los ve el comercial de la cartera,
   // gerencia y Central (política de la migración 0049).
@@ -159,7 +171,9 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
             titulo={`Oportunidades (${oportunidades.length})`}
             accion={
               <span className="text-[11px] text-muted-foreground">
-                La gestión se registra dentro de cada una
+                {enHistorico > 0
+                  ? `La gestión se registra dentro de cada una · ${enHistorico} en el histórico`
+                  : "La gestión se registra dentro de cada una"}
               </span>
             }
           >
@@ -211,6 +225,12 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   );
 }
 
+/** Vivo primero, archivo después, cerrado al final (0130). */
+function rangoOportunidad(o: { etapa: string; cerrada_at: string | null }): number {
+  if (o.cerrada_at) return 2;
+  return o.etapa === "historico" ? 1 : 0;
+}
+
 /**
  * Las oportunidades del cliente, como puerta a gestionarlas.
  *
@@ -250,18 +270,25 @@ function ListaOportunidadesCuenta({
       {oportunidades.map((o) => {
         const cerrada = !!o.cerrada_at;
         const deOtro = !comoGerencia && o.comercial_id !== duenoDeLaFicha;
+        // El botón solo donde puede funcionar: en lo que está archivado y es de
+        // quien mira. La base vuelve a comprobarlo igual (0130).
+        const enHistorico = o.etapa === "historico" && !cerrada;
         return (
-          <li key={o.id}>
+          <li
+            key={o.id}
+            className={cn(
+              "flex items-stretch rounded-lg border border-border transition-colors hover:bg-accent",
+              cerrada && "opacity-70",
+              enHistorico && "border-dashed",
+            )}
+          >
             <Link
               href={`/comercial/oportunidades/${o.id}`}
-              className={cn(
-                "flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border p-2.5 transition-colors hover:bg-accent",
-                cerrada && "opacity-70",
-              )}
+              className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 p-2.5"
             >
               <EtapaBadge etapa={o.etapa} />
               <span className="min-w-[140px] flex-1 text-xs text-foreground">
-                {o.proxima_accion ?? (cerrada ? "Cerrada" : "Sin próxima acción definida")}
+                {o.proxima_accion ?? (cerrada ? "Cerrada" : enHistorico ? "Del archivo de los Excel" : "Sin próxima acción definida")}
                 {o.proxima_accion_at && !cerrada && (
                   <span className="text-muted-foreground"> · {fechaLima(o.proxima_accion_at)}</span>
                 )}
@@ -278,6 +305,11 @@ function ListaOportunidadesCuenta({
                 </span>
               )}
             </Link>
+            {enHistorico && !deOtro && (
+              <span className="flex flex-none items-center py-2.5 pr-2.5">
+                <TrabajarHistoricaBoton oportunidadId={o.id} compacto />
+              </span>
+            )}
           </li>
         );
       })}

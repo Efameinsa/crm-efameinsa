@@ -28,6 +28,9 @@ const ETAPAS: EtapaOportunidad[] = [
   "venta",
   "rechazada",
   "derivada",
+  // El archivo de los Excel (0130). listar_oportunidades() lo deja fuera de
+  // «Todas» y de cualquier otra pestaña: solo sale cuando se pide ESTA.
+  "historico",
 ];
 
 // Mis oportunidades.
@@ -79,9 +82,12 @@ export default async function OportunidadesPage({
   await requerirPerfil();
   const sp = await searchParams;
 
-  const vista: "tabla" | "kanban" = sp.vista === "kanban" ? "kanban" : "tabla";
   const q = sp.q?.trim() ?? "";
   const etapa = ETAPAS.includes(sp.etapa as EtapaOportunidad) ? (sp.etapa as EtapaOportunidad) : null;
+  // El tablero es para arrastrar el trabajo del día; el archivo no se arrastra.
+  // Si alguien venía con la pestaña «Histórico» puesta y toca Kanban, se le
+  // devuelve la Tabla en vez de un tablero vacío sin explicación (0130).
+  const vista: "tabla" | "kanban" = sp.vista === "kanban" && etapa !== "historico" ? "kanban" : "tabla";
   const tipoCliente: TipoClienteFiltro | null = sp.tipo === "empresa" || sp.tipo === "persona" ? sp.tipo : null;
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(sp.desde ?? "") ? (sp.desde as string) : null;
   const hasta = /^\d{4}-\d{2}-\d{2}$/.test(sp.hasta ?? "") ? (sp.hasta as string) : null;
@@ -94,7 +100,10 @@ export default async function OportunidadesPage({
     supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
     contarOportunidadesPorEtapa(supabase, { q, tipoCliente, desde, hasta, soloCrm }),
   ]);
-  const totalGeneral = Object.values(conteos).reduce((a, b) => a + b, 0);
+  // «Todas» cuenta lo mismo que muestra: el archivo tiene su propia pestaña y
+  // no entra en el total, o el número prometería filas que la lista no trae.
+  const totalGeneral = Object.entries(conteos).reduce((a, [e, n]) => (e === "historico" ? a : a + n), 0);
+  const enHistorico = conteos["historico"] ?? 0;
 
   if (vista === "kanban") {
     // Una consulta por columna: cada etapa trae sus más recientes sin competir
@@ -142,6 +151,7 @@ export default async function OportunidadesPage({
           orden={orden}
           conteos={conteos}
           totalGeneral={totalGeneral}
+          enHistorico={enHistorico}
         />
         <p className="text-xs text-muted-foreground">
           El tablero es para trabajar el día a día: muestra hasta {POR_COLUMNA} fichas por columna, las más recientes
@@ -185,10 +195,22 @@ export default async function OportunidadesPage({
         orden={orden}
         conteos={conteos}
         totalGeneral={totalGeneral}
+        enHistorico={enHistorico}
       />
 
+      {/* El archivo se explica solo en cuanto se abre: nadie tiene que
+          adivinar por qué esas filas no salían antes (0130). */}
+      {etapa === "historico" && (
+        <p className="rounded-lg border border-dashed border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">Histórico.</span> Son las oportunidades que vinieron de los
+          Excel de agosto y que nadie retomó dentro del CRM. No cuentan como pendientes —no salen en Mi día, en la
+          agenda ni en el reporte— pero siguen siendo suyas, con todo su historial. Si quiere volver a trabajar
+          alguna, use «Trabajar esta oportunidad»: vuelve a seguimiento con la próxima acción para hoy.
+        </p>
+      )}
+
       <SeccionPanel
-        titulo="Mis oportunidades"
+        titulo={etapa === "historico" ? "Histórico" : "Mis oportunidades"}
         accion={<Paginacion pagina={pagina} totalPaginas={totalPaginas} total={total} desde={desdeFila} hasta={hastaFila} etiqueta="oportunidad" etiquetaPlural="oportunidades" />}
       >
         {filas.length === 0 ? (

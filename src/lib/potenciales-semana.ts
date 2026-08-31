@@ -69,7 +69,10 @@ export async function cargarPotenciales(
     .select(
       "id, etapa, cierre_proyectado, monto_estimado, moneda, comercial_id, cuentas(razon_social, catalogo_rubros(nombre)), perfiles(nombre, codigo_comercial)",
     )
-    .not("etapa", "in", "(venta,rechazada,derivada)")
+    // `historico` (0130): el archivo del Excel no es potencial de la semana.
+    // Es el mismo problema que se corrigió el 29-08 con los «potenciales
+    // fósiles», ahora resuelto de raíz con un estado propio.
+    .not("etapa", "in", "(venta,rechazada,derivada,historico)")
     .or(`etapa.eq.potencial,and(cierre_proyectado.gte.${lunes},cierre_proyectado.lte.${sabado})`);
   if (comercialId) q = q.eq("comercial_id", comercialId);
   const { data: ops } = await q.limit(500);

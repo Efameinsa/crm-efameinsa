@@ -61,6 +61,7 @@ export const ETAPA_OPORTUNIDAD: OpcionConCriterio[] = [
   { valor: "venta", etiqueta: "Venta", criterio: "Aceptó la cotización y se convirtió en cliente" },
   { valor: "rechazada", etiqueta: "Rechazada", criterio: "Se perdió el contacto o no procede" },
   { valor: "derivada", etiqueta: "Derivada", criterio: "Pasada a otro comercial u otra área" },
+  { valor: "historico", etiqueta: "Histórico", criterio: "Vino del Excel y nadie la retomó en el CRM: se busca cuando se la necesita, pero no cuenta como pendiente" },
 ];
 
 export function buscarOpcion(catalogo: OpcionConCriterio[], valor: string | null | undefined): OpcionConCriterio | undefined {

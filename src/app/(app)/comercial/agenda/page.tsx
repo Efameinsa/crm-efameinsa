@@ -42,8 +42,11 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   // baldes que son justo los que usa AgendaMensual (mes, vencidas, sin fecha).
   const CAMPOS =
     "id, etapa, intencion, monto_estimado, moneda, proxima_accion, proxima_accion_at, proxima_accion_hora, cuenta_id, cuentas(razon_social)";
+  // `historico` entra en la lista de excluidas el 31-08 (migración 0130): las
+  // 20.443 filas del archivo de los Excel llenaban «Vencidas» y «Sin fecha» de
+  // trabajo que nadie pidió. Siguen buscándose desde «Mis oportunidades».
   const abiertasDe = () =>
-    supabase.from("oportunidades").select(CAMPOS).eq("comercial_id", perfil.id).not("etapa", "in", "(venta,rechazada,derivada)");
+    supabase.from("oportunidades").select(CAMPOS).eq("comercial_id", perfil.id).not("etapa", "in", "(venta,rechazada,derivada,historico)");
 
   // Las vencidas se traen de la MÁS RECIENTE hacia atrás: son las que todavía
   // se pueden retomar. Lo de 1900 queda fuera por sí solo, sin filtro ad hoc.

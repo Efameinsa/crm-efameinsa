@@ -250,3 +250,38 @@ export async function proyectarCierre(
   revalidatePath("/gerencia/potenciales");
   return { error: null };
 }
+
+/**
+ * «Trabajar esta oportunidad»: la saca del archivo de los Excel y la devuelve
+ * al trabajo del día (migración 0130).
+ *
+ * POR QUÉ EXISTE. El 31-08 se archivaron 20.443 oportunidades que venían de la
+ * importación de los Excel (18 al 21-08) y que nadie había tocado dentro del
+ * CRM. No se borró ninguna: siguen en la cartera de su comercial, con todo su
+ * historial, y se buscan desde la pestaña «Histórico» de Mis oportunidades o
+ * desde la ficha del cliente. Este botón es la puerta de vuelta — un clic, sin
+ * pedirle permiso a nadie: es cartera propia, no hace falta código de
+ * supervisor.
+ *
+ * La oportunidad vuelve a `seguimiento` con la próxima acción para HOY (hora
+ * de Lima) y queda una nota en el historial diciendo quién la reactivó y
+ * cuándo: si mañana aparece en el reporte de alguien, se sabe de dónde salió.
+ *
+ * Quién puede: el comercial dueño o gerencia/admin. Lo valida la base
+ * (`trabajar_oportunidad_historica`), no esta función — la pantalla se protege
+ * al abrirla una sola vez y el clic viaja después con la cookie que haya.
+ */
+export async function trabajarOportunidadHistorica(
+  oportunidadId: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("trabajar_oportunidad_historica", {
+    p_oportunidad: oportunidadId,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/comercial", "layout");
+  revalidatePath(`/comercial/oportunidades/${oportunidadId}`);
+  revalidatePath("/gerencia", "layout");
+  return { error: null };
+}

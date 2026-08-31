@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Search } from "lucide-react";
+import { Archive, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
@@ -16,6 +16,9 @@ import type { EtapaOportunidad } from "@/types/database";
 // "para retomar", orden); la vista Kanban no los usa: es un tablero de
 // trabajo diario acotado a lo nacido en el CRM (ver comentario en page.tsx).
 
+// Las etapas del trabajo. «historico» NO está acá: es el archivo de los Excel
+// (0130) y va aparte, al final de la fila, para que se lea como lo que es —un
+// cajón donde buscar— y no como una etapa más del embudo.
 const ETAPAS: EtapaOportunidad[] = [
   "asignada",
   "filtrada",
@@ -38,6 +41,7 @@ export function FiltrosOportunidades({
   orden,
   conteos,
   totalGeneral,
+  enHistorico = 0,
 }: {
   vista: "tabla" | "kanban";
   q: string;
@@ -49,6 +53,8 @@ export function FiltrosOportunidades({
   orden: string;
   conteos: Record<string, number>;
   totalGeneral: number;
+  /** Cuántas hay archivadas (0130); 0 esconde la pestaña. */
+  enHistorico?: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -121,6 +127,19 @@ export function FiltrosOportunidades({
                 <EtapaBadge etapa={e} /> <span className="ml-1 tabular-nums">({conteos[e].toLocaleString("es-PE")})</span>
               </Chip>
             ))}
+            {enHistorico > 0 && (
+              <>
+                <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+                <Chip
+                  activo={etapa === "historico"}
+                  onClick={() => navegar({ etapa: etapa === "historico" ? null : "historico" })}
+                  titulo="Lo que vino de los Excel y nadie retomó en el CRM. No cuenta como pendiente, pero sigue siendo suyo: acá se busca y desde acá se retoma."
+                >
+                  <Archive className="mr-1.5 size-3.5" />
+                  Histórico <span className="ml-1 tabular-nums">({enHistorico.toLocaleString("es-PE")})</span>
+                </Chip>
+              </>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -192,11 +211,22 @@ export function FiltrosOportunidades({
   );
 }
 
-function Chip({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({
+  activo,
+  onClick,
+  children,
+  titulo,
+}: {
+  activo: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  titulo?: string;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={titulo}
       className={cn(
         "inline-flex h-8 cursor-pointer items-center rounded-full border px-2.5 text-xs transition-colors",
         activo ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border text-muted-foreground hover:bg-accent",
