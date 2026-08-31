@@ -8,6 +8,7 @@ import { CambiarEtapa } from "@/components/crm/cambiar-etapa";
 import { ListaCotizaciones } from "@/components/crm/lista-cotizaciones";
 import { CalificacionOportunidad } from "@/components/crm/calificacion-oportunidad";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
+import { EquiposDelCliente } from "@/components/crm/equipos-del-cliente";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { SeccionPanel, SeccionPlegable } from "@/components/crm/seccion-panel";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
@@ -343,6 +344,15 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
               </span>
             </div>
           </SeccionPanel>
+
+          {/* EL PARQUE INSTALADO, ANTES DEL HISTORIAL DE GESTIÓN. Cuando el
+              caso es de postventa, la primera pregunta no es qué se habló sino
+              si la máquina está en garantía: es lo que decide si el servicio se
+              cobra. El ing. Carlos lo pidió el 31-08 abriendo un caso de
+              Casandina —«acá tendría que aparecer si está en garantía o no»— y
+              enseguida «te falta servirle para que salga el historial del
+              cliente, cuándo le pusimos en marcha». */}
+          {cuenta?.id && <EquiposDelCliente cuentaId={cuenta.id} />}
 
           {cuenta?.id && (
             <SeccionPanel titulo="Historial del cliente">

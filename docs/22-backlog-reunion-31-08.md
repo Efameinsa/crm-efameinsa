@@ -348,3 +348,77 @@ Su plan es **50-50** entre CRM y marketing.
    el ERP. No arranca hasta tener lo de Lesly.
 6. **Después:** H (visitas), I2 (medir los dos años del servidor), I1 (red
    local).
+
+---
+
+# Segunda ronda · reunión de la tarde (31-08, 14:24 y 14:54)
+
+## L · Central: lo que NO es comercial deja de ensuciar los informes
+
+**L1. Un destino «Finanzas» en la derivación.** El caso real: Brenda registró
+una llamada donde el cliente pedía su factura. Eso no es gestión comercial y
+hoy no hay dónde ponerlo — o se rechaza y queda en el aire, o se cuenta como
+gestión y, textual, *«mancha los informes»*.
+
+La decisión de gerencia no fue rechazarlo sino **derivarlo**: Central elige
+«Finanzas», el caso sale de la cuenta comercial, y **le llega un WhatsApp
+automático a John** con el cliente y qué pidió — *«John, qué tal, cliente tal
+pide una factura, atiéndelo por favor»*—, y en el reporte queda que se mandó a
+Finanzas. Falta que Santos pase el número.
+
+Y hay que comunicarlo: la instrucción anterior la dio Alondra y *«no llegó
+correctamente»*, así que se rehace desde cero **y la comunica Lesly**.
+
+**L2. Al redirigir un cliente, el que lo pierde no se queda en blanco.** Hoy,
+si un cliente pasa de C4 a C5, C5 recibe todo el histórico y C4 pierde el
+rastro. Lo que pidió: que a C4 le siga apareciendo su gestión hasta el corte y,
+al final, **un aviso «derivado el 31-08 a Comercial 5»**, para que sepa qué
+pasó en vez de creer que se le perdió el cliente. Y que desde el corte **no se
+le contabilice nada**: ni ventas, ni gestiones, ni cotizaciones.
+
+**L3. La alerta de los seis meses, en el momento de derivar.** Existe la regla
+de liberar cartera a los seis meses sin venta, pero cuando Central va a derivar
+no ve hace cuánto que nadie toca al cliente. Pidió que en esa pantalla aparezca
+**la fecha de la última gestión** y una alerta cuando pasó de seis meses:
+*«piénsalo dos veces, ¿va a ir o lo vas a replantear?»*.
+
+**L4. Quién resuelve un conflicto de cartera.** El circuito quedó definido: el
+comercial **reporta**, Santos busca el histórico, y **Lesly decide y ejecuta**.
+Para eso Lesly necesita **una pantalla donde vea el caso completo y pueda
+redirigir**, y el pedido tiene que **aparecerle también al comercial** como
+«solicitado este cambio», que es el doble check. Ya van tres casos entre C5 y
+C1, incluido COINREFRI.
+
+**L5. El RUC manda, y el sistema tiene que impedir el duplicado.** *«De ahora
+en adelante la regla es el RUC»*: no se puede volver a registrar un cliente que
+ya existe con ese documento. Lo viejo se corrige de a uno y reportando —
+juntarlo automáticamente se descartó por riesgoso: *«puede pertenecerle a uno y
+al otro, nombres parecidos»*.
+
+## M · Postventa: lo que le faltó al mirarlo
+
+**M1. En el caso tiene que decir si está en garantía.** Abrió un caso de
+Casandina y preguntó: *«acá tendría que aparecer si está en garantía o no»*. La
+tabla `atenciones` (0131) ya lo resuelve, pero los CASOS que ve hoy —que son
+oportunidades con `tipo_postventa`— todavía no lo muestran.
+
+**M2. Y el historial del cliente, dentro del caso.** Textual: *«te falta
+servirle para que salga el historial del cliente, y ahí sí se puede ver cuándo
+le pusimos en marcha, si está en garantía»*. Es lo que hace que el área pueda
+decidir sin salir de la pantalla.
+
+Quedó dicho que vuelve a mirar postventa **en un par de horas**.
+
+## N · Lo que YA quedó aprobado en esa reunión
+
+- **El puerto para el servidor de archivos: aprobado.** El ingeniero de
+  sistemas lo confirmó viable, va a usar **un puerto no habitual** para que no
+  aparezca en rastreos, y gerencia lo puso **con urgencia**.
+- **Primero SOLO LECTURA.** Se discutió si hacía falta escritura para que
+  postventa suba informes nuevos; la decisión fue *«primero solo lectura,
+  vamos a ver cómo fluye»*. La escritura —limitada a PDF, Word e imágenes, sin
+  poder borrar ni modificar— queda para después.
+- **Ver los informes desde fuera de la oficina: segunda etapa.** *«No es
+  indispensable»*; lo indispensable ya funciona en cualquier parte.
+- **La aplicación instalable: ya la instaló.** Le apareció el aviso y la
+  instaló en su escritorio. Falta probar que llegue una notificación.
