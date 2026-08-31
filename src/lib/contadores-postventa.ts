@@ -21,15 +21,20 @@ export async function contarAtencionesAbiertas(supabase: Supabase): Promise<numb
  * día», pero contada, no listada.
  */
 export async function contarBandejaMiDia(supabase: Supabase, comercialId: string): Promise<number> {
-  const [{ count: atenciones }, { count: casos }, { count: pedidos }] = await Promise.all([
+  const [{ count: atenciones }, { data: casosAsignados }, { count: pedidos }] = await Promise.all([
     supabase.from("atenciones").select("id", { count: "exact", head: true }).eq("etapa", "registro").is("cerrado_at", null),
+    // Los casos van por id y no por conteo: un caso con gestión registrada ya
+    // está tomado aunque siga en «asignada» (el área trabaja sin mover el
+    // desplegable — mismo criterio que la bandeja de Mi día, o el número del
+    // menú promete filas que la pantalla no muestra).
     supabase
       .from("oportunidades")
-      .select("id", { count: "exact", head: true })
+      .select("id")
       .eq("comercial_id", comercialId)
       .eq("origen", "crm")
       .eq("etapa", "asignada")
-      .not("tipo_postventa", "is", null),
+      .not("tipo_postventa", "is", null)
+      .limit(30),
     supabase
       .from("servicios_postventa")
       .select("id", { count: "exact", head: true })
@@ -38,5 +43,14 @@ export async function contarBandejaMiDia(supabase: Supabase, comercialId: string
       .is("aprobado_at", null)
       .eq("completado", false),
   ]);
-  return (atenciones ?? 0) + (casos ?? 0) + (pedidos ?? 0);
+
+  const ids = (casosAsignados ?? []).map((c) => c.id as string);
+  let casosSinTocar = 0;
+  if (ids.length) {
+    const { data: gestionadas } = await supabase.from("actividades").select("oportunidad_id").in("oportunidad_id", ids);
+    const conGestion = new Set((gestionadas ?? []).map((g) => g.oportunidad_id as string));
+    casosSinTocar = ids.filter((id) => !conGestion.has(id)).length;
+  }
+
+  return (atenciones ?? 0) + casosSinTocar + (pedidos ?? 0);
 }

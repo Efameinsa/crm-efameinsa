@@ -150,6 +150,19 @@ export default async function PostventaPage() {
 
   const verPrecios = puedeVerPrecios(perfil);
 
+  // UN CASO CON GESTIÓN YA ESTÁ TOMADO. La etapa no alcanza como señal:
+  // Hever registra sus llamadas como actividades SIN mover el caso de
+  // «asignada» — el 31-08 Santos vio 26 casos «sin atender» de los que 20
+  // tenían gestiones suyas de toda la semana. Atendido es que alguien hizo
+  // algo, no que alguien actualizó un desplegable; el caso ya gestionado se
+  // sigue viendo en Atenciones → Casos anteriores y en el Kanban.
+  const idsCasos = (casos ?? []).map((c) => c.id as string);
+  const { data: gestionadas } = idsCasos.length
+    ? await supabase.from("actividades").select("oportunidad_id").in("oportunidad_id", idsCasos)
+    : { data: [] as { oportunidad_id: string }[] };
+  const conGestion = new Set((gestionadas ?? []).map((g) => g.oportunidad_id as string));
+  const casosSinTocar = (casos ?? []).filter((c) => !conGestion.has(c.id as string));
+
   // ── La bandeja única: «Sin atender todavía» ───────────────────────────────
   const itemsPedidos: ItemBandeja[] = (nuevos as unknown as ServicioPostventa[] | null ?? []).map((s) => {
     // El filtro de la consulta ya exige `pedido_ejecutado_at` no nulo.
@@ -173,7 +186,7 @@ export default async function PostventaPage() {
     };
   });
 
-  const itemsCasos: ItemBandeja[] = ((casos ?? []) as unknown as {
+  const itemsCasos: ItemBandeja[] = ((casosSinTocar ?? []) as unknown as {
     id: string;
     tipo_postventa: string | null;
     serie_texto: string | null;
