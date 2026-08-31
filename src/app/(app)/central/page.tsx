@@ -12,6 +12,7 @@ import { coincidenciasDeLaBandeja } from "@/lib/central/coincidencias-bandeja";
 import { ConsolidadoCentral } from "@/components/crm/consolidado-central";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
+import { DerivarFinanzasBoton } from "@/components/crm/derivar-finanzas-boton";
 import { DerivadosOtrasAreas } from "@/components/crm/derivados-otras-areas";
 
 // La bandeja tiene que mostrar lo que acaba de entrar: sin esto Next servía
@@ -184,6 +185,12 @@ export default async function CentralPage() {
                             }
                           : null
                       }
+                    />
+                    <DerivarFinanzasBoton
+                      leadId={lead.id}
+                      cliente={lead.razon_social ?? lead.nombre_contacto ?? "Cliente sin nombre"}
+                      documento={lead.num_doc}
+                      mensajeOriginal={lead.mensaje}
                     />
                     <DescartarLeadBoton leadId={lead.id} />
                   </div>
