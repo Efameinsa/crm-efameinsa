@@ -233,12 +233,47 @@ export async function cargarDerivados(
     // Va en dos consultas y no en un filtro anidado porque PostgREST no combina
     // un `or` sobre la tabla con un `or` sobre la relación: se resuelven las
     // cuentas que coinciden y sus ids entran al mismo `or`.
-    const { data: cuentas } = await supabase
-      .from("cuentas")
-      .select("id")
-      .or(`razon_social.ilike.%${busqueda}%,num_doc.ilike.%${busqueda}%`)
-      .limit(200);
-    const ids = (cuentas ?? []).map((c) => c.id as string);
+    // Y TAMBIÉN POR EL DNI DE LA PERSONA, no solo por el documento de la empresa.
+    //
+    // Central pidió el 31-08 poder buscar «por DNI y RUC además del nombre».
+    // Al mirarlo resultó que el RUC ya se buscaba —está en `num_doc` del lead y
+    // de la cuenta— y que había dos motivos por los que ella creía que no:
+    //
+    //   1. El cuadro de búsqueda decía «Código, nombre, empresa o teléfono». No
+    //      nombraba el documento, así que no había por qué suponer que servía.
+    //      Una función que no se anuncia, para quien la usa no existe.
+    //   2. El DNI de la PERSONA no se buscaba en ninguna parte. Vive en
+    //      `contactos.documento` y esta consulta nunca lo miraba. Hay casos
+    //      reales: el PRO-08980 de GRADOS MENDOZA GUILLERMO tiene el DNI
+    //      10764033 cargado en su contacto y buscarlo no devolvía nada.
+    //
+    // Se resuelve igual que las cuentas: una consulta aparte cuyos ids entran
+    // al mismo `or`, porque PostgREST no combina un `or` sobre la tabla con uno
+    // sobre la relación.
+    //
+    // Los documentos en la base están limpios —0 de 11.124 tienen algo que no
+    // sea dígito—, pero quien busca sí puede escribir «20-392817167» o dejar un
+    // espacio, así que se prueba también la versión sin separadores.
+    const soloDigitos = busqueda.replace(/[^0-9]/g, "");
+    const pareceDocumento = soloDigitos.length >= 8;
+
+    const [{ data: cuentas }, { data: porDni }] = await Promise.all([
+      supabase
+        .from("cuentas")
+        .select("id")
+        .or(`razon_social.ilike.%${busqueda}%,num_doc.ilike.%${busqueda}%`)
+        .limit(200),
+      pareceDocumento
+        ? supabase.from("contactos").select("cuenta_id").ilike("documento", `%${soloDigitos}%`).limit(200)
+        : Promise.resolve({ data: null }),
+    ]);
+
+    const ids = [
+      ...new Set([
+        ...(cuentas ?? []).map((c) => c.id as string),
+        ...((porDni ?? []) as { cuenta_id: string | null }[]).map((c) => c.cuenta_id).filter((x): x is string => !!x),
+      ]),
+    ];
 
     const condiciones = [
       `codigo.ilike.%${busqueda}%`,
@@ -246,6 +281,7 @@ export async function cargarDerivados(
       `telefono.ilike.%${busqueda}%`,
       `razon_social.ilike.%${busqueda}%`,
       `num_doc.ilike.%${busqueda}%`,
+      ...(pareceDocumento && soloDigitos !== busqueda ? [`num_doc.ilike.%${soloDigitos}%`] : []),
       ...(ids.length > 0 ? [`cuenta_id.in.(${ids.join(",")})`] : []),
     ];
     q = q.or(condiciones.join(","));

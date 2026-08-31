@@ -128,7 +128,15 @@ export default async function DerivadosPage({
           {foco && <input type="hidden" name="foco" value={foco} />}
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input name="q" defaultValue={busqueda} placeholder="Código, nombre, empresa o teléfono" className="pl-8" />
+            {/* El cuadro tiene que DECIR por qué se puede buscar. Central pidió
+                el 31-08 poder buscar por DNI y RUC, y el RUC ya se buscaba: lo
+                que faltaba era que el cuadro lo dijera. */}
+            <Input
+              name="q"
+              defaultValue={busqueda}
+              placeholder="RUC, DNI, nombre, empresa, teléfono o código PRO"
+              className="pl-8"
+            />
           </div>
           <Button type="submit" size="sm">
             Buscar
