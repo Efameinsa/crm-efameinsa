@@ -110,6 +110,7 @@ export default async function CarteraPage({
                 totalUsd: c.total_usd,
                 oportunidadesActivas: c.abiertas,
                 ultimaVentaAt: c.ultima_venta_at,
+                conServidor: c.con_servidor,
               }))}
             />
             <Paginacion pagina={pagina} totalPaginas={totalPaginas} total={total} desde={desde} hasta={hasta} />

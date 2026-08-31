@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Building2, ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MarcaServidor } from "@/components/crm/marca-servidor";
 import { fechaLima } from "@/lib/fechas";
 
 export interface FilaCartera {
@@ -17,6 +18,8 @@ export interface FilaCartera {
   totalUsd: number;
   oportunidadesActivas: number;
   ultimaVentaAt: string | null;
+  /** Tiene su carpeta del servidor vinculada: la fila lo marca (0137). */
+  conServidor?: boolean;
 }
 
 // Misma corrección que tabla-clientes.tsx / historial-cuenta.tsx (B9.3): la
@@ -57,6 +60,7 @@ export function TablaCartera({ filas }: { filas: FilaCartera[] }) {
                   <span className="line-clamp-2 min-w-0" title={c.razonSocial}>
                     {c.razonSocial}
                   </span>
+                  {c.conServidor && <MarcaServidor />}
                 </span>
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">{c.documento}</TableCell>

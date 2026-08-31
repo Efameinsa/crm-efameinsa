@@ -1,4 +1,5 @@
 import { ExternalLink, FolderOpen, Image as ImagenIcono, FileText, Link2, Unlink } from "lucide-react";
+import { MarcaServidor } from "@/components/crm/marca-servidor";
 import { createClient } from "@/lib/supabase/server";
 import { enlaceCarpetaFirmado, servidorDeArchivosActivo } from "@/lib/archivos-servidor";
 import { vincularCarpetaServidor } from "@/lib/acciones/cuentas";
@@ -95,7 +96,9 @@ export async function DocumentosDelServidor({
   return (
     <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-foreground">Documentos del servidor</h2>
+        <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
+          Documentos del servidor <MarcaServidor />
+        </h2>
         <span className="text-[11px] text-muted-foreground">desde la oficina</span>
       </div>
 

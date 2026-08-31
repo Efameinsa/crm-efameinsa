@@ -205,6 +205,8 @@ export interface FilaClienteListado {
   abiertas: number;
   n_ventas: number;
   total_usd: number;
+  /** Tiene carpeta del servidor vinculada (0137): la lista lo marca y lo pone primero. */
+  con_servidor: boolean;
 }
 
 export type OrdenClientes = "recientes" | "nombre" | "ultima_venta" | "valor";

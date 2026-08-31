@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, FolderOpen, ShieldCheck, ShieldOff } from "luc
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { enlaceCarpetaFirmado } from "@/lib/archivos-servidor";
+import { MarcaServidor } from "@/components/crm/marca-servidor";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { InformeServicioNuevo } from "@/components/crm/informe-servicio-nuevo";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
@@ -166,9 +167,10 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
                 href={enlaceInformesServidor}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="inline-flex items-center gap-1.5 rounded-md border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900 hover:bg-sky-100"
               >
-                <FolderOpen className="size-3.5" /> Informes de esta serie en el servidor
+                <FolderOpen className="size-3.5" /> Informes de esta serie
+                <MarcaServidor />
                 <ExternalLink className="size-3" />
               </a>
             )}

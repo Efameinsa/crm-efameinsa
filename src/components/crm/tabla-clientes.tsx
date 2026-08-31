@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MarcaServidor } from "@/components/crm/marca-servidor";
 import { fechaLima } from "@/lib/fechas";
 import type { FilaClienteListado } from "@/lib/reportes";
 
@@ -44,7 +45,7 @@ export function TablaClientes({ filas, baseHref = "/gerencia/clientes" }: { fila
             >
               <TableCell className="max-w-[320px] whitespace-normal">
                 <p className="line-clamp-2 font-medium text-foreground" title={c.razon_social}>
-                  {c.razon_social}
+                  {c.razon_social} {c.con_servidor && <MarcaServidor />}
                 </p>
                 {c.tipo_doc !== "SIN_DOC" ? (
                   <p className="text-xs text-muted-foreground">
