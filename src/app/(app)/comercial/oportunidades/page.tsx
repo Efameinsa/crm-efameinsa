@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { listarOportunidades, contarOportunidadesPorEtapa, type OrdenOportunidades, type TipoClienteFiltro } from "@/lib/reportes";
@@ -6,6 +7,8 @@ import { FiltrosOportunidades } from "@/components/crm/filtros-oportunidades";
 import { TablaOportunidades } from "@/components/crm/tabla-oportunidades";
 import { Paginacion } from "@/components/crm/filtros-clientes";
 import { PipelineKanban, type OportunidadKanban } from "@/components/crm/pipeline-kanban";
+import { RutaMantenimientoVista } from "@/components/crm/ruta-mantenimiento-vista";
+import { cn } from "@/lib/utils";
 import type { EtapaOportunidad } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +72,7 @@ export default async function OportunidadesPage({
 }: {
   searchParams: Promise<{
     vista?: string;
+    modo?: string;
     q?: string;
     etapa?: string;
     tipo?: string;
@@ -77,10 +81,30 @@ export default async function OportunidadesPage({
     solo_crm?: string;
     orden?: string;
     pagina?: string;
+    ver?: string;
+    todos?: string;
+    mant?: string;
+    compra?: string;
+    llamada?: string;
   }>;
 }) {
-  await requerirPerfil();
+  const perfil = await requerirPerfil();
   const sp = await searchParams;
+
+  // La ruta de mantenimiento (plan 23, etapa 4): «es una campaña sobre el
+  // mismo pipeline, no otro objeto» — se ve como pestaña acá, con la misma
+  // regla de acceso que ya tenía su propia pantalla (`/comercial/ruta`, que
+  // sigue funcionando igual). Para el comercial normal esta pestaña no
+  // existe y el resto de la página no cambia.
+  const puedeVerRuta = perfil.rol === "gerencia" || perfil.rol === "admin" || Boolean(perfil.es_postventa) || Boolean(perfil.hace_postventa);
+  if (puedeVerRuta && sp.modo === "ruta") {
+    return (
+      <div className="space-y-4">
+        <TabsModo modo="ruta" />
+        <RutaMantenimientoVista perfil={perfil} sp={sp} hrefBase="/comercial/oportunidades?modo=ruta" />
+      </div>
+    );
+  }
 
   const q = sp.q?.trim() ?? "";
   const etapa = ETAPAS.includes(sp.etapa as EtapaOportunidad) ? (sp.etapa as EtapaOportunidad) : null;
@@ -140,6 +164,7 @@ export default async function OportunidadesPage({
 
     return (
       <div className="space-y-4">
+        {puedeVerRuta && <TabsModo modo="kanban" />}
         <FiltrosOportunidades
           vista={vista}
           q={q}
@@ -184,6 +209,7 @@ export default async function OportunidadesPage({
 
   return (
     <div className="space-y-4">
+      {puedeVerRuta && <TabsModo modo="kanban" />}
       <FiltrosOportunidades
         vista={vista}
         q={q}
@@ -224,6 +250,37 @@ export default async function OportunidadesPage({
           </div>
         )}
       </SeccionPanel>
+    </div>
+  );
+}
+
+/**
+ * «Kanban de ventas» vs. «Ruta de mantenimiento»: dos preguntas sobre el
+ * mismo pipeline, no dos pantallas. Solo aparece para quien puede ver la
+ * ruta (postventa, quien además vende mantenimiento, y gerencia/admin) — el
+ * comercial normal nunca la ve, y esta página no cambia para él.
+ */
+function TabsModo({ modo }: { modo: "kanban" | "ruta" }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <Link
+        href="/comercial/oportunidades"
+        className={cn(
+          "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+          modo === "kanban" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground",
+        )}
+      >
+        Ventas
+      </Link>
+      <Link
+        href="/comercial/oportunidades?modo=ruta"
+        className={cn(
+          "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+          modo === "ruta" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground",
+        )}
+      >
+        Ruta de mantenimiento
+      </Link>
     </div>
   );
 }

@@ -117,8 +117,10 @@ const ENLACES_POSTVENTA = [
   // 31-08 vivían repartidos en cuatro pantallas (plan 23).
   { href: "/postventa/atenciones", etiqueta: "Atenciones", icono: Wrench },
   { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
-  { href: "/comercial/ruta", etiqueta: "Ruta de mantenimiento", icono: Route },
-  { href: "/comercial/oportunidades", etiqueta: "Mis ventas de servicio", icono: KanbanSquare },
+  // La ruta de mantenimiento vive acá adentro como pestaña (plan 23, etapa
+  // 4): «es una campaña sobre el mismo pipeline, no otro objeto». Ya no
+  // tiene entrada propia en este menú.
+  { href: "/comercial/oportunidades", etiqueta: "Ventas de servicio", icono: KanbanSquare },
   { href: "/comercial/cartera", etiqueta: "Clientes", icono: Building2 },
 ];
 
@@ -182,9 +184,19 @@ export function NavLateral({
   //
   // Y el orden cambia: primero lo que ella sí hace —autorizar y postventa—, y
   // al final lo que mira para ayudar a otros.
-  const enlacesDelArea = ENLACES_POSTVENTA.filter(
-    (e) => e.href.startsWith("/postventa") || e.href === "/comercial/ruta",
-  ).map((e) => (e.href === "/postventa" ? { ...e, etiqueta: "Mi día en postventa" } : e));
+  // El enlace directo a la Ruta se agrega aparte (no sale de
+  // ENLACES_POSTVENTA, que ya no lo tiene: plan 23, etapa 4) porque Lesly
+  // —rol «operaciones», sin código comercial— es la única cuenta de esta
+  // barra que no tiene cómo llegar a «Ventas de servicio» para encontrar la
+  // pestaña Ruta ahí adentro: su rol no entra a la rama que muestra el menú
+  // comercial completo. Sin este agregado se quedaría sin poder ver su
+  // propia campaña de mantenimiento.
+  const enlacesDelArea = [
+    ...ENLACES_POSTVENTA.filter((e) => e.href.startsWith("/postventa")).map((e) =>
+      e.href === "/postventa" ? { ...e, etiqueta: "Mi día en postventa" } : e,
+    ),
+    ENLACE_RUTA,
+  ];
 
   const secciones: { titulo?: string; enlaces: typeof ENLACES_POSTVENTA }[] =
     rol === "operaciones"
