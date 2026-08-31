@@ -160,6 +160,19 @@ export function AgendaMensual({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="mr-2 text-lg font-bold text-foreground">Agenda</h1>
+        {/* AGREGAR TIENE QUE VERSE. Hever, de postventa, avisó el 31-08 que
+            quiso ponerse una tarea para hoy y no encontró dónde: el único
+            control era el «+ Agregar» de la casilla del día, que estaba
+            invisible hasta pasar el mouse por encima de esa casilla exacta.
+            Una función que solo existe si uno adivina dónde pasar el mouse,
+            para el que la usa no existe. */}
+        <button
+          type="button"
+          onClick={() => { cerrar(); setAgregarFecha(hoy); }}
+          className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground hover:brightness-110"
+        >
+          <Plus className="size-3.5" /> Agregar
+        </button>
         {sinFecha.length > 0 && (
           <button
             type="button"
@@ -325,7 +338,11 @@ export function AgendaMensual({
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
                   aria-label="Título de la tarea"
                 />
-                <div className="flex items-center gap-2">
+                {/* El día se puede cambiar acá. Antes venía fijo por la casilla
+                    desde la que se abría el panel, así que para agendar otro
+                    día había que cerrar, buscar la casilla y volver a empezar. */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <SelectorFecha valor={agregarFecha} onCambiar={(f) => f && setAgregarFecha(f)} />
                   <SelectorHora valor={nuevaHora || null} onCambiar={(h) => setNuevaHora(h ?? "")} />
                   <span className="text-[11px] text-muted-foreground">sin hora = todo el día</span>
                   <button
@@ -671,7 +688,9 @@ function Dia({
         <button
           type="button"
           onClick={() => onAgregar(iso)}
-          className="mt-0.5 w-full cursor-pointer rounded-md border border-dashed border-border py-0.5 text-center text-[11px] text-muted-foreground opacity-0 transition-opacity hover:bg-accent focus-visible:opacity-100 group-hover:opacity-100"
+          // Se ve siempre, apagado. Antes era `opacity-0` y solo aparecía al
+          // pasar el mouse por la casilla: quien no lo sabía, no lo encontraba.
+          className="mt-0.5 w-full cursor-pointer rounded-md border border-dashed border-border py-0.5 text-center text-[11px] text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground focus-visible:text-foreground group-hover:text-muted-foreground"
           aria-label={`Agregar al ${iso}`}
         >
           <Plus className="inline size-3" /> Agregar

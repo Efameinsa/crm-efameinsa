@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { CalendarPlus, Plus, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaLima, fechaCalendario } from "@/lib/fechas";
@@ -164,7 +164,15 @@ export default async function AgendaPostventaPage({
     }));
 
     return (
-      <SeccionPanel titulo="Calendario de atenciones" accion={<Pestanas pestana={pestana} busqueda={busqueda} />}>
+      <SeccionPanel
+        titulo="Calendario de atenciones"
+        accion={
+          <div className="flex flex-wrap items-center gap-2">
+            <BotonesAgendar />
+            <Pestanas pestana={pestana} busqueda={busqueda} />
+          </div>
+        }
+      >
         <CalendarioPostventa
           vista={vista}
           fecha={fecha}
@@ -299,6 +307,40 @@ export default async function AgendaPostventaPage({
         <TablaHistorica filas={filas} verPrecios={verPrecios} />
       )}
     </SeccionPanel>
+  );
+}
+
+/**
+ * Desde dónde se agenda, dicho en la pantalla.
+ *
+ * Hever avisó el 31-08 que quiso poner algo en el calendario del día y no
+ * encontró cómo. Tenía razón por partida doble: en «Mi agenda» el botón estaba
+ * escondido hasta pasar el mouse, y ACÁ —la pantalla que él llama calendario—
+ * no hay nada que crear, es solo lectura de lo que ya existe.
+ *
+ * No se inventa un «evento de calendario» suelto: lo que el área agenda es una
+ * atención, y la atención ya se crea en /postventa/casos/nuevo. Lo que faltaba
+ * era decirlo desde acá en vez de dejar al usuario buscándolo en el menú. Lo
+ * personal —recordatorios sin cliente— vive en «Mi agenda», y también se enlaza,
+ * porque son las dos cosas que uno quiere «agendar» y viven en pantallas
+ * distintas.
+ */
+function BotonesAgendar() {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Link
+        href="/postventa/casos/nuevo"
+        className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground hover:brightness-110"
+      >
+        <Plus className="size-3.5" /> Nueva atención
+      </Link>
+      <Link
+        href="/comercial/agenda"
+        className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+      >
+        <CalendarPlus className="size-3.5" /> Tarea personal
+      </Link>
+    </div>
   );
 }
 
