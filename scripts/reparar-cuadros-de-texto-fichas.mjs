@@ -27,8 +27,8 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
-import { leerZip, textoDeZip } from "./lib-zip.mjs";
-import { leerFichaDeXml } from "./lib-ficha-docx.mjs";
+import { leerZip, textoDeZip } from "../src/lib/fichas/zip.mjs";
+import { leerFichaDeXml } from "../src/lib/fichas/ficha-docx.mjs";
 
 const APLICAR = process.argv.includes("--aplicar");
 const LISTA = "scripts/data/fichas-v/lista.json";

@@ -8,6 +8,7 @@ import { rutaFoto } from "@/lib/foto-producto";
 import { AccionesEquipo } from "@/components/crm/acciones-equipo";
 import type { EquipoCatalogo, SaludCatalogo } from "@/lib/catalogo-operaciones";
 import { FichaTecnicaEditor, EQUIPO_NUEVO, type EquipoEditable } from "@/components/crm/ficha-tecnica-editor";
+import { SubirFichaWord } from "@/components/crm/subir-ficha-word";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -126,6 +127,11 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
           <Button size="sm" onClick={() => setAbierto(EQUIPO_NUEVO)}>
             <Plus className="size-3.5" /> Cargar un equipo
           </Button>
+          {/* EL ATAJO PARA LOS QUE YA TIENEN FICHA. Casi todo lo que Lesly
+              carga ya está escrito en un Word suyo: escribirlo otra vez a mano
+              es copiar cuarenta líneas y equivocarse en alguna. Arrastra el
+              archivo y la hoja abre llena (Santos, 31-08). */}
+          <SubirFichaWord onLeida={setAbierto} />
         </div>
 
         {/* UN FILTRO A LA VEZ.

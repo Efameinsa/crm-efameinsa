@@ -45,6 +45,7 @@
 import { Client } from "pg";
 import { readFileSync, copyFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { clasificar } from "../src/lib/fichas/clasificar.mjs";
 
 const APLICAR = process.argv.includes("--aplicar");
 const FICHAS = "scripts/data/fichas-v/fichas.json";
@@ -65,26 +66,6 @@ const universo = new Map(
 const conFicha = new Set(fichas.map((f) => f.codigo.toUpperCase()));
 const enCatalogo = (sku) => conFicha.has(sku);
 
-/** Categoría y segmento para un código que todavía no existe en el CRM. */
-function clasificar(equipo) {
-  const t = equipo.toUpperCase();
-  const categoria = /COCHE|CARRO/.test(t)
-    ? "coche"
-    : /LAVADORA\s*SECADORA|TORRE/.test(t)
-      ? "lavadora-secadora"
-      : /LAVADORA/.test(t)
-        ? "lavadora"
-        : /SECADORA/.test(t)
-          ? "secadora"
-          : /RODILLO|CALANDRIA|PRENSA|MESA|CALDERIN|PLANCHAD/.test(t)
-            ? "planchador"
-            : "otro";
-  // El segmento decide el piso de precio (migración 0074): semi-industrial son
-  // los equipos de mostrador —calderines, mesas, torres LG—; el resto es
-  // industrial.
-  const segmento = /CALDERIN|MINI|SEMI\s*INDUSTRIAL|APILABLE/.test(t) ? "semi_industrial" : "industrial";
-  return { categoria, segmento };
-}
 
 /**
  * Apilable o no, en los equipos LG.

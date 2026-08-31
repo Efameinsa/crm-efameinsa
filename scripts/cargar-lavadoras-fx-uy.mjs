@@ -52,8 +52,9 @@ import { Client } from "pg";
 import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
-import { leerZip, textoDeZip } from "./lib-zip.mjs";
-import { leerFichaDeXml } from "./lib-ficha-docx.mjs";
+import { leerZip, textoDeZip } from "../src/lib/fichas/zip.mjs";
+import { leerFichaDeXml } from "../src/lib/fichas/ficha-docx.mjs";
+import { clasificar } from "../src/lib/fichas/clasificar.mjs";
 
 const APLICAR = process.argv.includes("--aplicar");
 const ACTIVAR = process.argv.includes("--activar");
@@ -293,10 +294,13 @@ try {
         [id, ficha.cabecera.marca ?? fila.marca, modelo, nombre, ficha.cabecera.capacidad, contenido, fotoPath],
       );
     } else {
+      // Categoría y segmento con el mismo criterio de la carga del catálogo,
+      // no escritos a mano: si mañana el libro trae una secadora, entra bien.
+      const { categoria, segmento } = clasificar(fila.equipo);
       const { rows } = await bd.query(
         `insert into productos (sku, marca, modelo, nombre, categoria, segmento, capacidad, foto_path, ficha, activo)
-         values ($1,$2,$3,$4,'lavadora','industrial',$5,$6,$7,false) returning id`,
-        [fila.codigo, ficha.cabecera.marca ?? fila.marca, modelo, nombre, ficha.cabecera.capacidad, fotoPath, contenido],
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,false) returning id`,
+        [fila.codigo, ficha.cabecera.marca ?? fila.marca, modelo, nombre, categoria, segmento, ficha.cabecera.capacidad, fotoPath, contenido],
       );
       id = rows[0].id;
     }

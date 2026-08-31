@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -62,6 +62,13 @@ export interface EquipoEditable {
   /** De qué equipo se copió, cuando es un duplicado. Cambia el título y
    *  evita la pregunta del tipo: los datos ya vienen. */
   duplicadoDe?: string | null;
+  /** De qué Word se leyó, cuando Lesly arrastró la ficha. Igual que el
+   *  duplicado, no pregunta qué se está cargando: el Word ya lo dijo. */
+  leidaDe?: string | null;
+  /** La foto que traía ese Word, ya recortada como la muestra el documento.
+   *  Entra por el mismo camino que una foto elegida a mano: se acomoda a la
+   *  caja de la hoja y espera al guardado. */
+  fotoInicial?: File | null;
   disponibles: number | null;
   stockReferencia: number | null;
   ubicacionMaestro: string | null;
@@ -112,7 +119,7 @@ export function FichaTecnicaEditor({
 
   // Un equipo nuevo empieza por la pregunta: qué se está cargando.
   // Un duplicado no pregunta qué es: ya lo sabe, viene del equipo copiado.
-  const [eligiendoTipo, setEligiendoTipo] = useState(esNuevo && !equipo.duplicadoDe);
+  const [eligiendoTipo, setEligiendoTipo] = useState(esNuevo && !equipo.duplicadoDe && !equipo.leidaDe);
   const [copiadaDe, setCopiadaDe] = useState<string | null>(equipo.duplicadoDe ?? null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [fotoLocal, setFotoLocal] = useState<string | null>(null);
@@ -168,6 +175,20 @@ export function FichaTecnicaEditor({
       router.refresh();
     })();
   }
+
+  // La foto que venía dentro del Word entra sola, por el mismo camino que una
+  // elegida a mano: se acomoda a la caja de la hoja y espera al guardado. Así
+  // Lesly abre la hoja y la ve, en vez de tener que ir a buscarla ella.
+  const fotoDelWord = equipo.fotoInicial ?? null;
+  const yaEntro = useRef(false);
+  useEffect(() => {
+    if (!fotoDelWord || yaEntro.current) return;
+    yaEntro.current = true;
+    elegirFoto(fotoDelWord);
+    // elegirFoto se define en este mismo render y no cambia de comportamiento:
+    // depender de ella volvería a disparar el efecto en cada tecla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fotoDelWord]);
 
   /** Sube el archivo ya preparado y lo deja apuntado en el equipo. */
   async function subirAlAlmacen(id: string, blob: Blob): Promise<string | null> {

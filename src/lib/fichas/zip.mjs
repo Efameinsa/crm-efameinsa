@@ -11,9 +11,15 @@ import { inflateRawSync } from "node:zlib";
 const FIRMA_EOCD = 0x06054b50;
 const FIRMA_CENTRAL = 0x02014b50;
 
-/** Devuelve un Map<nombre, Buffer> con el contenido de cada entrada. */
+/**
+ * Devuelve un Map<nombre, Buffer> con el contenido de cada entrada.
+ *
+ * Acepta una RUTA —como lo usan los scripts, que leen los Word de `V:`— o el
+ * CONTENIDO ya en memoria, que es como llega el .docx que Lesly arrastra a la
+ * pantalla: ahí no hay archivo en disco que abrir.
+ */
 export function leerZip(ruta) {
-  const b = readFileSync(ruta);
+  const b = typeof ruta === "string" ? readFileSync(ruta) : Buffer.from(ruta);
 
   // Fin del directorio central: los últimos 22 bytes, salvo que haya comentario.
   let eocd = -1;
@@ -23,7 +29,7 @@ export function leerZip(ruta) {
       break;
     }
   }
-  if (eocd === -1) throw new Error(`No parece un zip: ${ruta}`);
+  if (eocd === -1) throw new Error(`No parece un zip: ${typeof ruta === "string" ? ruta : `${b.length} bytes`}`);
 
   const entradas = b.readUInt16LE(eocd + 10);
   let p = b.readUInt32LE(eocd + 16);
