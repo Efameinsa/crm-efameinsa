@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { fechaLima } from "@/lib/fechas";
 import { MapPin, FileText } from "lucide-react";
+import { EtapaBadge } from "@/components/crm/etapa-badge";
+import { cn } from "@/lib/utils";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
@@ -58,6 +61,35 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
     }[]) ?? [];
 
   const { eventos, ventasConDetalle } = await cargarHistorialCuenta(supabase, cuentaId);
+
+  // DESDE ACÁ SE TIENE QUE PODER LLEGAR A GESTIONAR. Brenda, 31-08: encontró a
+  // COINREFRI en Mi cartera y no tenía qué tocar para trabajarlo. Y era cierto
+  // —la ficha mostraba informes, compras, historial y contactos, pero ni
+  // listaba sus oportunidades—, y la gestión solo se registra en la ficha de la
+  // oportunidad. El cliente estaba a un clic de distancia de sí mismo y ese clic
+  // no existía.
+  const { data: oportunidadesCuenta } = await supabase
+    .from("oportunidades")
+    .select(
+      "id, etapa, intencion, monto_estimado, moneda, proxima_accion, proxima_accion_at, cerrada_at, comercial_id, perfiles:comercial_id(nombre, codigo_comercial)",
+    )
+    .eq("cuenta_id", cuentaId)
+    .order("cerrada_at", { ascending: true, nullsFirst: true })
+    .order("proxima_accion_at", { ascending: true, nullsFirst: false })
+    .limit(50);
+
+  const oportunidades = ((oportunidadesCuenta ?? []) as unknown as {
+    id: string;
+    etapa: string;
+    intencion: string | null;
+    monto_estimado: number | null;
+    moneda: string;
+    proxima_accion: string | null;
+    proxima_accion_at: string | null;
+    cerrada_at: string | null;
+    comercial_id: string | null;
+    perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  }[]);
 
   // Informes de cierre de este cliente. Los ve el comercial de la cartera,
   // gerencia y Central (política de la migración 0049).
@@ -123,6 +155,21 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
         <div className="space-y-4 lg:col-span-2">
           <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} />
 
+          <SeccionPanel
+            titulo={`Oportunidades (${oportunidades.length})`}
+            accion={
+              <span className="text-[11px] text-muted-foreground">
+                La gestión se registra dentro de cada una
+              </span>
+            }
+          >
+            <ListaOportunidadesCuenta
+              oportunidades={oportunidades}
+              duenoDeLaFicha={cuenta.comercial_id}
+              comoGerencia={comoGerencia}
+            />
+          </SeccionPanel>
+
           <GrupoEconomico cuentaId={cuenta.id} comoGerencia={comoGerencia} />
 
           {/* Informes de cierre: el documento que recibe Central para facturar,
@@ -161,5 +208,79 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
         </SeccionPanel>
       </div>
     </div>
+  );
+}
+
+/**
+ * Las oportunidades del cliente, como puerta a gestionarlas.
+ *
+ * Las abiertas van arriba —son las que se trabajan hoy— y las cerradas debajo,
+ * apagadas, porque cuentan la historia pero no piden nada.
+ *
+ * Se marca la que NO es de quien mira. En COINREFRI, cuatro de las ocho son de
+ * Postventa (repuestos y mantenimiento vendidos entre 2023 y 2024): aparecen
+ * porque son del mismo cliente y su dueña tiene que verlas, pero decirle por
+ * qué no puede tocarlas evita la siguiente pregunta.
+ */
+function ListaOportunidadesCuenta({
+  oportunidades,
+  duenoDeLaFicha,
+  comoGerencia,
+}: {
+  oportunidades: {
+    id: string;
+    etapa: string;
+    intencion: string | null;
+    monto_estimado: number | null;
+    moneda: string;
+    proxima_accion: string | null;
+    proxima_accion_at: string | null;
+    cerrada_at: string | null;
+    comercial_id: string | null;
+    perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  }[];
+  duenoDeLaFicha: string | null;
+  comoGerencia: boolean;
+}) {
+  if (oportunidades.length === 0) {
+    return <p className="text-sm text-muted-foreground">Este cliente todavía no tiene ninguna oportunidad.</p>;
+  }
+  return (
+    <ul className="space-y-1.5">
+      {oportunidades.map((o) => {
+        const cerrada = !!o.cerrada_at;
+        const deOtro = !comoGerencia && o.comercial_id !== duenoDeLaFicha;
+        return (
+          <li key={o.id}>
+            <Link
+              href={`/comercial/oportunidades/${o.id}`}
+              className={cn(
+                "flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border p-2.5 transition-colors hover:bg-accent",
+                cerrada && "opacity-70",
+              )}
+            >
+              <EtapaBadge etapa={o.etapa} />
+              <span className="min-w-[140px] flex-1 text-xs text-foreground">
+                {o.proxima_accion ?? (cerrada ? "Cerrada" : "Sin próxima acción definida")}
+                {o.proxima_accion_at && !cerrada && (
+                  <span className="text-muted-foreground"> · {fechaLima(o.proxima_accion_at)}</span>
+                )}
+                {cerrada && <span className="text-muted-foreground"> · {fechaLima(o.cerrada_at!)}</span>}
+              </span>
+              {deOtro && (
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
+                  de {o.perfiles?.codigo_comercial ?? o.perfiles?.nombre ?? "otra área"} · solo lectura
+                </span>
+              )}
+              {o.monto_estimado != null && (
+                <span className="text-xs font-semibold tabular-nums text-foreground">
+                  {o.moneda} {Number(o.monto_estimado).toLocaleString("es-PE")}
+                </span>
+              )}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
