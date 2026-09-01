@@ -65,6 +65,12 @@ export function LineaAtencion({
   const [enviando, empezar] = useTransition();
   const paso = pasoDe(a.etapa);
   const sigue = siguienteEtapa(a.etapa);
+  // La tira es NAVEGABLE (Santos, 01-09: «ponlo como tabs… ni se puede
+  // retroceder a un estadio anterior»): tocar una etapa hecha muestra su acta
+  // —qué se registró y cuándo—, y una futura, qué se hará ahí. Retroceder es
+  // REVISAR, nunca deshacer: cada sello tiene fecha y autor. null = la actual.
+  const [vista, setVista] = useState<string | null>(null);
+  const etapaVista = vista ?? a.etapa;
 
   const correr = (fn: () => Promise<{ error: string | null }>, exito: string) =>
     empezar(async () => {
@@ -98,17 +104,30 @@ export function LineaAtencion({
             const hecha = i < paso;
             const actual = i === paso;
             const sello = sellos[e];
+            const seleccionada = etapaVista === e;
             return (
               <li key={e} className="flex-1">
-                <div
+                {/* Cada etapa es una PESTAÑA. La actual late con un puntito
+                    (parpadeo sutil que pidió Santos — un pulso de caja entera
+                    marearía); la seleccionada lleva el anillo. */}
+                <button
+                  type="button"
+                  onClick={() => setVista(e === a.etapa ? null : e)}
                   title={AYUDA_ETAPA[e]}
                   className={cn(
-                    "h-full rounded-md border px-2 py-1.5 text-center transition-colors",
+                    "relative h-full w-full cursor-pointer rounded-md border px-2 py-1.5 text-center transition-all hover:bg-accent/60",
                     actual && "border-primary bg-primary/10",
                     hecha && "border-[#1E7F4F]/30 bg-[#1E7F4F]/5",
                     !actual && !hecha && "border-dashed border-border",
+                    seleccionada && "ring-2 ring-primary/40",
                   )}
                 >
+                  {actual && (
+                    <span className="absolute -right-1 -top-1 flex size-2.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+                      <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
+                    </span>
+                  )}
                   <p
                     className={cn(
                       "flex items-center justify-center gap-1 text-[11px] font-bold leading-tight",
@@ -123,7 +142,7 @@ export function LineaAtencion({
                   <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
                     {sello ? new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" }) : "—"}
                   </p>
-                </div>
+                </button>
               </li>
             );
           })}
@@ -163,8 +182,16 @@ export function LineaAtencion({
         </div>
       )}
 
-      {/* ── La caja del paso que toca ─────────────────────────────────── */}
-      {a.etapa === "solicitud" ? (
+      {/* ── La caja: la etapa seleccionada, o el paso que toca ────────── */}
+      {etapaVista !== a.etapa ? (
+        <ActaEtapa
+          etapa={etapaVista}
+          atencion={a}
+          hecha={pasoDe(etapaVista as Atencion["etapa"]) < paso}
+          sello={sellos[etapaVista] ?? null}
+          onVolver={() => setVista(null)}
+        />
+      ) : a.etapa === "solicitud" ? (
         <Caja titulo="Esperando a Central">
           <p className="text-sm text-muted-foreground">
             Está registrada y derivada. Central decide si la atiende el área o un comercial; cuando la
@@ -212,6 +239,91 @@ function Caja({ titulo, children }: { titulo: string; children: React.ReactNode 
       <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{titulo}</h3>
       {children}
     </div>
+  );
+}
+
+/**
+ * El ACTA de una etapa que no es la actual: qué quedó registrado (si ya pasó)
+ * o qué se hará ahí (si todavía no llega). Solo lectura — el trabajo vive en
+ * el paso actual, y lo hecho no se deshace: tiene fecha y autor.
+ */
+function ActaEtapa({
+  etapa,
+  atencion: a,
+  hecha,
+  sello,
+  onVolver,
+}: {
+  etapa: string;
+  atencion: Atencion;
+  hecha: boolean;
+  sello: string | null;
+  onVolver: () => void;
+}) {
+  const etiqueta = ETIQUETA_ETAPA[etapa as keyof typeof ETIQUETA_ETAPA] ?? etapa;
+
+  // Lo que cada etapa dejó escrito, cuando lo dejó.
+  const lineas: { titulo: string; valor: string }[] = [];
+  if (hecha) {
+    if (sello) {
+      lineas.push({
+        titulo: "Cuándo",
+        valor: new Date(sello).toLocaleString("es-PE", {
+          timeZone: "America/Lima",
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      });
+    }
+    if (etapa === "registro" && a.en_garantia !== null) {
+      lineas.push({ titulo: "Garantía", valor: a.en_garantia ? "En garantía" : "Sin garantía" });
+    }
+    if (etapa === "diagnostico" && a.clasificacion) {
+      lineas.push({
+        titulo: "Clasificación",
+        valor: `${ETIQUETA_CLASIFICACION[a.clasificacion]} · ${SE_COBRA[a.clasificacion] ? "se cobra" : "no se cobra"}`,
+      });
+    }
+    if (etapa === "planificacion" && a.tecnico) lineas.push({ titulo: "Técnico", valor: a.tecnico });
+    if (etapa === "conformidad" && a.conformidad_nombre) {
+      lineas.push({ titulo: "Dio conformidad", valor: a.conformidad_nombre });
+    }
+    if (etapa === "cierre") {
+      if (a.resultado) lineas.push({ titulo: "Resultado", valor: a.resultado });
+      if (a.motivo_cierre) lineas.push({ titulo: "En qué quedó", valor: a.motivo_cierre });
+    }
+  }
+
+  return (
+    <Caja titulo={hecha ? `Acta · ${etiqueta}` : `Todavía no llega acá · ${etiqueta}`}>
+      {hecha ? (
+        lineas.length > 0 ? (
+          <dl className="space-y-1.5">
+            {lineas.map((l) => (
+              <div key={l.titulo} className="flex gap-2 text-sm">
+                <dt className="w-28 flex-none text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {l.titulo}
+                </dt>
+                <dd className="min-w-0 text-foreground">{l.valor}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-sm text-muted-foreground">Esta etapa se marcó sin datos adicionales.</p>
+        )
+      ) : (
+        <p className="max-w-prose text-sm text-muted-foreground">
+          {AYUDA_ETAPA[etapa as keyof typeof AYUDA_ETAPA] ?? "Se habilita al completar los pasos anteriores."}{" "}
+          Se habilita cuando la atención llegue a este punto.
+        </p>
+      )}
+      <Button size="sm" variant="outline" className="mt-3" onClick={onVolver}>
+        Volver al paso actual
+      </Button>
+    </Caja>
   );
 }
 
