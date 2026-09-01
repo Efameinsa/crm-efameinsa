@@ -94,7 +94,12 @@ export default async function CentralPage() {
   const { hasta: sinPinHasta } = await permisoSinPin();
   const modoEnsayo = sinPinHasta !== null;
 
-  const [{ data: leads, count: totalPendientes }, { data: comerciales }, { data: derivados }] = await Promise.all([
+  const [
+    { data: leads, count: totalPendientes },
+    { data: comerciales },
+    { data: derivados },
+    { count: practicasFuera },
+  ] = await Promise.all([
     // Fuera del modo ensayo la cola es solo la real. El conteo sale de esta
     // misma consulta, así que «N pendientes» pasa a ser lo que Central de
     // verdad tiene que repartir. (es_prueba es NOT NULL default false: el .eq
@@ -122,6 +127,16 @@ export default async function CentralPage() {
       .eq("estado", "derivado_area")
       .order("recibido_at", { ascending: false })
       .limit(50),
+    // Cuántos quedan fuera de la cola por ser de práctica. Se cuentan para
+    // DECIRLO, no para esconderlos en silencio: cuando el contacto de la
+    // capacitación desapareció de la bandeja, lo primero que preguntó Central
+    // fue si se había borrado (01-09). Un contacto que se va sin explicación
+    // se lee como un dato perdido.
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("estado", "pendiente_triaje")
+      .eq("es_prueba", true),
   ]);
 
   // Cuáles de los que están en la bandeja ya están en el sistema. Va acá y no
@@ -176,6 +191,21 @@ export default async function CentralPage() {
         ) : undefined
       }
     >
+      {/* Lo que se dejó fuera se dice, con su nombre y dónde está. Un contacto
+          que desaparece de la cola sin explicación se lee como un dato
+          perdido: eso es lo que preguntó Central el 01-09 cuando la atención
+          de la capacitación se fue de su pantalla. */}
+      {!modoEnsayo && (practicasFuera ?? 0) > 0 && (
+        <p className="mb-3 rounded-md border border-dashed border-amber-400 bg-amber-50/60 px-3 py-2 text-xs text-amber-900">
+          <b>
+            {practicasFuera} contacto{practicasFuera === 1 ? "" : "s"} de práctica
+          </b>{" "}
+          fuera de la cola: {practicasFuera === 1 ? "es de la" : "son de la"} capacitación, no de un cliente.{" "}
+          <b>No se borró nada</b> — {practicasFuera === 1 ? "sigue" : "siguen"} en el sistema y{" "}
+          {practicasFuera === 1 ? "aparece" : "aparecen"} acá cuando gerencia levanta el código para ensayar.
+        </p>
+      )}
+
       {!leads || leads.length === 0 ? (
         <p className="text-sm text-muted-foreground">No hay contactos comerciales pendientes de asignar.</p>
       ) : (
