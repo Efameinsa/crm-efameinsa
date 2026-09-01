@@ -41,7 +41,7 @@ const CANALES = [
   ["otro", "Otro"],
 ] as const;
 
-export function PasarContactoCentral() {
+export function PasarContactoCentral({ contexto = "comercial" }: { contexto?: "comercial" | "postventa" }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   // El temporizador vive en un ref, no en un global del módulo: si no, dos
@@ -121,8 +121,13 @@ export function PasarContactoCentral() {
         <DialogHeader>
           <DialogTitle>Pasar un contacto a Central</DialogTitle>
           <DialogDescription>
-            Para cuando le escriben o la llaman directamente. Central lo revisa y lo deriva — si es de su cartera, se
-            lo devuelve a usted.
+            {contexto === "postventa"
+              ? // El pedido del ing. Carlos en la reunión del 01-09 (vía Santos):
+                // lo que le llega directo a postventa se REGISTRA y pasa por
+                // Central, que lo deriva a postventa o al área que corresponda.
+                // Todo contacto entra por Central — también los del técnico.
+                "Para el cliente que llama o escribe directo a postventa. Central lo recibe en su cola y lo deriva a postventa o al área que corresponda."
+              : "Para cuando le escriben o la llaman directamente. Central lo revisa y lo deriva — si es de su cartera, se lo devuelve a usted."}
           </DialogDescription>
         </DialogHeader>
 

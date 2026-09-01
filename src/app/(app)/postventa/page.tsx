@@ -5,6 +5,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaLima } from "@/lib/fechas";
 import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
+import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { BotonCierreSemanal } from "@/components/crm/boton-cierre-semanal";
 import { BotonReporteMensual } from "@/components/crm/boton-reporte-mensual";
@@ -260,6 +261,12 @@ export default async function PostventaPage() {
       {/* «Mi agenda» salió del menú del área (plan 23, etapa 2): estos tres
           botones eran la única razón por la que seguía abierta. */}
       <div className="flex flex-wrap items-center justify-end gap-2">
+        {/* El cliente que llama DIRECTO al técnico, sin pasar por Central
+            (pedido del ing. Carlos, reunión 01-09, plan 27-F): se registra acá
+            una sola vez, cae a la cola de Central, y Central lo deriva a
+            postventa o a donde corresponda. Misma política 0060 que el
+            comercial: puede meterlo a la cola, nunca asignárselo solo. */}
+        <PasarContactoCentral contexto="postventa" />
         <BotonReporteMensual mes={mesPorDefecto(hoyIso)} compacto />
         <BotonCierreSemanal semana={lunes} compacto />
         <BotonReporteDiario fecha={hoyIso} compacto />
