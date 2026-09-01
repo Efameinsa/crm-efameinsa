@@ -33,6 +33,9 @@ export async function crearTarea(datos: {
   if (error) return { error: error.message };
 
   revalidatePath("/comercial/agenda");
+  // Desde el 31-08 (plan 23, etapa 2) las tareas también se pintan en el
+  // calendario del área: crear una tiene que refrescarlo igual.
+  revalidatePath("/postventa/agenda");
   return { error: null, id: data.id };
 }
 

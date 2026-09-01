@@ -198,7 +198,7 @@ export function AgendarEnDia({
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Las tareas propias se ven en «Mi agenda»; las atenciones, acá en el calendario del área.
+                La tarea queda en este mismo calendario, en su día, marcada como «Personal».
               </p>
             </div>
           </div>

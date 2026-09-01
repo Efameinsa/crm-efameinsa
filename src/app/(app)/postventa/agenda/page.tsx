@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarPlus, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { puedeVerPrecios, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
@@ -195,25 +195,21 @@ export default async function AgendaPostventaPage({
  * Hever avisó el 31-08 que quiso poner algo en el calendario del día y no
  * encontró cómo. No se inventa un «evento de calendario» suelto: lo que el
  * área agenda es una atención, y la atención ya se crea en
- * /postventa/casos/nuevo. Lo personal —recordatorios sin cliente— vive en «Mi
- * agenda», y también se enlaza, porque son las dos cosas que uno quiere
- * «agendar» y viven en pantallas distintas.
+ * /postventa/casos/nuevo.
+ *
+ * El botón «Tarea personal» que vivía acá se quitó esa misma noche, cuando
+ * Santos lo auditó: mandaba a «Mi agenda» —la pantalla que la etapa 2 sacó
+ * del menú del área— con parpadeo en blanco incluido. Y era doblemente
+ * redundante: el «Agendar» de CADA DÍA del calendario ya crea la tarea
+ * propia ahí mismo, en el día que se está mirando, sin irse a ningún lado.
  */
 function BotonesAgendar() {
   return (
-    <div className="flex items-center gap-1.5">
-      <Link
-        href="/postventa/casos/nuevo"
-        className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground hover:brightness-110"
-      >
-        <Plus className="size-3.5" /> Nueva atención
-      </Link>
-      <Link
-        href="/comercial/agenda"
-        className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-      >
-        <CalendarPlus className="size-3.5" /> Tarea personal
-      </Link>
-    </div>
+    <Link
+      href="/postventa/casos/nuevo"
+      className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground hover:brightness-110"
+    >
+      <Plus className="size-3.5" /> Nueva atención
+    </Link>
   );
 }
