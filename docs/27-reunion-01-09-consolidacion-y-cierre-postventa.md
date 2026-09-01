@@ -161,3 +161,83 @@ donde corresponda. Cierra la regla «TODO contacto entra por Central».
    grande; se diseña aparte cuando 1-4 estén andando.
 
 **Nada de esto se despliega sin la orden de Santos.**
+
+---
+
+# Repaso fino (01-09 por la tarde): TODO lo pedido, contra lo construido
+
+Santos pidió releer las dos transcripciones completas para que no se pierda
+ningún requerimiento. Punto por punto:
+
+## Ya construido y en producción (01-09)
+1. Consolidación de gemelos mismo comercial, automática (0141).
+2. Aviso a Central al juntar («se sumó a ese expediente»).
+3. Otra área = expediente aparte (respetado en la 0141).
+4. Cierre emitido sellado + código de Lesly + queda firmado (0142).
+5. Ruta del contacto en la ficha de atención, recuadro derecho.
+6. Pruebas fuera de «Lo que derivé» (y las 7 borradas).
+7. Fredd rastreado (gestión en la ficha gemela, nada se borró).
+
+## Ya existía (confirmado contra el código; en la reunión costó encontrarlo)
+8. Toda venta liberada por Central («pedido ejecutado» + liquidación) cae en
+   Mi día de postventa como «Nuevo pedido», con campanada.
+9. Las derivaciones de Central llegan a Mi día (casos y atenciones en
+   «registro»).
+10. El expediente del pedido muestra cierre Nº + PDF + pago/saldo + qué lo
+    frena + documentos (plan 23).
+11. Atenciones ya tiene contadores (recibidas / en proceso / cerradas) y el
+    embudo de 9 etapas CLICABLE que filtra la lista.
+
+## NUEVO por construir (relevado en este repaso — la tanda que viene)
+12. **Series del cliente dentro de la atención**: «me deberían salir aquí las
+    diferentes series que tiene el cliente. Y ahí yo contrasto con [la foto de
+    la placa] y le doy clic → el equipo está en garantía o no». Construible ya
+    con `equipos_instalados` + `garantia_del_equipo`; la FECHA exacta mejora
+    cuando lleguen las guías (mientras: cotizaciones de venta, aprobado por
+    Carlos).
+13. **En garantía → derivar la llamada a logística/almacén**, y «luego que
+    derive la llamada, me tiene que aparecer acá el informe de la llamada» —
+    la derivación Y el informe de vuelta en la atención.
+14. **Cotizar desde la atención** («atención también debe haber la
+    oportunidad para poder cotizar… porque viene de un problema»):
+    mantenimiento ya tiene precios; repuestos esperan las fichas de Lesly.
+15. **Consulta de stock a importaciones/almacén** desde el caso de repuesto
+    (hoy es un correo a mano: el caso Fredd lo muestra).
+16. El circuito del pedido de provincia, pieza por pieza:
+    a. **Confirmar el pago con Finanzas** antes de mover un dedo (estafas de
+       voucher falso; comisiones descontadas) — la cuenta finanzas existe
+       (0133).
+    b. **Alerta a almacén: «probar el equipo»** con hora límite, y almacén
+       confirma «equipo probado».
+    c. **Plano de preinstalación** como paso con estatus visible — Carlos lo
+       buscó en vivo: «¿si había sido enviado el plan de preinstalación?
+       ¿dónde están los estatus?».
+    d. Despacho con guía → la garantía corre desde ahí (regla; pide las guías).
+    e. Puesta en marcha por videollamada + informe con fotos/videos.
+    f. **Ciclos** («el kilometraje de la máquina») registrados al cerrar.
+    g. Correo final al cliente con el informe + recordatorio del preventivo.
+    h. **Alerta a los 3 meses**: «mantenimiento preventivo, ¿a quién le
+       toca?» — el recordatorio nace SOLO del cierre.
+17. **El tablero de control estilo Excel de Hever**: «el concepto de ese
+    Excel, el control de ese Excel es lo que te menciono. Controlamos eso» —
+    la vista agregada de TODOS los pedidos con el estatus de cada paso
+    (probado / plano enviado / despachado / puesta en marcha / ciclos).
+    ⚠️ Es probablemente lo que Santos recuerda como «separar por etapas en
+    Kanban»: la palabra kanban no aparece en las transcripciones; confirmar
+    con Carlos si quiere el tablero de pedidos (Excel), un Kanban de
+    atenciones por etapa, o ambos.
+
+## Pendiente chico / decisiones
+18. Dividir un expediente juntado por error («pasa muy pocos casos») — v2.
+19. Enviarle a Carlos el reporte del diagnóstico de gemelos (lo pidió:
+    «¿me puedes mandar ese reporte?») — acción de Santos; el material está
+    en este doc y en los commits.
+20. Decisiones de Carlos: plazo de garantía (¿manda el documento de venta
+    sobre los 24 meses?) y ventana de validez de una aprobación de precio.
+21. Coaching de gestores (doble check antes de mandar la agenda) — humano,
+    no código.
+
+**Alcance dictado por Carlos:** «primero debemos amoldar esta parte… desde el
+cierre. Hasta ahí te enfoques: todo lo demás es repetitivo, en Lima son unos
+pasos adicionales». O sea: 16 (el circuito) y 17 (el control) son el corazón
+de la próxima tanda; 12-15 lo alimentan.
