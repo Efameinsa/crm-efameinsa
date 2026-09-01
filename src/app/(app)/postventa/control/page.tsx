@@ -1,9 +1,7 @@
-import Link from "next/link";
-import { Check, ChevronDown, CircleDashed, OctagonAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
-import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { TableroControl, type TarjetaControl } from "@/components/crm/tablero-control";
 import { fechaLima } from "@/lib/fechas";
 import {
   avancePedido,
@@ -14,7 +12,6 @@ import {
   sinPrecios,
   type ServicioPostventa,
 } from "@/lib/postventa";
-import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -23,25 +20,20 @@ export const dynamic = "force-dynamic";
  *
  * Pedido del ing. Carlos (01-09): «el concepto de ese Excel, el CONTROL de
  * ese Excel es lo que te menciono». La primera versión fue una matriz de
- * nueve columnas de símbolos y Santos la vetó el mismo día: «no me parece
- * amigable». Tenía razón — una matriz obliga a leer celda por celda sin
- * jerarquía. La pregunta real del área es «¿qué tengo en cada fase y qué me
- * toca mover?», y eso se responde con TRES columnas —las mismas tres fases
- * que ya agrupan la ficha del pedido (bloquesPedido)— y una tarjeta por
- * pedido con lo esencial: cliente, equipo, avance y qué lo frena. El detalle
- * de los diez pasos vive en la ficha, a un clic, como el patrón de
- * seguimiento de encomienda que pidió Santos.
+ * nueve columnas de símbolos y Santos la vetó el mismo día: la pregunta real
+ * del área es «¿qué tengo en cada fase y qué me toca mover?». Tres columnas
+ * —las mismas fases de la ficha del pedido (bloquesPedido)— con una tarjeta
+ * por pedido; el detalle de los pasos, en el checklist de la tarjeta y en la
+ * ficha.
+ *
+ * Esta página solo COCINA los datos (con los precios ya tapados para el
+ * área); el tablero vive en TableroControl, que es cliente porque el
+ * arrastre con su alertita —la experiencia que diseñó Santos— necesita
+ * navegador.
  */
 
-const FASES = [
-  { numero: 1 as const, titulo: "① Preparación" },
-  { numero: 2 as const, titulo: "② Despacho" },
-  { numero: 3 as const, titulo: "③ Puesta en marcha y cierre" },
-];
-
-/** La fase EN LA QUE ESTÁ el pedido: el primer bloque incompleto. */
-function faseActual(s: ServicioPostventa): 1 | 2 | 3 {
-  for (const b of bloquesPedido(s)) if (!b.completo) return b.numero;
+function faseActual(bloques: ReturnType<typeof bloquesPedido>): 1 | 2 | 3 {
+  for (const b of bloques) if (!b.completo) return b.numero;
   return 3;
 }
 
@@ -61,10 +53,43 @@ export default async function ControlPedidosPage() {
     .limit(80);
 
   const verPrecios = puedeVerPrecios(perfil);
-  const pedidos = ((data ?? []) as unknown as ServicioPostventa[]).map((s) => (verPrecios ? s : sinPrecios(s)));
 
-  const porFase = new Map<number, ServicioPostventa[]>([[1, []], [2, []], [3, []]]);
-  for (const s of pedidos) porFase.get(faseActual(s))!.push(s);
+  const pedidos: TarjetaControl[] = ((data ?? []) as unknown as ServicioPostventa[]).map((crudo) => {
+    const s = verPrecios ? crudo : sinPrecios(crudo);
+    const bloques = bloquesPedido(s);
+    const fase = faseActual(bloques);
+    const avance = avancePedido(s);
+    const frena = queLoFrena(s);
+
+    // Lo pendiente ANTES de cada fase futura: es el guion de la alertita del
+    // arrastre («para pasar a Despacho falta: …»).
+    const faltantesHasta: Record<number, string[]> = {};
+    for (const destino of [2, 3]) {
+      faltantesHasta[destino] = bloques
+        .filter((b) => b.numero < destino)
+        .flatMap((b) => b.pasos.filter((p) => !p.hecho).map((p) => p.etiqueta));
+    }
+
+    return {
+      id: s.id,
+      fase,
+      cliente: (s.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, ""),
+      equipo: s.equipo ?? "Sin equipo",
+      hechos: avance.hechos,
+      total: avance.total,
+      pct: Math.round((avance.hechos / avance.total) * 100),
+      frena: frena ? { texto: frena.texto, dueno: etiquetaResponsable(frena.responsable), grave: frena.grave } : null,
+      fechaDespacho: s.fecha_despacho ? fechaLima(s.fecha_despacho) : null,
+      puedeAprobar: !s.aprobado_at && s.informe_cierre_id != null,
+      pasosFase: (bloques.find((b) => b.numero === fase)?.pasos ?? []).map((p) => ({
+        etiqueta: p.etiqueta,
+        hecho: p.hecho,
+        trabado: p.trabado ?? null,
+        dueno: etiquetaResponsable(p.responsable),
+      })),
+      faltantesHasta,
+    };
+  });
 
   return (
     <SeccionPanel
@@ -76,152 +101,15 @@ export default async function ControlPedidosPage() {
       }
     >
       <p className="mb-4 max-w-prose text-xs text-muted-foreground">
-        Cada pedido está en la fase donde le falta trabajo. La tarjeta dice qué lo frena y de quién depende; tocarla
-        abre el expediente con los diez pasos del circuito.
+        Cada pedido está en la fase donde le falta trabajo; la barrita se abre y dice qué falta en esa fase. La
+        tarjeta se puede arrastrar: si intenta pasarla a una fase que todavía no le toca, la alerta le dice qué
+        falta — y al marcar esos pasos en la ficha, pasa sola.
       </p>
 
       {pedidos.length === 0 ? (
         <p className="text-sm text-muted-foreground">No hay pedidos del flujo en curso ahora mismo.</p>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-3">
-          {FASES.map((fase) => {
-            const lista = porFase.get(fase.numero) ?? [];
-            return (
-              <div key={fase.numero} className="rounded-xl border border-border bg-secondary/30 p-3">
-                <div className="mb-2.5 flex items-center justify-between px-1">
-                  <h3 className="text-[12px] font-bold uppercase tracking-wide text-foreground">{fase.titulo}</h3>
-                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                    {lista.length}
-                  </span>
-                </div>
-
-                {lista.length === 0 ? (
-                  <p className="px-1 py-4 text-center text-xs text-muted-foreground/70">Nada en esta fase</p>
-                ) : (
-                  <div className="space-y-2">
-                    {lista.map((s) => {
-                      const frena = queLoFrena(s);
-                      const avance = avancePedido(s);
-                      const pct = Math.round((avance.hechos / avance.total) * 100);
-                      // El único movimiento que se hace DESDE la tarjeta es el
-                      // que es 100 % de postventa y no pide ningún dato: el
-                      // acuse de aprobar (Santos, 01-09: «¿por qué no se puede
-                      // mover de un estadio a otro?» — arrastrar no, porque la
-                      // fase es un hecho con evidencia; actuar sí). El resto de
-                      // pasos pide datos y vive en la ficha.
-                      const puedeAprobar = !s.aprobado_at && s.informe_cierre_id != null;
-                      return (
-                        <div
-                          key={s.id}
-                          className={cn(
-                            "relative rounded-lg border bg-card p-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40",
-                            frena?.grave ? "border-amber-400/60" : "border-border",
-                          )}
-                        >
-                          <Link
-                            href={`/postventa/pedidos/${s.id}`}
-                            className="absolute inset-0 rounded-lg"
-                            aria-label={`Abrir el pedido de ${s.cliente_texto ?? "cliente"}`}
-                          />
-                          <p className="line-clamp-1 text-sm font-semibold text-foreground">
-                            {(s.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "")}
-                          </p>
-                          <p className="line-clamp-1 text-xs text-muted-foreground">{s.equipo ?? "Sin equipo"}</p>
-
-                          {/* El avance se ABRE como checklist (Santos, 01-09:
-                              «debería abrirse como subtareas, tipo Asana...
-                              así como está no se sabe, no se ve»): la barra es
-                              el resumen y el clic muestra paso por paso qué
-                              está hecho, qué falta y de quién depende — la
-                              misma respuesta que daría un arrastre rechazado,
-                              sin la frustración del rechazo. <details> nativo:
-                              cero JavaScript, funciona para todos. */}
-                          <details className="group relative z-10 mt-2">
-                            <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-                              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
-                                <span
-                                  className={cn("block h-full", pct === 100 ? "bg-[#1E7F4F]" : "bg-primary")}
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </span>
-                              <span className="text-[11px] tabular-nums text-muted-foreground">
-                                {avance.hechos}/{avance.total}
-                              </span>
-                              <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
-                            </summary>
-                            <div className="mt-2 space-y-2 rounded-md border border-border bg-secondary/40 p-2.5">
-                              {bloquesPedido(s).map((b) => (
-                                <div key={b.numero}>
-                                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                                    {"①②③"[b.numero - 1]} {b.titulo}
-                                  </p>
-                                  <ul className="space-y-1">
-                                    {b.pasos.map((p) => (
-                                      <li key={p.clave} className="flex items-start gap-1.5 text-[11px] leading-snug">
-                                        {p.hecho ? (
-                                          <Check className="mt-px size-3 flex-none text-[#1E7F4F]" />
-                                        ) : p.trabado ? (
-                                          <OctagonAlert className="mt-px size-3 flex-none text-amber-600" />
-                                        ) : (
-                                          <CircleDashed className="mt-px size-3 flex-none text-muted-foreground/60" />
-                                        )}
-                                        <span className={p.hecho ? "text-muted-foreground" : "text-foreground"}>
-                                          {p.etiqueta}
-                                          {!p.hecho && (
-                                            <span className="text-muted-foreground">
-                                              {" · "}
-                                              {p.trabado ?? etiquetaResponsable(p.responsable)}
-                                            </span>
-                                          )}
-                                        </span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              ))}
-                            </div>
-                          </details>
-
-                          {frena ? (
-                            <p
-                              className={cn(
-                                "mt-2 flex items-start gap-1.5 text-xs",
-                                frena.grave ? "font-semibold text-amber-800" : "text-muted-foreground",
-                              )}
-                            >
-                              {frena.grave ? (
-                                <OctagonAlert className="mt-0.5 size-3.5 flex-none" />
-                              ) : (
-                                <CircleDashed className="mt-0.5 size-3.5 flex-none" />
-                              )}
-                              <span>
-                                {frena.texto} · <b>{etiquetaResponsable(frena.responsable)}</b>
-                              </span>
-                            </p>
-                          ) : (
-                            <p className="mt-2 text-xs font-semibold text-[#1E7F4F]">Listo para cerrar</p>
-                          )}
-
-                          {s.fecha_despacho && (
-                            <p className="mt-1.5 text-[11px] text-muted-foreground">
-                              Despacho: {fechaLima(s.fecha_despacho)}
-                            </p>
-                          )}
-
-                          {puedeAprobar && (
-                            <div className="relative z-10 mt-2">
-                              <AprobarPedidoBoton servicioId={s.id} />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <TableroControl pedidos={pedidos} />
       )}
 
       <p className="mt-3 text-[11px] text-muted-foreground">
