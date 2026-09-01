@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CircleDashed, OctagonAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
+import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaLima } from "@/lib/fechas";
 import {
@@ -102,15 +103,26 @@ export default async function ControlPedidosPage() {
                       const frena = queLoFrena(s);
                       const avance = avancePedido(s);
                       const pct = Math.round((avance.hechos / avance.total) * 100);
+                      // El único movimiento que se hace DESDE la tarjeta es el
+                      // que es 100 % de postventa y no pide ningún dato: el
+                      // acuse de aprobar (Santos, 01-09: «¿por qué no se puede
+                      // mover de un estadio a otro?» — arrastrar no, porque la
+                      // fase es un hecho con evidencia; actuar sí). El resto de
+                      // pasos pide datos y vive en la ficha.
+                      const puedeAprobar = !s.aprobado_at && s.informe_cierre_id != null;
                       return (
-                        <Link
+                        <div
                           key={s.id}
-                          href={`/postventa/pedidos/${s.id}`}
                           className={cn(
-                            "block rounded-lg border bg-card p-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40",
+                            "relative rounded-lg border bg-card p-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40",
                             frena?.grave ? "border-amber-400/60" : "border-border",
                           )}
                         >
+                          <Link
+                            href={`/postventa/pedidos/${s.id}`}
+                            className="absolute inset-0 rounded-lg"
+                            aria-label={`Abrir el pedido de ${s.cliente_texto ?? "cliente"}`}
+                          />
                           <p className="line-clamp-1 text-sm font-semibold text-foreground">
                             {(s.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "")}
                           </p>
@@ -155,7 +167,13 @@ export default async function ControlPedidosPage() {
                               Despacho: {fechaLima(s.fecha_despacho)}
                             </p>
                           )}
-                        </Link>
+
+                          {puedeAprobar && (
+                            <div className="relative z-10 mt-2">
+                              <AprobarPedidoBoton servicioId={s.id} />
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
