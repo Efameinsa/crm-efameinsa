@@ -6,6 +6,7 @@ import { EncabezadoUsuario } from "@/components/crm/encabezado-usuario";
 import { CalloutActivarNotificaciones } from "@/components/crm/callout-activar-notificaciones";
 import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
 import { AvisoGestionesSinSubir } from "@/components/crm/aviso-gestiones-sin-subir";
+import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
@@ -59,6 +60,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <AvisoGestionesSinSubir />
         </div>
         <main className="flex-1 bg-app-bg p-6">{children}</main>
+        {/* La pastilla de «hay versión nueva»: la pestaña nace sabiendo su
+            versión y pregunta si el servidor ya es otro. Con esto muere el
+            Ctrl+Shift+R (Santos, 31-08). */}
+        <AvisoNuevaVersion versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
       </div>
     </div>
   );
