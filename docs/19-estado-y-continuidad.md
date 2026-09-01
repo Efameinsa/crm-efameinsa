@@ -233,6 +233,19 @@ corregir. El preventivo de PERUVIAN del 07-01-2026 existe solo como informe
 en `X:\S. PRIVADO\PERUVIAN NATURE & S.A.C\2026`; ya quedó vinculado a la
 ficha, pero se verá cuando Sistemas dé el puerto (`ARCHIVOS_URL`).
 
+**Y dos más de esa tarde, sin migración:** (1) postventa buscó
+«20138427014» (Congregación de Religiosas Mercedarias Misioneras, cartera de
+Ariana) y no salía: Equipos, Despachos y la Ruta buscaban solo en el texto de
+cada fila, nunca por RUC/DNI ni razón social de la ficha enlazada —
+`lib/buscar-cuentas.ts` resuelve las fichas que casan y se suma
+`cuenta_id.in.(…)` al `.or()`; la Ruta filtra por `numDoc`. Ojo: la Ruta la
+encuentra en la pestaña «cerrados» (ya compró); la búsqueda no avisa en qué
+pestaña está, mejora pendiente. (2) **«Queremos ver todo en postventa; luego
+vemos cómo lo debe ver comercial»** (Santos): `veTodoPostventa(perfil)` en
+`lib/postventa.ts` es UNA regla (gerencia, admin, es_postventa,
+hace_postventa) para la agenda, casos anteriores, Mi día y la Ruta; la RLS
+0124 ya lo permitía. Cómo lo ve comercial: pendiente de decidir.
+
 ---
 
 ## 5. Cómo se trabaja acá
