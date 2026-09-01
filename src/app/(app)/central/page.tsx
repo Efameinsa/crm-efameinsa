@@ -14,6 +14,7 @@ import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import { DerivarFinanzasBoton } from "@/components/crm/derivar-finanzas-boton";
 import { DerivadosOtrasAreas } from "@/components/crm/derivados-otras-areas";
+import { permisoSinPin } from "@/lib/acciones/seguridad";
 
 // La bandeja tiene que mostrar lo que acaba de entrar: sin esto Next servía
 // una versión cacheada y un contacto recién registrado no aparecía hasta que
@@ -55,25 +56,50 @@ const ETIQUETA_TIPO_PV: Record<string, string> = {
   mantenimiento: "Mantenimiento preventivo",
 };
 
+/**
+ * La cola de triaje. Separada del resto para que el filtro del banco de
+ * pruebas quede en un solo sitio: lo que se muestra y lo que se cuenta salen
+ * de la misma consulta.
+ *
+ * ⚠️ El orden es de MÁS ANTIGUO a más nuevo a propósito: la cola se atiende
+ * por antigüedad, que es de lo que se trata bajar las 36 horas de asignación.
+ * Pero con `limit(50)` y 62 pendientes, los 12 más recientes —o sea, TODO lo
+ * que entraba hoy— quedaban fuera de la consulta y Central no los veía nunca.
+ * Se pide el conteo exacto y un tope que no recorte en silencio; si algún día
+ * se pasa, la pantalla lo dice.
+ */
+function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, modoEnsayo: boolean) {
+  const q = supabase
+    .from("leads")
+    .select(
+      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, adjuntos, utm_campaign, recibido_at, es_prueba, sugerido_a, sugerido_tipo, sugerido_por",
+      { count: "exact" },
+    )
+    .eq("estado", "pendiente_triaje");
+  return (modoEnsayo ? q : q.eq("es_prueba", false))
+    .order("recibido_at", { ascending: true })
+    .limit(TOPE_BANDEJA);
+}
+
 export default async function CentralPage() {
   const supabase = await createClient();
 
+  // El banco de pruebas solo se ve con el código de gerencia levantado, igual
+  // que en la pantalla de derivados. Central lo reportó el 01-09: la atención
+  // que registró la cuenta de práctica de postventa le apareció en la cola
+  // real, con el cartel de «ya habló con este cliente», y ella no tenía cómo
+  // saber que era un ensayo. La regla ya estaba escrita —«así la capacitación
+  // no vuelve a sembrar la pantalla de prueba, prueba, prueba»—, solo que
+  // faltaba aplicarla acá, que es donde entra todo.
+  const { hasta: sinPinHasta } = await permisoSinPin();
+  const modoEnsayo = sinPinHasta !== null;
+
   const [{ data: leads, count: totalPendientes }, { data: comerciales }, { data: derivados }] = await Promise.all([
-    // ⚠️ El orden es de MÁS ANTIGUO a más nuevo a propósito: la cola se atiende
-    // por antigüedad, que es de lo que se trata bajar las 36 horas de
-    // asignación. Pero con `limit(50)` y 62 pendientes, los 12 más recientes
-    // —o sea, TODO lo que entraba hoy— quedaban fuera de la consulta y Central
-    // no los veía nunca. Se pide el conteo exacto y un tope que no recorte en
-    // silencio; si algún día se pasa, la pantalla lo dice.
-    supabase
-      .from("leads")
-      .select(
-        "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, adjuntos, utm_campaign, recibido_at, es_prueba, sugerido_a, sugerido_tipo, sugerido_por",
-        { count: "exact" },
-      )
-      .eq("estado", "pendiente_triaje")
-      .order("recibido_at", { ascending: true })
-      .limit(TOPE_BANDEJA),
+    // Fuera del modo ensayo la cola es solo la real. El conteo sale de esta
+    // misma consulta, así que «N pendientes» pasa a ser lo que Central de
+    // verdad tiene que repartir. (es_prueba es NOT NULL default false: el .eq
+    // no deja filas fuera por null.)
+    consultaBandeja(supabase, modoEnsayo),
     supabase
       .from("perfiles")
       .select("id, nombre, codigo_comercial, codigo_anterior, es_postventa")
@@ -104,7 +130,9 @@ export default async function CentralPage() {
   // el único botón que le servía decía «Descartar».
   // El contacto de prueba del aviso sonoro queda fuera del cruce: coincide con
   // la cuenta de práctica y saldría con la cinta «ya derivado» justo encima del
-  // único contacto que Central SÍ tiene que derivar para oír el pitido.
+  // único contacto que Central SÍ tiene que derivar para oír el pitido. (Ese
+  // ensayo se hace ahora con el código de gerencia levantado, que es lo único
+  // que trae las prácticas a esta cola.)
   const coincidencias = await coincidenciasDeLaBandeja(
     supabase,
     (leads ?? []).filter((l) => !l.es_prueba),
@@ -136,6 +164,14 @@ export default async function CentralPage() {
                 {repetidos} ya derivado{repetidos === 1 ? "" : "s"}
               </span>
             )}
+            {/* Con el código de gerencia levantado la cola trae también el
+                banco de pruebas: se dice, para que nadie confunda un ensayo
+                con trabajo del día. */}
+            {modoEnsayo && (
+              <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                Modo ensayo · se ven las prácticas
+              </span>
+            )}
           </span>
         ) : undefined
       }
@@ -156,7 +192,17 @@ export default async function CentralPage() {
                     <Icono className="size-4" />
                   </span>
                   <div className="min-w-[180px] flex-1">
-                    <p className="text-sm font-semibold text-foreground">{lead.nombre_contacto ?? "—"}</p>
+                    <p className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-foreground">
+                      {lead.nombre_contacto ?? "—"}
+                      {/* El banco de pruebas se ve, pero se ve que es de
+                          prueba: no cuenta en ningún reporte y está para
+                          ensayar el circuito. Mismo cartel que en derivados. */}
+                      {lead.es_prueba && (
+                        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                          Práctica
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {lead.razon_social ?? "Sin razón social"} · {ETIQUETA_CANAL[lead.canal] ?? lead.canal}
                     </p>
