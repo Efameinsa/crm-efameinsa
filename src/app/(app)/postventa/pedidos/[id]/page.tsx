@@ -181,8 +181,21 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
               {ETIQUETA_ESTADO_PAGO[pago]}
             </span>
           )}
-          <span className="text-xs text-muted-foreground">
-            {avance.hechos} de {avance.total} pasos
+          {/* El avance como barra, no como cifra seca («está todo muy plano»,
+              Santos 01-09): el mismo lenguaje visual del tablero de control. */}
+          <span className="flex items-center gap-2">
+            <span className="h-2 w-28 overflow-hidden rounded-full bg-secondary">
+              <span
+                className={cn(
+                  "block h-full",
+                  avance.hechos === avance.total ? "bg-[#1E7F4F]" : "bg-primary",
+                )}
+                style={{ width: `${Math.round((avance.hechos / avance.total) * 100)}%` }}
+              />
+            </span>
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {avance.hechos} de {avance.total} pasos
+            </span>
           </span>
         </div>
 
