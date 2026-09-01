@@ -67,6 +67,15 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
   /** Sin leer en toda la base, no solo entre las 15 que se muestran. */
   const [sinLeerTotal, setSinLeerTotal] = useState(0);
   const contenedorRef = useRef<HTMLDivElement>(null);
+  /**
+   * Los avisos que esta ventana YA conoce, para que el repaso periódico pueda
+   * distinguir lo nuevo. Existe por el hallazgo de Santos del 31-08 (ronda de
+   * instalación): el canal en tiempo real se le cayó y el repaso actualizaba
+   * el numerito EN SILENCIO — la campanita se ponía roja y el lead entraba
+   * mudo. El repaso ahora también hace sonar lo que descubre; este set evita
+   * que suene dos veces lo que el canal vivo ya anunció.
+   */
+  const conocidasRef = useRef<Set<string> | null>(null);
 
   const noLeidas = Math.max(notificaciones.filter((n) => !n.leida_at).length, sinLeerTotal);
 
@@ -149,6 +158,22 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
       const leidas = (recientes.data ?? []).filter((n) => !vistos.has(n.id));
       if (recientes.data || pendientes.data) setNotificaciones([...sinLeer, ...leidas]);
       setSinLeerTotal(pendientes.count ?? sinLeer.length);
+
+      // EL REPASO TAMBIÉN AVISA (31-08). Si el canal en tiempo real está
+      // caído, lo nuevo que este repaso descubre suena y muestra su
+      // ventanita igual — un lead jamás entra mudo. En la primera carga solo
+      // se memoriza lo que ya había (anunciar lo viejo cada vez que se abre
+      // la pantalla sería la campana que miente); de ahí en adelante, todo
+      // sin-leer desconocido es nuevo de verdad. Tope de 3 por repaso para
+      // que una cola larga no se vuelva un concierto.
+      const todas = [...sinLeer, ...leidas];
+      if (conocidasRef.current === null) {
+        conocidasRef.current = new Set(todas.map((n) => n.id));
+      } else {
+        const nuevas = sinLeer.filter((n) => !conocidasRef.current!.has(n.id));
+        for (const n of todas) conocidasRef.current.add(n.id);
+        for (const n of nuevas.slice(0, 3)) avisar(n);
+      }
     }
 
     refrescar();
@@ -168,6 +193,9 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
           const nueva = payload.new as Notificacion;
           setNotificaciones((prev) => [nueva, ...prev].slice(0, 15));
           setSinLeerTotal((n) => n + 1);
+          // El canal vivo la anuncia y la anota como conocida: el próximo
+          // repaso no la vuelve a sonar.
+          conocidasRef.current?.add(nueva.id);
           avisar(nueva);
         },
       )
