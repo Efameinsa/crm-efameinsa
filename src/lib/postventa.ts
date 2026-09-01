@@ -44,6 +44,13 @@ export interface ServicioPostventa {
   modalidad: string | null;
   monto_pagado: number | null;
   pago_confirmado_at: string | null;
+  /** Quién de Finanzas confirmó y por qué medio (0150). */
+  pago_confirmado_detalle?: string | null;
+  /** La apertura de despacho: el documento con el que almacén despacha (0150). */
+  apertura_despacho_at?: string | null;
+  apertura_despacho_por?: string | null;
+  recibe_doc?: string | null;
+  recibe_telefono?: string | null;
   despacho_sin_cancelar_motivo: string | null;
   prueba_solicitada_at: string | null;
   prueba_lista_at: string | null;
@@ -224,7 +231,35 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   const pagado = estado === "completo";
   const pagoDesconocido = estado === "sin_registrar";
 
+  // EL ORDEN LO DICTÓ CARLOS (01-09, mirando el control en vivo): «mi
+  // indicador inicial es pago» → confirmación de Finanzas → aprobación →
+  // probado y embalado CON FECHA Y HORA → plano en paralelo. Probar y embalar
+  // NO espera al pago («tengo 5 pedidos, tengo que adelantarme»); lo que
+  // espera es el despacho, que solo sale con la APERTURA.
+  const pagoConfirmado = s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
+  const despachoAutorizadoConSaldo = s.despacho_sin_cancelar_motivo != null;
+
   const preparacion: PasoPedido[] = [
+    {
+      clave: "pago",
+      etiqueta: pagoConfirmado
+        ? pagado
+          ? "Finanzas confirmó el pago"
+          : "Finanzas confirmó un pago parcial"
+        : pagoDesconocido
+          ? "Pago sin registrar en el sistema"
+          : pagado
+            ? "Cobrado del todo, falta la confirmación de Finanzas"
+            : `Confirmación de Finanzas${s.monto ? ` · faltan ${s.moneda} ${saldo.toLocaleString("es-PE")}` : ""}`,
+      responsable: "finanzas",
+      hecho: pagoConfirmado,
+      cuando: s.pago_confirmado_at,
+      detalle: pagoConfirmado
+        ? (s.pago_confirmado_detalle ?? undefined)
+        : pagoDesconocido
+          ? "Viene del Excel: el monto pagado nunca se cargó"
+          : "Finanzas confirma que el dinero está acreditado, no el voucher. Postventa no cobra.",
+    },
     {
       clave: "aprobado",
       etiqueta: "Pedido aprobado por postventa",
@@ -241,7 +276,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       responsable: "almacen",
       hecho: s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje),
       cuando: s.prueba_lista_at,
-      detalle: s.protocolo_prueba_ref ? `Protocolo ${s.protocolo_prueba_ref}` : undefined,
+      detalle: s.protocolo_prueba_ref ? `Protocolo ${s.protocolo_prueba_ref}` : "Con fecha y hora: es lo que prueba que salió bien",
       trabado:
         s.prueba_lista_at == null && s.prueba_solicitada_at != null
           ? "Solicitado al almacén, sin respuesta todavía"
@@ -253,31 +288,34 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       responsable: "postventa",
       hecho: s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion),
       cuando: s.plano_enviado_at,
-      detalle: "Cuanto antes salga, antes prepara el cliente agua, desagüe y energía",
+      detalle: "Va en paralelo: cuanto antes salga, antes prepara el cliente agua, desagüe y energía",
     },
   ];
 
+  // LA APERTURA DE DESPACHO: el documento con el que almacén despacha sin
+  // preguntar. Solo se emite con las cuatro condiciones cumplidas; el
+  // servidor las vuelve a verificar al emitir.
+  const pruebaLista = s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje);
+  const planoEnviado = s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion);
+  const faltaParaApertura = [
+    !(pagoConfirmado || pagoDesconocido || despachoAutorizadoConSaldo) ? "la confirmación de Finanzas" : null,
+    s.direccion_verificada_at == null ? "la dirección verificada" : null,
+    !pruebaLista ? "el equipo probado y embalado" : null,
+    !planoEnviado ? "el plano de preinstalación" : null,
+    provincia && s.preinstalacion_ok_at == null ? "la preinstalación confirmada por el cliente" : null,
+  ].filter((x): x is string => x != null);
+  const aperturaEmitida = s.apertura_despacho_at != null;
+
   const despacho: PasoPedido[] = [
     {
-      clave: "pago",
-      etiqueta: pagado
-        ? "Pago confirmado"
-        : pagoDesconocido
-          ? "Pago sin registrar en el sistema"
-          : `Falta el saldo${s.monto ? ` de ${s.moneda} ${saldo.toLocaleString("es-PE")}` : ""}`,
-      responsable: "finanzas",
-      hecho: pagado,
-      cuando: s.pago_confirmado_at,
-      detalle: pagoDesconocido ? "Viene del Excel: el monto pagado nunca se cargó" : undefined,
-      trabado: pagado || pagoDesconocido ? undefined : "Lo confirma Finanzas. Postventa no cobra.",
-    },
-    {
       clave: "direccion",
-      etiqueta: "Dirección verificada con el cliente",
+      etiqueta: "Dirección y quién recibe, verificados con el cliente",
       responsable: "postventa",
       hecho: s.direccion_verificada_at != null,
       cuando: s.direccion_verificada_at,
-      detalle: s.direccion_verificada_con ? `Confirmó ${s.direccion_verificada_con}` : undefined,
+      detalle: s.direccion_verificada_con
+        ? `Confirmó ${s.direccion_verificada_con}`
+        : "Se llama antes: 9 de cada 10 veces cambia la dirección, el teléfono o quien recibe",
     },
     // Solo en provincia: en Lima la verificación la hace el técnico al llegar.
     ...(provincia
@@ -293,6 +331,22 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
         ]
       : []),
     {
+      clave: "apertura",
+      etiqueta: aperturaEmitida ? "Apertura de despacho emitida" : "Apertura de despacho",
+      responsable: "postventa",
+      hecho: aperturaEmitida,
+      cuando: s.apertura_despacho_at ?? null,
+      detalle: aperturaEmitida
+        ? "Con este documento almacén despacha sin preguntar a nadie"
+        : faltaParaApertura.length === 0
+          ? "Todo cumplido: se puede emitir"
+          : undefined,
+      trabado:
+        !aperturaEmitida && faltaParaApertura.length > 0
+          ? `Para emitirla falta: ${faltaParaApertura.join(", ")}`
+          : undefined,
+    },
+    {
       clave: "despacho",
       etiqueta: s.despachado_at ? "Despachado" : "Despacho programado",
       responsable: "postventa",
@@ -300,9 +354,11 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       cuando: s.despachado_at ?? (s.fecha_despacho ? `${s.fecha_despacho}T12:00:00` : null),
       detalle: [s.transportista, s.guia ? `Guía ${s.guia}` : null].filter(Boolean).join(" · ") || undefined,
       trabado:
-        !pagado && !pagoDesconocido && s.despachado_at == null && s.despacho_sin_cancelar_motivo == null
-          ? "No se despacha con saldo pendiente sin autorización"
-          : undefined,
+        s.despachado_at == null && !aperturaEmitida && s.informe_cierre_id != null
+          ? "Sin apertura de despacho no sale nada del almacén"
+          : !pagado && !pagoDesconocido && s.despachado_at == null && !despachoAutorizadoConSaldo
+            ? "No se despacha con saldo pendiente sin autorización"
+            : undefined,
     },
   ];
 

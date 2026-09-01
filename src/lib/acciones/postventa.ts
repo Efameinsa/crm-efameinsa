@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar } from "@/lib/notificaciones";
+import { bloquesPedido, type ServicioPostventa } from "@/lib/postventa";
 
 /**
  * Las acciones del circuito de postventa (migración 0087).
@@ -171,13 +172,94 @@ export async function confirmarPagoCompleto(servicioId: string) {
 }
 
 /**
- * La dirección, confirmada por teléfono con el cliente.
+ * Finanzas confirmó el pago — y quedó escrito QUIÉN y POR DÓNDE.
+ *
+ * Carlos, 01-09: «le envío un mensaje a Finanzas, por correo: confírmame el
+ * pago, porque yo no tengo acceso». Finanzas no tiene usuario en el CRM
+ * todavía, así que la confirmación la registra postventa con lo que Finanzas
+ * le contestó. Por eso el nombre y el medio son obligatorios: un check sin
+ * eso no defiende a nadie cuando el voucher era falso («tipo falso Yape, pero
+ * con vouchers»). Con precios a la vista se puede decir cuánto entró; sin
+ * ellos, solo si está cobrado del todo o parcial.
+ */
+export async function confirmarPagoFinanzas(
+  servicioId: string,
+  datos: { quien: string; medio: string; montoPagado?: number | null; completo?: boolean; nota?: string },
+) {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  if (!datos.quien.trim()) return falla("Escriba quién de Finanzas confirmó el pago");
+  if (!datos.medio.trim()) return falla("Diga por dónde lo confirmó: correo, WhatsApp o llamada");
+
+  const { data: fila } = await supabase.from("servicios_postventa").select("monto").eq("id", servicioId).single();
+  if (!fila) return falla("No se encontró el pedido");
+
+  const detalle = [`${datos.quien.trim()} (Finanzas), por ${datos.medio.trim()}`, datos.nota?.trim() || null]
+    .filter(Boolean)
+    .join(" · ");
+  const cambios: Record<string, unknown> = {
+    pago_confirmado_at: new Date().toISOString(),
+    pago_confirmado_por: perfil.id,
+    pago_confirmado_detalle: detalle,
+    confirmacion_abono: "SI",
+  };
+  if (datos.montoPagado != null && Number.isFinite(datos.montoPagado)) cambios.monto_pagado = datos.montoPagado;
+  else if (datos.completo && fila.monto != null) cambios.monto_pagado = fila.monto;
+
+  const { error } = await supabase.from("servicios_postventa").update(cambios).eq("id", servicioId);
+  if (error) return falla(error.message);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath("/postventa/control");
+  return ok();
+}
+
+/**
+ * La APERTURA DE DESPACHO: el acto con el que almacén despacha sin preguntar.
+ *
+ * «Para que se despache el equipo generamos un formato que le llamamos
+ * apertura (…) la condicional es: Finanzas aprobó, check; corroboraste tu
+ * dirección, check; pedido embalado, check; plano, check. Despacho.» Las
+ * condiciones se vuelven a verificar ACÁ, no solo en la pantalla: el
+ * documento impreso dice que todo estaba cumplido, y eso tiene que ser
+ * verdad. Emitirla dos veces no la duplica: vuelve a abrir la misma.
+ */
+export async function emitirAperturaDespacho(servicioId: string) {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { data } = await supabase.from("servicios_postventa").select("*").eq("id", servicioId).single();
+  if (!data) return falla("No se encontró el pedido");
+  const s = data as unknown as ServicioPostventa;
+  if (s.apertura_despacho_at) return ok();
+
+  const trabado = bloquesPedido(s)
+    .flatMap((b) => b.pasos)
+    .find((p) => p.clave === "apertura")?.trabado;
+  if (trabado) return falla(trabado);
+
+  const { error } = await supabase
+    .from("servicios_postventa")
+    .update({ apertura_despacho_at: new Date().toISOString(), apertura_despacho_por: perfil.id })
+    .eq("id", servicioId);
+  if (error) return falla(error.message);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath("/postventa/control");
+  return ok();
+}
+
+/**
+ * La dirección, confirmada por teléfono con el cliente — y quién recibe.
  *
  * Se guarda con quién la confirmó porque el error de dirección es el clásico
  * del área —«no, yo no le he dado eso a la señorita»— y cuando vuelve a pasar,
- * lo primero que hay que poder decir es con quién se habló.
+ * lo primero que hay que poder decir es con quién se habló. Carlos (01-09):
+ * en esa llamada «casi el 90 % de veces» cambia la dirección, el teléfono o
+ * la persona que recibe; por eso quien recibe se toma acá y no recién al
+ * despachar.
  */
-export async function verificarDireccion(servicioId: string, datos: { direccion: string; confirmoNombre: string }) {
+export async function verificarDireccion(
+  servicioId: string,
+  datos: { direccion: string; confirmoNombre: string; recibeNombre?: string; recibeDoc?: string; recibeTelefono?: string },
+) {
   const supabase = await createClient();
   if (!datos.direccion.trim()) return falla("Escriba la dirección tal como la confirmó el cliente");
 
@@ -187,6 +269,9 @@ export async function verificarDireccion(servicioId: string, datos: { direccion:
       direccion_entrega: datos.direccion.trim(),
       direccion_verificada_at: new Date().toISOString(),
       direccion_verificada_con: datos.confirmoNombre.trim() || null,
+      ...(datos.recibeNombre?.trim() ? { recibe_nombre: datos.recibeNombre.trim() } : {}),
+      ...(datos.recibeDoc?.trim() ? { recibe_doc: datos.recibeDoc.trim() } : {}),
+      ...(datos.recibeTelefono?.trim() ? { recibe_telefono: datos.recibeTelefono.trim() } : {}),
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);

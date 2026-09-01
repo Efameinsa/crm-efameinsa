@@ -178,8 +178,9 @@ describe("sinPrecios", () => {
     const tapado = sinPrecios(crudo);
     expect(pasoDePago(crudo).hecho).toBe(false);
     expect(pasoDePago(tapado).hecho).toBe(false);
-    expect(pasoDePago(tapado).etiqueta).toBe("Falta el saldo");
-    // Sin cifra: la etiqueta no puede nombrar el saldo.
+    // Desde la 0150 el paso es la confirmación de Finanzas; sin cifra, la
+    // etiqueta no puede nombrar el saldo.
+    expect(pasoDePago(tapado).etiqueta).toBe("Confirmación de Finanzas");
     expect(pasoDePago(tapado).etiqueta).not.toContain("9450");
   });
 
@@ -207,5 +208,76 @@ describe("puedeVerPrecios", () => {
     // Un comercial que además vende mantenimiento (0093) SÍ las ve: cotiza.
     expect(puedeVerPrecios({ rol: "comercial", es_postventa: false })).toBe(true);
     expect(puedeVerPrecios({ rol: "central", es_postventa: false })).toBe(true);
+  });
+});
+
+// El circuito del pedido en el orden que dictó el ing. Carlos el 01-09 (0150):
+// pago → aprobación → probado y embalado → plano; y el despacho solo con la
+// APERTURA, que solo se emite con las cuatro condiciones cumplidas.
+describe("bloquesPedido: el orden de Carlos y la apertura de despacho", () => {
+  const claves = (s: ServicioPostventa) => bloquesPedido(s).flatMap((b) => b.pasos.map((p) => p.clave));
+  const paso = (s: ServicioPostventa, clave: string) =>
+    bloquesPedido(s)
+      .flatMap((b) => b.pasos)
+      .find((p) => p.clave === clave)!;
+
+  it("arranca por la confirmación de Finanzas y sigue por la aprobación", () => {
+    expect(claves(pedido({})).slice(0, 4)).toEqual(["pago", "aprobado", "prueba", "plano"]);
+  });
+
+  it("probar y embalar NO espera al pago: el paso de pago no traba nada", () => {
+    const s = pedido({ monto: 10000, monto_pagado: 5000 });
+    expect(paso(s, "pago").hecho).toBe(false);
+    expect(paso(s, "pago").trabado).toBeUndefined();
+    expect(paso(s, "prueba").trabado).toBeUndefined();
+  });
+
+  it("la apertura dice qué falta, y se puede emitir solo con todo cumplido", () => {
+    const incompleto = pedido({ monto: 10000, monto_pagado: 10000 });
+    expect(paso(incompleto, "apertura").hecho).toBe(false);
+    expect(paso(incompleto, "apertura").trabado).toContain("la dirección verificada");
+    expect(paso(incompleto, "apertura").trabado).toContain("probado y embalado");
+    expect(paso(incompleto, "apertura").trabado).toContain("plano");
+
+    const listo = pedido({
+      monto: 10000,
+      monto_pagado: 10000,
+      pago_confirmado_at: "2026-09-01T15:00:00Z",
+      direccion_verificada_at: "2026-09-01T15:10:00Z",
+      prueba_lista_at: "2026-09-01T15:20:00Z",
+      plano_enviado_at: "2026-09-01T15:30:00Z",
+    });
+    expect(paso(listo, "apertura").trabado).toBeUndefined();
+    expect(paso(listo, "apertura").hecho).toBe(false);
+    expect(paso({ ...listo, apertura_despacho_at: "2026-09-01T16:00:00Z" }, "apertura").hecho).toBe(true);
+  });
+
+  it("sin apertura no sale nada del almacén; con apertura, el despacho queda libre", () => {
+    const s = pedido({
+      monto: 10000,
+      monto_pagado: 10000,
+      pago_confirmado_at: "2026-09-01T15:00:00Z",
+      direccion_verificada_at: "2026-09-01T15:10:00Z",
+      prueba_lista_at: "2026-09-01T15:20:00Z",
+      plano_enviado_at: "2026-09-01T15:30:00Z",
+    });
+    expect(paso(s, "despacho").trabado).toContain("Sin apertura");
+    expect(paso({ ...s, apertura_despacho_at: "2026-09-01T16:00:00Z" }, "despacho").trabado).toBeUndefined();
+  });
+
+  it("en provincia la apertura también exige la preinstalación confirmada", () => {
+    const s = pedido({
+      modalidad: "provincia",
+      pago_confirmado_at: "2026-09-01T15:00:00Z",
+      direccion_verificada_at: "2026-09-01T15:10:00Z",
+      prueba_lista_at: "2026-09-01T15:20:00Z",
+      plano_enviado_at: "2026-09-01T15:30:00Z",
+    });
+    expect(paso(s, "apertura").trabado).toContain("preinstalación");
+  });
+
+  it("los pedidos viejos del Excel, sin cierre, no quedan trabados por la apertura", () => {
+    const excel = pedido({ informe_cierre_id: null, origen: "excel", aprobado_at: null, prueba_embalaje: "SI", planos_preinstalacion: "SI" });
+    expect(paso(excel, "despacho").trabado).toBeUndefined();
   });
 });

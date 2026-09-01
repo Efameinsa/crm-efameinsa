@@ -15,8 +15,8 @@ import {
 import {
   aprobarPedido,
   marcarPaso,
-  confirmarPago,
-  confirmarPagoCompleto,
+  confirmarPagoFinanzas,
+  emitirAperturaDespacho,
   verificarDireccion,
   programarDespacho,
   registrarDespacho,
@@ -51,7 +51,7 @@ import { cn } from "@/lib/utils";
 
 type Formulario =
   | null
-  | { tipo: "pago" }
+  | { tipo: "finanzas" }
   | { tipo: "prueba" }
   | { tipo: "direccion" }
   | { tipo: "preinstalacion" }
@@ -100,31 +100,41 @@ export function PedidoPostventa({
     });
   }
 
-  // Todavía sin aprobar: la pantalla no muestra los diez pasos, muestra un
-  // botón. Aprobar es el acuse que Central espera y lo que arranca el reloj.
-  if (!servicio.aprobado_at && servicio.informe_cierre_id) {
-    return (
-      <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
-        <p className="text-sm font-semibold text-foreground">Este pedido todavía no fue aprobado</p>
-        <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-          Al aprobarlo, Central ve que ya está en ejecución y usted empieza a trabajarlo con todo lo que adjuntó el
-          comercial. Desde acá se cuenta el tiempo del área.
-        </p>
-        <Button
-          className="mt-3"
-          disabled={pendiente}
-          onClick={() => correr(() => aprobarPedido(servicio.id), "Pedido aprobado. Central ya lo ve en ejecución.")}
-        >
-          {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-          Aprobar el pedido
-        </Button>
-      </div>
-    );
-  }
+  // Todavía sin aprobar: el acuse que Central espera va arriba, como aviso,
+  // pero el riel se muestra igual — Carlos (01-09) puso la confirmación de
+  // Finanzas ANTES de la aprobación («mi indicador inicial es pago»), y ese
+  // paso tiene que poder marcarse sin aprobar todavía.
+  const sinAprobar = !servicio.aprobado_at && !!servicio.informe_cierre_id;
+  const avisoAprobar = sinAprobar ? (
+    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+      <p className="text-sm font-semibold text-foreground">Este pedido todavía no fue aprobado</p>
+      <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+        Primero mire la forma de pago y registre lo que Finanzas confirmó; al aprobar, Central ve que ya está en
+        ejecución y desde ahí se cuenta el tiempo del área.
+      </p>
+      <Button
+        size="sm"
+        className="mt-2"
+        disabled={pendiente}
+        onClick={() => correr(() => aprobarPedido(servicio.id), "Pedido aprobado. Central ya lo ve en ejecución.")}
+      >
+        {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+        Aprobar el pedido
+      </Button>
+    </div>
+  ) : null;
 
   function accionDePaso(paso: PasoPedido): React.ReactNode {
     if (paso.hecho) return null;
     switch (paso.clave) {
+      case "aprobado":
+        return (
+          <BotonPaso
+            onClick={() => correr(() => aprobarPedido(servicio.id), "Pedido aprobado. Central ya lo ve en ejecución.")}
+          >
+            Aprobar
+          </BotonPaso>
+        );
       case "prueba":
         return servicio.prueba_solicitada_at ? (
           <BotonPaso onClick={() => setForm({ tipo: "prueba" })}>Marcar listo</BotonPaso>
@@ -151,18 +161,44 @@ export function PedidoPostventa({
           </BotonPaso>
         );
       case "pago":
-        return <BotonPaso onClick={() => setForm({ tipo: "pago" })}>Confirmar pago</BotonPaso>;
+        return <BotonPaso onClick={() => setForm({ tipo: "finanzas" })}>Registrar confirmación</BotonPaso>;
       case "direccion":
         return <BotonPaso onClick={() => setForm({ tipo: "direccion" })}>Verificar ahora</BotonPaso>;
       case "preinstalacion":
         return <BotonPaso onClick={() => setForm({ tipo: "preinstalacion" })}>Registrar</BotonPaso>;
+      case "apertura":
+        // La emite el servidor solo si las cuatro condiciones están; si
+        // faltan, el paso ya lo dice y el botón no aparece.
+        return paso.trabado ? null : (
+          <BotonPaso
+            onClick={() =>
+              startTransition(async () => {
+                const r = await emitirAperturaDespacho(servicio.id);
+                if (r.error) {
+                  toast.error(r.error, { duration: 8000 });
+                  return;
+                }
+                toast.success("Apertura de despacho emitida");
+                window.open(`/postventa/pedidos/${servicio.id}/apertura`, "_blank", "noopener");
+                router.refresh();
+              })
+            }
+          >
+            Emitir apertura
+          </BotonPaso>
+        );
       case "despacho":
         return (
           <span className="flex gap-1.5">
             {!servicio.fecha_despacho && (
               <BotonPaso onClick={() => setForm({ tipo: "programar" })}>Programar</BotonPaso>
             )}
-            <BotonPaso onClick={() => setForm({ tipo: "despacho" })}>Registrar salida</BotonPaso>
+            {/* «Sin apertura no sale nada del almacén»: la salida se registra
+                recién con la apertura emitida (los pedidos viejos del Excel,
+                sin cierre, no la tienen y siguen como antes). */}
+            {(servicio.apertura_despacho_at || !servicio.informe_cierre_id) && (
+              <BotonPaso onClick={() => setForm({ tipo: "despacho" })}>Registrar salida</BotonPaso>
+            )}
           </span>
         );
       case "puesta":
@@ -182,6 +218,7 @@ export function PedidoPostventa({
 
   return (
     <div className="space-y-3">
+      {avisoAprobar}
       <div className="rounded-xl border border-border bg-card px-4 pb-3 pt-1 shadow-sm">
         {bloques.map((bloque, bi) => (
           <div key={bloque.numero}>
@@ -301,54 +338,83 @@ export function PedidoPostventa({
           cuánto lleva pagado. Sin precios —postventa— la única confirmación
           posible es «ya está cobrado del todo»: pedirle una cifra a quien no
           puede ver el total sería pedirle que adivine. */}
+      {/* La confirmación de Finanzas, con quién y por dónde: Finanzas no tiene
+          usuario todavía, así que postventa registra lo que Finanzas le
+          contestó. Con precios a la vista se escribe cuánto entró; sin ellos,
+          solo si quedó cobrado del todo o parcial. */}
       <Cuadro
-        abierto={form?.tipo === "pago" && verPrecios}
+        abierto={form?.tipo === "finanzas"}
         cerrar={() => setForm(null)}
-        titulo="Confirmar el pago"
-        descripcion={`Total del pedido: ${servicio.moneda} ${Number(servicio.monto ?? 0).toLocaleString("es-PE")}. Escriba cuánto lleva pagado el cliente en total, no el último abono.`}
-        boton="Confirmar"
+        titulo="Finanzas confirmó el pago"
+        descripcion={
+          verPrecios
+            ? `Total del pedido: ${servicio.moneda} ${Number(servicio.monto ?? 0).toLocaleString("es-PE")}. Registre lo que Finanzas confirmó: quién, por dónde y cuánto lleva pagado en total. Finanzas confirma dinero acreditado, no vouchers.`
+            : "Registre lo que Finanzas le contestó: quién y por dónde. Escriba «completo» si el pedido quedó cobrado del todo, o «parcial» si todavía debe: el despacho con saldo necesita autorización y queda registrada."
+        }
+        boton="Registrar la confirmación"
         pendiente={pendiente}
         onEnviar={(datos) => {
-          const monto = Number(datos.monto);
-          if (!Number.isFinite(monto) || monto < 0) {
-            toast.error("Escriba un monto válido");
+          if (verPrecios) {
+            const monto = Number(datos.monto);
+            if (!Number.isFinite(monto) || monto < 0) {
+              toast.error("Escriba un monto válido");
+              return;
+            }
+            correr(
+              () =>
+                confirmarPagoFinanzas(servicio.id, {
+                  quien: datos.quien,
+                  medio: datos.medio,
+                  montoPagado: monto,
+                  nota: datos.nota,
+                }),
+              "Confirmación de Finanzas registrada",
+            );
             return;
           }
-          correr(() => confirmarPago(servicio.id, monto), "Pago confirmado");
+          const completo = /^(c|completo|total|todo)/i.test((datos.alcance ?? "").trim());
+          correr(
+            () =>
+              confirmarPagoFinanzas(servicio.id, { quien: datos.quien, medio: datos.medio, completo, nota: datos.nota }),
+            "Confirmación de Finanzas registrada",
+          );
         }}
         campos={[
-          {
-            nombre: "monto",
-            etiqueta: "Total pagado hasta ahora",
-            tipo: "number",
-            inicial: String(servicio.monto ?? 0),
-            requerido: true,
-          },
+          { nombre: "quien", etiqueta: "Quién de Finanzas confirmó", requerido: true },
+          { nombre: "medio", etiqueta: "Por dónde (correo, WhatsApp, llamada)", inicial: "correo", requerido: true },
+          ...(verPrecios
+            ? [
+                {
+                  nombre: "monto",
+                  etiqueta: "Total pagado hasta ahora (no el último abono)",
+                  tipo: "number",
+                  inicial: String(servicio.monto ?? 0),
+                  requerido: true,
+                },
+              ]
+            : [{ nombre: "alcance", etiqueta: "¿Completo o parcial?", inicial: "completo", requerido: true }]),
+          { nombre: "nota", etiqueta: "Nota (n.º de operación, fecha del abono…)", requerido: false },
         ]}
-      />
-
-      <Cuadro
-        abierto={form?.tipo === "pago" && !verPrecios}
-        cerrar={() => setForm(null)}
-        titulo="Confirmar el pago"
-        descripcion="Confirme solo cuando Finanzas dé el pedido por cobrado del todo. Si el cliente todavía debe, deje el paso pendiente: el despacho con saldo necesita autorización y queda registrada."
-        boton="El pedido está cobrado"
-        pendiente={pendiente}
-        onEnviar={() => correr(() => confirmarPagoCompleto(servicio.id), "Pago confirmado")}
-        campos={[]}
       />
 
       <Cuadro
         abierto={form?.tipo === "direccion"}
         cerrar={() => setForm(null)}
-        titulo="Dirección verificada con el cliente"
-        descripcion="Llame antes de programar: la dirección del cierre la escribió el comercial de oído y es donde más se pierde el flete. Lo que confirme acá queda para las próximas entregas."
-        boton="Guardar la dirección"
+        titulo="Dirección y quién recibe, verificados con el cliente"
+        descripcion="Llame antes de programar: 9 de cada 10 veces cambia la dirección, el teléfono o la persona que recibe (Carlos, 01-09). Lo que confirme acá es lo que va impreso en la apertura de despacho."
+        boton="Guardar lo verificado"
         pendiente={pendiente}
         onEnviar={(datos) =>
           correr(
-            () => verificarDireccion(servicio.id, { direccion: datos.direccion, confirmoNombre: datos.confirmo }),
-            "Dirección verificada",
+            () =>
+              verificarDireccion(servicio.id, {
+                direccion: datos.direccion,
+                confirmoNombre: datos.confirmo,
+                recibeNombre: datos.recibe,
+                recibeDoc: datos.doc,
+                recibeTelefono: datos.telefono,
+              }),
+            "Dirección y quién recibe, verificados",
           )
         }
         campos={[
@@ -359,7 +425,10 @@ export function PedidoPostventa({
             inicial: servicio.direccion_entrega ?? servicio.ubicacion ?? "",
             requerido: true,
           },
-          { nombre: "confirmo", etiqueta: "Quién la confirmó (nombre y teléfono)", requerido: false },
+          { nombre: "confirmo", etiqueta: "Con quién habló (nombre y cargo)", requerido: true },
+          { nombre: "recibe", etiqueta: "Quién recibe el equipo", inicial: servicio.recibe_nombre ?? "", requerido: true },
+          { nombre: "doc", etiqueta: "DNI de quien recibe", inicial: servicio.recibe_doc ?? "", requerido: false },
+          { nombre: "telefono", etiqueta: "Teléfono de quien recibe", inicial: servicio.recibe_telefono ?? "", requerido: true },
         ]}
       />
 

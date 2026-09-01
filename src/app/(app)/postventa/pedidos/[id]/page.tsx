@@ -65,7 +65,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   const { data: informe } = servicio.informe_cierre_id
     ? await supabase
         .from("informes_cierre")
-        .select("id, codigo, serie, cliente_nombre, cliente_doc, orden_compra, adjuntos, entrega_direccion, contacto_despacho")
+        .select("id, codigo, serie, cliente_nombre, cliente_doc, orden_compra, adjuntos, entrega_direccion, contacto_despacho, forma_pago, modalidad_pago")
         .eq("id", servicio.informe_cierre_id)
         .single()
     : { data: null };
@@ -133,6 +133,17 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                 <MessageCircle className="size-3.5" /> WhatsApp
               </a>
             )}
+            {/* La apertura de despacho: el documento con el que almacén
+                despacha sin preguntar (Carlos, 01-09). Solo cuando ya se
+                emitió; antes, se emite desde el paso del riel. */}
+            {servicio.apertura_despacho_at && (
+              <Link
+                href={`/postventa/pedidos/${servicio.id}/apertura`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
+              >
+                <FileText className="size-3.5" /> Apertura de despacho
+              </Link>
+            )}
             {informe?.id && (
               <a
                 href={`/api/informes/${informe.id}/pdf`}
@@ -147,6 +158,17 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
+          {/* «Mi indicador inicial, para mí como postventa, es pago (…) la
+              forma de pago que ya viene del cierre» (Carlos, 01-09): a la
+              vista, antes que cualquier otra cosa. Sin cifras. */}
+          {(informe?.modalidad_pago || servicio.forma_pago) && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-foreground">
+              <span className="font-semibold">Forma de pago:</span>
+              {Array.isArray(informe?.modalidad_pago) && informe.modalidad_pago.length > 0
+                ? (informe.modalidad_pago as string[]).join(" · ")
+                : servicio.forma_pago}
+            </span>
+          )}
           {verPrecios && total > 0 && (
             <>
               <span className="font-mono text-sm font-bold tabular-nums text-foreground">

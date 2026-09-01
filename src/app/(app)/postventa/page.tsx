@@ -220,7 +220,19 @@ export default async function PostventaPage() {
     ? await supabase.from("actividades").select("oportunidad_id").in("oportunidad_id", idsCasos)
     : { data: [] as { oportunidad_id: string }[] };
   const conGestion = new Set((gestionadas ?? []).map((g) => g.oportunidad_id as string));
-  const casosSinTocar = (casos ?? []).filter((c) => !conGestion.has(c.id as string));
+  // UNA DERIVACIÓN, UNA FILA. Central deriva un problema técnico y la base
+  // crea el caso (la pista comercial) Y la atención (la pista técnica, 0132).
+  // La bandeja listaba los dos: PERUVIAN e IRPE salían como «Garantía» y como
+  // «Problema técnico» a la vez — la duplicidad que Carlos y Lesly vieron el
+  // 01-09. Acá manda la atención, que es la que tiene el circuito; el caso se
+  // sigue viendo en Atenciones → Casos anteriores.
+  const { data: conAtencion } = idsCasos.length
+    ? await supabase.from("atenciones").select("oportunidad_id").in("oportunidad_id", idsCasos)
+    : { data: [] as { oportunidad_id: string }[] };
+  const tieneAtencion = new Set((conAtencion ?? []).map((a) => a.oportunidad_id as string));
+  const casosSinTocar = (casos ?? []).filter(
+    (c) => !conGestion.has(c.id as string) && !tieneAtencion.has(c.id as string),
+  );
 
   // ── La bandeja única: «Sin atender todavía» ───────────────────────────────
   const itemsPedidos: ItemBandeja[] = (nuevos as unknown as ServicioPostventa[] | null ?? []).map((s) => {

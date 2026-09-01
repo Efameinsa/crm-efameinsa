@@ -23,6 +23,9 @@ const EXCEPCIONES = new Map([
   // Busca UNA venta por su id para armar el compendio del cierre; si ese cierre
   // está anulado, el compendio tiene que poder contarlo igual.
   ["src/lib/compendio-cierre.ts", "busca por id, no cuenta"],
+  // Al registrar la venta desde el informe (0148) lee la nota de UNA venta
+  // por su id para mostrar el aviso; no cuenta ni suma.
+  ["src/lib/acciones/cotizaciones.ts", "busca por id, no cuenta"],
 ]);
 
 function archivos(dir: string): string[] {
