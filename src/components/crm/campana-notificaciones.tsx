@@ -9,7 +9,7 @@ import { marcarLeidasDelDestino, marcarNotificacionLeida, marcarTodasLeidas } fr
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fechaLima } from "@/lib/fechas";
-import { alertaSilenciada, prepararAlerta, silenciarAlerta, sonarAlerta, sonarCampanada } from "@/lib/sonido-alerta";
+import { alertaSilenciada, prepararAlerta, silenciarAlerta, sonarAlerta, sonarCampanada, sonarPrueba } from "@/lib/sonido-alerta";
 import type { RolUsuario } from "@/types/database";
 
 interface Notificacion {
@@ -297,6 +297,19 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
                   Marcar todas como leídas
                 </Button>
               )}
+              {/* «Probar sonido» (31-08, ronda de instalación): suena la
+                  campanada AHORA, desde el clic — ignora el silencio guardado
+                  y la coordinación entre pestañas, porque su único trabajo es
+                  demostrar si esta ventana puede sonar. Si ni este botón
+                  suena, el mudo es del sitio o del sistema, no del CRM. */}
+              <button
+                type="button"
+                onClick={() => sonarPrueba()}
+                className="rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                title="Suena la campanada de prueba ahora mismo"
+              >
+                Probar sonido
+              </button>
               {/* Silenciar el pitido sin perder el aviso en pantalla. La
                   decisión se recuerda en este navegador: quien trabaja al lado
                   de un cliente lo apaga una vez y listo. */}

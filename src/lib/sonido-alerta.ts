@@ -159,10 +159,12 @@ export function sonarAlerta(idAviso: string): void {
   });
 }
 
-/** Las dos notas del aviso, para poder repetirlas. */
-function motivo(ctx: AudioContext, desde: number): void {
-  nota(ctx, 880, desde, 0.11, 0.24);
-  nota(ctx, 1174.7, desde + 0.09, 0.13, 0.2);
+/** Las dos notas del aviso, para poder repetirlas. `fuerza` multiplica la
+ * amplitud (1.6 en la campanada desde el 31-08 — Santos: «duplica los
+ * decibeles… no escucho»; 0.384 sigue bajo la zona de saturación de 0.5). */
+function motivo(ctx: AudioContext, desde: number, fuerza = 1): void {
+  nota(ctx, 880, desde, 0.11, 0.24 * fuerza);
+  nota(ctx, 1174.7, desde + 0.09, 0.13, 0.2 * fuerza);
 }
 
 /**
@@ -178,9 +180,26 @@ export function sonarCampanada(idAviso: string): void {
   // listo — la pestaña muda no reclama lo que no puede tocar (31-08).
   conAudioListo((ctx) => {
     if (yaSonoEnOtraPestana(idAviso)) return;
-    motivo(ctx, 0);
-    motivo(ctx, 0.38);
-    motivo(ctx, 0.76);
+    motivo(ctx, 0, 1.6);
+    motivo(ctx, 0.38, 1.6);
+    motivo(ctx, 0.76, 1.6);
+  });
+}
+
+/**
+ * La campanada a pedido, para el botón «Probar sonido» del panel (31-08).
+ *
+ * NO respeta el silencio guardado ni la marca de otras pestañas, a propósito:
+ * su único trabajo es demostrar si esta ventana PUEDE sonar. Nace de un clic,
+ * así que el navegador no tiene motivo para bloquearla — si ni así suena, el
+ * mudo es del sitio (candado → Sonido) o del sistema, y ya se sabe dónde
+ * buscar.
+ */
+export function sonarPrueba(): void {
+  conAudioListo((ctx) => {
+    motivo(ctx, 0, 1.6);
+    motivo(ctx, 0.38, 1.6);
+    motivo(ctx, 0.76, 1.6);
   });
 }
 
