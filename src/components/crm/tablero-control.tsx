@@ -32,6 +32,13 @@ export interface PasoTarjeta {
   dueno: string;
 }
 
+export interface FaseTarjeta {
+  numero: 1 | 2 | 3;
+  titulo: string;
+  actual: boolean;
+  pasos: PasoTarjeta[];
+}
+
 export interface TarjetaControl {
   id: string;
   fase: 1 | 2 | 3;
@@ -43,8 +50,12 @@ export interface TarjetaControl {
   frena: { texto: string; dueno: string; grave: boolean } | null;
   fechaDespacho: string | null;
   puedeAprobar: boolean;
-  /** Los pasos de SU fase actual — lo único que la tarjeta detalla. */
-  pasosFase: PasoTarjeta[];
+  /**
+   * TODAS las fases con sus pasos: el contador dice 0/9 y la lista muestra
+   * los 9 (Santos, 01-09: «aparentemente son 0/9 pero en el despliegue no
+   * sale»). La fase actual va resaltada; las otras, agrupadas y atenuadas.
+   */
+  fasesDetalle: FaseTarjeta[];
   /** Lo pendiente ANTES de cada fase futura: el guion de la alertita. */
   faltantesHasta: Record<number, string[]>;
 }
@@ -189,30 +200,57 @@ function Tarjeta({
           </span>
           <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
         </summary>
-        <div className="mt-2 rounded-md border border-border bg-secondary/40 p-2.5">
-          <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-            Lo que falta en esta fase
-          </p>
-          <ul className="space-y-1">
-            {p.pasosFase.map((paso) => (
-              <li key={paso.etiqueta} className="flex items-start gap-1.5 text-[11px] leading-snug">
-                {paso.hecho ? (
-                  <Check className="mt-px size-3 flex-none text-[#1E7F4F]" />
-                ) : paso.trabado ? (
-                  <OctagonAlert className="mt-px size-3 flex-none text-amber-600" />
-                ) : (
-                  <CircleDashed className="mt-px size-3 flex-none text-muted-foreground/60" />
+        <div className="mt-2 space-y-1.5 rounded-md border border-border bg-secondary/40 p-2">
+          {/* TODOS los pasos del contador, agrupados por fase — estilo
+              checklist de Asana: verde vivo lo hecho, naranja notorio lo que
+              falta, y la FASE ACTUAL resaltada para saber dónde se trabaja. */}
+          {p.fasesDetalle.map((fase) => (
+            <div
+              key={fase.numero}
+              className={cn(
+                "rounded-md p-2",
+                fase.actual ? "border border-primary/30 bg-primary/5" : "opacity-80",
+              )}
+            >
+              <p
+                className={cn(
+                  "mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-wide",
+                  fase.actual ? "text-primary" : "text-muted-foreground",
                 )}
-                <span className={paso.hecho ? "text-muted-foreground" : "text-foreground"}>
-                  {paso.etiqueta}
-                  {!paso.hecho && <span className="text-muted-foreground"> · {paso.trabado ?? paso.dueno}</span>}
-                </span>
-              </li>
-            ))}
-          </ul>
+              >
+                <span>{fase.titulo}</span>
+                {fase.actual && (
+                  <span className="rounded-full bg-primary px-1.5 py-px text-[9px] text-primary-foreground">
+                    fase actual
+                  </span>
+                )}
+              </p>
+              <ul className="space-y-1">
+                {fase.pasos.map((paso) => (
+                  <li key={paso.etiqueta} className="flex items-start gap-1.5 text-[11px] leading-snug">
+                    {paso.hecho ? (
+                      <span className="mt-px flex size-3.5 flex-none items-center justify-center rounded-full bg-green-600">
+                        <Check className="size-2.5 text-white" />
+                      </span>
+                    ) : paso.trabado ? (
+                      <OctagonAlert className="mt-px size-3.5 flex-none text-orange-600" />
+                    ) : (
+                      <span className="mt-px size-3.5 flex-none rounded-full border-2 border-orange-500" />
+                    )}
+                    <span className={paso.hecho ? "text-muted-foreground line-through decoration-green-600/40" : "font-medium text-foreground"}>
+                      {paso.etiqueta}
+                      {!paso.hecho && (
+                        <span className="font-normal text-orange-700"> · {paso.trabado ?? paso.dueno}</span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
           {siguiente && (
-            <p className="mt-2 border-t border-border pt-1.5 text-[10px] text-muted-foreground">
-              Al completarlos, la tarjeta pasa sola a {siguiente.titulo}.
+            <p className="px-1 pt-0.5 text-[10px] text-muted-foreground">
+              Al completar la fase actual, la tarjeta pasa sola a {siguiente.titulo}.
             </p>
           )}
         </div>

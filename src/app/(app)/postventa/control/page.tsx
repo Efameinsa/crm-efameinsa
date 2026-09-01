@@ -81,11 +81,16 @@ export default async function ControlPedidosPage() {
       frena: frena ? { texto: frena.texto, dueno: etiquetaResponsable(frena.responsable), grave: frena.grave } : null,
       fechaDespacho: s.fecha_despacho ? fechaLima(s.fecha_despacho) : null,
       puedeAprobar: !s.aprobado_at && s.informe_cierre_id != null,
-      pasosFase: (bloques.find((b) => b.numero === fase)?.pasos ?? []).map((p) => ({
-        etiqueta: p.etiqueta,
-        hecho: p.hecho,
-        trabado: p.trabado ?? null,
-        dueno: etiquetaResponsable(p.responsable),
+      fasesDetalle: bloques.map((b) => ({
+        numero: b.numero,
+        titulo: `${"①②③"[b.numero - 1]} ${b.titulo}`,
+        actual: b.numero === fase,
+        pasos: b.pasos.map((p) => ({
+          etiqueta: p.etiqueta,
+          hecho: p.hecho,
+          trabado: p.trabado ?? null,
+          dueno: etiquetaResponsable(p.responsable),
+        })),
       })),
       faltantesHasta,
     };
