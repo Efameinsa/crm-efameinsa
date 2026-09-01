@@ -55,6 +55,34 @@ que verlo con él.
 **B2. «Stock S/D» y «sin stock» conviven en la cotización.** Averiguar la
 diferencia y unificar; él no supo qué significaba S/D y lo anotó como tarea.
 
+> **AVERIGUADO (31-08, tarde).** No son lo mismo ni sobra ninguno: son dos
+> estados distintos y el rótulo no los explica. Salen de `BadgeStock`
+> (`src/components/crm/buscador-equipos-modal.tsx:87`), el distintivo que el
+> comercial ve al lado de cada equipo mientras arma la cotización.
+>
+> | Lo que se lee | Qué significa | Hoy |
+> |---|---|---|
+> | **«stock s/d»** | **Sin dato.** El maestro de Lesly no escribió nada en la columna de stock de ese equipo. No se sabe si hay o no hay. | **29 equipos** |
+> | **«sin stock»** | El maestro **sí lo dice, y dice cero**. Se sabe que no hay. | **10 equipos** |
+> | **«N en stock (ref.)»** | La cifra que puso Lesly en el maestro. Es una **referencia**, no un conteo: envejece el día que se carga. | **84 equipos** |
+> | **«N en almacén»** / **«sin stock en almacén»** | El conteo REAL del almacén, máquina por máquina y con su número de serie (migración 0117). Esa sí sirve para prometer una entrega. | **0 equipos — el almacén todavía no está cargado** |
+>
+> O sea que la diferencia de fondo es **«no se sabe» contra «se sabe que no
+> hay»**, y hay una segunda diferencia encima: **de dónde sale el número**, del
+> Excel de Lesly o del conteo del almacén. Las cuatro etiquetas conviven a
+> propósito mientras el almacén se termina de cargar; hoy las tres primeras son
+> las únicas que aparecen, porque el conteo real está en cero equipos.
+>
+> **No existe ningún «N/D» en el sistema** — se buscó en el código, en la base y
+> en los cuatro Excels de Lesly. Lo que él vio fue el «s/d» en minúscula.
+>
+> **Qué queda por decidir (es de gerencia, no de código):** el rótulo «s/d» no
+> se entiende sin esta tabla. Se propone cambiarlo por **«stock sin informar»**
+> —dice lo que pasa y a quién le toca arreglarlo— y pedirle a operaciones que
+> complete la columna de esos 29 equipos, con lo que el estado desaparece solo.
+> Mientras el almacén se cargue, «(ref.)» va a ir quedando reemplazado por «en
+> almacén», que es el dato con el que sí se puede comprometer una entrega.
+
 **B3. El PDF de cierre se desmaquetó.** *«Se desmaquetó la letra de los
 cierres»*. Alinear.
 
