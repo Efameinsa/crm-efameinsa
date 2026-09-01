@@ -127,6 +127,41 @@ una derivación, en ámbar.
 **La llave de gerencia** (`0127`, ya aplicada). Ver la sección 7: es la trampa
 más cara del día.
 
+### Lo del 01-09 (el día de las observaciones de gerencia y el feedback en vivo)
+
+Todo desplegado y verificado; el detalle vive en `docs/27` (plan de la reunión
+con citas) y en los commits del día. En una pasada:
+
+- **Consolidación de expedientes gemelos** (0141, decidida por Carlos): el
+  cliente que entra dos veces se SUMA al expediente abierto del mismo
+  comercial; `leads.oportunidad_id` nuevo; gemelos vacíos fusionados; aviso a
+  Central al juntar; el comercial ve «El cliente volvió a escribir por…».
+- **La aprobación sobrevive a la edición** (0140): se pega al par
+  equipo+precio (caso Gavina/Ariana). La ventana por días quedó como
+  propuesta para Carlos.
+- **Cierre emitido sellado** (0142): agregar documentos pide el código de
+  operaciones/gerencia y queda firmado. Al EMITIR, checklist tipo por tipo de
+  lo que falta (cotización/OC/voucher) — el bloqueo duro es decisión de Carlos.
+- **Correlativos OPEN cuadrados**: la despensa del coordinador (plan 26) se
+  retiró — **el plan NO está aprobado**, las funciones duermen en la base y
+  nada las llama; Presu_569→528 renumerada. Los ensayos de correlativos van al
+  banco de pruebas, nunca a la serie real.
+- **Central**: vista de derivados sin banco de pruebas (salvo modo ensayo) y
+  7 derivaciones de prueba borradas (respaldo en scripts/data/).
+- **Postventa, la tanda grande de vistas** (feedback de Santos en vivo, 7
+  despliegues): registro de contactos directos → cola de Central (la 0060 ya
+  cubría a PV: es rol comercial); **Control de pedidos** en kanban de 3 fases
+  con checklist estilo Asana (todos los pasos, fase actual resaltada, arrastre
+  nativo que ENSEÑA qué falta en vez de mover, botón Aprobar en la tarjeta);
+  ficha del pedido como tracking de encomienda (riel + documentos y datos a la
+  derecha + barra de avance); Mi día con reloj humano («venció hace 4 días»),
+  atrasados como bloque tocable y «Lo que viene esta semana»; en la atención,
+  las **series del cliente con el clic que vincula y verifica garantía**
+  (`equipos-de-la-atencion`, OJO: existe también `equipos-del-cliente`, que es
+  OTRO componente — el parque en la ficha comercial), la ruta del contacto a
+  la derecha, y el **circuito con pestañas navegables** (acta de lo hecho,
+  anticipo de lo futuro, punto granate que late en la actual).
+
 **Cosas que se arreglaron y conviene no volver a romper** están en la sección 7.
 
 ---
@@ -226,7 +261,21 @@ De las reuniones del 28-08 y de la revisión del catálogo:
 10. **Siete equipos de la ruta de Ariana siguen sin código** para Lesly, y las
     tres preguntas de pipeline para Carlos siguen sin respuesta (vienen del
     plan 11).
-11. **Hay cuatro cuentas con rol `gerencia`** y las aprobaciones de precio se
+11. **Del 01-09 — hay que PEDIR** (sin esto no se construye la garantía por
+    serie ni cotizar repuestos): las **guías de remisión** (número, fecha de
+    salida, RUC, series; últimos ~30 meses — la garantía corre DESDE LA GUÍA,
+    dictó Carlos) y las **fichas y precios de repuestos/mantenimiento de
+    Lesly**. Decisiones pendientes de Carlos: si el plazo de garantía del
+    documento de venta manda sobre los 24 meses estándar, la ventana de
+    validez de una aprobación de precio, y el bloqueo duro de documentos al
+    emitir el cierre. Trabajo en cola (docs/27): derivar llamada a logística
+    con informe de vuelta, confirmación de Finanzas en el pedido, alerta a
+    almacén «probar equipo», consulta de stock desde el caso de repuesto,
+    ciclos al cerrar y la alerta del preventivo a los 3 meses. El banco de
+    pruebas tiene sembrado material de demo del 01-09 (2 máquinas PRB-*,
+    atenciones de prueba, 3 pedidos); la clave de `postventa2@` se rotó ese
+    día y la tiene Santos.
+12. **Hay cuatro cuentas con rol `gerencia`** y las aprobaciones de precio se
     están firmando con la genérica de la semilla: los tres visto bueno del
     29-08 (`Presu_514`, `516`, `517`) y los dos rechazos del 28-08 quedaron a
     nombre de **`gerencia@efameinsa-crm.local`**, no de kycabrejos ni de
