@@ -114,7 +114,7 @@ export default async function InformeServicioPage({ params }: { params: Promise<
           <div className="text-right text-xs text-muted-foreground">
             {data.correlativo != null && (
               <p className="font-mono text-sm font-bold text-foreground">
-                N.º {String(data.correlativo).padStart(3, "0")}-{data.anio}
+                N.º {data.es_prueba ? "PRUEBA " : ""}{String(data.correlativo).padStart(3, "0")}-{data.anio}
               </p>
             )}
             <p className="font-mono tabular-nums">{fechaHoraLima(data.ejecutado_at as string)}</p>

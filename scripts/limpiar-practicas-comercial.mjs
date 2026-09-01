@@ -59,6 +59,29 @@ await cuenta(
     where o.comercial_id = any($1)`,
   [ids],
 );
+await cuenta(
+  "informes de cierre de práctica suyos (los de PV0 no se tocan)",
+  "select count(*)::int n from informes_cierre where es_prueba and creado_por = any($1)",
+  [ids],
+);
+
+// Lo que dejó el 28-08 (migración 0145): una cotización o informe de práctica
+// con número de la SERIE REAL es un correlativo que se pierde al borrarlo. Desde
+// la 0145 no debería aparecer ninguno; si aparece, se dice con nombre y número.
+const { rows: conNumeroReal } = await bd.query(
+  `select c.codigo from cotizaciones c join oportunidades o on o.id = c.oportunidad_id
+    where o.comercial_id = any($1) and c.correlativo is not null and c.correlativo < 900000
+   union all
+   select i.codigo from informes_cierre i
+    where i.es_prueba and i.creado_por = any($1) and i.correlativo is not null and i.correlativo < 900
+   order by 1`,
+  [ids],
+);
+if (conNumeroReal.length) {
+  console.log(
+    `\n⚠ ${conNumeroReal.length} documento(s) de práctica con número de la serie REAL — ese correlativo queda como hueco al borrarlos:\n   ${conNumeroReal.map((r) => r.codigo).join(", ")}`,
+  );
+}
 
 if (!EJECUTAR) {
   console.log("\nEnsayo: no se borró nada. Con --ejecutar se ejecuta.");
@@ -96,6 +119,25 @@ try {
     await bd.query("delete from actividades where oportunidad_id = any($1)", [ops]);
     await bd.query("delete from oportunidades where id = any($1)", [ops]);
   }
+
+  // Los informes de cierre de práctica (marca `es_prueba`, la fija la base al
+  // crearlos): antes se quedaban huérfanos con número de la serie real — el
+  // 004-2026 del 28-08. Primero se sueltan las filas que los apuntan.
+  // Solo los de C0 y LOG2: los de PV0 son el banco de postventa y se quedan.
+  // Emitir un informe encadena un servicio de postventa, un equipo instalado
+  // y a veces un informe de servicio (el 28-08 quedaron los cuatro huérfanos):
+  // se van juntos, en orden de FK, y solo si están marcados de práctica.
+  const informesDePractica = "select id from informes_cierre where es_prueba and creado_por = any($1)";
+  await bd.query(
+    `delete from informes_servicio s where s.es_prueba and (
+        s.servicio_id in (select id from servicios_postventa where es_prueba and informe_cierre_id in (${informesDePractica}))
+     or s.equipo_id in (select id from equipos_instalados where es_prueba and informe_cierre_id in (${informesDePractica})))`,
+    [ids],
+  );
+  await bd.query(`delete from equipos_instalados where es_prueba and informe_cierre_id in (${informesDePractica})`, [ids]);
+  await bd.query(`delete from servicios_postventa where es_prueba and informe_cierre_id in (${informesDePractica})`, [ids]);
+  const { rowCount: informesBorrados } = await bd.query(`delete from informes_cierre where id in (${informesDePractica})`, [ids]);
+  console.log(`   informes de cierre de práctica borrados: ${informesBorrados}`);
 
   const { rowCount: leadsBorrados } = await bd.query("delete from leads where es_prueba");
   const { rowCount: cuentasBorradas } = await bd.query(

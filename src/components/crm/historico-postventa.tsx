@@ -17,6 +17,7 @@ interface InformeNuevo {
   id: string;
   correlativo: number | null;
   anio: number;
+  es_prueba?: boolean | null;
   tipo: string;
   modalidad: string;
   ejecutado_at: string;
@@ -46,7 +47,7 @@ export async function HistoricoPostventa() {
     supabase
       .from("informes_servicio")
       .select(
-        "id, correlativo, anio, tipo, modalidad, ejecutado_at, tecnico, detalle, observaciones, ciclos, cliente_texto, equipo_texto, fotos, cuentas(razon_social)",
+        "id, correlativo, anio, es_prueba, tipo, modalidad, ejecutado_at, tecnico, detalle, observaciones, ciclos, cliente_texto, equipo_texto, fotos, cuentas(razon_social)",
       )
       .order("ejecutado_at", { ascending: false })
       .limit(200),
@@ -103,7 +104,7 @@ export async function HistoricoPostventa() {
                 <div className="space-y-0.5 text-[11px] text-muted-foreground">
                   {i.correlativo != null && (
                     <p className="font-mono font-semibold text-foreground">
-                      N.º {String(i.correlativo).padStart(3, "0")}-{i.anio}
+                      N.º {i.es_prueba ? "PRUEBA " : ""}{String(i.correlativo).padStart(3, "0")}-{i.anio}
                     </p>
                   )}
                   <p className="font-mono tabular-nums">{fechaHoraLima(i.ejecutado_at)}</p>

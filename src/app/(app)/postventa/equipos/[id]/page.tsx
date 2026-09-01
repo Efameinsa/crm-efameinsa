@@ -41,7 +41,7 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
 
   const { data: informes } = await supabase
     .from("informes_servicio")
-    .select("id, correlativo, anio, tipo, modalidad, ejecutado_at, tecnico, detalle, ciclos")
+    .select("id, correlativo, anio, tipo, modalidad, ejecutado_at, tecnico, detalle, ciclos, es_prueba")
     .eq("equipo_id", id)
     .order("ejecutado_at", { ascending: false })
     .limit(50);
@@ -208,7 +208,7 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
                 <div className="text-right text-[11px] text-muted-foreground">
                   {i.correlativo != null && (
                     <span className="font-mono">
-                      N.º {String(i.correlativo).padStart(3, "0")}-{i.anio}
+                      N.º {i.es_prueba ? "PRUEBA " : ""}{String(i.correlativo).padStart(3, "0")}-{i.anio}
                     </span>
                   )}
                   {i.ciclos != null && <span className="block">{Number(i.ciclos).toLocaleString("es-PE")} ciclos</span>}

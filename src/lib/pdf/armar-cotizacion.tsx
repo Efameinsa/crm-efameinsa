@@ -294,10 +294,15 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
   // Un borrador todavía no tiene número —se le asigna al enviarlo, migración
   // 0064— y sale marcado como tal: si alguien imprime un borrador, tiene que
   // ser imposible confundirlo con el documento que se le mandó al cliente.
+  // Las cuentas de práctica numeran en su propia serie (migración 0145): el
+  // código ya dice PRUEBA_1-26 y eso es lo que se imprime, para que un PDF de
+  // ensayo no se pueda confundir nunca con uno que salió a un cliente.
   const numeroDocumento =
-    cotizacion.correlativo != null
-      ? `${cotizacion.correlativo}-${String(creada.getFullYear()).slice(-2)}`
-      : null;
+    cotizacion.codigo?.startsWith("PRUEBA")
+      ? cotizacion.codigo
+      : cotizacion.correlativo != null
+        ? `${cotizacion.correlativo}-${String(creada.getFullYear()).slice(-2)}`
+        : null;
   const fecha = creada.toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" });
 
   const buffer = await renderToBuffer(

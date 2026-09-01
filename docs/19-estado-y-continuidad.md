@@ -164,6 +164,39 @@ con citas) y en los commits del día. En una pasada:
 
 **Cosas que se arreglaron y conviene no volver a romper** están en la sección 7.
 
+### Lo del 01-09 (tarde): la serie de práctica (0145)
+
+Katherine (C5) mandó una captura: sus cotizaciones saltan de `Presu_2201-26`
+a `Presu_2210-26`. Investigado con Santos: **los números 2202 a 2208 los
+consumieron pruebas internas del 28-08** hechas con la cuenta «Comercial de
+pruebas» (C0) entre las 08:34 del 26-08 (envío del 2201) y las 15:45 del
+28-08 (envío del 2209 de Brenda); el ancla que quedó es el informe de cierre
+de práctica 004-2026 de las 13:22, que exige una cotización enviada. La
+limpieza de práctica de las 20:02 borró esas cotizaciones sin respaldo y el
+contador no retrocede (0077). Se repitió el 29-08 a las 10:52 y 11:16
+(`Presu_2210` y `2211` de práctica, borradas el 01-09 a las 09:54 — por eso
+Katherine recibió el 2210 ese día). Los informes de cierre y de servicio
+sufrían lo mismo (002 y 003 perdidos, 004 y 007 de práctica en la serie real).
+
+**Migración 0145, aplicada el 01-09 a las 15:10:** las cuentas de práctica
+(`es_prueba`) numeran en contadores propios y el código lo dice en la cara:
+cotización `PRUEBA_1-26` (correlativo 900001+), informe de cierre
+`PRUEBA-904-2026` (rango 900, el que ya usaba el banco de PV0), informe de
+servicio 911+ (en pantalla «PRUEBA 911-2026»). Los contadores reales no se
+mueven. Saneo: informe 004 huérfano y su cadena (servicio, equipo
+`PRB-TEST-…`, informe de servicio 007) retirados; contadores reales de
+informes puestos en el último emitido de verdad (EFAMEINSA 001 → el próximo
+es 002; servicio → 001). El hueco 2202-2208 queda: 2209 y 2210 son reales.
+Verificado de punta a punta con `scripts/probar-serie-de-practica.mjs`
+(sesiones reales de C0 y PV0; se limpia sola). La limpieza
+`limpiar-practicas-comercial.mjs` ahora también borra los informes de práctica
+de C0/LOG2 con su cadena y avisa si algo de práctica lleva número real.
+Lo de interfaz (el PDF imprime `PRUEBA_1-26`, las pantallas de servicio
+anteponen «PRUEBA») sale en el despliegue de las 18:00.
+
+**Para Katherine:** el número no es de cada comercial, es una sola serie por
+empresa. Ninguna de las suyas se subió mal.
+
 ---
 
 ## 5. Cómo se trabaja acá
@@ -340,6 +373,21 @@ Cada una costó un rato de depuración y ninguna da error a la vista:
   y la ficha de la oportunidad y el cotizador estuvieron caídos una hora el
   01-09. Antes de migrar una FK, grep de los embeds entre las dos tablas y
   nombrarlos: `leads!oportunidades_lead_id_fkey(...)`.
+- **Una cuenta de práctica que EMITE consume número real** (hasta la 0145).
+  Cotizaciones, informes de cierre e informes de servicio pedían número al
+  mismo contador fueran de quien fueran; la limpieza de práctica después
+  borraba el documento y el correlativo quedaba como hueco (2202-2208 del
+  28-08, informes 002-003). Desde la 0145 la rama de práctica se decide
+  ANTES de pedir número (`cotizacion_es_de_practica`, `es_prueba` de la
+  fila, `es_cuenta_prueba()`). Si se agrega otro documento numerado, hay que
+  darle su rama de práctica también. Y **un script que borre documentos de
+  práctica emitidos debe decir qué correlativos se lleva**.
+- **Las horas que imprime `node-pg` engañan.** Un `timestamptz::timestamp` o
+  un `at time zone 'America/Lima'` llega a Node como hora sin zona, Node lo
+  toma como hora local de la máquina y `console.table` lo muestra como ISO
+  con `Z`: sale corrido cinco horas (el 2209 «enviado a las 20:45» era de las
+  15:45). Para leer horas en un diagnóstico, siempre `to_char(x at time zone
+  'America/Lima', 'DD-MM HH24:MI')`, que viaja como texto.
 
 ---
 
