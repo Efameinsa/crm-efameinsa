@@ -39,15 +39,14 @@ export async function guardarSuscripcionPush(datos: {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sesión expirada" };
 
-  const { error } = await supabase.from("push_suscripciones").upsert(
-    {
-      user_id: user.id,
-      endpoint: datos.endpoint,
-      claves: datos.claves,
-      user_agent: null,
-    },
-    { onConflict: "endpoint" },
-  );
+  // Por RPC y no por upsert (0139): si el endpoint quedó registrado a nombre
+  // de OTRA cuenta —máquinas compartidas, el caso real de Post Venta el
+  // 31-08—, el upsert choca con la RLS. La función hace el traspaso: el
+  // endpoint es de quien inició sesión al último en ese navegador.
+  const { error } = await supabase.rpc("guardar_suscripcion_push", {
+    p_endpoint: datos.endpoint,
+    p_claves: datos.claves,
+  });
   if (error) return { error: error.message };
 
   revalidatePath("/", "layout");
