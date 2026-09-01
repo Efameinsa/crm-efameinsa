@@ -9,16 +9,18 @@
 // `fetch`.
 //
 // LO QUE ESTE ARCHIVO NO HACE, A PROPÓSITO
-// El CRM NO trabaja sin conexión y no se pretende que lo haga: se descartó el
-// 31-08 porque el 98 % del uso es en PC de escritorio dentro de la oficina, y
-// porque los correlativos de cotizaciones y cierres no admiten emitir
-// desconectado. Por lo tanto acá NO se guarda ni una respuesta de Supabase, ni
-// una pantalla del CRM, ni nada bajo /api. Mostrar la cartera de ayer como si
-// fuera la de hoy es peor que no mostrar nada — este sistema ya tuvo incidentes
-// por pantallas que mentían (Kanban y «Mi día» vacíos, la campana marcando 2
-// sin nada que atender). Lo único que se cachea son los ESTÁTICOS DE LA PROPIA
-// APLICACIÓN, que llevan el hash del contenido en el nombre y por definición no
-// pueden quedar viejos.
+// Acá NO se guarda ni una respuesta de Supabase, ni una pantalla del CRM con
+// datos, ni nada bajo /api. Mostrar la cartera de ayer como si fuera la de
+// hoy es peor que no mostrar nada — este sistema ya tuvo incidentes por
+// pantallas que mentían (Kanban y «Mi día» vacíos, la campana marcando 2 sin
+// nada que atender). Lo que se cachea: los ESTÁTICOS DE LA PROPIA APLICACIÓN
+// (hash en el nombre, no envejecen) y — desde la v2, plan 26 — la página
+// /offline, que no tiene ni un dato: solo dice la verdad («sin conexión») y
+// reintenta sola. La mañana del 31-08 el offline se había descartado entero;
+// esa noche Santos redefinió el objetivo —«la intención de la PWA era
+// trabajar bien en local»— y el plan 26 lo resuelve SIN romper la regla de
+// no cachear datos: la app abre, avisa honesto, y los correlativos sin
+// internet salen de la despensa del coordinador local, jamás inventados.
 //
 // OJO: `/sw.js` está excluido del matcher del proxy de auth en `src/proxy.ts`.
 // Un service worker servido detrás de una redirección lo rechaza el navegador
@@ -27,13 +29,15 @@
 // Subir la versión INVALIDA el caché entero en la próxima activación. Se sube
 // solo si cambia lo que se cachea, no en cada despliegue: los estáticos de Next
 // ya vienen con hash.
-const VERSION = "crm-efameinsa-v1";
+const VERSION = "crm-efameinsa-v2";
 const CACHE_ESTATICOS = `estaticos-${VERSION}`;
 
 // Lo poco que conviene tener listo desde el primer arranque: el ícono y la
-// insignia que pinta la notificación. Si fallan, la instalación NO se aborta
-// (un ícono ausente no es motivo para dejar sin service worker a nadie).
-const PRECARGA = ["/iconos/icono-192.png", "/iconos/insignia-96.png"];
+// insignia que pinta la notificación, y la página honesta del corte de
+// internet (plan 26). Si fallan, la instalación NO se aborta (un ícono
+// ausente no es motivo para dejar sin service worker a nadie).
+const PAGINA_OFFLINE = "/offline";
+const PRECARGA = ["/iconos/icono-192.png", "/iconos/insignia-96.png", PAGINA_OFFLINE];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -91,6 +95,24 @@ self.addEventListener("fetch", (event) => {
   try {
     url = new URL(pedido.url);
   } catch {
+    return;
+  }
+
+  // NAVEGACIONES (abrir o refrescar una pantalla): red primero, siempre —
+  // y si la red no está, la página honesta de «sin conexión» (plan 26).
+  // Nunca una pantalla vieja con datos: /offline no tiene ni uno.
+  if (pedido.mode === "navigate" && url.origin === self.location.origin) {
+    event.respondWith(
+      (async () => {
+        try {
+          return await fetch(pedido);
+        } catch {
+          const cache = await caches.open(CACHE_ESTATICOS);
+          const offline = await cache.match(PAGINA_OFFLINE);
+          return offline ?? new Response("Sin conexión", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+        }
+      })(),
+    );
     return;
   }
 

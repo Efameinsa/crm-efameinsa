@@ -166,7 +166,7 @@ export function RegistroRapido({
           adjuntos.push({ path, nombre: f.name, tipo: f.type, tamano: f.size });
         }
       }
-      const r1 = await registrarActividad({
+      const datos = {
         oportunidadId,
         tipo,
         nota,
@@ -176,7 +176,31 @@ export function RegistroRapido({
         proximaAccionHora: esRechazo ? null : proximaAccionHora,
         limpiarProximaAccion: esRechazo,
         adjuntos,
-      });
+      };
+      let r1: { error: string | null };
+      try {
+        r1 = await registrarActividad(datos);
+      } catch {
+        // La red no está (plan 26): la gestión NO se pierde — se guarda en
+        // este equipo y sube sola al volver el internet. Con dos excepciones
+        // honestas: el rechazo cierra la oportunidad (mejor con conexión) y
+        // los archivos no pueden viajar sin red.
+        if (esRechazo) {
+          toast.error("Sin internet no se puede rechazar la oportunidad: inténtelo cuando vuelva la conexión");
+          return;
+        }
+        if (adjuntos.length) {
+          toast.error("Sin internet no se pueden subir archivos: quite los adjuntos o espere la conexión");
+          return;
+        }
+        const { encolarGestion } = await import("@/lib/outbox-cliente");
+        await encolarGestion(datos, `${tipo} · ${nota.trim().slice(0, 60) || proximaAccion.trim().slice(0, 60) || "gestión"}`);
+        toast.warning("Sin internet: la gestión quedó guardada en este equipo y subirá sola al volver la conexión", {
+          duration: 8000,
+        });
+        limpiar();
+        return;
+      }
       if (r1.error) {
         toast.error(r1.error);
         return;

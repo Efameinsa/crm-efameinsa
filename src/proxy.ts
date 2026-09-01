@@ -95,6 +95,11 @@ export const config = {
     // login en lugar del JSON — el botón «Instalar» nunca aparecería. Se
     // agregó el 31-08-2026 con la aplicación instalable; el aviso de que esto
     // iba a pasar estaba escrito desde agosto en las notas del bug de sw.js.
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    //
+    // offline: la página que el service worker guarda para mostrar sin
+    // internet (plan 26). Se cachea en la instalación del SW, que pide SIN
+    // sesión — detrás del proxy cachearía el login y eso es lo que saldría
+    // en cada corte. No tiene ni un dato: solo dice «sin conexión» y reintenta.
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|offline|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

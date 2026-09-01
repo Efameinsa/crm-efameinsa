@@ -5,6 +5,7 @@ import { BarraLateral } from "@/components/crm/barra-lateral";
 import { EncabezadoUsuario } from "@/components/crm/encabezado-usuario";
 import { CalloutActivarNotificaciones } from "@/components/crm/callout-activar-notificaciones";
 import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
+import { AvisoGestionesSinSubir } from "@/components/crm/aviso-gestiones-sin-subir";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
@@ -53,6 +54,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="flex flex-col gap-3 px-6 pt-6 empty:hidden">
           <CalloutActivarNotificaciones />
           <AplicacionInstalable />
+          {/* La cola de gestiones guardadas sin internet (plan 26): vacía no
+              dibuja nada; con algo, lo dice y lo sube solo. */}
+          <AvisoGestionesSinSubir />
         </div>
         <main className="flex-1 bg-app-bg p-6">{children}</main>
       </div>
