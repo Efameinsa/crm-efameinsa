@@ -19,6 +19,15 @@ import type { createClient } from "@/lib/supabase/server";
 const HORAS_SIN_ATENDER = 24;
 /** Un contacto en gestión que lleva más de una semana quieto está frío. */
 const DIAS_SIN_MOVER = 7;
+/**
+ * Cuánto antes de la derivación cuenta una gestión hecha en OTRA ficha del
+ * mismo cliente. El caso real (PRO-08939, 31-08): la clienta escribió por el
+ * formulario web Y por WhatsApp el mismo día; cada canal creó su lead y su
+ * oportunidad sobre la misma cuenta. La comercial gestionó la primera ficha
+ * 27 minutos ANTES de que Central derivara la segunda — la estaba atendiendo,
+ * no ignorando. Un día de margen cubre ese cruce sin arrastrar historia vieja.
+ */
+export const HORAS_MARGEN_OTRA_FICHA = 24;
 
 export type FocoDerivado = "sin_atender" | "en_gestion" | "cotizado" | "cerrado";
 export type AlertaDerivado = "demora" | "frio" | null;
@@ -27,6 +36,8 @@ export interface GestionResumen {
   fecha: string;
   tipo: string;
   nota: string | null;
+  /** La gestión vive en otra oportunidad del mismo cliente, no en la derivada. */
+  otraFicha?: boolean;
 }
 
 export interface CotizacionResumen {
@@ -37,6 +48,8 @@ export interface CotizacionResumen {
   moneda: string;
   created_at: string;
   enviada_at: string | null;
+  /** Cotizada en otra oportunidad del mismo cliente, no en la derivada. */
+  otraFicha?: boolean;
 }
 
 export interface DerivadoFila {
@@ -64,6 +77,10 @@ export interface DerivadoFila {
     proxima_accion_at: string | null;
   } | null;
   gestiones: number;
+  /** Cuántas de esas gestiones viven en otra oportunidad del mismo cliente. */
+  gestionesOtraFicha: number;
+  /** Las otras oportunidades del mismo cliente y comercial (para la ficha). */
+  opsOtraFicha: string[];
   primeraGestion: GestionResumen | null;
   ultimaGestion: GestionResumen | null;
   cotizaciones: CotizacionResumen[];
@@ -316,18 +333,48 @@ async function armar(
   const ids = leads.map((l) => l.id);
   if (ids.length === 0) return [];
 
-  const { data: ops } = await supabase
-    .from("oportunidades")
-    .select("id, lead_id, etapa, cerrada_at, proxima_accion, proxima_accion_at")
-    .in("lead_id", ids);
+  const cuentaIds = [...new Set(leads.map((l) => l.cuenta_id).filter((x): x is string => Boolean(x)))];
+
+  // OTRA FICHA DEL MISMO CLIENTE (observación de gerencia, 31-08). El mismo
+  // cliente entra dos veces —formulario web y WhatsApp a Central— y cada
+  // entrada crea su lead y su oportunidad sobre la MISMA cuenta. El comercial
+  // gestiona una; la otra queda vacía, y este reporte la marcaba «nadie lo ha
+  // tocado» en rojo. De 21 derivaciones «sin gestión» en los 30 días previos
+  // al 01-09, 7 eran esta falsa alarma. Por eso acá se piden TODAS las
+  // oportunidades de esas cuentas: si el mismo comercial gestionó al cliente
+  // en otra ficha desde la derivación, se muestra — diciendo dónde vive.
+  const margenMs = HORAS_MARGEN_OTRA_FICHA * 3_600_000;
+  const asignados = leads.map((l) => (l.asignado_at ? new Date(l.asignado_at).getTime() : Infinity));
+  const margenDesde = Math.min(...asignados) - margenMs;
+
+  const [{ data: ops }, { data: opsCuenta }] = await Promise.all([
+    supabase
+      .from("oportunidades")
+      .select("id, lead_id, etapa, cerrada_at, proxima_accion, proxima_accion_at")
+      .in("lead_id", ids),
+    cuentaIds.length && Number.isFinite(margenDesde)
+      ? supabase.from("oportunidades").select("id, cuenta_id, comercial_id").in("cuenta_id", cuentaIds)
+      : Promise.resolve({ data: [] as { id: string; cuenta_id: string; comercial_id: string | null }[] }),
+  ]);
   const opIds = (ops ?? []).map((o) => o.id);
+  const opIdsPropias = new Set(opIds);
+  const opIdsGemelas = (opsCuenta ?? []).map((o) => o.id).filter((id) => !opIdsPropias.has(id));
 
   // Las actividades se piden ascendentes para quedarse en una sola pasada con
   // la PRIMERA (el tiempo hasta el primer contacto) y con la última.
-  const cuentaIds = [...new Set(leads.map((l) => l.cuenta_id).filter((x): x is string => Boolean(x)))];
 
-  const [{ data: cots }, { data: acts }, { data: asignaciones }, { data: cuentas }, { data: urgencias }] =
-    await Promise.all([
+  type ActCruda = { oportunidad_id: string; tipo: string; nota: string | null; realizada_at: string };
+  const isoMargen = Number.isFinite(margenDesde) ? new Date(margenDesde).toISOString() : null;
+
+  const [
+    { data: cots },
+    { data: acts },
+    { data: asignaciones },
+    { data: cuentas },
+    { data: urgencias },
+    { data: actsGemelas },
+    { data: cotsGemelas },
+  ] = await Promise.all([
     opIds.length
       ? supabase
           .from("cotizaciones")
@@ -356,17 +403,55 @@ async function armar(
       .select("lead_id, created_at")
       .in("lead_id", ids)
       .order("created_at", { ascending: false }),
+    // Las gestiones en las fichas gemelas, acotadas por fecha: la historia
+    // vieja de la cuenta (hay importadas de 2024) no es atención a ESTA
+    // derivación. El corte fino, por el asignado_at de cada lead, se hace
+    // abajo; este .gte solo evita traer años de actividad de gusto.
+    opIdsGemelas.length && isoMargen
+      ? supabase
+          .from("actividades")
+          .select("oportunidad_id, tipo, nota, realizada_at")
+          .in("oportunidad_id", opIdsGemelas)
+          .gte("realizada_at", isoMargen)
+          .order("realizada_at")
+      : Promise.resolve({ data: [] as ActCruda[] }),
+    opIdsGemelas.length && isoMargen
+      ? supabase
+          .from("cotizaciones")
+          .select("id, codigo, oportunidad_id, estado, enviada_at, total, moneda, created_at")
+          .in("oportunidad_id", opIdsGemelas)
+          .gte("created_at", isoMargen)
+          .order("created_at")
+      : Promise.resolve({ data: [] as (CotizacionResumen & { oportunidad_id: string })[] }),
   ]);
 
   const opPorLead = new Map((ops ?? []).map((o) => [o.lead_id as string, o]));
   const motivoPorLead = new Map((asignaciones ?? []).map((a) => [a.lead_id as string, a.motivo as string]));
   const cuentaPorId = new Map((cuentas ?? []).map((c) => [c.id as string, c.razon_social as string]));
 
-  const cotsPorOp = new Map<string, CotizacionResumen[]>();
-  for (const c of (cots ?? []) as unknown as (CotizacionResumen & { oportunidad_id: string })[]) {
+  const cotsPorOp = new Map<string, (CotizacionResumen & { oportunidad_id: string })[]>();
+  for (const c of [...(cots ?? []), ...(cotsGemelas ?? [])] as unknown as (CotizacionResumen & {
+    oportunidad_id: string;
+  })[]) {
     const xs = cotsPorOp.get(c.oportunidad_id) ?? [];
     xs.push(c);
     cotsPorOp.set(c.oportunidad_id, xs);
+  }
+
+  // Todas las gestiones por oportunidad (propias y gemelas): cada id vive en
+  // UNA de las dos consultas, así que el orden ascendente se conserva.
+  const actsPorOp = new Map<string, ActCruda[]>();
+  for (const a of [...(acts ?? []), ...(actsGemelas ?? [])] as ActCruda[]) {
+    const xs = actsPorOp.get(a.oportunidad_id) ?? [];
+    xs.push(a);
+    actsPorOp.set(a.oportunidad_id, xs);
+  }
+
+  const opsPorCuenta = new Map<string, { id: string; comercial_id: string | null }[]>();
+  for (const o of (opsCuenta ?? []) as { id: string; cuenta_id: string; comercial_id: string | null }[]) {
+    const xs = opsPorCuenta.get(o.cuenta_id) ?? [];
+    xs.push(o);
+    opsPorCuenta.set(o.cuenta_id, xs);
   }
 
   const gestionPorOp = new Map<string, { total: number; primera: GestionResumen; ultima: GestionResumen }>();
@@ -391,6 +476,36 @@ async function armar(
   return leads.map((l) => {
     const op = opPorLead.get(l.id) ?? null;
     const gestion = op ? gestionPorOp.get(op.id) : undefined;
+
+    // Lo que el MISMO comercial hizo con este cliente en sus OTRAS fichas,
+    // desde la derivación (con el margen hacia atrás). Es la respuesta honesta
+    // a «¿alguien lo atendió?» cuando el contacto entró dos veces.
+    const gestionesOtra: GestionResumen[] = [];
+    const cotsOtra: CotizacionResumen[] = [];
+    const opsOtraFicha: string[] = [];
+    const desdeLead = l.asignado_at ? new Date(l.asignado_at).getTime() - margenMs : null;
+    if (l.cuenta_id && l.asignado_a && desdeLead !== null) {
+      for (const o of opsPorCuenta.get(l.cuenta_id) ?? []) {
+        if (o.id === op?.id || o.comercial_id !== l.asignado_a) continue;
+        const actsO = (actsPorOp.get(o.id) ?? []).filter((a) => new Date(a.realizada_at).getTime() >= desdeLead);
+        const cotsO = (cotsPorOp.get(o.id) ?? []).filter((c) => new Date(c.created_at).getTime() >= desdeLead);
+        if (actsO.length || cotsO.length) opsOtraFicha.push(o.id);
+        for (const a of actsO) gestionesOtra.push({ fecha: a.realizada_at, tipo: a.tipo, nota: a.nota, otraFicha: true });
+        for (const c of cotsO) cotsOtra.push({ ...c, otraFicha: true });
+      }
+    }
+    gestionesOtra.sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+    const candidatasPrimera = [gestion?.primera, gestionesOtra[0]].filter((x): x is GestionResumen => Boolean(x));
+    const candidatasUltima = [gestion?.ultima, gestionesOtra[gestionesOtra.length - 1]].filter(
+      (x): x is GestionResumen => Boolean(x),
+    );
+    const primeraGestion = candidatasPrimera.sort((a, b) => a.fecha.localeCompare(b.fecha))[0] ?? null;
+    const ultimaGestion = candidatasUltima.sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? null;
+    const cotizaciones = [...(op ? (cotsPorOp.get(op.id) ?? []) : []), ...cotsOtra].sort((a, b) =>
+      a.created_at.localeCompare(b.created_at),
+    );
+
     const base = {
       id: l.id,
       codigo: l.codigo,
@@ -410,10 +525,12 @@ async function armar(
       comercial: l.asignado_a ? (perfilPorId.get(l.asignado_a) ?? null) : null,
       motivo: motivoPorLead.get(l.id) ?? null,
       oportunidad: op,
-      gestiones: gestion?.total ?? 0,
-      primeraGestion: gestion?.primera ?? null,
-      ultimaGestion: gestion?.ultima ?? null,
-      cotizaciones: op ? (cotsPorOp.get(op.id) ?? []) : [],
+      gestiones: (gestion?.total ?? 0) + gestionesOtra.length,
+      gestionesOtraFicha: gestionesOtra.length,
+      opsOtraFicha,
+      primeraGestion,
+      ultimaGestion,
+      cotizaciones,
       urgencias: urgenciasPorLead.get(l.id) ?? null,
     };
     return { ...base, ...clasificar(base, ahora) };

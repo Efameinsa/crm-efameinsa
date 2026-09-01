@@ -148,18 +148,29 @@ export function TarjetaDerivado({
             <MessageSquareText className="mt-0.5 size-3 flex-none" />
             {fila.ultimaGestion ? (
               <span className="min-w-0">
-                {fila.gestiones} gestión{fila.gestiones === 1 ? "" : "es"} · última{" "}
-                {ETIQUETA_ACTIVIDAD[fila.ultimaGestion.tipo] ?? fila.ultimaGestion.tipo} {haceCuanto(fila.ultimaGestion.fecha)}
+                {fila.gestiones} gestión{fila.gestiones === 1 ? "" : "es"}
+                {/* El contacto entró dos veces (formulario + WhatsApp) y el
+                    trabajo vive en la ficha gemela del cliente: se dice, no se
+                    esconde, para que Central sepa dónde mirar. */}
+                {fila.gestionesOtraFicha > 0 &&
+                  (fila.gestionesOtraFicha === fila.gestiones
+                    ? " — en otra ficha del cliente"
+                    : ` (${fila.gestionesOtraFicha} en otra ficha del cliente)`)}{" "}
+                · última {ETIQUETA_ACTIVIDAD[fila.ultimaGestion.tipo] ?? fila.ultimaGestion.tipo}{" "}
+                {haceCuanto(fila.ultimaGestion.fecha)}
               </span>
             ) : (
               <span>Sin ninguna gestión registrada</span>
             )}
           </p>
-          {fila.primeraGestion && (
-            <p className="text-xs text-muted-foreground">
-              Primer contacto a las {demora(fila.asignadoAt, fila.primeraGestion.fecha)} de derivarlo
-            </p>
-          )}
+          {fila.primeraGestion &&
+            (fila.asignadoAt && fila.primeraGestion.fecha < fila.asignadoAt ? (
+              <p className="text-xs text-muted-foreground">Ya lo estaba atendiendo cuando se derivó</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Primer contacto a las {demora(fila.asignadoAt, fila.primeraGestion.fecha)} de derivarlo
+              </p>
+            ))}
 
           {fila.cotizaciones.length > 0 && (
             <p className="mt-1 flex flex-wrap gap-1.5">
@@ -177,6 +188,7 @@ export function TarjetaDerivado({
                       {c.moneda} {Number(c.total).toLocaleString("es-PE")}
                     </span>
                   )}
+                  {c.otraFicha && <span className="text-muted-foreground">· otra ficha</span>}
                 </Link>
               ))}
             </p>

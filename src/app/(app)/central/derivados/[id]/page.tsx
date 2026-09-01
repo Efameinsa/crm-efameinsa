@@ -11,6 +11,7 @@ import {
   ETIQUETA_CANAL,
   ETIQUETA_ETAPA,
   ETIQUETA_MOTIVO,
+  HORAS_MARGEN_OTRA_FICHA,
 } from "@/lib/derivados-central";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -57,7 +58,23 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
 
   const opId = fila.oportunidad?.id ?? null;
 
-  const [{ data: actividades }, { data: asignacion }, { data: leadCrudo }, { data: comerciales }, supervisores] = await Promise.all([
+  // La gestión que vive en OTRA ficha del mismo cliente (el contacto entró dos
+  // veces —formulario web y WhatsApp— y cada entrada creó su oportunidad).
+  // Acotada por fecha: la historia vieja de la cuenta no es atención a ESTA
+  // derivación. Es la observación de gerencia del 31-08: la ficha decía «no
+  // registró ninguna gestión» mientras la comercial tenía 5 gestiones al lado.
+  const desdeOtraFicha = fila.asignadoAt
+    ? new Date(new Date(fila.asignadoAt).getTime() - HORAS_MARGEN_OTRA_FICHA * 3_600_000).toISOString()
+    : null;
+
+  const [
+    { data: actividades },
+    { data: asignacion },
+    { data: leadCrudo },
+    { data: comerciales },
+    supervisores,
+    { data: actividadesOtraFicha },
+  ] = await Promise.all([
     opId
       ? supabase
           .from("actividades")
@@ -85,6 +102,17 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
       .eq("activo", true)
       .order("codigo_comercial"),
     cargarSupervisores(supabase),
+    fila.opsOtraFicha.length && desdeOtraFicha
+      ? supabase
+          .from("actividades")
+          .select(
+            "id, tipo, nota, realizada_at, realizada_por, adjuntos, proxima_accion, proxima_accion_at, proxima_accion_hora, catalogo_resultados_gestion(codigo, nombre)",
+          )
+          .in("oportunidad_id", fila.opsOtraFicha)
+          .gte("realizada_at", desdeOtraFicha)
+          .order("realizada_at", { ascending: false })
+          .limit(LIMITE_GESTIONES)
+      : Promise.resolve({ data: [] as never[] }),
   ]);
 
   // Quién registró el contacto y quién decidió la derivación: son nombres
@@ -103,7 +131,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
   // eventos van con oportunidadId en null a propósito: el enlace «Ver
   // oportunidad» que trae la línea de tiempo apunta a /comercial/*, que a
   // Central le está cerrado.
-  const rutasAdjuntos = (actividades ?? []).flatMap((a) =>
+  const rutasAdjuntos = [...(actividades ?? []), ...(actividadesOtraFicha ?? [])].flatMap((a) =>
     ((a as { adjuntos?: { path: string; nombre: string }[] }).adjuntos ?? []).map((x) => x.path),
   );
   const urlPorRuta = new Map<string, string>();
@@ -112,38 +140,53 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
     for (const f of firmadas ?? []) if (f.signedUrl && f.path) urlPorRuta.set(f.path, f.signedUrl);
   }
 
-  const eventos: EventoTimeline[] = [
-    ...(actividades ?? []).map((a): EventoTimeline => {
-      const resultado = a.catalogo_resultados_gestion as unknown as { codigo: string; nombre: string } | null;
-      return {
-        tipo: "actividad",
-        id: a.id,
-        fecha: a.realizada_at,
-        oportunidadId: null,
-        tipoActividad: a.tipo,
-        nota: a.nota,
-        resultado,
-        proximaAccion: a.proxima_accion,
-        proximaAccionAt: a.proxima_accion_at,
-        proximaAccionHora: a.proxima_accion_hora ? String(a.proxima_accion_hora).slice(0, 5) : null,
-        adjuntos: ((a as { adjuntos?: { path: string; nombre: string }[] }).adjuntos ?? [])
-          .map((x) => ({ nombre: x.nombre, url: urlPorRuta.get(x.path) ?? "" }))
-          .filter((x) => x.url),
-      };
-    }),
-    ...fila.cotizaciones.map((c): EventoTimeline => ({
-      tipo: "cotizacion",
-      id: c.id,
-      fecha: c.created_at,
+  type ActividadCruda = NonNullable<typeof actividades>[number];
+  const eventoDeActividad = (a: ActividadCruda): EventoTimeline => {
+    const resultado = a.catalogo_resultados_gestion as unknown as { codigo: string; nombre: string } | null;
+    return {
+      tipo: "actividad",
+      id: a.id,
+      fecha: a.realizada_at,
       oportunidadId: null,
-      codigo: c.codigo,
-      estadoLabel: c.estado === "enviada" ? "enviada al cliente" : c.estado === "aceptada" ? "aceptada" : "en borrador",
-      color: c.estado === "enviada" || c.estado === "aceptada" ? "verde" : "ambar",
-      monto: c.total,
-      moneda: c.moneda,
-      pdfUrl: `/api/cotizaciones/${c.id}/pdf`,
-    })),
-  ].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+      tipoActividad: a.tipo,
+      nota: a.nota,
+      resultado,
+      proximaAccion: a.proxima_accion,
+      proximaAccionAt: a.proxima_accion_at,
+      proximaAccionHora: a.proxima_accion_hora ? String(a.proxima_accion_hora).slice(0, 5) : null,
+      adjuntos: ((a as { adjuntos?: { path: string; nombre: string }[] }).adjuntos ?? [])
+        .map((x) => ({ nombre: x.nombre, url: urlPorRuta.get(x.path) ?? "" }))
+        .filter((x) => x.url),
+    };
+  };
+  const eventoDeCotizacion = (c: (typeof fila.cotizaciones)[number]): EventoTimeline => ({
+    tipo: "cotizacion",
+    id: c.id,
+    fecha: c.created_at,
+    oportunidadId: null,
+    codigo: c.codigo,
+    estadoLabel: c.estado === "enviada" ? "enviada al cliente" : c.estado === "aceptada" ? "aceptada" : "en borrador",
+    color: c.estado === "enviada" || c.estado === "aceptada" ? "verde" : "ambar",
+    monto: c.total,
+    moneda: c.moneda,
+    pdfUrl: `/api/cotizaciones/${c.id}/pdf`,
+  });
+
+  const porFechaDesc = (a: EventoTimeline, b: EventoTimeline) =>
+    new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+
+  const eventos: EventoTimeline[] = [
+    ...(actividades ?? []).map(eventoDeActividad),
+    ...fila.cotizaciones.filter((c) => !c.otraFicha).map(eventoDeCotizacion),
+  ].sort(porFechaDesc);
+
+  // Lo que el mismo comercial registró en OTRA ficha de este cliente desde la
+  // derivación: va en su propio bloque, con el rótulo puesto — se muestra, no
+  // se mezcla como si viviera acá.
+  const eventosOtraFicha: EventoTimeline[] = [
+    ...((actividadesOtraFicha ?? []) as ActividadCruda[]).map(eventoDeActividad),
+    ...fila.cotizaciones.filter((c) => c.otraFicha).map(eventoDeCotizacion),
+  ].sort(porFechaDesc);
 
   const etapa = fila.oportunidad ? ETIQUETA_ETAPA[fila.oportunidad.etapa] : null;
   const com = fila.comercial;
@@ -177,9 +220,19 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
     {
       titulo: "El comercial hizo el primer contacto",
       fecha: fila.primeraGestion?.fecha ?? null,
-      demora: demora(fila.asignadoAt, fila.primeraGestion?.fecha ?? null),
+      // Si el comercial ya estaba atendiendo al cliente cuando se derivó (el
+      // contacto entró dos veces), no hay demora que medir: se dice eso.
+      demora:
+        fila.asignadoAt && fila.primeraGestion && fila.primeraGestion.fecha < fila.asignadoAt
+          ? "ya lo atendía"
+          : demora(fila.asignadoAt, fila.primeraGestion?.fecha ?? null),
       detalle: fila.primeraGestion
-        ? (ETIQUETA_ACTIVIDAD[fila.primeraGestion.tipo] ?? fila.primeraGestion.tipo)
+        ? [
+            ETIQUETA_ACTIVIDAD[fila.primeraGestion.tipo] ?? fila.primeraGestion.tipo,
+            fila.primeraGestion.otraFicha ? "en otra ficha del cliente" : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
         : null,
       pendiente: `Nadie registró una gestión todavía — derivado ${haceCuanto(fila.asignadoAt)}`,
       alerta: fila.alerta === "demora",
@@ -189,7 +242,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
       fecha: primeraCotizacion?.enviada_at ?? primeraCotizacion?.created_at ?? null,
       demora: demora(fila.primeraGestion?.fecha ?? fila.asignadoAt, primeraCotizacion?.enviada_at ?? primeraCotizacion?.created_at ?? null),
       detalle: primeraCotizacion
-        ? `${primeraCotizacion.codigo ?? "Borrador"}${primeraCotizacion.total != null ? ` · ${primeraCotizacion.moneda} ${Number(primeraCotizacion.total).toLocaleString("es-PE")}` : ""}`
+        ? `${primeraCotizacion.codigo ?? "Borrador"}${primeraCotizacion.total != null ? ` · ${primeraCotizacion.moneda} ${Number(primeraCotizacion.total).toLocaleString("es-PE")}` : ""}${primeraCotizacion.otraFicha ? " · en otra ficha del cliente" : ""}`
         : null,
       pendiente: "Sin cotización todavía",
     },
@@ -295,7 +348,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
             </span>
           }
         >
-          {eventos.length === 0 ? (
+          {eventos.length === 0 && eventosOtraFicha.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {com?.nombre ?? "El comercial"} no registró ninguna gestión sobre este contacto todavía. Si el cliente
               está esperando, use el botón de urgencia: le suena en pantalla y le llega al celular.
@@ -306,7 +359,20 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
                 Registrado por {com?.codigo_comercial ? `${com.codigo_comercial} · ` : ""}
                 {com?.nombre ?? "el comercial"}. Es solo lectura: quien mueve el caso es el comercial.
               </p>
-              <LineaTiempoCuenta eventos={eventos} />
+              {eventos.length > 0 && <LineaTiempoCuenta eventos={eventos} />}
+              {eventosOtraFicha.length > 0 && (
+                /* El mismo cliente entró dos veces (p. ej. formulario web y
+                   WhatsApp) y cada entrada abrió su propia ficha: el trabajo
+                   del comercial vive en la gemela. Se muestra rotulado para
+                   que Central sepa que al cliente SÍ se le atendió. */
+                <div className={eventos.length > 0 ? "mt-5 border-t border-border pt-4" : ""}>
+                  <p className="mb-3 rounded-lg bg-secondary px-3 py-2 text-xs text-foreground">
+                    <b>En otra ficha del mismo cliente.</b> Este contacto entró más de una vez y{" "}
+                    {com?.nombre ?? "el comercial"} registró su gestión en la otra ficha:
+                  </p>
+                  <LineaTiempoCuenta eventos={eventosOtraFicha} />
+                </div>
+              )}
             </>
           )}
         </SeccionPanel>
@@ -360,6 +426,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
                     </Link>
                     <span className="ml-6 text-xs text-muted-foreground">
                       {c.enviada_at ? `Enviada ${fechaHoraLima(c.enviada_at)}` : "Sin enviar al cliente"}
+                      {c.otraFicha ? " · en otra ficha del cliente" : ""}
                     </span>
                   </li>
                 ))}
