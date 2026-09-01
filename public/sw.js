@@ -165,6 +165,13 @@ self.addEventListener("push", (event) => {
       // agrupan nunca: cada cliente que espera es un caso aparte.
       tag: datos.tipo === "urgencia" ? undefined : datos.url || undefined,
       renotify: datos.tipo !== "urgencia" && Boolean(datos.url),
+      // Sonido pedido EXPLÍCITO (Santos, 31-08: «es delicado recibir un lead
+      // y no atenderlo»). `silent: false` le dice al sistema que este aviso
+      // debe sonar; si aun así no suena, el mudo está en Windows (el sonido
+      // por aplicación) o en el navegador — la lista de configuración por
+      // máquina está en docs/27-sonido-y-segundo-plano.md.
+      silent: false,
+      vibrate: [200, 100, 200],
       data: { url: datos.url || "/", tipo: datos.tipo || null },
     }),
   );
