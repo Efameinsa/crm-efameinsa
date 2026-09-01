@@ -18,6 +18,7 @@ import {
   type FilaRuta,
 } from "@/lib/ruta-mantenimiento";
 import { cn } from "@/lib/utils";
+import { veTodoPostventa } from "@/lib/postventa";
 import type { Perfil } from "@/types/database";
 
 /**
@@ -105,11 +106,7 @@ export async function RutaMantenimientoVista({
   // abrió la vista (hace_postventa, 0116). Ver no es contabilizar: cada venta
   // sigue siendo de su dueño. La RLS (0124) ya lo garantiza — este filtro es
   // para no traer de la base lo que igual se iba a descartar.
-  const verTodo =
-    perfil.rol === "gerencia" ||
-    perfil.rol === "admin" ||
-    Boolean(perfil.es_postventa) ||
-    Boolean(perfil.hace_postventa);
+  const verTodo = veTodoPostventa(perfil);
   let consulta = supabase
     .from("oportunidades")
     .select(

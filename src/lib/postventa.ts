@@ -178,6 +178,30 @@ export function puedeVerPrecios(perfil: { rol: string; es_postventa?: boolean | 
   return !perfil.es_postventa;
 }
 
+/**
+ * ¿Ve TODO el trabajo de postventa, esté en la cartera de quien esté?
+ *
+ * Santos, 01-09, con la señorita de postventa buscando a la Congregación
+ * Mercedaria (cartera de Ariana) sin encontrarla: «queremos ver todo en
+ * postventa; luego vemos cómo lo debe ver comercial». El área (es_postventa),
+ * quien tiene la llave que reparte operaciones (hace_postventa, 0116) y
+ * gerencia ven el área entera; la RLS (0124) ya lo permitía —«ver no es
+ * contabilizar»—, faltaba que las pantallas dejaran de recortar por
+ * comercial. Es UNA regla para la agenda, los casos, Mi día y la ruta.
+ */
+export function veTodoPostventa(perfil: {
+  rol: string;
+  es_postventa?: boolean | null;
+  hace_postventa?: boolean | null;
+}): boolean {
+  return (
+    perfil.rol === "gerencia" ||
+    perfil.rol === "admin" ||
+    Boolean(perfil.es_postventa) ||
+    Boolean(perfil.hace_postventa)
+  );
+}
+
 export function esProvincia(s: ServicioPostventa): boolean {
   return s.modalidad === "provincia";
 }

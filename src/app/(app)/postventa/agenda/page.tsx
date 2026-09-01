@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { puedeVerPrecios, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
+import { puedeVerPrecios, sinPrecios, veTodoPostventa, type ServicioPostventa } from "@/lib/postventa";
 import { CalendarioPostventa, type VistaCalendario } from "@/components/crm/calendario-postventa";
 import {
   eventoDeCaso,
@@ -74,7 +74,8 @@ export default async function AgendaPostventaPage({
   const desde = dias[0];
   const hasta = dias[dias.length - 1];
 
-  const verTodo = perfil.rol === "gerencia" || perfil.rol === "admin";
+  // El área ve todos los casos, estén en la cartera de quien estén (01-09).
+  const verTodo = veTodoPostventa(perfil);
   let consultaCasos = supabase
     .from("oportunidades")
     .select(

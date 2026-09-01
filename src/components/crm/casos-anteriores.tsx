@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PackageSearch, ShieldCheck, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { fechaCalendario } from "@/lib/fechas";
-import { etiquetaEtapaPostventa, slaCaso } from "@/lib/postventa";
+import { etiquetaEtapaPostventa, slaCaso, veTodoPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import type { Perfil } from "@/types/database";
 
@@ -41,7 +41,8 @@ interface CasoAbierto {
 
 export async function CasosAnteriores({ perfil }: { perfil: Perfil }) {
   const supabase = await createClient();
-  const verTodo = perfil.rol === "gerencia" || perfil.rol === "admin";
+  // El área ve todos los casos, estén en la cartera de quien estén (01-09).
+  const verTodo = veTodoPostventa(perfil);
 
   // UN CASO ES UN CASO: lo que llegó por Central o se registró acá mismo
   // (origen = crm). Las campañas de mantenimiento y los tres años de cierres

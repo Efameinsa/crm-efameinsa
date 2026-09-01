@@ -17,6 +17,7 @@ import {
   queLoFrena,
   slaCaso,
   puedeVerPrecios,
+  veTodoPostventa,
   sinPrecios,
   estadoPago,
   ETIQUETA_ESTADO_PAGO,
@@ -135,15 +136,20 @@ export default async function PostventaPage() {
       // («asignada» es justo lo que la propia pantalla vieja llamaba «sin
       // atender»): lo que ya está en curso se sigue en Atenciones o en el
       // Kanban, no compite acá por la primera mirada del día.
-      supabase
-        .from("oportunidades")
-        .select("id, tipo_postventa, serie_texto, codigo_error, created_at, cuentas(razon_social)")
-        .eq("comercial_id", perfil.id)
-        .eq("origen", "crm")
-        .eq("etapa", "asignada")
-        .not("tipo_postventa", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(30),
+      // El área ve todos los casos, estén en la cartera de quien estén
+      // (Santos, 01-09: «queremos ver todo en postventa»).
+      (() => {
+        let c = supabase
+          .from("oportunidades")
+          .select("id, tipo_postventa, serie_texto, codigo_error, created_at, cuentas(razon_social)")
+          .eq("origen", "crm")
+          .eq("etapa", "asignada")
+          .not("tipo_postventa", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        if (!veTodoPostventa(perfil)) c = c.eq("comercial_id", perfil.id);
+        return c;
+      })(),
       // Las atenciones que Central acaba de devolver al área («registro»):
       // falta tomarlas y verificar la garantía. Es la misma pista de 9 etapas
       // de Atenciones, mirada desde el único paso que apremia por definición.
