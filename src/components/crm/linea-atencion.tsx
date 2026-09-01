@@ -233,6 +233,21 @@ function PasoRegistro({
   const [detalle, setDetalle] = useState("");
 
   if (a.en_garantia === null) {
+    // Sin máquina vinculada, el botón de verificar solo podía fallar («primero
+    // identifique el equipo»). Santos lo marcó el 01-09: el clic que vincula
+    // la máquina —el panel de la derecha— YA verifica la garantía, así que acá
+    // no va un botón redundante sino la seña de dónde está el clic.
+    if (!a.equipo_id) {
+      return (
+        <Caja titulo="Paso 1 · Verificar la garantía">
+          <p className="text-sm text-muted-foreground">
+            La garantía se verifica sobre la máquina. Elíjala en{" "}
+            <b className="text-foreground">«¿De qué máquina habla el cliente?»</b> (a la derecha, contrastando con
+            la foto de la placa): ese clic la vincula y deja la garantía verificada al instante.
+          </p>
+        </Caja>
+      );
+    }
     return (
       <Caja titulo="Paso 1 · Verificar la garantía">
         <p className="mb-3 text-sm text-muted-foreground">

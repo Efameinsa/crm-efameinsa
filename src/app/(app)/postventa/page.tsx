@@ -87,15 +87,40 @@ function Vacio({ children }: { children: React.ReactNode }) {
   return <p className="max-w-prose text-sm text-muted-foreground">{children}</p>;
 }
 
+/** "3 h", "2 días" — sin decimales ni aritmética para el lector. */
+function horasLegibles(h: number): string {
+  if (h < 1) return "menos de 1 h";
+  if (h < 48) return `${Math.round(h)} h`;
+  return `${Math.round(h / 24)} días`;
+}
+
+/**
+ * El reloj dicho como frase, no como cifras. Santos, 01-09, viendo
+ * «124 h · límite 24 h»: obligaba a restar de cabeza para saber qué tan mal
+ * está. La pantalla hace la resta: «venció hace 4 días».
+ */
+function relojHumano(estado: EstadoUrgencia, horas: number, limite: number): string {
+  if (estado === "rojo") return `venció hace ${horasLegibles(horas - limite)}`;
+  if (estado === "ambar") return `vence en ${horasLegibles(Math.max(0, limite - horas))}`;
+  return `llegó hace ${horasLegibles(horas)}`;
+}
+
 export default async function PostventaPage() {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const fin7 = new Date(Date.now() + 7 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const hoyIso = hoyLima();
   const lunes = lunesSemana();
 
-  const [{ data: nuevos }, { data: casos }, { data: atencionesNuevas }, { data: hoyProgramado }, { count: atrasados }] =
-    await Promise.all([
+  const [
+    { data: nuevos },
+    { data: casos },
+    { data: atencionesNuevas },
+    { data: hoyProgramado },
+    { count: atrasados },
+    { data: proximosProgramados },
+  ] = await Promise.all([
       // Liberados por Central (los dos checks) y todavía sin acuse.
       supabase
         .from("servicios_postventa")
@@ -147,6 +172,18 @@ export default async function PostventaPage() {
         .eq("completado", false)
         .lt("fecha_despacho", hoy)
         .is("despachado_at", null),
+      // Lo que viene en la semana: cuando hoy está vacío, la pantalla no se
+      // queda en «nada programado» — dice qué es lo próximo (Santos, 01-09:
+      // un «hoy» vacío que además esconde la lista es un callejón sin salida).
+      supabase
+        .from("servicios_postventa")
+        .select("*")
+        .eq("completado", false)
+        .or(
+          `and(fecha_despacho.gt.${hoy},fecha_despacho.lte.${fin7}),and(puesta_en_marcha.gt.${hoy},puesta_en_marcha.lte.${fin7})`,
+        )
+        .order("fecha_despacho", { ascending: true, nullsFirst: false })
+        .limit(5),
     ]);
 
   const verPrecios = puedeVerPrecios(perfil);
@@ -255,6 +292,9 @@ export default async function PostventaPage() {
   const listaHoy = (hoyProgramado as unknown as ServicioPostventa[] | null ?? []).map((s) =>
     verPrecios ? s : sinPrecios(s),
   );
+  const listaProximos = ((proximosProgramados as unknown as ServicioPostventa[] | null) ?? [])
+    .filter((s) => !listaHoy.some((h) => h.id === s.id))
+    .map((s) => (verPrecios ? s : sinPrecios(s)));
 
   return (
     <div className="space-y-4">
@@ -326,15 +366,15 @@ export default async function PostventaPage() {
                   </Link>
                   <span
                     className={cn(
-                      "text-right text-[11px] font-semibold",
+                      "whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold",
                       item.estado === "rojo"
-                        ? "text-destructive"
+                        ? "bg-destructive/10 text-destructive"
                         : item.estado === "ambar"
-                          ? "text-amber-700"
-                          : "text-muted-foreground",
+                          ? "bg-amber-500/15 text-amber-800"
+                          : "bg-secondary text-muted-foreground",
                     )}
                   >
-                    {item.recienLlegado ? "recién llegado" : `${Math.round(item.horas)} h · límite ${item.limite} h`}
+                    {item.recienLlegado ? "Recién llegado" : relojHumano(item.estado, item.horas, item.limite)}
                   </span>
                   {item.servicioIdParaAprobar ? (
                     <AprobarPedidoBoton servicioId={item.servicioIdParaAprobar} />
@@ -356,14 +396,24 @@ export default async function PostventaPage() {
           </Link>
         }
       >
+        {/* Lo urgente no se esconde en un enlace de texto: es un bloque
+            entero que se toca (Santos, 01-09). */}
         {(atrasados ?? 0) > 0 && (
-          <p className="mb-2 flex flex-wrap items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs font-semibold text-amber-900">
-            <AlertTriangle className="size-3.5" />
-            {atrasados} despacho{atrasados === 1 ? "" : "s"} con la fecha ya vencida ·{" "}
-            <Link href="/postventa/atenciones?ver=despachos&estado=atrasados" className="underline hover:no-underline">
-              ver la lista completa
-            </Link>
-          </p>
+          <Link
+            href="/postventa/atenciones?ver=despachos&estado=atrasados"
+            className="mb-3 flex items-center gap-3 rounded-lg border border-amber-400/60 bg-amber-500/10 p-3 transition-colors hover:bg-amber-500/20"
+          >
+            <span className="flex size-9 flex-none items-center justify-center rounded-full bg-amber-500/20 text-amber-800">
+              <AlertTriangle className="size-4" />
+            </span>
+            <span className="flex-1 text-sm font-semibold text-amber-900">
+              {atrasados} despacho{atrasados === 1 ? "" : "s"} con la fecha ya vencida
+              <span className="block text-xs font-normal text-amber-800/80">
+                Toque para ver la cola y reprogramar o registrar la salida
+              </span>
+            </span>
+            <ArrowRight className="size-4 flex-none text-amber-800" />
+          </Link>
         )}
         {listaHoy.length === 0 ? (
           <Vacio>Nada programado para hoy.</Vacio>
@@ -398,6 +448,36 @@ export default async function PostventaPage() {
                 </Link>
               );
             })}
+          </div>
+        )}
+
+        {/* El día vacío no es un callejón sin salida: se dice qué es lo
+            PRÓXIMO que hay programado, sin obligar a abrir el calendario. */}
+        {listaProximos.length > 0 && (
+          <div className={cn(listaHoy.length > 0 && "mt-3 border-t border-border pt-3", "mt-2")}>
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              Lo que viene esta semana
+            </p>
+            <div className="space-y-1.5">
+              {listaProximos.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/postventa/pedidos/${s.id}`}
+                  className="flex flex-wrap items-center gap-3 rounded-md border border-border/70 p-2.5 transition-colors hover:bg-accent"
+                >
+                  <span className="w-20 flex-none font-mono text-xs font-semibold tabular-nums text-foreground">
+                    {fechaLima(s.fecha_despacho ?? s.puesta_en_marcha)}
+                  </span>
+                  <div className="min-w-[200px] flex-1">
+                    <p className="text-sm font-medium text-foreground">
+                      {(s.cliente_texto ?? "—").replace(/^\d{8,11}\s*-\s*/, "")}
+                    </p>
+                    <p className="line-clamp-1 text-xs text-muted-foreground">{s.equipo ?? "Sin equipo"}</p>
+                  </div>
+                  <ArrowRight className="size-3.5 flex-none text-muted-foreground" />
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </SeccionPanel>

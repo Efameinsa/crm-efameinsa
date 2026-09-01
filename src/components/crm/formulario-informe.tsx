@@ -395,11 +395,28 @@ export function FormularioInforme({
       const detalle = avisosIdentidad.map((a) => `· ${a}`).join("\n");
       if (!confirm(`Revise a quién se le factura:\n\n${detalle}\n\n¿Emitir igual el informe?`)) return;
     }
-    if (subidos.length === 0 && pendientes.length === 0) {
+    // El expediente del cierre lleva SUS documentos: cotización, orden de
+    // compra y voucher (reunión con el ing. Carlos — es lo que antes viajaba
+    // impreso dentro del file). No se bloquea en duro porque hay casos
+    // legítimos donde un papel llega después (el voucher con crédito a 30
+    // días, que es justo para lo que existe el agregado con código de la
+    // 0142) — pero el comercial tiene que ver QUÉ está emitiendo sin, tipo
+    // por tipo, antes de gastar el número. Si Carlos decide el bloqueo duro,
+    // esta es la línea que se endurece.
+    const TIPOS_ESPERADOS: [string, string][] = [
+      ["cotizacion", "la cotización"],
+      ["orden_compra", "la orden de compra"],
+      ["voucher", "el voucher de pago"],
+    ];
+    const presentes = new Set([...subidos.map((s) => s.tipo), ...pendientes.map((p) => p.tipo)]);
+    const faltantes = TIPOS_ESPERADOS.filter(([tipo]) => !presentes.has(tipo));
+    if (faltantes.length > 0) {
+      const lista = faltantes.map(([, nombre]) => `· Falta ${nombre}`).join("\n");
       if (
         !confirm(
-          "Este cierre va sin ningún documento adjunto: ni orden de compra, ni voucher, ni la cotización.\n\n" +
-            "Se pueden agregar después de emitido, pero Central los va a pedir.\n\n¿Emitir igual?",
+          `Al expediente de este cierre le falta:\n\n${lista}\n\n` +
+            "Central y postventa trabajan con estos documentos. Se pueden agregar después de emitido, " +
+            "pero ya con el código de autorización de operaciones.\n\n¿Emitir igual?",
         )
       ) {
         return;
