@@ -70,7 +70,10 @@ export function ListaCotizaciones({
       const r = await registrarVenta(id);
       if (r.error) toast.error(r.error);
       else {
-        toast.success("Venta registrada");
+        // La cifra de la venta salió del informe de cierre y no de la
+        // cotización (0148): se le dice ahora, con el número del informe.
+        if (r.aviso) toast.warning("Venta registrada por lo que dice el informe de cierre", { description: r.aviso, duration: 12000 });
+        else toast.success("Venta registrada");
         router.refresh();
       }
     });

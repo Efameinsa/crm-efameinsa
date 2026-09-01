@@ -223,6 +223,18 @@ pedidos del Excel, informes de servicio, cierres y ventas de servicio, por
 año. La «duplicidad» era la OPEN 854-25 dos veces en el archivo (una copia
 renombrada «Presu_855-25 … - copia»); se retiró.
 
+**Y la 0148, el caso SIERRA TRAVEL (01-09, 17:50):** Katerine cotizó dos
+lavadoras (Presu_479-26, 6.000), vendió una (informe 011-2026, 2.250) y la
+venta salió por 6.000 porque `registrar_venta` copiaba el total cotizado. Ahora
+**el informe manda**: si hay informe emitido, la venta nace con su importe y
+atada a él; si el informe llega después, el trigger de la 0105 corrige la
+venta. La diferencia queda anotada en `ventas.notas` y el comercial la ve en
+un aviso al registrar. La venta real se corrigió a 2.250. Detalle en
+`docs/historial/19-venta-por-lo-que-dice-el-informe-0148.md`. **Pendiente:**
+preguntarle a Katerine si la Titan Max (3.750) sigue viva, y decirles a los
+comerciales que cuando venden una parte dupliquen la cotización con solo lo
+vendido.
+
 **Hallazgo colateral, SIN tocar:** el archivo `cotizaciones_historicas` tiene
 **258 grupos** con el mismo número y dos archivos distintos (p. ej. correlativo
 104 con «Presu_101-26, MENDOZA» y «Presu_104-26, CALLUPE»): el parser guardó

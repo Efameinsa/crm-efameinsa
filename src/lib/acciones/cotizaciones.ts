@@ -343,14 +343,32 @@ export async function enviarCotizacion(
   return { error: null, codigo: (data as string) ?? undefined };
 }
 
-export async function registrarVenta(cotizacionId: string): Promise<{ error: string | null }> {
+/**
+ * Registra la venta de una cotización aprobada.
+ *
+ * Si ya hay un informe de cierre emitido para ese cliente, la base registra
+ * la venta por lo que dice EL INFORME y no por el total cotizado (migración
+ * 0148: Katerine cotizó dos lavadoras, vendió una, y la venta salió por las
+ * dos). Cuando las cifras no coinciden, la base lo anota en la venta y acá se
+ * devuelve ese aviso para que el comercial lo vea en el momento, no en el
+ * informe del día.
+ */
+export async function registrarVenta(
+  cotizacionId: string,
+): Promise<{ error: string | null; aviso?: string }> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("registrar_venta", { p_cotizacion_id: cotizacionId });
+  const { data: ventaId, error } = await supabase.rpc("registrar_venta", { p_cotizacion_id: cotizacionId });
   if (error) return { error: error.message };
+
+  let aviso: string | undefined;
+  if (ventaId) {
+    const { data: venta } = await supabase.from("ventas").select("notas").eq("id", ventaId as string).maybeSingle();
+    aviso = venta?.notas ?? undefined;
+  }
 
   revalidatePath("/comercial", "layout");
   revalidatePath("/gerencia");
-  return { error: null };
+  return { error: null, aviso };
 }
 
 async function comercialDeCotizacion(
