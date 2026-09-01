@@ -47,6 +47,10 @@ type Pestana = (typeof PESTANAS)[number]["clave"];
 
 const FILTROS = [
   { clave: "", etiqueta: "Todas" },
+  // «Lista sin atender y lista de atendidos» (la señorita de postventa,
+  // 01-09): atendida es que alguien ya hizo algo con ella (`tomada_at`, 0146).
+  { clave: "sin_atender", etiqueta: "Sin atender" },
+  { clave: "atendidas", etiqueta: "Atendidas" },
   { clave: "urgentes", etiqueta: "Se pasaron de tiempo" },
   { clave: "sin_programar", etiqueta: "Sin programar" },
 ] as const;
@@ -65,7 +69,7 @@ export default async function AtencionesPage({
   const { data } = await supabase
     .from("atenciones")
     .select(
-      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, conformidad_nombre, informe_servicio_id, resultado, detalle, motivo_cierre, cuentas(razon_social), perfiles:asignado_a(nombre, codigo_comercial)",
+      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, motivo_cierre, cuentas(razon_social), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial)",
     )
     .order("solicitado_at", { ascending: false })
     .limit(300);
@@ -194,6 +198,7 @@ function VistaAtenciones({
   todas: (Atencion & {
     cuentas: { razon_social: string } | null;
     perfiles: { nombre: string; codigo_comercial: string | null } | null;
+    tomadaPor?: { nombre: string; codigo_comercial: string | null } | null;
   })[];
   cerradas: boolean;
   filtro: string;
@@ -203,6 +208,8 @@ function VistaAtenciones({
   if (!cerradas) {
     if (filtro === "urgentes") filas = filas.filter((a) => relojAtencion(a).estado === "rojo");
     if (filtro === "sin_programar") filas = filas.filter((a) => !a.programada_at);
+    if (filtro === "sin_atender") filas = filas.filter((a) => !a.tomada_at);
+    if (filtro === "atendidas") filas = filas.filter((a) => a.tomada_at);
   }
   if (etapaSeleccionada) filas = filas.filter((a) => a.etapa === etapaSeleccionada);
 
@@ -304,8 +311,10 @@ function VistaAtenciones({
                     {falta.texto}
                   </span>
                 )}
-                <span className="w-20 flex-none text-right text-[11px] text-muted-foreground">
-                  {a.perfiles?.codigo_comercial ?? a.perfiles?.nombre ?? "sin tomar"}
+                <span className="w-28 flex-none text-right text-[11px] text-muted-foreground">
+                  {a.tomada_at
+                    ? `atendida ${fechaHoraLima(a.tomada_at)}${a.tomadaPor ? ` · ${a.tomadaPor.codigo_comercial ?? a.tomadaPor.nombre}` : ""}`
+                    : (a.perfiles?.codigo_comercial ?? a.perfiles?.nombre ?? "sin atender")}
                 </span>
                 <ChevronRight className="size-3.5 flex-none text-muted-foreground" />
               </Link>

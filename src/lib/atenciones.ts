@@ -128,6 +128,11 @@ export interface Atencion {
   conformidad_at: string | null;
   cerrado_at: string | null;
   seguimiento_at: string | null;
+  /** Primera vez que alguien del área hizo algo: gestión en el caso ligado o
+   *  avance de etapa. La fija la base (migración 0146). Puede faltar en
+   *  consultas viejas, por eso es opcional. */
+  tomada_at?: string | null;
+  tomada_por?: string | null;
   conformidad_nombre: string | null;
   informe_servicio_id: string | null;
   resultado: "resuelto" | "no_procede" | "derivado" | null;
@@ -206,7 +211,10 @@ const HORAS_LIMITE: Record<TipoAtencion, number> = {
 
 export function relojAtencion(a: Atencion): { estado: "verde" | "ambar" | "rojo"; horas: number; limite: number } {
   const limite = HORAS_LIMITE[a.tipo] ?? 24;
-  const hasta = a.atendido_at ?? a.cerrado_at;
+  // El reloj de respuesta se detiene en la PRIMERA gestión del área
+  // (`tomada_at`), no cuando el técnico ejecuta: NESSUS, 01-09 — la señorita
+  // llamó y mandó la cotización a las 10:19 y la pantalla seguía contando.
+  const hasta = a.tomada_at ?? a.atendido_at ?? a.cerrado_at;
   const horas = ((hasta ? new Date(hasta).getTime() : Date.now()) - new Date(a.solicitado_at).getTime()) / 36e5;
   if (hasta) return { estado: "verde", horas, limite };
   if (horas > limite) return { estado: "rojo", horas, limite };
@@ -231,7 +239,9 @@ export interface ResumenAtenciones {
 export function resumirAtenciones(lista: Atencion[]): ResumenAtenciones {
   return {
     recibidas: lista.length,
-    atendidas: lista.filter((a) => a.atendido_at).length,
+    // «Atendida» en el sentido del área: alguien ya hizo algo con ella
+    // (gestión o avance), no solo que el técnico haya ejecutado.
+    atendidas: lista.filter((a) => a.tomada_at || a.atendido_at).length,
     enProceso: lista.filter((a) => !a.cerrado_at).length,
     cerradas: lista.filter((a) => a.cerrado_at).length,
     enGarantia: lista.filter((a) => a.clasificacion === "garantia").length,

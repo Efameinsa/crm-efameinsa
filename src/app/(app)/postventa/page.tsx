@@ -147,11 +147,16 @@ export default async function PostventaPage() {
       // Las atenciones que Central acaba de devolver al área («registro»):
       // falta tomarlas y verificar la garantía. Es la misma pista de 9 etapas
       // de Atenciones, mirada desde el único paso que apremia por definición.
+      // UNA ATENCIÓN CON GESTIÓN YA ESTÁ TOMADA (0146): la señorita llamó a
+      // NESSUS, mandó la cotización y registró dos gestiones, y la atención
+      // seguía acá con el reloj corriendo porque la etapa técnica no se había
+      // movido. `tomada_at` la fija la base con la primera gestión del caso.
       supabase
         .from("atenciones")
-        .select("id, cuenta_id, cliente_texto, tipo, etapa, detalle, solicitado_at, atendido_at, cerrado_at, cuentas(razon_social)")
+        .select("id, cuenta_id, cliente_texto, tipo, etapa, detalle, solicitado_at, atendido_at, cerrado_at, tomada_at, cuentas(razon_social)")
         .eq("etapa", "registro")
         .is("cerrado_at", null)
+        .is("tomada_at", null)
         .order("solicitado_at", { ascending: true })
         .limit(30),
       // Lo programado PARA HOY, y nada más: la semana completa es del
@@ -187,6 +192,16 @@ export default async function PostventaPage() {
     ]);
 
   const verPrecios = puedeVerPrecios(perfil);
+
+  // Las atendidas de hoy, aparte: la que sale de la bandeja tiene que verse
+  // en algún lado con su hora y quién la tomó (pedido de la señorita de
+  // postventa el 01-09: «si ya se atendió debería aparecer un registro»).
+  const { data: atendidasHoy } = await supabase
+    .from("atenciones")
+    .select("id, cliente_texto, tipo, etapa, solicitado_at, tomada_at, cerrado_at, cuentas(razon_social), tomadaPor:tomada_por(nombre, codigo_comercial)")
+    .gte("tomada_at", `${hoyIso}T00:00:00-05:00`)
+    .order("tomada_at", { ascending: false })
+    .limit(30);
 
   // UN CASO CON GESTIÓN YA ESTÁ TOMADO. La etapa no alcanza como señal:
   // Hever registra sus llamadas como actividades SIN mover el caso de
@@ -382,6 +397,64 @@ export default async function PostventaPage() {
                     <ArrowRight className="size-3.5 flex-none text-muted-foreground" />
                   )}
                 </div>
+              );
+            })}
+          </div>
+        )}
+      </SeccionPanel>
+
+      {/* El registro de lo atendido: la atención que salió de la bandeja
+          porque alguien ya hizo algo con ella, con la hora y quién. Lo que
+          sigue del circuito (diagnóstico, técnico, cierre) vive en Atenciones. */}
+      <SeccionPanel
+        titulo="Atendidas hoy"
+        accion={
+          <Link href="/postventa/atenciones?filtro=atendidas" className="text-xs font-medium text-primary hover:underline">
+            Ver todas las atendidas
+          </Link>
+        }
+      >
+        {(atendidasHoy ?? []).length === 0 ? (
+          <Vacio>Todavía nada atendido hoy. Apenas se registre una gestión en una atención, aparece acá con su hora.</Vacio>
+        ) : (
+          <div className="space-y-1.5">
+            {((atendidasHoy ?? []) as unknown as {
+              id: string;
+              cliente_texto: string | null;
+              tipo: TipoAtencion;
+              solicitado_at: string;
+              tomada_at: string;
+              cerrado_at: string | null;
+              cuentas: { razon_social: string } | null;
+              tomadaPor: { nombre: string; codigo_comercial: string | null } | null;
+            }[]).map((a) => {
+              const horas = (new Date(a.tomada_at).getTime() - new Date(a.solicitado_at).getTime()) / 36e5;
+              const respuesta =
+                horas < 1 ? `en ${Math.max(1, Math.round(horas * 60))} min` : `en ${Math.round(horas * 10) / 10} h`;
+              return (
+                <Link
+                  key={a.id}
+                  href={`/postventa/atenciones/${a.id}`}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border p-2.5 hover:bg-accent"
+                >
+                  <span className="flex size-7 flex-none items-center justify-center rounded-full bg-[#1E7F4F]/10 text-[#1E7F4F]">
+                    <ShieldCheck className="size-3.5" />
+                  </span>
+                  <span className="min-w-[200px] flex-1">
+                    <span className="block text-sm font-medium text-foreground">
+                      {a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre"}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">{ETIQUETA_TIPO_ATENCION[a.tipo]}</span>
+                  </span>
+                  <span className="text-[11px] tabular-nums text-muted-foreground">
+                    Atendida a las{" "}
+                    {new Date(a.tomada_at).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" })}
+                    {" "}· respondió {respuesta}
+                    {a.tomadaPor && ` · ${a.tomadaPor.codigo_comercial ?? a.tomadaPor.nombre}`}
+                    {a.cerrado_at && " · cerrada"}
+                  </span>
+                  <ArrowRight className="size-3.5 flex-none text-muted-foreground" />
+                </Link>
               );
             })}
           </div>

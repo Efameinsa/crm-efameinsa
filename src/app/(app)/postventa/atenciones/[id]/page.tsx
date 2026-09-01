@@ -33,7 +33,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   const { data } = await supabase
     .from("atenciones")
     .select(
-      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, conformidad_nombre, informe_servicio_id, resultado, detalle, motivo_cierre, oportunidad_id, cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial)",
+      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, motivo_cierre, oportunidad_id, cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -196,10 +196,20 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
             >
               {a.cerrado_at
                 ? "Cerrada"
-                : `${Math.floor(reloj.horas)} h de ${reloj.limite} h`}
+                : a.tomada_at
+                  ? `Atendida en ${reloj.horas < 1 ? `${Math.max(1, Math.round(reloj.horas * 60))} min` : `${Math.round(reloj.horas * 10) / 10} h`}`
+                  : `${Math.floor(reloj.horas)} h de ${reloj.limite} h`}
             </span>
             <span className="text-[11px] text-muted-foreground">
-              {a.perfiles ? `La tiene ${a.perfiles.nombre}` : "Todavía no la tomó nadie"}
+              {a.tomada_at
+                ? `Atendida el ${fechaHoraLima(a.tomada_at)}${
+                    (a as { tomadaPor?: { nombre: string } | null }).tomadaPor
+                      ? ` por ${(a as { tomadaPor?: { nombre: string } | null }).tomadaPor?.nombre}`
+                      : ""
+                  }`
+                : a.perfiles
+                  ? `La tiene ${a.perfiles.nombre}`
+                  : "Todavía no la tomó nadie"}
             </span>
           </div>
         </div>
