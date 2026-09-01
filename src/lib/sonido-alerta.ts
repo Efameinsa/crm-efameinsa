@@ -139,7 +139,6 @@ function conAudioListo(tocar: (ctx: AudioContext) => void): void {
 /** Suena el aviso. Nunca lanza: si no se puede, no suena y ya. */
 export function sonarAlerta(idAviso: string): void {
   if (alertaSilenciada()) return;
-  if (yaSonoEnOtraPestana(idAviso)) return;
   // Volumen duplicado el 24-08 a pedido: en la oficina el anterior se perdía
   // entre el ruido. Duplicar la amplitud son +6 dB, que es lo que se oye como
   // "el doble de fuerte"; sigue siendo un pitido corto y con rampa, no un
@@ -147,7 +146,17 @@ export function sonarAlerta(idAviso: string): void {
   // bajar. 25-08, segunda subida a pedido: 0.06→0.12 (ayer) →0.24. Otros
   // +6 dB percibidos como el doble. De acá en adelante conviene tocar la
   // salida del sistema, no la síntesis: 0.5 ya es zona de saturación.
-  conAudioListo((ctx) => motivo(ctx, 0));
+  //
+  // LA MARCA DE «YA SONÓ» SE PONE AL SONAR, no antes (31-08, encontrado por
+  // Santos con la app instalada + la pestaña vieja abiertas a la vez): la
+  // pestaña de fondo, con el audio todavía bloqueado por el navegador,
+  // reclamaba el aviso ANTES de descubrir que no podía sonar — y la ventana
+  // que sí podía se quedaba callada creyendo que ya había sonado en otra.
+  // Reclamar es privilegio de quien de verdad va a tocar.
+  conAudioListo((ctx) => {
+    if (yaSonoEnOtraPestana(idAviso)) return;
+    motivo(ctx, 0);
+  });
 }
 
 /** Las dos notas del aviso, para poder repetirlas. */
@@ -165,8 +174,10 @@ function motivo(ctx: AudioContext, desde: number): void {
  */
 export function sonarCampanada(idAviso: string): void {
   if (alertaSilenciada()) return;
-  if (yaSonoEnOtraPestana(idAviso)) return;
+  // Igual que en sonarAlerta: la marca se pone recién cuando el audio está
+  // listo — la pestaña muda no reclama lo que no puede tocar (31-08).
   conAudioListo((ctx) => {
+    if (yaSonoEnOtraPestana(idAviso)) return;
     motivo(ctx, 0);
     motivo(ctx, 0.38);
     motivo(ctx, 0.76);
