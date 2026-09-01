@@ -211,42 +211,58 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
-      <PedidoPostventa servicio={servicio} verPrecios={verPrecios} />
+      {/* Dos columnas (Santos, 01-09: «es muy larga horizontalmente… pon una
+          columna derecha donde estén los documentos del expediente»): a la
+          izquierda el seguimiento del pedido —el riel, como el tracking de
+          una encomienda—, a la derecha los papeles y los datos de entrega,
+          que se consultan pero no se recorren. */}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
+        <PedidoPostventa servicio={servicio} verPrecios={verPrecios} />
 
-      {/* Los documentos del expediente. Antes venían impresos dentro del file
-          que Finanzas bajaba; ahora son estos. */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-[13px] font-bold uppercase tracking-wide text-foreground">Documentos del expediente</h2>
-        {adjuntos.length === 0 ? (
-          <p className="mt-2 max-w-prose text-sm text-muted-foreground">
-            El comercial todavía no adjuntó nada al cierre. Acá van la cotización, la orden de compra, los vouchers y
-            los acuerdos firmados — lo que antes viajaba impreso dentro del file.
-          </p>
-        ) : (
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {adjuntos.map((a) => (
-              <li
-                key={a.path}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs"
-              >
-                <Paperclip className="size-3.5 text-muted-foreground" />
-                <span className="font-medium">{ETIQUETA_ADJUNTO[a.tipo ?? "otro"] ?? "Documento"}</span>
-                <span className="text-muted-foreground">{a.nombre}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="space-y-4">
+          {/* Los documentos del expediente. Antes venían impresos dentro del
+              file que Finanzas bajaba; ahora son estos. */}
+          <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+            <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">
+              Documentos del expediente
+            </h2>
+            {adjuntos.length === 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                El comercial todavía no adjuntó nada al cierre. Acá van la cotización, la orden de compra, los
+                vouchers y los acuerdos firmados.
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-1">
+                {adjuntos.map((a) => (
+                  <li
+                    key={a.path}
+                    className="flex items-center gap-2 rounded-md border border-border px-2.5 py-2 text-xs"
+                  >
+                    <Paperclip className="size-3.5 flex-none text-muted-foreground" />
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-foreground">
+                        {ETIQUETA_ADJUNTO[a.tipo ?? "otro"] ?? "Documento"}
+                      </span>
+                      <span className="block truncate text-muted-foreground">{a.nombre}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
-        <dl className="mt-4 grid gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
-          <Dato etiqueta="Dirección de entrega">
-            {servicio.direccion_entrega ?? informe?.entrega_direccion ?? servicio.ubicacion ?? "—"}
-          </Dato>
-          <Dato etiqueta="Quien recibe">
-            {servicio.recibe_nombre ?? contacto?.nombre ?? "—"}
-          </Dato>
-          <Dato etiqueta="Forma de pago">{servicio.forma_pago ?? "—"}</Dato>
-          <Dato etiqueta="Fecha de la venta">{fechaCalendario(servicio.fecha_confirmacion)}</Dato>
-        </dl>
+          <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+            <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">Datos de la entrega</h2>
+            <dl className="mt-2 space-y-2.5 text-xs">
+              <Dato etiqueta="Dirección de entrega">
+                {servicio.direccion_entrega ?? informe?.entrega_direccion ?? servicio.ubicacion ?? "—"}
+              </Dato>
+              <Dato etiqueta="Quien recibe">{servicio.recibe_nombre ?? contacto?.nombre ?? "—"}</Dato>
+              <Dato etiqueta="Forma de pago">{servicio.forma_pago ?? "—"}</Dato>
+              <Dato etiqueta="Fecha de la venta">{fechaCalendario(servicio.fecha_confirmacion)}</Dato>
+            </dl>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -174,68 +174,110 @@ export function PedidoPostventa({
     }
   }
 
+  // El PASO ACTUAL: el primero sin hacer de todo el circuito. Es el que la
+  // pantalla agranda — el resto se lee como el tracking de una encomienda
+  // (rediseño del 01-09 a pedido de Santos: lo hecho compacto con su ✓ y su
+  // fecha, lo que sigue destacado, lo lejano atenuado).
+  const pasoActual = bloques.flatMap((b) => b.pasos).find((p) => !p.hecho)?.clave ?? null;
+
   return (
     <div className="space-y-3">
-      {bloques.map((bloque) => (
-        <div key={bloque.numero} className="overflow-hidden rounded-xl border border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border bg-secondary/50 px-4 py-2">
-            <h3 className="text-[12px] font-bold uppercase tracking-wide text-foreground">
-              <span className="mr-1.5 text-muted-foreground">{"①②③"[bloque.numero - 1]}</span>
-              {bloque.titulo}
-            </h3>
-            <span
-              className={cn(
-                "text-[11px] font-semibold uppercase tracking-wide",
-                bloque.completo ? "text-[#1E7F4F]" : bloque.enCurso ? "text-amber-700" : "text-muted-foreground",
-              )}
-            >
-              {bloque.completo ? "Completo" : bloque.enCurso ? "En curso" : "Pendiente"}
-            </span>
-          </div>
-          <div className="divide-y divide-border">
-            {bloque.pasos.map((paso) => (
-              <div key={paso.clave} className="flex flex-wrap items-start gap-2.5 px-4 py-2.5">
-                <span className="mt-0.5 flex-none">
-                  {paso.hecho ? (
-                    <Check className="size-4 text-[#1E7F4F]" />
-                  ) : paso.trabado ? (
-                    <OctagonAlert className="size-4 text-amber-600" />
-                  ) : (
-                    <CircleDashed className="size-4 text-muted-foreground" />
-                  )}
-                </span>
-                <div className="min-w-[180px] flex-1">
-                  <p
-                    className={cn(
-                      "text-sm",
-                      paso.hecho ? "text-muted-foreground" : "font-medium text-foreground",
+      <div className="rounded-xl border border-border bg-card px-4 pb-3 pt-1 shadow-sm">
+        {bloques.map((bloque, bi) => (
+          <div key={bloque.numero}>
+            <div className="flex items-center justify-between pb-1.5 pt-3">
+              <h3 className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                <span className="mr-1">{"①②③"[bloque.numero - 1]}</span>
+                {bloque.titulo}
+              </h3>
+              <span
+                className={cn(
+                  "text-[10px] font-semibold uppercase tracking-wide",
+                  bloque.completo ? "text-[#1E7F4F]" : bloque.enCurso ? "text-amber-700" : "text-muted-foreground/60",
+                )}
+              >
+                {bloque.completo ? "Completo" : bloque.enCurso ? "En curso" : "Pendiente"}
+              </span>
+            </div>
+            {bloque.pasos.map((paso, pi) => {
+              const esActual = paso.clave === pasoActual;
+              const esUltimo = bi === bloques.length - 1 && pi === bloque.pasos.length - 1;
+              return (
+                <div key={paso.clave} className="relative flex gap-3">
+                  {/* El riel: nodo + línea que conecta con el siguiente paso. */}
+                  <div className="flex w-5 flex-none flex-col items-center">
+                    {paso.hecho ? (
+                      <span className="flex size-5 flex-none items-center justify-center rounded-full bg-[#1E7F4F]">
+                        <Check className="size-3 text-white" />
+                      </span>
+                    ) : paso.trabado ? (
+                      <span className="flex size-5 flex-none items-center justify-center rounded-full bg-amber-500/15">
+                        <OctagonAlert className="size-3.5 text-amber-600" />
+                      </span>
+                    ) : esActual ? (
+                      <span className="flex size-5 flex-none items-center justify-center rounded-full border-2 border-primary bg-primary/10">
+                        <span className="size-1.5 rounded-full bg-primary" />
+                      </span>
+                    ) : (
+                      <span className="mt-0.5 flex size-4 flex-none items-center justify-center">
+                        <CircleDashed className="size-4 text-muted-foreground/50" />
+                      </span>
                     )}
-                  >
-                    {paso.etiqueta}
-                  </p>
-                  {paso.trabado && <p className="text-xs font-medium text-amber-700">{paso.trabado}</p>}
-                  {!paso.trabado && paso.detalle && (
-                    <p className="text-[11px] text-muted-foreground">{paso.detalle}</p>
-                  )}
-                  {!paso.hecho && !paso.trabado && (
-                    <p className="text-[11px] text-muted-foreground">
-                      Lo mueve {etiquetaResponsable(paso.responsable).toLowerCase()}
-                    </p>
+                    {!esUltimo && (
+                      <span className={cn("w-px flex-1", paso.hecho ? "bg-[#1E7F4F]/40" : "bg-border")} />
+                    )}
+                  </div>
+
+                  {/* Lo hecho se lee en una línea; lo actual, en su tarjeta. */}
+                  {paso.hecho ? (
+                    <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 pb-3">
+                      <p className="text-xs text-muted-foreground">{paso.etiqueta}</p>
+                      {paso.detalle && <span className="text-[11px] text-muted-foreground/70">{paso.detalle}</span>}
+                      {paso.cuando && (
+                        <span className="ml-auto whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground/70">
+                          {fechaHoraLima(paso.cuando)}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      className={cn(
+                        "mb-3 min-w-0 flex-1",
+                        (esActual || paso.trabado) &&
+                          "rounded-lg border px-3 py-2.5 " +
+                            (paso.trabado ? "border-amber-400/50 bg-amber-500/5" : "border-primary/30 bg-primary/5"),
+                      )}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p
+                          className={cn(
+                            "flex-1 text-sm",
+                            esActual || paso.trabado ? "font-semibold text-foreground" : "text-muted-foreground",
+                          )}
+                        >
+                          {paso.etiqueta}
+                        </p>
+                        {paso.cuando && (
+                          <span className="whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground">
+                            {fechaLima(paso.cuando)}
+                          </span>
+                        )}
+                        {accionDePaso(paso)}
+                      </div>
+                      {paso.trabado && <p className="mt-0.5 text-xs font-medium text-amber-700">{paso.trabado}</p>}
+                      {!paso.trabado && (esActual || paso.detalle) && (
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {paso.detalle ?? `Lo mueve ${etiquetaResponsable(paso.responsable).toLowerCase()}`}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-right">
-                  {paso.cuando && (
-                    <span className="whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground">
-                      {paso.hecho ? fechaHoraLima(paso.cuando) : fechaLima(paso.cuando)}
-                    </span>
-                  )}
-                  {accionDePaso(paso)}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {/* ── Diálogos ───────────────────────────────────────────────────── */}
 

@@ -1,16 +1,16 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { CircleDashed, OctagonAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { fechaLima } from "@/lib/fechas";
 import {
+  avancePedido,
   bloquesPedido,
-  esProvincia,
   etiquetaResponsable,
   puedeVerPrecios,
   queLoFrena,
   sinPrecios,
-  type PasoPedido,
   type ServicioPostventa,
 } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
@@ -18,36 +18,30 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 /**
- * El tablero de control de los pedidos — el Excel de Hever, digital.
+ * El control de los pedidos — el Excel de Hever, como tablero de fases.
  *
- * Pedido del ing. Carlos en la reunión del 01-09, buscándolo en vivo: «¿si
- * había sido enviado el plan de preinstalación? ¿Dónde estaban los estatus?
- * […] el concepto de ese Excel, el CONTROL de ese Excel es lo que te
- * menciono. Controlamos eso».
- *
- * Una fila por pedido en curso, una columna por paso del circuito, y en cada
- * celda el estatus con su fecha. Es la MISMA información de la ficha del
- * pedido (bloquesPedido), mirada todas juntas — nada se calcula distinto acá.
+ * Pedido del ing. Carlos (01-09): «el concepto de ese Excel, el CONTROL de
+ * ese Excel es lo que te menciono». La primera versión fue una matriz de
+ * nueve columnas de símbolos y Santos la vetó el mismo día: «no me parece
+ * amigable». Tenía razón — una matriz obliga a leer celda por celda sin
+ * jerarquía. La pregunta real del área es «¿qué tengo en cada fase y qué me
+ * toca mover?», y eso se responde con TRES columnas —las mismas tres fases
+ * que ya agrupan la ficha del pedido (bloquesPedido)— y una tarjeta por
+ * pedido con lo esencial: cliente, equipo, avance y qué lo frena. El detalle
+ * de los diez pasos vive en la ficha, a un clic, como el patrón de
+ * seguimiento de encomienda que pidió Santos.
  */
 
-// Las columnas: la unión de los pasos del circuito, en su orden. La
-// preinstalación solo existe en provincia; en Lima la celda dice «—».
-const COLUMNAS: { clave: string; titulo: string }[] = [
-  { clave: "aprobado", titulo: "Aprobado" },
-  { clave: "prueba", titulo: "Probado" },
-  { clave: "plano", titulo: "Plano" },
-  { clave: "pago", titulo: "Pago" },
-  { clave: "direccion", titulo: "Dirección" },
-  { clave: "preinstalacion", titulo: "Preinst." },
-  { clave: "despacho", titulo: "Despacho" },
-  { clave: "puesta", titulo: "P. marcha" },
-  { clave: "cerrado", titulo: "Cierre" },
+const FASES = [
+  { numero: 1 as const, titulo: "① Preparación" },
+  { numero: 2 as const, titulo: "② Despacho" },
+  { numero: 3 as const, titulo: "③ Puesta en marcha y cierre" },
 ];
 
-function diaCorto(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", timeZone: "America/Lima" });
+/** La fase EN LA QUE ESTÁ el pedido: el primer bloque incompleto. */
+function faseActual(s: ServicioPostventa): 1 | 2 | 3 {
+  for (const b of bloquesPedido(s)) if (!b.completo) return b.numero;
+  return 3;
 }
 
 export default async function ControlPedidosPage() {
@@ -68,6 +62,9 @@ export default async function ControlPedidosPage() {
   const verPrecios = puedeVerPrecios(perfil);
   const pedidos = ((data ?? []) as unknown as ServicioPostventa[]).map((s) => (verPrecios ? s : sinPrecios(s)));
 
+  const porFase = new Map<number, ServicioPostventa[]>([[1, []], [2, []], [3, []]]);
+  for (const s of pedidos) porFase.get(faseActual(s))!.push(s);
+
   return (
     <SeccionPanel
       titulo="Control de pedidos"
@@ -77,92 +74,100 @@ export default async function ControlPedidosPage() {
         </span>
       }
     >
-      <p className="mb-3 max-w-prose text-xs text-muted-foreground">
-        Cada fila es un pedido en curso; cada columna, un paso del circuito con su fecha. Es el control que antes
-        vivía en el Excel del área. Tocar la fila abre el expediente del pedido.
+      <p className="mb-4 max-w-prose text-xs text-muted-foreground">
+        Cada pedido está en la fase donde le falta trabajo. La tarjeta dice qué lo frena y de quién depende; tocarla
+        abre el expediente con los diez pasos del circuito.
       </p>
 
       {pedidos.length === 0 ? (
         <p className="text-sm text-muted-foreground">No hay pedidos del flujo en curso ahora mismo.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px] border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-border text-left">
-                <th className="py-2 pr-3 font-semibold text-muted-foreground">Cliente / equipo</th>
-                {COLUMNAS.map((c) => (
-                  <th key={c.clave} className="px-1.5 py-2 text-center font-semibold text-muted-foreground">
-                    {c.titulo}
-                  </th>
-                ))}
-                <th className="py-2 pl-2 font-semibold text-muted-foreground">Lo frena</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pedidos.map((s) => {
-                const pasos = new Map<string, PasoPedido>(
-                  bloquesPedido(s).flatMap((b) => b.pasos.map((p) => [p.clave, p])),
-                );
-                const frena = queLoFrena(s);
-                const provincia = esProvincia(s);
-                return (
-                  <tr key={s.id} className="border-b border-border/60 transition-colors hover:bg-accent/40">
-                    <td className="max-w-[240px] py-2 pr-3">
-                      <Link href={`/postventa/pedidos/${s.id}`} className="group block">
-                        <span className="line-clamp-1 font-semibold text-foreground group-hover:text-primary">
-                          {(s.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "")}
-                        </span>
-                        <span className="line-clamp-1 text-muted-foreground">{s.equipo ?? "Sin equipo"}</span>
-                      </Link>
-                    </td>
-                    {COLUMNAS.map((c) => {
-                      const paso = pasos.get(c.clave);
-                      if (!paso) {
-                        return (
-                          <td key={c.clave} className="px-1.5 py-2 text-center text-muted-foreground/50">
-                            {c.clave === "preinstalacion" && !provincia ? "—" : "—"}
-                          </td>
-                        );
-                      }
+        <div className="grid gap-4 lg:grid-cols-3">
+          {FASES.map((fase) => {
+            const lista = porFase.get(fase.numero) ?? [];
+            return (
+              <div key={fase.numero} className="rounded-xl border border-border bg-secondary/30 p-3">
+                <div className="mb-2.5 flex items-center justify-between px-1">
+                  <h3 className="text-[12px] font-bold uppercase tracking-wide text-foreground">{fase.titulo}</h3>
+                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                    {lista.length}
+                  </span>
+                </div>
+
+                {lista.length === 0 ? (
+                  <p className="px-1 py-4 text-center text-xs text-muted-foreground/70">Nada en esta fase</p>
+                ) : (
+                  <div className="space-y-2">
+                    {lista.map((s) => {
+                      const frena = queLoFrena(s);
+                      const avance = avancePedido(s);
+                      const pct = Math.round((avance.hechos / avance.total) * 100);
                       return (
-                        <td key={c.clave} className="px-1.5 py-2 text-center">
-                          {paso.hecho ? (
-                            <span className="inline-flex flex-col items-center leading-tight text-[#1E7F4F]">
-                              <span className="font-bold">✓</span>
-                              {paso.cuando && <span className="text-[10px]">{diaCorto(paso.cuando)}</span>}
-                            </span>
-                          ) : paso.trabado ? (
-                            <span className="font-bold text-amber-600" title={paso.trabado}>
-                              ●
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground/60">○</span>
+                        <Link
+                          key={s.id}
+                          href={`/postventa/pedidos/${s.id}`}
+                          className={cn(
+                            "block rounded-lg border bg-card p-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40",
+                            frena?.grave ? "border-amber-400/60" : "border-border",
                           )}
-                        </td>
+                        >
+                          <p className="line-clamp-1 text-sm font-semibold text-foreground">
+                            {(s.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "")}
+                          </p>
+                          <p className="line-clamp-1 text-xs text-muted-foreground">{s.equipo ?? "Sin equipo"}</p>
+
+                          {/* El avance, de un vistazo: la barra dice cuánto
+                              camino lleva sin pedir leer ningún símbolo. */}
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                              <span
+                                className={cn("block h-full", pct === 100 ? "bg-[#1E7F4F]" : "bg-primary")}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </span>
+                            <span className="text-[11px] tabular-nums text-muted-foreground">
+                              {avance.hechos}/{avance.total}
+                            </span>
+                          </div>
+
+                          {frena ? (
+                            <p
+                              className={cn(
+                                "mt-2 flex items-start gap-1.5 text-xs",
+                                frena.grave ? "font-semibold text-amber-800" : "text-muted-foreground",
+                              )}
+                            >
+                              {frena.grave ? (
+                                <OctagonAlert className="mt-0.5 size-3.5 flex-none" />
+                              ) : (
+                                <CircleDashed className="mt-0.5 size-3.5 flex-none" />
+                              )}
+                              <span>
+                                {frena.texto} · <b>{etiquetaResponsable(frena.responsable)}</b>
+                              </span>
+                            </p>
+                          ) : (
+                            <p className="mt-2 text-xs font-semibold text-[#1E7F4F]">Listo para cerrar</p>
+                          )}
+
+                          {s.fecha_despacho && (
+                            <p className="mt-1.5 text-[11px] text-muted-foreground">
+                              Despacho: {fechaLima(s.fecha_despacho)}
+                            </p>
+                          )}
+                        </Link>
                       );
                     })}
-                    <td className="max-w-[220px] py-2 pl-2">
-                      {frena ? (
-                        <span className={cn("line-clamp-2", frena.grave ? "font-semibold text-amber-800" : "text-muted-foreground")}>
-                          {frena.texto} · {etiquetaResponsable(frena.responsable)}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 font-semibold text-[#1E7F4F]">
-                          Completo <ArrowRight className="size-3" />
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
       <p className="mt-3 text-[11px] text-muted-foreground">
-        ✓ hecho (con su fecha) · ● trabado (pase el mouse para ver por qué) · ○ pendiente · — no aplica. La cola
-        vieja del Excel se sigue trabajando en Atenciones → Despachos.
+        La cola vieja del Excel se sigue trabajando en Atenciones → Despachos.
       </p>
     </SeccionPanel>
   );
