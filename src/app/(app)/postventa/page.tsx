@@ -448,7 +448,7 @@ export default async function PostventaPage() {
                   </span>
                   <span className="text-[11px] tabular-nums text-muted-foreground">
                     Atendida a las{" "}
-                    {new Date(a.tomada_at).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" })}
+                    {new Date(a.tomada_at).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false })}
                     {" "}· respondió {respuesta}
                     {a.tomadaPor && ` · ${a.tomadaPor.codigo_comercial ?? a.tomadaPor.nombre}`}
                     {a.cerrado_at && " · cerrada"}

@@ -197,6 +197,42 @@ anteponen «PRUEBA») sale en el despliegue de las 18:00.
 **Para Katherine:** el número no es de cada comercial, es una sola serie por
 empresa. Ninguna de las suyas se subió mal.
 
+**Y la 0146, esa misma tarde, con la señorita de postventa al lado:** atendió
+a NESSUS (llamó, mandó la cotización, dos gestiones en el caso a las 10:19)
+y la atención seguía en «Sin atender todavía» con el reloj corriendo, porque
+la bandeja miraba la etapa técnica y el reloj paraba recién en `atendido_at`
+(el técnico ejecuta). Ocho abiertas, cinco ya gestionadas. Ahora
+`atenciones.tomada_at`/`tomada_por` lo fija la base con la primera gestión
+del caso ligado (trigger en `actividades`) o al avanzar la etapa; el reloj de
+respuesta se detiene ahí; Mi día muestra «Atendidas hoy» con hora, tiempo de
+respuesta y quién; Atenciones tiene filtros Sin atender / Atendidas. El
+circuito de nueve etapas NO se mueve solo. Verificado en producción con
+`scripts/_verificar-atendidas.mjs` (sesión real de PV).
+
+**Y la 0147, el caso PERUVIAN NATURE:** «le hicieron preventivo y correctivo
+este año y solo sale lo del 2024». Los dos trabajos de 2026 estaban en la
+base como `servicios_postventa` (cola del Excel de Hever, 25-08) pero con
+`cuenta_id` NULO: el Excel dice «S & S SAC» y la ficha «S & S S.A.C», y el
+cruce del import era por nombre exacto. 123 de 186 servicios estaban sueltos;
+la 0147 enlazó 35 por nombre normalizado cuando casa con UNA ficha; quedan 88
+sueltos, 13 de ellos porque el cliente está partido en dos o más fichas
+(AQUA EXPRESS, HORTIFRUT, PISCIS, LAVIPRONTO, NATUCULTURA, PERUBAR, SAN
+AGUSTIN PARACAS…): se resuelven al fusionar. La ficha de la atención ahora
+tiene «Lo que ya se le hizo a este cliente» (`historial-postventa-cliente`):
+pedidos del Excel, informes de servicio, cierres y ventas de servicio, por
+año. La «duplicidad» era la OPEN 854-25 dos veces en el archivo (una copia
+renombrada «Presu_855-25 … - copia»); se retiró.
+
+**Hallazgo colateral, SIN tocar:** el archivo `cotizaciones_historicas` tiene
+**258 grupos** con el mismo número y dos archivos distintos (p. ej. correlativo
+104 con «Presu_101-26, MENDOZA» y «Presu_104-26, CALLUPE»): el parser guardó
+el número de adentro del documento y el nombre del archivo dice otro. Puede
+esconder cotizaciones reales bajo el número equivocado y hace que la 0077
+salte números que sí están libres. Pide un diagnóstico aparte antes de
+corregir. El preventivo de PERUVIAN del 07-01-2026 existe solo como informe
+en `X:\S. PRIVADO\PERUVIAN NATURE & S.A.C\2026`; ya quedó vinculado a la
+ficha, pero se verá cuando Sistemas dé el puerto (`ARCHIVOS_URL`).
+
 ---
 
 ## 5. Cómo se trabaja acá

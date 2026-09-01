@@ -5,6 +5,9 @@ import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { LineaAtencion } from "@/components/crm/linea-atencion";
 import { EquiposDeLaAtencion } from "@/components/crm/equipos-de-la-atencion";
+import { HistorialPostventaCliente } from "@/components/crm/historial-postventa-cliente";
+import { requerirPerfil } from "@/lib/auth";
+import { puedeVerPrecios } from "@/lib/postventa";
 import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { demora, ETIQUETA_CANAL, ETIQUETA_MOTIVO } from "@/lib/derivados-central";
@@ -228,6 +231,15 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           {a.detalle && (
             <SeccionPanel titulo="Lo que reportó el cliente">
               <p className="whitespace-pre-line text-sm text-foreground">{a.detalle}</p>
+            </SeccionPanel>
+          )}
+
+          {/* «Le hicieron preventivo y correctivo este año y solo sale lo del
+              2024» (postventa, 01-09, caso PERUVIAN NATURE): todo lo hecho o
+              vendido a este cliente, por año, venga de donde venga. */}
+          {a.cuenta_id && (
+            <SeccionPanel titulo="Lo que ya se le hizo a este cliente">
+              <HistorialPostventaCliente cuentaId={a.cuenta_id} verPrecios={puedeVerPrecios(await requerirPerfil())} />
             </SeccionPanel>
           )}
         </div>
