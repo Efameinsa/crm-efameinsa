@@ -92,6 +92,23 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     ? ((await firmarAdjuntosDeLeads(supabase, [{ id: "lead", adjuntos: lead.adjuntos }])).get("lead") ?? [])
     : [];
 
+  // El cliente que entró DOS veces (formulario web + WhatsApp) ya no abre un
+  // expediente gemelo: el segundo contacto se SUMA acá (0141, decisión de
+  // Carlos del 01-09). Lo que pidió por ese otro canal se muestra junto a la
+  // solicitud original — nada de lo que el cliente dijo se pierde.
+  const { data: otrosLeadsCrudos } = await supabase
+    .from("leads")
+    .select("id, codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at")
+    .eq("oportunidad_id", oportunidad.id)
+    .order("recibido_at");
+  const otrosLeads = (otrosLeadsCrudos ?? []).filter((l) => l.id !== oportunidad.lead_id);
+  const adjuntosPorLead = otrosLeads.some((l) => (l.adjuntos as AdjuntoLead[] | null)?.length)
+    ? await firmarAdjuntosDeLeads(
+        supabase,
+        otrosLeads.map((l) => ({ id: l.id, adjuntos: (l.adjuntos as AdjuntoLead[] | null) ?? [] })),
+      )
+    : new Map<string, never[]>();
+
   const cuenta = oportunidad.cuentas as unknown as {
     id: string;
     razon_social: string;
@@ -316,6 +333,22 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
                 {lead.recibido_at ? ` · ${fechaHoraLima(lead.recibido_at)}` : ""}
                 {lead.codigo ? ` · ${lead.codigo}` : ""}
               </p>
+              {/* El mismo cliente entró otra vez por otro canal y Central lo
+                  sumó a este expediente (0141): lo que pidió esa segunda vez
+                  se lee acá mismo, no en una ficha gemela. */}
+              {otrosLeads.map((otro) => (
+                <div key={otro.id} className="mt-3 rounded-lg border border-border bg-secondary/50 p-3">
+                  <p className="mb-1.5 text-xs font-semibold text-foreground">
+                    El cliente volvió a escribir por {ETIQUETA_CANAL_LEAD[otro.canal] ?? otro.canal}
+                  </p>
+                  <SolicitudLead mensaje={otro.mensaje} campania={otro.utm_campaign} compacto />
+                  <AdjuntosLead adjuntos={adjuntosPorLead.get(otro.id) ?? []} />
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    {otro.recibido_at ? `${fechaHoraLima(otro.recibido_at)} · ` : ""}
+                    {otro.codigo ?? ""}
+                  </p>
+                </div>
+              ))}
             </SeccionPanel>
           )}
 

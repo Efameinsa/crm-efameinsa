@@ -189,6 +189,14 @@ interface Filtros {
   comercial?: string | null;
   busqueda?: string;
   limite?: number;
+  /**
+   * El banco de pruebas se ve SOLO en modo ensayo. El 01-09 Santos auditó la
+   * pantalla con gerencia y estaba sembrada de ensayos de capacitación
+   * («esto es prueba, prueba, prueba») que hubo que borrar a mano: las filas
+   * es_prueba estaban diseñadas para no contar en nada, pero esta consulta
+   * nunca las filtró.
+   */
+  incluirPractica?: boolean;
 }
 
 type LeadCrudo = {
@@ -205,10 +213,12 @@ type LeadCrudo = {
   asignado_a: string | null;
   cuenta_id: string | null;
   es_prueba: boolean;
+  /** El expediente al que fue a parar (0141): puede ser compartido con otro lead. */
+  oportunidad_id: string | null;
 };
 
 const CAMPOS_LEAD =
-  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, asignado_at, asignado_a, cuenta_id, es_prueba";
+  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, asignado_at, asignado_a, cuenta_id, es_prueba, oportunidad_id";
 
 /**
  * Las derivaciones del período con todo su rastro. Va en consultas separadas
@@ -230,6 +240,8 @@ export async function cargarDerivados(
     .eq("estado", "asignado")
     .gte("asignado_at", `${f.desde}T00:00:00-05:00`)
     .lte("asignado_at", `${f.hasta}T23:59:59-05:00`);
+  // es_prueba es NOT NULL default false: el .eq no traga filas por null.
+  if (!f.incluirPractica) q = q.eq("es_prueba", false);
   if (f.comercial) q = q.eq("asignado_a", f.comercial);
   const busqueda = (f.busqueda ?? "").trim();
   if (busqueda) {
@@ -347,16 +359,29 @@ async function armar(
   const asignados = leads.map((l) => (l.asignado_at ? new Date(l.asignado_at).getTime() : Infinity));
   const margenDesde = Math.min(...asignados) - margenMs;
 
-  const [{ data: ops }, { data: opsCuenta }] = await Promise.all([
+  // El expediente de cada lead se resuelve por DOS caminos: el directo
+  // (leads.oportunidad_id, 0141 — cubre a los que se SUMARON a un expediente
+  // existente) y el histórico (oportunidades.lead_id, que solo recuerda al
+  // primer lead). Se piden ambos y el directo manda.
+  const idsOpDirecta = [...new Set(leads.map((l) => l.oportunidad_id).filter((x): x is string => Boolean(x)))];
+
+  const [{ data: opsDeLead }, { data: opsDirectas }, { data: opsCuenta }] = await Promise.all([
     supabase
       .from("oportunidades")
       .select("id, lead_id, etapa, cerrada_at, proxima_accion, proxima_accion_at")
       .in("lead_id", ids),
+    idsOpDirecta.length
+      ? supabase
+          .from("oportunidades")
+          .select("id, lead_id, etapa, cerrada_at, proxima_accion, proxima_accion_at")
+          .in("id", idsOpDirecta)
+      : Promise.resolve({ data: [] as never[] }),
     cuentaIds.length && Number.isFinite(margenDesde)
       ? supabase.from("oportunidades").select("id, cuenta_id, comercial_id").in("cuenta_id", cuentaIds)
       : Promise.resolve({ data: [] as { id: string; cuenta_id: string; comercial_id: string | null }[] }),
   ]);
-  const opIds = (ops ?? []).map((o) => o.id);
+  const ops = [...new Map([...(opsDeLead ?? []), ...(opsDirectas ?? [])].map((o) => [o.id, o])).values()];
+  const opIds = ops.map((o) => o.id);
   const opIdsPropias = new Set(opIds);
   const opIdsGemelas = (opsCuenta ?? []).map((o) => o.id).filter((id) => !opIdsPropias.has(id));
 
@@ -426,6 +451,7 @@ async function armar(
   ]);
 
   const opPorLead = new Map((ops ?? []).map((o) => [o.lead_id as string, o]));
+  const opPorId = new Map((ops ?? []).map((o) => [o.id as string, o]));
   const motivoPorLead = new Map((asignaciones ?? []).map((a) => [a.lead_id as string, a.motivo as string]));
   const cuentaPorId = new Map((cuentas ?? []).map((c) => [c.id as string, c.razon_social as string]));
 
@@ -474,7 +500,9 @@ async function armar(
   const ahora = Date.now();
 
   return leads.map((l) => {
-    const op = opPorLead.get(l.id) ?? null;
+    // El vínculo directo manda: si el lead se SUMÓ a un expediente (0141),
+    // ese es su expediente aunque oportunidades.lead_id recuerde a otro.
+    const op = (l.oportunidad_id ? opPorId.get(l.oportunidad_id) : undefined) ?? opPorLead.get(l.id) ?? null;
     const gestion = op ? gestionPorOp.get(op.id) : undefined;
 
     // Lo que el MISMO comercial hizo con este cliente en sus OTRAS fichas,

@@ -144,7 +144,16 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
         toast.error(resultado.error, { duration: 9000 });
         return;
       }
-      toast.success(traspaso ? "Contacto asignado y cartera traspasada" : "Contacto asignado");
+      // Carlos (01-09): consolidar automático, PERO avisando — «o que le
+      // avise para que se junte un expediente». Central sabe que no abrió
+      // caso nuevo: el mensaje se sumó al que el comercial ya trabajaba.
+      if (resultado.sumadoAExpediente) {
+        toast.success("El cliente ya tenía un caso abierto con ese comercial: este contacto se sumó a ese expediente.", {
+          duration: 8000,
+        });
+      } else {
+        toast.success(traspaso ? "Contacto asignado y cartera traspasada" : "Contacto asignado");
+      }
       setAbierto(false);
     });
   }

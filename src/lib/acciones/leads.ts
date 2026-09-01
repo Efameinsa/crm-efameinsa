@@ -192,7 +192,7 @@ export async function asignarLead(
   tipoPostventa?: string | null,
   /** El código del supervisor, cuando la derivación mueve la cartera (0107). */
   pin?: string | null,
-): Promise<{ error: string | null; requierePin?: boolean }> {
+): Promise<{ error: string | null; requierePin?: boolean; sumadoAExpediente?: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -216,7 +216,10 @@ export async function asignarLead(
   }
 
   const [{ data: oportunidad }, { data: lead }, { data: perfiles }] = await Promise.all([
-    supabase.from("oportunidades").select("cuentas(razon_social)").eq("id", oportunidadId).maybeSingle(),
+    // lead_id recuerda al PRIMER lead del expediente: si no es este, el
+    // contacto se SUMÓ a un expediente que el comercial ya tenía abierto
+    // (0141) — y a Central se le dice, no se le esconde.
+    supabase.from("oportunidades").select("lead_id, cuentas(razon_social)").eq("id", oportunidadId).maybeSingle(),
     supabase.from("leads").select("codigo, nombre_contacto, telefono, canal").eq("id", leadId).maybeSingle(),
     supabase.from("perfiles").select("id, nombre").in("id", user ? [comercialId, user.id] : [comercialId]),
   ]);
@@ -245,7 +248,7 @@ export async function asignarLead(
   });
 
   revalidatePath("/central");
-  return { error: null };
+  return { error: null, sumadoAExpediente: Boolean(oportunidad?.lead_id && oportunidad.lead_id !== leadId) };
 }
 
 // Las tres salidas de la bandeja comparten el mismo candado: solo actúan sobre

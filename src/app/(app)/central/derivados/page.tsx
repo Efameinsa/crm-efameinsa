@@ -73,6 +73,10 @@ export default async function DerivadosPage({
       hasta: periodo.hasta,
       comercial: sp.comercial ?? null,
       busqueda,
+      // El banco de pruebas solo se ve con el código levantado (modo ensayo):
+      // así la capacitación no vuelve a sembrar la pantalla de «prueba,
+      // prueba, prueba» (auditoría de Santos y gerencia, 01-09).
+      incluirPractica: modoEnsayo,
     }),
   ]);
 
