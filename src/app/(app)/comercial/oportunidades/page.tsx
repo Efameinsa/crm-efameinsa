@@ -8,6 +8,7 @@ import { TablaOportunidades } from "@/components/crm/tabla-oportunidades";
 import { Paginacion } from "@/components/crm/filtros-clientes";
 import { PipelineKanban, type OportunidadKanban } from "@/components/crm/pipeline-kanban";
 import { RutaMantenimientoVista } from "@/components/crm/ruta-mantenimiento-vista";
+import { alcanceDe, cargarOpcionesRubro, leerFiltroRubro, rubroParaRpc } from "../consultas-rubro";
 import { cn } from "@/lib/utils";
 import type { EtapaOportunidad } from "@/types/database";
 
@@ -79,6 +80,7 @@ export default async function OportunidadesPage({
     desde?: string;
     hasta?: string;
     solo_crm?: string;
+    rubro?: string;
     orden?: string;
     pagina?: string;
     ver?: string;
@@ -118,11 +120,21 @@ export default async function OportunidadesPage({
   const soloCrm = sp.solo_crm === "1";
   const orden: OrdenOportunidades = ORDENES.includes(sp.orden as OrdenOportunidades) ? (sp.orden as OrdenOportunidades) : "reciente";
   const pagina = Math.max(1, parseInt(sp.pagina ?? "1", 10) || 1);
-
   const supabase = await createClient();
-  const [{ data: motivos }, conteos] = await Promise.all([
+
+  // Rubro de la cuenta (Carlos, 01-09: «hoy me voy a centrar en mineras»):
+  // un filtro más de listar_oportunidades()/contar_oportunidades_por_etapa()
+  // desde la 0152, así que la Tabla, el Kanban y las pestañas lo respetan igual
+  // que a los demás.
+  const rubro = leerFiltroRubro(sp.rubro);
+  const filtrosComunes = { q, tipoCliente, desde, hasta, soloCrm, rubro: rubroParaRpc(rubro) };
+  const listar = (extra: { etapa?: string | null; limite: number; offset: number }) =>
+    listarOportunidades(supabase, { ...filtrosComunes, orden, ...extra });
+
+  const [{ data: motivos }, conteos, { opciones: opcionesRubro, sinRubro }] = await Promise.all([
     supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
-    contarOportunidadesPorEtapa(supabase, { q, tipoCliente, desde, hasta, soloCrm }),
+    contarOportunidadesPorEtapa(supabase, filtrosComunes),
+    cargarOpcionesRubro(supabase, alcanceDe(perfil)),
   ]);
   // «Todas» cuenta lo mismo que muestra: el archivo tiene su propia pestaña y
   // no entra en el total, o el número prometería filas que la lista no trae.
@@ -136,17 +148,7 @@ export default async function OportunidadesPage({
     const columnas = await Promise.all(
       ETAPAS_TABLERO.map(async (e) => {
         if (etapa && etapa !== e) return [] as Awaited<ReturnType<typeof listarOportunidades>>["filas"];
-        const { filas } = await listarOportunidades(supabase, {
-          q,
-          etapa: e,
-          tipoCliente,
-          desde,
-          hasta,
-          soloCrm,
-          orden,
-          limite: POR_COLUMNA,
-          offset: 0,
-        });
+        const { filas } = await listar({ etapa: e, limite: POR_COLUMNA, offset: 0 });
         return filas;
       }),
     );
@@ -177,6 +179,9 @@ export default async function OportunidadesPage({
           conteos={conteos}
           totalGeneral={totalGeneral}
           enHistorico={enHistorico}
+          rubro={rubro}
+          opcionesRubro={opcionesRubro}
+          sinRubro={sinRubro}
         />
         <p className="text-xs text-muted-foreground">
           El tablero es para trabajar el día a día: muestra hasta {POR_COLUMNA} fichas por columna, las más recientes
@@ -192,14 +197,8 @@ export default async function OportunidadesPage({
     );
   }
 
-  const { total, filas } = await listarOportunidades(supabase, {
-    q,
+  const { total, filas } = await listar({
     etapa: etapa ?? undefined,
-    tipoCliente,
-    desde,
-    hasta,
-    soloCrm,
-    orden,
     limite: POR_PAGINA,
     offset: (pagina - 1) * POR_PAGINA,
   });
@@ -222,6 +221,9 @@ export default async function OportunidadesPage({
         conteos={conteos}
         totalGeneral={totalGeneral}
         enHistorico={enHistorico}
+        rubro={rubro}
+        opcionesRubro={opcionesRubro}
+        sinRubro={sinRubro}
       />
 
       {/* El archivo se explica solo en cuanto se abre: nadie tiene que
@@ -241,7 +243,11 @@ export default async function OportunidadesPage({
       >
         {filas.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {q || etapa || tipoCliente || desde || hasta || soloCrm ? "Nada coincide con esos filtros." : "Aún no tiene oportunidades asignadas."}
+            {rubro === "sin"
+              ? "Todos sus clientes con oportunidades ya tienen rubro."
+              : q || etapa || tipoCliente || desde || hasta || soloCrm || rubro !== null
+                ? "Nada coincide con esos filtros."
+                : "Aún no tiene oportunidades asignadas."}
           </p>
         ) : (
           <div className="space-y-3">

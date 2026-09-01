@@ -6,6 +6,7 @@ import { Archive, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
+import { FiltroRubro, type OpcionRubro, type ValorRubro } from "@/components/crm/filtro-rubro";
 import { cn } from "@/lib/utils";
 import type { EtapaOportunidad } from "@/types/database";
 
@@ -15,6 +16,8 @@ import type { EtapaOportunidad } from "@/types/database";
 // funcione. La vista Tabla trae sus propios filtros (etapa, empresa/persona,
 // "para retomar", orden); la vista Kanban no los usa: es un tablero de
 // trabajo diario acotado a lo nacido en el CRM (ver comentario en page.tsx).
+// Desde el 01-09 la fila de filtros trae también el rubro de la cuenta
+// (`?rubro=`), pedido por Carlos para trabajar la cartera por sectores.
 
 // Las etapas del trabajo. «historico» NO está acá: es el archivo de los Excel
 // (0130) y va aparte, al final de la fila, para que se lea como lo que es —un
@@ -42,6 +45,9 @@ export function FiltrosOportunidades({
   conteos,
   totalGeneral,
   enHistorico = 0,
+  rubro = null,
+  opcionesRubro = [],
+  sinRubro = 0,
 }: {
   vista: "tabla" | "kanban";
   q: string;
@@ -55,6 +61,12 @@ export function FiltrosOportunidades({
   totalGeneral: number;
   /** Cuántas hay archivadas (0130); 0 esconde la pestaña. */
   enHistorico?: number;
+  /** Rubro de la cuenta elegido (`?rubro=`): id del catálogo o «sin». */
+  rubro?: ValorRubro | null;
+  /** Rubros del catálogo con clientes de la cartera en cada uno. */
+  opcionesRubro?: OpcionRubro[];
+  /** Clientes de la cartera que todavía no tienen rubro. */
+  sinRubro?: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -152,6 +164,15 @@ export function FiltrosOportunidades({
             <Chip activo={tipoCliente === "persona"} onClick={() => navegar({ tipo: "persona" })}>
               Solo personas
             </Chip>
+
+            {/* «Hoy me voy a centrar en mineras» (Carlos, 01-09): el rubro
+                de la cuenta, con cuántos clientes hay en cada uno. */}
+            <FiltroRubro
+              valor={rubro}
+              opciones={opcionesRubro}
+              sinRubro={sinRubro}
+              onCambiar={(v) => navegar({ rubro: v })}
+            />
 
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               Para retomar:

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Pencil, TriangleAlert } from "lucide-react";
+import { FileText, Pencil, Tag, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { actualizarIdentidadCuenta } from "@/lib/acciones/cuentas";
 import { errorDocumento, type TipoDocumento } from "@/lib/documento";
@@ -43,16 +43,26 @@ const TIPOS: [TipoDocumento, string][] = [
  * El RUC se valida con el módulo 11 de SUNAT antes de guardarlo: un dígito
  * cambiado no lo nota nadie hasta que rebota el expediente.
  */
+// El valor del desplegable de rubro cuando no hay rubro: el Select no acepta
+// una cadena vacía como opción.
+const SIN_RUBRO = "sin";
+
 export function IdentidadCuenta({
   cuentaId,
   tipoDoc,
   numDoc,
   razonSocial,
+  rubroId = null,
+  rubros = [],
 }: {
   cuentaId: string;
   tipoDoc: TipoDocumento;
   numDoc: string | null;
   razonSocial: string;
+  /** Rubro actual de la cuenta; null = todavía sin clasificar. */
+  rubroId?: number | null;
+  /** Catálogo activo (catalogo_rubros). Vacío esconde el desplegable. */
+  rubros?: { id: number; nombre: string }[];
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -60,19 +70,27 @@ export function IdentidadCuenta({
     tipoDoc,
     numDoc: numDoc ?? "",
     razonSocial,
+    rubro: rubroId === null ? SIN_RUBRO : String(rubroId),
   });
   const [guardando, startTransition] = useTransition();
 
   const problema = editando ? errorDocumento(campos.tipoDoc, campos.numDoc) : null;
+  const nombreRubro = rubros.find((r) => r.id === rubroId)?.nombre ?? null;
 
   function abrir() {
-    setCampos({ tipoDoc, numDoc: numDoc ?? "", razonSocial });
+    setCampos({ tipoDoc, numDoc: numDoc ?? "", razonSocial, rubro: rubroId === null ? SIN_RUBRO : String(rubroId) });
     setEditando(true);
   }
 
   function guardar() {
     startTransition(async () => {
-      const r = await actualizarIdentidadCuenta({ cuentaId, ...campos });
+      const { rubro, ...identidad } = campos;
+      const r = await actualizarIdentidadCuenta({
+        cuentaId,
+        ...identidad,
+        // Solo viaja si hay catálogo: sin él no hay desplegable y no se toca.
+        ...(rubros.length > 0 ? { rubroId: rubro === SIN_RUBRO ? null : Number(rubro) } : {}),
+      });
       if (r.error) {
         toast.error(r.error);
         return;
@@ -101,6 +119,16 @@ export function IdentidadCuenta({
               `${tipoDoc}: ${numDoc}`
             )}
           </p>
+          {rubros.length > 0 && (
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+              <Tag className="size-3.5" />
+              {nombreRubro ?? (
+                <span className="font-medium text-amber-700" title="Póngale rubro para poder filtrar su cartera por sector.">
+                  Sin rubro — no sale al filtrar por rubro
+                </span>
+              )}
+            </p>
+          )}
         </div>
         <Button size="sm" variant="ghost" onClick={abrir}>
           <Pencil className="size-3.5" />
@@ -179,6 +207,34 @@ export function IdentidadCuenta({
         El tipo y número de documento también se imprimen en la cotización, sin RUC/DNI si queda
         «Todavía sin documento». La dirección se corrige en los contactos, más abajo.
       </p>
+
+      {rubros.length > 0 && (
+        <div className="space-y-1.5">
+          <Label htmlFor="ic-rubro" className="text-xs">
+            Rubro
+          </Label>
+          <Select
+            value={campos.rubro}
+            onValueChange={(v) => setCampos({ ...campos, rubro: typeof v === "string" && v ? v : SIN_RUBRO })}
+          >
+            <SelectTrigger id="ic-rubro" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SIN_RUBRO}>Sin rubro</SelectItem>
+              {rubros.map((r) => (
+                <SelectItem key={r.id} value={String(r.id)}>
+                  {r.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground">
+            A qué se dedica el cliente. Con esto se filtra la cartera por sector («hoy me centro en
+            mineras»); un cliente sin rubro no aparece en esos filtros.
+          </p>
+        </div>
+      )}
 
       {problema && (
         <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">

@@ -25,10 +25,14 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   const { data: cuenta } = await supabase
     .from("cuentas")
     .select(
-      "id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, carpetas_servidor, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, direccion, es_principal)",
+      "id, razon_social, nombre_comercial, tipo_doc, num_doc, rubro_id, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, carpetas_servidor, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, direccion, es_principal)",
     )
     .eq("id", cuentaId)
     .maybeSingle();
+
+  // El catálogo de rubros, para que el comercial clasifique al cliente desde
+  // acá y después pueda filtrar su cartera (Carlos, 01-09).
+  const { data: rubros } = await supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre");
 
   if (!cuenta) {
     return comoGerencia ? (
@@ -228,6 +232,8 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               tipoDoc={cuenta.tipo_doc}
               numDoc={cuenta.num_doc}
               razonSocial={cuenta.razon_social}
+              rubroId={cuenta.rubro_id ?? null}
+              rubros={(rubros ?? []) as { id: number; nombre: string }[]}
             />
           </div>
           <ContactosEditables cuentaId={cuenta.id} contactos={contactos} />

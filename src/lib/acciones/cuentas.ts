@@ -52,12 +52,18 @@ export async function actualizarResumenCuenta(
  * La dirección NO va acá: probado el 26-08 y descartado porque un cliente
  * puede tener varias sedes. Vive por contacto (`guardarContacto` en
  * contactos.ts) y la cotización imprime la del contacto principal.
+ *
+ * Desde el 01-09 también guarda el RUBRO (`rubroId`; null = sin rubro), para
+ * que el comercial pueda ir clasificando su cartera desde la ficha y después
+ * filtrarla («hoy me voy a centrar en mineras», Carlos). Si no viene, no se
+ * toca. Mismo permiso que el resto: solo el dueño actual de la cartera.
  */
 export async function actualizarIdentidadCuenta(datos: {
   cuentaId: string;
   tipoDoc: TipoDocumento;
   numDoc: string;
   razonSocial: string;
+  rubroId?: number | null;
 }): Promise<{ error: string | null; avisoDuplicado?: string }> {
   const razonSocial = datos.razonSocial.trim().replace(/\s+/g, " ");
   if (!razonSocial) return { error: "La razón social no puede ir vacía" };
@@ -95,9 +101,16 @@ export async function actualizarIdentidadCuenta(datos: {
 
   // `.select()` de vuelta: cuando RLS filtra, el update no da error, afecta
   // cero filas (mismo bug de siempre).
+  const cambios: Record<string, unknown> = { tipo_doc: datos.tipoDoc, num_doc: numDoc, razon_social: razonSocial };
+  if (datos.rubroId !== undefined) {
+    if (datos.rubroId !== null && (!Number.isInteger(datos.rubroId) || datos.rubroId <= 0)) {
+      return { error: "Ese rubro no existe" };
+    }
+    cambios.rubro_id = datos.rubroId;
+  }
   const { data, error } = await supabase
     .from("cuentas")
-    .update({ tipo_doc: datos.tipoDoc, num_doc: numDoc, razon_social: razonSocial })
+    .update(cambios)
     .eq("id", datos.cuentaId)
     .select("id");
   if (error) return { error: error.message };

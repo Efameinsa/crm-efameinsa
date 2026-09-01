@@ -1,6 +1,9 @@
 import { Search } from "lucide-react";
 import { listarClientes, type OrdenClientes } from "@/lib/reportes";
 import { createClient } from "@/lib/supabase/server";
+import { requerirPerfil } from "@/lib/auth";
+import { FiltroRubro } from "@/components/crm/filtro-rubro";
+import { alcanceDe, cargarOpcionesRubro, leerFiltroRubro, rubroParaRpc } from "../consultas-rubro";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { TablaCartera } from "@/components/crm/tabla-cartera";
 import { Paginacion } from "@/components/crm/filtros-clientes";
@@ -37,20 +40,22 @@ const ETIQUETA_ORDEN: Record<OrdenClientes, string> = {
 export default async function CarteraPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; orden?: string; pagina?: string }>;
+  searchParams: Promise<{ q?: string; orden?: string; pagina?: string; rubro?: string }>;
 }) {
+  const perfil = await requerirPerfil();
   const sp = await searchParams;
   const q = sp.q?.trim() ?? "";
   const orden: OrdenClientes = ORDENES.includes(sp.orden as OrdenClientes) ? (sp.orden as OrdenClientes) : "recientes";
   const pagina = Math.max(1, parseInt(sp.pagina ?? "1", 10) || 1);
+  // Rubro (Carlos, 01-09: «hoy me voy a centrar en mineras»): lo filtra
+  // listar_clientes() desde la 0152, con la misma búsqueda y los mismos órdenes.
+  const rubro = leerFiltroRubro(sp.rubro);
 
   const supabase = await createClient();
-  const { total, filas } = await listarClientes(supabase, {
-    q,
-    orden,
-    limite: POR_PAGINA,
-    offset: (pagina - 1) * POR_PAGINA,
-  });
+  const [{ opciones: opcionesRubro, sinRubro }, { total, filas }] = await Promise.all([
+    cargarOpcionesRubro(supabase, alcanceDe(perfil)),
+    listarClientes(supabase, { q, orden, rubro: rubroParaRpc(rubro), limite: POR_PAGINA, offset: (pagina - 1) * POR_PAGINA }),
+  ]);
 
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
   const desde = total === 0 ? 0 : (pagina - 1) * POR_PAGINA + 1;
@@ -83,6 +88,9 @@ export default async function CarteraPage({
             </option>
           ))}
         </select>
+        {/* Sin onCambiar: es un campo más del formulario y lo envía solo al
+            cambiar, con la búsqueda y el orden que ya estén puestos. */}
+        <FiltroRubro valor={rubro} opciones={opcionesRubro} sinRubro={sinRubro} className="[&>select]:h-9 [&>select]:text-sm" />
         <Button type="submit">Buscar</Button>
       </form>
 
@@ -96,7 +104,11 @@ export default async function CarteraPage({
       >
         {filas.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {q ? "Sin resultados para esa búsqueda." : "Todavía no tiene clientes en su cartera."}
+            {rubro === "sin"
+              ? "Todos sus clientes ya tienen rubro."
+              : q || rubro !== null
+                ? "Sin resultados para esa búsqueda."
+                : "Todavía no tiene clientes en su cartera."}
           </p>
         ) : (
           <div className="space-y-3">

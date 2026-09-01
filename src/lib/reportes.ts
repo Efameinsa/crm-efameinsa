@@ -207,9 +207,15 @@ export interface FilaClienteListado {
   total_usd: number;
   /** Tiene carpeta del servidor vinculada (0137): la lista lo marca y lo pone primero. */
   con_servidor: boolean;
+  /** Rubro de la cuenta (0152); null = todavía sin clasificar. */
+  rubro_id: number | null;
 }
 
 export type OrdenClientes = "recientes" | "nombre" | "ultima_venta" | "valor";
+
+/** Filtro por rubro de la cuenta (0152): el id del catálogo como texto
+ *  («6») o «sin» para las cuentas que todavía no tienen rubro. */
+export type RubroFiltro = string | null;
 
 export async function listarClientes(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -221,6 +227,7 @@ export async function listarClientes(
     orden?: OrdenClientes;
     limite?: number;
     offset?: number;
+    rubro?: RubroFiltro;
   },
 ): Promise<{ total: number; filas: FilaClienteListado[] }> {
   const { data, error } = await supabase.rpc("listar_clientes", {
@@ -231,6 +238,7 @@ export async function listarClientes(
     p_orden: opciones.orden ?? "recientes",
     p_limite: opciones.limite ?? 50,
     p_offset: opciones.offset ?? 0,
+    p_rubro: opciones.rubro ?? null,
   });
   if (error) {
     console.error("listar_clientes:", error.message);
@@ -276,6 +284,7 @@ export async function listarOportunidades(
     orden?: OrdenOportunidades;
     limite?: number;
     offset?: number;
+    rubro?: RubroFiltro;
   },
 ): Promise<{ total: number; filas: FilaOportunidadListado[] }> {
   const { data, error } = await supabase.rpc("listar_oportunidades", {
@@ -289,6 +298,7 @@ export async function listarOportunidades(
     p_orden: opciones.orden ?? "reciente",
     p_limite: opciones.limite ?? 50,
     p_offset: opciones.offset ?? 0,
+    p_rubro: opciones.rubro ?? null,
   });
   if (error) {
     console.error("listar_oportunidades:", error.message);
@@ -309,6 +319,7 @@ export async function contarOportunidadesPorEtapa(
     desde?: string | null;
     hasta?: string | null;
     soloCrm?: boolean;
+    rubro?: RubroFiltro;
   },
 ): Promise<Record<string, number>> {
   const { data, error } = await supabase.rpc("contar_oportunidades_por_etapa", {
@@ -318,6 +329,7 @@ export async function contarOportunidadesPorEtapa(
     p_desde: opciones.desde ?? null,
     p_hasta: opciones.hasta ?? null,
     p_solo_crm: opciones.soloCrm ?? false,
+    p_rubro: opciones.rubro ?? null,
   });
   if (error) {
     console.error("contar_oportunidades_por_etapa:", error.message);
