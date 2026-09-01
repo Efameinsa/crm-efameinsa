@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { activarNotificaciones, soportaPush } from "@/lib/push-cliente";
+import { suscripcionRegistrada } from "@/lib/acciones/notificaciones";
 import { Button } from "@/components/ui/button";
 
 const CLAVE_DESCARTADO = "efameinsa_notif_callout_descartado";
@@ -35,7 +36,12 @@ export function CalloutActivarNotificaciones() {
         try {
           const reg = await navigator.serviceWorker.getRegistration();
           const sub = await reg?.pushManager.getSubscription();
-          if (sub) return; // permiso Y suscripción: no hay nada que ofrecer
+          // Tercera corrección (31-08, caso Post Venta): suscripción viva en
+          // el NAVEGADOR no basta — si la base no la conoce (una limpieza le
+          // borró la fila), el servidor no tiene a quién mandarle la push y
+          // el aviso se escondía justo cuando más falta hacía. Se le pregunta
+          // a la base antes de esconderse.
+          if (sub && (await suscripcionRegistrada(sub.endpoint))) return;
         } catch {
           return;
         }

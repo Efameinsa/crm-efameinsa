@@ -55,6 +55,32 @@ export async function guardarSuscripcionPush(datos: {
 }
 
 /**
+ * ¿La base conoce esta suscripción?
+ *
+ * Existe por el caso encontrado el 31-08 con la cuenta de Post Venta: el
+ * NAVEGADOR tenía permiso y suscripción viva, pero su fila de la base se
+ * había ido (la limpieza del 24-08 borró suscripciones). El aviso de
+ * «Activar notificaciones» se ocultaba creyendo que todo estaba bien… y las
+ * push jamás llegaban, porque el servidor no tenía a quién mandárselas. El
+ * aviso ahora pregunta ACÁ antes de esconderse: suscripción que la base no
+ * conoce es suscripción que no existe.
+ */
+export async function suscripcionRegistrada(endpoint: string): Promise<boolean> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data } = await supabase
+    .from("push_suscripciones")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("endpoint", endpoint)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+/**
  * Apagar los avisos de una pantalla al llegar a ella.
  *
  * Regla: un aviso existe para llevar a la persona a un sitio; cuando ya está
