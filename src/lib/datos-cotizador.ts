@@ -203,7 +203,8 @@ export async function cargarContextoCotizador(
     supabase
       .from("oportunidades")
       .select(
-        "id, leads(mensaje), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, es_principal))",
+        // leads! desambiguado: desde la 0141 hay dos FK entre estas tablas.
+        "id, leads!oportunidades_lead_id_fkey(mensaje), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, es_principal))",
       )
       .eq("id", oportunidadId)
       .maybeSingle(),

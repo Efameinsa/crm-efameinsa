@@ -141,7 +141,8 @@ export async function cargarCompendio(oportunidadId: string | null): Promise<Com
   const { data: op } = await supabase
     .from("oportunidades")
     .select(
-      "id, created_at, cerrada_at, lead_id, comercial_id, perfiles:comercial_id(nombre, codigo_comercial), leads(canal, recibido_at)",
+      // leads! desambiguado: desde la 0141 hay dos FK entre estas tablas.
+      "id, created_at, cerrada_at, lead_id, comercial_id, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(canal, recibido_at)",
     )
     .eq("id", oportunidadId)
     .maybeSingle();

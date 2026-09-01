@@ -58,7 +58,11 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
       supabase
         .from("oportunidades")
         .select(
-          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
+          // leads! con el nombre de la FK: desde la 0141 hay DOS relaciones
+          // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
+          // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
+          // dejó todas las fichas en «ya no se puede mostrar» una hora.
+          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
