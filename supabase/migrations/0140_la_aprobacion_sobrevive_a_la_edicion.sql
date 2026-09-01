@@ -45,6 +45,10 @@ begin
   if v_def is null then
     raise exception 'No existe la función editar_cotizacion';
   end if;
+  if v_def like '%v_hay_requiere_nuevo%' then
+    raise notice '0140: editar_cotizacion ya estaba parchada; no se toca.';
+    return;
+  end if;
 
   -- ── 1. Declaraciones nuevas ──────────────────────────────────────────
   v_ancla := 'v_hay_requiere boolean := false;';
