@@ -258,6 +258,39 @@ vemos cómo lo debe ver comercial»** (Santos): `veTodoPostventa(perfil)` en
 hace_postventa) para la agenda, casos anteriores, Mi día y la Ruta; la RLS
 0124 ya lo permitía. Cómo lo ve comercial: pendiente de decidir.
 
+### La tanda de la noche del 01-09 (construida en local, SIN desplegar hasta que Santos lo diga)
+
+Sale de las tres grabaciones de la tarde (15:56, 16:27, 16:56) con Carlos y
+Lesly; el plan con citas está en las cabeceras de la 0150 y de los archivos.
+
+- **El circuito del pedido en el orden de Carlos** (`bloquesPedido`, 0150):
+  ① confirmación de Finanzas (con quién y por qué medio; no traba nada) →
+  aprobación → probado y embalado con fecha y hora → plano en paralelo;
+  ② dirección Y quién recibe verificados → **apertura de despacho**, que solo
+  se emite con las cuatro condiciones (el servidor las vuelve a verificar,
+  `emitirAperturaDespacho`) → despacho, que sin apertura no sale; ③ igual.
+  La ficha muestra la forma de pago del cierre arriba y el aviso de aprobar
+  ya no tapa el riel. La apertura es una página imprimible:
+  `/postventa/pedidos/[id]/apertura` (HTML → Edge → PDF, sin montos).
+- **Mi día sin duplicados**: una derivación de Central creaba caso + atención
+  (0132) y la bandeja listaba los dos (PERUVIAN, IRPE). Manda la atención.
+- **Central → Presupuestos** (`/central/presupuestos`): listado con escala
+  día/semana/mes/año y por comercial; `FiltroPeriodo` ganó `escalas`.
+- **Comercial: filtro por rubro** en oportunidades y cartera
+  (`filtro-rubro.tsx`, `consultas-rubro.ts`).
+- **Stock semanal de Importaciones**: `scripts/cargar-stock-semanal.mjs` +
+  `docs/28` (formato del Excel: CÓDIGO, STOCK, ALMACÉN opcional; ruta
+  `V:\SANTOS\STOCK SEMANAL\`). Solo plan por defecto.
+- **Curar nombres**: `scripts/reporte-servicios-sin-cliente.mjs` →
+  `docs/servicios-sin-cliente.xlsx` (no se versiona) para Lesly, y
+  `aplicar-servicios-sin-cliente.mjs` que lee su decisión.
+- **El hueco 2202-2208 se rellena** (decisión de Carlos): migración 0151 en
+  el scratchpad de la sesión, se aplica el día del despliegue.
+- OJO: **otra sesión de esta misma carpeta** comiteó y desplegó la
+  `0148_la_venta_se_registra…` a las 17:48; la mía pasó a 0150 (el registro
+  en `_migraciones_aplicadas` se renombró). Verificar el último número antes
+  de crear una migración sigue siendo la regla.
+
 ---
 
 ## 5. Cómo se trabaja acá
