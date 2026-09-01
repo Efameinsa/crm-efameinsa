@@ -451,7 +451,14 @@ export async function guardarContactoEntrega(datos: {
 export async function agregarAdjuntosInforme(
   informeId: string,
   nuevos: AdjuntoNuevo[],
-): Promise<{ error: string | null; adjuntos?: AdjuntoCierre[] }> {
+  /**
+   * Solo para un informe YA EMITIDO: el código de autorización de operaciones
+   * (Lesly) o gerencia. Carlos, 01-09: «una vez que se hace el cierre ya no
+   * puede agregarse más cosas… ¿Quién lo autoriza? Lesly. Pin entonces». El
+   * caso del voucher que llega a los 30 días (0099) sigue vivo — con código.
+   */
+  pin?: string | null,
+): Promise<{ error: string | null; adjuntos?: AdjuntoCierre[]; requiereCodigo?: boolean }> {
   const revisados = z.array(esquemaAdjuntoNuevo).min(1).max(MAX_ADJUNTOS).safeParse(nuevos);
   if (!revisados.success) return { error: "El documento no tiene un formato válido" };
 
@@ -462,10 +469,28 @@ export async function agregarAdjuntosInforme(
 
   const { data: informe } = await supabase
     .from("informes_cierre")
-    .select("cuenta_id, adjuntos")
+    .select("cuenta_id, adjuntos, emitido_at")
     .eq("id", informeId)
     .maybeSingle();
   if (!informe) return { error: "Informe no encontrado" };
+
+  if (informe.emitido_at) {
+    if (!pin) {
+      return {
+        error: "El expediente de un cierre emitido está sellado: pida el código a operaciones o gerencia.",
+        requiereCodigo: true,
+      };
+    }
+    const { data: sellado, error: errorSellado } = await supabase.rpc("agregar_adjuntos_cierre_sellado", {
+      p_informe: informeId,
+      p_nuevos: revisados.data.map((a) => ({ ...a, subido_por: user?.id ?? null, subido_at: new Date().toISOString() })),
+      p_pin: pin,
+    });
+    if (errorSellado) return { error: errorSellado.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+    revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
+    revalidatePath("/central/cierres");
+    return { error: null, adjuntos: (sellado ?? []) as AdjuntoCierre[] };
+  }
 
   const previos = (informe.adjuntos ?? []) as AdjuntoCierre[];
   // Reintentar una subida que falló a medias no puede duplicar la fila.

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { FileText, Paperclip, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { agregarAdjuntosInforme, quitarAdjuntoInforme } from "@/lib/acciones/informes";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 import {
   MAX_ADJUNTOS,
   MAX_BYTES,
@@ -189,7 +190,9 @@ export function ChipsAdjuntos({ adjuntos }: { adjuntos: AdjuntoCierreFirmado[] }
 export async function subirArchivosCierre(
   informeId: string,
   pendientes: AdjuntoPendiente[],
-): Promise<{ error: string | null; adjuntos?: AdjuntoCierre[] }> {
+  /** Código de operaciones/gerencia — solo para un informe ya emitido (0142). */
+  pin?: string,
+): Promise<{ error: string | null; adjuntos?: AdjuntoCierre[]; requiereCodigo?: boolean }> {
   const storage = createClient().storage.from("adjuntos");
   const metadatos: AdjuntoNuevo[] = [];
 
@@ -210,16 +213,18 @@ export async function subirArchivosCierre(
     });
   }
 
-  return await agregarAdjuntosInforme(informeId, metadatos);
+  return await agregarAdjuntosInforme(informeId, metadatos, pin ?? null);
 }
 
 /**
  * El bloque completo para un informe que YA existe: la ficha del cliente y la
  * cola de Central. Sube en cuanto se elige el archivo.
  *
- * Sobre un informe emitido también se puede agregar —y es el caso importante:
- * con crédito a 30 días el voucher llega un mes después de que Central ya
- * facturó (migración 0099)—. Lo que no se puede es quitar.
+ * DESDE LA 0142 (Carlos, 01-09): el expediente de un cierre EMITIDO está
+ * sellado — «ya no puede agregarse más cosas… ¿quién lo autoriza? Lesly. Pin
+ * entonces». El caso del voucher a 30 días (0099) sigue vivo, pero con el
+ * código de operaciones o gerencia: se eligen los archivos, se teclea el
+ * código y recién ahí suben. Quitar sigue sin poderse.
  */
 export function AdjuntosCierre({
   informeId,
@@ -236,22 +241,34 @@ export function AdjuntosCierre({
   const router = useRouter();
   const [ocupado, startTransition] = useTransition();
   const [abierto, setAbierto] = useState(false);
+  // Solo con el informe emitido: lo elegido espera el código antes de subir.
+  const [pendientes, setPendientes] = useState<AdjuntoPendiente[]>([]);
+  const [codigo, setCodigo] = useState("");
   const lleno = adjuntos.length >= MAX_ADJUNTOS;
 
-  function adjuntar(tipo: TipoAdjunto, archivos: File[]) {
+  function subir(lista: AdjuntoPendiente[], pin?: string) {
     startTransition(async () => {
-      const r = await subirArchivosCierre(
-        informeId,
-        archivos.map((archivo) => ({ tipo, archivo })),
-      );
+      const r = await subirArchivosCierre(informeId, lista, pin);
       if (r.error) {
         toast.error(r.error);
         return;
       }
-      toast.success(archivos.length === 1 ? "Documento adjuntado" : `${archivos.length} documentos adjuntados`);
+      toast.success(lista.length === 1 ? "Documento adjuntado" : `${lista.length} documentos adjuntados`);
+      setPendientes([]);
+      setCodigo("");
       setAbierto(false);
       router.refresh();
     });
+  }
+
+  function adjuntar(tipo: TipoAdjunto, archivos: File[]) {
+    const nuevos = archivos.map((archivo) => ({ tipo, archivo }));
+    if (emitido) {
+      // Sellado: primero se junta lo que se quiere agregar, después el código.
+      setPendientes((p) => [...p, ...nuevos]);
+      return;
+    }
+    subir(nuevos);
   }
 
   function quitar(path: string, nombre: string) {
@@ -278,6 +295,36 @@ export function AdjuntosCierre({
               onQuitar={emitido ? undefined : () => quitar(a.path, a.nombre)}
             />
           ))}
+        </div>
+      )}
+
+      {/* Lo elegido sobre un cierre emitido espera el código de Lesly o
+          gerencia (0142): se ve QUÉ va a entrar antes de autorizarlo. */}
+      {pendientes.length > 0 && (
+        <div className="space-y-2 rounded-lg border border-amber-400/50 bg-amber-500/10 p-3">
+          <div className="flex flex-wrap gap-1.5">
+            {pendientes.map((p, i) => (
+              <ChipAdjunto
+                key={`${p.archivo.name}-${i}`}
+                tipo={p.tipo}
+                nombre={p.archivo.name}
+                pendiente
+                onQuitar={() => setPendientes((xs) => xs.filter((_, j) => j !== i))}
+              />
+            ))}
+          </div>
+          <p className="text-xs font-medium text-amber-900">
+            El cierre ya fue emitido: agregar documentos necesita el código de autorización de operaciones o gerencia.
+          </p>
+          <CampoCodigo valor={codigo} onChange={setCodigo} tono="amber" id={`codigo-expediente-${informeId}`} />
+          <button
+            type="button"
+            disabled={ocupado || codigo.length < 4}
+            onClick={() => subir(pendientes, codigo)}
+            className="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
+          >
+            {ocupado ? "Subiendo…" : "Agregar con autorización"}
+          </button>
         </div>
       )}
 
