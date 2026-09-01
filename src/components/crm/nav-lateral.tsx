@@ -40,6 +40,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // despachar: hasta ahora era la única que no tenía dónde verlo.
     { href: "/central/derivados", etiqueta: "Lo que derivé", icono: Send },
     { href: "/central/cierres", etiqueta: "Cierres de venta", icono: PackageCheck },
+    // «Que tenga acceso al listado de presupuestos, que permita filtrar día,
+    // semana, mes, año» (Carlos, 31-08 y 01-09).
+    { href: "/central/presupuestos", etiqueta: "Presupuestos", icono: FileText },
     { href: "/central/informe", etiqueta: "Informe del día", icono: FileText },
   ],
   // Orden pedido por Darwin el 23-08 (plan 11, C2): el día arranca en "Mi

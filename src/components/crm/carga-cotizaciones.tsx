@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -9,6 +10,11 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 // exactamente lo que controla; gerencia ve los montos en su panel.
 // Las ventanas cortan en hora de Lima (offset -05:00 explícito): una
 // cotización de las 8 pm no debe caer en "mañana".
+//
+// Desde el 01-09 el nombre de cada comercial lleva al LISTADO de sus
+// presupuestos enviados (/central/presupuestos), con filtro por día, semana,
+// mes y año: el ing. Carlos pidió que Central pudiera abrir cuáles son, no
+// solo contarlos (E1 de docs/22).
 export async function CargaCotizaciones() {
   const supabase = await createClient();
   const hoy = hoyLima();
@@ -67,9 +73,14 @@ export async function CargaCotizaciones() {
               const max = Math.max(1, ...filas.map((x) => x.semana));
               return (
                 <tr key={f.id} className="border-b border-border last:border-0">
-                  <td className="py-1.5 text-foreground">
-                    {f.nombre}
-                    {f.codigo && <span className="ml-1 text-muted-foreground">({f.codigo})</span>}
+                  <td className="py-1.5">
+                    <Link
+                      href={`/central/presupuestos?comercial=${f.id}`}
+                      className="text-foreground hover:text-primary hover:underline"
+                    >
+                      {f.nombre}
+                      {f.codigo && <span className="ml-1 text-muted-foreground">({f.codigo})</span>}
+                    </Link>
                   </td>
                   <td className="py-1.5 pl-2 text-right tabular-nums">{f.hoy}</td>
                   <td className="py-1.5 pl-2">
@@ -86,7 +97,11 @@ export async function CargaCotizaciones() {
               );
             })}
             <tr className="font-semibold">
-              <td className="pt-2 text-foreground">Total registrados</td>
+              <td className="pt-2">
+                <Link href="/central/presupuestos" className="text-foreground hover:text-primary hover:underline">
+                  Total registrados
+                </Link>
+              </td>
               <td className="pt-2 pl-2 text-right tabular-nums">{totales.hoy}</td>
               <td className="pt-2 pl-2 text-right tabular-nums">{totales.semana}</td>
               <td className="pt-2 pl-2 text-right tabular-nums">{totales.mes}</td>
@@ -97,7 +112,10 @@ export async function CargaCotizaciones() {
       </div>
       <p className="mt-2 text-[11px] text-muted-foreground">
         La semana corre de lunes a domingo. Solo presupuestos hechos en el CRM — los que aún viven en el Excel de cada comercial no
-        aparecen aquí.
+        aparecen aquí.{" "}
+        <Link href="/central/presupuestos" className="font-medium text-primary hover:underline">
+          Ver el listado de presupuestos enviados →
+        </Link>
       </p>
     </SeccionPanel>
   );
