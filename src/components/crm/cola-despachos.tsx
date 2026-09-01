@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fechaLima, fechaCalendario } from "@/lib/fechas";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { queLoFrena, etiquetaResponsable, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
+import { idsDeCuentasQueCasan, condicionCuentaIn } from "@/lib/buscar-cuentas";
 import { cn } from "@/lib/utils";
 
 /**
@@ -59,7 +60,11 @@ export async function ColaDespachos({
 
   if (busqueda) {
     const patron = `%${busqueda}%`;
-    q = q.or(`cliente_texto.ilike.${patron},equipo.ilike.${patron},ubicacion.ilike.${patron},guia.ilike.${patron}`);
+    // También por RUC/DNI y razón social de la ficha enlazada (postventa, 01-09).
+    const fichas = await idsDeCuentasQueCasan(supabase, busqueda);
+    q = q.or(
+      `cliente_texto.ilike.${patron},equipo.ilike.${patron},ubicacion.ilike.${patron},guia.ilike.${patron}${condicionCuentaIn(fichas)}`,
+    );
   }
   if (estado === "sin_fecha") q = q.is("fecha_despacho", null);
 

@@ -23,6 +23,8 @@ export interface FilaRuta {
   id: string;
   cuentaId: string | null;
   razonSocial: string;
+  /** RUC o DNI de la ficha: se busca por documento (postventa, 01-09). */
+  numDoc?: string | null;
   /** Distrito o provincia: la ruta se hace por zona cuando se sale a visitar. */
   zona: string | null;
   etapa: string;
@@ -263,7 +265,10 @@ export function filtrarRuta(filas: FilaRuta[], hoy: string, filtros: FiltrosRuta
       (f.contacto ?? "").toLowerCase().includes(patron) ||
       // Se busca también por teléfono: en la campaña el cliente devuelve la
       // llamada y lo único que se tiene es el número en la pantalla.
-      (soloDigitos.length >= 3 && (f.telefono ?? "").replace(/\D/g, "").includes(soloDigitos))
+      (soloDigitos.length >= 3 && (f.telefono ?? "").replace(/\D/g, "").includes(soloDigitos)) ||
+      // Y por RUC o DNI de la ficha: «20138427014» tiene que encontrar a la
+      // Congregación Mercedaria (postventa, 01-09).
+      (soloDigitos.length >= 6 && (f.numDoc ?? "").replace(/\D/g, "").startsWith(soloDigitos))
     );
   });
 }

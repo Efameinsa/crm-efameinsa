@@ -62,6 +62,7 @@ interface OportunidadRuta {
   cuentas: {
     id: string;
     razon_social: string;
+    num_doc: string | null;
     distrito: string | null;
     provincia: string | null;
     ultima_venta_at: string | null;
@@ -112,7 +113,7 @@ export async function RutaMantenimientoVista({
   let consulta = supabase
     .from("oportunidades")
     .select(
-      "id, etapa, proxima_accion, proxima_accion_at, created_at, cerrada_at, monto_estimado, moneda, cuenta_id, cuentas(id, razon_social, distrito, provincia, ultima_venta_at, comercial_id)",
+      "id, etapa, proxima_accion, proxima_accion_at, created_at, cerrada_at, monto_estimado, moneda, cuenta_id, cuentas(id, razon_social, num_doc, distrito, provincia, ultima_venta_at, comercial_id)",
     )
     .eq("tipo_postventa", "mantenimiento")
     .limit(500);
@@ -225,6 +226,7 @@ export async function RutaMantenimientoVista({
       id: o.id,
       cuentaId: o.cuenta_id,
       razonSocial: o.cuentas?.razon_social ?? "Cliente sin identificar",
+      numDoc: o.cuentas?.num_doc ?? null,
       zona: o.cuentas?.distrito ?? o.cuentas?.provincia ?? null,
       etapa: o.etapa,
       compraAt:

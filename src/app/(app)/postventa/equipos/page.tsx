@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaCalendario } from "@/lib/fechas";
 import { estadoGarantia } from "@/lib/postventa";
+import { idsDeCuentasQueCasan, condicionCuentaIn } from "@/lib/buscar-cuentas";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +60,10 @@ export default async function EquiposPage({
 
   if (busqueda) {
     const patron = `%${busqueda}%`;
-    q = q.or(`serie.ilike.${patron},cliente_texto.ilike.${patron},modelo_texto.ilike.${patron}`);
+    // También por RUC/DNI y razón social de la ficha enlazada (postventa,
+    // 01-09: «20138427014» no encontraba a la Congregación Mercedaria).
+    const fichas = await idsDeCuentasQueCasan(supabase, busqueda);
+    q = q.or(`serie.ilike.${patron},cliente_texto.ilike.${patron},modelo_texto.ilike.${patron}${condicionCuentaIn(fichas)}`);
   }
   if (ver === "garantia") q = q.gte("garantia_hasta", hoy);
   if (ver === "vencida") q = q.lt("garantia_hasta", hoy);
