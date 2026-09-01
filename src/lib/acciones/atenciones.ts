@@ -97,6 +97,31 @@ export async function verificarGarantia(atencionId: string): Promise<{ error: st
   return { error: null };
 }
 
+/**
+ * Vincular la máquina del cliente a la atención — el clic que pidió Carlos
+ * (01-09): «me deberían salir aquí las diferentes series que tiene el
+ * cliente. Y ahí yo contrasto con [la foto de la placa] y le doy clic → el
+ * equipo está en garantía o no». Al vincular se verifica la garantía en el
+ * acto y queda escrita con fecha.
+ */
+export async function vincularEquipoAtencion(
+  atencionId: string,
+  equipoId: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data: eq } = await supabase
+    .from("equipos_instalados")
+    .select("id, serie")
+    .eq("id", equipoId)
+    .maybeSingle();
+  if (!eq) return { error: "Esa máquina no está en el parque instalado" };
+
+  const { error } = await supabase.from("atenciones").update({ equipo_id: equipoId }).eq("id", atencionId);
+  if (error) return { error: error.message };
+
+  return verificarGarantia(atencionId);
+}
+
 /** Diagnóstico: qué le pasa y, sobre todo, quién paga. */
 export async function diagnosticar(datos: {
   atencionId: string;

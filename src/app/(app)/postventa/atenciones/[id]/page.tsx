@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { LineaAtencion } from "@/components/crm/linea-atencion";
+import { EquiposDeLaAtencion } from "@/components/crm/equipos-de-la-atencion";
 import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { demora, ETIQUETA_CANAL, ETIQUETA_MOTIVO } from "@/lib/derivados-central";
@@ -49,9 +50,21 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
 
   // Lo que el parque instalado ya sabe del equipo: es lo que contesta los dos
   // condicionales del circuito sin preguntarle nada a nadie.
-  const { data: g } = a.equipo_id
-    ? await supabase.rpc("garantia_del_equipo", { p_equipo: a.equipo_id })
-    : { data: null };
+  const [{ data: g }, { data: equiposDelCliente }] = await Promise.all([
+    a.equipo_id
+      ? supabase.rpc("garantia_del_equipo", { p_equipo: a.equipo_id })
+      : Promise.resolve({ data: null }),
+    // Solo cuando falta identificar la máquina: las series del cliente para
+    // el clic de la garantía (Carlos, 01-09).
+    !a.equipo_id && a.cuenta_id
+      ? supabase
+          .from("equipos_instalados")
+          .select("id, serie, modelo_texto, garantia_hasta, ultimo_mantenimiento, fecha_venta")
+          .eq("cuenta_id", a.cuenta_id)
+          .order("fecha_venta", { ascending: false, nullsFirst: false })
+          .limit(20)
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
   const garantia = (g as {
     en_garantia: boolean;
     garantia_hasta: string | null;
@@ -210,6 +223,15 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
         </div>
 
         <div className="space-y-4">
+          {/* El clic de la garantía (Carlos, 01-09): cuando el equipo aún no
+              está identificado, acá salen las series del cliente para
+              contrastar con la foto de la placa. Un clic vincula y verifica. */}
+          {!a.equipo_id && a.cuenta_id && (
+            <SeccionPanel titulo="¿De qué máquina habla el cliente?">
+              <EquiposDeLaAtencion atencionId={a.id} equipos={equiposDelCliente ?? []} />
+            </SeccionPanel>
+          )}
+
           {/* «En la parte derecha, donde se puede poner, debe estar el
               historial de cómo llegó» — ing. Carlos, 01-09. */}
           {rutaDelContacto && (

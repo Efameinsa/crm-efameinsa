@@ -222,10 +222,8 @@ ningún requerimiento. Punto por punto:
     Excel, el control de ese Excel es lo que te menciono. Controlamos eso» —
     la vista agregada de TODOS los pedidos con el estatus de cada paso
     (probado / plano enviado / despachado / puesta en marcha / ciclos).
-    ⚠️ Es probablemente lo que Santos recuerda como «separar por etapas en
-    Kanban»: la palabra kanban no aparece en las transcripciones; confirmar
-    con Carlos si quiere el tablero de pedidos (Excel), un Kanban de
-    atenciones por etapa, o ambos.
+    Confirmado por Santos el 01-09 por la tarde: lo que dijo Carlos en la
+    cinta es lo que va — el tablero de control, no un Kanban.
 
 ## Pendiente chico / decisiones
 18. Dividir un expediente juntado por error («pasa muy pocos casos») — v2.

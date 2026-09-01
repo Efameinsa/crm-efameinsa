@@ -26,6 +26,7 @@ import {
   Route,
   ShieldCheck,
   KeyRound,
+  Table2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -116,6 +117,10 @@ const ENLACES_POSTVENTA = [
   // La pista técnica (0131) más los casos, despachos e histórico que hasta el
   // 31-08 vivían repartidos en cuatro pantallas (plan 23).
   { href: "/postventa/atenciones", etiqueta: "Atenciones", icono: Wrench },
+  // El Excel de control de Hever, digital (Carlos, 01-09: «el control de ese
+  // Excel es lo que te menciono. Controlamos eso»): cada pedido en curso con
+  // el estatus de cada paso, todos juntos.
+  { href: "/postventa/control", etiqueta: "Control de pedidos", icono: Table2 },
   { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
   // La ruta de mantenimiento vive acá adentro como pestaña (plan 23, etapa
   // 4): «es una campaña sobre el mismo pipeline, no otro objeto». Ya no
