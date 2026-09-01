@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CircleDashed, OctagonAlert } from "lucide-react";
+import { Check, ChevronDown, CircleDashed, OctagonAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
@@ -128,19 +128,59 @@ export default async function ControlPedidosPage() {
                           </p>
                           <p className="line-clamp-1 text-xs text-muted-foreground">{s.equipo ?? "Sin equipo"}</p>
 
-                          {/* El avance, de un vistazo: la barra dice cuánto
-                              camino lleva sin pedir leer ningún símbolo. */}
-                          <div className="mt-2 flex items-center gap-2">
-                            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
-                              <span
-                                className={cn("block h-full", pct === 100 ? "bg-[#1E7F4F]" : "bg-primary")}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </span>
-                            <span className="text-[11px] tabular-nums text-muted-foreground">
-                              {avance.hechos}/{avance.total}
-                            </span>
-                          </div>
+                          {/* El avance se ABRE como checklist (Santos, 01-09:
+                              «debería abrirse como subtareas, tipo Asana...
+                              así como está no se sabe, no se ve»): la barra es
+                              el resumen y el clic muestra paso por paso qué
+                              está hecho, qué falta y de quién depende — la
+                              misma respuesta que daría un arrastre rechazado,
+                              sin la frustración del rechazo. <details> nativo:
+                              cero JavaScript, funciona para todos. */}
+                          <details className="group relative z-10 mt-2">
+                            <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+                              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                                <span
+                                  className={cn("block h-full", pct === 100 ? "bg-[#1E7F4F]" : "bg-primary")}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </span>
+                              <span className="text-[11px] tabular-nums text-muted-foreground">
+                                {avance.hechos}/{avance.total}
+                              </span>
+                              <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
+                            </summary>
+                            <div className="mt-2 space-y-2 rounded-md border border-border bg-secondary/40 p-2.5">
+                              {bloquesPedido(s).map((b) => (
+                                <div key={b.numero}>
+                                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                                    {"①②③"[b.numero - 1]} {b.titulo}
+                                  </p>
+                                  <ul className="space-y-1">
+                                    {b.pasos.map((p) => (
+                                      <li key={p.clave} className="flex items-start gap-1.5 text-[11px] leading-snug">
+                                        {p.hecho ? (
+                                          <Check className="mt-px size-3 flex-none text-[#1E7F4F]" />
+                                        ) : p.trabado ? (
+                                          <OctagonAlert className="mt-px size-3 flex-none text-amber-600" />
+                                        ) : (
+                                          <CircleDashed className="mt-px size-3 flex-none text-muted-foreground/60" />
+                                        )}
+                                        <span className={p.hecho ? "text-muted-foreground" : "text-foreground"}>
+                                          {p.etiqueta}
+                                          {!p.hecho && (
+                                            <span className="text-muted-foreground">
+                                              {" · "}
+                                              {p.trabado ?? etiquetaResponsable(p.responsable)}
+                                            </span>
+                                          )}
+                                        </span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
 
                           {frena ? (
                             <p
