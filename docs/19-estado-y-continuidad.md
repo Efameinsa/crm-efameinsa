@@ -283,6 +283,14 @@ Cada una costó un rato de depuración y ninguna da error a la vista:
 - **Vercel construye siempre el commit más nuevo**: si ese no compila, se cae
   todo lo que hay detrás. Un archivo sin commitear tuvo la producción congelada
   45 minutos con ocho commits en cola.
+- **Una FK nueva entre tablas que ya se embeben rompe TODOS los embeds sin
+  nombre.** La 0141 agregó `leads.oportunidad_id` y con eso hubo DOS relaciones
+  entre `leads` y `oportunidades`: los tres `select` que pedían `leads(...)`
+  desde oportunidades quedaron ambiguos para PostgREST, la consulta ENTERA
+  falló (sin error a la vista: la pantalla lo lee como «registro inexistente»)
+  y la ficha de la oportunidad y el cotizador estuvieron caídos una hora el
+  01-09. Antes de migrar una FK, grep de los embeds entre las dos tablas y
+  nombrarlos: `leads!oportunidades_lead_id_fkey(...)`.
 
 ---
 
