@@ -190,9 +190,11 @@ self.addEventListener("notificationclick", (event) => {
       if (exacta) return exacta.focus();
 
       // 2) Cualquier ventana del CRM: se la lleva al destino y se la enfoca.
-      //    `navigate()` puede rechazar (ventana no controlada por este service
-      //    worker, o de otro origen): en ese caso al menos se enfoca, y si eso
-      //    también falla se sigue con la siguiente.
+      //    `navigate()` puede rechazar cuando la ventana no la controla este
+      //    service worker — una pestaña que quedó abierta desde antes de que
+      //    se instalara o se actualizara. `clients.claim()` cubre casi todos
+      //    esos casos, pero no todos.
+      let sinLlevar = null;
       for (const ventana of ventanas) {
         if (!ventana.url.startsWith(self.location.origin)) continue;
         try {
@@ -200,19 +202,28 @@ self.addEventListener("notificationclick", (event) => {
           await (llevada ?? ventana).focus();
           return;
         } catch {
-          try {
-            await ventana.focus();
-            return;
-          } catch {
-            /* ventana muerta: probar la siguiente */
-          }
+          // Se recuerda por si al final no queda nada mejor, pero NO se
+          // termina acá.
+          sinLlevar = sinLlevar ?? ventana;
         }
       }
 
-      // 3) Nada abierto. Con la aplicación instalada, Chrome y Edge abren esto
-      //    en la VENTANA DE LA APLICACIÓN (el destino está dentro del `scope`
-      //    del manifiesto), no en una pestaña suelta del navegador.
-      await self.clients.openWindow(destino);
+      // 3) Ninguna ventana se dejó llevar, o no había ninguna. Se abre el
+      //    destino. Con la aplicación instalada, Chrome y Edge lo abren en la
+      //    VENTANA DE LA APLICACIÓN (el destino está dentro del `scope` del
+      //    manifiesto), no en una pestaña suelta del navegador.
+      //
+      //    ⚠️ Acá estaba el «hago clic en el aviso y no sale nada» que reportó
+      //    postventa el 01-09: cuando `navigate()` rechazaba, el código
+      //    enfocaba la ventana y terminaba. La persona veía el CRM saltar al
+      //    frente y quedarse en la misma pantalla, como si el aviso no
+      //    llevara a ningún lado. Enfocar sin navegar no es un plan B: es
+      //    quedarse a medias. Solo se enfoca si ni siquiera se puede abrir.
+      try {
+        await self.clients.openWindow(destino);
+      } catch {
+        if (sinLlevar) await sinLlevar.focus();
+      }
     })(),
   );
 });
