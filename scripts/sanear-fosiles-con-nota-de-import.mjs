@@ -12,24 +12,33 @@
 //
 // CRITERIO (el mismo de la 0130, corregido): origen Excel, abierta, sin
 // cotización propia, sin cierre proyectado, y TODA su actividad desde el
-// 18-08 es la nota del importador (tipo nota, fechada el día del import y con
-// el texto «[Histórico …]»). Ninguna gestión de persona.
+// 18-08 es la nota del importador (tipo nota, fechada entre el 18 y el 22-08,
+// con el texto «[Histórico …]» o «[Actualización 22-08 …]» —la segunda pasada
+// del import—). Ninguna gestión de persona. Caso que lo destapó: HOSTAL
+// MARVIN, un prospecto de 2018 que el import releyó el 22-08 (Santos, 02-09).
 //
 // Uso:  node --env-file=.env.local scripts/sanear-fosiles-con-nota-de-import.mjs            (ensayo)
 //       node --env-file=.env.local scripts/sanear-fosiles-con-nota-de-import.mjs --aplicar
 //       node --env-file=.env.local scripts/sanear-fosiles-con-nota-de-import.mjs --revertir
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
 import { Client } from "pg";
 const APLICAR = process.argv.includes("--aplicar"), REVERTIR = process.argv.includes("--revertir");
-const RESPALDO = "backups/oportunidades-fosiles-nota-import-02-09.json";
+const RESPALDO = process.argv.includes("--aplicar") && require("node:fs").existsSync("backups/oportunidades-fosiles-nota-import-02-09.json") ? "backups/oportunidades-fosiles-nota-import-02-09-b.json" : "backups/oportunidades-fosiles-nota-import-02-09.json";
 const bd = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 await bd.connect();
 
 if (REVERTIR) {
-  if (!existsSync(RESPALDO)) { console.log("No hay respaldo."); process.exit(1); }
-  const r = JSON.parse(readFileSync(RESPALDO, "utf8"));
-  const { rowCount } = await bd.query(`update oportunidades o set etapa = x.etapa::etapa_oportunidad, updated_at = now() from jsonb_to_recordset($1::jsonb) as x(id uuid, etapa text) where o.id = x.id and o.etapa = 'historico'`, [JSON.stringify(r.filas)]);
-  console.log(`revertidas ${rowCount} de ${r.filas.length}`); await bd.end(); process.exit(0);
+  // Revierte TODAS las pasadas (hay un respaldo por pasada: el de las 10:10 y el «-b» de las 10:25).
+  const archivos = ["backups/oportunidades-fosiles-nota-import-02-09.json", "backups/oportunidades-fosiles-nota-import-02-09-b.json"].filter(existsSync);
+  if (!archivos.length) { console.log("No hay respaldo."); process.exit(1); }
+  for (const f of archivos) {
+    const r = JSON.parse(readFileSync(f, "utf8"));
+    const { rowCount } = await bd.query(`update oportunidades o set etapa = x.etapa::etapa_oportunidad, updated_at = now() from jsonb_to_recordset($1::jsonb) as x(id uuid, etapa text) where o.id = x.id and o.etapa = 'historico'`, [JSON.stringify(r.filas)]);
+    console.log(`${f}: revertidas ${rowCount} de ${r.filas.length}`);
+  }
+  await bd.end(); process.exit(0);
 }
 
 const CANDIDATAS = `
@@ -43,9 +52,9 @@ const CANDIDATAS = `
        select 1 from actividades a
         where a.oportunidad_id = o.id
           and (a.realizada_at at time zone 'America/Lima')::date >= '2026-08-18'
-          and not (a.tipo = 'nota' and coalesce(a.nota,'') like '[Histórico%'
-                   and (a.realizada_at at time zone 'America/Lima')::date = (o.created_at at time zone 'America/Lima')::date))
-     and exists (select 1 from actividades a where a.oportunidad_id = o.id and a.tipo = 'nota' and coalesce(a.nota,'') like '[Histórico%')`;
+          and not (a.tipo = 'nota' and (coalesce(a.nota,'') like '[Histórico%' or coalesce(a.nota,'') like '[Actualización%')
+                   and (a.realizada_at at time zone 'America/Lima')::date between '2026-08-18' and '2026-08-22'))
+     and exists (select 1 from actividades a where a.oportunidad_id = o.id and a.tipo = 'nota' and (coalesce(a.nota,'') like '[Histórico%' or coalesce(a.nota,'') like '[Actualización%'))`;
 
 const { rows } = await bd.query(CANDIDATAS);
 console.log(`\nCandidatas: ${rows.length}`);
