@@ -499,6 +499,21 @@ derivar como negocios diferentes».
   escrita distinto no abre otra sede, la elección manual manda, una sede
   ajena se rechaza, un RUC común sigue bloqueado. Código listo para la
   ventana de las 18:00; la base ya está corregida.
+- **Revisión de cómo se envió (Santos, 16:10).** Con sesiones reales contra
+  `next dev -p 3100` (`scripts/_verificar-vista-sede-essalud.mjs`, acepta
+  `BASE_URL`): PV abre la oportunidad y ve la sede con el nombre de Central,
+  el RUC y el contacto, sin nada de Puno; Central ve lo mismo en su
+  derivado. Se corrigió: (a) el aviso «Nuevo contacto asignado» que le llegó
+  a PV a las 15:03 decía el Hospital del Altiplano → actualizado; (b) la
+  cabecera de la oportunidad ahora dice «Sede de SEGURO SOCIAL DE SALUD -
+  ESSALUD · el RUC es el de toda la institución»; (c) **0159**: Katerine no
+  veía en su ficha de Puno que ahora es una sede, porque `grupo_economico`
+  corría con su RLS y la madre sin dueño no existía para ella — la función
+  quedó en dos partes (comprobación con RLS + listado `security definer`), y
+  de paso arregla lo mismo para cualquier grupo económico repartido en
+  varias carteras desde la 0052. Sedes nuevas (Lambayeque, la que venga):
+  Central las crea desde el mismo diálogo con «Otra sede (nueva)», o solas
+  al derivar sin elegir.
 
 ---
 

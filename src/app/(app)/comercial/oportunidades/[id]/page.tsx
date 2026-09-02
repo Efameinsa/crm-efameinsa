@@ -1,4 +1,4 @@
-import { Phone, Mail, MapPin, FileText, CalendarClock } from "lucide-react";
+import { Phone, Mail, MapPin, FileText, CalendarClock, Building2 } from "lucide-react";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
@@ -63,7 +63,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, rubro_id, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -121,13 +121,29 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     num_doc: string | null;
     direccion: string | null;
     rubro_id: number | null;
+    cuenta_padre_id: string | null;
     contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
   } | null;
 
   // El catálogo de rubros para «Cambiar rubro» en la cabecera (Carlos, 02-09:
   // «no veo dónde cambiarlo»).
-  const { data: rubrosData } = await supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre");
+  const [{ data: rubrosData }, { data: grupoData }] = await Promise.all([
+    supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre"),
+    // Sede de una institución con un solo RUC (0158: ESSALUD, Marina, MINSA).
+    // Se dice en la cabecera: el RUC que ve el comercial es el de toda la
+    // institución, y esta ficha es UNA de sus redes u hospitales. Va por
+    // `grupo_economico` y no por un select directo: la madre no tiene dueño y
+    // la RLS no se la mostraría al comercial (0159).
+    cuenta?.cuenta_padre_id
+      ? supabase.rpc("grupo_economico", { p_cuenta_id: cuenta.id })
+      : Promise.resolve({ data: null }),
+  ]);
   const rubros = (rubrosData ?? []) as { id: number; nombre: string }[];
+  const grupo = (grupoData ?? []) as { razon_social: string; num_doc: string | null; es_madre: boolean }[];
+  const madre = grupo.find((g) => g.es_madre) ?? null;
+  // Todas con el mismo RUC = sedes de una institución, no razones sociales distintas.
+  const sedeDe =
+    madre && grupo.length > 1 && grupo.every((g) => g.num_doc && g.num_doc === grupo[0].num_doc) ? madre.razon_social : null;
 
   // El feed de "contexto primero": la historia COMPLETA del cliente (todas
   // sus oportunidades), no solo la de esta oportunidad puntual. `ventasConDetalle`
@@ -235,6 +251,12 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-lg font-bold text-foreground">{cuenta?.razon_social ?? "Cuenta sin nombre"}</h1>
+            {sedeDe && (
+              <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <Building2 className="size-3.5" />
+                Sede de <b className="text-foreground">{sedeDe}</b> · el RUC es el de toda la institución
+              </p>
+            )}
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
               {cuenta?.tipo_doc !== "SIN_DOC" && (
                 <span className="inline-flex items-center gap-1">
