@@ -113,7 +113,22 @@ export async function actualizarIdentidadCuenta(datos: {
     .update(cambios)
     .eq("id", datos.cuentaId)
     .select("id");
-  if (error) return { error: error.message };
+  if (error) {
+    // 02-09 (Santos): Katerine quiso poner el RUC 20326700321 y el sistema le
+    // contestó «duplicate key value violates unique constraint uq_cuentas_doc».
+    // Ese RUC ya es de una ficha en la cartera de Ariana, que ella no ve por
+    // RLS: el aviso de arriba no la encontró y el índice único la frenó con
+    // un mensaje de base de datos. Un cliente tiene UNA ficha en el CRM y el
+    // RUC manda sobre el nombre; lo que corresponde es pedir el traspaso o la
+    // unión, no duplicarla.
+    if (error.code === "23505") {
+      return {
+        error:
+          "Ese RUC/DNI ya está registrado en el CRM en la cartera de otro comercial. Un cliente tiene una sola ficha: pida a gerencia el traspaso de cartera o la unión de las fichas.",
+      };
+    }
+    return { error: error.message };
+  }
   if (!data || data.length === 0) {
     return { error: "Solo el dueño actual de la cartera puede corregir los datos del cliente" };
   }
