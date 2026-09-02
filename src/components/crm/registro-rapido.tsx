@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { registrarActividad, cambiarEtapa } from "@/lib/acciones/oportunidades";
 import { createClient } from "@/lib/supabase/client";
-import { Paperclip, X, type LucideIcon } from "lucide-react";
+import { AlertCircle, Paperclip, X, type LucideIcon } from "lucide-react";
 import { ICONO_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,9 +113,23 @@ export function RegistroRapido({
   const [motivoId, setMotivoId] = useState("");
   const [archivos, setArchivos] = useState<File[]>([]);
   const [enviando, startTransition] = useTransition();
+  // 02-09 (Santos): con fecha, «qué hacer» es OBLIGATORIO. Katerine tenía 19
+  // de 30 gestiones del día con fecha y sin decir qué hacer, y en Mi día
+  // salían como «Falta indicar qué hacer». Pero obligar no es castigar: si
+  // falta, el botón mismo lo dice, y al tocarlo la pantalla atenúa todo lo
+  // demás y enfoca ese campo. Nada de errores rojos que hay que leer.
+  const [faltaQueHacer, setFaltaQueHacer] = useState(false);
+  const refQueHacer = useRef<HTMLInputElement>(null);
 
   const resultado = resultados.find((r) => r.id === resultadoId) ?? null;
   const esRechazo = resultado?.efecto === "rechazo";
+  const faltante = !esRechazo && !!proximaAccionAt && !proximaAccion.trim();
+
+  function elegirQueHacer(texto: string) {
+    setProximaAccion(texto);
+    setAccionEditada(true);
+    if (texto.trim()) setFaltaQueHacer(false);
+  }
 
   function limpiar() {
     setExpandido(false);
@@ -128,6 +142,7 @@ export function RegistroRapido({
     setAccionEditada(false);
     setMotivoId("");
     setArchivos([]);
+    setFaltaQueHacer(false);
   }
 
   // Elegir "qué sigue" rellena la próxima acción — pero nunca pisa lo que el
@@ -155,6 +170,12 @@ export function RegistroRapido({
     // 23-08 y esa gestión fantasma borró la próxima acción de la anterior.
     if (!nota.trim() && resultadoId === null && !proximaAccion.trim() && archivos.length === 0) {
       toast.error("Cuente qué pasó, elija en qué quedó o agende la próxima acción");
+      return;
+    }
+    if (faltante) {
+      setFaltaQueHacer(true);
+      refQueHacer.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      refQueHacer.current?.focus({ preventScroll: true });
       return;
     }
     startTransition(async () => {
@@ -229,7 +250,7 @@ export function RegistroRapido({
 
   return (
     <div className="space-y-4 rounded-md border border-border p-4">
-      <Paso n="1" titulo="¿Qué hiciste?">
+      <Paso n="1" titulo="¿Qué hiciste?" atenuado={faltaQueHacer}>
         <div className="flex flex-wrap gap-2">
           {TIPOS_CONTACTO.map(([valor, etiqueta]) => (
             <Chip key={valor} activo={tipo === valor} onClick={() => setTipo(valor)} icono={ICONO_ACTIVIDAD[valor]}>
@@ -253,7 +274,7 @@ export function RegistroRapido({
         </div>
       </Paso>
 
-      <Paso n="2" titulo="¿Qué pasó?">
+      <Paso n="2" titulo="¿Qué pasó?" atenuado={faltaQueHacer}>
         <Textarea
           placeholder="ej.: tiene 20 lavanderías, presupuesto US$ 100 mil, su crédito sale el 15/09…"
           value={nota}
@@ -353,36 +374,48 @@ export function RegistroRapido({
                     día» de Katerine 19 de 30 gestiones de hoy tenían fecha
                     pero no decían QUÉ hacer, porque escribirlo cuesta más que
                     elegir el día. Un chip cuesta lo mismo que la fecha. */}
-                <div className="flex flex-wrap gap-1.5">
-                  {ACCIONES_FRECUENTES.map((a) => (
-                    <button
-                      key={a}
-                      type="button"
-                      onClick={() => {
-                        setProximaAccion(a);
-                        setAccionEditada(true);
-                      }}
-                      className={cn(
-                        "rounded-full border px-2.5 py-1 text-xs transition-colors",
-                        proximaAccion === a
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background text-foreground hover:bg-accent",
-                      )}
-                    >
-                      {a}
-                    </button>
-                  ))}
+                {/* El bloque de «qué hacer». Cuando falta y se intentó
+                    guardar, es lo único nítido de la pantalla: borde ámbar,
+                    el resto atenuado, y el cursor ya está adentro. */}
+                <div
+                  className={cn(
+                    "space-y-2 rounded-md transition-all duration-300",
+                    faltaQueHacer && "bg-amber-500/5 p-2 ring-2 ring-amber-500 ring-offset-2 ring-offset-background",
+                  )}
+                >
+                  {faltaQueHacer && (
+                    <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-700">
+                      <AlertCircle className="size-3.5" /> Puso la fecha, pero falta decir qué hacer: toque una opción o escríbala.
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {ACCIONES_FRECUENTES.map((a) => (
+                      <button
+                        key={a}
+                        type="button"
+                        onClick={() => elegirQueHacer(a)}
+                        className={cn(
+                          "rounded-full border px-2.5 py-1 text-xs transition-colors",
+                          proximaAccion === a
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-foreground hover:bg-accent",
+                          faltaQueHacer && proximaAccion !== a && "border-amber-500/60",
+                        )}
+                      >
+                        {a}
+                      </button>
+                    ))}
+                  </div>
+                  <Input
+                    ref={refQueHacer}
+                    placeholder="u otra cosa: ej. Llamar para confirmar visita"
+                    value={proximaAccion}
+                    onChange={(e) => elegirQueHacer(e.target.value)}
+                    aria-label="Próxima acción"
+                    aria-invalid={faltaQueHacer || undefined}
+                  />
                 </div>
-                <Input
-                  placeholder="u otra cosa: ej. Llamar para confirmar visita"
-                  value={proximaAccion}
-                  onChange={(e) => {
-                    setProximaAccion(e.target.value);
-                    setAccionEditada(true);
-                  }}
-                  aria-label="Próxima acción"
-                />
-                <div className="flex flex-wrap items-center gap-2">
+                <div className={cn("flex flex-wrap items-center gap-2 transition-all duration-300", faltaQueHacer && "opacity-40 blur-[1px]")}>
                   <SelectorFecha
                     valor={proximaAccionAt || null}
                     onCambiar={(f) => {
@@ -412,8 +445,26 @@ export function RegistroRapido({
             </Paso>
           )}
 
-          <Button onClick={registrar} disabled={enviando || (esRechazo && !motivoId)}>
-            {enviando ? "Registrando…" : esRechazo ? "Registrar y rechazar" : "Registrar gestión"}
+          {/* El botón dice lo que falta ANTES de que lo toquen: con fecha y
+              sin qué hacer, pasa a ámbar y lo nombra. Tocarlo no da error:
+              lleva al campo. */}
+          <Button
+            onClick={registrar}
+            disabled={enviando || (esRechazo && !motivoId)}
+            variant={faltante ? "outline" : "default"}
+            className={cn(faltante && "border-amber-500 bg-amber-500/10 text-amber-800 hover:bg-amber-500/20")}
+          >
+            {enviando ? (
+              "Registrando…"
+            ) : faltante ? (
+              <>
+                <AlertCircle className="size-4" /> Falta indicar qué hacer
+              </>
+            ) : esRechazo ? (
+              "Registrar y rechazar"
+            ) : (
+              "Registrar gestión"
+            )}
           </Button>
         </motion.div>
       )}
@@ -421,9 +472,20 @@ export function RegistroRapido({
   );
 }
 
-function Paso({ n, titulo, children }: { n: string; titulo: string; children: React.ReactNode }) {
+function Paso({
+  n,
+  titulo,
+  atenuado = false,
+  children,
+}: {
+  n: string;
+  titulo: string;
+  /** Se difumina mientras la atención tiene que estar en otro paso. */
+  atenuado?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="space-y-1.5">
+    <div className={cn("space-y-1.5 transition-all duration-300", atenuado && "opacity-40 blur-[1px]")}>
       <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
         <span className="mr-1.5 inline-flex size-4 items-center justify-center rounded-full bg-secondary text-[10px] text-foreground">{n}</span>
         {titulo}
