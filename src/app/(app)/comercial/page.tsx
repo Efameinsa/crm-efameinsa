@@ -12,6 +12,9 @@ import { BarraSemana } from "@/components/crm/barra-semana";
 import { cargarPulsoSemana } from "@/lib/pulso-semana";
 import { lunesDe } from "@/lib/calendario";
 import { llegoHace, vencioHace } from "@/lib/mi-dia";
+import { cargarParque, type ClienteParque } from "@/lib/parque";
+import { ETIQUETA_MANTENIMIENTO } from "@/lib/ruta-mantenimiento";
+import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
 
 interface FilaMiDia {
   id: string;
@@ -211,6 +214,45 @@ function GrupoSinInforme({ filas }: { filas: VentaSinInformeFila[] }) {
             </span>
           </Link>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// MANTENIMIENTO POR VENDER (Santos, 02-09): del parque de su cartera, los
+// clientes a los que nunca se les hizo el preventivo o lo tienen vencido, y
+// que nadie está gestionando ya. Una tanda de diez: la semana siguiente
+// entran otros. Comercial y postventa venden los dos; acá se ve a quién le
+// toca ofrecer, y si alguien ya abrió la oportunidad no aparece.
+function GrupoMantenimiento({ filas, total }: { filas: ClienteParque[]; total: number }) {
+  if (filas.length === 0) return null;
+  return (
+    <div>
+      <h4 className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+        Mantenimiento por vender
+        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-900">
+          {filas.length}{total > filas.length ? ` de ${total}` : ""}
+        </span>
+      </h4>
+      <div className="space-y-2">
+        {filas.map((c) => (
+          <div key={c.cuentaId} className="flex items-center gap-3 rounded-lg border border-border border-l-4 border-l-sky-500 bg-card p-3 shadow-sm">
+            <Link href={`/comercial/cartera/${c.cuentaId}`} className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">{c.razonSocial}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {c.equipos} máquina{c.equipos === 1 ? "" : "s"} · {ETIQUETA_MANTENIMIENTO[c.estado].toLowerCase()}
+                {c.mesesSinMantenimiento != null ? ` hace ${c.mesesSinMantenimiento} meses` : ""}
+                {c.ultimaGestion ? ` · última gestión: ${c.ultimaGestion.quien}` : " · nadie lo ha llamado"}
+              </p>
+            </Link>
+            <OfrecerMantenimientoBoton cuentaId={c.cuentaId} compacto />
+          </div>
+        ))}
+        <p className="text-xs text-muted-foreground">
+          <Link href="/comercial/parque" className="font-medium text-primary hover:underline">
+            Ver todo mi parque →
+          </Link>
+        </p>
       </div>
     </div>
   );
@@ -510,6 +552,11 @@ export default async function ComercialPage({
   // cambiarle el día. En «Mi gestión» estaría a dos clics y no la vería nadie.
   const [pulso] = await cargarPulsoSemana(supabase, lunesDe(hoy), perfil.id);
 
+  // El parque de su cartera: a quién ofrecerle mantenimiento esta semana.
+  const parque = await cargarParque(supabase, { comercialId: perfil.id, hoy });
+  const porVender = parque.filter((c) => (c.estado === "nunca" || c.estado === "vencido") && !c.enGestion);
+  const tandaMantenimiento = porVender.slice(0, 10);
+
   // La base del Excel, solo si se abrió: buscador por cliente y rubro, las 40
   // más recientes por fecha de retomar.
   let filasBase: FilaBase[] = [];
@@ -574,7 +621,7 @@ export default async function ComercialPage({
           <PasarContactoCentral />
         </CardHeader>
         <CardContent className="space-y-5">
-          {oportunidades.length === 0 && inactivas.length === 0 && sinInforme.length === 0 ? (
+          {oportunidades.length === 0 && inactivas.length === 0 && sinInforme.length === 0 && tandaMantenimiento.length === 0 ? (
             <p className="text-sm text-muted-foreground">No tiene acciones pendientes para hoy.</p>
           ) : (
             <>
@@ -611,6 +658,7 @@ export default async function ComercialPage({
                   </Link>
                 </p>
               )}
+              <GrupoMantenimiento filas={tandaMantenimiento} total={porVender.length} />
               <GrupoCorrespondeCerrar filas={inactivas} />
             </>
           )}

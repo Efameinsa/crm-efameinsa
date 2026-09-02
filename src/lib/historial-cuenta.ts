@@ -77,6 +77,24 @@ export async function cargarHistorialCuenta(
     .order("fecha", { ascending: false })
     .limit(100);
 
+  // Lo que hizo postventa con este cliente: servicios (los 605 informes
+  // importados de R:\ y los pedidos del CRM) y atenciones. El comercial lo ve
+  // en la misma cronología, porque mantenimiento lo venden los dos.
+  const [{ data: servicios }, { data: atenciones }] = await Promise.all([
+    supabase
+      .from("servicios_postventa")
+      .select("id, fecha_confirmacion, tipo_servicio, equipo, monto, moneda, completado, created_at, perfiles!servicios_postventa_responsable_id_fkey(nombre)")
+      .eq("cuenta_id", cuentaId)
+      .order("fecha_confirmacion", { ascending: false, nullsFirst: false })
+      .limit(60),
+    supabase
+      .from("atenciones")
+      .select("id, tipo, etapa, equipo_texto, detalle, registrado_at, created_at, cerrado_at, perfiles!atenciones_tomada_por_fkey(nombre)")
+      .eq("cuenta_id", cuentaId)
+      .order("created_at", { ascending: false })
+      .limit(60),
+  ]);
+
   const [{ data: actividades }, { data: cotizaciones }, { data: ventas }] =
     opIds.length === 0
       ? [{ data: [] }, { data: [] }, { data: [] }]
@@ -126,7 +144,30 @@ export async function cargarHistorialCuenta(
       documentoPorCodigo.set(c.codigo, { id: c.id, items: c.items ?? [], tienePdf: Boolean(c.pdf_path) });
   }
 
+  const TIPO_ATENCION: Record<string, string> = { problema_tecnico: "Problema técnico", solicitud_repuesto: "Solicitud de repuesto" };
   const eventos: EventoTimeline[] = [
+    ...(servicios ?? []).map((sv): EventoTimeline => ({
+      tipo: "servicio",
+      id: `servicio-${sv.id}`,
+      fecha: (sv.fecha_confirmacion as string | null) ?? (sv.created_at as string),
+      titulo: `Servicio de postventa: ${(sv.tipo_servicio as string | null) ?? "servicio"}${sv.completado ? " (completado)" : ""}`,
+      detalle: (sv.equipo as string | null)?.split("\n")[0]?.slice(0, 140) ?? null,
+      quien: (sv.perfiles as unknown as { nombre: string } | null)?.nombre ?? null,
+      href: `/postventa/pedidos/${sv.id}`,
+      oportunidadId: null,
+      monto: sv.monto != null ? Number(sv.monto) : null,
+      moneda: (sv.moneda as string | null) ?? null,
+    })),
+    ...(atenciones ?? []).map((at): EventoTimeline => ({
+      tipo: "servicio",
+      id: `atencion-${at.id}`,
+      fecha: (at.registrado_at as string | null) ?? (at.created_at as string),
+      titulo: `Atención de postventa: ${TIPO_ATENCION[at.tipo as string] ?? at.tipo}${at.cerrado_at ? " (cerrada)" : ` · ${at.etapa}`}`,
+      detalle: [(at.equipo_texto as string | null), (at.detalle as string | null)].filter(Boolean).join(" · ").slice(0, 160) || null,
+      quien: (at.perfiles as unknown as { nombre: string } | null)?.nombre ?? null,
+      href: `/postventa/atenciones/${at.id}`,
+      oportunidadId: null,
+    })),
     ...(actividades ?? []).map((a): EventoTimeline => {
       const resultado = a.catalogo_resultados_gestion as unknown as { codigo: string; nombre: string } | null;
       return {

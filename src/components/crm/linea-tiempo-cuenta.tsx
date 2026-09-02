@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MoreHorizontal, FileText, CircleCheckBig, CalendarClock } from "lucide-react";
+import { MoreHorizontal, FileText, CircleCheckBig, CalendarClock, Wrench } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { textoLegible } from "@/lib/texto";
@@ -83,7 +83,27 @@ export interface EventoVenta {
   // El documento de ese presupuesto, si está en el archivo y ya subido.
   pdfUrl?: string | null;
 }
-export type EventoTimeline = EventoActividad | EventoCotizacion | EventoVenta;
+/**
+ * Lo que hizo POSTVENTA con el cliente: un servicio (mantenimiento, garantía,
+ * repuesto, despacho) o una atención. Va en la misma cronología porque el
+ * comercial y postventa venden mantenimiento los dos y cada uno tiene que ver
+ * lo que hizo el otro (Santos, 02-09).
+ */
+export interface EventoServicio {
+  tipo: "servicio";
+  id: string;
+  fecha: string;
+  titulo: string;
+  detalle: string | null;
+  quien: string | null;
+  href: string | null;
+  monto?: number | null;
+  moneda?: string | null;
+  /** Nunca cuelga de una oportunidad comercial: es trabajo de postventa. */
+  oportunidadId: null;
+  pdfUrl?: null;
+}
+export type EventoTimeline = EventoActividad | EventoCotizacion | EventoVenta | EventoServicio;
 
 function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; oportunidadActualId?: string }) {
   const Icono =
@@ -91,13 +111,17 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
       ? (ICONO_ACTIVIDAD[evento.tipoActividad] ?? MoreHorizontal)
       : evento.tipo === "cotizacion"
         ? FileText
-        : CircleCheckBig;
+        : evento.tipo === "servicio"
+          ? Wrench
+          : CircleCheckBig;
   const clasesIcono =
     evento.tipo === "actividad"
       ? "bg-secondary text-foreground"
       : evento.tipo === "cotizacion"
         ? COLOR_COTIZACION[evento.color]
-        : "bg-[#1E7F4F]/10 text-[#1E7F4F]";
+        : evento.tipo === "servicio"
+          ? "bg-sky-100 text-sky-900"
+          : "bg-[#1E7F4F]/10 text-[#1E7F4F]";
 
   return (
     <div className="relative flex gap-3">
@@ -116,6 +140,18 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
               Cotización {evento.codigo ?? "—"} {evento.estadoLabel}
             </span>
           )}
+          {evento.tipo === "servicio" && (
+            <span className="font-semibold text-sky-900">
+              {evento.href ? (
+                <Link href={evento.href} className="hover:underline">
+                  {evento.titulo}
+                </Link>
+              ) : (
+                evento.titulo
+              )}
+              {evento.quien && <span className="font-normal text-muted-foreground"> · postventa: {evento.quien}</span>}
+            </span>
+          )}
           {evento.tipo === "venta" && (
             <span className={evento.anulada ? "font-semibold text-muted-foreground line-through" : "font-semibold text-[#1E7F4F]"}>
               {evento.anulada ? "Venta anulada" : "Venta cerrada"}
@@ -123,6 +159,9 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
                 <span className="font-normal text-muted-foreground"> · presupuesto {evento.presupuesto}</span>
               )}
             </span>
+          )}
+          {evento.tipo === "servicio" && evento.detalle && (
+            <span className="basis-full text-xs text-muted-foreground">{evento.detalle}</span>
           )}
           {evento.tipo !== "actividad" && evento.monto != null && (
             <span className="text-sm font-semibold tabular-nums text-foreground">

@@ -337,9 +337,30 @@ verificados con `scripts/_verificar-ajustes-carlos.mjs`:
    opcionales si hay captura; la ficha del pedido enlaza la captura (URL
    firmada).
 
-**Quedan por construir de esa reunión** (medio día cada uno): el control de
-pedidos con visión por paso (tabla: fila = pedido, columna = paso, filtros
-«sin plano», «sin despacho», «sin probar»); el **cierre semanal del sábado
+**Hechos después, en local y SIN desplegar (Santos: «no despliegues»)**:
+- **Control de pedidos «Por paso»** (`tabla-por-paso.tsx`): fila = pedido,
+  columna = paso, chips «Falta plano (4)» que filtran. El tablero de fases
+  sigue por defecto.
+- **«Mi parque» y «Mantenimiento por vender»** (`src/lib/parque.ts`,
+  `/comercial/parque`, `acciones/parque.ts`). Decisión de Santos: el
+  mantenimiento **lo venden ambos**, comercial y postventa, y **uno ve la
+  gestión del otro**; no hay exclusividad por cartera. Por cliente con
+  máquinas: parque, último mantenimiento (equipos fichados + servicios de
+  postventa) con el semáforo de la Ruta, última gestión de quien sea, y si ya
+  hay una oportunidad de mantenimiento abierta y de quién (no se duplica: se
+  entra a esa). «Ofrecer mantenimiento» abre la oportunidad
+  (`tipo_postventa=mantenimiento`, seguimiento, para hoy) → Mi día y Ruta.
+  El comercial ve su cartera; quien ve todo postventa alterna «Toda la
+  empresa» (`?todos=1`, enlace «Mantenimiento por vender» en el menú del
+  área). Mi día trae una tanda de 10 (nunca/vencido y sin gestión abierta).
+  El historial del cliente ahora incluye **los servicios y atenciones de
+  postventa** (`EventoServicio` en `linea-tiempo-cuenta.tsx`). Verificado
+  con `scripts/_verificar-parque.mjs` (Katerine: 50 clientes, 75 máquinas,
+  40 por vender).
+- El reporte `servicios-sin-cliente` distingue «Pedido 2 de 4 · mismo
+  cliente» de «fila repetida en el Excel» (SALIDA= para no pisar el abierto).
+
+**Quedan por construir de esa reunión**: el **cierre semanal del sábado
 11:55** (consolida lo diario + dos campos obligatorios «¿qué necesitas para
 mejorar tus ventas?» y «¿a qué te comprometes?» + bloque fijo de rechazados
 con motivo + histórico); el **reporte «qué te faltó»** por comercial dentro

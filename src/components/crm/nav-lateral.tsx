@@ -62,6 +62,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/comercial/potenciales", etiqueta: "Mis potenciales", icono: Target },
     { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: Gauge },
     { href: "/comercial/cartera", etiqueta: "Mi cartera", icono: Building2 },
+    // Santos, 02-09: el comercial también vende mantenimiento a su parque.
+    { href: "/comercial/parque", etiqueta: "Mi parque", icono: Wrench },
   ],
   gerencia: [
     { href: "/gerencia", etiqueta: "Panel comercial", icono: BarChart3 },
@@ -129,6 +131,8 @@ const ENLACES_POSTVENTA = [
   // el estatus de cada paso, todos juntos.
   { href: "/postventa/control", etiqueta: "Control de pedidos", icono: Table2 },
   { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
+  // El parque visto como venta: a quién toca ofrecerle mantenimiento.
+  { href: "/comercial/parque?todos=1", etiqueta: "Mantenimiento por vender", icono: Wrench },
   // La ruta de mantenimiento vive acá adentro como pestaña (plan 23, etapa
   // 4): «es una campaña sobre el mismo pipeline, no otro objeto». Ya no
   // tiene entrada propia en este menú.
