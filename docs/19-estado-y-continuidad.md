@@ -368,12 +368,17 @@ fósiles corrido.
   **0155** hace que `listar_clientes` devuelva `historica_id` (la archivada
   más reciente del cliente) y la fila de Mi cartera muestra el botón en la
   columna «Abiertas» cuando no tiene ninguna abierta. Verificado con
-  `scripts/_verificar-retomar-cartera.mjs` (sesión real de C4). Esperar más
-  reportes iguales: entre lo archivado hoy hay 94 (C4), 90 (C1), 40 (C5) y
-  32 (C9) cuya última nota es una gestión del 22-08 con contenido. La
-  respuesta es la misma: buscar y Retomar; devolverlas en bloque es decisión
-  de Santos con las comerciales. Becerra tiene además la ficha partida (una
-  sin RUC, «Falta RUC/DNI»): pendiente unirla en la del RUC.
+  `scripts/_verificar-retomar-cartera.mjs` (sesión real de C4).
+  **Ojo con el prefijo «[Actualización 22-08 …]»**: es el día en que se
+  releyó el Excel, no el de la gestión; la fecha real es `realizada_at`.
+  Becerra tenía esa nota fechada 15-07 y su última gestión real fue el
+  18-07: fósil legítimo. Medido bien, de lo archivado hoy tienen su última
+  gestión del Excel en agosto (sin contar las notas refechadas al 21-08):
+  C4 141, C5 122, C1 102; y gestionadas la semana del 18 al 22-08, que el
+  segundo saneador barrió a propósito: C4 25, C1 15, C5 5. Esas 45 son las
+  que más probablemente alguien «no ve»; la respuesta es buscar y Retomar,
+  no devolver en bloque. Becerra tiene además la ficha partida (una sin RUC,
+  «Falta RUC/DNI»): pendiente unirla en la del RUC.
 - **Punto 3, Mis cierres.** Nueva `/comercial/cierres/[id]` (`VistaCierre`):
   el cierre como pantalla en DOS columnas —lectura a la izquierda (cliente,
   equipos con IGV, cómo se hizo la venta, correcciones) y consulta a la
