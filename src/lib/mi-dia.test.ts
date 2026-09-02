@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { diasEntre, vencioHace } from "./mi-dia";
+import { diasEntre, llegoHace, vencioHace } from "./mi-dia";
+
+describe("llegoHace", () => {
+  it("cuenta desde la fecha de Lima, no desde la hora UTC", () => {
+    // 02-09 a las 23:30 de Lima es 03-09 04:30 UTC: sigue siendo «hoy» el 02-09.
+    expect(llegoHace("2026-09-03T04:30:00Z", "2026-09-02")).toBe("llegó hoy");
+    expect(llegoHace("2026-09-01T15:00:00Z", "2026-09-02")).toBe("llegó ayer");
+    expect(llegoHace("2026-08-30T15:00:00Z", "2026-09-02")).toBe("llegó hace 3 días");
+  });
+});
 
 describe("vencioHace", () => {
   const hoy = "2026-09-02";

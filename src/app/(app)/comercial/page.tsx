@@ -11,7 +11,7 @@ import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
 import { BarraSemana } from "@/components/crm/barra-semana";
 import { cargarPulsoSemana } from "@/lib/pulso-semana";
 import { lunesDe } from "@/lib/calendario";
-import { vencioHace } from "@/lib/mi-dia";
+import { llegoHace, vencioHace } from "@/lib/mi-dia";
 
 interface FilaMiDia {
   id: string;
@@ -22,6 +22,8 @@ interface FilaMiDia {
   razon_social: string;
   /** 'crm' si nació acá; cualquier otra cosa vino de la importación del Excel. */
   origen: string;
+  /** Cuándo entró a la cartera: en una recién asignada es cuándo la derivó Central. */
+  creada_at: string | null;
 }
 
 interface FilaInactiva {
@@ -79,8 +81,8 @@ function Fila({ op, urgencia, hoy }: { op: FilaMiDia; urgencia: "vencida" | "hoy
         </span>
       )}
       {urgencia === "nueva" && (
-        <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-          Nuevo
+        <span className="whitespace-nowrap rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+          {op.creada_at ? llegoHace(op.creada_at, hoy) : "Nuevo"}
         </span>
       )}
     </Link>
@@ -383,7 +385,7 @@ export default async function ComercialPage({
   // comercial ve lo que de verdad puede retomar.
   const TOPE_VENCIDAS = 60;
   const TOPE_NUEVAS = 40;
-  const CAMPOS_MI_DIA = "id, etapa, intencion, origen, proxima_accion, proxima_accion_at, cuentas(razon_social)";
+  const CAMPOS_MI_DIA = "id, etapa, intencion, origen, proxima_accion, proxima_accion_at, created_at, cuentas(razon_social)";
   //
   // 31-08 (migración 0130): a las tres cerradas se sumó `historico`. Brenda
   // veía 1.035 vencidas cuando las suyas de verdad son 41 — las otras 994 eran
@@ -437,13 +439,14 @@ export default async function ComercialPage({
     origen: op.origen ?? "crm",
     proxima_accion: op.proxima_accion,
     proxima_accion_at: op.proxima_accion_at,
+    creada_at: op.created_at ?? null,
     razon_social: (op.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
   });
 
   const paraHoy = (hoyData ?? []).map(aFila);
   const vencidas = (vencidasData ?? []).map(aFila);
   const nuevas = (nuevasData ?? []).map(aFila);
-  const oportunidades = [...paraHoy, ...vencidas, ...nuevas];
+  const oportunidades = [...nuevas, ...paraHoy, ...vencidas];
   const vencidasOcultas = Math.max(0, (vencidasTotal ?? vencidas.length) - vencidas.length);
   const nuevasOcultas = Math.max(0, (nuevasTotal ?? nuevas.length) - nuevas.length);
 
@@ -554,11 +557,11 @@ export default async function ComercialPage({
             {oportunidades.length > 0 && (
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {[
-                  (vencidasTotal ?? vencidas.length) > 0 &&
-                    `${(vencidasTotal ?? vencidas.length).toLocaleString("es-PE")} vencida${(vencidasTotal ?? vencidas.length) === 1 ? "" : "s"}`,
-                  paraHoy.length > 0 && `${paraHoy.length} para hoy`,
                   (nuevasTotal ?? nuevas.length) > 0 &&
                     `${(nuevasTotal ?? nuevas.length).toLocaleString("es-PE")} recién asignada${(nuevasTotal ?? nuevas.length) === 1 ? "" : "s"}`,
+                  paraHoy.length > 0 && `${paraHoy.length} para hoy`,
+                  (vencidasTotal ?? vencidas.length) > 0 &&
+                    `${(vencidasTotal ?? vencidas.length).toLocaleString("es-PE")} vencida${(vencidasTotal ?? vencidas.length) === 1 ? "" : "s"}`,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -577,18 +580,16 @@ export default async function ComercialPage({
             <>
               {/* Primero, porque es plata ya cerrada que no puede despacharse
                   hasta que Central reciba el informe. */}
+              {/* EL ORDEN ES LA TEMPERATURA (Santos, 02-09: «primero las
+                  recién asignadas por Central, que es lo más calientito»).
+                  1) plata cerrada que Central no puede facturar; 2) lo que
+                  Central derivó y espera respuesta —cada hora enfría el
+                  contacto—; 3) lo que ella agendó para hoy; 4) lo que se le
+                  pasó, de lo más reciente a lo más viejo. Antes las vencidas
+                  iban arriba y una derivación de hace una hora quedaba al
+                  fondo, debajo de 15 vencidas. */}
               <GrupoSinInforme filas={sinInforme} />
-              <Grupo titulo="Vencidas" filas={vencidas} urgencia="vencida" hoy={hoy} total={vencidasTotal ?? undefined} />
-              {vencidasOcultas > 0 && (
-                <p className="-mt-3 text-xs text-muted-foreground">
-                  Se muestran las {vencidas.length} más recientes ·{" "}
-                  <Link href="/comercial/oportunidades" className="font-medium text-primary hover:underline">
-                    hay {vencidasOcultas.toLocaleString("es-PE")} vencidas más en Mis oportunidades
-                  </Link>
-                </p>
-              )}
-              <Grupo titulo="Para hoy" filas={paraHoy} urgencia="hoy" hoy={hoy} />
-              <Grupo titulo="Recién asignadas" filas={nuevas} urgencia="nueva" hoy={hoy} total={nuevasTotal ?? undefined} />
+              <Grupo titulo="Recién asignadas por Central" filas={nuevas} urgencia="nueva" hoy={hoy} total={nuevasTotal ?? undefined} />
               {nuevasOcultas > 0 && (
                 <p className="-mt-3 text-xs text-muted-foreground">
                   Se muestran las {nuevas.length} más recientes ·{" "}
@@ -597,6 +598,16 @@ export default async function ComercialPage({
                     className="font-medium text-primary hover:underline"
                   >
                     hay {nuevasOcultas.toLocaleString("es-PE")} sin primer contacto más
+                  </Link>
+                </p>
+              )}
+              <Grupo titulo="Para hoy" filas={paraHoy} urgencia="hoy" hoy={hoy} />
+              <Grupo titulo="Vencidas" filas={vencidas} urgencia="vencida" hoy={hoy} total={vencidasTotal ?? undefined} />
+              {vencidasOcultas > 0 && (
+                <p className="-mt-3 text-xs text-muted-foreground">
+                  Se muestran las {vencidas.length} más recientes ·{" "}
+                  <Link href="/comercial/oportunidades" className="font-medium text-primary hover:underline">
+                    hay {vencidasOcultas.toLocaleString("es-PE")} vencidas más en Mis oportunidades
                   </Link>
                 </p>
               )}

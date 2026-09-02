@@ -28,6 +28,20 @@ export function diasEntre(desde: string, hasta: string): number {
  * más de un año». Sin cifras que obliguen a restar de cabeza (el mismo criterio
  * del reloj humano de postventa, Santos 01-09).
  */
+/**
+ * «llegó hoy», «llegó ayer», «llegó hace 3 días»: cuánto lleva esperando una
+ * derivación de Central sin primer contacto. Recibe el `created_at` (con
+ * hora) y lo pasa a fecha de Lima antes de contar días de calendario.
+ */
+export function llegoHace(creadaAt: string, hoy: string): string {
+  const fecha = new Date(creadaAt).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const dias = diasEntre(fecha, hoy);
+  if (dias <= 0) return "llegó hoy";
+  if (dias === 1) return "llegó ayer";
+  if (dias < 45) return `llegó hace ${dias} días`;
+  return `llegó hace ${Math.round(dias / 30)} meses`;
+}
+
 export function vencioHace(fecha: string, hoy: string): string {
   const dias = diasEntre(fecha, hoy);
   if (dias <= 0) return "vence hoy";
