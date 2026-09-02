@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import Link from "next/link";
 import { TableroControl, type TarjetaControl } from "@/components/crm/tablero-control";
+import { TablaPorPaso, type FilaTabla } from "@/components/crm/tabla-por-paso";
+import { cn } from "@/lib/utils";
 import { fechaLima } from "@/lib/fechas";
 import {
   avancePedido,
@@ -37,7 +40,17 @@ function faseActual(bloques: ReturnType<typeof bloquesPedido>): 1 | 2 | 3 {
   return 3;
 }
 
-export default async function ControlPedidosPage() {
+export default async function ControlPedidosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ vista?: string; falta?: string }>;
+}) {
+  // Dos vistas del mismo control (Carlos, 02-09): el tablero de fases —lo que
+  // diseñó Santos— y la tabla POR PASO, para «¿a quiénes no les he enviado el
+  // plano?» cuando hay veinte pedidos. `falta` deja solo los que deben ese paso.
+  const sp = await searchParams;
+  const vista = sp.vista === "paso" ? "paso" : "tablero";
+  const falta = /^[a-z_]+$/.test(sp.falta ?? "") ? (sp.falta as string) : null;
   const perfil = await requerirPerfil();
   const supabase = await createClient();
 
@@ -54,7 +67,7 @@ export default async function ControlPedidosPage() {
 
   const verPrecios = puedeVerPrecios(perfil);
 
-  const pedidos: TarjetaControl[] = ((data ?? []) as unknown as ServicioPostventa[]).map((crudo) => {
+  const pedidos: (TarjetaControl & { pasosTabla: FilaTabla["pasos"] })[] = ((data ?? []) as unknown as ServicioPostventa[]).map((crudo) => {
     const s = verPrecios ? crudo : sinPrecios(crudo);
     const bloques = bloquesPedido(s);
     const fase = faseActual(bloques);
@@ -93,26 +106,63 @@ export default async function ControlPedidosPage() {
         })),
       })),
       faltantesHasta,
+      pasosTabla: bloques.flatMap((b) =>
+        b.pasos.map((p) => ({
+          clave: p.clave,
+          etiqueta: p.etiqueta,
+          hecho: p.hecho,
+          cuando: p.cuando,
+          trabado: p.trabado ?? null,
+          dueno: etiquetaResponsable(p.responsable),
+        })),
+      ),
     };
   });
+
+  // La tabla por paso trabaja sobre los mismos pedidos: todos los pasos de
+  // las tres fases, en orden, con su fecha y su responsable.
+  const filas: FilaTabla[] = pedidos.map((t) => ({
+    id: t.id,
+    cliente: t.cliente,
+    equipo: t.equipo,
+    pasos: t.pasosTabla,
+  }));
 
   return (
     <SeccionPanel
       titulo="Control de pedidos"
       accion={
-        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
-          {pedidos.length} en curso
+        <span className="flex items-center gap-2">
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
+            {pedidos.length} en curso
+          </span>
+          <span className="inline-flex overflow-hidden rounded-md border border-border text-xs font-medium">
+            <Link
+              href="/postventa/control"
+              className={cn("px-2.5 py-1", vista === "tablero" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}
+            >
+              Tablero
+            </Link>
+            <Link
+              href="/postventa/control?vista=paso"
+              className={cn("px-2.5 py-1", vista === "paso" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}
+            >
+              Por paso
+            </Link>
+          </span>
         </span>
       }
     >
       <p className="mb-4 max-w-prose text-xs text-muted-foreground">
-        Cada pedido está en la fase donde le falta trabajo; la barrita se abre y dice qué falta en esa fase. La
-        tarjeta se puede arrastrar: si intenta pasarla a una fase que todavía no le toca, la alerta le dice qué
-        falta — y al marcar esos pasos en la ficha, pasa sola.
+        {vista === "paso"
+          ? "Una fila por pedido, una columna por paso. Toque «Falta plano», «Falta despacho» o el paso que quiera y quedan solo los pedidos que lo deben: esa es su lista de trabajo. Cada paso se marca en la ficha del pedido."
+          : "Cada pedido está en la fase donde le falta trabajo; la barrita se abre y dice qué falta en esa fase. La tarjeta se puede arrastrar: si intenta pasarla a una fase que todavía no le toca, la alerta le dice qué falta — y al marcar esos pasos en la ficha, pasa sola."}
       </p>
 
       {pedidos.length === 0 ? (
         <p className="text-sm text-muted-foreground">No hay pedidos del flujo en curso ahora mismo.</p>
+      ) : vista === "paso" ? (
+        <TablaPorPaso filas={filas} falta={falta} base="/postventa/control" />
       ) : (
         <TableroControl pedidos={pedidos} />
       )}
