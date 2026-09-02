@@ -317,12 +317,16 @@ Lesly; el plan con citas está en las cabeceras de la 0150 y de los archivos.
   llevan con la cuenta solo `accesos` e `intentos_pin_supervisor`. Ensayado
   contra la base real con una cuenta temporal.
 
-### Lo del 02-09 (las cuatro observaciones del Word, construidas en local)
+### Lo del 02-09 (las cuatro observaciones del Word) — DESPLEGADO 09:47
 
 Santos: «mapéalo, vamos a hacerlo y despliégalo todo… al final cuando te diga
-desplegamos todo». Verificado con `scripts/_verificar-0209.mjs` (sesiones
-reales contra `next dev -p 3005`). **Pendiente de desplegar hasta que Santos
-lo diga.**
+desplegamos todo». Verificado con `scripts/_verificar-0209.mjs`,
+`_verificar-base-excel.mjs` y `_verificar-correccion-cierre.mjs` (sesiones
+reales; aceptan `BASE_URL=https://crm.efameinsa.com`), primero contra
+`next dev -p 3005` y después contra producción. **Seis commits subidos en una
+tanda a las 09:46 (44968b3…e32db38), Vercel READY 09:47, las tres pasadas
+limpias en producción.** Migraciones 0153 y 0154 aplicadas; archivado de
+fósiles corrido.
 
 - **Punto 2, Mi día.** Lo que había detrás del «Vencidas 60» de Katerine:
   6.178 vencidas reales, de las que 6.163 son filas del Excel sin tocar. La
