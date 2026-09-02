@@ -52,8 +52,24 @@ const CANDIDATAS = `
        select 1 from actividades a
         where a.oportunidad_id = o.id
           and (a.realizada_at at time zone 'America/Lima')::date >= '2026-08-18'
-          and not (a.tipo = 'nota' and (coalesce(a.nota,'') like '[Histórico%' or coalesce(a.nota,'') like '[Actualización%')
-                   and (a.realizada_at at time zone 'America/Lima')::date between '2026-08-18' and '2026-08-22'))
+          -- CORREGIDO 02-09 (Santos, caso Becerra Rojas + 51 más repuestas con
+          -- scripts/reponer-gestiones-semana-del-import.mjs): el prefijo dice
+          -- cuándo se leyó el Excel, NO cuándo se hizo la gestión. Una nota con
+          -- prefijo y fecha del 18 al 22-08 solo es artefacto del importador si
+          -- (a) no trae texto después del prefijo, (b) es «[Histórico …]» fechada
+          -- exactamente el 21-08 (filas del Excel sin fecha, que recibieron la
+          -- del import), o (c) su texto empieza con una fecha de otro año
+          -- («9-11-18 entregaron prospecto», HOSTAL MARVIN). Lo demás es una
+          -- gestión real de esa semana y mantiene viva la oportunidad.
+          and not (
+            a.tipo = 'nota'
+            and (coalesce(a.nota,'') like '[Histórico%' or coalesce(a.nota,'') like '[Actualización%')
+            and (a.realizada_at at time zone 'America/Lima')::date between '2026-08-18' and '2026-08-22'
+            and (
+              length(trim(substring(a.nota from position(']' in a.nota) + 1))) = 0
+              or (a.nota like '[Histórico%' and (a.realizada_at at time zone 'America/Lima')::date = '2026-08-21')
+              or trim(substring(a.nota from position(']' in a.nota) + 1)) ~ '^\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4}'
+            )))
      and exists (select 1 from actividades a where a.oportunidad_id = o.id and a.tipo = 'nota' and (coalesce(a.nota,'') like '[Histórico%' or coalesce(a.nota,'') like '[Actualización%'))`;
 
 const { rows } = await bd.query(CANDIDATAS);

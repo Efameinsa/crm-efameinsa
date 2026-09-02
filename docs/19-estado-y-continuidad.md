@@ -375,10 +375,21 @@ fósiles corrido.
   18-07: fósil legítimo. Medido bien, de lo archivado hoy tienen su última
   gestión del Excel en agosto (sin contar las notas refechadas al 21-08):
   C4 141, C5 122, C1 102; y gestionadas la semana del 18 al 22-08, que el
-  segundo saneador barrió a propósito: C4 25, C1 15, C5 5. Esas 45 son las
-  que más probablemente alguien «no ve»; la respuesta es buscar y Retomar,
-  no devolver en bloque. Becerra tiene además la ficha partida (una sin RUC,
-  «Falta RUC/DNI»): pendiente unirla en la del RUC.
+  segundo saneador barrió a propósito: C4 25, C1 15, C5 5.
+  **Reposición (10:55, orden de Santos: «devuélvele a Ariana a Becerra y
+  reponer todos los casos que hayas causado de manera similar»)**:
+  `scripts/reponer-gestiones-semana-del-import.mjs --aplicar` devolvió **52**
+  (C4 33, C1 15, C5 4) a la etapa que tenían antes del archivado, leída de
+  los respaldos, con una nota fechada hoy firmada por admin@efameinsa.com.
+  Criterio: última actividad real fechada del 18 al 22-08 con texto, menos
+  los artefactos («[Histórico]» fechada 21-08, texto que empieza con fecha
+  de otro año como HOSTAL MARVIN), más Becerra a pedido. Respaldo en
+  `backups/repuestas-semana-del-import-02-09.json`, `--revertir` propio.
+  El segundo saneador quedó corregido con esa misma regla (ensayo: 0
+  candidatas). Dos de las repuestas de C4 estaban en `asignada` en el Excel
+  y suman a sus «recién asignadas». Becerra tiene además la ficha partida
+  (una sin RUC, «Falta RUC/DNI», sigue en histórico): pendiente unirla en la
+  del RUC.
 - **Punto 3, Mis cierres.** Nueva `/comercial/cierres/[id]` (`VistaCierre`):
   el cierre como pantalla en DOS columnas —lectura a la izquierda (cliente,
   equipos con IGV, cómo se hizo la venta, correcciones) y consulta a la
