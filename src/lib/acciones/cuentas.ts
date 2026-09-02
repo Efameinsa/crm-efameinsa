@@ -122,9 +122,14 @@ export async function actualizarIdentidadCuenta(datos: {
     // RUC manda sobre el nombre; lo que corresponde es pedir el traspaso o la
     // unión, no duplicarla.
     if (error.code === "23505") {
+      // Santos, 02-09: «que diga a qué comercial lo tiene en cartera, por
+      // ejemplo: está en la cartera de C1». La función (0156) devuelve solo
+      // el código y el nombre del dueño, nada más de la ficha ajena.
+      const { data: duena } = await supabase.rpc("cartera_de_documento", { p_num_doc: numDoc });
+      const d = duena as { codigo: string | null; nombre: string | null; es_mia: boolean } | null;
+      const quien = d?.nombre ? ` Está en la cartera de ${d.codigo ? `${d.codigo} (${d.nombre})` : d.nombre}.` : " Está en la cartera de otro comercial.";
       return {
-        error:
-          "Ese RUC/DNI ya está registrado en el CRM en la cartera de otro comercial. Un cliente tiene una sola ficha: pida a gerencia el traspaso de cartera o la unión de las fichas.",
+        error: `Ese RUC/DNI ya está registrado en el CRM.${quien} Un cliente tiene una sola ficha: pida a gerencia el traspaso de cartera o la unión de las fichas.`,
       };
     }
     return { error: error.message };
