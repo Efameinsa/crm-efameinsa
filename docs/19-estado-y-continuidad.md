@@ -453,6 +453,41 @@ fósiles corrido.
 
 ---
 
+### Lo del 02-09 a las 17:30: el cierre de repuestos y servicios de Ariana (sin migración)
+
+Ariana (C4, con el permiso de mantenimiento desde hoy) cerró con **FANCAVEL
+SERVICIOS GENERALES E.I.R.L.** (Chimbote) una cotización en papel —la
+2191-26 de OPEN, hecha en Word, NO está en el CRM— de **trece repuestos y un
+servicio de mantenimiento correctivo** (USD 2.011,07 con IGV). Dos cosas la
+frenaron en el informe de cierre:
+
+1. **El nombre.** La ficha (cartera de Katerine, RUC 20569100349) se llama
+   «INVERSIONES VILLA SAN MARIA DE LAS NIEVES S.A.C. -FAMCAVEL SERVICIOS
+   GENERALES E.I.R.L.»: dos razones sociales pegadas desde el Excel y con
+   «FAMCAVEL» mal escrito. El cliente quiere que el documento salga solo a su
+   nombre. «Corregir» mandaba a la sección plegada del final y Ariana no dio
+   con la caja. Ahora **«Se le factura a» tiene su botón Editar en el mismo
+   cuadro**: razón social, RUC y comprobante ahí mismo, con «Volver a lo que
+   dice la ficha». El aviso de identidad, cuando el RUC es el mismo, dice que
+   puede estar bien si el cliente lo pidió; con otro RUC sigue avisando
+   igual. Es solo este documento: la ficha no se toca desde ahí.
+2. **Los renglones.** Todo era «equipo»: el botón, el ejemplo, la validación
+   y el rótulo EQUIPOS de la tabla del PDF. Ahora cada renglón lleva
+   `items[].tipo` (equipo / repuesto / servicio; sin él es equipo, como todo
+   lo emitido antes), hay tres botones de agregar, el ejemplo cambia con el
+   tipo, y el PDF rotula la columna según lo que haya («REPUESTOS Y
+   SERVICIOS», «EQUIPOS, REPUESTOS Y SERVICIOS»; `rotuloDeItems` en
+   `lib/informes.ts`). Para listas largas, **«Pegar una lista»**: una línea
+   por renglón, `descripción | cantidad | precio` o con tabulador desde
+   Excel. La vista del cierre emitido (`vista-cierre`) edita el tipo con el
+   mismo código de corrección de la 0153/0154.
+
+**Pendiente de decidir (Santos/Central):** la ficha 20569100349 debería
+llamarse solo «FANCAVEL SERVICIOS GENERALES E.I.R.L.» si ese RUC es de la
+E.I.R.L. (no se pudo verificar en SUNAT desde acá); INVERSIONES VILLA SAN
+MARIA tiene su propia ficha con el RUC 20604034702. Hay además una tercera
+ficha con el mismo nombre pegado y sin RUC, candidata a fusión.
+
 ## 5. Cómo se trabaja acá
 
 **Migraciones.** Numeradas, en `supabase/migrations/`, con una cabecera larga

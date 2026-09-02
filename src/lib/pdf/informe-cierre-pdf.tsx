@@ -1,5 +1,6 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { IDENTIDAD_SERIE, IGV } from "./series";
+import { rotuloDeItems } from "@/lib/informes";
 
 // Informe de cierre de ventas hacia Central. Calcado del documento que hoy
 // arman a mano en Word: "INFORME OPEN Nº004-2026 - CONGELADOS Y FRESCOS
@@ -33,6 +34,8 @@ const BORDE = "#B9B4B2";
 const FILA_GRIS = "#EDEAE9";
 
 export interface ItemInforme {
+  /** Equipo (por defecto), repuesto o servicio; decide el rótulo de la tabla (lib/informes.ts). */
+  tipo?: string | null;
   /** Descripción tal como va impresa, con sus saltos de línea (MARCA:, MODELO:, …). */
   descripcion: string;
   cantidad: number;
@@ -271,7 +274,8 @@ function Tabla({ estilos, simbolo, lista }: { estilos: Estilos; simbolo: string;
           impuesto se agrega recién en las tres filas de cierre. */}
       <View style={estilos.thFila}>
         <Text style={[estilos.th, estilos.cItem]}>ITEM</Text>
-        <Text style={[estilos.th, estilos.cDesc]}>EQUIPOS</Text>
+        {/* «EQUIPOS», o «REPUESTOS Y SERVICIOS» cuando el cierre es de postventa (02-09, caso FANCAVEL). */}
+        <Text style={[estilos.th, estilos.cDesc]}>{rotuloDeItems(lista)}</Text>
         <Text style={[estilos.th, estilos.cCant]}>CANTIDAD</Text>
         <Text style={[estilos.th, estilos.cPrecio]}>{`P. UNITARIO ${simbolo}`}</Text>
         <Text style={[estilos.th, estilos.cSub]}>{`PRECIO TOTAL ${simbolo}`}</Text>
@@ -301,7 +305,8 @@ function Tabla({ estilos, simbolo, lista }: { estilos: Estilos; simbolo: string;
   );
 }
 
-const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+// Hasta XX: el cierre de repuestos de FANCAVEL (02-09) trajo catorce filas y pasaba de X a 11.
+const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX"];
 
 function monto(v: number): string {
   return v.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -395,7 +400,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
         </Text>
 
         <Text style={estilos.tablaTitulo}>
-          {presupuestoRef ? `Detalle del equipo según presupuesto ${presupuestoRef}` : "Detalle del equipo"}
+          {presupuestoRef ? `Detalle de ${rotuloDeItems(items).toLowerCase()} según presupuesto ${presupuestoRef}` : `Detalle de ${rotuloDeItems(items).toLowerCase()}`}
         </Text>
         <Tabla estilos={estilos} simbolo={simbolo} lista={items} />
 
@@ -406,15 +411,20 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
           </>
         )}
 
-        <Text style={estilos.seccion}>1. DATOS DEL CLIENTE</Text>
-        <View style={estilos.casillasFila}>
-          <Casilla estilos={estilos} marcada={comprobante === "boleta_ruc"} texto="BOLETA CON RUC" />
-          <Casilla estilos={estilos} marcada={comprobante === "boleta_dni"} texto="BOLETA CON DNI" />
-          <Casilla estilos={estilos} marcada={comprobante === "factura"} texto="FACTURA" />
-        </View>
-        <View style={estilos.casillasFila}>
-          <Casilla estilos={estilos} marcada={!clienteNuevo} texto="CLIENTE ANTIGUO" />
-          <Casilla estilos={estilos} marcada={clienteNuevo} texto="CLIENTE NUEVO" />
+        {/* El título y las casillas viajan juntos: con una tabla larga (los
+            catorce renglones de FANCAVEL, 02-09) las cajitas quedaban dibujadas
+            al pie de una página y sus rótulos en la siguiente. */}
+        <View wrap={false}>
+          <Text style={estilos.seccion}>1. DATOS DEL CLIENTE</Text>
+          <View style={estilos.casillasFila}>
+            <Casilla estilos={estilos} marcada={comprobante === "boleta_ruc"} texto="BOLETA CON RUC" />
+            <Casilla estilos={estilos} marcada={comprobante === "boleta_dni"} texto="BOLETA CON DNI" />
+            <Casilla estilos={estilos} marcada={comprobante === "factura"} texto="FACTURA" />
+          </View>
+          <View style={estilos.casillasFila}>
+            <Casilla estilos={estilos} marcada={!clienteNuevo} texto="CLIENTE ANTIGUO" />
+            <Casilla estilos={estilos} marcada={clienteNuevo} texto="CLIENTE NUEVO" />
+          </View>
         </View>
         {[
           ["CLIENTE:", cliente.nombre],

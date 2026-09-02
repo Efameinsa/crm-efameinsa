@@ -85,6 +85,7 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
     contacto_contabilidad: contacto(informe.contacto_contabilidad),
     contacto_despacho: contacto(informe.contacto_despacho),
     items: ((informe.items ?? []) as ItemVista[]).map((i) => ({
+      tipo: i.tipo === "repuesto" || i.tipo === "servicio" ? i.tipo : "equipo",
       descripcion: i.descripcion,
       cantidad: Number(i.cantidad),
       precio_unitario: Number(i.precio_unitario),

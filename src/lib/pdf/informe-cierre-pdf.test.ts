@@ -88,6 +88,43 @@ describe("informe de cierre en PDF", () => {
     const pdf = await render({ entrega: { fecha: "Por confirmar", hora: "Por confirmar", lugar: null, direccion: null } });
     expect(pdf.length).toBeGreaterThan(5000);
   });
+
+  // El cierre de Ariana con FANCAVEL (02-09): trece repuestos y un servicio.
+  // La columna no puede decir EQUIPOS, y catorce filas tienen que caber sin
+  // romper el maquetado (los números romanos se acaban en el X).
+  it("rotula la tabla como REPUESTOS Y SERVICIOS y aguanta catorce renglones", async () => {
+    const repuestos = [
+      "VALVULA DE DRENAJE", "BOLA DE SOPORTE MOD:4280FR4048N", "BOLA DE SOPORTE MOD 4280FR4048Z", "EMPAQUE RETEN MOD MDS62058301",
+      "AMORTIGUADOR ENSAMBLAJE", "KIT DE INTERRUPTOR DE PUERTA", "EMPAQUETADURA DE PUERTA", "ENSAMBLAJE DE PIERNA (PATA DE LAVADORA)",
+      "ABRAZADERA P/DOSIFICADOR", "ABRAZADERA P/MANGUERA", "ABRAZADERA P/LAVADORA", "ARNES CON GANCHO, ENSAMBLAJE DE PERNOS",
+      "CONJUNTO DE PERNOS DE ANCLAJE",
+    ].map((descripcion, i) => ({ tipo: "repuesto", descripcion, cantidad: 1 + (i % 3), precio_unitario: 5 + i }));
+    const pdf = await render({
+      serie: "OPEN",
+      items: [
+        ...repuestos,
+        {
+          tipo: "servicio",
+          descripcion: "SERVICIO DE MANTENIMIENTO CORRECTIVO PARA LAVADORA\nMARCA: LG\nMODELO: TITAN C\nCAPACIDAD: 15KG\nSERIE: 707KWXD21746",
+          cantidad: 1,
+          precio_unitario: 325,
+        },
+      ],
+    });
+    expect(pdf.toString("latin1").startsWith("%PDF-")).toBe(true);
+    const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const doc = await getDocument({ data: new Uint8Array(pdf) }).promise;
+    let texto = "";
+    for (let n = 1; n <= doc.numPages; n++) {
+      const pagina = await doc.getPage(n);
+      const contenido = await pagina.getTextContent();
+      texto += contenido.items.map((x) => ("str" in x ? x.str : "")).join(" ") + "\n";
+    }
+    expect(texto).toContain("REPUESTOS Y SERVICIOS");
+    expect(texto).not.toMatch(/\bEQUIPOS\b/);
+    expect(texto).toContain("CONJUNTO DE PERNOS DE ANCLAJE");
+    expect(texto).toContain("SERIE: 707KWXD21746");
+  });
 });
 
 // Firma del comercial: hasta el 24-08 salía solo el nombre, porque

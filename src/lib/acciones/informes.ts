@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { INCLUYE_POR_DEFECTO } from "@/lib/informes";
+import { INCLUYE_POR_DEFECTO, type TipoItemInforme } from "@/lib/informes";
 import { esquemaAdjuntoNuevo, MAX_ADJUNTOS, type AdjuntoCierre, type AdjuntoNuevo } from "@/lib/adjuntos-cierre";
 import { esquemaCorreccionInforme, type CorreccionInforme } from "@/lib/correccion-informe";
 
@@ -17,6 +17,8 @@ import { esquemaCorreccionInforme, type CorreccionInforme } from "@/lib/correcci
 
 export interface ItemInformeEntrada {
   bloque: "venta" | "gratuito";
+  /** Equipo (por defecto), repuesto o servicio: decide el ejemplo en pantalla y el rótulo de la tabla del PDF (02-09). */
+  tipo?: TipoItemInforme;
   descripcion: string;
   cantidad: number;
   precio_unitario: number;
@@ -310,9 +312,9 @@ function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
 }
 
 function validar(d: DatosInforme): string | null {
-  if (!d.items.some((i) => i.bloque !== "gratuito")) return "El informe necesita al menos un equipo vendido";
-  if (d.items.some((i) => !i.descripcion.trim())) return "Hay un equipo sin descripción";
-  if (d.items.some((i) => i.cantidad <= 0)) return "La cantidad de un equipo tiene que ser mayor que cero";
+  if (!d.items.some((i) => i.bloque !== "gratuito")) return "El informe necesita al menos un renglón vendido: un equipo, un repuesto o un servicio";
+  if (d.items.some((i) => !i.descripcion.trim())) return "Hay un renglón sin descripción";
+  if (d.items.some((i) => i.cantidad <= 0)) return "La cantidad de un renglón tiene que ser mayor que cero";
   if (d.modalidadPago.length === 0) return "Marque la modalidad de pago";
   if (!d.entregaLugar?.trim()) return "Falta el lugar de entrega: sin eso logística no puede despachar";
   return null;

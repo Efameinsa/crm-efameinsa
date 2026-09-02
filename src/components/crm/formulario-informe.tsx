@@ -3,8 +3,17 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronDown, FileText, Plus, Trash2, TriangleAlert } from "lucide-react";
-import { INCLUYE_POR_DEFECTO, avisosDeIdentidad } from "@/lib/informes";
+import { Check, ChevronDown, ClipboardPaste, FileText, PencilLine, Plus, Trash2, TriangleAlert, Undo2 } from "lucide-react";
+import {
+  INCLUYE_POR_DEFECTO,
+  ORDEN_TIPOS_ITEM,
+  TIPOS_ITEM,
+  avisosDeIdentidad,
+  renglonesDesdeTexto,
+  tipoDeItem,
+  tituloDeItems,
+  type TipoItemInforme,
+} from "@/lib/informes";
 import { GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES } from "@/lib/pdf/series";
 import {
   guardarBorradorInforme,
@@ -160,6 +169,15 @@ export function FormularioInforme({
   const [clienteNuevo, setClienteNuevo] = useState(cuenta.esNueva);
   const [clienteNombre, setClienteNombre] = useState(cuenta.razon_social);
   const [clienteDoc, setClienteDoc] = useState(cuenta.num_doc ?? "");
+  // «Se le factura a» se corrige EN SU SITIO (02-09). Antes «Corregir» abría
+  // la sección plegada del final y había que ir a buscar la caja de la razón
+  // social entre otras quince: Ariana no la encontró. El caso: FANCAVEL pidió
+  // que el documento salga a su nombre y la ficha traía dos razones sociales
+  // pegadas.
+  const [editandoCliente, setEditandoCliente] = useState(false);
+  // «Pegar una lista»: qué tipo de renglón se está pegando, o nada.
+  const [pegando, setPegando] = useState<TipoItemInforme | null>(null);
+  const [textoPegado, setTextoPegado] = useState("");
   const [clienteDireccion, setClienteDireccion] = useState(cuenta.direccion ?? "");
   const [clienteCorreo, setClienteCorreo] = useState(principal.correo ?? "");
   const [ordenCompra, setOrdenCompra] = useState("");
@@ -370,7 +388,7 @@ export function FormularioInforme({
       toast.warning(
         sinPrecio.length === 1
           ? `“${sinPrecio[0].descripcion}” no tiene precio — saldrá en 0.00`
-          : `${sinPrecio.length} equipos sin precio — saldrán en 0.00`,
+          : `${sinPrecio.length} renglones sin precio — saldrán en 0.00`,
       );
     }
     // La pestaña se abre ANTES del await: si se abre después, el navegador la
@@ -474,19 +492,68 @@ export function FormularioInforme({
             <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Se le factura a
             </span>
-            <button
-              type="button"
-              onClick={() => setVerTodo(true)}
-              className="text-[11px] text-primary hover:underline"
-            >
-              Corregir
-            </button>
+            {editandoCliente ? (
+              <button
+                type="button"
+                onClick={() => setEditandoCliente(false)}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+              >
+                <Check className="size-3" /> Listo
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEditandoCliente(true)}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+              >
+                <PencilLine className="size-3" /> Editar
+              </button>
+            )}
           </div>
-          <p className="text-sm font-semibold text-foreground">{clienteNombre || "—"}</p>
-          <p className="font-mono text-xs text-muted-foreground">
-            {clienteDoc.trim() || "sin RUC / DNI"}
-            {serie === "OPEN" ? " · factura Open Investments" : " · factura Efameinsa"}
-          </p>
+          {editandoCliente ? (
+            <div className="mt-1.5 space-y-2">
+              <Campo etiqueta="Razón social" pista="tal como el cliente quiere que salga en el documento">
+                <Input value={clienteNombre} onChange={(e) => setClienteNombre(e.target.value)} autoFocus />
+              </Campo>
+              <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
+                <Campo etiqueta="RUC / DNI">
+                  <Input value={clienteDoc} onChange={(e) => setClienteDoc(e.target.value)} className="font-mono" />
+                </Campo>
+                <Campo etiqueta="Comprobante">
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {COMPROBANTES.map(([v, t]) => (
+                      <Pastilla key={v} activa={comprobante === v} onClick={() => setComprobante(v)}>
+                        {t}
+                      </Pastilla>
+                    ))}
+                  </div>
+                </Campo>
+              </div>
+              {(clienteNombre !== cuenta.razon_social || clienteDoc !== (cuenta.num_doc ?? "")) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClienteNombre(cuenta.razon_social);
+                    setClienteDoc(cuenta.num_doc ?? "");
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  <Undo2 className="size-3" /> Volver a lo que dice la ficha
+                </button>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Esto cambia solo este documento, no la ficha del cliente. El RUC manda: si el cliente es otra empresa, cambie también el RUC.
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-foreground">{clienteNombre || "—"}</p>
+              <p className="font-mono text-xs text-muted-foreground">
+                {clienteDoc.trim() || "sin RUC / DNI"}
+                {serie === "OPEN" ? " · factura Open Investments" : " · factura Efameinsa"}
+              </p>
+            </>
+          )}
           {avisosIdentidad.map((aviso, i) => (
             <p key={i} className="mt-1.5 flex items-start gap-1.5 text-[11px] text-amber-700">
               <TriangleAlert className="mt-0.5 size-3 flex-none" />
@@ -545,21 +612,40 @@ export function FormularioInforme({
           </Campo>
         )}
 
+        {/* LO QUE SE VENDIÓ. Cada renglón es un equipo, un repuesto o un
+            servicio (02-09): hasta entonces todo era «equipo», y Ariana
+            —vendiendo mantenimiento con el permiso de operaciones— no tenía
+            cómo cerrar los trece repuestos y el servicio de FANCAVEL. El tipo
+            cambia el ejemplo que se ve al escribir y el rótulo de la tabla en
+            el PDF; los precios y el IGV se calculan igual. */}
         <div>
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs font-semibold text-foreground">Equipos</span>
+          <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <span className="text-xs font-semibold text-foreground">{tituloDeItems(items)}</span>
             <span className="text-[11px] text-muted-foreground">
-              El archivo guarda el nombre; la marca, el modelo y el precio se completan acá.
+              {items.length === 0
+                ? "Agregue lo que se vendió: equipos, repuestos o servicios."
+                : "Escriba cada renglón como quiere que salga impreso; el precio va sin IGV."}
             </span>
           </div>
           <div className="space-y-2">
             {items.map((it, i) => (
               <div key={i} className="rounded-md border border-border p-2.5">
+                <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                  {ORDEN_TIPOS_ITEM.map((t) => (
+                    <Pastilla
+                      key={t}
+                      activa={tipoDeItem(it) === t}
+                      onClick={() => setItems((xs) => xs.map((x, j) => (j === i ? { ...x, tipo: t } : x)))}
+                    >
+                      {TIPOS_ITEM[t].singular}
+                    </Pastilla>
+                  ))}
+                </div>
                 <div className="flex items-start gap-2">
                   <Textarea
                     value={it.descripcion}
                     rows={3}
-                    placeholder={"LAVADORA INDUSTRIAL RIGIDA\nMARCA: PRIMUS\nMODELO: RX350"}
+                    placeholder={TIPOS_ITEM[tipoDeItem(it)].ejemplo}
                     onChange={(e) =>
                       setItems((xs) => xs.map((x, j) => (j === i ? { ...x, descripcion: e.target.value } : x)))
                     }
@@ -568,7 +654,7 @@ export function FormularioInforme({
                   <button
                     type="button"
                     onClick={() => setItems((xs) => xs.filter((_, j) => j !== i))}
-                    aria-label="Quitar equipo"
+                    aria-label={`Quitar ${TIPOS_ITEM[tipoDeItem(it)].singular.toLowerCase()}`}
                     className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
                   >
                     <Trash2 className="size-4" />
@@ -613,15 +699,73 @@ export function FormularioInforme({
               </div>
             ))}
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="mt-2"
-            onClick={() => setItems((xs) => [...xs, { bloque: "venta", descripcion: "", cantidad: 1, precio_unitario: 0 }])}
-          >
-            <Plus className="size-3.5" /> Agregar equipo
-          </Button>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {ORDEN_TIPOS_ITEM.map((t) => (
+              <Button
+                key={t}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setItems((xs) => [...xs, { bloque: "venta", tipo: t, descripcion: "", cantidad: 1, precio_unitario: 0 }])}
+              >
+                <Plus className="size-3.5" /> Agregar {TIPOS_ITEM[t].singular.toLowerCase()}
+              </Button>
+            ))}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setPegando((p) => (p ? null : "repuesto"))}
+              aria-pressed={pegando != null}
+            >
+              <ClipboardPaste className="size-3.5" /> Pegar una lista
+            </Button>
+          </div>
+          {pegando && (
+            <div className="mt-2 rounded-md border border-dashed border-border bg-secondary/40 p-2.5">
+              <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span>Una línea por renglón. Opcional: cantidad y precio separados por «|» o por tabulador (como sale al copiar de Excel).</span>
+              </div>
+              <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">Son</span>
+                {ORDEN_TIPOS_ITEM.map((t) => (
+                  <Pastilla key={t} activa={pegando === t} onClick={() => setPegando(t)}>
+                    {TIPOS_ITEM[t].plural.toLowerCase()}
+                  </Pastilla>
+                ))}
+              </div>
+              <Textarea
+                rows={5}
+                value={textoPegado}
+                onChange={(e) => setTextoPegado(e.target.value)}
+                placeholder={"VALVULA DE DRENAJE | 1 | 595\nBOLA DE SOPORTE MOD 4280FR4048N | 1 | 195\nAMORTIGUADOR ENSAMBLAJE | 3 | 45"}
+                className="font-mono text-xs"
+              />
+              <div className="mt-1.5 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-muted-foreground">
+                  {renglonesDesdeTexto(textoPegado, pegando).length} renglón{renglonesDesdeTexto(textoPegado, pegando).length === 1 ? "" : "es"}
+                </span>
+                <div className="flex gap-1.5">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setPegando(null)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={renglonesDesdeTexto(textoPegado, pegando).length === 0}
+                    onClick={() => {
+                      const nuevos = renglonesDesdeTexto(textoPegado, pegando).map((r) => ({ bloque: "venta" as const, ...r }));
+                      setItems((xs) => [...xs, ...nuevos]);
+                      setTextoPegado("");
+                      setPegando(null);
+                    }}
+                  >
+                    Agregar a la lista
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           <p className="mt-2 text-right text-xs tabular-nums text-muted-foreground">
             Sub total US$ {totales.subtotal.toLocaleString("es-PE", { minimumFractionDigits: 2 })} · IGV US${" "}
             {totales.igv.toLocaleString("es-PE", { minimumFractionDigits: 2 })} ·{" "}

@@ -16,7 +16,8 @@ const esquemaContacto = z
 
 const esquemaItemInforme = z
   .object({
-    descripcion: z.string().trim().min(1, "Cada equipo necesita descripción").max(2000),
+    tipo: z.enum(["equipo", "repuesto", "servicio"]).optional(),
+    descripcion: z.string().trim().min(1, "Cada renglón necesita descripción").max(2000),
     cantidad: z.number().int().positive("La cantidad va en enteros positivos"),
     precio_unitario: z.number().min(0),
     bloque: z.enum(["venta", "gratuito"]).optional(),
@@ -47,7 +48,7 @@ export const esquemaCorreccionInforme = z
     contacto_venta: esquemaContacto.optional(),
     contacto_contabilidad: esquemaContacto.optional(),
     contacto_despacho: esquemaContacto.optional(),
-    items: z.array(esquemaItemInforme).min(1, "El cierre necesita al menos un equipo").max(40).optional(),
+    items: z.array(esquemaItemInforme).min(1, "El cierre necesita al menos un renglón").max(40).optional(),
     incluye: z.array(z.string().trim().max(400)).max(20).optional(),
     gratis: z.string().trim().max(600).optional(),
     garantia: z.string().trim().max(400).optional(),

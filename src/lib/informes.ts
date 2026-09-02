@@ -54,8 +54,102 @@ export function avisosDeIdentidad(
   }
 
   if (normalizar(cierre.nombre) !== normalizar(ficha.razonSocial)) {
-    avisos.push(`La razón social del cierre no es la de la ficha: «${ficha.razonSocial}».`);
+    // Con el MISMO RUC, el nombre distinto suele ser un pedido del cliente
+    // (FANCAVEL, 02-09: la ficha traía dos razones sociales pegadas y el
+    // cliente quería solo la suya). Se avisa, no se asusta.
+    const mismoDoc = !!doc && !!ficha.numDoc && normalizar(doc) === normalizar(ficha.numDoc);
+    avisos.push(
+      mismoDoc
+        ? `La razón social del cierre no es la de la ficha («${ficha.razonSocial}»). Con el mismo RUC está bien si el cliente pidió que salga así.`
+        : `La razón social del cierre no es la de la ficha: «${ficha.razonSocial}».`,
+    );
   }
 
   return avisos;
+}
+
+/**
+ * Qué es cada renglón del cierre: un equipo, un repuesto o un servicio.
+ *
+ * Hasta el 02-09 todo renglón era «equipo», porque el documento nació para la
+ * venta de máquinas. Ariana (C4), vendiendo mantenimiento con el permiso de
+ * operaciones, cerró con FANCAVEL trece repuestos y un servicio de
+ * mantenimiento correctivo, y la pantalla solo le ofrecía «Agregar equipo» y
+ * el PDF rotulaba la tabla como EQUIPOS. El tipo vive en cada renglón
+ * (`items[].tipo`, opcional: sin él es equipo, como todo lo emitido antes) y
+ * de ahí salen el ejemplo que se muestra al escribir y el rótulo de la tabla.
+ */
+export type TipoItemInforme = "equipo" | "repuesto" | "servicio";
+
+export const ORDEN_TIPOS_ITEM: TipoItemInforme[] = ["equipo", "repuesto", "servicio"];
+
+export const TIPOS_ITEM: Record<TipoItemInforme, { singular: string; plural: string; ejemplo: string }> = {
+  equipo: {
+    singular: "Equipo",
+    plural: "EQUIPOS",
+    ejemplo: "LAVADORA INDUSTRIAL RIGIDA\nMARCA: PRIMUS\nMODELO: RX350",
+  },
+  repuesto: {
+    singular: "Repuesto",
+    plural: "REPUESTOS",
+    ejemplo: "VALVULA DE DRENAJE\nMODELO: 4280FR4048N\nPARA LAVADORA LG TITAN C",
+  },
+  servicio: {
+    singular: "Servicio",
+    plural: "SERVICIOS",
+    ejemplo: "SERVICIO DE MANTENIMIENTO CORRECTIVO PARA LAVADORA\nMARCA: LG\nMODELO: TITAN C\nCAPACIDAD: 15KG\nSERIE: 707KWXD21746",
+  },
+};
+
+export function tipoDeItem(item: { tipo?: string | null }): TipoItemInforme {
+  return item.tipo === "repuesto" || item.tipo === "servicio" ? item.tipo : "equipo";
+}
+
+/** El rótulo de la columna de la tabla: «EQUIPOS», «REPUESTOS Y SERVICIOS», «EQUIPOS, REPUESTOS Y SERVICIOS»… */
+export function rotuloDeItems(items: { tipo?: string | null }[]): string {
+  const presentes = ORDEN_TIPOS_ITEM.filter((t) => items.some((i) => tipoDeItem(i) === t));
+  if (presentes.length === 0) return TIPOS_ITEM.equipo.plural;
+  const nombres = presentes.map((t) => TIPOS_ITEM[t].plural);
+  if (nombres.length === 1) return nombres[0];
+  return `${nombres.slice(0, -1).join(", ")} Y ${nombres[nombres.length - 1]}`;
+}
+
+/** El mismo rótulo, para pantalla: «Equipos», «Repuestos y servicios»… */
+export function tituloDeItems(items: { tipo?: string | null }[]): string {
+  const r = rotuloDeItems(items).toLowerCase();
+  return r.charAt(0).toUpperCase() + r.slice(1);
+}
+
+/**
+ * «Pegar una lista»: cada línea es un renglón. Sirve para el cierre de
+ * repuestos, que trae diez o quince líneas y tipearlas una por una es donde
+ * se cuelan los errores. Formato por línea: `descripción | cantidad | precio`
+ * (o con tabulador, como sale al copiar de Excel); cantidad y precio son
+ * opcionales. Las líneas vacías se ignoran.
+ */
+export function renglonesDesdeTexto(
+  texto: string,
+  tipo: TipoItemInforme,
+): { tipo: TipoItemInforme; descripcion: string; cantidad: number; precio_unitario: number }[] {
+  return texto
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((linea) => {
+      const partes = linea.split(/\t|\s\|\s|\|/).map((p) => p.trim());
+      const descripcion = partes[0] ?? "";
+      const numero = (s: string | undefined) => {
+        if (!s) return NaN;
+        return Number(s.replace(/[^\d.,-]/g, "").replace(/,(?=\d{3}(\D|$))/g, "").replace(",", "."));
+      };
+      const cantidad = numero(partes[1]);
+      const precio = numero(partes[2]);
+      return {
+        tipo,
+        descripcion,
+        cantidad: Number.isFinite(cantidad) && cantidad > 0 ? Math.floor(cantidad) : 1,
+        precio_unitario: Number.isFinite(precio) && precio >= 0 ? precio : 0,
+      };
+    })
+    .filter((r) => r.descripcion);
 }

@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { IGV } from "@/lib/pdf/series";
+import { ORDEN_TIPOS_ITEM, TIPOS_ITEM, tipoDeItem, tituloDeItems, type TipoItemInforme } from "@/lib/informes";
 import type { AdjuntoCierreFirmado } from "@/lib/adjuntos-cierre";
 import type { Compendio } from "@/lib/compendio-cierre";
 import type { ContactoInforme } from "@/lib/pdf/informe-cierre-pdf";
@@ -46,6 +47,8 @@ import { cn } from "@/lib/utils";
  */
 
 export interface ItemVista {
+  /** Equipo (por defecto), repuesto o servicio (02-09, caso FANCAVEL de Ariana). */
+  tipo?: TipoItemInforme;
   descripcion: string;
   cantidad: number;
   precio_unitario: number;
@@ -249,12 +252,13 @@ export function VistaCierre({
       if (campo === "descripcion") it.descripcion = v;
       else if (campo === "cantidad") it.cantidad = Math.max(0, Math.floor(Number(v) || 0));
       else if (campo === "precio_unitario") it.precio_unitario = Math.max(0, Number(v) || 0);
+      else if (campo === "tipo") it.tipo = v === "repuesto" || v === "servicio" ? v : "equipo";
       items[idx] = it;
       return { ...x, items };
     });
   }
-  function agregarItem(bloque: "venta" | "gratuito") {
-    setB((x) => ({ ...x, items: [...x.items, { descripcion: "", cantidad: 1, precio_unitario: 0, bloque }] }));
+  function agregarItem(bloque: "venta" | "gratuito", tipo: TipoItemInforme = "equipo") {
+    setB((x) => ({ ...x, items: [...x.items, { tipo, descripcion: "", cantidad: 1, precio_unitario: 0, bloque }] }));
   }
   function quitarItem(idx: number) {
     setB((x) => ({ ...x, items: x.items.filter((_, i) => i !== idx) }));
@@ -388,8 +392,8 @@ export function VistaCierre({
           <span>
             <b>Corrigiendo con autorización de {ventana.autorizo}</b> · válida hasta las{" "}
             {new Date(ventana.expiraAt).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", timeZone: "America/Lima" })} · «
-            {ventana.motivo}». Cambie lo que haga falta en su sitio. La serie, el número, la fecha y el cliente no se tocan: si eso está mal,
-            se anula.
+            {ventana.motivo}». Cambie lo que haga falta en su sitio: la razón social tal como el cliente la quiere, los renglones vendidos, el pago.
+            La serie, el número, la fecha y la ficha a la que pertenece no se tocan: si eso está mal, se anula.
           </span>
         </div>
       )}
@@ -477,14 +481,23 @@ export function VistaCierre({
             )}
           </Tarjeta>
 
-          {/* Equipos */}
+          {/* Equipos, repuestos o servicios: el título dice lo que hay (02-09). */}
           <Tarjeta
-            titulo="Equipos"
+            titulo={tituloDeItems(editando ? b.items : original.items)}
             accion={
               editando ? (
-                <button type="button" onClick={() => agregarItem("venta")} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
-                  <Plus className="size-3.5" /> Agregar equipo
-                </button>
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {ORDEN_TIPOS_ITEM.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => agregarItem("venta", t)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      <Plus className="size-3.5" /> {TIPOS_ITEM[t].singular}
+                    </button>
+                  ))}
+                </span>
               ) : undefined
             }
           >
@@ -885,9 +898,36 @@ function TablaItems({
             <tr key={idx} className="border-b border-border align-top last:border-0">
               <td className="py-1.5 pr-2">
                 {editando ? (
-                  <Textarea rows={2} value={it.descripcion} onChange={(e) => onCambiar(idx, "descripcion", e.target.value)} className="min-h-0 text-xs" />
+                  <div className="space-y-1">
+                    <select
+                      value={tipoDeItem(it)}
+                      onChange={(e) => onCambiar(idx, "tipo", e.target.value)}
+                      aria-label="Tipo de renglón"
+                      className="h-7 rounded-md border border-input bg-background px-1.5 text-[11px] text-foreground"
+                    >
+                      {ORDEN_TIPOS_ITEM.map((t) => (
+                        <option key={t} value={t}>
+                          {TIPOS_ITEM[t].singular}
+                        </option>
+                      ))}
+                    </select>
+                    <Textarea
+                      rows={2}
+                      value={it.descripcion}
+                      placeholder={TIPOS_ITEM[tipoDeItem(it)].ejemplo}
+                      onChange={(e) => onCambiar(idx, "descripcion", e.target.value)}
+                      className="min-h-0 text-xs"
+                    />
+                  </div>
                 ) : (
-                  <span className="whitespace-pre-line text-xs leading-snug text-foreground">{it.descripcion}</span>
+                  <span className="whitespace-pre-line text-xs leading-snug text-foreground">
+                    {tipoDeItem(it) !== "equipo" && (
+                      <span className="mr-1.5 rounded bg-secondary px-1 py-px text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {TIPOS_ITEM[tipoDeItem(it)].singular}
+                      </span>
+                    )}
+                    {it.descripcion}
+                  </span>
                 )}
               </td>
               <td className="py-1.5 pl-2 text-right tabular-nums">
@@ -910,7 +950,7 @@ function TablaItems({
                   <button
                     type="button"
                     onClick={() => onQuitar(idx)}
-                    aria-label="Quitar este equipo"
+                    aria-label="Quitar este renglón"
                     className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="size-3.5" />
