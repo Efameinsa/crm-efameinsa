@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Building2, ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MarcaServidor } from "@/components/crm/marca-servidor";
+import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { fechaLima } from "@/lib/fechas";
 
 export interface FilaCartera {
@@ -20,6 +21,10 @@ export interface FilaCartera {
   ultimaVentaAt: string | null;
   /** Tiene su carpeta del servidor vinculada: la fila lo marca (0137). */
   conServidor?: boolean;
+  /** Su oportunidad archivada más reciente (0155). Si no tiene ninguna
+      abierta, la fila ofrece «Retomar» ahí mismo: Santos encontró a Becerra
+      Rojas por Mi cartera y el botón solo estaba en la ficha (02-09). */
+  historicaId?: string | null;
 }
 
 // Misma corrección que tabla-clientes.tsx / historial-cuenta.tsx (B9.3): la
@@ -82,6 +87,11 @@ export function TablaCartera({ filas }: { filas: FilaCartera[] }) {
               <TableCell className="text-right tabular-nums">
                 {c.oportunidadesActivas > 0 ? (
                   <span className="font-semibold text-primary">{c.oportunidadesActivas}</span>
+                ) : c.historicaId ? (
+                  // El botón detiene el clic; Enter sobre él tampoco debe abrir la ficha.
+                  <span className="inline-flex" onKeyDown={(e) => e.stopPropagation()}>
+                    <TrabajarHistoricaBoton oportunidadId={c.historicaId} compacto />
+                  </span>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}

@@ -209,6 +209,9 @@ export interface FilaClienteListado {
   con_servidor: boolean;
   /** Rubro de la cuenta (0152); null = todavía sin clasificar. */
   rubro_id: number | null;
+  /** La oportunidad archivada más reciente del cliente (0155), para «Retomar»
+      desde la lista; null si no tiene ninguna en el histórico. */
+  historica_id: string | null;
 }
 
 export type OrdenClientes = "recientes" | "nombre" | "ultima_venta" | "valor";

@@ -359,6 +359,21 @@ fósiles corrido.
   `scripts/sanear-fosiles-con-nota-de-import.mjs` (respaldo y `--revertir`
   propios). «Recién asignadas» significa: derivada por Central y todavía sin
   primer contacto. Quedan 3 (C5), 5 (C4), 0 (C1).
+  **Tercera consecuencia (10:20)**: Ariana «no puede ver» a BECERRA ROJAS
+  SEBASTIAN. Sí estaba —ficha con RUC 10757514678 en su cartera, cotización
+  2043-26 del 15-07 y una gestión con contenido del 22-08—, pero sus dos
+  oportunidades venían del Excel sin gestión dentro del CRM y el archivado
+  las mandó al histórico: desaparecen de «Mis oportunidades» y de Mi día.
+  Santos lo encontró por Mi cartera y pidió «Retomar» ahí también:
+  **0155** hace que `listar_clientes` devuelva `historica_id` (la archivada
+  más reciente del cliente) y la fila de Mi cartera muestra el botón en la
+  columna «Abiertas» cuando no tiene ninguna abierta. Verificado con
+  `scripts/_verificar-retomar-cartera.mjs` (sesión real de C4). Esperar más
+  reportes iguales: entre lo archivado hoy hay 94 (C4), 90 (C1), 40 (C5) y
+  32 (C9) cuya última nota es una gestión del 22-08 con contenido. La
+  respuesta es la misma: buscar y Retomar; devolverlas en bloque es decisión
+  de Santos con las comerciales. Becerra tiene además la ficha partida (una
+  sin RUC, «Falta RUC/DNI»): pendiente unirla en la del RUC.
 - **Punto 3, Mis cierres.** Nueva `/comercial/cierres/[id]` (`VistaCierre`):
   el cierre como pantalla en DOS columnas —lectura a la izquierda (cliente,
   equipos con IGV, cómo se hizo la venta, correcciones) y consulta a la
