@@ -10,6 +10,7 @@ import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
 import { BarraSemana } from "@/components/crm/barra-semana";
 import { cargarPulsoSemana } from "@/lib/pulso-semana";
 import { lunesDe } from "@/lib/calendario";
+import { vencioHace } from "@/lib/mi-dia";
 
 interface FilaMiDia {
   id: string;
@@ -18,6 +19,8 @@ interface FilaMiDia {
   proxima_accion: string | null;
   proxima_accion_at: string | null;
   razon_social: string;
+  /** 'crm' si nació acá; cualquier otra cosa vino de la importación del Excel. */
+  origen: string;
 }
 
 interface FilaInactiva {
@@ -28,7 +31,19 @@ interface FilaInactiva {
   razon_social: string;
 }
 
-function Fila({ op, urgencia }: { op: FilaMiDia; urgencia: "vencida" | "hoy" | "nueva" }) {
+// Lo que gerencia preguntó mirando la pantalla de Katerine (Word del 01.09,
+// punto 2): «¿depende de que los comerciales completen alguna información?».
+// Sí, y ahora la fila lo dice en vez de esconderlo:
+//   · «Excel» al lado del nombre cuando la oportunidad vino de la importación
+//     (la misma pastilla de «Mis oportunidades»): distingue lo que nació en
+//     el CRM de lo que se rescató del histórico.
+//   · La vencida dice HACE CUÁNTO («venció hace 6 días»), no solo «Vencida»:
+//     una de ayer y una de marzo no son la misma urgencia.
+//   · Si falta la próxima acción, se dice en ámbar como tarea («Falta indicar
+//     qué hacer»), no en gris como si fuera un dato. 19 de las 30 de hoy de
+//     Katerine estaban así: ella pone la fecha y deja el texto vacío.
+function Fila({ op, urgencia, hoy }: { op: FilaMiDia; urgencia: "vencida" | "hoy" | "nueva"; hoy: string }) {
+  const sinAccion = !op.proxima_accion && urgencia !== "nueva";
   return (
     <Link
       href={`/comercial/oportunidades/${op.id}`}
@@ -42,14 +57,24 @@ function Fila({ op, urgencia }: { op: FilaMiDia; urgencia: "vencida" | "hoy" | "
     >
       <PuntoInteres intencion={op.intencion} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">{op.razon_social}</p>
-        <p className="truncate text-xs text-muted-foreground">
-          {op.proxima_accion ?? (urgencia === "nueva" ? "Primer contacto pendiente" : "Sin acción definida")}
+        <p className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-foreground">
+          <span className="truncate">{op.razon_social}</span>
+          {op.origen !== "crm" && (
+            <span
+              className="flex-none rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+              title="Vino de la importación del Excel; la gestión que se le hizo en el CRM está en su ficha"
+            >
+              Excel
+            </span>
+          )}
+        </p>
+        <p className={cn("truncate text-xs", sinAccion ? "font-medium text-amber-700" : "text-muted-foreground")}>
+          {op.proxima_accion ?? (urgencia === "nueva" ? "Primer contacto pendiente" : "Falta indicar qué hacer")}
         </p>
       </div>
       {urgencia === "vencida" && (
-        <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive">
-          Vencida
+        <span className="whitespace-nowrap rounded-full bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive">
+          {op.proxima_accion_at ? vencioHace(op.proxima_accion_at, hoy) : "Vencida"}
         </span>
       )}
       {urgencia === "nueva" && (
@@ -61,17 +86,33 @@ function Fila({ op, urgencia }: { op: FilaMiDia; urgencia: "vencida" | "hoy" | "
   );
 }
 
-function Grupo({ titulo, filas, urgencia }: { titulo: string; filas: FilaMiDia[]; urgencia: "vencida" | "hoy" | "nueva" }) {
+function Grupo({
+  titulo,
+  filas,
+  urgencia,
+  hoy,
+  total,
+}: {
+  titulo: string;
+  filas: FilaMiDia[];
+  urgencia: "vencida" | "hoy" | "nueva";
+  hoy: string;
+  /** Cuántas hay de verdad cuando la lista está acotada: el título dice «60 de 6.178», no «60». */
+  total?: number;
+}) {
   if (filas.length === 0) return null;
+  const recortado = total !== undefined && total > filas.length;
   return (
     <div>
       <h4 className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
         {titulo}
-        <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-foreground">{filas.length}</span>
+        <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-foreground">
+          {recortado ? `${filas.length} de ${total.toLocaleString("es-PE")}` : filas.length}
+        </span>
       </h4>
       <div className="space-y-2">
         {filas.map((op) => (
-          <Fila key={op.id} op={op} urgencia={urgencia} />
+          <Fila key={op.id} op={op} urgencia={urgencia} hoy={hoy} />
         ))}
       </div>
     </div>
@@ -198,7 +239,7 @@ export default async function ComercialPage() {
   // comercial ve lo que de verdad puede retomar.
   const TOPE_VENCIDAS = 60;
   const TOPE_NUEVAS = 40;
-  const CAMPOS_MI_DIA = "id, etapa, intencion, proxima_accion, proxima_accion_at, cuentas(razon_social)";
+  const CAMPOS_MI_DIA = "id, etapa, intencion, origen, proxima_accion, proxima_accion_at, cuentas(razon_social)";
   //
   // 31-08 (migración 0130): a las tres cerradas se sumó `historico`. Brenda
   // veía 1.035 vencidas cuando las suyas de verdad son 41 — las otras 994 eran
@@ -212,7 +253,12 @@ export default async function ComercialPage() {
       .eq("comercial_id", perfil.id)
       .not("etapa", "in", "(venta,rechazada,derivada,historico)");
 
-  const [{ data: hoyData }, { data: vencidasData, count: vencidasTotal }, { data: nuevasData, count: nuevasTotal }] = await Promise.all([
+  const [
+    { data: hoyData },
+    { data: vencidasData, count: vencidasTotal },
+    { data: nuevasData, count: nuevasTotal },
+    { count: historicoTotal },
+  ] = await Promise.all([
     abiertasDe().eq("proxima_accion_at", hoy).order("proxima_accion_hora", { ascending: true, nullsFirst: true }),
     supabase
       .from("oportunidades")
@@ -230,12 +276,21 @@ export default async function ComercialPage() {
       .is("proxima_accion_at", null)
       .order("created_at", { ascending: false })
       .limit(TOPE_NUEVAS),
+    // Lo que quedó del Excel y se archivó (0130): se dice al pie con su
+    // número, para que nadie crea que desapareció. Gerencia vio «60 vencidas»
+    // y no tenía cómo saber que atrás había 6.000 filas importadas.
+    supabase
+      .from("oportunidades")
+      .select("id", { count: "exact", head: true })
+      .eq("comercial_id", perfil.id)
+      .eq("etapa", "historico"),
   ]);
 
   const aFila = (op: NonNullable<typeof hoyData>[number]): FilaMiDia => ({
     id: op.id,
     etapa: op.etapa,
     intencion: op.intencion,
+    origen: op.origen ?? "crm",
     proxima_accion: op.proxima_accion,
     proxima_accion_at: op.proxima_accion_at,
     razon_social: (op.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
@@ -314,7 +369,24 @@ export default async function ComercialPage() {
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-          <CardTitle>Mi día</CardTitle>
+          <div>
+            <CardTitle>Mi día</CardTitle>
+            {/* El resumen en una línea, con los totales de verdad: lo que
+                gerencia leyó como «60 vencidas» eran 60 de 6.178. */}
+            {oportunidades.length > 0 && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {[
+                  (vencidasTotal ?? vencidas.length) > 0 &&
+                    `${(vencidasTotal ?? vencidas.length).toLocaleString("es-PE")} vencida${(vencidasTotal ?? vencidas.length) === 1 ? "" : "s"}`,
+                  paraHoy.length > 0 && `${paraHoy.length} para hoy`,
+                  (nuevasTotal ?? nuevas.length) > 0 &&
+                    `${(nuevasTotal ?? nuevas.length).toLocaleString("es-PE")} recién asignada${(nuevasTotal ?? nuevas.length) === 1 ? "" : "s"}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
+          </div>
           {/* Para el WhatsApp o la llamada que le entra directo: lo registra
               acá y Central lo deriva, en vez de mandarlo por correo para que
               lo vuelvan a tipear. */}
@@ -328,7 +400,7 @@ export default async function ComercialPage() {
               {/* Primero, porque es plata ya cerrada que no puede despacharse
                   hasta que Central reciba el informe. */}
               <GrupoSinInforme filas={sinInforme} />
-              <Grupo titulo="Vencidas" filas={vencidas} urgencia="vencida" />
+              <Grupo titulo="Vencidas" filas={vencidas} urgencia="vencida" hoy={hoy} total={vencidasTotal ?? undefined} />
               {vencidasOcultas > 0 && (
                 <p className="-mt-3 text-xs text-muted-foreground">
                   Se muestran las {vencidas.length} más recientes ·{" "}
@@ -337,8 +409,8 @@ export default async function ComercialPage() {
                   </Link>
                 </p>
               )}
-              <Grupo titulo="Para hoy" filas={paraHoy} urgencia="hoy" />
-              <Grupo titulo="Recién asignadas" filas={nuevas} urgencia="nueva" />
+              <Grupo titulo="Para hoy" filas={paraHoy} urgencia="hoy" hoy={hoy} />
+              <Grupo titulo="Recién asignadas" filas={nuevas} urgencia="nueva" hoy={hoy} total={nuevasTotal ?? undefined} />
               {nuevasOcultas > 0 && (
                 <p className="-mt-3 text-xs text-muted-foreground">
                   Se muestran las {nuevas.length} más recientes ·{" "}
@@ -352,6 +424,15 @@ export default async function ComercialPage() {
               )}
               <GrupoCorrespondeCerrar filas={inactivas} />
             </>
+          )}
+          {(historicoTotal ?? 0) > 0 && (
+            <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+              Acá está solo lo que se trabaja en el CRM. Lo que quedó del Excel sin tocar está en{" "}
+              <Link href="/comercial/oportunidades?etapa=historico" className="font-medium text-primary hover:underline">
+                Histórico ({(historicoTotal ?? 0).toLocaleString("es-PE")})
+              </Link>
+              , y cada una tiene botón para volver a trabajarla.
+            </p>
           )}
         </CardContent>
       </Card>

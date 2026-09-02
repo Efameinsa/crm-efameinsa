@@ -174,12 +174,15 @@ export default async function MisCierresPage({
                     : "border-border",
               )}
             >
-              <a
-                href={`/api/informes/${f.id}/pdf`}
-                target="_blank"
-                rel="noreferrer"
-                title="Abrir el informe de cierre"
-                aria-label={`Abrir el informe de ${f.cliente_nombre}`}
+              {/* 02-09 (gerencia, Word del 01.09 punto 3): la fila abre el
+                  cierre como PANTALLA —de quién es, cuánto, cómo paga, los
+                  equipos, el expediente y cómo se hizo la venta—; el PDF queda
+                  en el ícono de la derecha. Modificar no se puede: lo único
+                  que admite un emitido es agregar un documento con código. */}
+              <Link
+                href={`/comercial/cierres/${f.id}`}
+                title="Ver el cierre completo"
+                aria-label={`Ver el cierre de ${f.cliente_nombre}`}
                 className="absolute inset-0 rounded-md"
               />
               <span className="truncate font-mono text-xs font-semibold text-foreground">
@@ -219,7 +222,16 @@ export default async function MisCierresPage({
                 )}
               </span>
               <span className="flex items-center justify-end gap-0.5">
-                <FileText className="size-3.5 flex-none text-muted-foreground" />
+                <a
+                  href={`/api/informes/${f.id}/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Abrir el PDF"
+                  aria-label={`Abrir el PDF del cierre de ${f.cliente_nombre}`}
+                  className="relative z-10 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  <FileText className="size-3.5 flex-none" />
+                </a>
                 {/* Borrar el borrador: pedido de Brenda el 31-08, autorizado por
                     Santos. Solo aparece si no está emitido; la base lo vuelve a
                     exigir con la política `informes_borra`. */}

@@ -317,6 +317,39 @@ Lesly; el plan con citas está en las cabeceras de la 0150 y de los archivos.
   llevan con la cuenta solo `accesos` e `intentos_pin_supervisor`. Ensayado
   contra la base real con una cuenta temporal.
 
+### Lo del 02-09 (las cuatro observaciones del Word, construidas en local)
+
+Santos: «mapéalo, vamos a hacerlo y despliégalo todo… al final cuando te diga
+desplegamos todo». Verificado con `scripts/_verificar-0209.mjs` (sesiones
+reales contra `next dev -p 3005`). **Pendiente de desplegar hasta que Santos
+lo diga.**
+
+- **Punto 2, Mi día.** Lo que había detrás del «Vencidas 60» de Katerine:
+  6.178 vencidas reales, de las que 6.163 son filas del Excel sin tocar. **La
+  migración 0130 se aplicó pero `sanear-oportunidades-fosiles.mjs --aplicar`
+  NUNCA se corrió**: nadie tiene nada en `historico`. El ensayo dice que
+  después quedan 24 (C1), 57 (C4) y 15 (C5). **Se corre el día del
+  despliegue**, con la autorización de Santos del 02-09. Las 30 «para hoy» sí
+  son trabajo real (29 agendadas en el CRM); 19 sin texto de próxima acción.
+  Construido: pastilla «Excel» en la fila, «venció hace N días»
+  (`src/lib/mi-dia.ts`), «Falta indicar qué hacer» en ámbar, cuatro acciones
+  frecuentes de un toque en el paso 3 del registro rápido, título «60 de
+  6.178», resumen en la cabecera y pie con enlace a Histórico (sale solo
+  cuando hay archivo).
+- **Punto 3, Mis cierres.** Nueva `/comercial/cierres/[id]`: el cierre como
+  pantalla (cliente, monto, pago, entrega, contactos, equipos con IGV,
+  incluye/gratis/garantía, expediente y compendio). La fila abre esa vista;
+  el PDF queda en el ícono. Un emitido no se modifica; agregar documento pide
+  el código (0142) —ese es el «PIN» que pidió gerencia—. Brenda recibe 404
+  en un cierre de Katerine (RLS 0049).
+- **Punto 4, bandeja.** `CargaCotizaciones` cuenta con el MISMO criterio que
+  `/central/presupuestos` (número, enviada/aceptada, sin PRUEBA, por
+  `enviada_at`); título «Presupuestos enviados por comercial», sin la columna
+  «Enviadas (30 d)».
+- **Punto 1, Lesly.** Ya tenía `/admin/catalogos` como «Listas del sistema»
+  desde la 0118; lo que chocaba era el rótulo «Catálogos» del menú del admin.
+  Renombrado.
+
 ---
 
 ## 5. Cómo se trabaja acá

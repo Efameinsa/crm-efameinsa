@@ -89,7 +89,11 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   admin: [
     { href: "/admin", etiqueta: "Usuarios", icono: Users },
     { href: "/admin/productos", etiqueta: "Productos y precios", icono: Package },
-    { href: "/admin/catalogos", etiqueta: "Catálogos", icono: BookMarked },
+    // «Listas del sistema», igual que en la barra de operaciones: Lesly ya
+    // tiene «El catálogo» (los productos) y llamarle «Catálogos» a los rubros,
+    // motivos y resultados era nombrar dos cosas distintas con la misma
+    // palabra (Santos, 02-09).
+    { href: "/admin/catalogos", etiqueta: "Listas del sistema", icono: BookMarked },
   ],
 };
 

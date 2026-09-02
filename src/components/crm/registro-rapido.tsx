@@ -50,6 +50,14 @@ const TIPOS_INTERNOS = [
 
 type TipoGestion = (typeof TIPOS_CONTACTO)[number][0] | (typeof TIPOS_INTERNOS)[number][0];
 
+/** Lo que un comercial agenda nueve de cada diez veces. Se puede escribir otra cosa igual. */
+const ACCIONES_FRECUENTES = [
+  "Volver a llamar",
+  "Enviar la cotización",
+  "Hacer seguimiento a la cotización",
+  "Visitar al cliente",
+] as const;
+
 function fechaISO(diasDesdeHoy: number): string {
   const d = new Date();
   d.setDate(d.getDate() + diasDesdeHoy);
@@ -341,8 +349,32 @@ export function RegistroRapido({
           {!esRechazo && (
             <Paso n="3" titulo="¿Qué sigue?">
               <div className="space-y-2">
+                {/* Las cuatro acciones de siempre, de un toque. 02-09: en «Mi
+                    día» de Katerine 19 de 30 gestiones de hoy tenían fecha
+                    pero no decían QUÉ hacer, porque escribirlo cuesta más que
+                    elegir el día. Un chip cuesta lo mismo que la fecha. */}
+                <div className="flex flex-wrap gap-1.5">
+                  {ACCIONES_FRECUENTES.map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => {
+                        setProximaAccion(a);
+                        setAccionEditada(true);
+                      }}
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-xs transition-colors",
+                        proximaAccion === a
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-foreground hover:bg-accent",
+                      )}
+                    >
+                      {a}
+                    </button>
+                  ))}
+                </div>
                 <Input
-                  placeholder="ej. Llamar para confirmar visita"
+                  placeholder="u otra cosa: ej. Llamar para confirmar visita"
                   value={proximaAccion}
                   onChange={(e) => {
                     setProximaAccion(e.target.value);
