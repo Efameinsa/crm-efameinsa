@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { actualizarUsuario, cambiarEstadoUsuario } from "@/lib/acciones/usuarios";
+import { Trash2 } from "lucide-react";
+import { actualizarUsuario, borrarUsuario, cambiarEstadoUsuario } from "@/lib/acciones/usuarios";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -33,6 +35,8 @@ export function FilaUsuario({ perfil, esUsted }: Props) {
   const [codigo, setCodigo] = useState(perfil.codigo_comercial ?? "");
   const [guardando, startGuardar] = useTransition();
   const [cambiando, startCambiar] = useTransition();
+  const [borrando, startBorrar] = useTransition();
+  const [confirmando, setConfirmando] = useState(false);
 
   const cambió = rol !== perfil.rol || codigo !== (perfil.codigo_comercial ?? "");
 
@@ -59,6 +63,21 @@ export function FilaUsuario({ perfil, esUsted }: Props) {
         return;
       }
       toast.success(perfil.activo ? `${perfil.nombre} desactivado` : `${perfil.nombre} activado`);
+    });
+  }
+
+  // Borrar no es desactivar (ver borrarUsuario en lib/acciones/usuarios.ts):
+  // solo sale bien con una cuenta sin historial. Si tiene, el servidor
+  // responde con lo que tiene y el admin desactiva en vez de borrar.
+  function borrar() {
+    startBorrar(async () => {
+      const r = await borrarUsuario(perfil.id);
+      if (r.error) {
+        toast.error(r.error, { duration: 8000 });
+        return;
+      }
+      toast.success(`${perfil.nombre} borrado`);
+      setConfirmando(false);
     });
   }
 
@@ -120,7 +139,51 @@ export function FilaUsuario({ perfil, esUsted }: Props) {
           >
             {perfil.activo ? "Desactivar" : "Activar"}
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setConfirmando(true)}
+            disabled={borrando || esUsted}
+            title={esUsted ? "No puede borrarse a usted mismo" : "Borrar este usuario"}
+            aria-label={`Borrar a ${perfil.nombre}`}
+            className="px-2 text-muted-foreground hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
         </div>
+
+        <Dialog open={confirmando} onOpenChange={setConfirmando}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>¿Borrar a {perfil.nombre}?</DialogTitle>
+              <DialogDescription className="space-y-2 text-sm">
+                <span className="block">
+                  Se elimina su acceso al CRM y su ficha de usuario
+                  {perfil.email_contacto && (
+                    <>
+                      {" "}
+                      (<span className="font-mono text-xs">{perfil.email_contacto}</span>)
+                    </>
+                  )}
+                  . No se puede deshacer.
+                </span>
+                <span className="block text-muted-foreground">
+                  Solo se puede borrar una cuenta sin historial. Si esta persona ya tiene clientes, gestiones,
+                  cotizaciones o cierres, el sistema lo va a rechazar: en ese caso corresponde desactivarla, para
+                  que todo lo que hizo siga a su nombre.
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setConfirmando(false)} disabled={borrando}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" size="sm" onClick={borrar} disabled={borrando}>
+                {borrando ? "Borrando…" : "Sí, borrarlo"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </TableCell>
     </TableRow>
   );

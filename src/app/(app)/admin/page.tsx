@@ -54,6 +54,8 @@ export default async function AdminPage() {
         <p className="mt-3 text-[11px] text-muted-foreground">
           Desactivar no borra nada: la persona deja de entrar pero su historial, su cartera y sus cotizaciones
           siguen donde están. Para pasar una cartera a otra persona, cámbiele el código al nuevo dueño.
+          Borrar es solo para el acceso que sobró (creado por error o de práctica): únicamente se puede con una
+          cuenta sin historial.
         </p>
       </SeccionPanel>
     </div>

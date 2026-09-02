@@ -291,6 +291,32 @@ Lesly; el plan con citas está en las cabeceras de la 0150 y de los archivos.
   en `_migraciones_aplicadas` se renombró). Verificar el último número antes
   de crear una migración sigue siendo la regla.
 
+### Lo del 02-09 (mañana)
+
+- **Word de gerencia `01.09.26.docx`** (Descargas): 4 observaciones. (1) El
+  rubro se clasifica en la ficha del cliente, bloque de identidad; faltan
+  reclasificar 6.858 «Sin rubro» del Excel. (2) Mi día: vencidas = próxima
+  acción con fecha pasada, para hoy = fecha de hoy, recién asignadas = nunca
+  tuvieron acción; depende de que el comercial la registre. (3) Piden que el
+  comercial ENTRE al cierre a ver el detalle y que modificar pida PIN: hoy la
+  fila abre el PDF y el expediente solo lo ve Central; **decisión de Carlos**
+  si un informe emitido se corrige con PIN o sigue sellado. (4) 12 vs 13
+  presupuestos del 01-09: la bandeja cuenta por `created_at` con borradores;
+  Central por `enviada_at` con número. El 13.º es un borrador abandonado de
+  Katerine (Tulumayo, 19:27, tres minutos antes del Presu_2210). Pendiente:
+  que la bandeja no cuente borradores.
+- **Acceso `admin@efameinsa.com`** creado con `scripts/crear-admin.mjs` (rol
+  admin, sin marca de prueba). El admin viejo `admin@efameinsa-crm.local`
+  sigue existiendo y no tiene historial: se puede borrar desde el panel.
+- **Borrar usuarios desde /admin** (pedido de Santos: «admin puede desactivar
+  cuentas pero también debe tener la opción de borrar»). `borrarUsuario` en
+  `lib/acciones/usuarios.ts`: solo sale con una cuenta SIN historial; si tiene
+  clientes, gestiones, cotizaciones, cierres, etc., responde con lo que tiene
+  y manda a desactivar. La base lo protege igual (las FK a `perfiles` no
+  tienen cascada) y el 23503 queda como red con el nombre de la tabla. Se
+  llevan con la cuenta solo `accesos` e `intentos_pin_supervisor`. Ensayado
+  contra la base real con una cuenta temporal.
+
 ---
 
 ## 5. Cómo se trabaja acá
