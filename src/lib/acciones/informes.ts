@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { INCLUYE_POR_DEFECTO } from "@/lib/informes";
 import { esquemaAdjuntoNuevo, MAX_ADJUNTOS, type AdjuntoCierre, type AdjuntoNuevo } from "@/lib/adjuntos-cierre";
+import { esquemaCorreccionInforme, type CorreccionInforme } from "@/lib/correccion-informe";
 
 // Informe de cierre de ventas hacia Central (migraciones 0049 y 0050).
 //
@@ -608,4 +609,42 @@ export async function anularCierre(
   revalidatePath("/gerencia/cierres");
   if (informe) revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
   return { error: null, codigo: resultado.codigo };
+}
+
+// ── Corregir un cierre emitido, con código ──────────────────────────────
+// Gerencia (Word 01.09, punto 3) y Santos (02-09): «no veo el botón editar
+// (solicitar PIN) para poder editar cualquier parte de dicha vista, que
+// exportará finalmente a un PDF corregido». La regla y los frenos viven en la
+// base (0153): solo un emitido no anulado, solo su dueño o backoffice, motivo
+// de 15 caracteres, y el código de operaciones o gerencia. La versión anterior
+// queda archivada entera. Acá solo se valida la forma y se llama.
+
+export async function corregirInformeEmitido(
+  informeId: string,
+  cambios: CorreccionInforme,
+  motivo: string,
+  pin: string,
+): Promise<{ error: string | null; version?: number }> {
+  if (!z.string().uuid().safeParse(informeId).success) return { error: "Informe inválido" };
+  const revisados = esquemaCorreccionInforme.safeParse(cambios);
+  if (!revisados.success) return { error: revisados.error.issues[0]?.message ?? "Hay un dato con formato inválido" };
+  if (Object.keys(revisados.data).length === 0) return { error: "No cambió nada" };
+  if (motivo.trim().length < 15) return { error: "Escriba qué está mal en el cierre: al menos 15 caracteres" };
+  if (!/^\d{4}$/.test(pin)) return { error: "El código son cuatro dígitos" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("corregir_informe_emitido", {
+    p_informe: informeId,
+    p_cambios: revisados.data,
+    p_motivo: motivo.trim(),
+    p_pin: pin,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+
+  const fila = data as { cuenta_id?: string; version?: number } | null;
+  revalidatePath(`/comercial/cierres/${informeId}`);
+  revalidatePath("/comercial/cierres");
+  revalidatePath("/central/cierres");
+  if (fila?.cuenta_id) revalidatePath(`/comercial/cartera/${fila.cuenta_id}`);
+  return { error: null, version: fila?.version };
 }

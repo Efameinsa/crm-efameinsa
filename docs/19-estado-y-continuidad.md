@@ -336,12 +336,23 @@ lo diga.**
   frecuentes de un toque en el paso 3 del registro rápido, título «60 de
   6.178», resumen en la cabecera y pie con enlace a Histórico (sale solo
   cuando hay archivo).
-- **Punto 3, Mis cierres.** Nueva `/comercial/cierres/[id]`: el cierre como
-  pantalla (cliente, monto, pago, entrega, contactos, equipos con IGV,
-  incluye/gratis/garantía, expediente y compendio). La fila abre esa vista;
-  el PDF queda en el ícono. Un emitido no se modifica; agregar documento pide
-  el código (0142) —ese es el «PIN» que pidió gerencia—. Brenda recibe 404
-  en un cierre de Katerine (RLS 0049).
+- **Punto 3, Mis cierres.** Nueva `/comercial/cierres/[id]` (`VistaCierre`):
+  el cierre como pantalla en DOS columnas —lectura a la izquierda (cliente,
+  equipos con IGV, cómo se hizo la venta, correcciones) y consulta a la
+  derecha (total, pago, entrega, contactos agrupados, expediente)—. Santos
+  vio la primera versión «muy plana» y sin botón de editar; de ahí el
+  rediseño y **«Editar con código»** (migración **0153**): la misma pantalla
+  se vuelve formulario, guardar pide motivo (15 caracteres) + código de
+  operaciones/gerencia, la base archiva la versión anterior entera en
+  `informes_cierre_versiones`, recalcula el importe de los equipos y corrige
+  la venta atada (0148). Serie, número, fecha, cliente y estado no se tocan.
+  El candado `bloquear_edicion_informe` se parchó sobre la definición viva
+  para aceptar `app.corrigiendo_cierre`. Verificado con
+  `scripts/_verificar-correccion-cierre.mjs` sobre PRUEBA-903-2026 (quedó en
+  versión 2, es de práctica). **Decisión pendiente de Carlos**: si el PDF
+  corregido debe declararse «versión 2» (la misma pregunta abierta de la
+  0123). La fila de la lista abre esa vista; el PDF queda en el ícono. Brenda
+  recibe 404 en un cierre de Katerine (RLS 0049).
 - **Punto 4, bandeja.** `CargaCotizaciones` cuenta con el MISMO criterio que
   `/central/presupuestos` (número, enviada/aceptada, sin PRUEBA, por
   `enviada_at`); título «Presupuestos enviados por comercial», sin la columna
