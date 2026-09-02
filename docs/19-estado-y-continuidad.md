@@ -258,7 +258,7 @@ vemos cómo lo debe ver comercial»** (Santos): `veTodoPostventa(perfil)` en
 hace_postventa) para la agenda, casos anteriores, Mi día y la Ruta; la RLS
 0124 ya lo permitía. Cómo lo ve comercial: pendiente de decidir.
 
-### La tanda de la noche del 01-09 (construida en local, SIN desplegar hasta que Santos lo diga)
+### La tanda de la noche del 01-09 (desplegada a las 18:37; migraciones 0150, 0151 y 0152 aplicadas)
 
 Sale de las tres grabaciones de la tarde (15:56, 16:27, 16:56) con Carlos y
 Lesly; el plan con citas está en las cabeceras de la 0150 y de los archivos.
@@ -284,8 +284,8 @@ Lesly; el plan con citas está en las cabeceras de la 0150 y de los archivos.
 - **Curar nombres**: `scripts/reporte-servicios-sin-cliente.mjs` →
   `docs/servicios-sin-cliente.xlsx` (no se versiona) para Lesly, y
   `aplicar-servicios-sin-cliente.mjs` que lee su decisión.
-- **El hueco 2202-2208 se rellena** (decisión de Carlos): migración 0151 en
-  el scratchpad de la sesión, se aplica el día del despliegue.
+- **El hueco 2202-2208 se rellena** (decisión de Carlos): migración 0151,
+  aplicada a las 18:37: el contador EFAMEINSA quedó en 2201 y las próximas siete cotizaciones toman 2202-2208; 2209, 2210 y 2211 ya existen y se saltan solos.
 - OJO: **otra sesión de esta misma carpeta** comiteó y desplegó la
   `0148_la_venta_se_registra…` a las 17:48; la mía pasó a 0150 (el registro
   en `_migraciones_aplicadas` se renombró). Verificar el último número antes
