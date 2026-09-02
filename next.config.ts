@@ -19,7 +19,9 @@ const nextConfig: NextConfig = {
   // origen; con el navegador, sí.
   //
   // Solo afecta a `next dev`. En producción no interviene.
-  allowedDevOrigins: ["192.168.10.82", "localhost", "127.0.0.1"],
+  // ver1…ver5.localhost: las ranuras de la auditoría de gerencia (0160) en
+  // desarrollo; Edge y Chrome resuelven *.localhost solos a esta máquina.
+  allowedDevOrigins: ["192.168.10.82", "localhost", "127.0.0.1", "*.localhost"],
 
   // Los PDFs leen el logo y las fotos con rutas armadas en tiempo de
   // ejecución (join(process.cwd(), …) y foto_path de la base), que el
