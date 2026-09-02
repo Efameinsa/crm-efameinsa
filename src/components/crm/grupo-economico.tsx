@@ -38,11 +38,25 @@ export async function GrupoEconomico({ cuentaId, comoGerencia = false }: { cuent
   const totalMonto = miembros.reduce((a, m) => a + Number(m.monto), 0);
   const totalVentas = miembros.reduce((a, m) => a + Number(m.ventas), 0);
   const totalCot = miembros.reduce((a, m) => a + Number(m.cotizaciones), 0);
+  // Institución con sedes bajo un mismo RUC (0158: ESSALUD, Marina, MINSA):
+  // todas las fichas del grupo llevan el mismo documento. No son razones
+  // sociales distintas sino sedes que se atienden como negocios distintos.
+  const sedesDeUnRuc = miembros.every((m) => m.num_doc && m.num_doc === miembros[0].num_doc);
+  const madre = miembros.find((m) => m.es_madre);
 
   return (
-    <SeccionPanel titulo="Grupo económico">
+    <SeccionPanel titulo={sedesDeUnRuc ? "Sedes de la institución" : "Grupo económico"}>
       <p className="mb-3 text-sm text-muted-foreground">
-        Este cliente factura bajo <b className="text-foreground">{miembros.length}</b> razones sociales. Entre todas
+        {sedesDeUnRuc ? (
+          <>
+            {madre?.razon_social ?? "Esta institución"} atiende por <b className="text-foreground">{miembros.length - 1}</b>{" "}
+            sede{miembros.length === 2 ? "" : "s"} con el mismo RUC, cada una como un negocio distinto. Entre todas
+          </>
+        ) : (
+          <>
+            Este cliente factura bajo <b className="text-foreground">{miembros.length}</b> razones sociales. Entre todas
+          </>
+        )}{" "}
         llevan <b className="text-foreground">{totalVentas}</b> compra{totalVentas === 1 ? "" : "s"} por{" "}
         <b className="text-foreground">USD {totalMonto.toLocaleString("es-PE")}</b> y {totalCot} cotizaciones.
       </p>

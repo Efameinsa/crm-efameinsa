@@ -88,13 +88,15 @@ export async function actualizarIdentidadCuenta(datos: {
   // pasar solo porque alguien tecleó un RUC.
   let avisoDuplicado: string | undefined;
   if (numDoc) {
-    const { data: otras } = await supabase
-      .from("cuentas")
-      .select("id, razon_social")
-      .eq("num_doc", numDoc)
-      .neq("id", datos.cuentaId)
-      .limit(2);
-    if (otras && otras.length > 0) {
+    const [{ data: otrasConDoc }, { data: esta }] = await Promise.all([
+      supabase.from("cuentas").select("id, razon_social, cuenta_padre_id").eq("num_doc", numDoc).neq("id", datos.cuentaId).limit(5),
+      supabase.from("cuentas").select("cuenta_padre_id").eq("id", datos.cuentaId).maybeSingle(),
+    ]);
+    // Las sedes de una institución comparten el RUC a propósito (0158): la
+    // madre y sus hermanas no son «otra ficha del mismo cliente».
+    const raiz = esta?.cuenta_padre_id ?? datos.cuentaId;
+    const otras = (otrasConDoc ?? []).filter((o) => (o.cuenta_padre_id ?? o.id) !== raiz);
+    if (otras.length > 0) {
       avisoDuplicado = `Ese documento ya lo tiene ${otras[0].razon_social}${otras.length > 1 ? ` y ${otras.length - 1} más` : ""}. Quedaron dos fichas del mismo cliente: avise para unirlas.`;
     }
   }

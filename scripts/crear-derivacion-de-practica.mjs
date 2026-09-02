@@ -77,7 +77,7 @@ try {
   const cuenta = await uno(
     `insert into cuentas (razon_social, tipo_doc, num_doc, comercial_id, cartera_desde, direccion)
      values ($1, 'RUC', $2, $3, current_date, 'Av. de Prueba 123, Lima')
-     on conflict (num_doc) where num_doc is not null and tipo_doc = 'RUC'
+     on conflict (num_doc) where num_doc is not null and tipo_doc = 'RUC' and cuenta_padre_id is null
        do update set razon_social = excluded.razon_social, comercial_id = excluded.comercial_id
      returning id, razon_social`,
     [`LAVANDERÍA DEMO ${MARCA}`, "20000000012", origen.id],

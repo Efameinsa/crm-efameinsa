@@ -104,7 +104,7 @@ async function main() {
       const resultado = await cliente.query(
         `insert into cuentas (tipo_doc, num_doc, razon_social, departamento, provincia, distrito, direccion, comercial_id, cartera_desde)
          values ($1, $2, $3, $4, $5, $6, $7, $8, now())
-         on conflict (num_doc) where (num_doc is not null and tipo_doc <> 'SIN_DOC') do nothing
+         on conflict (num_doc) where (num_doc is not null and tipo_doc <> 'SIN_DOC' and cuenta_padre_id is null) do nothing
          returning id`,
         [c.tipo_doc, c.num_doc, c.razon_social, c.departamento, c.provincia, c.distrito, c.direccion, comercialId],
       );

@@ -156,7 +156,7 @@ async function main() {
         const nueva = await bd.query(
           `insert into cuentas (tipo_doc, num_doc, razon_social, comercial_id, rubro_id, departamento, provincia, distrito, direccion, cartera_desde, notas)
            values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-           on conflict (num_doc) where num_doc is not null and tipo_doc <> 'SIN_DOC' do nothing
+           on conflict (num_doc) where num_doc is not null and tipo_doc <> 'SIN_DOC' and cuenta_padre_id is null do nothing
            returning id, comercial_id`,
           [item.tipoDoc, item.doc, item.razon || "(sin razón social)", item.comercial_id, item.rubroId,
            item.departamento, item.provincia, item.distrito, item.direccion, item.fechaEstado,

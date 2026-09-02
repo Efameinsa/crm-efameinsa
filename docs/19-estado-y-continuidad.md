@@ -451,6 +451,55 @@ fósiles corrido.
   desde la 0118; lo que chocaba era el rótulo «Catálogos» del menú del admin.
   Renombrado.
 
+### Lo del 02-09 a las 15:30: las sedes de un mismo RUC (0158)
+
+Central derivó a PV la solicitud PRO-09106 como «SEGURO SOCIAL DE SALUD
+(ESSALUD) - RED ASISTENCIAL» y a PV le salió «… HOSPITAL DEL ALTIPLANO DE LA
+REGION DE PUNO - ESSALUD» (capturas `centi1`/`centi2`). Causa: el RUC de
+ESSALUD (20131257750) es uno solo para todo el país; la única ficha con ese
+RUC era la de Puno (Excel de Katerine, 14-08) y el CRM une por RUC antes que
+por nombre. Ya había pasado el 27-08 (Libeth Escalante) sin que nadie lo
+viera. Gerencia (audio 15:34): «para los casos puntuales como ESSALUD, la
+Marina de Guerra y el Ministerio de Salud, solo en esos casos, cuando se
+reconozca por el RUC deben aparecer las opciones [de sede], y ahí se puede
+derivar como negocios diferentes».
+
+- **Modelo (0158, aplicada 15:50).** La institución es la madre
+  (`cuentas.sedes_por_ruc = true`) y cada red u hospital es una hija por
+  `cuenta_padre_id` (el grupo económico de la 0052) que **repite el RUC de
+  la madre**. El índice único `uq_cuentas_doc` queda solo para fichas sin
+  madre; para las hijas decide el trigger `trg_documento_unico`, que lanza
+  el mismo 23505/`uq_cuentas_doc` que ya entienden las pantallas. Para
+  cualquier otra empresa el RUC sigue siendo único; marcar una institución
+  nueva es decisión de gerencia (un `update` a mano, no hay pantalla).
+- **Al derivar.** El diálogo de Central (`asignar-lead-dialog.tsx`) pregunta
+  «¿De qué sede es este contacto?» cuando el RUC es de una institución
+  (`sedes_de_documento`): la institución en general, cada sede con su
+  dueño, u «Otra sede (nueva)» con el nombre que escribió Central. La
+  elección va a `elegir_sede_del_lead` → `leads.cuenta_id`, que
+  `asignar_lead` respeta desde la 0143. Sin elección (API, otra pantalla),
+  `asignar_lead` resuelve por el nombre con `sede_para_lead`: encuentra la
+  sede (sin tildes, mayúsculas ni signos) o la crea, sin dueño.
+  `cartera_en_juego` mira la sede, no la primera ficha del RUC.
+- **Datos.** Madre «SEGURO SOCIAL DE SALUD - ESSALUD» creada; Puno pasó a
+  ser su sede (sigue de Katerine, con su historial); la solicitud de hoy,
+  su contacto (Eddy Ataurima) y su oportunidad se movieron a la sede
+  «SEGURO SOCIAL DE SALUD (ESSALUD) - RED ASISTENCIAL» (el nombre que
+  escribió Central; el correo `…AYA@essalud` sugiere Ayacucho: **preguntar
+  a Central y renombrar**). La ficha con RUC de la Marina (Katerine) es la
+  madre de la Marina; nació la madre del MINSA (RUC 20131373237) sin dueño.
+- **Pendiente.** La solicitud del 27-08 (Libeth Escalante / Sr. Efraín,
+  oportunidad `90d92ed8`) sigue bajo Puno: **preguntar a PV de qué red es**
+  y moverla. Las cuatro fichas «MARINA DE GUERRA» sin RUC (Brenda ×3,
+  Katerine ×1) no se tocaron: habría que saber qué unidad es cada una para
+  colgarlas de la madre. El grupo económico en la ficha ahora dice «Sedes de
+  la institución» cuando todas comparten el RUC.
+- Verificado con `scripts/_verificar-sedes-ruc.mjs` (transacción como
+  Central, se deshace entera): la red nueva no cae en Puno, la misma red
+  escrita distinto no abre otra sede, la elección manual manda, una sede
+  ajena se rechaza, un RUC común sigue bloqueado. Código listo para la
+  ventana de las 18:00; la base ya está corregida.
+
 ---
 
 ### Lo del 02-09 a las 17:30: el cierre de repuestos y servicios de Ariana (sin migración)

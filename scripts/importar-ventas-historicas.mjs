@@ -164,7 +164,7 @@ async function main() {
       const { rows } = await cliente.query(
         `insert into cuentas (tipo_doc, num_doc, razon_social, comercial_id, cartera_desde, notas)
          values ($1,$2,$3,$4,$5,$6)
-         on conflict (num_doc) where num_doc is not null and tipo_doc <> 'SIN_DOC' do nothing
+         on conflict (num_doc) where num_doc is not null and tipo_doc <> 'SIN_DOC' and cuenta_padre_id is null do nothing
          returning id`,
         [f.tipoDoc, f.numDoc, f.razon || "(sin razón social)", comercialId, f.fechaVenta, `[Histórico venta ${f.comercialCarpeta}] ${f.descripcion ?? ""}`.trim()],
       );

@@ -192,11 +192,26 @@ export async function asignarLead(
   tipoPostventa?: string | null,
   /** El código del supervisor, cuando la derivación mueve la cartera (0107). */
   pin?: string | null,
+  /**
+   * Instituciones con sedes bajo un mismo RUC (0158): a qué sede va este
+   * contacto — una existente o una nueva con el nombre que dio Central.
+   */
+  sede?: EleccionSede | null,
 ): Promise<{ error: string | null; requierePin?: boolean; sumadoAExpediente?: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // La sede se fija ANTES de asignar: queda en leads.cuenta_id, que es la
+  // ficha que `asignar_lead` respeta sin volver a buscar por RUC (0143/0158).
+  if (sede) {
+    const { error: errorSede } = await supabase.rpc("elegir_sede_del_lead", {
+      p_lead_id: leadId,
+      p_cuenta_id: "cuentaId" in sede ? sede.cuentaId : null,
+      p_nombre_nueva: "nombreNueva" in sede ? sede.nombreNueva : null,
+    });
+    if (errorSede) return { error: errorSede.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  }
   // Pasa por `asignar_lead_con_pin` (0107): si la derivación le quitaría el
   // cliente a otro comercial, la base exige el código del supervisor. La
   // versión sin autorización quedó revocada, así que esta no es la puerta
@@ -312,6 +327,50 @@ export async function marcarLeadYaGestionado(
   cuentaId: string,
 ): Promise<{ error: string | null }> {
   return salirDeLaBandeja(leadId, { estado: "duplicado", cuenta_id: cuentaId });
+}
+
+/** A qué sede de una institución va el contacto (0158). */
+export type EleccionSede = { cuentaId: string } | { nombreNueva: string };
+
+export interface SedeDeInstitucion {
+  id: string;
+  razonSocial: string;
+  comercialId: string | null;
+  comercialNombre: string | null;
+  codigoComercial: string | null;
+}
+
+export interface InstitucionConSedes {
+  madre: { id: string; razonSocial: string };
+  sedes: SedeDeInstitucion[];
+}
+
+// Gerencia, 02-09 (audio): «para los casos puntuales como ESSALUD, la Marina
+// de Guerra y el Ministerio de Salud, solamente en esos casos, cuando se
+// reconozca por el RUC deben aparecer las opciones [de sede], y ahí se puede
+// derivar como negocios diferentes». Si el RUC es de una institución marcada
+// con sedes (0158), devuelve la madre y sus sedes; si no, null y el diálogo
+// sigue como siempre.
+export async function sedesDeDocumento(numDoc: string | null | undefined): Promise<InstitucionConSedes | null> {
+  const doc = numDoc?.replace(/\D/g, "") || null;
+  if (!doc || doc.length !== 11) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("sedes_de_documento", { p_num_doc: doc });
+  if (error || !data) return null;
+  const d = data as {
+    madre: { id: string; razon_social: string };
+    sedes: { id: string; razon_social: string; comercial_id: string | null; comercial: string | null; codigo: string | null }[];
+  };
+  return {
+    madre: { id: d.madre.id, razonSocial: d.madre.razon_social },
+    sedes: (d.sedes ?? []).map((s) => ({
+      id: s.id,
+      razonSocial: s.razon_social,
+      comercialId: s.comercial_id,
+      comercialNombre: s.comercial,
+      codigoComercial: s.codigo,
+    })),
+  };
 }
 
 export interface CoincidenciaCartera {

@@ -3,7 +3,16 @@
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { TriangleAlert } from "lucide-react";
-import { asignarLead, buscarCoincidencias, carteraEnJuego, type CoincidenciaCartera } from "@/lib/acciones/leads";
+import {
+  asignarLead,
+  buscarCoincidencias,
+  carteraEnJuego,
+  sedesDeDocumento,
+  type CoincidenciaCartera,
+  type EleccionSede,
+  type InstitucionConSedes,
+} from "@/lib/acciones/leads";
+import { Input } from "@/components/ui/input";
 import { fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +68,19 @@ const ETIQUETA_TIPO: Record<string, string> = {
   mantenimiento: "Mantenimiento preventivo",
 };
 
+/** Mismo criterio que `nombre_normalizado` en la base (0158). */
+function mismoNombre(a: string | null | undefined, b: string | null | undefined): boolean {
+  const n = (s: string | null | undefined) =>
+    (s ?? "")
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "")
+      .replace(/[^A-Z0-9]+/g, " ")
+      .trim();
+  const x = n(a);
+  return x !== "" && x === n(b);
+}
+
 const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: boolean }> = {
   documento: { etiqueta: "Mismo RUC/DNI", fuerte: true },
   telefono: { etiqueta: "Mismo teléfono", fuerte: true },
@@ -87,6 +109,16 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
    */
   const [traspaso, setTraspaso] = useState<{ razonSocial: string; duenoNombre: string; duenoCodigo: string | null } | null>(null);
   const [pin, setPin] = useState("");
+  /**
+   * Instituciones con sedes bajo un mismo RUC (0158). Gerencia, 02-09: «solo
+   * en esos casos, cuando se reconozca por el RUC, deben aparecer las
+   * opciones, y ahí se puede derivar como negocios diferentes». `undefined`
+   * mientras se consulta; `null` si el RUC es de una empresa común.
+   */
+  const [institucion, setInstitucion] = useState<InstitucionConSedes | null | undefined>(undefined);
+  /** Id de la sede elegida, o "nueva" para abrir una con el nombre de abajo. */
+  const [sedeElegida, setSedeElegida] = useState<string>("");
+  const [nombreSedeNueva, setNombreSedeNueva] = useState<string>(razonSocial ?? "");
 
   // Derivar a Post Venta es derivar un CASO, no entregar un cliente: hay que
   // decir de qué clase es, y la cartera del comercial no se toca (0080).
@@ -96,17 +128,32 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
     if (!abierto) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCoincidencias(null);
-    buscarCoincidencias({ nombre, razonSocial, telefono, numDoc, email }).then((r) => {
-      setCoincidencias(r);
-      // La coincidencia de cartera preselecciona al comercial dueño… salvo que
-      // un comercial ya haya dicho a dónde va esto. Un aviso de «pide
-      // servicio» viene JUSTAMENTE de un cliente que ya tiene dueño, así que
-      // sin esta salvedad el dueño le ganaba siempre a Post Venta y el
-      // diálogo abría con lo contrario de lo que se pidió.
-      if (sugerencia?.comercialId) return;
-      const fuerte = r.find((c) => MOTIVO[c.motivo].fuerte && c.comercialId);
-      if (fuerte) setComercialId(fuerte.comercialId!);
-    });
+    setInstitucion(undefined);
+    setSedeElegida("");
+    setNombreSedeNueva(razonSocial ?? "");
+    Promise.all([buscarCoincidencias({ nombre, razonSocial, telefono, numDoc, email }), sedesDeDocumento(numDoc)]).then(
+      ([r, inst]) => {
+        setCoincidencias(r);
+        setInstitucion(inst);
+        if (inst) {
+          // Si Central escribió el nombre de una sede que ya existe, queda
+          // elegida; si no, la opción es abrir una nueva con ese nombre.
+          const igual = inst.sedes.find((s) => mismoNombre(s.razonSocial, razonSocial));
+          setSedeElegida(igual ? igual.id : mismoNombre(inst.madre.razonSocial, razonSocial) ? inst.madre.id : "nueva");
+          if (igual?.comercialId && !sugerencia?.comercialId) setComercialId(igual.comercialId);
+        }
+        // La coincidencia de cartera preselecciona al comercial dueño… salvo que
+        // un comercial ya haya dicho a dónde va esto. Un aviso de «pide
+        // servicio» viene JUSTAMENTE de un cliente que ya tiene dueño, así que
+        // sin esta salvedad el dueño le ganaba siempre a Post Venta y el
+        // diálogo abría con lo contrario de lo que se pidió.
+        if (sugerencia?.comercialId) return;
+        // Con una institución de sedes, «mismo RUC» no dice de quién es el
+        // contacto: el RUC lo comparten todas las sedes. Decide la sede.
+        const fuerte = r.find((c) => MOTIVO[c.motivo].fuerte && c.comercialId && !(inst && c.motivo === "documento"));
+        if (fuerte) setComercialId(fuerte.comercialId!);
+      },
+    );
   }, [abierto, nombre, razonSocial, telefono, numDoc, email, sugerencia?.comercialId]);
 
   // Cada vez que cambia el comercial elegido, se le pregunta a la base si esa
@@ -136,8 +183,24 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
       toast.error("Indique de qué clase es el caso de postventa");
       return;
     }
+    let sede: EleccionSede | null = null;
+    if (institucion) {
+      if (!sedeElegida) {
+        toast.error("Indique a qué sede de la institución va este contacto");
+        return;
+      }
+      if (sedeElegida === "nueva") {
+        if (!nombreSedeNueva.trim()) {
+          toast.error("Escriba el nombre de la sede");
+          return;
+        }
+        sede = { nombreNueva: nombreSedeNueva.trim() };
+      } else {
+        sede = { cuentaId: sedeElegida };
+      }
+    }
     startTransition(async () => {
-      const resultado = await asignarLead(leadId, comercialId, esPostventa ? tipoPostventa : null, pin || null);
+      const resultado = await asignarLead(leadId, comercialId, esPostventa ? tipoPostventa : null, pin || null, sede);
       if (resultado.error) {
         // La base distingue el caso: no es un error, es una autorización que
         // falta. El aviso ya está en pantalla con su casilla para el código.
@@ -235,6 +298,67 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* LAS SEDES DE UNA INSTITUCIÓN (0158). El RUC de ESSALUD, de la Marina o
+            del MINSA es uno solo para todo el país; si el contacto se une por
+            RUC cae en la primera ficha que lo tenga (PRO-09106 salió a PV como
+            «Hospital del Altiplano - Puno» siendo otra red). Acá Central dice
+            de qué sede es, y cada sede es un negocio distinto. */}
+        {institucion && (
+          <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <p className="text-sm font-semibold text-foreground">¿De qué sede es este contacto?</p>
+            <p className="text-xs leading-snug text-muted-foreground">
+              El RUC {numDoc} es de <b className="text-foreground">{institucion.madre.razonSocial}</b>, que tiene varias
+              sedes con el mismo RUC. Cada sede se atiende como un negocio distinto.
+            </p>
+            <div className="space-y-1">
+              {[
+                { id: institucion.madre.id, razonSocial: `${institucion.madre.razonSocial} (la institución, sin sede)`, comercialNombre: null, codigoComercial: null, comercialId: null },
+                ...institucion.sedes,
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => {
+                    setSedeElegida(s.id);
+                    if (s.comercialId && !esPostventa) setComercialId(s.comercialId);
+                  }}
+                  className={cn(
+                    "w-full rounded-md border bg-card p-2 text-left text-xs transition-colors hover:bg-accent",
+                    sedeElegida === s.id ? "border-primary ring-1 ring-primary" : "border-border",
+                  )}
+                >
+                  <span className="block font-semibold text-foreground">{s.razonSocial}</span>
+                  <span className="block text-muted-foreground">
+                    {s.comercialNombre
+                      ? `Cartera de ${s.comercialNombre}${s.codigoComercial ? ` (${s.codigoComercial})` : ""}`
+                      : "Sin comercial de cartera"}
+                  </span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSedeElegida("nueva")}
+                className={cn(
+                  "w-full rounded-md border bg-card p-2 text-left text-xs transition-colors hover:bg-accent",
+                  sedeElegida === "nueva" ? "border-primary ring-1 ring-primary" : "border-border",
+                )}
+              >
+                <span className="block font-semibold text-foreground">Otra sede (nueva)</span>
+                <span className="block text-muted-foreground">Se abre con el nombre que escriba abajo y sin comercial de cartera.</span>
+              </button>
+              {sedeElegida === "nueva" && (
+                <Input
+                  aria-label="Nombre de la sede nueva"
+                  value={nombreSedeNueva}
+                  onChange={(e) => setNombreSedeNueva(e.target.value)}
+                  placeholder="Ej.: RED ASISTENCIAL AYACUCHO - ESSALUD"
+                  className="bg-card"
+                />
+              )}
+            </div>
           </div>
         )}
 

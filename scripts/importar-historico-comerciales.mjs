@@ -266,7 +266,7 @@ async function main() {
       const { rows, rowCount } = await cliente.query(
         `insert into cuentas (tipo_doc, num_doc, razon_social, rubro_id, departamento, provincia, distrito, direccion, comercial_id, cartera_desde, notas)
          values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-         on conflict (num_doc) where num_doc is not null and tipo_doc <> 'SIN_DOC' do nothing
+         on conflict (num_doc) where num_doc is not null and tipo_doc <> 'SIN_DOC' and cuenta_padre_id is null do nothing
          returning id`,
         [f.tipoDoc, f.numDoc, f.razonSocial || "(sin razón social)", matchRubro(f.rubroTexto),
          f.departamento, f.provincia, f.distrito, f.direccion, comercialId,
