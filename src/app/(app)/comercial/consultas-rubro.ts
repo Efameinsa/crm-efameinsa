@@ -34,18 +34,6 @@ export function alcanceDe(perfil: Pick<Perfil, "id" | "rol">): string | null {
   return perfil.rol === "gerencia" || perfil.rol === "admin" || perfil.rol === "central" ? null : perfil.id;
 }
 
-async function contarCuentas(supabase: Supabase, comercialId: string | null, rubro: ValorRubro): Promise<number> {
-  let q = supabase.from("cuentas").select("id", { count: "exact", head: true });
-  if (comercialId) q = q.eq("comercial_id", comercialId);
-  q = rubro === "sin" ? q.is("rubro_id", null) : q.eq("rubro_id", rubro);
-  const { count, error } = await q;
-  if (error) {
-    console.error("contar cuentas por rubro:", error.message);
-    return 0;
-  }
-  return count ?? 0;
-}
-
 /** Los rubros activos del catálogo con cuántos clientes tiene cada uno en la
  *  cartera de quien mira, más cuántos quedan sin rubro. Al 01-09 solo el 30 %
  *  de las cuentas tiene rubro: el número de «sin rubro» es a propósito, para
@@ -57,12 +45,15 @@ export async function cargarOpcionesRubro(
   const { data, error } = await supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre");
   if (error) console.error("catalogo_rubros:", error.message);
   const rubros = (data ?? []) as { id: number; nombre: string }[];
-  const [sinRubro, ...conteos] = await Promise.all([
-    contarCuentas(supabase, comercialId, "sin"),
-    ...rubros.map((r) => contarCuentas(supabase, comercialId, r.id)),
-  ]);
+  // Antes: una consulta de conteo POR RUBRO (nueve idas y vueltas por carga);
+  // «Mi cartera» era la pantalla más lenta del CRM por esto (Santos, 02-09,
+  // «pequeños tirones»). Ahora, un solo viaje (0161).
+  const { data: conteosData, error: errorConteos } = await supabase.rpc("cuentas_por_rubro", { p_comercial: comercialId });
+  if (errorConteos) console.error("cuentas_por_rubro:", errorConteos.message);
+  const porRubro = new Map<number | null, number>();
+  for (const f of (conteosData ?? []) as { rubro_id: number | null; n: number }[]) porRubro.set(f.rubro_id, Number(f.n));
   return {
-    opciones: rubros.map((r, i) => ({ id: r.id, nombre: r.nombre, clientes: conteos[i] })),
-    sinRubro,
+    opciones: rubros.map((r) => ({ id: r.id, nombre: r.nombre, clientes: porRubro.get(r.id) ?? 0 })),
+    sinRubro: porRubro.get(null) ?? 0,
   };
 }

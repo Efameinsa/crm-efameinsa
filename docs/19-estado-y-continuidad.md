@@ -387,9 +387,15 @@ verificados con `scripts/_verificar-ajustes-carlos.mjs`:
   `experimental.staleTimes` 30 s para que volver atrás sea instantáneo.
   OJO: con el esqueleto, un `redirect()` de página llega dentro del
   contenido (200), no como 307: los scripts de verificación lo contemplan.
-  Quedan para otra tanda: las tres pantallas pesadas a una sola consulta
-  (Mi día, ficha de oportunidad, Mi cartera) y optimistic UI en los botones
-  repetitivos de postventa.
+  Segunda tanda (misma tarde): **Mi cartera** contaba los rubros con una
+  consulta por rubro (nueve viajes) → `cuentas_por_rubro` (0161, un viaje);
+  **Mi día** y **la ficha de oportunidad** hacían sus consultas en fila →
+  ahora en un `Promise.all` (la ficha pasó de 11 viajes en secuencia a 2
+  tandas); **optimistic UI** en los pasos del pedido de postventa
+  (`useOptimistic` sobre `servicio`: el check se pinta al toque y se
+  revierte si falla), en los dos checks de Central, en «Aprobar» del control
+  y en «Retomar». Nada de caché de datos. `notFound()`/`redirect()` también
+  viajan dentro de la página con el esqueleto: los scripts lo contemplan.
 
 **Quedan por construir de esa reunión**: el **cierre semanal del sábado
 11:55** (consolida lo diario + dos campos obligatorios «¿qué necesitas para

@@ -1,9 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Undo2 } from "lucide-react";
+import { Check, Loader2, Undo2 } from "lucide-react";
 import { trabajarOportunidadHistorica } from "@/lib/acciones/oportunidades";
 import { cn } from "@/lib/utils";
 
@@ -37,13 +37,17 @@ export function TrabajarHistoricaBoton({
 }) {
   const router = useRouter();
   const [enviando, iniciar] = useTransition();
+  // Optimistic (Santos, 02-09): «Retomada ✓» al toque; se revierte si falla.
+  const [retomada, setRetomada] = useState(false);
 
   function trabajar(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    setRetomada(true);
     iniciar(async () => {
       const { error } = await trabajarOportunidadHistorica(oportunidadId);
       if (error) {
+        setRetomada(false);
         toast.error(error);
         return;
       }
@@ -58,15 +62,15 @@ export function TrabajarHistoricaBoton({
     <button
       type="button"
       onClick={trabajar}
-      disabled={enviando}
+      disabled={enviando || retomada}
       title="La saca de la base del Excel: vuelve a seguimiento con la próxima acción para hoy, y queda anotado quién la retomó"
       className={cn(
         "inline-flex flex-none cursor-pointer items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/5 font-semibold text-primary transition-colors hover:bg-primary/10 disabled:cursor-wait disabled:opacity-60",
         compacto ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-xs",
       )}
     >
-      {enviando ? <Loader2 className="size-3.5 animate-spin" /> : <Undo2 className="size-3.5" />}
-      Retomar
+      {retomada && !enviando ? <Check className="size-3.5" /> : enviando ? <Loader2 className="size-3.5 animate-spin" /> : <Undo2 className="size-3.5" />}
+      {retomada ? "Retomada" : "Retomar"}
     </button>
   );
 }

@@ -497,7 +497,11 @@ export default async function ComercialPage({
   // umbrales del manual de Efameinsa (1 mes prospecto / 3 meses cotización,
   // ver migración 0018). Puede haber candidatos acá aunque "Mi día" esté
   // vacío arriba, así que se consulta y se muestra aparte.
-  const { data: inactivasData } = await supabase
+  // Las cuatro cosas que siguen no dependen entre sí: van en un solo viaje
+  // en vez de en fila (Santos, 02-09, «pequeños tirones»: cada await en
+  // secuencia era una ida y vuelta más por clic).
+  const [{ data: inactivasData }, { data: ventasData }, [pulso], parque] = await Promise.all([
+    supabase
     .from("v_oportunidades_inactivas")
     .select("id, etapa, intencion, motivo_inactividad, cuentas(razon_social)")
     .eq("comercial_id", perfil.id)
@@ -510,7 +514,27 @@ export default async function ComercialPage({
     // gerencia (con qué motivo, y si se cierran o se reasignan), no algo que
     // el CRM deba empujarle a cada comercial en su pantalla de inicio.
     // Queda como pregunta abierta en el plan 11 junto con D1.
-    .eq("origen", "crm");
+    .eq("origen", "crm"),
+    // Ventas del CRM sin informe. La consulta trae los informes atados a cada
+    // venta y se descartan acá: son pocas filas y evita una función nueva.
+    supabase
+      .from("ventas")
+      .select(
+        "id, fecha_venta, monto_total, moneda, origen, oportunidades!inner(comercial_id, cuenta_id, cuentas(razon_social)), informes_cierre(id)",
+      )
+      .eq("oportunidades.comercial_id", perfil.id)
+      .eq("origen", "crm")
+      // Una venta anulada no cuenta: el cierre se queda con su número, pero el
+      // récord no lo suma (reunión con gerencia del 28-08, migración 0110).
+      .is("anulada_at", null)
+      .order("fecha_venta", { ascending: false }),
+    // La barra de la semana va ARRIBA de todo y no en «Mi gestión»: es lo
+    // primero que ve el comercial al entrar.
+    cargarPulsoSemana(supabase, lunesDe(hoy), perfil.id),
+    // El parque de su cartera, solo para quien vende mantenimiento (la llave
+    // hace_postventa: hoy Ariana).
+    veTodoPostventa(perfil) ? cargarParque(supabase, { comercialId: perfil.id, hoy }) : Promise.resolve([]),
+  ]);
 
   const inactivas: FilaInactiva[] = (inactivasData ?? []).map((op) => ({
     id: op.id,
@@ -519,20 +543,6 @@ export default async function ComercialPage({
     motivo_inactividad: op.motivo_inactividad,
     razon_social: (op.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
   }));
-
-  // Ventas del CRM sin informe. La consulta trae los informes atados a cada
-  // venta y se descartan acá: son pocas filas y evita una función nueva.
-  const { data: ventasData } = await supabase
-    .from("ventas")
-    .select(
-      "id, fecha_venta, monto_total, moneda, origen, oportunidades!inner(comercial_id, cuenta_id, cuentas(razon_social)), informes_cierre(id)",
-    )
-    .eq("oportunidades.comercial_id", perfil.id)
-    .eq("origen", "crm")
-    // Una venta anulada no cuenta: el cierre se queda con su número, pero el
-    // récord no lo suma (reunión con gerencia del 28-08, migración 0110).
-    .is("anulada_at", null)
-    .order("fecha_venta", { ascending: false });
 
   const sinInforme: VentaSinInformeFila[] = (ventasData ?? [])
     .filter((v) => ((v.informes_cierre as unknown as unknown[]) ?? []).length === 0)
@@ -548,14 +558,6 @@ export default async function ComercialPage({
       };
     });
 
-  // La barra de la semana va ARRIBA de todo y no en «Mi gestión»: es lo
-  // primero que ve el comercial al entrar, que es cuando la barra puede
-  // cambiarle el día. En «Mi gestión» estaría a dos clics y no la vería nadie.
-  const [pulso] = await cargarPulsoSemana(supabase, lunesDe(hoy), perfil.id);
-
-  // El parque de su cartera: a quién ofrecerle mantenimiento esta semana.
-  // Solo para quien vende mantenimiento (la llave hace_postventa: hoy Ariana).
-  const parque = veTodoPostventa(perfil) ? await cargarParque(supabase, { comercialId: perfil.id, hoy }) : [];
   const porVender = parque.filter((c) => (c.estado === "nunca" || c.estado === "vencido") && !c.enGestion);
   const tandaMantenimiento = porVender.slice(0, 10);
 

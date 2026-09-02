@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2 } from "lucide-react";
@@ -18,6 +18,17 @@ import { Button } from "@/components/ui/button";
 export function AprobarPedidoBoton({ servicioId }: { servicioId: string }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
+  // Optimistic (Santos, 02-09): el botón dice «Aprobado» en el instante del
+  // toque y vuelve atrás solo si el servidor lo rechaza.
+  const [aprobado, setAprobado] = useState(false);
+
+  if (aprobado) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md bg-[#1E7F4F]/10 px-2.5 py-1.5 text-xs font-semibold text-[#1E7F4F]">
+        <Check className="size-4" /> Aprobado
+      </span>
+    );
+  }
 
   return (
     <Button
@@ -25,8 +36,10 @@ export function AprobarPedidoBoton({ servicioId }: { servicioId: string }) {
       disabled={pendiente}
       onClick={() =>
         startTransition(async () => {
+          setAprobado(true);
           const r = await aprobarPedido(servicioId);
           if (r.error) {
+            setAprobado(false);
             toast.error(r.error, { duration: 8000 });
             return;
           }

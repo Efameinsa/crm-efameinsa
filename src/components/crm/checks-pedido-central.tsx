@@ -49,8 +49,15 @@ export function ChecksPedidoCentral({
   const [pendiente, startTransition] = useTransition();
   const [abierto, setAbierto] = useState(false);
   const [numero, setNumero] = useState(numeroPedido ?? "");
+  // Optimistic (Santos, 02-09): el check se pinta al toque y se revierte si
+  // el servidor lo rechaza. La lista vuelve a leerse de la base después.
+  const [visto, setVisto] = useState<{ pedido: boolean; liquidacion: boolean }>({ pedido: pedidoEjecutado, liquidacion });
+  const pedidoEjecutadoVisto = visto.pedido;
+  const liquidacionVista = visto.liquidacion;
 
   function marcar(campo: "pedido" | "liquidacion", numeroPedidoErp?: string) {
+    const antes = visto;
+    setVisto((v) => ({ ...v, [campo]: true }));
     startTransition(async () => {
       const r = await liberarPedido({
         informeId,
@@ -59,6 +66,7 @@ export function ChecksPedidoCentral({
         marcarLiquidacion: campo === "liquidacion",
       });
       if (r.error) {
+        setVisto(antes);
         toast.error(r.error, { duration: 9000 });
         return;
       }
@@ -83,7 +91,7 @@ export function ChecksPedidoCentral({
     );
   }
 
-  if (pedidoEjecutado && liquidacion) {
+  if (pedidoEjecutadoVisto && liquidacionVista) {
     return (
       <span className="whitespace-nowrap rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
         Con postventa
@@ -95,13 +103,13 @@ export function ChecksPedidoCentral({
     <>
       <div className="flex flex-col items-start gap-1">
         <Chip
-          activo={pedidoEjecutado}
+          activo={pedidoEjecutadoVisto}
           onClick={() => setAbierto(true)}
           disabled={pendiente}
           etiqueta="Pedido ejecutado"
         />
         <Chip
-          activo={liquidacion}
+          activo={liquidacionVista}
           onClick={() => marcar("liquidacion")}
           disabled={pendiente}
           etiqueta="Liquidación"

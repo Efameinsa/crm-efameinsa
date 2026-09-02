@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -78,8 +78,18 @@ export function PedidoPostventa({
   const [pendiente, startTransition] = useTransition();
   const [form, setForm] = useState<Formulario>(null);
 
-  const bloques = bloquesPedido(servicio);
-  const saldo = saldoPendiente(servicio);
+  // OPTIMISTIC UI (Santos, 02-09): los pasos del pedido son muchos clics
+  // seguidos. El check se pinta en el instante en que se toca, con la fecha
+  // de ahora; si el servidor dice que no, vuelve atrás solo y avisa. La
+  // verdad sigue siendo la de la base: `router.refresh()` la trae después.
+  const [servicioVisto, aplicarParche] = useOptimistic(
+    servicio,
+    (actual: ServicioPostventa, parche: Partial<ServicioPostventa>) => ({ ...actual, ...parche }),
+  );
+  const ahora = () => new Date().toISOString();
+
+  const bloques = bloquesPedido(servicioVisto);
+  const saldo = saldoPendiente(servicioVisto);
   // «No se despacha con saldo pendiente sin autorización». Con las cifras
   // tapadas no hay saldo que mirar —`monto` viene en null y restar daría
   // cero—, así que se pregunta por el estado, que es el mismo dato sin número.
@@ -88,8 +98,9 @@ export function PedidoPostventa({
   const pagoIncompleto = verPrecios ? saldo > 0 : estadoPago(servicio) !== "completo";
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
-  function correr(fn: () => Promise<{ error: string | null }>, exito: string) {
+  function correr(fn: () => Promise<{ error: string | null }>, exito: string, parche?: Partial<ServicioPostventa>) {
     startTransition(async () => {
+      if (parche) aplicarParche(parche);
       const r = await fn();
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
@@ -117,7 +128,7 @@ export function PedidoPostventa({
         size="sm"
         className="mt-2"
         disabled={pendiente}
-        onClick={() => correr(() => aprobarPedido(servicio.id), "Pedido aprobado. Central ya lo ve en ejecución.")}
+        onClick={() => correr(() => aprobarPedido(servicio.id), "Pedido aprobado. Central ya lo ve en ejecución.", { aprobado_at: ahora() })}
       >
         {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
         Aprobar el pedido
@@ -131,7 +142,7 @@ export function PedidoPostventa({
       case "aprobado":
         return (
           <BotonPaso
-            onClick={() => correr(() => aprobarPedido(servicio.id), "Pedido aprobado. Central ya lo ve en ejecución.")}
+            onClick={() => correr(() => aprobarPedido(servicio.id), "Pedido aprobado. Central ya lo ve en ejecución.", { aprobado_at: ahora() })}
           >
             Aprobar
           </BotonPaso>
@@ -142,10 +153,7 @@ export function PedidoPostventa({
         ) : (
           <BotonPaso
             onClick={() =>
-              correr(
-                () => marcarPaso(servicio.id, "prueba_solicitada_at"),
-                "Solicitud enviada al almacén. Queda registrada con fecha.",
-              )
+              correr(() => marcarPaso(servicio.id, "prueba_solicitada_at"), "Solicitud enviada al almacén. Queda registrada con fecha.", { prueba_solicitada_at: ahora() })
             }
           >
             Solicitar al almacén
@@ -155,7 +163,7 @@ export function PedidoPostventa({
         return (
           <BotonPaso
             onClick={() =>
-              correr(() => marcarPaso(servicio.id, "plano_enviado_at"), "Plano marcado como enviado")
+              correr(() => marcarPaso(servicio.id, "plano_enviado_at"), "Plano marcado como enviado", { plano_enviado_at: ahora() })
             }
           >
             Marcar enviado
@@ -327,10 +335,7 @@ export function PedidoPostventa({
         boton="Marcar probado y embalado"
         pendiente={pendiente}
         onEnviar={(datos) =>
-          correr(
-            () => marcarPaso(servicio.id, "prueba_lista_at", datos.protocolo),
-            "Prueba y embalaje confirmados",
-          )
+          correr(() => marcarPaso(servicio.id, "prueba_lista_at", datos.protocolo), "Prueba y embalaje confirmados", { prueba_lista_at: ahora() })
         }
         campos={[{ nombre: "protocolo", etiqueta: "N.º de protocolo de prueba", requerido: false }]}
       />
@@ -469,10 +474,7 @@ export function PedidoPostventa({
         boton="Registrar"
         pendiente={pendiente}
         onEnviar={(datos) =>
-          correr(
-            () => marcarPaso(servicio.id, "preinstalacion_ok_at", datos.nota),
-            "Preinstalación registrada",
-          )
+          correr(() => marcarPaso(servicio.id, "preinstalacion_ok_at", datos.nota), "Preinstalación registrada", { preinstalacion_ok_at: ahora() })
         }
         campos={[
           {

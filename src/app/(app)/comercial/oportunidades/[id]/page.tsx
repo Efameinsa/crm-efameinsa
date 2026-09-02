@@ -97,23 +97,6 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     ? ((await firmarAdjuntosDeLeads(supabase, [{ id: "lead", adjuntos: lead.adjuntos }])).get("lead") ?? [])
     : [];
 
-  // El cliente que entró DOS veces (formulario web + WhatsApp) ya no abre un
-  // expediente gemelo: el segundo contacto se SUMA acá (0141, decisión de
-  // Carlos del 01-09). Lo que pidió por ese otro canal se muestra junto a la
-  // solicitud original — nada de lo que el cliente dijo se pierde.
-  const { data: otrosLeadsCrudos } = await supabase
-    .from("leads")
-    .select("id, codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at")
-    .eq("oportunidad_id", oportunidad.id)
-    .order("recibido_at");
-  const otrosLeads = (otrosLeadsCrudos ?? []).filter((l) => l.id !== oportunidad.lead_id);
-  const adjuntosPorLead = otrosLeads.some((l) => (l.adjuntos as AdjuntoLead[] | null)?.length)
-    ? await firmarAdjuntosDeLeads(
-        supabase,
-        otrosLeads.map((l) => ({ id: l.id, adjuntos: (l.adjuntos as AdjuntoLead[] | null) ?? [] })),
-      )
-    : new Map<string, never[]>();
-
   const cuenta = oportunidad.cuentas as unknown as {
     id: string;
     razon_social: string;
@@ -125,67 +108,52 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
   } | null;
 
-  // El catálogo de rubros para «Cambiar rubro» en la cabecera (Carlos, 02-09:
-  // «no veo dónde cambiarlo»).
-  const [{ data: rubrosData }, { data: grupoData }] = await Promise.all([
+  // TODO LO QUE NO DEPENDE ENTRE SÍ, EN UN SOLO VIAJE (Santos, 02-09,
+  // «pequeños tirones»: esta ficha hacía once consultas, varias en fila).
+  //  · Los otros contactos que se SUMARON a este expediente (0141): el cliente
+  //    que entró dos veces ya no abre un gemelo; lo que pidió por el otro
+  //    canal se muestra junto a la solicitud original.
+  //  · El catálogo de rubros para «Cambiar rubro» en la cabecera.
+  //  · La sede de una institución con un solo RUC (0158/0159): va por
+  //    `grupo_economico` porque la madre no tiene dueño y la RLS no se la
+  //    mostraría al comercial.
+  //  · La historia COMPLETA del cliente (todas sus oportunidades), los
+  //    informes de cierre y los contactos: las secciones que vivían en «Ver
+  //    ficha completa».
+  //  · La ruta del contacto desde antes de que fuera suyo (Carlos, 27-08):
+  //    la asignación de Central y la primera gestión.
+  const [
+    { data: otrosLeadsCrudos },
+    { data: rubrosData },
+    { data: grupoData },
+    { eventos, ventasConDetalle },
+    { data: informes },
+    { data: contactosData },
+    { data: asignacion },
+    { data: primeraGestion },
+  ] = await Promise.all([
+    supabase
+      .from("leads")
+      .select("id, codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at")
+      .eq("oportunidad_id", oportunidad.id)
+      .order("recibido_at"),
     supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre"),
-    // Sede de una institución con un solo RUC (0158: ESSALUD, Marina, MINSA).
-    // Se dice en la cabecera: el RUC que ve el comercial es el de toda la
-    // institución, y esta ficha es UNA de sus redes u hospitales. Va por
-    // `grupo_economico` y no por un select directo: la madre no tiene dueño y
-    // la RLS no se la mostraría al comercial (0159).
-    cuenta?.cuenta_padre_id
-      ? supabase.rpc("grupo_economico", { p_cuenta_id: cuenta.id })
-      : Promise.resolve({ data: null }),
-  ]);
-  const rubros = (rubrosData ?? []) as { id: number; nombre: string }[];
-  const grupo = (grupoData ?? []) as { razon_social: string; num_doc: string | null; es_madre: boolean }[];
-  const madre = grupo.find((g) => g.es_madre) ?? null;
-  // Todas con el mismo RUC = sedes de una institución, no razones sociales distintas.
-  const sedeDe =
-    madre && grupo.length > 1 && grupo.every((g) => g.num_doc && g.num_doc === grupo[0].num_doc) ? madre.razon_social : null;
-
-  // El feed de "contexto primero": la historia COMPLETA del cliente (todas
-  // sus oportunidades), no solo la de esta oportunidad puntual. `ventasConDetalle`
-  // ya venía en el mismo viaje y antes se descartaba; ahora alimenta la sección
-  // "Compras anteriores" que se trajo desde la ficha del cliente (C5).
-  const { eventos, ventasConDetalle } = cuenta?.id
-    ? await cargarHistorialCuenta(supabase, cuenta.id)
-    : { eventos: [], ventasConDetalle: [] };
-
-  // Informes de cierre y contactos completos del cliente: las otras dos
-  // secciones que vivían solo en "Ver ficha completa".
-  const { data: informes } = cuenta?.id
-    ? await supabase
-        .from("informes_cierre")
-        .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos")
-        .eq("cuenta_id", cuenta.id)
-        .order("created_at", { ascending: false })
-    : { data: [] };
-  const adjuntosPorInforme = await firmarAdjuntosDeCierres(supabase, informes ?? []);
-
-  const { data: contactosData } = cuenta?.id
-    ? await supabase
-        .from("contactos")
-        .select("id, nombre, cargo, telefono, email, documento, direccion, es_principal")
-        .eq("cuenta_id", cuenta.id)
-        .order("es_principal", { ascending: false })
-    : { data: [] };
-  const contactosCuenta = contactosData ?? [];
-
-  // ── La ruta del contacto, desde antes de que fuera suyo ──────────────────
-  //
-  // Central ya la tenía y el comercial no: su línea de tiempo arrancaba en su
-  // primera gestión, así que el reloj con el que se lo mide era invisible del
-  // lado de quien tiene que correrlo. Carlos lo pidió textual el 27-08 mirando
-  // la pantalla de Ariana —«pero comienza desde su gestión, no comienza desde
-  // el inicio, que es cuando te lo entregaron»— porque es la base de la
-  // medición y de la reasignación: «te lo derivé a las 2:05 y no has hecho
-  // absolutamente nada».
-  //
-  // No se inventa ningún dato: son los mismos tres hitos que Central ve, con
-  // el mismo componente. Lo único nuevo es quién los mira.
-  const [{ data: asignacion }, { data: primeraGestion }] = await Promise.all([
+    cuenta?.cuenta_padre_id ? supabase.rpc("grupo_economico", { p_cuenta_id: cuenta.id }) : Promise.resolve({ data: null }),
+    cuenta?.id ? cargarHistorialCuenta(supabase, cuenta.id) : Promise.resolve({ eventos: [], ventasConDetalle: [] }),
+    cuenta?.id
+      ? supabase
+          .from("informes_cierre")
+          .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos")
+          .eq("cuenta_id", cuenta.id)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    cuenta?.id
+      ? supabase
+          .from("contactos")
+          .select("id, nombre, cargo, telefono, email, documento, direccion, es_principal")
+          .eq("cuenta_id", cuenta.id)
+          .order("es_principal", { ascending: false })
+      : Promise.resolve({ data: [] }),
     oportunidad.lead_id
       ? supabase
           .from("asignaciones")
@@ -195,18 +163,32 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase
-      .from("actividades")
-      .select("tipo, realizada_at")
-      .eq("oportunidad_id", id)
-      .order("realizada_at", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
+    supabase.from("actividades").select("tipo, realizada_at").eq("oportunidad_id", id).order("realizada_at", { ascending: true }).limit(1).maybeSingle(),
   ]);
 
-  const { data: quienDerivo } = asignacion?.decidida_por
-    ? await supabase.from("perfiles").select("nombre").eq("id", asignacion.decidida_por).maybeSingle()
-    : { data: null };
+  const otrosLeads = (otrosLeadsCrudos ?? []).filter((l) => l.id !== oportunidad.lead_id);
+  const rubros = (rubrosData ?? []) as { id: number; nombre: string }[];
+  const grupo = (grupoData ?? []) as { razon_social: string; num_doc: string | null; es_madre: boolean }[];
+  const madre = grupo.find((g) => g.es_madre) ?? null;
+  // Todas con el mismo RUC = sedes de una institución, no razones sociales distintas.
+  const sedeDe =
+    madre && grupo.length > 1 && grupo.every((g) => g.num_doc && g.num_doc === grupo[0].num_doc) ? madre.razon_social : null;
+  const contactosCuenta = contactosData ?? [];
+
+  // Lo que depende de lo anterior: las URL firmadas de los adjuntos (de los
+  // contactos sumados y de los informes) y quién derivó. Otro viaje, y basta.
+  const [adjuntosPorLead, adjuntosPorInforme, { data: quienDerivo }] = await Promise.all([
+    otrosLeads.some((l) => (l.adjuntos as AdjuntoLead[] | null)?.length)
+      ? firmarAdjuntosDeLeads(
+          supabase,
+          otrosLeads.map((l) => ({ id: l.id, adjuntos: (l.adjuntos as AdjuntoLead[] | null) ?? [] })),
+        )
+      : Promise.resolve(new Map<string, never[]>()),
+    firmarAdjuntosDeCierres(supabase, informes ?? []),
+    asignacion?.decidida_por
+      ? supabase.from("perfiles").select("nombre").eq("id", asignacion.decidida_por).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   // Cuándo pasó a ser suya: la asignación si la hay, y si no la creación de la
   // oportunidad, que es el instante en que apareció en su lista.
