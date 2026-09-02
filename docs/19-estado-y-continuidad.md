@@ -555,8 +555,8 @@ derivar como negocios diferentes».
 - Verificado con `scripts/_verificar-sedes-ruc.mjs` (transacción como
   Central, se deshace entera): la red nueva no cae en Puno, la misma red
   escrita distinto no abre otra sede, la elección manual manda, una sede
-  ajena se rechaza, un RUC común sigue bloqueado. Código listo para la
-  ventana de las 18:00; la base ya está corregida.
+  ajena se rechaza, un RUC común sigue bloqueado. **Desplegado 18:01** (push
+  a8eb471, con la 0159 y lo de otras sesiones: 0160–0162); verificado en producción con sesiones reales y el selector de sede hallado en el JS publicado (`_esperar-selector-sede-prod.mjs`).
 - **Revisión de cómo se envió (Santos, 16:10).** Con sesiones reales contra
   `next dev -p 3100` (`scripts/_verificar-vista-sede-essalud.mjs`, acepta
   `BASE_URL`): PV abre la oportunidad y ve la sede con el nombre de Central,
