@@ -252,7 +252,7 @@ export async function proyectarCierre(
 }
 
 /**
- * «Trabajar esta oportunidad»: la saca del archivo de los Excel y la devuelve
+ * «Retomar» (antes «Trabajar esta oportunidad»): la saca del archivo de los Excel y la devuelve
  * al trabajo del día (migración 0130).
  *
  * POR QUÉ EXISTE. El 31-08 se archivaron 20.443 oportunidades que venían de la

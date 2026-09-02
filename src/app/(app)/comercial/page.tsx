@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { FileWarning } from "lucide-react";
+import { Archive, FileWarning, Search, X } from "lucide-react";
+import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -213,7 +214,150 @@ function GrupoSinInforme({ filas }: { filas: VentaSinInformeFila[] }) {
   );
 }
 
-export default async function ComercialPage() {
+interface FilaBase {
+  id: string;
+  intencion: string;
+  proxima_accion: string | null;
+  proxima_accion_at: string | null;
+  razon_social: string;
+  rubro: string | null;
+}
+
+// LA BASE DEL EXCEL, al pie de Mi día (Santos, 02-09). Lo de arriba es lo real:
+// lo que nació en el CRM o ya se gestiona en el CRM. Esto es lo que vino del
+// Excel y nadie tocó (etapa `historico`, 0130): no cuenta en Mi día ni en
+// ningún reporte hasta que alguien lo RETOME. Plegada por defecto; al abrirla
+// se despliega acá mismo con buscador y rubro, porque con miles de filas
+// nadie hace scroll: se busca a alguien o se trabaja una tanda. Retomar es un
+// toque y la fila sube a «Para hoy»; proyectar el cierre (Potencial) es otro
+// paso, desde la ficha, cuando ya hubo contacto —una intención no es una
+// promesa a gerencia—.
+function SeccionBase({
+  abierta,
+  total,
+  filas,
+  q,
+  rubro,
+  rubros,
+  hoy,
+}: {
+  abierta: boolean;
+  total: number;
+  filas: FilaBase[];
+  q: string;
+  rubro: string;
+  rubros: { id: number; nombre: string }[];
+  hoy: string;
+}) {
+  if (total === 0 && !abierta) return null;
+  const n = total.toLocaleString("es-PE");
+  if (!abierta) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-secondary/30 p-3">
+        <div className="flex items-start gap-2">
+          <Archive className="mt-0.5 size-4 flex-none text-muted-foreground" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">La base del Excel · {n} sin tocar</p>
+            <p className="text-xs text-muted-foreground">
+              Clientes que vinieron del Excel y nadie retomó en el CRM. No cuentan aquí ni en ningún reporte hasta que los
+              retome.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/comercial?base=1"
+          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-primary/50 bg-background px-3 text-xs font-semibold text-primary hover:bg-primary/5"
+        >
+          Abrir la base
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3 rounded-lg border border-dashed border-border bg-secondary/30 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Archive className="size-4 text-muted-foreground" /> La base del Excel · {n} sin tocar
+        </p>
+        <div className="flex items-center gap-3 text-xs">
+          <Link href="/comercial/oportunidades?etapa=historico" className="font-medium text-primary hover:underline">
+            Ver la base completa →
+          </Link>
+          <Link href="/comercial" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
+            <X className="size-3.5" /> Cerrar
+          </Link>
+        </div>
+      </div>
+      <form action="/comercial" className="flex flex-wrap gap-2">
+        <input type="hidden" name="base" value="1" />
+        <div className="relative min-w-56 flex-1">
+          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Buscar por cliente…"
+            className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-2 text-sm"
+          />
+        </div>
+        <select name="rubro" defaultValue={rubro} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+          <option value="">Todos los rubros</option>
+          {rubros.map((r) => (
+            <option key={r.id} value={String(r.id)}>
+              {r.nombre}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="h-9 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90">
+          Buscar
+        </button>
+      </form>
+      {filas.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nada en la base con ese filtro.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {filas.map((op) => (
+            <div key={op.id} className="flex items-center gap-2 rounded-lg border border-border bg-card p-2.5 shadow-sm">
+              <Link href={`/comercial/oportunidades/${op.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+                <PuntoInteres intencion={op.intencion} />
+                <div className="min-w-0 flex-1">
+                  <p className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-foreground">
+                    <span className="truncate">{op.razon_social}</span>
+                    <span className="flex-none rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">Excel</span>
+                    {op.rubro && <span className="hidden flex-none text-[11px] font-normal text-muted-foreground sm:inline">· {op.rubro}</span>}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {op.proxima_accion ?? "Sin acción anotada en el Excel"}
+                    {op.proxima_accion_at && ` · ${vencioHace(op.proxima_accion_at, hoy)}`}
+                  </p>
+                </div>
+              </Link>
+              <TrabajarHistoricaBoton oportunidadId={op.id} compacto />
+            </div>
+          ))}
+          {total > filas.length && (
+            <p className="text-xs text-muted-foreground">
+              Se muestran {filas.length} de {n}. Afine la búsqueda o{" "}
+              <Link href="/comercial/oportunidades?etapa=historico" className="font-medium text-primary hover:underline">
+                vea la base completa
+              </Link>
+              .
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default async function ComercialPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ base?: string; q?: string; rubro?: string }>;
+}) {
+  const sp = await searchParams;
+  const baseAbierta = sp.base === "1";
+  const baseQ = (sp.q ?? "").trim();
+  const baseRubro = /^\d+$/.test(sp.rubro ?? "") ? (sp.rubro as string) : "";
   const perfil = await requerirPerfil();
   const supabase = await createClient();
   // Antes: new Date().toISOString() — eso es UTC. A las 7 pm de Lima el
@@ -363,6 +507,40 @@ export default async function ComercialPage() {
   // cambiarle el día. En «Mi gestión» estaría a dos clics y no la vería nadie.
   const [pulso] = await cargarPulsoSemana(supabase, lunesDe(hoy), perfil.id);
 
+  // La base del Excel, solo si se abrió: buscador por cliente y rubro, las 40
+  // más recientes por fecha de retomar.
+  let filasBase: FilaBase[] = [];
+  let totalBase = historicoTotal ?? 0;
+  let rubros: { id: number; nombre: string }[] = [];
+  if (baseAbierta) {
+    let consulta = supabase
+      .from("oportunidades")
+      .select("id, intencion, proxima_accion, proxima_accion_at, cuentas!inner(razon_social, rubro_id, catalogo_rubros(nombre))", {
+        count: "exact",
+      })
+      .eq("comercial_id", perfil.id)
+      .eq("etapa", "historico");
+    if (baseQ) consulta = consulta.ilike("cuentas.razon_social", `%${baseQ}%`);
+    if (baseRubro) consulta = consulta.eq("cuentas.rubro_id", Number(baseRubro));
+    const [{ data: baseData, count }, { data: rubrosData }] = await Promise.all([
+      consulta.order("proxima_accion_at", { ascending: false, nullsFirst: false }).limit(40),
+      supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre"),
+    ]);
+    totalBase = count ?? 0;
+    rubros = (rubrosData ?? []) as { id: number; nombre: string }[];
+    filasBase = (baseData ?? []).map((op) => {
+      const c = op.cuentas as unknown as { razon_social: string; catalogo_rubros: { nombre: string } | null } | null;
+      return {
+        id: op.id,
+        intencion: op.intencion,
+        proxima_accion: op.proxima_accion,
+        proxima_accion_at: op.proxima_accion_at,
+        razon_social: c?.razon_social ?? "Cuenta sin nombre",
+        rubro: c?.catalogo_rubros?.nombre ?? null,
+      };
+    });
+  }
+
   return (
     <div className="space-y-5">
       {pulso && <BarraSemana pulso={pulso} href="/comercial/mi-gestion" />}
@@ -425,15 +603,15 @@ export default async function ComercialPage() {
               <GrupoCorrespondeCerrar filas={inactivas} />
             </>
           )}
-          {(historicoTotal ?? 0) > 0 && (
-            <p className="border-t border-border pt-3 text-xs text-muted-foreground">
-              Acá está solo lo que se trabaja en el CRM. Lo que quedó del Excel sin tocar está en{" "}
-              <Link href="/comercial/oportunidades?etapa=historico" className="font-medium text-primary hover:underline">
-                Histórico ({(historicoTotal ?? 0).toLocaleString("es-PE")})
-              </Link>
-              , y cada una tiene botón para volver a trabajarla.
-            </p>
-          )}
+          <SeccionBase
+            abierta={baseAbierta}
+            total={totalBase}
+            filas={filasBase}
+            q={baseQ}
+            rubro={baseRubro}
+            rubros={rubros}
+            hoy={hoy}
+          />
         </CardContent>
       </Card>
     </div>

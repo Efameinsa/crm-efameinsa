@@ -233,7 +233,7 @@ export default async function OportunidadesPage({
           <span className="font-semibold text-foreground">Histórico.</span> Son las oportunidades que vinieron de los
           Excel de agosto y que nadie retomó dentro del CRM. No cuentan como pendientes —no salen en Mi día, en la
           agenda ni en el reporte— pero siguen siendo suyas, con todo su historial. Si quiere volver a trabajar
-          alguna, use «Trabajar esta oportunidad»: vuelve a seguimiento con la próxima acción para hoy.
+          alguna, use «Retomar»: vuelve a seguimiento con la próxima acción para hoy.
         </p>
       )}
 

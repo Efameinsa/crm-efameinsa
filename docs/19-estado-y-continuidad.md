@@ -325,17 +325,28 @@ reales contra `next dev -p 3005`). **Pendiente de desplegar hasta que Santos
 lo diga.**
 
 - **Punto 2, Mi día.** Lo que había detrás del «Vencidas 60» de Katerine:
-  6.178 vencidas reales, de las que 6.163 son filas del Excel sin tocar. **La
-  migración 0130 se aplicó pero `sanear-oportunidades-fosiles.mjs --aplicar`
-  NUNCA se corrió**: nadie tiene nada en `historico`. El ensayo dice que
-  después quedan 24 (C1), 57 (C4) y 15 (C5). **Se corre el día del
-  despliegue**, con la autorización de Santos del 02-09. Las 30 «para hoy» sí
-  son trabajo real (29 agendadas en el CRM); 19 sin texto de próxima acción.
+  6.178 vencidas reales, de las que 6.163 son filas del Excel sin tocar. La
+  migración 0130 se había aplicado pero `sanear-oportunidades-fosiles.mjs
+  --aplicar` nunca se corrió. **Se corrió el 02-09 a media mañana** con la
+  autorización de Santos: 20.426 oportunidades a `historico` (respaldo en
+  `backups/oportunidades-fosiles-31-08.json`, reversa con `--revertir`);
+  quedan 809 abiertas, y las vencidas reales son 24 (C1), 57 (C4) y 15 (C5).
+  Producción lo reflejó al instante (el código de la 0130 ya estaba
+  desplegado). Las 30 «para hoy» sí son trabajo real; 19 sin texto de
+  próxima acción.
   Construido: pastilla «Excel» en la fila, «venció hace N días»
   (`src/lib/mi-dia.ts`), «Falta indicar qué hacer» en ámbar, cuatro acciones
-  frecuentes de un toque en el paso 3 del registro rápido, título «60 de
-  6.178», resumen en la cabecera y pie con enlace a Histórico (sale solo
-  cuando hay archivo).
+  frecuentes de un toque en el paso 3 del registro rápido, resumen en la
+  cabecera, y **«La base del Excel» al pie de Mi día** (decisión de diseño
+  con Santos, 02-09): plegada por defecto con su número; «Abrir la base» la
+  despliega ahí mismo (`?base=1`) con buscador por cliente, filtro por rubro,
+  las 40 más recientes con pastilla «Excel», «venció hace…» y el botón
+  **«Retomar»** (antes «Trabajar esta oportunidad»; misma palabra en la
+  ficha y en Histórico). Retomar = seguimiento + próxima acción hoy; pasar a
+  Potencial sigue siendo otro paso desde la ficha, a propósito: una intención
+  no es una promesa a gerencia. La raya es «trabajado en el CRM», no «nacido
+  en el CRM»: las 665 del Excel con gestión en el CRM siguen en Mi día.
+  Panel de gerencia (CLTV, recurrencia con histórico) se queda como está.
 - **Punto 3, Mis cierres.** Nueva `/comercial/cierres/[id]` (`VistaCierre`):
   el cierre como pantalla en DOS columnas —lectura a la izquierda (cliente,
   equipos con IGV, cómo se hizo la venta, correcciones) y consulta a la
