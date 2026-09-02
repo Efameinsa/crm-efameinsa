@@ -341,15 +341,20 @@ lo diga.**
   equipos con IGV, cómo se hizo la venta, correcciones) y consulta a la
   derecha (total, pago, entrega, contactos agrupados, expediente)—. Santos
   vio la primera versión «muy plana» y sin botón de editar; de ahí el
-  rediseño y **«Editar con código»** (migración **0153**): la misma pantalla
-  se vuelve formulario, guardar pide motivo (15 caracteres) + código de
-  operaciones/gerencia, la base archiva la versión anterior entera en
+  rediseño y **«Editar»** en granate, grande, junto a «Ver PDF». Al tocarlo
+  aparece el cuadro de motivo (15 caracteres) + código de Lesly/gerencia; el
+  código ABRE media hora (**0154**, `correcciones_informe`, mismo flujo que
+  la 0123) y la misma pantalla se vuelve formulario; guardar ya no pide nada.
+  La base (**0153**) archiva la versión anterior entera en
   `informes_cierre_versiones`, recalcula el importe de los equipos y corrige
   la venta atada (0148). Serie, número, fecha, cliente y estado no se tocan.
   El candado `bloquear_edicion_informe` se parchó sobre la definición viva
-  para aceptar `app.corrigiendo_cierre`. Verificado con
-  `scripts/_verificar-correccion-cierre.mjs` sobre PRUEBA-903-2026 (quedó en
-  versión 2, es de práctica). **Decisión pendiente de Carlos**: si el PDF
+  para aceptar `app.corrigiendo_cierre`. Un F5 a mitad de la corrección
+  recupera la ventana viva (`correccion_informe_abierta`). Verificado con
+  `scripts/_verificar-correccion-cierre.mjs` sobre PRUEBA-903-2026 (es de
+  práctica; va por la versión 3). OJO: el código se quema por ventana de
+  10 min, así que dos corridas seguidas del script necesitan esperar el
+  código siguiente. **Decisión pendiente de Carlos**: si el PDF
   corregido debe declararse «versión 2» (la misma pregunta abierta de la
   0123). La fila de la lista abre esa vista; el PDF queda en el ícono. Brenda
   recibe 404 en un cierre de Katerine (RLS 0049).

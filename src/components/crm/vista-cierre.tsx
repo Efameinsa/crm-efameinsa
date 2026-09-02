@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FileText, History, Lock, PencilLine, Plus, ShieldCheck, Trash2, Truck, Users, Wallet, X } from "lucide-react";
-import { corregirInformeEmitido } from "@/lib/acciones/informes";
+import { abrirCorreccionInforme, corregirInformeEmitido } from "@/lib/acciones/informes";
 import type { CorreccionInforme } from "@/lib/correccion-informe";
 import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
 import { CompendioGestion } from "@/components/crm/compendio-gestion";
@@ -33,11 +33,16 @@ import { cn } from "@/lib/utils";
  *    hizo la venta); a la derecha, pegado, lo que se CONSULTA (total, pago,
  *    entrega, contactos, expediente). Los tres contactos que eran la misma
  *    persona se muestran una vez con sus tres roles.
- *  · EDITAR ES LA MISMA PANTALLA. «Editar» convierte cada dato en su campo,
- *    en el mismo sitio; nada salta a otro formulario. Guardar pide el motivo
- *    y el código de operaciones o gerencia —ahí está el PIN— y la base
- *    archiva la versión anterior entera antes de reescribir (0153). El PDF
- *    se genera siempre desde lo guardado, así que sale corregido solo.
+ *  · EDITAR ES LA MISMA PANTALLA. «Editar» pide primero el motivo y el
+ *    código de Lesly o gerencia —«que al presionar el botón editar aparezca
+ *    el modal para pedir PIN», Santos 02-09—; el código abre media hora
+ *    (0154) y cada dato se convierte en su campo, en el mismo sitio. Guardar
+ *    ya no pide nada. La base archiva la versión anterior entera antes de
+ *    reescribir (0153). El PDF se genera siempre desde lo guardado, así que
+ *    sale corregido solo.
+ *  · LOS BOTONES SE VEN. «Editar» va en granate y «PDF» al lado, los dos
+ *    grandes: en la primera versión eran chicos y blancos y costaba dar con
+ *    ellos.
  */
 
 export interface ItemVista {
@@ -94,6 +99,13 @@ export interface VersionVista {
   archivadaAt: string;
   motivo: string;
   corregidoPor: string | null;
+}
+
+/** La ventana que abrió el código: quién autorizó, hasta cuándo, y por qué. */
+export interface VentanaVista {
+  expiraAt: string;
+  autorizo: string;
+  motivo: string;
 }
 
 const COMPROBANTE: Record<string, string> = { factura: "Factura", boleta_ruc: "Boleta con RUC", boleta_dni: "Boleta con DNI" };
@@ -189,6 +201,7 @@ export function VistaCierre({
   compendio,
   versiones,
   puedeCorregir,
+  correccionAbierta,
 }: {
   informe: InformeVista;
   adjuntos: AdjuntoCierreFirmado[];
@@ -196,15 +209,23 @@ export function VistaCierre({
   versiones: VersionVista[];
   /** Dueño del cierre o backoffice, sobre un emitido no anulado. */
   puedeCorregir: boolean;
+  /** Si ya hay una ventana viva de este usuario (un F5 a mitad de la corrección no pide otro código). */
+  correccionAbierta: VentanaVista | null;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
   const original = useMemo(() => aBorrador(informe), [informe]);
   const [b, setB] = useState<Borrador>(original);
-  const [confirmando, setConfirmando] = useState(false);
+  const [pidiendoCodigo, setPidiendoCodigo] = useState(false);
+  const [ventana, setVentana] = useState<VentanaVista | null>(correccionAbierta);
   const [motivo, setMotivo] = useState("");
   const [pin, setPin] = useState("");
+  const [abriendo, empezarAbrir] = useTransition();
   const [guardando, empezar] = useTransition();
+
+  // El servidor ya filtró las vencidas; la que abre el cuadro es fresca. Si
+  // caducó mientras la pantalla estaba abierta, lo dice la base al guardar.
+  const ventanaViva = ventana != null;
 
   const emitido = informe.emitidoAt != null;
   const anulado = informe.anuladoAt != null;
@@ -242,18 +263,41 @@ export function VistaCierre({
     setB(original);
     setEditando(false);
   }
+  // «Editar»: si la ventana sigue viva se entra directo; si no, el cuadro
+  // del motivo y el código. El código lo dicta Lesly o gerencia por teléfono.
+  function editar() {
+    if (ventana && new Date(ventana.expiraAt).getTime() > Date.now()) setEditando(true);
+    else {
+      setVentana(null);
+      setPidiendoCodigo(true);
+    }
+  }
+  function abrir() {
+    empezarAbrir(async () => {
+      const r = await abrirCorreccionInforme(informe.id, motivo, pin);
+      if (r.error || !r.ventana) {
+        toast.error(r.error ?? "No se pudo abrir la corrección", { duration: 8000 });
+        setPin("");
+        return;
+      }
+      setVentana({ expiraAt: r.ventana.expiraAt, autorizo: r.ventana.autorizo, motivo: motivo.trim() });
+      setPidiendoCodigo(false);
+      setEditando(true);
+      setPin("");
+      toast.success(`Autorizado por ${r.ventana.autorizo}. Tiene ${Math.round(r.ventana.minutos)} minutos para corregir.`);
+    });
+  }
   function guardar() {
     empezar(async () => {
-      const r = await corregirInformeEmitido(informe.id, cambios, motivo, pin);
+      const r = await corregirInformeEmitido(informe.id, cambios);
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
       }
       toast.success(`Cierre corregido: ahora es la versión ${r.version ?? informe.version + 1}. El PDF ya sale corregido.`);
-      setConfirmando(false);
       setEditando(false);
+      setVentana(null);
       setMotivo("");
-      setPin("");
       router.refresh();
     });
   }
@@ -319,29 +363,33 @@ export function VistaCierre({
             )}
           </p>
         </div>
+        {/* Los dos botones grandes y distintos: granate el que cambia algo,
+            blanco el que solo abre el documento. */}
         <div className="flex flex-wrap items-center gap-2">
           {puedeCorregir && !editando && (
-            <Button size="sm" variant="outline" onClick={() => setEditando(true)}>
-              <PencilLine className="size-3.5" /> Editar con código
+            <Button size="lg" onClick={editar} className="h-11 px-5 text-sm font-semibold shadow-sm">
+              <PencilLine className="size-4" /> {ventanaViva ? "Seguir corrigiendo" : "Editar"}
             </Button>
           )}
           <a
             href={`/api/informes/${informe.id}/pdf`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+            className="inline-flex h-11 items-center gap-2 rounded-md border-2 border-primary/50 bg-background px-5 text-sm font-semibold text-primary shadow-sm hover:bg-primary/5"
           >
-            <FileText className="size-3.5" /> {emitido ? "PDF" : "Borrador en PDF"}
+            <FileText className="size-4" /> {emitido ? "Ver PDF" : "Borrador en PDF"}
           </a>
         </div>
       </div>
 
-      {editando && (
+      {editando && ventana && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-xs text-foreground">
-          <PencilLine className="size-3.5 text-primary" />
+          <ShieldCheck className="size-3.5 text-primary" />
           <span>
-            <b>Corrigiendo.</b> Cambie lo que haga falta en su sitio; al guardar se pide el motivo y el código. La serie, el número, la
-            fecha y el cliente no se tocan: si eso está mal, se anula.
+            <b>Corrigiendo con autorización de {ventana.autorizo}</b> · válida hasta las{" "}
+            {new Date(ventana.expiraAt).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", timeZone: "America/Lima" })} · «
+            {ventana.motivo}». Cambie lo que haga falta en su sitio. La serie, el número, la fecha y el cliente no se tocan: si eso está mal,
+            se anula.
           </span>
         </div>
       )}
@@ -691,20 +739,24 @@ export function VistaCierre({
             <Button size="sm" variant="outline" onClick={cancelar} disabled={guardando}>
               <X className="size-3.5" /> Cancelar
             </Button>
-            <Button size="sm" onClick={() => setConfirmando(true)} disabled={nCambios === 0 || guardando}>
-              <ShieldCheck className="size-3.5" /> Guardar corrección
+            <Button size="sm" onClick={guardar} disabled={nCambios === 0 || guardando}>
+              <ShieldCheck className="size-3.5" /> {guardando ? "Guardando…" : "Guardar corrección"}
             </Button>
           </div>
         </div>
       )}
 
-      <Dialog open={confirmando} onOpenChange={setConfirmando}>
+      {/* El cuadro que aparece al tocar «Editar»: motivo y código, en ese
+          orden, porque el motivo es lo que se le lee por teléfono a quien
+          dicta el código. */}
+      <Dialog open={pidiendoCodigo} onOpenChange={setPidiendoCodigo}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Corregir el informe N.º {informe.codigo}</DialogTitle>
             <DialogDescription>
-              La versión que el cliente tiene hoy queda archivada, y el PDF sale corregido desde ahora. Diga qué estaba mal y pida el
-              código a operaciones o gerencia.
+              Un cierre emitido solo se corrige con autorización. Diga qué está mal y pida el código de cuatro dígitos a Lesly
+              (operaciones) o a gerencia: abre media hora para corregir en esta misma pantalla. La versión de hoy queda archivada y el
+              PDF sale corregido.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -727,17 +779,17 @@ export function VistaCierre({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground" htmlFor="codigo-correccion">
-                Código de autorización
+                Código de Lesly o gerencia
               </label>
-              <CampoCodigo id="codigo-correccion" valor={pin} onChange={setPin} />
+              <CampoCodigo id="codigo-correccion" valor={pin} onChange={setPin} autoFocus={motivo.trim().length >= MOTIVO_MIN} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setConfirmando(false)} disabled={guardando}>
-              Volver
+            <Button variant="outline" size="sm" onClick={() => setPidiendoCodigo(false)} disabled={abriendo}>
+              Cancelar
             </Button>
-            <Button size="sm" onClick={guardar} disabled={guardando || motivo.trim().length < MOTIVO_MIN || pin.length !== 4}>
-              {guardando ? "Guardando…" : "Aplicar corrección"}
+            <Button size="sm" onClick={abrir} disabled={abriendo || motivo.trim().length < MOTIVO_MIN || pin.length !== 4}>
+              {abriendo ? "Verificando…" : "Abrir la corrección"}
             </Button>
           </DialogFooter>
         </DialogContent>

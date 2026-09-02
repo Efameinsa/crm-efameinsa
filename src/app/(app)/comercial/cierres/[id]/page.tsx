@@ -34,7 +34,7 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
     .maybeSingle();
   if (!informe) notFound();
 
-  const [adjuntosPorInforme, compendio, { data: versionesData }] = await Promise.all([
+  const [adjuntosPorInforme, compendio, { data: versionesData }, { data: ventanaData }] = await Promise.all([
     firmarAdjuntosDeCierres(supabase, [{ id: informe.id, adjuntos: (informe.adjuntos ?? []) as AdjuntoCierre[] }]),
     cargarCompendio(await oportunidadDelInforme(informe)).catch(() => null),
     supabase
@@ -42,7 +42,14 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
       .select("version, archivada_at, motivo, perfiles!informes_cierre_versiones_corregido_por_fkey(nombre)")
       .eq("informe_id", informe.id)
       .order("version", { ascending: false }),
+    // La ventana viva de este usuario, si la hay (0154): un F5 a mitad de la
+    // corrección no debe obligar a pedir otro código.
+    supabase.rpc("correccion_informe_abierta", { p_informe: informe.id }),
   ]);
+  const ventanaCruda = ventanaData as { expira_at: string; autorizo: string; motivo: string } | null;
+  const correccionAbierta = ventanaCruda?.expira_at
+    ? { expiraAt: ventanaCruda.expira_at, autorizo: ventanaCruda.autorizo, motivo: ventanaCruda.motivo }
+    : null;
 
   const creadoPor = informe.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
   const contacto = (c: unknown): ContactoInforme => (c && typeof c === "object" ? (c as ContactoInforme) : {});
@@ -122,6 +129,7 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
         compendio={compendio}
         versiones={versiones}
         puedeCorregir={puedeCorregir}
+        correccionAbierta={correccionAbierta}
       />
     </div>
   );
