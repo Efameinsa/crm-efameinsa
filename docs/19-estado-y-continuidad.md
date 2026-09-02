@@ -351,6 +351,14 @@ fósiles corrido.
   no es una promesa a gerencia. La raya es «trabajado en el CRM», no «nacido
   en el CRM»: las 665 del Excel con gestión en el CRM siguen en Mi día.
   Panel de gerencia (CLTV, recurrencia con histórico) se queda como está.
+  **Segunda pasada (10:10)**: Katerine seguía con «271 recién asignadas» y
+  Santos preguntó quién las asignó. Nadie: 269 eran filas del Excel con
+  estado en blanco a las que el importador puso etapa `asignada` y una nota
+  «[Histórico …]» fechada el 21-08, y esa nota engañaba al saneador. 455 en
+  total pasaron al histórico con
+  `scripts/sanear-fosiles-con-nota-de-import.mjs` (respaldo y `--revertir`
+  propios). «Recién asignadas» significa: derivada por Central y todavía sin
+  primer contacto. Quedan 3 (C5), 5 (C4), 0 (C1).
 - **Punto 3, Mis cierres.** Nueva `/comercial/cierres/[id]` (`VistaCierre`):
   el cierre como pantalla en DOS columnas —lectura a la izquierda (cliente,
   equipos con IGV, cómo se hizo la venta, correcciones) y consulta a la
