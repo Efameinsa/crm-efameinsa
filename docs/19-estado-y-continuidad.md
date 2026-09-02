@@ -375,6 +375,21 @@ verificados con `scripts/_verificar-ajustes-carlos.mjs`:
   están creados por el proveedor y verificados en Vercel (02-09 tarde)**.
   Verificado en local con `scripts/_verificar-auditoria.mjs` + curl con
   `Host: ver1.localhost:3005`. Pendiente de desplegar.
+- **Los «tirones» al navegar** (Santos, 02-09). Medido en producción con
+  sesión real: pantallas de 0,3 a 1,0 s con servidor caliente (Mi día 0,6 s,
+  1,8 s en frío; Mi cartera 1,0 s); Supabase y Vercel están los dos en São
+  Paulo, así que no es la base sino las idas y vueltas por clic (sesión
+  validada dos veces por la red + perfil en el proxy + 4 a 11 consultas en
+  secuencia) y que 37 de 46 pantallas NO tenían esqueleto de carga. Hecho:
+  `src/app/(app)/loading.tsx` (esqueleto para todas), el proxy solo lee el
+  perfil en «/» y «/login», `requerirPerfil` verifica el JWT localmente con
+  `jose` (ES256, JWKS en memoria) y solo va a la red si no puede, y
+  `experimental.staleTimes` 30 s para que volver atrás sea instantáneo.
+  OJO: con el esqueleto, un `redirect()` de página llega dentro del
+  contenido (200), no como 307: los scripts de verificación lo contemplan.
+  Quedan para otra tanda: las tres pantallas pesadas a una sola consulta
+  (Mi día, ficha de oportunidad, Mi cartera) y optimistic UI en los botones
+  repetitivos de postventa.
 
 **Quedan por construir de esa reunión**: el **cierre semanal del sábado
 11:55** (consolida lo diario + dos campos obligatorios «¿qué necesitas para

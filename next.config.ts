@@ -23,6 +23,16 @@ const nextConfig: NextConfig = {
   // desarrollo; Edge y Chrome resuelven *.localhost solos a esta máquina.
   allowedDevOrigins: ["192.168.10.82", "localhost", "127.0.0.1", "*.localhost"],
 
+  // NAVEGACIÓN CON MEMORIA (Santos, 02-09, «pequeños tirones»). El navegador
+  // guarda durante 30 segundos las pantallas por las que ya pasó: volver
+  // atrás o al menú de siempre es instantáneo y no vuelve a pedir nada. Es
+  // media minuto, no una caché de datos: cualquier acción (registrar,
+  // marcar, guardar) refresca igual, y a los 30 s la pantalla se vuelve a
+  // pedir sola. Los números que gerencia mira siguen saliendo de la base.
+  experimental: {
+    staleTimes: { dynamic: 30, static: 180 },
+  },
+
   // Los PDFs leen el logo y las fotos con rutas armadas en tiempo de
   // ejecución (join(process.cwd(), …) y foto_path de la base), que el
   // rastreo automático de Next no puede inferir. Se declaran para que viajen

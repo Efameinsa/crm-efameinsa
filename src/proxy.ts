@@ -64,7 +64,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user) {
+  // El perfil solo hace falta para decidir A DÓNDE CAE alguien al entrar:
+  // en «/» y en «/login». En cualquier otra navegación esta consulta era una
+  // ida y vuelta a la base de más por clic (Santos, 02-09: «pequeños
+  // tirones»); el layout ya carga el perfil una sola vez por petición.
+  if (user && (pathname === "/" || esRutaLogin)) {
     const { data: perfil } = await supabase
       .from("perfiles")
       .select("rol, es_postventa, es_operaciones")
