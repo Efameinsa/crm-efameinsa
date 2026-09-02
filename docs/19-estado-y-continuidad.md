@@ -317,6 +317,37 @@ Lesly; el plan con citas está en las cabeceras de la 0150 y de los archivos.
   llevan con la cuenta solo `accesos` e `intentos_pin_supervisor`. Ensayado
   contra la base real con una cuenta temporal.
 
+### Lo del 02-09 por la tarde: la reunión con Carlos (grabaciones 11:17 y 11:47)
+
+Santos: «inicia lo que puedas iniciar». Los cuatro ajustes chicos, hechos y
+verificados con `scripts/_verificar-ajustes-carlos.mjs`:
+
+1. **RUC o DNI antes de cotizar** («lo único flexible es cuál de los dos»):
+   `enviarCotizacion` no emite si la cuenta es SIN_DOC; el cotizador lo avisa
+   en ámbar arriba desde que se abre. El borrador se puede armar igual.
+2. **Rubro a la vista, «Cambiar rubro» sin código** (`cambiar-rubro.tsx`,
+   `cambiarRubroCuenta`): en la cabecera de la oportunidad —donde Carlos lo
+   buscó y no lo encontró— y en la ficha del cliente. «Otro» sale como
+   «(revisar)» y sin rubro en ámbar.
+3. **N.º de pedido del ERP obligatorio** al marcar «pedido ejecutado»
+   (`checks-pedido-central.tsx` + `liberarPedido`).
+4. **La confirmación de Finanzas acepta una captura** (0157,
+   `pago_confirmado_captura`): el cuadro tiene campo de archivo, sube al
+   bucket `adjuntos` bajo `finanzas/<pedido>/`, quién/por dónde quedan
+   opcionales si hay captura; la ficha del pedido enlaza la captura (URL
+   firmada).
+
+**Quedan por construir de esa reunión** (medio día cada uno): el control de
+pedidos con visión por paso (tabla: fila = pedido, columna = paso, filtros
+«sin plano», «sin despacho», «sin probar»); el **cierre semanal del sábado
+11:55** (consolida lo diario + dos campos obligatorios «¿qué necesitas para
+mejorar tus ventas?» y «¿a qué te comprometes?» + bloque fijo de rechazados
+con motivo + histórico); el **reporte «qué te faltó»** por comercial dentro
+del cierre semanal (los % de campos vacíos medidos el 02-09); y el
+**velocímetro de ventas del mes** de vuelta en Mi gestión. Siguen esperando
+a otros: formato de solicitud a almacén y fichas/precios de repuestos y
+mantenimiento (Lesly), guías de remisión, informe de logística.
+
 ### Lo del 02-09 (las cuatro observaciones del Word) — DESPLEGADO 09:47
 
 Santos: «mapéalo, vamos a hacerlo y despliégalo todo… al final cuando te diga

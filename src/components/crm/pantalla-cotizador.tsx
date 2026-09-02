@@ -571,7 +571,15 @@ export function PantallaCotizador({
                 <span className="font-normal text-muted-foreground"> · {cuenta?.razonSocial ?? "Cuenta sin nombre"}</span>
               </h1>
               <p className="truncate text-[11px] text-muted-foreground">
-                {cuenta?.tipoDoc !== "SIN_DOC" && cuenta?.numDoc ? `${cuenta.tipoDoc}: ${cuenta.numDoc}` : "Sin documento"}
+                {cuenta?.tipoDoc !== "SIN_DOC" && cuenta?.numDoc ? (
+                  `${cuenta.tipoDoc}: ${cuenta.numDoc}`
+                ) : (
+                  // Carlos, 02-09: RUC o DNI obligatorio antes de cotizar. Se
+                  // avisa acá, antes de armar nada, y el envío lo vuelve a exigir.
+                  <span className="font-semibold text-amber-700" title="La cotización se guarda como borrador, pero no se envía sin RUC o DNI">
+                    Sin RUC ni DNI: no se podrá enviar hasta ponerlo en la ficha del cliente
+                  </span>
+                )}
                 {contacto ? ` · ${contacto.nombre}${contacto.cargo ? ` (${contacto.cargo})` : ""}` : ""}
                 {contacto?.telefono ? ` · ${contacto.telefono}` : ""}
               </p>

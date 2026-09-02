@@ -15,6 +15,7 @@ import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from 
 import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
+import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { fechaAgendada, fechaHoraLima } from "@/lib/fechas";
@@ -62,7 +63,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, rubro_id, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -119,8 +120,14 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     tipo_doc: TipoDocumento;
     num_doc: string | null;
     direccion: string | null;
+    rubro_id: number | null;
     contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
   } | null;
+
+  // El catálogo de rubros para «Cambiar rubro» en la cabecera (Carlos, 02-09:
+  // «no veo dónde cambiarlo»).
+  const { data: rubrosData } = await supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre");
+  const rubros = (rubrosData ?? []) as { id: number; nombre: string }[];
 
   // El feed de "contexto primero": la historia COMPLETA del cliente (todas
   // sus oportunidades), no solo la de esta oportunidad puntual. `ventasConDetalle`
@@ -242,6 +249,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
                 </span>
               )}
               <PuntoInteres intencion={oportunidad.intencion} />
+              {cuenta?.id && rubros.length > 0 && <CambiarRubro cuentaId={cuenta.id} rubroId={cuenta.rubro_id ?? null} rubros={rubros} />}
             </div>
 
             {/* La próxima acción es ESTADO, no un panel: se escribe en

@@ -120,20 +120,21 @@ export function ChecksPedidoCentral({
           </DialogHeader>
           <div className="grid gap-1.5">
             <Label htmlFor="numero-pedido" className="text-xs">
-              N.º de pedido del ERP
+              N.º de pedido del ERP <span className="text-destructive">*</span>
             </Label>
             <Input
               id="numero-pedido"
               value={numero}
               onChange={(e) => setNumero(e.target.value)}
-              placeholder="Opcional"
+              placeholder="ej. PED-000123"
+              required
             />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAbierto(false)}>
               Cancelar
             </Button>
-            <Button onClick={() => marcar("pedido", numero)} disabled={pendiente}>
+            <Button onClick={() => marcar("pedido", numero)} disabled={pendiente || !numero.trim()} title={!numero.trim() ? "Anote el número del pedido en el ERP" : undefined}>
               {pendiente && <Loader2 className="size-4 animate-spin" />}
               Marcar ejecutado
             </Button>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import { Check, CircleDashed, OctagonAlert, Loader2 } from "lucide-react";
 import {
   bloquesPedido,
@@ -353,7 +354,27 @@ export function PedidoPostventa({
         }
         boton="Registrar la confirmación"
         pendiente={pendiente}
-        onEnviar={(datos) => {
+        onEnviar={(datos, archivos) => {
+          // Carlos, 02-09: «que suba lo que tenga: foto, screenshot». La
+          // captura vale como confirmación; si no hay captura, hace falta
+          // quién y por dónde. La subida va directo al bucket privado
+          // `adjuntos` (como los adjuntos de una gestión) y la acción guarda
+          // la ruta (0157).
+          const captura = archivos.captura ?? null;
+          if (!captura && (!datos.quien?.trim() || !datos.medio?.trim())) {
+            toast.error("Suba la captura de la confirmación, o escriba quién de Finanzas confirmó y por dónde");
+            return;
+          }
+          const subir = async (): Promise<string | null> => {
+            if (!captura) return null;
+            if (captura.size > 10 * 1024 * 1024) throw new Error("La captura pesa más de 10 MB");
+            const path = `finanzas/${servicio.id}/${crypto.randomUUID()}-${captura.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
+            const { error } = await createClient()
+              .storage.from("adjuntos")
+              .upload(path, captura, { contentType: captura.type || "application/octet-stream" });
+            if (error) throw new Error(`No se pudo subir la captura: ${error.message}`);
+            return path;
+          };
           if (verPrecios) {
             const monto = Number(datos.monto);
             if (!Number.isFinite(monto) || monto < 0) {
@@ -361,12 +382,13 @@ export function PedidoPostventa({
               return;
             }
             correr(
-              () =>
+              async () =>
                 confirmarPagoFinanzas(servicio.id, {
                   quien: datos.quien,
                   medio: datos.medio,
                   montoPagado: monto,
                   nota: datos.nota,
+                  capturaPath: await subir(),
                 }),
               "Confirmación de Finanzas registrada",
             );
@@ -374,14 +396,21 @@ export function PedidoPostventa({
           }
           const completo = /^(c|completo|total|todo)/i.test((datos.alcance ?? "").trim());
           correr(
-            () =>
-              confirmarPagoFinanzas(servicio.id, { quien: datos.quien, medio: datos.medio, completo, nota: datos.nota }),
+            async () =>
+              confirmarPagoFinanzas(servicio.id, {
+                quien: datos.quien,
+                medio: datos.medio,
+                completo,
+                nota: datos.nota,
+                capturaPath: await subir(),
+              }),
             "Confirmación de Finanzas registrada",
           );
         }}
         campos={[
-          { nombre: "quien", etiqueta: "Quién de Finanzas confirmó", requerido: true },
-          { nombre: "medio", etiqueta: "Por dónde (correo, WhatsApp, llamada)", inicial: "correo", requerido: true },
+          { nombre: "captura", etiqueta: "Captura de la confirmación (correo, WhatsApp o voucher acreditado)", archivo: true },
+          { nombre: "quien", etiqueta: "Quién de Finanzas confirmó (si no sube captura)", requerido: false },
+          { nombre: "medio", etiqueta: "Por dónde: correo, WhatsApp, llamada (si no sube captura)", inicial: "", requerido: false },
           ...(verPrecios
             ? [
                 {
@@ -598,6 +627,8 @@ interface Campo {
   etiqueta: string;
   tipo?: string;
   area?: boolean;
+  /** Un archivo (foto, pantallazo, PDF) en vez de texto: llega en el segundo argumento de onEnviar. */
+  archivo?: boolean;
   inicial?: string;
   requerido?: boolean;
 }
@@ -623,10 +654,11 @@ function Cuadro({
   descripcion: string;
   boton: string;
   campos: Campo[];
-  onEnviar: (datos: Record<string, string>) => void;
+  onEnviar: (datos: Record<string, string>, archivos: Record<string, File>) => void;
   pendiente: boolean;
 }) {
   const [valores, setValores] = useState<Record<string, string>>({});
+  const [archivos, setArchivos] = useState<Record<string, File>>({});
 
   // Al abrir, cada campo arranca con su valor inicial. Se recalcula con la
   // apertura y no en un efecto para no pisar lo que el usuario ya escribió.
@@ -636,12 +668,12 @@ function Cuadro({
   }, {});
 
   function enviar() {
-    const falta = campos.find((c) => c.requerido && !datos[c.nombre]?.trim());
+    const falta = campos.find((c) => c.requerido && (c.archivo ? !archivos[c.nombre] : !datos[c.nombre]?.trim()));
     if (falta) {
       toast.error(`Falta: ${falta.etiqueta.toLowerCase()}`);
       return;
     }
-    onEnviar(datos);
+    onEnviar(datos, archivos);
   }
 
   return (
@@ -650,6 +682,7 @@ function Cuadro({
       onOpenChange={(v) => {
         if (!v) {
           setValores({});
+          setArchivos({});
           cerrar();
         }
       }}
@@ -666,7 +699,23 @@ function Cuadro({
                 {c.etiqueta}
                 {c.requerido && <span className="text-destructive"> *</span>}
               </Label>
-              {c.area ? (
+              {c.archivo ? (
+                <input
+                  id={`campo-${c.nombre}`}
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    setArchivos((a) => {
+                      const n = { ...a };
+                      if (f) n[c.nombre] = f;
+                      else delete n[c.nombre];
+                      return n;
+                    });
+                  }}
+                  className="text-xs text-muted-foreground file:mr-2 file:rounded-md file:border file:border-border file:bg-background file:px-2 file:py-1 file:text-xs file:font-medium"
+                />
+              ) : c.area ? (
                 <Textarea
                   id={`campo-${c.nombre}`}
                   rows={2}

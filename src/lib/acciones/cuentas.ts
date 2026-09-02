@@ -241,3 +241,25 @@ export async function vincularCarpetaServidor(datos: {
   revalidatePath(`/gerencia/clientes/${datos.cuentaId}`);
   return { error: null };
 }
+
+/**
+ * Cambiar el rubro del cliente, de un toque y sin código.
+ *
+ * Carlos, 02-09, entrando a San Agustín desde Mis oportunidades: «acá no lo
+ * puedo ver, no veo dónde cambiarlo». El cambio existía desde el 01-09, pero
+ * escondido en el lápiz de la ficha. Pidió una opción visible «Cambiar rubro»
+ * que diga en qué rubro está, y que lo haga el gestor «unilateralmente»: «más
+ * bien te va a permitir tener un mejor filtro». RLS ya limita: solo el dueño
+ * de la cartera (o backoffice) escribe en la cuenta.
+ */
+export async function cambiarRubroCuenta(cuentaId: string, rubroId: number | null): Promise<{ error: string | null }> {
+  if (!/^[0-9a-f-]{36}$/i.test(cuentaId)) return { error: "Cliente inválido" };
+  if (rubroId !== null && (!Number.isInteger(rubroId) || rubroId <= 0)) return { error: "Ese rubro no existe" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("cuentas").update({ rubro_id: rubroId }).eq("id", cuentaId).select("id");
+  if (error) return { error: error.message };
+  if (!data?.length) return { error: "Solo el dueño de la cartera puede cambiar el rubro" };
+  revalidatePath("/comercial", "layout");
+  revalidatePath("/gerencia", "layout");
+  return { error: null };
+}

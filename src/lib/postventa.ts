@@ -46,6 +46,7 @@ export interface ServicioPostventa {
   pago_confirmado_at: string | null;
   /** Quién de Finanzas confirmó y por qué medio (0150). */
   pago_confirmado_detalle?: string | null;
+  pago_confirmado_captura?: string | null;
   /** La apertura de despacho: el documento con el que almacén despacha (0150). */
   apertura_despacho_at?: string | null;
   apertura_despacho_por?: string | null;

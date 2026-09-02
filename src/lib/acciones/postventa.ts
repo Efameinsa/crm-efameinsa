@@ -34,6 +34,12 @@ export async function liberarPedido(datos: {
   marcarPedido?: boolean;
   marcarLiquidacion?: boolean;
 }) {
+  // Carlos, 02-09, marcando el pedido de Sierra Travel: «yo pensaría que me
+  // obligues más bien a poner el número del pedido». Es lo que después
+  // permite cruzarlo con el ERP cuando alguien pregunta por él.
+  if (datos.marcarPedido && !datos.numeroPedido?.trim()) {
+    return falla("Anote el número con que quedó el pedido en el ERP: sin ese número no se marca como ejecutado");
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("liberar_pedido_postventa", {
     p_informe_id: datos.informeId,
@@ -184,23 +190,34 @@ export async function confirmarPagoCompleto(servicioId: string) {
  */
 export async function confirmarPagoFinanzas(
   servicioId: string,
-  datos: { quien: string; medio: string; montoPagado?: number | null; completo?: boolean; nota?: string },
+  datos: { quien: string; medio: string; montoPagado?: number | null; completo?: boolean; nota?: string; capturaPath?: string | null },
 ) {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
-  if (!datos.quien.trim()) return falla("Escriba quién de Finanzas confirmó el pago");
-  if (!datos.medio.trim()) return falla("Diga por dónde lo confirmó: correo, WhatsApp o llamada");
+  // Carlos, 02-09: la captura del correo o del WhatsApp vale como
+  // confirmación (0157). Sin captura, hace falta quién y por dónde.
+  const captura = datos.capturaPath?.trim() || null;
+  if (captura && !/^finanzas\/[0-9a-f-]{36}\/[^/]+$/i.test(captura)) return falla("La captura no tiene una ruta válida");
+  if (!captura) {
+    if (!datos.quien.trim()) return falla("Escriba quién de Finanzas confirmó el pago, o suba la captura");
+    if (!datos.medio.trim()) return falla("Diga por dónde lo confirmó: correo, WhatsApp o llamada, o suba la captura");
+  }
 
   const { data: fila } = await supabase.from("servicios_postventa").select("monto").eq("id", servicioId).single();
   if (!fila) return falla("No se encontró el pedido");
 
-  const detalle = [`${datos.quien.trim()} (Finanzas), por ${datos.medio.trim()}`, datos.nota?.trim() || null]
+  const detalle = [
+    datos.quien.trim() ? `${datos.quien.trim()} (Finanzas)${datos.medio.trim() ? `, por ${datos.medio.trim()}` : ""}` : null,
+    captura ? "captura adjunta" : null,
+    datos.nota?.trim() || null,
+  ]
     .filter(Boolean)
     .join(" · ");
   const cambios: Record<string, unknown> = {
     pago_confirmado_at: new Date().toISOString(),
     pago_confirmado_por: perfil.id,
     pago_confirmado_detalle: detalle,
+    pago_confirmado_captura: captura,
     confirmacion_abono: "SI",
   };
   if (datos.montoPagado != null && Number.isFinite(datos.montoPagado)) cambios.monto_pagado = datos.montoPagado;

@@ -88,6 +88,12 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   const avance = avancePedido(servicio);
   const adjuntos = (informe?.adjuntos ?? []) as Adjunto[];
 
+  // La captura con que Finanzas confirmó el pago (0157): URL firmada, una hora.
+  const capturaPath = (servicio as { pago_confirmado_captura?: string | null }).pago_confirmado_captura ?? null;
+  const capturaUrl = capturaPath
+    ? ((await supabase.storage.from("adjuntos").createSignedUrl(capturaPath, 3600)).data?.signedUrl ?? null)
+    : null;
+
   const contacto = informe?.contacto_despacho as { nombre?: string; telefono?: string } | null;
   const telefono = contacto?.telefono?.replace(/\D/g, "");
 
@@ -120,6 +126,11 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
               {servicio.numero_pedido_erp && ` · Pedido ERP ${servicio.numero_pedido_erp}`}
               {informe?.orden_compra && ` · OC ${informe.orden_compra}`}
             </p>
+            {capturaUrl && (
+              <a href={capturaUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-medium text-primary hover:underline">
+                Ver la captura con que Finanzas confirmó el pago →
+              </a>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

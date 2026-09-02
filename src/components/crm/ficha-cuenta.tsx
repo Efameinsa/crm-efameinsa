@@ -15,6 +15,7 @@ import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from 
 import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
+import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { Badge } from "@/components/ui/badge";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor";
@@ -235,6 +236,11 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               rubroId={cuenta.rubro_id ?? null}
               rubros={(rubros ?? []) as { id: number; nombre: string }[]}
             />
+            {(rubros ?? []).length > 0 && (
+              <div className="mt-2">
+                <CambiarRubro cuentaId={cuenta.id} rubroId={cuenta.rubro_id ?? null} rubros={(rubros ?? []) as { id: number; nombre: string }[]} />
+              </div>
+            )}
           </div>
           <ContactosEditables cuentaId={cuenta.id} contactos={contactos} />
         </SeccionPanel>
