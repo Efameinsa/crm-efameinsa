@@ -62,8 +62,6 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/comercial/potenciales", etiqueta: "Mis potenciales", icono: Target },
     { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: Gauge },
     { href: "/comercial/cartera", etiqueta: "Mi cartera", icono: Building2 },
-    // Santos, 02-09: el comercial también vende mantenimiento a su parque.
-    { href: "/comercial/parque", etiqueta: "Mi parque", icono: Wrench },
   ],
   gerencia: [
     { href: "/gerencia", etiqueta: "Panel comercial", icono: BarChart3 },
@@ -75,6 +73,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/gerencia/aprobaciones", etiqueta: "Aprobaciones", icono: CheckCircle2 },
     { href: "/gerencia/reportes", etiqueta: "Cierre del día", icono: FileText },
     { href: "/gerencia/accesos", etiqueta: "Accesos y equipos", icono: ShieldCheck },
+    // Entrar como cualquier cuenta, en una pestaña aparte y solo lectura (0160).
+    { href: "/gerencia/auditoria", etiqueta: "Auditoría de cuentas", icono: Users },
     { href: "/gerencia/cartera-liberable", etiqueta: "Cartera liberable", icono: FileText },
   ],
   // OPERACIONES (0115). Su día no es vender: es autorizar lo que los demás
@@ -144,6 +144,10 @@ const ENLACES_POSTVENTA = [
 // 0093) ve de más: su campaña. No es una pantalla del área —no ejecuta nada—,
 // es su pipeline mirado como campaña de llamadas.
 const ENLACE_RUTA = { href: "/comercial/ruta", etiqueta: "Ruta de mantenimiento", icono: Route };
+// «Mi parque» (Santos, 02-09): solo para quien vende mantenimiento —hoy
+// Ariana, con la llave `hace_postventa` que reparte Lesly—. Al resto de
+// comerciales no se les muestra hasta que gerencia decida.
+const ENLACE_PARQUE = { href: "/comercial/parque", etiqueta: "Mi parque", icono: Wrench };
 
 // La pantalla del administrador de operaciones (0114): el código que dicta y
 // lo que se hizo con él.
@@ -236,7 +240,7 @@ export function NavLateral({
           enlaces: esPostventa
             ? ENLACES_POSTVENTA
             : hacePostventa
-              ? [...ENLACES_POR_ROL[rol], ENLACE_RUTA]
+              ? [...ENLACES_POR_ROL[rol], ENLACE_RUTA, ENLACE_PARQUE]
               : ENLACES_POR_ROL[rol],
         },
       ];

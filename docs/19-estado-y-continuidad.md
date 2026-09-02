@@ -359,6 +359,22 @@ verificados con `scripts/_verificar-ajustes-carlos.mjs`:
   40 por vender).
 - El reporte `servicios-sin-cliente` distingue «Pedido 2 de 4 · mismo
   cliente» de «fila repetida en el Excel» (SALIDA= para no pisar el abierto).
+- **«Mi parque» acotado** (Santos, 02-09 tarde: «solo prepárala para Ariana,
+  quítale al resto; mantener a postventa»): lo abre la llave `hace_postventa`
+  (la que reparte Lesly); a Ariana se le dio con
+  `scripts/dar-llave-mantenimiento-ariana.mjs`. Sin llave: sin enlace, sin
+  bloque en Mi día y `/comercial/parque` devuelve a Mi día.
+- **Auditoría de cuentas desde gerencia** (0160, `/gerencia/auditoria`,
+  `acciones/auditoria.ts`, `app/auditoria/entrar/route.ts`, `lib/auditoria.ts`):
+  «Entrar como» genera un acceso de un solo uso (vence en 10 min) y lo abre
+  en una ranura `ver1…ver5.crm.efameinsa.com` —una sesión por dirección, así
+  gerencia no se pisa y puede auditar a varios a la vez—. En la ranura el
+  proxy rechaza todo lo que no sea GET (**solo lectura**) y el layout pone la
+  franja ámbar «Sesión de auditoría de gerencia · viendo como X · ranura
+  verN». Todo queda en `auditorias_sesion`. **Los cinco subdominios ya
+  están creados por el proveedor y verificados en Vercel (02-09 tarde)**.
+  Verificado en local con `scripts/_verificar-auditoria.mjs` + curl con
+  `Host: ver1.localhost:3005`. Pendiente de desplegar.
 
 **Quedan por construir de esa reunión**: el **cierre semanal del sábado
 11:55** (consolida lo diario + dos campos obligatorios «¿qué necesitas para

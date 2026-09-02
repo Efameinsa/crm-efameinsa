@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ranuraDeHost } from "@/lib/auditoria";
 
 const RUTA_POR_ROL: Record<string, string> = {
   admin: "/admin",
@@ -10,6 +11,23 @@ const RUTA_POR_ROL: Record<string, string> = {
 };
 
 export async function proxy(request: NextRequest) {
+  // AUDITORÍA (0160). En ver1…ver5.crm.efameinsa.com la sesión es de otra
+  // persona y el CRM es SOLO LECTURA: cualquier escritura —las acciones de
+  // servidor viajan por POST— se rechaza acá, antes de tocar nada. La única
+  // excepción es la puerta por la que entra el token de un solo uso.
+  const ranura = ranuraDeHost(request.headers.get("host"));
+  // La puerta decide sola: en una ranura abre la sesión; fuera de una ranura
+  // responde 404. No necesita sesión previa y no debe redirigir al login.
+  if (request.nextUrl.pathname === "/auditoria/entrar") return NextResponse.next({ request });
+  if (ranura) {
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return NextResponse.json(
+        { error: "Sesión de auditoría de gerencia: solo lectura. Nada se registra a nombre de la persona auditada." },
+        { status: 403 },
+      );
+    }
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

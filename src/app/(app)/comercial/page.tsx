@@ -15,6 +15,7 @@ import { llegoHace, vencioHace } from "@/lib/mi-dia";
 import { cargarParque, type ClienteParque } from "@/lib/parque";
 import { ETIQUETA_MANTENIMIENTO } from "@/lib/ruta-mantenimiento";
 import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
+import { veTodoPostventa } from "@/lib/postventa";
 
 interface FilaMiDia {
   id: string;
@@ -553,7 +554,8 @@ export default async function ComercialPage({
   const [pulso] = await cargarPulsoSemana(supabase, lunesDe(hoy), perfil.id);
 
   // El parque de su cartera: a quién ofrecerle mantenimiento esta semana.
-  const parque = await cargarParque(supabase, { comercialId: perfil.id, hoy });
+  // Solo para quien vende mantenimiento (la llave hace_postventa: hoy Ariana).
+  const parque = veTodoPostventa(perfil) ? await cargarParque(supabase, { comercialId: perfil.id, hoy }) : [];
   const porVender = parque.filter((c) => (c.estado === "nunca" || c.estado === "vencido") && !c.enGestion);
   const tandaMantenimiento = porVender.slice(0, 10);
 

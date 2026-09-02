@@ -7,9 +7,17 @@ import { CalloutActivarNotificaciones } from "@/components/crm/callout-activar-n
 import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
 import { AvisoGestionesSinSubir } from "@/components/crm/aviso-gestiones-sin-subir";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
+import { cookies, headers } from "next/headers";
+import { COOKIE_AUDITORIA, decodificarInfoAuditoria, ranuraDeHost } from "@/lib/auditoria";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
+
+  // La franja de auditoría (0160): en ver1…ver5 la sesión es de otra persona
+  // y hay que decirlo en todas las pantallas, arriba, sin que se pueda cerrar.
+  const [cabeceras, tarro] = await Promise.all([headers(), cookies()]);
+  const ranuraAuditoria = ranuraDeHost(cabeceras.get("host"));
+  const auditoria = ranuraAuditoria ? decodificarInfoAuditoria(tarro.get(COOKIE_AUDITORIA)?.value) : null;
 
   // Los contadores del menú (plan 23, etapa 5) solo se piden para quien ve
   // la sección Postventa de la barra: cuatro consultas `head: true` de más en
@@ -38,6 +46,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         contadorAtenciones={contadorAtenciones}
       />
       <div className="flex flex-1 flex-col">
+        {ranuraAuditoria && (
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-500 px-6 py-2 text-xs font-semibold text-amber-950">
+            <span>
+              Sesión de auditoría de gerencia{auditoria ? ` (${auditoria.auditor})` : ""} · viendo el CRM como{" "}
+              <b>{auditoria?.auditado ?? perfil.nombre}</b> · ranura ver{ranuraAuditoria}
+            </span>
+            <span className="rounded-full bg-amber-950/10 px-2 py-0.5">Solo lectura: nada se registra a su nombre</span>
+          </div>
+        )}
         <EncabezadoUsuario perfil={perfil} />
         {/* El aviso para activar las notificaciones del equipo vive acá, no en
             «Mi día»: hasta el 25-08 solo se dibujaba en la pantalla del

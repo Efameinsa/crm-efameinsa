@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Search, Wrench } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -42,9 +43,13 @@ export default async function ParquePage({
   searchParams: Promise<{ q?: string; estado?: string; todos?: string }>;
 }) {
   const [perfil, sp] = await Promise.all([requerirPerfil(), searchParams]);
+  // Solo para quien vende mantenimiento (Santos, 02-09: «solo prepárala para
+  // Ariana, quítale al resto; mantener a postventa»): la llave hace_postventa,
+  // el área, gerencia. Un comercial sin la llave vuelve a su día.
+  const puedeVerTodo = veTodoPostventa(perfil);
+  if (!puedeVerTodo) redirect("/comercial");
   const supabase = await createClient();
   const hoy = hoyLima();
-  const puedeVerTodo = veTodoPostventa(perfil);
   const verTodo = puedeVerTodo && sp.todos === "1";
   const estado = (["nunca", "vencido", "al_dia", "sin_dato"] as EstadoMantenimiento[]).includes(sp.estado as EstadoMantenimiento)
     ? (sp.estado as EstadoMantenimiento)
