@@ -47,7 +47,7 @@
 import XLSX from "xlsx";
 import { Client } from "pg";
 
-const SALIDA = "docs/servicios-sin-cliente.xlsx";
+const SALIDA = process.env.SALIDA ?? "docs/servicios-sin-cliente.xlsx";
 const CANDIDATOS_POR_PEDIDO = 3;
 // Debajo de esto, un parecido por trigramas ya no dice nada útil («S.A.C.»
 // contra cualquier otra S.A.C.).
@@ -248,6 +248,11 @@ for (const s of sueltos) {
   const fila = {
     "id del pedido": s.id,
     "Cliente como está en el Excel": s.cliente_texto,
+    // Santos, 02-09: «¿no se les puede poner una pastilla con algún
+    // diferencial, para ver que no son duplicados sino gestiones
+    // diferentes?». Se rellenan abajo, cuando ya están todas las filas.
+    "Mismo cliente": "",
+    "¿Fila repetida en el Excel?": "",
     "Fecha confirmación": s.fecha_confirmacion ?? "",
     "Tipo": s.tipo_servicio ?? "",
     "Equipo": s.equipo ?? "",
@@ -270,6 +275,33 @@ for (const s of sueltos) {
   fila["Elegir ficha (RUC)"] = "";
   fila["Nota de Lesly"] = "";
   filasPedidos.push(fila);
+}
+
+// ---- El diferencial entre filas del mismo cliente -------------------------
+// Una fila por pedido: el mismo cliente sale tantas veces como pedidos tuvo
+// (Perú Bar: la lavadora y, aparte, su instalación). Se numera «Pedido 1 de
+// 2» para que se vea que son gestiones distintas, y se marca como repetida
+// la fila que trae el MISMO equipo, la misma serie y el mismo tipo que otra
+// del mismo cliente: esas sí parecen duplicadas en el Excel de origen
+// (Hospital de Jaén tiene dos así, sin fecha), y Lesly decide.
+{
+  const clave = (f) => String(f["Cliente como está en el Excel"] ?? "").toUpperCase().replace(/^\d{8,11}\s*-\s*/, "").replace(/[^A-Z0-9]/g, "");
+  const grupos = new Map();
+  for (const f of filasPedidos) {
+    const k = clave(f);
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(f);
+  }
+  for (const lista of grupos.values()) {
+    lista.forEach((f, i) => {
+      f["Mismo cliente"] = lista.length > 1 ? `Pedido ${i + 1} de ${lista.length} · distinto pedido, mismo cliente` : "";
+      const huella = `${f["Tipo"]}|${String(f["Equipo"]).replace(/\s+/g, " ").trim().toUpperCase()}|${f["Series en el texto"]}`;
+      const gemela = lista.find((g, j) => j < i && `${g["Tipo"]}|${String(g["Equipo"]).replace(/\s+/g, " ").trim().toUpperCase()}|${g["Series en el texto"]}` === huella);
+      f["¿Fila repetida en el Excel?"] = gemela
+        ? `PARECE REPETIDA: mismo equipo y serie que el pedido del ${gemela["Fecha confirmación"] || "(sin fecha)"}${f["Fecha confirmación"] ? "" : " · esta no tiene fecha"}`
+        : "";
+    });
+  }
 }
 
 // ---- Fichas partidas ------------------------------------------------------
@@ -334,7 +366,7 @@ const libro = XLSX.utils.book_new();
 
 const hoja1 = XLSX.utils.json_to_sheet(filasPedidos);
 hoja1["!cols"] = [
-  { wch: 38 }, { wch: 42 }, { wch: 12 }, { wch: 16 }, { wch: 60 }, { wch: 11 }, { wch: 7 }, { wch: 18 }, { wch: 22 }, { wch: 9 },
+  { wch: 38 }, { wch: 42 }, { wch: 34 }, { wch: 46 }, { wch: 12 }, { wch: 16 }, { wch: 60 }, { wch: 11 }, { wch: 7 }, { wch: 18 }, { wch: 22 }, { wch: 9 },
   ...Array.from({ length: CANDIDATOS_POR_PEDIDO }, () => [{ wch: 42 }, { wch: 13 }, { wch: 9 }, { wch: 7 }, { wch: 44 }, { wch: 38 }]).flat(),
   { wch: 20 }, { wch: 40 },
 ];
