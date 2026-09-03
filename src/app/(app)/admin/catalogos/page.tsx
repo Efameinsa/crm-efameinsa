@@ -24,6 +24,8 @@ interface FilaUso {
   nombre: string;
   activo: boolean;
   usos: number;
+  agregado_por: string | null;
+  creado_at: string | null;
 }
 
 export default async function CatalogosPage() {
@@ -34,7 +36,15 @@ export default async function CatalogosPage() {
   const de = (lista: string): ItemLista[] =>
     filas
       .filter((f) => f.lista === lista)
-      .map((f) => ({ id: f.id, codigo: f.codigo, nombre: f.nombre, activo: f.activo, usos: Number(f.usos) }));
+      .map((f) => ({
+        id: f.id,
+        codigo: f.codigo,
+        nombre: f.nombre,
+        activo: f.activo,
+        usos: Number(f.usos),
+        agregadoPor: f.agregado_por ?? null,
+        creadoAt: f.creado_at ?? null,
+      }));
 
   return (
     <div className="space-y-4">
@@ -47,7 +57,7 @@ export default async function CatalogosPage() {
         <ListaDelSistema
           lista="rubros"
           titulo="Rubros"
-          paraQue="A qué se dedica el cliente. Se elige al registrar la cuenta y es con lo que gerencia mira el mercado por sector."
+          paraQue="A qué se dedica el cliente. Se elige al registrar la cuenta y es con lo que gerencia mira el mercado por sector. Los comerciales también pueden agregar rubros desde la ficha del cliente: acá se ve quién agregó cada uno, por si hay que unificar o renombrar."
           items={de("rubros")}
         />
         <ListaDelSistema

@@ -265,3 +265,35 @@ export async function cambiarRubroCuenta(cuentaId: string, rubroId: number | nul
   revalidatePath("/gerencia", "layout");
   return { error: null };
 }
+
+/**
+ * Agregar un rubro que no está en la lista y ponérselo al cliente, de una vez.
+ *
+ * Santos, 03-09, con la foto del desplegable: «los comerciales deben de poder
+ * agregar rubros». Hasta hoy la lista la escribía solo operaciones (0118) y el
+ * gestor, cuando el cliente no cabía, lo mandaba a «Otro» (1.550 clientes).
+ * La base (`agregar_rubro`, 0163) busca antes de agregar: si el rubro ya
+ * existía con otras mayúsculas o tildes devuelve ese, y si estaba retirado lo
+ * reactiva. Acá se informa cuál de las tres cosas pasó para que el aviso lo
+ * diga con palabras.
+ */
+export async function agregarRubroYAsignar(
+  cuentaId: string,
+  nombre: string,
+): Promise<{ error: string | null; rubro?: { id: number; nombre: string }; nuevo?: boolean; reactivado?: boolean }> {
+  if (!/^[0-9a-f-]{36}$/i.test(cuentaId)) return { error: "Cliente inválido" };
+  const limpio = nombre.replace(/\s+/g, " ").trim();
+  if (limpio.length < 3) return { error: "El rubro necesita al menos tres letras" };
+  if (limpio.length > 40) return { error: "El rubro es muy largo: hasta 40 letras, como se va a leer en el desplegable" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("agregar_rubro", { p_nombre: limpio });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  const fila = (data as { rubro_id: number; rubro_nombre: string; nuevo: boolean; reactivado: boolean }[] | null)?.[0];
+  if (!fila) return { error: "No se pudo agregar el rubro" };
+
+  const r = await cambiarRubroCuenta(cuentaId, fila.rubro_id);
+  if (r.error) return { error: r.error };
+  revalidatePath("/admin/catalogos");
+  return { error: null, rubro: { id: fila.rubro_id, nombre: fila.rubro_nombre }, nuevo: fila.nuevo, reactivado: fila.reactivado };
+}

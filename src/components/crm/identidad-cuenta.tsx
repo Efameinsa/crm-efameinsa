@@ -231,7 +231,8 @@ export function IdentidadCuenta({
           </Select>
           <p className="text-[11px] text-muted-foreground">
             A qué se dedica el cliente. Con esto se filtra la cartera por sector («hoy me centro en
-            mineras»); un cliente sin rubro no aparece en esos filtros.
+            mineras»); un cliente sin rubro no aparece en esos filtros. Si el rubro no está en la
+            lista, se agrega desde «Cambiar rubro», justo debajo de este bloque.
           </p>
         </div>
       )}

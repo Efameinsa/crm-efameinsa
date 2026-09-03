@@ -610,6 +610,32 @@ E.I.R.L. (no se pudo verificar en SUNAT desde acá); INVERSIONES VILLA SAN
 MARIA tiene su propia ficha con el RUC 20604034702. Hay además una tercera
 ficha con el mismo nombre pegado y sin RUC, candidata a fusión.
 
+### Lo del 03-09 (mañana): los comerciales agregan rubros (0163)
+
+Santos, con la foto del desplegable de rubro de la ficha: «los comerciales
+deben de poder agregar rubros». La lista tenía ocho palabras y escribirla era
+de operaciones/gerencia (0118); cuando el cliente no cabía, iba a «Otro»
+(1.550 clientes, el rubro que menos dice).
+
+- **Dónde:** el mismo «Cambiar rubro» / «Agregar rubro» de la ficha y de la
+  cabecera de la oportunidad (`cambiar-rubro.tsx`). El desplegable termina en
+  **«＋ Agregar un rubro nuevo…»**: aparece una casilla, se escribe y con
+  **«Agregar y poner»** queda en la lista para todos y puesto en ese cliente,
+  en un solo paso. Mientras escribe, si ya hay uno parecido («miner» →
+  «Minería / Campamento») se ofrece **«usar «…»»** antes de fabricar otro.
+- **La base (0163):** `agregar_rubro(p_nombre)`, security definer para
+  cualquier usuario activo. Busca antes de agregar con `rubro_clave()` (sin
+  tildes ni mayúsculas) y un índice único sobre esa clave frena repetidos
+  también desde la pantalla de catálogos. Si existía retirado, lo reactiva y
+  avisa. Guarda `creado_por`/`creado_at`; `uso_de_listas()` los devuelve y
+  **Admin → Catálogos** muestra «· lo agregó C4» al lado del rubro, para que
+  Lesly unifique o renombre. Renombrar y retirar siguen siendo de operaciones:
+  la RLS de la tabla no cambió.
+- **Acción:** `agregarRubroYAsignar` en `acciones/cuentas.ts` (llama a la
+  función y luego a `cambiarRubroCuenta`). Verificado con
+  `scripts/_verificar-agregar-rubro.mjs` (sesión de práctica, todo verde,
+  limpia lo suyo). Falta desplegar: ventana de la 1 pm.
+
 ## 5. Cómo se trabaja acá
 
 **Migraciones.** Numeradas, en `supabase/migrations/`, con una cabecera larga

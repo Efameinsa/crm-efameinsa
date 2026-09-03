@@ -31,6 +31,9 @@ export interface ItemLista {
   nombre: string;
   activo: boolean;
   usos: number;
+  /** Quién lo agregó desde la ficha del cliente (0163): código del comercial o nombre. Null = vino con el sistema. */
+  agregadoPor?: string | null;
+  creadoAt?: string | null;
 }
 
 export function ListaDelSistema({
@@ -188,7 +191,19 @@ function Fila({
         !item.activo && "opacity-60",
       )}
     >
-      <span className="min-w-0 flex-1 truncate text-sm text-foreground">{item.nombre}</span>
+      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+        {item.nombre}
+        {/* Los rubros que agregan los comerciales desde la ficha (0163) se
+            distinguen para que operaciones sepa cuáles revisar o unificar. */}
+        {item.agregadoPor && (
+          <span
+            className="ml-1.5 text-[10px] font-normal text-muted-foreground"
+            title={`Lo agregó ${item.agregadoPor} desde la ficha de un cliente${item.creadoAt ? ` el ${new Date(item.creadoAt).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" })}` : ""}`}
+          >
+            · lo agregó {item.agregadoPor}
+          </span>
+        )}
+      </span>
 
       {repetido && (
         <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-700" title="Hay otra opción vigente que se llama igual">
