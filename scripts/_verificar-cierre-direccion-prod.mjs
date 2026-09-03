@@ -1,0 +1,31 @@
+// ¿El formulario del cierre en producción ya trae Antiguo/Nuevo y Dirección a la vista (03-09)?
+import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { Client } from "pg";
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL, anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+const BASE = "https://crm.efameinsa.com";
+const pg = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+await pg.connect();
+const { rows } = await pg.query(`select u.email from perfiles p join auth.users u on u.id=p.id where p.nombre ilike 'Brenda%' limit 1`);
+await pg.end();
+const correo = rows[0].email; console.log("entro como", correo);
+const { data: link } = await admin.auth.admin.generateLink({ type: "magiclink", email: correo });
+const jar = new Map();
+const ssr = createServerClient(url, anon, { cookies: { getAll: () => [...jar.entries()].map(([name, value]) => ({ name, value })), setAll: (l) => l.forEach(({ name, value }) => jar.set(name, value)) } });
+await ssr.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: "magiclink" });
+const cookie = [...jar.entries()].map(([n, v]) => `${n}=${encodeURIComponent(v)}`).join("; ");
+const r = await fetch(`${BASE}/comercial/informes/nuevo?cuenta=65855e7c-ed77-4c7d-8fb1-a7d67ad4c11c`, { headers: { cookie }, redirect: "manual" });
+console.log("pantalla del cierre:", r.status, r.headers.get("location") ?? "");
+const html = await r.text();
+const chunks = [...new Set([...html.matchAll(/\/_next\/[^"'\\s)]+\.js/g)].map((m) => m[0].replace(/\\//g, "/")))];
+console.log("chunks:", chunks.length);
+const buscados = ["el CRM no le conoce compras", "puede ser otra sede", "adónde llegan los equipos", "sin dirección — pulse"];
+const hallados = new Set();
+for (const c of chunks) { const js = await (await fetch(BASE + c)).text(); for (const b of buscados) if (js.includes(b)) hallados.add(b); }
+for (const b of buscados) console.log(hallados.has(b) ? "  ✓" : "  ✗", b);
+console.log(hallados.size === buscados.length ? "LISTO: el formulario nuevo está en producción." : "✗ falta algo");
+console.log("--- en el HTML servido:");
+for (const b of ["sin dirección", "pulse «Editar»", "Cliente nuevo", "Se le factura a", "Dirección final del despacho", "Lugar de entrega"]) console.log(html.includes(b) ? "  ✓" : "  ✗", b);
+console.log("scripts:", (html.match(/<script[^>]+src="[^"]+"/g) ?? []).slice(0, 4));
+console.log("html largo:", html.length);

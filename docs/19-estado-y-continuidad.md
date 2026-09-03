@@ -660,7 +660,7 @@ dirección en la ficha, así que el CRM no podía saber que ya nos compró.
   `ventas`). El comercial sigue teniendo la última palabra.
 - El borrador que Brenda guardó a las 09:08 (sin correlativo, `cliente_nuevo`
   true, sin dirección) no gastó número; al volver a entrar arma uno nuevo.
-- **Pendiente de desplegar** en la ventana de la 1 pm.
+- **Desplegado el 03-09 a las 09:33** (0c7aaa3, READY en Vercel) por pedido de Santos; verificado entrando como Brenda a la pantalla del cierre de ECOLAV en producción (`scripts/_verificar-cierre-direccion-prod.mjs`): el HTML ya trae «Cliente nuevo · sin dirección» y «Dirección final del despacho» a la vista.
 
 ## 5. Cómo se trabaja acá
 
