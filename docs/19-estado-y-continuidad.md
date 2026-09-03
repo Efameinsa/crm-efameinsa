@@ -706,7 +706,7 @@ como editar.
   Central sin «Editar» y la de Katerine con su borrador de Tulumayo en «Mis
   cotizaciones» y en el cotizador sin código. `tsc`, `eslint` y los 342 tests
   en verde.
-- **Pendiente de desplegar** (ventana de la 1 pm).
+- **Desplegado el 03-09 a las 10:33** (empujado junto con e13ee7c por pedido de Santos, fuera de la ventana de la 1 pm).
 
 ### Lo del 03-09 (10:30): la captura de Finanzas se arrastra o se pega (sin migración)
 
@@ -729,7 +729,7 @@ que Central y «Pasar contacto» ya tenían la zona de `CampoAdjuntos`.
 - `tsc`, `eslint` y `next build` en verde. **No pude probarlo en el
   navegador**: no hay Playwright en el proyecto y la clave de `postventa2@`
   la tiene Santos; probarlo pegando una captura antes de desplegar.
-- **Pendiente de desplegar** (ventana de la 1 pm, junto con 507f8ee).
+- **Desplegado el 03-09 a las 10:33** (e13ee7c, READY en Vercel) por pedido de Santos («despliegalo»), fuera de la ventana de la 1 pm. Falta que postventa pegue una captura real y avise.
 
 ## 5. Cómo se trabaja acá
 
