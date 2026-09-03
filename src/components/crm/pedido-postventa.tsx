@@ -1,10 +1,10 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { Check, CircleDashed, OctagonAlert, Loader2 } from "lucide-react";
+import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, X } from "lucide-react";
 import {
   bloquesPedido,
   saldoPendiente,
@@ -662,6 +662,35 @@ function Cuadro({
   const [valores, setValores] = useState<Record<string, string>>({});
   const [archivos, setArchivos] = useState<Record<string, File>>({});
 
+  function elegirArchivo(nombre: string, f: File | null) {
+    if (f && f.size > MAX_ARCHIVO) {
+      toast.error(`"${f.name}" pasa de 10 MB`);
+      return;
+    }
+    if (f && !esArchivoAceptado(f)) {
+      toast.error(`"${f.name}": solo se aceptan fotos o PDF`);
+      return;
+    }
+    setArchivos((a) => {
+      const n = { ...a };
+      if (f) n[nombre] = f;
+      else delete n[nombre];
+      return n;
+    });
+  }
+
+  // Ctrl+V en cualquier parte del diálogo adjunta la captura al campo de
+  // archivo: quien pega tiene el cursor en «quién» o en la nota, no en la caja.
+  function onPaste(e: React.ClipboardEvent) {
+    const f = Array.from(e.clipboardData?.files ?? [])[0];
+    if (!f) return; // texto pegado: sigue su curso normal
+    const campo = campos.find((c) => c.archivo);
+    if (!campo) return;
+    e.preventDefault();
+    const nombre = /^image\.\w+$/i.test(f.name) ? `captura-pegada.${f.name.split(".").pop()}` : f.name;
+    elegirArchivo(campo.nombre, new File([f], nombre, { type: f.type }));
+  }
+
   // Al abrir, cada campo arranca con su valor inicial. Se recalcula con la
   // apertura y no en un efecto para no pisar lo que el usuario ya escribió.
   const datos = campos.reduce<Record<string, string>>((acc, c) => {
@@ -689,7 +718,7 @@ function Cuadro({
         }
       }}
     >
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg" onPaste={onPaste}>
         <DialogHeader>
           <DialogTitle>{titulo}</DialogTitle>
           <DialogDescription>{descripcion}</DialogDescription>
@@ -702,20 +731,10 @@ function Cuadro({
                 {c.requerido && <span className="text-destructive"> *</span>}
               </Label>
               {c.archivo ? (
-                <input
+                <CampoArchivo
                   id={`campo-${c.nombre}`}
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    setArchivos((a) => {
-                      const n = { ...a };
-                      if (f) n[c.nombre] = f;
-                      else delete n[c.nombre];
-                      return n;
-                    });
-                  }}
-                  className="text-xs text-muted-foreground file:mr-2 file:rounded-md file:border file:border-border file:bg-background file:px-2 file:py-1 file:text-xs file:font-medium"
+                  archivo={archivos[c.nombre] ?? null}
+                  onElegir={(f) => elegirArchivo(c.nombre, f)}
                 />
               ) : c.area ? (
                 <Textarea
@@ -746,5 +765,115 @@ function Cuadro({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const MAX_ARCHIVO = 10 * 1024 * 1024; // límite del bucket 'adjuntos'
+
+function esArchivoAceptado(f: File): boolean {
+  if (f.type.startsWith("image/") || f.type === "application/pdf") return true;
+  return /\.(pdf|jpe?g|png|webp)$/i.test(f.name);
+}
+
+function pesoLegible(bytes: number): string {
+  return bytes >= 1024 * 1024
+    ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/**
+ * La caja para un solo archivo (la captura de Finanzas, el voucher): elegir,
+ * arrastrar o pegar con Ctrl+V, igual que la de Central y la de «Pasar
+ * contacto» (CampoAdjuntos), pero de a uno. Postventa la pidió el 03-09: el
+ * input nativo no dejaba pegar la captura de WhatsApp, que es lo que llega.
+ */
+function CampoArchivo({
+  id,
+  archivo,
+  onElegir,
+}: {
+  id: string;
+  archivo: File | null;
+  onElegir: (f: File | null) => void;
+}) {
+  const [arrastrando, setArrastrando] = useState(false);
+  const vistaPrevia = useMemo(
+    () => (archivo && archivo.type.startsWith("image/") ? URL.createObjectURL(archivo) : null),
+    [archivo],
+  );
+  useEffect(() => () => {
+    if (vistaPrevia) URL.revokeObjectURL(vistaPrevia);
+  }, [vistaPrevia]);
+
+  if (archivo) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg border border-border p-2">
+        {vistaPrevia ? (
+          // eslint-disable-next-line @next/next/no-img-element -- vista previa local
+          <img src={vistaPrevia} alt={archivo.name} className="h-20 w-20 rounded-md border border-border object-cover" />
+        ) : (
+          <Paperclip className="size-5 text-muted-foreground" />
+        )}
+        <div className="min-w-0 flex-1 text-xs">
+          <p className="truncate font-medium text-foreground">{archivo.name}</p>
+          <p className="text-muted-foreground">{pesoLegible(archivo.size)}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onElegir(null)}
+          aria-label={`Quitar ${archivo.name}`}
+          className="flex size-7 cursor-pointer items-center justify-center rounded-full border border-border bg-background hover:bg-accent"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <label
+      htmlFor={id}
+      className={cn(
+        "flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed p-4 text-center transition-colors",
+        arrastrando ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 hover:bg-accent/50",
+      )}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setArrastrando(true);
+      }}
+      onDragLeave={() => setArrastrando(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setArrastrando(false);
+        const f = e.dataTransfer?.files?.[0];
+        if (f) onElegir(f);
+      }}
+    >
+      <ImagePlus className={cn("size-5", arrastrando ? "text-primary" : "text-muted-foreground")} />
+      <span className="text-sm text-foreground">
+        {arrastrando ? (
+          "Suelte acá la captura"
+        ) : (
+          <>
+            Haga clic para elegir, arrastre la imagen, o péguela con{" "}
+            <kbd className="rounded border border-border bg-secondary px-1 py-0.5 font-sans text-[11px] font-semibold">
+              Ctrl+V
+            </kbd>
+          </>
+        )}
+      </span>
+      <span className="text-xs text-muted-foreground">Foto, captura de pantalla o PDF · hasta 10 MB</span>
+      <input
+        id={id}
+        type="file"
+        accept="image/*,.pdf"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onElegir(f);
+          e.target.value = "";
+        }}
+      />
+    </label>
   );
 }

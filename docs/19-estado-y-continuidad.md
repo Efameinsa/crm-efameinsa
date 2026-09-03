@@ -708,6 +708,29 @@ como editar.
   en verde.
 - **Pendiente de desplegar** (ventana de la 1 pm).
 
+### Lo del 03-09 (10:30): la captura de Finanzas se arrastra o se pega (sin migración)
+
+Postventa, vía Santos: en «Finanzas confirmó el pago» «falta la opción para
+subir foto como lo haces en otros formularios para arrastrar o pegar la
+imagen ahí». El diálogo genérico `Cuadro` de la ficha del pedido
+(`pedido-postventa.tsx`) usaba un `<input type="file">` nativo —el
+«Ningún archivo seleccionado»— que no acepta ni arrastrar ni Ctrl+V, mientras
+que Central y «Pasar contacto» ya tenían la zona de `CampoAdjuntos`.
+
+- **`CampoArchivo`** (en el mismo archivo): la misma caja punteada de
+  `CampoAdjuntos` pero para **un** archivo: clic para elegir, arrastrar, o
+  Ctrl+V en cualquier parte del diálogo (`onPaste` en `DialogContent`; el
+  cursor está en «quién» o en la nota, no en la caja). Muestra miniatura si es
+  imagen, nombre y peso, y una X para quitarlo. La captura pegada llega como
+  `image.png` y se renombra `captura-pegada.png`. Valida al elegir (fotos o
+  PDF, hasta 10 MB) en vez de al enviar. Vale para todos los campos
+  `archivo: true` del Cuadro, no solo el de Finanzas.
+- La subida y la acción `confirmarPagoFinanzas` no cambian (0157).
+- `tsc`, `eslint` y `next build` en verde. **No pude probarlo en el
+  navegador**: no hay Playwright en el proyecto y la clave de `postventa2@`
+  la tiene Santos; probarlo pegando una captura antes de desplegar.
+- **Pendiente de desplegar** (ventana de la 1 pm, junto con 507f8ee).
+
 ## 5. Cómo se trabaja acá
 
 **Migraciones.** Numeradas, en `supabase/migrations/`, con una cabecera larga
