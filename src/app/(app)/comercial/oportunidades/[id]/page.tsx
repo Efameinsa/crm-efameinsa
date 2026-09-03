@@ -63,7 +63,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -196,12 +196,22 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
   const sinGestion = !primeraGestion;
 
   const rutaDelContacto: Hito[] = [
-    {
-      titulo: "Llegó a Central",
-      fecha: lead?.recibido_at ?? null,
-      detalle: lead ? (ETIQUETA_CANAL_LEAD[lead.canal] ?? lead.canal) : null,
-      pendiente: "Sin registro de ingreso",
-    },
+    lead
+      ? {
+          titulo: "Llegó a Central",
+          fecha: lead.recibido_at ?? null,
+          detalle: ETIQUETA_CANAL_LEAD[lead.canal] ?? lead.canal,
+          pendiente: "Sin registro de ingreso",
+        }
+      : {
+          // Sin lead no hubo captura de Central: la oportunidad vino del
+          // histórico (Excel de la comercial o cierres de postventa) o la abrió
+          // el propio comercial. Decirlo vale más que un «sin registro».
+          titulo: oportunidad.origen === "crm" ? "La abrió el comercial" : "Entró con el histórico",
+          fecha: oportunidad.created_at ?? null,
+          detalle: oportunidad.origen === "crm" ? "Sin pasar por Central" : "Importada del archivo anterior al CRM",
+          pendiente: "Sin registro de ingreso",
+        },
     {
       titulo: "Se lo derivaron a usted",
       fecha: asignadoAt,
@@ -370,14 +380,14 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
 
           {/* Antes de registrar nada: el reloj que ya viene corriendo. Va
               arriba de «Registrar gestión» a propósito — es la pantalla donde
-              se destraba, no solo donde se mira. Solo para lo que entró por
-              Central: las oportunidades importadas del Excel no tuvieron
-              derivación y mostrarles una ruta vacía sería ruido. */}
-          {lead && (
-            <SeccionPanel titulo="Cómo llegó este contacto">
-              <RutaDerivacion hitos={rutaDelContacto} />
-            </SeccionPanel>
-          )}
+              se destraba, no solo donde se mira. Hasta el 03-09 se escondía
+              para lo que no entró por Central; Carlos, mirando Ingeniería y
+              Servicios Asociados (histórico, sin derivación): «la ruta del
+              contacto tiene que aparecer… por abajo hay que ponerlo». Ahora
+              se muestra siempre; si vino del histórico, el primer hito lo dice. */}
+          <SeccionPanel titulo="Cómo llegó este contacto">
+            <RutaDerivacion hitos={rutaDelContacto} />
+          </SeccionPanel>
 
           <SeccionPanel titulo="Registrar gestión">
             <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} motivos={motivos ?? []} />

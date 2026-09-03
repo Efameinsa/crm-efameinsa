@@ -101,6 +101,22 @@ export default async function CierresCentralPage({
     .in("informe_cierre_id", todas.map((f) => f.id));
   const pedidoPorInforme = new Map((pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]));
 
+  // Los números de cierre que no llevan documento y quedaron anulados por
+  // gerencia (0164, Carlos 03-09: «todo lo vacío queda anulado; el reporte es
+  // el correlativo»). Se listan en la pestaña de anulados para que nadie
+  // pregunte qué pasó con el 007.
+  const { data: numerosAnulados } = await supabase
+    .from("correlativos_anulados")
+    .select("clave, numero, motivo")
+    .in("clave", ["INFORME-OPEN-2026", "INFORME-EFAMEINSA-2026"])
+    .order("clave")
+    .order("numero");
+  const vaciosAnulados = (numerosAnulados ?? []).map((a) => ({
+    serie: (a.clave as string).replace("INFORME-", "").replace("-2026", ""),
+    codigo: `${String(a.numero).padStart(3, "0")}-2026`,
+    motivo: a.motivo as string,
+  }));
+
   const liberado = (id: string) => {
     const p = pedidoPorInforme.get(id);
     return p?.pedido_ejecutado_at != null && p?.liquidacion_at != null;
@@ -169,6 +185,19 @@ export default async function CierresCentralPage({
           <AlertTriangle className="size-3.5" />
           {urgentes} {urgentes === 1 ? "cierre urgente" : "cierres urgentes"} esperando.
         </p>
+      )}
+
+      {(pestana === "anulados" || pestana === "todos") && vaciosAnulados.length > 0 && (
+        <div className="mb-3 rounded-md border border-dashed border-border bg-secondary/30 p-2.5 text-xs">
+          <p className="font-semibold text-foreground">Números anulados sin documento</p>
+          <ul className="mt-1 space-y-0.5 text-muted-foreground">
+            {vaciosAnulados.map((a) => (
+              <li key={`${a.serie}-${a.codigo}`}>
+                <span className="font-mono font-semibold text-foreground">{a.serie} {a.codigo}</span> · {a.motivo}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {filas.length === 0 ? (

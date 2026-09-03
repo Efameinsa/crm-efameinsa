@@ -137,6 +137,10 @@ const ENLACES_POSTVENTA = [
   // 4): «es una campaña sobre el mismo pipeline, no otro objeto». Ya no
   // tiene entrada propia en este menú.
   { href: "/comercial/oportunidades", etiqueta: "Ventas de servicio", icono: KanbanSquare },
+  // Los cierres de postventa se emiten en el CRM desde el 03-09 (Carlos: «que
+  // el CRM esté ordenado»): la misma pantalla del comercial, filtrada por su
+  // cartera. Sin esta entrada había que llegar por la oportunidad.
+  { href: "/comercial/cierres", etiqueta: "Mis cierres", icono: PackageCheck },
   { href: "/comercial/cartera", etiqueta: "Clientes", icono: Building2 },
 ];
 

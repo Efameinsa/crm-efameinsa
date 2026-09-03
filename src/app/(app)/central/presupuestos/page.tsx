@@ -74,13 +74,21 @@ function dinero(monto: number): string {
 export default async function PresupuestosCentralPage({
   searchParams,
 }: {
-  searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string }>;
+  searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; q?: string; serie?: string }>;
 }) {
   const sp = await searchParams;
   // Arranca en la semana: es la unidad en la que la empresa se mira a sí
   // misma (potenciales semanales, cierre del sábado).
   const periodo = resolverPeriodo(sp, "semana");
   const comercialId = sp.comercial?.trim() || null;
+  // BUSCAR Y FILTRAR POR EMPRESA (Carlos, 03-09, capacitando a Alondra):
+  // «ayúdame a que permita filtrar por nombre en Central, en presupuestos…
+  // "verifiquemos el presupuesto tal", ahí lo busca, con nombre de cliente» y
+  // «que permita filtrar Open y Efameinsa, para poder tener el control».
+  // La búsqueda ignora el período: quien busca «Servingsa» o «2197» quiere el
+  // documento, no el de esta semana.
+  const q = sp.q?.trim() || null;
+  const serie = sp.serie === "OPEN" || sp.serie === "EFAMEINSA" ? sp.serie : null;
   const supabase = await createClient();
 
   // Las ventanas cortan en hora de Lima (offset -05:00 explícito), como en la
@@ -92,13 +100,22 @@ export default async function PresupuestosCentralPage({
     })
     .not("correlativo", "is", null)
     .in("estado", ["enviada", "aceptada"])
-    .not("codigo", "like", "PRUEBA%")
-    .gte("enviada_at", `${periodo.desde}T00:00:00-05:00`)
-    .lt("enviada_at", `${sumarDias(periodo.hasta, 1)}T00:00:00-05:00`);
+    .not("codigo", "like", "PRUEBA%");
+  if (!q) {
+    consulta = consulta
+      .gte("enviada_at", `${periodo.desde}T00:00:00-05:00`)
+      .lt("enviada_at", `${sumarDias(periodo.hasta, 1)}T00:00:00-05:00`);
+  } else {
+    // Por número («2197», «Presu_2197») o por cliente, como lo escribió el
+    // comercial en la cotización (el snapshot), que es lo que dice el PDF.
+    const patron = `%${q.replace(/[%_]/g, "")}%`;
+    consulta = consulta.or(`codigo.ilike.${patron},cliente_snapshot->>razon_social.ilike.${patron},cliente_snapshot->>nombre.ilike.${patron}`);
+  }
+  if (serie) consulta = consulta.eq("serie", serie);
   if (comercialId) consulta = consulta.eq("oportunidades.comercial_id", comercialId);
 
-  const [{ data: cotizaciones, count: total, error }, { data: perfiles }] = await Promise.all([
-    consulta.order("enviada_at", { ascending: false }).limit(TOPE),
+  const [{ data: cotizaciones, count: total, error }, { data: perfiles }, { data: anuladosCrudos }] = await Promise.all([
+    (q ? consulta.order("correlativo", { ascending: false }) : consulta.order("enviada_at", { ascending: false })).limit(TOPE),
     // Todos los comerciales, activos o no: una cotización de alguien que ya
     // no está sigue teniendo dueño en la lista. El desplegable ofrece solo a
     // los activos que no son de práctica.
@@ -107,6 +124,14 @@ export default async function PresupuestosCentralPage({
       .select("id, nombre, codigo_comercial, activo, es_prueba")
       .eq("rol", "comercial")
       .order("codigo_comercial"),
+    // Los números que no llevan documento y quedaron anulados por gerencia
+    // (0164): el correlativo se lee completo aunque falte el papel.
+    supabase
+      .from("correlativos_anulados")
+      .select("clave, numero, motivo")
+      .in("clave", serie ? [`${serie}-2026`] : ["OPEN-2026", "EFAMEINSA-2026"])
+      .order("clave")
+      .order("numero"),
   ]);
 
   const comerciales = (perfiles ?? []) as Comercial[];
@@ -160,13 +185,62 @@ export default async function PresupuestosCentralPage({
         comercialId={comercialId}
       />
 
+      {/* Buscar por cliente o número, y filtrar por empresa. Formulario plano
+          (GET) para que la búsqueda quede en la URL y se pueda compartir; los
+          filtros de período y comercial viajan escondidos para no perderse. */}
+      <form method="get" className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        {!q && <input type="hidden" name="desde" value={periodo.desde} />}
+        {!q && <input type="hidden" name="hasta" value={periodo.hasta} />}
+        {comercialId && <input type="hidden" name="comercial" value={comercialId} />}
+        <label className="flex items-center gap-1.5">
+          <span className="font-semibold text-muted-foreground">Buscar</span>
+          <input
+            type="search"
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder="Cliente o número (ej. 2197)"
+            className="h-8 w-56 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+          />
+        </label>
+        <label className="flex items-center gap-1.5">
+          <span className="font-semibold text-muted-foreground">Empresa</span>
+          <select
+            name="serie"
+            defaultValue={serie ?? ""}
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+          >
+            <option value="">Las dos</option>
+            <option value="OPEN">OPEN</option>
+            <option value="EFAMEINSA">EFAMEINSA</option>
+          </select>
+        </label>
+        <button
+          type="submit"
+          className="h-8 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+        >
+          Buscar
+        </button>
+        {(q || serie) && (
+          <a href="/central/presupuestos" className="text-muted-foreground underline-offset-2 hover:underline">
+            Quitar filtros
+          </a>
+        )}
+        {q && (
+          <span className="text-muted-foreground">
+            Buscando «{q}» en todo el año{serie ? ` en ${serie}` : ""}; el período no aplica.
+          </span>
+        )}
+      </form>
+
       {error ? (
         <p className="mt-3 text-sm text-destructive">No se pudo cargar la lista: {error.message}</p>
       ) : filas.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
-          {comercialId
-            ? `${nombreComercial(comercialId)} no envió ningún presupuesto en este período.`
-            : "No se envió ningún presupuesto en este período."}
+          {q
+            ? `No hay ningún presupuesto${serie ? ` de ${serie}` : ""} que coincida con «${q}». Si es un número anulado, aparece más abajo.`
+            : comercialId
+              ? `${nombreComercial(comercialId)} no envió ningún presupuesto en este período.`
+              : "No se envió ningún presupuesto en este período."}
         </p>
       ) : (
         <div className="mt-3 overflow-x-auto">
@@ -270,9 +344,30 @@ export default async function PresupuestosCentralPage({
         </p>
       )}
 
+      {(anuladosCrudos ?? []).length > 0 && (
+        <div className="mt-3 rounded-md border border-dashed border-border bg-secondary/30 p-2.5 text-xs">
+          <p className="font-semibold text-foreground">Números anulados sin documento</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            Por decisión de gerencia (03-09) los números vacíos no se rellenan: quedan anulados y el sistema no los
+            vuelve a entregar.
+          </p>
+          <ul className="mt-1 space-y-0.5 text-muted-foreground">
+            {(anuladosCrudos as { clave: string; numero: number; motivo: string }[]).map((a) => (
+              <li key={`${a.clave}-${a.numero}`}>
+                <span className="font-mono font-semibold text-foreground">
+                  {a.clave.replace("-2026", "")} Presu_{a.numero}-26
+                </span>{" "}
+                · {a.motivo}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <p className="mt-3 text-[11px] text-muted-foreground">
         Solo presupuestos con número, enviados o aceptados, por su fecha de envío en hora de Lima. Los borradores y
         las prácticas no aparecen; los presupuestos anteriores al CRM viven en «Mis cotizaciones» de cada comercial.
+        Para encontrar uno concreto, use «Buscar»: busca en todo el año por cliente o por número.
       </p>
     </SeccionPanel>
   );
