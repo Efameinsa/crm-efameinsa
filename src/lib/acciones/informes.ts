@@ -129,8 +129,15 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     .maybeSingle();
   if (!cuenta) return { error: "Cliente no encontrado" };
 
-  const [{ data: contactos }, { data: historicas }, { data: delCotizador }, { data: ventas }, { data: informes }] =
-    await Promise.all([
+  const [
+    { data: contactos },
+    { data: historicas },
+    { data: delCotizador },
+    { data: ventas },
+    { data: informes },
+    { count: equiposInstalados },
+    { count: serviciosPostventa },
+  ] = await Promise.all([
     supabase
       .from("contactos")
       .select("nombre, cargo, telefono, email, documento, direccion, es_principal")
@@ -167,6 +174,12 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
       .is("anulada_at", null)
       .order("fecha_venta", { ascending: false }),
     supabase.from("informes_cierre").select("venta_id").eq("cuenta_id", cuentaId).not("venta_id", "is", null),
+    // Un cliente con equipos instalados o con servicios de postventa ya nos
+    // compró, aunque la venta sea anterior al Excel importado y no figure en
+    // «ventas» (03-09: ECOLAV SORELA salía como «nuevo» y Brenda sabía que
+    // no). Aun así el comercial tiene la última palabra en el formulario.
+    supabase.from("equipos_instalados").select("id", { count: "exact", head: true }).eq("cuenta_id", cuentaId),
+    supabase.from("servicios_postventa").select("id", { count: "exact", head: true }).eq("cuenta_id", cuentaId),
   ]);
 
   // Solo las ventas nacidas EN el CRM: las 626 importadas del Excel son
@@ -249,7 +262,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
         razon_social: cuenta.razon_social,
         num_doc: cuenta.num_doc,
         direccion: direccionCliente,
-        esNueva: (ventas ?? []).length === 0,
+        esNueva: (ventas ?? []).length === 0 && !(equiposInstalados ?? 0) && !(serviciosPostventa ?? 0),
       },
       contactos: (contactos ?? []).map((c) => ({
         area: c.cargo,

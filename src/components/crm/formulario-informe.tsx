@@ -529,6 +529,33 @@ export function FormularioInforme({
                   </div>
                 </Campo>
               </div>
+              {/* CLIENTE ANTIGUO/NUEVO Y DIRECCIÓN A LA VISTA (03-09). Estaban
+                  solo en la sección plegada del final. El CRM marca «nuevo»
+                  cuando no le conoce ventas, pero las ventas anteriores al
+                  Excel importado no están en ninguna parte: ECOLAV SORELA le
+                  compró a Brenda antes y salía como nuevo, y ella no encontró
+                  dónde cambiarlo ni dónde poner la dirección (la ficha no
+                  tenía). Un cliente puede tener varias direcciones, así que la
+                  del documento se escribe aquí y no toca la ficha. */}
+              <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
+                <Campo etiqueta="Cliente" pista={cuenta.esNueva ? "el CRM no le conoce compras" : "ya nos compró antes"}>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <Pastilla activa={!clienteNuevo} onClick={() => setClienteNuevo(false)}>
+                      Antiguo
+                    </Pastilla>
+                    <Pastilla activa={clienteNuevo} onClick={() => setClienteNuevo(true)}>
+                      Nuevo
+                    </Pastilla>
+                  </div>
+                </Campo>
+                <Campo etiqueta="Dirección" pista="la que va en el documento; puede ser otra sede">
+                  <Input
+                    value={clienteDireccion}
+                    onChange={(e) => setClienteDireccion(e.target.value)}
+                    placeholder={cuenta.direccion ?? "La ficha no tiene dirección: escríbala aquí"}
+                  />
+                </Campo>
+              </div>
               {(clienteNombre !== cuenta.razon_social || clienteDoc !== (cuenta.num_doc ?? "")) && (
                 <button
                   type="button"
@@ -551,6 +578,15 @@ export function FormularioInforme({
               <p className="font-mono text-xs text-muted-foreground">
                 {clienteDoc.trim() || "sin RUC / DNI"}
                 {serie === "OPEN" ? " · factura Open Investments" : " · factura Efameinsa"}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {clienteNuevo ? "Cliente nuevo" : "Cliente antiguo"}
+                {" · "}
+                {clienteDireccion.trim() ? (
+                  clienteDireccion
+                ) : (
+                  <span className="text-amber-700">sin dirección — pulse «Editar» para escribirla</span>
+                )}
               </p>
             </>
           )}
@@ -914,6 +950,17 @@ export function FormularioInforme({
           />
         </Campo>
 
+        {/* La dirección final del despacho vivía plegada en «Ver y editar lo
+            prellenado» (03-09). Arranca con la del cliente, pero los equipos
+            muchas veces van a otra sede o a un local nuevo: tiene que verse. */}
+        <Campo etiqueta="Dirección final del despacho" pista="adónde llegan los equipos; si es la misma de facturación, déjela igual">
+          <Input
+            value={entregaDireccion}
+            onChange={(e) => setEntregaDireccion(e.target.value)}
+            placeholder={clienteDireccion || "Calle, número, distrito"}
+          />
+        </Campo>
+
         {/* B4: la entrega la puede recibir alguien que no está en la cuenta.
             Se captura con su DNI —es lo que pide el transportista— y al
             guardar el informe queda como contacto del cliente, para no
@@ -1038,17 +1085,9 @@ export function FormularioInforme({
             </div>
           </Campo>
 
-          <Campo etiqueta="Cliente" pista={cuenta.esNueva ? "sin compras previas en el CRM" : "ya nos compró antes"}>
-            <div className="flex gap-1.5">
-              <Pastilla activa={!clienteNuevo} onClick={() => setClienteNuevo(false)}>
-                Cliente antiguo
-              </Pastilla>
-              <Pastilla activa={clienteNuevo} onClick={() => setClienteNuevo(true)}>
-                Cliente nuevo
-              </Pastilla>
-            </div>
-          </Campo>
-
+          {/* «Cliente antiguo/nuevo», «Dirección» y «Dirección final del
+              despacho» se editan arriba, a la vista (03-09): aquí solo se
+              repetirían. */}
           <Campo etiqueta="Razón social">
             <Input value={clienteNombre} onChange={(e) => setClienteNombre(e.target.value)} />
           </Campo>
@@ -1060,14 +1099,8 @@ export function FormularioInforme({
               <Input value={ordenCompra} onChange={(e) => setOrdenCompra(e.target.value)} />
             </Campo>
           </div>
-          <Campo etiqueta="Dirección">
-            <Input value={clienteDireccion} onChange={(e) => setClienteDireccion(e.target.value)} />
-          </Campo>
           <Campo etiqueta="Correo electrónico">
             <Input value={clienteCorreo} onChange={(e) => setClienteCorreo(e.target.value)} />
-          </Campo>
-          <Campo etiqueta="Dirección final del despacho">
-            <Input value={entregaDireccion} onChange={(e) => setEntregaDireccion(e.target.value)} />
           </Campo>
 
           <Campo etiqueta="Incluye" pista="una línea por beneficio; se puede cambiar por cliente">

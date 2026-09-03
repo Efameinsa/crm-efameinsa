@@ -637,6 +637,31 @@ de operaciones/gerencia (0118); cuando el cliente no cabía, iba a «Otro»
   limpia lo suyo). **Desplegado el 03-09 a las 09:21** (8592383, READY en
   Vercel), por pedido de Santos fuera de ventana; la migración ya estaba.
 
+### Lo del 03-09 (09:30): cliente antiguo/nuevo y la dirección, a la vista en el cierre (sin migración)
+
+Santos, con la captura `brenda-error.jpeg`: al armar el cierre de ECOLAV
+SORELA (RUC 20602909701) el documento salía como «cliente nuevo» y Brenda no
+encontraba dónde cambiarlo ni dónde escribir la dirección. Las dos cosas SÍ
+eran editables, pero solo dentro de «Ver y editar lo prellenado», la sección
+plegada del final: el mismo problema que tuvo Ariana con la razón social el
+02-09. Y ECOLAV no tiene ninguna venta en el CRM (ni del Excel importado) ni
+dirección en la ficha, así que el CRM no podía saber que ya nos compró.
+
+- **`formulario-informe.tsx`:** el bloque «Se le factura a» muestra debajo
+  del RUC «Cliente nuevo/antiguo · dirección» (en ámbar «sin dirección» cuando
+  falta) y al pulsar «Editar» aparecen las pastillas Antiguo/Nuevo y la caja
+  «Dirección», con la pista «la que va en el documento; puede ser otra sede».
+  La dirección del documento no toca la ficha del cliente: un cliente puede
+  tener varias. «Dirección final del despacho» pasó a la sección de Entrega,
+  debajo de «Lugar de entrega». Los tres se quitaron de la sección plegada
+  para no tenerlos dos veces.
+- **`prellenarInforme`:** «nuevo» se propone solo si no hay ventas NI equipos
+  instalados NI servicios de postventa de esa cuenta (antes solo miraba
+  `ventas`). El comercial sigue teniendo la última palabra.
+- El borrador que Brenda guardó a las 09:08 (sin correlativo, `cliente_nuevo`
+  true, sin dirección) no gastó número; al volver a entrar arma uno nuevo.
+- **Pendiente de desplegar** en la ventana de la 1 pm.
+
 ## 5. Cómo se trabaja acá
 
 **Migraciones.** Numeradas, en `supabase/migrations/`, con una cabecera larga
@@ -667,6 +692,15 @@ pidió cuando la hay. Terminan con los dos trailers de coautoría.
 ---
 
 ## 6. Lo que quedó pendiente
+
+**Para retomar el 03-09 a primera hora (Santos):** los correlativos de los
+cierres, reunión con Lesly y postventa del 02-09. Todo está en
+`docs/historial/19-correlativos-cierres-02-09.md`. Ya hecho: el contador OPEN
+volvió a 5 (los próximos cierres rellenan 006-009) y el 003 de Grupo
+Alimenticio quedó anulado. Falta decidir con gerencia si los cierres de
+postventa de Hever entran al CRM (una sola serie anual) o siguen en Word con
+una serie que no choque; su cierre de Velásquez Sánchez está esperando número.
+El script y el doc no están commiteados.
 
 De las reuniones del 28-08 y de la revisión del catálogo:
 
