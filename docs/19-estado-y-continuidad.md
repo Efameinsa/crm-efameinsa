@@ -634,7 +634,8 @@ de operaciones/gerencia (0118); cuando el cliente no cabía, iba a «Otro»
 - **Acción:** `agregarRubroYAsignar` en `acciones/cuentas.ts` (llama a la
   función y luego a `cambiarRubroCuenta`). Verificado con
   `scripts/_verificar-agregar-rubro.mjs` (sesión de práctica, todo verde,
-  limpia lo suyo). Falta desplegar: ventana de la 1 pm.
+  limpia lo suyo). **Desplegado el 03-09 a las 09:21** (8592383, READY en
+  Vercel), por pedido de Santos fuera de ventana; la migración ya estaba.
 
 ## 5. Cómo se trabaja acá
 
