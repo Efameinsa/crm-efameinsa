@@ -683,3 +683,119 @@ export async function corregirInformeEmitido(
   if (fila?.cuenta_id) revalidatePath(`/comercial/cartera/${fila.cuenta_id}`);
   return { error: null, version: fila?.version };
 }
+
+// ── Volver a abrir un borrador ──────────────────────────────────────────
+// Santos, 03-09: «los cierres que están en borradores deberían tener la
+// opción para editarse, no tiene sentido que se guarden en borrador si no se
+// pueden editar». Hasta hoy el borrador se guardaba (al mirar el PDF) pero no
+// había ninguna pantalla que lo volviera a abrir: Brenda entraba de nuevo y el
+// formulario arrancaba en blanco, armando OTRO borrador. Esto devuelve el
+// borrador tal como quedó, para que el formulario arranque con él. Un borrador
+// no tiene número, así que editarlo no pide código: el código se pide recién
+// cuando el informe ya está numerado (0153/0154).
+
+export interface BorradorInforme {
+  id: string;
+  cuentaId: string;
+  /** El comercial de la cartera: es quien lo edita, además de backoffice (política informes_edita). */
+  comercialId: string | null;
+  guardadoAt: string;
+  serie: "EFAMEINSA" | "OPEN";
+  presupuestoRef: string | null;
+  ventaId: string | null;
+  cotizacionId: string | null;
+  comprobante: "factura" | "boleta_ruc" | "boleta_dni";
+  clienteNuevo: boolean;
+  clienteNombre: string;
+  clienteDoc: string;
+  clienteDireccion: string;
+  clienteCorreo: string;
+  ordenCompra: string;
+  contactoDespacho: ContactoEntrada;
+  modalidadPago: string[];
+  formaPago: "transferencia" | "deposito" | null;
+  notaCondiciones: string;
+  garantia: string;
+  entregaFecha: string;
+  entregaHora: string;
+  entregaLugar: string;
+  entregaDireccion: string;
+  notaDespacho: string;
+  urgente: boolean;
+  incluye: string[];
+  gratis: string;
+  notaFinal: string;
+  items: ItemInformeEntrada[];
+  adjuntos: { tipo: string; nombre: string; path: string }[];
+}
+
+export async function cargarBorradorInforme(
+  informeId: string,
+): Promise<
+  | { estado: "borrador"; borrador: BorradorInforme }
+  | { estado: "emitido" | "anulado" }
+  | { estado: "no-existe" }
+> {
+  if (!z.string().uuid().safeParse(informeId).success) return { estado: "no-existe" };
+  const supabase = await createClient();
+  // RLS decide quién lo ve: el comercial de la cartera, backoffice y Central.
+  const { data: i } = await supabase
+    .from("informes_cierre")
+    .select("*, cuentas(comercial_id)")
+    .eq("id", informeId)
+    .maybeSingle();
+  if (!i) return { estado: "no-existe" };
+  if (i.anulado_at) return { estado: "anulado" };
+  if (i.emitido_at) return { estado: "emitido" };
+
+  const contacto = (c: unknown): ContactoEntrada => (c && typeof c === "object" ? (c as ContactoEntrada) : {});
+  const texto = (v: unknown): string => (v == null ? "" : String(v));
+  const items = ((i.items ?? []) as ItemInformeEntrada[]).map((it) => ({
+    bloque: it.bloque === "gratuito" ? ("gratuito" as const) : ("venta" as const),
+    tipo: it.tipo === "repuesto" || it.tipo === "servicio" ? it.tipo : ("equipo" as const),
+    descripcion: texto(it.descripcion),
+    cantidad: Number(it.cantidad) || 0,
+    precio_unitario: Number(it.precio_unitario) || 0,
+  }));
+
+  return {
+    estado: "borrador",
+    borrador: {
+      id: i.id,
+      cuentaId: i.cuenta_id,
+      comercialId: (i.cuentas as unknown as { comercial_id: string | null } | null)?.comercial_id ?? null,
+      guardadoAt: i.updated_at ?? i.created_at,
+      serie: i.serie === "OPEN" ? "OPEN" : "EFAMEINSA",
+      presupuestoRef: i.presupuesto_ref ?? null,
+      ventaId: i.venta_id ?? null,
+      cotizacionId: i.cotizacion_id ?? null,
+      comprobante: i.comprobante === "boleta_ruc" || i.comprobante === "boleta_dni" ? i.comprobante : "factura",
+      clienteNuevo: Boolean(i.cliente_nuevo),
+      clienteNombre: texto(i.cliente_nombre),
+      clienteDoc: texto(i.cliente_doc),
+      clienteDireccion: texto(i.cliente_direccion),
+      clienteCorreo: texto(i.cliente_correo),
+      ordenCompra: texto(i.orden_compra),
+      contactoDespacho: contacto(i.contacto_despacho),
+      modalidadPago: ((i.modalidad_pago ?? []) as string[]).filter(Boolean),
+      formaPago: i.forma_pago === "transferencia" || i.forma_pago === "deposito" ? i.forma_pago : null,
+      notaCondiciones: texto(i.nota_condiciones),
+      garantia: texto(i.garantia),
+      entregaFecha: texto(i.entrega_fecha),
+      entregaHora: texto(i.entrega_hora),
+      entregaLugar: texto(i.entrega_lugar),
+      entregaDireccion: texto(i.entrega_direccion),
+      notaDespacho: texto(i.nota_despacho),
+      urgente: Boolean(i.urgente),
+      incluye: ((i.incluye ?? []) as string[]).map(texto),
+      gratis: texto(i.gratis),
+      notaFinal: texto(i.nota_final),
+      items,
+      adjuntos: ((i.adjuntos ?? []) as { tipo: string; nombre: string; path: string }[]).map((a) => ({
+        tipo: a.tipo,
+        nombre: a.nombre,
+        path: a.path,
+      })),
+    },
+  };
+}

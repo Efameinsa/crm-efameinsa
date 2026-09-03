@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FileText, History, Lock, PencilLine, Plus, ShieldCheck, Trash2, Truck, Users, Wallet, X } from "lucide-react";
@@ -205,6 +206,7 @@ export function VistaCierre({
   versiones,
   puedeCorregir,
   correccionAbierta,
+  editarBorradorHref = null,
 }: {
   informe: InformeVista;
   adjuntos: AdjuntoCierreFirmado[];
@@ -214,6 +216,8 @@ export function VistaCierre({
   puedeCorregir: boolean;
   /** Si ya hay una ventana viva de este usuario (un F5 a mitad de la corrección no pide otro código). */
   correccionAbierta: VentanaVista | null;
+  /** Sobre un BORRADOR: a dónde se sigue editando, sin código (03-09). Null si no le toca a quien mira. */
+  editarBorradorHref?: string | null;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -362,7 +366,10 @@ export function VistaCierre({
             ) : (
               <>
                 <Lock className="size-3.5 flex-none" />
-                <span>Borrador sin numerar: no llegó a Central ni cuenta. Se termina desde el formulario de cierre o se borra desde la lista.</span>
+                <span>
+                  Borrador sin numerar: no llegó a Central ni cuenta. Se edita sin código —el código se pide recién
+                  cuando el informe tiene número— y se borra desde la lista.
+                </span>
               </>
             )}
           </p>
@@ -370,6 +377,20 @@ export function VistaCierre({
         {/* Los dos botones grandes y distintos: granate el que cambia algo,
             blanco el que solo abre el documento. */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Un borrador se sigue en el formulario, sin código (Santos, 03-09:
+              «no tiene sentido que se guarden en borrador si no se pueden
+              editar»). El PIN es para lo numerado. */}
+          {!emitido && !anulado && editarBorradorHref && (
+            <Button
+              size="lg"
+              className="h-11 px-5 text-sm font-semibold shadow-sm"
+              render={
+                <Link href={editarBorradorHref}>
+                  <PencilLine className="size-4" /> Editar
+                </Link>
+              }
+            />
+          )}
           {puedeCorregir && !editando && (
             <Button size="lg" onClick={editar} className="h-11 px-5 text-sm font-semibold shadow-sm">
               <PencilLine className="size-4" /> {ventanaViva ? "Seguir corrigiendo" : "Editar"}

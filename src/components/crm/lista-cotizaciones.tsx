@@ -217,6 +217,9 @@ export function ListaCotizaciones({
                   Registrar venta
                 </Button>
               )}
+              {/* Un borrador se EDITA, sin código: el código es para lo que ya
+                  tiene número (Santos, 03-09). Decía «Continuar y confirmar» y
+                  no se leía como editar. */}
               {esBorrador && (
                 <Button
                   size="sm"
@@ -225,7 +228,7 @@ export function ListaCotizaciones({
                   render={
                     <Link href={`${rutaCotizar}/${c.id}`}>
                       <Pencil className="size-3.5" />
-                      Continuar y confirmar
+                      Editar y confirmar
                     </Link>
                   }
                 />

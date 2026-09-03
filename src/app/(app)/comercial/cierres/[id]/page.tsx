@@ -29,7 +29,7 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
 
   const { data: informe } = await supabase
     .from("informes_cierre")
-    .select("*, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial)")
+    .select("*, cuentas(comercial_id), perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial)")
     .eq("id", id)
     .maybeSingle();
   if (!informe) notFound();
@@ -116,6 +116,15 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
     informe.anulado_at == null &&
     (informe.creado_por === perfil.id || ["central", "gerencia", "admin", "operaciones"].includes(perfil.rol));
 
+  // Un BORRADOR se sigue editando sin código (Santos, 03-09): lo edita el
+  // comercial de la cartera o backoffice, que es lo mismo que exige la
+  // política `informes_edita` (0049). Central solo lo mira.
+  const cuentaDelInforme = informe.cuentas as unknown as { comercial_id: string | null } | null;
+  const puedeEditarBorrador =
+    informe.emitido_at == null &&
+    informe.anulado_at == null &&
+    (cuentaDelInforme?.comercial_id === perfil.id || ["gerencia", "admin", "operaciones"].includes(perfil.rol));
+
   return (
     <div className="space-y-3">
       <Link
@@ -131,6 +140,7 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
         versiones={versiones}
         puedeCorregir={puedeCorregir}
         correccionAbierta={correccionAbierta}
+        editarBorradorHref={puedeEditarBorrador ? `/comercial/cierres/${informe.id}/editar` : null}
       />
     </div>
   );

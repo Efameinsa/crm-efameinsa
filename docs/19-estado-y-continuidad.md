@@ -662,6 +662,52 @@ dirección en la ficha, así que el CRM no podía saber que ya nos compró.
   true, sin dirección) no gastó número; al volver a entrar arma uno nuevo.
 - **Desplegado el 03-09 a las 09:33** (0c7aaa3, READY en Vercel) por pedido de Santos; verificado entrando como Brenda a la pantalla del cierre de ECOLAV en producción (`scripts/_verificar-cierre-direccion-prod.mjs`): el HTML ya trae «Cliente nuevo · sin dirección» y «Dirección final del despacho» a la vista.
 
+### Lo del 03-09 (10:00): los borradores se editan sin código (sin migración)
+
+Santos: «los cierres que están en borradores deberían tener la opción para
+editarse, no tiene sentido que se guarden en borrador si no se pueden editar,
+lo mismo con las cotizaciones: agregar esa opción para editar sin necesidad
+de pedir PIN, el PIN se pide solo cuando ya hay una numeración». Tenía razón
+en lo de los cierres: el borrador se guardaba (solo al mirar el PDF) y NO
+había ninguna pantalla que lo volviera a abrir —la vista del cierre decía
+«se termina desde el formulario» y el formulario arrancaba en blanco, armando
+otro borrador (es lo que le pasó a Brenda el 03-09 a las 09:08)—. Las
+cotizaciones en borrador sí se editaban desde la oportunidad («Continuar y
+confirmar»), pero no aparecían en «Mis cotizaciones» y el botón no se leía
+como editar.
+
+- **Ruta nueva `/comercial/cierres/[id]/editar`:** el mismo `FormularioInforme`
+  de `/informes/nuevo`, arrancando con el borrador (`cargarBorradorInforme`
+  en `acciones/informes.ts` + prop `borrador`). Reconstruye lo que el
+  formulario guarda transformado: la pastilla de modalidad frente al texto
+  libre, la fecha «DD/MM/AAAA» de vuelta a ISO para el calendario, quién
+  recibe frente a «otra persona», el presupuesto enganchado por
+  `cotizacion_id` o por `presupuesto_ref`, los adjuntos ya subidos. Si el
+  informe ya se emitió o anuló, redirige a la pantalla del cierre; Central
+  también (mira, no edita: lo edita el comercial de la cartera o backoffice,
+  igual que la política `informes_edita`).
+- **Botón «Guardar borrador»** en el formulario (antes solo se guardaba al
+  abrir «Ver borrador PDF»); en un formulario nuevo, guardar lleva a su ruta
+  de edición. Emitir desde la edición lleva a la pantalla del cierre.
+- **`VistaCierre`:** un borrador muestra «Editar» en granate (prop
+  `editarBorradorHref`) y el texto dice «se edita sin código; el código se
+  pide recién cuando el informe tiene número». **«Mis cierres»:** la fila de
+  un borrador abre directo el formulario, con un lápiz al lado del PDF.
+- **«Mis cotizaciones»:** ahora trae arriba los borradores del CRM (sección
+  «Borradores sin número · se editan sin código»), la fila abre el cotizador
+  y lo numerado del CRM ofrece «Corregir», que sí pide el código (0123). La
+  fila pasó de `<a>` a `div` con enlace estirado para poder llevar el botón.
+  En la oportunidad, «Continuar y confirmar» pasó a decir **«Editar y
+  confirmar»**.
+- **Verificación** con `scripts/_verificar-borradores-editables.mjs`
+  (sesiones reales; crea un borrador de cierre en la cuenta de práctica de
+  postventa, marcado `es_prueba` al insertar porque la marca no se cambia
+  después, y lo borra): 22 comprobaciones en verde en local, incluida la de
+  Central sin «Editar» y la de Katerine con su borrador de Tulumayo en «Mis
+  cotizaciones» y en el cotizador sin código. `tsc`, `eslint` y los 342 tests
+  en verde.
+- **Pendiente de desplegar** (ventana de la 1 pm).
+
 ## 5. Cómo se trabaja acá
 
 **Migraciones.** Numeradas, en `supabase/migrations/`, con una cabecera larga

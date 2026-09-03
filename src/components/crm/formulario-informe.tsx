@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, ChevronDown, ClipboardPaste, FileText, PencilLine, Plus, Trash2, TriangleAlert, Undo2 } from "lucide-react";
+import { Check, ChevronDown, ClipboardPaste, FileText, PencilLine, Plus, Save, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import {
   INCLUYE_POR_DEFECTO,
   ORDEN_TIPOS_ITEM,
@@ -20,6 +20,7 @@ import {
   emitirInforme,
   guardarContactoEntrega,
   quitarAdjuntoInforme,
+  type BorradorInforme,
   type DatosInforme,
   type ItemInformeEntrada,
   type PrellenadoInforme,
@@ -34,7 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
 import { SelectorHora } from "@/components/crm/selector-hora";
 import { cn } from "@/lib/utils";
-import { fechaCalendario } from "@/lib/fechas";
+import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { hoyLima } from "@/lib/periodo";
 
 // Informe de cierre de ventas: la pantalla que el comercial llena.
@@ -130,45 +131,74 @@ function equiposDe(p: PresupuestoDisponible | undefined): ItemInformeEntrada[] {
   }));
 }
 
+/**
+ * Un borrador guardado vuelve al formulario tal como quedó.
+ *
+ * Santos, 03-09: «no tiene sentido que se guarden en borrador si no se pueden
+ * editar». Cada estado de abajo arranca del borrador cuando lo hay y, si no,
+ * de lo que el CRM prellena. Lo que el formulario reconstruye a partir de lo
+ * guardado (la pastilla de modalidad frente al texto libre, la fecha en ISO
+ * para el calendario, quién recibe frente a «otra persona») se resuelve acá
+ * para que el resto del componente no sepa de dónde vino.
+ */
+function fechaIsoDesdeCalendario(texto: string): string | null {
+  const m = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+}
+
 export function FormularioInforme({
   prellenado,
   ventaPreseleccionada,
+  borrador,
 }: {
   prellenado: PrellenadoInforme;
   /** Cuando se llega desde el aviso de "Mi día", ya se sabe de qué venta es. */
   ventaPreseleccionada?: string;
+  /** Un borrador ya guardado, para seguirlo donde quedó (03-09). */
+  borrador?: BorradorInforme;
 }) {
   const router = useRouter();
   const hoyISO = hoyLima();
   const [guardando, startTransition] = useTransition();
-  const [informeId, setInformeId] = useState<string | null>(null);
+  const [informeId, setInformeId] = useState<string | null>(borrador?.id ?? null);
   const [verTodo, setVerTodo] = useState(false);
 
   const { cuenta, contactos, presupuestos, ventasSinInforme } = prellenado;
+  const b = borrador ?? null;
 
   // A qué venta corresponde el informe. Atarlo es lo que después permite
   // avisarle al comercial qué venta le quedó sin informe: sin esto el
   // documento queda suelto y el sistema no puede echar de menos ninguno.
   const [ventaId, setVentaId] = useState<string | null>(
-    ventaPreseleccionada ?? (ventasSinInforme.length === 1 ? ventasSinInforme[0].id : null),
+    (b?.ventaId && ventasSinInforme.some((v) => v.id === b.ventaId) ? b.ventaId : null) ??
+      ventaPreseleccionada ??
+      (ventasSinInforme.length === 1 ? ventasSinInforme[0].id : null),
   );
   const venta = ventasSinInforme.find((v) => v.id === ventaId) ?? null;
   const principal: ContactoEntrada = contactos[0] ?? {};
 
-  const [presupuestoId, setPresupuestoId] = useState<string>(presupuestos[0]?.id ?? "");
+  // El presupuesto del que se copiaron los equipos: en un borrador se vuelve a
+  // enganchar por la cotización del CRM o por el Nº del archivo que guardó.
+  const [presupuestoId, setPresupuestoId] = useState<string>(() => {
+    if (!b) return presupuestos[0]?.id ?? "";
+    const p = presupuestos.find(
+      (x) => (b.cotizacionId && x.fuente === "crm" && x.id === b.cotizacionId) || (b.presupuestoRef && x.codigo === b.presupuestoRef),
+    );
+    return p?.id ?? "";
+  });
   const presupuesto = presupuestos.find((p) => p.id === presupuestoId);
 
   // Los equipos arrancan con los que listaba el presupuesto del archivo. El
   // documento imprime la ficha técnica completa y el archivo solo guarda el
   // nombre del equipo, así que el comercial completa marca y modelo — que es
   // exactamente lo que hoy escribe a mano en el Word.
-  const [items, setItems] = useState<ItemInformeEntrada[]>(() => equiposDe(presupuestos[0]));
+  const [items, setItems] = useState<ItemInformeEntrada[]>(() => (b ? b.items : equiposDe(presupuestos[0])));
 
-  const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(presupuestos[0]?.serie ?? "EFAMEINSA");
-  const [comprobante, setComprobante] = useState<"factura" | "boleta_ruc" | "boleta_dni">("factura");
-  const [clienteNuevo, setClienteNuevo] = useState(cuenta.esNueva);
-  const [clienteNombre, setClienteNombre] = useState(cuenta.razon_social);
-  const [clienteDoc, setClienteDoc] = useState(cuenta.num_doc ?? "");
+  const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(b?.serie ?? presupuestos[0]?.serie ?? "EFAMEINSA");
+  const [comprobante, setComprobante] = useState<"factura" | "boleta_ruc" | "boleta_dni">(b?.comprobante ?? "factura");
+  const [clienteNuevo, setClienteNuevo] = useState(b ? b.clienteNuevo : cuenta.esNueva);
+  const [clienteNombre, setClienteNombre] = useState(b?.clienteNombre ?? cuenta.razon_social);
+  const [clienteDoc, setClienteDoc] = useState(b ? b.clienteDoc : (cuenta.num_doc ?? ""));
   // «Se le factura a» se corrige EN SU SITIO (02-09). Antes «Corregir» abría
   // la sección plegada del final y había que ir a buscar la caja de la razón
   // social entre otras quince: Ariana no la encontró. El caso: FANCAVEL pidió
@@ -178,23 +208,26 @@ export function FormularioInforme({
   // «Pegar una lista»: qué tipo de renglón se está pegando, o nada.
   const [pegando, setPegando] = useState<TipoItemInforme | null>(null);
   const [textoPegado, setTextoPegado] = useState("");
-  const [clienteDireccion, setClienteDireccion] = useState(cuenta.direccion ?? "");
-  const [clienteCorreo, setClienteCorreo] = useState(principal.correo ?? "");
-  const [ordenCompra, setOrdenCompra] = useState("");
+  const [clienteDireccion, setClienteDireccion] = useState(b ? b.clienteDireccion : (cuenta.direccion ?? ""));
+  const [clienteCorreo, setClienteCorreo] = useState(b ? b.clienteCorreo : (principal.correo ?? ""));
+  const [ordenCompra, setOrdenCompra] = useState(b?.ordenCompra ?? "");
 
-  const [modalidad, setModalidad] = useState<string[]>([]);
+  // La modalidad guardada se reparte entre la pastilla fija y el texto libre:
+  // se guardó como [pastilla, texto] y así se vuelve a leer.
+  const esPreset = (m: string) => (MODALIDADES as readonly string[]).includes(m);
+  const [modalidad, setModalidad] = useState<string[]>(() => (b ? b.modalidadPago.filter(esPreset).slice(0, 1) : []));
   // Combinación negociada que no calza con ninguna casilla (ej. "50%
   // adelanto + 35% antes del despacho + 15% a la puesta en marcha") — Carlos
   // la pidió explícitamente porque esto pasa en la práctica y una lista fija
   // nunca la va a cubrir toda.
-  const [modalidadOtra, setModalidadOtra] = useState("");
-  const [formaPago, setFormaPago] = useState<"transferencia" | "deposito" | null>("transferencia");
-  const [notaCondiciones, setNotaCondiciones] = useState("");
+  const [modalidadOtra, setModalidadOtra] = useState(() => b?.modalidadPago.find((m) => !esPreset(m)) ?? "");
+  const [formaPago, setFormaPago] = useState<"transferencia" | "deposito" | null>(b ? b.formaPago : "transferencia");
+  const [notaCondiciones, setNotaCondiciones] = useState(b?.notaCondiciones ?? "");
   // La garantía del cierre (migración 0104). Arranca con la que se le cotizó a
   // este cliente —el papel que firmó— y solo si no hay cotización cae en la de
   // por defecto. Antes era el primer renglón de «Incluye», dentro de la sección
   // plegada: no aparecía, y para cambiarla había que ir a buscarla ahí.
-  const [garantia, setGarantia] = useState(presupuestos[0]?.garantia ?? GARANTIA_POR_DEFECTO);
+  const [garantia, setGarantia] = useState(b ? b.garantia : (presupuestos[0]?.garantia ?? GARANTIA_POR_DEFECTO));
 
   // Entrega: solo calendario/reloj + pastilla "Por confirmar" (B2/B3 del
   // plan 11). Los modos "texto libre" que existían hasta el 23-08 se
@@ -202,32 +235,38 @@ export function FormularioInforme({
   // El selector trabaja en ISO (YYYY-MM-DD); lo que se guarda/imprime es
   // "DD/MM/AAAA" como el resto del documento — se separan para poder volver
   // a abrir el selector en la misma fecha.
-  const [entregaFechaIso, setEntregaFechaIso] = useState<string | null>(null);
-  const [entregaFecha, setEntregaFecha] = useState("");
-  const [entregaHora, setEntregaHora] = useState(POR_CONFIRMAR);
-  const [entregaLugar, setEntregaLugar] = useState("");
-  const [entregaDireccion, setEntregaDireccion] = useState(cuenta.direccion ?? "");
-  const [notaDespacho, setNotaDespacho] = useState("");
-  const [urgente, setUrgente] = useState(false);
-  const [contactoDespachoIdx, setContactoDespachoIdx] = useState(0);
+  const [entregaFechaIso, setEntregaFechaIso] = useState<string | null>(() => (b ? fechaIsoDesdeCalendario(b.entregaFecha) : null));
+  const [entregaFecha, setEntregaFecha] = useState(b?.entregaFecha ?? "");
+  const [entregaHora, setEntregaHora] = useState(b ? b.entregaHora : POR_CONFIRMAR);
+  const [entregaLugar, setEntregaLugar] = useState(b?.entregaLugar ?? "");
+  const [entregaDireccion, setEntregaDireccion] = useState(b ? b.entregaDireccion : (cuenta.direccion ?? ""));
+  const [notaDespacho, setNotaDespacho] = useState(b?.notaDespacho ?? "");
+  const [urgente, setUrgente] = useState(b?.urgente ?? false);
+  // Quién recibe, tal como quedó en el borrador: si es uno de los contactos de
+  // la cuenta se vuelve a marcar ese; si no, es «otra persona» con sus datos.
+  const idxRecibeGuardado = b
+    ? contactos.findIndex((c) => Boolean(c.nombre) && c.nombre === b.contactoDespacho.nombre)
+    : -1;
+  const [contactoDespachoIdx, setContactoDespachoIdx] = useState(Math.max(0, idxRecibeGuardado));
   // B4: quien recibe la entrega puede no estar entre los contactos de la
   // cuenta. Si el cliente no tiene ninguno cargado, se arranca directamente
   // en "otra persona" porque no hay nada que elegir.
-  const [otroRecibe, setOtroRecibe] = useState(contactos.length === 0);
-  const [otroNombre, setOtroNombre] = useState("");
-  const [otroDocumento, setOtroDocumento] = useState("");
-  const [otroTelefono, setOtroTelefono] = useState("");
+  const otroGuardado = b != null && idxRecibeGuardado < 0 && Boolean(b.contactoDespacho.nombre);
+  const [otroRecibe, setOtroRecibe] = useState(otroGuardado || contactos.length === 0);
+  const [otroNombre, setOtroNombre] = useState(otroGuardado ? (b?.contactoDespacho.nombre ?? "") : "");
+  const [otroDocumento, setOtroDocumento] = useState(otroGuardado ? (b?.contactoDespacho.documento ?? "") : "");
+  const [otroTelefono, setOtroTelefono] = useState(otroGuardado ? (b?.contactoDespacho.telefono ?? "") : "");
 
-  const [incluye, setIncluye] = useState<string[]>(INCLUYE_POR_DEFECTO);
-  const [gratis, setGratis] = useState("");
-  const [notaFinal, setNotaFinal] = useState("");
+  const [incluye, setIncluye] = useState<string[]>(b ? b.incluye : INCLUYE_POR_DEFECTO);
+  const [gratis, setGratis] = useState(b?.gratis ?? "");
+  const [notaFinal, setNotaFinal] = useState(b?.notaFinal ?? "");
 
   // Expediente: la OC del cliente, el voucher, la cotización firmada. Los
   // archivos esperan en el navegador y suben al guardar, cuando el informe ya
   // tiene id — así adjuntar algo no obliga a crear antes un borrador a medias
   // (mismo camino que el registro de gestión).
   const [pendientes, setPendientes] = useState<AdjuntoPendiente[]>([]);
-  const [subidos, setSubidos] = useState<{ tipo: string; nombre: string; path: string }[]>([]);
+  const [subidos, setSubidos] = useState<{ tipo: string; nombre: string; path: string }[]>(b?.adjuntos ?? []);
 
   const totales = useMemo(() => {
     const subtotal = items
@@ -274,12 +313,15 @@ export function FormularioInforme({
       : contactos[contactoDespachoIdx] ?? principal;
     return {
       serie,
-      presupuestoRef: presupuesto?.codigo ?? venta?.referencia ?? null,
+      // En un borrador reabierto, si el presupuesto guardado ya no está en la
+      // lista (se borró, se confirmó con otro número), el Nº que tenía se
+      // conserva en vez de perderse.
+      presupuestoRef: presupuesto?.codigo ?? venta?.referencia ?? (presupuestoId ? null : (b?.presupuestoRef ?? null)),
       oportunidadId: venta?.oportunidadId ?? null,
       ventaId: venta?.id ?? null,
       // Si el presupuesto elegido es una cotización del CRM, el informe queda
       // atado a ella: es la trazabilidad que el archivo viejo no puede dar.
-      cotizacionId: presupuesto?.fuente === "crm" ? presupuesto.id : null,
+      cotizacionId: presupuesto?.fuente === "crm" ? presupuesto.id : presupuestoId ? null : (b?.cotizacionId ?? null),
       comprobante,
       clienteNuevo,
       clienteNombre,
@@ -451,8 +493,21 @@ export function FormularioInforme({
       }
       toast.success(`Informe Nº ${r.codigo} emitido`);
       window.open(`/api/informes/${id}/pdf`, "_blank");
-      router.refresh();
+      // Un borrador que se estaba editando ya no es borrador: se pasa a la
+      // pantalla del cierre emitido, que es donde vive desde ahora.
+      if (b) router.push(`/comercial/cierres/${id}`);
+      else router.refresh();
     });
+  }
+
+  // Guardar sin abrir el PDF (03-09). Hasta hoy la única manera de guardar un
+  // borrador era «Ver borrador PDF»: para dejarlo a medias y seguir después
+  // había que abrir una pestaña que no se quería mirar.
+  async function guardarBorrador() {
+    const id = await guardar();
+    if (!id) return;
+    toast.success("Borrador guardado. Sigue en «Mis cierres», sin número, hasta que lo emita.");
+    if (!b) router.push(`/comercial/cierres/${id}/editar`);
   }
 
   const faltan = prellenado.camposTotales - prellenado.camposResueltos;
@@ -460,10 +515,17 @@ export function FormularioInforme({
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-secondary/50 px-3.5 py-2.5">
-        <p className="text-sm text-foreground">
-          El CRM ya completó <b>{prellenado.camposResueltos}</b> de {prellenado.camposTotales} campos.
-          {faltan > 0 && <span className="text-muted-foreground"> Quedan {faltan} por llenar.</span>}
-        </p>
+        {b ? (
+          <p className="text-sm text-foreground">
+            Borrador guardado el <b>{fechaHoraLima(b.guardadoAt)}</b>.
+            <span className="text-muted-foreground"> Todo lo que escribió está acá; termine de completarlo y emítalo.</span>
+          </p>
+        ) : (
+          <p className="text-sm text-foreground">
+            El CRM ya completó <b>{prellenado.camposResueltos}</b> de {prellenado.camposTotales} campos.
+            {faltan > 0 && <span className="text-muted-foreground"> Quedan {faltan} por llenar.</span>}
+          </p>
+        )}
         <button
           type="button"
           onClick={() => setVerTodo((v) => !v)}
@@ -1116,6 +1178,9 @@ export function FormularioInforme({
       )}
 
       <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+        <Button type="button" variant="outline" onClick={guardarBorrador} disabled={guardando}>
+          <Save className="size-4" /> Guardar borrador
+        </Button>
         <Button type="button" variant="outline" onClick={verBorrador} disabled={guardando}>
           <FileText className="size-4" /> Ver borrador PDF
         </Button>
@@ -1123,8 +1188,9 @@ export function FormularioInforme({
           Emitir informe
         </Button>
         <p className="w-full text-xs text-muted-foreground">
-          El número se asigna recién al emitir: mirar el borrador no gasta un correlativo. Una vez emitido, el informe
-          ya no se modifica.
+          El número se asigna recién al emitir: guardar o mirar el borrador no gasta un correlativo, y el borrador se
+          puede seguir editando desde «Mis cierres» sin código. Una vez emitido, corregirlo pide el código de
+          operaciones o gerencia.
         </p>
       </div>
     </div>

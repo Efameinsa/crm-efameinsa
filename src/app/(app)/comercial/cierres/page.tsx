@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText, Search } from "lucide-react";
+import { FileText, PencilLine, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -177,12 +177,14 @@ export default async function MisCierresPage({
               {/* 02-09 (gerencia, Word del 01.09 punto 3): la fila abre el
                   cierre como PANTALLA —de quién es, cuánto, cómo paga, los
                   equipos, el expediente y cómo se hizo la venta—; el PDF queda
-                  en el ícono de la derecha. Modificar no se puede: lo único
-                  que admite un emitido es agregar un documento con código. */}
+                  en el ícono de la derecha. Un emitido se corrige con código.
+                  Un BORRADOR, en cambio, abre directo en el formulario para
+                  terminarlo, sin código (Santos, 03-09: «no tiene sentido que
+                  se guarden en borrador si no se pueden editar»). */}
               <Link
-                href={`/comercial/cierres/${f.id}`}
-                title="Ver el cierre completo"
-                aria-label={`Ver el cierre de ${f.cliente_nombre}`}
+                href={f.emitido_at || f.anulado_at ? `/comercial/cierres/${f.id}` : `/comercial/cierres/${f.id}/editar`}
+                title={f.emitido_at || f.anulado_at ? "Ver el cierre completo" : "Seguir editando el borrador"}
+                aria-label={`${f.emitido_at || f.anulado_at ? "Ver el cierre" : "Editar el borrador"} de ${f.cliente_nombre}`}
                 className="absolute inset-0 rounded-md"
               />
               <span className="truncate font-mono text-xs font-semibold text-foreground">
@@ -232,6 +234,18 @@ export default async function MisCierresPage({
                 >
                   <FileText className="size-3.5 flex-none" />
                 </a>
+                {/* Editar el borrador (03-09): el lápiz dice a la vista que un
+                    borrador se sigue, aunque la fila entera ya lleve ahí. */}
+                {!f.emitido_at && !f.anulado_at && (
+                  <Link
+                    href={`/comercial/cierres/${f.id}/editar`}
+                    title="Seguir editando el borrador"
+                    aria-label={`Editar el borrador de ${f.cliente_nombre}`}
+                    className="relative z-10 inline-flex size-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10"
+                  >
+                    <PencilLine className="size-3.5 flex-none" />
+                  </Link>
+                )}
                 {/* Borrar el borrador: pedido de Brenda el 31-08, autorizado por
                     Santos. Solo aparece si no está emitido; la base lo vuelve a
                     exigir con la política `informes_borra`. */}
