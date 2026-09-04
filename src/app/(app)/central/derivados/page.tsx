@@ -134,9 +134,9 @@ export default async function DerivadosPage({
   // CUÁNTAS TARJETAS SE PINTAN DE UNA VEZ. El período de 30 días trae más de
   // ciento cincuenta contactos y cada uno es una tarjeta alta: la página se
   // volvía kilométrica y lo de abajo quedaba enterrado (Santos, 04-09). Se
-  // pintan quince y el resto se pide con un enlace, que viaja en la URL: sin
+  // pintan treinta y el resto se pide con un botón, y el número viaja en la URL: sin
   // estado, y la vista se puede compartir tal como se está mirando.
-  const TANDA = 15;
+  const TANDA = 30;
   const mostrar = Math.max(TANDA, Number(sp.mostrar) || TANDA);
   const conParams = (extra: Record<string, string>) => {
     const p = new URLSearchParams();

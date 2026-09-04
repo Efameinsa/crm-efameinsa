@@ -462,10 +462,14 @@ Lo hace porque los contadores de los cajones («Sin atender · 12», «En gesti�
 cincuenta contactos y cada «Ver 15 más» vuelve a pagar ese costo completo: uno
 o dos segundos que Central leyó como que la pantalla se congelaba.
 
-**Lo que se hizo el 04-09, que es un parche honesto.** El botón avisa que está
-cargando (`VerMasBoton`, con `useTransition`) y el período por defecto pasó de
-30 días a la semana, que baja el conjunto a unos cuarenta. La espera sigue
-existiendo; ahora se ve y dura menos.
+**Lo que se hizo el 04-09, que es un parche honesto.** Cuatro cosas: el botón
+avisa que está cargando (`VerMasBoton`, con `useTransition`); el período por
+defecto pasó de 30 días a la semana, que baja el conjunto a unos cuarenta; la
+tanda subió de 15 a 30 tarjetas, que cuesta lo mismo porque el costo no depende
+de cuántas se pinten; y el tramo siguiente se pide por adelantado
+(`router.prefetch`) apenas aparece el botón, así que al hacer clic la respuesta
+suele estar ya en el navegador. La espera sigue existiendo bajo el capó; ahora
+se adelanta, se ve, y ocurre la mitad de veces.
 
 **Lo que falta, cuando haya tiempo y calma.** Separar las dos cosas que hoy van
 juntas:

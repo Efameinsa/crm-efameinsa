@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,10 @@ import { cn } from "@/lib/utils";
  * pantalla y Central lo leyó como que se congelaba (04-09).
  *
  * Con `useTransition` el botón se apaga y dice «Cargando…» desde el primer
- * milisegundo. La espera es la misma; la diferencia es que se ve.
+ * milisegundo. Y el tramo siguiente se pide APENAS APARECE el botón, no cuando
+ * lo tocan: para cuando Central llega al final de la lista y hace clic, la
+ * respuesta suele estar ya en el navegador y el cambio es inmediato. Si no
+ * llegó, el «Cargando…» cubre la espera.
  */
 export function VerMasBoton({
   href,
@@ -27,6 +30,12 @@ export function VerMasBoton({
 }) {
   const router = useRouter();
   const [cargando, empezar] = useTransition();
+
+  // Se adelanta el trabajo: el servidor prepara el tramo siguiente mientras la
+  // persona todavía está leyendo el actual.
+  useEffect(() => {
+    router.prefetch(href);
+  }, [router, href]);
 
   return (
     <button
