@@ -2,6 +2,8 @@ import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { PantallaCotizador } from "@/components/crm/pantalla-cotizador";
 import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
 import { cargarContextoCotizador } from "@/lib/datos-cotizador";
+import { tipoCambioDeGerencia } from "@/lib/datos-cotizador";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +50,7 @@ export default async function CorregirCotizacionPage({
       solicitud={contexto.solicitud}
       productos={contexto.productos}
       historialPrecios={contexto.historialPrecios}
+      tipoCambio={await tipoCambioDeGerencia(await createClient())}
       edicion={contexto.borrador}
     />
   );

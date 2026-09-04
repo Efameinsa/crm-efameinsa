@@ -1,6 +1,8 @@
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { PantallaCotizador } from "@/components/crm/pantalla-cotizador";
 import { cargarContextoCotizador } from "@/lib/datos-cotizador";
+import { tipoCambioDeGerencia } from "@/lib/datos-cotizador";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,7 @@ export default async function NuevaCotizacionPage({ params }: { params: Promise<
       solicitud={contexto.solicitud}
       productos={contexto.productos}
       historialPrecios={contexto.historialPrecios}
+      tipoCambio={await tipoCambioDeGerencia(await createClient())}
     />
   );
 }

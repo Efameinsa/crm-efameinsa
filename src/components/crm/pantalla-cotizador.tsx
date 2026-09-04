@@ -159,6 +159,7 @@ export function PantallaCotizador({
   productos,
   historialPrecios,
   edicion,
+  tipoCambio,
 }: {
   oportunidadId: string;
   cuenta: ContextoCotizador["cuenta"];
@@ -168,11 +169,19 @@ export function PantallaCotizador({
   historialPrecios: Record<string, HistorialPrecio>;
   /** El borrador que se entró a corregir; sin esto la pantalla empieza vacía. */
   edicion?: BorradorEnEdicion;
+  /** USD→PEN, el que mantiene gerencia en `parametros.tc_usd_pen` (0169). */
+  tipoCambio: number;
 }) {
   const router = useRouter();
   const volverHref = `/comercial/oportunidades/${oportunidadId}`;
 
   const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(edicion?.serie ?? "EFAMEINSA");
+  // COTIZAR EN SOLES (0169). El cotizador sigue trabajando en dólares —ahí
+  // están el maestro de precios, el piso y la aprobación de gerencia—; esto
+  // solo decide en qué moneda se imprime el papel del cliente. El cambio lo
+  // fija gerencia, no el comercial.
+  const [monedaImpresa, setMonedaImpresa] = useState<"USD" | "PEN">(edicion?.monedaImpresa ?? "USD");
+  const tcDelDocumento = edicion?.tipoCambio ?? tipoCambio;
   const [carrito, setCarrito] = useState<ItemCarrito[]>(
     () =>
       edicion?.items.map((i) => ({
@@ -301,6 +310,8 @@ export function PantallaCotizador({
         formaPago: datos.formaPago,
         saldo: datos.saldo,
       },
+      monedaImpresa,
+      tipoCambio: tcDelDocumento,
     });
 
     if (r.error) {
@@ -328,7 +339,7 @@ export function PantallaCotizador({
       tipo: "limpio",
       hora: new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", timeZone: "America/Lima" }),
     });
-  }, [oportunidadId, serie, volverHref]);
+  }, [oportunidadId, serie, volverHref, monedaImpresa, tcDelDocumento]);
 
   const encolarGuardado = useCallback(() => {
     // El `catch` mantiene la cola viva: si un guardado se cae (la red del
@@ -870,6 +881,32 @@ export function PantallaCotizador({
               )}
             </div>
 
+            {/* En qué moneda se le entrega el papel al cliente. Los precios se
+                siguen trabajando en dólares —el catálogo, el piso y la
+                aprobación de gerencia son dólares— y la conversión la hace el
+                documento al tipo de cambio de gerencia (0169). */}
+            <div className="space-y-2">
+              <Label htmlFor="moneda">Moneda del documento</Label>
+              <Select
+                value={monedaImpresa}
+                onValueChange={(v) => setMonedaImpresa((v as "USD" | "PEN") ?? "USD")}
+                disabled={ocupado}
+              >
+                <SelectTrigger id="moneda" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">Dólares (US$)</SelectItem>
+                  <SelectItem value="PEN">Soles (S/)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                {monedaImpresa === "PEN"
+                  ? `Los precios se siguen poniendo en dólares; el documento sale en soles al tipo de cambio de gerencia, S/ ${tcDelDocumento.toFixed(2)} por dólar.`
+                  : "Puede entregarlo en soles: el sistema hace la conversión al imprimir."}
+              </p>
+            </div>
+
             {/* Sale impreso como el punto 1 de "Importante". Hasta el 24-08 era
                 un texto fijo; se elige por cotización porque lo acordado cambia
                 con cada cliente (migración 0066). */}
@@ -1129,6 +1166,14 @@ export function PantallaCotizador({
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Total con IGV</dt>
                 <dd className="font-bold tabular-nums text-foreground">US$ {monto(subtotal + igv)}</dd>
+                {monedaImpresa === "PEN" && (
+                  <>
+                    <dt className="text-muted-foreground">Va impreso en soles</dt>
+                    <dd className="font-bold tabular-nums text-foreground">
+                      S/ {monto((subtotal + igv) * tcDelDocumento)}
+                    </dd>
+                  </>
+                )}
               </div>
             </dl>
             {haySinFicha && (

@@ -54,6 +54,8 @@ interface FilaPresupuesto {
   cliente: string;
   /** Del archivo del Word (anterior al CRM): el PDF sale de otra ruta. */
   delArchivo: boolean;
+  /** El documento se le entregó al cliente en soles (0169). El total sigue en dólares. */
+  enSoles?: boolean;
 }
 
 interface Comercial {
@@ -98,7 +100,7 @@ export default async function PresupuestosCentralPage({
   // tabla de cantidades: una cotización de las 8 pm no cae en «mañana».
   let consulta = supabase
     .from("cotizaciones")
-    .select("id, codigo, serie, estado, total, moneda, enviada_at, oportunidades!inner(comercial_id, cuentas(razon_social))", {
+    .select("id, codigo, serie, estado, total, moneda, moneda_impresa, enviada_at, oportunidades!inner(comercial_id, cuentas(razon_social))", {
       count: "exact",
     })
     .not("correlativo", "is", null)
@@ -175,6 +177,7 @@ export default async function PresupuestosCentralPage({
       comercialId: op?.comercial_id ?? "",
       cliente: op?.cuentas?.razon_social ?? "Cliente sin nombre",
       delArchivo: false,
+      enSoles: c.moneda_impresa === "PEN",
     };
   });
 
@@ -331,6 +334,14 @@ export default async function PresupuestosCentralPage({
                   </TableCell>
                   <TableCell className="py-1.5 text-right tabular-nums text-foreground">
                     {f.total == null ? <span className="text-muted-foreground">—</span> : `${f.moneda} ${dinero(f.total)}`}
+                    {f.enSoles && (
+                      <span
+                        className="ml-1.5 rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground"
+                        title="Se le entregó al cliente en soles; el control se lleva en dólares"
+                      >
+                        en S/
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="py-1.5">
                     <span

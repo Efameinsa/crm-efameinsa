@@ -112,6 +112,10 @@ export async function guardarBorradorCotizacion(datos: {
   vigenciaDias: number;
   entregaLugar?: string | null;
   condicionesFicha?: CondicionesFicha;
+  /** En qué moneda se imprime el papel. Los importes siguen en dólares (0169). */
+  monedaImpresa?: "USD" | "PEN";
+  /** El que fija gerencia en `parametros.tc_usd_pen`; obligatorio si va en soles. */
+  tipoCambio?: number | null;
 }): Promise<{ error: string | null; cotizacionId: string | null; estadoAprobacion?: string }> {
   const supabase = await createClient();
 
@@ -132,6 +136,8 @@ export async function guardarBorradorCotizacion(datos: {
       p_items: datos.items,
       p_condiciones: datos.condiciones || null,
       p_vigencia_dias: datos.vigenciaDias,
+      p_moneda_impresa: datos.monedaImpresa ?? "USD",
+      p_tipo_cambio: datos.monedaImpresa === "PEN" ? (datos.tipoCambio ?? null) : null,
     });
     if (error) return { error: limpiarError(error.message), cotizacionId: null };
 
@@ -154,6 +160,8 @@ export async function guardarBorradorCotizacion(datos: {
     p_items: datos.items,
     p_condiciones: datos.condiciones || null,
     p_vigencia_dias: datos.vigenciaDias,
+    p_moneda_impresa: datos.monedaImpresa ?? null,
+    p_tipo_cambio: datos.monedaImpresa === "PEN" ? (datos.tipoCambio ?? null) : null,
   });
   if (error) return { error: limpiarError(error.message), cotizacionId: datos.cotizacionId };
 

@@ -107,6 +107,9 @@ export interface CotizacionParaPdf {
   correlativo: number | null;
   serie: "EFAMEINSA" | "OPEN";
   moneda: string;
+  /** Moneda en la que se imprime, y el cambio congelado (0169). */
+  moneda_impresa?: string | null;
+  tipo_cambio?: number | string | null;
   condiciones: string | null;
   vigencia_dias: number;
   entrega_lugar: string | null;

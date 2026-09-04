@@ -89,6 +89,10 @@ export interface BorradorEnEdicion {
   /** Cuántas veces salió este número. 1 = como se emitió (migración 0123). */
   version?: number;
   serie: "EFAMEINSA" | "OPEN";
+  /** En qué moneda se imprime (0169). Los importes del borrador son dólares. */
+  monedaImpresa: "USD" | "PEN";
+  /** El tipo de cambio con el que nació, si es en soles. */
+  tipoCambio: number | null;
   condiciones: string | null;
   vigenciaDias: number;
   entregaLugar: string | null;

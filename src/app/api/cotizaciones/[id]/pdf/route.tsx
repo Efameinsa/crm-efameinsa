@@ -18,7 +18,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data: cotizacion } = await supabase
     .from("cotizaciones")
     .select(
-      `codigo, correlativo, serie, moneda, condiciones, vigencia_dias, entrega_lugar,
+      `codigo, correlativo, serie, moneda, moneda_impresa, tipo_cambio, condiciones, vigencia_dias, entrega_lugar,
        tiempo_entrega, garantia, forma_pago, saldo, cliente_snapshot, created_at,
        cotizacion_items(cantidad, precio_unitario, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
        oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
@@ -29,7 +29,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   if (!cotizacion) return NextResponse.json({ error: "Cotización no encontrada" }, { status: 404 });
 
-  const buffer = await renderizarCotizacionPdf(cotizacion as unknown as CotizacionParaPdf);
+  // COTIZAR EN SOLES (0169). Los importes se guardan en dólares —ahí viven el
+  // piso de precio, la aprobación de gerencia y todos los tableros—; el papel
+  // se imprime en la moneda que eligió el comercial, al tipo de cambio que
+  // fijó gerencia y que quedó congelado en el documento. Se convierte acá,
+  // una sola vez, antes de dibujar: el PDF ya sabía escribir «S/».
+  const paraPdf = enMonedaDelDocumento(cotizacion as unknown as CotizacionParaPdf);
+  const buffer = await renderizarCotizacionPdf(paraPdf);
   const snapshot = cotizacion.cliente_snapshot as { razon_social: string };
 
   // Red de seguridad: si alguna ficha se pasó del alto por poco, react-pdf deja
@@ -52,4 +58,24 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       ),
     },
   });
+}
+
+/**
+ * La misma cotización, vista en la moneda del documento.
+ *
+ * Multiplica los precios unitarios por el tipo de cambio congelado y cambia la
+ * moneda que lee el dibujo. No toca la base: es una copia para imprimir.
+ */
+function enMonedaDelDocumento(c: CotizacionParaPdf): CotizacionParaPdf {
+  const tc = Number(c.tipo_cambio ?? 0);
+  if (c.moneda_impresa !== "PEN" || !(tc > 0)) return c;
+  const items = (c.cotizacion_items as { precio_unitario: number }[] | null) ?? [];
+  return {
+    ...c,
+    moneda: "PEN",
+    cotizacion_items: items.map((i) => ({
+      ...i,
+      precio_unitario: Math.round(Number(i.precio_unitario) * tc * 100) / 100,
+    })),
+  };
 }
