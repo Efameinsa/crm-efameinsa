@@ -992,3 +992,62 @@ salida: jueves 16:30, lunes 18:30, sábado 11:30, el resto 17:30. Se genera con
 **04-09, 19:00 — se hizo más amable el «ver más», sin tocar el fondo.** La tanda pasó de 15 a 30 tarjetas (el costo del servidor no depende de cuántas se pinten, así que treinta cuesta lo mismo que quince y son la mitad de clics) y el tramo siguiente se pide por adelantado con `router.prefetch` apenas aparece el botón: cuando Central llega al final de la lista y hace clic, la respuesta suele estar ya en el navegador. El pendiente de fondo —separar contadores de tarjetas— sigue anotado en el plan 22 y sin hacer.
 
 **04-09, 19:10 — la espera del «ver más» ahora se ve como avance, no como cuelgue.** Santos preguntó por la respuesta optimista. La de manual no cabe —los contactos que faltan no están en el navegador, no hay nada que adivinar—, pero sí la misma idea: **ocupar el sitio de inmediato**. Al tocar el botón aparecen al instante hasta seis tarjetas en gris, del alto que van a tener, y cuando llega la respuesta se cambian por las de verdad; la página crece en el mismo momento del clic. El componente `VerMas` reemplaza a `VerMasBoton` y ahora dibuja también la barra completa, porque los esqueletos tienen que ir ARRIBA de ella, en el flujo de la lista. Con eso y el prefetch, en la mayoría de los clics los grises ni alcanzan a verse.
+
+---
+
+## Dónde quedó todo el viernes 04-09 a las 19:15, y por dónde sigue el lunes
+
+**Lo que quedó vivo en producción hoy.** Nueve migraciones (0165 a 0173) y
+catorce despliegues. En orden: postventa lee el informe de su pedido; los
+rangos de numeración de postventa (Open 600, Efameinsa 2250, cierres 30);
+Central lee el archivo de presupuestos del Word; el aviso a tres áreas; los
+rubros restringidos a operaciones; el pedido de anulación desde el comercial;
+cotizar en soles a 3,63; el aviso revertible con código; el aviso que encuentra
+al cliente por teléfono y por nombre; y la corrección de `anular_cierre`, que
+reventaba al anular un cierre sin heredero.
+
+**Lo primero del lunes, el caso Sierra Travel.** Está a medio camino y tiene
+orden:
+
+1. Katerine ya pidió la anulación del cierre 011-2026 (16:48 del viernes).
+   **Lesly lo anula** con su código, desde el recuadro amarillo de Cierres de
+   venta.
+2. Katerine rehace la cotización con **USD 1.987,29 sin IGV**, que son los
+   2.345 con IGV que acordó. **Va a quedar pendiente de aprobación de
+   gerencia**, porque el mínimo de esa lavadora es 2.250. Carlos ya lo aprobó
+   de palabra: falta que lo apruebe en su bandeja, o Katerine no puede enviarla.
+3. Central libera el cierre nuevo y le pone el número de pedido del ERP
+   completo.
+4. **Y hay que volver a pasarle a postventa la instrucción de despacho**:
+   Espinoza Cargo, Carlos Zavala 369, destino Huamanga, a nombre de Elvia Rojas
+   Salas, para el lunes 7 o martes 8. El pedido nuevo nace vacío y esa
+   instrucción se quedó en el pedido viejo, que se cerró al anular.
+
+**Lo que espera de otras personas.** Ariana: numerar desde el 600 y el 2250,
+cierres 30, 31 y 32, el cierre de Hotel Curasi de agosto (USD 872) que no llegó
+al CRM, e instalar el CRM en el escritorio. Lesly: los rubros nuevos ahora los
+crea ella, unir las dos fichas de Hotel Curasi, decidir qué pasa con la cuenta
+Post Venta de Hever, y las medidas de los coches que espera Ariana. Central:
+corregir los siete contactos con fecha de recepción en 2027 y 2033, y tener
+WhatsApp Web abierto para las derivaciones a Finanzas.
+
+**Lo que espera de Carlos.** Cuál de los dos Presu_454-26 se renumera al 599,
+que ya está apartado. Si postventa ve o no los documentos del expediente. El
+tema de Tomy Jiro, cuyos presupuestos siguen en manos de Santos. Y las doce
+contradicciones del documento de procesos (silencio del prospecto, plazo del
+preventivo, garantía en Lima, vigencia de la cotización y ocho más), que
+bloquean el modelado en Camunda.
+
+**Lo que sigue por el lado del sistema, en orden de valor.** La línea de texto
+libre en el cotizador, que es lo único que separa a postventa del Word. Subir
+los cierres 30, 31 y 32 cuando Ariana los tenga. Cargar al archivo las 18
+cotizaciones de Open que quedaron con numeración de Efameinsa. La derivación de
+servicios que no mueva la cartera. Y el pendiente de rendimiento de «Lo que
+derivé», anotado en el plan 22.
+
+**Documentos entregados hoy, en Descargas.** «Notas Santos - viernes 04-09
+(17h).docx» con los mensajes listos para cada persona; «Reporte semanal
+registro CRM 31-08 al 04-09.txt»; «Efameinsa - reglas de negocio y mapa de
+procesos para Camunda.txt» con 200 reglas, 19 diagramas y las doce
+contradicciones; y «Efameinsa - insumos para manual de identidad
+corporativa.txt».
