@@ -182,6 +182,18 @@ export function PantallaCotizador({
   // fija gerencia, no el comercial.
   const [monedaImpresa, setMonedaImpresa] = useState<"USD" | "PEN">(edicion?.monedaImpresa ?? "USD");
   const tcDelDocumento = edicion?.tipoCambio ?? tipoCambio;
+  // Toda la pantalla trabaja en la moneda elegida: el precio que se escribe,
+  // el subtotal, la referencia y los totales. Lo que se GUARDA sigue siendo
+  // dólares —el maestro de Lesly, el piso y la aprobación de gerencia son
+  // dólares—, así que se convierte al mostrar y se devuelve a dólares al
+  // escribir. Redondear a dos decimales en cada paso evita que aparezcan
+  // colas como 3634.9999999.
+  const enSoles = monedaImpresa === "PEN";
+  const simbolo = enSoles ? "S/" : "US$";
+  const dosDecimales = (n: number) => Math.round(n * 100) / 100;
+  const aVista = (usd: number) => (enSoles ? dosDecimales(usd * tcDelDocumento) : dosDecimales(usd));
+  const aDolares = (vista: number) => (enSoles ? dosDecimales(vista / tcDelDocumento) : dosDecimales(vista));
+  const importe = (usd: number) => `${simbolo} ${monto(aVista(usd))}`;
   const [carrito, setCarrito] = useState<ItemCarrito[]>(
     () =>
       edicion?.items.map((i) => ({
@@ -270,8 +282,12 @@ export function PantallaCotizador({
         garantia,
         formaPago,
         saldo,
+        // Sin esto, elegir soles no ensuciaba el borrador: no se guardaba y el
+        // PDF seguía saliendo en dólares (reportado el 04-09, mismo día).
+        monedaImpresa,
+        tcDelDocumento,
       }),
-    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo],
+    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, monedaImpresa, tcDelDocumento],
   );
 
   const payloadRef = useRef(payload);
@@ -740,22 +756,25 @@ export function PantallaCotizador({
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[11px] text-muted-foreground">Precio unit. (US$)</Label>
+                          <Label className="text-[11px] text-muted-foreground">Precio unit. ({simbolo})</Label>
                           <Input
                             type="number"
                             min={0}
                             step="0.01"
                             className={cn("w-32 tabular-nums", bajoLista && "border-amber-500 text-amber-800")}
-                            value={item.precio_unitario}
+                            value={aVista(item.precio_unitario)}
                             onChange={(e) =>
-                              actualizarItem(i, { precio_unitario: Number(e.target.value) || 0, tier_aplicado: undefined })
+                              actualizarItem(i, {
+                                precio_unitario: aDolares(Number(e.target.value) || 0),
+                                tier_aplicado: undefined,
+                              })
                             }
                           />
                         </div>
                         <div className="min-w-[7rem] space-y-1 text-right">
                           <Label className="text-[11px] text-muted-foreground">Subtotal</Label>
                           <p className="h-9 text-sm font-semibold tabular-nums leading-9 text-foreground">
-                            US$ {monto(item.cantidad * item.precio_unitario)}
+                            {importe(item.cantidad * item.precio_unitario)}
                           </p>
                         </div>
                         <Button
@@ -812,7 +831,7 @@ export function PantallaCotizador({
                                 descuento >= 25 ? "text-destructive" : "text-amber-900",
                               )}
                             >
-                              por debajo de la referencia (US$ {monto(item.precioPiso)}) — requiere aprobación de
+                              por debajo de la referencia ({importe(item.precioPiso)}) — requiere aprobación de
                               gerencia
                             </span>
                             <button
@@ -838,7 +857,7 @@ export function PantallaCotizador({
                         )}
                         {historial && (
                           <p className={cn("text-xs", regalandoMargen ? "font-bold text-amber-700" : "text-muted-foreground")}>
-                            📌 Este cliente compró este equipo a US$ {historial.precio.toLocaleString("es-PE")} el{" "}
+                            📌 Este cliente compró este equipo a {importe(historial.precio)} el{" "}
                             {fechaCalendario(historial.fecha)}
                           </p>
                         )}
@@ -901,9 +920,9 @@ export function PantallaCotizador({
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-muted-foreground">
-                {monedaImpresa === "PEN"
-                  ? `Los precios se siguen poniendo en dólares; el documento sale en soles al tipo de cambio de gerencia, S/ ${tcDelDocumento.toFixed(2)} por dólar.`
-                  : "Puede entregarlo en soles: el sistema hace la conversión al imprimir."}
+                {enSoles
+                  ? `Toda la pantalla y el PDF van en soles, al tipo de cambio de gerencia: S/ ${tcDelDocumento.toFixed(2)} por dólar. Internamente el CRM sigue midiendo en dólares, que es como se controla el precio de referencia.`
+                  : "Puede entregarlo en soles: se convierte todo, incluido el PDF."}
               </p>
             </div>
 
@@ -1086,15 +1105,15 @@ export function PantallaCotizador({
                 <span>
                   {carrito.length} {carrito.length === 1 ? "equipo" : "equipos"}
                 </span>
-                <span className="tabular-nums">US$ {monto(subtotal)}</span>
+                <span className="tabular-nums">{importe(subtotal)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>IGV {(IGV * 100).toFixed(0)}%</span>
-                <span className="tabular-nums">US$ {monto(igv)}</span>
+                <span className="tabular-nums">{importe(igv)}</span>
               </div>
               <div className="flex justify-between border-t border-border pt-1.5 text-base font-bold text-foreground">
                 <span>Total con IGV</span>
-                <span className="tabular-nums">US$ {monto(subtotal + igv)}</span>
+                <span className="tabular-nums">{importe(subtotal + igv)}</span>
               </div>
             </div>
 
@@ -1165,13 +1184,11 @@ export function PantallaCotizador({
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Total con IGV</dt>
-                <dd className="font-bold tabular-nums text-foreground">US$ {monto(subtotal + igv)}</dd>
-                {monedaImpresa === "PEN" && (
+                <dd className="font-bold tabular-nums text-foreground">{importe(subtotal + igv)}</dd>
+                {enSoles && (
                   <>
-                    <dt className="text-muted-foreground">Va impreso en soles</dt>
-                    <dd className="font-bold tabular-nums text-foreground">
-                      S/ {monto((subtotal + igv) * tcDelDocumento)}
-                    </dd>
+                    <dt className="text-muted-foreground">Equivale a</dt>
+                    <dd className="tabular-nums text-muted-foreground">US$ {monto(subtotal + igv)}</dd>
                   </>
                 )}
               </div>
