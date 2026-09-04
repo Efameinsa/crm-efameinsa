@@ -5,6 +5,8 @@ import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { cn } from "@/lib/utils";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
+import { requerirPerfil } from "@/lib/auth";
+import { puedeVerPrecios } from "@/lib/postventa";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ResumenCuenta } from "@/components/crm/resumen-cuenta";
@@ -22,6 +24,9 @@ import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor"
 
 export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId: string; comoGerencia?: boolean }) {
   const supabase = await createClient();
+  // Desde la 0165 el área de postventa también lee los informes de cierre;
+  // las cifras se le tapan acá (Carlos, 27-08).
+  const verPrecios = puedeVerPrecios(await requerirPerfil());
 
   const { data: cuenta } = await supabase
     .from("cuentas")
@@ -209,7 +214,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               ejecutarla. El contenido vive en secciones-cliente.tsx, compartido
               con la ficha de oportunidad (C5 del plan 11). */}
           <SeccionPanel titulo="Informes de cierre" accion={<AccionNuevoInforme cuentaId={cuenta.id} />}>
-            <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} />
+            <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} sinPrecios={!verPrecios} />
           </SeccionPanel>
 
           {ventasConDetalle.length > 0 && (

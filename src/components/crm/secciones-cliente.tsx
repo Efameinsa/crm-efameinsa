@@ -53,10 +53,13 @@ export function AccionNuevoInforme({ cuentaId }: { cuentaId: string }) {
 export function ListaInformesCierre({
   informes,
   adjuntosPorInforme,
+  sinPrecios = false,
 }: {
   informes: InformeCuenta[];
   /** El expediente de cada informe, ya con sus URLs firmadas (migración 0099). */
   adjuntosPorInforme?: Map<string, AdjuntoCierreFirmado[]>;
+  /** El área de postventa ve el número y el expediente, no las cifras ni el PDF (0165). */
+  sinPrecios?: boolean;
 }) {
   if (informes.length === 0) {
     return (
@@ -78,23 +81,27 @@ export function ListaInformesCierre({
                 {inf.serie === "OPEN" ? "Open Investments" : "Efameinsa"}
               </span>
               <span className="tabular-nums text-muted-foreground">{fechaCalendario(inf.fecha)}</span>
-              <span className="font-semibold tabular-nums text-foreground">
-                {inf.moneda} {Number(inf.monto_total).toLocaleString("es-PE")}
-              </span>
+              {!sinPrecios && (
+                <span className="font-semibold tabular-nums text-foreground">
+                  {inf.moneda} {Number(inf.monto_total).toLocaleString("es-PE")}
+                </span>
+              )}
               {!inf.emitido_at && (
                 <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                   sin numerar
                 </span>
               )}
             </span>
-            <a
-              href={`/api/informes/${inf.id}/pdf`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
-            >
-              <FileText className="size-3" /> Ver PDF
-            </a>
+            {!sinPrecios && (
+              <a
+                href={`/api/informes/${inf.id}/pdf`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+              >
+                <FileText className="size-3" /> Ver PDF
+              </a>
+            )}
           </div>
 
           {/* El expediente: la OC del cliente, el voucher, la cotización

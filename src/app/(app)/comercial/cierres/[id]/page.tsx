@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
+import { puedeVerPrecios } from "@/lib/postventa";
 import { VistaCierre, type InformeVista, type ItemVista, type VersionVista } from "@/components/crm/vista-cierre";
 import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
 import { cargarCompendio, oportunidadDelInforme } from "@/lib/compendio-cierre";
@@ -33,6 +34,9 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
     .eq("id", id)
     .maybeSingle();
   if (!informe) notFound();
+  // Desde la 0165 postventa lee la fila para el expediente del pedido; la
+  // vista completa, con cifras, no es para esa área (salvo un cierre propio).
+  if (!puedeVerPrecios(perfil) && informe.creado_por !== perfil.id) notFound();
 
   const [adjuntosPorInforme, compendio, { data: versionesData }, { data: ventanaData }] = await Promise.all([
     firmarAdjuntosDeCierres(supabase, [{ id: informe.id, adjuntos: (informe.adjuntos ?? []) as AdjuntoCierre[] }]),

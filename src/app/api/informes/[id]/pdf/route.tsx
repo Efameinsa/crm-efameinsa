@@ -8,10 +8,14 @@ import { InformeCierrePdf, type ItemInforme } from "@/lib/pdf/informe-cierre-pdf
 import { etiquetaTipo, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
 import { cargarCompendio, oportunidadDelInforme } from "@/lib/compendio-cierre";
 import { fechaCalendario } from "@/lib/fechas";
+import { puedeVerPrecios } from "@/lib/postventa";
 
 // PDF del informe de cierre de ventas que se le manda a Central.
 // La autorización la hace RLS (migración 0049): el comercial ve los de SU
 // cartera, gerencia y Central ven todos. Sin permiso el select viene vacío.
+// Desde la 0165 el área de postventa también lee la fila (para el expediente
+// del pedido), pero el PDF trae las cifras: a postventa se le niega, salvo
+// que el cierre lo haya hecho su propia cuenta.
 const LOGO_BUFFER = readFileSync(join(process.cwd(), "public", "logo-efameinsa.png"));
 
 interface ItemGuardado extends ItemInforme {
@@ -34,6 +38,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .maybeSingle();
 
   if (!informe) return NextResponse.json({ error: "Informe no encontrado" }, { status: 404 });
+
+  const { data: perfil } = await supabase.from("perfiles").select("rol, es_postventa").eq("id", user.id).maybeSingle();
+  if (perfil && !puedeVerPrecios(perfil) && informe.creado_por !== user.id) {
+    return NextResponse.json({ error: "El área de postventa no ve las cifras del cierre" }, { status: 403 });
+  }
 
   const guardados = (informe.items ?? []) as ItemGuardado[];
   const comercial = informe.perfiles as unknown as {

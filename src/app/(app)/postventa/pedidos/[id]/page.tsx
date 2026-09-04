@@ -155,7 +155,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                 <FileText className="size-3.5" /> Apertura de despacho
               </Link>
             )}
-            {informe?.id && (
+            {informe?.id && verPrecios && (
               <a
                 href={`/api/informes/${informe.id}/pdf`}
                 target="_blank"

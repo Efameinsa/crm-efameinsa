@@ -1,6 +1,8 @@
 import { Phone, Mail, MapPin, FileText, CalendarClock, Building2 } from "lucide-react";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
+import { requerirPerfil } from "@/lib/auth";
+import { puedeVerPrecios } from "@/lib/postventa";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { RegistroRapido } from "@/components/crm/registro-rapido";
 import { PideServicioBoton } from "@/components/crm/pide-servicio-boton";
@@ -430,7 +432,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
                 cantidad={(informes ?? []).length}
                 accion={<AccionNuevoInforme cuentaId={cuenta.id} />}
               >
-                <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} />
+                <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} sinPrecios={!puedeVerPrecios(await requerirPerfil())} />
               </SeccionPlegable>
 
               {ventasConDetalle.length > 0 && (
