@@ -98,6 +98,7 @@ export default async function CentralPage() {
     { data: leads, count: totalPendientes },
     { data: comerciales },
     { data: derivados },
+    { data: avisosDestinos },
     { count: practicasFuera },
   ] = await Promise.all([
     // Fuera del modo ensayo la cola es solo la real. El conteo sale de esta
@@ -127,6 +128,15 @@ export default async function CentralPage() {
       .eq("estado", "derivado_area")
       .order("recibido_at", { ascending: false })
       .limit(50),
+    // A dónde fue de verdad cada aviso (0168/0171): la lista de arriba solo
+    // guarda un área y por eso parecía que a postventa y al comercial no les
+    // llegaba nada.
+    supabase
+      .from("avisos_derivados")
+      .select("lead_id, a_finanzas, a_postventa, a_comercial, created_at")
+      .is("revertido_at", null)
+      .order("created_at", { ascending: false })
+      .limit(200),
     // Cuántos quedan fuera de la cola por ser de práctica. Se cuentan para
     // DECIRLO, no para esconderlos en silencio: cuando el contacto de la
     // capacitación desapareció de la bandeja, lo primero que preguntó Central
@@ -308,7 +318,17 @@ export default async function CentralPage() {
         </p>
       )}
     </SeccionPanel>
-    {derivados && derivados.length > 0 && <DerivadosOtrasAreas leads={derivados} />}
+    {derivados && derivados.length > 0 && (
+      <DerivadosOtrasAreas
+        leads={derivados.map((l) => {
+          const a = (avisosDestinos ?? []).find((x) => x.lead_id === l.id);
+          return {
+            ...l,
+            destinos: a ? { finanzas: a.a_finanzas, postventa: a.a_postventa, comercial: a.a_comercial } : null,
+          };
+        })}
+      />
+    )}
     <ConsolidadoCentral />
     <CargaDerivacion />
     <CargaCotizaciones />

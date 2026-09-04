@@ -46,6 +46,14 @@ export interface LeadDerivado {
   razon_social: string | null;
   mensaje: string | null;
   recibido_at: string;
+  /**
+   * A dónde fue de verdad el aviso (0168). El contacto guarda UN área, pero un
+   * aviso puede haber ido a tres: Central miraba esta lista, veía «Finanzas y
+   * Tesorería» y concluía que a postventa y al comercial no les había llegado
+   * nada (reportado el 04-09 con capturas). Nulo en los avisos anteriores al
+   * registro, que es lo mismo que decir «de esos no se guardó el detalle».
+   */
+  destinos?: { finanzas: boolean; postventa: boolean; comercial: boolean } | null;
 }
 
 export function DerivadosOtrasAreas({ leads }: { leads: LeadDerivado[] }) {
@@ -90,7 +98,17 @@ export function DerivadosOtrasAreas({ leads }: { leads: LeadDerivado[] }) {
                   <p className="text-sm font-semibold text-foreground">{l.nombre_contacto ?? "—"}</p>
                   <p className="text-xs text-muted-foreground">
                     {l.razon_social ?? "Sin razón social"} ·{" "}
-                    <b className="text-foreground">{ETIQUETA_AREA[l.area_destino] ?? l.area_destino}</b>
+                    <b className="text-foreground">
+                      {l.destinos
+                        ? [
+                            l.destinos.finanzas ? "Finanzas" : null,
+                            l.destinos.postventa ? "postventa" : null,
+                            l.destinos.comercial ? "el comercial" : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")
+                        : (ETIQUETA_AREA[l.area_destino] ?? l.area_destino)}
+                    </b>
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground">
