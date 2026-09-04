@@ -68,6 +68,11 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/gerencia/supervision", etiqueta: "Supervisión diaria", icono: ClipboardCheck },
     { href: "/gerencia/potenciales", etiqueta: "Potenciales", icono: Target },
     { href: "/gerencia/clientes", etiqueta: "Clientes", icono: Building2 },
+    // Carlos, 04-09: «¿dónde veo presupuestos? … no puedo ver todos los
+    // presupuestos tampoco». Las dos pantallas ya existían y gerencia ya
+    // entraba; lo que faltaba era el enlace.
+    { href: "/central/presupuestos", etiqueta: "Presupuestos", icono: FileText },
+    { href: "/central/cierres", etiqueta: "Cierres de venta", icono: PackageCheck },
     { href: "/gerencia/marketing", etiqueta: "Panel de marketing", icono: TrendingUp },
     { href: "/gerencia/finanzas", etiqueta: "Finanzas de mkt", icono: PiggyBank },
     { href: "/gerencia/aprobaciones", etiqueta: "Aprobaciones", icono: CheckCircle2 },

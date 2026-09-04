@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, Ban } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
 import { cargarDerivados, ETIQUETA_FOCO, type DerivadoFila, type FocoDerivado } from "@/lib/derivados-central";
@@ -9,6 +9,7 @@ import { TarjetaDerivado } from "@/components/crm/tarjeta-derivado";
 import { cargarSupervisores } from "@/lib/supervisores";
 import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { Input } from "@/components/ui/input";
+import { fechaHoraLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +59,13 @@ export default async function DerivadosPage({
   const { hasta: sinPinHasta } = await permisoSinPin();
   const modoEnsayo = sinPinHasta !== null;
 
-  const [{ data: comerciales }, supervisores, derivados] = await Promise.all([
+  // LOS RECHAZADOS NO PUEDEN QUEDAR EN UN LIMBO (Carlos, 04-09, 10:10:
+  // «¿qué pasa con los rechazados? Cuando pone rechazado, ¿qué hace? Están en
+  // un limbo. La idea es que la central tenga el reporte más abajo de sus
+  // rechazados»). Son los contactos que Central descartó o marcó duplicados en
+  // el período: quedaban registrados pero sin ninguna pantalla que los
+  // mostrara, así que nadie podía revisarlos ni recuperarlos.
+  const [{ data: comerciales }, supervisores, derivados, { data: rechazados }] = await Promise.all([
     supabase
       .from("perfiles")
       // Los perfiles de práctica viajan también: el diálogo los ofrece solo
@@ -78,6 +85,15 @@ export default async function DerivadosPage({
       // prueba, prueba» (auditoría de Santos y gerencia, 01-09).
       incluirPractica: modoEnsayo,
     }),
+    supabase
+      .from("leads")
+      .select("id, codigo, estado, canal, nombre_contacto, razon_social, num_doc, telefono, mensaje, recibido_at")
+      .in("estado", ["descartado", "duplicado"])
+      .eq("es_prueba", false)
+      .gte("recibido_at", `${periodo.desde}T00:00:00-05:00`)
+      .lt("recibido_at", `${periodo.hasta}T23:59:59-05:00`)
+      .order("recibido_at", { ascending: false })
+      .limit(100),
   ]);
 
   // Los conteos se calculan sobre TODO el período, no sobre lo filtrado: son
@@ -167,6 +183,39 @@ export default async function DerivadosPage({
           ))}
         </div>
       )}
+
+      {/* Lo que NO se derivó, al pie: descartados y duplicados del período. */}
+      <div className="mt-6 rounded-lg border border-border bg-muted/30 p-3">
+        <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          <Ban className="size-3.5" /> Contactos que no se derivaron ({(rechazados ?? []).length})
+        </h3>
+        {(rechazados ?? []).length === 0 ? (
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            En este período no se descartó ningún contacto ni se marcó ninguno como duplicado.
+          </p>
+        ) : (
+          <ul className="mt-2 space-y-1.5">
+            {(rechazados ?? []).map((r) => (
+              <li key={r.id as string} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-border/60 pb-1.5 text-xs last:border-0">
+                <span className="font-mono text-[11px] font-semibold text-foreground">{r.codigo as string}</span>
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                  {r.estado === "duplicado" ? "Duplicado" : "Descartado"}
+                </span>
+                <span className="tabular-nums text-muted-foreground">{fechaHoraLima(r.recibido_at as string)}</span>
+                <span className="font-medium text-foreground">
+                  {(r.razon_social as string | null) ?? (r.nombre_contacto as string | null) ?? "Sin nombre"}
+                </span>
+                {r.telefono && <span className="text-muted-foreground">{r.telefono as string}</span>}
+                {r.mensaje && (
+                  <span className="line-clamp-1 basis-full text-muted-foreground" title={r.mensaje as string}>
+                    {r.mensaje as string}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </SeccionPanel>
   );
 }

@@ -86,7 +86,12 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   const total = Number(servicio.monto ?? 0);
   const pagado = Number(servicio.monto_pagado ?? 0);
   const avance = avancePedido(servicio);
-  const adjuntos = (informe?.adjuntos ?? []) as Adjunto[];
+  // Los papeles del expediente (OC, voucher, cotización firmada) traen
+  // cifras. Carlos dejó en suspenso si postventa los ve (04-09, 10:10: «lo
+  // único que queda pendiente de cara a Central-postventa es si vamos a
+  // mostrarlos o no; déjame pensar»). Hasta esa decisión, no se muestran a
+  // quien no ve precios; antes de la 0165 tampoco los veía, por RLS.
+  const adjuntos = (verPrecios ? (informe?.adjuntos ?? []) : []) as Adjunto[];
 
   // La captura con que Finanzas confirmó el pago (0157): URL firmada, una hora.
   const capturaPath = (servicio as { pago_confirmado_captura?: string | null }).pago_confirmado_captura ?? null;

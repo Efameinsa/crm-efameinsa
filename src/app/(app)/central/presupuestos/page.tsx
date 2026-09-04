@@ -46,12 +46,14 @@ interface FilaPresupuesto {
   id: string;
   codigo: string;
   serie: string;
-  estado: "enviada" | "aceptada";
-  total: number;
+  estado: "enviada" | "aceptada" | "archivo";
+  total: number | null;
   moneda: string;
   enviadaAt: string | null;
   comercialId: string;
   cliente: string;
+  /** Del archivo del Word (anterior al CRM): el PDF sale de otra ruta. */
+  delArchivo: boolean;
 }
 
 interface Comercial {
@@ -65,6 +67,7 @@ interface Comercial {
 const ETIQUETA_ESTADO: Record<FilaPresupuesto["estado"], string> = {
   enviada: "Enviada al cliente",
   aceptada: "Aceptada",
+  archivo: "Del archivo (Word)",
 };
 
 function dinero(monto: number): string {
@@ -114,7 +117,25 @@ export default async function PresupuestosCentralPage({
   if (serie) consulta = consulta.eq("serie", serie);
   if (comercialId) consulta = consulta.eq("oportunidades.comercial_id", comercialId);
 
-  const [{ data: cotizaciones, count: total, error }, { data: perfiles }, { data: anuladosCrudos }] = await Promise.all([
+  // EL ARCHIVO TAMBIÉN CUENTA (Carlos, 04-09, buscando el Presu_431-26 de
+  // Flores Rioja: «431 de Open, filtro, no aparece… hay que darle acceso a
+  // todo»). La serie Open del CRM arranca en la 447 del 25-08; todo lo
+  // anterior se hizo en Word y vive en `cotizaciones_historicas`. Se consulta
+  // con los mismos filtros y se mezcla en la misma tabla, marcado.
+  let consultaArchivo = supabase
+    .from("cotizaciones_historicas")
+    .select("id, codigo, serie, fecha, monto_sin_igv, cliente, comercial_id")
+    .eq("anio", new Date().getFullYear());
+  if (!q) {
+    consultaArchivo = consultaArchivo.gte("fecha", periodo.desde).lte("fecha", periodo.hasta);
+  } else {
+    const patronA = `%${q.replace(/[%_]/g, "")}%`;
+    consultaArchivo = consultaArchivo.or(`codigo.ilike.${patronA},cliente.ilike.${patronA}`);
+  }
+  if (serie) consultaArchivo = consultaArchivo.eq("serie", serie);
+  if (comercialId) consultaArchivo = consultaArchivo.eq("comercial_id", comercialId);
+
+  const [{ data: cotizaciones, count: total, error }, { data: perfiles }, { data: anuladosCrudos }, { data: archivo }] = await Promise.all([
     (q ? consulta.order("correlativo", { ascending: false }) : consulta.order("enviada_at", { ascending: false })).limit(TOPE),
     // Todos los comerciales, activos o no: una cotización de alguien que ya
     // no está sigue teniendo dueño en la lista. El desplegable ofrece solo a
@@ -132,6 +153,7 @@ export default async function PresupuestosCentralPage({
       .in("clave", serie ? [`${serie}-2026`] : ["OPEN-2026", "EFAMEINSA-2026"])
       .order("clave")
       .order("numero"),
+    consultaArchivo.order("correlativo", { ascending: false }).limit(TOPE),
   ]);
 
   const comerciales = (perfiles ?? []) as Comercial[];
@@ -152,12 +174,31 @@ export default async function PresupuestosCentralPage({
       enviadaAt: c.enviada_at as string | null,
       comercialId: op?.comercial_id ?? "",
       cliente: op?.cuentas?.razon_social ?? "Cliente sin nombre",
+      delArchivo: false,
     };
   });
 
+  // Las del archivo, con la misma forma. No traen estado ni moneda: son el
+  // documento tal como se envió, y muchas ni siquiera guardaron el monto.
+  for (const a of archivo ?? []) {
+    filas.push({
+      id: a.id as string,
+      codigo: (a.codigo as string | null) ?? "—",
+      serie: a.serie as string,
+      estado: "archivo",
+      total: a.monto_sin_igv == null ? null : Number(a.monto_sin_igv),
+      moneda: "USD",
+      enviadaAt: (a.fecha as string | null) ?? null,
+      comercialId: (a.comercial_id as string | null) ?? "",
+      cliente: (a.cliente as string | null) ?? "Cliente sin nombre",
+      delArchivo: true,
+    });
+  }
+  filas.sort((a, b) => (b.enviadaAt ?? "").localeCompare(a.enviadaAt ?? ""));
+
   // Suma por moneda: un total que mezcle soles con dólares no dice nada.
   const sumaPorMoneda = new Map<string, number>();
-  for (const f of filas) sumaPorMoneda.set(f.moneda, (sumaPorMoneda.get(f.moneda) ?? 0) + f.total);
+  for (const f of filas) if (f.total != null) sumaPorMoneda.set(f.moneda, (sumaPorMoneda.get(f.moneda) ?? 0) + f.total);
   const monedas = [...sumaPorMoneda.keys()].sort();
   const aceptados = filas.filter((f) => f.estado === "aceptada").length;
 
@@ -172,7 +213,8 @@ export default async function PresupuestosCentralPage({
       titulo="Presupuestos enviados"
       accion={
         <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
-          {(total ?? filas.length).toLocaleString("es-PE")} presupuesto{(total ?? filas.length) === 1 ? "" : "s"}
+          {filas.length.toLocaleString("es-PE")} presupuesto{filas.length === 1 ? "" : "s"}
+          {(archivo ?? []).length > 0 && `, ${(archivo ?? []).length} del archivo`}
         </span>
       }
     >
@@ -262,7 +304,7 @@ export default async function PresupuestosCentralPage({
                 <TableRow key={f.id}>
                   <TableCell className="py-1.5">
                     <a
-                      href={`/api/cotizaciones/${f.id}/pdf`}
+                      href={f.delArchivo ? `/api/cotizaciones-historicas/${f.id}/pdf` : `/api/cotizaciones/${f.id}/pdf`}
                       target="_blank"
                       rel="noreferrer"
                       className="font-mono font-semibold text-foreground hover:text-primary hover:underline"
@@ -288,13 +330,17 @@ export default async function PresupuestosCentralPage({
                     </span>
                   </TableCell>
                   <TableCell className="py-1.5 text-right tabular-nums text-foreground">
-                    {f.moneda} {dinero(f.total)}
+                    {f.total == null ? <span className="text-muted-foreground">—</span> : `${f.moneda} ${dinero(f.total)}`}
                   </TableCell>
                   <TableCell className="py-1.5">
                     <span
                       className={cn(
                         "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                        f.estado === "aceptada" ? "bg-emerald-100 text-emerald-900" : "bg-sky-100 text-sky-900",
+                        f.estado === "aceptada"
+                          ? "bg-emerald-100 text-emerald-900"
+                          : f.estado === "archivo"
+                            ? "bg-secondary text-muted-foreground"
+                            : "bg-sky-100 text-sky-900",
                       )}
                     >
                       {ETIQUETA_ESTADO[f.estado]}
@@ -302,7 +348,7 @@ export default async function PresupuestosCentralPage({
                   </TableCell>
                   <TableCell className="py-1.5">
                     <a
-                      href={`/api/cotizaciones/${f.id}/pdf`}
+                      href={f.delArchivo ? `/api/cotizaciones-historicas/${f.id}/pdf` : `/api/cotizaciones/${f.id}/pdf`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-muted-foreground hover:text-primary"
@@ -337,9 +383,9 @@ export default async function PresupuestosCentralPage({
         </div>
       )}
 
-      {total != null && total > filas.length && (
+      {total != null && total > (cotizaciones ?? []).length && (
         <p className="mt-3 text-xs text-amber-700">
-          Se muestran los {filas.length} más recientes de {total.toLocaleString("es-PE")}. Achique el período o
+          Se muestran los {(cotizaciones ?? []).length} más recientes de {total.toLocaleString("es-PE")}. Achique el período o
           elija un comercial para ver el resto.
         </p>
       )}
