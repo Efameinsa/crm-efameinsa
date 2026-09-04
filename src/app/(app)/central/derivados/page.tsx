@@ -11,6 +11,18 @@ import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { Input } from "@/components/ui/input";
 import { fechaHoraLima } from "@/lib/fechas";
 import { RetomarLeadBoton } from "@/components/crm/retomar-lead-boton";
+
+// Cómo se llama cada área en palabras, para no mostrar el valor de la base.
+const ETIQUETA_AREA: Record<string, string> = {
+  finanzas: "Finanzas",
+  postventa: "postventa",
+  servicio_tecnico: "servicio técnico",
+  administracion: "administración",
+  proveedores: "proveedores",
+  rrhh: "recursos humanos",
+  comercial: "comercial",
+  otros: "otra área",
+};
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -63,9 +75,11 @@ export default async function DerivadosPage({
   // LOS RECHAZADOS NO PUEDEN QUEDAR EN UN LIMBO (Carlos, 04-09, 10:10:
   // «¿qué pasa con los rechazados? Cuando pone rechazado, ¿qué hace? Están en
   // un limbo. La idea es que la central tenga el reporte más abajo de sus
-  // rechazados»). Son los contactos que Central descartó o marcó duplicados en
-  // el período: quedaban registrados pero sin ninguna pantalla que los
-  // mostrara, así que nadie podía revisarlos ni recuperarlos.
+  // rechazados»). Y en la reunión de las 10:48 lo cerró: «una zona donde estén
+  // todos los acumulados». Por eso acá entran los tres finales que NO son una
+  // derivación a un comercial —descartado, duplicado y derivado a otra área—,
+  // que hasta hoy vivían en pantallas distintas o en ninguna. Todos se pueden
+  // retomar: «cualquier eventualidad la podemos retomar».
   const [{ data: comerciales }, supervisores, derivados, { data: rechazados }] = await Promise.all([
     supabase
       .from("perfiles")
@@ -88,8 +102,8 @@ export default async function DerivadosPage({
     }),
     supabase
       .from("leads")
-      .select("id, codigo, estado, canal, nombre_contacto, razon_social, num_doc, telefono, mensaje, recibido_at")
-      .in("estado", ["descartado", "duplicado"])
+      .select("id, codigo, estado, area_destino, canal, nombre_contacto, razon_social, num_doc, telefono, mensaje, recibido_at")
+      .in("estado", ["descartado", "duplicado", "derivado_area"])
       .eq("es_prueba", false)
       .gte("recibido_at", `${periodo.desde}T00:00:00-05:00`)
       .lt("recibido_at", `${periodo.hasta}T23:59:59-05:00`)
@@ -188,14 +202,15 @@ export default async function DerivadosPage({
       {/* Lo que NO se derivó, al pie: descartados y duplicados del período. */}
       <div className="mt-6 rounded-lg border border-border bg-muted/30 p-3">
         <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          <Ban className="size-3.5" /> Contactos que no se derivaron ({(rechazados ?? []).length})
+          <Ban className="size-3.5" /> Contactos que no fueron a un comercial ({(rechazados ?? []).length})
         </h3>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          Ninguno se pierde: si hay que atenderlo, «Retomar» lo devuelve a la bandeja para repartirlo.
+          Descartados, duplicados y derivados a otras áreas, todos juntos. Ninguno se pierde: si hay que
+          atenderlo, «Retomar» lo devuelve a la bandeja para repartirlo.
         </p>
         {(rechazados ?? []).length === 0 ? (
           <p className="mt-1.5 text-xs text-muted-foreground">
-            En este período no se descartó ningún contacto ni se marcó ninguno como duplicado.
+            En este período todos los contactos se derivaron a un comercial.
           </p>
         ) : (
           <ul className="mt-2 space-y-1.5">
@@ -203,7 +218,11 @@ export default async function DerivadosPage({
               <li key={r.id as string} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-border/60 pb-1.5 text-xs last:border-0">
                 <span className="font-mono text-[11px] font-semibold text-foreground">{r.codigo as string}</span>
                 <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-foreground">
-                  {r.estado === "duplicado" ? "Duplicado" : "Descartado"}
+                  {r.estado === "duplicado"
+                    ? "Duplicado"
+                    : r.estado === "derivado_area"
+                      ? `A ${ETIQUETA_AREA[r.area_destino as string] ?? (r.area_destino as string)}`
+                      : "Descartado"}
                 </span>
                 <span className="tabular-nums text-muted-foreground">{fechaHoraLima(r.recibido_at as string)}</span>
                 <span className="font-medium text-foreground">
