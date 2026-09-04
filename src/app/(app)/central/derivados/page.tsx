@@ -10,6 +10,7 @@ import { cargarSupervisores } from "@/lib/supervisores";
 import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { Input } from "@/components/ui/input";
 import { fechaHoraLima } from "@/lib/fechas";
+import { RetomarLeadBoton } from "@/components/crm/retomar-lead-boton";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -189,6 +190,9 @@ export default async function DerivadosPage({
         <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
           <Ban className="size-3.5" /> Contactos que no se derivaron ({(rechazados ?? []).length})
         </h3>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Ninguno se pierde: si hay que atenderlo, «Retomar» lo devuelve a la bandeja para repartirlo.
+        </p>
         {(rechazados ?? []).length === 0 ? (
           <p className="mt-1.5 text-xs text-muted-foreground">
             En este período no se descartó ningún contacto ni se marcó ninguno como duplicado.
@@ -206,6 +210,7 @@ export default async function DerivadosPage({
                   {(r.razon_social as string | null) ?? (r.nombre_contacto as string | null) ?? "Sin nombre"}
                 </span>
                 {r.telefono && <span className="text-muted-foreground">{r.telefono as string}</span>}
+                <RetomarLeadBoton leadId={r.id as string} codigo={r.codigo as string} />
                 {r.mensaje && (
                   <span className="line-clamp-1 basis-full text-muted-foreground" title={r.mensaje as string}>
                     {r.mensaje as string}
