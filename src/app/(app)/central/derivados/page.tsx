@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Search, Ban, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
@@ -60,7 +61,7 @@ const ORDEN_FOCO: FocoDerivado[] = ["sin_atender", "en_gestion", "cotizado", "ce
 export default async function DerivadosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; q?: string; foco?: string; practica?: string }>;
+  searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; q?: string; foco?: string; practica?: string; mostrar?: string }>;
 }) {
   const sp = await searchParams;
   const periodo = resolverPeriodo(sp, "30d");
@@ -129,6 +130,24 @@ export default async function DerivadosPage({
   const conteo = (f: FocoDerivado) => derivados.filter((d) => d.foco === f).length;
   const requierenAtencion = derivados.filter((d) => d.alerta !== null);
 
+  // CUÁNTAS TARJETAS SE PINTAN DE UNA VEZ. El período de 30 días trae más de
+  // ciento cincuenta contactos y cada uno es una tarjeta alta: la página se
+  // volvía kilométrica y lo de abajo quedaba enterrado (Santos, 04-09). Se
+  // pintan quince y el resto se pide con un enlace, que viaja en la URL: sin
+  // estado, y la vista se puede compartir tal como se está mirando.
+  const TANDA = 15;
+  const mostrar = Math.max(TANDA, Number(sp.mostrar) || TANDA);
+  const conParams = (extra: Record<string, string>) => {
+    const p = new URLSearchParams();
+    if (sp.desde) p.set("desde", sp.desde);
+    if (sp.hasta) p.set("hasta", sp.hasta);
+    if (sp.comercial) p.set("comercial", sp.comercial);
+    if (sp.q) p.set("q", sp.q);
+    if (sp.foco) p.set("foco", sp.foco);
+    for (const [k, v] of Object.entries(extra)) p.set(k, v);
+    return `/central/derivados?${p.toString()}`;
+  };
+
   const foco = sp.foco ?? null;
   const visibles: DerivadoFila[] =
     foco === "atencion"
@@ -190,26 +209,6 @@ export default async function DerivadosPage({
           </Button>
         </form>
       </div>
-
-      {visibles.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {derivados.length === 0
-            ? `No derivó ningún contacto en este período${busqueda ? ` que diga «${busqueda}»` : ""}.`
-            : "Ningún contacto en este cajón. Pruebe con otro."}
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {visibles.map((fila) => (
-            <TarjetaDerivado
-              key={fila.id}
-              fila={fila}
-              comerciales={comerciales ?? []}
-              supervisores={supervisores}
-              modoEnsayo={modoEnsayo}
-            />
-          ))}
-        </div>
-      )}
 
       {/* Lo que hice hoy: los avisos que salieron a otras áreas, con la
           posibilidad de deshacerlos. */}
@@ -306,6 +305,48 @@ export default async function DerivadosPage({
           </ul>
         )}
       </details>
+
+      {visibles.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {derivados.length === 0
+            ? `No derivó ningún contacto en este período${busqueda ? ` que diga «${busqueda}»` : ""}.`
+            : "Ningún contacto en este cajón. Pruebe con otro."}
+        </p>
+      ) : (
+        <>
+          <div className="space-y-2">
+            {visibles.slice(0, mostrar).map((fila) => (
+              <TarjetaDerivado
+                key={fila.id}
+                fila={fila}
+                comerciales={comerciales ?? []}
+                supervisores={supervisores}
+                modoEnsayo={modoEnsayo}
+              />
+            ))}
+          </div>
+          {visibles.length > mostrar && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-3 rounded-lg border border-dashed border-border py-3 text-xs">
+              <span className="text-muted-foreground">
+                Se ven {mostrar} de {visibles.length}
+              </span>
+              <Link
+                href={conParams({ mostrar: String(mostrar + TANDA) })}
+                className="font-semibold text-primary hover:underline"
+              >
+                Ver {Math.min(TANDA, visibles.length - mostrar)} más
+              </Link>
+              <Link
+                href={conParams({ mostrar: String(visibles.length) })}
+                className="text-muted-foreground underline-offset-2 hover:underline"
+              >
+                ver los {visibles.length - mostrar} restantes
+              </Link>
+            </div>
+          )}
+        </>
+      )}
+
     </SeccionPanel>
   );
 }
