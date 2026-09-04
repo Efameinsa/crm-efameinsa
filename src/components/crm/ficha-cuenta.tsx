@@ -26,7 +26,11 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   const supabase = await createClient();
   // Desde la 0165 el área de postventa también lee los informes de cierre;
   // las cifras se le tapan acá (Carlos, 27-08).
-  const verPrecios = puedeVerPrecios(await requerirPerfil());
+  const perfilQueMira = await requerirPerfil();
+  const verPrecios = puedeVerPrecios(perfilQueMira);
+  // Crear rubros nuevos es de operaciones y gerencia desde el 04-09 (0170).
+  const puedeCrearRubros =
+    ["gerencia", "admin", "operaciones"].includes(perfilQueMira.rol) || Boolean(perfilQueMira.es_operaciones);
 
   const { data: cuenta } = await supabase
     .from("cuentas")
@@ -243,7 +247,12 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
             />
             {(rubros ?? []).length > 0 && (
               <div className="mt-2">
-                <CambiarRubro cuentaId={cuenta.id} rubroId={cuenta.rubro_id ?? null} rubros={(rubros ?? []) as { id: number; nombre: string }[]} />
+                <CambiarRubro
+                  cuentaId={cuenta.id}
+                  rubroId={cuenta.rubro_id ?? null}
+                  rubros={(rubros ?? []) as { id: number; nombre: string }[]}
+                  puedeAgregar={puedeCrearRubros}
+                />
               </div>
             )}
           </div>

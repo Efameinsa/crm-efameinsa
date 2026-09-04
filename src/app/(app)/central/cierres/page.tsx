@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, Package, Truck } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle2, Package, Truck } from "lucide-react";
 import { requerirRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { fechaCalendario } from "@/lib/fechas";
+import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ChecksPedidoCentral } from "@/components/crm/checks-pedido-central";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
@@ -117,6 +117,17 @@ export default async function CierresCentralPage({
     motivo: a.motivo as string,
   }));
 
+  // LO QUE PIDIÓ EL COMERCIAL (0170). Carlos, 04-09: «el comercial manda un
+  // clip: necesito anular el pedido, y pone todas sus historias. Le llega al
+  // administrador; ingresa, anula». Van arriba de todo porque son incendios:
+  // una venta que se cayó con el cierre ya emitido.
+  const { data: pedidosAnulacion } = await supabase
+    .from("anulaciones_solicitadas")
+    .select("id, informe_id, motivo, created_at, perfiles!anulaciones_solicitadas_solicitada_por_fkey(nombre, codigo_comercial)")
+    .is("atendida_at", null)
+    .order("created_at", { ascending: false });
+  const codigoDeInforme = new Map(todas.map((f) => [f.id as string, f.codigo as string | null]));
+
   const liberado = (id: string) => {
     const p = pedidoPorInforme.get(id);
     return p?.pedido_ejecutado_at != null && p?.liquidacion_at != null;
@@ -149,6 +160,36 @@ export default async function CierresCentralPage({
   );
 
   return (
+    <>
+      {(pedidosAnulacion ?? []).length > 0 && (
+        <div className="mb-3 rounded-xl border-2 border-amber-500/50 bg-amber-500/5 p-3">
+          <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-900">
+            <Ban className="size-3.5" /> Piden anular ({(pedidosAnulacion ?? []).length})
+          </h3>
+          <p className="mt-1 text-[11px] text-amber-900/80">
+            La venta se cayó o cambió de precio con el cierre ya emitido. Lo ejecuta operaciones con su código, desde
+            el botón «Anular» del cierre. Después el comercial rehace la cotización y el cierre desde cero.
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {(pedidosAnulacion ?? []).map((p) => {
+              const quien = p.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
+              return (
+                <li key={p.id as string} className="flex flex-wrap items-baseline gap-x-2 text-xs">
+                  <span className="font-mono text-[11px] font-semibold text-foreground">
+                    {codigoDeInforme.get(p.informe_id as string) ?? "Cierre"}
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {quien?.codigo_comercial ? `${quien.codigo_comercial} · ` : ""}
+                    {quien?.nombre ?? "Un comercial"}
+                  </span>
+                  <span className="tabular-nums text-muted-foreground">{fechaHoraLima(p.created_at as string)}</span>
+                  <span className="basis-full text-muted-foreground">{p.motivo as string}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     <SeccionPanel
       titulo="Cierres de venta"
       accion={
@@ -321,5 +362,6 @@ export default async function CierresCentralPage({
         </div>
       )}
     </SeccionPanel>
+    </>
   );
 }

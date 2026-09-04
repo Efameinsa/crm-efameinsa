@@ -43,11 +43,18 @@ export function CambiarRubro({
   rubroId,
   rubros,
   compacto = false,
+  puedeAgregar = false,
 }: {
   cuentaId: string;
   rubroId: number | null;
   rubros: { id: number; nombre: string }[];
   compacto?: boolean;
+  /**
+   * Crear un rubro nuevo es de operaciones y gerencia desde el 04-09. Carlos:
+   * «nos van a llenar de 30 rubros; uno le va a llamar peluquería, el otro spa».
+   * El comercial elige de la lista, que es lo que funciona bien.
+   */
+  puedeAgregar?: boolean;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -156,7 +163,7 @@ export function CambiarRubro({
                   {r.nombre}
                 </option>
               ))}
-              <option value={NUEVO}>＋ Agregar un rubro nuevo…</option>
+              {puedeAgregar && <option value={NUEVO}>＋ Agregar un rubro nuevo…</option>}
             </select>
           )}
           <button
@@ -218,8 +225,12 @@ export function CambiarRubro({
         )}
         title={
           actual
-            ? "Cambiar el rubro de este cliente, o agregar uno nuevo a la lista"
-            : "Póngale rubro: es con lo que se filtra la cartera por sector. Si no está en la lista, se agrega ahí mismo."
+            ? puedeAgregar
+              ? "Cambiar el rubro de este cliente, o agregar uno nuevo a la lista"
+              : "Cambiar el rubro de este cliente"
+            : puedeAgregar
+              ? "Póngale rubro: es con lo que se filtra la cartera por sector. Si no está en la lista, se agrega ahí mismo."
+              : "Póngale rubro: es con lo que se filtra la cartera por sector. Si el que necesita no está, pídaselo a operaciones."
         }
       >
         <Pencil className="size-3" /> {actual ? "Cambiar rubro" : "Agregar rubro"}

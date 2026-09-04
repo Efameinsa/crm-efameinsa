@@ -10,6 +10,7 @@ import type { CorreccionInforme } from "@/lib/correccion-informe";
 import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
 import { CompendioGestion } from "@/components/crm/compendio-gestion";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
+import { PedirAnulacionBoton } from "@/components/crm/pedir-anulacion-boton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -207,6 +208,7 @@ export function VistaCierre({
   puedeCorregir,
   correccionAbierta,
   editarBorradorHref = null,
+  puedePedirAnulacion = false,
 }: {
   informe: InformeVista;
   adjuntos: AdjuntoCierreFirmado[];
@@ -218,6 +220,8 @@ export function VistaCierre({
   correccionAbierta: VentanaVista | null;
   /** Sobre un BORRADOR: a dónde se sigue editando, sin código (03-09). Null si no le toca a quien mira. */
   editarBorradorHref?: string | null;
+  /** Emitido, no anulado y de quien mira: puede pedir que operaciones lo anule (0170). */
+  puedePedirAnulacion?: boolean;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -395,6 +399,11 @@ export function VistaCierre({
             <Button size="lg" onClick={editar} className="h-11 px-5 text-sm font-semibold shadow-sm">
               <PencilLine className="size-4" /> {ventanaViva ? "Seguir corrigiendo" : "Editar"}
             </Button>
+          )}
+          {/* La venta se cayó después de emitir: el comercial lo pide,
+              operaciones lo ejecuta con su código (Carlos, 04-09 14:30). */}
+          {puedePedirAnulacion && !editando && (
+            <PedirAnulacionBoton informeId={informe.id} codigo={informe.codigo} />
           )}
           <a
             href={`/api/informes/${informe.id}/pdf`}

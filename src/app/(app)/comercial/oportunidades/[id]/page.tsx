@@ -54,6 +54,10 @@ function llevaDemasiadoSinGestion(asignadoAt: string | null): boolean {
 
 export default async function OportunidadDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // Crear rubros nuevos es de operaciones y gerencia desde el 04-09 (0170).
+  const perfilQueMira = await requerirPerfil();
+  const puedeCrearRubrosAqui =
+    ["gerencia", "admin", "operaciones"].includes(perfilQueMira.rol) || Boolean(perfilQueMira.es_operaciones);
   const supabase = await createClient();
 
   const [{ data: oportunidad }, { data: motivos }, { data: cotizaciones }, { data: resultados }] =
@@ -265,7 +269,14 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
                 </span>
               )}
               <PuntoInteres intencion={oportunidad.intencion} />
-              {cuenta?.id && rubros.length > 0 && <CambiarRubro cuentaId={cuenta.id} rubroId={cuenta.rubro_id ?? null} rubros={rubros} />}
+              {cuenta?.id && rubros.length > 0 && (
+                <CambiarRubro
+                  cuentaId={cuenta.id}
+                  rubroId={cuenta.rubro_id ?? null}
+                  rubros={rubros}
+                  puedeAgregar={puedeCrearRubrosAqui}
+                />
+              )}
             </div>
 
             {/* La próxima acción es ESTADO, no un panel: se escribe en

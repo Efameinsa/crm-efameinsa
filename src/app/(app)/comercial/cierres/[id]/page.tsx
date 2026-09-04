@@ -145,6 +145,11 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
         puedeCorregir={puedeCorregir}
         correccionAbierta={correccionAbierta}
         editarBorradorHref={puedeEditarBorrador ? `/comercial/cierres/${informe.id}/editar` : null}
+        puedePedirAnulacion={
+          informe.emitido_at != null &&
+          informe.anulado_at == null &&
+          (cuentaDelInforme?.comercial_id === perfil.id || ["gerencia", "admin"].includes(perfil.rol))
+        }
       />
     </div>
   );

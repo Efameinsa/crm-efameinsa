@@ -614,6 +614,14 @@ export async function anularCierre(
   });
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
 
+  // El pedido del comercial queda cerrado con lo que pasó (0170): la bandeja
+  // de anulaciones muestra solo lo que sigue pendiente.
+  await supabase
+    .from("anulaciones_solicitadas")
+    .update({ atendida_at: new Date().toISOString(), atendida_por: (await supabase.auth.getUser()).data.user?.id ?? null, resultado: "anulado" })
+    .eq("informe_id", informeId)
+    .is("atendida_at", null);
+
   const resultado = (data ?? {}) as { codigo?: string };
   const { data: informe } = await supabase
     .from("informes_cierre")
