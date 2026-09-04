@@ -1,4 +1,4 @@
-import { Search, Ban } from "lucide-react";
+import { Search, Ban, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
 import { cargarDerivados, ETIQUETA_FOCO, type DerivadoFila, type FocoDerivado } from "@/lib/derivados-central";
@@ -11,6 +11,7 @@ import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { Input } from "@/components/ui/input";
 import { fechaHoraLima } from "@/lib/fechas";
 import { RetomarLeadBoton } from "@/components/crm/retomar-lead-boton";
+import { RevertirAvisoBoton } from "@/components/crm/revertir-aviso-boton";
 
 // Cómo se llama cada área en palabras, para no mostrar el valor de la base.
 const ETIQUETA_AREA: Record<string, string> = {
@@ -80,7 +81,7 @@ export default async function DerivadosPage({
   // derivación a un comercial —descartado, duplicado y derivado a otra área—,
   // que hasta hoy vivían en pantallas distintas o en ninguna. Todos se pueden
   // retomar: «cualquier eventualidad la podemos retomar».
-  const [{ data: comerciales }, supervisores, derivados, { data: rechazados }] = await Promise.all([
+  const [{ data: comerciales }, supervisores, derivados, { data: avisos }, { data: rechazados }] = await Promise.all([
     supabase
       .from("perfiles")
       // Los perfiles de práctica viajan también: el diálogo los ofrece solo
@@ -100,6 +101,17 @@ export default async function DerivadosPage({
       // prueba, prueba» (auditoría de Santos y gerencia, 01-09).
       incluirPractica: modoEnsayo,
     }),
+    // EL HISTORIAL DE OPERACIONES (0171). Carlos, 04-09 por la tarde, después
+    // de que Central derivara a los tres destinos un aviso que era solo para
+    // Finanzas: «por ahí tengo una sección de mi historial de operaciones, y
+    // que ahí aparezca todo lo que ha estado haciendo y ponga revertir,
+    // revertir, revertir». Revertir deja el aviso como si nunca hubiera
+    // salido, y pide el código de operaciones o gerencia.
+    supabase
+      .from("avisos_derivados")
+      .select("id, detalle, a_finanzas, a_postventa, a_comercial, created_at, revertido_at, leads(codigo, razon_social, nombre_contacto), perfiles!avisos_derivados_derivado_por_fkey(nombre)")
+      .order("created_at", { ascending: false })
+      .limit(30),
     supabase
       .from("leads")
       .select("id, codigo, estado, area_destino, canal, nombre_contacto, razon_social, num_doc, telefono, mensaje, recibido_at")
@@ -196,6 +208,52 @@ export default async function DerivadosPage({
               modoEnsayo={modoEnsayo}
             />
           ))}
+        </div>
+      )}
+
+      {/* Lo que hice hoy: los avisos que salieron a otras áreas, con la
+          posibilidad de deshacerlos. */}
+      {(avisos ?? []).length > 0 && (
+        <div className="mt-6 rounded-lg border border-border bg-muted/30 p-3">
+          <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            <Send className="size-3.5" /> Avisos que mandé a otras áreas ({(avisos ?? []).filter((a) => !a.revertido_at).length})
+          </h3>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Si salió a quien no era, «Revertir» lo quita del historial del comercial y del pedido de postventa, y
+            devuelve el contacto a la bandeja. Pide el código de operaciones o gerencia.
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {(avisos ?? []).map((a) => {
+              const lead = a.leads as unknown as { codigo: string | null; razon_social: string | null; nombre_contacto: string | null } | null;
+              const quien = a.perfiles as unknown as { nombre: string } | null;
+              const destinos = [
+                a.a_finanzas ? "Finanzas" : null,
+                a.a_postventa ? "postventa" : null,
+                a.a_comercial ? "el comercial" : null,
+              ].filter(Boolean).join(", ");
+              const cliente = lead?.razon_social ?? lead?.nombre_contacto ?? "Sin nombre";
+              return (
+                <li key={a.id as string} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-border/60 pb-1.5 text-xs last:border-0">
+                  <span className="font-mono text-[11px] font-semibold text-foreground">{lead?.codigo ?? "—"}</span>
+                  <span className="font-medium text-foreground">{cliente}</span>
+                  <span className="text-muted-foreground">a {destinos}</span>
+                  <span className="tabular-nums text-muted-foreground">{fechaHoraLima(a.created_at as string)}</span>
+                  {quien?.nombre && <span className="text-muted-foreground">· {quien.nombre}</span>}
+                  {a.revertido_at ? (
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                      revertido
+                    </span>
+                  ) : (
+                    <RevertirAvisoBoton
+                      avisoId={a.id as string}
+                      resumen={`${cliente} · aviso a ${destinos}: ${a.detalle as string}`}
+                    />
+                  )}
+                  <span className="line-clamp-1 basis-full text-muted-foreground">{a.detalle as string}</span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 

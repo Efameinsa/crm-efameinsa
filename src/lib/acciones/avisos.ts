@@ -28,6 +28,8 @@ export interface ResultadoAviso {
   falta?: string[];
   /** Solo si el aviso iba a Finanzas: el mensaje ya escrito. */
   enlace?: string;
+  /** El mismo mensaje en texto plano, para copiarlo cuando la pestaña lo pierde. */
+  texto?: string;
 }
 
 export async function derivarAviso(datos: {
@@ -85,11 +87,15 @@ export async function derivarAviso(datos: {
     `Pedido: ${detalle}\n` +
     `\nRegistrado por ${perfil.nombre}${codigo}. Gracias.`;
 
+  // Central usa WhatsApp Web en Chrome, así que el enlace apunta ahí: wa.me
+  // rebota por una pantalla intermedia y a veces llega sin el texto (reportado
+  // el 04-09: «apareció con un número y se borró al toque»).
   return {
     error: null,
     hecho: r.hecho,
     falta: r.falta,
-    enlace: `https://wa.me/${NUMERO_WHATSAPP_FINANZAS}?text=${encodeURIComponent(texto)}`,
+    texto,
+    enlace: `https://web.whatsapp.com/send?phone=${NUMERO_WHATSAPP_FINANZAS}&text=${encodeURIComponent(texto)}`,
   };
 }
 
@@ -109,4 +115,33 @@ export async function retomarLead(leadId: string): Promise<{ error: string | nul
   revalidatePath("/central");
   revalidatePath("/central/derivados");
   return { error: null, codigo: (data as { codigo: string | null })?.codigo ?? undefined };
+}
+
+/**
+ * Deshacer un aviso que salió a quien no era.
+ *
+ * Carlos, 04-09 por la tarde, sobre el error del mismo día que se estrenó el
+ * aviso de tres destinos: «era para Finanzas y terminó derivando a todos
+ * lados (…) tiene que revertirse como si nada hubiera pasado». Y quién puede:
+ * «pero no la central directamente; a alguien le tiene que dar la
+ * autorización, o al menos que pida autorización con el PIN».
+ */
+export async function revertirAviso(
+  avisoId: string,
+  pin: string,
+  motivo: string,
+): Promise<{ error: string | null; deshecho?: string[] }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("revertir_aviso", {
+    p_aviso: avisoId,
+    p_pin: pin,
+    p_motivo: motivo || null,
+  });
+  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+
+  revalidatePath("/central");
+  revalidatePath("/central/derivados");
+  return { error: null, deshecho: (data as { deshecho?: string[] })?.deshecho ?? [] };
 }

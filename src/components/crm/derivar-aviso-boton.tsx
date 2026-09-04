@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, MessageCircle, Check, Receipt, Wrench, UserRound } from "lucide-react";
+import { Send, MessageCircle, Check, Receipt, Wrench, UserRound, Copy } from "lucide-react";
 import { derivarAviso } from "@/lib/acciones/avisos";
 import { TELEFONO_FINANZAS } from "@/lib/tesoreria";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,8 @@ export function DerivarAvisoBoton({
   const [detalle, setDetalle] = useState("");
   const [elegidos, setElegidos] = useState<Record<string, boolean>>({ finanzas: false, postventa: false, comercial: false });
   const [enlaceWhatsApp, setEnlaceWhatsApp] = useState<string | null>(null);
+  const [textoWhatsApp, setTextoWhatsApp] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
   const [resumen, setResumen] = useState<{ hecho: string[]; falta: string[] } | null>(null);
   const [enviando, empezar] = useTransition();
   const router = useRouter();
@@ -73,6 +75,8 @@ export function DerivarAvisoBoton({
     setDetalle("");
     setElegidos({ finanzas: false, postventa: false, comercial: false });
     setEnlaceWhatsApp(null);
+    setTextoWhatsApp(null);
+    setCopiado(false);
     setResumen(null);
     router.refresh();
   }
@@ -177,17 +181,49 @@ export function DerivarAvisoBoton({
               {enlaceWhatsApp && (
                 <>
                   <p className="text-xs text-muted-foreground">
-                    Falta avisarle a Tesorería. El mensaje ya está escrito: se abre WhatsApp y usted solo presiona
-                    enviar.
+                    Falta avisarle a Tesorería, al {TELEFONO_FINANZAS}. El mensaje ya está escrito.
                   </p>
+                  {/* EL MENSAJE, A LA VISTA. Central reportó el 04-09 que el
+                      texto «aparecía con un número y se borró al toque»: usa
+                      WhatsApp Web en Chrome, y cuando la pestaña no arrastra el
+                      texto no queda nada que enviar. Ahora el mensaje se ve
+                      acá, se copia de un clic y hay dos formas de abrirlo. */}
+                  <textarea
+                    readOnly
+                    rows={5}
+                    value={textoWhatsApp ?? ""}
+                    className="w-full rounded-md border border-input bg-secondary/40 p-2.5 text-xs text-foreground"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(textoWhatsApp ?? "");
+                        setCopiado(true);
+                        toast.success("Mensaje copiado. Péguelo en WhatsApp.");
+                      } catch {
+                        toast.error("No se pudo copiar. Selecciónelo y cópielo a mano.");
+                      }
+                    }}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+                  >
+                    <Copy className="size-4" /> {copiado ? "Copiado" : "Copiar el mensaje"}
+                  </button>
                   <a
                     href={enlaceWhatsApp}
                     target="_blank"
                     rel="noreferrer"
-                    onClick={() => setTimeout(cerrar, 400)}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#1E7F4F] px-4 py-2.5 text-sm font-bold text-white hover:brightness-110"
                   >
-                    <MessageCircle className="size-4" /> Abrir WhatsApp para {TELEFONO_FINANZAS}
+                    <MessageCircle className="size-4" /> Abrir WhatsApp Web
+                  </a>
+                  <a
+                    href={`https://wa.me/${enlaceWhatsApp.split("/")[3]?.split("?")[0] ?? ""}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block text-center text-xs text-muted-foreground underline-offset-2 hover:underline"
+                  >
+                    o abrir el chat en la aplicación, sin el texto
                   </a>
                 </>
               )}
@@ -219,6 +255,7 @@ export function DerivarAvisoBoton({
                       toast.success("Aviso registrado.");
                       setResumen({ hecho: r.hecho ?? [], falta: r.falta ?? [] });
                       setEnlaceWhatsApp(r.enlace ?? null);
+                      setTextoWhatsApp(r.texto ?? null);
                     })
                   }
                 >

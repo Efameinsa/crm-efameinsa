@@ -1,4 +1,11 @@
 import { enlaceApp } from "@/lib/url-app";
+
+// APAGADO POR ORDEN DE GERENCIA (Carlos, 04-09 por la tarde): «por favor,
+// quítame ya todas las alertas que llegan a mi correo; todo lo estamos
+// canalizando por el CRM propiamente». El aviso ya no se manda, pero el camino
+// queda escrito: para volver a encenderlo basta poner AVISOS_CORREO=si en el
+// entorno, sin tocar código.
+const CORREO_ENCENDIDO = process.env.AVISOS_CORREO === "si";
 // Aviso saliente a n8n por cada lead nuevo (pedido de gerencia 18-08:
 // "correo por cada lead"). El CRM NO envía correos (sin SMTP): dispara un
 // webhook a n8n y n8n hace el Gmail — el CRM sigue siendo la fuente de
@@ -31,6 +38,7 @@ export interface AvisoLeadDerivado {
 // DERIVACIÓN, no por llegada. La URL se deriva de la del timbre cambiando
 // el path — así no hace falta otra variable en Vercel.
 export async function avisarLeadDerivadoN8n(datos: AvisoLeadDerivado): Promise<void> {
+  if (!CORREO_ENCENDIDO) return;
   const base = process.env.N8N_LEAD_WEBHOOK_URL;
   if (!base) return;
   const url = base.replace("crm-lead-nuevo", "crm-lead-derivado");
@@ -47,6 +55,7 @@ export async function avisarLeadDerivadoN8n(datos: AvisoLeadDerivado): Promise<v
 }
 
 export async function avisarLeadNuevoN8n(datos: AvisoLeadNuevo): Promise<void> {
+  if (!CORREO_ENCENDIDO) return;
   const url = process.env.N8N_LEAD_WEBHOOK_URL;
   if (!url) return; // entorno sin n8n configurado: silencio, no error
   try {
