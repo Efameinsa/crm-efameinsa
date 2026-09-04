@@ -450,3 +450,39 @@ Quedó dicho que vuelve a mirar postventa **en un par de horas**.
   indispensable»*; lo indispensable ya funciona en cualquier parte.
 - **La aplicación instalable: ya la instaló.** Le apareció el aviso y la
   instaló en su escritorio. Falta probar que llegue una notificación.
+
+---
+
+## Pendiente técnico · «Lo que derivé» calcula de más (anotado el 04-09)
+
+**Qué pasa.** `cargarDerivados` enriquece TODOS los contactos del período —sus
+oportunidades, sus gestiones, su foco— aunque la pantalla solo pinte quince.
+Lo hace porque los contadores de los cajones («Sin atender · 12», «En gestión ·
+30»…) se calculan sobre el conjunto entero. Con treinta días son unos ciento
+cincuenta contactos y cada «Ver 15 más» vuelve a pagar ese costo completo: uno
+o dos segundos que Central leyó como que la pantalla se congelaba.
+
+**Lo que se hizo el 04-09, que es un parche honesto.** El botón avisa que está
+cargando (`VerMasBoton`, con `useTransition`) y el período por defecto pasó de
+30 días a la semana, que baja el conjunto a unos cuarenta. La espera sigue
+existiendo; ahora se ve y dura menos.
+
+**Lo que falta, cuando haya tiempo y calma.** Separar las dos cosas que hoy van
+juntas:
+
+1. **Los contadores**, en una sola consulta agregada en la base (un `group by`
+   sobre el foco), que devuelve cinco números y no ciento cincuenta filas
+   enriquecidas.
+2. **Las tarjetas**, que se traen solo las que se van a pintar, paginadas en la
+   consulta y no en memoria.
+
+Con eso, «Ver más» pasa a costar lo que cuesta traer quince filas, y la primera
+carga deja de depender del tamaño del período.
+
+**Tamaño:** mediano, media hora larga de trabajo y una tarde de pruebas, porque
+toca el cálculo del foco, que es lo que ordena la pantalla de Central.
+**Riesgo:** medio. Si el foco se calcula distinto en los dos caminos, los
+contadores dejan de cuadrar con las tarjetas, que es exactamente el defecto que
+esta pantalla vino a resolver.
+**Cuándo:** no urgente. Si Central vuelve a reportar lentitud con la semana
+puesta, sube de prioridad.
