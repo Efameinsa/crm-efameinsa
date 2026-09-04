@@ -130,6 +130,9 @@ export default async function CierresCentralPage({
     .is("atendida_at", null)
     .order("created_at", { ascending: false });
   const codigoDeInforme = new Map(todas.map((f) => [f.id as string, f.codigo as string | null]));
+  // Los que ya están anulados no ofrecen el botón: el pedido queda a la vista
+  // hasta que alguien lo cierre, pero la acción ya no aplica.
+  const anuladoPorId = new Set(todas.filter((f) => f.anulado_at != null).map((f) => f.id as string));
 
   const liberado = (id: string) => {
     const p = pedidoPorInforme.get(id);
@@ -187,6 +190,19 @@ export default async function CierresCentralPage({
                   </span>
                   <span className="tabular-nums text-muted-foreground">{fechaHoraLima(p.created_at as string)}</span>
                   <span className="basis-full text-muted-foreground">{p.motivo as string}</span>
+                  {/* El botón acá mismo. Lesly entró por la notificación, vio
+                      el pedido y el cierre no estaba en la pestaña que abre
+                      por defecto —el 011 ya estaba liberado—, así que tenía
+                      que ir a buscarlo. Carlos lo dijo en una línea: «ingresa,
+                      anula». */}
+                  {!anuladoPorId.has(p.informe_id as string) && (
+                    <span className="basis-full pt-1">
+                      <AnularCierreBoton
+                        informeId={p.informe_id as string}
+                        codigo={codigoDeInforme.get(p.informe_id as string) ?? "—"}
+                      />
+                    </span>
+                  )}
                 </li>
               );
             })}
