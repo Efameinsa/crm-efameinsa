@@ -26,6 +26,7 @@ const ETIQUETA_AREA: Record<string, string> = {
   otros: "otra área",
 };
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -315,14 +316,22 @@ export default async function DerivadosPage({
       ) : (
         <>
           <div className="space-y-2">
-            {visibles.slice(0, mostrar).map((fila) => (
-              <TarjetaDerivado
+            {visibles.slice(0, mostrar).map((fila, i) => (
+              // LAS NUEVAS SE ANUNCIAN. Al pedir más, la página se vuelve a
+              // dibujar y sin señal alguna parecía que el botón no hacía nada
+              // (Central, 04-09). Las que acaban de aparecer entran con un
+              // desvanecido corto; las que ya estaban, quietas.
+              <div
                 key={fila.id}
-                fila={fila}
-                comerciales={comerciales ?? []}
-                supervisores={supervisores}
-                modoEnsayo={modoEnsayo}
-              />
+                className={cn(mostrar > TANDA && i >= mostrar - TANDA && "animate-in fade-in slide-in-from-bottom-2 duration-500")}
+              >
+                <TarjetaDerivado
+                  fila={fila}
+                  comerciales={comerciales ?? []}
+                  supervisores={supervisores}
+                  modoEnsayo={modoEnsayo}
+                />
+              </div>
             ))}
           </div>
           {visibles.length > mostrar && (
@@ -332,12 +341,14 @@ export default async function DerivadosPage({
               </span>
               <Link
                 href={conParams({ mostrar: String(mostrar + TANDA) })}
-                className="font-semibold text-primary hover:underline"
+                scroll={false}
+                className="rounded-md bg-primary px-3 py-1.5 font-semibold text-primary-foreground hover:bg-primary/90"
               >
                 Ver {Math.min(TANDA, visibles.length - mostrar)} más
               </Link>
               <Link
                 href={conParams({ mostrar: String(visibles.length) })}
+                scroll={false}
                 className="text-muted-foreground underline-offset-2 hover:underline"
               >
                 ver los {visibles.length - mostrar} restantes
