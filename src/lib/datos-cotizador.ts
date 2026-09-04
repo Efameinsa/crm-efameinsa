@@ -189,7 +189,7 @@ export type ResultadoCotizador =
  * El tipo de cambio USD→PEN que mantiene gerencia (`parametros.tc_usd_pen`).
  *
  * Lo usa el cotizador cuando el documento se imprime en soles (0169). Si el
- * parámetro no estuviera, se cae al 3.75 con el que se sembró la tabla: es
+ * parámetro no estuviera, se cae al 3.63 que fijó gerencia el 04-09-2026: es
  * preferible imprimir con un cambio conocido que romper la pantalla.
  */
 export async function tipoCambioDeGerencia(
@@ -197,7 +197,7 @@ export async function tipoCambioDeGerencia(
 ): Promise<number> {
   const { data } = await supabase.from("parametros").select("valor").eq("clave", "tc_usd_pen").maybeSingle();
   const v = Number(data?.valor ?? 0);
-  return v > 0 ? v : 3.75;
+  return v > 0 ? v : 3.63;
 }
 
 export async function cargarContextoCotizador(

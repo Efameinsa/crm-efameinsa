@@ -196,7 +196,7 @@ export async function cargarPulsoSemana(
     return Number.isFinite(v) && v > 0 ? v : porDefecto;
   };
   const metaDiaria = parametro("meta_seguimientos_diarios", 30);
-  const tc = parametro("tc_usd_pen", 3.75);
+  const tc = parametro("tc_usd_pen", 3.63);
 
   const gestionesPorComercial = new Map<string, number>();
   for (const a of actividades ?? []) {
