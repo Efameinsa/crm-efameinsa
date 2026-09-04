@@ -71,7 +71,10 @@ export default async function CierresCentralPage({
 }: {
   searchParams: Promise<{ ver?: string }>;
 }) {
-  await requerirRol(["central", "gerencia", "admin"]);
+  // Operaciones también: es quien anula los cierres que le piden los
+  // comerciales (0170). La pantalla tenía su propio candado además del de la
+  // sección, y por eso Lesly seguía rebotando después de abrir el layout.
+  await requerirRol(["central", "gerencia", "admin", "operaciones"]);
   const sp = await searchParams;
   const pestana: Pestana = (PESTANAS.find((p) => p.clave === sp.ver)?.clave ?? "por_liberar") as Pestana;
 
