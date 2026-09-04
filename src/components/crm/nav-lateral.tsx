@@ -89,6 +89,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   // empresa y ella lo administra.
   operaciones: [
     { href: "/operaciones", etiqueta: "Autorizaciones", icono: KeyRound },
+    // Donde anula los cierres que le piden los comerciales (0170). Sin esta
+    // entrada solo llegaba por la notificación, y si la perdía no había cómo.
+    { href: "/central/cierres", etiqueta: "Cierres de venta", icono: PackageCheck },
     { href: "/operaciones/permisos", etiqueta: "Permisos", icono: ShieldCheck },
     { href: "/operaciones/catalogo", etiqueta: "El catálogo", icono: Package },
     { href: "/admin/catalogos", etiqueta: "Listas del sistema", icono: BookMarked },
