@@ -26,7 +26,7 @@ const ETIQUETA_AREA: Record<string, string> = {
 };
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { VerMasBoton } from "@/components/crm/ver-mas-boton";
+import { VerMas } from "@/components/crm/ver-mas-boton";
 
 export const dynamic = "force-dynamic";
 
@@ -335,20 +335,13 @@ export default async function DerivadosPage({
             ))}
           </div>
           {visibles.length > mostrar && (
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-3 rounded-lg border border-dashed border-border py-3 text-xs">
-              <span className="text-muted-foreground">
-                Se ven {mostrar} de {visibles.length}
-              </span>
-              <VerMasBoton
-                href={conParams({ mostrar: String(mostrar + TANDA) })}
-                etiqueta={`Ver ${Math.min(TANDA, visibles.length - mostrar)} más`}
-              />
-              <VerMasBoton
-                href={conParams({ mostrar: String(visibles.length) })}
-                etiqueta={`ver los ${visibles.length - mostrar} restantes`}
-                variante="discreta"
-              />
-            </div>
+            <VerMas
+              hrefMas={conParams({ mostrar: String(mostrar + TANDA) })}
+              hrefTodos={conParams({ mostrar: String(visibles.length) })}
+              mostrar={mostrar}
+              total={visibles.length}
+              tanda={TANDA}
+            />
           )}
         </>
       )}
