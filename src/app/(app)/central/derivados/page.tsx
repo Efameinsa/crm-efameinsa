@@ -213,11 +213,18 @@ export default async function DerivadosPage({
 
       {/* Lo que hice hoy: los avisos que salieron a otras áreas, con la
           posibilidad de deshacerlos. */}
+      {/* PLEGADOS, Y CON EL NÚMERO EN EL TÍTULO. Los dos bloques del pie
+          crecieron —48 contactos rechazados, casi todos duplicados viejos de
+          Facebook— y empujaron el botón «Revertir» tan abajo que Central ya
+          no lo encontraba (Santos, 04-09). Se abren de un clic y el número
+          dice si vale la pena abrirlos. `details` nativo: sin estado, sin
+          JavaScript, y el navegador recuerda nada, que es lo correcto acá. */}
       {(avisos ?? []).length > 0 && (
-        <div className="mt-6 rounded-lg border border-border bg-muted/30 p-3">
-          <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <details className="mt-6 rounded-lg border border-border bg-muted/30 p-3">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground">
             <Send className="size-3.5" /> Avisos que mandé a otras áreas ({(avisos ?? []).filter((a) => !a.revertido_at).length})
-          </h3>
+            <span className="ml-auto text-[10px] font-medium normal-case text-muted-foreground">ver</span>
+          </summary>
           <p className="mt-1 text-[11px] text-muted-foreground">
             Si salió a quien no era, «Revertir» lo quita del historial del comercial y del pedido de postventa, y
             devuelve el contacto a la bandeja. Pide el código de operaciones o gerencia.
@@ -254,14 +261,15 @@ export default async function DerivadosPage({
               );
             })}
           </ul>
-        </div>
+        </details>
       )}
 
       {/* Lo que NO se derivó, al pie: descartados y duplicados del período. */}
-      <div className="mt-6 rounded-lg border border-border bg-muted/30 p-3">
-        <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+      <details className="mt-6 rounded-lg border border-border bg-muted/30 p-3">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground">
           <Ban className="size-3.5" /> Contactos que no fueron a un comercial ({(rechazados ?? []).length})
-        </h3>
+          <span className="ml-auto text-[10px] font-medium normal-case text-muted-foreground">ver</span>
+        </summary>
         <p className="mt-1 text-[11px] text-muted-foreground">
           Descartados, duplicados y derivados a otras áreas, todos juntos. Ninguno se pierde: si hay que
           atenderlo, «Retomar» lo devuelve a la bandeja para repartirlo.
@@ -271,7 +279,7 @@ export default async function DerivadosPage({
             En este período todos los contactos se derivaron a un comercial.
           </p>
         ) : (
-          <ul className="mt-2 space-y-1.5">
+          <ul className="mt-2 max-h-96 space-y-1.5 overflow-y-auto pr-1">
             {(rechazados ?? []).map((r) => (
               <li key={r.id as string} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-border/60 pb-1.5 text-xs last:border-0">
                 <span className="font-mono text-[11px] font-semibold text-foreground">{r.codigo as string}</span>
@@ -297,7 +305,7 @@ export default async function DerivadosPage({
             ))}
           </ul>
         )}
-      </div>
+      </details>
     </SeccionPanel>
   );
 }
