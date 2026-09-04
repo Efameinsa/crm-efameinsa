@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Search, Ban, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
@@ -27,6 +26,7 @@ const ETIQUETA_AREA: Record<string, string> = {
 };
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { VerMasBoton } from "@/components/crm/ver-mas-boton";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +65,7 @@ export default async function DerivadosPage({
   searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; q?: string; foco?: string; practica?: string; mostrar?: string }>;
 }) {
   const sp = await searchParams;
-  const periodo = resolverPeriodo(sp, "30d");
+  const periodo = resolverPeriodo(sp, "semana");
   const busqueda = (sp.q ?? "").trim();
   const supabase = await createClient();
 
@@ -339,20 +339,15 @@ export default async function DerivadosPage({
               <span className="text-muted-foreground">
                 Se ven {mostrar} de {visibles.length}
               </span>
-              <Link
+              <VerMasBoton
                 href={conParams({ mostrar: String(mostrar + TANDA) })}
-                scroll={false}
-                className="rounded-md bg-primary px-3 py-1.5 font-semibold text-primary-foreground hover:bg-primary/90"
-              >
-                Ver {Math.min(TANDA, visibles.length - mostrar)} más
-              </Link>
-              <Link
+                etiqueta={`Ver ${Math.min(TANDA, visibles.length - mostrar)} más`}
+              />
+              <VerMasBoton
                 href={conParams({ mostrar: String(visibles.length) })}
-                scroll={false}
-                className="text-muted-foreground underline-offset-2 hover:underline"
-              >
-                ver los {visibles.length - mostrar} restantes
-              </Link>
+                etiqueta={`ver los ${visibles.length - mostrar} restantes`}
+                variante="discreta"
+              />
             </div>
           )}
         </>
