@@ -1369,3 +1369,82 @@ desplegar.
 Carlos tiene la laptop llena: 1 TB, de los cuales ~750 GB son correos en un
 PST. Alternativas conversadas: disco externo, o correo corporativo de Google
 (≈US$ 5/mes con 2 TB). Santos iba a mirar precios.
+
+---
+
+# Dónde quedó todo el sábado 05-09, y por dónde sigue el lunes
+
+Siete migraciones (0174 a 0180), quince commits y seis despliegues. Producción
+corre `97c837f`. Todo lo aplicado está verificado en producción, no supuesto.
+
+## Lo que se hizo hoy, en orden
+
+**El respaldo completo** (`crm-efameinsa-respaldo-completo-2026-09-05.zip`, 79 MB
+en `backups/`): esquema leído del catálogo vivo, 52 tablas con 146.689 filas
+sacadas en una sola transacción, los 22 usuarios, los 101 adjuntos y un git
+bundle con todo el historial. Se comprobó levantándolo entero en un esquema de
+ensayo. Los secretos van en un zip aparte. **Sigue pendiente sacarlo de la
+máquina**: está en el mismo disco que el original.
+
+**El informe de arquitectura para auditoría externa**, publicado como página y
+también en `Descargas` como texto para pegar en un chat. Trae el análisis del
+reproche del monolito y seis preguntas concretas para el auditor.
+
+**0174 · Lo anulado no cuenta en ninguna métrica.** El cierre anulado de
+Katerine seguía sumando en su semana, en el tablero de gerencia y en la
+supervisión. Cuatro lugares contaban mal, entre ellos la vista de la que come
+todo el tablero. Queda `npm run db:auditar-anuladas` como la mitad SQL de la
+guardia que ya existía para TypeScript.
+
+**0175 · La apertura de servicio en sus tres formatos** (pedido de Lesly). Siete
+de las nueve filas se llenan solas; las cinco que faltaban —hora, día, técnico,
+transporte y guías— ahora tienen columna. El correo sale escrito, para copiar.
+
+**0176 · Al emitir, el informe ata su venta.** El caso de Brenda. Se descartó
+una por una toda hipótesis sobre por qué el disparador no se activó el 04-09 y
+**no se pudo determinar**; queda dicho así. La emisión dejó de depender de él.
+
+**0177 y lo que siguió · El cierre semanal.** Plan y necesidades obligatorios
+antes del documento, la torta de rechazados, el velocímetro del mes, el botón
+del sábado a las 11:55, el histórico con acumulado, y —después de que Carlos lo
+revisara en vivo— cada número contra su meta con color y una frase.
+
+**0178 · Central devuelve el cierre mal hecho**, y el aviso a Finanzas también
+por correo a Contabilidad1@efameinsa.com.
+
+**0179 y 0180 · La proyección dice cuál cotización se va a cerrar.**
+
+## Por dónde seguir el lunes
+
+1. **Que a postventa el aviso no le llegue «seco».** Es el único problema
+   confirmado por quien lo sufre, no una hipótesis. Hoy cae como una línea
+   suelta en las observaciones del pedido, sin cliente, sin equipo, sin qué se
+   pagó. **Es lo primero.**
+
+2. **La marca visual del aviso en el historial.** Que se distinga de un vistazo
+   lo que gestionó el comercial de lo que le reenvió Central. Ya no infla
+   indicadores; lo que falta es que no se LEA como dos gestiones.
+
+3. **La duplicidad del historial: no fusionar automáticamente.** Se revisaron
+   los cuatro avisos reales del 04-09: tres dejaron una sola entrada y el cuarto
+   tiene dos que son hechos distintos con cuatro horas de diferencia. La
+   duplicación que Carlos temía todavía no ocurrió. Si aparece, que la resuelva
+   Central con un clic —«¿esto ya lo registró el comercial?»— y no una regla
+   automática, que tarde o temprano borraría un hecho real.
+
+4. **Decirle a Carlos que el «anular» de la derivación SÍ existe**, desde la
+   0171 y con PIN. Vive en `/central/derivados`, en «Avisos que mandé a otras
+   áreas». Él buscó en otro lado y concluyó que no estaba: hay que preguntarle
+   dónde miró y ponerlo también ahí.
+
+5. **Verificar que el WhatsApp a Finanzas quede grabado.** Santos iba a pedir
+   feedback y todavía no lo hay.
+
+6. **Sierra Travel** sigue como quedó el viernes, y los pendientes de Ariana,
+   Lesly y Central del cierre anterior.
+
+## Fuera del CRM
+
+Carlos tiene la laptop llena: 1 TB con ~750 GB de correos en un PST. Se
+conversaron disco externo o correo corporativo de Google (≈US$ 5/mes con 2 TB);
+Santos iba a mirar precios.
