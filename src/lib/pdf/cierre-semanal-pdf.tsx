@@ -177,6 +177,8 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
   // Sin nada proyectado, «cumplió» no significa nada: no se puede cumplir una
   // promesa que no se hizo, y decir que sí sería premiar la semana en blanco.
   const sinProyeccion = proyectadoUsd === 0;
+  // La meta diaria de gestiones sale de la semanal repartida en los seis dias.
+  const metaDiaria = cierre.medidas.gestiones.meta != null ? Math.round(cierre.medidas.gestiones.meta / 6) : null;
 
   return (
     <Document title={`Cierre semanal ${comercial.codigo ?? ""} ${cierre.lunes}`} author="CRM Efameinsa">
@@ -291,15 +293,23 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
         <Seccion titulo="1. DÍA POR DÍA" total={usd(vendidoUsd)}>
           <View style={e.th}>
             <Text style={[e.thTexto, { width: "28%" }]}>Día</Text>
-            <Text style={[e.thTexto, { width: "16%", textAlign: "right" }]}>Gestiones</Text>
+            <Text style={[e.thTexto, { width: "16%", textAlign: "right" }]}>Gestiones / meta</Text>
             <Text style={[e.thTexto, { width: "28%", textAlign: "right" }]}>Proyectado</Text>
             <Text style={[e.thTexto, { width: "28%", textAlign: "right" }]}>Vendido</Text>
           </View>
           {dias.map((d, i) => (
             <View key={d.iso} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
               <Text style={{ width: "28%" }}>{d.etiqueta}</Text>
-              <Text style={{ width: "16%", textAlign: "right", color: d.gestiones === 0 ? GRANATE : CARBON }}>
-                {d.gestiones}
+              {/* «Gestiones: no comparo con nada» (Carlos, 05-09). Cada día
+                  contra la meta diaria del comercial. */}
+              <Text
+                style={{
+                  width: "16%",
+                  textAlign: "right",
+                  color: metaDiaria == null ? CARBON : d.gestiones >= metaDiaria ? VERDE : GRANATE,
+                }}
+              >
+                {metaDiaria != null ? `${d.gestiones} / ${metaDiaria}` : d.gestiones}
               </Text>
               <Text style={{ width: "28%", textAlign: "right", color: GRIS }}>
                 {d.proyectado > 0 ? usd(d.proyectado) : "—"}
