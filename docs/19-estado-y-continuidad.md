@@ -1282,3 +1282,23 @@ nacen de un gesto directo. Así que se declara, y recién entonces aparece
   disponible, que es más útil mientras el equipo se acostumbra.
 - El **histórico de cierres** por comercial: los datos ya se guardan, falta la
   pantalla que los liste.
+
+### Corrección del mismo 05-09: los tres pendientes ya no lo están
+
+Los tres puntos que arriba quedaban «pendientes de la reunión del 02-09» se
+hicieron el mismo día, a pedido de Santos:
+
+- **Rechazados por motivo**: sección 4 del PDF del cierre semanal, con la torta
+  y la lista completa cliente por cliente. La torta se dibuja con arcos dentro
+  del propio PDF, sin librerías.
+- **Velocímetro del mes**: arriba de «Mi gestión» y sin depender del filtro de
+  período. Estaba, pero medía el período elegido, y el que trae la pantalla por
+  defecto es la semana — por eso al entrar no se veía ninguno, que fue
+  exactamente lo que notó Carlos.
+- **El botón del sábado**: los sábados desde las 11:55 (hora de Lima) el botón
+  se vuelve granate, grande y dice «Ejecutar su cierre semanal». Fuera de esa
+  hora sigue disponible discreto, para que gerencia pueda revisar cierres de
+  semanas pasadas y nadie quede sin abrir el suyo.
+
+Sigue pendiente solo la **pantalla del histórico de cierres**: los datos ya se
+guardan en `declaraciones_semana`, falta listarlos.
