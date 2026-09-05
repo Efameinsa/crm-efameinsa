@@ -99,7 +99,7 @@ export async function DocumentosDelServidor({
         <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
           Documentos del servidor <MarcaServidor />
         </h2>
-        <span className="text-[11px] text-muted-foreground">desde la oficina</span>
+        <span className="text-[11px] text-muted-foreground">archivo de la empresa</span>
       </div>
 
       <div className="space-y-2">
@@ -186,8 +186,8 @@ export async function DocumentosDelServidor({
       </div>
 
       <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-        Se abren en una pestaña nueva, servidos por el servidor de la empresa. Solo funcionan desde la red de la
-        oficina.
+        Se abren en una pestaña nueva con un enlace que vence a los cinco minutos. Funcionan desde la oficina y
+        desde fuera, siempre con la sesión del CRM.
       </p>
     </section>
   );
