@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet, Svg, Path } from "@react-pdf/renderer";
 import type { CierreSemanal } from "@/lib/cierre-semanal";
 
 /**
@@ -63,7 +63,42 @@ const e = StyleSheet.create({
   declaracionEtiqueta: { fontSize: 6.5, color: GRIS, textTransform: "uppercase", letterSpacing: 0.3, marginTop: 5 },
   declaracionTexto: { fontSize: 9, marginTop: 2 },
   declaracionFalta: { fontSize: 8.5, color: GRANATE, fontStyle: "italic" },
+
+  // Los rechazados de la semana: la torta a la izquierda, la leyenda al lado.
+  torta: { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 5 },
+  leyenda: { flex: 1, paddingLeft: 14 },
+  leyendaFila: { flexDirection: "row", alignItems: "center", marginBottom: 3 },
+  leyendaColor: { width: 7, height: 7, borderRadius: 1.5, marginRight: 5 },
+  leyendaTexto: { fontSize: 8, flex: 1 },
+  leyendaN: { fontSize: 8, fontFamily: "Helvetica-Bold" },
 });
+
+/** Colores de la torta: el granate manda y el resto acompaña sin competir. */
+const COLORES_TORTA = ["#7E1210", "#B4524A", "#D68C86", "#8C7F7D", "#C4BBB9", "#5E6470", "#9AA3B0", "#E0DAD8"];
+
+/**
+ * Un sector de torta sobre un lienzo de 120×120, empezando arriba y girando en
+ * sentido horario. `desde` y `hasta` van de 0 a 1.
+ */
+function sector(desde: number, hasta: number): string {
+  const R = 52;
+  const C = 60;
+  // Un sector que cubre la torta entera no se dibuja con un solo arco: se
+  // cierra sobre sí mismo y no pinta nada. Se parte en dos medios arcos.
+  if (hasta - desde >= 0.9999) {
+    return "M " + C + " " + (C - R) + " A " + R + " " + R + " 0 1 1 " + C + " " + (C + R) +
+           " A " + R + " " + R + " 0 1 1 " + C + " " + (C - R) + " Z";
+  }
+  const a1 = 2 * Math.PI * desde - Math.PI / 2;
+  const a2 = 2 * Math.PI * hasta - Math.PI / 2;
+  const x1 = (C + R * Math.cos(a1)).toFixed(2);
+  const y1 = (C + R * Math.sin(a1)).toFixed(2);
+  const x2 = (C + R * Math.cos(a2)).toFixed(2);
+  const y2 = (C + R * Math.sin(a2)).toFixed(2);
+  const grande = hasta - desde > 0.5 ? 1 : 0;
+  return "M " + C + " " + C + " L " + x1 + " " + y1 +
+         " A " + R + " " + R + " 0 " + grande + " 1 " + x2 + " " + y2 + " Z";
+}
 
 const usd = (n: number) => `US$ ${Math.round(n).toLocaleString("es-PE")}`;
 const corta = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
@@ -252,6 +287,66 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
               {proyeccion.porUbicar.length > 15 && (
                 <Text style={e.vacio}>…y {proyeccion.porUbicar.length - 15} más.</Text>
               )}
+            </>
+          )}
+        </Seccion>
+
+        {/* LO QUE SE PERDIÓ. Carlos, 02-09: «esos rechazados podríamos ponerlo
+            también en el cierre semanal (…) un gráfico de torta, y que salga el
+            detalle. No que se despliegue: que salga». Y para qué: «de los
+            errores uno aprende, pero yo no quiero aprender nada más, tiene que
+            aprender todo el equipo». Por eso el detalle va entero y a la vista:
+            el lunes se conversa cliente por cliente. */}
+        <Seccion titulo="4. LO QUE SE PERDIÓ, Y POR QUÉ" total={cierre.rechazos.length}>
+          {cierre.rechazos.length === 0 ? (
+            <Text style={e.vacio}>Ninguna oportunidad se dio por perdida esta semana.</Text>
+          ) : (
+            <>
+              {(() => {
+                const porMotivo = new Map<string, number>();
+                for (const r of cierre.rechazos) porMotivo.set(r.motivo, (porMotivo.get(r.motivo) ?? 0) + 1);
+                const motivos = Array.from(porMotivo.entries()).sort((a, b) => b[1] - a[1]);
+                const total = cierre.rechazos.length;
+                let acumulado = 0;
+                const sectores = motivos.map(([motivo, n], i) => {
+                  const desde = acumulado / total;
+                  acumulado += n;
+                  return { motivo, n, i, d: sector(desde, acumulado / total) };
+                });
+                return (
+                  <View style={e.torta}>
+                    <Svg width={120} height={120} viewBox="0 0 120 120">
+                      {sectores.map((s) => (
+                        <Path key={s.motivo} d={s.d} fill={COLORES_TORTA[s.i % COLORES_TORTA.length]} />
+                      ))}
+                    </Svg>
+                    <View style={e.leyenda}>
+                      {sectores.map((s) => (
+                        <View key={s.motivo} style={e.leyendaFila}>
+                          <View style={[e.leyendaColor, { backgroundColor: COLORES_TORTA[s.i % COLORES_TORTA.length] }]} />
+                          <Text style={e.leyendaTexto}>{corta(s.motivo, 44)}</Text>
+                          <Text style={e.leyendaN}>
+                            {s.n} · {Math.round((s.n / total) * 100)}%
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                );
+              })()}
+
+              <View style={e.th}>
+                <Text style={[e.thTexto, { width: "45%" }]}>Cliente</Text>
+                <Text style={[e.thTexto, { width: "35%" }]}>Motivo</Text>
+                <Text style={[e.thTexto, { width: "20%", textAlign: "right" }]}>Monto</Text>
+              </View>
+              {cierre.rechazos.map((r, i) => (
+                <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                  <Text style={{ width: "45%", paddingRight: 6 }}>{corta(r.cliente, 44)}</Text>
+                  <Text style={{ width: "35%", paddingRight: 6, color: GRIS }}>{corta(r.motivo, 34)}</Text>
+                  <Text style={{ width: "20%", textAlign: "right" }}>{r.monto > 0 ? usd(r.monto) : "—"}</Text>
+                </View>
+              ))}
             </>
           )}
         </Seccion>

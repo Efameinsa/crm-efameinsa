@@ -22,6 +22,15 @@ const cierre: CierreSemanal = {
     sinNecesidades: false,
     declaradoAt: "2026-08-29T17:00:00.000Z",
   },
+  // Los rechazados de la semana, para ver la torta en la vista previa.
+  rechazos: [
+    { cliente: "HOTEL LOS PORTALES S.A.", motivo: "Precio fuera de presupuesto", monto: 12400 },
+    { cliente: "LAVANDERÍA EL SOL E.I.R.L.", motivo: "Precio fuera de presupuesto", monto: 3800 },
+    { cliente: "CLÍNICA SAN PABLO", motivo: "Compró a la competencia", monto: 21000 },
+    { cliente: "TEXTIL ANDINA S.A.C.", motivo: "Proyecto postergado", monto: 8600 },
+    { cliente: "HOSPEDAJE LA CASONA", motivo: "No responde / silencio", monto: 0 },
+    { cliente: "SERVICIOS GENERALES DEL SUR", motivo: "No responde / silencio", monto: 4200 },
+  ],
   proyeccion: {
     lunes: "2026-08-24",
     dias: dias.map((etiqueta, i) => ({

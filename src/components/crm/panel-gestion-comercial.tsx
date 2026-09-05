@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { esSemanal, resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
+import { esSemanal, periodoPreset, resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
 import { cargarPulsoSemana } from "@/lib/pulso-semana";
 import { cargarResumenGerencia, usd } from "@/lib/reportes";
 import { fechaCalendarioLarga } from "@/lib/fechas";
@@ -45,8 +45,18 @@ export async function PanelGestionComercial({
   // barra no aplica —mide una semana, no un trimestre— y vuelve el velocímetro.
   const semanal = esSemanal(periodo.preset);
 
-  const [resumen, { data: rechazadas }, pulsos] = await Promise.all([
+  // EL VELOCÍMETRO DEL MES, SIEMPRE. Carlos, 02-09: «cuando yo entré a mi
+  // gestión, lo que falta es que al inicio estaba tu velocímetro (…) el
+  // velocímetro de tus ventas EN EL MES». Estaba, pero mostraba el período
+  // elegido, y el período que trae la pantalla por defecto es la semana: al
+  // entrar no se veía ninguno. Ahora el del mes va arriba y no depende del
+  // filtro; el del período solo aparece cuando el período NO es un mes, para
+  // no repetir el mismo número dos veces.
+  const mes = periodoPreset("mes");
+
+  const [resumen, resumenMes, { data: rechazadas }, pulsos] = await Promise.all([
     cargarResumenGerencia(supabase, { ...periodo, comercialId, incluirHistorico }),
+    cargarResumenGerencia(supabase, { ...mes, comercialId, incluirHistorico }),
     supabase
       .from("oportunidades")
       .select("catalogo_motivos_rechazo(nombre)")
@@ -91,19 +101,27 @@ export async function PanelGestionComercial({
         </SeccionPanel>
       ) : (
         <>
-          {semanal && pulso && (
-            <BarraSemana pulso={pulso} titulo={esGerencia ? `La semana de ${nombre.split(" ")[0]}` : "Su semana"} />
-          )}
+          {/* Arriba de todo y sin depender del filtro: cómo va el mes. Es lo
+              primero que Carlos busca al abrir la pantalla de un comercial. */}
+          <div className={cn("grid gap-3", semanal && pulso && "lg:grid-cols-[minmax(230px,290px)_1fr]")}>
+            <SeccionPanel titulo={esGerencia ? `El mes de ${nombre.split(" ")[0]}` : "Sus ventas del mes"}>
+              <Velocimetro
+                ventasMes={Math.round(resumenMes?.kpis?.ventas_usd_equiv ?? 0)}
+                meta={
+                  resumenMes?.por_comercial[0] && resumenMes.por_comercial[0].meta_periodo > 0
+                    ? resumenMes.por_comercial[0].meta_periodo
+                    : null
+                }
+              />
+            </SeccionPanel>
+            {semanal && pulso && (
+              <BarraSemana pulso={pulso} titulo={esGerencia ? `La semana de ${nombre.split(" ")[0]}` : "Su semana"} />
+            )}
+          </div>
 
           <div className={cn("grid gap-3", !semanal && "lg:grid-cols-[1fr_1.4fr]")}>
-            {!semanal && (
-              <SeccionPanel
-                titulo={
-                  periodo.preset === "mes"
-                    ? "Meta del mes"
-                    : `Meta del período (${k.meses_periodo} mes${k.meses_periodo === 1 ? "" : "es"})`
-                }
-              >
+            {!semanal && periodo.preset !== "mes" && (
+              <SeccionPanel titulo={`Meta del período (${k.meses_periodo} mes${k.meses_periodo === 1 ? "" : "es"})`}>
                 <Velocimetro ventasMes={Math.round(k.ventas_usd_equiv)} meta={yo && yo.meta_periodo > 0 ? yo.meta_periodo : null} />
               </SeccionPanel>
             )}

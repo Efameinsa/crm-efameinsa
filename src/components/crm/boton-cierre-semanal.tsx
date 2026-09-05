@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CalendarCheck, FileDown, Loader2 } from "lucide-react";
 import { guardarDeclaracionSemana, leerDeclaracionSemana } from "@/lib/acciones/cierre-semanal";
@@ -48,6 +48,29 @@ export function BotonCierreSemanal({
   const [sinNecesidades, setSinNecesidades] = useState(false);
   const [listo, setListo] = useState(false);
   const [guardando, empezar] = useTransition();
+
+  // LA HORA DEL CIERRE. Carlos, 02-09: «sábado, solamente para sábado, cierre
+  // semanal (…) 11.55 aparece cierre semanal: ejecutar su cierre semanal».
+  //
+  // A esa hora el botón deja de ser un botón más y se planta: granate, en
+  // grande y con el texto que él dictó. El resto de la semana sigue existiendo
+  // discreto, porque gerencia revisa cierres de semanas pasadas y nadie debe
+  // quedarse sin poder abrir el suyo — pero la llamada a la acción aparece
+  // cuando él dijo.
+  const [esLaHora, setEsLaHora] = useState(false);
+  useEffect(() => {
+    // En el servidor no se sabe la hora del usuario y pintar una cosa distinta
+    // rompería la hidratación: se decide en el navegador, después de montar.
+    function revisar() {
+      const lima = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" }));
+      const sabado = lima.getDay() === 6;
+      const minutos = lima.getHours() * 60 + lima.getMinutes();
+      setEsLaHora(sabado && minutos >= 11 * 60 + 55);
+    }
+    revisar();
+    const t = setInterval(revisar, 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   // Gerencia mirando el cierre de otro no declara nada: solo lee el documento.
   const ajeno = Boolean(comercialId);
@@ -102,12 +125,18 @@ export function BotonCierreSemanal({
         type="button"
         onClick={abrir}
         className={cn(
-          "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background font-semibold text-foreground transition-colors hover:bg-accent",
-          compacto ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-xs",
+          "inline-flex cursor-pointer items-center gap-1.5 rounded-lg font-semibold transition-colors",
+          esLaHora && !ajeno
+            ? "animate-pulse border-2 border-primary bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 hover:animate-none"
+            : cn(
+                "border border-border bg-background text-foreground hover:bg-accent",
+                compacto ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-xs",
+              ),
         )}
         title="Cerrar la semana: en qué se compromete, qué necesita, y el documento con lo proyectado contra lo vendido"
       >
-        <CalendarCheck className={compacto ? "size-3" : "size-3.5"} /> {etiqueta}
+        <CalendarCheck className={esLaHora && !ajeno ? "size-4" : compacto ? "size-3" : "size-3.5"} />{" "}
+        {esLaHora && !ajeno ? "Ejecutar su cierre semanal" : etiqueta}
       </button>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>

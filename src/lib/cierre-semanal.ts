@@ -74,6 +74,21 @@ export interface CierreSemanal {
    * la siguiente semana». Es null mientras no lo haya declarado.
    */
   declaracion: DeclaracionSemana | null;
+  /**
+   * Lo que se perdió esta semana y por qué (Carlos, 02-09): «esos rechazados
+   * podríamos ponerlo también en el cierre semanal (…) un gráfico de torta, y
+   * que salga el detalle. No que se despliegue: que salga».
+   *
+   * El sentido no es el número: «de los errores uno aprende, pero yo no quiero
+   * aprender nada más, tiene que aprender todo el equipo».
+   */
+  rechazos: RechazoSemana[];
+}
+
+export interface RechazoSemana {
+  cliente: string;
+  motivo: string;
+  monto: number;
 }
 
 export interface DeclaracionSemana {
@@ -93,7 +108,7 @@ export async function cargarCierreSemanal(lunes: string, comercialId: string): P
   const supabase = await createClient();
   const sabado = sabadoDe(lunes);
 
-  const [{ potenciales, tc }, { data: perfil }, { data: ventasData }, { data: cotsData }, { data: actsData }, { data: declData }] =
+  const [{ potenciales, tc }, { data: perfil }, { data: ventasData }, { data: cotsData }, { data: actsData }, { data: rechData }, { data: declData }] =
     await Promise.all([
       cargarPotenciales(lunes, comercialId),
       supabase.from("perfiles").select("nombre, codigo_comercial").eq("id", comercialId).maybeSingle(),
@@ -121,6 +136,15 @@ export async function cargarCierreSemanal(lunes: string, comercialId: string): P
         .gte("realizada_at", `${lunes}T00:00:00`)
         .lte("realizada_at", `${sabado}T23:59:59`)
         .limit(1000),
+      // Lo rechazado en la semana, con su motivo.
+      supabase
+        .from("oportunidades")
+        .select("monto_estimado, moneda, cuentas(razon_social), catalogo_motivos_rechazo(nombre)")
+        .eq("comercial_id", comercialId)
+        .eq("etapa", "rechazada")
+        .gte("cerrada_at", `${lunes}T00:00:00`)
+        .lte("cerrada_at", `${sabado}T23:59:59`)
+        .limit(200),
       // Lo que declaró al cerrar esta semana: el compromiso y lo que necesita.
       supabase
         .from("declaraciones_semana")
@@ -183,6 +207,13 @@ export async function cargarCierreSemanal(lunes: string, comercialId: string): P
     gestiones: actsData?.length ?? 0,
     cotizacionesEnviadas: cotsData?.length ?? 0,
     cotizadoUsd,
+    rechazos: (rechData ?? []).map((o) => ({
+      cliente:
+        (o.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cliente sin nombre",
+      motivo:
+        (o.catalogo_motivos_rechazo as unknown as { nombre: string } | null)?.nombre ?? "Sin motivo registrado",
+      monto: o.monto_estimado ? enUsd(Number(o.monto_estimado), String(o.moneda ?? "USD")) : 0,
+    })),
     declaracion: declData
       ? {
           compromiso: declData.compromiso,
