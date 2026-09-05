@@ -11,6 +11,8 @@
     "db:usuarios-prueba": "node --env-file=.env.local scripts/crear-usuarios-prueba.mjs",
     "db:comerciales": "node --env-file=.env.local scripts/crear-comerciales.mjs",
     "db:backup": "node --env-file=.env.local scripts/backup-datos.mjs",
+    "db:respaldo-completo": "node --env-file=.env.local scripts/respaldo-completo.mjs",
+    "db:auditar-anuladas": "node --env-file=.env.local scripts/auditar-anuladas.mjs",
     "db:restaurar": "node --env-file=.env.local scripts/restaurar-datos.mjs",
     "test": "vitest run",
     "test:watch": "vitest"

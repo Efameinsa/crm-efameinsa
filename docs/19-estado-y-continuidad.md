@@ -1086,3 +1086,57 @@ funciones en C que después no se pueden restaurar.
 **Sigue pendiente:** el respaldo está en el mismo disco que el original. Falta
 sacarlo de la máquina —al NAS, a un disco externo o a la nube—, que es
 justamente lo que pidió gerencia después del robo del servidor del ERP.
+
+## 05-09 · Un cierre anulado seguía sumando en las métricas (0174)
+
+Santos, por Katerine (C5): «tiene un cierre anulado de ayer, pero todavía le
+sigue contabilizando en sus métricas semanales».
+
+**La anulación estaba bien.** El cierre 011-2026 de Sierra Travel y su venta
+quedaron anulados el 04-09 a las 17:49, la oportunidad volvió a `seguimiento` y
+el 014-2026 nuevo se emitió por 1 987,29. Lo que fallaba era el CONTEO.
+
+**Cuánto se contaba de más.** Katerine, semana del 31-08 al 05-09: se veían
+4 ventas y 9 934,07 USD; son 3 y 7 684,07. La diferencia son los 2 250 del
+cierre anulado.
+
+**Los cuatro lugares que contaban mal**, y a qué pantalla alimenta cada uno:
+
+| | |
+|---|---|
+| `v_ventas_detalle` | el tablero de gerencia y el de marketing: monto vendido, número de ventas, ticket promedio, ranking por comercial, vía de adquisición |
+| `reporte_diario_comercial` | el reporte del día de cada comercial, y la suma de la semana que sale de él |
+| `supervision_diaria` | la supervisión de gerencia. Contaba mal DOS cosas: el monto vendido y los informes emitidos |
+| `grupo_economico_def` | lo que un cliente lleva comprado, en su ficha y en la de todas las sedes de su RUC |
+
+**Por qué se escapó, que es lo importante.** Existe una prueba que vigila
+exactamente esto —`src/lib/ventas-anuladas.test.ts`, verde desde hace
+semanas—: recorre el código y exige que toda consulta a `ventas` filtre las
+anuladas o declare por escrito que no. Hace bien su trabajo, pero **solo lee
+TypeScript**, y las métricas no se calculan en TypeScript: se calculan en
+funciones y en una vista de PostgreSQL. Es el agujero que quedó documentado esa
+misma mañana en el informe de arquitectura —5 332 líneas de PL/pgSQL sin una
+sola prueba automática— y este fue el primer caso concreto que produjo.
+
+**La otra mitad de la guardia ya existe:** `npm run db:auditar-anuladas` hace
+lo mismo sobre el catálogo VIVO de la base. Hoy pasa: ninguna función ni vista
+cuenta lo anulado sin declararlo, y las ocho que no filtran tienen su razón
+escrita en el propio script. Hay que correrla al tocar funciones de métricas.
+
+**El reporte guardado del 01-09 se corrigió aparte.** `reportes_diarios` guarda
+una foto del día, y esa foto no se arregla sola. NO se regeneró el reporte
+entero a propósito: trae también la agenda —«pendiente hoy», «vencidas»,
+«mañana»—, que se calcula contra el estado actual de las oportunidades, y
+volver a correrla hoy daría una agenda que nunca existió ese día. Se tocó solo
+la lista de ventas y sus dos totales, con el motivo escrito dentro del propio
+reporte (`ajuste_0174`). El script es
+`scripts/corregir-reportes-con-venta-anulada.mjs` y sirve para el próximo caso.
+
+**Pendiente de preguntar a Carlos.** En `resumen_gerencia` quedan tres
+contadores que siguen sin descontar las anuladas: `ventas_sin_serie`,
+`ventas_historicas_total` y `ventas_crm_total`. Cuentan filas cargadas, no
+desempeño de nadie, así que se dejaron como estaban — pero conviene que él
+decida si deben descontarlas.
+
+La migración no necesitó despliegue: vive entera en la base y tuvo efecto en el
+momento de aplicarse.

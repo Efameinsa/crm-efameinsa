@@ -14,6 +14,16 @@ import { join } from "path";
  * Así que este test recorre el código y exige que TODA lectura de `ventas`
  * declare qué hace con las anuladas: o las filtra con `.is("anulada_at", null)`,
  * o dice por escrito que las incluye a propósito.
+ *
+ * ESTE TEST ES SOLO LA MITAD, y conviene saberlo. Lee TypeScript, y las
+ * métricas no se calculan en TypeScript: se calculan en funciones y en una
+ * vista de PostgreSQL, donde esto no llega. El 05-09 eso dejó pasar un cierre
+ * anulado de Katerine que siguió sumando en su semana, en el tablero de
+ * gerencia y en la supervisión diaria (migración 0174).
+ *
+ * La otra mitad es `npm run db:auditar-anuladas`, que hace exactamente lo
+ * mismo sobre el catálogo VIVO de la base. No corre acá porque necesita
+ * conexión; hay que correrla a mano al tocar funciones de métricas.
  */
 
 const EXCEPCIONES = new Map([
