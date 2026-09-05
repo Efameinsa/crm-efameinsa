@@ -22,7 +22,13 @@ import { CierreSemanalPdf } from "../src/lib/pdf/cierre-semanal-pdf";
 const DESCARGAS = "C:\\Users\\diseno\\Downloads";
 
 const codigo = (process.argv[2] ?? "C5").toUpperCase();
-const lunes = lunesSemana(process.argv[3]);
+const lunes = lunesSemana(process.argv[3]?.startsWith("--") ? undefined : process.argv[3]);
+
+/** --compromiso "…" y --necesidades "…" para el archivo de ejemplo. */
+function bandera(nombre: string): string | undefined {
+  const i = process.argv.indexOf(`--${nombre}`);
+  return i !== -1 ? process.argv[i + 1] : undefined;
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,8 +71,10 @@ async function main() {
           ...cierre,
           declaracion: {
             compromiso:
+              bandera("compromiso") ??
               "Voy a retomar con visita, no con llamada, los clientes que cotizaron en agosto y no respondieron; y voy a dejar cerrada la fecha de cierre de las oportunidades que están sin fecha.",
             necesidades:
+              bandera("necesidades") ??
               "Capacitación en la secadora a gas y las fichas técnicas de los coches de lavandería para poder cotizarlos sin preguntar.",
             sinNecesidades: false,
             declaradoAt: new Date().toISOString(),
