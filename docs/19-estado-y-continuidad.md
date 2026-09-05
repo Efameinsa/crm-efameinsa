@@ -1197,3 +1197,37 @@ coordinar la hora y el técnico, que se llenan ANTES de emitir.
 
 Veinte pruebas nuevas usan los tres correos de Lesly como referencia
 (`src/lib/apertura-servicio.test.ts`).
+
+## 05-09 · «Ventas sin informe de cierre» que no se iba (Brenda)
+
+Brenda hizo su informe el 04-09 y en su «Mi día» le seguía apareciendo
+**Ventas sin informe de cierre (1)** — CORP DE INGENIERIA DE REFRIGERACION
+SRL, 3 347,46 USD. Pedía que se lo borraran.
+
+**No había nada que borrar.** El informe existía —**001-2026 de EFAMEINSA**,
+emitido el 04-09 a las 18:28— y la venta también, con la misma cotización
+(Presu_2211-26) y el mismo cliente. Lo único que faltaba era que estuvieran
+**atados**. Los montos ya cuadraban: 3 950,00 con IGV en el informe y 3 347,46
+sin IGV en la venta, que es la convención de la casa desde la 0148. Borrar la
+venta le habría sacado una venta real del récord.
+
+**El mecanismo que debía hacerlo solo.** Desde la 0105 hay dos disparadores que
+atan informe y venta: uno cuando nace la venta y otro cuando se emite el
+informe. Los dos exigen que no haya ambigüedad —un solo informe emitido y sin
+venta, una sola venta sin informe, mismo cliente, menos de siete días de
+diferencia— y si hay dos candidatos no adivinan. Está bien que sea así.
+
+**Por qué no se disparó el 04-09: no se pudo determinar.** Se comprobó en una
+transacción de ensayo (revertida) que hoy, sobre este mismo caso, volver a
+emitir el informe lo ata solo. Se descartaron: que el trigger no existiera —es
+de la 0105 y la 0148—, que la cuenta no coincidiera, que hubiera más de un
+candidato de cualquiera de los dos lados, y que `emitir_informe` no tocara
+`emitido_at`. Queda como un hecho sin explicar, no como una causa conocida.
+
+**Lo que sí queda:** `scripts/atar-informes-sueltos.mjs`. Busca las ventas del
+CRM sin informe y les encuentra su informe emitido y suelto usando **los mismos
+criterios del disparador**; ata solo cuando la pareja es única por los dos
+lados, y lo ambiguo lo informa sin tocarlo. Corre en seco por defecto y aplica
+con `--aplicar`. En todo el sistema había **un solo caso**: el de Brenda.
+
+Corregido en producción. No necesitó despliegue.
