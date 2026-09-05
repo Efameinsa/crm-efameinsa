@@ -78,7 +78,15 @@ async function main() {
     console.log(`  Backup del ${manifiesto.fecha} (migración más alta al respaldar: ${manifiesto.migracion_mas_alta})`);
   }
 
-  const archivosNdjson = readdirSync(dirTemp).filter((f) => f.endsWith(".ndjson"));
+  // El respaldo de siempre deja los .ndjson en la raíz; el completo
+  // (scripts/respaldo-completo.mjs) los pone en base/datos/. Se aceptan los
+  // dos, para que haya un solo camino de vuelta.
+  const dirDatos = existsSync(join(dirTemp, "base", "datos")) ? join(dirTemp, "base", "datos") : dirTemp;
+
+  // auth-users.ndjson y storage-objects.ndjson no son tablas de public: se
+  // restauran aparte, con el proveedor de identidad que se vaya a usar.
+  const archivosNdjson = readdirSync(dirDatos)
+    .filter((f) => f.endsWith(".ndjson") && !f.startsWith("auth-") && !f.startsWith("storage-"));
   const tablas = archivosNdjson.map((f) => basename(f, ".ndjson"));
   if (tablas.length === 0) {
     console.error("El zip no contiene archivos .ndjson — ¿es un backup válido?");
@@ -96,7 +104,7 @@ async function main() {
     await cliente.query(`truncate table ${listaTablas} restart identity cascade`);
 
     for (const tabla of tablas) {
-      const contenido = readFileSync(join(dirTemp, `${tabla}.ndjson`), "utf8");
+      const contenido = readFileSync(join(dirDatos, `${tabla}.ndjson`), "utf8");
       const filas = contenido.split("\n").filter(Boolean);
       if (filas.length > 0) await insertarFilas(cliente, tabla, filas);
       console.log(`→ ${tabla}: ${filas.length} filas restauradas`);

@@ -1051,3 +1051,38 @@ registro CRM 31-08 al 04-09.txt»; «Efameinsa - reglas de negocio y mapa de
 procesos para Camunda.txt» con 200 reglas, 19 diagramas y las doce
 contradicciones; y «Efameinsa - insumos para manual de identidad
 corporativa.txt».
+
+## Respaldo completo del sábado 05-09, para evaluar otra arquitectura
+
+Santos pidió un respaldo completo del CRM porque quiere analizar una
+alternativa de arquitectura. El respaldo de siempre (`npm run db:backup`) no
+alcanzaba: guarda las filas y deja fuera el esquema vivo, los usuarios, los
+adjuntos y las 121 funciones donde vive la mitad de las reglas del negocio.
+
+Quedaron dos archivos en `backups/`:
+
+- **`crm-efameinsa-respaldo-completo-2026-09-05.zip`** (79 MB, 472 archivos).
+  Esquema leído del catálogo vivo, las 52 tablas con 146.689 filas sacadas en
+  una sola transacción, los 22 usuarios de `auth`, los 101 adjuntos y un
+  `git bundle` con todo el historial. Adentro van el `LEEME.md` con el
+  procedimiento de vuelta y un `INVENTARIO-TECNICO.md` con los números para
+  comparar arquitecturas.
+- **`crm-efameinsa-SECRETOS-2026-09-05.zip`**, aparte a propósito: así el
+  respaldo se le puede entregar a un tercero sin darle producción.
+
+**Probado, no supuesto.** `scripts/ensayar-restauracion.mjs` levantó el esquema
+entero en un esquema temporal de la propia base —52 tablas, 121 funciones, 117
+políticas, 150 índices, 3 vistas, 33 triggers, sin un solo error— y lo deshizo.
+También se verificó que las 146.836 líneas NDJSON son JSON válido, que los 101
+adjuntos son archivos reales (55 JPEG, 37 PDF, 7 PNG, 2 ZIP) y que el bundle de
+git tiene historial completo.
+
+**Dos cosas que aprendimos en el camino.** El pooler de Supabase corta la
+conexión con `select * from leads` de un tirón (20 MB): hay que ir por tandas
+con un cursor del servidor. Y `pg_trgm` y `uuid-ossp` viven dentro de `public`,
+así que un volcado ingenuo de «las funciones de public» se lleva un centenar de
+funciones en C que después no se pueden restaurar.
+
+**Sigue pendiente:** el respaldo está en el mismo disco que el original. Falta
+sacarlo de la máquina —al NAS, a un disco externo o a la nube—, que es
+justamente lo que pidió gerencia después del robo del servidor del ERP.
