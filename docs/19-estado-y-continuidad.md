@@ -1302,3 +1302,70 @@ hicieron el mismo día, a pedido de Santos:
 
 Sigue pendiente solo la **pantalla del histórico de cierres**: los datos ya se
 guardan en `declaraciones_semana`, falta listarlos.
+
+**05-09, mañana — sesión «CRM SERVIDOR»: piloto SOLO en línea, sin el servidor de la empresa.** Santos redefinió el alcance: nada de trabajo sin internet por ahora, nada del servidor (sus unidades T–Z ya no autentican: Sistemas cambió/retiró la cuenta `efameinsa\administrador`), solo una carpeta de su PC con ~10 clientes de prueba. Hecho: (1) carpeta piloto `C:\Users\diseno\ArchivoCRM\{fotos,informes,entrada}`; (2) **máquina virtual `archivo-crm` en Hyper-V** (Ubuntu 24.04, `D:\VMs\archivo-crm\`, LEEME.txt) con `scripts/servidor-archivos.mjs` como servicio systemd en el puerto 8731, Samba `\172.29.194.124\archivo` para dejar los archivos, cloudflared instalado; armada sin permisos de administrador (imagen cloud + cloud-init con disquete FAT12 hecho en Node); (3) probada de punta a punta por túnel trycloudflare: PDF firmado 200, carpeta 200, fuera de raíz 403, sin firma 410; punto de control «base lista 05-09». Detalle en la memoria `vm-archivo-crm-hyperv`. **Pendiente:** dominio de prueba de Santos en la cuenta de Cloudflare (la de R2) para el túnel con nombre fijo → poner `ARCHIVOS_URL` y `ARCHIVOS_SECRETO` (uno fuerte nuevo, en los dos lados) en Vercel; como el túnel es https, `documentos-del-servidor.tsx` puede incrustar la galería en vez de abrir pestaña nueva; adaptar `indexar-carpetas-servidor.mjs` para raíces Linux `/srv/archivo/...`; piloto de correo con el dominio de prueba (Email Routing + Resend; buzones reales no van en la PC). El DNS interno de la oficina (192.168.10.212) no resuelve *.trycloudflare.com ni deja salir a 1.1.1.1: probar con DoH + `curl --resolve`.
+
+**05-09, 11:30 — el piloto se ve desde el CRM en local.** `.env.local`: `ARCHIVOS_URL=http://172.29.194.124:8731` (la VM). Cuenta de práctica C0 (comercial0@gmail.com) con su banco recién creado (`crear-banco-comercial-c0.mjs`, 6 clientes «(PRÁCTICA)»); carpetas en la VM para esos 6 y para los 10 «PRUEBA» de PV0; `scripts/_vincular-piloto-vm.mjs` (untracked) registró 32 carpetas en `carpetas_servidor` y llenó `cuentas.carpetas_servidor` con rutas Linux `/srv/archivo/{fotos,informes}/<razón social>`. Verificado con Chrome headless: la ficha `/comercial/cartera/<id>` muestra «Documentos del servidor» → «Abrir carpeta» (pestaña nueva, http). Para producción faltan: dominio de prueba en Cloudflare → túnel con nombre → `ARCHIVOS_URL` https + `ARCHIVOS_SECRETO` fuerte en Vercel (y en la VM) → entonces `documentos-del-servidor.tsx` puede incrustar la galería en vez de abrir pestaña.
+
+**CIERRE 05-09 (sesión «CRM SERVIDOR») — dónde retomar el lunes 08-09.** Hecho hoy: VM `archivo-crm` en Hyper-V con el servidor de archivos, Samba y cloudflared; C0 (comercial0@gmail.com) con banco de práctica y carpetas vinculadas; verificado en local que la ficha muestra «Documentos del servidor» y abre la carpeta. **Lunes:** Santos confirma el dominio de prueba `activasme.site` (hoy no resuelve) y lo pasa a la cuenta de Cloudflare de la empresa; luego túnel con nombre `archivo.activasme.site` como servicio en la VM, secreto nuevo, `ARCHIVOS_URL`/`ARCHIVOS_SECRETO` en Vercel dentro de ventana, ajuste de `documentos-del-servidor.tsx` (nota y galería incrustada por https), y piloto de correo (Email Routing + Resend). Santos copia sus clientes reales a `\172.29.194.124\archivo`. Scripts sin versionar de hoy en `scripts/_diag-*.mjs` y `scripts/_vincular-piloto-vm.mjs` (borrar o versionar al retomar). Detalle: memoria `vm-archivo-crm-hyperv`.
+
+**05-09, 12:30 — el archivo de la VM ya se ve en PRODUCCIÓN.** Túnel `archivo-crm` → https://archivo.activasme.site (dominio de prueba de Santos en Cloudflare), secreto nuevo en la VM y en Vercel (`ARCHIVOS_URL`, `ARCHIVOS_SECRETO`), commit 8dc28e5 (nota de la ficha) desplegado a las 12:18 dentro del push 68db2e4 de otra sesión. Verificado: C0 en crm.efameinsa.com ve «Documentos del servidor» con «Abrir carpeta» por https. Solo aparece en cuentas con carpeta vinculada (16 de práctica); para el resto no cambia nada.
+
+## 05-09 (11:29) · Carlos revisó el cierre semanal en vivo, y lo que salió de ahí
+
+Reunión grabada mientras miraba el cierre de Brenda recién desplegado. Todo lo
+que pidió se hizo el mismo día. Migraciones 0178, 0179 y 0180.
+
+### Lo que ya está en producción
+
+**Cada número contra su meta** (desplegado 12:05). «Contacto con clientes, sí,
+¿pero de cuántos? Acá me dice que está todo bien: voy a ir a hacer fiesta hoy
+día. Falta compararlo con algo.» Las tarjetas dicen 141 de 210 · 67%, con barra
+y color; el día por día dice 49 / 35; y una franja cierra con el veredicto y una
+frase — «no es darle con palo, sino ver tu realidad».
+
+**El aviso cuando la proyección está vacía.** Era su reproche de fondo: a quien
+vendió 14.981 contra una meta de 32.000 no se le puede decir «a favor» porque
+proyectó 1.772. Si lo proyectado no llega ni a un tercio de la meta, el
+documento lo dice.
+
+**El acumulado del mes** en el histórico, con cada semana etiquetada.
+
+**Central devuelve el cierre mal hecho (0178).** «¿Para qué le derivas si está
+mal? Tendrías que rechazarlo y que lo haga bien.» Devolver no es anular: el
+número se conserva y lo que cambia es de quién es el trabajo. Sale de la cola de
+Central —pestaña «Devueltos»—, aparece arriba en «Mis cierres» del comercial con
+el motivo escrito, y vuelve cuando él dice «ya lo corregí». Cada vuelta queda
+registrada.
+
+**El aviso a Finanzas también por correo.** A `Contabilidad1@efameinsa.com`, por
+n8n, además del WhatsApp. No pasa por `AVISOS_CORREO`: ese interruptor apaga las
+alertas de leads al correo de gerencia que él mandó quitar el 04-09; este es
+otro correo y lo pidió él mismo.
+
+**La proyección dice CUÁL cotización se va a cerrar (0179).** Su propia
+solución para el caso del cliente con tres cotizaciones. En la tarjeta del
+cuadro semanal aparece «¿Cuál va a cerrar?» solo cuando hay más de una. Sigue
+siendo opcional. La 0180 fue detrás: la 0179 dejó viva la versión de dos
+parámetros y la llamada quedaba ambigua — se detectó en el ensayo, antes de
+desplegar.
+
+### Lo que sigue pendiente de esa reunión
+
+- **El «no hay anular» de la derivación.** Carlos buscó y no lo encontró. **Sí
+  existe** desde la 0171, con PIN, pero vive solo en `/central/derivados`, en
+  «Avisos que mandé a otras áreas». Hay que decírselo o ponerlo también donde
+  él miró.
+- **La duplicidad en el historial** cuando Central deriva el aviso al mismo
+  comercial que registró el pago (audio de las 11:19): «que no haya duplicidad;
+  tendría que aparecer la hora, nada más, que él le reenvió la central a
+  usted». No se tocó: la forma exacta de resolverlo no está clara y hacerlo a
+  ciegas puede empeorar el historial.
+- **Verificar que el WhatsApp a Finanzas quede grabado.** Santos iba a pedir
+  feedback; todavía no lo hay.
+
+### Fuera del CRM
+
+Carlos tiene la laptop llena: 1 TB, de los cuales ~750 GB son correos en un
+PST. Alternativas conversadas: disco externo, o correo corporativo de Google
+(≈US$ 5/mes con 2 TB). Santos iba a mirar precios.
