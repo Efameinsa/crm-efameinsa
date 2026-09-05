@@ -22,6 +22,16 @@ const cierre: CierreSemanal = {
     sinNecesidades: false,
     declaradoAt: "2026-08-29T17:00:00.000Z",
   },
+  medidas: {
+    gestiones: { logrado: 48, meta: 210, porcentaje: 48 / 210, estado: "lejos" },
+    cotizaciones: { logrado: 6, meta: 50, porcentaje: 6 / 50, estado: "lejos" },
+    venta: { logrado: 30000, meta: 32000, porcentaje: 30000 / 32000, estado: "cerca" },
+  },
+  veredicto: {
+    titulo: "A medias",
+    frase: "Quedó lejos en contactar y cotizar. Siga esforzándose: el lunes se ve qué hace falta para levantarlo.",
+    estado: "lejos",
+  },
   // Los rechazados de la semana, para ver la torta en la vista previa.
   rechazos: [
     { cliente: "HOTEL LOS PORTALES S.A.", motivo: "Precio fuera de presupuesto", monto: 12400 },

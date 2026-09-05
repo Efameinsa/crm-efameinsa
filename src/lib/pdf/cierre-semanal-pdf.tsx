@@ -36,11 +36,21 @@ const e = StyleSheet.create({
   balanceValor: { fontSize: 17, fontFamily: "Helvetica-Bold", marginTop: 3 },
   balanceSigno: { fontSize: 15, color: GRIS, paddingHorizontal: 6, paddingBottom: 3 },
   veredicto: { marginTop: 9, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: BORDE, fontSize: 9, textAlign: "center" },
+  aviso: { marginTop: 6, fontSize: 8, color: GRANATE, textAlign: "center", lineHeight: 1.3 },
 
   tarjetas: { flexDirection: "row", gap: 6, marginBottom: 12 },
   tarjeta: { flex: 1, borderWidth: 1, borderColor: BORDE, borderRadius: 4, padding: 7 },
   tarjetaEtiqueta: { fontSize: 6.5, color: GRIS, textTransform: "uppercase", letterSpacing: 0.3 },
   tarjetaValor: { fontSize: 14, fontFamily: "Helvetica-Bold", marginTop: 2 },
+  tarjetaPie: { fontSize: 7, color: GRIS, marginTop: 2 },
+  // La barrita de cumplimiento: se ve de un vistazo si llegó o no.
+  barraFondo: { height: 3, backgroundColor: "#E8E4E3", borderRadius: 2, marginTop: 4 },
+  barraLlena: { height: 3, borderRadius: 2 },
+
+  veredictoCaja: { borderWidth: 1, borderRadius: 4, padding: 8, marginBottom: 12, flexDirection: "row", alignItems: "center" },
+  puntoEstado: { width: 8, height: 8, borderRadius: 4, marginRight: 7 },
+  veredictoTitulo: { fontSize: 9, fontFamily: "Helvetica-Bold", marginRight: 5 },
+  veredictoFrase: { fontSize: 8.5, color: CARBON, flex: 1 },
 
   seccion: { marginTop: 10 },
   seccionCabecera: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: GRANATE, paddingVertical: 4, paddingHorizontal: 6, borderRadius: 2 },
@@ -98,6 +108,52 @@ function sector(desde: number, hasta: number): string {
   const grande = hasta - desde > 0.5 ? 1 : 0;
   return "M " + C + " " + C + " L " + x1 + " " + y1 +
          " A " + R + " " + R + " 0 " + grande + " 1 " + x2 + " " + y2 + " Z";
+}
+
+/** Verde cumplió, ámbar cerca, granate lejos. El color es la primera lectura. */
+const COLOR_ESTADO: Record<string, string> = {
+  cumplio: VERDE,
+  cerca: "#B07A0C",
+  lejos: GRANATE,
+  sin_meta: GRIS,
+};
+
+/**
+ * Un número con su meta, su porcentaje y su barra.
+ *
+ * Sin meta cargada no se inventa ninguna: se muestra el número solo y se dice
+ * que no hay contra qué compararlo. Un porcentaje falso es peor que ninguno.
+ */
+function Medidor({
+  etiqueta,
+  m,
+  texto,
+  textoMeta,
+}: {
+  etiqueta: string;
+  m: { logrado: number; meta: number | null; porcentaje: number | null; estado: string };
+  texto?: string;
+  textoMeta?: string | null;
+}) {
+  const color = COLOR_ESTADO[m.estado] ?? GRIS;
+  return (
+    <View style={e.tarjeta}>
+      <Text style={e.tarjetaEtiqueta}>{etiqueta}</Text>
+      <Text style={[e.tarjetaValor, { color }]}>{texto ?? m.logrado}</Text>
+      {m.meta != null && m.porcentaje != null ? (
+        <>
+          <Text style={e.tarjetaPie}>
+            de {textoMeta ?? m.meta} · {Math.round(m.porcentaje * 100)}%
+          </Text>
+          <View style={e.barraFondo}>
+            <View style={[e.barraLlena, { width: `${Math.min(Math.round(m.porcentaje * 100), 100)}%`, backgroundColor: color }]} />
+          </View>
+        </>
+      ) : (
+        <Text style={e.tarjetaPie}>sin meta cargada</Text>
+      )}
+    </View>
+  );
 }
 
 const usd = (n: number) => `US$ ${Math.round(n).toLocaleString("es-PE")}`;
@@ -165,25 +221,47 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
                 ? `Cumplió lo que proyectó para la semana${diferenciaUsd > 0 ? ` y lo superó en ${usd(diferenciaUsd)}` : ""}.`
                 : `Quedó debiendo ${usd(Math.abs(diferenciaUsd))} de lo que se comprometió a cerrar esta semana.`}
           </Text>
+          {/* CUANDO LA PROYECCIÓN ESTÁ VACÍA, EL CONTRASTE MIENTE. Carlos,
+              05-09: «mi venta está hecha una maravilla, he vendido 14.000,
+              proyectado 1.700, a favor… pero acá tú no me estás diciendo nada».
+              Si lo proyectado no llega ni a un tercio de la meta semanal, se
+              dice en el mismo recuadro: el problema no es la venta, es que no
+              se está proyectando. */}
+          {cierre.medidas.venta.meta != null && proyectadoUsd < cierre.medidas.venta.meta * 0.33 && (
+            <Text style={e.aviso}>
+              Ojo: solo se proyectó {usd(proyectadoUsd)} para una meta semanal de {usd(cierre.medidas.venta.meta)}. El
+              contraste de arriba dice poco mientras las oportunidades en negociación no tengan fecha de cierre.
+            </Text>
+          )}
         </View>
 
+        {/* CADA NÚMERO CONTRA SU META. Carlos, 05-09, mirando este mismo
+            documento: «contacto con clientes, sí, ¿pero de cuántos? (…) acá me
+            dice que está todo bien: voy a ir a hacer fiesta hoy día. Falta
+            compararlo con algo. Dime qué tengo que mejorar». */}
         <View style={e.tarjetas}>
-          <View style={e.tarjeta}>
-            <Text style={e.tarjetaEtiqueta}>Contactos con cliente</Text>
-            <Text style={e.tarjetaValor}>{cierre.gestiones}</Text>
-          </View>
-          <View style={e.tarjeta}>
-            <Text style={e.tarjetaEtiqueta}>Cotizaciones enviadas</Text>
-            <Text style={e.tarjetaValor}>{cierre.cotizacionesEnviadas}</Text>
-          </View>
+          <Medidor etiqueta="Contactos con cliente" m={cierre.medidas.gestiones} />
+          <Medidor etiqueta="Cotizaciones enviadas" m={cierre.medidas.cotizaciones} />
+          <Medidor
+            etiqueta="Vendido"
+            m={cierre.medidas.venta}
+            texto={usd(cierre.medidas.venta.logrado)}
+            textoMeta={cierre.medidas.venta.meta ? usd(cierre.medidas.venta.meta) : null}
+          />
           <View style={e.tarjeta}>
             <Text style={e.tarjetaEtiqueta}>Monto cotizado</Text>
             <Text style={e.tarjetaValor}>{usd(cierre.cotizadoUsd)}</Text>
+            <Text style={e.tarjetaPie}>{ventas.length} venta(s) cerrada(s)</Text>
           </View>
-          <View style={e.tarjeta}>
-            <Text style={e.tarjetaEtiqueta}>Ventas cerradas</Text>
-            <Text style={e.tarjetaValor}>{ventas.length}</Text>
-          </View>
+        </View>
+
+        {/* La frase que cierra. «No es darle con palo, sino ver tu realidad.» */}
+        <View style={[e.veredictoCaja, { borderColor: COLOR_ESTADO[cierre.veredicto.estado] }]}>
+          <View style={[e.puntoEstado, { backgroundColor: COLOR_ESTADO[cierre.veredicto.estado] }]} />
+          <Text style={[e.veredictoTitulo, { color: COLOR_ESTADO[cierre.veredicto.estado] }]}>
+            {cierre.veredicto.titulo}.
+          </Text>
+          <Text style={e.veredictoFrase}>{cierre.veredicto.frase}</Text>
         </View>
 
         {/* LO QUE DIJO EL COMERCIAL. Carlos, 02-09: «abajo, o si quieres

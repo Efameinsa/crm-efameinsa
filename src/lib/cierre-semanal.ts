@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { cargarPotenciales, resumirSemana, type ProyeccionSemana } from "@/lib/potenciales-semana";
+import { SEMANAS_POR_MES } from "@/lib/periodo";
 
 /**
  * El cierre de la semana.
@@ -83,6 +84,29 @@ export interface CierreSemanal {
    * aprender nada más, tiene que aprender todo el equipo».
    */
   rechazos: RechazoSemana[];
+  /**
+   * Cada número contra lo que se esperaba. Es lo que Carlos echó de menos el
+   * 05-09: «yo estoy contento con lo que he hecho, 13 cotizaciones — pero ¿de
+   * cuántos?». Un número sin su meta no dice si hay que felicitar o corregir.
+   */
+  medidas: { gestiones: Medida; cotizaciones: Medida; venta: Medida };
+  /** La frase que cierra el bloque. «No es darle con palo, sino ver tu realidad.» */
+  veredicto: { titulo: string; frase: string; estado: Medida["estado"] };
+}
+
+/**
+ * Un número contra su meta. Carlos, 05-09, mirando el cierre de Brenda:
+ * «contacto con clientes, sí, pero ¿de cuántos? (…) acá me dice que está todo
+ * bien: voy a ir a hacer fiesta hoy día. Pero falta compararlo con algo. Dime
+ * qué tengo que mejorar».
+ */
+export interface Medida {
+  logrado: number;
+  meta: number | null;
+  /** 0 a 1, o null si no hay meta cargada. No se inventa una. */
+  porcentaje: number | null;
+  /** cumplio · cerca (>=70%) · lejos. Sin meta, «sin_meta». */
+  estado: "cumplio" | "cerca" | "lejos" | "sin_meta";
 }
 
 export interface RechazoSemana {
@@ -116,7 +140,11 @@ export async function cargarCierreSemanal(
   const [{ potenciales, tc }, { data: perfil }, { data: ventasData }, { data: cotsData }, { data: actsData }, { data: rechData }, { data: declData }] =
     await Promise.all([
       cargarPotenciales(lunes, comercialId, supabase),
-      supabase.from("perfiles").select("nombre, codigo_comercial").eq("id", comercialId).maybeSingle(),
+      supabase
+        .from("perfiles")
+        .select("nombre, codigo_comercial, meta_mensual, meta_gestiones_diarias, meta_cotizaciones_semanal")
+        .eq("id", comercialId)
+        .maybeSingle(),
       supabase
         .from("ventas")
         .select("fecha_venta, monto_total, moneda, oportunidades!inner(comercial_id, cuentas(razon_social))")
@@ -199,6 +227,64 @@ export async function cargarCierreSemanal(
   const vendidoUsd = ventas.reduce((s, v) => s + v.montoUsd, 0);
   const cotizadoUsd = (cotsData ?? []).reduce((s, c) => s + enUsd(Number(c.total), c.moneda), 0);
 
+  // ── CADA NÚMERO CONTRA SU META ──────────────────────────────────────────
+  // La semana laboral son seis días (lunes a sábado), así que la meta diaria
+  // de gestiones se multiplica por seis. La de venta sale de la mensual
+  // repartida: 138.667 / 4,33 = 32.000, que es el número que Carlos usa de
+  // memoria («mínimo unos 32 mil»).
+  const medir = (logrado: number, meta: number | null): Medida => {
+    if (!meta || meta <= 0) return { logrado, meta: null, porcentaje: null, estado: "sin_meta" };
+    const porcentaje = logrado / meta;
+    return { logrado, meta, porcentaje, estado: porcentaje >= 1 ? "cumplio" : porcentaje >= 0.7 ? "cerca" : "lejos" };
+  };
+
+  const metaGestiones = perfil?.meta_gestiones_diarias ? Number(perfil.meta_gestiones_diarias) * 6 : null;
+  const metaCotizaciones = perfil?.meta_cotizaciones_semanal ? Number(perfil.meta_cotizaciones_semanal) : null;
+  const metaVenta = perfil?.meta_mensual ? Number(perfil.meta_mensual) / SEMANAS_POR_MES : null;
+
+  const medidas = {
+    gestiones: medir(actsData?.length ?? 0, metaGestiones),
+    cotizaciones: medir(cotsData?.length ?? 0, metaCotizaciones),
+    venta: medir(vendidoUsd, metaVenta),
+  };
+
+  // ── LA FRASE QUE CIERRA ─────────────────────────────────────────────────
+  // Carlos, 05-09: «lo que estamos buscando no es darle con palo, sino ver tu
+  // realidad»; y pidió textualmente que el sistema diga «por favor, seguir
+  // esforzándote». Así que el veredicto nombra lo que faltó, sin adornarlo, y
+  // termina en algo que se pueda hacer el lunes.
+  const conMeta = [medidas.venta, medidas.gestiones, medidas.cotizaciones].filter((m) => m.estado !== "sin_meta");
+  const cumplidas = conMeta.filter((m) => m.estado === "cumplio").length;
+  const flojas = conMeta.filter((m) => m.estado === "lejos");
+
+  const veredicto = (() => {
+    if (conMeta.length === 0) {
+      return { titulo: "Sin metas cargadas", frase: "No hay contra qué comparar esta semana.", estado: "sin_meta" as const };
+    }
+    if (cumplidas === conMeta.length) {
+      return {
+        titulo: "Semana cumplida",
+        frase: "Cumplió las tres metas. Que la próxima se parezca a esta.",
+        estado: "cumplio" as const,
+      };
+    }
+    if (flojas.length === 0) {
+      return {
+        titulo: "Cerca",
+        frase: "Le faltó poco. Con un empujón la próxima semana entra.",
+        estado: "cerca" as const,
+      };
+    }
+    const partes = flojas.map((m) => (m === medidas.venta ? "vender" : m === medidas.gestiones ? "contactar" : "cotizar"));
+    const nombres =
+      partes.length > 1 ? `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}` : partes[0];
+    return {
+      titulo: cumplidas > 0 ? "A medias" : "Lejos de la meta",
+      frase: `Quedó lejos en ${nombres}. Siga esforzándose: el lunes se ve qué hace falta para levantarlo.`,
+      estado: "lejos" as const,
+    };
+  })();
+
   return {
     lunes,
     sabado,
@@ -212,6 +298,8 @@ export async function cargarCierreSemanal(
     gestiones: actsData?.length ?? 0,
     cotizacionesEnviadas: cotsData?.length ?? 0,
     cotizadoUsd,
+    medidas,
+    veredicto,
     rechazos: (rechData ?? []).map((o) => ({
       cliente:
         (o.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cliente sin nombre",
