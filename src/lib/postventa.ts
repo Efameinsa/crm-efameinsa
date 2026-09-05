@@ -68,6 +68,18 @@ export interface ServicioPostventa {
   recibe_nombre: string | null;
   cerrado_at: string | null;
   /**
+   * La apertura de servicio: el formato que sale al equipo por correo (0175).
+   * Son los datos que no vivían en ninguna parte y viajaban en la cabeza de
+   * quien armaba el correo.
+   */
+  apertura_tipo?: string | null;
+  apertura_fecha?: string | null;
+  apertura_hora?: string | null;
+  tecnico_asignado?: string | null;
+  transporte?: string | null;
+  apertura_nota?: string | null;
+  direccion_final?: string | null;
+  /**
    * El pago, resuelto ANTES de tapar las cifras (ver `sinPrecios`).
    *
    * No viene de la base: lo calcula el servidor. Existe porque el estado del

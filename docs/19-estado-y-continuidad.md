@@ -1140,3 +1140,60 @@ decida si deben descontarlas.
 
 La migración no necesitó despliegue: vive entera en la base y tuvo efecto en el
 momento de aplicarse.
+
+## 05-09 · La apertura de servicio, en sus tres formatos (0175)
+
+Pedido por Lesly a través de Santos, con tres correos reales de ejemplo
+(Mercedarias Misioneras, Peru Vacation Rentals y Motorgas):
+
+> «Una vez que postventa hace todos los pasos —confirmación de finanzas, prueba
+> de embalaje, coordinar con el cliente— y llena datos como dirección a dónde
+> llega, con qué agencia, la persona que recibe, teléfono y DNI, todo eso va
+> plasmado en una APERTURA DE SERVICIO (…) aquí se tienen los tres formatos y
+> todo se debe llenar en automático con todos los datos que ya se tienen.»
+
+**Los tres formatos son el mismo.** Solo cambia el encabezado de la fila 1:
+`ENTREGA DE:` (va a la agencia), `ENTREGA Y PUESTA EN MARCHA DE:` (el técnico
+lo lleva e instala) y `SERVICIO DE MANTENIMIENTO:` (el técnico va a hacer
+mantenimiento). El CRM propone cuál es a partir del tipo de servicio y del
+destino, y postventa lo corrige si hace falta.
+
+**Qué ya teníamos.** El CRM emitía desde la 0150 una «apertura de despacho»: el
+documento interno con el que almacén despacha sin preguntarle a nadie. Lo que
+faltaba era el formato que SALE al equipo por correo, con sus nueve filas
+numeradas. Son las dos caras del mismo papel, así que ahora van en una sola
+hoja: arriba las nueve filas, abajo las condiciones verificadas.
+
+**Qué se llena solo, y qué no.** De las nueve filas, siete salen de lo que ya
+está en el sistema: cliente y RUC, dirección (con la DIRECCIÓN FINAL cuando la
+entrega es en nuestras instalaciones), quién recibe con su teléfono y DNI, el
+equipo con su serie, y las dos últimas, que son constantes del formato
+(«Gestión de Contabilidad»). Las cinco cosas que faltaban no vivían en ninguna
+parte y viajaban en la cabeza de quien armaba el correo: **la hora, el día, el
+técnico que va, cómo se mueve ese técnico y las guías que se piden.** La 0175
+les da columna y la pantalla las pide.
+
+**El correo se copia, no se manda.** El CRM no tiene SMTP y las alertas por
+correo están apagadas por orden de gerencia, así que hace lo mismo que Central
+con el WhatsApp de Tesorería: deja el asunto y el mensaje escritos, y la persona
+los pega y los envía. El asunto sale exacto:
+`EMPRESA // APERTURA DE SERVICIO // CLIENTE`.
+
+**El estado real de los datos, medido el 05-09.** De 113 pedidos abiertos: 112
+traen el equipo, 107 la dirección, 45 el RUC y **solo 1 tiene quién recibe**.
+No es una falla del formato: «quién recibe» se llena en el paso de verificar la
+dirección con el cliente, que es justo el que describe Lesly. A medida que
+postventa haga esa llamada, la apertura sale más completa sola. Lo que falta
+aparece como «—» y la pantalla lo enumera arriba: no se inventa nada.
+
+**Lo que queda fuera, a propósito.** El mantenimiento entra por
+`servicios_postventa` —hay 15 pedidos así, incluido el de las Mercedarias— y
+por ahí funciona. Si algún día un mantenimiento se registra como `atencion` y
+no como pedido, esa apertura todavía no existe.
+
+La pantalla se abre desde la ficha del pedido, ahora **siempre visible**: antes
+solo aparecía con la apertura ya emitida, y eso dejaba a postventa sin dónde
+coordinar la hora y el técnico, que se llenan ANTES de emitir.
+
+Veinte pruebas nuevas usan los tres correos de Lesly como referencia
+(`src/lib/apertura-servicio.test.ts`).

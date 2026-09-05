@@ -149,17 +149,26 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                 <MessageCircle className="size-3.5" /> WhatsApp
               </a>
             )}
-            {/* La apertura de despacho: el documento con el que almacén
-                despacha sin preguntar (Carlos, 01-09). Solo cuando ya se
-                emitió; antes, se emite desde el paso del riel. */}
-            {servicio.apertura_despacho_at && (
-              <Link
-                href={`/postventa/pedidos/${servicio.id}/apertura`}
-                className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
-              >
-                <FileText className="size-3.5" /> Apertura de despacho
-              </Link>
-            )}
+            {/* La apertura de servicio: el documento con el que almacén
+                despacha sin preguntar (Carlos, 01-09) y el correo que sale al
+                equipo (Lesly, 05-09).
+
+                SIEMPRE VISIBLE, desde la 0175. Antes solo aparecía cuando ya
+                estaba emitida, y eso dejaba a postventa sin dónde coordinar:
+                la hora, el técnico y el transporte se llenan ANTES de emitir.
+                Sin emitir, la pantalla se muestra como vista previa y lo
+                dice. */}
+            <Link
+              href={`/postventa/pedidos/${servicio.id}/apertura`}
+              className={
+                servicio.apertura_despacho_at
+                  ? "inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
+                  : "inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+              }
+            >
+              <FileText className="size-3.5" />
+              {servicio.apertura_despacho_at ? "Apertura de servicio" : "Preparar la apertura"}
+            </Link>
             {informe?.id && verPrecios && (
               <a
                 href={`/api/informes/${informe.id}/pdf`}

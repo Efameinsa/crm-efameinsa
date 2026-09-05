@@ -574,3 +574,54 @@ export async function cerrarCaso(oportunidadId: string, resultado: "ejecutado" |
   revalidatePath(`/comercial/oportunidades/${oportunidadId}`);
   return { error: null as string | null };
 }
+
+/**
+ * Los datos de la apertura de servicio que no vivían en ninguna parte.
+ *
+ * Lesly, 05-09: el correo de apertura sale con nueve filas y casi todas se
+ * llenan solas con lo que ya está en el sistema. Estas cinco no: la hora, el
+ * día, el técnico que va, cómo se mueve ese técnico y las guías que se piden.
+ * Hasta hoy viajaban en la cabeza de quien armaba el correo.
+ *
+ * Se guardan sueltas, sin exigir que estén todas: postventa las va llenando a
+ * medida que las coordina, y la pantalla dice en cada momento qué falta para
+ * que el correo salga completo.
+ */
+export async function guardarAperturaServicio(
+  servicioId: string,
+  datos: {
+    tipo?: string | null;
+    fecha?: string | null;
+    hora?: string | null;
+    tecnico?: string | null;
+    transporte?: string | null;
+    nota?: string | null;
+    direccionFinal?: string | null;
+  },
+) {
+  await requerirPerfil();
+  const supabase = await createClient();
+
+  const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
+  if (datos.tipo && !["entrega", "entrega_puesta_marcha", "mantenimiento"].includes(datos.tipo)) {
+    return falla("Ese no es uno de los tres formatos de apertura");
+  }
+
+  const { error } = await supabase
+    .from("servicios_postventa")
+    .update({
+      apertura_tipo: limpio(datos.tipo),
+      apertura_fecha: limpio(datos.fecha),
+      apertura_hora: limpio(datos.hora),
+      tecnico_asignado: limpio(datos.tecnico),
+      transporte: limpio(datos.transporte),
+      apertura_nota: limpio(datos.nota),
+      direccion_final: limpio(datos.direccionFinal),
+    })
+    .eq("id", servicioId);
+  if (error) return falla(error.message);
+
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}/apertura`);
+  return ok();
+}
