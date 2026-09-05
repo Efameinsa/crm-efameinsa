@@ -14,6 +14,14 @@ const dias = ["Lunes 24","Martes 25","Miércoles 26","Jueves 27","Viernes 28","S
 const cierre: CierreSemanal = {
   lunes: "2026-08-24", sabado: "2026-08-29",
   comercial: { nombre: "Katerine Tello", codigo: "C5" },
+  // La declaración de la semana (0177), para ver el recuadro en la vista previa.
+  declaracion: {
+    compromiso:
+      "Voy a retomar con visita, no con llamada, los seis clientes de Arequipa que cotizaron en agosto y no respondieron.",
+    necesidades: "Capacitación en la secadora a gas y las fichas técnicas de los coches de lavandería.",
+    sinNecesidades: false,
+    declaradoAt: "2026-08-29T17:00:00.000Z",
+  },
   proyeccion: {
     lunes: "2026-08-24",
     dias: dias.map((etiqueta, i) => ({

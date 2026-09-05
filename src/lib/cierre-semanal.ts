@@ -68,6 +68,19 @@ export interface CierreSemanal {
   gestiones: number;
   cotizacionesEnviadas: number;
   cotizadoUsd: number;
+  /**
+   * Lo que el comercial declara al cerrar la semana (0177). Carlos, 02-09:
+   * «en qué te estás comprometiendo, qué necesitas y qué te compromete para
+   * la siguiente semana». Es null mientras no lo haya declarado.
+   */
+  declaracion: DeclaracionSemana | null;
+}
+
+export interface DeclaracionSemana {
+  compromiso: string;
+  necesidades: string | null;
+  sinNecesidades: boolean;
+  declaradoAt: string;
 }
 
 export function sabadoDe(lunes: string): string {
@@ -80,7 +93,7 @@ export async function cargarCierreSemanal(lunes: string, comercialId: string): P
   const supabase = await createClient();
   const sabado = sabadoDe(lunes);
 
-  const [{ potenciales, tc }, { data: perfil }, { data: ventasData }, { data: cotsData }, { data: actsData }] =
+  const [{ potenciales, tc }, { data: perfil }, { data: ventasData }, { data: cotsData }, { data: actsData }, { data: declData }] =
     await Promise.all([
       cargarPotenciales(lunes, comercialId),
       supabase.from("perfiles").select("nombre, codigo_comercial").eq("id", comercialId).maybeSingle(),
@@ -108,6 +121,13 @@ export async function cargarCierreSemanal(lunes: string, comercialId: string): P
         .gte("realizada_at", `${lunes}T00:00:00`)
         .lte("realizada_at", `${sabado}T23:59:59`)
         .limit(1000),
+      // Lo que declaró al cerrar esta semana: el compromiso y lo que necesita.
+      supabase
+        .from("declaraciones_semana")
+        .select("compromiso, necesidades, sin_necesidades, declarado_at")
+        .eq("comercial_id", comercialId)
+        .eq("lunes", lunes)
+        .maybeSingle(),
     ]);
 
   const enUsd = (monto: number, moneda: string) => (moneda === "PEN" ? monto / tc : monto);
@@ -163,5 +183,13 @@ export async function cargarCierreSemanal(lunes: string, comercialId: string): P
     gestiones: actsData?.length ?? 0,
     cotizacionesEnviadas: cotsData?.length ?? 0,
     cotizadoUsd,
+    declaracion: declData
+      ? {
+          compromiso: declData.compromiso,
+          necesidades: declData.necesidades,
+          sinNecesidades: declData.sin_necesidades,
+          declaradoAt: declData.declarado_at,
+        }
+      : null,
   };
 }

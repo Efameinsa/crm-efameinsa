@@ -55,6 +55,14 @@ const e = StyleSheet.create({
 
   pie: { position: "absolute", bottom: 26, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 0.5, borderTopColor: BORDE, paddingTop: 5 },
   pieTexto: { fontSize: 6.5, color: GRIS },
+
+  // La declaración de la semana (0177). Va arriba y con marco: es lo que
+  // gerencia lee el lunes a primera hora, no un anexo.
+  declaracion: { borderWidth: 1.2, borderColor: GRANATE, borderRadius: 4, padding: 10, marginBottom: 12 },
+  declaracionTitulo: { fontSize: 8, fontFamily: "Helvetica-Bold", color: GRANATE, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 },
+  declaracionEtiqueta: { fontSize: 6.5, color: GRIS, textTransform: "uppercase", letterSpacing: 0.3, marginTop: 5 },
+  declaracionTexto: { fontSize: 9, marginTop: 2 },
+  declaracionFalta: { fontSize: 8.5, color: GRANATE, fontStyle: "italic" },
 });
 
 const usd = (n: number) => `US$ ${Math.round(n).toLocaleString("es-PE")}`;
@@ -141,6 +149,30 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
             <Text style={e.tarjetaEtiqueta}>Ventas cerradas</Text>
             <Text style={e.tarjetaValor}>{ventas.length}</Text>
           </View>
+        </View>
+
+        {/* LO QUE DIJO EL COMERCIAL. Carlos, 02-09: «abajo, o si quieres
+            arriba, donde sea visual: en qué te estás comprometiendo, qué
+            necesitas y qué te compromete para la siguiente semana». Va arriba,
+            porque es lo que se conversa el lunes; los números ya se leyeron. */}
+        <View style={e.declaracion}>
+          <Text style={e.declaracionTitulo}>Para la semana que viene</Text>
+          {cierre.declaracion ? (
+            <>
+              <Text style={e.declaracionEtiqueta}>Se compromete a</Text>
+              <Text style={e.declaracionTexto}>{cierre.declaracion.compromiso}</Text>
+              <Text style={e.declaracionEtiqueta}>Necesita</Text>
+              <Text style={e.declaracionTexto}>
+                {cierre.declaracion.sinNecesidades
+                  ? "Nada esta semana."
+                  : (cierre.declaracion.necesidades ?? "—")}
+              </Text>
+            </>
+          ) : (
+            <Text style={e.declaracionFalta}>
+              Sin declarar. El compromiso y las necesidades se escriben al cerrar la semana, desde el CRM.
+            </Text>
+          )}
         </View>
 
         <Seccion titulo="1. DÍA POR DÍA" total={usd(vendidoUsd)}>

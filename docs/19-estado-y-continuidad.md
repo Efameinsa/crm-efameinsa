@@ -1231,3 +1231,54 @@ lados, y lo ambiguo lo informa sin tocarlo. Corre en seco por defecto y aplica
 con `--aplicar`. En todo el sistema había **un solo caso**: el de Brenda.
 
 Corregido en producción. No necesitó despliegue.
+
+## 05-09 · El cierre semanal pide plan y necesidades (0177)
+
+Carlos: «verifiquemos el tema del cierre semanal que coordinamos durante la
+semana, respecto a que debe considerarse detallar su planificación y
+necesidades».
+
+Lo coordinado está en la reunión del **02-09 (11:47)** y son dos campos, los dos
+obligatorios:
+
+> «Que tenga un campo obligatorio para que redactes cuál es tu plan para la
+> siguiente semana. No me hables de que vas a llamar a 10 clientes el lunes,
+> porque ya está mapeado, está el calendario semanal. No me hables de cuánto vas
+> a vender, porque también ya sale automático. Háblame de **qué es lo que vas a
+> hacer tú para poder mejorar en tus ventas**.»
+
+> «Y la pregunta del millón: **¿qué necesitas?** ¿Una computadora? ¿Está lenta?
+> Ok, tu computadora. ¿Qué necesitas? Necesito capacitación. ¿En qué?»
+
+**Qué había hasta hoy.** El botón «Cierre de la semana» abría directo el PDF con
+lo proyectado contra lo vendido, día por día y con lo que quedó pendiente. Los
+números estaban; las dos respuestas del comercial, no.
+
+**Qué se hizo.** El botón ahora abre un formulario corto antes del documento:
+qué se compromete a hacer, y qué necesita (con una casilla para «esta semana no
+necesito nada», porque no necesitar nada también es una respuesta). Se guarda
+en `declaraciones_semana`, una por comercial y por semana, y el PDF lo muestra
+**arriba, en recuadro granate**, antes del día por día: es lo que gerencia lee
+el lunes, no un anexo.
+
+Las reglas viven en la base y no solo en la pantalla: el compromiso exige al
+menos 15 caracteres, y o se dice qué se necesita o se marca la casilla — las dos
+cosas a la vez no se pueden. La declaración se puede corregir mientras la semana
+está fresca (siete días); las de semanas pasadas quedan como quedaron, que es el
+registro contra el que se pregunta el lunes.
+
+**El PDF sale con dos clics, a propósito.** Entre el botón y el documento hay un
+guardado que espera al servidor, y el navegador bloquea las pestañas que no
+nacen de un gesto directo. Así que se declara, y recién entonces aparece
+«Bajar el documento».
+
+**Lo que queda pendiente de esa misma reunión**, y no entró acá:
+- El gráfico de los **rechazados de la semana por motivo**, con su detalle:
+  «de los errores uno aprende (…) pero no quiero aprender yo nada más, tiene
+  que aprender todo el equipo».
+- El **velocímetro de ventas del mes** en «Mi gestión», que Carlos echó de menos
+  el 02-09.
+- Que el botón **aparezca solo el sábado a las 11:55**. Hoy está siempre
+  disponible, que es más útil mientras el equipo se acostumbra.
+- El **histórico de cierres** por comercial: los datos ya se guardan, falta la
+  pantalla que los liste.
