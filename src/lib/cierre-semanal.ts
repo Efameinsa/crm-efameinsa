@@ -104,13 +104,18 @@ export function sabadoDe(lunes: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-export async function cargarCierreSemanal(lunes: string, comercialId: string): Promise<CierreSemanal> {
-  const supabase = await createClient();
+export async function cargarCierreSemanal(
+  lunes: string,
+  comercialId: string,
+  /** Cliente ya construido, para generarlo desde un script sin sesión. */
+  cliente?: Awaited<ReturnType<typeof createClient>>,
+): Promise<CierreSemanal> {
+  const supabase = cliente ?? (await createClient());
   const sabado = sabadoDe(lunes);
 
   const [{ potenciales, tc }, { data: perfil }, { data: ventasData }, { data: cotsData }, { data: actsData }, { data: rechData }, { data: declData }] =
     await Promise.all([
-      cargarPotenciales(lunes, comercialId),
+      cargarPotenciales(lunes, comercialId, supabase),
       supabase.from("perfiles").select("nombre, codigo_comercial").eq("id", comercialId).maybeSingle(),
       supabase
         .from("ventas")

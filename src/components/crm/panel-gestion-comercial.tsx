@@ -13,6 +13,8 @@ import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { LeyendaSerie, barraMensualPorSerie } from "@/components/crm/leyenda-serie";
 import { CotizacionesDelPeriodo } from "@/components/crm/cotizaciones-del-periodo";
 import { BarraSemana } from "@/components/crm/barra-semana";
+import { HistorialCierresSemana } from "@/components/crm/historial-cierres-semana";
+import { cargarHistorialSemanas } from "@/lib/historial-semanas";
 import { cn } from "@/lib/utils";
 
 // Panel individual del comercial. Lo ve el propio comercial (/comercial/
@@ -54,7 +56,7 @@ export async function PanelGestionComercial({
   // no repetir el mismo número dos veces.
   const mes = periodoPreset("mes");
 
-  const [resumen, resumenMes, { data: rechazadas }, pulsos] = await Promise.all([
+  const [resumen, resumenMes, { data: rechazadas }, pulsos, semanas] = await Promise.all([
     cargarResumenGerencia(supabase, { ...periodo, comercialId, incluirHistorico }),
     cargarResumenGerencia(supabase, { ...mes, comercialId, incluirHistorico }),
     supabase
@@ -66,6 +68,8 @@ export async function PanelGestionComercial({
       .lte("cerrada_at", `${periodo.hasta}T23:59:59`),
     // periodo.desde ES el lunes cuando el preset es semanal.
     semanal ? cargarPulsoSemana(supabase, periodo.desde, comercialId) : Promise.resolve([]),
+    // El histórico de cierres de semana: lo que dijo cada sábado (0177).
+    cargarHistorialSemanas(comercialId, supabase),
   ]);
   const pulso = pulsos[0];
 
@@ -232,6 +236,14 @@ export async function PanelGestionComercial({
               )}
             </SeccionPanel>
           </div>
+
+          {/* «También debería haber un histórico de todos sus cierres» (Carlos,
+              02-09). Va al final: se consulta el lunes, no todos los días. */}
+          <HistorialCierresSemana
+            semanas={semanas}
+            comercialId={esGerencia ? comercialId : undefined}
+            esGerencia={esGerencia}
+          />
         </>
       )}
     </div>

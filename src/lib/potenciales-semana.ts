@@ -57,8 +57,11 @@ export function lunesSemana(param?: string): string {
 export async function cargarPotenciales(
   lunes: string,
   comercialId?: string | null,
+  /** Cliente ya construido. Sirve para generar el cierre desde un script,
+   *  fuera de una petición con sesión (no hay cookies que leer). */
+  cliente?: Awaited<ReturnType<typeof createClient>>,
 ): Promise<{ potenciales: Potencial[]; tc: number }> {
-  const supabase = await createClient();
+  const supabase = cliente ?? (await createClient());
   const sabado = iso(new Date(new Date(`${lunes}T12:00:00`).getTime() + 5 * 86400000));
 
   const { data: tcFila } = await supabase.from("parametros").select("valor").eq("clave", "tc_usd_pen").maybeSingle();

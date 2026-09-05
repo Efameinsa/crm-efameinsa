@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CalendarCheck, FileDown, Loader2 } from "lucide-react";
-import { guardarDeclaracionSemana, leerDeclaracionSemana } from "@/lib/acciones/cierre-semanal";
+import { abrirCierreSemana, guardarDeclaracionSemana } from "@/lib/acciones/cierre-semanal";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +47,9 @@ export function BotonCierreSemanal({
   const [necesidades, setNecesidades] = useState("");
   const [sinNecesidades, setSinNecesidades] = useState(false);
   const [listo, setListo] = useState(false);
+  const [resumen, setResumen] = useState<{
+    proyectadoUsd: number; vendidoUsd: number; ventas: number; rechazos: number; gestiones: number;
+  } | null>(null);
   const [guardando, empezar] = useTransition();
 
   // LA HORA DEL CIERRE. Carlos, 02-09: «sábado, solamente para sábado, cierre
@@ -90,11 +93,12 @@ export function BotonCierreSemanal({
     setAbierto(true);
     setCargando(true);
     try {
-      const previa = await leerDeclaracionSemana(semana ?? lunesDeHoy());
-      if (previa) {
-        setCompromiso(previa.compromiso);
-        setNecesidades(previa.necesidades);
-        setSinNecesidades(previa.sinNecesidades);
+      const r = await abrirCierreSemana(semana ?? lunesDeHoy());
+      setResumen(r.resumen);
+      if (r.declaracion) {
+        setCompromiso(r.declaracion.compromiso);
+        setNecesidades(r.declaracion.necesidades);
+        setSinNecesidades(r.declaracion.sinNecesidades);
         setListo(true); // ya declaró: puede bajar el documento cuando quiera
       }
     } finally {
@@ -150,10 +154,34 @@ export function BotonCierreSemanal({
 
           {cargando ? (
             <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> Buscando si ya la declaró…
+              <Loader2 className="size-4 animate-spin" /> Juntando su semana…
             </p>
           ) : (
             <div className="space-y-4">
+              {/* La semana delante, antes de preguntar. Sin esto la pregunta
+                  se responde en frío y se llena por salir del paso. */}
+              {resumen && (
+                <div className="rounded-lg border border-border bg-secondary/40 p-3">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Así le fue esta semana
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-baseline gap-x-5 gap-y-1">
+                    <span className="text-lg font-bold tabular-nums text-foreground">
+                      US$ {resumen.vendidoUsd.toLocaleString("es-PE")}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      de US$ {resumen.proyectadoUsd.toLocaleString("es-PE")} proyectados
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {resumen.ventas} venta{resumen.ventas === 1 ? "" : "s"} · {resumen.gestiones} contactos ·{" "}
+                    <span className={resumen.rechazos > 0 ? "font-medium text-amber-700" : ""}>
+                      {resumen.rechazos} perdida{resumen.rechazos === 1 ? "" : "s"}
+                    </span>
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label htmlFor="compromiso" className="mb-1 block text-sm font-semibold text-foreground">
                   ¿Qué va a hacer usted para mejorar sus ventas?

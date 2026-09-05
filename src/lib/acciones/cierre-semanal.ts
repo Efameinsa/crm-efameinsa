@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
+import { cargarCierreSemanal } from "@/lib/cierre-semanal";
 
 /**
  * Lo que el comercial declara al cerrar su semana.
@@ -56,13 +57,21 @@ export async function guardarDeclaracionSemana(datos: {
   return { error: null };
 }
 
-/** La declaración de esa semana, para volver a mostrarla y poder corregirla. */
-export async function leerDeclaracionSemana(lunes: string): Promise<{
-  compromiso: string;
-  necesidades: string;
-  sinNecesidades: boolean;
-} | null> {
+/**
+ * Lo que hace falta para abrir el cierre: cómo le fue en la semana, y si ya
+ * declaró.
+ *
+ * LOS NÚMEROS VAN PRIMERO, a propósito. La pregunta de Carlos —«qué vas a
+ * hacer para mejorar tus ventas»— solo tiene sentido con la semana delante:
+ * quedó debiendo tanto, perdió tantas por precio. Preguntar en frío invita a
+ * escribir cualquier cosa para salir del paso.
+ */
+export async function abrirCierreSemana(lunes: string): Promise<{
+  declaracion: { compromiso: string; necesidades: string; sinNecesidades: boolean } | null;
+  resumen: { proyectadoUsd: number; vendidoUsd: number; ventas: number; rechazos: number; gestiones: number };
+}> {
   const perfil = await requerirPerfil();
+  const cierre = await cargarCierreSemanal(lunes, perfil.id);
   const supabase = await createClient();
   const { data } = await supabase
     .from("declaraciones_semana")
@@ -70,10 +79,17 @@ export async function leerDeclaracionSemana(lunes: string): Promise<{
     .eq("comercial_id", perfil.id)
     .eq("lunes", lunes)
     .maybeSingle();
-  if (!data) return null;
+
   return {
-    compromiso: data.compromiso,
-    necesidades: data.necesidades ?? "",
-    sinNecesidades: data.sin_necesidades,
+    declaracion: data
+      ? { compromiso: data.compromiso, necesidades: data.necesidades ?? "", sinNecesidades: data.sin_necesidades }
+      : null,
+    resumen: {
+      proyectadoUsd: Math.round(cierre.proyectadoUsd),
+      vendidoUsd: Math.round(cierre.vendidoUsd),
+      ventas: cierre.ventas.length,
+      rechazos: cierre.rechazos.length,
+      gestiones: cierre.gestiones,
+    },
   };
 }
