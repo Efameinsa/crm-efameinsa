@@ -23,6 +23,8 @@ function potencial(p: Partial<Potencial>): Potencial {
     presupuesto: null,
     monto: null,
     moneda: "USD",
+    cotizaciones: [],
+    cotizacionElegida: null,
     montoUsd: null,
     items: [],
     ...p,

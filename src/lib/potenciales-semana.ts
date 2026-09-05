@@ -38,6 +38,14 @@ export interface Potencial {
   moneda: string;
   montoUsd: number | null;
   items: ItemPotencial[];
+  /**
+   * Las cotizaciones ENVIADAS de esta oportunidad, para poder elegir cuál se
+   * proyecta cerrar (0179). Carlos, 05-09: «el cliente tiene 3 cotizaciones;
+   * eliges qué número estás proyectando cerrar la venta para el día lunes».
+   */
+  cotizaciones: { id: string; codigo: string | null; total: number | null }[];
+  /** La elegida, si el comercial ya eligió. */
+  cotizacionElegida: string | null;
 }
 
 const lunesDe = (d: Date): Date => {
@@ -70,7 +78,7 @@ export async function cargarPotenciales(
   let q = supabase
     .from("oportunidades")
     .select(
-      "id, etapa, cierre_proyectado, monto_estimado, moneda, comercial_id, cuentas(razon_social, catalogo_rubros(nombre)), perfiles(nombre, codigo_comercial)",
+      "id, etapa, cierre_proyectado, cotizacion_proyectada, monto_estimado, moneda, comercial_id, cuentas(razon_social, catalogo_rubros(nombre)), perfiles(nombre, codigo_comercial)",
     )
     // `historico` (0130): el archivo del Excel no es potencial de la semana.
     // Es el mismo problema que se corrigió el 29-08 con los «potenciales
@@ -89,8 +97,18 @@ export async function cargarPotenciales(
         .not("enviada_at", "is", null)
         .order("enviada_at", { ascending: false })
     : { data: [] };
+  // La última enviada de cada oportunidad, que es el valor por defecto.
   const cotPorOp = new Map<string, NonNullable<typeof cots>[number]>();
   for (const c of cots ?? []) if (!cotPorOp.has(c.oportunidad_id)) cotPorOp.set(c.oportunidad_id, c);
+
+  // Y si el comercial ELIGIÓ cuál va a cerrar (0179), esa manda sobre la
+  // última. Carlos, 05-09: «eliges qué número de cotización estás proyectando
+  // cerrar la venta para el día lunes».
+  const cotPorId = new Map((cots ?? []).map((c) => [c.id, c]));
+  for (const o of ops ?? []) {
+    const elegida = (o as { cotizacion_proyectada?: string | null }).cotizacion_proyectada;
+    if (elegida && cotPorId.has(elegida)) cotPorOp.set(o.id, cotPorId.get(elegida)!);
+  }
 
   const cotIds = [...cotPorOp.values()].map((c) => c.id);
   const { data: items } = cotIds.length
@@ -134,6 +152,10 @@ export async function cargarPotenciales(
       moneda,
       montoUsd: enUsd(monto, moneda),
       items: cot ? (itemsPorCot.get(cot.id) ?? []) : [],
+      cotizaciones: (cots ?? [])
+        .filter((c) => c.oportunidad_id === o.id)
+        .map((c) => ({ id: c.id, codigo: c.codigo, total: c.total != null ? Number(c.total) : null })),
+      cotizacionElegida: ((o as { cotizacion_proyectada?: string | null }).cotizacion_proyectada ?? null),
     };
   });
 

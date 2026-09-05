@@ -174,9 +174,9 @@ function TarjetaPotencial({
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  function mover(fecha: string | null) {
+  function mover(fecha: string | null, cotizacion?: string | null) {
     startTransition(async () => {
-      const r = await proyectarCierre(p.id, fecha);
+      const r = await proyectarCierre(p.id, fecha, cotizacion);
       if (r.error) {
         toast.error(r.error);
         return;
@@ -221,11 +221,34 @@ function TarjetaPotencial({
             ))}
           </ul>
         )}
+        {/* CUÁL COTIZACIÓN SE VA A CERRAR (0179). Carlos, 05-09: «el cliente
+            tiene 3 cotizaciones; tu proyección de venta para el lunes tendrías
+            que relacionar la cotización: eliges qué número estás proyectando
+            cerrar». Solo aparece cuando hay más de una: con una sola no hay
+            nada que elegir y sería una pregunta de más. */}
+        {p.cotizaciones.length > 1 && (
+          <label className="block">
+            <span className="mb-0.5 block text-[10px] font-medium text-muted-foreground">¿Cuál va a cerrar?</span>
+            <select
+              value={p.cotizacionElegida ?? ""}
+              onChange={(e) => mover(p.cierreProyectado, e.target.value || null)}
+              className="h-6 w-full rounded border border-input bg-background px-1 text-[10.5px]"
+            >
+              <option value="">La última enviada</option>
+              {p.cotizaciones.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.codigo ?? "sin número"}
+                  {c.total != null ? ` · ${Math.round(c.total).toLocaleString("es-PE")}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="flex items-center gap-1.5">
           <input
             type="date"
             defaultValue={p.cierreProyectado ?? ""}
-            onChange={(e) => mover(e.target.value || null)}
+            onChange={(e) => mover(e.target.value || null, p.cotizacionElegida)}
             className="h-6 flex-1 rounded border border-input bg-background px-1 text-[10.5px]"
             aria-label="Fecha proyectada de cierre"
           />

@@ -239,11 +239,18 @@ export async function reprogramarAccion(datos: {
 export async function proyectarCierre(
   oportunidadId: string,
   fecha: string | null,
+  /**
+   * CUÁL cotización se espera cerrar ese día. Carlos, 05-09: «el cliente tiene
+   * 3 cotizaciones; eliges qué número estás proyectando cerrar para el lunes».
+   * Opcional: sin ella la proyección toma la última enviada, como antes.
+   */
+  cotizacionId?: string | null,
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("proyectar_cierre", {
     p_oportunidad: oportunidadId,
     p_fecha: fecha,
+    p_cotizacion: cotizacionId ?? null,
   });
   if (error) return { error: error.message };
   revalidatePath("/comercial/potenciales");
