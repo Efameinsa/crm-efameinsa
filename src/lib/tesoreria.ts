@@ -22,3 +22,14 @@ export const NUMERO_WHATSAPP_FINANZAS = "51981490197";
 
 /** A quién se le escribe, para que el mensaje no arranque en frío. */
 export const CONTACTO_FINANZAS = "John";
+
+/**
+ * El correo de Finanzas, además del WhatsApp.
+ *
+ * Carlos, 05-09: «yo elegí WhatsApp por ser un canal rápido — muy bien. Yo
+ * creo que debería ser también a la vez por correo (…) el correo sí sería
+ * importante en todo caso». Santos pasó la dirección en esa misma
+ * conversación. Van los dos: el WhatsApp para que se enteren ahora, el correo
+ * para que quede.
+ */
+export const CORREO_FINANZAS = "Contabilidad1@efameinsa.com";

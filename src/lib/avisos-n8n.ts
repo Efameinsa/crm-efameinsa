@@ -74,3 +74,46 @@ export async function avisarLeadNuevoN8n(datos: AvisoLeadNuevo): Promise<void> {
     console.error("avisos-n8n: no se pudo avisar el lead nuevo:", e instanceof Error ? e.message : e);
   }
 }
+
+/**
+ * El aviso a Finanzas, por correo.
+ *
+ * NO PASA POR `CORREO_ENCENDIDO`, a propósito. Ese interruptor apaga las
+ * alertas de leads que llegaban al correo de gerencia y que Carlos mandó
+ * quitar el 04-09. Este es otro correo y lo pidió él mismo el 05-09: el aviso
+ * que Central manda a Finanzas cuando un cliente termina de pagar, para que
+ * quede escrito y no solo en un WhatsApp.
+ *
+ * Best-effort, como todo lo que sale por n8n: si el webhook está caído el
+ * aviso se registra igual en el CRM, que es la fuente de verdad.
+ */
+export interface AvisoFinanzas {
+  para: string;
+  asunto: string;
+  cuerpo: string;
+  cliente: string;
+  documento?: string | null;
+  telefono?: string | null;
+  registradoPor: string;
+}
+
+export async function avisarFinanzasN8n(datos: AvisoFinanzas): Promise<void> {
+  const base = process.env.N8N_LEAD_WEBHOOK_URL;
+  if (!base) return; // entorno sin n8n configurado: silencio, no error
+  const url = base.replace("crm-lead-nuevo", "crm-aviso-finanzas");
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secreto: process.env.N8N_WEBHOOK_SECRET ?? "",
+        ...datos,
+        url_crm: enlaceApp("/central/derivados"),
+        enviado: new Date().toISOString(),
+      }),
+      signal: AbortSignal.timeout(4000),
+    });
+  } catch (e) {
+    console.error("avisos-n8n: no se pudo avisar a Finanzas por correo:", e instanceof Error ? e.message : e);
+  }
+}

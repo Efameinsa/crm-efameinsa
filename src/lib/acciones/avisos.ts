@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
-import { CONTACTO_FINANZAS, NUMERO_WHATSAPP_FINANZAS } from "@/lib/tesoreria";
+import { CONTACTO_FINANZAS, CORREO_FINANZAS, NUMERO_WHATSAPP_FINANZAS } from "@/lib/tesoreria";
+import { avisarFinanzasN8n } from "@/lib/avisos-n8n";
 
 /**
  * Un mismo aviso, a las tres áreas que lo necesitan.
@@ -86,6 +87,24 @@ export async function derivarAviso(datos: {
     (r.telefono ? `Teléfono del cliente: ${r.telefono}\n` : "") +
     `Pedido: ${detalle}\n` +
     `\nRegistrado por ${perfil.nombre}${codigo}. Gracias.`;
+
+  // Y POR CORREO, ADEMÁS DEL WHATSAPP. Carlos, 05-09: «yo elegí WhatsApp por
+  // ser un canal rápido — muy bien. Yo creo que debería ser también a la vez
+  // por correo (…) el correo sí sería importante en todo caso». El WhatsApp
+  // para que se enteren ahora; el correo para que quede.
+  //
+  // No se espera la respuesta: si n8n tarda o está caído, Central no se queda
+  // mirando la pantalla y el aviso igual quedó registrado en el CRM, que es la
+  // fuente de verdad.
+  void avisarFinanzasN8n({
+    para: CORREO_FINANZAS,
+    asunto: `CRM · Pago de cliente para Tesorería · ${cliente}`,
+    cuerpo: texto,
+    cliente,
+    documento: r.documento,
+    telefono: r.telefono,
+    registradoPor: perfil.nombre,
+  });
 
   // Central usa WhatsApp Web en Chrome, así que el enlace apunta ahí: wa.me
   // rebota por una pantalla intermedia y a veces llega sin el texto (reportado

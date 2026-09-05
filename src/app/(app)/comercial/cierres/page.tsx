@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BorrarBorradorBoton } from "@/components/crm/borrar-borrador-boton";
+import { ReenviarCierreBoton } from "@/components/crm/devolver-cierre-boton";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,19 @@ export default async function MisCierresPage({
   ]);
   const nEmitidos = (count ?? 0) - (nBorradores ?? 0) - (nAnulados ?? 0);
 
+  // Los cierres que Central devolvió y todavía no se corrigieron (0178).
+  const { data: devolucionesData } = await supabase
+    .from("devoluciones_cierre")
+    .select("id, informe_id, motivo, devuelto_at, informes_cierre!inner(codigo, cliente_nombre, creado_por)")
+    .is("resuelto_at", null)
+    .order("devuelto_at", { ascending: false });
+  const devueltos = (devolucionesData ?? [])
+    .map((d) => {
+      const inf = d.informes_cierre as unknown as { codigo: string | null; cliente_nombre: string | null; creado_por: string | null };
+      return { id: d.informe_id as string, motivo: d.motivo as string, codigo: inf?.codigo ?? null, cliente: inf?.cliente_nombre ?? "", creadoPor: inf?.creado_por ?? null };
+    })
+    .filter((d) => d.creadoPor === perfil.id);
+
   const filas = data ?? [];
   const hayMas = (count ?? 0) > pag * POR_PAGINA;
   const enlace = (p: number) =>
@@ -138,6 +152,29 @@ export default async function MisCierresPage({
           </Link>
         )}
       </form>
+
+      {/* LO QUE CENTRAL DEVOLVIÓ (0178). Va arriba de todo y no dentro de la
+          lista: es lo único de esta pantalla que hay que hacer hoy. Carlos,
+          05-09: «tendrías que rechazarlo y que lo haga bien». */}
+      {devueltos.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-400/60 bg-amber-50 p-3 dark:bg-amber-500/10">
+          <p className="text-sm font-semibold text-amber-900 dark:text-amber-400">
+            Central le devolvió {devueltos.length} cierre{devueltos.length === 1 ? "" : "s"} para corregir
+          </p>
+          <ul className="mt-2 space-y-2">
+            {devueltos.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 text-xs">
+                <span className="font-mono font-semibold text-foreground">{d.codigo ?? "—"}</span>
+                <span className="text-muted-foreground">{d.cliente}</span>
+                <span className="basis-full text-amber-900 dark:text-amber-300">{d.motivo}</span>
+                <span className="basis-full pt-0.5">
+                  <ReenviarCierreBoton informeId={d.id} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {filas.length === 0 ? (
         <p className="text-sm text-muted-foreground">

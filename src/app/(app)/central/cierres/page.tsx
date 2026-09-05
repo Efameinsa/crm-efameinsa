@@ -7,6 +7,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ChecksPedidoCentral } from "@/components/crm/checks-pedido-central";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { AnularCierreBoton } from "@/components/crm/anular-cierre-boton";
+import { DevolverCierreBoton } from "@/components/crm/devolver-cierre-boton";
 import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
 import { cargarCompendio, oportunidadDelInforme, type Compendio } from "@/lib/compendio-cierre";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ export const dynamic = "force-dynamic";
 
 const PESTANAS = [
   { clave: "por_liberar", etiqueta: "Por liberar" },
+  { clave: "devueltos", etiqueta: "Devueltos" },
   { clave: "liberados", etiqueta: "Liberados" },
   { clave: "anulados", etiqueta: "Anulados" },
   { clave: "todos", etiqueta: "Todos" },
@@ -134,6 +136,17 @@ export default async function CierresCentralPage({
   // hasta que alguien lo cierre, pero la acción ya no aplica.
   const anuladoPorId = new Set(todas.filter((f) => f.anulado_at != null).map((f) => f.id as string));
 
+  // LOS QUE CENTRAL DEVOLVIÓ (0178). Carlos, 05-09: «tendrías que rechazarlo y
+  // que lo haga bien». Mientras el comercial no lo corrija, el cierre no está
+  // en la cola de Central: está en la de él.
+  const { data: devoluciones } = await supabase
+    .from("devoluciones_cierre")
+    .select("informe_id, motivo, devuelto_at")
+    .is("resuelto_at", null);
+  const devueltoPorInforme = new Map(
+    (devoluciones ?? []).map((d) => [d.informe_id as string, d as { motivo: string; devuelto_at: string }]),
+  );
+
   const liberado = (id: string) => {
     const p = pedidoPorInforme.get(id);
     return p?.pedido_ejecutado_at != null && p?.liquidacion_at != null;
@@ -143,11 +156,23 @@ export default async function CierresCentralPage({
   // pasó con ese número, que es justamente para lo que se anula en vez de
   // borrar (reunión 28-08).
   const anulado = (f: FilaInforme) => f.anulado_at != null;
-  const porLiberar = todas.filter((f) => !liberado(f.id) && !anulado(f));
+  // Devuelto al comercial y todavía sin corregir: no es trabajo de Central
+  // hasta que vuelva (0178).
+  const devuelto = (id: string) => devueltoPorInforme.has(id);
+  const porLiberar = todas.filter((f) => !liberado(f.id) && !anulado(f) && !devuelto(f.id));
+  const devueltos = todas.filter((f) => devuelto(f.id));
   const anulados = todas.filter(anulado);
   const liberados = todas.filter((f) => liberado(f.id) && !anulado(f));
   const filas =
-    pestana === "por_liberar" ? porLiberar : pestana === "liberados" ? liberados : pestana === "anulados" ? anulados : todas;
+    pestana === "por_liberar"
+      ? porLiberar
+      : pestana === "devueltos"
+        ? devueltos
+        : pestana === "liberados"
+          ? liberados
+          : pestana === "anulados"
+            ? anulados
+            : todas;
   const urgentes = porLiberar.filter((f) => f.urgente).length;
 
   // EL COMPENDIO DE LA GESTIÓN, que es lo que Carlos pidió para que Central
@@ -215,7 +240,9 @@ export default async function CierresCentralPage({
         <div className="flex flex-wrap items-center gap-1.5">
           {PESTANAS.map((p) => {
             const n =
-              p.clave === "por_liberar"
+              p.clave === "devueltos"
+                ? devueltos.length
+                : p.clave === "por_liberar"
                 ? porLiberar.length
                 : p.clave === "liberados"
                   ? liberados.length
@@ -372,6 +399,23 @@ export default async function CierresCentralPage({
                       liquidacion={pedido?.liquidacion_at != null}
                       aprobadoPostventa={pedido?.aprobado_at != null}
                     />
+                    )}
+
+                    {/* DEVOLVERLO EN VEZ DE PASARLO IGUAL (0178). Carlos,
+                        05-09: «¿para qué le derivas si está mal? Tendrías que
+                        rechazarlo y que lo haga bien». */}
+                    {devueltoPorInforme.has(f.id) ? (
+                      <p className="mt-2 rounded-md border border-amber-400/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-400">
+                        <b>Devuelto al comercial</b> el{" "}
+                        {fechaHoraLima(devueltoPorInforme.get(f.id)!.devuelto_at)}: {devueltoPorInforme.get(f.id)!.motivo}
+                      </p>
+                    ) : (
+                      !estaAnulado &&
+                      !liberado(f.id) && (
+                        <div className="mt-2">
+                          <DevolverCierreBoton informeId={f.id} codigo={f.codigo} />
+                        </div>
+                      )
                     )}
                   </div>
                 </div>

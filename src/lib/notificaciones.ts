@@ -18,7 +18,11 @@ export type TipoNotificacion =
   // enterarse de para qué sirvió (migración 0123).
   | "cotizacion_corregida"
   // Central avisa que un cliente está esperando y nadie lo atiende (25-08).
-  | "urgencia";
+  | "urgencia"
+  // Central devolvió un cierre mal hecho, y el comercial lo devolvió corregido
+  // (0178, Carlos 05-09: «tendrías que rechazarlo y que lo haga bien»).
+  | "cierre_devuelto"
+  | "cierre_corregido";
 
 interface Destinatario {
   userId?: string;
