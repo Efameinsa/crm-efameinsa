@@ -16,11 +16,13 @@ import {
   type Atencion,
   type ClasificacionAtencion,
 } from "@/lib/atenciones";
+import { FicharMaquina } from "@/components/crm/fichar-maquina";
 import {
   avanzarAtencion,
   cerrarAtencion,
   diagnosticar,
   programarAtencion,
+  seguirSinIdentificarEquipo,
   verificarGarantia,
 } from "@/lib/acciones/atenciones";
 import { textoDerivacion } from "@/lib/acciones/casos";
@@ -47,10 +49,14 @@ export function LineaAtencion({
   atencion,
   garantia,
   cliente,
+  hayMaquinas = false,
 }: {
   atencion: Atencion;
   /** Para armar la orden del almacén. */
   cliente: string;
+  /** Si el cliente tiene máquinas para elegir en el panel de la derecha. Sin
+   *  esto el Paso 1 mandaba a elegir de una lista vacía (0181). */
+  hayMaquinas?: boolean;
   /** Lo que sabe el parque instalado del equipo, si está identificado. */
   garantia: {
     en_garantia: boolean;
@@ -199,7 +205,7 @@ export function LineaAtencion({
           </p>
         </Caja>
       ) : a.etapa === "registro" ? (
-        <PasoRegistro atencion={a} garantia={garantia} enviando={enviando} correr={correr} />
+        <PasoRegistro atencion={a} garantia={garantia} hayMaquinas={hayMaquinas} enviando={enviando} correr={correr} />
       ) : a.etapa === "diagnostico" ? (
         <PasoPlanificar atencion={a} cliente={cliente} serie={garantia?.serie ?? null} enviando={enviando} correr={correr} />
       ) : a.etapa === "conformidad" ? (
@@ -229,7 +235,102 @@ export function LineaAtencion({
           />
         )
       )}
+
+      {/* CERRAR SIN RECORRER LAS NUEVE ETAPAS (0181). Hasta hoy el cierre solo
+          se ofrecía al final del circuito, y lo que se atendió por teléfono, o
+          no procedía, o se resolvió fuera del sistema, no tenía dónde
+          terminar: quedaba «pendiente por atender» para siempre. Es la queja
+          textual de postventa el 07-09 —«por más que ya ha sido atendido»— y
+          la razón de que hubiera 18 atenciones vivas y ninguna cerrada.
+
+          Va abajo y en gris a propósito: el camino normal sigue siendo el
+          circuito; esto es la salida para lo que ya terminó en la realidad. */}
+      {etapaVista === a.etapa && a.etapa !== "cierre" && a.etapa !== "seguimiento" && a.etapa !== "conformidad" && (
+        <CerrarAntesDeTiempo atencion={a} enviando={enviando} correr={correr} />
+      )}
     </div>
+  );
+}
+
+/**
+ * Cerrar una atención en cualquier punto del circuito (0181).
+ *
+ * Detrás de un clic para que no compita con el paso que toca, pero siempre
+ * alcanzable: una llamada que se resolvió hablando no tiene por qué pasar por
+ * planificación, atención, pruebas y conformidad para poder darse por
+ * terminada.
+ */
+function CerrarAntesDeTiempo({
+  atencion: a,
+  enviando,
+  correr,
+}: {
+  atencion: Atencion;
+  enviando: boolean;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [resultado, setResultado] = useState<"resuelto" | "no_procede" | "derivado">("resuelto");
+  const [motivo, setMotivo] = useState("");
+  const OPCIONES = { resuelto: "Resuelto", no_procede: "No procede", derivado: "Derivado" } as const;
+
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="cursor-pointer text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+      >
+        Esta atención ya terminó — cerrarla acá
+      </button>
+    );
+  }
+
+  return (
+    <Caja titulo="Cerrar la atención">
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Para lo que se resolvió por teléfono, no procedía, o se atendió fuera del sistema. Queda cerrada con la
+          fecha de hoy y lo que escriba acá.
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {(Object.keys(OPCIONES) as (keyof typeof OPCIONES)[]).map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setResultado(r)}
+              className={cn(
+                "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                resultado === r
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {OPCIONES[r]}
+            </button>
+          ))}
+        </div>
+        <textarea
+          rows={2}
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          placeholder="En qué quedó. Es lo que se va a leer cuando el cliente vuelva a llamar."
+          className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
+        />
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            disabled={enviando || motivo.trim().length < 10}
+            onClick={() => correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo }), "Atención cerrada.")}
+          >
+            Cerrar la atención
+          </Button>
+          <Button size="sm" variant="ghost" disabled={enviando} onClick={() => setAbierto(false)}>
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    </Caja>
   );
 }
 
@@ -331,11 +432,13 @@ function ActaEtapa({
 function PasoRegistro({
   atencion: a,
   garantia,
+  hayMaquinas,
   enviando,
   correr,
 }: {
   atencion: Atencion;
   garantia: { en_garantia: boolean; hizo_preventivo: boolean } | null;
+  hayMaquinas: boolean;
   enviando: boolean;
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
 }) {
@@ -344,19 +447,40 @@ function PasoRegistro({
   );
   const [detalle, setDetalle] = useState("");
 
-  if (a.en_garantia === null) {
+  if (a.en_garantia === null && !a.garantia_omitida_at) {
     // Sin máquina vinculada, el botón de verificar solo podía fallar («primero
     // identifique el equipo»). Santos lo marcó el 01-09: el clic que vincula
     // la máquina —el panel de la derecha— YA verifica la garantía, así que acá
     // no va un botón redundante sino la seña de dónde está el clic.
     if (!a.equipo_id) {
+      // …salvo que no haya ninguna máquina que elegir. Ese caso no se había
+      // previsto y dejaba la pantalla SIN NINGÚN BOTÓN: ni verificar, ni
+      // seguir, ni cerrar. Lesly lo reportó el 07-09 —«esta parte no permite
+      // registrar nada»— con 16 atenciones detenidas, la más vieja de 7 días.
+      // Las dos salidas de acá abajo son las que faltaban.
+      if (!hayMaquinas) {
+        return (
+          <Caja titulo="Paso 1 · Verificar la garantía">
+            <p className="mb-3 text-sm text-muted-foreground">
+              Este cliente no tiene ninguna máquina registrada, así que no hay nada que elegir a la derecha.
+              Fíchela acá con lo que diga el cliente por teléfono —la serie se completa después— o siga sin
+              identificarla si por ahora no hay forma de saberlo.
+            </p>
+            <FicharMaquina atencionId={a.id} />
+            <div className="mt-4 border-t border-border pt-3">
+              <SeguirSinIdentificar atencionId={a.id} enviando={enviando} correr={correr} />
+            </div>
+          </Caja>
+        );
+      }
       return (
         <Caja titulo="Paso 1 · Verificar la garantía">
-          <p className="text-sm text-muted-foreground">
+          <p className="mb-3 text-sm text-muted-foreground">
             La garantía se verifica sobre la máquina. Elíjala en{" "}
             <b className="text-foreground">«¿De qué máquina habla el cliente?»</b> (a la derecha, contrastando con
             la foto de la placa): ese clic la vincula y deja la garantía verificada al instante.
           </p>
+          <SeguirSinIdentificar atencionId={a.id} enviando={enviando} correr={correr} />
         </Caja>
       );
     }
@@ -376,6 +500,15 @@ function PasoRegistro({
   return (
     <Caja titulo="Paso 2 · Diagnóstico: qué le pasa y quién paga">
       <div className="space-y-3">
+        {/* Si se siguió sin identificar la máquina, se dice acá: clasificar
+            «garantía» a ciegas es justo lo que no se puede hacer (0181). */}
+        {a.garantia_omitida_at && (
+          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800">
+            <b>La garantía quedó sin verificar</b> porque no se identificó la máquina
+            {a.garantia_omitida_motivo ? <>: «{a.garantia_omitida_motivo}»</> : "."} Antes de decir quién paga,
+            conviene volver a pedirle al cliente la foto de la placa.
+          </p>
+        )}
         <div>
           <p className="mb-1.5 text-xs font-medium text-foreground">Clasificación</p>
           <div className="flex flex-wrap gap-1.5">
@@ -566,6 +699,70 @@ function PasoSimple({
         Marcar «{ETIQUETA_ETAPA[siguiente as keyof typeof ETIQUETA_ETAPA]}» <ChevronRight className="size-3.5" />
       </Button>
     </Caja>
+  );
+}
+
+/**
+ * Seguir sin identificar la máquina (0181).
+ *
+ * La segunda salida del Paso 1. No pone «sin garantía» —eso sería inventar un
+ * dato que después nadie puede desmentir— sino que deja escrito que NO se sabe
+ * y por qué. Cuando aparezca la placa, la máquina se ficha y la atención sigue
+ * su curso con el dato bueno.
+ *
+ * Va detrás de un clic, no a la vista: la salida correcta sigue siendo
+ * identificar la máquina, y esto es la excepción.
+ */
+function SeguirSinIdentificar({
+  atencionId,
+  enviando,
+  correr,
+}: {
+  atencionId: string;
+  enviando: boolean;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [motivo, setMotivo] = useState("");
+
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="cursor-pointer text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+      >
+        No se puede identificar la máquina ahora — seguir igual
+      </button>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">
+        La atención sigue y queda escrito que la garantía no se verificó. Diga por qué, en una línea.
+      </p>
+      <input
+        value={motivo}
+        onChange={(e) => setMotivo(e.target.value)}
+        placeholder="«El cliente no encuentra la placa», «lo compró por un tercero»"
+        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
+      />
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={enviando || motivo.trim().length < 5}
+          onClick={() =>
+            correr(() => seguirSinIdentificarEquipo({ atencionId, motivo }), "Se sigue sin identificar la máquina.")
+          }
+        >
+          Seguir sin identificarla <ChevronRight className="size-3.5" />
+        </Button>
+        <Button size="sm" variant="ghost" disabled={enviando} onClick={() => setAbierto(false)}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
   );
 }
 

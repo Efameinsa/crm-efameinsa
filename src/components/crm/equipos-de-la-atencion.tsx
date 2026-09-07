@@ -53,10 +53,14 @@ export function EquiposDeLaAtencion({
   }
 
   if (equipos.length === 0) {
+    // Antes esto mandaba a «registrar la serie desde Equipos», donde tampoco
+    // se podía dar de alta nada: el camino terminaba en una pared. Desde la
+    // 0181 la máquina se ficha en el Paso 1, acá al lado.
     return (
       <p className="text-sm text-muted-foreground">
-        Este cliente no tiene máquinas en el parque instalado todavía. Si manda la foto de la placa, la serie se
-        registra desde Equipos.
+        Este cliente todavía no tiene máquinas registradas. Fíchela en el{" "}
+        <b className="text-foreground">Paso 1</b>, con lo que le diga el cliente: la serie se puede completar
+        después.
       </p>
     );
   }

@@ -86,7 +86,9 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
       </Link>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <p className="font-mono text-xs font-bold text-muted-foreground">Serie {data.serie}</p>
+        <p className="font-mono text-xs font-bold text-muted-foreground">
+          {data.serie ? `Serie ${data.serie}` : "Sin serie todavía"}
+        </p>
         <h1 className="mt-0.5 text-lg font-bold leading-tight text-foreground">
           {(data.modelo_texto as string) ?? "Equipo sin describir"}
         </h1>

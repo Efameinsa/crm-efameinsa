@@ -122,6 +122,94 @@ export async function vincularEquipoAtencion(
   return verificarGarantia(atencionId);
 }
 
+/**
+ * Fichar la máquina desde la propia atención (0181).
+ *
+ * La salida al callejón que reportó Lesly el 07-09: cuando el cliente no tiene
+ * ninguna máquina en el parque, el panel de las series sale vacío y no había
+ * nada que apretar. Ahora se registra la máquina acá mismo —con lo que el
+ * cliente dice por teléfono— y queda vinculada con la garantía verificada, que
+ * es exactamente lo que hacía el clic del panel.
+ *
+ * La serie es opcional a propósito: se pide siempre, pero la foto de la placa
+ * llega cuando llega y la atención no puede esperar a eso. Es el mismo criterio
+ * que «Registrar un caso» ya usaba desde el 28-08.
+ */
+export async function ficharEquipoDeLaAtencion(datos: {
+  atencionId: string;
+  serie?: string | null;
+  modelo: string;
+  fechaCompra?: string | null;
+  garantiaMeses?: number | null;
+  ubicacion?: string | null;
+}): Promise<{ error: string | null }> {
+  if (datos.modelo.trim().length < 3) {
+    return { error: "Escriba el modelo de la máquina: es lo que se va a leer cuando el cliente vuelva a llamar" };
+  }
+  if (datos.fechaCompra && !RE_FECHA.test(datos.fechaCompra)) return { error: "La fecha de compra no es válida" };
+
+  const supabase = await createClient();
+  const { data: a } = await supabase
+    .from("atenciones")
+    .select("id, cuenta_id, equipo_id")
+    .eq("id", datos.atencionId)
+    .maybeSingle();
+  if (!a) return { error: "Esa atención no existe" };
+  if (a.equipo_id) return { error: "Esta atención ya tiene una máquina identificada" };
+  if (!a.cuenta_id) return { error: "La atención no tiene cliente: primero hay que decir de quién es" };
+
+  const { error } = await supabase.rpc("fichar_equipo", {
+    p_cuenta: a.cuenta_id,
+    p_serie: datos.serie?.trim() || null,
+    p_modelo: datos.modelo.trim(),
+    p_producto: null,
+    p_fecha_compra: datos.fechaCompra || null,
+    p_garantia_meses: datos.garantiaMeses ?? 24,
+    p_ubicacion: datos.ubicacion?.trim() || null,
+    p_atencion: datos.atencionId,
+    p_registrado_en: "atencion",
+  });
+  if (error) return { error: error.message };
+
+  refrescar(datos.atencionId);
+  revalidatePath("/postventa/equipos");
+  return { error: null };
+}
+
+/**
+ * Seguir sin identificar la máquina (0181).
+ *
+ * Cuando no hay forma de saber de qué equipo habla el cliente, la atención
+ * avanza igual y queda ESCRITO que la garantía no se pudo verificar. Se
+ * registra el dato que falta en vez de inventar un «sin garantía» que después
+ * nadie puede desmentir: `en_garantia` sigue en null a propósito.
+ */
+export async function seguirSinIdentificarEquipo(datos: {
+  atencionId: string;
+  motivo: string;
+}): Promise<{ error: string | null }> {
+  if (datos.motivo.trim().length < 5) {
+    return { error: "Diga en una línea por qué no se pudo identificar la máquina" };
+  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("atenciones")
+    .update({
+      garantia_omitida_at: new Date().toISOString(),
+      garantia_omitida_por: user?.id ?? null,
+      garantia_omitida_motivo: datos.motivo.trim(),
+    })
+    .eq("id", datos.atencionId);
+  if (error) return { error: error.message };
+
+  refrescar(datos.atencionId);
+  return { error: null };
+}
+
 /** Diagnóstico: qué le pasa y, sobre todo, quién paga. */
 export async function diagnosticar(datos: {
   atencionId: string;

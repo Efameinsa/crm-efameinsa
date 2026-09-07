@@ -138,6 +138,10 @@ export interface Atencion {
   resultado: "resuelto" | "no_procede" | "derivado" | null;
   detalle: string | null;
   motivo_cierre: string | null;
+  /** Se siguió sin identificar la máquina (0181): la garantía quedó sin
+   *  verificar y `en_garantia` sigue en null a propósito — no se sabe. */
+  garantia_omitida_at?: string | null;
+  garantia_omitida_motivo?: string | null;
 }
 
 /** El índice de la etapa, para pintar la barra de avance. */

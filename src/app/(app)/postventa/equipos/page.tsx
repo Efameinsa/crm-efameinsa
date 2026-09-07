@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { FicharMaquina } from "@/components/crm/fichar-maquina";
 import { fechaCalendario } from "@/lib/fechas";
 import { estadoGarantia } from "@/lib/postventa";
 import { idsDeCuentasQueCasan, condicionCuentaIn } from "@/lib/buscar-cuentas";
@@ -28,7 +29,7 @@ const POR_PAGINA = 40;
 
 interface FilaEquipo {
   id: string;
-  serie: string;
+  serie: string | null;
   cliente_texto: string | null;
   modelo_texto: string | null;
   ubicacion: string | null;
@@ -118,6 +119,23 @@ export default async function EquiposPage({
         </div>
       }
     >
+      {/* DAR DE ALTA UNA MÁQUINA A MANO (0181). No existía: una máquina solo
+          nacía al cerrar un pedido con su serie escrita —10 de 198 pedidos—, y
+          por eso 148 de los 205 clientes que compraron este año no tienen
+          ninguna. Acá se ficha lo que el cliente reporta por teléfono y lo que
+          vaya apareciendo cuando lleguen las guías de remisión.
+
+          Plegado: la pantalla es para consultar el parque; el alta es la
+          excepción, no lo que se viene a hacer todos los días. */}
+      <details className="mb-3 rounded-lg border border-border bg-card">
+        <summary className="cursor-pointer list-none p-3 text-xs font-semibold text-primary hover:underline">
+          + Registrar una máquina que no está en la lista
+        </summary>
+        <div className="border-t border-border p-3">
+          <FicharMaquina />
+        </div>
+      </details>
+
       <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
         <label className="flex flex-1 items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5">
           <Search className="size-3.5 flex-none text-muted-foreground" />
@@ -180,7 +198,9 @@ export default async function EquiposPage({
                   {garantia.vigente ? <ShieldCheck className="size-4" /> : <ShieldOff className="size-4" />}
                 </span>
                 <div className="min-w-[220px] flex-1">
-                  <p className="font-mono text-xs font-bold text-foreground">{e.serie}</p>
+                  <p className={cn("font-mono text-xs font-bold", e.serie ? "text-foreground" : "text-muted-foreground")}>
+                    {e.serie ?? "Sin serie"}
+                  </p>
                   <p className="line-clamp-1 text-sm text-foreground">{e.modelo_texto ?? "Equipo sin describir"}</p>
                   <p className="text-xs text-muted-foreground">
                     {e.cuentas?.razon_social ?? e.cliente_texto ?? "—"}

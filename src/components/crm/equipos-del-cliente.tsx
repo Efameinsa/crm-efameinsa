@@ -112,7 +112,7 @@ export async function EquiposDelCliente({ cuentaId }: { cuentaId: string }) {
               href={`/postventa/equipos/${e.id}`}
               className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-md border border-border p-2.5 transition-colors hover:bg-accent"
             >
-              <span className="w-32 flex-none font-mono text-xs font-semibold text-foreground">{e.serie}</span>
+              <span className="w-32 flex-none font-mono text-xs font-semibold text-foreground">{e.serie ?? "Sin serie"}</span>
               <span className="min-w-[160px] flex-1 truncate text-xs text-muted-foreground">
                 {e.modelo_texto ?? "Sin modelo"}
               </span>
