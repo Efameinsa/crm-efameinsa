@@ -741,19 +741,71 @@ export function PantallaCotizador({
             </div>
           )}
 
-          <BuscadorEquiposModal
-            productos={equiposParaElegir}
-            enCarrito={cantidadesEnCarrito}
-            coloresEnCarrito={coloresEnCarrito}
-            onElegirColor={elegirColor}
-            onAgregar={(e) => {
-              const p = productos.find((x) => x.id === e.id);
-              if (p) agregarProducto(p);
-            }}
-            onRestar={restarProducto}
-            onQuitar={quitarProducto}
-            abrirAlEntrar={abrirBuscadorAlEntrar}
-          />
+          {/* POSTVENTA BUSCA SERVICIOS Y REPUESTOS, no máquinas. Ese catálogo
+              todavía no existe —el del CRM son 149 equipos, ni un servicio— así
+              que el buscador está a propósito vacío y lo dice: mientras tanto se
+              escriben a mano, con el botón de arriba. Cuando lleguen las fichas
+              de repuestos y de mantenimiento, esta misma puerta se llena sola.
+
+              El catálogo de máquinas sigue accesible más abajo: postventa
+              también vende equipos de vez en cuando, y quitárselo sería cambiar
+              un problema por otro. */}
+          {esPostventa ? (
+            <>
+              <BuscadorEquiposModal
+                productos={[]}
+                enCarrito={{}}
+                onAgregar={() => {}}
+                onRestar={() => {}}
+                onQuitar={() => {}}
+                abrirAlEntrar={false}
+                titulo="Buscar servicios y repuestos"
+                subtitulo="Mantenimientos, repuestos y servicios cargados en el catálogo"
+                mensajeVacio={
+                  <>
+                    Todavía no hay ningún servicio ni repuesto en el catálogo.
+                    <br />
+                    Mientras tanto se escriben a mano, con <b>«Agregar un servicio o repuesto»</b> acá arriba. El
+                    catálogo se llenará con las fichas de repuestos y de mantenimiento preventivo.
+                  </>
+                }
+              />
+              <details className="rounded-lg border border-border bg-card">
+                <summary className="cursor-pointer list-none p-3 text-xs font-semibold text-muted-foreground hover:text-foreground">
+                  ¿Va a cotizar también una máquina? Abrir el catálogo de equipos
+                </summary>
+                <div className="border-t border-border p-3">
+                  <BuscadorEquiposModal
+                    productos={equiposParaElegir}
+                    enCarrito={cantidadesEnCarrito}
+                    coloresEnCarrito={coloresEnCarrito}
+                    onElegirColor={elegirColor}
+                    onAgregar={(e) => {
+                      const p = productos.find((x) => x.id === e.id);
+                      if (p) agregarProducto(p);
+                    }}
+                    onRestar={restarProducto}
+                    onQuitar={quitarProducto}
+                    abrirAlEntrar={false}
+                  />
+                </div>
+              </details>
+            </>
+          ) : (
+            <BuscadorEquiposModal
+              productos={equiposParaElegir}
+              enCarrito={cantidadesEnCarrito}
+              coloresEnCarrito={coloresEnCarrito}
+              onElegirColor={elegirColor}
+              onAgregar={(e) => {
+                const p = productos.find((x) => x.id === e.id);
+                if (p) agregarProducto(p);
+              }}
+              onRestar={restarProducto}
+              onQuitar={quitarProducto}
+              abrirAlEntrar={abrirBuscadorAlEntrar}
+            />
+          )}
 
           {/* Para el comercial, esto es la excepción: va abajo y en gris,
               porque su camino normal es el buscador de equipos. */}
@@ -810,16 +862,34 @@ export function PantallaCotizador({
                             lo que el cliente va a leer de ese renglón. */}
                         {item.producto_id === null ? (
                           <>
-                            <Label className="text-[11px] text-muted-foreground">Concepto</Label>
+                            <Label className="text-[11px] text-muted-foreground">
+                              Concepto <span className="font-normal">— lo que va a leer el cliente</span>
+                            </Label>
                             <Input
                               autoFocus={item.nombre === ""}
                               value={item.nombre}
                               onChange={(e) => actualizarItem(i, { nombre: e.target.value, descripcion: e.target.value })}
+                              // Enter agrega OTRA línea, que es lo que se hace
+                              // cuando se cargan varios repuestos seguidos. No
+                              // «confirma» nada: no hay nada que confirmar.
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && item.nombre.trim().length > 0) {
+                                  e.preventDefault();
+                                  agregarLineaLibre();
+                                }
+                              }}
                               placeholder="«Mantenimiento preventivo de lavadora 17 kg», «Resistencia 3 kW»"
                               className="mt-0.5 text-sm"
                             />
+                            {/* LA DUDA DE SANTOS, 07-09: «no hay opción para
+                                confirmar… ¿con Enter se consolida?». No hay que
+                                confirmar cada línea: la cotización se guarda
+                                sola con cada cambio (el sello de arriba lo
+                                dice). Lo que faltaba era decirlo. */}
                             <p className="mt-1 text-[11px] text-muted-foreground">
-                              Escrito a mano: no está en el catálogo, así que no lleva ficha técnica ni foto en el PDF.
+                              Ya está en la cotización: se guarda solo, no hay que confirmarla.{" "}
+                              <b className="text-foreground">Enter</b> agrega otra línea. Al no estar en el catálogo,
+                              no lleva ficha técnica ni foto en el PDF.
                             </p>
                           </>
                         ) : (

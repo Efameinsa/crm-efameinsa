@@ -374,6 +374,9 @@ export function BuscadorEquiposModal({
   onRestar,
   onQuitar,
   abrirAlEntrar = false,
+  titulo = "Buscar y agregar equipos",
+  subtitulo = "Código, marca, capacidad o como lo pide el cliente: «secadora a gas», «rodillo eléctrico»…",
+  mensajeVacio,
 }: {
   productos: EquipoElegible[];
   /** producto_id → unidades ya en la cotización, para los badges. */
@@ -392,6 +395,17 @@ export function BuscadorEquiposModal({
    *  equipo es lo ÚNICO que se puede hacer: pedir un clic para llegar ahí es
    *  pedirlo por nada. */
   abrirAlEntrar?: boolean;
+  /**
+   * Cómo se llama esta puerta y qué se dice cuando no encuentra nada.
+   *
+   * Postventa no viene a buscar máquinas: viene por un servicio o un repuesto,
+   * y de esos no hay catálogo todavía. Con los textos por defecto, su pantalla
+   * le ofrecía «buscar y agregar equipos» —149 máquinas— como acción principal
+   * (reportado por Santos el 07-09).
+   */
+  titulo?: string;
+  subtitulo?: string;
+  mensajeVacio?: React.ReactNode;
 }) {
   const [abierto, setAbierto] = useState(abrirAlEntrar);
   const [texto, setTexto] = useState("");
@@ -438,10 +452,8 @@ export function BuscadorEquiposModal({
             <Search className="size-5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-foreground">Buscar y agregar equipos</span>
-            <span className="block truncate text-xs text-muted-foreground">
-              Código, marca, capacidad o como lo pide el cliente: «secadora a gas», «rodillo eléctrico»…
-            </span>
+            <span className="block text-sm font-semibold text-foreground">{titulo}</span>
+            <span className="block truncate text-xs text-muted-foreground">{subtitulo}</span>
           </span>
           {totalEquipos > 0 && (
             <span className="flex-none rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
@@ -456,7 +468,7 @@ export function BuscadorEquiposModal({
             25-08): se apaga y el cierre vive en un botón con nombre al lado del
             buscador, más el «Listo» del pie y Esc. */}
         <DialogContent className="flex h-[88vh] w-[min(64rem,calc(100vw-2rem))] max-w-none flex-col gap-3 overflow-hidden sm:max-w-none" showCloseButton={false}>
-          <DialogTitle className="sr-only">Buscar y agregar equipos</DialogTitle>
+          <DialogTitle className="sr-only">{titulo}</DialogTitle>
           <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -550,9 +562,13 @@ export function BuscadorEquiposModal({
               {coincidencias.length === 0 && (
                 <li className="flex flex-col items-center gap-2 p-6 text-center text-xs text-muted-foreground">
                   <PackageX className="size-6" />
-                  Ningún equipo del catálogo coincide con «{texto.trim()}».
-                  <br />
-                  El catálogo es el Excel de Lesly: si el equipo no está ahí, no se puede cotizar desde acá.
+                  {mensajeVacio ?? (
+                    <>
+                      Ningún equipo del catálogo coincide con «{texto.trim()}».
+                      <br />
+                      El catálogo es el Excel de Lesly: si el equipo no está ahí, no se puede cotizar desde acá.
+                    </>
+                  )}
                 </li>
               )}
             </ul>
