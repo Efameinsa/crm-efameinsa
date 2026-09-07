@@ -309,6 +309,23 @@ export const HERRAMIENTAS: { declaracion: Declaracion; ejecutar: Ejecutor }[] = 
 
 export const DECLARACIONES = HERRAMIENTAS.map((h) => h.declaracion);
 
+/**
+ * EL INTERRUPTOR DEL ASISTENTE.
+ *
+ * Hacen falta dos cosas para que esté encendido: la llave de Google y que
+ * nadie lo haya apagado a mano. Apagarlo no debería obligar a BORRAR la
+ * credencial —volver a pegarla es una oportunidad de equivocarse, y mientras
+ * tanto no queda escrito en ningún lado por qué está apagado—, así que hay una
+ * variable aparte: ASISTENTE_ACTIVO=0 lo apaga con la llave puesta.
+ *
+ * Lo consultan las dos puntas: el layout, para no dibujar un botón que no va a
+ * funcionar, y el endpoint, para que nadie lo use llegando por su cuenta.
+ */
+export function asistenteEncendido(): boolean {
+  if (!process.env.GOOGLE_AI_API_KEY) return false;
+  return process.env.ASISTENTE_ACTIVO !== "0" && process.env.ASISTENTE_ACTIVO !== "false";
+}
+
 export async function ejecutarHerramienta(
   nombre: string,
   argumentos: Record<string, unknown>,

@@ -8,6 +8,7 @@ import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
 import { AvisoGestionesSinSubir } from "@/components/crm/aviso-gestiones-sin-subir";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
 import { AsistenteFlotante } from "@/components/crm/asistente-flotante";
+import { asistenteEncendido } from "@/lib/asistente/herramientas";
 import { cookies, headers } from "next/headers";
 import { COOKIE_AUDITORIA, decodificarInfoAuditoria, ranuraDeHost } from "@/lib/auditoria";
 
@@ -91,7 +92,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             prueba una vez, no funciona, y no vuelve. Con esto el código puede
             estar desplegado y la función se enciende sola el día que la llave
             entra en las variables de Vercel. */}
-        {["gerencia", "admin"].includes(perfil.rol) && Boolean(process.env.GOOGLE_AI_API_KEY) && (
+        {["gerencia", "admin"].includes(perfil.rol) && asistenteEncendido() && (
           <AsistenteFlotante nombre={perfil.nombre} />
         )}
       </div>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { createClient } from "@/lib/supabase/server";
-import { DECLARACIONES, ejecutarHerramienta, type Evidencia } from "@/lib/asistente/herramientas";
+import { DECLARACIONES, ejecutarHerramienta, asistenteEncendido, type Evidencia } from "@/lib/asistente/herramientas";
 
 /**
  * EL ASISTENTE DE GERENCIA — piloto.
@@ -160,13 +160,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "El asistente es de gerencia" }, { status: 403 });
   }
 
-  const clave = process.env.GOOGLE_AI_API_KEY;
-  if (!clave) {
+  if (!asistenteEncendido()) {
     return NextResponse.json(
-      { error: "Falta configurar GOOGLE_AI_API_KEY. El asistente todavía no está conectado." },
+      { error: "El asistente está apagado en este momento." },
       { status: 503 },
     );
   }
+  const clave = process.env.GOOGLE_AI_API_KEY as string;
 
   const { pregunta, anterior, modelo: modeloAnterior } = (await request.json()) as {
     pregunta: string;
