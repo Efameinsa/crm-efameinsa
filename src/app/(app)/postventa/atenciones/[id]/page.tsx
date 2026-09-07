@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Building2, Clock, Wrench } from "lucide-react";
+import { ArrowLeft, Building2, Clock, FileText, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -77,6 +77,25 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   } | null) ?? null;
 
   const reloj = relojAtencion(a);
+
+  // ¿QUIÉN PUEDE COTIZAR ESTA ATENCIÓN? La cotización se guarda contra la
+  // oportunidad, y `crear_cotizacion` solo la acepta del comercial dueño (o de
+  // gerencia). No es lo mismo ver la atención que poder cotizarla: Ariana tiene
+  // la vista de mantenimiento que le abrió operaciones (`hace_postventa`, desde
+  // el 02-09) y entra a las atenciones, pero las 19 oportunidades vivas son de
+  // la cuenta de postventa. Sin esta comprobación, el botón la llevaría a un
+  // cotizador donde no podría guardar nada: mejor decirle de quién es.
+  const perfil = await requerirPerfil();
+  const { data: duenio } = a.oportunidad_id
+    ? await supabase
+        .from("oportunidades")
+        .select("comercial_id, perfiles(nombre)")
+        .eq("id", a.oportunidad_id)
+        .maybeSingle()
+    : { data: null };
+  const comercialDeLaPista = (duenio?.perfiles as unknown as { nombre: string } | null)?.nombre ?? null;
+  const puedeCotizarla =
+    duenio?.comercial_id === perfil.id || perfil.rol === "gerencia" || perfil.rol === "admin";
 
   // «En la parte derecha debe estar el historial de cómo llegó» (ing. Carlos,
   // reunión 01-09): la misma ruta que ven el comercial y Central — llegó a
@@ -265,15 +284,48 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
 
           {a.oportunidad_id && (
             <SeccionPanel titulo="La pista comercial">
+              {/* COTIZAR DESDE LA ATENCIÓN. Es el pedido textual del ing.
+                  Carlos del 01-09: «en atención también debe haber la
+                  oportunidad para poder cotizar… porque viene de un problema».
+                  Estaba anotado como pendiente y seguía sin hacerse: había
+                  que salir a buscar la oportunidad por el menú, y por eso los
+                  mantenimientos se seguían cotizando en Word.
+
+                  El enlace es directo al cotizador, no a la oportunidad: el
+                  técnico ya sabe qué hay que vender —lo acaba de ver— y lo que
+                  necesita es escribirlo. Desde hoy el cotizador acepta líneas
+                  escritas a mano, así que un mantenimiento o un repuesto se
+                  cotizan sin esperar a que estén en el catálogo. */}
+              {puedeCotizarla ? (
+                <>
+                  <Link
+                    href={`/comercial/oportunidades/${a.oportunidad_id}/cotizar`}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                  >
+                    <FileText className="size-3.5" />
+                    Cotizar lo que haga falta
+                  </Link>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    El mantenimiento, el repuesto o la visita se escriben directamente en la cotización, aunque
+                    todavía no estén en el catálogo.
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Esta pista comercial la lleva <b className="text-foreground">{comercialDeLaPista ?? "otro comercial"}</b>: la
+                  cotización la hace quien tiene la cuenta. Si hay algo para vender, se avisa desde el circuito y
+                  Central lo reparte.
+                </p>
+              )}
               <Link
                 href={`/comercial/oportunidades/${a.oportunidad_id}`}
-                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
               >
                 Ver la oportunidad de esta atención
               </Link>
               <p className="mt-1 text-xs text-muted-foreground">
-                Ahí se registran las gestiones y se cotiza lo que haya para vender. La atención técnica y la venta
-                corren en paralelo: son dos pistas, no una.
+                Ahí se registran las gestiones y el historial. La atención técnica y la venta corren en paralelo:
+                son dos pistas, no una.
               </p>
             </SeccionPanel>
           )}
