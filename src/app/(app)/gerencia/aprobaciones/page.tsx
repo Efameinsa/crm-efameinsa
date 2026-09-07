@@ -20,7 +20,7 @@ export default async function AprobacionesPage() {
     .from("cotizaciones")
     .select(
       `id, codigo, serie, total, moneda, estado, estado_aprobacion, aprobada_at, nota_gerencia, enviada_at,
-       oportunidades(cuentas(razon_social), perfiles(nombre)),
+       oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre)),
        cotizacion_items(cantidad, precio_lista, precio_unitario, bajo_lista, aprobado, descripcion, productos(marca, modelo, nombre))`,
     )
     .in("estado_aprobacion", ["aprobada_gerencia", "rechazada_gerencia"])
@@ -31,7 +31,7 @@ export default async function AprobacionesPage() {
     .from("cotizaciones")
     .select(
       `id, codigo, serie, total, moneda, created_at, oportunidad_id,
-       oportunidades(cuentas(razon_social), perfiles(nombre)),
+       oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre)),
        cotizacion_items(id, cantidad, precio_lista, precio_unitario, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
     )
     .eq("estado_aprobacion", "pendiente_gerencia")

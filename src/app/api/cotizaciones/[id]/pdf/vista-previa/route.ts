@@ -56,16 +56,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "La cotización necesita al menos un equipo" }, { status: 400 });
   }
 
-  const { data: cotizacion } = await supabase
+  const { data: cotizacion, error } = await supabase
     .from("cotizaciones")
     .select(
       `codigo, correlativo, serie, moneda, cliente_snapshot, created_at,
-       oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
+       oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
     )
     .eq("id", id)
     .maybeSingle();
 
+  // Un fallo de la consulta NO es «no encontrada». El 05-09 la migración 0179
+  // agregó una segunda relación entre cotizaciones y oportunidades, PostgREST
+  // dejó de saber por cuál embeber, y este endpoint respondió «Cotización no
+  // encontrada» a TODAS las descargas: la cotización de Brenda estaba en la
+  // base y nadie podía explicar el 404. El error de la consulta se dice y se
+  // registra; el 404 queda para lo que de verdad no existe o no le toca ver.
+  if (error) {
+    console.error(`[cotizacion ${id}] la consulta falló:`, error);
+    return NextResponse.json({ error: "No se pudo leer la cotización", detalle: error.message }, { status: 500 });
+  }
   if (!cotizacion) return NextResponse.json({ error: "Cotización no encontrada" }, { status: 404 });
 
   const ids = items.map((i) => i.producto_id).filter((x): x is string => Boolean(x));

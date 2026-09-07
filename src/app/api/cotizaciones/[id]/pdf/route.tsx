@@ -15,18 +15,28 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const { data: cotizacion } = await supabase
+  const { data: cotizacion, error } = await supabase
     .from("cotizaciones")
     .select(
       `codigo, correlativo, serie, moneda, moneda_impresa, tipo_cambio, condiciones, vigencia_dias, entrega_lugar,
        tiempo_entrega, garantia, forma_pago, saldo, cliente_snapshot, created_at,
        cotizacion_items(cantidad, precio_unitario, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path)),
-       oportunidades(cuentas(contactos(nombre, telefono, email, es_principal))),
+       oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
     )
     .eq("id", id)
     .maybeSingle();
 
+  // Un fallo de la consulta NO es «no encontrada». El 05-09 la migración 0179
+  // agregó una segunda relación entre cotizaciones y oportunidades, PostgREST
+  // dejó de saber por cuál embeber, y este endpoint respondió «Cotización no
+  // encontrada» a TODAS las descargas: la cotización de Brenda estaba en la
+  // base y nadie podía explicar el 404. El error de la consulta se dice y se
+  // registra; el 404 queda para lo que de verdad no existe o no le toca ver.
+  if (error) {
+    console.error(`[cotizacion ${id}] la consulta falló:`, error);
+    return NextResponse.json({ error: "No se pudo leer la cotización", detalle: error.message }, { status: 500 });
+  }
   if (!cotizacion) return NextResponse.json({ error: "Cotización no encontrada" }, { status: 404 });
 
   // COTIZAR EN SOLES (0169). Los importes se guardan en dólares —ahí viven el

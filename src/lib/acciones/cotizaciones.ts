@@ -187,7 +187,9 @@ export async function finalizarCotizacion(
 
   const { data: cotizacion } = await supabase
     .from("cotizaciones")
-    .select("total, moneda, estado_aprobacion, oportunidad_id, oportunidades(cuentas(razon_social), perfiles(nombre))")
+    .select(
+      "total, moneda, estado_aprobacion, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre))",
+    )
     .eq("id", cotizacionId)
     .maybeSingle();
   if (!cotizacion) return { error: "La cotización no existe" };
@@ -385,7 +387,7 @@ async function comercialDeCotizacion(
 ): Promise<{ comercialId: string | null; codigo: string | null }> {
   const { data } = await supabase
     .from("cotizaciones")
-    .select("codigo, oportunidades(comercial_id)")
+    .select("codigo, oportunidades!cotizaciones_oportunidad_id_fkey(comercial_id)")
     .eq("id", cotizacionId)
     .maybeSingle();
   const oportunidad = data?.oportunidades as unknown as { comercial_id: string } | null;
