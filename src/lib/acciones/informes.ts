@@ -159,7 +159,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, estado, total, garantia, created_at, enviada_at, oportunidades!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, descripcion, productos(marca, modelo, nombre))",
+        "id, codigo, serie, estado, total, garantia, created_at, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, descripcion, productos(marca, modelo, nombre))",
       )
       .eq("oportunidades.cuenta_id", cuentaId)
       .order("created_at", { ascending: false })

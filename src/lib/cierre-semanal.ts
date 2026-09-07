@@ -155,7 +155,7 @@ export async function cargarCierreSemanal(
         .limit(300),
       supabase
         .from("cotizaciones")
-        .select("total, moneda, enviada_at, oportunidades!inner(comercial_id)")
+        .select("total, moneda, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id)")
         .eq("oportunidades.comercial_id", comercialId)
         .not("enviada_at", "is", null)
         .gte("enviada_at", `${lunes}T00:00:00`)

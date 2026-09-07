@@ -38,7 +38,7 @@ export async function CargaCotizaciones() {
   const [{ data: cotizaciones }, { data: comerciales }] = await Promise.all([
     supabase
       .from("cotizaciones")
-      .select("enviada_at, oportunidades!inner(comercial_id)")
+      .select("enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id)")
       .not("correlativo", "is", null)
       .in("estado", ["enviada", "aceptada"])
       .not("codigo", "like", "PRUEBA%")

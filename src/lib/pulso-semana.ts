@@ -121,7 +121,7 @@ export async function cargarPulsoSemana(
 
   let qCotsSemana = supabase
     .from("cotizaciones")
-    .select("enviada_at, oportunidades!inner(comercial_id)")
+    .select("enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id)")
     .not("enviada_at", "is", null)
     .gte("enviada_at", `${lunes}T00:00:00`)
     .lte("enviada_at", `${sabado}T23:59:59`)
@@ -131,7 +131,7 @@ export async function cargarPulsoSemana(
   // terminó — meterla bajaría su propio promedio cada lunes por la mañana.
   let qCotsReferencia = supabase
     .from("cotizaciones")
-    .select("enviada_at, oportunidades!inner(comercial_id)")
+    .select("enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id)")
     .not("enviada_at", "is", null)
     .gte("enviada_at", `${desdeReferencia}T00:00:00`)
     .lt("enviada_at", `${lunes}T00:00:00`)

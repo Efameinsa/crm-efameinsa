@@ -79,7 +79,7 @@ export default async function MisCotizacionesPage({
     .eq("comercial_id", perfil.id);
   let qCrm = supabase
     .from("cotizaciones")
-    .select("id, codigo, serie, total, moneda, enviada_at, oportunidad_id, oportunidades!inner(comercial_id, cuentas(razon_social))")
+    .select("id, codigo, serie, total, moneda, enviada_at, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
     .eq("oportunidades.comercial_id", perfil.id)
     .not("enviada_at", "is", null);
   // Los borradores no tienen número: se buscan por el cliente, en memoria, y
@@ -88,7 +88,7 @@ export default async function MisCotizacionesPage({
     pag === 1
       ? supabase
           .from("cotizaciones")
-          .select("id, codigo, serie, total, moneda, created_at, oportunidad_id, oportunidades!inner(comercial_id, cuentas(razon_social))")
+          .select("id, codigo, serie, total, moneda, created_at, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
           .eq("oportunidades.comercial_id", perfil.id)
           .eq("estado", "borrador")
           .is("enviada_at", null)

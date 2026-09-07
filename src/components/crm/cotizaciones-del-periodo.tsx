@@ -50,7 +50,7 @@ export async function CotizacionesDelPeriodo({
     supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, total, moneda, estado, enviada_at, oportunidades!inner(comercial_id, cuentas(razon_social))",
+        "id, codigo, serie, total, moneda, estado, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))",
       )
       .eq("oportunidades.comercial_id", comercialId)
       .not("enviada_at", "is", null)

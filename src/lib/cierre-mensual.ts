@@ -239,7 +239,7 @@ export async function cargarCierreMensual(mes: string, comercialId: string): Pro
       .limit(5000),
     supabase
       .from("cotizaciones")
-      .select("total, moneda, enviada_at, oportunidades!inner(comercial_id)")
+      .select("total, moneda, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id)")
       .eq("oportunidades.comercial_id", comercialId)
       .not("enviada_at", "is", null)
       .gte("enviada_at", inicioUtc)
@@ -411,7 +411,7 @@ async function cargarAbiertas(
     supabase
       .from("cotizaciones")
       .select(
-        "oportunidad_id, codigo, total, moneda, enviada_at, oportunidades!inner(etapa, cierre_proyectado, comercial_id, cuentas(razon_social))",
+        "oportunidad_id, codigo, total, moneda, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(etapa, cierre_proyectado, comercial_id, cuentas(razon_social))",
       )
       .eq("oportunidades.comercial_id", comercialId)
       .not("oportunidades.etapa", "in", CERRADAS)

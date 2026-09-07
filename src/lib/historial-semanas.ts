@@ -85,7 +85,7 @@ export async function cargarHistorialSemanas(
       .limit(5000),
     supabase
       .from("cotizaciones")
-      .select("enviada_at, oportunidades!inner(comercial_id)")
+      .select("enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id)")
       .eq("oportunidades.comercial_id", comercialId)
       .not("enviada_at", "is", null)
       .gte("enviada_at", masAntiguo + "T00:00:00")

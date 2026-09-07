@@ -100,7 +100,7 @@ export default async function PresupuestosCentralPage({
   // tabla de cantidades: una cotización de las 8 pm no cae en «mañana».
   let consulta = supabase
     .from("cotizaciones")
-    .select("id, codigo, serie, estado, total, moneda, moneda_impresa, enviada_at, oportunidades!inner(comercial_id, cuentas(razon_social))", {
+    .select("id, codigo, serie, estado, total, moneda, moneda_impresa, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))", {
       count: "exact",
     })
     .not("correlativo", "is", null)
