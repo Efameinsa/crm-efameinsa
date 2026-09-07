@@ -15,13 +15,15 @@
     "db:auditar-anuladas": "node --env-file=.env.local scripts/auditar-anuladas.mjs",
     "db:restaurar": "node --env-file=.env.local scripts/restaurar-datos.mjs",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:auditar-asistente": "node --env-file=.env.local scripts/auditar-asistente-solo-lectura.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1115.0",
     "@aws-sdk/s3-request-presigner": "^3.1115.0",
     "@base-ui/react": "^1.7.0",
     "@dnd-kit/core": "^6.3.1",
+    "@google/genai": "^2.21.0",
     "@react-pdf/renderer": "^4.6.1",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",

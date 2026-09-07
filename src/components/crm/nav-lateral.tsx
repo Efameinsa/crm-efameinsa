@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   KeyRound,
   Table2,
+  Search,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -65,6 +66,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   ],
   gerencia: [
     { href: "/gerencia", etiqueta: "Panel comercial", icono: BarChart3 },
+    // Arriba de todo a propósito: es lo que se abre en medio de una reunión,
+    // cuando alguien dice un número y hay que saber qué es y de quién es.
+    { href: "/gerencia/buscar", etiqueta: "Buscar en todo", icono: Search },
     { href: "/gerencia/supervision", etiqueta: "Supervisión diaria", icono: ClipboardCheck },
     { href: "/gerencia/potenciales", etiqueta: "Potenciales", icono: Target },
     { href: "/gerencia/clientes", etiqueta: "Clientes", icono: Building2 },
