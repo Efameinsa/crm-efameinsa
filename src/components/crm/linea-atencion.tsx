@@ -19,9 +19,12 @@ import {
 import { FicharMaquina } from "@/components/crm/fichar-maquina";
 import {
   avanzarAtencion,
+  avisarVentaDeLaAtencion,
   cerrarAtencion,
   diagnosticar,
   programarAtencion,
+  registrarPruebas,
+  registrarTrabajo,
   seguirSinIdentificarEquipo,
   verificarGarantia,
 } from "@/lib/acciones/atenciones";
@@ -208,6 +211,10 @@ export function LineaAtencion({
         <PasoRegistro atencion={a} garantia={garantia} hayMaquinas={hayMaquinas} enviando={enviando} correr={correr} />
       ) : a.etapa === "diagnostico" ? (
         <PasoPlanificar atencion={a} cliente={cliente} serie={garantia?.serie ?? null} enviando={enviando} correr={correr} />
+      ) : a.etapa === "atencion" ? (
+        <PasoTrabajo atencion={a} enviando={enviando} correr={correr} />
+      ) : a.etapa === "pruebas" ? (
+        <PasoPruebas atencion={a} enviando={enviando} correr={correr} />
       ) : a.etapa === "conformidad" ? (
         <PasoCerrar atencion={a} enviando={enviando} correr={correr} />
       ) : a.etapa === "cierre" || a.etapa === "seguimiento" ? (
@@ -382,6 +389,14 @@ function ActaEtapa({
     if (etapa === "registro" && a.en_garantia !== null) {
       lineas.push({ titulo: "Garantía", valor: a.en_garantia ? "En garantía" : "Sin garantía" });
     }
+    // La garantía que no se pudo verificar también es un dato del acta: sin
+    // esto, la etapa se leía como si nadie la hubiera mirado (0181).
+    if (etapa === "registro" && a.en_garantia === null && a.garantia_omitida_at) {
+      lineas.push({
+        titulo: "Garantía",
+        valor: `Sin verificar — no se identificó la máquina${a.garantia_omitida_motivo ? `: ${a.garantia_omitida_motivo}` : ""}`,
+      });
+    }
     if (etapa === "diagnostico" && a.clasificacion) {
       lineas.push({
         titulo: "Clasificación",
@@ -389,6 +404,19 @@ function ActaEtapa({
       });
     }
     if (etapa === "planificacion" && a.tecnico) lineas.push({ titulo: "Técnico", valor: a.tecnico });
+    // Lo que la visita dejó escrito (0182): antes estas dos etapas eran un
+    // sello con fecha y nada más.
+    if (etapa === "atencion") {
+      if (a.trabajo_realizado) lineas.push({ titulo: "Qué se hizo", valor: a.trabajo_realizado });
+      if (a.repuestos_usados) lineas.push({ titulo: "Repuestos", valor: a.repuestos_usados });
+      if (a.ciclos != null) lineas.push({ titulo: "Ciclos", valor: a.ciclos.toLocaleString("es-PE") });
+    }
+    if (etapa === "pruebas") {
+      if (a.pruebas_detalle) lineas.push({ titulo: "Qué se probó", valor: a.pruebas_detalle });
+      if (a.pruebas_conforme != null) {
+        lineas.push({ titulo: "Resultado", valor: a.pruebas_conforme ? "Operativa" : "Quedó pendiente" });
+      }
+    }
     if (etapa === "conformidad" && a.conformidad_nombre) {
       lineas.push({ titulo: "Dio conformidad", valor: a.conformidad_nombre });
     }
@@ -699,6 +727,282 @@ function PasoSimple({
         Marcar «{ETIQUETA_ETAPA[siguiente as keyof typeof ETIQUETA_ETAPA]}» <ChevronRight className="size-3.5" />
       </Button>
     </Caja>
+  );
+}
+
+/**
+ * Etapa «atención»: qué hizo el técnico en el cliente (0182).
+ *
+ * Hasta hoy esta etapa era un botón: se marcaba «atendida» y no quedaba
+ * escrito nada. Lo que el manual pide anotar en ese momento —el trabajo, el
+ * repuesto usado y la lectura de ciclos— vivía en el WhatsApp del técnico.
+ *
+ * LOS CICLOS son «el kilometraje de la máquina» (Carlos, 27-08): un ciclo ≈
+ * una hora de uso. Se piden acá porque es cuando el técnico está delante del
+ * contador; pedirlos después es pedirlos de memoria. Al guardarlos suben solos
+ * a la ficha de la máquina, que es donde se comparan con la lectura anterior.
+ */
+function PasoTrabajo({
+  atencion: a,
+  enviando,
+  correr,
+}: {
+  atencion: Atencion;
+  enviando: boolean;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+}) {
+  const [trabajo, setTrabajo] = useState("");
+  const [repuestos, setRepuestos] = useState("");
+  const [ciclos, setCiclos] = useState("");
+
+  return (
+    <Caja titulo="Paso · Qué se hizo en el cliente">
+      <div className="space-y-3">
+        <textarea
+          rows={3}
+          value={trabajo}
+          onChange={(e) => setTrabajo(e.target.value)}
+          placeholder="«Se cambió la resistencia y se reguló el termostato; quedó calentando a 180°»"
+          className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
+        />
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-foreground">
+              Repuestos usados <span className="font-normal text-muted-foreground">— si hubo</span>
+            </span>
+            <input
+              value={repuestos}
+              onChange={(e) => setRepuestos(e.target.value)}
+              placeholder="«Resistencia 3 kW, 1 unidad»"
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-foreground">
+              Ciclos <span className="font-normal text-muted-foreground">— lo que marca el contador</span>
+            </span>
+            <input
+              type="number"
+              min={0}
+              value={ciclos}
+              onChange={(e) => setCiclos(e.target.value)}
+              placeholder="Ej.: 4820"
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
+            />
+          </label>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          La lectura de ciclos queda en la ficha de la máquina: es lo que después dice si un equipo de dos años se
+          usó como uno de cinco.
+        </p>
+        <Button
+          size="sm"
+          disabled={enviando || trabajo.trim().length < 10}
+          onClick={() =>
+            correr(
+              () =>
+                registrarTrabajo({
+                  atencionId: a.id,
+                  trabajo,
+                  repuestos: repuestos || null,
+                  ciclos: ciclos.trim() === "" ? null : Number(ciclos),
+                }),
+              "Trabajo registrado. Ahora las pruebas.",
+            )
+          }
+        >
+          Guardar y pasar a pruebas <ChevronRight className="size-3.5" />
+        </Button>
+        <div className="border-t border-border pt-3">
+          <AvisarQueHayVenta atencionId={a.id} enviando={enviando} correr={correr} />
+        </div>
+      </div>
+    </Caja>
+  );
+}
+
+/**
+ * Etapa «pruebas»: cómo respondió la máquina (0182).
+ *
+ * El desenlace decide de verdad: conforme sigue con la firma del cliente, no
+ * conforme vuelve a planificación para programar otra visita. Antes las dos
+ * cosas eran el mismo botón «marcar pruebas», y una máquina que quedó mal
+ * avanzaba igual hasta pedirle al cliente que firmara su conformidad.
+ */
+function PasoPruebas({
+  atencion: a,
+  enviando,
+  correr,
+}: {
+  atencion: Atencion;
+  enviando: boolean;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+}) {
+  const [detalle, setDetalle] = useState("");
+  const [conforme, setConforme] = useState(true);
+  const [nombre, setNombre] = useState("");
+  const [doc, setDoc] = useState("");
+
+  return (
+    <Caja titulo="Paso · Las pruebas">
+      <div className="space-y-3">
+        <textarea
+          rows={2}
+          value={detalle}
+          onChange={(e) => setDetalle(e.target.value)}
+          placeholder="«Ciclo completo de lavado y centrifugado, sin fugas ni ruido; temperatura estable»"
+          className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
+        />
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            { v: true, t: "La máquina quedó operativa" },
+            { v: false, t: "Quedó pendiente — hay que volver" },
+          ].map((o) => (
+            <button
+              key={String(o.v)}
+              type="button"
+              onClick={() => setConforme(o.v)}
+              className={cn(
+                "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                conforme === o.v
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {o.t}
+            </button>
+          ))}
+        </div>
+
+        {conforme ? (
+          <div className="flex flex-wrap gap-2">
+            <input
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="Quién firma la conformidad"
+              className="h-9 min-w-[200px] flex-1 rounded-md border border-input bg-background px-3 text-sm outline-none"
+            />
+            <input
+              value={doc}
+              onChange={(e) => setDoc(e.target.value)}
+              placeholder="DNI (opcional)"
+              className="h-9 w-32 rounded-md border border-input bg-background px-3 text-sm outline-none"
+            />
+          </div>
+        ) : (
+          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800">
+            La atención vuelve a <b>planificación</b> para programar otra visita. No se le pide al cliente que firme
+            la conformidad de algo que no quedó bien.
+          </p>
+        )}
+
+        <Button
+          size="sm"
+          disabled={enviando || detalle.trim().length < 10 || (conforme && !nombre.trim())}
+          onClick={() =>
+            correr(
+              () =>
+                registrarPruebas({
+                  atencionId: a.id,
+                  detalle,
+                  conforme,
+                  conformidadNombre: conforme ? nombre : null,
+                  conformidadDoc: conforme ? doc : null,
+                }),
+              conforme ? "Pruebas conformes." : "Queda para volver: vuelve a planificación.",
+            )
+          }
+        >
+          {conforme ? "Guardar la conformidad" : "Guardar y reprogramar"} <ChevronRight className="size-3.5" />
+        </Button>
+      </div>
+    </Caja>
+  );
+}
+
+/**
+ * «Acá hay algo para vender» (0182 conecta lo que ya existía).
+ *
+ * La acción estaba escrita desde la 0131 —«el técnico le indica que hay un
+ * repuesto por vender e inmediatamente me aparece a mí como postventa que hay
+ * algo por vender»— pero nunca tuvo un botón, así que nadie podía usarla.
+ *
+ * No crea la oportunidad: avisa a Central, que es quien reparte (regla de
+ * Lesly, 31-08). Lo que cambia respecto de un aviso suelto es que llega con el
+ * equipo y lo que vio el técnico ya escritos.
+ */
+function AvisarQueHayVenta({
+  atencionId,
+  enviando,
+  correr,
+}: {
+  atencionId: string;
+  enviando: boolean;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [tipo, setTipo] = useState<"solicitud_repuesto" | "solicitud_mantenimiento">("solicitud_repuesto");
+  const [detalle, setDetalle] = useState("");
+
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="cursor-pointer text-xs font-medium text-primary underline underline-offset-2 hover:opacity-80"
+      >
+        El técnico vio algo para vender — avisar a Central
+      </button>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {[
+          { v: "solicitud_repuesto" as const, t: "Un repuesto" },
+          { v: "solicitud_mantenimiento" as const, t: "Un mantenimiento" },
+        ].map((o) => (
+          <button
+            key={o.v}
+            type="button"
+            onClick={() => setTipo(o.v)}
+            className={cn(
+              "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+              tipo === o.v
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {o.t}
+          </button>
+        ))}
+      </div>
+      <textarea
+        rows={2}
+        value={detalle}
+        onChange={(e) => setDetalle(e.target.value)}
+        placeholder="Qué vio y qué haría falta: «la bomba está al límite, conviene cambiarla antes de que pare la lavandería»"
+        className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
+      />
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={enviando || detalle.trim().length < 10}
+          onClick={() =>
+            correr(
+              () => avisarVentaDeLaAtencion({ atencionId, tipo, detalle }),
+              "Avisado a Central: hay algo para vender.",
+            )
+          }
+        >
+          Avisar a Central
+        </Button>
+        <Button size="sm" variant="ghost" disabled={enviando} onClick={() => setAbierto(false)}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
   );
 }
 

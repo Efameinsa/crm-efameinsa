@@ -272,6 +272,103 @@ export async function programarAtencion(datos: {
  * postas, y saltarse la conformidad para cerrar antes es justo lo que hace que
  * después nadie sepa si el cliente quedó conforme.
  */
+/**
+ * Lo que el técnico hizo en el cliente (0182).
+ *
+ * La etapa «atención» era un botón de avance: se marcaba y no quedaba escrito
+ * nada. Acá se escribe lo que el manual pide en ese momento —qué se hizo, qué
+ * repuesto se usó y la lectura de ciclos— y con eso la atención pasa a pruebas.
+ *
+ * Los ciclos suben solos al parque instalado (trigger de la 0182): es en la
+ * máquina donde sirven, comparados contra la lectura anterior.
+ */
+export async function registrarTrabajo(datos: {
+  atencionId: string;
+  trabajo: string;
+  repuestos?: string | null;
+  ciclos?: number | null;
+}): Promise<{ error: string | null }> {
+  if (datos.trabajo.trim().length < 10) {
+    return { error: "Escriba qué se hizo en el cliente: es lo que se lee cuando la máquina vuelve a fallar" };
+  }
+  if (datos.ciclos != null && (!Number.isInteger(datos.ciclos) || datos.ciclos < 0)) {
+    return { error: "La lectura de ciclos tiene que ser un número entero" };
+  }
+
+  const supabase = await createClient();
+  const { data: a } = await supabase
+    .from("atenciones")
+    .select("etapa, equipo_id")
+    .eq("id", datos.atencionId)
+    .maybeSingle();
+  if (!a) return { error: "Esa atención no existe" };
+  if (a.etapa !== "atencion") return { error: "Esto se registra cuando la atención está en la etapa de atención" };
+
+  const { error } = await supabase
+    .from("atenciones")
+    .update({
+      trabajo_realizado: datos.trabajo.trim(),
+      repuestos_usados: datos.repuestos?.trim() || null,
+      ciclos: datos.ciclos ?? null,
+      etapa: "pruebas",
+      pruebas_at: new Date().toISOString(),
+    })
+    .eq("id", datos.atencionId);
+  if (error) return { error: error.message };
+
+  refrescar(datos.atencionId);
+  revalidatePath("/postventa/equipos");
+  return { error: null };
+}
+
+/**
+ * El resultado de las pruebas (0182).
+ *
+ * Si la máquina NO quedó conforme, la atención se queda acá a propósito: no se
+ * le pide al cliente que firme la conformidad de algo que no funciona. Vuelve
+ * a planificación para programar otra visita.
+ */
+export async function registrarPruebas(datos: {
+  atencionId: string;
+  detalle: string;
+  conforme: boolean;
+  conformidadNombre?: string | null;
+  conformidadDoc?: string | null;
+}): Promise<{ error: string | null }> {
+  if (datos.detalle.trim().length < 10) {
+    return { error: "Escriba qué se probó y cómo respondió la máquina" };
+  }
+  if (datos.conforme && !datos.conformidadNombre?.trim()) {
+    return { error: "La conformidad la firma el cliente: escriba quién la dio" };
+  }
+
+  const supabase = await createClient();
+  const ahora = new Date().toISOString();
+  const { error } = await supabase
+    .from("atenciones")
+    .update({
+      pruebas_detalle: datos.detalle.trim(),
+      pruebas_conforme: datos.conforme,
+      pruebas_at: ahora,
+      // Conforme pasa con la firma del cliente. NO conforme vuelve a
+      // planificación —hay que volver al cliente—, que es lo que pasa de
+      // verdad: nadie firma la conformidad de una máquina que no quedó bien.
+      ...(datos.conforme
+        ? {
+            etapa: "conformidad",
+            conformidad_at: ahora,
+            conformidad_nombre: datos.conformidadNombre?.trim(),
+            conformidad_doc: datos.conformidadDoc?.trim() || null,
+          }
+        : { etapa: "planificacion", programada_at: null }),
+    })
+    .eq("id", datos.atencionId);
+  if (error) return { error: error.message };
+
+  refrescar(datos.atencionId);
+  return { error: null };
+}
+
 export async function avanzarAtencion(datos: {
   atencionId: string;
   hasta: EtapaAtencion;

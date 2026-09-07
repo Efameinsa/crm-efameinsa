@@ -142,6 +142,12 @@ export interface Atencion {
    *  verificar y `en_garantia` sigue en null a propósito — no se sabe. */
   garantia_omitida_at?: string | null;
   garantia_omitida_motivo?: string | null;
+  /** Lo que quedó escrito de la visita del técnico (0182). */
+  trabajo_realizado?: string | null;
+  repuestos_usados?: string | null;
+  ciclos?: number | null;
+  pruebas_detalle?: string | null;
+  pruebas_conforme?: boolean | null;
 }
 
 /** El índice de la etapa, para pintar la barra de avance. */
