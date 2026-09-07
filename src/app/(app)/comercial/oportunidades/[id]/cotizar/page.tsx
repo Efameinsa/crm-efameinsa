@@ -3,6 +3,7 @@ import { PantallaCotizador } from "@/components/crm/pantalla-cotizador";
 import { cargarContextoCotizador } from "@/lib/datos-cotizador";
 import { tipoCambioDeGerencia } from "@/lib/datos-cotizador";
 import { createClient } from "@/lib/supabase/server";
+import { requerirPerfil } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,10 @@ export default async function NuevaCotizacionPage({ params }: { params: Promise<
   }
 
   const { contexto } = resultado;
+  // Quién viene a cotizar. No es un permiso: es saber QUÉ viene a cotizar.
+  // Postventa viene por un mantenimiento o un repuesto, no por una máquina, y
+  // la pantalla ordena sus dos entradas según eso (07-09).
+  const perfil = await requerirPerfil();
   return (
     <PantallaCotizador
       oportunidadId={contexto.oportunidadId}
@@ -32,6 +37,7 @@ export default async function NuevaCotizacionPage({ params }: { params: Promise<
       productos={contexto.productos}
       historialPrecios={contexto.historialPrecios}
       tipoCambio={await tipoCambioDeGerencia(await createClient())}
+      esPostventa={perfil.es_postventa === true || perfil.hace_postventa === true}
     />
   );
 }

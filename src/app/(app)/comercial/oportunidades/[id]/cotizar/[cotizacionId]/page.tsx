@@ -4,6 +4,7 @@ import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
 import { cargarContextoCotizador } from "@/lib/datos-cotizador";
 import { tipoCambioDeGerencia } from "@/lib/datos-cotizador";
 import { createClient } from "@/lib/supabase/server";
+import { requerirPerfil } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,8 @@ export default async function CorregirCotizacionPage({
   }
 
   const { contexto } = resultado;
+  // Igual que en la cotización nueva: postventa viene por un servicio.
+  const perfil = await requerirPerfil();
   return (
     <PantallaCotizador
       oportunidadId={contexto.oportunidadId}
@@ -51,6 +54,7 @@ export default async function CorregirCotizacionPage({
       productos={contexto.productos}
       historialPrecios={contexto.historialPrecios}
       tipoCambio={await tipoCambioDeGerencia(await createClient())}
+      esPostventa={perfil.es_postventa === true || perfil.hace_postventa === true}
       edicion={contexto.borrador}
     />
   );

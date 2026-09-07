@@ -160,6 +160,7 @@ export function PantallaCotizador({
   historialPrecios,
   edicion,
   tipoCambio,
+  esPostventa = false,
 }: {
   oportunidadId: string;
   cuenta: ContextoCotizador["cuenta"];
@@ -171,6 +172,17 @@ export function PantallaCotizador({
   edicion?: BorradorEnEdicion;
   /** USD→PEN, el que mantiene gerencia en `parametros.tc_usd_pen` (0169). */
   tipoCambio: number;
+  /**
+   * Quien cotiza es del área de postventa (o tiene su vista, como Ariana).
+   *
+   * NO es un permiso: las dos entradas de esta pantalla son las mismas para
+   * todos. Es el ORDEN en que se ofrecen. Un comercial viene a vender una
+   * máquina y lo primero que necesita es el catálogo —por eso se le abre
+   * solo—; postventa viene por un mantenimiento o un repuesto, y abrirle 149
+   * máquinas encima es justo lo contrario de lo que vino a hacer (reportado
+   * por Santos el 07-09, cotizando un servicio desde la cuenta de postventa).
+   */
+  esPostventa?: boolean;
 }) {
   const router = useRouter();
   const volverHref = `/comercial/oportunidades/${oportunidadId}`;
@@ -236,7 +248,7 @@ export function PantallaCotizador({
   // sola, que es el bug que reportó Darwin el 27-08. La causa de aquel montaje
   // ya está arreglada en `guardarBorradorCotizacion`; esto es para que, si algo
   // vuelve a provocarlo, no se lleve la ventana puesta.
-  const [abrirBuscadorAlEntrar] = useState(() => !edicion && carrito.length === 0);
+  const [abrirBuscadorAlEntrar] = useState(() => !edicion && carrito.length === 0 && !esPostventa);
 
   // ── El catálogo, tal como lo consume el selector grande ──────────────────
   const equiposParaElegir = useMemo(
@@ -706,6 +718,29 @@ export function PantallaCotizador({
             </details>
           )}
 
+          {/* EL ORDEN DEPENDE DE QUIÉN COTIZA. Un comercial viene a vender una
+              máquina: el catálogo va primero y se le abre solo. Postventa viene
+              por un mantenimiento o un repuesto —el catálogo son 149 máquinas y
+              ni un servicio—, así que para ella la línea escrita a mano es la
+              acción principal y el catálogo queda debajo, disponible pero sin
+              taparle la pantalla. Reportado por Santos el 07-09: «quiero
+              cotizar un servicio y solo me aparecen productos». */}
+          {esPostventa && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <p className="text-xs font-semibold text-foreground">¿Qué va a cotizar?</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                El mantenimiento, el repuesto o el servicio se escriben acá: no hace falta que estén en el catálogo.
+              </p>
+              <button
+                type="button"
+                onClick={agregarLineaLibre}
+                className="mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+              >
+                + Agregar un servicio o repuesto
+              </button>
+            </div>
+          )}
+
           <BuscadorEquiposModal
             productos={equiposParaElegir}
             enCarrito={cantidadesEnCarrito}
@@ -720,22 +755,27 @@ export function PantallaCotizador({
             abrirAlEntrar={abrirBuscadorAlEntrar}
           />
 
-          {/* LO QUE NO ESTÁ EN EL CATÁLOGO. Un mantenimiento, un repuesto, un
-              flete. Va acá abajo y en gris: el camino normal es el buscador de
-              equipos, y esto es para lo que el catálogo todavía no tiene. */}
-          <button
-            type="button"
-            onClick={agregarLineaLibre}
-            className="cursor-pointer text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
-          >
-            + Agregar una línea escrita a mano (mantenimiento, repuesto, servicio)
-          </button>
+          {/* Para el comercial, esto es la excepción: va abajo y en gris,
+              porque su camino normal es el buscador de equipos. */}
+          {!esPostventa && (
+            <button
+              type="button"
+              onClick={agregarLineaLibre}
+              className="cursor-pointer text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            >
+              + Agregar una línea escrita a mano (mantenimiento, repuesto, servicio)
+            </button>
+          )}
 
           {carrito.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
-              <p className="text-sm font-medium text-foreground">Todavía no hay equipos en esta cotización.</p>
+              <p className="text-sm font-medium text-foreground">
+                {esPostventa ? "Todavía no hay nada en esta cotización." : "Todavía no hay equipos en esta cotización."}
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Búsquelos por código, marca o como los pide el cliente («secadora a gas», «rodillo eléctrico»).
+                {esPostventa
+                  ? "Agregue el servicio o el repuesto acá arriba, o busque un equipo del catálogo si además va a vender una máquina."
+                  : "Búsquelos por código, marca o como los pide el cliente («secadora a gas», «rodillo eléctrico»)."}
               </p>
             </div>
           ) : (
