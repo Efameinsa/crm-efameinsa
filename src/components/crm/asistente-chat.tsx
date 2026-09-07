@@ -92,13 +92,36 @@ export function AsistenteChat({
     setEntrada("");
     setPensando(true);
 
+    // Si el servidor se pasa del tiempo, la plataforma lo corta y devuelve una
+    // página de error, no JSON. Sin esto el gerente veía «no carga» y nada más.
+    const corte = new AbortController();
+    const alarma = setTimeout(() => corte.abort(), 75_000);
+
     try {
       const r = await fetch("/api/asistente", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pregunta, anterior: hilo.current, modelo: modelo.current }),
+        signal: corte.signal,
       });
-      const d = await r.json();
+
+      // Puede no ser JSON: un 504 de la plataforma llega como HTML.
+      const d = await r.json().catch(() => null);
+      if (!d) {
+        setMensajes((prev) => [
+          ...prev,
+          {
+            texto:
+              r.status === 504 || r.status === 502
+                ? "La consulta tardó demasiado y se cortó. Pruebe con algo más concreto: un comercial, una semana o un número de documento."
+                : `El servidor respondió mal (código ${r.status}).`,
+            mio: false,
+            error: true,
+          },
+        ]);
+        return;
+      }
+
       if (r.ok && d.interaccion) {
         hilo.current = d.interaccion;
         modelo.current = d.modelo ?? null;
@@ -109,12 +132,20 @@ export function AsistenteChat({
           ? { texto: d.respuesta, mio: false, evidencias: d.evidencias }
           : { texto: d.error ?? "No se pudo consultar.", mio: false, error: true },
       ]);
-    } catch {
+    } catch (e) {
+      const abortada = e instanceof DOMException && e.name === "AbortError";
       setMensajes((prev) => [
         ...prev,
-        { texto: "No se pudo conectar con el asistente.", mio: false, error: true },
+        {
+          texto: abortada
+            ? "La consulta tardó demasiado y la corté. Pruebe con algo más concreto: un comercial, una semana o un número de documento."
+            : "No se pudo conectar con el asistente.",
+          mio: false,
+          error: true,
+        },
       ]);
     } finally {
+      clearTimeout(alarma);
       setPensando(false);
     }
   }

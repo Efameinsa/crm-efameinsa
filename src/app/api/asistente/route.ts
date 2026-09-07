@@ -31,6 +31,22 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 /**
+ * EL PRESUPUESTO DE TIEMPO. Vercel corta la función a los 60 s y devuelve un
+ * 504 crudo: el gerente ve «no carga» y no hay forma de explicarle nada, porque
+ * la plataforma mata el proceso antes de que podamos responder.
+ *
+ * Pasó el 07-09 con «ver presupuestos». Una pregunta vaga hace que el modelo
+ * salga a buscar varias veces, y en la capa gratuita cada vuelta cuesta entre
+ * 20 y 40 s. Tres vueltas ya se pasan.
+ *
+ * Así que antes de pedir otra vuelta se mira el reloj. Si no alcanza, se corta
+ * por las buenas y se devuelve lo que haya con una explicación honesta — mucho
+ * mejor que un error del navegador. Con la capa pagada las respuestas bajan a
+ * segundos y esto no se activa nunca.
+ */
+const PRESUPUESTO_MS = 45_000;
+
+/**
  * DOS MODELOS, NO UNO. En el nivel gratuito cada modelo trae su propia cuota de
  * 20 pedidos por día, y una sola pregunta gasta entre 2 y 4 (uno por cada vuelta
  * de consulta al CRM). Con un modelo solo, el chat se apaga a la quinta o sexta
@@ -42,7 +58,7 @@ const MODELOS = (process.env.GOOGLE_AI_MODELOS ?? "gemini-3.8-flash,gemini-3.6-f
   .split(",")
   .map((m) => m.trim())
   .filter(Boolean);
-const MAX_VUELTAS = 5;
+const MAX_VUELTAS = 3;
 
 /** Si Google dice que no queda cuota. Lo demás es un error de verdad. */
 function esFaltaDeCuota(e: unknown): boolean {
@@ -93,6 +109,9 @@ LO QUE TENÉS QUE SABER DEL NEGOCIO
 - Hay dos orígenes de cotizaciones: las del CRM y las del archivo histórico. Las dos son reales.
 - Anular no es borrar: un documento anulado conserva su número pero no cuenta para las métricas.
 - La meta de venta es US$ 32.000 por semana por comercial; la de gestiones, 35 por día; la de cotizaciones, 50 por semana.
+
+SI LA PREGUNTA ES VAGA, PREGUNTÁ ANTES DE BUSCAR
+«Ver presupuestos», «los clientes» o «cómo vamos» no alcanzan para consultar nada útil: el CRM tiene miles de documentos y no sabés cuál quiere. En ese caso NO llames ninguna herramienta. Contestá en una línea pidiendo lo que falta: de qué comercial, de qué semana, o el número del documento. Es más rápido y más útil que traer una lista de mil filas. Buscá solo cuando la pregunta ya trae con qué acotar.
 
 CUÁNDO ADVERTIR EN VEZ DE SOLO RESPONDER
 Si una herramienta te devuelve un campo «aviso», repetilo: son casos donde el número es cierto pero se lee mal. Por ejemplo, alguien que vendió US$ 14.981 contra una proyección de US$ 1.772 aparece «a favor», y en realidad quedó lejos de su meta de US$ 32.000 — lo que pasa es que no puso fechas de cierre.
@@ -208,6 +227,19 @@ export async function POST(request: Request) {
     for (let vuelta = 0; vuelta < MAX_VUELTAS; vuelta++) {
       const llamadas = (interaccion.steps ?? []).filter((s) => s.type === "function_call");
       if (llamadas.length === 0) break;
+
+      if (Date.now() - reloj.inicio > PRESUPUESTO_MS) {
+        console.warn(`asistente: sin tiempo tras ${evidencias.length} consulta(s), se corta`);
+        return NextResponse.json({
+          respuesta:
+            evidencias.length > 0
+              ? `La consulta se está demorando más de lo normal y la corté para no dejarlo esperando. Alcancé a consultar: ${evidencias.map((e) => e.resumen).join("; ")}. Puede ver el detalle abajo, o preguntarme algo más concreto —un comercial, una semana o un número de documento— que sale al toque.`
+              : "La consulta se está demorando más de lo normal. Pregúnteme algo más concreto: un comercial, una semana o un número de documento.",
+          evidencias,
+          interaccion: interaccion.id,
+          modelo: modeloUsado,
+        });
+      }
 
       const resultados = [];
       for (const ll of llamadas) {
