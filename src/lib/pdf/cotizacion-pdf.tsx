@@ -655,18 +655,26 @@ export function CotizacionPdf({
               <Text style={[estilos.td, estilos.cItem]}>{ROMANOS[i] ?? i + 1}</Text>
               <Text style={[estilos.td, estilos.cDesc]}>
                 {item.nombre.toUpperCase()}
-                {"\n"}
-                <Text style={{ color: GRIS, fontSize: 8.5 }}>
-                  MARCA: {item.marca.toUpperCase()} · MODELO: {item.modelo.toUpperCase()}
-                  {item.capacidad ? ` · ${item.capacidad}` : ""}
+                {/* Una línea escrita a mano —un mantenimiento, un flete— no
+                    tiene marca ni modelo: sin esto salía «MARCA: — · MODELO: —»
+                    debajo de «MANTENIMIENTO PREVENTIVO», que en un documento
+                    que va al cliente se lee como un dato que faltó cargar. */}
+                {item.marca === "—" && item.modelo === "—" ? null : (
+                  <>
+                    {"\n"}
+                    <Text style={{ color: GRIS, fontSize: 8.5 }}>
+                      MARCA: {item.marca.toUpperCase()} · MODELO: {item.modelo.toUpperCase()}
+                      {item.capacidad ? ` · ${item.capacidad}` : ""}
                   {/* El color elegido va también en la tabla de precios: es la
                       página que el cliente lee, y dos coches del mismo modelo
                       en colores distintos se distinguen solo por acá. */}
                   {/* En LG la misma máquina se vende apilable y no apilable:
                       sin esto, el cliente no sabe cuál le están cotizando. */}
-                  {item.montaje ? ` · ${item.montaje.toUpperCase()}` : ""}
-                  {item.color ? ` · COLOR: ${item.color.toUpperCase()}` : ""}
-                </Text>
+                      {item.montaje ? ` · ${item.montaje.toUpperCase()}` : ""}
+                      {item.color ? ` · COLOR: ${item.color.toUpperCase()}` : ""}
+                    </Text>
+                  </>
+                )}
               </Text>
               <Text style={[estilos.td, estilos.cCant]}>{item.cantidad}</Text>
               <Text style={[estilos.td, estilos.cPrecio]}>{formatoMonto(item.precio_unitario)}</Text>

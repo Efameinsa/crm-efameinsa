@@ -431,6 +431,41 @@ export function PantallaCotizador({
   }
 
   /**
+   * Una línea escrita a mano: mantenimiento, repuesto, flete, mano de obra.
+   *
+   * POR QUÉ HACÍA FALTA. El cotizador solo sabía sumar equipos del catálogo, y
+   * el catálogo son 149 máquinas: ni un repuesto, ni un servicio. Por eso
+   * postventa y Ariana cotizan mantenimientos en Word, con su propio
+   * correlativo a mano (iban por el 2202) — una serie paralela que después nadie
+   * puede cuadrar con el CRM. La base y la función `crear_cotizacion` ya
+   * aceptaban ítems sin producto desde su primera versión (el check
+   * `item_identificable`: producto O descripción); lo único que faltaba era
+   * poder escribirlos acá.
+   *
+   * NO crea un producto en el catálogo. El catálogo lo carga el administrador
+   * (decisión del 24-08) y esto no lo toca: es una línea de esta cotización.
+   */
+  function agregarLineaLibre() {
+    setCarrito((c) => [
+      ...c,
+      {
+        producto_id: null,
+        descripcion: "",
+        nombre: "",
+        cantidad: 1,
+        precio_unitario: 0,
+        // Sin producto no hay precio de referencia contra el cual contrastar:
+        // una línea escrita a mano no dispara la aprobación de gerencia, que
+        // existe para los descuentos sobre el precio de lista (Carlos, 25-08).
+        precioPiso: null,
+        sinFicha: false,
+        fueraDeCatalogo: true,
+        color: null,
+      },
+    ]);
+  }
+
+  /**
    * Clic en una miniatura de color del buscador. Si el equipo ya está en la
    * cotización le cambia el color —sin sumar otra unidad, que es lo que hace el
    * clic en la fila—; si no está, lo agrega ya con ese color.
@@ -474,6 +509,10 @@ export function PantallaCotizador({
   const hayBajoLista = carrito.some((i) => i.precioPiso !== null && i.precio_unitario < i.precioPiso);
   // Un equipo sin NINGÚN precio cargado no se puede contrastar contra nada.
   const haySinPrecio = carrito.some((i) => i.producto_id !== null && i.precioPiso === null);
+  // Una línea escrita a mano sin concepto saldría en el PDF como un renglón
+  // con precio y sin nada que lo explique. La base tampoco la aceptaría (el
+  // check item_identificable), así que se avisa acá antes de intentarlo.
+  const hayLineaLibreVacia = carrito.some((i) => i.producto_id === null && i.nombre.trim() === "");
   // Un descuento que gerencia ya firmó no se vuelve a pedir.
   const yaAprobada = estadoAprobacion === "aprobada_gerencia";
   const iraAGerencia = (hayBajoLista || haySinPrecio) && !yaAprobada;
@@ -681,6 +720,17 @@ export function PantallaCotizador({
             abrirAlEntrar={abrirBuscadorAlEntrar}
           />
 
+          {/* LO QUE NO ESTÁ EN EL CATÁLOGO. Un mantenimiento, un repuesto, un
+              flete. Va acá abajo y en gris: el camino normal es el buscador de
+              equipos, y esto es para lo que el catálogo todavía no tiene. */}
+          <button
+            type="button"
+            onClick={agregarLineaLibre}
+            className="cursor-pointer text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          >
+            + Agregar una línea escrita a mano (mantenimiento, repuesto, servicio)
+          </button>
+
           {carrito.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
               <p className="text-sm font-medium text-foreground">Todavía no hay equipos en esta cotización.</p>
@@ -716,10 +766,28 @@ export function PantallaCotizador({
                       />
 
                       <div className="min-w-[12rem] flex-1">
-                        <p className="text-sm font-medium text-foreground">
-                          {producto?.sku && <span className="font-mono text-xs font-bold text-primary">{producto.sku} · </span>}
-                          {item.nombre}
-                        </p>
+                        {/* La línea escrita a mano se edita acá mismo: es todo
+                            lo que el cliente va a leer de ese renglón. */}
+                        {item.producto_id === null ? (
+                          <>
+                            <Label className="text-[11px] text-muted-foreground">Concepto</Label>
+                            <Input
+                              autoFocus={item.nombre === ""}
+                              value={item.nombre}
+                              onChange={(e) => actualizarItem(i, { nombre: e.target.value, descripcion: e.target.value })}
+                              placeholder="«Mantenimiento preventivo de lavadora 17 kg», «Resistencia 3 kW»"
+                              className="mt-0.5 text-sm"
+                            />
+                            <p className="mt-1 text-[11px] text-muted-foreground">
+                              Escrito a mano: no está en el catálogo, así que no lleva ficha técnica ni foto en el PDF.
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm font-medium text-foreground">
+                            {producto?.sku && <span className="font-mono text-xs font-bold text-primary">{producto.sku} · </span>}
+                            {item.nombre}
+                          </p>
+                        )}
                         {producto?.capacidad && (
                           <p className="text-xs text-muted-foreground">{producto.capacidad}</p>
                         )}
@@ -1128,7 +1196,18 @@ export function PantallaCotizador({
               </p>
             )}
 
-            <Button className="w-full" onClick={accionPrincipal} disabled={ocupado || carrito.length === 0}>
+            {hayLineaLibreVacia && (
+              <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800">
+                Hay una línea escrita a mano <b>sin concepto</b>. Escriba qué es o quítela: en el presupuesto
+                saldría un renglón con precio y sin nada que lo explique.
+              </p>
+            )}
+
+            <Button
+              className="w-full"
+              onClick={accionPrincipal}
+              disabled={ocupado || carrito.length === 0 || hayLineaLibreVacia}
+            >
               {ocupado ? "Un momento…" : iraAGerencia ? "Pedir aprobación a gerencia" : "Confirmar cotización"}
             </Button>
             {!iraAGerencia && carrito.length > 0 && (
