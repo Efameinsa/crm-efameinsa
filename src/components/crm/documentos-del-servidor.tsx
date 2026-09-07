@@ -1,5 +1,6 @@
 import { ExternalLink, FolderOpen, Image as ImagenIcono, FileText, Link2, Unlink } from "lucide-react";
 import { MarcaServidor } from "@/components/crm/marca-servidor";
+import { SeccionPlegable } from "@/components/crm/seccion-panel";
 import { createClient } from "@/lib/supabase/server";
 import { enlaceCarpetaFirmado, servidorDeArchivosActivo } from "@/lib/archivos-servidor";
 import { vincularCarpetaServidor } from "@/lib/acciones/cuentas";
@@ -8,15 +9,22 @@ import { vincularCarpetaServidor } from "@/lib/acciones/cuentas";
  * «Documentos del servidor»: los informes y las fotos de este cliente, tal
  * como viven en el servidor de la oficina — a un clic desde la ficha.
  *
- * Plan 24, fase 1. El CRM es https y el servicio del servidor es http: el
- * navegador no deja LEER datos entre los dos, pero sí NAVEGAR — por eso todo
- * se abre en pestaña nueva (la carpeta-página del servicio, con la marca y su
- * buscador). Nada se incrusta hasta que Sistemas ponga el certificado.
+ * Plan 24, fase 1. Todo se abre en pestaña nueva: la carpeta-página del
+ * servicio, con la marca y su buscador.
  *
  * Si el cliente todavía no está vinculado con su carpeta, se sugieren las
  * más parecidas del índice (0135) — comparando también contra el nombre
  * comercial: la lección COINREFRI es que la carpeta puede llamarse como el
  * nombre de fantasía, no como la razón social.
+ *
+ * DÓNDE SE VE (Santos, 07-09): en TODAS las pantallas donde el comercial
+ * trabaja al cliente, no solo en «Mi cartera». Las fotos y los informes son
+ * del CLIENTE, no de una oportunidad: quien está por llamar mira la foto de
+ * la instalación antes de marcar, y desde «Mi día» se entra a la oportunidad,
+ * no a la ficha. Es la misma lección del C5 del plan 11 —«si voy a ver ficha
+ * completa, ni siquiera está completa, porque son menos cosas»—, que se
+ * resolvió montando la sección en las dos pantallas en vez de copiarla: acá
+ * `plegable` elige el envoltorio y el contenido es uno solo.
  */
 
 const CLASES = [
@@ -52,12 +60,16 @@ export async function DocumentosDelServidor({
   razonSocial,
   nombreComercial,
   carpetas,
+  plegable = false,
 }: {
   cuentaId: string;
   razonSocial: string;
   nombreComercial?: string | null;
   /** `cuentas.carpetas_servidor`, tal cual viene de la ficha. */
   carpetas: Record<string, string> | null;
+  /** `true` en las pantallas que ya hablan de otra cosa (la oportunidad): el
+   *  mismo contenido, plegado y sin encabezado propio. */
+  plegable?: boolean;
 }) {
   // Sin servidor configurado no se anuncia lo que no existe.
   if (!servidorDeArchivosActivo()) return null;
@@ -93,15 +105,8 @@ export async function DocumentosDelServidor({
     }
   }
 
-  return (
-    <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
-          Documentos del servidor <MarcaServidor />
-        </h2>
-        <span className="text-[11px] text-muted-foreground">archivo de la empresa</span>
-      </div>
-
+  const cuerpo = (
+    <>
       <div className="space-y-2">
         {CLASES.map(({ clave, etiqueta, icono: Icono }) => {
           const ruta = vinculadas[clave];
@@ -189,6 +194,26 @@ export async function DocumentosDelServidor({
         Se abren en una pestaña nueva con un enlace que vence a los cinco minutos. Funcionan desde la oficina y
         desde fuera, siempre con la sesión del CRM.
       </p>
+    </>
+  );
+
+  if (plegable) {
+    return (
+      <SeccionPlegable titulo="Documentos del servidor" cantidad={Object.keys(vinculadas).length || undefined}>
+        {cuerpo}
+      </SeccionPlegable>
+    );
+  }
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
+          Documentos del servidor <MarcaServidor />
+        </h2>
+        <span className="text-[11px] text-muted-foreground">archivo de la empresa</span>
+      </div>
+      {cuerpo}
     </section>
   );
 }

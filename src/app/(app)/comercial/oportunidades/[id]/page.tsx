@@ -14,6 +14,7 @@ import { EquiposDelCliente } from "@/components/crm/equipos-del-cliente";
 import { PuntoInteres } from "@/components/crm/punto-interes";
 import { SeccionPanel, SeccionPlegable } from "@/components/crm/seccion-panel";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
+import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor";
 import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
@@ -69,7 +70,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -106,11 +107,13 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
   const cuenta = oportunidad.cuentas as unknown as {
     id: string;
     razon_social: string;
+    nombre_comercial: string | null;
     tipo_doc: TipoDocumento;
     num_doc: string | null;
     direccion: string | null;
     rubro_id: number | null;
     cuenta_padre_id: string | null;
+    carpetas_servidor: Record<string, string> | null;
     contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
   } | null;
 
@@ -438,6 +441,19 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
               página: el informe para Central se crea desde este mismo sitio. */}
           {cuenta?.id && (
             <>
+              {/* Las fotos y los informes son del CLIENTE, no de esta
+                  oportunidad. Desde «Mi día» se entra acá, no a la ficha, así
+                  que sin esto el comercial tenía que cambiar de pantalla para
+                  ver la foto de la instalación antes de llamar (Santos,
+                  07-09). Mismo contenido que en «Mi cartera», plegado. */}
+              <DocumentosDelServidor
+                cuentaId={cuenta.id}
+                razonSocial={cuenta.razon_social}
+                nombreComercial={cuenta.nombre_comercial}
+                carpetas={cuenta.carpetas_servidor}
+                plegable
+              />
+
               <SeccionPlegable
                 titulo="Informes de cierre"
                 cantidad={(informes ?? []).length}
