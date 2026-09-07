@@ -40,7 +40,7 @@ export const dynamic = "force-dynamic";
  */
 
 const ETIQUETA_TIPO_CASO: Record<string, string> = {
-  garantia: "Garantía",
+  garantia: "Soporte técnico",
   repuesto: "Repuesto",
   mantenimiento: "Mantenimiento",
 };

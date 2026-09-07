@@ -1,11 +1,12 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CircleCheckBig, Copy, FileDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { duplicarCotizacion, eliminarCotizacion, registrarVenta } from "@/lib/acciones/cotizaciones";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { fechaHoraLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { CorregirCotizacionBoton } from "@/components/crm/corregir-cotizacion-boton";
@@ -62,6 +63,11 @@ export function ListaCotizaciones({
 }) {
   const router = useRouter();
   const [ocupado, startTransition] = useTransition();
+  // El código de supervisor que pide el servidor cuando quien borra es
+  // postventa (reunión 07-09, punto 2.5). Guarda de qué cotización se trata:
+  // el cuadro se abre en esa fila y no en todas.
+  const [pidePin, setPidePin] = useState<string | null>(null);
+  const [codigo, setCodigo] = useState("");
   const rutaCotizar = `/comercial/oportunidades/${oportunidadId}/cotizar`;
 
   function onRegistrarVenta(id: string) {
@@ -79,6 +85,26 @@ export function ListaCotizaciones({
     });
   }
 
+  // El servidor decide quién necesita código; acá no se adivina el rol.
+  function borrar(c: CotizacionResumen, pin?: string) {
+    startTransition(async () => {
+      const r = await eliminarCotizacion(c.id, pin);
+      if (r.pidePin) {
+        setPidePin(c.id);
+        setCodigo("");
+        if (pin) toast.error(r.error ?? "Ese código no sirve");
+        return;
+      }
+      if (r.error) toast.error(r.error);
+      else {
+        setPidePin(null);
+        setCodigo("");
+        toast.success("Borrador eliminado");
+        router.refresh();
+      }
+    });
+  }
+
   function onBorrar(c: CotizacionResumen) {
     // La base tampoco lo permite (migración 0065), pero conviene no ofrecer un
     // botón que va a fallar.
@@ -90,14 +116,7 @@ export function ListaCotizaciones({
     ) {
       return;
     }
-    startTransition(async () => {
-      const r = await eliminarCotizacion(c.id);
-      if (r.error) toast.error(r.error);
-      else {
-        toast.success("Borrador eliminado");
-        router.refresh();
-      }
-    });
+    borrar(c);
   }
 
   function onDuplicar(id: string) {
@@ -113,8 +132,39 @@ export function ListaCotizaciones({
     });
   }
 
+  const enPin = pidePin ? cotizaciones.find((c) => c.id === pidePin) : null;
+
   return (
     <div className="space-y-3">
+      {/* El código rotativo de gerencia, cuando el servidor lo pide (07-09,
+          punto 2.5). Se anuncia el largo ANTES de escribir, no al fallar. */}
+      {enPin && (
+        <div className="rounded-lg border border-[var(--efameinsa-granate)]/40 bg-[var(--efameinsa-granate)]/5 p-3">
+          <p className="text-sm font-semibold text-foreground">
+            Para borrar este borrador hace falta el código de un supervisor
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Son 4 dígitos y los da gerencia. Se borra el borrador del {fechaHoraLima(enPin.created_at)}.
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <CampoCodigo valor={codigo} onChange={setCodigo} autoFocus />
+            <Button size="sm" disabled={codigo.length < 4 || ocupado} onClick={() => borrar(enPin, codigo)}>
+              Borrar
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={ocupado}
+              onClick={() => {
+                setPidePin(null);
+                setCodigo("");
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
       <Button
         size="lg"
         className="w-full"

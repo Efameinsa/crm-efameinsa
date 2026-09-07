@@ -20,7 +20,7 @@ import type { Perfil } from "@/types/database";
  */
 
 const ETIQUETA_TIPO: Record<string, string> = {
-  garantia: "Garantía",
+  garantia: "Soporte técnico",
   repuesto: "Repuesto",
   mantenimiento: "Mantenimiento",
 };

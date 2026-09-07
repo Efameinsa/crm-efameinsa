@@ -51,7 +51,7 @@ const ETIQUETA_CANAL: Record<string, string> = {
 
 /** Las tres clases de caso que atiende postventa (migración 0080). */
 const ETIQUETA_TIPO_PV: Record<string, string> = {
-  garantia: "Garantía",
+  garantia: "Soporte técnico",
   repuesto: "Repuestos",
   mantenimiento: "Mantenimiento preventivo",
 };

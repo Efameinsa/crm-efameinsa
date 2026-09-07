@@ -487,8 +487,29 @@ export async function resolverAprobacionCotizacion(datos: {
  * Acá se repite para poder dar un mensaje que se entienda en vez de un error
  * de permisos.
  */
-export async function eliminarCotizacion(cotizacionId: string): Promise<{ error: string | null }> {
+export async function eliminarCotizacion(
+  cotizacionId: string,
+  pin?: string,
+): Promise<{ error: string | null; pidePin?: boolean }> {
   const supabase = await createClient();
+
+  // POSTVENTA NO BORRA SOLA (reunión 07-09, punto 2.5). Se probó en vivo que
+  // borrar una cotización no pedía nada, y en esa área el borrador es a veces
+  // el único rastro de lo que se le ofreció al cliente. Mismo mecanismo que
+  // usa Central para corregir una derivación: el código rotativo de gerencia.
+  const { data: usuario } = await supabase.auth.getUser();
+  const { data: quien } = await supabase
+    .from("perfiles")
+    .select("es_postventa")
+    .eq("id", usuario.user?.id ?? "")
+    .maybeSingle();
+
+  if (quien?.es_postventa) {
+    if (!pin) return { error: "Para borrar hace falta el código de un supervisor", pidePin: true };
+    const { data: valido, error: errorPin } = await supabase.rpc("validar_pin_supervisor", { p_pin: pin });
+    if (errorPin) return { error: limpiarError(errorPin.message) };
+    if (!valido) return { error: "Ese código no es válido o ya venció", pidePin: true };
+  }
 
   const { data: cot } = await supabase
     .from("cotizaciones")

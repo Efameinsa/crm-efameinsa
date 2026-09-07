@@ -53,7 +53,7 @@ export const ETIQUETA_EVENTO: Record<string, string> = {
   despacho: "Despacho",
   puesta_en_marcha: "Puesta en marcha",
   mantenimiento: "Mantenimiento",
-  garantia: "Garantía",
+  garantia: "Soporte técnico",
   repuesto: "Repuesto",
   caso: "Atención",
   tarea: "Personal",

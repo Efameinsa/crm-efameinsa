@@ -63,7 +63,7 @@ interface Props {
 }
 
 const ETIQUETA_TIPO: Record<string, string> = {
-  garantia: "Garantía",
+  garantia: "Soporte técnico",
   repuesto: "Repuestos",
   mantenimiento: "Mantenimiento preventivo",
 };
@@ -388,7 +388,7 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
                 <SelectValue placeholder="Seleccione…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="garantia">Garantía — el equipo no está operativo</SelectItem>
+                <SelectItem value="garantia">Soporte técnico — el equipo no está operativo</SelectItem>
                 <SelectItem value="repuesto">Repuesto</SelectItem>
                 <SelectItem value="mantenimiento">Mantenimiento preventivo</SelectItem>
               </SelectContent>

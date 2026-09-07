@@ -96,6 +96,31 @@ const CONDICIONES_POR_DEFECTO = "";
 // blanco, que es lo que pide el estándar para un dato todavía sin acordar.
 const TIEMPO_ENTREGA_POR_DEFECTO = "Inmediata";
 const FORMA_PAGO_POR_DEFECTO = "30 % con la O/C";
+
+/**
+ * LAS CONDICIONES DE PAGO, YA NO A MANO (reunión 07-09, punto 2.2).
+ *
+ * El pedido decía «las mismas ~8 opciones que ya existen en Ventas/Cierres».
+ * No existen: el enum de los informes de cierre tiene dos valores
+ * (transferencia y depósito) y además es OTRA cosa — cómo llegó la plata, no
+ * las condiciones. Así que la lista se armó con lo que de verdad se escribió
+ * en las cotizaciones hasta hoy: «50 % con la O/C» (42 veces), «30 % con la
+ * O/C» (27), crédito a 15 y a 30 días, contado y adelanto.
+ *
+ * Queda «Otra…» a propósito. Cerrar la lista del todo obligaría al comercial
+ * a elegir algo que no es lo pactado con tal de avanzar, y eso imprime una
+ * condición falsa en el PDF que firma el cliente.
+ */
+const FORMAS_PAGO = [
+  "30 % con la O/C",
+  "50 % con la O/C",
+  "50 % adelanto, 50 % contra entrega",
+  "100 % contra entrega",
+  "Contado",
+  "Crédito 15 días",
+  "Crédito 30 días",
+];
+const OTRA_FORMA_PAGO = "__otra__";
 const SALDO_POR_DEFECTO = "70 % antes del despacho";
 
 /** El sello de la barra superior: qué sabe la base de lo que hay en pantalla. */
@@ -1198,7 +1223,30 @@ export function PantallaCotizador({
                     <Label htmlFor="forma-pago" className="text-xs font-normal text-muted-foreground">
                       Forma de pago
                     </Label>
-                    <Input id="forma-pago" value={formaPago} onChange={(e) => setFormaPago(e.target.value)} />
+                    <select
+                      id="forma-pago"
+                      value={FORMAS_PAGO.includes(formaPago) ? formaPago : OTRA_FORMA_PAGO}
+                      onChange={(e) =>
+                        setFormaPago(e.target.value === OTRA_FORMA_PAGO ? "" : e.target.value)
+                      }
+                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                    >
+                      {FORMAS_PAGO.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                      <option value={OTRA_FORMA_PAGO}>Otra…</option>
+                    </select>
+                    {!FORMAS_PAGO.includes(formaPago) && (
+                      <Input
+                        aria-label="Escriba la forma de pago"
+                        placeholder="Escríbala tal como va a salir impresa"
+                        value={formaPago}
+                        onChange={(e) => setFormaPago(e.target.value)}
+                        className="mt-1"
+                      />
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="saldo" className="text-xs font-normal text-muted-foreground">
