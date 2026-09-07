@@ -29,7 +29,7 @@
 // Subir la versión INVALIDA el caché entero en la próxima activación. Se sube
 // solo si cambia lo que se cachea, no en cada despliegue: los estáticos de Next
 // ya vienen con hash.
-const VERSION = "crm-efameinsa-v2";
+const VERSION = "crm-efameinsa-v3";
 const CACHE_ESTATICOS = `estaticos-${VERSION}`;
 
 // Lo poco que conviene tener listo desde el primer arranque: el ícono y la
@@ -72,6 +72,12 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/** Desarrollo en la máquina de uno: los chunks no llevan hash de contenido. */
+function esLocal() {
+  const h = self.location.hostname;
+  return h === "localhost" || h === "127.0.0.1" || h === "[::1]";
+}
+
 /**
  * ¿Este pedido es un estático inmutable de la propia aplicación?
  *
@@ -82,6 +88,16 @@ self.addEventListener("activate", (event) => {
 function esEstaticoDeLaAplicacion(url) {
   if (url.origin !== self.location.origin) return false;
   if (url.pathname.startsWith("/api/")) return false;
+  // EN LOCAL NO SE CACHEA NADA DE /_next/static/. La regla de más arriba
+  // —«hash en el nombre, no envejecen»— vale en producción, donde el hash sale
+  // del CONTENIDO. En desarrollo Turbopack nombra el chunk por la ruta del
+  // módulo (src_components_crm_nav-lateral_tsx_xxx.js) y ese nombre NO cambia
+  // al editar el archivo. El 07-09 eso sirvió el menú viejo, guardado antes de
+  // agregar «Asistente», contra un HTML nuevo: React reventó la hidratación
+  // («server rendered HTML didn't match») y detrás vino un
+  // «Cannot read properties of null». Media hora de buscar un error que no
+  // estaba en el código. En local, todo a la red.
+  if (esLocal()) return false;
   if (url.pathname.startsWith("/_next/static/")) return true;
   if (url.pathname.startsWith("/iconos/")) return true;
   return /^\/(logo-efameinsa|logo-efameinsa-listo|efameinsa-blanco)\.png$/.test(url.pathname);
