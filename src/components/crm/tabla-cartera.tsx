@@ -25,12 +25,21 @@ export interface FilaCartera {
       abierta, la fila ofrece «Retomar» ahí mismo: Santos encontró a Becerra
       Rojas por Mi cartera y el botón solo estaba en la ficha (02-09). */
   historicaId?: string | null;
+  /** De qué comercial es el cliente. Solo se dibuja para postventa. */
+  duenoCodigo?: string | null;
 }
 
 // Misma corrección que tabla-clientes.tsx / historial-cuenta.tsx (B9.3): la
 // fila entera es el objetivo de clic, sin botón "Ver" que perseguir ni
 // columna "Cliente" tan ancha que empuje la tabla a scroll horizontal.
-export function TablaCartera({ filas }: { filas: FilaCartera[] }) {
+/**
+ * `mostrarDueno` es para postventa. Su lista dejó de ser «los clientes que me
+ * pertenecen» y pasó a ser «los que atiendo» (migración 0183): de los 480, más
+ * de 400 están en la cartera de otro comercial. Sin decirlo en la fila, alguien
+ * puede creer que le traspasaron la cartera — y eso ya causó un problema real
+ * cuando Ariana apareció con ventas que no eran suyas.
+ */
+export function TablaCartera({ filas, mostrarDueno = false }: { filas: FilaCartera[]; mostrarDueno?: boolean }) {
   const router = useRouter();
 
   return (
@@ -41,6 +50,7 @@ export function TablaCartera({ filas }: { filas: FilaCartera[] }) {
             <TableHead>Cliente</TableHead>
             <TableHead>Documento</TableHead>
             <TableHead>Zona</TableHead>
+            {mostrarDueno && <TableHead>Comercial</TableHead>}
             <TableHead className="text-right">Compras</TableHead>
             <TableHead className="text-right">Abiertas</TableHead>
             <TableHead>Última venta</TableHead>
@@ -70,6 +80,9 @@ export function TablaCartera({ filas }: { filas: FilaCartera[] }) {
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">{c.documento}</TableCell>
               <TableCell className="text-muted-foreground">{c.distrito ?? "—"}</TableCell>
+              {mostrarDueno && (
+                <TableCell className="whitespace-nowrap text-muted-foreground">{c.duenoCodigo ?? "—"}</TableCell>
+              )}
               <TableCell className="text-right tabular-nums">
                 {c.compras > 0 ? (
                   <>

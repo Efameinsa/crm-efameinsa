@@ -50,6 +50,11 @@ export default async function CarteraPage({
   // Rubro (Carlos, 01-09: «hoy me voy a centrar en mineras»): lo filtra
   // listar_clientes() desde la 0152, con la misma búsqueda y los mismos órdenes.
   const rubro = leerFiltroRubro(sp.rubro);
+  // Para postventa esta lista ya no es «lo mío» sino «lo que atiendo»
+  // (migración 0183): 480 clientes, de los cuales más de 400 están en la
+  // cartera de otro comercial. Se dice en el título y se muestra de quién es
+  // cada uno, porque lo contrario se lee como un traspaso de cartera.
+  const atiendeSinPoseer = Boolean(perfil.es_postventa);
 
   const supabase = await createClient();
   const [{ opciones: opcionesRubro, sinRubro }, { total, filas }] = await Promise.all([
@@ -95,7 +100,7 @@ export default async function CarteraPage({
       </form>
 
       <SeccionPanel
-        titulo={q ? `Resultados para “${q}”` : "Mi cartera"}
+        titulo={q ? `Resultados para “${q}”` : atiendeSinPoseer ? "Clientes que atiendo" : "Mi cartera"}
         accion={
           <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
             {total.toLocaleString("es-PE")} cliente{total === 1 ? "" : "s"}
@@ -108,7 +113,9 @@ export default async function CarteraPage({
               ? "Todos sus clientes ya tienen rubro."
               : q || rubro !== null
                 ? "Sin resultados para esa búsqueda."
-                : "Todavía no tiene clientes en su cartera."}
+                : atiendeSinPoseer
+                  ? "Todavía no hay clientes con trabajo de postventa."
+                  : "Todavía no tiene clientes en su cartera."}
           </p>
         ) : (
           <div className="space-y-3">
@@ -124,7 +131,9 @@ export default async function CarteraPage({
                 ultimaVentaAt: c.ultima_venta_at,
                 conServidor: c.con_servidor,
                 historicaId: c.historica_id,
+                duenoCodigo: c.codigo_comercial,
               }))}
+              mostrarDueno={atiendeSinPoseer}
             />
             <Paginacion pagina={pagina} totalPaginas={totalPaginas} total={total} desde={desde} hasta={hasta} />
           </div>
