@@ -1538,3 +1538,131 @@ atención.
 `historico` tiene que quedar en NULL. El botón «Retomar» de la cartera (0155)
 busca exactamente las archivadas SIN fecha de cierre; ponérsela las deja
 archivadas para siempre. Pasó al archivar estas tres a mano y se corrigió.
+
+---
+
+# CIERRE DEL 08-09-2026
+
+**Producción en `ea39e6f`.** Todo lo del día está desplegado y verificado; no
+queda nada por subir. La rama local está a la par del remoto.
+
+## Lo que se desplegó hoy
+
+| | |
+|---|---|
+| Navegación de postventa | de 9 destinos a 7; ninguna pantalla se borró, se fusionaron las puertas |
+| Cotizador | se cotiza desde el caso, una sola caja para agregar, Enter también en el precio |
+| Cotizaciones | una sola cifra (con IGV) en todas las pantallas, y el reloj de la vigencia |
+| Cierre semanal | postventa deja de medirse en dólares: los cuatro números del área |
+| Caso técnico | foto de la placa (0192), técnico de la lista, «con quién hablar» con teléfono |
+| Preventivos por vender | de 11,5 s a 2 s — no tardaba, **fallaba** (0194) |
+| Central | quién REGISTRÓ cada contacto + filtro por persona, canal y «sin evidencia» |
+| Central | el canal se elige (ya no viene «WhatsApp» puesto) y se corrige con código (0195, 0196) |
+| Oportunidad | «Venta ejecutada» y dos salidas que no cuentan como pérdida |
+
+Migraciones **0188–0196** aplicadas. El CRM usa **una sola base**, así que las
+migraciones ya estaban vivas antes de desplegar el código.
+
+## Tres cosas que rompí y arreglé el mismo día
+
+1. **Seis despliegues en 88 minutos** rompieron la pantalla de Katerine — es
+   el mismo incidente del 31-08 y la razón de la regla de las ventanas. Se
+   arregló reconociendo también la ACCIÓN vieja, no solo el archivo.
+2. **Exporté un arreglo desde un archivo «use server»** y eso rompió TODAS las
+   acciones del servidor; se notó al cerrar sesión. Hay un guardián nuevo que
+   lo detecta (`use-server-solo-acciones.test.ts`).
+3. **Le puse `cerrada_at` a tres oportunidades archivadas**, lo que las dejaba
+   sin el botón «Retomar». Corregido.
+
+## Vercel: la cuota
+
+**Fluid Active CPU 4h 09m de 4h — pasado.** Todo lo demás holgado. El equipo
+se creó el 14-08, así que el contador **vuelve a cero alrededor del 14-09**.
+
+Investigado en el foro oficial: **pausan de verdad**, la pausa **no se levanta
+sola** al reiniciar el ciclo (hay que pedirlo a soporte) y **con el proyecto
+pausado tampoco se puede desplegar** — o sea que no se puede arreglar
+desplegando la optimización.
+
+Verificado: `crm.efameinsa.com` es el único de los tres proyectos que consume;
+la web pública la sirve el hosting de la agencia (Plesk) y la de Vercel es
+estática. Y el equipo tiene **un solo miembro**, así que Pro serían 20 dólares
+en total por los tres proyectos.
+
+**Decisión pendiente de Santos.** Sin pagar, la palanca grande es apagar la
+precarga de las filas de listas: «Mis cotizaciones» tiene 87 enlaces y cada uno
+que entra en pantalla es una llamada al servidor. Ahí están las 485 mil
+invocaciones del mes.
+
+**Plan B probado:** el CRM corre en la PC (`next start`, 25 comprobaciones en
+verde, accesible desde la red de la oficina). Los datos están en Supabase, no
+en Vercel. El túnel de Cloudflare ya funciona, pero `crm2.efameinsa.com`
+exigiría mover los DNS de efameinsa.com a Cloudflare —siguen en la agencia—;
+`crm.activasme.site` funcionaría hoy sin pedirle permiso a nadie.
+
+## Lo que quedó abierto
+
+1. **El reclamo de NESSUS** (`/postventa/atenciones/81039c6e`) — cliente de
+   ~US$ 70 mil que amenaza con dejar de trabajar con nosotros por una garantía
+   no activada. Se abrió el caso hoy con la fecha real del 03-09; **nadie lo ha
+   tomado todavía**.
+2. **Los 24 grupos de expedientes duplicados**, con las decisiones de abajo.
+3. **Que el borrador mueva la oportunidad a «Cotizada»** — lo único del informe
+   de UX que espera decisión.
+4. **El formulario web entrega solo nombre y teléfono, sin RUC.** Es lo que
+   produjo la ficha «MARYORY» que resultó ser CARRASCO MEDICAL IMPORT. El CRM
+   debería avisar si el teléfono o el correo ya existen en otra ficha ANTES de
+   crear una nueva: el mecanismo existe para la bandeja de Central, falta
+   llevarlo al momento de crear la ficha.
+
+## Los expedientes duplicados: lo que hay que decidir
+
+De 376 clientes con expediente abierto, **37 tienen más de uno**. Al mirarlos:
+12 son de áreas distintas (legítimo), 7 son trabajos distintos de la misma
+persona (legítimo) y **18 son duplicados**. Agrupados por cliente + persona +
+tipo salen **24 grupos**, y **14 de ellos son de postventa**.
+
+**Y eso último no es un fallo de la 0141: es un vacío de la regla.** La regla
+dice «distinta área (postventa) → expediente aparte, SIEMPRE», pensada para
+separar postventa de comercial — pero no contempla que postventa reciba dos
+garantías del mismo cliente en una semana.
+
+| Grupo | Qué son | Recomendación |
+|---|---|---|
+| **A — 13 gemelos vacíos** | cero gestiones y cero cotizaciones | archivar, sin riesgo; es lo que ya manda la 0141 |
+| **B — 9 grupos con trabajo en ambos** | ej. Zafranal 12 vs 2 gestiones | dejar vivo el de más gestiones; San Agustín Paracas tiene CUATRO garantías y merece mirada de postventa |
+| **C — 4 con cotización de por medio** | Caballero Ferioli, Barazorda, Egoavil, Mi Casita Facilita | NO tocar sin que lo confirmen Katerine y Ariana: la cotización cuelga del expediente |
+
+La lista completa se saca con `scripts/_listar-duplicados-abiertos.mjs`, que
+solo lee.
+
+**La pregunta para Carlos:** cuando postventa recibe dos derivaciones del mismo
+cliente y del mismo tipo, ¿se acumulan como en comercial o cada una es un caso
+propio?
+
+## Y la idea que quedó planteada (sin implementar)
+
+Santos propuso que en «Mi día» cada fila diga de qué caso se trata, para no
+confundir tres expedientes del mismo cliente. Conversado:
+
+- **La etiqueta**: `Cliente · Tipo · PRO-xxxxx` y **de quién es**. Se descartó
+  numerar por cliente («Caso 5») porque obliga a inventar una numeración nueva.
+  Los 287 expedientes comerciales **no tienen tipo**: hay que decidir qué se
+  muestra ahí.
+- **Mejor todavía**: que al abrir un expediente se vean los hermanos —«este
+  cliente tiene además: Repuesto (Post Venta)»—. Resuelve la confusión y avisa
+  al comercial que su cliente tiene un reclamo abierto antes de llamarlo a
+  venderle. A postventa hay que mostrárselo **sin montos** (política de precios
+  tapados, plan 16).
+
+## Otros arreglos de datos del día
+
+- **CARRASCO MEDICAL IMPORT**: la ficha «MARYORY» que creó Central desde un
+  formulario web era el mismo cliente (lo confirma el correo
+  VENTAS@CARRASCOMEDICALCOM.COM). Fusionadas; queda **un solo expediente
+  abierto**, con las 12 gestiones de 2025 visibles en la ficha del cliente.
+- **Brenda**: salieron de sus pendientes CORP DE INGENIERÍA (duplicado de una
+  venta ya cobrada el 04-09), ATCA (dos fichas) y NESSUS (pasado a postventa).
+- **Documento para gerencia**: `Downloads/Postventa - las nuevas vistas.docx`,
+  que se regenera con `scripts/_word-postventa-vistas.mjs` y saca los números
+  de la base en el momento.
