@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ETAPAS_MANUALES } from "@/lib/etapas-oportunidad";
 import { createClient } from "@/lib/supabase/server";
 import { marcarLeidasDeOportunidad } from "@/lib/acciones/notificaciones";
 import type { EtapaOportunidad } from "@/types/database";
@@ -152,26 +153,6 @@ export async function calificarOportunidad(datos: {
   revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
   return { error: null };
 }
-
-/**
- * Las etapas que se pueden poner a mano. `cotizada` y `venta` NO están, y esa
- * ausencia es la regla que protege las cifras: una venta tiene que nacer del
- * botón «Registrar venta» —que crea la fila en `ventas`, acepta la cotización
- * y mueve la etapa sola—, nunca de alguien eligiéndola en un desplegable.
- *
- * Desde el 08-09 el desplegable SÍ ofrece «Venta ejecutada», porque el
- * comercial la buscaba ahí y no la encontraba; pero es un cartel que lleva a
- * las cotizaciones, no una opción que se guarde. Este guardián es el que hace
- * que eso no dependa de la pantalla.
- */
-export const ETAPAS_MANUALES: EtapaOportunidad[] = [
-  "asignada",
-  "filtrada",
-  "seguimiento",
-  "potencial",
-  "rechazada",
-  "derivada",
-];
 
 // 'cotizada' y 'venta' no están acá: se alcanzan por el flujo de cotizador/venta
 // (bloque B4), no por cambio manual de etapa.

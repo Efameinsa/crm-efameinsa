@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { ETAPAS_MANUALES } from "@/lib/acciones/oportunidades";
+import { ETAPAS_MANUALES } from "@/lib/etapas-oportunidad";
 import { ETAPAS_DEL_COMBO } from "@/lib/catalogos-ui";
 
 // UNA VENTA NO SE PONE A MANO.
