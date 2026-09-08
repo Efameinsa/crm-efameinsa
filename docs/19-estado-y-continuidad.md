@@ -1497,3 +1497,44 @@ tarjetas del tablero: 73 comprobaciones. Más 393 pruebas de `npm test`.
 migraciones 0188–0194 estaban aplicadas desde que se corrieron, o sea que
 producción venía funcionando con ellas y con el código viejo. Este despliegue
 cierra esa brecha; no hay nada que correr en producción después de desplegar.
+
+---
+
+## 08-09 (tarde) · PENDIENTE DE DESPLIEGUE — ventana de las 6 pm
+
+**Commit `f1493b0`, hecho y probado, SIN empujar.** Producción sigue en
+`758545d`. Santos: «anótalo para las 6 pm, aún no lo despliegues».
+
+**Qué lleva:** dos salidas nuevas en el desplegable de etapa de la oportunidad
+—«Ya no es mío — pasó a otra área» y «Duplicado o ya no corresponde —
+archivar»— para sacar algo de pendientes sin que cuente como pérdida.
+
+**Por qué:** Brenda escribió «no tengo pendiente con este prospecto» como nota
+de gestión en dos oportunidades, y «la venta ya fue cerrada, existe doble
+registro» en una tercera. El desplegable no le daba otra salida que el
+rechazo, y rechazar habría metido una venta ganada (US$ 3.347 del 04-09) y un
+reclamo pasado a postventa dentro del reporte de pérdidas de gerencia.
+
+**Para desplegar:** `git push origin main` y esperar el build. Después, que
+quien tenga el CRM abierto recargue una vez (Ctrl+Shift+R).
+
+### Lo que se corrigió a mano hoy en los datos de Brenda
+
+Tres oportunidades salieron de sus pendientes, cada una por su motivo:
+
+| Cliente | Qué era | Cómo quedó |
+|---|---|---|
+| CORP DE INGENIERIA DE REFRIGERACION | duplicado: la venta se cerró el 04-09 por US$ 3.347,46 en otra ficha | `historico` |
+| ATCA EIRL (dos fichas) | seguimiento sin respuesta; ella escribió «no tengo pendiente» | `historico` |
+| NESSUS HOTEL PERU | reclamo de garantía que ella pasó a Lesly | `derivada` |
+
+⚠️ **Queda abierto:** el reclamo de NESSUS —cliente de ~US$ 70 mil que amenaza
+con dejar de trabajar con nosotros por una garantía no activada, `PRO-09117`
+del 03-09— **no tiene ningún caso técnico abierto en postventa**. Salió de la
+lista de Brenda, así que hoy no está a la vista de nadie. Hay que registrar la
+atención.
+
+**Y una lección que costó cara hoy:** `cerrada_at` en una oportunidad
+`historico` tiene que quedar en NULL. El botón «Retomar» de la cartera (0155)
+busca exactamente las archivadas SIN fecha de cierre; ponérsela las deja
+archivadas para siempre. Pasó al archivar estas tres a mano y se corrigió.
