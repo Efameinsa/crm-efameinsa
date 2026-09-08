@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { esDesfaseDeVersion } from "@/lib/desfase-de-version";
 
 /**
  * La red de seguridad de las pantallas del CRM.
@@ -31,19 +32,6 @@ import { useEffect, useState } from "react";
  */
 
 const MARCA_RECARGA = "crm:recarga-por-version";
-
-/** Los errores que deja un archivo de la versión anterior que ya no está. */
-function esDesfaseDeVersion(e: Error): boolean {
-  const texto = `${e.name} ${e.message}`.toLowerCase();
-  return (
-    texto.includes("chunkloaderror") ||
-    texto.includes("loading chunk") ||
-    texto.includes("loading css chunk") ||
-    texto.includes("failed to fetch dynamically imported module") ||
-    texto.includes("importing a module script failed") ||
-    texto.includes("error loading dynamically imported module")
-  );
-}
 
 /** ¿Ya se recargó por esta causa en esta pestaña? Se pregunta y se marca a la
  *  vez, porque la respuesta decide QUÉ se pinta, no solo qué se hace después. */

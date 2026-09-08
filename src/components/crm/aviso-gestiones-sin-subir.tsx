@@ -18,6 +18,14 @@ import { procesarCola, gestionesPendientes } from "@/lib/outbox-cliente";
 export function AvisoGestionesSinSubir() {
   const [pendientes, setPendientes] = useState(0);
   const [subiendo, setSubiendo] = useState(false);
+  /**
+   * Por qué no puede subir. Hasta el 08-09 la chapa decía «sube sola al volver
+   * la conexión» aunque la conexión estuviera perfecta y el motivo fuera otro
+   * —el CRM se había actualizado y la pestaña seguía con la versión vieja—.
+   * Katerine la vio ahí parada sin saber qué hacer. Si se sabe el motivo, se
+   * dice, con la acción que lo arregla.
+   */
+  const [trabada, setTrabada] = useState<string | null>(null);
 
   const procesar = useCallback(async () => {
     try {
@@ -30,6 +38,7 @@ export function AvisoGestionesSinSubir() {
       const r = await procesarCola((datos) => registrarActividad(datos as Parameters<typeof registrarActividad>[0]));
       for (const etiqueta of r.subidas) toast.success(`Se subió la gestión guardada: ${etiqueta}`);
       for (const x of r.rechazadas) toast.error(`El servidor rechazó «${x.etiqueta}»: ${x.error}`, { duration: 10000 });
+      setTrabada(r.trabadas[0]?.error ?? null);
       setPendientes(r.quedan);
     } catch {
       // IndexedDB bloqueada (modo privado): no hay cola que procesar.
@@ -62,7 +71,8 @@ export function AvisoGestionesSinSubir() {
         <b>
           {pendientes} gestión{pendientes === 1 ? "" : "es"} sin subir
         </b>{" "}
-        — guardada{pendientes === 1 ? "" : "s"} en este equipo mientras no había internet. Sube{pendientes === 1 ? "" : "n"} sola{pendientes === 1 ? "" : "s"} al volver la conexión.
+        — guardada{pendientes === 1 ? "" : "s"} en este equipo. No se pierde{pendientes === 1 ? "" : "n"}.{" "}
+        {trabada ?? `Sube${pendientes === 1 ? "" : "n"} sola${pendientes === 1 ? "" : "s"} al volver la conexión.`}
       </span>
       <button
         type="button"
@@ -72,6 +82,17 @@ export function AvisoGestionesSinSubir() {
       >
         <CloudUpload className="size-3.5" /> {subiendo ? "Subiendo…" : "Reintentar ahora"}
       </button>
+      {/* Cuando el motivo es el desfase de versión, lo único que lo arregla es
+          recargar: el botón está al lado de la explicación, no escondido. */}
+      {trabada?.includes("actualizó") && (
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-2 py-1 text-xs font-semibold text-white hover:brightness-110"
+        >
+          Recargar ahora
+        </button>
+      )}
     </div>
   );
 }

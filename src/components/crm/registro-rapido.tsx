@@ -209,7 +209,28 @@ export function RegistroRapido({
       let r1: { error: string | null };
       try {
         r1 = await registrarActividad(datos);
-      } catch {
+      } catch (err) {
+        // NO TODO LO QUE FALLA ES FALTA DE INTERNET. Si el CRM se acaba de
+        // actualizar, la pantalla vieja llama a una acción que el servidor
+        // nuevo ya no conoce y eso también LANZA — y hasta el 08-09 se leía
+        // como «no hay internet»: la gestión quedaba en la cola de este equipo
+        // y se reintentaba cada treinta segundos contra la misma acción que ya
+        // no existía. Katerine lo vio con seis despliegues en hora y media.
+        //
+        // Acá la gestión SÍ se conserva igual —no se pierde nunca— pero se
+        // dice la verdad y se recarga, que es lo único que lo arregla: con la
+        // versión nueva cargada, la cola sube sola en el primer intento.
+        const { esDesfaseDeVersion } = await import("@/lib/desfase-de-version");
+        if (esDesfaseDeVersion(err) && !esRechazo && !adjuntos.length) {
+          const { encolarGestion } = await import("@/lib/outbox-cliente");
+          await encolarGestion(datos, `${tipo} · ${nota.trim().slice(0, 60) || proximaAccion.trim().slice(0, 60) || "gestión"}`);
+          toast.info("El CRM se actualizó mientras escribía. Su gestión quedó guardada y se sube al recargar.", {
+            duration: 6000,
+          });
+          limpiar();
+          setTimeout(() => window.location.reload(), 1200);
+          return;
+        }
         // La red no está (plan 26): la gestión NO se pierde — se guarda en
         // este equipo y sube sola al volver el internet. Con dos excepciones
         // honestas: el rechazo cierra la oportunidad (mejor con conexión) y
