@@ -5,6 +5,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaLima } from "@/lib/fechas";
 import { BandejaPorCliente } from "@/components/crm/bandeja-por-cliente";
+import { PestanasCasos } from "@/components/crm/pestanas-casos";
 import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
@@ -339,18 +340,26 @@ export default async function PostventaPage() {
 
   return (
     <div className="space-y-4">
-      {/* «Mi agenda» salió del menú del área (plan 23, etapa 2): estos tres
-          botones eran la única razón por la que seguía abierta. */}
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {/* El cliente que llama DIRECTO al técnico, sin pasar por Central
-            (pedido del ing. Carlos, reunión 01-09, plan 27-F): se registra acá
-            una sola vez, cae a la cola de Central, y Central lo deriva a
-            postventa o a donde corresponda. Misma política 0060 que el
-            comercial: puede meterlo a la cola, nunca asignárselo solo. */}
-        <PasarContactoCentral contexto="postventa" />
-        <BotonReporteMensual mes={mesPorDefecto(hoyIso)} compacto />
-        <BotonCierreSemanal semana={lunes} compacto />
-        <BotonReporteDiario fecha={hoyIso} compacto />
+      {/* La misma tira que arriba de «Casos»: desde el 08-09 el área tiene una
+          sola entrada en el menú para el trabajo técnico, y se pasa de lo que
+          hay que tomar a lo abierto, lo cerrado y el histórico sin volver al
+          menú.
+
+          A la derecha, los tres botones por los que «Mi agenda» seguía abierta
+          hasta el plan 23, etapa 2. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <PestanasCasos activa="bandeja" porTomar={bandeja.length} />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* El cliente que llama DIRECTO al técnico, sin pasar por Central
+              (pedido del ing. Carlos, reunión 01-09, plan 27-F): se registra
+              acá una sola vez, cae a la cola de Central, y Central lo deriva a
+              postventa o a donde corresponda. Misma política 0060 que el
+              comercial: puede meterlo a la cola, nunca asignárselo solo. */}
+          <PasarContactoCentral contexto="postventa" />
+          <BotonReporteMensual mes={mesPorDefecto(hoyIso)} compacto />
+          <BotonCierreSemanal semana={lunes} compacto />
+          <BotonReporteDiario fecha={hoyIso} compacto />
+        </div>
       </div>
 
       <SeccionPanel

@@ -6,6 +6,7 @@ import { FiltroRubro } from "@/components/crm/filtro-rubro";
 import { alcanceDe, cargarOpcionesRubro, leerFiltroRubro, rubroParaRpc } from "../consultas-rubro";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { TablaCartera } from "@/components/crm/tabla-cartera";
+import { PestanasClientes } from "@/components/crm/pestanas-clientes";
 import { Paginacion } from "@/components/crm/filtros-clientes";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,11 @@ export default async function CarteraPage({
 
   return (
     <div className="space-y-4">
+      {/* Postventa entra acá por el nombre del cliente y a «Máquinas
+          instaladas» por la serie, según lo que le hayan dicho por teléfono.
+          Desde el 08-09 son una sola entrada del menú con dos pestañas. */}
+      {atiendeSinPoseer && <PestanasClientes activa="clientes" clientes={total} />}
+
       <form className="flex flex-wrap gap-2" action="/comercial/cartera">
         <div className="relative min-w-56 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

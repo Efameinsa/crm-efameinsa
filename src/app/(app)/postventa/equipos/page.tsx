@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { PestanasClientes } from "@/components/crm/pestanas-clientes";
 import { FicharMaquina } from "@/components/crm/fichar-maquina";
 import { fechaCalendario } from "@/lib/fechas";
 import { estadoGarantia } from "@/lib/postventa";
@@ -103,152 +104,157 @@ export default async function EquiposPage({
   ];
 
   return (
-    <SeccionPanel
-      titulo="Equipos instalados"
-      accion={
-        <div className="flex items-center gap-2 text-xs">
-          {vencidos > 0 && ver !== "mantenimiento" && (
-            <Link
-              href={conBusqueda("mantenimiento")}
-              className="rounded-full bg-amber-100 px-2.5 py-0.5 font-semibold text-amber-900 hover:bg-amber-200"
-            >
-              {vencidos} con el mantenimiento vencido
-            </Link>
-          )}
-          <span className="text-muted-foreground">{count ?? 0} máquinas</span>
-        </div>
-      }
-    >
-      {/* DAR DE ALTA UNA MÁQUINA A MANO (0181). No existía: una máquina solo
-          nacía al cerrar un pedido con su serie escrita —10 de 198 pedidos—, y
-          por eso 148 de los 205 clientes que compraron este año no tienen
-          ninguna. Acá se ficha lo que el cliente reporta por teléfono y lo que
-          vaya apareciendo cuando lleguen las guías de remisión.
+    <div className="space-y-4">
+      {/* La vuelta a los clientes, que es la otra mitad de la misma pregunta. */}
+      <PestanasClientes activa="maquinas" maquinas={count ?? 0} />
 
-          Plegado: la pantalla es para consultar el parque; el alta es la
-          excepción, no lo que se viene a hacer todos los días. */}
-      <details className="mb-3 rounded-lg border border-border bg-card">
-        <summary className="cursor-pointer list-none p-3 text-xs font-semibold text-primary hover:underline">
-          + Registrar una máquina que no está en la lista
-        </summary>
-        <div className="border-t border-border p-3">
-          <FicharMaquina />
-        </div>
-      </details>
-
-      <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
-        <label className="flex flex-1 items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5">
-          <Search className="size-3.5 flex-none text-muted-foreground" />
-          <input
-            type="search"
-            name="q"
-            defaultValue={busqueda}
-            placeholder="Serie, cliente o modelo"
-            className="w-full min-w-[160px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </label>
-        {filtros.map((f) => (
-          <Link
-            key={f.clave || "todos"}
-            href={conBusqueda(f.clave)}
-            className={cn(
-              "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-              ver === f.clave
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {f.etiqueta}
-          </Link>
-        ))}
-      </form>
-
-      {equipos.length === 0 ? (
-        <div className="max-w-prose space-y-2 text-sm text-muted-foreground">
-          {busqueda || ver ? (
-            <p>Nada que coincida con esa búsqueda.</p>
-          ) : (
-            <>
-              <p>Todavía no hay equipos registrados en el parque instalado.</p>
-              <p>
-                Cada máquina entra acá con su serie cuando se cierra un pedido de despacho. Desde ese momento el sistema
-                sabe hasta cuándo tiene garantía, cuántos ciclos lleva y cuándo le toca el próximo mantenimiento
-                preventivo — que es lo que hoy solo pasa si el cliente llama.
-              </p>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          {mostrados.map((e) => {
-            const garantia = estadoGarantia(e.garantia_hasta);
-            const mantenimientoVencido = e.proximo_mantenimiento != null && e.proximo_mantenimiento <= hoy;
-            return (
+      <SeccionPanel
+        titulo="Equipos instalados"
+        accion={
+          <div className="flex items-center gap-2 text-xs">
+            {vencidos > 0 && ver !== "mantenimiento" && (
               <Link
-                key={e.id}
-                href={`/postventa/equipos/${e.id}`}
-                className="flex flex-wrap items-start gap-3 rounded-md border border-border p-2.5 transition-colors hover:bg-accent"
+                href={conBusqueda("mantenimiento")}
+                className="rounded-full bg-amber-100 px-2.5 py-0.5 font-semibold text-amber-900 hover:bg-amber-200"
               >
-                <span
-                  className={cn(
-                    "mt-0.5 flex size-8 flex-none items-center justify-center rounded-full",
-                    garantia.vigente ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : "bg-secondary text-muted-foreground",
-                  )}
+                {vencidos} con el mantenimiento vencido
+              </Link>
+            )}
+            <span className="text-muted-foreground">{count ?? 0} máquinas</span>
+          </div>
+        }
+      >
+        {/* DAR DE ALTA UNA MÁQUINA A MANO (0181). No existía: una máquina solo
+            nacía al cerrar un pedido con su serie escrita —10 de 198 pedidos—, y
+            por eso 148 de los 205 clientes que compraron este año no tienen
+            ninguna. Acá se ficha lo que el cliente reporta por teléfono y lo que
+            vaya apareciendo cuando lleguen las guías de remisión.
+
+            Plegado: la pantalla es para consultar el parque; el alta es la
+            excepción, no lo que se viene a hacer todos los días. */}
+        <details className="mb-3 rounded-lg border border-border bg-card">
+          <summary className="cursor-pointer list-none p-3 text-xs font-semibold text-primary hover:underline">
+            + Registrar una máquina que no está en la lista
+          </summary>
+          <div className="border-t border-border p-3">
+            <FicharMaquina />
+          </div>
+        </details>
+
+        <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
+          <label className="flex flex-1 items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5">
+            <Search className="size-3.5 flex-none text-muted-foreground" />
+            <input
+              type="search"
+              name="q"
+              defaultValue={busqueda}
+              placeholder="Serie, cliente o modelo"
+              className="w-full min-w-[160px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </label>
+          {filtros.map((f) => (
+            <Link
+              key={f.clave || "todos"}
+              href={conBusqueda(f.clave)}
+              className={cn(
+                "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+                ver === f.clave
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {f.etiqueta}
+            </Link>
+          ))}
+        </form>
+
+        {equipos.length === 0 ? (
+          <div className="max-w-prose space-y-2 text-sm text-muted-foreground">
+            {busqueda || ver ? (
+              <p>Nada que coincida con esa búsqueda.</p>
+            ) : (
+              <>
+                <p>Todavía no hay equipos registrados en el parque instalado.</p>
+                <p>
+                  Cada máquina entra acá con su serie cuando se cierra un pedido de despacho. Desde ese momento el sistema
+                  sabe hasta cuándo tiene garantía, cuántos ciclos lleva y cuándo le toca el próximo mantenimiento
+                  preventivo — que es lo que hoy solo pasa si el cliente llama.
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {mostrados.map((e) => {
+              const garantia = estadoGarantia(e.garantia_hasta);
+              const mantenimientoVencido = e.proximo_mantenimiento != null && e.proximo_mantenimiento <= hoy;
+              return (
+                <Link
+                  key={e.id}
+                  href={`/postventa/equipos/${e.id}`}
+                  className="flex flex-wrap items-start gap-3 rounded-md border border-border p-2.5 transition-colors hover:bg-accent"
                 >
-                  {garantia.vigente ? <ShieldCheck className="size-4" /> : <ShieldOff className="size-4" />}
-                </span>
-                <div className="min-w-[220px] flex-1">
-                  <p className={cn("font-mono text-xs font-bold", e.serie ? "text-foreground" : "text-muted-foreground")}>
-                    {e.serie ?? "Sin serie"}
-                  </p>
-                  <p className="line-clamp-1 text-sm text-foreground">{e.modelo_texto ?? "Equipo sin describir"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {e.cuentas?.razon_social ?? e.cliente_texto ?? "—"}
-                    {e.ubicacion && ` · ${e.ubicacion}`}
-                  </p>
-                </div>
-                <div className="text-right text-[11px]">
                   <span
                     className={cn(
-                      "font-semibold",
-                      garantia.vigente ? "text-[#1E7F4F]" : "text-muted-foreground",
+                      "mt-0.5 flex size-8 flex-none items-center justify-center rounded-full",
+                      garantia.vigente ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : "bg-secondary text-muted-foreground",
                     )}
                   >
-                    {garantia.etiqueta}
+                    {garantia.vigente ? <ShieldCheck className="size-4" /> : <ShieldOff className="size-4" />}
                   </span>
-                  <br />
-                  {/* De estas máquinas casi ninguna tiene despacho —entraron
-                      por un informe de servicio, no por la venta del equipo—:
-                      repetir «sin despacho registrado» 200 veces era ruido. Lo
-                      que sí se sabe, y es lo que se usa para llamar, es cuándo
-                      fue el último mantenimiento. */}
-                  <span className="text-muted-foreground">
-                    {e.fecha_despacho
-                      ? `despachado ${fechaCalendario(e.fecha_despacho)}`
-                      : e.ultimo_mantenimiento
-                        ? `último mantenimiento ${fechaCalendario(e.ultimo_mantenimiento)}`
-                        : "sin historial de servicio"}
-                    {e.ciclos_ultimo != null && ` · ${e.ciclos_ultimo.toLocaleString("es-PE")} ciclos`}
-                  </span>
-                  {mantenimientoVencido && (
-                    <span className="mt-0.5 flex items-center justify-end gap-1 font-semibold text-amber-700">
-                      <Wrench className="size-3" /> mantenimiento vencido
+                  <div className="min-w-[220px] flex-1">
+                    <p className={cn("font-mono text-xs font-bold", e.serie ? "text-foreground" : "text-muted-foreground")}>
+                      {e.serie ?? "Sin serie"}
+                    </p>
+                    <p className="line-clamp-1 text-sm text-foreground">{e.modelo_texto ?? "Equipo sin describir"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {e.cuentas?.razon_social ?? e.cliente_texto ?? "—"}
+                      {e.ubicacion && ` · ${e.ubicacion}`}
+                    </p>
+                  </div>
+                  <div className="text-right text-[11px]">
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        garantia.vigente ? "text-[#1E7F4F]" : "text-muted-foreground",
+                      )}
+                    >
+                      {garantia.etiqueta}
                     </span>
-                  )}
-                </div>
+                    <br />
+                    {/* De estas máquinas casi ninguna tiene despacho —entraron
+                        por un informe de servicio, no por la venta del equipo—:
+                        repetir «sin despacho registrado» 200 veces era ruido. Lo
+                        que sí se sabe, y es lo que se usa para llamar, es cuándo
+                        fue el último mantenimiento. */}
+                    <span className="text-muted-foreground">
+                      {e.fecha_despacho
+                        ? `despachado ${fechaCalendario(e.fecha_despacho)}`
+                        : e.ultimo_mantenimiento
+                          ? `último mantenimiento ${fechaCalendario(e.ultimo_mantenimiento)}`
+                          : "sin historial de servicio"}
+                      {e.ciclos_ultimo != null && ` · ${e.ciclos_ultimo.toLocaleString("es-PE")} ciclos`}
+                    </span>
+                    {mantenimientoVencido && (
+                      <span className="mt-0.5 flex items-center justify-end gap-1 font-semibold text-amber-700">
+                        <Wrench className="size-3" /> mantenimiento vencido
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+            {mostrados.length < equipos.length && (
+              <Link
+                href={`${conBusqueda(ver)}${conBusqueda(ver).includes("?") ? "&" : "?"}todos=1`}
+                className="block rounded-md border border-dashed border-border p-2.5 text-center text-xs font-medium text-primary hover:bg-accent"
+              >
+                Ver las {equipos.length - mostrados.length} restantes
               </Link>
-            );
-          })}
-          {mostrados.length < equipos.length && (
-            <Link
-              href={`${conBusqueda(ver)}${conBusqueda(ver).includes("?") ? "&" : "?"}todos=1`}
-              className="block rounded-md border border-dashed border-border p-2.5 text-center text-xs font-medium text-primary hover:bg-accent"
-            >
-              Ver las {equipos.length - mostrados.length} restantes
-            </Link>
-          )}
-        </div>
-      )}
-    </SeccionPanel>
+            )}
+          </div>
+        )}
+      </SeccionPanel>
+    </div>
   );
 }

@@ -6,6 +6,7 @@ import { TableroControl, type TarjetaControl } from "@/components/crm/tablero-co
 import { TablaPorPaso, type FilaTabla } from "@/components/crm/tabla-por-paso";
 import { cn } from "@/lib/utils";
 import { fechaLima } from "@/lib/fechas";
+import { ColaDespachos } from "@/components/crm/cola-despachos";
 import {
   avancePedido,
   bloquesPedido,
@@ -43,13 +44,13 @@ function faseActual(bloques: ReturnType<typeof bloquesPedido>): 1 | 2 | 3 {
 export default async function ControlPedidosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vista?: string; falta?: string }>;
+  searchParams: Promise<{ vista?: string; falta?: string; q?: string; estado?: string }>;
 }) {
   // Dos vistas del mismo control (Carlos, 02-09): el tablero de fases —lo que
   // diseñó Santos— y la tabla POR PASO, para «¿a quiénes no les he enviado el
   // plano?» cuando hay veinte pedidos. `falta` deja solo los que deben ese paso.
   const sp = await searchParams;
-  const vista = sp.vista === "paso" ? "paso" : "tablero";
+  const vista = sp.vista === "paso" ? "paso" : sp.vista === "despachos" ? "despachos" : "tablero";
   const falta = /^[a-z_]+$/.test(sp.falta ?? "") ? (sp.falta as string) : null;
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -149,6 +150,17 @@ export default async function ControlPedidosPage({
             >
               Por paso
             </Link>
+            {/* LA COLA DEL EXCEL, ACÁ Y NO EN OTRA PANTALLA. El mismo despacho
+                vivía en dos destinos —este tablero y «Atenciones › Despachos»—
+                y ninguno mencionaba al otro (informe de UX del 08-09). Es el
+                mismo objeto visto de dos formas; ahora son dos vistas de una
+                sola pantalla. */}
+            <Link
+              href="/postventa/control?vista=despachos"
+              className={cn("px-2.5 py-1", vista === "despachos" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}
+            >
+              Cola del Excel
+            </Link>
           </span>
         </span>
       }
@@ -159,7 +171,16 @@ export default async function ControlPedidosPage({
           : "Cada pedido está en la fase donde le falta trabajo; la barrita se abre y dice qué falta en esa fase. La tarjeta se puede arrastrar: si intenta pasarla a una fase que todavía no le toca, la alerta le dice qué falta — y al marcar esos pasos en la ficha, pasa sola."}
       </p>
 
-      {pedidos.length === 0 ? (
+      {vista === "despachos" ? (
+        <ColaDespachos
+          pestana="lista"
+          verValue="despachos"
+          busqueda={(sp.q ?? "").trim()}
+          estado={sp.estado ?? ""}
+          verPrecios={puedeVerPrecios(perfil)}
+          hrefBase="/postventa/control"
+        />
+      ) : pedidos.length === 0 ? (
         <p className="text-sm text-muted-foreground">No hay pedidos del flujo en curso ahora mismo.</p>
       ) : vista === "paso" ? (
         <TablaPorPaso filas={filas} falta={falta} base="/postventa/control" />
@@ -168,7 +189,7 @@ export default async function ControlPedidosPage({
       )}
 
       <p className="mt-3 text-[11px] text-muted-foreground">
-        La cola vieja del Excel se sigue trabajando en Atenciones → Despachos.
+        La cola vieja del Excel está acá mismo, en la vista «Cola del Excel».
       </p>
     </SeccionPanel>
   );

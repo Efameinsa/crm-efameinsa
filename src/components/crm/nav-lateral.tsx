@@ -14,7 +14,6 @@ import {
   Users,
   Package,
   BookMarked,
-  Boxes,
   Gauge,
   CalendarDays,
   ClipboardCheck,
@@ -133,16 +132,20 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
 // mantenimiento, que sí la conservan como comercial (`ENLACE_RUTA` más
 // abajo no la incluye porque ya la tienen en `ENLACES_POR_ROL.comercial`).
 const ENLACES_POSTVENTA = [
-  { href: "/postventa", etiqueta: "Mi día", icono: Wrench },
-  { href: "/postventa/agenda", etiqueta: "Calendario", icono: CalendarDays },
-  // La pista técnica (0131) más los casos, despachos e histórico que hasta el
-  // 31-08 vivían repartidos en cuatro pantallas (plan 23).
-  { href: "/postventa/atenciones", etiqueta: "Atenciones", icono: Wrench },
+  { href: "/postventa", etiqueta: "Bandeja", icono: Inbox },
+  { href: "/postventa/agenda", etiqueta: "Agenda", icono: CalendarDays },
+  // «Casos» salió del menú el 08-09 y vive como pestaña de la bandeja: eran la
+  // misma cola mirada en dos momentos —lo que nadie tomó y lo que está
+  // abierto—, y el tester no sabía en cuál de las dos debía estar. La pantalla
+  // sigue en /postventa/atenciones, con su pista de nueve etapas intacta.
   // El Excel de control de Hever, digital (Carlos, 01-09: «el control de ese
   // Excel es lo que te menciono. Controlamos eso»): cada pedido en curso con
   // el estatus de cada paso, todos juntos.
-  { href: "/postventa/control", etiqueta: "Control de pedidos", icono: Table2 },
-  { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
+  { href: "/postventa/control", etiqueta: "Pedidos", icono: Table2 },
+  // «Parque instalado» salió del menú el 08-09: es la misma pregunta que
+  // «Clientes que atiendo» —a quién atiendo y qué tiene puesto— buscada por
+  // serie en vez de por nombre. Vive como pestaña de esa pantalla, en
+  // /postventa/equipos.
   // El parque visto como venta: a quién toca ofrecerle mantenimiento.
   //
   // APUNTABA A UNA PANTALLA VACÍA. «Mantenimiento por vender» abría el parque
@@ -151,17 +154,49 @@ const ENLACES_POSTVENTA = [
   // reales— vivía escondida como pestaña dentro de «Ventas de servicio»
   // (informe de UX del 08-09). Es la pantalla que genera plata y nadie la
   // encontraba: ahora el menú lleva ahí.
-  { href: "/comercial/ruta", etiqueta: "Mantenimiento por vender", icono: Route },
-  // La ruta de mantenimiento vive acá adentro como pestaña (plan 23, etapa
-  // 4): «es una campaña sobre el mismo pipeline, no otro objeto». Ya no
-  // tiene entrada propia en este menú.
-  { href: "/comercial/oportunidades", etiqueta: "Ventas de servicio", icono: KanbanSquare },
+  { href: "/comercial/ruta", etiqueta: "Preventivos por vender", icono: Route },
+  // COTIZACIONES, QUE ES LO QUE SE PERSIGUE. La pantalla ya existía y el área
+  // no tenía cómo llegar: sin ella nadie veía cuál vence ni cuál lleva diez
+  // días sin respuesta, que es donde se pierden ventas en silencio (informe de
+  // UX del 08-09). Reemplaza al tablero de oportunidades en este menú: con
+  // Bandeja, Casos, Preventivos y Cotizaciones, el kanban dejó de ser un
+  // trabajo propio del área. Las oportunidades sueltas se siguen abriendo
+  // desde cada caso y desde la ficha del cliente.
+  { href: "/comercial/cotizaciones", etiqueta: "Cotizaciones", icono: FileText },
   // Los cierres de postventa se emiten en el CRM desde el 03-09 (Carlos: «que
   // el CRM esté ordenado»): la misma pantalla del comercial, filtrada por su
   // cartera. Sin esta entrada había que llegar por la oportunidad.
   { href: "/comercial/cierres", etiqueta: "Ventas emitidas", icono: PackageCheck },
-  { href: "/comercial/cartera", etiqueta: "Clientes", icono: Building2 },
+  { href: "/comercial/cartera", etiqueta: "Clientes que atiendo", icono: Building2 },
 ];
+
+/**
+ * Los siete destinos del área, repartidos por el trabajo que resuelven.
+ *
+ * Eran nueve hasta el 08-09 y varios abrían la misma cola con otro nombre
+ * —Santos, mirándolo: «sigo viendo casi las mismas vistas del menú»—. Lo que
+ * se fusionó son PUERTAS, no datos: Despachos es una pestaña de Pedidos,
+ * Casos una de la Bandeja, el parque una de «Clientes que atiendo», y
+ * «Ventas de servicio» salió porque Preventivos y Cotizaciones cubren sus dos
+ * usos en el área. Ninguna pantalla se borró; `_verificar-menu-postventa.mjs`
+ * comprueba con la cuenta del tester que todas siguen alcanzables.
+ * Se arma desde ENLACES_POSTVENTA para que no haya dos listas que mantener:
+ * si mañana se agrega un destino y no se reparte acá, esta función lo deja en
+ * «El día» en vez de hacerlo desaparecer del menú.
+ */
+const SECCIONES_POSTVENTA = (() => {
+  const de = (...hrefs: string[]) => ENLACES_POSTVENTA.filter((e) => hrefs.includes(e.href));
+  const pedidos = de("/postventa/control");
+  const vender = de("/comercial/ruta", "/comercial/cotizaciones", "/comercial/cierres");
+  const clientes = de("/comercial/cartera");
+  const repartidos = new Set([...pedidos, ...vender, ...clientes].map((e) => e.href));
+  return {
+    dia: ENLACES_POSTVENTA.filter((e) => !repartidos.has(e.href)),
+    pedidos,
+    vender,
+    clientes,
+  };
+})();
 
 // Lo único que un comercial que además vende mantenimiento (`hace_postventa`,
 // 0093) ve de más: su campaña. No es una pantalla del área —no ejecuta nada—,
@@ -259,9 +294,30 @@ export function NavLateral({
         { titulo: "Como lo ve un comercial", enlaces: ENLACES_POR_ROL[rol] },
       ]
     : [
+        ...(esPostventa
+          ? // CUATRO TRABAJOS, NO NUEVE BOTONES. El informe de UX del 08-09
+            // contó nueve destinos donde «tres llevan al mismo sitio y uno no
+            // lleva a ninguna parte», y propuso reducirlos a seis. Reducir de
+            // verdad exige antes FUSIONAR pantallas —Pedidos con Despachos,
+            // Clientes con el parque, y una lista de cotizaciones que hoy no
+            // existe—, y eso es el mes de trabajo que el propio informe
+            // presupuesta.
+            //
+            // Lo que sí se puede hacer hoy sin dejar ninguna pantalla sin
+            // camino: agrupar los destinos por el TRABAJO que resuelven. El
+            // menú deja de leerse como nueve cosas parecidas y pasa a leerse
+            // como cuatro preguntas: qué atiendo hoy, qué está viajando, qué
+            // vendo, y a quién. Ningún destino se pierde.
+            [
+              { titulo: "El día", enlaces: SECCIONES_POSTVENTA.dia },
+              { titulo: "Lo que viaja", enlaces: SECCIONES_POSTVENTA.pedidos },
+              { titulo: "Vender", enlaces: SECCIONES_POSTVENTA.vender },
+              { titulo: "A quién y qué tiene", enlaces: SECCIONES_POSTVENTA.clientes },
+            ]
+          : []),
         {
           enlaces: esPostventa
-            ? ENLACES_POSTVENTA
+            ? []
             : hacePostventa
               ? [...ENLACES_POR_ROL[rol], ENLACE_RUTA, ENLACE_PARQUE]
               : ENLACES_POR_ROL[rol],

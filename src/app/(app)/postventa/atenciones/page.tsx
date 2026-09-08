@@ -8,6 +8,7 @@ import { puedeVerPrecios } from "@/lib/postventa";
 import { CasosAnteriores } from "@/components/crm/casos-anteriores";
 import { ColaDespachos } from "@/components/crm/cola-despachos";
 import { HistoricoPostventa } from "@/components/crm/historico-postventa";
+import { PestanasCasos } from "@/components/crm/pestanas-casos";
 import {
   ETAPAS_ATENCION,
   ETIQUETA_ETAPA,
@@ -36,15 +37,11 @@ export const dynamic = "force-dynamic";
  * `servicios_postventa`): es la puerta la que se unifica, no el dato.
  */
 
-const PESTANAS = [
-  { clave: "", etiqueta: "Abiertas" },
-  { clave: "casos", etiqueta: "Casos anteriores" },
-  { clave: "despachos", etiqueta: "Despachos" },
-  { clave: "cerradas", etiqueta: "Cerradas" },
-  { clave: "historico", etiqueta: "Histórico" },
-] as const;
+// Las etiquetas y los enlaces viven en `PestanasCasos`, que es la misma tira
+// que muestra la bandeja. Acá solo queda cuál de ellas está abierta.
+const PESTANAS = ["", "casos", "cerradas", "historico"] as const;
 
-type Pestana = (typeof PESTANAS)[number]["clave"];
+type Pestana = (typeof PESTANAS)[number];
 
 const FILTROS = [
   { clave: "", etiqueta: "Todas" },
@@ -62,7 +59,7 @@ export default async function AtencionesPage({
   searchParams: Promise<{ ver?: string; filtro?: string; etapa?: string; q?: string; estado?: string }>;
 }) {
   const sp = await searchParams;
-  const pestana: Pestana = (PESTANAS.find((p) => p.clave === (sp.ver ?? "")) ?? PESTANAS[0]).clave;
+  const pestana: Pestana = PESTANAS.find((p) => p === (sp.ver ?? "")) ?? PESTANAS[0];
   const filtro = sp.filtro ?? "";
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -107,7 +104,7 @@ export default async function AtencionesPage({
             >
               <Plus className="size-3.5" /> Registrar atención
             </Link>
-            <Pestanas pestana={pestana} abiertas={abiertas.length} enRojo={enRojo} />
+            <PestanasCasos activa={pestana} abiertas={abiertas.length} enRojo={enRojo} />
           </div>
         }
       >
@@ -120,16 +117,6 @@ export default async function AtencionesPage({
           />
         )}
         {pestana === "casos" && <CasosAnteriores perfil={perfil} />}
-        {pestana === "despachos" && (
-          <ColaDespachos
-            pestana="lista"
-            verValue="despachos"
-            busqueda={(sp.q ?? "").trim()}
-            estado={sp.estado ?? ""}
-            verPrecios={puedeVerPrecios(perfil)}
-            hrefBase="/postventa/atenciones"
-          />
-        )}
         {pestana === "historico" && (
           <div className="space-y-6">
             <HistoricoPostventa />
@@ -174,31 +161,6 @@ export default async function AtencionesPage({
  * contadores no coinciden. No era un conteo mal hecho: era un número bien
  * calculado con la etiqueta de otro.
  */
-function Pestanas({ pestana, abiertas, enRojo }: { pestana: Pestana; abiertas: number; enRojo: number }) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {PESTANAS.map((p) => (
-        <Link
-          key={p.clave || "abiertas"}
-          href={`/postventa/atenciones${p.clave ? `?ver=${p.clave}` : ""}`}
-          className={cn(
-            "rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors",
-            pestana === p.clave ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {p.etiqueta}
-          {p.clave === "" && ` (${abiertas})`}
-          {p.clave === "" && enRojo > 0 && (
-            <span className="ml-1 text-destructive" title="pasadas de su límite">
-              · {enRojo} vencidas
-            </span>
-          )}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
 /**
  * La pista de nueve etapas, tal como estaba (embudo + lista), ahora
  * reutilizada tanto para «Abiertas» como para «Cerradas».
@@ -250,7 +212,15 @@ function VistaAtenciones({
           está atascando el trabajo. Solo tiene sentido en Abiertas. */}
       {!cerradas && (
         <div className="mb-3 flex flex-wrap gap-1">
-          {ETAPAS_ATENCION.map((e) => {
+          {/* SOLO LAS ETAPAS QUE TIENEN ALGO. Eran nueve chips fijos —más las
+              pestañas y los cinco filtros: diecinueve controles para ocho
+              filas (informe de UX del 08-09)—, y siete de ellos en cero. Un
+              filtro que no filtra nada es ruido que tapa a los que sí.
+              La seleccionada se queda aunque quede vacía: si no, al filtrar
+              desaparecería el chip con el que se está filtrando. */}
+          {ETAPAS_ATENCION.filter(
+            (e) => todas.some((a) => a.etapa === e) || etapaSeleccionada === e,
+          ).map((e) => {
             const n = todas.filter((a) => a.etapa === e).length;
             return (
               <Link

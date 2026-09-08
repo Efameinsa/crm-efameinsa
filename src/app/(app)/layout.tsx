@@ -57,6 +57,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="rounded-full bg-amber-950/10 px-2 py-0.5">Solo lectura: nada se registra a su nombre</span>
           </div>
         )}
+        {/* CUENTA DE PRUEBA, DICHO DE LEJOS. El tester recorre el CRM con una
+            cuenta de práctica y todo lo que hace —cotizaciones incluidas— es
+            de mentira, pero la pantalla se veía idéntica a la real. Una
+            cotización de práctica al lado de una de verdad, sin nada que las
+            separe, es una confusión esperando a ocurrir: alguien la manda a un
+            cliente o la cuenta en un reporte.
+            
+            Va en franja, arriba de todo y en todas las pantallas, con el mismo
+            patrón que la franja de auditoría (0160) porque resuelve el mismo
+            problema: que nadie confunda lo que está mirando. */}
+        {perfil.es_prueba && (
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-[#6D28D9] px-6 py-2 text-white">
+            <span className="flex items-center gap-2 text-sm font-black uppercase tracking-widest">
+              PRUEBA
+              <span className="text-xs font-semibold normal-case tracking-normal opacity-90">
+                Cuenta de práctica de {perfil.nombre}
+              </span>
+            </span>
+            <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold">
+              Nada de esto cuenta: ni ventas, ni cotizaciones, ni metas
+            </span>
+          </div>
+        )}
         <EncabezadoUsuario perfil={perfil} />
         {/* El aviso para activar las notificaciones del equipo vive acá, no en
             «Mi día»: hasta el 25-08 solo se dibujaba en la pantalla del
