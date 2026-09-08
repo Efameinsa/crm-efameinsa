@@ -177,7 +177,15 @@ export async function cambiarEtapa(datos: {
     .update({
       etapa: datos.etapa,
       motivo_rechazo_id: datos.etapa === "rechazada" ? datos.motivoRechazoId : null,
-      cerrada_at: datos.etapa === "rechazada" ? new Date().toISOString() : null,
+      // CERRADA_AT NO ES «SE CERRÓ», ES «NO SE VUELVE».
+      //
+      // `rechazada` y `derivada` llevan la fecha: ahí se acabó. `historico` la
+      // lleva en NULL a propósito — el botón «Retomar» de la cartera (0155)
+      // busca las archivadas SIN fecha de cierre, así que ponérsela las
+      // dejaría archivadas para siempre y sin forma de volver. Y el resto de
+      // etapas, que son abiertas, tampoco llevan fecha.
+      cerrada_at:
+        datos.etapa === "rechazada" || datos.etapa === "derivada" ? new Date().toISOString() : null,
     })
     .eq("id", datos.oportunidadId)
     .select("id");

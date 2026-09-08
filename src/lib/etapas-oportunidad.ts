@@ -27,4 +27,8 @@ export const ETAPAS_MANUALES: EtapaOportunidad[] = [
   "potencial",
   "rechazada",
   "derivada",
+  // Archivar, desde el 08-09. Hasta entonces solo llegaba por el import del
+  // Excel, y la comercial que quería sacar de su lista un duplicado no tenía
+  // más salida que rechazarlo — o escribir «no tengo pendiente» en una nota.
+  "historico",
 ];

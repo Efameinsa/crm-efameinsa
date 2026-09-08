@@ -85,12 +85,41 @@ export const ETAPA_OPORTUNIDAD: OpcionConCriterio[] = [
  */
 export const ETAPAS_DEL_COMBO: OpcionConCriterio[] = [
   ...ETAPA_OPORTUNIDAD.filter((e) =>
-    ["asignada", "filtrada", "seguimiento", "potencial", "rechazada", "derivada"].includes(e.valor),
+    ["asignada", "filtrada", "seguimiento", "potencial", "rechazada"].includes(e.valor),
   ),
   {
     ...ETAPA_OPORTUNIDAD.find((e) => e.valor === "venta")!,
     etiqueta: "Venta ejecutada",
     criterio: "Se registra desde la cotización aceptada, para que cuente como venta",
+  },
+  /**
+   * LAS DOS SALIDAS QUE FALTABAN, Y QUE SE ESCRIBÍAN A MANO.
+   *
+   * Brenda escribió «no tengo pendiente con este prospecto» como NOTA DE
+   * GESTIÓN en dos oportunidades distintas (07 y 08-09), y en una tercera «la
+   * venta ya fue cerrada, existe doble registro». No es descuido: el
+   * desplegable no le daba ninguna forma de sacar algo de su lista que no
+   * fuera llamarlo un rechazo, y rechazarlo habría metido una venta ganada y
+   * un caso pasado a postventa dentro del reporte de «lo que se perdió, y por
+   * qué» que lee gerencia.
+   *
+   * «Derivada» ya existía y decía «Pasada a otro comercial u otra área», pero
+   * suena a algo que hace Central: se renombra por la frase que la comercial
+   * usó al no encontrarla. Y se agrega archivar, que hasta hoy solo pasaba
+   * por el import del Excel.
+   *
+   * Ninguna de las dos cuenta como pérdida. Y archivar es reversible: la
+   * cartera muestra «Retomar» sobre las archivadas (0155).
+   */
+  {
+    ...ETAPA_OPORTUNIDAD.find((e) => e.valor === "derivada")!,
+    etiqueta: "Ya no es mío — pasó a otra área",
+    criterio: "A postventa o a otro comercial. No cuenta como perdida.",
+  },
+  {
+    ...ETAPA_OPORTUNIDAD.find((e) => e.valor === "historico")!,
+    etiqueta: "Duplicado o ya no corresponde — archivar",
+    criterio: "Sale de pendientes sin contarse como perdida. Se puede retomar desde la cartera.",
   },
 ];
 
