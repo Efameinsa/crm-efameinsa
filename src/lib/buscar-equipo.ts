@@ -49,6 +49,10 @@ export interface EquipoBuscable {
   /** «Apilable» / «No apilable» de los LG: el maestro escribe «SINGLE», y
    *  nadie busca eso. */
   montaje?: string | null;
+  /** «servicio», «repuesto», «lavadora»… Desde que el catálogo admite
+   *  servicios y repuestos (0190), postventa los busca por ahí: escribe
+   *  «repuesto» antes que el nombre exacto de la pieza. */
+  categoria?: string | null;
   /** La descripción del maestro de Lesly (CODIFICACION DE EQUIPOS2, 25-08):
    *  «FUERZA 200G, X CONTROL, BOILER FED, TOLVA DE JABÓN…» — el vocabulario
    *  exacto con el que las comerciales piden las máquinas. */
@@ -58,7 +62,7 @@ export interface EquipoBuscable {
 /** Todo el texto contra el que se busca un equipo, ya normalizado. */
 export function textoBuscable(p: EquipoBuscable): string {
   return sinTildes(
-    [p.sku ?? "", p.marca, p.modelo, p.nombre, p.capacidad ?? "", p.calentamiento ?? "", p.montaje ?? "", p.descripcion ?? ""].join(" "),
+    [p.sku ?? "", p.marca, p.modelo, p.nombre, p.categoria ?? "", p.capacidad ?? "", p.calentamiento ?? "", p.montaje ?? "", p.descripcion ?? ""].join(" "),
   );
 }
 

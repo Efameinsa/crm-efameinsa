@@ -24,7 +24,7 @@ const TIERS_SEMI = [
 export interface ProductoPlantilla {
   id: string;
   etiqueta: string;
-  segmento: "industrial" | "semi_industrial";
+  segmento: "industrial" | "semi_industrial" | "servicio" | "repuesto";
   categoria: string | null;
   capacidad: string | null;
   caracteristicas: string[];
@@ -49,7 +49,11 @@ export interface ProductoPlantilla {
  */
 export function NuevoProductoForm({ plantillas }: { plantillas: ProductoPlantilla[] }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [segmento, setSegmento] = useState<"industrial" | "semi_industrial">("semi_industrial");
+  // Desde la 0190 el catálogo admite servicios y repuestos: sin esto no había
+  // forma de cargarlos, y por eso el catálogo eran 121 máquinas y nada más.
+  const [segmento, setSegmento] = useState<"industrial" | "semi_industrial" | "servicio" | "repuesto">(
+    "semi_industrial",
+  );
   const [ficha, setFicha] = useState({
     caracteristicas: "",
     dimensiones: "",
@@ -158,12 +162,18 @@ export function NuevoProductoForm({ plantillas }: { plantillas: ProductoPlantill
             <SelectContent>
               <SelectItem value="semi_industrial">Semi-industrial</SelectItem>
               <SelectItem value="industrial">Industrial</SelectItem>
+              {/* Desde la 0190. Sin estas dos opciones no había forma de cargar
+                  un mantenimiento ni un repuesto, y por eso el catálogo eran
+                  121 máquinas y nada más — la razón de fondo por la que
+                  postventa seguía cotizando en Word. */}
+              <SelectItem value="servicio">Servicio</SelectItem>
+              <SelectItem value="repuesto">Repuesto</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="categoria">Categoría</Label>
-          <Input id="categoria" name="categoria" placeholder="lavadora, secadora…" />
+          <Input id="categoria" name="categoria" placeholder="lavadora, secadora, servicio, repuesto…" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="capacidad">Capacidad</Label>

@@ -57,6 +57,29 @@ function calentamientoDe(eq) {
   return null;
 }
 
+/** El maestro trae "COLOR: AZUL/WHITE/ GREY" o "COLOR: BLUE" mezclando
+ *  español e inglés (Lesly copia y pega de proformas del proveedor chino).
+ *  Se traduce a un rótulo único en español porque la cotización es un
+ *  documento para el cliente — reportado 26-08 con la CO402: el dato ya
+ *  vivía en descripcion_maestro pero no se veía en el PDF (ver
+ *  route.tsx / cotizacion-pdf.tsx del mismo día). */
+const COLORES = {
+  AZUL: "Azul", BLUE: "Azul",
+  BLANCO: "Blanco", WHITE: "Blanco",
+  GRIS: "Gris", GREY: "Gris", GRAY: "Gris",
+  VERDE: "Verde", GREEN: "Verde",
+  AMARILLO: "Amarillo", YELLOW: "Amarillo",
+  NEGRO: "Negro", BLACK: "Negro",
+  ROJO: "Rojo", RED: "Rojo",
+};
+function coloresDe(eq) {
+  const m = eq.match(/COLOR\s*:?\s*([^,]+)/i);
+  if (!m) return null;
+  const crudos = m[1].split("/").map((c) => c.trim()).filter(Boolean);
+  if (crudos.length === 0) return null;
+  return crudos.map((c) => COLORES[c.toUpperCase()] ?? c[0].toUpperCase() + c.slice(1).toLowerCase());
+}
+
 const claseDe = (v) =>
   v == null ? null
   : /GAS/i.test(v) ? "gas"
@@ -152,7 +175,7 @@ for (const [codigo, filasDelCodigo] of porCodigo) {
     emparejados.add(p.sku);
 
     const ficha = p.ficha ?? {};
-    const c = { p, m, precio: null, stock: null, calent: null, descripcion: null, ubicacion: null };
+    const c = { p, m, precio: null, stock: null, calent: null, descripcion: null, ubicacion: null, colores: null };
 
     if (m.precio != null && Number(p.precio) !== m.precio) c.precio = { de: p.precio, a: m.precio };
     const stockActual = typeof ficha.stock_referencia === "number" ? ficha.stock_referencia : null;
@@ -163,8 +186,13 @@ for (const [codigo, filasDelCodigo] of porCodigo) {
     if (ficha.descripcion_maestro !== m.equipo) c.descripcion = m.equipo;
     const ubicNueva = m.ubicacion ? m.ubicacion.toUpperCase() : null;
     if ((ficha.ubicacion_maestro ?? null) !== ubicNueva) c.ubicacion = ubicNueva;
+    const coloresActual = Array.isArray(ficha.colores) ? ficha.colores : null;
+    const coloresNuevo = coloresDe(m.equipo);
+    if (coloresNuevo && JSON.stringify(coloresNuevo) !== JSON.stringify(coloresActual)) {
+      c.colores = { de: coloresActual, a: coloresNuevo };
+    }
 
-    if (c.precio || c.stock || c.calent || c.descripcion || c.ubicacion) cambios.push(c);
+    if (c.precio || c.stock || c.calent || c.descripcion || c.ubicacion || c.colores) cambios.push(c);
   }
 }
 
@@ -181,6 +209,7 @@ for (const c of cambios) {
   if (c.calent) partes.push(`calentamiento «${c.calent.de ?? "—"}» → «${c.calent.a ?? "—"}»`);
   if (c.descripcion) partes.push("descripción");
   if (c.ubicacion) partes.push(`ubicación ${c.ubicacion}`);
+  if (c.colores) partes.push(`colores [${c.colores.de?.join("/") ?? "—"}] → [${c.colores.a.join("/")}]`);
   console.log(`  ${c.p.sku.padEnd(11)} ${partes.join(" · ")}`);
 }
 
@@ -216,6 +245,7 @@ for (const c of cambios) {
   if (c.calent) ficha.calentamiento = c.calent.a;
   if (c.descripcion != null) ficha.descripcion_maestro = c.descripcion;
   if (c.ubicacion !== null || c.m.ubicacion === null) ficha.ubicacion_maestro = c.ubicacion ?? ficha.ubicacion_maestro ?? null;
+  if (c.colores) ficha.colores = c.colores.a;
   ficha.origen = { ...(ficha.origen ?? {}), maestro2: EXCEL.split("/").join("\\"), maestro2_sync: new Date().toISOString().slice(0, 10) };
 
   await bd.query(`update productos set ficha = $2, updated_at = now() where id = $1`, [c.p.id, JSON.stringify(ficha)]);

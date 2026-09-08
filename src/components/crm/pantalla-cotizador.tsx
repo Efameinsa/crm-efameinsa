@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { fechaCalendario } from "@/lib/fechas";
 import { BuscadorEquiposModal } from "@/components/crm/buscador-equipos-modal";
+import { CajaAgregarItem } from "@/components/crm/caja-agregar-item";
 import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
 import { ENTREGA_POR_DEFECTO, GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES, IGV, LUGARES_ENTREGA } from "@/lib/pdf/series";
 import type {
@@ -95,6 +96,14 @@ const CONDICIONES_POR_DEFECTO = "";
 // cuando lo acordado con el cliente es otro. Vaciar una deja su celda en
 // blanco, que es lo que pide el estándar para un dato todavía sin acordar.
 const TIEMPO_ENTREGA_POR_DEFECTO = "Inmediata";
+/** Cómo se lee cada tipo de caso dentro de la cotización. */
+const ETIQUETA_CASO: Record<string, string> = {
+  problema_tecnico: "Servicio técnico",
+  solicitud_repuesto: "Repuesto",
+  solicitud_mantenimiento: "Mantenimiento",
+  puesta_en_marcha: "Puesta en marcha",
+};
+
 const FORMA_PAGO_POR_DEFECTO = "30 % con la O/C";
 
 /**
@@ -181,6 +190,7 @@ export function PantallaCotizador({
   cuenta,
   contacto,
   solicitud,
+  desdeCaso = null,
   productos,
   historialPrecios,
   edicion,
@@ -191,6 +201,28 @@ export function PantallaCotizador({
   cuenta: ContextoCotizador["cuenta"];
   contacto: ContextoCotizador["contacto"];
   solicitud: string | null;
+  /**
+   * De qué caso de postventa viene esta cotización, si viene de uno.
+   *
+   * EL PROBLEMA QUE RESUELVE. El botón «Cotizar» de la atención ya existía,
+   * pero llegaba al cotizador en blanco: «la cotización no sabe de qué caso
+   * viene, de qué máquina se trata ni qué dijo el diagnóstico» (informe de UX
+   * del 08-09). El técnico acababa de ver la máquina y tenía que volver a
+   * escribirlo todo de memoria — o irse a Word, que es lo que venía pasando.
+   */
+  desdeCaso?: {
+    id: string;
+    tipo: string;
+    serie: string | null;
+    equipo: string | null;
+    diagnostico: string | null;
+    reporto: string | null;
+    /** Esa misma máquina tiene el preventivo vencido: se ofrece sumarlo. */
+    preventivoVencido?: boolean;
+    ultimoPreventivo?: string | null;
+    /** Lo que el técnico anotó que usó en la visita. */
+    repuestosUsados?: string | null;
+  } | null;
   productos: ProductoCotizable[];
   historialPrecios: Record<string, HistorialPrecio>;
   /** El borrador que se entró a corregir; sin esto la pantalla empieza vacía. */
@@ -482,13 +514,68 @@ export function PantallaCotizador({
    * NO crea un producto en el catálogo. El catálogo lo carga el administrador
    * (decisión del 24-08) y esto no lo toca: es una línea de esta cotización.
    */
-  function agregarLineaLibre() {
+  /** Sube a la cotización los repuestos que el técnico ya anotó en la visita. */
+  function agregarRepuestosUsados() {
+    if (!desdeCaso?.repuestosUsados) return;
     setCarrito((c) => [
       ...c,
       {
         producto_id: null,
-        descripcion: "",
-        nombre: "",
+        descripcion: desdeCaso.repuestosUsados ?? "",
+        nombre: "Repuestos usados en la visita",
+        cantidad: 1,
+        precio_unitario: 0,
+        precioPiso: null,
+        sinFicha: false,
+        fueraDeCatalogo: true,
+        color: null,
+      },
+    ]);
+  }
+
+  /** Suma el preventivo de la máquina del caso como una línea más. */
+  function agregarPreventivoVencido() {
+    if (!desdeCaso) return;
+    setCarrito((c) => [
+      ...c,
+      {
+        producto_id: null,
+        descripcion: desdeCaso.ultimoPreventivo
+          ? `Mantenimiento preventivo. El último registrado fue el ${desdeCaso.ultimoPreventivo}.`
+          : "Mantenimiento preventivo.",
+        nombre: ["Mantenimiento preventivo", desdeCaso.equipo || desdeCaso.serie].filter(Boolean).join(" — "),
+        cantidad: 1,
+        precio_unitario: 0,
+        precioPiso: null,
+        sinFicha: false,
+        fueraDeCatalogo: true,
+        color: null,
+      },
+    ]);
+  }
+
+  /**
+   * Una línea escrita a mano. `texto` llega cuando vino de la caja de agregar:
+   * lo que la persona ya tipeó es el nombre del ítem, y volver a escribirlo
+   * sería el tipo de trabajo doble que hace que nadie use la pantalla.
+   */
+  function agregarLineaLibre(texto?: string) {
+    // VIENE DEL CASO: la primera línea nace escrita. No se adivina el precio
+    // —eso lo pone quien cotiza— pero el QUÉ ya lo sabe el sistema: el tipo de
+    // caso, la máquina y lo que encontró el técnico. Solo en la primera línea:
+    // a partir de la segunda, quien cotiza sabe mejor que nosotros qué agrega.
+    const primeraDelCaso = desdeCaso && carrito.length === 0;
+    const tituloDelCaso = primeraDelCaso
+      ? [ETIQUETA_CASO[desdeCaso.tipo] ?? "Servicio", desdeCaso.equipo || desdeCaso.serie]
+          .filter(Boolean)
+          .join(" — ")
+      : "";
+    setCarrito((c) => [
+      ...c,
+      {
+        producto_id: null,
+        descripcion: primeraDelCaso ? (desdeCaso.diagnostico ?? desdeCaso.reporto ?? "") : "",
+        nombre: texto?.trim() || tituloDelCaso,
         cantidad: 1,
         precio_unitario: 0,
         // Sin producto no hay precio de referencia contra el cual contrastar:
@@ -538,6 +625,13 @@ export function PantallaCotizador({
   // ── Plata ────────────────────────────────────────────────────────────────
   const subtotal = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_unitario, 0);
   const igv = subtotal * IGV;
+  // Todas las líneas del catálogo = son máquinas; cualquier línea escrita a
+  // mano ya es un ítem, no un equipo.
+  const soloMaquinas = carrito.length > 0 && carrito.every((i) => i.producto_id !== null);
+  const unidad = soloMaquinas ? "equipo" : "ítem";
+  // «24 meses» sobre algo que no es una máquina es una promesa que nadie va a
+  // cumplir. Se avisa; no se corrige solo, porque a veces sí corresponde.
+  const garantiaSospechosa = !soloMaquinas && /mes(es)?/i.test(garantia);
 
   // Gerencia decide UNA sola cosa: equipos por debajo del precio de referencia
   // (migración 0074). Ser industrial dejó de bastar — el ing. Carlos lo revirtió
@@ -731,6 +825,72 @@ export function PantallaCotizador({
             </p>
           )}
 
+          {/* DE QUÉ CASO VIENE. Va visible y no plegado: es el contexto por el
+              que se está cotizando, y sin él el técnico reescribe de memoria lo
+              que acaba de ver (informe de UX del 08-09). */}
+          {desdeCaso && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                Viene del caso · {ETIQUETA_CASO[desdeCaso.tipo] ?? desdeCaso.tipo}
+              </p>
+              {(desdeCaso.equipo || desdeCaso.serie) && (
+                <p className="mt-1 text-sm font-medium text-foreground">
+                  {desdeCaso.equipo}
+                  {desdeCaso.serie && (
+                    <span className="ml-1 font-mono text-xs text-muted-foreground">serie {desdeCaso.serie}</span>
+                  )}
+                </p>
+              )}
+              {(desdeCaso.diagnostico || desdeCaso.reporto) && (
+                <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                  {desdeCaso.diagnostico ?? desdeCaso.reporto}
+                </p>
+              )}
+              {desdeCaso.repuestosUsados && (
+                <div className="mt-2 rounded-md border border-border bg-background p-2">
+                  <p className="text-xs font-semibold text-foreground">El técnico ya anotó qué repuestos usó</p>
+                  <p className="mt-0.5 whitespace-pre-wrap text-[11px] text-muted-foreground">
+                    {desdeCaso.repuestosUsados}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={agregarRepuestosUsados}
+                    className="mt-1.5 rounded-md border border-primary px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
+                  >
+                    Pasarlos a la cotización
+                  </button>
+                </div>
+              )}
+
+              {desdeCaso.preventivoVencido && (
+                <div className="mt-2 rounded-md border border-amber-400/50 bg-amber-500/10 p-2">
+                  <p className="text-xs font-semibold text-amber-800">
+                    Esta máquina tiene el preventivo vencido
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {desdeCaso.ultimoPreventivo
+                      ? `El último fue el ${desdeCaso.ultimoPreventivo}.`
+                      : "No hay registro del último."}{" "}
+                    El técnico ya va a estar ahí: sumarlo no cuesta otro viaje.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={agregarPreventivoVencido}
+                    className="mt-1.5 rounded-md bg-amber-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-700"
+                  >
+                    Agregar el mantenimiento preventivo
+                  </button>
+                </div>
+              )}
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                La primera línea ya viene escrita con esto; solo falta el precio.{" "}
+                <a href={`/postventa/atenciones/${desdeCaso.id}`} className="font-medium text-primary hover:underline">
+                  Volver al caso
+                </a>
+              </p>
+            </div>
+          )}
+
           {/* Lo que pidió el prospecto, a la vista mientras se cotiza: se
               cotiza CONTRA esto y antes obligaba a volver a la oportunidad. */}
           {solicitud && (
@@ -750,72 +910,25 @@ export function PantallaCotizador({
               acción principal y el catálogo queda debajo, disponible pero sin
               taparle la pantalla. Reportado por Santos el 07-09: «quiero
               cotizar un servicio y solo me aparecen productos». */}
-          {esPostventa && (
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-              <p className="text-xs font-semibold text-foreground">¿Qué va a cotizar?</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                El mantenimiento, el repuesto o el servicio se escriben acá: no hace falta que estén en el catálogo.
-              </p>
-              <button
-                type="button"
-                onClick={agregarLineaLibre}
-                className="mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
-              >
-                + Agregar un servicio o repuesto
-              </button>
-            </div>
-          )}
-
-          {/* POSTVENTA BUSCA SERVICIOS Y REPUESTOS, no máquinas. Ese catálogo
-              todavía no existe —el del CRM son 149 equipos, ni un servicio— así
-              que el buscador está a propósito vacío y lo dice: mientras tanto se
-              escriben a mano, con el botón de arriba. Cuando lleguen las fichas
-              de repuestos y de mantenimiento, esta misma puerta se llena sola.
-
-              El catálogo de máquinas sigue accesible más abajo: postventa
-              también vende equipos de vez en cuando, y quitárselo sería cambiar
-              un problema por otro. */}
+          {/* UNA SOLA CAJA PARA AGREGAR (informe de UX del 08-09). Hasta hoy
+              postventa tenía tres puertas para lo mismo: el botón de línea a
+              mano, un buscador de servicios vacío a propósito, y un plegable
+              con el catálogo de equipos. Tres formas de hacer lo mismo obligan
+              a elegir antes de empezar, y quien no conoce la pantalla elige
+              mal. Ahora se escribe qué se va a cotizar y la caja busca en el
+              catálogo —desde la 0190 ahí conviven servicios, repuestos y
+              máquinas— y ofrece agregarlo a mano si no aparece. */}
           {esPostventa ? (
-            <>
-              <BuscadorEquiposModal
-                productos={[]}
-                enCarrito={{}}
-                onAgregar={() => {}}
-                onRestar={() => {}}
-                onQuitar={() => {}}
-                abrirAlEntrar={false}
-                titulo="Buscar servicios y repuestos"
-                subtitulo="Mantenimientos, repuestos y servicios cargados en el catálogo"
-                mensajeVacio={
-                  <>
-                    Todavía no hay ningún servicio ni repuesto en el catálogo.
-                    <br />
-                    Mientras tanto se escriben a mano, con <b>«Agregar un servicio o repuesto»</b> acá arriba. El
-                    catálogo se llenará con las fichas de repuestos y de mantenimiento preventivo.
-                  </>
-                }
-              />
-              <details className="rounded-lg border border-border bg-card">
-                <summary className="cursor-pointer list-none p-3 text-xs font-semibold text-muted-foreground hover:text-foreground">
-                  ¿Va a cotizar también una máquina? Abrir el catálogo de equipos
-                </summary>
-                <div className="border-t border-border p-3">
-                  <BuscadorEquiposModal
-                    productos={equiposParaElegir}
-                    enCarrito={cantidadesEnCarrito}
-                    coloresEnCarrito={coloresEnCarrito}
-                    onElegirColor={elegirColor}
-                    onAgregar={(e) => {
-                      const p = productos.find((x) => x.id === e.id);
-                      if (p) agregarProducto(p);
-                    }}
-                    onRestar={restarProducto}
-                    onQuitar={quitarProducto}
-                    abrirAlEntrar={false}
-                  />
-                </div>
-              </details>
-            </>
+            <CajaAgregarItem
+              productos={equiposParaElegir}
+              enCarrito={cantidadesEnCarrito}
+              moneda="US$"
+              onAgregar={(id) => {
+                const p = productos.find((x) => x.id === id);
+                if (p) agregarProducto(p);
+              }}
+              onLineaLibre={agregarLineaLibre}
+            />
           ) : (
             <BuscadorEquiposModal
               productos={equiposParaElegir}
@@ -837,7 +950,7 @@ export function PantallaCotizador({
           {!esPostventa && (
             <button
               type="button"
-              onClick={agregarLineaLibre}
+              onClick={() => agregarLineaLibre()}
               className="cursor-pointer text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
             >
               + Agregar una línea escrita a mano (mantenimiento, repuesto, servicio)
@@ -911,10 +1024,31 @@ export function PantallaCotizador({
                                 confirmar cada línea: la cotización se guarda
                                 sola con cada cambio (el sello de arriba lo
                                 dice). Lo que faltaba era decirlo. */}
+                            {/* EL ACUSE QUE FALTABA. No hay nada que confirmar
+                                —la cotización se guarda sola— pero quien
+                                escribe el concepto y el precio necesita VER que
+                                quedó: sin eso, el Enter que no responde se lee
+                                como «no se registró» (Santos, 08-09). El chip
+                                verde dice que ya está, y el botón es el mismo
+                                gesto del Enter para quien prefiere el mouse. */}
+                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                              {item.nombre.trim().length > 0 && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 text-[11px] font-semibold text-[#1E7F4F]">
+                                  <Check className="size-3" /> En la cotización, guardado
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                disabled={item.nombre.trim().length === 0}
+                                onClick={() => agregarLineaLibre()}
+                                className="cursor-pointer text-[11px] font-semibold text-primary underline underline-offset-2 hover:opacity-80 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
+                              >
+                                Listo · agregar otro servicio
+                              </button>
+                            </div>
                             <p className="mt-1 text-[11px] text-muted-foreground">
-                              Ya está en la cotización: se guarda solo, no hay que confirmarla.{" "}
-                              <b className="text-foreground">Enter</b> agrega otra línea. Al no estar en el catálogo,
-                              no lleva ficha técnica ni foto en el PDF.
+                              <b className="text-foreground">Enter</b> —acá o en el precio— hace lo mismo. Al no estar
+                              en el catálogo, esta línea no lleva ficha técnica ni foto en el PDF.
                             </p>
                           </>
                         ) : (
@@ -972,6 +1106,23 @@ export function PantallaCotizador({
                                 tier_aplicado: undefined,
                               })
                             }
+                            // EL ENTER QUE NO HACÍA NADA. Se escribe el
+                            // concepto, se pasa al precio, se pulsa Enter… y no
+                            // pasaba nada: en el concepto Enter agregaba otra
+                            // línea y acá era una tecla muerta, así que parecía
+                            // que el servicio no se había registrado (Santos,
+                            // 08-09). El precio es el ÚLTIMO campo de la línea:
+                            // es donde el Enter tiene más sentido, no menos.
+                            onKeyDown={(e) => {
+                              if (
+                                e.key === "Enter" &&
+                                item.producto_id === null &&
+                                item.nombre.trim().length > 0
+                              ) {
+                                e.preventDefault();
+                                agregarLineaLibre();
+                              }
+                            }}
                           />
                         </div>
                         <div className="min-w-[7rem] space-y-1 text-right">
@@ -1198,6 +1349,12 @@ export function PantallaCotizador({
                     onChange={(e) => setGarantia(e.target.value)}
                     placeholder="Sin garantía en el documento"
                   />
+                  {garantiaSospechosa && (
+                    <p className="pt-1 text-[11px] font-medium text-amber-700">
+                      Esta cotización no lleva ninguna máquina del catálogo y la garantía dice meses. Si es mano de
+                      obra o un repuesto, conviene «Garantía del servicio» o «Sin garantía».
+                    </p>
+                  )}
                   {/* Los plazos que se pactan de verdad, en un clic. El campo
                       sigue siendo libre: lo acordado no siempre es redondo. */}
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
@@ -1329,7 +1486,11 @@ export function PantallaCotizador({
             <div className="space-y-1 text-sm">
               <div className="flex justify-between text-muted-foreground">
                 <span>
-                  {carrito.length} {carrito.length === 1 ? "equipo" : "equipos"}
+                  {/* «1 equipo» era falso en casi toda cotización de postventa:
+                      un preventivo de US$ 450 se resumía como «1 equipo». Solo
+                      se dice «equipo» cuando TODAS las líneas salieron del
+                      catálogo de máquinas (informe de UX del 08-09). */}
+                  {carrito.length} {carrito.length === 1 ? unidad : `${unidad}s`}
                 </span>
                 <span className="tabular-nums">{importe(subtotal)}</span>
               </div>
@@ -1386,7 +1547,7 @@ export function PantallaCotizador({
                   Ver el PDF del borrador
                 </a>
               ) : (
-                <span className="text-muted-foreground">El PDF se puede ver al agregar el primer equipo.</span>
+                <span className="text-muted-foreground">El PDF se puede ver al agregar el primer {unidad}.</span>
               )}
               <button type="button" onClick={volver} disabled={ocupado} className="text-muted-foreground hover:underline">
                 Seguir después
