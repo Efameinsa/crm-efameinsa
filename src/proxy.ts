@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ranuraDeHost } from "@/lib/auditoria";
+import { esFalloDeAutenticacion } from "@/lib/fallo-autenticacion";
 
 const RUTA_POR_ROL: Record<string, string> = {
   admin: "/admin",
@@ -51,14 +52,22 @@ export async function proxy(request: NextRequest) {
 
   // IMPORTANTE: no quitar. getUser() valida el token contra Supabase Auth
   // (getSession() solo lee la cookie, sin validar) y además refresca la sesión.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: datosUsuario, error: errorSesion } = await supabase.auth.getUser();
+  const user = datosUsuario.user;
+
+  // Si quien pregunta TRAE su cookie de sesión y lo único que pasó es que no
+  // se pudo verificar contra Supabase, no se le saca: se le deja pasar y en la
+  // próxima navegación se vuelve a intentar. Sacarlo sería inventar un cierre
+  // de sesión que nadie pidió (Santos, 07-09: «que nunca se cierre sesión por
+  // defecto, solo si ellos le dan clic»).
+  const traeCookieDeSesion = request.cookies.getAll().some((c) => /^sb-.+-auth-token(.d+)?$/.test(c.name));
+  const soloNoSePudoVerificar =
+    !user && Boolean(errorSesion) && !esFalloDeAutenticacion(errorSesion) && traeCookieDeSesion;
 
   const { pathname } = request.nextUrl;
   const esRutaLogin = pathname === "/login";
 
-  if (!user && !esRutaLogin) {
+  if (!user && !esRutaLogin && !soloNoSePudoVerificar) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

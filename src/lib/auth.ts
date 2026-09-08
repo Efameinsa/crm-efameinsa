@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { esFalloDeAutenticacion } from "@/lib/fallo-autenticacion";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { createClient } from "@/lib/supabase/server";
 import type { Perfil, RolUsuario } from "@/types/database";
@@ -27,11 +28,26 @@ async function usuarioDeLaSesion(supabase: Awaited<ReturnType<typeof createClien
       // vencido, firmado con otra clave o corrupto: se valida por la red
     }
   }
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user?.id ?? null;
+  // ACÁ ESTABA UNA DE LAS CAUSAS DE «SE ME SALIÓ LA SESIÓN» (07-09).
+  // getUser() devuelve user=null en DOS casos que no son lo mismo: el token
+  // ya no vale, o no se pudo preguntar (un tropiezo de red, Supabase lento,
+  // un límite de tasa). El código trataba los dos igual y mandaba al login,
+  // así que un parpadeo de conexión se veía como un cierre de sesión.
+  //
+  // Ahora, si el fallo NO es de autenticación, se reintenta una vez. Y si
+  // vuelve a fallar se devuelve null igual —no hay forma de seguir sin saber
+  // quién es— pero ya no por un tropiezo de medio segundo.
+  const primera = await supabase.auth.getUser();
+  if (primera.data.user) return primera.data.user.id;
+  if (primera.error && !esFalloDeAutenticacion(primera.error)) {
+    await new Promise((r) => setTimeout(r, 250));
+    const segunda = await supabase.auth.getUser();
+    return segunda.data.user?.id ?? null;
+  }
+  return null;
 }
+
+
 
 const RUTA_POR_ROL: Record<RolUsuario, string> = {
   admin: "/admin",
