@@ -19,7 +19,14 @@ import { cn } from "@/lib/utils";
  *     que nacen del cierre; con su estado (pendiente / despachado / cerrado);
  *   · informes de servicio del área (`informes_servicio`);
  *   · informes de cierre de venta (`informes_cierre`);
- *   · ventas de servicio del histórico (`ventas` de oportunidades de postventa).
+ *   · ventas de servicio del histórico (`ventas` de oportunidades de postventa);
+ *   · las atenciones cerradas (`atenciones`), desde el 08-09.
+ *
+ * LA QUINTA FUENTE FALTABA, Y ERA LA MÁS OBVIA. El informe de UX del 08-09 lo
+ * probó: cerró un caso con la conformidad firmada por el cliente y este bloque
+ * siguió mostrando los mismos tres registros de antes. Cerrar una atención es
+ * exactamente el hecho que este historial existe para recordar — sin ella, el
+ * técnico que llega la próxima vez no sabe que ya estuvieron.
  *
  * Los montos solo para quien puede ver precios (política del área).
  */
@@ -36,7 +43,8 @@ interface Item {
 
 export async function HistorialPostventaCliente({ cuentaId, verPrecios }: { cuentaId: string; verPrecios: boolean }) {
   const supabase = await createClient();
-  const [{ data: pedidos }, { data: informesServ }, { data: cierres }, { data: ventas }] = await Promise.all([
+  const [{ data: pedidos }, { data: informesServ }, { data: cierres }, { data: ventas }, { data: atenciones }] =
+    await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("id, fecha_confirmacion, tipo_servicio, equipo, monto, moneda, completado, despachado_at, cerrado_at, fecha_despacho, informe_cierre_id, created_at")
@@ -64,7 +72,14 @@ export async function HistorialPostventaCliente({ cuentaId, verPrecios }: { cuen
       .is("anulada_at", null)
       .order("fecha_venta", { ascending: false })
       .limit(40),
-  ]);
+      supabase
+        .from("atenciones")
+        .select("id, tipo, clasificacion, equipo_texto, trabajo_realizado, cerrado_at, conformidad_nombre, tecnico")
+        .eq("cuenta_id", cuentaId)
+        .not("cerrado_at", "is", null)
+        .order("cerrado_at", { ascending: false })
+        .limit(40),
+    ]);
 
   const dinero = (monto: unknown, moneda: unknown) =>
     verPrecios && monto != null ? `${moneda ?? "USD"} ${Number(monto).toLocaleString("es-PE")}` : null;
@@ -83,6 +98,25 @@ export async function HistorialPostventaCliente({ cuentaId, verPrecios }: { cuen
       estado: p.cerrado_at ? "cerrado" : p.despachado_at || p.completado ? "ejecutado" : "pendiente",
       href: `/postventa/pedidos/${p.id}`,
       monto: dinero(p.monto, p.moneda),
+    });
+  }
+  for (const a of atenciones ?? []) {
+    const que = [
+      String(a.clasificacion ?? a.tipo ?? "").replace(/_/g, " "),
+      a.equipo_texto,
+      a.tecnico && `técnico ${a.tecnico}`,
+      a.conformidad_nombre && `conforme ${a.conformidad_nombre}`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    items.push({
+      clave: `atencion-${a.id}`,
+      fecha: a.cerrado_at as string,
+      icono: Wrench,
+      etiqueta: "Atención cerrada",
+      texto: String(a.trabajo_realizado ?? "").trim() || que || "Caso cerrado",
+      estado: "cerrado",
+      href: `/postventa/atenciones/${a.id}`,
     });
   }
   for (const i of informesServ ?? []) {
