@@ -62,6 +62,20 @@ export interface DerivadoFila {
   canal: string;
   mensaje: string | null;
   recibidoAt: string | null;
+  /**
+   * QUIÉN LO REGISTRÓ, que no es lo mismo que quién lo derivó.
+   *
+   * Carlos, 08-09: «acá está lo que he derivado, pero lo que yo he derivado es
+   * lo que yo he registrado MÁS lo que han registrado comerciales y postventa.
+   * ¿Quién lo ha registró? No lo puedo ver, o no sé dónde».
+   *
+   * El dato existe desde siempre en `leads.recibido_por`; lo que faltaba era
+   * mostrarlo. Y lo pidió para auditar, con un caso concreto: un contacto de
+   * una minera grande figuraba entrado por WhatsApp, no había tal WhatsApp, y
+   * la gestora terminó reconociendo que se equivocó al registrar una llamada.
+   * Rastrear quién lo había registrado le tomó horas de ida y vuelta.
+   */
+  registradoPor: { id: string; nombre: string; codigo_comercial: string | null } | null;
   asignadoAt: string | null;
   asignadoA: string | null;
   cuentaId: string | null;
@@ -187,6 +201,16 @@ interface Filtros {
   desde: string;
   hasta: string;
   comercial?: string | null;
+  /**
+   * Quién REGISTRÓ el contacto (`recibido_por`). Es el filtro que pidió Carlos
+   * el 08-09 para poder auditar —«que jale el filtro por gestor, o por
+   * comercial, o por área»— y que iba a hacer usar a la propia Central: «no
+   * porque lo voy a hacer yo mismo, sino le voy a indicar que lo haga el mismo
+   * gestor».
+   */
+  registradoPor?: string | null;
+  /** El canal con el que quedó registrado: whatsapp, llamada, email… */
+  canal?: string | null;
   busqueda?: string;
   limite?: number;
   /**
@@ -209,6 +233,8 @@ type LeadCrudo = {
   canal: string;
   mensaje: string | null;
   recibido_at: string | null;
+  /** Quién lo registró. Null = entró solo por el formulario web. */
+  recibido_por: string | null;
   asignado_at: string | null;
   asignado_a: string | null;
   cuenta_id: string | null;
@@ -218,7 +244,7 @@ type LeadCrudo = {
 };
 
 const CAMPOS_LEAD =
-  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, asignado_at, asignado_a, cuenta_id, es_prueba, oportunidad_id";
+  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, recibido_por, asignado_at, asignado_a, cuenta_id, es_prueba, oportunidad_id";
 
 /**
  * Las derivaciones del período con todo su rastro. Va en consultas separadas
@@ -243,6 +269,11 @@ export async function cargarDerivados(
   // es_prueba es NOT NULL default false: el .eq no traga filas por null.
   if (!f.incluirPractica) q = q.eq("es_prueba", false);
   if (f.comercial) q = q.eq("asignado_a", f.comercial);
+  // «sin_perfil» son los que entraron solos por el formulario web: no los
+  // registró nadie, y separarlos es la mitad de la auditoría.
+  if (f.registradoPor === "sin_perfil") q = q.is("recibido_por", null);
+  else if (f.registradoPor) q = q.eq("recibido_por", f.registradoPor);
+  if (f.canal) q = q.eq("canal", f.canal);
   const busqueda = (f.busqueda ?? "").trim();
   if (busqueda) {
     // TAMBIÉN POR EL NOMBRE DEL CLIENTE, no solo por lo que trajo el contacto.
@@ -546,6 +577,7 @@ async function armar(
       canal: l.canal,
       mensaje: l.mensaje,
       recibidoAt: l.recibido_at,
+      registradoPor: l.recibido_por ? (perfilPorId.get(l.recibido_por) ?? null) : null,
       asignadoAt: l.asignado_at,
       asignadoA: l.asignado_a,
       cuentaId: l.cuenta_id,
@@ -563,4 +595,64 @@ async function armar(
     };
     return { ...base, ...clasificar(base, ahora) };
   });
+}
+
+/**
+ * QUIÉN REGISTRÓ QUÉ, EN EL PERÍODO. La tabla que faltaba para auditar.
+ *
+ * Carlos, 08-09, después de encontrar un contacto de una minera grande
+ * registrado como WhatsApp cuando no hubo ningún WhatsApp: «¿cuántas
+ * equivocaciones habrá? Eso ahorita, para auditar». Y quiso el filtro por
+ * gestor porque la revisión no la va a hacer él: «le voy a indicar que lo haga
+ * el mismo gestor».
+ *
+ * Se cuenta aparte de la lista y no sobre ella, a propósito: si los números
+ * salieran de lo ya filtrado, al elegir a una persona los demás se irían a
+ * cero y no se podría comparar con nadie. Estos totales son del período
+ * entero y no se mueven al filtrar — mismo criterio que los cajones de arriba.
+ */
+export async function quienRegistroEnElPeriodo(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  f: { desde: string; hasta: string; incluirPractica?: boolean },
+): Promise<{
+  gestores: { id: string; nombre: string; total: number; porCanal: Record<string, number> }[];
+  canales: { canal: string; total: number }[];
+}> {
+  let q = supabase
+    .from("leads")
+    .select("recibido_por, canal")
+    .eq("estado", "asignado")
+    .gte("asignado_at", `${f.desde}T00:00:00-05:00`)
+    .lte("asignado_at", `${f.hasta}T23:59:59-05:00`)
+    .limit(2000);
+  if (!f.incluirPractica) q = q.eq("es_prueba", false);
+
+  const [{ data: filas }, { data: perfiles }] = await Promise.all([
+    q,
+    supabase.from("perfiles").select("id, nombre"),
+  ]);
+  const nombrePorId = new Map((perfiles ?? []).map((p) => [p.id as string, p.nombre as string]));
+
+  const porGestor = new Map<string, { id: string; nombre: string; total: number; porCanal: Record<string, number> }>();
+  const porCanal = new Map<string, number>();
+  for (const l of (filas ?? []) as { recibido_por: string | null; canal: string | null }[]) {
+    // Sin `recibido_por` es el formulario web: entró solo, no lo registró
+    // nadie. Separarlo es la mitad de la auditoría — mezclarlo con las
+    // personas infla a «nadie» y ensucia la comparación.
+    const id = l.recibido_por ?? "sin_perfil";
+    const nombre = l.recibido_por ? (nombrePorId.get(l.recibido_por) ?? "Usuario dado de baja") : "Formulario web";
+    const canal = l.canal ?? "sin_canal";
+    const g = porGestor.get(id) ?? { id, nombre, total: 0, porCanal: {} };
+    g.total += 1;
+    g.porCanal[canal] = (g.porCanal[canal] ?? 0) + 1;
+    porGestor.set(id, g);
+    porCanal.set(canal, (porCanal.get(canal) ?? 0) + 1);
+  }
+
+  return {
+    gestores: [...porGestor.values()].sort((a, b) => b.total - a.total),
+    canales: [...porCanal.entries()]
+      .map(([canal, total]) => ({ canal, total }))
+      .sort((a, b) => b.total - a.total),
+  };
 }

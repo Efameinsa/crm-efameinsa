@@ -92,7 +92,23 @@ export function TarjetaDerivado({
                 {fila.telefono}
               </span>
             )}
-            <span>{ETIQUETA_CANAL[fila.canal] ?? fila.canal}</span>
+            {/* EL CANAL Y QUIÉN LO REGISTRÓ, JUNTOS. Van pegados porque la
+                pregunta de la auditoría es la pareja: «esto dice WhatsApp,
+                ¿quién lo puso?» — que es como se descubrió, el 08-09, que una
+                llamada de una minera grande estaba registrada como WhatsApp
+                que nunca existió. Antes había que preguntarle a la gestora y
+                esperar horas. */}
+            <span className="rounded-full bg-secondary px-1.5 py-px font-medium text-foreground">
+              {ETIQUETA_CANAL[fila.canal] ?? fila.canal}
+            </span>
+            <span>
+              registrado por{" "}
+              <b className="text-foreground">
+                {fila.registradoPor
+                  ? `${fila.registradoPor.codigo_comercial ? `${fila.registradoPor.codigo_comercial} · ` : ""}${fila.registradoPor.nombre}`
+                  : "el formulario web"}
+              </b>
+            </span>
           </p>
           {fila.mensaje && (
             <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-foreground/80">

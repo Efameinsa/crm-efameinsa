@@ -1,7 +1,14 @@
 import { Search, Ban, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
-import { cargarDerivados, ETIQUETA_FOCO, type DerivadoFila, type FocoDerivado } from "@/lib/derivados-central";
+import {
+  cargarDerivados,
+  quienRegistroEnElPeriodo,
+  ETIQUETA_FOCO,
+  ETIQUETA_CANAL,
+  type DerivadoFila,
+  type FocoDerivado,
+} from "@/lib/derivados-central";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
 import { ChipsParam } from "@/components/crm/chips-param";
@@ -62,7 +69,7 @@ const ORDEN_FOCO: FocoDerivado[] = ["sin_atender", "en_gestion", "cotizado", "ce
 export default async function DerivadosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; q?: string; foco?: string; practica?: string; mostrar?: string }>;
+  searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; q?: string; foco?: string; practica?: string; mostrar?: string; registro?: string; canal?: string }>;
 }) {
   const sp = await searchParams;
   const periodo = resolverPeriodo(sp, "semana");
@@ -83,7 +90,7 @@ export default async function DerivadosPage({
   // derivación a un comercial —descartado, duplicado y derivado a otra área—,
   // que hasta hoy vivían en pantallas distintas o en ninguna. Todos se pueden
   // retomar: «cualquier eventualidad la podemos retomar».
-  const [{ data: comerciales }, supervisores, derivados, { data: avisos }, { data: rechazados }] = await Promise.all([
+  const [{ data: comerciales }, supervisores, derivados, quienRegistro, { data: avisos }, { data: rechazados }] = await Promise.all([
     supabase
       .from("perfiles")
       // Los perfiles de práctica viajan también: el diálogo los ofrece solo
@@ -97,10 +104,19 @@ export default async function DerivadosPage({
       desde: periodo.desde,
       hasta: periodo.hasta,
       comercial: sp.comercial ?? null,
+      // QUIÉN REGISTRÓ, que no es quién derivó (Carlos, 08-09).
+      registradoPor: sp.registro ?? null,
+      canal: sp.canal ?? null,
       busqueda,
       // El banco de pruebas solo se ve con el código levantado (modo ensayo):
       // así la capacitación no vuelve a sembrar la pantalla de «prueba,
       // prueba, prueba» (auditoría de Santos y gerencia, 01-09).
+      incluirPractica: modoEnsayo,
+    }),
+    // Quién registró qué en el período, para poder auditarlo (Carlos, 08-09).
+    quienRegistroEnElPeriodo(supabase, {
+      desde: periodo.desde,
+      hasta: periodo.hasta,
       incluirPractica: modoEnsayo,
     }),
     // EL HISTORIAL DE OPERACIONES (0171). Carlos, 04-09 por la tarde, después
@@ -143,6 +159,8 @@ export default async function DerivadosPage({
     if (sp.desde) p.set("desde", sp.desde);
     if (sp.hasta) p.set("hasta", sp.hasta);
     if (sp.comercial) p.set("comercial", sp.comercial);
+    if (sp.registro) p.set("registro", sp.registro);
+    if (sp.canal) p.set("canal", sp.canal);
     if (sp.q) p.set("q", sp.q);
     if (sp.foco) p.set("foco", sp.foco);
     for (const [k, v] of Object.entries(extra)) p.set(k, v);
@@ -174,6 +192,65 @@ export default async function DerivadosPage({
         comercialId={sp.comercial ?? null}
       />
 
+      {/* QUIÉN LO REGISTRÓ — la pregunta que esta pantalla no contestaba.
+          Carlos, 08-09: «acá está lo que he derivado, pero lo que yo he
+          derivado es lo que yo he registrado MÁS lo que han registrado
+          comerciales y postventa. ¿Quién lo ha registrado? No lo puedo ver, o
+          no sé dónde».
+          Lo pidió con un caso encima: un contacto de una minera grande
+          figuraba entrado por WhatsApp, no había tal WhatsApp, y la gestora
+          reconoció que se equivocó al registrar una llamada. Saber quién lo
+          había registrado le tomó horas de ida y vuelta; acá es un vistazo.
+          Los números son del período entero y NO se mueven al filtrar: si
+          salieran de lo ya filtrado, al elegir a una persona los demás se
+          irían a cero y no habría con qué comparar. */}
+      {quienRegistro.gestores.length > 0 && (
+        <div className="mt-3 rounded-lg border border-border bg-muted/30 p-2.5">
+          <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            Quién lo registró
+            <span className="ml-1.5 font-medium normal-case text-muted-foreground">
+              — no es lo mismo que quién lo derivó
+            </span>
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <ChipsParam
+              nombre="registro"
+              valor={sp.registro ?? null}
+              opciones={[
+                { valor: null, etiqueta: `Todos · ${derivados.length}` },
+                ...quienRegistro.gestores.map((g) => ({ valor: g.id, etiqueta: `${g.nombre} · ${g.total}` })),
+              ]}
+            />
+            {/* El canal va al lado porque la pregunta de la auditoría es la
+                combinación: «¿cuántas de las de Central dicen WhatsApp?». */}
+            <ChipsParam
+              nombre="canal"
+              valor={sp.canal ?? null}
+              opciones={[
+                { valor: null, etiqueta: "Todos los canales" },
+                ...quienRegistro.canales.map((c) => ({
+                  valor: c.canal,
+                  etiqueta: `${ETIQUETA_CANAL[c.canal] ?? c.canal} · ${c.total}`,
+                })),
+              ]}
+            />
+          </div>
+          {sp.registro && (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              {(() => {
+                const g = quienRegistro.gestores.find((x) => x.id === sp.registro);
+                if (!g) return null;
+                const detalle = Object.entries(g.porCanal)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([c, n]) => `${ETIQUETA_CANAL[c] ?? c}: ${n}`)
+                  .join(" · ");
+                return `${g.nombre} registró ${g.total} en el período — ${detalle}. Para auditar uno, abra el contacto y pídale la evidencia del canal que dice.`;
+              })()}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="my-3 flex flex-wrap items-center gap-2">
         <ChipsParam
           nombre="foco"
@@ -192,6 +269,8 @@ export default async function DerivadosPage({
           <input type="hidden" name="desde" value={periodo.desde} />
           <input type="hidden" name="hasta" value={periodo.hasta} />
           {sp.comercial && <input type="hidden" name="comercial" value={sp.comercial} />}
+          {sp.registro && <input type="hidden" name="registro" value={sp.registro} />}
+          {sp.canal && <input type="hidden" name="canal" value={sp.canal} />}
           {foco && <input type="hidden" name="foco" value={foco} />}
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
