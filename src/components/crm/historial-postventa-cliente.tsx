@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Wrench, PackageSearch, FileText, ClipboardCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { fechaLima } from "@/lib/fechas";
+import { etiquetaTipoServicio } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 
 /**
@@ -93,7 +94,10 @@ export async function HistorialPostventaCliente({ cuentaId, verPrecios }: { cuen
       clave: `pedido-${p.id}`,
       fecha,
       icono: /repuesto/i.test(String(p.tipo_servicio)) ? PackageSearch : Wrench,
-      etiqueta: String(p.tipo_servicio ?? "Servicio"),
+      // UN SOLO ESTILO. Acá salía «ENTREGA DE EQUIPO» a gritos porque viene del
+      // Excel viejo, al lado de «mantenimiento_preventivo» con guion bajo y de
+      // «evaluacion» sin tilde: el mismo servicio parecía tres (UX, 08-09).
+      etiqueta: etiquetaTipoServicio(p.tipo_servicio as string | null),
       texto: String(p.equipo ?? "").trim() || "Pedido de servicio",
       estado: p.cerrado_at ? "cerrado" : p.despachado_at || p.completado ? "ejecutado" : "pendiente",
       href: `/postventa/pedidos/${p.id}`,
@@ -102,7 +106,7 @@ export async function HistorialPostventaCliente({ cuentaId, verPrecios }: { cuen
   }
   for (const a of atenciones ?? []) {
     const que = [
-      String(a.clasificacion ?? a.tipo ?? "").replace(/_/g, " "),
+      etiquetaTipoServicio(String(a.clasificacion ?? a.tipo ?? "")),
       a.equipo_texto,
       a.tecnico && `técnico ${a.tecnico}`,
       a.conformidad_nombre && `conforme ${a.conformidad_nombre}`,
@@ -125,7 +129,9 @@ export async function HistorialPostventaCliente({ cuentaId, verPrecios }: { cuen
       fecha: i.ejecutado_at as string,
       icono: ClipboardCheck,
       etiqueta: `Informe de servicio${i.correlativo != null ? ` N.º ${String(i.correlativo).padStart(3, "0")}-${i.anio}` : ""}`,
-      texto: [i.tipo, i.equipo_texto, i.tecnico && `técnico ${i.tecnico}`].filter(Boolean).join(" · "),
+      texto: [etiquetaTipoServicio(i.tipo as string | null), i.equipo_texto, i.tecnico && `técnico ${i.tecnico}`]
+        .filter(Boolean)
+        .join(" · "),
       href: `/postventa/informes/${i.id}`,
     });
   }

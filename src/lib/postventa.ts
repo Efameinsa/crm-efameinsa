@@ -526,8 +526,36 @@ export const TIPOS_SERVICIO = [
   { valor: "tecnico", etiqueta: "Informe técnico de servicio" },
 ] as const;
 
-export function etiquetaTipoServicio(tipo: string): string {
-  return TIPOS_SERVICIO.find((t) => t.valor === tipo)?.etiqueta ?? tipo;
+/**
+ * UN SOLO ESTILO DE ETIQUETA, TRADUCIDA DESDE EL CÓDIGO INTERNO.
+ *
+ * En el historial de un cliente convivían tres estilos para lo mismo:
+ * «mantenimiento_preventivo» con guion bajo, «evaluacion» sin tilde y «ENTREGA
+ * DE EQUIPO» en mayúsculas (informe de UX del 08-09). No es un problema de
+ * gusto: el de mayúsculas viene del Excel histórico y el de guion bajo del
+ * enum, así que el cliente lee dos veces el mismo servicio y parece que le
+ * hicieron dos cosas distintas.
+ *
+ * Se resuelve al mostrar y no en la base: los importados son texto libre de
+ * años de Excel y normalizarlos allá es reescribir historia. Acá se busca el
+ * código —sin tildes, sin mayúsculas, con espacios o guiones bajos, da igual—
+ * y si no está en la lista se devuelve en la misma forma que el resto, con la
+ * primera letra en mayúscula, en vez de gritar.
+ */
+export function etiquetaTipoServicio(tipo: string | null | undefined): string {
+  const crudo = String(tipo ?? "").trim();
+  if (!crudo) return "Servicio";
+
+  const clave = crudo
+    .toLocaleLowerCase("es-PE")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\s-]+/g, "_");
+  const conocido = TIPOS_SERVICIO.find((t) => t.valor === clave);
+  if (conocido) return conocido.etiqueta;
+
+  const enPalabras = crudo.replace(/_/g, " ").replace(/\s+/g, " ").toLocaleLowerCase("es-PE").trim();
+  return enPalabras.charAt(0).toLocaleUpperCase("es-PE") + enPalabras.slice(1);
 }
 
 /**

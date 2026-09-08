@@ -201,6 +201,21 @@ export function PipelineKanban({
   );
   const activo = oportunidades.find((o) => o.id === activoId) ?? null;
 
+  /**
+   * UN SOLO NÚMERO POR CONCEPTO. Los filtros de arriba decían «Venta (1)» y
+   * «Rechazada (1)» mientras el pie de ESTE MISMO tablero decía «Cerradas
+   * recientes: 0 venta(s), 0 rechazada(s)» (informe de UX del 08-09). No era
+   * un error de cuenta: los filtros leen el total de la base
+   * (`contar_oportunidades_por_etapa`) y el pie contaba solo las fichas que el
+   * tablero había cargado, que de las cerradas no trae ninguna.
+   *
+   * Cuando dos números del mismo tablero se contradicen, se deja de creer en
+   * los dos. Así que el pie usa el mismo total que los filtros, y solo cae a
+   * contar lo cargado si no llegó (gerencia mirando una lista sin paginar).
+   */
+  const totalCerradas = (etapa: string) =>
+    totalesPorEtapa?.[etapa] ?? cerradas.filter((o) => o.etapa === etapa).length;
+
   function aplicarEtapa(id: string, etapa: EtapaOportunidad, motivoRechazoId: number | null) {
     const anterior = oportunidades;
     setOportunidades((prev) => prev.map((o) => (o.id === id ? { ...o, etapa } : o)));
@@ -260,21 +275,21 @@ export function PipelineKanban({
               totalEtapa={totalesPorEtapa?.[c.etapa]}
             />
           ))}
-          <RechazadaDropzone cantidad={cerradas.filter((o) => o.etapa === "rechazada").length} />
+          <RechazadaDropzone cantidad={totalCerradas("rechazada")} />
         </div>
         <DragOverlay>{activo && <Tarjeta op={activo} arrastrando />}</DragOverlay>
       </DndContext>
 
       <div className="flex flex-wrap items-center gap-2 px-1 text-xs">
-        <span className="text-muted-foreground">Cerradas recientes:</span>
+        <span className="text-muted-foreground">Cerradas:</span>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1E7F4F]/10 px-2.5 py-1 font-semibold text-[#1E7F4F]">
-          {cerradas.filter((o) => o.etapa === "venta").length} venta(s)
+          {totalCerradas("venta")} venta(s)
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive">
-          {cerradas.filter((o) => o.etapa === "rechazada").length} rechazada(s)
+          {totalCerradas("rechazada")} rechazada(s)
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 font-semibold text-muted-foreground">
-          {cerradas.filter((o) => o.etapa === "derivada").length} derivada(s)
+          {totalCerradas("derivada")} derivada(s)
         </span>
       </div>
 

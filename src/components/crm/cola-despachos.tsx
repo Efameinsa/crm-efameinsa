@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { fechaLima, fechaCalendario } from "@/lib/fechas";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { queLoFrena, etiquetaResponsable, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
+import { queLoFrena, etiquetaResponsable, etiquetaTipoServicio, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
 import { idsDeCuentasQueCasan, condicionCuentaIn } from "@/lib/buscar-cuentas";
 import { cn } from "@/lib/utils";
 
@@ -247,7 +247,9 @@ function TablaHistoricaDespachos({ filas, verPrecios }: { filas: ServicioPostven
               <TableCell className="max-w-[260px] align-top text-[11px] text-muted-foreground">
                 <span className="line-clamp-4 whitespace-pre-line">{s.equipo ?? "—"}</span>
               </TableCell>
-              <TableCell className="align-top text-xs">{s.tipo_servicio}</TableCell>
+              {/* Traducido, como en el historial: acá también convivían el
+                  código con guion bajo y el grito del Excel viejo. */}
+              <TableCell className="align-top text-xs">{etiquetaTipoServicio(s.tipo_servicio)}</TableCell>
               <TableCell className="max-w-[160px] align-top text-[11px] text-muted-foreground whitespace-normal break-words">
                 {s.ubicacion ?? "—"}
               </TableCell>

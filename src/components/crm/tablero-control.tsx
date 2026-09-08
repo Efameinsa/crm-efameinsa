@@ -164,6 +164,27 @@ function Tarjeta({
   onDragEnd: () => void;
 }) {
   const siguiente = FASES.find((f) => f.numero === p.fase + 1);
+
+  /**
+   * SOLO LA FASE EN LA QUE ESTÁ. La tarjeta abría los diez pasos del circuito
+   * entero —incluidos los cuatro de Despacho y los dos del cierre— estando en
+   * Preparación, y el contador decía 0/10 (Santos, 08-09: «¿no se supone que
+   * cada card debe contener solo las viñetas de la etapa que le corresponde?»).
+   *
+   * Es lo mismo que ya se había decidido y el código no hacía: mostrar diez
+   * pasos donde cuatro son accionables convierte la tarjeta en un documento
+   * que hay que leer, y ninguna de las dos columnas vecinas dice nada. El
+   * circuito completo sigue en la ficha del pedido, a un clic.
+   *
+   * La barra y el contador acompañan: si la lista es de la fase, el 0/10 al
+   * lado era otro número que no correspondía a lo que se está viendo.
+   */
+  const faseActual = p.fasesDetalle.find((f) => f.actual) ?? p.fasesDetalle[0];
+  const pasosDeLaFase = faseActual?.pasos ?? [];
+  const hechosFase = pasosDeLaFase.filter((x) => x.hecho).length;
+  const totalFase = pasosDeLaFase.length || 1;
+  const pctFase = Math.round((hechosFase / totalFase) * 100);
+  const faltanEnOtras = p.total - p.hechos - (pasosDeLaFase.length - hechosFase);
   return (
     <div
       draggable
@@ -191,12 +212,17 @@ function Tarjeta({
         <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
           <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
             <span
-              className={cn("block h-full", p.pct === 100 ? "bg-[#1E7F4F]" : "bg-primary")}
-              style={{ width: `${p.pct}%` }}
+              className={cn("block h-full", pctFase === 100 ? "bg-[#1E7F4F]" : "bg-primary")}
+              style={{ width: `${pctFase}%` }}
             />
           </span>
-          <span className="text-[11px] tabular-nums text-muted-foreground">
-            {p.hechos}/{p.total}
+          {/* El total del pedido no se pierde: va en el título, para quien lo
+              busque, sin competir con el número de la fase. */}
+          <span
+            className="text-[11px] tabular-nums text-muted-foreground"
+            title={`${p.hechos} de ${p.total} pasos en todo el pedido`}
+          >
+            {hechosFase}/{totalFase}
           </span>
           <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
         </summary>
@@ -204,29 +230,18 @@ function Tarjeta({
           {/* TODOS los pasos del contador, agrupados por fase — estilo
               checklist de Asana: verde vivo lo hecho, naranja notorio lo que
               falta, y la FASE ACTUAL resaltada para saber dónde se trabaja. */}
-          {p.fasesDetalle.map((fase) => (
-            <div
-              key={fase.numero}
-              className={cn(
-                "rounded-md p-2",
-                fase.actual ? "border border-primary/30 bg-primary/5" : "opacity-80",
-              )}
-            >
-              <p
-                className={cn(
-                  "mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-wide",
-                  fase.actual ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                <span>{fase.titulo}</span>
-                {fase.actual && (
-                  <span className="rounded-full bg-primary px-1.5 py-px text-[9px] text-primary-foreground">
-                    fase actual
-                  </span>
-                )}
+          {/* Los pasos de ESTA fase y nada más. Lo que viene después se
+              resume abajo en una línea: el orden se entiende sin desplegarlo. */}
+          {faseActual && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-2">
+              <p className="mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-primary">
+                <span>{faseActual.titulo}</span>
+                <span className="rounded-full bg-primary px-1.5 py-px text-[9px] text-primary-foreground">
+                  fase actual
+                </span>
               </p>
               <ul className="space-y-1">
-                {fase.pasos.map((paso) => (
+                {pasosDeLaFase.map((paso) => (
                   <li key={paso.etiqueta} className="flex items-start gap-1.5 text-[11px] leading-snug">
                     {paso.hecho ? (
                       <span className="mt-px flex size-3.5 flex-none items-center justify-center rounded-full bg-green-600">
@@ -247,10 +262,16 @@ function Tarjeta({
                 ))}
               </ul>
             </div>
-          ))}
-          {siguiente && (
+          )}
+          {siguiente ? (
             <p className="px-1 pt-0.5 text-[10px] text-muted-foreground">
-              Al completar la fase actual, la tarjeta pasa sola a {siguiente.titulo}.
+              Al completar la fase actual, la tarjeta pasa sola a {siguiente.titulo}
+              {faltanEnOtras > 0 && `, donde quedan ${faltanEnOtras} paso${faltanEnOtras === 1 ? "" : "s"} más`}. El
+              circuito completo está en la ficha del pedido.
+            </p>
+          ) : (
+            <p className="px-1 pt-0.5 text-[10px] text-muted-foreground">
+              Última fase. El circuito completo está en la ficha del pedido.
             </p>
           )}
         </div>
