@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaLima } from "@/lib/fechas";
+import { BandejaPorCliente } from "@/components/crm/bandeja-por-cliente";
 import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
@@ -73,6 +74,8 @@ interface ItemBandeja {
    * vez.
    */
   servicioIdParaAprobar?: string;
+  /** La cuenta manda para agrupar: el nombre escrito de dos formas, no. */
+  cuentaId?: string | null;
 }
 
 /** Lo mismo que `relojAtencion`, para el único origen que no tenía reloj propio. */
@@ -141,7 +144,7 @@ export default async function PostventaPage() {
       (() => {
         let c = supabase
           .from("oportunidades")
-          .select("id, tipo_postventa, serie_texto, codigo_error, created_at, cuentas(razon_social)")
+          .select("id, cuenta_id, tipo_postventa, serie_texto, codigo_error, created_at, cuentas(razon_social)")
           .eq("origen", "crm")
           .eq("etapa", "asignada")
           .not("tipo_postventa", "is", null)
@@ -240,6 +243,7 @@ export default async function PostventaPage() {
     const reloj = relojPedido(s.pedido_ejecutado_at as string);
     return {
       clave: `pedido-${s.id}`,
+      cuentaId: s.cuenta_id ?? null,
       href: `/postventa/pedidos/${s.id}`,
       icono: Inbox,
       // El texto importado trae el RUC pegado adelante («20000000102 - HOTEL…»)
@@ -262,6 +266,7 @@ export default async function PostventaPage() {
 
   const itemsCasos: ItemBandeja[] = ((casosSinTocar ?? []) as unknown as {
     id: string;
+    cuenta_id: string | null;
     tipo_postventa: string | null;
     serie_texto: string | null;
     codigo_error: string | null;
@@ -277,6 +282,7 @@ export default async function PostventaPage() {
     const detalle = c.codigo_error ? `error ${c.codigo_error}` : c.serie_texto ? `serie ${c.serie_texto}` : null;
     return {
       clave: `caso-${c.id}`,
+      cuentaId: c.cuenta_id ?? null,
       href: `/comercial/oportunidades/${c.id}`,
       icono: tipo === "garantia" ? ShieldCheck : tipo === "repuesto" ? PackageSearch : Wrench,
       cliente: c.cuentas?.razon_social ?? "Cliente sin nombre",
@@ -291,6 +297,7 @@ export default async function PostventaPage() {
 
   const itemsAtenciones: ItemBandeja[] = ((atencionesNuevas ?? []) as unknown as {
     id: string;
+    cuenta_id: string | null;
     cliente_texto: string | null;
     tipo: TipoAtencion;
     etapa: "registro";
@@ -303,6 +310,7 @@ export default async function PostventaPage() {
     const reloj = relojAtencion(a as unknown as Parameters<typeof relojAtencion>[0]);
     return {
       clave: `atencion-${a.id}`,
+      cuentaId: a.cuenta_id ?? null,
       href: `/postventa/atenciones/${a.id}`,
       icono: ICONO_TIPO_ATENCION[a.tipo] ?? Wrench,
       cliente: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre",
@@ -367,57 +375,22 @@ export default async function PostventaPage() {
             que Central acaba de devolver al área — apenas se registren, antes de que alguien las tome.
           </Vacio>
         ) : (
-          <div className="space-y-2">
-            {bandeja.map((item) => {
-              const Icono = item.icono;
-              return (
-                <div
-                  key={item.clave}
-                  className={cn(
-                    "flex flex-wrap items-center gap-3 rounded-lg border p-3",
-                    item.estado === "rojo" ? "border-destructive/30 bg-destructive/5" : "border-border bg-background",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex size-9 flex-none items-center justify-center rounded-full",
-                      item.estado === "rojo"
-                        ? "bg-destructive/10 text-destructive"
-                        : item.estado === "ambar"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-secondary text-foreground",
-                    )}
-                  >
-                    <Icono className="size-4" />
-                  </span>
-                  <Link href={item.href} className="min-w-[220px] flex-1 hover:underline">
-                    <p className="text-sm font-semibold text-foreground">{item.cliente}</p>
-                    <p className="line-clamp-1 text-xs text-muted-foreground no-underline">
-                      {item.etiqueta}
-                      {item.detalle && ` · ${item.detalle}`}
-                    </p>
-                  </Link>
-                  <span
-                    className={cn(
-                      "whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold",
-                      item.estado === "rojo"
-                        ? "bg-destructive/10 text-destructive"
-                        : item.estado === "ambar"
-                          ? "bg-amber-500/15 text-amber-800"
-                          : "bg-secondary text-muted-foreground",
-                    )}
-                  >
-                    {item.recienLlegado ? "Recién llegado" : relojHumano(item.estado, item.horas, item.limite)}
-                  </span>
-                  {item.servicioIdParaAprobar ? (
-                    <AprobarPedidoBoton servicioId={item.servicioIdParaAprobar} />
-                  ) : (
-                    <ArrowRight className="size-3.5 flex-none text-muted-foreground" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <BandejaPorCliente
+            casos={bandeja.map((item) => ({
+              clave: item.clave,
+              href: item.href,
+              icono: item.icono,
+              cuentaId: item.cuentaId ?? null,
+              cliente: item.cliente,
+              etiqueta: item.etiqueta,
+              detalle: item.detalle,
+              estado: item.estado,
+              aviso: item.recienLlegado ? "Recién llegado" : relojHumano(item.estado, item.horas, item.limite),
+              accion: item.servicioIdParaAprobar ? (
+                <AprobarPedidoBoton servicioId={item.servicioIdParaAprobar} />
+              ) : undefined,
+            }))}
+          />
         )}
       </SeccionPanel>
 
