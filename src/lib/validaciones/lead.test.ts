@@ -23,6 +23,22 @@ describe("esquemaCaptura (captura manual de Central)", () => {
     expect(r.success).toBe(false);
   });
 
+  // EL CANAL ES UNA RESPUESTA, NO UN VALOR POR DEFECTO (08-09). Es el dato con
+  // el que después se pide la evidencia —«dice WhatsApp, pásame el WhatsApp»—
+  // así que el formulario arranca vacío y hay que elegirlo. Esto asegura que
+  // el servidor tampoco lo deje pasar, que es lo que de verdad protege el dato.
+  it("sin canal no se guarda, y el aviso dice qué falta", () => {
+    const r = esquemaCaptura.safeParse({ ...base, canal: "" });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0].message).toMatch(/Elija por dónde llegó/);
+  });
+
+  it("los canales reales siguen pasando", () => {
+    for (const canal of ["whatsapp", "llamada", "email", "presencial", "referido"]) {
+      expect(esquemaCaptura.safeParse({ ...base, canal }).success, canal).toBe(true);
+    }
+  });
+
   it("correo con formato inválido falla, pero vacío es válido (opcional)", () => {
     expect(esquemaCaptura.safeParse({ ...base, email: "no-es-correo" }).success).toBe(false);
     expect(esquemaCaptura.safeParse({ ...base, email: "" }).success).toBe(true);

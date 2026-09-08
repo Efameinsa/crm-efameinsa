@@ -69,7 +69,7 @@ const ORDEN_FOCO: FocoDerivado[] = ["sin_atender", "en_gestion", "cotizado", "ce
 export default async function DerivadosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; q?: string; foco?: string; practica?: string; mostrar?: string; registro?: string; canal?: string }>;
+  searchParams: Promise<{ desde?: string; hasta?: string; comercial?: string; q?: string; foco?: string; practica?: string; mostrar?: string; registro?: string; canal?: string; evidencia?: string }>;
 }) {
   const sp = await searchParams;
   const periodo = resolverPeriodo(sp, "semana");
@@ -107,6 +107,7 @@ export default async function DerivadosPage({
       // QUIÉN REGISTRÓ, que no es quién derivó (Carlos, 08-09).
       registradoPor: sp.registro ?? null,
       canal: sp.canal ?? null,
+      evidencia: sp.evidencia ?? null,
       busqueda,
       // El banco de pruebas solo se ve con el código levantado (modo ensayo):
       // así la capacitación no vuelve a sembrar la pantalla de «prueba,
@@ -161,6 +162,7 @@ export default async function DerivadosPage({
     if (sp.comercial) p.set("comercial", sp.comercial);
     if (sp.registro) p.set("registro", sp.registro);
     if (sp.canal) p.set("canal", sp.canal);
+    if (sp.evidencia) p.set("evidencia", sp.evidencia);
     if (sp.q) p.set("q", sp.q);
     if (sp.foco) p.set("foco", sp.foco);
     for (const [k, v] of Object.entries(extra)) p.set(k, v);
@@ -234,7 +236,30 @@ export default async function DerivadosPage({
                 })),
               ]}
             />
+            {/* SIN EVIDENCIA, PARA MUESTREAR. Adjuntar la captura no es
+                obligatorio y no debe serlo: una llamada no tiene nada que
+                adjuntar, y exigirlo solo donde sí existe empujaría a registrar
+                todo como llamada. Lo que sí se puede es mirarlo — este chip
+                deja los que dicen haber llegado por un canal que SÍ deja
+                rastro y no traen ninguno. Es la lista más corta por donde
+                empezar a auditar. */}
+            {quienRegistro.sinEvidencia > 0 && (
+              <ChipsParam
+                nombre="evidencia"
+                valor={sp.evidencia ?? null}
+                opciones={[
+                  { valor: null, etiqueta: "Con y sin evidencia" },
+                  { valor: "sin", etiqueta: `Sin evidencia · ${quienRegistro.sinEvidencia}` },
+                ]}
+              />
+            )}
           </div>
+          {sp.evidencia === "sin" && (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Contactos que dicen haber llegado por WhatsApp, correo o formulario y no traen ninguna captura.
+              Las llamadas y las visitas no salen acá: no hay nada que adjuntar.
+            </p>
+          )}
           {sp.registro && (
             <p className="mt-1.5 text-[11px] text-muted-foreground">
               {(() => {
@@ -271,6 +296,7 @@ export default async function DerivadosPage({
           {sp.comercial && <input type="hidden" name="comercial" value={sp.comercial} />}
           {sp.registro && <input type="hidden" name="registro" value={sp.registro} />}
           {sp.canal && <input type="hidden" name="canal" value={sp.canal} />}
+          {sp.evidencia && <input type="hidden" name="evidencia" value={sp.evidencia} />}
           {foco && <input type="hidden" name="foco" value={foco} />}
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

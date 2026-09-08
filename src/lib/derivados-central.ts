@@ -76,6 +76,20 @@ export interface DerivadoFila {
    * Rastrear quién lo había registrado le tomó horas de ida y vuelta.
    */
   registradoPor: { id: string; nombre: string; codigo_comercial: string | null } | null;
+  /**
+   * SI QUEDÓ LA PRUEBA DE POR DÓNDE LLEGÓ. La captura de WhatsApp, el correo,
+   * el PDF que mandó el cliente.
+   *
+   * No es obligatorio adjuntarla, a propósito: una llamada no tiene nada que
+   * adjuntar, y exigir evidencia solo donde sí existe convertiría a esos
+   * canales en los caros y empujaría a elegir el barato. Toda fricción puesta
+   * sobre un canal tuerce la elección del canal, que es justo lo que hay que
+   * evitar.
+   *
+   * Lo que sí se puede es MIRARLO: con esto, quien audita filtra «WhatsApp sin
+   * evidencia» y revisa exactamente esos, sin trabarle el trabajo a nadie.
+   */
+  tieneEvidencia: boolean;
   asignadoAt: string | null;
   asignadoA: string | null;
   cuentaId: string | null;
@@ -211,6 +225,8 @@ interface Filtros {
   registradoPor?: string | null;
   /** El canal con el que quedó registrado: whatsapp, llamada, email… */
   canal?: string | null;
+  /** «sin» deja solo los que no tienen ninguna prueba adjunta. */
+  evidencia?: string | null;
   busqueda?: string;
   limite?: number;
   /**
@@ -235,6 +251,8 @@ type LeadCrudo = {
   recibido_at: string | null;
   /** Quién lo registró. Null = entró solo por el formulario web. */
   recibido_por: string | null;
+  /** La captura o el archivo con el que llegó, si lo hubo. */
+  adjuntos: unknown[] | null;
   asignado_at: string | null;
   asignado_a: string | null;
   cuenta_id: string | null;
@@ -244,7 +262,7 @@ type LeadCrudo = {
 };
 
 const CAMPOS_LEAD =
-  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, recibido_por, asignado_at, asignado_a, cuenta_id, es_prueba, oportunidad_id";
+  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, recibido_por, adjuntos, asignado_at, asignado_a, cuenta_id, es_prueba, oportunidad_id";
 
 /**
  * Las derivaciones del período con todo su rastro. Va en consultas separadas
@@ -274,6 +292,7 @@ export async function cargarDerivados(
   if (f.registradoPor === "sin_perfil") q = q.is("recibido_por", null);
   else if (f.registradoPor) q = q.eq("recibido_por", f.registradoPor);
   if (f.canal) q = q.eq("canal", f.canal);
+  if (f.evidencia === "sin") q = q.eq("adjuntos", "[]");
   const busqueda = (f.busqueda ?? "").trim();
   if (busqueda) {
     // TAMBIÉN POR EL NOMBRE DEL CLIENTE, no solo por lo que trajo el contacto.
@@ -578,6 +597,7 @@ async function armar(
       mensaje: l.mensaje,
       recibidoAt: l.recibido_at,
       registradoPor: l.recibido_por ? (perfilPorId.get(l.recibido_por) ?? null) : null,
+      tieneEvidencia: Array.isArray(l.adjuntos) && l.adjuntos.length > 0,
       asignadoAt: l.asignado_at,
       asignadoA: l.asignado_a,
       cuentaId: l.cuenta_id,
@@ -596,6 +616,14 @@ async function armar(
     return { ...base, ...clasificar(base, ahora) };
   });
 }
+
+/**
+ * LOS CANALES QUE DEJAN UN RASTRO QUE SE PUEDE ADJUNTAR. Una llamada y una
+ * visita no: pedirles evidencia sería pedir lo imposible, y marcarlas como
+ * «sin evidencia» empujaría a registrar todo como llamada para que no las
+ * marquen. La fricción puesta sobre un canal tuerce la elección del canal.
+ */
+export const DEJA_RASTRO = new Set(["whatsapp", "email", "formulario_web", "facebook", "instagram"]);
 
 /**
  * QUIÉN REGISTRÓ QUÉ, EN EL PERÍODO. La tabla que faltaba para auditar.
@@ -617,10 +645,16 @@ export async function quienRegistroEnElPeriodo(
 ): Promise<{
   gestores: { id: string; nombre: string; total: number; porCanal: Record<string, number> }[];
   canales: { canal: string; total: number }[];
+  /**
+   * Cuántos, de los canales que SÍ dejan rastro, quedaron sin la prueba
+   * adjunta. Una llamada no cuenta acá: no hay nada que adjuntar, y contarla
+   * como «sin evidencia» empujaría a registrar todo como llamada.
+   */
+  sinEvidencia: number;
 }> {
   let q = supabase
     .from("leads")
-    .select("recibido_por, canal")
+    .select("recibido_por, canal, adjuntos")
     .eq("estado", "asignado")
     .gte("asignado_at", `${f.desde}T00:00:00-05:00`)
     .lte("asignado_at", `${f.hasta}T23:59:59-05:00`)
@@ -635,7 +669,8 @@ export async function quienRegistroEnElPeriodo(
 
   const porGestor = new Map<string, { id: string; nombre: string; total: number; porCanal: Record<string, number> }>();
   const porCanal = new Map<string, number>();
-  for (const l of (filas ?? []) as { recibido_por: string | null; canal: string | null }[]) {
+  let sinEvidencia = 0;
+  for (const l of (filas ?? []) as { recibido_por: string | null; canal: string | null; adjuntos: unknown[] | null }[]) {
     // Sin `recibido_por` es el formulario web: entró solo, no lo registró
     // nadie. Separarlo es la mitad de la auditoría — mezclarlo con las
     // personas infla a «nadie» y ensucia la comparación.
@@ -647,6 +682,7 @@ export async function quienRegistroEnElPeriodo(
     g.porCanal[canal] = (g.porCanal[canal] ?? 0) + 1;
     porGestor.set(id, g);
     porCanal.set(canal, (porCanal.get(canal) ?? 0) + 1);
+    if (DEJA_RASTRO.has(canal) && !(Array.isArray(l.adjuntos) && l.adjuntos.length > 0)) sinEvidencia += 1;
   }
 
   return {
@@ -654,5 +690,6 @@ export async function quienRegistroEnElPeriodo(
     canales: [...porCanal.entries()]
       .map(([canal, total]) => ({ canal, total }))
       .sort((a, b) => b.total - a.total),
+    sinEvidencia,
   };
 }

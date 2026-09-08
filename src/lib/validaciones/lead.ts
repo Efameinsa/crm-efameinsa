@@ -1,17 +1,23 @@
 import { z } from "zod";
 
 export const esquemaCaptura = z.object({
-  canal: z.enum([
-    "whatsapp",
-    "llamada",
-    "formulario_web",
-    "facebook",
-    "instagram",
-    "email",
-    "presencial",
-    "referido",
-    "otro",
-  ]),
+  canal: z.enum(
+    [
+      "whatsapp",
+      "llamada",
+      "formulario_web",
+      "facebook",
+      "instagram",
+      "email",
+      "presencial",
+      "referido",
+      "otro",
+    ],
+    // El campo arranca vacío a propósito: es el dato con el que después se
+    // pide la evidencia, así que tiene que ser una respuesta. Si no lo
+    // eligieron, el aviso dice qué falta y por qué importa.
+    { message: "Elija por dónde llegó el contacto: es lo que después permite pedir la evidencia." },
+  ),
   area_destino: z.enum([
     "comercial",
     "servicio_tecnico",

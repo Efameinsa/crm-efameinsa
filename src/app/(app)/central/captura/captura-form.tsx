@@ -128,9 +128,16 @@ export function CapturaForm() {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="canal">Canal</Label>
-          <Select name="canal" defaultValue="whatsapp" required>
+          {/* SE ELIGE, NO VIENE PUESTO. El canal es el dato con el que después
+              se pide la evidencia —«dice WhatsApp, pásame el WhatsApp»— así
+              que tiene que ser una respuesta, no lo que quedó por defecto.
+              Arranca vacío a propósito: obliga a mirar el campo una vez, que es
+              todo lo que hace falta para que diga la verdad. El servidor lo
+              valida además con su lista cerrada, así que no se puede guardar
+              un contacto sin canal ni con uno inventado. */}
+          <Select name="canal" required>
             <SelectTrigger id="canal" className="w-full">
-              <SelectValue />
+              <SelectValue placeholder="¿Por dónde llegó?" />
             </SelectTrigger>
             <SelectContent>
               {CANALES.map(([valor, etiqueta]) => (

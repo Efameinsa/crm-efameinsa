@@ -5,6 +5,7 @@ import {
   demora,
   haceCuanto,
   ETIQUETA_CANAL,
+  DEJA_RASTRO,
   ETIQUETA_ETAPA,
   ETIQUETA_MOTIVO,
   type DerivadoFila,
@@ -101,6 +102,17 @@ export function TarjetaDerivado({
             <span className="rounded-full bg-secondary px-1.5 py-px font-medium text-foreground">
               {ETIQUETA_CANAL[fila.canal] ?? fila.canal}
             </span>
+            {/* Solo donde la evidencia PODRÍA existir. Una llamada no lleva
+                esta marca: no hay nada que adjuntar, y marcarla empujaría a
+                registrar todo como llamada para que no la marquen. */}
+            {DEJA_RASTRO.has(fila.canal) && !fila.tieneEvidencia && (
+              <span
+                className="rounded-full border border-dashed border-amber-500/60 px-1.5 py-px text-[10px] font-semibold text-amber-700"
+                title="Dice haber llegado por un canal que deja rastro, pero no se adjuntó ninguna captura"
+              >
+                sin evidencia
+              </span>
+            )}
             <span>
               registrado por{" "}
               <b className="text-foreground">
