@@ -19,6 +19,7 @@ import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
 import { LineaTiempoCuenta, type EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { RedirigirLeadBoton } from "@/components/crm/redirigir-lead-boton";
+import { CorregirCanalBoton } from "@/components/crm/corregir-canal-boton";
 import { cargarSupervisores } from "@/lib/supervisores";
 import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { UrgenciaBoton } from "@/components/crm/urgencia-boton";
@@ -195,6 +196,20 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
   const cerrada = fila.oportunidad?.etapa === "venta" || fila.oportunidad?.etapa === "rechazada";
   const perdida = fila.oportunidad?.etapa === "rechazada";
 
+  /**
+   * SI EL CANAL SE CORRIGIÓ, TIENE QUE VERSE. Es la otra mitad de dejar
+   * corregirlo (0195): gerencia audita pidiendo la evidencia del canal —«dice
+   * WhatsApp, pásame el WhatsApp»—, así que un canal que cambió y no lo
+   * cuenta valdría menos que no poder cambiarlo. Acá sale con la fecha, de
+   * qué a qué, quién lo pidió, quién lo autorizó y por qué.
+   */
+  const { data: correcciones } = await supabase
+    .from("autorizaciones_supervisor")
+    .select("motivo, creado_at, solicitante:solicitante_id(nombre), supervisor:supervisor_id(nombre)")
+    .eq("lead_id", id)
+    .eq("accion", "corregir_canal")
+    .order("creado_at", { ascending: false });
+
   const hitos: Hito[] = [
     {
       titulo: "Llegó a Central",
@@ -202,7 +217,10 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
       detalle: [
         ETIQUETA_CANAL[fila.canal] ?? fila.canal,
         leadCrudo?.recibido_por ? `registrado por ${nombreDe.get(leadCrudo.recibido_por) ?? "—"}` : "ingreso automático",
-      ].join(" · "),
+        (correcciones ?? []).length > 0 ? "el canal se corrigió — ver abajo" : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
     },
     {
       titulo: "Se derivó al comercial",
@@ -310,6 +328,17 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
                 esPrueba={fila.esPrueba || modoEnsayo}
                 supervisores={supervisores}
               />
+              {/* CORREGIR EL CANAL, al lado del que corrige el destino y con
+                  nombre propio. El caso que lo pidió: un contacto registrado
+                  como WhatsApp que en realidad entró por llamada, y no había
+                  forma de arreglarlo (08-09). Pide código porque el canal es el
+                  dato con el que gerencia audita. */}
+              <CorregirCanalBoton
+                leadId={fila.id}
+                canalActual={fila.canal}
+                contacto={contacto}
+                supervisores={supervisores}
+              />
               {fila.asignadoA && (
                 <UrgenciaBoton
                   leadId={fila.id}
@@ -380,6 +409,28 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
         <div className="space-y-4">
           <SeccionPanel titulo="La ruta del contacto">
             <RutaDerivacion hitos={hitos} />
+
+            {(correcciones ?? []).length > 0 && (
+              <div className="mt-3 space-y-1.5 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-amber-800">
+                  Se corrigió cómo entró
+                </p>
+                {(correcciones ?? []).map((c, i) => {
+                  const quien = c.solicitante as unknown as { nombre: string } | null;
+                  const autorizo = c.supervisor as unknown as { nombre: string } | null;
+                  return (
+                    <p key={i} className="text-xs leading-relaxed text-foreground">
+                      <span className="text-muted-foreground">{fechaHoraLima(c.creado_at as string)} · </span>
+                      {c.motivo as string}
+                      <span className="text-muted-foreground">
+                        {" "}
+                        — lo pidió {quien?.nombre ?? "—"}, lo autorizó {autorizo?.nombre ?? "—"}
+                      </span>
+                    </p>
+                  );
+                })}
+              </div>
+            )}
           </SeccionPanel>
 
           <SeccionPanel titulo="Lo que solicita">

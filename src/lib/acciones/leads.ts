@@ -690,3 +690,41 @@ export async function carteraEnJuego(
     ? { razonSocial: fila.razon_social, duenoNombre: fila.dueno_nombre, duenoCodigo: fila.dueno_codigo }
     : null;
 }
+
+/**
+ * CORREGIR CÓMO ENTRÓ UN CONTACTO (0195).
+ *
+ * Santos, 08-09: «la señorita de Central lo registró como que entraba por
+ * WhatsApp cuando realmente entró por llamada». Es el caso de LOS QUENUALES
+ * que encontró el ing. Carlos, y hasta hoy no había forma de arreglarlo.
+ *
+ * NO ES EL BOTÓN «Cambiar de comercial»: aquel mueve el contacto a otra
+ * persona; éste corrige un dato de cómo llegó. Se separan a propósito, porque
+ * confundirlos sería mover una cartera creyendo que se arregla una etiqueta.
+ *
+ * Pide código de supervisor por la misma razón que la corrección de la
+ * derivación: el canal es el dato con el que gerencia audita, así que
+ * cambiarlo tiene que dejar firma. La base lo valida, lo quema y guarda de qué
+ * canal a cuál, quién lo pidió, quién lo autorizó y por qué — la pantalla no
+ * decide nada de eso.
+ */
+export async function corregirCanalDelLead(
+  leadId: string,
+  canal: string,
+  pin: string,
+  motivo: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("corregir_canal_lead", {
+    p_lead_id: leadId,
+    p_canal: canal,
+    p_pin: pin,
+    p_motivo: motivo,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+
+  revalidatePath("/central");
+  revalidatePath("/central/derivados");
+  revalidatePath(`/central/derivados/${leadId}`);
+  return { error: null };
+}

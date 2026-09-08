@@ -104,9 +104,14 @@ export function RedirigirLeadBoton({
         render={
           /* Con nombre y de tamaño usable: el ícono suelto de 28 px no se
              encontraba y no decía qué hacía (Darwin, 28-08). */
+          /* DICE QUÉ CAMBIA, y ya no «Corregir» a secas. Desde el 08-09 al
+             lado vive «Corregir cómo entró», que arregla el CANAL: dos botones
+             llamados «Corregir» uno junto al otro serían una trampa —
+             confundirlos mueve la cartera de un comercial creyendo que se
+             arregla una etiqueta. */
           <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5">
             <ArrowRightLeft className="size-4" />
-            <span className="hidden sm:inline">Corregir</span>
+            <span className="hidden sm:inline">Cambiar de comercial</span>
           </Button>
         }
       />
