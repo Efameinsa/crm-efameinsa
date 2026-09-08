@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { estadoGarantia } from "@/lib/postventa";
 
@@ -186,7 +187,7 @@ export async function registrarCaso(datos: {
   // El informe de llamada del área (D9): existe cuando la atención terminó en
   // el teléfono, que es el 80% de los casos según el manual.
   if (datos.desenlace === "telefono") {
-    const anio = new Date().getFullYear();
+    const anio = anioLima();
     const { data: correlativo } = await supabase.rpc("siguiente_correlativo_informe_servicio", { p_anio: anio });
     await supabase.from("informes_servicio").insert({
       correlativo,

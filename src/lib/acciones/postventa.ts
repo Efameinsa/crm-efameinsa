@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar } from "@/lib/notificaciones";
 import { bloquesPedido, type ServicioPostventa } from "@/lib/postventa";
@@ -469,7 +470,7 @@ export async function guardarInformeServicio(datos: {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
 
-  const anio = new Date().getFullYear();
+  const anio = anioLima();
   const { data: correlativo } = await supabase.rpc("siguiente_correlativo_informe_servicio", { p_anio: anio });
 
   const { data: informe, error } = await supabase

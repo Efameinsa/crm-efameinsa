@@ -28,6 +28,19 @@ export type PresetPeriodo = "semana" | "semana_anterior" | "mes" | "mes_anterior
 const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
 /** "YYYY-MM-DD" de hoy en Lima. */
+/**
+ * El AÑO en Lima. `new Date().getFullYear()` lo calcula en UTC, y desde las
+ * 19:00 del 31 de diciembre eso ya devuelve el año siguiente. Suena a detalle
+ * hasta que uno mira para qué se usa: pedir el correlativo del informe de
+ * servicio. Un informe emitido esa noche tomaría número de la serie del año
+ * que viene, dejando un hueco en la de este — el tipo de error que en este
+ * proyecto ya costó días de desenredo (07-09-2026, junto con la 0186 que
+ * arregló lo mismo del lado de la base).
+ */
+export function anioLima(): number {
+  return Number(hoyLima().slice(0, 4));
+}
+
 export function hoyLima(): string {
   const partes = new Intl.DateTimeFormat("en-CA", { timeZone: ZONA, year: "numeric", month: "2-digit", day: "2-digit" })
     .formatToParts(new Date());

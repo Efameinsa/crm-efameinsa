@@ -1,6 +1,6 @@
 import { FileDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { resolverPeriodo } from "@/lib/periodo";
+import { anioLima, resolverPeriodo } from "@/lib/periodo";
 import { sumarDias } from "@/lib/calendario";
 import { fechaHoraLima } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -127,7 +127,7 @@ export default async function PresupuestosCentralPage({
   let consultaArchivo = supabase
     .from("cotizaciones_historicas")
     .select("id, codigo, serie, fecha, monto_sin_igv, cliente, comercial_id")
-    .eq("anio", new Date().getFullYear());
+    .eq("anio", anioLima());
   if (!q) {
     consultaArchivo = consultaArchivo.gte("fecha", periodo.desde).lte("fecha", periodo.hasta);
   } else {
