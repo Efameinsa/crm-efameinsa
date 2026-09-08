@@ -186,7 +186,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
 
   // Lo que depende de lo anterior: las URL firmadas de los adjuntos (de los
   // contactos sumados y de los informes) y quién derivó. Otro viaje, y basta.
-  const [adjuntosPorLead, adjuntosPorInforme, { data: quienDerivo }] = await Promise.all([
+  const [adjuntosPorLead, adjuntosPorInforme, { data: quienDerivo }, { data: ventaDeLaOportunidad }] = await Promise.all([
     otrosLeads.some((l) => (l.adjuntos as AdjuntoLead[] | null)?.length)
       ? firmarAdjuntosDeLeads(
           supabase,
@@ -197,6 +197,17 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     asignacion?.decidida_por
       ? supabase.from("perfiles").select("nombre").eq("id", asignacion.decidida_por).maybeSingle()
       : Promise.resolve({ data: null }),
+    // ¿Esta oportunidad ya tiene su venta? Cambia qué se le ofrece al elegir
+    // «Venta ejecutada»: cerrarla (la venta ya está contada) o ir a
+    // registrarla. Sin esto, la pantalla le pediría registrar una venta que ya
+    // existe, que es como se duplican.
+    supabase
+      .from("ventas")
+      .select("id")
+      .eq("oportunidad_id", oportunidad.id)
+      .is("anulada_at", null)
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   // Cuándo pasó a ser suya: la asignación si la hay, y si no la creación de la
@@ -508,7 +519,12 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
                 <TrabajarHistoricaBoton oportunidadId={oportunidad.id} />
               </div>
             ) : (
-              <CambiarEtapa oportunidadId={oportunidad.id} etapaActual={oportunidad.etapa} motivos={motivos ?? []} />
+              <CambiarEtapa
+                oportunidadId={oportunidad.id}
+                etapaActual={oportunidad.etapa}
+                motivos={motivos ?? []}
+                yaTieneVenta={Boolean(ventaDeLaOportunidad)}
+              />
             )}
           </SeccionPanel>
         </div>

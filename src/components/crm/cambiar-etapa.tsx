@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { cambiarEtapa } from "@/lib/acciones/oportunidades";
+import { cambiarEtapa, cerrarComoVendida } from "@/lib/acciones/oportunidades";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { SelectConCriterio } from "@/components/crm/select-con-criterio";
@@ -14,9 +14,15 @@ interface Props {
   oportunidadId: string;
   etapaActual: EtapaOportunidad;
   motivos: { id: number; nombre: string }[];
+  /**
+   * Si esta oportunidad YA tiene su venta registrada. Cuando la tiene, lo que
+   * falta no es registrar nada: es que la etapa se ponga al día. Cuando no,
+   * hay que ir a registrarla, que es de donde sale la cifra.
+   */
+  yaTieneVenta?: boolean;
 }
 
-export function CambiarEtapa({ oportunidadId, etapaActual, motivos }: Props) {
+export function CambiarEtapa({ oportunidadId, etapaActual, motivos, yaTieneVenta = false }: Props) {
   // 24-08: sin este refresh el cambio SÍ se guardaba, pero la pantalla seguía
   // mostrando la etapa vieja —el badge de la cabecera, el tablero, Mi día— hasta
   // recargar a mano. En la capacitación se leyó como «no me quiere actualizar la
@@ -28,6 +34,18 @@ export function CambiarEtapa({ oportunidadId, etapaActual, motivos }: Props) {
   const [enviando, startTransition] = useTransition();
 
   const esVenta = etapa === "venta";
+
+  function cerrarVendida() {
+    startTransition(async () => {
+      const r = await cerrarComoVendida(oportunidadId);
+      if (r.error) {
+        toast.error(r.error, { duration: 8000 });
+        return;
+      }
+      toast.success("Cerrada como venta.");
+      router.refresh();
+    });
+  }
 
   function guardar() {
     if (esVenta) return; // no se guarda desde acá: se registra en la cotización
@@ -62,22 +80,38 @@ export function CambiarEtapa({ oportunidadId, etapaActual, motivos }: Props) {
         />
       </div>
 
-      {/* El camino de verdad, en el mismo lugar donde lo buscó. */}
+      {/* Dos casos distintos, y la pantalla los separa en vez de dejar a la
+          persona adivinando cuál es el suyo. */}
       {esVenta && (
         <div className="space-y-2 rounded-md border border-[#1E7F4F]/40 bg-[#1E7F4F]/5 p-3">
-          <p className="text-sm font-semibold text-foreground">La venta se registra desde su cotización</p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Marcar la etapa acá no registraría la venta: no quedaría el monto, ni la cotización aceptada, ni contaría
-            en su cierre de la semana. Se hace en <b className="text-foreground">Cotizaciones</b>, con el botón{" "}
-            <b className="text-foreground">Registrar venta</b> de la cotización que el cliente aceptó — y la
-            oportunidad pasa sola a «Venta».
-          </p>
-          <a
-            href="#cotizador"
-            className="inline-flex items-center gap-1 rounded-md bg-[#1E7F4F] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110"
-          >
-            Ir a las cotizaciones
-          </a>
+          {yaTieneVenta ? (
+            <>
+              <p className="text-sm font-semibold text-foreground">Esta oportunidad ya tiene su venta registrada</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                La venta ya está contada; lo único que quedó atrás es la etapa. Al cerrarla no se registra ninguna
+                venta nueva —no se duplica nada— y la oportunidad deja de figurar como abierta.
+              </p>
+              <Button size="sm" onClick={cerrarVendida} disabled={enviando} className="bg-[#1E7F4F] hover:brightness-110">
+                {enviando ? "Cerrando…" : "Cerrarla como Venta"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-foreground">La venta se registra desde su cotización</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Marcar la etapa acá no registraría la venta: no quedaría el monto, ni la cotización aceptada, ni
+                contaría en su cierre de la semana. Se hace en <b className="text-foreground">Cotizaciones</b>, con el
+                botón <b className="text-foreground">Registrar venta</b> de la cotización que el cliente aceptó — y la
+                oportunidad pasa sola a «Venta».
+              </p>
+              <a
+                href="#cotizador"
+                className="inline-flex items-center gap-1 rounded-md bg-[#1E7F4F] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110"
+              >
+                Ir a las cotizaciones
+              </a>
+            </>
+          )}
         </div>
       )}
 

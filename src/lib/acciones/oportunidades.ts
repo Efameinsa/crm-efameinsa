@@ -211,6 +211,67 @@ export async function cambiarEtapa(datos: {
   return { error: null };
 }
 
+/**
+ * CERRAR UNA OPORTUNIDAD QUE YA SE VENDIÓ, CUANDO LA VENTA YA ESTÁ REGISTRADA.
+ *
+ * El hueco que encontró Santos el 08-09: «el combo obliga a poner algo,
+ * ¿entonces qué tendría que poner?». Si la venta se registra desde la
+ * cotización aceptada, la etapa se mueve sola y no hay nada que elegir. Pero
+ * cuando la venta ya existe SIN haber salido de una cotización del CRM —el
+ * cierre se emitió, o la venta se cargó de otro lado— no queda ningún botón
+ * que pulsar: la oportunidad se queda abierta para siempre, o se cierra como
+ * «Rechazada» con un motivo falso que va a parar al reporte de pérdidas.
+ *
+ * Medido antes de escribir esto: cinco oportunidades de los últimos noventa
+ * días tienen su venta registrada y siguen en «seguimiento» o «potencial».
+ * Dos de ellas ni siquiera tienen una cotización en el CRM.
+ *
+ * LA REGLA QUE LO HACE SEGURO: solo se puede si la oportunidad YA TIENE una
+ * venta viva. No se crea ninguna venta acá —eso sigue siendo trabajo de
+ * `registrar_venta`, que ata la cotización y calcula el importe del informe—,
+ * así que no hay forma de inflar una cifra: la venta que se cuenta ya estaba
+ * contada. Lo único que se corrige es la etapa, que había quedado atrás.
+ *
+ * Por eso `venta` puede seguir fuera de ETAPAS_MANUALES: no se llega por
+ * elegirla en un desplegable, se llega por tener la venta hecha.
+ */
+export async function cerrarComoVendida(
+  oportunidadId: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: venta } = await supabase
+    .from("ventas")
+    .select("id")
+    .eq("oportunidad_id", oportunidadId)
+    .is("anulada_at", null)
+    .limit(1)
+    .maybeSingle();
+  if (!venta) {
+    return {
+      error:
+        "Esta oportunidad todavía no tiene una venta registrada. Regístrela desde la cotización aceptada, con «Registrar venta».",
+    };
+  }
+
+  // Con .select() de vuelta: sin esto, un update filtrado por RLS afecta cero
+  // filas y la pantalla diría que se cerró sin haberse movido nada.
+  const { data, error } = await supabase
+    .from("oportunidades")
+    .update({ etapa: "venta", cerrada_at: new Date().toISOString(), motivo_rechazo_id: null })
+    .eq("id", oportunidadId)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) {
+    return { error: "Solo el dueño de la oportunidad puede cerrarla" };
+  }
+
+  revalidatePath("/comercial");
+  revalidatePath("/comercial/oportunidades");
+  revalidatePath(`/comercial/oportunidades/${oportunidadId}`);
+  return { error: null };
+}
+
 // Agenda: reprogramar la próxima acción (fecha y hora) desde el calendario —
 // arrastrar a otro día o editar en el panel lateral. La hora es opcional
 // (sin hora = todo el día). Supabase no falla cuando RLS filtra el update
