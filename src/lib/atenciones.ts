@@ -249,14 +249,29 @@ export interface ResumenAtenciones {
   facturables: number;
 }
 
+/**
+ * QUÉ ES UN CASO ABIERTO. Lo definió Santos el 07-09-2026, después de que el
+ * informe de UX contara cinco números distintos para la misma cosa: «abierto
+ * es que aún no se cerró; la espera del cliente es caso abierto, y el que está
+ * agendado también».
+ *
+ * O sea: una sola condición, `cerrado_at is null`. Ni la etapa, ni si alguien
+ * lo tomó, ni si tiene fecha. Vive acá para que la bandeja, las tarjetas, el
+ * chip y el contador del menú cuenten lo mismo — cuando dos pantallas
+ * discrepan, se deja de creer en las dos.
+ */
+export function estaAbierta(a: Pick<Atencion, "cerrado_at">): boolean {
+  return !a.cerrado_at;
+}
+
 export function resumirAtenciones(lista: Atencion[]): ResumenAtenciones {
   return {
     recibidas: lista.length,
     // «Atendida» en el sentido del área: alguien ya hizo algo con ella
     // (gestión o avance), no solo que el técnico haya ejecutado.
     atendidas: lista.filter((a) => a.tomada_at || a.atendido_at).length,
-    enProceso: lista.filter((a) => !a.cerrado_at).length,
-    cerradas: lista.filter((a) => a.cerrado_at).length,
+    enProceso: lista.filter(estaAbierta).length,
+    cerradas: lista.filter((a) => !estaAbierta(a)).length,
     enGarantia: lista.filter((a) => a.clasificacion === "garantia").length,
     facturables: lista.filter((a) => a.clasificacion && SE_COBRA[a.clasificacion]).length,
   };

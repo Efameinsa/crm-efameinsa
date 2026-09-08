@@ -19,6 +19,7 @@ import {
   relojAtencion,
   resumirAtenciones,
   type Atencion,
+  estaAbierta,
 } from "@/lib/atenciones";
 import { cn } from "@/lib/utils";
 
@@ -80,7 +81,7 @@ export default async function AtencionesPage({
   };
   const todas = (data ?? []) as unknown as Fila[];
   const resumen = resumirAtenciones(todas);
-  const abiertas = todas.filter((a) => !a.cerrado_at);
+  const abiertas = todas.filter(estaAbierta);
   const enRojo = abiertas.filter((a) => relojAtencion(a).estado === "rojo").length;
 
   return (
@@ -106,13 +107,13 @@ export default async function AtencionesPage({
             >
               <Plus className="size-3.5" /> Registrar atención
             </Link>
-            <Pestanas pestana={pestana} enRojo={enRojo} />
+            <Pestanas pestana={pestana} abiertas={abiertas.length} enRojo={enRojo} />
           </div>
         }
       >
         {(pestana === "" || pestana === "cerradas") && (
           <VistaAtenciones
-            todas={pestana === "cerradas" ? todas.filter((a) => a.cerrado_at) : abiertas}
+            todas={pestana === "cerradas" ? todas.filter((a) => !estaAbierta(a)) : abiertas}
             cerradas={pestana === "cerradas"}
             filtro={filtro}
             etapaSeleccionada={sp.etapa}
@@ -165,7 +166,15 @@ export default async function AtencionesPage({
   );
 }
 
-function Pestanas({ pestana, enRojo }: { pestana: Pestana; enRojo: number }) {
+/**
+ * EL CHIP MENTÍA. Decía «Abiertas (3)» y ese 3 no eran las abiertas: eran las
+ * pasadas de su límite. Con 8 casos abiertos y 3 vencidos, la pantalla mostraba
+ * «Abiertas (3)» al lado de una tarjeta que decía «En proceso 8», y quien las
+ * leyó junto —el informe de UX del 08-09— concluyó, con razón, que los
+ * contadores no coinciden. No era un conteo mal hecho: era un número bien
+ * calculado con la etiqueta de otro.
+ */
+function Pestanas({ pestana, abiertas, enRojo }: { pestana: Pestana; abiertas: number; enRojo: number }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {PESTANAS.map((p) => (
@@ -178,7 +187,12 @@ function Pestanas({ pestana, enRojo }: { pestana: Pestana; enRojo: number }) {
           )}
         >
           {p.etiqueta}
-          {p.clave === "" && enRojo > 0 && ` (${enRojo})`}
+          {p.clave === "" && ` (${abiertas})`}
+          {p.clave === "" && enRojo > 0 && (
+            <span className="ml-1 text-destructive" title="pasadas de su límite">
+              · {enRojo} vencidas
+            </span>
+          )}
         </Link>
       ))}
     </div>
