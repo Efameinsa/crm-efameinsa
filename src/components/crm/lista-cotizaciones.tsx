@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { montoCotizacion } from "@/lib/monto-cotizacion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CircleCheckBig, Copy, FileDown, Pencil, Plus, Trash2 } from "lucide-react";
@@ -191,6 +192,11 @@ export function ListaCotizaciones({
             (c.estado_aprobacion === "auto_aprobada" || c.estado_aprobacion === "aprobada_gerencia");
           const esBorrador = c.estado === "borrador";
           const esBorradorSinNumero = esBorrador && !c.codigo;
+          // DE PRÁCTICA, Y QUE SE VEA. Las cotizaciones de la serie PRUEBA_
+          // (migración 0145) no cuentan para nada, pero en la lista se veían
+          // idénticas a las de verdad. Una de práctica al lado de una real,
+          // sin nada que las separe, es una confusión esperando a ocurrir.
+          const esDePrueba = (c.codigo ?? "").toUpperCase().startsWith("PRUEBA");
           const aprobacion = ESTADO_APROBACION[c.estado_aprobacion];
           // La lista viene de más nueva a más vieja. Katerine (C5) tenía varios
           // borradores del mismo cliente y no sabía cuál era el último.
@@ -217,6 +223,11 @@ export function ListaCotizaciones({
                 >
                   {c.codigo ?? "Recibe número al confirmar"}
                 </span>
+                {esDePrueba && (
+                  <span className="flex-none rounded-full bg-[#6D28D9] px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-white">
+                    Prueba
+                  </span>
+                )}
                 <span
                   className={cn(
                     "flex-none rounded-full px-2 py-0.5 text-[10px] font-semibold",
@@ -228,8 +239,19 @@ export function ListaCotizaciones({
               </div>
 
               <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-2">
-                <span className="text-base font-bold tabular-nums text-foreground">
-                  {c.moneda} {c.total.toLocaleString("es-PE")}
+                {/* CON IGV, y dicho. Es la cifra que el cliente ve en el PDF:
+                    la misma cotización mostraba «US$ 531.00» en el cotizador y
+                    «USD 450» acá, sin que ninguna aclarara cuál (UX, 08-09). */}
+                <span
+                  className={cn(
+                    "text-base font-bold tabular-nums",
+                    esDePrueba ? "text-muted-foreground line-through" : "text-foreground",
+                  )}
+                >
+                  {montoCotizacion(c.total, c.moneda)}
+                  <span className="ml-1 text-[11px] font-normal text-muted-foreground no-underline">
+                    {esDePrueba ? "no cuenta" : "con IGV"}
+                  </span>
                 </span>
                 <span className="text-[11px] text-muted-foreground">{c.serie}</span>
               </div>

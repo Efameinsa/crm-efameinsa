@@ -130,7 +130,17 @@ export const GARANTIA_POR_DEFECTO = "24 meses";
 /** Las garantías que se acuerdan de verdad, para dejarlas en un clic. NO es una
  *  lista cerrada: el campo sigue siendo de texto libre porque lo que se pacta a
  *  veces no es un plazo redondo ("12 meses de fábrica, 6 en la resistencia"). */
-export const GARANTIAS_FRECUENTES = ["12 meses", "24 meses", "36 meses", "Garantía de fábrica"];
+// «24 meses» es la garantía de una MÁQUINA. La mayoría de las cotizaciones de
+// postventa no llevan ninguna: son mano de obra o un repuesto suelto, y salían
+// con dos años de garantía por defecto (informe de UX del 08-09).
+export const GARANTIAS_FRECUENTES = [
+  "12 meses",
+  "24 meses",
+  "36 meses",
+  "Garantía de fábrica",
+  "Garantía del servicio",
+  "Sin garantía",
+];
 
 // Texto idéntico al de los modelos reales (página final). El punto 1 lo pone
 // la cotización (ver `entregaLugar` en cotizacion-pdf.tsx).

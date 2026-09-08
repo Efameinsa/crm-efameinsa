@@ -1,4 +1,5 @@
 import { FileDown } from "lucide-react";
+import { totalConIgv } from "@/lib/monto-cotizacion";
 import { createClient } from "@/lib/supabase/server";
 import { fechaLima, fechaCalendarioLarga } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -77,7 +78,7 @@ export async function CotizacionesDelPeriodo({
         serie: c.serie as string,
         cliente: op?.cuentas?.razon_social ?? "Cliente sin nombre",
         fecha: fechaLima(c.enviada_at as string),
-        monto: Number(c.total),
+        monto: totalConIgv(c.total) ?? 0,
         moneda: c.moneda as string,
         estado: c.estado as string,
         href: `/api/cotizaciones/${c.id}/pdf`,

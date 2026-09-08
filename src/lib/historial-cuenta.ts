@@ -1,4 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
+import { totalConIgv } from "@/lib/monto-cotizacion";
 import type { EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
 
 // Se muestran las 300 actividades más recientes por cuenta — de sobra para el
@@ -196,7 +197,8 @@ export async function cargarHistorialCuenta(
         codigo: c.codigo,
         estadoLabel: label,
         color,
-        monto: c.total,
+        // Con IGV, como en el cotizador y el PDF (UX, 08-09).
+        monto: totalConIgv(c.total),
         moneda: c.moneda,
         // A propósito SIN pdfUrl: la cotización del CRM vive en su oportunidad,
         // donde además de bajar el PDF se la envía, se la duplica y se registra

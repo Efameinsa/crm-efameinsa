@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { hoyLima } from "@/lib/periodo";
 import { FileDown, PencilLine, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
@@ -50,6 +51,12 @@ interface Fila {
   cliente: string;
   fecha: string | null;
   monto: number | null;
+  /** Cuándo se vence la vigencia y cuántos días lleva sin respuesta. Es lo que
+   *  el informe de UX del 08-09 pedía para dejar de perder ventas en silencio:
+   *  «escondidas en la ficha del cliente, nadie ve cuáles vencen ni cuáles
+   *  llevan diez días sin respuesta». */
+  venceEl?: string | null;
+  diasSinRespuesta?: number | null;
   moneda: string;
   /** A dónde lleva la fila entera: el PDF, o el cotizador si es borrador. */
   href: string;
@@ -79,7 +86,7 @@ export default async function MisCotizacionesPage({
     .eq("comercial_id", perfil.id);
   let qCrm = supabase
     .from("cotizaciones")
-    .select("id, codigo, serie, total, moneda, enviada_at, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
+    .select("id, codigo, serie, total, moneda, enviada_at, vigencia_dias, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
     .eq("oportunidades.comercial_id", perfil.id)
     .not("enviada_at", "is", null);
   // Los borradores no tienen número: se buscan por el cliente, en memoria, y
@@ -133,6 +140,19 @@ export default async function MisCotizacionesPage({
     }))
     .filter((f) => !busqueda || contiene(f.cliente) || (f.codigo != null && contiene(f.codigo)));
 
+  // El reloj de una cotización enviada: cuándo se le vence al cliente y
+  // cuántos días lleva sin contestar. En Lima, no en UTC (0186).
+  function relojDeVigencia(enviadaAt: string | null, dias: number | null) {
+    if (!enviadaAt) return { venceEl: null, diasSinRespuesta: null };
+    const hoy = new Date(hoyLima() + "T00:00:00-05:00").getTime();
+    const enviada = new Date(enviadaAt).getTime();
+    const diasSinRespuesta = Math.max(0, Math.floor((hoy - enviada) / 86_400_000));
+    const venceEl = dias
+      ? new Date(enviada + dias * 86_400_000).toISOString().slice(0, 10)
+      : null;
+    return { venceEl, diasSinRespuesta };
+  }
+
   const filas: Fila[] = [
     ...(crm ?? []).map((c) => ({
       id: c.id,
@@ -142,6 +162,7 @@ export default async function MisCotizacionesPage({
       fecha: c.enviada_at as string,
       monto: Number(c.total),
       moneda: c.moneda as string,
+      ...relojDeVigencia(c.enviada_at as string | null, c.vigencia_dias as number | null),
       href: `/api/cotizaciones/${c.id}/pdf`,
       borrador: false,
       oportunidadHref: `/comercial/oportunidades/${c.oportunidad_id}`,
@@ -208,6 +229,29 @@ export default async function MisCotizacionesPage({
       </span>
       <span className="w-28 text-right text-xs tabular-nums text-foreground">
         {f.monto != null ? `${f.moneda} ${f.monto.toLocaleString("es-PE")}` : "—"}
+      </span>
+      {/* LO QUE ESTÁ POR CAERSE SOLO. Una cotización enviada y sin respuesta
+          se perdía en silencio: nadie veía cuál vence ni cuál lleva diez días
+          esperando (informe de UX del 08-09). Estas dos columnas son toda la
+          diferencia entre una lista de documentos y una lista de trabajo. */}
+      <span className="w-32 text-xs tabular-nums">
+        {f.venceEl ? (
+          <span className={cn(f.venceEl < hoyLima() ? "font-semibold text-destructive" : "text-muted-foreground")}>
+            {f.venceEl < hoyLima() ? "venció el " : "vence el "}
+            {fechaLima(f.venceEl)}
+          </span>
+        ) : (
+          <span className="text-muted-foreground/60">—</span>
+        )}
+      </span>
+      <span className="w-28 text-xs tabular-nums">
+        {f.diasSinRespuesta == null ? (
+          <span className="text-muted-foreground/60">—</span>
+        ) : (
+          <span className={cn(f.diasSinRespuesta >= 7 ? "font-semibold text-amber-700" : "text-muted-foreground")}>
+            {f.diasSinRespuesta === 0 ? "hoy" : `${f.diasSinRespuesta} d sin respuesta`}
+          </span>
+        )}
       </span>
       <span
         className={cn(

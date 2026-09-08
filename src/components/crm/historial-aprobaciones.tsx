@@ -1,4 +1,5 @@
 import { CheckCircle2, XCircle, FileDown } from "lucide-react";
+import { montoCotizacion } from "@/lib/monto-cotizacion";
 import { fechaHoraLima } from "@/lib/fechas";
 import { SeccionPlegable } from "@/components/crm/seccion-panel";
 import { cn } from "@/lib/utils";
@@ -77,7 +78,7 @@ export function HistorialAprobaciones({ filas }: { filas: FilaHistorial[] }) {
               </div>
               <p className="text-xs text-muted-foreground">
                 <span className="font-mono">{c.codigo ?? "Borrador"}</span> · Serie {c.serie} · De{" "}
-                {op?.perfiles?.nombre ?? "un comercial"} · {c.moneda} {Number(c.total).toLocaleString("es-PE")}
+                {op?.perfiles?.nombre ?? "un comercial"} · {montoCotizacion(c.total, c.moneda)} con IGV
                 {c.enviada_at ? " · ya enviada al cliente" : " · todavía sin enviar"}
                 {cedido > 0 && (
                   <span className="font-semibold text-foreground">
