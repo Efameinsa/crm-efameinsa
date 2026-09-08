@@ -5,6 +5,7 @@ import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { LineaAtencion } from "@/components/crm/linea-atencion";
 import { tecnicosConocidos } from "@/lib/tecnicos";
+import { ConQuienHablar } from "@/components/crm/con-quien-hablar";
 import { EquiposDeLaAtencion } from "@/components/crm/equipos-de-la-atencion";
 import { HistorialPostventaCliente } from "@/components/crm/historial-postventa-cliente";
 import { requerirPerfil } from "@/lib/auth";
@@ -298,6 +299,18 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
         </div>
 
         <div className="space-y-4">
+          {/* «CUANDO REGISTRAN, NO SALEN LOS DATOS DEL CLIENTE» — la señorita
+              de Central, 08-09, mirando esta misma pantalla. La cabecera decía
+              razón social, RUC y fecha, y el Paso 3 pide agendar la visita
+              «cuándo y con quién»: la pantalla mandaba a llamar al cliente sin
+              decir a qué número. El teléfono vivía a dos pantallas de acá.
+
+              Va PRIMERO en esta columna, arriba de todo: es lo que hace falta
+              para dar el siguiente paso, no un dato de consulta. */}
+          <SeccionPanel titulo="Con quién hablar">
+            <ConQuienHablar cuentaId={a.cuenta_id ?? null} oportunidadId={a.oportunidad_id} />
+          </SeccionPanel>
+
           {/* El clic de la garantía (Carlos, 01-09): cuando el equipo aún no
               está identificado, acá salen las series del cliente para
               contrastar con la foto de la placa. Un clic vincula y verifica. */}
