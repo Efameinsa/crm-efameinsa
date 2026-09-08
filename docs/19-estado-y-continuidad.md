@@ -1448,3 +1448,52 @@ por correo a Contabilidad1@efameinsa.com.
 Carlos tiene la laptop llena: 1 TB con ~750 GB de correos en un PST. Se
 conversaron disco externo o correo corporativo de Google (≈US$ 5/mes con 2 TB);
 Santos iba a mirar precios.
+
+**07-09 — la sección del archivo, en todas las vistas del comercial.** `documentos-del-servidor.tsx` ahora acepta `plegable`: mismo contenido, envoltorio distinto. Montada en `/comercial/oportunidades/[id]` (plegada, sobre «Informes de cierre») además de `/comercial/cartera/[id]` y `/gerencia/clientes/[id]`. Motivo: desde «Mi día» se entra a la oportunidad, no a la ficha, y las fotos/informes son del CLIENTE. Commit ca88552, sin desplegar (esperando ventana). Regla que se repite: cuando una sección habla del cliente, va en las dos pantallas y se comparte, nunca se copia (C5 del plan 11).
+
+---
+
+## 08-09 · La tanda del informe de UX de postventa, y las cuatro de Santos
+
+Dos días de trabajo local que se despliegan juntos. El punto de partida fue el
+recorrido de un tester de UI/UX sobre la cuenta de práctica PV0
+(`Postventa-sin-adivinar (2).docx`, 24 hallazgos), y encima las observaciones
+que Santos hizo mirando el resultado.
+
+**Del informe: 21 de 24 aplicados.** Los tres que no, con razón escrita:
+
+1. **Sacar los «60 casos sin cliente»** — la premisa era falsa. Son un efecto
+   de los permisos de la cuenta de práctica; en producción no existen.
+2. **«Soporte técnico» → «Problema técnico»** — choca con lo que pidió Carlos
+   el 07-09 (renombrar «Garantía» a «Soporte técnico»). Manda la persona.
+3. **Que el borrador mueva la oportunidad a «Cotizada»** — contradice una
+   decisión documentada de Santos. El monto sí lo carga (0188). **Espera su
+   palabra: es lo único pendiente de decidir.**
+
+Bloqueado por datos de terceros: el repuesto usado no descuenta stock, porque
+el almacén no está cargado (fichas de Lesly).
+
+**Lo más caro que salió, y no estaba en el informe:** «Preventivos por vender»
+no tardaba once segundos, *fallaba*. Un `in(...)` de 500 UUID arma una URL de
+18.580 caracteres que PostgREST no responde; el pedido moría a los nueve
+segundos y `data: null` se leía como «no hay gestiones». La pantalla iba lenta
+**y** mentía. Es la tercera vez que esta trampa cuesta en el proyecto (la
+primera la reportó Darwin el 18-08 con el velocímetro en 0). Queda escrita en
+`src/lib/lotes.ts` con pruebas: **más de cien ids, o se pide por lotes o se
+hace una función que reciba el arreglo por POST.**
+
+**El otro bug de la misma familia:** «Clientes que atiendo» ofrecía 482
+clientes reales a la cuenta de práctica y ninguno abría, porque la lista es
+`security definer` y la ficha pasa por RLS, y cada una contestaba distinto. Se
+arregló en la lista (0193), no en la ficha: RLS tenía razón — una cuenta de
+práctica no debe leer la cartera real.
+
+**Cómo verificar que no se rompió nada.** Ocho scripts `scripts/_verificar-*.mjs`
+entran con sesiones reales (tester PV0, postventa, Brenda, Ariana) y comprueban
+menú, cotizador, foto del caso, técnicos sugeridos, cierre semanal, cartera y
+tarjetas del tablero: 73 comprobaciones. Más 393 pruebas de `npm test`.
+
+**Nota sobre la base:** el CRM usa **una sola** base de Supabase. Las
+migraciones 0188–0194 estaban aplicadas desde que se corrieron, o sea que
+producción venía funcionando con ellas y con el código viejo. Este despliegue
+cierra esa brecha; no hay nada que correr en producción después de desplegar.

@@ -12,6 +12,10 @@ documento).
 
 ---
 
+> **Actualización 03-09-2026 (sesión «CRM SERVIDOR»):** decisión tomada — la PC de Santos con SSD interno de 2 TB recibe copias EMPUJADAS por el servidor (robocopy sin /MIR) y sirve el archivo al CRM por red local y por túnel; lo necesario son 636 GB. Detalle y estado en `docs/19`, entrada del 03-09 tarde. Instrucciones para Sistemas en el artefacto fe5a70c4.
+
+---
+
 ## 1. Qué hay en el servidor (mirado el 29-08)
 
 Servidor de archivos en la red local: **`\\192.168.10.210`**, con **2 935 GB
