@@ -64,6 +64,36 @@ export const ETAPA_OPORTUNIDAD: OpcionConCriterio[] = [
   { valor: "historico", etiqueta: "Histórico", criterio: "Vino del Excel y nadie la retomó en el CRM: se busca cuando se la necesita, pero no cuenta como pendiente" },
 ];
 
+/**
+ * LO QUE OFRECE EL DESPLEGABLE DE ETAPA DE LA OPORTUNIDAD.
+ *
+ * `cotizada` y `venta` no se pueden GUARDAR a mano —nacen del cotizador y del
+ * botón «Registrar venta» (B3/B9)— porque marcar la etapa no crea la fila en
+ * `ventas`, no acepta la cotización y no toca `ultima_venta_at`: el comercial
+ * creería haber cerrado y su venta no contaría en ninguna cifra.
+ *
+ * Pero «Venta ejecutada» SÍ se ofrece, desde el 08-09. Santos: el comercial que
+ * ganó la venta abre este desplegable, ve que las únicas salidas son
+ * «Rechazada» y «Derivada», y no encuentra cómo decir que se ejecutó. Estaba
+ * buscándola acá, así que acá tiene que estar — como cartel que lleva al
+ * camino correcto, no como opción que se guarde.
+ *
+ * Lo que NO se hizo, a propósito: agregarla al catálogo de MOTIVOS DE RECHAZO,
+ * que era la idea original. Todo lo rechazado entra en «lo que se perdió, y por
+ * qué» del cierre semanal, con su gráfico por motivo: una venta ganada
+ * aparecería como pérdida en el reporte que lee gerencia.
+ */
+export const ETAPAS_DEL_COMBO: OpcionConCriterio[] = [
+  ...ETAPA_OPORTUNIDAD.filter((e) =>
+    ["asignada", "filtrada", "seguimiento", "potencial", "rechazada", "derivada"].includes(e.valor),
+  ),
+  {
+    ...ETAPA_OPORTUNIDAD.find((e) => e.valor === "venta")!,
+    etiqueta: "Venta ejecutada",
+    criterio: "Se registra desde la cotización aceptada, para que cuente como venta",
+  },
+];
+
 export function buscarOpcion(catalogo: OpcionConCriterio[], valor: string | null | undefined): OpcionConCriterio | undefined {
   return catalogo.find((o) => o.valor === valor);
 }

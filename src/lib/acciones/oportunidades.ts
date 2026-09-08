@@ -153,7 +153,18 @@ export async function calificarOportunidad(datos: {
   return { error: null };
 }
 
-const ETAPAS_MANUALES: EtapaOportunidad[] = [
+/**
+ * Las etapas que se pueden poner a mano. `cotizada` y `venta` NO están, y esa
+ * ausencia es la regla que protege las cifras: una venta tiene que nacer del
+ * botón «Registrar venta» —que crea la fila en `ventas`, acepta la cotización
+ * y mueve la etapa sola—, nunca de alguien eligiéndola en un desplegable.
+ *
+ * Desde el 08-09 el desplegable SÍ ofrece «Venta ejecutada», porque el
+ * comercial la buscaba ahí y no la encontraba; pero es un cartel que lleva a
+ * las cotizaciones, no una opción que se guarde. Este guardián es el que hace
+ * que eso no dependa de la pantalla.
+ */
+export const ETAPAS_MANUALES: EtapaOportunidad[] = [
   "asignada",
   "filtrada",
   "seguimiento",

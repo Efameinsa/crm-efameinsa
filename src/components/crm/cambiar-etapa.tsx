@@ -7,17 +7,8 @@ import { cambiarEtapa } from "@/lib/acciones/oportunidades";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { SelectConCriterio } from "@/components/crm/select-con-criterio";
-import { ETAPA_OPORTUNIDAD, type OpcionConCriterio } from "@/lib/catalogos-ui";
+import { ETAPAS_DEL_COMBO } from "@/lib/catalogos-ui";
 import type { EtapaOportunidad } from "@/types/database";
-
-// "cotizada" y "venta" quedan fuera a propósito: nacen del cotizador y del
-// botón Registrar venta, nunca de un cambio manual (ver B3/B9 en la
-// memoria del proyecto — evita que alguien "arrastre" una venta sin pasar
-// por el flujo que alimenta ultima_venta_at).
-const ETAPAS_VALIDAS = new Set<EtapaOportunidad>([
-  "asignada", "filtrada", "seguimiento", "potencial", "rechazada", "derivada",
-]);
-const ETAPAS: OpcionConCriterio[] = ETAPA_OPORTUNIDAD.filter((e) => ETAPAS_VALIDAS.has(e.valor as EtapaOportunidad));
 
 interface Props {
   oportunidadId: string;
@@ -36,7 +27,10 @@ export function CambiarEtapa({ oportunidadId, etapaActual, motivos }: Props) {
   const [motivoId, setMotivoId] = useState<string>("");
   const [enviando, startTransition] = useTransition();
 
+  const esVenta = etapa === "venta";
+
   function guardar() {
+    if (esVenta) return; // no se guarda desde acá: se registra en la cotización
     if (etapa === "rechazada" && !motivoId) {
       toast.error("Seleccione el motivo del rechazo");
       return;
@@ -62,11 +56,30 @@ export function CambiarEtapa({ oportunidadId, etapaActual, motivos }: Props) {
         <Label htmlFor="etapa">Etapa</Label>
         <SelectConCriterio
           id="etapa"
-          opciones={ETAPAS}
+          opciones={ETAPAS_DEL_COMBO}
           value={etapa}
           onValueChange={(v) => setEtapa((v as EtapaOportunidad) ?? etapaActual)}
         />
       </div>
+
+      {/* El camino de verdad, en el mismo lugar donde lo buscó. */}
+      {esVenta && (
+        <div className="space-y-2 rounded-md border border-[#1E7F4F]/40 bg-[#1E7F4F]/5 p-3">
+          <p className="text-sm font-semibold text-foreground">La venta se registra desde su cotización</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Marcar la etapa acá no registraría la venta: no quedaría el monto, ni la cotización aceptada, ni contaría
+            en su cierre de la semana. Se hace en <b className="text-foreground">Cotizaciones</b>, con el botón{" "}
+            <b className="text-foreground">Registrar venta</b> de la cotización que el cliente aceptó — y la
+            oportunidad pasa sola a «Venta».
+          </p>
+          <a
+            href="#cotizador"
+            className="inline-flex items-center gap-1 rounded-md bg-[#1E7F4F] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110"
+          >
+            Ir a las cotizaciones
+          </a>
+        </div>
+      )}
 
       {etapa === "rechazada" && (
         <div className="space-y-2">
@@ -81,9 +94,11 @@ export function CambiarEtapa({ oportunidadId, etapaActual, motivos }: Props) {
         </div>
       )}
 
-      <Button onClick={guardar} disabled={enviando || etapa === etapaActual}>
-        {enviando ? "Guardando…" : "Actualizar etapa"}
-      </Button>
+      {!esVenta && (
+        <Button onClick={guardar} disabled={enviando || etapa === etapaActual}>
+          {enviando ? "Guardando…" : "Actualizar etapa"}
+        </Button>
+      )}
     </div>
   );
 }
