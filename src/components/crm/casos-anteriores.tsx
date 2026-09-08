@@ -59,7 +59,17 @@ export async function CasosAnteriores({ perfil }: { perfil: Perfil }) {
     .not("etapa", "in", "(venta,rechazada)")
     .order("created_at", { ascending: false })
     .limit(60);
-  if (!verTodo) consultaCasos = consultaCasos.eq("comercial_id", perfil.id);
+  // UNA CUENTA DE PRÁCTICA VE SOLO SU PRÁCTICA. El informe de UX del 08-09
+  // reportó «60 casos sin cliente ni equipo»: eran casos REALES traídos por el
+  // permiso de «ver todo el área», con el nombre del cliente en blanco porque
+  // las políticas de la base no le dejan leer esas fichas a una cuenta de
+  // práctica. Resultado: 60 filas imposibles de trabajar y un tester
+  // reportando un error que en producción no existe (verificado: la cuenta PV
+  // real ve los 962 casos con su nombre; la de práctica, 10 de 962).
+  //
+  // El permiso no se toca —una cuenta de práctica NO debe leer clientes
+  // reales—; lo que se corrige es traer filas que no se pueden mostrar.
+  if (!verTodo || perfil.es_prueba) consultaCasos = consultaCasos.eq("comercial_id", perfil.id);
 
   const [{ data: casos }, { data: equipos }] = await Promise.all([
     consultaCasos,

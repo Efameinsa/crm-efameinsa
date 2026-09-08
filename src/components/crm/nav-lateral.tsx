@@ -144,7 +144,14 @@ const ENLACES_POSTVENTA = [
   { href: "/postventa/control", etiqueta: "Control de pedidos", icono: Table2 },
   { href: "/postventa/equipos", etiqueta: "Equipos instalados", icono: Package },
   // El parque visto como venta: a quién toca ofrecerle mantenimiento.
-  { href: "/comercial/parque?todos=1", etiqueta: "Mantenimiento por vender", icono: Wrench },
+  //
+  // APUNTABA A UNA PANTALLA VACÍA. «Mantenimiento por vender» abría el parque
+  // de la empresa y respondía «0 clientes · 0 máquinas», mientras la pantalla
+  // que sí hace ese trabajo —236 clientes por llamar, con tandas y acciones
+  // reales— vivía escondida como pestaña dentro de «Ventas de servicio»
+  // (informe de UX del 08-09). Es la pantalla que genera plata y nadie la
+  // encontraba: ahora el menú lleva ahí.
+  { href: "/comercial/ruta", etiqueta: "Mantenimiento por vender", icono: Route },
   // La ruta de mantenimiento vive acá adentro como pestaña (plan 23, etapa
   // 4): «es una campaña sobre el mismo pipeline, no otro objeto». Ya no
   // tiene entrada propia en este menú.
