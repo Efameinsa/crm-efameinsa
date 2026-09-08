@@ -222,7 +222,10 @@ export async function diagnosticar(datos: {
     .from("atenciones")
     .update({
       clasificacion: datos.clasificacion,
-      detalle: datos.detalle.trim(),
+      // NO se toca `detalle`: ahí vive lo que dijo el CLIENTE, y es prueba.
+      // Hasta la 0185 el diagnóstico lo pisaba y el texto original se perdía
+      // sin aviso — el hallazgo más grave del informe de UX del 08-09.
+      diagnostico: datos.detalle.trim(),
       etapa: "diagnostico",
       diagnosticado_at: new Date().toISOString(),
     })

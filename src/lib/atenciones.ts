@@ -136,7 +136,10 @@ export interface Atencion {
   conformidad_nombre: string | null;
   informe_servicio_id: string | null;
   resultado: "resuelto" | "no_procede" | "derivado" | null;
+  /** Lo que dijo el CLIENTE. Es prueba: el diagnóstico no lo pisa (0185). */
   detalle: string | null;
+  /** Lo que encontró el técnico. Campo propio desde la 0185. */
+  diagnostico?: string | null;
   motivo_cierre: string | null;
   /** Se siguió sin identificar la máquina (0181): la garantía quedó sin
    *  verificar y `en_garantia` sigue en null a propósito — no se sabe. */

@@ -248,9 +248,28 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
             />
           </SeccionPanel>
 
+          {/* DOS BLOQUES, NO UNO. Hasta la 0185 el diagnóstico del técnico se
+              guardaba encima de lo que había dicho el cliente y el texto
+              original desaparecía sin aviso. Lo que dice el cliente es prueba:
+              en un reclamo de garantía, la diferencia entre «no centrifuga» y
+              «se le metió una moneda en la bomba» decide quién paga. */}
           {a.detalle && (
             <SeccionPanel titulo="Lo que reportó el cliente">
               <p className="whitespace-pre-line text-sm text-foreground">{a.detalle}</p>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Con sus palabras, tal como entró. No se edita.
+              </p>
+            </SeccionPanel>
+          )}
+
+          {a.diagnostico && (
+            <SeccionPanel titulo="Lo que encontró el técnico">
+              <p className="whitespace-pre-line text-sm text-foreground">{a.diagnostico}</p>
+              {a.diagnosticado_at && (
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Diagnosticado el {fechaHoraLima(a.diagnosticado_at)}.
+                </p>
+              )}
             </SeccionPanel>
           )}
 
