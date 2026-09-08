@@ -19,6 +19,7 @@ import {
 } from "@/lib/ruta-mantenimiento";
 import { cn } from "@/lib/utils";
 import { veTodoPostventa } from "@/lib/postventa";
+import { traerPorLotes } from "@/lib/lotes";
 import type { Perfil } from "@/types/database";
 
 /**
@@ -125,43 +126,49 @@ export async function RutaMantenimientoVista({
   // consultas y no en 103: la lista completa cabe de sobra en memoria.
   const [{ data: actividades }, { data: equipos }, { data: perfiles }, { data: contactos }, { data: ventas }] =
     await Promise.all([
+    // NO TARDABA: FALLABA. Esto se pedía con `in(...)` de 500 UUID, que
+    // PostgREST arma como GET y le queda una URL de 18.580 caracteres: el
+    // pedido moría solo después de NUEVE segundos y supabase-js devolvía
+    // `data: null`, que el código de abajo leía como «este cliente no tiene
+    // gestiones». La pantalla tardaba once segundos y encima mostraba la
+    // columna vacía, sin un solo error a la vista (Santos, 08-09).
+    //
+    // La 0194 lo pide por POST y devuelve una fila por oportunidad: 123 ms.
     ids.length
-      ? supabase
-          .from("actividades")
-          .select("oportunidad_id, realizada_at, nota")
-          .in("oportunidad_id", ids)
-          .order("realizada_at", { ascending: false })
-          .limit(2000)
+      ? supabase.rpc("ultima_gestion_de_oportunidades", { p_ids: ids })
       : Promise.resolve({ data: [] }),
-    cuentaIds.length
-      ? supabase
+      // Por lotes las tres que van por cuenta: hoy son 309 clientes y la URL
+      // aguanta, pero la campaña crece y el día que no aguante fallaría igual
+      // de callada que la de arriba. No se espera a que pase.
+      traerPorLotes(cuentaIds, (lote) =>
+        supabase
           .from("equipos_instalados")
           .select("cuenta_id, serie, modelo_texto, ultimo_mantenimiento, fecha_venta")
-          .in("cuenta_id", cuentaIds)
-      : Promise.resolve({ data: [] }),
+          .in("cuenta_id", lote),
+      ),
       supabase.from("perfiles").select("id, nombre"),
       // El teléfono al que hay que llamar. Sin esto, cada llamada empieza
       // abriendo la ficha del cliente.
-      cuentaIds.length
-        ? supabase
-            .from("contactos")
-            .select("cuenta_id, nombre, telefono, es_principal")
-            .in("cuenta_id", cuentaIds)
-            .not("telefono", "is", null)
-        : Promise.resolve({ data: [] }),
+      traerPorLotes(cuentaIds, (lote) =>
+        supabase
+          .from("contactos")
+          .select("cuenta_id, nombre, telefono, es_principal")
+          .in("cuenta_id", lote)
+          .not("telefono", "is", null),
+      ),
       // Cuándo compró de verdad. `cuentas.ultima_venta_at` está vacío en la
       // mayoría de estos clientes —viene del CRM, y estas ventas son de los
       // Excel y de los informes—, y una columna que dice «—» en ocho de cada
       // diez filas no informa nada.
-      cuentaIds.length
-        ? supabase
-            .from("ventas")
-            .select("fecha_venta, oportunidades!inner(cuenta_id)")
-            .in("oportunidades.cuenta_id", cuentaIds)
-            .is("anulada_at", null)
-            .order("fecha_venta", { ascending: false })
-            .limit(2000)
-        : Promise.resolve({ data: [] }),
+      traerPorLotes(cuentaIds, (lote) =>
+        supabase
+          .from("ventas")
+          .select("fecha_venta, oportunidades!inner(cuenta_id)")
+          .in("oportunidades.cuenta_id", lote)
+          .is("anulada_at", null)
+          .order("fecha_venta", { ascending: false })
+          .limit(2000),
+      ),
     ]);
 
   const ultimaGestion = new Map<string, { realizada_at: string; nota: string | null }>();
