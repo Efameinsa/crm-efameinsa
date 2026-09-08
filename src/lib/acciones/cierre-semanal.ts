@@ -69,10 +69,27 @@ export async function guardarDeclaracionSemana(datos: {
 export async function abrirCierreSemana(lunes: string): Promise<{
   declaracion: { compromiso: string; necesidades: string; sinNecesidades: boolean } | null;
   resumen: { proyectadoUsd: number; vendidoUsd: number; ventas: number; rechazos: number; gestiones: number };
+  /**
+   * LA SEMANA DE POSTVENTA, QUE NO SE MIDE EN DÓLARES.
+   *
+   * El área abría este mismo modal y leía «US$ 0 de US$ 0 proyectados · 0
+   * ventas · 0 contactos · 0 perdidas» (informe de UX del 08-09). No era un
+   * error de cálculo: postventa no tiene cartera propia ni proyección, así que
+   * las cinco cifras del comercial le dan cero por definición. Un cero que no
+   * significa nada enseña a no mirar la pantalla.
+   *
+   * Los cuatro números que sí contestan por su semana son los que el ing.
+   * Carlos pide de viva voz —«has recibido 20 problemas, cuántos atendidos,
+   * cuántos en proceso, cuántos cerrados»— y ya los calcula
+   * `resumirAtenciones` con la definición de «caso abierto» que fijó Santos el
+   * 07-09. Es la misma cuenta de la pantalla de Casos: un número por concepto.
+   */
+  postventa: { recibidas: number; atendidas: number; enProceso: number; cerradas: number; facturables: number } | null;
 }> {
   const perfil = await requerirPerfil();
   const cierre = await cargarCierreSemanal(lunes, perfil.id);
   const supabase = await createClient();
+
   const { data } = await supabase
     .from("declaraciones_semana")
     .select("compromiso, necesidades, sin_necesidades")
@@ -91,5 +108,7 @@ export async function abrirCierreSemana(lunes: string): Promise<{
       rechazos: cierre.rechazos.length,
       gestiones: cierre.gestiones,
     },
+    postventa: cierre.postventa,
   };
 }
+

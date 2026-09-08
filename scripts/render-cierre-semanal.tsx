@@ -14,6 +14,8 @@ const dias = ["Lunes 24","Martes 25","Miércoles 26","Jueves 27","Viernes 28","S
 const cierre: CierreSemanal = {
   lunes: "2026-08-24", sabado: "2026-08-29",
   comercial: { nombre: "Katerine Tello", codigo: "C5" },
+  // Katerine vende: su cierre no lleva el bloque del área.
+  postventa: null,
   // La declaración de la semana (0177), para ver el recuadro en la vista previa.
   declaracion: {
     compromiso:

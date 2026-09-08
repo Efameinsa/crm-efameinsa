@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { CalendarRange, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { rotuloMes, sumarMes } from "@/lib/calendario";
@@ -46,7 +47,18 @@ export function BotonReporteMensual({
     const params = new URLSearchParams({ mes: elegido });
     if (comercialId) params.set("comercial", comercialId);
     setGenerando(true);
-    window.open(`/api/reportes/mensual?${params.toString()}`, "_blank", "noopener");
+    const url = `/api/reportes/mensual?${params.toString()}`;
+    // SI EL NAVEGADOR BLOQUEA LA PESTAÑA, window.open devuelve null y no pasa
+    // NADA visible: ni ventana, ni descarga, ni error. El informe de UX del
+    // 08-09 lo reportó como «no produjo nada al primer ni al segundo clic».
+    // Un botón que genera un documento tiene que decir qué pasó.
+    const ventana = window.open(url, "_blank", "noopener");
+    if (!ventana) {
+      setGenerando(false);
+      toast.error("El navegador bloqueó la ventana del reporte. Permita las ventanas emergentes de este sitio.");
+      return;
+    }
+    toast.success("Generando el reporte del mes…");
     // El PDF se arma en el servidor y la pestaña nueva no avisa cuando está
     // lista; el botón se libera tras un momento razonable.
     setTimeout(() => setGenerando(false), 2500);

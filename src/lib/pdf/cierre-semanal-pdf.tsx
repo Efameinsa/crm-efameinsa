@@ -173,6 +173,15 @@ function Seccion({ titulo, total, children }: { titulo: string; total: string | 
 
 export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Buffer; rango: string; cierre: CierreSemanal }) {
   const { comercial, dias, proyectadoUsd, vendidoUsd, diferenciaUsd, ventas, proyeccion } = cierre;
+  /**
+   * POSTVENTA NO SE MIDE EN DÓLARES. Este documento le salía entero en cero
+   * —no tiene cartera ni proyección— y un papel de ceros no se lee, menos el
+   * lunes en la reunión (informe de UX del 08-09). Cuando viene el resumen del
+   * área, los bloques de plata se reemplazan por los cuatro números que el ing.
+   * Carlos pide de viva voz, y las tres secciones de venta no se imprimen: lo
+   * que queda es su semana y lo que se comprometió, que es a lo que va.
+   */
+  const area = cierre.postventa;
   const cumplio = diferenciaUsd >= 0;
   // Sin nada proyectado, «cumplió» no significa nada: no se puede cumplir una
   // promesa que no se hizo, y decir que sí sería premiar la semana en blanco.
@@ -196,7 +205,31 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
           </View>
         </View>
 
-        {/* Lo único que hay que leer: lo prometido contra lo hecho. */}
+        {/* Lo único que hay que leer: lo prometido contra lo hecho. Para el
+            área, los casos que entraron contra los que salieron. */}
+        {area ? (
+          <View style={e.balance}>
+            <View style={e.balanceFila}>
+              {[
+                { etiqueta: "Recibidas", valor: area.recibidas, color: CARBON },
+                { etiqueta: "Atendidas", valor: area.atendidas, color: CARBON },
+                { etiqueta: "En proceso", valor: area.enProceso, color: area.enProceso > 0 ? GRANATE : GRIS },
+                { etiqueta: "Cerradas", valor: area.cerradas, color: area.cerradas > 0 ? VERDE : GRIS },
+              ].map((c) => (
+                <View key={c.etiqueta} style={e.balanceCol}>
+                  <Text style={e.balanceEtiqueta}>{c.etiqueta}</Text>
+                  <Text style={[e.balanceValor, { color: c.color }]}>{c.valor}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={e.veredicto}>
+              {area.recibidas === 0
+                ? "No entró ningún caso nuevo esta semana."
+                : `Entraron ${area.recibidas} caso(s); quedan ${area.enProceso} abierto(s) al cerrar la semana.`}
+              {area.facturables > 0 ? ` ${area.facturables} de ellos se cobran.` : ""}
+            </Text>
+          </View>
+        ) : (
         <View style={e.balance}>
           <View style={e.balanceFila}>
             <View style={e.balanceCol}>
@@ -236,11 +269,13 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
             </Text>
           )}
         </View>
+        )}
 
         {/* CADA NÚMERO CONTRA SU META. Carlos, 05-09, mirando este mismo
             documento: «contacto con clientes, sí, ¿pero de cuántos? (…) acá me
             dice que está todo bien: voy a ir a hacer fiesta hoy día. Falta
             compararlo con algo. Dime qué tengo que mejorar». */}
+        {!area && (
         <View style={e.tarjetas}>
           <Medidor etiqueta="Contactos con cliente" m={cierre.medidas.gestiones} />
           <Medidor etiqueta="Cotizaciones enviadas" m={cierre.medidas.cotizaciones} />
@@ -256,8 +291,10 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
             <Text style={e.tarjetaPie}>{ventas.length} venta(s) cerrada(s)</Text>
           </View>
         </View>
+        )}
 
         {/* La frase que cierra. «No es darle con palo, sino ver tu realidad.» */}
+        {!area && (
         <View style={[e.veredictoCaja, { borderColor: COLOR_ESTADO[cierre.veredicto.estado] }]}>
           <View style={[e.puntoEstado, { backgroundColor: COLOR_ESTADO[cierre.veredicto.estado] }]} />
           <Text style={[e.veredictoTitulo, { color: COLOR_ESTADO[cierre.veredicto.estado] }]}>
@@ -265,6 +302,7 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
           </Text>
           <Text style={e.veredictoFrase}>{cierre.veredicto.frase}</Text>
         </View>
+        )}
 
         {/* LO QUE DIJO EL COMERCIAL. Carlos, 02-09: «abajo, o si quieres
             arriba, donde sea visual: en qué te estás comprometiendo, qué
@@ -290,12 +328,16 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
           )}
         </View>
 
-        <Seccion titulo="1. DÍA POR DÍA" total={usd(vendidoUsd)}>
+        <Seccion titulo="1. DÍA POR DÍA" total={area ? cierre.gestiones : usd(vendidoUsd)}>
           <View style={e.th}>
             <Text style={[e.thTexto, { width: "28%" }]}>Día</Text>
-            <Text style={[e.thTexto, { width: "16%", textAlign: "right" }]}>Gestiones / meta</Text>
-            <Text style={[e.thTexto, { width: "28%", textAlign: "right" }]}>Proyectado</Text>
-            <Text style={[e.thTexto, { width: "28%", textAlign: "right" }]}>Vendido</Text>
+            <Text style={[e.thTexto, { width: area ? "72%" : "16%", textAlign: "right" }]}>
+              {area ? "Contactos con el cliente" : "Gestiones / meta"}
+            </Text>
+            {/* Las dos columnas de plata no se imprimen para el área: darían
+                una raya en todas las filas. */}
+            {!area && <Text style={[e.thTexto, { width: "28%", textAlign: "right" }]}>Proyectado</Text>}
+            {!area && <Text style={[e.thTexto, { width: "28%", textAlign: "right" }]}>Vendido</Text>}
           </View>
           {dias.map((d, i) => (
             <View key={d.iso} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
@@ -304,30 +346,39 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
                   contra la meta diaria del comercial. */}
               <Text
                 style={{
-                  width: "16%",
+                  width: area ? "72%" : "16%",
                   textAlign: "right",
-                  color: metaDiaria == null ? CARBON : d.gestiones >= metaDiaria ? VERDE : GRANATE,
+                  color: area || metaDiaria == null ? CARBON : d.gestiones >= metaDiaria ? VERDE : GRANATE,
                 }}
               >
-                {metaDiaria != null ? `${d.gestiones} / ${metaDiaria}` : d.gestiones}
+                {!area && metaDiaria != null ? `${d.gestiones} / ${metaDiaria}` : d.gestiones}
               </Text>
-              <Text style={{ width: "28%", textAlign: "right", color: GRIS }}>
-                {d.proyectado > 0 ? usd(d.proyectado) : "—"}
-              </Text>
-              <Text style={{ width: "28%", textAlign: "right", color: d.vendido > 0 ? VERDE : GRIS }}>
-                {d.vendido > 0 ? usd(d.vendido) : "—"}
-              </Text>
+              {!area && (
+                <Text style={{ width: "28%", textAlign: "right", color: GRIS }}>
+                  {d.proyectado > 0 ? usd(d.proyectado) : "—"}
+                </Text>
+              )}
+              {!area && (
+                <Text style={{ width: "28%", textAlign: "right", color: d.vendido > 0 ? VERDE : GRIS }}>
+                  {d.vendido > 0 ? usd(d.vendido) : "—"}
+                </Text>
+              )}
             </View>
           ))}
-          <View style={[e.fila, { borderTopWidth: 1, borderTopColor: GRANATE }]} wrap={false}>
-            <Text style={{ width: "44%", fontFamily: "Helvetica-Bold" }}>TOTAL DE LA SEMANA</Text>
-            <Text style={{ width: "28%", textAlign: "right", fontFamily: "Helvetica-Bold" }}>{usd(proyectadoUsd)}</Text>
-            <Text style={{ width: "28%", textAlign: "right", fontFamily: "Helvetica-Bold", color: VERDE }}>
-              {usd(vendidoUsd)}
-            </Text>
-          </View>
+          {!area && (
+            <View style={[e.fila, { borderTopWidth: 1, borderTopColor: GRANATE }]} wrap={false}>
+              <Text style={{ width: "44%", fontFamily: "Helvetica-Bold" }}>TOTAL DE LA SEMANA</Text>
+              <Text style={{ width: "28%", textAlign: "right", fontFamily: "Helvetica-Bold" }}>
+                {usd(proyectadoUsd)}
+              </Text>
+              <Text style={{ width: "28%", textAlign: "right", fontFamily: "Helvetica-Bold", color: VERDE }}>
+                {usd(vendidoUsd)}
+              </Text>
+            </View>
+          )}
         </Seccion>
 
+        {!area && (
         <Seccion titulo="2. LO QUE SE CERRÓ" total={ventas.length}>
           {ventas.length === 0 ? (
             <Text style={e.vacio}>No se cerró ninguna venta esta semana.</Text>
@@ -348,9 +399,11 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
             </>
           )}
         </Seccion>
+        )}
 
         {/* «Qué hiciste y qué DEJASTE de hacer» (ing. Carlos). Lo prometido que
             no se cerró es la mitad de la conversación del sábado. */}
+        {!area && (
         <Seccion titulo="3. LO QUE QUEDÓ PENDIENTE" total={usd(proyeccion.totalPorUbicar)}>
           {proyeccion.porUbicar.length === 0 ? (
             <Text style={e.vacio}>Todo lo que está en negociación tiene fecha de cierre asignada.</Text>
@@ -378,6 +431,7 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
             </>
           )}
         </Seccion>
+        )}
 
         {/* LO QUE SE PERDIÓ. Carlos, 02-09: «esos rechazados podríamos ponerlo
             también en el cierre semanal (…) un gráfico de torta, y que salga el
@@ -385,6 +439,7 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
             errores uno aprende, pero yo no quiero aprender nada más, tiene que
             aprender todo el equipo». Por eso el detalle va entero y a la vista:
             el lunes se conversa cliente por cliente. */}
+        {!area && (
         <Seccion titulo="4. LO QUE SE PERDIÓ, Y POR QUÉ" total={cierre.rechazos.length}>
           {cierre.rechazos.length === 0 ? (
             <Text style={e.vacio}>Ninguna oportunidad se dio por perdida esta semana.</Text>
@@ -438,6 +493,7 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
             </>
           )}
         </Seccion>
+        )}
 
         <View style={e.pie} fixed>
           <Text style={e.pieTexto}>Generado automáticamente por el CRM de Efameinsa</Text>

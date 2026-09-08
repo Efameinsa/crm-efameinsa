@@ -50,6 +50,16 @@ export function BotonCierreSemanal({
   const [resumen, setResumen] = useState<{
     proyectadoUsd: number; vendidoUsd: number; ventas: number; rechazos: number; gestiones: number;
   } | null>(null);
+  /**
+   * Postventa cierra su semana con los cuatro números del área, no con los del
+   * comercial: los suyos daban «US$ 0 de US$ 0 proyectados» por definición
+   * —no tiene cartera ni proyección— y el informe de UX del 08-09 lo marcó
+   * como un cero que enseña a no mirar la pantalla. Cuando esto llega, manda
+   * sobre el bloque de ventas y cambia las dos preguntas.
+   */
+  const [postventa, setPostventa] = useState<{
+    recibidas: number; atendidas: number; enProceso: number; cerradas: number; facturables: number;
+  } | null>(null);
   const [guardando, empezar] = useTransition();
 
   // LA HORA DEL CIERRE. Carlos, 02-09: «sábado, solamente para sábado, cierre
@@ -95,6 +105,7 @@ export function BotonCierreSemanal({
     try {
       const r = await abrirCierreSemana(semana ?? lunesDeHoy());
       setResumen(r.resumen);
+      setPostventa(r.postventa);
       if (r.declaracion) {
         setCompromiso(r.declaracion.compromiso);
         setNecesidades(r.declaracion.necesidades);
@@ -160,7 +171,33 @@ export function BotonCierreSemanal({
             <div className="space-y-4">
               {/* La semana delante, antes de preguntar. Sin esto la pregunta
                   se responde en frío y se llena por salir del paso. */}
-              {resumen && (
+              {postventa ? (
+                <div className="rounded-lg border border-border bg-secondary/40 p-3">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Así le fue esta semana
+                  </p>
+                  {/* Los cuatro que pide el ing. Carlos, en su orden y con la
+                      misma cuenta que la pantalla de Casos. */}
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {[
+                      { etiqueta: "Recibidas", valor: postventa.recibidas },
+                      { etiqueta: "Atendidas", valor: postventa.atendidas },
+                      { etiqueta: "En proceso", valor: postventa.enProceso },
+                      { etiqueta: "Cerradas", valor: postventa.cerradas },
+                    ].map((c) => (
+                      <div key={c.etiqueta} className="rounded-md bg-background px-2 py-1.5">
+                        <p className="text-lg font-bold tabular-nums text-foreground">{c.valor}</p>
+                        <p className="text-[11px] text-muted-foreground">{c.etiqueta}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {postventa.facturables > 0 && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {postventa.facturables} de ellas se cobran.
+                    </p>
+                  )}
+                </div>
+              ) : resumen ? (
                 <div className="rounded-lg border border-border bg-secondary/40 p-3">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     Así le fue esta semana
@@ -180,15 +217,16 @@ export function BotonCierreSemanal({
                     </span>
                   </p>
                 </div>
-              )}
+              ) : null}
 
               <div>
                 <label htmlFor="compromiso" className="mb-1 block text-sm font-semibold text-foreground">
-                  ¿Qué va a hacer usted para mejorar sus ventas?
+                  {postventa ? "¿Qué va a hacer usted para atender mejor?" : "¿Qué va a hacer usted para mejorar sus ventas?"}
                 </label>
                 <p className="mb-1.5 text-[11px] leading-snug text-muted-foreground">
-                  No hace falta que escriba a cuántos va a llamar ni cuánto va a vender: eso ya sale de su agenda y de
-                  sus potenciales. Escriba lo que va a hacer distinto.
+                  {postventa
+                    ? "No hace falta que escriba cuántos casos va a cerrar: eso ya sale de su bandeja. Escriba lo que va a hacer distinto."
+                    : "No hace falta que escriba a cuántos va a llamar ni cuánto va a vender: eso ya sale de su agenda y de sus potenciales. Escriba lo que va a hacer distinto."}
                 </p>
                 <textarea
                   id="compromiso"

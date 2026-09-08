@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { cargarPotenciales, resumirSemana, type ProyeccionSemana } from "@/lib/potenciales-semana";
 import { SEMANAS_POR_MES } from "@/lib/periodo";
+import { resumirAtenciones, type Atencion } from "@/lib/atenciones";
 
 /**
  * El cierre de la semana.
@@ -55,6 +56,15 @@ export interface DiaCierre {
   gestiones: number;
 }
 
+/** Los cuatro números del área más cuántas de ellas se cobran. */
+export interface ResumenSemanaArea {
+  recibidas: number;
+  atendidas: number;
+  enProceso: number;
+  cerradas: number;
+  facturables: number;
+}
+
 export interface CierreSemanal {
   lunes: string;
   sabado: string;
@@ -75,6 +85,26 @@ export interface CierreSemanal {
    * la siguiente semana». Es null mientras no lo haya declarado.
    */
   declaracion: DeclaracionSemana | null;
+  /**
+   * LA SEMANA DEL ÁREA, PARA QUIEN NO VENDE.
+   *
+   * Postventa cierra la semana con este mismo documento y le salía todo en
+   * cero: «US$ 0 de US$ 0 proyectados · 0 ventas · 0 contactos · 0 perdidas»
+   * (informe de UX del 08-09). No es un error de cálculo —el área no tiene
+   * cartera ni proyección, así que los cinco números del comercial le dan cero
+   * por definición—, pero un documento que solo dice ceros no se lee, y este
+   * lo revisa gerencia el lunes.
+   *
+   * Los cuatro números que sí contestan por su semana son los que el ing.
+   * Carlos pide de viva voz: «has recibido 20 problemas, cuántos atendidos,
+   * cuántos en proceso, cuántos cerrados». Se calculan UNA vez, acá, con
+   * `resumirAtenciones` y la definición de «caso abierto» que fijó Santos el
+   * 07-09; el modal del cierre y el PDF leen de este mismo campo para que no
+   * vuelvan a discrepar dos pantallas.
+   *
+   * Es null para todos los demás: el comercial sigue viendo su balance.
+   */
+  postventa: ResumenSemanaArea | null;
   /**
    * Lo que se perdió esta semana y por qué (Carlos, 02-09): «esos rechazados
    * podríamos ponerlo también en el cierre semanal (…) un gráfico de torta, y
@@ -142,7 +172,7 @@ export async function cargarCierreSemanal(
       cargarPotenciales(lunes, comercialId, supabase),
       supabase
         .from("perfiles")
-        .select("nombre, codigo_comercial, meta_mensual, meta_gestiones_diarias, meta_cotizaciones_semanal")
+        .select("nombre, codigo_comercial, es_postventa, meta_mensual, meta_gestiones_diarias, meta_cotizaciones_semanal")
         .eq("id", comercialId)
         .maybeSingle(),
       supabase
@@ -285,10 +315,30 @@ export async function cargarCierreSemanal(
     };
   })();
 
+  // Sin filtro por persona: el área contesta como área —un caso lo registra
+  // uno y lo cierra el otro—, y la RLS ya limita lo que cada quien lee.
+  const { data: atencionesSemana } = perfil?.es_postventa
+    ? await supabase
+        .from("atenciones")
+        .select("id, tipo, etapa, clasificacion, solicitado_at, tomada_at, atendido_at, cerrado_at, programada_at")
+        .gte("solicitado_at", `${lunes}T00:00:00-05:00`)
+        .lte("solicitado_at", `${sabado}T23:59:59-05:00`)
+        .limit(500)
+    : { data: null };
+
   return {
     lunes,
     sabado,
     comercial: { nombre: perfil?.nombre ?? "—", codigo: perfil?.codigo_comercial ?? null },
+    postventa: atencionesSemana
+      ? (({ recibidas, atendidas, enProceso, cerradas, facturables }) => ({
+          recibidas,
+          atendidas,
+          enProceso,
+          cerradas,
+          facturables,
+        }))(resumirAtenciones(atencionesSemana as unknown as Atencion[]))
+      : null,
     proyeccion,
     dias,
     proyectadoUsd: proyeccion.totalSemana,
