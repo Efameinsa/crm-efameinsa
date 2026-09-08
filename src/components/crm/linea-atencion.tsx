@@ -33,6 +33,7 @@ import { SelectorFecha } from "@/components/crm/selector-fecha";
 import { SelectorHora } from "@/components/crm/selector-hora";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { fechaLima } from "@/lib/fechas";
 
 /**
  * La atención, de punta a punta, en una sola pantalla.
@@ -48,6 +49,14 @@ import { cn } from "@/lib/utils";
  * el mismo criterio del pedido de postventa: la pregunta no es «en qué estado
  * está» sino «qué tengo que hacer yo ahora».
  */
+/** Una frase por estado, sin ambigüedad. Los calcula la base (0187). */
+const ETIQUETA_PREVENTIVO: Record<string, string> = {
+  nunca: "NUNCA hizo preventivo — recomendárselo",
+  vencido: "Preventivo VENCIDO — hay algo que ofrecerle",
+  al_dia: "Preventivo al día",
+  sin_plan: "Sin próximo preventivo agendado",
+};
+
 export function LineaAtencion({
   atencion,
   garantia,
@@ -66,6 +75,9 @@ export function LineaAtencion({
     garantia_hasta: string | null;
     hizo_preventivo: boolean;
     ultimo_mantenimiento: string | null;
+    /** Lo calcula la base (0187): nunca | vencido | al_dia | sin_plan. */
+    preventivo_estado?: string | null;
+    proximo_mantenimiento?: string | null;
     serie: string | null;
   } | null;
 }) {
@@ -169,19 +181,36 @@ export function LineaAtencion({
             )}
           >
             {garantia.en_garantia ? <ShieldCheck className="size-3" /> : <ShieldOff className="size-3" />}
-            {garantia.en_garantia ? "En garantía" : "Sin garantía"}
-            {garantia.garantia_hasta && ` · hasta ${garantia.garantia_hasta}`}
+            {/* «Fuera de garantía», igual que en Equipos instalados: eran dos
+                etiquetas para el mismo estado en dos pantallas (UX, 08-09). Y
+                la fecha en formato de Lima, no en el crudo de la base. */}
+            {garantia.en_garantia ? "En garantía" : "Fuera de garantía"}
+            {garantia.garantia_hasta && ` · hasta ${fechaLima(garantia.garantia_hasta)}`}
           </span>
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold",
-              garantia.hizo_preventivo ? "bg-primary/10 text-primary" : "bg-amber-500/10 text-amber-700",
+              garantia.preventivo_estado === "al_dia"
+                ? "bg-primary/10 text-primary"
+                : "bg-amber-500/10 text-amber-700",
             )}
           >
             <Wrench className="size-3" />
-            {garantia.hizo_preventivo
-              ? `Preventivo al día · ${garantia.ultimo_mantenimiento ?? ""}`
-              : "NUNCA hizo preventivo — recomendárselo"}
+            {/* DECÍA «AL DÍA» LO QUE NO LO ESTABA. El dato que se miraba,
+                `hizo_preventivo`, significa «alguna vez le hicieron uno»: una
+                máquina atendida en 2024 salía «Preventivo al día · 2024-09-06».
+                Justo al revés de lo que el área necesita ver, porque un
+                preventivo vencido es una venta que hay que ofrecer. El estado
+                lo calcula ahora la base (0187): de 314 máquinas, 132 están
+                vencidas y solo 18 al día. */}
+            {ETIQUETA_PREVENTIVO[String(garantia.preventivo_estado ?? "nunca")] ?? "Preventivo — sin datos"}
+            {garantia.preventivo_estado === "vencido" && garantia.proximo_mantenimiento
+              ? ` · vencía el ${fechaLima(garantia.proximo_mantenimiento)}`
+              : garantia.preventivo_estado === "al_dia" && garantia.proximo_mantenimiento
+                ? ` · próximo ${fechaLima(garantia.proximo_mantenimiento)}`
+                : garantia.preventivo_estado === "sin_plan" && garantia.ultimo_mantenimiento
+                  ? ` · el último fue el ${fechaLima(garantia.ultimo_mantenimiento)}`
+                  : ""}
           </span>
           {a.clasificacion && (
             <span className={cn("rounded-full px-2 py-0.5 font-semibold", COLOR_CLASIFICACION[a.clasificacion])}>
