@@ -68,6 +68,7 @@ export function ListaCotizaciones({
   // el cuadro se abre en esa fila y no en todas.
   const [pidePin, setPidePin] = useState<string | null>(null);
   const [codigo, setCodigo] = useState("");
+  const [errorPin, setErrorPin] = useState<string | null>(null);
   const rutaCotizar = `/comercial/oportunidades/${oportunidadId}/cotizar`;
 
   function onRegistrarVenta(id: string) {
@@ -92,13 +93,14 @@ export function ListaCotizaciones({
       if (r.pidePin) {
         setPidePin(c.id);
         setCodigo("");
-        if (pin) toast.error(r.error ?? "Ese código no sirve");
+        setErrorPin(pin ? (r.error ?? "Ese código no sirve") : null);
         return;
       }
       if (r.error) toast.error(r.error);
       else {
         setPidePin(null);
         setCodigo("");
+        setErrorPin(null);
         toast.success("Borrador eliminado");
         router.refresh();
       }
@@ -146,8 +148,11 @@ export function ListaCotizaciones({
           <p className="mt-0.5 text-xs text-muted-foreground">
             Son 4 dígitos y los da gerencia. Se borra el borrador del {fechaHoraLima(enPin.created_at)}.
           </p>
+          {errorPin && (
+            <p className="mt-2 text-xs font-semibold text-destructive">{errorPin}</p>
+          )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <CampoCodigo valor={codigo} onChange={setCodigo} autoFocus />
+            <CampoCodigo valor={codigo} onChange={setCodigo} autoFocus enmascarar />
             <Button size="sm" disabled={codigo.length < 4 || ocupado} onClick={() => borrar(enPin, codigo)}>
               Borrar
             </Button>
@@ -158,6 +163,7 @@ export function ListaCotizaciones({
               onClick={() => {
                 setPidePin(null);
                 setCodigo("");
+                setErrorPin(null);
               }}
             >
               Cancelar

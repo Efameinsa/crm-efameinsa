@@ -506,8 +506,11 @@ export async function eliminarCotizacion(
 
   if (quien?.es_postventa) {
     if (!pin) return { error: "Para borrar hace falta el código de un supervisor", pidePin: true };
+    // La función de la base LANZA excepción con un código incorrecto, no
+    // devuelve null. Sin marcar `pidePin` acá, el cuadro de las casillas se
+    // quedaba mudo: el tester puso 1234, pulsó Borrar y no pasó nada visible.
     const { data: valido, error: errorPin } = await supabase.rpc("validar_pin_supervisor", { p_pin: pin });
-    if (errorPin) return { error: limpiarError(errorPin.message) };
+    if (errorPin) return { error: limpiarError(errorPin.message), pidePin: true };
     if (!valido) return { error: "Ese código no es válido o ya venció", pidePin: true };
   }
 

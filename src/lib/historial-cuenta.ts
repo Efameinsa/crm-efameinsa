@@ -144,7 +144,7 @@ export async function cargarHistorialCuenta(
       documentoPorCodigo.set(c.codigo, { id: c.id, items: c.items ?? [], tienePdf: Boolean(c.pdf_path) });
   }
 
-  const TIPO_ATENCION: Record<string, string> = { problema_tecnico: "Problema técnico", solicitud_repuesto: "Solicitud de repuesto" };
+  const TIPO_ATENCION: Record<string, string> = { problema_tecnico: "Problema técnico", solicitud_repuesto: "Repuesto" };
   const eventos: EventoTimeline[] = [
     ...(servicios ?? []).map((sv): EventoTimeline => ({
       tipo: "servicio",

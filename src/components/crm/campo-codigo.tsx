@@ -36,6 +36,7 @@ export function CampoCodigo({
   tono = "primary",
   autoFocus = false,
   id,
+  enmascarar = false,
 }: {
   valor: string;
   onChange: (v: string) => void;
@@ -44,6 +45,11 @@ export function CampoCodigo({
   autoFocus?: boolean;
   /** Para poder enlazarle una etiqueta con `htmlFor`. */
   id?: string;
+  /** Tapa los dígitos con un punto. Lo pidió el informe de UX del 08-09:
+   *  un código de autorización a la vista de quien esté al lado no autoriza
+   *  nada. Va apagado por defecto para no cambiar las pantallas donde el
+   *  código se teclea a solas y conviene poder revisarlo. */
+  enmascarar?: boolean;
 }) {
   const [enfocado, setEnfocado] = useState(false);
   const t = TONO[tono];
@@ -77,7 +83,7 @@ export function CampoCodigo({
               enfocado && i === activa && t.activo,
             )}
           >
-            {valor[i] ?? "•"}
+            {valor[i] ? (enmascarar ? "●" : valor[i]) : "•"}
           </span>
         ))}
       </div>

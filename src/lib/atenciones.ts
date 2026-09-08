@@ -67,8 +67,8 @@ export const AYUDA_ETAPA: Record<EtapaAtencion, string> = {
 export const ETIQUETA_TIPO_ATENCION: Record<TipoAtencion, string> = {
   puesta_en_marcha: "Puesta en marcha",
   problema_tecnico: "Problema técnico",
-  solicitud_repuesto: "Solicitud de repuesto",
-  solicitud_mantenimiento: "Solicitud de mantenimiento",
+  solicitud_repuesto: "Repuesto",
+  solicitud_mantenimiento: "Mantenimiento",
 };
 
 /**

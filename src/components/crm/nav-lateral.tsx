@@ -59,7 +59,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // produce el comercial y hasta el 28-08 solo uno se podía volver a mirar
     // (el informe se abría una vez, al emitirlo, y después había que buscarlo
     // dentro de la ficha del cliente o pedírselo a Central).
-    { href: "/comercial/cierres", etiqueta: "Mis cierres", icono: PackageCheck },
+    { href: "/comercial/cierres", etiqueta: "Ventas emitidas", icono: PackageCheck },
     { href: "/comercial/potenciales", etiqueta: "Mis potenciales", icono: Target },
     { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: Gauge },
     { href: "/comercial/cartera", etiqueta: "Mi cartera", icono: Building2 },
@@ -159,7 +159,7 @@ const ENLACES_POSTVENTA = [
   // Los cierres de postventa se emiten en el CRM desde el 03-09 (Carlos: «que
   // el CRM esté ordenado»): la misma pantalla del comercial, filtrada por su
   // cartera. Sin esta entrada había que llegar por la oportunidad.
-  { href: "/comercial/cierres", etiqueta: "Mis cierres", icono: PackageCheck },
+  { href: "/comercial/cierres", etiqueta: "Ventas emitidas", icono: PackageCheck },
   { href: "/comercial/cartera", etiqueta: "Clientes", icono: Building2 },
 ];
 

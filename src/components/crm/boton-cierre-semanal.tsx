@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 export function BotonCierreSemanal({
   semana,
   comercialId,
-  etiqueta = "Cierre de la semana",
+  etiqueta = "Compromiso semanal",
   compacto = false,
 }: {
   /** Lunes de la semana (YYYY-MM-DD). Sin esto, el servidor toma la actual. */
