@@ -20,6 +20,7 @@ import {
   type FichaSerie,
 } from "@/lib/acciones/casos";
 import { registrarAtencion } from "@/lib/acciones/atenciones";
+import { CampoAdjuntos, useAdjuntos } from "@/components/crm/campo-adjuntos";
 import { fechaCalendario } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +83,15 @@ export function RegistroCaso() {
   const [tipo, setTipo] = useState<Tipo>("problema_tecnico");
   const [problema, setProblema] = useState("");
   const [codigoError, setCodigoError] = useState("");
+  /**
+   * LA FOTO DE LA PLACA. Los casos de prueba del área dicen «el cliente manda
+   * la foto de la placa», pero acá no había dónde subirla: solo la aceptaba el
+   * formulario de Central, así que la foto se quedaba en el WhatsApp de quien
+   * contestó (informe de UX del 08-09). Y es la foto la que resuelve la
+   * identidad del equipo: la serie mal dictada por teléfono es la razón de que
+   * existan casos «sin equipo identificar».
+   */
+  const adjuntos = useAdjuntos();
 
 
   const cuentaId = ficha?.cuentaId ?? cuenta?.id ?? null;
@@ -116,6 +126,14 @@ export function RegistroCaso() {
       return;
     }
     startTransition(async () => {
+      // Las fotos primero: si una subida falla se avisa y NO se registra el
+      // caso. Mejor reintentar que dejarlo sin la foto que identifica el
+      // equipo, que es justamente a lo que se vino.
+      const subida = await adjuntos.subir();
+      if (subida.error !== null) {
+        toast.error(subida.error);
+        return;
+      }
       const r = await registrarAtencion({
         cuentaId,
         tipo,
@@ -123,6 +141,7 @@ export function RegistroCaso() {
         equipoId: ficha?.equipoId ?? null,
         serie: ficha?.serie ?? serie.trim() ?? null,
         codigoError: codigoError || null,
+        adjuntos: subida.adjuntos,
       });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
@@ -145,6 +164,11 @@ export function RegistroCaso() {
       return;
     }
     startTransition(async () => {
+      const subida = await adjuntos.subir();
+      if (subida.error !== null) {
+        toast.error(subida.error);
+        return;
+      }
       const r = await registrarCaso({
         cuentaId,
         // El camino viejo sigue usando el enum de tres valores. Se traduce acá
@@ -157,6 +181,7 @@ export function RegistroCaso() {
         serieTexto: ficha?.serie ?? serie.trim() ?? null,
         desenlace,
         atencion: null,
+        adjuntos: subida.adjuntos,
       });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
@@ -168,8 +193,10 @@ export function RegistroCaso() {
   }
 
 
+  // El Ctrl+V lo escucha el formulario entero: quien pega la captura de
+  // WhatsApp tiene el cursor en un campo, no sobre la caja de archivos.
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" onPaste={adjuntos.onPaste}>
       {/* ── 1 · ¿QUÉ EQUIPO? ─────────────────────────────────────────────── */}
       <Paso numero={1} titulo="¿Qué equipo?">
         <div className="flex flex-wrap items-center gap-2">
@@ -322,6 +349,14 @@ export function RegistroCaso() {
             className="w-full bg-transparent font-mono text-sm uppercase outline-none"
           />
         </label>
+
+        <div className="mt-2">
+          <p className="mb-1 text-xs font-medium text-foreground">Fotos que le mandó el cliente</p>
+          <CampoAdjuntos
+            ctl={adjuntos}
+            ayuda="La foto de la placa —la que aclara la serie—, del equipo o del error · hasta 5 archivos de 10 MB"
+          />
+        </div>
       </Paso>
 
       {/* ── 3 · ¿QUÉ HACEMOS? ────────────────────────────────────────────── */}

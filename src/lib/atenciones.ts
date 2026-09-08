@@ -51,6 +51,34 @@ export const ETIQUETA_ETAPA: Record<EtapaAtencion, string> = {
   seguimiento: "Seguimiento",
 };
 
+/**
+ * LA TIRA MUESTRA LOS PASOS QUE EXISTEN, NO LOS ESTADOS DE LA BASE.
+ *
+ * El circuito decía nueve etapas y tenía siete formularios: «Pruebas» y
+ * «Conformidad» son UNO solo —el paso de pruebas pide el resultado y, debajo,
+ * quién firma la conformidad y su DNI— y la tira las pintaba separadas, así
+ * que marcaba un paso que nadie iba a ver nunca por su cuenta (informe de UX
+ * del 08-09).
+ *
+ * Se agrupan al MOSTRAR y no en la base: `pruebas` y `conformidad` son dos
+ * sellos con fecha distinta —cuándo se probó y cuándo firmó el cliente— y
+ * fusionarlos en el dato perdería la prueba de que el cliente firmó otro día.
+ * Lo que se corrige es la tira, que es donde estaba la mentira.
+ *
+ * «Solicitud» sí se queda: es donde está el caso mientras Central decide, y
+ * esconderlo sería esconder dónde está.
+ */
+export const PASOS_VISIBLES: { clave: EtapaAtencion; etiqueta: string; cubre: EtapaAtencion[] }[] = [
+  { clave: "solicitud", etiqueta: "Solicitud", cubre: ["solicitud"] },
+  { clave: "registro", etiqueta: "Registro", cubre: ["registro"] },
+  { clave: "diagnostico", etiqueta: "Diagnóstico", cubre: ["diagnostico"] },
+  { clave: "planificacion", etiqueta: "Planificación", cubre: ["planificacion"] },
+  { clave: "atencion", etiqueta: "Atención", cubre: ["atencion"] },
+  { clave: "pruebas", etiqueta: "Pruebas y conformidad", cubre: ["pruebas", "conformidad"] },
+  { clave: "cierre", etiqueta: "Cierre", cubre: ["cierre"] },
+  { clave: "seguimiento", etiqueta: "Seguimiento", cubre: ["seguimiento"] },
+];
+
 /** Qué significa estar en cada etapa, para quien no se sabe el flujo de memoria. */
 export const AYUDA_ETAPA: Record<EtapaAtencion, string> = {
   solicitud: "Registrada y derivada a Central. Central decide si la atiende el área o un comercial.",
@@ -140,6 +168,10 @@ export interface Atencion {
   detalle: string | null;
   /** Lo que encontró el técnico. Campo propio desde la 0185. */
   diagnostico?: string | null;
+  /** Por qué se cerró sin facturar un caso que se cobraba (0189). */
+  no_facturado_motivo?: string | null;
+  /** La pista comercial del caso, para poder cotizar desde acá. */
+  oportunidad_id?: string | null;
   motivo_cierre: string | null;
   /** Se siguió sin identificar la máquina (0181): la garantía quedó sin
    *  verificar y `en_garantia` sigue en null a propósito — no se sabe. */
@@ -260,6 +292,29 @@ export interface ResumenAtenciones {
  * chip y el contador del menú cuenten lo mismo — cuando dos pantallas
  * discrepan, se deja de creer en las dos.
  */
+/**
+ * ¿Hace falta explicar por qué no se factura, para poder cerrar este caso?
+ *
+ * Un caso marcado «se cobra» que se cierra sin ninguna cotización es una venta
+ * que se pierde en silencio: el área hizo el trabajo, el cliente firmó
+ * conforme, y no queda rastro de que había algo que facturar. Lo encontró el
+ * informe de UX del 08-09 recorriendo las nueve etapas de un correctivo.
+ *
+ * No bloquea el cierre: exige UNA respuesta. «Lo cubrió la garantía» o
+ * «cortesía autorizada por gerencia» son razones legítimas y distintas; lo que
+ * no puede pasar es que no haya ninguna.
+ */
+export function faltaDecirPorQueNoSeFactura(datos: {
+  clasificacion: ClasificacionAtencion | null | undefined;
+  cotizaciones: number;
+  motivo: string | null | undefined;
+}): boolean {
+  const seCobra = datos.clasificacion ? SE_COBRA[datos.clasificacion] : false;
+  if (!seCobra) return false;
+  if (datos.cotizaciones > 0) return false;
+  return (datos.motivo ?? "").trim().length < 10;
+}
+
 export function estaAbierta(a: Pick<Atencion, "cerrado_at">): boolean {
   return !a.cerrado_at;
 }

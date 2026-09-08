@@ -126,6 +126,21 @@ export async function registrarCaso(datos: {
   desenlace: DesenlaceCaso;
   /** Solo para «derivar»: cuándo y con quién. */
   atencion?: { fecha: string; hora?: string | null; tecnico?: string | null } | null;
+  /**
+   * LA FOTO DE LA PLACA, POR DONDE ENTRA EL CASO.
+   *
+   * Los casos de prueba del área dicen «el cliente manda la foto de la placa»,
+   * pero este formulario no tenía dónde subirla: solo la aceptaba el de
+   * Central, así que la foto de un caso que entra por el teléfono del área se
+   * quedaba en el WhatsApp de quien contestó (informe de UX del 08-09). Y es
+   * la foto la que resuelve el problema de identidad: la serie mal dictada por
+   * teléfono es la razón de que existan casos «sin equipo identificar».
+   *
+   * Van al bucket 'adjuntos' —ya subidos por el formulario— y se guardan en la
+   * actividad del caso, que es donde 0029 puso los adjuntos y donde el
+   * historial ya sabe mostrarlos. Sin migración.
+   */
+  adjuntos?: { path: string; nombre: string; tipo: string; tamano: number }[];
 }): Promise<{ error: string | null; id?: string }> {
   const problema = datos.problema.trim();
   if (!datos.cuentaId) return { error: "Falta el cliente: sin cliente el caso no se puede archivar en ningún lado" };
@@ -179,6 +194,12 @@ export async function registrarCaso(datos: {
     tipo: "llamada",
     nota: `${problema} ${detalleTecnico}`.trim(),
     realizada_por: perfil.id,
+    adjuntos: (datos.adjuntos ?? []).slice(0, 5).map((a) => ({
+      path: String(a.path).slice(0, 300),
+      nombre: String(a.nombre).slice(0, 120),
+      tipo: String(a.tipo).slice(0, 100),
+      tamano: Number(a.tamano) || 0,
+    })),
     proxima_accion: datos.desenlace === "derivar" ? "Atención técnica programada" : null,
     proxima_accion_at: datos.desenlace === "derivar" ? datos.atencion?.fecha : null,
     proxima_accion_hora: datos.desenlace === "derivar" ? (datos.atencion?.hora || null) : null,

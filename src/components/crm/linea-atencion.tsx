@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, ChevronRight, Copy, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
+import { Check, ChevronRight, Copy, ShieldCheck, ShieldOff, Wrench , CalendarClock} from "lucide-react";
 import {
-  ETAPAS_ATENCION,
+  PASOS_VISIBLES,
   ETIQUETA_ETAPA,
   AYUDA_ETAPA,
   ETIQUETA_CLASIFICACION,
@@ -15,6 +15,7 @@ import {
   siguienteEtapa,
   type Atencion,
   type ClasificacionAtencion,
+  type EtapaAtencion,
 } from "@/lib/atenciones";
 import { FicharMaquina } from "@/components/crm/fichar-maquina";
 import {
@@ -62,13 +63,21 @@ export function LineaAtencion({
   garantia,
   cliente,
   hayMaquinas = false,
+  puedeCotizar = false,
+  tecnicos = [],
 }: {
   atencion: Atencion;
+  /** Si esta persona puede cotizar la pista del caso. Lo decide la página:
+   *  la cotización la hace quien tiene la cuenta (cfd867e, 07-09). */
+  puedeCotizar?: boolean;
   /** Para armar la orden del almacén. */
   cliente: string;
   /** Si el cliente tiene máquinas para elegir en el panel de la derecha. Sin
    *  esto el Paso 1 mandaba a elegir de una lista vacía (0181). */
   hayMaquinas?: boolean;
+  /** Los técnicos que ya firmaron informes o visitas: se sugieren al agendar
+   *  para que la misma persona no quede escrita de tres formas distintas. */
+  tecnicos?: string[];
   /** Lo que sabe el parque instalado del equipo, si está identificado. */
   garantia: {
     en_garantia: boolean;
@@ -118,14 +127,28 @@ export function LineaAtencion({
 
   return (
     <div className="space-y-4">
-      {/* ── La tira de las nueve etapas ───────────────────────────────── */}
+      {/* ── La tira de los pasos que existen de verdad ────────────────── */}
       <div className="overflow-x-auto">
-        <ol className="flex min-w-[54rem] items-stretch gap-1">
-          {ETAPAS_ATENCION.map((e, i) => {
-            const hecha = i < paso;
-            const actual = i === paso;
-            const sello = sellos[e];
-            const seleccionada = etapaVista === e;
+        <ol className="flex min-w-[48rem] items-stretch gap-1">
+          {PASOS_VISIBLES.map((p) => {
+            const e = p.clave;
+            const i = pasoDe(e);
+            // LA BARRA Y EL PANEL IBAN DESFASADOS. `a.etapa` es la última
+            // etapa HECHA —su sello ya tiene fecha—, así que marcarla como
+            // «actual» hacía que la barra dijera «Registro» mientras el panel
+            // pedía «Paso 2 · Diagnóstico». Las dos decían verdad y se
+            // contradecían en pantalla (informe de UX del 08-09).
+            //
+            // Ahora la etapa alcanzada se pinta como hecha y el pulso va sobre
+            // la que el panel está pidiendo. Con el caso cerrado no pulsa
+            // ninguna: no hay nada que pedir.
+            const hecha = i <= paso;
+            // Un paso que cubre dos etapas late si el panel está pidiendo
+            // cualquiera de las dos, y muestra el sello de la última que se
+            // haya cumplido: la firma del cliente es la fecha que importa.
+            const actual = !a.cerrado_at && sigue !== null && p.cubre.includes(sigue);
+            const sello = p.cubre.map((c) => sellos[c]).filter(Boolean).pop() ?? null;
+            const seleccionada = p.cubre.includes(etapaVista as EtapaAtencion);
             return (
               <li key={e} className="flex-1">
                 {/* Cada etapa es una PESTAÑA. La actual late con un puntito
@@ -134,7 +157,7 @@ export function LineaAtencion({
                 <button
                   type="button"
                   onClick={() => setVista(e === a.etapa ? null : e)}
-                  title={AYUDA_ETAPA[e]}
+                  title={p.cubre.map((c) => AYUDA_ETAPA[c]).join(" ")}
                   className={cn(
                     "relative h-full w-full cursor-pointer rounded-md border px-2 py-1.5 text-center transition-all hover:bg-accent/60",
                     actual && "border-primary bg-primary/10",
@@ -158,7 +181,7 @@ export function LineaAtencion({
                     )}
                   >
                     {hecha && <Check className="size-3 flex-none" />}
-                    {ETIQUETA_ETAPA[e]}
+                    {p.etiqueta}
                   </p>
                   <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
                     {sello ? new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" }) : "—"}
@@ -220,6 +243,30 @@ export function LineaAtencion({
         </div>
       )}
 
+      {/* LO AGENDADO, A LA VISTA. Se programaba la visita —día, hora y
+          técnico— y el panel pasaba a «Siguiente paso · Atención» sin decir
+          para cuándo ni con quién: había que volver a la etapa Planificación
+          para recordarlo (informe de UX del 08-09). Va fuera de la franja de
+          la máquina porque una visita se agenda aunque nadie haya identificado
+          todavía el equipo. */}
+      {a.programada_at && !a.cerrado_at && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-semibold text-foreground">
+            <CalendarClock className="size-3" />
+            Agendado el {fechaLima(a.programada_at)}
+            {!/T00:00/.test(String(a.programada_at)) && ` · ${new Date(a.programada_at).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" })}`}
+            {a.tecnico && ` · ${a.tecnico}`}
+          </span>
+          <button
+            type="button"
+            onClick={() => setVista("planificacion")}
+            className="font-medium text-primary hover:underline"
+          >
+            Reprogramar
+          </button>
+        </div>
+      )}
+
       {/* ── La caja: la etapa seleccionada, o el paso que toca ────────── */}
       {etapaVista !== a.etapa ? (
         <ActaEtapa
@@ -239,9 +286,16 @@ export function LineaAtencion({
       ) : a.etapa === "registro" ? (
         <PasoRegistro atencion={a} garantia={garantia} hayMaquinas={hayMaquinas} enviando={enviando} correr={correr} />
       ) : a.etapa === "diagnostico" ? (
-        <PasoPlanificar atencion={a} cliente={cliente} serie={garantia?.serie ?? null} enviando={enviando} correr={correr} />
+        <PasoPlanificar
+          atencion={a}
+          cliente={cliente}
+          serie={garantia?.serie ?? null}
+          tecnicos={tecnicos}
+          enviando={enviando}
+          correr={correr}
+        />
       ) : a.etapa === "atencion" ? (
-        <PasoTrabajo atencion={a} enviando={enviando} correr={correr} />
+        <PasoTrabajo atencion={a} puedeCotizar={puedeCotizar} enviando={enviando} correr={correr} />
       ) : a.etapa === "pruebas" ? (
         <PasoPruebas atencion={a} enviando={enviando} correr={correr} />
       ) : a.etapa === "conformidad" ? (
@@ -308,6 +362,9 @@ function CerrarAntesDeTiempo({
   const [abierto, setAbierto] = useState(false);
   const [resultado, setResultado] = useState<"resuelto" | "no_procede" | "derivado">("resuelto");
   const [motivo, setMotivo] = useState("");
+  // Por qué se cierra sin facturar. Solo cuenta si el caso se cobra y no hay
+  // cotización; el servidor decide si hace falta (0189).
+  const [noFacturado, setNoFacturado] = useState("");
   const OPCIONES = { resuelto: "Resuelto", no_procede: "No procede", derivado: "Derivado" } as const;
 
   if (!abierto) {
@@ -353,11 +410,32 @@ function CerrarAntesDeTiempo({
           placeholder="En qué quedó. Es lo que se va a leer cuando el cliente vuelva a llamar."
           className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
         />
+
+        {/* El mismo candado del otro formulario de cierre: un caso que se cobra
+            no se cierra en silencio (0189). */}
+        {a.clasificacion && SE_COBRA[a.clasificacion] && (
+          <div className="rounded-md border border-amber-400/50 bg-amber-500/5 p-2.5">
+            <p className="text-xs font-semibold text-amber-800">Este caso se cobra</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Si ya lo cotizó, cierre sin más. Si se cierra sin facturar, diga por qué.
+            </p>
+            <textarea
+              rows={2}
+              value={noFacturado}
+              onChange={(e) => setNoFacturado(e.target.value)}
+              placeholder="Por qué no se factura"
+              className="mt-2 w-full rounded-md border border-border bg-background p-2 text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
             disabled={enviando || motivo.trim().length < 10}
-            onClick={() => correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo }), "Atención cerrada.")}
+            onClick={() =>
+              correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.")
+            }
           >
             Cerrar la atención
           </Button>
@@ -621,12 +699,14 @@ function PasoPlanificar({
   atencion: a,
   cliente,
   serie,
+  tecnicos,
   enviando,
   correr,
 }: {
   atencion: Atencion;
   cliente: string;
   serie: string | null;
+  tecnicos: string[];
   enviando: boolean;
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
 }) {
@@ -643,12 +723,25 @@ function PasoPlanificar({
       <div className="flex flex-wrap items-center gap-2">
         <SelectorFecha valor={fecha || null} onCambiar={(f) => setFecha(f ?? "")} etiquetaVacia="Elegir el día" />
         <SelectorHora valor={hora || null} onCambiar={(h) => setHora(h ?? "")} />
+        {/* SUGERENCIA, NO LISTA CERRADA. El CRM ya sabe quiénes son —firman
+            los informes— y escribirlos a mano cada vez es cómo «Marco Aliaga»
+            termina siendo tres personas distintas en los reportes. Pero el
+            área contrata terceros para una visita puntual, así que se puede
+            escribir un nombre nuevo y desde la próxima vez ya aparece solo. */}
         <input
           value={tecnico}
           onChange={(e) => setTecnico(e.target.value)}
-          placeholder="Qué técnico va"
+          list={tecnicos.length > 0 ? "tecnicos-conocidos" : undefined}
+          placeholder={tecnicos.length > 0 ? "Qué técnico va (escriba o elija)" : "Qué técnico va"}
           className="h-9 min-w-[180px] flex-1 rounded-md border border-input bg-background px-3 text-sm"
         />
+        {tecnicos.length > 0 && (
+          <datalist id="tecnicos-conocidos">
+            {tecnicos.map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
+        )}
         <Button
           size="sm"
           disabled={enviando || !fecha || !tecnico.trim()}
@@ -773,10 +866,12 @@ function PasoSimple({
  */
 function PasoTrabajo({
   atencion: a,
+  puedeCotizar,
   enviando,
   correr,
 }: {
   atencion: Atencion;
+  puedeCotizar?: boolean;
   enviando: boolean;
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
 }) {
@@ -843,7 +938,13 @@ function PasoTrabajo({
           Guardar y pasar a pruebas <ChevronRight className="size-3.5" />
         </Button>
         <div className="border-t border-border pt-3">
-          <AvisarQueHayVenta atencionId={a.id} enviando={enviando} correr={correr} />
+          <AvisarQueHayVenta
+            atencionId={a.id}
+            oportunidadId={a.oportunidad_id}
+            puedeCotizar={puedeCotizar}
+            enviando={enviando}
+            correr={correr}
+          />
         </div>
       </div>
     </Caja>
@@ -962,10 +1063,15 @@ function PasoPruebas({
  */
 function AvisarQueHayVenta({
   atencionId,
+  oportunidadId,
+  puedeCotizar,
   enviando,
   correr,
 }: {
   atencionId: string;
+  /** Para cotizarlo acá mismo en vez de mandarlo a la cola de Central. */
+  oportunidadId?: string | null;
+  puedeCotizar?: boolean;
   enviando: boolean;
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
 }) {
@@ -975,13 +1081,32 @@ function AvisarQueHayVenta({
 
   if (!abierto) {
     return (
-      <button
-        type="button"
-        onClick={() => setAbierto(true)}
-        className="cursor-pointer text-xs font-medium text-primary underline underline-offset-2 hover:opacity-80"
-      >
-        El técnico vio algo para vender — avisar a Central
-      </button>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {/* DOS SALIDAS, NO UNA. Antes lo único que se ofrecía era avisar a
+            Central, y el informe de UX del 08-09 lo marcó: postventa está
+            atendiendo al cliente y YA SABE qué máquina es, así que mandarlo a
+            la cola de Central agrega un rebote donde debería haber una
+            cotización. Un repuesto o un servicio se cotizan acá mismo; solo
+            una máquina nueva justifica el rebote, porque esa la vende el
+            comercial dueño de la cuenta. */}
+        {puedeCotizar && oportunidadId && (
+          <a
+            href={`/comercial/oportunidades/${oportunidadId}/cotizar?caso=${atencionId}`}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90"
+          >
+            Cotizarlo ahora
+          </a>
+        )}
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          className="cursor-pointer text-xs font-medium text-primary underline underline-offset-2 hover:opacity-80"
+        >
+          {puedeCotizar && oportunidadId
+            ? "Es una máquina nueva — avisar a Central"
+            : "El técnico vio algo para vender — avisar a Central"}
+        </button>
+      </div>
     );
   }
   return (
@@ -1111,6 +1236,9 @@ function PasoCerrar({
 }) {
   const [resultado, setResultado] = useState<"resuelto" | "no_procede" | "derivado">("resuelto");
   const [motivo, setMotivo] = useState("");
+  // Por qué se cierra sin facturar. Solo cuenta si el caso se cobra y no hay
+  // cotización; el servidor decide si hace falta (0189).
+  const [noFacturado, setNoFacturado] = useState("");
   const OPCIONES = {
     resuelto: "Resuelto",
     no_procede: "No procede",
@@ -1143,10 +1271,35 @@ function PasoCerrar({
           placeholder="En qué quedó. Es lo que se va a leer cuando el cliente vuelva a llamar."
           className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
         />
+
+        {/* ESTE CASO SE COBRA. El informe de UX del 08-09 recorrió las nueve
+            etapas de un caso «se cobra» y lo cerró con la conformidad firmada
+            sin que el sistema pidiera nunca una cotización: el área hace el
+            trabajo, el cliente firma, y la venta se pierde sin que nadie se
+            entere. El campo aparece cuando corresponde; el servidor exige la
+            respuesta solo si además no hay ninguna cotización (0189). */}
+        {a.clasificacion && SE_COBRA[a.clasificacion] && (
+          <div className="rounded-md border border-amber-400/50 bg-amber-500/5 p-2.5">
+            <p className="text-xs font-semibold text-amber-800">Este caso se cobra</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Si ya lo cotizó, cierre sin más. Si se cierra sin facturar, diga por qué: «lo cubrió la garantía»,
+              «cortesía autorizada por gerencia», «el cliente desistió».
+            </p>
+            <textarea
+              rows={2}
+              value={noFacturado}
+              onChange={(e) => setNoFacturado(e.target.value)}
+              placeholder="Por qué no se factura"
+              className="mt-2 w-full rounded-md border border-border bg-background p-2 text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+        )}
         <Button
           size="sm"
           disabled={enviando || motivo.trim().length < 10}
-          onClick={() => correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo }), "Atención cerrada.")}
+          onClick={() =>
+            correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.")
+          }
         >
           Cerrar la atención
         </Button>

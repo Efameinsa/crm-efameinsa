@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { LineaAtencion } from "@/components/crm/linea-atencion";
+import { tecnicosConocidos } from "@/lib/tecnicos";
 import { EquiposDeLaAtencion } from "@/components/crm/equipos-de-la-atencion";
 import { HistorialPostventaCliente } from "@/components/crm/historial-postventa-cliente";
 import { requerirPerfil } from "@/lib/auth";
@@ -36,7 +37,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   const { data } = await supabase
     .from("atenciones")
     .select(
-      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, motivo_cierre, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial)",
+      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -53,7 +54,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
 
   // Lo que el parque instalado ya sabe del equipo: es lo que contesta los dos
   // condicionales del circuito sin preguntarle nada a nadie.
-  const [{ data: g }, { data: equiposDelCliente }] = await Promise.all([
+  const [{ data: g }, { data: equiposDelCliente }, tecnicos] = await Promise.all([
     a.equipo_id
       ? supabase.rpc("garantia_del_equipo", { p_equipo: a.equipo_id })
       : Promise.resolve({ data: null }),
@@ -67,6 +68,8 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           .order("fecha_venta", { ascending: false, nullsFirst: false })
           .limit(20)
       : Promise.resolve({ data: [] as never[] }),
+    // Los técnicos que ya firmaron trabajos, para sugerirlos al agendar.
+    tecnicosConocidos(supabase),
   ]);
   const garantia = (g as {
     en_garantia: boolean;
@@ -242,6 +245,8 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           <SeccionPanel titulo="El circuito">
             <LineaAtencion
               atencion={a}
+              puedeCotizar={puedeCotizarla}
+              tecnicos={tecnicos}
               garantia={garantia}
               hayMaquinas={(equiposDelCliente ?? []).length > 0}
               cliente={a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente"}
@@ -258,6 +263,15 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               <p className="whitespace-pre-line text-sm text-foreground">{a.detalle}</p>
               <p className="mt-1.5 text-[11px] text-muted-foreground">
                 Con sus palabras, tal como entró. No se edita.
+              </p>
+            </SeccionPanel>
+          )}
+
+          {a.no_facturado_motivo && (
+            <SeccionPanel titulo="Se cerró sin facturar">
+              <p className="whitespace-pre-line text-sm text-foreground">{a.no_facturado_motivo}</p>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Este caso se cobraba y se cerró sin cotización. Queda escrito por qué (0189).
               </p>
             </SeccionPanel>
           )}
@@ -318,7 +332,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               {puedeCotizarla ? (
                 <>
                   <Link
-                    href={`/comercial/oportunidades/${a.oportunidad_id}/cotizar`}
+                    href={`/comercial/oportunidades/${a.oportunidad_id}/cotizar?caso=${a.id}`}
                     className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
                   >
                     <FileText className="size-3.5" />

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
   ETAPAS_ATENCION,
+  SE_COBRA,
+  faltaDecirPorQueNoSeFactura,
   SELLO_DE_ETAPA,
   type ClasificacionAtencion,
   type EtapaAtencion,
@@ -40,6 +42,12 @@ export async function registrarAtencion(datos: {
   equipoId?: string | null;
   serie?: string | null;
   codigoError?: string | null;
+  /**
+   * Las fotos que mandó el cliente, ya subidas al bucket 'adjuntos'. Viajan en
+   * el lead (0192): la de la placa es la que aclara la serie mal dictada por
+   * teléfono, que es de donde salen los casos «sin equipo identificar».
+   */
+  adjuntos?: { path: string; nombre: string; tipo: string; tamano: number }[];
 }): Promise<{ error: string | null; codigo?: string; repetido?: boolean }> {
   if (!datos.cuentaId) return { error: "Falta el cliente: Central no puede derivar un caso sin cliente" };
   if (datos.detalle.trim().length < 10) {
@@ -54,6 +62,12 @@ export async function registrarAtencion(datos: {
     p_equipo: datos.equipoId ?? null,
     p_serie: datos.serie?.trim() || null,
     p_codigo_error: datos.codigoError?.trim() || null,
+    p_adjuntos: (datos.adjuntos ?? []).slice(0, 5).map((a) => ({
+      path: String(a.path).slice(0, 300),
+      nombre: String(a.nombre).slice(0, 120),
+      tipo: String(a.tipo).slice(0, 100),
+      tamano: Number(a.tamano) || 0,
+    })),
   });
   if (error) return { error: error.message };
 
@@ -422,17 +436,62 @@ export async function cerrarAtencion(datos: {
   atencionId: string;
   resultado: "resuelto" | "no_procede" | "derivado";
   motivo: string;
-}): Promise<{ error: string | null }> {
+  /** Por qué no se facturó, cuando el caso se cobraba y no hay cotización. */
+  noFacturado?: string;
+}): Promise<{ error: string | null; pideMotivoSinFacturar?: boolean }> {
   if (datos.motivo.trim().length < 10) {
     return { error: "Escriba en qué quedó: es lo que se va a leer cuando el cliente vuelva a llamar" };
   }
   const supabase = await createClient();
+
+  // UN CASO QUE SE COBRA NO SE CIERRA EN SILENCIO (0189). El informe de UX del
+  // 08-09 recorrió las nueve etapas de un caso marcado «se cobra» y lo cerró
+  // con la conformidad firmada sin que el sistema pidiera nunca una
+  // cotización: el área hace el trabajo, el cliente firma, y la venta se
+  // pierde sin que nadie se entere.
+  //
+  // No se bloquea el cierre: se exige una respuesta. «Lo cubrió la garantía» o
+  // «cortesía autorizada por gerencia» son razones legítimas — lo que no puede
+  // pasar es que no haya ninguna.
+  const { data: a } = await supabase
+    .from("atenciones")
+    .select("clasificacion, oportunidad_id")
+    .eq("id", datos.atencionId)
+    .maybeSingle();
+
+  const seCobra = a?.clasificacion ? SE_COBRA[a.clasificacion as ClasificacionAtencion] : false;
+  let sinFacturar: string | null = null;
+  if (seCobra) {
+    const { count } = a?.oportunidad_id
+      ? await supabase
+          .from("cotizaciones")
+          .select("id", { count: "exact", head: true })
+          .eq("oportunidad_id", a.oportunidad_id)
+      : { count: 0 };
+
+    if (
+      faltaDecirPorQueNoSeFactura({
+        clasificacion: a?.clasificacion as ClasificacionAtencion | null,
+        cotizaciones: count ?? 0,
+        motivo: datos.noFacturado,
+      })
+    ) {
+      return {
+        error:
+          "Este caso se cobra y no tiene ninguna cotización. Cotícelo, o escriba por qué se cierra sin facturar.",
+        pideMotivoSinFacturar: true,
+      };
+    }
+    if (!count) sinFacturar = (datos.noFacturado ?? "").trim();
+  }
+
   const { error } = await supabase
     .from("atenciones")
     .update({
       etapa: "cierre",
       resultado: datos.resultado,
       motivo_cierre: datos.motivo.trim(),
+      no_facturado_motivo: sinFacturar,
       cerrado_at: new Date().toISOString(),
     })
     .eq("id", datos.atencionId);
