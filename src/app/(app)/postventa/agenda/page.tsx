@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { ElDiaDelArea } from "@/components/crm/el-dia-del-area";
 import { puedeVerPrecios, sinPrecios, veTodoPostventa, type ServicioPostventa } from "@/lib/postventa";
 import { CalendarioPostventa, type VistaCalendario } from "@/components/crm/calendario-postventa";
 import {
@@ -176,6 +177,16 @@ export default async function AgendaPostventaPage({
     }));
 
   return (
+    <div className="space-y-4">
+      {/* PRIMERO «¿QUÉ ME FALTA?», DESPUÉS «¿CUÁNDO?». Carlos, 09-09, dos veces
+          y las dos con la palabra urgente: «acá nos falta la agenda diaria…
+          despachos programados, despachos pendientes, puesta en marcha
+          pendiente, entregas pendientes». Y el porqué: «siguen trabajando en el
+          board… llenando información repetida que ya está acá». */}
+      <SeccionPanel titulo="El día del área">
+        <ElDiaDelArea />
+      </SeccionPanel>
+
     <SeccionPanel titulo="Calendario de atenciones" accion={<BotonesAgendar />}>
       <CalendarioPostventa
         vista={vista}
@@ -187,6 +198,7 @@ export default async function AgendaPostventaPage({
         atencionesPorProgramar={atencionesPorProgramar}
       />
     </SeccionPanel>
+    </div>
   );
 }
 
