@@ -67,7 +67,7 @@ const TIPO_VIEJO: Record<Tipo, "garantia" | "repuesto" | "mantenimiento"> = {
   solicitud_mantenimiento: "mantenimiento",
 };
 
-export function RegistroCaso() {
+export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: string; razonSocial: string } | null }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
 
@@ -78,7 +78,9 @@ export function RegistroCaso() {
 
   const [textoCliente, setTextoCliente] = useState("");
   const [clientes, setClientes] = useState<{ id: string; razonSocial: string; documento: string | null }[]>([]);
-  const [cuenta, setCuenta] = useState<{ id: string; razonSocial: string } | null>(null);
+  // Viene puesto cuando se llega desde la ficha del cliente: quien atendió a
+  // PANASERVICE no tiene que volver a buscar a PANASERVICE.
+  const [cuenta, setCuenta] = useState<{ id: string; razonSocial: string } | null>(cuentaInicial);
 
   const [tipo, setTipo] = useState<Tipo>("problema_tecnico");
   const [problema, setProblema] = useState("");
@@ -256,54 +258,87 @@ export function RegistroCaso() {
         )}
 
         {buscada && !ficha && (
-          <div className="mt-2 space-y-2 rounded-lg border border-dashed border-amber-300 bg-amber-50/60 p-3">
-            <p className="text-xs text-amber-900">
-              Esa serie no está en el parque instalado. El caso queda como <strong>equipo sin identificar</strong> —con
-              la serie escrita, para poder fichar la máquina después— y hace falta decir de qué cliente es.
+          <p className="mt-2 rounded-lg border border-dashed border-amber-300 bg-amber-50/60 p-3 text-xs text-amber-900">
+            Esa serie no está en el parque instalado. El caso queda como <strong>equipo sin identificar</strong> —con la
+            serie escrita, para poder fichar la máquina después— y hace falta decir de qué cliente es.
+          </p>
+        )}
+
+        {/*
+          EL CLIENTE, SIEMPRE A MANO.
+
+          Hasta el 09-09 esta caja aparecía SOLO después de buscar una serie y
+          no encontrarla. Quien atendía una llamada sin serie —un repuesto, un
+          preventivo, «mándame la cotización»— se quedaba sin manera de decir de
+          quién era el caso, y los dos botones de abajo seguían apagados con un
+          «o elija el cliente» que no llevaba a ninguna parte. Es lo que preguntó
+          la señorita de postventa ese día: «si la Central no lo sube al CRM,
+          ¿cómo haría para subirlo?». Se podía, pero no por acá.
+
+          Cuando la serie SÍ aparece, el cliente lo trae la máquina y esta caja
+          no hace falta: ahí se muestra apenas como confirmación.
+        */}
+        {ficha ? null : (
+          <div className="mt-2 space-y-2 rounded-lg border border-border bg-background p-3">
+            <p className="text-xs font-medium text-foreground">
+              ¿De qué cliente es? <span className="font-normal text-muted-foreground">Sin esto el caso no se puede archivar en ningún lado.</span>
             </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="flex flex-1 items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5">
-                <Search className="size-3.5 flex-none text-muted-foreground" />
-                <input
-                  value={textoCliente}
-                  onChange={(e) => setTextoCliente(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), mirarClientes())}
-                  placeholder="Razón social o RUC"
-                  className="w-full min-w-[160px] bg-transparent text-sm outline-none"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={mirarClientes}
-                disabled={pendiente}
-                className="cursor-pointer rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-50"
-              >
-                Buscar cliente
-              </button>
-            </div>
             {cuenta ? (
-              <p className="text-xs font-semibold text-foreground">
-                Cliente: {cuenta.razonSocial}{" "}
-                <button type="button" onClick={() => setCuenta(null)} className="cursor-pointer text-primary underline">
+              <p className="text-sm font-semibold text-foreground">
+                {cuenta.razonSocial}{" "}
+                <button
+                  type="button"
+                  onClick={() => setCuenta(null)}
+                  className="cursor-pointer text-xs font-normal text-primary underline"
+                >
                   cambiar
                 </button>
               </p>
             ) : (
-              clientes.length > 0 && (
-                <div className="space-y-1">
-                  {clientes.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setCuenta({ id: c.id, razonSocial: c.razonSocial })}
-                      className="block w-full cursor-pointer rounded border border-border bg-background px-2 py-1 text-left text-xs hover:bg-accent"
-                    >
-                      {c.razonSocial}
-                      {c.documento && <span className="ml-1 text-muted-foreground">· {c.documento}</span>}
-                    </button>
-                  ))}
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex flex-1 items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5">
+                    <Search className="size-3.5 flex-none text-muted-foreground" />
+                    <input
+                      value={textoCliente}
+                      onChange={(e) => setTextoCliente(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), mirarClientes())}
+                      placeholder="Razón social o RUC"
+                      className="w-full min-w-[160px] bg-transparent text-sm outline-none"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={mirarClientes}
+                    disabled={pendiente}
+                    className="cursor-pointer rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-50"
+                  >
+                    Buscar cliente
+                  </button>
                 </div>
-              )
+                {clientes.length > 0 && (
+                  <div className="space-y-1">
+                    {clientes.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setCuenta({ id: c.id, razonSocial: c.razonSocial })}
+                        className="block w-full cursor-pointer rounded border border-border bg-background px-2 py-1 text-left text-xs hover:bg-accent"
+                      >
+                        {c.razonSocial}
+                        {c.documento && <span className="ml-1 text-muted-foreground">· {c.documento}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* Un vacío que dice por qué está vacío y qué hacer (09-09). */}
+                {clientes.length === 0 && textoCliente.trim().length > 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Escriba parte de la razón social o el RUC y toque «Buscar cliente». Si el cliente todavía no existe
+                    en el CRM, regístrelo desde «Pasar contacto a Central» y Central abre la ficha.
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}

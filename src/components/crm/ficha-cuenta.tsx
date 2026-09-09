@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { fechaLima } from "@/lib/fechas";
-import { MapPin, FileText } from "lucide-react";
+import { MapPin, FileText, Plus } from "lucide-react";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { cn } from "@/lib/utils";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
@@ -31,6 +31,9 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   // Crear rubros nuevos es de operaciones y gerencia desde el 04-09 (0170).
   const puedeCrearRubros =
     ["gerencia", "admin", "operaciones"].includes(perfilQueMira.rol) || Boolean(perfilQueMira.es_operaciones);
+  // Quién registra casos técnicos: el área y quien tiene la llave que reparte
+  // operaciones (0116). Gerencia mira, no atiende, así que no le sale el botón.
+  const haceCasos = Boolean(perfilQueMira.es_postventa) || Boolean(perfilQueMira.hace_postventa);
 
   const { data: cuenta } = await supabase
     .from("cuentas")
@@ -185,11 +188,30 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
           <SeccionPanel
             titulo={`Oportunidades (${oportunidades.length})`}
             accion={
-              <span className="text-[11px] text-muted-foreground">
-                {enHistorico > 0
-                  ? `La gestión se registra dentro de cada una · ${enHistorico} en el histórico`
-                  : "La gestión se registra dentro de cada una"}
-              </span>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <span className="text-[11px] text-muted-foreground">
+                  {enHistorico > 0
+                    ? `La gestión se registra dentro de cada una · ${enHistorico} en el histórico`
+                    : "La gestión se registra dentro de cada una"}
+                </span>
+                {/* CUANDO CENTRAL NO LO SUBIÓ.
+                    La señorita de postventa, 09-09, parada en esta misma ficha
+                    (PANASERVICE): «si en caso la central no lo sube al CRM,
+                    ¿cómo haría para subirlo?». Se podía —Postventa → Casos →
+                    Registrar un caso— pero desde acá no había cómo llegar, y
+                    los expedientes que la ficha le mostraba eran de otros, con
+                    su «pídaselo para anotar». Sin este botón el camino existía
+                    y no se veía, que para quien lo necesita es lo mismo que si
+                    no existiera. */}
+                {haceCasos && (
+                  <Link
+                    href={`/postventa/casos/nuevo?cuenta=${cuenta.id}`}
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-accent"
+                  >
+                    <Plus className="size-3.5" /> Registrar un caso
+                  </Link>
+                )}
+              </div>
             }
           >
             <ListaOportunidadesCuenta

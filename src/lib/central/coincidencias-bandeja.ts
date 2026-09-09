@@ -1,5 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
-import { normalizarTelefono } from "@/lib/telefono";
+import { celularesDe, normalizarTelefono } from "@/lib/telefono";
 
 /**
  * Cruza DE UNA SOLA VEZ toda la bandeja de triaje contra la cartera, para que
@@ -138,6 +138,14 @@ export async function coincidenciasDeLaBandeja(
   for (const l of leads) {
     const tel = normalizarTelefono(l.telefono);
     anotar(porTelefono, tel && tel.length >= 8 ? tel : null, l.id);
+    // Y EL MISMO NÚMERO ESCRITO DE OTRA FORMA (0201). Central deriva mirando
+    // este aviso; si el aviso no sale, deriva a ciegas. El 07-09 pasó dos
+    // veces el mismo día: «1 956 181 464» (un 1 de más) y «987524031 /
+    // 987524031» (dos veces el mismo número) no empataron con nada, y GRUPO
+    // SANTA ELENA y NEWREST se derivaron como clientes nuevos teniendo su
+    // ficha con RUC desde 2021. Acá el número se busca también por los
+    // celulares que trae adentro.
+    for (const cel of celularesDe(l.telefono)) if (cel !== tel) anotar(porTelefono, cel, l.id);
     const doc = l.num_doc?.replace(/\D/g, "") || null;
     anotar(porDoc, doc && doc.length >= 8 ? doc : null, l.id);
     const correo = l.email?.trim().toLowerCase() || null;
