@@ -1,8 +1,9 @@
-import { ExternalLink, FolderOpen, Image as ImagenIcono, FileText, Link2, Unlink } from "lucide-react";
+import { Image as ImagenIcono, FileText, Link2, Unlink } from "lucide-react";
 import { MarcaServidor } from "@/components/crm/marca-servidor";
 import { SeccionPlegable } from "@/components/crm/seccion-panel";
+import { VisorArchivos } from "@/components/crm/visor-archivos";
 import { createClient } from "@/lib/supabase/server";
-import { enlaceCarpetaFirmado, servidorDeArchivosActivo } from "@/lib/archivos-servidor";
+import { servidorDeArchivosActivo } from "@/lib/archivos-servidor";
 import { vincularCarpetaServidor } from "@/lib/acciones/cuentas";
 
 /**
@@ -111,24 +112,21 @@ export async function DocumentosDelServidor({
         {CLASES.map(({ clave, etiqueta, icono: Icono }) => {
           const ruta = vinculadas[clave];
           if (ruta) {
-            const enlace = enlaceCarpetaFirmado(ruta);
             return (
-              <div key={clave} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2.5">
-                <Icono className="size-4 flex-none text-muted-foreground" />
-                <div className="min-w-[160px] flex-1">
-                  <p className="text-sm font-medium text-foreground">{etiqueta}</p>
-                  <p className="truncate font-mono text-[11px] text-muted-foreground">{ruta}</p>
+              <div key={clave} className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3">
+                <span className="flex size-9 flex-none items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icono className="size-5" />
+                </span>
+                <div className="min-w-[140px] flex-1">
+                  <p className="text-sm font-semibold text-foreground">{etiqueta}</p>
+                  <p className="text-[11px] text-muted-foreground">Se abren aquí, dentro del CRM</p>
                 </div>
-                {enlace && (
-                  <a
-                    href={enlace}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground hover:brightness-110"
-                  >
-                    <FolderOpen className="size-3.5" /> Abrir carpeta <ExternalLink className="size-3" />
-                  </a>
-                )}
+                <VisorArchivos
+                  cuentaId={cuentaId}
+                  clase={clave}
+                  titulo={`${etiqueta} · ${razonSocial}`}
+                  etiquetaBoton={clave === "fotos" ? "Ver fotos" : "Ver informes"}
+                />
                 <form
                   action={async () => {
                     "use server";
@@ -191,8 +189,8 @@ export async function DocumentosDelServidor({
       </div>
 
       <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-        Se abren en una pestaña nueva con un enlace que vence a los cinco minutos. Funcionan desde la oficina y
-        desde fuera, siempre con la sesión del CRM.
+        Las fotos y los informes se abren aquí mismo, dentro del CRM y de la aplicación, sin abrir otra ventana. Los
+        trae el servidor de la empresa al instante.
       </p>
     </>
   );
