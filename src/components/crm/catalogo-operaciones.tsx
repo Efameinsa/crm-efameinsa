@@ -292,6 +292,8 @@ function aEditable(e: EquipoCatalogo): EquipoEditable {
     controles: e.controles,
     montaje: e.montaje,
     colores: e.colores,
+    // Las casillas propias de este equipo, con su rótulo (0199).
+    encabezadoExtra: e.encabezadoExtra ?? [],
     fotoPath: e.fotoPath,
     fichaTexto: e.fichaTexto,
     precios: e.precios,

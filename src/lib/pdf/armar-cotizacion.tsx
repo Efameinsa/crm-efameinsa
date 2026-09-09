@@ -267,6 +267,13 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
       panel: textoDeFicha(ficha, "panel"),
       controles: textoDeFicha(ficha, "controles"),
       colores: listaDeFicha(ficha, "colores"),
+      // Las casillas propias de la familia («Dimensión de mesa», «Presión de
+      // trabajo»): sin esto se editaban pero no salían impresas, que es donde
+      // el cliente las lee (0199).
+      encabezadoExtra: Array.isArray((ficha as Record<string, unknown>)?.encabezado_extra)
+        ? ((ficha as Record<string, unknown>).encabezado_extra as { rotulo: string; valor: string }[])
+            .filter((x) => x?.rotulo && x?.valor)
+        : [],
       color: item.color,
       caracteristicas: listaDeFicha(ficha, "caracteristicas"),
       caracteristicasTitulo: textoDeFicha(ficha, "caracteristicasTitulo"),

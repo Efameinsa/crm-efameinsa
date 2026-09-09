@@ -35,6 +35,8 @@ export interface EquipoCatalogo {
   controles: string | null;
   descripcion: string | null;
   colores: string[];
+  /** Las casillas propias de ese equipo, con su rótulo escrito a mano. */
+  encabezadoExtra: { rotulo: string; valor: string }[];
   caracteristicas: number;
   tieneFicha: boolean;
   precios: { tier: string; precio: number }[];
@@ -119,6 +121,10 @@ export async function cargarCatalogo(
       controles: texto(ficha, "controles"),
       descripcion: texto(ficha, "descripcion"),
       colores: lista(ficha, "colores"),
+      encabezadoExtra: Array.isArray((ficha as Record<string, unknown>)?.encabezado_extra)
+        ? ((ficha as Record<string, unknown>).encabezado_extra as { rotulo: string; valor: string }[])
+            .filter((x) => x && typeof x.rotulo === "string")
+        : [],
       caracteristicas: lista(ficha, "caracteristicas").length + lista(ficha, "dimensiones").length,
       tieneFicha: ficha != null && Object.keys(ficha).length > 0,
       precios,

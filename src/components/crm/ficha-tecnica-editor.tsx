@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Camera, Check, FileText, Loader2, Plus, Trash2 } from "lucide-react";
+import { Camera, Check, FileText, Loader2, Plus, Trash2, X } from "lucide-react";
 import { bloquesATexto, textoABloques, type BloqueFicha } from "@/lib/ficha-texto";
 import {
   crearEquipoDesdeFicha,
@@ -57,6 +57,16 @@ export interface EquipoEditable {
   controles: string | null;
   montaje: string | null;
   colores: string[];
+  /**
+   * Las casillas propias de ESTE equipo, con su rótulo escrito a mano.
+   *
+   * El encabezado tenía una lista cerrada de seis —capacidad, calentamiento,
+   * panel, controles, montaje, colores— pensada mirando lavadoras y secadoras.
+   * La MESA VAPORIZADORA EFALMV2000 pide «Potencia», «Dimensión de mesa» y
+   * «Presión de trabajo», y no había dónde escribirlas (Santos, 09-09). Cada
+   * familia trae las suyas; la lista no puede ser cerrada.
+   */
+  encabezadoExtra: { rotulo: string; valor: string }[];
   fotoPath: string | null;
   fichaTexto: string;
   precios: { tier: string; precio: number }[];
@@ -92,6 +102,7 @@ export const EQUIPO_NUEVO: EquipoEditable = {
   controles: null,
   montaje: null,
   colores: [],
+  encabezadoExtra: [],
   fotoPath: null,
   fichaTexto: "# CARACTERÍSTICAS\n- ",
   precios: [],
@@ -314,6 +325,7 @@ export function FichaTecnicaEditor({
         controles: d.controles,
         montaje: d.montaje,
         colores: d.colores,
+        encabezadoExtra: d.encabezadoExtra,
         stockReferencia: d.stockReferencia,
         fichaTexto: bloquesATexto(bloques),
       };
@@ -543,6 +555,30 @@ export function FichaTecnicaEditor({
               ayuda="separados por /"
             />
           )}
+
+          {/* LAS CASILLAS PROPIAS DE ESTE EQUIPO (0199). La lista de arriba se
+              pensó mirando lavadoras y secadoras; la mesa vaporizadora pide
+              «Potencia», «Dimensión de mesa» y «Presión de trabajo», y no
+              había dónde escribirlas. El rótulo lo pone quien carga la ficha,
+              como en el Word. */}
+          {d.encabezadoExtra.map((x, i) => (
+            <CasillaPropia
+              key={i}
+              rotulo={x.rotulo}
+              valor={x.valor}
+              onRotulo={(v) => set("encabezadoExtra", d.encabezadoExtra.map((y, j) => (j === i ? { ...y, rotulo: v } : y)))}
+              onValor={(v) => set("encabezadoExtra", d.encabezadoExtra.map((y, j) => (j === i ? { ...y, valor: v } : y)))}
+              onBorrar={() => set("encabezadoExtra", d.encabezadoExtra.filter((_, j) => j !== i))}
+            />
+          ))}
+
+          <button
+            type="button"
+            onClick={() => set("encabezadoExtra", [...d.encabezadoExtra, { rotulo: "", valor: "" }])}
+            className="flex min-h-[3.25rem] cursor-pointer items-center justify-center gap-1.5 border border-dashed border-border bg-secondary/30 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Plus className="size-3.5" /> Agregar un dato
+          </button>
         </div>
 
         {/* Foto y descripción */}
@@ -806,6 +842,54 @@ function Casilla({
           ))}
         </datalist>
       )}
+    </div>
+  );
+}
+
+/**
+ * Una casilla cuyo RÓTULO también se escribe.
+ *
+ * Se ve igual que las de la lista fija —el rótulo arriba, chiquito; el valor
+ * abajo— para que la hoja se lea pareja, pero acá el rótulo es un campo. Es lo
+ * que permite que cada familia de equipos traiga los suyos sin que nadie tenga
+ * que tocar el programa: mesa vaporizadora «Dimensión de mesa», caldero
+ * «Presión de trabajo», barrera sanitaria lo que corresponda.
+ */
+function CasillaPropia({
+  rotulo,
+  valor,
+  onRotulo,
+  onValor,
+  onBorrar,
+}: {
+  rotulo: string;
+  valor: string;
+  onRotulo: (v: string) => void;
+  onValor: (v: string) => void;
+  onBorrar: () => void;
+}) {
+  return (
+    <div className="group relative bg-card px-3 pb-2 pt-6 transition-colors focus-within:bg-accent/40">
+      <input
+        value={rotulo}
+        onChange={(e) => onRotulo(e.target.value)}
+        placeholder="RÓTULO"
+        className="absolute left-3 top-1.5 w-[70%] bg-transparent text-[10px] font-semibold uppercase tracking-wide text-muted-foreground outline-none placeholder:text-muted-foreground/50"
+      />
+      <input
+        value={valor}
+        onChange={(e) => onValor(e.target.value)}
+        placeholder="valor"
+        className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/50"
+      />
+      <button
+        type="button"
+        onClick={onBorrar}
+        title="Quitar este dato"
+        className="absolute right-1 top-1 cursor-pointer rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 group-focus-within:opacity-100"
+      >
+        <X className="size-3.5" />
+      </button>
     </div>
   );
 }

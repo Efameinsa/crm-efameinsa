@@ -310,7 +310,7 @@ export function leerFichaDeXml(xml) {
   }
 
   // Datos de cabecera: rótulos de una fila, valores de la de abajo.
-  const cabecera = {};
+  const cabecera = { extra: [] };
   for (let i = 0; i < filas.length; i++) {
     if (filas[i].clase !== "cabecera") continue;
     const valores = filas.find((f, j) => j > i && f.clase === "cabecera-valores");
@@ -325,6 +325,16 @@ export function leerFichaDeXml(xml) {
       else if (clave.includes("calentamiento")) cabecera.calentamiento ??= valor;
       else if (clave.includes("panel")) cabecera.panel ??= valor;
       else if (clave.includes("control") || clave.includes("voltaje")) cabecera.controles ??= valor;
+      // LO QUE NO ENCAJA EN LAS SEIS CONOCIDAS YA NO SE TIRA.
+      //
+      // La MESA VAPORIZADORA EFALMV2000 (Santos, 09-09) tiene «Potencia»,
+      // «Dimensión de mesa» y «Presión de trabajo»: tres rótulos que ninguna
+      // lavadora usa. El lector los descartaba en silencio y el editor no
+      // tenía dónde escribirlos, así que ese equipo NO SE PODÍA cargar
+      // completo. Cada familia trae los suyos —un caldero tendrá presión, una
+      // barrera sanitaria su luz UV— y el catálogo no puede tener una lista
+      // cerrada de rótulos.
+      else if (rotulo.trim()) cabecera.extra.push({ rotulo: acentuarMayusculas(limpio(rotulo)), valor });
     });
   }
 

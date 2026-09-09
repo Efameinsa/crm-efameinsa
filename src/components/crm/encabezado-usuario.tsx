@@ -10,7 +10,10 @@ const ETIQUETA_ROL: Record<Perfil["rol"], string> = {
   gerencia: "Gerencia",
   central: "Central",
   comercial: "Comercial",
-  operaciones: "Operaciones",
+  // «Que sea Administración de operaciones» (Santos, 09-09): Lesly no hace
+  // operaciones, las ADMINISTRA — autoriza, reparte permisos y cuida el
+  // catálogo. El rótulo del rol es lo que ella ve todos los días arriba.
+  operaciones: "Administración de operaciones",
 };
 
 export function EncabezadoUsuario({ perfil }: { perfil: Perfil }) {

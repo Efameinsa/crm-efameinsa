@@ -17,6 +17,8 @@ interface CabeceraFicha {
   panel?: string | null;
   controles?: string | null;
   calentamiento?: string | null;
+  /** Los rótulos propios de la familia, que no son de la lista conocida. */
+  extra?: { rotulo: string; valor: string }[];
 }
 
 /** Una imagen del Word: los bytes enteros y el recorte que declara el documento. */
@@ -132,6 +134,9 @@ export async function POST(request: Request) {
       panel: cabecera.panel ?? null,
       controles: cabecera.controles ?? null,
       calentamiento: cabecera.calentamiento ?? null,
+      // Los rótulos propios de esa familia de equipos —«Dimensión de mesa»,
+      // «Presión de trabajo»— que no son ninguna de las seis conocidas.
+      extra: cabecera.extra ?? [],
     },
     // La descripción con la misma sintaxis que ya se edita en pantalla, para
     // que caiga en el cuadro de texto sin traducción de por medio.

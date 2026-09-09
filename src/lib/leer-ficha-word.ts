@@ -28,6 +28,7 @@ export interface FichaLeida {
     | "panel"
     | "controles"
     | "calentamiento"
+    | "encabezadoExtra"
     | "fichaTexto"
     | "leidaDe"
     | "fotoLista"
@@ -69,6 +70,7 @@ export async function leerFichaDeWord(archivo: File): Promise<FichaLeida> {
       panel: datos.cabecera.panel ?? null,
       controles: datos.cabecera.controles ?? null,
       calentamiento: datos.cabecera.calentamiento ?? null,
+      encabezadoExtra: datos.cabecera.extra ?? [],
       fichaTexto: datos.fichaTexto || "# CARACTERÍSTICAS\n- ",
       leidaDe: datos.archivo,
       fotoLista: lista?.archivo ?? null,

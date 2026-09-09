@@ -107,6 +107,8 @@ export interface DatosEquipo {
   controles: string | null;
   montaje: string | null;
   colores: string[];
+  /** Las casillas propias de ese equipo, con su rótulo escrito a mano (0199). */
+  encabezadoExtra: { rotulo: string; valor: string }[];
   /**
    * Cuántas hay, escrito a mano por operaciones (`ficha.stock_referencia`).
    *
@@ -135,6 +137,11 @@ function mezclarFicha(anterior: Record<string, unknown>, datos: DatosEquipo) {
     controles: datos.controles?.trim() || null,
     montaje: datos.montaje?.trim() || null,
     colores: datos.colores.map((c) => c.trim()).filter(Boolean),
+    // Se guardan las que tengan rótulo Y valor: una casilla a medias saldría
+    // impresa como un renglón vacío en la hoja del cliente.
+    encabezado_extra: (datos.encabezadoExtra ?? [])
+      .map((x) => ({ rotulo: (x.rotulo ?? "").trim(), valor: (x.valor ?? "").trim() }))
+      .filter((x) => x.rotulo && x.valor),
     // `null` es «no sé cuántas hay», que no es lo mismo que 0 («no queda
     // ninguna»). El cotizador distingue las dos: una dice «stock s/d» y la
     // otra «sin stock», y al comercial le cambian la frase que le dice al

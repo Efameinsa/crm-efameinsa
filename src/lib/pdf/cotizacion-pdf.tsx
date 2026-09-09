@@ -212,6 +212,8 @@ export interface ItemPdf {
   calentamiento: string | null; // solo secadoras a gas
   panel: string | null; // "Digital-Multifunción"
   controles: string | null; // "220V/60Hz/1Ph"
+  /** Las casillas propias de esa familia de equipos, con su rótulo (0199). */
+  encabezadoExtra?: { rotulo: string; valor: string }[];
   /**
    * Colores en los que existe el equipo (coches de transporte, principalmente).
    * Sale de `ficha.colores`, sincronizado desde el maestro2 (columna EQUIPO,
@@ -723,6 +725,7 @@ export function CotizacionPdf({
             item.dimensiones.length > 0 ||
             item.medidas.length > 0 ||
             item.colores.length > 0 ||
+            (item.encabezadoExtra?.length ?? 0) > 0 ||
             Boolean(item.panel || item.controles || item.calentamiento);
           return tieneAlgoQueDecir;
         })
@@ -736,7 +739,8 @@ export function CotizacionPdf({
              que le corresponda según lo que tenga cargado. */
           const esCoche =
             (item.categoria ?? "").toLowerCase() === "coche" ||
-            (!item.panel && !item.controles && !item.calentamiento && item.colores.length > 0);
+            (!item.panel && !item.controles && !item.calentamiento &&
+              (item.encabezadoExtra?.length ?? 0) === 0 && item.colores.length > 0);
 
           const columnas: { titulo: string; valor: string }[] = esCoche
             ? [
@@ -758,6 +762,9 @@ export function CotizacionPdf({
                 ...(item.calentamiento ? [{ titulo: "Calentamiento", valor: item.calentamiento }] : []),
                 ...(item.panel ? [{ titulo: "Panel computarizado", valor: item.panel }] : []),
                 ...(item.controles ? [{ titulo: "Controles Automático", valor: item.controles }] : []),
+                // Después de las conocidas y antes del color: es el orden en
+                // que las trae el Word del que salen.
+                ...(item.encabezadoExtra ?? []).map((x) => ({ titulo: x.rotulo, valor: x.valor })),
                 ...(item.color ? [{ titulo: "Color", valor: item.color }] : []),
               ];
           /* Los anchos del estándar son el punto de partida; si a una columna no
