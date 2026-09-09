@@ -12,6 +12,8 @@ import { BarraSemana } from "@/components/crm/barra-semana";
 import { cargarPulsoSemana } from "@/lib/pulso-semana";
 import { lunesDe } from "@/lib/calendario";
 import { llegoHace, vencioHace } from "@/lib/mi-dia";
+import { atencionesEnOtraFicha } from "@/lib/gestion-en-otra-ficha";
+import { fechaLimaCorta } from "@/lib/fechas";
 import { cargarParque, type ClienteParque } from "@/lib/parque";
 import { ETIQUETA_MANTENIMIENTO } from "@/lib/ruta-mantenimiento";
 import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
@@ -28,6 +30,11 @@ interface FilaMiDia {
   origen: string;
   /** Cuándo entró a la cartera: en una recién asignada es cuándo la derivó Central. */
   creada_at: string | null;
+  cuenta_id?: string | null;
+  /** Cuándo llegó el lead, que es cuando empezó a correr esta consulta. */
+  recibido_at?: string | null;
+  /** La atención que este cliente ya recibió, pero en OTRA ficha suya. */
+  atendidaAlLado?: { fecha: string; tipo: string };
 }
 
 interface FilaInactiva {
@@ -49,8 +56,16 @@ interface FilaInactiva {
 //   · Si falta la próxima acción, se dice en ámbar como tarea («Falta indicar
 //     qué hacer»), no en gris como si fuera un dato. 19 de las 30 de hoy de
 //     Katerine estaban así: ella pone la fecha y deja el texto vacío.
-function Fila({ op, urgencia, hoy }: { op: FilaMiDia; urgencia: "vencida" | "hoy" | "nueva"; hoy: string }) {
-  const sinAccion = !op.proxima_accion && urgencia !== "nueva";
+function Fila({
+  op,
+  urgencia,
+  hoy,
+}: {
+  op: FilaMiDia;
+  urgencia: "vencida" | "hoy" | "nueva" | "al_lado";
+  hoy: string;
+}) {
+  const sinAccion = !op.proxima_accion && urgencia !== "nueva" && urgencia !== "al_lado";
   return (
     <Link
       href={`/comercial/oportunidades/${op.id}`}
@@ -60,6 +75,7 @@ function Fila({ op, urgencia, hoy }: { op: FilaMiDia; urgencia: "vencida" | "hoy
         urgencia === "vencida" && "border-l-destructive",
         urgencia === "hoy" && "border-l-primary",
         urgencia === "nueva" && "border-l-amber-500",
+        urgencia === "al_lado" && "border-l-muted-foreground/40",
       )}
     >
       <PuntoInteres intencion={op.intencion} />
@@ -76,7 +92,9 @@ function Fila({ op, urgencia, hoy }: { op: FilaMiDia; urgencia: "vencida" | "hoy
           )}
         </p>
         <p className={cn("truncate text-xs", sinAccion ? "font-medium text-amber-700" : "text-muted-foreground")}>
-          {op.proxima_accion ?? (urgencia === "nueva" ? "Primer contacto pendiente" : "Falta indicar qué hacer")}
+          {urgencia === "al_lado"
+            ? `Ya lo atendió el ${fechaLimaCorta(op.atendidaAlLado?.fecha)} — está en otra ficha de este cliente`
+            : (op.proxima_accion ?? (urgencia === "nueva" ? "Primer contacto pendiente" : "Falta indicar qué hacer"))}
         </p>
       </div>
       {urgencia === "vencida" && (
@@ -102,7 +120,7 @@ function Grupo({
 }: {
   titulo: string;
   filas: FilaMiDia[];
-  urgencia: "vencida" | "hoy" | "nueva";
+  urgencia: "vencida" | "hoy" | "nueva" | "al_lado";
   hoy: string;
   /** Cuántas hay de verdad cuando la lista está acotada: el título dice «60 de 6.178», no «60». */
   total?: number;
@@ -428,7 +446,10 @@ export default async function ComercialPage({
   // comercial ve lo que de verdad puede retomar.
   const TOPE_VENCIDAS = 60;
   const TOPE_NUEVAS = 40;
-  const CAMPOS_MI_DIA = "id, etapa, intencion, origen, proxima_accion, proxima_accion_at, created_at, cuentas(razon_social)";
+  // leads! con el nombre de la FK: hay DOS relaciones entre oportunidades y
+  // leads (0141) y el embed sin desambiguar hace fallar la consulta entera.
+  const CAMPOS_MI_DIA =
+    "id, etapa, intencion, origen, proxima_accion, proxima_accion_at, created_at, cuentas(id, razon_social), leads!oportunidades_lead_id_fkey(recibido_at)";
   //
   // 31-08 (migración 0130): a las tres cerradas se sumó `historico`. Brenda
   // veía 1.035 vencidas cuando las suyas de verdad son 41 — las otras 994 eran
@@ -483,15 +504,44 @@ export default async function ComercialPage({
     proxima_accion: op.proxima_accion,
     proxima_accion_at: op.proxima_accion_at,
     creada_at: op.created_at ?? null,
+    cuenta_id: (op.cuentas as unknown as { id: string } | null)?.id ?? null,
+    recibido_at: (op.leads as unknown as { recibido_at: string | null } | null)?.recibido_at ?? null,
     razon_social: (op.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
   });
 
   const paraHoy = (hoyData ?? []).map(aFila);
   const vencidas = (vencidasData ?? []).map(aFila);
-  const nuevas = (nuevasData ?? []).map(aFila);
+  const reciSinFiltrar = (nuevasData ?? []).map(aFila);
+
+  // LAS QUE YA ATENDIÓ, PERO EN OTRA FICHA DEL MISMO CLIENTE. Ariana, por
+  // Santos (09-09): «como ellos ya fueron gestionados anteriormente en el
+  // Excel, no deberían aparecer en Mi día». JOEL ORTEGA, ELI FARFAN y VILMA
+  // GARCIA figuraban como «Primer contacto pendiente · llegó hace 16 días»
+  // cuando ella los había llamado el 18 y el 19-08, antes de que existiera el
+  // CRM. No se esconden —seguirían ahí, invisibles y sin resolver— sino que
+  // salen del grupo de trabajo pendiente y se muestran aparte diciendo qué
+  // pasó: ahí se decide si se archivan por repetidas o si se sigue en esta.
+  const atendidasAlLado = await atencionesEnOtraFicha(
+    supabase,
+    reciSinFiltrar.map((f) => ({
+      id: f.id,
+      cuentaId: f.cuenta_id ?? null,
+      recibidoAt: f.recibido_at ?? null,
+      creadaAt: f.creada_at,
+    })),
+  );
+  const nuevas = reciSinFiltrar.filter((f) => !atendidasAlLado.has(f.id));
+  const yaAtendidas = reciSinFiltrar
+    .filter((f) => atendidasAlLado.has(f.id))
+    .map((f) => ({ ...f, atendidaAlLado: atendidasAlLado.get(f.id) }));
+
   const oportunidades = [...nuevas, ...paraHoy, ...vencidas];
   const vencidasOcultas = Math.max(0, (vencidasTotal ?? vencidas.length) - vencidas.length);
-  const nuevasOcultas = Math.max(0, (nuevasTotal ?? nuevas.length) - nuevas.length);
+  // El total viene de Postgres sobre TODAS las recién asignadas; se le
+  // descuentan las que acaban de mudarse de grupo para que la cuenta de la
+  // cabecera y la del grupo digan lo mismo que se ve.
+  const nuevasContadas = Math.max(0, (nuevasTotal ?? reciSinFiltrar.length) - yaAtendidas.length);
+  const nuevasOcultas = Math.max(0, nuevasContadas - nuevas.length);
 
   // Distinta de "Vencidas": no depende de proxima_accion_at, sino de los
   // umbrales del manual de Efameinsa (1 mes prospecto / 3 meses cotización,
@@ -608,8 +658,8 @@ export default async function ComercialPage({
             {oportunidades.length > 0 && (
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {[
-                  (nuevasTotal ?? nuevas.length) > 0 &&
-                    `${(nuevasTotal ?? nuevas.length).toLocaleString("es-PE")} recién asignada${(nuevasTotal ?? nuevas.length) === 1 ? "" : "s"}`,
+                  nuevasContadas > 0 &&
+                    `${nuevasContadas.toLocaleString("es-PE")} recién asignada${nuevasContadas === 1 ? "" : "s"}`,
                   paraHoy.length > 0 && `${paraHoy.length} para hoy`,
                   (vencidasTotal ?? vencidas.length) > 0 &&
                     `${(vencidasTotal ?? vencidas.length).toLocaleString("es-PE")} vencida${(vencidasTotal ?? vencidas.length) === 1 ? "" : "s"}`,
@@ -640,7 +690,13 @@ export default async function ComercialPage({
                   iban arriba y una derivación de hace una hora quedaba al
                   fondo, debajo de 15 vencidas. */}
               <GrupoSinInforme filas={sinInforme} />
-              <Grupo titulo="Recién asignadas por Central" filas={nuevas} urgencia="nueva" hoy={hoy} total={nuevasTotal ?? undefined} />
+              <Grupo
+                titulo="Recién asignadas por Central"
+                filas={nuevas}
+                urgencia="nueva"
+                hoy={hoy}
+                total={nuevasContadas}
+              />
               {nuevasOcultas > 0 && (
                 <p className="-mt-3 text-xs text-muted-foreground">
                   Se muestran las {nuevas.length} más recientes ·{" "}
@@ -650,6 +706,21 @@ export default async function ComercialPage({
                   >
                     hay {nuevasOcultas.toLocaleString("es-PE")} sin primer contacto más
                   </Link>
+                </p>
+              )}
+              {/* Fuera del trabajo pendiente, pero a la vista: son fichas
+                  repetidas de un cliente que ya se atendió, y alguien tiene que
+                  decidir si se archivan. Escondidas serían fósiles nuevos. */}
+              <Grupo
+                titulo="Ya atendidas en otra ficha del cliente"
+                filas={yaAtendidas}
+                urgencia="al_lado"
+                hoy={hoy}
+              />
+              {yaAtendidas.length > 0 && (
+                <p className="-mt-3 text-xs text-muted-foreground">
+                  No cuentan como pendientes: la gestión existe, pero quedó en otra ficha del mismo cliente. Ábrala
+                  para ver dónde está y, si es la misma consulta repetida, archívela desde ahí.
                 </p>
               )}
               <Grupo titulo="Para hoy" filas={paraHoy} urgencia="hoy" hoy={hoy} />
