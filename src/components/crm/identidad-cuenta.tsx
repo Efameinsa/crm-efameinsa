@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FileText, Pencil, Tag, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { actualizarIdentidadCuenta } from "@/lib/acciones/cuentas";
+import { PedirCarteraBoton } from "@/components/crm/pedir-cartera-boton";
 import { errorDocumento, type TipoDocumento } from "@/lib/documento";
 import { nombrePropio } from "@/lib/texto";
 import { Button } from "@/components/ui/button";
@@ -73,12 +74,16 @@ export function IdentidadCuenta({
     rubro: rubroId === null ? SIN_RUBRO : String(rubroId),
   });
   const [guardando, startTransition] = useTransition();
+  // El RUC que se quiso poner ya es de otro comercial. En vez del callejón
+  // —«pida a gerencia»— se ofrece pedirlo con el código del supervisor (0204).
+  const [carteraAjena, setCarteraAjena] = useState<{ numDoc: string; quien: string } | null>(null);
 
   const problema = editando ? errorDocumento(campos.tipoDoc, campos.numDoc) : null;
   const nombreRubro = rubros.find((r) => r.id === rubroId)?.nombre ?? null;
 
   function abrir() {
     setCampos({ tipoDoc, numDoc: numDoc ?? "", razonSocial, rubro: rubroId === null ? SIN_RUBRO : String(rubroId) });
+    setCarteraAjena(null);
     setEditando(true);
   }
 
@@ -92,9 +97,11 @@ export function IdentidadCuenta({
         ...(rubros.length > 0 ? { rubroId: rubro === SIN_RUBRO ? null : Number(rubro) } : {}),
       });
       if (r.error) {
-        toast.error(r.error);
+        toast.error(r.error, { duration: r.carteraAjena ? 9000 : undefined });
+        setCarteraAjena(r.carteraAjena ?? null);
         return;
       }
+      setCarteraAjena(null);
       toast.success("Datos del cliente actualizados");
       // El duplicado no impide guardar, pero tiene que verse: son dos fichas
       // del mismo cliente y alguien debe unirlas.
@@ -242,6 +249,29 @@ export function IdentidadCuenta({
           <TriangleAlert className="size-3.5" />
           {problema}
         </p>
+      )}
+
+      {/* LA PARED, CON PUERTA. Cuando el RUC que se acaba de teclear ya es de
+          la ficha de otro comercial, el guardado se frena —bien frenado: un
+          cliente tiene una sola ficha— pero hasta hoy el mensaje terminaba en
+          «pida a gerencia el traspaso» y ahí se acababa. Ariana, 09-09, con
+          RIVERA TRIGOSO. Acá está con qué pedirlo. */}
+      {carteraAjena && (
+        <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+          <p className="text-xs leading-snug text-foreground">
+            Ese RUC/DNI ya tiene su ficha, en la cartera de <b>{carteraAjena.quien}</b>. No se puede duplicar: un
+            cliente tiene una sola ficha en el CRM. <b>Si el cliente pasó a manos suyas</b>, pídalo con el código del
+            supervisor y se mueve con todo su historial.
+          </p>
+          <PedirCarteraBoton
+            numDoc={carteraAjena.numDoc}
+            quien={carteraAjena.quien}
+            onListo={() => {
+              setCarteraAjena(null);
+              setEditando(false);
+            }}
+          />
+        </div>
       )}
 
       <div className="flex items-center gap-2">

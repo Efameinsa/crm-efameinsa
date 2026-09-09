@@ -64,7 +64,17 @@ export async function actualizarIdentidadCuenta(datos: {
   numDoc: string;
   razonSocial: string;
   rubroId?: number | null;
-}): Promise<{ error: string | null; avisoDuplicado?: string }> {
+}): Promise<{
+  error: string | null;
+  avisoDuplicado?: string;
+  /**
+   * El RUC que se quiso poner ya es de la ficha de OTRO comercial. Se devuelve
+   * aparte del mensaje para que la pantalla pueda ofrecer el pedido de
+   * traspaso (0204) en vez de dejar a la comercial contra la pared: es lo que
+   * le pasó a Ariana con RIVERA TRIGOSO el 09-09.
+   */
+  carteraAjena?: { numDoc: string; quien: string };
+}> {
   const razonSocial = datos.razonSocial.trim().replace(/\s+/g, " ");
   if (!razonSocial) return { error: "La razón social no puede ir vacía" };
 
@@ -130,8 +140,13 @@ export async function actualizarIdentidadCuenta(datos: {
       const { data: duena } = await supabase.rpc("cartera_de_documento", { p_num_doc: numDoc });
       const d = duena as { codigo: string | null; nombre: string | null; es_mia: boolean } | null;
       const quien = d?.nombre ? ` Está en la cartera de ${d.codigo ? `${d.codigo} (${d.nombre})` : d.nombre}.` : " Está en la cartera de otro comercial.";
+      // Ya no termina en «pida a gerencia»: eso era una pared. Si el cliente
+      // es suyo, lo pide acá mismo con el código del supervisor (0204).
       return {
-        error: `Ese RUC/DNI ya está registrado en el CRM.${quien} Un cliente tiene una sola ficha: pida a gerencia el traspaso de cartera o la unión de las fichas.`,
+        error: `Ese RUC/DNI ya está registrado en el CRM.${quien} Un cliente tiene una sola ficha en el CRM.`,
+        carteraAjena: numDoc
+          ? { numDoc, quien: d?.nombre ? `${d.codigo ? `${d.codigo} · ` : ""}${d.nombre}` : "otro comercial" }
+          : undefined,
       };
     }
     return { error: error.message };
@@ -296,4 +311,33 @@ export async function agregarRubroYAsignar(
   if (r.error) return { error: r.error };
   revalidatePath("/admin/catalogos");
   return { error: null, rubro: { id: fila.rubro_id, nombre: fila.rubro_nombre }, nuevo: fila.nuevo, reactivado: fila.reactivado };
+}
+
+/**
+ * PEDIR PARA LA PROPIA CARTERA EL CLIENTE QUE ESTÁ EN LA DE OTRO.
+ *
+ * Ariana, por Santos (09-09): quiso gestionar a RIVERA TRIGOSO —ya lo había
+ * hablado con Katerine— y el CRM le contestó que ese RUC es de C5 y que
+ * pidiera el traspaso a gerencia. Ahí se acababa: sabía a quién pedírselo y no
+ * tenía con qué. Ahora lo pide en el momento, con el código del supervisor,
+ * escribiendo por qué. La función de la base (0204) mueve la ficha y sus
+ * expedientes vivos, deja la autorización firmada, no toca las ventas
+ * anteriores y le avisa a quien lo tenía.
+ */
+export async function pedirCartera(
+  numDoc: string,
+  pin: string,
+  motivo: string,
+): Promise<{ error: string | null; resumen?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("pedir_cartera", {
+    p_num_doc: numDoc,
+    p_pin: pin || null,
+    p_motivo: motivo,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+
+  revalidatePath("/comercial", "layout");
+  revalidatePath("/gerencia", "layout");
+  return { error: null, resumen: typeof data === "string" ? data : undefined };
 }
