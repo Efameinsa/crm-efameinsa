@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Archive } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { listarOportunidades, contarOportunidadesPorEtapa, type OrdenOportunidades, type TipoClienteFiltro } from "@/lib/reportes";
@@ -242,13 +243,14 @@ export default async function OportunidadesPage({
         accion={<Paginacion pagina={pagina} totalPaginas={totalPaginas} total={total} desde={desdeFila} hasta={hastaFila} etiqueta="oportunidad" etiquetaPlural="oportunidades" />}
       >
         {filas.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {rubro === "sin"
-              ? "Todos sus clientes con oportunidades ya tienen rubro."
-              : q || etapa || tipoCliente || desde || hasta || soloCrm || rubro !== null
-                ? "Nada coincide con esos filtros."
-                : "Aún no tiene oportunidades asignadas."}
-          </p>
+          <Vacio
+            rubroSin={rubro === "sin"}
+            hayFiltros={Boolean(q || etapa || tipoCliente || desde || hasta || soloCrm || rubro !== null)}
+            q={q}
+            etapa={etapa}
+            enHistorico={enHistorico}
+            hrefHistorico={urlConEtapa(sp, "historico")}
+          />
         ) : (
           <div className="space-y-3">
             <TablaOportunidades filas={filas} />
@@ -289,4 +291,92 @@ function TabsModo({ modo }: { modo: "kanban" | "ruta" }) {
       </Link>
     </div>
   );
+}
+
+/**
+ * La misma búsqueda, pero mirando otra pestaña. Conserva todo lo que el
+ * usuario ya había filtrado (texto, empresa/persona, fechas, rubro, orden) y
+ * solo cambia la etapa: si le decimos «están en el Histórico», el clic tiene
+ * que llevarlo AHÍ con su búsqueda puesta, no a un histórico en blanco donde
+ * tenga que volver a escribir el nombre.
+ */
+function urlConEtapa(sp: Record<string, string | undefined>, etapa: string) {
+  const params = new URLSearchParams();
+  for (const clave of ["q", "tipo", "desde", "hasta", "solo_crm", "rubro", "orden", "modo"] as const) {
+    const valor = sp[clave];
+    if (valor) params.set(clave, valor);
+  }
+  params.set("etapa", etapa);
+  return `/comercial/oportunidades?${params.toString()}`;
+}
+
+/**
+ * EL VACÍO EXPLICA POR QUÉ ESTÁ VACÍO (09-09).
+ *
+ * Ariana buscó «lacua» y la pantalla le respondió «Nada coincide con esos
+ * filtros» — con el chip «Histórico (2)» a diez centímetros, al costado. Ella
+ * leyó lo que dice el texto, no lo que dice el chip: entendió que el
+ * prospecto no existía y lo reportó como que el CRM había perdido a su
+ * cliente. Existía: sus dos oportunidades estaban en el archivo de los Excel,
+ * a un clic.
+ *
+ * Un vacío que no dice la razón es una pared. Cuando la búsqueda no trae nada
+ * en las etapas de trabajo pero SÍ hay resultados en el histórico, esta caja
+ * lo dice con el número, explica qué es el histórico en una línea, y ofrece
+ * el enlace que lleva ahí con la misma búsqueda ya puesta.
+ */
+function Vacio({
+  rubroSin,
+  hayFiltros,
+  q,
+  etapa,
+  enHistorico,
+  hrefHistorico,
+}: {
+  rubroSin: boolean;
+  hayFiltros: boolean;
+  q: string;
+  etapa: string | null;
+  enHistorico: number;
+  hrefHistorico: string;
+}) {
+  if (rubroSin) {
+    return <p className="text-sm text-muted-foreground">Todos sus clientes con oportunidades ya tienen rubro.</p>;
+  }
+
+  // La salida útil: no hay nada en el trabajo del día, pero el archivo sí
+  // tiene. Solo cuando el usuario NO está ya parado en el histórico.
+  if (hayFiltros && enHistorico > 0 && etapa !== "historico") {
+    return (
+      <div className="space-y-2 rounded-lg border border-dashed border-primary/40 bg-primary/[0.03] p-4">
+        <p className="text-sm font-semibold text-foreground">
+          Acá no hay ninguna{q ? <> para «{q}»</> : null}, pero en el Histórico hay{" "}
+          {enHistorico.toLocaleString("es-PE")}.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          El Histórico es lo que vino de los Excel de agosto y nadie retomó dentro del CRM: no cuenta como pendiente,
+          pero sigue siendo suyo y con todo su historial. Ábralo y use «Retomar» — vuelve a seguimiento con la próxima
+          acción para hoy y ya puede registrar la gestión.
+        </p>
+        <Link
+          href={hrefHistorico}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          <Archive className="size-3.5" />
+          Ver {enHistorico === 1 ? "la que hay" : `las ${enHistorico.toLocaleString("es-PE")}`} en el Histórico
+        </Link>
+      </div>
+    );
+  }
+
+  if (hayFiltros) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Nada coincide con esos filtros{etapa === "historico" ? " dentro del Histórico" : ""}.
+        {q ? <> Se buscó «{q}» por nombre de cliente, RUC y DNI.</> : null}
+      </p>
+    );
+  }
+
+  return <p className="text-sm text-muted-foreground">Aún no tiene oportunidades asignadas.</p>;
 }

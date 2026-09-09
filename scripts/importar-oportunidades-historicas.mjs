@@ -137,10 +137,34 @@ async function main() {
     const ambiguos = [];
     const cacheNombreNuevo = new Map(); // razonNormalizada -> cuenta_id (para no duplicar dentro de esta misma corrida)
 
+    // ⚠️ CORREGIDO 09-09 — la razón de 502 expedientes partidos.
+    //
+    // El Excel repite al mismo cliente en varias filas y solo la primera trae
+    // el RUC; las siguientes vienen con la casilla del documento vacía. La
+    // rama del documento anotaba la cuenta SOLO en `docMap`, así que la fila
+    // sin documento de ese mismo cliente no la encontraba por ningún lado
+    // (`nombreMap` se arma ANTES del bucle y no ve lo creado dentro de él) y
+    // terminaba creando una segunda cuenta SIN_DOC. Resultado: el cliente
+    // queda en dos fichas, cada una con parte de su gestión, y el comercial
+    // ve el hilo cortado — Ariana lo reportó el 09-09 con CUSTODIO DAMIAN
+    // LUIS GUSTAVO (dos fichas creadas el mismo segundo: una con RUC y 10
+    // gestiones, otra sin RUC con 2 y la próxima acción vencida).
+    //
+    // `cacheNombreNuevo` ya existía para esto, pero solo lo alimentaba la
+    // rama SIN_DOC. Ahora lo alimenta CUALQUIER cuenta que la corrida toque o
+    // cree, venga por documento, teléfono, email o nombre.
+    function recordarNombre(razon, cuenta) {
+      if (!cuenta) return cuenta;
+      const norm = normalizarRazonSocial(razon);
+      if (esComodin(razon) || norm.length < 12) return cuenta;
+      if (!cacheNombreNuevo.has(norm)) cacheNombreNuevo.set(norm, cuenta);
+      return cuenta;
+    }
+
     async function resolverCuenta(item) {
       if (item.doc) {
         const existente = docMap.get(item.doc);
-        if (existente) { stats.porDoc++; return existente; }
+        if (existente) { stats.porDoc++; return recordarNombre(item.razon, existente); }
 
         if (!APLICAR) {
           // Dry-run: NUNCA escribir. Cuenta simulada, solo para contar y para
@@ -149,7 +173,7 @@ async function main() {
           const simulada = { id: `SIMULADA_DOC_${item.doc}`, comercial_id: item.comercial_id };
           docMap.set(item.doc, simulada);
           stats.cuentasNuevas++;
-          return simulada;
+          return recordarNombre(item.razon, simulada);
         }
 
         // Cuenta nueva con documento — igual que importar-ventas-historicas.mjs.
@@ -166,21 +190,21 @@ async function main() {
           stats.cuentasNuevas++;
           docMap.set(item.doc, nueva.rows[0]);
           await crearContacto(nueva.rows[0].id, item);
-          return nueva.rows[0];
+          return recordarNombre(item.razon, nueva.rows[0]);
         }
         // Carrera rarísima (otro item con el mismo doc se coló antes): releer.
         const relectura = (await bd.query("select id, comercial_id from cuentas where num_doc = $1", [item.doc])).rows[0];
         docMap.set(item.doc, relectura);
-        return relectura;
+        return recordarNombre(item.razon, relectura);
       }
 
       if (item.telefono) {
         const candidatas = telMap.get(item.telefono);
-        if (candidatas && candidatas.length === 1) { stats.porTelefono++; return candidatas[0]; }
+        if (candidatas && candidatas.length === 1) { stats.porTelefono++; return recordarNombre(item.razon, candidatas[0]); }
       }
       if (item.email) {
         const candidatas = emailMap.get(item.email);
-        if (candidatas && candidatas.length === 1) { stats.porEmail++; return candidatas[0]; }
+        if (candidatas && candidatas.length === 1) { stats.porEmail++; return recordarNombre(item.razon, candidatas[0]); }
       }
 
       const razonNorm = normalizarRazonSocial(item.razon);
@@ -193,7 +217,7 @@ async function main() {
 
       if (esNombreUtilizable) {
         const candidatas = nombreMap.get(razonNorm);
-        if (candidatas && candidatas.length === 1) { stats.porNombreExistente++; return candidatas[0]; }
+        if (candidatas && candidatas.length === 1) { stats.porNombreExistente++; return recordarNombre(item.razon, candidatas[0]); }
         if (candidatas && candidatas.length > 1) {
           stats.nombreAmbiguo++;
           ambiguos.push({ razon: item.razon, comercial: item.comercial, cuentasCandidatas: candidatas.length });
