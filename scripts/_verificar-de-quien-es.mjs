@@ -48,7 +48,11 @@ await pg.end();
 
 console.log(`Banco de pruebas: ${caso.razon_social} — expedientes de ${caso.duenos} personas distintas
 `);
-const ROTULO = "pídaselo para anotar";
+// SE COMPRUEBA LA REGLA, NO LA FRASE. El rótulo ya cambió dos veces en un día
+// —«solo lectura» → «pídaselo para anotar» → «ábralo para pedirlo»— y cada vez
+// esta prueba se ponía roja sin que nada estuviera mal. Lo que tiene que ser
+// cierto es que la fila AJENA diga de quién es y la propia no lleve nada.
+const ROTULO = "de ";
 // Se mira FILA POR FILA: qué expedientes salieron en pantalla y de quién es
 // cada uno. Contar apariciones sueltas engaña —el HTML repite cada enlace— y
 // la ficha no lista todos los expedientes de un cliente con 34.
@@ -61,7 +65,15 @@ for (const g of gente) {
   const html = bruto.replace(new RegExp("<script[^]*?</script>", "gi"), "");
   // Cada fila es un <li> con su enlace; se corta por ahí y se mira dentro.
   const filas = html.split('<li').slice(1)
-    .map((t) => ({ id: (t.match(/comercial\/oportunidades\/([0-9a-f-]{36})/) ?? [])[1], rotulada: t.slice(0, t.indexOf("</li>") + 1).includes(ROTULO) }))
+    .map((t) => {
+      const fila = t.slice(0, t.indexOf("</li>") + 1);
+      return {
+        id: (fila.match(/comercial\/oportunidades\/([0-9a-f-]{36})/) ?? [])[1],
+        // «de C4 · …» dentro de una pastilla: es la marca de que el expediente
+        // es de otra persona, diga lo que diga el resto de la frase.
+        rotulada: /rounded-full[^"]*"[^>]*>\s*de\s+\S+\s*·/.test(fila) || /title="Este expediente es de/.test(fila),
+      };
+    })
     .filter((f) => f.id);
   const vistos = [...new Set(filas.map((f) => f.id))];
   const { rows: duenos } = await pg2.query(`select id::text, comercial_id::text from oportunidades where id = any($1::uuid[])`, [vistos]);
