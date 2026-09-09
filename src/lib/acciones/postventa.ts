@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
+import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { notificar } from "@/lib/notificaciones";
 import { bloquesPedido, type ServicioPostventa } from "@/lib/postventa";
 
@@ -554,15 +555,29 @@ export async function cerrarCaso(oportunidadId: string, resultado: "ejecutado" |
   const supabase = await createClient();
   const perfil = await requerirPerfil();
 
-  const { error } = await supabase
+  // ESTE `update` FALLABA EN SILENCIO. Si el caso es de otra persona, la RLS
+  // no lo deja tocar y Postgres NO devuelve error: simplemente no cambia
+  // ninguna fila. La pantalla decía «caso cerrado» y el caso seguía abierto —
+  // peor que un error, porque nadie vuelve a mirarlo. Se pide `select` para
+  // saber si de verdad se movió algo (09-09).
+  const { data: movidas, error } = await supabase
     .from("oportunidades")
     .update({
       etapa: resultado === "ejecutado" ? "venta" : "rechazada",
       proxima_accion: null,
       proxima_accion_at: null,
     })
-    .eq("id", oportunidadId);
-  if (error) return falla(error.message);
+    .eq("id", oportunidadId)
+    .select("id");
+  if (error) {
+    if (esRechazoDeRls(error.message)) {
+      return falla(mensajeExpedienteAjeno(await duenoDelExpediente(supabase, oportunidadId)));
+    }
+    return falla(error.message);
+  }
+  if (!movidas || movidas.length === 0) {
+    return falla(mensajeExpedienteAjeno(await duenoDelExpediente(supabase, oportunidadId)));
+  }
 
   await supabase.from("actividades").insert({
     oportunidad_id: oportunidadId,

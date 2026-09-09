@@ -363,13 +363,16 @@ function ListaOportunidadesCuenta({
                 {cerrada && <span className="text-muted-foreground"> · {fechaLima(o.cerrada_at!)}</span>}
               </span>
               {/* Decir de quién es Y qué hacer. «Solo lectura» a secas dejaba a
-                  la persona sin salida; el expediente se pide, no se fuerza. */}
+                  la persona sin salida; el expediente se pide, no se fuerza.
+                  Y desde el 09-09 se pide DENTRO del expediente, con código de
+                  supervisor (0202): antes decía «pídaselo» y no había con qué
+                  pedirlo — «pídaselo» por WhatsApp no mueve nada acá adentro. */}
               {deOtro && (
                 <span
-                  className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground"
-                  title={`Este expediente es de ${o.perfiles?.nombre ?? "otra persona"}. Para anotar una gestión acá, pídale que se lo pase.`}
+                  className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-800"
+                  title={`Este expediente es de ${o.perfiles?.nombre ?? "otra persona"}, y por eso no puede anotar la gestión acá. Ábralo: adentro está el botón para pedirlo.`}
                 >
-                  de {o.perfiles?.codigo_comercial ?? o.perfiles?.nombre ?? "otra área"} · pídaselo para anotar
+                  de {o.perfiles?.codigo_comercial ?? o.perfiles?.nombre ?? "otra área"} · ábralo para pedirlo
                 </span>
               )}
               {o.monto_estimado != null && (

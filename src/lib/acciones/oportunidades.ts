@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { ETAPAS_MANUALES } from "@/lib/etapas-oportunidad";
 import { createClient } from "@/lib/supabase/server";
+import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { marcarLeidasDeOportunidad } from "@/lib/acciones/notificaciones";
 import type { EtapaOportunidad } from "@/types/database";
 
@@ -76,20 +77,11 @@ export async function registrarActividad(datos: {
     // EL MENSAJE CRUDO NO SE ENTIENDE. Cuando el expediente es de otra
     // persona, Postgres devuelve «new row violates row-level security policy
     // for table "actividades"» y la pantalla lo mostraba tal cual, en inglés.
-    // Postventa lo leyó como que el CRM estaba roto: «no puedo registrar la
-    // gestión que se envió una cotización» (09-09). Podía —en SUS expedientes—
-    // y estaba parada en el de otra. Se dice de quién es y qué hacer.
-    if (/row-level security|violates row-level/i.test(errorActividad.message)) {
-      const { data: duena } = await supabase
-        .from("oportunidades")
-        .select("perfiles(nombre, codigo_comercial)")
-        .eq("id", datos.oportunidadId)
-        .maybeSingle();
-      const p = duena?.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
-      const quien = p ? `${p.codigo_comercial ? `${p.codigo_comercial} · ` : ""}${p.nombre}` : "otra persona";
-      return {
-        error: `Este expediente es de ${quien}, por eso no la deja anotar acá. Pídale que se lo pase, o anote en el expediente suyo de este mismo cliente.`,
-      };
+    // El texto —y el camino de salida, que desde el 09-09 es «Pedir el
+    // expediente» con código— vive en `expediente-ajeno`, compartido con las
+    // otras puertas que dan contra la misma pared.
+    if (esRechazoDeRls(errorActividad.message)) {
+      return { error: mensajeExpedienteAjeno(await duenoDelExpediente(supabase, datos.oportunidadId)) };
     }
     return { error: errorActividad.message };
   }
@@ -372,4 +364,33 @@ export async function trabajarOportunidadHistorica(
   revalidatePath(`/comercial/oportunidades/${oportunidadId}`);
   revalidatePath("/gerencia", "layout");
   return { error: null };
+}
+
+/**
+ * PEDIR UN EXPEDIENTE QUE ES DE OTRO.
+ *
+ * Santos, 09-09: «debería aparecer un aviso que diga que este cliente es de
+ * Ariana y por eso no lo puede gestionar, y un botón que pida cambiar para
+ * ella con PIN». La regla entera —quién puede pedirlo, qué no se mueve, el
+ * código y la firma— vive en la base (0202); acá solo se llama y se refresca
+ * lo que cambió de manos.
+ */
+export async function pedirExpediente(
+  oportunidadId: string,
+  pin: string,
+  motivo: string,
+): Promise<{ error: string | null; mensaje?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("pedir_expediente", {
+    p_oportunidad_id: oportunidadId,
+    p_pin: pin,
+    p_motivo: motivo,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+
+  revalidatePath(`/comercial/oportunidades/${oportunidadId}`);
+  revalidatePath("/comercial/mi-gestion");
+  revalidatePath("/postventa");
+  revalidatePath("/postventa/casos");
+  return { error: null, mensaje: (data as string | null) ?? undefined };
 }
