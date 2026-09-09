@@ -72,7 +72,27 @@ export async function registrarActividad(datos: {
     proxima_accion_at: datos.limpiarProximaAccion ? null : datos.proximaAccionAt,
     proxima_accion_hora: datos.limpiarProximaAccion || !datos.proximaAccionAt ? null : datos.proximaAccionHora ?? null,
   });
-  if (errorActividad) return { error: errorActividad.message };
+  if (errorActividad) {
+    // EL MENSAJE CRUDO NO SE ENTIENDE. Cuando el expediente es de otra
+    // persona, Postgres devuelve «new row violates row-level security policy
+    // for table "actividades"» y la pantalla lo mostraba tal cual, en inglés.
+    // Postventa lo leyó como que el CRM estaba roto: «no puedo registrar la
+    // gestión que se envió una cotización» (09-09). Podía —en SUS expedientes—
+    // y estaba parada en el de otra. Se dice de quién es y qué hacer.
+    if (/row-level security|violates row-level/i.test(errorActividad.message)) {
+      const { data: duena } = await supabase
+        .from("oportunidades")
+        .select("perfiles(nombre, codigo_comercial)")
+        .eq("id", datos.oportunidadId)
+        .maybeSingle();
+      const p = duena?.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
+      const quien = p ? `${p.codigo_comercial ? `${p.codigo_comercial} · ` : ""}${p.nombre}` : "otra persona";
+      return {
+        error: `Este expediente es de ${quien}, por eso no la deja anotar acá. Pídale que se lo pase, o anote en el expediente suyo de este mismo cliente.`,
+      };
+    }
+    return { error: errorActividad.message };
+  }
 
   // 24-08: ANTES esto pisaba siempre proxima_accion/proxima_accion_at con lo
   // que llegara, aunque llegara vacío. Consecuencia real (prueba de Darwin del

@@ -194,7 +194,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
           >
             <ListaOportunidadesCuenta
               oportunidades={oportunidades}
-              duenoDeLaFicha={cuenta.comercial_id}
+              quienMira={perfilQueMira.id}
               comoGerencia={comoGerencia}
             />
           </SeccionPanel>
@@ -275,14 +275,21 @@ function rangoOportunidad(o: { etapa: string; cerrada_at: string | null }): numb
  * Las abiertas van arriba —son las que se trabajan hoy— y las cerradas debajo,
  * apagadas, porque cuentan la historia pero no piden nada.
  *
- * Se marca la que NO es de quien mira. En COINREFRI, cuatro de las ocho son de
+ * Se marca la que NO es de QUIEN MIRA. En COINREFRI, cuatro de las ocho son de
  * Postventa (repuestos y mantenimiento vendidos entre 2023 y 2024): aparecen
  * porque son del mismo cliente y su dueña tiene que verlas, pero decirle por
  * qué no puede tocarlas evita la siguiente pregunta.
+ *
+ * OJO — ESTO SE COMPARABA CONTRA EL DUEÑO DE LA FICHA, y era mentira. En
+ * PANASERVICE (ficha de C5) postventa veía sus DOS expedientes propios
+ * rotulados «de PV · solo lectura» y dejó de intentarlo: «no puedo registrar
+ * la gestión que se envió una cotización» (09-09). Sí podía. Lo que manda para
+ * anotar una gestión es ser el DUEÑO DEL EXPEDIENTE —así está la regla en la
+ * base—, no ser el dueño del cliente; el rótulo tiene que decir lo mismo.
  */
 function ListaOportunidadesCuenta({
   oportunidades,
-  duenoDeLaFicha,
+  quienMira,
   comoGerencia,
 }: {
   oportunidades: {
@@ -297,7 +304,8 @@ function ListaOportunidadesCuenta({
     comercial_id: string | null;
     perfiles: { nombre: string; codigo_comercial: string | null } | null;
   }[];
-  duenoDeLaFicha: string | null;
+  /** Quién tiene la pantalla delante. Es contra ESTO que se decide. */
+  quienMira: string;
   comoGerencia: boolean;
 }) {
   if (oportunidades.length === 0) {
@@ -307,7 +315,7 @@ function ListaOportunidadesCuenta({
     <ul className="space-y-1.5">
       {oportunidades.map((o) => {
         const cerrada = !!o.cerrada_at;
-        const deOtro = !comoGerencia && o.comercial_id !== duenoDeLaFicha;
+        const deOtro = !comoGerencia && o.comercial_id !== quienMira;
         // El botón solo donde puede funcionar: en lo que está archivado y es de
         // quien mira. La base vuelve a comprobarlo igual (0130).
         const enHistorico = o.etapa === "historico" && !cerrada;
@@ -332,9 +340,14 @@ function ListaOportunidadesCuenta({
                 )}
                 {cerrada && <span className="text-muted-foreground"> · {fechaLima(o.cerrada_at!)}</span>}
               </span>
+              {/* Decir de quién es Y qué hacer. «Solo lectura» a secas dejaba a
+                  la persona sin salida; el expediente se pide, no se fuerza. */}
               {deOtro && (
-                <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
-                  de {o.perfiles?.codigo_comercial ?? o.perfiles?.nombre ?? "otra área"} · solo lectura
+                <span
+                  className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground"
+                  title={`Este expediente es de ${o.perfiles?.nombre ?? "otra persona"}. Para anotar una gestión acá, pídale que se lo pase.`}
+                >
+                  de {o.perfiles?.codigo_comercial ?? o.perfiles?.nombre ?? "otra área"} · pídaselo para anotar
                 </span>
               )}
               {o.monto_estimado != null && (

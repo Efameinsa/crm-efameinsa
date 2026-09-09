@@ -82,7 +82,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
         )
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),
-      supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("id"),
+      supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("orden"),
     ]);
 
   if (!oportunidad) {
