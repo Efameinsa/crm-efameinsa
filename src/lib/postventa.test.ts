@@ -265,7 +265,13 @@ describe("bloquesPedido: el orden de Carlos y la apertura de despacho", () => {
     expect(paso({ ...s, apertura_despacho_at: "2026-09-01T16:00:00Z" }, "despacho").trabado).toBeUndefined();
   });
 
-  it("en provincia la apertura también exige la preinstalación confirmada", () => {
+  // LA REGLA CAMBIÓ EL 09-09. Carlos, revisando el circuito con Lesly:
+  // «preinstalación confirmada, eso es parte de la puesta en marcha… la
+  // apertura de despacho sí va en el despacho». Antes frenaba la apertura;
+  // ahora vive en el bloque de la puesta en marcha y en el despacho queda solo
+  // como advertencia, porque mandar un camión a provincia sin agua, desagüe ni
+  // energía listos sigue siendo un viaje perdido.
+  it("en provincia la preinstalación ya NO frena la apertura, pero avisa en el despacho", () => {
     const s = pedido({
       modalidad: "provincia",
       pago_confirmado_at: "2026-09-01T15:00:00Z",
@@ -273,7 +279,17 @@ describe("bloquesPedido: el orden de Carlos y la apertura de despacho", () => {
       prueba_lista_at: "2026-09-01T15:20:00Z",
       plano_enviado_at: "2026-09-01T15:30:00Z",
     });
-    expect(paso(s, "apertura").trabado).toContain("preinstalación");
+    expect(paso(s, "apertura").trabado).toBeUndefined();
+    expect(paso({ ...s, apertura_despacho_at: "2026-09-01T16:00:00Z" }, "despacho").trabado).toContain("preinstalación");
+  });
+
+  it("la preinstalación es del bloque de la puesta en marcha, no del despacho", () => {
+    const s = pedido({ modalidad: "provincia" });
+    const bloques = bloquesPedido(s);
+    const despacho = bloques.find((b) => b.titulo === "Despacho");
+    const puesta = bloques.find((b) => b.numero === 3);
+    expect(despacho?.pasos.map((x) => x.clave)).not.toContain("preinstalacion");
+    expect(puesta?.pasos.map((x) => x.clave)).toContain("preinstalacion");
   });
 
   it("los pedidos viejos del Excel, sin cierre, no quedan trabados por la apertura", () => {

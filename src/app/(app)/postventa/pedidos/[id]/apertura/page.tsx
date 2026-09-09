@@ -149,18 +149,15 @@ export default async function AperturaServicioPage({ params }: { params: Promise
       ok: s.plano_enviado_at != null || /^(si|sí|ok|listo|x)$/i.test((s.planos_preinstalacion ?? "").trim()),
       detalle: s.plano_enviado_at ? fechaHoraLima(s.plano_enviado_at) : "Marcado en el Excel",
     },
-    ...(esProvincia(s)
-      ? [
-          {
-            texto: "Preinstalación confirmada por el cliente",
-            ok: s.preinstalacion_ok_at != null,
-            detalle: s.preinstalacion_ok_at
-              ? `${fechaHoraLima(s.preinstalacion_ok_at)}${s.preinstalacion_nota ? ` · ${s.preinstalacion_nota}` : ""}`
-              : "Pendiente",
-          },
-        ]
-      : []),
+    // LA PREINSTALACIÓN SALIÓ DE LAS CONDICIONES el 09-09: Carlos la puso en la
+    // puesta en marcha, no en el despacho. Se sigue imprimiendo en provincia
+    // —el almacén tiene que saber si el sitio está listo— pero como AVISO al
+    // pie, no como una de las condiciones que autorizan la salida.
   ];
+  const avisoPreinstalacion =
+    esProvincia(s) && s.preinstalacion_ok_at == null
+      ? "Es provincia y el cliente todavía no confirmó la preinstalación (agua, desagüe y energía)."
+      : null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-3">
@@ -275,6 +272,13 @@ export default async function AperturaServicioPage({ params }: { params: Promise
             </li>
           ))}
         </ul>
+
+        {avisoPreinstalacion && (
+          <p className="mt-3 border border-neutral-400 p-2 text-[11px]">
+            <b>Aviso:</b> {avisoPreinstalacion} No impide el despacho, pero conviene tenerla confirmada antes de que
+            salga el camión: es lo que hace posible la puesta en marcha al llegar.
+          </p>
+        )}
 
         {s.observaciones && (
           <>

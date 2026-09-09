@@ -315,7 +315,13 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
     s.direccion_verificada_at == null ? "la dirección verificada" : null,
     !pruebaLista ? "el equipo probado y embalado" : null,
     !planoEnviado ? "el plano de preinstalación" : null,
-    provincia && s.preinstalacion_ok_at == null ? "la preinstalación confirmada por el cliente" : null,
+    // LA PREINSTALACIÓN YA NO FRENA LA APERTURA. Carlos, 09-09: «preinstalación
+    // confirmada, eso es parte de la puesta en marcha… la apertura de despacho
+    // sí va en el despacho». Deja de ser un requisito para despachar y pasa al
+    // bloque de la puesta en marcha, que es cuando de verdad se necesita. En
+    // provincia se sigue avisando en el paso del despacho, como advertencia y
+    // no como freno: mandar a provincia sin que el cliente tenga listos agua,
+    // desagüe y energía es un viaje perdido.
   ].filter((x): x is string => x != null);
   const aperturaEmitida = s.apertura_despacho_at != null;
 
@@ -330,19 +336,6 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
         ? `Confirmó ${s.direccion_verificada_con}`
         : "Se llama antes: 9 de cada 10 veces cambia la dirección, el teléfono o quien recibe",
     },
-    // Solo en provincia: en Lima la verificación la hace el técnico al llegar.
-    ...(provincia
-      ? [
-          {
-            clave: "preinstalacion",
-            etiqueta: "Preinstalación confirmada por el cliente",
-            responsable: "cliente" as ResponsablePaso,
-            hecho: s.preinstalacion_ok_at != null,
-            cuando: s.preinstalacion_ok_at,
-            detalle: s.preinstalacion_nota ?? "Foto de los puntos de agua, desagüe y energía",
-          },
-        ]
-      : []),
     {
       clave: "apertura",
       etiqueta: aperturaEmitida ? "Apertura de despacho emitida" : "Apertura de despacho",
@@ -361,21 +354,43 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
     },
     {
       clave: "despacho",
-      etiqueta: s.despachado_at ? "Despachado" : "Despacho programado",
+      // «Una vez que ingresa la guía de remisión, allá en almacén le tienen que
+      // decir: despacho concluido» (Carlos, 09-09). El nombre lo dice.
+      etiqueta: s.despachado_at ? "Despacho concluido" : "Despacho programado",
       responsable: "postventa",
       hecho: s.despachado_at != null,
       cuando: s.despachado_at ?? (s.fecha_despacho ? `${s.fecha_despacho}T12:00:00` : null),
-      detalle: [s.transportista, s.guia ? `Guía ${s.guia}` : null].filter(Boolean).join(" · ") || undefined,
+      detalle:
+        [s.transportista, s.guia ? `Guía ${s.guia}` : null].filter(Boolean).join(" · ") ||
+        (s.despachado_at ? undefined : "Se concluye con la guía de remisión del almacén"),
       trabado:
         s.despachado_at == null && !aperturaEmitida && s.informe_cierre_id != null
           ? "Sin apertura de despacho no sale nada del almacén"
           : !pagado && !pagoDesconocido && s.despachado_at == null && !despachoAutorizadoConSaldo
             ? "No se despacha con saldo pendiente sin autorización"
-            : undefined,
+            : provincia && s.despachado_at == null && s.preinstalacion_ok_at == null
+              ? "Es provincia y el cliente todavía no confirmó la preinstalación: conviene tenerla antes de que salga el camión"
+              : undefined,
     },
   ];
 
   const cierre: PasoPedido[] = [
+    // Solo en provincia: en Lima la verificación la hace el técnico al llegar.
+    // Va acá y no en Despacho desde el 09-09 (Carlos): lo que el cliente
+    // confirma —agua, desagüe, energía— es lo que hace posible la puesta en
+    // marcha, no lo que autoriza el camión.
+    ...(provincia
+      ? [
+          {
+            clave: "preinstalacion",
+            etiqueta: "Preinstalación confirmada por el cliente",
+            responsable: "cliente" as ResponsablePaso,
+            hecho: s.preinstalacion_ok_at != null,
+            cuando: s.preinstalacion_ok_at,
+            detalle: s.preinstalacion_nota ?? "Foto de los puntos de agua, desagüe y energía",
+          },
+        ]
+      : []),
     {
       clave: "puesta",
       etiqueta: "Puesta en marcha",
