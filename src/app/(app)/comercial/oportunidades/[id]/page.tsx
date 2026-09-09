@@ -5,6 +5,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { RegistroRapido } from "@/components/crm/registro-rapido";
+import { AvisoGemelaCerrada } from "@/components/crm/aviso-gemela-cerrada";
 import { PideServicioBoton } from "@/components/crm/pide-servicio-boton";
 import { CambiarEtapa } from "@/components/crm/cambiar-etapa";
 import { ListaCotizaciones } from "@/components/crm/lista-cotizaciones";
@@ -25,6 +26,8 @@ import { fechaAgendada, fechaHoraLima, fechaLimaCorta } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
+import { PedirExpedienteBoton } from "@/components/crm/pedir-expediente-boton";
+import { cargarSupervisores } from "@/lib/supervisores";
 import { demora, haceCuanto, ETIQUETA_MOTIVO, inicioVentanaOtraFicha } from "@/lib/derivados-central";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
@@ -70,7 +73,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -147,6 +150,8 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     { data: asignacion },
     { data: primeraGestion },
     { data: gestionEnOtraFicha },
+    { data: ultimaGestionPropia },
+    { data: gemelaCerrada },
   ] = await Promise.all([
     supabase
       .from("leads")
@@ -202,6 +207,40 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    // La última vez que se HABLÓ CON EL CLIENTE en esta ficha: es la vara
+    // contra la que se mide si lo de la ficha gemela pasó después. Solo los
+    // tipos que cuentan como contacto (0090): una nota administrativa —como la
+    // que dejó el repuesto del histórico el 02-09 en media base— no es trabajo
+    // sobre el caso, y contarla taparía justamente el aviso que se busca.
+    supabase
+      .from("actividades")
+      .select("realizada_at")
+      .eq("oportunidad_id", id)
+      .in("tipo", ["llamada", "whatsapp", "email", "visita", "showroom", "reunion_online"])
+      .order("realizada_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    //  · LA MISMA CONSULTA, YA RESUELTA EN LA FICHA DE AL LADO. Ariana, por
+    //    Santos (09-09, con YOPLAC OCHOA LISSETH): «se repiten ahí, ya lo
+    //    había puesto sin interés y no procede». El Excel trajo dos fichas de
+    //    la misma clienta con dos días de diferencia; ella cerró una el 28-08
+    //    con una llamada real, y la gemela le seguía pidiendo «Llamar al
+    //    cliente», vencida hacía 18 días. Peor todavía con ECOLAV SORELA, a
+    //    quien se le VENDIÓ el 03-09 mientras la ficha repetida la mandaba a
+    //    llamar. La salida existe desde el 08-09 —archivar, que no cuenta
+    //    como perdida— pero está dentro de un desplegable que hay que abrir:
+    //    nadie le decía que correspondía usarla.
+    cuenta?.id
+      ? supabase
+          .from("oportunidades")
+          .select("id, etapa, cerrada_at, catalogo_motivos_rechazo(nombre)")
+          .eq("cuenta_id", cuenta.id)
+          .neq("id", id)
+          .not("cerrada_at", "is", null)
+          .order("cerrada_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const otrosLeads = (otrosLeadsCrudos ?? []).filter((l) => l.id !== oportunidad.lead_id);
@@ -241,6 +280,22 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
 
   // Cuándo pasó a ser suya: la asignación si la hay, y si no la creación de la
   // oportunidad, que es el instante en que apareció en su lista.
+  // ¿ESTE EXPEDIENTE ES DE QUIEN LO ESTÁ MIRANDO? De eso depende que pueda
+  // anotar la gestión: la base solo deja al dueño (política actividades_insert)
+  // y hasta hoy esta pantalla mostraba el formulario igual, así que el «no» se
+  // descubría recién al guardar. Postventa lo leyó como que el CRM estaba roto
+  // (09-09, PANASERVICE). Ahora se dice antes de escribir nada.
+  const duenoExpediente = oportunidad.perfiles as unknown as {
+    nombre: string;
+    codigo_comercial: string | null;
+  } | null;
+  const esMio = oportunidad.comercial_id === perfilQueMira.id;
+  const comoGerenciaAqui = ["gerencia", "admin"].includes(perfilQueMira.rol);
+  const puedeAnotar = esMio || comoGerenciaAqui;
+  // La lista solo hace falta si el aviso va a salir: sin ella el campo del
+  // código sería un candado que no dice dónde está la llave (27-08).
+  const supervisores = puedeAnotar ? [] : await cargarSupervisores(supabase);
+
   const asignadoAt = asignacion?.created_at ?? oportunidad.created_at ?? null;
   const sinGestion = !primeraGestion;
 
@@ -263,6 +318,26 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     opDeEsaGestion?.origen === "historico_excel"
       ? "en la ficha del histórico: esa atención venía del Excel, de antes del CRM"
       : "en otra ficha de este mismo cliente";
+
+  // ¿ESTA FICHA YA NO TIENE NADA QUE HACER? Se muestra el aviso solo si esta
+  // sigue abierta y lo de la ficha gemela pasó DESPUÉS de lo último que se
+  // hizo acá: si acá hubo movimiento posterior, la que manda es esta y el
+  // aviso sería ruido.
+  const ETAPAS_CERRADAS = ["venta", "rechazada", "derivada", "historico"];
+  const gemela = gemelaCerrada as unknown as
+    | { id: string; etapa: string; cerrada_at: string; catalogo_motivos_rechazo: { nombre: string } | { nombre: string }[] | null }
+    | null;
+  const ultimoContactoAca = ultimaGestionPropia?.realizada_at ?? oportunidad.created_at ?? null;
+  const laConsultaSeResolvioAlLado =
+    gemela &&
+    !ETAPAS_CERRADAS.includes(oportunidad.etapa) &&
+    ultimoContactoAca &&
+    new Date(gemela.cerrada_at).getTime() > new Date(ultimoContactoAca).getTime()
+      ? gemela
+      : null;
+  const motivoGemela = Array.isArray(laConsultaSeResolvioAlLado?.catalogo_motivos_rechazo)
+    ? laConsultaSeResolvioAlLado.catalogo_motivos_rechazo[0]?.nombre
+    : laConsultaSeResolvioAlLado?.catalogo_motivos_rechazo?.nombre;
 
   const rutaDelContacto: Hito[] = [
     lead
@@ -428,6 +503,19 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
+          {/* ANTES QUE NADA, SI NO HAY NADA QUE HACER ACÁ: la misma consulta ya
+              se resolvió en otra ficha de este cliente. Va arriba de todo
+              porque el resto de la pantalla invita a trabajarla. */}
+          {laConsultaSeResolvioAlLado && (
+            <AvisoGemelaCerrada
+              oportunidadId={oportunidad.id}
+              gemelaId={laConsultaSeResolvioAlLado.id}
+              etapaGemela={laConsultaSeResolvioAlLado.etapa}
+              cerradaAt={laConsultaSeResolvioAlLado.cerrada_at}
+              motivo={motivoGemela}
+            />
+          )}
+
           {/* LO PRIMERO, antes de registrar nada: qué pidió este prospecto.
               Va arriba de todo porque es lo que el comercial necesita leer
               antes de levantar el teléfono. Pedido de Brenda el 24-08: «cada
@@ -472,18 +560,36 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           </SeccionPanel>
 
           <SeccionPanel titulo="Registrar gestión">
-            <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} motivos={motivos ?? []} />
-            {/* Justo debajo de donde se anota la llamada, porque es ahí donde
-                se descubre: el 29-08 Brenda escribió «no desea equipos… desea
-                mmto, repuestos, se le indicó que se va a derivar con
-                postventa» y no tenía dónde apretar para que eso ocurriera.
-                Central no lee las notas de gestión. */}
-            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-              <PideServicioBoton oportunidadId={oportunidad.id} />
-              <span className="text-[11px] text-muted-foreground">
-                Si al llamar resulta que no quiere equipos: quiere mantenimiento, repuestos o tiene una garantía.
-              </span>
-            </div>
+            {/* NO SE OFRECE UN FORMULARIO QUE NO PUEDE FUNCIONAR. Si el
+                expediente es de otra persona, la base rechaza la gestión
+                (política actividades_insert) y hasta hoy eso se descubría
+                después de escribirlo todo. En su lugar va el aviso que pidió
+                Santos el 09-09 —de quién es y por qué no la deja— con el botón
+                para pedirlo con código de supervisor. */}
+            {puedeAnotar ? (
+              <>
+                <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} motivos={motivos ?? []} />
+                {/* Justo debajo de donde se anota la llamada, porque es ahí donde
+                    se descubre: el 29-08 Brenda escribió «no desea equipos… desea
+                    mmto, repuestos, se le indicó que se va a derivar con
+                    postventa» y no tenía dónde apretar para que eso ocurriera.
+                    Central no lee las notas de gestión. */}
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                  <PideServicioBoton oportunidadId={oportunidad.id} />
+                  <span className="text-[11px] text-muted-foreground">
+                    Si al llamar resulta que no quiere equipos: quiere mantenimiento, repuestos o tiene una garantía.
+                  </span>
+                </div>
+              </>
+            ) : (
+              <PedirExpedienteBoton
+                oportunidadId={oportunidad.id}
+                duenoNombre={duenoExpediente?.nombre ?? "otra persona"}
+                duenoCodigo={duenoExpediente?.codigo_comercial}
+                cliente={cuenta?.razon_social ?? "este cliente"}
+                supervisores={supervisores}
+              />
+            )}
           </SeccionPanel>
 
           {/* EL PARQUE INSTALADO, ANTES DEL HISTORIAL DE GESTIÓN. Cuando el
