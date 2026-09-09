@@ -277,7 +277,9 @@ export function LineaAtencion({
                   <span className="text-[10px] tabular-nums leading-none text-muted-foreground">
                     {omitida
                       ? "no aplicó"
-                      : sello
+                      : p.deCentral && sello
+                        ? `Central · ${new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" })}`
+                        : sello
                         ? new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" })
                         : "—"}
                   </span>

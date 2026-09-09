@@ -75,9 +75,17 @@ export const PASOS_VISIBLES: {
   /** Qué dibujo lo representa. El nombre del ícono de lucide, para que la
    *  pantalla no tenga que saberse el circuito de memoria. */
   icono: "inbox" | "serie" | "diagnostico" | "agenda" | "trabajo" | "firma" | "cierre" | "seguimiento";
+  /** La cumple CENTRAL, no el área. Se dice en la tira para no confundir. */
+  deCentral?: boolean;
 }[] = [
-  { clave: "solicitud", etiqueta: "Solicitud", cubre: ["solicitud"], icono: "inbox" },
-  { clave: "registro", etiqueta: "Registro", cubre: ["registro"], icono: "serie" },
+  // LAS DOS PRIMERAS SON DE CENTRAL, y la base las sella JUNTAS en el instante
+  // en que Central deriva (`crear_atencion_al_derivar`). Postventa las veía
+  // verdes desde el minuto cero y creía haber registrado algo: «entonces
+  // nosotros todavía seguimos atrapados en registro… como si faltara algo»
+  // (Carlos, 09-09). Se marcan como ajenas para que se lea de un vistazo que
+  // el trabajo del área empieza en el Diagnóstico.
+  { clave: "solicitud", etiqueta: "Solicitud", cubre: ["solicitud"], icono: "inbox", deCentral: true },
+  { clave: "registro", etiqueta: "Registro", cubre: ["registro"], icono: "serie", deCentral: true },
   { clave: "diagnostico", etiqueta: "Diagnóstico", cubre: ["diagnostico"], icono: "diagnostico" },
   { clave: "planificacion", etiqueta: "Planificación", cubre: ["planificacion"], icono: "agenda" },
   { clave: "atencion", etiqueta: "Atención", cubre: ["atencion"], icono: "trabajo" },

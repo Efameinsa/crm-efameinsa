@@ -40,6 +40,15 @@ afirmar("y cada paso su turno de entrada", /--turno/.test(html));
 // medallas con su dibujo, y el nombre del paso DEBAJO del círculo.
 afirmar("las ocho casillas traen su medalla", (html.match(/medalla-atencion/g) ?? []).length === 8);
 afirmar("y cada medalla su dibujo", (html.match(/medalla-atencion[^]{0,900}?<svg/g) ?? []).length === 8);
+// Las dos primeras las sella Central al derivar, no el área: la tira lo dice
+// para que postventa no crea que ya registró algo (Carlos, 09-09).
+// Solo las que Central alcanzó a sellar: la atención de práctica no tiene
+// `registrado_at`, así que esperar «2» a ciegas haría fallar una prueba sana.
+const { data: sellosCentral } = await admin.from("atenciones")
+  .select("solicitado_at, registrado_at").eq("id", a.id).maybeSingle();
+const cuantasDeCentral = [sellosCentral?.solicitado_at, sellosCentral?.registrado_at].filter(Boolean).length;
+afirmar(`la tira dice que lo de Central es de Central (${cuantasDeCentral} sellada/s)`,
+  (html.match(/Central ·/g) ?? []).length === cuantasDeCentral);
 // El puntito de la esquina era lo que el `overflow` recortaba; ya no está.
 afirmar("el pulso ya no cuelga de la esquina", !/-right-1 -top-1/.test(html));
 // El riel no debe verse POR DENTRO del círculo: la medalla va opaca.
