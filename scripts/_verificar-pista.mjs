@@ -26,7 +26,9 @@ for (const etapa of ["registro", "atencion", "cierre"]) {
   await admin.from("atenciones").update({ etapa }).eq("id", a.id);
   const html = await (await fetch(`${BASE}/postventa/atenciones/${a.id}`, { headers: { cookie } })).text();
   const avance = html.match(/--avance:\s*([0-9.]+)/)?.[1];
-  const actuales = (html.match(/data-actual="true"/g) ?? []).length;
+  // Se cuenta por el ENVOLTORIO —el que lleva el halo— porque la medalla de
+  // adentro también marca data-actual, para el latido del dibujo.
+  const actuales = (html.match(/data-actual="true" class="halo-atencion/g) ?? []).length;
   console.log(`  etapa «${etapa}» → avance ${avance ?? "?"} · pasos marcados como actual: ${actuales}`);
   afirmar(`en «${etapa}» el riel trae su avance`, avance !== undefined);
   afirmar(`en «${etapa}» hay EXACTAMENTE un paso marcado como el que toca`, actuales === 1);
@@ -40,6 +42,8 @@ afirmar("las ocho casillas traen su medalla", (html.match(/medalla-atencion/g) ?
 afirmar("y cada medalla su dibujo", (html.match(/medalla-atencion[^]{0,900}?<svg/g) ?? []).length === 8);
 // El puntito de la esquina era lo que el `overflow` recortaba; ya no está.
 afirmar("el pulso ya no cuelga de la esquina", !/-right-1 -top-1/.test(html));
+// El riel no debe verse POR DENTRO del círculo: la medalla va opaca.
+afirmar("las medallas tapan el riel", !/medalla-atencion[^"]*bg-\[#1E7F4F\]\/10/.test(html));
 
 await admin.from("atenciones").update({ etapa: original }).eq("id", a.id);
 const { data: fin } = await admin.from("atenciones").select("etapa").eq("id", a.id).maybeSingle();

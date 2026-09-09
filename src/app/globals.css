@@ -275,49 +275,82 @@ html[data-modo-app="instalada"] body {
   }
 }
 
-/* La medalla tapa el riel para que la línea no le cruce el dibujo por dentro. */
+/* La medalla se pone POR ENCIMA del riel: así la línea solo se ve de centro a
+   centro y no cruza el dibujo (Santos, 09-09). El fondo opaco lo pone el
+   componente; esto resuelve el orden de pintado. */
 .medalla-atencion {
   position: relative;
   z-index: 1;
+  /* El acomodo al pasar el mouse: la curva se pasa un pelo de largo y vuelve,
+     que es lo que lo hace sentir vivo y no mecánico. */
+  transition:
+    transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    border-color 200ms ease,
+    color 200ms ease;
+}
+
+/* Zoom orgánico al pasar el mouse por la casilla (Santos, 09-09: «que tengan
+   un ligero zoom orgánico cuando se pone el mouse encima»). Va en el botón
+   entero para que también responda desde el nombre y la fecha, no solo desde
+   el círculo. */
+.paso-atencion button:hover .medalla-atencion {
+  transform: scale(1.1);
+}
+
+.paso-atencion button:active .medalla-atencion {
+  transform: scale(1.02);
 }
 
 /* La que toca hacer RESPIRA. El halo sale del propio círculo —antes era un
-   puntito pegado a la esquina y el `overflow` de la tira se lo comía— y es muy
-   lento y muy poco: tiene que notarse solo cuando la vista se queda quieta. */
-.medalla-atencion[data-actual="true"] {
-  animation: medalla-respirar 3.6s 1.2s ease-in-out infinite;
+   puntito pegado a la esquina y el `overflow` de la tira se lo comía— y ahora
+   se nota: dos anillos que salen y se desvanecen. Va en el ENVOLTORIO y no en
+   la medalla para que no le pise el zoom del mouse: una animación de CSS gana
+   siempre sobre la transición, y si compartieran elemento el zoom no se vería. */
+.halo-atencion[data-actual="true"] {
+  animation: medalla-respirar 2.8s 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes medalla-respirar {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 34%, transparent);
+  0% {
+    box-shadow:
+      0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent),
+      0 0 0 0 color-mix(in oklab, var(--primary) 22%, transparent);
   }
-  55% {
-    box-shadow: 0 0 0 6px color-mix(in oklab, var(--primary) 0%, transparent);
+  70%,
+  100% {
+    box-shadow:
+      0 0 0 7px color-mix(in oklab, var(--primary) 0%, transparent),
+      0 0 0 14px color-mix(in oklab, var(--primary) 0%, transparent);
   }
 }
 
 /* El dibujo del paso que toca hacer se asoma apenas, al compás del halo. */
 .medalla-atencion[data-actual="true"] > svg {
-  animation: dibujo-latir 3.6s 1.2s ease-in-out infinite;
+  animation: dibujo-latir 2.8s 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes dibujo-latir {
   0%,
+  70%,
   100% {
     transform: scale(1);
   }
-  55% {
-    transform: scale(1.12);
+  45% {
+    transform: scale(1.1);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pista-atencion::after,
   .paso-atencion,
-  .medalla-atencion[data-actual="true"],
+  .halo-atencion[data-actual="true"],
   .medalla-atencion[data-actual="true"] > svg {
     animation: none;
+  }
+
+  .medalla-atencion,
+  .paso-atencion button:hover .medalla-atencion {
+    transition: none;
+    transform: none;
   }
 }

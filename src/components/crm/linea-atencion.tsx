@@ -218,19 +218,29 @@ export function LineaAtencion({
                   title={p.cubre.map((c) => AYUDA_ETAPA[c]).join(" ")}
                   className="flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-md px-1 pb-1 text-center transition-colors hover:bg-accent/50"
                 >
-                  <span
-                    data-actual={actual}
-                    className={cn(
-                      "medalla-atencion relative flex size-11 flex-none items-center justify-center rounded-full border-2 bg-background transition-colors",
-                      actual && "border-primary text-primary",
-                      hecha && "border-[#1E7F4F] bg-[#1E7F4F]/10 text-[#1E7F4F]",
-                      !actual && !hecha && "border-dashed border-border text-muted-foreground/45",
-                      seleccionada && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
-                    )}
-                  >
-                    <Dibujo className="size-5" strokeWidth={2} aria-hidden />
+                  <span data-actual={actual} className="halo-atencion relative flex flex-none rounded-full">
+                    <span
+                      data-actual={actual}
+                      className={cn(
+                        // El fondo va OPACO a propósito. Con el verde
+                        // translúcido el riel se veía POR DENTRO del círculo y
+                        // parecía que la línea entraba hasta el dibujo (Santos,
+                        // 09-09); ahora el tinte va encima, en su propia capa,
+                        // y la línea solo se ve de centro a centro.
+                        "medalla-atencion relative flex size-11 flex-none items-center justify-center overflow-hidden rounded-full border-2 bg-background",
+                        actual && "border-primary text-primary",
+                        hecha && "border-[#1E7F4F] text-[#1E7F4F]",
+                        !actual && !hecha && "border-dashed border-border text-muted-foreground/45",
+                        seleccionada && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
+                      )}
+                    >
+                      {hecha && <span className="absolute inset-0 bg-[#1E7F4F]/10" aria-hidden />}
+                      <Dibujo className="relative size-5" strokeWidth={2} aria-hidden />
+                    </span>
+                    {/* La palomita va FUERA del círculo: el círculo recorta lo
+                        que lleva dentro para tapar el riel. */}
                     {hecha && (
-                      <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full border-2 border-background bg-[#1E7F4F] text-white">
+                      <span className="absolute -bottom-0.5 -right-0.5 z-10 flex size-4 items-center justify-center rounded-full border-2 border-background bg-[#1E7F4F] text-white">
                         <Check className="size-2.5" strokeWidth={3.5} />
                       </span>
                     )}
