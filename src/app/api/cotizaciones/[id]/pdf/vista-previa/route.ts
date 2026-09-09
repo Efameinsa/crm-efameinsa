@@ -81,7 +81,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const ids = items.map((i) => i.producto_id).filter((x): x is string => Boolean(x));
   const { data: productos } = await supabase
     .from("productos")
-    .select("id, sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path")
+    .select("id, sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path, logo_path, panel_path")
     .in("id", ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"]);
 
   const porId = new Map((productos ?? []).map((p) => [p.id as string, p]));

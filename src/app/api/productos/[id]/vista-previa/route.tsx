@@ -41,7 +41,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { data: producto } = await supabase
     .from("productos")
-    .select("id, sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path, precios_producto(tier, precio, vigente_hasta)")
+    .select("id, sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path, logo_path, panel_path, precios_producto(tier, precio, vigente_hasta)")
     .eq("id", id)
     .maybeSingle();
 
@@ -94,6 +94,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           categoria: producto.categoria,
           ficha: producto.ficha,
           foto_path: producto.foto_path,
+          logo_path: producto.logo_path,
+          panel_path: producto.panel_path,
         },
       },
     ],

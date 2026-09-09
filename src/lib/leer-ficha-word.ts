@@ -33,11 +33,17 @@ export interface FichaLeida {
     | "leidaDe"
     | "fotoLista"
     | "fotoUrl"
+    | "logoLista"
+    | "logoUrl"
+    | "panelLista"
+    | "panelUrl"
   >;
   /** Cuántas líneas de descripción trajo, para decírselo. */
   bloques: number;
   /** El Word traía una imagen que el navegador no supo abrir. */
   fotoIlegible: boolean;
+  /** Cuáles de las tres cajas de la hoja trajo esa ficha, para decírselo. */
+  imagenes: { logo: boolean; foto: boolean; panel: boolean };
 }
 
 /**
@@ -55,8 +61,15 @@ export async function leerFichaDeWord(archivo: File): Promise<FichaLeida> {
   const datos = await r.json().catch(() => ({ error: "El servidor no contestó lo esperado" }));
   if (!r.ok) throw new Error(datos.error ?? "No se pudo leer esa ficha");
 
-  const recortada = await recortarComoElWord(datos.foto, archivo.name);
-  const lista = recortada ? await prepararFoto(recortada) : null;
+  // LAS TRES IMÁGENES DE LA HOJA, no solo la del equipo: el logo del
+  // fabricante y la vista del panel tienen su caja en la cotización impresa y
+  // vienen en el mismo Word. Las tres se recortan como las muestra el
+  // documento y se acomodan igual (fondo blanco, sin peso de más).
+  const [lista, logo, panel] = await Promise.all([
+    prepararLaDelWord(datos.foto, archivo.name),
+    prepararLaDelWord(datos.logo, archivo.name),
+    prepararLaDelWord(datos.panel, archivo.name),
+  ]);
 
   return {
     equipo: {
@@ -75,10 +88,31 @@ export async function leerFichaDeWord(archivo: File): Promise<FichaLeida> {
       leidaDe: datos.archivo,
       fotoLista: lista?.archivo ?? null,
       fotoUrl: lista ? URL.createObjectURL(lista.archivo) : null,
+      logoLista: logo?.archivo ?? null,
+      logoUrl: logo ? URL.createObjectURL(logo.archivo) : null,
+      panelLista: panel?.archivo ?? null,
+      panelUrl: panel ? URL.createObjectURL(panel.archivo) : null,
     },
     bloques: datos.bloques ?? 0,
     fotoIlegible: Boolean(datos.foto) && !lista,
+    imagenes: { logo: Boolean(logo), foto: Boolean(lista), panel: Boolean(panel) },
   };
+}
+
+/** Una imagen del Word, recortada como la muestra el documento y acomodada. */
+async function prepararLaDelWord(
+  imagen: ImagenDelWord | null | undefined,
+  nombreFicha: string,
+): Promise<{ archivo: Blob } | null> {
+  const recortada = await recortarComoElWord(imagen ?? null, nombreFicha);
+  return recortada ? await prepararFoto(recortada) : null;
+}
+
+/** Una imagen tal como la manda la ruta: los bytes enteros y su recorte. */
+interface ImagenDelWord {
+  tipo: string;
+  base64: string;
+  recorte: { l: number; t: number; r: number; b: number } | null;
 }
 
 /**
@@ -96,10 +130,7 @@ export async function leerFichaDeWord(archivo: File): Promise<FichaLeida> {
  * EMF de dos fichas antiguas—, que es la forma honesta de decir «esta no» sin
  * romper la carga entera.
  */
-async function recortarComoElWord(
-  foto: { tipo: string; base64: string; recorte: { l: number; t: number; r: number; b: number } | null } | null,
-  nombreFicha: string,
-): Promise<File | null> {
+async function recortarComoElWord(foto: ImagenDelWord | null, nombreFicha: string): Promise<File | null> {
   if (!foto) return null;
   const bytes = Uint8Array.from(atob(foto.base64), (c) => c.charCodeAt(0));
   const blob = new Blob([bytes], { type: foto.tipo });

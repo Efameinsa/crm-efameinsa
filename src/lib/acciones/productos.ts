@@ -267,8 +267,33 @@ export async function fijarPrecio(
  * proyecto, en `public/productos/`.
  */
 export async function fijarFotoProducto(id: string, ruta: string): Promise<{ error: string | null }> {
+  return fijarImagenProducto(id, "foto", ruta);
+}
+
+/**
+ * Las TRES imágenes de la hoja impresa: el logo del fabricante, la foto del
+ * equipo y la vista del panel (migración 0205).
+ *
+ * Las tres vienen en el Word de Lesly y las tres tienen su caja en la
+ * cotización. Hasta la 0205 solo se podía guardar la del equipo, así que un
+ * equipo cargado desde la pantalla salía impreso sin logo y sin panel mientras
+ * el mismo equipo cargado por el pipeline sí los tenía —«no carga completo la
+ * imagen», reportado el 09-09 con la SECU75E3—.
+ *
+ * `ruta` en null borra la imagen: es lo que se usa cuando la foto del equipo
+ * YA trae el logo impreso encima y agregarlo lo duplica (1SECU1701, 26-08).
+ */
+export async function fijarImagenProducto(
+  id: string,
+  rol: "foto" | "logo" | "panel",
+  ruta: string | null,
+): Promise<{ error: string | null }> {
   const supabase = await createClient();
-  const { error } = await supabase.from("productos").update({ foto_path: `storage:${ruta}` }).eq("id", id);
+  const columna = { foto: "foto_path", logo: "logo_path", panel: "panel_path" }[rol];
+  const { error } = await supabase
+    .from("productos")
+    .update({ [columna]: ruta ? `storage:${ruta}` : null })
+    .eq("id", id);
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
   revalidatePath("/operaciones/catalogo");
   return { error: null };

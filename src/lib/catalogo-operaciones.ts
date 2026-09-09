@@ -28,6 +28,10 @@ export interface EquipoCatalogo {
   capacidad: string | null;
   activo: boolean;
   fotoPath: string | null;
+  /** Las otras dos imágenes de la hoja impresa, cuando se subieron desde la
+   *  pantalla (0205). Vacías: el PDF las busca por código en el repositorio. */
+  logoPath: string | null;
+  panelPath: string | null;
   /** De la ficha, que es donde vive el vocabulario con el que se pide el equipo. */
   calentamiento: string | null;
   montaje: string | null;
@@ -89,7 +93,7 @@ export async function cargarCatalogo(
   const [{ data }, { data: stock }] = await Promise.all([
     supabase
     .from("productos")
-    .select("id, sku, marca, modelo, nombre, categoria, segmento, capacidad, activo, foto_path, ficha, precios_producto(tier, precio, vigente_hasta)")
+    .select("id, sku, marca, modelo, nombre, categoria, segmento, capacidad, activo, foto_path, logo_path, panel_path, ficha, precios_producto(tier, precio, vigente_hasta)")
     .order("marca")
     .order("modelo"),
     supabase.rpc("stock_por_producto"),
@@ -115,6 +119,8 @@ export async function cargarCatalogo(
       capacidad: (p.capacidad as string | null) ?? null,
       activo: Boolean(p.activo),
       fotoPath: (p.foto_path as string | null) ?? null,
+      logoPath: (p.logo_path as string | null) ?? null,
+      panelPath: (p.panel_path as string | null) ?? null,
       calentamiento: texto(ficha, "calentamiento"),
       montaje: texto(ficha, "montaje"),
       panel: texto(ficha, "panel"),

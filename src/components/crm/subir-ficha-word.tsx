@@ -17,7 +17,8 @@ import { cn } from "@/lib/utils";
  *
  * LO QUE SE LLENA SOLO: marca, modelo, capacidad, panel, controles y toda la
  * descripción —títulos, subtítulos y viñetas en el mismo orden del Word—, más
- * la foto del equipo. Lo que NO: el precio y el código, que no salen de la
+ * las TRES imágenes de la hoja: el logo del fabricante, la foto del equipo y
+ * la vista del panel de control (0205). Lo que NO: el precio y el código, que no salen de la
  * ficha. El precio vive en el maestro de Lesly y el código lo pone ella.
  *
  * NO CREA NADA. Abre la hoja de edición ya escrita; el equipo entra al catálogo
@@ -34,10 +35,18 @@ export function SubirFichaWord({ onLeida }: { onLeida: (equipo: EquipoEditable) 
   async function leer(archivo: File) {
     setLeyendo(true);
     try {
-      const { equipo, bloques, fotoIlegible } = await leerFichaDeWord(archivo);
+      const { equipo, bloques, fotoIlegible, imagenes } = await leerFichaDeWord(archivo);
       if (fotoIlegible) toast.warning("La ficha trae una imagen que el navegador no sabe abrir. Todo lo demás sí se leyó.");
       onLeida({ ...EQUIPO_NUEVO, ...equipo });
-      toast.success(`${equipo.leidaDe}: ${bloques} líneas de descripción${equipo.fotoLista ? " y su foto" : ""}.`);
+      // Se dice CUÁNTAS imágenes trajo, no solo que trajo foto: son tres cajas
+      // en la hoja impresa —logo, equipo y panel— y saber cuál falta acá evita
+      // descubrirlo recién en el PDF (0205).
+      const cuantas = [imagenes.foto && "su foto", imagenes.logo && "el logo", imagenes.panel && "el panel"].filter(
+        Boolean,
+      ) as string[];
+      toast.success(
+        `${equipo.leidaDe}: ${bloques} líneas de descripción${cuantas.length > 0 ? `, ${cuantas.join(", ")}` : ""}.`,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {

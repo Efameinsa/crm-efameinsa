@@ -9,7 +9,7 @@ import { bloquesATexto, textoABloques, type BloqueFicha } from "@/lib/ficha-text
 import {
   crearEquipoDesdeFicha,
   fichaDeReferencia,
-  fijarFotoProducto,
+  fijarImagenProducto,
   fijarPrecio,
   guardarEquipo,
   type DatosEquipo,
@@ -82,9 +82,49 @@ export interface EquipoEditable {
   fotoLista?: Blob | null;
   /** Para verla mientras tanto, sin volver a leer el archivo. */
   fotoUrl?: string | null;
+  /**
+   * Las otras dos imágenes de la hoja impresa: el logo del fabricante y la
+   * vista del panel de control (migración 0205).
+   *
+   * También vienen en el Word y también tienen su caja en la cotización —27 ×
+   * 14 mm y 35 × 32—. Antes solo se guardaba la del equipo, así que una ficha
+   * cargada desde acá salía impresa sin logo y sin panel mientras la misma
+   * ficha cargada por el pipeline sí los tenía: «al subir este producto con el
+   * Word no carga completo la imagen» (operaciones, 09-09, con la SECU75E3).
+   */
+  logoPath: string | null;
+  panelPath: string | null;
+  logoLista?: Blob | null;
+  logoUrl?: string | null;
+  panelLista?: Blob | null;
+  panelUrl?: string | null;
   disponibles: number | null;
   stockReferencia: number | null;
   ubicacionMaestro: string | null;
+}
+
+/** Las dos imágenes que acompañan a la del equipo en la hoja impresa. */
+type RolImagen = "logo" | "panel";
+
+const ROLES_IMAGEN: RolImagen[] = ["logo", "panel"];
+
+/** Cómo se llaman en pantalla, que es como las nombra quien las mira. */
+const NOMBRE_IMAGEN: Record<RolImagen, string> = {
+  logo: "Logo del fabricante",
+  panel: "Panel de control",
+};
+
+/** Lo que la hoja sabe de una de ellas mientras se la edita. */
+interface ImagenDeHoja {
+  /** Para verla ahora: la del Word recién leído o la que ya está guardada. */
+  url: string | null;
+  /** La que espera al guardado, ya recortada y acomodada. */
+  pendiente: Blob | null;
+  /** La que el equipo ya tiene guardada, si tiene. */
+  guardada: string | null;
+  /** Se pidió sacarla: la foto del equipo ya trae el logo impreso, o el Word
+   *  nuevo no la trae. */
+  quitar: boolean;
 }
 
 export const EQUIPO_NUEVO: EquipoEditable = {
@@ -104,6 +144,8 @@ export const EQUIPO_NUEVO: EquipoEditable = {
   colores: [],
   encabezadoExtra: [],
   fotoPath: null,
+  logoPath: null,
+  panelPath: null,
   fichaTexto: "# CARACTERÍSTICAS\n- ",
   precios: [],
   disponibles: null,
@@ -122,14 +164,14 @@ export const EQUIPO_NUEVO: EquipoEditable = {
  * regla habría sido tapar el aviso en vez de sacar del cuerpo del componente lo
  * que nunca fue suyo.
  */
-async function subirAlAlmacen(id: string, blob: Blob): Promise<string | null> {
+async function subirAlAlmacen(id: string, blob: Blob, rol: "foto" | "logo" | "panel" = "foto"): Promise<string | null> {
   const supabase = createClient();
-  const ruta = `${id}-${Date.now()}.jpg`;
+  const ruta = `${id}${rol === "foto" ? "" : `-${rol}`}-${Date.now()}.jpg`;
   const { error } = await supabase.storage
     .from("productos")
     .upload(ruta, blob, { contentType: "image/jpeg", upsert: true });
   if (error) return error.message;
-  const r = await fijarFotoProducto(id, ruta);
+  const r = await fijarImagenProducto(id, rol, ruta);
   return r.error;
 }
 
@@ -163,6 +205,12 @@ export function FichaTecnicaEditor({
   // La del Word ya viene lista y con su URL: la hoja la recibe, no la fabrica.
   const [fotoLocal, setFotoLocal] = useState<string | null>(equipo.fotoUrl ?? null);
   const [fotoPendiente, setFotoPendiente] = useState<Blob | null>(equipo.fotoLista ?? null);
+  // Las otras dos cajas de la hoja impresa —logo del fabricante y vista del
+  // panel—, que salen del mismo Word (0205).
+  const [complementos, setComplementos] = useState<Record<RolImagen, ImagenDeHoja>>({
+    logo: { url: equipo.logoUrl ?? null, pendiente: equipo.logoLista ?? null, guardada: equipo.logoPath, quitar: false },
+    panel: { url: equipo.panelUrl ?? null, pendiente: equipo.panelLista ?? null, guardada: equipo.panelPath, quitar: false },
+  });
   const [arrastrando, setArrastrando] = useState(false);
   const inputFoto = useRef<HTMLInputElement>(null);
 
@@ -226,6 +274,22 @@ export function FichaTecnicaEditor({
         setConfirmandoSalida(false);
         setFotoPendiente(leido.fotoLista ?? null);
         setFotoLocal(leido.fotoUrl ?? null);
+        // El Word nuevo manda: lo que ese archivo no trae se quita, para que no
+        // queden mezcladas las imágenes de dos fichas distintas.
+        setComplementos((antes) => ({
+          logo: {
+            url: leido.logoUrl ?? null,
+            pendiente: leido.logoLista ?? null,
+            guardada: antes.logo.guardada,
+            quitar: !leido.logoLista,
+          },
+          panel: {
+            url: leido.panelUrl ?? null,
+            pendiente: leido.panelLista ?? null,
+            guardada: antes.panel.guardada,
+            quitar: !leido.panelLista,
+          },
+        }));
         if (fotoIlegible) toast.warning("La ficha trae una imagen que el navegador no sabe abrir. Todo lo demás sí se leyó.");
         toast.success(`Ahora se está leyendo ${leido.leidaDe}: ${cuantos} líneas de descripción.`);
       } catch (e) {
@@ -297,6 +361,35 @@ export function FichaTecnicaEditor({
 
 
 
+  /**
+   * Deja las tres imágenes de la hoja donde el PDF las va a buscar.
+   *
+   * Devuelve el aviso de lo que no se pudo, en castellano y en una frase, para
+   * que el toast diga qué falta y no un error de la nube. Que falle una imagen
+   * no deshace el equipo: ya está cargado y la ficha se arregla volviendo a
+   * entrar.
+   */
+  async function guardarImagenes(id: string): Promise<string | null> {
+    const fallas: string[] = [];
+    if (fotoPendiente) {
+      const e = await subirAlAlmacen(id, fotoPendiente, "foto");
+      if (e) fallas.push(`la foto no se subió (${e})`);
+    }
+    for (const rol of ROLES_IMAGEN) {
+      const c = complementos[rol];
+      const comoSeLlama = rol === "logo" ? "el logo del fabricante" : "la vista del panel";
+      if (c.quitar) {
+        if (!c.guardada) continue; // nunca estuvo: no hay nada que sacar
+        const e = await fijarImagenProducto(id, rol, null);
+        if (e.error) fallas.push(`${comoSeLlama} no se pudo quitar (${e.error})`);
+      } else if (c.pendiente) {
+        const e = await subirAlAlmacen(id, c.pendiente, rol);
+        if (e) fallas.push(`${comoSeLlama} no se subió (${e})`);
+      }
+    }
+    return fallas.length > 0 ? fallas.join("; ") : null;
+  }
+
   function guardar() {
     // EL PRECIO SE REVISA ACÁ, no después.
     //
@@ -336,11 +429,11 @@ export function FichaTecnicaEditor({
           toast.error(r.error);
           return;
         }
-        // La foto elegida antes de que el equipo existiera: ahora sí tiene
-        // dónde colgarse.
-        if (fotoPendiente && r.id) {
-          const eFoto = await subirAlAlmacen(r.id, fotoPendiente);
-          if (eFoto) toast.error(`El equipo se creó, pero la foto no: ${eFoto}`);
+        // Las imágenes elegidas antes de que el equipo existiera: ahora sí
+        // tienen dónde colgarse. Las tres, no solo la del equipo.
+        if (r.id) {
+          const eImagenes = await guardarImagenes(r.id);
+          if (eImagenes) toast.error(`El equipo se creó, pero ${eImagenes}`);
         }
         toast.success(`${d.marca} ${d.modelo} entró al catálogo.`);
         onListo(r.id);
@@ -360,6 +453,13 @@ export function FichaTecnicaEditor({
             toast.error(`Precio: ${rp.error}`);
             return;
           }
+        }
+        // Las imágenes que trajo el Word cambiado sobre una ficha que ya
+        // existía: antes se veían en la hoja y no se subían nunca.
+        const eImagenes = await guardarImagenes(equipo.id!);
+        if (eImagenes) {
+          toast.error(`La ficha se guardó, pero ${eImagenes}`);
+          return;
         }
         toast.success("Ficha guardada.");
       }
@@ -653,6 +753,47 @@ export function FichaTecnicaEditor({
                 ? "Se sube al guardar el equipo."
                 : "Elíjala o arrástrela acá. Se acomoda sola a la hoja."}
             </span>
+
+            {/* EL LOGO DEL FABRICANTE Y LA VISTA DEL PANEL.
+                Son las otras dos cajas de la hoja impresa (27 × 14 mm y 35 ×
+                32) y vienen en el mismo Word. Se muestran para que se vean
+                antes de imprimir, y cada una se puede quitar: hay fotos de
+                catálogo que YA traen el logo encima, y ahí agregarlo lo
+                duplica (pasó con la 1SECU1701 el 26-08). Si la ficha no las
+                trae, no hay nada que mostrar y el bloque no aparece. */}
+            {ROLES_IMAGEN.some((rol) => complementos[rol].url) && (
+              <div className="mt-1 flex w-full items-start justify-center gap-4 border-t border-border pt-3">
+                {ROLES_IMAGEN.map((rol) => {
+                  const c = complementos[rol];
+                  if (!c.url) return null;
+                  return (
+                    <div key={rol} className="flex max-w-[45%] flex-col items-center gap-1">
+                      <Image
+                        src={c.url}
+                        alt={NOMBRE_IMAGEN[rol]}
+                        width={140}
+                        height={100}
+                        className={cn("max-h-16 w-auto object-contain", c.quitar && "opacity-25 grayscale")}
+                        unoptimized
+                      />
+                      <span className="text-center text-[10px] leading-tight text-muted-foreground">
+                        {NOMBRE_IMAGEN[rol]}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTocado(true);
+                          setComplementos((antes) => ({ ...antes, [rol]: { ...antes[rol], quitar: !antes[rol].quitar } }));
+                        }}
+                        className="cursor-pointer text-[10px] font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                      >
+                        {c.quitar ? "Volver a ponerla" : "Quitar"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="space-y-px bg-card p-3">

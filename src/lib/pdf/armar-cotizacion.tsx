@@ -101,6 +101,28 @@ function leerImagenPanel(sku: string | null | undefined): Buffer | null {
   }
 }
 
+
+/**
+ * El logo del fabricante y la vista del panel, vengan de donde vengan
+ * (migración 0205).
+ *
+ * Las 122 fichas del pipeline los dejaron en el repositorio nombrados por
+ * código; los equipos que carga operaciones arrastrando el Word los suben al
+ * almacenamiento y los guardan en `logo_path` / `panel_path`. Manda la columna
+ * cuando está —es la imagen de ESA ficha, elegida mirándola—; si no está, se
+ * busca el archivo por código, que es lo que se hacía hasta ahora. Sin esto,
+ * un equipo cargado desde la pantalla salía impreso sin logo y sin panel
+ * aunque su Word los trajera («no carga completo la imagen», 09-09).
+ */
+async function imagenDeLaHoja(
+  guardada: string | null | undefined,
+  sku: string | null | undefined,
+  rol: "logo" | "panel",
+): Promise<Buffer | null> {
+  if (guardada) return leerFotoProducto(guardada) ?? (await bajarFotoSubida(guardada));
+  return rol === "logo" ? leerLogoMarca(sku) : leerImagenPanel(sku);
+}
+
 /** La cotización tal como la devuelve la consulta de la ruta. */
 export interface CotizacionParaPdf {
   codigo: string | null;
@@ -249,6 +271,8 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
         categoria: string | null;
         ficha: Record<string, unknown> | null;
         foto_path: string | null;
+        logo_path?: string | null;
+        panel_path?: string | null;
       } | null;
     }[]
   ).map(async (item) => {
@@ -292,8 +316,8 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
       fotoBuffer:
         leerFotoProducto(fotoDelItem(ficha, item.color, item.productos?.foto_path ?? null)) ??
         (await bajarFotoSubida(fotoDelItem(ficha, item.color, item.productos?.foto_path ?? null))),
-      logoMarcaBuffer: leerLogoMarca(item.productos?.sku ?? null),
-      panelImagenBuffer: leerImagenPanel(item.productos?.sku ?? null),
+      logoMarcaBuffer: await imagenDeLaHoja(item.productos?.logo_path, item.productos?.sku, "logo"),
+      panelImagenBuffer: await imagenDeLaHoja(item.productos?.panel_path, item.productos?.sku, "panel"),
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,
     };

@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 // TypeScript sería tener dos lecturas, que es justo lo que no puede pasar.
 import { leerZip, textoDeZip } from "@/lib/fichas/zip.mjs";
 import { leerFichaDeXml } from "@/lib/fichas/ficha-docx.mjs";
-import { imagenesDeDocx, fotoDelEquipo } from "@/lib/fichas/imagenes-docx.mjs";
+import { imagenesDeDocx, repartirRoles } from "@/lib/fichas/imagenes-docx.mjs";
+import { codigoYNombre } from "@/lib/fichas/nombre-de-ficha";
 import { clasificar } from "@/lib/fichas/clasificar.mjs";
 import { bloquesATexto, type BloqueFicha } from "@/lib/ficha-texto";
 
@@ -44,11 +45,22 @@ export const runtime = "nodejs";
  * como esta ruta. Una segunda lectura «parecida» acomodaría distinto lo que ya
  * está cargado, que es exactamente lo que no puede pasar: Lesly compara.
  *
- * LA FOTO VIAJA SIN RECORTAR, con su recorte al lado. Word no guarda la imagen
- * recortada: guarda el archivo entero y un rectángulo que dice qué parte se ve,
- * y ese recorte es la foto que Lesly eligió. Recortar acá pediría una
- * biblioteca de imágenes en el servidor; el navegador ya tiene canvas y encima
- * es donde la foto se termina de acomodar antes de subirla (`prepararFoto`).
+ * VUELVEN LAS TRES IMÁGENES DE LA FICHA, no solo la del equipo: el logo del
+ * fabricante y la vista del panel de control son parte de la hoja impresa
+ * —cajas de 27 × 14 mm y 35 × 32 mm en `cotizacion-pdf.tsx`— y estaban en el
+ * Word desde el principio. Devolver solo la grande hacía que un equipo cargado
+ * desde esta pantalla saliera en la cotización sin logo y sin panel, mientras
+ * el mismo equipo cargado por el pipeline sí los tenía: «al subir este
+ * producto con el Word no carga completo la imagen» (operaciones, 09-09, con
+ * la SECU75E3). Cuál es cuál lo decide `repartirRoles`, con el criterio del
+ * paso 4 del pipeline.
+ *
+ * LAS FOTOS VIAJAN SIN RECORTAR, con su recorte al lado. Word no guarda la
+ * imagen recortada: guarda el archivo entero y un rectángulo que dice qué
+ * parte se ve, y ese recorte es la foto que Lesly eligió. Recortar acá pediría
+ * una biblioteca de imágenes en el servidor; el navegador ya tiene canvas y
+ * encima es donde la foto se termina de acomodar antes de subirla
+ * (`prepararFoto`).
  *
  * NO ESCRIBE NADA. Lee el archivo que llega y contesta. El equipo se crea
  * recién cuando Lesly revisa lo que salió y pulsa guardar.
@@ -97,8 +109,12 @@ export async function POST(request: Request) {
     const xml = textoDeZip(zip, "word/document.xml");
     if (!xml) throw new Error("el archivo no tiene el cuerpo del documento");
     const { cabecera, bloques, tablaDe } = leerFichaDeXml(xml);
-    const foto = fotoDelEquipo(imagenesDeDocx(zip, xml, tablaDe)) as ImagenFicha | null;
-    leida = { cabecera: cabecera as CabeceraFicha, bloques: bloques as BloqueFicha[], foto };
+    const roles = repartirRoles(imagenesDeDocx(zip, xml, tablaDe)) as {
+      logo: ImagenFicha | null;
+      foto: ImagenFicha | null;
+      panel: ImagenFicha | null;
+    };
+    leida = { cabecera: cabecera as CabeceraFicha, bloques: bloques as BloqueFicha[], roles };
   } catch (e) {
     return NextResponse.json(
       { error: `No se pudo leer esa ficha: ${e instanceof Error ? e.message : String(e)}` },
@@ -106,19 +122,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const { cabecera, bloques, foto } = leida;
+  const { cabecera, bloques, roles } = leida;
 
   // CÓMO SE LLAMA EL EQUIPO. La tabla de arriba del Word trae marca, modelo y
-  // capacidad, pero no el nombre: ese Lesly lo escribe con las palabras del
-  // maestro. Lo único que lo insinúa es el nombre del archivo, que ella misma
-  // pone con la forma «CODIGO-LAVADORA FX 280-CONTROL X-400G-220V»: el código
-  // primero y, en el tramo siguiente, qué es. Se proponen esos dos y Lesly los
-  // corrige. Proponer es lo que le ahorra el trabajo; el resto del nombre del
-  // archivo son las características, que ya están en la ficha.
+  // capacidad, pero no el nombre ni el código: esos los pone Lesly al bautizar
+  // el archivo —«SECU75E3. SECADORA UT075-DUAL DIGITAL-…»— y de ahí se
+  // proponen, con las dos formas de separarlos que ella usa (ver
+  // `nombre-de-ficha.ts`). Proponer es lo que le ahorra el trabajo; el resto
+  // del nombre del archivo son las características, que ya están en la ficha.
   const sinExtension = archivo.name.replace(/\.docx$/i, "");
-  const partes = sinExtension.split("-").map((p) => p.trim()).filter(Boolean);
-  const codigo = partes.length > 1 && /^[A-Z0-9]{3,}$/i.test(partes[0]) ? partes[0].toUpperCase() : null;
-  const nombre = (codigo ? partes[1] : partes[0] ?? "").replace(/\s+/g, " ").trim();
+  const { sku: codigo, nombre } = codigoYNombre(archivo.name);
   const { categoria, segmento } = clasificar(`${sinExtension} ${cabecera.modelo ?? ""}`);
 
   return NextResponse.json({
@@ -142,14 +155,22 @@ export async function POST(request: Request) {
     // que caiga en el cuadro de texto sin traducción de por medio.
     fichaTexto: bloquesATexto(bloques),
     bloques: bloques.length,
-    foto: foto
-      ? {
-          tipo: tipoDeImagen(foto.entrada),
-          recorte: foto.recorte,
-          base64: Buffer.from(foto.originales).toString("base64"),
-        }
-      : null,
+    // Las tres cajas de la hoja impresa: logo del fabricante, foto del equipo
+    // y vista del panel. Las que la ficha no traiga vuelven en null.
+    logo: paraElNavegador(roles.logo),
+    foto: paraElNavegador(roles.foto),
+    panel: paraElNavegador(roles.panel),
   });
+}
+
+/** Una imagen del Word como la recibe la pantalla: bytes y recorte declarado. */
+function paraElNavegador(imagen: ImagenFicha | null) {
+  if (!imagen) return null;
+  return {
+    tipo: tipoDeImagen(imagen.entrada),
+    recorte: imagen.recorte,
+    base64: Buffer.from(imagen.originales).toString("base64"),
+  };
 }
 
 function tipoDeImagen(entrada: string): string {

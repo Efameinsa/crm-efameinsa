@@ -29,6 +29,10 @@ scripts/data/cierre-revision.pdf
 # public/productos y la descripción cargada en la base.
 scripts/data/fichas-v/
 
+# Lo que deja la comprobación del Word con sus tres imágenes: se regenera
+# corriendo scripts/_verificar-word-tres-imagenes.mjs contra un servidor local.
+scripts/data/_verificar-word/
+
 # Los PDF que baja scripts/revisar-cotizaciones.mjs para repasarlos: son copias
 # de lo que ya está en producción, se vuelven a bajar cuando hagan falta.
 scripts/data/repaso-cotizaciones/
