@@ -180,6 +180,28 @@ export async function coincidenciasDeLaBandeja(
       asignar(porTelefono.get(c.telefono_normalizado ?? "") ?? [], c.cuenta_id, "teléfono");
     }
   }
+  // …Y EL NÚMERO SUCIO DEL OTRO LADO (0203). Arriba se compara contra
+  // `telefono_normalizado`, que guarda los dígitos como se tipearon: los 204
+  // contactos con el número repetido o con dos números en un campo son
+  // invisibles para ese `in(...)`, aunque lleven adentro el celular que se
+  // está buscando. PANASERVICE es uno («989 001 284 // 942 710 197»). Va
+  // DESPUÉS de la búsqueda exacta y solo con lo que quedó sin resolver: es la
+  // red de abajo, no el primer intento.
+  const celularesSueltos = [
+    ...new Set(
+      [...porTelefono.entries()]
+        .filter(([, ids]) => ids.some((id) => !cuentaDeLead.has(id)))
+        .map(([cel]) => cel)
+        .filter((cel) => /^9[0-9]{8}$/.test(cel)),
+    ),
+  ];
+  if (celularesSueltos.length > 0) {
+    const { data } = await supabase.rpc("cuentas_por_celular", { p_celulares: celularesSueltos });
+    for (const c of (data ?? []) as { cuenta_id: string; celular: string }[]) {
+      asignar(porTelefono.get(c.celular) ?? [], c.cuenta_id, "teléfono");
+    }
+  }
+
   for (const lote of trozos([...porCorreo.keys()])) {
     const { data } = await supabase.from("contactos").select("cuenta_id, email").in("email", lote);
     for (const c of (data ?? []) as { cuenta_id: string; email: string | null }[]) {

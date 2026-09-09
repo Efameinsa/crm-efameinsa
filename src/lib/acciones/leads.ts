@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { normalizarTelefono } from "@/lib/telefono";
+import { celularesDe, normalizarTelefono } from "@/lib/telefono";
 import { tokenizarBusqueda } from "@/lib/texto";
 import { notificar } from "@/lib/notificaciones";
 import { avisarLeadNuevoN8n, avisarLeadDerivadoN8n } from "@/lib/avisos-n8n";
@@ -425,6 +425,8 @@ export async function buscarCoincidencias(datos: {
 
   const numDoc = datos.numDoc?.replace(/\D/g, "") || null;
   const tel = normalizarTelefono(datos.telefono ?? undefined);
+  const celulares = celularesDe(datos.telefono ?? undefined);
+  const telefonos = [...new Set([tel && tel.length >= 8 ? tel : null, ...celulares].filter((x): x is string => Boolean(x)))];
   const email = datos.email?.trim().toLowerCase();
   const tokens = tokenizarBusqueda([datos.nombre, datos.razonSocial].filter(Boolean).join(" "));
 
@@ -444,11 +446,18 @@ export async function buscarCoincidencias(datos: {
   let qContactos = supabase.from("contactos").select(`cuentas(${CAMPOS})`);
   for (const t of tokens) qContactos = qContactos.ilike("nombre", `%${t}%`);
 
-  const [doc, telef, correo, nomCuenta, nomContacto] = await Promise.all([
+  const [doc, telef, telefSucio, correo, nomCuenta, nomContacto] = await Promise.all([
     numDoc && numDoc.length >= 8
       ? supabase.from("cuentas").select(CAMPOS).eq("num_doc", numDoc).limit(3)
       : nada,
-    tel ? supabase.from("contactos").select(`cuentas(${CAMPOS})`).eq("telefono_normalizado", tel).limit(4) : nada,
+    // El teléfono, escrito como venga: además del campo tal cual, los celulares
+    // que trae adentro (0201) — «1 956 181 464» o el número repetido dejaban de
+    // empatar con nada. `cuentasPorCelularSucio` cubre el otro lado: la ficha
+    // cuyo contacto tiene el campo sucio (0203).
+    telefonos.length > 0
+      ? supabase.from("contactos").select(`cuentas(${CAMPOS})`).in("telefono_normalizado", telefonos).limit(4)
+      : nada,
+    celulares.length > 0 ? supabase.rpc("cuentas_por_celular", { p_celulares: celulares }) : nada,
     email && email.includes("@")
       ? supabase.from("contactos").select(`cuentas(${CAMPOS})`).ilike("email", email).limit(4)
       : nada,
@@ -460,6 +469,12 @@ export async function buscarCoincidencias(datos: {
 
   agregar(doc.data as unknown as CuentaFila[], "documento");
   agregar(deContacto(telef.data), "telefono");
+  // El RPC devuelve ids: se traen esas fichas y se suman con el mismo motivo.
+  const idsSucios = [...new Set(((telefSucio.data ?? []) as { cuenta_id: string }[]).map((x) => x.cuenta_id))].slice(0, 4);
+  if (idsSucios.length > 0) {
+    const { data: fichasSucias } = await supabase.from("cuentas").select(CAMPOS).in("id", idsSucios);
+    agregar(fichasSucias as unknown as CuentaFila[], "telefono");
+  }
   agregar(deContacto(correo.data), "correo");
   agregar(nomCuenta.data as unknown as CuentaFila[], "nombre");
   agregar(deContacto(nomContacto.data), "nombre");
