@@ -1666,3 +1666,117 @@ confundir tres expedientes del mismo cliente. Conversado:
 - **Documento para gerencia**: `Downloads/Postventa - las nuevas vistas.docx`,
   que se regenera con `scripts/_word-postventa-vistas.mjs` y saca los números
   de la base en el momento.
+
+---
+
+# CIERRE DEL 09-09-2026
+
+**Producción en `bf92d04`** (más `8bb6be2`, que es una prueba). Todo lo del día
+está desplegado y verificado: humo de producción **38 de 38** y las seis
+comprobaciones del área en verde (14, 8, 9, 7, 8 y 6).
+
+Fue un día con **dos sesiones trabajando la misma carpeta**. Conviene saberlo al
+leer el historial: hay commits que no son de esta sesión y hubo dos despliegues
+que no decidimos nosotros —a la 1:33 y a la 1:45 alguien empujó a `main` y se
+llevó trabajo a producción sin ventana—. Salió bien, pero es suerte, no método.
+
+## De la reunión de gerencia del 09-09 (Carlos, Lesly y la señorita de postventa)
+
+Las cinco transcripciones están en `Downloads/reu gerencia`. Diez puntos del
+CRM; se aplicaron siete.
+
+| | Qué se hizo |
+|---|---|
+| La bandeja | dice las dos mitades: «2 sin atender · 1 ya en curso». NESSUS tiene OCHO expedientes abiertos y por eso parecía que el CRM perdía el trabajo |
+| Saltear etapas (0198) | «Planificación no aplica en este caso» con motivo escrito. NO la sella como cumplida: en la tira sale gris con una rayita y «no aplicó» |
+| La tira | «Solicitud» y «Registro» dicen **Central**: la base las sella JUNTAS al derivar, y postventa creía haber registrado algo |
+| Agenda diaria | cuatro números que suman exacto los pedidos vivos, más las visitas del día. Es lo que el board lleva a mano |
+| Historial de la máquina | las incidencias de ESE equipo y sus informes, con **los ciclos** en ámbar: desmiente un pedido de «puesta en marcha» antes de que alguien viaje |
+| Pedidos | la preinstalación se mudó a puesta en marcha y «Despachado» pasó a «Despacho concluido», que se cierra con la guía |
+| Encabezado de la ficha | dejó de tener una lista cerrada de rótulos (ver abajo) |
+
+**Lo que NO se hizo, y por qué:** el correo automático espera el correo del
+ALMACÉN; la pestaña de importaciones no tiene de dónde sacar el dato; y el
+«concepto» de la cotización de postventa admite dos lecturas del audio —el de
+cada línea, que ya existe, o un asunto para toda la cotización— y no se
+construyó a ciegas.
+
+**Y una decisión que Carlos dio y estaba pendiente desde el 08-09:** cuando un
+cliente tiene varios casos, cada uno sigue siendo su expediente **pero abriendo
+uno se tienen que ver los demás**. Falta la otra mitad: si postventa acumula o
+abre uno por llamada.
+
+## Las guías de remisión: el parque instalado se dobló
+
+Santos abrió dos rutas nuevas del servidor: **`X:` = `\192.168.10.210\Almacen\guias`**
+(41 Excel, 2024-2026) y **`Y:` = `\192.168.10.210\crm`** (fichas técnicas, fotos
+por cliente, informes). Las guías traen número, fecha, RUC, quién recibió **y la
+serie del equipo**.
+
+**El parque pasó de 316 a 548 máquinas, y de 13 a 248 con garantía — 196 en
+garantía vigente.** Son 196 servicios que no se cobran y que hasta esa mañana
+nadie podía saber.
+
+Las reglas que hacen que el número signifique algo están en
+`scripts/cargar-guias-al-parque.mjs`: solo las guías de VENTA fechan; una de
+«Otros» que devuelve una máquina de un SERVICIO registra el equipo **sin fecha**
+—darle garantía desde una reparación regalaría hasta dos años—; consignación,
+devolución y repuestos con serie no entran; y **nunca se crea una ficha de
+cliente**. Respaldo en `scripts/data/respaldo-parque-antes-de-guias.json`.
+
+**Pendiente:** 45 máquinas cuyo RUC no está en el CRM, y los **924 grupos de
+cuentas con el mismo nombre repetido** (PERUBAR tiene 4 fichas, tres sin RUC).
+
+## El n8n propio, y dos llaves que hay que rotar
+
+El n8n nuevo **no estaba en la red de la oficina: corre en Docker dentro de la
+VM `archivo-crm`**. Se publicó como **`https://n8n.activasme.site`** colgándolo
+del túnel de Cloudflare que ya existía —un hostname más, sin abrir puertos—, y
+se corrigió `WEBHOOK_URL`, que apuntaba a una dirección interna y habría hecho
+que Vercel llamara a webhooks inexistentes.
+
+Los cuatro flujos activos se mudaron desde `n8n.bezenti.com` (ajeno) y quedaron
+apagados allá. **Carlos salió de la alerta horaria**: la había pedido apagar el
+04-09 y ese flujo, con reloj propio, le siguió mandando un correo por hora
+durante cinco días. El «Timbre de lead nuevo» se mudó APAGADO porque él era su
+único destinatario.
+
+⚠️ **En el n8n viejo quedan copias de la contraseña de aplicación del Gmail de
+la empresa y del `CRON_SECRET` del CRM.** Apagar los flujos no las borra: hay
+que rotar las dos.
+
+**La orden de trabajo al almacén** ya está armada de punta a punta (webhook →
+comprueba el secreto → correo con cliente, equipo, serie, garantía, lo que
+reportó el cliente y los antecedentes de la máquina). **Apagada** hasta tener el
+correo del almacén: `ORDEN_TRABAJO_DESTINO` + `ORDEN_TRABAJO_CORREO=si`.
+
+## El encabezado de la ficha técnica
+
+Con la MESA VAPORIZADORA EFALMV2000 quedó a la vista que el lector de Word
+conocía **seis rótulos** y tiraba en silencio el resto: de esa ficha se perdían
+«Potencia», «Dimensión de mesa» y «Presión de trabajo». Ahora se guardan, se
+editan (con «＋ Agregar un dato», rótulo escrito a mano) y **se imprimen en la
+cotización**. La ficha de MEVA2 quedó completa como ejemplo de su familia.
+
+El rol de Lesly se llama **«Administración de operaciones»**.
+
+**Ojo:** las fichas del servidor están casi todas en `.doc` viejo, que el CRM no
+lee. Hay que guardarlas como `.docx` en Word, o enseñarle al CRM a convertirlas.
+
+## Herramienta nueva: el humo de producción
+
+`scripts/_humo-produccion.mjs` entra con la sesión real de seis personas, abre
+31 pantallas y avisa si alguna responde mal. **Se corre antes y después de cada
+despliegue.** Existe porque el 08-09 nos enteramos de una caída por una llamada
+del gerente.
+
+## Lo que quedó abierto
+
+1. **El correo del almacén** para encender la orden de trabajo.
+2. **Rotar** la contraseña de aplicación del Gmail y el `CRON_SECRET`.
+3. Las **45 máquinas sin cliente** de las guías y los **924 grupos duplicados**.
+4. La otra mitad de la decisión de Carlos: **¿postventa acumula expedientes?**
+5. El **«concepto»** de la cotización de postventa: preguntar qué es.
+6. La **pestaña de importaciones** (equipos comprados que no llegaron).
+7. Que el CRM convierta solo las fichas `.doc`.
+8. El **reclamo de NESSUS** sigue abierto y el cliente tiene OCHO expedientes.
