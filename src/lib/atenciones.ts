@@ -68,15 +68,22 @@ export const ETIQUETA_ETAPA: Record<EtapaAtencion, string> = {
  * «Solicitud» sí se queda: es donde está el caso mientras Central decide, y
  * esconderlo sería esconder dónde está.
  */
-export const PASOS_VISIBLES: { clave: EtapaAtencion; etiqueta: string; cubre: EtapaAtencion[] }[] = [
-  { clave: "solicitud", etiqueta: "Solicitud", cubre: ["solicitud"] },
-  { clave: "registro", etiqueta: "Registro", cubre: ["registro"] },
-  { clave: "diagnostico", etiqueta: "Diagnóstico", cubre: ["diagnostico"] },
-  { clave: "planificacion", etiqueta: "Planificación", cubre: ["planificacion"] },
-  { clave: "atencion", etiqueta: "Atención", cubre: ["atencion"] },
-  { clave: "pruebas", etiqueta: "Pruebas y conformidad", cubre: ["pruebas", "conformidad"] },
-  { clave: "cierre", etiqueta: "Cierre", cubre: ["cierre"] },
-  { clave: "seguimiento", etiqueta: "Seguimiento", cubre: ["seguimiento"] },
+export const PASOS_VISIBLES: {
+  clave: EtapaAtencion;
+  etiqueta: string;
+  cubre: EtapaAtencion[];
+  /** Qué dibujo lo representa. El nombre del ícono de lucide, para que la
+   *  pantalla no tenga que saberse el circuito de memoria. */
+  icono: "inbox" | "serie" | "diagnostico" | "agenda" | "trabajo" | "firma" | "cierre" | "seguimiento";
+}[] = [
+  { clave: "solicitud", etiqueta: "Solicitud", cubre: ["solicitud"], icono: "inbox" },
+  { clave: "registro", etiqueta: "Registro", cubre: ["registro"], icono: "serie" },
+  { clave: "diagnostico", etiqueta: "Diagnóstico", cubre: ["diagnostico"], icono: "diagnostico" },
+  { clave: "planificacion", etiqueta: "Planificación", cubre: ["planificacion"], icono: "agenda" },
+  { clave: "atencion", etiqueta: "Atención", cubre: ["atencion"], icono: "trabajo" },
+  { clave: "pruebas", etiqueta: "Pruebas y conformidad", cubre: ["pruebas", "conformidad"], icono: "firma" },
+  { clave: "cierre", etiqueta: "Cierre", cubre: ["cierre"], icono: "cierre" },
+  { clave: "seguimiento", etiqueta: "Seguimiento", cubre: ["seguimiento"], icono: "seguimiento" },
 ];
 
 /** Qué significa estar en cada etapa, para quien no se sabe el flujo de memoria. */

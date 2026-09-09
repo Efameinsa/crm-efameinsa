@@ -229,12 +229,14 @@ html[data-modo-app="instalada"] body {
   position: relative;
 }
 
-/* El riel gris de fondo, detrás de las casillas. */
+/* El riel gris de fondo, a la altura del CENTRO de las medallas: la fila mide
+   0,5rem de aire arriba + 2,75rem de círculo, así que el centro cae en
+   1,875rem. Si se cambia el tamaño del círculo hay que mover esto. */
 .pista-atencion::before,
 .pista-atencion::after {
   content: "";
   position: absolute;
-  top: 1.35rem;
+  top: 1.875rem;
   height: 2px;
   border-radius: 999px;
   pointer-events: none;
@@ -273,28 +275,49 @@ html[data-modo-app="instalada"] body {
   }
 }
 
-/* El que toca hacer respira. Muy lento y muy poco: tiene que notarse solo
-   cuando la vista se queda quieta. */
-.paso-atencion[data-actual="true"] {
-  animation:
-    paso-entrar 420ms cubic-bezier(0.22, 0.8, 0.2, 1) backwards,
-    paso-respirar 4s 1.2s ease-in-out infinite;
+/* La medalla tapa el riel para que la línea no le cruce el dibujo por dentro. */
+.medalla-atencion {
+  position: relative;
+  z-index: 1;
 }
 
-@keyframes paso-respirar {
+/* La que toca hacer RESPIRA. El halo sale del propio círculo —antes era un
+   puntito pegado a la esquina y el `overflow` de la tira se lo comía— y es muy
+   lento y muy poco: tiene que notarse solo cuando la vista se queda quieta. */
+.medalla-atencion[data-actual="true"] {
+  animation: medalla-respirar 3.6s 1.2s ease-in-out infinite;
+}
+
+@keyframes medalla-respirar {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 26%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 34%, transparent);
   }
-  50% {
-    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 0%, transparent);
+  55% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+}
+
+/* El dibujo del paso que toca hacer se asoma apenas, al compás del halo. */
+.medalla-atencion[data-actual="true"] > svg {
+  animation: dibujo-latir 3.6s 1.2s ease-in-out infinite;
+}
+
+@keyframes dibujo-latir {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  55% {
+    transform: scale(1.12);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pista-atencion::after,
   .paso-atencion,
-  .paso-atencion[data-actual="true"] {
+  .medalla-atencion[data-actual="true"],
+  .medalla-atencion[data-actual="true"] > svg {
     animation: none;
   }
 }

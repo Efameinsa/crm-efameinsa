@@ -3,7 +3,22 @@
 import { useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, ChevronRight, Copy, ShieldCheck, ShieldOff, Wrench , CalendarClock} from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Copy,
+  ShieldCheck,
+  ShieldOff,
+  Wrench,
+  CalendarClock,
+  Inbox,
+  ScanLine,
+  Stethoscope,
+  ClipboardCheck,
+  PackageCheck,
+  PhoneCall,
+  type LucideIcon,
+} from "lucide-react";
 import {
   PASOS_VISIBLES,
   ETIQUETA_ETAPA,
@@ -56,6 +71,23 @@ const ETIQUETA_PREVENTIVO: Record<string, string> = {
   vencido: "Preventivo VENCIDO — hay algo que ofrecerle",
   al_dia: "Preventivo al día",
   sin_plan: "Sin próximo preventivo agendado",
+};
+
+/**
+ * Qué dibujo lleva cada casilla. Santos, 09-09: «pon imágenes con animación y
+ * abajo el concepto». El ícono se reconoce de un vistazo —una bandeja, una
+ * lupa de diagnóstico, una llave— y el nombre queda debajo para el que recién
+ * aprende el circuito.
+ */
+const DIBUJO: Record<(typeof PASOS_VISIBLES)[number]["icono"], LucideIcon> = {
+  inbox: Inbox,
+  serie: ScanLine,
+  diagnostico: Stethoscope,
+  agenda: CalendarClock,
+  trabajo: Wrench,
+  firma: ClipboardCheck,
+  cierre: PackageCheck,
+  seguimiento: PhoneCall,
 };
 
 export function LineaAtencion({
@@ -142,9 +174,12 @@ export function LineaAtencion({
           llegó el caso deja ver el avance sin leer una sola fecha; los pasos
           entran escalonados, y solo el que toca hacer sigue respirando. Los
           estilos y el porqué de lo sutil están en globals.css. */}
-      <div className="overflow-x-auto">
+      {/* El contenedor lleva aire propio: la medalla que respira pinta su halo
+          FUERA del círculo, y sin este relleno el `overflow` se lo comía —era
+          el «círculo que palpita y no se ve completo» (Santos, 09-09). */}
+      <div className="overflow-x-auto px-1 pb-1 pt-2">
         <ol
-          className="pista-atencion flex min-w-[48rem] items-stretch gap-1"
+          className="pista-atencion flex min-w-[48rem] items-start gap-1"
           style={{ "--avance": avanceDeLaPista } as CSSProperties}
         >
           {PASOS_VISIBLES.map((p, turno) => {
@@ -166,44 +201,56 @@ export function LineaAtencion({
             const actual = !a.cerrado_at && sigue !== null && p.cubre.includes(sigue);
             const sello = p.cubre.map((c) => sellos[c]).filter(Boolean).pop() ?? null;
             const seleccionada = p.cubre.includes(etapaVista as EtapaAtencion);
+            const Dibujo = DIBUJO[p.icono];
             return (
-              <li key={e} className="paso-atencion flex-1" style={{ "--turno": turno } as CSSProperties}>
-                {/* Cada etapa es una PESTAÑA. La actual late con un puntito
-                    (parpadeo sutil que pidió Santos — un pulso de caja entera
-                    marearía); la seleccionada lleva el anillo. */}
+              <li
+                key={e}
+                className="paso-atencion flex-1"
+                style={{ "--turno": turno } as CSSProperties}
+              >
+                {/* Cada etapa es una PESTAÑA: el dibujo arriba, el nombre y la
+                    fecha debajo. La que toca hacer respira con un halo que
+                    sale del propio círculo —no un puntito en la esquina, que
+                    se cortaba— y la que se está mirando lleva el anillo. */}
                 <button
                   type="button"
-                  data-actual={actual}
                   onClick={() => setVista(e === a.etapa ? null : e)}
                   title={p.cubre.map((c) => AYUDA_ETAPA[c]).join(" ")}
-                  className={cn(
-                    "relative h-full w-full cursor-pointer rounded-md border px-2 py-1.5 text-center transition-all hover:bg-accent/60",
-                    actual && "border-primary bg-primary/10",
-                    hecha && "border-[#1E7F4F]/30 bg-[#1E7F4F]/5",
-                    !actual && !hecha && "border-dashed border-border",
-                    seleccionada && "ring-2 ring-primary/40",
-                  )}
+                  className="flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-md px-1 pb-1 text-center transition-colors hover:bg-accent/50"
                 >
-                  {actual && (
-                    <span className="absolute -right-1 -top-1 flex size-2.5">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
-                      <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
-                    </span>
-                  )}
-                  <p
+                  <span
+                    data-actual={actual}
                     className={cn(
-                      "flex items-center justify-center gap-1 text-[11px] font-bold leading-tight",
+                      "medalla-atencion relative flex size-11 flex-none items-center justify-center rounded-full border-2 bg-background transition-colors",
+                      actual && "border-primary text-primary",
+                      hecha && "border-[#1E7F4F] bg-[#1E7F4F]/10 text-[#1E7F4F]",
+                      !actual && !hecha && "border-dashed border-border text-muted-foreground/45",
+                      seleccionada && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
+                    )}
+                  >
+                    <Dibujo className="size-5" strokeWidth={2} aria-hidden />
+                    {hecha && (
+                      <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full border-2 border-background bg-[#1E7F4F] text-white">
+                        <Check className="size-2.5" strokeWidth={3.5} />
+                      </span>
+                    )}
+                  </span>
+                  {/* Dos renglones reservados aunque el nombre entre en uno:
+                      así las fechas de las ocho casillas quedan a la misma
+                      altura y la tira se lee como una fila, no como escalera. */}
+                  <span
+                    className={cn(
+                      "flex min-h-7 items-start justify-center text-[11px] font-bold leading-tight",
                       actual && "text-primary",
                       hecha && "text-[#1E7F4F]",
                       !actual && !hecha && "text-muted-foreground/60",
                     )}
                   >
-                    {hecha && <Check className="size-3 flex-none" />}
                     {p.etiqueta}
-                  </p>
-                  <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
+                  </span>
+                  <span className="text-[10px] tabular-nums leading-none text-muted-foreground">
                     {sello ? new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" }) : "—"}
-                  </p>
+                  </span>
                 </button>
               </li>
             );
