@@ -32,13 +32,6 @@ const IMG = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"]);
 const esImagen = (e: Elemento) => e.tipo === "archivo" && IMG.has(e.ext);
 const esPdf = (e: Elemento) => e.tipo === "archivo" && e.ext === ".pdf";
 
-function pesoTexto(b: number | null): string {
-  if (!b) return "";
-  if (b < 1024) return `${b} B`;
-  if (b < 1048576) return `${Math.round(b / 1024)} KB`;
-  return `${(b / 1048576).toFixed(1)} MB`;
-}
-
 export function VisorArchivos({
   cuentaId,
   clase,
@@ -99,6 +92,8 @@ export function VisorArchivos({
 
   const migas = sub ? sub.split("/") : [];
   const imagenes = elementos.filter(esImagen) as Extract<Elemento, { tipo: "archivo" }>[];
+  const carpetas = elementos.filter((e) => e.tipo === "carpeta") as Extract<Elemento, { tipo: "carpeta" }>[];
+  const archivos = elementos.filter((e) => e.tipo === "archivo") as Extract<Elemento, { tipo: "archivo" }>[];
 
   const abrir = () => {
     setSub("");
@@ -180,59 +175,86 @@ export function VisorArchivos({
                   Esta carpeta está vacía.
                 </p>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {elementos.map((e, i) => {
-                    if (e.tipo === "carpeta") {
-                      return (
-                        <button
-                          key={"c" + i}
-                          type="button"
-                          onClick={() => setSub(e.sub)}
-                          className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition hover:border-primary/50 hover:bg-accent"
-                        >
-                          <Folder className="size-9 text-primary" />
-                          <span className="line-clamp-2 text-xs font-medium text-foreground">{e.nombre}</span>
-                        </button>
-                      );
-                    }
-                    if (esImagen(e) && e.url) {
-                      return (
-                        <button
-                          key={"i" + i}
-                          type="button"
-                          onClick={() => setVisor({ url: e.url!, nombre: e.nombre, tipo: "img" })}
-                          className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-muted"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={e.url}
-                            alt={e.nombre}
-                            loading="lazy"
-                            className="size-full object-cover transition group-hover:scale-105"
-                          />
-                        </button>
-                      );
-                    }
-                    // Documento (pdf / word / excel)
-                    return (
-                      <button
-                        key={"d" + i}
-                        type="button"
-                        onClick={() => {
-                          if (esPdf(e) && e.url) setVisor({ url: e.url, nombre: e.nombre, tipo: "pdf" });
-                          else if (e.url) window.open(e.url, "_blank");
-                        }}
-                        className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition hover:border-primary/50 hover:bg-accent"
-                        title={e.nombre}
-                      >
-                        <FileText className="size-9 text-muted-foreground" />
-                        <span className="line-clamp-2 text-xs font-medium text-foreground">{e.nombre}</span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {e.ext.replace(".", "").toUpperCase()} {pesoTexto(e.peso)}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="space-y-6">
+                  {carpetas.length > 0 && (
+                    <section>
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Carpetas
+                      </p>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {carpetas.map((e, i) => (
+                          <button
+                            key={"c" + i}
+                            type="button"
+                            onClick={() => setSub(e.sub)}
+                            className="group flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-3.5 py-3 text-left transition hover:border-primary/40 hover:bg-accent hover:shadow-sm"
+                          >
+                            <Folder className="size-7 flex-none fill-primary/15 text-primary" />
+                            <span className="truncate text-sm font-medium text-foreground">{e.nombre}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {archivos.length > 0 && (
+                    <section>
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Archivos
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                        {archivos.map((e, i) => {
+                          if (esImagen(e) && e.url) {
+                            return (
+                              <button
+                                key={"i" + i}
+                                type="button"
+                                onClick={() => setVisor({ url: e.url!, nombre: e.nombre, tipo: "img" })}
+                                className="group overflow-hidden rounded-xl border border-border bg-card text-left shadow-sm transition hover:shadow-md"
+                              >
+                                <div className="aspect-[4/3] overflow-hidden bg-muted">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={e.url}
+                                    alt={e.nombre}
+                                    loading="lazy"
+                                    className="size-full object-cover transition duration-300 group-hover:scale-105"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1.5 px-2.5 py-2">
+                                  <ImagenIcono className="size-3.5 flex-none text-muted-foreground" />
+                                  <span className="truncate text-xs font-medium text-foreground">{e.nombre}</span>
+                                </div>
+                              </button>
+                            );
+                          }
+                          const pdf = esPdf(e);
+                          return (
+                            <button
+                              key={"d" + i}
+                              type="button"
+                              title={e.nombre}
+                              onClick={() => {
+                                if (pdf && e.url) setVisor({ url: e.url, nombre: e.nombre, tipo: "pdf" });
+                                else if (e.url) window.open(e.url, "_blank");
+                              }}
+                              className="group overflow-hidden rounded-xl border border-border bg-card text-left shadow-sm transition hover:shadow-md"
+                            >
+                              <div className="flex aspect-[4/3] items-center justify-center bg-muted/40">
+                                <FileText className={`size-11 ${pdf ? "text-primary" : "text-muted-foreground"}`} />
+                              </div>
+                              <div className="flex items-center gap-1.5 px-2.5 py-2">
+                                <span className="truncate text-xs font-medium text-foreground">{e.nombre}</span>
+                                <span className="ml-auto flex-none text-[10px] uppercase text-muted-foreground">
+                                  {e.ext.replace(".", "")}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
                 </div>
               )}
               {truncado && (
