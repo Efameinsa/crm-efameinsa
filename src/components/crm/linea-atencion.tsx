@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Check,
+  Minus,
   ChevronRight,
   Copy,
   ShieldCheck,
@@ -43,6 +44,7 @@ import {
   registrarTrabajo,
   seguirSinIdentificarEquipo,
   verificarGarantia,
+  omitirEtapa,
 } from "@/lib/acciones/atenciones";
 import { textoDerivacion } from "@/lib/acciones/casos";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
@@ -155,6 +157,8 @@ export function LineaAtencion({
       router.refresh();
     });
 
+  const omitidas: Record<string, { motivo?: string } | undefined> = a.etapas_omitidas ?? {};
+
   const sellos: Record<string, string | null> = {
     solicitud: a.solicitado_at,
     registro: a.registrado_at,
@@ -194,7 +198,10 @@ export function LineaAtencion({
             // Ahora la etapa alcanzada se pinta como hecha y el pulso va sobre
             // la que el panel está pidiendo. Con el caso cerrado no pulsa
             // ninguna: no hay nada que pedir.
-            const hecha = i <= paso;
+            // «No aplicó» NO es «hecha». Un caso resuelto por videollamada no
+            // tuvo visita: pintarla verde diría que sí ocurrió (0198).
+            const omitida = p.cubre.some((c) => Boolean(omitidas[c]));
+            const hecha = i <= paso && !omitida;
             // Un paso que cubre dos etapas late si el panel está pidiendo
             // cualquiera de las dos, y muestra el sello de la última que se
             // haya cumplido: la firma del cliente es la fecha que importa.
@@ -230,7 +237,8 @@ export function LineaAtencion({
                         "medalla-atencion relative flex size-11 flex-none items-center justify-center overflow-hidden rounded-full border-2 bg-background",
                         actual && "border-primary text-primary",
                         hecha && "border-[#1E7F4F] text-[#1E7F4F]",
-                        !actual && !hecha && "border-dashed border-border text-muted-foreground/45",
+                        omitida && "border-border text-muted-foreground/70",
+                        !actual && !hecha && !omitida && "border-dashed border-border text-muted-foreground/45",
                         seleccionada && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
                       )}
                     >
@@ -242,6 +250,14 @@ export function LineaAtencion({
                     {hecha && (
                       <span className="absolute -bottom-0.5 -right-0.5 z-10 flex size-4 items-center justify-center rounded-full border-2 border-background bg-[#1E7F4F] text-white">
                         <Check className="size-2.5" strokeWidth={3.5} />
+                      </span>
+                    )}
+                    {omitida && (
+                      <span
+                        title={p.cubre.map((c) => omitidas[c]?.motivo).filter(Boolean).join(" · ")}
+                        className="absolute -bottom-0.5 -right-0.5 z-10 flex size-4 items-center justify-center rounded-full border-2 border-background bg-muted-foreground/70 text-background"
+                      >
+                        <Minus className="size-2.5" strokeWidth={3.5} />
                       </span>
                     )}
                   </span>
@@ -259,7 +275,11 @@ export function LineaAtencion({
                     {p.etiqueta}
                   </span>
                   <span className="text-[10px] tabular-nums leading-none text-muted-foreground">
-                    {sello ? new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" }) : "—"}
+                    {omitida
+                      ? "no aplicó"
+                      : sello
+                        ? new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" })
+                        : "—"}
                   </span>
                 </button>
               </li>
@@ -410,10 +430,93 @@ export function LineaAtencion({
 
           Va abajo y en gris a propósito: el camino normal sigue siendo el
           circuito; esto es la salida para lo que ya terminó en la realidad. */}
+      {/* SALTEAR LA ETAPA QUE NO APLICA (0198). Carlos, 09-09, siguiendo el
+          caso de PERUBAR: «ya no iría en planificación, porque ya no hay
+          planificación… le tienes que dar check, check, check para poder
+          saltear». Va justo encima de la salida de emergencia y debajo del
+          paso normal: primero se intenta hacer, después se dice que no
+          aplicaba, y solo al final se cierra a la fuerza. */}
+      {etapaVista === a.etapa && sigue && SE_PUEDE_SALTEAR.includes(sigue) && (
+        <SaltearEtapa atencion={a} siguiente={sigue} enviando={enviando} correr={correr} />
+      )}
+
       {etapaVista === a.etapa && a.etapa !== "cierre" && a.etapa !== "seguimiento" && a.etapa !== "conformidad" && (
         <CerrarAntesDeTiempo atencion={a} enviando={enviando} correr={correr} />
       )}
     </div>
+  );
+}
+
+/** Las que se pueden saltear. El diagnóstico no: decir qué le pasa al equipo y
+ *  quién paga es el corazón del caso. Solicitud y registro son de Central, ya
+ *  ocurrieron. Y el cierre se hace, no se saltea. La base lo vuelve a
+ *  comprobar igual (0198). */
+const SE_PUEDE_SALTEAR: EtapaAtencion[] = ["planificacion", "atencion", "pruebas", "conformidad"];
+
+/**
+ * «Esta etapa no aplica en este caso».
+ *
+ * Plegado detrás de un enlace para que no compita con el paso que toca: el
+ * camino normal sigue siendo hacer la etapa. El motivo es obligatorio porque
+ * es lo único que va a leer quien revise el caso dentro de seis meses —y
+ * porque la etapa NO se sella como cumplida: en la tira queda «no aplicó».
+ */
+function SaltearEtapa({
+  atencion: a,
+  siguiente,
+  enviando,
+  correr,
+}: {
+  atencion: Atencion;
+  siguiente: EtapaAtencion;
+  enviando: boolean;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="cursor-pointer text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+      >
+        «{ETIQUETA_ETAPA[siguiente]}» no aplica en este caso
+      </button>
+    );
+  }
+  return (
+    <Caja titulo={`«${ETIQUETA_ETAPA[siguiente]}» no aplica`}>
+      <p className="mb-2 text-xs text-muted-foreground">
+        El circuito sigue sin esta etapa y NO se marca como hecha: en la tira queda «no aplicó», con lo que
+        escriba acá. Ejemplo: se resolvió por videollamada, así que no hay visita que programar.
+      </p>
+      <textarea
+        rows={2}
+        value={motivo}
+        onChange={(e) => setMotivo(e.target.value)}
+        placeholder="Por qué no aplica"
+        className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
+      />
+      <div className="mt-2 flex gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={enviando || motivo.trim().length < 5}
+          onClick={() =>
+            correr(
+              () => omitirEtapa({ atencionId: a.id, etapa: siguiente, motivo }),
+              `«${ETIQUETA_ETAPA[siguiente]}» quedó como que no aplicaba.`,
+            )
+          }
+        >
+          Saltear esta etapa
+        </Button>
+        <Button size="sm" variant="ghost" disabled={enviando} onClick={() => { setAbierto(false); setMotivo(""); }}>
+          Mejor no
+        </Button>
+      </div>
+    </Caja>
   );
 }
 

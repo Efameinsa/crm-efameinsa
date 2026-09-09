@@ -537,3 +537,32 @@ export async function avisarVentaDeLaAtencion(datos: {
   refrescar(datos.atencionId);
   return { error: null, codigo: (data as { codigo: string }).codigo };
 }
+
+/**
+ * Marcar que una etapa NO APLICA en este caso, y seguir.
+ *
+ * Carlos, 09-09, sobre PERUBAR —una lavadora que sonaba, resuelta por
+ * videollamada—: «ya no iría en planificación, porque ya no hay planificación…
+ * le tienes que dar check, check, check para poder saltear». Hasta hoy el
+ * circuito exigía pasar por las nueve, así que un caso resuelto por teléfono
+ * se quedaba atorado en Diagnóstico.
+ *
+ * NO sella la etapa como cumplida: poner fecha de visita a una visita que
+ * nunca ocurrió ensucia el dato con el que después se mide el área. Queda
+ * anotado que no aplicó, con su motivo, y la tira lo pinta distinto (0198).
+ */
+export async function omitirEtapa(datos: {
+  atencionId: string;
+  etapa: EtapaAtencion;
+  motivo: string;
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("omitir_etapa_atencion", {
+    p_atencion: datos.atencionId,
+    p_etapa: datos.etapa,
+    p_motivo: datos.motivo,
+  });
+  if (error) return { error: error.message };
+  refrescar(datos.atencionId);
+  return { error: null };
+}

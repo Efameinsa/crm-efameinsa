@@ -180,6 +180,9 @@ export interface Atencion {
   /** La pista comercial del caso, para poder cotizar desde acá. */
   oportunidad_id?: string | null;
   motivo_cierre: string | null;
+  /** Etapas que en ESTE caso no aplicaron (0198). No están cumplidas: se
+   *  saltearon con un motivo escrito, y la tira las pinta distinto. */
+  etapas_omitidas?: Record<string, { motivo?: string; at?: string; por?: string }> | null;
   /** Se siguió sin identificar la máquina (0181): la garantía quedó sin
    *  verificar y `en_garantia` sigue en null a propósito — no se sabe. */
   garantia_omitida_at?: string | null;
