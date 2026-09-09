@@ -104,7 +104,16 @@ const { rows: pares } = await bd.query(
             where t.cuenta_id = cd.id and coalesce(t.telefono_normalizado, '') <> '') condoc_tels
      from cuentas sd
      join cuentas cd
-       on upper(trim(cd.razon_social)) = upper(trim(sd.razon_social))
+       -- OJO: la clase POSIX [[:space:]], no la abreviatura de barra-s. En
+       -- esta base esa abreviatura no colapsa nada: es un no-op silencioso que
+       -- devuelve el texto igualito, y una medicion hecha con ella da cero
+       -- diferencias sin que se note. Importa porque las razones sociales del
+       -- Excel traen un salto de linea EN MEDIO del nombre (CANDELA PERU es el
+       -- caso) y btrim solo limpia los extremos: sin normalizar, una ficha con
+       -- el salto y su gemela sin el no se cruzan. Eran 23 pares de mismo
+       -- comercial que este script no veia.
+       on upper(btrim(regexp_replace(cd.razon_social, '[[:space:]]+', ' ', 'g')))
+        = upper(btrim(regexp_replace(sd.razon_social, '[[:space:]]+', ' ', 'g')))
       and cd.comercial_id is not distinct from sd.comercial_id
       and cd.tipo_doc <> 'SIN_DOC' and cd.num_doc is not null
      left join perfiles p on p.id = sd.comercial_id
