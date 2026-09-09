@@ -69,7 +69,16 @@ function Reloj({ estado, texto }: { estado: CasoDeCliente["estado"]; texto: stri
   );
 }
 
-function Caso({ caso, sangrado = false }: { caso: CasoDeCliente; sangrado?: boolean }) {
+function Caso({
+  caso,
+  sangrado = false,
+  enCurso = 0,
+}: {
+  caso: CasoDeCliente;
+  sangrado?: boolean;
+  /** Otros expedientes del mismo cliente que YA se están trabajando. */
+  enCurso?: number;
+}) {
   const Icono = caso.icono;
   return (
     <div
@@ -97,6 +106,14 @@ function Caso({ caso, sangrado = false }: { caso: CasoDeCliente; sangrado?: bool
         <p className="line-clamp-1 text-xs text-muted-foreground no-underline">
           {sangrado ? caso.detalle : `${caso.etiqueta}${caso.detalle ? ` · ${caso.detalle}` : ""}`}
         </p>
+        {/* PERUBAR es el caso que mostraron en la reunión del 09-09: uno sin
+            tomar y otro ya en curso del mismo cliente. Sin esta línea, quien
+            gestionó el otro cree que el CRM le perdió el trabajo. */}
+        {enCurso > 0 && (
+          <p className="text-[11px] font-medium text-[#1E7F4F] no-underline">
+            {enCurso === 1 ? "Ya hay 1 expediente en curso de este cliente" : `Ya hay ${enCurso} expedientes en curso de este cliente`}
+          </p>
+        )}
       </Link>
       <Reloj estado={caso.estado} texto={caso.aviso} />
       {caso.accion ?? <ArrowRight className="size-3.5 flex-none text-muted-foreground" />}
@@ -104,7 +121,14 @@ function Caso({ caso, sangrado = false }: { caso: CasoDeCliente; sangrado?: bool
   );
 }
 
-export function BandejaPorCliente({ casos }: { casos: CasoDeCliente[] }) {
+export function BandejaPorCliente({
+  casos,
+  enCursoPorCuenta = {},
+}: {
+  casos: CasoDeCliente[];
+  /** Cuántos expedientes de ese cliente YA se están trabajando. Por cuenta. */
+  enCursoPorCuenta?: Record<string, number>;
+}) {
   const grupos = new Map<string, { cliente: string; cuentaId: string | null; casos: CasoDeCliente[] }>();
   for (const c of casos) {
     const clave = c.cuentaId ?? `nombre:${sinTildes(c.cliente)}`;
@@ -124,8 +148,17 @@ export function BandejaPorCliente({ casos }: { casos: CasoDeCliente[] }) {
   return (
     <div className="space-y-2">
       {lista.map((g) => {
-        if (g.casos.length === 1) return <Caso key={g.casos[0].clave} caso={g.casos[0]} />;
+        if (g.casos.length === 1)
+          return (
+            <Caso
+              key={g.casos[0].clave}
+              caso={g.casos[0]}
+              enCurso={g.cuentaId ? (enCursoPorCuenta[g.cuentaId] ?? 0) : 0}
+            />
+          );
 
+        // Lo que ya se trabaja de ESTE cliente; 0 si no se sabe la cuenta.
+        const enCurso = g.cuentaId ? (enCursoPorCuenta[g.cuentaId] ?? 0) : 0;
         const peor = g.casos.reduce((p, c) => ((ORDEN[c.estado] ?? 9) < (ORDEN[p] ?? 9) ? c.estado : p), "verde" as CasoDeCliente["estado"]);
         return (
           <details key={g.cuentaId ?? g.cliente} className="group" open>
@@ -145,11 +178,22 @@ export function BandejaPorCliente({ casos }: { casos: CasoDeCliente[] }) {
               </span>
               <span className="min-w-[200px] flex-1">
                 <span className="block text-sm font-semibold text-foreground">{g.cliente}</span>
+                {/* DECÍA «casos activos» Y NO ERA VERDAD: son los que faltan
+                    tomar. NESSUS tiene ocho expedientes abiertos y acá salían
+                    «2 casos activos», así que quien ya gestionó los otros seis
+                    creía que el CRM le había perdido el trabajo (reunión del
+                    09-09). Ahora se dice lo que falta Y lo que ya va en curso. */}
                 <span className="block text-xs text-muted-foreground">
-                  {g.casos.length} casos activos
+                  {g.casos.length === 1 ? "1 sin atender" : `${g.casos.length} sin atender`}
+                  {enCurso > 0 && (
+                    <span className="text-[#1E7F4F]">
+                      {" · "}
+                      {enCurso === 1 ? "1 ya en curso" : `${enCurso} ya en curso`}
+                    </span>
+                  )}
                 </span>
               </span>
-              <Reloj estado={peor} texto={`${g.casos.length} pendientes`} />
+              <Reloj estado={peor} texto={`${g.casos.length} por tomar`} />
               <ChevronDown className="size-4 flex-none text-muted-foreground transition-transform group-open:rotate-180" />
             </summary>
 

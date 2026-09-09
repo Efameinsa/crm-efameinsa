@@ -238,6 +238,49 @@ export default async function PostventaPage() {
     (c) => !conGestion.has(c.id as string) && !tieneAtencion.has(c.id as string),
   );
 
+  // LO QUE YA SE TRABAJA DE ESE MISMO CLIENTE, contado por cliente.
+  //
+  // Reunión del 09-09: «ya revisamos lo que se está ejecutando, pero me sigue
+  // saliendo ahí como pendiente». Al mirarlo, la bandeja NO estaba equivocada
+  // —lo que muestra de verdad no se ha tocado—, pero NESSUS tiene OCHO
+  // expedientes abiertos y Juan José TRES: se gestiona uno, los otros siguen
+  // gritando, y desde la pantalla parece que el CRM perdió el trabajo.
+  //
+  // Se dice al lado, en verde: «2 sin atender · 1 ya en curso». La verdad
+  // completa del cliente, sin esconder lo que de verdad falta tomar.
+  // Se cuenta con SU PROPIA consulta y no sobre la lista de arriba: esa está
+  // acotada a 30 filas para la bandeja, y con ese recorte a INVERSIONES JMMZ y
+  // a IRPE les salía «1 ya en curso» cuando son 2. Un número a medias en una
+  // pantalla que existe para dar confianza es peor que no ponerlo.
+  const cuentasEnPantalla = [
+    ...new Set([
+      ...(casos ?? []).map((c) => c.cuenta_id as string | null),
+      ...(atencionesNuevas ?? []).map((a) => (a as { cuenta_id: string | null }).cuenta_id),
+    ].filter((x): x is string => Boolean(x))),
+  ];
+  const enCursoPorCuenta: Record<string, number> = {};
+  if (cuentasEnPantalla.length) {
+    const { data: delCliente } = await supabase
+      .from("oportunidades")
+      .select("id, cuenta_id")
+      .eq("origen", "crm")
+      .eq("etapa", "asignada")
+      .not("tipo_postventa", "is", null)
+      .in("cuenta_id", cuentasEnPantalla);
+    const idsDelCliente = (delCliente ?? []).map((o) => o.id as string);
+    // `.in` con muchos ids revienta la URL (ya costó tres veces): por eso la
+    // consulta va acotada a las cuentas que se están mostrando, no a todas.
+    const { data: gestionadasCliente } = idsDelCliente.length
+      ? await supabase.from("actividades").select("oportunidad_id").in("oportunidad_id", idsDelCliente)
+      : { data: [] as { oportunidad_id: string }[] };
+    const trabajadas = new Set((gestionadasCliente ?? []).map((g) => g.oportunidad_id as string));
+    for (const o of delCliente ?? []) {
+      const cuenta = o.cuenta_id as string | null;
+      if (!cuenta || !trabajadas.has(o.id as string)) continue;
+      enCursoPorCuenta[cuenta] = (enCursoPorCuenta[cuenta] ?? 0) + 1;
+    }
+  }
+
   // ── La bandeja única: «Sin atender todavía» ───────────────────────────────
   const itemsPedidos: ItemBandeja[] = (nuevos as unknown as ServicioPostventa[] | null ?? []).map((s) => {
     // El filtro de la consulta ya exige `pedido_ejecutado_at` no nulo.
@@ -385,6 +428,7 @@ export default async function PostventaPage() {
           </Vacio>
         ) : (
           <BandejaPorCliente
+            enCursoPorCuenta={enCursoPorCuenta}
             casos={bandeja.map((item) => ({
               clave: item.clave,
               href: item.href,
