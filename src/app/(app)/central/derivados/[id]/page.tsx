@@ -11,7 +11,7 @@ import {
   ETIQUETA_CANAL,
   ETIQUETA_ETAPA,
   ETIQUETA_MOTIVO,
-  HORAS_MARGEN_OTRA_FICHA,
+  inicioVentanaOtraFicha,
 } from "@/lib/derivados-central";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -67,9 +67,10 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
   // Acotada por fecha: la historia vieja de la cuenta no es atención a ESTA
   // derivación. Es la observación de gerencia del 31-08: la ficha decía «no
   // registró ninguna gestión» mientras la comercial tenía 5 gestiones al lado.
-  const desdeOtraFicha = fila.asignadoAt
-    ? new Date(new Date(fila.asignadoAt).getTime() - HORAS_MARGEN_OTRA_FICHA * 3_600_000).toISOString()
-    : null;
+  // Se mide desde que LLEGÓ el lead, no desde que se derivó: lo que se atendió
+  // en esos días de espera también es atención a esta consulta (09-09).
+  const inicioOtraFicha = fila.asignadoAt ? inicioVentanaOtraFicha(fila.recibidoAt, fila.asignadoAt) : null;
+  const desdeOtraFicha = inicioOtraFicha === null ? null : new Date(inicioOtraFicha).toISOString();
 
   const [
     { data: actividades },

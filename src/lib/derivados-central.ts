@@ -20,14 +20,36 @@ const HORAS_SIN_ATENDER = 24;
 /** Un contacto en gestión que lleva más de una semana quieto está frío. */
 const DIAS_SIN_MOVER = 7;
 /**
- * Cuánto antes de la derivación cuenta una gestión hecha en OTRA ficha del
- * mismo cliente. El caso real (PRO-08939, 31-08): la clienta escribió por el
- * formulario web Y por WhatsApp el mismo día; cada canal creó su lead y su
+ * Cuánto antes de que ENTRE la consulta cuenta una gestión hecha en OTRA ficha
+ * del mismo cliente. El caso real (PRO-08939, 31-08): la clienta escribió por
+ * el formulario web Y por WhatsApp el mismo día; cada canal creó su lead y su
  * oportunidad sobre la misma cuenta. La comercial gestionó la primera ficha
  * 27 minutos ANTES de que Central derivara la segunda — la estaba atendiendo,
  * no ignorando. Un día de margen cubre ese cruce sin arrastrar historia vieja.
+ *
+ * La ventana arranca en la LLEGADA del lead y no en la derivación (09-09):
+ * JOEL ORTEGA y ELI FARFAN entraron por la web el 18-08, Ariana los llamó el
+ * 18 y el 19 —el CRM todavía no existía— y lo anotó en su Excel; recién el
+ * 24-08 Central derivó esos mismos leads. Midiendo desde la derivación, esa
+ * atención quedaba fuera de la ventana y los dos figuraban abandonados.
  */
 export const HORAS_MARGEN_OTRA_FICHA = 24;
+
+/**
+ * Desde qué instante (ms) cuenta una gestión hecha en OTRA ficha del mismo
+ * cliente. Vive acá, y no repetido en cada pantalla, porque son tres las que
+ * responden la misma pregunta —la bandeja de Central, la ficha del comercial y
+ * el aviso de SLA que n8n manda por correo— y si una mide distinto que las
+ * otras, el CRM se contradice a sí mismo delante del que atendió.
+ *
+ * `respaldo` es para las fichas que no nacieron de un lead (la abrió el
+ * comercial, o vino del histórico): ahí el reloj arranca con la ficha.
+ */
+export function inicioVentanaOtraFicha(recibidoAt: string | null, respaldo: string | null): number | null {
+  const arranque = recibidoAt ?? respaldo;
+  if (!arranque) return null;
+  return new Date(arranque).getTime() - HORAS_MARGEN_OTRA_FICHA * 3_600_000;
+}
 
 export type FocoDerivado = "sin_atender" | "en_gestion" | "cotizado" | "cerrado";
 export type AlertaDerivado = "demora" | "frio" | null;
@@ -404,10 +426,11 @@ async function armar(
   // tocado» en rojo. De 21 derivaciones «sin gestión» en los 30 días previos
   // al 01-09, 7 eran esta falsa alarma. Por eso acá se piden TODAS las
   // oportunidades de esas cuentas: si el mismo comercial gestionó al cliente
-  // en otra ficha desde la derivación, se muestra — diciendo dónde vive.
-  const margenMs = HORAS_MARGEN_OTRA_FICHA * 3_600_000;
-  const asignados = leads.map((l) => (l.asignado_at ? new Date(l.asignado_at).getTime() : Infinity));
-  const margenDesde = Math.min(...asignados) - margenMs;
+  // en otra ficha desde que entró la consulta, se muestra — diciendo dónde vive.
+  /** Cuándo empieza a contar la ficha gemela; Infinity = lead sin derivar. */
+  const arranqueDe = (l: { recibido_at: string | null; asignado_at: string | null }) =>
+    l.asignado_at ? (inicioVentanaOtraFicha(l.recibido_at, l.asignado_at) ?? Infinity) : Infinity;
+  const margenDesde = Math.min(...leads.map(arranqueDe));
 
   // El expediente de cada lead se resuelve por DOS caminos: el directo
   // (leads.oportunidad_id, 0141 — cubre a los que se SUMARON a un expediente
@@ -556,12 +579,13 @@ async function armar(
     const gestion = op ? gestionPorOp.get(op.id) : undefined;
 
     // Lo que el MISMO comercial hizo con este cliente en sus OTRAS fichas,
-    // desde la derivación (con el margen hacia atrás). Es la respuesta honesta
-    // a «¿alguien lo atendió?» cuando el contacto entró dos veces.
+    // desde que entró la consulta (con el margen hacia atrás). Es la respuesta
+    // honesta a «¿alguien lo atendió?» cuando el contacto entró dos veces.
     const gestionesOtra: GestionResumen[] = [];
     const cotsOtra: CotizacionResumen[] = [];
     const opsOtraFicha: string[] = [];
-    const desdeLead = l.asignado_at ? new Date(l.asignado_at).getTime() - margenMs : null;
+    const arranque = arranqueDe(l);
+    const desdeLead = Number.isFinite(arranque) ? arranque : null;
     if (l.cuenta_id && l.asignado_a && desdeLead !== null) {
       for (const o of opsPorCuenta.get(l.cuenta_id) ?? []) {
         if (o.id === op?.id || o.comercial_id !== l.asignado_a) continue;

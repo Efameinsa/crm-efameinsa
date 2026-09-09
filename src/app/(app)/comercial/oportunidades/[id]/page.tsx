@@ -21,11 +21,11 @@ import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
-import { fechaAgendada, fechaHoraLima } from "@/lib/fechas";
+import { fechaAgendada, fechaHoraLima, fechaLimaCorta } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
-import { demora, haceCuanto, ETIQUETA_MOTIVO } from "@/lib/derivados-central";
+import { demora, haceCuanto, ETIQUETA_MOTIVO, inicioVentanaOtraFicha } from "@/lib/derivados-central";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
@@ -117,6 +117,12 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
   } | null;
 
+  // Desde cuándo cuenta una gestión hecha en OTRA ficha de este mismo cliente:
+  // desde que entró la consulta, con el margen de un día hacia atrás. Antes de
+  // eso es historia del cliente, no atención a esto.
+  const inicioVentana = inicioVentanaOtraFicha(lead?.recibido_at ?? null, oportunidad.created_at ?? null);
+  const desdeQueEntroLaConsulta = inicioVentana === null ? null : new Date(inicioVentana).toISOString();
+
   // TODO LO QUE NO DEPENDE ENTRE SÍ, EN UN SOLO VIAJE (Santos, 02-09,
   // «pequeños tirones»: esta ficha hacía once consultas, varias en fila).
   //  · Los otros contactos que se SUMARON a este expediente (0141): el cliente
@@ -140,6 +146,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     { data: contactosData },
     { data: asignacion },
     { data: primeraGestion },
+    { data: gestionEnOtraFicha },
   ] = await Promise.all([
     supabase
       .from("leads")
@@ -173,6 +180,28 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           .maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("actividades").select("tipo, realizada_at").eq("oportunidad_id", id).order("realizada_at", { ascending: true }).limit(1).maybeSingle(),
+    //  · Y SI ACÁ NO HAY NADA: ¿el cliente ya fue gestionado por ESTA misma
+    //    consulta, en otra ficha suya? (Ariana, 09-09, con JOEL ORTEGA y ELI
+    //    FARFAN). El prospecto entró por la web el 18-08, ella lo llamó el
+    //    18 y el 19 —antes de que existiera el CRM— y lo anotó en su Excel;
+    //    el importador colgó esa gestión de la ficha del histórico, y el
+    //    24-08 Central derivó el MISMO lead a una ficha nueva y vacía. Esa
+    //    ficha lleva desde entonces un «se lo derivaron hace 16 d» en rojo
+    //    acusando de abandono a quien sí lo atendió. La ventana arranca en
+    //    cuanto ENTRÓ la consulta (no en la derivación) porque es la vida de
+    //    esa consulta lo que se está midiendo; el margen de un día cubre a
+    //    quien atiende antes de que Central alcance a registrarlo.
+    cuenta?.id && desdeQueEntroLaConsulta
+      ? supabase
+          .from("actividades")
+          .select("tipo, realizada_at, oportunidad_id, oportunidades!inner(cuenta_id, origen)")
+          .eq("oportunidades.cuenta_id", cuenta.id)
+          .neq("oportunidad_id", id)
+          .gte("realizada_at", desdeQueEntroLaConsulta)
+          .order("realizada_at", { ascending: true })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const otrosLeads = (otrosLeadsCrudos ?? []).filter((l) => l.id !== oportunidad.lead_id);
@@ -215,6 +244,26 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
   const asignadoAt = asignacion?.created_at ?? oportunidad.created_at ?? null;
   const sinGestion = !primeraGestion;
 
+  // La gestión que sí hubo, pero vive en otra ficha del mismo cliente. Cambia
+  // el reclamo por la explicación: qué falta ACÁ, y dónde está lo que ya se
+  // hizo. Decir «nadie lo tocó» de un contacto que la comercial atendió el
+  // mismo día es peor que no decir nada — es acusar con el dato equivocado.
+  const gestionGemela = gestionEnOtraFicha as unknown as {
+    tipo: string;
+    realizada_at: string;
+    // El embed llega como objeto (relación a-uno), pero se acepta arreglo por
+    // si PostgREST lo devuelve así: leerlo mal dejaría el texto a medias.
+    oportunidades: { origen: string | null } | { origen: string | null }[] | null;
+  } | null;
+  const laGestionEstaEnOtraFicha = sinGestion && gestionGemela ? gestionGemela : null;
+  const opDeEsaGestion = Array.isArray(laGestionEstaEnOtraFicha?.oportunidades)
+    ? laGestionEstaEnOtraFicha.oportunidades[0]
+    : laGestionEstaEnOtraFicha?.oportunidades;
+  const dondeEsaFicha =
+    opDeEsaGestion?.origen === "historico_excel"
+      ? "en la ficha del histórico: esa atención venía del Excel, de antes del CRM"
+      : "en otra ficha de este mismo cliente";
+
   const rutaDelContacto: Hito[] = [
     lead
       ? {
@@ -249,10 +298,16 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
       fecha: primeraGestion?.realizada_at ?? null,
       demora: demora(asignadoAt, primeraGestion?.realizada_at ?? null),
       detalle: primeraGestion ? (ETIQUETA_ACTIVIDAD[primeraGestion.tipo] ?? primeraGestion.tipo) : null,
-      pendiente: asignadoAt
-        ? `Todavía sin gestión registrada — se lo derivaron ${haceCuanto(asignadoAt)}`
-        : "Todavía sin gestión registrada",
-      alerta: sinGestion && llevaDemasiadoSinGestion(asignadoAt),
+      pendiente: laGestionEstaEnOtraFicha
+        ? `Acá no hay gestión — al cliente lo atendieron el ${fechaLimaCorta(
+            laGestionEstaEnOtraFicha.realizada_at,
+          )} (${(
+            ETIQUETA_ACTIVIDAD[laGestionEstaEnOtraFicha.tipo] ?? laGestionEstaEnOtraFicha.tipo
+          ).toLowerCase()}), ${dondeEsaFicha}. Está abajo, en el historial del cliente.`
+        : asignadoAt
+          ? `Todavía sin gestión registrada — se lo derivaron ${haceCuanto(asignadoAt)}`
+          : "Todavía sin gestión registrada",
+      alerta: sinGestion && !laGestionEstaEnOtraFicha && llevaDemasiadoSinGestion(asignadoAt),
     },
   ];
 
