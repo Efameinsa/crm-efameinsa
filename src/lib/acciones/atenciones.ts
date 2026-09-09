@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { avisarAtencionProgramadaN8n } from "@/lib/avisos-n8n";
 import {
   ETAPAS_ATENCION,
   SE_COBRA,
@@ -278,8 +279,77 @@ export async function programarAtencion(datos: {
     })
     .eq("id", datos.atencionId);
   if (error) return { error: error.message };
+
+  // LA ORDEN DE TRABAJO AL ALMACÉN (Carlos, 09-09): «de aquí le demos la orden
+  // mediante el correo electrónico, desde CRM… y ya no le va a llenar nada, si
+  // no todo está ahí». Va DESPUÉS de guardar y sin esperar nada: si n8n no
+  // contesta, la atención queda programada igual.
+  await avisarProgramacionAlAlmacen(supabase, datos.atencionId, cuando, datos.tecnico.trim());
+
   refrescar(datos.atencionId);
   return { error: null };
+}
+
+/**
+ * Junta lo que el técnico necesita para no volver a preguntar nada y se lo
+ * manda a n8n, que arma el correo. Todo lo que falle acá es silencioso a
+ * propósito: es un aviso, no el registro.
+ */
+async function avisarProgramacionAlAlmacen(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  atencionId: string,
+  cuando: string,
+  tecnico: string,
+): Promise<void> {
+  try {
+    const { data: a } = await supabase
+      .from("atenciones")
+      .select("id, tipo, detalle, en_garantia, equipo_id, equipo_texto, cliente_texto, cuentas(razon_social, num_doc)")
+      .eq("id", atencionId)
+      .maybeSingle();
+    if (!a) return;
+    const cuenta = a.cuentas as unknown as { razon_social: string; num_doc: string | null } | null;
+
+    // El historial de ESA máquina, que es el otro pedido de la misma reunión.
+    let antecedentes: { fecha: string; que: string }[] = [];
+    let serie: string | null = null;
+    if (a.equipo_id) {
+      const [{ data: eq }, { data: antes }] = await Promise.all([
+        supabase.from("equipos_instalados").select("serie, modelo_texto").eq("id", a.equipo_id).maybeSingle(),
+        supabase
+          .from("atenciones")
+          .select("solicitado_at, diagnostico, trabajo_realizado, motivo_cierre")
+          .eq("equipo_id", a.equipo_id)
+          .neq("id", atencionId)
+          .order("solicitado_at", { ascending: false })
+          .limit(5),
+      ]);
+      serie = (eq as { serie?: string | null } | null)?.serie ?? null;
+      antecedentes = (antes ?? []).map((x) => {
+        const y = x as unknown as { solicitado_at: string; diagnostico: string | null; trabajo_realizado: string | null; motivo_cierre: string | null };
+        return {
+          fecha: String(y.solicitado_at).slice(0, 10),
+          que: y.trabajo_realizado?.trim() || y.diagnostico?.trim() || y.motivo_cierre?.trim() || "Sin nota",
+        };
+      });
+    }
+
+    await avisarAtencionProgramadaN8n({
+      atencionId,
+      cliente: cuenta?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre",
+      ruc: cuenta?.num_doc ?? null,
+      tipo: String(a.tipo),
+      equipo: a.equipo_texto ?? null,
+      serie,
+      enGarantia: a.en_garantia,
+      reporto: a.detalle ?? null,
+      cuando,
+      tecnico,
+      antecedentes,
+    });
+  } catch (e) {
+    console.error("orden de trabajo: no se pudo armar el aviso:", e instanceof Error ? e.message : e);
+  }
 }
 
 /**

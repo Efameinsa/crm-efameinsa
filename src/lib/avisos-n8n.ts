@@ -117,3 +117,67 @@ export async function avisarFinanzasN8n(datos: AvisoFinanzas): Promise<void> {
     console.error("avisos-n8n: no se pudo avisar a Finanzas por correo:", e instanceof Error ? e.message : e);
   }
 }
+
+/**
+ * LA ORDEN DE TRABAJO AL ALMACÉN, por correo, cuando postventa programa la
+ * atención.
+ *
+ * Carlos, 09-09, señalando el primer paso del circuito: «de aquí le demos la
+ * orden, mediante el correo electrónico, desde CRM, le demos ya un correo
+ * electrónico del calendario… esta es la solicitud de la atención de la
+ * llamada, o la programación de llamada… y ya no le va a llenar nada, si no
+ * todo está ahí. ¡Pum! Se jala».
+ *
+ * NO ES PARA EL CLIENTE. Al cliente le llega después el informe, y lo manda
+ * postventa a mano — «nuestra función como postventa es enviarle el informe al
+ * cliente». Esto es la orden interna para que el técnico haga la videollamada
+ * o la visita sin volver a tipear nada.
+ *
+ * Y VA CON EL HISTORIAL DE LA MÁQUINA, que fue el otro pedido de esa reunión:
+ * «cuando deriva esa llamada, tiene que ir con el histórico de las incidencias
+ * de ese equipo».
+ *
+ * Interruptor propio (`ORDEN_TRABAJO_CORREO=si`) y no el de los avisos: el 04-09
+ * Carlos mandó apagar las alertas que le llegaban a él, y esto es otra cosa
+ * —una orden de trabajo a producción—, así que encender una no debe encender
+ * la otra.
+ *
+ * Best-effort: si n8n no contesta, la atención queda programada igual. El CRM
+ * es la fuente de verdad; el correo solo avisa.
+ */
+export interface AvisoAtencionProgramada {
+  atencionId: string;
+  codigo?: string | null;
+  cliente: string;
+  ruc?: string | null;
+  tipo: string;
+  equipo?: string | null;
+  serie?: string | null;
+  enGarantia?: boolean | null;
+  reporto?: string | null;
+  cuando: string;
+  tecnico?: string | null;
+  programadaPor?: string | null;
+  /** Lo que ya le pasó a esta máquina, lo más reciente primero. */
+  antecedentes?: { fecha: string; que: string }[];
+}
+
+export async function avisarAtencionProgramadaN8n(datos: AvisoAtencionProgramada): Promise<void> {
+  if (process.env.ORDEN_TRABAJO_CORREO !== "si") return;
+  const url = process.env.N8N_ORDEN_TRABAJO_URL;
+  if (!url) return; // entorno sin n8n configurado: silencio, no error
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secreto: process.env.N8N_WEBHOOK_SECRET ?? "",
+        ...datos,
+        enlace: enlaceApp(`/postventa/atenciones/${datos.atencionId}`),
+      }),
+      signal: AbortSignal.timeout(4000),
+    });
+  } catch (e) {
+    console.error("avisos-n8n: no se pudo mandar la orden de trabajo:", e instanceof Error ? e.message : e);
+  }
+}
