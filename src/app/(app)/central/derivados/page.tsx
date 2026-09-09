@@ -6,6 +6,7 @@ import {
   quienRegistroEnElPeriodo,
   ETIQUETA_FOCO,
   ETIQUETA_CANAL,
+  pistaDeBusqueda,
   type DerivadoFila,
   type FocoDerivado,
 } from "@/lib/derivados-central";
@@ -168,6 +169,10 @@ export default async function DerivadosPage({
     for (const [k, v] of Object.entries(extra)) p.set(k, v);
     return `/central/derivados?${p.toString()}`;
   };
+
+  // Cuando la búsqueda no devuelve nada, se averigua si el cliente existe igual
+  // —en otra ficha, en otro período, en la cartera de otro— para poder decirlo.
+  const pistas = busqueda && derivados.length === 0 ? await pistaDeBusqueda(supabase, busqueda) : [];
 
   const foco = sp.foco ?? null;
   const visibles: DerivadoFila[] =
@@ -413,11 +418,53 @@ export default async function DerivadosPage({
       </details>
 
       {visibles.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {derivados.length === 0
-            ? `No derivó ningún contacto en este período${busqueda ? ` que diga «${busqueda}»` : ""}.`
-            : "Ningún contacto en este cajón. Pruebe con otro."}
-        </p>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            {derivados.length === 0
+              ? `No derivó ningún contacto en este período${busqueda ? ` que diga «${busqueda}»` : ""}.`
+              : "Ningún contacto en este cajón. Pruebe con otro."}
+          </p>
+          {/* PERO EL CLIENTE SÍ ESTÁ, y acá se dice dónde. Central buscó el RUC
+              20110804483 el 09-09 y leyó «no derivó ningún contacto»: era
+              cierto y no le servía de nada — ese RUC es CANDELA PERÚ, cliente
+              de C4 desde 2021; lo que no había era una derivación SUYA atada a
+              esa ficha, porque el prospecto de esa mañana entró sin RUC y el
+              CRM le abrió una ficha nueva. Un vacío que solo constata se lee
+              como un dato perdido. */}
+          {pistas.length > 0 && (
+            <div className="rounded-lg border border-sky-300 bg-sky-50 p-3 text-sky-900">
+              <p className="text-xs font-semibold">
+                El cliente sí está en el sistema — lo que no hay es una derivación suya en este período.
+              </p>
+              <ul className="mt-1.5 space-y-1">
+                {pistas.map((p) => (
+                  <li key={p.cuentaId} className="text-xs">
+                    <b>{p.razonSocial}</b>
+                    {p.numDoc ? ` · ${p.numDoc}` : ""} —{" "}
+                    {p.codigoComercial || p.comercialNombre ? (
+                      <>
+                        cartera de{" "}
+                        <b>
+                          {p.codigoComercial ? `${p.codigoComercial} · ` : ""}
+                          {p.comercialNombre ?? "—"}
+                        </b>
+                      </>
+                    ) : (
+                      "sin comercial asignado"
+                    )}
+                    {p.fueraDelPeriodo > 0
+                      ? ` · ${p.fueraDelPeriodo} contacto${p.fueraDelPeriodo === 1 ? "" : "s"} derivado${p.fueraDelPeriodo === 1 ? "" : "s"} en total: amplíe el período para verlos.`
+                      : " · todavía sin contactos derivados en su ficha."}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-[11px] opacity-90">
+                Si el prospecto de hoy es de este cliente pero entró sin RUC, ábralo y use{" "}
+                <b>«Es un cliente que ya tenemos»</b>: queda en esta ficha y se cierra la repetida.
+              </p>
+            </div>
+          )}
+        </div>
       ) : (
         <>
           <div className="space-y-2">

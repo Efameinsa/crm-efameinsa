@@ -118,6 +118,10 @@ export interface Lead {
   num_doc: string | null;
   razon_social: string | null;
   mensaje: string | null;
+  /** Lo que entró, guardado la primera vez que Central corrige `mensaje` (0199). */
+  mensaje_original: string | null;
+  mensaje_editado_por: string | null;
+  mensaje_editado_at: string | null;
   recibido_at: string;
   recibido_por: string | null;
   asignado_a: string | null;

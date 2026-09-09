@@ -1,4 +1,5 @@
-import { MessageSquareText } from "lucide-react";
+import { MessageSquareText, PencilLine } from "lucide-react";
+import { fechaLima } from "@/lib/fechas";
 
 // Lo que pidió el prospecto, tal como entró.
 //
@@ -42,16 +43,26 @@ export function SolicitudLead({
   mensaje,
   campania,
   compacto = false,
+  mensajeOriginal = null,
+  editadoAt = null,
 }: {
   mensaje: string | null;
   campania?: string | null;
   compacto?: boolean;
+  /**
+   * Lo que entró, cuando Central corrigió el detalle después (0199). Se muestra
+   * debajo: corregir no es borrar, y con los contactos de Google Ads es lo
+   * único que queda de por dónde vinieron.
+   */
+  mensajeOriginal?: string | null;
+  editadoAt?: string | null;
 }) {
   const texto = mensaje?.trim();
   if (!texto && !campania) {
     return (
       <p className={compacto ? "text-xs text-muted-foreground" : "mt-2 text-xs text-muted-foreground"}>
-        Sin detalle de la solicitud. Al llamar, preguntar qué equipo necesita y para qué uso.
+        Sin detalle de la solicitud — entró sin texto (los formularios de publicidad no lo piden). Al llamar,
+        preguntar qué equipo necesita y para qué uso; Central puede anotarlo acá con «Editar lo que pide».
       </p>
     );
   }
@@ -84,6 +95,18 @@ export function SolicitudLead({
         <p className="mt-1 text-xs text-muted-foreground">
           Campaña: <b className="text-foreground">{campania}</b>
         </p>
+      )}
+      {/* Lo corrigió Central, y lo que entró sigue a la vista. Es la diferencia
+          entre corregir y borrar: el comercial lee el detalle bueno y, si algo
+          no cuadra, puede ver de dónde salió sin preguntarle a nadie. */}
+      {mensajeOriginal && (
+        <details className="mt-1.5 text-[11px] text-muted-foreground">
+          <summary className="inline-flex cursor-pointer items-center gap-1 hover:text-foreground">
+            <PencilLine className="size-3" />
+            Central lo corrigió{editadoAt ? ` el ${fechaLima(editadoAt)}` : ""} · ver lo que entró
+          </summary>
+          <p className="mt-1 whitespace-pre-wrap border-l-2 border-border pl-2">{mensajeOriginal}</p>
+        </details>
       )}
     </div>
   );

@@ -20,6 +20,9 @@ import { LineaTiempoCuenta, type EventoTimeline } from "@/components/crm/linea-t
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { RedirigirLeadBoton } from "@/components/crm/redirigir-lead-boton";
 import { CorregirCanalBoton } from "@/components/crm/corregir-canal-boton";
+import { UnirACuentaBoton } from "@/components/crm/unir-a-cuenta-boton";
+import { EditarSolicitudBoton } from "@/components/crm/editar-solicitud-boton";
+import { dominioDeCorreo } from "@/lib/central/coincidencias-bandeja";
 import { cargarSupervisores } from "@/lib/supervisores";
 import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { UrgenciaBoton } from "@/components/crm/urgencia-boton";
@@ -339,6 +342,19 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
                 contacto={contacto}
                 supervisores={supervisores}
               />
+              {/* DE QUÉ CLIENTE ES. El tercero de la fila y el que faltaba:
+                  «Cambiar de comercial» mueve a quién está derivado pero se
+                  lleva la ficha nueva con él, así que un prospecto que entró
+                  sin RUC dejaba un duplicado del cliente. Central lo pidió el
+                  08-09 y el 09-09. */}
+              <UnirACuentaBoton
+                leadId={fila.id}
+                contacto={contacto}
+                estado={fila.asignadoA ? "asignado" : "pendiente_triaje"}
+                comercialActual={fila.asignadoA}
+                sugerencia={dominioDeCorreo(fila.email) ?? fila.razonSocial ?? null}
+                supervisores={supervisores}
+              />
               {fila.asignadoA && (
                 <UrgenciaBoton
                   leadId={fila.id}
@@ -433,11 +449,27 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
             )}
           </SeccionPanel>
 
-          <SeccionPanel titulo="Lo que solicita">
+          <SeccionPanel
+            titulo="Lo que solicita"
+            /* Se puede completar después de derivar: muchas veces el cliente
+               sigue contando cuando el contacto ya salió de la bandeja, y hasta
+               hoy eso terminaba en un WhatsApp al comercial, fuera del CRM
+               (Central, 09-09). */
+            accion={
+              <EditarSolicitudBoton
+                leadId={fila.id}
+                contacto={contacto}
+                mensaje={fila.mensaje}
+              />
+            }
+          >
             {fila.mensaje ? (
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{fila.mensaje}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">No se registró qué pedía.</p>
+              <p className="text-sm text-muted-foreground">
+                No se registró qué pedía. Al hablar con el cliente, anótelo acá con «Editar lo que pide»: es lo que
+                lee el comercial antes de llamar.
+              </p>
             )}
             <AdjuntosLead adjuntos={adjuntosLead} />
             {asignacion?.notas && (

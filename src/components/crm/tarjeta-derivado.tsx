@@ -12,6 +12,8 @@ import {
 } from "@/lib/derivados-central";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { RedirigirLeadBoton } from "@/components/crm/redirigir-lead-boton";
+import { UnirACuentaBoton } from "@/components/crm/unir-a-cuenta-boton";
+import { dominioDeCorreo } from "@/lib/central/coincidencias-bandeja";
 import { UrgenciaBoton } from "@/components/crm/urgencia-boton";
 import { cn } from "@/lib/utils";
 
@@ -232,9 +234,10 @@ export function TarjetaDerivado({
         </div>
       </div>
 
-      {/* Las dos acciones de Central sobre lo ya derivado: corregir a quién
-          fue, y avisar con urgencia que el cliente está esperando. Van sobre
-          la fila (z-10) porque el resto de la tarjeta es un enlace a la ficha. */}
+      {/* Las acciones de Central sobre lo ya derivado: corregir a quién fue,
+          decir de qué cliente es, y avisar con urgencia que el cliente está
+          esperando. Van sobre la fila (z-10) porque el resto de la tarjeta es
+          un enlace a la ficha. */}
       <div className="relative z-10 flex flex-none flex-col items-end justify-center gap-1">
         <div className="flex items-center gap-1.5">
           <RedirigirLeadBoton
@@ -243,6 +246,19 @@ export function TarjetaDerivado({
             comercialActual={fila.asignadoA}
             comerciales={comerciales}
             esPrueba={fila.esPrueba || modoEnsayo}
+            supervisores={supervisores}
+          />
+          {/* DE QUÉ CLIENTE ES. Distinto de «Cambiar de comercial»: aquel
+              mueve a quién está derivado y se lleva la ficha nueva con él, así
+              que el duplicado sobrevive. Este une el contacto a la ficha que ya
+              existe y cierra la repetida — el pedido de Central del 08-09 y del
+              09-09 («unir DEYSI J con CANDELA PERU»). */}
+          <UnirACuentaBoton
+            leadId={fila.id}
+            contacto={contacto}
+            estado={fila.asignadoA ? "asignado" : "pendiente_triaje"}
+            comercialActual={fila.asignadoA}
+            sugerencia={dominioDeCorreo(fila.email) ?? fila.razonSocial ?? null}
             supervisores={supervisores}
           />
           {fila.asignadoA && (

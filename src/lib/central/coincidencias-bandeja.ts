@@ -31,12 +31,37 @@ import { normalizarTelefono } from "@/lib/telefono";
  * casos de mismo teléfono con otro nombre (un negocio, una familia, un número
  * mal tipeado en el Excel).
  */
+/**
+ * Los dominios que NO identifican a una empresa. Un `@gmail.com` compartido no
+ * dice nada: en la base hay 3.932 contactos con Gmail y 1.625 con Hotmail, y
+ * cruzarlos uniría clientes que no tienen nada que ver.
+ */
+const CORREO_PERSONAL = new Set([
+  "gmail.com", "gmail,com", "googlemail.com", "hotmail.com", "hotmail.es", "hotmail.com.pe",
+  "outlook.com", "outlook.es", "outlook.com.pe", "live.com", "live.com.pe", "msn.com",
+  "yahoo.com", "yahoo.es", "yahoo.com.pe", "icloud.com", "me.com", "aol.com",
+  "protonmail.com", "proton.me", "zoho.com", "example.com",
+]);
+
+/**
+ * El dominio de una dirección, cuando sirve para reconocer a la empresa.
+ *
+ * Devuelve null para los correos personales y para lo que no es un correo. Se
+ * exporta porque la bandeja lo usa dos veces: para cruzar sola, y para ofrecerle
+ * a Central el dominio ya recortado cuando va a unir el contacto a una ficha.
+ */
+export function dominioDeCorreo(email: string | null | undefined): string | null {
+  const dom = email?.trim().toLowerCase().split("@")[1]?.trim();
+  if (!dom || !dom.includes(".") || CORREO_PERSONAL.has(dom)) return null;
+  return dom;
+}
+
 export interface CoincidenciaBandeja {
   cuentaId: string;
   razonSocial: string;
   codigoComercial: string | null;
   comercialNombre: string | null;
-  motivo: "documento" | "teléfono" | "correo";
+  motivo: "documento" | "teléfono" | "correo" | "dominio del correo";
   ultimaEtapa: string | null;
   ultimaFecha: string | null;
   /**
@@ -89,6 +114,21 @@ export async function coincidenciasDeLaBandeja(
   const porTelefono = new Map<string, string[]>();
   const porDoc = new Map<string, string[]>();
   const porCorreo = new Map<string, string[]>();
+  // EL DOMINIO DE LA EMPRESA, no solo el correo entero.
+  //
+  // 09-09: el PRO-09219 entró por Google Ads como «Deysi J. peru», sin RUC y
+  // sin razón social —el formulario de Ads solo pide nombre, teléfono y
+  // ciudad— pero con el correo `aseguramientocalidad@candelaperu.net`. En el
+  // sistema, CANDELA PERÚ es cliente de C4 desde 2021 y su contacto es
+  // `monica.soto@candelaperu.net`: la misma empresa, otra persona. Como acá se
+  // comparaba el correo COMPLETO, el aviso no salió, el contacto se derivó a
+  // otro comercial como cliente nuevo y quedaron dos fichas del mismo cliente.
+  // Central lo cazó a mano y pidió unirlas.
+  //
+  // Va DESPUÉS del correo exacto en el orden de confianza —dos personas del
+  // mismo dominio son la misma empresa, no el mismo interlocutor— y solo con
+  // dominios corporativos: un @gmail compartido no identifica a nadie.
+  const porDominio = new Map<string, string[]>();
   const anotar = (m: Map<string, string[]>, clave: string | null, leadId: string) => {
     if (!clave) return;
     const ys = m.get(clave);
@@ -102,6 +142,7 @@ export async function coincidenciasDeLaBandeja(
     anotar(porDoc, doc && doc.length >= 8 ? doc : null, l.id);
     const correo = l.email?.trim().toLowerCase() || null;
     anotar(porCorreo, correo && correo.includes("@") ? correo : null, l.id);
+    anotar(porDominio, dominioDeCorreo(l.email), l.id);
   }
 
   // lead → cuenta, en orden de confianza: el documento pisa al teléfono y el
@@ -136,6 +177,21 @@ export async function coincidenciasDeLaBandeja(
     for (const c of (data ?? []) as { cuenta_id: string; email: string | null }[]) {
       asignar(porCorreo.get(c.email?.trim().toLowerCase() ?? "") ?? [], c.cuenta_id, "correo");
     }
+  }
+  // El dominio no se puede pedir con un `in()`: se busca uno por uno con
+  // `ilike`. Son pocos —solo los contactos de la bandeja que traen correo
+  // corporativo— y quedan fuera los que ya se resolvieron por dato más firme.
+  const dominiosPendientes = [...porDominio.entries()].filter(([, ids]) =>
+    ids.some((id) => !cuentaDeLead.has(id)),
+  );
+  for (const [dom, ids] of dominiosPendientes) {
+    const { data } = await supabase.from("contactos").select("cuenta_id").ilike("email", `%@${dom}`).limit(4);
+    const filas = (data ?? []) as { cuenta_id: string }[];
+    // Si el dominio apunta a más de una ficha no se elige por nosotros: eso es
+    // justamente lo que hay que mirar antes de unir, y el aviso decide solo
+    // cuando no hay duda.
+    const unicas = [...new Set(filas.map((f) => f.cuenta_id))];
+    if (unicas.length === 1) asignar(ids, unicas[0], "dominio del correo");
   }
   if (cuentaDeLead.size === 0) return resultado;
 

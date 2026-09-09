@@ -36,6 +36,11 @@ export function AvisoCoincidencia({ leadId, c }: { leadId: string; c: Coincidenc
   const gestion = c.ultimaEtapa
     ? `${ETIQUETA_ETAPA[c.ultimaEtapa] ?? c.ultimaEtapa}${c.ultimaFecha ? ` el ${fechaLima(c.ultimaFecha)}` : ""}`
     : "sin gestión registrada";
+  // El dominio identifica a la EMPRESA, no a la persona: quien escribe puede
+  // ser otro del mismo cliente. Se dice, porque cambia lo que Central verifica
+  // antes de derivar — y es el cruce que faltaba el 09-09, cuando un contacto
+  // de @candelaperu.net se derivó como cliente nuevo a otro comercial.
+  const porDominio = c.motivo === "dominio del correo";
   const duenio = c.codigoComercial
     ? `${c.codigoComercial}${c.comercialNombre ? ` · ${c.comercialNombre}` : ""}`
     : "sin comercial asignado";
@@ -47,7 +52,9 @@ export function AvisoCoincidencia({ leadId, c }: { leadId: string; c: Coincidenc
         <p className="min-w-[220px] flex-1 text-xs">
           <b>Ya derivado.</b> Coincide por {c.motivo} con <b>{c.razonSocial}</b> — {duenio}, {gestion}.
           <span className="block text-[11px] opacity-80">
-            Entró dos veces por vías distintas. No hace falta derivarlo de nuevo.
+            {porDominio
+              ? "Escribió desde el correo de esa empresa. Puede ser otra persona del mismo cliente: confirme antes de descartar."
+              : "Entró dos veces por vías distintas. No hace falta derivarlo de nuevo."}
           </span>
         </p>
         <YaEstaEnElSistemaBoton leadId={leadId} cuentaId={c.cuentaId} razonSocial={c.razonSocial} />
@@ -61,7 +68,9 @@ export function AvisoCoincidencia({ leadId, c }: { leadId: string; c: Coincidenc
       <p className="min-w-[220px] flex-1 text-xs">
         <b>Cliente conocido.</b> Coincide por {c.motivo} con <b>{c.razonSocial}</b> — {duenio}, {gestion}.
         <span className="block text-[11px] opacity-80">
-          Vuelve a escribir: derivarlo a su comercial de siempre, no a otro.
+          {porDominio
+            ? "Escribió desde el correo de esa empresa: es el mismo cliente aunque sea otra persona. Derivarlo a su comercial de siempre — y si entró sin RUC, «Es un cliente que ya tenemos» lo deja en la ficha buena."
+            : "Vuelve a escribir: derivarlo a su comercial de siempre, no a otro."}
         </span>
       </p>
     </div>

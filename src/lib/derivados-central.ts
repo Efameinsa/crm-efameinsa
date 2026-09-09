@@ -693,3 +693,68 @@ export async function quienRegistroEnElPeriodo(
     sinEvidencia,
   };
 }
+
+export interface PistaBusqueda {
+  cuentaId: string;
+  razonSocial: string;
+  numDoc: string | null;
+  codigoComercial: string | null;
+  comercialNombre: string | null;
+  /** Contactos de ESA ficha que Central derivó alguna vez, fuera del período mirado. */
+  fueraDelPeriodo: number;
+}
+
+/**
+ * POR QUÉ LA BÚSQUEDA NO ENCONTRÓ NADA — y dónde sí está.
+ *
+ * Central, 09-09 11:26: buscó el RUC 20110804483 en sus derivados y la
+ * pantalla contestó «No derivó ningún contacto en este período que diga
+ * 20110804483». Era cierto y era inútil: ese RUC existe, es CANDELA PERÚ,
+ * cliente de C4 desde 2021. Lo que pasaba es que el prospecto de ese día había
+ * entrado sin RUC —por el formulario de Google Ads— y el CRM le abrió una
+ * ficha nueva, así que nada ataba el número a la derivación de la mañana.
+ *
+ * Un vacío que solo constata deja a la persona pensando que el dato se perdió.
+ * Este dice qué no hay, POR QUÉ, dónde sí está y de quién es — que es con lo
+ * que Central decide si toca unir la ficha o pedirle el caso a otro comercial.
+ */
+export async function pistaDeBusqueda(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  busqueda: string,
+): Promise<PistaBusqueda[]> {
+  const q = busqueda.trim();
+  if (q.length < 3) return [];
+
+  const { data: cuentas } = await supabase
+    .from("cuentas")
+    .select("id, razon_social, num_doc, tipo_doc, perfiles(nombre, codigo_comercial)")
+    .or(`razon_social.ilike.%${q}%,num_doc.ilike.%${q}%`)
+    .limit(3);
+  if (!cuentas || cuentas.length === 0) return [];
+
+  const filas = cuentas as unknown as {
+    id: string;
+    razon_social: string;
+    num_doc: string | null;
+    tipo_doc: string | null;
+    perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  }[];
+
+  return Promise.all(
+    filas.map(async (c) => {
+      const { count } = await supabase
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .eq("cuenta_id", c.id)
+        .eq("estado", "asignado");
+      return {
+        cuentaId: c.id,
+        razonSocial: c.razon_social,
+        numDoc: c.tipo_doc === "SIN_DOC" ? null : c.num_doc,
+        codigoComercial: c.perfiles?.codigo_comercial ?? null,
+        comercialNombre: c.perfiles?.nombre ?? null,
+        fueraDelPeriodo: count ?? 0,
+      };
+    }),
+  );
+}

@@ -15,6 +15,10 @@ import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import { DerivarAvisoBoton } from "@/components/crm/derivar-aviso-boton";
 import { DerivadosOtrasAreas } from "@/components/crm/derivados-otras-areas";
 import { permisoSinPin } from "@/lib/acciones/seguridad";
+import { cargarSupervisores } from "@/lib/supervisores";
+import { EditarSolicitudBoton } from "@/components/crm/editar-solicitud-boton";
+import { UnirACuentaBoton } from "@/components/crm/unir-a-cuenta-boton";
+import { dominioDeCorreo } from "@/lib/central/coincidencias-bandeja";
 
 // La bandeja tiene que mostrar lo que acaba de entrar: sin esto Next servía
 // una versión cacheada y un contacto recién registrado no aparecía hasta que
@@ -72,7 +76,7 @@ function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, mod
   const q = supabase
     .from("leads")
     .select(
-      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, adjuntos, utm_campaign, recibido_at, es_prueba, sugerido_a, sugerido_tipo, sugerido_por",
+      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, adjuntos, utm_campaign, recibido_at, es_prueba, sugerido_a, sugerido_tipo, sugerido_por",
       { count: "exact" },
     )
     .eq("estado", "pendiente_triaje");
@@ -100,6 +104,7 @@ export default async function CentralPage() {
     { data: derivados },
     { data: avisosDestinos },
     { count: practicasFuera },
+    supervisores,
   ] = await Promise.all([
     // Fuera del modo ensayo la cola es solo la real. El conteo sale de esta
     // misma consulta, así que «N pendientes» pasa a ser lo que Central de
@@ -147,6 +152,9 @@ export default async function CentralPage() {
       .select("id", { count: "exact", head: true })
       .eq("estado", "pendiente_triaje")
       .eq("es_prueba", true),
+    // A quién pedirle el código cuando unir el contacto mueve la derivación:
+    // pedir «el código del supervisor» sin decir de quién es un callejón (27-08).
+    cargarSupervisores(supabase),
   ]);
 
   // Cuáles de los que están en la bandeja ya están en el sistema. Va acá y no
@@ -282,6 +290,29 @@ export default async function CentralPage() {
                   </div>
                 </div>
 
+                {/* ES UN CLIENTE QUE YA TENEMOS. Central lo pidió el 08-09 y
+                    otra vez el 09-09: un prospecto que entra como nuevo pero es
+                    de un cliente que ya está en la cartera de alguien. Acá,
+                    ANTES de derivar, unirlo es solo archivar bien —no hay
+                    derivación que corregir y no pide código—; el contacto se va
+                    después con la ficha y la historia del cliente. */}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <UnirACuentaBoton
+                    leadId={lead.id}
+                    contacto={lead.nombre_contacto ?? lead.codigo ?? "el contacto"}
+                    estado="pendiente_triaje"
+                    comercialActual={null}
+                    sugerencia={dominioDeCorreo(lead.email) ?? lead.razon_social ?? null}
+                    supervisores={supervisores}
+                  />
+                  <EditarSolicitudBoton
+                    leadId={lead.id}
+                    contacto={lead.nombre_contacto ?? lead.codigo ?? "el contacto"}
+                    mensaje={lead.mensaje}
+                    campania={lead.utm_campaign}
+                  />
+                </div>
+
                 {/* Un aviso de un comercial no es un contacto más de la cola:
                     ya se habló con el cliente y ya hay una propuesta. Se ve
                     antes de abrir nada, porque cambia el orden en que Central
@@ -304,7 +335,12 @@ export default async function CentralPage() {
                   <AvisoCoincidencia leadId={lead.id} c={coincidencias.get(lead.id)!} />
                 )}
 
-                <SolicitudLead mensaje={lead.mensaje} campania={lead.utm_campaign} />
+                <SolicitudLead
+                  mensaje={lead.mensaje}
+                  campania={lead.utm_campaign}
+                  mensajeOriginal={lead.mensaje_original}
+                  editadoAt={lead.mensaje_editado_at}
+                />
                 {adjuntosPorLead.has(lead.id) && <AdjuntosLead adjuntos={adjuntosPorLead.get(lead.id)!} />}
               </div>
             );

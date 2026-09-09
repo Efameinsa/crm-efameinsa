@@ -728,3 +728,168 @@ export async function corregirCanalDelLead(
   revalidatePath(`/central/derivados/${leadId}`);
   return { error: null };
 }
+
+/**
+ * CORREGIR LO QUE PIDIÓ EL PROSPECTO, desde la bandeja de triaje.
+ *
+ * Central, 09-09: «¿se podría editar lo que solicita el prospecto desde la
+ * bandeja de triaje?». El texto se escribe con el cliente al teléfono, así que
+ * sale con lo que se alcanzó a anotar; cuando el cliente sigue contando, hasta
+ * hoy no había dónde ponerlo y terminaba en un WhatsApp al comercial, fuera
+ * del CRM.
+ *
+ * Sin código de supervisor —no es un dato que gerencia audite, y pedirlo sería
+ * garantizar que nadie complete nada— pero guardando lo que entró: la 0199
+ * copia el texto original la primera vez, y la pantalla lo muestra debajo.
+ */
+export async function corregirSolicitudLead(
+  leadId: string,
+  texto: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("corregir_solicitud_lead", {
+    p_lead_id: leadId,
+    p_texto: texto,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+
+  revalidatePath("/central");
+  revalidatePath("/central/derivados");
+  revalidatePath(`/central/derivados/${leadId}`);
+  return { error: null };
+}
+
+export interface CuentaParaUnir {
+  id: string;
+  razonSocial: string;
+  numDoc: string | null;
+  /** De quién es la cartera. La pantalla lo necesita para saber si va a hacer falta el código. */
+  comercialId: string | null;
+  codigoComercial: string | null;
+  comercialNombre: string | null;
+  /** Con qué se le encontró, para que Central compare antes de unir. */
+  detalle: string | null;
+}
+
+/**
+ * Las fichas de cliente candidatas a recibir un contacto, mientras se teclea.
+ *
+ * Busca por razón social, por RUC/DNI y por la persona de contacto (nombre,
+ * teléfono o correo), porque así es como Central los nombra: unas veces «el de
+ * Candela», otras el RUC que le dictaron, y otras el correo con el que
+ * escribieron. Devuelve SIEMPRE de quién es la cartera: unir es una decisión
+ * que se toma mirando eso.
+ */
+export async function buscarCuentasParaUnir(texto: string): Promise<CuentaParaUnir[]> {
+  const q = texto.trim();
+  if (q.length < 3) return [];
+  const supabase = await createClient();
+  const CAMPOS = "id, razon_social, num_doc, tipo_doc, comercial_id, perfiles(nombre, codigo_comercial)";
+  interface Fila {
+    id: string;
+    razon_social: string;
+    num_doc: string | null;
+    tipo_doc: string | null;
+    comercial_id: string | null;
+    perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  }
+
+  const soloDigitos = q.replace(/\D/g, "");
+  const tel = normalizarTelefono(q);
+  const tokens = tokenizarBusqueda(q);
+
+  // Por nombre se exigen TODOS los tokens (ilike encadenados): «candela peru»
+  // no puede traer todas las fichas que dicen «Perú».
+  let porNombre = supabase.from("cuentas").select(CAMPOS);
+  for (const t of tokens) porNombre = porNombre.ilike("razon_social", `%${t}%`);
+  let porContacto = supabase.from("contactos").select(`nombre, email, telefono, cuentas(${CAMPOS})`);
+  for (const t of tokens) porContacto = porContacto.ilike("nombre", `%${t}%`);
+
+  const nada = Promise.resolve({ data: null });
+  const [nombre, doc, contacto, correo, telefono] = await Promise.all([
+    tokens.length > 0 ? porNombre.limit(8) : nada,
+    soloDigitos.length >= 8
+      ? supabase.from("cuentas").select(CAMPOS).ilike("num_doc", `%${soloDigitos}%`).limit(5)
+      : nada,
+    tokens.length > 0 ? porContacto.limit(6) : nada,
+    // Con el correo entero o con el DOMINIO a secas («candelaperu.net»): así es
+    // como se reconoce a la empresa cuando el prospecto llegó sin RUC ni razón
+    // social, que es el caso que trajo Central el 09-09.
+    /@|^[\w.-]+\.[a-z]{2,}$/i.test(q)
+      ? supabase
+          .from("contactos")
+          .select(`nombre, email, telefono, cuentas(${CAMPOS})`)
+          .ilike("email", `%${q.replace(/^@/, "")}%`)
+          .limit(6)
+      : nada,
+    tel && tel.length >= 8
+      ? supabase
+          .from("contactos")
+          .select(`nombre, email, telefono, cuentas(${CAMPOS})`)
+          .eq("telefono_normalizado", tel)
+          .limit(6)
+      : nada,
+  ]);
+
+  const out = new Map<string, CuentaParaUnir>();
+  const agregar = (c: Fila | null | undefined, detalle: string | null) => {
+    if (!c || out.has(c.id)) return;
+    const p = c.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
+    out.set(c.id, {
+      id: c.id,
+      razonSocial: c.razon_social,
+      numDoc: c.tipo_doc === "SIN_DOC" ? null : c.num_doc,
+      comercialId: c.comercial_id,
+      codigoComercial: p?.codigo_comercial ?? null,
+      comercialNombre: p?.nombre ?? null,
+      detalle,
+    });
+  };
+  type FilaContacto = { nombre: string | null; email: string | null; telefono: string | null; cuentas: unknown };
+  const deContacto = (d: unknown, como: (c: FilaContacto) => string) => {
+    for (const c of (d ?? []) as FilaContacto[]) agregar(c.cuentas as Fila, como(c));
+  };
+
+  // El documento primero: es el dato que no se comparte entre clientes.
+  for (const c of ((doc as { data: unknown }).data ?? []) as Fila[]) agregar(c, "por el documento");
+  deContacto((correo as { data: unknown }).data, (c) => `contacto ${c.email ?? ""}`.trim());
+  deContacto((telefono as { data: unknown }).data, (c) => `contacto ${c.nombre ?? ""} · ${c.telefono ?? ""}`.trim());
+  for (const c of ((nombre as { data: unknown }).data ?? []) as Fila[]) agregar(c, null);
+  deContacto((contacto as { data: unknown }).data, (c) => `contacto ${c.nombre ?? ""}`.trim());
+
+  return [...out.values()].slice(0, 8);
+}
+
+/**
+ * UNIR EL CONTACTO A LA FICHA DEL CLIENTE QUE YA EXISTE.
+ *
+ * Central lo pidió dos días seguidos (08-09 y 09-09): un prospecto que entró
+ * como cliente nuevo pero es de un cliente que ya está en la cartera de
+ * alguien. Hasta hoy solo existía «Cambiar de comercial», que mueve a quién
+ * está derivado pero se lleva la ficha nueva con él y deja el duplicado vivo.
+ *
+ * Toda la regla vive en la base (0200): a quién le queda, cuándo hace falta el
+ * código del supervisor y si la ficha repetida se puede cerrar. Acá solo se
+ * pide y se muestra lo que respondió, que es una frase en castellano lista
+ * para leer.
+ */
+export async function unirLeadACuenta(
+  leadId: string,
+  cuentaId: string,
+  pin: string,
+  motivo: string,
+): Promise<{ error: string | null; resumen?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("unir_lead_a_cuenta", {
+    p_lead_id: leadId,
+    p_cuenta_id: cuentaId,
+    p_pin: pin || null,
+    p_motivo: motivo,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+
+  revalidatePath("/central");
+  revalidatePath("/central/derivados");
+  revalidatePath(`/central/derivados/${leadId}`);
+  return { error: null, resumen: typeof data === "string" ? data : undefined };
+}
