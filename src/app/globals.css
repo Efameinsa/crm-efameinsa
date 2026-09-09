@@ -201,3 +201,100 @@ html[data-modo-app="instalada"],
 html[data-modo-app="instalada"] body {
   overscroll-behavior: none;
 }
+
+/* --------------------------------------------------------------------------
+   LA TIRA DEL CIRCUITO DE UNA ATENCIÓN.
+
+   Santos, 09-09-2026, mirando los ocho pasos con sus fechas: «esa vista puede
+   mejorar, parece muy plano». Pidió la misma idea del seguimiento de la web
+   —donde cada estado tiene su animación— pero «ligeramente más sutil».
+
+   Sutil de verdad, porque el contexto es otro: la web la mira un cliente una
+   vez y conviene que lo entretenga; ESTA la mira postventa cincuenta veces al
+   día. Una animación graciosa a la primera es una molestia a la décima.
+
+   Por eso son tres gestos y ninguno se repite en bucle:
+
+     1. El RIEL se llena de izquierda a derecha hasta donde llegó el caso. Es
+        el único que de verdad informa: se ve el avance sin leer.
+     2. Los pasos ENTRAN escalonados, 45 ms cada uno. Da la sensación de
+        recorrido en vez de una fila de cajas que aparece de golpe.
+     3. El paso actual RESPIRA muy despacio (4 s, casi imperceptible). Es lo
+        único que sigue vivo, y solo cuando hay algo que hacer.
+
+   Nada de esto se mueve si el sistema pide menos movimiento.
+   -------------------------------------------------------------------------- */
+
+.pista-atencion {
+  position: relative;
+}
+
+/* El riel gris de fondo, detrás de las casillas. */
+.pista-atencion::before,
+.pista-atencion::after {
+  content: "";
+  position: absolute;
+  top: 1.35rem;
+  height: 2px;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.pista-atencion::before {
+  left: 6%;
+  right: 6%;
+  background: var(--border);
+}
+
+/* Lo recorrido, en el verde de «hecho». `--avance` lo pone el componente. */
+.pista-atencion::after {
+  left: 6%;
+  width: calc((94% - 6%) * var(--avance, 0));
+  background: linear-gradient(90deg, color-mix(in oklab, #1e7f4f 55%, transparent), #1e7f4f);
+  animation: pista-llenar 900ms 120ms cubic-bezier(0.22, 0.8, 0.2, 1) backwards;
+}
+
+@keyframes pista-llenar {
+  from {
+    width: 0;
+  }
+}
+
+/* Los pasos entran escalonados. El retraso lo pone el componente por índice. */
+.paso-atencion {
+  animation: paso-entrar 420ms cubic-bezier(0.22, 0.8, 0.2, 1) backwards;
+  animation-delay: calc(var(--turno, 0) * 45ms);
+}
+
+@keyframes paso-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* El que toca hacer respira. Muy lento y muy poco: tiene que notarse solo
+   cuando la vista se queda quieta. */
+.paso-atencion[data-actual="true"] {
+  animation:
+    paso-entrar 420ms cubic-bezier(0.22, 0.8, 0.2, 1) backwards,
+    paso-respirar 4s 1.2s ease-in-out infinite;
+}
+
+@keyframes paso-respirar {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 26%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pista-atencion::after,
+  .paso-atencion,
+  .paso-atencion[data-actual="true"] {
+    animation: none;
+  }
+}

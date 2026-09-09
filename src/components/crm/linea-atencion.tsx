@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, ChevronRight, Copy, ShieldCheck, ShieldOff, Wrench , CalendarClock} from "lucide-react";
@@ -95,6 +95,16 @@ export function LineaAtencion({
   const [enviando, empezar] = useTransition();
   const paso = pasoDe(a.etapa);
   const sigue = siguienteEtapa(a.etapa);
+
+  /**
+   * Hasta dónde llega el riel verde, de 0 a 1. Se mide en CASILLAS de la tira
+   * —no en etapas de la base— porque «Pruebas y conformidad» son dos etapas en
+   * una sola casilla: contarlas por separado dejaría el riel corto justo en el
+   * tramo final, que es donde más se mira.
+   */
+  const casillasHechas = PASOS_VISIBLES.filter((p) => pasoDe(p.clave) <= paso).length;
+  const avanceDeLaPista =
+    PASOS_VISIBLES.length > 1 ? Math.max(0, casillasHechas - 1) / (PASOS_VISIBLES.length - 1) : 0;
   // La tira es NAVEGABLE (Santos, 01-09: «ponlo como tabs… ni se puede
   // retroceder a un estadio anterior»): tocar una etapa hecha muestra su acta
   // —qué se registró y cuándo—, y una futura, qué se hará ahí. Retroceder es
@@ -128,9 +138,16 @@ export function LineaAtencion({
   return (
     <div className="space-y-4">
       {/* ── La tira de los pasos que existen de verdad ────────────────── */}
+      {/* «Parece muy plano» (Santos, 09-09). El riel que se llena hasta donde
+          llegó el caso deja ver el avance sin leer una sola fecha; los pasos
+          entran escalonados, y solo el que toca hacer sigue respirando. Los
+          estilos y el porqué de lo sutil están en globals.css. */}
       <div className="overflow-x-auto">
-        <ol className="flex min-w-[48rem] items-stretch gap-1">
-          {PASOS_VISIBLES.map((p) => {
+        <ol
+          className="pista-atencion flex min-w-[48rem] items-stretch gap-1"
+          style={{ "--avance": avanceDeLaPista } as CSSProperties}
+        >
+          {PASOS_VISIBLES.map((p, turno) => {
             const e = p.clave;
             const i = pasoDe(e);
             // LA BARRA Y EL PANEL IBAN DESFASADOS. `a.etapa` es la última
@@ -150,12 +167,13 @@ export function LineaAtencion({
             const sello = p.cubre.map((c) => sellos[c]).filter(Boolean).pop() ?? null;
             const seleccionada = p.cubre.includes(etapaVista as EtapaAtencion);
             return (
-              <li key={e} className="flex-1">
+              <li key={e} className="paso-atencion flex-1" style={{ "--turno": turno } as CSSProperties}>
                 {/* Cada etapa es una PESTAÑA. La actual late con un puntito
                     (parpadeo sutil que pidió Santos — un pulso de caja entera
                     marearía); la seleccionada lleva el anillo. */}
                 <button
                   type="button"
+                  data-actual={actual}
                   onClick={() => setVista(e === a.etapa ? null : e)}
                   title={p.cubre.map((c) => AYUDA_ETAPA[c]).join(" ")}
                   className={cn(
