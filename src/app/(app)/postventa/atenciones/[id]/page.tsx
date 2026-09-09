@@ -7,6 +7,7 @@ import { LineaAtencion } from "@/components/crm/linea-atencion";
 import { tecnicosConocidos } from "@/lib/tecnicos";
 import { ConQuienHablar } from "@/components/crm/con-quien-hablar";
 import { EquiposDeLaAtencion } from "@/components/crm/equipos-de-la-atencion";
+import { HistorialDelEquipo } from "@/components/crm/historial-del-equipo";
 import { HistorialPostventaCliente } from "@/components/crm/historial-postventa-cliente";
 import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/postventa";
@@ -291,6 +292,18 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           {/* «Le hicieron preventivo y correctivo este año y solo sale lo del
               2024» (postventa, 01-09, caso PERUVIAN NATURE): todo lo hecho o
               vendido a este cliente, por año, venga de donde venga. */}
+          {/* PRIMERO LA MÁQUINA, DESPUÉS EL CLIENTE. Carlos, 09-09: «cuando
+              deriva esa llamada, tiene que ir con el histórico de las
+              incidencias de ESE EQUIPO… no solo el histórico de la llamada,
+              sino más bien los informes». Un hotel con seis lavadoras necesita
+              las dos vistas, pero la pregunta «¿esta máquina ya falló antes?»
+              solo la contesta esta, y es la que decide a quién se manda. */}
+          {a.equipo_id && (
+            <SeccionPanel titulo="Lo que ya se le hizo a ESTA máquina">
+              <HistorialDelEquipo equipoId={a.equipo_id} atencionActualId={a.id} />
+            </SeccionPanel>
+          )}
+
           {a.cuenta_id && (
             <SeccionPanel titulo="Lo que ya se le hizo a este cliente">
               <HistorialPostventaCliente cuentaId={a.cuenta_id} verPrecios={puedeVerPrecios(await requerirPerfil())} />
