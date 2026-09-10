@@ -39,7 +39,7 @@ interface FilaEquipo {
   ciclos_ultimo: number | null;
   ultimo_mantenimiento: string | null;
   proximo_mantenimiento: string | null;
-  cuentas: { razon_social: string } | null;
+  cuentas: { razon_social: string; perfiles: { codigo_comercial: string | null; nombre: string } | null } | null;
 }
 
 export default async function EquiposPage({
@@ -56,7 +56,7 @@ export default async function EquiposPage({
   let q = supabase
     .from("equipos_instalados")
     .select(
-      "id, serie, cliente_texto, modelo_texto, ubicacion, fecha_despacho, garantia_hasta, ciclos_ultimo, ultimo_mantenimiento, proximo_mantenimiento, cuentas(razon_social)",
+      "id, serie, cliente_texto, modelo_texto, ubicacion, fecha_despacho, garantia_hasta, ciclos_ultimo, ultimo_mantenimiento, proximo_mantenimiento, cuentas(razon_social, perfiles(codigo_comercial, nombre))",
       { count: "exact" },
     );
 
@@ -210,6 +210,19 @@ export default async function EquiposPage({
                     <p className="text-xs text-muted-foreground">
                       {e.cuentas?.razon_social ?? e.cliente_texto ?? "—"}
                       {e.ubicacion && ` · ${e.ubicacion}`}
+                      {/* De quién es el cliente, en la lista (gerencia, 10-09):
+                          «ahorita solamente tiene que abrirlo para saber de
+                          quién es […] visualmente, no lo veo correcto». Con dos
+                          y tres personas en postventa, saber a quién llamar
+                          antes de llamar al cliente deja de ser un detalle. */}
+                      {e.cuentas?.perfiles?.codigo_comercial && (
+                        <span
+                          className="ml-1 rounded-full bg-secondary px-1.5 py-0.5 font-semibold"
+                          title={`Cliente de la cartera de ${e.cuentas.perfiles.nombre}`}
+                        >
+                          cartera de {e.cuentas.perfiles.codigo_comercial}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="text-right text-[11px]">
