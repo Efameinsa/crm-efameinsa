@@ -22,6 +22,9 @@
 //
 // Uso: node --env-file=.env.local scripts/cargar-productos-catalogo.mjs [--aplicar]
 
+// EL MAESTRO YA NO MANDA (Santos, 10-09-2026): el catálogo lo gestiona Lesly
+// desde su pantalla. Esta importación es el portón — ver scripts/maestro-retirado.mjs.
+import "./maestro-retirado.mjs";
 import { Client } from "pg";
 import { readFileSync } from "node:fs";
 import XLSX from "xlsx";

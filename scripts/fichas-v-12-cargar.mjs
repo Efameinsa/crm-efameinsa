@@ -42,6 +42,9 @@
 //   node --env-file=.env.local scripts/fichas-v-12-cargar.mjs            (ensayo)
 //   node --env-file=.env.local scripts/fichas-v-12-cargar.mjs --aplicar
 
+// EL MAESTRO YA NO MANDA (Santos, 10-09-2026): el catálogo lo gestiona Lesly
+// desde su pantalla. Esta importación es el portón — ver scripts/maestro-retirado.mjs.
+import "./maestro-retirado.mjs";
 import { Client } from "pg";
 import { readFileSync, copyFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
