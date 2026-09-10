@@ -88,6 +88,15 @@ export async function fusionar(bd, destinoId, origenId, { carteraId, nombreOfici
   await bd.query("update soporte_tecnico     set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
   await bd.query("update informes_servicio   set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
   await bd.query("update equipos_instalados  set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
+  // `atenciones` (0131/0132) e `inventario_equipos.reservado_para` nacieron
+  // DESPUÉS de esta librería y se habían quedado fuera. Las dos apuntan a
+  // `cuentas` con FK NO ACTION: una ficha con una atención abierta no se puede
+  // borrar, así que la fusión se caía a mitad de camino —después de haber
+  // movido las oportunidades— y dejaba las dos fichas a medio unir. Se
+  // descubrió el 10-09 revisando la fusión de RIVERA TRIGOSO. La lista completa
+  // sale de: information_schema.columns where column_name = 'cuenta_id'.
+  await bd.query("update atenciones set cuenta_id = $1 where cuenta_id = $2", [destinoId, origenId]);
+  await bd.query("update inventario_equipos set reservado_para = $1 where reservado_para = $2", [destinoId, origenId]);
   // Si alguna de las dos era madre de un grupo, sus hijas pasan a la que queda.
   await bd.query("update cuentas set cuenta_padre_id = $1 where cuenta_padre_id = $2", [destinoId, origenId]);
 
