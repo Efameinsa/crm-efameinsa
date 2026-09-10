@@ -5,6 +5,7 @@ import { fechaCalendario } from "@/lib/fechas";
 import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
 import type { AdjuntoCierreFirmado } from "@/lib/adjuntos-cierre";
 import type { VentaConDetalle } from "@/lib/historial-cuenta";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 // Las tres secciones que sabían del CLIENTE y solo vivían en "Ver ficha
 // completa" (/comercial/cartera/[id]).
@@ -93,14 +94,13 @@ export function ListaInformesCierre({
               )}
             </span>
             {!sinPrecios && (
-              <a
-                href={`/api/informes/${inf.id}/pdf`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+              <VerPdfEnLaApp
+                url={`/api/informes/${inf.id}/pdf`}
+                titulo={inf.codigo ?? "Informe de cierre"}
+                className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
               >
                 <FileText className="size-3" /> Ver PDF
-              </a>
+              </VerPdfEnLaApp>
             )}
           </div>
 
@@ -153,15 +153,14 @@ export function TablaComprasAnteriores({ ventas }: { ventas: VentaConDetalle[] }
                 // El documento del archivo está subido a R2: cuando existe, el
                 // Nº de presupuesto es un enlace que lo abre.
                 v.documentoArchivo?.tienePdf ? (
-                  <a
-                    href={`/api/cotizaciones-historicas/${v.documentoArchivo.id}/pdf`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <VerPdfEnLaApp
+                    url={`/api/cotizaciones-historicas/${v.documentoArchivo.id}/pdf`}
+                    titulo={v.referencia_historica ?? "Presupuesto"}
                     title="Abrir el presupuesto de esta compra"
-                    className="text-primary hover:underline"
+                    className="cursor-pointer text-primary hover:underline"
                   >
                     {v.referencia_historica}
-                  </a>
+                  </VerPdfEnLaApp>
                 ) : (
                   <span title="Nº de presupuesto del registro histórico. El documento no está en el archivo digitalizado.">
                     {v.referencia_historica} <span className="text-muted-foreground">(histórico)</span>

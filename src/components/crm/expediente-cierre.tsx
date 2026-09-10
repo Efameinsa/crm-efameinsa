@@ -10,6 +10,7 @@ import { fechaCalendario } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import type { AdjuntoCierreFirmado } from "@/lib/adjuntos-cierre";
 import type { Compendio } from "@/lib/compendio-cierre";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 /**
  * El expediente de un cierre, completo, cuando hace falta mirarlo.
@@ -86,14 +87,13 @@ export function ExpedienteCierre({
               <p className="text-base font-semibold leading-tight text-foreground">{cliente}</p>
               {clienteDoc && <p className="font-mono text-xs text-muted-foreground">{clienteDoc}</p>}
             </div>
-            <a
-              href={`/api/informes/${informeId}/pdf`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            <VerPdfEnLaApp
+              url={`/api/informes/${informeId}/pdf`}
+              titulo="Informe de cierre"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
             >
               <FileText className="size-4" /> Abrir el informe en PDF
-            </a>
+            </VerPdfEnLaApp>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">

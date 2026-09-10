@@ -7,6 +7,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 export const dynamic = "force-dynamic";
 
@@ -306,14 +307,13 @@ export default async function PresupuestosCentralPage({
               {filas.map((f) => (
                 <TableRow key={f.id}>
                   <TableCell className="py-1.5">
-                    <a
-                      href={f.delArchivo ? `/api/cotizaciones-historicas/${f.id}/pdf` : `/api/cotizaciones/${f.id}/pdf`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-mono font-semibold text-foreground hover:text-primary hover:underline"
+                    <VerPdfEnLaApp
+                      url={f.delArchivo ? `/api/cotizaciones-historicas/${f.id}/pdf` : `/api/cotizaciones/${f.id}/pdf`}
+                      titulo={f.codigo ?? "Presupuesto"}
+                      className="cursor-pointer font-mono font-semibold text-foreground hover:text-primary hover:underline"
                     >
                       {f.codigo}
-                    </a>
+                    </VerPdfEnLaApp>
                   </TableCell>
                   <TableCell className="py-1.5 tabular-nums text-muted-foreground">{fechaHoraLima(f.enviadaAt)}</TableCell>
                   <TableCell className="py-1.5 text-foreground">{nombreComercial(f.comercialId)}</TableCell>
@@ -358,16 +358,15 @@ export default async function PresupuestosCentralPage({
                     </span>
                   </TableCell>
                   <TableCell className="py-1.5">
-                    <a
-                      href={f.delArchivo ? `/api/cotizaciones-historicas/${f.id}/pdf` : `/api/cotizaciones/${f.id}/pdf`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-muted-foreground hover:text-primary"
+                    <VerPdfEnLaApp
+                      url={f.delArchivo ? `/api/cotizaciones-historicas/${f.id}/pdf` : `/api/cotizaciones/${f.id}/pdf`}
+                      titulo={f.codigo ?? "Presupuesto"}
+                      className="cursor-pointer text-muted-foreground hover:text-primary"
                       title="Ver el PDF"
                       aria-label={`Ver el PDF de ${f.codigo}`}
                     >
                       <FileDown className="size-3.5" />
-                    </a>
+                    </VerPdfEnLaApp>
                   </TableCell>
                 </TableRow>
               ))}

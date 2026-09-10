@@ -3,6 +3,7 @@ import { totalConIgv } from "@/lib/monto-cotizacion";
 import { createClient } from "@/lib/supabase/server";
 import { fechaLima, fechaCalendarioLarga } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 // Las cotizaciones de un comercial en un período, abribles una por una.
 //
@@ -147,15 +148,14 @@ export async function CotizacionesDelPeriodo({
                   </td>
                   <td className="py-1.5 pl-2 text-right">
                     {f.href ? (
-                      <a
-                        href={f.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                      <VerPdfEnLaApp
+                        url={f.href}
+                        titulo={f.codigo ?? "Presupuesto"}
+                        className="inline-flex cursor-pointer items-center gap-1 font-medium text-primary hover:underline"
                       >
                         <FileDown className="size-3.5" />
                         Ver PDF
-                      </a>
+                      </VerPdfEnLaApp>
                     ) : (
                       <span className="text-muted-foreground/70">sin PDF</span>
                     )}

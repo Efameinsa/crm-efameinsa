@@ -22,6 +22,7 @@ import type { AdjuntoCierreFirmado } from "@/lib/adjuntos-cierre";
 import type { Compendio } from "@/lib/compendio-cierre";
 import type { ContactoInforme } from "@/lib/pdf/informe-cierre-pdf";
 import { cn } from "@/lib/utils";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 /**
  * El cierre de venta como pantalla —de un vistazo— y, con código, como
@@ -405,14 +406,13 @@ export function VistaCierre({
           {puedePedirAnulacion && !editando && (
             <PedirAnulacionBoton informeId={informe.id} codigo={informe.codigo} />
           )}
-          <a
-            href={`/api/informes/${informe.id}/pdf`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-11 items-center gap-2 rounded-md border-2 border-primary/50 bg-background px-5 text-sm font-semibold text-primary shadow-sm hover:bg-primary/5"
+          <VerPdfEnLaApp
+            url={`/api/informes/${informe.id}/pdf`}
+            titulo={informe.codigo ?? "Informe de cierre"}
+            className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md border-2 border-primary/50 bg-background px-5 text-sm font-semibold text-primary shadow-sm hover:bg-primary/5"
           >
             <FileText className="size-4" /> {emitido ? "Ver PDF" : "Borrador en PDF"}
-          </a>
+          </VerPdfEnLaApp>
         </div>
       </div>
 

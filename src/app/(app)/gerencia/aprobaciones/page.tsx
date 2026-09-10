@@ -6,6 +6,7 @@ import { AprobarCotizacionBotones } from "@/components/crm/aprobar-cotizacion-bo
 import { HistorialAprobaciones } from "@/components/crm/historial-aprobaciones";
 import { CompendioGestion } from "@/components/crm/compendio-gestion";
 import { cargarCompendio, type Compendio } from "@/lib/compendio-cierre";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 export const dynamic = "force-dynamic";
 
@@ -134,15 +135,14 @@ export default async function AprobacionesPage() {
                   </details>
                 )}
                 <div className="mt-2.5 flex items-center justify-between gap-3">
-                  <a
-                    href={`/api/cotizaciones/${c.id}/pdf`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  <VerPdfEnLaApp
+                    url={`/api/cotizaciones/${c.id}/pdf`}
+                    titulo={c.codigo ?? "Presupuesto"}
+                    className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary hover:underline"
                   >
                     <FileDown className="size-3.5" />
                     Ver PDF
-                  </a>
+                  </VerPdfEnLaApp>
                   <AprobarCotizacionBotones
                     cotizacionId={c.id}
                     moneda={c.moneda}

@@ -16,6 +16,7 @@ import { UnirACuentaBoton } from "@/components/crm/unir-a-cuenta-boton";
 import { dominioDeCorreo } from "@/lib/central/coincidencias-bandeja";
 import { UrgenciaBoton } from "@/components/crm/urgencia-boton";
 import { cn } from "@/lib/utils";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 /**
  * Una derivación, en la lista de Central.
@@ -205,11 +206,11 @@ export function TarjetaDerivado({
           {fila.cotizaciones.length > 0 && (
             <p className="mt-1 flex flex-wrap gap-1.5">
               {fila.cotizaciones.map((c) => (
-                <Link
+                <VerPdfEnLaApp
                   key={c.id}
-                  href={`/api/cotizaciones/${c.id}/pdf`}
-                  target="_blank"
-                  className="relative z-10 inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-primary hover:bg-accent hover:underline"
+                  url={`/api/cotizaciones/${c.id}/pdf`}
+                  titulo={c.codigo ?? "Presupuesto borrador"}
+                  className="relative z-10 inline-flex cursor-pointer items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-primary hover:bg-accent hover:underline"
                 >
                   <FileDown className="size-3" />
                   <span className="font-mono">{c.codigo ?? "Borrador"}</span>
@@ -219,7 +220,7 @@ export function TarjetaDerivado({
                     </span>
                   )}
                   {c.otraFicha && <span className="text-muted-foreground">· otra ficha</span>}
-                </Link>
+                </VerPdfEnLaApp>
               ))}
             </p>
           )}

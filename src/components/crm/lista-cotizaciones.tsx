@@ -12,6 +12,7 @@ import { fechaHoraLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { CorregirCotizacionBoton } from "@/components/crm/corregir-cotizacion-boton";
 import { cn } from "@/lib/utils";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 /**
  * Las cotizaciones del cliente, en la columna derecha de la oportunidad.
@@ -313,15 +314,14 @@ export function ListaCotizaciones({
               )}
 
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                <a
-                  href={`/api/cotizaciones/${c.id}/pdf`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                <VerPdfEnLaApp
+                  url={`/api/cotizaciones/${c.id}/pdf`}
+                  titulo={c.codigo ?? "Presupuesto borrador"}
+                  className="inline-flex cursor-pointer items-center gap-1 font-medium text-primary hover:underline"
                 >
                   <FileDown className="size-3" />
                   Ver PDF
-                </a>
+                </VerPdfEnLaApp>
                 {/* Duplicar NO se ofrece en un borrador: duplicar existe para
                     versionar un documento que ya está cerrado —una cotización
                     confirmada no se toca, se copia (regla de gerencia de

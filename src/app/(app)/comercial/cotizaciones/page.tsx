@@ -10,6 +10,7 @@ import { fechaLima } from "@/lib/fechas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 export const dynamic = "force-dynamic";
 
@@ -206,14 +207,15 @@ export default async function MisCotizacionesPage({
           className="absolute inset-0 rounded-md"
         />
       ) : (
-        <a
-          href={f.href}
-          target="_blank"
-          rel="noreferrer"
+        <VerPdfEnLaApp
+          url={f.href}
+          titulo={f.codigo ?? f.cliente}
           title="Abrir el PDF"
           aria-label={`Abrir el PDF de ${f.codigo ?? f.cliente}`}
-          className="absolute inset-0 rounded-md"
-        />
+          className="absolute inset-0 cursor-pointer rounded-md"
+        >
+          <span className="sr-only">Abrir el PDF</span>
+        </VerPdfEnLaApp>
       )}
       <span
         className={cn(
@@ -274,16 +276,15 @@ export default async function MisCotizacionesPage({
             >
               <PencilLine className="size-3" /> Editar
             </Link>
-            <a
-              href={`/api/cotizaciones/${f.id}/pdf`}
-              target="_blank"
-              rel="noreferrer"
+            <VerPdfEnLaApp
+              url={`/api/cotizaciones/${f.id}/pdf`}
+              titulo={`Borrador de ${f.cliente}`}
               title="Abrir el borrador en PDF"
               aria-label={`Abrir el borrador en PDF de ${f.cliente}`}
-              className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="inline-flex size-6 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <FileDown className="size-3.5" />
-            </a>
+            </VerPdfEnLaApp>
           </>
         ) : (
           <>

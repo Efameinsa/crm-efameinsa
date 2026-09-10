@@ -3,6 +3,7 @@ import { montoCotizacion } from "@/lib/monto-cotizacion";
 import { fechaHoraLima } from "@/lib/fechas";
 import { SeccionPlegable } from "@/components/crm/seccion-panel";
 import { cn } from "@/lib/utils";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 /**
  * Lo que gerencia ya resolvió.
@@ -109,15 +110,14 @@ export function HistorialAprobaciones({ filas }: { filas: FilaHistorial[] }) {
                 </p>
               )}
 
-              <a
-                href={`/api/cotizaciones/${c.id}/pdf`}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              <VerPdfEnLaApp
+                url={`/api/cotizaciones/${c.id}/pdf`}
+                titulo={c.codigo ?? "Presupuesto"}
+                className="mt-1.5 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary hover:underline"
               >
                 <FileDown className="size-3.5" />
                 Ver PDF
-              </a>
+              </VerPdfEnLaApp>
             </div>
           );
         })}

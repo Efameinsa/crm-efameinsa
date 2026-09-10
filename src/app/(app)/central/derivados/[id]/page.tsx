@@ -27,6 +27,7 @@ import { cargarSupervisores } from "@/lib/supervisores";
 import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { UrgenciaBoton } from "@/components/crm/urgencia-boton";
 import { cn } from "@/lib/utils";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 export const dynamic = "force-dynamic";
 
@@ -495,10 +496,10 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
               <ul className="space-y-1.5">
                 {fila.cotizaciones.map((c) => (
                   <li key={c.id}>
-                    <Link
-                      href={`/api/cotizaciones/${c.id}/pdf`}
-                      target="_blank"
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    <VerPdfEnLaApp
+                      url={`/api/cotizaciones/${c.id}/pdf`}
+                      titulo={c.codigo ?? "Presupuesto borrador"}
+                      className="flex w-full cursor-pointer items-center gap-2 text-left text-sm text-primary hover:underline"
                     >
                       <FileDown className="size-4 flex-none" />
                       <span className="font-mono">{c.codigo ?? "Borrador"}</span>
@@ -507,7 +508,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
                           {c.moneda} {Number(c.total).toLocaleString("es-PE")}
                         </span>
                       )}
-                    </Link>
+                    </VerPdfEnLaApp>
                     <span className="ml-6 text-xs text-muted-foreground">
                       {c.enviada_at ? `Enviada ${fechaHoraLima(c.enviada_at)}` : "Sin enviar al cliente"}
                       {c.otraFicha ? " · en otra ficha del cliente" : ""}

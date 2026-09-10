@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BorrarBorradorBoton } from "@/components/crm/borrar-borrador-boton";
 import { ReenviarCierreBoton } from "@/components/crm/devolver-cierre-boton";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 export const dynamic = "force-dynamic";
 
@@ -261,16 +262,15 @@ export default async function MisCierresPage({
                 )}
               </span>
               <span className="flex items-center justify-end gap-0.5">
-                <a
-                  href={`/api/informes/${f.id}/pdf`}
-                  target="_blank"
-                  rel="noreferrer"
+                <VerPdfEnLaApp
+                  url={`/api/informes/${f.id}/pdf`}
+                  titulo={f.codigo ?? `Cierre de ${f.cliente_nombre}`}
                   title="Abrir el PDF"
                   aria-label={`Abrir el PDF del cierre de ${f.cliente_nombre}`}
-                  className="relative z-10 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  className="relative z-10 inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >
                   <FileText className="size-3.5 flex-none" />
-                </a>
+                </VerPdfEnLaApp>
                 {/* Editar el borrador (03-09): el lápiz dice a la vista que un
                     borrador se sigue, aunque la fila entera ya lleve ahí. */}
                 {!f.emitido_at && !f.anulado_at && (

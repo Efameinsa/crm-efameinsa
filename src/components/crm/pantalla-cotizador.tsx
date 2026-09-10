@@ -41,6 +41,7 @@ import type {
   ProductoCotizable,
 } from "@/components/crm/tipos-cotizador";
 import type { ContextoCotizador } from "@/lib/datos-cotizador";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 /**
  * La pantalla de armar una cotización.
@@ -1537,15 +1538,14 @@ export function PantallaCotizador({
 
             <div className="flex items-center justify-between gap-2 text-xs">
               {cotizacionId ? (
-                <a
-                  href={`/api/cotizaciones/${cotizacionId}/pdf`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                <VerPdfEnLaApp
+                  url={`/api/cotizaciones/${cotizacionId}/pdf`}
+                  titulo="Presupuesto borrador"
+                  className="inline-flex cursor-pointer items-center gap-1 font-medium text-primary hover:underline"
                 >
                   <FileDown className="size-3.5" />
                   Ver el PDF del borrador
-                </a>
+                </VerPdfEnLaApp>
               ) : (
                 <span className="text-muted-foreground">El PDF se puede ver al agregar el primer {unidad}.</span>
               )}
