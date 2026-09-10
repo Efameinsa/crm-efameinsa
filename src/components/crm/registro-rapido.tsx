@@ -123,6 +123,9 @@ export function RegistroRapido({
 
   const resultado = resultados.find((r) => r.id === resultadoId) ?? null;
   const esRechazo = resultado?.efecto === "rechazo";
+  // La alternativa al rechazo, buscada por su código y no por su nombre: hay
+  // dos «Compra a futuro» en el catálogo y solo una está activa.
+  const aFuturo = resultados.find((r) => r.codigo === "COMPRA_FUTURO") ?? null;
   const faltante = !esRechazo && !!proximaAccionAt && !proximaAccion.trim();
 
   function elegirQueHacer(texto: string) {
@@ -363,6 +366,31 @@ export function RegistroRapido({
                 <p className="rounded-md border border-primary/30 bg-primary/5 p-2.5 text-xs text-foreground">
                   Puede armar la cotización ahora mismo desde la sección <b>Cotizar</b> de la ficha.
                 </p>
+              )}
+
+              {/* ANTES DE RECHAZAR, LA OTRA PUERTA (gerencia, 10-09). El
+                  10-09 se rechazaron 25 oportunidades de un tirón «para que ya
+                  no aparezcan como pendientes». Carlos lo devolvió: «no puedes
+                  poner todo rechazado, rechazado […] tenemos que tener
+                  criterio», y señaló lo que corresponde en su lugar —«en qué
+                  quedó dice compra a futuro […] esta compra a futuro te manda
+                  un calendario y eso es lo que se tiene que hacer»—. Existía
+                  desde siempre; el problema era que nadie la veía: es el
+                  chip 12 de 15 y el rechazo estaba a un toque. Acá se ofrece
+                  justo cuando se está por rechazar, que es cuando importa. */}
+              {esRechazo && aFuturo && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs leading-relaxed text-amber-900">
+                  ¿El cliente dijo que no <b>por ahora</b>, o que no <b>nunca</b>? Si es por ahora, no lo rechace:
+                  márquelo como <b>Compra a futuro</b> y queda agendado para retomarlo. El rechazo es para cuando ya
+                  no se vuelve.
+                  <button
+                    type="button"
+                    onClick={() => elegirResultado(aFuturo)}
+                    className="mt-2 block cursor-pointer rounded-md border border-amber-500 bg-white px-2.5 py-1 font-semibold text-amber-900 hover:bg-amber-100"
+                  >
+                    Mejor: Compra a futuro
+                  </button>
+                </div>
               )}
 
               {esRechazo && (

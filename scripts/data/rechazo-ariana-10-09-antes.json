@@ -1,0 +1,177 @@
+[
+ {
+  "id": "80022c36-0846-4eaa-82ad-a5916d2a140d",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "ANGGIE LOYOLA"
+ },
+ {
+  "id": "4fcc8d6b-f7fe-45af-ba12-004fd6f0bfcf",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "CALZADO TAZ S.A.C."
+ },
+ {
+  "id": "710f005e-d9a3-4980-830c-5b0532bf3f6e",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "EBERT FERNANDO LLANCAY DUEÑAS"
+ },
+ {
+  "id": "0d94452d-2ecb-4f8c-a818-49819a0e7343",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "EDILBERTO OMAR CORDOVA HUAMANI"
+ },
+ {
+  "id": "ba515a41-ac8e-4d5c-8939-e49f79bff7f9",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "ELI FARFAN"
+ },
+ {
+  "id": "c82864a2-d726-4a0f-a834-eeee35ff03f5",
+  "etapa": "asignada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "ELI FARFAN"
+ },
+ {
+  "id": "235a1957-3f6a-4e2f-8f55-e14604dc37b6",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "HUARI PRADO PERCY WILMER"
+ },
+ {
+  "id": "88d807bd-ed22-406c-9416-4a910a8ba646",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "JAMIL ROSALES"
+ },
+ {
+  "id": "3474dbfd-f16d-42ad-a3d8-9f5582cfee65",
+  "etapa": "asignada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "JIMMY MORE RUMICHE"
+ },
+ {
+  "id": "c752c2be-011b-4efd-a247-2181a76abb0d",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "JOEL ORTEGA"
+ },
+ {
+  "id": "87704032-7cad-4607-8273-db7b47e806f2",
+  "etapa": "asignada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "JOEL ORTEGA"
+ },
+ {
+  "id": "548c5a3b-08eb-4167-8e63-2caf171603ae",
+  "etapa": "asignada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "JUAN MANUEL ALFARO GUTIERREZ"
+ },
+ {
+  "id": "4956e536-5cb4-400e-9cb6-c2766c43332b",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "LEONARDO RODRIGO"
+ },
+ {
+  "id": "6151bf92-aa5f-4a25-b953-3beb5a349d9b",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "MARIBEL ORTIZ"
+ },
+ {
+  "id": "7c5f1227-fe17-442b-9da5-d2da3f3919b6",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "MUÑOZ SOTELO RAUL LUCIANO"
+ },
+ {
+  "id": "2087d77e-feeb-4533-a684-401b0bfd1f46",
+  "etapa": "asignada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "NATALIA POBLETE"
+ },
+ {
+  "id": "1a7b1231-c4a9-4ce2-bf96-98841d6faa43",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "PROVEEDORES INNOVADORES CON CONCIENCIA SOCIAL E.I.R.L."
+ },
+ {
+  "id": "a0e8b455-5606-462f-962b-1d2e9325e058",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "QUISPE AQUINO ROSEMARY"
+ },
+ {
+  "id": "7ef0e1f8-d824-4802-b9e8-994f2bf47b6f",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "RAMOS BAIZ ELIAS"
+ },
+ {
+  "id": "f4c8a1cb-0135-4224-ba35-4ab946f74514",
+  "etapa": "seguimiento",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "RIVERA TRIGOSO JORGE RICARDO"
+ },
+ {
+  "id": "6758ee80-7739-431e-a1e5-992c719274f2",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "RUBEN CASTILLO PAITA"
+ },
+ {
+  "id": "91b5fb96-bcb7-4fe5-ba05-ffe7ea9d29c1",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "SERGIO ROJAS RAMIREZ"
+ },
+ {
+  "id": "38df7326-0c19-4a35-a782-c1382a4c57c3",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "SOLUCIONES LOGISTICAS COMERCIALES DEL PERU SOCIEDAD ANONIMA CERRADA"
+ },
+ {
+  "id": "6c539fc1-1dbf-478c-a733-5c806a52a8ee",
+  "etapa": "filtrada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "VICTOR QUISPE PUMA VICTOR RUMMIL"
+ },
+ {
+  "id": "883c06af-9f41-4c28-9fb6-f319669980d2",
+  "etapa": "cotizada",
+  "motivo_rechazo_id": null,
+  "cerrada_at": null,
+  "razon_social": "YOYO PQ"
+ }
+]
