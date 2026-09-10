@@ -5,6 +5,8 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaLima } from "@/lib/fechas";
 import { BandejaPorCliente } from "@/components/crm/bandeja-por-cliente";
+import { MandadoACentral } from "@/components/crm/mandado-a-central";
+import { listarMandadoACentral } from "@/lib/mandado-a-central";
 import { PestanasCasos } from "@/components/crm/pestanas-casos";
 import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
@@ -206,6 +208,12 @@ export default async function PostventaPage() {
   // Las atendidas de hoy, aparte: la que sale de la bandeja tiene que verse
   // en algún lado con su hora y quién la tomó (pedido de la señorita de
   // postventa el 01-09: «si ya se atendió debería aparecer un registro»).
+  // Lo que ELLA mandó a Central y todavía no le devuelven. Es la lista que
+  // faltaba el 10-09, cuando registró dos veces la misma solicitud de LA
+  // ARBOLEDA porque «no aparecían» las que había emitido (el porqué completo,
+  // en src/lib/mandado-a-central.ts).
+  const mandadoACentral = await listarMandadoACentral(supabase, perfil.id);
+
   const { data: atendidasHoy } = await supabase
     .from("atenciones")
     .select("id, cliente_texto, tipo, etapa, solicitado_at, tomada_at, cerrado_at, cuentas(razon_social), tomadaPor:tomada_por(nombre, codigo_comercial)")
@@ -446,6 +454,12 @@ export default async function PostventaPage() {
           />
         )}
       </SeccionPanel>
+
+      {/* Va pegada a la bandeja porque contesta su reverso: arriba, lo que
+          Central ya le mandó; acá, lo que ella mandó a Central y todavía no
+          vuelve. Sin esto el trabajo registrado desaparece de la pantalla
+          entre que se registra y Central lo deriva. */}
+      <MandadoACentral filas={mandadoACentral} contexto="postventa" />
 
       {/* El registro de lo atendido: la atención que salió de la bandeja
           porque alguien ya hizo algo con ella, con la hora y quién. Lo que

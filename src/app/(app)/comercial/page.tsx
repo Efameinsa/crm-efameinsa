@@ -18,6 +18,8 @@ import { cargarParque, type ClienteParque } from "@/lib/parque";
 import { ETIQUETA_MANTENIMIENTO } from "@/lib/ruta-mantenimiento";
 import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
 import { veTodoPostventa } from "@/lib/postventa";
+import { MandadoACentral } from "@/components/crm/mandado-a-central";
+import { listarMandadoACentral } from "@/lib/mandado-a-central";
 
 interface FilaMiDia {
   id: string;
@@ -645,6 +647,9 @@ export default async function ComercialPage({
     });
   }
 
+  // Lo que este comercial pasó a Central y todavía no le devuelven.
+  const mandadoACentral = await listarMandadoACentral(supabase, perfil.id);
+
   return (
     <div className="space-y-5">
       {pulso && <BarraSemana pulso={pulso} href="/comercial/mi-gestion" />}
@@ -748,6 +753,15 @@ export default async function ComercialPage({
           />
         </CardContent>
       </Card>
+
+      {/* El mismo hueco que le costó un duplicado a postventa el 10-09, del
+          lado del comercial: «Pasar contacto a Central» (0125) tampoco dejaba
+          rastro en ninguna pantalla suya entre que lo registra y Central lo
+          deriva. Acá SÍ se oculta cuando no hay nada: el comercial pasa
+          contactos de vez en cuando, y un panel siempre vacío en su pantalla
+          de trabajo es ruido. En la de postventa, que lo usa a diario, se
+          muestra siempre. */}
+      {mandadoACentral.length > 0 && <MandadoACentral filas={mandadoACentral} contexto="comercial" />}
     </div>
   );
 }

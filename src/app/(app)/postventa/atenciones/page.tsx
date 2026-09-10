@@ -8,6 +8,8 @@ import { puedeVerPrecios } from "@/lib/postventa";
 import { CasosAnteriores } from "@/components/crm/casos-anteriores";
 import { ColaDespachos } from "@/components/crm/cola-despachos";
 import { HistoricoPostventa } from "@/components/crm/historico-postventa";
+import { MandadoACentral } from "@/components/crm/mandado-a-central";
+import { listarMandadoACentral } from "@/lib/mandado-a-central";
 import { PestanasCasos } from "@/components/crm/pestanas-casos";
 import {
   ETAPAS_ATENCION,
@@ -77,6 +79,12 @@ export default async function AtencionesPage({
     perfiles: { nombre: string; codigo_comercial: string | null } | null;
   };
   const todas = (data ?? []) as unknown as Fila[];
+  // ACÁ ES DONDE LA DEJA EL FLUJO. «Registrar y derivar a Central» termina con
+  // un `router.push("/postventa/atenciones")`, y lo que acaba de registrar
+  // TODAVÍA NO es una atención —la atención nace cuando Central la devuelve
+  // (0132)—, así que aterrizaba en una pantalla donde su trabajo no estaba.
+  // De ahí salió el duplicado del 10-09 (src/lib/mandado-a-central.ts).
+  const mandadoACentral = await listarMandadoACentral(supabase, perfil.id);
   const resumen = resumirAtenciones(todas);
   const abiertas = todas.filter(estaAbierta);
   const enRojo = abiertas.filter((a) => relojAtencion(a).estado === "rojo").length;
@@ -93,6 +101,10 @@ export default async function AtencionesPage({
         <Tarjeta etiqueta="En proceso" valor={resumen.enProceso} alerta={enRojo > 0} />
         <Tarjeta etiqueta="Cerradas" valor={resumen.cerradas} bien />
       </div>
+
+      {/* Solo en la pestaña de trabajo: es la que se abre al registrar, y en el
+          archivo (cerradas, histórico) esta lista no viene a cuento. */}
+      {pestana === "" && <MandadoACentral filas={mandadoACentral} contexto="postventa" />}
 
       <SeccionPanel
         titulo="Atenciones del área"

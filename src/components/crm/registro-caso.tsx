@@ -149,12 +149,31 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
         toast.error(r.error, { duration: 8000 });
         return;
       }
-      toast.success(
-        r.repetido
-          ? `Este cliente ya tenía un caso igual sin derivar (${r.codigo}). No se duplicó.`
-          : `Registrado como ${r.codigo}. Está en la bandeja de Central para que lo derive.`,
-        { duration: 7000 },
-      );
+      // EL AVISO TIENE QUE DECIR DÓNDE ESTÁ LO ANTERIOR. «No se duplicó» a
+      // secas deja a quien registra sin saber si su trabajo existe — que es
+      // justo lo que la llevó a registrar dos veces el mantenimiento de HOSTAL
+      // LA ARBOLEDA el 10-09. Ahora dice hace cuánto lo registró, en qué anda,
+      // y lleva al expediente cuando Central ya se lo devolvió (0206).
+      if (r.repetido) {
+        const hace = r.minutos !== undefined && r.minutos < 60 ? `hace ${Math.max(1, r.minutos)} min` : "hoy";
+        const enCentral = r.estado === "pendiente_triaje";
+        toast.info(
+          enCentral
+            ? `Ya lo registró ${hace} (${r.codigo}) y sigue en la bandeja de Central. No se duplicó.`
+            : `Ya lo registró ${hace} (${r.codigo}) y Central ya lo derivó. No se duplicó.`,
+          {
+            duration: 10000,
+            action: r.oportunidad
+              ? { label: "Abrir el caso", onClick: () => router.push(`/comercial/oportunidades/${r.oportunidad}`) }
+              : undefined,
+          },
+        );
+      } else {
+        toast.success(
+          `Registrado como ${r.codigo}. Está en la bandeja de Central para que lo derive — lo va a ver en «Lo que mandé a Central».`,
+          { duration: 7000 },
+        );
+      }
       router.push("/postventa/atenciones");
     });
   }

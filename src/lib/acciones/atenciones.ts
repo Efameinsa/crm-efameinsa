@@ -49,7 +49,15 @@ export async function registrarAtencion(datos: {
    * teléfono, que es de donde salen los casos «sin equipo identificar».
    */
   adjuntos?: { path: string; nombre: string; tipo: string; tamano: number }[];
-}): Promise<{ error: string | null; codigo?: string; repetido?: boolean }> {
+}): Promise<{
+  error: string | null;
+  codigo?: string;
+  repetido?: boolean;
+  /** Cuando ya existía: en qué anda el anterior y hace cuánto se registró (0206). */
+  estado?: string;
+  oportunidad?: string | null;
+  minutos?: number;
+}> {
   if (!datos.cuentaId) return { error: "Falta el cliente: Central no puede derivar un caso sin cliente" };
   if (datos.detalle.trim().length < 10) {
     return { error: "Escriba qué le pasa al equipo: es lo que va a leer Central para derivarlo" };
@@ -74,8 +82,21 @@ export async function registrarAtencion(datos: {
 
   revalidatePath("/central");
   refrescar();
-  const r = data as { codigo: string; repetido: boolean };
-  return { error: null, codigo: r.codigo, repetido: r.repetido };
+  const r = data as {
+    codigo: string;
+    repetido: boolean;
+    estado?: string;
+    oportunidad?: string | null;
+    minutos?: number;
+  };
+  return {
+    error: null,
+    codigo: r.codigo,
+    repetido: r.repetido,
+    estado: r.estado,
+    oportunidad: r.oportunidad ?? null,
+    minutos: r.minutos,
+  };
 }
 
 /**
