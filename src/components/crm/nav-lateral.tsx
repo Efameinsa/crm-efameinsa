@@ -155,6 +155,15 @@ const ENLACES_POSTVENTA = [
   // (informe de UX del 08-09). Es la pantalla que genera plata y nadie la
   // encontraba: ahora el menú lleva ahí.
   { href: "/comercial/ruta", etiqueta: "Preventivos por vender", icono: Route },
+  // Y DE DÓNDE SALEN LOS QUE TODAVÍA NO ESTÁN EN LA RUTA (gerencia, 10-09).
+  // «Preventivos por vender» son los 327 clientes que el área ya tocó alguna
+  // vez. Carlos: «terminando ese barrido […] ¿ahora qué toca? Venderle o
+  // ofrecerle el mantenimiento a todos los demás clientes de toda la empresa,
+  // que están fuera de esos 100 […] ¿y dónde están los 900?». Acá están: las
+  // ventas de la empresa entera, por año, sin montos, y con «Ofrecer
+  // mantenimiento» en cada fila. Es la pantalla del parque, que ahora arranca
+  // de las ventas y no de las máquinas fichadas (0208/0209).
+  { href: "/comercial/parque?todos=1", etiqueta: "Ventas de la empresa", icono: Package },
   // COTIZACIONES, QUE ES LO QUE SE PERSIGUE. La pantalla ya existía y el área
   // no tenía cómo llegar: sin ella nadie veía cuál vence ni cuál lleva diez
   // días sin respuesta, que es donde se pierden ventas en silencio (informe de
@@ -187,7 +196,7 @@ const ENLACES_POSTVENTA = [
 const SECCIONES_POSTVENTA = (() => {
   const de = (...hrefs: string[]) => ENLACES_POSTVENTA.filter((e) => hrefs.includes(e.href));
   const pedidos = de("/postventa/control");
-  const vender = de("/comercial/ruta", "/comercial/cotizaciones", "/comercial/cierres");
+  const vender = de("/comercial/ruta", "/comercial/parque?todos=1", "/comercial/cotizaciones", "/comercial/cierres");
   const clientes = de("/comercial/cartera");
   const repartidos = new Set([...pedidos, ...vender, ...clientes].map((e) => e.href));
   return {

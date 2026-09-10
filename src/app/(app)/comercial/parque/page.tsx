@@ -28,7 +28,19 @@ export const dynamic = "force-dynamic";
  *
  * El comercial ve su cartera. Quien ve todo postventa (el área, gerencia, o
  * el comercial con la llave) ve el parque entero, con la cartera de cada uno.
+ *
+ * 10-09, GERENCIA: LA LISTA ARRANCA DE LAS VENTAS. Antes salía solo de las
+ * máquinas fichadas y eso dejaba fuera a casi 400 clientes a los que la empresa
+ * sí les vendió. Carlos: «yo como postventa tendría que tener acá todas las
+ * ventas de todos los comerciales […] ¿y dónde están los 900?». Y con eso, dos
+ * cosas más que pidió en la misma reunión: que se trabaje CRONOLÓGICAMENTE
+ * hacia atrás —«estabas en el 2024, vas retrocediendo en el tiempo»—, por eso
+ * el filtro por año de compra; y que en la lista se vea DE QUIÉN ES cada
+ * cliente sin tener que abrirlo.
  */
+
+/** Cuántos clientes se muestran antes del «ver todos». */
+const POR_TANDA = 80;
 
 const COLOR: Record<EstadoMantenimiento, string> = {
   nunca: "bg-destructive/10 text-destructive",
@@ -40,7 +52,7 @@ const COLOR: Record<EstadoMantenimiento, string> = {
 export default async function ParquePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; estado?: string; todos?: string }>;
+  searchParams: Promise<{ q?: string; estado?: string; todos?: string; anio?: string; todas?: string }>;
 }) {
   const [perfil, sp] = await Promise.all([requerirPerfil(), searchParams]);
   // Solo para quien vende mantenimiento (Santos, 02-09: «solo prepárala para
@@ -55,13 +67,33 @@ export default async function ParquePage({
     ? (sp.estado as EstadoMantenimiento)
     : null;
   const q = (sp.q ?? "").trim().toLowerCase();
+  const anio = /^\d{4}$/.test(sp.anio ?? "") ? (sp.anio as string) : null;
 
   const todos = await cargarParque(supabase, { comercialId: verTodo ? null : perfil.id, hoy });
-  const filas = todos.filter((c) => (!estado || c.estado === estado) && (!q || c.razonSocial.toLowerCase().includes(q) || (c.numDoc ?? "").includes(q)));
+  const filas = todos.filter(
+    (c) =>
+      (!estado || c.estado === estado) &&
+      (!anio || (c.ultimaCompraAt ?? "").slice(0, 4) === anio) &&
+      (!q || c.razonSocial.toLowerCase().includes(q) || (c.numDoc ?? "").includes(q)),
+  );
   const cuenta = (e: EstadoMantenimiento) => todos.filter((c) => c.estado === e).length;
+  // Los años en los que la empresa vendió, del más nuevo al más viejo, con
+  // cuántos clientes hay en cada uno. Es el orden en que se trabaja la campaña.
+  const anios = [...todos.reduce((m, c) => {
+    const a = (c.ultimaCompraAt ?? "").slice(0, 4);
+    if (a) m.set(a, (m.get(a) ?? 0) + 1);
+    return m;
+  }, new Map<string, number>())].sort((a, b) => b[0].localeCompare(a[0]));
+
+  // POR TANDAS. Con las ventas adentro son 696 clientes y la página pesaba tres
+  // megas: se muestran los primeros y el resto está a un clic, igual que en la
+  // ruta de mantenimiento. La campaña se trabaja de a diez llamadas, no de a
+  // setecientas.
+  const todas = sp.todas === "1";
+  const mostradas = todas ? filas : filas.slice(0, POR_TANDA);
   const enlace = (cambios: Record<string, string | null>) => {
     const p = new URLSearchParams();
-    const actual: Record<string, string | null> = { q: q || null, estado, todos: verTodo ? "1" : null, ...cambios };
+    const actual: Record<string, string | null> = { q: q || null, estado, anio, todos: verTodo ? "1" : null, todas: todas ? "1" : null, ...cambios };
     for (const [k, v] of Object.entries(actual)) if (v) p.set(k, v);
     const s = p.toString();
     return `/comercial/parque${s ? `?${s}` : ""}`;
@@ -69,11 +101,11 @@ export default async function ParquePage({
 
   return (
     <SeccionPanel
-      titulo={verTodo ? "Parque instalado de la empresa" : "Mi parque"}
+      titulo={verTodo ? "Las ventas de la empresa" : "Mi parque"}
       accion={
         <span className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-secondary px-2.5 py-0.5 font-semibold text-foreground">
-            {todos.length} cliente{todos.length === 1 ? "" : "s"} · {todos.reduce((a, c) => a + c.equipos, 0)} máquinas
+            {todos.length} cliente{todos.length === 1 ? "" : "s"} · {todos.reduce((a, c) => a + c.equipos, 0)} máquinas fichadas
           </span>
           {puedeVerTodo && (
             <span className="inline-flex overflow-hidden rounded-md border border-border font-medium">
@@ -118,9 +150,36 @@ export default async function ParquePage({
         </div>
       </div>
 
+      {/* POR AÑO DE COMPRA (Carlos, 10-09): «estabas en el 2024, vas
+          retrocediendo en el tiempo». La campaña se trabaja de un año a la vez
+          y hacia atrás; sin esto son 696 clientes en una sola lista y no hay
+          por dónde empezar ni cómo saber si un año ya se terminó. */}
+      {anios.length > 1 && (
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Compró en</span>
+          <Link
+            href={enlace({ anio: null })}
+            className={cn("rounded-full border px-2.5 py-1 text-xs font-medium", !anio ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-accent")}
+          >
+            Todos los años
+          </Link>
+          {anios.map(([a, n]) => (
+            <Link
+              key={a}
+              href={enlace({ anio: a })}
+              className={cn("rounded-full border px-2.5 py-1 text-xs font-medium", anio === a ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-accent")}
+            >
+              {a} ({n})
+            </Link>
+          ))}
+        </div>
+      )}
+
       {filas.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {todos.length === 0 ? "Todavía no hay máquinas fichadas en su cartera. Se fichan al cerrar una venta con serie, o desde Equipos instalados en postventa." : "Nada con ese filtro."}
+          {todos.length === 0
+            ? "Todavía no hay ventas ni máquinas fichadas en su cartera. La lista se arma con las ventas registradas y con los equipos que se fichan al cerrar una venta con serie."
+            : "Nada con ese filtro."}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-md border border-border">
@@ -128,25 +187,36 @@ export default async function ParquePage({
             <thead>
               <tr className="border-b border-border bg-secondary/40 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
                 <th className="px-2 py-2 font-medium">Cliente</th>
-                <th className="px-2 py-2 font-medium">Máquinas</th>
+                <th className="px-2 py-2 font-medium">Qué le vendimos</th>
                 <th className="px-2 py-2 font-medium">Último mantenimiento</th>
                 <th className="px-2 py-2 font-medium">Última gestión (de quien sea)</th>
                 <th className="px-2 py-2 font-medium">Mantenimiento</th>
               </tr>
             </thead>
             <tbody>
-              {filas.map((c) => (
-                <FilaParque key={c.cuentaId} c={c} verTodo={verTodo} />
+              {mostradas.map((c) => (
+                <FilaParque key={c.cuentaId} c={c} />
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {mostradas.length < filas.length && (
+        <div className="mt-3 text-center">
+          <Link
+            href={enlace({ todas: "1" })}
+            className="inline-block rounded-md border border-border px-3 py-1.5 text-sm font-semibold text-foreground hover:bg-accent"
+          >
+            Ver los {(filas.length - mostradas.length).toLocaleString("es-PE")} restantes
+          </Link>
         </div>
       )}
     </SeccionPanel>
   );
 }
 
-function FilaParque({ c, verTodo }: { c: ClienteParque; verTodo: boolean }) {
+function FilaParque({ c }: { c: ClienteParque }) {
   return (
     <tr className="border-b border-border align-top last:border-0 hover:bg-accent/40">
       <td className="px-2 py-2">
@@ -154,13 +224,28 @@ function FilaParque({ c, verTodo }: { c: ClienteParque; verTodo: boolean }) {
           {c.razonSocial}
         </Link>
         <span className="block text-[11px] text-muted-foreground">
-          {[c.numDoc, c.zona, verTodo && c.carteraDe ? `cartera ${c.carteraDe}` : null].filter(Boolean).join(" · ") || "—"}
+          {[c.numDoc, c.zona].filter(Boolean).join(" · ") || "—"}
         </span>
+        {/* DE QUIÉN ES, EN LA LISTA (gerencia, 10-09). Estaba solo al abrir la
+            ficha y se pedía verlo desde acá: es lo que evita la llamada cruzada
+            y decide con quién hay que hablar antes de tocar al cliente. La
+            cartera no se mueve: lo que hace postventa es la oportunidad de
+            mantenimiento (0080). */}
+        {c.carteraDe && (
+          <span
+            className="mt-0.5 inline-block rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
+            title={c.carteraNombre ? `Cliente de la cartera de ${c.carteraNombre}` : undefined}
+          >
+            cartera de {c.carteraDe}
+          </span>
+        )}
       </td>
       <td className="px-2 py-2">
-        <span className="font-semibold tabular-nums text-foreground">{c.equipos}</span>
+        <span className="font-semibold tabular-nums text-foreground">
+          {c.equipos > 0 ? `${c.equipos} máquina${c.equipos === 1 ? "" : "s"}` : "sin ficha de equipo"}
+        </span>
         <span className="block max-w-56 truncate text-[11px] text-muted-foreground" title={c.modelos.join(" · ")}>
-          {c.modelos.join(" · ") || "sin modelo"}
+          {c.modelos.join(" · ") || "no consta qué equipo"}
         </span>
         {c.ultimaCompraAt && <span className="block text-[11px] text-muted-foreground">compró {fechaCalendario(c.ultimaCompraAt)}</span>}
       </td>

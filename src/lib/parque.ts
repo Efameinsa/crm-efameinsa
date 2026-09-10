@@ -22,6 +22,21 @@ import { estadoMantenimiento, mesesDesde, type EstadoMantenimiento, type FilaRut
  *
  * La garantía por serie entra cuando lleguen las guías de remisión: hoy solo
  * 11 de 314 equipos la tienen. No se inventa.
+ *
+ * DE DÓNDE SALE LA LISTA (gerencia, 10-09). Salía SOLO de las máquinas
+ * fichadas —310 clientes—, y esa es la mitad de la empresa: hay 696 clientes a
+ * los que se les vendió y a casi 400 nunca se les fichó el equipo, así que para
+ * postventa no existían. Carlos, mirando por dónde empieza a trabajar el área:
+ *
+ *   «yo como postventa tendría que tener acá todas las ventas de todos los
+ *    comerciales, todas las ventas de la empresa, para yo comenzar a atender
+ *    […] ¿y dónde están los 900? Yo como postventa tendría que tener la vista».
+ *
+ * Así que la lista arranca de LAS VENTAS y las máquinas fichadas la completan.
+ * El cliente que compró y no tiene equipo fichado aparece igual, con lo que se
+ * sabe de él: qué compró y cuándo. Sin montos, a propósito — «que salga
+ * solamente la descripción de la cotización, del producto y todo eso, pero que
+ * no salga el monto».
  */
 
 export interface ClienteParque {
@@ -60,7 +75,15 @@ export async function cargarParque(
     .not("cuenta_id", "is", null)
     .limit(2000);
   if (opciones.comercialId) q = q.eq("cuentas.comercial_id", opciones.comercialId);
-  const { data: equipos } = await q;
+
+  // Las ventas de la empresa, que son el punto de partida del área. Van por
+  // `ventas_para_el_parque` (0208) y no por un select a `ventas`: la tabla
+  // trae `monto_total` en la misma fila y el monto no se abre —«que salga
+  // solamente la descripción […] pero que no salga el monto» (Carlos, 10-09)—.
+  const [{ data: equipos }, { data: ventas }] = await Promise.all([
+    q,
+    supabase.rpc("ventas_para_el_parque", { p_comercial: opciones.comercialId }),
+  ]);
 
   type Fila = {
     cuenta_id: string;
@@ -80,8 +103,20 @@ export async function cargarParque(
       perfiles: { codigo_comercial: string | null; nombre: string } | null;
     };
   };
+  type FilaVenta = {
+    cuenta_id: string | null;
+    razon_social: string | null;
+    num_doc: string | null;
+    zona: string | null;
+    comercial_codigo: string | null;
+    comercial_nombre: string | null;
+    ultima_venta: string | null;
+    ventas: number | null;
+    equipos: string[] | null;
+  };
   const filas = (equipos ?? []) as unknown as Fila[];
-  if (filas.length === 0) return [];
+  const filasVenta = (ventas ?? []) as unknown as FilaVenta[];
+  if (filas.length === 0 && filasVenta.length === 0) return [];
 
   const porCuenta = new Map<string, ClienteParque>();
   for (const e of filas) {
@@ -114,23 +149,69 @@ export async function cargarParque(
       if (e.garantia_hasta && (!prev.garantiaHasta || e.garantia_hasta > prev.garantiaHasta)) prev.garantiaHasta = e.garantia_hasta;
     }
   }
+  // Y ahora las ventas. Al cliente que ya vino por su máquina solo le suman la
+  // fecha de compra y el equipo que no estaba fichado; el que no vino, entra
+  // con la ficha que la misma función ya trajo (0211).
+  for (const vt of filasVenta) {
+    const cuentaId = vt.cuenta_id;
+    if (!cuentaId) continue;
+    const equipos = (vt.equipos ?? [])
+      .filter(Boolean)
+      .map((e) => e.split(/\s*[·\n]\s*/)[0].trim().slice(0, 40))
+      .filter(Boolean);
+    const prev = porCuenta.get(cuentaId);
+    if (!prev) {
+      // Sin nombre no se arma una fila: no sirve para llamar a nadie.
+      if (!vt.razon_social) continue;
+      porCuenta.set(cuentaId, {
+        cuentaId,
+        razonSocial: vt.razon_social,
+        numDoc: vt.num_doc,
+        zona: vt.zona,
+        carteraDe: vt.comercial_codigo,
+        carteraNombre: vt.comercial_nombre,
+        // Sin máquina fichada: no se inventa un número. La pantalla lo dice.
+        equipos: 0,
+        modelos: [...new Set(equipos)].slice(0, 4),
+        ultimaCompraAt: vt.ultima_venta ?? null,
+        ultimoMantenimiento: null,
+        mesesSinMantenimiento: null,
+        estado: "sin_dato",
+        garantiaHasta: null,
+        ultimaGestion: null,
+        enGestion: null,
+      });
+    } else {
+      for (const e of equipos) if (!prev.modelos.includes(e) && prev.modelos.length < 4) prev.modelos.push(e);
+      if (vt.ultima_venta && (!prev.ultimaCompraAt || vt.ultima_venta > prev.ultimaCompraAt)) prev.ultimaCompraAt = vt.ultima_venta;
+    }
+  }
+
   const cuentaIds = [...porCuenta.keys()];
 
   // El último mantenimiento también puede estar en los servicios de postventa
   // (los 605 informes importados de R:\) sin que el equipo esté fichado.
+  //
+  // SIN `.in` DE 700 IDS, Y SIN LOTES. Las dos consultas caben enteras —los
+  // mantenimientos hechos y las oportunidades de mantenimiento abiertas son
+  // cientos, no miles— y la RLS ya las recorta a lo que esta persona puede
+  // ver. Pedirlas por lotes eran catorce idas y vueltas para armar una tabla:
+  // seis segundos de página, casi todos de latencia. Lo que no cabe en la URL
+  // no se parte en pedazos si se puede no mandar.
   const [{ data: servicios }, { data: ops }] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("cuenta_id, fecha_confirmacion, tipo_servicio")
-      .in("cuenta_id", cuentaIds)
       .ilike("tipo_servicio", "%manten%")
-      .not("fecha_confirmacion", "is", null),
+      .not("fecha_confirmacion", "is", null)
+      .not("cuenta_id", "is", null)
+      .limit(5000),
     supabase
       .from("oportunidades")
       .select("id, cuenta_id, etapa, tipo_postventa, created_at, proxima_accion, perfiles!oportunidades_comercial_id_fkey(nombre, codigo_comercial)")
-      .in("cuenta_id", cuentaIds)
       .eq("tipo_postventa", "mantenimiento")
-      .not("etapa", "in", "(venta,rechazada,derivada,historico)"),
+      .not("etapa", "in", "(venta,rechazada,derivada,historico)")
+      .limit(2000),
   ]);
   for (const s of servicios ?? []) {
     const c = porCuenta.get(s.cuenta_id as string);
@@ -151,22 +232,23 @@ export async function cargarParque(
 
   // La última gestión de cualquiera, sobre cualquier oportunidad del cliente:
   // comercial o postventa, da igual. Es lo que evita la doble llamada.
-  const { data: gestiones } = await supabase
-    .from("actividades")
-    .select("realizada_at, tipo, oportunidades!inner(cuenta_id), perfiles!actividades_realizada_por_fkey(nombre, codigo_comercial)")
-    .in("oportunidades.cuenta_id", cuentaIds)
-    .not("tipo", "eq", "nota")
-    .order("realizada_at", { ascending: false })
-    .limit(3000);
-  for (const g of gestiones ?? []) {
-    const cuentaId = (g.oportunidades as unknown as { cuenta_id: string }).cuenta_id;
-    const c = porCuenta.get(cuentaId);
+  // Una fila por cliente, pedida por POST (0210). Antes se traían las 2.880
+  // actividades siete veces —una por lote— para quedarse con 696: seis
+  // segundos de página. Es la misma lección de la 0194.
+  const { data: gestiones } = await supabase.rpc("ultima_gestion_de_cuentas", { p_ids: cuentaIds });
+  for (const g of (gestiones ?? []) as {
+    cuenta_id: string;
+    realizada_at: string;
+    tipo: string;
+    quien: string | null;
+    codigo: string | null;
+  }[]) {
+    const c = porCuenta.get(g.cuenta_id);
     if (!c || c.ultimaGestion) continue;
-    const p = g.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
     c.ultimaGestion = {
-      at: g.realizada_at as string,
-      quien: p ? `${p.nombre.split(" ")[0]}${p.codigo_comercial ? ` (${p.codigo_comercial})` : ""}` : "—",
-      tipo: g.tipo as string,
+      at: g.realizada_at,
+      quien: g.quien ? `${g.quien.split(" ")[0]}${g.codigo ? ` (${g.codigo})` : ""}` : "—",
+      tipo: g.tipo,
     };
   }
 
