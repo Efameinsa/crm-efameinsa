@@ -52,7 +52,7 @@ const COLOR: Record<EstadoMantenimiento, string> = {
 export default async function ParquePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; estado?: string; todos?: string; anio?: string; todas?: string }>;
+  searchParams: Promise<{ q?: string; estado?: string; todos?: string; anio?: string; todas?: string; origen?: string }>;
 }) {
   const [perfil, sp] = await Promise.all([requerirPerfil(), searchParams]);
   // Solo para quien vende mantenimiento (Santos, 02-09: «solo prepárala para
@@ -68,18 +68,34 @@ export default async function ParquePage({
     : null;
   const q = (sp.q ?? "").trim().toLowerCase();
   const anio = /^\d{4}$/.test(sp.anio ?? "") ? (sp.anio as string) : null;
+  // EL ORDEN DEL BARRIDO (Carlos, 10-09). Primero los clientes que ya compraron
+  // mantenimiento —«ese cliente teóricamente es el que compra mantenimiento
+  // preventivo»—, año por año hacia atrás; recién cuando ese lote se termina,
+  // los demás: «¿y dónde están los 900?». Mezclados en una sola lista no hay
+  // forma de saber si un año ya se terminó.
+  const origen = sp.origen === "postventa" || sp.origen === "comercial" ? sp.origen : null;
 
   const todos = await cargarParque(supabase, { comercialId: verTodo ? null : perfil.id, hoy });
+  // El que YA compró mantenimiento va en el primer lote aunque también nos haya
+  // comprado equipos: es el que se llama primero. Y el segundo lote es «todo lo
+  // demás», no «los que tienen una venta comercial registrada»: hay 35 clientes
+  // con la máquina fichada y sin fila de venta —entraron por un informe de
+  // servicio— y dejarlos fuera de los dos lotes sería perderlos.
+  const deOrigen = (c: ClienteParque) =>
+    origen === "postventa" ? c.ventasDePostventa > 0 : origen === "comercial" ? c.ventasDePostventa === 0 : true;
   const filas = todos.filter(
     (c) =>
       (!estado || c.estado === estado) &&
+      deOrigen(c) &&
       (!anio || (c.ultimaCompraAt ?? "").slice(0, 4) === anio) &&
       (!q || c.razonSocial.toLowerCase().includes(q) || (c.numDoc ?? "").includes(q)),
   );
   const cuenta = (e: EstadoMantenimiento) => todos.filter((c) => c.estado === e).length;
+  const conCierreDePostventa = todos.filter((c) => c.ventasDePostventa > 0).length;
+  const soloComercial = todos.filter((c) => c.ventasDePostventa === 0).length;
   // Los años en los que la empresa vendió, del más nuevo al más viejo, con
   // cuántos clientes hay en cada uno. Es el orden en que se trabaja la campaña.
-  const anios = [...todos.reduce((m, c) => {
+  const anios = [...todos.filter(deOrigen).reduce((m, c) => {
     const a = (c.ultimaCompraAt ?? "").slice(0, 4);
     if (a) m.set(a, (m.get(a) ?? 0) + 1);
     return m;
@@ -93,7 +109,7 @@ export default async function ParquePage({
   const mostradas = todas ? filas : filas.slice(0, POR_TANDA);
   const enlace = (cambios: Record<string, string | null>) => {
     const p = new URLSearchParams();
-    const actual: Record<string, string | null> = { q: q || null, estado, anio, todos: verTodo ? "1" : null, todas: todas ? "1" : null, ...cambios };
+    const actual: Record<string, string | null> = { q: q || null, estado, anio, origen, todos: verTodo ? "1" : null, todas: todas ? "1" : null, ...cambios };
     for (const [k, v] of Object.entries(actual)) if (v) p.set(k, v);
     const s = p.toString();
     return `/comercial/parque${s ? `?${s}` : ""}`;
@@ -149,6 +165,50 @@ export default async function ParquePage({
           ))}
         </div>
       </div>
+
+      {/* LOS DOS LOTES, Y EN QUÉ ORDEN (gerencia, 10-09). Son dos campañas
+          distintas con el mismo botón: al que ya nos compró un preventivo se lo
+          llama para repetirlo, y al que solo compró la máquina hay que
+          explicarle de cero. Carlos fijó el orden y Santos el alcance: los
+          cierres de postventa del 2020 al 2025 primero, y recién terminado eso,
+          los de los comerciales. */}
+      {verTodo && conCierreDePostventa > 0 && soloComercial > 0 && (
+        <div className="mb-3 rounded-xl border border-border bg-muted/30 p-3">
+          <p className="mb-2 text-xs leading-relaxed text-muted-foreground">
+            Se trabaja en este orden: primero los que <b>ya nos compraron mantenimiento</b> —a esos se les llama para
+            repetirlo—, año por año hacia atrás. Cuando ese lote se termina, recién los demás.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            <Link
+              href={enlace({ origen: "postventa", anio: null })}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-semibold",
+                origen === "postventa" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent",
+              )}
+            >
+              Ya compraron mantenimiento ({conCierreDePostventa.toLocaleString("es-PE")})
+            </Link>
+            <Link
+              href={enlace({ origen: "comercial", anio: null })}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-semibold",
+                origen === "comercial" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent",
+              )}
+            >
+              Solo compraron equipos ({soloComercial.toLocaleString("es-PE")})
+            </Link>
+            <Link
+              href={enlace({ origen: null, anio: null })}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-semibold",
+                !origen ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent",
+              )}
+            >
+              Todos
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* POR AÑO DE COMPRA (Carlos, 10-09): «estabas en el 2024, vas
           retrocediendo en el tiempo». La campaña se trabaja de un año a la vez

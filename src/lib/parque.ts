@@ -51,6 +51,14 @@ export interface ClienteParque {
   /** Modelos, cortos, para leer de un vistazo. */
   modelos: string[];
   ultimaCompraAt: string | null;
+  /**
+   * De dónde salió la venta. Es el orden del barrido que fijó gerencia el
+   * 10-09: primero los clientes que ya compraron mantenimiento —«ese cliente
+   * teóricamente es el que compra mantenimiento preventivo»— y recién después
+   * los 900 que solo compraron equipos.
+   */
+  ventasDePostventa: number;
+  ventasDeComercial: number;
   ultimoMantenimiento: string | null;
   mesesSinMantenimiento: number | null;
   estado: EstadoMantenimiento;
@@ -105,6 +113,8 @@ export async function cargarParque(
   };
   type FilaVenta = {
     cuenta_id: string | null;
+    de_postventa: number | null;
+    de_comercial: number | null;
     razon_social: string | null;
     num_doc: string | null;
     zona: string | null;
@@ -134,6 +144,8 @@ export async function cargarParque(
         equipos: 1,
         modelos: modelo ? [modelo] : [],
         ultimaCompraAt: c.ultima_venta_at ?? e.fecha_venta ?? null,
+        ventasDePostventa: 0,
+        ventasDeComercial: 0,
         ultimoMantenimiento: e.ultimo_mantenimiento ?? null,
         mesesSinMantenimiento: null,
         estado: "sin_dato",
@@ -174,6 +186,8 @@ export async function cargarParque(
         equipos: 0,
         modelos: [...new Set(equipos)].slice(0, 4),
         ultimaCompraAt: vt.ultima_venta ?? null,
+        ventasDePostventa: Number(vt.de_postventa ?? 0),
+        ventasDeComercial: Number(vt.de_comercial ?? 0),
         ultimoMantenimiento: null,
         mesesSinMantenimiento: null,
         estado: "sin_dato",
@@ -184,6 +198,8 @@ export async function cargarParque(
     } else {
       for (const e of equipos) if (!prev.modelos.includes(e) && prev.modelos.length < 4) prev.modelos.push(e);
       if (vt.ultima_venta && (!prev.ultimaCompraAt || vt.ultima_venta > prev.ultimaCompraAt)) prev.ultimaCompraAt = vt.ultima_venta;
+      prev.ventasDePostventa += Number(vt.de_postventa ?? 0);
+      prev.ventasDeComercial += Number(vt.de_comercial ?? 0);
     }
   }
 

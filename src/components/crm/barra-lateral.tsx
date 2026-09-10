@@ -28,6 +28,7 @@ export function BarraLateral({
   rol,
   esPostventa,
   hacePostventa = false,
+  soloPreventivo = false,
   esSoporte = false,
   esOperaciones = false,
   contadorMiDia,
@@ -36,6 +37,7 @@ export function BarraLateral({
   rol: RolUsuario;
   esPostventa: boolean;
   hacePostventa?: boolean;
+  soloPreventivo?: boolean;
   esSoporte?: boolean;
   /** Administrador de operaciones (0114): dicta el código, no ejecuta. */
   esOperaciones?: boolean;
@@ -85,6 +87,7 @@ export function BarraLateral({
         rol={rol}
         esPostventa={esPostventa}
         hacePostventa={hacePostventa}
+        soloPreventivo={soloPreventivo}
         esSoporte={esSoporte}
         esOperaciones={esOperaciones}
         plegada={plegada}

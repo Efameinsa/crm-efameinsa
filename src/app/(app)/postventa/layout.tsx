@@ -18,5 +18,13 @@ export default async function PostventaLayout({ children }: { children: React.Re
   if (!perfil.es_postventa && !perfil.es_soporte && perfil.rol !== "gerencia" && perfil.rol !== "admin") {
     redirect(perfil.rol === "central" ? "/central" : "/comercial");
   }
+  // Y la cuenta que SOLO vende preventivo (0213) tampoco entra: estas
+  // pantallas son las de quien ejecuta el servicio. Santos, 10-09: «Ariana solo
+  // verá ofrecer mantenimiento, cotizar y vender, pero no ve nada del proceso
+  // de gestión, control de pedidos ni nada de eso». Se la manda a su campaña,
+  // que es donde trabaja — no a una pantalla vacía ni a un «no autorizado».
+  if (perfil.solo_preventivo && perfil.rol !== "gerencia" && perfil.rol !== "admin" && !perfil.es_soporte) {
+    redirect("/comercial/ruta");
+  }
   return <>{children}</>;
 }

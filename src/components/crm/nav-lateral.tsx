@@ -224,6 +224,7 @@ export function NavLateral({
   rol,
   esPostventa = false,
   hacePostventa = false,
+  soloPreventivo = false,
   esSoporte = false,
   esOperaciones = false,
   plegada = false,
@@ -250,6 +251,13 @@ export function NavLateral({
    * Le suma un enlace, no le cambia la barra: sigue siendo comercial.
    */
   hacePostventa?: boolean;
+  /**
+   * Cuenta de postventa dedicada a VENDER preventivo (0213). Santos, 10-09:
+   * «Ariana solo verá ofrecer mantenimiento, cotizar y vender, pero Ariana no
+   * ve nada del proceso de gestión, control de pedidos ni nada de eso». Ve la
+   * mitad de la barra del área —la de vender— y no la de ejecutar el servicio.
+   */
+  soloPreventivo?: boolean;
   /** Barra contraída: solo íconos, el nombre va al tooltip. */
   plegada?: boolean;
 }) {
@@ -303,7 +311,18 @@ export function NavLateral({
         { titulo: "Como lo ve un comercial", enlaces: ENLACES_POR_ROL[rol] },
       ]
     : [
-        ...(esPostventa
+        ...(esPostventa && soloPreventivo
+          ? // LA CUENTA QUE SOLO VENDE PREVENTIVO (0213). Dos secciones y no
+            // cuatro: lo que vende y a quién. La bandeja, los pedidos, los
+            // despachos y las atenciones son de quien EJECUTA el servicio —«yo
+            // no tengo nada que ver con cuándo lo vas a ejecutar», Carlos,
+            // 27-08— y acá solo estorban. El layout de /postventa también la
+            // devuelve, para que no se llegue por la URL.
+            [
+              { titulo: "Vender mantenimiento", enlaces: SECCIONES_POSTVENTA.vender },
+              { titulo: "A quién y qué tiene", enlaces: SECCIONES_POSTVENTA.clientes },
+            ]
+          : esPostventa
           ? // CUATRO TRABAJOS, NO NUEVE BOTONES. El informe de UX del 08-09
             // contó nueve destinos donde «tres llevan al mismo sitio y uno no
             // lleva a ninguna parte», y propuso reducirlos a seis. Reducir de

@@ -42,6 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         rol={perfil.rol}
         esPostventa={perfil.es_postventa ?? false}
         hacePostventa={perfil.hace_postventa ?? false}
+        soloPreventivo={perfil.solo_preventivo ?? false}
         esSoporte={perfil.es_soporte ?? false}
         esOperaciones={perfil.es_operaciones ?? false}
         contadorMiDia={contadorMiDia}
