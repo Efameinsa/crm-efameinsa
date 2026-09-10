@@ -9,6 +9,8 @@ import { CargaCotizaciones } from "@/components/crm/carga-cotizaciones";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
 import { AvisoCoincidencia } from "@/components/crm/aviso-coincidencia";
 import { coincidenciasDeLaBandeja } from "@/lib/central/coincidencias-bandeja";
+import { historiaDeCuentas } from "@/lib/central/historia-del-cliente";
+import { HistoriaDelClienteDesplegable } from "@/components/crm/historia-del-cliente";
 import { ConsolidadoCentral } from "@/components/crm/consolidado-central";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
@@ -76,7 +78,7 @@ function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, mod
   const q = supabase
     .from("leads")
     .select(
-      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, adjuntos, utm_campaign, recibido_at, es_prueba, sugerido_a, sugerido_tipo, sugerido_por",
+      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, adjuntos, utm_campaign, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por",
       { count: "exact" },
     )
     .eq("estado", "pendiente_triaje");
@@ -172,10 +174,35 @@ export default async function CentralPage() {
   );
   const repetidos = [...coincidencias.values()].filter((c) => c.clase === "duplicado").length;
 
+  // LA HISTORIA DEL CLIENTE, ANTES DE DERIVAR (Carlos, 10-09). Solo de las
+  // cuentas que están en pantalla, y solo de las que coincidieron: es una por
+  // contacto conocido, no la base entera.
+  const historias = await historiaDeCuentas(
+    supabase,
+    [...new Set([...coincidencias.values()].map((c) => c.cuentaId))],
+  );
+
   // Quién avisó, cuando el contacto lo mandó un comercial desde la ficha de su
   // cliente (migración 0125): Central tiene que poder ver de quién salió sin
   // abrir nada.
   const nombrePorId = new Map((comerciales ?? []).map((c) => [c.id as string, c.nombre as string]));
+
+  // QUIÉN REGISTRÓ EL CONTACTO, EN LA TARJETA (Santos, 10-09): «ve un registro
+  // pero no sabe quién le derivó; recién cuando lo asigna a alguien se
+  // visualiza quién lo derivó». El dato vive en `leads.recibido_por` desde
+  // siempre y se mostraba una pantalla después, en el derivado ya hecho —justo
+  // cuando ya no sirve para decidir—. Los `comerciales` de arriba no alcanzan:
+  // quien registra suele ser Central o gerencia, que no están en esa lista.
+  const idsQueRegistraron = [...new Set((leads ?? []).map((l) => l.recibido_por).filter(Boolean))] as string[];
+  const { data: quienesRegistraron } = idsQueRegistraron.length
+    ? await supabase.from("perfiles").select("id, nombre, codigo_comercial").in("id", idsQueRegistraron)
+    : { data: [] as { id: string; nombre: string; codigo_comercial: string | null }[] };
+  const registradoPor = new Map(
+    (quienesRegistraron ?? []).map((p) => [
+      p.id as string,
+      `${p.codigo_comercial ? `${p.codigo_comercial} · ` : ""}${p.nombre}`,
+    ]),
+  );
 
   // Fotos/PDF que Central adjuntó al registrar (25-08): URLs firmadas en una
   // sola llamada batch, como en el historial de cuenta.
@@ -259,6 +286,15 @@ export default async function CentralPage() {
                     <span className="font-mono">{lead.codigo}</span>
                     <br />
                     {fechaHoraLima(lead.recibido_at)}
+                    <br />
+                    {/* De dónde salió esto. Sin `recibido_por` no lo registró
+                        nadie: entró solo por el formulario de la web o por la
+                        publicidad, y eso también hay que poder distinguirlo. */}
+                    <span className="text-[11px]">
+                      {lead.recibido_por
+                        ? `lo registró ${registradoPor.get(lead.recibido_por) ?? "un usuario dado de baja"}`
+                        : "entró solo (formulario web)"}
+                    </span>
                   </div>
                   <div className="ml-auto flex gap-2">
                     <AsignarLeadDialog
@@ -332,12 +368,24 @@ export default async function CentralPage() {
                     «necesito ver el detalle de la solicitud de cada prospecto
                     nuevo, ya que cada uno tiene diferente interés de compra». */}
                 {coincidencias.has(lead.id) && (
-                  <AvisoCoincidencia
-                    leadId={lead.id}
-                    c={coincidencias.get(lead.id)!}
-                    mensaje={lead.mensaje}
-                    recibidoAt={lead.recibido_at}
-                  />
+                  <>
+                    <AvisoCoincidencia
+                      leadId={lead.id}
+                      c={coincidencias.get(lead.id)!}
+                      mensaje={lead.mensaje}
+                      recibidoAt={lead.recibido_at}
+                    />
+                    {/* Y el triangulito con la historia: el aviso dice de quién
+                        es la ficha; esto dice si esa cartera se está trabajando
+                        de verdad, que es lo que decide la derivación. */}
+                    {historias.has(coincidencias.get(lead.id)!.cuentaId) && (
+                      <HistoriaDelClienteDesplegable
+                        h={historias.get(coincidencias.get(lead.id)!.cuentaId)!}
+                        razonSocial={coincidencias.get(lead.id)!.razonSocial}
+                        cuentaId={coincidencias.get(lead.id)!.cuentaId}
+                      />
+                    )}
+                  </>
                 )}
 
                 <SolicitudLead
