@@ -329,7 +329,15 @@ function FilaParque({ c }: { c: ClienteParque }) {
         )}
       </td>
       <td className="px-2 py-2">
-        {c.enGestion ? (
+        {/* PIDIÓ QUE NO LO LLAMEN (0217). No se le esconde —una fila que
+            desaparece sin explicación se busca por otro lado— pero tampoco se
+            le ofrece el botón: el cliente se lo pidió a la empresa, no al
+            comercial que lo cerró. */}
+        {c.noContactar ? (
+          <span className="inline-block rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1 text-[11px] font-semibold text-destructive">
+            Pidió que no lo contacten
+          </span>
+        ) : c.enGestion ? (
           <Link href={`/comercial/oportunidades/${c.enGestion.oportunidadId}`} className="block rounded-md border border-border px-2 py-1 hover:bg-accent">
             <span className="block font-semibold text-foreground">En gestión por {c.enGestion.quien}</span>
             <span className="block text-[11px] text-muted-foreground">

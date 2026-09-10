@@ -35,8 +35,18 @@ export async function ofrecerMantenimiento(
     return { error: null, oportunidadId: abierta.id as string, yaEstaba: true, quien };
   }
 
-  const { data: cuenta } = await supabase.from("cuentas").select("id, razon_social").eq("id", cuentaId).maybeSingle();
+  const { data: cuenta } = await supabase
+    .from("cuentas")
+    .select("id, razon_social, no_contactar_at")
+    .eq("id", cuentaId)
+    .maybeSingle();
   if (!cuenta) return { error: "No se encontró el cliente" };
+  // Última barrera (0217). La pantalla ya no muestra el botón, pero abrirle una
+  // oportunidad de mantenimiento a quien pidió que no lo llamen es justo lo que
+  // no debe poder pasar por ningún camino.
+  if (cuenta.no_contactar_at) {
+    return { error: "Este cliente pidió que no lo contacten. Si volvió a escribir, quite esa marca en su ficha antes de abrirle una gestión." };
+  }
 
   const hoy = hoyLima();
   const { data: nueva, error } = await supabase

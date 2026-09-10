@@ -1,4 +1,4 @@
-import { CopyCheck, UserCheck } from "lucide-react";
+import { CopyCheck, PhoneOff, UserCheck } from "lucide-react";
 import { fechaLima } from "@/lib/fechas";
 import type { CoincidenciaBandeja } from "@/lib/central/coincidencias-bandeja";
 import { YaEstaEnElSistemaBoton } from "@/components/crm/ya-esta-en-el-sistema-boton";
@@ -55,6 +55,26 @@ export function AvisoCoincidencia({
   const duenio = c.codigoComercial
     ? `${c.codigoComercial}${c.comercialNombre ? ` · ${c.comercialNombre}` : ""}`
     : "sin comercial asignado";
+
+  // PIDIÓ QUE NO LO CONTACTEN (0217). Va ANTES que todo lo demás y reemplaza al
+  // aviso normal: derivarlo sería mandar a un comercial a llamar a alguien que
+  // pidió expresamente que no lo llamen, y el CRM no puede decir eso en letra
+  // chica al final de una tarjeta.
+  if (c.noContactar) {
+    return (
+      <div className="mt-2.5 flex flex-wrap items-start gap-x-3 gap-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-destructive">
+        <PhoneOff className="mt-0.5 size-4 flex-none" />
+        <p className="min-w-[220px] flex-1 text-xs">
+          <b>Este cliente pidió que no lo contacten.</b> Coincide por {c.motivo} con <b>{c.razonSocial}</b>
+          {duenio ? ` — ${duenio}` : ""}, {gestion}.
+          <span className="block text-[11px] opacity-90">
+            No lo derive. Si volvió a escribir por su cuenta y quiere que lo atiendan, esa marca se levanta en la
+            ficha del cliente antes de derivarlo — que lo decida quien la levanta, no la bandeja.
+          </span>
+        </p>
+      </div>
+    );
+  }
 
   if (c.clase === "duplicado") {
     return (

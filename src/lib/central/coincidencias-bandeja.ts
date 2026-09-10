@@ -73,6 +73,12 @@ export interface CoincidenciaBandeja {
    * cliente de C1 desde 2023).
    */
   clase: "duplicado" | "cliente";
+  /**
+   * El cliente pidió que no lo contacten (0217). Central tiene que verlo ANTES
+   * de derivar: derivárselo a un comercial es mandarlo a llamar a alguien que
+   * pidió expresamente que no lo llamen.
+   */
+  noContactar?: boolean;
 }
 
 /** Días entre el ingreso y la última gestión para considerarlo el mismo hecho. */
@@ -231,7 +237,7 @@ export async function coincidenciasDeLaBandeja(
   for (const lote of trozos(ids)) {
     const { data } = await supabase
       .from("cuentas")
-      .select("id, razon_social, num_doc, comercial_id, perfiles(nombre, codigo_comercial)")
+      .select("id, razon_social, num_doc, comercial_id, no_contactar_at, perfiles(nombre, codigo_comercial)")
       .in("id", lote);
     for (const c of (data ?? []) as unknown as FilaCuenta[]) cuentas.set(c.id, c);
   }
@@ -267,6 +273,7 @@ export async function coincidenciasDeLaBandeja(
       ultimaEtapa: op?.etapa ?? null,
       ultimaFecha: op?.created_at ?? null,
       clase: dias <= DIAS_MISMO_HECHO ? "duplicado" : "cliente",
+      noContactar: Boolean((cuenta as unknown as { no_contactar_at?: string | null }).no_contactar_at),
     });
   }
   return resultado;

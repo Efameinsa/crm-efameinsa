@@ -394,3 +394,44 @@ export async function pedirExpediente(
   revalidatePath("/postventa/casos");
   return { error: null, mensaje: (data as string | null) ?? undefined };
 }
+
+/**
+ * LA GESTIÓN Y EL RECHAZO, EN UN SOLO VIAJE.
+ *
+ * Ariana, 10-09: «se supone que cuando se marca eso, en el estado ya debe salir
+ * rechazado». Debía, y la mayoría de las veces salía —130 de 140—, pero diez no:
+ * la pantalla hacía DOS llamadas desde el navegador, una para guardar la
+ * gestión y otra para cerrar la oportunidad, y entre las dos cabe una caída de
+ * señal, una pestaña cerrada o un error que nadie vio. Cuando eso pasaba, la
+ * gestión quedaba escrita —«no da respuesta, descartar»— y la oportunidad
+ * seguía abierta y volvía a aparecer al día siguiente, sin motivo de rechazo.
+ * Le pasó a C1, a C4 y a C5 entre el 26-08 y el 09-09.
+ *
+ * Acá las dos cosas viajan juntas y se resuelven en el servidor: o entran las
+ * dos, o el rechazo falla ANTES de escribir nada y la pantalla lo dice. No se
+ * copia ninguna de las dos —se llaman, que es la regla del repositorio—: la del
+ * rechazo va primero, porque es la que puede negarse (sin motivo no hay
+ * rechazo, y la etapa la valida ella).
+ */
+export async function registrarGestionYRechazar(datos: {
+  gestion: Parameters<typeof registrarActividad>[0];
+  motivoRechazoId: number;
+}): Promise<{ error: string | null }> {
+  if (!datos.motivoRechazoId) return { error: "Seleccione el motivo del rechazo" };
+
+  const cierre = await cambiarEtapa({
+    oportunidadId: datos.gestion.oportunidadId,
+    etapa: "rechazada",
+    motivoRechazoId: datos.motivoRechazoId,
+  });
+  if (cierre.error) return cierre;
+
+  // Si esto fallara, la oportunidad ya quedó cerrada con su motivo —que es lo
+  // que el comercial decidió— y lo que falta es la nota. Se dice cuál de las
+  // dos mitades falló, en vez de un «no se pudo» que obligaría a repetir todo.
+  const gestion = await registrarActividad(datos.gestion);
+  if (gestion.error) {
+    return { error: `La oportunidad quedó rechazada, pero no se pudo guardar la nota: ${gestion.error}` };
+  }
+  return { error: null };
+}

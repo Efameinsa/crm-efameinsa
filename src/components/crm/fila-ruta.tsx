@@ -152,7 +152,17 @@ export function FilaRutaMantenimiento({
             tenerlo que buscar en la ficha convierte una llamada de dos minutos
             en una de cuatro. El wa.me sale del hábito de la casa —la API de
             WhatsApp es v2, el enlace ya funciona hoy—. */}
-        {fila.telefono && !cerrada && (
+        {/* PIDIÓ QUE NO LO LLAMEN (0217). Va antes que el teléfono y en vez
+            del teléfono: si el número sigue a la vista, tarde o temprano
+            alguien marca. La fila se queda —esconderla haría que el mismo
+            cliente reaparezca mañana como «nunca llamado»—. */}
+        {fila.noContactar && !cerrada && (
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-1.5 text-sm font-semibold text-destructive">
+            <PhoneOff className="size-4" /> Pidió que no lo contacten
+          </p>
+        )}
+
+        {fila.telefono && !fila.noContactar && !cerrada && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <a
               href={`tel:${fila.telefono.replace(/[^\d+]/g, "")}`}
@@ -181,7 +191,9 @@ export function FilaRutaMantenimiento({
             en buena parte de esos casos el cliente es de otro comercial y la
             ficha se abre en modo lectura, así que el número que ella consigue
             terminaba en un papel (Ariana, 10-09). */}
-        {!fila.telefono && !cerrada && <AnotarTelefono cuentaId={fila.cuentaId} contacto={fila.contacto} />}
+        {!fila.telefono && !fila.noContactar && !cerrada && (
+          <AnotarTelefono cuentaId={fila.cuentaId} contacto={fila.contacto} />
+        )}
 
         {/* LOS TRES DATOS QUE DECIDEN LA LLAMADA. Antes eran tres cifras de
             11 px alineadas a la derecha; acá cada uno es un cuadro con su

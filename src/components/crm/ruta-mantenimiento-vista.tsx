@@ -113,7 +113,7 @@ export async function RutaMantenimientoVista({
   let consulta = supabase
     .from("oportunidades")
     .select(
-      "id, etapa, proxima_accion, proxima_accion_at, created_at, cerrada_at, monto_estimado, moneda, cuenta_id, cuentas(id, razon_social, num_doc, distrito, provincia, ultima_venta_at, comercial_id)",
+      "id, etapa, proxima_accion, proxima_accion_at, created_at, cerrada_at, monto_estimado, moneda, cuenta_id, cuentas(id, razon_social, num_doc, distrito, provincia, ultima_venta_at, comercial_id, no_contactar_at)",
     )
     .eq("tipo_postventa", "mantenimiento")
     .limit(500);
@@ -254,6 +254,7 @@ export async function RutaMantenimientoVista({
       telefono: o.cuenta_id ? (contactoPorCuenta.get(o.cuenta_id)?.telefono ?? null) : null,
       carteraDe:
         duenoCuenta && duenoCuenta !== perfil.id ? (nombrePorPerfil.get(duenoCuenta) ?? "otro comercial") : null,
+      noContactar: Boolean((o.cuentas as unknown as { no_contactar_at?: string | null } | null)?.no_contactar_at),
     };
   });
 

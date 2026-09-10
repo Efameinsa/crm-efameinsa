@@ -64,6 +64,11 @@ export interface ClienteParque {
   estado: EstadoMantenimiento;
   garantiaHasta: string | null;
   ultimaGestion: { at: string; quien: string; tipo: string } | null;
+  /**
+   * El cliente pidió que no lo contacten (0217). No se le esconde de la lista
+   * —desaparecer sin explicación es peor—: se marca, y no se le ofrece llamar.
+   */
+  noContactar: boolean;
   /** Oportunidad de mantenimiento ya abierta, por quien sea: se ve, no se duplica. */
   enGestion: { oportunidadId: string; quien: string; desde: string; proximaAccion: string | null } | null;
 }
@@ -77,7 +82,7 @@ export async function cargarParque(
   let q = supabase
     .from("equipos_instalados")
     .select(
-      "cuenta_id, serie, modelo_texto, fecha_venta, ultimo_mantenimiento, garantia_hasta, cuentas!inner(id, razon_social, num_doc, distrito, provincia, ultima_venta_at, comercial_id, perfiles(codigo_comercial, nombre))",
+      "cuenta_id, serie, modelo_texto, fecha_venta, ultimo_mantenimiento, garantia_hasta, cuentas!inner(id, razon_social, num_doc, distrito, provincia, ultima_venta_at, comercial_id, no_contactar_at, perfiles(codigo_comercial, nombre))",
     )
     .eq("es_prueba", false)
     .not("cuenta_id", "is", null)
@@ -108,6 +113,7 @@ export async function cargarParque(
       provincia: string | null;
       ultima_venta_at: string | null;
       comercial_id: string | null;
+      no_contactar_at: string | null;
       perfiles: { codigo_comercial: string | null; nombre: string } | null;
     };
   };
@@ -115,6 +121,7 @@ export async function cargarParque(
     cuenta_id: string | null;
     de_postventa: number | null;
     de_comercial: number | null;
+    no_contactar: boolean | null;
     razon_social: string | null;
     num_doc: string | null;
     zona: string | null;
@@ -150,6 +157,7 @@ export async function cargarParque(
         mesesSinMantenimiento: null,
         estado: "sin_dato",
         garantiaHasta: e.garantia_hasta ?? null,
+        noContactar: Boolean(c.no_contactar_at),
         ultimaGestion: null,
         enGestion: null,
       });
@@ -192,12 +200,14 @@ export async function cargarParque(
         mesesSinMantenimiento: null,
         estado: "sin_dato",
         garantiaHasta: null,
+        noContactar: Boolean(vt.no_contactar),
         ultimaGestion: null,
         enGestion: null,
       });
     } else {
       for (const e of equipos) if (!prev.modelos.includes(e) && prev.modelos.length < 4) prev.modelos.push(e);
       if (vt.ultima_venta && (!prev.ultimaCompraAt || vt.ultima_venta > prev.ultimaCompraAt)) prev.ultimaCompraAt = vt.ultima_venta;
+      if (vt.no_contactar) prev.noContactar = true;
       prev.ventasDePostventa += Number(vt.de_postventa ?? 0);
       prev.ventasDeComercial += Number(vt.de_comercial ?? 0);
     }

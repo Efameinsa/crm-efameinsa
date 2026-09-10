@@ -56,6 +56,8 @@ export interface FilaRuta {
    */
   contacto: string | null;
   telefono: string | null;
+  /** Pidió que no lo contacten (0217): se marca y no se ofrece llamarlo. */
+  noContactar?: boolean;
   /**
    * El cliente es de la cartera de otro comercial. No cambia de dueño —regla 1
    * del proyecto y migración 0080—: lo que es de ella es la oportunidad de

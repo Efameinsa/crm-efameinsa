@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import { registrarActividad, cambiarEtapa } from "@/lib/acciones/oportunidades";
+import { registrarActividad, registrarGestionYRechazar } from "@/lib/acciones/oportunidades";
 import { createClient } from "@/lib/supabase/client";
 import { AlertCircle, Paperclip, X, type LucideIcon } from "lucide-react";
 import { ICONO_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
@@ -217,7 +217,12 @@ export function RegistroRapido({
       };
       let r1: { error: string | null };
       try {
-        r1 = await registrarActividad(datos);
+        // EL RECHAZO VIAJA CON LA GESTIÓN (10-09). Antes eran dos llamadas
+        // desde el navegador y entre las dos cabía una caída de señal: diez
+        // veces la nota quedó escrita y la oportunidad siguió abierta.
+        r1 = esRechazo
+          ? await registrarGestionYRechazar({ gestion: datos, motivoRechazoId: Number(motivoId) })
+          : await registrarActividad(datos);
       } catch (err) {
         // NO TODO LO QUE FALLA ES FALTA DE INTERNET. Si el CRM se acaba de
         // actualizar, la pantalla vieja llama a una acción que el servidor
@@ -264,16 +269,7 @@ export function RegistroRapido({
         toast.error(r1.error);
         return;
       }
-      if (esRechazo) {
-        const r2 = await cambiarEtapa({ oportunidadId, etapa: "rechazada", motivoRechazoId: Number(motivoId) });
-        if (r2.error) {
-          toast.error(r2.error);
-          return;
-        }
-        toast.success("Gestión registrada y oportunidad rechazada");
-      } else {
-        toast.success("Gestión registrada");
-      }
+      toast.success(esRechazo ? "Gestión registrada y oportunidad rechazada" : "Gestión registrada");
       limpiar();
     });
   }
