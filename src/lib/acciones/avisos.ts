@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { CONTACTO_FINANZAS, CORREO_FINANZAS, NUMERO_WHATSAPP_FINANZAS } from "@/lib/tesoreria";
 import { avisarFinanzasN8n } from "@/lib/avisos-n8n";
+import { notificar } from "@/lib/notificaciones";
 
 /**
  * Un mismo aviso, a las tres áreas que lo necesitan.
@@ -67,7 +68,25 @@ export async function derivarAviso(datos: {
     documento: string | null;
     telefono: string | null;
     codigo: string | null;
+    oportunidad: string | null;
+    comercial_id: string | null;
   };
+
+  // Y EL AVISO AL COMERCIAL AVISA (0215). Hasta hoy dejaba la nota en el
+  // historial del cliente y nada más: el comercial se enteraba al abrir esa
+  // ficha, que puede ser al día siguiente, con el cliente esperando. La nota
+  // sigue siendo nota —no cuenta como gestión de nadie—; lo que se suma es que
+  // le suene la campana. El título dice «volvió a escribir» y no «contacto
+  // asignado» a propósito: eso último es lo que hizo que C5 reclamara.
+  if (datos.comercial && r.comercial_id) {
+    await notificar({
+      userId: r.comercial_id,
+      tipo: "cliente_volvio",
+      titulo: "Su cliente volvió a escribir",
+      cuerpo: `${r.cliente ?? "Un cliente"} — ${detalle}`,
+      url: r.oportunidad ? `/comercial/oportunidades/${r.oportunidad}` : "/comercial",
+    });
+  }
 
   revalidatePath("/central");
   revalidatePath("/central/derivados");
@@ -163,4 +182,68 @@ export async function revertirAviso(
   revalidatePath("/central");
   revalidatePath("/central/derivados");
   return { error: null, deshecho: (data as { deshecho?: string[] })?.deshecho ?? [] };
+}
+
+/**
+ * El cliente ya lo está atendiendo alguien y volvió a escribir: se le avisa a
+ * ese alguien y el contacto sale de la bandeja como repetido. Un solo paso.
+ *
+ * POR QUÉ EXISTE, con nombres. Santos, 10-09, trayendo la duda de Central:
+ * «acaba de recibir un registro de JORGE DONAIRES a la 1:06 pm y no sabe si
+ * asignar, porque ese cliente ya fue gestionado por C5. Si lo deriva, C5 dice
+ * que ya lo gestionó y se molesta porque le asignan de nuevo algo ya
+ * gestionado».
+ *
+ * De las salidas que tenía la bandeja ninguna era la correcta: «Asignar» le
+ * llega al comercial como contacto nuevo; «Descartar» miente —en el panel de
+ * gerencia descartado significa que NO procedía, y ensucia a la campaña que
+ * trajo al cliente—; y «Ya está en el sistema» lo cierra en silencio, así que
+ * el comercial nunca se entera de que el cliente insistió, que es la única
+ * parte que le sirve.
+ *
+ * Esto hace las dos cosas a la vez y deja UN solo estado: `duplicado` con su
+ * ficha. Hacerlo con los dos botones que ya había dejaba el contacto en
+ * `derivado_area` o en `duplicado` según el orden en que se apretaran, y el
+ * conteo de la campaña salía distinto según el día.
+ */
+export async function avisarAlComercialYCerrar(datos: {
+  leadId: string;
+  cuentaId: string;
+  detalle: string;
+}): Promise<{ error: string | null; comercial?: string; cliente?: string }> {
+  const detalle = datos.detalle.trim();
+  if (detalle.length < 10) {
+    return { error: "Escriba qué dijo el cliente: es lo único que va a leer el comercial" };
+  }
+
+  await requerirPerfil();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("avisar_al_comercial_y_cerrar", {
+    p_lead: datos.leadId,
+    p_cuenta: datos.cuentaId,
+    p_detalle: detalle,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+
+  const r = data as {
+    oportunidad: string | null;
+    comercial_id: string | null;
+    comercial: string | null;
+    cliente: string | null;
+  };
+
+  if (r.comercial_id) {
+    await notificar({
+      userId: r.comercial_id,
+      tipo: "cliente_volvio",
+      titulo: "Su cliente volvió a escribir",
+      cuerpo: `${r.cliente ?? "Un cliente"} — ${detalle}`,
+      url: r.oportunidad ? `/comercial/oportunidades/${r.oportunidad}` : "/comercial",
+    });
+  }
+
+  revalidatePath("/central");
+  revalidatePath("/central/derivados");
+  return { error: null, comercial: r.comercial ?? undefined, cliente: r.cliente ?? undefined };
 }

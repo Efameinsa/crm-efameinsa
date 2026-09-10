@@ -332,7 +332,12 @@ export default async function CentralPage() {
                     «necesito ver el detalle de la solicitud de cada prospecto
                     nuevo, ya que cada uno tiene diferente interés de compra». */}
                 {coincidencias.has(lead.id) && (
-                  <AvisoCoincidencia leadId={lead.id} c={coincidencias.get(lead.id)!} />
+                  <AvisoCoincidencia
+                    leadId={lead.id}
+                    c={coincidencias.get(lead.id)!}
+                    mensaje={lead.mensaje}
+                    recibidoAt={lead.recibido_at}
+                  />
                 )}
 
                 <SolicitudLead

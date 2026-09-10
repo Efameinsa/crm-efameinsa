@@ -19,6 +19,11 @@ export type TipoNotificacion =
   | "cotizacion_corregida"
   // Central avisa que un cliente está esperando y nadie lo atiende (25-08).
   | "urgencia"
+  // El cliente que ya está en manos de alguien volvió a escribir a Central
+  // (0215, 10-09). NO es un contacto nuevo y se dice distinto a propósito: el
+  // reclamo de C5 fue justamente que le "asignaban de nuevo algo ya
+  // gestionado". Esto no asigna nada; le cuenta que su cliente insistió.
+  | "cliente_volvio"
   // Central devolvió un cierre mal hecho, y el comercial lo devolvió corregido
   // (0178, Carlos 05-09: «tendrías que rechazarlo y que lo haga bien»).
   | "cierre_devuelto"

@@ -2,6 +2,7 @@ import { CopyCheck, UserCheck } from "lucide-react";
 import { fechaLima } from "@/lib/fechas";
 import type { CoincidenciaBandeja } from "@/lib/central/coincidencias-bandeja";
 import { YaEstaEnElSistemaBoton } from "@/components/crm/ya-esta-en-el-sistema-boton";
+import { AvisarYCerrarBoton } from "@/components/crm/avisar-y-cerrar-boton";
 
 // Cómo se dice cada etapa fuera del CRM. Central no habla en etapas: necesita
 // saber si eso ya se atendió y en qué quedó.
@@ -32,7 +33,17 @@ const ETIQUETA_ETAPA: Record<string, string> = {
  * por qué dato coincidió, porque un teléfono repetido puede ser un negocio, una
  * familia o un número mal tipeado en el Excel.
  */
-export function AvisoCoincidencia({ leadId, c }: { leadId: string; c: CoincidenciaBandeja }) {
+export function AvisoCoincidencia({
+  leadId,
+  c,
+  mensaje,
+  recibidoAt,
+}: {
+  leadId: string;
+  c: CoincidenciaBandeja;
+  mensaje?: string | null;
+  recibidoAt?: string | null;
+}) {
   const gestion = c.ultimaEtapa
     ? `${ETIQUETA_ETAPA[c.ultimaEtapa] ?? c.ultimaEtapa}${c.ultimaFecha ? ` el ${fechaLima(c.ultimaFecha)}` : ""}`
     : "sin gestión registrada";
@@ -50,14 +61,33 @@ export function AvisoCoincidencia({ leadId, c }: { leadId: string; c: Coincidenc
       <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-amber-300 bg-amber-50 p-2.5 text-amber-900">
         <CopyCheck className="size-4 flex-none" />
         <p className="min-w-[220px] flex-1 text-xs">
-          <b>Ya derivado.</b> Coincide por {c.motivo} con <b>{c.razonSocial}</b> — {duenio}, {gestion}.
+          <b>{c.codigoComercial || c.comercialNombre ? `Ya lo está viendo ${duenio}.` : "Ya derivado."}</b>{" "}
+          Coincide por {c.motivo} con <b>{c.razonSocial}</b>
+          {c.codigoComercial || c.comercialNombre ? "" : ` — ${duenio}`}, {gestion}.
+          {/* QUÉ HACER, NO QUÉ NO HACER (0215). Acá decía «no hace falta
+              derivarlo de nuevo», que es media respuesta: Central sabía que no
+              tenía que asignar, pero no cuál de los otros tres botones era el
+              bueno, y ninguno lo era del todo. Santos, 10-09: «Central entra en
+              crisis existencial». Ahora la salida correcta está acá adentro. */}
           <span className="block text-[11px] opacity-80">
             {porDominio
-              ? "Escribió desde el correo de esa empresa. Puede ser otra persona del mismo cliente: confirme antes de descartar."
-              : "Entró dos veces por vías distintas. No hace falta derivarlo de nuevo."}
+              ? "Escribió desde el correo de esa empresa. Puede ser otra persona del mismo cliente: confirme antes de cerrarlo."
+              : "No lo derive de nuevo: avísele que volvió a escribir y el contacto sale como repetido."}
           </span>
         </p>
-        <YaEstaEnElSistemaBoton leadId={leadId} cuentaId={c.cuentaId} razonSocial={c.razonSocial} />
+        <span className="flex flex-wrap items-center gap-1.5">
+          <AvisarYCerrarBoton
+            leadId={leadId}
+            cuentaId={c.cuentaId}
+            razonSocial={c.razonSocial}
+            duenio={c.codigoComercial ?? c.comercialNombre ?? "su comercial"}
+            mensaje={mensaje}
+            recibidoAt={recibidoAt}
+          />
+          {/* Cuando no hay nada nuevo que contar —el mismo mensaje entrado dos
+              veces por dos vías— cerrarlo callado sigue siendo lo correcto. */}
+          <YaEstaEnElSistemaBoton leadId={leadId} cuentaId={c.cuentaId} razonSocial={c.razonSocial} />
+        </span>
       </div>
     );
   }
