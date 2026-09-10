@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { AlertTriangle, Boxes, Plus, Search, TriangleAlert } from "lucide-react";
-import { buscarEquipos } from "@/lib/buscar-equipo";
+import { buscarEquipos, retiradosQueCoinciden } from "@/lib/buscar-equipo";
 import { rutaFoto } from "@/lib/foto-producto";
 import { AccionesEquipo } from "@/components/crm/acciones-equipo";
 import type { EquipoCatalogo, SaludCatalogo } from "@/lib/catalogo-operaciones";
@@ -75,6 +75,17 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
     const nuevo = encontrados.find((e) => e.id === recienCargado);
     return nuevo ? [nuevo, ...encontrados.filter((e) => e.id !== recienCargado)] : encontrados;
   }, [equipos, activos, texto, filtro, recienCargado]);
+
+  // LO QUE SE BUSCA Y ESTÁ APAGADO. El buscador mira solo los activos —es el
+  // catálogo que ve el comercial—, pero contestar «sin resultados» cuando el
+  // equipo existe retirado termina en que se carga otra vez a mano: así nacieron
+  // tres copias sin código de la misma SECU75E3, y una se cotizó a un cliente
+  // (10-09). El vacío dice qué falta, por qué está fuera y con qué botón se
+  // llega hasta él.
+  const retirados = useMemo(
+    () => retiradosQueCoinciden(equipos, texto, resultados.length > 0),
+    [equipos, texto, resultados.length],
+  );
 
   const enAlmacen = activos.reduce((a, e) => a + stockDe(e).cantidad, 0);
 
@@ -191,6 +202,34 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
             : `${resultados.length} de ${activos.length}`}
           {texto.trim() && resultados.length === 0 && " — si acá no sale, al comercial tampoco le sale."}
         </p>
+
+        {filtro.tipo !== "fuera" && retirados.length > 0 && (
+          <div className="rounded-lg border border-dashed border-border bg-secondary/40 p-3 text-xs leading-snug text-muted-foreground">
+            <p>
+              {resultados.length === 0
+                ? `Ninguno de los ${activos.length} equipos del catálogo coincide con «${texto.trim()}», pero `
+                : "Además, "}
+              {retirados.length === 1 ? "hay uno FUERA del catálogo" : `hay ${retirados.length} FUERA del catálogo`}:{" "}
+              <span className="font-medium text-foreground">
+                {retirados
+                  .slice(0, 3)
+                  .map((e) => `${e.sku ?? e.nombre} (${e.marca} ${e.modelo})`)
+                  .join(", ")}
+                {retirados.length > 3 && ` y ${retirados.length - 3} más`}
+              </span>
+              {retirados.length === 1
+                ? ". Se apagó en su momento —una versión vieja del mismo equipo, o un modelo que se dejó de traer— y el comercial no lo ve, pero conserva su ficha, su precio y sus fotos."
+                : ". Se apagaron en su momento —versiones viejas del mismo equipo, o modelos que se dejaron de traer— y el comercial no los ve, pero conservan su ficha, su precio y sus fotos."}
+            </p>
+            <button
+              type="button"
+              onClick={() => setFiltro({ tipo: "fuera" })}
+              className="mt-1.5 cursor-pointer font-medium text-foreground underline decoration-border underline-offset-2 hover:text-primary"
+            >
+              Verlos acá — se abren y se vuelven a prender desde «En el catálogo» →
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-2 lg:grid-cols-2">

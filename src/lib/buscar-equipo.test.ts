@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buscarEquipos, type EquipoBuscable } from "./buscar-equipo";
+import { buscarEquipos, retiradosQueCoinciden, type EquipoBuscable } from "./buscar-equipo";
 
 // Los equipos son los reales del catálogo, con sus datos tal como están
 // cargados: es la única forma de que la prueba diga algo sobre lo que le pasa
@@ -131,5 +131,37 @@ describe("apilable y no apilable (LG)", () => {
 
   it("«apilable» sigue devolviendo las dos, con la apilable primero", () => {
     expect(buscarEquipos(lg, "titan max apilable")[0].sku).toBe("LAVMA17");
+  });
+});
+
+// Lo que está APAGADO no sale en el buscador —el comercial no lo ve, y así
+// tiene que ser—, pero callárselo a operaciones hace que lo carguen otra vez a
+// mano: la SECU75E3 nació tres veces por eso (10-09).
+describe("el equipo que está fuera del catálogo", () => {
+  const catalogo = [
+    { sku: "SECU75", marca: "UNIMAC", modelo: "UT075", nombre: "SECADORA INDUSTRIAL", activo: true },
+    { sku: "SECU75E3", marca: "UNIMAC", modelo: "UT075", nombre: "SECADORA INDUSTRIAL", activo: false },
+    { sku: "SECU75E2", marca: "UNIMAC", modelo: "UT075", nombre: "SECADORA INDUSTRIAL", activo: false },
+    { sku: "CAFCU20", marca: "UNIMAC", modelo: "CU20", nombre: "CALANDRIA A GAS NATURAL", activo: false },
+  ];
+
+  it("con la pantalla vacía dice cuál de los retirados es", () => {
+    const r = retiradosQueCoinciden(catalogo, "SECU75E3", false);
+    expect(r.map((e) => e.sku)).toEqual(["SECU75E3"]);
+  });
+
+  it("con equipos a la vista avisa solo si se tecleó el código exacto", () => {
+    expect(retiradosQueCoinciden(catalogo, "SECU75E3", true).map((e) => e.sku)).toEqual(["SECU75E3"]);
+    // «secadora» tiene equipos activos que mostrar: el aviso sería ruido.
+    expect(retiradosQueCoinciden(catalogo, "secadora", true)).toEqual([]);
+  });
+
+  it("sin nada tecleado no avisa nada", () => {
+    expect(retiradosQueCoinciden(catalogo, "   ", false)).toEqual([]);
+  });
+
+  it("nunca propone uno que está en el catálogo", () => {
+    const r = retiradosQueCoinciden(catalogo, "unimac ut075", false);
+    expect(r.every((e) => !e.activo)).toBe(true);
   });
 });

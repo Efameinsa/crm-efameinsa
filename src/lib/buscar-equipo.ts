@@ -102,3 +102,34 @@ export function buscarEquipos<T extends EquipoBuscable>(equipos: T[], consulta: 
     .sort((a, b) => b.n - a.n)
     .map((x) => x.e);
 }
+
+/**
+ * Los equipos RETIRADOS que coinciden con lo que se está buscando.
+ *
+ * El buscador del catálogo mira solo los equipos activos, y eso está bien: es
+ * el catálogo que ve el comercial. Lo que no puede es CALLARSE que el equipo
+ * existe apagado. La SECU75E3 —con su ficha de 51 líneas, su precio y sus tres
+ * imágenes— quedó fuera el 28-08 al alinear con el maestro; el buscador contestó
+ * «sin resultados» tres veces y la respuesta fue cargarla otra vez a mano: tres
+ * copias sin código de la misma secadora, y una de ellas cotizada a un cliente
+ * (Santos, 10-09).
+ *
+ * `hayResultados` decide cuánto se avisa, y es a propósito:
+ *
+ *   · con la pantalla VACÍA vale cualquier coincidencia —es lo único que hay
+ *     para ofrecer, y es justo cuando alguien está por cargarlo de nuevo—;
+ *   · con equipos a la vista, solo el CÓDIGO exacto. «secadora» coincide con
+ *     media docena de retirados, y ese aviso en cada tecleo es ruido.
+ */
+export function retiradosQueCoinciden<T extends EquipoBuscable & { activo: boolean }>(
+  equipos: T[],
+  consulta: string,
+  hayResultados: boolean,
+): T[] {
+  if (consulta.trim() === "") return [];
+  const fuera = equipos.filter((e) => !e.activo);
+  if (fuera.length === 0) return [];
+  if (!hayResultados) return buscarEquipos(fuera, consulta);
+  const palabras = new Set(palabrasDeBusqueda(consulta));
+  return fuera.filter((e) => e.sku && palabras.has(sinTildes(e.sku)));
+}
