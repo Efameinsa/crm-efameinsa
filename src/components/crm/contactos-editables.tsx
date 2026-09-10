@@ -50,9 +50,12 @@ type Campos = typeof VACIO;
 export function ContactosEditables({
   cuentaId,
   contactos,
+  soloLectura = false,
 }: {
   cuentaId: string;
   contactos: ContactoEditable[];
+  /** Central mira la ficha, no la corrige: sin corregir, borrar ni agregar (0219). */
+  soloLectura?: boolean;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState<string | null>(null);
@@ -265,27 +268,29 @@ export function ContactosEditables({
                   )}
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <Button size="sm" variant="ghost" disabled={guardando} onClick={() => abrir(c)}>
-                  <Pencil className="size-3.5" />
-                  Corregir
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={guardando}
-                  onClick={() => borrar(c)}
-                  aria-label={`Borrar a ${c.nombre}`}
-                >
-                  <Trash2 className="size-3.5 text-destructive" />
-                </Button>
-              </div>
+              {!soloLectura && (
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button size="sm" variant="ghost" disabled={guardando} onClick={() => abrir(c)}>
+                    <Pencil className="size-3.5" />
+                    Corregir
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={guardando}
+                    onClick={() => borrar(c)}
+                    aria-label={`Borrar a ${c.nombre}`}
+                  >
+                    <Trash2 className="size-3.5 text-destructive" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ),
       )}
 
-      {editando === "nuevo" ? (
+      {soloLectura ? null : editando === "nuevo" ? (
         formulario
       ) : (
         <Button size="sm" variant="outline" disabled={guardando} onClick={() => abrir(null)}>

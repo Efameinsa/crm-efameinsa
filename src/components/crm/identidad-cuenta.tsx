@@ -55,11 +55,14 @@ export function IdentidadCuenta({
   razonSocial,
   rubroId = null,
   rubros = [],
+  soloLectura = false,
 }: {
   cuentaId: string;
   tipoDoc: TipoDocumento;
   numDoc: string | null;
   razonSocial: string;
+  /** Central mira la ficha, no la corrige: sin el botón (0219). La base lo vuelve a impedir igual. */
+  soloLectura?: boolean;
   /** Rubro actual de la cuenta; null = todavía sin clasificar. */
   rubroId?: number | null;
   /** Catálogo activo (catalogo_rubros). Vacío esconde el desplegable. */
@@ -137,10 +140,12 @@ export function IdentidadCuenta({
             </p>
           )}
         </div>
-        <Button size="sm" variant="ghost" onClick={abrir}>
-          <Pencil className="size-3.5" />
-          {tipoDoc === "SIN_DOC" ? "Vincular RUC" : "Corregir"}
-        </Button>
+        {!soloLectura && (
+          <Button size="sm" variant="ghost" onClick={abrir}>
+            <Pencil className="size-3.5" />
+            {tipoDoc === "SIN_DOC" ? "Vincular RUC" : "Corregir"}
+          </Button>
+        )}
       </div>
     );
   }

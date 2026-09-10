@@ -8,7 +8,16 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-export function ResumenCuenta({ cuentaId, notasIniciales }: { cuentaId: string; notasIniciales: string | null }) {
+export function ResumenCuenta({
+  cuentaId,
+  notasIniciales,
+  soloLectura = false,
+}: {
+  cuentaId: string;
+  notasIniciales: string | null;
+  /** Central mira la ficha, no la corrige: sin el botón (0219). La base lo vuelve a impedir igual. */
+  soloLectura?: boolean;
+}) {
   const [editando, setEditando] = useState(false);
   const [notas, setNotas] = useState(notasIniciales ?? "");
   const [borrador, setBorrador] = useState(notasIniciales ?? "");
@@ -36,7 +45,7 @@ export function ResumenCuenta({ cuentaId, notasIniciales }: { cuentaId: string; 
     <SeccionPanel
       titulo="Resumen del cliente"
       accion={
-        !editando && (
+        !editando && !soloLectura && (
           <Button variant="ghost" size="sm" onClick={() => setEditando(true)}>
             <Pencil className="size-3.5" />
             Editar

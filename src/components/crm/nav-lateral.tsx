@@ -36,6 +36,11 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   central: [
     { href: "/central", etiqueta: "Bandeja", icono: Inbox },
     { href: "/central/captura", etiqueta: "Registrar contacto", icono: ClipboardList },
+    // La cartera entera, como la ve gerencia pero sin tocar nada (Santos,
+    // 10-09): «Central debería poder ver toda la cartera como lo tiene
+    // gerencia». Es lo que le hace falta para decidir una derivación: quién
+    // tiene al cliente, qué se le cotizó, qué compró y cuándo.
+    { href: "/central/clientes", etiqueta: "Clientes", icono: Building2 },
     // El informe de cierre se le manda a Central para facturar, cobrar y
     // despachar: hasta ahora era la única que no tenía dónde verlo.
     { href: "/central/derivados", etiqueta: "Lo que derivé", icono: Send },

@@ -22,7 +22,22 @@ import { Badge } from "@/components/ui/badge";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor";
 
-export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId: string; comoGerencia?: boolean }) {
+export async function FichaCuenta({
+  cuentaId,
+  comoGerencia = false,
+  comoCentral = false,
+}: {
+  cuentaId: string;
+  comoGerencia?: boolean;
+  /**
+   * CENTRAL MIRA, NO TOCA (Santos, 10-09: «Central debería poder ver toda la
+   * cartera como lo tiene gerencia»). Ve de quién es la cartera y toda la
+   * historia, sin botones de corregir ni de registrar; y cada expediente lleva
+   * a su derivación —/central/derivados/[lead]—, porque /comercial/* a este
+   * rol le está cerrado por el layout y la devolvía a la bandeja.
+   */
+  comoCentral?: boolean;
+}) {
   const supabase = await createClient();
   // Desde la 0165 el área de postventa también lee los informes de cierre;
   // las cifras se le tapan acá (Carlos, 27-08).
@@ -50,6 +65,8 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   if (!cuenta) {
     return comoGerencia ? (
       <RegistroNoDisponible volverHref="/gerencia/clientes" volverTexto="Volver a clientes" />
+    ) : comoCentral ? (
+      <RegistroNoDisponible volverHref="/central/clientes" volverTexto="Volver a clientes" />
     ) : (
       <RegistroNoDisponible volverHref="/comercial/cartera" volverTexto="Volver a mi cartera" />
     );
@@ -90,7 +107,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
   const { data: oportunidadesCuenta } = await supabase
     .from("oportunidades")
     .select(
-      "id, etapa, intencion, monto_estimado, moneda, proxima_accion, proxima_accion_at, cerrada_at, comercial_id, perfiles:comercial_id(nombre, codigo_comercial)",
+      "id, etapa, intencion, monto_estimado, moneda, proxima_accion, proxima_accion_at, cerrada_at, comercial_id, lead_id, perfiles:comercial_id(nombre, codigo_comercial)",
     )
     .eq("cuenta_id", cuentaId)
     .order("cerrada_at", { ascending: true, nullsFirst: true })
@@ -117,9 +134,32 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
     proxima_accion_at: string | null;
     cerrada_at: string | null;
     comercial_id: string | null;
+    lead_id: string | null;
     perfiles: { nombre: string; codigo_comercial: string | null } | null;
   }[]).sort((a, b) => rangoOportunidad(a) - rangoOportunidad(b));
   const enHistorico = oportunidades.filter((o) => o.etapa === "historico").length;
+
+  // PARA CENTRAL, LA PUERTA A CADA EXPEDIENTE ES SU DERIVACIÓN. /comercial/*
+  // le está cerrado, pero /central/derivados/[lead] ya es su vista de lectura
+  // de un expediente: las gestiones, las cotizaciones y a qué se comprometió
+  // el comercial. Se resuelve por los dos caminos (0141): el lead que abrió el
+  // expediente (`lead_id`) y los que se le SUMARON después (`leads.oportunidad_id`).
+  // Lo que vino del archivo de los Excel no pasó por Central y no tiene puerta;
+  // se lee en la fila, sin enlace. Son 50 expedientes como máximo, así que el
+  // `.in` no revienta la URL.
+  const derivacionPorExpediente = new Map<string, string>();
+  if (comoCentral && oportunidades.length > 0) {
+    for (const o of oportunidades) if (o.lead_id) derivacionPorExpediente.set(o.id, o.lead_id);
+    const sinLead = oportunidades.filter((o) => !o.lead_id).map((o) => o.id);
+    if (sinLead.length > 0) {
+      const { data: sumados } = await supabase.from("leads").select("id, oportunidad_id").in("oportunidad_id", sinLead);
+      for (const l of (sumados ?? []) as { id: string; oportunidad_id: string | null }[]) {
+        if (l.oportunidad_id && !derivacionPorExpediente.has(l.oportunidad_id)) {
+          derivacionPorExpediente.set(l.oportunidad_id, l.id);
+        }
+      }
+    }
+  }
 
   // Informes de cierre de este cliente. Los ve el comercial de la cartera,
   // gerencia y Central (política de la migración 0049).
@@ -151,17 +191,21 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               )}
             </div>
           </div>
-          {comoGerencia && (
+          {(comoGerencia || comoCentral) && (
             <div className="flex items-center gap-2">
               <Badge>Cartera de: {dueno?.nombre ?? "Sin asignar"}{dueno?.codigo_comercial ? ` (${dueno.codigo_comercial})` : ""}</Badge>
               {/* Reasignar donde se LEE de quién es (pedido 25-08). Solo
-                  gerencia/admin; la base lo vuelve a exigir (migración 0080). */}
-              <ReasignarCarteraBoton
-                cuentaId={cuenta.id}
-                razonSocial={cuenta.razon_social}
-                comercialActual={cuenta.comercial_id}
-                comerciales={comerciales ?? []}
-              />
+                  gerencia/admin; la base lo vuelve a exigir (migración 0080).
+                  Central lee de quién es —lo necesita para derivar— pero no
+                  mueve cartera. */}
+              {comoGerencia && (
+                <ReasignarCarteraBoton
+                  cuentaId={cuenta.id}
+                  razonSocial={cuenta.razon_social}
+                  comercialActual={cuenta.comercial_id}
+                  comerciales={comerciales ?? []}
+                />
+              )}
             </div>
           )}
         </div>
@@ -183,7 +227,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} />
+          <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} soloLectura={comoCentral} />
 
           <SeccionPanel
             titulo={`Oportunidades (${oportunidades.length})`}
@@ -218,10 +262,15 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               oportunidades={oportunidades}
               quienMira={perfilQueMira.id}
               comoGerencia={comoGerencia}
+              derivacionPorExpediente={comoCentral ? derivacionPorExpediente : null}
             />
           </SeccionPanel>
 
-          <GrupoEconomico cuentaId={cuenta.id} comoGerencia={comoGerencia} />
+          <GrupoEconomico
+            cuentaId={cuenta.id}
+            comoGerencia={comoGerencia}
+            baseHref={comoCentral ? "/central/clientes" : undefined}
+          />
 
           {/* La «riqueza de postventa»: los informes y las fotos que viven en
               el servidor de la oficina, a un clic desde la ficha (plan 24,
@@ -232,6 +281,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
             razonSocial={cuenta.razon_social}
             nombreComercial={cuenta.nombre_comercial as string | null}
             carpetas={cuenta.carpetas_servidor as Record<string, string> | null}
+            soloLectura={comoCentral}
           />
 
           {/* Informes de cierre: el documento que recibe Central para facturar,
@@ -239,7 +289,10 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               siguiente de la misma historia: se cerro la venta, ahora hay que
               ejecutarla. El contenido vive en secciones-cliente.tsx, compartido
               con la ficha de oportunidad (C5 del plan 11). */}
-          <SeccionPanel titulo="Informes de cierre" accion={<AccionNuevoInforme cuentaId={cuenta.id} />}>
+          <SeccionPanel
+            titulo="Informes de cierre"
+            accion={comoCentral ? undefined : <AccionNuevoInforme cuentaId={cuenta.id} />}
+          >
             <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} sinPrecios={!verPrecios} />
           </SeccionPanel>
 
@@ -266,8 +319,9 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               razonSocial={cuenta.razon_social}
               rubroId={cuenta.rubro_id ?? null}
               rubros={(rubros ?? []) as { id: number; nombre: string }[]}
+              soloLectura={comoCentral}
             />
-            {(rubros ?? []).length > 0 && (
+            {!comoCentral && (rubros ?? []).length > 0 && (
               <div className="mt-2">
                 <CambiarRubro
                   cuentaId={cuenta.id}
@@ -278,7 +332,7 @@ export async function FichaCuenta({ cuentaId, comoGerencia = false }: { cuentaId
               </div>
             )}
           </div>
-          <ContactosEditables cuentaId={cuenta.id} contactos={contactos} />
+          <ContactosEditables cuentaId={cuenta.id} contactos={contactos} soloLectura={comoCentral} />
         </SeccionPanel>
       </div>
     </div>
@@ -313,6 +367,7 @@ function ListaOportunidadesCuenta({
   oportunidades,
   quienMira,
   comoGerencia,
+  derivacionPorExpediente = null,
 }: {
   oportunidades: {
     id: string;
@@ -329,6 +384,12 @@ function ListaOportunidadesCuenta({
   /** Quién tiene la pantalla delante. Es contra ESTO que se decide. */
   quienMira: string;
   comoGerencia: boolean;
+  /**
+   * Solo para Central: expediente → derivación con la que entró. Cuando viene
+   * (aunque esté vacío), la lista está en modo Central: cada fila lleva a
+   * /central/derivados/[lead] o no lleva a ningún lado, nunca a /comercial/*.
+   */
+  derivacionPorExpediente?: Map<string, string> | null;
 }) {
   if (oportunidades.length === 0) {
     return <p className="text-sm text-muted-foreground">Este cliente todavía no tiene ninguna oportunidad.</p>;
@@ -337,7 +398,16 @@ function ListaOportunidadesCuenta({
     <ul className="space-y-1.5">
       {oportunidades.map((o) => {
         const cerrada = !!o.cerrada_at;
-        const deOtro = !comoGerencia && o.comercial_id !== quienMira;
+        const paraCentral = derivacionPorExpediente !== null;
+        const derivacion = paraCentral ? (derivacionPorExpediente.get(o.id) ?? null) : null;
+        const href = paraCentral
+          ? derivacion
+            ? `/central/derivados/${derivacion}`
+            : null
+          : `/comercial/oportunidades/${o.id}`;
+        // Para Central todo es «de otro» y no tiene sentido decírselo: ella no
+        // anota gestión en ningún expediente.
+        const deOtro = !comoGerencia && !paraCentral && o.comercial_id !== quienMira;
         // El botón solo donde puede funcionar: en lo que está archivado y es de
         // quien mira. La base vuelve a comprobarlo igual (0130).
         const enHistorico = o.etapa === "historico" && !cerrada;
@@ -350,8 +420,8 @@ function ListaOportunidadesCuenta({
               enHistorico && "border-dashed",
             )}
           >
-            <Link
-              href={`/comercial/oportunidades/${o.id}`}
+            <FilaExpediente
+              href={href}
               className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 p-2.5"
             >
               <EtapaBadge etapa={o.etapa} />
@@ -375,13 +445,23 @@ function ListaOportunidadesCuenta({
                   de {o.perfiles?.codigo_comercial ?? o.perfiles?.nombre ?? "otra área"} · ábralo para pedirlo
                 </span>
               )}
+              {/* Central sí necesita saber DE QUIÉN es cada expediente —es lo
+                  que decide la derivación—, dicho en gris y sin «pídaselo». Y
+                  cuando no hay adónde ir, decir por qué (regla del 09-09: un
+                  vacío explica la razón). */}
+              {paraCentral && (
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  {o.perfiles?.codigo_comercial ?? o.perfiles?.nombre ?? "sin dueño"}
+                  {!derivacion && " · del archivo, sin derivación"}
+                </span>
+              )}
               {o.monto_estimado != null && (
                 <span className="text-xs font-semibold tabular-nums text-foreground">
                   {o.moneda} {Number(o.monto_estimado).toLocaleString("es-PE")}
                 </span>
               )}
-            </Link>
-            {enHistorico && !deOtro && (
+            </FilaExpediente>
+            {enHistorico && !deOtro && !paraCentral && (
               <span className="flex flex-none items-center py-2.5 pr-2.5">
                 <TrabajarHistoricaBoton oportunidadId={o.id} compacto />
               </span>
@@ -390,5 +470,29 @@ function ListaOportunidadesCuenta({
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * La fila de un expediente se abre cuando hay adónde ir. Para Central, lo que
+ * vino del archivo sin pasar por la bandeja no tiene derivación que abrir: la
+ * fila se lee igual, con la misma forma, pero no es un enlace — un enlace que
+ * lleva a un portazo es peor que ningún enlace.
+ */
+function FilaExpediente({
+  href,
+  className,
+  children,
+}: {
+  href: string | null;
+  className: string;
+  children: React.ReactNode;
+}) {
+  return href ? (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  ) : (
+    <div className={className}>{children}</div>
   );
 }

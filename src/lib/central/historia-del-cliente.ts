@@ -48,6 +48,13 @@ export interface GestionDelCliente {
 
 export interface PendienteDelCliente {
   oportunidadId: string;
+  /**
+   * La derivación con la que ese expediente entró, si entró por Central. Es la
+   * puerta que Central SÍ puede abrir: /comercial/* le está cerrado, pero
+   * /central/derivados/[lead] es su vista de lectura del expediente. Null en
+   * lo que vino del archivo de los Excel sin pasar por la bandeja.
+   */
+  leadId: string | null;
   etapa: string;
   accion: string | null;
   fecha: string | null;
@@ -83,7 +90,8 @@ export async function historiaDeCuentas(
     supabase
       .from("oportunidades")
       .select(
-        `id, cuenta_id, etapa, proxima_accion, proxima_accion_at, created_at,
+        `id, cuenta_id, etapa, proxima_accion, proxima_accion_at, created_at, lead_id,
+         leads!leads_oportunidad_id_fkey(id),
          perfiles!oportunidades_comercial_id_fkey(nombre, codigo_comercial),
          cotizaciones!cotizaciones_oportunidad_id_fkey(codigo, estado, total, moneda, enviada_at, created_at, perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial)),
          actividades(tipo, nota, realizada_at, perfiles!actividades_realizada_por_fkey(nombre, codigo_comercial))`,
@@ -105,6 +113,9 @@ export async function historiaDeCuentas(
     proxima_accion: string | null;
     proxima_accion_at: string | null;
     created_at: string;
+    lead_id: string | null;
+    /** Los contactos que se SUMARON a este expediente (0141), por si el primero no quedó en lead_id. */
+    leads: { id: string }[] | null;
     perfiles: Perfil;
     cotizaciones: {
       codigo: string | null;
@@ -133,6 +144,7 @@ export async function historiaDeCuentas(
     ) {
       h.pendientes.push({
         oportunidadId: o.id,
+        leadId: o.lead_id ?? o.leads?.[0]?.id ?? null,
         etapa: o.etapa,
         accion: o.proxima_accion,
         fecha: o.proxima_accion_at,

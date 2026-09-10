@@ -63,9 +63,22 @@ export function HistoriaDelClienteDesplegable({
             <ul className="space-y-0.5">
               {h.pendientes.map((p) => (
                 <li key={p.oportunidadId} className="text-muted-foreground">
-                  <Link href={`/comercial/oportunidades/${p.oportunidadId}`} className="text-primary hover:underline">
-                    {p.accion}
-                  </Link>
+                  {/* A Central se le abre SU vista del expediente —la
+                      derivación—, no la del comercial: /comercial/* la devuelve
+                      a la bandeja. Lo que vino del archivo sin pasar por
+                      Central no tiene derivación, y se lee sin enlace. */}
+                  {p.leadId ? (
+                    <Link
+                      href={`/central/derivados/${p.leadId}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="text-primary hover:underline"
+                    >
+                      {p.accion}
+                    </Link>
+                  ) : (
+                    <span className="text-foreground">{p.accion}</span>
+                  )}
                   {p.fecha && ` · para el ${fechaLima(p.fecha)}`}
                   {p.quien && ` · ${p.quien}`}
                 </li>
@@ -110,9 +123,24 @@ export function HistoriaDelClienteDesplegable({
           </div>
         )}
 
-        <Link href={`/comercial/cartera/${cuentaId}`} className="inline-block font-semibold text-primary hover:underline">
-          Abrir la ficha completa →
+        {/* EN OTRA PESTAÑA, Y A /central/clientes. Santos, 10-09, con la
+            señorita de Central delante: el botón «la regresa a la misma
+            bandeja». Apuntaba a /comercial/cartera, y el layout de /comercial
+            no admite el rol central: la devolvía a su home. Ahora abre la ficha
+            entera —cartera, expedientes, compras, contactos— en la vista que
+            Central sí tiene, y en una pestaña nueva a propósito: si navegara
+            acá mismo perdería el contacto en el que estaba parada y lo que
+            hubiera escrito. Fue la opción que él mismo prefirió sobre un panel
+            lateral. */}
+        <Link
+          href={`/central/clientes/${cuentaId}`}
+          target="_blank"
+          rel="noopener"
+          className="inline-block font-semibold text-primary hover:underline"
+        >
+          Abrir la ficha completa ↗
         </Link>
+        <span className="ml-1.5 text-muted-foreground">se abre aparte; la bandeja se queda como está</span>
       </div>
     </details>
   );

@@ -26,7 +26,16 @@ interface Miembro {
   cotizaciones: number;
 }
 
-export async function GrupoEconomico({ cuentaId, comoGerencia = false }: { cuentaId: string; comoGerencia?: boolean }) {
+export async function GrupoEconomico({
+  cuentaId,
+  comoGerencia = false,
+  baseHref,
+}: {
+  cuentaId: string;
+  comoGerencia?: boolean;
+  /** Adónde llevan las fichas hermanas; si no se da, se deduce del rol (Central pasa /central/clientes, 0219). */
+  baseHref?: string;
+}) {
   const supabase = await createClient();
   const { data } = await supabase.rpc("grupo_economico", { p_cuenta_id: cuentaId });
   const miembros = (data ?? []) as Miembro[];
@@ -34,7 +43,7 @@ export async function GrupoEconomico({ cuentaId, comoGerencia = false }: { cuent
   // Una sola empresa no es un grupo: la sección no aparece y no ocupa espacio.
   if (miembros.length < 2) return null;
 
-  const base = comoGerencia ? "/gerencia/clientes" : "/comercial/cartera";
+  const base = baseHref ?? (comoGerencia ? "/gerencia/clientes" : "/comercial/cartera");
   const totalMonto = miembros.reduce((a, m) => a + Number(m.monto), 0);
   const totalVentas = miembros.reduce((a, m) => a + Number(m.ventas), 0);
   const totalCot = miembros.reduce((a, m) => a + Number(m.cotizaciones), 0);

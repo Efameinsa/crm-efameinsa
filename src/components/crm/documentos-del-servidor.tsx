@@ -62,6 +62,7 @@ export async function DocumentosDelServidor({
   nombreComercial,
   carpetas,
   plegable = false,
+  soloLectura = false,
 }: {
   cuentaId: string;
   razonSocial: string;
@@ -71,6 +72,13 @@ export async function DocumentosDelServidor({
   /** `true` en las pantallas que ya hablan de otra cosa (la oportunidad): el
    *  mismo contenido, plegado y sin encabezado propio. */
   plegable?: boolean;
+  /**
+   * Central mira la ficha, no la vincula (0219). Vincular escribe en
+   * `cuentas`, que a su rol la base solo le deja leer: el botón no daría
+   * error, simplemente no haría nada — peor que no tenerlo. Ve y abre lo
+   * que ya está vinculado; lo que falta se dice sin ofrecer el clic.
+   */
+  soloLectura?: boolean;
 }) {
   // Sin servidor configurado no se anuncia lo que no existe.
   if (!servidorDeArchivosActivo()) return null;
@@ -127,20 +135,22 @@ export async function DocumentosDelServidor({
                   titulo={`${etiqueta} · ${razonSocial}`}
                   etiquetaBoton={clave === "fotos" ? "Ver fotos" : "Ver informes"}
                 />
-                <form
-                  action={async () => {
-                    "use server";
-                    await vincularCarpetaServidor({ cuentaId, clase: clave, ruta: null });
-                  }}
-                >
-                  <button
-                    type="submit"
-                    title="Quitar el vínculo"
-                    className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground"
+                {!soloLectura && (
+                  <form
+                    action={async () => {
+                      "use server";
+                      await vincularCarpetaServidor({ cuentaId, clase: clave, ruta: null });
+                    }}
                   >
-                    <Unlink className="size-3" /> Cambiar
-                  </button>
-                </form>
+                    <button
+                      type="submit"
+                      title="Quitar el vínculo"
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      <Unlink className="size-3" /> Cambiar
+                    </button>
+                  </form>
+                )}
               </div>
             );
           }
@@ -152,7 +162,12 @@ export async function DocumentosDelServidor({
                 <Icono className="size-4 text-muted-foreground" /> {etiqueta}
                 <span className="text-[11px] font-normal text-muted-foreground">— sin carpeta vinculada</span>
               </p>
-              {opciones.length === 0 ? (
+              {soloLectura ? (
+                <p className="text-xs text-muted-foreground">
+                  Todavía sin carpeta vinculada. La vincula el comercial de la cartera desde su ficha
+                  {opciones.length > 0 && ` — hay ${opciones.length} carpeta${opciones.length === 1 ? "" : "s"} del servidor que se le parece${opciones.length === 1 ? "" : "n"}`}.
+                </p>
+              ) : opciones.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
                   Ninguna carpeta del servidor se parece a este cliente. Si la carpeta existe con otro nombre, avise
                   para vincularla a mano; si es nueva, hay que refrescar el índice.
