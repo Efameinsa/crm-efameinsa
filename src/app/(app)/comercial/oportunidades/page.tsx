@@ -89,6 +89,7 @@ export default async function OportunidadesPage({
     mant?: string;
     compra?: string;
     llamada?: string;
+    tel?: string;
   }>;
 }) {
   const perfil = await requerirPerfil();

@@ -17,7 +17,7 @@ import {
   ShoppingCart,
   Wrench,
 } from "lucide-react";
-import { gestionRapidaRuta, type BotonRuta } from "@/lib/acciones/ruta";
+import { anotarTelefonoRuta, gestionRapidaRuta, type BotonRuta } from "@/lib/acciones/ruta";
 import {
   diasDeAtraso,
   diasEntre,
@@ -172,6 +172,16 @@ export function FilaRutaMantenimiento({
             {fila.contacto && <span className="text-sm text-muted-foreground">{fila.contacto}</span>}
           </div>
         )}
+
+        {/* Y CUANDO NO HAY NÚMERO. Antes esta fila simplemente no mostraba
+            nada: había que abrir la ficha para descubrir que tampoco estaba
+            ahí. Son 47 de los 327 clientes de la campaña —el parque se armó
+            desde los Excel y las guías, que traen la máquina y no a quién
+            llamar—. Ahora lo dice, y deja escribirlo sin salir de la lista:
+            en buena parte de esos casos el cliente es de otro comercial y la
+            ficha se abre en modo lectura, así que el número que ella consigue
+            terminaba en un papel (Ariana, 10-09). */}
+        {!fila.telefono && !cerrada && <AnotarTelefono cuentaId={fila.cuentaId} contacto={fila.contacto} />}
 
         {/* LOS TRES DATOS QUE DECIDEN LA LLAMADA. Antes eran tres cifras de
             11 px alineadas a la derecha; acá cada uno es un cuadro con su
@@ -393,5 +403,111 @@ function BotonRapido({
       {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Icono className="size-4" />}
       {children}
     </button>
+  );
+}
+
+/**
+ * «Sin teléfono», y el número escrito ahí mismo.
+ *
+ * No se abre un formulario: se abre un campo. La regla 11 (una gestión en ≤15
+ * segundos) vale igual acá — si anotar el número obligara a entrar a la ficha,
+ * volver, y encontrar otra vez la fila, no se haría.
+ *
+ * El guardado va por `anotar_telefono_de_ruta` (0207), que agrega donde no
+ * había y no pisa lo que ya está: corregir un teléfono cargado sigue siendo
+ * cosa de la ficha, donde se ve de quién es el cliente.
+ */
+function AnotarTelefono({ cuentaId, contacto }: { cuentaId: string | null; contacto: string | null }) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [numero, setNumero] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [guardado, setGuardado] = useState<string | null>(null);
+  const [pendiente, startTransition] = useTransition();
+
+  if (guardado) {
+    return (
+      <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
+        <CheckCircle2 className="size-4" /> {guardado}
+      </p>
+    );
+  }
+
+  if (!abierto) {
+    return (
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-800">
+          <PhoneOff className="size-4" /> Sin teléfono
+        </span>
+        {cuentaId && (
+          <button
+            type="button"
+            onClick={() => setAbierto(true)}
+            className="cursor-pointer rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:border-primary hover:text-primary"
+          >
+            Anotar el número
+          </button>
+        )}
+        {contacto && <span className="text-sm text-muted-foreground">{contacto}</span>}
+      </div>
+    );
+  }
+
+  function guardar() {
+    if (!cuentaId) return;
+    startTransition(async () => {
+      const r = await anotarTelefonoRuta({ cuentaId: cuentaId!, telefono: numero, nombre });
+      if (r.error) {
+        toast.error(r.error, { duration: 8000 });
+        return;
+      }
+      setGuardado(r.mensaje ?? "Teléfono anotado");
+      toast.success(r.mensaje ?? "Teléfono anotado");
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50/60 p-2">
+      <input
+        autoFocus
+        type="tel"
+        inputMode="tel"
+        value={numero}
+        onChange={(e) => setNumero(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") guardar();
+          if (e.key === "Escape") setAbierto(false);
+        }}
+        placeholder="Teléfono"
+        className="h-9 w-36 rounded-lg border border-input bg-background px-2.5 font-mono text-sm outline-none focus:border-primary"
+      />
+      <input
+        type="text"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") guardar();
+          if (e.key === "Escape") setAbierto(false);
+        }}
+        placeholder={contacto ?? "¿De quién es? (opcional)"}
+        className="h-9 min-w-0 flex-1 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:border-primary"
+      />
+      <button
+        type="button"
+        onClick={guardar}
+        disabled={pendiente || numero.replace(/\D/g, "").length < 6}
+        className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Phone className="size-4" />} Guardar
+      </button>
+      <button
+        type="button"
+        onClick={() => setAbierto(false)}
+        className="h-9 cursor-pointer px-2 text-sm text-muted-foreground hover:text-foreground"
+      >
+        Cancelar
+      </button>
+    </div>
   );
 }

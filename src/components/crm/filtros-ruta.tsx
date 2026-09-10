@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Search, X } from "lucide-react";
+import { Loader2, PhoneOff, Search, X } from "lucide-react";
 import {
   ETIQUETA_COMPRA,
   ETIQUETA_LLAMADA,
@@ -60,6 +60,8 @@ export function FiltrosRuta({
   mant,
   compra,
   llamada,
+  tel,
+  sinTelefono,
   visibles,
   total,
 }: {
@@ -67,6 +69,9 @@ export function FiltrosRuta({
   mant: EstadoMantenimiento | null;
   compra: EstadoCompra | null;
   llamada: EstadoLlamada | null;
+  tel: "sin" | "con" | null;
+  /** Cuántos clientes de esta pestaña no tienen ningún número cargado. */
+  sinTelefono: number;
   /** Cuántas filas quedaron en esta pestaña con los filtros puestos. */
   visibles: number;
   /** Cuántas hay en la pestaña sin filtrar. */
@@ -103,7 +108,7 @@ export function FiltrosRuta({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texto]);
 
-  const hayFiltro = Boolean(mant || compra || llamada || q);
+  const hayFiltro = Boolean(mant || compra || llamada || tel || q);
 
   function atajoActivo(a: (typeof ATAJOS)[number]) {
     return (
@@ -181,6 +186,28 @@ export function FiltrosRuta({
           );
         })}
 
+        {/* No es una tanda más: se cruza con la que esté puesta, por eso no
+            limpia los otros tres. Es el pedido de Ariana del 10-09 —«¿cómo voy
+            a gestionar si no visualizo sus teléfonos? y así son varios»—:
+            juntarlos en un rato de conseguir números en vez de tropezárselos
+            de a uno mientras llama. */}
+        {(sinTelefono > 0 || tel) && (
+          <button
+            type="button"
+            title="Clientes de la campaña a los que todavía no se les puede llamar: no tienen ningún número cargado. Se anota desde la misma fila."
+            onClick={() => navegar({ tel: tel === "sin" ? null : "sin" })}
+            className={cn(
+              "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+              tel === "sin"
+                ? "border-amber-500 bg-amber-500 text-white"
+                : "border-amber-300 bg-amber-50 text-amber-800 hover:border-amber-500",
+            )}
+          >
+            <PhoneOff className="mr-1 inline size-3" />
+            Sin teléfono{sinTelefono > 0 && <> ({sinTelefono.toLocaleString("es-PE")})</>}
+          </button>
+        )}
+
         <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
           {pendiente && <Loader2 className="size-3.5 animate-spin" />}
           <span>
@@ -192,7 +219,7 @@ export function FiltrosRuta({
               type="button"
               onClick={() => {
                 setTexto("");
-                navegar({ mant: null, compra: null, llamada: null, q: null });
+                navegar({ mant: null, compra: null, llamada: null, tel: null, q: null });
               }}
               className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-accent"
             >

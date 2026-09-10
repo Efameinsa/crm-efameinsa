@@ -244,11 +244,24 @@ export interface FiltrosRuta {
   mant?: EstadoMantenimiento | null;
   compra?: EstadoCompra | null;
   llamada?: EstadoLlamada | null;
+  /**
+   * «sin»: los clientes a los que no se les puede llamar porque no tienen
+   * ningún teléfono cargado. Ariana, 10-09: «¿cómo voy a gestionar si no
+   * visualizo sus teléfonos? y así son varios». Son 47 de 327: juntarlos en una
+   * tanda convierte «los voy encontrando a medida que abro fichas» en un rato
+   * de conseguir números.
+   */
+  tel?: "sin" | "con" | null;
   /** Cliente, zona, serie, equipo, contacto o teléfono. */
   q?: string | null;
 }
 
-/** Los tres ejes se cruzan con Y: cada uno recorta sobre lo que dejó el anterior. */
+/** Si a esta fila se le puede llamar hoy: hay un número, no un campo vacío. */
+export function tieneTelefono(f: FilaRuta): boolean {
+  return (f.telefono ?? "").replace(/\D/g, "").length >= 6;
+}
+
+/** Los ejes se cruzan con Y: cada uno recorta sobre lo que dejó el anterior. */
 export function filtrarRuta(filas: FilaRuta[], hoy: string, filtros: FiltrosRuta): FilaRuta[] {
   const patron = (filtros.q ?? "").trim().toLowerCase();
   const soloDigitos = patron.replace(/\D/g, "");
@@ -256,6 +269,8 @@ export function filtrarRuta(filas: FilaRuta[], hoy: string, filtros: FiltrosRuta
     if (filtros.mant && estadoMantenimiento(f, hoy) !== filtros.mant) return false;
     if (filtros.compra && estadoCompra(f, hoy) !== filtros.compra) return false;
     if (filtros.llamada && estadoLlamada(f, hoy) !== filtros.llamada) return false;
+    if (filtros.tel === "sin" && tieneTelefono(f)) return false;
+    if (filtros.tel === "con" && !tieneTelefono(f)) return false;
     if (!patron) return true;
     return (
       f.razonSocial.toLowerCase().includes(patron) ||

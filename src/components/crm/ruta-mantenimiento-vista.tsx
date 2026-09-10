@@ -6,6 +6,7 @@ import { FiltrosRuta } from "@/components/crm/filtros-ruta";
 import {
   columnaDe,
   filtrarRuta,
+  tieneTelefono,
   ordenarRuta,
   ETIQUETA_COLUMNA,
   ETIQUETA_COMPRA,
@@ -83,7 +84,7 @@ export async function RutaMantenimientoVista({
   hrefBase,
 }: {
   perfil: Perfil;
-  sp: { ver?: string; q?: string; todos?: string; mant?: string; compra?: string; llamada?: string };
+  sp: { ver?: string; q?: string; todos?: string; mant?: string; compra?: string; llamada?: string; tel?: string };
   /** La URL de la pantalla que la muestra: `/comercial/ruta` o `/comercial/oportunidades`. */
   hrefBase: string;
 }) {
@@ -93,6 +94,7 @@ export async function RutaMantenimientoVista({
     mant: opcion<EstadoMantenimiento>(sp.mant, ETIQUETA_MANTENIMIENTO),
     compra: opcion<EstadoCompra>(sp.compra, ETIQUETA_COMPRA),
     llamada: opcion<EstadoLlamada>(sp.llamada, ETIQUETA_LLAMADA),
+    tel: (sp.tel === "sin" || sp.tel === "con" ? sp.tel : null) as "sin" | "con" | null,
     q: busqueda,
   };
 
@@ -262,6 +264,10 @@ export async function RutaMantenimientoVista({
   const cuenta = (c: ColumnaRuta) => filtrarRuta(porColumna(c), hoy, filtros).length;
 
   const enPestana = porColumna(pestana);
+  // Cuántos de esta pestaña no se pueden llamar. Se cuenta con la tanda puesta
+  // pero sin el propio recorte del teléfono: si no, al activarlo el número del
+  // botón se volvería el total y dejaría de decir nada.
+  const sinTelefono = filtrarRuta(enPestana, hoy, { ...filtros, tel: null }).filter((f) => !tieneTelefono(f)).length;
   const visibles = ordenarRuta(filtrarRuta(enPestana, hoy, filtros), hoy);
   const todos = sp.todos === "1";
   const mostradas = todos ? visibles : visibles.slice(0, POR_PAGINA);
@@ -274,6 +280,7 @@ export async function RutaMantenimientoVista({
     if (filtros.mant) p.set("mant", filtros.mant);
     if (filtros.compra) p.set("compra", filtros.compra);
     if (filtros.llamada) p.set("llamada", filtros.llamada);
+    if (filtros.tel) p.set("tel", filtros.tel);
     return `${hrefBase}?${p.toString()}`;
   };
 
@@ -318,6 +325,8 @@ export async function RutaMantenimientoVista({
         mant={filtros.mant}
         compra={filtros.compra}
         llamada={filtros.llamada}
+        tel={filtros.tel ?? null}
+        sinTelefono={sinTelefono}
         visibles={visibles.length}
         total={enPestana.length}
       />
@@ -325,13 +334,13 @@ export async function RutaMantenimientoVista({
       {visibles.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-6 text-center">
           <p className="text-sm text-muted-foreground">
-            {busqueda || filtros.mant || filtros.compra || filtros.llamada
+            {busqueda || filtros.mant || filtros.compra || filtros.llamada || filtros.tel
               ? "Ningún cliente de esta pestaña cumple con lo que se pidió."
               : pestana === "por_llamar"
                 ? "No queda nadie por llamar hoy. Los recontactos programados están en «Llamados»."
                 : "Todavía no hay nada acá."}
           </p>
-          {(busqueda || filtros.mant || filtros.compra || filtros.llamada) && (
+          {(busqueda || filtros.mant || filtros.compra || filtros.llamada || filtros.tel) && (
             <Link
               href={`${hrefBase}?ver=${pestana}`}
               className="mt-2 inline-block text-sm font-semibold text-primary hover:underline"

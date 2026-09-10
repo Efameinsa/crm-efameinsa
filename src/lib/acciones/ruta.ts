@@ -88,3 +88,41 @@ export async function gestionRapidaRuta(datos: {
     return r;
   });
 }
+
+/**
+ * El teléfono que faltaba, anotado desde la fila.
+ *
+ * 47 de los 327 clientes de la ruta no tienen ningún número cargado: el parque
+ * instalado se armó desde los Excel y las guías de remisión, que traen la
+ * máquina pero no a quién llamar. Ariana, 10-09: «¿cómo voy a gestionar si no
+ * visualizo sus teléfonos? y así son varios».
+ *
+ * Conseguir el número lo hace ella. Lo que esto evita es el paso de después:
+ * en buena parte de esos casos el cliente es de la cartera de otro comercial y
+ * la ficha se le abre en modo lectura, así que el número terminaba en un papel.
+ * La 0207 le da el permiso justo —agregar donde no había, sin pisar lo que ya
+ * está y sin mover la cartera—; acá solo se llama.
+ */
+export async function anotarTelefonoRuta(datos: {
+  cuentaId: string;
+  telefono: string;
+  /** A quién corresponde el número, si lo sabe. Opcional. */
+  nombre?: string;
+}): Promise<{ error: string | null; mensaje?: string }> {
+  const telefono = (datos.telefono ?? "").trim();
+  if (!datos.cuentaId) return { error: "Falta el cliente" };
+  if (telefono.replace(/\D/g, "").length < 6) {
+    return { error: "Escriba el número completo (celular 9 dígitos, fijo con su código)" };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("anotar_telefono_de_ruta", {
+    p_cuenta: datos.cuentaId,
+    p_telefono: telefono,
+    p_nombre: (datos.nombre ?? "").trim() || null,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/comercial/ruta");
+  return { error: null, mensaje: (data as string) ?? "Teléfono anotado" };
+}

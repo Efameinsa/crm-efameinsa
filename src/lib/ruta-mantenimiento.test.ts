@@ -10,6 +10,7 @@ import {
   filtrarRuta,
   haceCuantoDias,
   ordenarRuta,
+  tieneTelefono,
   type FilaRuta,
 } from "./ruta-mantenimiento";
 
@@ -181,6 +182,29 @@ describe("filtrarRuta", () => {
     expect(filtrarRuta(TODAS, HOY, { q: "2025108" }).map((f) => f.id)).toEqual(["c"]);
     // El cliente devuelve la llamada y lo único que hay es el número.
     expect(filtrarRuta(TODAS, HOY, { q: "972 094 462" }).map((f) => f.id)).toEqual(["a"]);
+  });
+
+  // Ariana, 10-09: «¿cómo voy a gestionar si no visualizo sus teléfonos? y así
+  // son varios». La tanda de los que no se pueden llamar.
+  it("junta a los que no tienen número, y se cruza con la tanda puesta", () => {
+    expect(filtrarRuta(TODAS, HOY, { tel: "sin" }).map((f) => f.id)).toEqual(["b", "c"]);
+    expect(filtrarRuta(TODAS, HOY, { tel: "con" }).map((f) => f.id)).toEqual(["a"]);
+    // No reemplaza a la tanda: la recorta. ADRA nunca se hizo el preventivo y
+    // sí tiene número, así que entra en una y se cae de la otra.
+    expect(filtrarRuta(TODAS, HOY, { mant: "nunca", tel: "con" }).map((f) => f.id)).toEqual(["a"]);
+    expect(filtrarRuta(TODAS, HOY, { mant: "nunca", tel: "sin" })).toEqual([]);
+  });
+
+  // Un campo con un resto del Excel («-», «s/n») no es un teléfono: si contara
+  // como número, esos clientes se caerían de la tanda y no se llamarían nunca.
+  it("un campo con basura cuenta como sin teléfono", () => {
+    expect(tieneTelefono(fila({ telefono: "-" }))).toBe(false);
+    expect(tieneTelefono(fila({ telefono: "s/n" }))).toBe(false);
+    expect(tieneTelefono(fila({ telefono: "" }))).toBe(false);
+    expect(tieneTelefono(fila({ telefono: null }))).toBe(false);
+    // Fijo de Lima escrito como se apunta, con su código y su anexo.
+    expect(tieneTelefono(fila({ telefono: "(01) 719-3800 anexo 12" }))).toBe(true);
+    expect(tieneTelefono(fila({ telefono: "972094462" }))).toBe(true);
   });
 });
 

@@ -24,6 +24,7 @@ export default async function RutaMantenimientoPage({
     mant?: string;
     compra?: string;
     llamada?: string;
+    tel?: string;
   }>;
 }) {
   const [perfil, sp] = await Promise.all([requerirPerfil(), searchParams]);
