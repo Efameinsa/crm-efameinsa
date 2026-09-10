@@ -126,6 +126,12 @@ export function RegistroRapido({
   // La alternativa al rechazo, buscada por su código y no por su nombre: hay
   // dos «Compra a futuro» en el catálogo y solo una está activa.
   const aFuturo = resultados.find((r) => r.codigo === "COMPRA_FUTURO") ?? null;
+  // …salvo cuando el cliente pidió que no lo llamen (0216). Ofrecerle
+  // «Compra a futuro» ahí sería proponer justo lo que él dijo que no quiere:
+  // ese motivo es el único que obliga a la empresa a algo, no una etiqueta más.
+  const pidioNoSerContactado = /no ser contactado/i.test(
+    motivos.find((m) => String(m.id) === motivoId)?.nombre ?? "",
+  );
   const faltante = !esRechazo && !!proximaAccionAt && !proximaAccion.trim();
 
   function elegirQueHacer(texto: string) {
@@ -378,7 +384,7 @@ export function RegistroRapido({
                   desde siempre; el problema era que nadie la veía: es el
                   chip 12 de 15 y el rechazo estaba a un toque. Acá se ofrece
                   justo cuando se está por rechazar, que es cuando importa. */}
-              {esRechazo && aFuturo && (
+              {esRechazo && aFuturo && !pidioNoSerContactado && (
                 <div className="rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs leading-relaxed text-amber-900">
                   ¿El cliente dijo que no <b>por ahora</b>, o que no <b>nunca</b>? Si es por ahora, no lo rechace:
                   márquelo como <b>Compra a futuro</b> y queda agendado para retomarlo. El rechazo es para cuando ya
