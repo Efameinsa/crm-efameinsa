@@ -20,6 +20,7 @@ import { LineaTiempoCuenta, type EventoTimeline } from "@/components/crm/linea-t
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { RedirigirLeadBoton } from "@/components/crm/redirigir-lead-boton";
 import { CorregirCanalBoton } from "@/components/crm/corregir-canal-boton";
+import { ChipOrigen } from "@/components/crm/chip-origen";
 import { UnirACuentaBoton } from "@/components/crm/unir-a-cuenta-boton";
 import { EditarSolicitudBoton } from "@/components/crm/editar-solicitud-boton";
 import { dominioDeCorreo } from "@/lib/central/coincidencias-bandeja";
@@ -312,6 +313,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
                 </a>
               )}
               <span>Llegó por {ETIQUETA_CANAL[fila.canal] ?? fila.canal}</span>
+              <ChipOrigen origen={fila.origen} />
             </p>
           </div>
 

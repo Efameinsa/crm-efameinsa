@@ -127,8 +127,12 @@ export interface ResumenGerencia {
 // en su hoja histórica (PROV_PROSP, migración 0022) — menos exacta pero es
 // lo que la empresa registró durante años.
 export const ETIQUETA_VIA: Record<string, string> = {
-  google_ads: "Google Ads",
-  meta_ads: "Meta Ads / campaña FB",
+  google_ads: "Formulario de Google Ads",
+  meta_ads: "Formulario de Meta",
+  // Los tres orígenes de la web que pidió distinguir Santos el 11-09 (0227).
+  web_landing: "Landing de campaña",
+  web_campana: "Web · vino de campaña",
+  web_organico: "Web · orgánico",
   facebook: "Facebook (orgánico o pauta)",
   publicidad: "Campaña (sin plataforma)",
   web: "Página web (declarado)",

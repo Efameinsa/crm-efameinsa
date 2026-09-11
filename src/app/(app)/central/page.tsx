@@ -23,7 +23,8 @@ import { EditarSolicitudBoton } from "@/components/crm/editar-solicitud-boton";
 import { EditarDatosLeadBoton } from "@/components/crm/editar-datos-lead-boton";
 import { UnirACuentaBoton } from "@/components/crm/unir-a-cuenta-boton";
 import { dominioDeCorreo } from "@/lib/central/coincidencias-bandeja";
-import { campanaDe, fuenteLegible, nombreDeCampana } from "@/lib/campana";
+import { origenDe, fuenteLegible, nombreDeCampana } from "@/lib/campana";
+import { ChipOrigen } from "@/components/crm/chip-origen";
 
 // La bandeja tiene que mostrar lo que acaba de entrar: sin esto Next servía
 // una versión cacheada y un contacto recién registrado no aparecía hasta que
@@ -260,10 +261,13 @@ export default async function CentralPage() {
         <div className="space-y-2">
           {leads.map((lead) => {
             const Icono = ICONO_CANAL[lead.canal] ?? Globe;
-            // VINO DE CAMPAÑA (Santos, 11-09): el clic ya costó plata y el que
-            // llenó el formulario se enfría en horas. Se ve de otro color y
-            // se atiende primero, como un «PROSPECTO CALIENTE».
-            const campana = campanaDe(lead);
+            // DE DÓNDE VINO (Santos, 11-09): formulario de Google Ads, landing
+            // de campaña, web que vino de un anuncio, o web orgánica. Si el
+            // clic costó plata, la tarjeta va de otro color y se atiende
+            // primero, como un «PROSPECTO CALIENTE»; lo orgánico lleva su chip
+            // verde y nada más.
+            const origen = origenDe(lead);
+            const campana = origen?.urgente ? { plataforma: origen.plataforma ?? "otra", etiqueta: origen.etiqueta } : null;
             const caliente = /^\s*PROSPECTO CALIENTE/i.test(lead.mensaje ?? "");
             return (
               <div
@@ -311,8 +315,9 @@ export default async function CentralPage() {
                         </span>
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {lead.razon_social ?? "Sin razón social"} · {ETIQUETA_CANAL[lead.canal] ?? lead.canal}
+                    <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                      <span>{lead.razon_social ?? "Sin razón social"} · {ETIQUETA_CANAL[lead.canal] ?? lead.canal}</span>
+                      {origen && !origen.urgente && <ChipOrigen origen={origen} />}
                     </p>
                     {/* CÓMO CONTACTARLO, EN LA TARJETA (Central, reunión del
                         11-09): «ingresa del formulario de la web un prospecto
@@ -368,7 +373,7 @@ export default async function CentralPage() {
                     <span className="text-[11px]">
                       {lead.recibido_por
                         ? `lo registró ${registradoPor.get(lead.recibido_por) ?? "un usuario dado de baja"}`
-                        : "entró solo (formulario web)"}
+                        : `entró solo${origen ? ` · ${origen.etiqueta.toLowerCase()}` : " (formulario web)"}`}
                     </span>
                   </div>
                   <div className="ml-auto flex gap-2">

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolverPeriodo } from "@/lib/periodo";
 import { cargarConversionesDeCampana, type ConversionDeCampana as Fila } from "@/lib/marketing-conversiones";
+import { origenDe } from "@/lib/campana";
 
 // LA VUELTA A LAS PLATAFORMAS (Santos, 11-09). Google Ads y Meta solo saben
 // que alguien llenó un formulario; el CRM sabe si ese alguien se calificó,
@@ -110,12 +111,12 @@ export async function GET(request: Request) {
   } else {
     cuerpo = [
       linea([
-        "codigo", "recibido", "plataforma", "campaña", "contenido", "fuente", "medio", "gclid", "fbclid",
+        "codigo", "recibido", "plataforma", "origen", "campaña", "contenido", "fuente", "medio", "gclid", "fbclid",
         "nombre", "razon_social", "email", "telefono", "comercial", "estado", "detalle", "valor", "moneda", "fecha_estado",
       ]),
       ...filas.map((f) =>
         linea([
-          f.codigo, horaLima(f.recibido_at), f.plataforma, f.utm_campaign, f.utm_content, f.fuente, f.utm_medium,
+          f.codigo, horaLima(f.recibido_at), f.plataforma, origenDe(f)?.etiqueta ?? "", f.utm_campaign, f.utm_content, f.fuente, f.utm_medium,
           f.gclid, f.fbclid, f.nombre, f.razon_social, f.email, f.telefono, f.comercial, f.estado, f.detalle,
           f.valor, f.moneda, horaLima(f.fecha_estado),
         ]),

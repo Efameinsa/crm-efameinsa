@@ -1,4 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
+import { origenDe, type Origen } from "@/lib/campana";
 
 /**
  * Lo que Central derivó, con el rastro completo de lo que el comercial hizo
@@ -82,6 +83,8 @@ export interface DerivadoFila {
   telefono: string | null;
   email: string | null;
   canal: string;
+  /** Formulario de Google Ads, landing de campaña, web orgánica… (Santos, 11-09). Null = lo registró Central. */
+  origen: Origen | null;
   mensaje: string | null;
   recibidoAt: string | null;
   /**
@@ -281,10 +284,15 @@ type LeadCrudo = {
   es_prueba: boolean;
   /** El expediente al que fue a parar (0141): puede ser compartido con otro lead. */
   oportunidad_id: string | null;
+  fuente: string | null;
+  gclid: string | null;
+  fbclid: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
 };
 
 const CAMPOS_LEAD =
-  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, recibido_por, adjuntos, asignado_at, asignado_a, cuenta_id, es_prueba, oportunidad_id";
+  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, recibido_por, adjuntos, asignado_at, asignado_a, cuenta_id, es_prueba, oportunidad_id, fuente, gclid, fbclid, utm_source, utm_medium";
 
 /**
  * Las derivaciones del período con todo su rastro. Va en consultas separadas
@@ -618,6 +626,7 @@ async function armar(
       telefono: l.telefono,
       email: l.email,
       canal: l.canal,
+      origen: origenDe(l),
       mensaje: l.mensaje,
       recibidoAt: l.recibido_at,
       registradoPor: l.recibido_por ? (perfilPorId.get(l.recibido_por) ?? null) : null,

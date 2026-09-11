@@ -1,3 +1,4 @@
+import { ChipOrigen } from "@/components/crm/chip-origen";
 import Link from "next/link";
 import { AlertTriangle, FileDown, MessageSquareText, Phone, Siren } from "lucide-react";
 import { fechaHoraLima } from "@/lib/fechas";
@@ -105,6 +106,9 @@ export function TarjetaDerivado({
             <span className="rounded-full bg-secondary px-1.5 py-px font-medium text-foreground">
               {ETIQUETA_CANAL[fila.canal] ?? fila.canal}
             </span>
+            {/* Y de dónde vino de verdad: formulario de Ads, landing, web
+                orgánica (Santos, 11-09). */}
+            <ChipOrigen origen={fila.origen} />
             {/* Solo donde la evidencia PODRÍA existir. Una llamada no lleva
                 esta marca: no hay nada que adjuntar, y marcarla empujaría a
                 registrar todo como llamada para que no la marquen. */}
