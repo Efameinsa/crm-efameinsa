@@ -447,8 +447,15 @@ export function FichaTecnicaEditor({
         }
         const nuevo = Number(precio);
         const anterior = equipo.precios[0];
-        if (anterior && Number.isFinite(nuevo) && nuevo !== anterior.precio) {
-          const rp = await fijarPrecio(equipo.id!, anterior.tier, nuevo);
+        // EL PRIMER PRECIO TAMBIÉN SE GUARDA (Lesly, 11-09: «SECU75E, quiero
+        // que sea 9300 y no se guarda»). Solo se mandaba el precio cuando ya
+        // había uno vigente que cambiar; un equipo que entró sin precio no
+        // tenía cómo recibir el primero desde esta ficha. Sin precio anterior
+        // el tier es el mismo que al crear el equipo: óptimo para
+        // semi-industrial, base para industrial.
+        if (Number.isFinite(nuevo) && nuevo > 0 && (!anterior || nuevo !== anterior.precio)) {
+          const tier = anterior?.tier ?? (d.segmento === "semi_industrial" ? "optimo" : "base");
+          const rp = await fijarPrecio(equipo.id!, tier, nuevo);
           if (rp.error) {
             toast.error(`Precio: ${rp.error}`);
             return;
