@@ -223,13 +223,13 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
               {/* Las del archivo no siempre traen total: el documento listaba
                   alternativas para que el cliente eligiera. Se dice eso en vez
                   de mostrar un cero que se leería como "cotizó gratis". */}
-              — {evento.monto != null ? `${evento.moneda} ${evento.monto.toLocaleString("es-PE")}` : "sin total en el documento"}
+              — {evento.monto != null ? `${evento.moneda} ${evento.monto.toLocaleString("es-PE")}` : evento.montoReservado ? "monto reservado" : "sin total en el documento"}
             </span>
           </p>
         )}
         {evento.tipo === "venta" && (
           <p className="text-sm font-semibold text-[#1E7F4F]">
-            Venta cerrada — {evento.moneda} {evento.monto.toLocaleString("es-PE")}
+            Venta cerrada{evento.monto != null ? ` — ${evento.moneda} ${evento.monto.toLocaleString("es-PE")}` : ""}
             {evento.presupuesto && (
               <span className="font-normal text-muted-foreground"> · presupuesto {evento.presupuesto}</span>
             )}

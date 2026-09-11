@@ -61,6 +61,8 @@ export interface EventoCotizacion {
   // null cuando el documento no imprimió un total (muchas cotizaciones son un
   // menú de alternativas): se muestra el presupuesto sin cifra, no un cero.
   monto: number | null;
+  /** La cifra existe pero no se muestra a quien mira (postventa, 0221). */
+  montoReservado?: boolean;
   moneda: string;
   // Solo en las del archivo: el documento ES la cotización, no hay ficha ni
   // acciones detrás, así que la cronología es el único sitio desde donde
@@ -73,7 +75,8 @@ export interface EventoVenta {
   id: string;
   fecha: string;
   oportunidadId: string | null;
-  monto: number;
+  /** null cuando la historia se mira sin montos (postventa, 0221). */
+  monto: number | null;
   moneda: string;
   // Anulada por gerencia: se queda en el historial porque pasó, pero no se
   // lee como una venta buena (reunión 28-08).

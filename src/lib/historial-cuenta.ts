@@ -18,14 +18,40 @@ function etiquetaCotizacion(estado: string, estadoAprobacion: string): { label: 
 
 interface Item {
   cantidad: number;
-  precio_unitario: number;
+  /** null cuando la historia se mira sin montos (postventa, 0221). */
+  precio_unitario: number | null;
   productos: { marca: string; modelo: string; nombre: string } | null;
+}
+
+// Las filas tal como llegan de la base. Se nombran porque hay DOS caminos que
+// las traen —las consultas con RLS y `historial_cuenta_para_postventa`— y los
+// dos tienen que entregar la misma forma para que la cronología sea una sola.
+interface FilaOportunidad { id: string; origen: string | null }
+interface FilaCotHist {
+  id: string; codigo: string | null; correlativo: number | null; anio: number | null; serie: string | null;
+  fecha: string | null; monto_sin_igv: number | null; items: string[] | null; n_equipos: number | null; pdf_path: string | null;
+}
+interface FilaActividad {
+  id: string; tipo: string; nota: string | null; realizada_at: string; oportunidad_id: string;
+  adjuntos?: { path: string; nombre: string }[] | null;
+  proxima_accion: string | null; proxima_accion_at: string | null; proxima_accion_hora: string | null;
+  catalogo_resultados_gestion: { codigo: string; nombre: string } | null;
+}
+interface FilaCotizacion {
+  id: string; codigo: string | null; estado: string; estado_aprobacion: string;
+  total: number | null; moneda: string; created_at: string; oportunidad_id: string;
+}
+interface FilaVenta {
+  id: string; fecha_venta: string; monto_total: number | null; moneda: string; oportunidad_id: string;
+  cotizacion_id: string | null; referencia_historica: string | null; equipo_historico: string | null;
+  anulada_at: string | null; cotizaciones: { codigo: string | null; serie: string; cotizacion_items: Item[] } | null;
 }
 
 export interface VentaConDetalle {
   id: string;
   fecha_venta: string;
-  monto_total: number;
+  /** null cuando la historia se mira sin montos (postventa, 0221). */
+  monto_total: number | null;
   moneda: string;
   oportunidad_id: string;
   // Nro de presupuesto del Excel histórico ("1505-24") cuando la venta no
@@ -53,8 +79,34 @@ export interface HistorialCuentaResultado {
 export async function cargarHistorialCuenta(
   supabase: Awaited<ReturnType<typeof createClient>>,
   cuentaId: string,
+  opciones: {
+    /**
+     * POSTVENTA MIRA LA HISTORIA SIN CIFRAS (0221). Ariana, 11-09, con HOTEL
+     * ROUTE 66 desde su cuenta de postventa: «no encuentra información de sus
+     * ventas». Estaban —dos ventas y dos presupuestos, en expedientes de C5—
+     * pero las políticas solo le abren al área lo que tiene tipo_postventa, y
+     * la ficha le salía vacía donde al comercial le sale llena. Con esto la
+     * historia viene por la función de la base, que devuelve todo menos los
+     * montos, que es exactamente el corte que pidió Carlos el 10-09.
+     */
+    sinMontos?: boolean;
+  } = {},
 ): Promise<HistorialCuentaResultado> {
-  const { data: oportunidades } = await supabase.from("oportunidades").select("id, origen").eq("cuenta_id", cuentaId);
+  // El paquete sin cifras, cuando corresponde. Una sola ida y vuelta en vez de
+  // cinco, y ninguna política que abrir.
+  const paquete = opciones.sinMontos
+    ? ((await supabase.rpc("historial_cuenta_para_postventa", { p_cuenta: cuentaId })).data as null | {
+        oportunidades: FilaOportunidad[];
+        actividades: FilaActividad[];
+        cotizaciones: FilaCotizacion[];
+        cot_historicas: FilaCotHist[];
+        ventas: FilaVenta[];
+      })
+    : null;
+
+  const oportunidades = paquete
+    ? paquete.oportunidades
+    : ((await supabase.from("oportunidades").select("id, origen").eq("cuenta_id", cuentaId)).data as FilaOportunidad[] | null);
   const opIds = (oportunidades ?? []).map((o) => o.id);
   // Las oportunidades que vinieron del Excel son un cascarón: la creó el
   // importador para poder colgar la venta, y su pantalla no tiene etapa que
@@ -71,12 +123,16 @@ export async function cargarHistorialCuenta(
   // cotizaciones_historicas, 2.644 documentos de las unidades S: y T:).
   // Cuelgan de la cuenta y no de una oportunidad, porque en su momento no
   // existían las oportunidades: por eso se consultan aparte y no por opIds.
-  const { data: cotHistoricas } = await supabase
-    .from("cotizaciones_historicas")
-    .select("id, codigo, correlativo, anio, serie, fecha, monto_sin_igv, items, n_equipos, pdf_path")
-    .eq("cuenta_id", cuentaId)
-    .order("fecha", { ascending: false })
-    .limit(100);
+  const cotHistoricas = paquete
+    ? paquete.cot_historicas
+    : ((
+        await supabase
+          .from("cotizaciones_historicas")
+          .select("id, codigo, correlativo, anio, serie, fecha, monto_sin_igv, items, n_equipos, pdf_path")
+          .eq("cuenta_id", cuentaId)
+          .order("fecha", { ascending: false })
+          .limit(100)
+      ).data as FilaCotHist[] | null);
 
   // Lo que hizo postventa con este cliente: servicios (los 605 informes
   // importados de R:\ y los pedidos del CRM) y atenciones. El comercial lo ve
@@ -96,8 +152,9 @@ export async function cargarHistorialCuenta(
       .limit(60),
   ]);
 
-  const [{ data: actividades }, { data: cotizaciones }, { data: ventas }] =
-    opIds.length === 0
+  const [{ data: actividades }, { data: cotizaciones }, { data: ventas }] = (paquete
+    ? [{ data: paquete.actividades }, { data: paquete.cotizaciones }, { data: paquete.ventas }]
+    : opIds.length === 0
       ? [{ data: [] }, { data: [] }, { data: [] }]
       : await Promise.all([
           supabase
@@ -120,7 +177,7 @@ export async function cargarHistorialCuenta(
             )
             .in("oportunidad_id", opIds)
             .order("fecha_venta", { ascending: false }),
-        ]);
+        ])) as [{ data: FilaActividad[] | null }, { data: FilaCotizacion[] | null }, { data: FilaVenta[] | null }];
 
   // URLs firmadas para los adjuntos (bucket privado): una sola llamada batch.
   type AdjuntoMeta = { path: string; nombre: string };
@@ -197,8 +254,10 @@ export async function cargarHistorialCuenta(
         codigo: c.codigo,
         estadoLabel: label,
         color,
-        // Con IGV, como en el cotizador y el PDF (UX, 08-09).
-        monto: totalConIgv(c.total),
+        // Con IGV, como en el cotizador y el PDF (UX, 08-09). null cuando la
+        // historia se mira sin cifras.
+        monto: c.total != null ? totalConIgv(c.total) : null,
+        montoReservado: Boolean(paquete),
         moneda: c.moneda,
         // A propósito SIN pdfUrl: la cotización del CRM vive en su oportunidad,
         // donde además de bajar el PDF se la envía, se la duplica y se registra
@@ -218,6 +277,7 @@ export async function cargarHistorialCuenta(
       estadoLabel: `${c.serie === "OPEN" ? "Open Investments" : "Efameinsa"} · del archivo`,
       color: "neutro",
       monto: c.monto_sin_igv,
+      montoReservado: Boolean(paquete),
       moneda: "USD",
       // El enlace es a una ruta del servidor, no al bucket: la URL firmada se
       // pide recién al hacer clic (vence en minutos) y así la política de

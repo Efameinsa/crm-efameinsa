@@ -160,7 +160,9 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
       .order("recibido_at"),
     supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre"),
     cuenta?.cuenta_padre_id ? supabase.rpc("grupo_economico", { p_cuenta_id: cuenta.id }) : Promise.resolve({ data: null }),
-    cuenta?.id ? cargarHistorialCuenta(supabase, cuenta.id) : Promise.resolve({ eventos: [], ventasConDetalle: [] }),
+    cuenta?.id
+      ? cargarHistorialCuenta(supabase, cuenta.id, { sinMontos: !puedeVerPrecios(perfilQueMira) })
+      : Promise.resolve({ eventos: [], ventasConDetalle: [] }),
     cuenta?.id
       ? supabase
           .from("informes_cierre")

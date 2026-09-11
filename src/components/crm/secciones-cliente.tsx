@@ -121,9 +121,10 @@ export function ListaInformesCierre({
 }
 
 /** Suma las compras agrupando por moneda: sumar USD con PEN no significa nada. */
-function totalesPorMoneda(ventas: { moneda: string; monto_total: number }[]): { moneda: string; total: number }[] {
+function totalesPorMoneda(ventas: { moneda: string; monto_total: number | null }[]): { moneda: string; total: number }[] {
   const acum = new Map<string, number>();
-  for (const v of ventas) acum.set(v.moneda, (acum.get(v.moneda) ?? 0) + v.monto_total);
+  // Sin cifras no hay total que sumar: se devuelve vacío y el pie no inventa un cero.
+  for (const v of ventas) if (v.monto_total != null) acum.set(v.moneda, (acum.get(v.moneda) ?? 0) + v.monto_total);
   return [...acum.entries()].map(([moneda, total]) => ({ moneda, total })).sort((a, b) => b.total - a.total);
 }
 
@@ -183,13 +184,23 @@ export function TablaComprasAnteriores({ ventas }: { ventas: VentaConDetalle[] }
                 ? (v.cotizaciones?.cotizacion_items ?? [])
                     .map(
                       (it) =>
-                        `${it.cantidad}× ${it.productos?.marca ?? ""} ${it.productos?.modelo ?? ""} — US$ ${it.precio_unitario.toLocaleString("es-PE")} c/u`,
+                        `${it.cantidad}× ${it.productos?.marca ?? ""} ${it.productos?.modelo ?? ""}${it.precio_unitario != null ? ` — US$ ${it.precio_unitario.toLocaleString("es-PE")} c/u` : ""}`,
                     )
                     .join(" · ")
                 : (v.equipo_historico ?? (v.documentoArchivo?.items ?? []).join(" · ") ?? "") || "—"}
             </TableCell>
             <TableCell className="text-right font-medium tabular-nums text-foreground">
-              {v.moneda} {v.monto_total.toLocaleString("es-PE")}
+              {/* Sin cifra para postventa (0221): se dice que existe y no se
+                  muestra, en vez de un guion que parece «sin dato». */}
+              {v.monto_total != null ? (
+                <>
+                  {v.moneda} {v.monto_total.toLocaleString("es-PE")}
+                </>
+              ) : (
+                <span className="text-xs font-normal text-muted-foreground" title="El monto no se muestra al área de postventa">
+                  monto reservado
+                </span>
+              )}
             </TableCell>
           </TableRow>
         ))}

@@ -98,7 +98,7 @@ export async function FichaCuenta({
       es_principal: boolean;
     }[]) ?? [];
 
-  const { eventos, ventasConDetalle } = await cargarHistorialCuenta(supabase, cuentaId);
+  const { eventos, ventasConDetalle } = await cargarHistorialCuenta(supabase, cuentaId, { sinMontos: !verPrecios });
 
   // DESDE ACÁ SE TIENE QUE PODER LLEGAR A GESTIONAR. Brenda, 31-08: encontró a
   // COINREFRI en Mi cartera y no tenía qué tocar para trabajarlo. Y era cierto
