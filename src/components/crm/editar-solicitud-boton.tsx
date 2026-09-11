@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CampoAdjuntos, useAdjuntos } from "@/components/crm/campo-adjuntos";
 
 /**
  * EDITAR «QUÉ SOLICITA» sin salir de la bandeja.
@@ -37,45 +38,76 @@ import { Textarea } from "@/components/ui/textarea";
  * los contactos de Google Ads, cuyo mensaje no lo escribió nadie —son los
  * pares «Campaña: … · Ciudad: …» del formulario— y que al reescribirse a mano
  * perderían de dónde vinieron.
+ *
+ * Y LAS FOTOS QUE LLEGARON POR OTRO CANAL (0227). Central, 11-09: Carlos
+ * Timana escribió por la web y a la vez mandó por WhatsApp las fotos de su
+ * lavadora. Acá se le pegan al contacto que ya está en la bandeja — la
+ * alternativa era registrar un segundo contacto, o sea una ficha repetida.
+ * Mismo campo y mismo Ctrl+V que la captura de Central.
  */
 export function EditarSolicitudBoton({
   leadId,
   contacto,
   mensaje,
   campania,
+  adjuntosQueTiene = 0,
 }: {
   leadId: string;
   contacto: string;
   mensaje: string | null;
   /** La campaña de Ads, cuando el mensaje son solo datos de origen. */
   campania?: string | null;
+  /** Cuántos archivos ya tiene el contacto: para decir «se suman a los N que ya tiene». */
+  adjuntosQueTiene?: number;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState(mensaje ?? "");
   const [enviando, startTransition] = useTransition();
+  const adjuntos = useAdjuntos();
 
   // Los contactos de Google Ads llegan con pares "Clave: valor" separados por
   // ·. Eso no lo escribió una persona: si Central lo va a reemplazar por lo que
   // le contó el cliente, arrancar de cero es más honesto que hacerle borrar la
   // línea de plomería a mano.
   const esDeFormulario = Boolean(mensaje && /·/.test(mensaje) && /:/.test(mensaje));
-  const listo = texto.trim().length >= 5 && texto.trim() !== (mensaje ?? "").trim();
+  const textoCambio = texto.trim().length >= 5 && texto.trim() !== (mensaje ?? "").trim();
+  const hayFotos = adjuntos.archivos.length > 0;
+  // Se guarda si cambió el texto O si hay algo que adjuntar: pegar las fotos
+  // sin reescribir lo que pide es el caso que motivó esto.
+  const listo = textoCambio || hayFotos;
 
   function abrir(v: boolean) {
     setAbierto(v);
     if (v) setTexto(esDeFormulario ? "" : mensaje ?? "");
+    // Al cerrar se descartan las fotos elegidas: la próxima vez el diálogo no
+    // puede abrir con las de otro contacto.
+    if (!v) adjuntos.limpiar();
   }
 
   function guardar() {
     if (!listo) return;
     startTransition(async () => {
-      const r = await corregirSolicitudLead(leadId, texto);
+      // Las fotos primero: si una subida falla se avisa y NO se guarda nada —
+      // mejor reintentar que dejar el texto sin la foto que se vino a pegar.
+      const subida = await adjuntos.subir();
+      if (subida.error !== null) {
+        toast.error(subida.error);
+        return;
+      }
+      const r = await corregirSolicitudLead(leadId, textoCambio ? texto : null, subida.adjuntos);
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
       }
-      toast.success("Queda anotado lo que pide el cliente");
+      toast.success(
+        hayFotos && !textoCambio
+          ? `${subida.adjuntos.length === 1 ? "Archivo acoplado" : `${subida.adjuntos.length} archivos acoplados`} al contacto`
+          : hayFotos
+            ? "Queda anotado lo que pide, con sus archivos"
+            : "Queda anotado lo que pide el cliente",
+      );
+      adjuntos.limpiar();
       setAbierto(false);
       router.refresh();
     });
@@ -91,7 +123,9 @@ export function EditarSolicitudBoton({
           </Button>
         }
       />
-      <DialogContent className="sm:max-w-lg">
+      {/* El Ctrl+V se escucha en todo el diálogo: al pegar la captura del
+          WhatsApp, el cursor está en cualquier campo. */}
+      <DialogContent className="sm:max-w-lg" onPaste={adjuntos.onPaste}>
         <DialogHeader>
           <DialogTitle>Qué solicita {contacto}</DialogTitle>
           <DialogDescription>
@@ -134,16 +168,37 @@ export function EditarSolicitudBoton({
           </p>
         </div>
 
+        {/* Las fotos que el cliente mandó por OTRO canal (el WhatsApp mientras
+            el contacto entró por la web). Se suman a las que ya tiene; no se
+            reemplaza nada. */}
+        <div className="space-y-1.5">
+          <Label>Fotos o archivos que le mandó por otro canal</Label>
+          <CampoAdjuntos
+            ctl={adjuntos}
+            ayuda={
+              adjuntosQueTiene > 0
+                ? `Se suman a ${adjuntosQueTiene === 1 ? "el que ya tiene" : `los ${adjuntosQueTiene} que ya tiene`} · hasta 5 por vez, 10 por contacto`
+                : "La foto del equipo o de la placa que mandó por WhatsApp · hasta 5 por vez"
+            }
+          />
+        </div>
+
         <DialogFooter className="sm:flex-col sm:items-stretch sm:gap-2">
           {!listo && (
             <p className="text-[11px] text-muted-foreground">
               {texto.trim().length < 5
-                ? "Escriba qué solicita — una frase alcanza."
-                : "Es el mismo texto que ya está guardado."}
+                ? "Escriba qué solicita, o adjunte lo que mandó — con una de las dos alcanza."
+                : "Es el mismo texto que ya está guardado. Adjunte algo o cambie el texto."}
             </p>
           )}
           <Button onClick={guardar} disabled={!listo || enviando}>
-            {enviando ? "Guardando…" : "Guardar lo que pide"}
+            {enviando
+              ? adjuntos.progreso
+                ? `Subiendo ${adjuntos.progreso.hecho + 1} de ${adjuntos.progreso.total}…`
+                : "Guardando…"
+              : hayFotos && !textoCambio
+                ? "Acoplar al contacto"
+                : "Guardar lo que pide"}
           </Button>
         </DialogFooter>
       </DialogContent>

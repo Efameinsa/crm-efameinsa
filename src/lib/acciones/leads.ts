@@ -816,12 +816,27 @@ export async function corregirCanalDelLead(
  */
 export async function corregirSolicitudLead(
   leadId: string,
-  texto: string,
+  /** El texto nuevo, o null si solo se adjunta (0227). */
+  texto: string | null,
+  /**
+   * LAS FOTOS QUE LLEGARON POR OTRO CANAL (0227). Central, 11-09: Carlos
+   * Timana escribió por la web y a la vez mandó las fotos por WhatsApp; no
+   * había cómo pegárselas al contacto que ya estaba en la bandeja, y la única
+   * salida era registrar un segundo contacto — una ficha repetida más. Se
+   * AGREGAN a las que el contacto ya tenía; ya subidas al bucket por el
+   * formulario, acá viajan solo los metadatos, como en la captura.
+   */
+  adjuntos: AdjuntoLead[] = [],
 ): Promise<{ error: string | null }> {
+  if (adjuntos.length > 0) {
+    const r = esquemaAdjuntosLead.safeParse(adjuntos);
+    if (!r.success) return { error: "Los adjuntos no son válidos. Quítelos y vuelva a agregarlos." };
+  }
   const supabase = await createClient();
   const { error } = await supabase.rpc("corregir_solicitud_lead", {
     p_lead_id: leadId,
-    p_texto: texto,
+    p_texto: texto?.trim() || null,
+    p_adjuntos: adjuntos.length > 0 ? adjuntos : null,
   });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
 
