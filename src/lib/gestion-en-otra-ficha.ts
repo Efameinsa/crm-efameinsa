@@ -38,7 +38,15 @@ export interface FichaAConsultar {
 }
 
 export interface AtencionAlLado {
+  /** La PRIMERA gestión al lado dentro de la ventana: prueba que se atendió cuando llegó. */
   fecha: string;
+  /**
+   * La ÚLTIMA. Para una vencida es la que importa: INVERSIONES FISA (Ariana,
+   * 11-09) salía «venció hace 25 días» en un expediente gemelo del Excel
+   * mientras en el otro la había llamado ayer y agendado para el 29. Decirle
+   * «ya lo atendió el 22 ago» era verdad pero no era la respuesta.
+   */
+  ultima: string;
   tipo: string;
 }
 
@@ -83,34 +91,60 @@ export async function atencionesEnOtraFicha(
   if (idsGemelas.length === 0) return resultado;
 
   const desdeLaMasVieja = Math.min(...ventanaDe.values());
-  const { data: actividades } = await traerPorLotes<{ oportunidad_id: string; tipo: string; realizada_at: string }>(
-    idsGemelas,
-    (lote) =>
-      supabase
-        .from("actividades")
-        .select("oportunidad_id, tipo, realizada_at")
-        .in("oportunidad_id", lote)
-        .gte("realizada_at", new Date(desdeLaMasVieja).toISOString())
-        .order("realizada_at", { ascending: true }),
+  type ActCruda = {
+    oportunidad_id: string;
+    tipo: string;
+    realizada_at: string;
+    realizada_por: string | null;
+    // Sin tipos generados, supabase-js tipa el embed «muchos a uno» como
+    // arreglo; en tiempo de ejecución llega un objeto. Se aceptan los dos.
+    perfiles: { rol: string }[] | { rol: string } | null;
+  };
+  const { data: actividades } = await traerPorLotes<ActCruda>(idsGemelas, (lote) =>
+    supabase
+      .from("actividades")
+      .select("oportunidad_id, tipo, realizada_at, realizada_por, perfiles!actividades_realizada_por_fkey(rol)")
+      .in("oportunidad_id", lote)
+      .gte("realizada_at", new Date(desdeLaMasVieja).toISOString())
+      .order("realizada_at", { ascending: true }),
   );
   if (actividades.length === 0) return resultado;
 
+  // UNA NOTA DEL SISTEMA NO ES ATENCIÓN. La reposición del histórico (02-09,
+  // sin autor) y las notas «Expediente unificado» (firmadas por el
+  // Administrador) viven en expedientes gemelos archivados, con fecha del día
+  // en que se corrieron. Contadas como gestión, a Ariana le salían como «ya
+  // atendidas» cinco vencidas de las que solo dos lo estaban (11-09), y en
+  // CORDOVA VENTURO el gemelo del Excel parecía más reciente que el hilo real
+  // solo por la nota del 02-09. Atención es lo que hizo una persona que
+  // atiende clientes; las notas del Excel importadas cuentan porque van a
+  // nombre del comercial que las escribió.
   const actsDeOp = new Map<string, { tipo: string; realizada_at: string }[]>();
   for (const a of actividades) {
+    const rol = Array.isArray(a.perfiles) ? a.perfiles[0]?.rol : a.perfiles?.rol;
+    if (!a.realizada_por || rol === "admin") continue;
     actsDeOp.set(a.oportunidad_id, [...(actsDeOp.get(a.oportunidad_id) ?? []), a]);
   }
 
   for (const f of conCuenta) {
     const desde = ventanaDe.get(f.id);
     if (desde === undefined) continue;
-    let primera: AtencionAlLado | null = null;
+    let hallada: AtencionAlLado | null = null;
     for (const opGemela of gemelasDeCuenta.get(f.cuentaId as string) ?? []) {
       for (const a of actsDeOp.get(opGemela) ?? []) {
         if (new Date(a.realizada_at).getTime() < desde) continue;
-        if (!primera || a.realizada_at < primera.fecha) primera = { fecha: a.realizada_at, tipo: a.tipo };
+        if (!hallada) {
+          hallada = { fecha: a.realizada_at, ultima: a.realizada_at, tipo: a.tipo };
+        } else {
+          if (a.realizada_at < hallada.fecha) {
+            hallada.fecha = a.realizada_at;
+            hallada.tipo = a.tipo;
+          }
+          if (a.realizada_at > hallada.ultima) hallada.ultima = a.realizada_at;
+        }
       }
     }
-    if (primera) resultado.set(f.id, primera);
+    if (hallada) resultado.set(f.id, hallada);
   }
   return resultado;
 }

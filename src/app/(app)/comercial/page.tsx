@@ -512,7 +512,7 @@ export default async function ComercialPage({
   });
 
   const paraHoy = (hoyData ?? []).map(aFila);
-  const vencidas = (vencidasData ?? []).map(aFila);
+  const vencidasSinFiltrar = (vencidasData ?? []).map(aFila);
   const reciSinFiltrar = (nuevasData ?? []).map(aFila);
 
   // LAS QUE YA ATENDIÓ, PERO EN OTRA FICHA DEL MISMO CLIENTE. Ariana, por
@@ -523,22 +523,68 @@ export default async function ComercialPage({
   // CRM. No se esconden —seguirían ahí, invisibles y sin resolver— sino que
   // salen del grupo de trabajo pendiente y se muestran aparte diciendo qué
   // pasó: ahí se decide si se archivan por repetidas o si se sigue en esta.
-  const atendidasAlLado = await atencionesEnOtraFicha(
-    supabase,
-    reciSinFiltrar.map((f) => ({
+  //
+  // Y LAS VENCIDAS TAMBIÉN (Ariana, 11-09): «¿por qué sale como vencida si ya
+  // lo atendí ayer y lo agendé para el 29?». INVERSIONES FISA tenía dos
+  // expedientes en la misma ficha —la misma cotización 461-26 anotada en dos
+  // hojas del Excel—: en uno la llamó el 10-09 y agendó el 29; el otro seguía
+  // en «Llamar al cliente · 17/08» y salía «venció hace 25 días». Había 14 así
+  // en toda la base (PV 9, C5 3, C4 2). Para una vencida la ventana arranca en
+  // lo MÁS RECIENTE entre la fecha en que venció y su propia última gestión:
+  // lo que cuenta es que al cliente lo atendieron DESPUÉS de eso en otro
+  // expediente suyo. Sin la última gestión propia, ZAFRANAL (12 gestiones en
+  // la vencida, 3 en la hermana) saldría como «ya atendida» al revés: la
+  // vencida es el hilo principal y la hermana, la secundaria.
+  const idsVencidas = vencidasSinFiltrar.map((f) => f.id);
+  const { data: gestionesPropias } = idsVencidas.length
+    ? await supabase.from("actividades").select("oportunidad_id, realizada_at").in("oportunidad_id", idsVencidas)
+    : { data: [] as { oportunidad_id: string; realizada_at: string }[] };
+  const ultimaPropia = new Map<string, string>();
+  for (const a of gestionesPropias ?? []) {
+    const actual = ultimaPropia.get(a.oportunidad_id);
+    if (!actual || a.realizada_at > actual) ultimaPropia.set(a.oportunidad_id, a.realizada_at);
+  }
+  // «2026-08-17» y «2026-09-10T14:29:34Z» se ordenan bien como texto: el día
+  // solo queda antes que cualquier instante de ese mismo día.
+  const arranqueVencida = (f: FilaMiDia) =>
+    [f.proxima_accion_at, ultimaPropia.get(f.id)].filter((x): x is string => Boolean(x)).sort().pop() ?? null;
+  const atendidasAlLado = await atencionesEnOtraFicha(supabase, [
+    ...reciSinFiltrar.map((f) => ({
       id: f.id,
       cuentaId: f.cuenta_id ?? null,
       recibidoAt: f.recibido_at ?? null,
       creadaAt: f.creada_at,
     })),
-  );
+    ...vencidasSinFiltrar.map((f) => ({
+      id: f.id,
+      cuentaId: f.cuenta_id ?? null,
+      recibidoAt: arranqueVencida(f),
+      creadaAt: f.creada_at,
+    })),
+  ]);
   const nuevas = reciSinFiltrar.filter((f) => !atendidasAlLado.has(f.id));
-  const yaAtendidas = reciSinFiltrar
-    .filter((f) => atendidasAlLado.has(f.id))
-    .map((f) => ({ ...f, atendidaAlLado: atendidasAlLado.get(f.id) }));
+  const vencidas = vencidasSinFiltrar.filter((f) => !atendidasAlLado.has(f.id));
+  const yaAtendidas = [
+    // La recién asignada prueba su atención con la PRIMERA gestión al lado
+    // (se atendió cuando llegó); la vencida, con la ÚLTIMA (se siguió
+    // trabajando después de vencer).
+    ...reciSinFiltrar
+      .filter((f) => atendidasAlLado.has(f.id))
+      .map((f) => ({ ...f, atendidaAlLado: atendidasAlLado.get(f.id) })),
+    ...vencidasSinFiltrar
+      .filter((f) => atendidasAlLado.has(f.id))
+      .map((f) => {
+        const al = atendidasAlLado.get(f.id)!;
+        return { ...f, atendidaAlLado: { ...al, fecha: al.ultima } };
+      }),
+  ];
+  const vencidasAlLado = vencidasSinFiltrar.length - vencidas.length;
 
   const oportunidades = [...nuevas, ...paraHoy, ...vencidas];
-  const vencidasOcultas = Math.max(0, (vencidasTotal ?? vencidas.length) - vencidas.length);
+  // El total viene de Postgres sobre TODAS las vencidas; se le descuentan las
+  // que acaban de mudarse de grupo, igual que con las recién asignadas.
+  const vencidasContadas = Math.max(0, (vencidasTotal ?? vencidasSinFiltrar.length) - vencidasAlLado);
+  const vencidasOcultas = Math.max(0, vencidasContadas - vencidas.length);
   // El total viene de Postgres sobre TODAS las recién asignadas; se le
   // descuentan las que acaban de mudarse de grupo para que la cuenta de la
   // cabecera y la del grupo digan lo mismo que se ve.
@@ -666,8 +712,8 @@ export default async function ComercialPage({
                   nuevasContadas > 0 &&
                     `${nuevasContadas.toLocaleString("es-PE")} recién asignada${nuevasContadas === 1 ? "" : "s"}`,
                   paraHoy.length > 0 && `${paraHoy.length} para hoy`,
-                  (vencidasTotal ?? vencidas.length) > 0 &&
-                    `${(vencidasTotal ?? vencidas.length).toLocaleString("es-PE")} vencida${(vencidasTotal ?? vencidas.length) === 1 ? "" : "s"}`,
+                  vencidasContadas > 0 &&
+                    `${vencidasContadas.toLocaleString("es-PE")} vencida${vencidasContadas === 1 ? "" : "s"}`,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -724,12 +770,13 @@ export default async function ComercialPage({
               />
               {yaAtendidas.length > 0 && (
                 <p className="-mt-3 text-xs text-muted-foreground">
-                  No cuentan como pendientes: la gestión existe, pero quedó en otra ficha del mismo cliente. Ábrala
-                  para ver dónde está y, si es la misma consulta repetida, archívela desde ahí.
+                  No cuentan como pendientes: la gestión existe, pero quedó en otra ficha del mismo cliente —o esta
+                  venció y al cliente se lo siguió atendiendo en la otra—. Ábrala para ver dónde está y, si es la
+                  misma consulta repetida, archívela desde ahí.
                 </p>
               )}
               <Grupo titulo="Para hoy" filas={paraHoy} urgencia="hoy" hoy={hoy} />
-              <Grupo titulo="Vencidas" filas={vencidas} urgencia="vencida" hoy={hoy} total={vencidasTotal ?? undefined} />
+              <Grupo titulo="Vencidas" filas={vencidas} urgencia="vencida" hoy={hoy} total={vencidasContadas} />
               {vencidasOcultas > 0 && (
                 <p className="-mt-3 text-xs text-muted-foreground">
                   Se muestran las {vencidas.length} más recientes ·{" "}
