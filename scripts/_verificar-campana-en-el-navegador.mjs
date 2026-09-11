@@ -49,8 +49,8 @@ try {
     return el ? { texto: el.innerText, clase: el.className } : null;
   }, lead.codigo);
   af("el contacto está en la bandeja", Boolean(t));
-  af("con la cinta «Campaña Google Ads»", /Campaña Google Ads/.test(t?.texto ?? ""));
-  af("dice prospecto caliente, la campaña y la fuente de la web", /prospecto caliente/i.test(t?.texto ?? "") && /Lavadoras industriales/.test(t?.texto ?? "") && /campaña industrial · hotel · 30 kg/.test(t?.texto ?? ""));
+  af("con la cinta «Landing de campaña · Google Ads»", /Landing de campaña · Google Ads/.test(t?.texto ?? ""));
+  af("dice prospecto caliente, la campaña y la fuente de la web", /prospecto caliente/i.test(t?.texto ?? "") && /Lavadoras industriales/.test(t?.texto ?? "") && /industrial · hotel · 30 kg/.test(t?.texto ?? ""));
   af("y «gestionar a la brevedad», en azul", /Gestionar a la brevedad/i.test(t?.texto ?? "") && /border-sky-400/.test(t?.clase ?? ""));
   await p.screenshot({ path: "scripts/data/_pantallazos/central-campana.png" });
   await p.close();
