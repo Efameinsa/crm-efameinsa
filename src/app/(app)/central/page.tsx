@@ -177,10 +177,18 @@ export default async function CentralPage() {
   // LA HISTORIA DEL CLIENTE, ANTES DE DERIVAR (Carlos, 10-09). Solo de las
   // cuentas que están en pantalla, y solo de las que coincidieron: es una por
   // contacto conocido, no la base entera.
-  const historias = await historiaDeCuentas(
-    supabase,
-    [...new Set([...coincidencias.values()].map((c) => c.cuentaId))],
-  );
+  // Las tres cosas que siguen no dependen entre sí: van juntas. Antes eran
+  // tres viajes en fila en la pantalla que más se abre del CRM (11-09).
+  const idsQueRegistraron = [...new Set((leads ?? []).map((l) => l.recibido_por).filter(Boolean))] as string[];
+  const [historias, { data: quienesRegistraron }, adjuntosPorLead] = await Promise.all([
+    historiaDeCuentas(supabase, [...new Set([...coincidencias.values()].map((c) => c.cuentaId))]),
+    idsQueRegistraron.length
+      ? supabase.from("perfiles").select("id, nombre, codigo_comercial").in("id", idsQueRegistraron)
+      : Promise.resolve({ data: [] as { id: string; nombre: string; codigo_comercial: string | null }[] }),
+    // Fotos/PDF que Central adjuntó al registrar (25-08): URLs firmadas en una
+    // sola llamada batch, como en el historial de cuenta.
+    firmarAdjuntosDeLeads(supabase, leads ?? []),
+  ]);
 
   // Quién avisó, cuando el contacto lo mandó un comercial desde la ficha de su
   // cliente (migración 0125): Central tiene que poder ver de quién salió sin
@@ -193,20 +201,12 @@ export default async function CentralPage() {
   // siempre y se mostraba una pantalla después, en el derivado ya hecho —justo
   // cuando ya no sirve para decidir—. Los `comerciales` de arriba no alcanzan:
   // quien registra suele ser Central o gerencia, que no están en esa lista.
-  const idsQueRegistraron = [...new Set((leads ?? []).map((l) => l.recibido_por).filter(Boolean))] as string[];
-  const { data: quienesRegistraron } = idsQueRegistraron.length
-    ? await supabase.from("perfiles").select("id, nombre, codigo_comercial").in("id", idsQueRegistraron)
-    : { data: [] as { id: string; nombre: string; codigo_comercial: string | null }[] };
   const registradoPor = new Map(
     (quienesRegistraron ?? []).map((p) => [
       p.id as string,
       `${p.codigo_comercial ? `${p.codigo_comercial} · ` : ""}${p.nombre}`,
     ]),
   );
-
-  // Fotos/PDF que Central adjuntó al registrar (25-08): URLs firmadas en una
-  // sola llamada batch, como en el historial de cuenta.
-  const adjuntosPorLead = await firmarAdjuntosDeLeads(supabase, leads ?? []);
 
   return (
     <div className="space-y-4">

@@ -167,21 +167,32 @@ export async function coincidenciasDeLaBandeja(
     for (const id of leadIds) if (!cuentaDeLead.has(id)) cuentaDeLead.set(id, { cuentaId, motivo });
   };
 
-  for (const lote of trozos([...porDoc.keys()])) {
-    const { data } = await supabase
-      .from("cuentas")
-      .select("id, num_doc")
-      .in("num_doc", lote)
-      .neq("tipo_doc", "SIN_DOC");
+  // LAS TRES BÚSQUEDAS SALEN JUNTAS Y SE APLICAN EN ORDEN. El orden de
+  // confianza (documento > teléfono > correo) es de la APLICACIÓN, no de la
+  // pregunta: no hace falta esperar la respuesta del documento para preguntar
+  // por el teléfono. Antes eran tres viajes en fila en la pantalla que más se
+  // abre del CRM (11-09, medición de todas las pantallas).
+  const [porDocRes, porTelRes, porMailRes] = await Promise.all([
+    Promise.all(
+      trozos([...porDoc.keys()]).map((lote) =>
+        supabase.from("cuentas").select("id, num_doc").in("num_doc", lote).neq("tipo_doc", "SIN_DOC"),
+      ),
+    ),
+    Promise.all(
+      trozos([...porTelefono.keys()]).map((lote) =>
+        supabase.from("contactos").select("cuenta_id, telefono_normalizado").in("telefono_normalizado", lote),
+      ),
+    ),
+    Promise.all(
+      trozos([...porCorreo.keys()]).map((lote) => supabase.from("contactos").select("cuenta_id, email").in("email", lote)),
+    ),
+  ]);
+  for (const { data } of porDocRes) {
     for (const c of (data ?? []) as { id: string; num_doc: string | null }[]) {
       asignar(porDoc.get(c.num_doc ?? "") ?? [], c.id, "documento");
     }
   }
-  for (const lote of trozos([...porTelefono.keys()])) {
-    const { data } = await supabase
-      .from("contactos")
-      .select("cuenta_id, telefono_normalizado")
-      .in("telefono_normalizado", lote);
+  for (const { data } of porTelRes) {
     for (const c of (data ?? []) as { cuenta_id: string; telefono_normalizado: string | null }[]) {
       asignar(porTelefono.get(c.telefono_normalizado ?? "") ?? [], c.cuenta_id, "teléfono");
     }
@@ -208,8 +219,7 @@ export async function coincidenciasDeLaBandeja(
     }
   }
 
-  for (const lote of trozos([...porCorreo.keys()])) {
-    const { data } = await supabase.from("contactos").select("cuenta_id, email").in("email", lote);
+  for (const { data } of porMailRes) {
     for (const c of (data ?? []) as { cuenta_id: string; email: string | null }[]) {
       asignar(porCorreo.get(c.email?.trim().toLowerCase() ?? "") ?? [], c.cuenta_id, "correo");
     }
@@ -220,15 +230,18 @@ export async function coincidenciasDeLaBandeja(
   const dominiosPendientes = [...porDominio.entries()].filter(([, ids]) =>
     ids.some((id) => !cuentaDeLead.has(id)),
   );
-  for (const [dom, ids] of dominiosPendientes) {
-    const { data } = await supabase.from("contactos").select("cuenta_id").ilike("email", `%@${dom}`).limit(4);
-    const filas = (data ?? []) as { cuenta_id: string }[];
+  // Uno por dominio, pero todos a la vez: son independientes entre sí.
+  const porDominioRes = await Promise.all(
+    dominiosPendientes.map(([dom]) => supabase.from("contactos").select("cuenta_id").ilike("email", `%@${dom}`).limit(4)),
+  );
+  dominiosPendientes.forEach(([, ids], i) => {
+    const filas = (porDominioRes[i].data ?? []) as { cuenta_id: string }[];
     // Si el dominio apunta a más de una ficha no se elige por nosotros: eso es
     // justamente lo que hay que mirar antes de unir, y el aviso decide solo
     // cuando no hay duda.
     const unicas = [...new Set(filas.map((f) => f.cuenta_id))];
     if (unicas.length === 1) asignar(ids, unicas[0], "dominio del correo");
-  }
+  });
   if (cuentaDeLead.size === 0) return resultado;
 
   // Los datos de las cuentas encontradas y su última gestión.
