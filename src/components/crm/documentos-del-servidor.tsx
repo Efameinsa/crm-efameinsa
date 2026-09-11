@@ -1,10 +1,10 @@
-import { Image as ImagenIcono, FileText, Link2, Unlink } from "lucide-react";
+import { Image as ImagenIcono, FileText } from "lucide-react";
 import { MarcaServidor } from "@/components/crm/marca-servidor";
 import { SeccionPlegable } from "@/components/crm/seccion-panel";
 import { VisorArchivos } from "@/components/crm/visor-archivos";
 import { createClient } from "@/lib/supabase/server";
 import { servidorDeArchivosActivo } from "@/lib/archivos-servidor";
-import { vincularCarpetaServidor } from "@/lib/acciones/cuentas";
+import { VincularCarpetaBoton } from "@/components/crm/vincular-carpeta-boton";
 
 /**
  * «Documentos del servidor»: los informes y las fotos de este cliente, tal
@@ -135,22 +135,7 @@ export async function DocumentosDelServidor({
                   titulo={`${etiqueta} · ${razonSocial}`}
                   etiquetaBoton={clave === "fotos" ? "Ver fotos" : "Ver informes"}
                 />
-                {!soloLectura && (
-                  <form
-                    action={async () => {
-                      "use server";
-                      await vincularCarpetaServidor({ cuentaId, clase: clave, ruta: null });
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      title="Quitar el vínculo"
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground"
-                    >
-                      <Unlink className="size-3" /> Cambiar
-                    </button>
-                  </form>
-                )}
+                {!soloLectura && <VincularCarpetaBoton cuentaId={cuentaId} clase={clave} ruta={null} />}
               </div>
             );
           }
@@ -176,25 +161,13 @@ export async function DocumentosDelServidor({
                 <div className="space-y-1">
                   <p className="text-[11px] text-muted-foreground">¿Es alguna de estas?</p>
                   {opciones.map((o) => (
-                    <form
-                      key={o.ruta}
-                      action={async () => {
-                        "use server";
-                        await vincularCarpetaServidor({ cuentaId, clase: clave, ruta: o.ruta });
-                      }}
-                      className="flex flex-wrap items-center gap-2"
-                    >
+                    <div key={o.ruta} className="flex flex-wrap items-center gap-2">
                       <span className="min-w-[160px] flex-1 truncate font-mono text-xs text-foreground">{o.nombre}</span>
                       <span className="text-[10px] tabular-nums text-muted-foreground">
                         parecido {Math.round(o.puntaje * 100)} %
                       </span>
-                      <button
-                        type="submit"
-                        className="inline-flex items-center gap-1 rounded-md border border-primary/40 px-2 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/10"
-                      >
-                        <Link2 className="size-3" /> Vincular
-                      </button>
-                    </form>
+                      <VincularCarpetaBoton cuentaId={cuentaId} clase={clave} ruta={o.ruta} />
+                    </div>
                   ))}
                 </div>
               )}

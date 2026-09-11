@@ -227,31 +227,16 @@ export async function vincularCarpetaServidor(datos: {
 }): Promise<{ error: string | null }> {
   const supabase = await createClient();
 
-  if (datos.ruta !== null) {
-    const { data: carpeta } = await supabase
-      .from("carpetas_servidor")
-      .select("ruta, clase")
-      .eq("ruta", datos.ruta)
-      .maybeSingle();
-    if (!carpeta) return { error: "Esa carpeta no está en el índice del servidor. Corra el indexador si es nueva." };
-    if (carpeta.clase !== datos.clase) return { error: "Esa carpeta es de otra clase de documentos." };
-  }
-
-  const { data: cuenta, error: e1 } = await supabase
-    .from("cuentas")
-    .select("carpetas_servidor")
-    .eq("id", datos.cuentaId)
-    .maybeSingle();
-  if (e1 || !cuenta) return { error: "No se encontró la ficha del cliente." };
-
-  const actual = (cuenta.carpetas_servidor ?? {}) as Record<string, string>;
-  if (datos.ruta === null) delete actual[datos.clase];
-  else actual[datos.clase] = datos.ruta;
-
-  const { error } = await supabase
-    .from("cuentas")
-    .update({ carpetas_servidor: Object.keys(actual).length ? actual : null })
-    .eq("id", datos.cuentaId);
+  // Por la función de la base (0220) y no con un UPDATE directo: el UPDATE
+  // lo filtraba RLS en silencio cuando la ficha era de otra cartera —cero
+  // filas, sin error— y Ariana veía «no pasa nada». La función decide el
+  // permiso (dueño, postventa o gerencia), valida la carpeta y, si no puede,
+  // lo dice con palabras.
+  const { error } = await supabase.rpc("vincular_carpeta_servidor", {
+    p_cuenta: datos.cuentaId,
+    p_clase: datos.clase,
+    p_ruta: datos.ruta,
+  });
   if (error) return { error: error.message };
 
   revalidatePath(`/comercial/cartera/${datos.cuentaId}`);
