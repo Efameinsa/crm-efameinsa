@@ -354,3 +354,88 @@ html[data-modo-app="instalada"] body {
     transform: none;
   }
 }
+
+/* ------------------------------------------------------------------
+   LA PANTALLA DE CARGA (pantalla-de-carga.tsx). Adaptada del diseño que
+   trajo Santos el 11-09: el anillo doble en rojo girando en sentidos
+   contrarios, el fondo con el rayado de plano que se desplaza, la barra
+   que recorre y los tres puntos. Todo en CSS: no hay nada que hidratar
+   en una pantalla cuyo trabajo es aparecer antes que el JavaScript.
+   ------------------------------------------------------------------ */
+.carga-fondo {
+  --carga-rojo: #b9070c;
+  background: radial-gradient(circle at 50% 47%, #fff 0%, #f6f6f6 40%, #ebecee 100%);
+  isolation: isolate;
+}
+.carga-fondo::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: 0;
+  opacity: 0.42;
+  background: repeating-linear-gradient(115deg, transparent 0 35px, rgba(0, 0, 0, 0.035) 36px 37px);
+  animation: carga-deriva 18s linear infinite;
+}
+.carga-anillo-exterior,
+.carga-anillo-interior {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 0, 0, 0.06);
+}
+.carga-anillo-exterior {
+  inset: 0;
+  border-top-color: var(--carga-rojo);
+  border-right-color: var(--carga-rojo);
+  animation: carga-girar 1.65s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+.carga-anillo-interior {
+  inset: 18%;
+  border-left-color: rgba(227, 6, 19, 0.7);
+  border-bottom-color: rgba(227, 6, 19, 0.7);
+  animation: carga-girar 1.05s linear infinite reverse;
+}
+.carga-barra {
+  background: rgba(0, 0, 0, 0.1);
+}
+.carga-barra-luz {
+  display: block;
+  width: 42%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--carga-rojo), #ff5962, var(--carga-rojo), transparent);
+  box-shadow: 0 0 16px var(--carga-rojo);
+  animation: carga-recorrer 1.7s ease-in-out infinite;
+}
+.carga-estado::after {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: var(--carga-rojo);
+  box-shadow: 8px 0 var(--carga-rojo), 16px 0 var(--carga-rojo);
+  animation: carga-puntos 1.2s steps(4, end) infinite;
+}
+@keyframes carga-girar {
+  to { transform: rotate(360deg); }
+}
+@keyframes carga-deriva {
+  to { transform: translate(35px, -35px); }
+}
+@keyframes carga-recorrer {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(260%); }
+}
+@keyframes carga-puntos {
+  to { clip-path: inset(0 -1px 0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .carga-fondo::before,
+  .carga-anillo-exterior,
+  .carga-anillo-interior,
+  .carga-barra-luz,
+  .carga-estado::after {
+    animation: none;
+  }
+}

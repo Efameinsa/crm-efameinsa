@@ -1,5 +1,6 @@
-import { EsqueletoPanel } from "@/components/crm/esqueleto-panel";
+import { PantallaDeCarga } from "@/components/crm/pantalla-de-carga";
 
+// La pantalla de carga de la casa (11-09), con el nombre de lo que se carga.
 export default function Loading() {
-  return <EsqueletoPanel filas={6} />;
+  return <PantallaDeCarga mensaje="Cargando supervisión" />;
 }

@@ -1,8 +1,6 @@
-import { EsqueletoPanel } from "@/components/crm/esqueleto-panel";
+import { PantallaDeCarga } from "@/components/crm/pantalla-de-carga";
 
-// Una pantalla que tarda dos segundos sin decir nada se siente rota: se vuelve
-// a hacer clic, se piensa que no cargó. Next muestra esto al instante mientras
-// el servidor arma la página (Santos, 08-09, sobre «Preventivos por vender»).
+// La pantalla de carga de la casa (11-09), con el nombre de lo que se carga.
 export default function Loading() {
-  return <EsqueletoPanel filas={2} kpis={4} />;
+  return <PantallaDeCarga mensaje="Cargando sus cotizaciones" />;
 }
