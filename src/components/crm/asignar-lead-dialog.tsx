@@ -13,6 +13,7 @@ import {
   type InstitucionConSedes,
 } from "@/lib/acciones/leads";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,6 +61,8 @@ interface Props {
   comerciales: Comercial[];
   /** El comercial que avisó ya propuso destino y clase (migración 0125). */
   sugerencia?: { comercialId: string | null; tipo: string | null; quien: string | null } | null;
+  /** La ficha a la que el contacto YA está unido (sede elegida, «Es un cliente que ya tenemos»); null si a ninguna. */
+  cuentaId?: string | null;
 }
 
 const ETIQUETA_TIPO: Record<string, string> = {
@@ -93,9 +96,19 @@ const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: 
 // histórico (RUC/DNI, teléfono, correo, nombre). Un match fuerte preselecciona
 // al comercial de esa cartera (regla R3); los de nombre solo advierten:
 // puede haber muchas "María Leguía".
-export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales, sugerencia }: Props) {
+export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales, sugerencia, cuentaId = null }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[] | null>(null);
+  /**
+   * LA FICHA ELEGIDA ENTRE LAS COINCIDENCIAS (0223). Hasta el 10-09 el clic en
+   * una coincidencia solo preseleccionaba al comercial y la derivación abría
+   * una ficha nueva igual: GATE GOURMET terminó en tres fichas y C5 reclamó
+   * que «no jaló historial». Ahora el clic dice «es este cliente» y el
+   * contacto se une a esa ficha antes de derivarlo.
+   */
+  const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
+  /** Y si hay coincidencias pero Central deriva como nuevo, la razón. Queda en la derivación. */
+  const [motivoNuevo, setMotivoNuevo] = useState("");
   // Si el aviso vino de un comercial, el diálogo abre con su propuesta puesta:
   // Central confirma en vez de volver a elegir lo que ya está decidido.
   const [comercialId, setComercialId] = useState<string>(sugerencia?.comercialId ?? "");
@@ -124,10 +137,20 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
   // decir de qué clase es, y la cartera del comercial no se toca (0080).
   const esPostventa = comerciales.find((c) => c.id === comercialId)?.es_postventa === true;
 
+  // ¿Hace falta decir por qué es un cliente nuevo? Solo si hay coincidencias,
+  // el contacto no está ya en una ficha, Central no eligió ninguna, y la base
+  // no lo va a unir sola (por RUC o por celular sí lo hace; por correo o por
+  // nombre, no).
+  const loUneSola = (coincidencias ?? []).some((c) => c.motivo === "documento" || c.motivo === "telefono");
+  const pideMotivoNuevo =
+    (coincidencias?.length ?? 0) > 0 && !cuentaId && !cuentaElegida && !institucion && !loUneSola;
+
   useEffect(() => {
     if (!abierto) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCoincidencias(null);
+    setCuentaElegida(null);
+    setMotivoNuevo("");
     setInstitucion(undefined);
     setSedeElegida("");
     setNombreSedeNueva(razonSocial ?? "");
@@ -183,6 +206,12 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
       toast.error("Indique de qué clase es el caso de postventa");
       return;
     }
+    // Con coincidencias delante no hay «cliente nuevo» a secas: o se une a una
+    // de esas fichas, o se dice por qué no lo es. La base lo vuelve a exigir.
+    if (pideMotivoNuevo && motivoNuevo.trim().length < 10) {
+      toast.error("Este contacto coincide con un cliente que ya tenemos: elija su ficha para unirlo, o escriba por qué es un cliente nuevo.");
+      return;
+    }
     let sede: EleccionSede | null = null;
     if (institucion) {
       if (!sedeElegida) {
@@ -200,7 +229,14 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
       }
     }
     startTransition(async () => {
-      const resultado = await asignarLead(leadId, comercialId, esPostventa ? tipoPostventa : null, pin || null, sede);
+      const elegida = cuentaElegida ? coincidencias?.find((c) => c.cuentaId === cuentaElegida) : null;
+      const resultado = await asignarLead(leadId, comercialId, esPostventa ? tipoPostventa : null, pin || null, sede, {
+        cuentaElegida,
+        motivoUnion: elegida
+          ? `Central lo unió a esta ficha al derivarlo: ${MOTIVO[elegida.motivo].etiqueta.toLowerCase()} que ${elegida.razonSocial}.`
+          : null,
+        motivoNuevo: pideMotivoNuevo ? motivoNuevo.trim() : null,
+      });
       if (resultado.error) {
         // La base distingue el caso: no es un error, es una autorización que
         // falta. El aviso ya está en pantalla con su casilla para el código.
@@ -264,17 +300,21 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
             </p>
             {coincidencias.map((c) => {
               const m = MOTIVO[c.motivo];
-              const elegible = !!c.comercialId;
+              const elegida = cuentaElegida === c.cuentaId;
+              // Ya unido a esa ficha (sede, «Es un cliente que ya tenemos»):
+              // el clic no tiene nada que unir, solo preselecciona.
+              const yaUnido = cuentaId === c.cuentaId;
               return (
                 <button
                   key={c.cuentaId}
                   type="button"
-                  disabled={!elegible}
-                  onClick={() => elegible && setComercialId(c.comercialId!)}
+                  onClick={() => {
+                    if (!yaUnido) setCuentaElegida(elegida ? null : c.cuentaId);
+                    if (c.comercialId && !sugerencia?.comercialId) setComercialId(c.comercialId);
+                  }}
                   className={cn(
-                    "w-full rounded-lg border p-2.5 text-left text-xs transition-colors",
-                    elegible ? "cursor-pointer hover:bg-accent" : "cursor-default opacity-80",
-                    comercialId && c.comercialId === comercialId ? "border-primary bg-primary/5" : "border-border",
+                    "w-full cursor-pointer rounded-lg border p-2.5 text-left text-xs transition-colors hover:bg-accent",
+                    elegida || yaUnido ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border",
                   )}
                 >
                   <span className="flex flex-wrap items-center gap-1.5">
@@ -293,11 +333,42 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
                       ? `Cartera de ${c.comercialNombre}${c.codigoComercial ? ` (${c.codigoComercial})` : ""}`
                       : "Sin comercial de cartera"}
                     {c.ultimaVentaAt ? ` · última venta ${fechaLima(c.ultimaVentaAt)}` : " · sin ventas registradas"}
-                    {elegible && " — clic para asignarle a su cartera"}
+                  </span>
+                  <span className={cn("mt-1 block font-semibold", elegida || yaUnido ? "text-primary" : "text-muted-foreground")}>
+                    {yaUnido
+                      ? "Ya está unido a esta ficha"
+                      : elegida
+                        ? "✓ Es este cliente: el contacto se une a esta ficha y su historial viaja con él"
+                        : "Clic si es este cliente — se une a su ficha, no se abre otra"}
                   </span>
                 </button>
               );
             })}
+            {/* CON COINCIDENCIAS DELANTE NO HAY «CLIENTE NUEVO» A SECAS (0223).
+                GATE GOURMET, 10-09: se derivó como nuevo teniendo dos fichas
+                a la vista y nació una tercera. Si de verdad es otro cliente,
+                se dice por qué, y eso queda escrito en la derivación para
+                quien la reciba. */}
+            {pideMotivoNuevo && (
+              <div className="space-y-1.5 rounded-lg border-2 border-amber-400 bg-amber-50 p-3">
+                <p className="flex items-start gap-2 text-sm font-semibold text-amber-900">
+                  <TriangleAlert className="mt-0.5 size-4 flex-none" />
+                  ¿No es ninguno de estos?
+                </p>
+                <p className="text-xs leading-snug text-amber-900">
+                  Si es uno de ellos, tóquelo arriba y el contacto se une a su ficha. Si es un cliente distinto,
+                  escriba por qué — queda anotado en la derivación.
+                </p>
+                <Textarea
+                  aria-label="Por qué es un cliente nuevo"
+                  value={motivoNuevo}
+                  onChange={(e) => setMotivoNuevo(e.target.value)}
+                  rows={2}
+                  placeholder="Ej.: es otra empresa del mismo grupo, con otro RUC y otra planta"
+                  className="bg-card"
+                />
+              </div>
+            )}
           </div>
         )}
 

@@ -78,7 +78,7 @@ function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, mod
   const q = supabase
     .from("leads")
     .select(
-      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, adjuntos, utm_campaign, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por",
+      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, adjuntos, utm_campaign, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
       { count: "exact" },
     )
     .eq("estado", "pendiente_triaje");
@@ -299,6 +299,7 @@ export default async function CentralPage() {
                   <div className="ml-auto flex gap-2">
                     <AsignarLeadDialog
                       leadId={lead.id}
+                      cuentaId={lead.cuenta_id ?? null}
                       nombre={lead.nombre_contacto}
                       razonSocial={lead.razon_social}
                       telefono={lead.telefono}

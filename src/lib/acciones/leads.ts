@@ -197,11 +197,67 @@ export async function asignarLead(
    * contacto — una existente o una nueva con el nombre que dio Central.
    */
   sede?: EleccionSede | null,
-): Promise<{ error: string | null; requierePin?: boolean; sumadoAExpediente?: boolean }> {
+  /**
+   * LA FICHA QUE CENTRAL ELIGIÓ, O LA RAZÓN DE NO ELEGIR NINGUNA (0223).
+   *
+   * GATE GOURMET, 10-09: el correo entró sin RUC, el diálogo mostró las fichas
+   * de C4 y C1 como coincidencias, y Central lo derivó como «Cliente nuevo» a
+   * C5: nació una tercera ficha vacía y C5 reclamó al día siguiente que «no
+   * jaló historial». Hacer clic en la coincidencia solo preseleccionaba al
+   * comercial; la ficha nueva se creaba igual, porque sin RUC ni celular
+   * conocido `asignar_lead` no tiene con qué unirla.
+   *
+   * · `cuentaElegida`: el contacto se une a esa ficha ANTES de derivar, con
+   *   el mismo RPC de «Es un cliente que ya tenemos»; el expediente nace ahí y
+   *   el historial viaja con él.
+   * · `motivoNuevo`: si hay coincidencias y Central no eligió ninguna, tiene
+   *   que decir por qué es un cliente nuevo. Queda escrito en la derivación.
+   */
+  extra?: { cuentaElegida?: string | null; motivoUnion?: string | null; motivoNuevo?: string | null } | null,
+): Promise<{ error: string | null; requierePin?: boolean; sumadoAExpediente?: boolean; requiereMotivoNuevo?: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // SE COMPRUEBA EN EL SERVIDOR, no solo en el botón: la regla vale aunque el
+  // diálogo cambie. Solo cuando el contacto todavía no está en ninguna ficha —
+  // si ya lo está (sede elegida, «Es un cliente que ya tenemos»), no hay nada
+  // que decidir.
+  const { data: leadAntes } = await supabase
+    .from("leads")
+    .select("cuenta_id, nombre_contacto, razon_social, telefono, num_doc, email")
+    .eq("id", leadId)
+    .maybeSingle();
+  if (leadAntes && !leadAntes.cuenta_id && !sede) {
+    if (extra?.cuentaElegida) {
+      const union = await unirLeadACuenta(
+        leadId,
+        extra.cuentaElegida,
+        pin ?? "",
+        extra.motivoUnion?.trim() || "Central lo unió a esta ficha al derivarlo: coincidía en la bandeja.",
+      );
+      if (union.error) return { error: union.error };
+    } else {
+      const coincidencias = await buscarCoincidencias({
+        nombre: leadAntes.nombre_contacto,
+        razonSocial: leadAntes.razon_social,
+        telefono: leadAntes.telefono,
+        numDoc: leadAntes.num_doc,
+        email: leadAntes.email,
+      });
+      // Por RUC o por celular `asignar_lead` lo une solo: ahí no hay ficha
+      // nueva que justificar. Por correo o por nombre, sí la habría.
+      const loUneSolo = coincidencias.some((c) => c.motivo === "documento" || c.motivo === "telefono");
+      if (coincidencias.length > 0 && !loUneSolo && (extra?.motivoNuevo?.trim().length ?? 0) < 10) {
+        const c = coincidencias[0];
+        return {
+          error: `Este contacto coincide con ${c.razonSocial}${c.codigoComercial ? ` (cartera de ${c.codigoComercial})` : ""}. Elija esa ficha para unirlo, o escriba por qué es un cliente nuevo.`,
+          requiereMotivoNuevo: true,
+        };
+      }
+    }
+  }
   // La sede se fija ANTES de asignar: queda en leads.cuenta_id, que es la
   // ficha que `asignar_lead` respeta sin volver a buscar por RUC (0143/0158).
   if (sede) {
@@ -221,6 +277,7 @@ export async function asignarLead(
     p_comercial_id: comercialId,
     p_tipo_postventa: tipoPostventa ?? null,
     p_pin: pin ?? null,
+    p_nota: extra?.motivoNuevo?.trim() || null,
   });
   if (error) {
     const requierePin = /DERIVACION_MUEVE_CARTERA/.test(error.message);
