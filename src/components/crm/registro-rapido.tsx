@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import { registrarActividad, registrarGestionYRechazar } from "@/lib/acciones/oportunidades";
+import { registrarActividad, registrarGestionYRechazar, registrarGestionYDerivar } from "@/lib/acciones/oportunidades";
 import { createClient } from "@/lib/supabase/client";
 import { AlertCircle, Paperclip, X, type LucideIcon } from "lucide-react";
 import { ICONO_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
@@ -70,7 +70,7 @@ export interface ResultadoGestion {
   nombre: string;
   accion_sugerida?: string | null;
   dias_sugeridos?: number | null;
-  efecto?: "cotizar" | "venta" | "rechazo" | null;
+  efecto?: "cotizar" | "venta" | "rechazo" | "derivar" | null;
 }
 export interface MotivoRechazo {
   id: number;
@@ -123,6 +123,13 @@ export function RegistroRapido({
 
   const resultado = resultados.find((r) => r.id === resultadoId) ?? null;
   const esRechazo = resultado?.efecto === "rechazo";
+  // «Derivado» (0219): la oportunidad deja de ser de quien registra. No hay
+  // «qué sigue» que agendar —lo que siga lo agenda el otro— y se cierra como
+  // «Ya no es mío — pasó a otra área» en el mismo viaje que la gestión.
+  const esDerivacion = resultado?.efecto === "derivar";
+  const [aQuien, setAQuien] = useState("");
+  // Lo que cierra la oportunidad no lleva próxima acción.
+  const cierra = esRechazo || esDerivacion;
   // La alternativa al rechazo, buscada por su código y no por su nombre: hay
   // dos «Compra a futuro» en el catálogo y solo una está activa.
   const aFuturo = resultados.find((r) => r.codigo === "COMPRA_FUTURO") ?? null;
@@ -132,7 +139,7 @@ export function RegistroRapido({
   const pidioNoSerContactado = /no ser contactado/i.test(
     motivos.find((m) => String(m.id) === motivoId)?.nombre ?? "",
   );
-  const faltante = !esRechazo && !!proximaAccionAt && !proximaAccion.trim();
+  const faltante = !cierra && !!proximaAccionAt && !proximaAccion.trim();
 
   function elegirQueHacer(texto: string) {
     setProximaAccion(texto);
@@ -150,6 +157,7 @@ export function RegistroRapido({
     setProximaAccionHora(null);
     setAccionEditada(false);
     setMotivoId("");
+    setAQuien("");
     setArchivos([]);
     setFaltaQueHacer(false);
   }
@@ -207,12 +215,14 @@ export function RegistroRapido({
       const datos = {
         oportunidadId,
         tipo,
-        nota,
+        // A quién pasó queda en la nota: es lo primero que va a leer quien
+        // abra este expediente cerrado.
+        nota: esDerivacion && aQuien.trim() ? `Pasó a ${aQuien.trim()}. ${nota}`.trim() : nota,
         resultadoId,
-        proximaAccion: esRechazo ? "" : proximaAccion,
-        proximaAccionAt: esRechazo ? null : proximaAccionAt || null,
-        proximaAccionHora: esRechazo ? null : proximaAccionHora,
-        limpiarProximaAccion: esRechazo,
+        proximaAccion: cierra ? "" : proximaAccion,
+        proximaAccionAt: cierra ? null : proximaAccionAt || null,
+        proximaAccionHora: cierra ? null : proximaAccionHora,
+        limpiarProximaAccion: cierra,
         adjuntos,
       };
       let r1: { error: string | null };
@@ -222,7 +232,9 @@ export function RegistroRapido({
         // veces la nota quedó escrita y la oportunidad siguió abierta.
         r1 = esRechazo
           ? await registrarGestionYRechazar({ gestion: datos, motivoRechazoId: Number(motivoId) })
-          : await registrarActividad(datos);
+          : esDerivacion
+            ? await registrarGestionYDerivar({ gestion: datos })
+            : await registrarActividad(datos);
       } catch (err) {
         // NO TODO LO QUE FALLA ES FALTA DE INTERNET. Si el CRM se acaba de
         // actualizar, la pantalla vieja llama a una acción que el servidor
@@ -235,7 +247,7 @@ export function RegistroRapido({
         // dice la verdad y se recarga, que es lo único que lo arregla: con la
         // versión nueva cargada, la cola sube sola en el primer intento.
         const { esDesfaseDeVersion } = await import("@/lib/desfase-de-version");
-        if (esDesfaseDeVersion(err) && !esRechazo && !adjuntos.length) {
+        if (esDesfaseDeVersion(err) && !cierra && !adjuntos.length) {
           const { encolarGestion } = await import("@/lib/outbox-cliente");
           await encolarGestion(datos, `${tipo} · ${nota.trim().slice(0, 60) || proximaAccion.trim().slice(0, 60) || "gestión"}`);
           toast.info("El CRM se actualizó mientras escribía. Su gestión quedó guardada y se sube al recargar.", {
@@ -269,7 +281,13 @@ export function RegistroRapido({
         toast.error(r1.error);
         return;
       }
-      toast.success(esRechazo ? "Gestión registrada y oportunidad rechazada" : "Gestión registrada");
+      toast.success(
+        esRechazo
+          ? "Gestión registrada y oportunidad rechazada"
+          : esDerivacion
+            ? "Gestión registrada: la oportunidad pasó a otro"
+            : "Gestión registrada",
+      );
       limpiar();
     });
   }
@@ -395,6 +413,25 @@ export function RegistroRapido({
                 </div>
               )}
 
+              {esDerivacion && (
+                <div className="space-y-1.5 rounded-md border border-border bg-muted/30 p-2.5">
+                  <p className="text-xs text-foreground">
+                    La oportunidad queda como <b>«Ya no es mío — pasó a otra área»</b>. No cuenta como perdida y no
+                    se agenda nada: lo que siga lo agenda quien la recibe.
+                  </p>
+                  <Input
+                    value={aQuien}
+                    onChange={(e) => setAQuien(e.target.value)}
+                    placeholder="¿A quién pasó? ej. C5 · Katerine, o Postventa"
+                    aria-label="A quién pasó"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Esto solo cierra su expediente. Si el cliente es de la cartera de otro comercial, ese comercial lo
+                    toma desde su lado; si es suyo y debe cambiar de cartera, lo decide gerencia.
+                  </p>
+                </div>
+              )}
+
               {esRechazo && (
                 <div className="space-y-1.5">
                   <p className="text-xs text-muted-foreground">La oportunidad se rechazará. ¿Por qué? (obligatorio)</p>
@@ -418,7 +455,7 @@ export function RegistroRapido({
               )}
           </div>
 
-          {!esRechazo && (
+          {!cierra && (
             <Paso n="3" titulo="¿Qué sigue?">
               <div className="space-y-2">
                 {/* Las cuatro acciones de siempre, de un toque. 02-09: en «Mi
@@ -513,6 +550,8 @@ export function RegistroRapido({
               </>
             ) : esRechazo ? (
               "Registrar y rechazar"
+            ) : esDerivacion ? (
+              "Registrar y pasar a otro"
             ) : (
               "Registrar gestión"
             )}

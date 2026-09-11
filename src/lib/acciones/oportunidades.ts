@@ -435,3 +435,29 @@ export async function registrarGestionYRechazar(datos: {
   }
   return { error: null };
 }
+
+/**
+ * LA GESTIÓN Y EL «YA NO ES MÍO», EN UN SOLO VIAJE.
+ *
+ * Santos, 11-09, con Rubén Castillo Paita en la lista de Ariana: «él pertenece
+ * a Beneficencia Huancayo, que está atendiendo Katerine». Lo que hay que
+ * anotar es «lo llamé y esto es de otro», y hasta hoy eso eran dos registros
+ * en dos lugares —la gestión acá, la etapa en «Cambiar etapa»— y nadie
+ * registra dos veces. Misma mecánica que `registrarGestionYRechazar`: el
+ * cierre va primero porque es el que puede negarse. No cuenta como pérdida.
+ */
+export async function registrarGestionYDerivar(datos: {
+  gestion: Parameters<typeof registrarActividad>[0];
+}): Promise<{ error: string | null }> {
+  const cierre = await cambiarEtapa({
+    oportunidadId: datos.gestion.oportunidadId,
+    etapa: "derivada",
+    motivoRechazoId: null,
+  });
+  if (cierre.error) return cierre;
+  const gestion = await registrarActividad(datos.gestion);
+  if (gestion.error) {
+    return { error: `La oportunidad quedó como pasada a otro, pero no se pudo guardar la nota: ${gestion.error}` };
+  }
+  return { error: null };
+}

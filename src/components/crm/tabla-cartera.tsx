@@ -27,6 +27,13 @@ export interface FilaCartera {
   historicaId?: string | null;
   /** De qué comercial es el cliente. Solo se dibuja para postventa. */
   duenoCodigo?: string | null;
+  /**
+   * El teléfono del contacto principal (0219). Ariana, 11-09, desde su
+   * cuenta de postventa: «no visualiza algunos teléfonos». Es una lista para
+   * llamar: abrir la ficha solo para ver el número era el trabajo que la
+   * lista tenía que ahorrar.
+   */
+  telefono?: string | null;
 }
 
 // Misma corrección que tabla-clientes.tsx / historial-cuenta.tsx (B9.3): la
@@ -50,6 +57,7 @@ export function TablaCartera({ filas, mostrarDueno = false }: { filas: FilaCarte
             <TableHead>Cliente</TableHead>
             <TableHead>Documento</TableHead>
             <TableHead>Zona</TableHead>
+            <TableHead>Teléfono</TableHead>
             {mostrarDueno && <TableHead>Comercial</TableHead>}
             <TableHead className="text-right">Compras</TableHead>
             <TableHead className="text-right">Abiertas</TableHead>
@@ -80,6 +88,21 @@ export function TablaCartera({ filas, mostrarDueno = false }: { filas: FilaCarte
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">{c.documento}</TableCell>
               <TableCell className="text-muted-foreground">{c.distrito ?? "—"}</TableCell>
+              <TableCell className="whitespace-nowrap font-mono text-xs">
+                {c.telefono ? (
+                  // El enlace detiene el clic de la fila: tocar el número es
+                  // para llamar, no para abrir la ficha.
+                  <a
+                    href={`tel:${c.telefono.replace(/[^\d+]/g, "")}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-foreground hover:text-primary hover:underline"
+                  >
+                    {c.telefono}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground" title="Este cliente no tiene ningún teléfono cargado">sin teléfono</span>
+                )}
+              </TableCell>
               {mostrarDueno && (
                 <TableCell className="whitespace-nowrap text-muted-foreground">{c.duenoCodigo ?? "—"}</TableCell>
               )}

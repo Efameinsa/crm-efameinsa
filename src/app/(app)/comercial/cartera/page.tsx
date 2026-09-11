@@ -138,6 +138,7 @@ export default async function CarteraPage({
                 conServidor: c.con_servidor,
                 historicaId: c.historica_id,
                 duenoCodigo: c.codigo_comercial,
+                telefono: c.telefono ?? null,
               }))}
               mostrarDueno={atiendeSinPoseer}
             />

@@ -21,6 +21,8 @@ import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { Badge } from "@/components/ui/badge";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor";
+import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
+import { veTodoPostventa } from "@/lib/postventa";
 
 export async function FichaCuenta({
   cuentaId,
@@ -247,7 +249,19 @@ export async function FichaCuenta({
                     su «pídaselo para anotar». Sin este botón el camino existía
                     y no se veía, que para quien lo necesita es lo mismo que si
                     no existiera. */}
-                {haceCasos && (
+                {/* TOMARLO PARA VENDERLE EL PREVENTIVO (11-09). Ariana, ya en
+                    su cuenta de postventa: «tiene toda la cartera de clientes
+                    que atiende pero no ve la opción para atenderlos, no puede
+                    tomarlos para gestionarlos como oportunidades». El botón
+                    existía solo en «Las ventas de la empresa»; desde la ficha
+                    —que es donde termina quien busca por nombre— no había cómo.
+                    Y «Registrar un caso» la devolvía a su campaña: es una
+                    pantalla de ejecución del servicio, cerrada para quien solo
+                    vende (0213). */}
+                {veTodoPostventa(perfilQueMira) && !comoGerencia && !comoCentral && (
+                  <OfrecerMantenimientoBoton cuentaId={cuenta.id} compacto />
+                )}
+                {haceCasos && !perfilQueMira.solo_preventivo && (
                   <Link
                     href={`/postventa/casos/nuevo?cuenta=${cuenta.id}`}
                     className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-accent"

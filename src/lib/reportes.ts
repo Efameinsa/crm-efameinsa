@@ -202,6 +202,8 @@ export interface FilaClienteListado {
   created_at: string;
   comercial_nombre: string | null;
   codigo_comercial: string | null;
+  /** Teléfono del contacto principal, para llamar desde la lista (0219). */
+  telefono?: string | null;
   abiertas: number;
   n_ventas: number;
   total_usd: number;
