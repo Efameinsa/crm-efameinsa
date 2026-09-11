@@ -1,5 +1,6 @@
 import { MessageSquareText, PencilLine } from "lucide-react";
 import { fechaLima } from "@/lib/fechas";
+import { nombreDeCampana } from "@/lib/campana";
 
 // Lo que pidió el prospecto, tal como entró.
 //
@@ -91,9 +92,11 @@ export function SolicitudLead({
       ) : (
         <p className="whitespace-pre-wrap text-sm text-foreground">{texto}</p>
       )}
-      {campania && !datos?.some((d) => d.clave === "Campaña") && (
+      {/* Solo con nombre: el id numérico de Google («890384066») no le dice
+          nada a nadie, y la cinta de campaña de la tarjeta ya lo dice mejor. */}
+      {nombreDeCampana(campania) && !datos?.some((d) => d.clave === "Campaña") && (
         <p className="mt-1 text-xs text-muted-foreground">
-          Campaña: <b className="text-foreground">{campania}</b>
+          Campaña: <b className="text-foreground">{nombreDeCampana(campania)}</b>
         </p>
       )}
       {/* Lo corrigió Central, y lo que entró sigue a la vista. Es la diferencia
