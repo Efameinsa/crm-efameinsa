@@ -76,9 +76,9 @@ try {
   };
   const goo = await bajar(ger, "google");
   const lineas = goo.texto.replace(/^\uFEFF/, "").split(/\r?\n/);
-  af("Google: CSV con las columnas del importador", goo.status === 200 && /text\/csv/.test(goo.tipo ?? "") && lineas[0] === "Parameters:TimeZone=America/Lima" && lineas[1] === "Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency", `${goo.status} · ${lineas.length - 2} filas · ${goo.nombre}`);
+  af("Google: CSV con las columnas del importador", goo.status === 200 && /text\/csv/.test(goo.tipo ?? "") && lineas[0] === "Parameters:TimeZone=America/Lima" && lineas[1] === "Google Click ID,GBRAID,WBRAID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency", `${goo.status} · ${lineas.length - 2} filas · ${goo.nombre}`);
   const conValor = lineas.slice(2).find((l) => /,Venta,/.test(l));
-  af("la venta lleva importe y moneda", Boolean(conValor) && /,Venta,\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}-05:00,[\d.]+,(USD|PEN)$/.test(conValor ?? ""), conValor?.replace(/^[^,]+/, "gclid…"));
+  af("la venta lleva importe y moneda", Boolean(conValor) && /,,,Venta,\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}-05:00,[\d.]+,(USD|PEN)$/.test(conValor ?? ""), conValor?.replace(/^[^,]+/, "gclid…"));
   af("el contacto de práctica NO está en el CSV", !goo.texto.includes("PRUEBA0226gclid"));
   const meta = await bajar(ger, "meta");
   af("Meta: CSV con email, phone, event_name…", meta.status === 200 && meta.texto.replace(/^\uFEFF/, "").startsWith("email,phone,event_name,event_time,value,currency,order_id"));

@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
       mensaje: d.mensaje || null,
       fuente: d.fuente || null,
       gclid: d.gclid || null,
+      gbraid: d.gbraid || null,
+      wbraid: d.wbraid || null,
       fbclid: d.fbclid || null,
       utm_source: d.utm_source || null,
       utm_medium: d.utm_medium || null,

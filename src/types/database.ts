@@ -112,6 +112,9 @@ export interface Lead {
   canal: CanalContacto;
   fuente: string | null;
   gclid: string | null;
+  /** El clic de Google Ads en iOS, cuando no hay gclid (0228). */
+  gbraid: string | null;
+  wbraid: string | null;
   fbclid: string | null;
   utm_source: string | null;
   utm_medium: string | null;

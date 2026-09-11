@@ -286,13 +286,15 @@ type LeadCrudo = {
   oportunidad_id: string | null;
   fuente: string | null;
   gclid: string | null;
+  gbraid: string | null;
+  wbraid: string | null;
   fbclid: string | null;
   utm_source: string | null;
   utm_medium: string | null;
 };
 
 const CAMPOS_LEAD =
-  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, recibido_por, adjuntos, asignado_at, asignado_a, cuenta_id, es_prueba, oportunidad_id, fuente, gclid, fbclid, utm_source, utm_medium";
+  "id, codigo, nombre_contacto, razon_social, telefono, email, canal, mensaje, recibido_at, recibido_por, adjuntos, asignado_at, asignado_a, cuenta_id, es_prueba, oportunidad_id, fuente, gclid, gbraid, wbraid, fbclid, utm_source, utm_medium";
 
 /**
  * Las derivaciones del período con todo su rastro. Va en consultas separadas

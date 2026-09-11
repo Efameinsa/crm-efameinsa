@@ -49,6 +49,9 @@ describe("campanaDe y ayudantes", () => {
   it("reconoce la plataforma por el clic o por utm_source", () => {
     expect(campanaDe({ gclid: "a" })?.plataforma).toBe("google");
     expect(campanaDe({ fbclid: "b" })?.plataforma).toBe("meta");
+    // En iPhone Google manda gbraid/wbraid en vez de gclid (0228).
+    expect(origenDe({ canal: "formulario_web", fuente: "web · sitio · contacto", gbraid: "g" })).toMatchObject({ clave: "web_campana", plataforma: "google" });
+    expect(campanaDe({ wbraid: "w" })?.plataforma).toBe("google");
     expect(campanaDe({ utm_source: "instagram", utm_medium: "paidsocial" })?.plataforma).toBe("meta");
     expect(campanaDe({ utm_source: "google", utm_medium: "organic" })).toBeNull();
   });

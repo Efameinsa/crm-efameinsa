@@ -10,8 +10,8 @@ import { origenDe } from "@/lib/campana";
 // optimicen hacia el cliente bueno.
 //
 //   ?formato=google  → columnas exactas del importador de Google Ads
-//                      (Google Click ID, Conversion Name, Conversion Time,
-//                      Conversion Value, Conversion Currency)
+//                      (Google Click ID, GBRAID, WBRAID, Conversion Name,
+//                      Conversion Time, Conversion Value, Conversion Currency)
 //   ?formato=meta    → columnas del importador de eventos offline de Meta
 //                      (email, phone, event_name, event_time, value,
 //                      currency, order_id); Meta los cifra al subirlos
@@ -76,13 +76,15 @@ export async function GET(request: Request) {
   let cuerpo: string;
   let nombre: string;
   if (formato === "google") {
-    const conClic = filas.filter((f: Fila) => f.gclid && NOMBRE_GOOGLE[f.estado]);
+    const conClic = filas.filter((f: Fila) => (f.gclid || f.gbraid || f.wbraid) && NOMBRE_GOOGLE[f.estado]);
     cuerpo = [
       "Parameters:TimeZone=America/Lima",
-      linea(["Google Click ID", "Conversion Name", "Conversion Time", "Conversion Value", "Conversion Currency"]),
+      linea(["Google Click ID", "GBRAID", "WBRAID", "Conversion Name", "Conversion Time", "Conversion Value", "Conversion Currency"]),
       ...conClic.map((f) =>
         linea([
           f.gclid,
+          f.gbraid,
+          f.wbraid,
           NOMBRE_GOOGLE[f.estado],
           horaLima(f.fecha_estado),
           f.estado === "ganado" && f.valor != null ? Math.round(f.valor * 100) / 100 : "",
@@ -111,13 +113,13 @@ export async function GET(request: Request) {
   } else {
     cuerpo = [
       linea([
-        "codigo", "recibido", "plataforma", "origen", "campaña", "contenido", "fuente", "medio", "gclid", "fbclid",
+        "codigo", "recibido", "plataforma", "origen", "campaña", "contenido", "fuente", "medio", "gclid", "gbraid", "wbraid", "fbclid",
         "nombre", "razon_social", "email", "telefono", "comercial", "estado", "detalle", "valor", "moneda", "fecha_estado",
       ]),
       ...filas.map((f) =>
         linea([
           f.codigo, horaLima(f.recibido_at), f.plataforma, origenDe(f)?.etiqueta ?? "", f.utm_campaign, f.utm_content, f.fuente, f.utm_medium,
-          f.gclid, f.fbclid, f.nombre, f.razon_social, f.email, f.telefono, f.comercial, f.estado, f.detalle,
+          f.gclid, f.gbraid, f.wbraid, f.fbclid, f.nombre, f.razon_social, f.email, f.telefono, f.comercial, f.estado, f.detalle,
           f.valor, f.moneda, horaLima(f.fecha_estado),
         ]),
       ),

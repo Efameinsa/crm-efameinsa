@@ -48,7 +48,7 @@ export default async function MarketingPage({
   ]);
   const porEstado = new Map<string, number>();
   for (const f of conversiones.filas) porEstado.set(f.estado, (porEstado.get(f.estado) ?? 0) + 1);
-  const conGclid = conversiones.filas.filter((f) => f.gclid && ["calificado", "cotizado", "ganado"].includes(f.estado)).length;
+  const conGclid = conversiones.filas.filter((f) => (f.gclid || f.gbraid || f.wbraid) && ["calificado", "cotizado", "ganado"].includes(f.estado)).length;
   const deMeta = conversiones.filas.filter((f) => f.plataforma === "meta" && ["calificado", "cotizado", "ganado"].includes(f.estado)).length;
   const rango = `desde=${desde}&hasta=${hasta}`;
 

@@ -33,6 +33,9 @@ const FUENTES_META = new Set(["facebook", "meta", "instagram", "fb", "ig"]);
 interface LeadOrigen {
   canal?: string | null;
   gclid?: string | null;
+  /** El clic de Google en iPhone, cuando Safari no entrega el gclid (0228). */
+  gbraid?: string | null;
+  wbraid?: string | null;
   fbclid?: string | null;
   utm_source?: string | null;
   utm_medium?: string | null;
@@ -44,8 +47,9 @@ export function campanaDe(lead: LeadOrigen): Campana | null {
   const fuente = (lead.fuente ?? "").toLowerCase();
   const medio = (lead.utm_medium ?? "").toLowerCase();
   const origen = (lead.utm_source ?? "").toLowerCase();
+  const clicGoogle = Boolean(lead.gclid || lead.gbraid || lead.wbraid);
   const esCampana =
-    Boolean(lead.gclid) ||
+    clicGoogle ||
     Boolean(lead.fbclid) ||
     MEDIOS_PAGADOS.has(medio) ||
     fuente === "google_ads" ||
@@ -53,7 +57,7 @@ export function campanaDe(lead: LeadOrigen): Campana | null {
     fuente.startsWith("web · campaña") ||
     fuente.startsWith("web · landing");
   if (!esCampana) return null;
-  if (lead.gclid || origen === "google" || fuente === "google_ads") return { plataforma: "google", etiqueta: "Google Ads" };
+  if (clicGoogle || origen === "google" || fuente === "google_ads") return { plataforma: "google", etiqueta: "Google Ads" };
   if (lead.fbclid || FUENTES_META.has(origen) || fuente === "meta_ads") return { plataforma: "meta", etiqueta: "Meta" };
   return { plataforma: "otra", etiqueta: "campaña pagada" };
 }

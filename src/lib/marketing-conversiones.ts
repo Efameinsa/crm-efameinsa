@@ -11,6 +11,8 @@ export interface ConversionDeCampana {
   recibido_at: string;
   plataforma: "google" | "meta" | "otra";
   gclid: string | null;
+  gbraid: string | null;
+  wbraid: string | null;
   fbclid: string | null;
   utm_source: string | null;
   utm_medium: string | null;

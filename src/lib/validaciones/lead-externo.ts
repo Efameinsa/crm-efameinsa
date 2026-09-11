@@ -28,6 +28,9 @@ export const esquemaLeadExterno = z.object({
   // Atribución de marketing — distinta del canal (VIA por dónde llegó).
   fuente: z.string().trim().optional(),
   gclid: z.string().trim().optional(),
+  // El clic de Google en iPhone, cuando Safari no entrega el gclid (0228).
+  gbraid: z.string().trim().optional(),
+  wbraid: z.string().trim().optional(),
   fbclid: z.string().trim().optional(),
   utm_source: z.string().trim().optional(),
   utm_medium: z.string().trim().optional(),
