@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { marcarPendiente, useNavegacionPendiente } from "@/lib/navegacion-pendiente";
 import { cn } from "@/lib/utils";
 
 // Barra de filtros + paginación de la lista de clientes. Todo vive en la URL
@@ -49,6 +51,8 @@ export function FiltrosClientes({
       else params.set(k, v);
     }
     if (!("pagina" in cambios)) params.delete("pagina");
+    // La tabla se atenúa en el instante del clic (11-09): ver EsperaDeNavegacion.
+    marcarPendiente();
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
   }
 
@@ -156,17 +160,28 @@ export function Paginacion({
   /** Plural, si no es tan simple como agregar una "s" (ej. "oportunidades"). */
   etiquetaPlural?: string;
 }) {
-  const router = useRouter();
+  // El giro del pie lee la misma señal que atenúa la tabla.
+  const pendiente = useNavegacionPendiente();
   const pathname = usePathname();
   const sp = useSearchParams();
-  const [pendiente, startTransition] = useTransition();
 
-  function ir(p: number) {
+
+  const urlDe = (p: number) => {
     const params = new URLSearchParams(sp.toString());
     if (p <= 1) params.delete("pagina");
     else params.set("pagina", String(p));
-    startTransition(() => router.push(`${pathname}?${params.toString()}`, { scroll: true }));
-  }
+    return `${pathname}?${params.toString()}`;
+  };
+  // LA PÁGINA SIGUIENTE, PEDIDA ANTES DEL CLIC (11-09). Quien llega al pie de
+  // la lista casi siempre va a tocar «Siguiente»: el enlace lleva
+  // `prefetch`, así que Next la trae entera —datos incluidos— en cuanto el
+  // botón está a la vista, y el cambio se siente instantáneo. Solo la
+  // siguiente: precargar todas sería pedir cien páginas por si acaso. Son
+  // enlaces y no botones porque Next solo precarga enlaces visibles;
+  // router.prefetch() no trae los datos de una página dinámica.
+  const clase =
+    "inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 hover:bg-accent";
+  const apagado = "inline-flex h-8 cursor-not-allowed items-center gap-1 rounded-md border border-border px-2 opacity-40";
 
   if (totalPaginas <= 1) {
     return (
@@ -184,25 +199,23 @@ export function Paginacion({
         {pendiente && <Loader2 className="ml-2 inline size-3.5 animate-spin" />}
       </p>
       <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => ir(pagina - 1)}
-          disabled={pagina <= 1}
-          className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-md border border-border px-2 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <ChevronLeft className="size-3.5" /> Anterior
-        </button>
+        {pagina <= 1 ? (
+          <span className={apagado}><ChevronLeft className="size-3.5" /> Anterior</span>
+        ) : (
+          <Link href={urlDe(pagina - 1)} onClick={() => marcarPendiente()} className={clase}>
+            <ChevronLeft className="size-3.5" /> Anterior
+          </Link>
+        )}
         <span className="px-2 tabular-nums">
           Página {pagina} de {totalPaginas}
         </span>
-        <button
-          type="button"
-          onClick={() => ir(pagina + 1)}
-          disabled={pagina >= totalPaginas}
-          className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-md border border-border px-2 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Siguiente <ChevronRight className="size-3.5" />
-        </button>
+        {pagina >= totalPaginas ? (
+          <span className={apagado}>Siguiente <ChevronRight className="size-3.5" /></span>
+        ) : (
+          <Link href={urlDe(pagina + 1)} prefetch={true} onClick={() => marcarPendiente()} className={clase}>
+            Siguiente <ChevronRight className="size-3.5" />
+          </Link>
+        )}
       </div>
     </div>
   );

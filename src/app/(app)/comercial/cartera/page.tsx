@@ -1,4 +1,3 @@
-import { Search } from "lucide-react";
 import { listarClientes, type OrdenClientes } from "@/lib/reportes";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
@@ -8,8 +7,9 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { TablaCartera } from "@/components/crm/tabla-cartera";
 import { PestanasClientes } from "@/components/crm/pestanas-clientes";
 import { Paginacion } from "@/components/crm/filtros-clientes";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
+import { EsperaDeNavegacion } from "@/components/crm/espera-de-navegacion";
 
 export const dynamic = "force-dynamic";
 
@@ -75,16 +75,9 @@ export default async function CarteraPage({
       {atiendeSinPoseer && <PestanasClientes activa="clientes" clientes={total} />}
 
       <form className="flex flex-wrap gap-2" action="/comercial/cartera">
-        <div className="relative min-w-56 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            name="q"
-            defaultValue={q}
-            placeholder="Buscar por nombre, RUC/DNI o teléfono…"
-            className="pl-9"
-          />
-        </div>
+        {/* Busca mientras se escribe (11-09); Enter y «Buscar» siguen
+            funcionando porque el campo sigue dentro del formulario GET. */}
+        <BusquedaEnVivo inicial={q} placeholder="Buscar por nombre, RUC/DNI o teléfono…" />
         {/* El orden viaja en la URL para que la página sea compartible y el
             botón Atrás del navegador funcione. */}
         <select
@@ -124,7 +117,7 @@ export default async function CarteraPage({
                   : "Todavía no tiene clientes en su cartera."}
           </p>
         ) : (
-          <div className="space-y-3">
+          <EsperaDeNavegacion className="space-y-3">
             <TablaCartera
               filas={filas.map((c) => ({
                 id: c.id,
@@ -143,7 +136,7 @@ export default async function CarteraPage({
               mostrarDueno={atiendeSinPoseer}
             />
             <Paginacion pagina={pagina} totalPaginas={totalPaginas} total={total} desde={desde} hasta={hasta} />
-          </div>
+          </EsperaDeNavegacion>
         )}
       </SeccionPanel>
     </div>

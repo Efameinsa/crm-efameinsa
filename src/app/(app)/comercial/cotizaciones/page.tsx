@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { hoyLima } from "@/lib/periodo";
-import { FileDown, PencilLine, Search } from "lucide-react";
+import { FileDown, PencilLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AgregarCotizacionVieja } from "@/components/crm/agregar-cotizacion-vieja";
 import { CorregirCotizacionBoton } from "@/components/crm/corregir-cotizacion-boton";
 import { fechaLima } from "@/lib/fechas";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
+import { EsperaDeNavegacion } from "@/components/crm/espera-de-navegacion";
 import { cn } from "@/lib/utils";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
@@ -319,15 +320,8 @@ export default async function MisCotizacionesPage({
       }
     >
       <form className="mb-3 flex gap-2" action="/comercial/cotizaciones">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            name="q"
-            defaultValue={busqueda}
-            placeholder="Número (1549 o 1549-25) o nombre del cliente"
-            className="pl-8"
-          />
-        </div>
+        {/* Busca mientras se escribe (11-09); Enter y «Buscar» siguen funcionando. */}
+        <BusquedaEnVivo inicial={busqueda} placeholder="Número (1549 o 1549-25) o nombre del cliente" />
         <Button type="submit" size="sm">Buscar</Button>
         {busqueda && (
           <Link
@@ -352,6 +346,7 @@ export default async function MisCotizacionesPage({
         </div>
       )}
 
+      <EsperaDeNavegacion>
       {filas.length === 0 && borradores.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {busqueda
@@ -387,6 +382,7 @@ export default async function MisCotizacionesPage({
           )}
         </div>
       )}
+    </EsperaDeNavegacion>
     </SeccionPanel>
   );
 }

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listarClientes, type OrdenClientes } from "@/lib/reportes";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { TablaClientes } from "@/components/crm/tabla-clientes";
+import { EsperaDeNavegacion } from "@/components/crm/espera-de-navegacion";
 import { FiltrosClientes, Paginacion } from "@/components/crm/filtros-clientes";
 
 export const dynamic = "force-dynamic";
@@ -65,12 +66,12 @@ export default async function ClientesGerenciaPage({
             {q || conVenta || sinDoc || comercialId ? "Nada coincide con esos filtros." : "Todavía no hay clientes registrados."}
           </p>
         ) : (
-          <>
+          <EsperaDeNavegacion>
             <TablaClientes filas={filas} />
             <div className="mt-4 border-t border-border pt-3">
               <Paginacion pagina={pagina} totalPaginas={totalPaginas} total={total} desde={desde} hasta={hasta} />
             </div>
-          </>
+          </EsperaDeNavegacion>
         )}
       </SeccionPanel>
     </div>
