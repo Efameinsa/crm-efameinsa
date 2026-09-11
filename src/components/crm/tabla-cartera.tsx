@@ -5,6 +5,7 @@ import { Building2, ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MarcaServidor } from "@/components/crm/marca-servidor";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
+import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
 import { fechaLima } from "@/lib/fechas";
 
 export interface FilaCartera {
@@ -127,6 +128,18 @@ export function TablaCartera({ filas, mostrarDueno = false }: { filas: FilaCarte
                   // El botón detiene el clic; Enter sobre él tampoco debe abrir la ficha.
                   <span className="inline-flex" onKeyDown={(e) => e.stopPropagation()}>
                     <TrabajarHistoricaBoton oportunidadId={c.historicaId} compacto />
+                  </span>
+                ) : mostrarDueno ? (
+                  // POSTVENTA TOMA AL CLIENTE DESDE LA LISTA (11-09). Ariana:
+                  // «¿en su lista hay un botón de retomar para que pase a
+                  // oportunidad?». Lo había solo para lo archivado; para el
+                  // cliente sin ningún expediente tenía que abrir la ficha, y
+                  // en una campaña de llamadas ese clic de más se paga 500
+                  // veces. Mismo botón que en la ficha y en «Las ventas de la
+                  // empresa»: abre (o retoma) el expediente de mantenimiento a
+                  // su nombre y la lleva a registrar la llamada.
+                  <span className="inline-flex" onKeyDown={(e) => e.stopPropagation()}>
+                    <OfrecerMantenimientoBoton cuentaId={c.id} compacto />
                   </span>
                 ) : (
                   <span className="text-muted-foreground">—</span>
