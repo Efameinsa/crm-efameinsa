@@ -1,14 +1,7 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { FilaRutaMantenimiento } from "@/components/crm/fila-ruta";
-import { FiltrosRuta } from "@/components/crm/filtros-ruta";
+import { ListaRuta } from "@/components/crm/lista-ruta";
 import {
-  columnaDe,
-  filtrarRuta,
-  tieneTelefono,
-  ordenarRuta,
-  ETIQUETA_COLUMNA,
+  PESTANAS_RUTA as PESTANAS,
   ETIQUETA_COMPRA,
   ETIQUETA_LLAMADA,
   ETIQUETA_MANTENIMIENTO,
@@ -18,7 +11,6 @@ import {
   type EstadoMantenimiento,
   type FilaRuta,
 } from "@/lib/ruta-mantenimiento";
-import { cn } from "@/lib/utils";
 import { veTodoPostventa } from "@/lib/postventa";
 import { traerPorLotes } from "@/lib/lotes";
 import type { Perfil } from "@/types/database";
@@ -39,18 +31,11 @@ import type { Perfil } from "@/types/database";
  * con el desenlace de la llamada a un clic.
  */
 
-const PESTANAS: ColumnaRuta[] = ["por_llamar", "llamados", "cotizados", "cerrados"];
-
 /**
- * Cuántas filas se pintan de entrada.
- *
- * Con los tres años de cierres importados esta pantalla pasó a tener 248 filas
- * para Ariana, y pintarlas todas mandaba 800 KB de HTML por una lista que se
- * trabaja de a diez llamadas. Se muestran las primeras y el resto está a un
- * clic — el orden ya pone arriba lo que hay que hacer hoy, así que la fila 200
- * no es urgente por definición.
+ * 11-09: EL SERVIDOR ARMA LAS FILAS; LAS PESTAÑAS Y LOS FILTROS VIVEN EN EL
+ * NAVEGADOR (lista-ruta.tsx). Antes cada clic volvía acá a rearmar las 500
+ * filas, sin «cargando» porque era la misma pantalla.
  */
-const POR_PAGINA = 40;
 
 interface OportunidadRuta {
   id: string;
@@ -258,113 +243,12 @@ export async function RutaMantenimientoVista({
     };
   });
 
-  // Los conteos de las pestañas respetan los filtros: si se armó la tanda «los
-  // que nunca se hicieron mantenimiento», lo que interesa saber es cuántos de
-  // ESOS quedan por llamar y cuántos ya cerraron, no el total de la campaña.
-  const porColumna = (c: ColumnaRuta) => filas.filter((f) => columnaDe(f, hoy) === c);
-  const cuenta = (c: ColumnaRuta) => filtrarRuta(porColumna(c), hoy, filtros).length;
-
-  const enPestana = porColumna(pestana);
-  // Cuántos de esta pestaña no se pueden llamar. Se cuenta con la tanda puesta
-  // pero sin el propio recorte del teléfono: si no, al activarlo el número del
-  // botón se volvería el total y dejaría de decir nada.
-  const sinTelefono = filtrarRuta(enPestana, hoy, { ...filtros, tel: null }).filter((f) => !tieneTelefono(f)).length;
-  const visibles = ordenarRuta(filtrarRuta(enPestana, hoy, filtros), hoy);
-  const todos = sp.todos === "1";
-  const mostradas = todos ? visibles : visibles.slice(0, POR_PAGINA);
-  const cerrada = pestana === "cerrados" || pestana === "cotizados";
-
-  // Cambiar de pestaña conserva la tanda que se estaba trabajando.
-  const conFiltros = (extra: Record<string, string>) => {
-    const p = new URLSearchParams(extra);
-    if (busqueda) p.set("q", busqueda);
-    if (filtros.mant) p.set("mant", filtros.mant);
-    if (filtros.compra) p.set("compra", filtros.compra);
-    if (filtros.llamada) p.set("llamada", filtros.llamada);
-    if (filtros.tel) p.set("tel", filtros.tel);
-    return `${hrefBase}?${p.toString()}`;
-  };
-
   return (
-    <SeccionPanel
-      titulo="Ruta de mantenimiento"
-      accion={
-        <div className="flex flex-wrap items-center gap-1.5">
-          {PESTANAS.map((p) => (
-            <Link
-              key={p}
-              href={conFiltros({ ver: p })}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors",
-                pestana === p
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {ETIQUETA_COLUMNA[p]}
-              <span
-                className={cn(
-                  "rounded-full px-1.5 py-0.5 text-xs font-bold tabular-nums",
-                  pestana === p ? "bg-primary-foreground/20" : "bg-background/70 text-foreground",
-                )}
-              >
-                {cuenta(p)}
-              </span>
-            </Link>
-          ))}
-        </div>
-      }
-    >
-      <p className="mb-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
-        Clientes de la base instalada a los que hay que ofrecerles el mantenimiento. Arriba, lo que nunca se llamó y
-        lo más atrasado; después, lo que lleva más tiempo sin mantenimiento. La cuenta sigue siendo del comercial que
-        la vendió: acá está la oportunidad de mantenimiento, no el cliente.
-      </p>
-
-      <FiltrosRuta
-        q={busqueda}
-        mant={filtros.mant}
-        compra={filtros.compra}
-        llamada={filtros.llamada}
-        tel={filtros.tel ?? null}
-        sinTelefono={sinTelefono}
-        visibles={visibles.length}
-        total={enPestana.length}
-      />
-
-      {visibles.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            {busqueda || filtros.mant || filtros.compra || filtros.llamada || filtros.tel
-              ? "Ningún cliente de esta pestaña cumple con lo que se pidió."
-              : pestana === "por_llamar"
-                ? "No queda nadie por llamar hoy. Los recontactos programados están en «Llamados»."
-                : "Todavía no hay nada acá."}
-          </p>
-          {(busqueda || filtros.mant || filtros.compra || filtros.llamada || filtros.tel) && (
-            <Link
-              href={`${hrefBase}?ver=${pestana}`}
-              className="mt-2 inline-block text-sm font-semibold text-primary hover:underline"
-            >
-              Quitar los filtros
-            </Link>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-2.5">
-          {mostradas.map((f) => (
-            <FilaRutaMantenimiento key={f.id} fila={f} hoy={hoy} cerrada={cerrada} />
-          ))}
-          {mostradas.length < visibles.length && (
-            <Link
-              href={conFiltros({ ver: pestana, todos: "1" })}
-              className="block rounded-lg border border-dashed border-border p-3 text-center text-sm font-semibold text-primary hover:bg-accent"
-            >
-              Ver los {visibles.length - mostradas.length} restantes
-            </Link>
-          )}
-        </div>
-      )}
-    </SeccionPanel>
+    <ListaRuta
+      filas={filas}
+      hoy={hoy}
+      hrefBase={hrefBase}
+      inicial={{ ver: pestana, q: busqueda, mant: filtros.mant, compra: filtros.compra, llamada: filtros.llamada, tel: filtros.tel }}
+    />
   );
 }

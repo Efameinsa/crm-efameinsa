@@ -68,6 +68,9 @@ export interface FilaRuta {
 
 export type ColumnaRuta = "por_llamar" | "llamados" | "cotizados" | "cerrados";
 
+/** Las cuatro pestañas de la ruta, en el orden en que se trabajan. */
+export const PESTANAS_RUTA: ColumnaRuta[] = ["por_llamar", "llamados", "cotizados", "cerrados"];
+
 export const ETIQUETA_COLUMNA: Record<ColumnaRuta, string> = {
   por_llamar: "Por llamar",
   llamados: "Llamados",

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Loader2, PhoneOff, Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { PhoneOff, Search, X } from "lucide-react";
 import {
   ETIQUETA_COMPRA,
   ETIQUETA_LLAMADA,
@@ -25,9 +24,21 @@ import { cn } from "@/lib/utils";
  *
  * Los atajos de arriba no son un filtro más: son las tres tandas que ya se
  * sabe que valen, a un clic, para no obligar a nadie a componerlas con tres
- * desplegables. Todo vive en la URL, así que la tanda se puede compartir por
- * WhatsApp y el botón «atrás» funciona.
+ * desplegables.
+ *
+ * 11-09: YA NO NAVEGA. Antes cada cambio era un `router.push` y la pantalla
+ * entera volvía del servidor (1–2 s por clic, sin ningún «cargando»). Ahora la
+ * barra solo avisa `onCambiar` y la lista, que ya tiene todas las filas, filtra
+ * al instante; la URL la mantiene al día la lista (ver lista-ruta.tsx).
  */
+
+export interface ValoresFiltroRuta {
+  q: string;
+  mant: EstadoMantenimiento | null;
+  compra: EstadoCompra | null;
+  llamada: EstadoLlamada | null;
+  tel: "sin" | "con" | null;
+}
 
 const ATAJOS: {
   clave: string;
@@ -56,20 +67,14 @@ const ATAJOS: {
 ];
 
 export function FiltrosRuta({
-  q,
-  mant,
-  compra,
-  llamada,
-  tel,
+  valores,
+  onCambiar,
   sinTelefono,
   visibles,
   total,
 }: {
-  q: string;
-  mant: EstadoMantenimiento | null;
-  compra: EstadoCompra | null;
-  llamada: EstadoLlamada | null;
-  tel: "sin" | "con" | null;
+  valores: ValoresFiltroRuta;
+  onCambiar: (cambios: Partial<ValoresFiltroRuta>) => void;
   /** Cuántos clientes de esta pestaña no tienen ningún número cargado. */
   sinTelefono: number;
   /** Cuántas filas quedaron en esta pestaña con los filtros puestos. */
@@ -77,10 +82,7 @@ export function FiltrosRuta({
   /** Cuántas hay en la pestaña sin filtrar. */
   total: number;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const sp = useSearchParams();
-  const [pendiente, startTransition] = useTransition();
+  const { q, mant, compra, llamada, tel } = valores;
   const [texto, setTexto] = useState(q);
 
   useEffect(() => {
@@ -88,22 +90,11 @@ export function FiltrosRuta({
     setTexto(q);
   }, [q]);
 
-  function navegar(cambios: Record<string, string | null>) {
-    const params = new URLSearchParams(sp.toString());
-    for (const [k, v] of Object.entries(cambios)) {
-      if (v === null || v === "") params.delete(k);
-      else params.set(k, v);
-    }
-    // Cualquier cambio de filtro vuelve a mostrar la primera tanda.
-    params.delete("todos");
-    startTransition(() => router.push(`${pathname}?${params.toString()}`));
-  }
-
-  // La búsqueda aplica al dejar de escribir: una navegación por tecla haría
-  // parpadear una lista de 249 filas.
+  // La búsqueda aplica al dejar de escribir: filtrar 500 filas por tecla se
+  // siente bien, pero con 500 filas pintándose a cada letra tiembla.
   useEffect(() => {
     if (texto === q) return;
-    const t = setTimeout(() => navegar({ q: texto.trim() || null }), 350);
+    const t = setTimeout(() => onCambiar({ q: texto.trim() }), 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texto]);
@@ -120,8 +111,6 @@ export function FiltrosRuta({
 
   return (
     <div className="relative mb-4 rounded-xl border border-border bg-muted/30 p-3">
-      {/* Cuatro columnas iguales: los tres desplegables entran en una fila con
-          la búsqueda, y en el celular se apilan solos. */}
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -137,19 +126,19 @@ export function FiltrosRuta({
         <Filtro
           etiqueta="Mantenimiento"
           valor={mant}
-          onChange={(v) => navegar({ mant: v })}
+          onChange={(v) => onCambiar({ mant: v as EstadoMantenimiento | null })}
           opciones={Object.entries(ETIQUETA_MANTENIMIENTO).map(([valor, texto]) => ({ valor, texto }))}
         />
         <Filtro
           etiqueta="Compró"
           valor={compra}
-          onChange={(v) => navegar({ compra: v })}
+          onChange={(v) => onCambiar({ compra: v as EstadoCompra | null })}
           opciones={Object.entries(ETIQUETA_COMPRA).map(([valor, texto]) => ({ valor, texto }))}
         />
         <Filtro
           etiqueta="Llamada"
           valor={llamada}
-          onChange={(v) => navegar({ llamada: v })}
+          onChange={(v) => onCambiar({ llamada: v as EstadoLlamada | null })}
           opciones={Object.entries(ETIQUETA_LLAMADA).map(([valor, texto]) => ({ valor, texto }))}
         />
       </div>
@@ -164,7 +153,7 @@ export function FiltrosRuta({
               type="button"
               title={a.titulo}
               onClick={() =>
-                navegar(
+                onCambiar(
                   activo
                     ? { mant: null, compra: null, llamada: null }
                     : {
@@ -188,14 +177,12 @@ export function FiltrosRuta({
 
         {/* No es una tanda más: se cruza con la que esté puesta, por eso no
             limpia los otros tres. Es el pedido de Ariana del 10-09 —«¿cómo voy
-            a gestionar si no visualizo sus teléfonos? y así son varios»—:
-            juntarlos en un rato de conseguir números en vez de tropezárselos
-            de a uno mientras llama. */}
+            a gestionar si no visualizo sus teléfonos? y así son varios»—. */}
         {(sinTelefono > 0 || tel) && (
           <button
             type="button"
             title="Clientes de la campaña a los que todavía no se les puede llamar: no tienen ningún número cargado. Se anota desde la misma fila."
-            onClick={() => navegar({ tel: tel === "sin" ? null : "sin" })}
+            onClick={() => onCambiar({ tel: tel === "sin" ? null : "sin" })}
             className={cn(
               "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
               tel === "sin"
@@ -209,7 +196,6 @@ export function FiltrosRuta({
         )}
 
         <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-          {pendiente && <Loader2 className="size-3.5 animate-spin" />}
           <span>
             <b className="text-foreground tabular-nums">{visibles.toLocaleString("es-PE")}</b>
             {hayFiltro && <> de {total.toLocaleString("es-PE")}</>} en esta pestaña
@@ -219,7 +205,7 @@ export function FiltrosRuta({
               type="button"
               onClick={() => {
                 setTexto("");
-                navegar({ mant: null, compra: null, llamada: null, tel: null, q: null });
+                onCambiar({ mant: null, compra: null, llamada: null, tel: null, q: "" });
               }}
               className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-accent"
             >

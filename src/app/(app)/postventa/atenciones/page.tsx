@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { AlertTriangle, ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { fechaHoraLima } from "@/lib/fechas";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { CasosAnteriores } from "@/components/crm/casos-anteriores";
 import { ColaDespachos } from "@/components/crm/cola-despachos";
@@ -11,19 +10,8 @@ import { HistoricoPostventa } from "@/components/crm/historico-postventa";
 import { MandadoACentral } from "@/components/crm/mandado-a-central";
 import { listarMandadoACentral } from "@/lib/mandado-a-central";
 import { PestanasCasos } from "@/components/crm/pestanas-casos";
-import {
-  ETAPAS_ATENCION,
-  ETIQUETA_ETAPA,
-  ETIQUETA_TIPO_ATENCION,
-  ETIQUETA_CLASIFICACION,
-  COLOR_CLASIFICACION,
-  pasoDe,
-  queLeFalta,
-  relojAtencion,
-  resumirAtenciones,
-  type Atencion,
-  estaAbierta,
-} from "@/lib/atenciones";
+import { VistaAtenciones, type FilaAtencion } from "@/components/crm/vista-atenciones";
+import { relojAtencion, resumirAtenciones, estaAbierta } from "@/lib/atenciones";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -45,15 +33,6 @@ const PESTANAS = ["", "casos", "cerradas", "historico"] as const;
 
 type Pestana = (typeof PESTANAS)[number];
 
-const FILTROS = [
-  { clave: "", etiqueta: "Todas" },
-  // «Lista sin atender y lista de atendidos» (la señorita de postventa,
-  // 01-09): atendida es que alguien ya hizo algo con ella (`tomada_at`, 0146).
-  { clave: "sin_atender", etiqueta: "Sin atender" },
-  { clave: "atendidas", etiqueta: "Atendidas" },
-  { clave: "urgentes", etiqueta: "Se pasaron de tiempo" },
-  { clave: "sin_programar", etiqueta: "Sin programar" },
-] as const;
 
 export default async function AtencionesPage({
   searchParams,
@@ -74,11 +53,7 @@ export default async function AtencionesPage({
     .order("solicitado_at", { ascending: false })
     .limit(300);
 
-  type Fila = Atencion & {
-    cuentas: { razon_social: string } | null;
-    perfiles: { nombre: string; codigo_comercial: string | null } | null;
-  };
-  const todas = (data ?? []) as unknown as Fila[];
+  const todas = (data ?? []) as unknown as FilaAtencion[];
   // ACÁ ES DONDE LA DEJA EL FLUJO. «Registrar y derivar a Central» termina con
   // un `router.push("/postventa/atenciones")`, y lo que acaba de registrar
   // TODAVÍA NO es una atención —la atención nace cuando Central la devuelve
@@ -124,8 +99,7 @@ export default async function AtencionesPage({
           <VistaAtenciones
             todas={pestana === "cerradas" ? todas.filter((a) => !estaAbierta(a)) : abiertas}
             cerradas={pestana === "cerradas"}
-            filtro={filtro}
-            etapaSeleccionada={sp.etapa}
+            inicial={{ filtro, etapa: sp.etapa ?? null }}
           />
         )}
         {pestana === "casos" && <CasosAnteriores perfil={perfil} />}
@@ -173,155 +147,6 @@ export default async function AtencionesPage({
  * contadores no coinciden. No era un conteo mal hecho: era un número bien
  * calculado con la etiqueta de otro.
  */
-/**
- * La pista de nueve etapas, tal como estaba (embudo + lista), ahora
- * reutilizada tanto para «Abiertas» como para «Cerradas».
- */
-function VistaAtenciones({
-  todas,
-  cerradas,
-  filtro,
-  etapaSeleccionada,
-}: {
-  todas: (Atencion & {
-    cuentas: { razon_social: string } | null;
-    perfiles: { nombre: string; codigo_comercial: string | null } | null;
-    tomadaPor?: { nombre: string; codigo_comercial: string | null } | null;
-  })[];
-  cerradas: boolean;
-  filtro: string;
-  etapaSeleccionada?: string;
-}) {
-  let filas = todas;
-  if (!cerradas) {
-    if (filtro === "urgentes") filas = filas.filter((a) => relojAtencion(a).estado === "rojo");
-    if (filtro === "sin_programar") filas = filas.filter((a) => !a.programada_at);
-    if (filtro === "sin_atender") filas = filas.filter((a) => !a.tomada_at);
-    if (filtro === "atendidas") filas = filas.filter((a) => a.tomada_at);
-  }
-  if (etapaSeleccionada) filas = filas.filter((a) => a.etapa === etapaSeleccionada);
-
-  return (
-    <div>
-      {!cerradas && (
-        <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          {FILTROS.map((f) => (
-            <Link
-              key={f.clave || "todas"}
-              href={`/postventa/atenciones${f.clave ? `?filtro=${f.clave}` : ""}`}
-              className={cn(
-                "rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors",
-                filtro === f.clave ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {f.etiqueta}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* El embudo de las nueve etapas, clicable: dice de un vistazo dónde se
-          está atascando el trabajo. Solo tiene sentido en Abiertas. */}
-      {!cerradas && (
-        <div className="mb-3 flex flex-wrap gap-1">
-          {/* SOLO LAS ETAPAS QUE TIENEN ALGO. Eran nueve chips fijos —más las
-              pestañas y los cinco filtros: diecinueve controles para ocho
-              filas (informe de UX del 08-09)—, y siete de ellos en cero. Un
-              filtro que no filtra nada es ruido que tapa a los que sí.
-              La seleccionada se queda aunque quede vacía: si no, al filtrar
-              desaparecería el chip con el que se está filtrando. */}
-          {ETAPAS_ATENCION.filter(
-            (e) => todas.some((a) => a.etapa === e) || etapaSeleccionada === e,
-          ).map((e) => {
-            const n = todas.filter((a) => a.etapa === e).length;
-            return (
-              <Link
-                key={e}
-                href={`/postventa/atenciones?${new URLSearchParams({ ...(filtro ? { filtro } : {}), ...(etapaSeleccionada === e ? {} : { etapa: e }) })}`}
-                className={cn(
-                  "rounded-md border px-2 py-1 text-[11px] font-medium transition-colors",
-                  etapaSeleccionada === e ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground",
-                  n === 0 && "opacity-45",
-                )}
-              >
-                {ETIQUETA_ETAPA[e]} <b className="tabular-nums">{n}</b>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      {filas.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {cerradas
-            ? "Todavía no hay atenciones cerradas."
-            : "No hay atenciones acá. Las que registre el área o derive Central aparecen en esta lista."}
-        </p>
-      ) : (
-        <div className="space-y-1.5">
-          {filas.map((a) => {
-            const falta = queLeFalta(a);
-            const reloj = relojAtencion(a);
-            return (
-              <Link
-                key={a.id}
-                href={`/postventa/atenciones/${a.id}`}
-                className={cn(
-                  "flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border p-2.5 transition-colors hover:bg-accent",
-                  reloj.estado === "rojo" && !a.cerrado_at ? "border-destructive/40 bg-destructive/5" : "border-border",
-                  a.cerrado_at && "opacity-70",
-                )}
-              >
-                <span className="w-24 flex-none text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                  {ETIQUETA_ETAPA[a.etapa]}
-                  <span className="ml-1 font-normal tabular-nums opacity-70">{pasoDe(a.etapa) + 1}/9</span>
-                </span>
-                <span className="min-w-[180px] flex-1">
-                  <span className="block text-sm font-medium text-foreground">
-                    {a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre"}
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {ETIQUETA_TIPO_ATENCION[a.tipo]}
-                    {a.detalle ? ` · ${a.detalle}` : ""}
-                  </span>
-                </span>
-                {a.clasificacion && (
-                  <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", COLOR_CLASIFICACION[a.clasificacion])}>
-                    {ETIQUETA_CLASIFICACION[a.clasificacion]}
-                  </span>
-                )}
-                {a.programada_at && !a.cerrado_at && (
-                  <span className="text-[11px] tabular-nums text-muted-foreground">
-                    {fechaHoraLima(a.programada_at)}
-                    {a.tecnico && ` · ${a.tecnico}`}
-                  </span>
-                )}
-                {!a.cerrado_at && (
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                      falta.urgente || reloj.estado === "rojo" ? "bg-destructive/10 text-destructive" : "bg-secondary text-muted-foreground",
-                    )}
-                  >
-                    {(falta.urgente || reloj.estado === "rojo") && <AlertTriangle className="size-3" />}
-                    {falta.texto}
-                  </span>
-                )}
-                <span className="w-28 flex-none text-right text-[11px] text-muted-foreground">
-                  {a.tomada_at
-                    ? `atendida ${fechaHoraLima(a.tomada_at)}${a.tomadaPor ? ` · ${a.tomadaPor.codigo_comercial ?? a.tomadaPor.nombre}` : ""}`
-                    : (a.perfiles?.codigo_comercial ?? a.perfiles?.nombre ?? "sin atender")}
-                </span>
-                <ChevronRight className="size-3.5 flex-none text-muted-foreground" />
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function Tarjeta({ etiqueta, valor, alerta, bien }: { etiqueta: string; valor: number; alerta?: boolean; bien?: boolean }) {
   return (
     <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
