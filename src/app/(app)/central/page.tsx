@@ -1,4 +1,5 @@
 import { fechaHoraLima, fechaLima } from "@/lib/fechas";
+import { cn } from "@/lib/utils";
 import { Phone, MessageCircle, Globe, Megaphone, Camera, Mail, User, Users, IdCard, UserRoundPen, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AsignarLeadDialog } from "@/components/crm/asignar-lead-dialog";
@@ -22,6 +23,7 @@ import { EditarSolicitudBoton } from "@/components/crm/editar-solicitud-boton";
 import { EditarDatosLeadBoton } from "@/components/crm/editar-datos-lead-boton";
 import { UnirACuentaBoton } from "@/components/crm/unir-a-cuenta-boton";
 import { dominioDeCorreo } from "@/lib/central/coincidencias-bandeja";
+import { campanaDe, fuenteLegible, nombreDeCampana } from "@/lib/campana";
 
 // La bandeja tiene que mostrar lo que acaba de entrar: sin esto Next servía
 // una versión cacheada y un contacto recién registrado no aparecía hasta que
@@ -79,7 +81,7 @@ function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, mod
   const q = supabase
     .from("leads")
     .select(
-      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, utm_campaign, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
+      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, fuente, gclid, fbclid, utm_source, utm_medium, utm_campaign, utm_content, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
       { count: "exact" },
     )
     .eq("estado", "pendiente_triaje");
@@ -258,11 +260,41 @@ export default async function CentralPage() {
         <div className="space-y-2">
           {leads.map((lead) => {
             const Icono = ICONO_CANAL[lead.canal] ?? Globe;
+            // VINO DE CAMPAÑA (Santos, 11-09): el clic ya costó plata y el que
+            // llenó el formulario se enfría en horas. Se ve de otro color y
+            // se atiende primero, como un «PROSPECTO CALIENTE».
+            const campana = campanaDe(lead);
+            const caliente = /^\s*PROSPECTO CALIENTE/i.test(lead.mensaje ?? "");
             return (
               <div
                 key={lead.id}
-                className="rounded-lg border border-border bg-background p-3.5 shadow-sm"
+                className={cn(
+                  "rounded-lg border bg-background p-3.5 shadow-sm",
+                  campana?.plataforma === "google" && "border-sky-400 ring-1 ring-sky-200",
+                  campana?.plataforma === "meta" && "border-violet-400 ring-1 ring-violet-200",
+                  campana?.plataforma === "otra" && "border-emerald-400 ring-1 ring-emerald-200",
+                  !campana && "border-border",
+                )}
               >
+                {(campana || caliente) && (
+                  <p
+                    className={cn(
+                      "mb-2.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md px-2.5 py-1.5 text-xs font-semibold",
+                      campana?.plataforma === "google" && "bg-sky-50 text-sky-900",
+                      campana?.plataforma === "meta" && "bg-violet-50 text-violet-900",
+                      (campana?.plataforma === "otra" || !campana) && "bg-emerald-50 text-emerald-900",
+                    )}
+                  >
+                    <Megaphone className="size-3.5" />
+                    {campana?.etiqueta ?? "Prospecto caliente"}
+                    {caliente && campana && <span>· prospecto caliente</span>}
+                    {nombreDeCampana(lead.utm_campaign) && <span className="font-normal">· {nombreDeCampana(lead.utm_campaign)}</span>}
+                    {fuenteLegible(lead.fuente) && <span className="font-normal opacity-80">· {fuenteLegible(lead.fuente)}</span>}
+                    <span className="ml-auto rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                      Gestionar a la brevedad
+                    </span>
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="flex size-9 flex-none items-center justify-center rounded-full bg-secondary text-foreground">
                     <Icono className="size-4" />

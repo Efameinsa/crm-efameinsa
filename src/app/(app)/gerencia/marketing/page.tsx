@@ -7,6 +7,8 @@ import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
 import { ChipsParam } from "@/components/crm/chips-param";
 import { TipoCambioInline } from "@/components/crm/tipo-cambio-inline";
 import { cargarResumenMarketing, cargarEmbudoReal } from "@/lib/marketing";
+import { cargarConversionesDeCampana, ETIQUETA_ESTADO_CONVERSION } from "@/lib/marketing-conversiones";
+import { Download } from "lucide-react";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Kpi } from "@/components/crm/kpi";
 import { GraficoGasto } from "@/components/crm/grafico-gasto";
@@ -40,7 +42,15 @@ export default async function MarketingPage({
     cargarResumenMarketing(supabase, { desde, hasta, plataforma }),
     supabase.rpc("leads_por_origen", { p_desde: desde, p_hasta: hasta }),
   ]);
-  const embudo = await cargarEmbudoReal(supabase, resumen, { desde, hasta });
+  const [embudo, conversiones] = await Promise.all([
+    cargarEmbudoReal(supabase, resumen, { desde, hasta }),
+    cargarConversionesDeCampana(supabase, desde, hasta),
+  ]);
+  const porEstado = new Map<string, number>();
+  for (const f of conversiones.filas) porEstado.set(f.estado, (porEstado.get(f.estado) ?? 0) + 1);
+  const conGclid = conversiones.filas.filter((f) => f.gclid && ["calificado", "cotizado", "ganado"].includes(f.estado)).length;
+  const deMeta = conversiones.filas.filter((f) => f.plataforma === "meta" && ["calificado", "cotizado", "ganado"].includes(f.estado)).length;
+  const rango = `desde=${desde}&hasta=${hasta}`;
 
   const origenes = ((porOrigenData ?? []) as {
     clave: string;
@@ -185,6 +195,57 @@ export default async function MarketingPage({
                 registrado en este rango no {embudo.leadsSinCampania === 1 ? "está" : "están"} en el conteo de arriba.
               </p>
             )}
+          </div>
+        </SeccionPanel>
+      )}
+
+      {/* LA VUELTA A LAS PLATAFORMAS (Santos, 11-09). Google y Meta solo
+          saben quién llenó el formulario; el CRM sabe quién se calificó,
+          cotizó o compró. Subirles eso como «conversiones offline» hace que
+          la campaña optimice hacia el cliente bueno. */}
+      {conversiones.filas.length > 0 && (
+        <SeccionPanel titulo="Retroalimentar a Google Ads y Meta">
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              {conversiones.filas.length} contacto{conversiones.filas.length === 1 ? "" : "s"} de campaña en el período, con lo que
+              pasó después en el CRM. Se sube a cada plataforma como conversiones offline, para que aprenda a traer
+              clientes que compran y no solo formularios.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(["nuevo", "repetido", "descartado", "calificado", "cotizado", "ganado"] as const).map((e) => (
+                <span key={e} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs">
+                  <b className="text-foreground">{porEstado.get(e) ?? 0}</b>{" "}
+                  <span className="text-muted-foreground">{ETIQUETA_ESTADO_CONVERSION[e].toLowerCase()}</span>
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`/api/marketing/conversiones?formato=google&${rango}`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
+              >
+                <Download className="size-3.5" /> CSV para Google Ads ({conGclid})
+              </a>
+              <a
+                href={`/api/marketing/conversiones?formato=meta&${rango}`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
+              >
+                <Download className="size-3.5" /> CSV para Meta ({deMeta})
+              </a>
+              <a
+                href={`/api/marketing/conversiones?formato=todo&${rango}`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-secondary"
+              >
+                <Download className="size-3.5" /> Todo el detalle
+              </a>
+            </div>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              Google: Objetivos → Conversiones → Cargas → subir el CSV (trae el Google Click ID, el nombre de la
+              conversión —Lead calificado, Cotizado, Venta—, la hora y el importe de la venta); antes hay que crear esas
+              tres conversiones «importadas desde clics» en la cuenta. Meta: Administrador de eventos → Conjunto de
+              eventos offline → Cargar; el CSV lleva correo y teléfono sin cifrar y Meta los cifra al subirlos. Solo
+              cuentan los calificados, cotizados y ganados: descartados y repetidos no se reportan.
+            </p>
           </div>
         </SeccionPanel>
       )}
