@@ -256,6 +256,20 @@ function TarjetaPotencial({
             Abrir →
           </Link>
         </div>
+        {/* SACARLA DE LA SEMANA con un clic (Brenda, 11-09: «ya modifiqué que
+            no es potencial pero no se borra»). Borrar la fecha del campo de
+            arriba hace lo mismo, pero nadie lo adivina. Desde la 0225 dejar
+            de ser potencial también la quita sola; esto es para las que se
+            proyectaron estando en otra etapa. */}
+        {p.cierreProyectado && (
+          <button
+            type="button"
+            onClick={() => mover(null, null)}
+            className="text-[10.5px] font-semibold text-muted-foreground hover:text-destructive hover:underline"
+          >
+            Quitar de la semana{p.etapa !== "potencial" ? " (ya no es potencial)" : ""}
+          </button>
+        )}
       </div>
     </details>
   );
