@@ -831,6 +831,32 @@ export async function corregirSolicitudLead(
   return { error: null };
 }
 
+/**
+ * CORREGIR LOS DATOS DEL CONTACTO desde la bandeja (0224).
+ *
+ * Central, reunión del 11-09: puso «Topitop» donde iba «Carlos» y no había
+ * cómo corregirlo; tampoco el teléfono. Solo mientras el contacto está en la
+ * bandeja: derivado, los datos viven en la ficha del cliente.
+ */
+export async function corregirDatosLead(
+  leadId: string,
+  datos: { nombre: string; razonSocial: string; telefono: string; email: string; numDoc: string },
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("corregir_datos_lead", {
+    p_lead_id: leadId,
+    p_nombre: datos.nombre,
+    p_razon_social: datos.razonSocial,
+    p_telefono: datos.telefono,
+    p_email: datos.email,
+    p_num_doc: datos.numDoc,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+
+  revalidatePath("/central");
+  return { error: null };
+}
+
 export interface CuentaParaUnir {
   id: string;
   razonSocial: string;

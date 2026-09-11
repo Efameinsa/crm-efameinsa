@@ -128,6 +128,10 @@ export interface Lead {
   mensaje_original: string | null;
   mensaje_editado_por: string | null;
   mensaje_editado_at: string | null;
+  /** Nombre, razón social, teléfono, correo y documento tal como entraron, cuando Central los corrigió (0224). */
+  datos_originales: Record<string, string | null> | null;
+  datos_editados_por: string | null;
+  datos_editados_at: string | null;
   recibido_at: string;
   recibido_por: string | null;
   asignado_a: string | null;

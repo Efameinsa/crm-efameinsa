@@ -1,5 +1,5 @@
-import { fechaHoraLima } from "@/lib/fechas";
-import { Phone, MessageCircle, Globe, Megaphone, Camera, Mail, User, Users, type LucideIcon } from "lucide-react";
+import { fechaHoraLima, fechaLima } from "@/lib/fechas";
+import { Phone, MessageCircle, Globe, Megaphone, Camera, Mail, User, Users, IdCard, UserRoundPen, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AsignarLeadDialog } from "@/components/crm/asignar-lead-dialog";
 import { DescartarLeadBoton } from "@/components/crm/descartar-lead-boton";
@@ -19,6 +19,7 @@ import { DerivadosOtrasAreas } from "@/components/crm/derivados-otras-areas";
 import { permisoSinPin } from "@/lib/acciones/seguridad";
 import { cargarSupervisores } from "@/lib/supervisores";
 import { EditarSolicitudBoton } from "@/components/crm/editar-solicitud-boton";
+import { EditarDatosLeadBoton } from "@/components/crm/editar-datos-lead-boton";
 import { UnirACuentaBoton } from "@/components/crm/unir-a-cuenta-boton";
 import { dominioDeCorreo } from "@/lib/central/coincidencias-bandeja";
 
@@ -78,7 +79,7 @@ function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, mod
   const q = supabase
     .from("leads")
     .select(
-      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, adjuntos, utm_campaign, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
+      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, utm_campaign, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
       { count: "exact" },
     )
     .eq("estado", "pendiente_triaje");
@@ -281,6 +282,48 @@ export default async function CentralPage() {
                     <p className="text-xs text-muted-foreground">
                       {lead.razon_social ?? "Sin razón social"} · {ETIQUETA_CANAL[lead.canal] ?? lead.canal}
                     </p>
+                    {/* CÓMO CONTACTARLO, EN LA TARJETA (Central, reunión del
+                        11-09): «ingresa del formulario de la web un prospecto
+                        nuevo, pero no puedo ver su número… ni sus datos,
+                        solamente que es de la web». El teléfono y el correo
+                        siempre llegaron —los de Google Ads los traen— pero
+                        solo se veían al abrir «Asignar», o sea, después de
+                        decidir. */}
+                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                      {lead.telefono ? (
+                        <>
+                          <a href={`tel:${lead.telefono}`} className="inline-flex items-center gap-1 font-semibold text-foreground hover:underline">
+                            <Phone className="size-3" />
+                            {lead.telefono}
+                          </a>
+                          {/^\+?(51)?\s?9/.test(lead.telefono.replace(/[\s-]/g, "")) && (
+                            <a
+                              href={`https://wa.me/51${lead.telefono.replace(/\D/g, "").slice(-9)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-emerald-700 hover:underline"
+                            >
+                              <MessageCircle className="size-3" />
+                              WhatsApp
+                            </a>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">Sin teléfono</span>
+                      )}
+                      {lead.email && (
+                        <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 text-foreground hover:underline">
+                          <Mail className="size-3" />
+                          {lead.email}
+                        </a>
+                      )}
+                      {lead.num_doc && (
+                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                          <IdCard className="size-3" />
+                          {lead.num_doc}
+                        </span>
+                      )}
+                    </p>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     <span className="font-mono">{lead.codigo}</span>
@@ -348,7 +391,41 @@ export default async function CentralPage() {
                     mensaje={lead.mensaje}
                     campania={lead.utm_campaign}
                   />
+                  {/* Y los datos con los que se deriva —nombre, empresa,
+                      teléfono, correo, documento— (Central, 11-09: puso
+                      «Topitop» donde iba «Carlos» y no había cómo
+                      corregirlo). Solo en la bandeja: derivado, la ficha del
+                      cliente ya nació con esos datos. */}
+                  <EditarDatosLeadBoton
+                    leadId={lead.id}
+                    nombre={lead.nombre_contacto}
+                    razonSocial={lead.razon_social}
+                    telefono={lead.telefono}
+                    email={lead.email}
+                    numDoc={lead.num_doc}
+                  />
                 </div>
+                {/* Corregir no es borrar: lo que entró sigue a la vista. */}
+                {lead.datos_originales && (
+                  <details className="mt-1.5 text-[11px] text-muted-foreground">
+                    <summary className="inline-flex cursor-pointer items-center gap-1 hover:text-foreground">
+                      <UserRoundPen className="size-3" />
+                      Central corrigió los datos{lead.datos_editados_at ? ` el ${fechaLima(lead.datos_editados_at)}` : ""} · ver lo que entró
+                    </summary>
+                    <p className="mt-1 border-l-2 border-border pl-2">
+                      {[
+                        ["Nombre", lead.datos_originales.nombre_contacto],
+                        ["Empresa", lead.datos_originales.razon_social],
+                        ["Teléfono", lead.datos_originales.telefono],
+                        ["Correo", lead.datos_originales.email],
+                        ["Documento", lead.datos_originales.num_doc],
+                      ]
+                        .filter(([, v]) => v)
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join(" · ") || "Entró sin datos"}
+                    </p>
+                  </details>
+                )}
 
                 {/* Un aviso de un comercial no es un contacto más de la cola:
                     ya se habló con el cliente y ya hay una propuesta. Se ve
