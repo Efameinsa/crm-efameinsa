@@ -32,6 +32,12 @@ export interface SemanaCerrada {
   necesidades: string | null;
   sinNecesidades: boolean;
   declaradoAt: string | null;
+  /**
+   * LA FOTO DEL CIERRE (0229): lo proyectado y la diferencia tal como estaban
+   * el sábado que se cerró, y si el PDF de ese día quedó guardado. Null en
+   * las semanas cerradas antes de la 0229 y en la que está en curso.
+   */
+  congelado: { proyectadoUsd: number; vendidoUsd: number; diferenciaUsd: number; conPdf: boolean; cerradoAt: string } | null;
   /** La semana en curso: todavía se puede declarar y corregir. */
   esLaActual: boolean;
 }
@@ -58,7 +64,7 @@ export async function cargarHistorialSemanas(
   const [{ data: decls }, { data: ventas }, { data: tcFila }, { data: perfil }, { data: acts }, { data: cots }] = await Promise.all([
     supabase
       .from("declaraciones_semana")
-      .select("lunes, compromiso, necesidades, sin_necesidades, declarado_at")
+      .select("lunes, compromiso, necesidades, sin_necesidades, declarado_at, proyectado_usd, vendido_usd, diferencia_usd, pdf_path, cerrado_at")
       .eq("comercial_id", comercialId)
       .gte("lunes", masAntiguo)
       .order("lunes", { ascending: false }),
@@ -151,6 +157,16 @@ export async function cargarHistorialSemanas(
       necesidades: dec?.necesidades ?? null,
       sinNecesidades: dec?.sin_necesidades ?? false,
       declaradoAt: dec?.declarado_at ?? null,
+      congelado:
+        dec?.cerrado_at && dec.proyectado_usd != null
+          ? {
+              proyectadoUsd: Number(dec.proyectado_usd),
+              vendidoUsd: Number(dec.vendido_usd ?? 0),
+              diferenciaUsd: Number(dec.diferencia_usd ?? 0),
+              conPdf: Boolean(dec.pdf_path),
+              cerradoAt: String(dec.cerrado_at),
+            }
+          : null,
       esLaActual: l === actual,
     };
   });

@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { cabeceraArchivo } from "@/lib/nombre-archivo";
 import { lunesSemana } from "@/lib/potenciales-semana";
-import { cargarCierreSemanal, sabadoDe } from "@/lib/cierre-semanal";
-import { CierreSemanalPdf } from "@/lib/pdf/cierre-semanal-pdf";
+import { cargarCierreSemanal } from "@/lib/cierre-semanal";
+import { renderizarCierreSemanal } from "@/lib/pdf/cierre-semanal-render";
 
 /**
  * PDF del cierre de la semana (ing. Carlos, 27-08): lo proyectado contra lo
@@ -17,9 +15,15 @@ import { CierreSemanalPdf } from "@/lib/pdf/cierre-semanal-pdf";
  * puede pedir el propio: las consultas van con la sesión del usuario, así que
  * RLS ya filtra, pero se corta acá para no devolver un PDF vacío que parezca
  * una semana sin trabajo.
+ *
+ * EL CIERRE HECHO SE SIRVE TAL COMO SE GUARDÓ (0229). Carlos, 12-09: «este
+ * cierre debe guardarse como histórico». Si esa semana ya se cerró y el PDF
+ * quedó congelado, se devuelve ese archivo —lo que gerencia leyó ese sábado—
+ * y no uno recalculado con la proyección de hoy. Con ?vivo=1 se fuerza el
+ * recálculo (para la semana en curso siempre es en vivo, porque todavía se
+ * está trabajando).
  */
 
-const LOGO_BUFFER = readFileSync(join(process.cwd(), "public", "logo-efameinsa.png"));
 const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
 export async function GET(request: Request) {
@@ -42,20 +46,34 @@ export async function GET(request: Request) {
   }
   const comercialId = pedido ?? user.id;
 
-  const cierre = await cargarCierreSemanal(lunes, comercialId);
-
-  const enLetra = (iso: string) =>
-    new Date(`${iso}T12:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long" });
-  const rango = `Del ${enLetra(lunes)} al ${enLetra(sabadoDe(lunes))} de ${lunes.slice(0, 4)}`;
-
-  const buffer = await renderToBuffer(<CierreSemanalPdf logoBuffer={LOGO_BUFFER} rango={rango} cierre={cierre} />);
-
-  const nombre = `Cierre semanal ${cierre.comercial.codigo ?? ""} ${lunes}`.replace(/\s+/g, " ").trim();
-  return new NextResponse(buffer as unknown as BodyInit, {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": cabeceraArchivo(nombre),
-      "Cache-Control": "no-store",
-    },
+  const cabeceras = (nombre: string) => ({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": cabeceraArchivo(nombre),
+    "Cache-Control": "no-store",
   });
+
+  // El congelado, si lo hay y no es la semana en curso. Se lee con la sesión
+  // del usuario (RLS decide si esa declaración es suya o si es gerencia) y el
+  // archivo se baja con la llave de servicio, que es la que lo guardó.
+  if (lunes !== lunesSemana() && url.searchParams.get("vivo") !== "1") {
+    const { data: guardado } = await supabase
+      .from("declaraciones_semana")
+      .select("pdf_path")
+      .eq("comercial_id", comercialId)
+      .eq("lunes", lunes)
+      .maybeSingle();
+    if (guardado?.pdf_path) {
+      const { data: archivo } = await createAdminClient().storage.from("adjuntos").download(guardado.pdf_path);
+      if (archivo) {
+        const { data: quien } = await supabase.from("perfiles").select("codigo_comercial").eq("id", comercialId).maybeSingle();
+        const nombre = `Cierre semanal ${quien?.codigo_comercial ?? ""} ${lunes}`.replace(/\s+/g, " ").trim();
+        return new NextResponse(archivo, { headers: cabeceras(nombre) });
+      }
+    }
+  }
+
+  const cierre = await cargarCierreSemanal(lunes, comercialId);
+  const buffer = await renderizarCierreSemanal(cierre, lunes);
+  const nombre = `Cierre semanal ${cierre.comercial.codigo ?? ""} ${lunes}`.replace(/\s+/g, " ").trim();
+  return new NextResponse(buffer as unknown as BodyInit, { headers: cabeceras(nombre) });
 }

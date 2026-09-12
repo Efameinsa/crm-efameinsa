@@ -1,4 +1,4 @@
-import { CalendarCheck, CircleAlert, HandHelping, Target } from "lucide-react";
+import { CalendarCheck, CircleAlert, FileCheck2, HandHelping, Target } from "lucide-react";
 import type { SemanaCerrada } from "@/lib/historial-semanas";
 import { BotonCierreSemanal } from "@/components/crm/boton-cierre-semanal";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -132,6 +132,25 @@ export function HistorialCierresSemana({
 
             {s.declaradoAt ? (
               <div className="mt-2.5 space-y-2 border-t border-border/70 pt-2.5">
+                {/* LA FOTO DEL SÁBADO (0229). Carlos, 12-09: «este cierre debe
+                    guardarse como histórico». Lo proyectado y el debe tal como
+                    quedaron ese día —la proyección viva ya cambió— y el PDF
+                    que se leyó, no uno recalculado. */}
+                {s.congelado && (
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                    <FileCheck2 className="size-3.5 shrink-0 text-[#1E7F4F]" />
+                    <span>
+                      Cerró con <b className="text-foreground">US$ {Math.round(s.congelado.proyectadoUsd).toLocaleString("es-PE")}</b> proyectado
+                      {" · "}
+                      {s.congelado.diferenciaUsd >= 0 ? (
+                        <b className="text-[#1E7F4F]">a favor US$ {Math.round(s.congelado.diferenciaUsd).toLocaleString("es-PE")}</b>
+                      ) : (
+                        <b className="text-primary">debía US$ {Math.round(-s.congelado.diferenciaUsd).toLocaleString("es-PE")}</b>
+                      )}
+                      {s.congelado.conPdf ? " · PDF de ese sábado guardado" : ""}
+                    </span>
+                  </p>
+                )}
                 <p className="flex gap-2 text-xs leading-relaxed text-foreground">
                   <Target className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                   <span>{s.compromiso}</span>

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { cargarCierreSemanal } from "@/lib/cierre-semanal";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { renderizarCierreSemanal, rutaPdfCierreSemana } from "@/lib/pdf/cierre-semanal-render";
 
 /**
  * Lo que el comercial declara al cerrar su semana.
@@ -52,9 +54,53 @@ export async function guardarDeclaracionSemana(datos: {
     .upsert(fila, { onConflict: "comercial_id,lunes" });
   if (error) return { error: error.message };
 
+  // EL CIERRE QUEDA CONGELADO (0229). Carlos, 12-09: «este cierre debe
+  // guardarse como histórico en el CRM del comercial». Se toma la foto de la
+  // semana tal como está en este momento —proyectado, vendido, diferencia,
+  // contactos, cotizaciones, perdidas— y el PDF exactamente como sale, con la
+  // declaración recién escrita adentro. La proyección viva sigue cambiando
+  // después; esta foto no. Si el comercial corrige su declaración el mismo
+  // sábado, la foto se toma de nuevo: manda la última.
+  const congelado = await congelarCierre(perfil.id, datos.lunes);
+  if (congelado) return { error: congelado };
+
   revalidatePath("/comercial");
   revalidatePath("/gerencia");
   return { error: null };
+}
+
+async function congelarCierre(comercialId: string, lunes: string): Promise<string | null> {
+  try {
+    const cierre = await cargarCierreSemanal(lunes, comercialId);
+    const pdf = await renderizarCierreSemanal(cierre, lunes);
+    const ruta = rutaPdfCierreSemana(comercialId, lunes);
+    // La llave de servicio: el bucket deja subir a cualquiera con sesión pero
+    // no sobrescribir, y el sábado se corrige más de una vez.
+    const admin = createAdminClient();
+    const { error: eSubida } = await admin.storage
+      .from("adjuntos")
+      .upload(ruta, pdf, { contentType: "application/pdf", upsert: true });
+    if (eSubida) return `La declaración se guardó, pero no el PDF del cierre: ${eSubida.message}`;
+    const { error: eFoto } = await admin
+      .from("declaraciones_semana")
+      .update({
+        proyectado_usd: Math.round(cierre.proyectadoUsd * 100) / 100,
+        vendido_usd: Math.round(cierre.vendidoUsd * 100) / 100,
+        diferencia_usd: Math.round(cierre.diferenciaUsd * 100) / 100,
+        ventas: cierre.ventas.length,
+        gestiones: cierre.gestiones,
+        cotizaciones: cierre.cotizacionesEnviadas,
+        rechazos: cierre.rechazos.length,
+        pdf_path: ruta,
+        cerrado_at: new Date().toISOString(),
+      })
+      .eq("comercial_id", comercialId)
+      .eq("lunes", lunes);
+    if (eFoto) return `La declaración se guardó, pero no la foto del cierre: ${eFoto.message}`;
+    return null;
+  } catch (e) {
+    return `La declaración se guardó, pero no el PDF del cierre: ${e instanceof Error ? e.message : String(e)}`;
+  }
 }
 
 /**
