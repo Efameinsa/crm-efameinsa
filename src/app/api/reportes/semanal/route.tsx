@@ -19,9 +19,10 @@ import { renderizarCierreSemanal } from "@/lib/pdf/cierre-semanal-render";
  * EL CIERRE HECHO SE SIRVE TAL COMO SE GUARDÓ (0229). Carlos, 12-09: «este
  * cierre debe guardarse como histórico». Si esa semana ya se cerró y el PDF
  * quedó congelado, se devuelve ese archivo —lo que gerencia leyó ese sábado—
- * y no uno recalculado con la proyección de hoy. Con ?vivo=1 se fuerza el
- * recálculo (para la semana en curso siempre es en vivo, porque todavía se
- * está trabajando).
+ * y no uno recalculado con la proyección de hoy. También para la semana en
+ * curso: una vez declarada, el documento es el declarado; si el comercial
+ * corrige la declaración el mismo sábado, se congela de nuevo. Con ?vivo=1
+ * se fuerza el recálculo.
  */
 
 const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
@@ -52,10 +53,10 @@ export async function GET(request: Request) {
     "Cache-Control": "no-store",
   });
 
-  // El congelado, si lo hay y no es la semana en curso. Se lee con la sesión
-  // del usuario (RLS decide si esa declaración es suya o si es gerencia) y el
-  // archivo se baja con la llave de servicio, que es la que lo guardó.
-  if (lunes !== lunesSemana() && url.searchParams.get("vivo") !== "1") {
+  // El congelado, si lo hay. Se lee con la sesión del usuario (RLS decide si
+  // esa declaración es suya o si es gerencia) y el archivo se baja con la
+  // llave de servicio, que es la que lo guardó.
+  if (url.searchParams.get("vivo") !== "1") {
     const { data: guardado } = await supabase
       .from("declaraciones_semana")
       .select("pdf_path")
