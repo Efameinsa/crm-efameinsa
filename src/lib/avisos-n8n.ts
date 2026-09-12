@@ -10,6 +10,8 @@ const CORREO_ENCENDIDO = process.env.AVISOS_CORREO === "si";
 // qué no llega correo al derivar?»). Estaba colgado del mismo interruptor que
 // el «correo por cada lead nuevo» que Carlos mandó apagar el 04-09, así que
 // apagar uno apagó el otro. AVISOS_DERIVACION=si enciende solo este.
+// Santos, 12-09, ya con el circuito arreglado: «solo a Finanzas por ahora» —
+// queda en «no» en Vercel; el flujo sigue activo en n8n para cuando lo pidan.
 const DERIVACION_ENCENDIDA = CORREO_ENCENDIDO || process.env.AVISOS_DERIVACION === "si";
 // Aviso saliente a n8n por cada lead nuevo (pedido de gerencia 18-08:
 // "correo por cada lead"). El CRM NO envía correos (sin SMTP): dispara un
