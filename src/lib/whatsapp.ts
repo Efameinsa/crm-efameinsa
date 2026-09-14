@@ -59,6 +59,45 @@ async function llamarGraphAPI(cuerpo: Record<string, unknown>): Promise<Resultad
   }
 }
 
+/** La ventana de 24 h aplica a TODO mensaje libre, no solo texto — se comprueba una vez acá. */
+async function comprobarVentana(admin: ReturnType<typeof createAdminClient>, conversacionId: string): Promise<string | null> {
+  const { data: conversacion } = await admin
+    .from("wa_conversaciones")
+    .select("ultimo_mensaje_cliente_at")
+    .eq("id", conversacionId)
+    .maybeSingle();
+  if (!ventanaAbierta(conversacion?.ultimo_mensaje_cliente_at ?? null)) {
+    return "La ventana de 24 horas se cerró: use una plantilla o llame al cliente (fase 3, todavía no disponible).";
+  }
+  return null;
+}
+
+async function registrarEnvio(
+  conversacionId: string,
+  resultado: ResultadoEnvio,
+  datos: { tipo: string; texto: string | null; enviadoPor: string; mediaUrlStorage?: string | null },
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+  await admin.from("wa_mensajes").insert({
+    conversacion_id: conversacionId,
+    wamid: resultado.wamid,
+    direccion: "saliente",
+    tipo: datos.tipo,
+    texto: datos.texto,
+    media_url_storage: datos.mediaUrlStorage ?? null,
+    estado: resultado.ok ? "enviado" : "fallido",
+    enviado_por: datos.enviadoPor,
+    error: resultado.error ? { mensaje: resultado.error } : null,
+    timestamp_meta: new Date().toISOString(),
+  });
+
+  if (resultado.ok) {
+    await admin.from("wa_conversaciones").update({ ultimo_mensaje_at: new Date().toISOString() }).eq("id", conversacionId);
+  }
+
+  return { error: resultado.error };
+}
+
 /**
  * Manda texto libre y guarda el mensaje saliente. Respeta la ventana de 24 h
  * ANTES de llamar a Meta —para no gastar la llamada ni confundir con un
@@ -71,36 +110,46 @@ export async function enviarTexto(
   enviadoPor: string,
 ): Promise<{ error: string | null }> {
   const admin = createAdminClient();
-
-  const { data: conversacion } = await admin
-    .from("wa_conversaciones")
-    .select("ultimo_mensaje_cliente_at")
-    .eq("id", conversacionId)
-    .maybeSingle();
-
-  if (!ventanaAbierta(conversacion?.ultimo_mensaje_cliente_at ?? null)) {
-    return { error: "La ventana de 24 horas se cerró: use una plantilla o llame al cliente (fase 3, todavía no disponible)." };
-  }
+  const bloqueo = await comprobarVentana(admin, conversacionId);
+  if (bloqueo) return { error: bloqueo };
 
   const resultado = await llamarGraphAPI({ to: telefono, type: "text", text: { body: texto } });
+  return registrarEnvio(conversacionId, resultado, { tipo: "text", texto, enviadoPor });
+}
 
-  await admin.from("wa_mensajes").insert({
-    conversacion_id: conversacionId,
-    wamid: resultado.wamid,
-    direccion: "saliente",
-    tipo: "text",
-    texto,
-    estado: resultado.ok ? "enviado" : "fallido",
-    enviado_por: enviadoPor,
-    error: resultado.error ? { mensaje: resultado.error } : null,
-    timestamp_meta: new Date().toISOString(),
+export type TipoMedia = "image" | "document" | "audio" | "video";
+
+/**
+ * Manda una imagen, documento, audio o video por LINK: se sube antes al
+ * bucket privado `adjuntos` (mismo que usan los adjuntos de un lead) y se le
+ * pasa a Meta una URL firmada de corta duración — Meta la descarga en el
+ * momento de mandar el mensaje, así que no hace falta el paso extra de subir
+ * el archivo primero a los servidores de Meta.
+ */
+export async function enviarMedia(
+  conversacionId: string,
+  telefono: string,
+  opciones: { tipo: TipoMedia; link: string; caption?: string; filename?: string; mediaUrlStorage: string },
+  enviadoPor: string,
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+  const bloqueo = await comprobarVentana(admin, conversacionId);
+  if (bloqueo) return { error: bloqueo };
+
+  const cuerpoMedia: Record<string, unknown> =
+    opciones.tipo === "document"
+      ? { link: opciones.link, caption: opciones.caption, filename: opciones.filename }
+      : opciones.tipo === "audio"
+        ? { link: opciones.link } // la API de WhatsApp no admite caption en audio
+        : { link: opciones.link, caption: opciones.caption };
+
+  const resultado = await llamarGraphAPI({ to: telefono, type: opciones.tipo, [opciones.tipo]: cuerpoMedia });
+  return registrarEnvio(conversacionId, resultado, {
+    tipo: opciones.tipo,
+    texto: opciones.caption || opciones.filename || null,
+    enviadoPor,
+    mediaUrlStorage: opciones.mediaUrlStorage,
   });
-
-  if (resultado.ok) {
-    await admin.from("wa_conversaciones").update({ ultimo_mensaje_at: new Date().toISOString() }).eq("id", conversacionId);
-  }
-
-  return { error: resultado.error };
 }
 
 /** Marca un mensaje entrante como leído en Meta (se llama al abrir el hilo, no al recibirlo). */

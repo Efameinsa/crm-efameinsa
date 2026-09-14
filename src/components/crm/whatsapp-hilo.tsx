@@ -10,9 +10,11 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, MessageCircleOff, RotateCcw, MessageCircle } from "lucide-react";
+import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import {
   enviarMensajeChat,
+  enviarAdjuntoChat,
   derivarConversacion,
   cerrarConversacion,
   reabrirConversacion,
@@ -26,6 +28,53 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
+
+// Lo mismo que admite hoy el bucket `adjuntos` (0234): fotos, documentos de
+// oficina, audio y video — igual que adjuntar un archivo en WhatsApp Web.
+const ACEPTA_ADJUNTOS_CHAT =
+  "image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/amr,audio/opus,video/mp4,video/3gpp";
+const MAX_TAMANO_ADJUNTO_CHAT = 10 * 1024 * 1024;
+
+function BurbujaContenido({ mensaje: m }: { mensaje: MensajeWhatsapp }) {
+  if (m.tipo === "text" || m.tipo === "button") {
+    return <p className="whitespace-pre-wrap">{m.texto}</p>;
+  }
+
+  // Entrante sin descargar todavía (el webhook guarda el media_id de Meta,
+  // pero bajar el archivo a nuestro Storage es la siguiente vuelta).
+  if (!m.media_url) {
+    return (
+      <p className="italic opacity-80">
+        <Paperclip className="mr-1 inline size-3.5" />
+        {m.texto || `Archivo adjunto (${m.tipo}) — descarga automática pendiente de construir`}
+      </p>
+    );
+  }
+
+  if (m.tipo === "image") {
+    return (
+      <div className="space-y-1">
+        {/* eslint-disable-next-line @next/next/no-img-element -- imagen firmada de Storage, no un asset de Next */}
+        <img src={m.media_url} alt={m.texto || "Imagen"} className="max-h-64 rounded-lg object-contain" />
+        {m.texto && <p className="whitespace-pre-wrap">{m.texto}</p>}
+      </div>
+    );
+  }
+  if (m.tipo === "audio") return <audio controls src={m.media_url} className="h-10 max-w-full" />;
+  if (m.tipo === "video") return <video controls src={m.media_url} className="max-h-64 max-w-full rounded-lg" />;
+
+  return (
+    <a
+      href={m.media_url}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center gap-2 underline decoration-dotted underline-offset-2 hover:decoration-solid"
+    >
+      <FileText className="size-4 shrink-0" />
+      {m.texto || "Documento"}
+    </a>
+  );
+}
 
 const ETIQUETA_ESTADO_MENSAJE: Record<string, string> = {
   enviando: "Enviando…",
@@ -56,7 +105,9 @@ export function WhatsappHilo({
   const [texto, setTexto] = useState("");
   const [enviando, startTransition] = useTransition();
   const [derivando, setDerivando] = useState(false);
+  const [subiendoAdjunto, setSubiendoAdjunto] = useState(false);
   const fondoRef = useRef<HTMLDivElement>(null);
+  const inputArchivoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const intervalo = setInterval(async () => {
@@ -85,6 +136,31 @@ export function WhatsappHilo({
       }
       setMensajes(await mensajesDe(conversacion.id));
     });
+  }
+
+  async function elegirYEnviarArchivo(file: File | undefined) {
+    if (!file) return;
+    if (file.size > MAX_TAMANO_ADJUNTO_CHAT) {
+      toast.error(`"${file.name}" pasa de 10 MB`);
+      return;
+    }
+    setSubiendoAdjunto(true);
+    try {
+      const path = `whatsapp/${conversacion.id}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
+      const { error: errorSubida } = await createClient().storage.from("adjuntos").upload(path, file, { contentType: file.type });
+      if (errorSubida) {
+        toast.error(`No se pudo subir "${file.name}": ${errorSubida.message}`);
+        return;
+      }
+      const r = await enviarAdjuntoChat(conversacion.id, path, file.name, file.type);
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      setMensajes(await mensajesDe(conversacion.id));
+    } finally {
+      setSubiendoAdjunto(false);
+    }
   }
 
   function derivar(comercialId: string) {
@@ -174,14 +250,7 @@ export function WhatsappHilo({
                 m.direccion === "saliente" ? "bg-primary text-primary-foreground" : "bg-card text-foreground",
               )}
             >
-              {m.tipo !== "text" && m.tipo !== "button" ? (
-                <p className="italic opacity-80">
-                  <MessageCircle className="mr-1 inline size-3.5" />
-                  {m.texto || `Archivo adjunto (${m.tipo}) — descarga automática pendiente de construir`}
-                </p>
-              ) : (
-                <p className="whitespace-pre-wrap">{m.texto}</p>
-              )}
+              <BurbujaContenido mensaje={m} />
               <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] opacity-70">
                 {m.enviado_por_nombre && <span>{m.enviado_por_nombre} · </span>}
                 <span>{fechaHoraLima(m.timestamp_meta ?? m.created_at)}</span>
@@ -201,6 +270,25 @@ export function WhatsappHilo({
           </p>
         ) : (
           <div className="flex items-end gap-2">
+            <input
+              ref={inputArchivoRef}
+              type="file"
+              accept={ACEPTA_ADJUNTOS_CHAT}
+              className="hidden"
+              onChange={(e) => {
+                elegirYEnviarArchivo(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => inputArchivoRef.current?.click()}
+              disabled={enviando || subiendoAdjunto}
+              title="Adjuntar foto, documento, audio o video"
+            >
+              {subiendoAdjunto ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
+            </Button>
             <Textarea
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
