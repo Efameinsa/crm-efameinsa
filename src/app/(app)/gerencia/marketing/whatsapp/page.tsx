@@ -6,7 +6,9 @@ import { fechaCalendarioLarga } from "@/lib/fechas";
 import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { WhatsappCampanasTabla } from "@/components/crm/whatsapp-campanas-tabla";
+import { WhatsappStickersTabla } from "@/components/crm/whatsapp-stickers-tabla";
 import { listarCampaniasWhatsapp } from "@/lib/acciones/whatsapp-campanas";
+import { listarStickers } from "@/lib/acciones/whatsapp-chat";
 import { cargarResumenWhatsapp, ETIQUETA_TIPIFICACION, type TipificacionWhatsapp } from "@/lib/whatsapp-marketing";
 
 // WhatsApp de campañas, fase 1 sin API (14-09-2026). Plan completo en
@@ -28,7 +30,11 @@ export default async function MarketingWhatsappPage({
   const { desde, hasta } = periodo;
 
   const supabase = await createClient();
-  const [campanias, resumen] = await Promise.all([listarCampaniasWhatsapp(), cargarResumenWhatsapp(supabase, desde, hasta)]);
+  const [campanias, resumen, stickers] = await Promise.all([
+    listarCampaniasWhatsapp(),
+    cargarResumenWhatsapp(supabase, desde, hasta),
+    listarStickers(),
+  ]);
   const rango = `desde=${desde}&hasta=${hasta}`;
   const totalInteresados = resumen.reduce((s, r) => s + (r.porEstado.interesado ?? 0) + (r.porEstado.cotizado ?? 0), 0);
   const totalExcluir = resumen.reduce((s, r) => s + (r.porEstado.no_interesado ?? 0) + (r.porEstado.equivocado ?? 0), 0);
@@ -49,6 +55,14 @@ export default async function MarketingWhatsappPage({
           casen con un anuncio real.
         </p>
         <WhatsappCampanasTabla campanias={campanias} />
+      </SeccionPanel>
+
+      <SeccionPanel titulo="Stickers de la empresa">
+        <p className="mb-3 text-xs text-muted-foreground">
+          Se cargan una vez acá —cualquier imagen sirve, se convierte sola a lo único que WhatsApp acepta como sticker
+          (WebP cuadrado, 512×512, menos de 100 KB)— y desde el chat solo se elige uno para mandarlo.
+        </p>
+        <WhatsappStickersTabla stickers={stickers} />
       </SeccionPanel>
 
       <FiltroPeriodo {...periodo} presetActivo={periodo.preset} presets={["mes", "mes_anterior", "30d", "90d", "anio"]} />
