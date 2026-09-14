@@ -176,6 +176,7 @@ export function ListaCotizaciones({
       <Button
         size="lg"
         className="w-full"
+        nativeButton={false}
         render={
           <Link href={rutaCotizar}>
             <Plus className="size-4" />
@@ -304,6 +305,7 @@ export function ListaCotizaciones({
                   size="sm"
                   variant="outline"
                   className="mt-2 w-full"
+                  nativeButton={false}
                   render={
                     <Link href={`${rutaCotizar}/${c.id}`}>
                       <Pencil className="size-3.5" />

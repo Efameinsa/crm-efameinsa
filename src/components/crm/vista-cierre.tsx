@@ -389,6 +389,7 @@ export function VistaCierre({
             <Button
               size="lg"
               className="h-11 px-5 text-sm font-semibold shadow-sm"
+              nativeButton={false}
               render={
                 <Link href={editarBorradorHref}>
                   <PencilLine className="size-4" /> Editar

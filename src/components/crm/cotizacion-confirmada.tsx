@@ -79,7 +79,7 @@ export function CotizacionConfirmada({
         <CorregirCotizacionBoton cotizacionId={cotizacionId} codigo={codigo} volverHref={volverHref} />
       </div>
       <div className="mt-4">
-        <Button variant="ghost" size="sm" render={<Link href={volverHref}>Volver a la oportunidad</Link>} />
+        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={volverHref}>Volver a la oportunidad</Link>} />
       </div>
     </div>
   );

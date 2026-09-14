@@ -33,7 +33,7 @@ export function RegistroNoDisponible({
         una ficha duplicada que se fusionó con otra). Si te parece que es un error, avísale a
         gerencia con el nombre del cliente.
       </p>
-      <Button className="mt-4" render={<Link href={volverHref}>{volverTexto}</Link>} />
+      <Button className="mt-4" nativeButton={false} render={<Link href={volverHref}>{volverTexto}</Link>} />
     </div>
   );
 }
