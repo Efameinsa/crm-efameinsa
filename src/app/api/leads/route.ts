@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
       area_destino: d.area_destino,
       estado: esComercial ? "pendiente_triaje" : "derivado_area",
       nombre_contacto: d.nombre_contacto,
-      telefono: d.telefono || null,
+      // «s/n», «-», «no tiene»: un teléfono sin dígitos entra como nulo. Con
+      // texto, se normalizaba a cadena vacía y empataba con cualquier contacto
+      // que también quedó vacío (caso Edwin Paredes Flores, 14-09; 0230).
+      telefono: d.telefono && (d.telefono.match(/\d/g) ?? []).length >= 6 ? d.telefono : null,
       num_doc: d.num_doc ? d.num_doc.replace(/\D/g, "") : null,
       razon_social: d.razon_social || null,
       email: d.email || null,
