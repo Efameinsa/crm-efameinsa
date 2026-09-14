@@ -75,7 +75,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, recibido_at), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, recibido_at, nombre_contacto, telefono, email), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -103,6 +103,9 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     codigo_campania_wa: string | null;
     plataforma_campania_wa: string | null;
     recibido_at: string | null;
+    nombre_contacto: string | null;
+    telefono: string | null;
+    email: string | null;
   } | null;
 
   // La foto o el PDF que el prospecto mandó por WhatsApp y Central adjuntó al
@@ -534,6 +537,20 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           {lead && (
             <SeccionPanel titulo="Solicitud del prospecto">
               <SolicitudLead mensaje={lead.mensaje} campania={lead.utm_campaign} compacto />
+              {/* 0236 (14-09): lo que el prospecto dejó, tal cual llegó. La ficha puede tener
+                  otro correo (del Excel viejo o de otra persona); este es el de ESTA solicitud. */}
+              {(lead.email || lead.telefono || lead.nombre_contacto) && (
+                <p className="mt-2 text-xs">
+                  <span className="text-muted-foreground">Dejó: </span>
+                  {[lead.nombre_contacto, lead.telefono].filter(Boolean).join(" · ")}
+                  {lead.email && (
+                    <>
+                      {(lead.nombre_contacto || lead.telefono) ? " · " : ""}
+                      <a href={`mailto:${lead.email}`} className="text-primary underline underline-offset-2">{lead.email}</a>
+                    </>
+                  )}
+                </p>
+              )}
               <AdjuntosLead adjuntos={adjuntosLead} />
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Entró por {ETIQUETA_CANAL_LEAD[lead.canal] ?? lead.canal}
