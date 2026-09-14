@@ -83,6 +83,7 @@ export function AvisoGemelaCerrada({
             <Button
               size="sm"
               variant="ghost"
+              nativeButton={false}
               render={<Link href={`/comercial/oportunidades/${gemelaId}`}>Ver esa otra ficha</Link>}
             />
           </div>
