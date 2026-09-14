@@ -10,17 +10,19 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2 } from "lucide-react";
+import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   enviarMensajeChat,
   enviarAdjuntoChat,
+  enviarStickerChat,
   derivarConversacion,
   cerrarConversacion,
   reabrirConversacion,
   mensajesDe,
   type ConversacionDetalle,
   type MensajeWhatsapp,
+  type Sticker,
 } from "@/lib/acciones/whatsapp-chat";
 import { ventanaAbierta } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
@@ -49,6 +51,11 @@ function BurbujaContenido({ mensaje: m }: { mensaje: MensajeWhatsapp }) {
         {m.texto || `Archivo adjunto (${m.tipo}) — descarga automática pendiente de construir`}
       </p>
     );
+  }
+
+  if (m.tipo === "sticker") {
+    // eslint-disable-next-line @next/next/no-img-element -- sticker firmado de Storage
+    return <img src={m.media_url} alt="Sticker" className="size-28 object-contain" />;
   }
 
   if (m.tipo === "image") {
@@ -90,11 +97,13 @@ export function WhatsappHilo({
   mensajesIniciales,
   esCentral,
   comerciales,
+  stickers,
 }: {
   conversacion: ConversacionDetalle;
   mensajesIniciales: MensajeWhatsapp[];
   esCentral: boolean;
   comerciales: { id: string; nombre: string }[];
+  stickers: (Sticker & { url: string | null })[];
 }) {
   const router = useRouter();
   // `key={conversacion.id}` en el padre (WhatsappConversacionPage) remonta
@@ -106,8 +115,15 @@ export function WhatsappHilo({
   const [enviando, startTransition] = useTransition();
   const [derivando, setDerivando] = useState(false);
   const [subiendoAdjunto, setSubiendoAdjunto] = useState(false);
+  const [mostrarStickers, setMostrarStickers] = useState(false);
+  const [grabando, setGrabando] = useState(false);
+  const [segundosGrabados, setSegundosGrabados] = useState(0);
   const fondoRef = useRef<HTMLDivElement>(null);
   const inputArchivoRef = useRef<HTMLInputElement>(null);
+  const grabadorRef = useRef<MediaRecorder | null>(null);
+  const fragmentosRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const cronometroRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const intervalo = setInterval(async () => {
@@ -161,6 +177,96 @@ export function WhatsappHilo({
     } finally {
       setSubiendoAdjunto(false);
     }
+  }
+
+  async function subirYEnviarBlob(blob: Blob, mime: string) {
+    setSubiendoAdjunto(true);
+    try {
+      const extension = mime.includes("ogg") ? "ogg" : mime.includes("mp4") ? "m4a" : "webm";
+      const path = `whatsapp/${conversacion.id}/${crypto.randomUUID()}-audio.${extension}`;
+      const { error: errorSubida } = await createClient().storage.from("adjuntos").upload(path, blob, { contentType: mime });
+      if (errorSubida) {
+        toast.error(`No se pudo subir el audio: ${errorSubida.message}`);
+        return;
+      }
+      const r = await enviarAdjuntoChat(conversacion.id, path, `audio.${extension}`, mime);
+      if (r.error) toast.error(r.error);
+      setMensajes(await mensajesDe(conversacion.id));
+    } finally {
+      setSubiendoAdjunto(false);
+    }
+  }
+
+  function pararCronometro() {
+    if (cronometroRef.current) clearInterval(cronometroRef.current);
+    cronometroRef.current = null;
+  }
+
+  function soltarMicrofono() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    grabadorRef.current = null;
+    pararCronometro();
+    setGrabando(false);
+    setSegundosGrabados(0);
+  }
+
+  // Un clic empieza a grabar, otro clic para y manda — más simple y menos
+  // propenso a error con mouse que "mantener presionado" (ese gesto es de
+  // celular; WhatsApp Web para escritorio también usa clic-clic).
+  async function empezarAGrabar() {
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      toast.error("No se pudo acceder al micrófono. Revise los permisos del navegador.");
+      return;
+    }
+    streamRef.current = stream;
+    // Chrome/Edge solo arman el contenedor WebM (no Ogg, que es lo que Meta
+    // prefiere para audio) — se manda igual; ver la nota en whatsapp.ts.
+    const mime = ["audio/ogg;codecs=opus", "audio/webm;codecs=opus", "audio/webm"].find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+    const grabador = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    fragmentosRef.current = [];
+    grabador.ondataavailable = (e) => {
+      if (e.data.size > 0) fragmentosRef.current.push(e.data);
+    };
+    grabador.onstop = () => {
+      const blob = new Blob(fragmentosRef.current, { type: grabador.mimeType || "audio/webm" });
+      soltarMicrofono();
+      if (blob.size > 0) subirYEnviarBlob(blob, grabador.mimeType || "audio/webm");
+    };
+    grabadorRef.current = grabador;
+    grabador.start();
+    setGrabando(true);
+    setSegundosGrabados(0);
+    cronometroRef.current = setInterval(() => setSegundosGrabados((s) => s + 1), 1000);
+  }
+
+  function detenerYEnviarGrabacion() {
+    grabadorRef.current?.stop(); // dispara onstop, que sube y manda
+  }
+
+  function cancelarGrabacion() {
+    if (grabadorRef.current) {
+      grabadorRef.current.onstop = null; // no mandar nada al parar por cancelar
+      grabadorRef.current.stop();
+    }
+    soltarMicrofono();
+  }
+
+  // Solo al desmontar: suelta el micrófono si alguien navega a otra
+  // conversación a mitad de una grabación.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => soltarMicrofono(), []);
+
+  function enviarSticker(stickerId: string) {
+    setMostrarStickers(false);
+    startTransition(async () => {
+      const r = await enviarStickerChat(conversacion.id, stickerId);
+      if (r.error) toast.error(r.error);
+      else setMensajes(await mensajesDe(conversacion.id));
+    });
   }
 
   function derivar(comercialId: string) {
@@ -246,12 +352,19 @@ export function WhatsappHilo({
           <div key={m.id} className={cn("flex", m.direccion === "saliente" ? "justify-end" : "justify-start")}>
             <div
               className={cn(
-                "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                m.direccion === "saliente" ? "bg-primary text-primary-foreground" : "bg-card text-foreground",
+                "max-w-[75%] text-sm",
+                m.tipo === "sticker"
+                  ? "bg-transparent"
+                  : cn("rounded-2xl px-3 py-2 shadow-sm", m.direccion === "saliente" ? "bg-primary text-primary-foreground" : "bg-card text-foreground"),
               )}
             >
               <BurbujaContenido mensaje={m} />
-              <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] opacity-70">
+              <div
+                className={cn(
+                  "mt-1 flex items-center gap-1.5 text-[10px] opacity-70",
+                  m.tipo === "sticker" ? "justify-start text-muted-foreground" : "justify-end",
+                )}
+              >
                 {m.enviado_por_nombre && <span>{m.enviado_por_nombre} · </span>}
                 <span>{fechaHoraLima(m.timestamp_meta ?? m.created_at)}</span>
                 {m.direccion === "saliente" && ETIQUETA_ESTADO_MENSAJE[m.estado] && <span>· {ETIQUETA_ESTADO_MENSAJE[m.estado]}</span>}
@@ -284,28 +397,90 @@ export function WhatsappHilo({
               size="sm"
               variant="outline"
               onClick={() => inputArchivoRef.current?.click()}
-              disabled={enviando || subiendoAdjunto}
+              disabled={enviando || subiendoAdjunto || grabando}
               title="Adjuntar foto, documento, audio o video"
             >
               {subiendoAdjunto ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
             </Button>
-            <Textarea
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  enviar();
-                }
-              }}
-              placeholder="Escriba un mensaje…"
-              rows={1}
-              className="max-h-32 flex-1 resize-none bg-card"
-              disabled={enviando}
-            />
-            <Button size="sm" onClick={enviar} disabled={enviando || !texto.trim()}>
-              <Send className="size-4" />
-            </Button>
+
+            <div className="relative">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setMostrarStickers((v) => !v)}
+                disabled={enviando || grabando}
+                title="Enviar un sticker de la empresa"
+              >
+                <StickerIcon className="size-4" />
+              </Button>
+              {mostrarStickers && (
+                <div className="absolute bottom-full left-0 z-10 mb-1 w-64 rounded-md border border-border bg-card p-2 shadow-lg">
+                  {stickers.length === 0 ? (
+                    <p className="p-2 text-xs text-muted-foreground">
+                      Todavía no hay stickers cargados — se cargan en Gerencia → Panel de marketing → WhatsApp.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {stickers.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => enviarSticker(s.id)}
+                          title={s.nombre}
+                          className="cursor-pointer rounded-md p-1 hover:bg-secondary"
+                        >
+                          {s.url && (
+                            // eslint-disable-next-line @next/next/no-img-element -- miniatura firmada de Storage
+                            <img src={s.url} alt={s.nombre} className="size-12 object-contain" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {grabando ? (
+              <div className="flex flex-1 items-center gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-1.5">
+                <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
+                <span className="flex-1 text-sm font-medium tabular-nums text-red-800">
+                  Grabando… {String(Math.floor(segundosGrabados / 60)).padStart(2, "0")}:{String(segundosGrabados % 60).padStart(2, "0")}
+                </span>
+                <Button size="icon-sm" variant="ghost" onClick={cancelarGrabacion} title="Cancelar">
+                  <Trash2 className="size-4 text-red-700" />
+                </Button>
+              </div>
+            ) : (
+              <Textarea
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    enviar();
+                  }
+                }}
+                placeholder="Escriba un mensaje…"
+                rows={1}
+                className="max-h-32 flex-1 resize-none bg-card"
+                disabled={enviando}
+              />
+            )}
+
+            {grabando ? (
+              <Button size="sm" onClick={detenerYEnviarGrabacion} title="Detener y enviar">
+                <Send className="size-4" />
+              </Button>
+            ) : texto.trim() ? (
+              <Button size="sm" onClick={enviar} disabled={enviando}>
+                <Send className="size-4" />
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={empezarAGrabar} disabled={enviando || subiendoAdjunto} title="Grabar un audio">
+                <Mic className="size-4" />
+              </Button>
+            )}
           </div>
         )}
       </div>

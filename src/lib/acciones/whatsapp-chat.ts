@@ -12,6 +12,7 @@
 // política real.
 
 import { revalidatePath } from "next/cache";
+import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { enviarTexto, enviarMedia, type TipoMedia } from "@/lib/whatsapp";
 
@@ -290,6 +291,146 @@ export async function reabrirConversacion(conversacionId: string): Promise<{ err
   const supabase = await createClient();
   const { error } = await supabase.from("wa_conversaciones").update({ estado: "sin_atender" }).eq("id", conversacionId);
   if (error) return { error: error.message };
+
+  revalidatePath(`/whatsapp/${conversacionId}`);
+  revalidatePath("/whatsapp");
+  return { error: null };
+}
+
+// ------------------------------------------------------------
+// Stickers de la empresa (Santos, 15-09): un catálogo que carga marketing
+// una sola vez —ya convertido a lo único que WhatsApp acepta como sticker,
+// WebP cuadrado de hasta 512×512 y 100 KB— para que el chat solo ELIJA uno,
+// igual que los códigos de campaña.
+
+export interface Sticker {
+  id: string;
+  nombre: string;
+  path: string;
+  activo: boolean;
+  created_at: string;
+}
+
+async function urlDeSticker(supabase: Awaited<ReturnType<typeof createClient>>, path: string): Promise<string | null> {
+  const { data } = await supabase.storage.from("adjuntos").createSignedUrl(path, 3600);
+  return data?.signedUrl ?? null;
+}
+
+/** Para el selector del chat: solo los activos, con su miniatura ya firmada. */
+export async function stickersActivos(): Promise<(Sticker & { url: string | null })[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("wa_stickers").select("id, nombre, path, activo, created_at").eq("activo", true).order("created_at");
+  if (!data || data.length === 0) return [];
+  return Promise.all(data.map(async (s) => ({ ...s, url: await urlDeSticker(supabase, s.path) })));
+}
+
+/** Para la pantalla de administración: todos, activos e inactivos. */
+export async function listarStickers(): Promise<(Sticker & { url: string | null })[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("wa_stickers").select("id, nombre, path, activo, created_at").order("created_at", { ascending: false });
+  if (!data || data.length === 0) return [];
+  return Promise.all(data.map(async (s) => ({ ...s, url: await urlDeSticker(supabase, s.path) })));
+}
+
+const LADO_STICKER = 512;
+const PESO_MAXIMO_STICKER = 100 * 1024; // límite de Meta para stickers estáticos
+
+/**
+ * Convierte lo que sea (foto, logo, PNG con transparencia…) a lo que
+ * WhatsApp exige para un sticker: WebP cuadrado de 512×512 y menos de
+ * 100 KB. `fit: "contain"` sobre lienzo transparente evita recortar logos
+ * que no vienen cuadrados; después se baja la calidad hasta entrar en el
+ * peso — la mayoría de logos entran sin bajar de calidad 90.
+ */
+async function convertirASticker(buffer: Buffer): Promise<Buffer> {
+  const base = sharp(buffer).resize(LADO_STICKER, LADO_STICKER, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } });
+  for (let calidad = 90; calidad >= 30; calidad -= 15) {
+    const salida = await base.clone().webp({ quality: calidad, alphaQuality: 100 }).toBuffer();
+    if (salida.byteLength <= PESO_MAXIMO_STICKER) return salida;
+  }
+  // Si ni con calidad 30 entra (imagen muy compleja), se manda esa igual:
+  // sigue siendo un WebP 512×512 válido, solo que más comprimido de lo ideal.
+  return base.clone().webp({ quality: 30, alphaQuality: 100 }).toBuffer();
+}
+
+export async function subirSticker(formData: FormData): Promise<{ error: string | null }> {
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const archivo = formData.get("archivo");
+  if (!nombre) return { error: "Falta el nombre del sticker" };
+  if (!(archivo instanceof File) || archivo.size === 0) return { error: "Elija una imagen" };
+  if (archivo.size > 10 * 1024 * 1024) return { error: "La imagen de origen pasa de 10 MB" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesión expirada" };
+
+  let convertido: Buffer;
+  try {
+    const original = Buffer.from(await archivo.arrayBuffer());
+    convertido = await convertirASticker(original);
+  } catch {
+    return { error: "No se pudo convertir la imagen a sticker — pruebe con otro archivo" };
+  }
+
+  const path = `stickers/${crypto.randomUUID()}.webp`;
+  const { error: errorSubida } = await supabase.storage.from("adjuntos").upload(path, convertido, { contentType: "image/webp" });
+  if (errorSubida) return { error: `No se pudo guardar el sticker: ${errorSubida.message}` };
+
+  const { error } = await supabase.from("wa_stickers").insert({ nombre, path, creado_por: user.id });
+  if (error) return { error: error.message };
+
+  revalidatePath("/gerencia/marketing/whatsapp");
+  return { error: null };
+}
+
+export async function alternarSticker(id: string, activo: boolean): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("wa_stickers").update({ activo }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/gerencia/marketing/whatsapp");
+  return { error: null };
+}
+
+export async function borrarSticker(id: string, path: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  await supabase.storage.from("adjuntos").remove([path]);
+  const { error } = await supabase.from("wa_stickers").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/gerencia/marketing/whatsapp");
+  return { error: null };
+}
+
+/** Manda un sticker del catálogo — se firma su URL y se llama a Meta, igual que un adjunto. */
+export async function enviarStickerChat(conversacionId: string, stickerId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesión expirada" };
+
+  const [{ data: conversacion }, { data: sticker }] = await Promise.all([
+    supabase.from("wa_conversaciones").select("telefono, estado").eq("id", conversacionId).maybeSingle(),
+    supabase.from("wa_stickers").select("path").eq("id", stickerId).maybeSingle(),
+  ]);
+  if (!conversacion) return { error: "La conversación ya no existe" };
+  if (!sticker) return { error: "Ese sticker ya no existe" };
+
+  const { data: firmada, error: errorFirma } = await supabase.storage.from("adjuntos").createSignedUrl(sticker.path, SEGUNDOS_URL_ENVIO);
+  if (errorFirma || !firmada) return { error: "No se pudo preparar el sticker para enviarlo" };
+
+  const resultado = await enviarMedia(
+    conversacionId,
+    conversacion.telefono,
+    { tipo: "sticker", link: firmada.signedUrl, mediaUrlStorage: sticker.path },
+    user.id,
+  );
+  if (resultado.error) return resultado;
+
+  if (conversacion.estado === "sin_atender") {
+    await supabase.from("wa_conversaciones").update({ estado: "en_gestion" }).eq("id", conversacionId);
+  }
 
   revalidatePath(`/whatsapp/${conversacionId}`);
   revalidatePath("/whatsapp");

@@ -117,7 +117,7 @@ export async function enviarTexto(
   return registrarEnvio(conversacionId, resultado, { tipo: "text", texto, enviadoPor });
 }
 
-export type TipoMedia = "image" | "document" | "audio" | "video";
+export type TipoMedia = "image" | "document" | "audio" | "video" | "sticker";
 
 /**
  * Manda una imagen, documento, audio o video por LINK: se sube antes al
@@ -139,8 +139,8 @@ export async function enviarMedia(
   const cuerpoMedia: Record<string, unknown> =
     opciones.tipo === "document"
       ? { link: opciones.link, caption: opciones.caption, filename: opciones.filename }
-      : opciones.tipo === "audio"
-        ? { link: opciones.link } // la API de WhatsApp no admite caption en audio
+      : opciones.tipo === "audio" || opciones.tipo === "sticker"
+        ? { link: opciones.link } // ninguna de las dos admite caption en la API de WhatsApp
         : { link: opciones.link, caption: opciones.caption };
 
   const resultado = await llamarGraphAPI({ to: telefono, type: opciones.tipo, [opciones.tipo]: cuerpoMedia });
