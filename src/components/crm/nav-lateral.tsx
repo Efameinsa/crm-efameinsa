@@ -27,6 +27,7 @@ import {
   KeyRound,
   Table2,
   Search,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,10 @@ import type { RolUsuario } from "@/types/database";
 const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icono: LucideIcon }[]> = {
   central: [
     { href: "/central", etiqueta: "Bandeja", icono: Inbox },
+    // Fase 2 del WhatsApp de campañas (15-09), pendiente de que Meta apruebe
+    // la verificación del negocio: Central ve todas las conversaciones y
+    // deriva, igual que con la bandeja de triaje.
+    { href: "/whatsapp", etiqueta: "WhatsApp", icono: MessageCircle },
     { href: "/central/captura", etiqueta: "Registrar contacto", icono: ClipboardList },
     // La cartera entera, como la ve gerencia pero sin tocar nada (Santos,
     // 10-09): «Central debería poder ver toda la cartera como lo tiene
@@ -56,6 +61,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   // consultan, no se trabajan a diario.
   comercial: [
     { href: "/comercial", etiqueta: "Mi día", icono: ClipboardList },
+    // Solo ve sus conversaciones asignadas (RLS `wa_conversaciones_comercial`).
+    { href: "/whatsapp", etiqueta: "WhatsApp", icono: MessageCircle },
     { href: "/comercial/agenda", etiqueta: "Mi agenda", icono: CalendarDays },
     { href: "/comercial/oportunidades", etiqueta: "Mis oportunidades", icono: KanbanSquare },
     { href: "/comercial/cotizaciones", etiqueta: "Mis cotizaciones", icono: FileText },
@@ -70,6 +77,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   ],
   gerencia: [
     { href: "/gerencia", etiqueta: "Panel comercial", icono: BarChart3 },
+    { href: "/whatsapp", etiqueta: "WhatsApp", icono: MessageCircle },
     // Arriba de todo a propósito: es lo que se abre en medio de una reunión,
     // cuando alguien dice un número y hay que saber qué es y de quién es.
     { href: "/gerencia/buscar", etiqueta: "Buscar en todo", icono: Search },
