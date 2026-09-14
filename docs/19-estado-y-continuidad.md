@@ -1780,3 +1780,13 @@ del gerente.
 6. La **pestaña de importaciones** (equipos comprados que no llegaron).
 7. Que el CRM convierta solo las fichas `.doc`.
 8. El **reclamo de NESSUS** sigue abierto y el cliente tiene OCHO expedientes.
+
+## 14-09-2026 (mañana) — reunión 10:08 con Carlos y Central, aplicada
+
+Producción: `0e89b19` (humo 38/38 antes y después). Tres commits de esta sesión:
+- `b86d062` (otra sesión) + `bf88078`: teléfono vacío ya no empata con nadie (0230, aplicada 10:23) y el combo de comercial mostraba el uuid — el envoltorio `Select` deduce `items` de sus `SelectItem` (Base UI pinta el valor crudo sin `items`).
+- `0e89b19`: el diálogo de asignar dice «Asignar a <nombre>» + empresa/teléfono/correo; la alerta de cartera distingue al contacto de la ficha con la que coincide; el aviso al comercial lleva nombre · empresa · teléfono · código; y el aviso a Tesorería tiene enlace `whatsapp://` con el texto (Central usa la aplicación de escritorio y WhatsApp Web le pedía otra sesión).
+
+Revisado sin cambio: Edwin (PRO-09332/09333, dos pedidos reales de Constructores Romero) y Joseph (PRO-09328, Google Ads) NO son de prueba. Elvis Choquehuanca (PRO-09335/09336) lo registró Central dos veces con dos mensajes distintos; no es defecto.
+
+Web: favicon real (múltiplos de 48) + manifest + redirección `/equipos` (`b3807af`, `a057b68` en efameinsa). Falta que Santos pida reindexación en Search Console.
