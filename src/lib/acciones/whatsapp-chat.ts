@@ -13,7 +13,19 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { enviarTexto } from "@/lib/whatsapp";
+import { enviarTexto, enviarMedia, type TipoMedia } from "@/lib/whatsapp";
+
+// Mismo bucket privado que los adjuntos de un lead (0029): un archivo, un
+// código, y una URL firmada de vida corta —acá basta con minutos, el tiempo
+// que Meta tarda en ir a buscarla al mandar el mensaje—.
+const SEGUNDOS_URL_ENVIO = 300;
+
+function tipoMediaDeMime(mime: string): TipoMedia {
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("audio/")) return "audio";
+  if (mime.startsWith("video/")) return "video";
+  return "document";
+}
 
 export interface ConversacionWhatsapp {
   id: string;
@@ -118,6 +130,8 @@ export interface MensajeWhatsapp {
   direccion: "entrante" | "saliente";
   tipo: string;
   texto: string | null;
+  /** Firmada al vuelo, 1 h — solo para lo que YA está en nuestro Storage (lo que nosotros mandamos; lo entrante todavía no se descarga, ver el webhook). */
+  media_url: string | null;
   estado: string;
   enviado_por_nombre: string | null;
   timestamp_meta: string | null;
@@ -128,15 +142,25 @@ export async function mensajesDe(conversacionId: string): Promise<MensajeWhatsap
   const supabase = await createClient();
   const { data } = await supabase
     .from("wa_mensajes")
-    .select("id, wamid, direccion, tipo, texto, estado, timestamp_meta, created_at, perfiles(nombre)")
+    .select("id, wamid, direccion, tipo, texto, media_url_storage, estado, timestamp_meta, created_at, perfiles(nombre)")
     .eq("conversacion_id", conversacionId)
     .order("created_at");
-  return (data ?? []).map((m) => ({
+  if (!data) return [];
+
+  const rutas = data.map((m) => m.media_url_storage).filter((r): r is string => Boolean(r));
+  const urlPorRuta = new Map<string, string>();
+  if (rutas.length > 0) {
+    const { data: firmadas } = await supabase.storage.from("adjuntos").createSignedUrls(rutas, 3600);
+    for (const f of firmadas ?? []) if (f.signedUrl && f.path) urlPorRuta.set(f.path, f.signedUrl);
+  }
+
+  return data.map((m) => ({
     id: m.id,
     wamid: m.wamid,
     direccion: m.direccion,
     tipo: m.tipo,
     texto: m.texto,
+    media_url: m.media_url_storage ? (urlPorRuta.get(m.media_url_storage) ?? null) : null,
     estado: m.estado,
     enviado_por_nombre: (m.perfiles as unknown as { nombre: string } | null)?.nombre ?? null,
     timestamp_meta: m.timestamp_meta,
@@ -165,6 +189,53 @@ export async function enviarMensajeChat(conversacionId: string, texto: string): 
 
   // El primer mensaje que manda alguien pasa la conversación a "en gestión"
   // — deja de contar como "sin atender".
+  if (conversacion.estado === "sin_atender") {
+    await supabase.from("wa_conversaciones").update({ estado: "en_gestion" }).eq("id", conversacionId);
+  }
+
+  revalidatePath(`/whatsapp/${conversacionId}`);
+  revalidatePath("/whatsapp");
+  return { error: null };
+}
+
+/**
+ * Manda una imagen, documento o audio ya subido al bucket `adjuntos` (el
+ * cliente lo sube directo desde el navegador, como en la captura de leads —
+ * acá solo se firma la URL y se manda). `path` es la ruta dentro del bucket,
+ * `nombreArchivo` el nombre original (para el filename del documento).
+ */
+export async function enviarAdjuntoChat(
+  conversacionId: string,
+  path: string,
+  nombreArchivo: string,
+  mime: string,
+  caption?: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesión expirada" };
+
+  const { data: conversacion } = await supabase
+    .from("wa_conversaciones")
+    .select("telefono, estado")
+    .eq("id", conversacionId)
+    .maybeSingle();
+  if (!conversacion) return { error: "La conversación ya no existe" };
+
+  const { data: firmada, error: errorFirma } = await supabase.storage.from("adjuntos").createSignedUrl(path, SEGUNDOS_URL_ENVIO);
+  if (errorFirma || !firmada) return { error: "No se pudo preparar el archivo para enviarlo" };
+
+  const tipo = tipoMediaDeMime(mime);
+  const resultado = await enviarMedia(
+    conversacionId,
+    conversacion.telefono,
+    { tipo, link: firmada.signedUrl, caption, filename: nombreArchivo, mediaUrlStorage: path },
+    user.id,
+  );
+  if (resultado.error) return resultado;
+
   if (conversacion.estado === "sin_atender") {
     await supabase.from("wa_conversaciones").update({ estado: "en_gestion" }).eq("id", conversacionId);
   }
