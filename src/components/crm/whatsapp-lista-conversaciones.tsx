@@ -10,7 +10,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fechaHoraLima } from "@/lib/fechas";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ConversacionWhatsapp, FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
+
+const TODOS_LOS_COMERCIALES = "__todos";
 
 const PESTANAS: { valor: FiltroConversaciones; etiqueta: string }[] = [
   { valor: "sin_atender", etiqueta: "Sin atender" },
@@ -31,10 +34,15 @@ export function WhatsappListaConversaciones({
   conversaciones,
   filtroActivo,
   idActivo,
+  comerciales,
+  comercialActivo,
 }: {
   conversaciones: ConversacionWhatsapp[];
   filtroActivo: FiltroConversaciones;
   idActivo?: string;
+  /** Solo Central/gerencia/admin la reciben — un comercial normal no necesita elegir entre comerciales. */
+  comerciales?: { id: string; nombre: string }[];
+  comercialActivo?: string;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -42,6 +50,13 @@ export function WhatsappListaConversaciones({
   function cambiarFiltro(valor: FiltroConversaciones) {
     const sp = new URLSearchParams(params.toString());
     sp.set("filtro", valor);
+    router.push(`/whatsapp?${sp.toString()}`);
+  }
+
+  function cambiarComercial(valor: string) {
+    const sp = new URLSearchParams(params.toString());
+    if (valor === TODOS_LOS_COMERCIALES) sp.delete("comercial");
+    else sp.set("comercial", valor);
     router.push(`/whatsapp?${sp.toString()}`);
   }
 
@@ -63,6 +78,24 @@ export function WhatsappListaConversaciones({
         ))}
       </div>
 
+      {comerciales && comerciales.length > 0 && (
+        <div className="border-b border-border p-2">
+          <Select<string> value={comercialActivo ?? TODOS_LOS_COMERCIALES} onValueChange={(v) => v && cambiarComercial(v)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Ver los chats de…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={TODOS_LOS_COMERCIALES}>Todos los comerciales</SelectItem>
+              {comerciales.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto">
         {conversaciones.length === 0 ? (
           <div className="flex flex-col items-center gap-2 p-8 text-center text-sm text-muted-foreground">
@@ -75,7 +108,7 @@ export function WhatsappListaConversaciones({
             return (
               <Link
                 key={c.id}
-                href={`/whatsapp/${c.id}?filtro=${filtroActivo}`}
+                href={`/whatsapp/${c.id}?filtro=${filtroActivo}${comercialActivo ? `&comercial=${comercialActivo}` : ""}`}
                 className={cn(
                   "flex items-start gap-2.5 border-b border-border/60 px-3 py-3 transition-colors hover:bg-secondary/50",
                   idActivo === c.id && "bg-secondary",
