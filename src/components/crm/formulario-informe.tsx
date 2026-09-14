@@ -63,6 +63,17 @@ const POR_CONFIRMAR = "Por confirmar";
 // adicional bajo la tabla fija, ver informe-cierre-pdf.tsx.
 const MODALIDADES = ["CONTADO", "CREDITO", "50% ADELANTO", "50% CREDITO", "30% ADELANTO + 70% ANTES DEL DESPACHO"] as const;
 
+// LA CONDICIÓN COMO DATO (0232). Cada pastilla propone qué % debe estar pagado
+// antes de despachar; el comercial lo ajusta si la negociación fue otra. Es el
+// número que después decide si postventa despacha sin pedir autorización.
+const PCT_POR_MODALIDAD: Record<(typeof MODALIDADES)[number], number> = {
+  CONTADO: 100,
+  CREDITO: 0,
+  "50% ADELANTO": 50,
+  "50% CREDITO": 50,
+  "30% ADELANTO + 70% ANTES DEL DESPACHO": 100,
+};
+
 const COMPROBANTES = [
   ["factura", "Factura"],
   ["boleta_ruc", "Boleta con RUC"],
@@ -223,6 +234,16 @@ export function FormularioInforme({
   const [modalidadOtra, setModalidadOtra] = useState(() => b?.modalidadPago.find((m) => !esPreset(m)) ?? "");
   const [formaPago, setFormaPago] = useState<"transferencia" | "deposito" | null>(b ? b.formaPago : "transferencia");
   const [notaCondiciones, setNotaCondiciones] = useState(b?.notaCondiciones ?? "");
+  // Qué % del total debe estar pagado antes del despacho y a cuántos días va
+  // el saldo (0232). Arranca con lo que propone la pastilla elegida.
+  const [pctAntesDespacho, setPctAntesDespacho] = useState<string>(() =>
+    b?.pctAntesDespacho != null ? String(b.pctAntesDespacho) : b?.modalidadPago[0] && esPreset(b.modalidadPago[0]) ? String(PCT_POR_MODALIDAD[b.modalidadPago[0] as (typeof MODALIDADES)[number]]) : "",
+  );
+  const [creditoDias, setCreditoDias] = useState<string>(() => (b?.creditoDias != null ? String(b.creditoDias) : "30"));
+  function elegirModalidad(m: (typeof MODALIDADES)[number]) {
+    setModalidad((xs) => (xs[0] === m ? [] : [m]));
+    setPctAntesDespacho(String(PCT_POR_MODALIDAD[m]));
+  }
   // La garantía del cierre (migración 0104). Arranca con la que se le cotizó a
   // este cliente —el papel que firmó— y solo si no hay cotización cae en la de
   // por defecto. Antes era el primer renglón de «Incluye», dentro de la sección
@@ -336,6 +357,8 @@ export function FormularioInforme({
       formaPago,
       moneda: "USD",
       notaCondiciones: notaCondiciones || null,
+      pctAntesDespacho: pctAntesDespacho.trim() === "" ? null : Number(pctAntesDespacho),
+      creditoDias: creditoDias.trim() === "" ? null : Number(creditoDias),
       garantia: garantia.trim() || null,
       entregaFecha: entregaFecha || null,
       entregaHora: entregaHora || null,
@@ -885,7 +908,7 @@ export function FormularioInforme({
                 <Pastilla
                   key={m}
                   activa={modalidad[0] === m}
-                  onClick={() => setModalidad((xs) => (xs[0] === m ? [] : [m]))}
+                  onClick={() => elegirModalidad(m)}
                 >
                   {m}
                 </Pastilla>
@@ -898,6 +921,56 @@ export function FormularioInforme({
               className="text-xs"
             />
           </div>
+        </Campo>
+
+        {/* LA CONDICIÓN QUE MANDA EN EL DESPACHO (0232). Reunión 14-09: la
+            venta a crédito es la normal de la casa y postventa no tiene por
+            qué pedir autorización en cada salida. Con este número, la
+            aprobación del informe ya deja autorizada la condición. */}
+        <Campo
+          etiqueta="Antes de despachar debe estar pagado"
+          pista="lo decide el despacho: con esto pagado, postventa despacha sin pedir autorización"
+        >
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={5}
+              value={pctAntesDespacho}
+              onChange={(e) => setPctAntesDespacho(e.target.value)}
+              className="w-20 text-right"
+              aria-label="Porcentaje del total pagado antes del despacho"
+            />
+            <span>% del total</span>
+            {pctAntesDespacho.trim() !== "" && Number(pctAntesDespacho) < 100 && (
+              <>
+                <span className="text-muted-foreground">· el saldo a crédito a</span>
+                <Input
+                  type="number"
+                  min={0}
+                  max={365}
+                  step={15}
+                  value={creditoDias}
+                  onChange={(e) => setCreditoDias(e.target.value)}
+                  className="w-20 text-right"
+                  aria-label="Días de crédito del saldo"
+                />
+                <span>días</span>
+              </>
+            )}
+          </div>
+          {pctAntesDespacho.trim() === "" ? (
+            <p className="mt-1 text-[11px] text-amber-700">Falta: sin este dato postventa exigirá el pago completo antes de despachar.</p>
+          ) : (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {Number(pctAntesDespacho) >= 100
+                ? "Contado: el equipo sale con el total pagado."
+                : Number(pctAntesDespacho) <= 0
+                  ? `Todo a crédito: el equipo sale sin pago previo y el total vence a ${creditoDias || "?"} días del despacho.`
+                  : `Con el ${pctAntesDespacho} % confirmado por Finanzas el equipo sale; el ${100 - Number(pctAntesDespacho)} % restante vence a ${creditoDias || "?"} días del despacho.`}
+            </p>
+          )}
         </Campo>
 
         <Campo etiqueta="Forma de pago">

@@ -87,6 +87,22 @@ export interface ServicioPostventa {
    * seguir diciéndole si el pedido está cobrado — sin decirle cuánto.
    */
   pago_estado?: EstadoPago;
+  /**
+   * LA CONDICIÓN DE PAGO COMO DATO (0232). Qué % del total debe estar pagado
+   * para despachar sin autorización, y a cuántos días va el saldo. Son
+   * porcentajes y plazos, no cifras: postventa sí puede verlos.
+   */
+  pct_antes_despacho?: number | null;
+  credito_dias?: number | null;
+  condicion_definida_at?: string | null;
+  condicion_nota?: string | null;
+  /**
+   * «Lo pagado cubre lo acordado para despachar», resuelto en el servidor
+   * ANTES de tapar las cifras, igual que pago_estado. Es lo que decide si el
+   * diálogo de la salida pide «quién autorizó»: si el servidor va a exigirlo,
+   * la pantalla lo pregunta. Antes decía «completo» y el servidor rechazaba.
+   */
+  despacho_liberado?: boolean;
 }
 
 /**
@@ -152,6 +168,49 @@ export function saldoPendiente(s: ServicioPostventa): number {
 }
 
 /**
+ * ¿Lo pagado cubre lo acordado para despachar? (0232)
+ *
+ * La regla vieja comparaba con el TOTAL, y toda venta a crédito —que es la
+ * normal de la casa: «30 % al contado y lo que falta a crédito, o a todo
+ * crédito» (Carlos, 14-09)— pedía autorización en cada salida. Ahora se
+ * compara con lo que la condición del informe exige antes del despacho:
+ *   · 100 % (contado) → todo pagado;
+ *   · 50 %            → la mitad;
+ *   · 0 % (crédito)   → nada; el saldo es cuenta por cobrar, no un freno.
+ * Sin condición cargada (pedidos viejos que no se pudieron leer) se exige
+ * todo, como antes: no se inventa una condición.
+ *
+ * `saldoConocido` es la salvaguarda de siempre para las filas del Excel: el
+ * monto pagado nunca se cargó y trabar por un saldo inventado sería peor.
+ *
+ * Es una función pura, sin base ni sesión, para poder probarla sola.
+ */
+export function evaluarPagoParaDespacho(
+  s: Pick<ServicioPostventa, "monto" | "monto_pagado" | "pct_antes_despacho" | "informe_cierre_id" | "pago_confirmado_at">,
+): { pct: number | null; requerido: number; pagado: number; saldoConocido: boolean; cubierto: boolean } {
+  const monto = Number(s.monto ?? 0);
+  const pagado = Number(s.monto_pagado ?? 0);
+  const pct = s.pct_antes_despacho == null ? null : Math.min(100, Math.max(0, Number(s.pct_antes_despacho)));
+  const requerido = Number((pct == null ? monto : (monto * pct) / 100).toFixed(2));
+  const saldoConocido = s.informe_cierre_id != null || s.pago_confirmado_at != null || pagado > 0;
+  // Medio dólar de tolerancia: un adelanto del 50 % de 4.472,20 se abona
+  // como 2.236 o 2.236,10 según quién redondee, y ninguno es «despachar sin
+  // pagar».
+  const cubierto = !saldoConocido || monto <= 0 || pagado + 0.5 >= requerido;
+  return { pct, requerido, pagado, saldoConocido, cubierto };
+}
+
+/** «50 % antes del despacho · saldo a crédito a 30 días», o null si no hay condición cargada. */
+export function textoCondicionPago(s: Pick<ServicioPostventa, "pct_antes_despacho" | "credito_dias">): string | null {
+  if (s.pct_antes_despacho == null) return null;
+  const pct = Number(s.pct_antes_despacho);
+  if (pct >= 100) return "Contado: todo pagado antes del despacho";
+  const dias = s.credito_dias == null ? "" : ` a ${s.credito_dias} días`;
+  if (pct <= 0) return `Todo a crédito${dias}`;
+  return `${pct % 1 === 0 ? pct : pct.toFixed(1)} % antes del despacho · saldo a crédito${dias}`;
+}
+
+/**
  * En qué está el pago, mirando los montos crudos.
  *
  * Se calcula UNA vez en el servidor, antes de que `sinPrecios` borre las
@@ -162,8 +221,15 @@ export function saldoPendiente(s: ServicioPostventa): number {
  */
 export function estadoPago(s: ServicioPostventa): EstadoPago {
   if (s.pago_estado) return s.pago_estado;
-  const pagado =
-    saldoPendiente(s) === 0 || s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
+  // Con cifras reales (pedido nacido en el CRM, o con abonos cargados) el
+  // saldo manda: «Finanzas confirmó» con monto pagado 0 se leía «completo» y
+  // por eso el 14-09 la salida del 495-26 no mostró el campo de autorización
+  // que el servidor sí exigía. Sin cifras (Excel), la marca de confirmación
+  // sigue valiendo como pagado, porque es lo único que hay.
+  const conCifras = s.monto != null && (s.informe_cierre_id != null || Number(s.monto_pagado ?? 0) > 0);
+  const pagado = conCifras
+    ? saldoPendiente(s) === 0
+    : saldoPendiente(s) === 0 || s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
   if (pagado) return "completo";
   // Las filas del Excel nunca cargaron el monto pagado: la columna era texto y
   // casi todas están vacías. Decir «falta el saldo» sobre una venta que quizá
@@ -185,7 +251,7 @@ export function estadoPago(s: ServicioPostventa): EstadoPago {
  * ya no hay con qué deducirlo.
  */
 export function sinPrecios(s: ServicioPostventa): ServicioPostventa {
-  return { ...s, pago_estado: estadoPago(s), monto: null, monto_pagado: null };
+  return { ...s, pago_estado: estadoPago(s), despacho_liberado: evaluarPagoParaDespacho(s).cubierto, monto: null, monto_pagado: null };
 }
 
 /**
@@ -251,6 +317,11 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   // espera es el despacho, que solo sale con la APERTURA.
   const pagoConfirmado = s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
   const despachoAutorizadoConSaldo = s.despacho_sin_cancelar_motivo != null;
+  // La condición de pago (0232): con el adelanto acordado cubierto, el pago
+  // parcial no es un problema sino lo pactado, y la etiqueta lo dice así.
+  const condicion = textoCondicionPago(s);
+  const liberado = s.despacho_liberado ?? evaluarPagoParaDespacho(s).cubierto;
+  const adelantoCubierto = !pagado && liberado && s.pct_antes_despacho != null && Number(s.pct_antes_despacho) < 100;
 
   const preparacion: PasoPedido[] = [
     {
@@ -258,7 +329,9 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       etiqueta: pagoConfirmado
         ? pagado
           ? "Finanzas confirmó el pago"
-          : "Finanzas confirmó un pago parcial"
+          : adelantoCubierto
+            ? `Finanzas confirmó el adelanto acordado (${Number(s.pct_antes_despacho)} %)`
+            : "Finanzas confirmó un pago parcial"
         : pagoDesconocido
           ? "Pago sin registrar en el sistema"
           : pagado
@@ -268,7 +341,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       hecho: pagoConfirmado,
       cuando: s.pago_confirmado_at,
       detalle: pagoConfirmado
-        ? (s.pago_confirmado_detalle ?? undefined)
+        ? [s.pago_confirmado_detalle, condicion ? `Condición: ${condicion}` : null].filter(Boolean).join(" · ") || undefined
         : pagoDesconocido
           ? "Viene del Excel: el monto pagado nunca se cargó"
           : "Finanzas confirma que el dinero está acreditado, no el voucher. Postventa no cobra.",

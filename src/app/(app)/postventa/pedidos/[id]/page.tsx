@@ -277,7 +277,11 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
           una encomienda—, a la derecha los papeles y los datos de entrega,
           que se consultan pero no se recorren. */}
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
-        <PedidoPostventa servicio={servicio} verPrecios={verPrecios} />
+        <PedidoPostventa
+          servicio={servicio}
+          verPrecios={verPrecios}
+          puedeDefinirCondicion={perfil.rol === "gerencia" || perfil.rol === "admin" || perfil.rol === "operaciones"}
+        />
 
         <div className="space-y-4">
           {/* Los documentos del expediente. Antes venían impresos dentro del

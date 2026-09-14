@@ -6,7 +6,7 @@ import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { notificar } from "@/lib/notificaciones";
-import { bloquesPedido, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, type ServicioPostventa } from "@/lib/postventa";
 
 /**
  * Las acciones del circuito de postventa (migración 0087).
@@ -192,7 +192,16 @@ export async function confirmarPagoCompleto(servicioId: string) {
  */
 export async function confirmarPagoFinanzas(
   servicioId: string,
-  datos: { quien: string; medio: string; montoPagado?: number | null; completo?: boolean; nota?: string; capturaPath?: string | null },
+  datos: {
+    quien: string;
+    medio: string;
+    montoPagado?: number | null;
+    completo?: boolean;
+    /** «Entró el adelanto acordado»: el servidor pone la cifra desde la condición (0232). */
+    adelanto?: boolean;
+    nota?: string;
+    capturaPath?: string | null;
+  },
 ) {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -205,10 +214,22 @@ export async function confirmarPagoFinanzas(
     if (!datos.medio.trim()) return falla("Diga por dónde lo confirmó: correo, WhatsApp o llamada, o suba la captura");
   }
 
-  const { data: fila } = await supabase.from("servicios_postventa").select("monto").eq("id", servicioId).single();
+  const { data: fila } = await supabase
+    .from("servicios_postventa")
+    .select("monto, pct_antes_despacho")
+    .eq("id", servicioId)
+    .single();
   if (!fila) return falla("No se encontró el pedido");
+  // Con el adelanto acordado, la cifra la pone el servidor: quien no ve
+  // precios no adivina, y el pedido no queda «confirmado» con pagado 0 (que
+  // fue lo que trabó la salida del 495-26 el 14-09).
+  if (datos.adelanto) {
+    if (fila.pct_antes_despacho == null) return falla("Este pedido no tiene condición de pago cargada. Pídale a operaciones o gerencia que la defina desde el pedido, y vuelva a registrar la confirmación.");
+    if (fila.monto == null) return falla("Este pedido no tiene monto cargado: registre la confirmación como cobrado del todo o parcial.");
+  }
 
   const detalle = [
+    datos.adelanto && fila.pct_antes_despacho != null ? `entró el adelanto acordado (${Number(fila.pct_antes_despacho)} %)` : null,
     datos.quien.trim() ? `${datos.quien.trim()} (Finanzas)${datos.medio.trim() ? `, por ${datos.medio.trim()}` : ""}` : null,
     captura ? "captura adjunta" : null,
     datos.nota?.trim() || null,
@@ -224,6 +245,8 @@ export async function confirmarPagoFinanzas(
   };
   if (datos.montoPagado != null && Number.isFinite(datos.montoPagado)) cambios.monto_pagado = datos.montoPagado;
   else if (datos.completo && fila.monto != null) cambios.monto_pagado = fila.monto;
+  else if (datos.adelanto && fila.monto != null && fila.pct_antes_despacho != null)
+    cambios.monto_pagado = Number(((Number(fila.monto) * Number(fila.pct_antes_despacho)) / 100).toFixed(2));
 
   const { error } = await supabase.from("servicios_postventa").update(cambios).eq("id", servicioId);
   if (error) return falla(error.message);
@@ -332,20 +355,27 @@ export async function registrarDespacho(
 
   const { data: servicio } = await supabase
     .from("servicios_postventa")
-    .select("monto, monto_pagado, moneda, informe_cierre_id, pago_confirmado_at, confirmacion_abono")
+    .select("monto, monto_pagado, moneda, informe_cierre_id, pago_confirmado_at, confirmacion_abono, pct_antes_despacho, credito_dias")
     .eq("id", servicioId)
     .single();
+  if (!servicio) return falla("No se encontró el pedido");
 
-  const saldo = Math.max(0, Number(servicio?.monto ?? 0) - Number(servicio?.monto_pagado ?? 0));
-  // Solo se exige la autorización cuando el saldo es un dato real. En las filas
-  // que vinieron del Excel el monto pagado nunca se cargó, y trabar por un
-  // saldo inventado sería peor que no trabar nada.
-  const saldoConocido =
-    servicio?.informe_cierre_id != null || servicio?.pago_confirmado_at != null || Number(servicio?.monto_pagado ?? 0) > 0;
-
-  if (saldo > 0 && saldoConocido && !datos.motivoSinCancelar?.trim()) {
+  // LA CONDICIÓN DE PAGO MANDA (0232). Se compara lo pagado con lo que el
+  // informe exige ANTES del despacho, no con el total: con «50 % adelanto +
+  // 50 % crédito» y el adelanto confirmado, la salida no pide permiso. La
+  // autorización con nombre y motivo queda para cuando se despacha con menos
+  // de lo acordado. Las filas del Excel sin cifras siguen sin trabarse.
+  const pago = evaluarPagoParaDespacho(servicio);
+  if (!pago.cubierto && !datos.motivoSinCancelar?.trim()) {
+    const moneda = servicio.moneda ?? "USD";
+    const cifras = puedeVerPrecios(perfil)
+      ? ` (${moneda} ${pago.requerido.toLocaleString("es-PE")}; Finanzas confirmó ${moneda} ${pago.pagado.toLocaleString("es-PE")})`
+      : "";
+    const condicion = textoCondicionPago(servicio);
     return falla(
-      `Queda un saldo de ${servicio?.moneda ?? "USD"} ${saldo.toLocaleString("es-PE")}. Para despachar igual, indique quién lo autorizó y por qué.`,
+      condicion
+        ? `La condición de pago es «${condicion}» y lo confirmado por Finanzas no cubre lo acordado antes del despacho${cifras}. Para despachar igual, indique quién lo autorizó y por qué.`
+        : `Este pedido no tiene condición de pago cargada, así que se exige el pago completo antes de despachar${cifras}. Pídale a operaciones o gerencia que defina la condición desde el pedido, o indique quién autorizó despachar así y por qué.`,
     );
   }
 
@@ -639,5 +669,36 @@ export async function guardarAperturaServicio(
 
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   revalidatePath(`/postventa/pedidos/${servicioId}/apertura`);
+  return ok();
+}
+
+/**
+ * Gerencia u operaciones fijan la condición de pago de un pedido ya emitido
+ * (0232): qué % debe estar pagado antes de despachar y a cuántos días va el
+ * saldo. Para los cierres nuevos viene del informe; esto es para los que ya
+ * estaban en curso el 14-09 y para corregir uno mal leído. La función de la
+ * base verifica el rol y lo escribe también en el informe.
+ */
+export async function definirCondicionPago(
+  servicioId: string,
+  datos: { pct: number; dias?: number | null; nota?: string },
+) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const pct = Number(datos.pct);
+  if (!Number.isFinite(pct) || pct < 0 || pct > 100) return falla("El porcentaje antes del despacho va de 0 a 100");
+  const dias = pct >= 100 ? null : datos.dias == null ? null : Math.round(Number(datos.dias));
+  if (pct < 100 && (dias == null || !Number.isFinite(dias) || dias < 0 || dias > 365))
+    return falla("Si queda saldo a crédito, diga a cuántos días (0 a 365)");
+  const { error } = await supabase.rpc("definir_condicion_pago_pedido", {
+    p_servicio: servicioId,
+    p_pct: pct,
+    p_dias: dias,
+    p_nota: datos.nota?.trim() || null,
+  });
+  if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath("/postventa/control");
+  revalidatePath("/gerencia/finanzas");
   return ok();
 }

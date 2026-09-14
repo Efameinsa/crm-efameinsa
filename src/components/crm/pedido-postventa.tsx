@@ -8,8 +8,9 @@ import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, X } f
 import {
   bloquesPedido,
   saldoPendiente,
-  estadoPago,
+  evaluarPagoParaDespacho,
   etiquetaResponsable,
+  textoCondicionPago,
   type ServicioPostventa,
   type PasoPedido,
 } from "@/lib/postventa";
@@ -17,6 +18,7 @@ import {
   aprobarPedido,
   marcarPaso,
   confirmarPagoFinanzas,
+  definirCondicionPago,
   emitirAperturaDespacho,
   verificarDireccion,
   programarDespacho,
@@ -53,6 +55,7 @@ import { cn } from "@/lib/utils";
 type Formulario =
   | null
   | { tipo: "finanzas" }
+  | { tipo: "condicion" }
   | { tipo: "prueba" }
   | { tipo: "direccion" }
   | { tipo: "preinstalacion" }
@@ -70,9 +73,16 @@ export function PedidoPostventa({
    * porque un pago parcial no se puede tipear sin ver el total.
    */
   verPrecios = true,
+  /**
+   * Gerencia u operaciones pueden fijar la condición de pago del pedido
+   * (0232): qué % debe estar pagado antes de despachar y a cuántos días va el
+   * saldo. Postventa la ve, no la cambia.
+   */
+  puedeDefinirCondicion = false,
 }: {
   servicio: ServicioPostventa;
   verPrecios?: boolean;
+  puedeDefinirCondicion?: boolean;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -95,7 +105,16 @@ export function PedidoPostventa({
   // cero—, así que se pregunta por el estado, que es el mismo dato sin número.
   // Sin esto, tapar los precios habría borrado el campo obligatorio de «quién
   // autorizó», que es justo el que defiende al área cuando el despacho sale.
-  const pagoIncompleto = verPrecios ? saldo > 0 : estadoPago(servicio) !== "completo";
+  // LA CONDICIÓN DE PAGO MANDA (0232): se pregunta «quién autorizó» solo
+  // cuando lo pagado no cubre lo acordado antes del despacho, que es
+  // exactamente cuando el servidor lo va a exigir. Con cifras se calcula acá;
+  // sin ellas, el servidor ya lo resolvió antes de taparlas.
+  const pagoIncompleto = verPrecios
+    ? !evaluarPagoParaDespacho(servicioVisto).cubierto
+    : !(servicioVisto.despacho_liberado ?? true);
+  const condicion = textoCondicionPago(servicioVisto);
+  const pctCondicion = servicioVisto.pct_antes_despacho == null ? null : Number(servicioVisto.pct_antes_despacho);
+  const hayAdelantoAcordado = pctCondicion != null && pctCondicion > 0 && pctCondicion < 100;
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
   function correr(fn: () => Promise<{ error: string | null }>, exito: string, parche?: Partial<ServicioPostventa>) {
@@ -228,6 +247,61 @@ export function PedidoPostventa({
   return (
     <div className="space-y-3">
       {avisoAprobar}
+      {/* LA CONDICIÓN DE PAGO, A LA VISTA (0232). Es lo que decide si la salida
+          pide permiso: «30 % al contado y lo que falta a crédito, o a todo
+          crédito; eso ya está pensado, siempre ha sido así» (Carlos, 14-09).
+          Sin condición cargada se exige todo, y se dice quién puede definirla. */}
+      {(condicion || puedeDefinirCondicion) && (
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border px-4 py-2.5 text-sm",
+            condicion ? "border-border bg-card" : "border-amber-400/60 bg-amber-50 text-amber-900",
+          )}
+        >
+          <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Condición de pago</span>
+          <span className="font-medium">
+            {condicion ?? "Sin condición cargada: se exige el pago completo antes de despachar"}
+          </span>
+          {servicioVisto.condicion_nota && (
+            <span className="text-xs text-muted-foreground">· {servicioVisto.condicion_nota}</span>
+          )}
+          {puedeDefinirCondicion && (
+            <Button size="sm" variant="outline" className="ml-auto" disabled={pendiente} onClick={() => setForm({ tipo: "condicion" })}>
+              {condicion ? "Cambiar" : "Definir"}
+            </Button>
+          )}
+        </div>
+      )}
+      <Cuadro
+        abierto={form?.tipo === "condicion"}
+        cerrar={() => setForm(null)}
+        titulo="Condición de pago del pedido"
+        descripcion="Qué porcentaje del total debe estar pagado para despachar sin pedir autorización, y a cuántos días va el saldo. Contado = 100. Todo a crédito = 0. Queda escrito también en el informe de cierre."
+        boton="Guardar la condición"
+        pendiente={pendiente}
+        onEnviar={(datos) => {
+          const pct = Number(datos.pct);
+          const dias = datos.dias?.trim() ? Number(datos.dias) : null;
+          if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+            toast.error("El porcentaje va de 0 a 100");
+            return;
+          }
+          if (pct < 100 && (dias == null || !Number.isFinite(dias) || dias < 0)) {
+            toast.error("Si queda saldo a crédito, diga a cuántos días");
+            return;
+          }
+          correr(
+            () => definirCondicionPago(servicio.id, { pct, dias, nota: datos.nota }),
+            "Condición de pago guardada",
+            { pct_antes_despacho: pct, credito_dias: pct >= 100 ? null : dias, condicion_nota: datos.nota?.trim() || null },
+          );
+        }}
+        campos={[
+          { nombre: "pct", etiqueta: "Porcentaje pagado antes del despacho (0 a 100)", tipo: "number", inicial: pctCondicion == null ? "50" : String(pctCondicion), requerido: true },
+          { nombre: "dias", etiqueta: "Días de crédito del saldo (vacío si es contado)", tipo: "number", inicial: servicioVisto.credito_dias == null ? "30" : String(servicioVisto.credito_dias), requerido: false },
+          { nombre: "nota", etiqueta: "Nota (ej. lo acordó gerencia con el cliente el 04-09)", requerido: false },
+        ]}
+      />
       <div className="rounded-xl border border-border bg-card px-4 pb-3 pt-1 shadow-sm">
         {bloques.map((bloque, bi) => (
           <div key={bloque.numero}>
@@ -353,9 +427,10 @@ export function PedidoPostventa({
         cerrar={() => setForm(null)}
         titulo="Finanzas confirmó el pago"
         descripcion={
-          verPrecios
-            ? `Total del pedido: ${servicio.moneda} ${Number(servicio.monto ?? 0).toLocaleString("es-PE")}. Registre lo que Finanzas confirmó: quién, por dónde y cuánto lleva pagado en total. Finanzas confirma dinero acreditado, no vouchers.`
-            : "Registre lo que Finanzas le contestó: quién y por dónde. Escriba «completo» si el pedido quedó cobrado del todo, o «parcial» si todavía debe: el despacho con saldo necesita autorización y queda registrada."
+          (verPrecios
+            ? `Total del pedido: ${servicio.moneda} ${Number(servicio.monto ?? 0).toLocaleString("es-PE")}. Registre lo que Finanzas confirmó: quién, por dónde y cuánto entró. Finanzas confirma dinero acreditado, no vouchers.`
+            : "Registre lo que Finanzas le contestó: quién, por dónde y qué entró. Finanzas confirma dinero acreditado, no vouchers.") +
+          (condicion ? ` Condición de este pedido: ${condicion}.` : " Este pedido no tiene condición de pago cargada: se exige todo antes de despachar.")
         }
         boton="Registrar la confirmación"
         pendiente={pendiente}
@@ -380,10 +455,16 @@ export function PedidoPostventa({
             if (error) throw new Error(`No se pudo subir la captura: ${error.message}`);
             return path;
           };
-          if (verPrecios) {
+          // QUÉ ENTRÓ, elegido y no tipeado (0232): el adelanto acordado lo
+          // cifra el servidor desde la condición; «todo» toma el total; con
+          // precios a la vista también se puede escribir otro monto. Antes,
+          // la confirmación con captura dejaba el pedido «confirmado» con
+          // pagado 0 y la salida se trababa por el total.
+          const alcance = datos.alcance ?? "completo";
+          if (alcance === "monto") {
             const monto = Number(datos.monto);
             if (!Number.isFinite(monto) || monto < 0) {
-              toast.error("Escriba un monto válido");
+              toast.error("Escriba cuánto lleva pagado en total");
               return;
             }
             correr(
@@ -399,13 +480,13 @@ export function PedidoPostventa({
             );
             return;
           }
-          const completo = /^(c|completo|total|todo)/i.test((datos.alcance ?? "").trim());
           correr(
             async () =>
               confirmarPagoFinanzas(servicio.id, {
                 quien: datos.quien,
                 medio: datos.medio,
-                completo,
+                completo: alcance === "completo",
+                adelanto: alcance === "adelanto",
                 nota: datos.nota,
                 capturaPath: await subir(),
               }),
@@ -416,17 +497,29 @@ export function PedidoPostventa({
           { nombre: "captura", etiqueta: "Captura de la confirmación (correo, WhatsApp o voucher acreditado)", archivo: true },
           { nombre: "quien", etiqueta: "Quién de Finanzas confirmó (si no sube captura)", requerido: false },
           { nombre: "medio", etiqueta: "Por dónde: correo, WhatsApp, llamada (si no sube captura)", inicial: "", requerido: false },
+          {
+            nombre: "alcance",
+            etiqueta: "Qué confirmó Finanzas que entró",
+            inicial: hayAdelantoAcordado ? "adelanto" : "completo",
+            requerido: true,
+            opciones: [
+              ...(hayAdelantoAcordado ? [{ valor: "adelanto", etiqueta: `El adelanto acordado (${pctCondicion} % del total)` }] : []),
+              { valor: "completo", etiqueta: "Todo el pedido, cobrado completo" },
+              ...(verPrecios ? [{ valor: "monto", etiqueta: "Otro monto: lo escribo abajo" }] : []),
+              { valor: "parcial", etiqueta: "Un abono parcial, sin cifra (la salida pedirá autorización)" },
+            ],
+          },
           ...(verPrecios
             ? [
                 {
                   nombre: "monto",
-                  etiqueta: "Total pagado hasta ahora (no el último abono)",
+                  etiqueta: "Total pagado hasta ahora, si eligió «otro monto» (no el último abono)",
                   tipo: "number",
-                  inicial: String(servicio.monto ?? 0),
-                  requerido: true,
+                  inicial: "",
+                  requerido: false,
                 },
               ]
-            : [{ nombre: "alcance", etiqueta: "¿Completo o parcial?", inicial: "completo", requerido: true }]),
+            : []),
           { nombre: "nota", etiqueta: "Nota (n.º de operación, fecha del abono…)", requerido: false },
         ]}
       />
@@ -509,10 +602,12 @@ export function PedidoPostventa({
         titulo="Registrar la salida"
         descripcion={
           pagoIncompleto
-            ? verPrecios
-              ? `Ojo: quedan ${servicio.moneda} ${saldo.toLocaleString("es-PE")} por cobrar. Para despachar igual hay que decir quién lo autorizó.`
-              : "Ojo: el pedido no figura cobrado del todo. Para despachar igual hay que decir quién lo autorizó."
-            : "En provincia, la garantía del equipo empieza a correr con esta fecha."
+            ? condicion
+              ? `Ojo: la condición es «${condicion}» y lo confirmado por Finanzas no cubre lo acordado antes del despacho${verPrecios ? ` (quedan ${servicio.moneda} ${saldo.toLocaleString("es-PE")} por cobrar)` : ""}. Para despachar igual hay que decir quién lo autorizó.`
+              : `Ojo: este pedido no tiene condición de pago cargada, así que se exige el pago completo${verPrecios ? ` (quedan ${servicio.moneda} ${saldo.toLocaleString("es-PE")})` : ""}. Pida a operaciones o gerencia que la defina, o diga quién autorizó despachar así.`
+            : hayAdelantoAcordado
+              ? `El adelanto acordado está confirmado; el saldo queda como cuenta por cobrar${servicioVisto.credito_dias != null ? ` a ${servicioVisto.credito_dias} días desde esta fecha` : ""}. En provincia, la garantía empieza a correr con esta fecha.`
+              : "En provincia, la garantía del equipo empieza a correr con esta fecha."
         }
         boton="Registrar despacho"
         pendiente={pendiente}
@@ -633,6 +728,8 @@ interface Campo {
   archivo?: boolean;
   inicial?: string;
   requerido?: boolean;
+  /** Lista cerrada: se elige, no se tipea (0232). */
+  opciones?: { valor: string; etiqueta: string }[];
 }
 
 /**
@@ -736,6 +833,19 @@ function Cuadro({
                   archivo={archivos[c.nombre] ?? null}
                   onElegir={(f) => elegirArchivo(c.nombre, f)}
                 />
+              ) : c.opciones ? (
+                <select
+                  id={`campo-${c.nombre}`}
+                  value={datos[c.nombre]}
+                  onChange={(e) => setValores((v) => ({ ...v, [c.nombre]: e.target.value }))}
+                  className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  {c.opciones.map((o) => (
+                    <option key={o.valor} value={o.valor}>
+                      {o.etiqueta}
+                    </option>
+                  ))}
+                </select>
               ) : c.area ? (
                 <Textarea
                   id={`campo-${c.nombre}`}

@@ -55,6 +55,14 @@ export interface DatosInforme {
   formaPago: "transferencia" | "deposito" | null;
   moneda: string;
   notaCondiciones: string | null;
+  /**
+   * LA CONDICIÓN DE PAGO COMO DATO (0232): qué % del total debe estar pagado
+   * antes de despachar y a cuántos días va el saldo. Gerencia aprueba el
+   * informe, así que con esto la condición queda autorizada de una vez y el
+   * despacho ya no pide «quién autorizó» en cada venta a crédito.
+   */
+  pctAntesDespacho: number | null;
+  creditoDias: number | null;
   /** Lo acordado de garantía, impreso en las condiciones de venta (0104). */
   garantia: string | null;
   entregaFecha: string | null;
@@ -309,6 +317,8 @@ function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
       (d.items.filter((i) => i.bloque !== "gratuito").reduce((a, i) => a + i.cantidad * i.precio_unitario, 0) * 1.18).toFixed(2),
     ),
     nota_condiciones: d.notaCondiciones,
+    pct_antes_despacho: d.pctAntesDespacho,
+    credito_dias: d.pctAntesDespacho != null && d.pctAntesDespacho >= 100 ? null : d.creditoDias,
     garantia: d.garantia,
     entrega_fecha: d.entregaFecha,
     entrega_hora: d.entregaHora,
@@ -329,6 +339,10 @@ function validar(d: DatosInforme): string | null {
   if (d.items.some((i) => !i.descripcion.trim())) return "Hay un renglón sin descripción";
   if (d.items.some((i) => i.cantidad <= 0)) return "La cantidad de un renglón tiene que ser mayor que cero";
   if (d.modalidadPago.length === 0) return "Marque la modalidad de pago";
+  if (d.pctAntesDespacho == null || !Number.isFinite(d.pctAntesDespacho) || d.pctAntesDespacho < 0 || d.pctAntesDespacho > 100)
+    return "Diga qué porcentaje del total debe estar pagado antes del despacho (0 a 100)";
+  if (d.pctAntesDespacho < 100 && (d.creditoDias == null || !Number.isFinite(d.creditoDias) || d.creditoDias < 0 || d.creditoDias > 365))
+    return "Si queda saldo a crédito, diga a cuántos días (0 a 365)";
   if (!d.entregaLugar?.trim()) return "Falta el lugar de entrega: sin eso logística no puede despachar";
   return null;
 }
@@ -723,6 +737,8 @@ export interface BorradorInforme {
   modalidadPago: string[];
   formaPago: "transferencia" | "deposito" | null;
   notaCondiciones: string;
+  pctAntesDespacho: number | null;
+  creditoDias: number | null;
   garantia: string;
   entregaFecha: string;
   entregaHora: string;
@@ -788,6 +804,8 @@ export async function cargarBorradorInforme(
       modalidadPago: ((i.modalidad_pago ?? []) as string[]).filter(Boolean),
       formaPago: i.forma_pago === "transferencia" || i.forma_pago === "deposito" ? i.forma_pago : null,
       notaCondiciones: texto(i.nota_condiciones),
+      pctAntesDespacho: i.pct_antes_despacho == null ? null : Number(i.pct_antes_despacho),
+      creditoDias: i.credito_dias == null ? null : Number(i.credito_dias),
       garantia: texto(i.garantia),
       entregaFecha: texto(i.entrega_fecha),
       entregaHora: texto(i.entrega_hora),

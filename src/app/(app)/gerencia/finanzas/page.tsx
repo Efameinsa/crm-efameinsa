@@ -11,6 +11,7 @@ import { Kpi } from "@/components/crm/kpi";
 import { EstadoResultados } from "@/components/crm/estado-resultados";
 import { TablaMesesFinanzas } from "@/components/crm/tabla-meses-finanzas";
 import { DistribucionCltv } from "@/components/crm/distribucion-cltv";
+import { PorCobrar } from "@/components/crm/por-cobrar";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,19 @@ export default async function FinanzasMarketingPage({
   const sp = await searchParams;
   const periodo = resolverPeriodo(sp, "anio");
   const supabase = await createClient();
-  const f = await cargarFinanzasMarketing(supabase, periodo);
+  const [f, { data: porCobrar }] = await Promise.all([
+    cargarFinanzasMarketing(supabase, periodo),
+    // CUENTAS POR COBRAR (0232): lo que salió del almacén con saldo a
+    // crédito, y lo que espera salir con saldo. Antes esto vivía en la cabeza
+    // de Finanzas; con la condición como dato, el vencimiento se calcula.
+    supabase
+      .from("servicios_postventa")
+      .select("id, cliente_texto, numero_pedido_erp, monto, monto_pagado, moneda, pct_antes_despacho, credito_dias, despachado_at, fecha_despacho, despacho_sin_cancelar_motivo, cerrado_at")
+      .not("informe_cierre_id", "is", null)
+      .gt("monto", 0)
+      .order("despachado_at", { ascending: true, nullsFirst: false })
+      .limit(400),
+  ]);
 
   if (!f) {
     return (
@@ -66,6 +79,8 @@ export default async function FinanzasMarketingPage({
         </Link>
         .
       </p>
+
+      <PorCobrar filas={(porCobrar ?? []) as Parameters<typeof PorCobrar>[0]["filas"]} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi etiqueta="Ventas del período" valor={Math.round(r.ventas_usd)} prefijo="US$ " sub={`${r.n_ventas} ventas`} />

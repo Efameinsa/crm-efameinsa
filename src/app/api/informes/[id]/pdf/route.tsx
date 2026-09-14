@@ -98,6 +98,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       formaPago={informe.forma_pago}
       moneda={informe.moneda}
       notaCondiciones={informe.nota_condiciones}
+      pctAntesDespacho={informe.pct_antes_despacho == null ? null : Number(informe.pct_antes_despacho)}
+      creditoDias={informe.credito_dias == null ? null : Number(informe.credito_dias)}
       garantia={informe.garantia}
       entrega={{
         fecha: informe.entrega_fecha,

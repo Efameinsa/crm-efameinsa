@@ -74,6 +74,9 @@ export interface InformeCierrePdfProps {
   formaPago: "transferencia" | "deposito" | null;
   moneda: string;
   notaCondiciones: string | null;
+  /** La condición como dato (0232): % pagado antes del despacho y días del saldo. */
+  pctAntesDespacho?: number | null;
+  creditoDias?: number | null;
   /**
    * La garantía acordada, tal como va impresa (migración 0104). Hasta el 28-08
    * no era un campo: viajaba como el primer renglón de `incluye` —«36 meses de
@@ -316,7 +319,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
   const {
     logoBuffer, serie, codigo, fecha, referencia, asunto, presupuestoRef,
     comprobante, clienteNuevo, cliente, contactoVenta, contactoContabilidad, contactoDespacho,
-    modalidadPago, formaPago, moneda, notaCondiciones, garantia, entrega, notaDespacho, urgente,
+    modalidadPago, formaPago, moneda, notaCondiciones, pctAntesDespacho, creditoDias, garantia, entrega, notaDespacho, urgente,
     incluye, gratis, notaFinal, items, itemsGratuitos, adjuntos, compendio, firma,
   } = props;
 
@@ -461,6 +464,20 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
             Central y postventa la buscan: de acá sale el plazo que después
             fija `garantia_hasta` de cada equipo instalado. Antes estaba al
             final del documento, como un renglón más de «Incluye» (28-08). */}
+        {/* La condición que manda en el despacho, impresa donde postventa y
+            Central la buscan (0232). */}
+        {pctAntesDespacho != null && (
+          <View style={estilos.datoFila}>
+            <Text style={estilos.datoEtiqueta}>Antes del despacho:</Text>
+            <Text style={estilos.datoValor}>
+              {Number(pctAntesDespacho) >= 100
+                ? "100 % pagado (contado)"
+                : Number(pctAntesDespacho) <= 0
+                  ? `Sin pago previo · total a crédito${creditoDias != null ? ` a ${creditoDias} días del despacho` : ""}`
+                  : `${Number(pctAntesDespacho)} % pagado · saldo a crédito${creditoDias != null ? ` a ${creditoDias} días del despacho` : ""}`}
+            </Text>
+          </View>
+        )}
         {garantia && (
           <View style={estilos.datoFila}>
             <Text style={estilos.datoEtiqueta}>Garantía:</Text>

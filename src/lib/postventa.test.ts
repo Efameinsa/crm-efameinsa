@@ -7,6 +7,8 @@ import {
   sinPrecios,
   puedeVerPrecios,
   bloquesPedido,
+  evaluarPagoParaDespacho,
+  textoCondicionPago,
   type ServicioPostventa,
 } from "./postventa";
 
@@ -150,9 +152,63 @@ describe("estadoPago", () => {
     expect(estadoPago(pedido({ monto: 10000, monto_pagado: null, informe_cierre_id: null }))).toBe("sin_registrar");
   });
 
-  it("respeta el 'SI' del Excel y la confirmación explícita", () => {
-    expect(estadoPago(pedido({ monto: 10000, confirmacion_abono: "SI" }))).toBe("completo");
-    expect(estadoPago(pedido({ monto: 10000, pago_confirmado_at: "2026-08-01T10:00:00Z" }))).toBe("completo");
+  it("respeta el 'SI' del Excel y la confirmación explícita en las filas SIN cifras", () => {
+    // Filas del Excel (sin informe): la marca es lo único que hay y vale.
+    expect(estadoPago(pedido({ monto: 10000, informe_cierre_id: null, confirmacion_abono: "SI" }))).toBe("completo");
+    expect(estadoPago(pedido({ monto: 10000, informe_cierre_id: null, pago_confirmado_at: "2026-08-01T10:00:00Z" }))).toBe("completo");
+  });
+
+  it("con cifras reales, el saldo manda sobre la marca de confirmación (0232)", () => {
+    // El 495-26 del 14-09: Finanzas confirmó con captura y sin cifra, quedó
+    // pagado 0 y la pantalla decía «completo» mientras el servidor pedía
+    // autorización por el total.
+    expect(estadoPago(pedido({ monto: 4472.2, monto_pagado: 0, pago_confirmado_at: "2026-09-14T14:52:00Z" }))).toBe("parcial");
+    expect(estadoPago(pedido({ monto: 4472.2, monto_pagado: 4472.2, pago_confirmado_at: "2026-09-14T14:52:00Z" }))).toBe("completo");
+  });
+});
+
+describe("evaluarPagoParaDespacho (0232)", () => {
+  it("con 50 % de adelanto, la mitad confirmada libera la salida", () => {
+    const r = evaluarPagoParaDespacho(pedido({ monto: 4472.2, monto_pagado: 2236.1, pct_antes_despacho: 50, pago_confirmado_at: "x" }));
+    expect(r.requerido).toBe(2236.1);
+    expect(r.cubierto).toBe(true);
+  });
+
+  it("tolera el redondeo del adelanto, no el faltante", () => {
+    expect(evaluarPagoParaDespacho(pedido({ monto: 4472.2, monto_pagado: 2236, pct_antes_despacho: 50 })).cubierto).toBe(true);
+    expect(evaluarPagoParaDespacho(pedido({ monto: 4472.2, monto_pagado: 2000, pct_antes_despacho: 50 })).cubierto).toBe(false);
+  });
+
+  it("al contado exige todo; a todo crédito no exige nada", () => {
+    expect(evaluarPagoParaDespacho(pedido({ monto: 10000, monto_pagado: 9000, pct_antes_despacho: 100 })).cubierto).toBe(false);
+    expect(evaluarPagoParaDespacho(pedido({ monto: 10000, monto_pagado: 10000, pct_antes_despacho: 100 })).cubierto).toBe(true);
+    expect(evaluarPagoParaDespacho(pedido({ monto: 10000, monto_pagado: 0, pct_antes_despacho: 0, pago_confirmado_at: "x" })).cubierto).toBe(true);
+  });
+
+  it("sin condición cargada se exige todo, como antes", () => {
+    expect(evaluarPagoParaDespacho(pedido({ monto: 10000, monto_pagado: 5000, pct_antes_despacho: null })).cubierto).toBe(false);
+    expect(evaluarPagoParaDespacho(pedido({ monto: 10000, monto_pagado: 5000 })).requerido).toBe(10000);
+  });
+
+  it("las filas del Excel sin cifras no se traban", () => {
+    expect(evaluarPagoParaDespacho(pedido({ monto: 10000, monto_pagado: null, informe_cierre_id: null, pago_confirmado_at: null })).cubierto).toBe(true);
+  });
+
+  it("la pantalla sin precios recibe la decisión ya tomada", () => {
+    const tapado = sinPrecios(pedido({ monto: 4472.2, monto_pagado: 0, pct_antes_despacho: 50, pago_confirmado_at: "x" }));
+    expect(tapado.despacho_liberado).toBe(false);
+    expect(tapado.monto).toBeNull();
+    const liberado = sinPrecios(pedido({ monto: 4472.2, monto_pagado: 2236.1, pct_antes_despacho: 50, pago_confirmado_at: "x" }));
+    expect(liberado.despacho_liberado).toBe(true);
+  });
+});
+
+describe("textoCondicionPago", () => {
+  it("dice la condición como la lee cualquiera", () => {
+    expect(textoCondicionPago({ pct_antes_despacho: 50, credito_dias: 30 })).toBe("50 % antes del despacho · saldo a crédito a 30 días");
+    expect(textoCondicionPago({ pct_antes_despacho: 100, credito_dias: null })).toBe("Contado: todo pagado antes del despacho");
+    expect(textoCondicionPago({ pct_antes_despacho: 0, credito_dias: 60 })).toBe("Todo a crédito a 60 días");
+    expect(textoCondicionPago({ pct_antes_despacho: null, credito_dias: null })).toBeNull();
   });
 });
 
