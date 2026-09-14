@@ -10,6 +10,7 @@ import { listarMandadoACentral } from "@/lib/mandado-a-central";
 import { PestanasCasos } from "@/components/crm/pestanas-casos";
 import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
+import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { BotonCierreSemanal } from "@/components/crm/boton-cierre-semanal";
 import { BotonReporteMensual } from "@/components/crm/boton-reporte-mensual";
@@ -115,6 +116,8 @@ function relojHumano(estado: EstadoUrgencia, horas: number, limite: number): str
 export default async function PostventaPage() {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
+  // WhatsApp de campañas, fase 1 sin API (14-09-2026).
+  const campaniasWhatsapp = await campaniasWhatsappActivas();
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const fin7 = new Date(Date.now() + 7 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const hoyIso = hoyLima();
@@ -406,7 +409,7 @@ export default async function PostventaPage() {
               acá una sola vez, cae a la cola de Central, y Central lo deriva a
               postventa o a donde corresponda. Misma política 0060 que el
               comercial: puede meterlo a la cola, nunca asignárselo solo. */}
-          <PasarContactoCentral contexto="postventa" />
+          <PasarContactoCentral contexto="postventa" campaniasWhatsapp={campaniasWhatsapp} />
           <BotonReporteMensual mes={mesPorDefecto(hoyIso)} compacto />
           <BotonCierreSemanal semana={lunes} compacto />
           <BotonReporteDiario fecha={hoyIso} compacto />

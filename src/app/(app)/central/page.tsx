@@ -82,7 +82,7 @@ function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, mod
   const q = supabase
     .from("leads")
     .select(
-      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, fuente, gclid, gbraid, wbraid, fbclid, utm_source, utm_medium, utm_campaign, utm_content, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
+      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, fuente, gclid, gbraid, wbraid, fbclid, utm_source, utm_medium, utm_campaign, utm_content, codigo_campania_wa, plataforma_campania_wa, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
       { count: "exact" },
     )
     .eq("estado", "pendiente_triaje");
@@ -294,6 +294,10 @@ export default async function CentralPage() {
                     {caliente && campana && <span>· prospecto caliente</span>}
                     {nombreDeCampana(lead.utm_campaign) && <span className="font-normal">· {nombreDeCampana(lead.utm_campaign)}</span>}
                     {fuenteLegible(lead.fuente) && <span className="font-normal opacity-80">· {fuenteLegible(lead.fuente)}</span>}
+                    {/* WhatsApp de campañas, fase 1 sin API (14-09): estos no
+                        traen utm_campaign ni fuente — lo único que dice de qué
+                        anuncio vino es el código elegido al registrarlo. */}
+                    {lead.codigo_campania_wa && <span className="font-normal opacity-80">· código {lead.codigo_campania_wa}</span>}
                     <span className="ml-auto rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
                       Gestionar a la brevedad
                     </span>

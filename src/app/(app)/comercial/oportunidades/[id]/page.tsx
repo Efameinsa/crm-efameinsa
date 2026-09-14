@@ -33,6 +33,8 @@ import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
 import type { TipoDocumento } from "@/lib/documento";
+import { tipificacionesActuales } from "@/lib/acciones/whatsapp-campanas";
+import { TipificarWhatsapp } from "@/components/crm/tipificar-whatsapp";
 
 // Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
 // el mismo nombre de canal que vio quien se lo derivó.
@@ -73,7 +75,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, recibido_at), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -98,6 +100,8 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     mensaje: string | null;
     adjuntos: AdjuntoLead[] | null;
     utm_campaign: string | null;
+    codigo_campania_wa: string | null;
+    plataforma_campania_wa: string | null;
     recibido_at: string | null;
   } | null;
 
@@ -152,10 +156,11 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
     { data: gestionEnOtraFicha },
     { data: ultimaGestionPropia },
     { data: gemelaCerrada },
+    tipificacionesWa,
   ] = await Promise.all([
     supabase
       .from("leads")
-      .select("id, codigo, canal, mensaje, adjuntos, utm_campaign, recibido_at")
+      .select("id, codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, recibido_at")
       .eq("oportunidad_id", oportunidad.id)
       .order("recibido_at"),
     supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre"),
@@ -243,8 +248,12 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    // WhatsApp de campañas, fase 1 sin API (14-09-2026): el resultado vigente
+    // de la conversación, si este contacto vino con un código de campaña.
+    oportunidad.lead_id ? tipificacionesActuales([oportunidad.lead_id]) : Promise.resolve([]),
   ]);
 
+  const tipificacionWaActual = tipificacionesWa[0] ?? null;
   const otrosLeads = (otrosLeadsCrudos ?? []).filter((l) => l.id !== oportunidad.lead_id);
   const rubros = (rubrosData ?? []) as { id: number; nombre: string }[];
   const grupo = (grupoData ?? []) as { razon_social: string; num_doc: string | null; es_madre: boolean }[];
@@ -531,6 +540,17 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
                 {lead.recibido_at ? ` · ${fechaHoraLima(lead.recibido_at)}` : ""}
                 {lead.codigo ? ` · ${lead.codigo}` : ""}
               </p>
+              {/* WhatsApp de campañas, fase 1 sin API (14-09-2026): este
+                  contacto vino con un código de anuncio — acá se marca qué
+                  pasó con la conversación. Reemplaza el Excel de resultados. */}
+              {lead.canal === "whatsapp" && lead.codigo_campania_wa && oportunidad.lead_id && (
+                <div className="mt-3 border-t border-border pt-3">
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Código {lead.codigo_campania_wa} · resultado de la conversación
+                  </p>
+                  <TipificarWhatsapp leadId={oportunidad.lead_id} actual={tipificacionWaActual} />
+                </div>
+              )}
               {/* El mismo cliente entró otra vez por otro canal y Central lo
                   sumó a este expediente (0141): lo que pidió esa segunda vez
                   se lee acá mismo, no en una ficha gemela. */}

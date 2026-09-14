@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CampoAdjuntos, useAdjuntos } from "@/components/crm/campo-adjuntos";
+import { CampoCampaniaWhatsapp } from "@/components/crm/campo-campania-whatsapp";
+import type { CampaniaWhatsapp } from "@/lib/acciones/whatsapp-campanas";
 import { cn } from "@/lib/utils";
 
 // Cuando a la comercial le entra un WhatsApp o una llamada directa de alguien
@@ -78,7 +80,13 @@ function Obligatorio() {
   return <span className="text-destructive"> *</span>;
 }
 
-export function PasarContactoCentral({ contexto = "comercial" }: { contexto?: "comercial" | "postventa" }) {
+interface Props {
+  contexto?: "comercial" | "postventa";
+  /** Campañas de WhatsApp activas (fase 1 sin API, 14-09-2026), para cuando le llega un WhatsApp de un anuncio directo. */
+  campaniasWhatsapp?: CampaniaWhatsapp[];
+}
+
+export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp = [] }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   // El temporizador vive en un ref, no en un global del módulo: si no, dos
@@ -86,6 +94,7 @@ export function PasarContactoCentral({ contexto = "comercial" }: { contexto?: "c
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [abierto, setAbierto] = useState(false);
   const [canal, setCanal] = useState<string>("whatsapp");
+  const [codigoCampaniaWa, setCodigoCampaniaWa] = useState("");
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[]>([]);
   const [enviando, startTransition] = useTransition();
   const adjuntos = useAdjuntos();
@@ -134,6 +143,7 @@ export function PasarContactoCentral({ contexto = "comercial" }: { contexto?: "c
     if (temporizador.current) clearTimeout(temporizador.current);
     formRef.current?.reset();
     setCanal("whatsapp");
+    setCodigoCampaniaWa("");
     setCoincidencias([]);
     adjuntos.limpiar();
   }
@@ -328,6 +338,16 @@ export function PasarContactoCentral({ contexto = "comercial" }: { contexto?: "c
                   ))}
                 </div>
               </div>
+
+              {canal === "whatsapp" && (
+                <CampoCampaniaWhatsapp
+                  campanias={campaniasWhatsapp}
+                  visible
+                  value={codigoCampaniaWa}
+                  onChange={setCodigoCampaniaWa}
+                  idBase="pc-campania-wa"
+                />
+              )}
 
               <div className="space-y-1.5">
                 <Label htmlFor="pc-mensaje">¿Qué solicita?</Label>

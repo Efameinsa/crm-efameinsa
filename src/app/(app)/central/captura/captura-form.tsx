@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CampoAdjuntos, useAdjuntos } from "@/components/crm/campo-adjuntos";
+import { CampoCampaniaWhatsapp } from "@/components/crm/campo-campania-whatsapp";
+import type { CampaniaWhatsapp } from "@/lib/acciones/whatsapp-campanas";
 import {
   Select,
   SelectContent,
@@ -49,12 +51,16 @@ let temporizadorBusqueda: ReturnType<typeof setTimeout> | null = null;
 // que ya no correspondían a lo escrito, o el «buscando…» se quedaba prendido.
 let ultimaBusqueda = 0;
 
-export function CapturaForm() {
+export function CapturaForm({ campaniasWhatsapp = [] }: { campaniasWhatsapp?: CampaniaWhatsapp[] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [analisis, setAnalisis] = useState<AnalisisCaptura | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [enviando, startTransition] = useTransition();
   const adjuntos = useAdjuntos();
+  // Solo tiene sentido preguntar el código de campaña cuando el canal es
+  // WhatsApp (14-09-2026, fase 1 sin API).
+  const [canal, setCanal] = useState("");
+  const [codigoCampaniaWa, setCodigoCampaniaWa] = useState("");
 
   function campo(nombre: string): string {
     return (formRef.current?.elements.namedItem(nombre) as HTMLInputElement | null)?.value ?? "";
@@ -114,6 +120,8 @@ export function CapturaForm() {
       toast.success(`Registrado ${resultado.codigo} — pasa a la bandeja de asignación.`);
       formRef.current?.reset();
       setAnalisis(null);
+      setCanal("");
+      setCodigoCampaniaWa("");
       adjuntos.limpiar();
       formRef.current?.querySelector<HTMLInputElement>("#nombre_contacto")?.focus();
     });
@@ -135,7 +143,12 @@ export function CapturaForm() {
               todo lo que hace falta para que diga la verdad. El servidor lo
               valida además con su lista cerrada, así que no se puede guardar
               un contacto sin canal ni con uno inventado. */}
-          <Select name="canal" required>
+          {/* value={canal}, NUNCA "|| undefined": empezar en "" y no en
+              undefined lo deja controlado desde el primer render. Alternar
+              entre undefined y un valor real es lo que Base UI advierte como
+              "Select cambiando de no controlado a controlado" — no hay ningún
+              SelectItem con value="", así que el placeholder se ve igual. */}
+          <Select name="canal" required value={canal} onValueChange={(v) => setCanal(v ?? "")}>
             <SelectTrigger id="canal" className="w-full">
               <SelectValue placeholder="¿Por dónde llegó?" />
             </SelectTrigger>
@@ -148,6 +161,17 @@ export function CapturaForm() {
             </SelectContent>
           </Select>
         </div>
+        {canal === "whatsapp" && (
+          <div className="col-span-2">
+            <CampoCampaniaWhatsapp
+              campanias={campaniasWhatsapp}
+              visible
+              value={codigoCampaniaWa}
+              onChange={setCodigoCampaniaWa}
+              idBase="captura-campania-wa"
+            />
+          </div>
+        )}
         {/* Acá había un selector de "Área destino". Lo quitó el ing. Carlos el
             24-08: «que no tenga la opción de otras áreas». Lo que no es
             comercial —servicio técnico, RR. HH., proveedores— sigue su camino

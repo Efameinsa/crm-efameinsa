@@ -8,6 +8,7 @@ import { PuntoInteres } from "@/components/crm/punto-interes";
 import { cn } from "@/lib/utils";
 import { hoyLima } from "@/lib/periodo";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
+import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { BarraSemana } from "@/components/crm/barra-semana";
 import { cargarPulsoSemana } from "@/lib/pulso-semana";
 import { lunesDe } from "@/lib/calendario";
@@ -428,6 +429,9 @@ export default async function ComercialPage({
   // Antes: new Date().toISOString() — eso es UTC. A las 7 pm de Lima el
   // servidor ya cree que es mañana y "Para hoy" se vaciaba (A5 del plan 11).
   const hoy = hoyLima();
+  // WhatsApp de campañas, fase 1 sin API (14-09-2026): para cuando le llega
+  // un WhatsApp de un anuncio directamente a la comercial.
+  const campaniasWhatsapp = await campaniasWhatsappActivas();
 
   // ⚠️ HISTORIA DE ESTE FILTRO (leer antes de tocarlo).
   //
@@ -723,7 +727,7 @@ export default async function ComercialPage({
           {/* Para el WhatsApp o la llamada que le entra directo: lo registra
               acá y Central lo deriva, en vez de mandarlo por correo para que
               lo vuelvan a tipear. */}
-          <PasarContactoCentral />
+          <PasarContactoCentral campaniasWhatsapp={campaniasWhatsapp} />
         </CardHeader>
         <CardContent className="space-y-5">
           {oportunidades.length === 0 && inactivas.length === 0 && sinInforme.length === 0 && tandaMantenimiento.length === 0 ? (
