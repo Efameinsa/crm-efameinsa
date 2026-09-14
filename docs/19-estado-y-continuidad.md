@@ -1790,3 +1790,7 @@ Producción: `0e89b19` (humo 38/38 antes y después). Tres commits de esta sesi�
 Revisado sin cambio: Edwin (PRO-09332/09333, dos pedidos reales de Constructores Romero) y Joseph (PRO-09328, Google Ads) NO son de prueba. Elvis Choquehuanca (PRO-09335/09336) lo registró Central dos veces con dos mensajes distintos; no es defecto.
 
 Web: favicon real (múltiplos de 48) + manifest + redirección `/equipos` (`b3807af`, `a057b68` en efameinsa). Falta que Santos pida reindexación en Search Console.
+
+## 14-09-2026 (mediodía) — la condición de pago manda en el despacho (0232)
+
+Producción: `0e8dc89`. Caso 495-26 (V Y P ICE): la salida pedía autorización por el TOTAL aunque la venta era 50 % adelanto + 50 % a 30 días, y la pantalla ni mostraba el campo. Ahora el informe lleva `pct_antes_despacho` y `credito_dias` (el formulario los exige), el pedido los copia al liberarse, `evaluarPagoParaDespacho()` compara con lo acordado, Finanzas confirma «entró el adelanto acordado» y el servidor cifra, gerencia/operaciones definen la condición desde el pedido (`definir_condicion_pago_pedido`, pasa la inmutabilidad del informe con `app.corrigiendo_cierre`), y Finanzas de gerencia tiene «Cuentas por cobrar». Relleno: 13/13 informes emitidos con condición leída. Pruebas: 473 unitarias + 19 de punta a punta sobre PRUEBA-903 (`scripts/_probar-condicion-pago.mjs`). Pendiente: Rubí o Lesly registran en el 495-26 «entró el adelanto acordado» (mensaje en Downloads/mensaje-lesly-condicion-de-pago.md).
