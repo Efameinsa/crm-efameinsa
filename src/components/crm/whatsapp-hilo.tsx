@@ -382,7 +382,11 @@ export function WhatsappHilo({
             La ventana de 24 h se cerró: por ahora no se puede mandar texto libre (las plantillas aprobadas son fase 3).
           </p>
         ) : (
-          <div className="flex items-end gap-2">
+          // Una sola píldora, como WhatsApp Web (Santos, 15-09, con captura de
+          // referencia): clip, sticker, el cuadro de texto sin borde propio, y
+          // el micrófono/enviar al final — todo dentro del mismo contorno, sin
+          // que cada botón se vea como una caja aparte.
+          <div className="flex items-end gap-1.5 rounded-3xl border border-input bg-card px-2 py-1.5 shadow-sm">
             <input
               ref={inputArchivoRef}
               type="file"
@@ -394,8 +398,9 @@ export function WhatsappHilo({
               }}
             />
             <Button
-              size="sm"
-              variant="outline"
+              size="icon-sm"
+              variant="ghost"
+              className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
               onClick={() => inputArchivoRef.current?.click()}
               disabled={enviando || subiendoAdjunto || grabando}
               title="Adjuntar foto, documento, audio o video"
@@ -403,10 +408,11 @@ export function WhatsappHilo({
               {subiendoAdjunto ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
             </Button>
 
-            <div className="relative">
+            <div className="relative shrink-0">
               <Button
-                size="sm"
-                variant="outline"
+                size="icon-sm"
+                variant="ghost"
+                className="rounded-full text-muted-foreground hover:text-foreground"
                 onClick={() => setMostrarStickers((v) => !v)}
                 disabled={enviando || grabando}
                 title="Enviar un sticker de la empresa"
@@ -442,13 +448,13 @@ export function WhatsappHilo({
             </div>
 
             {grabando ? (
-              <div className="flex flex-1 items-center gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-1.5">
+              <div className="flex flex-1 items-center gap-2 px-1.5 py-1">
                 <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
-                <span className="flex-1 text-sm font-medium tabular-nums text-red-800">
+                <span className="flex-1 text-sm font-medium tabular-nums text-red-700">
                   Grabando… {String(Math.floor(segundosGrabados / 60)).padStart(2, "0")}:{String(segundosGrabados % 60).padStart(2, "0")}
                 </span>
-                <Button size="icon-sm" variant="ghost" onClick={cancelarGrabacion} title="Cancelar">
-                  <Trash2 className="size-4 text-red-700" />
+                <Button size="icon-sm" variant="ghost" className="rounded-full" onClick={cancelarGrabacion} title="Cancelar">
+                  <Trash2 className="size-4 text-red-600" />
                 </Button>
               </div>
             ) : (
@@ -461,23 +467,30 @@ export function WhatsappHilo({
                     enviar();
                   }
                 }}
-                placeholder="Escriba un mensaje…"
+                placeholder="Escriba un mensaje"
                 rows={1}
-                className="max-h-32 flex-1 resize-none bg-card"
+                className="min-h-0 flex-1 resize-none border-0 bg-transparent px-1 py-1 shadow-none focus-visible:ring-0"
                 disabled={enviando}
               />
             )}
 
             {grabando ? (
-              <Button size="sm" onClick={detenerYEnviarGrabacion} title="Detener y enviar">
+              <Button size="icon-sm" className="shrink-0 rounded-full" onClick={detenerYEnviarGrabacion} title="Detener y enviar">
                 <Send className="size-4" />
               </Button>
             ) : texto.trim() ? (
-              <Button size="sm" onClick={enviar} disabled={enviando}>
+              <Button size="icon-sm" className="shrink-0 rounded-full" onClick={enviar} disabled={enviando}>
                 <Send className="size-4" />
               </Button>
             ) : (
-              <Button size="sm" variant="outline" onClick={empezarAGrabar} disabled={enviando || subiendoAdjunto} title="Grabar un audio">
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                onClick={empezarAGrabar}
+                disabled={enviando || subiendoAdjunto}
+                title="Grabar un audio"
+              >
                 <Mic className="size-4" />
               </Button>
             )}
