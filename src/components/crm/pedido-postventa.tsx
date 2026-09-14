@@ -156,6 +156,11 @@ export function PedidoPostventa({
   ) : null;
 
   function accionDePaso(paso: PasoPedido): React.ReactNode {
+    // Un pago confirmado que no cubre lo acordado sigue aceptando abonos: el
+    // 495-26 quedó «confirmado» con cifra 0 y sin botón para arreglarlo (0232).
+    if (paso.clave === "pago" && paso.hecho && pagoIncompleto) {
+      return <BotonPaso onClick={() => setForm({ tipo: "finanzas" })}>Registrar otro abono</BotonPaso>;
+    }
     if (paso.hecho) return null;
     switch (paso.clave) {
       case "aprobado":
@@ -358,6 +363,9 @@ export function PedidoPostventa({
                           {fechaHoraLima(paso.cuando)}
                         </span>
                       )}
+                      {/* Un paso hecho puede seguir aceptando acción: el pago
+                          parcial recibe más abonos (0232). */}
+                      {accionDePaso(paso)}
                     </div>
                   ) : (
                     <div
