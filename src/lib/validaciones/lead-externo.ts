@@ -36,6 +36,23 @@ export const esquemaLeadExterno = z.object({
   utm_medium: z.string().trim().optional(),
   utm_campaign: z.string().trim().optional(),
   utm_content: z.string().trim().optional(),
+  /**
+   * LO QUE EL CLIENTE VIO Y PIDIÓ, COMO DOCUMENTO (Carlos, 14-09): «¿no es más
+   * conveniente que el gestor sepa qué es lo que has hecho, mediante un
+   * documento, un PDF, que se adjunte automáticamente?». La web manda el PDF
+   * del dimensionamiento (o de la cotización del carrito) en base64; el CRM
+   * lo guarda como adjunto del contacto y viaja con él al expediente.
+   */
+  adjuntos: z
+    .array(
+      z.object({
+        nombre: z.string().trim().min(1).max(200),
+        tipo: z.enum(["application/pdf", "image/png", "image/jpeg", "image/webp"]),
+        contenido_base64: z.string().min(1).max(8_000_000), // ~6 MB
+      }),
+    )
+    .max(3)
+    .optional(),
 });
 
 export type LeadExterno = z.infer<typeof esquemaLeadExterno>;

@@ -58,6 +58,31 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // LOS ADJUNTOS DE LA WEB (Carlos, 14-09): el PDF del dimensionamiento o de
+  // la cotización del carrito, guardado igual que lo que Central adjunta al
+  // registrar (leads/<id>/…), para que se vea en la bandeja y en el expediente.
+  // Best-effort: si un archivo no se puede guardar, el contacto entra igual.
+  if (d.adjuntos && d.adjuntos.length > 0) {
+    const guardados: { path: string; nombre: string; tipo: string; tamano: number }[] = [];
+    for (const a of d.adjuntos) {
+      try {
+        const bytes = Buffer.from(a.contenido_base64.replace(/^data:[^;]+;base64,/, ""), "base64");
+        if (bytes.length === 0 || bytes.length > 6 * 1024 * 1024) continue;
+        const limpio = a.nombre.replace(/[^\w.\-() ]+/g, "_").slice(0, 120);
+        const path = `leads/${lead.id}/${Date.now()}-${limpio}`;
+        const { error: eSubida } = await admin.storage.from("adjuntos").upload(path, bytes, { contentType: a.tipo, upsert: false });
+        if (eSubida) {
+          console.error("leads: adjunto no guardado", eSubida.message);
+          continue;
+        }
+        guardados.push({ path, nombre: a.nombre, tipo: a.tipo, tamano: bytes.length });
+      } catch (e) {
+        console.error("leads: adjunto inválido", e instanceof Error ? e.message : e);
+      }
+    }
+    if (guardados.length > 0) await admin.from("leads").update({ adjuntos: guardados }).eq("id", lead.id);
+  }
+
   // A diferencia de la captura manual (donde Central es quien registra y por
   // tanto ya lo sabe), acá el lead entra solo: hay que avisarle a Central para
   // que lo asigne, y a gerencia para su visibilidad (evento de B7.3).
