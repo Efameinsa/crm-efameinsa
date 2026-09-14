@@ -65,22 +65,33 @@ export default async function MarketingPage({
 
   return (
     <div className="space-y-4">
-      <FiltroPeriodo
-        {...periodo}
-        presetActivo={periodo.preset}
-        presets={["mes", "mes_anterior", "30d", "90d", "anio", "12m"]}
-        extra={
-          <ChipsParam
-            nombre="plataforma"
-            valor={plataforma ?? null}
-            opciones={[
-              { valor: null, etiqueta: "Todas" },
-              { valor: "google", etiqueta: "Google" },
-              { valor: "meta", etiqueta: "Meta" },
-            ]}
-          />
-        }
-      />
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+        <FiltroPeriodo
+          {...periodo}
+          presetActivo={periodo.preset}
+          presets={["mes", "mes_anterior", "30d", "90d", "anio", "12m"]}
+          extra={
+            <ChipsParam
+              nombre="plataforma"
+              valor={plataforma ?? null}
+              opciones={[
+                { valor: null, etiqueta: "Todas" },
+                { valor: "google", etiqueta: "Google" },
+                { valor: "meta", etiqueta: "Meta" },
+              ]}
+            />
+          }
+        />
+        {/* WhatsApp de campañas, fase 1 sin API (14-09-2026): pantalla propia
+            porque junta administración de códigos + informe, algo que no
+            encaja en los filtros de fecha/plataforma de arriba. */}
+        <Link
+          href="/gerencia/marketing/whatsapp"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
+        >
+          WhatsApp de campañas →
+        </Link>
+      </div>
 
       <p className="px-1 text-xs text-muted-foreground">
         Del <span className="font-medium text-foreground">{fechaCalendarioLarga(desde)}</span> al{" "}
