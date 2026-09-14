@@ -1,3 +1,4 @@
+import { CambiarTipoAtencion } from "@/components/crm/cambiar-tipo-atencion";
 import Link from "next/link";
 import { ArrowLeft, Building2, Clock, FileText, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -199,6 +200,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
                 <span className="rounded-full bg-secondary px-1.5 text-[10px] font-semibold">
                   pista {PISTA_DE_TIPO[a.tipo]}
                 </span>
+                <CambiarTipoAtencion atencionId={a.id} tipo={a.tipo} etapa={a.etapa} />
               </span>
               {a.cuentas?.num_doc && (
                 <span className="inline-flex items-center gap-1">
