@@ -380,6 +380,19 @@ export function LineaAtencion({
             devuelva, aparece acá para tomarla.
           </p>
         </Caja>
+      ) : a.etapa === "registro" && a.tipo === "puesta_en_marcha" ? (
+        // LA PUESTA EN MARCHA SE PROGRAMA DIRECTO (Ariana, 14-09; 0231): el
+        // equipo acaba de llegar, no hay garantía que verificar ni diagnóstico
+        // que hacer. Del registro se pasa a poner día, hora y técnico.
+        <PasoPlanificar
+          atencion={a}
+          cliente={cliente}
+          serie={garantia?.serie ?? null}
+          tecnicos={tecnicos}
+          enviando={enviando}
+          correr={correr}
+          puestaEnMarcha
+        />
       ) : a.etapa === "registro" ? (
         <PasoRegistro atencion={a} garantia={garantia} hayMaquinas={hayMaquinas} enviando={enviando} correr={correr} />
       ) : a.etapa === "diagnostico" ? (
@@ -882,6 +895,7 @@ function PasoPlanificar({
   tecnicos,
   enviando,
   correr,
+  puestaEnMarcha = false,
 }: {
   atencion: Atencion;
   cliente: string;
@@ -889,6 +903,8 @@ function PasoPlanificar({
   tecnicos: string[];
   enviando: boolean;
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  /** Viene del registro sin pasar por el diagnóstico: es una puesta en marcha. */
+  puestaEnMarcha?: boolean;
 }) {
   const [fecha, setFecha] = useState("");
   const [hora, setHora] = useState("");
@@ -896,9 +912,11 @@ function PasoPlanificar({
   const [orden, setOrden] = useState<string | null>(null);
 
   return (
-    <Caja titulo="Paso 3 · Planificación: cuándo y con quién">
+    <Caja titulo={puestaEnMarcha ? "Programar la puesta en marcha: cuándo y con quién" : "Paso 3 · Planificación: cuándo y con quién"}>
       <p className="mb-3 text-sm text-muted-foreground">
-        Esto entra al calendario del área y arma la orden para el almacén.
+        {puestaEnMarcha
+          ? "Es una puesta en marcha: no lleva verificación de garantía ni diagnóstico. Con día, hora y técnico queda programada y entra al calendario del área."
+          : "Esto entra al calendario del área y arma la orden para el almacén."}
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <SelectorFecha valor={fecha || null} onCambiar={(f) => setFecha(f ?? "")} etiquetaVacia="Elegir el día" />

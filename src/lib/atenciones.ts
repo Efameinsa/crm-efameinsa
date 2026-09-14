@@ -30,7 +30,7 @@ export type TipoAtencion =
   | "problema_tecnico"
   | "solicitud_repuesto"
   | "solicitud_mantenimiento";
-export type ClasificacionAtencion = "garantia" | "preventivo" | "correctivo" | "facturable";
+export type ClasificacionAtencion = "garantia" | "preventivo" | "correctivo" | "facturable" | "revision";
 
 /**
  * Las etiquetas de las nueve etapas.
@@ -132,6 +132,9 @@ export const ETIQUETA_CLASIFICACION: Record<ClasificacionAtencion, string> = {
   preventivo: "Mantenimiento preventivo",
   correctivo: "Mantenimiento correctivo",
   facturable: "Servicio facturable",
+  // Ariana, 14-09: «si la máquina no presentaba nada (…) te da una revisión,
+  // porque el cliente me informó que está trabajando bien» (0231).
+  revision: "Revisión",
 };
 
 /** Si se cobra o no. Es la pregunta que el área contesta antes que ninguna. */
@@ -140,6 +143,7 @@ export const SE_COBRA: Record<ClasificacionAtencion, boolean> = {
   preventivo: true,
   correctivo: true,
   facturable: true,
+  revision: false,
 };
 
 export const COLOR_CLASIFICACION: Record<ClasificacionAtencion, string> = {
@@ -147,6 +151,7 @@ export const COLOR_CLASIFICACION: Record<ClasificacionAtencion, string> = {
   preventivo: "bg-primary/10 text-primary",
   correctivo: "bg-amber-500/10 text-amber-700",
   facturable: "bg-secondary text-foreground",
+  revision: "bg-sky-500/10 text-sky-800",
 };
 
 export interface Atencion {

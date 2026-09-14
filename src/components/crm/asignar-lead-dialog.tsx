@@ -468,6 +468,10 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="garantia">Soporte técnico — el equipo no está operativo</SelectItem>
+                {/* Ariana, 14-09: «a la central no le hemos puesto la opción de
+                    puesta en marcha, y lo está reportando como problema
+                    técnico» (0231). */}
+                <SelectItem value="puesta_en_marcha">Puesta en marcha — el equipo llegó y hay que instalarlo</SelectItem>
                 <SelectItem value="repuesto">Repuesto</SelectItem>
                 <SelectItem value="mantenimiento">Mantenimiento preventivo</SelectItem>
               </SelectContent>

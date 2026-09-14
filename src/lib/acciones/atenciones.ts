@@ -291,12 +291,30 @@ export async function programarAtencion(datos: {
   // La hora se guarda en hora de Lima, no en la del servidor (que corre en UTC).
   const cuando = `${datos.fecha}T${datos.hora ?? "09:00"}:00-05:00`;
   const supabase = await createClient();
+  // LA PUESTA EN MARCHA NO LLEVA DIAGNÓSTICO (Ariana, 14-09; 0231): el equipo
+  // acaba de llegar, no hay nada que diagnosticar ni quién-paga que decidir.
+  // Se programa desde el registro y el diagnóstico queda marcado como
+  // omitido, con su razón, para que la tira cuente lo que pasó.
+  const { data: antes } = await supabase
+    .from("atenciones")
+    .select("tipo, etapa, etapas_omitidas")
+    .eq("id", datos.atencionId)
+    .maybeSingle();
+  const saltaDiagnostico = antes?.tipo === "puesta_en_marcha" && (antes.etapa === "registro" || antes.etapa === "solicitud");
   const { error } = await supabase
     .from("atenciones")
     .update({
       programada_at: cuando,
       tecnico: datos.tecnico.trim(),
       etapa: "planificacion",
+      ...(saltaDiagnostico
+        ? {
+            etapas_omitidas: {
+              ...((antes?.etapas_omitidas as Record<string, unknown> | null) ?? {}),
+              diagnostico: { motivo: "Puesta en marcha: no lleva diagnóstico", at: new Date().toISOString() },
+            },
+          }
+        : {}),
     })
     .eq("id", datos.atencionId);
   if (error) return { error: error.message };
@@ -499,7 +517,7 @@ export async function avanzarAtencion(datos: {
 
   // Los frenos que hacen que el dato signifique algo.
   if (datos.hasta === "diagnostico" && !a.clasificacion) {
-    return { error: "Antes del diagnóstico hay que decir si es garantía, preventivo, correctivo o facturable" };
+    return { error: "Antes del diagnóstico hay que decir si es garantía, preventivo, correctivo, facturable o una revisión" };
   }
   if (datos.hasta === "atencion" && !a.programada_at) {
     return { error: "Primero hay que programarla: día, hora y técnico" };
@@ -642,6 +660,23 @@ export async function avisarVentaDeLaAtencion(datos: {
  * nunca ocurrió ensucia el dato con el que después se mide el área. Queda
  * anotado que no aplicó, con su motivo, y la tira lo pinta distinto (0198).
  */
+/**
+ * CAMBIAR EL TIPO DE LA ATENCIÓN TÉCNICA (0231). Ariana, 14-09: Central
+ * registra la llamada como «problema técnico» cuando el cliente en realidad
+ * pide su puesta en marcha, y el caso entra por el circuito equivocado.
+ * Solo entre problema técnico y puesta en marcha, y solo antes de planificar.
+ */
+export async function cambiarTipoAtencion(datos: {
+  atencionId: string;
+  tipo: "problema_tecnico" | "puesta_en_marcha";
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cambiar_tipo_atencion", { p_atencion: datos.atencionId, p_tipo: datos.tipo });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  refrescar(datos.atencionId);
+  return { error: null };
+}
+
 export async function omitirEtapa(datos: {
   atencionId: string;
   etapa: EtapaAtencion;
