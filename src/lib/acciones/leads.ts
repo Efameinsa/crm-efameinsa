@@ -300,11 +300,22 @@ export async function asignarLead(
   const nombreComercial = perfiles?.find((p) => p.id === comercialId)?.nombre ?? "Comercial";
   const nombreDeriva = user ? perfiles?.find((p) => p.id === user.id)?.nombre ?? null : null;
 
+  // EL AVISO DICE QUIÉN ES (Carlos, 14-09, mirando lo que le llegó a la
+  // comercial: «así como está yo no te puedo seguir; hay que hacer que
+  // aparezca el nombre del prospecto»). Llevaba solo la razón social de la
+  // ficha —o «Nuevo contacto» cuando no había—, y el contacto que escribió
+  // (Edwin, de Constructores Romero) no aparecía por ningún lado.
+  const partesAviso = [
+    lead?.nombre_contacto?.trim() || null,
+    razonSocial !== "Nuevo contacto" && razonSocial !== lead?.nombre_contacto?.trim() ? razonSocial : null,
+    lead?.telefono?.trim() || null,
+    lead?.codigo ?? null,
+  ].filter((p): p is string => !!p);
   await notificar({
     userId: comercialId,
     tipo: "lead_asignado",
     titulo: "Nuevo contacto asignado",
-    cuerpo: razonSocial,
+    cuerpo: partesAviso.length ? partesAviso.join(" · ") : razonSocial,
     url: `/comercial/oportunidades/${oportunidadId}`,
   });
   // Correo a gerencia por DERIVACIÓN (reunión 19-08: "una sola vez, cuando

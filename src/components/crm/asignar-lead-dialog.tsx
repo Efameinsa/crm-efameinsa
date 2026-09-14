@@ -262,8 +262,16 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
       <DialogTrigger render={<Button size="sm">Asignar</Button>} />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Asignar contacto</DialogTitle>
-          <DialogDescription>Elija el comercial que va a atender este contacto.</DialogDescription>
+          <DialogTitle>Asignar a {nombre?.trim() || "este contacto"}</DialogTitle>
+          {/* QUIÉN ES, ARRIBA DE TODO (Carlos, 14-09, viendo derivar a Central:
+              «acá no aparece el nombre del prospecto; debería aparecer»). El
+              diálogo decía «Asignar contacto» y las alertas hablaban de otra
+              ficha, así que nadie sabía de quién se estaba hablando. */}
+          <DialogDescription>
+            {[razonSocial?.trim() && razonSocial.trim() !== nombre?.trim() ? razonSocial.trim() : null, telefono?.trim() || null, email?.trim() || null]
+              .filter(Boolean)
+              .join(" · ") || "Elija el comercial que va a atender este contacto."}
+          </DialogDescription>
         </DialogHeader>
 
         {/* Cuando el aviso lo mandó un comercial, se dice de entrada: no es un
@@ -483,7 +491,8 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
               {traspaso.duenoCodigo ? ` (${traspaso.duenoCodigo})` : ""}
             </p>
             <p className="text-xs leading-snug text-amber-900">
-              <strong>{traspaso.razonSocial}</strong> está en su cartera. Derivarlo a otro comercial{" "}
+              Por el teléfono, RUC o correo, <strong>{nombre?.trim() || "este contacto"}</strong> coincide con la ficha de{" "}
+              <strong>{traspaso.razonSocial}</strong>, que está en su cartera. Derivarlo a otro comercial{" "}
               <strong>le cambia el dueño al cliente</strong>, no solo a este contacto. Eso lo autoriza gerencia.
             </p>
             <label className="block space-y-1">

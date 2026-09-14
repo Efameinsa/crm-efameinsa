@@ -63,6 +63,9 @@ export function DerivarAvisoBoton({
   const [elegidos, setElegidos] = useState<Record<string, boolean>>({ finanzas: false, postventa: false, comercial: false });
   const [enlaceWhatsApp, setEnlaceWhatsApp] = useState<string | null>(null);
   const [textoWhatsApp, setTextoWhatsApp] = useState<string | null>(null);
+  // El número de Tesorería viene dentro del enlace de WhatsApp Web
+  // (…/send?phone=NNN&text=…); se saca de ahí para no repetir la constante.
+  const numeroWhatsApp = enlaceWhatsApp ? (new URL(enlaceWhatsApp).searchParams.get("phone") ?? "") : "";
   const [copiado, setCopiado] = useState(false);
   const [resumen, setResumen] = useState<{ hecho: string[]; falta: string[] } | null>(null);
   const [enviando, empezar] = useTransition();
@@ -217,13 +220,24 @@ export function DerivarAvisoBoton({
                   >
                     <MessageCircle className="size-4" /> Abrir WhatsApp Web
                   </a>
+                  {/* LA APLICACIÓN DE ESCRITORIO, CON EL TEXTO (14-09, en vivo con
+                      Carlos: Central tiene el WhatsApp de escritorio abierto, y
+                      la pestaña de WhatsApp Web le pidió iniciar otra sesión y
+                      «no se generó el mensaje». El esquema whatsapp:// abre la
+                      aplicación instalada con el número y el texto puestos.) */}
                   <a
-                    href={`https://wa.me/${enlaceWhatsApp.split("/")[3]?.split("?")[0] ?? ""}`}
+                    href={`whatsapp://send?phone=${numeroWhatsApp}&text=${encodeURIComponent(textoWhatsApp ?? "")}`}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#1E7F4F] px-4 py-2 text-sm font-semibold text-[#1E7F4F] hover:bg-[#1E7F4F]/5"
+                  >
+                    <MessageCircle className="size-4" /> Abrir en la aplicación de WhatsApp, con el mensaje
+                  </a>
+                  <a
+                    href={`https://wa.me/${numeroWhatsApp}`}
                     target="_blank"
                     rel="noreferrer"
                     className="block text-center text-xs text-muted-foreground underline-offset-2 hover:underline"
                   >
-                    o abrir el chat en la aplicación, sin el texto
+                    o abrir solo el chat, y pegar el mensaje copiado
                   </a>
                 </>
               )}
