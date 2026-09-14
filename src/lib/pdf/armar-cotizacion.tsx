@@ -260,6 +260,7 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
     cotizacion.cotizacion_items as unknown as {
       cantidad: number;
       precio_unitario: number;
+      precio_con_igv?: number | null;
       descripcion: string | null;
       color: string | null;
       productos: {
@@ -320,6 +321,7 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
       panelImagenBuffer: await imagenDeLaHoja(item.productos?.panel_path, item.productos?.sku, "panel"),
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,
+      precio_con_igv: item.precio_con_igv ?? null,
     };
   }));
 

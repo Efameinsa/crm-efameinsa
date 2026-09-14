@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { netoDeBruto, redondear2, totalesConIgv } from "@/lib/igv";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, ChevronDown, ClipboardPaste, FileText, PencilLine, Plus, Save, Trash2, TriangleAlert, Undo2 } from "lucide-react";
@@ -133,6 +134,7 @@ function equiposDe(p: PresupuestoDisponible | undefined): ItemInformeEntrada[] {
       descripcion: l.descripcion,
       cantidad: l.cantidad,
       precio_unitario: l.precio_unitario,
+      precio_con_igv: l.precio_con_igv ?? null,
     }));
   return (p.items ?? []).map((nombre) => ({
     bloque: "venta" as const,
@@ -290,10 +292,9 @@ export function FormularioInforme({
   const [subidos, setSubidos] = useState<{ tipo: string; nombre: string; path: string }[]>(b?.adjuntos ?? []);
 
   const totales = useMemo(() => {
-    const subtotal = items
-      .filter((i) => i.bloque !== "gratuito")
-      .reduce((a, i) => a + i.cantidad * i.precio_unitario, 0);
-    return { subtotal, igv: subtotal * 0.18, total: subtotal * 1.18 };
+    // Mismo cálculo que el PDF y que la base (0233): el renglón pactado con
+    // IGV suma su importe bruto exacto.
+    return totalesConIgv(items.filter((i) => i.bloque !== "gratuito"));
   }, [items]);
 
   // Al elegir la venta, se engancha sola la cotización del archivo que lleva
@@ -796,16 +797,43 @@ export function FormularioInforme({
                     type="number"
                     min={0}
                     step="0.01"
-                    value={it.precio_unitario || ""}
-                    placeholder="Precio unitario"
-                    onChange={(e) =>
+                    value={(it.precio_con_igv != null ? it.precio_con_igv : it.precio_unitario) || ""}
+                    placeholder={it.precio_con_igv != null ? "Precio con IGV" : "Precio unitario"}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
                       setItems((xs) =>
-                        xs.map((x, j) => (j === i ? { ...x, precio_unitario: Number(e.target.value) } : x)),
+                        xs.map((x, j) =>
+                          j !== i
+                            ? x
+                            : x.precio_con_igv != null
+                              ? { ...x, precio_con_igv: v, precio_unitario: netoDeBruto(v) }
+                              : { ...x, precio_unitario: v },
+                        ),
+                      );
+                    }}
+                    className="h-8 w-36"
+                    aria-label={it.precio_con_igv != null ? "Precio con IGV" : "Precio unitario"}
+                    title={it.precio_con_igv != null ? `Sin IGV: ${it.precio_unitario.toLocaleString("es-PE", { minimumFractionDigits: 2 })}` : undefined}
+                  />
+                  {/* El check de Carlos (14-09) también acá: el cierre se arma
+                      con la cifra redonda que se negoció, y el neto lo calcula
+                      el sistema (0233). */}
+                  <Pastilla
+                    activa={it.precio_con_igv != null}
+                    onClick={() =>
+                      setItems((xs) =>
+                        xs.map((x, j) =>
+                          j !== i
+                            ? x
+                            : x.precio_con_igv != null
+                              ? { ...x, precio_con_igv: null }
+                              : { ...x, precio_con_igv: redondear2(x.precio_unitario * 1.18) },
+                        ),
                       )
                     }
-                    className="h-8 w-36"
-                    aria-label="Precio unitario"
-                  />
+                  >
+                    incl. IGV
+                  </Pastilla>
                   <Pastilla
                     activa={it.bloque === "gratuito"}
                     onClick={() =>

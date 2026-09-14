@@ -1,5 +1,6 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
-import { IDENTIDAD_SERIE, IGV } from "./series";
+import { IDENTIDAD_SERIE } from "./series";
+import { totalesConIgv } from "@/lib/igv";
 import { rotuloDeItems } from "@/lib/informes";
 
 // Informe de cierre de ventas hacia Central. Calcado del documento que hoy
@@ -40,6 +41,8 @@ export interface ItemInforme {
   descripcion: string;
   cantidad: number;
   precio_unitario: number;
+  /** Precio pactado CON IGV, cuando el renglón se marcó así (0233). */
+  precio_con_igv?: number | null;
 }
 
 export interface ContactoInforme {
@@ -268,8 +271,7 @@ function Contacto({ estilos, titulo, c }: { estilos: Estilos; titulo: string; c:
 // propios totales: en el original el "VENTA 2 – GRATUITO" también cierra con
 // SUB TOTAL / IGV / TOTAL, aunque no se cobre.
 function Tabla({ estilos, simbolo, lista }: { estilos: Estilos; simbolo: string; lista: ItemInforme[] }) {
-  const subtotal = lista.reduce((a, i) => a + i.cantidad * i.precio_unitario, 0);
-  const igv = subtotal * IGV;
+  const { subtotal, igv, total } = totalesConIgv(lista);
   return (
     <View style={estilos.tabla}>
       {/* Sin "+ IGV" en el rótulo: los importes de las filas van SIN IGV
@@ -302,7 +304,7 @@ function Tabla({ estilos, simbolo, lista }: { estilos: Estilos; simbolo: string;
       </View>
       <View style={[estilos.totalFila, estilos.totalDestacado]}>
         <Text style={estilos.totalEtiqueta}>TOTAL incl. IGV</Text>
-        <Text style={estilos.totalValor}>{`${simbolo} ${monto(subtotal + igv)}`}</Text>
+        <Text style={estilos.totalValor}>{`${simbolo} ${monto(total)}`}</Text>
       </View>
     </View>
   );
@@ -327,7 +329,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
   const estilos = crearEstilos(identidad.acento);
   const simbolo = moneda === "USD" ? "US$" : "S/";
 
-  const totalVenta = items.reduce((a, i) => a + i.cantidad * i.precio_unitario, 0) * (1 + IGV);
+  const totalVenta = totalesConIgv(items).total;
 
   // La tabla de modalidad de pago replica el formato de papel (4 casillas
   // fijas) a propósito — Central lo lee todos los días en el mismo sitio.

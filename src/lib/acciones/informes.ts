@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { totalesConIgv } from "@/lib/igv";
 import { createClient } from "@/lib/supabase/server";
 import { INCLUYE_POR_DEFECTO, type TipoItemInforme } from "@/lib/informes";
 import { esquemaAdjuntoNuevo, MAX_ADJUNTOS, type AdjuntoCierre, type AdjuntoNuevo } from "@/lib/adjuntos-cierre";
@@ -22,6 +23,8 @@ export interface ItemInformeEntrada {
   descripcion: string;
   cantidad: number;
   precio_unitario: number;
+  /** Precio pactado CON IGV, cuando el renglón se marcó así (0233): el total sale exacto. */
+  precio_con_igv?: number | null;
 }
 
 export interface ContactoEntrada {
@@ -93,7 +96,7 @@ export interface PresupuestoDisponible {
   estado?: string | null;
   /** Solo las del CRM: los renglones tal como se cotizaron, con cantidad y
    *  precio, así el informe no arranca con todos los precios en cero. */
-  lineas?: { descripcion: string; cantidad: number; precio_unitario: number }[];
+  lineas?: { descripcion: string; cantidad: number; precio_unitario: number; precio_con_igv?: number | null }[];
 }
 
 export interface VentaSinInforme {
@@ -167,7 +170,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, estado, total, garantia, created_at, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, descripcion, productos(marca, modelo, nombre))",
+        "id, codigo, serie, estado, total, garantia, created_at, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, productos(marca, modelo, nombre))",
       )
       .eq("oportunidades.cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
@@ -207,6 +210,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
   type ItemCotizado = {
     cantidad: number;
     precio_unitario: number;
+    precio_con_igv?: number | null;
     descripcion: string | null;
     productos: { marca: string; modelo: string; nombre: string } | null;
   };
@@ -218,6 +222,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
         descripcion: prod ? `${prod.nombre} ${prod.marca} ${prod.modelo}` : (i.descripcion ?? "Equipo"),
         cantidad: i.cantidad,
         precio_unitario: Number(i.precio_unitario),
+        precio_con_igv: i.precio_con_igv == null ? null : Number(i.precio_con_igv),
       };
     });
     return {
@@ -313,9 +318,9 @@ function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
     // El total con IGV, que es lo que se cobra. Se calcula acá y no en el
     // navegador: el importe del documento no puede depender de lo que
     // mandó el cliente.
-    monto_total: Number(
-      (d.items.filter((i) => i.bloque !== "gratuito").reduce((a, i) => a + i.cantidad * i.precio_unitario, 0) * 1.18).toFixed(2),
-    ),
+    // Los renglones pactados CON IGV suman su importe bruto exacto; el resto,
+    // neto × 1,18 (0233). Es lo que se cobra y lo que va a la venta.
+    monto_total: totalesConIgv(d.items.filter((i) => i.bloque !== "gratuito")).total,
     nota_condiciones: d.notaCondiciones,
     pct_antes_despacho: d.pctAntesDespacho,
     credito_dias: d.pctAntesDespacho != null && d.pctAntesDespacho >= 100 ? null : d.creditoDias,
@@ -780,6 +785,7 @@ export async function cargarBorradorInforme(
     descripcion: texto(it.descripcion),
     cantidad: Number(it.cantidad) || 0,
     precio_unitario: Number(it.precio_unitario) || 0,
+    precio_con_igv: it.precio_con_igv == null ? null : Number(it.precio_con_igv),
   }));
 
   return {

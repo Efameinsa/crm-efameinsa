@@ -122,6 +122,7 @@ export function PantallaCorreccion({
     nombre: i.nombre,
     cantidad: i.cantidad,
     precio_unitario: i.precio_unitario,
+    precio_con_igv: i.precio_con_igv ?? null,
     precioPiso: i.precioPiso,
     sinFicha: Boolean(productos.find((p) => p.id === i.producto_id)?.sinFicha),
     fueraDeCatalogo: i.producto_id === null,
@@ -285,16 +286,19 @@ export function PantallaCorreccion({
   ]);
 
   const mueveLaPlata = Math.abs(totalAntes - subtotal) > 0.004;
-  const bajoLista = carrito.some((i) => i.precioPiso !== null && i.precio_unitario < i.precioPiso);
+  const bajoLista = carrito.some(
+    (i) => i.precioPiso !== null && i.precio_unitario < i.precioPiso - (i.precio_con_igv != null ? 1 : 0),
+  );
 
   function cuerpoParaGuardar() {
     return {
       cotizacionId: edicion.cotizacionId,
-      items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, color }) => ({
+      items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, color }) => ({
         producto_id,
         descripcion,
         cantidad,
         precio_unitario,
+        precio_con_igv: precio_con_igv ?? null,
         color,
       })),
       condiciones,

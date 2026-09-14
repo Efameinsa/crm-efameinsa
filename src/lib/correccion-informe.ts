@@ -20,6 +20,7 @@ const esquemaItemInforme = z
     descripcion: z.string().trim().min(1, "Cada renglón necesita descripción").max(2000),
     cantidad: z.number().int().positive("La cantidad va en enteros positivos"),
     precio_unitario: z.number().min(0),
+    precio_con_igv: z.number().min(0).nullable().optional(),
     bloque: z.enum(["venta", "gratuito"]).optional(),
   })
   .strict();

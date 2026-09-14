@@ -33,7 +33,7 @@ export default async function AprobacionesPage() {
     .select(
       `id, codigo, serie, total, moneda, created_at, oportunidad_id,
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre)),
-       cotizacion_items(id, cantidad, precio_lista, precio_unitario, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
+       cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
     )
     .eq("estado_aprobacion", "pendiente_gerencia")
     .order("created_at", { ascending: true });
@@ -84,6 +84,7 @@ export default async function AprobacionesPage() {
               cantidad: number;
               precio_lista: number | null;
               precio_unitario: number;
+              precio_con_igv?: number | null;
               bajo_lista: boolean;
               requiere_aprobacion: boolean;
               descripcion: string | null;
@@ -154,6 +155,7 @@ export default async function AprobacionesPage() {
                       cantidad: i.cantidad,
                       precioLista: i.precio_lista != null ? Number(i.precio_lista) : null,
                       precioUnitario: Number(i.precio_unitario),
+                      precioConIgv: i.precio_con_igv == null ? null : Number(i.precio_con_igv),
                       bajoLista: i.bajo_lista,
                       requiereAprobacion: i.requiere_aprobacion,
                       esIndustrial: i.productos?.segmento === "industrial",

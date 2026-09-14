@@ -260,7 +260,7 @@ export async function cargarContextoCotizador(
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_lista, color, productos(marca, modelo, nombre))",
+        "id, codigo, serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_lista, color, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
@@ -312,6 +312,7 @@ export async function cargarContextoCotizador(
         descripcion: string | null;
         cantidad: number;
         precio_unitario: number;
+        precio_con_igv: number | null;
         precio_lista: number | null;
         color: string | null;
         productos: { marca: string; modelo: string; nombre: string } | null;
@@ -323,6 +324,7 @@ export async function cargarContextoCotizador(
           : (i.descripcion ?? "Equipo sin nombre"),
         cantidad: i.cantidad,
         precio_unitario: Number(i.precio_unitario),
+        precio_con_igv: i.precio_con_igv == null ? null : Number(i.precio_con_igv),
         precioPiso: i.precio_lista != null ? Number(i.precio_lista) : null,
         // Reabrir un borrador tiene que devolver el equipo tal como se eligió,
         // color incluido: si no, el próximo autoguardado lo borraría.

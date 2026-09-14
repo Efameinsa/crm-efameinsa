@@ -29,6 +29,7 @@ interface ItemPedido {
   descripcion?: string | null;
   cantidad: number;
   precio_unitario: number;
+  precio_con_igv?: number | null;
   color?: string | null;
 }
 
@@ -98,6 +99,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     cotizacion_items: items.map((i) => ({
       cantidad: i.cantidad,
       precio_unitario: i.precio_unitario,
+      precio_con_igv: i.precio_con_igv ?? null,
       descripcion: i.descripcion ?? null,
       color: i.color ?? null,
       productos: i.producto_id ? (porId.get(i.producto_id) ?? null) : null,

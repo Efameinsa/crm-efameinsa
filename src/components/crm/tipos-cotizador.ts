@@ -114,6 +114,8 @@ export interface BorradorEnEdicion {
     nombre: string;
     cantidad: number;
     precio_unitario: number;
+    /** Precio pactado CON IGV, cuando el renglón se marcó así (0233). */
+    precio_con_igv?: number | null;
     precioPiso: number | null;
     /** Color con el que se estaba ofreciendo el equipo (migración 0088). */
     color: string | null;

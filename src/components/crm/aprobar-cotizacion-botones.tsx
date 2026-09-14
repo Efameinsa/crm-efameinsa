@@ -25,6 +25,8 @@ export interface ItemAprobacion {
   /** Precio contra el que se mide la rebaja (migración 0074). */
   precioLista: number | null;
   precioUnitario: number;
+  /** Cuando el precio se pactó CON IGV (0233): gerencia ve la cifra que se negoció. */
+  precioConIgv?: number | null;
   bajoLista: boolean;
   /** Gerencia tiene que decidir sobre este equipo. Desde la migración 0074 eso
    *  significa una sola cosa: el precio pedido está por debajo de la
@@ -178,6 +180,9 @@ export function AprobarCotizacionBotones({
                     >
                       {monto(i.precioUnitario)}
                     </p>
+                    {i.precioConIgv != null && (
+                      <p className="text-[10px] text-muted-foreground">{monto(i.precioConIgv)} con IGV</p>
+                    )}
                   </div>
                   <div className="rounded-md bg-secondary/60 px-2 py-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">

@@ -1,5 +1,6 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, NOTAS, IGV, ENTREGA_POR_DEFECTO } from "./series";
+import { totalesConIgv } from "@/lib/igv";
 import { clasificarFicha } from "@/lib/ficha-tecnica";
 import { encajarEnCaja } from "./medir-imagen";
 import { ajustarEspecificaciones } from "./ajustar-especificaciones";
@@ -268,6 +269,8 @@ export interface ItemPdf {
   panelImagenBuffer: Buffer | null;
   cantidad: number;
   precio_unitario: number;
+  /** Precio pactado CON IGV, cuando el renglón se marcó así (0233). */
+  precio_con_igv?: number | null;
 }
 
 export interface CotizacionPdfProps {
@@ -548,9 +551,9 @@ export function CotizacionPdf({
     ] as [string, string | null][]
   ).filter((c): c is [string, string] => Boolean(c[1]?.trim()));
 
-  const subtotal = items.reduce((acc, i) => acc + i.cantidad * i.precio_unitario, 0);
-  const igv = subtotal * IGV;
-  const total = subtotal + igv;
+  // Con renglones pactados CON IGV, el total es la suma de sus importes
+  // brutos y el IGV la diferencia (0233); sin ellos, lo de siempre.
+  const { subtotal, igv, total } = totalesConIgv(items);
   const simbolo = moneda === "USD" ? "US$" : "S/";
 
   // Membrete calcado del papel oficial: logo a la izquierda con la razón
