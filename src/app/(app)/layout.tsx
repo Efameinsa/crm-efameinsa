@@ -8,6 +8,7 @@ import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
 import { AvisoGestionesSinSubir } from "@/components/crm/aviso-gestiones-sin-subir";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
 import { AsistenteFlotante } from "@/components/crm/asistente-flotante";
+import { ComunicadoDeGerencia, type ComunicadoPendiente } from "@/components/crm/comunicado-de-gerencia";
 import { asistenteEncendido } from "@/lib/asistente/herramientas";
 import { cookies, headers } from "next/headers";
 import { COOKIE_AUDITORIA, decodificarInfoAuditoria, ranuraDeHost } from "@/lib/auditoria";
@@ -28,13 +29,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const veSeccionPostventa = Boolean(perfil.es_postventa) || Boolean(perfil.es_soporte);
   let contadorMiDia: number | undefined;
   let contadorAtenciones: number | undefined;
+  const supabase = await createClient();
+  // EL COMUNICADO DE GERENCIA (0232): el que toca mostrarle a esta persona al
+  // entrar, si hay uno. Una consulta chica en cada navegación; casi siempre
+  // vuelve vacía.
+  const comunicadoP = supabase.rpc("comunicado_pendiente").maybeSingle();
   if (veSeccionPostventa) {
-    const supabase = await createClient();
     [contadorMiDia, contadorAtenciones] = await Promise.all([
       contarBandejaMiDia(supabase, perfil.id),
       contarAtencionesAbiertas(supabase),
     ]);
   }
+  const { data: comunicadoCrudo } = await comunicadoP;
+  const comunicado = (comunicadoCrudo ?? null) as ComunicadoPendiente | null;
 
   return (
     <div className="flex min-h-screen flex-1">
@@ -107,6 +114,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             versión y pregunta si el servidor ya es otro. Con esto muere el
             Ctrl+Shift+R (Santos, 31-08). */}
         <AvisoNuevaVersion versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
+        {/* «Ni bien entra, un pop-up que pase las 4 láminas y un link, y una
+            disposición de gerencia» (Carlos, 14-09). No en las cuentas de
+            práctica ni en la ranura de auditoría. */}
+        {comunicado && !perfil.es_prueba && !ranuraAuditoria && (
+          <ComunicadoDeGerencia comunicado={comunicado} />
+        )}
         {/* El asistente, en todas las pantallas y solo para gerencia: la
             pregunta nace de lo que se está mirando, así que no puede vivir en
             otra sección. Para los demás roles ni se dibuja.
