@@ -40,6 +40,14 @@ interface LeadOrigen {
   utm_source?: string | null;
   utm_medium?: string | null;
   fuente?: string | null;
+  /**
+   * WhatsApp de campañas, fase 1 sin API (14-09): el código del mensaje
+   * prellenado del anuncio y la plataforma, denormalizados en el lead al
+   * registrarlo. No hay gclid ni fbclid en este caso — el clic pasó por
+   * WhatsApp, no por la web.
+   */
+  codigo_campania_wa?: string | null;
+  plataforma_campania_wa?: "meta" | "google" | "otro" | null;
 }
 
 /** La campaña pagada que trajo el clic, si la hubo. */
@@ -62,7 +70,7 @@ export function campanaDe(lead: LeadOrigen): Campana | null {
   return { plataforma: "otra", etiqueta: "campaña pagada" };
 }
 
-export type ClaveOrigen = "ads_form" | "landing" | "web_campana" | "web_organico";
+export type ClaveOrigen = "ads_form" | "landing" | "web_campana" | "web_organico" | "whatsapp_campana";
 
 export interface Origen {
   clave: ClaveOrigen;
@@ -73,8 +81,26 @@ export interface Origen {
   urgente: boolean;
 }
 
+const ETIQUETA_PLATAFORMA_WA: Record<"meta" | "google" | "otro", string> = {
+  meta: "Meta Ads",
+  google: "Google Ads",
+  otro: "campaña",
+};
+
 export function origenDe(lead: LeadOrigen): Origen | null {
   const fuente = (lead.fuente ?? "").toLowerCase();
+  // WhatsApp de campañas, fase 1 (14-09): se decide ANTES que todo lo demás
+  // porque estos contactos no traen fuente/utm — el canal ya es "whatsapp" y
+  // lo único que dice de qué campaña vino es este código.
+  if (lead.canal === "whatsapp" && lead.codigo_campania_wa) {
+    const plat = lead.plataforma_campania_wa ?? "otro";
+    return {
+      clave: "whatsapp_campana",
+      etiqueta: `WhatsApp de campaña · ${ETIQUETA_PLATAFORMA_WA[plat]}`,
+      plataforma: plat === "otro" ? "otra" : plat,
+      urgente: true,
+    };
+  }
   const campana = campanaDe(lead);
   if (fuente === "google_ads") return { clave: "ads_form", etiqueta: "Formulario de Google Ads", plataforma: "google", urgente: true };
   if (fuente === "meta_ads") return { clave: "ads_form", etiqueta: "Formulario de Meta", plataforma: "meta", urgente: true };

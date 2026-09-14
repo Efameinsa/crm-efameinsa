@@ -33,6 +33,11 @@ export const esquemaCaptura = z.object({
   razon_social: z.string().trim().optional().or(z.literal("")),
   email: z.string().trim().email("Correo inválido").optional().or(z.literal("")),
   mensaje: z.string().trim().optional().or(z.literal("")),
+  // WhatsApp de campañas, fase 1 (14-09-2026): el código del mensaje
+  // prellenado del anuncio («Hola, vi su anuncio… [M1-A]»), elegido de una
+  // lista, no tipeado. Solo tiene sentido con canal=whatsapp; con cualquier
+  // otro canal se ignora en el servidor.
+  codigo_campania_wa: z.string().trim().optional().or(z.literal("")),
 });
 
 export type DatosCaptura = z.infer<typeof esquemaCaptura>;

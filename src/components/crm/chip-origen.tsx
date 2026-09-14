@@ -1,4 +1,4 @@
-import { Megaphone, Globe, FileText, Sprout } from "lucide-react";
+import { Megaphone, Globe, FileText, Sprout, MessageCircle } from "lucide-react";
 import type { Origen } from "@/lib/campana";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,15 @@ import { cn } from "@/lib/utils";
 export function ChipOrigen({ origen, className }: { origen: Origen | null; className?: string }) {
   if (!origen) return null;
   const Icono =
-    origen.clave === "ads_form" ? FileText : origen.clave === "web_organico" ? Sprout : origen.clave === "landing" ? Megaphone : Globe;
+    origen.clave === "ads_form"
+      ? FileText
+      : origen.clave === "web_organico"
+        ? Sprout
+        : origen.clave === "landing"
+          ? Megaphone
+          : origen.clave === "whatsapp_campana"
+            ? MessageCircle
+            : Globe;
   return (
     <span
       className={cn(

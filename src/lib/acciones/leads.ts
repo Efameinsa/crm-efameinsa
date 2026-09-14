@@ -125,6 +125,30 @@ export async function registrarContacto(
   // R1: si no es comercial, el triaje termina aquí mismo.
   const esComercial = d.area_destino === "comercial";
 
+  // WhatsApp de campañas, fase 1 (14-09): el código va SOLO con canal
+  // whatsapp — con cualquier otro se ignora, aunque el campo venga en el
+  // FormData (por ejemplo si el usuario lo eligió y después cambió el canal).
+  // Se guarda denormalizado (código + plataforma) al momento del registro,
+  // igual que gclid/utm_campaign en los webhooks: si el código cambia de
+  // nombre después, este contacto conserva de dónde vino de verdad.
+  let codigoCampaniaWa: string | null = null;
+  let plataformaCampaniaWa: string | null = null;
+  if (d.canal === "whatsapp" && d.codigo_campania_wa) {
+    const { data: campania } = await supabase
+      .from("campanias_whatsapp")
+      .select("codigo, plataforma")
+      .ilike("codigo", d.codigo_campania_wa)
+      .eq("activa", true)
+      .maybeSingle();
+    if (campania) {
+      codigoCampaniaWa = campania.codigo;
+      plataformaCampaniaWa = campania.plataforma;
+    }
+    // Si no se encuentra (código dado de baja entre que se abrió el formulario
+    // y se envió), no se bloquea el registro: el contacto entra igual, solo
+    // sin el chip de campaña. Perder el registro por esto sería peor.
+  }
+
   const { data: lead, error } = await supabase
     .from("leads")
     .insert({
@@ -139,6 +163,8 @@ export async function registrarContacto(
       mensaje: d.mensaje || null,
       adjuntos,
       recibido_por: user.id,
+      codigo_campania_wa: codigoCampaniaWa,
+      plataforma_campania_wa: plataformaCampaniaWa,
     })
     .select("codigo")
     .single();
