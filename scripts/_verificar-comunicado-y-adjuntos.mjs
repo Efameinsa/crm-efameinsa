@@ -38,7 +38,8 @@ try {
   await p.setViewport({ width: 1280, height: 900 });
   await p.setCookie(...cookies);
   await p.goto(`${BASE}/comercial`, { waitUntil: "networkidle0", timeout: 120000 });
-  const d = () => p.evaluate(() => document.querySelector("[role=dialog]")?.innerText ?? "");
+  // Solo el comunicado: otras pantallas tienen sus propios diálogos («Detalle de la gestión» en la agenda).
+  const d = () => p.evaluate(() => [...document.querySelectorAll("[role=dialog]")].map((x) => x.innerText).find((t) => /Comunicado de gerencia/.test(t)) ?? "");
   let t = await d();
   af("sale al entrar", /Comunicado de gerencia/.test(t) && /lámina 1 de 4/.test(t), t.split("\n")[0]);
   await p.screenshot({ path: "scripts/data/_pantallazos/comunicado-web-1.png" });
