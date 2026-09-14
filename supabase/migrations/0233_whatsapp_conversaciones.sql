@@ -57,7 +57,11 @@ comment on column wa_conversaciones.ultimo_mensaje_cliente_at is 'Momento del ú
 
 -- Solo puede haber UNA conversación abierta por teléfono a la vez (para que
 -- el mensaje nuevo de un cliente no abra un hilo duplicado mientras el
--- anterior sigue "en_gestion"); una vez 'cerrada' puede haber otra después.
+-- anterior sigue "en_gestion"). Cerrar una conversación no la borra ni la
+-- vuelve a abrir sola: si el mismo cliente escribe después de cerrada, el
+-- webhook abre un caso NUEVO (lead y conversación aparte) — la cerrada queda
+-- de historial en la pestaña «Cerradas», igual que un expediente antiguo no
+-- se reabre solo cuando el cliente vuelve por otro motivo.
 create unique index if not exists ux_wa_conversaciones_telefono_abierta
   on wa_conversaciones (telefono)
   where estado <> 'cerrada';

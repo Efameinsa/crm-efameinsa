@@ -43,7 +43,15 @@ export interface ConversacionWhatsapp {
 
 export type FiltroConversaciones = "sin_atender" | "mias" | "todas" | "cerradas";
 
-export async function conversacionesDe(filtro: FiltroConversaciones): Promise<ConversacionWhatsapp[]> {
+/**
+ * `comercialId`: para Central/gerencia, ver los chats de UN comercial en
+ * concreto en vez de la mezcla de todos (Santos, 15-09: «¿no debería haber
+ * antes una vista de la lista de comerciales?»). A un comercial normal no le
+ * sirve de nada mandar el id de otro — RLS (`wa_conversaciones_comercial`)
+ * solo le devuelve lo suyo de todos modos, así que acá no hace falta
+ * comprobar el rol a mano.
+ */
+export async function conversacionesDe(filtro: FiltroConversaciones, comercialId?: string): Promise<ConversacionWhatsapp[]> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -59,6 +67,8 @@ export async function conversacionesDe(filtro: FiltroConversaciones): Promise<Co
   else if (filtro === "mias") consulta = consulta.eq("asignado_a", user.id).neq("estado", "cerrada");
   else if (filtro === "cerradas") consulta = consulta.eq("estado", "cerrada");
   else consulta = consulta.neq("estado", "cerrada");
+
+  if (comercialId) consulta = consulta.eq("asignado_a", comercialId);
 
   const { data } = await consulta;
   if (!data) return [];
@@ -89,6 +99,13 @@ export async function conversacionesDe(filtro: FiltroConversaciones): Promise<Co
     codigo_campania_wa: c.codigo_campania_wa,
     ultimo_texto: ultimos.get(c.id) ?? null,
   }));
+}
+
+/** Para el selector "ver los chats de…" (Central/gerencia) y el de "Derivar". */
+export async function comercialesActivos(): Promise<{ id: string; nombre: string }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("perfiles").select("id, nombre").eq("rol", "comercial").eq("activo", true).order("nombre");
+  return data ?? [];
 }
 
 export interface ConversacionDetalle extends ConversacionWhatsapp {
