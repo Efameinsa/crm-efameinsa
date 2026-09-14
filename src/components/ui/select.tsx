@@ -6,7 +6,40 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
-const Select = SelectPrimitive.Root
+type ItemDeSelect = { value: unknown; label: React.ReactNode }
+
+// Base UI pinta en el gatillo el VALOR crudo (un uuid, «garantia») a menos que
+// el Root reciba `items` con la etiqueta de cada valor. Central lo vio al
+// derivar: elegía a un comercial y el combo mostraba su id. Ninguna pantalla
+// pasaba `items`, así que aquí se deducen de los <SelectItem> que hay adentro.
+function extraerItems(children: React.ReactNode, acumulado: ItemDeSelect[] = []): ItemDeSelect[] {
+  React.Children.forEach(children, (hijo) => {
+    if (!React.isValidElement(hijo)) return
+    const props = hijo.props as { value?: unknown; children?: React.ReactNode }
+    if (hijo.type === SelectItem) {
+      acumulado.push({ value: props.value, label: props.children })
+      return
+    }
+    if (props.children) extraerItems(props.children, acumulado)
+  })
+  return acumulado
+}
+
+function Select<Value, Multiple extends boolean | undefined = false>({
+  items,
+  children,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
+  const deducidos = React.useMemo(
+    () => items ?? extraerItems(children),
+    [items, children],
+  )
+  return (
+    <SelectPrimitive.Root items={deducidos} {...props}>
+      {children}
+    </SelectPrimitive.Root>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
