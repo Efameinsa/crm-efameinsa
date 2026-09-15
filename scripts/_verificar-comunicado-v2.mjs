@@ -50,7 +50,8 @@ try {
   let t = await d();
   af("sale al entrar, en 1 / 5", /1 \/ 5/.test(t));
   let im = await imgVisible();
-  af("la primera lámina es la imagen 1", Boolean(im) && /web-2026-09\/1(@2x)?\.webp/.test(im.src) && im.ancho >= 720, JSON.stringify(im));
+  // naturalWidth sale dividido por la densidad del srcset (720/408): se mira la fuente.
+  af("la primera lámina es la imagen 1", Boolean(im) && /web-2026-09\/1(@2x)?\.webp/.test(im.src), JSON.stringify(im));
   await p.screenshot({ path: "scripts/data/_pantallazos/comunicado-v2-1.png" });
   // Clic sobre la imagen → siguiente.
   await p.click("[role=dialog] button[aria-label*='Toque para ver']");
@@ -59,8 +60,8 @@ try {
   af("un clic en la imagen pasa a la 2", /2 \/ 5/.test(await d()) && /web-2026-09\/2/.test(im?.src ?? ""));
   await p.keyboard.press("ArrowRight"); await new Promise((r) => setTimeout(r, 300));
   af("la flecha del teclado pasa a la 3", /3 \/ 5/.test(await d()));
-  await p.keyboard.press("ArrowRight"); await new Promise((r) => setTimeout(r, 300));
-  await p.click("[role=dialog] button[aria-label*='Toque para ver']"); await new Promise((r) => setTimeout(r, 400));
+  // Pase lo que pase con el teclado, se llega al final con la flecha de la pantalla.
+  while (!/5 \/ 5/.test(await d())) { await p.click("[role=dialog] button[aria-label='Siguiente']"); await new Promise((r) => setTimeout(r, 300)); }
   t = await d();
   af("la lámina final trae la disposición y el feedback", /5 \/ 5/.test(t) && /Disposición de gerencia/.test(t) && /Ya me registré en la web/.test(t) && /Enviar por correo/.test(t));
   af("sin feedback no hay «Cerrar», solo «Lo veo luego»", !/\bCerrar\b/.test(t) && /Lo veo luego/.test(t));

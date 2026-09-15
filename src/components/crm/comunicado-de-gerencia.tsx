@@ -83,8 +83,10 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
       if (e.key === "ArrowRight") siguiente();
       if (e.key === "ArrowLeft") anterior();
     };
-    window.addEventListener("keydown", alTeclear);
-    return () => window.removeEventListener("keydown", alTeclear);
+    // En captura: el diálogo atrapa el foco y se queda con las teclas antes
+    // de que lleguen a window.
+    document.addEventListener("keydown", alTeclear, true);
+    return () => document.removeEventListener("keydown", alTeclear, true);
   }, [abierto, siguiente, anterior]);
 
   // Deslizar en el celular.
