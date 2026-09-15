@@ -188,3 +188,33 @@ export async function avisarAtencionProgramadaN8n(datos: AvisoAtencionProgramada
     console.error("avisos-n8n: no se pudo mandar la orden de trabajo:", e instanceof Error ? e.message : e);
   }
 }
+
+/**
+ * UN CORREO CUALQUIERA, por el flujo genérico del n8n propio («CRM · Correo
+ * genérico», webhook crm-correo). Nació para el feedback de la web que cada
+ * persona deja en el comunicado de gerencia (0233). Best-effort, como todo lo
+ * que sale por n8n: el CRM guarda el texto antes de intentar mandarlo.
+ */
+export async function enviarCorreoN8n(datos: {
+  para: string;
+  asunto: string;
+  html: string;
+  responderA?: string | null;
+}): Promise<{ error: string | null }> {
+  const base = process.env.N8N_LEAD_WEBHOOK_URL;
+  if (!base) return { error: "El correo no está configurado en este entorno" };
+  const url = base.replace("crm-lead-nuevo", "crm-correo");
+  try {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secreto: process.env.N8N_WEBHOOK_SECRET ?? "", para: datos.para, asunto: datos.asunto, html: datos.html, responder_a: datos.responderA ?? "" }),
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!r.ok) return { error: `El correo no salió (${r.status})` };
+    return { error: null };
+  } catch (e) {
+    console.error("avisos-n8n: no se pudo mandar el correo:", e instanceof Error ? e.message : e);
+    return { error: "El correo no salió: n8n no contestó" };
+  }
+}
