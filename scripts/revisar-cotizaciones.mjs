@@ -160,7 +160,7 @@ for (const [, cs] of huellas) {
 
 // ── El PDF que recibe el cliente ────────────────────────────────────────────
 mkdirSync(CARPETA, { recursive: true });
-const { data: link, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: "soypuromarketing@gmail.com" });
+const { data: link, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: "corporacionefameinsa.sa@gmail.com" });
 if (error) throw error;
 const jar = new Map();
 const ssr = createServerClient(url, anon, {
