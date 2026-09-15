@@ -85,9 +85,19 @@ export function ChecksPedidoCentral({
 
   if (aprobadoPostventa) {
     return (
-      <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 text-[11px] font-semibold text-[#1E7F4F]">
-        <Check className="size-3" /> En ejecución
-      </span>
+      <div className="flex flex-col items-start gap-1">
+        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 text-[11px] font-semibold text-[#1E7F4F]">
+          <Check className="size-3" /> En ejecución
+        </span>
+        {/* LA LIQUIDACIÓN NO DESAPARECE (Central, 15-09: Tunupa Lodge y Gary
+            Group). Postventa aprobó el pedido antes de que Central marcara
+            la liquidación, y con «En ejecución» el botón se iba: quedaban dos
+            pedidos sin liquidación registrada y sin forma de ponerla. El
+            check sigue disponible hasta que se marque. */}
+        {!liquidacionVista && (
+          <Chip activo={false} onClick={() => marcar("liquidacion")} disabled={pendiente} etiqueta="Liquidación" />
+        )}
+      </div>
     );
   }
 
