@@ -42,10 +42,15 @@ export default async function MarketingPage({
     cargarResumenMarketing(supabase, { desde, hasta, plataforma }),
     supabase.rpc("leads_por_origen", { p_desde: desde, p_hasta: hasta }),
   ]);
-  const [embudo, conversiones] = await Promise.all([
+  const [embudo, conversiones, { data: experimentoCrudo }] = await Promise.all([
     cargarEmbudoReal(supabase, resumen, { desde, hasta }),
     cargarConversionesDeCampana(supabase, desde, hasta),
+    supabase.rpc("experimento_web", { p_desde: desde, p_hasta: hasta }),
   ]);
+  interface FilaExperimento { variante: string; leads: number; con_telefono: number; contactados: number; calificados: number; cotizados: number; ganados: number; descartados: number }
+  const experimento = ((experimentoCrudo ?? []) as FilaExperimento[]).filter((f) => f.leads > 0);
+  const ETIQUETA_VARIANTE: Record<string, string> = { "tel-a": "A · celular opcional (como hoy)", "tel-b": "B · celular obligatorio" };
+  const pct = (n: number, d: number) => (d > 0 ? `${Math.round((n / d) * 100)} %` : "—");
   const porEstado = new Map<string, number>();
   for (const f of conversiones.filas) porEstado.set(f.estado, (porEstado.get(f.estado) ?? 0) + 1);
   const conGclid = conversiones.filas.filter((f) => (f.gclid || f.gbraid || f.wbraid) && ["calificado", "cotizado", "ganado"].includes(f.estado)).length;
@@ -207,6 +212,50 @@ export default async function MarketingPage({
               </p>
             )}
           </div>
+        </SeccionPanel>
+      )}
+
+      {/* EL EXPERIMENTO DEL CELULAR OBLIGATORIO (reunión 14-09; 0235). Carlos:
+          «de entrada obligatorio»; Santos: probar las dos versiones en
+          paralelo un mes. GA4 dice cuántos se registran; esto dice cuántos de
+          esos leads se pudieron trabajar de verdad, que es lo que decide. */}
+      {experimento.length > 0 && (
+        <SeccionPanel titulo="Experimento de la web: celular opcional (A) vs. obligatorio (B)">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Variante</TableHead>
+                  <TableHead className="text-right">Leads</TableHead>
+                  <TableHead className="text-right">Con celular</TableHead>
+                  <TableHead className="text-right">Contactados</TableHead>
+                  <TableHead className="text-right">Calificados</TableHead>
+                  <TableHead className="text-right">Cotizados</TableHead>
+                  <TableHead className="text-right">Ganados</TableHead>
+                  <TableHead className="text-right">Descartados</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {experimento.map((f) => (
+                  <TableRow key={f.variante}>
+                    <TableCell className="font-medium">{ETIQUETA_VARIANTE[f.variante] ?? f.variante}</TableCell>
+                    <TableCell className="text-right tabular-nums">{f.leads}</TableCell>
+                    <TableCell className="text-right tabular-nums">{f.con_telefono} <span className="text-muted-foreground">· {pct(f.con_telefono, f.leads)}</span></TableCell>
+                    <TableCell className="text-right tabular-nums">{f.contactados} <span className="text-muted-foreground">· {pct(f.contactados, f.leads)}</span></TableCell>
+                    <TableCell className="text-right tabular-nums">{f.calificados} <span className="text-muted-foreground">· {pct(f.calificados, f.leads)}</span></TableCell>
+                    <TableCell className="text-right tabular-nums">{f.cotizados} <span className="text-muted-foreground">· {pct(f.cotizados, f.leads)}</span></TableCell>
+                    <TableCell className="text-right tabular-nums">{f.ganados}</TableCell>
+                    <TableCell className="text-right tabular-nums">{f.descartados}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+            Cuántos se registran en cada variante lo dice GA4 (parámetro «variante»); acá se ve qué pasó con los que
+            llegaron: si B trae menos leads pero más contactables y cotizados, gana B. No se decide antes del mes ni
+            con menos de ~100 leads por variante.
+          </p>
         </SeccionPanel>
       )}
 

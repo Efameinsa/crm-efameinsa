@@ -82,7 +82,7 @@ function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, mod
   const q = supabase
     .from("leads")
     .select(
-      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, fuente, gclid, gbraid, wbraid, fbclid, utm_source, utm_medium, utm_campaign, utm_content, codigo_campania_wa, plataforma_campania_wa, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
+      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, fuente, gclid, gbraid, wbraid, fbclid, utm_source, utm_medium, utm_campaign, utm_content, experimento, codigo_campania_wa, plataforma_campania_wa, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
       { count: "exact" },
     )
     .eq("estado", "pendiente_triaje");
@@ -322,6 +322,13 @@ export default async function CentralPage() {
                     <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
                       <span>{lead.razon_social ?? "Sin razón social"} · {ETIQUETA_CANAL[lead.canal] ?? lead.canal}</span>
                       {origen && !origen.urgente && <ChipOrigen origen={origen} />}
+                      {/* El experimento A/B de la web (0235): con qué variante
+                          entró. Se lee, no se decide nada con esto. */}
+                      {lead.experimento && (
+                        <span className="rounded-full border border-dashed border-border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-muted-foreground" title="Variante del experimento de la web">
+                          {lead.experimento}
+                        </span>
+                      )}
                     </p>
                     {/* CÓMO CONTACTARLO, EN LA TARJETA (Central, reunión del
                         11-09): «ingresa del formulario de la web un prospecto

@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       utm_medium: d.utm_medium || null,
       utm_campaign: d.utm_campaign || null,
       utm_content: d.utm_content || null,
+      experimento: d.experimento || null,
       recibido_por: null,
     })
     .select("id, codigo")

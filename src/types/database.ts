@@ -120,6 +120,8 @@ export interface Lead {
   utm_medium: string | null;
   utm_campaign: string | null;
   utm_content: string | null;
+  /** Variante del experimento A/B de la web («tel-a» / «tel-b», 0235). */
+  experimento: string | null;
   nombre_contacto: string | null;
   telefono: string | null;
   telefono_normalizado: string | null;
