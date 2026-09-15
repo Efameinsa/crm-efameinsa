@@ -1,5 +1,4 @@
 import { FileDown } from "lucide-react";
-import { totalConIgv } from "@/lib/monto-cotizacion";
 import { createClient } from "@/lib/supabase/server";
 import { fechaLima, fechaCalendarioLarga } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -16,6 +15,16 @@ import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 // vuelo) y las del archivo de documentos de la empresa (PDF en el bucket
 // privado, migración 0048). Las del archivo llevan su marca para que no
 // parezca que se hicieron acá.
+//
+// LA COLUMNA «MONTO» ES EL VALOR DE VENTA, SIN IGV (Carlos, 14-09-2026: «en
+// la plataforma del comercial, todos los reportes que indican MONTO tienen
+// que ser valor de venta, sin sumar el IGV»). Antes esta fila mostraba el
+// total CON IGV (`totalConIgv`, decisión del 08-09 para el cotizador y el
+// PDF, donde el número sí tiene que calzar con lo que negoció el cliente) y
+// la fila de al lado —la del archivo— ya mostraba `monto_sin_igv`: dos
+// columnas «Monto» con criterios distintos en la misma tabla. Este reporte
+// no es el documento que ve el cliente, así que usa `cotizaciones.total`
+// directo, que la base ya guarda sin IGV.
 
 const TOPE = 60;
 
@@ -79,7 +88,7 @@ export async function CotizacionesDelPeriodo({
         serie: c.serie as string,
         cliente: op?.cuentas?.razon_social ?? "Cliente sin nombre",
         fecha: fechaLima(c.enviada_at as string),
-        monto: totalConIgv(c.total) ?? 0,
+        monto: c.total != null ? Number(c.total) : 0,
         moneda: c.moneda as string,
         estado: c.estado as string,
         href: `/api/cotizaciones/${c.id}/pdf`,
