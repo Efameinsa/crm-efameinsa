@@ -55,13 +55,16 @@ export default async function MisCierresPage({
   // aunque lo haya tecleado otra persona. RLS ya lo limita así para un
   // comercial (migración 0049); el filtro explícito es para que la pantalla
   // siga diciendo «mis» cuando la abre gerencia o postventa, que ven todo.
+  // Y desde la 0245 también lo que uno CREÓ sobre un cliente ajeno: el
+  // cierre de servicio de postventa (Ariana en PV1 vendiendo un embalaje a un
+  // cliente de C4). `es_de_quien_mira` es una columna calculada en la base.
   let consulta = supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, cliente_nombre, cliente_doc, monto_total, moneda, urgente, anulado_at, anulado_motivo, cuentas!inner(comercial_id)",
+      "id, codigo, serie, fecha, emitido_at, cliente_nombre, cliente_doc, monto_total, moneda, urgente, anulado_at, anulado_motivo",
       { count: "exact" },
     )
-    .eq("cuentas.comercial_id", perfil.id);
+    .eq("es_de_quien_mira", true);
 
   if (busqueda) {
     // Se busca como lo nombran ellas: el Nº del informe ("004-2026" o solo
@@ -88,8 +91,8 @@ export default async function MisCierresPage({
   const consultaBase = () =>
     supabase
       .from("informes_cierre")
-      .select("id, cuentas!inner(comercial_id)", { count: "exact", head: true })
-      .eq("cuentas.comercial_id", perfil.id);
+      .select("id", { count: "exact", head: true })
+      .eq("es_de_quien_mira", true);
   const [{ count: nBorradores }, { count: nAnulados }] = await Promise.all([
     contar((q) => q.is("emitido_at", null).is("anulado_at", null)),
     contar((q) => q.not("anulado_at", "is", null)),

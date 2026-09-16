@@ -1823,3 +1823,24 @@ política `actividades_postventa_insert` (0238) ya deja anotar a cualquiera del 
   CRM desde postventa1 (Cotizaciones) y sale con número propio y PDF de marca.
 - **Pendiente:** Lesly/Rubí deciden si el embalaje en jaula (USD 82,60) se cobra antes del
   despacho; el pedido sigue con condición 100 % antes de despachar sobre 22.600.
+
+## 16-09-2026 (15:40) — postventa hace su cierre en cualquier cartera (0245)
+
+Ariana (PV1) fue a cerrar el embalaje de Tunupa y le salió «new row violates row-level
+security policy for table "informes_cierre"»: desde la 0049 el cierre lo crea/edita/emite
+solo el comercial de la CARTERA (o gerencia), y postventa vende servicios sobre clientes de
+otros sin que la cartera se mueva (28-08). «Ventas emitidas» y «Nuevo informe» estaban en
+su pantalla sin poder hacer nada; Rubí lo resolvía en Word con los números apartados desde
+el 30.
+
+- **0245 (aplicada 15:38):** `puede_postventa()` crea el cierre de cualquier cliente y ese
+  cierre es de quien lo creó (edita, borra en borrador, emite —parche sobre la definición
+  viva de `emitir_informe`—, y lo lee aunque no sea del área ni de su cartera). El dueño de
+  la cartera lo sigue viendo. Columna calculada `es_de_quien_mira(informes_cierre)` para
+  «Mis cierres»: mío = lo creé o el cliente es de mi cartera (PostgREST no hace `or` con
+  una columna de la tabla embebida).
+- Probado con PV0 sobre un cliente PRUEBA de C0: crea, edita, sale en «mis», C0 lo ve,
+  emite (PRUEBA-901), y C0 sigue sin poder crear en cartera ajena
+  (`scripts/_probar-cierre-postventa-0245.mjs`, borra lo suyo).
+- La venta atada sigue naciendo del expediente («Ofrecer mantenimiento» → «Venta
+  ejecutada», 0148): el cierre solo no la crea.
