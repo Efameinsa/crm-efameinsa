@@ -1,6 +1,6 @@
 import { CambiarTipoAtencion } from "@/components/crm/cambiar-tipo-atencion";
 import Link from "next/link";
-import { ArrowLeft, Building2, Clock, FileText, Wrench } from "lucide-react";
+import { ArrowLeft, Building2, Clock, FileText, Wrench, Package } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -15,7 +15,7 @@ import { puedeVerPrecios } from "@/lib/postventa";
 import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { demora, ETIQUETA_CANAL, ETIQUETA_MOTIVO } from "@/lib/derivados-central";
-import { fechaHoraLima } from "@/lib/fechas";
+import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import {
   ETIQUETA_TIPO_ATENCION,
   PISTA_DE_TIPO,
@@ -40,7 +40,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   const { data } = await supabase
     .from("atenciones")
     .select(
-      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, etapas_omitidas, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial)",
+      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, etapas_omitidas, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, servicio_id, servicios_postventa(id, equipo, despachado_at, fecha_despacho, puesta_en_marcha), cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -48,6 +48,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   if (!data) {
     return <RegistroNoDisponible volverHref="/postventa/atenciones" volverTexto="Volver a las atenciones" />;
   }
+  const pedidoEnganchado = (data as unknown as { servicios_postventa: { id: string; equipo: string | null; despachado_at: string | null; fecha_despacho: string | null; puesta_en_marcha: string | null } | null }).servicios_postventa;
 
   const a = data as unknown as Atencion & {
     oportunidad_id: string | null;
@@ -202,6 +203,21 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
                 </span>
                 <CambiarTipoAtencion atencionId={a.id} tipo={a.tipo} etapa={a.etapa} />
               </span>
+              {/* LA PUESTA EN MARCHA ES DEL PEDIDO (Carlos, 15-09; 0244): «tiene que
+                  ser relacionado con el cliente máster». Se engancha sola al
+                  pedido vivo del cliente sin puesta en marcha, y al cerrar
+                  resuelta el pedido queda con su fecha. */}
+              {pedidoEnganchado && (
+                <Link
+                  href={`/postventa/pedidos/${pedidoEnganchado.id}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 hover:underline"
+                >
+                  <Package className="size-3" />
+                  Es la puesta en marcha del pedido
+                  {pedidoEnganchado.despachado_at ? ` despachado el ${fechaLima(pedidoEnganchado.despachado_at)}` : pedidoEnganchado.fecha_despacho ? ` programado para el ${fechaLima(pedidoEnganchado.fecha_despacho)}` : ""}
+                  {pedidoEnganchado.puesta_en_marcha ? " · ya con puesta en marcha" : " · al cerrar, el pedido queda con su fecha"}
+                </Link>
+              )}
               {a.cuentas?.num_doc && (
                 <span className="inline-flex items-center gap-1">
                   <Building2 className="size-3.5" /> RUC {a.cuentas.num_doc}

@@ -51,6 +51,15 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   const supabase = await createClient();
 
   const { data } = await supabase.from("servicios_postventa").select("*").eq("id", id).single();
+  // La atención de puesta en marcha enganchada a este pedido (0244).
+  const { data: atencionPuesta } = await supabase
+    .from("atenciones")
+    .select("id, etapa, programada_at, tecnico, cerrado_at, resultado")
+    .eq("servicio_id", id)
+    .eq("tipo", "puesta_en_marcha")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   if (!data) notFound();
 
   // Las cifras de la venta se tapan acá, en el servidor, antes de armar la
@@ -279,6 +288,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <PedidoPostventa
           servicio={servicio}
+          atencionPuesta={atencionPuesta as { id: string; etapa: string; programada_at: string | null; tecnico: string | null; cerrado_at: string | null } | null}
           verPrecios={verPrecios}
           puedeDefinirCondicion={perfil.rol === "gerencia" || perfil.rol === "admin" || perfil.rol === "operaciones"}
         />

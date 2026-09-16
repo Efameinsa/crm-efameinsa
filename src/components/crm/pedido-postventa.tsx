@@ -68,6 +68,8 @@ type Formulario =
 
 export function PedidoPostventa({
   servicio,
+  /** La atención de puesta en marcha enganchada a este pedido (0244), si hay. */
+  atencionPuesta = null,
   /**
    * Si esta pantalla puede nombrar plata. En falso —el área de postventa— el
    * `servicio` llega sin montos desde el servidor, así que acá no hay cifra
@@ -83,6 +85,7 @@ export function PedidoPostventa({
   puedeDefinirCondicion = false,
 }: {
   servicio: ServicioPostventa;
+  atencionPuesta?: { id: string; etapa: string; programada_at: string | null; tecnico: string | null; cerrado_at: string | null } | null;
   verPrecios?: boolean;
   puedeDefinirCondicion?: boolean;
 }) {
@@ -250,7 +253,18 @@ export function PedidoPostventa({
           </span>
         );
       case "puesta":
-        return <BotonPaso onClick={() => setForm({ tipo: "puesta" })}>Llenar informe</BotonPaso>;
+        return (
+          <span className="flex flex-wrap items-center gap-1.5">
+            {atencionPuesta && !atencionPuesta.cerrado_at && (
+              <a href={`/postventa/atenciones/${atencionPuesta.id}`} className="text-xs font-medium text-primary hover:underline">
+                {atencionPuesta.programada_at
+                  ? `Técnico programado: ${fechaHoraLima(atencionPuesta.programada_at)}${atencionPuesta.tecnico ? ` · ${atencionPuesta.tecnico}` : ""}`
+                  : "Atención de puesta en marcha abierta, sin programar"}
+              </a>
+            )}
+            <BotonPaso onClick={() => setForm({ tipo: "puesta" })}>Llenar informe</BotonPaso>
+          </span>
+        );
       case "cerrado":
         return <BotonPaso onClick={() => setForm({ tipo: "cerrar" })}>Cerrar pedido</BotonPaso>;
       default:
