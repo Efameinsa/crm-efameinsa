@@ -23,6 +23,9 @@ export interface VisitaFila {
   cancelada_motivo: string | null;
   cuenta_id: string | null;
   showroom?: boolean;
+  prender_tv?: boolean;
+  infocorp?: boolean;
+  cotizacion_ref?: string | null;
   registradoPor: string;
 }
 
@@ -103,7 +106,10 @@ export function ListaVisitasPlanta({ visitas, hoy, pasadas = false }: { visitas:
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {v.motivo}
+                  {v.cotizacion_ref && <span className="ml-1.5 text-[11px] text-foreground">· cot. {v.cotizacion_ref}</span>}
                   {v.showroom && <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">abrir la lavandería</span>}
+                  {v.prender_tv && <span className="ml-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">prender TV</span>}
+                  {v.infocorp && <span className="ml-1 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800">Infocorp</span>}
                 </p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                   Registró {v.registradoPor}
@@ -153,7 +159,8 @@ export function ListaVisitasPlanta({ visitas, hoy, pasadas = false }: { visitas:
               <tr><th>Empresa</th><td>{imprimiendo.empresa}{imprimiendo.ruc ? ` · RUC ${imprimiendo.ruc}` : ""}</td></tr>
               <tr><th>Persona</th><td>{imprimiendo.persona}{imprimiendo.dni ? ` · DNI ${imprimiendo.dni}` : ""}</td></tr>
               {imprimiendo.telefono && <tr><th>Teléfono</th><td>{imprimiendo.telefono}</td></tr>}
-              <tr><th>Motivo</th><td>{imprimiendo.motivo}{imprimiendo.showroom ? " · Aperturar la lavandería (showroom)" : ""}</td></tr>
+              {imprimiendo.cotizacion_ref && <tr><th>N° cotización</th><td>{imprimiendo.cotizacion_ref}</td></tr>}
+              <tr><th>Motivo</th><td>{imprimiendo.motivo}{imprimiendo.showroom ? " · Abrir lavandería (showroom)" : ""}{imprimiendo.prender_tv ? " · Prender TV" : ""}</td></tr>
               <tr><th>Registró</th><td>{imprimiendo.registradoPor}</td></tr>
             </tbody>
           </table>

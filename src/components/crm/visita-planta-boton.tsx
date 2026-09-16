@@ -45,18 +45,21 @@ export function VisitaPlantaBoton({
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const [f, setF] = useState({ empresa, ruc: ruc ?? "", persona: "", dni: "", telefono: "", motivo: "", fecha: hoy, hora: "10:00" });
   const [showroom, setShowroom] = useState(false);
+  const [prenderTv, setPrenderTv] = useState(false);
+  const [infocorp, setInfocorp] = useState(false);
+  const [cotizacion, setCotizacion] = useState("");
   const campo = (k: keyof typeof f) => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value })) });
 
   function enviar() {
     startTransition(async () => {
-      const r = await registrarVisitaPlanta({ cuentaId, oportunidadId, ...f, showroom });
+      const r = await registrarVisitaPlanta({ cuentaId, oportunidadId, ...f, showroom, prenderTv, infocorp, cotizacionRef: cotizacion });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
       }
       toast.success(
         r.correoEnviado
-          ? "Visita registrada. Central tiene el aviso y el correo salió a Central, Logística y gerencia."
+          ? "Visita registrada. Central tiene el aviso y el correo salió a Central, Contabilidad, Logística, Almacén y gerencia."
           : "Visita registrada. Central ya tiene el aviso para imprimirlo a vigilancia.",
       );
       setAbierto(false);
@@ -91,7 +94,7 @@ export function VisitaPlantaBoton({
           <DialogTitle>Visita a la planta</DialogTitle>
           <DialogDescription>
             Lo que vigilancia necesita en la puerta. Central recibe el aviso y lo imprime; el correo con la tabla sale a
-            Central, Logística y gerencia, como el formato de siempre.
+            Central, Contabilidad, Logística, Sistemas, Almacén y gerencia, como el de siempre.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
@@ -127,10 +130,25 @@ export function VisitaPlantaBoton({
             </Label>
             <Input {...campo("motivo")} placeholder="ej. ver su máquina en mantenimiento y pagar el saldo" />
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={showroom} onChange={(e) => setShowroom(e.target.checked)} className="size-4" />
-            Hay que abrir la lavandería (showroom) para esta visita
-          </label>
+          <div className="grid gap-1">
+            <Label className="text-xs">N° de cotización (si se deja vacío, va la última que se le envió)</Label>
+            <Input value={cotizacion} onChange={(e) => setCotizacion(e.target.value)} placeholder="ej. 741-26" />
+          </div>
+          <div className="grid gap-1 rounded-md border border-border p-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Lo que hay que preparar</p>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={showroom} onChange={(e) => setShowroom(e.target.checked)} className="size-4" />
+              Abrir lavandería (showroom)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={prenderTv} onChange={(e) => setPrenderTv(e.target.checked)} className="size-4" />
+              Prender TV
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={infocorp} onChange={(e) => setInfocorp(e.target.checked)} className="size-4" />
+              Se solicita Infocorp (a Contabilidad)
+            </label>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-1">
               <Label className="text-xs">

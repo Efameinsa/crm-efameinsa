@@ -29,9 +29,26 @@ export async function registrarVisitaPlanta(datos: {
   hora?: string | null;
   /** Hay que abrir la lavandería (showroom) para la visita (0241). */
   showroom?: boolean;
+  /** Lo demás que pide el correo de Katerine (0243): la cotización, el TV y el Infocorp. */
+  cotizacionRef?: string | null;
+  prenderTv?: boolean;
+  infocorp?: boolean;
 }): Promise<{ error: string | null; id?: string; correoEnviado?: boolean }> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
+  // Si no escribieron la cotización, va la última que se le envió a ese cliente.
+  let cotizacionRef = datos.cotizacionRef?.trim() || "";
+  if (!cotizacionRef && datos.cuentaId) {
+    const { data: ult } = await supabase
+      .from("cotizaciones")
+      .select("codigo, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id)")
+      .eq("oportunidades.cuenta_id", datos.cuentaId)
+      .not("enviada_at", "is", null)
+      .order("enviada_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    cotizacionRef = (ult?.codigo as string | null) ?? "";
+  }
   const { data, error } = await supabase.rpc("registrar_visita_planta", {
     p_cuenta: datos.cuentaId,
     p_empresa: datos.empresa.trim(),
@@ -44,6 +61,9 @@ export async function registrarVisitaPlanta(datos: {
     p_hora: datos.hora || null,
     p_oportunidad: datos.oportunidadId ?? null,
     p_showroom: datos.showroom === true,
+    p_cotizacion_ref: cotizacionRef || null,
+    p_prender_tv: datos.prenderTv === true,
+    p_infocorp: datos.infocorp === true,
   });
   if (error) return { error: limpiar(error.message) };
   revalidatePath("/central/visitas");
@@ -55,7 +75,11 @@ export async function registrarVisitaPlanta(datos: {
   // queda registrada igual y la campanita de Central ya sonó.
   let correoEnviado = false;
   if (!perfil.es_prueba) {
-    const para = process.env.AVISOS_VISITA_PARA ?? "central@efameinsa.com, logistica@efameinsa.com, crcabrejos@efameinsa.com, kycabrejos@efameinsa.com";
+    // Los destinatarios del correo de Katerine (16-09): Central, Contabilidad,
+    // Lesly, Sistemas, Almacén y gerencia (crcabrejos y kycabrejos).
+    const para =
+      process.env.AVISOS_VISITA_PARA ??
+      "central@efameinsa.com, contabilidad1@efameinsa.com, logistica2@efameinsa.com, sistemas@efameinsa.com, almacen@efameinsa.com, almacen1@efameinsa.com, crcabrejos@efameinsa.com, kycabrejos@efameinsa.com";
     const esc = (v: string | null | undefined) => (v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
     const fecha = new Date(datos.fecha + "T12:00:00-05:00").toLocaleDateString("es-PE", { timeZone: "America/Lima" });
     const hora = datos.hora ? datos.hora.slice(0, 5) : "por confirmar";
@@ -63,15 +87,22 @@ export async function registrarVisitaPlanta(datos: {
     const th = (x: string) => `<th style="border:1px solid #444;padding:6px 8px;background:#f2f2f2">${x}</th>`;
     const r = await enviarCorreoN8n({
       para,
-      asunto: `VISITA ${datos.showroom ? "SHOWROOM" : "A PLANTA"} - ${esc(datos.persona).toUpperCase()} - ${esc(datos.empresa).toUpperCase()}`,
+      asunto: datos.showroom
+        ? `VISITA SHOWROOM-PROSPECTO-${esc(datos.persona).toUpperCase()}`
+        : `VISITA A PLANTA-${esc(datos.empresa).toUpperCase()}-${esc(datos.persona).toUpperCase()}`,
       html:
         `<div style="font-family:Calibri,Arial,sans-serif;font-size:14px">` +
-        `<p>Buen día, para informar la siguiente visita:</p>` +
-        `<table style="border-collapse:collapse"><tr>${th("FECHA")}${th("HORA")}${th("DATOS DEL PROSPECTO")}${th("VISITANTES")}${th("OBSERVACIÓN")}</tr>` +
-        `<tr>${td(fecha)}${td(hora)}${td(`<b>${esc(datos.empresa)}</b>${datos.ruc ? `<br>RUC ${esc(datos.ruc)}` : ""}${datos.telefono ? `<br>Tel. ${esc(datos.telefono)}` : ""}`)}` +
-        `${td(`${esc(datos.persona)}${datos.dni ? `<br>DNI: ${esc(datos.dni)}` : ""}`)}${td(esc(datos.motivo))}</tr></table>` +
-        (datos.showroom ? `<p style="background:#fff2a8;display:inline-block;padding:2px 4px"><b>Por favor aperturar la lavandería.</b></p>` : "") +
-        `<p>Saludos cordiales.</p>` +
+        `<p>Buenos días, para informar la siguiente visita:</p>` +
+        `<table style="border-collapse:collapse"><tr>${th("FECHA")}${th("HORA")}${th("PROSPECTO")}${th("N° COTIZACIÓN")}${th("OBSERVACIÓN")}</tr>` +
+        `<tr>${td(`<span style="background:#ffff00">${fecha}</span>`)}${td(`<span style="color:#c00">${hora}</span>`)}` +
+        `${td(`${datos.dni ? `DNI ${esc(datos.dni)} - ` : datos.ruc ? `RUC ${esc(datos.ruc)} - ` : ""}${esc(datos.persona)}<br><b>${esc(datos.empresa)}</b>${datos.telefono ? `<br>Tel. ${esc(datos.telefono)}` : ""}`)}` +
+        `${td(cotizacionRef ? `N° ${esc(cotizacionRef)}` : "—")}${td(esc(datos.motivo))}</tr></table>` +
+        `<p>` +
+        (datos.prenderTv ? `<span style="background:#ffff00">Prender TV</span><br>` : "") +
+        (datos.showroom ? `<span style="background:#ffff00">Abrir lavandería</span><br>` : "") +
+        (datos.infocorp ? `Se solicita Infocorp: ${esc(datos.empresa)}${datos.ruc ? ` (RUC ${esc(datos.ruc)})` : datos.dni ? ` (DNI ${esc(datos.dni)})` : ""}<br>` : "") +
+        `</p>` +
+        `<p>Gracias,</p>` +
         `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`,
       responderA: null,
     });
