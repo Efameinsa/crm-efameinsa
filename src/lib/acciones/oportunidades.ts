@@ -5,6 +5,7 @@ import { ETAPAS_MANUALES } from "@/lib/etapas-oportunidad";
 import { createClient } from "@/lib/supabase/server";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { marcarLeidasDeOportunidad } from "@/lib/acciones/notificaciones";
+import { avisarGestionRegistradaEducanet, avisarLeadRespondidoEducanet } from "@/lib/avisos-educanet";
 import type { EtapaOportunidad } from "@/types/database";
 
 const TIPOS_ACTIVIDAD = [
@@ -132,6 +133,44 @@ export async function registrarActividad(datos: {
   // aunque la persona haya entrado por la agenda y nunca haya tocado la
   // campana (reclamo de Brenda del 29-08).
   await marcarLeidasDeOportunidad(datos.oportunidadId);
+
+  // Aviso a Educanet (best-effort, no bloquea el registro si falla).
+  const { data: perfilActor } = await supabase
+    .from("perfiles")
+    .select("email_contacto")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (perfilActor?.email_contacto) {
+    await avisarGestionRegistradaEducanet({ email: perfilActor.email_contacto, tipoGestion: datos.tipo });
+
+    // Si esta es la PRIMERA gestion de la oportunidad y nacio de un lead
+    // derivado por Central, se mide el tiempo de respuesta (objetivo: 10 min).
+    const { count } = await supabase
+      .from("actividades")
+      .select("id", { count: "exact", head: true })
+      .eq("oportunidad_id", datos.oportunidadId);
+
+    if (count === 1) {
+      const { data: op } = await supabase
+        .from("oportunidades")
+        .select("lead_id")
+        .eq("id", datos.oportunidadId)
+        .maybeSingle();
+      if (op?.lead_id) {
+        const { data: lead } = await supabase
+          .from("leads")
+          .select("asignado_at")
+          .eq("id", op.lead_id)
+          .maybeSingle();
+        if (lead?.asignado_at) {
+          const minutos = Math.round((Date.now() - new Date(lead.asignado_at).getTime()) / 60000);
+          if (minutos >= 0) {
+            await avisarLeadRespondidoEducanet({ email: perfilActor.email_contacto, minutos });
+          }
+        }
+      }
+    }
+  }
 
   revalidatePath("/comercial");
   revalidatePath("/comercial/agenda");
