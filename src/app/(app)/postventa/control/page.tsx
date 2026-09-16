@@ -55,18 +55,22 @@ export default async function ControlPedidosPage({
   const perfil = await requerirPerfil();
   const supabase = await createClient();
 
-  // Solo los pedidos del flujo digital en curso: la cola vieja del Excel se
-  // trabaja en Atenciones → Despachos, no acá.
+  // TAMBIÉN LOS PEDIDOS ANTERIORES AL CIRCUITO (Carlos, 15-09). Hasta hoy acá
+  // entraban solo los del flujo digital (con cierre en el CRM) y la cola vieja
+  // del Excel vivía escondida en Atenciones → Despachos del Excel. Por eso
+  // Suyón, Choquehuanca y los equipos anteriores de Bungarena «no figuraban en
+  // Pedidos» aunque estaban cargados desde el 25-08. Un pedido vivo es un
+  // pedido vivo, venga de donde venga; lo único que sigue afuera es lo que
+  // Central todavía no lanzó (0237).
   const { data } = await supabase
     .from("servicios_postventa")
     .select("*")
     .eq("completado", false)
     .is("cerrado_at", null)
-    .not("informe_cierre_id", "is", null)
-    // Sin el check de Central todavía no es trabajo del área (0237).
-    .not("pedido_ejecutado_at", "is", null)
-    .order("pedido_ejecutado_at", { ascending: false })
-    .limit(80);
+    .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
+    .order("pedido_ejecutado_at", { ascending: false, nullsFirst: false })
+    .order("fecha_confirmacion", { ascending: false, nullsFirst: false })
+    .limit(250);
 
   const verPrecios = puedeVerPrecios(perfil);
 
@@ -90,7 +94,8 @@ export default async function ControlPedidosPage({
       id: s.id,
       fase,
       cliente: (s.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, ""),
-      equipo: s.equipo ?? "Sin equipo",
+      // El pedido anterior al circuito se reconoce de un vistazo (0239).
+      equipo: (s.informe_cierre_id ? "" : "【anterior al circuito】 ") + (s.equipo ?? "Sin equipo"),
       hechos: avance.hechos,
       total: avance.total,
       pct: Math.round((avance.hechos / avance.total) * 100),
