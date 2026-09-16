@@ -192,7 +192,7 @@ export default async function MacroPostventaPage() {
                     <Link href={`/postventa/pedidos/${s.id}`} className="font-semibold text-foreground hover:underline">
                       {s.cuentas?.razon_social ?? s.cliente_texto ?? "Cliente sin nombre"}
                     </Link>
-                    <span className="block truncate text-xs text-muted-foreground">{s.equipo}{s.despacho_nota ? ` · ${s.despacho_nota}` : ""}</span>
+                    <span className="line-clamp-2 break-words text-xs text-muted-foreground">{s.equipo}{s.despacho_nota ? ` · ${s.despacho_nota}` : ""}</span>
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {contacto ? (
