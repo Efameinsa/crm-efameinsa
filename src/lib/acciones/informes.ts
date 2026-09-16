@@ -726,6 +726,8 @@ export interface BorradorInforme {
   cuentaId: string;
   /** El comercial de la cartera: es quien lo edita, además de backoffice (política informes_edita). */
   comercialId: string | null;
+  /** Quien lo tecleó: desde la 0245 postventa crea cierres en cartera ajena y ese cierre es suyo. */
+  creadoPor: string | null;
   guardadoAt: string;
   serie: "EFAMEINSA" | "OPEN";
   presupuestoRef: string | null;
@@ -794,6 +796,7 @@ export async function cargarBorradorInforme(
       id: i.id,
       cuentaId: i.cuenta_id,
       comercialId: (i.cuentas as unknown as { comercial_id: string | null } | null)?.comercial_id ?? null,
+      creadoPor: i.creado_por ?? null,
       guardadoAt: i.updated_at ?? i.created_at,
       serie: i.serie === "OPEN" ? "OPEN" : "EFAMEINSA",
       presupuestoRef: i.presupuesto_ref ?? null,

@@ -30,8 +30,10 @@ export default async function EditarBorradorCierrePage({ params }: { params: Pro
 
   const { borrador } = resultado;
   // Lo edita el comercial de la cartera o backoffice —lo mismo que exige la
-  // política `informes_edita` (0049)—. Central lo ve en su pantalla, no acá.
-  const puedeEditar = borrador.comercialId === perfil.id || ["gerencia", "admin", "operaciones"].includes(perfil.rol);
+  // política `informes_edita` (0049)— y, desde la 0245, quien lo creó desde
+  // postventa sobre un cliente ajeno. Central lo ve en su pantalla, no acá.
+  const puedeEditar =
+    borrador.comercialId === perfil.id || borrador.creadoPor === perfil.id || ["gerencia", "admin", "operaciones"].includes(perfil.rol);
   if (!puedeEditar) redirect(`/comercial/cierres/${id}`);
   // El prellenado va con la sesión del usuario: si la cuenta no es suya, RLS
   // no devuelve nada y la página no existe.

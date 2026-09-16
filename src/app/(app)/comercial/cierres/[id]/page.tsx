@@ -122,12 +122,15 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
 
   // Un BORRADOR se sigue editando sin código (Santos, 03-09): lo edita el
   // comercial de la cartera o backoffice, que es lo mismo que exige la
-  // política `informes_edita` (0049). Central solo lo mira.
+  // política `informes_edita` (0049), y desde la 0245 también quien lo creó
+  // desde postventa sobre un cliente ajeno (`informes_edita_postventa`).
+  // Central solo lo mira.
   const cuentaDelInforme = informe.cuentas as unknown as { comercial_id: string | null } | null;
+  const esDeQuienMira = cuentaDelInforme?.comercial_id === perfil.id || informe.creado_por === perfil.id;
   const puedeEditarBorrador =
     informe.emitido_at == null &&
     informe.anulado_at == null &&
-    (cuentaDelInforme?.comercial_id === perfil.id || ["gerencia", "admin", "operaciones"].includes(perfil.rol));
+    (esDeQuienMira || ["gerencia", "admin", "operaciones"].includes(perfil.rol));
 
   return (
     <div className="space-y-3">
@@ -148,7 +151,7 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
         puedePedirAnulacion={
           informe.emitido_at != null &&
           informe.anulado_at == null &&
-          (cuentaDelInforme?.comercial_id === perfil.id || ["gerencia", "admin"].includes(perfil.rol))
+          (esDeQuienMira || ["gerencia", "admin"].includes(perfil.rol))
         }
       />
     </div>
