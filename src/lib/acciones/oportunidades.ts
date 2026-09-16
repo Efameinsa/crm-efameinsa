@@ -35,7 +35,7 @@ export async function registrarActividad(datos: {
   // Metadatos de archivos YA subidos al bucket 'adjuntos' por el cliente
   // (reunión 19-08: PDF/Word/fotos visibles en la ficha). Máximo 5.
   adjuntos?: { path: string; nombre: string; tipo: string; tamano: number }[];
-}): Promise<{ error: string | null }> {
+}): Promise<{ error: string | null; aviso?: string }> {
   if (!TIPOS_ACTIVIDAD.includes(datos.tipo)) {
     return { error: "Tipo de actividad inválido" };
   }
@@ -96,6 +96,7 @@ export async function registrarActividad(datos: {
   // (reprogramarAccion) o el rechazo.
   const accion = datos.proximaAccion.trim();
   const parche: Record<string, string | null> = {};
+  let aviso: string | undefined;
   if (datos.limpiarProximaAccion) {
     parche.proxima_accion = null;
     parche.proxima_accion_at = null;
@@ -117,7 +118,13 @@ export async function registrarActividad(datos: {
       .select("id");
     if (errorOportunidad) return { error: errorOportunidad.message };
     if (!data || data.length === 0) {
-      return { error: "La gestión quedó registrada, pero solo el dueño de la oportunidad puede programar la próxima acción" };
+      // LA GESTIÓN YA ESTÁ GUARDADA: esto no puede volver como error. Antes
+      // volvía, y el cuadro —que solo se limpia cuando no hay error— quedaba
+      // con el texto puesto invitando a guardar otra vez la misma llamada.
+      // Pasa cuando anota alguien del área que no es el dueño (0238): la
+      // gestión entra, pero la agenda del expediente es de su dueño. Lo que
+      // se comprometió queda igual en el historial, en la copia de la gestión.
+      aviso = `La gestión quedó registrada. La próxima acción no entró a la agenda porque el expediente es de ${await duenoDelExpediente(supabase, datos.oportunidadId)}: queda anotada en la gestión.`;
     }
   }
 
@@ -129,7 +136,7 @@ export async function registrarActividad(datos: {
   revalidatePath("/comercial");
   revalidatePath("/comercial/agenda");
   revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
-  return { error: null };
+  return aviso ? { error: null, aviso } : { error: null };
 }
 
 // Interés de compra (INT_COMPRA del Excel original), monto estimado y

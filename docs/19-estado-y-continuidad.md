@@ -1798,3 +1798,28 @@ Producción: `0e8dc89`. Caso 495-26 (V Y P ICE): la salida pedía autorización 
 ## 14-09-2026 (tarde) — el renglón se pacta CON IGV incluido (0233)
 
 Producción: `1eb55d2`. Audio de Carlos en Aprobaciones: la venta se cerró en 2 × 3.600 + 1.600 = 8.800 con IGV y el neto tipeado a mano dio 8.799,99. Ahora: check «incluye IGV» por renglón (cotizador) y pastilla «incl. IGV» (informe); `cotizacion_items.precio_con_igv`; la base calcula el neto (parche con conteo sobre crear/editar_cotizacion); `src/lib/igv.ts` (`totalesConIgv`: total = suma de importes brutos, IGV = diferencia; sin renglones pactados, igual que antes) la usan cotizador, PDF, informe y su PDF; `importe_informe_con_igv()` para `corregir_informe_emitido`; tolerancia USD 1 contra lista en esos renglones; Aprobaciones muestra «con IGV». Regla de uso (Carlos): cotizar neto; el check solo al final, ya cerrada la venta. Pruebas: 478 unitarias + 21 de punta a punta (`scripts/_probar-precio-con-igv.mjs`, capturas en Downloads/pruebas-precio-con-igv). Mensaje para Carlos en Downloads/mensaje-carlos-check-incluye-igv.md.
+
+## 16-09-2026 (tarde) — el caso Tunupa Lodge: la 0238 abrió la base pero no la pantalla
+
+Ariana (PV1, `postventa1@`) tenía que anotar en postventa lo del embalaje de la UY240 de
+INVERSIONES TUNUPA LODGE (cierre 020-2026 OPEN, pedido de Rubí, pago 100 % confirmado el
+16-09 17:34, despacho a Marvisur el 17/09). Su contacto PRO-09414 Central lo derivó a PV
+(Rubí), y al entrar por «Registrar seguimiento» la pantalla del expediente le decía «Este
+expediente es de PV… pídalo con código»: `puedeAnotar = esMio || gerencia`, aunque la
+política `actividades_postventa_insert` (0238) ya deja anotar a cualquiera del área.
+
+- **La gestión quedó registrada con la sesión real de PV1** (`scripts/_tunupa-registrar-pv1.mjs`,
+  actividad `573b1177`, PDF Presu_624-26 adjunto en `adjuntos/0f7cacb2…`). Rubí la ve en
+  su expediente con el «Sigue: comunicar el costo de la jaula de madera antes de embalar».
+- **Arreglo (sin migración):** la pantalla deja anotar a quien puede postventa sobre un
+  expediente con `tipo_postventa`; avisa antes de escribir que la agenda es del dueño; y
+  `registrarActividad` devuelve `aviso` (no `error`) cuando la gestión entró pero el
+  `update` de la próxima acción lo filtró la RLS — como error, el cuadro no se limpiaba y
+  la misma llamada se guardaba dos veces. Probado con PV2 sobre un expediente de PV0
+  (`scripts/_probar-anotar-companera.mjs`, borra lo suyo).
+- **El 624-26 es legítimo:** OPEN 600-649 es el bloque que Carlos reservó el 04-09 para
+  las cotizaciones de postventa a mano; no choca con la serie del CRM (va por 722). Pero
+  desde que el cotizador tiene «línea escrita a mano», ese embalaje se puede cotizar en el
+  CRM desde postventa1 (Cotizaciones) y sale con número propio y PDF de marca.
+- **Pendiente:** Lesly/Rubí deciden si el embalaje en jaula (USD 82,60) se cobra antes del
+  despacho; el pedido sigue con condición 100 % antes de despachar sobre 22.600.

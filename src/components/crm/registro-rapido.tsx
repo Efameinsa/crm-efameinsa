@@ -97,12 +97,19 @@ export function RegistroRapido({
   resultados = [],
   motivos = [],
   abiertoAlInicio = false,
+  agendaDeOtro = null,
 }: {
   oportunidadId: string;
   resultados?: ResultadoGestion[];
   motivos?: MotivoRechazo[];
   /** Llegó desde «Registrar seguimiento» (0238): el cuadro ya viene abierto. */
   abiertoAlInicio?: boolean;
+  /**
+   * Quien anota es del área pero el expediente es de otra persona (0238: el
+   * teléfono lo contesta quien esté). La gestión entra; la agenda del
+   * expediente sigue siendo de su dueño, y se dice antes de escribir.
+   */
+  agendaDeOtro?: string | null;
 }) {
   const reducido = useReducedMotion();
   const [expandido, setExpandido] = useState(abiertoAlInicio);
@@ -228,7 +235,7 @@ export function RegistroRapido({
         limpiarProximaAccion: cierra,
         adjuntos,
       };
-      let r1: { error: string | null };
+      let r1: { error: string | null; aviso?: string };
       try {
         // EL RECHAZO VIAJA CON LA GESTIÓN (10-09). Antes eran dos llamadas
         // desde el navegador y entre las dos cabía una caída de señal: diez
@@ -282,6 +289,11 @@ export function RegistroRapido({
       }
       if (r1.error) {
         toast.error(r1.error);
+        return;
+      }
+      if (r1.aviso) {
+        toast.info(r1.aviso, { duration: 8000 });
+        limpiar();
         return;
       }
       toast.success(
@@ -461,6 +473,11 @@ export function RegistroRapido({
           {!cierra && (
             <Paso n="3" titulo="¿Qué sigue?">
               <div className="space-y-2">
+                {agendaDeOtro && (
+                  <p className="rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+                    Este expediente es de {agendaDeOtro}. Lo que anote queda en el historial del cliente; la próxima acción no entra a la agenda del expediente —esa la maneja su dueño— y queda escrita en la gestión.
+                  </p>
+                )}
                 {/* Las cuatro acciones de siempre, de un toque. 02-09: en «Mi
                     día» de Katerine 19 de 30 gestiones de hoy tenían fecha
                     pero no decían QUÉ hacer, porque escribirlo cuesta más que

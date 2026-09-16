@@ -83,7 +83,7 @@ export default async function OportunidadDetallePage({
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, recibido_at, nombre_contacto, telefono, email), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, tipo_postventa, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, recibido_at, nombre_contacto, telefono, email), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -313,7 +313,15 @@ export default async function OportunidadDetallePage({
   } | null;
   const esMio = oportunidad.comercial_id === perfilQueMira.id;
   const comoGerenciaAqui = ["gerencia", "admin"].includes(perfilQueMira.rol);
-  const puedeAnotar = esMio || comoGerenciaAqui;
+  // EL TELÉFONO LO CONTESTA QUIEN ESTÉ. Desde la 0238 (reunión del 15-09)
+  // cualquiera del área anota en un expediente de postventa —política
+  // `actividades_postventa_insert`—, pero esta pantalla seguía mirando solo al
+  // dueño: Ariana (PV1) entraba por «Registrar seguimiento» al expediente de
+  // Rubí con Tunupa Lodge y se topaba con «Este expediente es de PV… pídalo
+  // con código», que era justo lo que la 0238 había quitado (16-09).
+  const comoCompaneraDeArea =
+    Boolean(perfilQueMira.es_postventa || perfilQueMira.hace_postventa) && oportunidad.tipo_postventa != null;
+  const puedeAnotar = esMio || comoGerenciaAqui || comoCompaneraDeArea;
   // La lista solo hace falta si el aviso va a salir: sin ella el campo del
   // código sería un candado que no dice dónde está la llave (27-08).
   const supervisores = puedeAnotar ? [] : await cargarSupervisores(supabase);
@@ -615,7 +623,17 @@ export default async function OportunidadDetallePage({
                 para pedirlo con código de supervisor. */}
             {puedeAnotar ? (
               <>
-                <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} motivos={motivos ?? []} abiertoAlInicio={abrirGestion} />
+                <RegistroRapido
+                  oportunidadId={oportunidad.id}
+                  resultados={resultados ?? []}
+                  motivos={motivos ?? []}
+                  abiertoAlInicio={abrirGestion}
+                  agendaDeOtro={
+                    comoCompaneraDeArea && !esMio && !comoGerenciaAqui
+                      ? `${duenoExpediente?.codigo_comercial ? `${duenoExpediente.codigo_comercial} · ` : ""}${duenoExpediente?.nombre ?? "otra persona"}`
+                      : null
+                  }
+                />
                 {/* Justo debajo de donde se anota la llamada, porque es ahí donde
                     se descubre: el 29-08 Brenda escribió «no desea equipos… desea
                     mmto, repuestos, se le indicó que se va a derivar con
