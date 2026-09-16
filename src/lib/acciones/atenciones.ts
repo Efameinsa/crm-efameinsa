@@ -352,10 +352,13 @@ async function avisarProgramacionAlAlmacen(
   try {
     const { data: a } = await supabase
       .from("atenciones")
-      .select("id, tipo, detalle, en_garantia, equipo_id, equipo_texto, cliente_texto, cuentas(razon_social, num_doc)")
+      .select("id, tipo, detalle, en_garantia, equipo_id, equipo_texto, cliente_texto, es_prueba, cuentas(razon_social, num_doc)")
       .eq("id", atencionId)
       .maybeSingle();
     if (!a) return;
+    // Desde el 16-09 el correo va al almacén de verdad: las atenciones de la
+    // serie de práctica no le llegan.
+    if (a.es_prueba) return;
     const cuenta = a.cuentas as unknown as { razon_social: string; num_doc: string | null } | null;
 
     // El historial de ESA máquina, que es el otro pedido de la misma reunión.
