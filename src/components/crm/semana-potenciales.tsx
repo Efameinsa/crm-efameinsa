@@ -188,7 +188,7 @@ function TarjetaPotencial({
   return (
     <details className={cn("rounded-md border bg-background p-1.5 text-[11.5px] leading-tight", vencido ? "border-destructive/50" : "border-border")}>
       <summary className="cursor-pointer list-none">
-        <span className="block truncate font-semibold text-foreground" title={p.cliente}>{p.cliente}</span>
+        <span className="line-clamp-1 break-words font-semibold text-foreground" title={p.cliente}>{p.cliente}</span>
         <span className="mt-0.5 flex items-center justify-between gap-1">
           <span className="tabular-nums font-bold text-[#1E7F4F]">
             {p.monto != null ? `${p.moneda === "PEN" ? "S/" : "US$"} ${Math.round(p.monto).toLocaleString("es-PE")}` : "sin monto"}

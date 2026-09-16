@@ -150,7 +150,7 @@ export function VistaAtenciones({
                   <span className="block text-sm font-medium text-foreground">
                     {a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre"}
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground">
+                  <span className="line-clamp-1 break-words text-xs text-muted-foreground">
                     {ETIQUETA_TIPO_ATENCION[a.tipo]}
                     {a.detalle ? ` · ${a.detalle}` : ""}
                   </span>

@@ -196,7 +196,7 @@ export async function HistorialPostventaCliente({ cuentaId, verPrecios }: { cuen
                         </span>
                       )}
                     </span>
-                    <span className="block truncate text-[11px] text-muted-foreground">{it.texto}</span>
+                    <span className="line-clamp-1 break-words text-[11px] text-muted-foreground">{it.texto}</span>
                   </span>
                   <span className="flex-none text-right text-[11px] tabular-nums text-muted-foreground">
                     {fechaLima(it.fecha)}

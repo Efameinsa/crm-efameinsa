@@ -142,7 +142,7 @@ export default async function MacroPostventaPage() {
 
   return (
     <div className="space-y-4">
-      <SeccionPanel titulo="Pedidos vivos">
+      <SeccionPanel titulo="Pedidos en curso">
         <p className="mb-2 text-xs text-muted-foreground">
           {vivos.length} en total ·{" "}
           {(Object.keys(ETIQUETA_TIPO_PEDIDO) as TipoPedido[])

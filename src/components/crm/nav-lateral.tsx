@@ -148,11 +148,15 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
 // mantenimiento, que sí la conservan como comercial (`ENLACE_RUTA` más
 // abajo no la incluye porque ya la tienen en `ENLACES_POR_ROL.comercial`).
 const ENLACES_POSTVENTA = [
-  { href: "/postventa", etiqueta: "Bandeja", icono: Inbox },
-  // «Quiero ver el macro» (Carlos, 15-09; 0239): cuántos por despachar,
-  // cuántas atenciones, cuántas puestas en marcha, con filtros.
+  // «Primero es el macro. Si no tenemos una visión macro, yo no sé cómo
+  // alguien puede trabajar toda la gestión» (Carlos, 16-09). Va primero y es
+  // donde el área aterriza al entrar; la bandeja es lo que va llegando.
   { href: "/postventa/macro", etiqueta: "El macro", icono: Gauge },
+  { href: "/postventa", etiqueta: "Bandeja", icono: Inbox },
   { href: "/postventa/agenda", etiqueta: "Agenda", icono: CalendarDays },
+  // «Lo primero que tengo que ver es quiénes van a venir a la empresa,
+  // visitas. Tiene que estar en la barra de la izquierda» (Carlos, 16-09).
+  { href: "/postventa/visitas", etiqueta: "Visitas a planta", icono: DoorOpen },
   // «Casos» salió del menú el 08-09 y vive como pestaña de la bandeja: eran la
   // misma cola mirada en dos momentos —lo que nadie tomó y lo que está
   // abierto—, y el tester no sabía en cuál de las dos debía estar. La pantalla
@@ -195,6 +199,11 @@ const ENLACES_POSTVENTA = [
   // el CRM esté ordenado»): la misma pantalla del comercial, filtrada por su
   // cartera. Sin esta entrada había que llegar por la oportunidad.
   { href: "/comercial/cierres", etiqueta: "Ventas emitidas", icono: PackageCheck },
+  // EL VELOCÍMETRO DE POSTVENTA (Carlos, 16-09): «garantía y ventas. En ventas
+  // tienes que tener tu velocímetro, definitivamente». Ariana cerró una venta
+  // como PV1 y no la veía en ningún lado. Es el mismo panel del comercial,
+  // con la meta del área (US$ 25 000/mes para empezar).
+  { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: TrendingUp },
   { href: "/comercial/cartera", etiqueta: "Clientes que atiendo", icono: Building2 },
 ];
 
@@ -215,7 +224,7 @@ const ENLACES_POSTVENTA = [
 const SECCIONES_POSTVENTA = (() => {
   const de = (...hrefs: string[]) => ENLACES_POSTVENTA.filter((e) => hrefs.includes(e.href));
   const pedidos = de("/postventa/control");
-  const vender = de("/comercial/ruta", "/comercial/parque?todos=1", "/comercial/cotizaciones", "/comercial/cierres");
+  const vender = de("/comercial/ruta", "/comercial/parque?todos=1", "/comercial/cotizaciones", "/comercial/cierres", "/comercial/mi-gestion");
   const clientes = de("/comercial/cartera");
   const repartidos = new Set([...pedidos, ...vender, ...clientes].map((e) => e.href));
   return {

@@ -95,7 +95,7 @@ export async function proxy(request: NextRequest) {
       : perfil.es_operaciones
         ? "/operaciones"
         : perfil.es_postventa && perfil.rol === "comercial"
-          ? "/postventa"
+          ? "/postventa/macro"
           : RUTA_POR_ROL[perfil.rol];
 
     if (esRutaLogin && home) {

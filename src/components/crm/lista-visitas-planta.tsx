@@ -41,7 +41,18 @@ const hora = (h: string | null) => (h ? h.slice(0, 5) : "sin hora");
  * navegador, y deja marcado que ya se imprimió: la siguiente vez que alguien
  * mire la lista sabe que la puerta ya lo tiene.
  */
-export function ListaVisitasPlanta({ visitas, hoy, pasadas = false }: { visitas: VisitaFila[]; hoy: string; pasadas?: boolean }) {
+export function ListaVisitasPlanta({
+  visitas,
+  hoy,
+  pasadas = false,
+  soloLectura = false,
+}: {
+  visitas: VisitaFila[];
+  hoy: string;
+  pasadas?: boolean;
+  /** Postventa las mira para saber quién viene; imprimir y cancelar es de Central. */
+  soloLectura?: boolean;
+}) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [imprimiendo, setImprimiendo] = useState<VisitaFila | null>(null);
@@ -118,7 +129,7 @@ export function ListaVisitasPlanta({ visitas, hoy, pasadas = false }: { visitas:
                   {v.cancelada_at && ` · CANCELADA${v.cancelada_motivo ? `: ${v.cancelada_motivo}` : ""}`}
                 </p>
               </div>
-              {!v.cancelada_at && !pasadas && (
+              {!v.cancelada_at && !pasadas && !soloLectura && (
                 <div className="flex flex-none items-center gap-1.5">
                   <button
                     type="button"

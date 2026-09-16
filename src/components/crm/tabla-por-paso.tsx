@@ -100,6 +100,10 @@ export function TablaPorPaso({ filas, falta, base }: { filas: FilaTabla[]; falta
       {visibles.length === 0 ? (
         <p className="text-sm text-muted-foreground">Ningún pedido tiene ese paso pendiente.</p>
       ) : (
+        // EL CLIENTE NO ENSANCHA LA TABLA (Carlos, 16-09: «hay una barra
+        // horizontal que se va mucho a la derecha… horrible»). El nombre y el
+        // equipo se cortan con puntos suspensivos dentro de una columna de
+        // ancho fijo; con 122 pedidos la tabla medía 5 700 px.
         <div className="overflow-x-auto rounded-md border border-border">
           <table className="w-full text-xs">
             <thead>
@@ -119,11 +123,11 @@ export function TablaPorPaso({ filas, falta, base }: { filas: FilaTabla[]; falta
                 return (
                   <tr key={f.id} className="border-b border-border last:border-0 hover:bg-accent/40">
                     <td className="sticky left-0 bg-card px-2 py-1.5">
-                      <Link href={`/postventa/pedidos/${f.id}`} className="block min-w-44 hover:underline">
-                        <span className="block truncate font-semibold text-foreground" title={f.cliente}>
+                      <Link href={`/postventa/pedidos/${f.id}`} className="block min-w-44 max-w-64 hover:underline">
+                        <span className="line-clamp-1 break-words font-semibold text-foreground" title={f.cliente}>
                           {f.cliente}
                         </span>
-                        <span className="block truncate text-[11px] text-muted-foreground" title={f.equipo}>
+                        <span className="line-clamp-1 break-words text-[11px] text-muted-foreground" title={f.equipo}>
                           {f.equipo}
                         </span>
                       </Link>
