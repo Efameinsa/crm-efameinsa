@@ -22,6 +22,7 @@ export interface VisitaFila {
   cancelada_at: string | null;
   cancelada_motivo: string | null;
   cuenta_id: string | null;
+  showroom?: boolean;
   registradoPor: string;
 }
 
@@ -100,7 +101,10 @@ export function ListaVisitasPlanta({ visitas, hoy, pasadas = false }: { visitas:
                   {v.ruc && <span className="ml-1 text-muted-foreground">· RUC {v.ruc}</span>}
                   {v.telefono && <span className="ml-1 text-muted-foreground">· {v.telefono}</span>}
                 </p>
-                <p className="text-xs text-muted-foreground">{v.motivo}</p>
+                <p className="text-xs text-muted-foreground">
+                  {v.motivo}
+                  {v.showroom && <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">abrir la lavandería</span>}
+                </p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                   Registró {v.registradoPor}
                   {v.impreso_at &&
@@ -149,7 +153,7 @@ export function ListaVisitasPlanta({ visitas, hoy, pasadas = false }: { visitas:
               <tr><th>Empresa</th><td>{imprimiendo.empresa}{imprimiendo.ruc ? ` · RUC ${imprimiendo.ruc}` : ""}</td></tr>
               <tr><th>Persona</th><td>{imprimiendo.persona}{imprimiendo.dni ? ` · DNI ${imprimiendo.dni}` : ""}</td></tr>
               {imprimiendo.telefono && <tr><th>Teléfono</th><td>{imprimiendo.telefono}</td></tr>}
-              <tr><th>Motivo</th><td>{imprimiendo.motivo}</td></tr>
+              <tr><th>Motivo</th><td>{imprimiendo.motivo}{imprimiendo.showroom ? " · Aperturar la lavandería (showroom)" : ""}</td></tr>
               <tr><th>Registró</th><td>{imprimiendo.registradoPor}</td></tr>
             </tbody>
           </table>

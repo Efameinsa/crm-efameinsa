@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
+import { enviarCorreoN8n } from "@/lib/avisos-n8n";
 
 /**
  * Quién viene a la planta (0238).
@@ -26,8 +27,10 @@ export async function registrarVisitaPlanta(datos: {
   motivo: string;
   fecha: string;
   hora?: string | null;
-}): Promise<{ error: string | null; id?: string }> {
-  await requerirPerfil();
+  /** Hay que abrir la lavandería (showroom) para la visita (0241). */
+  showroom?: boolean;
+}): Promise<{ error: string | null; id?: string; correoEnviado?: boolean }> {
+  const perfil = await requerirPerfil();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("registrar_visita_planta", {
     p_cuenta: datos.cuentaId,
@@ -40,11 +43,41 @@ export async function registrarVisitaPlanta(datos: {
     p_fecha: datos.fecha,
     p_hora: datos.hora || null,
     p_oportunidad: datos.oportunidadId ?? null,
+    p_showroom: datos.showroom === true,
   });
   if (error) return { error: limpiar(error.message) };
   revalidatePath("/central/visitas");
   revalidatePath("/postventa/agenda");
-  return { error: null, id: data as string };
+
+  // EL CORREO DEL FORMATO DE LESLY (T:\formatos para santos, 16-09): la misma
+  // tabla que hoy manda el comercial a mano a Central, Almacén y Logística con
+  // copia a gerencia. Sale desde el corporativo; si n8n no contesta, la visita
+  // queda registrada igual y la campanita de Central ya sonó.
+  let correoEnviado = false;
+  if (!perfil.es_prueba) {
+    const para = process.env.AVISOS_VISITA_PARA ?? "central@efameinsa.com, logistica@efameinsa.com, crcabrejos@efameinsa.com, kycabrejos@efameinsa.com";
+    const esc = (v: string | null | undefined) => (v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    const fecha = new Date(datos.fecha + "T12:00:00-05:00").toLocaleDateString("es-PE", { timeZone: "America/Lima" });
+    const hora = datos.hora ? datos.hora.slice(0, 5) : "por confirmar";
+    const td = (x: string) => `<td style="border:1px solid #444;padding:6px 8px;vertical-align:top">${x}</td>`;
+    const th = (x: string) => `<th style="border:1px solid #444;padding:6px 8px;background:#f2f2f2">${x}</th>`;
+    const r = await enviarCorreoN8n({
+      para,
+      asunto: `VISITA ${datos.showroom ? "SHOWROOM" : "A PLANTA"} - ${esc(datos.persona).toUpperCase()} - ${esc(datos.empresa).toUpperCase()}`,
+      html:
+        `<div style="font-family:Calibri,Arial,sans-serif;font-size:14px">` +
+        `<p>Buen día, para informar la siguiente visita:</p>` +
+        `<table style="border-collapse:collapse"><tr>${th("FECHA")}${th("HORA")}${th("DATOS DEL PROSPECTO")}${th("VISITANTES")}${th("OBSERVACIÓN")}</tr>` +
+        `<tr>${td(fecha)}${td(hora)}${td(`<b>${esc(datos.empresa)}</b>${datos.ruc ? `<br>RUC ${esc(datos.ruc)}` : ""}${datos.telefono ? `<br>Tel. ${esc(datos.telefono)}` : ""}`)}` +
+        `${td(`${esc(datos.persona)}${datos.dni ? `<br>DNI: ${esc(datos.dni)}` : ""}`)}${td(esc(datos.motivo))}</tr></table>` +
+        (datos.showroom ? `<p style="background:#fff2a8;display:inline-block;padding:2px 4px"><b>Por favor aperturar la lavandería.</b></p>` : "") +
+        `<p>Saludos cordiales.</p>` +
+        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`,
+      responderA: null,
+    });
+    correoEnviado = !r.error;
+  }
+  return { error: null, id: data as string, correoEnviado };
 }
 
 export async function marcarVisitaImpresa(visitaId: string): Promise<{ error: string | null }> {

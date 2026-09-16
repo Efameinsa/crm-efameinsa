@@ -24,7 +24,7 @@ export default async function VisitasPlantaPage({ searchParams }: { searchParams
   // a buscar esa visita que tal fecha hubo». Por empresa, persona, RUC, DNI o
   // fecha (2026-09-16, 16/09 o 16-09).
   const q = ((await searchParams).q ?? "").trim();
-  const columnas = "id, empresa, ruc, persona, dni, telefono, motivo, fecha, hora, registrado_at, impreso_at, cancelada_at, cancelada_motivo, cuenta_id, perfiles!visitas_planta_registrado_por_fkey(nombre, codigo_comercial)";
+  const columnas = "id, empresa, ruc, persona, dni, telefono, motivo, fecha, hora, registrado_at, impreso_at, cancelada_at, cancelada_motivo, cuenta_id, showroom, perfiles!visitas_planta_registrado_por_fkey(nombre, codigo_comercial)";
   // Los filtros como texto (eq / or), aplicados sobre cada consulta.
   const filtro = (): { col: "fecha"; valor: string } | { or: string } | null => {
     if (!q) return null;
@@ -63,7 +63,7 @@ export default async function VisitasPlantaPage({ searchParams }: { searchParams
     return {
       id: x.id, empresa: x.empresa, ruc: x.ruc, persona: x.persona, dni: x.dni, telefono: x.telefono, motivo: x.motivo,
       fecha: x.fecha, hora: x.hora, registrado_at: x.registrado_at, impreso_at: x.impreso_at, cancelada_at: x.cancelada_at,
-      cancelada_motivo: x.cancelada_motivo, cuenta_id: x.cuenta_id,
+      cancelada_motivo: x.cancelada_motivo, cuenta_id: x.cuenta_id, showroom: x.showroom,
       registradoPor: x.perfiles ? `${x.perfiles.codigo_comercial ? x.perfiles.codigo_comercial + " · " : ""}${x.perfiles.nombre}` : "—",
     };
   };
