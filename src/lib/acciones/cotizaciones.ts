@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notificar } from "@/lib/notificaciones";
+import { avisarCotizacionCreadaEducanet, avisarCierreVentaEducanet } from "@/lib/avisos-educanet";
 
 export interface ItemCotizacion {
   /** null cuando el equipo todavía no está en el catálogo (migración 0062). */
@@ -357,7 +358,21 @@ export async function enviarCotizacion(
   if (error) return { error: limpiarError(error.message) };
 
   revalidatePath("/comercial", "layout");
-  return { error: null, codigo: (data as string) ?? undefined };
+  const codigo = (data as string) ?? undefined;
+
+  // Aviso a Educanet (best-effort, no bloquea el envio si falla).
+  const { comercialId } = await comercialDeCotizacion(supabase, cotizacionId);
+  if (comercialId) {
+    const [{ data: perfil }, { data: cot }] = await Promise.all([
+      supabase.from("perfiles").select("email_contacto").eq("id", comercialId).maybeSingle(),
+      supabase.from("cotizaciones").select("total").eq("id", cotizacionId).maybeSingle(),
+    ]);
+    if (perfil?.email_contacto) {
+      await avisarCotizacionCreadaEducanet({ email: perfil.email_contacto, monto: cot?.total, codigo });
+    }
+  }
+
+  return { error: null, codigo };
 }
 
 /**
@@ -379,8 +394,24 @@ export async function registrarVenta(
 
   let aviso: string | undefined;
   if (ventaId) {
-    const { data: venta } = await supabase.from("ventas").select("notas").eq("id", ventaId as string).maybeSingle();
+    const { data: venta } = await supabase
+      .from("ventas")
+      .select("notas, monto_total, registrada_por")
+      .eq("id", ventaId as string)
+      .maybeSingle();
     aviso = venta?.notas ?? undefined;
+
+    // Aviso a Educanet (best-effort, no bloquea el cierre si falla).
+    if (venta?.registrada_por) {
+      const { data: perfil } = await supabase
+        .from("perfiles")
+        .select("email_contacto")
+        .eq("id", venta.registrada_por)
+        .maybeSingle();
+      if (perfil?.email_contacto) {
+        await avisarCierreVentaEducanet({ email: perfil.email_contacto, monto: venta.monto_total });
+      }
+    }
   }
 
   revalidatePath("/comercial", "layout");
