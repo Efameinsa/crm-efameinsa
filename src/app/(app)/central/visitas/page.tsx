@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
 import { requerirRol } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -14,25 +16,46 @@ export const dynamic = "force-dynamic";
  * una persona A, persona B». Las de hoy y las que vienen, con un botón que
  * imprime la hoja para la puerta y deja marcado que ya se imprimió.
  */
-export default async function VisitasPlantaPage() {
+export default async function VisitasPlantaPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await requerirRol(["central", "gerencia", "admin", "operaciones"]);
   const supabase = await createClient();
   const hoy = hoyLima();
+  // BUSCAR EN EL HISTÓRICO (Central, 16-09): «así en algún futuro se llegase
+  // a buscar esa visita que tal fecha hubo». Por empresa, persona, RUC, DNI o
+  // fecha (2026-09-16, 16/09 o 16-09).
+  const q = ((await searchParams).q ?? "").trim();
+  const columnas = "id, empresa, ruc, persona, dni, telefono, motivo, fecha, hora, registrado_at, impreso_at, cancelada_at, cancelada_motivo, cuenta_id, perfiles!visitas_planta_registrado_por_fkey(nombre, codigo_comercial)";
+  // Los filtros como texto (eq / or), aplicados sobre cada consulta.
+  const filtro = (): { col: "fecha"; valor: string } | { or: string } | null => {
+    if (!q) return null;
+    const fecha = q.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/);
+    if (fecha) {
+      const anio = fecha[3] ? (fecha[3].length === 2 ? `20${fecha[3]}` : fecha[3]) : hoy.slice(0, 4);
+      return { col: "fecha", valor: `${anio}-${fecha[2].padStart(2, "0")}-${fecha[1].padStart(2, "0")}` };
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(q)) return { col: "fecha", valor: q };
+    const patron = `%${q}%`;
+    return { or: `empresa.ilike.${patron},persona.ilike.${patron},ruc.ilike.${patron},dni.ilike.${patron},motivo.ilike.${patron}` };
+  };
+  const f = filtro();
+  let qProximas = supabase.from("visitas_planta").select(columnas).gte("fecha", hoy);
+  let qPasadas = supabase.from("visitas_planta").select(columnas).lt("fecha", hoy);
+  if (f && "or" in f) {
+    qProximas = qProximas.or(f.or);
+    qPasadas = qPasadas.or(f.or);
+  } else if (f) {
+    qProximas = qProximas.eq(f.col, f.valor);
+    qPasadas = qPasadas.eq(f.col, f.valor);
+  }
 
   const [{ data: proximas }, { data: pasadas }] = await Promise.all([
-    supabase
-      .from("visitas_planta")
-      .select("id, empresa, ruc, persona, dni, telefono, motivo, fecha, hora, registrado_at, impreso_at, cancelada_at, cancelada_motivo, cuenta_id, perfiles!visitas_planta_registrado_por_fkey(nombre, codigo_comercial)")
-      .gte("fecha", hoy)
+    qProximas
       .order("fecha")
       .order("hora", { nullsFirst: false })
       .limit(200),
-    supabase
-      .from("visitas_planta")
-      .select("id, empresa, ruc, persona, dni, telefono, motivo, fecha, hora, registrado_at, impreso_at, cancelada_at, cancelada_motivo, cuenta_id, perfiles!visitas_planta_registrado_por_fkey(nombre, codigo_comercial)")
-      .lt("fecha", hoy)
+    qPasadas
       .order("fecha", { ascending: false })
-      .limit(60),
+      .limit(q ? 300 : 60),
   ]);
 
   const mapear = (v: unknown): VisitaFila => {
@@ -50,12 +73,20 @@ export default async function VisitasPlantaPage() {
       <SeccionPanel titulo="Visitas a la planta">
         <p className="mb-3 text-xs text-muted-foreground">
           Lo que registran comerciales y postventa cuando un cliente viene. Se imprime para vigilancia; queda marcado
-          cuándo se imprimió.
+          cuándo se imprimió y la visita sigue acá, en el histórico, para buscarla después.
         </p>
+        <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
+          <BusquedaEnVivo inicial={q} placeholder="Buscar por empresa, persona, RUC, DNI o fecha (16/09)" />
+          {q && (
+            <Link href="/central/visitas" className="text-xs text-primary hover:underline">
+              Ver todas
+            </Link>
+          )}
+        </form>
         <ListaVisitasPlanta visitas={(proximas ?? []).map(mapear)} hoy={hoy} />
       </SeccionPanel>
       {(pasadas ?? []).length > 0 && (
-        <SeccionPanel titulo="Visitas anteriores">
+        <SeccionPanel titulo={q ? `Visitas anteriores que coinciden con «${q}»` : "Visitas anteriores"}>
           <ListaVisitasPlanta visitas={(pasadas ?? []).map(mapear)} hoy={hoy} pasadas />
         </SeccionPanel>
       )}
