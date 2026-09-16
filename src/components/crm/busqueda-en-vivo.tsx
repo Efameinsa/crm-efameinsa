@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -35,19 +35,29 @@ export function BusquedaEnVivo({
   const sp = useSearchParams();
   const [pendiente, startTransition] = useTransition();
   const [texto, setTexto] = useState(inicial);
+  // EL TEXTO SE «RETROCEDÍA» (postventa, 15-09: «por alguna razón extraña en
+  // la cuenta de postventa se retrocede, en todas las búsquedas»). Se tecleaba
+  // «Choquehu», a los 300 ms salía la búsqueda de «Choque», y cuando el
+  // servidor contestaba —con el internet de la oficina, varios segundos— la
+  // URL traía `inicial = "Choque"` y este campo se sobreescribía con eso:
+  // se borraba lo tecleado mientras tanto. Se recuerda lo último que se
+  // mandó, y si lo que vuelve es eso mismo, el campo no se toca.
+  const enviado = useRef(inicial.trim());
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (inicial.trim() === enviado.current) return;
+    enviado.current = inicial.trim();
     setTexto(inicial);
   }, [inicial]);
 
   useEffect(() => {
-    if (texto.trim() === inicial.trim()) return;
+    if (texto.trim() === enviado.current) return;
     const t = setTimeout(() => {
       const params = new URLSearchParams(sp.toString());
       if (texto.trim()) params.set(name, texto.trim());
       else params.delete(name);
       params.delete("pagina");
+      enviado.current = texto.trim();
       marcarPendiente();
       startTransition(() => router.push(`${pathname}?${params.toString()}`));
     }, 300);

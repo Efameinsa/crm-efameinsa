@@ -23,6 +23,7 @@ const ETIQUETA_TIPO: Record<string, string> = {
   garantia: "Soporte técnico",
   repuesto: "Repuesto",
   mantenimiento: "Mantenimiento",
+  seguimiento: "Seguimiento",
 };
 
 interface CasoAbierto {

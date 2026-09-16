@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
@@ -38,9 +38,14 @@ export function FiltrosClientes({
   const sp = useSearchParams();
   const [pendiente, startTransition] = useTransition();
   const [texto, setTexto] = useState(q);
+  // Lo último que se mandó a buscar: cuando la URL vuelve con eso mismo, el
+  // campo no se toca —si no, con el internet lento se borraba lo tecleado
+  // mientras llegaba la respuesta (postventa, 15-09; ver BusquedaEnVivo).
+  const enviado = useRef(q.trim());
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (q.trim() === enviado.current) return;
+    enviado.current = q.trim();
     setTexto(q);
   }, [q]);
 
@@ -58,8 +63,11 @@ export function FiltrosClientes({
 
   // Búsqueda con retardo: no dispara una navegación por cada tecla.
   useEffect(() => {
-    if (texto === q) return;
-    const t = setTimeout(() => navegar({ q: texto.trim() || null }), 350);
+    if (texto.trim() === enviado.current) return;
+    const t = setTimeout(() => {
+      enviado.current = texto.trim();
+      navegar({ q: texto.trim() || null });
+    }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texto]);

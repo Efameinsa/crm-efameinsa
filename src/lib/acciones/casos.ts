@@ -20,6 +20,24 @@ import { estadoGarantia } from "@/lib/postventa";
  * las etapas comerciales ya sirven —Carlos las revisó una por una—.
  */
 
+/**
+ * EL SEGUIMIENTO SIN ABRIR UN CASO NUEVO (Carlos, 15-09; 0238).
+ *
+ * En la ficha de Lavipronto, con el cliente ya confirmado para el sábado, no
+ * había dónde anotarlo: «Registrar un caso» abre otro y «Pasar contacto a
+ * Central» lo manda como nuevo. Acá se pide el expediente del área con ese
+ * cliente —el abierto, o uno de seguimiento— y la pantalla lleva a su
+ * registro de gestión, que ya sabe agendar y avisar.
+ */
+export async function abrirSeguimiento(cuentaId: string): Promise<{ error: string | null; oportunidadId?: string }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("expediente_para_seguimiento", { p_cuenta: cuentaId });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  revalidatePath(`/comercial/cartera/${cuentaId}`);
+  return { error: null, oportunidadId: data as string };
+}
+
 export interface FichaSerie {
   equipoId: string | null;
   serie: string;
@@ -123,6 +141,8 @@ export async function registrarCaso(datos: {
   codigoError?: string | null;
   equipoId?: string | null;
   serieTexto?: string | null;
+  /** Otras máquinas del mismo caso (Rubí, 15-09; 0238): un mantenimiento de tres lavadoras es un solo caso. */
+  seriesAdicionales?: string[];
   desenlace: DesenlaceCaso;
   /** Solo para «derivar»: cuándo y con quién. */
   atencion?: { fecha: string; hora?: string | null; tecnico?: string | null } | null;
@@ -153,6 +173,7 @@ export async function registrarCaso(datos: {
   const supabase = await createClient();
 
   const serie = datos.serieTexto?.trim().toUpperCase() || null;
+  const otrasSeries = (datos.seriesAdicionales ?? []).map((x) => x.trim().toUpperCase()).filter((x) => x && x !== serie);
   const { data: caso, error } = await supabase
     .from("oportunidades")
     .insert({
@@ -161,6 +182,7 @@ export async function registrarCaso(datos: {
       tipo_postventa: datos.tipo,
       equipo_id: datos.equipoId ?? null,
       serie_texto: serie,
+      series_adicionales: otrasSeries.length ? otrasSeries : null,
       codigo_error: datos.codigoError?.trim() || null,
       // «Ejecutado» en el vocabulario del área es `venta` en el dato: es la
       // convención que ya usa `cerrarCaso` y no infla ninguna cifra comercial
@@ -181,6 +203,7 @@ export async function registrarCaso(datos: {
   const detalleTecnico = [
     datos.codigoError?.trim() ? `Código de error: ${datos.codigoError.trim()}.` : null,
     serie ? `Serie: ${serie}.` : "Equipo sin identificar.",
+    otrasSeries.length ? `Además: ${otrasSeries.join(", ")} (${otrasSeries.length + (serie ? 1 : 0)} equipos en total).` : null,
     datos.desenlace === "derivar" && datos.atencion
       ? `Atención programada para el ${datos.atencion.fecha}${datos.atencion.hora ? ` a las ${datos.atencion.hora}` : ""}${datos.atencion.tecnico ? ` con ${datos.atencion.tecnico}` : ""}.`
       : null,

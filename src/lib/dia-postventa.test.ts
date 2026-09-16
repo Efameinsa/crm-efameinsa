@@ -43,6 +43,10 @@ describe("el día del área: cada pedido cae en UNA sola casilla", () => {
       .toBe("despacho_programado");
   });
 
+  it("con fecha y todavía sin apertura, igual es un despacho programado (Gary Group, 15-09)", () => {
+    expect(casilleroDelPedido(pedido({ fecha_despacho: "2026-09-10" }), HOY)).toBe("despacho_programado");
+  });
+
   it("con apertura y sin fecha, solo falta decidir cuándo sale", () => {
     expect(casilleroDelPedido(pedido({ apertura_despacho_at: "2026-09-01T10:00:00Z" }), HOY)).toBe("listo_sin_fecha");
   });

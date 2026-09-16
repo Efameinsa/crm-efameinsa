@@ -1,5 +1,6 @@
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { PantallaCotizador } from "@/components/crm/pantalla-cotizador";
+import { CotizacionRechazada } from "@/components/crm/cotizacion-rechazada";
 import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
 import { cargarContextoCotizador } from "@/lib/datos-cotizador";
 import { tipoCambioDeGerencia } from "@/lib/datos-cotizador";
@@ -28,6 +29,19 @@ export default async function CorregirCotizacionPage({
   // es común a las dos, así que se cierra igual que lo no disponible.
   if (resultado.estado === "no-disponible" || resultado.estado === "sin-autorizacion") {
     return <RegistroNoDisponible volverHref={volverHref} volverTexto="Volver a la oportunidad" />;
+  }
+
+  if (resultado.estado === "rechazada") {
+    return (
+      <CotizacionRechazada
+        codigo={resultado.codigo}
+        serie={resultado.serie}
+        items={resultado.items}
+        decisiones={resultado.decisiones}
+        nuevaHref={`/comercial/oportunidades/${id}/cotizar`}
+        volverHref={volverHref}
+      />
+    );
   }
 
   if (resultado.estado === "cerrada") {

@@ -3,6 +3,8 @@ import { ChevronRight, FileDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AprobarCotizacionBotones } from "@/components/crm/aprobar-cotizacion-botones";
+import { HistorialDecisionesGerencia } from "@/components/crm/historial-decisiones-gerencia";
+import { decisionesDeGerencia, type DecisionGerencia } from "@/lib/datos-cotizador";
 import { HistorialAprobaciones } from "@/components/crm/historial-aprobaciones";
 import { CompendioGestion } from "@/components/crm/compendio-gestion";
 import { cargarCompendio, type Compendio } from "@/lib/compendio-cierre";
@@ -50,11 +52,19 @@ export default async function AprobacionesPage() {
   // venta —cómo se hizo esta gestión—, y dos pantallas que la contesten
   // distinto sería peor que una.
   const compendios = new Map<string, Compendio>();
+  // Y LO QUE GERENCIA YA CONTESTÓ sobre este mismo cliente (0237): la segunda
+  // versión llega con la observación de la primera a la vista, que es lo que
+  // Carlos pidió el 15-09 con el caso de Brenda.
+  const historiales = new Map<string, DecisionGerencia[]>();
   await Promise.all(
     (cotizaciones ?? []).map(async (c) => {
       if (!c.oportunidad_id) return;
-      const compendio = await cargarCompendio(c.oportunidad_id);
+      const [compendio, decisiones] = await Promise.all([
+        cargarCompendio(c.oportunidad_id),
+        decisionesDeGerencia(supabase, { oportunidadId: c.oportunidad_id }),
+      ]);
       if (compendio) compendios.set(c.id, compendio);
+      if (decisiones.length) historiales.set(c.id, decisiones);
     }),
   );
 
@@ -134,6 +144,11 @@ export default async function AprobacionesPage() {
                       <CompendioGestion compendio={compendios.get(c.id)!} titulo="Cómo se llegó hasta acá" />
                     </div>
                   </details>
+                )}
+                {historiales.has(c.id) && (
+                  <div className="mt-2.5">
+                    <HistorialDecisionesGerencia decisiones={historiales.get(c.id)!} compacto />
+                  </div>
                 )}
                 <div className="mt-2.5 flex items-center justify-between gap-3">
                   <VerPdfEnLaApp

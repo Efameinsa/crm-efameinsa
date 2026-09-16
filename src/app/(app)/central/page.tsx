@@ -64,6 +64,7 @@ const ETIQUETA_TIPO_PV: Record<string, string> = {
   garantia: "Soporte técnico",
   repuesto: "Repuestos",
   mantenimiento: "Mantenimiento preventivo",
+  seguimiento: "Seguimiento",
 };
 
 /**

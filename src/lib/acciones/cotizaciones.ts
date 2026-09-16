@@ -391,14 +391,19 @@ export async function registrarVenta(
 async function comercialDeCotizacion(
   supabase: Awaited<ReturnType<typeof createClient>>,
   cotizacionId: string,
-): Promise<{ comercialId: string | null; codigo: string | null }> {
+): Promise<{ comercialId: string | null; codigo: string | null; oportunidadId: string | null; cliente: string | null }> {
   const { data } = await supabase
     .from("cotizaciones")
-    .select("codigo, oportunidades!cotizaciones_oportunidad_id_fkey(comercial_id)")
+    .select("codigo, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey(comercial_id, cuentas(razon_social))")
     .eq("id", cotizacionId)
     .maybeSingle();
-  const oportunidad = data?.oportunidades as unknown as { comercial_id: string } | null;
-  return { comercialId: oportunidad?.comercial_id ?? null, codigo: data?.codigo ?? null };
+  const oportunidad = data?.oportunidades as unknown as { comercial_id: string; cuentas: { razon_social: string } | null } | null;
+  return {
+    comercialId: oportunidad?.comercial_id ?? null,
+    codigo: data?.codigo ?? null,
+    oportunidadId: (data?.oportunidad_id as string | null) ?? null,
+    cliente: oportunidad?.cuentas?.razon_social ?? null,
+  };
 }
 
 /**
@@ -455,7 +460,7 @@ export async function resolverAprobacionCotizacion(datos: {
     };
   }
 
-  const { comercialId } = await comercialDeCotizacion(supabase, datos.cotizacionId);
+  const { comercialId, codigo, oportunidadId, cliente } = await comercialDeCotizacion(supabase, datos.cotizacionId);
 
   const { data, error } = await supabase.rpc("resolver_aprobacion_cotizacion", {
     p_cotizacion_id: datos.cotizacionId,
@@ -467,14 +472,18 @@ export async function resolverAprobacionCotizacion(datos: {
 
   const rechazada = data === "rechazada_gerencia";
   if (comercialId) {
+    // EL AVISO DICE CUÁL (Carlos, 15-09; 0237): «gerencia rechazó un equipo de
+    // su cotización, pero no le sale de qué cotización». Va con número, cliente
+    // y el enlace a esa cotización, donde queda el motivo como histórico.
+    const cual = [codigo ? `la cotización ${codigo}` : "su cotización", cliente].filter(Boolean).join(" · ");
     await notificar({
       userId: comercialId,
       tipo: rechazada ? "cotizacion_rechazada" : "cotizacion_aprobada",
       titulo: rechazada
-        ? `Gerencia rechazó ${datos.rechazados.length} equipo(s) de su cotización`
-        : "Gerencia aprobó los precios de su cotización",
-      cuerpo: datos.nota || (rechazada ? "Corrija esos precios y vuelva a pedirla." : "Ya puede enviarla al cliente."),
-      url: "/comercial/oportunidades",
+        ? `Gerencia rechazó ${cual} (${datos.rechazados.length} ${datos.rechazados.length === 1 ? "equipo" : "equipos"})`
+        : `Gerencia aprobó los precios de ${cual}`,
+      cuerpo: datos.nota || (rechazada ? "Queda como histórico con el motivo: haga una cotización nueva." : "Ya puede enviarla al cliente."),
+      url: oportunidadId ? `/comercial/oportunidades/${oportunidadId}/cotizar/${datos.cotizacionId}` : "/comercial/oportunidades",
     });
   }
 

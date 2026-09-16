@@ -28,6 +28,7 @@ import {
   Table2,
   Search,
   MessageCircle,
+  DoorOpen,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // «Que tenga acceso al listado de presupuestos, que permita filtrar día,
     // semana, mes, año» (Carlos, 31-08 y 01-09).
     { href: "/central/presupuestos", etiqueta: "Presupuestos", icono: FileText },
+    // Quién viene a la planta: Central lo imprime para vigilancia (0238).
+    { href: "/central/visitas", etiqueta: "Visitas a planta", icono: DoorOpen },
     { href: "/central/informe", etiqueta: "Informe del día", icono: FileText },
   ],
   // Orden pedido por Darwin el 23-08 (plan 11, C2): el día arranca en "Mi
@@ -146,6 +149,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
 // abajo no la incluye porque ya la tienen en `ENLACES_POR_ROL.comercial`).
 const ENLACES_POSTVENTA = [
   { href: "/postventa", etiqueta: "Bandeja", icono: Inbox },
+  // «Quiero ver el macro» (Carlos, 15-09; 0239): cuántos por despachar,
+  // cuántas atenciones, cuántas puestas en marcha, con filtros.
+  { href: "/postventa/macro", etiqueta: "El macro", icono: Gauge },
   { href: "/postventa/agenda", etiqueta: "Agenda", icono: CalendarDays },
   // «Casos» salió del menú el 08-09 y vive como pestaña de la bandeja: eran la
   // misma cola mirada en dos momentos —lo que nadie tomó y lo que está

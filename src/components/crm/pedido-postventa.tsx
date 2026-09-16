@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, X } from "lucide-react";
 import {
   bloquesPedido,
+  circuitoDe,
   saldoPendiente,
   evaluarPagoParaDespacho,
   etiquetaResponsable,
@@ -40,6 +41,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { TipoPedidoSelector } from "@/components/crm/tipo-pedido-selector";
 
 /**
  * La ficha del pedido: los diez pasos del circuito, agrupados de a tres.
@@ -136,7 +138,19 @@ export function PedidoPostventa({
   // Finanzas ANTES de la aprobación («mi indicador inicial es pago»), y ese
   // paso tiene que poder marcarse sin aprobar todavía.
   const sinAprobar = !servicio.aprobado_at && !!servicio.informe_cierre_id;
-  const avisoAprobar = sinAprobar ? (
+  // Y NO SE APRUEBA ANTES DEL CHECK DE CENTRAL (Carlos, 15-09; 0237): el
+  // pedido lo lanza Central con «Pedido ejecutado»; hasta entonces el área lo
+  // puede mirar por el enlace, pero no tomarlo.
+  const sinEjecutar = sinAprobar && !servicio.pedido_ejecutado_at;
+  const avisoAprobar = sinEjecutar ? (
+    <div className="rounded-xl border border-border bg-secondary/40 p-4">
+      <p className="text-sm font-semibold text-foreground">Central todavía no lanzó este pedido</p>
+      <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+        El cierre está emitido, pero el pedido entra al área recién cuando Central marca «Pedido ejecutado» con el
+        número del ERP. Hasta entonces no se aprueba ni se gestiona desde acá.
+      </p>
+    </div>
+  ) : sinAprobar ? (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
       <p className="text-sm font-semibold text-foreground">Este pedido todavía no fue aprobado</p>
       <p className="mt-1 max-w-prose text-xs text-muted-foreground">
@@ -164,6 +178,7 @@ export function PedidoPostventa({
     if (paso.hecho) return null;
     switch (paso.clave) {
       case "aprobado":
+        if (sinEjecutar) return null;
         return (
           <BotonPaso
             onClick={() => correr(() => aprobarPedido(servicio.id), "Pedido aprobado. Central ya lo ve en ejecución.", { aprobado_at: ahora() })}
@@ -229,8 +244,8 @@ export function PedidoPostventa({
             {/* «Sin apertura no sale nada del almacén»: la salida se registra
                 recién con la apertura emitida (los pedidos viejos del Excel,
                 sin cierre, no la tienen y siguen como antes). */}
-            {(servicio.apertura_despacho_at || !servicio.informe_cierre_id) && (
-              <BotonPaso onClick={() => setForm({ tipo: "despacho" })}>Registrar salida</BotonPaso>
+            {(servicio.apertura_despacho_at || !servicio.informe_cierre_id || circuito.entregaEnPlanta) && (
+              <BotonPaso onClick={() => setForm({ tipo: "despacho" })}>{circuito.entregaEnPlanta ? "Registrar la entrega" : "Registrar salida"}</BotonPaso>
             )}
           </span>
         );
@@ -249,9 +264,21 @@ export function PedidoPostventa({
   // fecha, lo que sigue destacado, lo lejano atenuado).
   const pasoActual = bloques.flatMap((b) => b.pasos).find((p) => !p.hecho)?.clave ?? null;
 
+  const circuito = circuitoDe(servicioVisto);
+
   return (
     <div className="space-y-3">
       {avisoAprobar}
+      {/* QUÉ SE VENDIÓ decide el circuito (Carlos, 15-09; 0239). */}
+      {(servicio.informe_cierre_id || servicio.tipo_pedido) && (
+        <TipoPedidoSelector
+          servicioId={servicio.id}
+          tipo={circuito.tipo}
+          entregaEn={servicioVisto.entrega_en ?? null}
+          conInstalacion={servicioVisto.con_instalacion ?? null}
+          cerrado={Boolean(servicio.cerrado_at || servicio.completado)}
+        />
+      )}
       {/* LA CONDICIÓN DE PAGO, A LA VISTA (0232). Es lo que decide si la salida
           pide permiso: «30 % al contado y lo que falta a crédito, o a todo
           crédito; eso ya está pensado, siempre ha sido así» (Carlos, 14-09).

@@ -58,8 +58,16 @@ function llevaDemasiadoSinGestion(asignadoAt: string | null): boolean {
   return Date.now() - new Date(asignadoAt).getTime() > 864e5;
 }
 
-export default async function OportunidadDetallePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OportunidadDetallePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ gestion?: string }>;
+}) {
   const { id } = await params;
+  // «Registrar seguimiento» desde la ficha (0238) llega con el cuadro abierto.
+  const abrirGestion = (await searchParams).gestion === "1";
   // Crear rubros nuevos es de operaciones y gerencia desde el 04-09 (0170).
   const perfilQueMira = await requerirPerfil();
   const puedeCrearRubrosAqui =
@@ -607,7 +615,7 @@ export default async function OportunidadDetallePage({ params }: { params: Promi
                 para pedirlo con código de supervisor. */}
             {puedeAnotar ? (
               <>
-                <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} motivos={motivos ?? []} />
+                <RegistroRapido oportunidadId={oportunidad.id} resultados={resultados ?? []} motivos={motivos ?? []} abiertoAlInicio={abrirGestion} />
                 {/* Justo debajo de donde se anota la llamada, porque es ahí donde
                     se descubre: el 29-08 Brenda escribió «no desea equipos… desea
                     mmto, repuestos, se le indicó que se va a derivar con

@@ -45,14 +45,16 @@ export const AYUDA_CASILLERO: Record<CasilleroDia, string> = {
  * despachado no vuelve a contarse como «programado» solo porque conserve su
  * fecha.
  */
-export function casilleroDelPedido(s: ServicioPostventa, hoyIso: string): CasilleroDia | null {
+export function casilleroDelPedido(s: ServicioPostventa, _hoyIso: string): CasilleroDia | null {
   if (s.completado || s.cerrado_at) return null;
   if (s.despachado_at) return s.puesta_en_marcha ? null : "puesta_pendiente";
-  if (s.apertura_despacho_at) {
-    // Una fecha ya pasada sigue siendo un despacho que no salió: se cuenta como
-    // programado igual, porque es exactamente lo que hay que destrabar hoy.
-    return s.fecha_despacho ? "despacho_programado" : "listo_sin_fecha";
-  }
+  // CON FECHA ES PROGRAMADO, TENGA O NO APERTURA (Carlos, 15-09): la agenda
+  // decía «0 despachos programados» el día que Gary Group estaba programado,
+  // porque el pedido tenía fecha pero todavía no la apertura y caía en «sin
+  // apertura». Una fecha ya pasada sigue siendo un despacho que no salió: se
+  // cuenta como programado igual, porque es lo que hay que destrabar hoy.
+  if (s.fecha_despacho) return "despacho_programado";
+  if (s.apertura_despacho_at) return "listo_sin_fecha";
   return "sin_apertura";
 }
 

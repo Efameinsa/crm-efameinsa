@@ -23,6 +23,9 @@ import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boto
 import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor";
 import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
 import { veTodoPostventa } from "@/lib/postventa";
+import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimiento-boton";
+import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
+import { TraerPedidoAntiguoBoton } from "@/components/crm/traer-pedido-antiguo-boton";
 
 export async function FichaCuenta({
   cuentaId,
@@ -258,6 +261,20 @@ export async function FichaCuenta({
                     Y «Registrar un caso» la devolvía a su campaña: es una
                     pantalla de ejecución del servicio, cerrada para quien solo
                     vende (0213). */}
+                {/* EL SEGUIMIENTO Y LA VISITA A PLANTA (Carlos, 15-09; 0238). En la
+                    ficha de Lavipronto no había dónde anotar «viene el sábado a
+                    las 10»: «Registrar un caso» abre otro caso y «Pasar contacto
+                    a Central» lo manda como nuevo. El seguimiento va al
+                    expediente del área con este cliente; la visita le llega a
+                    Central para vigilancia. */}
+                {!comoGerencia && !comoCentral && (
+                  <VisitaPlantaBoton cuentaId={cuenta.id} empresa={cuenta.razon_social} ruc={cuenta.num_doc as string | null} compacto />
+                )}
+                {haceCasos && !comoGerencia && !comoCentral && <RegistrarSeguimientoBoton cuentaId={cuenta.id} compacto />}
+                {/* Los pedidos anteriores al circuito entran desde acá (0239). */}
+                {haceCasos && !perfilQueMira.solo_preventivo && !comoGerencia && !comoCentral && (
+                  <TraerPedidoAntiguoBoton cuentaId={cuenta.id} compacto />
+                )}
                 {veTodoPostventa(perfilQueMira) && !comoGerencia && !comoCentral && (
                   <OfrecerMantenimientoBoton cuentaId={cuenta.id} compacto />
                 )}

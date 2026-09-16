@@ -79,7 +79,7 @@ export interface Perfil {
 }
 
 /** Clase de caso que Central deriva a postventa (migración 0075). */
-export type TipoPostventa = "garantia" | "repuesto" | "mantenimiento";
+export type TipoPostventa = "garantia" | "repuesto" | "mantenimiento" | "seguimiento";
 
 export interface ServicioPostventa {
   id: string;

@@ -42,6 +42,8 @@ export async function registrarAtencion(datos: {
   detalle: string;
   equipoId?: string | null;
   serie?: string | null;
+  /** Otras máquinas del mismo caso (0238). */
+  seriesAdicionales?: string[];
   codigoError?: string | null;
   /**
    * Las fotos que mandó el cliente, ya subidas al bucket 'adjuntos'. Viajan en
@@ -63,11 +65,18 @@ export async function registrarAtencion(datos: {
     return { error: "Escriba qué le pasa al equipo: es lo que va a leer Central para derivarlo" };
   }
 
+  // Varias máquinas en el mismo caso (Rubí, 15-09; 0238): la atención guarda
+  // una serie; las demás quedan en el detalle, que es lo que lee el técnico.
+  const otras = (datos.seriesAdicionales ?? []).map((x) => x.trim().toUpperCase()).filter((x) => x && x !== datos.serie?.trim().toUpperCase());
+  const detalle = otras.length ? `${datos.detalle.trim()}
+
+Otras máquinas del mismo caso: ${otras.join(", ")} (${otras.length + (datos.serie ? 1 : 0)} equipos en total).` : datos.detalle.trim();
+
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("registrar_atencion_postventa", {
     p_cuenta: datos.cuentaId,
     p_tipo: datos.tipo,
-    p_detalle: datos.detalle.trim(),
+    p_detalle: detalle,
     p_equipo: datos.equipoId ?? null,
     p_serie: datos.serie?.trim() || null,
     p_codigo_error: datos.codigoError?.trim() || null,
@@ -668,7 +677,7 @@ export async function avisarVentaDeLaAtencion(datos: {
  */
 export async function cambiarTipoAtencion(datos: {
   atencionId: string;
-  tipo: "problema_tecnico" | "puesta_en_marcha";
+  tipo: "problema_tecnico" | "puesta_en_marcha" | "solicitud_repuesto" | "solicitud_mantenimiento";
 }): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("cambiar_tipo_atencion", { p_atencion: datos.atencionId, p_tipo: datos.tipo });

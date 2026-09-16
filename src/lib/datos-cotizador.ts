@@ -177,7 +177,59 @@ export type ResultadoCotizador =
   /** Modo corrección sin autorización viva: se pidió el código y venció, o se
    *  llegó por el enlace sin pasar por el cuadro que lo pide. */
   | { estado: "sin-autorizacion"; cotizacionId: string; codigo: string | null }
+  /** Gerencia la rechazó (0237): queda como histórico con su motivo y no se
+   *  edita; el comercial hace una nueva. */
+  | { estado: "rechazada"; cotizacionId: string; codigo: string | null; serie: string; items: ItemRechazado[]; decisiones: DecisionGerencia[] }
   | { estado: "no-disponible" };
+
+export interface ItemRechazado {
+  nombre: string;
+  cantidad: number;
+  precioUnitario: number;
+  precioLista: number | null;
+}
+
+export interface DecisionGerencia {
+  id: string;
+  decididoAt: string;
+  decididoPor: string | null;
+  resultado: "aprobada_gerencia" | "rechazada_gerencia";
+  nota: string | null;
+  /** Número de la cotización sobre la que se decidió (null si era borrador). */
+  codigo: string | null;
+  rechazados: { descripcion: string | null; precio: number | null; lista: number | null }[];
+}
+
+/**
+ * Las decisiones de gerencia sobre las cotizaciones de una oportunidad, de la
+ * más reciente a la más vieja. Es lo que Carlos pidió ver «como histórico»:
+ * sus observaciones de criterio quedan aunque el comercial cotice de nuevo.
+ */
+export async function decisionesDeGerencia(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  filtro: { oportunidadId: string } | { cotizacionId: string },
+): Promise<DecisionGerencia[]> {
+  let q = supabase
+    .from("cotizacion_decisiones")
+    .select("id, decidido_at, resultado, nota, rechazados, cotizacion_id, cotizaciones(codigo), perfiles(nombre)")
+    .order("decidido_at", { ascending: false })
+    .limit(30);
+  q = "oportunidadId" in filtro ? q.eq("oportunidad_id", filtro.oportunidadId) : q.eq("cotizacion_id", filtro.cotizacionId);
+  const { data } = await q;
+  return ((data ?? []) as unknown as {
+    id: string; decidido_at: string; resultado: string; nota: string | null;
+    rechazados: { descripcion: string | null; precio: number | null; lista: number | null }[] | null;
+    cotizaciones: { codigo: string | null } | null; perfiles: { nombre: string } | null;
+  }[]).map((d) => ({
+    id: d.id,
+    decididoAt: d.decidido_at,
+    decididoPor: d.perfiles?.nombre ?? null,
+    resultado: d.resultado as DecisionGerencia["resultado"],
+    nota: d.nota,
+    codigo: d.cotizaciones?.codigo ?? null,
+    rechazados: Array.isArray(d.rechazados) ? d.rechazados : [],
+  }));
+}
 
 /**
  * Devuelve «no-disponible» cuando la oportunidad no existe o no es de este
@@ -278,6 +330,26 @@ export async function cargarContextoCotizador(
       // pantalla que va a rebotar.
       if (!abierta) return { estado: "sin-autorizacion", cotizacionId: cot.id, codigo: cot.codigo };
       correccion = { expiraEn: abierta.expira_at, autorizo: abierta.autorizo, motivo: abierta.motivo };
+    } else if (cot.estado_aprobacion === "rechazada_gerencia") {
+      // LA RECHAZADA NO SE EDITA (Carlos, 15-09; 0237): se muestra cerrada con
+      // el motivo de gerencia y la puerta a hacer una nueva.
+      const decisiones = await decisionesDeGerencia(supabase, { cotizacionId: cot.id });
+      return {
+        estado: "rechazada",
+        cotizacionId: cot.id,
+        codigo: cot.codigo,
+        serie: cot.serie,
+        decisiones,
+        items: (cot.cotizacion_items as unknown as {
+          descripcion: string | null; cantidad: number; precio_unitario: number; precio_lista: number | null;
+          productos: { marca: string; modelo: string; nombre: string } | null;
+        }[]).map((i) => ({
+          nombre: i.productos ? `${i.productos.marca} ${i.productos.modelo} — ${i.productos.nombre}` : (i.descripcion ?? "Equipo sin nombre"),
+          cantidad: i.cantidad,
+          precioUnitario: Number(i.precio_unitario),
+          precioLista: i.precio_lista == null ? null : Number(i.precio_lista),
+        })),
+      };
     } else if (emitida) {
       // Ya salió al cliente: no se edita (migración 0062). No es un error — se
       // muestra cerrada, con su número, su PDF y la puerta a corregirla.

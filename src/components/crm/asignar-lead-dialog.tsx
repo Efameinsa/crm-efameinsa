@@ -69,6 +69,7 @@ const ETIQUETA_TIPO: Record<string, string> = {
   garantia: "Soporte técnico",
   repuesto: "Repuestos",
   mantenimiento: "Mantenimiento preventivo",
+  seguimiento: "Seguimiento",
 };
 
 /** Mismo criterio que `nombre_normalizado` en la base (0158). */

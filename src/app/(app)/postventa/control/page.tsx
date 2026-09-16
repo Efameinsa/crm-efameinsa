@@ -63,6 +63,8 @@ export default async function ControlPedidosPage({
     .eq("completado", false)
     .is("cerrado_at", null)
     .not("informe_cierre_id", "is", null)
+    // Sin el check de Central todavía no es trabajo del área (0237).
+    .not("pedido_ejecutado_at", "is", null)
     .order("pedido_ejecutado_at", { ascending: false })
     .limit(80);
 

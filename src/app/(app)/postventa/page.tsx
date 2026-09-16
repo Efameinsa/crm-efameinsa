@@ -48,6 +48,7 @@ const ETIQUETA_TIPO_CASO: Record<string, string> = {
   garantia: "Soporte técnico",
   repuesto: "Repuesto",
   mantenimiento: "Mantenimiento",
+  seguimiento: "Seguimiento",
 };
 
 const ICONO_TIPO_ATENCION: Record<TipoAtencion, LucideIcon> = {

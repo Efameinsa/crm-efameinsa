@@ -7,8 +7,10 @@ import { ElDiaDelArea } from "@/components/crm/el-dia-del-area";
 import { puedeVerPrecios, sinPrecios, veTodoPostventa, type ServicioPostventa } from "@/lib/postventa";
 import { CalendarioPostventa, type VistaCalendario } from "@/components/crm/calendario-postventa";
 import {
+  eventoDeAtencion,
   eventoDeCaso,
   eventoDeTarea,
+  eventoDeVisita,
   eventosDePedido,
   filtrarPorZona,
   type CasoAgendable,
@@ -146,6 +148,34 @@ export default async function AgendaPostventaPage({
     .filter((e): e is EventoCalendario => e !== null);
   const eventosTareas = ((tareas ?? []) as unknown as TareaAgendable[]).map(eventoDeTarea);
 
+  // Las atenciones con día y técnico, y quién viene a la planta (0238).
+  const [{ data: programadas }, { data: visitas }] = await Promise.all([
+    supabase
+      .from("atenciones")
+      .select("id, tipo, programada_at, tecnico, cliente_texto, cerrado_at, cuentas(razon_social, departamento)")
+      .gte("programada_at", `${desde}T00:00:00-05:00`)
+      .lte("programada_at", `${hasta}T23:59:59-05:00`)
+      .limit(300),
+    supabase
+      .from("visitas_planta")
+      .select("id, empresa, persona, motivo, fecha, hora, cancelada_at")
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .limit(100),
+  ]);
+  const eventosAtenciones = ((programadas ?? []) as unknown as {
+    id: string; tipo: string; programada_at: string; tecnico: string | null; cliente_texto: string | null; cerrado_at: string | null;
+    cuentas: { razon_social: string; departamento: string | null } | null;
+  }[]).map((a) => {
+    const dep = (a.cuentas?.departamento ?? "").toUpperCase();
+    return eventoDeAtencion({
+      id: a.id, tipo: a.tipo, programada_at: a.programada_at, tecnico: a.tecnico, cerrado_at: a.cerrado_at,
+      cliente: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre",
+      zona: dep ? (dep === "LIMA" ? "lima" : "provincia") : null,
+    });
+  });
+  const eventosVisitas = ((visitas ?? []) as unknown as Parameters<typeof eventoDeVisita>[0][]).map(eventoDeVisita);
+
   const { data: aProgramar } = await supabase
     .from("atenciones")
     .select("id, tipo, detalle, cliente_texto, cuentas(razon_social)")
@@ -166,7 +196,7 @@ export default async function AgendaPostventaPage({
     detalle: a.detalle,
   }));
 
-  const eventos = filtrarPorZona([...eventosPedidos, ...eventosCasos, ...eventosTareas], zona);
+  const eventos = filtrarPorZona([...eventosPedidos, ...eventosCasos, ...eventosTareas, ...eventosAtenciones, ...eventosVisitas], zona);
   const porProgramar = ((abiertos ?? []) as unknown as ServicioPostventa[])
     .filter((s) => !s.completado && !s.fecha_despacho && !s.puesta_en_marcha)
     .map((s) => ({

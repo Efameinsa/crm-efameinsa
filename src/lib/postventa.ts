@@ -42,6 +42,10 @@ export interface ServicioPostventa {
   liquidacion_at: string | null;
   aprobado_at: string | null;
   modalidad: string | null;
+  /** Qué se vendió, y por eso qué circuito sigue (0237/0239). */
+  tipo_pedido?: TipoPedido | null;
+  entrega_en?: "planta" | "agencia" | "cliente" | null;
+  con_instalacion?: boolean | null;
   monto_pagado: number | null;
   pago_confirmado_at: string | null;
   /** Quién de Finanzas confirmó y por qué medio (0150). */
@@ -298,9 +302,54 @@ export function esProvincia(s: ServicioPostventa): boolean {
  * El orden importa: un paso «trabado» no es un paso pendiente cualquiera, es
  * el que hay que ir a destrabar, y casi siempre está en manos de otra área.
  */
+export type TipoPedido = "equipo" | "repuesto" | "mantenimiento" | "revision";
+
+export const ETIQUETA_TIPO_PEDIDO: Record<TipoPedido, string> = {
+  equipo: "Venta de equipo",
+  repuesto: "Venta de repuesto",
+  mantenimiento: "Mantenimiento",
+  revision: "Servicio de revisión",
+};
+
+/**
+ * EL CIRCUITO DEPENDE DE LO QUE SE VENDIÓ (Carlos, 15-09; 0239).
+ *
+ * «Debería seleccionarse que es venta de repuesto o venta de equipo… repuesto
+ * con entrega en planta o en agencia, con instalación o sin instalación.
+ * Check, check y me despliega todo esto. Porque si no, siempre voy a tener
+ * todo este proceso». Y para mantenimiento: «confirmación de Finanzas, y luego
+ * programación y ejecución. El técnico va, ejecuta, sube el informe y cierra.
+ * No hay probado y embalado, no hay plano de preinstalación».
+ *
+ * Las claves de los pasos son las mismas en los cuatro circuitos —las fechas
+ * viven en las mismas columnas—; lo que cambia es qué pasos existen y cómo
+ * se llaman. Un repuesto que se recoge en planta termina al entregarse; con
+ * instalación, el técnico va y recién ahí se cierra.
+ */
+export function circuitoDe(s: ServicioPostventa): {
+  tipo: TipoPedido;
+  esEquipo: boolean;
+  esRepuesto: boolean;
+  esServicio: boolean;
+  entregaEnPlanta: boolean;
+  conInstalacion: boolean;
+} {
+  const tipo: TipoPedido = s.tipo_pedido ?? "equipo";
+  const esRepuesto = tipo === "repuesto";
+  return {
+    tipo,
+    esEquipo: tipo === "equipo",
+    esRepuesto,
+    esServicio: tipo === "mantenimiento" || tipo === "revision",
+    entregaEnPlanta: esRepuesto && s.entrega_en === "planta",
+    conInstalacion: esRepuesto && s.con_instalacion === true,
+  };
+}
+
 export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   const saldo = saldoPendiente(s);
   const provincia = esProvincia(s);
+  const circuito = circuitoDe(s);
 
   // El estado del pago se le pregunta a `estadoPago`, nunca a los montos: si la
   // ficha viene con las cifras tapadas (`sinPrecios`) los montos ya no están y
@@ -356,26 +405,38 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       cuando: s.aprobado_at,
       detalle: s.numero_pedido_erp ? `Pedido ERP ${s.numero_pedido_erp}` : undefined,
     },
-    {
-      clave: "prueba",
-      etiqueta: "Probado y embalado",
-      responsable: "almacen",
-      hecho: s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje),
-      cuando: s.prueba_lista_at,
-      detalle: s.protocolo_prueba_ref ? `Protocolo ${s.protocolo_prueba_ref}` : "Con fecha y hora: es lo que prueba que salió bien",
-      trabado:
-        s.prueba_lista_at == null && s.prueba_solicitada_at != null
-          ? "Solicitado al almacén, sin respuesta todavía"
-          : undefined,
-    },
-    {
-      clave: "plano",
-      etiqueta: "Plano de preinstalación enviado",
-      responsable: "postventa",
-      hecho: s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion),
-      cuando: s.plano_enviado_at,
-      detalle: "Va en paralelo: cuanto antes salga, antes prepara el cliente agua, desagüe y energía",
-    },
+    ...(circuito.esServicio
+      ? []
+      : [
+          {
+            clave: "prueba",
+            etiqueta: circuito.esRepuesto ? "Repuesto listo y embalado" : "Probado y embalado",
+            responsable: "almacen" as ResponsablePaso,
+            hecho: s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje),
+            cuando: s.prueba_lista_at,
+            detalle: s.protocolo_prueba_ref
+              ? `Protocolo ${s.protocolo_prueba_ref}`
+              : circuito.esRepuesto
+                ? "El almacén avisa que el repuesto está listo para entregar"
+                : "Con fecha y hora: es lo que prueba que salió bien",
+            trabado:
+              s.prueba_lista_at == null && s.prueba_solicitada_at != null
+                ? "Solicitado al almacén, sin respuesta todavía"
+                : undefined,
+          },
+        ]),
+    ...(circuito.esEquipo
+      ? [
+          {
+            clave: "plano",
+            etiqueta: "Plano de preinstalación enviado",
+            responsable: "postventa" as ResponsablePaso,
+            hecho: s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion),
+            cuando: s.plano_enviado_at,
+            detalle: "Va en paralelo: cuanto antes salga, antes prepara el cliente agua, desagüe y energía",
+          },
+        ]
+      : []),
   ];
 
   // LA APERTURA DE DESPACHO: el documento con el que almacén despacha sin
@@ -385,9 +446,9 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   const planoEnviado = s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion);
   const faltaParaApertura = [
     !(pagoConfirmado || pagoDesconocido || despachoAutorizadoConSaldo) ? "la confirmación de Finanzas" : null,
-    s.direccion_verificada_at == null ? "la dirección verificada" : null,
-    !pruebaLista ? "el equipo probado y embalado" : null,
-    !planoEnviado ? "el plano de preinstalación" : null,
+    s.direccion_verificada_at == null ? (circuito.esServicio ? "dónde se hace el servicio, verificado" : "la dirección verificada") : null,
+    !circuito.esServicio && !pruebaLista ? (circuito.esRepuesto ? "el repuesto listo y embalado" : "el equipo probado y embalado") : null,
+    circuito.esEquipo && !planoEnviado ? "el plano de preinstalación" : null,
     // LA PREINSTALACIÓN YA NO FRENA LA APERTURA. Carlos, 09-09: «preinstalación
     // confirmada, eso es parte de la puesta en marcha… la apertura de despacho
     // sí va en el despacho». Deja de ser un requisito para despachar y pasa al
@@ -398,10 +459,29 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   ].filter((x): x is string => x != null);
   const aperturaEmitida = s.apertura_despacho_at != null;
 
-  const despacho: PasoPedido[] = [
+  const despacho: PasoPedido[] = circuito.entregaEnPlanta
+    ? [
+        // El cliente lo recoge en la planta: sin dirección, sin apertura, sin
+        // camión. Se entrega y se cierra.
+        {
+          clave: "despacho",
+          etiqueta: s.despachado_at ? "Entregado en planta" : "Entrega en planta",
+          responsable: "postventa",
+          hecho: s.despachado_at != null,
+          cuando: s.despachado_at ?? (s.fecha_despacho ? `${s.fecha_despacho}T12:00:00` : null),
+          detalle: s.recibe_nombre ? `Lo recogió ${s.recibe_nombre}` : "El cliente viene a recogerlo; se anota quién lo recibió",
+          trabado:
+            !pagado && !pagoDesconocido && s.despachado_at == null && !despachoAutorizadoConSaldo
+              ? "No se entrega con saldo pendiente sin autorización"
+              : undefined,
+        },
+      ]
+    : [
     {
       clave: "direccion",
-      etiqueta: "Dirección y quién recibe, verificados con el cliente",
+      etiqueta: circuito.esServicio
+        ? "Dónde se hace el servicio y con quién, verificados con el cliente"
+        : "Dirección y quién recibe, verificados con el cliente",
       responsable: "postventa",
       hecho: s.direccion_verificada_at != null,
       cuando: s.direccion_verificada_at,
@@ -411,12 +491,16 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
     },
     {
       clave: "apertura",
-      etiqueta: aperturaEmitida ? "Apertura de despacho emitida" : "Apertura de despacho",
+      etiqueta: circuito.esServicio
+        ? aperturaEmitida ? "Apertura de servicio emitida" : "Apertura de servicio"
+        : aperturaEmitida ? "Apertura de despacho emitida" : "Apertura de despacho",
       responsable: "postventa",
       hecho: aperturaEmitida,
       cuando: s.apertura_despacho_at ?? null,
       detalle: aperturaEmitida
-        ? "Con este documento almacén despacha sin preguntar a nadie"
+        ? circuito.esServicio
+          ? "Con este documento el técnico sale con todo definido"
+          : "Con este documento almacén despacha sin preguntar a nadie"
         : faltaParaApertura.length === 0
           ? "Todo cumplido: se puede emitir"
           : undefined,
@@ -429,19 +513,21 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       clave: "despacho",
       // «Una vez que ingresa la guía de remisión, allá en almacén le tienen que
       // decir: despacho concluido» (Carlos, 09-09). El nombre lo dice.
-      etiqueta: s.despachado_at ? "Despacho concluido" : "Despacho programado",
+      etiqueta: circuito.esServicio
+        ? s.despachado_at ? "Técnico en el cliente" : "Servicio programado"
+        : s.despachado_at ? "Despacho concluido" : "Despacho programado",
       responsable: "postventa",
       hecho: s.despachado_at != null,
       cuando: s.despachado_at ?? (s.fecha_despacho ? `${s.fecha_despacho}T12:00:00` : null),
       detalle:
         [s.transportista, s.guia ? `Guía ${s.guia}` : null].filter(Boolean).join(" · ") ||
-        (s.despachado_at ? undefined : "Se concluye con la guía de remisión del almacén"),
+        (s.despachado_at ? undefined : circuito.esServicio ? "Con día, hora y técnico asignado" : "Se concluye con la guía de remisión del almacén"),
       trabado:
         s.despachado_at == null && !aperturaEmitida && s.informe_cierre_id != null
-          ? "Sin apertura de despacho no sale nada del almacén"
+          ? circuito.esServicio ? "Sin apertura de servicio no sale el técnico" : "Sin apertura de despacho no sale nada del almacén"
           : !pagado && !pagoDesconocido && s.despachado_at == null && !despachoAutorizadoConSaldo
             ? "No se despacha con saldo pendiente sin autorización"
-            : provincia && s.despachado_at == null && s.preinstalacion_ok_at == null
+            : circuito.esEquipo && provincia && s.despachado_at == null && s.preinstalacion_ok_at == null
               ? "Es provincia y el cliente todavía no confirmó la preinstalación: conviene tenerla antes de que salga el camión"
               : undefined,
     },
@@ -452,7 +538,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
     // Va acá y no en Despacho desde el 09-09 (Carlos): lo que el cliente
     // confirma —agua, desagüe, energía— es lo que hace posible la puesta en
     // marcha, no lo que autoriza el camión.
-    ...(provincia
+    ...(provincia && circuito.esEquipo
       ? [
           {
             clave: "preinstalacion",
@@ -464,28 +550,44 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
           },
         ]
       : []),
-    {
-      clave: "puesta",
-      etiqueta: "Puesta en marcha",
-      responsable: "postventa",
-      hecho: s.puesta_en_marcha != null,
-      cuando: s.puesta_en_marcha ? `${s.puesta_en_marcha}T12:00:00` : null,
-      detalle: provincia ? "En provincia, normalmente por videollamada" : "In situ",
-    },
+    // El repuesto sin instalación no tiene puesta en marcha: se entrega y se
+    // cierra. Con instalación, el técnico va. En mantenimiento y revisión,
+    // este paso es la ejecución con su informe.
+    ...(circuito.esRepuesto && !circuito.conInstalacion
+      ? []
+      : [
+          {
+            clave: "puesta",
+            etiqueta: circuito.esRepuesto
+              ? "Repuesto instalado"
+              : circuito.esServicio
+                ? circuito.tipo === "revision" ? "Revisión ejecutada, con informe" : "Mantenimiento ejecutado, con informe"
+                : "Puesta en marcha",
+            responsable: "postventa" as ResponsablePaso,
+            hecho: s.puesta_en_marcha != null,
+            cuando: s.puesta_en_marcha ? `${s.puesta_en_marcha}T12:00:00` : null,
+            detalle: circuito.esEquipo ? (provincia ? "En provincia, normalmente por videollamada" : "In situ") : "El técnico sube el informe al terminar",
+          },
+        ]),
     {
       clave: "cerrado",
       etiqueta: "Pedido cerrado",
       responsable: "postventa",
       hecho: s.cerrado_at != null || s.completado,
       cuando: s.cerrado_at,
-      detalle: "Al cerrar, el equipo entra al parque instalado con su garantía",
+      detalle: circuito.esEquipo ? "Al cerrar, el equipo entra al parque instalado con su garantía" : "Al cerrar, queda en el historial del cliente",
     },
   ];
 
+  const titulos = circuito.esRepuesto
+    ? ["Preparación", "Entrega", circuito.conInstalacion ? "Instalación y cierre" : "Cierre"]
+    : circuito.esServicio
+      ? ["Preparación", "Programación", "Ejecución y cierre"]
+      : ["Preparación", "Despacho", "Puesta en marcha y cierre"];
   return [
-    { numero: 1, titulo: "Preparación", pasos: preparacion, ...resumen(preparacion) },
-    { numero: 2, titulo: "Despacho", pasos: despacho, ...resumen(despacho) },
-    { numero: 3, titulo: "Puesta en marcha y cierre", pasos: cierre, ...resumen(cierre) },
+    { numero: 1, titulo: titulos[0], pasos: preparacion, ...resumen(preparacion) },
+    { numero: 2, titulo: titulos[1], pasos: despacho, ...resumen(despacho) },
+    { numero: 3, titulo: titulos[2], pasos: cierre, ...resumen(cierre) },
   ];
 }
 

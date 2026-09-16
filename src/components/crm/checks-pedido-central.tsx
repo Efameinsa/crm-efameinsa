@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 
 /**
  * Los dos checks de Central sobre un cierre de venta.
@@ -49,6 +50,12 @@ export function ChecksPedidoCentral({
   const [pendiente, startTransition] = useTransition();
   const [abierto, setAbierto] = useState(false);
   const [numero, setNumero] = useState(numeroPedido ?? "");
+  // EJECUTAR SIN LIQUIDACIÓN ES UNA EXCEPCIÓN CON CÓDIGO (Carlos, 15-09; 0237).
+  // Tunupa y Gary Group se ejecutaron sin liquidación «para que postventa
+  // avance», postventa aprobó antes del segundo check y el botón se perdió.
+  // El orden es liquidación → ejecutado; saltárselo pide el código de gerencia
+  // u operaciones y deja quién lo autorizó.
+  const [pin, setPin] = useState("");
   // Optimistic (Santos, 02-09): el check se pinta al toque y se revierte si
   // el servidor lo rechaza. La lista vuelve a leerse de la base después.
   const [visto, setVisto] = useState<{ pedido: boolean; liquidacion: boolean }>({ pedido: pedidoEjecutado, liquidacion });
@@ -64,9 +71,11 @@ export function ChecksPedidoCentral({
         numeroPedido: numeroPedidoErp ?? null,
         marcarPedido: campo === "pedido",
         marcarLiquidacion: campo === "liquidacion",
+        pin: campo === "pedido" && !liquidacionVista ? pin : null,
       });
       if (r.error) {
         setVisto(antes);
+        setPin("");
         toast.error(r.error, { duration: 9000 });
         return;
       }
@@ -148,13 +157,30 @@ export function ChecksPedidoCentral({
               required
             />
           </div>
+          {!liquidacionVista && (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+              <p className="text-xs font-semibold text-amber-800">La liquidación todavía no está marcada</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                El orden es liquidación y después pedido ejecutado. Si hay que ejecutarlo antes —para que postventa
+                pruebe y embale mientras Finanzas termina—, pida el código de gerencia u operaciones: queda registrado
+                quién lo autorizó.
+              </p>
+              <div className="mt-2">
+                <CampoCodigo valor={pin} onChange={setPin} tono="amber" id="pin-ejecutar" />
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAbierto(false)}>
               Cancelar
             </Button>
-            <Button onClick={() => marcar("pedido", numero)} disabled={pendiente || !numero.trim()} title={!numero.trim() ? "Anote el número del pedido en el ERP" : undefined}>
+            <Button
+              onClick={() => marcar("pedido", numero)}
+              disabled={pendiente || !numero.trim() || (!liquidacionVista && pin.replace(/\D/g, "").length < 4)}
+              title={!numero.trim() ? "Anote el número del pedido en el ERP" : !liquidacionVista && pin.replace(/\D/g, "").length < 4 ? "Falta el código de autorización" : undefined}
+            >
               {pendiente && <Loader2 className="size-4 animate-spin" />}
-              Marcar ejecutado
+              {liquidacionVista ? "Marcar ejecutado" : "Ejecutar con código"}
             </Button>
           </DialogFooter>
         </DialogContent>

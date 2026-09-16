@@ -54,7 +54,12 @@ export async function ColaDespachos({
   // justo lo que hay que resolver. Es el mismo error que vació el Kanban en el
   // plan 11. Lo que separa las pestañas es si está pendiente, no de dónde vino.
   let q = supabase.from("servicios_postventa").select("*", { count: "exact" });
-  if (pestana === "lista") q = q.eq("completado", false);
+  // POSTVENTA VE EL PEDIDO RECIÉN CUANDO CENTRAL LO EJECUTA (Carlos, 15-09):
+  // «yo como postventa no debería ver nada, y menos aprobar, si Central no
+  // me lanza el pedido». El cierre del comercial existe desde que se emite,
+  // pero para el área no es trabajo hasta el check de Central. Los pedidos
+  // viejos del Excel (sin cierre) siguen como estaban.
+  if (pestana === "lista") q = q.eq("completado", false).or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null");
   if (pestana === "historico") q = q.eq("origen", "excel");
   if (pestana === "completados") q = q.eq("completado", true);
 

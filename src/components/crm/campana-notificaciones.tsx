@@ -43,6 +43,9 @@ const ESTILO_AVISO: Record<
   // ventanita desapareciera a los 12 segundos como las demás, un comercial
   // que fue al baño vuelve y no se entera. Se queda hasta que la toque.
   urgencia: { encabezado: "🚨 Urgente — un cliente está esperando", accion: "Atenderlo ya", duracion: Infinity, tono: "error" },
+  // Central anuló un cierre (0237) y alguien viene a la planta (0238).
+  cierre_anulado: { encabezado: "Central anuló un cierre suyo", accion: "Ver el motivo", duracion: Infinity, tono: "warning" },
+  visita_planta: { encabezado: "Visita a la planta", accion: "Imprimir para vigilancia", duracion: 14000, tono: "info" },
   otro: { encabezado: "Aviso nuevo", accion: "Ver", duracion: 8000, tono: "info" },
 };
 

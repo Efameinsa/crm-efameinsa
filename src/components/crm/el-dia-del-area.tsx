@@ -47,6 +47,7 @@ export async function ElDiaDelArea() {
     .select("id, cliente_texto, completado, cerrado_at, despachado_at, puesta_en_marcha, apertura_despacho_at, fecha_despacho")
     .eq("completado", false)
     .is("cerrado_at", null)
+    .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
     .limit(1000);
 
   // Las visitas de HOY salen de las atenciones, no de los pedidos: son las dos

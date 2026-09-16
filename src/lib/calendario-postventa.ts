@@ -15,7 +15,7 @@ import type { ServicioPostventa } from "@/lib/postventa";
  * con un cuaderno, un Excel y un grupo de WhatsApp llevando lo mismo.
  */
 
-export type OrigenEvento = "pedido" | "caso" | "tarea";
+export type OrigenEvento = "pedido" | "caso" | "tarea" | "atencion" | "visita";
 
 export interface EventoCalendario {
   /** Único en la grilla: un mismo pedido aporta despacho y puesta en marcha. */
@@ -47,6 +47,8 @@ export const COLOR_EVENTO: Record<string, string> = {
   repuesto: "border-l-violet-600 bg-violet-50",
   caso: "border-l-slate-500 bg-slate-50",
   tarea: "border-l-neutral-400 bg-neutral-50",
+  atencion_tecnica: "border-l-orange-600 bg-orange-50",
+  visita_planta: "border-l-teal-600 bg-teal-50",
 };
 
 export const ETIQUETA_EVENTO: Record<string, string> = {
@@ -57,6 +59,8 @@ export const ETIQUETA_EVENTO: Record<string, string> = {
   repuesto: "Repuesto",
   caso: "Atención",
   tarea: "Personal",
+  atencion_tecnica: "Atención técnica",
+  visita_planta: "Viene a planta",
 };
 
 export function colorEvento(tipo: string): string {
@@ -211,5 +215,65 @@ export function eventoDeTarea(t: TareaAgendable): EventoCalendario {
     href: "/comercial/agenda",
     origen: "tarea",
     hecho: t.completada,
+  };
+}
+
+/**
+ * LA ATENCIÓN PROGRAMADA SALE EN LA AGENDA (Carlos, 15-09; 0238). Turismo
+ * Costa del Sol tenía la videollamada de preinstalación agendada para el 15
+ * a las 16:00 con Cristian en la atención, y la agenda no la mostraba: el
+ * calendario solo leía pedidos y casos. Cada atención con día y técnico es
+ * una cita del área.
+ */
+export function eventoDeAtencion(a: {
+  id: string;
+  tipo: string;
+  programada_at: string;
+  tecnico: string | null;
+  cliente: string;
+  cerrado_at: string | null;
+  zona: string | null;
+}): EventoCalendario {
+  const enLima = new Date(a.programada_at).toLocaleString("sv-SE", { timeZone: "America/Lima" });
+  const [fecha, horaCompleta] = enLima.split(" ");
+  const hora = horaCompleta?.slice(0, 5) ?? null;
+  const etiqueta = a.tipo === "puesta_en_marcha" ? "Puesta en marcha" : a.tipo === "problema_tecnico" ? "Problema técnico" : a.tipo === "solicitud_mantenimiento" ? "Mantenimiento" : "Repuesto";
+  return {
+    clave: `atencion-${a.id}`,
+    fecha,
+    hora: hora === "00:00" ? null : hora,
+    tipo: a.tipo === "puesta_en_marcha" ? "puesta_en_marcha" : "atencion_tecnica",
+    titulo: `${etiqueta}${a.tecnico ? ` · ${a.tecnico}` : ""}`,
+    cliente: a.cliente,
+    ubicacion: null,
+    zona: a.zona,
+    href: `/postventa/atenciones/${a.id}`,
+    origen: "atencion",
+    hecho: Boolean(a.cerrado_at),
+  };
+}
+
+/** Quién viene a la planta (0238): también es una cita del día. */
+export function eventoDeVisita(v: {
+  id: string;
+  empresa: string;
+  persona: string;
+  motivo: string;
+  fecha: string;
+  hora: string | null;
+  cancelada_at: string | null;
+}): EventoCalendario {
+  return {
+    clave: `visita-${v.id}`,
+    fecha: v.fecha,
+    hora: v.hora ? v.hora.slice(0, 5) : null,
+    tipo: "visita_planta",
+    titulo: `Viene a planta: ${v.persona} · ${v.motivo}`,
+    cliente: v.empresa,
+    ubicacion: "Planta Efameinsa",
+    zona: "lima",
+    href: "/central/visitas",
+    origen: "visita",
+    hecho: Boolean(v.cancelada_at),
   };
 }

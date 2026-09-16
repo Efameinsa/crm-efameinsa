@@ -35,6 +35,8 @@ export async function liberarPedido(datos: {
   numeroPedido?: string | null;
   marcarPedido?: boolean;
   marcarLiquidacion?: boolean;
+  /** Código de gerencia u operaciones para ejecutar con la liquidación pendiente (0237). */
+  pin?: string | null;
 }) {
   // Carlos, 02-09, marcando el pedido de Sierra Travel: «yo pensaría que me
   // obligues más bien a poner el número del pedido». Es lo que después
@@ -48,6 +50,7 @@ export async function liberarPedido(datos: {
     p_numero_pedido: datos.numeroPedido?.trim() || null,
     p_marcar_pedido: datos.marcarPedido ?? false,
     p_marcar_liquidacion: datos.marcarLiquidacion ?? false,
+    p_pin: datos.pin?.trim() || null,
   });
   if (error) return falla(error.message);
 
@@ -701,4 +704,69 @@ export async function definirCondicionPago(
   revalidatePath("/postventa/control");
   revalidatePath("/gerencia/finanzas");
   return ok();
+}
+
+// ── Qué se vendió, y los pedidos anteriores al circuito (0237/0239) ────────
+
+/**
+ * Postventa corrige el tipo de circuito del pedido cuando la primera lectura
+ * del informe no coincide: «venta de repuesto o de equipo… con entrega en
+ * planta o en agencia, con instalación o sin instalación» (Carlos, 15-09).
+ */
+export async function definirTipoPedido(
+  servicioId: string,
+  datos: { tipo: "equipo" | "repuesto" | "mantenimiento" | "revision"; entregaEn?: "planta" | "agencia" | "cliente" | null; conInstalacion?: boolean | null },
+) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("servicios_postventa")
+    .update({
+      tipo_pedido: datos.tipo,
+      entrega_en: datos.tipo === "repuesto" ? (datos.entregaEn ?? null) : null,
+      con_instalacion: datos.tipo === "repuesto" ? (datos.conInstalacion ?? null) : null,
+    })
+    .eq("id", servicioId);
+  if (error) return falla(error.message);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath("/postventa/control");
+  return ok();
+}
+
+/**
+ * Un pedido anterior al circuito entra a preparación desde la ficha del
+ * cliente (0239): Choquehuanca, JMZ, las 20 máquinas de MG. Ya nace
+ * ejecutado, liquidado y aprobado, porque eso pasó antes del CRM.
+ */
+export async function traerPedidoAntiguo(datos: {
+  cuentaId: string;
+  equipo: string;
+  tipo: "equipo" | "repuesto" | "mantenimiento" | "revision";
+  monto?: number | null;
+  moneda?: "USD" | "PEN";
+  fechaVenta?: string | null;
+  referencia?: string | null;
+  nota?: string | null;
+  entregaEn?: "planta" | "agencia" | "cliente" | null;
+  conInstalacion?: boolean | null;
+}): Promise<{ error: string | null; id?: string }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("traer_pedido_antiguo", {
+    p_cuenta: datos.cuentaId,
+    p_equipo: datos.equipo.trim(),
+    p_tipo: datos.tipo,
+    p_monto: datos.monto ?? null,
+    p_moneda: datos.moneda ?? "USD",
+    p_fecha_venta: datos.fechaVenta || null,
+    p_referencia: datos.referencia?.trim() || null,
+    p_nota: datos.nota?.trim() || null,
+    p_entrega_en: datos.entregaEn ?? null,
+    p_con_instalacion: datos.conInstalacion ?? null,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  revalidatePath("/postventa/pedidos");
+  revalidatePath("/postventa/control");
+  revalidatePath("/postventa/agenda");
+  return { error: null, id: data as string };
 }

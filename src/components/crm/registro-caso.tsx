@@ -72,6 +72,10 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
   const [pendiente, startTransition] = useTransition();
 
   const [serie, setSerie] = useState("");
+  // VARIAS MÁQUINAS EN UN CASO (Rubí, 15-09; 0238): «hay clientes que no
+  // solamente tienen mantenimiento de una máquina, sino más, y no hay opción
+  // de poder volver a agregar».
+  const [otrasSeries, setOtrasSeries] = useState<string[]>([]);
   const [ficha, setFicha] = useState<FichaSerie | null>(null);
   const [buscada, setBuscada] = useState(false);
   const [buscando, setBuscando] = useState(false);
@@ -142,6 +146,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
         detalle: problema,
         equipoId: ficha?.equipoId ?? null,
         serie: ficha?.serie ?? serie.trim() ?? null,
+        seriesAdicionales: otrasSeries,
         codigoError: codigoError || null,
         adjuntos: subida.adjuntos,
       });
@@ -200,6 +205,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
         codigoError: codigoError || null,
         equipoId: ficha?.equipoId ?? null,
         serieTexto: ficha?.serie ?? serie.trim() ?? null,
+        seriesAdicionales: otrasSeries,
         desenlace,
         atencion: null,
         adjuntos: subida.adjuntos,
@@ -239,6 +245,33 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
           >
             {buscando ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
             Buscar la máquina
+          </button>
+        </div>
+
+        <div className="mt-2 space-y-1.5">
+          {otrasSeries.map((x, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                value={x}
+                onChange={(e) => setOtrasSeries((xs) => xs.map((y, j) => (j === i ? e.target.value : y)))}
+                placeholder="Serie de otra máquina del mismo caso"
+                className="w-full min-w-[180px] rounded-md border border-border bg-background px-2.5 py-1.5 font-mono text-sm uppercase outline-none placeholder:font-sans placeholder:normal-case placeholder:text-muted-foreground"
+              />
+              <button
+                type="button"
+                onClick={() => setOtrasSeries((xs) => xs.filter((_, j) => j !== i))}
+                className="text-xs text-muted-foreground hover:text-destructive"
+              >
+                Quitar
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setOtrasSeries((xs) => [...xs, ""])}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            + Otra máquina del mismo caso
           </button>
         </div>
 

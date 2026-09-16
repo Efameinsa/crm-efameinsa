@@ -46,6 +46,12 @@ export default async function CorregirPage({
     );
   }
 
+  // Una rechazada no se corrige: es histórico (0237). Modo corrección solo
+  // aplica a lo emitido, así que por acá no debería llegar; se cierra igual.
+  if (resultado.estado === "rechazada") {
+    return <RegistroNoDisponible volverHref={volverHref} volverTexto="Volver a la oportunidad" />;
+  }
+
   const { contexto } = resultado;
   if (!contexto.borrador || !contexto.correccion) {
     return <RegistroNoDisponible volverHref={volverHref} volverTexto="Volver a la oportunidad" />;

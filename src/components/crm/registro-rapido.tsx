@@ -96,13 +96,16 @@ export function RegistroRapido({
   oportunidadId,
   resultados = [],
   motivos = [],
+  abiertoAlInicio = false,
 }: {
   oportunidadId: string;
   resultados?: ResultadoGestion[];
   motivos?: MotivoRechazo[];
+  /** Llegó desde «Registrar seguimiento» (0238): el cuadro ya viene abierto. */
+  abiertoAlInicio?: boolean;
 }) {
   const reducido = useReducedMotion();
-  const [expandido, setExpandido] = useState(false);
+  const [expandido, setExpandido] = useState(abiertoAlInicio);
   const [tipo, setTipo] = useState<TipoGestion>("llamada");
   const [nota, setNota] = useState("");
   const [resultadoId, setResultadoId] = useState<number | null>(null);

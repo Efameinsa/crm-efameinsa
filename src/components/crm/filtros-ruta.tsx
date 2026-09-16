@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PhoneOff, Search, X } from "lucide-react";
 import {
   ETIQUETA_COMPRA,
@@ -84,17 +84,25 @@ export function FiltrosRuta({
 }) {
   const { q, mant, compra, llamada, tel } = valores;
   const [texto, setTexto] = useState(q);
+  // Lo último que se mandó a buscar: cuando la URL vuelve con eso mismo, el
+  // campo no se toca —si no, con el internet lento se borraba lo tecleado
+  // mientras llegaba la respuesta (postventa, 15-09; ver BusquedaEnVivo).
+  const enviado = useRef(q.trim());
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (q.trim() === enviado.current) return;
+    enviado.current = q.trim();
     setTexto(q);
   }, [q]);
 
   // La búsqueda aplica al dejar de escribir: filtrar 500 filas por tecla se
   // siente bien, pero con 500 filas pintándose a cada letra tiembla.
   useEffect(() => {
-    if (texto === q) return;
-    const t = setTimeout(() => onCambiar({ q: texto.trim() }), 200);
+    if (texto.trim() === enviado.current) return;
+    const t = setTimeout(() => {
+      enviado.current = texto.trim();
+      onCambiar({ q: texto.trim() });
+    }, 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texto]);
