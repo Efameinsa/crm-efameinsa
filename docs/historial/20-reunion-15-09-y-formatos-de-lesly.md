@@ -40,3 +40,26 @@ humo 38/38). Transcripciones de la reunión: `Downloads/reu15.09` (7 audios).
 - Amarrar los repuestos del informe de revisión al cotizador.
 - Regla «según la empresa» para los correos `@openinvestments` si Santos la define.
 - El «Reprogramar se colgó» de Turismo Costa del Sol no se reprodujo; si vuelve, pedir cliente y hora.
+
+## Reunión 16-09, 17:39 (Carlos, Lesly) — lo ajustado el mismo día
+
+- Postventa aterriza en **El macro** (`/postventa/macro`), que va primero en el menú; «Pedidos en curso».
+- **Visitas a planta** en el menú del área (`/postventa/visitas`, solo lectura).
+- **Mi gestión** (velocímetro) para postventa: 0245 deja entrar la cuenta en `resumen_gerencia` cuando se pide por ella; meta provisional US$ 25 000/mes en PV, PV1 y PV2 (la cifra del área que dio Carlos; falta repartirla).
+- Las listas con texto largo ya no ensanchan la página (control por paso medía 5 700 px; atenciones 7 700 px).
+- Confirmado en vivo: el seguimiento se registra en el expediente; la puesta en marcha se engancha al pedido (0244).
+
+**Pendiente de esa reunión (grande): el módulo de ALMACÉN.** Usuario propio con: sus
+pedidos (los mismos de postventa), avisos de «prueba la máquina» → sube protocolo y marca
+probado/embalado; recibe la programación del despacho y confirma que está listo
+(montacarga); registra la salida con 5 fotos (frente, lateral izq., lateral der.,
+posterior, arriba) + video; en la agencia sube foto de la guía y de la máquina y marca
+despachado; postventa da el doble check. Ve las visitas a planta (recojo de repuestos),
+los informes técnicos y su macro: puesta en marcha, despachos, mantenimiento, soporte
+técnico. Nombre acordado: **almacén** (no logística). Diseño antes de construir.
+
+**KPIs de postventa para proponer mañana** (datos reales): ventas de servicio/repuestos
+2026 por mes: ene 14 k, feb 7 k, mar 26 k, abr 15 k, may 5,5 k, jun 9,7 k, jul 49 k,
+ago 18 k, sep (al 16) 4 k USD → promedio ~18 k/mes; la meta de 25 k es +40 %. Gestiones
+de contacto del área: 33–43 por semana (una sola cuenta PV); PV1 recién arranca.
+Todavía no hay cotizaciones enviadas desde las cuentas de postventa (las hacen en Word).
