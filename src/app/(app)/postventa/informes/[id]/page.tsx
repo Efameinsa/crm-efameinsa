@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Camera, Cpu } from "lucide-react";
+import { ArrowLeft, Camera, Cpu, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -72,12 +72,21 @@ export default async function InformeServicioPage({ params }: { params: Promise<
 
   return (
     <div className="space-y-4">
-      <Link
-        href="/postventa/atenciones?ver=historico"
-        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-3.5" /> Volver a los informes
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link
+          href="/postventa/atenciones?ver=historico"
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" /> Volver a los informes
+        </Link>
+        {/* El papel en el formato de Lesly, para imprimir o guardar como PDF (0242). */}
+        <Link
+          href={`/postventa/informes/${id}/imprimir`}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-accent"
+        >
+          <Printer className="size-3.5" /> Ver como informe para imprimir
+        </Link>
+      </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">

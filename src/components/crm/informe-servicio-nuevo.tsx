@@ -52,6 +52,14 @@ export function InformeServicioNuevo({
   const [ciclos, setCiclos] = useState(ciclosActuales != null ? String(ciclosActuales) : "");
   const [conforme, setConforme] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
+  // EL FORMATO DE LESLY (T:\formatos para santos, 16-09; 0242): hora de
+  // inicio y de culminación, «Verificación / Pruebas», «Pendiente» y la tabla
+  // «Cotizar: repuestos» que cierra el informe de revisión.
+  const [horaInicio, setHoraInicio] = useState("");
+  const [horaFin, setHoraFin] = useState("");
+  const [verificacion, setVerificacion] = useState("");
+  const [pendientes, setPendientes] = useState("");
+  const [repuestos, setRepuestos] = useState<{ codigo: string; descripcion: string; cantidad: string; precio: string }[]>([]);
 
   function guardar() {
     if (!detalle.trim()) {
@@ -81,13 +89,23 @@ export function InformeServicioNuevo({
         equipoTexto,
         tipo,
         modalidad,
-        ejecutadoAt: new Date(`${fecha}T12:00:00`).toISOString(),
+        ejecutadoAt: new Date(`${fecha}T${horaInicio || "12:00"}:00-05:00`).toISOString(),
         tecnico: tecnico || null,
         detalle,
         observaciones: observaciones || null,
         ciclos: ciclos ? Number(ciclos) : null,
         conformeNombre: conforme || null,
         fotos: subidas,
+        horaInicio: horaInicio || null,
+        horaFin: horaFin || null,
+        verificacion: verificacion || null,
+        pendientes: pendientes || null,
+        repuestos: repuestos.map((r) => ({
+          codigo: r.codigo,
+          descripcion: r.descripcion,
+          cantidad: r.cantidad ? Number(r.cantidad) : null,
+          precio: r.precio ? Number(r.precio) : null,
+        })),
       });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
@@ -151,6 +169,12 @@ export function InformeServicioNuevo({
           <option value="videollamada">Videollamada</option>
           <option value="planta">En planta</option>
         </select>
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          De
+          <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground" />
+          a
+          <input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground" />
+        </label>
         <input
           value={tecnico}
           onChange={(e) => setTecnico(e.target.value)}
@@ -176,12 +200,40 @@ export function InformeServicioNuevo({
         className="w-full rounded-md border border-border bg-background p-2 text-sm outline-none"
       />
       <textarea
+        value={verificacion}
+        onChange={(e) => setVerificacion(e.target.value)}
+        rows={2}
+        placeholder="Verificación / pruebas (qué se comprobó y cómo salió)"
+        className="w-full rounded-md border border-border bg-background p-2 text-sm outline-none"
+      />
+      <textarea
         value={observaciones}
         onChange={(e) => setObservaciones(e.target.value)}
         rows={2}
         placeholder="Observaciones y recomendaciones"
         className="w-full rounded-md border border-border bg-background p-2 text-sm outline-none"
       />
+      <textarea
+        value={pendientes}
+        onChange={(e) => setPendientes(e.target.value)}
+        rows={1}
+        placeholder="Pendiente (lo que quedó por hacer o coordinar)"
+        className="w-full rounded-md border border-border bg-background p-2 text-sm outline-none"
+      />
+      <div className="space-y-1.5">
+        {repuestos.map((r, i) => (
+          <div key={i} className="grid grid-cols-[7rem_1fr_4rem_5rem_auto] items-center gap-1.5">
+            <input value={r.codigo} onChange={(e) => setRepuestos((xs) => xs.map((x, j) => (j === i ? { ...x, codigo: e.target.value } : x)))} placeholder="Código" className="rounded-md border border-border bg-background px-2 py-1 font-mono text-xs" />
+            <input value={r.descripcion} onChange={(e) => setRepuestos((xs) => xs.map((x, j) => (j === i ? { ...x, descripcion: e.target.value } : x)))} placeholder="Repuesto a cotizar" className="rounded-md border border-border bg-background px-2 py-1 text-xs" />
+            <input value={r.cantidad} onChange={(e) => setRepuestos((xs) => xs.map((x, j) => (j === i ? { ...x, cantidad: e.target.value.replace(/[^\d]/g, "") } : x)))} placeholder="Cant." className="rounded-md border border-border bg-background px-2 py-1 text-right text-xs" />
+            <input value={r.precio} onChange={(e) => setRepuestos((xs) => xs.map((x, j) => (j === i ? { ...x, precio: e.target.value.replace(/[^\d.]/g, "") } : x)))} placeholder="US$" className="rounded-md border border-border bg-background px-2 py-1 text-right text-xs" />
+            <button type="button" onClick={() => setRepuestos((xs) => xs.filter((_, j) => j !== i))} className="text-xs text-muted-foreground hover:text-destructive">Quitar</button>
+          </div>
+        ))}
+        <button type="button" onClick={() => setRepuestos((xs) => [...xs, { codigo: "", descripcion: "", cantidad: "1", precio: "" }])} className="text-xs font-medium text-primary hover:underline">
+          + Repuesto a cotizar
+        </button>
+      </div>
       <input
         value={conforme}
         onChange={(e) => setConforme(e.target.value)}

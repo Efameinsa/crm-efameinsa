@@ -491,6 +491,12 @@ export async function guardarInformeServicio(datos: {
   conformeNombre?: string | null;
   conformeDoc?: string | null;
   asunto?: string | null;
+  /** El formato de Lesly (0242): hora de inicio y de culminación, verificación/pruebas, pendiente y repuestos a cotizar. */
+  horaInicio?: string | null;
+  horaFin?: string | null;
+  verificacion?: string | null;
+  pendientes?: string | null;
+  repuestos?: { codigo?: string; descripcion: string; cantidad?: number | null; precio?: number | null; stock?: string | null }[];
   /**
    * Fotos YA subidas al bucket privado `adjuntos` por el cliente; acá solo se
    * guardan los metadatos, igual que en el registro de gestión. El manual las
@@ -529,6 +535,21 @@ export async function guardarInformeServicio(datos: {
       cliente_conforme_nombre: datos.conformeNombre?.trim() || null,
       cliente_conforme_doc: datos.conformeDoc?.trim() || null,
       asunto: datos.asunto?.trim() || null,
+      hora_inicio: datos.horaInicio || null,
+      hora_fin: datos.horaFin || null,
+      fecha_informe: new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }),
+      verificacion: datos.verificacion?.trim() || null,
+      pendientes: datos.pendientes?.trim() || null,
+      repuestos: (datos.repuestos ?? [])
+        .filter((r) => r.descripcion?.trim())
+        .slice(0, 40)
+        .map((r) => ({
+          codigo: String(r.codigo ?? "").trim().slice(0, 40) || null,
+          descripcion: String(r.descripcion).trim().slice(0, 200),
+          cantidad: r.cantidad == null || Number.isNaN(Number(r.cantidad)) ? null : Number(r.cantidad),
+          precio: r.precio == null || Number.isNaN(Number(r.precio)) ? null : Number(r.precio),
+          stock: r.stock ? String(r.stock).trim().slice(0, 40) : null,
+        })),
       fotos: (datos.fotos ?? []).slice(0, 10).map((f) => ({
         path: String(f.path).slice(0, 300),
         nombre: String(f.nombre).slice(0, 120),
