@@ -109,3 +109,20 @@ marcarlos.
   captura de Central, pasar contacto, expediente).
 - De paso: en el celular la barra lateral arranca plegada (se comía media pantalla) y
   `_pantallazo.mjs` acepta `MOVIL=1` para ver la pantalla como teléfono.
+
+## 17-09 (noche) — WhatsApp: la rama entra a main y el webhook queda verificado en producción
+
+- Santos: «ya he creado el api de whatsapp, ya podemos conectarlo». Los cinco commits de la rama
+  `whatsapp-api` que faltaban en main (fotos/documentos/audio/video desde el chat, filtro por
+  comercial, audio grabado y stickers, compositor en una píldora, fix del Button) se pasaron por
+  cherry-pick; sus migraciones 0234/0235 ya estaban aplicadas en la base.
+- En Vercel quedan `WHATSAPP_VERIFY_TOKEN` (nuevo, también en `.env.local`) y `WHATSAPP_APP_SECRET`
+  (= `META_APP_SECRET` de la app **crm-desarrollador**, 1037022052275908). El GET de verificación
+  responde el challenge y `_verificar-whatsapp-webhook.mjs` con `BASE=https://crm.efameinsa.com`
+  pasa entero (lead + conversación + status, y se limpia).
+- El `META_ACCESS_TOKEN` local es de usuario del sistema **Crm-Infofb** con
+  `whatsapp_business_messaging` y `whatsapp_business_management`, pero **sin ninguna cuenta de
+  WhatsApp asignada** (`assigned_whatsapp_business_accounts` vacío) y la app no tiene webhook.
+- **Falta de Santos**: el identificador del número (`WHATSAPP_PHONE_NUMBER_ID`), el de la cuenta
+  (`WHATSAPP_WABA_ID`), y asignar esa cuenta al usuario del sistema (o darme el token del panel);
+  luego registrar el webhook en la app con la URL y el verify token, y suscribir `messages`.
