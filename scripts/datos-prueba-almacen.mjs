@@ -158,6 +158,10 @@ const AT = [
   { cta: "CLINICA", tipo: "puesta_en_marcha", cuando: `${hoy}T15:00:00-05:00`, tecnico: "Yony Capulian", equipo: "SECADORA LG TITAN LIGHT 15 KG · SERIE PRB-912", detalle: `${TAG} Puesta en marcha de la secadora que sale hoy. Llevar regulador y manómetro.` },
   { cta: "HOTEL PRUEBA", tipo: "problema_tecnico", cuando: `${hoy}T11:00:00-05:00`, tecnico: "Cristian Dolorier", equipo: "LAVADORA LG TITAN MAX 17 KG · SERIE 501KWLR47664", detalle: `${TAG} Vibra en el centrifugado; revisar amortiguadores. Llevar 4 amortiguadores 383EER3001J.` },
   { cta: "AGROEXPORT", tipo: "solicitud_mantenimiento", cuando: `${dia(1)}T09:00:00-05:00`, tecnico: "Yony Capulian", equipo: "LAVADORA UNIMAC UW065 · SERIE 210906", detalle: `${TAG} Mantenimiento preventivo en el cliente (Ica). Preparar kit de limpieza y grasa.` },
+  { cta: "HOSPEDAJE", tipo: "puesta_en_marcha", cuando: `${dia(2)}T10:00:00-05:00`, tecnico: "Cristian Dolorier", equipo: "SECADORA INDUSTRIAL UNIMAC UT075 · SERIE PRB-915", detalle: `${TAG} Puesta en marcha por videollamada (Piura). Pedir al cliente foto de los puntos de gas, agua y energía.` },
+  { cta: "LAVANDERIA PRUEBA EL SOL", tipo: "solicitud_mantenimiento", cuando: `${hoy}T16:30:00-05:00`, tecnico: "Yony Capulian", equipo: "LAVADORA LG TITAN C 15 KG · SERIE 702KWMK52491", detalle: `${TAG} Mantenimiento correctivo EN PLANTA: la máquina está en el área de pruebas. Cambio de 4 amortiguadores, 5 abrazaderas y kit de rodamientos.` },
+  { cta: "COLEGIO", tipo: "solicitud_repuesto", cuando: `${dia(1)}T14:00:00-05:00`, tecnico: "Yony Capulian", equipo: "LAVADORA LG TITAN C 15 KG", detalle: `${TAG} Instalación del kit de rodamientos que el cliente recoge hoy. Coordinar herramienta de extracción.` },
+  { cta: "HOTEL PRUEBA", tipo: "problema_tecnico", cuando: `${dia(3)}T10:00:00-05:00`, tecnico: "Cristian Dolorier", equipo: "SECADORA LG TITAN LIGHT 15 KG · SERIE 602KWUC2X486", detalle: `${TAG} Código de error dE: puerta. Llevar sensor de puerta y abrazadera.` },
 ];
 for (const a of AT) {
   const c = cuenta(a.cta);
@@ -170,18 +174,31 @@ for (const a of AT) {
 }
 
 // ── 5. Visitas a planta ──────────────────────────────────────────────────
+// Las visitas siguen el capítulo 1 de Catherine: quién viene y con quién (DNI de
+// todos), qué máquina viene a ver (quitar film), lavandería, TV, Infocorp; y lo
+// que Central ya marcó en cada una para que se vea el circuito a medio camino.
 const VIS = [
-  { cta: "COLEGIO", persona: "Juan Pérez Quispe", dni: "44556677", fecha: hoy, hora: "14:30", motivo: `${TAG} Viene a recoger el kit de rodamientos y amortiguadores (pedido PRUEBA-916).`, showroom: false },
-  { cta: "AGROEXPORT", persona: "María Torres", dni: "40306173", fecha: dia(1), hora: "10:00", motivo: `${TAG} Prospecto viene a ver equipos LG para nuevo proyecto.`, showroom: true },
+  { cta: "COLEGIO", persona: "Juan Pérez Quispe", dni: "44556677", fecha: hoy, hora: "14:30", motivo: `${TAG} Viene a recoger el kit de rodamientos y amortiguadores (pedido PRUEBA-916).`, showroom: false, marcas: { impreso_at: true } },
+  { cta: "AGROEXPORT", persona: "María Torres Huamán", dni: "40306173", fecha: dia(1), hora: "10:00", motivo: `${TAG} Prospecto viene a ver equipos LG para nuevo proyecto de lavandería.`, showroom: true, tv: true, infocorp: true, cot: "PRUEBA_741-26",
+    acomp: [{ nombre: "Carlos Torres Huamán", dni: "40306174" }, { nombre: "Rosa Quispe de Torres", dni: "09876543" }], equipo: "LG Titan Max 17 kg del showroom", film: true, marcas: { impreso_at: true, infocorp_enviado_at: true } },
+  { cta: "HOTEL PRUEBA", persona: "Luis Mendoza Ríos", dni: "10293847", fecha: hoy, hora: "09:30", motivo: `${TAG} Viene a ver la calandria antes de decidir; trae al administrador.`, showroom: true, tv: true, cot: "PRUEBA_744-26",
+    acomp: [{ nombre: "Ana Lucía Paredes", dni: "45678901" }], equipo: "Calandria UniMac FC2700/500", film: true, marcas: { impreso_at: true, showroom_listo_at: true, film_retirado_at: true, tv_listo_at: true, llego_at: true } },
+  { cta: "CLINICA", persona: "Dra. Patricia Salas", dni: "07654321", fecha: hoy, hora: "12:00", motivo: `${TAG} Viene a pagar el saldo y coordinar la puesta en marcha de la secadora (pedido PRUEBA-912).`, showroom: false, infocorp: false, marcas: { impreso_at: true } },
+  { cta: "LAVANDERIA PRUEBA EL SOL", persona: "Jorge Ccalloquispe", dni: "70325622", fecha: dia(2), hora: "11:00", motivo: `${TAG} Prospecto de Cusco; viene a conocer la planta y ver secadoras a gas.`, showroom: true, tv: true, infocorp: true, equipo: "Secadora LG Titan Light 15 kg GLP", film: true, marcas: {} },
+  { cta: "HOSPEDAJE", persona: "Sr. Manuel Castro", dni: "02468135", fecha: dia(-1), hora: "16:00", motivo: `${TAG} Vino a recoger su guía y a ver el embalaje de la secadora.`, showroom: false, marcas: { impreso_at: true, llego_at: true, reembalado_at: true }, pasada: true },
 ];
 for (const v of VIS) {
   const c = cuenta(v.cta);
-  await pg.query(
-    `insert into visitas_planta (cuenta_id, empresa, ruc, persona, dni, motivo, fecha, hora, registrado_por, es_prueba, showroom, prender_tv, cotizacion_ref)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10, $10, $11)`,
-    [c.id, c.razon_social, c.num_doc, v.persona, v.dni, v.motivo, v.fecha, v.hora, pv0.id, v.showroom, v.showroom ? "PRUEBA_741-26" : null],
+  const { rows: [ins] } = await pg.query(
+    `insert into visitas_planta (cuenta_id, empresa, ruc, persona, dni, motivo, fecha, hora, registrado_por, es_prueba, showroom, prender_tv, infocorp, cotizacion_ref, acompanantes, equipo_a_ver, quitar_film)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10, $11, $12, $13, $14, $15, $16) returning id`,
+    [c.id, c.razon_social, c.num_doc, v.persona, v.dni, v.motivo, v.fecha, v.hora, pv0.id, Boolean(v.showroom), Boolean(v.tv), Boolean(v.infocorp), v.cot ?? null, JSON.stringify(v.acomp ?? []), v.equipo ?? null, Boolean(v.film)],
   );
-  console.log(`visita ${v.fecha} ${v.hora} · ${v.persona}`);
+  const marcas = Object.entries(v.marcas ?? {}).filter(([, on]) => on).map(([k]) => k);
+  if (marcas.length) {
+    await pg.query(`update visitas_planta set ${marcas.map((k, i) => `${k} = now() - interval '${(marcas.length - i) * 10} minutes'`).join(", ")}, impreso_por = case when $2 then $3 else impreso_por end where id = $1`, [ins.id, marcas.includes("impreso_at"), central0.id]);
+  }
+  console.log(`visita ${v.fecha} ${v.hora} · ${v.persona}${v.acomp ? ` (+${v.acomp.length})` : ""}`);
 }
 
 // ── 6. La campanita del almacén de práctica, con lo que le tocaría ───────

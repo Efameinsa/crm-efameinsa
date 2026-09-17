@@ -26,7 +26,9 @@ export function EncabezadoUsuario({ perfil }: { perfil: Perfil }) {
         <div>
           <p className="text-sm font-medium text-foreground">{perfil.nombre}</p>
           <p className="text-xs text-muted-foreground">
-            {ETIQUETA_ROL[perfil.rol]}
+            {/* Postventa y almacén viajan con rol comercial, pero no son
+                vendedores: el rótulo dice lo que la persona es (Santos, 17-09). */}
+            {perfil.es_almacen ? "Almacén" : perfil.es_postventa ? "Postventa" : ETIQUETA_ROL[perfil.rol]}
             {perfil.codigo_comercial ? ` · ${perfil.codigo_comercial}` : ""}
           </p>
         </div>

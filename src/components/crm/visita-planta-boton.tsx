@@ -48,11 +48,16 @@ export function VisitaPlantaBoton({
   const [prenderTv, setPrenderTv] = useState(false);
   const [infocorp, setInfocorp] = useState(false);
   const [cotizacion, setCotizacion] = useState("");
+  // Capítulo 1 de Catherine: «¿Usted viene solo? ¿Viene con familiares, con
+  // amigos, con socios? ¿Me puede brindar el número de DNI y nombre completo?»
+  const [acompanantes, setAcompanantes] = useState<{ nombre: string; dni: string }[]>([]);
+  const [equipoAVer, setEquipoAVer] = useState("");
+  const [quitarFilm, setQuitarFilm] = useState(false);
   const campo = (k: keyof typeof f) => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value })) });
 
   function enviar() {
     startTransition(async () => {
-      const r = await registrarVisitaPlanta({ cuentaId, oportunidadId, ...f, showroom, prenderTv, infocorp, cotizacionRef: cotizacion });
+      const r = await registrarVisitaPlanta({ cuentaId, oportunidadId, ...f, showroom, prenderTv, infocorp, cotizacionRef: cotizacion, acompanantes, equipoAVer, quitarFilm });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
@@ -123,6 +128,29 @@ export function VisitaPlantaBoton({
           <div className="grid gap-1">
             <Label className="text-xs">Teléfono de contacto</Label>
             <Input {...campo("telefono")} inputMode="tel" />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-xs">¿Viene acompañado? Nombre y DNI de cada uno (vigilancia los pide)</Label>
+            {acompanantes.map((a, i) => (
+              <div key={i} className="grid grid-cols-[1fr_8rem_auto] gap-1.5">
+                <Input value={a.nombre} onChange={(e) => setAcompanantes((xs) => xs.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x)))} placeholder="Nombre y apellido" />
+                <Input value={a.dni} onChange={(e) => setAcompanantes((xs) => xs.map((x, j) => (j === i ? { ...x, dni: e.target.value } : x)))} placeholder="DNI" inputMode="numeric" />
+                <button type="button" onClick={() => setAcompanantes((xs) => xs.filter((_, j) => j !== i))} className="text-xs text-muted-foreground hover:text-destructive">Quitar</button>
+              </div>
+            ))}
+            <button type="button" onClick={() => setAcompanantes((xs) => [...xs, { nombre: "", dni: "" }])} className="justify-self-start text-xs font-medium text-primary hover:underline">
+              + Acompañante
+            </button>
+          </div>
+          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+            <div className="grid gap-1">
+              <Label className="text-xs">¿Viene a ver una máquina en especial?</Label>
+              <Input value={equipoAVer} onChange={(e) => setEquipoAVer(e.target.value)} placeholder="ej. LG Titan Max 17 kg del showroom" />
+            </div>
+            <label className="flex items-center gap-2 pb-2 text-sm">
+              <input type="checkbox" checked={quitarFilm} onChange={(e) => setQuitarFilm(e.target.checked)} className="size-4" />
+              Quitarle el film
+            </label>
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">

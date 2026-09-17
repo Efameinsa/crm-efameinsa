@@ -34,6 +34,10 @@ export async function registrarVisitaPlanta(datos: {
   cotizacionRef?: string | null;
   prenderTv?: boolean;
   infocorp?: boolean;
+  /** Capítulo 1 de Catherine (0247): con quién viene, qué máquina viene a ver, si hay que quitarle el film. */
+  acompanantes?: { nombre: string; dni?: string | null }[];
+  equipoAVer?: string | null;
+  quitarFilm?: boolean;
 }): Promise<{ error: string | null; id?: string; correoEnviado?: boolean }> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -65,6 +69,9 @@ export async function registrarVisitaPlanta(datos: {
     p_cotizacion_ref: cotizacionRef || null,
     p_prender_tv: datos.prenderTv === true,
     p_infocorp: datos.infocorp === true,
+    p_acompanantes: (datos.acompanantes ?? []).filter((a) => a.nombre?.trim()).map((a) => ({ nombre: a.nombre.trim().slice(0, 120), dni: a.dni?.trim().slice(0, 20) || null })),
+    p_equipo_a_ver: datos.equipoAVer?.trim() || null,
+    p_quitar_film: datos.quitarFilm === true,
   });
   if (error) return { error: limpiar(error.message) };
   revalidatePath("/central/visitas");
@@ -104,9 +111,12 @@ export async function registrarVisitaPlanta(datos: {
         `<p>Buenos días, para informar la siguiente visita:</p>` +
         `<table style="border-collapse:collapse"><tr>${th("FECHA")}${th("HORA")}${th("PROSPECTO")}${th("N° COTIZACIÓN")}${th("OBSERVACIÓN")}</tr>` +
         `<tr>${td(`<span style="background:#ffff00">${fecha}</span>`)}${td(`<span style="color:#c00">${hora}</span>`)}` +
-        `${td(`${datos.dni ? `DNI ${esc(datos.dni)} - ` : datos.ruc ? `RUC ${esc(datos.ruc)} - ` : ""}${esc(datos.persona)}<br><b>${esc(datos.empresa)}</b>${datos.telefono ? `<br>Tel. ${esc(datos.telefono)}` : ""}`)}` +
+        `${td(`${datos.dni ? `DNI ${esc(datos.dni)} - ` : datos.ruc ? `RUC ${esc(datos.ruc)} - ` : ""}${esc(datos.persona)}` +
+          (datos.acompanantes ?? []).filter((a) => a.nombre?.trim()).map((a) => `<br>${a.dni ? `DNI ${esc(a.dni)} - ` : ""}${esc(a.nombre)}`).join("") +
+          `<br><b>${esc(datos.empresa)}</b>${datos.telefono ? `<br>Tel. ${esc(datos.telefono)}` : ""}`)}` +
         `${td(cotizacionRef ? `N° ${esc(cotizacionRef)}` : "—")}${td(esc(datos.motivo))}</tr></table>` +
         `<p>` +
+        (datos.equipoAVer ? `Viene a ver: <b>${esc(datos.equipoAVer)}</b>${datos.quitarFilm ? ` — <span style="background:#ffff00">quitar el film</span>` : ""}<br>` : "") +
         (datos.prenderTv ? `<span style="background:#ffff00">Prender TV</span><br>` : "") +
         (datos.showroom ? `<span style="background:#ffff00">Abrir lavandería</span><br>` : "") +
         (datos.infocorp ? `Se solicita Infocorp: ${esc(datos.empresa)}${datos.ruc ? ` (RUC ${esc(datos.ruc)})` : datos.dni ? ` (DNI ${esc(datos.dni)})` : ""}<br>` : "") +
@@ -118,6 +128,18 @@ export async function registrarVisitaPlanta(datos: {
     correoEnviado = !r.error;
   }
   return { error: null, id: data as string, correoEnviado };
+}
+
+/** Los checks de la visita (0247): vigilancia, Infocorp, lavandería, film, TV, llegó, no vino, re-embalado. */
+export async function marcarVisita(visitaId: string, que: string, puesto: boolean, nota?: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("marcar_visita", { p_visita: visitaId, p_que: que, p_puesto: puesto, p_nota: nota?.trim() || null });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath("/central/visitas");
+  revalidatePath("/almacen/visitas");
+  revalidatePath("/almacen");
+  revalidatePath("/postventa/visitas");
+  return { error: null };
 }
 
 export async function marcarVisitaImpresa(visitaId: string): Promise<{ error: string | null }> {
