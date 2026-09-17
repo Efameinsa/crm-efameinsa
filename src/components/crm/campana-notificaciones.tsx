@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Volume2, VolumeX } from "lucide-react";
+import { ArrowRight, Bell, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { marcarLeidasDelDestino, marcarNotificacionLeida, marcarTodasLeidas } from "@/lib/acciones/notificaciones";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { fechaLima } from "@/lib/fechas";
+import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { alertaSilenciada, prepararAlerta, silenciarAlerta, sonarAlerta, sonarCampanada, sonarPrueba } from "@/lib/sonido-alerta";
 import type { RolUsuario } from "@/types/database";
 
@@ -49,6 +50,50 @@ const ESTILO_AVISO: Record<
   otro: { encabezado: "Aviso nuevo", accion: "Ver", duracion: 8000, tono: "info" },
 };
 
+/**
+ * ¿El aviso lleva a UN sitio concreto —una oportunidad, una cotización, un
+ * pedido— o a una pantalla general?
+ *
+ * Importa porque el clic se comporta distinto (ver `alClickearNotificacion`).
+ * Los avisos con destino concreto llevan el id en la ruta; los generales son
+ * la bandeja, el panel, «Mis oportunidades».
+ */
+function tieneDestinoConcreto(url: string | null): boolean {
+  return Boolean(url && /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(url));
+}
+
+/** Cómo se llama el botón cuando el destino es una pantalla general. */
+const NOMBRE_DEL_DESTINO: Record<string, string> = {
+  "/central": "Ir a la bandeja de Central",
+  "/central/cierres": "Ver los cierres",
+  "/gerencia": "Ir al panel",
+  "/gerencia/aprobaciones": "Ver las aprobaciones pendientes",
+  "/operaciones": "Ir a operaciones",
+  "/comercial": "Ir a Mi día",
+  "/comercial/oportunidades": "Ver mis oportunidades",
+  "/comercial/cotizaciones": "Ver mis cotizaciones",
+  "/comercial/cartera": "Ver mi cartera",
+  "/comercial/cierres": "Ver mis cierres",
+  "/postventa": "Ir a postventa",
+};
+
+/**
+ * Por qué este aviso no lleva a un sitio exacto, dicho en la ventana.
+ *
+ * Los avisos de aprobación y rechazo anteriores al 16-09 (0237) salían sin
+ * número ni enlace a la cotización: «Gerencia aprobó los precios de su
+ * cotización» y nada más. El 17-09 se les puso el enlace a los que se
+ * pudieron casar con su cotización por la hora en que gerencia resolvió; los
+ * que quedaron son los de cotizaciones que se volvieron a resolver después (un
+ * rechazo que luego se corrigió y aprobó) o que ya no existen.
+ */
+function porQueSinDestino(n: Notificacion): string | null {
+  if (n.tipo === "cotizacion_aprobada" || n.tipo === "cotizacion_rechazada") {
+    return "Este aviso es de antes del 16 de setiembre y salió sin el número de la cotización, así que no lleva a una pantalla exacta. Los avisos nuevos llevan número, cliente y enlace directo.";
+  }
+  return null;
+}
+
 function tiempoRelativo(iso: string): string {
   const minutos = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (minutos < 1) return "ahora";
@@ -63,6 +108,8 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
   const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
+  /** El aviso abierto en su ventana de detalle (solo los que no llevan a un sitio concreto). */
+  const [detalle, setDetalle] = useState<Notificacion | null>(null);
   // Lectura perezosa: en el servidor no hay localStorage y `alertaSilenciada`
   // devuelve false sin romperse. No hay desajuste de hidratación porque el
   // desplegable solo se dibuja al abrirlo.
@@ -286,6 +333,21 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
     return () => document.removeEventListener("mousedown", alClickearFuera);
   }, []);
 
+  /**
+   * El clic en un aviso.
+   *
+   * Si el aviso lleva a un sitio concreto (la oportunidad, la cotización, el
+   * pedido), el clic VA AHÍ: el detalle del aviso es esa pantalla, y llegar es
+   * atenderlo. Si no —un aviso a una pantalla general, o uno viejo que salió
+   * sin enlace—, se abre una ventana con el aviso entero: qué pasó, el texto
+   * completo, la fecha y hora exacta, y el botón a la pantalla donde buscarlo.
+   *
+   * Por qué existe la ventana (Brenda, 17-09): tenía en la campana varios
+   * «Gerencia aprobó los precios de su cotización» de antes del 16-09, cuyo
+   * destino era «Mis oportunidades» —la pantalla en la que ya estaba—, así que
+   * al tocarlos «no aparece nada». Un clic que no hace nada visible es peor
+   * que uno que explica por qué no puede llevarla más lejos.
+   */
   async function alClickearNotificacion(n: Notificacion) {
     if (!n.leida_at) {
       setNotificaciones((prev) => prev.map((x) => (x.id === n.id ? { ...x, leida_at: new Date().toISOString() } : x)));
@@ -293,7 +355,11 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
       await marcarNotificacionLeida(n.id);
     }
     setAbierto(false);
-    if (n.url) router.push(n.url);
+    if (tieneDestinoConcreto(n.url)) {
+      router.push(n.url!);
+      return;
+    }
+    setDetalle(n);
   }
 
   async function alMarcarTodas() {
@@ -390,6 +456,40 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
           </div>
         </div>
       )}
+
+      <Dialog open={detalle !== null} onOpenChange={(v) => !v && setDetalle(null)}>
+        {detalle && (
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="pr-6">{(ESTILO_AVISO[detalle.tipo] ?? ESTILO_AVISO.otro).encabezado}</DialogTitle>
+              <DialogDescription>{fechaHoraLima(detalle.created_at)}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">{detalle.titulo}</p>
+              {detalle.cuerpo && (
+                <p className="whitespace-pre-wrap rounded-md border border-border bg-secondary/40 p-3 text-sm leading-relaxed text-foreground">
+                  {detalle.cuerpo}
+                </p>
+              )}
+            </div>
+            {porQueSinDestino(detalle) && <p className="text-xs text-muted-foreground">{porQueSinDestino(detalle)}</p>}
+            {detalle.url && (
+              <div className="flex justify-end border-t border-border pt-3">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const destino = detalle.url!;
+                    setDetalle(null);
+                    router.push(destino);
+                  }}
+                >
+                  {NOMBRE_DEL_DESTINO[detalle.url] ?? "Ir"} <ArrowRight className="size-3.5" />
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

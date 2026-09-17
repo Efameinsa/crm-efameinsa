@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { firmarAdjuntosDeLeads, type AdjuntoLeadFirmado } from "@/lib/adjuntos-lead";
+import type { AdjuntoLead } from "@/lib/validaciones/lead";
+import { ETIQUETA_TIPO_ATENCION, type TipoAtencion } from "@/lib/atenciones";
+import { ETIQUETA_CANAL } from "@/lib/derivados-central";
 
 /**
  * LO QUE MANDÉ A CENTRAL Y TODAVÍA NO ME DEVUELVEN.
@@ -43,6 +47,41 @@ export interface Mandado {
   demorado: boolean;
   /** A dónde lleva la fila, cuando ya hay algo que abrir. */
   href: string | null;
+  /** Todo lo que se mandó, tal cual quedó registrado: se abre al tocar la fila. */
+  detalle: DetalleMandado;
+}
+
+/**
+ * LO QUE SE MANDÓ, ENTERO.
+ *
+ * Brenda (C1), 17-09: la lista le decía QUÉ mandó y QUÉ pasó, pero al tocar
+ * una fila derivada a otra área no pasaba nada, y ella quería «recordar qué
+ * fue lo que le envié a Central a detalle, con todo lo adjuntado». Tiene
+ * sentido: cuando el cliente vuelve a llamar —DUO LAVANDERIA escribió cuatro
+ * veces en dos días— lo primero que se necesita es leer qué se dijo la vez
+ * anterior, y el texto se tecleó con el cliente al teléfono, así que no está
+ * en ningún otro lado.
+ *
+ * Es lo que el lead ya guarda; no hay nada nuevo que escribir. La política
+ * `leads_comercial_ve_los_suyos` (0060) le deja leer lo que registró, y los
+ * adjuntos del bucket se firman igual que para Central.
+ */
+export interface DetalleMandado {
+  registradoAt: string;
+  canal: string;
+  contacto: string | null;
+  razonSocial: string | null;
+  ruc: string | null;
+  telefono: string | null;
+  email: string | null;
+  /** El texto que se escribió al registrarlo, completo y con sus saltos de línea. */
+  mensaje: string | null;
+  /** Qué tipo de atención se sugirió al mandarlo, cuando se sugirió algo. */
+  sugerencia: string | null;
+  adjuntos: AdjuntoLeadFirmado[];
+  /** A quién se lo dio Central y cuándo, cuando ya lo derivó. */
+  derivadoA: string | null;
+  derivadoAt: string | null;
 }
 
 /**
@@ -58,13 +97,28 @@ interface FilaLead {
   id: string;
   codigo: string;
   estado: string;
+  canal: string;
   razon_social: string | null;
   nombre_contacto: string | null;
+  num_doc: string | null;
+  telefono: string | null;
+  email: string | null;
+  mensaje: string | null;
+  sugerido_atencion: TipoAtencion | null;
+  sugerido_tipo: string | null;
+  adjuntos: AdjuntoLead[] | null;
   recibido_at: string;
   asignado_at: string | null;
   asignado_a: string | null;
   oportunidad_id: string | null;
 }
+
+/** El enum viejo de tres clases (0080), para lo que se mandó antes de la pista técnica. */
+const ETIQUETA_SUGERIDO_TIPO: Record<string, string> = {
+  garantia: "Garantía",
+  repuesto: "Repuesto",
+  mantenimiento: "Mantenimiento",
+};
 
 /** "12 min", "3 h", "2 días" — la resta la hace la pantalla, no quien lee. */
 function haceCuanto(horas: number): string {
@@ -83,7 +137,8 @@ export async function listarMandadoACentral(
   supabase: SupabaseClient,
   perfilId: string,
 ): Promise<Mandado[]> {
-  const campos = "id, codigo, estado, razon_social, nombre_contacto, recibido_at, asignado_at, asignado_a, oportunidad_id";
+  const campos =
+    "id, codigo, estado, canal, razon_social, nombre_contacto, num_doc, telefono, email, mensaje, sugerido_atencion, sugerido_tipo, adjuntos, recibido_at, asignado_at, asignado_a, oportunidad_id";
   const desde24h = new Date(Date.now() - 24 * 36e5).toISOString();
 
   const [{ data: esperando }, { data: resueltos }] = await Promise.all([
@@ -113,11 +168,14 @@ export async function listarMandadoACentral(
   // existe y pedirlo devuelve el error crudo en vez de la lista.
   const ids = [...new Set(filas.map((f) => f.asignado_a).filter((x): x is string => Boolean(x)))];
   const nombres = new Map<string, string>();
-  if (ids.length > 0) {
-    const { data: perfiles } = await supabase.from("perfiles").select("id, nombre, codigo_comercial").in("id", ids);
-    for (const p of (perfiles ?? []) as { id: string; nombre: string; codigo_comercial: string | null }[]) {
-      nombres.set(p.id, p.codigo_comercial ? `${p.nombre} (${p.codigo_comercial})` : p.nombre);
-    }
+  const [{ data: perfiles }, adjuntosPorLead] = await Promise.all([
+    ids.length > 0
+      ? supabase.from("perfiles").select("id, nombre, codigo_comercial").in("id", ids)
+      : Promise.resolve({ data: [] as { id: string; nombre: string; codigo_comercial: string | null }[] }),
+    firmarAdjuntosDeLeads(supabase, filas),
+  ]);
+  for (const p of (perfiles ?? []) as { id: string; nombre: string; codigo_comercial: string | null }[]) {
+    nombres.set(p.id, p.codigo_comercial ? `${p.nombre} (${p.codigo_comercial})` : p.nombre);
   }
 
   return filas.map((f) => {
@@ -160,6 +218,24 @@ export async function listarMandadoACentral(
       // pantalla propia para quien lo registró, y un enlace que lleva a un
       // «no encontrado» es peor que ningún enlace.
       href: f.oportunidad_id && mio ? `/comercial/oportunidades/${f.oportunidad_id}` : null,
+      detalle: {
+        registradoAt: f.recibido_at,
+        canal: ETIQUETA_CANAL[f.canal] ?? f.canal,
+        contacto: f.nombre_contacto,
+        razonSocial: f.razon_social,
+        ruc: f.num_doc,
+        telefono: f.telefono,
+        email: f.email,
+        mensaje: f.mensaje,
+        sugerencia: f.sugerido_atencion
+          ? ETIQUETA_TIPO_ATENCION[f.sugerido_atencion]
+          : f.sugerido_tipo
+            ? ETIQUETA_SUGERIDO_TIPO[f.sugerido_tipo] ?? f.sugerido_tipo
+            : null,
+        adjuntos: adjuntosPorLead.get(f.id) ?? [],
+        derivadoA: f.asignado_a ? paraQuien : null,
+        derivadoAt: f.asignado_a ? f.asignado_at : null,
+      },
     };
   });
 }

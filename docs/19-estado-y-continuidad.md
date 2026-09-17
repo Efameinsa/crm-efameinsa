@@ -1844,3 +1844,30 @@ el 30.
   (`scripts/_probar-cierre-postventa-0245.mjs`, borra lo suyo).
 - La venta atada sigue naciendo del expediente («Ofrecer mantenimiento» → «Venta
   ejecutada», 0148): el cierre solo no la crea.
+
+## 17-09-2026 (15:30) — el clic en el aviso y en «Lo que mandé a Central» ya lleva a algo
+
+Brenda (C1) mandó dos capturas: (1) en la campana tenía varios «Gerencia aprobó los precios
+de su cotización» de antes del 16-09 que al tocarlos «no aparece nada» —su destino era
+`/comercial/oportunidades`, la lista en la que ya estaba (la 0237 arregló los nuevos, no los
+viejos)—; (2) en «Lo que mandé a Central» ve DUO LAVANDERIA e Inversiones Turísticas, pero al
+tocar no puede leer qué mandó: la fila solo era enlace cuando Central se lo devolvía a ella.
+
+- **Avisos viejos enlazados (datos, sin migración):** 130 de 152 avisos de aprobación/rechazo
+  con destino genérico se casaron con su cotización por `cotizaciones.aprobada_at` (±3 s del
+  `created_at`, mismo comercial; ninguno ambiguo) y ahora llevan número, cliente y enlace a
+  `/cotizar/<id>` como los nuevos. Los 22 que quedaron son cotizaciones resueltas de nuevo
+  después (rechazo → corrección) o borradas. `scripts/enlazar-avisos-de-aprobacion-viejos.mjs`
+  (mide sin `--aplicar`); respaldo en `scripts/data/_avisos-aprobacion-antes-2026-09-17.json`.
+- **Campana:** si el aviso lleva a un sitio concreto (id en la ruta) el clic va ahí, como
+  siempre. Si no, se abre una ventana con el aviso entero (qué pasó, texto completo, fecha y
+  hora, botón a la pantalla general) y, para los de cotización, la explicación de por qué no
+  tiene enlace exacto. Antes ese clic no hacía nada visible.
+- **«Lo que mandé a Central»:** toda fila se abre (`FilaMandado`, ventana): cuándo y por qué
+  canal lo registró, qué sugirió, contacto/RUC/teléfono/correo, el texto completo con sus
+  saltos, los adjuntos (miniaturas y documentos, URL firmada 1 h) y a quién lo derivó Central
+  y cuándo. El botón «Abrir el expediente» sigue adentro cuando Central se lo devolvió.
+  Sin migración: `leads_comercial_ve_los_suyos` (0060) ya la deja leer lo que registró.
+- Probado en local con la sesión de Brenda (`scripts/_pantallazo-clic.mjs`, variante de
+  `_pantallazo.mjs` con `CLIC=`): ventana de PRO-09465 con la captura adjunta; aviso viejo sin
+  par abre la ventana; aviso enlazado navega a «Cotización confirmada como Presu_726-26».
