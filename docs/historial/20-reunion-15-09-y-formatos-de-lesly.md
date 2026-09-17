@@ -96,3 +96,16 @@ marcarlos.
 - **almacen@efameinsa.com está en modo práctica (es_prueba = true)** mientras se prueba el
   módulo: ve los datos sembrados por `scripts/datos-prueba-almacen.mjs`. Al pasar a operación
   real: `update perfiles set es_prueba = false where codigo_comercial = 'ALM'`.
+
+## 17-09 (noche) — Tomar foto o subir, en todos los puntos donde entra una imagen
+
+- Santos: «en todas las partes que sale protocolo y fotos de prueba deberían salir la opción de
+  subir foto o tomar foto (con cámara cuando estén desde dispositivos móviles)». Componente
+  `tomar-o-subir.tsx` (`TomarOSubir`, `TomarOSubirVarias`, `useConCamara`): dos inputs, uno con
+  `capture` (cámara) y otro sin él (galería o PDF). El botón de cámara solo aparece en celular o
+  tablet (`pointer: coarse` y menos de 1100 px); en la laptop abriría la webcam.
+- Aplicado en: los cinco ángulos y el video de la salida, la guía y la máquina en la agencia, el
+  protocolo de la prueba, el registro fotográfico del informe técnico y `CampoAdjuntos` (caso,
+  captura de Central, pasar contacto, expediente).
+- De paso: en el celular la barra lateral arranca plegada (se comía media pantalla) y
+  `_pantallazo.mjs` acepta `MOVIL=1` para ver la pantalla como teléfono.
