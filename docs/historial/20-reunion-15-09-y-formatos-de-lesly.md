@@ -142,3 +142,20 @@ marcarlos.
 - Pendiente: método de pago en la cuenta (necesario para plantillas / mensajes que inicia la
   empresa), verificación del negocio (en revisión), cargar `campanias_whatsapp` con los códigos de
   anuncio, y el texto del acuse automático.
+
+## 17-09 (15:30) — Teléfonos recuperados para 1 095 fichas
+
+- Ariana (C4) no veía el teléfono de AÑAÑOS PEREZ EDUARDO: la ficha nació del cierre de postventa
+  0027 (2024) sin contactos, y los teléfonos estaban en los registros históricos de Central de
+  2021 que nunca se unieron a la ficha (sin RUC/DNI y con el nombre escrito distinto). Se le
+  crearon tres contactos y se unieron los cuatro registros.
+- El problema era general: **2 246 fichas sin ningún teléfono** (C5 1 363, C4 519, C1 308,
+  PV 57). `scripts/_recuperar-telefonos.mjs` cruza cinco fuentes que nunca se habían unido a las
+  fichas —registros históricos de Central (`leads`), `cotizaciones_historicas` y los tres JSON del
+  import del Excel— por RUC/DNI o por nombre normalizado exacto. **Aplicado**: 1 296 contactos en
+  1 095 fichas (367 por documento, 728 por nombre; el cargo del contacto dice de dónde salió y
+  «confirmar» cuando fue por nombre) y 420 registros de Central unidos a su ficha. Quedan: C5 617,
+  C4 349, C1 156, PV 34.
+- Lo que queda de Ariana (349) está en `Downloads/ariana-fichas-sin-telefono-17-09.xlsx`: 101 con
+  nota de «no contesta / sin teléfono», 115 históricos sin RUC/DNI ni dato, 5 de cierres de
+  postventa. Los informes técnicos de Y: no traen teléfono (revisado con Añaños).
