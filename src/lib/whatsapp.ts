@@ -75,7 +75,7 @@ async function comprobarVentana(admin: ReturnType<typeof createAdminClient>, con
 async function registrarEnvio(
   conversacionId: string,
   resultado: ResultadoEnvio,
-  datos: { tipo: string; texto: string | null; enviadoPor: string; mediaUrlStorage?: string | null },
+  datos: { tipo: string; texto: string | null; enviadoPor: string; mediaUrlStorage?: string | null; equipoSku?: string | null },
 ): Promise<{ error: string | null }> {
   const admin = createAdminClient();
   await admin.from("wa_mensajes").insert({
@@ -85,6 +85,7 @@ async function registrarEnvio(
     tipo: datos.tipo,
     texto: datos.texto,
     media_url_storage: datos.mediaUrlStorage ?? null,
+    equipo_sku: datos.equipoSku ?? null,
     estado: resultado.ok ? "enviado" : "fallido",
     enviado_por: datos.enviadoPor,
     error: resultado.error ? { mensaje: resultado.error } : null,
@@ -149,6 +150,100 @@ export async function enviarMedia(
     texto: opciones.caption || opciones.filename || null,
     enviadoPor,
     mediaUrlStorage: opciones.mediaUrlStorage,
+  });
+}
+
+export interface FichaEquipoWa {
+  sku: string;
+  /** Lo que va en negrita arriba: «LG TITAN MAX · 17 kg». */
+  titulo: string;
+  /** El cuerpo: categoría y tres o cuatro líneas de la ficha técnica. Máximo 1024 caracteres (Meta). */
+  cuerpo: string;
+  /** Foto pública (crm.efameinsa.com/productos/…): Meta la baja al mandar. */
+  imagenUrl: string;
+}
+
+/**
+ * «Mandar equipo» como FICHA (Santos, 17-09): la foto del CRM arriba, el texto
+ * de la ficha en el cuerpo, y tres botones de respuesta. No pasa por el
+ * catálogo de Meta, así que no lleva precio —la decisión de gerencia para la
+ * web (sin precios en esta etapa) se respeta— y funciona aunque el catálogo
+ * no esté conectado. Lo que el cliente toque vuelve por el webhook como
+ * `interactive.button_reply` con el id `interes:SKU` / `cotizar:SKU` / `otro:SKU`.
+ */
+export async function enviarFichaEquipo(
+  conversacionId: string,
+  telefono: string,
+  equipo: FichaEquipoWa,
+  enviadoPor: string,
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+  const bloqueo = await comprobarVentana(admin, conversacionId);
+  if (bloqueo) return { error: bloqueo };
+
+  const resultado = await llamarGraphAPI({
+    to: telefono,
+    type: "interactive",
+    interactive: {
+      type: "button",
+      header: { type: "image", image: { link: equipo.imagenUrl } },
+      body: { text: `*${equipo.titulo}*\n${equipo.cuerpo}`.slice(0, 1024) },
+      footer: { text: "Efameinsa · Ingeniería peruana certificada" },
+      action: {
+        buttons: [
+          { type: "reply", reply: { id: `interes:${equipo.sku}`, title: "Me interesa" } },
+          { type: "reply", reply: { id: `cotizar:${equipo.sku}`, title: "Pedir cotización" } },
+          { type: "reply", reply: { id: `otro:${equipo.sku}`, title: "Ver otra opción" } },
+        ],
+      },
+    },
+  });
+  return registrarEnvio(conversacionId, resultado, { tipo: "interactive", texto: `Ficha: ${equipo.titulo}`, enviadoPor, equipoSku: equipo.sku });
+}
+
+/**
+ * «Mandar equipo» desde el CATÁLOGO de Meta (WHATSAPP_CATALOGO_ID): uno solo
+ * va como tarjeta de producto; varios, como lista de productos (hasta 30). El
+ * cliente ve la foto, el título, la descripción y el PRECIO del catálogo — por
+ * eso se ofrece aparte de la ficha. Si toca «Preguntar» o arma un pedido,
+ * vuelve por el webhook con `context.referred_product` u `order`.
+ */
+export async function enviarProductosCatalogo(
+  conversacionId: string,
+  telefono: string,
+  datos: { catalogoId: string; equipos: { sku: string; titulo: string }[]; cuerpo: string; encabezado?: string },
+  enviadoPor: string,
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+  const bloqueo = await comprobarVentana(admin, conversacionId);
+  if (bloqueo) return { error: bloqueo };
+  if (datos.equipos.length === 0) return { error: "Elija al menos un equipo" };
+
+  const interactive =
+    datos.equipos.length === 1
+      ? {
+          type: "product",
+          body: { text: datos.cuerpo.slice(0, 1024) },
+          footer: { text: "Efameinsa" },
+          action: { catalog_id: datos.catalogoId, product_retailer_id: datos.equipos[0].sku },
+        }
+      : {
+          type: "product_list",
+          header: { type: "text", text: (datos.encabezado ?? "Opciones para usted").slice(0, 60) },
+          body: { text: datos.cuerpo.slice(0, 1024) },
+          footer: { text: "Efameinsa" },
+          action: {
+            catalog_id: datos.catalogoId,
+            sections: [{ title: "Equipos", product_items: datos.equipos.slice(0, 30).map((e) => ({ product_retailer_id: e.sku })) }],
+          },
+        };
+  const resultado = await llamarGraphAPI({ to: telefono, type: "interactive", interactive });
+  const titulos = datos.equipos.map((e) => e.titulo).join(", ");
+  return registrarEnvio(conversacionId, resultado, {
+    tipo: "interactive",
+    texto: `Catálogo: ${titulos}`,
+    enviadoPor,
+    equipoSku: datos.equipos.map((e) => e.sku).join(","),
   });
 }
 

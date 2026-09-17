@@ -6,6 +6,8 @@ import {
   mensajesDe,
   comercialesActivos,
   stickersActivos,
+  equiposParaMandar,
+  catalogoWhatsappConectado,
   type FiltroConversaciones,
 } from "@/lib/acciones/whatsapp-chat";
 import { WhatsappListaConversaciones } from "@/components/crm/whatsapp-lista-conversaciones";
@@ -26,12 +28,14 @@ export default async function WhatsappConversacionPage({
   const filtro = (["sin_atender", "mias", "todas", "cerradas"].includes(sp.filtro ?? "") ? sp.filtro : "todas") as FiltroConversaciones;
   const esCentral = perfil.rol === "central" || perfil.rol === "gerencia" || perfil.rol === "admin";
 
-  const [conversacion, mensajes, conversaciones, comerciales, stickers] = await Promise.all([
+  const [conversacion, mensajes, conversaciones, comerciales, stickers, equipos, catalogoConectado] = await Promise.all([
     conversacionPorId(id),
     mensajesDe(id),
     conversacionesDe(filtro, esCentral ? sp.comercial : undefined),
     comercialesActivos(),
     stickersActivos(),
+    equiposParaMandar(),
+    catalogoWhatsappConectado(),
   ]);
 
   if (!conversacion) notFound();
@@ -54,6 +58,8 @@ export default async function WhatsappConversacionPage({
         esCentral={esCentral}
         comerciales={comerciales}
         stickers={stickers}
+        equipos={equipos}
+        catalogoConectado={catalogoConectado}
       />
     </div>
   );

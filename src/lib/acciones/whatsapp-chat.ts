@@ -14,7 +14,7 @@
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
-import { enviarTexto, enviarMedia, type TipoMedia } from "@/lib/whatsapp";
+import { enviarTexto, enviarMedia, enviarFichaEquipo, enviarProductosCatalogo, type TipoMedia } from "@/lib/whatsapp";
 
 // Mismo bucket privado que los adjuntos de un lead (0029): un archivo, un
 // código, y una URL firmada de vida corta —acá basta con minutos, el tiempo
@@ -432,6 +432,140 @@ export async function enviarStickerChat(conversacionId: string, stickerId: strin
     await supabase.from("wa_conversaciones").update({ estado: "en_gestion" }).eq("id", conversacionId);
   }
 
+  revalidatePath(`/whatsapp/${conversacionId}`);
+  revalidatePath("/whatsapp");
+  return { error: null };
+}
+
+// ── Mandar equipo (0250) ────────────────────────────────────────────────
+
+export interface EquipoParaMandar {
+  sku: string;
+  marca: string;
+  modelo: string;
+  nombre: string;
+  categoria: string;
+  segmento: string | null;
+  capacidad: string | null;
+  fotoUrl: string;
+}
+
+const NOMBRE_CATEGORIA_EQUIPO: Record<string, string> = {
+  lavadora: "Lavadora",
+  "lavadora-secadora": "Lavadora-secadora",
+  secadora: "Secadora",
+  planchador: "Planchador / calandria",
+  coche: "Coche",
+};
+
+/** Los equipos activos con foto, para el buscador de «Mandar equipo». Sin repuestos ni servicios. */
+export async function equiposParaMandar(): Promise<EquipoParaMandar[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("productos")
+    .select("sku, marca, modelo, nombre, categoria, segmento, capacidad, foto_path")
+    .eq("activo", true)
+    .in("categoria", Object.keys(NOMBRE_CATEGORIA_EQUIPO))
+    .not("foto_path", "is", null)
+    .order("categoria")
+    .order("marca")
+    .order("sku");
+  return (data ?? []).map((p) => ({
+    sku: p.sku,
+    marca: p.marca,
+    modelo: p.modelo,
+    nombre: p.nombre,
+    categoria: NOMBRE_CATEGORIA_EQUIPO[p.categoria] ?? p.categoria,
+    segmento: p.segmento,
+    capacidad: p.capacidad,
+    fotoUrl: `https://crm.efameinsa.com${p.foto_path}`,
+  }));
+}
+
+/** ¿Está conectado el catálogo de Meta? Decide si aparece la opción «del catálogo (con precio)». */
+export async function catalogoWhatsappConectado(): Promise<boolean> {
+  return !!process.env.WHATSAPP_CATALOGO_ID;
+}
+
+interface BloqueFichaTecnica {
+  t?: string;
+  texto?: string;
+}
+
+/** Tres o cuatro líneas de la ficha técnica, sin títulos, para el cuerpo de la tarjeta. */
+function resumenDeFicha(ficha: unknown, maximo = 4): string[] {
+  const bloques = (ficha as { bloques?: BloqueFichaTecnica[] } | null)?.bloques ?? [];
+  return bloques
+    .filter((b) => b.t !== "titulo" && b.texto && b.texto.trim().length > 12)
+    .slice(0, maximo)
+    .map((b) => `• ${b.texto!.trim().slice(0, 140)}`);
+}
+
+/**
+ * Manda uno o varios equipos a la conversación. `modo` "ficha": una tarjeta con
+ * foto y botones por cada equipo (hasta 3), SIN precio. `modo` "catalogo": el
+ * producto del catálogo de Meta (uno) o la lista (varios), CON el precio de
+ * lista que publica el catálogo.
+ */
+export async function mandarEquipoChat(
+  conversacionId: string,
+  skus: string[],
+  modo: "ficha" | "catalogo",
+  nota?: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesión expirada" };
+  const limpios = [...new Set(skus.map((s) => s.trim()).filter(Boolean))];
+  if (limpios.length === 0) return { error: "Elija al menos un equipo" };
+  if (modo === "ficha" && limpios.length > 3) return { error: "Como ficha se mandan hasta 3 equipos por vez; para más, use el catálogo" };
+
+  const [{ data: conversacion }, { data: productos }] = await Promise.all([
+    supabase.from("wa_conversaciones").select("telefono, estado").eq("id", conversacionId).maybeSingle(),
+    supabase.from("productos").select("sku, marca, modelo, capacidad, categoria, foto_path, ficha").in("sku", limpios).eq("activo", true),
+  ]);
+  if (!conversacion) return { error: "La conversación ya no existe" };
+  if (!productos?.length) return { error: "Esos equipos ya no están activos en el catálogo" };
+  const ordenados = limpios.map((sku) => productos.find((p) => p.sku === sku)).filter((p): p is NonNullable<typeof p> => !!p);
+
+  const titulo = (p: (typeof ordenados)[number]) => `${p.marca} ${p.modelo}${p.capacidad ? ` · ${p.capacidad}` : ""}`;
+  const notaLimpia = nota?.trim().slice(0, 300) || "";
+
+  if (modo === "ficha") {
+    for (const p of ordenados) {
+      if (!p.foto_path) return { error: `${titulo(p)} no tiene foto en el CRM` };
+      const lineas = [NOMBRE_CATEGORIA_EQUIPO[p.categoria] ?? p.categoria, ...resumenDeFicha(p.ficha)];
+      if (notaLimpia) lineas.push("", notaLimpia);
+      const r = await enviarFichaEquipo(
+        conversacionId,
+        conversacion.telefono,
+        { sku: p.sku, titulo: titulo(p), cuerpo: lineas.join("\n"), imagenUrl: `https://crm.efameinsa.com${p.foto_path}` },
+        user.id,
+      );
+      if (r.error) return r;
+    }
+  } else {
+    const catalogoId = process.env.WHATSAPP_CATALOGO_ID;
+    if (!catalogoId) return { error: "El catálogo de Meta todavía no está conectado al número" };
+    const cuerpo =
+      notaLimpia ||
+      (ordenados.length === 1
+        ? `Le comparto la ficha de ${titulo(ordenados[0])}. Toque el producto para ver el detalle.`
+        : "Le comparto las opciones que conversamos. Toque cada una para ver el detalle.");
+    const r = await enviarProductosCatalogo(
+      conversacionId,
+      conversacion.telefono,
+      { catalogoId, equipos: ordenados.map((p) => ({ sku: p.sku, titulo: titulo(p) })), cuerpo, encabezado: "Equipos Efameinsa" },
+      user.id,
+    );
+    if (r.error) return r;
+  }
+
+  if (conversacion.estado === "sin_atender") {
+    await supabase.from("wa_conversaciones").update({ estado: "en_gestion" }).eq("id", conversacionId);
+  }
   revalidatePath(`/whatsapp/${conversacionId}`);
   revalidatePath("/whatsapp");
   return { error: null };

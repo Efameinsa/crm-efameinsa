@@ -61,6 +61,7 @@ function payloadStatus({ wamid, estado, timestamp }) {
 const TELEFONO = "51999" + Math.floor(100000 + Math.random() * 900000);
 const WAMID_1 = "wamid.PRUEBA_" + Date.now() + "_1";
 const WAMID_2 = "wamid.PRUEBA_" + Date.now() + "_2";
+const WAMID_3 = "wamid.PRUEBA_" + Date.now() + "_3";
 const AHORA = Math.floor(Date.now() / 1000);
 
 console.log(`Teléfono de prueba: ${TELEFONO}`);
@@ -104,6 +105,18 @@ await new Promise((r) => setTimeout(r, 800));
 const res2 = await postFirmado(payloadMensaje({ wamid: WAMID_2, telefono: TELEFONO, texto: "¿Cuánto cuesta?", timestamp: AHORA + 5 }));
 console.log(res2.status === 200 ? "✓ Mensaje 2 (mismo número): 200" : `✗ Mensaje 2 falló: ${res2.status}`);
 
+// 4b. El cliente toca «Me interesa» en una ficha (0250) → tipo interactive + equipo_sku
+const res2b = await postFirmado({
+  object: "whatsapp_business_account",
+  entry: [{ id: "PRUEBA", changes: [{ field: "messages", value: {
+    messaging_product: "whatsapp",
+    metadata: { display_phone_number: "51932766654", phone_number_id: "1386979267824702" },
+    contacts: [{ profile: { name: "Cliente de prueba" }, wa_id: TELEFONO }],
+    messages: [{ from: TELEFONO, id: WAMID_3, timestamp: String(AHORA + 5), type: "interactive", interactive: { type: "button_reply", button_reply: { id: "interes:LAVGIA13", title: "Me interesa" } } }],
+  } }] }],
+});
+console.log(res2b.status === 200 ? "✓ Botón «Me interesa» de una ficha: 200" : `✗ Botón falló: ${res2b.status}`);
+
 // 5. Status "delivered" del primer mensaje
 const res3 = await postFirmado(payloadStatus({ wamid: WAMID_1, estado: "delivered", timestamp: AHORA + 6 }));
 console.log(res3.status === 200 ? "✓ Status delivered: 200" : `✗ Status falló: ${res3.status}`);
@@ -120,8 +133,10 @@ const { rows: [conv] } = await db.query(
 );
 console.log(conv ? `✓ Se creó UNA conversación (código ${conv.codigo_campania_wa}, ctwa_clid ${conv.ctwa_clid})` : "✗ No se creó la conversación");
 
-const { rows: mensajes } = await db.query(`select wamid, direccion, texto, estado from wa_mensajes where conversacion_id = $1 order by created_at`, [conv?.id]);
-console.log(mensajes.length === 2 ? "✓ Los 2 mensajes quedaron en el mismo hilo" : `✗ Se esperaban 2 mensajes, hay ${mensajes.length}`);
+const { rows: mensajes } = await db.query(`select wamid, direccion, texto, estado, tipo, equipo_sku from wa_mensajes where conversacion_id = $1 order by created_at`, [conv?.id]);
+const boton = mensajes.find((m) => m.wamid === WAMID_3);
+console.log(boton?.tipo === "interactive" && boton?.equipo_sku === "LAVGIA13" && /Me interesa/.test(boton.texto) ? "✓ El botón quedó como «Me interesa — LAVGIA13» con equipo_sku" : `✗ El botón no quedó bien: ${JSON.stringify(boton)}`);
+console.log(mensajes.length === 3 ? "✓ Los 3 mensajes quedaron en el mismo hilo" : `✗ Se esperaban 3 mensajes, hay ${mensajes.length}`);
 const primero = mensajes.find((m) => m.wamid === WAMID_1);
 console.log(primero?.estado === "entregado" ? "✓ El status \"delivered\" actualizó el mensaje 1" : `✗ Estado del mensaje 1: ${primero?.estado}`);
 

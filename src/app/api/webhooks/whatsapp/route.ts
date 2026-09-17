@@ -45,6 +45,16 @@ interface CambioValorMensaje {
     sticker?: { id: string; mime_type: string };
     location?: { latitude: number; longitude: number; name?: string; address?: string };
     button?: { text: string; payload: string };
+    /** Lo que el cliente tocó en una tarjeta con botones o en una lista (0250). */
+    interactive?: {
+      type: "button_reply" | "list_reply";
+      button_reply?: { id: string; title: string };
+      list_reply?: { id: string; title: string; description?: string };
+    };
+    /** Un pedido armado desde el catálogo de Meta. */
+    order?: { catalog_id: string; text?: string; product_items?: { product_retailer_id: string; quantity: number; item_price: number; currency: string }[] };
+    /** Cuando el cliente escribe «Preguntar» sobre un producto del catálogo. */
+    context?: { from?: string; id?: string; referred_product?: { catalog_id: string; product_retailer_id: string } };
     referral?: {
       source_id?: string;
       source_url?: string;
@@ -65,10 +75,27 @@ interface CambioValorMensaje {
   }[];
 }
 
-function extraerTextoYTipo(m: NonNullable<CambioValorMensaje["messages"]>[number]) {
+const ETIQUETA_BOTON: Record<string, string> = { interes: "Me interesa", cotizar: "Pide cotización", otro: "Quiere ver otra opción" };
+
+function extraerTextoYTipo(m: NonNullable<CambioValorMensaje["messages"]>[number]): { tipo: string; texto: string | null; mediaId: string | null; equipoSku?: string | null } {
   switch (m.type) {
-    case "text":
-      return { tipo: "text" as const, texto: m.text?.body ?? "", mediaId: null };
+    case "text": {
+      // «Preguntar» sobre un producto del catálogo llega como texto con el
+      // producto referido en el contexto: se anota sobre qué equipo pregunta.
+      const sku = m.context?.referred_product?.product_retailer_id ?? null;
+      return { tipo: "text", texto: sku ? `${m.text?.body ?? ""}\n(sobre el equipo ${sku} del catálogo)` : (m.text?.body ?? ""), mediaId: null, equipoSku: sku };
+    }
+    case "interactive": {
+      const r = m.interactive?.button_reply ?? m.interactive?.list_reply;
+      const [accion, sku] = (r?.id ?? "").split(":");
+      const etiqueta = ETIQUETA_BOTON[accion] ?? r?.title ?? "Respondió";
+      return { tipo: "interactive", texto: sku ? `${etiqueta} — ${sku}` : etiqueta, mediaId: null, equipoSku: sku || null };
+    }
+    case "order": {
+      const items = m.order?.product_items ?? [];
+      const lineas = items.map((i) => `${i.quantity} × ${i.product_retailer_id}`).join(", ");
+      return { tipo: "order", texto: `Pedido desde el catálogo: ${lineas}${m.order?.text ? `\n${m.order.text}` : ""}`, mediaId: null, equipoSku: items.map((i) => i.product_retailer_id).join(",") || null };
+    }
     case "image":
       return { tipo: "image" as const, texto: m.image?.caption ?? null, mediaId: m.image?.id ?? null };
     case "document":
@@ -210,7 +237,7 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
     if (yaExiste) continue;
 
     const telefono = mensaje.from;
-    const { tipo, texto, mediaId } = extraerTextoYTipo(mensaje);
+    const { tipo, texto, mediaId, equipoSku } = extraerTextoYTipo(mensaje);
     const nombreWa = valor.contacts?.find((c) => c.wa_id === telefono)?.profile?.name ?? null;
     const timestampMeta = new Date(Number(mensaje.timestamp) * 1000).toISOString();
 
@@ -280,6 +307,7 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
       tipo,
       texto,
       media_id: mediaId,
+      equipo_sku: equipoSku ?? null,
       estado: "recibido",
       timestamp_meta: timestampMeta,
     });

@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon } from "lucide-react";
+import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   enviarMensajeChat,
@@ -23,7 +23,9 @@ import {
   type ConversacionDetalle,
   type MensajeWhatsapp,
   type Sticker,
+  type EquipoParaMandar,
 } from "@/lib/acciones/whatsapp-chat";
+import { WhatsappMandarEquipo } from "@/components/crm/whatsapp-mandar-equipo";
 import { ventanaAbierta } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,6 +42,19 @@ const MAX_TAMANO_ADJUNTO_CHAT = 10 * 1024 * 1024;
 function BurbujaContenido({ mensaje: m }: { mensaje: MensajeWhatsapp }) {
   if (m.tipo === "text" || m.tipo === "button") {
     return <p className="whitespace-pre-wrap">{m.texto}</p>;
+  }
+
+  // Lo que mandamos como ficha o catálogo, y lo que el cliente tocó (0250):
+  // saliente = «Ficha: LG TITAN…» / «Catálogo: …»; entrante = el botón
+  // que apretó («Me interesa — LAVGIA13») o el pedido que armó.
+  if (m.tipo === "interactive" || m.tipo === "order") {
+    const Icono = m.tipo === "order" ? ShoppingCart : m.direccion === "saliente" ? Package : MousePointerClick;
+    return (
+      <p className="flex items-start gap-1.5 whitespace-pre-wrap">
+        <Icono className="mt-0.5 size-3.5 shrink-0 opacity-80" />
+        <span>{m.texto}</span>
+      </p>
+    );
   }
 
   // Entrante sin descargar todavía (el webhook guarda el media_id de Meta,
@@ -98,12 +113,16 @@ export function WhatsappHilo({
   esCentral,
   comerciales,
   stickers,
+  equipos,
+  catalogoConectado,
 }: {
   conversacion: ConversacionDetalle;
   mensajesIniciales: MensajeWhatsapp[];
   esCentral: boolean;
   comerciales: { id: string; nombre: string }[];
   stickers: (Sticker & { url: string | null })[];
+  equipos: EquipoParaMandar[];
+  catalogoConectado: boolean;
 }) {
   const router = useRouter();
   // `key={conversacion.id}` en el padre (WhatsappConversacionPage) remonta
@@ -116,6 +135,7 @@ export function WhatsappHilo({
   const [derivando, setDerivando] = useState(false);
   const [subiendoAdjunto, setSubiendoAdjunto] = useState(false);
   const [mostrarStickers, setMostrarStickers] = useState(false);
+  const [mostrarEquipos, setMostrarEquipos] = useState(false);
   const [grabando, setGrabando] = useState(false);
   const [segundosGrabados, setSegundosGrabados] = useState(0);
   const fondoRef = useRef<HTMLDivElement>(null);
@@ -444,6 +464,34 @@ export function WhatsappHilo({
                     </div>
                   )}
                 </div>
+              )}
+            </div>
+
+            <div className="relative shrink-0">
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                className={cn("rounded-full text-muted-foreground hover:text-foreground", mostrarEquipos && "bg-secondary text-foreground")}
+                onClick={() => {
+                  setMostrarEquipos((v) => !v);
+                  setMostrarStickers(false);
+                }}
+                disabled={enviando || grabando}
+                title="Mandar un equipo del catálogo (ficha con botones)"
+              >
+                <Package className="size-4" />
+              </Button>
+              {mostrarEquipos && (
+                <WhatsappMandarEquipo
+                  conversacionId={conversacion.id}
+                  equipos={equipos}
+                  catalogoConectado={catalogoConectado}
+                  onCerrar={() => setMostrarEquipos(false)}
+                  onEnviado={async () => {
+                    setMostrarEquipos(false);
+                    setMensajes(await mensajesDe(conversacion.id));
+                  }}
+                />
               )}
             </div>
 
