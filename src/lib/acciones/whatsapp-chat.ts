@@ -474,7 +474,7 @@ export async function equiposParaMandar(): Promise<EquipoParaMandar[]> {
   return (data ?? []).map((p) => ({
     sku: p.sku,
     marca: p.marca,
-    modelo: p.modelo,
+    modelo: p.modelo.replace(/\s+/g, " ").trim(),
     nombre: p.nombre,
     categoria: NOMBRE_CATEGORIA_EQUIPO[p.categoria] ?? p.categoria,
     segmento: p.segmento,
@@ -531,7 +531,8 @@ export async function mandarEquipoChat(
   if (!productos?.length) return { error: "Esos equipos ya no están activos en el catálogo" };
   const ordenados = limpios.map((sku) => productos.find((p) => p.sku === sku)).filter((p): p is NonNullable<typeof p> => !!p);
 
-  const titulo = (p: (typeof ordenados)[number]) => `${p.marca} ${p.modelo}${p.capacidad ? ` · ${p.capacidad}` : ""}`;
+  // Algunos modelos traen un salto de línea dentro («LG TITAN MAX / CWT29MDCRS»): en la tarjeta va en una línea.
+  const titulo = (p: (typeof ordenados)[number]) => `${p.marca} ${p.modelo}${p.capacidad ? ` · ${p.capacidad}` : ""}`.replace(/\s+/g, " ").trim();
   const notaLimpia = nota?.trim().slice(0, 300) || "";
 
   if (modo === "ficha") {

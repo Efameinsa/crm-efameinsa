@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     const precio = precioDe.get(p.id);
     if (!precio) continue; // sin precio vigente no hay ítem: Meta lo rechazaría
     const capacidad = p.capacidad ? ` · ${p.capacidad}` : "";
-    const titulo = `${p.marca} ${p.modelo}${capacidad} — ${NOMBRE_CATEGORIA[p.categoria] ?? p.categoria}`.slice(0, 150);
+    const titulo = `${p.marca} ${p.modelo}${capacidad} — ${NOMBRE_CATEGORIA[p.categoria] ?? p.categoria}`.replace(/\s+/g, " ").slice(0, 150);
     const descripcion = textoDeFicha(p.ficha) || p.nombre;
     const pagina = paginasWeb.get(normalizar(p.modelo));
     filas.push([
