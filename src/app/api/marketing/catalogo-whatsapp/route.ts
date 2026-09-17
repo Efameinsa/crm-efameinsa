@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
   const filas = [["id", "title", "description", "availability", "condition", "price", "link", "image_link", "brand", "product_type", "custom_label_0"]];
   for (const p of productos ?? []) {
-    if (!CATEGORIAS_EQUIPO.has(p.categoria) || !p.foto_path) continue;
+    if (!p.sku || !CATEGORIAS_EQUIPO.has(p.categoria) || !p.foto_path) continue; // sin SKU no hay id para Meta (17-09: una UT075 sin código)
     const precio = precioDe.get(p.id);
     if (!precio) continue; // sin precio vigente no hay ítem: Meta lo rechazaría
     const capacidad = p.capacidad ? ` · ${p.capacidad}` : "";

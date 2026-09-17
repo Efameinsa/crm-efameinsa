@@ -467,6 +467,7 @@ export async function equiposParaMandar(): Promise<EquipoParaMandar[]> {
     .eq("activo", true)
     .in("categoria", Object.keys(NOMBRE_CATEGORIA_EQUIPO))
     .not("foto_path", "is", null)
+    .not("sku", "is", null)
     .order("categoria")
     .order("marca")
     .order("sku");
