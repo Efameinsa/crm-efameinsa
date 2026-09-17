@@ -126,3 +126,19 @@ marcarlos.
 - **Falta de Santos**: el identificador del número (`WHATSAPP_PHONE_NUMBER_ID`), el de la cuenta
   (`WHATSAPP_WABA_ID`), y asignar esa cuenta al usuario del sistema (o darme el token del panel);
   luego registrar el webhook en la app con la URL y el verify token, y suscribir `messages`.
+
+## 17-09 (14:25) — WhatsApp conectado de verdad: entra y sale
+
+- Prueba real con el celular de Santos (perfil «marketing», 51949304862) al **+51 932 766 654**:
+  el «Holis» llegó al webhook, creó la conversación y el lead **PRO-09464** (canal whatsapp,
+  pendiente de triaje en Central); la respuesta salió por la Cloud API y Meta devolvió
+  sent → delivered → read. Sin método de pago, las respuestas dentro de las 24 h salen igual.
+- Lo que faltaba y lo destrabó Claude en Chrome: el interruptor **«Suscribirse a webhooks»** de
+  la cuenta Efameinsa en el panel de la app, y pasar la app a **Activo/Publicada** (política de
+  privacidad `www.efameinsa.com/politica-de-privacidad`, términos `/terminos`).
+- El WABA ID real es **1218328843849181** (el que dio el panel tenía un dígito cambiado: …643…);
+  corregido en Vercel y `.env.local`. Cuenta «Efameinsa», APPROVED, app suscrita.
+- Se borró la conversación de prueba «Juan Pérez PRUEBA» del 14-09.
+- Pendiente: método de pago en la cuenta (necesario para plantillas / mensajes que inicia la
+  empresa), verificación del negocio (en revisión), cargar `campanias_whatsapp` con los códigos de
+  anuncio, y el texto del acuse automático.
