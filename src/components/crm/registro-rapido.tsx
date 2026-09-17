@@ -54,7 +54,7 @@ type TipoGestion = (typeof TIPOS_CONTACTO)[number][0] | (typeof TIPOS_INTERNOS)[
 const ACCIONES_FRECUENTES = [
   "Volver a llamar",
   "Enviar la cotización",
-  "Hacer seguimiento a la cotización",
+  "Hacer seguimiento",
   "Visitar al cliente",
 ] as const;
 
