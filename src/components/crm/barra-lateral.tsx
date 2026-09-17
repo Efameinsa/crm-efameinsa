@@ -51,7 +51,11 @@ export function BarraLateral({
 
   useEffect(() => {
     try {
-      if (localStorage.getItem(CLAVE) === "1") setPlegada(true);
+      const guardado = localStorage.getItem(CLAVE);
+      // En un celular arranca plegada (17-09: el almacén toma fotos desde el
+      // teléfono y el menú abierto se comía media pantalla); si la persona la
+      // abrió a propósito, se respeta.
+      if (guardado === "1" || (guardado === null && window.innerWidth < 768)) setPlegada(true);
     } catch {
       // navegación privada o storage bloqueado: se queda abierta, sin drama
     }
