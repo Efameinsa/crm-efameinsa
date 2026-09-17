@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
       !!firma && Buffer.byteLength(firma) === Buffer.byteLength(esperada) && crypto.timingSafeEqual(Buffer.from(firma), Buffer.from(esperada));
     if (!firmaValida) {
       console.error("webhook whatsapp: firma inválida");
+      await dejarRastro(false, cuerpoTexto, "firma inválida");
       return NextResponse.json({}, { status: 200 }); // 200 igual: no darle pistas a quien intenta falsificar
     }
   }
@@ -146,11 +147,13 @@ export async function POST(request: NextRequest) {
   try {
     cuerpo = JSON.parse(cuerpoTexto);
   } catch {
+    await dejarRastro(true, cuerpoTexto, "no es JSON");
     return NextResponse.json({});
   }
 
   const admin = createAdminClient();
 
+  let fallo: string | null = null;
   try {
     for (const entrada of cuerpo.entry ?? []) {
       for (const cambio of entrada.changes ?? []) {
@@ -161,9 +164,35 @@ export async function POST(request: NextRequest) {
     // Nunca se propaga: un fallo procesando un evento no debe hacer que Meta
     // reintente TODO el lote ni tumbar el webhook para el resto.
     console.error("webhook whatsapp: error procesando evento", err);
+    fallo = err instanceof Error ? err.message : String(err);
   }
+  await dejarRastro(true, cuerpoTexto, fallo);
 
   return NextResponse.json({});
+}
+
+/**
+ * El rastro crudo de cada llamada (0248): la primera prueba real no apareció y
+ * no había cómo saber si Meta llamó y falló la firma o si nunca llamó. Mejor
+ * esfuerzo: si la tabla no está o falla el insert, el webhook sigue igual.
+ */
+async function dejarRastro(firmaValida: boolean, cuerpoTexto: string, error: string | null) {
+  try {
+    let cuerpo: unknown = null;
+    try {
+      cuerpo = JSON.parse(cuerpoTexto);
+    } catch {
+      /* queda solo el texto */
+    }
+    await createAdminClient().from("wa_webhook_eventos").insert({
+      firma_valida: firmaValida,
+      cuerpo,
+      cuerpo_texto: cuerpo ? null : cuerpoTexto.slice(0, 4000),
+      error,
+    });
+  } catch (err) {
+    console.error("webhook whatsapp: no se pudo dejar el rastro", err);
+  }
 }
 
 async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor: CambioValorMensaje) {
