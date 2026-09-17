@@ -74,6 +74,8 @@ export interface Perfil {
   /** Acompaña a los usuarios: ve las dos barras y no se le mide como comercial (0101). */
   es_soporte?: boolean;
   es_operaciones?: boolean;
+  /** La cuenta del almacén (0246): pedidos, atenciones programadas, visitas e informes; marca lo suyo del despacho. */
+  es_almacen?: boolean;
   created_at: string;
   updated_at: string;
 }

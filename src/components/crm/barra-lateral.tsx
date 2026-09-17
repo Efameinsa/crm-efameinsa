@@ -31,6 +31,7 @@ export function BarraLateral({
   soloPreventivo = false,
   esSoporte = false,
   esOperaciones = false,
+  esAlmacen = false,
   contadorMiDia,
   contadorAtenciones,
 }: {
@@ -41,6 +42,7 @@ export function BarraLateral({
   esSoporte?: boolean;
   /** Administrador de operaciones (0114): dicta el código, no ejecuta. */
   esOperaciones?: boolean;
+  esAlmacen?: boolean;
   /** Las dos colas del área (plan 23, etapa 5): «el número es el llamado a la acción». */
   contadorMiDia?: number;
   contadorAtenciones?: number;
@@ -90,6 +92,7 @@ export function BarraLateral({
         soloPreventivo={soloPreventivo}
         esSoporte={esSoporte}
         esOperaciones={esOperaciones}
+        esAlmacen={esAlmacen}
         plegada={plegada}
         contadorMiDia={contadorMiDia}
         contadorAtenciones={contadorAtenciones}

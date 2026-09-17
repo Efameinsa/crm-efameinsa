@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
-import { notificar } from "@/lib/notificaciones";
+import { notificar, notificarAlmacen } from "@/lib/notificaciones";
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, type ServicioPostventa } from "@/lib/postventa";
 
 /**
@@ -125,6 +125,16 @@ export async function marcarPaso(servicioId: string, campo: CampoPaso, nota?: st
 
   const { error } = await supabase.from("servicios_postventa").update(cambios).eq("id", servicioId);
   if (error) return falla(error.message);
+  // «Prueba la máquina»: el almacén se entera en su bandeja (0246).
+  if (campo === "prueba_solicitada_at") {
+    const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", servicioId).maybeSingle();
+    await notificarAlmacen({
+      titulo: `Probar y embalar · ${(s?.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
+      cuerpo: `${s?.equipo ?? ""}. Postventa pide la prueba; al terminar, suba el protocolo y márquelo.`.trim(),
+      url: `/almacen/pedidos/${servicioId}`,
+      esPrueba: s?.es_prueba === true,
+    });
+  }
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   return ok();
 }
@@ -286,6 +296,13 @@ export async function emitirAperturaDespacho(servicioId: string) {
     .update({ apertura_despacho_at: new Date().toISOString(), apertura_despacho_por: perfil.id })
     .eq("id", servicioId);
   if (error) return falla(error.message);
+  // «Que me lleguen las aperturas» (Lesly, 16-09; 0246).
+  await notificarAlmacen({
+    titulo: `Apertura de despacho · ${(s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
+    cuerpo: `${s.equipo ?? ""}${s.fecha_despacho ? ` · programado para el ${s.fecha_despacho}` : " · falta programar el día"}. Con esto el almacén despacha sin preguntar.`,
+    url: `/almacen/pedidos/${servicioId}`,
+    esPrueba: s.es_prueba === true,
+  });
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   revalidatePath("/postventa/control");
   return ok();
@@ -331,6 +348,18 @@ export async function programarDespacho(servicioId: string, fecha: string, nota?
     .update({ fecha_despacho: fecha || null, despacho_nota: nota?.trim() || null })
     .eq("id", servicioId);
   if (error) return falla(error.message);
+  // «Recepcionas almacén que hay una programación de despacho para mañana,
+  // para que estés lista: de repente tengo que contratar un montacarga»
+  // (Carlos, 16-09; 0246).
+  if (fecha) {
+    const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", servicioId).maybeSingle();
+    await notificarAlmacen({
+      titulo: `Despacho programado para el ${fecha} · ${(s?.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
+      cuerpo: `${s?.equipo ?? ""}${nota?.trim() ? ` · ${nota.trim()}` : ""}. Confirme en su pedido cuando esté listo.`,
+      url: `/almacen/pedidos/${servicioId}`,
+      esPrueba: s?.es_prueba === true,
+    });
+  }
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   return ok();
 }

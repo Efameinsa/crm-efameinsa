@@ -42,6 +42,16 @@ export interface ServicioPostventa {
   liquidacion_at: string | null;
   aprobado_at: string | null;
   modalidad: string | null;
+  es_prueba?: boolean;
+  /** Lo que registra el almacén (0246). */
+  almacen_listo_at?: string | null;
+  almacen_listo_nota?: string | null;
+  salida_fotos?: FotoAlmacen[] | null;
+  salida_nota?: string | null;
+  agencia_at?: string | null;
+  agencia_fotos?: FotoAlmacen[] | null;
+  protocolo_fotos?: FotoAlmacen[] | null;
+  despacho_verificado_at?: string | null;
   /** Qué se vendió, y por eso qué circuito sigue (0237/0239). */
   tipo_pedido?: TipoPedido | null;
   entrega_en?: "planta" | "agencia" | "cliente" | null;
@@ -304,6 +314,15 @@ export function esProvincia(s: ServicioPostventa): boolean {
  */
 export type TipoPedido = "equipo" | "repuesto" | "mantenimiento" | "revision";
 
+/** Una foto o un video que subió el almacén (0246). */
+export interface FotoAlmacen {
+  path: string;
+  nombre: string;
+  tipo: string;
+  /** frente · lateral_izq · lateral_der · posterior · arriba · video · guia · maquina · protocolo */
+  etiqueta: string;
+}
+
 export const ETIQUETA_TIPO_PEDIDO: Record<TipoPedido, string> = {
   equipo: "Venta de equipo",
   repuesto: "Venta de repuesto",
@@ -520,7 +539,15 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       hecho: s.despachado_at != null,
       cuando: s.despachado_at ?? (s.fecha_despacho ? `${s.fecha_despacho}T12:00:00` : null),
       detalle:
-        [s.transportista, s.guia ? `Guía ${s.guia}` : null].filter(Boolean).join(" · ") ||
+        [
+          s.almacen_listo_at && !s.despachado_at ? "Almacén confirmó que está listo" : null,
+          s.salida_fotos?.length ? `Salió del almacén con ${s.salida_fotos.length} fotos/video` : null,
+          s.transportista,
+          s.guia ? `Guía ${s.guia}` : null,
+          s.agencia_at ? "entregado en agencia" : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") ||
         (s.despachado_at ? undefined : circuito.esServicio ? "Con día, hora y técnico asignado" : "Se concluye con la guía de remisión del almacén"),
       trabado:
         s.despachado_at == null && !aperturaEmitida && s.informe_cierre_id != null
@@ -531,6 +558,23 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
               ? "Es provincia y el cliente todavía no confirmó la preinstalación: conviene tenerla antes de que salga el camión"
               : undefined,
     },
+    // EL DOBLE CHECK DE POSTVENTA (Carlos, 16-09): «almacén sube la
+    // información, pero postventa da el doble check con verificar que se ha
+    // hecho correcto el envío». Solo aparece cuando fue almacén quien registró
+    // la salida; en los pedidos que despacha postventa a mano no hay a quién
+    // verificar.
+    ...((s.salida_fotos?.length ?? 0) > 0 || s.agencia_at
+      ? [
+          {
+            clave: "verificado",
+            etiqueta: "Despacho verificado por postventa",
+            responsable: "postventa" as ResponsablePaso,
+            hecho: s.despacho_verificado_at != null,
+            cuando: s.despacho_verificado_at ?? null,
+            detalle: s.despacho_verificado_at ? undefined : "Mire las fotos y la guía que subió almacén y confirme que el envío está bien",
+          },
+        ]
+      : []),
   ];
 
   const cierre: PasoPedido[] = [

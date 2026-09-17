@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { notificarAlmacen } from "@/lib/notificaciones";
 import { avisarAtencionProgramadaN8n } from "@/lib/avisos-n8n";
 import {
   ETAPAS_ATENCION,
@@ -333,6 +334,19 @@ export async function programarAtencion(datos: {
   // no todo está ahí». Va DESPUÉS de guardar y sin esperar nada: si n8n no
   // contesta, la atención queda programada igual.
   await avisarProgramacionAlAlmacen(supabase, datos.atencionId, cuando, datos.tecnico.trim());
+  // Y en su bandeja del CRM (0246), además del correo.
+  try {
+    const { data: a } = await supabase.from("atenciones").select("tipo, cliente_texto, equipo_texto, es_prueba, cuentas(razon_social)").eq("id", datos.atencionId).maybeSingle();
+    const cli = (a?.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? a?.cliente_texto ?? "Cliente";
+    await notificarAlmacen({
+      titulo: `${a?.tipo === "puesta_en_marcha" ? "Puesta en marcha" : a?.tipo === "solicitud_mantenimiento" ? "Mantenimiento" : a?.tipo === "solicitud_repuesto" ? "Repuesto" : "Atención técnica"} programada · ${cli}`,
+      cuerpo: `${datos.fecha}${datos.hora ? ` ${datos.hora}` : ""} · ${datos.tecnico.trim()}${a?.equipo_texto ? ` · ${a.equipo_texto}` : ""}`,
+      url: `/almacen/atenciones`,
+      esPrueba: a?.es_prueba === true,
+    });
+  } catch {
+    /* el aviso no frena la programación */
+  }
 
   refrescar(datos.atencionId);
   return { error: null };

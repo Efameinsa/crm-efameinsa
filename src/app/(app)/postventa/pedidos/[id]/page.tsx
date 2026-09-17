@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileText, MessageCircle, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
+import type { FotoAlmacen } from "@/lib/postventa";
 import { requerirPerfil } from "@/lib/auth";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
 import { EquipoConSeries } from "@/components/crm/equipo-con-series";
@@ -51,6 +53,16 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   const supabase = await createClient();
 
   const { data } = await supabase.from("servicios_postventa").select("*").eq("id", id).single();
+  // Las fotos del almacén (0246), firmadas para poder verlas.
+  const fotosAlmacen: FotoAlmacen[] = [
+    ...(((data?.protocolo_fotos ?? []) as FotoAlmacen[])),
+    ...(((data?.salida_fotos ?? []) as FotoAlmacen[])),
+    ...(((data?.agencia_fotos ?? []) as FotoAlmacen[])),
+  ];
+  const { data: firmadasAlmacen } = fotosAlmacen.length
+    ? await supabase.storage.from("adjuntos").createSignedUrls(fotosAlmacen.map((f) => f.path), 3600)
+    : { data: null };
+  const galeriaAlmacen = fotosAlmacen.map((f, i) => ({ ...f, url: firmadasAlmacen?.[i]?.signedUrl ?? null }));
   // La atención de puesta en marcha enganchada a este pedido (0244).
   const { data: atencionPuesta } = await supabase
     .from("atenciones")
@@ -294,6 +306,8 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
         />
 
         <div className="space-y-4">
+          {/* Lo que subió el almacén: protocolo, salida, guía (0246). */}
+          {galeriaAlmacen.length > 0 && <GaleriaAlmacen fotos={galeriaAlmacen} />}
           {/* Los documentos del expediente. Antes venían impresos dentro del
               file que Finanzas bajaba; ahora son estos. */}
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">

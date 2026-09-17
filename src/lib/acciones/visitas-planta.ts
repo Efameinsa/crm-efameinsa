@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { enviarCorreoN8n } from "@/lib/avisos-n8n";
+import { notificarAlmacen } from "@/lib/notificaciones";
 
 /**
  * Quién viene a la planta (0238).
@@ -68,6 +69,14 @@ export async function registrarVisitaPlanta(datos: {
   if (error) return { error: limpiar(error.message) };
   revalidatePath("/central/visitas");
   revalidatePath("/postventa/agenda");
+  revalidatePath("/almacen/visitas");
+  // El almacén también se entera en su bandeja: viene alguien a recoger (0246).
+  await notificarAlmacen({
+    titulo: `Visita ${datos.showroom ? "al showroom" : "a planta"} el ${datos.fecha}${datos.hora ? ` ${datos.hora.slice(0, 5)}` : ""} · ${datos.empresa.trim()}`,
+    cuerpo: `${datos.persona.trim()}${datos.dni ? ` (DNI ${datos.dni})` : ""}. ${datos.motivo.trim()}`,
+    url: "/almacen/visitas",
+    esPrueba: perfil.es_prueba === true,
+  });
 
   // EL CORREO DEL FORMATO DE LESLY (T:\formatos para santos, 16-09): la misma
   // tabla que hoy manda el comercial a mano a Central, Almacén y Logística con

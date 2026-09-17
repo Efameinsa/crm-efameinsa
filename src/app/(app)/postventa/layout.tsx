@@ -15,7 +15,8 @@ export default async function PostventaLayout({ children }: { children: React.Re
   const perfil = await requerirPerfil();
   // La cuenta de soporte (0101) entra: su trabajo es que los demás sepan usar
   // estas pantallas, y no se puede enseñar lo que no se ve.
-  if (!perfil.es_postventa && !perfil.es_soporte && perfil.rol !== "gerencia" && perfil.rol !== "admin") {
+  // El almacén (0246) entra a leer informes y pedidos; lo que ve lo decide la RLS.
+  if (!perfil.es_postventa && !perfil.es_soporte && !perfil.es_almacen && perfil.rol !== "gerencia" && perfil.rol !== "admin") {
     redirect(perfil.rol === "central" ? "/central" : "/comercial");
   }
   // Y la cuenta que SOLO vende preventivo (0213) tampoco entra: estas

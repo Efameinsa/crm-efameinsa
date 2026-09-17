@@ -52,6 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         soloPreventivo={perfil.solo_preventivo ?? false}
         esSoporte={perfil.es_soporte ?? false}
         esOperaciones={perfil.es_operaciones ?? false}
+        esAlmacen={perfil.es_almacen ?? false}
         contadorMiDia={contadorMiDia}
         contadorAtenciones={contadorAtenciones}
       />

@@ -248,6 +248,18 @@ const ENLACE_PARQUE = { href: "/comercial/parque", etiqueta: "Mi parque", icono:
 // lo que se hizo con él.
 const ENLACE_OPERACIONES = { href: "/operaciones", etiqueta: "Autorizaciones", icono: KeyRound };
 
+// EL ALMACÉN (0246). Lo que Lesly enumeró el 16-09: «que me lleguen las
+// aperturas, que me lleguen las visitas, me tienen que llegar los reportes
+// técnicos… tengo que ver mis pedidos». Cuatro pantallas y el macro; nada
+// del comercial.
+const ENLACES_ALMACEN = [
+  { href: "/almacen", etiqueta: "Mi día", icono: Gauge },
+  { href: "/almacen/pedidos", etiqueta: "Pedidos", icono: Package },
+  { href: "/almacen/atenciones", etiqueta: "Atenciones programadas", icono: Wrench },
+  { href: "/almacen/visitas", etiqueta: "Visitas a planta", icono: DoorOpen },
+  { href: "/almacen/informes", etiqueta: "Informes técnicos", icono: FileText },
+];
+
 export function NavLateral({
   rol,
   esPostventa = false,
@@ -255,6 +267,7 @@ export function NavLateral({
   soloPreventivo = false,
   esSoporte = false,
   esOperaciones = false,
+  esAlmacen = false,
   plegada = false,
   contadorMiDia,
   contadorAtenciones,
@@ -274,6 +287,8 @@ export function NavLateral({
    * menú abre por ahí y no por ocho pantallas que no son suyas.
    */
   esOperaciones?: boolean;
+  /** La cuenta del almacén (0246): su barra es solo la suya. */
+  esAlmacen?: boolean;
   /**
    * Comercial que además vende mantenimiento y repuestos (migración 0093).
    * Le suma un enlace, no le cambia la barra: sigue siendo comercial.
@@ -327,10 +342,13 @@ export function NavLateral({
   ];
 
   const secciones: { titulo?: string; enlaces: typeof ENLACES_POSTVENTA }[] =
-    rol === "operaciones"
+    esAlmacen && rol !== "gerencia" && rol !== "admin"
+      ? [{ titulo: "Almacén", enlaces: ENLACES_ALMACEN }]
+      : rol === "operaciones"
       ? [
           { titulo: "Operaciones", enlaces: ENLACES_POR_ROL[rol] },
           { titulo: "Postventa", enlaces: enlacesDelArea },
+          { titulo: "Almacén", enlaces: ENLACES_ALMACEN },
         ]
       : esSoporte
     ? [

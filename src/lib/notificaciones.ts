@@ -27,7 +27,12 @@ export type TipoNotificacion =
   // Central devolvió un cierre mal hecho, y el comercial lo devolvió corregido
   // (0178, Carlos 05-09: «tendrías que rechazarlo y que lo haga bien»).
   | "cierre_devuelto"
-  | "cierre_corregido";
+  | "cierre_corregido"
+  // Postventa y el almacén se avisan entre sí lo que le toca al otro (0246).
+  | "almacen"
+  // Lo que ya existía sin tipo propio: la anulación (0237) y la visita (0238).
+  | "cierre_anulado"
+  | "visita_planta";
 
 interface Destinatario {
   userId?: string;
@@ -133,4 +138,22 @@ export async function notificarLeadEntrante(datos: {
     notificar({ rol: "central", tipo: "lead_registrado", titulo: datos.titulo, cuerpo: datos.cuerpo, url: "/central" }),
     notificar({ rol: "gerencia", tipo: "lead_registrado", titulo: datos.titulo, cuerpo: datos.cuerpo, url: "/gerencia" }),
   ]);
+}
+
+/**
+ * Un aviso a la cuenta del almacén (0246): «que me lleguen las aperturas, que
+ * me lleguen las visitas, me tienen que llegar los reportes técnicos» (Lesly,
+ * 16-09). Se separa por serie: lo de práctica no le llega al almacén real.
+ */
+export async function notificarAlmacen(datos: { titulo: string; cuerpo?: string; url?: string; esPrueba?: boolean }): Promise<void> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("perfiles")
+    .select("id")
+    .eq("es_almacen", true)
+    .eq("activo", true)
+    .eq("es_prueba", datos.esPrueba === true);
+  await Promise.all(
+    (data ?? []).map((p) => notificar({ userId: p.id, tipo: "almacen", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
+  );
 }

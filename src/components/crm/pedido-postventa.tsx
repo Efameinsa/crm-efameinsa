@@ -27,6 +27,7 @@ import {
   cerrarPedido,
   guardarInformeServicio,
 } from "@/lib/acciones/postventa";
+import { verificarDespacho } from "@/lib/acciones/almacen";
 import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -264,6 +265,13 @@ export function PedidoPostventa({
             )}
             <BotonPaso onClick={() => setForm({ tipo: "puesta" })}>Llenar informe</BotonPaso>
           </span>
+        );
+      case "verificado":
+        // El doble check de postventa sobre lo que despachó almacén (0246).
+        return (
+          <BotonPaso onClick={() => correr(() => verificarDespacho(servicio.id), "Despacho verificado.", { despacho_verificado_at: ahora() })}>
+            Verificar el despacho
+          </BotonPaso>
         );
       case "cerrado":
         return <BotonPaso onClick={() => setForm({ tipo: "cerrar" })}>Cerrar pedido</BotonPaso>;
