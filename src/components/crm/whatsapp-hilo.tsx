@@ -8,9 +8,10 @@
 // llegar un mensaje sin que alguien tenga que recargar la página.
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart } from "lucide-react";
+import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   enviarMensajeChat,
@@ -379,6 +380,24 @@ export function WhatsappHilo({
               )}
             >
               <BurbujaContenido mensaje={m} />
+              {/* El cliente pidió cotización o dijo «me interesa» (0250): el
+                  atajo abre el cotizador con ese equipo ya en el renglón. Sin
+                  oportunidad no hay dónde cotizar: Central tiene que derivar el
+                  contacto desde la bandeja (eso crea la oportunidad). */}
+              {m.direccion === "entrante" && m.tipo === "interactive" && m.equipo_sku && !m.equipo_sku.includes(",") && (
+                conversacion.oportunidad_id ? (
+                  <Link
+                    href={`/comercial/oportunidades/${conversacion.oportunidad_id}/cotizar?sku=${encodeURIComponent(m.equipo_sku)}`}
+                    className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    <FileSpreadsheet className="size-3.5" /> Cotizar este equipo
+                  </Link>
+                ) : (
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    Para cotizar, Central debe derivar {conversacion.lead_codigo ?? "el contacto"} desde la bandeja: eso abre la oportunidad.
+                  </p>
+                )
+              )}
               <div
                 className={cn(
                   "mt-1 flex items-center gap-1.5 text-[10px] opacity-70",

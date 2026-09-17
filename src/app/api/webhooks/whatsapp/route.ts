@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notificarLeadEntrante } from "@/lib/notificaciones";
+import { notificar, notificarLeadEntrante } from "@/lib/notificaciones";
+import { responderAutomatico } from "@/lib/whatsapp";
 
 // Webhook de la Cloud API de WhatsApp (fase 2, plan sección 2.4).
 //
@@ -243,7 +244,7 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
 
     let { data: conversacion } = await admin
       .from("wa_conversaciones")
-      .select("id, lead_id")
+      .select("id, lead_id, asignado_a, nombre_wa")
       .eq("telefono", telefono)
       .neq("estado", "cerrada")
       .maybeSingle();
@@ -286,7 +287,7 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
           referral: mensaje.referral ?? null,
           codigo_campania_wa: codigoCampania,
         })
-        .select("id, lead_id")
+        .select("id, lead_id, asignado_a, nombre_wa")
         .single();
       conversacion = nuevaConversacion;
 
@@ -320,5 +321,68 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
         estado: esConversacionNueva ? "sin_atender" : undefined,
       })
       .eq("id", conversacion.id);
+
+    if (tipo === "interactive" && equipoSku) {
+      await atenderBotonDeFicha(admin, conversacion, telefono, nombreWa, mensaje.interactive?.button_reply?.id ?? "", equipoSku);
+    }
+  }
+}
+
+/**
+ * El cliente tocó un botón de una ficha (0250). Santos, 17-09: «le dio en
+ * pedir cotización y no pasó nada». Ahora pasan tres cosas: (1) el comercial
+ * dueño del chat —o Central si nadie lo tiene— recibe el aviso en la campana
+ * con el equipo; (2) el número le responde solo al cliente para que no se
+ * quede mirando la pantalla; (3) queda como gestión en la oportunidad, si el
+ * contacto ya tiene una. Nada de esto puede tumbar el webhook.
+ */
+async function atenderBotonDeFicha(
+  admin: ReturnType<typeof createAdminClient>,
+  conversacion: { id: string; lead_id: string | null; asignado_a: string | null; nombre_wa: string | null },
+  telefono: string,
+  nombreWa: string | null,
+  idBoton: string,
+  sku: string,
+) {
+  const accion = idBoton.split(":")[0];
+  if (!["interes", "cotizar", "otro"].includes(accion)) return;
+  try {
+    const { data: p } = await admin.from("productos").select("marca, modelo, capacidad").eq("sku", sku).maybeSingle();
+    const equipo = p ? `${p.marca} ${p.modelo}${p.capacidad ? ` ${p.capacidad}` : ""}`.replace(/\s+/g, " ").trim() : sku;
+    const quien = nombreWa || conversacion.nombre_wa || telefono;
+    const url = `/whatsapp/${conversacion.id}`;
+
+    const titulo =
+      accion === "cotizar" ? `${quien} pide cotización de ${equipo}` : accion === "interes" ? `${quien}: «me interesa» ${equipo}` : `${quien} quiere ver otra opción (vio ${equipo})`;
+    await notificar({
+      ...(conversacion.asignado_a ? { userId: conversacion.asignado_a } : { rol: "central" }),
+      tipo: "whatsapp",
+      titulo,
+      cuerpo: accion === "cotizar" ? "Abra el chat y use «Cotizar este equipo»." : "Respóndale desde el chat.",
+      url,
+    });
+
+    const respuesta =
+      accion === "cotizar"
+        ? `Perfecto. En unos minutos un asesor le manda la cotización de ${equipo}. ¿A qué nombre o empresa la emitimos?`
+        : accion === "interes"
+          ? `Qué bueno. ¿Le cuento más de ${equipo} o prefiere que lo llamemos?`
+          : "Claro, en un momento le muestro otras opciones.";
+    await responderAutomatico(conversacion.id, telefono, respuesta, sku);
+
+    if (conversacion.lead_id) {
+      const { data: lead } = await admin.from("leads").select("oportunidad_id").eq("id", conversacion.lead_id).maybeSingle();
+      if (lead?.oportunidad_id) {
+        await admin.from("actividades").insert({
+          oportunidad_id: lead.oportunidad_id,
+          tipo: "whatsapp",
+          nota: `Por WhatsApp, el cliente ${accion === "cotizar" ? "pidió cotización de" : accion === "interes" ? "dijo «me interesa»" : "pidió ver otra opción distinta a"} ${equipo} (${sku}).`,
+          realizada_por: conversacion.asignado_a,
+          realizada_at: new Date().toISOString(),
+        });
+      }
+    }
+  } catch (err) {
+    console.error("webhook whatsapp: no se pudo atender el botón", err);
   }
 }

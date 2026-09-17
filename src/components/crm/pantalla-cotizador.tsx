@@ -193,6 +193,7 @@ export function PantallaCotizador({
   contacto,
   solicitud,
   desdeCaso = null,
+  skuInicial = null,
   productos,
   historialPrecios,
   edicion,
@@ -212,6 +213,8 @@ export function PantallaCotizador({
    * del 08-09). El técnico acababa de ver la máquina y tenía que volver a
    * escribirlo todo de memoria — o irse a Word, que es lo que venía pasando.
    */
+  /** El equipo que el cliente pidió por WhatsApp (0250): nace ya en el renglón, con su precio de lista. */
+  skuInicial?: string | null;
   desdeCaso?: {
     id: string;
     tipo: string;
@@ -265,8 +268,27 @@ export function PantallaCotizador({
   const aVista = (usd: number) => (enSoles ? dosDecimales(usd * tcDelDocumento) : dosDecimales(usd));
   const aDolares = (vista: number) => (enSoles ? dosDecimales(vista / tcDelDocumento) : dosDecimales(vista));
   const importe = (usd: number) => `${simbolo} ${monto(aVista(usd))}`;
-  const [carrito, setCarrito] = useState<ItemCarrito[]>(
-    () =>
+  const [carrito, setCarrito] = useState<ItemCarrito[]>(() => {
+    // Viene de «Cotizar este equipo» en el chat: el renglón arranca puesto,
+    // igual que si lo hubiera elegido en el buscador. Solo en una cotización
+    // nueva: al reabrir un borrador manda lo guardado.
+    const inicial = !edicion && skuInicial ? productos.find((p) => p.sku === skuInicial) : undefined;
+    if (inicial) {
+      const tierInicio = tierInicial(inicial);
+      return [
+        {
+          producto_id: inicial.id,
+          nombre: `${inicial.marca} ${inicial.modelo} — ${inicial.nombre}`,
+          cantidad: 1,
+          precio_unitario: precioTier(inicial, tierInicio) ?? 0,
+          tier_aplicado: tierInicio,
+          precioPiso: precioReferencia(inicial),
+          sinFicha: Boolean(inicial.sinFicha),
+          color: null,
+        },
+      ];
+    }
+    return (
       edicion?.items.map((i) => ({
         producto_id: i.producto_id,
         descripcion: i.descripcion,
@@ -283,8 +305,9 @@ export function PantallaCotizador({
         sinFicha: Boolean(productos.find((p) => p.id === i.producto_id)?.sinFicha),
         fueraDeCatalogo: i.producto_id === null,
         color: i.color,
-      })) ?? [],
-  );
+      })) ?? []
+    );
+  });
   const [condiciones, setCondiciones] = useState(edicion?.condiciones ?? CONDICIONES_POR_DEFECTO);
   const [vigenciaDias, setVigenciaDias] = useState(edicion?.vigenciaDias ?? 15);
   const [entregaLugar, setEntregaLugar] = useState<string>(edicion?.entregaLugar ?? ENTREGA_POR_DEFECTO);

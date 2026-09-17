@@ -47,6 +47,8 @@ const ESTILO_AVISO: Record<
   // Central anuló un cierre (0237) y alguien viene a la planta (0238).
   cierre_anulado: { encabezado: "Central anuló un cierre suyo", accion: "Ver el motivo", duracion: Infinity, tono: "warning" },
   visita_planta: { encabezado: "Visita a la planta", accion: "Imprimir para vigilancia", duracion: 14000, tono: "info" },
+  // El cliente respondió a una ficha por WhatsApp (0250): no se va sola, como la urgencia.
+  whatsapp: { encabezado: "💬 WhatsApp — el cliente respondió", accion: "Abrir el chat", duracion: Infinity, tono: "success" },
   otro: { encabezado: "Aviso nuevo", accion: "Ver", duracion: 8000, tono: "info" },
 };
 

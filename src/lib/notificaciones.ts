@@ -32,7 +32,9 @@ export type TipoNotificacion =
   | "almacen"
   // Lo que ya existía sin tipo propio: la anulación (0237) y la visita (0238).
   | "cierre_anulado"
-  | "visita_planta";
+  | "visita_planta"
+  // El cliente tocó un botón en una ficha mandada por WhatsApp (0250).
+  | "whatsapp";
 
 interface Destinatario {
   userId?: string;

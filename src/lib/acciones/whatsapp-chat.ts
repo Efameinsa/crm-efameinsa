@@ -112,6 +112,8 @@ export async function comercialesActivos(): Promise<{ id: string; nombre: string
 export interface ConversacionDetalle extends ConversacionWhatsapp {
   lead_codigo: string | null;
   lead_nombre_contacto: string | null;
+  /** La oportunidad que nació cuando Central derivó el contacto; sin ella no hay dónde cotizar (0250). */
+  oportunidad_id: string | null;
 }
 
 export async function conversacionPorId(id: string): Promise<ConversacionDetalle | null> {
@@ -119,12 +121,12 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
   const { data } = await supabase
     .from("wa_conversaciones")
     .select(
-      "id, telefono, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, perfiles(nombre), leads(codigo, nombre_contacto)",
+      "id, telefono, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, perfiles(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
     )
     .eq("id", id)
     .maybeSingle();
   if (!data) return null;
-  const lead = data.leads as unknown as { codigo: string; nombre_contacto: string } | null;
+  const lead = data.leads as unknown as { codigo: string; nombre_contacto: string; oportunidad_id: string | null } | null;
   return {
     id: data.id,
     telefono: data.telefono,
@@ -139,6 +141,7 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
     ultimo_texto: null,
     lead_codigo: lead?.codigo ?? null,
     lead_nombre_contacto: lead?.nombre_contacto ?? null,
+    oportunidad_id: lead?.oportunidad_id ?? null,
   };
 }
 
@@ -148,6 +151,8 @@ export interface MensajeWhatsapp {
   direccion: "entrante" | "saliente";
   tipo: string;
   texto: string | null;
+  /** El equipo que se mandó o sobre el que el cliente respondió (0250). */
+  equipo_sku: string | null;
   /** Firmada al vuelo, 1 h — solo para lo que YA está en nuestro Storage (lo que nosotros mandamos; lo entrante todavía no se descarga, ver el webhook). */
   media_url: string | null;
   estado: string;
@@ -160,7 +165,7 @@ export async function mensajesDe(conversacionId: string): Promise<MensajeWhatsap
   const supabase = await createClient();
   const { data } = await supabase
     .from("wa_mensajes")
-    .select("id, wamid, direccion, tipo, texto, media_url_storage, estado, timestamp_meta, created_at, perfiles(nombre)")
+    .select("id, wamid, direccion, tipo, texto, equipo_sku, media_url_storage, estado, timestamp_meta, created_at, perfiles(nombre)")
     .eq("conversacion_id", conversacionId)
     .order("created_at");
   if (!data) return [];
@@ -178,6 +183,7 @@ export async function mensajesDe(conversacionId: string): Promise<MensajeWhatsap
     direccion: m.direccion,
     tipo: m.tipo,
     texto: m.texto,
+    equipo_sku: m.equipo_sku ?? null,
     media_url: m.media_url_storage ? (urlPorRuta.get(m.media_url_storage) ?? null) : null,
     estado: m.estado,
     enviado_por_nombre: (m.perfiles as unknown as { nombre: string } | null)?.nombre ?? null,

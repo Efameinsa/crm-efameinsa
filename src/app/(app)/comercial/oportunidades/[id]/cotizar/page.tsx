@@ -21,11 +21,11 @@ export default async function NuevaCotizacionPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  /** `?caso=<atencionId>` cuando se llega desde una atención de postventa. */
-  searchParams: Promise<{ caso?: string }>;
+  /** `?caso=<atencionId>` cuando se llega desde una atención de postventa; `?sku=` desde «Cotizar este equipo» del chat de WhatsApp (0250). */
+  searchParams: Promise<{ caso?: string; sku?: string }>;
 }) {
   const { id } = await params;
-  const { caso } = await searchParams;
+  const { caso, sku } = await searchParams;
   const resultado = await cargarContextoCotizador(id);
 
   if (resultado.estado !== "editable") {
@@ -99,6 +99,7 @@ export default async function NuevaCotizacionPage({
       tipoCambio={await tipoCambioDeGerencia(await createClient())}
       esPostventa={perfil.es_postventa === true || perfil.hace_postventa === true}
       desdeCaso={desdeCaso}
+      skuInicial={sku ?? null}
     />
   );
 }

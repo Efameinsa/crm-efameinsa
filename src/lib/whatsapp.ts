@@ -75,7 +75,7 @@ async function comprobarVentana(admin: ReturnType<typeof createAdminClient>, con
 async function registrarEnvio(
   conversacionId: string,
   resultado: ResultadoEnvio,
-  datos: { tipo: string; texto: string | null; enviadoPor: string; mediaUrlStorage?: string | null; equipoSku?: string | null },
+  datos: { tipo: string; texto: string | null; enviadoPor: string | null; mediaUrlStorage?: string | null; equipoSku?: string | null },
 ): Promise<{ error: string | null }> {
   const admin = createAdminClient();
   await admin.from("wa_mensajes").insert({
@@ -151,6 +151,16 @@ export async function enviarMedia(
     enviadoPor,
     mediaUrlStorage: opciones.mediaUrlStorage,
   });
+}
+
+/**
+ * Lo que el número responde SOLO, sin persona detrás (enviado_por = null):
+ * el acuse cuando el cliente toca un botón de una ficha (0250). No pasa por
+ * la ventana de 24 h porque nace de un mensaje del cliente de hace segundos.
+ */
+export async function responderAutomatico(conversacionId: string, telefono: string, texto: string, equipoSku?: string | null): Promise<void> {
+  const resultado = await llamarGraphAPI({ to: telefono, type: "text", text: { body: texto } });
+  await registrarEnvio(conversacionId, resultado, { tipo: "text", texto, enviadoPor: null, equipoSku: equipoSku ?? null });
 }
 
 export interface FichaEquipoWa {
