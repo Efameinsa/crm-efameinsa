@@ -15,8 +15,10 @@ export const dynamic = "force-dynamic";
 // el enlace es la página del equipo en www.efameinsa.com cuando existe, y si no
 // la página de equipos.
 //
-// Precio: Meta exige un precio por ítem. Sale del tier configurado en
-// CATALOGO_WA_TIER (deseado | medio | base | optimo); decisión de gerencia.
+// Precio: Meta exige un precio por ítem. Se toma el de LISTA del CRM con el
+// mismo orden que el cotizador (deseado, medio, base, optimo): los industriales
+// solo tienen «base» y los semi-industriales el más alto que tengan cargado.
+// CATALOGO_WA_TIER fuerza un tier concreto si gerencia lo pide.
 // La URL lleva una clave (CATALOGO_WA_CLAVE) para que no sea pública.
 
 const WEB = "https://www.efameinsa.com";
@@ -53,14 +55,20 @@ export async function GET(request: NextRequest) {
   if (!clave || request.nextUrl.searchParams.get("clave") !== clave) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
-  const tier = process.env.CATALOGO_WA_TIER ?? "deseado";
+  const tierForzado = process.env.CATALOGO_WA_TIER || null;
   const admin = createAdminClient();
   const [{ data: productos }, { data: precios }, paginasWeb] = await Promise.all([
     admin.from("productos").select("id, sku, marca, modelo, nombre, categoria, segmento, capacidad, foto_path, ficha").eq("activo", true).order("categoria").order("sku"),
-    admin.from("precios_producto").select("producto_id, precio, moneda").eq("tier", tier).is("vigente_hasta", null),
+    admin.from("precios_producto").select("producto_id, tier, precio, moneda").is("vigente_hasta", null),
     paginasDeLaWeb(),
   ]);
-  const precioDe = new Map((precios ?? []).map((p) => [p.producto_id, p]));
+  const ORDEN_TIER = ["deseado", "medio", "base", "optimo"];
+  const precioDe = new Map<string, { precio: number; moneda: string }>();
+  for (const p of precios ?? []) {
+    if (tierForzado && p.tier !== tierForzado) continue;
+    const actual = precioDe.get(p.producto_id);
+    if (!actual || ORDEN_TIER.indexOf(p.tier) < ORDEN_TIER.indexOf((actual as { tier?: string }).tier ?? "optimo")) precioDe.set(p.producto_id, { ...p });
+  }
 
   const filas = [["id", "title", "description", "availability", "condition", "price", "link", "image_link", "brand", "product_type", "custom_label_0"]];
   for (const p of productos ?? []) {
