@@ -188,7 +188,7 @@ export async function enviarFichaEquipo(
       type: "button",
       header: { type: "image", image: { link: equipo.imagenUrl } },
       body: { text: `*${equipo.titulo}*\n${equipo.cuerpo}`.slice(0, 1024) },
-      footer: { text: "Efameinsa · Ingeniería peruana certificada" },
+      footer: { text: "Efameinsa · Ingeniería Certificada" },
       action: {
         buttons: [
           { type: "reply", reply: { id: `interes:${equipo.sku}`, title: "Me interesa" } },
