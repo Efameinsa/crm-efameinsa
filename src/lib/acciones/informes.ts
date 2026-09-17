@@ -674,7 +674,7 @@ export async function abrirCorreccionInforme(
 ): Promise<{ error: string | null; ventana?: VentanaCorreccionInforme }> {
   if (!z.string().uuid().safeParse(informeId).success) return { error: "Informe inválido" };
   if (motivo.trim().length < 15) return { error: "Escriba qué está mal en el cierre: al menos 15 caracteres" };
-  if (!/^d{4}$/.test(pin)) return { error: "El código son cuatro dígitos" };
+  if (!/^\d{4}$/.test(pin)) return { error: "El código son cuatro dígitos" };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("abrir_correccion_informe", {
@@ -682,7 +682,7 @@ export async function abrirCorreccionInforme(
     p_motivo: motivo.trim(),
     p_pin: pin,
   });
-  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:s*/, "") };
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
   const v = data as { expira_at: string; autorizo: string; minutos: number };
   return { error: null, ventana: { expiraAt: v.expira_at, autorizo: v.autorizo, minutos: Number(v.minutos) } };
 }
@@ -701,7 +701,7 @@ export async function corregirInformeEmitido(
     p_informe: informeId,
     p_cambios: revisados.data,
   });
-  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:s*/, "") };
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
 
   const fila = data as { cuenta_id?: string; version?: number } | null;
   revalidatePath(`/comercial/cierres/${informeId}`);
