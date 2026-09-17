@@ -84,3 +84,15 @@ almacen_registrar_agencia / verificar_despacho`. Verificación: `scripts/_verifi
 Dato para postventa: Mi día del almacén muestra 59 «atrasados» — son los pedidos del Excel
 con fecha de despacho pasada que nunca se marcaron como despachados. Hay que cerrarlos o
 marcarlos.
+
+## 17-09 (tarde) — Central gestiona la visita (0247) y los datos de prueba
+
+- La visita ahora es el capítulo 1 de la inducción de Catherine: acompañantes con DNI, máquina a
+  ver (quitar film), lavandería, TV, Infocorp; y los checks de Central: vigilancia avisada,
+  Infocorp enviado, lavandería abierta, film retirado, TV listo, **Llegó** (avisa al comercial
+  «baje a recibirlo»), no vino, vuelto a embalar. Almacén marca lavandería/film/TV/re-embalado
+  desde su pantalla; postventa mira. Central registra también la visita de improviso.
+- El rótulo del encabezado dice «Postventa · PV1» / «Almacén · ALM» en vez de «Comercial».
+- **almacen@efameinsa.com está en modo práctica (es_prueba = true)** mientras se prueba el
+  módulo: ve los datos sembrados por `scripts/datos-prueba-almacen.mjs`. Al pasar a operación
+  real: `update perfiles set es_prueba = false where codigo_comercial = 'ALM'`.
