@@ -63,3 +63,24 @@ técnico. Nombre acordado: **almacén** (no logística). Diseño antes de constr
 ago 18 k, sep (al 16) 4 k USD → promedio ~18 k/mes; la meta de 25 k es +40 %. Gestiones
 de contacto del área: 33–43 por semana (una sola cuenta PV); PV1 recién arranca.
 Todavía no hay cotizaciones enviadas desde las cuentas de postventa (las hacen en Word).
+
+## 17-09 — El módulo de almacén, construido (0246)
+
+Cuenta `almacen@efameinsa.com` (perfil «Almacén», código ALM, llave `es_almacen`, rol
+comercial como postventa). Aterriza en `/almacen`. Pantallas: Mi día (cuadros: por probar,
+despachos de hoy, programados sin confirmar, atrasados, con apertura, salieron sin guía,
+aprobados sin pedido de prueba; puestas en marcha / mantenimientos / soporte programados;
+visitas de la semana; y lo de hoy con hora), Pedidos (mismos que postventa, sin cifras, con
+filtros), la ficha del pedido con las cuatro tarjetas del almacén (probado y embalado con
+protocolo → listo para el despacho programado → salida con 5 fotos + video → guía en la
+agencia), Atenciones programadas, Visitas a planta, Informes técnicos. Postventa ve las fotos
+del almacén en su pedido y da el **doble check** (paso «Despacho verificado por postventa»).
+Avisos cruzados: postventa → almacén (prueba pedida, apertura, despacho programado, atención
+programada, visita); almacén → postventa (probado, listo, salió, guía). RPCs
+`almacen_marcar_probado / almacen_confirmar_listo / almacen_registrar_salida /
+almacen_registrar_agencia / verificar_despacho`. Verificación: `scripts/_verificar-almacen.mjs`
+(19/19). Lesly (operaciones) también ve la barra de Almacén.
+
+Dato para postventa: Mi día del almacén muestra 59 «atrasados» — son los pedidos del Excel
+con fecha de despacho pasada que nunca se marcaron como despachados. Hay que cerrarlos o
+marcarlos.
