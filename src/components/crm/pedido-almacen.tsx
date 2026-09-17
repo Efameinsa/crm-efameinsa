@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Camera, Check, Loader2, PackageCheck, Truck, FileCheck2, Warehouse } from "lucide-react";
+import { Check, Loader2, PackageCheck, Truck, FileCheck2, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia } from "@/lib/acciones/almacen";
 import type { FotoAlmacen, ServicioPostventa } from "@/lib/postventa";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { TomarOSubir, TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 
 /**
  * Lo que el almacén hace con un pedido, en el orden en que pasa (0246).
@@ -109,7 +110,7 @@ export function PedidoAlmacen({ servicio }: { servicio: ServicioPostventa }) {
               <Input value={notaPrueba} onChange={(e) => setNotaPrueba(e.target.value)} placeholder="ej. probada con carga, embalada en pallet" />
             </div>
           </div>
-          <SelectorArchivos etiqueta="Protocolo y fotos de la prueba" multiple archivos={fotosProtocolo} onChange={setFotosProtocolo} acepta="image/*,application/pdf" />
+          <TomarOSubirVarias titulo="Protocolo y fotos de la prueba" archivos={fotosProtocolo} onChange={setFotosProtocolo} acepta="image/*,application/pdf" />
           <Button
             size="sm"
             disabled={pendiente}
@@ -152,23 +153,9 @@ export function PedidoAlmacen({ servicio }: { servicio: ServicioPostventa }) {
           )}
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {ANGULOS.map((a) => (
-              <label key={a.etiqueta} className={cn("flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-2.5 py-2 text-xs", angulos[a.etiqueta] ? "border-[#1E7F4F]/50 bg-[#1E7F4F]/5" : "border-border hover:bg-accent")}>
-                <Camera className="size-3.5 flex-none" />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-medium">{a.titulo}</span>
-                  <span className="line-clamp-1 break-words text-[11px] text-muted-foreground">{angulos[a.etiqueta]?.name ?? "Tomar foto"}</span>
-                </span>
-                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setAngulos((x) => ({ ...x, [a.etiqueta]: e.target.files?.[0] ?? null }))} />
-              </label>
+              <TomarOSubir key={a.etiqueta} titulo={a.titulo} archivo={angulos[a.etiqueta] ?? null} onChange={(f) => setAngulos((x) => ({ ...x, [a.etiqueta]: f }))} compacto />
             ))}
-            <label className={cn("flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-2.5 py-2 text-xs", video ? "border-[#1E7F4F]/50 bg-[#1E7F4F]/5" : "border-border hover:bg-accent")}>
-              <Camera className="size-3.5 flex-none" />
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium">Video</span>
-                <span className="line-clamp-1 break-words text-[11px] text-muted-foreground">{video?.name ?? "Grabar (corto)"}</span>
-              </span>
-              <input type="file" accept="video/*" capture="environment" className="hidden" onChange={(e) => setVideo(e.target.files?.[0] ?? null)} />
-            </label>
+            <TomarOSubir titulo="Video (corto)" archivo={video} onChange={setVideo} video compacto />
           </div>
           <div className="grid gap-2 sm:grid-cols-[10rem_1fr]">
             <div className="grid gap-1">
@@ -223,16 +210,8 @@ export function PedidoAlmacen({ servicio }: { servicio: ServicioPostventa }) {
             </div>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            <label className={cn("flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-2.5 py-2 text-xs", fotoGuia ? "border-[#1E7F4F]/50 bg-[#1E7F4F]/5" : "border-border hover:bg-accent")}>
-              <Camera className="size-3.5 flex-none" />
-              <span className="min-w-0 flex-1"><span className="block font-medium">Foto de la guía</span><span className="line-clamp-1 break-words text-[11px] text-muted-foreground">{fotoGuia?.name ?? "Tomar foto"}</span></span>
-              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFotoGuia(e.target.files?.[0] ?? null)} />
-            </label>
-            <label className={cn("flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-2.5 py-2 text-xs", fotoMaquina ? "border-[#1E7F4F]/50 bg-[#1E7F4F]/5" : "border-border hover:bg-accent")}>
-              <Camera className="size-3.5 flex-none" />
-              <span className="min-w-0 flex-1"><span className="block font-medium">Foto de la máquina entregada</span><span className="line-clamp-1 break-words text-[11px] text-muted-foreground">{fotoMaquina?.name ?? "Tomar foto"}</span></span>
-              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFotoMaquina(e.target.files?.[0] ?? null)} />
-            </label>
+            <TomarOSubir titulo="Foto de la guía" archivo={fotoGuia} onChange={setFotoGuia} compacto />
+            <TomarOSubir titulo="Foto de la máquina entregada" archivo={fotoMaquina} onChange={setFotoMaquina} compacto />
           </div>
           <Button
             size="sm"
@@ -271,37 +250,6 @@ function Tarjeta({ icono: Icono, titulo, tono, children }: { icono: typeof Truck
         <Icono className="size-4 text-primary" /> {titulo}
       </p>
       {children}
-    </div>
-  );
-}
-
-function SelectorArchivos({ etiqueta, archivos, onChange, multiple = false, acepta = "image/*" }: { etiqueta: string; archivos: File[]; onChange: (f: File[]) => void; multiple?: boolean; acepta?: string }) {
-  return (
-    <div>
-      <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-accent">
-        <Camera className="size-3.5" /> {etiqueta}
-        <input
-          type="file"
-          accept={acepta}
-          multiple={multiple}
-          className="hidden"
-          onChange={(e) => {
-            const nuevos = Array.from(e.target.files ?? []);
-            onChange([...archivos, ...nuevos].slice(0, 10));
-            e.target.value = "";
-          }}
-        />
-      </label>
-      {archivos.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {archivos.map((f, i) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px]">
-              {f.name.length > 24 ? f.name.slice(0, 21) + "…" : f.name}
-              <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => onChange(archivos.filter((_, j) => j !== i))} aria-label={`Quitar ${f.name}`}>×</button>
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

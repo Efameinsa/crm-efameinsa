@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Camera, Loader2, X, FileCheck2 } from "lucide-react";
+import { Loader2, FileCheck2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { guardarInformeServicio } from "@/lib/acciones/postventa";
 import { TIPOS_SERVICIO } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
+import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 
 /**
  * El informe que vuelve de una atención, cargado desde la ficha de la máquina.
@@ -241,42 +242,8 @@ export function InformeServicioNuevo({
         className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
       />
 
-      <div>
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-accent">
-          <Camera className="size-3.5" /> Agregar fotos
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              const nuevas = Array.from(e.target.files ?? []);
-              setFotos((f) => [...f, ...nuevas].slice(0, 10));
-              e.target.value = "";
-            }}
-          />
-        </label>
-        {fotos.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {fotos.map((f, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] text-foreground"
-              >
-                {f.name.length > 24 ? f.name.slice(0, 21) + "…" : f.name}
-                <button
-                  type="button"
-                  onClick={() => setFotos((prev) => prev.filter((_, j) => j !== i))}
-                  className="cursor-pointer text-muted-foreground hover:text-destructive"
-                  aria-label={`Quitar ${f.name}`}
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Tomar o subir (Santos, 17-09): en el celular la cámara directo; la galería para la que ya se tomó. */}
+      <TomarOSubirVarias titulo="Registro fotográfico" archivos={fotos} onChange={setFotos} />
 
       <div className="flex flex-wrap gap-2">
         <button

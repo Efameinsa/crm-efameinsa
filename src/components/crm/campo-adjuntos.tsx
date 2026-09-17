@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ImagePlus, Paperclip, X } from "lucide-react";
+import { Camera, ImagePlus, Paperclip, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
 import { cn } from "@/lib/utils";
+import { useConCamara } from "@/components/crm/tomar-o-subir";
 
 // La foto o el PDF que el prospecto mandó por WhatsApp. Nació en la captura de
 // Central (pedido del 25-08) y el 01-09 lo pidieron también las comerciales
@@ -182,6 +183,9 @@ export function CampoAdjuntos({
 }) {
   const [arrastrando, setArrastrando] = useState(false);
   const lleno = ctl.archivos.length >= MAX_ADJUNTOS;
+  // «Tomar foto» solo en celular o tablet (Santos, 17-09): ahí la foto de la
+  // placa o del equipo se toma en el momento. En una laptop abriría la webcam.
+  const conCamara = useConCamara();
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -232,6 +236,22 @@ export function CampoAdjuntos({
           }}
         />
       </label>
+
+      {conCamara && !lleno && (
+        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+          <Camera className="size-3.5" /> Tomar foto con la cámara
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              ctl.agregarArchivos(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
+          />
+        </label>
+      )}
 
       {ctl.archivos.length > 0 && (
         <div className="flex flex-wrap gap-2">
