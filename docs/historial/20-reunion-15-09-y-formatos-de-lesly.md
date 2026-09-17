@@ -159,3 +159,23 @@ marcarlos.
 - Lo que queda de Ariana (349) está en `Downloads/ariana-fichas-sin-telefono-17-09.xlsx`: 101 con
   nota de «no contesta / sin teléfono», 115 históricos sin RUC/DNI ni dato, 5 de cierres de
   postventa. Los informes técnicos de Y: no traen teléfono (revisado con Añaños).
+
+## 17-09 (16:30) — Perfil, catálogo y «Mandar equipo» en la bandeja de WhatsApp
+
+- **Perfil del +51 932 766 654**: foto = isotipo en cuadrado blanco 640×640 con aire
+  (`Downloads/whatsapp-perfil-efameinsa.png`), descripción «Corporación Efameinsa e Ingeniería
+  S.A. Fabricantes y distribuidores de las mejores marcas de lavandería industrial.», web.
+- **Catálogo desde el CRM**: `/api/marketing/catalogo-whatsapp?clave=…` (CSV de Meta; solo
+  equipos activos con SKU, foto y precio de lista con el orden del cotizador). Claude Chrome
+  creó el catálogo **2221581735430168** en Commerce Manager con feed diario 03:00 Lima
+  (feed 2165393001075471): 129 artículos. Conectado a la WABA por API; **oculto del perfil**
+  (`is_catalog_visible=false`, carrito apagado): el cliente solo ve un producto cuando se lo mandan.
+- **«Mandar equipo» (0250)**: botón 📦 en la caja del chat → buscador de equipos → «Mandar ficha ·
+  sin precio» (interactive button: foto + ficha + Me interesa / Pedir cotización / Ver otra opción)
+  o «Del catálogo · con precio» (interactive product / product_list, `WHATSAPP_CATALOGO_ID`). Lo
+  que toca el cliente vuelve al hilo con `equipo_sku`; también `order` y `context.referred_product`.
+  Probado con el celular de Santos: la ficha de la LG Titan Max llegó y sus dos toques volvieron.
+- Pie de la tarjeta: **«Efameinsa · Ingeniería Certificada»** (Santos corrigió «peruana»).
+- **Pendiente**: el envío de producto del catálogo da «product not found» aunque el ítem está
+  publicado y con foto: Meta revisa los artículos para WhatsApp (hasta 24 h). Reintentar mañana;
+  si sigue, mirar WhatsApp Manager → Catálogo → estado de revisión.
