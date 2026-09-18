@@ -56,8 +56,11 @@ export function CalendarioPostventa({
   eventos,
   porProgramar,
   atencionesPorProgramar,
+  rutaBase = "/postventa/agenda",
 }: {
   vista: VistaCalendario;
+  /** Dónde vive el calendario: el del almacén (0252) navega en su propia ruta. */
+  rutaBase?: string;
   /** Día ancla: define la semana, el mes o el día que se está mirando. */
   fecha: string;
   hoy: string;
@@ -84,7 +87,7 @@ export function CalendarioPostventa({
     });
     const z = cambios.zona ?? zona;
     if (z) p.set("zona", z);
-    return `/postventa/agenda?${p.toString()}`;
+    return `${rutaBase}?${p.toString()}`;
   };
 
   const anterior = vista === "mes" ? `${sumarMes(mes, -1)}-15` : sumarDias(fecha, vista === "semana" ? -7 : -1);

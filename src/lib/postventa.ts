@@ -776,6 +776,21 @@ export const TIPOS_SERVICIO = [
  * y si no está en la lista se devuelve en la misma forma que el resto, con la
  * primera letra en mayúscula, en vez de gritar.
  */
+/** Los informes que escribe el almacén (0252), en el orden de la lista de Lesly. */
+export const CLASES_INFORME_ALMACEN = [
+  { clave: "puesta_en_marcha_ok", etiqueta: "Puesta en marcha · todo OK", de: "pedido", tipo: "puesta_en_marcha", modalidad: "in_situ" },
+  { clave: "puesta_en_marcha_observaciones", etiqueta: "Puesta en marcha · con observaciones", de: "pedido", tipo: "puesta_en_marcha", modalidad: "in_situ" },
+  { clave: "puesta_en_marcha_accesorios", etiqueta: "Puesta en marcha · faltan accesorios para instalar", de: "pedido", tipo: "puesta_en_marcha", modalidad: "in_situ" },
+  { clave: "soporte_videollamada", etiqueta: "Soporte técnico por videollamada", de: "atencion", tipo: "tecnico", modalidad: "videollamada" },
+  { clave: "mtto_recepcion", etiqueta: "Mtto en planta · 1. Recepción del equipo", de: "atencion", tipo: "revision", modalidad: "planta" },
+  { clave: "mtto_prueba_revision", etiqueta: "Mtto en planta · 2. Prueba y revisión", de: "atencion", tipo: "revision", modalidad: "planta" },
+  { clave: "mtto_ejecucion", etiqueta: "Mtto en planta · 3. Ejecución del mantenimiento", de: "atencion", tipo: "mantenimiento_preventivo", modalidad: "planta" },
+] as const;
+export type ClaseInformeAlmacen = (typeof CLASES_INFORME_ALMACEN)[number]["clave"];
+export function etiquetaClaseAlmacen(clase: string | null | undefined): string | null {
+  return CLASES_INFORME_ALMACEN.find((c) => c.clave === clase)?.etiqueta ?? null;
+}
+
 export function etiquetaTipoServicio(tipo: string | null | undefined): string {
   const crudo = String(tipo ?? "").trim();
   if (!crudo) return "Servicio";

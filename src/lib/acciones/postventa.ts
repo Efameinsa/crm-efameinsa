@@ -535,6 +535,10 @@ export async function guardarInformeServicio(datos: {
    * está la hora y fecha, no hay problema». Máximo 10.
    */
   fotos?: { path: string; nombre: string; tipo: string; tamano: number }[];
+  /** Los informes del almacén (0252): qué informe es, de qué atención, y los materiales que faltan. */
+  claseAlmacen?: string | null;
+  atencionId?: string | null;
+  listaMateriales?: { descripcion: string; cantidad?: number | null; costo?: number | null }[];
 }) {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -585,6 +589,16 @@ export async function guardarInformeServicio(datos: {
         tipo: String(f.tipo).slice(0, 100),
         tamano: Number(f.tamano) || 0,
       })),
+      clase_almacen: datos.claseAlmacen ?? null,
+      atencion_id: datos.atencionId ?? null,
+      lista_materiales: (datos.listaMateriales ?? [])
+        .filter((m) => m.descripcion?.trim())
+        .slice(0, 60)
+        .map((m) => ({
+          descripcion: String(m.descripcion).trim().slice(0, 200),
+          cantidad: m.cantidad == null || Number.isNaN(Number(m.cantidad)) ? null : Number(m.cantidad),
+          costo: m.costo == null || Number.isNaN(Number(m.costo)) ? null : Number(m.costo),
+        })),
       emitido_at: new Date().toISOString(),
     })
     .select("id")

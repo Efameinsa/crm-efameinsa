@@ -64,6 +64,9 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
   const elaborado = data.perfiles as unknown as { nombre: string } | null;
   const fotos = (data.fotos ?? []) as { path: string; etiqueta?: string }[];
   const repuestos = (data.repuestos ?? []) as { codigo: string | null; descripcion: string; cantidad: number | null; precio: number | null; stock: string | null }[];
+  // Los materiales que faltan para instalar (0252): la lista con cantidades y costos que pidió Lesly.
+  const materiales = (data.lista_materiales ?? []) as { descripcion: string; cantidad: number | null; costo: number | null }[];
+  const totalMateriales = materiales.reduce((t, m) => t + (m.costo ?? 0) * (m.cantidad ?? 1), 0);
   const { data: firmadas } = fotos.length
     ? await supabase.storage.from("adjuntos").createSignedUrls(fotos.map((f) => f.path), 3600)
     : { data: null };
@@ -165,6 +168,37 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
                   <td className="border border-neutral-500 px-2 py-1">{r.stock ?? "—"}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {materiales.length > 0 && (
+        <section className="mt-3">
+          <p className="font-bold">Accesorios y materiales requeridos para la instalación:</p>
+          <table className="mt-1 w-full border-collapse text-[11px]">
+            <thead>
+              <tr>
+                {["Descripción", "Cantidad", "Costo unit.", "Subtotal"].map((h) => (
+                  <th key={h} className="border border-neutral-500 bg-neutral-100 px-2 py-1 text-left">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {materiales.map((m, i) => (
+                <tr key={i}>
+                  <td className="border border-neutral-500 px-2 py-1">{m.descripcion}</td>
+                  <td className="border border-neutral-500 px-2 py-1">{m.cantidad != null ? `${m.cantidad} und` : "—"}</td>
+                  <td className="border border-neutral-500 px-2 py-1">{m.costo != null ? `$${Number(m.costo).toFixed(2)}` : "—"}</td>
+                  <td className="border border-neutral-500 px-2 py-1">{m.costo != null ? `$${(Number(m.costo) * (m.cantidad ?? 1)).toFixed(2)}` : "—"}</td>
+                </tr>
+              ))}
+              {totalMateriales > 0 && (
+                <tr>
+                  <td colSpan={3} className="border border-neutral-500 px-2 py-1 text-right font-bold">Total estimado (sin IGV)</td>
+                  <td className="border border-neutral-500 px-2 py-1 font-bold">${totalMateriales.toFixed(2)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </section>

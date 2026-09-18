@@ -28,11 +28,18 @@ const VISTAS: Record<string, string> = {
 };
 const cliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 
-export default async function AlmacenPedidosPage({ searchParams }: { searchParams: Promise<{ ver?: string; q?: string }> }) {
+const esFecha = (s: string | undefined) => /^\d{4}-\d{2}-\d{2}$/.test(s ?? "");
+
+export default async function AlmacenPedidosPage({ searchParams }: { searchParams: Promise<{ ver?: string; q?: string; desde?: string; hasta?: string }> }) {
   await requerirPerfil();
   const sp = await searchParams;
   const ver = sp.ver && sp.ver in VISTAS ? sp.ver : "";
   const q = (sp.q ?? "").trim();
+  // Rango de fechas de despacho (Santos, 18-09): «en pedidos agregar rangos
+  // de fechas para el filtrado». Sobre la fecha programada; los sin fecha
+  // quedan fuera cuando hay rango.
+  const desde = esFecha(sp.desde) ? sp.desde! : "";
+  const hasta = esFecha(sp.hasta) ? sp.hasta! : "";
   const supabase = await createClient();
   const hoy = hoyLima();
 
@@ -46,6 +53,8 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
     .order("updated_at", { ascending: false })
     .limit(500);
   if (q) consulta = consulta.or(`cliente_texto.ilike.%${q}%,equipo.ilike.%${q}%,guia.ilike.%${q}%`);
+  if (desde) consulta = consulta.gte("fecha_despacho", desde);
+  if (hasta) consulta = consulta.lte("fecha_despacho", hasta);
   const { data } = await consulta;
 
   const todos = (data ?? []) as unknown as ServicioPostventa[];
@@ -87,9 +96,23 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
           </Link>
         ))}
       </div>
-      <form method="get" className="mb-3 flex items-center gap-2">
+      <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
         {ver && <input type="hidden" name="ver" value={ver} />}
         <BusquedaEnVivo inicial={q} placeholder="Cliente, equipo o guía" />
+        <label className="flex items-center gap-1 text-xs text-muted-foreground">
+          Despacho desde
+          <input type="date" name="desde" defaultValue={desde} className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground" />
+        </label>
+        <label className="flex items-center gap-1 text-xs text-muted-foreground">
+          hasta
+          <input type="date" name="hasta" defaultValue={hasta} className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground" />
+        </label>
+        <button type="submit" className="h-8 rounded-md border border-border px-2.5 text-xs font-medium hover:bg-secondary">Filtrar</button>
+        {(desde || hasta) && (
+          <Link href={`/almacen/pedidos${ver ? `?ver=${ver}` : ""}`} className="text-xs text-muted-foreground hover:underline">
+            Quitar fechas
+          </Link>
+        )}
       </form>
       {filas.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nada en esta lista{q ? ` con «${q}»` : ""}.</p>

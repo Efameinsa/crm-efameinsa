@@ -257,6 +257,8 @@ const ENLACES_ALMACEN = [
   { href: "/almacen/pedidos", etiqueta: "Pedidos", icono: Package },
   { href: "/almacen/atenciones", etiqueta: "Atenciones programadas", icono: Wrench },
   { href: "/almacen/visitas", etiqueta: "Visitas a planta", icono: DoorOpen },
+  { href: "/almacen/agenda", etiqueta: "Calendario", icono: CalendarDays },
+  // Al final, como pidió Santos (18-09): es la vista macro de lo hecho.
   { href: "/almacen/informes", etiqueta: "Informes técnicos", icono: FileText },
 ];
 

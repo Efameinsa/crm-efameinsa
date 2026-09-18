@@ -115,3 +115,66 @@ export async function verificarDespacho(servicioId: string) {
   if (error) return { error: limpiar(error.message) };
   return ok(servicioId);
 }
+
+// ── Los informes del almacén (0252) ──────────────────────────────────────
+
+/** El check que sube el informe a postventa: avisa a cada persona del área y deja la marca. */
+export async function elevarInformeAPostventa(informeId: string): Promise<{ error: string | null; avisados?: number }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("elevar_informe_a_postventa", { p_informe: informeId });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath("/almacen/informes");
+  revalidatePath("/almacen");
+  revalidatePath("/postventa/informes");
+  revalidatePath(`/postventa/informes/${informeId}`);
+  return { error: null, avisados: Number((data as { avisados?: number } | null)?.avisados ?? 0) };
+}
+
+export interface PedidoParaInforme {
+  id: string;
+  cliente: string;
+  equipo: string | null;
+  fecha: string | null;
+  cuentaId: string | null;
+}
+export interface AtencionParaInforme {
+  id: string;
+  cliente: string;
+  tipo: string;
+  equipo: string | null;
+  cuentaId: string | null;
+  equipoId: string | null;
+}
+
+/** De qué puede ser el informe: los pedidos despachados o por despachar (puesta en marcha) y las atenciones abiertas (soporte, mtto en planta). */
+export async function deQuePuedeSerElInforme(): Promise<{ pedidos: PedidoParaInforme[]; atenciones: AtencionParaInforme[] }> {
+  const supabase = await createClient();
+  const [{ data: pedidos }, { data: atenciones }] = await Promise.all([
+    supabase
+      .from("servicios_postventa")
+      .select("id, cliente_texto, equipo, fecha_despacho, despachado_at, cuenta_id")
+      .eq("completado", false)
+      .is("cerrado_at", null)
+      .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
+      .order("despachado_at", { ascending: false, nullsFirst: false })
+      .limit(200),
+    supabase
+      .from("atenciones")
+      .select("id, tipo, cliente_texto, equipo_texto, cuenta_id, equipo_id, cuentas(razon_social)")
+      .is("cerrado_at", null)
+      .order("solicitado_at", { ascending: false })
+      .limit(200),
+  ]);
+  const limpiarCliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
+  return {
+    pedidos: (pedidos ?? []).map((p) => ({ id: p.id, cliente: limpiarCliente(p.cliente_texto), equipo: p.equipo, fecha: (p.despachado_at ?? p.fecha_despacho ?? null) as string | null, cuentaId: p.cuenta_id })),
+    atenciones: ((atenciones ?? []) as unknown as { id: string; tipo: string; cliente_texto: string | null; equipo_texto: string | null; cuenta_id: string | null; equipo_id: string | null; cuentas: { razon_social: string } | null }[]).map((a) => ({
+      id: a.id,
+      cliente: a.cuentas?.razon_social ?? limpiarCliente(a.cliente_texto),
+      tipo: a.tipo,
+      equipo: a.equipo_texto,
+      cuentaId: a.cuenta_id,
+      equipoId: a.equipo_id,
+    })),
+  };
+}
