@@ -200,3 +200,24 @@ marcarlos.
 - Avisado también hoy: Brenda no podía corregir el 016-2026 por un regex sin barra en
   `abrirCorreccionInforme` (desde el 02-09); y `validar_pin_supervisor` ahora acepta el código de
   Lesly como el resto (0251).
+
+## 18-09 — Reunión 09:55 (Carlos): varias máquinas por caso y las series del pedido (0253)
+
+- Gary Group: postventa no podía «agregar las 4 máquinas» al caso. Carlos: «¿no serían cuatro
+  casos? sería mucho rollo; mejor que se pueda agregar… cuando llama por un problema yo tengo que
+  relacionar la serie con el problema». Decisión tomada: **un caso lleva varias máquinas**
+  (principal en `equipo_id` + `atencion_equipos`); en el caso, «Las máquinas de este caso» con
+  agregar/quitar; fichar otra con la principal puesta la suma; la página de la máquina lista los
+  casos donde estuvo.
+- La causa real de Gary Group: el pedido salió el 15-09 con guía (cierre 019-2026: 2 Titan Max
+  17 kg + 1 Giant C Max) y **nadie registró las series** — la única puerta era «Cerrar pedido».
+  Ahora el bloque «Series de las máquinas de este pedido» (postventa y almacén) las registra sin
+  cerrar, y el Paso 1 del caso dice «tiene un pedido que salió el … con guía …, nadie registró
+  las series» con enlace al pedido. Lo que postventa tiene que hacer: poner las 3 series en el
+  pedido de Gary Group y volver al caso.
+- Otros puntos de la reunión: Carlos quiere en «Informes técnicos» del almacén la vista **por
+  cliente → por máquina** con todo lo hecho en orden (protocolo, despacho, puesta en marcha,
+  mantenimientos, videollamadas) — pendiente de construir; las visitas a planta «no están
+  mapeadas»: hace falta explicarles a Central y comerciales cómo registrarlas; fotos de productos
+  con Ariadna (planos por definir por Santos); y para el curso de inducción, no flexibilizar el
+  procedimiento de vigilancia (sin DNI no entra; gerencia solo para precios y negociación).
