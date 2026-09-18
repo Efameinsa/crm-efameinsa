@@ -221,3 +221,15 @@ marcarlos.
   mapeadas»: hace falta explicarles a Central y comerciales cómo registrarlas; fotos de productos
   con Ariadna (planos por definir por Santos); y para el curso de inducción, no flexibilizar el
   procedimiento de vigilancia (sin DNI no entra; gerencia solo para precios y negociación).
+
+## 18-09 (tarde) — Lo que faltaba de la reunión 09:55
+
+- **Informes técnicos por cliente → por máquina** (`/almacen/informes/clientes`, `/clientes/[id]`,
+  `/equipos/[id]`): la línea de tiempo de la máquina con los tres hitos del pedido (prueba, despacho,
+  puesta en marcha; en gris si no se hicieron) y luego cada informe y cada caso por fecha. Sin
+  precios. Enlace «Por cliente →» en la lista de informes.
+- **Guía de visitas a planta** (una página, PDF): `Downloads/guia-visitas-a-planta.pdf` (+ .html),
+  para repartir a Central, comerciales, postventa, almacén y vigilancia.
+- **Fotos de productos**: `Downloads/fotos-de-productos-lista-y-pauta.xlsx` — hoja «Equipos» con
+  los 130 activos (ficha en el CRM sí/no, página web sí/no y cuántas fotos, columnas para marcar
+  showroom y fotos tomadas) y hoja «Pauta de fotos» con los 12 planos y el orden de trabajo.
