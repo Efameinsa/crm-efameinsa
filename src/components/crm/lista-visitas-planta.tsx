@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Ban, Check, Printer } from "lucide-react";
 import { cancelarVisitaPlanta, marcarVisita, marcarVisitaImpresa } from "@/lib/acciones/visitas-planta";
+import { CircuitoVisita, CerrarVisitaBoton, ETIQUETA_RESULTADO } from "@/components/crm/circuito-visita";
 import { cn } from "@/lib/utils";
+
+/** Lo que piden las cuatro pantallas (Central, comercial, postventa, almacén): una sola lista de columnas. */
+export const COLUMNAS_VISITA =
+  "id, empresa, ruc, persona, dni, telefono, motivo, fecha, hora, registrado_at, impreso_at, cancelada_at, cancelada_motivo, cuenta_id, showroom, prender_tv, infocorp, cotizacion_ref, acompanantes, equipo_a_ver, quitar_film, infocorp_enviado_at, showroom_listo_at, film_retirado_at, tv_listo_at, llego_at, no_vino_at, reembalado_at, notas_central, atendida_at, resultado, resultado_nota, cerrada_at, perfiles!visitas_planta_registrado_por_fkey(nombre, codigo_comercial)";
 
 export interface VisitaFila {
   id: string;
@@ -37,11 +42,16 @@ export interface VisitaFila {
   no_vino_at?: string | null;
   reembalado_at?: string | null;
   notas_central?: string | null;
+  /** El cierre (0256): quién la atendió, cómo terminó. */
+  atendida_at?: string | null;
+  resultado?: string | null;
+  resultado_nota?: string | null;
+  cerrada_at?: string | null;
   registradoPor: string;
 }
 
-/** Quién ve la lista: Central la gestiona entera; el almacén marca lo suyo; el resto la mira. */
-export type ModoVisitas = "central" | "almacen" | "lectura";
+/** Quién ve la lista: Central la gestiona entera; el almacén marca lo suyo; el comercial cierra las suyas; el resto la mira. */
+export type ModoVisitas = "central" | "almacen" | "lectura" | "comercial";
 
 const fechaLarga = (iso: string) =>
   new Date(iso + "T12:00:00-05:00").toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "long", day: "2-digit", month: "long" });
@@ -76,8 +86,9 @@ export function ListaVisitasPlanta({
   if (visitas.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No hay visitas registradas para hoy ni para los próximos días. Se registran desde la ficha del cliente
-        («Viene a la planta») por comerciales y postventa.
+        {modo === "comercial"
+          ? "No tiene visitas anunciadas. Se anuncian desde la ficha del cliente, con el botón «Viene a la planta»: nombre y DNI de cada persona, fecha, hora y motivo."
+          : "No hay visitas registradas para hoy ni para los próximos días. Se registran desde la ficha del cliente («Viene a la planta») por comerciales y postventa."}
       </p>
     );
   }
@@ -169,7 +180,24 @@ export function ListaVisitasPlanta({
                     Registró {v.registradoPor}
                     {v.cancelada_at && ` · CANCELADA${v.cancelada_motivo ? `: ${v.cancelada_motivo}` : ""}`}
                   </p>
+                  {/* El circuito entero, de un vistazo (0256). */}
                   {!v.cancelada_at && (
+                    <div className="mt-1.5">
+                      <CircuitoVisita visita={v} compacto />
+                    </div>
+                  )}
+                  {v.resultado && (
+                    <p className="mt-1 text-xs">
+                      <span className="font-semibold text-[#1E7F4F]">Resultado: {ETIQUETA_RESULTADO[v.resultado] ?? v.resultado}</span>
+                      {v.resultado_nota && <span className="text-muted-foreground"> — {v.resultado_nota}</span>}
+                    </p>
+                  )}
+                  {!v.cancelada_at && !v.cerrada_at && (modo === "comercial" || modo === "central" || modo === "lectura") && (v.llego_at || v.fecha <= hoy) && (
+                    <div className="mt-1.5">
+                      <CerrarVisitaBoton visita={v} compacto />
+                    </div>
+                  )}
+                  {!v.cancelada_at && modo !== "comercial" && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       {lista.map((c) => (
                         <button

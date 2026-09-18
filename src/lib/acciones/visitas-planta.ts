@@ -130,6 +130,15 @@ export async function registrarVisitaPlanta(datos: {
   return { error: null, id: data as string, correoEnviado };
 }
 
+/** Cerrar la visita con su resultado (0256): escribe la gestión en la oportunidad del cliente. */
+export async function cerrarVisitaPlanta(visitaId: string, resultado: string, nota?: string): Promise<{ error: string | null; oportunidadId?: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("cerrar_visita_planta", { p_visita: visitaId, p_resultado: resultado, p_nota: nota?.trim() || null });
+  if (error) return { error: limpiar(error.message) };
+  for (const r of ["/comercial/visitas", "/central/visitas", "/almacen/visitas", "/postventa/visitas", "/comercial", "/comercial/agenda"]) revalidatePath(r);
+  return { error: null, oportunidadId: (data as { oportunidad_id?: string | null } | null)?.oportunidad_id ?? null };
+}
+
 /** Los checks de la visita (0247): vigilancia, Infocorp, lavandería, film, TV, llegó, no vino, re-embalado. */
 export async function marcarVisita(visitaId: string, que: string, puesto: boolean, nota?: string): Promise<{ error: string | null }> {
   const supabase = await createClient();

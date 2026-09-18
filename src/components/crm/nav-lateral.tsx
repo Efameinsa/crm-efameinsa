@@ -67,6 +67,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // Solo ve sus conversaciones asignadas (RLS `wa_conversaciones_comercial`).
     { href: "/whatsapp", etiqueta: "WhatsApp", icono: MessageCircle },
     { href: "/comercial/agenda", etiqueta: "Mi agenda", icono: CalendarDays },
+    // Las visitas a la planta del comercial (0256): anunciarlas, ver el
+    // circuito y cerrarlas con resultado. Carlos, 18-09: «hay que mapearlo».
+    { href: "/comercial/visitas", etiqueta: "Visitas a planta", icono: DoorOpen },
     { href: "/comercial/oportunidades", etiqueta: "Mis oportunidades", icono: KanbanSquare },
     { href: "/comercial/cotizaciones", etiqueta: "Mis cotizaciones", icono: FileText },
     // Los cierres, al lado de las cotizaciones: son los dos documentos que

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { ListaVisitasPlanta, type VisitaFila } from "@/components/crm/lista-visitas-planta";
+import { ListaVisitasPlanta, type VisitaFila, COLUMNAS_VISITA } from "@/components/crm/lista-visitas-planta";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ export default async function VisitasPostventaPage() {
   await requerirPerfil();
   const supabase = await createClient();
   const hoy = hoyLima();
-  const columnas = "id, empresa, ruc, persona, dni, telefono, motivo, fecha, hora, registrado_at, impreso_at, cancelada_at, cancelada_motivo, cuenta_id, showroom, prender_tv, infocorp, cotizacion_ref, acompanantes, equipo_a_ver, quitar_film, infocorp_enviado_at, showroom_listo_at, film_retirado_at, tv_listo_at, llego_at, no_vino_at, reembalado_at, notas_central, perfiles!visitas_planta_registrado_por_fkey(nombre, codigo_comercial)";
+  const columnas = COLUMNAS_VISITA;
   const [{ data: proximas }, { data: pasadas }] = await Promise.all([
     supabase.from("visitas_planta").select(columnas).gte("fecha", hoy).order("fecha").order("hora", { nullsFirst: false }).limit(200),
     supabase.from("visitas_planta").select(columnas).lt("fecha", hoy).order("fecha", { ascending: false }).limit(40),
