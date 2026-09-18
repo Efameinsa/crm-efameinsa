@@ -107,6 +107,11 @@ export const LUGARES_ENTREGA = [
   "Entrega en nuestras instalaciones.",
   "Entrega en agencia de transporte en la ciudad de Lima.",
   "Entrega en los almacenes del cliente.",
+  // Un servicio no se «entrega» en un almacén: el técnico va y lo hace donde
+  // está la máquina. Es lo que postventa ponía en sus cotizaciones de Word
+  // («Lugar de entrega: Instalaciones del cliente») y no tenía cómo elegir
+  // acá (Ariana, 18-09).
+  "Entrega en las instalaciones del cliente.",
 ] as const;
 
 /** La conservadora: es la que sale si nadie elige otra cosa. */

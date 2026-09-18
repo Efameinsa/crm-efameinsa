@@ -464,7 +464,7 @@ export function PantallaCorreccion({
                     >
                       <Miniatura fotoPath={(item.color && producto?.fotosPorColor?.[item.color]) || producto?.fotoPath} />
                       <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium text-foreground">
+                        <span className="block text-sm font-medium whitespace-pre-line text-foreground">
                           {producto?.sku && <span className="font-mono text-xs font-bold text-primary">{producto.sku} · </span>}
                           {item.nombre}
                         </span>

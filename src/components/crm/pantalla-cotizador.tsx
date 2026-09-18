@@ -1043,21 +1043,26 @@ export function PantallaCotizador({
                             <Label className="text-[11px] text-muted-foreground">
                               Concepto <span className="font-normal">— lo que va a leer el cliente</span>
                             </Label>
-                            <Input
+                            {/* VARIOS RENGLONES, como en el Word de postventa:
+                                el concepto de un servicio lleva debajo la
+                                marca, el modelo, las medidas y la serie de la
+                                máquina, cada uno en su línea (Ariana, 18-09).
+                                Enter baja de renglón; la otra línea de la
+                                cotización se agrega con Ctrl+Enter o el botón.
+                                El PDF respeta los saltos tal cual. */}
+                            <Textarea
                               autoFocus={item.nombre === ""}
                               value={item.nombre}
                               onChange={(e) => actualizarItem(i, { nombre: e.target.value, descripcion: e.target.value })}
-                              // Enter agrega OTRA línea, que es lo que se hace
-                              // cuando se cargan varios repuestos seguidos. No
-                              // «confirma» nada: no hay nada que confirmar.
                               onKeyDown={(e) => {
-                                if (e.key === "Enter" && item.nombre.trim().length > 0) {
+                                if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && item.nombre.trim().length > 0) {
                                   e.preventDefault();
                                   agregarLineaLibre();
                                 }
                               }}
-                              placeholder="«Mantenimiento preventivo de lavadora 17 kg», «Resistencia 3 kW»"
-                              className="mt-0.5 text-sm"
+                              rows={1}
+                              placeholder={"«Mantenimiento preventivo de lavadora 17 kg», «Resistencia 3 kW»\nMARCA · MODELO · MEDIDAS · SERIE, cada uno en su renglón si hace falta"}
+                              className="mt-0.5 min-h-9 text-sm"
                             />
                             {/* LA DUDA DE SANTOS, 07-09: «no hay opción para
                                 confirmar… ¿con Enter se consolida?». No hay que
@@ -1087,8 +1092,9 @@ export function PantallaCotizador({
                               </button>
                             </div>
                             <p className="mt-1 text-[11px] text-muted-foreground">
-                              <b className="text-foreground">Enter</b> —acá o en el precio— hace lo mismo. Al no estar
-                              en el catálogo, esta línea no lleva ficha técnica ni foto en el PDF.
+                              <b className="text-foreground">Enter</b> baja de renglón dentro del concepto;{" "}
+                              <b className="text-foreground">Ctrl+Enter</b> —acá o Enter en el precio— agrega otra línea.
+                              Al no estar en el catálogo, esta línea no lleva ficha técnica ni foto en el PDF.
                             </p>
                           </>
                         ) : (

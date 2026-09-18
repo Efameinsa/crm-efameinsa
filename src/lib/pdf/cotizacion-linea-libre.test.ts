@@ -54,3 +54,34 @@ test("una cotización de líneas escritas a mano se imprime y se lee bien", asyn
   // renglón se leía como un dato que faltó cargar.
   expect(texto).not.toContain("MARCA: —");
 }, 60000);
+
+test("el concepto escrito en varios renglones sale en varios renglones", async () => {
+  // Como lo hacía postventa en Word (18-09): el servicio arriba y debajo la
+  // marca, el modelo, las medidas y la serie de la máquina, cada uno en su
+  // línea. Si el PDF aplastara los saltos, el cliente leería todo corrido.
+  const cot = {
+    codigo: "Presu_9998-26", correlativo: 9998, serie: "OPEN", moneda: "USD",
+    moneda_impresa: "USD", tipo_cambio: null, condiciones: null, vigencia_dias: 15,
+    entrega_lugar: "Entrega en las instalaciones del cliente.", tiempo_entrega: "Inmediata", garantia: "Garantía del servicio",
+    forma_pago: "50 %", saldo: "50 %", created_at: new Date().toISOString(),
+    cliente_snapshot: { razon_social: "MEDICINA DE PRUEBA EIRL", tipo_doc: "RUC", num_doc: "20000000002", direccion: "Lima" },
+    cotizacion_items: [
+      linea("Servicio de mantenimiento correctivo de rodillo de planchado industrial\nMARCA: GMP\nMODELO: G14.25\nMEDIDAS: 1450x270mm\nSERIE: 2021131000134", 1, 550),
+    ],
+    oportunidades: null,
+    perfiles: { nombre: "Postventa", cargo: "Postventa", telefono: null, celular: null, email_contacto: null, email_open: null },
+  } as unknown as CotizacionParaPdf;
+
+  const bytes = new Uint8Array(await renderizarCotizacionPdf(cot));
+  const copia = bytes.slice();
+  const doc = await getDocument({ data: bytes }).promise;
+  const contenido = await (await doc.getPage(1)).getTextContent();
+  const renglones = contenido.items.map((x) => ("str" in x ? x.str : "")).filter(Boolean);
+  // Cada dato ocupa su propio fragmento de texto: no vienen pegados en uno.
+  expect(renglones.some((r) => r.trim() === "MARCA: GMP")).toBe(true);
+  expect(renglones.some((r) => r.trim() === "SERIE: 2021131000134")).toBe(true);
+  expect(renglones.some((r) => r.includes("MARCA: GMP") && r.includes("MODELO"))).toBe(false);
+  // El lugar de entrega va en la última página, en «Importante».
+  // (`getDocument` se queda con el buffer que le pasan: se le da una copia.)
+  expect(await textoDelPdf(copia)).toContain("Entrega en las instalaciones del cliente.");
+});
