@@ -20,7 +20,7 @@ export function ChipOrigen({ origen, className }: { origen: Origen | null; class
         ? Sprout
         : origen.clave === "landing"
           ? Megaphone
-          : origen.clave === "whatsapp_campana"
+          : origen.clave === "whatsapp_campana" || origen.clave === "whatsapp_web"
             ? MessageCircle
             : Globe;
   return (
@@ -33,7 +33,7 @@ export function ChipOrigen({ origen, className }: { origen: Origen | null; class
         origen.plataforma === null && "border-emerald-300 bg-emerald-50 text-emerald-900",
         className,
       )}
-      title={origen.urgente ? "Vino de publicidad pagada: gestionar a la brevedad" : "Se registró en efameinsa.com sin venir de un anuncio"}
+      title={origen.urgente ? "Vino de publicidad pagada: gestionar a la brevedad" : origen.clave === "whatsapp_web" ? "Escribió desde el botón de WhatsApp de efameinsa.com sin venir de un anuncio" : "Se registró en efameinsa.com sin venir de un anuncio"}
     >
       <Icono className="size-3" />
       {origen.etiqueta}

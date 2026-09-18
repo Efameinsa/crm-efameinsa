@@ -70,7 +70,7 @@ export function campanaDe(lead: LeadOrigen): Campana | null {
   return { plataforma: "otra", etiqueta: "campaña pagada" };
 }
 
-export type ClaveOrigen = "ads_form" | "landing" | "web_campana" | "web_organico" | "whatsapp_campana";
+export type ClaveOrigen = "ads_form" | "landing" | "web_campana" | "web_organico" | "whatsapp_campana" | "whatsapp_web";
 
 export interface Origen {
   clave: ClaveOrigen;
@@ -94,9 +94,16 @@ export function origenDe(lead: LeadOrigen): Origen | null {
   // lo único que dice de qué campaña vino es este código.
   if (lead.canal === "whatsapp" && lead.codigo_campania_wa) {
     const plat = lead.plataforma_campania_wa ?? "otro";
+    // El botón de WhatsApp de la web (0254) firma el mensaje con W-<página>
+    // cuando la visita no vino de un anuncio: es orgánico, como un formulario
+    // del sitio. Con G-/M- el clic sí costó y se trata como campaña.
+    if (/^W-/i.test(lead.codigo_campania_wa)) {
+      return { clave: "whatsapp_web", etiqueta: "WhatsApp desde la web", plataforma: null, urgente: false };
+    }
+    const desdeLaWeb = /^[GM]-/i.test(lead.codigo_campania_wa);
     return {
       clave: "whatsapp_campana",
-      etiqueta: `WhatsApp de campaña · ${ETIQUETA_PLATAFORMA_WA[plat]}`,
+      etiqueta: `WhatsApp ${desdeLaWeb ? "desde la web" : "de campaña"} · ${ETIQUETA_PLATAFORMA_WA[plat]}`,
       plataforma: plat === "otro" ? "otra" : plat,
       urgente: true,
     };
@@ -132,4 +139,27 @@ export function fuenteLegible(fuente: string | null | undefined): string | null 
   const f = (fuente ?? "").trim();
   if (!f || f === "google_ads" || f === "meta_ads") return null;
   return f.replace(/^web\s*·\s*(landing|sitio|campaña|orgánico)\s*(·\s*)?/i, "").trim() || null;
+}
+
+/** «google.com» de «https://www.google.com/» — el referente sin ruido. */
+function sitioDe(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * El recorrido del contacto en la web (0254), en una línea que el comercial
+ * lee de un vistazo: «Entró por /secadoras-comerciales… desde google.com ·
+ * escribió desde /calculadora». Vacío si la web no mandó nada (contactos de
+ * Central, formularios de Google Ads).
+ */
+export function recorridoDe(lead: { pagina_entrada?: string | null; pagina_envio?: string | null; referente?: string | null }): string | null {
+  const partes: string[] = [];
+  if (lead.pagina_entrada) partes.push(`Entró por ${lead.pagina_entrada}${lead.referente ? ` desde ${sitioDe(lead.referente)}` : ""}`);
+  else if (lead.referente) partes.push(`Vino de ${sitioDe(lead.referente)}`);
+  if (lead.pagina_envio && lead.pagina_envio !== lead.pagina_entrada) partes.push(`escribió desde ${lead.pagina_envio}`);
+  return partes.length ? partes.join(" · ") : null;
 }

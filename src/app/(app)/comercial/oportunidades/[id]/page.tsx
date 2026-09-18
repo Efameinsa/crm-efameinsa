@@ -83,7 +83,7 @@ export default async function OportunidadDetallePage({
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, tipo_postventa, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, recibido_at, nombre_contacto, telefono, email), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, tipo_postventa, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, pagina_entrada, pagina_envio, referente, recibido_at, nombre_contacto, telefono, email), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -110,6 +110,9 @@ export default async function OportunidadDetallePage({
     utm_campaign: string | null;
     codigo_campania_wa: string | null;
     plataforma_campania_wa: string | null;
+    pagina_entrada: string | null;
+    pagina_envio: string | null;
+    referente: string | null;
     recibido_at: string | null;
     nombre_contacto: string | null;
     telefono: string | null;
@@ -552,7 +555,7 @@ export default async function OportunidadDetallePage({
               nuevo prospecto tiene diferente interés de compra». */}
           {lead && (
             <SeccionPanel titulo="Solicitud del prospecto">
-              <SolicitudLead mensaje={lead.mensaje} campania={lead.utm_campaign} compacto />
+              <SolicitudLead mensaje={lead.mensaje} campania={lead.utm_campaign} recorrido={lead} compacto />
               {/* 0236 (14-09): lo que el prospecto dejó, tal cual llegó. La ficha puede tener
                   otro correo (del Excel viejo o de otra persona); este es el de ESTA solicitud. */}
               {(lead.email || lead.telefono || lead.nombre_contacto) && (

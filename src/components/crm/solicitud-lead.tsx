@@ -1,6 +1,6 @@
-import { MessageSquareText, PencilLine } from "lucide-react";
+import { MessageSquareText, PencilLine, Route } from "lucide-react";
 import { fechaLima } from "@/lib/fechas";
-import { nombreDeCampana } from "@/lib/campana";
+import { nombreDeCampana, recorridoDe } from "@/lib/campana";
 
 // Lo que pidió el prospecto, tal como entró.
 //
@@ -46,6 +46,7 @@ export function SolicitudLead({
   compacto = false,
   mensajeOriginal = null,
   editadoAt = null,
+  recorrido = null,
 }: {
   mensaje: string | null;
   campania?: string | null;
@@ -57,7 +58,10 @@ export function SolicitudLead({
    */
   mensajeOriginal?: string | null;
   editadoAt?: string | null;
+  /** Por dónde entró y desde dónde escribió (0254); lo manda la web. */
+  recorrido?: { pagina_entrada?: string | null; pagina_envio?: string | null; referente?: string | null } | null;
 }) {
+  const rutaWeb = recorrido ? recorridoDe(recorrido) : null;
   const texto = mensaje?.trim();
   if (!texto && !campania) {
     return (
@@ -97,6 +101,12 @@ export function SolicitudLead({
       {nombreDeCampana(campania) && !datos?.some((d) => d.clave === "Campaña") && (
         <p className="mt-1 text-xs text-muted-foreground">
           Campaña: <b className="text-foreground">{nombreDeCampana(campania)}</b>
+        </p>
+      )}
+      {rutaWeb && (
+        <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground" title="El recorrido en efameinsa.com que dejó este contacto">
+          <Route className="size-3" />
+          {rutaWeb}
         </p>
       )}
       {/* Lo corrigió Central, y lo que entró sigue a la vista. Es la diferencia

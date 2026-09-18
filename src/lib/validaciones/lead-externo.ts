@@ -38,6 +38,10 @@ export const esquemaLeadExterno = z.object({
   utm_content: z.string().trim().optional(),
   /** La variante del experimento A/B de la web («tel-a» / «tel-b», 0235). */
   experimento: z.string().trim().max(40).optional(),
+  /** Por dónde entró y desde dónde escribió (0254): rutas de efameinsa.com y el sitio de donde venía. */
+  pagina_entrada: z.string().trim().max(300).optional(),
+  pagina_envio: z.string().trim().max(300).optional(),
+  referente: z.string().trim().max(300).optional(),
   /**
    * LO QUE EL CLIENTE VIO Y PIDIÓ, COMO DOCUMENTO (Carlos, 14-09): «¿no es más
    * conveniente que el gestor sepa qué es lo que has hecho, mediante un

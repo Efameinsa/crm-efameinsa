@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campanaDe, fuenteLegible, nombreDeCampana, origenDe } from "./campana";
+import { campanaDe, fuenteLegible, nombreDeCampana, origenDe, recorridoDe } from "./campana";
 
 // Los tres orígenes que pidió distinguir Santos el 11-09, más el intermedio.
 describe("origenDe", () => {
@@ -42,6 +42,32 @@ describe("origenDe", () => {
 
   it("un contacto de Central que trae gclid (lo anotó del cliente) sí marca la campaña", () => {
     expect(origenDe({ canal: "llamada", gclid: "z" })).toMatchObject({ clave: "web_campana", etiqueta: "Vino de Google Ads" });
+  });
+
+  it("el WhatsApp con código del botón de la web (0254): W- es orgánico, G-/M- vino de un anuncio", () => {
+    expect(origenDe({ canal: "whatsapp", codigo_campania_wa: "W-FICHA", plataforma_campania_wa: "otro" })).toMatchObject({
+      clave: "whatsapp_web",
+      plataforma: null,
+      urgente: false,
+    });
+    expect(origenDe({ canal: "whatsapp", codigo_campania_wa: "G-CALC", plataforma_campania_wa: "google" })).toMatchObject({
+      clave: "whatsapp_campana",
+      etiqueta: "WhatsApp desde la web · Google Ads",
+      plataforma: "google",
+      urgente: true,
+    });
+    expect(origenDe({ canal: "whatsapp", codigo_campania_wa: "M1-A", plataforma_campania_wa: "meta" })?.etiqueta).toBe("WhatsApp de campaña · Meta Ads");
+  });
+});
+
+describe("recorridoDe", () => {
+  it("arma la línea del recorrido con lo que haya", () => {
+    expect(recorridoDe({ pagina_entrada: "/secadoras-comerciales-en-venta-lima-peru", referente: "https://www.google.com/", pagina_envio: "/calculadora" })).toBe(
+      "Entró por /secadoras-comerciales-en-venta-lima-peru desde google.com · escribió desde /calculadora",
+    );
+    expect(recorridoDe({ pagina_entrada: "/calculadora", pagina_envio: "/calculadora" })).toBe("Entró por /calculadora");
+    expect(recorridoDe({ referente: "https://chatgpt.com/" })).toBe("Vino de chatgpt.com");
+    expect(recorridoDe({})).toBeNull();
   });
 });
 

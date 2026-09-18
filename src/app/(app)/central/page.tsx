@@ -83,7 +83,7 @@ function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, mod
   const q = supabase
     .from("leads")
     .select(
-      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, fuente, gclid, gbraid, wbraid, fbclid, utm_source, utm_medium, utm_campaign, utm_content, experimento, codigo_campania_wa, plataforma_campania_wa, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
+      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, fuente, gclid, gbraid, wbraid, fbclid, utm_source, utm_medium, utm_campaign, utm_content, experimento, pagina_entrada, pagina_envio, referente, codigo_campania_wa, plataforma_campania_wa, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
       { count: "exact" },
     )
     .eq("estado", "pendiente_triaje");
@@ -520,6 +520,7 @@ export default async function CentralPage() {
                   campania={lead.utm_campaign}
                   mensajeOriginal={lead.mensaje_original}
                   editadoAt={lead.mensaje_editado_at}
+                  recorrido={lead}
                 />
                 {adjuntosPorLead.has(lead.id) && <AdjuntosLead adjuntos={adjuntosPorLead.get(lead.id)!} />}
               </div>
