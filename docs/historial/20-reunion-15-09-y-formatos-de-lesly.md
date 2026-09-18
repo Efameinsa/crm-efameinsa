@@ -271,3 +271,7 @@ marcarlos.
   eventos para Google Ads, WhatsApp de la web al número de la empresa, mandar fbp/fbc/registro_web.
 - Cruce de los 16 registros de la web de septiembre: 3 Google Ads, 3 orgánico Google, 1 ChatGPT,
   1 directo, 4 con referente sucio (accounts.google.com), 3 sin rastro, 1 prueba interna.
+- 18-09 17:30 — la sesión de la web terminó el cableado: atribución al crear la cuenta (perfiles
+  origen: orgánico Google 7, Google Ads 3, directo 2, ChatGPT 1, referido 1, desconocido 1), eventos
+  clave de GA4 `generate_lead`/`contacto_whatsapp`/`sign_up`/`submit_application`, el WhatsApp del
+  sitio pasó al número de la Cloud API, y fbp/fbc/registro_web ya llegan al CRM.
