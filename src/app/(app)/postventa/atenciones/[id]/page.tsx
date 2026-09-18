@@ -1,6 +1,6 @@
 import { CambiarTipoAtencion } from "@/components/crm/cambiar-tipo-atencion";
 import Link from "next/link";
-import { ArrowLeft, Building2, Clock, FileText, Wrench, Package } from "lucide-react";
+import { ArrowLeft, Building2, Clock, FileText, Wrench, Package, PhoneCall } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -404,15 +404,27 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
                   Central lo reparte.
                 </p>
               )}
+              {/* LA LLAMADA SE ANOTA DESDE ACÁ (Gabriela, 18-09: «ya me comuniqué
+                  con el cliente, no se puede registrar la llamada»). El botón
+                  abre el registro de gestión de la oportunidad ya desplegado;
+                  antes había que descubrir que la llamada vivía en la otra
+                  pista. El circuito técnico no avanza con la llamada: avanza
+                  eligiendo la máquina en el Paso 1. */}
+              <Link
+                href={`/comercial/oportunidades/${a.oportunidad_id}?gestion=1`}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+              >
+                <PhoneCall className="size-3.5" /> Registrar la llamada / gestión
+              </Link>
               <Link
                 href={`/comercial/oportunidades/${a.oportunidad_id}`}
-                className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                className="mt-2 ml-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
               >
-                Ver la oportunidad de esta atención
+                Ver la oportunidad
               </Link>
               <p className="mt-1 text-xs text-muted-foreground">
-                Ahí se registran las gestiones y el historial. La atención técnica y la venta corren en paralelo:
-                son dos pistas, no una.
+                Las llamadas y el historial se registran en la oportunidad. La atención técnica y la venta corren en
+                paralelo: son dos pistas, no una. Para avanzar el circuito, elija la máquina en el Paso 1.
               </p>
             </SeccionPanel>
           )}
