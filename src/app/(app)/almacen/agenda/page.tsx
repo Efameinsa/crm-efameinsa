@@ -74,7 +74,7 @@ export default async function AgendaAlmacenPage({ searchParams }: { searchParams
         Despachos programados, puestas en marcha, atenciones con técnico y visitas a la planta. Lo programa postventa; acá se ve
         qué toca cada día.
       </p>
-      <CalendarioPostventa vista={vista} fecha={fecha} hoy={hoy} zona={zona} eventos={eventos} porProgramar={[]} atencionesPorProgramar={[]} rutaBase="/almacen/agenda" />
+      <CalendarioPostventa vista={vista} fecha={fecha} hoy={hoy} zona={zona} eventos={eventos} porProgramar={[]} atencionesPorProgramar={[]} rutaBase="/almacen/agenda" soloLectura />
     </SeccionPanel>
   );
 }

@@ -57,10 +57,13 @@ export function CalendarioPostventa({
   porProgramar,
   atencionesPorProgramar,
   rutaBase = "/postventa/agenda",
+  soloLectura = false,
 }: {
   vista: VistaCalendario;
   /** Dónde vive el calendario: el del almacén (0252) navega en su propia ruta. */
   rutaBase?: string;
+  /** Sin «Agendar»: el almacén mira, postventa programa. */
+  soloLectura?: boolean;
   /** Día ancla: define la semana, el mes o el día que se está mirando. */
   fecha: string;
   hoy: string;
@@ -226,7 +229,7 @@ function Semana({
                 <Tarjeta key={e.clave} evento={e} />
               ))}
             </div>
-            <AgendarEnDia fecha={iso} porProgramar={porProgramar} />
+            {!soloLectura && <AgendarEnDia fecha={iso} porProgramar={porProgramar} />}
           </div>
         );
       })}
@@ -291,7 +294,7 @@ function Mes({
                       +{eventos.length - 3} más
                     </Link>
                   )}
-                  {!d.otroMes && <AgendarEnDia fecha={d.iso} porProgramar={porProgramar} compacto />}
+                  {!d.otroMes && !soloLectura && <AgendarEnDia fecha={d.iso} porProgramar={porProgramar} compacto />}
                 </div>
               </div>
             );
@@ -316,7 +319,7 @@ function Dia({
     return (
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">Nada agendado para este día.</p>
-        <AgendarEnDia fecha={fecha} porProgramar={porProgramar} />
+        {!soloLectura && <AgendarEnDia fecha={fecha} porProgramar={porProgramar} />}
       </div>
     );
   }
