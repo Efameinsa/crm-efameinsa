@@ -12,6 +12,7 @@
 //     el comercial al que se le asignó ese contacto — nunca en nombre de otro.
 
 import { revalidatePath } from "next/cache";
+import { enviarEventoMeta } from "@/lib/meta-capi";
 import { createClient } from "@/lib/supabase/server";
 import type { TipificacionWhatsapp } from "@/lib/whatsapp-marketing";
 
@@ -141,6 +142,11 @@ export async function tipificarWhatsApp(
   });
 
   if (error) return { error: error.message };
+
+  // Meta se entera de lo que valió la conversación (0257): interesado → Lead,
+  // cotizado → SubmitApplication. Mejor esfuerzo, no frena la tipificación.
+  if (estado === "interesado") await enviarEventoMeta({ evento: "Lead", leadId, eventId: `${leadId}:Lead` });
+  if (estado === "cotizado") await enviarEventoMeta({ evento: "SubmitApplication", leadId, eventId: `${leadId}:SubmitApplication` });
 
   revalidatePath("/central");
   revalidatePath("/central/derivados");

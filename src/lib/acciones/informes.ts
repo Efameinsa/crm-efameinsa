@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { enviarEventoMeta } from "@/lib/meta-capi";
 import { totalesConIgv } from "@/lib/igv";
 import { createClient } from "@/lib/supabase/server";
 import { INCLUYE_POR_DEFECTO, type TipoItemInforme } from "@/lib/informes";
@@ -387,8 +388,18 @@ export async function emitirInforme(informeId: string): Promise<{ error: string 
   const { data, error } = await supabase.rpc("emitir_informe", { p_id: informeId });
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
 
-  const { data: informe } = await supabase.from("informes_cierre").select("cuenta_id").eq("id", informeId).maybeSingle();
+  const { data: informe } = await supabase.from("informes_cierre").select("cuenta_id, oportunidad_id, items").eq("id", informeId).maybeSingle();
   if (informe) revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
+  // La venta llega a Meta como Purchase con su valor (0257), si el cliente
+  // entró por un lead. Mejor esfuerzo: no toca el informe.
+  if (informe?.oportunidad_id) {
+    const { data: lead } = await supabase.from("leads").select("id").eq("oportunidad_id", informe.oportunidad_id).limit(1).maybeSingle();
+    if (lead) {
+      const items = (informe.items ?? []) as { bloque?: string; cantidad?: number; precio_con_igv?: number; precio_unitario?: number }[];
+      const valor = items.filter((i) => !i.bloque || i.bloque === "venta").reduce((t, i) => t + (Number(i.cantidad) || 1) * (Number(i.precio_con_igv ?? i.precio_unitario) || 0), 0);
+      await enviarEventoMeta({ evento: "Purchase", leadId: lead.id, eventId: `${lead.id}:Purchase:${informeId}`, valor: valor || null, moneda: "USD" });
+    }
+  }
   return { error: null, codigo: data as string };
 }
 

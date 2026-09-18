@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notificar, notificarLeadEntrante } from "@/lib/notificaciones";
 import { responderAutomatico } from "@/lib/whatsapp";
+import { enviarEventoMeta } from "@/lib/meta-capi";
 
 // Webhook de la Cloud API de WhatsApp (fase 2, plan sección 2.4).
 //
@@ -296,7 +297,13 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
           titulo: "Nuevo WhatsApp de campaña",
           cuerpo: `${nombreWa || telefono}${codigoCampania ? ` · código ${codigoCampania}` : ""}`,
         });
+        // Meta se entera de que el anuncio produjo una conversación (0257).
+        if (mensaje.referral?.ctwa_clid) await enviarEventoMeta({ evento: "Contact", leadId: lead.id, eventId: `${lead.id}:Contact` });
       }
+      // El acuse (plan del 14-09, 2.7): al PRIMER mensaje de una conversación
+      // nueva el número responde solo, para que nadie quede mirando la
+      // pantalla. Fuera de horario dice cuándo se le responde.
+      if (nuevaConversacion?.id) await responderAutomatico(nuevaConversacion.id, telefono, textoDeAcuse());
     }
 
     if (!conversacion) continue; // no debería pasar, pero sin conversación no hay dónde guardar el mensaje
@@ -326,6 +333,17 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
       await atenderBotonDeFicha(admin, conversacion, telefono, nombreWa, mensaje.interactive?.button_reply?.id ?? "", equipoSku);
     }
   }
+}
+
+/** Horario de atención en Lima: lunes a viernes 8-18, sábado 9-13. */
+function textoDeAcuse(): string {
+  const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" }));
+  const dia = ahora.getDay();
+  const hora = ahora.getHours();
+  const enHorario = (dia >= 1 && dia <= 5 && hora >= 8 && hora < 18) || (dia === 6 && hora >= 9 && hora < 13);
+  return enHorario
+    ? "Gracias por escribir a Efameinsa. Un asesor le responde en unos minutos."
+    : "Gracias por escribir a Efameinsa. Nuestro horario es de lunes a viernes de 8:00 a 18:00 y sábados de 9:00 a 13:00; le respondemos apenas abramos.";
 }
 
 /**

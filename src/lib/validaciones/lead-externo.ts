@@ -36,6 +36,10 @@ export const esquemaLeadExterno = z.object({
   utm_medium: z.string().trim().optional(),
   utm_campaign: z.string().trim().optional(),
   utm_content: z.string().trim().optional(),
+  /** Las galletas del píxel de Meta y si la persona tiene cuenta en la web (0257). */
+  fbp: z.string().trim().max(200).optional(),
+  fbc: z.string().trim().max(300).optional(),
+  registro_web: z.boolean().optional(),
   /** La variante del experimento A/B de la web («tel-a» / «tel-b», 0235). */
   experimento: z.string().trim().max(40).optional(),
   /** Por dónde entró y desde dónde escribió (0254): rutas de efameinsa.com y el sitio de donde venía. */
