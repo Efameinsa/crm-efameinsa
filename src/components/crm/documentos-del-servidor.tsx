@@ -44,14 +44,25 @@ function palabrasDe(texto: string): string[] {
     .filter((p) => p.length > 1 && !["SA", "SAC", "SRL", "EIRL", "SCRL", "DE", "DEL", "LA", "EL", "LOS", "LAS", "Y"].includes(p));
 }
 
+/** Palabras que están en media cartera: coincidir SOLO en una de estas no
+ *  dice nada. Con el índice viejo (2 422 carpetas) BUNGARENA LODGE recibía
+ *  como sugerencia «HOTEL PRUEBA MIRAFLORES», «HOTEL CURASI»… por «HOTEL», y
+ *  un clic ahí vincula las fotos de otro cliente (18-09). */
+const GENERICAS = new Set([
+  "HOTEL", "HOTELES", "HOSTAL", "HOSPEDAJE", "LODGE", "LAVANDERIA", "LAVANDERIAS", "CLINICA", "HOSPITAL",
+  "EMPRESA", "EMPRESAS", "SERVICIOS", "SERVICIO", "INVERSIONES", "CORPORACION", "GRUPO", "INDUSTRIAS", "INDUSTRIAL",
+  "COMERCIAL", "NEGOCIOS", "PERU", "LIMA", "SOCIEDAD", "ANONIMA", "CERRADA", "CIA", "COMPAÑIA",
+]);
+
 function parecido(carpeta: string, objetivo: string[][]): number {
   const c = new Set(palabrasDe(carpeta));
   if (c.size === 0) return 0;
   let mejor = 0;
   for (const palabras of objetivo) {
     if (palabras.length === 0) continue;
-    const comunes = palabras.filter((p) => c.has(p)).length;
-    mejor = Math.max(mejor, comunes / Math.max(c.size, palabras.length));
+    const comunes = palabras.filter((p) => c.has(p));
+    if (!comunes.some((p) => !GENERICAS.has(p))) continue;
+    mejor = Math.max(mejor, comunes.length / Math.max(c.size, palabras.length));
   }
   return mejor;
 }
@@ -154,8 +165,9 @@ export async function DocumentosDelServidor({
                 </p>
               ) : opciones.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  Ninguna carpeta del servidor se parece a este cliente. Si la carpeta existe con otro nombre, avise
-                  para vincularla a mano; si es nueva, hay que refrescar el índice.
+                  Ninguna carpeta del servidor de archivos se parece a este cliente: lo más probable es que todavía
+                  no se haya copiado del archivo de la oficina. Avise a Santos con la razón social para que la copie
+                  y la vincule.
                 </p>
               ) : (
                 <div className="space-y-1">
