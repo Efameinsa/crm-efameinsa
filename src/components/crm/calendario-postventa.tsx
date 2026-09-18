@@ -178,9 +178,9 @@ export function CalendarioPostventa({
         </div>
       )}
 
-      {vista === "semana" && <Semana lunes={lunes} hoy={hoy} porDia={porDia} enlace={enlace} porProgramar={atencionesPorProgramar} />}
-      {vista === "mes" && <Mes mes={mes} hoy={hoy} porDia={porDia} enlace={enlace} porProgramar={atencionesPorProgramar} />}
-      {vista === "dia" && <Dia fecha={fecha} porDia={porDia} porProgramar={atencionesPorProgramar} />}
+      {vista === "semana" && <Semana lunes={lunes} hoy={hoy} porDia={porDia} enlace={enlace} porProgramar={atencionesPorProgramar} soloLectura={soloLectura} />}
+      {vista === "mes" && <Mes mes={mes} hoy={hoy} porDia={porDia} enlace={enlace} porProgramar={atencionesPorProgramar} soloLectura={soloLectura} />}
+      {vista === "dia" && <Dia fecha={fecha} porDia={porDia} porProgramar={atencionesPorProgramar} soloLectura={soloLectura} />}
 
       <Leyenda />
     </div>
@@ -193,12 +193,14 @@ function Semana({
   porDia,
   enlace,
   porProgramar,
+  soloLectura = false,
 }: {
   lunes: string;
   hoy: string;
   porDia: Map<string, EventoCalendario[]>;
   enlace: (c: { vista?: string; fecha?: string }) => string;
   porProgramar: AtencionPorProgramar[];
+  soloLectura?: boolean;
 }) {
   const dias = diasDeSemana(lunes);
   return (
@@ -243,12 +245,14 @@ function Mes({
   porDia,
   enlace,
   porProgramar,
+  soloLectura = false,
 }: {
   mes: string;
   hoy: string;
   porDia: Map<string, EventoCalendario[]>;
   enlace: (c: { vista?: string; fecha?: string }) => string;
   porProgramar: AtencionPorProgramar[];
+  soloLectura?: boolean;
 }) {
   const dias = diasDelMes(mes);
   return (
@@ -309,10 +313,12 @@ function Dia({
   fecha,
   porDia,
   porProgramar,
+  soloLectura = false,
 }: {
   fecha: string;
   porDia: Map<string, EventoCalendario[]>;
   porProgramar: AtencionPorProgramar[];
+  soloLectura?: boolean;
 }) {
   const eventos = porDia.get(fecha) ?? [];
   if (eventos.length === 0) {
