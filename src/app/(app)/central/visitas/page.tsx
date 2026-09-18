@@ -5,7 +5,8 @@ import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
 import { requerirRol } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { ListaVisitasPlanta, type VisitaFila, COLUMNAS_VISITA } from "@/components/crm/lista-visitas-planta";
+import { ListaVisitasPlanta, type VisitaFila } from "@/components/crm/lista-visitas-planta";
+import { COLUMNAS_VISITA } from "@/lib/visitas-planta-columnas";
 
 export const dynamic = "force-dynamic";
 

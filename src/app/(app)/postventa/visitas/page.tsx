@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { ListaVisitasPlanta, type VisitaFila, COLUMNAS_VISITA } from "@/components/crm/lista-visitas-planta";
+import { ListaVisitasPlanta, type VisitaFila } from "@/components/crm/lista-visitas-planta";
+import { COLUMNAS_VISITA } from "@/lib/visitas-planta-columnas";
 
 export const dynamic = "force-dynamic";
 
