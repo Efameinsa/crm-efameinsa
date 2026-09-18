@@ -250,3 +250,24 @@ marcarlos.
 - 18-09 15:40: **almacen@ pasa a modo real** (`es_prueba=false`): 124 pedidos en curso y 68
   atenciones abiertas reales; los avisos (prueba pedida, apertura, despacho programado, visita,
   orden de trabajo) le llegan de verdad. La práctica queda en practica.almacen@.
+
+## 18-09 (tarde) — Plan de campañas 2026-IV y cableado (0257)
+
+- `Downloads/plan-campanas-pagadas-2026-IV.docx`: diagnóstico con números del CRM (Google ≈ S/29 000
+  en 2026 por el formulario de Google, 0 ventas trazadas; Meta S/3 809 → 2 401 conversaciones a
+  S/1,59, sin píxel; la web nueva 20 % cotizados), fase 0 de cableado, fases 1-3 (del informe de
+  Meta del 12-09), inversión ≈ S/7 600/mes, orquestación semanal y **reparto de WhatsApp por
+  turno** (no aleatorio; cartera manda; rebote a los 15 min; Central supervisa) — pendiente de
+  aprobación de gerencia.
+- Corrección al plan: la Conversions API **no existía** en el CRM; se construyó hoy
+  (`src/lib/meta-capi.ts`, tabla `eventos_meta`): Contact / Lead / SubmitApplication / Purchase.
+  Falta `META_CAPI_TOKEN` (Claude Chrome). `leads.fbp/fbc/registro_web` (0257). Acuse automático
+  al primer mensaje de una conversación nueva, con horario. Códigos M1-A/B/C creados.
+- Los 23 cierres de 2026 «sin lead»: 16 no tienen oportunidad de lead y 7 sí tienen oportunidad
+  pero sin lead candidato en 180 días — se vendieron sin pasar por un lead (cartera/presencial). No
+  es un fallo de enlace; el enlace existe cuando Central deriva.
+- Instrucciones detalladas enviadas a la sesión «proyecto web efameinsa»: atribución al crear la
+  cuenta (`perfiles.atribucion/origen`), excluir referentes de OAuth, `sign_up` en GA4, nombres de
+  eventos para Google Ads, WhatsApp de la web al número de la empresa, mandar fbp/fbc/registro_web.
+- Cruce de los 16 registros de la web de septiembre: 3 Google Ads, 3 orgánico Google, 1 ChatGPT,
+  1 directo, 4 con referente sucio (accounts.google.com), 3 sin rastro, 1 prueba interna.
