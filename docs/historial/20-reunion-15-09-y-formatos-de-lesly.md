@@ -233,3 +233,17 @@ marcarlos.
 - **Fotos de productos**: `Downloads/fotos-de-productos-lista-y-pauta.xlsx` — hoja «Equipos» con
   los 130 activos (ficha en el CRM sí/no, página web sí/no y cuántas fotos, columnas para marcar
   showroom y fotos tomadas) y hoja «Pauta de fotos» con los 12 planos y el orden de trabajo.
+
+## 18-09 (tarde) — El circuito de la visita se cierra (0256) y los ajustes al curso
+
+- Diagnóstico: 0 visitas reales registradas; el comercial anunciaba desde la ficha y no tenía
+  ventana ni cierre. Ahora: menú **Visitas a planta** del comercial (las suyas), circuito en cada
+  visita (Anunciada → Vigilancia avisada → Preparada → Llegó/No vino → Atendida y registrada →
+  Vuelto a embalar) y **«Registrar la visita (resultado)»** (compró, pide cotización, evaluando,
+  recogió, pagó, solo miró, no vino) → `cerrar_visita_planta` escribe la gestión tipo `showroom`
+  en la oportunidad viva. Probado con C0. Columnas compartidas en `lib/visitas-planta-columnas.ts`
+  (exportarlas desde el componente «use client» rompía la página del comercial).
+- Para capacitación: `Downloads/capakat1/AJUSTES-18-09-visitas-y-vigilancia.txt` (qué cambiar en
+  clases 1-3, banco de preguntas, regrabar audio 2 y 3) enviado a las sesiones bin-f2 y bin-d7;
+  `Downloads/visitas-a-la-planta-instrucciones-de-gerencia.txt` (instrucciones textuales del
+  gerente) y `guia-visitas-a-planta.pdf` actualizados con el paso de cierre.
