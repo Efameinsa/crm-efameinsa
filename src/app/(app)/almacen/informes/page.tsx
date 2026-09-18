@@ -77,6 +77,10 @@ export default async function InformesAlmacenPage({ searchParams }: { searchPara
             {v}
           </Link>
         ))}
+        {/* La vista por cliente → por máquina (Carlos, 18-09): todo lo hecho en orden. */}
+        <Link href="/almacen/informes/clientes" className="rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold hover:bg-secondary">
+          Por cliente →
+        </Link>
         <span className="mx-1 text-border">|</span>
         {CLASES_INFORME_ALMACEN.map((c) => (
           <Link key={c.clave} href={`/almacen/informes?clase=${c.clave}`} className={cn("rounded-full border px-2.5 py-0.5 text-[11px]", claseFiltro === c.clave ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-secondary")}>
