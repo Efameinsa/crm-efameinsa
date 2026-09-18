@@ -179,3 +179,24 @@ marcarlos.
 - **Pendiente**: el envío de producto del catálogo da «product not found» aunque el ítem está
   publicado y con foto: Meta revisa los artículos para WhatsApp (hasta 24 h). Reintentar mañana;
   si sigue, mirar WhatsApp Manager → Catálogo → estado de revisión.
+
+## 18-09 — Los informes del almacén, rango de fechas y calendario (0252)
+
+- Santos trajo la lista de Lesly: prueba y embalaje y despacho = fotos + check (ya estaban, 0246);
+  lo nuevo son los informes que el almacén escribe y **sube a postventa con un check**: puesta en
+  marcha (todo OK / con observaciones / faltan accesorios para instalar, con lista de materiales y
+  costos), soporte técnico por videollamada, y mantenimiento en planta en tres informes
+  (recepción, prueba y revisión, ejecución).
+- Viven en `informes_servicio` con `clase_almacen`, `atencion_id`, `lista_materiales`,
+  `elevado_a_postventa_at/por`; RLS de escritura para el almacén sobre los suyos; RPC
+  `elevar_informe_a_postventa` avisa a cada persona de postventa (misma serie) y deja la fecha de
+  puesta en marcha en el pedido. Impresión con la tabla de materiales y total estimado.
+- Pantallas: «Informes técnicos» (al final del menú) con filtros por origen y clase, «Nuevo
+  informe» (elige de qué pedido o atención), «Subir a postventa», «Ver el pedido» (sin precios);
+  «Pedidos» con rango de fechas de despacho; «Calendario» = el de postventa en solo lectura
+  (despachos, puestas en marcha, atenciones con técnico, visitas).
+- Probado con la cuenta de práctica: informe 913-2026 (faltan accesorios) creado, subido, aviso
+  a PV0, fecha en el pedido PRUEBA-913.
+- Avisado también hoy: Brenda no podía corregir el 016-2026 por un regex sin barra en
+  `abrirCorreccionInforme` (desde el 02-09); y `validar_pin_supervisor` ahora acepta el código de
+  Lesly como el resto (0251).
