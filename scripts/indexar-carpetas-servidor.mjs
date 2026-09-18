@@ -47,6 +47,14 @@ for (const { base, clase } of RAICES) {
   console.log(` ✓ ${base}: ${n} carpetas de ${clase}`);
 }
 
+// Desde el 05-09 las unidades W:/X: ya no están mapeadas en la PC de Santos y
+// el índice vivo son las carpetas /srv/archivo de la VM. Si acá no se leyó
+// nada, borrar «lo que ya no existe» vaciaría ESE índice: se aborta.
+if (filas.length === 0) {
+  console.log(" ✗ no se leyó ninguna raíz: el índice queda como está.");
+  await pg.end();
+  process.exit(1);
+}
 await pg.query("begin");
 // Borrar lo que ya no existe y reinsertar es más simple que un diff, y el
 // índice entero cabe en una transacción de segundos.

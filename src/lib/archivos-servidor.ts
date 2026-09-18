@@ -108,8 +108,8 @@ export interface ElementoCarpeta {
 export async function listarCarpetaServidor(
   rutaCarpeta: string,
   msEspera = 2500,
-): Promise<{ elementos: ElementoCarpeta[]; truncado: boolean } | null> {
-  if (!servidorDeArchivosActivo()) return null;
+): Promise<{ elementos: ElementoCarpeta[]; truncado: boolean } | ListadoFallido> {
+  if (!servidorDeArchivosActivo()) return { fallo: "apagado" };
   const rutaB64 = Buffer.from(rutaCarpeta, "utf8").toString("base64url");
   const vence = Math.floor(Date.now() / 1000) + VIGENCIA_SEGUNDOS;
   const firma = createHmac("sha256", secreto()).update(`carpeta:${rutaB64}.${vence}`).digest("base64url");
@@ -119,12 +119,29 @@ export async function listarCarpetaServidor(
   u.searchParams.set("s", firma);
   try {
     const r = await fetch(u, { signal: AbortSignal.timeout(msEspera), cache: "no-store" });
-    if (!r.ok) return null;
+    // El servicio distingue «no está» (404) de «no se sirve desde acá» (403):
+    // hay que decírselo a quien mira, porque son dos arreglos distintos.
+    if (r.status === 404) return { fallo: "no_existe" };
+    if (r.status === 403) return { fallo: "fuera_de_raiz" };
+    if (!r.ok) return { fallo: "apagado" };
     const j = (await r.json()) as { elementos: ElementoCarpeta[]; truncado: boolean };
     return { elementos: j.elementos ?? [], truncado: Boolean(j.truncado) };
   } catch {
-    return null;
+    return { fallo: "apagado" };
   }
+}
+
+/**
+ * Por qué no se pudo listar. Hasta el 18-09 todo era `null` y la pantalla
+ * decía «¿El servidor está encendido?» aunque el servidor estuviera
+ * respondiendo: Ariana vinculó en BUNGARENA LODGE una carpeta `W:\FOTOS\…`
+ * del índice viejo del archivo de la oficina —que el servidor de archivos no
+ * tiene— y el aviso la mandó a revisar una máquina que estaba bien.
+ */
+export type ListadoFallido = { fallo: "apagado" | "no_existe" | "fuera_de_raiz" };
+
+export function esListadoFallido(x: unknown): x is ListadoFallido {
+  return typeof x === "object" && x !== null && "fallo" in x;
 }
 
 /**

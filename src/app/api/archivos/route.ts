@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { enlaceFirmado, listarCarpetaServidor, servidorDeArchivosActivo } from "@/lib/archivos-servidor";
+import { enlaceFirmado, esListadoFallido, listarCarpetaServidor, servidorDeArchivosActivo } from "@/lib/archivos-servidor";
 
 /**
  * Lista una carpeta de archivos del cliente y devuelve, por cada archivo, un
@@ -53,8 +53,15 @@ export async function GET(req: NextRequest) {
   // El servidor de archivos es Linux: las rutas van con «/».
   const carpeta = sub ? `${base}/${sub}` : base;
   const listado = await listarCarpetaServidor(carpeta, 4000);
-  if (!listado) {
-    return NextResponse.json({ error: "No se pudo leer la carpeta. ¿El servidor está encendido?" }, { status: 502 });
+  if (esListadoFallido(listado)) {
+    // Tres causas, tres avisos: el que dice «¿está encendido?» para una
+    // carpeta que simplemente no se copió manda a revisar una máquina sana.
+    const aviso = {
+      no_existe: `La carpeta «${carpeta.split("/").pop()}» no está en el servidor de archivos: todavía no se copió del archivo de la oficina. Pídala a Santos o vincule otra.`,
+      fuera_de_raiz: `Ese vínculo apunta al archivo viejo de la oficina (${carpeta.slice(0, 2)}…), que el servidor de archivos no ve. Toque «Cambiar» y elija una carpeta del servidor.`,
+      apagado: "No se pudo leer la carpeta. ¿El servidor está encendido?",
+    }[listado.fallo];
+    return NextResponse.json({ error: aviso }, { status: listado.fallo === "apagado" ? 502 : 404 });
   }
 
   const elementos = listado.elementos.map((e) => {
