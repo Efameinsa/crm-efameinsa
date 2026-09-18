@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink, FolderOpen, ShieldCheck, ShieldOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -39,6 +40,15 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
     .single();
   if (!data) notFound();
 
+  // Los casos donde estuvo esta máquina, principal o agregada (0253).
+  const { data: enOtrosCasos } = await supabase.from("atencion_equipos").select("atencion_id").eq("equipo_id", id);
+  const idsCasos = (enOtrosCasos ?? []).map((x) => x.atencion_id as string);
+  const { data: casos } = await supabase
+    .from("atenciones")
+    .select("id, tipo, etapa, solicitado_at, cerrado_at, detalle, equipo_id")
+    .or(`equipo_id.eq.${id}${idsCasos.length ? `,id.in.(${idsCasos.join(",")})` : ""}`)
+    .order("solicitado_at", { ascending: false })
+    .limit(30);
   const { data: informes } = await supabase
     .from("informes_servicio")
     .select("id, correlativo, anio, tipo, modalidad, ejecutado_at, tecnico, detalle, ciclos, es_prueba")
@@ -220,6 +230,27 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
           </div>
         )}
       </SeccionPanel>
+
+      {/* Los casos donde estuvo esta máquina (0253): también los que la
+          agregaron como «otra máquina del mismo caso», no solo la principal. */}
+      {casos && casos.length > 0 && (
+        <SeccionPanel titulo="Casos de esta máquina">
+          <div className="space-y-1.5">
+            {casos.map((c) => (
+              <Link key={c.id} href={`/postventa/atenciones/${c.id}`} className="flex flex-wrap items-start gap-3 rounded-md border border-border p-2.5 hover:bg-accent">
+                <span className="w-24 flex-none font-mono text-[11px] tabular-nums text-muted-foreground">{fechaHoraLima(c.solicitado_at as string)}</span>
+                <span className="min-w-[200px] flex-1">
+                  <span className="block text-sm font-medium text-foreground">
+                    {ETIQUETA_TIPO_ATENCION[c.tipo as keyof typeof ETIQUETA_TIPO_ATENCION] ?? c.tipo}
+                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">{c.cerrado_at ? "cerrado" : `en ${c.etapa}`}{c.equipo_id === id ? "" : " · agregada al caso"}</span>
+                  </span>
+                  {c.detalle && <span className="line-clamp-2 text-xs text-muted-foreground">{c.detalle as string}</span>}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </SeccionPanel>
+      )}
     </div>
   );
 }

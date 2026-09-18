@@ -5,6 +5,8 @@ import { requerirPerfil } from "@/lib/auth";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { PedidoAlmacen } from "@/components/crm/pedido-almacen";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
+import { SeriesDelPedido } from "@/components/crm/series-del-pedido";
+import { equiposVendidosDelCierre } from "@/lib/postventa";
 import { bloquesPedido, circuitoDe, ETIQUETA_TIPO_PEDIDO, sinPrecios, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,12 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
     ? await supabase.storage.from("adjuntos").createSignedUrls(fotos.map((f) => f.path), 3600)
     : { data: null };
   const galeria = fotos.map((f, i) => ({ ...f, url: firmadas?.[i]?.signedUrl ?? null }));
+  // Las series (0253): el almacén las lee en la placa al probar o al despachar.
+  const [{ data: maquinasDelPedido }, { data: cierre }] = await Promise.all([
+    supabase.from("equipos_instalados").select("id, serie, modelo_texto").eq("servicio_id", servicio.id).order("serie"),
+    servicio.informe_cierre_id ? supabase.from("informes_cierre").select("items").eq("id", servicio.informe_cierre_id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const vendidos = equiposVendidosDelCierre((cierre as { items?: unknown } | null)?.items);
 
   return (
     <div className="space-y-4">
@@ -65,6 +73,7 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
         <PedidoAlmacen servicio={servicio} />
 
         <div className="space-y-4">
+          <SeriesDelPedido servicioId={servicio.id} equipos={maquinasDelPedido ?? []} vendidos={vendidos} despachado={Boolean(servicio.despachado_at)} />
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">El circuito entero</h2>
             {bloques.map((b) => (

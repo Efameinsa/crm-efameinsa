@@ -97,6 +97,7 @@ export function LineaAtencion({
   garantia,
   cliente,
   hayMaquinas = false,
+  pedidoSinSeries = null,
   puedeCotizar = false,
   tecnicos = [],
 }: {
@@ -109,6 +110,8 @@ export function LineaAtencion({
   /** Si el cliente tiene máquinas para elegir en el panel de la derecha. Sin
    *  esto el Paso 1 mandaba a elegir de una lista vacía (0181). */
   hayMaquinas?: boolean;
+  /** El pedido del cliente que ya salió sin que nadie registrara las series (0253). */
+  pedidoSinSeries?: { id: string; equipo: string | null; despachado_at: string | null; guia: string | null } | null;
   /** Los técnicos que ya firmaron informes o visitas: se sugieren al agendar
    *  para que la misma persona no quede escrita de tres formas distintas. */
   tecnicos?: string[];
@@ -394,7 +397,7 @@ export function LineaAtencion({
           puestaEnMarcha
         />
       ) : a.etapa === "registro" ? (
-        <PasoRegistro atencion={a} garantia={garantia} hayMaquinas={hayMaquinas} enviando={enviando} correr={correr} />
+        <PasoRegistro atencion={a} garantia={garantia} hayMaquinas={hayMaquinas} pedidoSinSeries={pedidoSinSeries} enviando={enviando} correr={correr} />
       ) : a.etapa === "diagnostico" ? (
         <PasoPlanificar
           atencion={a}
@@ -761,12 +764,14 @@ function PasoRegistro({
   atencion: a,
   garantia,
   hayMaquinas,
+  pedidoSinSeries = null,
   enviando,
   correr,
 }: {
   atencion: Atencion;
   garantia: { en_garantia: boolean; hizo_preventivo: boolean } | null;
   hayMaquinas: boolean;
+  pedidoSinSeries?: { id: string; equipo: string | null; despachado_at: string | null; guia: string | null } | null;
   enviando: boolean;
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
 }) {
@@ -789,11 +794,26 @@ function PasoRegistro({
       if (!hayMaquinas) {
         return (
           <Caja titulo="Paso 1 · Verificar la garantía">
-            <p className="mb-3 text-sm text-muted-foreground">
-              Este cliente no tiene ninguna máquina registrada, así que no hay nada que elegir a la derecha.
-              Fíchela acá con lo que diga el cliente por teléfono —la serie se completa después— o siga sin
-              identificarla si por ahora no hay forma de saberlo.
-            </p>
+            {pedidoSinSeries ? (
+              // Gary Group, 18-09: el pedido salió con guía y nadie registró
+              // las series; el caso decía «no tiene ninguna máquina». Ahora
+              // dice lo que pasa y lleva a donde se arregla.
+              <p className="mb-3 rounded-md border border-amber-400/60 bg-amber-500/5 p-2.5 text-sm text-foreground">
+                Este cliente tiene un pedido que ya salió{pedidoSinSeries.despachado_at ? ` el ${pedidoSinSeries.despachado_at.slice(0, 10)}` : ""}
+                {pedidoSinSeries.guia ? ` con guía ${pedidoSinSeries.guia}` : ""}, pero <b>nadie registró las series</b> de las máquinas, así que
+                no aparecen para elegir.{" "}
+                <a href={`/postventa/pedidos/${pedidoSinSeries.id}`} className="font-semibold text-primary underline">
+                  Regístrelas en el pedido
+                </a>{" "}
+                (están en la guía o en la placa) y vuelva acá; o fíchela abajo con el modelo si no tiene la serie a mano.
+              </p>
+            ) : (
+              <p className="mb-3 text-sm text-muted-foreground">
+                Este cliente no tiene ninguna máquina registrada, así que no hay nada que elegir a la derecha.
+                Fíchela acá con lo que diga el cliente por teléfono —la serie se completa después— o siga sin
+                identificarla si por ahora no hay forma de saberlo.
+              </p>
+            )}
             <FicharMaquina atencionId={a.id} />
             <div className="mt-4 border-t border-border pt-3">
               <SeguirSinIdentificar atencionId={a.id} enviando={enviando} correr={correr} />

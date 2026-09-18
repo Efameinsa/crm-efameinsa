@@ -497,6 +497,24 @@ export async function cerrarPedido(
 }
 
 /**
+ * Las series del pedido, sin cerrarlo (0253). Gary Group salió el 15-09 con
+ * guía y ninguna serie llegó al parque: el caso que abrió después no tenía
+ * máquinas que elegir. La puerta era «Cerrar pedido»; ahora las series se
+ * ponen apenas se conocen (la guía, la placa en la salida del almacén).
+ */
+export async function registrarSeriesDelPedido(servicioId: string, series: string[], garantiaMeses = 24): Promise<{ error: string | null; fichadas?: number }> {
+  const limpias = [...new Set(series.map((s) => s.trim().toUpperCase()).filter(Boolean))];
+  if (limpias.length === 0) return { error: "Escriba al menos una serie" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("registrar_series_del_pedido", { p_servicio: servicioId, p_series: limpias, p_garantia_meses: garantiaMeses });
+  if (error) return falla(error.message);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath("/postventa/equipos");
+  return { error: null, fichadas: Number(data ?? 0) };
+}
+
+/**
  * El informe de puesta en marcha (anexo 3 del manual), con lo que de verdad
  * sirve después: fotos, ciclos y conformidad del cliente.
  *

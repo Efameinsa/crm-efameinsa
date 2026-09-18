@@ -201,10 +201,11 @@ export async function ficharEquipoDeLaAtencion(datos: {
     .eq("id", datos.atencionId)
     .maybeSingle();
   if (!a) return { error: "Esa atención no existe" };
-  if (a.equipo_id) return { error: "Esta atención ya tiene una máquina identificada" };
   if (!a.cuenta_id) return { error: "La atención no tiene cliente: primero hay que decir de quién es" };
 
-  const { error } = await supabase.rpc("fichar_equipo", {
+  // CON PRINCIPAL YA PUESTA, la máquina nueva entra como otra del mismo caso
+  // (0253, Carlos: «mejor que se pueda agregar»). Sin principal, es la principal.
+  const { data: nuevoId, error } = await supabase.rpc("fichar_equipo", {
     p_cuenta: a.cuenta_id,
     p_serie: datos.serie?.trim() || null,
     p_modelo: datos.modelo.trim(),
@@ -212,13 +213,39 @@ export async function ficharEquipoDeLaAtencion(datos: {
     p_fecha_compra: datos.fechaCompra || null,
     p_garantia_meses: datos.garantiaMeses ?? 24,
     p_ubicacion: datos.ubicacion?.trim() || null,
-    p_atencion: datos.atencionId,
+    p_atencion: a.equipo_id ? null : datos.atencionId,
     p_registrado_en: "atencion",
   });
   if (error) return { error: error.message };
+  if (a.equipo_id && nuevoId) {
+    const { error: e2 } = await supabase.rpc("agregar_equipo_al_caso", { p_atencion: datos.atencionId, p_equipo: nuevoId });
+    if (e2) return { error: e2.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  }
 
   refrescar(datos.atencionId);
   revalidatePath("/postventa/equipos");
+  return { error: null };
+}
+
+/**
+ * Varias máquinas en un caso (0253). La principal sigue en `equipo_id`; las
+ * demás quedan en `atencion_equipos` y el historial de cada una muestra el
+ * caso. Si el caso aún no tiene principal, la primera que se agrega lo es.
+ */
+export async function agregarEquipoAlCaso(atencionId: string, equipoId: string): Promise<{ error: string | null; como?: "principal" | "adicional" }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("agregar_equipo_al_caso", { p_atencion: atencionId, p_equipo: equipoId });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  refrescar(atencionId);
+  revalidatePath(`/postventa/equipos/${equipoId}`);
+  return { error: null, como: data as "principal" | "adicional" };
+}
+
+export async function quitarEquipoDelCaso(atencionId: string, equipoId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("quitar_equipo_del_caso", { p_atencion: atencionId, p_equipo: equipoId });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  refrescar(atencionId);
   return { error: null };
 }
 

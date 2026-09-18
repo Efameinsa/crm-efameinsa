@@ -62,9 +62,9 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
     a.equipo_id
       ? supabase.rpc("garantia_del_equipo", { p_equipo: a.equipo_id })
       : Promise.resolve({ data: null }),
-    // Solo cuando falta identificar la máquina: las series del cliente para
-    // el clic de la garantía (Carlos, 01-09).
-    !a.equipo_id && a.cuenta_id
+    // Las series del cliente: para el clic de la garantía (Carlos, 01-09) y,
+    // con la principal ya puesta, para agregar otras al mismo caso (0253).
+    a.cuenta_id
       ? supabase
           .from("equipos_instalados")
           .select("id, serie, modelo_texto, garantia_hasta, ultimo_mantenimiento, fecha_venta")
@@ -75,6 +75,15 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
     // Los técnicos que ya firmaron trabajos, para sugerirlos al agendar.
     tecnicosConocidos(supabase),
   ]);
+  // Las otras máquinas del caso (0253) y, si el cliente no tiene ninguna en el
+  // parque, el pedido que salió sin series: es lo que le pasó a Gary Group.
+  const [{ data: adicionales }, { data: pedidosSinSeries }] = await Promise.all([
+    supabase.from("atencion_equipos").select("equipo_id").eq("atencion_id", a.id),
+    a.cuenta_id && (equiposDelCliente ?? []).length === 0
+      ? supabase.from("servicios_postventa").select("id, equipo, despachado_at, guia").eq("cuenta_id", a.cuenta_id).not("despachado_at", "is", null).is("cerrado_at", null).order("despachado_at", { ascending: false }).limit(3)
+      : Promise.resolve({ data: [] as { id: string; equipo: string | null; despachado_at: string | null; guia: string | null }[] }),
+  ]);
+  const adicionalesIds = (adicionales ?? []).map((x) => x.equipo_id as string);
   const garantia = (g as {
     en_garantia: boolean;
     garantia_hasta: string | null;
@@ -269,6 +278,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               tecnicos={tecnicos}
               garantia={garantia}
               hayMaquinas={(equiposDelCliente ?? []).length > 0}
+              pedidoSinSeries={(pedidosSinSeries ?? [])[0] ?? null}
               cliente={a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente"}
             />
           </SeccionPanel>
@@ -345,9 +355,9 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           {/* El clic de la garantía (Carlos, 01-09): cuando el equipo aún no
               está identificado, acá salen las series del cliente para
               contrastar con la foto de la placa. Un clic vincula y verifica. */}
-          {!a.equipo_id && a.cuenta_id && (
-            <SeccionPanel titulo="¿De qué máquina habla el cliente?">
-              <EquiposDeLaAtencion atencionId={a.id} equipos={equiposDelCliente ?? []} />
+          {a.cuenta_id && (
+            <SeccionPanel titulo={a.equipo_id ? "Las máquinas de este caso" : "¿De qué máquina habla el cliente?"}>
+              <EquiposDeLaAtencion atencionId={a.id} equipos={equiposDelCliente ?? []} principalId={a.equipo_id} adicionalesIds={adicionalesIds} />
             </SeccionPanel>
           )}
 

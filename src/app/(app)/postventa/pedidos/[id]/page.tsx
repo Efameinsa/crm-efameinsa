@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, FileText, MessageCircle, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
+import { SeriesDelPedido } from "@/components/crm/series-del-pedido";
+import { equiposVendidosDelCierre } from "@/lib/postventa";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { requerirPerfil } from "@/lib/auth";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
@@ -86,7 +88,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   const { data: informe } = servicio.informe_cierre_id
     ? await supabase
         .from("informes_cierre")
-        .select("id, codigo, serie, cliente_nombre, cliente_doc, orden_compra, adjuntos, entrega_direccion, contacto_despacho, forma_pago, modalidad_pago")
+        .select("id, codigo, serie, cliente_nombre, cliente_doc, orden_compra, adjuntos, entrega_direccion, contacto_despacho, forma_pago, modalidad_pago, items")
         .eq("id", servicio.informe_cierre_id)
         .single()
     : { data: null };
@@ -98,6 +100,10 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   const { data: equiposDelPedido } = seriesDelPedido.length
     ? await supabase.from("equipos_instalados").select("id, serie").in("serie", seriesDelPedido)
     : { data: [] };
+  // Las máquinas que nacieron de este pedido (0253): si salió y no hay
+  // ninguna, postventa no puede atender un caso de este cliente.
+  const { data: maquinasDelPedido } = await supabase.from("equipos_instalados").select("id, serie, modelo_texto").eq("servicio_id", servicio.id).order("serie");
+  const vendidos = equiposVendidosDelCierre((informe as { items?: unknown } | null)?.items);
   const fichaPorSerie = new Map(
     (equiposDelPedido ?? []).map((e) => [String(e.serie).toUpperCase(), e.id as string]),
   );
@@ -306,6 +312,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
         />
 
         <div className="space-y-4">
+          <SeriesDelPedido servicioId={servicio.id} equipos={maquinasDelPedido ?? []} vendidos={vendidos} despachado={Boolean(servicio.despachado_at)} />
           {/* Lo que subió el almacén: protocolo, salida, guía (0246). */}
           {galeriaAlmacen.length > 0 && <GaleriaAlmacen fotos={galeriaAlmacen} />}
           {/* Los documentos del expediente. Antes venían impresos dentro del

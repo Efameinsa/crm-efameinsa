@@ -776,6 +776,18 @@ export const TIPOS_SERVICIO = [
  * y si no está en la lista se devuelve en la misma forma que el resto, con la
  * primera letra en mayúscula, en vez de gritar.
  */
+/**
+ * Cuántas máquinas vendió el cierre (0253): la suma de cantidades del bloque
+ * de venta. Es contra lo que se compara el parque para decir «faltan series».
+ */
+export function equiposVendidosDelCierre(items: unknown): number | null {
+  const lista = Array.isArray(items) ? (items as { bloque?: string; cantidad?: number | string }[]) : null;
+  if (!lista) return null;
+  const venta = lista.filter((i) => !i.bloque || i.bloque === "venta");
+  if (venta.length === 0) return null;
+  return venta.reduce((t, i) => t + (Number(i.cantidad) || 0), 0) || null;
+}
+
 /** Los informes que escribe el almacén (0252), en el orden de la lista de Lesly. */
 export const CLASES_INFORME_ALMACEN = [
   { clave: "puesta_en_marcha_ok", etiqueta: "Puesta en marcha · todo OK", de: "pedido", tipo: "puesta_en_marcha", modalidad: "in_situ" },
