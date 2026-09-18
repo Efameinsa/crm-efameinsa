@@ -365,10 +365,20 @@ export async function enviarCotizacion(
   if (comercialId) {
     const [{ data: perfil }, { data: cot }] = await Promise.all([
       supabase.from("perfiles").select("email_contacto").eq("id", comercialId).maybeSingle(),
-      supabase.from("cotizaciones").select("total").eq("id", cotizacionId).maybeSingle(),
+      supabase
+        .from("cotizaciones")
+        .select("total, oportunidades(cuentas(razon_social, nombre_comercial))")
+        .eq("id", cotizacionId)
+        .maybeSingle(),
     ]);
     if (perfil?.email_contacto) {
-      await avisarCotizacionCreadaEducanet({ email: perfil.email_contacto, monto: cot?.total, codigo });
+      const cuenta = (cot as { oportunidades?: { cuentas?: { razon_social?: string; nombre_comercial?: string | null } | null } | null } | null)?.oportunidades?.cuentas;
+      await avisarCotizacionCreadaEducanet({
+        email: perfil.email_contacto,
+        monto: cot?.total,
+        codigo,
+        cliente: cuenta?.nombre_comercial || cuenta?.razon_social,
+      });
     }
   }
 
@@ -396,7 +406,7 @@ export async function registrarVenta(
   if (ventaId) {
     const { data: venta } = await supabase
       .from("ventas")
-      .select("notas, monto_total, registrada_por")
+      .select("notas, monto_total, registrada_por, cotizaciones(codigo), oportunidades(cuentas(razon_social, nombre_comercial))")
       .eq("id", ventaId as string)
       .maybeSingle();
     aviso = venta?.notas ?? undefined;
@@ -409,7 +419,17 @@ export async function registrarVenta(
         .eq("id", venta.registrada_por)
         .maybeSingle();
       if (perfil?.email_contacto) {
-        await avisarCierreVentaEducanet({ email: perfil.email_contacto, monto: venta.monto_total });
+        const v = venta as unknown as {
+          cotizaciones?: { codigo?: string | null } | null;
+          oportunidades?: { cuentas?: { razon_social?: string; nombre_comercial?: string | null } | null } | null;
+        };
+        const cuenta = v.oportunidades?.cuentas;
+        await avisarCierreVentaEducanet({
+          email: perfil.email_contacto,
+          monto: venta.monto_total,
+          cliente: cuenta?.nombre_comercial || cuenta?.razon_social,
+          codigo: v.cotizaciones?.codigo,
+        });
       }
     }
   }

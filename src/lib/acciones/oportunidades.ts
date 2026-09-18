@@ -134,14 +134,33 @@ export async function registrarActividad(datos: {
   // campana (reclamo de Brenda del 29-08).
   await marcarLeidasDeOportunidad(datos.oportunidadId);
 
-  // Aviso a Educanet (best-effort, no bloquea el registro si falla).
+  // Aviso a Educanet (best-effort, no bloquea el registro si falla). Va con
+  // el cliente, la nota y el resultado para que el comercial vea en Educanet
+  // QUÉ gestión fue, no solo «llamada» ocho veces seguidas.
   const { data: perfilActor } = await supabase
     .from("perfiles")
     .select("email_contacto")
     .eq("id", user.id)
     .maybeSingle();
   if (perfilActor?.email_contacto) {
-    await avisarGestionRegistradaEducanet({ email: perfilActor.email_contacto, tipoGestion: datos.tipo });
+    const [{ data: opCliente }, { data: resultado }] = await Promise.all([
+      supabase
+        .from("oportunidades")
+        .select("cuentas(razon_social, nombre_comercial)")
+        .eq("id", datos.oportunidadId)
+        .maybeSingle(),
+      datos.resultadoId
+        ? supabase.from("catalogo_resultados_gestion").select("nombre").eq("id", datos.resultadoId).maybeSingle()
+        : Promise.resolve({ data: null as { nombre: string } | null }),
+    ]);
+    const cuenta = (opCliente as { cuentas?: { razon_social?: string; nombre_comercial?: string | null } | null } | null)?.cuentas;
+    await avisarGestionRegistradaEducanet({
+      email: perfilActor.email_contacto,
+      tipoGestion: datos.tipo,
+      cliente: cuenta?.nombre_comercial || cuenta?.razon_social,
+      nota: datos.nota,
+      resultado: resultado?.nombre,
+    });
 
     // Si esta es la PRIMERA gestion de la oportunidad y nacio de un lead
     // derivado por Central, se mide el tiempo de respuesta (objetivo: 10 min).
@@ -165,7 +184,11 @@ export async function registrarActividad(datos: {
         if (lead?.asignado_at) {
           const minutos = Math.round((Date.now() - new Date(lead.asignado_at).getTime()) / 60000);
           if (minutos >= 0) {
-            await avisarLeadRespondidoEducanet({ email: perfilActor.email_contacto, minutos });
+            await avisarLeadRespondidoEducanet({
+              email: perfilActor.email_contacto,
+              minutos,
+              cliente: cuenta?.nombre_comercial || cuenta?.razon_social,
+            });
           }
         }
       }
