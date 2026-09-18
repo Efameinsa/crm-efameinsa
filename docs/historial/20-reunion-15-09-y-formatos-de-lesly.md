@@ -247,3 +247,6 @@ marcarlos.
   clases 1-3, banco de preguntas, regrabar audio 2 y 3) enviado a las sesiones bin-f2 y bin-d7;
   `Downloads/visitas-a-la-planta-instrucciones-de-gerencia.txt` (instrucciones textuales del
   gerente) y `guia-visitas-a-planta.pdf` actualizados con el paso de cierre.
+- 18-09 15:40: **almacen@ pasa a modo real** (`es_prueba=false`): 124 pedidos en curso y 68
+  atenciones abiertas reales; los avisos (prueba pedida, apertura, despacho programado, visita,
+  orden de trabajo) le llegan de verdad. La práctica queda en practica.almacen@.
