@@ -391,6 +391,8 @@ export function PantallaCotizador({
   const payloadRef = useRef(payload);
   const guardadoRef = useRef(payload);
   const idRef = useRef<string | null>(edicion?.cotizacionId ?? null);
+  /** El último motivo por el que no se pudo guardar, para decirlo al confirmar. */
+  const ultimoError = useRef<string | null>(null);
   // Los guardados van en fila india: dos llamadas a la vez, con el borrador
   // todavía sin id, crearían DOS cotizaciones.
   const cola = useRef<Promise<unknown>>(Promise.resolve());
@@ -410,6 +412,13 @@ export function PantallaCotizador({
       formaPago: string;
       saldo: string;
     };
+    // Una línea a mano sin concepto todavía (el botón «+ Agregar una línea»
+    // recién apretado) no se manda: la base la rechaza entera y el sello se
+    // pondría en rojo por algo que no es un error, es que falta escribir.
+    if (datos.items.some((i) => !i.producto_id && !(i.descripcion ?? "").trim())) {
+      setGuardado({ tipo: "pendiente" });
+      return;
+    }
     const r = await guardarBorradorCotizacion({
       cotizacionId: idRef.current,
       oportunidadId,
@@ -429,10 +438,12 @@ export function PantallaCotizador({
     });
 
     if (r.error) {
+      ultimoError.current = r.error;
       setGuardado({ tipo: "error", mensaje: r.error });
       return;
     }
 
+    ultimoError.current = null;
     guardadoRef.current = actual;
     if (r.estadoAprobacion) setEstadoAprobacion(r.estadoAprobacion);
     // Quedarse sin equipos borra el borrador (no existe un documento vacío).
@@ -462,9 +473,10 @@ export function PantallaCotizador({
     // para el resto de la sesión.
     cola.current = cola.current
       .then(guardarAhora)
-      .catch((e) =>
-        setGuardado({ tipo: "error", mensaje: e instanceof Error ? e.message : "No se pudo guardar" }),
-      );
+      .catch((e) => {
+        ultimoError.current = e instanceof Error ? e.message : "No se pudo guardar";
+        setGuardado({ tipo: "error", mensaje: ultimoError.current });
+      });
     return cola.current;
   }, [guardarAhora]);
 
@@ -550,8 +562,8 @@ export function PantallaCotizador({
       ...c,
       {
         producto_id: null,
-        descripcion: desdeCaso.repuestosUsados ?? "",
-        nombre: "Repuestos usados en la visita",
+        descripcion: ["Repuestos usados en la visita", desdeCaso.repuestosUsados].join("\n"),
+        nombre: ["Repuestos usados en la visita", desdeCaso.repuestosUsados].join("\n"),
         cantidad: 1,
         precio_unitario: 0,
         precioPiso: null,
@@ -565,14 +577,18 @@ export function PantallaCotizador({
   /** Suma el preventivo de la máquina del caso como una línea más. */
   function agregarPreventivoVencido() {
     if (!desdeCaso) return;
+    const conceptoPreventivo = [
+      ["Mantenimiento preventivo", desdeCaso.equipo || desdeCaso.serie].filter(Boolean).join(" — "),
+      desdeCaso.ultimoPreventivo ? `El último registrado fue el ${desdeCaso.ultimoPreventivo}.` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
     setCarrito((c) => [
       ...c,
       {
         producto_id: null,
-        descripcion: desdeCaso.ultimoPreventivo
-          ? `Mantenimiento preventivo. El último registrado fue el ${desdeCaso.ultimoPreventivo}.`
-          : "Mantenimiento preventivo.",
-        nombre: ["Mantenimiento preventivo", desdeCaso.equipo || desdeCaso.serie].filter(Boolean).join(" — "),
+        descripcion: conceptoPreventivo,
+        nombre: conceptoPreventivo,
         cantidad: 1,
         precio_unitario: 0,
         precioPiso: null,
@@ -599,12 +615,24 @@ export function PantallaCotizador({
           .filter(Boolean)
           .join(" — ")
       : "";
+    // LO QUE SE VE ES LO QUE SE GUARDA. La base guarda `descripcion`, y la
+    // caja muestra `nombre`: desde el 08-09 la línea que venía de la caja de
+    // agregar nacía con el nombre puesto y la descripción VACÍA, así que la
+    // base la rechazaba («Cada equipo necesita estar en el catálogo o traer
+    // una descripción») y el sello quedaba en rojo hasta que la persona
+    // volviera a tocar el concepto. Ariana, 18-09: cotizó un mantenimiento,
+    // le puso precio y nunca se guardó. Con el caso, el título y lo que
+    // encontró el técnico van juntos, en renglones —que es lo que va a leer
+    // el cliente.
+    const concepto = texto?.trim()
+      ? texto.trim()
+      : [tituloDelCaso, primeraDelCaso ? (desdeCaso.diagnostico ?? desdeCaso.reporto) : null].filter(Boolean).join("\n");
     setCarrito((c) => [
       ...c,
       {
         producto_id: null,
-        descripcion: primeraDelCaso ? (desdeCaso.diagnostico ?? desdeCaso.reporto ?? "") : "",
-        nombre: texto?.trim() || tituloDelCaso,
+        descripcion: concepto,
+        nombre: concepto,
         cantidad: 1,
         precio_unitario: 0,
         // Sin producto no hay precio de referencia contra el cual contrastar:
@@ -732,7 +760,16 @@ export function PantallaCotizador({
     startTransition(async () => {
       const guardadoOk = await vaciarPendientes();
       if (!guardadoOk || !idRef.current) {
-        toast.error("Todavía no se pudo guardar la cotización; revise la conexión antes de confirmarla.");
+        // El motivo real está en el sello de arriba; acá se repite para que
+        // no se lea como «la conexión» cuando lo que falta es un dato.
+        const motivo = guardadoRef.current !== payloadRef.current && ultimoError.current;
+        toast.error(
+          motivo
+            ? `No se pudo guardar la cotización: ${motivo}`
+            : carrito.some((i) => !i.producto_id && !(i.descripcion ?? "").trim())
+              ? "Hay una línea escrita a mano sin concepto: escríbalo o quítela antes de confirmar."
+              : "Todavía no se pudo guardar la cotización; revise la conexión antes de confirmarla.",
+        );
         return;
       }
       if (iraAGerencia) {
