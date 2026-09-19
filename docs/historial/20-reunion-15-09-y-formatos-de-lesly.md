@@ -275,3 +275,16 @@ marcarlos.
   origen: orgánico Google 7, Google Ads 3, directo 2, ChatGPT 1, referido 1, desconocido 1), eventos
   clave de GA4 `generate_lead`/`contacto_whatsapp`/`sign_up`/`submit_application`, el WhatsApp del
   sitio pasó al número de la Cloud API, y fbp/fbc/registro_web ya llegan al CRM.
+
+## 19-09 (mañana) — Postventa cierra el caso que atendió (0258)
+
+- Gabriela (PV2), 9:23: al «Registrar y rechazar» la garantía de BESO DE SAL (PRO-09468, el
+  cliente se equivocó de máquina) el CRM le dijo «Solo el dueño de la oportunidad puede cambiarle
+  la etapa». El expediente es de `postventa@` (PV), donde aterriza todo lo que Central deriva a
+  postventa. La 0238 abrió la **gestión** a cualquiera del área pero la **etapa** seguía siendo del
+  dueño: anotar sí, cerrar no. Medido: 180 de 244 casos abiertos de postventa son de PV; PV2
+  anotó 11 gestiones en ellos desde el 15-09 sin poder cerrar ninguno.
+- 0258: política `oportunidades_postventa_update` con la misma llave que la gestión
+  (`puede_postventa()` + `tipo_postventa`). Probado como PV2 y PV1 (cierran), C1 (no), y PV2 sobre
+  expedientes comerciales ajenos (0 filas). El dueño no cambia: «Pedir el expediente» (0202) sigue
+  siendo el camino. Solo base: no requiere despliegue.
