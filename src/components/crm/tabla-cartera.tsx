@@ -35,6 +35,29 @@ export interface FilaCartera {
    * lista tenía que ahorrar.
    */
   telefono?: string | null;
+  /** La última gestión real (llamada, WhatsApp, visita…) de los últimos 30 días (19-09): se muestra junto a «Retomar». */
+  ultimaGestionAt?: string | null;
+  ultimaGestionTipo?: string | null;
+}
+
+const ETIQUETA_GESTION: Record<string, string> = {
+  llamada: "llamada",
+  whatsapp: "WhatsApp",
+  email: "correo",
+  visita: "visita",
+  showroom: "visita a planta",
+  reunion_online: "reunión",
+  filtro: "filtro",
+  otro: "gestión",
+};
+
+function etiquetaGestion(at: string | null | undefined, tipo: string | null | undefined): string | null {
+  if (!at) return null;
+  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const dia = new Date(at).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const dias = Math.round((Date.parse(hoy) - Date.parse(dia)) / 864e5);
+  const cuando = dias === 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`;
+  return `Gestionado ${cuando} · ${ETIQUETA_GESTION[tipo ?? ""] ?? "gestión"}`;
 }
 
 // Misma corrección que tabla-clientes.tsx / historial-cuenta.tsx (B9.3): la
@@ -126,7 +149,10 @@ export function TablaCartera({ filas, mostrarDueno = false }: { filas: FilaCarte
                   <span className="font-semibold text-primary">{c.oportunidadesActivas}</span>
                 ) : c.historicaId ? (
                   // El botón detiene el clic; Enter sobre él tampoco debe abrir la ficha.
-                  <span className="inline-flex" onKeyDown={(e) => e.stopPropagation()}>
+                  <span className="inline-flex flex-col items-end gap-0.5" onKeyDown={(e) => e.stopPropagation()}>
+                    {etiquetaGestion(c.ultimaGestionAt, c.ultimaGestionTipo) && (
+                      <span className="whitespace-nowrap text-[10px] font-semibold text-[#1E7F4F]">{etiquetaGestion(c.ultimaGestionAt, c.ultimaGestionTipo)}</span>
+                    )}
                     <TrabajarHistoricaBoton oportunidadId={c.historicaId} compacto />
                   </span>
                 ) : mostrarDueno ? (
@@ -141,6 +167,8 @@ export function TablaCartera({ filas, mostrarDueno = false }: { filas: FilaCarte
                   <span className="inline-flex" onKeyDown={(e) => e.stopPropagation()}>
                     <OfrecerMantenimientoBoton cuentaId={c.id} compacto />
                   </span>
+                ) : etiquetaGestion(c.ultimaGestionAt, c.ultimaGestionTipo) ? (
+                  <span className="whitespace-nowrap text-[10px] font-semibold text-[#1E7F4F]">{etiquetaGestion(c.ultimaGestionAt, c.ultimaGestionTipo)}</span>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}

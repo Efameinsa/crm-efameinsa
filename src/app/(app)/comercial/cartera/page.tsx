@@ -63,6 +63,12 @@ export default async function CarteraPage({
     listarClientes(supabase, { q, orden, rubro: rubroParaRpc(rubro), limite: POR_PAGINA, offset: (pagina - 1) * POR_PAGINA }),
   ]);
 
+  // LA ÚLTIMA GESTIÓN DE CADA CLIENTE DE LA PÁGINA (19-09). Ariana: «ya lo
+  // gestionaron y sigue apareciendo como Retomar». Cuando el seguimiento del
+  // día se cierra (el cliente dijo que no), el cliente queda sin nada abierto y
+  // la fila ofrece «Retomar» — correcto, pero parecía que la llamada no se
+  // había registrado. Ahora la fila dice «Gestionado hoy · llamada».
+  const ultimaGestion = await ultimasGestionesDe(supabase, filas.map((c) => c.id));
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
   const desde = total === 0 ? 0 : (pagina - 1) * POR_PAGINA + 1;
   const hasta = Math.min(total, pagina * POR_PAGINA);
@@ -132,6 +138,8 @@ export default async function CarteraPage({
                 historicaId: c.historica_id,
                 duenoCodigo: c.codigo_comercial,
                 telefono: c.telefono ?? null,
+                ultimaGestionAt: ultimaGestion.get(c.id)?.at ?? null,
+                ultimaGestionTipo: ultimaGestion.get(c.id)?.tipo ?? null,
               }))}
               mostrarDueno={atiendeSinPoseer}
             />
@@ -141,4 +149,24 @@ export default async function CarteraPage({
       </SeccionPanel>
     </div>
   );
+}
+
+/** La última gestión real (no notas) de cada cliente en los últimos 30 días. Fuera del componente por la regla de pureza. */
+async function ultimasGestionesDe(supabase: Awaited<ReturnType<typeof createClient>>, ids: string[]): Promise<Map<string, { tipo: string; at: string }>> {
+  const mapa = new Map<string, { tipo: string; at: string }>();
+  if (ids.length === 0) return mapa;
+  const desde = new Date(Date.now() - 30 * 864e5).toISOString();
+  const { data } = await supabase
+    .from("actividades")
+    .select("tipo, realizada_at, oportunidades!inner(cuenta_id)")
+    .in("oportunidades.cuenta_id", ids)
+    .not("tipo", "eq", "nota")
+    .gte("realizada_at", desde)
+    .order("realizada_at", { ascending: false })
+    .limit(600);
+  for (const g of (data ?? []) as unknown as { tipo: string; realizada_at: string; oportunidades: { cuenta_id: string } | null }[]) {
+    const cid = g.oportunidades?.cuenta_id;
+    if (cid && !mapa.has(cid)) mapa.set(cid, { tipo: g.tipo, at: g.realizada_at });
+  }
+  return mapa;
 }
