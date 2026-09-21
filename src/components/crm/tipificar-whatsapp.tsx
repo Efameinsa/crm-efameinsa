@@ -11,7 +11,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Copy, Check, ExternalLink } from "lucide-react";
 import { tipificarWhatsApp, type TipificacionActual } from "@/lib/acciones/whatsapp-campanas";
 import { ETIQUETA_TIPIFICACION, type TipificacionWhatsapp } from "@/lib/whatsapp-marketing";
 import { Button } from "@/components/ui/button";
@@ -40,15 +40,31 @@ const TONO: Record<TipificacionActual["estado"], string> = {
 interface Props {
   leadId: string;
   actual?: TipificacionActual | null;
+  /** El número del cliente (E.164 sin +): habilita «Seguir por mi WhatsApp» al marcar «continuado por mi línea». */
+  telefono?: string | null;
   /** Compacto: solo el estado vigente + botón "Cambiar", para listas largas (la bandeja de Central). */
   compacto?: boolean;
 }
 
-export function TipificarWhatsapp({ leadId, actual, compacto = false }: Props) {
+export function TipificarWhatsapp({ leadId, actual, telefono, compacto = false }: Props) {
   const [abierto, setAbierto] = useState(!actual && !compacto);
   const [nota, setNota] = useState("");
   const [pendiente, setPendiente] = useState<TipificacionWhatsapp | null>(null);
   const [enviando, startTransition] = useTransition();
+  const [copiado, setCopiado] = useState(false);
+  const numeroLimpio = (telefono ?? "").replace(/\D/g, "");
+  const numeroLocal = numeroLimpio.startsWith("51") && numeroLimpio.length === 11 ? numeroLimpio.slice(2) : numeroLimpio;
+
+  // «Continuado por mi línea» (Santos, 21-09): jalar el número tiene que ser
+  // un clic. Se copia al portapapeles y se abre el WhatsApp del vendedor con
+  // el cliente ya elegido; la razón se sigue escribiendo, como pide gerencia.
+  function copiarNumero() {
+    if (!numeroLocal) return;
+    navigator.clipboard?.writeText(numeroLocal).then(() => {
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 1500);
+    });
+  }
 
   function elegir(valor: TipificacionWhatsapp) {
     if (valor === "continuado_por_mi_linea") {
@@ -121,6 +137,23 @@ export function TipificarWhatsapp({ leadId, actual, compacto = false }: Props) {
           {pendiente === "continuado_por_mi_linea" && (
             <div className="space-y-1.5 rounded-md border border-amber-300 bg-amber-50 p-2">
               <p className="text-[11px] font-semibold text-amber-900">¿Por qué sigue la conversación fuera del CRM?</p>
+              {numeroLimpio && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-mono text-xs font-semibold text-amber-950">{numeroLocal}</span>
+                  <Button type="button" size="sm" variant="outline" className="h-6 gap-1 px-2 text-[11px]" onClick={copiarNumero}>
+                    {copiado ? <Check className="size-3 text-[#1E7F4F]" /> : <Copy className="size-3" />}
+                    {copiado ? "Copiado" : "Copiar número"}
+                  </Button>
+                  <a
+                    href={`https://wa.me/${numeroLimpio}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-6 items-center gap-1 rounded-md border border-border bg-background px-2 text-[11px] font-medium text-foreground hover:bg-secondary"
+                  >
+                    <ExternalLink className="size-3" /> Abrir en mi WhatsApp
+                  </a>
+                </div>
+              )}
               <Textarea
                 value={nota}
                 onChange={(e) => setNota(e.target.value)}

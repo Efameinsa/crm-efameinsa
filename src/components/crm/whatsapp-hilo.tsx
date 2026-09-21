@@ -356,7 +356,7 @@ export function WhatsappHilo({
               SubmitApplication) y alimenta el informe por anuncio. */}
           {conversacion.lead_id && (
             <div className="mt-1.5">
-              <TipificarWhatsapp leadId={conversacion.lead_id} actual={tipificacionActual} compacto />
+              <TipificarWhatsapp leadId={conversacion.lead_id} actual={tipificacionActual} telefono={conversacion.telefono} compacto />
             </div>
           )}
         </div>
