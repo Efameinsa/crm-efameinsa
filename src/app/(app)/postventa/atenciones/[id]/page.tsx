@@ -40,7 +40,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   const { data } = await supabase
     .from("atenciones")
     .select(
-      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, etapas_omitidas, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, servicio_id, servicios_postventa(id, equipo, despachado_at, fecha_despacho, puesta_en_marcha), cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial)",
+      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, etapas_omitidas, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, servicio_id, servicios_postventa(id, equipo, despachado_at, fecha_despacho, puesta_en_marcha), cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial), recibido_por, recibidoPor:recibido_por(nombre, codigo_comercial)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -52,6 +52,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
 
   const a = data as unknown as Atencion & {
     oportunidad_id: string | null;
+    recibidoPor: { nombre: string; codigo_comercial: string | null } | null;
     cuentas: { razon_social: string; num_doc: string | null } | null;
     perfiles: { nombre: string; codigo_comercial: string | null } | null;
   };
@@ -291,7 +292,12 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           {a.detalle && (
             <SeccionPanel titulo="Lo que reportó el cliente">
               <p className="whitespace-pre-line text-sm text-foreground">{a.detalle}</p>
+              {/* Carlos, 21-09: «¿quién lo registró? ¿la central?». Que se lea
+                  quién y cuándo, para saber a quién preguntarle. */}
               <p className="mt-1.5 text-[11px] text-muted-foreground">
+                {a.recibidoPor
+                  ? `Lo registró ${a.recibidoPor.nombre}${a.recibidoPor.codigo_comercial ? ` (${a.recibidoPor.codigo_comercial})` : ""} el ${fechaHoraLima(a.solicitado_at)}. `
+                  : `Entró el ${fechaHoraLima(a.solicitado_at)}. `}
                 Con sus palabras, tal como entró. No se edita.
               </p>
             </SeccionPanel>

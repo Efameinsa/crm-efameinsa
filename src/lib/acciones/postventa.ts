@@ -318,12 +318,43 @@ export async function emitirAperturaDespacho(servicioId: string) {
  * la persona que recibe; por eso quien recibe se toma acá y no recién al
  * despachar.
  */
+/**
+ * DESPUÉS DE LA APERTURA, TOCAR LA ENTREGA PIDE CÓDIGO (Carlos, 21-09): «no
+ * debería permitir modificar una vez que se guarda… con PIN, exactamente».
+ * La apertura ya salió al almacén y al cliente; cambiar dirección, quién
+ * recibe o la fecha después de eso se autoriza, no se edita.
+ */
+async function candadoDeApertura(servicioId: string, pin?: string | null): Promise<{ error: string | null; pidePin?: boolean }> {
+  const supabase = await createClient();
+  const { data: s } = await supabase.from("servicios_postventa").select("apertura_despacho_at").eq("id", servicioId).maybeSingle();
+  if (!s?.apertura_despacho_at) return { error: null };
+  if (!pin?.trim()) return { error: "La apertura ya se emitió: para cambiar esto hace falta el código de operaciones o gerencia", pidePin: true };
+  const { error } = await supabase.rpc("validar_codigo_autorizacion", { p_pin: pin.trim(), p_ambito: "operaciones" });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, ""), pidePin: true };
+  return { error: null };
+}
+
 export async function verificarDireccion(
   servicioId: string,
-  datos: { direccion: string; confirmoNombre: string; recibeNombre?: string; recibeDoc?: string; recibeTelefono?: string },
+  datos: {
+    direccion: string;
+    confirmoNombre: string;
+    recibeNombre?: string;
+    recibeDoc?: string;
+    recibeTelefono?: string;
+    /** A domicilio o en agencia, y cuál (0259). */
+    entregaModo?: "domicilio" | "agencia" | null;
+    agenciaDestino?: string | null;
+    pin?: string | null;
+  },
 ) {
   const supabase = await createClient();
   if (!datos.direccion.trim()) return falla("Escriba la dirección tal como la confirmó el cliente");
+  // El DNI de quien recibe es obligatorio (Lesly, 21-09: «tiene que ser obligatorio»).
+  if (!datos.recibeDoc?.trim() || datos.recibeDoc.replace(/\D/g, "").length < 8) return falla("El DNI de quien recibe es obligatorio (8 dígitos): sin él la agencia no entrega");
+  if (datos.entregaModo === "agencia" && !datos.agenciaDestino?.trim()) return falla("Diga en qué agencia y a qué ciudad (ej. «Marvisur, agencia Trujillo»): en Cusco hay seis");
+  const candado = await candadoDeApertura(servicioId, datos.pin);
+  if (candado.error) return { error: candado.error, pidePin: candado.pidePin };
 
   const { error } = await supabase
     .from("servicios_postventa")
@@ -332,17 +363,31 @@ export async function verificarDireccion(
       direccion_verificada_at: new Date().toISOString(),
       direccion_verificada_con: datos.confirmoNombre.trim() || null,
       ...(datos.recibeNombre?.trim() ? { recibe_nombre: datos.recibeNombre.trim() } : {}),
-      ...(datos.recibeDoc?.trim() ? { recibe_doc: datos.recibeDoc.trim() } : {}),
+      recibe_doc: datos.recibeDoc.trim(),
       ...(datos.recibeTelefono?.trim() ? { recibe_telefono: datos.recibeTelefono.trim() } : {}),
+      ...(datos.entregaModo ? { entrega_modo: datos.entregaModo, agencia_destino: datos.entregaModo === "agencia" ? datos.agenciaDestino?.trim() || null : null } : {}),
     })
     .eq("id", servicioId);
+  if (error) return falla(error.message);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}/apertura`);
+  return ok();
+}
+
+/** Este pedido no lleva plano de preinstalación (0259): el paso se salta y queda el motivo. */
+export async function marcarSinPlano(servicioId: string, motivo: string) {
+  if (!motivo.trim()) return falla("Diga por qué no lleva plano (ej. «es un calderín, no requiere instalación»)");
+  const supabase = await createClient();
+  const { error } = await supabase.from("servicios_postventa").update({ sin_plano: true, sin_plano_motivo: motivo.trim() }).eq("id", servicioId);
   if (error) return falla(error.message);
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   return ok();
 }
 
-export async function programarDespacho(servicioId: string, fecha: string, nota?: string) {
+export async function programarDespacho(servicioId: string, fecha: string, nota?: string, pin?: string | null) {
   const supabase = await createClient();
+  const candado = await candadoDeApertura(servicioId, pin);
+  if (candado.error) return { error: candado.error, pidePin: candado.pidePin };
   const { error } = await supabase
     .from("servicios_postventa")
     .update({ fecha_despacho: fecha || null, despacho_nota: nota?.trim() || null })

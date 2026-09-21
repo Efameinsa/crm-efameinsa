@@ -26,6 +26,8 @@ const MOTORGAS: DatosApertura = {
   nota: "se solicita 01 guía para la entrega del equipo",
   direccion: "EN NUESTRAS INSTALACIONES",
   direccionFinal: "LOTE 14 TOMA DE BAUTISTA GROCIO PRADO – CHINCHA - ICA",
+  entregaModo: null,
+  agenciaDestino: null,
   fecha: "2026-08-25",
   hora: "11:00 AM",
   recibeNombre: "Felix Alejandro Reyes Ortiz",
@@ -120,6 +122,14 @@ describe("las nueve filas llevan lo que el correo lleva", () => {
     const direccion = filasApertura(MOTORGAS)[2].informacion;
     expect(direccion).toContain("EN NUESTRAS INSTALACIONES");
     expect(direccion).toContain("DIRECCIÓN FINAL: LOTE 14 TOMA DE BAUTISTA GROCIO PRADO – CHINCHA - ICA");
+  });
+
+  it("dice si la entrega es a domicilio o en agencia, y cuál (0259)", () => {
+    const agencia = filasApertura({ ...MOTORGAS, entregaModo: "agencia", agenciaDestino: "Marvisur, agencia Cusco – Wanchaq" })[2].informacion;
+    expect(agencia.startsWith("ENTREGA EN AGENCIA: Marvisur, agencia Cusco – Wanchaq")).toBe(true);
+    const domicilio = filasApertura({ ...MOTORGAS, entregaModo: "domicilio" })[2].informacion;
+    expect(domicilio.startsWith("ENTREGA A DOMICILIO")).toBe(true);
+    expect(filasApertura(MOTORGAS)[2].informacion.startsWith("EN NUESTRAS INSTALACIONES")).toBe(true);
   });
 
   it("sin dirección final, la fila 3 es solo la dirección", () => {

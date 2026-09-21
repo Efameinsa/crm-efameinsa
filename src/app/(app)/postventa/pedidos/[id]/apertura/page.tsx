@@ -105,6 +105,8 @@ export default async function AperturaServicioPage({ params }: { params: Promise
     nota: s.apertura_nota ?? null,
     direccion: s.direccion_entrega ?? informe?.entrega_direccion ?? s.ubicacion ?? null,
     direccionFinal: s.direccion_final ?? null,
+    entregaModo: s.entrega_modo ?? null,
+    agenciaDestino: s.agencia_destino ?? null,
     // El día del servicio: el que se coordinó para la apertura y, si todavía
     // no se puso, el despacho ya programado.
     fecha: s.apertura_fecha ?? s.fecha_despacho ?? null,

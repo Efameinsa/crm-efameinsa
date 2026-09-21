@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ElDiaDelArea } from "@/components/crm/el-dia-del-area";
+import { BitacoraDia, type ActividadDia } from "@/components/crm/bitacora-dia";
 import { puedeVerPrecios, sinPrecios, veTodoPostventa, type ServicioPostventa } from "@/lib/postventa";
 import { CalendarioPostventa, type VistaCalendario } from "@/components/crm/calendario-postventa";
 import {
@@ -76,6 +77,16 @@ export default async function AgendaPostventaPage({
         : [fecha];
   const desde = dias[0];
   const hasta = dias[dias.length - 1];
+
+  // Lo que se hizo hoy y no es un caso ni un pedido (Rubí, 21-09: «otras
+  // gestiones»: el correo, la llamada que no abrió caso). Es la misma bitácora
+  // del informe de Central, por persona y por día.
+  const { data: bitacora } = await supabase
+    .from("bitacora_dia")
+    .select("id, orden, texto")
+    .eq("perfil_id", perfil.id)
+    .eq("fecha", hoy)
+    .order("orden", { ascending: true });
 
   // El área ve todos los casos, estén en la cartera de quien estén (01-09).
   const verTodo = veTodoPostventa(perfil);
@@ -215,6 +226,14 @@ export default async function AgendaPostventaPage({
           board… llenando información repetida que ya está acá». */}
       <SeccionPanel titulo="El día del área">
         <ElDiaDelArea />
+      </SeccionPanel>
+
+      <SeccionPanel titulo="Otras gestiones de hoy">
+        <p className="mb-2 text-xs text-muted-foreground">
+          Lo que hizo hoy y no es un caso ni un pedido: correos, llamadas que no abrieron atención, coordinaciones. Entra al
+          reporte del día tal cual, numerado.
+        </p>
+        <BitacoraDia fecha={hoy} actividades={(bitacora ?? []) as ActividadDia[]} />
       </SeccionPanel>
 
     <SeccionPanel titulo="Calendario de atenciones" accion={<BotonesAgendar />}>

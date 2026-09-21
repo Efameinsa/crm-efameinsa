@@ -86,6 +86,12 @@ export interface ServicioPostventa {
    * Son los datos que no vivían en ninguna parte y viajaban en la cabeza de
    * quien armaba el correo.
    */
+  /** No lleva plano de preinstalación (repuesto, accesorio) y por qué (0259). */
+  sin_plano?: boolean | null;
+  sin_plano_motivo?: string | null;
+  /** A domicilio o en agencia, y cuál (0259). */
+  entrega_modo?: "domicilio" | "agencia" | null;
+  agencia_destino?: string | null;
   apertura_tipo?: string | null;
   apertura_fecha?: string | null;
   apertura_hora?: string | null;
@@ -444,7 +450,9 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
                 : undefined,
           },
         ]),
-    ...(circuito.esEquipo
+    // El plano solo cuando el pedido lo lleva (0259, Carlos 21-09: un calderín
+    // o un accesorio no tiene plano; el paso se salta y queda dicho por qué).
+    ...(circuito.esEquipo && !s.sin_plano
       ? [
           {
             clave: "plano",
@@ -467,7 +475,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
     !(pagoConfirmado || pagoDesconocido || despachoAutorizadoConSaldo) ? "la confirmación de Finanzas" : null,
     s.direccion_verificada_at == null ? (circuito.esServicio ? "dónde se hace el servicio, verificado" : "la dirección verificada") : null,
     !circuito.esServicio && !pruebaLista ? (circuito.esRepuesto ? "el repuesto listo y embalado" : "el equipo probado y embalado") : null,
-    circuito.esEquipo && !planoEnviado ? "el plano de preinstalación" : null,
+    circuito.esEquipo && !s.sin_plano && !planoEnviado ? "el plano de preinstalación" : null,
     // LA PREINSTALACIÓN YA NO FRENA LA APERTURA. Carlos, 09-09: «preinstalación
     // confirmada, eso es parte de la puesta en marcha… la apertura de despacho
     // sí va en el despacho». Deja de ser un requisito para despachar y pasa al

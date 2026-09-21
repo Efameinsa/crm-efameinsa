@@ -88,6 +88,9 @@ export interface DatosApertura {
   nota: string | null;
   direccion: string | null;
   direccionFinal: string | null;
+  /** A domicilio o en agencia, y cuál (0259: en Cusco hay seis agencias). */
+  entregaModo: "domicilio" | "agencia" | null;
+  agenciaDestino: string | null;
   fecha: string | null;
   hora: string | null;
   recibeNombre: string | null;
@@ -118,7 +121,15 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     .join("\n")
     .trim();
 
-  const direccion = [d.direccion ?? "—", d.direccionFinal ? `DIRECCIÓN FINAL: ${d.direccionFinal}` : null]
+  // Carlos, 21-09: la apertura tiene que decir si va A DOMICILIO o EN AGENCIA,
+  // y en agencia cuál y a qué ciudad. Antes iba perdido en la nota.
+  const entrega =
+    d.entregaModo === "agencia"
+      ? `ENTREGA EN AGENCIA: ${d.agenciaDestino ?? "(agencia por confirmar)"}`
+      : d.entregaModo === "domicilio"
+        ? "ENTREGA A DOMICILIO"
+        : null;
+  const direccion = [entrega, d.direccion ?? "—", d.direccionFinal ? `DIRECCIÓN FINAL: ${d.direccionFinal}` : null]
     .filter(Boolean)
     .join("\n");
 

@@ -40,8 +40,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!informe) return NextResponse.json({ error: "Informe no encontrado" }, { status: 404 });
 
   const { data: perfil } = await supabase.from("perfiles").select("rol, es_postventa").eq("id", user.id).maybeSingle();
-  if (perfil && !puedeVerPrecios(perfil) && informe.creado_por !== user.id) {
-    return NextResponse.json({ error: "El área de postventa no ve las cifras del cierre" }, { status: 403 });
+  // Postventa sí abre el PDF del cierre desde el 21-09 (Carlos: «están
+  // ciegos… va a tener que ser mostrado, por lo menos en esta etapa»). Las
+  // cifras siguen fuera de sus pantallas; el documento firmado es otra cosa:
+  // es lo que se acordó con el cliente y lo que despacha.
+  if (perfil && !puedeVerPrecios(perfil) && !perfil.es_postventa && informe.creado_por !== user.id) {
+    return NextResponse.json({ error: "Este cierre no es suyo" }, { status: 403 });
   }
 
   const guardados = (informe.items ?? []) as ItemGuardado[];

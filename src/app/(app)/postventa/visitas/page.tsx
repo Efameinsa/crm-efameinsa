@@ -4,6 +4,7 @@ import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ListaVisitasPlanta, type VisitaFila } from "@/components/crm/lista-visitas-planta";
 import { COLUMNAS_VISITA } from "@/lib/visitas-planta-columnas";
+import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
 
 export const dynamic = "force-dynamic";
 
@@ -33,10 +34,10 @@ export default async function VisitasPostventaPage() {
   };
   return (
     <div className="space-y-4">
-      <SeccionPanel titulo="Quién viene a la planta">
+      <SeccionPanel titulo="Quién viene a la planta" accion={<VisitaPlantaBoton cuentaId={null} empresa="" ruc={null} compacto />}>
         <p className="mb-3 text-xs text-muted-foreground">
-          Las visitas que registraron comerciales y postventa desde la ficha del cliente («Viene a la planta»).
-          Central las imprime para vigilancia; acá se ven para saber a quién se espera.
+          Las visitas que registraron comerciales y postventa desde la ficha del cliente («Viene a la planta»), o desde acá
+          cuando el que viene todavía no es cliente. Central las imprime para vigilancia; acá se ven para saber a quién se espera.
         </p>
         <ListaVisitasPlanta visitas={(proximas ?? []).map(mapear)} hoy={hoy} modo="lectura" />
       </SeccionPanel>

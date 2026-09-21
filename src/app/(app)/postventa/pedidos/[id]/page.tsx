@@ -196,7 +196,10 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
               <FileText className="size-3.5" />
               {servicio.apertura_despacho_at ? "Apertura de servicio" : "Preparar la apertura"}
             </Link>
-            {informe?.id && verPrecios && (
+            {/* Carlos, 21-09, mirando a Rubí sin poder ver el detalle del
+                pedido: «están ciegos… el PDF del cierre va a tener que ser
+                mostrado, por lo menos en esta etapa». Postventa lo abre. */}
+            {informe?.id && (
               <a
                 href={`/api/informes/${informe.id}/pdf`}
                 target="_blank"

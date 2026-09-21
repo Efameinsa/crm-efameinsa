@@ -4,6 +4,7 @@ import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ListaVisitasPlanta, type VisitaFila } from "@/components/crm/lista-visitas-planta";
 import { COLUMNAS_VISITA } from "@/lib/visitas-planta-columnas";
+import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +32,9 @@ export default async function VisitasComercialPage() {
   const sinCerrar = (pasadas ?? []).filter((v) => !(v as { cerrada_at?: string | null }).cerrada_at && !(v as { cancelada_at?: string | null }).cancelada_at).length;
   return (
     <div className="space-y-4">
-      <SeccionPanel titulo="Mis visitas a la planta">
+      <SeccionPanel titulo="Mis visitas a la planta" accion={<VisitaPlantaBoton cuentaId={null} empresa="" ruc={null} compacto />}>
         <p className="mb-3 text-xs text-muted-foreground">
-          Se anuncian desde la ficha del cliente («Viene a la planta»). Central avisa a vigilancia y marca «Llegó»; el almacén
+          Se anuncian desde la ficha del cliente («Viene a la planta») o desde acá si todavía no es cliente. Central avisa a vigilancia y marca «Llegó»; el almacén
           prepara la máquina; usted la recibe y, al terminar, la registra con su resultado: eso es la gestión.
           {sinCerrar > 0 && <span className="ml-1 font-semibold text-amber-700">{sinCerrar} visita{sinCerrar === 1 ? "" : "s"} pasada{sinCerrar === 1 ? "" : "s"} sin registrar.</span>}
         </p>

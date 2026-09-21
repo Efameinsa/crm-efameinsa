@@ -23,6 +23,7 @@ import {
   emitirAperturaDespacho,
   verificarDireccion,
   programarDespacho,
+  marcarSinPlano,
   registrarDespacho,
   cerrarPedido,
   guardarInformeServicio,
@@ -60,6 +61,7 @@ type Formulario =
   | { tipo: "finanzas" }
   | { tipo: "condicion" }
   | { tipo: "prueba" }
+  | { tipo: "sin_plano" }
   | { tipo: "direccion" }
   | { tipo: "preinstalacion" }
   | { tipo: "programar" }
@@ -191,8 +193,12 @@ export function PedidoPostventa({
           </BotonPaso>
         );
       case "prueba":
+        // Una vez pedida al almacén, la marca el almacén (Carlos, 21-09:
+        // «marcar listo lo manda el almacén; ya no debería aparecer»). Postventa
+        // solo la marca a mano si todavía no la pidió (pedidos anteriores al
+        // circuito, o cuando el almacén no entra al CRM).
         return servicio.prueba_solicitada_at ? (
-          <BotonPaso onClick={() => setForm({ tipo: "prueba" })}>Marcar listo</BotonPaso>
+          <span className="text-[11px] text-muted-foreground">Esperando al almacén: lo marca desde su pantalla</span>
         ) : (
           <BotonPaso
             onClick={() =>
@@ -204,13 +210,17 @@ export function PedidoPostventa({
         );
       case "plano":
         return (
-          <BotonPaso
-            onClick={() =>
-              correr(() => marcarPaso(servicio.id, "plano_enviado_at"), "Plano marcado como enviado", { plano_enviado_at: ahora() })
-            }
-          >
-            Marcar enviado
-          </BotonPaso>
+          <span className="inline-flex flex-wrap gap-1.5">
+            <BotonPaso
+              onClick={() =>
+                correr(() => marcarPaso(servicio.id, "plano_enviado_at"), "Plano marcado como enviado", { plano_enviado_at: ahora() })
+              }
+            >
+              Marcar enviado
+            </BotonPaso>
+            {/* Repuesto, accesorio, calderín: no hay plano que mandar (0259). */}
+            <BotonPaso onClick={() => setForm({ tipo: "sin_plano" })}>No lleva plano</BotonPaso>
+          </span>
         );
       case "pago":
         return <BotonPaso onClick={() => setForm({ tipo: "finanzas" })}>Registrar confirmación</BotonPaso>;
@@ -597,23 +607,56 @@ export function PedidoPostventa({
                 recibeNombre: datos.recibe,
                 recibeDoc: datos.doc,
                 recibeTelefono: datos.telefono,
+                entregaModo: datos.entrega === "agencia" ? "agencia" : "domicilio",
+                agenciaDestino: datos.agencia,
+                pin: datos.pin,
               }),
             "Dirección y quién recibe, verificados",
           )
         }
         campos={[
           {
+            nombre: "entrega",
+            etiqueta: "Entrega",
+            inicial: servicio.entrega_modo ?? (servicio.modalidad === "provincia" ? "agencia" : "domicilio"),
+            requerido: true,
+            opciones: [
+              { valor: "domicilio", etiqueta: "A domicilio (la dirección de abajo)" },
+              { valor: "agencia", etiqueta: "En agencia (el cliente recoge)" },
+            ],
+          },
+          {
+            nombre: "agencia",
+            etiqueta: "Agencia y ciudad de destino (obligatorio si es en agencia; en Cusco hay seis)",
+            inicial: servicio.agencia_destino ?? "",
+            requerido: false,
+          },
+          {
             nombre: "direccion",
-            etiqueta: "Dirección tal como la confirmó",
+            etiqueta: "Dirección tal como la confirmó (la final del cliente)",
             area: true,
             inicial: servicio.direccion_entrega ?? servicio.ubicacion ?? "",
             requerido: true,
           },
           { nombre: "confirmo", etiqueta: "Con quién habló (nombre y cargo)", requerido: true },
           { nombre: "recibe", etiqueta: "Quién recibe el equipo", inicial: servicio.recibe_nombre ?? "", requerido: true },
-          { nombre: "doc", etiqueta: "DNI de quien recibe", inicial: servicio.recibe_doc ?? "", requerido: false },
+          { nombre: "doc", etiqueta: "DNI de quien recibe (obligatorio: la agencia lo pide)", inicial: servicio.recibe_doc ?? "", requerido: true },
           { nombre: "telefono", etiqueta: "Teléfono de quien recibe", inicial: servicio.recibe_telefono ?? "", requerido: true },
+          ...(servicio.apertura_despacho_at
+            ? [{ nombre: "pin", etiqueta: "La apertura ya salió: código de operaciones o gerencia para cambiarlo", requerido: true }]
+            : []),
         ]}
+      />
+
+      <Cuadro
+        abierto={form?.tipo === "sin_plano"}
+        cerrar={() => setForm(null)}
+        titulo="Este pedido no lleva plano de preinstalación"
+        descripcion="Repuestos, accesorios y equipos que no se instalan (un calderín, una mesa) no tienen plano. El paso se salta y queda escrito por qué."
+        boton="Saltar el plano"
+        pendiente={pendiente}
+        onEnviar={(datos) => correr(() => marcarSinPlano(servicio.id, datos.motivo), "Listo: el circuito sigue sin el plano", { sin_plano: true })}
+        campos={[{ nombre: "motivo", etiqueta: "Por qué no lleva plano", inicial: "Es un repuesto / accesorio, no requiere instalación", requerido: true }]}
       />
 
       <Cuadro
@@ -645,11 +688,14 @@ export function PedidoPostventa({
         boton="Programar"
         pendiente={pendiente}
         onEnviar={(datos) =>
-          correr(() => programarDespacho(servicio.id, datos.fecha, datos.nota), "Despacho programado")
+          correr(() => programarDespacho(servicio.id, datos.fecha, datos.nota, datos.pin), "Despacho programado. Ya está en el calendario; el almacén confirma.")
         }
         campos={[
-          { nombre: "fecha", etiqueta: "Fecha de despacho", tipo: "date", inicial: hoy, requerido: true },
-          { nombre: "nota", etiqueta: "Nota (agencia, horario, quién recibe)", requerido: false },
+          { nombre: "fecha", etiqueta: "Fecha de despacho", tipo: "date", inicial: servicio.fecha_despacho ?? hoy, requerido: true },
+          { nombre: "nota", etiqueta: "Nota (horario, con quién coordinó)", inicial: servicio.despacho_nota ?? "", requerido: false },
+          ...(servicio.apertura_despacho_at
+            ? [{ nombre: "pin", etiqueta: "La apertura ya salió: código de operaciones o gerencia para cambiar la fecha", requerido: true }]
+            : []),
         ]}
       />
 

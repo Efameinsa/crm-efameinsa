@@ -96,7 +96,10 @@ export function eventosDePedido(s: ServicioPostventa): EventoCalendario[] {
       clave: `${s.id}-despacho`,
       fecha: s.fecha_despacho,
       tipo: "despacho",
-      titulo: s.despachado_at ? "Despachado" : "Despacho",
+      // Postventa programa y el calendario lo muestra desde ese momento; el
+      // almacén confirma después (Carlos y Rubí, 21-09: «todo lo programamos
+      // unilateralmente; lo otro ya son confirmaciones»).
+      titulo: s.despachado_at ? "Despachado" : s.almacen_listo_at ? "Despacho · confirmado por almacén" : "Despacho · programado, almacén sin confirmar",
       hecho: s.despachado_at != null,
     });
   }
