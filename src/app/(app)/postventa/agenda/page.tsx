@@ -5,19 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ElDiaDelArea } from "@/components/crm/el-dia-del-area";
 import { BitacoraDia, type ActividadDia } from "@/components/crm/bitacora-dia";
-import { puedeVerPrecios, sinPrecios, veTodoPostventa, type ServicioPostventa } from "@/lib/postventa";
+import type { ServicioPostventa } from "@/lib/postventa";
+import { cargarEventosPostventa } from "@/lib/agenda-postventa-datos";
 import { CalendarioPostventa, type VistaCalendario } from "@/components/crm/calendario-postventa";
-import {
-  eventoDeAtencion,
-  eventoDeCaso,
-  eventoDeTarea,
-  eventoDeVisita,
-  eventosDePedido,
-  filtrarPorZona,
-  type CasoAgendable,
-  type EventoCalendario,
-  type TareaAgendable,
-} from "@/lib/calendario-postventa";
+import { filtrarPorZona } from "@/lib/calendario-postventa";
 import { diasDelMes, diasDeSemana, lunesDe } from "@/lib/calendario";
 import { requerirPerfil } from "@/lib/auth";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
@@ -60,7 +51,6 @@ export default async function AgendaPostventaPage({
 
   const supabase = await createClient();
   const perfil = await requerirPerfil();
-  const verPrecios = puedeVerPrecios(perfil);
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
   const vista: VistaCalendario = (["semana", "mes", "dia"] as const).includes(sp.vista as VistaCalendario)
@@ -88,28 +78,10 @@ export default async function AgendaPostventaPage({
     .eq("fecha", hoy)
     .order("orden", { ascending: true });
 
-  // El área ve todos los casos, estén en la cartera de quien estén (01-09).
-  const verTodo = veTodoPostventa(perfil);
-  let consultaCasos = supabase
-    .from("oportunidades")
-    .select(
-      "id, etapa, intencion, tipo_postventa, proxima_accion, proxima_accion_at, proxima_accion_hora, cuentas(razon_social, departamento, distrito)",
-    )
-    .not("tipo_postventa", "is", null)
-    .gte("proxima_accion_at", desde)
-    .lte("proxima_accion_at", hasta)
-    .limit(300);
-  if (!verTodo) consultaCasos = consultaCasos.eq("comercial_id", perfil.id);
-
-  const [{ data: pedidos }, { data: casos }, { data: abiertos }, { data: tareas }] = await Promise.all([
-    supabase
-      .from("servicios_postventa")
-      .select("*")
-      .or(
-        `and(fecha_despacho.gte.${desde},fecha_despacho.lte.${hasta}),and(puesta_en_marcha.gte.${desde},puesta_en_marcha.lte.${hasta})`,
-      )
-      .limit(400),
-    consultaCasos,
+  // Todo lo que tiene fecha en el rango: pedidos, casos, tareas, atenciones,
+  // visitas. La misma carga la usa el reporte diario (21-09).
+  const [eventosTodos, { data: abiertos }] = await Promise.all([
+    cargarEventosPostventa(supabase, perfil, desde, hasta),
     supabase
       .from("servicios_postventa")
       .select("id, cliente_texto, equipo, despacho_nota, completado, fecha_despacho, puesta_en_marcha")
@@ -117,75 +89,7 @@ export default async function AgendaPostventaPage({
       .is("fecha_despacho", null)
       .is("puesta_en_marcha", null)
       .limit(200),
-    // Las tareas personales (0028): antes solo se veían en «Mi agenda», que
-    // el área ya no tiene en su menú — Santos, 31-08, mirando la semana:
-    // «se crean desde ahí pero se ven en otra pantalla, lo cual es absurdo».
-    supabase
-      .from("tareas_agenda")
-      .select("id, titulo, fecha, hora, completada")
-      .eq("comercial_id", perfil.id)
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .limit(200),
   ]);
-
-  const listaPedidos = ((pedidos ?? []) as unknown as ServicioPostventa[]).map((s) => (verPrecios ? s : sinPrecios(s)));
-  const eventosPedidos = listaPedidos.flatMap(eventosDePedido);
-  const eventosCasos = ((casos ?? []) as unknown as {
-    id: string;
-    etapa: string;
-    intencion: string | null;
-    tipo_postventa: string | null;
-    proxima_accion: string | null;
-    proxima_accion_at: string | null;
-    proxima_accion_hora: string | null;
-    cuentas: { razon_social: string; departamento: string | null; distrito: string | null } | null;
-  }[])
-    .map((c): CasoAgendable => {
-      const dep = (c.cuentas?.departamento ?? "").toUpperCase();
-      return {
-        id: c.id,
-        tipo_postventa: c.tipo_postventa,
-        intencion: c.intencion,
-        etapa: c.etapa,
-        proxima_accion: c.proxima_accion,
-        proxima_accion_at: c.proxima_accion_at,
-        proxima_accion_hora: c.proxima_accion_hora,
-        cliente: c.cuentas?.razon_social ?? "Cliente sin nombre",
-        zona: dep ? (dep === "LIMA" ? "lima" : "provincia") : null,
-      };
-    })
-    .map(eventoDeCaso)
-    .filter((e): e is EventoCalendario => e !== null);
-  const eventosTareas = ((tareas ?? []) as unknown as TareaAgendable[]).map(eventoDeTarea);
-
-  // Las atenciones con día y técnico, y quién viene a la planta (0238).
-  const [{ data: programadas }, { data: visitas }] = await Promise.all([
-    supabase
-      .from("atenciones")
-      .select("id, tipo, programada_at, tecnico, cliente_texto, cerrado_at, cuentas(razon_social, departamento)")
-      .gte("programada_at", `${desde}T00:00:00-05:00`)
-      .lte("programada_at", `${hasta}T23:59:59-05:00`)
-      .limit(300),
-    supabase
-      .from("visitas_planta")
-      .select("id, empresa, persona, motivo, fecha, hora, cancelada_at")
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .limit(100),
-  ]);
-  const eventosAtenciones = ((programadas ?? []) as unknown as {
-    id: string; tipo: string; programada_at: string; tecnico: string | null; cliente_texto: string | null; cerrado_at: string | null;
-    cuentas: { razon_social: string; departamento: string | null } | null;
-  }[]).map((a) => {
-    const dep = (a.cuentas?.departamento ?? "").toUpperCase();
-    return eventoDeAtencion({
-      id: a.id, tipo: a.tipo, programada_at: a.programada_at, tecnico: a.tecnico, cerrado_at: a.cerrado_at,
-      cliente: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre",
-      zona: dep ? (dep === "LIMA" ? "lima" : "provincia") : null,
-    });
-  });
-  const eventosVisitas = ((visitas ?? []) as unknown as Parameters<typeof eventoDeVisita>[0][]).map(eventoDeVisita);
 
   const { data: aProgramar } = await supabase
     .from("atenciones")
@@ -207,7 +111,7 @@ export default async function AgendaPostventaPage({
     detalle: a.detalle,
   }));
 
-  const eventos = filtrarPorZona([...eventosPedidos, ...eventosCasos, ...eventosTareas, ...eventosAtenciones, ...eventosVisitas], zona);
+  const eventos = filtrarPorZona(eventosTodos, zona);
   const porProgramar = ((abiertos ?? []) as unknown as ServicioPostventa[])
     .filter((s) => !s.completado && !s.fecha_despacho && !s.puesta_en_marcha)
     .map((s) => ({
@@ -233,7 +137,18 @@ export default async function AgendaPostventaPage({
           Lo que hizo hoy y no es un caso ni un pedido: correos, llamadas que no abrieron atención, coordinaciones. Entra al
           reporte del día tal cual, numerado.
         </p>
-        <BitacoraDia fecha={hoy} actividades={(bitacora ?? []) as ActividadDia[]} />
+        <BitacoraDia
+          fecha={hoy}
+          actividades={(bitacora ?? []) as ActividadDia[]}
+          ejemplo="Se coordinó con el almacén el despacho de Bungarena"
+          sugerencias={[
+            "Se revisó correo y WhatsApp del área",
+            "Se coordinó con el almacén los despachos del día",
+            "Se llamó a clientes con despacho programado para confirmar recepción",
+            "Se enviaron cotizaciones de repuestos por correo",
+            "Se informó a gerencia el avance del día",
+          ]}
+        />
       </SeccionPanel>
 
     <SeccionPanel titulo="Calendario de atenciones" accion={<BotonesAgendar />}>

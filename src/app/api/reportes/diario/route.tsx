@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { ReporteDiarioPdf } from "@/lib/pdf/reporte-diario-pdf";
 import { cargarPotenciales, lunesSemana, resumirSemana } from "@/lib/potenciales-semana";
+import { cargarEventosPostventa, eventosDelDia } from "@/lib/agenda-postventa-datos";
+import { etiquetaEvento } from "@/lib/calendario-postventa";
 
 // PDF del cierre del día del comercial. La autorización real la hace la
 // función SQL (el propio comercial o backoffice); acá solo se comprueba que
@@ -56,6 +58,57 @@ export async function GET(request: Request) {
     proyeccion = resumirSemana(lunes, potenciales);
   } catch {
     proyeccion = undefined;
+  }
+  // POSTVENTA (Carlos, 21-09, mirando la agenda de Rubí): «así como los
+  // comerciales tienen lo proyectado para el día siguiente, que también
+  // aparezca: despachos, atenciones técnicas, llamadas… y sus pedidos, para
+  // ver los procesos, que salgan sus despachados». Y «otras gestiones», lo
+  // que se digita en la bitácora como en Central. Se calcula ACÁ, igual que
+  // la proyección, por la misma razón: la función SQL no se toca.
+  try {
+    const { data: perfil } = await supabase
+      .from("perfiles")
+      .select("id, rol, es_postventa, hace_postventa")
+      .eq("id", comercialId)
+      .maybeSingle();
+    if (perfil?.es_postventa) {
+      const manana = r.planificacion_manana.fecha;
+      const [eventos, { data: bitacora }] = await Promise.all([
+        cargarEventosPostventa(supabase, perfil, fecha, manana),
+        supabase.from("bitacora_dia").select("orden, texto").eq("perfil_id", comercialId).eq("fecha", fecha).order("orden"),
+      ]);
+      const aFila = (e: (typeof eventos)[number]) => ({
+        hora: e.hora,
+        titulo: e.cliente,
+        tipo: etiquetaEvento(e.tipo),
+        detalle: e.titulo + (e.ubicacion ? ` · ${e.ubicacion}` : ""),
+      });
+      // Hoy: lo del circuito (despachado, atendido, visitado) y la bitácora,
+      // en «actividades complementarias»; ya está tal cual en el calendario.
+      r.complementarias = [
+        ...eventosDelDia(eventos, fecha).map((e) => ({
+          hora: e.hora,
+          titulo: e.origen === "tarea" ? e.titulo : `${etiquetaEvento(e.tipo)} · ${e.cliente} · ${e.titulo}`,
+        })),
+        ...(bitacora ?? []).map((b) => ({ hora: null, titulo: b.texto })),
+        ...r.complementarias,
+      ];
+      r.resumen = { ...r.resumen, complementarias: r.complementarias.length };
+      // Mañana: al lado de las gestiones y tareas que ya trae la función SQL
+      // (las tareas propias ya vienen de ahí: no se repiten).
+      r.planificacion_manana = {
+        ...r.planificacion_manana,
+        tareas: [
+          ...r.planificacion_manana.tareas,
+          ...eventosDelDia(eventos, manana)
+            .filter((e) => e.origen !== "tarea")
+            .map(aFila),
+        ],
+      };
+      r.agenda = { ...r.agenda, manana: r.planificacion_manana.gestiones.length + r.planificacion_manana.tareas.length };
+    }
+  } catch {
+    // Sin la agenda del área, pero con reporte.
   }
   const fechaLarga = new Date(`${fecha}T12:00:00`).toLocaleDateString("es-PE", {
     weekday: "long",

@@ -63,7 +63,8 @@ export interface ReporteDiarioProps {
   planificacion_manana: {
     fecha: string;
     gestiones: { cliente: string; accion: string | null; hora: string | null; etapa: string }[];
-    tareas: { titulo: string; hora: string | null }[];
+    /** `tipo` y `detalle` los trae postventa (21-09): «Despacho», «Puesta en marcha»… y con quién. */
+    tareas: { titulo: string; hora: string | null; tipo?: string | null; detalle?: string | null }[];
   };
 }
 
@@ -358,8 +359,8 @@ export function ReporteDiarioPdf({
                 <View key={`t${i}`} wrap={false} style={[e.fila, ...((planificacion_manana.gestiones.length + i) % 2 ? [e.filaAlterna] : [])]}>
                   <Text style={{ width: "8%" }}>{t.hora ?? "—"}</Text>
                   <Text style={{ width: "42%", paddingRight: 6 }}>{corta(t.titulo, 48)}</Text>
-                  <Text style={{ width: "14%", color: GRIS }}>Tarea</Text>
-                  <Text style={{ width: "36%", color: GRIS }}>Actividad propia de agenda</Text>
+                  <Text style={{ width: "14%", color: GRIS }}>{t.tipo ?? "Tarea"}</Text>
+                  <Text style={{ width: "36%", color: GRIS }}>{t.detalle ? corta(t.detalle, 60) : "Actividad propia de agenda"}</Text>
                 </View>
               ))}
             </>

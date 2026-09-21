@@ -32,7 +32,18 @@ const SUGERENCIAS = [
   "Fin de mis labores",
 ];
 
-export function BitacoraDia({ fecha, actividades }: { fecha: string; actividades: ActividadDia[] }) {
+export function BitacoraDia({
+  fecha,
+  actividades,
+  sugerencias = SUGERENCIAS,
+  ejemplo = "Se derivó llamadas a C4",
+}: {
+  fecha: string;
+  actividades: ActividadDia[];
+  /** Los atajos de cada área: Central tiene los suyos, postventa otros. */
+  sugerencias?: string[];
+  ejemplo?: string;
+}) {
   const router = useRouter();
   const [texto, setTexto] = useState("");
   const [guardando, startTransition] = useTransition();
@@ -102,7 +113,7 @@ export function BitacoraDia({ fecha, actividades }: { fecha: string; actividades
               agregar();
             }
           }}
-          placeholder="Qué hizo — ej.: Se derivó llamadas a C4"
+          placeholder={`Qué hizo — ej.: ${ejemplo}`}
           className="min-w-[240px] flex-1"
           aria-label="Nueva actividad del día"
         />
@@ -113,7 +124,7 @@ export function BitacoraDia({ fecha, actividades }: { fecha: string; actividades
 
       {/* Las que se repiten todos los días, para no volver a escribirlas. */}
       <div className="flex flex-wrap gap-1.5">
-        {SUGERENCIAS.filter((s) => !yaUsadas.has(s)).map((s) => (
+        {sugerencias.filter((s) => !yaUsadas.has(s)).map((s) => (
           <button
             key={s}
             type="button"
