@@ -66,10 +66,13 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <PedidoAlmacen servicio={servicio} porEquipo={listaEquipos.length > 0} />
+        <div className="space-y-4">
+          <PedidoAlmacen servicio={servicio} porEquipo={listaEquipos.length > 0} />
+          {/* Máquina por máquina, cada una con su protocolo (0260): va ancho, que acá se trabaja. */}
+          <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="almacen" despachado={Boolean(servicio.despachado_at)} cliente={cliente} enlaceEquipo="/almacen/equipos" />
+        </div>
 
         <div className="space-y-4">
-          <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="almacen" despachado={Boolean(servicio.despachado_at)} cliente={cliente} enlaceEquipo="/almacen/equipos" />
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">El circuito entero</h2>
             {bloques.map((b) => (
