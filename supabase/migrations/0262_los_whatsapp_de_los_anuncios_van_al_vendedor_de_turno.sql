@@ -1,5 +1,5 @@
 -- ============================================================
--- CRM EFAMEINSA · Migración 0261 · Los WhatsApp de los anuncios van al
+-- CRM EFAMEINSA · Migración 0262 · Los WhatsApp de los anuncios van al
 -- vendedor de turno, sin pasar por Central
 -- ============================================================
 -- Santos, 21-09-2026 (dictado): «recibiremos todos los chats [en el CRM] y
@@ -40,7 +40,7 @@ create table if not exists wa_turnos (
   updated_at   timestamptz not null default now(),
   updated_by   uuid references perfiles (id)
 );
-comment on table wa_turnos is 'Qué comercial recibe los WhatsApp de campaña cada día de la semana (0261). Sin fila o con comercial nulo, ese día el contacto se queda en la bandeja de Central.';
+comment on table wa_turnos is 'Qué comercial recibe los WhatsApp de campaña cada día de la semana (0262). Sin fila o con comercial nulo, ese día el contacto se queda en la bandeja de Central.';
 
 alter table wa_turnos enable row level security;
 drop policy if exists wa_turnos_select on wa_turnos;
@@ -70,7 +70,7 @@ create table if not exists wa_asignaciones_automaticas (
   detalle          text,
   created_at       timestamptz not null default now()
 );
-comment on table wa_asignaciones_automaticas is 'Cada WhatsApp nuevo de campaña: a quién se asignó por turno, o por qué se retuvo para Central (0261).';
+comment on table wa_asignaciones_automaticas is 'Cada WhatsApp nuevo de campaña: a quién se asignó por turno, o por qué se retuvo para Central (0262).';
 create index if not exists wa_asignaciones_automaticas_created_idx on wa_asignaciones_automaticas (created_at desc);
 
 alter table wa_asignaciones_automaticas enable row level security;
@@ -165,7 +165,7 @@ begin
   end;
 
   update asignaciones
-     set notas = coalesce(notas || ' · ', '') || 'Asignación automática: WhatsApp de campaña, turno del día (0261)'
+     set notas = coalesce(notas || ' · ', '') || 'Asignación automática: WhatsApp de campaña, turno del día (0262)'
    where lead_id = p_lead_id and created_at > now() - interval '1 minute';
 
   update wa_conversaciones set asignado_a = v_turno where id = p_conversacion_id;
@@ -184,7 +184,7 @@ revoke all on function asignar_lead_desde_whatsapp(uuid, uuid) from public;
 revoke all on function asignar_lead_desde_whatsapp(uuid, uuid) from authenticated;
 grant execute on function asignar_lead_desde_whatsapp(uuid, uuid) to service_role;
 comment on function asignar_lead_desde_whatsapp(uuid, uuid) is
-  'El webhook de WhatsApp asigna el contacto nuevo al comercial de turno del día (wa_turnos) con las reglas de asignar_lead; si el cliente ya es de otro comercial, lo retiene para Central y lo anota en wa_asignaciones_automaticas (0261).';
+  'El webhook de WhatsApp asigna el contacto nuevo al comercial de turno del día (wa_turnos) con las reglas de asignar_lead; si el cliente ya es de otro comercial, lo retiene para Central y lo anota en wa_asignaciones_automaticas (0262).';
 
 -- ------------------------------------------------------------
 -- 4. Los códigos de los anuncios de la reactivación (informe del 12-09 y

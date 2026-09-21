@@ -259,7 +259,7 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
         : { data: null };
 
       // El lead nace en pendiente_triaje como siempre; lo que cambia desde el
-      // 21-09 (0261) es que a renglón seguido se intenta asignar al comercial
+      // 21-09 (0262) es que a renglón seguido se intenta asignar al comercial
       // de turno, sin pasar por Central. Lo que viene de un anuncio guarda
       // también el id del anuncio (utm_content) para los informes por origen.
       const { data: lead } = await admin
@@ -299,7 +299,7 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
 
       // Santos, 21-09: «no usaremos a la Central para derivar, enviaremos
       // directamente a cada vendedor». La base decide con las reglas de
-      // siempre (0261): al turno del día si el número es libre; retenido
+      // siempre (0262): al turno del día si el número es libre; retenido
       // para Central si ya es cliente de otro comercial. Cada resultado
       // queda en `wa_asignaciones_automaticas`.
       const asignacion = lead && nuevaConversacion ? await asignarAlTurno(admin, lead.id, nuevaConversacion.id) : null;
@@ -426,7 +426,7 @@ interface ResultadoAsignacion {
   detalle?: string;
 }
 
-/** La asignación al turno (0261). Mejor esfuerzo: si la base falla, el contacto queda en la bandeja de Central como antes. */
+/** La asignación al turno (0262). Mejor esfuerzo: si la base falla, el contacto queda en la bandeja de Central como antes. */
 async function asignarAlTurno(admin: ReturnType<typeof createAdminClient>, leadId: string, conversacionId: string): Promise<ResultadoAsignacion | null> {
   try {
     const { data, error } = await admin.rpc("asignar_lead_desde_whatsapp", { p_lead_id: leadId, p_conversacion_id: conversacionId });

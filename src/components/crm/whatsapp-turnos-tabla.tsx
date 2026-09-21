@@ -1,6 +1,6 @@
 "use client";
 
-// Quién recibe los WhatsApp de los anuncios cada día de la semana (0261).
+// Quién recibe los WhatsApp de los anuncios cada día de la semana (0262).
 // Un select por día; se guarda al elegir. «Nadie» deja ese día en la
 // bandeja de Central, como era antes.
 

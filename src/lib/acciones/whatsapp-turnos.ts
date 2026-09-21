@@ -1,6 +1,6 @@
 "use server";
 
-// Los WhatsApp de campaña van al vendedor de turno (0261, Santos 21-09):
+// Los WhatsApp de campaña van al vendedor de turno (0262, Santos 21-09):
 // «un día específico de la semana solamente le va a llegar a C5… otro a
 // otro comercial». Acá gerencia decide quién recibe cada día, y ve el
 // registro de lo que llegó: asignado al turno, o retenido para Central

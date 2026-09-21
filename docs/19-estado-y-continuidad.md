@@ -1872,7 +1872,7 @@ tocar no puede leer qué mandó: la fila solo era enlace cuando Central se lo de
   `_pantallazo.mjs` con `CLIC=`): ventana de PRO-09465 con la captura adjunta; aviso viejo sin
   par abre la ventana; aviso enlazado navega a «Cotización confirmada como Presu_726-26».
 
-## 21-09-2026 (tarde) — los WhatsApp de los anuncios van al vendedor de turno (0261)
+## 21-09-2026 (tarde) — los WhatsApp de los anuncios van al vendedor de turno (0262)
 
 Santos, dictado del 21-09, sobre la reactivación de Meta Ads (informe del 12-09,
 `Downloads/Analisis_Meta_Ads_2026_Efameinsa.docx`; decisión: S/50 diarios, solo
@@ -1889,7 +1889,7 @@ webhook guarda el `referral` entero y el `ctwa_clid`, resuelve el código del
 anuncio por `source_id` o por el `[M1-A]` del texto, abre el lead con fuente
 `meta_ads`, manda el evento `Contact` a Meta y responde el acuse.
 
-**Lo nuevo (migración 0261, aplicada 13:0x; código pendiente de la ventana):**
+**Lo nuevo (migración 0262, aplicada 13:0x; código pendiente de la ventana):**
 
 - `wa_turnos`: qué comercial recibe los WhatsApp cada día de la semana.
   Arranca con **C5 los siete días**. Se edita en Gerencia → Marketing →
@@ -1900,7 +1900,7 @@ anuncio por `source_id` o por el `[M1-A]` del texto, abre el lead con fuente
   de la cuenta de Central fijados por la transacción (porque
   `asignaciones.decidida_por` es NOT NULL y `asignar_lead` exige rol). La
   derivación queda firmada por Central con la nota «Asignación automática:
-  WhatsApp de campaña, turno del día (0261)».
+  WhatsApp de campaña, turno del día (0262)».
 - **La validación previa** es `cartera_en_juego()` (la misma del diálogo de
   derivar): si el número o el RUC ya son de un cliente con OTRO dueño, no se
   asigna; el lead se queda en `pendiente_triaje` para Central y queda la fila

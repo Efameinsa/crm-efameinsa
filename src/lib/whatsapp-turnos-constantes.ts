@@ -1,4 +1,4 @@
-// Constantes de los turnos de WhatsApp (0261). Van aparte de las acciones
+// Constantes de los turnos de WhatsApp (0262). Van aparte de las acciones
 // porque un archivo "use server" solo puede exportar funciones async.
 
 export const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"] as const;
