@@ -94,14 +94,16 @@ export async function GET(request: Request) {
         ...r.complementarias,
       ];
       r.resumen = { ...r.resumen, complementarias: r.complementarias.length };
-      // Mañana: al lado de las gestiones y tareas que ya trae la función SQL
-      // (las tareas propias ya vienen de ahí: no se repiten).
+      // Mañana: al lado de las gestiones y tareas que ya trae la función SQL.
+      // Las tareas propias y los casos de la cartera propia ya vienen de ahí:
+      // no se repiten (el calendario trae los casos de toda el área).
+      const yaEstan = new Set(r.planificacion_manana.gestiones.map((g) => `${g.hora ?? ""}|${g.cliente}`));
       r.planificacion_manana = {
         ...r.planificacion_manana,
         tareas: [
           ...r.planificacion_manana.tareas,
           ...eventosDelDia(eventos, manana)
-            .filter((e) => e.origen !== "tarea")
+            .filter((e) => e.origen !== "tarea" && !(e.origen === "caso" && yaEstan.has(`${e.hora ?? ""}|${e.cliente}`)))
             .map(aFila),
         ],
       };
