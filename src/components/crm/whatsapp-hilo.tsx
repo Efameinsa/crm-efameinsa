@@ -12,6 +12,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet } from "lucide-react";
+// `Package` sigue en uso para pintar las fichas que YA se mandaron antes del
+// 21-09; el botón «Mandar equipo» se quitó del chat ese día (Santos: hacía
+// pesada la bandeja).
 import { createClient } from "@/lib/supabase/client";
 import {
   enviarMensajeChat,
@@ -26,7 +29,9 @@ import {
   type MensajeWhatsapp,
   type Sticker,
 } from "@/lib/acciones/whatsapp-chat";
-import { WhatsappMandarEquipo } from "@/components/crm/whatsapp-mandar-equipo";
+import { TipificarWhatsapp } from "@/components/crm/tipificar-whatsapp";
+import type { TipificacionActual } from "@/lib/acciones/whatsapp-campanas";
+import { audioAMp3 } from "@/lib/audio-a-mp3";
 import { ventanaAbierta } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,13 +118,14 @@ export function WhatsappHilo({
   mensajesIniciales,
   esCentral,
   comerciales,
-  catalogoConectado,
+  tipificacionActual,
 }: {
   conversacion: ConversacionDetalle;
   mensajesIniciales: MensajeWhatsapp[];
   esCentral: boolean;
   comerciales: { id: string; nombre: string }[];
-  catalogoConectado: boolean;
+  /** El resultado que ya se marcó para este contacto (interesado, cotizado…), si alguno. */
+  tipificacionActual: TipificacionActual | null;
 }) {
   const router = useRouter();
   // `key={conversacion.id}` en el padre (WhatsappConversacionPage) remonta
@@ -137,10 +143,8 @@ export function WhatsappHilo({
   const [stickers, setStickers] = useState<(Sticker & { url: string | null })[] | null>(null);
   function alternarStickers() {
     setMostrarStickers((v) => !v);
-    setMostrarEquipos(false);
     if (stickers === null) stickersActivos().then(setStickers).catch(() => setStickers([]));
   }
-  const [mostrarEquipos, setMostrarEquipos] = useState(false);
   const [grabando, setGrabando] = useState(false);
   const [segundosGrabados, setSegundosGrabados] = useState(0);
   const fondoRef = useRef<HTMLDivElement>(null);
@@ -204,10 +208,24 @@ export function WhatsappHilo({
     }
   }
 
-  async function subirYEnviarBlob(blob: Blob, mime: string) {
+  async function subirYEnviarBlob(grabacion: Blob, mimeGrabado: string) {
     setSubiendoAdjunto(true);
     try {
-      const extension = mime.includes("ogg") ? "ogg" : mime.includes("mp4") ? "m4a" : "webm";
+      // WebM no lo acepta Meta («Media upload error», 21-09): se convierte a
+      // MP3 en el navegador. Ogg/opus, si algún navegador lo grabara, va tal cual.
+      let blob = grabacion;
+      let mime = mimeGrabado;
+      let extension = "ogg";
+      if (!mimeGrabado.includes("ogg")) {
+        try {
+          blob = await audioAMp3(grabacion);
+          mime = "audio/mpeg";
+          extension = "mp3";
+        } catch {
+          toast.error("No se pudo preparar el audio para WhatsApp. Pruebe grabarlo de nuevo.");
+          return;
+        }
+      }
       const path = `whatsapp/${conversacion.id}/${crypto.randomUUID()}-audio.${extension}`;
       const { error: errorSubida } = await createClient().storage.from("adjuntos").upload(path, blob, { contentType: mime });
       if (errorSubida) {
@@ -332,6 +350,15 @@ export function WhatsappHilo({
             {conversacion.lead_codigo && ` · ${conversacion.lead_codigo}`}
             {conversacion.codigo_campania_wa && ` · código ${conversacion.codigo_campania_wa}`}
           </p>
+          {/* El resultado de la conversación se marca desde el mismo chat
+              (Santos, 21-09: «cada comercial lo va a tipificar dentro del
+              CRM»). Cada marca avisa a Meta (interesado → Lead, cotizado →
+              SubmitApplication) y alimenta el informe por anuncio. */}
+          {conversacion.lead_id && (
+            <div className="mt-1.5">
+              <TipificarWhatsapp leadId={conversacion.lead_id} actual={tipificacionActual} compacto />
+            </div>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {esCentral && conversacion.estado !== "cerrada" && (
@@ -491,33 +518,6 @@ export function WhatsappHilo({
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-
-            <div className="relative shrink-0">
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                className={cn("rounded-full text-muted-foreground hover:text-foreground", mostrarEquipos && "bg-secondary text-foreground")}
-                onClick={() => {
-                  setMostrarEquipos((v) => !v);
-                  setMostrarStickers(false);
-                }}
-                disabled={enviando || grabando}
-                title="Mandar un equipo del catálogo (ficha con botones)"
-              >
-                <Package className="size-4" />
-              </Button>
-              {mostrarEquipos && (
-                <WhatsappMandarEquipo
-                  conversacionId={conversacion.id}
-                  catalogoConectado={catalogoConectado}
-                  onCerrar={() => setMostrarEquipos(false)}
-                  onEnviado={async () => {
-                    setMostrarEquipos(false);
-                    setMensajes(await mensajesDe(conversacion.id));
-                  }}
-                />
               )}
             </div>
 

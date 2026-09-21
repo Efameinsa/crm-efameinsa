@@ -150,6 +150,7 @@ export async function tipificarWhatsApp(
 
   revalidatePath("/central");
   revalidatePath("/central/derivados");
+  revalidatePath("/whatsapp/[id]", "page");
   revalidatePath("/comercial/oportunidades/[id]", "page");
   return { error: null };
 }

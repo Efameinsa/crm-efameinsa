@@ -393,7 +393,7 @@ function enHorarioLima(): boolean {
  * tres datos que el vendedor necesita para cotizar sin ir y venir. El
  * cliente que responde con eso ya llega calificado a la bandeja.
  */
-export function textoDeAcuse(opciones: { nombreComercial?: string | null; producto?: string | null }): string {
+function textoDeAcuse(opciones: { nombreComercial?: string | null; producto?: string | null }): string {
   const saludo = "Hola, gracias por escribir a Efameinsa.";
   const consulta = opciones.producto ? ` Vi su consulta por ${opciones.producto}.` : "";
   const quien = opciones.nombreComercial ? `${opciones.nombreComercial} le atiende` : "Un asesor comercial le atiende";

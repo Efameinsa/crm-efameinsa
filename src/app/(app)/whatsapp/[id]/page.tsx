@@ -1,13 +1,7 @@
 import { notFound } from "next/navigation";
 import { requerirPerfil } from "@/lib/auth";
-import {
-  conversacionesDe,
-  conversacionPorId,
-  mensajesDe,
-  comercialesActivos,
-  catalogoWhatsappConectado,
-  type FiltroConversaciones,
-} from "@/lib/acciones/whatsapp-chat";
+import { conversacionesDe, conversacionPorId, mensajesDe, comercialesActivos, type FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
+import { tipificacionesActuales } from "@/lib/acciones/whatsapp-campanas";
 import { WhatsappListaConversaciones } from "@/components/crm/whatsapp-lista-conversaciones";
 import { WhatsappHilo } from "@/components/crm/whatsapp-hilo";
 
@@ -27,18 +21,17 @@ export default async function WhatsappConversacionPage({
   const esCentral = perfil.rol === "central" || perfil.rol === "gerencia" || perfil.rol === "admin";
 
   // Santos, 21-09: «quiero que cargue más rápido… la opción de productos se
-  // demora bastante». El catálogo de equipos y los stickers (URL firmadas
-  // una por una) ya no se cargan al abrir el chat: los trae el propio
-  // panel la primera vez que alguien lo abre.
-  const [conversacion, mensajes, conversaciones, comerciales, catalogoConectado] = await Promise.all([
+  // demora bastante». El botón «Mandar equipo» se quitó del chat; los
+  // stickers (URL firmadas una por una) los trae el panel al abrirse.
+  const [conversacion, mensajes, conversaciones, comerciales] = await Promise.all([
     conversacionPorId(id),
     mensajesDe(id),
     conversacionesDe(filtro, esCentral ? sp.comercial : undefined),
     comercialesActivos(),
-    catalogoWhatsappConectado(),
   ]);
 
   if (!conversacion) notFound();
+  const tipificacionActual = conversacion.lead_id ? ((await tipificacionesActuales([conversacion.lead_id]))[0] ?? null) : null;
 
   return (
     <div className="flex h-[calc(100vh-8.5rem)] overflow-hidden rounded-lg border border-border bg-card">
@@ -57,7 +50,7 @@ export default async function WhatsappConversacionPage({
         mensajesIniciales={mensajes}
         esCentral={esCentral}
         comerciales={comerciales}
-        catalogoConectado={catalogoConectado}
+        tipificacionActual={tipificacionActual}
       />
     </div>
   );
