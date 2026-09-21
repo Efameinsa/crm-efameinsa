@@ -5,8 +5,6 @@ import {
   conversacionPorId,
   mensajesDe,
   comercialesActivos,
-  stickersActivos,
-  equiposParaMandar,
   catalogoWhatsappConectado,
   type FiltroConversaciones,
 } from "@/lib/acciones/whatsapp-chat";
@@ -28,13 +26,15 @@ export default async function WhatsappConversacionPage({
   const filtro = (["sin_atender", "mias", "todas", "cerradas"].includes(sp.filtro ?? "") ? sp.filtro : "todas") as FiltroConversaciones;
   const esCentral = perfil.rol === "central" || perfil.rol === "gerencia" || perfil.rol === "admin";
 
-  const [conversacion, mensajes, conversaciones, comerciales, stickers, equipos, catalogoConectado] = await Promise.all([
+  // Santos, 21-09: «quiero que cargue más rápido… la opción de productos se
+  // demora bastante». El catálogo de equipos y los stickers (URL firmadas
+  // una por una) ya no se cargan al abrir el chat: los trae el propio
+  // panel la primera vez que alguien lo abre.
+  const [conversacion, mensajes, conversaciones, comerciales, catalogoConectado] = await Promise.all([
     conversacionPorId(id),
     mensajesDe(id),
     conversacionesDe(filtro, esCentral ? sp.comercial : undefined),
     comercialesActivos(),
-    stickersActivos(),
-    equiposParaMandar(),
     catalogoWhatsappConectado(),
   ]);
 
@@ -57,8 +57,6 @@ export default async function WhatsappConversacionPage({
         mensajesIniciales={mensajes}
         esCentral={esCentral}
         comerciales={comerciales}
-        stickers={stickers}
-        equipos={equipos}
         catalogoConectado={catalogoConectado}
       />
     </div>

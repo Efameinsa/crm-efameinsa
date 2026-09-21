@@ -8,10 +8,10 @@
 // catálogo (CON el precio de lista). Lo que el cliente toque vuelve al hilo
 // y queda anotado sobre qué máquina respondió.
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Loader2, Package, Search, X } from "lucide-react";
-import { mandarEquipoChat, type EquipoParaMandar } from "@/lib/acciones/whatsapp-chat";
+import { mandarEquipoChat, equiposParaMandar, type EquipoParaMandar } from "@/lib/acciones/whatsapp-chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -20,13 +20,11 @@ const normalizar = (s: string) => s.toUpperCase().normalize("NFD").replace(/[̀-
 
 export function WhatsappMandarEquipo({
   conversacionId,
-  equipos,
   catalogoConectado,
   onEnviado,
   onCerrar,
 }: {
   conversacionId: string;
-  equipos: EquipoParaMandar[];
   catalogoConectado: boolean;
   onEnviado: () => void;
   onCerrar: () => void;
@@ -35,6 +33,20 @@ export function WhatsappMandarEquipo({
   const [elegidos, setElegidos] = useState<string[]>([]);
   const [nota, setNota] = useState("");
   const [enviando, startTransition] = useTransition();
+  // El catálogo se pide al abrir este panel, no al abrir el chat (Santos,
+  // 21-09: «esos productos se demoran bastante en cargar»). Una sola vez
+  // por apertura; mientras llega, el buscador dice que está cargando.
+  const [catalogo, setCatalogo] = useState<EquipoParaMandar[] | null>(null);
+  useEffect(() => {
+    let vigente = true;
+    equiposParaMandar()
+      .then((xs) => vigente && setCatalogo(xs))
+      .catch(() => vigente && setCatalogo([]));
+    return () => {
+      vigente = false;
+    };
+  }, []);
+  const equipos = useMemo(() => catalogo ?? [], [catalogo]);
 
   const filtrados = useMemo(() => {
     const q = normalizar(busqueda.trim());
@@ -72,7 +84,9 @@ export function WhatsappMandarEquipo({
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <Package className="size-4 text-muted-foreground" />
         <span className="text-sm font-semibold">Mandar equipo</span>
-        <span className="ml-auto text-[11px] text-muted-foreground">{equipos.length} en el catálogo del CRM</span>
+        <span className="ml-auto text-[11px] text-muted-foreground">
+          {catalogo === null ? "Cargando el catálogo…" : `${equipos.length} en el catálogo del CRM`}
+        </span>
         <button type="button" onClick={onCerrar} className="rounded p-0.5 text-muted-foreground hover:text-foreground" aria-label="Cerrar">
           <X className="size-4" />
         </button>
@@ -90,7 +104,14 @@ export function WhatsappMandarEquipo({
       </div>
 
       <ul className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-        {filtrados.length === 0 && <li className="px-2 py-4 text-center text-xs text-muted-foreground">Ningún equipo coincide con «{busqueda}».</li>}
+        {catalogo === null && (
+          <li className="flex items-center justify-center gap-1.5 px-2 py-4 text-xs text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" /> Cargando el catálogo…
+          </li>
+        )}
+        {catalogo !== null && filtrados.length === 0 && (
+          <li className="px-2 py-4 text-center text-xs text-muted-foreground">Ningún equipo coincide con «{busqueda}».</li>
+        )}
         {filtrados.map((e) => {
           const marcado = elegidos.includes(e.sku);
           return (

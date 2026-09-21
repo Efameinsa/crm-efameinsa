@@ -7,8 +7,12 @@ import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { WhatsappCampanasTabla } from "@/components/crm/whatsapp-campanas-tabla";
 import { WhatsappStickersTabla } from "@/components/crm/whatsapp-stickers-tabla";
+import { WhatsappTurnosTabla } from "@/components/crm/whatsapp-turnos-tabla";
 import { listarCampaniasWhatsapp } from "@/lib/acciones/whatsapp-campanas";
 import { listarStickers } from "@/lib/acciones/whatsapp-chat";
+import { listarTurnosWhatsapp, comercialesParaTurno, listarAsignacionesAutomaticas } from "@/lib/acciones/whatsapp-turnos";
+import { ETIQUETA_RESULTADO } from "@/lib/whatsapp-turnos-constantes";
+import { fechaHoraLima } from "@/lib/fechas";
 import { cargarResumenWhatsapp, ETIQUETA_TIPIFICACION, type TipificacionWhatsapp } from "@/lib/whatsapp-marketing";
 
 // WhatsApp de campañas, fase 1 sin API (14-09-2026). Plan completo en
@@ -30,11 +34,15 @@ export default async function MarketingWhatsappPage({
   const { desde, hasta } = periodo;
 
   const supabase = await createClient();
-  const [campanias, resumen, stickers] = await Promise.all([
+  const [campanias, resumen, stickers, turnos, comercialesTurno, asignaciones] = await Promise.all([
     listarCampaniasWhatsapp(),
     cargarResumenWhatsapp(supabase, desde, hasta),
     listarStickers(),
+    listarTurnosWhatsapp(),
+    comercialesParaTurno(),
+    listarAsignacionesAutomaticas(desde, hasta),
   ]);
+  const retenidos = asignaciones.filter((a) => a.resultado !== "asignado").length;
   const rango = `desde=${desde}&hasta=${hasta}`;
   const totalInteresados = resumen.reduce((s, r) => s + (r.porEstado.interesado ?? 0) + (r.porEstado.cotizado ?? 0), 0);
   const totalExcluir = resumen.reduce((s, r) => s + (r.porEstado.no_interesado ?? 0) + (r.porEstado.equivocado ?? 0), 0);
@@ -46,6 +54,15 @@ export default async function MarketingWhatsappPage({
           ← Volver a Marketing
         </Link>
       </p>
+
+      <SeccionPanel titulo="Quién recibe los WhatsApp de los anuncios">
+        <p className="mb-3 text-xs text-muted-foreground">
+          Cada WhatsApp nuevo que llega al número de la empresa se asigna solo al comercial de turno del día, con las
+          mismas reglas de una derivación de Central. Si el número ya es de un cliente de otro comercial, no se asigna:
+          se retiene en la bandeja de Central y queda anotado abajo. «Nadie» deja ese día en Central.
+        </p>
+        <WhatsappTurnosTabla turnos={turnos} comerciales={comercialesTurno} />
+      </SeccionPanel>
 
       <SeccionPanel titulo="Códigos de campaña de WhatsApp">
         <p className="mb-3 text-xs text-muted-foreground">
@@ -70,6 +87,49 @@ export default async function MarketingWhatsappPage({
         Del <span className="font-medium text-foreground">{fechaCalendarioLarga(desde)}</span> al{" "}
         <span className="font-medium text-foreground">{fechaCalendarioLarga(hasta)}</span>
       </p>
+
+      <SeccionPanel titulo={`Lo que llegó por WhatsApp y qué se hizo con cada uno${asignaciones.length ? ` (${asignaciones.length}, ${retenidos} retenidos)` : ""}`}>
+        {asignaciones.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Ningún WhatsApp nuevo llegó al número de la empresa en este período.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-xs">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="py-1.5 pr-3 font-medium">Cuándo</th>
+                  <th className="py-1.5 pr-3 font-medium">Contacto</th>
+                  <th className="py-1.5 pr-3 font-medium">Anuncio</th>
+                  <th className="py-1.5 pr-3 font-medium">Resultado</th>
+                  <th className="py-1.5 font-medium">Detalle</th>
+                </tr>
+              </thead>
+              <tbody>
+                {asignaciones.map((a) => (
+                  <tr key={a.id} className={a.resultado === "asignado" ? "border-b border-border/60" : "border-b border-border/60 bg-amber-50/60"}>
+                    <td className="whitespace-nowrap py-1.5 pr-3 text-muted-foreground">{fechaHoraLima(a.created_at)}</td>
+                    <td className="py-1.5 pr-3">
+                      {a.conversacion_id ? (
+                        <Link href={`/whatsapp/${a.conversacion_id}`} className="font-medium text-foreground underline decoration-dotted underline-offset-2">
+                          {a.lead_nombre ?? a.telefono ?? "—"}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-foreground">{a.lead_nombre ?? a.telefono ?? "—"}</span>
+                      )}
+                      {a.lead_codigo && <span className="ml-1 font-mono text-[10px] text-muted-foreground">{a.lead_codigo}</span>}
+                    </td>
+                    <td className="py-1.5 pr-3 font-mono text-muted-foreground">{a.codigo_campania_wa ?? "—"}</td>
+                    <td className="py-1.5 pr-3 font-medium text-foreground">
+                      {ETIQUETA_RESULTADO[a.resultado]}
+                      {a.resultado === "asignado" && a.comercial_turno_codigo && <span className="ml-1 text-muted-foreground">→ {a.comercial_turno_codigo}</span>}
+                    </td>
+                    <td className="py-1.5 text-muted-foreground">{a.detalle ?? ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SeccionPanel>
 
       {resumen.length === 0 ? (
         <SeccionPanel titulo="Sin contactos todavía">

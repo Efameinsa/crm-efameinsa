@@ -21,10 +21,10 @@ import {
   cerrarConversacion,
   reabrirConversacion,
   mensajesDe,
+  stickersActivos,
   type ConversacionDetalle,
   type MensajeWhatsapp,
   type Sticker,
-  type EquipoParaMandar,
 } from "@/lib/acciones/whatsapp-chat";
 import { WhatsappMandarEquipo } from "@/components/crm/whatsapp-mandar-equipo";
 import { ventanaAbierta } from "@/lib/whatsapp";
@@ -113,16 +113,12 @@ export function WhatsappHilo({
   mensajesIniciales,
   esCentral,
   comerciales,
-  stickers,
-  equipos,
   catalogoConectado,
 }: {
   conversacion: ConversacionDetalle;
   mensajesIniciales: MensajeWhatsapp[];
   esCentral: boolean;
   comerciales: { id: string; nombre: string }[];
-  stickers: (Sticker & { url: string | null })[];
-  equipos: EquipoParaMandar[];
   catalogoConectado: boolean;
 }) {
   const router = useRouter();
@@ -136,6 +132,14 @@ export function WhatsappHilo({
   const [derivando, setDerivando] = useState(false);
   const [subiendoAdjunto, setSubiendoAdjunto] = useState(false);
   const [mostrarStickers, setMostrarStickers] = useState(false);
+  // Los stickers se piden la primera vez que se abre el panel (Santos,
+  // 21-09: que el chat cargue rápido), no al entrar a la conversación.
+  const [stickers, setStickers] = useState<(Sticker & { url: string | null })[] | null>(null);
+  function alternarStickers() {
+    setMostrarStickers((v) => !v);
+    setMostrarEquipos(false);
+    if (stickers === null) stickersActivos().then(setStickers).catch(() => setStickers([]));
+  }
   const [mostrarEquipos, setMostrarEquipos] = useState(false);
   const [grabando, setGrabando] = useState(false);
   const [segundosGrabados, setSegundosGrabados] = useState(0);
@@ -452,7 +456,7 @@ export function WhatsappHilo({
                 size="icon-sm"
                 variant="ghost"
                 className="rounded-full text-muted-foreground hover:text-foreground"
-                onClick={() => setMostrarStickers((v) => !v)}
+                onClick={alternarStickers}
                 disabled={enviando || grabando}
                 title="Enviar un sticker de la empresa"
               >
@@ -460,7 +464,11 @@ export function WhatsappHilo({
               </Button>
               {mostrarStickers && (
                 <div className="absolute bottom-full left-0 z-10 mb-1 w-64 rounded-md border border-border bg-card p-2 shadow-lg">
-                  {stickers.length === 0 ? (
+                  {stickers === null ? (
+                    <p className="flex items-center gap-1.5 p-2 text-xs text-muted-foreground">
+                      <Loader2 className="size-3.5 animate-spin" /> Cargando stickers…
+                    </p>
+                  ) : stickers.length === 0 ? (
                     <p className="p-2 text-xs text-muted-foreground">
                       Todavía no hay stickers cargados — se cargan en Gerencia → Panel de marketing → WhatsApp.
                     </p>
@@ -503,7 +511,6 @@ export function WhatsappHilo({
               {mostrarEquipos && (
                 <WhatsappMandarEquipo
                   conversacionId={conversacion.id}
-                  equipos={equipos}
                   catalogoConectado={catalogoConectado}
                   onCerrar={() => setMostrarEquipos(false)}
                   onEnviado={async () => {

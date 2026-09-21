@@ -1871,3 +1871,75 @@ tocar no puede leer qué mandó: la fila solo era enlace cuando Central se lo de
 - Probado en local con la sesión de Brenda (`scripts/_pantallazo-clic.mjs`, variante de
   `_pantallazo.mjs` con `CLIC=`): ventana de PRO-09465 con la captura adjunta; aviso viejo sin
   par abre la ventana; aviso enlazado navega a «Cotización confirmada como Presu_726-26».
+
+## 21-09-2026 (tarde) — los WhatsApp de los anuncios van al vendedor de turno (0261)
+
+Santos, dictado del 21-09, sobre la reactivación de Meta Ads (informe del 12-09,
+`Downloads/Analisis_Meta_Ads_2026_Efameinsa.docx`; decisión: S/50 diarios, solo
+LG semi-industrial por WhatsApp + formulario de clientes potenciales):
+«recibiremos todos los chats [en el CRM] y no usaremos a la Central para
+derivar, enviaremos directamente a cada vendedor… un día específico de la
+semana solamente le va a llegar a C5… una validación previa… si le pertenece a
+otro vendedor lo vamos guardando en un registro… los formularios van a enviarse
+al área Central… propón la respuesta automática… el mensaje prellenado que sea
+persuasivo».
+
+**Lo que ya existía y no había que rehacer** (0231, 0233, 0248, 0250, 0257): el
+webhook guarda el `referral` entero y el `ctwa_clid`, resuelve el código del
+anuncio por `source_id` o por el `[M1-A]` del texto, abre el lead con fuente
+`meta_ads`, manda el evento `Contact` a Meta y responde el acuse.
+
+**Lo nuevo (migración 0261, aplicada 13:0x; código pendiente de la ventana):**
+
+- `wa_turnos`: qué comercial recibe los WhatsApp cada día de la semana.
+  Arranca con **C5 los siete días**. Se edita en Gerencia → Marketing →
+  WhatsApp («Quién recibe los WhatsApp de los anuncios»). «Nadie» deja ese
+  día en Central.
+- `asignar_lead_desde_whatsapp(lead, conversación)`: la puerta del webhook
+  (solo `service_role`). **No copia `asignar_lead`: la llama**, con los claims
+  de la cuenta de Central fijados por la transacción (porque
+  `asignaciones.decidida_por` es NOT NULL y `asignar_lead` exige rol). La
+  derivación queda firmada por Central con la nota «Asignación automática:
+  WhatsApp de campaña, turno del día (0261)».
+- **La validación previa** es `cartera_en_juego()` (la misma del diálogo de
+  derivar): si el número o el RUC ya son de un cliente con OTRO dueño, no se
+  asigna; el lead se queda en `pendiente_triaje` para Central y queda la fila
+  en `wa_asignaciones_automaticas` con el dueño y la razón social. Ese es el
+  «registro» que pidió Santos; se ve en la misma pantalla de gerencia («Lo que
+  llegó por WhatsApp y qué se hizo con cada uno»).
+- El webhook (`api/webhooks/whatsapp`): avisa por la campana al comercial de
+  turno (con enlace al chat) y a gerencia; si se retuvo, avisa a Central con el
+  motivo. El lead guarda además `utm_source=meta`, `utm_medium=cpc`,
+  `utm_campaign=titular del anuncio`, `utm_content=id del anuncio`.
+- **El acuse automático** ahora dice quién atiende (nombre del comercial de
+  turno), cuándo (horario de Lima) y pide de una vez negocio o RUC, ciudad y
+  kilos por día. Con producto si el código es de anuncio («Vi su consulta por
+  LG Titan Max»). Texto en `textoDeAcuse()` del webhook.
+- **La bandeja carga más rápido**: el catálogo de equipos («Mandar equipo») y
+  los stickers ya no se cargan al abrir el chat; los trae cada panel la
+  primera vez que se abre.
+- **Formularios de Meta → Central**: `api/webhooks/meta-leads` (campo `leadgen`
+  del webhook de la página). Dedupe por `lead_externo_id = meta:<id>`, canal
+  `facebook`, fuente `meta_ads`, `pendiente_triaje` + aviso a Central. **Falta
+  en Meta**: el token del sistema (Crm-Infofb) no tiene `leads_retrieval`,
+  `pages_show_list` ni `pages_manage_metadata`, y la página no está asignada al
+  usuario del sistema; `scripts/_suscribir-leadgen.mjs` lo diagnostica y con
+  `--suscribir` suscribe la página. Variables: reutiliza `WHATSAPP_APP_SECRET`
+  y `WHATSAPP_VERIFY_TOKEN` (misma app); el token de lectura va en
+  `META_LEADS_TOKEN` (Vercel).
+- Códigos de anuncio cargados con mensaje prellenado que pide datos: M1-A
+  (Titan Max imagen), M1-B (UniMac UY video), M1-C (Titan Torre video), M1-D
+  (Equipos LG video). `campaign_id` de cada uno se completa con el **ID del
+  ANUNCIO** cuando se creen en el Administrador.
+
+**Verificado:** `scripts/_verificar-whatsapp-turno-sql.mjs` (12 comprobaciones
+en transacción, revertida) y `scripts/_verificar-whatsapp-turno-http.mjs`
+(webhook firmado contra el servidor local: asigna a C5, guarda referral y
+ctwa_clid, acuse con nombre, campana, registro; limpia todo al final).
+
+**Pendiente fuera del código (Meta, lo hace Santos con Claude en Chrome):**
+(1) vincular el número de la Cloud API a la página de Facebook para que el
+conjunto de anuncios pueda elegirlo; (2) darle al usuario del sistema la
+página y los permisos de leads; (3) `META_CAPI_TOKEN` NO está en Vercel: los
+eventos a Meta (0257) hoy no salen de producción; (4) método de pago en la WABA
+solo si algún día se usan plantillas (Santos: «nunca voy a hacer eso»).

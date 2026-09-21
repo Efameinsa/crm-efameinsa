@@ -255,12 +255,13 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
       esConversacionNueva = true;
       const codigoCampania = await resolverCodigoCampania(admin, mensaje.referral, texto);
       const { data: campania } = codigoCampania
-        ? await admin.from("campanias_whatsapp").select("plataforma").ilike("codigo", codigoCampania).maybeSingle()
+        ? await admin.from("campanias_whatsapp").select("plataforma, nombre").ilike("codigo", codigoCampania).maybeSingle()
         : { data: null };
 
-      // El mismo circuito de siempre (google-leads/route.ts): el lead nace
-      // en pendiente_triaje, sin dueño, para que Central lo derive con sus
-      // reglas de hoy (dedupe por teléfono, PIN si hace falta).
+      // El lead nace en pendiente_triaje como siempre; lo que cambia desde el
+      // 21-09 (0261) es que a renglón seguido se intenta asignar al comercial
+      // de turno, sin pasar por Central. Lo que viene de un anuncio guarda
+      // también el id del anuncio (utm_content) para los informes por origen.
       const { data: lead } = await admin
         .from("leads")
         .insert({
@@ -273,6 +274,10 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
           fuente: mensaje.referral ? "meta_ads" : "whatsapp",
           codigo_campania_wa: codigoCampania,
           plataforma_campania_wa: codigoCampania ? (campania?.plataforma ?? "meta") : null,
+          utm_source: mensaje.referral ? "meta" : null,
+          utm_medium: mensaje.referral ? "cpc" : null,
+          utm_campaign: mensaje.referral?.headline ?? null,
+          utm_content: mensaje.referral?.source_id ?? null,
           recibido_por: null,
         })
         .select("id, codigo")
@@ -292,18 +297,56 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
         .single();
       conversacion = nuevaConversacion;
 
+      // Santos, 21-09: «no usaremos a la Central para derivar, enviaremos
+      // directamente a cada vendedor». La base decide con las reglas de
+      // siempre (0261): al turno del día si el número es libre; retenido
+      // para Central si ya es cliente de otro comercial. Cada resultado
+      // queda en `wa_asignaciones_automaticas`.
+      const asignacion = lead && nuevaConversacion ? await asignarAlTurno(admin, lead.id, nuevaConversacion.id) : null;
+      const producto = productoDeCampania(codigoCampania, campania?.nombre ?? null);
+      const quien = `${nombreWa || telefono}${producto ? ` · ${producto}` : codigoCampania ? ` · código ${codigoCampania}` : ""}`;
+
       if (lead) {
-        await notificarLeadEntrante({
-          titulo: "Nuevo WhatsApp de campaña",
-          cuerpo: `${nombreWa || telefono}${codigoCampania ? ` · código ${codigoCampania}` : ""}`,
-        });
+        if (asignacion?.resultado === "asignado" && asignacion.comercial_id && nuevaConversacion) {
+          await notificar({
+            userId: asignacion.comercial_id,
+            tipo: "lead_asignado",
+            titulo: "Nuevo WhatsApp de campaña para usted",
+            cuerpo: `${quien} · ${lead.codigo}`,
+            url: `/whatsapp/${nuevaConversacion.id}`,
+          });
+          await notificar({
+            rol: "gerencia",
+            tipo: "lead_registrado",
+            titulo: `WhatsApp de campaña → ${asignacion.comercial_codigo ?? asignacion.comercial_nombre ?? "turno"}`,
+            cuerpo: quien,
+            url: "/gerencia/marketing/whatsapp",
+          });
+        } else if (asignacion?.resultado === "retenido_cartera_ajena") {
+          await notificarLeadEntrante({
+            titulo: `WhatsApp de campaña retenido: ya es cliente de ${asignacion.dueno_codigo ?? asignacion.dueno_nombre ?? "otro comercial"}`,
+            cuerpo: `${quien} · ${asignacion.razon_social ?? ""}`.trim(),
+          });
+        } else {
+          await notificarLeadEntrante({
+            titulo: "Nuevo WhatsApp de campaña",
+            cuerpo: quien,
+          });
+        }
         // Meta se entera de que el anuncio produjo una conversación (0257).
         if (mensaje.referral?.ctwa_clid) await enviarEventoMeta({ evento: "Contact", leadId: lead.id, eventId: `${lead.id}:Contact` });
       }
       // El acuse (plan del 14-09, 2.7): al PRIMER mensaje de una conversación
       // nueva el número responde solo, para que nadie quede mirando la
-      // pantalla. Fuera de horario dice cuándo se le responde.
-      if (nuevaConversacion?.id) await responderAutomatico(nuevaConversacion.id, telefono, textoDeAcuse());
+      // pantalla. Dice quién lo atiende, cuándo, y pide de una vez los datos
+      // que el vendedor necesita para cotizar (Santos, 21-09).
+      if (nuevaConversacion?.id) {
+        await responderAutomatico(
+          nuevaConversacion.id,
+          telefono,
+          textoDeAcuse({ nombreComercial: asignacion?.resultado === "asignado" ? (asignacion.comercial_nombre ?? null) : null, producto }),
+        );
+      }
     }
 
     if (!conversacion) continue; // no debería pasar, pero sin conversación no hay dónde guardar el mensaje
@@ -336,14 +379,66 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
 }
 
 /** Horario de atención en Lima: lunes a viernes 8-18, sábado 9-13. */
-function textoDeAcuse(): string {
+function enHorarioLima(): boolean {
   const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" }));
   const dia = ahora.getDay();
   const hora = ahora.getHours();
-  const enHorario = (dia >= 1 && dia <= 5 && hora >= 8 && hora < 18) || (dia === 6 && hora >= 9 && hora < 13);
-  return enHorario
-    ? "Gracias por escribir a Efameinsa. Un asesor le responde en unos minutos."
-    : "Gracias por escribir a Efameinsa. Nuestro horario es de lunes a viernes de 8:00 a 18:00 y sábados de 9:00 a 13:00; le respondemos apenas abramos.";
+  return (dia >= 1 && dia <= 5 && hora >= 8 && hora < 18) || (dia === 6 && hora >= 9 && hora < 13);
+}
+
+/**
+ * El acuse automático (Santos, 21-09: «la primera respuesta decide la
+ * conversación… tú tienes que proponer cómo sería»). Tres cosas en un solo
+ * mensaje: quién lo atiende (con nombre, si ya está asignado), cuándo, y los
+ * tres datos que el vendedor necesita para cotizar sin ir y venir. El
+ * cliente que responde con eso ya llega calificado a la bandeja.
+ */
+export function textoDeAcuse(opciones: { nombreComercial?: string | null; producto?: string | null }): string {
+  const saludo = "Hola, gracias por escribir a Efameinsa.";
+  const consulta = opciones.producto ? ` Vi su consulta por ${opciones.producto}.` : "";
+  const quien = opciones.nombreComercial ? `${opciones.nombreComercial} le atiende` : "Un asesor comercial le atiende";
+  const cuando = enHorarioLima()
+    ? "en unos minutos"
+    : "apenas empiece la atención (lunes a viernes de 8:00 a 18:00, sábados de 9:00 a 13:00)";
+  const pedido = "Para adelantar su cotización, ¿me indica el nombre de su negocio o RUC, la ciudad y cuántos kilos de ropa lava al día?";
+  return `${saludo}${consulta} ${quien} ${cuando}.\n\n${pedido}`;
+}
+
+/** «Meta · LG Titan Max (imagen)» → «LG Titan Max». Solo para los códigos de anuncio (M1-A…), no para los de la web. */
+function productoDeCampania(codigo: string | null, nombre: string | null): string | null {
+  if (!codigo || !nombre || !/^M\d+-/i.test(codigo)) return null;
+  const sinPrefijo = nombre.includes("·") ? nombre.slice(nombre.lastIndexOf("·") + 1) : nombre;
+  const limpio = sinPrefijo.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+  return limpio || null;
+}
+
+interface ResultadoAsignacion {
+  resultado: "asignado" | "retenido_cartera_ajena" | "retenido_sin_turno" | "retenido_error";
+  comercial_id?: string;
+  comercial_nombre?: string;
+  comercial_codigo?: string | null;
+  oportunidad_id?: string;
+  cuenta_id?: string;
+  razon_social?: string;
+  dueno_id?: string;
+  dueno_nombre?: string;
+  dueno_codigo?: string | null;
+  detalle?: string;
+}
+
+/** La asignación al turno (0261). Mejor esfuerzo: si la base falla, el contacto queda en la bandeja de Central como antes. */
+async function asignarAlTurno(admin: ReturnType<typeof createAdminClient>, leadId: string, conversacionId: string): Promise<ResultadoAsignacion | null> {
+  try {
+    const { data, error } = await admin.rpc("asignar_lead_desde_whatsapp", { p_lead_id: leadId, p_conversacion_id: conversacionId });
+    if (error) {
+      console.error("webhook whatsapp: asignar_lead_desde_whatsapp", error.message);
+      return { resultado: "retenido_error", detalle: error.message };
+    }
+    return (data ?? null) as ResultadoAsignacion | null;
+  } catch (err) {
+    console.error("webhook whatsapp: asignar_lead_desde_whatsapp", err);
+    return { resultado: "retenido_error", detalle: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /**
