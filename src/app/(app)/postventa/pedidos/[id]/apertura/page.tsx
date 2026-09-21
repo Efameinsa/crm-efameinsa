@@ -90,8 +90,19 @@ export default async function AperturaServicioPage({ params }: { params: Promise
   const contacto = (informe?.contacto_despacho ?? null) as { nombre?: string; telefono?: string } | null;
   // La serie va en su propia línea, salvo que la descripción ya la traiga
   // escrita: las del Excel suelen venir con «SERIE: ...» adentro.
-  const series = seriesDeTexto(s.equipo);
-  const serieAparte = /serie/i.test(s.equipo ?? "") ? null : series.join(" · ") || null;
+  // Los equipos del pedido (0260): en la apertura van SOLO los que salen en
+  // este despacho, cada uno con su serie. Si la lista no existe (pedidos
+  // viejos), se usa el texto del pedido como siempre.
+  const { data: equiposLista } = await supabase
+    .from("pedido_equipos")
+    .select("orden, descripcion, serie, en_este_despacho")
+    .eq("servicio_id", s.id)
+    .order("orden");
+  const queVan = (equiposLista ?? []).filter((e) => e.en_este_despacho);
+  const equipoTexto = queVan.length > 0 ? queVan.map((e) => e.descripcion.trim()).join("\n\n") : (s.equipo ?? null);
+  const seriesLista = queVan.map((e) => e.serie).filter((x): x is string => Boolean(x));
+  const series = seriesLista.length > 0 ? seriesLista : seriesDeTexto(s.equipo);
+  const serieAparte = seriesLista.length === 0 && /serie/i.test(s.equipo ?? "") ? null : series.join(" · ") || null;
 
   const tipo = ((s.apertura_tipo as TipoApertura | null) ?? tipoSugerido(s)) as TipoApertura;
 
@@ -100,7 +111,7 @@ export default async function AperturaServicioPage({ params }: { params: Promise
     empresa: empresaCorta,
     cliente: cuenta?.razon_social ?? informe?.cliente_nombre ?? s.cliente_texto ?? "Cliente sin nombre",
     ruc: cuenta?.num_doc ?? informe?.cliente_doc ?? null,
-    equipo: s.equipo ?? null,
+    equipo: equipoTexto,
     serie: serieAparte,
     nota: s.apertura_nota ?? null,
     direccion: s.direccion_entrega ?? informe?.entrega_direccion ?? s.ubicacion ?? null,

@@ -5,8 +5,8 @@ import { requerirPerfil } from "@/lib/auth";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { PedidoAlmacen } from "@/components/crm/pedido-almacen";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
-import { SeriesDelPedido } from "@/components/crm/series-del-pedido";
-import { equiposVendidosDelCierre } from "@/lib/postventa";
+import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
+import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postventa";
 import { bloquesPedido, circuitoDe, ETIQUETA_TIPO_PEDIDO, sinPrecios, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
@@ -39,11 +39,7 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
     : { data: null };
   const galeria = fotos.map((f, i) => ({ ...f, url: firmadas?.[i]?.signedUrl ?? null }));
   // Las series (0253): el almacén las lee en la placa al probar o al despachar.
-  const [{ data: maquinasDelPedido }, { data: cierre }] = await Promise.all([
-    supabase.from("equipos_instalados").select("id, serie, modelo_texto").eq("servicio_id", servicio.id).order("serie"),
-    servicio.informe_cierre_id ? supabase.from("informes_cierre").select("items").eq("id", servicio.informe_cierre_id).maybeSingle() : Promise.resolve({ data: null }),
-  ]);
-  const vendidos = equiposVendidosDelCierre((cierre as { items?: unknown } | null)?.items);
+  const listaEquipos = await cargarEquiposDelPedido(servicio.id);
 
   return (
     <div className="space-y-4">
@@ -70,10 +66,10 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <PedidoAlmacen servicio={servicio} />
+        <PedidoAlmacen servicio={servicio} porEquipo={listaEquipos.length > 0} />
 
         <div className="space-y-4">
-          <SeriesDelPedido servicioId={servicio.id} equipos={maquinasDelPedido ?? []} vendidos={vendidos} despachado={Boolean(servicio.despachado_at)} />
+          <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="almacen" despachado={Boolean(servicio.despachado_at)} cliente={cliente} enlaceEquipo="/almacen/equipos" />
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">El circuito entero</h2>
             {bloques.map((b) => (

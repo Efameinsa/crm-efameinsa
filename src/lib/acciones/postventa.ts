@@ -560,6 +560,65 @@ export async function registrarSeriesDelPedido(servicioId: string, series: strin
 }
 
 /**
+ * LOS EQUIPOS DEL PEDIDO (0260). La lista se siembra desde el cierre la
+ * primera vez que alguien abre el pedido; después cada equipo lleva su serie
+ * (= hay stock), si va en este despacho y su protocolo del almacén.
+ */
+export interface EquipoDelPedido {
+  id: string;
+  orden: number;
+  descripcion: string;
+  sku: string | null;
+  serie: string | null;
+  equipo_id: string | null;
+  en_este_despacho: boolean;
+  prueba_lista_at: string | null;
+  protocolo_ref: string | null;
+  protocolo_nota: string | null;
+  protocolo_fotos: unknown;
+}
+
+export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPedido[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("pedido_equipos")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos")
+    .eq("servicio_id", servicioId)
+    .order("orden");
+  if (data && data.length > 0) return data as EquipoDelPedido[];
+  // Primera vez: se arma desde el cierre (o del texto del pedido si no hay cierre).
+  const { error } = await supabase.rpc("sembrar_equipos_del_pedido", { p_servicio: servicioId });
+  if (error) return [];
+  const { data: sembrados } = await supabase
+    .from("pedido_equipos")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos")
+    .eq("servicio_id", servicioId)
+    .order("orden");
+  return (sembrados ?? []) as EquipoDelPedido[];
+}
+
+export async function registrarSerieDelEquipo(itemId: string, servicioId: string, serie: string): Promise<{ error: string | null }> {
+  if (!serie.trim()) return { error: "Escriba la serie como se lee en la placa" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("registrar_serie_del_equipo", { p_item: itemId, p_serie: serie.trim().toUpperCase(), p_garantia_meses: 24 });
+  if (error) return falla(error.message);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath("/postventa/equipos");
+  return ok();
+}
+
+/** Postventa decide qué va en este despacho (Ecolav: sale la lavadora, la secadora sin stock espera). */
+export async function equipoVaEnEsteDespacho(itemId: string, servicioId: string, va: boolean): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("equipo_va_en_este_despacho", { p_item: itemId, p_va: va });
+  if (error) return falla(error.message);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  return ok();
+}
+
+/**
  * El informe de puesta en marcha (anexo 3 del manual), con lo que de verdad
  * sirve después: fotos, ciclos y conformidad del cliente.
  *

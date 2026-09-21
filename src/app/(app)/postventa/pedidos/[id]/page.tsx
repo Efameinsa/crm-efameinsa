@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, FileText, MessageCircle, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
-import { SeriesDelPedido } from "@/components/crm/series-del-pedido";
-import { equiposVendidosDelCierre } from "@/lib/postventa";
+import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
+import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postventa";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { requerirPerfil } from "@/lib/auth";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
@@ -102,8 +102,9 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
     : { data: [] };
   // Las máquinas que nacieron de este pedido (0253): si salió y no hay
   // ninguna, postventa no puede atender un caso de este cliente.
-  const { data: maquinasDelPedido } = await supabase.from("equipos_instalados").select("id, serie, modelo_texto").eq("servicio_id", servicio.id).order("serie");
-  const vendidos = equiposVendidosDelCierre((informe as { items?: unknown } | null)?.items);
+  // Los equipos del pedido, uno por unidad vendida (0260): serie = stock,
+  // qué va en este despacho, y el protocolo de cada uno.
+  const listaEquipos = await cargarEquiposDelPedido(servicio.id);
   const fichaPorSerie = new Map(
     (equiposDelPedido ?? []).map((e) => [String(e.serie).toUpperCase(), e.id as string]),
   );
@@ -315,7 +316,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
         />
 
         <div className="space-y-4">
-          <SeriesDelPedido servicioId={servicio.id} equipos={maquinasDelPedido ?? []} vendidos={vendidos} despachado={Boolean(servicio.despachado_at)} />
+          <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={(servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")} />
           {/* Lo que subió el almacén: protocolo, salida, guía (0246). */}
           {galeriaAlmacen.length > 0 && <GaleriaAlmacen fotos={galeriaAlmacen} />}
           {/* Los documentos del expediente. Antes venían impresos dentro del

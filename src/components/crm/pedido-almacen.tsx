@@ -35,7 +35,7 @@ const ANGULOS: { etiqueta: string; titulo: string }[] = [
 
 type Archivos = Record<string, File | null>;
 
-export function PedidoAlmacen({ servicio }: { servicio: ServicioPostventa }) {
+export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: ServicioPostventa; porEquipo?: boolean }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const cliente = (servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
@@ -92,8 +92,19 @@ export function PedidoAlmacen({ servicio }: { servicio: ServicioPostventa }) {
 
   return (
     <div className="space-y-3">
-      {/* 1 · Probar y embalar */}
-      {!probado && (
+      {/* 1 · Probar y embalar. Desde la 0260 va máquina por máquina, cada una
+          con su protocolo, en la lista de la derecha; esta tarjeta solo dice
+          dónde. Queda el formulario de un solo protocolo para los pedidos
+          que no tienen lista. */}
+      {!probado && porEquipo && (
+        <Tarjeta icono={FileCheck2} titulo="Probar y embalar" tono={servicio.prueba_solicitada_at ? "activa" : "normal"}>
+          <p className="text-xs text-muted-foreground">
+            {servicio.prueba_solicitada_at ? "Postventa pidió la prueba. " : "Postventa todavía no pidió la prueba; se puede adelantar. "}
+            Cada máquina tiene su protocolo: pruébelas una por una en <b>Equipos de este pedido</b> (a la derecha). Cuando estén todas las que van, el pedido queda probado y embalado solo.
+          </p>
+        </Tarjeta>
+      )}
+      {!probado && !porEquipo && (
         <Tarjeta icono={FileCheck2} titulo="Probar y embalar" tono={servicio.prueba_solicitada_at ? "activa" : "normal"}>
           <p className="text-xs text-muted-foreground">
             {servicio.prueba_solicitada_at

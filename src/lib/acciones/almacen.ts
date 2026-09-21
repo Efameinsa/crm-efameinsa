@@ -58,6 +58,35 @@ export async function marcarProbado(servicioId: string, datos: { protocoloRef?: 
   return ok(servicioId);
 }
 
+/**
+ * Una máquina probada, con su protocolo (0260). Cuando con esta ya están
+ * todas las que van en el despacho, el pedido queda probado y embalado y
+ * postventa se entera; si faltan, solo se guarda.
+ */
+export async function probarEquipoDelPedido(
+  itemId: string,
+  servicioId: string,
+  datos: { protocoloRef?: string; fotos?: Foto[]; nota?: string; cliente: string; equipo: string },
+): Promise<{ error: string | null; pedidoListo?: boolean }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("almacen_probar_equipo", {
+    p_item: itemId,
+    p_protocolo_ref: datos.protocoloRef?.trim() || null,
+    p_fotos: datos.fotos ?? [],
+    p_nota: datos.nota?.trim() || null,
+  });
+  if (error) return { error: limpiar(error.message) };
+  const pedidoListo = data === true;
+  if (pedidoListo) {
+    await avisarPostventa(
+      `Probado y embalado · ${datos.cliente}`,
+      `El almacén ya probó y embaló todo lo que va en este despacho${datos.protocoloRef ? ` (último protocolo ${datos.protocoloRef})` : ""}. Se puede programar el despacho.`,
+      `/postventa/pedidos/${servicioId}`,
+    );
+  }
+  return { ...ok(servicioId), pedidoListo };
+}
+
 export async function confirmarListo(servicioId: string, datos: { nota?: string; cliente: string; fecha: string | null }) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("almacen_confirmar_listo", { p_servicio: servicioId, p_nota: datos.nota?.trim() || null });
