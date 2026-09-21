@@ -231,6 +231,10 @@ function crearEstilos(acento: string) {
     bullet: { flexDirection: "row", marginBottom: 2 },
     bulletMarca: { width: 14, fontFamily: "Helvetica-Bold" },
     bulletTexto: { flex: 1, fontSize: 8.5, textAlign: "justify" },
+    // La línea de resumen del compendio va SOLA, no dentro de una fila con
+    // viñeta: con `flex: 1` fuera de una fila, react-pdf le daba altura cero y
+    // las viñetas se dibujaban encima (Santos, 21-09, informe 026-2026).
+    compendioResumen: { fontSize: 8.5, textAlign: "justify", marginTop: 3, marginBottom: 4 },
 
     gratis: { fontFamily: "Helvetica-Bold", marginTop: 10 },
 
@@ -312,6 +316,14 @@ function Tabla({ estilos, simbolo, lista }: { estilos: Estilos; simbolo: string;
 
 // Hasta XX: el cierre de repuestos de FANCAVEL (02-09) trajo catorce filas y pasaba de X a 11.
 const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX"];
+
+/** Corta en palabra completa y con puntos suspensivos: «…y planch» se leía como error. */
+function recortar(texto: string, maximo: number): string {
+  const limpio = texto.replace(/\s+/g, " ").trim();
+  if (limpio.length <= maximo) return limpio;
+  const corte = limpio.lastIndexOf(" ", maximo);
+  return `${limpio.slice(0, corte > maximo * 0.6 ? corte : maximo).replace(/[,;:.]$/, "")}…`;
+}
 
 function monto(v: number): string {
   return v.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -577,7 +589,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
         {compendio && (
           <View wrap={false}>
             <Text style={estilos.notaEtiqueta}>Cómo se hizo la venta (registro del CRM):</Text>
-            <Text style={estilos.bulletTexto}>
+            <Text style={estilos.compendioResumen}>
               {compendio.comercial} · {compendio.resumen}
             </Text>
             {compendio.hitos.slice(0, 6).map((h, i) => (
@@ -585,7 +597,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
                 <Text style={estilos.bulletMarca}>•</Text>
                 <Text style={estilos.bulletTexto}>
                   {h.fecha} — {h.tipo}
-                  {h.detalle ? `: ${h.detalle.slice(0, 160)}` : ""}
+                  {h.detalle ? `: ${recortar(h.detalle, 200)}` : ""}
                 </Text>
               </View>
             ))}
