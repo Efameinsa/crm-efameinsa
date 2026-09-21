@@ -22,6 +22,7 @@ import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
+import Link from "next/link";
 import { fechaAgendada, fechaHoraLima, fechaLimaCorta } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
@@ -266,6 +267,21 @@ export default async function OportunidadDetallePage({
     // de la conversación, si este contacto vino con un código de campaña.
     oportunidad.lead_id ? tipificacionesActuales([oportunidad.lead_id]) : Promise.resolve([]),
   ]);
+
+  // LAS COTIZACIONES DE OTRO EXPEDIENTE DEL MISMO CLIENTE (Ariana, 21-09:
+  // «¿por qué no me sale del prospecto Dance su cotización en el lado
+  // derecho?»). El panel muestra las de ESTE expediente; si el cliente tiene
+  // otro con cotizaciones —pasa cuando la derivación abrió un gemelo—, se
+  // listan abajo con el enlace, para que no parezca que se perdieron.
+  const { data: otrasCotizaciones } = cuenta?.id
+    ? await supabase
+        .from("cotizaciones")
+        .select("id, codigo, estado, total, moneda, enviada_at, created_at, oportunidad_id, oportunidades!inner(cuenta_id, etapa)")
+        .eq("oportunidades.cuenta_id", cuenta.id)
+        .neq("oportunidad_id", oportunidad.id)
+        .order("created_at", { ascending: false })
+        .limit(8)
+    : { data: [] };
 
   const tipificacionWaActual = tipificacionesWa[0] ?? null;
   const otrosLeads = (otrosLeadsCrudos ?? []).filter((l) => l.id !== oportunidad.lead_id);
@@ -721,6 +737,29 @@ export default async function OportunidadDetallePage({
               estado de lo cotizado y el botón para empezar. */}
           <SeccionPanel titulo="Cotizaciones" id="cotizador">
             <ListaCotizaciones cotizaciones={cotizaciones ?? []} oportunidadId={oportunidad.id} />
+            {(otrasCotizaciones ?? []).length > 0 && (
+              <div className="mt-3 border-t border-border pt-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">En otro expediente de este cliente</p>
+                <ul className="mt-1 space-y-1">
+                  {(otrasCotizaciones ?? []).map((c) => {
+                    const op = c.oportunidades as unknown as { etapa: string } | null;
+                    return (
+                      <li key={c.id} className="flex flex-wrap items-center gap-x-2 text-xs">
+                        <Link href={`/comercial/oportunidades/${c.oportunidad_id}#cotizador`} className="font-mono font-semibold text-primary hover:underline">
+                          {c.codigo}
+                        </Link>
+                        <span className="text-foreground">
+                          {c.moneda ?? "USD"} {Number(c.total ?? 0).toLocaleString("es-PE")}
+                        </span>
+                        <span className="text-muted-foreground">
+                          · {c.estado}{c.enviada_at ? ` · enviada ${fechaLimaCorta(c.enviada_at)}` : ""}{op?.etapa ? ` · expediente en ${op.etapa}` : ""}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </SeccionPanel>
 
           <SeccionPanel titulo="Calificación">
