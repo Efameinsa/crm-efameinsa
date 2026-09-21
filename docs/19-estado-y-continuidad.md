@@ -1943,3 +1943,15 @@ conjunto de anuncios pueda elegirlo; (2) darle al usuario del sistema la
 página y los permisos de leads; (3) `META_CAPI_TOKEN` NO está en Vercel: los
 eventos a Meta (0257) hoy no salen de producción; (4) método de pago en la WABA
 solo si algún día se usan plantillas (Santos: «nunca voy a hacer eso»).
+
+**Tarde del 21-09, además (mismo despliegue):** el audio grabado en la bandeja salía en
+WebM y Meta lo rechazaba («Media upload error»): ahora se convierte a MP3 en el navegador
+(`src/lib/audio-a-mp3.ts`, @breezystack/lamejs; probado con Meta). Los chips de
+tipificación van en la cabecera del chat. Se retiró «Mandar equipo» (Santos: hacía pesado
+el chat). Catálogo de Meta OCULTO del perfil del número (`_ocultar-catalogo-wa.mjs`).
+`META_CAPI_TOKEN` y `META_LEADS_TOKEN` cargados en Vercel con el token nuevo de Crm-Infofb
+(píxel asignado; `_verificar-token-meta.mjs` pasa). La página de Facebook vive en el
+portafolio «Efameinsa S.A.» (889139957908729) cuya única administradora es la cuenta
+corporacionefameinsa.sa@gmail.com («Elfa Tafur»), sin acceso (celular 981490823 dado de
+baja): hay una solicitud de socio enviada desde el portafolio Efameinsa esperando esa
+aprobación. Hasta entonces los formularios de Meta se bajan a mano de Business Suite.
