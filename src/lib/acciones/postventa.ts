@@ -589,10 +589,14 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   // Primera vez: se arma desde el cierre (o del texto del pedido si no hay cierre).
   const { error } = await supabase.rpc("sembrar_equipos_del_pedido", { p_servicio: servicioId });
   if (error) return [];
+  // La consulta lleva un filtro de más a propósito: Next memoriza los fetch
+  // idénticos dentro de un mismo render, y sin esto devolvía la lista vacía
+  // de la primera consulta aunque la siembra ya estuviera en la base.
   const { data: sembrados } = await supabase
     .from("pedido_equipos")
     .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos")
     .eq("servicio_id", servicioId)
+    .gte("orden", 1)
     .order("orden");
   return (sembrados ?? []) as EquipoDelPedido[];
 }
