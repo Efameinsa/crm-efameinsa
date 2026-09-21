@@ -288,3 +288,54 @@ marcarlos.
   (`puede_postventa()` + `tipo_postventa`). Probado como PV2 y PV1 (cierran), C1 (no), y PV2 sobre
   expedientes comerciales ajenos (0 filas). El dueño no cambia: «Pedir el expediente» (0202) sigue
   siendo el camino. Solo base: no requiere despliegue.
+
+## 21-09 — Carlos revisa el CRM en vivo con Lesly, Rubí y Gabriela (0259, 0260)
+
+Transcripciones «21-09-2026 10.06» y «21-09-2026 10.31». Todo desplegado el mismo día.
+
+**Pedido y despacho (0259)**
+- «No lleva plano» con motivo: un repuesto o accesorio (el calderín de Malvich) salta el paso.
+- La apertura dice **ENTREGA A DOMICILIO / EN AGENCIA** y cuál (en Cusco hay seis). El DNI de quien
+  recibe pasa a obligatorio (Lesly: la agencia lo pide).
+- Emitida la apertura, cambiar dirección, quién recibe o la fecha pide el código de operaciones o
+  gerencia (`candadoDeApertura` → `validar_codigo_autorizacion(…, 'operaciones')`).
+- El calendario muestra el despacho desde que postventa lo programa: «programado, almacén sin
+  confirmar» → «confirmado por almacén» → «Despachado» (Carlos y Rubí: «todo lo programamos
+  unilateralmente; lo otro ya son confirmaciones»).
+- «Marcar listo» de la prueba ya no aparece a postventa una vez pedida al almacén.
+- Postventa abre el PDF del cierre («están ciegos… va a tener que ser mostrado, por lo menos en
+  esta etapa»). Las cifras siguen fuera de sus pantallas; el documento firmado sí.
+- La atención dice quién registró lo que reportó el cliente y cuándo (`recibido_por`).
+- «Viene a la planta» también desde las listas de visitas (postventa y comercial), sin cliente aún.
+- Rubí pasa a llamarse «Postventa 1».
+
+**Agenda y reporte diario de postventa**
+- «Otras gestiones de hoy» (la bitácora de Central, `bitacora_dia`) en la agenda de postventa,
+  con atajos propios. Carlos: «no quiero que trabajemos con el Word».
+- El reporte diario de un perfil de postventa suma (calculado en TS, la función SQL no se toca):
+  sección 5 lo del circuito de hoy (despachado, atendido, visita) + la bitácora; sección 6 los
+  despachos, puestas en marcha, atenciones, casos y visitas de mañana. `cargarEventosPostventa()`
+  (`src/lib/agenda-postventa-datos.ts`) es la misma carga que usa el calendario.
+- `scripts/_bajar-como.mjs`: baja un PDF del CRM con la sesión de cualquiera (el pantallazo no
+  puede abrir PDF).
+
+**Los equipos del pedido (0260)** — Ecolav: lavadora con serie (stock), secadora sin stock, el
+cliente quiere que salga solo la lavadora.
+- Tabla `pedido_equipos`: una fila por unidad vendida en el cierre, sembrada la primera vez que
+  se abre el pedido (`sembrar_equipos_del_pedido`; sin cierre, una fila con el texto del pedido);
+  las series ya registradas por la 0253 se enganchan.
+- Postventa: «Equipos de este pedido» con serie (en stock) / «sin stock todavía», registrar la
+  serie cuando llega (`registrar_serie_del_equipo` → nace en el parque) y «No va en este despacho»
+  (`equipo_va_en_este_despacho`; despacho parcial).
+- Almacén: prueba y sube el protocolo máquina por máquina (`almacen_probar_equipo`); cuando están
+  todas las que van, el pedido queda probado y embalado (con todos los protocolos) y avisa.
+- La apertura lista solo los equipos que salen, con sus series.
+- Trampa encontrada: tras sembrar, la segunda consulta idéntica devolvía vacío porque Next
+  memoriza los fetch iguales dentro de un render; se rompe con un filtro de más (`.gte("orden", 1)`).
+
+**Campanita «desactualizada» (Gabriela)**: revisado. Sus avisos llegan y están leídos (todos los
+de hoy, 21-09). Lo que echaba de menos era saber quién registró la atención: ya se muestra. Si
+«no le llega» es el aviso del navegador, falta «Activar notificaciones» en su equipo.
+
+**Pendiente de la reunión**: Rubí manda por correo las etapas que propone para la bandeja;
+Central a veces deriva con tipo de atención equivocado (ya es editable en la atención).
