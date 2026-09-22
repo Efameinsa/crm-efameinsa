@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { fechaHoraLima } from "@/lib/fechas";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ConversacionWhatsapp, FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
-import { horasDeVentana } from "@/lib/whatsapp";
+import { ventanaDe } from "@/lib/whatsapp";
 
 const TODOS_LOS_COMERCIALES = "__todos";
 
@@ -26,13 +26,12 @@ const PESTANAS: { valor: FiltroConversaciones; etiqueta: string }[] = [
 
 // La ventana es de 72 h cuando el cliente vino de un anuncio y de 24 en el
 // resto (22-09): el semáforo tiene que contar sobre la que de verdad corre.
-function ventanaSemaforo(ultimoMensajeClienteAt: string | null, deAnuncio: boolean): { color: string; titulo: string } {
+function ventanaSemaforo(ultimoMensajeClienteAt: string | null, anuncioAt: string | null): { color: string; titulo: string } {
   if (!ultimoMensajeClienteAt) return { color: "bg-muted-foreground/30", titulo: "Sin mensajes del cliente todavía" };
-  const tope = horasDeVentana(deAnuncio);
-  const horas = (Date.now() - new Date(ultimoMensajeClienteAt).getTime()) / 3_600_000;
-  if (horas < tope - 4) return { color: "bg-[#1E7F4F]", titulo: `Ventana de ${tope} h abierta` };
-  if (horas < tope) return { color: "bg-amber-500", titulo: `La ventana de ${tope} h está por cerrarse` };
-  return { color: "bg-red-500", titulo: `Ventana de ${tope} h cerrada: llame al cliente o escríbale desde su WhatsApp` };
+  const { abierta, horas, restanHoras } = ventanaDe(ultimoMensajeClienteAt, anuncioAt);
+  if (!abierta) return { color: "bg-red-500", titulo: `Ventana de ${horas} h cerrada: llame al cliente o escríbale desde su WhatsApp` };
+  if (restanHoras > 4) return { color: "bg-[#1E7F4F]", titulo: `Ventana de ${horas} h abierta` };
+  return { color: "bg-amber-500", titulo: `La ventana de ${horas} h está por cerrarse` };
 }
 
 export function WhatsappListaConversaciones({
@@ -123,7 +122,7 @@ export function WhatsappListaConversaciones({
           </div>
         ) : (
           conversaciones.map((c) => {
-            const semaforo = ventanaSemaforo(c.ultimo_mensaje_cliente_at, c.de_anuncio);
+            const semaforo = ventanaSemaforo(c.ultimo_mensaje_cliente_at, c.anuncio_at);
             return (
               <Link
                 key={c.id}

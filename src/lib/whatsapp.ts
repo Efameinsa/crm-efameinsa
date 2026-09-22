@@ -33,21 +33,32 @@ function credenciales() {
  * Se calcula acá —no en la base— porque es una regla de Meta, no un estado
  * que el CRM decida.
  */
+const horasDesde = (iso: string | null) => (iso ? (Date.now() - new Date(iso).getTime()) / 3_600_000 : Infinity);
+
+/** Las dos ventanas, en horas, y cuál manda en este momento. */
+export function ventanaDe(
+  ultimoMensajeClienteAt: string | null,
+  anuncioAt: string | null = null,
+): { abierta: boolean; horas: number; restanHoras: number; porAnuncio: boolean } {
+  const restanAtencion = 24 - horasDesde(ultimoMensajeClienteAt);
+  const restanAnuncio = anuncioAt ? 72 - horasDesde(anuncioAt) : -Infinity;
+  const porAnuncio = restanAnuncio > restanAtencion;
+  const restanHoras = Math.max(restanAtencion, restanAnuncio);
+  return { abierta: restanHoras > 0, horas: porAnuncio ? 72 : 24, restanHoras, porAnuncio };
+}
+
 export function horasDeVentana(vinoDeAnuncio: boolean): number {
   return vinoDeAnuncio ? 72 : 24;
 }
 
-export function ventanaAbierta(ultimoMensajeClienteAt: string | null, vinoDeAnuncio = false): boolean {
-  if (!ultimoMensajeClienteAt) return false;
-  const horas = (Date.now() - new Date(ultimoMensajeClienteAt).getTime()) / 3_600_000;
-  return horas < horasDeVentana(vinoDeAnuncio);
+export function ventanaAbierta(ultimoMensajeClienteAt: string | null, anuncioAt: string | null = null): boolean {
+  return ventanaDe(ultimoMensajeClienteAt, anuncioAt).abierta;
 }
 
 /** Cuánto queda de ventana, dicho como lo diría una persona («faltan 6 h», «faltan 40 min»). */
-export function loQueQuedaDeVentana(ultimoMensajeClienteAt: string | null, vinoDeAnuncio = false): string | null {
-  if (!ultimoMensajeClienteAt) return null;
-  const restanHoras = horasDeVentana(vinoDeAnuncio) - (Date.now() - new Date(ultimoMensajeClienteAt).getTime()) / 3_600_000;
-  if (restanHoras <= 0) return null;
+export function loQueQuedaDeVentana(ultimoMensajeClienteAt: string | null, anuncioAt: string | null = null): string | null {
+  const { abierta, restanHoras } = ventanaDe(ultimoMensajeClienteAt, anuncioAt);
+  if (!abierta) return null;
   if (restanHoras < 1) return `faltan ${Math.max(1, Math.round(restanHoras * 60))} min`;
   return `faltan ${Math.floor(restanHoras)} h`;
 }
@@ -86,12 +97,12 @@ async function llamarGraphAPI(cuerpo: Record<string, unknown>): Promise<Resultad
 async function comprobarVentana(admin: ReturnType<typeof createAdminClient>, conversacionId: string): Promise<string | null> {
   const { data: conversacion } = await admin
     .from("wa_conversaciones")
-    .select("ultimo_mensaje_cliente_at, ctwa_clid, referral")
+    .select("ultimo_mensaje_cliente_at, anuncio_at")
     .eq("id", conversacionId)
     .maybeSingle();
-  const deAnuncio = Boolean(conversacion?.ctwa_clid || conversacion?.referral);
-  if (!ventanaAbierta(conversacion?.ultimo_mensaje_cliente_at ?? null, deAnuncio)) {
-    return `La ventana de ${horasDeVentana(deAnuncio)} horas se cerró: llame al cliente o escríbale desde su WhatsApp (las plantillas son fase 3).`;
+  const v = ventanaDe(conversacion?.ultimo_mensaje_cliente_at ?? null, conversacion?.anuncio_at ?? null);
+  if (!v.abierta) {
+    return `La ventana de ${v.horas} horas se cerró: llame al cliente o escríbale desde su WhatsApp (las plantillas son fase 3).`;
   }
   return null;
 }

@@ -45,6 +45,8 @@ export interface ConversacionWhatsapp {
   ultimo_texto: string | null;
   /** Vino de un clic en un anuncio: la ventana es de 72 h, no de 24 (22-09). */
   de_anuncio: boolean;
+  /** Cuándo entró ese clic: las 72 h se cuentan desde ahí, no desde el último mensaje (0265). */
+  anuncio_at: string | null;
 }
 
 
@@ -67,7 +69,7 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
 
   let consulta = supabase
     .from("wa_conversaciones")
-    .select("id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, perfiles(nombre)")
+    .select("id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, perfiles(nombre)")
     .order("ultimo_mensaje_at", { ascending: false, nullsFirst: false });
 
   if (filtro === "sin_atender") consulta = consulta.eq("estado", "sin_atender");
@@ -107,6 +109,7 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
     codigo_campania_wa: c.codigo_campania_wa,
     ultimo_texto: ultimos.get(c.id) ?? null,
     de_anuncio: Boolean(c.ctwa_clid),
+    anuncio_at: c.anuncio_at ?? null,
   }));
 }
 
@@ -139,7 +142,7 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
   const { data } = await supabase
     .from("wa_conversaciones")
     .select(
-      "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, referral, perfiles(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
+      "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, referral, perfiles(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -165,6 +168,7 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
     lead_nombre_contacto: lead?.nombre_contacto ?? null,
     oportunidad_id: lead?.oportunidad_id ?? null,
     de_anuncio: Boolean(data.ctwa_clid || data.referral),
+    anuncio_at: data.anuncio_at ?? null,
     anuncio: anuncioDe(data.referral),
     campania_nombre: (campania as { nombre: string } | null)?.nombre ?? null,
   };

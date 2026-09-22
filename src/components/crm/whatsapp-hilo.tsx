@@ -33,7 +33,7 @@ import { TipificarWhatsapp } from "@/components/crm/tipificar-whatsapp";
 import type { TipificacionActual } from "@/lib/acciones/whatsapp-campanas";
 import { audioAMp3 } from "@/lib/audio-a-mp3";
 import { etiquetaDeContactoWa, esTelefonoDeVerdad } from "@/lib/contacto-whatsapp";
-import { ventanaAbierta, horasDeVentana, loQueQuedaDeVentana } from "@/lib/whatsapp";
+import { ventanaDe, loQueQuedaDeVentana } from "@/lib/whatsapp";
 import { AnuncioDelLead } from "@/components/crm/anuncio-del-lead";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -169,8 +169,9 @@ export function WhatsappHilo({
   }, [mensajes.length]);
 
   // 72 h cuando vino de un anuncio, 24 en el resto (22-09).
-  const ventana = ventanaAbierta(conversacion.ultimo_mensaje_cliente_at, conversacion.de_anuncio);
-  const restaVentana = loQueQuedaDeVentana(conversacion.ultimo_mensaje_cliente_at, conversacion.de_anuncio);
+  const estadoVentana = ventanaDe(conversacion.ultimo_mensaje_cliente_at, conversacion.anuncio_at);
+  const ventana = estadoVentana.abierta;
+  const restaVentana = loQueQuedaDeVentana(conversacion.ultimo_mensaje_cliente_at, conversacion.anuncio_at);
 
   // LLEVÁRSELO A SU NÚMERO (Carlos, 22-09): «converse lo mínimo posible en el
   // chat y lléveselo a su número… si el cliente llama al número del anuncio,
@@ -372,7 +373,7 @@ export function WhatsappHilo({
             {etiquetaDeContactoWa(conversacion)}
             {conversacion.lead_codigo && ` · ${conversacion.lead_codigo}`}
             {conversacion.codigo_campania_wa && ` · código ${conversacion.codigo_campania_wa}`}
-            {restaVentana && ` · ventana de ${horasDeVentana(conversacion.de_anuncio)} h: ${restaVentana}`}
+            {restaVentana && ` · ventana de ${estadoVentana.horas} h: ${restaVentana}`}
           </p>
           {/* Lo que vio el cliente antes de escribir (22-09). */}
           {conversacion.anuncio && (
@@ -501,7 +502,7 @@ export function WhatsappHilo({
           <p className="text-center text-xs text-muted-foreground">Conversación cerrada. Reábrala para seguir escribiendo.</p>
         ) : !ventana ? (
           <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-center text-xs text-amber-900">
-            La ventana de {horasDeVentana(conversacion.de_anuncio)} h se cerró: desde acá ya no se puede escribir. Llame al cliente o
+            La ventana de {estadoVentana.horas} h se cerró: desde acá ya no se puede escribir. Llame al cliente o
             escríbale desde su WhatsApp con el botón «Seguir por mi WhatsApp» de arriba (las plantillas son fase 3).
           </p>
         ) : (

@@ -310,6 +310,7 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
           lead_id: lead?.id ?? null,
           ctwa_clid: mensaje.referral?.ctwa_clid ?? null,
           referral: mensaje.referral ?? null,
+          anuncio_at: mensaje.referral ? timestampMeta : null,
           codigo_campania_wa: codigoCampania,
         })
         .select("id, lead_id, asignado_a, nombre_wa")
@@ -388,6 +389,11 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
         ultimo_mensaje_cliente_at: timestampMeta,
         ultimo_mensaje_at: timestampMeta,
         estado: esConversacionNueva ? "sin_atender" : undefined,
+        // Volvió a entrar por un anuncio: Meta abre una ventana gratuita
+        // nueva de 72 h y hay que contarla desde este clic (0265).
+        ...(mensaje.referral
+          ? { anuncio_at: timestampMeta, ctwa_clid: mensaje.referral.ctwa_clid ?? null, referral: mensaje.referral }
+          : {}),
       })
       .eq("id", conversacion.id);
 
