@@ -520,3 +520,22 @@ falta?», sin fecha de por medio — un despacho SIN fecha nunca aparecía en ni
 - Verificado en producción con datos reales: pantallazo de `/postventa/agenda` con los conteos en
   vivo, y el PDF de `/api/reportes/diario` descargado y leído completo, con la sección 5b y sus
   seis bloques. 32/32 pruebas de `postventa.test.ts` verdes (3 nuevas). Humo 38/38.
+
+## 22-09 (tarde) — ítem 7 del plan: liberados Herrera y Rivera (dato, con confirmación)
+
+Santos, con Rubí: «Hay que liberarlo, sí. De Herrera y de Rivera. […] Ayer subimos fotos de la
+prueba y embalaje. Vamos a dejar eso como que falta, para subir nuevamente. Han sido imágenes de
+prueba.» Confirmado por Santos antes de tocar la base (22-09, tarde).
+
+- Al revisar antes de ejecutar: el dato de Rivera («sale hoy 22 a las 2 pm») ya no aplicaba —
+  `fecha_despacho` estaba en null, sin nada programado para hoy, así que liberar la prueba no
+  interfiere con ningún despacho en curso.
+- `scripts/_liberar-prueba-pedido.mjs` (nuevo, reusable): limpia `protocolo_fotos`,
+  `prueba_lista_at`, `prueba_lista_por` y `protocolo_prueba_ref` en `servicios_postventa`, y
+  `prueba_lista_at`/`protocolo_fotos` en `pedido_equipos`, SIN tocar `salida_fotos` ni
+  `despachado_at` — Herrera ya había salido el 21 con sus 5 fotos de despacho, y esas se quedan.
+  Ejecutado para `6aa02f79…` (HERRERA AVILA YESSENI LUZBITH) y `38abceb0…` (RIVERA CIERTO BERTHA
+  FABIOLA).
+- Verificado con pantallazo de `/almacen/pedidos/6aa02f79…`: el equipo vuelve a mostrar «Pendiente
+  de prueba» con el botón «Probada y embalada» disponible, y las 5 fotos del despacho del 21-09
+  siguen intactas en «Fotos del almacén».
