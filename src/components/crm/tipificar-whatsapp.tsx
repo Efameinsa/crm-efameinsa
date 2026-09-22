@@ -81,7 +81,7 @@ export function TipificarWhatsapp({ leadId, actual, telefono, compacto = false }
         toast.error(r.error);
         return;
       }
-      toast.success(`Marcado como "${ETIQUETA_TIPIFICACION[valor]}"`);
+      toast.success(r.aviso ?? `Marcado como "${ETIQUETA_TIPIFICACION[valor]}"`);
       setPendiente(null);
       setNota("");
       setAbierto(false);

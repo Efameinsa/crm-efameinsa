@@ -123,7 +123,7 @@ export async function tipificarWhatsApp(
   leadId: string,
   estado: TipificacionWhatsapp,
   nota?: string,
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; aviso?: string }> {
   if (estado === "continuado_por_mi_linea" && !nota?.trim()) {
     return { error: "Escriba por qué sigue la conversación fuera del CRM." };
   }
@@ -148,11 +148,84 @@ export async function tipificarWhatsApp(
   if (estado === "interesado") await enviarEventoMeta({ evento: "Lead", leadId, eventId: `${leadId}:Lead` });
   if (estado === "cotizado") await enviarEventoMeta({ evento: "SubmitApplication", leadId, eventId: `${leadId}:SubmitApplication` });
 
+  // Santos, 21-09: «cuando el comercial tipifica en el WhatsApp, ¿no debería
+  // hacer una acción en su CRM? guardarse la gestión automáticamente». Sí:
+  // la tipificación es una gestión por WhatsApp y queda en el expediente del
+  // contacto, y mueve la etapa donde tiene sentido. Si el contacto todavía
+  // no tiene expediente (retenido en Central, o de práctica sin derivar), la
+  // tipificación se guarda igual y se avisa en palabras.
+  const aviso = await dejarGestionEnElExpediente(supabase, leadId, estado, nota?.trim() || null, user.id);
+
   revalidatePath("/central");
   revalidatePath("/central/derivados");
   revalidatePath("/whatsapp/[id]", "page");
   revalidatePath("/comercial/oportunidades/[id]", "page");
-  return { error: null };
+  revalidatePath("/comercial");
+  revalidatePath("/comercial/oportunidades");
+  return { error: null, aviso };
+}
+
+const NOTA_GESTION: Record<TipificacionWhatsapp, string> = {
+  interesado: "Por WhatsApp: el cliente está interesado.",
+  cotizado: "Por WhatsApp: se le envió cotización.",
+  no_interesado: "Por WhatsApp: el cliente no está interesado.",
+  equivocado: "Por WhatsApp: número equivocado.",
+  sin_respuesta: "Por WhatsApp: sin respuesta del cliente.",
+  continuado_por_mi_linea: "Por WhatsApp: la conversación sigue por la línea del comercial.",
+};
+
+/** Motivos del catálogo de rechazo (0001) que corresponden a cada cierre por WhatsApp. */
+const MOTIVO_RECHAZO: Partial<Record<TipificacionWhatsapp, number>> = {
+  no_interesado: 5, // Solo consultaba / sin intención
+  equivocado: 8, // Datos falsos / spam
+};
+
+async function dejarGestionEnElExpediente(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  leadId: string,
+  estado: TipificacionWhatsapp,
+  nota: string | null,
+  userId: string,
+): Promise<string | undefined> {
+  const { data: lead } = await supabase.from("leads").select("oportunidad_id, estado").eq("id", leadId).maybeSingle();
+  if (!lead?.oportunidad_id) {
+    return lead?.estado === "pendiente_triaje"
+      ? "Quedó marcado. El contacto todavía está en la bandeja de Central: cuando lo deriven, la gestión se anota en el expediente."
+      : "Quedó marcado. Este contacto no tiene expediente abierto, así que no se anotó gestión.";
+  }
+  const oportunidadId = lead.oportunidad_id;
+
+  const { error: eAct } = await supabase.from("actividades").insert({
+    oportunidad_id: oportunidadId,
+    tipo: "whatsapp",
+    nota: nota ? `${NOTA_GESTION[estado]} ${nota}` : NOTA_GESTION[estado],
+    realizada_por: userId,
+    adjuntos: [],
+  });
+  if (eAct) {
+    // RLS: el expediente es de otra persona (pasa cuando Central tipifica).
+    return "Quedó marcado. La gestión no se anotó porque el expediente es de otro comercial.";
+  }
+
+  // La etapa se mueve solo hacia donde la tipificación lo dice sin ambigüedad
+  // y sin pisar una etapa más avanzada: interesado → seguimiento (si estaba en
+  // asignada o filtrada); no interesado / equivocado → rechazada con motivo;
+  // sin respuesta y continuado no mueven nada; cotizado tampoco (la etapa
+  // «cotizada» la pone el cotizador, regla de la casa).
+  const { data: op } = await supabase.from("oportunidades").select("etapa").eq("id", oportunidadId).maybeSingle();
+  if (!op) return undefined;
+  if (estado === "interesado" && (op.etapa === "asignada" || op.etapa === "filtrada")) {
+    await supabase.from("oportunidades").update({ etapa: "seguimiento" }).eq("id", oportunidadId);
+    return "Quedó marcado y anotado como gestión. El expediente pasó a seguimiento.";
+  }
+  if ((estado === "no_interesado" || estado === "equivocado") && !["venta", "rechazada", "derivada", "historico"].includes(op.etapa)) {
+    await supabase
+      .from("oportunidades")
+      .update({ etapa: "rechazada", motivo_rechazo_id: MOTIVO_RECHAZO[estado] ?? null, cerrada_at: new Date().toISOString() })
+      .eq("id", oportunidadId);
+    return "Quedó marcado y anotado como gestión. El expediente se cerró como rechazado.";
+  }
+  return "Quedó marcado y anotado como gestión en el expediente.";
 }
 
 export interface TipificacionActual {
