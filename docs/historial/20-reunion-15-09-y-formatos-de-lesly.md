@@ -339,3 +339,30 @@ de hoy, 21-09). Lo que echaba de menos era saber quién registró la atención: 
 
 **Pendiente de la reunión**: Rubí manda por correo las etapas que propone para la bandeja;
 Central a veces deriva con tipo de atención equivocado (ya es editable en la atención).
+
+## 22-09 (11:00) — Carlos revisa con Central y postventa el caso Huamán Ruiz (0267)
+
+Transcripción «22-09-2026 11.00». El caso: INVERSIONES HUAMAN RUIZ pidió el mismo kit de
+interruptor de puerta dos veces —el 19-09 y otra vez el 21-09, «por SEGUNDA VEZ» escribió C1 al
+registrarlo—, las dos derivaciones fueron a Postventa 1 y quedó dos días sin respuesta.
+
+- **Dos expedientes en vez de uno.** La 0141 dejaba a postventa fuera de la consolidación a
+  propósito (un caso de postventa no se funde con una venta), pero la excepción era total:
+  postventa SIEMPRE abría uno nuevo. Carlos: «ese es un error, vamos a consolidarlo». **0267**:
+  un caso de postventa se suma al de postventa del mismo cliente y del mismo tipo si sigue
+  abierto y se movió este mes. Parchado sobre la definición viva de `asignar_lead`.
+  Los dos expedientes de Huamán Ruiz se unieron a mano (gestiones y leads al que queda, gemelo
+  borrado); el expediente ahora muestra las dos solicitudes y las dos gestiones.
+- **«Lo que mandé a Central» miraba 24 horas.** Brenda derivó el lunes y el martes a las 11 no
+  había nada en su cuenta. Ahora mira una semana, trae hasta 30 filas y el panel se ve siempre,
+  también vacío (como ya decía su propia documentación y la pantalla del comercial incumplía).
+- **La alerta de Central pasa de 24 h a 4 h.** Carlos: «no días, horas; tres horas, cuatro
+  exageradamente. Pero ya tenemos que darle la alerta. Nuestro trabajo como central es
+  supervisar». Medido el 22-09: con 24 h había 11 contactos en alerta; con 4 h son 36.
+
+**Lo que NO se tocó, a propósito:** las fichas del cliente. Hay tres cuentas para la misma
+empresa (INVERSIONES HUAMAN RUIZ con RUC 20600852893 de C4; la misma sin RUC de C5; y RUIZ
+PANGALIMA sin RUC, que es la que recibió postventa). No se pueden unir solas —nombres distintos
+y sin RUC— y Carlos pidió a Gabriela el file del cliente para confirmar que es el mismo antes de
+consolidar. Esa es la razón por la que postventa no vio «relacionados»: no hay nada que
+relacionar mientras las fichas no compartan RUC ni teléfono.
