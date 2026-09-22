@@ -28,6 +28,28 @@ function falla(mensaje: string) {
   return { error: mensaje };
 }
 
+/**
+ * EL ERROR DE POSTGRES NO SE LE MUESTRA AL ALMACÉN.
+ *
+ * El 22-09 el almacén escribió la serie de la lavadora de Ecolav y la pantalla
+ * le contestó «there is no unique or exclusion constraint matching the ON
+ * CONFLICT specification»: en inglés, sobre índices, y sin decir qué hacer.
+ * Era un error nuestro (0268), pero cualquier otro fallo de la base va a
+ * llegar igual de crudo. Acá se traduce a algo accionable; si no se reconoce,
+ * al menos se dice a quién avisar y se deja el original entre paréntesis para
+ * poder buscarlo.
+ */
+function enCastellano(mensaje: string): string {
+  const m = mensaje.replace(/^[A-Z0-9]{5}:\s*/, "");
+  if (/duplicate key|ya existe|unique constraint/i.test(m)) {
+    return "Esa serie ya está registrada en otra máquina del parque. Revísela en la placa; si es la correcta, avise a operaciones.";
+  }
+  if (/ON CONFLICT|constraint|violates|null value|invalid input/i.test(m)) {
+    return `No se pudo guardar por una falla del sistema, no por lo que escribió. Avise a operaciones (${m.slice(0, 120)}).`;
+  }
+  return m;
+}
+
 // ── Central: los dos checks que liberan el pedido ──────────────────────────
 
 export async function liberarPedido(datos: {
@@ -605,7 +627,7 @@ export async function registrarSerieDelEquipo(itemId: string, servicioId: string
   if (!serie.trim()) return { error: "Escriba la serie como se lee en la placa" };
   const supabase = await createClient();
   const { error } = await supabase.rpc("registrar_serie_del_equipo", { p_item: itemId, p_serie: serie.trim().toUpperCase(), p_garantia_meses: 24 });
-  if (error) return falla(error.message);
+  if (error) return falla(enCastellano(error.message));
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   revalidatePath(`/almacen/pedidos/${servicioId}`);
   revalidatePath("/postventa/equipos");
