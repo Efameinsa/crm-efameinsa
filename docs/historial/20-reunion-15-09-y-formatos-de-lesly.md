@@ -408,3 +408,25 @@ Ejecutado por la sesión de Sonnet sobre `docs/29-plan-reunion-22-09-postventa-y
   idempotente) y con pantallazo de `/central/cierres?ver=liberados` como `central@efameinsa.com`:
   se ve el panel «Equipos de este pedido» en cada tarjeta liberada, con «+ Registrar la serie».
   Humo de producción 38/38.
+
+## 22-09 (tarde) — ítem 2 del plan: doble filtro rojo/verde en el despacho (sin migración)
+
+Carlos: «Tú programas el despacho, pero de nada se va a despachar. No debería permitirte
+despachar si no ha cumplido los otros pasos. Al almacén tendría que aparecerle: si hay
+programación, perfecto, pero me sale con rojo, o sea que postventa no ha cumplido. Si no ha
+cumplido, no puedo hacer nada.»
+
+- `apertura_despacho_at` es la señal fiable de que postventa cumplió: el servidor ya la revalida
+  contra los mismos requisitos al emitirla (`emitirAperturaDespacho` → `bloquesPedido`).
+- Almacén: la tarjeta «Despacho programado» es verde (con «Estamos listos» habilitado) o roja
+  (sin botón, con el detalle de qué falta) según haya o no apertura. Mismo criterio en la lista
+  `/almacen/pedidos` (fila dice «postventa no ha cumplido») y en «Mi día» (nueva tarjeta «De esos,
+  sin apertura», y «Despachos de hoy» distingue el caso).
+- Postventa: al programar sin apertura, un aviso ámbar no bloqueante con lo que falta —«todo lo
+  programamos unilateralmente» sigue valiendo, solo que ahora se sabe de una vez.
+- Calendario: el evento de despacho lleva un punto rojo sin apertura, en la vista de día y en la
+  grilla de mes/semana.
+- Verificado en producción con dos pedidos reales: CONGELADOS Y FRESCOS SAC (sin apertura, falta
+  la dirección verificada) muestra la tarjeta roja y el punto rojo en la agenda del 13 de agosto;
+  CLINICA PRUEBA SAN MARTIN (con apertura) muestra la tarjeta verde con el botón activo. Humo
+  38/38.
