@@ -1982,3 +1982,57 @@ Dos fallas que solo aparecen con tráfico real, arregladas y desplegadas (`66777
 **37 conversaciones y CERO respuestas humanas** — solo los acuses automáticos. La ventana
 de 24 h de la primera se cierra el 22-09 a las 19:45. Santos estaba capacitando a Katerine
 en ese momento.
+
+## 22-09-2026 (tarde/noche) — plan de la reunión del 22-09: los 10 ítems, ejecutados
+
+Santos: «que lea ese documento entero y ejecute los ítems en orden, uno por commit, con
+despliegue y pantallazo cada uno». El documento era `docs/29-plan-reunion-22-09-postventa-y-pedidos.md`,
+escrito por una sesión anterior tras la reunión de postventa y pedidos del 22-09 (Carlos, 11:00,
+más el aparte con Santos). Los diez ítems, en orden, cada uno con su commit, su despliegue y su
+verificación en producción con datos reales (screenshot o PDF descargado):
+
+1. **Central convierte el cierre en pedido con las series** (0270): Central ya puede registrar
+   series al liberar un pedido, y `liberar_pedido_postventa` siembra los equipos del pedido solo.
+2. **Doble filtro del despacho**: si postventa programa sin que la apertura esté emitida, el
+   almacén lo ve en ROJO con "Postventa todavía no cumplió" — en `/almacen`, `/almacen/pedidos`,
+   la ficha del pedido y el calendario.
+3. **La derivación no abre un caso suelto cuando ya hay pedido**: en vez de tocar `asignar_lead`
+   (riesgo alto para un problema que ya resolvía la 0244), un aviso en la atención lista los
+   pedidos sin cerrar del cliente con enlace directo.
+4. **Los contactos se eligen, no se retipean**: RUC escrito dentro del nombre se detecta y se
+   muda solo a su casilla (`rucDentroDelTexto`, 22-09); «¿Quién llama?» en «Pasar contacto a
+   Central» lista los contactos ya conocidos de la empresa; la causa real de los cuatro nombres
+   de Freddy Nolasco (el nombre de perfil de WhatsApp cambia solo) se corrigió en el webhook.
+5. (fusionado con el 4 en la ejecución: la detección del RUC).
+6. **Pendiente por tipo**: panel nuevo en `/postventa/agenda` y sección 5b del reporte diario —
+   despachos sin fecha, videollamadas de preinstalación en Lima (paso nuevo en `bloquesPedido`,
+   comparte columna con la preinstalación de provincia), puestas en marcha pendientes, atenciones
+   sin programar, preventivos por vencer sin caso abierto.
+7. **Liberados Herrera y Rivera** (con confirmación de Santos) para rehacer sus fotos de prueba;
+   `scripts/_liberar-prueba-pedido.mjs` queda para no repetirlo a mano.
+8. **La apertura de servicio**: dice quién y cuándo la emitió, se descarga en PDF
+   (`@react-pdf/renderer`, como el cierre) y registra por separado cuándo se mandó el correo al
+   almacén y al cliente.
+9. **«¿Es el mismo cliente?»**: candidatas por apellido raro COMPARTIDO EN PARES DE PALABRAS (no
+   una sola — «HUAMAN» solo es un apellido de 241 cuentas de 16.226; «HUAMAN RUIZ» junto, solo 2)
+   y por distrito+rubro, con «Unir a esta ficha» (código de operaciones, nunca automático) en el
+   expediente comercial y en la atención de postventa.
+10. **Pendientes menores**: aviso de «no se puede llamar» para contactos con nombre de usuario de
+    WhatsApp; cierre masivo de los ~59 pedidos del Excel que ya se entregaron
+    (`cerrar_pedidos_excel_en_bloque`); script listo (no ejecutado) para unir las tres fichas de
+    Inversiones Huamán Ruiz cuando Gabriela confirme con el file. Sin tocar, a propósito: la
+    tipificación de WhatsApp (Carlos: «déjame pensarlo»), la bitácora libre de postventa y el chat
+    comercial↔postventa (descartado por Carlos).
+
+**Migraciones de esta tanda:** 0270 a 0273. **Detalle completo, con las citas y las pruebas de
+cada ítem, en `docs/historial/20-reunion-15-09-y-formatos-de-lesly.md`** (entradas "22-09 (tarde)
+— ítem N del plan"). Tres premisas del plan resultaron equivocadas al verificarlas contra el
+código y la base antes de tocar nada (item 3: `asignar_lead` no hacía falta, la 0244 ya resolvía
+el fondo; item 8: el botón «Copiar correo» ya existía; item 9: el primer diseño de «apellido raro»
+por una sola palabra habría sido puro ruido con apellidos comunes) — en los tres casos se corrigió
+el rumbo en vez de seguir el plan a ciegas, y queda explicado en el commit y en el historial.
+
+**Pendiente, y de quién es la decisión (no del código):**
+- Unir las tres fichas de Inversiones Huamán Ruiz — de Gabriela, con el file delante.
+- Capacitar a Rubí en la apertura de servicio con un pedido real — de Santos, en persona.
+- La tipificación de WhatsApp a tres opciones — Carlos dijo que lo iba a pensar.
