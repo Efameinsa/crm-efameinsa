@@ -5,6 +5,7 @@ import { fechaLima, fechaCalendario } from "@/lib/fechas";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { queLoFrena, etiquetaResponsable, etiquetaTipoServicio, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
 import { idsDeCuentasQueCasan, condicionCuentaIn } from "@/lib/buscar-cuentas";
+import { TablaHistoricaSeleccionable } from "@/components/crm/tabla-historica-seleccionable";
 import { cn } from "@/lib/utils";
 
 /**
@@ -168,6 +169,8 @@ export async function ColaDespachos({
               </div>
             ))}
         </div>
+      ) : pestana === "historico" ? (
+        <TablaHistoricaSeleccionable filas={filas} verPrecios={verPrecios} />
       ) : (
         <TablaHistoricaDespachos filas={filas} verPrecios={verPrecios} />
       )}

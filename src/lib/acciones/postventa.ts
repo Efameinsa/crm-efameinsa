@@ -589,6 +589,37 @@ export async function cerrarPedido(
 }
 
 /**
+ * CIERRE MASIVO DE LOS PEDIDOS «ANTERIORES AL CIRCUITO» (ítem 10 de la
+ * reunión del 22-09): las filas que vinieron del Excel y ya se sabe que se
+ * entregaron, pero nadie les tocó el check porque no traen el flujo digital
+ * (series, apertura, etc.) que sí tienen los pedidos nacidos en el CRM. Es a
+ * propósito más simple que `cerrarPedido`: no sube ningún equipo al parque —
+ * esas máquinas, si existen, ya deberían estar cargadas por otra vía — solo
+ * marca «entregado y cerrado», con la fecha que Rubí ponga.
+ *
+ * Nunca toca un pedido del circuito digital (`origen <> 'excel'`) ni uno ya
+ * cerrado: es un botón para depurar la cola vieja, no para cerrar cualquier
+ * cosa por accidente.
+ */
+export async function cerrarPedidosAntiguosComoEntregados(
+  ids: string[],
+  fecha: string,
+): Promise<{ error: string | null; cerrados?: number }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+
+  const lista = [...new Set(ids)].filter(Boolean);
+  if (lista.length === 0) return falla("Elija al menos un pedido");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return falla("Ponga la fecha en que se entregó");
+
+  const { data, error } = await supabase.rpc("cerrar_pedidos_excel_en_bloque", { p_ids: lista, p_fecha: fecha });
+  if (error) return falla(error.message);
+
+  revalidatePath("/postventa/atenciones");
+  return { error: null, cerrados: typeof data === "number" ? data : 0 };
+}
+
+/**
  * Las series del pedido, sin cerrarlo (0253). Gary Group salió el 15-09 con
  * guía y ninguna serie llegó al parque: el caso que abrió después no tenía
  * máquinas que elegir. La puerta era «Cerrar pedido»; ahora las series se
