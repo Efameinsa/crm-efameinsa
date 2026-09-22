@@ -388,3 +388,23 @@ rojo/verde en el almacén; la derivación a postventa no abre caso suelto cuando
 (postventa clasifica); contactos que se eligen y no se tipean; RUC dentro del nombre; pendientes
 por tipo en agenda y reporte; liberar Herrera/Rivera; apertura en PDF; fichas relacionadas por
 apellido; menores.
+
+## 22-09 (tarde) — ítem 1 del plan: Central ingresa las series al liberar (0270)
+
+Ejecutado por la sesión de Sonnet sobre `docs/29-plan-reunion-22-09-postventa-y-pedidos.md`.
+
+- Carlos: «Ahora la Central tiene que tener un paso más… para que la Central ingrese la serie del
+  equipo, la descripción, suba la liquidación y dé el ok para que avance. Ese es nuestro punto de
+  partida.»
+- `liberar_pedido_postventa` siembra `pedido_equipos` apenas nace el servicio (0270, idempotente).
+  Central puede leer la lista y registrar series igual que postventa y el almacén — nunca decide
+  qué va en el despacho ni prueba nada. Parchado sobre la definición viva de las tres funciones
+  (`sembrar_equipos_del_pedido`, `registrar_serie_del_equipo`, `liberar_pedido_postventa`), no
+  reescrito de memoria.
+- `/central/cierres`, cada cierre con servicio creado muestra `EquiposDelPedido` en el modo nuevo
+  `"central"`: solo la entrada de serie. El aviso a postventa dice cuántas máquinas tienen serie y
+  cuántas quedan sin stock.
+- Probado con transacciones revertidas (lectura, siembra, registro de serie, re-liberación
+  idempotente) y con pantallazo de `/central/cierres?ver=liberados` como `central@efameinsa.com`:
+  se ve el panel «Equipos de este pedido» en cada tarjeta liberada, con «+ Registrar la serie».
+  Humo de producción 38/38.
