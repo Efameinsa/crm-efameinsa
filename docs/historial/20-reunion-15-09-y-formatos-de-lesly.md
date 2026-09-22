@@ -366,3 +366,25 @@ PANGALIMA sin RUC, que es la que recibió postventa). No se pueden unir solas �
 y sin RUC— y Carlos pidió a Gabriela el file del cliente para confirmar que es el mismo antes de
 consolidar. Esa es la razón por la que postventa no vio «relacionados»: no hay nada que
 relacionar mientras las fichas no compartan RUC ni teléfono.
+
+## 22-09 (12:37) — Carlos con Lesly, Rubí y Gabriela: despachos, aperturas y el estado del pedido (0269)
+
+Transcripciones «22-09-2026 12.37 - parte 1 de 3» y «parte 2 de 3». Aplicado el mismo día:
+
+- **«El comercial tiene que ver una tablita del estatus del pedido»** (lo había pedido en varias
+  reuniones): panel «Estado del pedido» en el expediente (`src/components/crm/estado-del-pedido.tsx`),
+  solo lectura y sin montos: pasos hechos de N, qué sigue y quién, despacho programado con hora,
+  puesta en marcha. La RLS `servicios_pv_comercial` (0088) ya dejaba leer; faltaba la pantalla.
+- **«Solamente falta ponerle hora»**: `servicios_postventa.despacho_hora` (0269); el formulario de
+  programar la pide, el calendario la usa como franja, el almacén la ve en la tarjeta y en el aviso.
+- **«Necesitamos saber quién está registrando esas gestiones»**: el historial del cliente muestra
+  «· C5 · Katerine Tello» al lado de cada gestión.
+- Postventa intentó abrir el PDF del cierre desde la lista «Informes de cierre» del expediente y el
+  botón no estaba (solo se había abierto en la ficha del pedido): ahora se ve; los montos siguen ocultos.
+
+Lo demás de esa reunión quedó en **`docs/29-plan-reunion-22-09-postventa-y-pedidos.md`**, escrito
+para que lo ejecute otra sesión: Central convierte el cierre en pedido con series; doble filtro
+rojo/verde en el almacén; la derivación a postventa no abre caso suelto cuando hay pedido
+(postventa clasifica); contactos que se eligen y no se tipean; RUC dentro del nombre; pendientes
+por tipo en agenda y reporte; liberar Herrera/Rivera; apertura en PDF; fichas relacionadas por
+apellido; menores.
