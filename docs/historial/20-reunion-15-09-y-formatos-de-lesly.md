@@ -568,3 +568,29 @@ pantalla lo dijera con todas sus letras, y darle un documento descargable.
 - De paso, otra sesión corrigió en paralelo (commit 8bb7d40, mientras se trabajaba este ítem) la
   impresión de la apertura (salía con el menú del CRM) y el texto de «falta el plano»; se
   reconciliaron ambos cambios al fusionar sin perder ninguno.
+
+## 22-09 (tarde) — ítem 9 del plan: «¿es el mismo cliente?»
+
+Carlos, 11:00: «A mí cuando han derivado un cliente relacionado a otro me aparece por defecto: dos
+relacionados, y yo puedo abrir. Acá Ruiz Pangalima solamente aparece él.» El panel de relacionados
+de hoy se arma por RUC o teléfono; con nombres escritos distinto y sin RUC no hay nada que cruzar
+(el caso real: tres fichas de INVERSIONES HUAMAN RUIZ).
+
+- Corregido A MITAD DE CAMINO, probando contra la base real: el primer intento de `tokensRaros()`
+  cruzaba por una sola palabra de 6+ letras que no fuera sigla ni de rubro, y «HUAMAN» pasaba esa
+  prueba — pero es un apellido de 241 cuentas en una cartera de 16.226 (y «MIGUEL», 155). Cada
+  ficha de un Huamán hubiera sugerido casi cualquier otro Huamán de la cartera, ruido total. Se
+  corrigió para juntar palabras SEGUIDAS en pares («HUAMAN RUIZ», que solo tienen 2 cuentas de
+  verdad) y además `candidatosMismoCliente` verifica contra la base cuántas cuentas lleva cada
+  frase antes de usarla.
+- 0272: `fusionar_cuentas()` mueve oportunidades, contactos, atenciones y pedidos de postventa de
+  una ficha a otra y la deja marcada `fusionada_en` (no se borra). Pide código de operaciones,
+  siempre — nunca automático.
+- Sección «¿Es el mismo cliente?» en el expediente comercial y en la atención de postventa
+  («también a postventa» era el pedido explícito). Solo aparece cuando la ficha no tiene RUC.
+- Verificado en producción con el caso real: la ficha `15386142…` (INVERSIONES HUAMAN RUIZ S.R.L -
+  HOSPEDAJE MIGUEL ANGEL, sin RUC) muestra exactamente una candidata — `70965099…` INVERSIONES
+  HUAMAN RUIZ S.R.L, cartera de Ariana Flores — con el motivo «apellido compartido: HUAMAN RUIZ».
+  Ninguna de las otras 240 cuentas con «HUAMAN» ni las 155 con «MIGUEL» aparecieron. No se
+  ejecutó la unión real: esa espera a que Gabriela confirme con el file (ítem 10). 32/32 pruebas de
+  `postventa.test.ts` y 5/5 de `fichas-relacionadas.test.ts` verdes. Humo 38/38.
