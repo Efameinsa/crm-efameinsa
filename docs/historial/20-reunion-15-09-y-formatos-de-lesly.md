@@ -594,3 +594,31 @@ de hoy se arma por RUC o teléfono; con nombres escritos distinto y sin RUC no h
   Ninguna de las otras 240 cuentas con «HUAMAN» ni las 155 con «MIGUEL» aparecieron. No se
   ejecutó la unión real: esa espera a que Gabriela confirme con el file (ítem 10). 32/32 pruebas de
   `postventa.test.ts` y 5/5 de `fichas-relacionadas.test.ts` verdes. Humo 38/38.
+
+## 22-09 (tarde) — ítem 10 del plan: pendientes menores
+
+De los siete puntos sueltos que salieron en las reuniones, tres eran código y se hicieron; los
+demás quedan explícitamente en espera, no olvidados.
+
+- **WhatsApp con nombre de usuario**: «Copiar número» ya no aparecía cuando el teléfono no es un
+  número real, pero la pantalla no decía qué hacer en su lugar. Ahora avisa «Este cliente ocultó
+  su número: pídale por chat un número para llamarlo.» Verificado en producción con un caso real
+  (`@waltergu1977`, "Comando"): el chat muestra el aviso y en los mensajes se ve a Brenda
+  pidiéndole el número tres veces sin éxito — exactamente el caso que esto resuelve.
+- **59 pedidos «en cola» del Excel**: `cerrar_pedidos_excel_en_bloque()` (0273) + casillas y
+  «Cerrar como entregado» en «Despachos del Excel» (Atenciones). Probado el RPC directo (sin
+  UI, por la misma razón de siempre: Puppeteer no encuentra checkboxes sin texto) con dos casos
+  reales — uno sin `despachado_at` (se llenó con la fecha del cierre) y uno que ya lo tenía
+  (`LAVIPRONTO SAC`, se mantuvo su fecha real aunque se probó con otra distinta) — y revertidos
+  los dos a su estado exacto de antes de la prueba.
+- `scripts/_unir-fichas.mjs` (nuevo, NO ejecutado): listo para cuando Gabriela confirme con el
+  file cuál de las tres fichas de Inversiones Huamán Ruiz es la buena.
+- Sin cambios, a propósito: la tipificación de WhatsApp (Carlos dijo «déjame pensarlo»), la
+  bitácora libre de postventa (sigue abierta hasta que Carlos pida quitarla) y el chat
+  comercial↔postventa (Carlos lo descartó: «se van a jalar los pelos»).
+- El aviso de Rubí sobre Huamán Ruiz sin la alerta «pidió dos veces» ya estaba resuelto según el
+  propio plan (verificado el 22-09 por la tarde); no hizo falta tocar nada.
+
+Con esto quedan los diez ítems del plan ejecutados (items 1-10), salvo las dos piezas explícitas
+que son decisión de personas y no de código: liberar Herrera/Rivera (ya hecho, ítem 7) y unir las
+fichas de Huamán Ruiz (pendiente de Gabriela). Falta actualizar `docs/19-estado-y-continuidad.md`.
