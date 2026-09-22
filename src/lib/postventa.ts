@@ -535,7 +535,13 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
           : undefined,
       trabado:
         !aperturaEmitida && faltaParaApertura.length > 0
-          ? `Para emitirla falta: ${faltaParaApertura.join(", ")}`
+          ? `Para emitirla falta: ${faltaParaApertura.join(", ")}${
+              // El plano se marca en otro bloque (preparación): sin decir
+              // dónde, postventa creía que la apertura estaba rota (22-09).
+              circuito.esEquipo && !s.sin_plano && !planoEnviado
+                ? ". Márquelo arriba, en «Plano de preinstalación enviado»: «Marcar enviado» o «No lleva plano»"
+                : ""
+            }`
           : undefined,
     },
     {

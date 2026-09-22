@@ -155,12 +155,18 @@ export default async function AperturaServicioPage({ params }: { params: Promise
       ok: s.prueba_lista_at != null || /^(si|sí|ok|listo|x)$/i.test((s.prueba_embalaje ?? "").trim()),
       detalle: s.prueba_lista_at
         ? `${fechaHoraLima(s.prueba_lista_at)}${nombreDe((s as { prueba_lista_por?: string | null }).prueba_lista_por) ? ` · ${nombreDe((s as { prueba_lista_por?: string | null }).prueba_lista_por)}` : ""}${s.protocolo_prueba_ref ? ` · protocolo ${s.protocolo_prueba_ref}` : ""}`
-        : "Marcado en el Excel",
+        : /^(si|sí|ok|listo|x)$/i.test((s.prueba_embalaje ?? "").trim())
+          ? "Marcado en el Excel"
+          : "Pendiente",
     },
     {
       texto: "Plano de preinstalación enviado",
       ok: s.plano_enviado_at != null || /^(si|sí|ok|listo|x)$/i.test((s.planos_preinstalacion ?? "").trim()),
-      detalle: s.plano_enviado_at ? fechaHoraLima(s.plano_enviado_at) : "Marcado en el Excel",
+      detalle: s.plano_enviado_at
+        ? fechaHoraLima(s.plano_enviado_at)
+        : /^(si|sí|ok|listo|x)$/i.test((s.planos_preinstalacion ?? "").trim())
+          ? "Marcado en el Excel"
+          : "Pendiente",
     },
     // LA PREINSTALACIÓN SALIÓ DE LAS CONDICIONES el 09-09: Carlos la puso en la
     // puesta en marcha, no en el despacho. Se sigue imprimiendo en provincia
@@ -176,9 +182,18 @@ export default async function AperturaServicioPage({ params }: { params: Promise
     <div className="mx-auto max-w-3xl space-y-3">
       <style>{`
         @media print {
+          /* Solo la hoja: sin el menú ni la cabecera del CRM, que se comían
+             media página y aplastaban la tabla (queja de postventa, 22-09).
+             Mismo recurso que el informe imprimible. */
+          @page { size: A4; margin: 12mm; }
+          body * { visibility: hidden !important; }
+          .hoja, .hoja * { visibility: visible !important; }
+          .hoja { position: absolute; inset: 0 0 auto 0; box-shadow: none !important; border: 0 !important; border-radius: 0 !important; margin: 0 !important; padding: 0 !important; }
+          .hoja th:nth-child(2) { width: 9.5rem; }
+          .hoja tr { break-inside: avoid; }
+          .hoja { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-imprimir { display: none !important; }
           body { background: white !important; }
-          .hoja { box-shadow: none !important; border: 0 !important; margin: 0 !important; }
         }
       `}</style>
 
