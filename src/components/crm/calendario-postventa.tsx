@@ -345,7 +345,12 @@ function Dia({
             {e.hora ?? "—"}
           </span>
           <div className="min-w-[200px] flex-1">
-            <p className="text-sm font-semibold text-foreground">{e.cliente}</p>
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              {/* EL DOBLE FILTRO (Carlos, 22-09): el punto rojo dice que
+                  postventa todavía no cumplió, aunque ya tenga fecha. */}
+              {e.trabado && <span className="inline-block size-2 flex-none rounded-full bg-destructive" title={e.trabado} />}
+              {e.cliente}
+            </p>
             <p className="text-xs text-muted-foreground">
               {etiquetaEvento(e.tipo)} · {e.titulo}
               {e.ubicacion && ` · ${e.ubicacion}`}
@@ -371,9 +376,10 @@ function Tarjeta({ evento: e, compacta }: { evento: EventoCalendario; compacta?:
         e.hecho && "opacity-55",
       )}
     >
-      <p className="truncate text-[11px] font-semibold leading-tight text-foreground">
+      <p className="flex items-center gap-1 truncate text-[11px] font-semibold leading-tight text-foreground">
         {e.hora && <span className="font-mono tabular-nums">{e.hora} </span>}
-        {e.cliente}
+        {e.trabado && <span className="inline-block size-1.5 flex-none rounded-full bg-destructive" title={e.trabado} />}
+        <span className="truncate">{e.cliente}</span>
       </p>
       {!compacta && (
         <p className="truncate text-[10px] leading-tight text-muted-foreground">

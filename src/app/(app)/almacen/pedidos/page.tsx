@@ -76,6 +76,9 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
     if (s.agencia_at || s.guia) return { texto: `Despachado · guía ${s.guia ?? "—"}`, tono: "text-[#1E7F4F]" };
     if (s.despachado_at) return { texto: "Salió del almacén · falta la guía", tono: "text-amber-700" };
     if (s.fecha_despacho && s.almacen_listo_at) return { texto: `Listo para el ${s.fecha_despacho}`, tono: "text-[#1E7F4F]" };
+    // EL DOBLE FILTRO (Carlos, 22-09): programado no es lo mismo que
+    // postventa ya cumplió. Sin apertura, todavía no hay nada que confirmar.
+    if (s.fecha_despacho && !s.apertura_despacho_at) return { texto: `Programado para el ${s.fecha_despacho} · postventa no ha cumplido`, tono: "text-destructive" };
     if (s.fecha_despacho) return { texto: `Programado para el ${s.fecha_despacho} · confirmar que está listo`, tono: (s.fecha_despacho as string) < hoy ? "text-destructive" : "text-amber-700" };
     if (s.apertura_despacho_at) return { texto: "Con apertura · esperando fecha", tono: "text-foreground" };
     if (probado(s)) return { texto: `Probado y embalado${s.protocolo_prueba_ref ? ` · protocolo ${s.protocolo_prueba_ref}` : ""}`, tono: "text-foreground" };

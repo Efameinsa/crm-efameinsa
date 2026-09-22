@@ -33,6 +33,12 @@ export interface EventoCalendario {
   origen: OrigenEvento;
   /** Ya ocurrió: se pinta apagado, pero no desaparece — el calendario también es memoria. */
   hecho: boolean;
+  /**
+   * EL DOBLE FILTRO (Carlos, 22-09): un despacho programado sin apertura
+   * emitida es fecha, no un despacho de verdad — «me sale con rojo, o sea que
+   * postventa no ha cumplido». Con texto, se pinta el punto rojo del evento.
+   */
+  trabado?: string | null;
 }
 
 /**
@@ -103,6 +109,8 @@ export function eventosDePedido(s: ServicioPostventa): EventoCalendario[] {
       // unilateralmente; lo otro ya son confirmaciones»).
       titulo: s.despachado_at ? "Despachado" : s.almacen_listo_at ? "Despacho · confirmado por almacén" : "Despacho · programado, almacén sin confirmar",
       hecho: s.despachado_at != null,
+      // Sin apertura, no es un despacho de verdad todavía: es una fecha.
+      trabado: s.despachado_at == null && s.apertura_despacho_at == null ? "Postventa no ha cumplido: falta emitir la apertura de despacho" : null,
     });
   }
   if (s.puesta_en_marcha) {

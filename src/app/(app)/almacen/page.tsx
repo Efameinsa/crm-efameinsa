@@ -72,6 +72,10 @@ export default async function AlmacenPage() {
   const programadosHoy = programados.filter((s) => s.fecha_despacho === hoy);
   const atrasados = programados.filter((s) => (s.fecha_despacho as string) < hoy);
   const porConfirmar = programados.filter((s) => !s.almacen_listo_at);
+  // EL DOBLE FILTRO (Carlos, 22-09): de los programados, cuántos NO tienen
+  // apertura todavía — «si no ha cumplido, no puedo hacer nada» — para que
+  // el almacén no confunda «tiene fecha» con «ya se puede preparar».
+  const sinApertura = programados.filter((s) => !s.apertura_despacho_at);
   const salidosSinGuia = vivos.filter((s) => s.despachado_at && !s.guia && !s.agencia_at && (s.salida_fotos?.length ?? 0) > 0);
 
   const at = (atenciones ?? []) as unknown as { id: string; tipo: string; programada_at: string; tecnico: string | null; cliente_texto: string | null; equipo_texto: string | null; cuentas: { razon_social: string } | null }[];
@@ -82,6 +86,7 @@ export default async function AlmacenPage() {
     { titulo: "Por probar y embalar", numero: porProbar.length, ayuda: "Postventa pidió la prueba; falta el protocolo y el check.", href: "/almacen/pedidos?ver=probar", alerta: true },
     { titulo: "Despachos de hoy", numero: programadosHoy.length, ayuda: "Programados para hoy y sin salir.", href: "/almacen/pedidos?ver=hoy", alerta: true },
     { titulo: "Programados sin confirmar", numero: porConfirmar.length, ayuda: "Postventa puso fecha; falta decir que el almacén está listo.", href: "/almacen/pedidos?ver=confirmar" },
+    { titulo: "De esos, sin apertura", numero: sinApertura.length, ayuda: "Postventa todavía no cumplió: no hay nada que preparar todavía.", href: "/almacen/pedidos?ver=confirmar", alerta: true },
     { titulo: "Atrasados", numero: atrasados.length, ayuda: "Tenían fecha y no salieron.", href: "/almacen/pedidos?ver=atrasados", alerta: true },
     { titulo: "Con apertura, sin salir", numero: conApertura.length, ayuda: "Ya se puede despachar.", href: "/almacen/pedidos?ver=apertura" },
     { titulo: "Salieron, sin guía", numero: salidosSinGuia.length, ayuda: "Falta la foto de la guía en la agencia.", href: "/almacen/pedidos?ver=guia", alerta: true },
@@ -118,7 +123,16 @@ export default async function AlmacenPage() {
                     <Link href={`/almacen/pedidos/${s.id}`} className="block rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-accent">
                       <span className="font-semibold text-foreground">{cliente(s.cliente_texto)}</span>
                       <span className="line-clamp-1 break-words text-muted-foreground">{s.equipo}</span>
-                      <span className={cn("text-[11px] font-semibold", s.almacen_listo_at ? "text-[#1E7F4F]" : "text-amber-700")}>{s.almacen_listo_at ? "Listo" : "Falta confirmar que está listo"}</span>
+                      {/* EL DOBLE FILTRO (Carlos, 22-09): sin apertura no hay
+                          nada que confirmar todavía, aunque tenga fecha. */}
+                      <span
+                        className={cn(
+                          "text-[11px] font-semibold",
+                          !s.apertura_despacho_at ? "text-destructive" : s.almacen_listo_at ? "text-[#1E7F4F]" : "text-amber-700",
+                        )}
+                      >
+                        {!s.apertura_despacho_at ? "Postventa no ha cumplido" : s.almacen_listo_at ? "Listo" : "Falta confirmar que está listo"}
+                      </span>
                     </Link>
                   </li>
                 ))}

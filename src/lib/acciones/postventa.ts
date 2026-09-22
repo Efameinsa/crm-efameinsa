@@ -433,17 +433,27 @@ export async function programarDespacho(servicioId: string, fecha: string, hora?
   // «Recepcionas almacén que hay una programación de despacho para mañana,
   // para que estés lista: de repente tengo que contratar un montacarga»
   // (Carlos, 16-09; 0246).
+  let aviso: string | undefined;
   if (fecha) {
-    const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", servicioId).maybeSingle();
+    const { data: s } = await supabase.from("servicios_postventa").select("*").eq("id", servicioId).maybeSingle();
     await notificarAlmacen({
       titulo: `Despacho programado para el ${fecha}${horaLimpia ? ` a las ${horaLimpia}` : ""} · ${(s?.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
       cuerpo: `${s?.equipo ?? ""}${nota?.trim() ? ` · ${nota.trim()}` : ""}. Confirme en su pedido cuando esté listo.`,
       url: `/almacen/pedidos/${servicioId}`,
       esPrueba: s?.es_prueba === true,
     });
+    // EL DOBLE FILTRO (Carlos, 22-09): programar no bloquea —«todo lo
+    // programamos unilateralmente»—, pero si la apertura todavía no se puede
+    // emitir, se avisa de una vez: es lo que el almacén va a ver en rojo.
+    if (s && !s.apertura_despacho_at) {
+      const trabado = bloquesPedido(s as unknown as ServicioPostventa)
+        .flatMap((b) => b.pasos)
+        .find((p) => p.clave === "apertura")?.trabado;
+      if (trabado) aviso = `El almacén lo va a ver en rojo hasta que emita la apertura: falta ${trabado}.`;
+    }
   }
   revalidatePath(`/postventa/pedidos/${servicioId}`);
-  return ok();
+  return { ...ok(), aviso };
 }
 
 /**

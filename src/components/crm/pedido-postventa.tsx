@@ -125,7 +125,7 @@ export function PedidoPostventa({
   const hayAdelantoAcordado = pctCondicion != null && pctCondicion > 0 && pctCondicion < 100;
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
-  function correr(fn: () => Promise<{ error: string | null }>, exito: string, parche?: Partial<ServicioPostventa>) {
+  function correr(fn: () => Promise<{ error: string | null; aviso?: string }>, exito: string, parche?: Partial<ServicioPostventa>) {
     startTransition(async () => {
       if (parche) aplicarParche(parche);
       const r = await fn();
@@ -133,7 +133,11 @@ export function PedidoPostventa({
         toast.error(r.error, { duration: 8000 });
         return;
       }
-      toast.success(exito);
+      // EL DOBLE FILTRO (Carlos, 22-09): programar sin haber cumplido no se
+      // bloquea —«todo lo programamos unilateralmente»—, pero se avisa de una
+      // vez, no cuando el almacén reclame que lo ve en rojo.
+      if (r.aviso) toast.warning(exito, { description: r.aviso, duration: 12000 });
+      else toast.success(exito);
       setForm(null);
       router.refresh();
     });

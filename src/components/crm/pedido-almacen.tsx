@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Check, Loader2, PackageCheck, Truck, FileCheck2, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia } from "@/lib/acciones/almacen";
-import type { FotoAlmacen, ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +41,18 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
   const cliente = (servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   const probado = servicio.prueba_lista_at != null || String(servicio.prueba_embalaje ?? "").toUpperCase() === "SI";
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  // EL DOBLE FILTRO (Carlos, 22-09): «tú programas el despacho, pero de nada
+  // se va a despachar. No debería permitirte despachar si no ha cumplido los
+  // otros pasos. Al almacén tendría que aparecerle: si hay programación,
+  // perfecto, pero me sale con rojo, o sea que postventa no ha cumplido».
+  // La apertura ya la revalida el servidor contra estos mismos requisitos al
+  // emitirla (`emitirAperturaDespacho`); por eso `apertura_despacho_at` es la
+  // señal fiable de que postventa terminó, y su `trabado` dice exactamente
+  // qué falta mientras tanto.
+  const trabadoApertura = bloquesPedido(servicio)
+    .flatMap((b) => b.pasos)
+    .find((p) => p.clave === "apertura")?.trabado;
+  const postventaCumplio = servicio.apertura_despacho_at != null;
 
   // Probar y embalar
   const [protocolo, setProtocolo] = useState(servicio.protocolo_prueba_ref ?? "");
@@ -139,18 +151,39 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
         </Tarjeta>
       )}
 
-      {/* 2 · Listo para el despacho programado */}
+      {/* 2 · Listo para el despacho programado. EL DOBLE FILTRO (Carlos,
+          22-09): programar el despacho no significa que postventa ya cumplió
+          los otros pasos. Verde = la apertura salió, todo revisado por el
+          servidor; rojo = todavía no, y acá no hay nada que confirmar. */}
       {probado && servicio.fecha_despacho && !servicio.despachado_at && !servicio.almacen_listo_at && (
-        <Tarjeta icono={Warehouse} titulo={`Despacho programado para el ${servicio.fecha_despacho}${servicio.despacho_hora ? ` a las ${String(servicio.despacho_hora).slice(0, 5)}` : ""}`} tono="activa">
-          <p className="text-xs text-muted-foreground">
-            Confirme que el almacén está listo (montacarga, embalaje, personal). Postventa se entera al toque.
-            {servicio.despacho_nota ? ` Nota de postventa: ${servicio.despacho_nota}.` : ""}
-          </p>
-          <Input value={notaListo} onChange={(e) => setNotaListo(e.target.value)} placeholder="ej. montacarga contratado para las 3 pm" />
-          <Button size="sm" disabled={pendiente} onClick={() => correr(() => confirmarListo(servicio.id, { nota: notaListo, cliente, fecha: servicio.fecha_despacho ?? null }), "Confirmado: almacén listo.")}>
-            {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-            Estamos listos
-          </Button>
+        <Tarjeta
+          icono={Warehouse}
+          titulo={`Despacho programado para el ${servicio.fecha_despacho}${servicio.despacho_hora ? ` a las ${String(servicio.despacho_hora).slice(0, 5)}` : ""}`}
+          tono={postventaCumplio ? "verde" : "roja"}
+        >
+          {postventaCumplio ? (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Confirme que el almacén está listo (montacarga, embalaje, personal). Postventa se entera al toque.
+                {servicio.despacho_nota ? ` Nota de postventa: ${servicio.despacho_nota}.` : ""}
+              </p>
+              <Input value={notaListo} onChange={(e) => setNotaListo(e.target.value)} placeholder="ej. montacarga contratado para las 3 pm" />
+              <Button size="sm" disabled={pendiente} onClick={() => correr(() => confirmarListo(servicio.id, { nota: notaListo, cliente, fecha: servicio.fecha_despacho ?? null }), "Confirmado: almacén listo.")}>
+                {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                Estamos listos
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-medium text-destructive">
+                Postventa todavía no cumplió{trabadoApertura ? `: ${trabadoApertura}` : ""}.
+              </p>
+              <p className="text-xs text-muted-foreground">No se prepara ni sale nada hasta que emita la apertura de despacho.</p>
+              <Button size="sm" disabled className="cursor-not-allowed opacity-60">
+                Estamos listos
+              </Button>
+            </>
+          )}
         </Tarjeta>
       )}
 
@@ -254,11 +287,35 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
   );
 }
 
-function Tarjeta({ icono: Icono, titulo, tono, children }: { icono: typeof Truck; titulo: string; tono: "activa" | "normal" | "bloqueada"; children: React.ReactNode }) {
+function Tarjeta({
+  icono: Icono,
+  titulo,
+  tono,
+  children,
+}: {
+  icono: typeof Truck;
+  titulo: string;
+  /** «verde»/«roja» (22-09): el semáforo de si postventa ya cumplió lo suyo. */
+  tono: "activa" | "normal" | "bloqueada" | "verde" | "roja";
+  children: React.ReactNode;
+}) {
   return (
-    <div className={cn("space-y-2.5 rounded-xl border p-4 shadow-sm", tono === "activa" ? "border-primary/40 bg-primary/5" : tono === "bloqueada" ? "border-border bg-secondary/40" : "border-border bg-card")}>
+    <div
+      className={cn(
+        "space-y-2.5 rounded-xl border p-4 shadow-sm",
+        tono === "activa"
+          ? "border-primary/40 bg-primary/5"
+          : tono === "bloqueada"
+            ? "border-border bg-secondary/40"
+            : tono === "verde"
+              ? "border-[#1E7F4F]/40 bg-[#1E7F4F]/5"
+              : tono === "roja"
+                ? "border-destructive/50 bg-destructive/5"
+                : "border-border bg-card",
+      )}
+    >
       <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-        <Icono className="size-4 text-primary" /> {titulo}
+        <Icono className={cn("size-4", tono === "verde" ? "text-[#1E7F4F]" : tono === "roja" ? "text-destructive" : "text-primary")} /> {titulo}
       </p>
       {children}
     </div>
