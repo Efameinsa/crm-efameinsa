@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { notificar, notificarLeadEntrante } from "@/lib/notificaciones";
 import { responderAutomatico } from "@/lib/whatsapp";
 import { enviarEventoMeta } from "@/lib/meta-capi";
+import { normalizarTelefono } from "@/lib/telefono";
 
 // Webhook de la Cloud API de WhatsApp (fase 2, plan sección 2.4).
 //
@@ -118,6 +119,31 @@ function extraerTextoYTipo(m: NonNullable<CambioValorMensaje["messages"]>[number
     default:
       return { tipo: "unknown" as const, texto: null, mediaId: null };
   }
+}
+
+/**
+ * EL NOMBRE QUE YA TIENE ESE TELÉFONO, SOLO SI NO HAY DUDA (22-09).
+ *
+ * Meta manda el número ya limpio (`mensaje.from`), que es el mismo que
+ * `asignar_lead` guarda tal cual en `contactos.telefono` al crear el
+ * contacto — así que el empate por `telefono_normalizado` (la misma columna
+ * generada que usa `asignar_lead`) encuentra al contacto sin ambigüedad.
+ *
+ * SALVO CUANDO HAY MÁS DE UNO. El caso real que lo probó: Rivera (Bertha) y
+ * su esposo Freddy comparten el mismo celular, y ese teléfono tiene DOS
+ * contactos («Sr. Fredy Nolasco» y «RIVERA CIERTO BERTHA FABIOLA»). Un
+ * primer intento de esto usaba «el más reciente» como desempate y le puso el
+ * nombre de la esposa a los mensajes que escribía el esposo — exactamente lo
+ * que Carlos pidió que nunca se haga: «si es otra persona, agregas el
+ * contacto; no vamos a confiar solamente en lo que arroja la ficha». Con dos
+ * o más contactos en el mismo teléfono no hay forma de saber quién escribe
+ * esta vez, así que se deja el nombre de WhatsApp, que es lo de siempre.
+ */
+async function nombreDeContactoConocido(admin: ReturnType<typeof createAdminClient>, telefonoCrudo: string): Promise<string | null> {
+  const exacto = normalizarTelefono(telefonoCrudo);
+  if (!exacto) return null;
+  const { data } = await admin.from("contactos").select("nombre").eq("telefono_normalizado", exacto).limit(2);
+  return data?.length === 1 ? data[0].nombre : null;
 }
 
 /**
@@ -273,6 +299,18 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
         ? await admin.from("campanias_whatsapp").select("plataforma, nombre").ilike("codigo", codigoCampania).maybeSingle()
         : { data: null };
 
+      // EL NOMBRE QUE YA LE PUSIMOS MANDA SOBRE EL DE WHATSAPP (22-09).
+      // Freddy Nolasco (Rivera) escribió cuatro veces y el CRM le puso cuatro
+      // nombres distintos —«Nolasco Aquino Huanuco», «FREDDY NOLASCO», «FREDDY
+      // NOLASCO AQUINO», «Freddy nolasco»—: cada uno era el nombre de perfil
+      // de WhatsApp EN ESE MOMENTO (la gente lo cambia), y cada conversación
+      // nueva copiaba ese nombre a ciegas. Carlos, mirándolo en el CRM: «no
+      // sé de dónde proviene esto… entiendo que es una vigilación». Si el
+      // teléfono ya es de un contacto conocido, se usa SU nombre — el que
+      // Central o el comercial ya escribieron con calma — y el de WhatsApp
+      // queda solo como dato del perfil (`wa_conversaciones.nombre_wa`).
+      const nombreConocido = esNumero ? await nombreDeContactoConocido(admin, telefono) : null;
+
       // El lead nace en pendiente_triaje como siempre; lo que cambia desde el
       // 21-09 (0262) es que a renglón seguido se intenta asignar al comercial
       // de turno, sin pasar por Central. Lo que viene de un anuncio guarda
@@ -283,7 +321,7 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
           canal: "whatsapp",
           area_destino: "comercial",
           estado: "pendiente_triaje",
-          nombre_contacto: nombreWa || (usuarioWa ? `@${usuarioWa}` : "Sin nombre"),
+          nombre_contacto: nombreConocido || nombreWa || (usuarioWa ? `@${usuarioWa}` : "Sin nombre"),
           // Un identificador de usuario NO es un teléfono: meterlo acá haría
           // empatar fichas por «celular» con dígitos que no son de nadie (0264).
           telefono: esNumero ? telefono : null,

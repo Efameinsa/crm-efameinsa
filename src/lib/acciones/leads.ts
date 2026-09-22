@@ -92,6 +92,48 @@ export async function buscarDuplicado(datos: {
   return { cuenta, leadPendiente };
 }
 
+export interface ContactoDeLaCuenta {
+  id: string;
+  nombre: string;
+  cargo: string | null;
+  telefono: string | null;
+  email: string | null;
+  esPrincipal: boolean;
+}
+
+/**
+ * LOS CONTACTOS DE ESA EMPRESA, PARA ELEGIR EN VEZ DE VOLVER A TIPEAR.
+ *
+ * Carlos, 22-09, mirando el registro de Rivera escrito distinto cada vez
+ * («Rivera cierto verda»… con minúscula… le puso un apellido más… otra
+ * persona sale así): «más bien agrega el contacto. Hoy ingresa su esposa un
+ * nuevo contacto. Agregas tu contacto, y para la siguiente oportunidad solo
+ * jalas el nuevo contacto. No tienes que volver a escribirlo».
+ *
+ * Se llama después de que el usuario elige la empresa de sus coincidencias
+ * (`buscarCoincidencias`), así que la misma RLS que le deja leer esa cuenta
+ * (`contactos_por_cuenta`: la cuenta es de su cartera, o es Central/backoffice)
+ * le deja leer sus contactos.
+ */
+export async function contactosDeLaCuenta(cuentaId: string): Promise<ContactoDeLaCuenta[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("contactos")
+    .select("id, nombre, cargo, telefono, email, es_principal")
+    .eq("cuenta_id", cuentaId)
+    .order("es_principal", { ascending: false })
+    .order("nombre")
+    .limit(20);
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+    cargo: c.cargo,
+    telefono: c.telefono,
+    email: c.email,
+    esPrincipal: c.es_principal === true,
+  }));
+}
+
 export async function registrarContacto(
   formData: FormData,
 ): Promise<{ error: string | null; codigo?: string }> {

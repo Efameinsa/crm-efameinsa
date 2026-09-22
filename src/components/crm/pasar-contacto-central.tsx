@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2, MessageSquare, Search, Send, User, X } from "lucide-react";
-import { buscarCoincidencias, registrarContacto, type CoincidenciaCartera } from "@/lib/acciones/leads";
+import { buscarCoincidencias, contactosDeLaCuenta, registrarContacto, type CoincidenciaCartera, type ContactoDeLaCuenta } from "@/lib/acciones/leads";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -96,6 +96,10 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
   const [canal, setCanal] = useState<string>("whatsapp");
   const [codigoCampaniaWa, setCodigoCampaniaWa] = useState("");
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[]>([]);
+  // «¿QUIÉN LLAMA?» (Carlos, 22-09): en vez de retipear el nombre de la
+  // persona cada vez, se elige entre los contactos que ya tiene esa empresa.
+  const [contactosCuenta, setContactosCuenta] = useState<ContactoDeLaCuenta[]>([]);
+  const [buscandoContactos, setBuscandoContactos] = useState(false);
   const [enviando, startTransition] = useTransition();
   const adjuntos = useAdjuntos();
 
@@ -130,13 +134,31 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
   function usar(c: CoincidenciaCartera) {
     const form = formRef.current;
     if (!form) return;
-    // Se completa la EMPRESA, nunca la persona: Carlos fue explícito —
-    // «si has recibido la llamada con otra persona completamente distinta, eso
-    // sí tiene que permitirte digitar la persona de contacto. No vamos a
-    // confiar solamente en lo que arroja la ficha».
+    // Se completa la EMPRESA, nunca la persona a la fuerza: Carlos fue
+    // explícito — «si has recibido la llamada con otra persona completamente
+    // distinta, eso sí tiene que permitirte digitar la persona de contacto.
+    // No vamos a confiar solamente en lo que arroja la ficha». Por eso el
+    // selector de abajo PRERRELLENA, no bloquea: sigue siendo un campo de
+    // texto normal, listo para corregir si la persona es otra.
     (form.elements.namedItem("razon_social") as HTMLInputElement).value = c.razonSocial;
     setCoincidencias([]);
-    (form.elements.namedItem("nombre_contacto") as HTMLInputElement)?.focus();
+    setContactosCuenta([]);
+    setBuscandoContactos(true);
+    contactosDeLaCuenta(c.cuentaId)
+      .then((contactos) => {
+        setContactosCuenta(contactos);
+        if (contactos.length === 0) (form.elements.namedItem("nombre_contacto") as HTMLInputElement)?.focus();
+      })
+      .finally(() => setBuscandoContactos(false));
+  }
+
+  /** «Más bien agrega el contacto… no tienes que volver a escribirlo» (Carlos, 22-09). */
+  function elegirContacto(c: ContactoDeLaCuenta) {
+    const form = formRef.current;
+    if (!form) return;
+    (form.elements.namedItem("nombre_contacto") as HTMLInputElement).value = c.nombre;
+    if (c.telefono) (form.elements.namedItem("telefono") as HTMLInputElement).value = c.telefono;
+    if (c.email) (form.elements.namedItem("email") as HTMLInputElement).value = c.email;
   }
 
   function limpiarTodo() {
@@ -145,6 +167,7 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
     setCanal("whatsapp");
     setCodigoCampaniaWa("");
     setCoincidencias([]);
+    setContactosCuenta([]);
     adjuntos.limpiar();
   }
 
@@ -308,6 +331,32 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
                   </div>
                 )}
               </div>
+
+              {/* «¿QUIÉN LLAMA?» — se llena arriba, en «Quién es», con un
+                  toque; sigue siendo editable por si es una persona nueva. */}
+              {buscandoContactos && <p className="text-xs text-muted-foreground">Buscando sus contactos…</p>}
+              {contactosCuenta.length > 0 && (
+                <div className="space-y-1.5 rounded-lg border border-border bg-secondary/30 p-2.5">
+                  <p className="text-xs font-medium text-foreground">¿Quién llama? Toque para completar arriba, sin volver a escribirlo</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {contactosCuenta.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => elegirContacto(c)}
+                        className="cursor-pointer rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground hover:border-primary hover:text-primary"
+                      >
+                        {c.nombre}
+                        {c.cargo ? ` · ${c.cargo}` : ""}
+                        {c.esPrincipal ? " · principal" : ""}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    ¿Es otra persona? Escríbala arriba, en «Nombre del contacto»: se agrega como nuevo contacto de esta empresa.
+                  </p>
+                </div>
+              )}
             </Seccion>
 
             <Seccion icono={MessageSquare} titulo="Qué necesita">
