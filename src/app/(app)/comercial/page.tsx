@@ -812,7 +812,11 @@ export default async function ComercialPage({
           contactos de vez en cuando, y un panel siempre vacío en su pantalla
           de trabajo es ruido. En la de postventa, que lo usa a diario, se
           muestra siempre. */}
-      {mandadoACentral.length > 0 && <MandadoACentral filas={mandadoACentral} contexto="comercial" />}
+      {/* SIEMPRE, también vacío (Carlos, 22-09): buscaron en la cuenta de
+          Brenda lo que ella había derivado a Central y no encontraron ni el
+          panel. Un panel que solo existe cuando hay algo no enseña dónde
+          mirar, que es justo la duda con la que se abre esta pantalla. */}
+      <MandadoACentral filas={mandadoACentral} contexto="comercial" />
     </div>
   );
 }

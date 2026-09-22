@@ -16,8 +16,17 @@ import { origenDe, type Origen } from "@/lib/campana";
  * supervisión que Central y gerencia venían sacando a mano.
  */
 
-/** Umbral de reclamo: derivado hace más de un día y nadie lo tocó. */
-const HORAS_SIN_ATENDER = 24;
+/**
+ * Umbral de reclamo: derivado y nadie lo tocó.
+ *
+ * Eran 24 horas. Carlos, 22-09, mirando un contacto derivado el 19 y atendido
+ * el 21 —«había pasado 2 días 5 horas y recién lo han atendido, y lo peor es
+ * que el cliente ya pidió lo que quiere comprar»—: «¿cuánto tiempo tendría
+ * que pasar? No días: horas o menos. Tres horas, cuatro horas
+ * exageradamente. Pero ya tenemos que darle la alerta». Ese es el trabajo de
+ * Central: supervisar y avisar, no esperar al día siguiente.
+ */
+const HORAS_SIN_ATENDER = 4;
 /** Un contacto en gestión que lleva más de una semana quieto está frío. */
 const DIAS_SIN_MOVER = 7;
 /**

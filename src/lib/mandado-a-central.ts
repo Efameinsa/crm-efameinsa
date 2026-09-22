@@ -139,7 +139,14 @@ export async function listarMandadoACentral(
 ): Promise<Mandado[]> {
   const campos =
     "id, codigo, estado, canal, razon_social, nombre_contacto, num_doc, telefono, email, mensaje, sugerido_atencion, sugerido_tipo, adjuntos, recibido_at, asignado_at, asignado_a, oportunidad_id";
-  const desde24h = new Date(Date.now() - 24 * 36e5).toISOString();
+  // SIETE DÍAS, NO VEINTICUATRO HORAS (Carlos, 22-09). Brenda derivó a
+  // Central el contacto de Inversiones Huamán Ruiz el lunes; el martes a las
+  // 11 de la mañana buscaron en su cuenta qué había mandado y no había nada:
+  // la lista solo miraba un día atrás. «Central recibió una derivación de
+  // Brenda y no aparece en la cuenta de Brenda lo que Brenda le derivó».
+  // Una semana cubre el fin de semana y la conversación del lunes siguiente,
+  // que es cuando el cliente vuelve a llamar preguntando por lo mismo.
+  const desdeUnaSemana = new Date(Date.now() - 7 * 24 * 36e5).toISOString();
 
   const [{ data: esperando }, { data: resueltos }] = await Promise.all([
     supabase
@@ -154,9 +161,9 @@ export async function listarMandadoACentral(
       .select(campos)
       .eq("recibido_por", perfilId)
       .neq("estado", "pendiente_triaje")
-      .gte("recibido_at", desde24h)
+      .gte("recibido_at", desdeUnaSemana)
       .order("recibido_at", { ascending: false })
-      .limit(10),
+      .limit(30),
   ]);
 
   const filas = [...((esperando ?? []) as FilaLead[]), ...((resueltos ?? []) as FilaLead[])];
