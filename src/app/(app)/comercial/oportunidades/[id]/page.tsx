@@ -25,6 +25,7 @@ import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boto
 import Link from "next/link";
 import { fechaAgendada, fechaHoraLima, fechaLimaCorta } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
+import { AnuncioDelLead } from "@/components/crm/anuncio-del-lead";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
 import { PedirExpedienteBoton } from "@/components/crm/pedir-expediente-boton";
@@ -35,6 +36,7 @@ import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
 import type { TipoDocumento } from "@/lib/documento";
 import { tipificacionesActuales } from "@/lib/acciones/whatsapp-campanas";
+import { anuncioDe } from "@/lib/acciones/whatsapp-chat";
 import { TipificarWhatsapp } from "@/components/crm/tipificar-whatsapp";
 
 // Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
@@ -282,6 +284,24 @@ export default async function OportunidadDetallePage({
         .order("created_at", { ascending: false })
         .limit(8)
     : { data: [] };
+
+  // EL ANUNCIO QUE VIO EL CLIENTE (22-09). Katerine: «no sale de qué campaña
+  // viene… me dijo que vio una publicidad de LG». Meta lo manda en el primer
+  // mensaje y se guarda en la conversación; acá se muestra en el expediente,
+  // que es donde el comercial trabaja después de los primeros chats.
+  const { data: conversacionWa } = oportunidad.lead_id
+    ? await supabase
+        .from("wa_conversaciones")
+        .select("referral, codigo_campania_wa")
+        .eq("lead_id", oportunidad.lead_id)
+        .not("referral", "is", null)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+  const anuncioVisto = anuncioDe((conversacionWa as { referral?: unknown } | null)?.referral);
+  const { data: campaniaWa } = anuncioVisto && lead?.codigo_campania_wa
+    ? await supabase.from("campanias_whatsapp").select("nombre").eq("codigo", lead.codigo_campania_wa).maybeSingle()
+    : { data: null };
 
   const tipificacionWaActual = tipificacionesWa[0] ?? null;
   const otrosLeads = (otrosLeadsCrudos ?? []).filter((l) => l.id !== oportunidad.lead_id);
@@ -571,7 +591,17 @@ export default async function OportunidadDetallePage({
               nuevo prospecto tiene diferente interés de compra». */}
           {lead && (
             <SeccionPanel titulo="Solicitud del prospecto">
-              <SolicitudLead mensaje={lead.mensaje} campania={lead.utm_campaign} recorrido={lead} compacto />
+              <SolicitudLead mensaje={lead.mensaje} campania={anuncioVisto ? null : lead.utm_campaign} recorrido={lead} compacto />
+              {anuncioVisto && (
+                <div className="mt-2">
+                  <AnuncioDelLead
+                    anuncio={anuncioVisto}
+                    codigoCampania={lead.codigo_campania_wa}
+                    nombreCampania={(campaniaWa as { nombre: string } | null)?.nombre ?? null}
+                    compacto
+                  />
+                </div>
+              )}
               {/* 0236 (14-09): lo que el prospecto dejó, tal cual llegó. La ficha puede tener
                   otro correo (del Excel viejo o de otra persona); este es el de ESTA solicitud. */}
               {(lead.email || lead.telefono || lead.nombre_contacto) && (

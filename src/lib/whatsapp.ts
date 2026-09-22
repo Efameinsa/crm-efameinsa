@@ -18,15 +18,38 @@ function credenciales() {
 }
 
 /**
- * La ventana de 24 h de Meta: pasadas 24 horas desde el ÚLTIMO mensaje que
- * escribió el cliente, ya no se puede mandar texto libre (solo plantillas
- * aprobadas, fase 3). Se calcula acá —no en la base— porque es una regla de
- * negocio de Meta, no un estado que el CRM decida.
+ * LA VENTANA: 24 H NORMALMENTE, 72 H SI VINO DE UN ANUNCIO.
+ *
+ * Pasada la ventana desde el ÚLTIMO mensaje que escribió el cliente, ya no se
+ * puede mandar texto libre (solo plantillas aprobadas, fase 3).
+ *
+ * Meta da 72 horas —no 24— cuando la conversación nació de un clic en un
+ * anuncio de WhatsApp («free entry point»). El CRM la cortaba a las 24 y le
+ * cerraba la boca al comercial dos días antes de tiempo. Carlos lo dijo en la
+ * reunión del 22-09: «para los mensajes que vienen por publicidad tiene 72
+ * horas para conversar», y con eso midió la regla del área: tres días sin
+ * respuesta y se tipifica.
+ *
+ * Se calcula acá —no en la base— porque es una regla de Meta, no un estado
+ * que el CRM decida.
  */
-export function ventanaAbierta(ultimoMensajeClienteAt: string | null): boolean {
+export function horasDeVentana(vinoDeAnuncio: boolean): number {
+  return vinoDeAnuncio ? 72 : 24;
+}
+
+export function ventanaAbierta(ultimoMensajeClienteAt: string | null, vinoDeAnuncio = false): boolean {
   if (!ultimoMensajeClienteAt) return false;
   const horas = (Date.now() - new Date(ultimoMensajeClienteAt).getTime()) / 3_600_000;
-  return horas < 24;
+  return horas < horasDeVentana(vinoDeAnuncio);
+}
+
+/** Cuánto queda de ventana, dicho como lo diría una persona («faltan 6 h», «faltan 40 min»). */
+export function loQueQuedaDeVentana(ultimoMensajeClienteAt: string | null, vinoDeAnuncio = false): string | null {
+  if (!ultimoMensajeClienteAt) return null;
+  const restanHoras = horasDeVentana(vinoDeAnuncio) - (Date.now() - new Date(ultimoMensajeClienteAt).getTime()) / 3_600_000;
+  if (restanHoras <= 0) return null;
+  if (restanHoras < 1) return `faltan ${Math.max(1, Math.round(restanHoras * 60))} min`;
+  return `faltan ${Math.floor(restanHoras)} h`;
 }
 
 interface ResultadoEnvio {
@@ -59,15 +82,16 @@ async function llamarGraphAPI(cuerpo: Record<string, unknown>): Promise<Resultad
   }
 }
 
-/** La ventana de 24 h aplica a TODO mensaje libre, no solo texto — se comprueba una vez acá. */
+/** La ventana (24 h, o 72 h si vino de un anuncio) aplica a TODO mensaje libre — se comprueba una vez acá. */
 async function comprobarVentana(admin: ReturnType<typeof createAdminClient>, conversacionId: string): Promise<string | null> {
   const { data: conversacion } = await admin
     .from("wa_conversaciones")
-    .select("ultimo_mensaje_cliente_at")
+    .select("ultimo_mensaje_cliente_at, ctwa_clid, referral")
     .eq("id", conversacionId)
     .maybeSingle();
-  if (!ventanaAbierta(conversacion?.ultimo_mensaje_cliente_at ?? null)) {
-    return "La ventana de 24 horas se cerró: use una plantilla o llame al cliente (fase 3, todavía no disponible).";
+  const deAnuncio = Boolean(conversacion?.ctwa_clid || conversacion?.referral);
+  if (!ventanaAbierta(conversacion?.ultimo_mensaje_cliente_at ?? null, deAnuncio)) {
+    return `La ventana de ${horasDeVentana(deAnuncio)} horas se cerró: llame al cliente o escríbale desde su WhatsApp (las plantillas son fase 3).`;
   }
   return null;
 }

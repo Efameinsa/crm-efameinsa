@@ -31,7 +31,10 @@ export default async function WhatsappConversacionPage({
   ]);
 
   if (!conversacion) notFound();
-  const tipificacionActual = conversacion.lead_id ? ((await tipificacionesActuales([conversacion.lead_id]))[0] ?? null) : null;
+  const [tipificacionActual, tipificados] = await Promise.all([
+    conversacion.lead_id ? tipificacionesActuales([conversacion.lead_id]).then((t) => t[0] ?? null) : Promise.resolve(null),
+    tipificacionesActuales(conversaciones.map((c) => c.lead_id).filter((x): x is string => Boolean(x))),
+  ]);
 
   return (
     <div className="flex h-[calc(100vh-8.5rem)] overflow-hidden rounded-lg border border-border bg-card">
@@ -42,6 +45,7 @@ export default async function WhatsappConversacionPage({
           idActivo={id}
           comerciales={esCentral ? comerciales : undefined}
           comercialActivo={sp.comercial}
+          leadsTipificados={tipificados.map((t) => t.lead_id)}
         />
       </div>
       <WhatsappHilo

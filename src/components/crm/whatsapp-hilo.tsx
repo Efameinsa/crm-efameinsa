@@ -11,7 +11,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet } from "lucide-react";
+import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet, Copy, Check, PhoneForwarded } from "lucide-react";
 // `Package` sigue en uso para pintar las fichas que YA se mandaron antes del
 // 21-09; el botón «Mandar equipo» se quitó del chat ese día (Santos: hacía
 // pesada la bandeja).
@@ -33,7 +33,8 @@ import { TipificarWhatsapp } from "@/components/crm/tipificar-whatsapp";
 import type { TipificacionActual } from "@/lib/acciones/whatsapp-campanas";
 import { audioAMp3 } from "@/lib/audio-a-mp3";
 import { etiquetaDeContactoWa, esTelefonoDeVerdad } from "@/lib/contacto-whatsapp";
-import { ventanaAbierta } from "@/lib/whatsapp";
+import { ventanaAbierta, horasDeVentana, loQueQuedaDeVentana } from "@/lib/whatsapp";
+import { AnuncioDelLead } from "@/components/crm/anuncio-del-lead";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -167,7 +168,28 @@ export function WhatsappHilo({
     fondoRef.current?.scrollTo({ top: fondoRef.current.scrollHeight });
   }, [mensajes.length]);
 
-  const ventana = ventanaAbierta(conversacion.ultimo_mensaje_cliente_at);
+  // 72 h cuando vino de un anuncio, 24 en el resto (22-09).
+  const ventana = ventanaAbierta(conversacion.ultimo_mensaje_cliente_at, conversacion.de_anuncio);
+  const restaVentana = loQueQuedaDeVentana(conversacion.ultimo_mensaje_cliente_at, conversacion.de_anuncio);
+
+  // LLEVÁRSELO A SU NÚMERO (Carlos, 22-09): «converse lo mínimo posible en el
+  // chat y lléveselo a su número… si el cliente llama al número del anuncio,
+  // nadie le contesta, y eso crea desconfianza». El número se copia de un
+  // clic y se abre el WhatsApp propio con el cliente ya elegido; marcar
+  // «continuado por mi línea» sigue siendo un paso aparte, con su motivo.
+  const numeroCliente = esTelefonoDeVerdad(conversacion.telefono) ? conversacion.telefono.replace(/\D/g, "") : null;
+  const [numeroCopiado, setNumeroCopiado] = useState(false);
+  async function copiarNumeroCliente() {
+    if (!numeroCliente) return;
+    try {
+      await navigator.clipboard.writeText(numeroCliente);
+      setNumeroCopiado(true);
+      toast.success("Número copiado. Péguelo en su WhatsApp para seguir desde su línea.");
+      setTimeout(() => setNumeroCopiado(false), 2500);
+    } catch {
+      toast.error("No se pudo copiar. El número está arriba, al lado del nombre.");
+    }
+  }
 
   function enviar() {
     if (!texto.trim()) return;
@@ -350,7 +372,19 @@ export function WhatsappHilo({
             {etiquetaDeContactoWa(conversacion)}
             {conversacion.lead_codigo && ` · ${conversacion.lead_codigo}`}
             {conversacion.codigo_campania_wa && ` · código ${conversacion.codigo_campania_wa}`}
+            {restaVentana && ` · ventana de ${horasDeVentana(conversacion.de_anuncio)} h: ${restaVentana}`}
           </p>
+          {/* Lo que vio el cliente antes de escribir (22-09). */}
+          {conversacion.anuncio && (
+            <div className="mt-1.5 max-w-xl">
+              <AnuncioDelLead
+                anuncio={conversacion.anuncio}
+                codigoCampania={conversacion.codigo_campania_wa}
+                nombreCampania={conversacion.campania_nombre}
+                compacto
+              />
+            </div>
+          )}
           {/* El resultado de la conversación se marca desde el mismo chat
               (Santos, 21-09: «cada comercial lo va a tipificar dentro del
               CRM»). Cada marca avisa a Meta (interesado → Lead, cotizado →
@@ -362,6 +396,23 @@ export function WhatsappHilo({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {numeroCliente && (
+            <>
+              <Button size="sm" variant="outline" className="gap-1" onClick={copiarNumeroCliente} title="Copiar el número del cliente">
+                {numeroCopiado ? <Check className="size-3.5 text-[#1E7F4F]" /> : <Copy className="size-3.5" />}
+                {numeroCopiado ? "Copiado" : "Copiar número"}
+              </Button>
+              <a
+                href={`https://wa.me/${numeroCliente}`}
+                target="_blank"
+                rel="noreferrer"
+                title="Seguir la conversación desde su propio WhatsApp"
+                className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-secondary"
+              >
+                <PhoneForwarded className="size-3.5" /> Seguir por mi WhatsApp
+              </a>
+            </>
+          )}
           {esCentral && conversacion.estado !== "cerrada" && (
             <div className="relative">
               <Button size="sm" variant="outline" onClick={() => setDerivando((v) => !v)}>
@@ -450,7 +501,8 @@ export function WhatsappHilo({
           <p className="text-center text-xs text-muted-foreground">Conversación cerrada. Reábrala para seguir escribiendo.</p>
         ) : !ventana ? (
           <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-center text-xs text-amber-900">
-            La ventana de 24 h se cerró: por ahora no se puede mandar texto libre (las plantillas aprobadas son fase 3).
+            La ventana de {horasDeVentana(conversacion.de_anuncio)} h se cerró: desde acá ya no se puede escribir. Llame al cliente o
+            escríbale desde su WhatsApp con el botón «Seguir por mi WhatsApp» de arriba (las plantillas son fase 3).
           </p>
         ) : (
           // Una sola píldora, como WhatsApp Web (Santos, 15-09, con captura de

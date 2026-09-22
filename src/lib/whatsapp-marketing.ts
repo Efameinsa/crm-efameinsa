@@ -18,7 +18,7 @@ export const ETIQUETA_TIPIFICACION: Record<TipificacionWhatsapp, string> = {
   cotizado: "Cotizado",
   no_interesado: "No interesado",
   equivocado: "Número equivocado",
-  sin_respuesta: "Sin respuesta",
+  sin_respuesta: "No contesta",
   continuado_por_mi_linea: "Continuado por mi línea",
 };
 

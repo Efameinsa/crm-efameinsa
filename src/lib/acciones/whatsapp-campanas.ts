@@ -178,7 +178,7 @@ const NOTA_GESTION: Record<TipificacionWhatsapp, string> = {
   cotizado: "Por WhatsApp: se le envió cotización.",
   no_interesado: "Por WhatsApp: el cliente no está interesado.",
   equivocado: "Por WhatsApp: número equivocado.",
-  sin_respuesta: "Por WhatsApp: sin respuesta del cliente.",
+  sin_respuesta: "Por WhatsApp: no contesta.",
   continuado_por_mi_linea: "Por WhatsApp: la conversación sigue por la línea del comercial.",
 };
 

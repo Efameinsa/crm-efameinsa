@@ -42,6 +42,17 @@ export interface ConversacionWhatsapp {
   ultimo_mensaje_at: string | null;
   codigo_campania_wa: string | null;
   ultimo_texto: string | null;
+  /** Vino de un clic en un anuncio: la ventana es de 72 h, no de 24 (22-09). */
+  de_anuncio: boolean;
+}
+
+/** El anuncio que el cliente tocó, tal como lo manda Meta en el `referral`. */
+export interface AnuncioDeLaConversacion {
+  titular: string | null;
+  cuerpo: string | null;
+  imagen: string | null;
+  enlace: string | null;
+  anuncioId: string | null;
 }
 
 export type FiltroConversaciones = "sin_atender" | "mias" | "todas" | "cerradas";
@@ -63,7 +74,7 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
 
   let consulta = supabase
     .from("wa_conversaciones")
-    .select("id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, perfiles(nombre)")
+    .select("id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, perfiles(nombre)")
     .order("ultimo_mensaje_at", { ascending: false, nullsFirst: false });
 
   if (filtro === "sin_atender") consulta = consulta.eq("estado", "sin_atender");
@@ -102,6 +113,7 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
     ultimo_mensaje_at: c.ultimo_mensaje_at,
     codigo_campania_wa: c.codigo_campania_wa,
     ultimo_texto: ultimos.get(c.id) ?? null,
+    de_anuncio: Boolean(c.ctwa_clid),
   }));
 }
 
@@ -117,6 +129,16 @@ export interface ConversacionDetalle extends ConversacionWhatsapp {
   lead_nombre_contacto: string | null;
   /** La oportunidad que nació cuando Central derivó el contacto; sin ella no hay dónde cotizar (0250). */
   oportunidad_id: string | null;
+  /**
+   * EL ANUNCIO QUE VIO EL CLIENTE (22-09). Katerine, mirando el chat: «en esa
+   * conversación de la campaña no sale de qué campaña viene… le pregunté al
+   * señor cómo había llegado y me dijo que vio una publicidad de LG». El CRM
+   * mostraba el TITULAR del anuncio («Instalación y garantía») como si fuera
+   * la campaña. Meta manda el anuncio entero —titular, texto e imagen— y acá
+   * se guarda desde el primer mensaje: se muestra tal cual.
+   */
+  anuncio: AnuncioDeLaConversacion | null;
+  campania_nombre: string | null;
 }
 
 export async function conversacionPorId(id: string): Promise<ConversacionDetalle | null> {
@@ -124,12 +146,15 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
   const { data } = await supabase
     .from("wa_conversaciones")
     .select(
-      "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, perfiles(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
+      "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, referral, perfiles(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
     )
     .eq("id", id)
     .maybeSingle();
   if (!data) return null;
   const lead = data.leads as unknown as { codigo: string; nombre_contacto: string; oportunidad_id: string | null } | null;
+  const { data: campania } = data.codigo_campania_wa
+    ? await supabase.from("campanias_whatsapp").select("nombre").eq("codigo", data.codigo_campania_wa).maybeSingle()
+    : { data: null };
   return {
     id: data.id,
     telefono: data.telefono,
@@ -146,7 +171,24 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
     lead_codigo: lead?.codigo ?? null,
     lead_nombre_contacto: lead?.nombre_contacto ?? null,
     oportunidad_id: lead?.oportunidad_id ?? null,
+    de_anuncio: Boolean(data.ctwa_clid || data.referral),
+    anuncio: anuncioDe(data.referral),
+    campania_nombre: (campania as { nombre: string } | null)?.nombre ?? null,
   };
+}
+
+/** Lo que Meta manda del anuncio en el `referral` del primer mensaje. */
+export function anuncioDe(referral: unknown): AnuncioDeLaConversacion | null {
+  if (!referral || typeof referral !== "object") return null;
+  const r = referral as Record<string, string | undefined>;
+  const anuncio = {
+    titular: r.headline?.trim() || null,
+    cuerpo: r.body?.trim() || null,
+    imagen: r.image_url?.trim() || null,
+    enlace: r.source_url?.trim() || null,
+    anuncioId: r.source_id?.trim() || null,
+  };
+  return anuncio.titular || anuncio.cuerpo || anuncio.imagen || anuncio.anuncioId ? anuncio : null;
 }
 
 export interface MensajeWhatsapp {

@@ -1,6 +1,7 @@
 import { MessageCircle } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
 import { conversacionesDe, comercialesActivos, type FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
+import { tipificacionesActuales } from "@/lib/acciones/whatsapp-campanas";
 import { WhatsappListaConversaciones } from "@/components/crm/whatsapp-lista-conversaciones";
 
 // Bandeja de WhatsApp, fase 2 (15-09-2026) — PENDIENTE DE APROBACIÓN DE
@@ -27,6 +28,8 @@ export default async function WhatsappPage({
     esCentral ? comercialesActivos() : Promise.resolve([]),
   ]);
 
+  const tipificados = await tipificacionesActuales(conversaciones.map((c) => c.lead_id).filter((x): x is string => Boolean(x)));
+
   return (
     <div className="flex h-[calc(100vh-8.5rem)] overflow-hidden rounded-lg border border-border bg-card">
       <div className="w-full max-w-sm">
@@ -35,6 +38,7 @@ export default async function WhatsappPage({
           filtroActivo={filtro}
           comerciales={comerciales}
           comercialActivo={sp.comercial}
+          leadsTipificados={tipificados.map((t) => t.lead_id)}
         />
       </div>
       <div className="hidden flex-1 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground md:flex">
