@@ -430,3 +430,25 @@ cumplido, no puedo hacer nada.»
   la dirección verificada) muestra la tarjeta roja y el punto rojo en la agenda del 13 de agosto;
   CLINICA PRUEBA SAN MARTIN (con apertura) muestra la tarjeta verde con el botón activo. Humo
   38/38.
+
+## 22-09 (tarde) — ítem 3 del plan, acotado tras revisar el código (sin migración)
+
+Carlos, sobre Titan: «esto es una atención técnica, no es una puesta en marcha… se está
+capturando un caso cuando esto es repetitivo, de despacho, en pedidos». Lesly: «yo lo tengo allí
+y yo tengo que generarme el caso».
+
+El plan original (docs/29) suponía que había que tocar `crear_atencion_al_derivar` (0132) o
+`asignar_lead`. Al revisar el código antes de tocar nada se encontró que **ya existe** el
+mecanismo: la 0244 (15-09) engancha sola una atención de tipo `puesta_en_marcha` al pedido vivo
+del cliente sin puesta en marcha (`servicio_id`), y «Cambiar tipo» (0238, ya en pantalla) corrige
+el tipo con un clic — al cambiarlo a `puesta_en_marcha` el enganche se dispara solo. El problema
+real no era de datos ni de disparadores: era de **visibilidad**. Nada avisaba, cuando el enganche
+automático no aplicaba (solo cubre `puesta_en_marcha`), que el cliente ya tenía pedidos sin
+cerrar.
+
+- `/postventa/atenciones/[id]`: si la atención no está enganchada a ningún pedido y el cliente
+  tiene pedidos sin cerrar, un aviso ámbar los lista con enlace, recordando que cambiar el tipo a
+  «Puesta en marcha» la engancha sola.
+- Cero riesgo: no se tocó `asignar_lead` ni ningún disparador.
+- Verificado con datos reales: 75 atenciones abiertas sin enganchar; PERUVIAN NATURE S & S (no es
+  de práctica) mostró el aviso con sus 2 pedidos sin cerrar. Humo 38/38.
