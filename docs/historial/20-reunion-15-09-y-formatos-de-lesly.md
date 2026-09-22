@@ -495,3 +495,28 @@ todavía en la base tal cual quedaron ese día.
   casilla.». Humo 38/38.
 - Nota: esto previene el caso nuevo; las tres fichas de Huamán Ruiz ya duplicadas se unen en el
   ítem 10, cuando Gabriela confirme con el file.
+
+## 22-09 (tarde) — ítem 6 del plan: qué está pendiente por tipo
+
+Carlos: «el calendario está todo consolidado, pero en realidad está pendiente del despacho,
+pendiente de videollamadas, servicio técnico, pendiente de mantenimiento preventivo. Hay varios
+puntos que se tienen que ver acá». El calendario ya contestaba «¿cuándo?»; faltaba «¿qué me
+falta?», sin fecha de por medio — un despacho SIN fecha nunca aparecía en ningún calendario.
+
+- `pendientesDePostventa()` (`src/lib/agenda-postventa-datos.ts`): despachos sin fecha (57 reales
+  al probar) y con fecha (61), videollamadas de preinstalación pendientes en Lima (11), puestas en
+  marcha pendientes (10), atenciones sin programar (4) y preventivos por vencer en 15 días sin
+  caso abierto ya para esa máquina (144).
+- Panel «Pendiente por tipo» en `/postventa/agenda`, con las seis listas plegables.
+- Sección «5b. PENDIENTES DEL ÁREA» en el reporte diario (solo perfiles de postventa), con los
+  mismos seis bloques, 10 filas por bloque y «y N más».
+- `bloquesPedido`: en Lima el equipo también lleva preinstalación, pero por VIDEOLLAMADA en vez de
+  foto («si es en Lima, tenemos que hacer una videollamada previamente para verificar que tenga
+  todas las instalaciones» — el caso que lo probó fue Titan, cerrado el 15, 7 días sin ese
+  contacto). Usa la misma columna que la de provincia (preinstalacion_ok_at/nota); no hizo falta
+  una columna nueva. No es retroactivo: un pedido de Lima que ya hizo la puesta en marcha o que ya
+  cerró antes de que este paso existiera no se reabre para pedir un dato que nadie iba a
+  registrar — mismo criterio en `pendientesDePostventa`.
+- Verificado en producción con datos reales: pantallazo de `/postventa/agenda` con los conteos en
+  vivo, y el PDF de `/api/reportes/diario` descargado y leído completo, con la sección 5b y sus
+  seis bloques. 32/32 pruebas de `postventa.test.ts` verdes (3 nuevas). Humo 38/38.
