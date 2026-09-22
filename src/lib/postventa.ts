@@ -101,6 +101,9 @@ export interface ServicioPostventa {
   transporte?: string | null;
   apertura_nota?: string | null;
   direccion_final?: string | null;
+  /** «Ya lo mandé»: el correo de la apertura, marcado por separado al almacén y al cliente (0271). */
+  apertura_enviada_almacen_at?: string | null;
+  apertura_enviada_cliente_at?: string | null;
   /**
    * El pago, resuelto ANTES de tapar las cifras (ver `sinPrecios`).
    *

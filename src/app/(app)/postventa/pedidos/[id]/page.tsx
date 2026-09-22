@@ -109,6 +109,13 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
     (equiposDelPedido ?? []).map((e) => [String(e.serie).toUpperCase(), e.id as string]),
   );
 
+  // «No he hecho ninguna apertura como tal en el sistema» (Rubí, 22-09): sí
+  // la estaba emitiendo, solo que la pantalla nunca decía QUIÉN — se leía
+  // como algo que hizo «el sistema» solo. `apertura_despacho_por` ya existía.
+  const { data: emisor } = servicio.apertura_despacho_por
+    ? await supabase.from("perfiles").select("nombre").eq("id", servicio.apertura_despacho_por).maybeSingle()
+    : { data: null };
+
   const frena = queLoFrena(servicio);
   const saldo = saldoPendiente(servicio);
   const total = Number(servicio.monto ?? 0);
@@ -313,6 +320,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
           atencionPuesta={atencionPuesta as { id: string; etapa: string; programada_at: string | null; tecnico: string | null; cerrado_at: string | null } | null}
           verPrecios={verPrecios}
           puedeDefinirCondicion={perfil.rol === "gerencia" || perfil.rol === "admin" || perfil.rol === "operaciones"}
+          emitidoApertura={emisor?.nombre ?? null}
         />
 
         <div className="space-y-4">

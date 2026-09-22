@@ -86,11 +86,14 @@ export function PedidoPostventa({
    * saldo. Postventa la ve, no la cambia.
    */
   puedeDefinirCondicion = false,
+  /** Quién emitió la apertura de despacho (Rubí, 22-09: «no he hecho ninguna apertura como tal en el sistema» — sí las emitía, solo que la pantalla no lo decía). */
+  emitidoApertura = null,
 }: {
   servicio: ServicioPostventa;
   atencionPuesta?: { id: string; etapa: string; programada_at: string | null; tecnico: string | null; cerrado_at: string | null } | null;
   verPrecios?: boolean;
   puedeDefinirCondicion?: boolean;
+  emitidoApertura?: string | null;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -299,6 +302,10 @@ export function PedidoPostventa({
   // (rediseño del 01-09 a pedido de Santos: lo hecho compacto con su ✓ y su
   // fecha, lo que sigue destacado, lo lejano atenuado).
   const pasoActual = bloques.flatMap((b) => b.pasos).find((p) => !p.hecho)?.clave ?? null;
+  const detalleDePaso = (paso: PasoPedido) =>
+    paso.clave === "apertura" && emitidoApertura
+      ? `${paso.detalle ? `${paso.detalle} · ` : ""}Emitida por ${emitidoApertura}`
+      : paso.detalle;
 
   const circuito = circuitoDe(servicioVisto);
 
@@ -420,7 +427,7 @@ export function PedidoPostventa({
                   {paso.hecho ? (
                     <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 pb-3">
                       <p className="text-xs text-muted-foreground">{paso.etiqueta}</p>
-                      {paso.detalle && <span className="text-[11px] text-muted-foreground/70">{paso.detalle}</span>}
+                      {detalleDePaso(paso) && <span className="text-[11px] text-muted-foreground/70">{detalleDePaso(paso)}</span>}
                       {paso.cuando && (
                         <span className="ml-auto whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground/70">
                           {fechaHoraLima(paso.cuando)}

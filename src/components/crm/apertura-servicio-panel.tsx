@@ -3,9 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Copy, Check, Save, Mail } from "lucide-react";
-import { guardarAperturaServicio } from "@/lib/acciones/postventa";
+import { Copy, Check, Save, Mail, Send } from "lucide-react";
+import { guardarAperturaServicio, marcarAperturaEnviada } from "@/lib/acciones/postventa";
 import { TIPOS_APERTURA, type TipoApertura } from "@/lib/apertura-servicio";
+import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 
 /**
@@ -27,6 +28,8 @@ export function AperturaServicioPanel({
   asunto,
   cuerpo,
   faltantes,
+  enviadaAlmacenAt = null,
+  enviadaClienteAt = null,
 }: {
   servicioId: string;
   inicial: {
@@ -41,11 +44,29 @@ export function AperturaServicioPanel({
   asunto: string;
   cuerpo: string;
   faltantes: string[];
+  /** «Ya lo mandé»: cuándo se marcó el correo como enviado, al almacén y al cliente (0271). */
+  enviadaAlmacenAt?: string | null;
+  enviadaClienteAt?: string | null;
 }) {
   const [v, setV] = useState(inicial);
   const [copiado, setCopiado] = useState<"asunto" | "cuerpo" | null>(null);
   const [guardando, empezar] = useTransition();
+  const [enviando, empezarEnvio] = useTransition();
+  const [enviada, setEnviada] = useState({ almacen: enviadaAlmacenAt, cliente: enviadaClienteAt });
   const router = useRouter();
+
+  function marcarEnviado(destino: "almacen" | "cliente") {
+    empezarEnvio(async () => {
+      const r = await marcarAperturaEnviada(servicioId, destino);
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      setEnviada((x) => ({ ...x, [destino]: new Date().toISOString() }));
+      toast.success(destino === "almacen" ? "Marcado: correo enviado al almacén." : "Marcado: correo enviado al cliente.");
+      router.refresh();
+    });
+  }
 
   const cambiar = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setV((x) => ({ ...x, [k]: e.target.value }));
@@ -224,6 +245,27 @@ export function AperturaServicioPanel({
         >
           <Copy className="size-3.5" /> {copiado === "cuerpo" ? "Copiado" : "Copiar el correo"}
         </button>
+
+        {/* «YA LO MANDÉ» (0271, ítem 8 de la reunión del 22-09): el CRM copia
+            el correo pero no lo envía —no tiene SMTP—, así que hasta ahora no
+            quedaba registro de que alguien de verdad lo mandó. Dos marcas
+            porque son dos destinatarios distintos, con contenido distinto de
+            interesados: el almacén despacha con esto, el cliente coordina la
+            recepción. */}
+        <div className="mt-3 grid gap-2 border-t border-border pt-3 sm:grid-cols-2">
+          <BotonEnviado
+            etiqueta="Al almacén"
+            enviadoAt={enviada.almacen}
+            disabled={enviando}
+            onClick={() => marcarEnviado("almacen")}
+          />
+          <BotonEnviado
+            etiqueta="Al cliente"
+            enviadoAt={enviada.cliente}
+            disabled={enviando}
+            onClick={() => marcarEnviado("cliente")}
+          />
+        </div>
       </div>
     </div>
   );
@@ -251,5 +293,35 @@ function Campo({
       {children}
       {ayuda && <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{ayuda}</p>}
     </div>
+  );
+}
+
+function BotonEnviado({
+  etiqueta,
+  enviadoAt,
+  disabled,
+  onClick,
+}: {
+  etiqueta: string;
+  enviadoAt: string | null;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  if (enviadoAt) {
+    return (
+      <p className="flex items-center gap-1.5 rounded-md border border-[#1E7F4F]/40 bg-[#1E7F4F]/5 px-3 py-2 text-xs font-medium text-[#1E7F4F]">
+        <Check className="size-3.5 flex-none" /> {etiqueta}: enviado {fechaHoraLima(enviadoAt)}
+      </p>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-semibold text-foreground hover:bg-accent disabled:opacity-60"
+    >
+      <Send className="size-3.5" /> Marcar enviado — {etiqueta}
+    </button>
   );
 }

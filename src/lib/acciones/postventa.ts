@@ -913,6 +913,29 @@ export async function guardarAperturaServicio(
 }
 
 /**
+ * «Ya lo mandé» — dos marcas de tiempo separadas del correo de la apertura,
+ * al almacén y al cliente (0271, ítem 8 de la reunión del 22-09). El CRM deja
+ * el correo escrito pero no manda nada (no tiene SMTP); esto es lo mismo que
+ * «marcar enviado» en el resto de pasos del pedido, para el paso que hoy solo
+ * vive en la bandeja de correo de la persona.
+ */
+export async function marcarAperturaEnviada(servicioId: string, destino: "almacen" | "cliente") {
+  await requerirPerfil();
+  const supabase = await createClient();
+
+  const campo = destino === "almacen" ? "apertura_enviada_almacen_at" : "apertura_enviada_cliente_at";
+  const { error } = await supabase
+    .from("servicios_postventa")
+    .update({ [campo]: new Date().toISOString() })
+    .eq("id", servicioId);
+  if (error) return falla(error.message);
+
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}/apertura`);
+  return ok();
+}
+
+/**
  * Gerencia u operaciones fijan la condición de pago de un pedido ya emitido
  * (0232): qué % debe estar pagado antes de despachar y a cuántos días va el
  * saldo. Para los cierres nuevos viene del informe; esto es para los que ya
