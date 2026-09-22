@@ -452,3 +452,25 @@ cerrar.
 - Cero riesgo: no se tocó `asignar_lead` ni ningún disparador.
 - Verificado con datos reales: 75 atenciones abiertas sin enganchar; PERUVIAN NATURE S & S (no es
   de práctica) mostró el aviso con sus 2 pedidos sin cerrar. Humo 38/38.
+
+## 22-09 (tarde) — ítem 4 del plan, corregido de rumbo (0271 no hizo falta)
+
+Carlos, mirando el registro de Rivera: «Rivera cierto verda… con minúscula… le ha puesto un
+apellido más… no sé de dónde proviene esto». El plan original suponía que un comercial retipeaba
+el nombre en un formulario. Investigando el dato real se encontró la causa exacta: Freddy Nolasco
+(esposo de Rivera) escribió CUATRO veces por WhatsApp y el webhook le puso cuatro nombres
+distintos — «Nolasco Aquino Huanuco», «FREDDY NOLASCO», «FREDDY NOLASCO AQUINO», «Freddy
+nolasco» — porque cada conversación nueva copiaba a ciegas el nombre de perfil de WhatsApp DE ESE
+MOMENTO (la gente lo cambia). Nadie tipeó nada: es automático.
+
+- `nombreDeContactoConocido()` en `src/app/api/webhooks/whatsapp/route.ts`: si el teléfono ya es
+  de un contacto conocido, se usa su nombre en vez del de WhatsApp.
+- Encontrado probando con el propio caso real, ANTES de desplegarlo: Rivera y Freddy comparten el
+  mismo celular, que tiene DOS contactos («Sr. Fredy Nolasco» y «RIVERA CIERTO BERTHA FABIOLA»).
+  Un primer intento con «el más reciente» como desempate le habría puesto el nombre de la esposa
+  a los mensajes del esposo. Corregido: con dos o más contactos en el mismo teléfono no se
+  sustituye nada — es lo que Carlos pidió en otra parte de la misma reunión: «no vamos a confiar
+  solamente en lo que arroja la ficha». Verificado: el teléfono de Freddy/Bertha no sustituye; el
+  de Titan Contratistas (un solo contacto) sí.
+- Complemento menor: «¿Quién llama?» en «Pasar contacto a Central» — al elegir la empresa de la
+  cartera, se listan sus contactos para completar el nombre con un toque, sin bloquear el campo.
