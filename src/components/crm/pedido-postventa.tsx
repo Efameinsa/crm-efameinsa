@@ -666,8 +666,12 @@ export function PedidoPostventa({
       <Cuadro
         abierto={form?.tipo === "preinstalacion"}
         cerrar={() => setForm(null)}
-        titulo="Preinstalación confirmada"
-        descripcion="En provincia conviene pedirle al cliente una foto de sus puntos de agua, desagüe y energía antes de despachar. Es lo que evita el viaje en falso y la puesta en marcha que no se puede hacer."
+        titulo={servicio.modalidad === "provincia" ? "Preinstalación confirmada" : "Videollamada de preinstalación"}
+        descripcion={
+          servicio.modalidad === "provincia"
+            ? "En provincia conviene pedirle al cliente una foto de sus puntos de agua, desagüe y energía antes de despachar. Es lo que evita el viaje en falso y la puesta en marcha que no se puede hacer."
+            : "En Lima se verifica por videollamada, antes de la puesta en marcha: agua, desagüe y conexión eléctrica listos (Carlos, 22-09)."
+        }
         boton="Registrar"
         pendiente={pendiente}
         onEnviar={(datos) =>
@@ -676,7 +680,7 @@ export function PedidoPostventa({
         campos={[
           {
             nombre: "nota",
-            etiqueta: "Qué confirmó el cliente",
+            etiqueta: servicio.modalidad === "provincia" ? "Qué confirmó el cliente" : "Con quién se habló y qué confirmó",
             area: true,
             inicial: "Agua, desagüe y conexión eléctrica listos",
             requerido: false,

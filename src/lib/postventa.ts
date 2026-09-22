@@ -588,19 +588,36 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   ];
 
   const cierre: PasoPedido[] = [
-    // Solo en provincia: en Lima la verificación la hace el técnico al llegar.
-    // Va acá y no en Despacho desde el 09-09 (Carlos): lo que el cliente
-    // confirma —agua, desagüe, energía— es lo que hace posible la puesta en
-    // marcha, no lo que autoriza el camión.
-    ...(provincia && circuito.esEquipo
+    // En provincia la verificación la hace el técnico al llegar, así que acá
+    // se le pide al cliente una prueba escrita (foto de agua, desagüe,
+    // energía). Va en este bloque y no en Despacho desde el 09-09 (Carlos): lo
+    // que el cliente confirma es lo que hace posible la puesta en marcha, no
+    // lo que autoriza el camión.
+    //
+    // EN LIMA ES UNA VIDEOLLAMADA, NO UNA FOTO (Carlos, 22-09, ítem 6 de la
+    // reunión): «si es en Lima, tenemos que hacer una videollamada
+    // previamente para verificar que tenga todas las instalaciones» — el caso
+    // que lo probó fue Titan, cerrado el 15 y siete días sin ese contacto.
+    // Usa la MISMA columna que la de provincia (preinstalacion_ok_at/nota): no
+    // hace falta una nueva, y las dos son la misma idea con un medio distinto.
+    // No es retroactivo: un pedido de Lima que ya despachó la puesta en marcha
+    // o que ya cerró antes de que este paso existiera no se reabre para pedir
+    // un dato que nadie iba a registrar.
+    ...(circuito.esEquipo
       ? [
           {
             clave: "preinstalacion",
-            etiqueta: "Preinstalación confirmada por el cliente",
-            responsable: "cliente" as ResponsablePaso,
-            hecho: s.preinstalacion_ok_at != null,
+            etiqueta: provincia ? "Preinstalación confirmada por el cliente" : "Videollamada de preinstalación hecha",
+            responsable: (provincia ? "cliente" : "postventa") as ResponsablePaso,
+            hecho:
+              s.preinstalacion_ok_at != null ||
+              (!provincia && (s.cerrado_at != null || s.completado || s.puesta_en_marcha != null)),
             cuando: s.preinstalacion_ok_at,
-            detalle: s.preinstalacion_nota ?? "Foto de los puntos de agua, desagüe y energía",
+            detalle:
+              s.preinstalacion_nota ??
+              (provincia
+                ? "Foto de los puntos de agua, desagüe y energía"
+                : "Videollamada para verificar agua, desagüe y energía antes de la puesta en marcha"),
           },
         ]
       : []),

@@ -6,7 +6,8 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ElDiaDelArea } from "@/components/crm/el-dia-del-area";
 import { BitacoraDia, type ActividadDia } from "@/components/crm/bitacora-dia";
 import type { ServicioPostventa } from "@/lib/postventa";
-import { cargarEventosPostventa } from "@/lib/agenda-postventa-datos";
+import { cargarEventosPostventa, pendientesDePostventa } from "@/lib/agenda-postventa-datos";
+import { PendientesPorTipo } from "@/components/crm/pendientes-por-tipo";
 import { CalendarioPostventa, type VistaCalendario } from "@/components/crm/calendario-postventa";
 import { filtrarPorZona } from "@/lib/calendario-postventa";
 import { diasDelMes, diasDeSemana, lunesDe } from "@/lib/calendario";
@@ -80,7 +81,7 @@ export default async function AgendaPostventaPage({
 
   // Todo lo que tiene fecha en el rango: pedidos, casos, tareas, atenciones,
   // visitas. La misma carga la usa el reporte diario (21-09).
-  const [eventosTodos, { data: abiertos }] = await Promise.all([
+  const [eventosTodos, { data: abiertos }, pendientes] = await Promise.all([
     cargarEventosPostventa(supabase, perfil, desde, hasta),
     supabase
       .from("servicios_postventa")
@@ -89,6 +90,7 @@ export default async function AgendaPostventaPage({
       .is("fecha_despacho", null)
       .is("puesta_en_marcha", null)
       .limit(200),
+    pendientesDePostventa(supabase),
   ]);
 
   const { data: aProgramar } = await supabase
@@ -130,6 +132,10 @@ export default async function AgendaPostventaPage({
           board… llenando información repetida que ya está acá». */}
       <SeccionPanel titulo="El día del área">
         <ElDiaDelArea />
+      </SeccionPanel>
+
+      <SeccionPanel titulo="Pendiente por tipo">
+        <PendientesPorTipo pendientes={pendientes} />
       </SeccionPanel>
 
       <SeccionPanel titulo="Otras gestiones de hoy">

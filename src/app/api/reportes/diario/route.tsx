@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { ReporteDiarioPdf } from "@/lib/pdf/reporte-diario-pdf";
 import { cargarPotenciales, lunesSemana, resumirSemana } from "@/lib/potenciales-semana";
-import { cargarEventosPostventa, eventosDelDia } from "@/lib/agenda-postventa-datos";
+import { cargarEventosPostventa, eventosDelDia, pendientesDePostventa, type PendientesPostventa } from "@/lib/agenda-postventa-datos";
 import { etiquetaEvento } from "@/lib/calendario-postventa";
 
 // PDF del cierre del día del comercial. La autorización real la hace la
@@ -65,6 +65,7 @@ export async function GET(request: Request) {
   // ver los procesos, que salgan sus despachados». Y «otras gestiones», lo
   // que se digita en la bitácora como en Central. Se calcula ACÁ, igual que
   // la proyección, por la misma razón: la función SQL no se toca.
+  let pendientesPostventa: { titulo: string; filas: { cliente: string; detalle: string | null }[] }[] | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
@@ -73,10 +74,25 @@ export async function GET(request: Request) {
       .maybeSingle();
     if (perfil?.es_postventa) {
       const manana = r.planificacion_manana.fecha;
-      const [eventos, { data: bitacora }] = await Promise.all([
+      const [eventos, { data: bitacora }, pendientes] = await Promise.all([
         cargarEventosPostventa(supabase, perfil, fecha, manana),
         supabase.from("bitacora_dia").select("orden, texto").eq("perfil_id", comercialId).eq("fecha", fecha).order("orden"),
+        pendientesDePostventa(supabase),
       ]);
+      // 5b. PENDIENTES DEL ÁREA (22-09, ítem 6): mismos bloques que el panel
+      // «Pendiente por tipo» de la agenda, para que el PDF diga lo mismo.
+      const ROTULO: Record<keyof PendientesPostventa, string> = {
+        despachosSinFecha: "Despachos sin fecha todavía",
+        despachosConFecha: "Despachos programados, sin salir",
+        videollamadas: "Videollamadas de preinstalación (Lima)",
+        puestasEnMarcha: "Puestas en marcha pendientes",
+        atencionesSinProgramar: "Atenciones sin programar",
+        preventivosPorVencer: "Preventivos por vencer en 15 días",
+      };
+      pendientesPostventa = (Object.keys(ROTULO) as (keyof PendientesPostventa)[]).map((clave) => ({
+        titulo: ROTULO[clave],
+        filas: pendientes[clave].map((f) => ({ cliente: f.cliente, detalle: f.detalle })),
+      }));
       const aFila = (e: (typeof eventos)[number]) => ({
         hora: e.hora,
         titulo: e.cliente,
@@ -133,6 +149,7 @@ export async function GET(request: Request) {
       agenda={r.agenda}
       planificacion_manana={r.planificacion_manana}
       proyeccion={proyeccion}
+      pendientesPostventa={pendientesPostventa}
     />,
   );
 

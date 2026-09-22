@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { puedeVerPrecios, sinPrecios, veTodoPostventa, type ServicioPostventa } from "@/lib/postventa";
+import { circuitoDe, puedeVerPrecios, sinPrecios, veTodoPostventa, type ServicioPostventa } from "@/lib/postventa";
+import { ETIQUETA_TIPO_ATENCION, type TipoAtencion } from "@/lib/atenciones";
 import {
   eventoDeAtencion,
   eventoDeCaso,
@@ -125,4 +126,190 @@ export function eventosDelDia(eventos: EventoCalendario[], fecha: string): Event
   return eventos
     .filter((e) => e.fecha === fecha)
     .sort((a, b) => (a.hora ?? "99:99").localeCompare(b.hora ?? "99:99") || a.cliente.localeCompare(b.cliente));
+}
+
+// ── ¿QUÉ ESTÁ PENDIENTE, POR TIPO? (ítem 6 de la reunión del 22-09) ─────────
+//
+// «El calendario está todo consolidado, pero en realidad está pendiente del
+// despacho, pendiente de videollamadas, servicio técnico, pendiente de
+// mantenimiento preventivo. Hay varios puntos que se tienen que ver acá»
+// (Carlos, 22-09). El calendario contesta «¿cuándo?»; esto contesta «¿qué me
+// falta?», sin fecha de por medio — un despacho SIN fecha nunca aparecería en
+// ningún calendario, y es justo el que más urge programar.
+
+export interface FilaPendiente {
+  id: string;
+  cliente: string;
+  detalle: string | null;
+  /** Desde cuándo espera (ISO), para poder ordenar por antigüedad. */
+  desde: string | null;
+  url: string;
+}
+
+export interface PendientesPostventa {
+  despachosSinFecha: FilaPendiente[];
+  despachosConFecha: FilaPendiente[];
+  videollamadas: FilaPendiente[];
+  puestasEnMarcha: FilaPendiente[];
+  atencionesSinProgramar: FilaPendiente[];
+  preventivosPorVencer: FilaPendiente[];
+}
+
+function sumarDiasIso(iso: string, dias: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Todo lo que el área tiene pendiente, agrupado por tipo — no por fecha.
+ *
+ * Se calcula aparte de `cargarEventosPostventa`: esa función solo trae lo que
+ * YA tiene una fecha puesta, y el punto de este panel es precisamente lo que
+ * todavía no la tiene (un despacho sin programar, una atención sin agendar).
+ */
+export async function pendientesDePostventa(supabase: SupabaseClient): Promise<PendientesPostventa> {
+  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const limite = sumarDiasIso(hoy, 15);
+
+  const [{ data: pedidos }, { data: aProgramar }, { data: equipos }] = await Promise.all([
+    // Postventa ve todo el trabajo del área, esté en la cartera de quien esté
+    // (veTodoPostventa) — el mismo criterio que ya usa `cargarEventosPostventa`.
+    supabase
+      .from("servicios_postventa")
+      .select(
+        "id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, puesta_en_marcha, modalidad, tipo_pedido, entrega_en, con_instalacion, preinstalacion_ok_at, cerrado_at, completado, created_at",
+      )
+      .eq("completado", false)
+      .is("cerrado_at", null)
+      .limit(400),
+    supabase
+      .from("atenciones")
+      .select("id, tipo, detalle, cliente_texto, solicitado_at, cuentas(razon_social)")
+      .eq("etapa", "diagnostico")
+      .is("cerrado_at", null)
+      .order("solicitado_at", { ascending: true })
+      .limit(100),
+    supabase
+      .from("equipos_instalados")
+      .select("id, serie, modelo_texto, cliente_texto, proximo_mantenimiento, cuentas(razon_social)")
+      .not("proximo_mantenimiento", "is", null)
+      .lte("proximo_mantenimiento", limite)
+      .order("proximo_mantenimiento", { ascending: true })
+      .limit(200),
+  ]);
+
+  const listaPedidos = (pedidos ?? []) as unknown as (ServicioPostventa & { created_at: string | null })[];
+
+  const despachosPendientes = listaPedidos.filter((s) => s.despachado_at == null);
+  const despachosSinFecha = despachosPendientes
+    .filter((s) => !s.fecha_despacho)
+    .map((s) => ({
+      id: s.id,
+      cliente: s.cliente_texto ?? "Cliente sin nombre",
+      detalle: s.equipo,
+      desde: s.created_at ?? null,
+      url: `/postventa/pedidos/${s.id}`,
+    }));
+  const despachosConFecha = despachosPendientes
+    .filter((s) => s.fecha_despacho)
+    .map((s) => ({
+      id: s.id,
+      cliente: s.cliente_texto ?? "Cliente sin nombre",
+      detalle: `${s.equipo ?? ""} · programado ${s.fecha_despacho}`.trim(),
+      desde: s.fecha_despacho,
+      url: `/postventa/pedidos/${s.id}`,
+    }));
+
+  // LIMA, EQUIPO, SIN VIDEOLLAMADA Y SIN PUESTA (Carlos, 22-09): una vez hecha
+  // la puesta en marcha ya no tiene sentido pedirla — es la misma leniencia
+  // que aplica `bloquesPedido` para no reabrir pedidos que avanzaron sin ella.
+  const videollamadas = listaPedidos
+    .filter((s) => {
+      const circuito = circuitoDe(s);
+      return (
+        s.modalidad === "lima" &&
+        circuito.esEquipo &&
+        s.preinstalacion_ok_at == null &&
+        s.puesta_en_marcha == null
+      );
+    })
+    .map((s) => ({
+      id: s.id,
+      cliente: s.cliente_texto ?? "Cliente sin nombre",
+      detalle: s.equipo,
+      desde: s.despachado_at ?? s.fecha_despacho ?? null,
+      url: `/postventa/pedidos/${s.id}`,
+    }));
+
+  // Despachado pero sin cerrar la puesta: en un repuesto sin instalación no
+  // existe este paso (se entrega y se cierra), así que se descarta con el
+  // mismo `circuitoDe` que usa el circuito del pedido.
+  const puestasEnMarcha = listaPedidos
+    .filter((s) => {
+      const circuito = circuitoDe(s);
+      if (circuito.esRepuesto && !circuito.conInstalacion) return false;
+      return s.despachado_at != null && s.puesta_en_marcha == null;
+    })
+    .map((s) => ({
+      id: s.id,
+      cliente: s.cliente_texto ?? "Cliente sin nombre",
+      detalle: s.equipo,
+      desde: s.despachado_at,
+      url: `/postventa/pedidos/${s.id}`,
+    }));
+
+  const atencionesSinProgramar = ((aProgramar ?? []) as unknown as {
+    id: string;
+    tipo: string;
+    detalle: string | null;
+    cliente_texto: string | null;
+    solicitado_at: string | null;
+    cuentas: { razon_social: string } | null;
+  }[]).map((a) => ({
+    id: a.id,
+    cliente: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre",
+    detalle: `${ETIQUETA_TIPO_ATENCION[a.tipo as TipoAtencion] ?? a.tipo}${a.detalle ? ` · ${a.detalle}` : ""}`,
+    desde: a.solicitado_at,
+    url: `/postventa/atenciones/${a.id}`,
+  }));
+
+  const listaEquipos = (equipos ?? []) as unknown as {
+    id: string;
+    serie: string;
+    modelo_texto: string | null;
+    cliente_texto: string | null;
+    proximo_mantenimiento: string;
+    cuentas: { razon_social: string } | null;
+  }[];
+  // «SIN CASO»: si ya hay una atención abierta para esa máquina, avisar de
+  // nuevo por el preventivo sería duplicar lo que postventa ya está viendo.
+  const { data: conCasoAbierto } =
+    listaEquipos.length === 0
+      ? { data: [] as { equipo_id: string | null }[] }
+      : await supabase
+          .from("atenciones")
+          .select("equipo_id")
+          .in("equipo_id", listaEquipos.map((e) => e.id))
+          .is("cerrado_at", null);
+  const equiposConCaso = new Set((conCasoAbierto ?? []).map((a) => a.equipo_id).filter((x): x is string => x != null));
+
+  const preventivosPorVencer = listaEquipos
+    .filter((e) => !equiposConCaso.has(e.id))
+    .map((e) => ({
+      id: e.id,
+      cliente: e.cuentas?.razon_social ?? e.cliente_texto ?? "Cliente sin nombre",
+      detalle: `${e.modelo_texto ?? "Equipo"} · serie ${e.serie} · vence ${e.proximo_mantenimiento}`,
+      desde: e.proximo_mantenimiento,
+      url: `/postventa/equipos/${e.id}`,
+    }));
+
+  return {
+    despachosSinFecha,
+    despachosConFecha,
+    videollamadas,
+    puestasEnMarcha,
+    atencionesSinProgramar,
+    preventivosPorVencer,
+  };
 }

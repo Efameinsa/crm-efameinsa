@@ -348,6 +348,30 @@ describe("bloquesPedido: el orden de Carlos y la apertura de despacho", () => {
     expect(puesta?.pasos.map((x) => x.clave)).toContain("preinstalacion");
   });
 
+  // ÍTEM 6 de la reunión del 22-09: en Lima también hay preinstalación, pero
+  // por videollamada, no por foto. Comparte columna con la de provincia.
+  it("en Lima el equipo también lleva preinstalación, pero como videollamada", () => {
+    const s = pedido({ modalidad: "lima" });
+    expect(paso(s, "preinstalacion").etiqueta).toBe("Videollamada de preinstalación hecha");
+    expect(paso(s, "preinstalacion").responsable).toBe("postventa");
+    expect(paso(s, "preinstalacion").hecho).toBe(false);
+    expect(paso({ ...s, preinstalacion_ok_at: "2026-09-22T10:00:00Z" }, "preinstalacion").hecho).toBe(true);
+  });
+
+  it("la videollamada de Lima no reabre un pedido que ya avanzó sin ella", () => {
+    const s = pedido({ modalidad: "lima" });
+    // Ya hizo la puesta en marcha: pedirla ahora sería retroactivo y sin sentido.
+    expect(paso({ ...s, puesta_en_marcha: "2026-09-10" }, "preinstalacion").hecho).toBe(true);
+    // Ya cerrado, de antes de que este paso existiera.
+    expect(paso({ ...s, cerrado_at: "2026-09-10T10:00:00Z" }, "preinstalacion").hecho).toBe(true);
+    expect(paso({ ...s, completado: true }, "preinstalacion").hecho).toBe(true);
+  });
+
+  it("un repuesto no lleva ni preinstalación de provincia ni videollamada de Lima", () => {
+    const repuesto = pedido({ modalidad: "lima", tipo_pedido: "repuesto" });
+    expect(claves(repuesto)).not.toContain("preinstalacion");
+  });
+
   it("los pedidos viejos del Excel, sin cierre, no quedan trabados por la apertura", () => {
     const excel = pedido({ informe_cierre_id: null, origen: "excel", aprobado_at: null, prueba_embalaje: "SI", planos_preinstalacion: "SI" });
     expect(paso(excel, "despacho").trabado).toBeUndefined();

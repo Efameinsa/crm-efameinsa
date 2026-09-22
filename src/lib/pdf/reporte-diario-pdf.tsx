@@ -66,6 +66,16 @@ export interface ReporteDiarioProps {
     /** `tipo` y `detalle` los trae postventa (21-09): «Despacho», «Puesta en marcha»… y con quién. */
     tareas: { titulo: string; hora: string | null; tipo?: string | null; detalle?: string | null }[];
   };
+  /**
+   * PENDIENTES DEL ÁREA, POR TIPO (22-09, ítem 6): lo que `pendientesDePostventa`
+   * calcula sin fecha de por medio — un despacho sin programar, una atención
+   * sin agendar. Solo llega para perfiles de postventa; ausente, no sale la
+   * sección.
+   */
+  pendientesPostventa?: {
+    titulo: string;
+    filas: { cliente: string; detalle: string | null }[];
+  }[];
 }
 
 // Márgenes: el ing. Carlos, 24-08, sobre este reporte impreso — el texto salía
@@ -108,6 +118,9 @@ const e = StyleSheet.create({
   seccionCabecera: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: GRANATE, paddingVertical: 4, paddingHorizontal: 6, borderRadius: 2 },
   seccionTitulo: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#FFFFFF", letterSpacing: 0.3 },
   seccionTotal: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#FFFFFF" },
+
+  subtitulo2: { paddingTop: 6, paddingBottom: 2, paddingHorizontal: 5 },
+  subtitulo2Texto: { fontSize: 7, fontFamily: "Helvetica-Bold", color: GRANATE, letterSpacing: 0.2 },
 
   fila: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: BORDE, paddingVertical: 4.5, paddingHorizontal: 5 },
   filaAlterna: { backgroundColor: FILA_GRIS },
@@ -163,6 +176,7 @@ function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: string; su
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
+  pendientesPostventa,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -332,6 +346,36 @@ export function ReporteDiarioPdf({
             ))
           )}
         </Seccion>
+
+        {pendientesPostventa && (
+          <Seccion
+            titulo="5b. PENDIENTES DEL ÁREA"
+            total={pendientesPostventa.reduce((t, b) => t + b.filas.length, 0)}
+          >
+            {pendientesPostventa.every((b) => b.filas.length === 0) ? (
+              <Text style={e.vacio}>Sin pendientes por tipo: al día en despachos, videollamadas, puestas en marcha, atenciones y preventivos.</Text>
+            ) : (
+              pendientesPostventa.map((b) =>
+                b.filas.length === 0 ? null : (
+                  <View key={b.titulo} wrap={false}>
+                    <View style={e.subtitulo2}>
+                      <Text style={e.subtitulo2Texto}>{b.titulo.toUpperCase()} ({b.filas.length})</Text>
+                    </View>
+                    {b.filas.slice(0, 10).map((f, i) => (
+                      <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                        <Text style={{ width: "38%", paddingRight: 6 }}>{corta(f.cliente, 42)}</Text>
+                        <Text style={{ width: "62%", color: GRIS }}>{f.detalle ? corta(f.detalle, 70) : "—"}</Text>
+                      </View>
+                    ))}
+                    {b.filas.length > 10 && (
+                      <Text style={[e.vacio, { paddingVertical: 3 }]}>y {b.filas.length - 10} más</Text>
+                    )}
+                  </View>
+                ),
+              )
+            )}
+          </Seccion>
+        )}
 
         <Seccion
           titulo="6. PLANIFICACIÓN DEL DÍA SIGUIENTE"
