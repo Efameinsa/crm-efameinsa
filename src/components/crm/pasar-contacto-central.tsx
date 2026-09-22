@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2, MessageSquare, Search, Send, User, X } from "lucide-react";
 import { buscarCoincidencias, contactosDeLaCuenta, registrarContacto, type CoincidenciaCartera, type ContactoDeLaCuenta } from "@/lib/acciones/leads";
+import { rucDentroDelTexto } from "@/lib/documento";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -161,6 +162,32 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
     if (c.email) (form.elements.namedItem("email") as HTMLInputElement).value = c.email;
   }
 
+  /**
+   * EL RUC ESCRITO DENTRO DEL NOMBRE, EN VEZ DE EN SU CASILLA (Carlos, 22-09).
+   *
+   * El caso real: Brenda escribió «20600852893 - INVERSIONES HUAMAN RUIZ
+   * S.R.L» en «Empresa» y dejó «RUC / DNI» vacío. Sin el RUC en su casilla,
+   * `buscar()` no encontró la ficha que ya existía y nació una repetida. Al
+   * salir de «Empresa» o de «Nombre del contacto» se revisa si lo que quedó
+   * escrito trae un RUC de verdad (checksum de SUNAT, no cualquier número
+   * largo) y, si el campo de RUC sigue vacío, se muda solo — nunca pisa un
+   * RUC que la persona ya haya escrito a propósito.
+   */
+  function detectarRuc(campo: "razon_social" | "nombre_contacto") {
+    const form = formRef.current;
+    if (!form) return;
+    const campoDoc = form.elements.namedItem("num_doc") as HTMLInputElement | null;
+    if (!campoDoc || campoDoc.value.trim()) return;
+    const campoOrigen = form.elements.namedItem(campo) as HTMLInputElement | null;
+    if (!campoOrigen) return;
+    const hallazgo = rucDentroDelTexto(campoOrigen.value);
+    if (!hallazgo) return;
+    campoDoc.value = hallazgo.ruc;
+    campoOrigen.value = hallazgo.resto;
+    toast.message("Se encontró un RUC escrito en el texto: lo pasamos a su casilla.");
+    buscar();
+  }
+
   function limpiarTodo() {
     if (temporizador.current) clearTimeout(temporizador.current);
     formRef.current?.reset();
@@ -252,6 +279,7 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
                     required
                     autoComplete="off"
                     placeholder="Cómo se presentó la persona"
+                    onBlur={() => detectarRuc("nombre_contacto")}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -283,6 +311,7 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
                       autoComplete="off"
                       placeholder="Razón social o nombre comercial"
                       onChange={buscar}
+                      onBlur={() => detectarRuc("razon_social")}
                     />
                   </div>
                   <div className="space-y-1.5">

@@ -32,6 +32,37 @@ export function dniValido(valor: string): boolean {
   return /^\d{8}$/.test(valor.replace(/\D/g, ""));
 }
 
+/**
+ * UN RUC ESCRITO DENTRO DEL NOMBRE, EN VEZ DE EN SU CASILLA.
+ *
+ * El caso que lo probó (22-09): Brenda escribió «20600852893 - INVERSIONES
+ * HUAMAN RUIZ S.R.L» en el nombre del contacto y dejó el RUC vacío. Sin el
+ * RUC en su casilla, el CRM no pudo reconocer que esa empresa ya existía —
+ * el buscador solo mira el campo RUC — y nació una ficha nueva sin
+ * documento. Carlos: «hay que consolidarlo».
+ *
+ * Busca cualquier corrida de 11 dígitos que sea un RUC de verdad (con el
+ * dígito verificador de SUNAT, `rucValido`): un DNI de 8, un celular de 9 o
+ * un código cualquiera no pasan la prueba, así que esto no dispara con
+ * cualquier número largo. Devuelve el RUC y el texto que queda, sin los
+ * separadores sueltos («-», «·», espacios de sobra) que deja el hueco.
+ */
+export function rucDentroDelTexto(texto: string): { ruc: string; resto: string } | null {
+  const m = texto.match(/\d[\d\s.-]{9,15}\d/g);
+  for (const candidato of m ?? []) {
+    const digitos = candidato.replace(/\D/g, "");
+    if (digitos.length === 11 && rucValido(digitos)) {
+      const resto = texto
+        .replace(candidato, " ")
+        .replace(/^[\s·\-–—/|:]+|[\s·\-–—/|:]+$/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      return { ruc: digitos, resto };
+    }
+  }
+  return null;
+}
+
 /** El carné de extranjería no tiene formato fijo; solo se exige algo razonable. */
 export function ceValido(valor: string): boolean {
   const n = valor.trim();
