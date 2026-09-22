@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MessageCircle } from "lucide-react";
+import { etiquetaDeContactoWa } from "@/lib/contacto-whatsapp";
 import { cn } from "@/lib/utils";
 import { fechaHoraLima } from "@/lib/fechas";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -117,7 +118,7 @@ export function WhatsappListaConversaciones({
                 <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", semaforo.color)} title={semaforo.titulo} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-semibold text-foreground">{c.nombre_wa || c.telefono}</p>
+                    <p className="truncate text-sm font-semibold text-foreground">{c.nombre_wa || etiquetaDeContactoWa(c)}</p>
                     <span className="shrink-0 text-[10px] text-muted-foreground">{fechaHoraLima(c.ultimo_mensaje_at)}</span>
                   </div>
                   {c.codigo_campania_wa && (

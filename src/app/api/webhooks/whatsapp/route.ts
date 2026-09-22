@@ -33,9 +33,12 @@ export async function GET(request: NextRequest) {
 interface CambioValorMensaje {
   messaging_product: "whatsapp";
   metadata?: { phone_number_id: string };
-  contacts?: { profile?: { name?: string }; wa_id: string }[];
+  // `wa_id` es el número; desde que WhatsApp estrenó los nombres de usuario,
+  // quien oculta su número llega con `user_id` + `profile.username` (0264).
+  contacts?: { profile?: { name?: string; username?: string }; wa_id?: string; user_id?: string }[];
   messages?: {
-    from: string;
+    from?: string;
+    from_user_id?: string;
     id: string;
     timestamp: string;
     type: string;
@@ -238,9 +241,21 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
     const { data: yaExiste } = await admin.from("wa_mensajes").select("id").eq("wamid", mensaje.id).maybeSingle();
     if (yaExiste) continue;
 
-    const telefono = mensaje.from;
+    // La llave de la conversación: el número si Meta lo manda, y si no el
+    // identificador de usuario (0264). Sin ninguno de los dos no hay a quién
+    // responder, así que el mensaje se descarta con rastro en el log.
+    const telefono = mensaje.from ?? mensaje.from_user_id ?? null;
+    if (!telefono) {
+      console.error("webhook whatsapp: mensaje sin remitente", mensaje.id);
+      continue;
+    }
+    const contacto = valor.contacts?.find((c) => c.wa_id === telefono || c.user_id === telefono) ?? valor.contacts?.[0];
+    const usuarioWa = contacto?.profile?.username ?? null;
+    // `from` es un número; `from_user_id` no. De eso depende si el contacto
+    // puede llevar teléfono en su ficha.
+    const esNumero = !!mensaje.from && /^[0-9]{6,15}$/.test(mensaje.from);
     const { tipo, texto, mediaId, equipoSku } = extraerTextoYTipo(mensaje);
-    const nombreWa = valor.contacts?.find((c) => c.wa_id === telefono)?.profile?.name ?? null;
+    const nombreWa = contacto?.profile?.name ?? null;
     const timestampMeta = new Date(Number(mensaje.timestamp) * 1000).toISOString();
 
     let { data: conversacion } = await admin
@@ -268,9 +283,12 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
           canal: "whatsapp",
           area_destino: "comercial",
           estado: "pendiente_triaje",
-          nombre_contacto: nombreWa || "Sin nombre",
-          telefono,
-          mensaje: texto,
+          nombre_contacto: nombreWa || (usuarioWa ? `@${usuarioWa}` : "Sin nombre"),
+          // Un identificador de usuario NO es un teléfono: meterlo acá haría
+          // empatar fichas por «celular» con dígitos que no son de nadie (0264).
+          telefono: esNumero ? telefono : null,
+          mensaje: usuarioWa && !esNumero ? `${texto ?? ""}
+(Escribió con su nombre de usuario de WhatsApp @${usuarioWa}; no comparte su número. Pídaselo por el chat.)`.trim() : texto,
           fuente: mensaje.referral ? "meta_ads" : "whatsapp",
           codigo_campania_wa: codigoCampania,
           plataforma_campania_wa: codigoCampania ? (campania?.plataforma ?? "meta") : null,
@@ -288,6 +306,7 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
         .insert({
           telefono,
           nombre_wa: nombreWa,
+          usuario_wa: usuarioWa,
           lead_id: lead?.id ?? null,
           ctwa_clid: mensaje.referral?.ctwa_clid ?? null,
           referral: mensaje.referral ?? null,

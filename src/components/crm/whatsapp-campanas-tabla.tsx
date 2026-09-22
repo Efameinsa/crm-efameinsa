@@ -77,6 +77,19 @@ function FilaCampania({ campania }: { campania: CampaniaWhatsapp }) {
               rows={2}
               className="text-xs"
             />
+            <div className="space-y-1">
+              <Label htmlFor={`campaign_id_${campania.id}`} className="text-[11px] text-muted-foreground">
+                Id del anuncio en Meta (opcional, pero es lo que hace que el origen se reconozca solo)
+              </Label>
+              <Input
+                id={`campaign_id_${campania.id}`}
+                name="campaign_id"
+                defaultValue={campania.campaign_id ?? ""}
+                placeholder="120251382125240751"
+                inputMode="numeric"
+                className="max-w-xs font-mono text-xs"
+              />
+            </div>
             <div className="flex gap-2">
               <Button type="submit" size="sm" disabled={enviando}>
                 Guardar
@@ -108,7 +121,12 @@ function FilaCampania({ campania }: { campania: CampaniaWhatsapp }) {
           </button>
         )}
       </TableCell>
-      <TableCell className="text-xs text-muted-foreground">{ETIQUETA_PLATAFORMA[campania.plataforma]}</TableCell>
+      <TableCell className="text-xs text-muted-foreground">
+        {ETIQUETA_PLATAFORMA[campania.plataforma]}
+        <span className={cn("mt-0.5 block font-mono text-[10px]", campania.campaign_id ? "text-muted-foreground" : "text-amber-700")}>
+          {campania.campaign_id ? `anuncio ${campania.campaign_id}` : "sin id de anuncio"}
+        </span>
+      </TableCell>
       <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{fechaLima(campania.created_at)}</TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-1.5">

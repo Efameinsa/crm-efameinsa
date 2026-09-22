@@ -32,6 +32,7 @@ import {
 import { TipificarWhatsapp } from "@/components/crm/tipificar-whatsapp";
 import type { TipificacionActual } from "@/lib/acciones/whatsapp-campanas";
 import { audioAMp3 } from "@/lib/audio-a-mp3";
+import { etiquetaDeContactoWa, esTelefonoDeVerdad } from "@/lib/contacto-whatsapp";
 import { ventanaAbierta } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -344,9 +345,9 @@ export function WhatsappHilo({
     <div className="flex h-full flex-1 flex-col">
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">{conversacion.nombre_wa || conversacion.telefono}</p>
+          <p className="truncate text-sm font-semibold text-foreground">{conversacion.nombre_wa || etiquetaDeContactoWa(conversacion)}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {conversacion.telefono}
+            {etiquetaDeContactoWa(conversacion)}
             {conversacion.lead_codigo && ` · ${conversacion.lead_codigo}`}
             {conversacion.codigo_campania_wa && ` · código ${conversacion.codigo_campania_wa}`}
           </p>
@@ -356,7 +357,7 @@ export function WhatsappHilo({
               SubmitApplication) y alimenta el informe por anuncio. */}
           {conversacion.lead_id && (
             <div className="mt-1.5">
-              <TipificarWhatsapp leadId={conversacion.lead_id} actual={tipificacionActual} telefono={conversacion.telefono} compacto />
+              <TipificarWhatsapp leadId={conversacion.lead_id} actual={tipificacionActual} telefono={esTelefonoDeVerdad(conversacion.telefono) ? conversacion.telefono : null} compacto />
             </div>
           )}
         </div>

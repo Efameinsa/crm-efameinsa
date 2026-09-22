@@ -31,6 +31,8 @@ function tipoMediaDeMime(mime: string): TipoMedia {
 export interface ConversacionWhatsapp {
   id: string;
   telefono: string;
+  /** Nombre de usuario de WhatsApp cuando la persona oculta su número (0264). */
+  usuario_wa: string | null;
   nombre_wa: string | null;
   lead_id: string | null;
   asignado_a: string | null;
@@ -61,7 +63,7 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
 
   let consulta = supabase
     .from("wa_conversaciones")
-    .select("id, telefono, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, perfiles(nombre)")
+    .select("id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, perfiles(nombre)")
     .order("ultimo_mensaje_at", { ascending: false, nullsFirst: false });
 
   if (filtro === "sin_atender") consulta = consulta.eq("estado", "sin_atender");
@@ -90,6 +92,7 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
   return data.map((c) => ({
     id: c.id,
     telefono: c.telefono,
+    usuario_wa: c.usuario_wa ?? null,
     nombre_wa: c.nombre_wa,
     lead_id: c.lead_id,
     asignado_a: c.asignado_a,
@@ -121,7 +124,7 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
   const { data } = await supabase
     .from("wa_conversaciones")
     .select(
-      "id, telefono, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, perfiles(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
+      "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, perfiles(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -130,6 +133,7 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
   return {
     id: data.id,
     telefono: data.telefono,
+    usuario_wa: data.usuario_wa ?? null,
     nombre_wa: data.nombre_wa,
     lead_id: data.lead_id,
     asignado_a: data.asignado_a,

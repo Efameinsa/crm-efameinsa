@@ -91,14 +91,22 @@ export async function actualizarCampaniaWhatsapp(
 ): Promise<{ error: string | null }> {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const mensajePrellenado = String(formData.get("mensaje_prellenado") ?? "").trim();
+  const campaignId = String(formData.get("campaign_id") ?? "").trim();
   const activa = formData.get("activa") === "true";
 
   if (!nombre) return { error: "Falta el nombre de la campaña" };
+  // El id del anuncio es el que manda de verdad: con él el webhook reconoce
+  // de qué anuncio viene cada WhatsApp aunque el cliente borre el código del
+  // mensaje. 22-09: el primer anuncio real salió con otro id que el cargado
+  // y todos los contactos entraron sin código; por eso ahora se puede editar.
+  if (campaignId && !/^[0-9]{6,25}$/.test(campaignId)) {
+    return { error: "El id del anuncio son solo números (se copia del Administrador de anuncios)" };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("campanias_whatsapp")
-    .update({ nombre, mensaje_prellenado: mensajePrellenado || null, activa })
+    .update({ nombre, mensaje_prellenado: mensajePrellenado || null, campaign_id: campaignId || null, activa })
     .eq("id", id);
 
   if (error) return { error: error.message };
