@@ -78,13 +78,30 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   ]);
   // Las otras máquinas del caso (0253) y, si el cliente no tiene ninguna en el
   // parque, el pedido que salió sin series: es lo que le pasó a Gary Group.
-  const [{ data: adicionales }, { data: pedidosSinSeries }] = await Promise.all([
+  const [{ data: adicionales }, { data: pedidosSinSeries }, { data: pedidosAbiertos }] = await Promise.all([
     supabase.from("atencion_equipos").select("equipo_id").eq("atencion_id", a.id),
     a.cuenta_id && (equiposDelCliente ?? []).length === 0
       ? supabase.from("servicios_postventa").select("id, equipo, despachado_at, guia").eq("cuenta_id", a.cuenta_id).not("despachado_at", "is", null).is("cerrado_at", null).order("despachado_at", { ascending: false }).limit(3)
       : Promise.resolve({ data: [] as { id: string; equipo: string | null; despachado_at: string | null; guia: string | null }[] }),
+    // EL CASO REPETITIVO (Carlos, 22-09, sobre Titan): «se está capturando un
+    // caso cuando esto es repetitivo, de despacho, en pedidos». Si esta
+    // atención todavía NO se enganchó sola a un pedido (0244 — solo engancha
+    // las de tipo puesta_en_marcha), se avisa de una vez que el cliente tiene
+    // pedidos sin cerrar: puede ser el mismo asunto, sin scrollear hasta el
+    // historial de abajo para descubrirlo.
+    a.cuenta_id && !pedidoEnganchado
+      ? supabase
+          .from("servicios_postventa")
+          .select("id, equipo, cliente_texto, fecha_despacho, despachado_at, puesta_en_marcha")
+          .eq("cuenta_id", a.cuenta_id)
+          .eq("completado", false)
+          .is("cerrado_at", null)
+          .order("created_at", { ascending: false })
+          .limit(5)
+      : Promise.resolve({ data: [] as { id: string; equipo: string | null; cliente_texto: string | null; fecha_despacho: string | null; despachado_at: string | null; puesta_en_marcha: string | null }[] }),
   ]);
   const adicionalesIds = (adicionales ?? []).map((x) => x.equipo_id as string);
+  const listaPedidosAbiertos = pedidosAbiertos ?? [];
   const garantia = (g as {
     en_garantia: boolean;
     garantia_hasta: string | null;
@@ -269,6 +286,38 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </div>
+
+      {/* EL CASO REPETITIVO (Carlos, 22-09): «se está capturando un caso
+          cuando esto es repetitivo, de despacho, en pedidos». Lesly: «yo lo
+          tengo allí y yo tengo que generarme el caso». Si el 0244 no la
+          enganchó sola (solo lo hace para tipo puesta_en_marcha), acá se
+          avisa que el cliente tiene pedidos sin cerrar, antes de trabajar
+          esto como un caso aparte. */}
+      {listaPedidosAbiertos.length > 0 && (
+        <div className="rounded-xl border border-amber-400/50 bg-amber-500/5 p-4">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-900">
+            <Package className="size-4" /> Este cliente tiene {listaPedidosAbiertos.length === 1 ? "un pedido" : `${listaPedidosAbiertos.length} pedidos`} sin cerrar
+          </p>
+          <p className="mt-1 text-xs text-amber-900/80">
+            Revíselos antes de trabajar esto como un caso aparte: puede ser lo mismo. Si es la puesta en marcha de
+            uno de ellos, cámbiele el tipo arriba a «Puesta en marcha» y se engancha sola.
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {listaPedidosAbiertos.map((p) => (
+              <li key={p.id}>
+                <Link
+                  href={`/postventa/pedidos/${p.id}`}
+                  className="inline-flex items-center gap-1 rounded-full border border-amber-400/60 bg-card px-2.5 py-1 text-[11px] font-medium text-amber-900 hover:bg-amber-500/10"
+                >
+                  <Package className="size-3" />
+                  {(p.equipo ?? "Equipo").split("\n")[0].slice(0, 40)}
+                  {p.despachado_at ? " · despachado" : p.fecha_despacho ? ` · programado ${fechaLima(p.fecha_despacho)}` : " · sin fecha"}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-4">
