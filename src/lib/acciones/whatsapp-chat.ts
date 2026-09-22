@@ -14,6 +14,7 @@
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
+import { anuncioDe, type AnuncioDeLaConversacion } from "@/lib/whatsapp-marketing";
 import { enviarTexto, enviarMedia, enviarFichaEquipo, enviarProductosCatalogo, type TipoMedia } from "@/lib/whatsapp";
 
 // Mismo bucket privado que los adjuntos de un lead (0029): un archivo, un
@@ -46,14 +47,6 @@ export interface ConversacionWhatsapp {
   de_anuncio: boolean;
 }
 
-/** El anuncio que el cliente tocó, tal como lo manda Meta en el `referral`. */
-export interface AnuncioDeLaConversacion {
-  titular: string | null;
-  cuerpo: string | null;
-  imagen: string | null;
-  enlace: string | null;
-  anuncioId: string | null;
-}
 
 export type FiltroConversaciones = "sin_atender" | "mias" | "todas" | "cerradas";
 
@@ -175,20 +168,6 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
     anuncio: anuncioDe(data.referral),
     campania_nombre: (campania as { nombre: string } | null)?.nombre ?? null,
   };
-}
-
-/** Lo que Meta manda del anuncio en el `referral` del primer mensaje. */
-export function anuncioDe(referral: unknown): AnuncioDeLaConversacion | null {
-  if (!referral || typeof referral !== "object") return null;
-  const r = referral as Record<string, string | undefined>;
-  const anuncio = {
-    titular: r.headline?.trim() || null,
-    cuerpo: r.body?.trim() || null,
-    imagen: r.image_url?.trim() || null,
-    enlace: r.source_url?.trim() || null,
-    anuncioId: r.source_id?.trim() || null,
-  };
-  return anuncio.titular || anuncio.cuerpo || anuncio.imagen || anuncio.anuncioId ? anuncio : null;
 }
 
 export interface MensajeWhatsapp {

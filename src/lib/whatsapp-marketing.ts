@@ -23,6 +23,33 @@ export const ETIQUETA_TIPIFICACION: Record<TipificacionWhatsapp, string> = {
 };
 
 /**
+ * EL ANUNCIO QUE VIO EL CLIENTE, tal como lo manda Meta en el `referral` del
+ * primer mensaje. Vive acá y no en `acciones/whatsapp-chat.ts` por lo mismo
+ * que las etiquetas: un archivo "use server" solo puede exportar funciones
+ * async, y esta es síncrona.
+ */
+export interface AnuncioDeLaConversacion {
+  titular: string | null;
+  cuerpo: string | null;
+  imagen: string | null;
+  enlace: string | null;
+  anuncioId: string | null;
+}
+
+export function anuncioDe(referral: unknown): AnuncioDeLaConversacion | null {
+  if (!referral || typeof referral !== "object") return null;
+  const r = referral as Record<string, string | undefined>;
+  const anuncio = {
+    titular: r.headline?.trim() || null,
+    cuerpo: r.body?.trim() || null,
+    imagen: r.image_url?.trim() || null,
+    enlace: r.source_url?.trim() || null,
+    anuncioId: r.source_id?.trim() || null,
+  };
+  return anuncio.titular || anuncio.cuerpo || anuncio.imagen || anuncio.anuncioId ? anuncio : null;
+}
+
+/**
  * El resumen de WhatsApp de campañas por código, para el panel de marketing
  * (fase 1 sin API, 14-09-2026). Volumen chico —cientos de filas, no miles—
  * así que se agrega en JavaScript, sin necesitar una función de Postgres como

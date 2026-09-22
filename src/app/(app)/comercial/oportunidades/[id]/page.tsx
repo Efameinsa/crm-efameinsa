@@ -36,7 +36,7 @@ import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
 import type { TipoDocumento } from "@/lib/documento";
 import { tipificacionesActuales } from "@/lib/acciones/whatsapp-campanas";
-import { anuncioDe } from "@/lib/acciones/whatsapp-chat";
+import { anuncioDe } from "@/lib/whatsapp-marketing";
 import { TipificarWhatsapp } from "@/components/crm/tipificar-whatsapp";
 
 // Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
