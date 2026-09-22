@@ -539,3 +539,32 @@ prueba.» Confirmado por Santos antes de tocar la base (22-09, tarde).
 - Verificado con pantallazo de `/almacen/pedidos/6aa02f79…`: el equipo vuelve a mostrar «Pendiente
   de prueba» con el botón «Probada y embalada» disponible, y las 5 fotos del despacho del 21-09
   siguen intactas en «Fotos del almacén».
+
+## 22-09 (tarde) — ítem 8 del plan: la apertura dice quién y cuándo
+
+Carlos, viendo la pantalla con Rubí: «ya no trabajes como en Word, porque lo tenemos aquí. Te da
+ya todo el formato listo, lo tomas y lo envías». Rubí: «no he hecho ninguna apertura como tal en
+el sistema». Al revisar el dato real (22-09) se confirmó que SÍ la estaba emitiendo desde su
+propia cuenta (Tunupa ×2, Duo Lavandería, Bungarena esa misma semana) — lo que faltaba era que la
+pantalla lo dijera con todas sus letras, y darle un documento descargable.
+
+- «Emitida por X» ahora se ve también en la ficha del pedido, no solo en la hoja de la apertura
+  (`apertura_despacho_por` ya existía).
+- Botón «Descargar PDF» junto al de imprimir: `src/lib/pdf/apertura-servicio-pdf.tsx` con
+  `@react-pdf/renderer`, servido por `/api/postventa/pedidos/[id]/apertura/pdf`. El botón «Copiar
+  correo» ya existía — el plan daba por hecho que faltaba; se verificó leyendo el código antes de
+  tocar nada.
+- `cargarHojaApertura()` centraliza los datos de la hoja para que pantalla y PDF digan exactamente
+  lo mismo.
+- 0271: `apertura_enviada_almacen_at` y `apertura_enviada_cliente_at`, con botones «Marcar
+  enviado» separados — el CRM no manda correos, así que hasta ahora no quedaba registro de que
+  alguien de verdad los copió y los mandó.
+- Verificado en producción con la apertura real de BUNGARENA LODGE E.I.R.L. (emitida el 21-09 por
+  Postventa 1): pantallazo con «Emitida: 21/09/26, 3:32 p. m. · Por: Postventa 1», PDF descargado
+  y leído completo (coincide con la pantalla), y el botón «Marcar enviado — Al almacén» probado en
+  vivo (quedó registrado y se revirtió después, por ser una prueba). Humo 38/38.
+- El punto 4 (capacitación de Rubí con un pedido real) no es código: queda para que Santos se lo
+  muestre en persona.
+- De paso, otra sesión corrigió en paralelo (commit 8bb7d40, mientras se trabajaba este ítem) la
+  impresión de la apertura (salía con el menú del CRM) y el texto de «falta el plano»; se
+  reconciliaron ambos cambios al fusionar sin perder ninguno.
