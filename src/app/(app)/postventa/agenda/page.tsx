@@ -44,6 +44,15 @@ export default async function AgendaPostventaPage({
   const sp = await searchParams;
 
   if (sp.ver && REDIRECCIONES[sp.ver]) {
+    // Los despachos ya no son una pestaña de Atenciones (08-09): viven en
+    // Pedidos → Despachos. Mandarlos a `/postventa/atenciones?ver=despachos`
+    // dejaba a postventa mirando las atenciones abiertas (22-09).
+    if (REDIRECCIONES[sp.ver] === "despachos") {
+      const destino = new URLSearchParams({ vista: "despachos" });
+      if (sp.q) destino.set("q", sp.q);
+      if (sp.estado) destino.set("estado", sp.estado);
+      redirect(`/postventa/control?${destino}`);
+    }
     const destino = new URLSearchParams({ ver: REDIRECCIONES[sp.ver] });
     if (sp.q) destino.set("q", sp.q);
     if (sp.estado) destino.set("estado", sp.estado);

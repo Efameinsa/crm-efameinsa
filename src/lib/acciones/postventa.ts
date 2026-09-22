@@ -479,10 +479,20 @@ export async function registrarDespacho(
 
   const { data: servicio } = await supabase
     .from("servicios_postventa")
-    .select("monto, monto_pagado, moneda, informe_cierre_id, pago_confirmado_at, confirmacion_abono, pct_antes_despacho, credito_dias")
+    .select("monto, monto_pagado, moneda, informe_cierre_id, pago_confirmado_at, confirmacion_abono, pct_antes_despacho, credito_dias, apertura_despacho_at, tipo_pedido, entrega_en")
     .eq("id", servicioId)
     .single();
   if (!servicio) return falla("No se encontró el pedido");
+
+  // SIN APERTURA NO SALE NADA (0274). La pantalla ya escondía el botón, pero
+  // el servidor no lo revisaba: la misma condición que el botón —pedido del
+  // cierre en el CRM, sin apertura, y que no sea un repuesto que el cliente
+  // recoge en planta—. Carlos, 22-09: «no debería permitirte despachar… si es
+  // que no ha cumplido los otros pasos».
+  const recogeEnPlanta = servicio.tipo_pedido === "repuesto" && servicio.entrega_en === "planta";
+  if (servicio.informe_cierre_id && !servicio.apertura_despacho_at && !recogeEnPlanta) {
+    return falla("Sin apertura de despacho no sale nada del almacén. Emita la apertura del pedido y después registre la salida.");
+  }
 
   // LA CONDICIÓN DE PAGO MANDA (0232). Se compara lo pagado con lo que el
   // informe exige ANTES del despacho, no con el total: con «50 % adelanto +
@@ -551,30 +561,21 @@ export async function cerrarPedido(
   // Sin serie no hay equipo en el parque: la serie ES la identidad de la
   // máquina. Se puede cerrar igual —hay pedidos históricos sin serie a la
   // vista— pero entonces no se crea la ficha, y eso queda dicho en la pantalla.
+  //
+  // El alta va por `subir_maquina_al_parque` (0274) y NO por un upsert: el
+  // único de la serie es por expresión (upper(btrim(serie))) y el
+  // `onConflict: "serie"` de antes fallaba siempre sin que nadie lo viera —los
+  // 4 pedidos cerrados en septiembre quedaron con 0 máquinas en el parque—.
+  // Si una serie no entra, el pedido NO se cierra: mejor que postventa vea el
+  // error a que la pantalla diga que la máquina ya tiene garantía cuando no.
   for (const serie of series) {
-    const base = s.despachado_at?.slice(0, 10) ?? s.fecha_despacho ?? s.puesta_en_marcha ?? s.fecha_confirmacion;
-    const proximo = base
-      ? new Date(new Date(base + "T12:00:00").getTime() + mantenimiento * 30 * 864e5).toISOString().slice(0, 10)
-      : null;
-
-    await supabase.from("equipos_instalados").upsert(
-      {
-        serie,
-        cuenta_id: s.cuenta_id,
-        cliente_texto: s.cliente_texto,
-        modelo_texto: s.equipo,
-        servicio_id: s.id,
-        informe_cierre_id: s.informe_cierre_id,
-        fecha_venta: s.fecha_confirmacion,
-        fecha_despacho: s.despachado_at?.slice(0, 10) ?? s.fecha_despacho,
-        guia_remision: s.guia,
-        fecha_puesta_marcha: s.puesta_en_marcha,
-        garantia_meses: garantia,
-        proximo_mantenimiento: proximo,
-        ubicacion: s.ubicacion,
-      },
-      { onConflict: "serie" },
-    );
+    const { error: eParque } = await supabase.rpc("subir_maquina_al_parque", {
+      p_servicio: s.id,
+      p_serie: serie,
+      p_garantia_meses: garantia,
+      p_meses_mantenimiento: mantenimiento,
+    });
+    if (eParque) return falla(`La serie ${serie} no se pudo subir al parque: ${enCastellano(eParque.message)}`);
   }
 
   const { error } = await supabase

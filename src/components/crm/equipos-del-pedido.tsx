@@ -40,7 +40,8 @@ export function EquiposDelPedido({
   modo: "postventa" | "almacen" | "central";
   despachado: boolean;
   cliente: string;
-  enlaceEquipo?: string;
+  /** null: la serie va sin enlace (Central no entra a la ficha de la máquina). */
+  enlaceEquipo?: string | null;
 }) {
   const van = equipos.filter((e) => e.en_este_despacho);
   const sinSerie = van.filter((e) => !e.serie).length;
@@ -99,7 +100,7 @@ function Fila({
   modo: "postventa" | "almacen" | "central";
   despachado: boolean;
   cliente: string;
-  enlaceEquipo: string;
+  enlaceEquipo: string | null;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -147,7 +148,7 @@ function Fila({
           {resto.length > 0 && <p className="whitespace-pre-line text-[11px] leading-snug text-muted-foreground">{resto.join("\n")}</p>}
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
             {e.serie ? (
-              e.equipo_id ? (
+              e.equipo_id && enlaceEquipo ? (
                 <Link href={`${enlaceEquipo}/${e.equipo_id}`} className="inline-flex items-center gap-1 rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] hover:underline">
                   Serie {e.serie} · en stock
                 </Link>

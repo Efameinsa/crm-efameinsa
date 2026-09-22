@@ -69,7 +69,7 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
         <div className="space-y-4">
           <PedidoAlmacen servicio={servicio} porEquipo={listaEquipos.length > 0} />
           {/* Máquina por máquina, cada una con su protocolo (0260): va ancho, que acá se trabaja. */}
-          <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="almacen" despachado={Boolean(servicio.despachado_at)} cliente={cliente} enlaceEquipo="/almacen/equipos" />
+          <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="almacen" despachado={Boolean(servicio.despachado_at)} cliente={cliente} enlaceEquipo="/almacen/informes/equipos" />
         </div>
 
         <div className="space-y-4">

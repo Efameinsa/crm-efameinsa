@@ -535,7 +535,7 @@ export default async function PostventaPage() {
             entero que se toca (Santos, 01-09). */}
         {(atrasados ?? 0) > 0 && (
           <Link
-            href="/postventa/atenciones?ver=despachos&estado=atrasados"
+            href="/postventa/control?vista=despachos&estado=atrasados"
             className="mb-3 flex items-center gap-3 rounded-lg border border-amber-400/60 bg-amber-500/10 p-3 transition-colors hover:bg-amber-500/20"
           >
             <span className="flex size-9 flex-none items-center justify-center rounded-full bg-amber-500/20 text-amber-800">

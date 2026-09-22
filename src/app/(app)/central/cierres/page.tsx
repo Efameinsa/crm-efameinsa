@@ -453,6 +453,7 @@ export default async function CierresCentralPage({
                       modo="central"
                       despachado={false}
                       cliente={f.cliente_nombre}
+                      enlaceEquipo={null}
                     />
                   </div>
                 )}

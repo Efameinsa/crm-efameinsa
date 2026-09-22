@@ -168,7 +168,7 @@ export function CalendarioPostventa({
             ))}
             {porProgramar.length > 12 && (
               <Link
-                href="/postventa/agenda?ver=lista&estado=sin_fecha"
+                href="/postventa/control?vista=despachos&estado=sin_fecha"
                 className="rounded-md px-2 py-1 text-xs font-medium text-amber-900 underline"
               >
                 y {porProgramar.length - 12} más
