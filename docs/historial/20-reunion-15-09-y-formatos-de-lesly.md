@@ -622,3 +622,19 @@ demás quedan explícitamente en espera, no olvidados.
 Con esto quedan los diez ítems del plan ejecutados (items 1-10), salvo las dos piezas explícitas
 que son decisión de personas y no de código: liberar Herrera/Rivera (ya hecho, ítem 7) y unir las
 fichas de Huamán Ruiz (pendiente de Gabriela). Falta actualizar `docs/19-estado-y-continuidad.md`.
+
+## 22-09 (tarde, corrección) — el ítem 7 quedó a medias: faltó limpiar `prueba_embalaje`
+
+Rubí, después del aviso de liberación: «El cliente de Herrera aun aparece todo el circuito
+rellenado». `_liberar-prueba-pedido.mjs` limpió `prueba_lista_at`, `prueba_lista_por`,
+`protocolo_prueba_ref` y `protocolo_fotos`, pero no tocó `prueba_embalaje` — el campo de texto
+"SI"/"NO" que `marcarPaso()` también escribe al marcar la prueba (compatibilidad con las filas del
+Excel). `bloquesPedido` mira los dos: `prueba_lista_at != null || marcadoEnExcel(prueba_embalaje)`,
+así que con `prueba_embalaje = "SI"` todavía puesto, el paso seguía en verde aunque
+`prueba_lista_at` ya estuviera en null.
+
+- Corregido en caliente para los dos pedidos reales (Herrera 738-26, Rivera 743-26): se limpió
+  también `prueba_embalaje`. Verificado con pantallazo — ambos vuelven a mostrar «Probado y
+  embalado» como DETENIDO/pendiente, con las fotos del despacho intactas.
+- `scripts/_liberar-prueba-pedido.mjs` corregido para la próxima vez: ahora limpia también
+  `prueba_embalaje`.

@@ -7,6 +7,14 @@
  * NO toca `salida_fotos` (las fotos del DESPACHO) ni `despachado_at`: son un
  * paso distinto y, si el pedido ya salió, esas fotos se quedan.
  *
+ * CORREGIDO EL 22-09 (mismo día, tras la queja de Rubí): el primer intento
+ * dejaba `prueba_embalaje` (el campo de texto "SI"/"NO" que también escribe
+ * `marcarPaso` al marcar la prueba) sin tocar. `bloquesPedido` mira los DOS
+ * campos —`prueba_lista_at != null || marcadoEnExcel(prueba_embalaje)`— así
+ * que el paso seguía en verde aunque `prueba_lista_at` ya estuviera en null.
+ * Herrera y Rivera quedaron "liberados" en la base pero el circuito seguía
+ * mostrándose completo hasta que se limpió también este campo.
+ *
  * Uso: ID=<servicio_id> node --env-file=.env.local scripts/_liberar-prueba-pedido.mjs
  */
 import { createClient } from "@supabase/supabase-js";
@@ -21,7 +29,7 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 
 const { data: antes, error: eAntes } = await supabase
   .from("servicios_postventa")
-  .select("id, cliente_texto, despachado_at, prueba_lista_at, protocolo_prueba_ref, protocolo_fotos")
+  .select("id, cliente_texto, despachado_at, prueba_lista_at, prueba_embalaje, protocolo_prueba_ref, protocolo_fotos")
   .eq("id", id)
   .maybeSingle();
 if (eAntes || !antes) {
@@ -32,7 +40,7 @@ console.log("Antes:", JSON.stringify(antes, null, 2));
 
 const { error: e1 } = await supabase
   .from("servicios_postventa")
-  .update({ protocolo_fotos: [], prueba_lista_at: null, prueba_lista_por: null, protocolo_prueba_ref: null })
+  .update({ protocolo_fotos: [], prueba_lista_at: null, prueba_lista_por: null, protocolo_prueba_ref: null, prueba_embalaje: null })
   .eq("id", id);
 if (e1) {
   console.error("Error al actualizar servicios_postventa:", e1.message);
