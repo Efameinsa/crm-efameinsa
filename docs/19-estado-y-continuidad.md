@@ -1955,3 +1955,30 @@ portafolio «Efameinsa S.A.» (889139957908729) cuya única administradora es la
 corporacionefameinsa.sa@gmail.com («Elfa Tafur»), sin acceso (celular 981490823 dado de
 baja): hay una solicitud de socio enviada desde el portafolio Efameinsa esperando esa
 aprobación. Hasta entonces los formularios de Meta se bajan a mano de Business Suite.
+
+## 22-09-2026 — primer día de campaña: lo que enseñó el tráfico real (0264)
+
+Campaña `LG_TITANMAX_LIMA - Copia`, anuncio `120251382125240751`. En 12 horas:
+**36 contactos** por el anuncio + 1 orgánico. Meta reportaba 33 (su panel va con retraso y
+agrupa repetidos): **no se perdió ninguno**. Reparto: 34 al turno (C5), 3 retenidos para
+Central por ser clientes de C1/C4. Se crearon 55 fichas.
+
+Dos fallas que solo aparecen con tráfico real, arregladas y desplegadas (`667774b`):
+
+1. **Nombres de usuario de WhatsApp (0264).** «Anibal» (PRO-09613) llegó con
+   `from_user_id` + `profile.username` y sin `from`/`wa_id`: el lead nació sin teléfono,
+   la conversación no se pudo crear (`telefono` es NOT NULL) y nadie podía contestarle.
+   Ahora el identificador es la llave de la conversación, `usuario_wa` guarda el nombre y
+   la pantalla muestra «@anibal317». `leads.telefono` se queda vacío a propósito (la 0201
+   empata fichas por celular). Probado: **Meta acepta responder a ese identificador**.
+   PRO-09613 quedó reparado: chat abierto, asignado a C5 y acuse enviado.
+2. **El id del anuncio no estaba enlazado.** El anuncio real tenía otro id que el cargado
+   el 21-09, así que los 36 contactos entraron sin código de campaña. Se enlazó M1-A al id
+   real, se rellenaron los 36, y **el id ahora se edita desde Marketing → WhatsApp**; la
+   lista marca en ámbar los códigos sin enlazar. Regla nueva: al crear un anuncio, pegar su
+   ID en su código.
+
+**LO QUE QUEDÓ ABIERTO Y ES DE GESTIÓN, NO DE CÓDIGO:** al cierre de esta tanda había
+**37 conversaciones y CERO respuestas humanas** — solo los acuses automáticos. La ventana
+de 24 h de la primera se cierra el 22-09 a las 19:45. Santos estaba capacitando a Katerine
+en ese momento.
