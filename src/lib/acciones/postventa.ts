@@ -86,6 +86,18 @@ export async function liberarPedido(datos: {
     .single();
 
   if (servicio?.pedido_ejecutado_at && servicio?.liquidacion_at && !servicio?.aprobado_at) {
+    // Cuántas máquinas ya tienen serie (Carlos, 22-09: la lista la siembra la
+    // propia liberación, 0270) — para que postventa sepa de entrada si el
+    // pedido está completo o si hay algo esperando stock.
+    const { data: equipos } = await supabase
+      .from("pedido_equipos")
+      .select("serie")
+      .eq("servicio_id", servicio.id);
+    const total = equipos?.length ?? 0;
+    const conSerie = (equipos ?? []).filter((e) => e.serie).length;
+    const resumenEquipos =
+      total > 1 ? ` · ${total} equipos: ${conSerie} con serie, ${total - conSerie} sin stock` : total === 1 && !conSerie ? " · sin serie todavía" : "";
+
     const { data: postventa } = await supabase
       .from("perfiles")
       .select("id")
@@ -97,7 +109,7 @@ export async function liberarPedido(datos: {
           userId: p.id,
           tipo: "lead_asignado",
           titulo: "Nuevo pedido para despachar",
-          cuerpo: servicio.cliente_texto ?? "Central liberó un pedido",
+          cuerpo: `${servicio.cliente_texto ?? "Central liberó un pedido"}${resumenEquipos}`,
           url: `/postventa/pedidos/${servicio.id}`,
         }),
       ),

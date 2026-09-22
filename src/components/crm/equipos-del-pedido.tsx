@@ -32,8 +32,12 @@ export function EquiposDelPedido({
 }: {
   servicioId: string;
   equipos: EquipoDelPedido[];
-  /** Postventa decide qué va; el almacén prueba y sube el protocolo. */
-  modo: "postventa" | "almacen";
+  /**
+   * Postventa decide qué va; el almacén prueba y sube el protocolo; Central
+   * (22-09, 0270) solo ingresa la serie que le dio el almacén al liberar el
+   * pedido, sin decidir despacho ni probar nada.
+   */
+  modo: "postventa" | "almacen" | "central";
   despachado: boolean;
   cliente: string;
   enlaceEquipo?: string;
@@ -58,7 +62,15 @@ export function EquiposDelPedido({
             ? sinSerie > 0
               ? `El pedido ya salió y ${sinSerie === 1 ? "una máquina está" : `${sinSerie} máquinas están`} sin serie: sin ella postventa no puede atender un caso.`
               : "Todas las máquinas que salieron están en el parque con su serie."
-            : `Con serie = hay stock. ${modo === "postventa" ? "Marque cuál va en este despacho; lo demás espera." : sinProbar > 0 ? `Falta probar ${sinProbar === 1 ? "una máquina" : `${sinProbar} máquinas`} de las que van.` : "Todo lo que va está probado."}`}
+            : `Con serie = hay stock. ${
+                modo === "postventa"
+                  ? "Marque cuál va en este despacho; lo demás espera."
+                  : modo === "central"
+                    ? "Escriba la serie que le dio el almacén; sin ella, postventa no puede atender un caso de este equipo."
+                    : sinProbar > 0
+                      ? `Falta probar ${sinProbar === 1 ? "una máquina" : `${sinProbar} máquinas`} de las que van.`
+                      : "Todo lo que va está probado."
+              }`}
       </p>
       {parcial && (
         <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-800">
@@ -84,7 +96,7 @@ function Fila({
 }: {
   e: EquipoDelPedido;
   servicioId: string;
-  modo: "postventa" | "almacen";
+  modo: "postventa" | "almacen" | "central";
   despachado: boolean;
   cliente: string;
   enlaceEquipo: string;

@@ -10,6 +10,8 @@ import { AnularCierreBoton } from "@/components/crm/anular-cierre-boton";
 import { DevolverCierreBoton } from "@/components/crm/devolver-cierre-boton";
 import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
 import { cargarCompendio, oportunidadDelInforme, type Compendio } from "@/lib/compendio-cierre";
+import { equiposDelPedido, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -102,7 +104,7 @@ export default async function CierresCentralPage({
   // lista entera y no una por fila (migración 0087).
   const { data: pedidos } = await supabase
     .from("servicios_postventa")
-    .select("informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at")
+    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at")
     .in("informe_cierre_id", todas.map((f) => f.id));
   const pedidoPorInforme = new Map((pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]));
 
@@ -188,6 +190,24 @@ export default async function CierresCentralPage({
         }),
       )
     ).filter((x): x is [string, Compendio] => x !== null),
+  );
+
+  // LOS EQUIPOS Y SUS SERIES (Carlos, 22-09; 0270): «para que la Central
+  // ingrese la serie del equipo… y dé el ok para que avance». Apenas nace el
+  // servicio (con cualquiera de los dos checks) ya tiene su lista sembrada;
+  // Central la completa con lo que le dio el almacén, sin decidir despacho ni
+  // probar nada — eso sigue siendo de postventa y del almacén.
+  const equiposPorInforme = new Map<string, EquipoDelPedido[]>(
+    (
+      await Promise.all(
+        filas.slice(0, 20).map(async (f): Promise<[string, EquipoDelPedido[]] | null> => {
+          const pedido = pedidoPorInforme.get(f.id);
+          if (!pedido?.id || f.anulado_at) return null;
+          const equipos = await equiposDelPedido(pedido.id as string);
+          return [f.id, equipos];
+        }),
+      )
+    ).filter((x): x is [string, EquipoDelPedido[]] => x !== null),
   );
 
   return (
@@ -419,6 +439,23 @@ export default async function CierresCentralPage({
                     )}
                   </div>
                 </div>
+
+                {/* LAS SERIES, DESDE QUE NACE EL PEDIDO (Carlos, 22-09; 0270):
+                    «para que la Central ingrese la serie del equipo, la
+                    descripción… y dé el ok para que avance». Central no
+                    decide qué va en el despacho ni prueba nada; solo escribe
+                    la serie que le dio el almacén. */}
+                {equiposPorInforme.has(f.id) && (
+                  <div className="mt-2">
+                    <EquiposDelPedido
+                      servicioId={pedido!.id as string}
+                      equipos={equiposPorInforme.get(f.id)!}
+                      modo="central"
+                      despachado={false}
+                      cliente={f.cliente_nombre}
+                    />
+                  </div>
+                )}
               </article>
             );
           })}
