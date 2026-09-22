@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { errorDocumento, type TipoDocumento } from "@/lib/documento";
 import { notificar } from "@/lib/notificaciones";
+import { tokensRaros, type CandidataRelacionada } from "@/lib/fichas-relacionadas";
 
 // El resumen narrativo vive en cuentas.notas (existe desde B1, sin UI hasta
 // ahora). La RLS ya resuelve quién puede editar: cuentas_comercial (FOR ALL,
@@ -324,5 +325,129 @@ export async function pedirCartera(
 
   revalidatePath("/comercial", "layout");
   revalidatePath("/gerencia", "layout");
+  return { error: null, resumen: typeof data === "string" ? data : undefined };
+}
+
+// ── «¿Es el mismo cliente?» (0272, ítem 9 de la reunión del 22-09) ─────────
+
+/**
+ * Fichas que podrían ser el mismo cliente que `cuentaId`, sin RUC de por
+ * medio: por un apellido raro compartido en la razón social, o por el mismo
+ * distrito y rubro. Solo tiene sentido preguntarlo cuando la ficha actual NO
+ * tiene RUC — con RUC, el documento ya lo dice todo.
+ */
+export async function candidatosMismoCliente(cuentaId: string): Promise<CandidataRelacionada[]> {
+  const supabase = await createClient();
+  const { data: propia } = await supabase
+    .from("cuentas")
+    .select("id, razon_social, tipo_doc, num_doc, distrito, rubro_id")
+    .eq("id", cuentaId)
+    .maybeSingle();
+  if (!propia) return [];
+  // Con documento, no hay ambigüedad que sugerir.
+  if (propia.tipo_doc !== "SIN_DOC" && propia.num_doc) return [];
+
+  const CAMPOS = "id, razon_social, num_doc, distrito, catalogo_rubros(nombre), perfiles(nombre)";
+  const candidatosFrase = tokensRaros(propia.razon_social);
+
+  // SEGUNDA CAPA DE FILTRO, contra la base y no contra el diccionario:
+  // `tokensRaros` ya prefiere pares de palabras («HUAMAN RUIZ») sobre una
+  // suelta porque una sola puede ser un apellido común, pero eso es una
+  // corazonada sin mirar los datos. Acá se cuenta cuántas cuentas de VERDAD
+  // llevan esa frase, y si de casualidad también resulta común (una frase
+  // de rubro que no estaba en la lista, por ejemplo) se descarta igual.
+  const conteos = await Promise.all(
+    candidatosFrase.map((t) => supabase.from("cuentas").select("id", { count: "exact", head: true }).ilike("razon_social", `%${t}%`)),
+  );
+  const tokens = candidatosFrase.filter((_, i) => (conteos[i].count ?? 99) <= 6);
+
+  // OR entre los tokens, no AND: basta con que COMPARTA uno para sugerirla —
+  // «INVERSIONES HUAMAN RUIZ S.R.L» y «...S.R.L - HOSPEDAJE MIGUEL ANGEL»
+  // solo tienen «HUAMAN» en común, no los dos tokens de cada una.
+  const porNombre = supabase
+    .from("cuentas")
+    .select(CAMPOS)
+    .neq("id", cuentaId)
+    .is("fusionada_en", null)
+    .or(tokens.map((t) => `razon_social.ilike.%${t}%`).join(","));
+
+  const [{ data: porToken }, { data: porZona }] = await Promise.all([
+    tokens.length > 0 ? porNombre.limit(8) : Promise.resolve({ data: [] }),
+    propia.distrito && propia.rubro_id
+      ? supabase
+          .from("cuentas")
+          .select(CAMPOS)
+          .neq("id", cuentaId)
+          .is("fusionada_en", null)
+          .eq("distrito", propia.distrito)
+          .eq("rubro_id", propia.rubro_id)
+          .limit(8)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  interface Fila {
+    id: string;
+    razon_social: string;
+    num_doc: string | null;
+    distrito: string | null;
+    catalogo_rubros: { nombre: string } | null;
+    perfiles: { nombre: string } | null;
+  }
+
+  const vistos = new Map<string, CandidataRelacionada>();
+  const agregar = (f: Fila, motivo: string) => {
+    const ya = vistos.get(f.id);
+    if (ya) {
+      // Que aparezca por las dos razones se dice una sola vez, junta.
+      if (!ya.motivo.includes(motivo)) ya.motivo = `${ya.motivo} · ${motivo}`;
+      return;
+    }
+    vistos.set(f.id, {
+      id: f.id,
+      razonSocial: f.razon_social,
+      numDoc: f.num_doc,
+      distrito: f.distrito,
+      rubroNombre: f.catalogo_rubros?.nombre ?? null,
+      comercialNombre: f.perfiles?.nombre ?? null,
+      motivo,
+    });
+  };
+
+  for (const f of (porToken ?? []) as unknown as Fila[]) {
+    const compartido = tokensRaros(f.razon_social).find((t) => tokens.includes(t));
+    agregar(f, compartido ? `apellido compartido: ${compartido}` : "nombre parecido");
+  }
+  for (const f of (porZona ?? []) as unknown as Fila[]) {
+    agregar(f, `mismo distrito y rubro: ${propia.distrito}`);
+  }
+
+  return [...vistos.values()].slice(0, 8);
+}
+
+/**
+ * UNE DOS FICHAS DEL MISMO CLIENTE. Mueve oportunidades, contactos,
+ * atenciones y pedidos de postventa de `origenId` a `destinoId`, y deja la
+ * de origen marcada como fusionada. Pide código de operaciones porque une
+ * carteras — nunca es automático, lo dispara una persona mirando las dos
+ * fichas.
+ */
+export async function fusionarCuentas(
+  origenId: string,
+  destinoId: string,
+  pin: string,
+  motivo: string,
+): Promise<{ error: string | null; resumen?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fusionar_cuentas", {
+    p_origen: origenId,
+    p_destino: destinoId,
+    p_pin: pin || null,
+    p_motivo: motivo,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+
+  revalidatePath("/comercial", "layout");
+  revalidatePath("/postventa", "layout");
+  revalidatePath("/central", "layout");
   return { error: null, resumen: typeof data === "string" ? data : undefined };
 }

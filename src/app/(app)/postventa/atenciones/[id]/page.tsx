@@ -6,6 +6,9 @@ import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { LineaAtencion } from "@/components/crm/linea-atencion";
 import { tecnicosConocidos } from "@/lib/tecnicos";
+import { FichasRelacionadas } from "@/components/crm/fichas-relacionadas";
+import { candidatosMismoCliente } from "@/lib/acciones/cuentas";
+import { cargarSupervisores } from "@/lib/supervisores";
 import { ConQuienHablar } from "@/components/crm/con-quien-hablar";
 import { EquiposDeLaAtencion } from "@/components/crm/equipos-de-la-atencion";
 import { HistorialDelEquipo } from "@/components/crm/historial-del-equipo";
@@ -102,6 +105,10 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   ]);
   const adicionalesIds = (adicionales ?? []).map((x) => x.equipo_id as string);
   const listaPedidosAbiertos = pedidosAbiertos ?? [];
+  // «¿ES EL MISMO CLIENTE?» (0272, ítem 9 de la reunión del 22-09): «también a
+  // postventa» — Carlos vio el panel de relacionados solo del lado comercial.
+  const candidatasRelacionadas = a.cuenta_id ? await candidatosMismoCliente(a.cuenta_id) : [];
+  const supervisoresFusion = candidatasRelacionadas.length > 0 ? await cargarSupervisores(supabase) : [];
   const garantia = (g as {
     en_garantia: boolean;
     garantia_hasta: string | null;
@@ -317,6 +324,10 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
             ))}
           </ul>
         </div>
+      )}
+
+      {a.cuenta_id && candidatasRelacionadas.length > 0 && (
+        <FichasRelacionadas cuentaId={a.cuenta_id} candidatas={candidatasRelacionadas} supervisores={supervisoresFusion} />
       )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">

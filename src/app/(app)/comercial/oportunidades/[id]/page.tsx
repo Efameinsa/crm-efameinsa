@@ -20,6 +20,8 @@ import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor"
 import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
+import { FichasRelacionadas } from "@/components/crm/fichas-relacionadas";
+import { candidatosMismoCliente } from "@/lib/acciones/cuentas";
 import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
@@ -141,6 +143,12 @@ export default async function OportunidadDetallePage({
     carpetas_servidor: Record<string, string> | null;
     contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
   } | null;
+
+  // «¿ES EL MISMO CLIENTE?» (0272, ítem 9 de la reunión del 22-09): Carlos, al
+  // ver que Ruiz Pangalima no traía ningún relacionado a la vista, aunque
+  // hubiera otras dos fichas de la misma empresa escritas distinto.
+  const candidatasRelacionadas = cuenta?.id ? await candidatosMismoCliente(cuenta.id) : [];
+  const supervisoresFusion = candidatasRelacionadas.length > 0 ? await cargarSupervisores(supabase) : [];
 
   // Desde cuándo cuenta una gestión hecha en OTRA ficha de este mismo cliente:
   // desde que entró la consulta, con el margen de un día hacia atrás. Antes de
@@ -568,6 +576,12 @@ export default async function OportunidadDetallePage({
               <ContactosEditables cuentaId={cuenta.id} contactos={contactosCuenta} />
             </div>
           </details>
+        )}
+
+        {cuenta?.id && candidatasRelacionadas.length > 0 && (
+          <div className="mt-3">
+            <FichasRelacionadas cuentaId={cuenta.id} candidatas={candidatasRelacionadas} supervisores={supervisoresFusion} />
+          </div>
         )}
       </div>
 
