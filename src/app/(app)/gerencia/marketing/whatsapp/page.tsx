@@ -71,7 +71,10 @@ export default async function MarketingWhatsappPage({
           lista al registrar el contacto; nunca lo tipean, para que el informe de abajo y el chip de origen siempre
           casen con un anuncio real.
         </p>
-        <WhatsappCampanasTabla campanias={campanias} />
+        <WhatsappCampanasTabla
+          campanias={campanias}
+          comerciales={comercialesTurno.map((c) => ({ id: c.id, nombre: c.nombre, codigo_comercial: c.codigo }))}
+        />
       </SeccionPanel>
 
       <SeccionPanel titulo="Stickers de la empresa">

@@ -25,6 +25,9 @@ export interface CampaniaWhatsapp {
   mensaje_prellenado: string | null;
   activa: boolean;
   created_at: string;
+  /** El comercial que atiende esta campaña (0266). Nulo = al turno del día. */
+  comercial_id: string | null;
+  comercial_nombre: string | null;
 }
 
 /** Para los formularios de registro: solo las que están activas hoy. */
@@ -32,10 +35,10 @@ export async function campaniasWhatsappActivas(): Promise<CampaniaWhatsapp[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("campanias_whatsapp")
-    .select("id, codigo, nombre, plataforma, campaign_id, mensaje_prellenado, activa, created_at")
+    .select("id, codigo, nombre, plataforma, campaign_id, mensaje_prellenado, activa, created_at, comercial_id, perfiles:comercial_id(nombre)")
     .eq("activa", true)
     .order("codigo");
-  return (data ?? []) as CampaniaWhatsapp[];
+  return conNombreDelComercial(data);
 }
 
 /** Para la pantalla de administración: todas, activas e inactivas. */
@@ -43,9 +46,16 @@ export async function listarCampaniasWhatsapp(): Promise<CampaniaWhatsapp[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("campanias_whatsapp")
-    .select("id, codigo, nombre, plataforma, campaign_id, mensaje_prellenado, activa, created_at")
+    .select("id, codigo, nombre, plataforma, campaign_id, mensaje_prellenado, activa, created_at, comercial_id, perfiles:comercial_id(nombre)")
     .order("created_at", { ascending: false });
-  return (data ?? []) as CampaniaWhatsapp[];
+  return conNombreDelComercial(data);
+}
+
+function conNombreDelComercial(filas: unknown): CampaniaWhatsapp[] {
+  return ((filas ?? []) as (CampaniaWhatsapp & { perfiles: { nombre: string } | null })[]).map((c) => ({
+    ...c,
+    comercial_nombre: c.perfiles?.nombre ?? null,
+  }));
 }
 
 export async function crearCampaniaWhatsapp(formData: FormData): Promise<{ error: string | null }> {
@@ -71,6 +81,9 @@ export async function crearCampaniaWhatsapp(formData: FormData): Promise<{ error
     plataforma,
     campaign_id: campaignId || null,
     mensaje_prellenado: mensajePrellenado || null,
+    // De quién son los contactos de esta campaña (0266): la del norte es de
+    // Brenda, la del sur de Ariana. Sin dueño, van al turno del día.
+    comercial_id: String(formData.get("comercial_id") ?? "").trim() || null,
     creado_por: user.id,
   });
 
@@ -104,9 +117,16 @@ export async function actualizarCampaniaWhatsapp(
   }
 
   const supabase = await createClient();
+  const comercialId = String(formData.get("comercial_id") ?? "").trim();
   const { error } = await supabase
     .from("campanias_whatsapp")
-    .update({ nombre, mensaje_prellenado: mensajePrellenado || null, campaign_id: campaignId || null, activa })
+    .update({
+      nombre,
+      mensaje_prellenado: mensajePrellenado || null,
+      campaign_id: campaignId || null,
+      activa,
+      ...(formData.has("comercial_id") ? { comercial_id: comercialId || null } : {}),
+    })
     .eq("id", id);
 
   if (error) return { error: error.message };

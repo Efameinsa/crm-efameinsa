@@ -24,7 +24,48 @@ import { cn } from "@/lib/utils";
 
 const ETIQUETA_PLATAFORMA: Record<string, string> = { meta: "Meta Ads", google: "Google Ads", otro: "Otro" };
 
-function FilaCampania({ campania }: { campania: CampaniaWhatsapp }) {
+export interface Comercial {
+  id: string;
+  nombre: string;
+  codigo_comercial: string | null;
+}
+
+const AL_TURNO = "__turno";
+
+/**
+ * DE QUIÉN SON LOS CONTACTOS DE ESTA CAMPAÑA (0266).
+ *
+ * En Meta todos los anuncios apuntan al mismo número —no se puede repartir
+ * desde allá—, así que el reparto es acá: el anuncio del norte es de Brenda y
+ * el del sur de Ariana. Sin dueño, el contacto cae en el turno del día.
+ */
+function SelectorComercial({ id, comerciales, valorInicial }: { id: string; comerciales: Comercial[]; valorInicial: string | null }) {
+  const [valor, setValor] = useState(valorInicial ?? AL_TURNO);
+  if (comerciales.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-[11px] text-muted-foreground">
+        Quién atiende los contactos de esta campaña
+      </Label>
+      <input type="hidden" name="comercial_id" value={valor === AL_TURNO ? "" : valor} />
+      <Select<string> value={valor} onValueChange={(v) => v && setValor(v)}>
+        <SelectTrigger id={id} className="max-w-xs bg-card">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={AL_TURNO}>Al comercial de turno del día</SelectItem>
+          {comerciales.map((c) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.codigo_comercial ? `${c.codigo_comercial} · ${c.nombre}` : c.nombre}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function FilaCampania({ campania, comerciales }: { campania: CampaniaWhatsapp; comerciales: Comercial[] }) {
   const [editando, setEditando] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [enviando, startTransition] = useTransition();
@@ -64,7 +105,7 @@ function FilaCampania({ campania }: { campania: CampaniaWhatsapp }) {
   if (editando) {
     return (
       <TableRow>
-        <TableCell colSpan={5} className="bg-secondary/30 p-3">
+        <TableCell colSpan={6} className="bg-secondary/30 p-3">
           <form action={guardar} className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-xs font-semibold">{campania.codigo}</span>
@@ -90,6 +131,11 @@ function FilaCampania({ campania }: { campania: CampaniaWhatsapp }) {
                 className="max-w-xs font-mono text-xs"
               />
             </div>
+            <SelectorComercial
+              id={`comercial_${campania.id}`}
+              comerciales={comerciales}
+              valorInicial={campania.comercial_id}
+            />
             <div className="flex gap-2">
               <Button type="submit" size="sm" disabled={enviando}>
                 Guardar
@@ -127,6 +173,13 @@ function FilaCampania({ campania }: { campania: CampaniaWhatsapp }) {
           {campania.campaign_id ? `anuncio ${campania.campaign_id}` : "sin id de anuncio"}
         </span>
       </TableCell>
+      <TableCell className="whitespace-nowrap text-xs">
+        {campania.comercial_nombre ? (
+          <span className="font-medium text-foreground">{campania.comercial_nombre}</span>
+        ) : (
+          <span className="text-muted-foreground">Al turno del día</span>
+        )}
+      </TableCell>
       <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{fechaLima(campania.created_at)}</TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-1.5">
@@ -142,7 +195,7 @@ function FilaCampania({ campania }: { campania: CampaniaWhatsapp }) {
   );
 }
 
-function NuevaCampania() {
+function NuevaCampania({ comerciales }: { comerciales: Comercial[] }) {
   const [abierto, setAbierto] = useState(false);
   const [codigo, setCodigo] = useState("");
   const [enviando, startTransition] = useTransition();
@@ -208,6 +261,7 @@ function NuevaCampania() {
           <Input id="nuevo-campaign-id" name="campaign_id" placeholder="Si ya se conoce" className="bg-card" />
         </div>
       </div>
+      <SelectorComercial id="nuevo-comercial" comerciales={comerciales} valorInicial={null} />
       <div className="space-y-1.5">
         <Label htmlFor="nuevo-mensaje">Mensaje prellenado del anuncio</Label>
         <Textarea
@@ -230,10 +284,10 @@ function NuevaCampania() {
   );
 }
 
-export function WhatsappCampanasTabla({ campanias }: { campanias: CampaniaWhatsapp[] }) {
+export function WhatsappCampanasTabla({ campanias, comerciales = [] }: { campanias: CampaniaWhatsapp[]; comerciales?: Comercial[] }) {
   return (
     <div className="space-y-3">
-      <NuevaCampania />
+      <NuevaCampania comerciales={comerciales} />
       {campanias.length === 0 ? (
         <p className="text-sm text-muted-foreground">Todavía no hay códigos cargados.</p>
       ) : (
@@ -244,13 +298,14 @@ export function WhatsappCampanasTabla({ campanias }: { campanias: CampaniaWhatsa
                 <TableHead>Código</TableHead>
                 <TableHead>Campaña</TableHead>
                 <TableHead>Plataforma</TableHead>
+                <TableHead>Quién la atiende</TableHead>
                 <TableHead>Creado</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {campanias.map((c) => (
-                <FilaCampania key={c.id} campania={c} />
+                <FilaCampania key={c.id} campania={c} comerciales={comerciales} />
               ))}
             </TableBody>
           </Table>
