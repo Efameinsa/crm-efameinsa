@@ -406,13 +406,16 @@ export async function marcarSinPlano(servicioId: string, motivo: string) {
   return ok();
 }
 
-export async function programarDespacho(servicioId: string, fecha: string, nota?: string, pin?: string | null) {
+export async function programarDespacho(servicioId: string, fecha: string, hora?: string | null, nota?: string, pin?: string | null) {
   const supabase = await createClient();
   const candado = await candadoDeApertura(servicioId, pin);
   if (candado.error) return { error: candado.error, pidePin: candado.pidePin };
+  // Con hora (Carlos, 22-09: «solamente falta ponerle hora»): así ocupa su
+  // franja en el calendario y el almacén sabe a qué hora preparar la carga.
+  const horaLimpia = hora && /^\d{2}:\d{2}/.test(hora) ? hora.slice(0, 5) : null;
   const { error } = await supabase
     .from("servicios_postventa")
-    .update({ fecha_despacho: fecha || null, despacho_nota: nota?.trim() || null })
+    .update({ fecha_despacho: fecha || null, despacho_hora: horaLimpia, despacho_nota: nota?.trim() || null })
     .eq("id", servicioId);
   if (error) return falla(error.message);
   // «Recepcionas almacén que hay una programación de despacho para mañana,
@@ -421,7 +424,7 @@ export async function programarDespacho(servicioId: string, fecha: string, nota?
   if (fecha) {
     const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", servicioId).maybeSingle();
     await notificarAlmacen({
-      titulo: `Despacho programado para el ${fecha} · ${(s?.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
+      titulo: `Despacho programado para el ${fecha}${horaLimpia ? ` a las ${horaLimpia}` : ""} · ${(s?.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
       cuerpo: `${s?.equipo ?? ""}${nota?.trim() ? ` · ${nota.trim()}` : ""}. Confirme en su pedido cuando esté listo.`,
       url: `/almacen/pedidos/${servicioId}`,
       esPrueba: s?.es_prueba === true,

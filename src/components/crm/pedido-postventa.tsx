@@ -688,10 +688,11 @@ export function PedidoPostventa({
         boton="Programar"
         pendiente={pendiente}
         onEnviar={(datos) =>
-          correr(() => programarDespacho(servicio.id, datos.fecha, datos.nota, datos.pin), "Despacho programado. Ya está en el calendario; el almacén confirma.")
+          correr(() => programarDespacho(servicio.id, datos.fecha, datos.hora, datos.nota, datos.pin), "Despacho programado. Ya está en el calendario; el almacén confirma.")
         }
         campos={[
           { nombre: "fecha", etiqueta: "Fecha de despacho", tipo: "date", inicial: servicio.fecha_despacho ?? hoy, requerido: true },
+          { nombre: "hora", etiqueta: "Hora (a la que sale del almacén)", tipo: "time", inicial: servicio.despacho_hora ? String(servicio.despacho_hora).slice(0, 5) : "", requerido: true },
           { nombre: "nota", etiqueta: "Nota (horario, con quién coordinó)", inicial: servicio.despacho_nota ?? "", requerido: false },
           ...(servicio.apertura_despacho_at
             ? [{ nombre: "pin", etiqueta: "La apertura ya salió: código de operaciones o gerencia para cambiar la fecha", requerido: true }]

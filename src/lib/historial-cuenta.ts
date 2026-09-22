@@ -36,6 +36,8 @@ interface FilaActividad {
   adjuntos?: { path: string; nombre: string }[] | null;
   proxima_accion: string | null; proxima_accion_at: string | null; proxima_accion_hora: string | null;
   catalogo_resultados_gestion: { codigo: string; nombre: string } | null;
+  /** Quién la registró (Carlos, 22-09: «necesitamos saber quién está registrando esas gestiones»). */
+  perfiles?: { nombre: string; codigo_comercial: string | null } | null;
 }
 interface FilaCotizacion {
   id: string; codigo: string | null; estado: string; estado_aprobacion: string;
@@ -160,7 +162,7 @@ export async function cargarHistorialCuenta(
           supabase
             .from("actividades")
             .select(
-              "id, tipo, nota, realizada_at, oportunidad_id, adjuntos, proxima_accion, proxima_accion_at, proxima_accion_hora, catalogo_resultados_gestion(codigo, nombre)",
+              "id, tipo, nota, realizada_at, oportunidad_id, adjuntos, proxima_accion, proxima_accion_at, proxima_accion_hora, catalogo_resultados_gestion(codigo, nombre), perfiles:realizada_por(nombre, codigo_comercial)",
             )
             .in("oportunidad_id", opIds)
             .order("realizada_at", { ascending: false })
@@ -236,6 +238,7 @@ export async function cargarHistorialCuenta(
         tipoActividad: a.tipo,
         nota: a.nota,
         resultado,
+        quien: a.perfiles ? `${a.perfiles.codigo_comercial ? `${a.perfiles.codigo_comercial} · ` : ""}${a.perfiles.nombre}` : null,
         proximaAccion: a.proxima_accion,
         proximaAccionAt: a.proxima_accion_at,
         proximaAccionHora: a.proxima_accion_hora ? String(a.proxima_accion_hora).slice(0, 5) : null,

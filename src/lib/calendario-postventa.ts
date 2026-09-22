@@ -95,6 +95,8 @@ export function eventosDePedido(s: ServicioPostventa): EventoCalendario[] {
       ...base,
       clave: `${s.id}-despacho`,
       fecha: s.fecha_despacho,
+      // Con hora ocupa su franja; sin hora va a «por programar» del día (0269).
+      hora: s.despacho_hora ? String(s.despacho_hora).slice(0, 5) : null,
       tipo: "despacho",
       // Postventa programa y el calendario lo muestra desde ese momento; el
       // almacén confirma después (Carlos y Rubí, 21-09: «todo lo programamos

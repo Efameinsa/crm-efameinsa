@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
+import { EstadoDelPedido } from "@/components/crm/estado-del-pedido";
 import { RegistroRapido } from "@/components/crm/registro-rapido";
 import { AvisoGemelaCerrada } from "@/components/crm/aviso-gemela-cerrada";
 import { PideServicioBoton } from "@/components/crm/pide-servicio-boton";
@@ -738,6 +739,15 @@ export default async function OportunidadDetallePage({
                 nombreComercial={cuenta.nombre_comercial}
                 carpetas={cuenta.carpetas_servidor}
                 plegable
+              />
+
+              {/* EL ESTADO DEL PEDIDO, para el comercial que vendió (Carlos,
+                  22-09: «el comercial tiene que ver una tablita del estatus
+                  del pedido, un resumen muy puntual»). Solo lectura, sin
+                  montos; el enlace al pedido solo para quien entra a postventa. */}
+              <EstadoDelPedido
+                cuentaId={cuenta.id}
+                conEnlace={Boolean(perfilQueMira.es_postventa || perfilQueMira.hace_postventa) || ["gerencia", "admin", "operaciones"].includes(perfilQueMira.rol)}
               />
 
               <SeccionPlegable

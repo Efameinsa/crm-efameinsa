@@ -183,6 +183,11 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
           <>
             <p className="text-sm font-semibold text-foreground">
               {ETIQUETA_ACTIVIDAD[evento.tipoActividad] ?? evento.tipoActividad}
+              {/* Carlos, 22-09, mirando Titan: «tiene que aparecer quién lo ha
+                  registrado… necesitamos saber quién está registrando esas
+                  gestiones». Postventa y comercial escriben en la misma
+                  historia; sin el nombre no se sabe a quién preguntarle. */}
+              {evento.quien && <span className="ml-1.5 text-xs font-normal text-muted-foreground">· {evento.quien}</span>}
             </p>
             {evento.nota && <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{textoLegible(evento.nota)}</p>}
             {/* A qué se comprometió el comercial en esta gestión (migración

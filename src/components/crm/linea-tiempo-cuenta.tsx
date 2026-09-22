@@ -40,6 +40,8 @@ export interface EventoActividad {
   tipoActividad: string;
   nota: string | null;
   resultado: ResultadoGestionEvento | null;
+  /** Quién la registró, con su código (Carlos, 22-09). */
+  quien?: string | null;
   adjuntos?: AdjuntoEvento[];
   // A qué se comprometió el comercial en ESTA gestión (migración 0056).
   // null en todo lo anterior al 24-08 y en las gestiones sin próxima acción.

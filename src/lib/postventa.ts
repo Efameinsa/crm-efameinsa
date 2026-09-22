@@ -86,6 +86,8 @@ export interface ServicioPostventa {
    * Son los datos que no vivían en ninguna parte y viajaban en la cabeza de
    * quien armaba el correo.
    */
+  /** Hora del despacho programado (0269). */
+  despacho_hora?: string | null;
   /** No lleva plano de preinstalación (repuesto, accesorio) y por qué (0259). */
   sin_plano?: boolean | null;
   sin_plano_motivo?: string | null;

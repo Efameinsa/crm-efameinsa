@@ -141,7 +141,7 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
 
       {/* 2 · Listo para el despacho programado */}
       {probado && servicio.fecha_despacho && !servicio.despachado_at && !servicio.almacen_listo_at && (
-        <Tarjeta icono={Warehouse} titulo={`Despacho programado para el ${servicio.fecha_despacho}`} tono="activa">
+        <Tarjeta icono={Warehouse} titulo={`Despacho programado para el ${servicio.fecha_despacho}${servicio.despacho_hora ? ` a las ${String(servicio.despacho_hora).slice(0, 5)}` : ""}`} tono="activa">
           <p className="text-xs text-muted-foreground">
             Confirme que el almacén está listo (montacarga, embalaje, personal). Postventa se entera al toque.
             {servicio.despacho_nota ? ` Nota de postventa: ${servicio.despacho_nota}.` : ""}

@@ -93,7 +93,11 @@ export function ListaInformesCierre({
                 </span>
               )}
             </span>
-            {!sinPrecios && (
+            {/* Postventa abre el PDF del cierre desde el 21-09 (Carlos: «están
+                ciegos… va a tener que ser mostrado»). El 22-09 lo intentaron
+                desde ESTA lista y el botón no estaba: solo se ocultan los
+                montos, el documento se ve. */}
+            {(
               <VerPdfEnLaApp
                 url={`/api/informes/${inf.id}/pdf`}
                 titulo={inf.codigo ?? "Informe de cierre"}
