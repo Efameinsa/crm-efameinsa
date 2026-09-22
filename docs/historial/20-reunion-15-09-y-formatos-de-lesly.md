@@ -474,3 +474,24 @@ MOMENTO (la gente lo cambia). Nadie tipeó nada: es automático.
   de Titan Contratistas (un solo contacto) sí.
 - Complemento menor: «¿Quién llama?» en «Pasar contacto a Central» — al elegir la empresa de la
   cartera, se listan sus contactos para completar el nombre con un toque, sin bloquear el campo.
+
+## 22-09 (tarde) — ítem 5 del plan: el RUC escrito dentro del nombre
+
+El caso que se explicó en la reunión: Brenda escribió «20600852893 - INVERSIONES HUAMAN RUIZ
+S.R.L» en el nombre del contacto y dejó el RUC vacío. `buscar()` solo mira el campo RUC/DNI, así
+que no encontró la ficha 70965099-fec0-4023-8b52-9440b4beab31 (que ya tenía ese RUC) y nació la
+repetida 15386142-aae9-464e-90c9-45d0fa6f9ee4 sin documento — confirmado con las dos fichas
+todavía en la base tal cual quedaron ese día.
+
+- `rucDentroDelTexto()` en `src/lib/documento.ts`: busca una corrida de 11 dígitos que pase el
+  checksum de módulo 11 de SUNAT (no cualquier número largo — un DNI, un celular o un código
+  cualquiera no disparan). 16/16 pruebas verdes, con los dos RUC reales verificados a mano.
+- En «Pasar contacto a Central», al salir de «Empresa» o de «Nombre del contacto»: si el RUC/DNI
+  sigue vacío y el texto trae un RUC válido, se muda solo a su casilla y el campo de origen queda
+  limpio — nunca pisa un RUC que la persona ya haya escrito a propósito.
+- Verificado en producción con el caso real: se tecleó «20600852893 - INVERSIONES HUAMAN RUIZ
+  S.R.L» en «Empresa» y al salir del campo quedó «INVERSIONES HUAMAN RUIZ S.R.L» con el RUC
+  20600852893 en su casilla y el aviso «Se encontró un RUC escrito en el texto: lo pasamos a su
+  casilla.». Humo 38/38.
+- Nota: esto previene el caso nuevo; las tres fichas de Huamán Ruiz ya duplicadas se unen en el
+  ítem 10, cuando Gabriela confirme con el file.
