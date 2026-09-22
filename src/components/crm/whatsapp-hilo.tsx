@@ -400,7 +400,7 @@ export function WhatsappHilo({
             <>
               <Button size="sm" variant="outline" className="gap-1" onClick={copiarNumeroCliente} title="Copiar el número del cliente">
                 {numeroCopiado ? <Check className="size-3.5 text-[#1E7F4F]" /> : <Copy className="size-3.5" />}
-                {numeroCopiado ? "Copiado" : "Copiar número"}
+                {numeroCopiado ? "Copiado" : "Copiar"}
               </Button>
               <a
                 href={`https://wa.me/${numeroCliente}`}
@@ -409,7 +409,7 @@ export function WhatsappHilo({
                 title="Seguir la conversación desde su propio WhatsApp"
                 className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-secondary"
               >
-                <PhoneForwarded className="size-3.5" /> Seguir por mi WhatsApp
+                <PhoneForwarded className="size-3.5" /> Mi WhatsApp
               </a>
             </>
           )}
