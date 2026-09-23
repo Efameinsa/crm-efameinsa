@@ -78,7 +78,11 @@ export default async function CierresCentralPage({
   // Operaciones también: es quien anula los cierres que le piden los
   // comerciales (0170). La pantalla tenía su propio candado además del de la
   // sección, y por eso Lesly seguía rebotando después de abrir el layout.
-  await requerirRol(["central", "gerencia", "admin", "operaciones"]);
+  const perfilQueMira = await requerirRol(["central", "gerencia", "admin", "operaciones"]);
+  // La ficha del cliente, la de quien mira: Central no entra a /gerencia/* y el
+  // enlace la devolvía a su bandeja (Santos, 23-09, con el cierre de prueba).
+  const fichaDe = (cuentaId: string) =>
+    ["gerencia", "admin"].includes(perfilQueMira.rol) ? `/gerencia/clientes/${cuentaId}` : `/central/clientes/${cuentaId}`;
   const sp = await searchParams;
   const pestana: Pestana = (PESTANAS.find((p) => p.clave === sp.ver)?.clave ?? "por_liberar") as Pestana;
 
@@ -339,7 +343,7 @@ export default async function CierresCentralPage({
                   <div className="min-w-[220px] flex-1">
                     <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <Link
-                        href={`/gerencia/clientes/${f.cuenta_id}`}
+                        href={fichaDe(f.cuenta_id)}
                         className="text-sm font-semibold text-foreground hover:text-primary hover:underline"
                       >
                         {f.cliente_nombre}
