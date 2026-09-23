@@ -129,6 +129,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   // que confirmar hoy, quién nos debe y qué ya confirmé.
   finanzas: [
     { href: "/finanzas", etiqueta: "Por confirmar", icono: HandCoins },
+    // El pedido que genera Central, esperando la liquidación en PDF (0290).
+    { href: "/finanzas/liquidar", etiqueta: "Pedidos por liquidar", icono: ReceiptText },
     { href: "/finanzas/cobrar", etiqueta: "Cuentas por cobrar", icono: Landmark },
     { href: "/finanzas/confirmados", etiqueta: "Confirmados", icono: ReceiptText },
   ],

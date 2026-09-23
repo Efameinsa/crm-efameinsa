@@ -78,6 +78,9 @@ function DialogoAbono({
   const [operacion, setOperacion] = useState("");
   const [medio, setMedio] = useState("");
   const [nota, setNota] = useState("");
+  // El descuento del banco (0292): la comisión que se lleva la transferencia.
+  const [descuento, setDescuento] = useState("");
+  const [motivoDescuento, setMotivoDescuento] = useState("");
   const [captura, setCaptura] = useState<File | null>(null);
   const simbolo = moneda === "PEN" ? "S/" : "US$";
 
@@ -97,7 +100,11 @@ function DialogoAbono({
         }
         capturaPath = path;
       }
-      const r = await confirmarAbono({ servicioId, monto: n, fecha, operacion, medio, capturaPath, nota });
+      const d = Number(descuento.replace(",", "."));
+      const r = await confirmarAbono({
+        servicioId, monto: n, fecha, operacion, medio, capturaPath, nota,
+        descuento: d > 0 ? { monto: d, motivo: motivoDescuento || "Comisión del banco" } : null,
+      });
       if (r.error) {
         toast.error(r.error, { duration: 9000 });
         return;
@@ -106,6 +113,8 @@ function DialogoAbono({
       setAbierto(false);
       setOperacion("");
       setNota("");
+      setDescuento("");
+      setMotivoDescuento("");
       setCaptura(null);
       router.refresh();
     });
@@ -180,6 +189,14 @@ function DialogoAbono({
             )}
           </div>
           <div className="grid gap-1">
+            <Label htmlFor="descuento">¿El banco descontó algo? (opcional)</Label>
+            <div className="grid grid-cols-[8rem_1fr] gap-2">
+              <Input id="descuento" inputMode="decimal" value={descuento} onChange={(e) => setDescuento(e.target.value)} placeholder={`${simbolo} 0.00`} />
+              <Input value={motivoDescuento} onChange={(e) => setMotivoDescuento(e.target.value)} placeholder="ej. comisión de la transferencia" />
+            </div>
+            <p className="text-[11px] text-muted-foreground">Confirme arriba lo que entró. La diferencia queda pendiente y le avisamos al comercial para que la cobre.</p>
+          </div>
+          <div className="grid gap-1.5">
             <Label htmlFor="nota">Nota (opcional)</Label>
             <Input id="nota" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="ej. abono parcial, el cliente paga el resto el viernes" />
           </div>

@@ -148,7 +148,8 @@ export function PasosPedidoCentral({
             {faltanSeries > 0 && servicioId && (
               <p className="text-[11px] text-amber-800">Sale con {faltanSeries} serie{faltanSeries === 1 ? "" : "s"} pendiente{faltanSeries === 1 ? "" : "s"}: postventa lo verá.</p>
             )}
-            {!liquidacionAt && (
+            {!numeroPedido && <p className="text-[11px] text-muted-foreground">Primero anote el N.º del pedido (paso 2).</p>}
+            {!liquidacionAt && numeroPedido && (
               <div className="mt-1">
                 <p className="text-[11px] text-muted-foreground">Sin liquidación, con el código de gerencia u operaciones:</p>
                 <CampoCodigo valor={pin} onChange={setPin} tono="amber" id={`pin-${informeId}`} />
