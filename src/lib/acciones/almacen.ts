@@ -101,6 +101,14 @@ export async function confirmarListo(servicioId: string, datos: { nota?: string;
 
 export async function registrarSalida(servicioId: string, datos: { fecha: string; fotos: Foto[]; nota?: string; cliente: string }) {
   const supabase = await createClient();
+  // Si postventa ya había registrado la salida (con la guía), esto solo suma
+  // la evidencia de la carga: el aviso no debe decir que falta la guía cuando
+  // ya está (23-09, Titan 676-26).
+  const { data: antes } = await supabase
+    .from("servicios_postventa")
+    .select("despachado_at, guia, agencia_at")
+    .eq("id", servicioId)
+    .maybeSingle();
   const { error } = await supabase.rpc("almacen_registrar_salida", {
     p_servicio: servicioId,
     p_fecha: datos.fecha,
@@ -108,11 +116,19 @@ export async function registrarSalida(servicioId: string, datos: { fecha: string
     p_nota: datos.nota?.trim() || null,
   });
   if (error) return { error: limpiar(error.message) };
-  await avisarPostventa(
-    `Salió del almacén · ${datos.cliente}`,
-    `El ${datos.fecha}, con ${datos.fotos.length} fotos/video. Falta la guía de la agencia y su doble check.`,
-    `/postventa/pedidos/${servicioId}`,
-  );
+  if (antes?.despachado_at) {
+    await avisarPostventa(
+      `Fotos de la carga · ${datos.cliente}`,
+      `El almacén subió ${datos.fotos.length} fotos/video de la máquina cargada en el transporte${antes.guia ? ` (guía ${antes.guia})` : ""}.`,
+      `/postventa/pedidos/${servicioId}`,
+    );
+  } else {
+    await avisarPostventa(
+      `Salió del almacén · ${datos.cliente}`,
+      `El ${datos.fecha}, con ${datos.fotos.length} fotos/video. Falta la guía de la agencia y su doble check.`,
+      `/postventa/pedidos/${servicioId}`,
+    );
+  }
   return ok(servicioId);
 }
 
