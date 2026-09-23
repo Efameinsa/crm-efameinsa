@@ -1,4 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
+import { WHATSAPP_CUENTA_PARA_META, marcasWhatsappDelDia } from "@/lib/gestion-whatsapp";
 
 // Tipos del jsonb que devuelve supervision_diaria() (migración 0040,
 // docs/08-plan-supervision-diaria.md). Toda la agregación vive en Postgres.
@@ -22,6 +23,9 @@ export interface ComercialSupervision {
    *  respuestas viejas cacheadas; se cae al global. */
   meta_gestiones?: number;
   por_tipo: Record<string, number>;
+  /** Marcas de WhatsApp de un botón ese día (gestion-whatsapp.ts): van en su
+   *  propia barra. Las agrega cargarSupervisionDiaria, no la función SQL. */
+  gestion_whatsapp?: number;
   /** Cotizaciones hechas en el CRM ese día. */
   cotizaciones: number;
   /** Cotizaciones de ese día que están en el archivo de documentos (previas al CRM). */
@@ -68,7 +72,17 @@ export async function cargarSupervisionDiaria(
     console.error("supervision_diaria:", error.message);
     return null;
   }
-  return data as unknown as SupervisionDiaria;
+  const sup = data as unknown as SupervisionDiaria;
+  // La gestión de WhatsApp, aparte (23-09).
+  const marcas = await marcasWhatsappDelDia(supabase, sup.fecha ?? fecha, sup.comerciales.map((c) => c.id));
+  for (const c of sup.comerciales) {
+    c.gestion_whatsapp = marcas.get(c.id) ?? 0;
+    if (!WHATSAPP_CUENTA_PARA_META && c.gestion_whatsapp > 0) {
+      c.seguimientos_efectivos = Math.max(0, c.seguimientos_efectivos - c.gestion_whatsapp);
+      c.cumple_meta = c.seguimientos_efectivos >= (c.meta_gestiones ?? sup.meta_seguimientos);
+    }
+  }
+  return sup;
 }
 
 /** "09:41:34.927005" -> "09:41". */

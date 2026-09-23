@@ -25,6 +25,7 @@ import { FichasRelacionadas } from "@/components/crm/fichas-relacionadas";
 import { candidatosMismoCliente } from "@/lib/acciones/cuentas";
 import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
+import { AccionesExpedientePostventa } from "@/components/crm/acciones-expediente-postventa";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import Link from "next/link";
 import { fechaAgendada, fechaHoraLima, fechaLimaCorta } from "@/lib/fechas";
@@ -382,6 +383,21 @@ export default async function OportunidadDetallePage({
   const comoCompaneraDeArea =
     Boolean(perfilQueMira.es_postventa || perfilQueMira.hace_postventa) && oportunidad.tipo_postventa != null;
   const puedeAnotar = esMio || comoGerenciaAqui || comoCompaneraDeArea;
+  // Las compañeras del área a quienes se les puede pasar el expediente (0284).
+  const companerasPostventa =
+    oportunidad.tipo_postventa && (comoCompaneraDeArea || comoGerenciaAqui)
+      ? (((
+          await supabase
+            .from("perfiles")
+            .select("id, nombre, codigo_comercial, rol")
+            .eq("es_postventa", true)
+            .eq("activo", true)
+            .eq("es_prueba", perfilQueMira.es_prueba === true)
+            .order("codigo_comercial")
+        ).data ?? []) as { id: string; nombre: string; codigo_comercial: string | null; rol: string }[])
+          .filter((p) => p.rol !== "operaciones")
+          .map((p) => ({ id: p.id, nombre: p.nombre, codigo: p.codigo_comercial }))
+      : [];
   // La lista solo hace falta si el aviso va a salir: sin ella el campo del
   // código sería un candado que no dice dónde está la llave (27-08).
   const supervisores = puedeAnotar ? [] : await cargarSupervisores(supabase);
@@ -541,7 +557,18 @@ export default async function OportunidadDetallePage({
               </p>
             )}
           </div>
-          <EtapaBadge etapa={oportunidad.etapa} />
+          <div className="flex flex-col items-end gap-2">
+            <EtapaBadge etapa={oportunidad.etapa} />
+            {/* 0284 (reunión 23-09): catalogarlo como caso o pasárselo a la compañera. */}
+            {oportunidad.tipo_postventa && (comoCompaneraDeArea || comoGerenciaAqui) && (
+              <AccionesExpedientePostventa
+                oportunidadId={oportunidad.id}
+                tipo={oportunidad.tipo_postventa}
+                duenoId={oportunidad.comercial_id}
+                companeras={companerasPostventa}
+              />
+            )}
+          </div>
         </div>
 
         {cuenta?.contactos && cuenta.contactos.length > 0 && (

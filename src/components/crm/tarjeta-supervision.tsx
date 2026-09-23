@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
 import { Clock, FileText, TrendingUp, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usd } from "@/lib/reportes";
@@ -89,6 +90,22 @@ export function TarjetaSupervision({
           </span>
         )}
       </div>
+
+      {/* LA OTRA BARRA: GESTIÓN DE WHATSAPP (Santos, 23-09). Las marcas de un
+          botón en los chats, aparte de las llamadas y mensajes. No tiene meta
+          propia todavía: la barra se dibuja contra la misma meta solo para
+          dar escala. */}
+      {(c.gestion_whatsapp ?? 0) > 0 && (
+        <div className="mt-1.5 flex items-center gap-2">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full rounded-full bg-[#25A366]" style={{ width: `${Math.min(meta > 0 ? ((c.gestion_whatsapp ?? 0) / meta) * 100 : 0, 100)}%` }} />
+          </div>
+          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+            <b className="font-semibold text-foreground">Gestión de WhatsApp {c.gestion_whatsapp}</b>
+            {WHATSAPP_CUENTA_PARA_META ? " · incluida arriba" : " · aparte de la meta"}
+          </span>
+        </div>
+      )}
 
       {sinActividad ? (
         <p className="mt-2 rounded-md bg-secondary px-2 py-1.5 text-[11px] text-muted-foreground">Sin actividad registrada este día.</p>

@@ -184,6 +184,7 @@ export async function buscarEmpresaParaVisita(q: string): Promise<{ id: string; 
   const { data } = await supabase
     .from("cuentas")
     .select("id, razon_social, num_doc")
+    .is("fusionada_en", null)
     .or(esDoc ? `num_doc.eq.${limpio}` : `razon_social.ilike.%${limpio}%,nombre_comercial.ilike.%${limpio}%`)
     .order("ultima_venta_at", { ascending: false, nullsFirst: false })
     .limit(8);
