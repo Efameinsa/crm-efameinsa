@@ -50,7 +50,7 @@ export function HistoriaDelClienteDesplegable({
           // Un vacío dice qué no hay, por qué, y qué hacer con eso.
           <p className="text-muted-foreground">
             El cliente está en el CRM pero <b>nadie le hizo gestión ni le cotizó nada</b>. Suele ser una ficha que entró
-            del archivo de los Excel y no se tocó desde entonces: si además pasaron los seis meses, no hay a quién
+            del archivo de los Excel y no se tocó desde entonces: si además pasaron tres meses sin venta, no hay a quién
             respetarle la cartera.
           </p>
         )}

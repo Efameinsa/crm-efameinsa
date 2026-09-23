@@ -5,6 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { errorDocumento, type TipoDocumento } from "@/lib/documento";
 import { notificar } from "@/lib/notificaciones";
 import { tokensRaros, type CandidataRelacionada } from "@/lib/fichas-relacionadas";
+import { traerPorLotes } from "@/lib/lotes";
+import { consultaLiberables, TOPE_REASIGNACION_EN_BLOQUE, type FiltroLiberables } from "@/lib/cartera-liberable";
+
+const UUID = /^[0-9a-f-]{36}$/i;
 
 // El resumen narrativo vive en cuentas.notas (existe desde B1, sin UI hasta
 // ahora). La RLS ya resuelve quién puede editar: cuentas_comercial (FOR ALL,
@@ -206,7 +210,141 @@ export async function reasignarCartera(
 
   revalidatePath(`/gerencia/clientes/${cuentaId}`);
   revalidatePath("/gerencia/clientes");
+  revalidatePath("/gerencia/cartera-liberable");
   return { error: null, movidas: r.oportunidades_movidas };
+}
+
+/**
+ * Reasigna una tanda de clientes liberables a un mismo comercial.
+ *
+ * Gerencia, 23-09-2026: «Cartera: 3 meses sin venta para reasignar; se
+ * redistribuye cada 3 meses». Repartir la cartera cada trimestre de a un
+ * cliente por diálogo son cientos de clics, así que la pantalla «Cartera
+ * liberable» deja elegir varias filas —o todas las filtradas de un
+ * comercial— y pasarlas juntas.
+ *
+ * Cada cliente pasa por la MISMA función de la base que la reasignación de a
+ * uno (`reasignar_cartera`: exige backoffice, mueve sus oportunidades
+ * abiertas y deja la historia cerrada con quien la trabajó). Lo único que
+ * cambia son los avisos: en vez de uno por cliente —300 notificaciones
+ * sueltas en el celular de un comercial— va uno solo por comercial con el
+ * conteo y un par de nombres.
+ *
+ * Con `filtro` las filas se vuelven a buscar AQUÍ con el mismo filtro de la
+ * pantalla (no se confía en una lista del navegador) y nunca pasan del tope.
+ */
+export async function reasignarCarteraEnBloque(datos: {
+  destino: string;
+  cuentaIds?: string[];
+  filtro?: FiltroLiberables;
+}): Promise<{
+  error: string | null;
+  movidos?: number;
+  oportunidades?: number;
+  fallidos?: { razonSocial: string; motivo: string }[];
+}> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { error: "La sesión expiró. Vuelva a entrar." };
+  const { data: yo } = await supabase.from("perfiles").select("rol").eq("id", auth.user.id).maybeSingle();
+  if (yo?.rol !== "gerencia" && yo?.rol !== "admin") {
+    return { error: "Reasignar una cartera es decisión de gerencia" };
+  }
+  if (!UUID.test(datos.destino)) return { error: "Elija a qué comercial pasan los clientes" };
+
+  // Qué clientes: los marcados, o los de la lista filtrada (con dueño fijo:
+  // «todas» sin comercial sería repartir la base entera de un clic).
+  let ids: string[];
+  if (datos.cuentaIds && datos.cuentaIds.length > 0) {
+    ids = [...new Set(datos.cuentaIds)].filter((id) => UUID.test(id));
+    if (ids.length > TOPE_REASIGNACION_EN_BLOQUE) {
+      return { error: `Son ${ids.length} clientes; de una vez se pueden pasar hasta ${TOPE_REASIGNACION_EN_BLOQUE}.` };
+    }
+  } else if (datos.filtro?.comercialId) {
+    const { data, error } = await consultaLiberables(supabase, datos.filtro, "id").limit(TOPE_REASIGNACION_EN_BLOQUE);
+    if (error) return { error: "No se pudo leer la lista de clientes liberables. Intente de nuevo." };
+    ids = ((data ?? []) as unknown as { id: string }[]).map((f) => f.id);
+  } else {
+    return { error: "Marque los clientes o filtre por un comercial primero" };
+  }
+  if (ids.length === 0) return { error: "No hay clientes para reasignar con esa selección" };
+
+  // Hasta 200 ids: por lotes, que en una sola URL no caben (ver lotes.ts).
+  const { data: cuentas } = await traerPorLotes<{ id: string; razon_social: string | null }>(ids, (lote) =>
+    supabase.from("cuentas").select("id, razon_social").in("id", lote),
+  );
+  const nombreDe = new Map(cuentas.map((c) => [c.id, c.razon_social ?? "Un cliente"]));
+
+  // De a pocos en paralelo: 200 llamadas en fila tardan; todas juntas
+  // saturan la conexión.
+  const movidosPorAnterior = new Map<string, string[]>();
+  const movidos: string[] = [];
+  const fallidos: { razonSocial: string; motivo: string }[] = [];
+  let oportunidades = 0;
+  const TANDA = 8;
+  for (let i = 0; i < ids.length; i += TANDA) {
+    const tanda = ids.slice(i, i + TANDA);
+    const resultados = await Promise.all(
+      tanda.map((id) => supabase.rpc("reasignar_cartera", { p_cuenta_id: id, p_comercial_id: datos.destino })),
+    );
+    resultados.forEach(({ data, error }, k) => {
+      const id = tanda[k];
+      const nombre = nombreDe.get(id) ?? "Un cliente";
+      if (error) {
+        fallidos.push({ razonSocial: nombre, motivo: error.message });
+        return;
+      }
+      const r = data as { anterior: string | null; oportunidades_movidas: number };
+      movidos.push(nombre);
+      oportunidades += r.oportunidades_movidas ?? 0;
+      if (r.anterior && r.anterior !== datos.destino) {
+        const lista = movidosPorAnterior.get(r.anterior) ?? [];
+        lista.push(nombre);
+        movidosPorAnterior.set(r.anterior, lista);
+      }
+    });
+  }
+
+  // Un aviso por comercial, con el conteo.
+  const resumen = (nombres: string[]) =>
+    nombres.slice(0, 3).join(", ") + (nombres.length > 3 ? ` y ${nombres.length - 3} más` : "");
+  const avisos: Promise<void>[] = [];
+  if (movidos.length > 0) {
+    avisos.push(
+      notificar({
+        userId: datos.destino,
+        tipo: "lead_asignado",
+        titulo:
+          movidos.length === 1
+            ? "Un cliente nuevo en su cartera"
+            : `${movidos.length} clientes nuevos en su cartera`,
+        cuerpo: `Reparto de cartera de gerencia: ${resumen(movidos)}`,
+        url: "/comercial/cartera",
+      }),
+    );
+  }
+  for (const [anterior, nombres] of movidosPorAnterior) {
+    avisos.push(
+      notificar({
+        userId: anterior,
+        tipo: "lead_asignado",
+        titulo:
+          nombres.length === 1
+            ? "Un cliente pasó a otra cartera"
+            : `${nombres.length} clientes pasaron a otra cartera`,
+        cuerpo: `Llevaban tres meses o más sin venta; gerencia los repartió: ${resumen(nombres)}`,
+        url: "/comercial/cartera",
+      }),
+    );
+  }
+  await Promise.all(avisos);
+
+  revalidatePath("/gerencia/cartera-liberable");
+  revalidatePath("/gerencia/clientes");
+  if (movidos.length === 0) {
+    return { error: fallidos[0]?.motivo ?? "No se pudo reasignar ningún cliente", fallidos };
+  }
+  return { error: null, movidos: movidos.length, oportunidades, fallidos };
 }
 
 /**

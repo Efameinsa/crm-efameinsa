@@ -26,6 +26,10 @@ import { traerPorLotes } from "@/lib/lotes";
  * cotizó y cuándo, quién habló con él por última vez, y qué quedó pendiente de
  * hacer. Con eso Central decide; sin eso solo tiene una fecha.
  *
+ * (Desde el 23-09-2026 el plazo es de TRES meses —«3 meses sin venta para
+ * reasignar; se redistribuye cada 3 meses», gerencia—; la cita de arriba es
+ * de cuando eran seis. Ver la migración 0276.)
+ *
  * Se pide para las cuentas que están EN PANTALLA (una por contacto con
  * coincidencia, y la bandeja tiene tope), no para la base entera.
  */

@@ -165,7 +165,10 @@ export const ETIQUETA_ETAPA: Record<string, { texto: string; clase: string }> = 
 export const ETIQUETA_MOTIVO: Record<string, string> = {
   nuevo_lead: "Cliente nuevo",
   cartera_existente: "Ya era su cartera",
-  liberacion_6_meses: "Liberado (6 meses sin venta)",
+  // El valor del enum se quedó con el nombre de la regla vieja (seis meses);
+  // desde el 23-09-2026 el plazo es de tres. La etiqueta no dice el número
+  // para que el historial de antes y el de ahora se lean bien.
+  liberacion_6_meses: "Liberado por tiempo sin venta",
   decision_gerencia: "Decisión de gerencia",
   reemplazo: "Reemplazo de personal",
 };
