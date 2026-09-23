@@ -197,10 +197,12 @@ export default async function CierresCentralPage({
   // servicio (con cualquiera de los dos checks) ya tiene su lista sembrada;
   // Central la completa con lo que le dio el almacén, sin decidir despacho ni
   // probar nada — eso sigue siendo de postventa y del almacén.
+  // Hasta 80 cierres (23-09): con 20, los liberados más antiguos quedaban sin
+  // el bloque y Central no tenía dónde escribir su serie.
   const equiposPorInforme = new Map<string, EquipoDelPedido[]>(
     (
       await Promise.all(
-        filas.slice(0, 20).map(async (f): Promise<[string, EquipoDelPedido[]] | null> => {
+        filas.slice(0, 80).map(async (f): Promise<[string, EquipoDelPedido[]] | null> => {
           const pedido = pedidoPorInforme.get(f.id);
           if (!pedido?.id || f.anulado_at) return null;
           const equipos = await equiposDelPedido(pedido.id as string);
