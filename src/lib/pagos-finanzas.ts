@@ -33,6 +33,8 @@ export interface PedidoFinanzas {
   diasParaVencer: number | null;
   observadoAt: string | null;
   observadoMotivo: string | null;
+  /** Postventa pidió confirmar el abono y todavía no hay respuesta (0295). */
+  solicitadoAt: string | null;
   pagoConfirmadoAt: string | null;
   pagoConfirmadoDetalle: string | null;
   liberadoAt: string | null;
@@ -50,7 +52,7 @@ export interface PedidoFinanzas {
 }
 
 const COLUMNAS =
-  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, informe_cierre_id, numero_pedido_erp, cerrado_at, completado, created_at";
+  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_solicitado_at, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, informe_cierre_id, numero_pedido_erp, cerrado_at, completado, created_at";
 
 const limpiarCliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const dia = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
@@ -121,6 +123,13 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
         diasParaVencer: venceEl ? diasEntre(hoy, venceEl) : null,
         observadoAt: (f.pago_observado_at as string | null) ?? null,
         observadoMotivo: (f.pago_observado_motivo as string | null) ?? null,
+        // Pendiente si nadie contestó después del pedido: ni confirmó ni observó.
+        solicitadoAt:
+          f.pago_solicitado_at &&
+          !((f.pago_observado_at as string | null) && (f.pago_observado_at as string) > (f.pago_solicitado_at as string)) &&
+          !((f.pago_confirmado_at as string | null) && (f.pago_confirmado_at as string) > (f.pago_solicitado_at as string))
+            ? (f.pago_solicitado_at as string)
+            : null,
         pagoConfirmadoAt: (f.pago_confirmado_at as string | null) ?? null,
         pagoConfirmadoDetalle: (f.pago_confirmado_detalle as string | null) ?? null,
         liberadoAt: (f.pedido_ejecutado_at as string | null) ?? null,
@@ -162,6 +171,8 @@ export async function pedidosPorConfirmar(supabase: SupabaseClient): Promise<Ped
     // Cuentas por cobrar cuando se despachen.
     .filter((p) => p.total != null && p.falta > 0)
     .sort((a, b) => {
+      // Lo que postventa está esperando va primero (0295).
+      if (Boolean(a.solicitadoAt) !== Boolean(b.solicitadoAt)) return a.solicitadoAt ? -1 : 1;
       const fa = a.fechaDespacho ?? "9999-12-31";
       const fb = b.fechaDespacho ?? "9999-12-31";
       if (fa !== fb) return fa < fb ? -1 : 1;

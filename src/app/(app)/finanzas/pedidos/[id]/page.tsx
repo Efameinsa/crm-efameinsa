@@ -42,7 +42,7 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
               {p.clienteDoc ? `${p.clienteDoc} · ` : ""}
               {p.codigoCierre ? `Cierre ${p.codigoCierre}` : ""}
               {cuenta ? ` · Cuenta ${cuenta}` : ""}
-              {p.numeroErp ? ` · Pedido ERP ${p.numeroErp}` : ""}
+              {p.numeroErp ? ` · Pedido ${p.numeroErp}` : ""}
               {p.comercialNombre ? ` · ${p.comercialNombre}` : ""}
             </p>
             {p.equipo && <p className="mt-1 max-w-2xl text-xs text-muted-foreground">{p.equipo.replace(/\s+/g, " ")}</p>}

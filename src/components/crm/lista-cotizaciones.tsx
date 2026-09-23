@@ -61,6 +61,7 @@ const ESTADO_ENVIO: Record<string, string> = {
   aceptada: "Aceptada",
   perdida: "Perdida",
   vencida: "Vencida",
+  anulada: "Anulada",
 };
 
 export function ListaCotizaciones({

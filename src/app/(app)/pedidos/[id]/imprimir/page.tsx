@@ -21,8 +21,9 @@ const textoContacto = (c: Contacto) =>
  * pedido… llevo el expediente, ya no solamente con el cierre, sino con el
  * pedido, que ha sido generado por mí porque le he ingresado la serie».
  *
- * Es el cierre tal cual —no se modifica— más lo que agrega Central: el N.º con
- * que quedó en el ERP y la serie de cada equipo. Si una serie todavía no está
+ * Es el cierre tal cual —no se modifica— más lo que agrega Central: el número
+ * del pedido (lo pone el CRM desde el 0295) y la serie de cada equipo. Va
+ * como anexo del cierre. Si una serie todavía no está
  * (se puede ejecutar sin ella, decisión del 23-09), el papel lo dice.
  */
 export default async function ImprimirPedidoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,7 +33,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const { data: s } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, cliente_texto, pedido_ejecutado_at, liquidacion_at, modalidad")
+    .select("id, informe_cierre_id, numero_pedido_erp, cliente_texto, pedido_ejecutado_at, liquidacion_at, modalidad, pedido_generado_por, pedido_ejecutado_por, liquidacion_subida_por, liquidacion_por")
     .eq("id", id)
     .maybeSingle();
   if (!s) notFound();
@@ -53,6 +54,13 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
     items: { bloque?: string; descripcion: string; cantidad: number }[] | null;
     perfiles: { nombre: string; codigo_comercial: string | null } | null;
   } | null;
+  // Las firmas llevan el nombre de quien lo hizo (Carlos, 23-09 17:24: «la
+  // Central puede firmar y Finanzas la recepción… pongo solamente los nombres»).
+  const idCentral = s.pedido_generado_por ?? s.pedido_ejecutado_por;
+  const idFinanzas = s.liquidacion_subida_por;
+  const ids = [idCentral, idFinanzas].filter(Boolean) as string[];
+  const { data: firmantes } = ids.length ? await supabase.from("perfiles").select("id, nombre").in("id", ids) : { data: [] };
+  const nombreDe = (x: string | null) => (firmantes ?? []).find((f) => f.id === x)?.nombre ?? "";
   const lista = (equipos ?? []) as { orden: number; descripcion: string; serie: string | null }[];
   const pendientes = lista.filter((e) => !e.serie).length;
   const empresa = i?.serie === "OPEN" ? "Open Investments" : "Corporación Efameinsa e Ingeniería S.A.";
@@ -167,8 +175,12 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
       )}
 
       <div className="mt-10 grid grid-cols-2 gap-10 text-center text-[11px]">
-        <div className="border-t border-neutral-500 pt-1">Central</div>
-        <div className="border-t border-neutral-500 pt-1">Finanzas (liquidación)</div>
+        <div className="border-t border-neutral-500 pt-1">
+          Central{nombreDe(idCentral) && <p className="font-semibold">{nombreDe(idCentral)}</p>}
+        </div>
+        <div className="border-t border-neutral-500 pt-1">
+          Finanzas (recepción){nombreDe(idFinanzas) && <p className="font-semibold">{nombreDe(idFinanzas)}</p>}
+        </div>
       </div>
 
       <style>{`

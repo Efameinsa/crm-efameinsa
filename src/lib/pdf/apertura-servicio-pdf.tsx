@@ -88,7 +88,7 @@ export function AperturaServicioPdf({
             )}
             {numeroPedidoErp && (
               <Text>
-                <Text style={{ fontFamily: "Helvetica-Bold" }}>Pedido ERP: </Text>
+                <Text style={{ fontFamily: "Helvetica-Bold" }}>Pedido: </Text>
                 {numeroPedidoErp}
               </Text>
             )}

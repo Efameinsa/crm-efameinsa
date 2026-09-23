@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { enVistaNueva } from "@/lib/propuesta/vista";
 import { ArrowLeft, FileText, MessageCircle, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postventa";
@@ -189,7 +190,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
             <EquipoConSeries texto={servicio.equipo} fichaPorSerie={fichaPorSerie} className="mt-1" />
             <p className="mt-1 font-mono text-[11px] text-muted-foreground">
               {informe?.codigo ? `Cierre Nº ${informe.codigo}` : "Sin informe de cierre"}
-              {servicio.numero_pedido_erp && ` · Pedido ERP ${servicio.numero_pedido_erp}`}
+              {servicio.numero_pedido_erp && ` · Pedido ${servicio.numero_pedido_erp}`}
               {informe?.orden_compra && ` · OC ${informe.orden_compra}`}
             </p>
             {capturaUrl && (
@@ -197,6 +198,8 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
                 Ver la captura con que Finanzas confirmó el pago →
               </a>
             )}
+            {/* Otra razón social del mismo dueño (23-09). */}
+            <AvisoMismoCliente cuentaId={(servicio as { cuenta_id?: string | null }).cuenta_id} className="mt-2" />
           </div>
 
           <div className="flex items-center gap-2">

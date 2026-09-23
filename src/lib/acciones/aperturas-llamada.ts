@@ -34,8 +34,11 @@ export async function enviarAperturaLlamada(datos: {
   contacto?: string | null;
   servicioId?: string | null;
   atencionId?: string | null;
+  /** Apertura urgente sin pedido ni cotización: el código de gerencia (0295). */
+  pinUrgente?: string | null;
 }) {
   const perfil = await requerirPerfil();
+  if (!datos.cuentaId) return falla("Elija el cliente");
   if (!TIPOS_APERTURA.includes(datos.tipo)) return falla("Tipo de apertura desconocido");
   if (!datos.programadaPara || Number.isNaN(new Date(datos.programadaPara).getTime())) return falla("Falta el día y la hora");
   const supabase = await createClient();
@@ -48,11 +51,12 @@ export async function enviarAperturaLlamada(datos: {
     p_contacto: datos.contacto ?? null,
     p_servicio: datos.servicioId ?? null,
     p_atencion: datos.atencionId ?? null,
+    p_pin_urgente: datos.pinUrgente?.trim() || null,
   });
-  if (error) return falla(error.message);
+  if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
   const { data: c } = await supabase.from("cuentas").select("razon_social").eq("id", datos.cuentaId).maybeSingle();
   await notificarAlmacen({
-    titulo: `${ETIQUETA_TIPO_APERTURA[datos.tipo]} · ${cliente(c?.razon_social)}`,
+    titulo: `${datos.pinUrgente ? "URGENTE · " : ""}${ETIQUETA_TIPO_APERTURA[datos.tipo]} · ${cliente(c?.razon_social)}`,
     cuerpo: `${cuandoLima(datos.programadaPara)}. ${datos.equipos.split("\n")[0]}. Tome la apertura para que postventa sepa que ya está en manos del almacén.`,
     url: `/aperturas/${id}`,
     esPrueba: (perfil as { es_prueba?: boolean | null }).es_prueba === true,

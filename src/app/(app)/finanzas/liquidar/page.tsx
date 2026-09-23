@@ -10,16 +10,18 @@ const sinRuc = (s: string | null) => (s ?? "Cliente").replace(/^\d{8,11}\s*-\s*/
 
 /**
  * PEDIDOS POR LIQUIDAR (0290; Carlos, 23-09 14:58: «y acá faltarían más bien
- * los pedidos»). Los pedidos que Central ya generó —con su N.º del ERP y sus
+ * los pedidos»). Los pedidos que Central ya generó —con su número y sus
  * series— y que esperan la liquidación de Finanzas. Finanzas abre el pedido,
- * sube el PDF de la liquidación, y Central la marca.
+ * sube el PDF de la liquidación, y Central la acepta o se la devuelve con el
+ * motivo (0295). Finanzas mira el cierre junto al pedido, porque el pedido es
+ * su anexo (Carlos, 23-09 17:24: «tengo que ver el cierre… cierre y el pedido»).
  */
 export default async function PedidosPorLiquidarPage() {
   await requerirPerfil();
   const supabase = await createClient();
   const { data } = await supabase
     .from("servicios_postventa")
-    .select("id, cliente_texto, numero_pedido_erp, monto, moneda, informe_cierre_id, liquidacion_at, liquidacion_adjunto, liquidacion_subida_at, created_at")
+    .select("id, cliente_texto, numero_pedido_erp, monto, moneda, informe_cierre_id, liquidacion_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo, created_at")
     .not("numero_pedido_erp", "is", null)
     .not("informe_cierre_id", "is", null)
     .is("liquidacion_at", null)
@@ -29,6 +31,7 @@ export default async function PedidosPorLiquidarPage() {
   const filas = (data ?? []) as {
     id: string; cliente_texto: string | null; numero_pedido_erp: string; monto: number | null; moneda: string | null; informe_cierre_id: string;
     liquidacion_adjunto: { path: string; nombre: string } | null; liquidacion_subida_at: string | null;
+    liquidacion_rechazada_at: string | null; liquidacion_rechazada_motivo: string | null;
   }[];
   const ids = [...new Set(filas.map((f) => f.informe_cierre_id))];
   const { data: informes } = ids.length ? await supabase.from("informes_cierre").select("id, codigo, serie, anulado_at").in("id", ids) : { data: [] };
@@ -51,6 +54,11 @@ export default async function PedidosPorLiquidarPage() {
             {i ? ` · cierre ${i.serie === "OPEN" ? "Open" : "Efameinsa"} ${i.codigo}` : ""}
             {f.monto != null ? ` · ${f.moneda ?? ""} ${Number(f.monto).toLocaleString("es-PE", { minimumFractionDigits: 2 })}` : ""}
           </p>
+          {f.liquidacion_rechazada_at && !f.liquidacion_adjunto && (
+            <p className="text-[11px] font-medium text-destructive">
+              Central la rechazó el {fechaHoraLima(f.liquidacion_rechazada_at)}: {f.liquidacion_rechazada_motivo}. Suba la corregida.
+            </p>
+          )}
           {f.liquidacion_subida_at && (
             <p className="text-[11px] text-[#1E7F4F]">
               Liquidación subida el {fechaHoraLima(f.liquidacion_subida_at)} · esperando que Central la marque
@@ -65,6 +73,9 @@ export default async function PedidosPorLiquidarPage() {
             </p>
           )}
         </div>
+        <a href={`/api/informes/${f.informe_cierre_id}/pdf`} target="_blank" rel="noreferrer" className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent">
+          Ver el cierre
+        </a>
         <a href={`/pedidos/${f.id}/imprimir`} target="_blank" rel="noreferrer" className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent">
           Ver el pedido
         </a>
@@ -77,8 +88,8 @@ export default async function PedidosPorLiquidarPage() {
     <div className="space-y-4">
       <SeccionPanel titulo={`Pedidos por liquidar · ${porSubir.length}`}>
         <p className="mb-2 text-xs text-muted-foreground">
-          Central ya generó el pedido con su N.º del ERP y las series. Ábralo, suba el PDF de la liquidación y Central la marca: ya no hace falta
-          pasar el papel.
+          Central ya generó el pedido con sus series. Mire el cierre y el pedido (su anexo), suba el PDF de la liquidación y Central la acepta o
+          se la devuelve con el motivo: ya no hace falta pasar el papel.
         </p>
         {porSubir.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground">No hay pedidos esperando liquidación.</p>

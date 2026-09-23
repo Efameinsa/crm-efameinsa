@@ -109,7 +109,7 @@ export default async function CierresCentralPage({
   // lista entera y no una por fila (migración 0087).
   const { data: pedidos } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at")
+    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo")
     .in("informe_cierre_id", todas.map((f) => f.id));
   const pedidoPorInforme = new Map((pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]));
 
@@ -476,6 +476,11 @@ export default async function CierresCentralPage({
                       series={{ con: eqs.filter((e) => e.serie).length, total: eqs.length }}
                       liquidacionAt={(pedido?.liquidacion_at as string | null) ?? null}
                       liquidacionPdf={liquidacionPdfPorInforme.get(f.id) ?? null}
+                      liquidacionRechazo={
+                        pedido?.liquidacion_rechazada_at
+                          ? { at: pedido.liquidacion_rechazada_at as string, motivo: (pedido.liquidacion_rechazada_motivo as string | null) ?? "" }
+                          : null
+                      }
                       pedidoEjecutadoAt={(pedido?.pedido_ejecutado_at as string | null) ?? null}
                     />
                   );

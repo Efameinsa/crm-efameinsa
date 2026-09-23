@@ -52,6 +52,8 @@ export interface AperturaLlamada {
   enviada_cliente_at: string | null;
   anulada_at: string | null;
   anulada_motivo: string | null;
+  /** Sin pedido, autorizada con el código de gerencia (0295). */
+  urgente?: boolean | null;
 }
 
 export type EstadoApertura = "enviada" | "en_gestion" | "informe_almacen" | "revisada" | "enviada_cliente" | "anulada";
