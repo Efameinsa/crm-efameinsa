@@ -1,3 +1,4 @@
+import { WHATSAPP_CUENTA_PARA_META, marcasWhatsappDelDia } from "@/lib/gestion-whatsapp";
 import { ETIQUETA_ESTADO_APERTURA, ETIQUETA_TIPO_APERTURA, estadoApertura, type TipoApertura } from "@/lib/aperturas-llamada";
 import { cabeceraArchivo } from "@/lib/nombre-archivo";
 import { NextResponse } from "next/server";
@@ -47,6 +48,17 @@ export async function GET(request: Request) {
   }
 
   const r = data as unknown as Parameters<typeof ReporteDiarioPdf>[0] & { fecha: string };
+  // La gestión de WhatsApp, en su propia barra (23-09).
+  try {
+    const marcas = await marcasWhatsappDelDia(supabase, fecha, [comercialId]);
+    const n = marcas.get(comercialId) ?? 0;
+    r.resumen = { ...r.resumen, gestion_whatsapp: n };
+    if (!WHATSAPP_CUENTA_PARA_META && n > 0) {
+      r.resumen = { ...r.resumen, seguimientos_efectivos: Math.max(0, r.resumen.seguimientos_efectivos - n) };
+    }
+  } catch {
+    // Sin la barra de WhatsApp, pero con reporte.
+  }
 
   // La proyección de la semana (ing. Carlos, 27-08). Se calcula ACÁ y no dentro
   // de `reporte_diario_comercial`: esa función ya se redefinió una decena de

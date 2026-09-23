@@ -1,3 +1,4 @@
+import { WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import type { ProyeccionSemana } from "@/lib/potenciales-semana";
 
@@ -43,6 +44,8 @@ export interface ReporteDiarioProps {
     monto_vendido_usd: number;
     leads_recibidos: number;
     complementarias: number;
+    /** Marcas de WhatsApp de un botón (23-09): su propia barra, sin meta todavía. */
+    gestion_whatsapp?: number;
   };
   seguimientos: {
     hora: string | null;
@@ -223,6 +226,32 @@ export function ReporteDiarioPdf({
               ? `  ${resumen.complementarias} actividad${resumen.complementarias === 1 ? "" : "es"} complementaria${resumen.complementarias === 1 ? "" : "s"} registrada${resumen.complementarias === 1 ? "" : "s"}.`
               : ""}
           </Text>
+          {/* LA OTRA BARRA (Santos, 23-09): la gestión de WhatsApp, aparte.
+              Sin meta propia todavía; la escala es la misma meta. */}
+          {(resumen.gestion_whatsapp ?? 0) > 0 && (
+            <View style={{ marginTop: 8 }}>
+              <View style={e.metaFila}>
+                <Text style={e.metaEtiqueta}>Gestión de WhatsApp (marcas en los chats)</Text>
+                <Text style={[e.metaNumero, { color: "#25A366" }]}>{resumen.gestion_whatsapp}</Text>
+              </View>
+              <View style={e.barraFondo}>
+                <View
+                  style={[
+                    e.barraRelleno,
+                    {
+                      width: `${Math.min(resumen.meta_seguimientos > 0 ? ((resumen.gestion_whatsapp ?? 0) / resumen.meta_seguimientos) * 100 : 0, 100)}%`,
+                      backgroundColor: "#25A366",
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={{ fontSize: 7, color: GRIS, marginTop: 10 }}>
+                {WHATSAPP_CUENTA_PARA_META
+                  ? "Ya están sumadas en los seguimientos de arriba. Su meta propia está por definirse."
+                  : "No suman a la meta de seguimientos. Su meta propia está por definirse."}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={e.tarjetas}>
