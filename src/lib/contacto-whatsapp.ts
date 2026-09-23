@@ -11,3 +11,31 @@ export function etiquetaDeContactoWa(datos: { telefono: string; usuario_wa?: str
   if (esTelefonoDeVerdad(datos.telefono)) return datos.telefono;
   return datos.usuario_wa ? `@${datos.usuario_wa}` : "Sin número visible";
 }
+
+// BUSCAR UN CHAT COMO EN WHATSAPP WEB (23-09, pedido de comercial): se escribe
+// el número como venga —«987 654 321», «+51 987654321», los últimos dígitos—
+// o parte del nombre, y aparece la conversación.
+
+function sinTildes(texto: string): string {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+/** Los dígitos de lo que se escribió, o null si no es una búsqueda por número. */
+export function digitosDeBusqueda(texto: string): string | null {
+  const limpio = texto.trim();
+  if (!/^[+\d\s().-]+$/.test(limpio)) return null;
+  const digitos = limpio.replace(/\D/g, "");
+  return digitos.length > 0 ? digitos : null;
+}
+
+/** ¿La conversación responde a lo que se escribió en el buscador? */
+export function coincideBusquedaWa(
+  datos: { telefono: string; usuario_wa?: string | null; nombre_wa?: string | null },
+  texto: string,
+): boolean {
+  if (!texto.trim()) return true;
+  const digitos = digitosDeBusqueda(texto);
+  if (digitos) return esTelefonoDeVerdad(datos.telefono) && datos.telefono.includes(digitos);
+  const buscado = sinTildes(texto.trim().replace(/^@/, ""));
+  return [datos.nombre_wa, datos.usuario_wa].some((v) => !!v && sinTildes(v).includes(buscado));
+}

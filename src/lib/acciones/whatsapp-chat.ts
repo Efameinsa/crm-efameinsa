@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { anuncioDe, type AnuncioDeLaConversacion } from "@/lib/whatsapp-marketing";
+import { digitosDeBusqueda } from "@/lib/contacto-whatsapp";
 import { enviarTexto, enviarMedia, enviarFichaEquipo, enviarProductosCatalogo, type TipoMedia } from "@/lib/whatsapp";
 
 // Mismo bucket privado que los adjuntos de un lead (0029): un archivo, un
@@ -50,6 +51,9 @@ export interface ConversacionWhatsapp {
 }
 
 
+const COLUMNAS_CONVERSACION =
+  "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, perfiles(nombre)";
+
 export type FiltroConversaciones = "sin_atender" | "mias" | "todas" | "cerradas";
 
 /**
@@ -69,7 +73,7 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
 
   let consulta = supabase
     .from("wa_conversaciones")
-    .select("id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, perfiles(nombre)")
+    .select(COLUMNAS_CONVERSACION)
     .order("ultimo_mensaje_at", { ascending: false, nullsFirst: false });
 
   if (filtro === "sin_atender") consulta = consulta.eq("estado", "sin_atender");
@@ -80,8 +84,51 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
   if (comercialId) consulta = consulta.eq("asignado_a", comercialId);
 
   const { data } = await consulta;
-  if (!data) return [];
+  return conUltimoTexto(supabase, data ?? []);
+}
 
+/**
+ * BUSCADOR DEL CHAT (23-09, pedido de comercial: «un buscador por número como
+ * lo tiene WhatsApp Web»). Busca en TODAS las conversaciones que la persona
+ * puede ver —también las cerradas y las de otras pestañas—; qué ve cada quien
+ * lo sigue decidiendo RLS. Por número: los dígitos como se escriban; si no,
+ * por nombre o @usuario.
+ */
+export async function buscarConversacionesWa(texto: string): Promise<ConversacionWhatsapp[]> {
+  const supabase = await createClient();
+  const digitos = digitosDeBusqueda(texto);
+  let consulta = supabase.from("wa_conversaciones").select(COLUMNAS_CONVERSACION);
+  if (digitos) {
+    if (digitos.length < 3) return [];
+    consulta = consulta.ilike("telefono", `%${digitos}%`);
+  } else {
+    // Solo letras, números, espacios y «_»: el texto va dentro de un `or()` de PostgREST.
+    const limpio = texto.replace(/^@/, "").replace(/[^\p{L}\p{N} _]/gu, "").trim();
+    if (limpio.length < 2) return [];
+    consulta = consulta.or(`nombre_wa.ilike.*${limpio}*,usuario_wa.ilike.*${limpio}*`);
+  }
+  const { data } = await consulta.order("ultimo_mensaje_at", { ascending: false, nullsFirst: false }).limit(30);
+  return conUltimoTexto(supabase, data ?? []);
+}
+
+type FilaConversacion = {
+  id: string;
+  telefono: string;
+  usuario_wa: string | null;
+  nombre_wa: string | null;
+  lead_id: string | null;
+  asignado_a: string | null;
+  estado: ConversacionWhatsapp["estado"];
+  ultimo_mensaje_cliente_at: string | null;
+  ultimo_mensaje_at: string | null;
+  codigo_campania_wa: string | null;
+  ctwa_clid: string | null;
+  anuncio_at: string | null;
+  perfiles: unknown;
+};
+
+async function conUltimoTexto(supabase: Awaited<ReturnType<typeof createClient>>, data: FilaConversacion[]): Promise<ConversacionWhatsapp[]> {
+  if (data.length === 0) return [];
   const conIds = data.map((c) => c.id);
   const ultimos = new Map<string, string>();
   if (conIds.length > 0) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 import { Download, MonitorDown } from "lucide-react";
 import { registrarServiceWorker } from "@/lib/push-cliente";
 import {
@@ -73,6 +74,7 @@ export function AplicacionInstalable() {
 
   const [evento, setEvento] = useState<EventoInstalacion | null>(null);
   const [descartadoAhora, setDescartadoAhora] = useState(false);
+  const ruta = usePathname();
 
   // El service worker se registra pase lo que pase: no depende de que el aviso
   // se muestre. Es lo que sostiene el push.
@@ -116,6 +118,11 @@ export function AplicacionInstalable() {
     if (outcome === "dismissed") descartar();
   }
 
+  // En WhatsApp no (23-09): es una pantalla de alto fijo, como WhatsApp Web,
+  // y el aviso que llegaba tarde la empujaba hacia abajo en pleno clic —la
+  // lista «se corría» y la caja de escribir quedaba fuera de la pantalla—.
+  // Se ofrece en todas las demás.
+  if (ruta?.startsWith("/whatsapp")) return null;
   if (instalada || silenciado || descartadoAhora) return null;
   if (!evento && !safari) return null;
 

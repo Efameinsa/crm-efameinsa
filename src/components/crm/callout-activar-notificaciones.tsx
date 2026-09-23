@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { activarNotificaciones, soportaPush } from "@/lib/push-cliente";
 import { suscripcionRegistrada } from "@/lib/acciones/notificaciones";
@@ -11,6 +12,7 @@ const CLAVE_DESCARTADO = "efameinsa_notif_callout_descartado";
 export function CalloutActivarNotificaciones() {
   const [visible, setVisible] = useState(false);
   const [activando, setActivando] = useState(false);
+  const ruta = usePathname();
 
   useEffect(() => {
     // localStorage/Notification no existen en el servidor: el estado real
@@ -50,7 +52,11 @@ export function CalloutActivarNotificaciones() {
     })();
   }, []);
 
-  if (!visible) return null;
+  // En WhatsApp no (23-09): es una pantalla de alto fijo, como WhatsApp Web,
+  // y el aviso que llegaba tarde la empujaba hacia abajo en pleno clic —la
+  // lista «se corría» y la caja de escribir quedaba fuera de la pantalla—.
+  // Se ofrece en todas las demás.
+  if (!visible || ruta?.startsWith("/whatsapp")) return null;
 
   async function activar() {
     setActivando(true);
