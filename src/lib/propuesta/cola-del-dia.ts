@@ -174,8 +174,10 @@ async function colaAlmacen(supabase: Cliente) {
       tareas.push({ id: `pr-${s.id}`, urgencia: dias >= 2 ? "atrasado" : "hoy", tipo: "pedido", cliente, que: `Probar y embalar · ${equipo}`, porque: dias >= 1 ? `Postventa lo pidió hace ${dias} día${dias === 1 ? "" : "s"}.` : "Postventa lo pidió hoy.", accion: { etiqueta: "Registrar la prueba", href: `/almacen/pedidos/${s.id}` } });
     }
     if (s.fecha_despacho && !s.despachado_at) {
-      if (s.fecha_despacho < hoy) {
-        tareas.push({ id: `at-${s.id}`, urgencia: "atrasado", tipo: "despacho", cliente, que: `Despacho atrasado · ${equipo}`, porque: s.apertura_despacho_at ? "Tiene apertura: ya se puede despachar." : "Sin apertura de postventa todavía: no se prepara.", accion: { etiqueta: "Ver", href: `/almacen/pedidos/${s.id}` } });
+      // Sin apertura no es trabajo del almacén (Carlos, 22-09: «si no ha
+      // cumplido, no puedo hacer nada»): ese atraso está en la cola de postventa.
+      if (s.fecha_despacho < hoy && s.apertura_despacho_at) {
+        tareas.push({ id: `at-${s.id}`, urgencia: "atrasado", tipo: "despacho", cliente, que: `Despachar · ${equipo}`, porque: `Tenía fecha el ${s.fecha_despacho.split("-").reverse().join("/")} y ya tiene apertura: se puede despachar.`, accion: { etiqueta: "Despachar", href: `/almacen/pedidos/${s.id}` } });
       } else if (s.fecha_despacho === hoy) {
         agenda.push({ id: `d-${s.id}`, hora: s.despacho_hora ? String(s.despacho_hora).slice(0, 5) : "—", titulo: `Despacho · ${cliente}`, detalle: `${equipo}${s.apertura_despacho_at ? "" : " · sin apertura"}`, href: `/almacen/pedidos/${s.id}` });
         if (!s.almacen_listo_at) tareas.push({ id: `li-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Confirmar que está listo · ${equipo}`, porque: "Sale hoy y el almacén no confirmó.", accion: { etiqueta: "Confirmar", href: `/almacen/pedidos/${s.id}` } });
