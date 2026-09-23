@@ -57,7 +57,7 @@ export default async function MacroPostventaPage() {
   const hoy = hoyLima();
   const enUnaSemana = new Date(new Date(hoy + "T12:00:00-05:00").getTime() + 7 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
-  const [{ data: pedidos }, { data: atenciones }, { data: casos }, { data: visitas }, { data: sinLlamar }, preventivos] = await Promise.all([
+  const [{ data: pedidos }, { data: atenciones }, { data: casos }, { data: visitas }, { data: sinLlamar }, preventivos, { data: aperturasData }] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("id, cliente_texto, cuenta_id, equipo, completado, cerrado_at, despachado_at, puesta_en_marcha, apertura_despacho_at, fecha_despacho, aprobado_at, informe_cierre_id, pedido_ejecutado_at, origen, tipo_pedido, entrega_en, con_instalacion, fecha_confirmacion, monto, moneda, despacho_nota, updated_at, prueba_lista_at, prueba_solicitada_at, prueba_embalaje")
@@ -92,7 +92,10 @@ export default async function MacroPostventaPage() {
     // de envío de propuestas y concluir cierres antes de los 4 meses». La
     // misma lista que «Pendiente por tipo» de la agenda (sin caso abierto).
     preventivosPorOfrecer(supabase),
+    // Las aperturas al almacén (0281): las que esperan la revisión de postventa.
+    supabase.from("aperturas_llamada").select("id, tomada_at, informe_at, revisada_at, enviada_cliente_at").is("anulada_at", null).is("enviada_cliente_at", null).limit(500),
   ]);
+  const aperturasAbiertas = (aperturasData ?? []) as { id: string; tomada_at: string | null; informe_at: string | null; revisada_at: string | null }[];
 
   // Lo que todavía no lanzó Central no es trabajo del área (0237).
   const vivos = ((pedidos ?? []) as unknown as ServicioPostventa[]).filter((s) => !s.informe_cierre_id || s.pedido_ejecutado_at);
@@ -146,6 +149,8 @@ export default async function MacroPostventaPage() {
       href: "/postventa/agenda",
       alerta: true,
     },
+    { titulo: "Aperturas: informe por revisar", numero: aperturasAbiertas.filter((a) => a.informe_at).length, ayuda: "El almacén ya hizo la llamada; falta la versión para el cliente.", href: "/postventa/aperturas", alerta: true },
+    { titulo: "Aperturas que el almacén no tomó", numero: aperturasAbiertas.filter((a) => !a.tomada_at).length, ayuda: "Enviadas y sin el check del almacén.", href: "/postventa/aperturas" },
     { titulo: "Visitas a planta esta semana", numero: (visitas ?? []).length, ayuda: "Clientes que vienen; Central las imprime.", href: "/postventa/agenda" },
   ];
 

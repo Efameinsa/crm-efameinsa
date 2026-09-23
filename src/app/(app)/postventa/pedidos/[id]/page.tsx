@@ -8,6 +8,7 @@ import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postv
 import type { FotoAlmacen } from "@/lib/postventa";
 import { requerirPerfil } from "@/lib/auth";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
+import { ETIQUETA_ESTADO_APERTURA, aperturaAbierta, estadoApertura } from "@/lib/aperturas-llamada";
 import { EquipoConSeries } from "@/components/crm/equipo-con-series";
 import { fechaCalendario } from "@/lib/fechas";
 import {
@@ -105,6 +106,20 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   // Los equipos del pedido, uno por unidad vendida (0260): serie = stock,
   // qué va en este despacho, y el protocolo de cada uno.
   const listaEquipos = await cargarEquiposDelPedido(servicio.id);
+  // Las aperturas de llamada de este pedido (0281, reunión 23-09).
+  const { data: aperturasData } = await supabase
+    .from("aperturas_llamada")
+    .select("id, tipo, programada_para, anulada_at, enviada_cliente_at, revisada_at, informe_at, tomada_at")
+    .eq("servicio_id", servicio.id)
+    .order("programada_para", { ascending: false });
+  const aperturas = ((aperturasData ?? []) as unknown as (Parameters<typeof estadoApertura>[0] & { id: string; tipo: string; programada_para: string })[]).map((a) => ({
+    id: a.id,
+    tipo: a.tipo,
+    programada_para: a.programada_para,
+    estado: ETIQUETA_ESTADO_APERTURA[estadoApertura(a)],
+    abierta: aperturaAbierta(a),
+  }));
+  const equiposTexto = listaEquipos.map((e) => `${e.descripcion}${e.serie ? ` · serie ${e.serie}` : ""}`).join("\n");
   const fichaPorSerie = new Map(
     (equiposDelPedido ?? []).map((e) => [String(e.serie).toUpperCase(), e.id as string]),
   );
@@ -329,6 +344,8 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
           verPrecios={verPrecios}
           puedeDefinirCondicion={perfil.rol === "gerencia" || perfil.rol === "admin" || perfil.rol === "operaciones"}
           emitidoApertura={emisor?.nombre ?? null}
+          aperturas={aperturas}
+          equiposTexto={equiposTexto}
         />
 
         <div className="space-y-4">

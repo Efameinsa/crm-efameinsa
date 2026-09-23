@@ -29,6 +29,7 @@ import { TraerPedidoAntiguoBoton } from "@/components/crm/traer-pedido-antiguo-b
 import { PendientesDelCliente } from "@/components/crm/pendientes-del-cliente";
 import { UltimosCierres } from "@/components/crm/ultimos-cierres";
 import { EquiposDelCliente } from "@/components/crm/equipos-del-cliente";
+import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 
 export async function FichaCuenta({
   cuentaId,
@@ -277,6 +278,12 @@ export async function FichaCuenta({
                   <VisitaPlantaBoton cuentaId={cuenta.id} empresa={cuenta.razon_social} ruc={cuenta.num_doc as string | null} compacto />
                 )}
                 {haceCasos && !comoGerencia && !comoCentral && <RegistrarSeguimientoBoton cuentaId={cuenta.id} compacto />}
+                {/* La apertura al almacén también para el cliente sin pedido
+                    (Rubí, 23-09: la visita del técnico la tuvo que mandar por
+                    correo «porque no me permite»). */}
+                {haceCasos && !comoGerencia && !comoCentral && (
+                  <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Apertura al almacén" compacto />
+                )}
                 {/* Los pedidos anteriores al circuito entran desde acá (0239). */}
                 {haceCasos && !perfilQueMira.solo_preventivo && !comoGerencia && !comoCentral && (
                   <TraerPedidoAntiguoBoton cuentaId={cuenta.id} compacto />

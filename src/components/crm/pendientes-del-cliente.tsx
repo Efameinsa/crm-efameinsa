@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, ClipboardList, Package, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowRight, ClipboardList, Package, PhoneForwarded, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { bloquesPedido, etiquetaResponsable, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
 import { ETIQUETA_ETAPA, ETIQUETA_TIPO_ATENCION, type EtapaAtencion, type TipoAtencion } from "@/lib/atenciones";
-import { fechaCalendario, fechaLima } from "@/lib/fechas";
+import { fechaCalendario, fechaHoraLima, fechaLima } from "@/lib/fechas";
+import { ETIQUETA_ESTADO_APERTURA, ETIQUETA_TIPO_APERTURA, aQuienLeToca, estadoApertura, type TipoApertura } from "@/lib/aperturas-llamada";
 import { cn } from "@/lib/utils";
 
 /**
@@ -27,7 +28,7 @@ import { cn } from "@/lib/utils";
  */
 export async function PendientesDelCliente({ cuentaId, conEnlace }: { cuentaId: string; conEnlace: boolean }) {
   const supabase = await createClient();
-  const [{ data: pedidosData }, { data: atencionesData }] = await Promise.all([
+  const [{ data: pedidosData }, { data: atencionesData }, { data: aperturasData }] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("*")
@@ -42,7 +43,23 @@ export async function PendientesDelCliente({ cuentaId, conEnlace }: { cuentaId: 
       .is("cerrado_at", null)
       .order("solicitado_at", { ascending: false })
       .limit(10),
+    // Las aperturas al almacén (0281). El comercial no las lee (RLS): para él
+    // simplemente no aparecen.
+    supabase
+      .from("aperturas_llamada")
+      .select("id, tipo, programada_para, equipos, anulada_at, enviada_cliente_at, revisada_at, informe_at, tomada_at")
+      .eq("cuenta_id", cuentaId)
+      .is("anulada_at", null)
+      .is("enviada_cliente_at", null)
+      .order("programada_para", { ascending: true })
+      .limit(10),
   ]);
+  const aperturas = ((aperturasData ?? []) as unknown as (Parameters<typeof estadoApertura>[0] & {
+    id: string;
+    tipo: TipoApertura;
+    programada_para: string;
+    equipos: string;
+  })[]).filter((a) => aQuienLeToca(estadoApertura(a)) !== null);
   const pedidos = ((pedidosData ?? []) as unknown as ServicioPostventa[]).map(sinPrecios);
   const atenciones = (atencionesData ?? []) as {
     id: string;
@@ -52,7 +69,7 @@ export async function PendientesDelCliente({ cuentaId, conEnlace }: { cuentaId: 
     solicitado_at: string;
     programada_at: string | null;
   }[];
-  if (pedidos.length === 0 && atenciones.length === 0) return null;
+  if (pedidos.length === 0 && atenciones.length === 0 && aperturas.length === 0) return null;
 
   return (
     <div className="rounded-xl border border-primary/30 bg-card shadow-sm">
@@ -60,7 +77,7 @@ export async function PendientesDelCliente({ cuentaId, conEnlace }: { cuentaId: 
         <h2 className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide text-foreground">
           <ClipboardList className="size-4" /> Pendiente con este cliente
           <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
-            {pedidos.length + atenciones.length}
+            {pedidos.length + atenciones.length + aperturas.length}
           </span>
         </h2>
         <p className="mt-0.5 text-[11px] text-muted-foreground">Lo que todavía no termina. Cada fila dice qué sigue y quién lo tiene.</p>
@@ -145,6 +162,29 @@ export async function PendientesDelCliente({ cuentaId, conEnlace }: { cuentaId: 
               ) : (
                 <div className="px-4 py-2.5">{contenido}</div>
               )}
+            </li>
+          );
+        })}
+        {aperturas.map((a) => {
+          const estado = estadoApertura(a);
+          return (
+            <li key={`ap-${a.id}`}>
+              <Link href={`/aperturas/${a.id}`} className="block px-4 py-2.5 transition-colors hover:bg-accent">
+                <div className="flex items-start gap-2">
+                  <PhoneForwarded className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground">{ETIQUETA_TIPO_APERTURA[a.tipo]}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {fechaHoraLima(a.programada_para)} · {a.equipos.split("\n")[0]}
+                    </p>
+                    <p className="mt-1 text-xs text-foreground">
+                      <b>{ETIQUETA_ESTADO_APERTURA[estado]}</b>
+                      <span className="text-muted-foreground"> · {aQuienLeToca(estado) === "almacen" ? "Almacén" : "Postventa"}</span>
+                    </p>
+                  </div>
+                  <ArrowRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                </div>
+              </Link>
             </li>
           );
         })}
