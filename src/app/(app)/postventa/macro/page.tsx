@@ -137,6 +137,8 @@ export default async function MacroPostventaPage() {
     { titulo: "Garantías en curso", numero: garantias.length, ayuda: "Atenciones clasificadas como garantía.", href: "/postventa/atenciones" },
     { titulo: "En pruebas, conformidad o cierre", numero: enCierre.length, ayuda: "El técnico ya fue; falta cerrar bien.", href: "/postventa/atenciones" },
     { titulo: "Sin informe técnico", numero: sinInforme.length, ayuda: "Atendidas y sin el informe subido.", href: "/postventa/atenciones", alerta: true },
+    { titulo: "Aperturas: informe por revisar", numero: aperturasAbiertas.filter((a) => a.informe_at).length, ayuda: "El almacén ya hizo la llamada; falta la versión para el cliente.", href: "/postventa/aperturas", alerta: true },
+    { titulo: "Aperturas que el almacén no tomó", numero: aperturasAbiertas.filter((a) => !a.tomada_at).length, ayuda: "Enviadas y sin el check del almacén.", href: "/postventa/aperturas" },
   ];
   const casosCuadros: Cuadro[] = [
     { titulo: "Ventas de servicio abiertas", numero: cs.length, ayuda: "Mantenimientos, repuestos y seguimientos en curso.", href: "/postventa/atenciones?ver=casos" },
@@ -149,8 +151,6 @@ export default async function MacroPostventaPage() {
       href: "/postventa/agenda",
       alerta: true,
     },
-    { titulo: "Aperturas: informe por revisar", numero: aperturasAbiertas.filter((a) => a.informe_at).length, ayuda: "El almacén ya hizo la llamada; falta la versión para el cliente.", href: "/postventa/aperturas", alerta: true },
-    { titulo: "Aperturas que el almacén no tomó", numero: aperturasAbiertas.filter((a) => !a.tomada_at).length, ayuda: "Enviadas y sin el check del almacén.", href: "/postventa/aperturas" },
     { titulo: "Visitas a planta esta semana", numero: (visitas ?? []).length, ayuda: "Clientes que vienen; Central las imprime.", href: "/postventa/agenda" },
   ];
 
