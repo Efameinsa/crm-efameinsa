@@ -2,6 +2,7 @@ import { CambiarTipoAtencion } from "@/components/crm/cambiar-tipo-atencion";
 import Link from "next/link";
 import { ArrowLeft, Building2, Clock, FileText, Wrench, Package, PhoneCall } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { LineaAtencion } from "@/components/crm/linea-atencion";
@@ -261,6 +262,9 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
                 <Clock className="size-3.5" /> Entró el {fechaHoraLima(a.solicitado_at)}
               </span>
             </div>
+            {/* Otra razón social del mismo dueño (23-09): el equipo o el
+                reclamo pueden estar en la otra ficha. */}
+            <AvisoMismoCliente cuentaId={a.cuenta_id} className="mt-2" />
           </div>
           <div className="flex flex-col items-end gap-1.5">
             <span

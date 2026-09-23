@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileText, MessageCircle, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postventa";
@@ -179,6 +180,8 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                 Ver la captura con que Finanzas confirmó el pago →
               </a>
             )}
+            {/* Otra razón social del mismo dueño (23-09). */}
+            <AvisoMismoCliente cuentaId={(servicio as { cuenta_id?: string | null }).cuenta_id} className="mt-2" />
           </div>
 
           <div className="flex items-center gap-2">
