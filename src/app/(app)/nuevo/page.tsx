@@ -6,6 +6,8 @@ import { Kpi } from "@/components/crm/kpi";
 import { PantallaExistente } from "@/lib/propuesta/paginas";
 import { tipoDePerfil } from "@/lib/propuesta/menu";
 import { cuentasPorCobrar } from "@/lib/pagos-finanzas";
+import { colaDelDia } from "@/lib/propuesta/cola-del-dia";
+import { ColaDelDia } from "@/components/propuesta/cola-del-dia";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,21 @@ export default async function HoyPage({ searchParams }: { searchParams: Promise<
 
   if (tipo === "admin") redirect("/admin");
   if (tipo === "gerencia") return <HoyGerencia />;
+
+  // LA COLA DE TRABAJO (23-09): para quien trabaja casos uno por uno, «Hoy» es
+  // la lista de lo que toca, no el tablero. El tablero sigue a un clic.
+  if (["postventa", "almacen", "comercial", "preventivo"].includes(tipo)) {
+    const sp = await searchParams;
+    const supabase = await createClient();
+    const { tareas, agenda } = await colaDelDia(supabase, perfil, tipo);
+    const numeros: Record<string, { etiqueta: string; href: string }> = {
+      postventa: { etiqueta: "Ver El macro en números", href: "/postventa/macro" },
+      almacen: { etiqueta: "Ver Mi día en números", href: "/almacen" },
+      comercial: { etiqueta: "Ver mi tablero", href: "/comercial" },
+      preventivo: { etiqueta: "Ver mi tablero", href: "/comercial" },
+    };
+    return <ColaDelDia nombre={perfil.nombre} tareas={tareas} agenda={agenda} ver={sp.ver ?? null} todo={sp.todo ?? null} enNumeros={numeros[tipo]} />;
+  }
 
   const claves: Record<string, string[]> = {
     central: ["central"],

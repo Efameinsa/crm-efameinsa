@@ -136,11 +136,12 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   gerencia: [
     hoy,
     { etiqueta: "Aprobaciones", href: "/gerencia/aprobaciones", icono: "aprobaciones", coincide: ["/gerencia/aprobaciones"] },
-    { etiqueta: "Ventas", href: "/nuevo/ventas", icono: "ventas", coincide: ["/nuevo/ventas", "/gerencia/supervision", "/gerencia/potenciales", "/gerencia/comerciales", "/central/presupuestos", "/central/cierres"] },
+    { etiqueta: "Ventas", href: "/nuevo/ventas", icono: "ventas", coincide: ["/nuevo/ventas", "/gerencia/potenciales", "/gerencia/comerciales", "/central/presupuestos", "/central/cierres"] },
     { etiqueta: "Marketing", href: "/nuevo/marketing", icono: "marketing", coincide: ["/nuevo/marketing", "/gerencia/marketing", "/gerencia/finanzas", "/whatsapp"] },
     { etiqueta: "Operación", href: "/nuevo/operacion", icono: "operacion", coincide: ["/nuevo/operacion", "/postventa", "/finanzas"] },
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/gerencia/clientes", "/gerencia/cartera-liberable"] },
-    { etiqueta: "Control", href: "/nuevo/control", icono: "control", coincide: ["/nuevo/control", "/gerencia/accesos", "/gerencia/auditoria", "/gerencia/reportes"] },
+    { etiqueta: "Reportes", href: "/nuevo/reportes", icono: "numeros", coincide: ["/nuevo/reportes", "/gerencia/supervision", "/gerencia/gestion-whatsapp", "/gerencia/reportes"] },
+    { etiqueta: "Control", href: "/nuevo/control", icono: "control", coincide: ["/nuevo/control", "/gerencia/accesos", "/gerencia/auditoria"] },
   ],
   admin: [
     { etiqueta: "Usuarios", href: "/admin", icono: "usuarios", coincide: [] },
@@ -275,10 +276,9 @@ export const SECCIONES: Record<string, Seccion> = {
   },
   "gerencia/ventas": {
     titulo: "Ventas",
-    ayuda: "El panel comercial, el día de cada comercial, lo que cierra esta semana y todos los documentos.",
+    ayuda: "El panel comercial, lo que cierra esta semana y todos los documentos.",
     pestanas: [
       { clave: "", etiqueta: "Panel comercial", pagina: "gerencia/panel" },
-      { clave: "supervision", etiqueta: "Supervisión diaria", pagina: "gerencia/supervision" },
       { clave: "semana", etiqueta: "Cierra esta semana", pagina: "gerencia/potenciales" },
       { clave: "cotizaciones", etiqueta: "Cotizaciones", pagina: "central/presupuestos" },
       { clave: "cierres", etiqueta: "Cierres de venta", pagina: "central/cierres" },
@@ -309,12 +309,23 @@ export const SECCIONES: Record<string, Seccion> = {
       { clave: "liberables", etiqueta: "Para redistribuir", pagina: "gerencia/cartera-liberable" },
     ],
   },
+  // REPORTES, APARTE (Santos, 23-09: «crear otra barra para los reportes
+  // porque aún no tenemos bien definidos sus KPIs»). Todo lo que mide el día
+  // de la gente en un solo lugar, con la gestión de WhatsApp en su pestaña.
+  "gerencia/reportes": {
+    titulo: "Reportes",
+    ayuda: "El día de cada comercial, su gestión de WhatsApp (KPIs por definir) y quién cerró su día.",
+    pestanas: [
+      { clave: "", etiqueta: "Supervisión diaria", pagina: "gerencia/supervision" },
+      { clave: "whatsapp", etiqueta: "Gestión de WhatsApp", pagina: "gerencia/gestion-whatsapp" },
+      { clave: "cierre", etiqueta: "Cierre del día", pagina: "gerencia/reportes" },
+    ],
+  },
   "gerencia/control": {
     titulo: "Control",
-    ayuda: "Quién entra y desde dónde, ver el CRM como cualquier cuenta, y quién cerró su día.",
+    ayuda: "Quién entra y desde dónde, y ver el CRM como cualquier cuenta.",
     pestanas: [
-      { clave: "", etiqueta: "Cierre del día", pagina: "gerencia/reportes" },
-      { clave: "accesos", etiqueta: "Accesos y equipos", pagina: "gerencia/accesos" },
+      { clave: "", etiqueta: "Accesos y equipos", pagina: "gerencia/accesos" },
       { clave: "auditoria", etiqueta: "Ver como otra cuenta", pagina: "gerencia/auditoria" },
     ],
   },

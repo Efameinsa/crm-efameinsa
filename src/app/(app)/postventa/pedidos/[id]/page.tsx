@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { enVistaNueva } from "@/lib/propuesta/vista";
 import { ArrowLeft, FileText, MessageCircle, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
@@ -50,8 +51,10 @@ const ETIQUETA_ADJUNTO: Record<string, string> = {
   otro: "Documento",
 };
 
-export default async function PedidoPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PedidoPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ hoy?: string }> }) {
   const { id } = await params;
+  // Propuesta: en la vista nueva el pedido se abre como envío (/nuevo/pedido); «Ficha de hoy» vuelve con ?hoy=1.
+  if (!(await searchParams).hoy && (await enVistaNueva())) redirect(`/nuevo/pedido/${id}`);
   const perfil = await requerirPerfil();
   const supabase = await createClient();
 
