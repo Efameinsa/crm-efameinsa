@@ -530,3 +530,21 @@ export async function registrarGestionYDerivar(datos: {
   }
   return { error: null };
 }
+
+/**
+ * SEGUIMIENTO DE CARTERA DEL COMERCIAL (23-09, 0281).
+ *
+ * Ariana (C4), después de que gerencia le quitara la llave de postventa: «¿cómo
+ * voy a gestionar si se le llamó o no?». Vende lavadoras como cualquier
+ * comercial: la llamada va a SU expediente comercial con ese cliente —el
+ * abierto, el histórico retomado o uno nuevo—, nunca a uno de postventa. Así
+ * cuenta en su meta, que es lo que el botón de postventa le estaba quitando.
+ */
+export async function abrirSeguimientoComercial(cuentaId: string): Promise<{ error: string | null; oportunidadId?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("expediente_comercial_para_seguimiento", { p_cuenta: cuentaId });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  revalidatePath("/comercial/cartera");
+  revalidatePath(`/comercial/cartera/${cuentaId}`);
+  return { error: null, oportunidadId: data as string };
+}
