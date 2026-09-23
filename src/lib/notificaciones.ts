@@ -156,7 +156,9 @@ export async function notificarAlmacen(datos: { titulo: string; cuerpo?: string;
     .select("id")
     .eq("es_almacen", true)
     .eq("activo", true)
-    .eq("es_prueba", datos.esPrueba === true);
+    .eq("es_prueba", datos.esPrueba === true)
+    // Las cuentas _test de la propuesta miran, no reciben avisos (23-09).
+    .is("espejo_de", null);
   await Promise.all(
     (data ?? []).map((p) => notificar({ userId: p.id, tipo: "almacen", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
   );
@@ -174,7 +176,9 @@ export async function notificarFinanzas(datos: { titulo: string; cuerpo?: string
     .select("id")
     .eq("rol", "finanzas")
     .eq("activo", true)
-    .eq("es_prueba", datos.esPrueba === true);
+    .eq("es_prueba", datos.esPrueba === true)
+    // Las cuentas _test de la propuesta miran, no reciben avisos (23-09).
+    .is("espejo_de", null);
   await Promise.all(
     (data ?? []).map((p) => notificar({ userId: p.id, tipo: "finanzas", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
   );

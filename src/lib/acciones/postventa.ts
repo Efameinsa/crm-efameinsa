@@ -103,7 +103,10 @@ export async function liberarPedido(datos: {
       .from("perfiles")
       .select("id")
       .eq("es_postventa", true)
-      .eq("activo", true);
+      .eq("activo", true)
+      // Lo de práctica solo a práctica (23-09: un pedido de práctica le avisó
+      // a Postventa 1, Postventa 2, Ariana y Lesly reales).
+      .eq("es_prueba", servicio.es_prueba === true);
     await Promise.all(
       (postventa ?? []).map((p) =>
         notificar({
