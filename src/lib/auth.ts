@@ -55,6 +55,7 @@ const RUTA_POR_ROL: Record<RolUsuario, string> = {
   central: "/central",
   comercial: "/comercial",
   operaciones: "/operaciones",
+  finanzas: "/finanzas",
 };
 
 // Server Component / Server Action helper: perfil del usuario autenticado.

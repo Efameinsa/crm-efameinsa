@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
-import { notificar, notificarAlmacen } from "@/lib/notificaciones";
+import { notificar, notificarAlmacen, notificarFinanzas } from "@/lib/notificaciones";
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, type ServicioPostventa } from "@/lib/postventa";
 
 /**
@@ -81,7 +81,7 @@ export async function liberarPedido(datos: {
   // check, postventa abriría un pedido que todavía no puede trabajar.
   const { data: servicio } = await supabase
     .from("servicios_postventa")
-    .select("id, cliente_texto, pedido_ejecutado_at, liquidacion_at, aprobado_at")
+    .select("id, cliente_texto, pedido_ejecutado_at, liquidacion_at, aprobado_at, es_prueba")
     .eq("id", data as string)
     .single();
 
@@ -114,6 +114,14 @@ export async function liberarPedido(datos: {
         }),
       ),
     );
+    // Y a Finanzas, que desde el 23-09 confirma él mismo lo acreditado (0279):
+    // el pedido recién liberado es lo primero que va a su bandeja.
+    await notificarFinanzas({
+      titulo: "Pedido nuevo por confirmar pago",
+      cuerpo: servicio.cliente_texto ?? "Central liberó un pedido",
+      url: `/finanzas/pedidos/${servicio.id}`,
+      esPrueba: servicio.es_prueba === true,
+    });
   }
   return ok();
 }

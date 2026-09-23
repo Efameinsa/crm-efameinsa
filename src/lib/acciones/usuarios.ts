@@ -21,7 +21,9 @@ import type { RolUsuario } from "@/types/database";
 //    ya deja escribir a los administradores. Se usa el cliente normal para que
 //    la base siga siendo la que decide, no este archivo.
 
-const ROLES = ["admin", "gerencia", "central", "comercial"] as const;
+// Operaciones (0115) y Finanzas (0279) también: hasta el 23-09 la pantalla no
+// los reconocía y guardar la fila de Lesly habría fallado.
+const ROLES = ["admin", "gerencia", "central", "comercial", "operaciones", "finanzas"] as const;
 
 const esquemaNuevo = z.object({
   nombre: z.string().trim().min(3, "El nombre es muy corto"),

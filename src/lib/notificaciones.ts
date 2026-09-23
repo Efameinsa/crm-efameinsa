@@ -30,6 +30,8 @@ export type TipoNotificacion =
   | "cierre_corregido"
   // Postventa y el almacén se avisan entre sí lo que le toca al otro (0246).
   | "almacen"
+  // Finanzas confirma sus propios pagos (0279, gerencia 23-09).
+  | "finanzas"
   // Lo que ya existía sin tipo propio: la anulación (0237) y la visita (0238).
   | "cierre_anulado"
   | "visita_planta"
@@ -157,5 +159,23 @@ export async function notificarAlmacen(datos: { titulo: string; cuerpo?: string;
     .eq("es_prueba", datos.esPrueba === true);
   await Promise.all(
     (data ?? []).map((p) => notificar({ userId: p.id, tipo: "almacen", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
+  );
+}
+
+/**
+ * Un aviso a Finanzas (0279): John confirma él mismo los pagos (gerencia,
+ * 23-09). Le suena cuando Central libera un pedido y cuando Central le deriva
+ * algo, que antes le llegaba solo por WhatsApp y correo.
+ */
+export async function notificarFinanzas(datos: { titulo: string; cuerpo?: string; url?: string; esPrueba?: boolean }): Promise<void> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("perfiles")
+    .select("id")
+    .eq("rol", "finanzas")
+    .eq("activo", true)
+    .eq("es_prueba", datos.esPrueba === true);
+  await Promise.all(
+    (data ?? []).map((p) => notificar({ userId: p.id, tipo: "finanzas", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
   );
 }

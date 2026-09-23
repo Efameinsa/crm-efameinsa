@@ -60,6 +60,8 @@ export interface ServicioPostventa {
   pago_confirmado_at: string | null;
   /** Quién de Finanzas confirmó y por qué medio (0150). */
   pago_confirmado_detalle?: string | null;
+  pago_observado_at?: string | null;
+  pago_observado_motivo?: string | null;
   pago_confirmado_captura?: string | null;
   /** La apertura de despacho: el documento con el que almacén despacha (0150). */
   apertura_despacho_at?: string | null;
@@ -441,6 +443,9 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
         : pagoDesconocido
           ? "Viene del Excel: el monto pagado nunca se cargó"
           : "Finanzas confirma que el dinero está acreditado, no el voucher. Postventa no cobra.",
+      // Finanzas observó el pago (0279): no encuentra el abono o no cuadra.
+      // Se ve en el pedido hasta que confirme uno.
+      ...(s.pago_observado_at && !pagoConfirmado ? { trabado: `Finanzas observó el pago: ${s.pago_observado_motivo ?? "sin detalle"}` } : {}),
     },
     {
       clave: "aprobado",

@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const ROLES = [
   ["comercial", "Comercial", "Vende y tiene cartera propia. Necesita código."],
   ["central", "Central", "Recibe los contactos entrantes y los deriva."],
+  ["operaciones", "Operaciones", "Autoriza con código, cuida el catálogo y reparte permisos."],
+  ["finanzas", "Finanzas", "Confirma los abonos acreditados y ve las cuentas por cobrar."],
   ["gerencia", "Gerencia", "Ve todos los paneles y aprueba precios."],
   ["admin", "Administrador", "Todo lo anterior más el manejo de usuarios."],
 ] as const;

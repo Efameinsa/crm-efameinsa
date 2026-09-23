@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 const ROLES = [
   ["comercial", "Comercial"],
   ["central", "Central"],
+  ["operaciones", "Operaciones"],
+  ["finanzas", "Finanzas"],
   ["gerencia", "Gerencia"],
   ["admin", "Administrador"],
 ] as const;

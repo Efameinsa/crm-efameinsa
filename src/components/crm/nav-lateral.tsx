@@ -19,6 +19,9 @@ import {
   ClipboardCheck,
   PiggyBank,
   PackageCheck,
+  Landmark,
+  HandCoins,
+  ReceiptText,
   Send,
   Wrench,
   Target,
@@ -117,6 +120,14 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/operaciones/permisos", etiqueta: "Permisos", icono: ShieldCheck },
     { href: "/operaciones/catalogo", etiqueta: "El catálogo", icono: Package },
     { href: "/admin/catalogos", etiqueta: "Listas del sistema", icono: BookMarked },
+  ],
+  // FINANZAS (0279, gerencia 23-09: «Sí» a que John confirme él mismo los
+  // pagos). Tres destinos por la pregunta que responde cada uno: qué tengo
+  // que confirmar hoy, quién nos debe y qué ya confirmé.
+  finanzas: [
+    { href: "/finanzas", etiqueta: "Por confirmar", icono: HandCoins },
+    { href: "/finanzas/cobrar", etiqueta: "Cuentas por cobrar", icono: Landmark },
+    { href: "/finanzas/confirmados", etiqueta: "Confirmados", icono: ReceiptText },
   ],
   admin: [
     { href: "/admin", etiqueta: "Usuarios", icono: Users },

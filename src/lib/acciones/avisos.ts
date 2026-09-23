@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { CONTACTO_FINANZAS, CORREO_FINANZAS, NUMERO_WHATSAPP_FINANZAS } from "@/lib/tesoreria";
 import { avisarFinanzasN8n } from "@/lib/avisos-n8n";
-import { notificar } from "@/lib/notificaciones";
+import { notificar, notificarFinanzas } from "@/lib/notificaciones";
 
 /**
  * Un mismo aviso, a las tres áreas que lo necesitan.
@@ -93,6 +93,15 @@ export async function derivarAviso(datos: {
   revalidatePath("/central/informe");
 
   if (!datos.finanzas) return { error: null, hecho: r.hecho, falta: r.falta };
+
+  // Finanzas ya tiene cuenta (0279): además del WhatsApp y el correo, le suena
+  // la campana y el aviso queda en su bandeja.
+  await notificarFinanzas({
+    titulo: `Central te derivó un aviso · ${r.cliente ?? "cliente"}`,
+    cuerpo: detalle,
+    url: "/finanzas",
+    esPrueba: perfil.es_prueba === true,
+  });
 
   // El WhatsApp se abre, no se manda solo: mandarlo sin intervención exige la
   // API oficial de Meta, que cobra por conversación (la razón está entera en la

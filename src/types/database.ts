@@ -6,7 +6,7 @@
 // «Ella no es una comercial. De ahora en adelante su cuenta será
 // operaciones» (28-08). Operaciones autoriza, reparte permisos y mantiene
 // el catálogo; no vende. Migraciones 0115 y 0116.
-export type RolUsuario = "admin" | "gerencia" | "central" | "comercial" | "operaciones";
+export type RolUsuario = "admin" | "gerencia" | "central" | "comercial" | "operaciones" | "finanzas";
 
 export type AreaDestino =
   | "comercial"
