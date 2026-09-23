@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { MarcaServidor } from "@/components/crm/marca-servidor";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
+import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimiento-boton";
 import { fechaLima } from "@/lib/fechas";
 
 export interface FilaCartera {
@@ -70,7 +71,21 @@ function etiquetaGestion(at: string | null | undefined, tipo: string | null | un
  * puede creer que le traspasaron la cartera — y eso ya causó un problema real
  * cuando Ariana apareció con ventas que no eran suyas.
  */
-export function TablaCartera({ filas, mostrarDueno = false }: { filas: FilaCartera[]; mostrarDueno?: boolean }) {
+/**
+ * `seguimientoComercial` (23-09, 0281): el comercial anota la llamada desde la
+ * fila, sin abrir la ficha. Va a SU expediente comercial con el cliente —el
+ * abierto, el histórico retomado o uno nuevo—, así que reemplaza a «Retomar»
+ * con un clic menos y le cuenta en la meta.
+ */
+export function TablaCartera({
+  filas,
+  mostrarDueno = false,
+  seguimientoComercial = false,
+}: {
+  filas: FilaCartera[];
+  mostrarDueno?: boolean;
+  seguimientoComercial?: boolean;
+}) {
   const router = useRouter();
 
   return (
@@ -84,7 +99,7 @@ export function TablaCartera({ filas, mostrarDueno = false }: { filas: FilaCarte
             <TableHead>Teléfono</TableHead>
             {mostrarDueno && <TableHead>Comercial</TableHead>}
             <TableHead className="text-right">Compras</TableHead>
-            <TableHead className="text-right">Abiertas</TableHead>
+            <TableHead className="text-right">{seguimientoComercial ? "Seguimiento" : "Abiertas"}</TableHead>
             <TableHead>Última venta</TableHead>
             <TableHead className="w-8" />
           </TableRow>
@@ -145,7 +160,20 @@ export function TablaCartera({ filas, mostrarDueno = false }: { filas: FilaCarte
                 )}
               </TableCell>
               <TableCell className="text-right tabular-nums">
-                {c.oportunidadesActivas > 0 ? (
+                {seguimientoComercial ? (
+                  // El botón detiene el clic; Enter sobre él tampoco debe abrir la ficha.
+                  <span className="inline-flex flex-col items-end gap-0.5" onKeyDown={(e) => e.stopPropagation()}>
+                    {c.oportunidadesActivas > 0 && (
+                      <span className="font-semibold text-primary" title="Expedientes abiertos">
+                        {c.oportunidadesActivas}
+                      </span>
+                    )}
+                    {etiquetaGestion(c.ultimaGestionAt, c.ultimaGestionTipo) && (
+                      <span className="whitespace-nowrap text-[10px] font-semibold text-[#1E7F4F]">{etiquetaGestion(c.ultimaGestionAt, c.ultimaGestionTipo)}</span>
+                    )}
+                    <RegistrarSeguimientoBoton cuentaId={c.id} compacto comercial />
+                  </span>
+                ) : c.oportunidadesActivas > 0 ? (
                   <span className="font-semibold text-primary">{c.oportunidadesActivas}</span>
                 ) : c.historicaId ? (
                   // El botón detiene el clic; Enter sobre él tampoco debe abrir la ficha.

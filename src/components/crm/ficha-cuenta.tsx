@@ -284,6 +284,12 @@ export async function FichaCuenta({
                 {haceCasos && !comoGerencia && !comoCentral && (
                   <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Apertura al almacén" compacto />
                 )}
+                {/* El comercial dueño de la cartera anota su llamada en SU
+                    expediente comercial (23-09, 0281): Ariana (C4) se quedó sin
+                    dónde hacerlo cuando le quitaron la llave de postventa. */}
+                {!haceCasos && !comoGerencia && !comoCentral && cuenta.comercial_id === perfilQueMira.id && (
+                  <RegistrarSeguimientoBoton cuentaId={cuenta.id} compacto comercial />
+                )}
                 {/* Los pedidos anteriores al circuito entran desde acá (0239). */}
                 {haceCasos && !perfilQueMira.solo_preventivo && !comoGerencia && !comoCentral && (
                   <TraerPedidoAntiguoBoton cuentaId={cuenta.id} compacto />

@@ -10,6 +10,9 @@ const RUTA_POR_ROL: Record<string, string> = {
   central: "/central",
   comercial: "/comercial",
   operaciones: "/operaciones",
+  // 23-09: la cuenta de Finanzas (0279) entraba a «/» y veía solo el título
+  // «CRM Efameinsa»: su rol no estaba en esta lista.
+  finanzas: "/finanzas",
 };
 
 export async function proxy(request: NextRequest) {
