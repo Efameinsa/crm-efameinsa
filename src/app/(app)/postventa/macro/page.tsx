@@ -4,7 +4,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { casilleroDelPedido } from "@/lib/dia-postventa";
-import { ETIQUETA_TIPO_PEDIDO, circuitoDe, puedeVerPrecios, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
+import { ETIQUETA_TIPO_PEDIDO, circuitoDe, puedeVerPrecios, pruebaSinPedir, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
 import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimiento-boton";
 import { cn } from "@/lib/utils";
 import { preventivosPorOfrecer } from "@/lib/agenda-postventa-datos";
@@ -60,7 +60,7 @@ export default async function MacroPostventaPage() {
   const [{ data: pedidos }, { data: atenciones }, { data: casos }, { data: visitas }, { data: sinLlamar }, preventivos] = await Promise.all([
     supabase
       .from("servicios_postventa")
-      .select("id, cliente_texto, cuenta_id, equipo, completado, cerrado_at, despachado_at, puesta_en_marcha, apertura_despacho_at, fecha_despacho, aprobado_at, informe_cierre_id, pedido_ejecutado_at, origen, tipo_pedido, entrega_en, con_instalacion, fecha_confirmacion, monto, moneda, despacho_nota, updated_at")
+      .select("id, cliente_texto, cuenta_id, equipo, completado, cerrado_at, despachado_at, puesta_en_marcha, apertura_despacho_at, fecha_despacho, aprobado_at, informe_cierre_id, pedido_ejecutado_at, origen, tipo_pedido, entrega_en, con_instalacion, fecha_confirmacion, monto, moneda, despacho_nota, updated_at, prueba_lista_at, prueba_solicitada_at, prueba_embalaje")
       .eq("completado", false)
       .is("cerrado_at", null)
       .limit(2000),
@@ -99,6 +99,7 @@ export default async function MacroPostventaPage() {
   const porCasillero = (c: string) => vivos.filter((s) => casilleroDelPedido(s, hoy) === c);
   const atrasados = vivos.filter((s) => s.fecha_despacho && s.fecha_despacho < hoy && !s.despachado_at);
   const porAprobar = vivos.filter((s) => s.informe_cierre_id && !s.aprobado_at);
+  const sinPedirPrueba = vivos.filter(pruebaSinPedir);
   const porTipo = (t: TipoPedido) => vivos.filter((s) => circuitoDe(s).tipo === t).length;
 
   const at = (atenciones ?? []) as unknown as { id: string; tipo: string; etapa: string; clasificacion: string | null; tomada_at: string | null; programada_at: string | null; informe_servicio_id: string | null; solicitado_at: string }[];
@@ -117,6 +118,7 @@ export default async function MacroPostventaPage() {
 
   const pedidosCuadros: Cuadro[] = [
     { titulo: "Por aprobar", numero: porAprobar.length, ayuda: "Central los lanzó; el área todavía no los tomó.", href: "/postventa/control", alerta: true },
+    { titulo: "Prueba y embalaje sin pedir", numero: sinPedirPrueba.length, ayuda: "Nadie se lo pidió al almacén. No espera al pago: se pide ya.", href: "/postventa/control?vista=paso&falta=prueba_sin_pedir", alerta: true },
     { titulo: "Sin apertura de despacho", numero: porCasillero("sin_apertura").length, ayuda: "Falta pago, prueba, plano o dirección.", href: "/postventa/control?vista=paso" },
     { titulo: "Listos, sin fecha", numero: porCasillero("listo_sin_fecha").length, ayuda: "Con apertura: solo falta decidir cuándo salen.", href: "/postventa/control?vista=despachos&estado=sin_fecha" },
     { titulo: "Despachos programados", numero: porCasillero("despacho_programado").length, ayuda: "Con día puesto y el camión sin salir.", href: "/postventa/control?vista=despachos" },
