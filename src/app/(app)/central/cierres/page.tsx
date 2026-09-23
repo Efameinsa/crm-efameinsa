@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ChecksPedidoCentral } from "@/components/crm/checks-pedido-central";
+import { PasosPedidoCentral } from "@/components/crm/pasos-pedido-central";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { AnularCierreBoton } from "@/components/crm/anular-cierre-boton";
 import { DevolverCierreBoton } from "@/components/crm/devolver-cierre-boton";
@@ -108,7 +109,7 @@ export default async function CierresCentralPage({
   // lista entera y no una por fila (migración 0087).
   const { data: pedidos } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at")
+    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at")
     .in("informe_cierre_id", todas.map((f) => f.id));
   const pedidoPorInforme = new Map((pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]));
 
@@ -214,6 +215,22 @@ export default async function CierresCentralPage({
         }),
       )
     ).filter((x): x is [string, EquipoDelPedido[]] => x !== null),
+  );
+
+  // La liquidación que subió Finanzas (0290), firmada para abrirla desde acá.
+  const pedidosConPdf = (pedidos ?? []).filter((p) => (p.liquidacion_adjunto as { path?: string } | null)?.path);
+  const { data: pdfFirmados } = pedidosConPdf.length
+    ? await supabase.storage.from("adjuntos").createSignedUrls(pedidosConPdf.map((p) => (p.liquidacion_adjunto as { path: string }).path), 3600)
+    : { data: [] };
+  const liquidacionPdfPorInforme = new Map(
+    pedidosConPdf.map((p, k) => [
+      p.informe_cierre_id as string,
+      {
+        url: pdfFirmados?.[k]?.signedUrl ?? "#",
+        nombre: (p.liquidacion_adjunto as { nombre?: string }).nombre ?? "liquidacion.pdf",
+        subidaAt: p.liquidacion_subida_at as string,
+      },
+    ]),
   );
 
   return (
@@ -416,7 +433,8 @@ export default async function CierresCentralPage({
                       adjuntos={documentos}
                       compendio={compendios.get(f.id) ?? null}
                     />
-                    {!estaAnulado && (
+                    {/* Por liberar: la tira de pasos de abajo reemplaza a los checks (0290). */}
+                    {!estaAnulado && (liberado(f.id) || pedido?.aprobado_at != null) && (
                     <ChecksPedidoCentral
                       informeId={f.id}
                       cliente={f.cliente_nombre}
@@ -446,6 +464,22 @@ export default async function CierresCentralPage({
                   </div>
                 </div>
 
+                {/* DEL CIERRE AL PEDIDO EN CUATRO PASOS (0290, reunión 23-09 14:58). */}
+                {!estaAnulado && !liberado(f.id) && !devueltoPorInforme.has(f.id) && (() => {
+                  const eqs = equiposPorInforme.get(f.id) ?? [];
+                  return (
+                    <PasosPedidoCentral
+                      informeId={f.id}
+                      servicioId={(pedido?.id as string | undefined) ?? null}
+                      numeroPedido={(pedido?.numero_pedido_erp as string | null) ?? null}
+                      seriesPedidasAt={(pedido?.series_pedidas_at as string | null) ?? null}
+                      series={{ con: eqs.filter((e) => e.serie).length, total: eqs.length }}
+                      liquidacionAt={(pedido?.liquidacion_at as string | null) ?? null}
+                      liquidacionPdf={liquidacionPdfPorInforme.get(f.id) ?? null}
+                      pedidoEjecutadoAt={(pedido?.pedido_ejecutado_at as string | null) ?? null}
+                    />
+                  );
+                })()}
                 {/* LAS SERIES, DESDE QUE NACE EL PEDIDO (Carlos, 22-09; 0270):
                     «para que la Central ingrese la serie del equipo, la
                     descripción… y dé el ok para que avance». Central no

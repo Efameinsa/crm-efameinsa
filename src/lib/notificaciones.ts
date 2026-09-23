@@ -179,3 +179,21 @@ export async function notificarFinanzas(datos: { titulo: string; cuerpo?: string
     (data ?? []).map((p) => notificar({ userId: p.id, tipo: "finanzas", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
   );
 }
+
+/**
+ * Un aviso a Central (0290): las series que pidió al almacén ya están, o
+ * Finanzas subió la liquidación. Separado por serie como los demás: lo de
+ * práctica no le llega a la Central real.
+ */
+export async function notificarCentral(datos: { titulo: string; cuerpo?: string; url?: string; esPrueba?: boolean }): Promise<void> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("perfiles")
+    .select("id")
+    .eq("rol", "central")
+    .eq("activo", true)
+    .eq("es_prueba", datos.esPrueba === true);
+  await Promise.all(
+    (data ?? []).map((p) => notificar({ userId: p.id, tipo: "almacen", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
+  );
+}

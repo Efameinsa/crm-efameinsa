@@ -56,6 +56,10 @@ export default function ErrorDePantalla({
   // Se decide en el primer render y no en un efecto: así la pantalla que se
   // muestra mientras el navegador recarga es la correcta desde el principio.
   const [recargando] = useState(() => esDesfaseDeVersion(error) && tomarElIntento());
+  // AUDITORÍA (ver1…ver5): es solo lectura y guardar SIEMPRE falla. Carlos lo
+  // vio el 23-09 al registrar una serie «como auditor»: el error genérico no
+  // decía por qué.
+  const [enAuditoria] = useState(() => typeof window !== "undefined" && /^ver[1-5]\./i.test(window.location.hostname));
 
   useEffect(() => {
     if (recargando) window.location.reload();
@@ -80,6 +84,27 @@ export default function ErrorDePantalla({
         <p className="max-w-sm text-xs text-muted-foreground">
           El CRM se actualizó mientras usted lo tenía abierto. Un segundo y sigue donde estaba.
         </p>
+      </div>
+    );
+  }
+
+  if (enAuditoria) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <div className="max-w-md space-y-2">
+          <h1 className="text-lg font-bold text-foreground">Está viendo el CRM como otra persona</h1>
+          <p className="text-sm text-muted-foreground">
+            Es una sesión de auditoría: solo se mira, nada se guarda a nombre de la persona auditada. Para registrar
+            esto, hágalo desde su propia cuenta en crm.efameinsa.com.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => reset()}
+          className="cursor-pointer rounded-md bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground hover:brightness-110"
+        >
+          Volver a la pantalla
+        </button>
       </div>
     );
   }

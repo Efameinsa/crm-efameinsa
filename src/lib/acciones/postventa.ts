@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
-import { notificar, notificarAlmacen, notificarFinanzas } from "@/lib/notificaciones";
+import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, type ServicioPostventa } from "@/lib/postventa";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 
@@ -696,8 +696,23 @@ export async function registrarSerieDelEquipo(itemId: string, servicioId: string
   const supabase = await createClient();
   const { error } = await supabase.rpc("registrar_serie_del_equipo", { p_item: itemId, p_serie: serie.trim().toUpperCase(), p_garantia_meses: 24 });
   if (error) return falla(enCastellano(error.message));
+  // Cuando la última serie que Central pidió queda puesta, Central se entera
+  // (0290): «ingresa la serie… ¡pum! aparece acá».
+  const { data: srv } = await supabase.from("servicios_postventa").select("cliente_texto, series_pedidas_at, es_prueba").eq("id", servicioId).maybeSingle();
+  if (srv?.series_pedidas_at) {
+    const { count } = await supabase.from("pedido_equipos").select("id", { count: "exact", head: true }).eq("servicio_id", servicioId).is("serie", null);
+    if ((count ?? 0) === 0) {
+      await notificarCentral({
+        titulo: `Series listas · ${(srv.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
+        cuerpo: "El almacén puso todas las series. Ya puede anotar el N.º de pedido e imprimirlo.",
+        url: "/central/cierres",
+        esPrueba: srv.es_prueba === true,
+      });
+    }
+  }
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath("/central/cierres");
   revalidatePath("/postventa/equipos");
   return ok();
 }
