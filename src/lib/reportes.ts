@@ -239,6 +239,9 @@ export async function listarClientes(
     limite?: number;
     offset?: number;
     rubro?: RubroFiltro;
+    /** Seguimiento de cartera (0281): «con» o «sin» gestión de contacto desde `gestionDesde` (AAAA-MM-DD, Lima). */
+    gestion?: "con" | "sin" | null;
+    gestionDesde?: string | null;
   },
 ): Promise<{ total: number; filas: FilaClienteListado[] }> {
   const { data, error } = await supabase.rpc("listar_clientes", {
@@ -250,6 +253,8 @@ export async function listarClientes(
     p_limite: opciones.limite ?? 50,
     p_offset: opciones.offset ?? 0,
     p_rubro: opciones.rubro ?? null,
+    p_gestion: opciones.gestion ?? null,
+    p_gestion_desde: opciones.gestionDesde ?? null,
   });
   if (error) {
     console.error("listar_clientes:", error.message);

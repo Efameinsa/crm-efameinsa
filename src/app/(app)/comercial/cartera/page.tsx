@@ -10,6 +10,8 @@ import { Paginacion } from "@/components/crm/filtros-clientes";
 import { Button } from "@/components/ui/button";
 import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
 import { EsperaDeNavegacion } from "@/components/crm/espera-de-navegacion";
+import { FiltroSeguimiento } from "@/components/crm/filtro-seguimiento";
+import { ETIQUETA_SEGUIMIENTO, leerSeguimiento, parametrosSeguimiento } from "@/lib/seguimiento-cartera";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +43,7 @@ const ETIQUETA_ORDEN: Record<OrdenClientes, string> = {
 export default async function CarteraPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; orden?: string; pagina?: string; rubro?: string }>;
+  searchParams: Promise<{ q?: string; orden?: string; pagina?: string; rubro?: string; seg?: string }>;
 }) {
   const perfil = await requerirPerfil();
   const sp = await searchParams;
@@ -56,11 +58,22 @@ export default async function CarteraPage({
   // cartera de otro comercial. Se dice en el título y se muestra de quién es
   // cada uno, porque lo contrario se lee como un traspaso de cartera.
   const atiendeSinPoseer = Boolean(perfil.es_postventa);
+  // SEGUIMIENTO DE CARTERA (23-09, 0281). Ariana (C4): «¿cómo voy a gestionar
+  // si se le llamó o no?». Clientes con o sin llamada, WhatsApp, visita… hoy,
+  // en la semana o en 30 días; lo cuenta la base sobre toda la cartera.
+  const seguimiento = leerSeguimiento(sp.seg);
 
   const supabase = await createClient();
   const [{ opciones: opcionesRubro, sinRubro }, { total, filas }] = await Promise.all([
     cargarOpcionesRubro(supabase, alcanceDe(perfil)),
-    listarClientes(supabase, { q, orden, rubro: rubroParaRpc(rubro), limite: POR_PAGINA, offset: (pagina - 1) * POR_PAGINA }),
+    listarClientes(supabase, {
+      q,
+      orden,
+      rubro: rubroParaRpc(rubro),
+      ...parametrosSeguimiento(seguimiento),
+      limite: POR_PAGINA,
+      offset: (pagina - 1) * POR_PAGINA,
+    }),
   ]);
 
   // LA ÚLTIMA GESTIÓN DE CADA CLIENTE DE LA PÁGINA (19-09). Ariana: «ya lo
@@ -101,11 +114,20 @@ export default async function CarteraPage({
         {/* Sin onCambiar: es un campo más del formulario y lo envía solo al
             cambiar, con la búsqueda y el orden que ya estén puestos. */}
         <FiltroRubro valor={rubro} opciones={opcionesRubro} sinRubro={sinRubro} className="[&>select]:h-9 [&>select]:text-sm" />
+        <FiltroSeguimiento valor={seguimiento} className="[&>select]:h-9 [&>select]:text-sm" />
         <Button type="submit">Buscar</Button>
       </form>
 
       <SeccionPanel
-        titulo={q ? `Resultados para “${q}”` : atiendeSinPoseer ? "Clientes que atiendo" : "Mi cartera"}
+        titulo={
+          q
+            ? `Resultados para “${q}”`
+            : seguimiento
+              ? `Mi cartera · ${ETIQUETA_SEGUIMIENTO[seguimiento].toLowerCase()}`
+              : atiendeSinPoseer
+                ? "Clientes que atiendo"
+                : "Mi cartera"
+        }
         accion={
           <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
             {total.toLocaleString("es-PE")} cliente{total === 1 ? "" : "s"}
@@ -116,7 +138,11 @@ export default async function CarteraPage({
           <p className="text-sm text-muted-foreground">
             {rubro === "sin"
               ? "Todos sus clientes ya tienen rubro."
-              : q || rubro !== null
+              : seguimiento?.startsWith("sin")
+                ? "No queda nadie sin gestión en ese período: todos sus clientes ya tienen una llamada, un WhatsApp o una visita."
+                : seguimiento
+                  ? "Ningún cliente tiene gestión en ese período todavía."
+                  : q || rubro !== null
                 ? "Sin resultados para esa búsqueda."
                 : atiendeSinPoseer
                   ? "Todavía no hay clientes con trabajo de postventa."
@@ -142,6 +168,9 @@ export default async function CarteraPage({
                 ultimaGestionTipo: ultimaGestion.get(c.id)?.tipo ?? null,
               }))}
               mostrarDueno={atiendeSinPoseer}
+              // El comercial anota la llamada desde la fila, en SU expediente
+              // comercial (0281). Postventa conserva su botón de siempre.
+              seguimientoComercial={!atiendeSinPoseer}
             />
             <Paginacion pagina={pagina} totalPaginas={totalPaginas} total={total} desde={desde} hasta={hasta} />
           </EsperaDeNavegacion>
