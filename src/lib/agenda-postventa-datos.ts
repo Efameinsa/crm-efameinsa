@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { circuitoDe, puedeVerPrecios, sinPrecios, veTodoPostventa, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, circuitoDe, puedeVerPrecios, sinPrecios, veTodoPostventa, type ServicioPostventa } from "@/lib/postventa";
 import { ETIQUETA_TIPO_ATENCION, type TipoAtencion } from "@/lib/atenciones";
 import { DIAS_AVISO_PREVENTIVO } from "@/lib/preventivo";
 import {
@@ -28,10 +28,12 @@ export async function cargarEventosPostventa(
   perfil: { id: string; rol: string; es_postventa?: boolean | null; hace_postventa?: boolean | null },
   desde: string,
   hasta: string,
+  /** El reporte diario es de UNA persona: sus casos, no los de la compañera (reunión 23-09). */
+  opciones: { soloMisCasos?: boolean } = {},
 ): Promise<EventoCalendario[]> {
   const verPrecios = puedeVerPrecios(perfil);
   // El área ve todos los casos, estén en la cartera de quien estén (01-09).
-  const verTodo = veTodoPostventa(perfil);
+  const verTodo = veTodoPostventa(perfil) && !opciones.soloMisCasos;
   let consultaCasos = supabase
     .from("oportunidades")
     .select(
@@ -169,6 +171,15 @@ function sumarDiasIso(iso: string, dias: number): string {
  * YA tiene una fecha puesta, y el punto de este panel es precisamente lo que
  * todavía no la tiene (un despacho sin programar, una atención sin agendar).
  */
+/** Lo que le falta a un pedido con fecha para poder salir, en palabras. */
+function faltaParaSalir(s: ServicioPostventa): string {
+  // Sin cifras: este texto lo lee postventa, que no ve montos.
+  const pasos = bloquesPedido(sinPrecios(s)).flatMap((b) => b.pasos);
+  const i = pasos.findIndex((p) => p.clave === "despacho");
+  const antes = (i >= 0 ? pasos.slice(0, i) : pasos).filter((p) => !p.hecho).map((p) => p.etiqueta.toLowerCase());
+  return antes.length ? `falta: ${antes.join(", ")}` : "listo para salir";
+}
+
 export async function pendientesDePostventa(supabase: SupabaseClient): Promise<PendientesPostventa> {
   const [{ data: pedidos }, { data: aProgramar }, preventivosPorVencer] = await Promise.all([
     // Postventa ve todo el trabajo del área, esté en la cartera de quien esté
@@ -176,7 +187,7 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
     supabase
       .from("servicios_postventa")
       .select(
-        "id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, puesta_en_marcha, modalidad, tipo_pedido, entrega_en, con_instalacion, preinstalacion_ok_at, cerrado_at, completado, created_at, informe_cierre_id, pedido_ejecutado_at",
+        "*",
       )
       .eq("completado", false)
       .is("cerrado_at", null)
@@ -221,7 +232,10 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
     .map((s) => ({
       id: s.id,
       cliente: s.cliente_texto ?? "Cliente sin nombre",
-      detalle: `${s.equipo ?? ""} · programado ${s.fecha_despacho}`.trim(),
+      // Reunión 23-09: «despachos programados sin salir, ¿qué significa?».
+      // Tienen fecha pero están en fases distintas; cada fila dice qué le
+      // falta para salir, que es lo que se pregunta.
+      detalle: `${(s.equipo ?? "").split("\n")[0]} · sale el ${s.fecha_despacho!.split("-").reverse().join("/")} · ${faltaParaSalir(s)}`.trim(),
       desde: s.fecha_despacho,
       url: `/postventa/pedidos/${s.id}`,
     }));

@@ -26,6 +26,15 @@ import { cn } from "@/lib/utils";
  * Va ARRIBA del calendario: el calendario contesta «¿cuándo?», esto contesta
  * «¿qué me falta?», y esa es la primera pregunta del día.
  */
+// Cada cuadro abre SU lista, ya filtrada (el mismo destino que El macro). Hasta
+// el 23-09 los cuatro iban a /postventa/pedidos, que no existe: daba 404.
+const DESTINO: Record<CasilleroDia, string> = {
+  puesta_pendiente: "/postventa/control?vista=paso&falta=puesta",
+  despacho_programado: "/postventa/control?vista=despachos",
+  listo_sin_fecha: "/postventa/control?vista=despachos&estado=sin_fecha",
+  sin_apertura: "/postventa/control?vista=paso&falta=apertura",
+};
+
 const ICONO: Record<CasilleroDia, typeof Truck> = {
   puesta_pendiente: Wrench,
   despacho_programado: Truck,
@@ -80,7 +89,7 @@ export async function ElDiaDelArea() {
           return (
             <Link
               key={casillero}
-              href="/postventa/pedidos"
+              href={DESTINO[casillero]}
               className={cn(
                 "flex items-start gap-2.5 rounded-lg border p-3 transition-colors hover:bg-accent",
                 atrasados > 0 ? "border-destructive/40 bg-destructive/5" : "border-border",
