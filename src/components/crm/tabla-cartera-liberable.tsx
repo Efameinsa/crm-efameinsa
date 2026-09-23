@@ -212,7 +212,7 @@ export function TablaCarteraLiberable({
                 )}
               </TableCell>
               <TableCell className="tabular-nums text-muted-foreground">
-                {f.ultimaVentaAt ? fechaLima(f.ultimaVentaAt) : "Nunca compró"}
+                {f.ultimaVentaAt ? (new Date(f.ultimaVentaAt).getUTCFullYear() < 1990 ? "Sin fecha" : fechaLima(f.ultimaVentaAt)) : "Nunca compró"}
               </TableCell>
               <TableCell className="tabular-nums font-medium text-foreground">
                 {tiempoSinVenta(f.sinVentaDesde, ahora)}

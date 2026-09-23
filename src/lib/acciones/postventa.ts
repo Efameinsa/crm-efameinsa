@@ -841,9 +841,12 @@ export async function guardarInformeServicio(datos: {
     if (datos.tipo === "puesta_en_marcha") cambios.fecha_puesta_marcha = fecha;
     if (datos.tipo.startsWith("mantenimiento")) {
       cambios.ultimo_mantenimiento = fecha;
-      cambios.proximo_mantenimiento = new Date(new Date(fecha + "T12:00:00").getTime() + 6 * 30 * 864e5)
-        .toISOString()
-        .slice(0, 10);
+      // Cada 4 meses (gerencia, 23-09): se ofrece a los 3 y se cierra antes de
+      // los 4. Es la fecha del PRÓXIMO, calculada desde el que se acaba de
+      // hacer: no recalcula las máquinas que no pasaron por aquí.
+      const proximo = new Date(fecha + "T12:00:00");
+      proximo.setMonth(proximo.getMonth() + MESES_PRIMER_PREVENTIVO);
+      cambios.proximo_mantenimiento = proximo.toISOString().slice(0, 10);
     }
     if (Object.keys(cambios).length > 0) {
       await supabase.from("equipos_instalados").update(cambios).eq("id", datos.equipoId);
