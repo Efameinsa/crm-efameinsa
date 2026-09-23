@@ -176,7 +176,7 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
     supabase
       .from("servicios_postventa")
       .select(
-        "id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, puesta_en_marcha, modalidad, tipo_pedido, entrega_en, con_instalacion, preinstalacion_ok_at, cerrado_at, completado, created_at",
+        "id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, puesta_en_marcha, modalidad, tipo_pedido, entrega_en, con_instalacion, preinstalacion_ok_at, cerrado_at, completado, created_at, informe_cierre_id, pedido_ejecutado_at",
       )
       .eq("completado", false)
       .is("cerrado_at", null)
@@ -191,7 +191,20 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
     preventivosPorOfrecer(supabase),
   ]);
 
-  const listaPedidos = (pedidos ?? []) as unknown as (ServicioPostventa & { created_at: string | null })[];
+  // Lo que Central todavía no lanzó no es trabajo del área (0237): el mismo
+  // corte que El macro y el control, para que el reporte no cuente de más.
+  const listaPedidos = ((pedidos ?? []) as unknown as (ServicioPostventa & { created_at: string | null })[]).filter(
+    (s) => !s.informe_cierre_id || s.pedido_ejecutado_at,
+  );
+  // Las videollamadas que ya tienen apertura enviada al almacén (0281) no se
+  // piden de nuevo: van en su propio bloque, por día.
+  const { data: conApertura } = await supabase
+    .from("aperturas_llamada")
+    .select("servicio_id")
+    .eq("tipo", "videollamada_preinstalacion")
+    .is("anulada_at", null)
+    .not("servicio_id", "is", null);
+  const yaPedidas = new Set(((conApertura ?? []) as { servicio_id: string }[]).map((a) => a.servicio_id));
 
   const despachosPendientes = listaPedidos.filter((s) => s.despachado_at == null);
   const despachosSinFecha = despachosPendientes
@@ -223,7 +236,8 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
         s.modalidad === "lima" &&
         circuito.esEquipo &&
         s.preinstalacion_ok_at == null &&
-        s.puesta_en_marcha == null
+        s.puesta_en_marcha == null &&
+        !yaPedidas.has(s.id)
       );
     })
     .map((s) => ({
