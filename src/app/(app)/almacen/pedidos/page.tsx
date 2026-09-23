@@ -18,6 +18,9 @@ export const dynamic = "force-dynamic";
  */
 const VISTAS: Record<string, string> = {
   "": "Todos los pedidos en curso",
+  // Lo que Central le pide (0290, reunión 23-09 14:58): «darle clic… se lo pide
+  // al almacén; el almacén ingresa la serie, está bloqueada».
+  series: "Series por ingresar",
   probar: "Por probar y embalar",
   hoy: "Despachos de hoy",
   confirmar: "Programados sin confirmar",
@@ -49,10 +52,13 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
   const hoy = hoyLima();
 
   const despachados = ver === "despachados";
+  const porSeries = ver === "series";
   let consulta = supabase
     .from("servicios_postventa")
-    .select("id, cliente_texto, equipo, ubicacion, direccion_entrega, modalidad, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, protocolo_prueba_ref, almacen_listo_at, agencia_at, guia, transportista, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en, con_instalacion, despacho_nota, updated_at")
-    .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null");
+    .select("id, cliente_texto, equipo, ubicacion, direccion_entrega, modalidad, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, protocolo_prueba_ref, almacen_listo_at, agencia_at, guia, transportista, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en, con_instalacion, despacho_nota, updated_at, series_pedidas_at");
+  // Las series las pide Central ANTES de lanzar el pedido: esa cola no pasa por
+  // el filtro de «ya lanzado» que usan las demás.
+  consulta = porSeries ? consulta.not("series_pedidas_at", "is", null) : consulta.or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null");
   consulta = despachados
     ? // Lo último que salió arriba; con o sin pedido cerrado.
       consulta.not("despachado_at", "is", null).order("despachado_at", { ascending: false }).limit(300)
@@ -69,7 +75,13 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
   if (hasta) consulta = despachados ? consulta.lte("despachado_at", `${hasta}T23:59:59-05:00`) : consulta.lte("fecha_despacho", hasta);
   const { data } = await consulta;
 
-  const todos = (data ?? []) as unknown as ServicioPostventa[];
+  const todos = (data ?? []) as unknown as (ServicioPostventa & { series_pedidas_at?: string | null })[];
+  // Cuántas series le faltan a cada pedido que Central pidió (0290).
+  const faltanSeries = new Map<string, number>();
+  if (porSeries && todos.length) {
+    const { data: sinSerie } = await supabase.from("pedido_equipos").select("servicio_id").in("servicio_id", todos.map((t) => t.id)).is("serie", null);
+    for (const r of (sinSerie ?? []) as { servicio_id: string }[]) faltanSeries.set(r.servicio_id, (faltanSeries.get(r.servicio_id) ?? 0) + 1);
+  }
   const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
   const filas = todos.filter((s) => {
     switch (ver) {
@@ -80,11 +92,16 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
       case "apertura": return Boolean(s.apertura_despacho_at) && !s.despachado_at;
       case "guia": return Boolean(s.despachado_at) && !s.guia && !s.agencia_at;
       case "aprobados": return Boolean(s.aprobado_at) && !s.prueba_solicitada_at && !probado(s) && Boolean(s.informe_cierre_id);
+      case "series": return (faltanSeries.get(s.id) ?? 0) > 0;
       default: return true;
     }
   });
 
-  function estado(s: ServicioPostventa): { texto: string; tono: string } {
+  function estado(s: ServicioPostventa & { series_pedidas_at?: string | null }): { texto: string; tono: string } {
+    if (porSeries) {
+      const n = faltanSeries.get(s.id) ?? 0;
+      return { texto: `Central pide ${n} serie${n === 1 ? "" : "s"}${s.series_pedidas_at ? ` desde el ${new Date(s.series_pedidas_at).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}` : ""}`, tono: "text-destructive" };
+    }
     // Salió, pero el almacén no dejó la evidencia de la carga (postventa
     // registró la salida desde su pantalla): que se vea para completarla.
     if (faltanFotosDeCarga(s) && !s.cerrado_at && !s.completado)

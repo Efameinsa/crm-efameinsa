@@ -70,6 +70,13 @@ export default async function AlmacenPage() {
       .limit(500),
   ]);
   const ap = (aperturas ?? []) as { id: string; tomada_at: string | null; informe_at: string | null }[];
+  // Las series que Central pidió (0290): pedidos con al menos un equipo sin serie.
+  const { data: pedidasSeries } = await supabase.from("servicios_postventa").select("id").not("series_pedidas_at", "is", null).is("cerrado_at", null).limit(300);
+  const idsSeries = ((pedidasSeries ?? []) as { id: string }[]).map((x) => x.id);
+  const { data: sinSerie } = idsSeries.length
+    ? await supabase.from("pedido_equipos").select("servicio_id").in("servicio_id", idsSeries).is("serie", null)
+    : { data: [] };
+  const pedidosSinSerie = new Set(((sinSerie ?? []) as { servicio_id: string }[]).map((x) => x.servicio_id)).size;
 
   const vivos = (pedidos ?? []) as unknown as ServicioPostventa[];
   const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
@@ -91,6 +98,7 @@ export default async function AlmacenPage() {
   const porTipo = (t: string) => at.filter((a) => a.tipo === t).length;
 
   const cuadrosPedidos: Cuadro[] = [
+    { titulo: "Series por ingresar", numero: pedidosSinSerie, ayuda: "Central las pidió: escríbalas como se leen en la placa. Quedan fijas.", href: "/almacen/pedidos?ver=series", alerta: true },
     { titulo: "Por probar y embalar", numero: porProbar.length, ayuda: "Postventa pidió la prueba; falta el protocolo y el check.", href: "/almacen/pedidos?ver=probar", alerta: true },
     { titulo: "Despachos de hoy", numero: programadosHoy.length, ayuda: "Programados para hoy y sin salir.", href: "/almacen/pedidos?ver=hoy", alerta: true },
     { titulo: "Programados sin confirmar", numero: porConfirmar.length, ayuda: "Postventa puso fecha; falta decir que el almacén está listo.", href: "/almacen/pedidos?ver=confirmar" },

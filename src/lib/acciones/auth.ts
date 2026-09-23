@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { avisarAccesoFuera } from "@/lib/aviso-acceso-fuera";
 
 const esquemaLogin = z.object({
   email: z.string().email("Correo inválido"),
@@ -43,6 +44,8 @@ export async function iniciarSesion(
     ip,
     user_agent: userAgent,
   });
+  // Aviso a gerencia si entra desde fuera de la oficina (23-09); nunca frena el ingreso.
+  await avisarAccesoFuera(data.user.id, ip, userAgent);
 
   redirect("/");
 }

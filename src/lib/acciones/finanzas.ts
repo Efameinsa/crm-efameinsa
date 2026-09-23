@@ -63,6 +63,8 @@ export async function confirmarAbono(datos: {
   medio: string;
   capturaPath?: string | null;
   nota?: string;
+  /** Lo que el banco descontó (comisión) o faltó, y por qué (0292). */
+  descuento?: { monto: number; motivo: string } | null;
 }): Promise<Resultado & { total?: number }> {
   await requerirPerfil();
   if (!Number.isFinite(datos.monto) || datos.monto <= 0) return { error: "Escriba el monto que entró a la cuenta" };
@@ -81,15 +83,27 @@ export async function confirmarAbono(datos: {
     p_nota: datos.nota?.trim() || null,
   });
   if (error) return { error: limpiar(error.message) };
+  const desc = datos.descuento && datos.descuento.monto > 0 ? datos.descuento : null;
+  if (desc) {
+    const { error: e2 } = await supabase.rpc("finanzas_anotar_descuento", { p_servicio: datos.servicioId, p_monto: desc.monto, p_motivo: desc.motivo });
+    if (e2) return { error: `El abono quedó confirmado, pero no se anotó el descuento: ${limpiar(e2.message)}` };
+  }
 
   const monto = datos.monto.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const descTexto = desc ? desc.monto.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
   await avisarInteresados(datos.servicioId, ({ cliente, cubierto }) => ({
     titulo: `Finanzas confirmó un abono · ${cliente}`,
     // Postventa no ve cifras (Carlos, 27-08): se le dice si ya puede avanzar.
     cuerpoPostventa: cubierto
       ? "Ya está acreditado lo acordado antes del despacho: el pedido puede seguir."
-      : "Entró un abono, pero todavía no cubre lo acordado antes del despacho.",
-    cuerpoComercial: `Abono de ${monto} acreditado (op. ${datos.operacion.trim()}, ${datos.medio.trim()}).${cubierto ? " Ya cubre lo acordado antes del despacho." : " Todavía falta para lo acordado antes del despacho."}`,
+      : desc
+        ? "Entró un abono con un descuento del banco: falta la diferencia y la está gestionando el comercial."
+        : "Entró un abono, pero todavía no cubre lo acordado antes del despacho.",
+    // Carlos, 23-09: la comisión «lo ve el comercial… lo cuestiona con el
+    // cliente, lo cobra y registra la llamada con el voucher».
+    cuerpoComercial: `Abono de ${monto} acreditado (op. ${datos.operacion.trim()}, ${datos.medio.trim()}).${
+      desc ? ` Descontaron ${descTexto} (${desc.motivo.trim()}): cóbrelo al cliente, registre la gestión con el voucher y Finanzas lo confirma.` : ""
+    }${cubierto ? " Ya cubre lo acordado antes del despacho." : " Todavía falta para lo acordado antes del despacho."}`,
   }));
 
   revalidatePath("/finanzas");

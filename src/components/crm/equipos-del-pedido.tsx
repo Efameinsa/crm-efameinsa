@@ -16,6 +16,8 @@ import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { equipoVaEnEsteDespacho, registrarSerieDelEquipo, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido } from "@/lib/acciones/almacen";
+import { corregirSerie } from "@/lib/acciones/pedido-central";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,6 +108,12 @@ function Fila({
   const [pendiente, startTransition] = useTransition();
   const [serie, setSerie] = useState("");
   const [abrirSerie, setAbrirSerie] = useState(false);
+  // Corregir una serie ya puesta (0290): queda fija; cambiarla pide el código
+  // de operaciones y el motivo, y queda escrito en el pedido.
+  const [corrigiendo, setCorrigiendo] = useState(false);
+  const [serieNueva, setSerieNueva] = useState("");
+  const [motivoSerie, setMotivoSerie] = useState("");
+  const [pinSerie, setPinSerie] = useState("");
   const [protocolo, setProtocolo] = useState("");
   const [nota, setNota] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
@@ -182,6 +190,38 @@ function Fila({
           </button>
         )}
       </div>
+
+      {e.serie && !despachado && (
+        <div className="mt-1.5">
+          {corrigiendo ? (
+            <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
+              <p className="text-[11px] text-amber-900">La serie queda fija. Para cambiarla hace falta el código de operaciones o gerencia, y queda escrito por qué.</p>
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                <Input value={serieNueva} onChange={(x) => setSerieNueva(x.target.value)} placeholder="Serie correcta" className="h-8 font-mono text-sm uppercase" />
+                <Input value={motivoSerie} onChange={(x) => setMotivoSerie(x.target.value)} placeholder="Por qué (ej.: se leyó mal la placa)" className="h-8 text-sm" />
+              </div>
+              <CampoCodigo valor={pinSerie} onChange={setPinSerie} tono="amber" id={`pin-serie-${e.id}`} />
+              <div className="flex gap-1.5">
+                <Button
+                  size="sm"
+                  className="h-8"
+                  disabled={pendiente || !serieNueva.trim() || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4}
+                  onClick={() => correr(() => corregirSerie(e.id, servicioId, serieNueva, pinSerie, motivoSerie), "Serie corregida; quedó escrito en el pedido")}
+                >
+                  Corregir
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8" onClick={() => setCorrigiendo(false)}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setCorrigiendo(true)}>
+              ¿Serie equivocada? Corregir con código
+            </button>
+          )}
+        </div>
+      )}
 
       {/* La serie: se lee en la placa (postventa o almacén). */}
       {!e.serie && (
