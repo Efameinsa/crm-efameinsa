@@ -7,6 +7,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { notificar, notificarAlmacen, notificarFinanzas } from "@/lib/notificaciones";
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, type ServicioPostventa } from "@/lib/postventa";
+import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 
 /**
  * Las acciones del circuito de postventa (migración 0087).
@@ -564,7 +565,9 @@ export async function cerrarPedido(
 
   const series = (datos.series ?? []).map((x) => x.trim()).filter(Boolean);
   const garantia = datos.garantiaMeses ?? 24;
-  const mantenimiento = datos.mesesMantenimiento ?? 6;
+  // Máquina nueva: primer preventivo a los 4 meses, no a los 6 (gerencia,
+  // 23-09: «concluir cierres antes de los 4 meses»; migración 0277).
+  const mantenimiento = datos.mesesMantenimiento ?? MESES_PRIMER_PREVENTIVO;
 
   // Sin serie no hay equipo en el parque: la serie ES la identidad de la
   // máquina. Se puede cerrar igual —hay pedidos históricos sin serie a la

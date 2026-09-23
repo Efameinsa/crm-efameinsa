@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { circuitoDe, puedeVerPrecios, sinPrecios, veTodoPostventa, type ServicioPostventa } from "@/lib/postventa";
 import { ETIQUETA_TIPO_ATENCION, type TipoAtencion } from "@/lib/atenciones";
+import { DIAS_AVISO_PREVENTIVO } from "@/lib/preventivo";
 import {
   eventoDeAtencion,
   eventoDeCaso,
@@ -169,10 +170,7 @@ function sumarDiasIso(iso: string, dias: number): string {
  * todavía no la tiene (un despacho sin programar, una atención sin agendar).
  */
 export async function pendientesDePostventa(supabase: SupabaseClient): Promise<PendientesPostventa> {
-  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-  const limite = sumarDiasIso(hoy, 15);
-
-  const [{ data: pedidos }, { data: aProgramar }, { data: equipos }] = await Promise.all([
+  const [{ data: pedidos }, { data: aProgramar }, preventivosPorVencer] = await Promise.all([
     // Postventa ve todo el trabajo del área, esté en la cartera de quien esté
     // (veTodoPostventa) — el mismo criterio que ya usa `cargarEventosPostventa`.
     supabase
@@ -190,13 +188,7 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
       .is("cerrado_at", null)
       .order("solicitado_at", { ascending: true })
       .limit(100),
-    supabase
-      .from("equipos_instalados")
-      .select("id, serie, modelo_texto, cliente_texto, proximo_mantenimiento, cuentas(razon_social)")
-      .not("proximo_mantenimiento", "is", null)
-      .lte("proximo_mantenimiento", limite)
-      .order("proximo_mantenimiento", { ascending: true })
-      .limit(200),
+    preventivosPorOfrecer(supabase),
   ]);
 
   const listaPedidos = (pedidos ?? []) as unknown as (ServicioPostventa & { created_at: string | null })[];
@@ -274,6 +266,38 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
     url: `/postventa/atenciones/${a.id}`,
   }));
 
+  return {
+    despachosSinFecha,
+    despachosConFecha,
+    videollamadas,
+    puestasEnMarcha,
+    atencionesSinProgramar,
+    preventivosPorVencer,
+  };
+}
+
+/**
+ * LOS PREVENTIVOS POR OFRECER (gerencia, 23-09-2026): «Cada 3 meses se debe
+ * alertar para empezar el proceso de envío de propuestas y concluir cierres
+ * antes de los 4 meses». La máquina nueva sube al parque con su preventivo a
+ * los 4 meses (0277), así que el aviso va 30 días antes del vencimiento —antes
+ * eran 15, que no alcanzaban para cotizar, esperar la OC y cerrar—. También
+ * salen los ya vencidos: no se esconde lo que se pasó.
+ *
+ * Aparte de `pendientesDePostventa` para que el macro cuente lo mismo que la
+ * agenda y el reporte diario sin traer todo lo demás.
+ */
+export async function preventivosPorOfrecer(supabase: SupabaseClient): Promise<FilaPendiente[]> {
+  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const limite = sumarDiasIso(hoy, DIAS_AVISO_PREVENTIVO);
+  const { data: equipos } = await supabase
+    .from("equipos_instalados")
+    .select("id, serie, modelo_texto, cliente_texto, proximo_mantenimiento, cuentas(razon_social)")
+    .not("proximo_mantenimiento", "is", null)
+    .lte("proximo_mantenimiento", limite)
+    .order("proximo_mantenimiento", { ascending: true })
+    .limit(200);
+
   const listaEquipos = (equipos ?? []) as unknown as {
     id: string;
     serie: string;
@@ -294,22 +318,13 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
           .is("cerrado_at", null);
   const equiposConCaso = new Set((conCasoAbierto ?? []).map((a) => a.equipo_id).filter((x): x is string => x != null));
 
-  const preventivosPorVencer = listaEquipos
+  return listaEquipos
     .filter((e) => !equiposConCaso.has(e.id))
     .map((e) => ({
       id: e.id,
       cliente: e.cuentas?.razon_social ?? e.cliente_texto ?? "Cliente sin nombre",
-      detalle: `${e.modelo_texto ?? "Equipo"} · serie ${e.serie} · vence ${e.proximo_mantenimiento}`,
+      detalle: `${e.modelo_texto ?? "Equipo"} · serie ${e.serie} · ${e.proximo_mantenimiento < hoy ? "venció" : "vence"} ${e.proximo_mantenimiento}`,
       desde: e.proximo_mantenimiento,
       url: `/postventa/equipos/${e.id}`,
     }));
-
-  return {
-    despachosSinFecha,
-    despachosConFecha,
-    videollamadas,
-    puestasEnMarcha,
-    atencionesSinProgramar,
-    preventivosPorVencer,
-  };
 }

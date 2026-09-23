@@ -638,3 +638,24 @@ así que con `prueba_embalaje = "SI"` todavía puesto, el paso seguía en verde 
   embalado» como DETENIDO/pendiente, con las fotos del despacho intactas.
 - `scripts/_liberar-prueba-pedido.mjs` corregido para la próxima vez: ahora limpia también
   `prueba_embalaje`.
+
+## 23-09 — dos decisiones de gerencia: preventivo a los 4 meses y documentos para postventa
+
+**A) Preventivo.** Gerencia: «Cada 3 meses se debe alertar para empezar el proceso de envío de
+propuestas y concluir cierres antes de los 4 meses». Santos: solo máquinas nuevas.
+
+- `0277_preventivo_cada_4_meses.sql` (rama `feat/preventivo-4-meses`, SIN aplicar): parcha sobre
+  la definición viva `registrar_series_del_pedido`, `registrar_serie_del_equipo` (base + 4 meses)
+  y `subir_maquina_al_parque` (default y coalesce 6 → 4). No toca ninguna fila existente.
+- `cerrarPedido` manda 4 por defecto (`MESES_PRIMER_PREVENTIVO` en `src/lib/preventivo.ts`).
+- El aviso: «Preventivos por ofrecer» pasa de 15 a 30 días (`DIAS_AVISO_PREVENTIVO`) en
+  «Pendiente por tipo» de la agenda, el reporte diario y una tarjeta nueva en el macro.
+- Sin tocar, a propósito: la Ruta (`MESES_PREVENTIVO = 6` en `ruta-mantenimiento.ts`, que
+  clasifica el parque viejo) y la recurrencia tras un mantenimiento hecho (`+6*30 días` en
+  `guardarInformeServicio`, `src/lib/acciones/postventa.ts`): afectan a las máquinas existentes.
+
+**B) Documentos.** «¿Postventa puede ver la OC y el voucher, sin montos? Sí». La ficha del
+pedido ya no esconde los «Documentos del expediente» a quien no ve precios, y ahora se abren
+(URL firmada, 1 h). Nota visible: «La OC y el voucher pueden traer montos; en el CRM las cifras
+siguen ocultas». La RLS ya lo permitía (`informes_lectura_postventa`; bucket `adjuntos` legible
+por cualquier sesión): no hizo falta migración.

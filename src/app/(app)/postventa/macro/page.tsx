@@ -7,6 +7,8 @@ import { casilleroDelPedido } from "@/lib/dia-postventa";
 import { ETIQUETA_TIPO_PEDIDO, circuitoDe, puedeVerPrecios, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
 import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimiento-boton";
 import { cn } from "@/lib/utils";
+import { preventivosPorOfrecer } from "@/lib/agenda-postventa-datos";
+import { DIAS_AVISO_PREVENTIVO, REGLA_PREVENTIVO } from "@/lib/preventivo";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +57,7 @@ export default async function MacroPostventaPage() {
   const hoy = hoyLima();
   const enUnaSemana = new Date(new Date(hoy + "T12:00:00-05:00").getTime() + 7 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
-  const [{ data: pedidos }, { data: atenciones }, { data: casos }, { data: visitas }, { data: sinLlamar }] = await Promise.all([
+  const [{ data: pedidos }, { data: atenciones }, { data: casos }, { data: visitas }, { data: sinLlamar }, preventivos] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("id, cliente_texto, cuenta_id, equipo, completado, cerrado_at, despachado_at, puesta_en_marcha, apertura_despacho_at, fecha_despacho, aprobado_at, informe_cierre_id, pedido_ejecutado_at, origen, tipo_pedido, entrega_en, con_instalacion, fecha_confirmacion, monto, moneda, despacho_nota, updated_at")
@@ -86,6 +88,10 @@ export default async function MacroPostventaPage() {
       .is("despachado_at", null)
       .order("fecha_confirmacion", { ascending: true, nullsFirst: false })
       .limit(300),
+    // Gerencia, 23-09: «Cada 3 meses se debe alertar para empezar el proceso
+    // de envío de propuestas y concluir cierres antes de los 4 meses». La
+    // misma lista que «Pendiente por tipo» de la agenda (sin caso abierto).
+    preventivosPorOfrecer(supabase),
   ]);
 
   // Lo que todavía no lanzó Central no es trabajo del área (0237).
@@ -131,6 +137,13 @@ export default async function MacroPostventaPage() {
     { titulo: "Ventas de servicio abiertas", numero: cs.length, ayuda: "Mantenimientos, repuestos y seguimientos en curso.", href: "/postventa/atenciones?ver=casos" },
     { titulo: "Con la fecha vencida", numero: casosVencidos.length, ayuda: "Tenían «qué sigue» y ya pasó.", href: "/postventa/atenciones?ver=casos", alerta: true },
     { titulo: "Sin qué sigue", numero: casosSinFecha.length, ayuda: "Abiertos sin próxima acción agendada.", href: "/postventa/atenciones?ver=casos" },
+    {
+      titulo: "Preventivos por ofrecer",
+      numero: preventivos.length,
+      ayuda: `Vencen en ${DIAS_AVISO_PREVENTIVO} días o ya vencieron, sin caso abierto. ${REGLA_PREVENTIVO}`,
+      href: "/postventa/agenda",
+      alerta: true,
+    },
     { titulo: "Visitas a planta esta semana", numero: (visitas ?? []).length, ayuda: "Clientes que vienen; Central las imprime.", href: "/postventa/agenda" },
   ];
 
@@ -166,7 +179,7 @@ export default async function MacroPostventaPage() {
       </SeccionPanel>
 
       <SeccionPanel titulo="Ventas de servicio y visitas">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {casosCuadros.map((c) => (
             <Tarjeta key={c.titulo} c={c} />
           ))}

@@ -121,12 +121,20 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
   const total = Number(servicio.monto ?? 0);
   const pagado = Number(servicio.monto_pagado ?? 0);
   const avance = avancePedido(servicio);
-  // Los papeles del expediente (OC, voucher, cotización firmada) traen
-  // cifras. Carlos dejó en suspenso si postventa los ve (04-09, 10:10: «lo
-  // único que queda pendiente de cara a Central-postventa es si vamos a
-  // mostrarlos o no; déjame pensar»). Hasta esa decisión, no se muestran a
-  // quien no ve precios; antes de la 0165 tampoco los veía, por RLS.
-  const adjuntos = (verPrecios ? (informe?.adjuntos ?? []) : []) as Adjunto[];
+  // Los papeles del expediente (OC, voucher, cotización firmada). Carlos los
+  // había dejado en suspenso para postventa el 04-09 («déjame pensar»), porque
+  // traen cifras. Gerencia lo decidió el 23-09: «¿Postventa puede ver la OC y
+  // el voucher, sin montos? Sí». Se muestran a todos los que abren la ficha y
+  // se pueden abrir; lo que sigue tapado son los MONTOS del CRM (`sinPrecios`).
+  // La RLS ya lo permitía (informes_lectura_postventa, 0165; el bucket
+  // `adjuntos` es legible por cualquier sesión): esto era solo pantalla.
+  const adjuntos = (informe?.adjuntos ?? []) as Adjunto[];
+  const { data: adjuntosFirmados } = adjuntos.length
+    ? await supabase.storage.from("adjuntos").createSignedUrls(adjuntos.map((a) => a.path), 3600)
+    : { data: [] };
+  const urlAdjunto = new Map(
+    (adjuntosFirmados ?? []).filter((f) => f.path && f.signedUrl).map((f) => [f.path as string, f.signedUrl]),
+  );
 
   // La captura con que Finanzas confirmó el pago (0157): URL firmada, una hora.
   const capturaPath = (servicio as { pago_confirmado_captura?: string | null }).pago_confirmado_captura ?? null;
@@ -333,6 +341,13 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
             <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">
               Documentos del expediente
             </h2>
+            {/* La decisión del 23-09 dicha donde se usa: el papel del cliente
+                no se tapa, pero las cifras del CRM siguen ocultas. */}
+            {!verPrecios && (
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                La OC y el voucher pueden traer montos; en el CRM las cifras siguen ocultas.
+              </p>
+            )}
             {adjuntos.length === 0 ? (
               <p className="mt-2 text-xs text-muted-foreground">
                 El comercial todavía no adjuntó nada al cierre. Acá van la cotización, la orden de compra, los
@@ -340,20 +355,42 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
               </p>
             ) : (
               <ul className="mt-2 space-y-1">
-                {adjuntos.map((a) => (
-                  <li
-                    key={a.path}
-                    className="flex items-center gap-2 rounded-md border border-border px-2.5 py-2 text-xs"
-                  >
-                    <Paperclip className="size-3.5 flex-none text-muted-foreground" />
-                    <span className="min-w-0">
-                      <span className="block font-semibold text-foreground">
-                        {ETIQUETA_ADJUNTO[a.tipo ?? "otro"] ?? "Documento"}
+                {adjuntos.map((a) => {
+                  const url = urlAdjunto.get(a.path);
+                  const cuerpo = (
+                    <>
+                      <Paperclip className="size-3.5 flex-none text-muted-foreground" />
+                      <span className="min-w-0">
+                        <span className="block font-semibold text-foreground">
+                          {ETIQUETA_ADJUNTO[a.tipo ?? "otro"] ?? "Documento"}
+                        </span>
+                        <span className="block truncate text-muted-foreground">{a.nombre}</span>
                       </span>
-                      <span className="block truncate text-muted-foreground">{a.nombre}</span>
-                    </span>
-                  </li>
-                ))}
+                    </>
+                  );
+                  return (
+                    <li key={a.path}>
+                      {url ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={`Abrir ${a.nombre}`}
+                          className="flex items-center gap-2 rounded-md border border-border px-2.5 py-2 text-xs hover:bg-accent"
+                        >
+                          {cuerpo}
+                        </a>
+                      ) : (
+                        <span
+                          title="El archivo no se encontró en el almacenamiento"
+                          className="flex items-center gap-2 rounded-md border border-dashed border-border px-2.5 py-2 text-xs"
+                        >
+                          {cuerpo}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

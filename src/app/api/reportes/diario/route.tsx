@@ -9,6 +9,7 @@ import { ReporteDiarioPdf } from "@/lib/pdf/reporte-diario-pdf";
 import { cargarPotenciales, lunesSemana, resumirSemana } from "@/lib/potenciales-semana";
 import { cargarEventosPostventa, eventosDelDia, pendientesDePostventa, type PendientesPostventa } from "@/lib/agenda-postventa-datos";
 import { etiquetaEvento } from "@/lib/calendario-postventa";
+import { TITULO_PREVENTIVOS_POR_OFRECER } from "@/lib/preventivo";
 
 // PDF del cierre del día del comercial. La autorización real la hace la
 // función SQL (el propio comercial o backoffice); acá solo se comprueba que
@@ -87,7 +88,7 @@ export async function GET(request: Request) {
         videollamadas: "Videollamadas de preinstalación (Lima)",
         puestasEnMarcha: "Puestas en marcha pendientes",
         atencionesSinProgramar: "Atenciones sin programar",
-        preventivosPorVencer: "Preventivos por vencer en 15 días",
+        preventivosPorVencer: TITULO_PREVENTIVOS_POR_OFRECER,
       };
       pendientesPostventa = (Object.keys(ROTULO) as (keyof PendientesPostventa)[]).map((clave) => ({
         titulo: ROTULO[clave],
