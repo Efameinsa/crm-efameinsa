@@ -174,7 +174,7 @@ export default async function ControlPedidosPage({
     >
       <p className="mb-4 max-w-prose text-xs text-muted-foreground">
         {vista === "paso"
-          ? "Una fila por pedido, una columna por paso. Toque «Falta plano», «Falta despacho» o el paso que quiera y quedan solo los pedidos que lo deben: esa es su lista de trabajo. Cada paso se marca en la ficha del pedido."
+          ? "Una fila por empresa (la flecha despliega sus pedidos y su máquina), una columna por paso. Toque «Falta plano», «Falta despacho» o el paso que quiera y quedan solo los pedidos que lo deben: esa es su lista de trabajo. Cada paso se marca en la ficha del pedido."
           : "Cada pedido está en la fase donde le falta trabajo; la barrita se abre y dice qué falta en esa fase. La tarjeta se puede arrastrar: si intenta pasarla a una fase que todavía no le toca, la alerta le dice qué falta — y al marcar esos pasos en la ficha, pasa sola."}
       </p>
 

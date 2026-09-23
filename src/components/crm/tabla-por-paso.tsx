@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Check, CircleDashed, OctagonAlert } from "lucide-react";
-import { fechaLimaCorta } from "@/lib/fechas";
+import { FilasPorPaso } from "@/components/crm/filas-por-paso";
 import { cn } from "@/lib/utils";
 
 /**
@@ -139,55 +139,8 @@ export function TablaPorPaso({ filas, falta, base }: { filas: FilaTabla[]; falta
               </tr>
             </thead>
             <tbody>
-              {visibles.map((f) => {
-                // El siguiente paso que le toca: el primero sin hacer, en orden.
-                const siguiente = f.pasos.find((p) => !p.hecho)?.clave ?? null;
-                return (
-                  <tr key={f.id} className="border-b border-border last:border-0 hover:bg-accent/40">
-                    <td className="sticky left-0 bg-card px-2 py-1.5">
-                      <Link href={`/postventa/pedidos/${f.id}`} className="block min-w-44 max-w-64 hover:underline">
-                        <span className="line-clamp-1 break-words font-semibold text-foreground" title={f.cliente}>
-                          {f.cliente}
-                        </span>
-                        <span className="line-clamp-1 break-words text-[11px] text-muted-foreground" title={f.equipo}>
-                          {f.equipo}
-                        </span>
-                      </Link>
-                    </td>
-                    {columnas.map((c) => {
-                      const p = f.pasos.find((x) => x.clave === c.clave);
-                      if (!p) return <td key={c.clave} className="px-2 py-1.5 text-center text-muted-foreground/40">·</td>;
-                      const esSiguiente = c.clave === siguiente;
-                      return (
-                        <td
-                          key={c.clave}
-                          className={cn("px-2 py-1.5 text-center align-middle", falta === c.clave && !p.hecho && "bg-primary/5")}
-                          title={p.hecho ? `${p.etiqueta} · ${p.cuando ? fechaLimaCorta(p.cuando) : "hecho"}` : p.trabado ? `${p.etiqueta} · ${p.trabado}` : `${p.etiqueta} · le toca a ${p.dueno}`}
-                        >
-                          {p.hecho ? (
-                            <span className="inline-flex flex-col items-center text-[#1E7F4F]">
-                              <Check className="size-4" />
-                              {p.cuando && <span className="text-[10px] tabular-nums text-muted-foreground">{fechaLimaCorta(p.cuando)}</span>}
-                            </span>
-                          ) : p.trabado ? (
-                            <span className="inline-flex flex-col items-center text-destructive">
-                              <OctagonAlert className="size-4" />
-                              <span className="text-[10px]">{p.dueno}</span>
-                            </span>
-                          ) : esSiguiente ? (
-                            <span className="inline-flex flex-col items-center text-amber-700">
-                              <CircleDashed className="size-4" />
-                              <span className="text-[10px] font-medium">{p.dueno}</span>
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground/40">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+              {/* Reunión 23-09: una fila por empresa, desplegable a sus pedidos y su máquina. */}
+              <FilasPorPaso filas={visibles} columnas={columnas} falta={falta} />
             </tbody>
           </table>
         </div>
