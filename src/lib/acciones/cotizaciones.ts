@@ -402,7 +402,7 @@ export async function enviarCotizacion(
       supabase.from("perfiles").select("email_contacto").eq("id", comercialId).maybeSingle(),
       supabase
         .from("cotizaciones")
-        .select("total, oportunidades(cuentas(razon_social, nombre_comercial))")
+        .select("total, oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social, nombre_comercial))")
         .eq("id", cotizacionId)
         .maybeSingle(),
     ]);

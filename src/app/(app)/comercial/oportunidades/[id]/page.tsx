@@ -299,7 +299,7 @@ export default async function OportunidadDetallePage({
   const { data: otrasCotizaciones } = cuenta?.id
     ? await supabase
         .from("cotizaciones")
-        .select("id, codigo, estado, total, moneda, enviada_at, created_at, oportunidad_id, oportunidades!inner(cuenta_id, etapa)")
+        .select("id, codigo, estado, total, moneda, enviada_at, created_at, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id, etapa)")
         .eq("oportunidades.cuenta_id", cuenta.id)
         .neq("oportunidad_id", oportunidad.id)
         .order("created_at", { ascending: false })
