@@ -92,6 +92,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // cuando alguien dice un número y hay que saber qué es y de quién es.
     { href: "/gerencia/buscar", etiqueta: "Buscar en todo", icono: Search },
     { href: "/gerencia/supervision", etiqueta: "Supervisión diaria", icono: ClipboardCheck },
+    // Aparte de la supervisión (Santos, 23-09): sus KPIs están por definirse.
+    { href: "/gerencia/gestion-whatsapp", etiqueta: "Gestión de WhatsApp", icono: ClipboardCheck },
     { href: "/gerencia/potenciales", etiqueta: "Potenciales", icono: Target },
     { href: "/gerencia/clientes", etiqueta: "Clientes", icono: Building2 },
     // Carlos, 04-09: «¿dónde veo presupuestos? … no puedo ver todos los
