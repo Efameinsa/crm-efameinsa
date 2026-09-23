@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { esDesfaseDeVersion } from "@/lib/desfase-de-version";
+import { COOKIE_DEMO } from "@/lib/solo-lectura";
 
 /**
  * La red de seguridad de las pantallas del CRM.
@@ -56,6 +57,9 @@ export default function ErrorDePantalla({
   // Se decide en el primer render y no en un efecto: así la pantalla que se
   // muestra mientras el navegador recarga es la correcta desde el principio.
   const [recargando] = useState(() => esDesfaseDeVersion(error) && tomarElIntento());
+  // Cuenta de demostración de la propuesta (0280): toda acción se rechaza a
+  // propósito, y eso no es una falla. Se dice así, sin asustar a nadie.
+  const [demo] = useState(() => typeof document !== "undefined" && document.cookie.split("; ").includes(`${COOKIE_DEMO}=1`));
 
   useEffect(() => {
     if (recargando) window.location.reload();
@@ -80,6 +84,27 @@ export default function ErrorDePantalla({
         <p className="max-w-sm text-xs text-muted-foreground">
           El CRM se actualizó mientras usted lo tenía abierto. Un segundo y sigue donde estaba.
         </p>
+      </div>
+    );
+  }
+
+  if (demo && !recargando) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8 text-center">
+        <div className="max-w-md space-y-2">
+          <h1 className="text-lg font-bold text-foreground">Esto es una demostración</h1>
+          <p className="text-sm text-muted-foreground">
+            En la cuenta de demostración los botones se ven, pero no guardan nada: así ningún dato real cambia mientras se
+            recorre la propuesta.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="cursor-pointer rounded-md bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground hover:brightness-110"
+        >
+          Volver a la pantalla
+        </button>
       </div>
     );
   }

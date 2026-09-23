@@ -12,6 +12,9 @@ import { ComunicadoDeGerencia, type ComunicadoPendiente } from "@/components/crm
 import { asistenteEncendido } from "@/lib/asistente/herramientas";
 import { cookies, headers } from "next/headers";
 import { COOKIE_AUDITORIA, decodificarInfoAuditoria, ranuraDeHost } from "@/lib/auditoria";
+import { CABECERA_DEMO, COOKIE_VISTA } from "@/lib/solo-lectura";
+import { MarcoPropuesta } from "@/components/propuesta/marco-propuesta";
+import Link from "next/link";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
@@ -21,6 +24,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [cabeceras, tarro] = await Promise.all([headers(), cookies()]);
   const ranuraAuditoria = ranuraDeHost(cabeceras.get("host"));
   const auditoria = ranuraAuditoria ? decodificarInfoAuditoria(tarro.get(COOKIE_AUDITORIA)?.value) : null;
+
+  // LA PROPUESTA DE NAVEGACIÓN (23-09). Una cuenta de demostración ve el CRM
+  // de la cuenta original, en solo lectura, dentro del marco nuevo; con
+  // «Ver cómo es hoy» vuelve al marco actual para comparar.
+  const demo = Boolean(cabeceras.get(CABECERA_DEMO));
+  if (demo && tarro.get(COOKIE_VISTA)?.value !== "actual") {
+    return <MarcoPropuesta perfil={perfil}>{children}</MarcoPropuesta>;
+  }
 
   // Los contadores del menú (plan 23, etapa 5) solo se piden para quien ve
   // la sección Postventa de la barra: cuatro consultas `head: true` de más en
@@ -76,7 +87,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             Va en franja, arriba de todo y en todas las pantallas, con el mismo
             patrón que la franja de auditoría (0160) porque resuelve el mismo
             problema: que nadie confunda lo que está mirando. */}
-        {perfil.es_prueba && (
+        {demo && (
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-[#1B1A1D] px-6 py-2 text-xs text-white">
+            <span>
+              <b className="font-bold uppercase tracking-widest text-amber-300">Así es hoy</b>
+              <span className="ml-2 opacity-90">Viendo el CRM como <b>{perfil.nombre}</b> · solo lectura, nada se guarda</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <Link href="/demo/vista?v=nueva" className="rounded-full bg-white/10 px-2.5 py-1 font-semibold hover:bg-white/20">Ver la propuesta</Link>
+              <Link href="/demo/salir" className="rounded-full px-2.5 py-1 hover:bg-white/10">Salir</Link>
+            </span>
+          </div>
+        )}
+        {perfil.es_prueba && !demo && (
           <div className="flex flex-wrap items-center justify-between gap-2 bg-[#6D28D9] px-6 py-2 text-white">
             <span className="flex items-center gap-2 text-sm font-black uppercase tracking-widest">
               PRUEBA
@@ -89,7 +112,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </span>
           </div>
         )}
-        <EncabezadoUsuario perfil={perfil} />
+        <EncabezadoUsuario perfil={perfil} demo={demo} />
         {/* El aviso para activar las notificaciones del equipo vive acá, no en
             «Mi día»: hasta el 25-08 solo se dibujaba en la pantalla del
             comercial, así que CENTRAL Y GERENCIA nunca tuvieron el botón — de
@@ -103,13 +126,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             que lo habitual es que acá no haya nada. `AplicacionInstalable`
             además registra el service worker: aunque no dibuje nada, tiene que
             estar montado en todas las pantallas. */}
-        <div className="flex flex-col gap-3 px-6 pt-6 empty:hidden">
+        {!demo && <div className="flex flex-col gap-3 px-6 pt-6 empty:hidden">
           <CalloutActivarNotificaciones />
           <AplicacionInstalable />
           {/* La cola de gestiones guardadas sin internet (plan 26): vacía no
               dibuja nada; con algo, lo dice y lo sube solo. */}
           <AvisoGestionesSinSubir />
-        </div>
+        </div>}
         <main className="flex-1 bg-app-bg p-6">{children}</main>
         {/* La pastilla de «hay versión nueva»: la pestaña nace sabiendo su
             versión y pregunta si el servidor ya es otro. Con esto muere el
@@ -118,7 +141,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* «Ni bien entra, un pop-up que pase las 4 láminas y un link, y una
             disposición de gerencia» (Carlos, 14-09). No en las cuentas de
             práctica ni en la ranura de auditoría. */}
-        {comunicado && !perfil.es_prueba && !ranuraAuditoria && (
+        {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && (
           <ComunicadoDeGerencia comunicado={comunicado} />
         )}
         {/* El asistente, en todas las pantallas y solo para gerencia: la

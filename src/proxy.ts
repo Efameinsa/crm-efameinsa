@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ranuraDeHost } from "@/lib/auditoria";
 import { esFalloDeAutenticacion } from "@/lib/fallo-autenticacion";
+import { CABECERA_DEMO, COOKIE_DEMO, CORREO_DEMO, MENSAJE_DEMO } from "@/lib/solo-lectura";
 
 const RUTA_POR_ROL: Record<string, string> = {
   admin: "/admin",
@@ -28,6 +29,10 @@ export async function proxy(request: NextRequest) {
       );
     }
   }
+
+  // La marca de demostración (0280) la pone SOLO este proxy: si llega desde
+  // el navegador, se borra antes de todo.
+  request.headers.delete(CABECERA_DEMO);
 
   let response = NextResponse.next({ request });
 
@@ -66,6 +71,28 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const esRutaLogin = pathname === "/login";
+
+  // CUENTAS DE DEMOSTRACIÓN DE LA PROPUESTA (0280). Gerencia recorre la
+  // navegación nueva con `…_test@efameinsa.com`: el servidor lee con la sesión
+  // de la cuenta original (espejo.ts) y NADA se escribe. Primera barrera:
+  // cualquier envío (las acciones viajan por POST) se rechaza acá.
+  if (user?.email && CORREO_DEMO.test(user.email)) {
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return NextResponse.json({ error: MENSAJE_DEMO }, { status: 403 });
+    }
+    if (pathname === "/" || esRutaLogin) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/nuevo";
+      return NextResponse.redirect(url);
+    }
+    const cabeceras = new Headers(request.headers);
+    cabeceras.set(CABECERA_DEMO, user.id);
+    const conMarca = NextResponse.next({ request: { headers: cabeceras } });
+    response.cookies.getAll().forEach((c) => conMarca.cookies.set(c));
+    conMarca.cookies.set(COOKIE_DEMO, "1", { path: "/", sameSite: "lax" });
+    return conMarca;
+  }
+  if (request.cookies.has(COOKIE_DEMO)) response.cookies.delete(COOKIE_DEMO);
 
   if (!user && !esRutaLogin && !soloNoSePudoVerificar) {
     const url = request.nextUrl.clone();

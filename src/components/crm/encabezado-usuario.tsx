@@ -17,7 +17,7 @@ const ETIQUETA_ROL: Record<Perfil["rol"], string> = {
   operaciones: "Administración de operaciones",
 };
 
-export function EncabezadoUsuario({ perfil }: { perfil: Perfil }) {
+export function EncabezadoUsuario({ perfil, demo = false }: { perfil: Perfil; demo?: boolean }) {
   return (
     <header className="flex items-center justify-between border-b border-border bg-background px-6 py-3">
       <div className="flex items-center gap-2">
@@ -36,12 +36,16 @@ export function EncabezadoUsuario({ perfil }: { perfil: Perfil }) {
       </div>
       <div className="flex items-center gap-3">
         <CampanaNotificaciones userId={perfil.id} rol={perfil.rol} />
-        <CambiarClave />
-        <form action={cerrarSesion}>
-          <Button type="submit" variant="outline" size="sm">
-            Cerrar sesión
-          </Button>
-        </form>
+        {/* Cuenta de demostración (0280): ni cambia la clave ni cierra la
+            sesión de la persona real; «Salir» está en la franja de arriba. */}
+        {!demo && <CambiarClave />}
+        {!demo && (
+          <form action={cerrarSesion}>
+            <Button type="submit" variant="outline" size="sm">
+              Cerrar sesión
+            </Button>
+          </form>
+        )}
       </div>
     </header>
   );
