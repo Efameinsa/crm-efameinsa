@@ -1,4 +1,6 @@
 import { FileDown } from "lucide-react";
+import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
+import { codigoConVersion } from "@/lib/version-cotizacion";
 import { createClient } from "@/lib/supabase/server";
 import { anioLima, resolverPeriodo } from "@/lib/periodo";
 import { sumarDias } from "@/lib/calendario";
@@ -57,6 +59,8 @@ interface FilaPresupuesto {
   delArchivo: boolean;
   /** El documento se le entregó al cliente en soles (0169). El total sigue en dólares. */
   enSoles?: boolean;
+  /** Versión vigente de una corregida (0123): el número va con su «v2». */
+  version?: number;
 }
 
 interface Comercial {
@@ -101,7 +105,7 @@ export default async function PresupuestosCentralPage({
   // tabla de cantidades: una cotización de las 8 pm no cae en «mañana».
   let consulta = supabase
     .from("cotizaciones")
-    .select("id, codigo, serie, estado, total, moneda, moneda_impresa, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))", {
+    .select("id, codigo, serie, estado, total, moneda, moneda_impresa, enviada_at, version, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))", {
       count: "exact",
     })
     .not("correlativo", "is", null)
@@ -179,6 +183,7 @@ export default async function PresupuestosCentralPage({
       cliente: op?.cuentas?.razon_social ?? "Cliente sin nombre",
       delArchivo: false,
       enSoles: c.moneda_impresa === "PEN",
+      version: Number(c.version ?? 1),
     };
   });
 
@@ -309,11 +314,12 @@ export default async function PresupuestosCentralPage({
                   <TableCell className="py-1.5">
                     <VerPdfEnLaApp
                       url={f.delArchivo ? `/api/cotizaciones-historicas/${f.id}/pdf` : `/api/cotizaciones/${f.id}/pdf`}
-                      titulo={f.codigo ?? "Presupuesto"}
+                      titulo={codigoConVersion(f.codigo, f.version) ?? "Presupuesto"}
                       className="cursor-pointer font-mono font-semibold text-foreground hover:text-primary hover:underline"
                     >
                       {f.codigo}
                     </VerPdfEnLaApp>
+                    <EtiquetaVersion version={f.version} />
                   </TableCell>
                   <TableCell className="py-1.5 tabular-nums text-muted-foreground">{fechaHoraLima(f.enviadaAt)}</TableCell>
                   <TableCell className="py-1.5 text-foreground">{nombreComercial(f.comercialId)}</TableCell>
@@ -360,7 +366,7 @@ export default async function PresupuestosCentralPage({
                   <TableCell className="py-1.5">
                     <VerPdfEnLaApp
                       url={f.delArchivo ? `/api/cotizaciones-historicas/${f.id}/pdf` : `/api/cotizaciones/${f.id}/pdf`}
-                      titulo={f.codigo ?? "Presupuesto"}
+                      titulo={codigoConVersion(f.codigo, f.version) ?? "Presupuesto"}
                       className="cursor-pointer text-muted-foreground hover:text-primary"
                       title="Ver el PDF"
                       aria-label={`Ver el PDF de ${f.codigo}`}

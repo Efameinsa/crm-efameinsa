@@ -1,4 +1,5 @@
 import { Phone, Mail, MapPin, FileText, CalendarClock, Building2 } from "lucide-react";
+import { versionesAnteriores } from "@/lib/versiones-cotizacion";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
@@ -97,7 +98,7 @@ export default async function OportunidadDetallePage({
       supabase
         .from("cotizaciones")
         .select(
-          "id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at, entrega_lugar",
+          "id, codigo, serie, estado, estado_aprobacion, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at, entrega_lugar, version",
         )
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),
@@ -278,6 +279,17 @@ export default async function OportunidadDetallePage({
     // de la conversación, si este contacto vino con un código de campaña.
     oportunidad.lead_id ? tipificacionesActuales([oportunidad.lead_id]) : Promise.resolve([]),
   ]);
+
+  // LAS CORREGIDAS DICEN CUÁL ES LA FINAL (gerencia, 23-09). Solo se buscan
+  // versiones de las que tienen alguna: el 99 % de las fichas no paga la
+  // consulta.
+  const corregidas = (cotizaciones ?? []).filter((c) => Number(c.version ?? 1) > 1).map((c) => c.id as string);
+  const anteriores = await versionesAnteriores(supabase, corregidas);
+  const cotizacionesConVersion = (cotizaciones ?? []).map((c) => ({
+    ...c,
+    version: Number(c.version ?? 1),
+    versionesAnteriores: anteriores.get(c.id as string) ?? [],
+  }));
 
   // LAS COTIZACIONES DE OTRO EXPEDIENTE DEL MISMO CLIENTE (Ariana, 21-09:
   // «¿por qué no me sale del prospecto Dance su cotización en el lado
@@ -790,7 +802,7 @@ export default async function OportunidadDetallePage({
               `/cotizar`, una pantalla entera para eso; lo que queda es el
               estado de lo cotizado y el botón para empezar. */}
           <SeccionPanel titulo="Cotizaciones" id="cotizador">
-            <ListaCotizaciones cotizaciones={cotizaciones ?? []} oportunidadId={oportunidad.id} />
+            <ListaCotizaciones cotizaciones={cotizacionesConVersion} oportunidadId={oportunidad.id} />
             {(otrasCotizaciones ?? []).length > 0 && (
               <div className="mt-3 border-t border-border pt-2">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">En otro expediente de este cliente</p>

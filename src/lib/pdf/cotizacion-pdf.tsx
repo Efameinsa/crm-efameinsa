@@ -320,6 +320,14 @@ export interface CotizacionPdfProps {
     celular: string | null;
     email: string | null;
   };
+  /** La línea discreta del pie cuando el documento se corrigió (decisión de
+   *  gerencia del 23-09): «Versión 2 · corregida el … · reemplaza a la versión
+   *  anterior», o «Versión 1 · REEMPLAZADA por la versión 2» en una archivada.
+   *  NULL en la original sin correcciones: ahí no se imprime nada. */
+  notaVersion?: string | null;
+  /** Es una versión archivada: además del pie, lo dice debajo del título, en
+   *  rojo, para que no se confunda con la final. */
+  reemplazada?: boolean;
 }
 
 function crearEstilos(acento: string) {
@@ -360,6 +368,18 @@ function crearEstilos(acento: string) {
     // La línea va DEBAJO de la web y encima de la dirección, como el papel.
     pieLinea: { borderBottomWidth: 0.8, borderBottomColor: BORDE, marginTop: 2, marginBottom: 4 },
     pieTexto: { fontSize: 8, color: CARBON, lineHeight: 1.35 },
+    /* La versión del documento, debajo de la dirección, en el margen: no le
+       quita alto a la hoja ni se monta sobre el pie. */
+    pieVersion: { position: "absolute", bottom: 10, left: 56.7, right: 56.7, fontSize: 7, color: GRIS, textAlign: "right" },
+    pieVersionReemplazada: { color: "#B00020", fontFamily: "Helvetica-Bold" },
+    avisoReemplazada: {
+      textAlign: "center",
+      fontSize: 9.5,
+      fontFamily: "Helvetica-Bold",
+      color: "#B00020",
+      marginTop: -10,
+      marginBottom: 12,
+    },
 
     /* Encabezado de la carta */
     titulo: {
@@ -535,6 +555,8 @@ export function CotizacionPdf({
   formaPago,
   saldo,
   firma,
+  notaVersion = null,
+  reemplazada = false,
 }: CotizacionPdfProps) {
   const identidad = IDENTIDAD_SERIE[serie];
   const estilos = crearEstilos(identidad.acento);
@@ -590,15 +612,25 @@ export function CotizacionPdf({
   // Pie: la web en granate, la línea debajo cruzando toda la hoja, y los
   // datos de contacto abajo — el mismo orden que el papel impreso.
   const pie = (
-    <View style={estilos.pie} fixed>
-      {serie === "EFAMEINSA" && <Text style={estilos.pieWeb}>{identidad.pie[0]}</Text>}
-      <View style={estilos.pieLinea} />
-      {identidad.pie.slice(serie === "EFAMEINSA" ? 1 : 0).map((linea, i) => (
-        <Text key={i} style={estilos.pieTexto}>
-          {linea}
+    <>
+      <View style={estilos.pie} fixed>
+        {serie === "EFAMEINSA" && <Text style={estilos.pieWeb}>{identidad.pie[0]}</Text>}
+        <View style={estilos.pieLinea} />
+        {identidad.pie.slice(serie === "EFAMEINSA" ? 1 : 0).map((linea, i) => (
+          <Text key={i} style={estilos.pieTexto}>
+            {linea}
+          </Text>
+        ))}
+      </View>
+      {/* La versión, en todas las hojas: la ficha técnica también viaja
+          suelta, y una hoja suelta de una versión reemplazada tiene que
+          decirlo igual (decisión de gerencia del 23-09). */}
+      {notaVersion && (
+        <Text style={reemplazada ? [estilos.pieVersion, estilos.pieVersionReemplazada] : estilos.pieVersion} fixed>
+          {notaVersion}
         </Text>
-      ))}
-    </View>
+      )}
+    </>
   );
 
   return (
@@ -613,6 +645,9 @@ export function CotizacionPdf({
         <Text style={estilos.titulo}>
           {numeroDocumento ? `COTIZACION N° ${numeroDocumento}` : "COTIZACION — BORRADOR SIN NUMERAR"}
         </Text>
+        {reemplazada && notaVersion && (
+          <Text style={estilos.avisoReemplazada}>{`${notaVersion.toUpperCase()} — NO ES LA COTIZACIÓN FINAL`}</Text>
+        )}
         <Text style={estilos.fecha}>Lima, {fecha}</Text>
 
         <View style={estilos.clienteBloque}>

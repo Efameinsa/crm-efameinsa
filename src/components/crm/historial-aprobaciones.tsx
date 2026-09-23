@@ -1,4 +1,6 @@
 import { CheckCircle2, XCircle, FileDown } from "lucide-react";
+import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
+import { codigoConVersion } from "@/lib/version-cotizacion";
 import { montoCotizacion } from "@/lib/monto-cotizacion";
 import { fechaHoraLima } from "@/lib/fechas";
 import { SeccionPlegable } from "@/components/crm/seccion-panel";
@@ -33,6 +35,8 @@ export interface FilaHistorial {
   aprobada_at: string | null;
   nota_gerencia: string | null;
   enviada_at: string | null;
+  /** Versión vigente (0123): lo aprobado pudo corregirse después. */
+  version?: number | null;
   oportunidades: unknown;
   cotizacion_items: unknown;
 }
@@ -78,7 +82,8 @@ export function HistorialAprobaciones({ filas }: { filas: FilaHistorial[] }) {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                <span className="font-mono">{c.codigo ?? "Borrador"}</span> · Serie {c.serie} · De{" "}
+                <span className="font-mono">{c.codigo ?? "Borrador"}</span>
+                {c.codigo && <EtiquetaVersion version={c.version} />} · Serie {c.serie} · De{" "}
                 {op?.perfiles?.nombre ?? "un comercial"} · {montoCotizacion(c.total, c.moneda)} con IGV
                 {c.enviada_at ? " · ya enviada al cliente" : " · todavía sin enviar"}
                 {cedido > 0 && (
@@ -112,7 +117,7 @@ export function HistorialAprobaciones({ filas }: { filas: FilaHistorial[] }) {
 
               <VerPdfEnLaApp
                 url={`/api/cotizaciones/${c.id}/pdf`}
-                titulo={c.codigo ?? "Presupuesto"}
+                titulo={codigoConVersion(c.codigo, c.version) ?? "Presupuesto"}
                 className="mt-1.5 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary hover:underline"
               >
                 <FileDown className="size-3.5" />

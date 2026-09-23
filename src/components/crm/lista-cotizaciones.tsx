@@ -13,6 +13,9 @@ import { Button } from "@/components/ui/button";
 import { CorregirCotizacionBoton } from "@/components/crm/corregir-cotizacion-boton";
 import { cn } from "@/lib/utils";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
+import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
+import { codigoConVersion, fechaCorta } from "@/lib/version-cotizacion";
+import type { VersionAnterior } from "@/lib/versiones-cotizacion";
 
 /**
  * Las cotizaciones del cliente, en la columna derecha de la oportunidad.
@@ -39,6 +42,10 @@ export interface CotizacionResumen {
   nota_gerencia: string | null;
   created_at: string;
   enviada_at: string | null;
+  /** Versión vigente (0123): 1 la original; desde 2, corregida. */
+  version?: number;
+  /** Las archivadas, con quién corrigió, quién autorizó y por qué. */
+  versionesAnteriores?: VersionAnterior[];
 }
 
 const ESTADO_APROBACION: Record<string, { etiqueta: string; clases: string }> = {
@@ -224,6 +231,7 @@ export function ListaCotizaciones({
                   )}
                 >
                   {c.codigo ?? "Recibe número al confirmar"}
+                  {c.codigo && <EtiquetaVersion version={c.version} />}
                 </span>
                 {esDePrueba && (
                   <span className="flex-none rounded-full bg-[#6D28D9] px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-white">
@@ -279,6 +287,49 @@ export function ListaCotizaciones({
                 {esUltima ? " · la más reciente" : ""}
               </p>
 
+              {/* CUÁL ES LA FINAL (gerencia, 23-09: «cada vez que haya una
+                  corrección tiene que estar debidamente sustentada pero se
+                  tiene que dejar claro cuál es la cotización final»). La
+                  tarjeta ES la vigente; las anteriores se abren aparte, cada
+                  una con su PDF marcado como reemplazada. */}
+              {(c.version ?? 1) > 1 && (
+                <details className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1.5 text-[11px]">
+                  <summary className="cursor-pointer font-medium text-foreground">
+                    Versión final: v{c.version} · Versiones anteriores ({c.versionesAnteriores?.length ?? (c.version ?? 1) - 1})
+                  </summary>
+                  <ul className="mt-1.5 space-y-1.5">
+                    {(c.versionesAnteriores ?? [])
+                      .slice()
+                      .reverse()
+                      .map((v) => (
+                        <li key={v.version} className="border-t border-amber-500/20 pt-1.5 text-muted-foreground">
+                          <div className="flex flex-wrap items-center justify-between gap-x-2">
+                            <span className="font-semibold text-foreground">
+                              v{v.version} · reemplazada por la v{v.reemplazadaPor} el {fechaCorta(v.reemplazadaAt)}
+                            </span>
+                            <VerPdfEnLaApp
+                              url={`/api/cotizaciones/${c.id}/pdf?version=${v.version}`}
+                              titulo={`${codigoConVersion(c.codigo, v.version) ?? c.codigo} (reemplazada)`}
+                              className="inline-flex cursor-pointer items-center gap-1 text-primary hover:underline"
+                            >
+                              <FileDown className="size-3" />
+                              PDF v{v.version}
+                            </VerPdfEnLaApp>
+                          </div>
+                          <p>
+                            {montoCotizacion(v.total, v.moneda)} con IGV
+                            {v.corrigio ? ` · corrigió ${v.corrigio}` : ""}
+                            {v.autorizo ? ` · autorizó ${v.autorizo}` : ""}
+                          </p>
+                          <p className="italic">
+                            {v.motivo ? `«${v.motivo}»` : "Motivo: solo lo ven quien corrigió, quien autorizó y operaciones"}
+                          </p>
+                        </li>
+                      ))}
+                  </ul>
+                </details>
+              )}
+
               {c.nota_gerencia && (
                 <p className="mt-2 rounded-md bg-secondary px-2 py-1.5 text-[11px] text-muted-foreground">
                   &ldquo;{c.nota_gerencia}&rdquo;
@@ -318,7 +369,7 @@ export function ListaCotizaciones({
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                 <VerPdfEnLaApp
                   url={`/api/cotizaciones/${c.id}/pdf`}
-                  titulo={c.codigo ?? "Presupuesto borrador"}
+                  titulo={codigoConVersion(c.codigo, c.version) ?? "Presupuesto borrador"}
                   className="inline-flex cursor-pointer items-center gap-1 font-medium text-primary hover:underline"
                 >
                   <FileDown className="size-3" />

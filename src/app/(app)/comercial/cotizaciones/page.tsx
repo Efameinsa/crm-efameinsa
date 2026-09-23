@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
+import { codigoConVersion } from "@/lib/version-cotizacion";
 import { hoyLima } from "@/lib/periodo";
 import { FileDown, PencilLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -68,6 +70,8 @@ interface Fila {
   oportunidadHref: string | null;
   delArchivo: boolean;
   nota: string | null;
+  /** Versión vigente de una cotización corregida (0123): «v2» junto al número. */
+  version?: number;
 }
 
 export default async function MisCotizacionesPage({
@@ -88,7 +92,7 @@ export default async function MisCotizacionesPage({
     .eq("comercial_id", perfil.id);
   let qCrm = supabase
     .from("cotizaciones")
-    .select("id, codigo, serie, total, moneda, enviada_at, vigencia_dias, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
+    .select("id, codigo, serie, total, moneda, enviada_at, vigencia_dias, version, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
     .eq("oportunidades.comercial_id", perfil.id)
     .not("enviada_at", "is", null);
   // Los borradores no tienen número: se buscan por el cliente, en memoria, y
@@ -170,6 +174,7 @@ export default async function MisCotizacionesPage({
       oportunidadHref: `/comercial/oportunidades/${c.oportunidad_id}`,
       delArchivo: false,
       nota: null,
+      version: Number(c.version ?? 1),
     })),
     ...(archivo ?? []).map((c) => ({
       id: c.id,
@@ -210,7 +215,7 @@ export default async function MisCotizacionesPage({
       ) : (
         <VerPdfEnLaApp
           url={f.href}
-          titulo={f.codigo ?? f.cliente}
+          titulo={codigoConVersion(f.codigo, f.version) ?? f.cliente}
           title="Abrir el PDF"
           aria-label={`Abrir el PDF de ${f.codigo ?? f.cliente}`}
           className="absolute inset-0 cursor-pointer rounded-md"
@@ -220,11 +225,12 @@ export default async function MisCotizacionesPage({
       )}
       <span
         className={cn(
-          "w-24 flex-none font-mono text-xs font-semibold",
+          "w-32 flex-none font-mono text-xs font-semibold",
           f.borrador ? "text-amber-700" : "text-foreground",
         )}
       >
         {f.borrador ? "Borrador" : (f.codigo ?? "—")}
+        {!f.borrador && <EtiquetaVersion version={f.version} />}
       </span>
       <span className="min-w-[200px] flex-1 text-sm text-foreground">{f.cliente}</span>
       <span className="w-24 text-xs tabular-nums text-muted-foreground">

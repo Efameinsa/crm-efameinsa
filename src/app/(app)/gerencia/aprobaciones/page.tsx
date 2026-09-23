@@ -1,4 +1,6 @@
 import { fechaLima } from "@/lib/fechas";
+import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
+import { codigoConVersion } from "@/lib/version-cotizacion";
 import { ChevronRight, FileDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -22,7 +24,7 @@ export default async function AprobacionesPage() {
   const { data: historial } = await supabase
     .from("cotizaciones")
     .select(
-      `id, codigo, serie, total, moneda, estado, estado_aprobacion, aprobada_at, nota_gerencia, enviada_at,
+      `id, codigo, serie, total, moneda, estado, estado_aprobacion, aprobada_at, nota_gerencia, enviada_at, version,
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre)),
        cotizacion_items(cantidad, precio_lista, precio_unitario, bajo_lista, aprobado, descripcion, productos(marca, modelo, nombre))`,
     )
@@ -33,7 +35,7 @@ export default async function AprobacionesPage() {
   const { data: cotizaciones } = await supabase
     .from("cotizaciones")
     .select(
-      `id, codigo, serie, total, moneda, created_at, oportunidad_id,
+      `id, codigo, serie, total, moneda, created_at, oportunidad_id, version,
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre)),
        cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
     )
@@ -117,7 +119,8 @@ export default async function AprobacionesPage() {
                     <p className="text-xs text-muted-foreground">
                       {/* Todavía no tiene número: el correlativo se asigna al
                           enviarla (migración 0064). */}
-                      <span className="font-mono">{c.codigo ?? "Borrador"}</span> · Serie {c.serie} · De{" "}
+                      <span className="font-mono">{c.codigo ?? "Borrador"}</span>
+                      {c.codigo && <EtiquetaVersion version={c.version} />} · Serie {c.serie} · De{" "}
                       {oportunidad?.perfiles?.nombre ?? "un comercial"} ·{" "}
                       {fechaLima(c.created_at)} ·{" "}
                       <span className="font-semibold text-amber-700">
@@ -153,7 +156,7 @@ export default async function AprobacionesPage() {
                 <div className="mt-2.5 flex items-center justify-between gap-3">
                   <VerPdfEnLaApp
                     url={`/api/cotizaciones/${c.id}/pdf`}
-                    titulo={c.codigo ?? "Presupuesto"}
+                    titulo={codigoConVersion(c.codigo, c.version) ?? "Presupuesto"}
                     className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary hover:underline"
                   >
                     <FileDown className="size-3.5" />

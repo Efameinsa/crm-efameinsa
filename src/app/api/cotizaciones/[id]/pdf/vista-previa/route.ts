@@ -60,7 +60,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { data: cotizacion, error } = await supabase
     .from("cotizaciones")
     .select(
-      `codigo, correlativo, serie, moneda, cliente_snapshot, created_at,
+      `codigo, correlativo, serie, moneda, cliente_snapshot, created_at, version,
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
     )
@@ -89,6 +89,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const paraPdf: CotizacionParaPdf = {
     ...cotizacion,
+    // Se mira lo que VA a quedar: guardar la corrección sube la versión, y el
+    // papel tiene que decir «v2» ya en la vista previa (gerencia, 23-09).
+    version: Number(cotizacion.version ?? 1) + 1,
+    corregida_at: new Date().toISOString(),
     condiciones: cuerpo.condiciones ?? null,
     vigencia_dias: cuerpo.vigencia_dias ?? 15,
     entrega_lugar: cuerpo.entrega_lugar ?? null,

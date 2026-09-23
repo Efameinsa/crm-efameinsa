@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import { CotizacionPdf, type ItemPdf, type SeccionFicha, type BloqueFicha } from "@/lib/pdf/cotizacion-pdf";
 import { correoEnSerie } from "@/lib/pdf/series";
+import { etiquetaVersion, notaDeVersion } from "@/lib/version-cotizacion";
 
 /**
  * El armado del PDF de una cotización, separado de la ruta que lo sirve.
@@ -144,6 +145,13 @@ export interface CotizacionParaPdf {
   cotizacion_items: unknown;
   oportunidades: unknown;
   perfiles: unknown;
+  /** Versión del documento (0123): 1 la original, 2 desde la primera
+   *  corrección. Sin el dato se imprime como original. */
+  version?: number | null;
+  /** Cuándo nació ESTA versión: la corrección que la produjo. */
+  corregida_at?: string | null;
+  /** Solo al imprimir una versión archivada: cuál es la vigente. */
+  reemplazada_por?: number | null;
 }
 
 export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Promise<Buffer> {
@@ -333,12 +341,24 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
   // Las cuentas de práctica numeran en su propia serie (migración 0145): el
   // código ya dice PRUEBA_1-26 y eso es lo que se imprime, para que un PDF de
   // ensayo no se pueda confundir nunca con uno que salió a un cliente.
-  const numeroDocumento =
+  const numeroBase =
     cotizacion.codigo?.startsWith("PRUEBA")
       ? cotizacion.codigo
       : cotizacion.correlativo != null
         ? `${cotizacion.correlativo}-${String(creada.getFullYear()).slice(-2)}`
         : null;
+  // Corregida (0123): el número es el mismo y lleva su versión al lado —«569-26
+  // v2»—, porque gerencia pidió que quede claro cuál es la final (23-09). La
+  // original no lleva nada. Un borrador no tiene número ni versión.
+  const version = Number(cotizacion.version ?? 1);
+  const reemplazada = Boolean(cotizacion.reemplazada_por && cotizacion.reemplazada_por > version);
+  // Una archivada lleva su versión aunque sea la 1: «569-26 v1» al lado de la
+  // vigente «569-26 v2» no deja duda de cuál es cuál.
+  const etiqueta = reemplazada ? `v${version}` : etiquetaVersion(version);
+  const numeroDocumento = numeroBase && etiqueta ? `${numeroBase} ${etiqueta}` : numeroBase;
+  const notaVersion = numeroBase
+    ? notaDeVersion({ version, corregidaAt: cotizacion.corregida_at, reemplazadaPor: cotizacion.reemplazada_por })
+    : null;
   const fecha = creada.toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" });
 
   const buffer = await renderToBuffer(
@@ -379,6 +399,8 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
           perfilComercial?.email_open ?? null,
         ),
       }}
+      notaVersion={notaVersion}
+      reemplazada={reemplazada}
     />,
   );;
 
