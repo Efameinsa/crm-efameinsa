@@ -65,7 +65,10 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{ETIQUETA_TIPO_APERTURA[a.tipo]}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {a.urgente && <span className="mr-1.5 rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-white">URGENTE · sin pedido</span>}
+              {ETIQUETA_TIPO_APERTURA[a.tipo]}
+            </p>
             <h1 className="text-lg font-bold text-foreground">
               {fichaCliente ? (
                 <Link href={fichaCliente} className="hover:underline">

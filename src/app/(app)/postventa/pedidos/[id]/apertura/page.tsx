@@ -121,7 +121,7 @@ export default async function AperturaServicioPage({ params }: { params: Promise
             )}
             {s.numero_pedido_erp && (
               <p>
-                <b>Pedido ERP:</b> {s.numero_pedido_erp}
+                <b>Pedido:</b> {s.numero_pedido_erp}
               </p>
             )}
             {informe?.orden_compra && (

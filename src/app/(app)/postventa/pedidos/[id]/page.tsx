@@ -187,7 +187,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
             <EquipoConSeries texto={servicio.equipo} fichaPorSerie={fichaPorSerie} className="mt-1" />
             <p className="mt-1 font-mono text-[11px] text-muted-foreground">
               {informe?.codigo ? `Cierre Nº ${informe.codigo}` : "Sin informe de cierre"}
-              {servicio.numero_pedido_erp && ` · Pedido ERP ${servicio.numero_pedido_erp}`}
+              {servicio.numero_pedido_erp && ` · Pedido ${servicio.numero_pedido_erp}`}
               {informe?.orden_compra && ` · OC ${informe.orden_compra}`}
             </p>
             {capturaUrl && (

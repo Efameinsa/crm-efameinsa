@@ -60,7 +60,7 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
           )}
           {servicio.fecha_despacho && <p>Despacho programado: <b className="text-foreground">{servicio.fecha_despacho}{servicio.despacho_hora ? ` · ${String(servicio.despacho_hora).slice(0, 5)}` : ""}</b>{servicio.despacho_nota ? ` · ${servicio.despacho_nota}` : ""}</p>}
           {servicio.recibe_nombre && <p>Recibe: {servicio.recibe_nombre}{servicio.recibe_telefono ? ` · ${servicio.recibe_telefono}` : ""}</p>}
-          {servicio.numero_pedido_erp && <p>Pedido ERP: {servicio.numero_pedido_erp}</p>}
+          {servicio.numero_pedido_erp && <p>Pedido: {servicio.numero_pedido_erp}</p>}
           {servicio.apertura_despacho_at && <p>Apertura de despacho emitida el {fechaHoraLima(servicio.apertura_despacho_at)}</p>}
         </div>
       </div>

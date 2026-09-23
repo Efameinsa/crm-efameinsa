@@ -18,7 +18,6 @@ import {
 import {
   aprobarPedido,
   marcarPaso,
-  confirmarPagoFinanzas,
   definirCondicionPago,
   emitirAperturaDespacho,
   verificarDireccion,
@@ -30,6 +29,7 @@ import {
 } from "@/lib/acciones/postventa";
 import { verificarDespacho } from "@/lib/acciones/almacen";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
+import { PedirConfirmacionPago } from "@/components/crm/pedir-confirmacion-pago";
 import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,6 @@ import { TipoPedidoSelector } from "@/components/crm/tipo-pedido-selector";
 
 type Formulario =
   | null
-  | { tipo: "finanzas" }
   | { tipo: "condicion" }
   | { tipo: "prueba" }
   | { tipo: "sin_plano" }
@@ -168,15 +167,15 @@ export function PedidoPostventa({
     <div className="rounded-xl border border-border bg-secondary/40 p-4">
       <p className="text-sm font-semibold text-foreground">Central todavía no lanzó este pedido</p>
       <p className="mt-1 max-w-prose text-xs text-muted-foreground">
-        El cierre está emitido, pero el pedido entra al área recién cuando Central marca «Pedido ejecutado» con el
-        número del ERP. Hasta entonces no se aprueba ni se gestiona desde acá.
+        El cierre está emitido, pero el pedido entra al área recién cuando Central marca «Pedido ejecutado».
+        Hasta entonces no se aprueba ni se gestiona desde acá.
       </p>
     </div>
   ) : sinAprobar ? (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
       <p className="text-sm font-semibold text-foreground">Este pedido todavía no fue aprobado</p>
       <p className="mt-1 max-w-prose text-xs text-muted-foreground">
-        Primero mire la forma de pago y registre lo que Finanzas confirmó; al aprobar, Central ve que ya está en
+        Apruébelo para decir «ya lo recibí»: queda con su hora; al aprobar, Central ve que ya está en
         ejecución y desde ahí se cuenta el tiempo del área.
       </p>
       <Button
@@ -195,7 +194,7 @@ export function PedidoPostventa({
     // Un pago confirmado que no cubre lo acordado sigue aceptando abonos: el
     // 495-26 quedó «confirmado» con cifra 0 y sin botón para arreglarlo (0232).
     if (paso.clave === "pago" && paso.hecho && pagoIncompleto) {
-      return <BotonPaso onClick={() => setForm({ tipo: "finanzas" })}>Registrar otro abono</BotonPaso>;
+      return <PedirConfirmacionPago servicioId={servicio.id} solicitadoAt={servicio.pago_solicitado_at ?? null} otra />;
     }
     if (paso.hecho) return null;
     switch (paso.clave) {
@@ -239,7 +238,10 @@ export function PedidoPostventa({
           </span>
         );
       case "pago":
-        return <BotonPaso onClick={() => setForm({ tipo: "finanzas" })}>Registrar confirmación</BotonPaso>;
+        // Carlos, 23-09 17:48: el registro a mano con la captura del correo
+        // «ya no va, ya está eliminado ese proceso». Postventa pide con un clic
+        // y Finanzas confirma en su pantalla, con su nombre y la hora (0295).
+        return <PedirConfirmacionPago servicioId={servicio.id} solicitadoAt={servicio.pago_solicitado_at ?? null} />;
       case "direccion":
         return <BotonPaso onClick={() => setForm({ tipo: "direccion" })}>Verificar ahora</BotonPaso>;
       case "preinstalacion":
@@ -549,116 +551,6 @@ export function PedidoPostventa({
           correr(() => marcarPaso(servicio.id, "prueba_lista_at", datos.protocolo), "Prueba y embalaje confirmados", { prueba_lista_at: ahora() })
         }
         campos={[{ nombre: "protocolo", etiqueta: "N.º de protocolo de prueba", requerido: false }]}
-      />
-
-      {/* Con precios a la vista se puede registrar un pago parcial: se escribe
-          cuánto lleva pagado. Sin precios —postventa— la única confirmación
-          posible es «ya está cobrado del todo»: pedirle una cifra a quien no
-          puede ver el total sería pedirle que adivine. */}
-      {/* La confirmación de Finanzas, con quién y por dónde: Finanzas no tiene
-          usuario todavía, así que postventa registra lo que Finanzas le
-          contestó. Con precios a la vista se escribe cuánto entró; sin ellos,
-          solo si quedó cobrado del todo o parcial. */}
-      <Cuadro
-        abierto={form?.tipo === "finanzas"}
-        cerrar={() => setForm(null)}
-        titulo="Finanzas confirmó el pago"
-        descripcion={
-          (verPrecios
-            ? `Total del pedido: ${servicio.moneda} ${Number(servicio.monto ?? 0).toLocaleString("es-PE")}. Registre lo que Finanzas confirmó: quién, por dónde y cuánto entró. Finanzas confirma dinero acreditado, no vouchers.`
-            : "Registre lo que Finanzas le contestó: quién, por dónde y qué entró. Finanzas confirma dinero acreditado, no vouchers.") +
-          (condicion ? ` Condición de este pedido: ${condicion}.` : " Este pedido no tiene condición de pago cargada: se exige todo antes de despachar.")
-        }
-        boton="Registrar la confirmación"
-        pendiente={pendiente}
-        onEnviar={(datos, archivos) => {
-          // Carlos, 02-09: «que suba lo que tenga: foto, screenshot». La
-          // captura vale como confirmación; si no hay captura, hace falta
-          // quién y por dónde. La subida va directo al bucket privado
-          // `adjuntos` (como los adjuntos de una gestión) y la acción guarda
-          // la ruta (0157).
-          const captura = archivos.captura ?? null;
-          if (!captura && (!datos.quien?.trim() || !datos.medio?.trim())) {
-            toast.error("Suba la captura de la confirmación, o escriba quién de Finanzas confirmó y por dónde");
-            return;
-          }
-          const subir = async (): Promise<string | null> => {
-            if (!captura) return null;
-            if (captura.size > 10 * 1024 * 1024) throw new Error("La captura pesa más de 10 MB");
-            const path = `finanzas/${servicio.id}/${crypto.randomUUID()}-${captura.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
-            const { error } = await createClient()
-              .storage.from("adjuntos")
-              .upload(path, captura, { contentType: captura.type || "application/octet-stream" });
-            if (error) throw new Error(`No se pudo subir la captura: ${error.message}`);
-            return path;
-          };
-          // QUÉ ENTRÓ, elegido y no tipeado (0232): el adelanto acordado lo
-          // cifra el servidor desde la condición; «todo» toma el total; con
-          // precios a la vista también se puede escribir otro monto. Antes,
-          // la confirmación con captura dejaba el pedido «confirmado» con
-          // pagado 0 y la salida se trababa por el total.
-          const alcance = datos.alcance ?? "completo";
-          if (alcance === "monto") {
-            const monto = Number(datos.monto);
-            if (!Number.isFinite(monto) || monto < 0) {
-              toast.error("Escriba cuánto lleva pagado en total");
-              return;
-            }
-            correr(
-              async () =>
-                confirmarPagoFinanzas(servicio.id, {
-                  quien: datos.quien,
-                  medio: datos.medio,
-                  montoPagado: monto,
-                  nota: datos.nota,
-                  capturaPath: await subir(),
-                }),
-              "Confirmación de Finanzas registrada",
-            );
-            return;
-          }
-          correr(
-            async () =>
-              confirmarPagoFinanzas(servicio.id, {
-                quien: datos.quien,
-                medio: datos.medio,
-                completo: alcance === "completo",
-                adelanto: alcance === "adelanto",
-                nota: datos.nota,
-                capturaPath: await subir(),
-              }),
-            "Confirmación de Finanzas registrada",
-          );
-        }}
-        campos={[
-          { nombre: "captura", etiqueta: "Captura de la confirmación (correo, WhatsApp o voucher acreditado)", archivo: true },
-          { nombre: "quien", etiqueta: "Quién de Finanzas confirmó (si no sube captura)", requerido: false },
-          { nombre: "medio", etiqueta: "Por dónde: correo, WhatsApp, llamada (si no sube captura)", inicial: "", requerido: false },
-          {
-            nombre: "alcance",
-            etiqueta: "Qué confirmó Finanzas que entró",
-            inicial: hayAdelantoAcordado ? "adelanto" : "completo",
-            requerido: true,
-            opciones: [
-              ...(hayAdelantoAcordado ? [{ valor: "adelanto", etiqueta: `El adelanto acordado (${pctCondicion} % del total)` }] : []),
-              { valor: "completo", etiqueta: "Todo el pedido, cobrado completo" },
-              ...(verPrecios ? [{ valor: "monto", etiqueta: "Otro monto: lo escribo abajo" }] : []),
-              { valor: "parcial", etiqueta: "Un abono parcial, sin cifra (la salida pedirá autorización)" },
-            ],
-          },
-          ...(verPrecios
-            ? [
-                {
-                  nombre: "monto",
-                  etiqueta: "Total pagado hasta ahora, si eligió «otro monto» (no el último abono)",
-                  tipo: "number",
-                  inicial: "",
-                  requerido: false,
-                },
-              ]
-            : []),
-          { nombre: "nota", etiqueta: "Nota (n.º de operación, fecha del abono…)", requerido: false },
-        ]}
       />
 
       <Cuadro

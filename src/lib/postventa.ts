@@ -62,6 +62,8 @@ export interface ServicioPostventa {
   pago_confirmado_detalle?: string | null;
   pago_observado_at?: string | null;
   pago_observado_motivo?: string | null;
+  /** Cuándo postventa le pidió a Finanzas confirmar el abono (0295). */
+  pago_solicitado_at?: string | null;
   pago_confirmado_captura?: string | null;
   /** La apertura de despacho: el documento con el que almacén despacha (0150). */
   apertura_despacho_at?: string | null;
@@ -470,7 +472,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       // estaban en curso: exigírselo las mostraría todas trabadas en el paso 1.
       hecho: s.aprobado_at != null || s.informe_cierre_id == null,
       cuando: s.aprobado_at,
-      detalle: s.numero_pedido_erp ? `Pedido ERP ${s.numero_pedido_erp}` : undefined,
+      detalle: s.numero_pedido_erp ? `Pedido ${s.numero_pedido_erp}` : undefined,
     },
     ...(circuito.esServicio
       ? []

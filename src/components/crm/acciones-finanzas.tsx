@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AlertTriangle, BadgeCheck, Loader2, Paperclip, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { confirmarAbono, observarPago } from "@/lib/acciones/finanzas";
+import { confirmarAbono, observarPago, type Avisar } from "@/lib/acciones/finanzas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +53,56 @@ export function AccionesFinanzas({
   );
 }
 
+/** Sube un archivo al bucket privado, bajo finanzas/<pedido>/ (la ruta que validan las funciones de la base). */
+async function subirAFinanzas(servicioId: string, f: File): Promise<string> {
+  if (f.size > 10 * 1024 * 1024) throw new Error("El archivo pasa de 10 MB");
+  const path = `finanzas/${servicioId}/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
+  const { error } = await createClient().storage.from("adjuntos").upload(path, f, { contentType: f.type || "application/octet-stream" });
+  if (error) throw new Error(`No se pudo subir el archivo: ${error.message}`);
+  return path;
+}
+
+/** Adjuntar un archivo (imagen o PDF), con la opción de quitarlo. */
+function CampoArchivo({ etiqueta, archivo, onChange }: { etiqueta: string; archivo: File | null; onChange: (f: File | null) => void }) {
+  return archivo ? (
+    <div className="flex items-center justify-between gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm">
+      <span className="truncate">{archivo.name}</span>
+      <button type="button" onClick={() => onChange(null)} className="text-muted-foreground hover:text-foreground" aria-label="Quitar el archivo">
+        <X className="size-4" />
+      </button>
+    </div>
+  ) : (
+    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent">
+      <Paperclip className="size-4" />
+      {etiqueta}
+      <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => onChange(e.target.files?.[0] ?? null)} />
+    </label>
+  );
+}
+
+/**
+ * A QUIÉN AVISAR (0295). Carlos, 23-09 17:48: «acá le tiene que permitir
+ * elegir… postventa, comercial. Check, check». El comercial es quien cobra;
+ * postventa solo queda informada (sin cifras).
+ */
+function AQuienAvisar({ valor, onChange }: { valor: Avisar; onChange: (v: Avisar) => void }) {
+  return (
+    <div className="grid gap-1">
+      <Label>Avisar a</Label>
+      <div className="flex flex-wrap gap-3 text-sm">
+        <label className="inline-flex items-center gap-1.5">
+          <input type="checkbox" checked={valor.comercial} onChange={(e) => onChange({ ...valor, comercial: e.target.checked })} />
+          Comercial <span className="text-[11px] text-muted-foreground">(lo cobra)</span>
+        </label>
+        <label className="inline-flex items-center gap-1.5">
+          <input type="checkbox" checked={valor.postventa} onChange={(e) => onChange({ ...valor, postventa: e.target.checked })} />
+          Postventa <span className="text-[11px] text-muted-foreground">(solo para que esté informada)</span>
+        </label>
+      </div>
+    </div>
+  );
+}
+
 function hoyLima() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 }
@@ -82,6 +132,8 @@ function DialogoAbono({
   const [descuento, setDescuento] = useState("");
   const [motivoDescuento, setMotivoDescuento] = useState("");
   const [captura, setCaptura] = useState<File | null>(null);
+  const [evidencia, setEvidencia] = useState<File | null>(null);
+  const [avisar, setAvisar] = useState<Avisar>({ comercial: true, postventa: true });
   const simbolo = moneda === "PEN" ? "S/" : "US$";
 
   function enviar() {
@@ -91,31 +143,31 @@ function DialogoAbono({
     if (!medio) return toast.error("Elija el banco o el medio por el que entró");
     startTransition(async () => {
       let capturaPath: string | null = null;
-      if (captura) {
-        const path = `finanzas/${servicioId}/${crypto.randomUUID()}-${captura.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
-        const { error } = await createClient().storage.from("adjuntos").upload(path, captura, { contentType: captura.type || "image/jpeg" });
-        if (error) {
-          toast.error(`No se pudo subir la captura: ${error.message}`);
-          return;
-        }
-        capturaPath = path;
-      }
+      let evidenciaPath: string | null = null;
       const d = Number(descuento.replace(",", "."));
+      try {
+        if (captura) capturaPath = await subirAFinanzas(servicioId, captura);
+        if (evidencia && d > 0) evidenciaPath = await subirAFinanzas(servicioId, evidencia);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "No se pudo subir el archivo");
+        return;
+      }
       const r = await confirmarAbono({
-        servicioId, monto: n, fecha, operacion, medio, capturaPath, nota,
-        descuento: d > 0 ? { monto: d, motivo: motivoDescuento || "Comisión del banco" } : null,
+        servicioId, monto: n, fecha, operacion, medio, capturaPath, nota, avisar,
+        descuento: d > 0 ? { monto: d, motivo: motivoDescuento || "Comisión del banco", adjuntoPath: evidenciaPath } : null,
       });
       if (r.error) {
         toast.error(r.error, { duration: 9000 });
         return;
       }
-      toast.success("Abono confirmado. Postventa y el comercial ya lo saben.");
+      toast.success("Abono confirmado y avisado.");
       setAbierto(false);
       setOperacion("");
       setNota("");
       setDescuento("");
       setMotivoDescuento("");
       setCaptura(null);
+      setEvidencia(null);
       router.refresh();
     });
   }
@@ -173,20 +225,7 @@ function DialogoAbono({
           </div>
           <div className="grid gap-1">
             <Label>Captura del movimiento (opcional)</Label>
-            {captura ? (
-              <div className="flex items-center justify-between gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm">
-                <span className="truncate">{captura.name}</span>
-                <button type="button" onClick={() => setCaptura(null)} className="text-muted-foreground hover:text-foreground" aria-label="Quitar la captura">
-                  <X className="size-4" />
-                </button>
-              </div>
-            ) : (
-              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent">
-                <Paperclip className="size-4" />
-                Adjuntar imagen o PDF
-                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setCaptura(e.target.files?.[0] ?? null)} />
-              </label>
-            )}
+            <CampoArchivo etiqueta="Adjuntar imagen o PDF" archivo={captura} onChange={setCaptura} />
           </div>
           <div className="grid gap-1">
             <Label htmlFor="descuento">¿El banco descontó algo? (opcional)</Label>
@@ -195,7 +234,11 @@ function DialogoAbono({
               <Input value={motivoDescuento} onChange={(e) => setMotivoDescuento(e.target.value)} placeholder="ej. comisión de la transferencia" />
             </div>
             <p className="text-[11px] text-muted-foreground">Confirme arriba lo que entró. La diferencia queda pendiente y le avisamos al comercial para que la cobre.</p>
+            {Number(descuento.replace(",", ".")) > 0 && (
+              <CampoArchivo etiqueta="Evidencia del banco (para mostrársela al cliente)" archivo={evidencia} onChange={setEvidencia} />
+            )}
           </div>
+          <AQuienAvisar valor={avisar} onChange={setAvisar} />
           <div className="grid gap-1.5">
             <Label htmlFor="nota">Nota (opcional)</Label>
             <Input id="nota" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="ej. abono parcial, el cliente paga el resto el viernes" />
@@ -220,19 +263,35 @@ function DialogoObservar({ servicioId, cliente, compacto }: { servicioId: string
   const [abierto, setAbierto] = useState(false);
   const [pendiente, startTransition] = useTransition();
   const [motivo, setMotivo] = useState("");
-  const rapidos = ["No encuentro el abono en el estado de cuenta", "El monto acreditado no coincide con el voucher", "El abono está a nombre de otra persona o empresa"];
+  const [evidencia, setEvidencia] = useState<File | null>(null);
+  const [avisar, setAvisar] = useState<Avisar>({ comercial: true, postventa: true });
+  const rapidos = [
+    "No encuentro el abono en el estado de cuenta",
+    "El monto acreditado no coincide con el voucher",
+    "El abono está a nombre de otra persona o empresa",
+    // Carlos, 23-09 17:48: «el abono existe, pero hay comisión… del banco».
+    "El abono existe, pero el banco cobró comisión: falta la diferencia",
+  ];
 
   function enviar() {
     if (motivo.trim().length < 10) return toast.error("Escriba qué pasa con el pago (mínimo una frase)");
     startTransition(async () => {
-      const r = await observarPago({ servicioId, motivo });
+      let adjuntoPath: string | null = null;
+      try {
+        if (evidencia) adjuntoPath = await subirAFinanzas(servicioId, evidencia);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "No se pudo subir la evidencia");
+        return;
+      }
+      const r = await observarPago({ servicioId, motivo, adjuntoPath, avisar });
       if (r.error) {
         toast.error(r.error, { duration: 9000 });
         return;
       }
-      toast.success("Pago observado. Postventa y el comercial ya lo saben.");
+      toast.success("Pago observado y avisado.");
       setAbierto(false);
       setMotivo("");
+      setEvidencia(null);
       router.refresh();
     });
   }
@@ -250,7 +309,7 @@ function DialogoObservar({ servicioId, cliente, compacto }: { servicioId: string
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Observar el pago · {cliente}</DialogTitle>
-          <DialogDescription>Postventa y el comercial reciben el motivo. El pedido no avanza hasta que confirme un abono.</DialogDescription>
+          <DialogDescription>Quien marque abajo recibe el motivo y la evidencia. El pedido no avanza hasta que confirme un abono.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-2">
           <div className="flex flex-wrap gap-1.5">
@@ -266,6 +325,8 @@ function DialogoObservar({ servicioId, cliente, compacto }: { servicioId: string
             ))}
           </div>
           <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} placeholder="Qué pasa con el pago y qué necesita para confirmarlo" />
+          <CampoArchivo etiqueta="Adjuntar la evidencia (ej. el cargo de la comisión)" archivo={evidencia} onChange={setEvidencia} />
+          <AQuienAvisar valor={avisar} onChange={setAvisar} />
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" size="sm" onClick={() => setAbierto(false)} disabled={pendiente}>
               Cancelar

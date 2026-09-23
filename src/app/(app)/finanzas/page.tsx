@@ -114,10 +114,16 @@ function FilaPedido({ p, hoy }: { p: PedidoFinanzas; hoy: string }) {
           <p className="mt-0.5 text-xs text-muted-foreground">
             {p.clienteDoc ? `${p.clienteDoc} · ` : ""}
             {p.codigoCierre ? `Cierre ${p.codigoCierre}` : "Sin cierre"}
-            {p.numeroErp ? ` · Pedido ERP ${p.numeroErp}` : ""}
+            {p.numeroErp ? ` · Pedido ${p.numeroErp}` : ""}
             {p.comercialNombre ? ` · ${p.comercialNombre}` : ""}
           </p>
           {p.equipo && <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{p.equipo.replace(/\s+/g, " ")}</p>}
+          {p.solicitadoAt && (
+            <p className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+              Postventa pidió confirmar el abono ·{" "}
+              {new Date(p.solicitadoAt).toLocaleString("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" })}
+            </p>
+          )}
         </div>
         <div className="text-right">
           {dias != null ? (
