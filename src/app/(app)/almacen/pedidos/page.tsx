@@ -4,7 +4,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
-import { ETIQUETA_TIPO_PEDIDO, circuitoDe, type ServicioPostventa } from "@/lib/postventa";
+import { ETIQUETA_TIPO_PEDIDO, circuitoDe, faltanFotosDeCarga, type ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +25,11 @@ const VISTAS: Record<string, string> = {
   apertura: "Con apertura, sin salir",
   guia: "Salieron, sin guía",
   aprobados: "Aprobados sin pedido de prueba",
+  // Lo que ya salió, para seguirlo y controlarlo (almacén, 23-09: «Se requiere
+  // contar con un apartado de "Despachados", donde puedan visualizarse los
+  // pedidos o gestiones que ya hayan finalizado»). Las demás vistas son solo
+  // lo que está en curso; esta incluye también los pedidos ya cerrados.
+  despachados: "Despachados",
 };
 const cliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 
@@ -43,18 +48,25 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
   const supabase = await createClient();
   const hoy = hoyLima();
 
+  const despachados = ver === "despachados";
   let consulta = supabase
     .from("servicios_postventa")
     .select("id, cliente_texto, equipo, ubicacion, direccion_entrega, modalidad, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, protocolo_prueba_ref, almacen_listo_at, agencia_at, guia, transportista, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en, con_instalacion, despacho_nota, updated_at")
-    .eq("completado", false)
-    .is("cerrado_at", null)
-    .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
-    .order("fecha_despacho", { ascending: true, nullsFirst: false })
-    .order("updated_at", { ascending: false })
-    .limit(500);
+    .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null");
+  consulta = despachados
+    ? // Lo último que salió arriba; con o sin pedido cerrado.
+      consulta.not("despachado_at", "is", null).order("despachado_at", { ascending: false }).limit(300)
+    : consulta
+        .eq("completado", false)
+        .is("cerrado_at", null)
+        .order("fecha_despacho", { ascending: true, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .limit(500);
   if (q) consulta = consulta.or(`cliente_texto.ilike.%${q}%,equipo.ilike.%${q}%,guia.ilike.%${q}%`);
-  if (desde) consulta = consulta.gte("fecha_despacho", desde);
-  if (hasta) consulta = consulta.lte("fecha_despacho", hasta);
+  // En «Despachados» el rango es sobre el día en que salió; en las demás,
+  // sobre la fecha programada.
+  if (desde) consulta = despachados ? consulta.gte("despachado_at", `${desde}T00:00:00-05:00`) : consulta.gte("fecha_despacho", desde);
+  if (hasta) consulta = despachados ? consulta.lte("despachado_at", `${hasta}T23:59:59-05:00`) : consulta.lte("fecha_despacho", hasta);
   const { data } = await consulta;
 
   const todos = (data ?? []) as unknown as ServicioPostventa[];
@@ -73,6 +85,11 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
   });
 
   function estado(s: ServicioPostventa): { texto: string; tono: string } {
+    // Salió, pero el almacén no dejó la evidencia de la carga (postventa
+    // registró la salida desde su pantalla): que se vea para completarla.
+    if (faltanFotosDeCarga(s) && !s.cerrado_at && !s.completado)
+      return { texto: `Salió${s.guia ? ` · guía ${s.guia}` : ""} · faltan las fotos de la carga`, tono: "text-amber-700" };
+    if (s.cerrado_at || s.completado) return { texto: `Entregado · pedido cerrado${s.guia ? ` · guía ${s.guia}` : ""}`, tono: "text-[#1E7F4F]" };
     if (s.agencia_at || s.guia) return { texto: `Despachado · guía ${s.guia ?? "—"}`, tono: "text-[#1E7F4F]" };
     if (s.despachado_at) return { texto: "Salió del almacén · falta la guía", tono: "text-amber-700" };
     if (s.fecha_despacho && s.almacen_listo_at) return { texto: `Listo para el ${s.fecha_despacho}`, tono: "text-[#1E7F4F]" };
@@ -103,7 +120,7 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
         {ver && <input type="hidden" name="ver" value={ver} />}
         <BusquedaEnVivo inicial={q} placeholder="Cliente, equipo o guía" />
         <label className="flex items-center gap-1 text-xs text-muted-foreground">
-          Despacho desde
+          {despachados ? "Salió desde" : "Despacho desde"}
           <input type="date" name="desde" defaultValue={desde} className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground" />
         </label>
         <label className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -127,7 +144,11 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
             return (
               <li key={s.id}>
                 <Link href={`/almacen/pedidos/${s.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 hover:bg-accent">
-                  <span className="w-24 flex-none text-xs tabular-nums text-muted-foreground">{s.fecha_despacho ?? "sin fecha"}</span>
+                  <span className="w-24 flex-none text-xs tabular-nums text-muted-foreground">
+                    {despachados && s.despachado_at
+                      ? new Date(s.despachado_at).toLocaleDateString("en-CA", { timeZone: "America/Lima" })
+                      : (s.fecha_despacho ?? "sin fecha")}
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold text-foreground">{cliente(s.cliente_texto)}</span>
                     <span className="line-clamp-1 break-words text-xs text-muted-foreground">{s.equipo}</span>

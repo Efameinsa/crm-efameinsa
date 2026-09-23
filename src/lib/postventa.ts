@@ -334,6 +334,23 @@ export interface FotoAlmacen {
   etiqueta: string;
 }
 
+/**
+ * Desde cuándo se le piden al almacén las fotos de la carga (0246): la cuenta
+ * del almacén trabaja con datos reales desde el 18-09 por la tarde. Lo que
+ * salió antes no tiene quién lo fotografíe y no se marca como pendiente.
+ */
+export const FOTOS_DE_CARGA_DESDE = "2026-09-19";
+
+/** Salió (lo marcó postventa) pero el almacén no dejó las fotos de la carga. */
+export function faltanFotosDeCarga(s: Pick<ServicioPostventa, "despachado_at" | "informe_cierre_id" | "salida_fotos">): boolean {
+  return (
+    Boolean(s.despachado_at) &&
+    Boolean(s.informe_cierre_id) &&
+    (s.salida_fotos?.length ?? 0) === 0 &&
+    new Date(s.despachado_at as string).toLocaleDateString("en-CA", { timeZone: "America/Lima" }) >= FOTOS_DE_CARGA_DESDE
+  );
+}
+
 export const ETIQUETA_TIPO_PEDIDO: Record<TipoPedido, string> = {
   equipo: "Venta de equipo",
   repuesto: "Venta de repuesto",

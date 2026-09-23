@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Check, Loader2, PackageCheck, Truck, FileCheck2, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia } from "@/lib/acciones/almacen";
-import { bloquesPedido, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, faltanFotosDeCarga, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,6 +101,14 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
 
   const salidaLista = ANGULOS.filter((a) => angulos[a.etiqueta]).length >= 3;
   const puedeSalir = Boolean(servicio.apertura_despacho_at) || !servicio.informe_cierre_id;
+  // POSTVENTA YA MARCÓ LA SALIDA, PERO FALTAN LAS FOTOS DE LA CARGA (23-09).
+  // Postventa puede registrar el despacho desde su pantalla (con la guía), y
+  // eso escondía esta tarjeta: el almacén se quedaba sin dónde subir las
+  // fotos de la máquina ya puesta en el transporte. Caso Titan 676-26, el
+  // almacén: «la plataforma no me permite cargar las fotografías
+  // correspondientes a la carga una vez que esta ha sido colocada en el
+  // transporte». La base ya lo admite (suma las fotos y respeta la fecha).
+  const faltanFotosCarga = faltanFotosDeCarga(servicio);
 
   return (
     <div className="space-y-3">
@@ -188,10 +196,18 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
       )}
 
       {/* 3 · La salida */}
-      {probado && !servicio.despachado_at && (
-        <Tarjeta icono={Truck} titulo="Registrar la salida" tono={puedeSalir ? "activa" : "bloqueada"}>
+      {probado && (!servicio.despachado_at || faltanFotosCarga) && (
+        <Tarjeta
+          icono={Truck}
+          titulo={faltanFotosCarga ? "Fotos de la carga en el transporte" : "Registrar la salida"}
+          tono={puedeSalir ? "activa" : "bloqueada"}
+        >
           {!puedeSalir ? (
             <p className="text-xs text-destructive">Sin apertura de despacho no sale nada del almacén. Pídasela a postventa.</p>
+          ) : faltanFotosCarga ? (
+            <p className="text-xs text-muted-foreground">
+              Postventa ya registró la salida{servicio.guia ? ` (guía ${servicio.guia})` : ""}, pero falta la evidencia del almacén: cinco ángulos de la máquina ya cargada y un video. Mínimo tres fotos.
+            </p>
           ) : (
             <p className="text-xs text-muted-foreground">Cinco ángulos y un video al terminar de cargar. Mínimo tres fotos para registrar.</p>
           )}
@@ -224,11 +240,11 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
                 const fotos = await subir(archivos);
                 if (!fotos) return { error: "No se subieron los archivos" };
                 return registrarSalida(servicio.id, { fecha: fechaSalida, fotos, nota: notaSalida, cliente });
-              }, "Salida registrada. Falta la guía en la agencia.")
+              }, faltanFotosCarga ? "Fotos de la carga subidas. Postventa ya las ve." : "Salida registrada. Falta la guía en la agencia.")
             }
           >
             {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
-            Salió del almacén
+            {faltanFotosCarga ? "Subir las fotos de la carga" : "Salió del almacén"}
           </Button>
         </Tarjeta>
       )}
