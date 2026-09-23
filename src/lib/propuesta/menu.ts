@@ -29,7 +29,8 @@ export type TipoPerfil =
 export type Icono =
   | "hoy" | "conversaciones" | "seguimiento" | "pedidos" | "clientes" | "agenda" | "oportunidades" | "ventas"
   | "numeros" | "atenciones" | "vender" | "campana" | "informes" | "cobranza" | "abonos" | "catalogo" | "permisos"
-  | "aprobaciones" | "marketing" | "operacion" | "control" | "usuarios" | "listas";
+  | "aprobaciones" | "marketing" | "operacion" | "control" | "usuarios" | "listas"
+  | "aperturas";
 
 export interface OpcionMenu {
   etiqueta: string;
@@ -102,6 +103,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     hoy,
     { etiqueta: "Pedidos", href: "/postventa/control", icono: "pedidos", coincide: ["/postventa/control", "/postventa/pedidos"] },
     { etiqueta: "Atenciones", href: "/postventa/atenciones", icono: "atenciones", coincide: ["/postventa/atenciones", "/postventa/casos", "/postventa/informes"] },
+    // Reunión 23-09: la orden al almacén que iba por correo (0281).
+    { etiqueta: "Aperturas al almacén", href: "/postventa/aperturas", icono: "aperturas", coincide: ["/postventa/aperturas", "/aperturas"] },
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/comercial/cartera", "/postventa/equipos", "/comercial/parque"] },
     { etiqueta: "Vender", href: "/nuevo/vender", icono: "vender", coincide: ["/nuevo/vender", "/comercial/ruta", "/comercial/cotizaciones", "/comercial/cierres", "/comercial/mi-gestion", "/comercial/oportunidades"] },
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/postventa/agenda", "/postventa/visitas"] },
@@ -116,6 +119,7 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   almacen: [
     hoy,
     { etiqueta: "Pedidos", href: "/almacen/pedidos", icono: "pedidos", coincide: ["/almacen/pedidos"] },
+    { etiqueta: "Aperturas de postventa", href: "/almacen/aperturas", icono: "aperturas", coincide: ["/almacen/aperturas", "/aperturas"] },
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/almacen/agenda", "/almacen/atenciones", "/almacen/visitas"] },
     { etiqueta: "Informes técnicos", href: "/almacen/informes", icono: "informes", coincide: ["/almacen/informes"] },
   ],

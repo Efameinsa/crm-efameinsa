@@ -7,6 +7,7 @@ import {
   BarChart3, Boxes, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Gauge, HandCoins, Inbox,
   KanbanSquare, KeyRound, Landmark, Megaphone, MessageCircle, Package, ReceiptText, Route, ShieldCheck, Sun,
   Users, Wrench, BookMarked, type LucideIcon,
+  PhoneForwarded,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Icono, OpcionMenu } from "@/lib/propuesta/menu";
@@ -16,6 +17,7 @@ const ICONOS: Record<Icono, LucideIcon> = {
   conversaciones: MessageCircle,
   seguimiento: Inbox,
   pedidos: Package,
+  aperturas: PhoneForwarded,
   clientes: Building2,
   agenda: CalendarDays,
   oportunidades: KanbanSquare,
