@@ -13,7 +13,7 @@ import { DIAS_AVISO_PREVENTIVO, REGLA_PREVENTIVO, TITULO_PREVENTIVOS_POR_OFRECER
  */
 const BLOQUES: { clave: keyof PendientesPostventa; titulo: string; vacio: string; ayuda?: string }[] = [
   { clave: "despachosSinFecha", titulo: "Despachos sin fecha todavía", vacio: "Ningún despacho está sin fecha." },
-  { clave: "despachosConFecha", titulo: "Despachos programados, sin salir", vacio: "Nada programado que siga sin despachar." },
+  { clave: "despachosConFecha", titulo: "Con fecha de despacho, todavía en planta (y qué les falta)", vacio: "Nada programado que siga sin despachar." },
   { clave: "videollamadas", titulo: "Videollamadas de preinstalación (Lima)", vacio: "Al día: ninguna videollamada pendiente." },
   { clave: "puestasEnMarcha", titulo: "Puestas en marcha pendientes", vacio: "Nada despachado esperando su puesta en marcha." },
   { clave: "atencionesSinProgramar", titulo: "Atenciones sin programar", vacio: "Nada por programar." },

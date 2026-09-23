@@ -824,9 +824,25 @@ export function PedidoPostventa({
         descripcion="Instalación y capacitación. La lectura de ciclos es el kilometraje del equipo: es lo que después permite decirle al cliente cuánto lo usó."
         boton="Guardar el informe"
         pendiente={pendiente}
-        onEnviar={(datos) => {
+        onEnviar={(datos, archivos) => {
           startTransition(async () => {
+            // Las fotos del trabajo (reunión 23-09: «tendría que subir la opción
+            // para subir las fotos»). Se suben primero; el informe guarda la ruta
+            // y su hoja imprimible ya las pone en «Registro fotográfico».
+            const fotos: { path: string; nombre: string; tipo: string; tamano: number }[] = [];
+            for (const clave of ["foto1", "foto2", "foto3", "foto4"]) {
+              const f = archivos[clave];
+              if (!f) continue;
+              const path = `informes/${servicio.id}/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
+              const { error } = await createClient().storage.from("adjuntos").upload(path, f, { contentType: f.type || "image/jpeg" });
+              if (error) {
+                toast.error(`No se pudo subir «${f.name}»: ${error.message}`);
+                return;
+              }
+              fotos.push({ path, nombre: f.name, tipo: f.type, tamano: f.size });
+            }
             const r = await guardarInformeServicio({
+              fotos,
               servicioId: servicio.id,
               cuentaId: servicio.cuenta_id,
               clienteTexto: servicio.cliente_texto,
@@ -860,6 +876,10 @@ export function PedidoPostventa({
           { nombre: "observaciones", etiqueta: "Observaciones y recomendaciones", area: true, requerido: false },
           { nombre: "conforme", etiqueta: "Cliente que da conformidad", requerido: false },
           { nombre: "conformeDoc", etiqueta: "Su DNI", requerido: false },
+          { nombre: "foto1", etiqueta: "Foto del trabajo 1", archivo: true },
+          { nombre: "foto2", etiqueta: "Foto 2", archivo: true },
+          { nombre: "foto3", etiqueta: "Foto 3", archivo: true },
+          { nombre: "foto4", etiqueta: "Foto 4 (el informe firmado, si lo hay)", archivo: true },
         ]}
       />
 

@@ -89,7 +89,10 @@ export async function GET(request: Request) {
     if (perfil?.es_postventa) {
       const manana = r.planificacion_manana.fecha;
       const [eventos, { data: bitacora }, pendientes] = await Promise.all([
-        cargarEventosPostventa(supabase, perfil, fecha, manana),
+        // Reunión 23-09: «ahí está mezclada el de Gabriela con… Rubí». El reporte
+        // es de UNA persona: los casos salen solo de su cartera y lo compartido
+        // del área se rotula aparte abajo. Los montos siguen tapados igual.
+        cargarEventosPostventa(supabase, perfil, fecha, manana, { soloMisCasos: true }),
         supabase.from("bitacora_dia").select("orden, texto").eq("perfil_id", comercialId).eq("fecha", fecha).order("orden"),
         pendientesDePostventa(supabase),
       ]);
@@ -97,7 +100,7 @@ export async function GET(request: Request) {
       // «Pendiente por tipo» de la agenda, para que el PDF diga lo mismo.
       const ROTULO: Record<keyof PendientesPostventa, string> = {
         despachosSinFecha: "Despachos sin fecha todavía",
-        despachosConFecha: "Despachos programados, sin salir",
+        despachosConFecha: "Con fecha de despacho, todavía en planta (y qué les falta)",
         videollamadas: "Videollamadas de preinstalación por pedir al almacén (Lima)",
         puestasEnMarcha: "Puestas en marcha pendientes",
         atencionesSinProgramar: "Atenciones sin programar",
@@ -153,7 +156,10 @@ export async function GET(request: Request) {
       r.complementarias = [
         ...eventosDelDia(eventos, fecha).map((e) => ({
           hora: e.hora,
-          titulo: e.origen === "tarea" ? e.titulo : `${etiquetaEvento(e.tipo)} · ${e.cliente} · ${e.titulo}`,
+          titulo:
+            e.origen === "tarea"
+              ? e.titulo
+              : `${e.origen === "caso" ? "" : "Del área · "}${etiquetaEvento(e.tipo)} · ${e.cliente} · ${e.titulo}`,
         })),
         ...(bitacora ?? []).map((b) => ({ hora: null, titulo: b.texto })),
         ...r.complementarias,
