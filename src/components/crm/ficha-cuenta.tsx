@@ -12,6 +12,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ResumenCuenta } from "@/components/crm/resumen-cuenta";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { GrupoEconomico } from "@/components/crm/grupo-economico";
+import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { ReasignarCarteraBoton } from "@/components/crm/reasignar-cartera-boton";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
 import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
@@ -232,6 +233,11 @@ export async function FichaCuenta({
             </span>
           </span>
         </div>
+        <AvisoMismoCliente
+          cuentaId={cuenta.id}
+          baseHref={comoCentral ? "/central/clientes" : comoGerencia ? "/gerencia/clientes" : undefined}
+          className="mt-3"
+        />
       </div>
 
       {/* Reunión 23-09: los dos últimos cierres y cómo va su pedido, antes que todo. */}

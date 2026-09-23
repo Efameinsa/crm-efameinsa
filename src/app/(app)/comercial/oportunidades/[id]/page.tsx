@@ -1,4 +1,5 @@
 import { Phone, Mail, MapPin, FileText, CalendarClock, Building2 } from "lucide-react";
+import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { versionesAnteriores } from "@/lib/versiones-cotizacion";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
@@ -570,6 +571,9 @@ export default async function OportunidadDetallePage({
             )}
           </div>
         </div>
+
+        {/* Otra razón social del mismo dueño (23-09): se ve antes de cotizar. */}
+        <AvisoMismoCliente cuentaId={cuenta?.id} className="mt-3" />
 
         {cuenta?.contactos && cuenta.contactos.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
