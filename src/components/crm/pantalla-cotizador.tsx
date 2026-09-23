@@ -33,6 +33,7 @@ import { fechaCalendario } from "@/lib/fechas";
 import { BuscadorEquiposModal } from "@/components/crm/buscador-equipos-modal";
 import { CajaAgregarItem } from "@/components/crm/caja-agregar-item";
 import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
+import { AYUDA_SERIE_EFAMEINSA, MOTIVO_SERIE_MINIMO, SERIE_POR_DEFECTO, problemaSerie } from "@/lib/serie-facturacion";
 import { ENTREGA_POR_DEFECTO, GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES, IGV, LUGARES_ENTREGA } from "@/lib/pdf/series";
 import { netoDeBruto, redondear2, totalesConIgv } from "@/lib/igv";
 import type {
@@ -249,7 +250,12 @@ export function PantallaCotizador({
   const router = useRouter();
   const volverHref = `/comercial/oportunidades/${oportunidadId}`;
 
-  const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(edicion?.serie ?? "EFAMEINSA");
+  // OPEN PRIMERO (gerencia, 23-09-2026): «La idea es que Open Investments sea
+  // la primera opción». Toda cotización nueva arranca en OPEN; la que se
+  // reabre conserva la suya. Elegir EFAMEINSA se permite (Santos: no se
+  // bloquea, tampoco a un cliente nuevo) pero pide el motivo por escrito.
+  const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(edicion?.serie ?? SERIE_POR_DEFECTO);
+  const [motivoSerie, setMotivoSerie] = useState<string>(edicion?.motivoSerie ?? "");
   // COTIZAR EN SOLES (0169). El cotizador sigue trabajando en dólares —ahí
   // están el maestro de precios, el piso y la aprobación de gerencia—; esto
   // solo decide en qué moneda se imprime el papel del cliente. El cambio lo
@@ -384,8 +390,10 @@ export function PantallaCotizador({
         // PDF seguía saliendo en dólares (reportado el 04-09, mismo día).
         monedaImpresa,
         tcDelDocumento,
+        // El motivo de ir con Efameinsa (0275) se autoguarda como el resto.
+        motivoSerie,
       }),
-    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, monedaImpresa, tcDelDocumento],
+    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, monedaImpresa, tcDelDocumento, motivoSerie],
   );
 
   const payloadRef = useRef(payload);
@@ -411,6 +419,7 @@ export function PantallaCotizador({
       garantia: string;
       formaPago: string;
       saldo: string;
+      motivoSerie: string;
     };
     // Una línea a mano sin concepto todavía (el botón «+ Agregar una línea»
     // recién apretado) no se manda: la base la rechaza entera y el sello se
@@ -423,6 +432,7 @@ export function PantallaCotizador({
       cotizacionId: idRef.current,
       oportunidadId,
       serie,
+      motivoSerie: datos.motivoSerie,
       items: datos.items,
       condiciones: datos.condiciones,
       vigenciaDias: datos.vigenciaDias,
@@ -739,7 +749,7 @@ export function PantallaCotizador({
     }
     startTransition(async () => {
       await vaciarPendientes();
-      const r = await cambiarSerieBorrador({ cotizacionId: idRef.current!, serie: nueva });
+      const r = await cambiarSerieBorrador({ cotizacionId: idRef.current!, serie: nueva, motivoSerie });
       if (r.error && !r.cotizacionId) {
         toast.error(r.error);
         return;
@@ -757,6 +767,15 @@ export function PantallaCotizador({
 
   /** El botón grande: pide aprobación, o abre la confirmación de envío. */
   function accionPrincipal() {
+    // Efameinsa sin motivo no sale ni va a gerencia (Open primero, 23-09-2026).
+    // La base no lo exige: lo exige la acción del servidor, y se avisa acá
+    // antes de guardar para no mandar a la comercial a buscar el porqué.
+    const faltaMotivo = problemaSerie(serie, motivoSerie);
+    if (faltaMotivo) {
+      toast.error(faltaMotivo);
+      document.getElementById("motivo-serie")?.focus();
+      return;
+    }
     startTransition(async () => {
       const guardadoOk = await vaciarPendientes();
       if (!guardadoOk || !idRef.current) {
@@ -1352,7 +1371,7 @@ export function PantallaCotizador({
           <div className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm">
             <div className="space-y-2">
               <Label htmlFor="serie">Serie</Label>
-              <Select value={serie} onValueChange={(v) => alCambiarSerie((v as typeof serie) ?? "EFAMEINSA")} disabled={ocupado}>
+              <Select value={serie} onValueChange={(v) => alCambiarSerie((v as typeof serie) ?? SERIE_POR_DEFECTO)} disabled={ocupado}>
                 <SelectTrigger id="serie" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -1361,6 +1380,29 @@ export function PantallaCotizador({
                   <SelectItem value="OPEN">OPEN</SelectItem>
                 </SelectContent>
               </Select>
+              {serie === "EFAMEINSA" ? (
+                <div className="space-y-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
+                  <Label htmlFor="motivo-serie" className="text-xs">
+                    ¿Por qué Efameinsa y no Open?
+                  </Label>
+                  <Textarea
+                    id="motivo-serie"
+                    value={motivoSerie}
+                    onChange={(e) => setMotivoSerie(e.target.value)}
+                    rows={2}
+                    placeholder="Ej.: cliente antiguo; se le explicó el cambio a Open y pidió seguir facturando con Efameinsa"
+                    className="text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    {AYUDA_SERIE_EFAMEINSA}
+                    {motivoSerie.trim().length < MOTIVO_SERIE_MINIMO && (
+                      <span className="text-amber-700"> Falta el motivo (una frase) para poder confirmarla.</span>
+                    )}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Open es la primera opción de facturación.</p>
+              )}
               {cotizacionId && (
                 <p className="text-[11px] text-muted-foreground">
                   Cambiar la serie rehace el borrador con los mismos equipos: el correlativo cuelga de ella.

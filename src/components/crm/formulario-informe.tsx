@@ -38,6 +38,7 @@ import { SelectorHora } from "@/components/crm/selector-hora";
 import { cn } from "@/lib/utils";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { hoyLima } from "@/lib/periodo";
+import { AYUDA_SERIE_EFAMEINSA, MOTIVO_SERIE_MINIMO, SERIE_POR_DEFECTO, motivoSerieSuficiente } from "@/lib/serie-facturacion";
 
 // Informe de cierre de ventas: la pantalla que el comercial llena.
 //
@@ -207,7 +208,16 @@ export function FormularioInforme({
   // exactamente lo que hoy escribe a mano en el Word.
   const [items, setItems] = useState<ItemInformeEntrada[]>(() => (b ? b.items : equiposDe(presupuestos[0])));
 
-  const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(b?.serie ?? presupuestos[0]?.serie ?? "EFAMEINSA");
+  // OPEN PRIMERO (gerencia, 23-09-2026). El cierre hereda la serie de la
+  // cotización de la que sale; sin cotización arranca en OPEN. Si queda en
+  // EFAMEINSA se pide el motivo, salvo que la cotización ya lo traiga.
+  const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(b?.serie ?? presupuestos[0]?.serie ?? SERIE_POR_DEFECTO);
+  const [motivoSerie, setMotivoSerie] = useState<string>(b?.motivoSerie ?? "");
+  const motivoHeredado =
+    presupuesto?.fuente === "crm" && presupuesto.serie === "EFAMEINSA" && motivoSerieSuficiente(presupuesto.motivoSerie)
+      ? (presupuesto.motivoSerie ?? null)
+      : null;
+  const pideMotivoSerie = serie === "EFAMEINSA" && !motivoHeredado;
   const [comprobante, setComprobante] = useState<"factura" | "boleta_ruc" | "boleta_dni">(b?.comprobante ?? "factura");
   const [clienteNuevo, setClienteNuevo] = useState(b ? b.clienteNuevo : cuenta.esNueva);
   const [clienteNombre, setClienteNombre] = useState(b?.clienteNombre ?? cuenta.razon_social);
@@ -335,6 +345,8 @@ export function FormularioInforme({
       : contactos[contactoDespachoIdx] ?? principal;
     return {
       serie,
+      // Si la cotización ya trae el motivo, la acción del servidor lo copia.
+      motivoSerie: serie === "EFAMEINSA" ? (motivoSerie.trim() || motivoHeredado) : null,
       // En un borrador reabierto, si el presupuesto guardado ya no está en la
       // lista (se borró, se confirmó con otro número), el Nº que tenía se
       // conserva en vez de perderse.
@@ -676,6 +688,40 @@ export function FormularioInforme({
               </p>
             </>
           )}
+          {/* OPEN PRIMERO (gerencia, 23-09-2026): Efameinsa se permite, con
+              su motivo. A la vista y no en la sección plegada: es lo que
+              gerencia va a mirar. */}
+          {serie === "EFAMEINSA" &&
+            (pideMotivoSerie ? (
+              <div className="mt-2 space-y-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
+                <Campo etiqueta="¿Por qué factura Efameinsa y no Open?" pista={AYUDA_SERIE_EFAMEINSA}>
+                  <Textarea
+                    value={motivoSerie}
+                    onChange={(e) => setMotivoSerie(e.target.value)}
+                    rows={2}
+                    placeholder="Ej.: cliente antiguo; se le explicó el cambio a Open y pidió seguir facturando con Efameinsa"
+                  />
+                </Campo>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  {motivoSerie.trim().length < MOTIVO_SERIE_MINIMO ? (
+                    <p className="text-[11px] text-amber-700">Falta el motivo (una frase) para poder guardar el cierre.</p>
+                  ) : (
+                    <span />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSerie("OPEN")}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    Facturar con Open Investments
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Factura Efameinsa por el motivo que quedó en la cotización: «{motivoHeredado}»
+              </p>
+            ))}
           {avisosIdentidad.map((aviso, i) => (
             <p key={i} className="mt-1.5 flex items-start gap-1.5 text-[11px] text-amber-700">
               <TriangleAlert className="mt-0.5 size-3 flex-none" />

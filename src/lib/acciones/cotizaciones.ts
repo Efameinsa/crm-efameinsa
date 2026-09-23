@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notificar } from "@/lib/notificaciones";
 import { avisarCotizacionCreadaEducanet, avisarCierreVentaEducanet } from "@/lib/avisos-educanet";
+import { motivoParaGuardar, problemaSerie, type SerieFacturacion } from "@/lib/serie-facturacion";
 
 export interface ItemCotizacion {
   /** null cuando el equipo todavía no está en el catálogo (migración 0062). */
@@ -60,9 +61,15 @@ async function guardarEntrega(
   cotizacionId: string,
   entregaLugar: string | null | undefined,
   condicionesFicha?: CondicionesFicha,
+  /** Por qué va con EFAMEINSA (0275). undefined = no tocarlo. */
+  motivoSerie?: { serie: SerieFacturacion; motivo: string | null | undefined },
 ): Promise<void> {
   const campos: Record<string, string | null> = {};
   if (entregaLugar) campos.entrega_lugar = entregaLugar;
+  // OPEN PRIMERO (gerencia, 23-09-2026): el motivo de facturar con Efameinsa
+  // viaja en este mismo UPDATE y no por `crear_cotizacion`, por la misma
+  // razón que el lugar de entrega. En OPEN se limpia.
+  if (motivoSerie) campos.motivo_serie = motivoParaGuardar(motivoSerie.serie, motivoSerie.motivo);
   if (condicionesFicha) {
     // Cadena vacía = celda vacía en la ficha, que es lo que pide el estándar
     // para un dato que todavía no se acordó. Se guarda como NULL.
@@ -111,6 +118,8 @@ export async function guardarBorradorCotizacion(datos: {
   cotizacionId: string | null;
   oportunidadId: string;
   serie: "EFAMEINSA" | "OPEN";
+  /** Por qué va con EFAMEINSA y no con OPEN (0275). Se guarda aunque esté a medio escribir: se exige al confirmar. */
+  motivoSerie?: string | null;
   items: ItemCotizacion[];
   condiciones: string;
   vigenciaDias: number;
@@ -146,7 +155,10 @@ export async function guardarBorradorCotizacion(datos: {
     if (error) return { error: limpiarError(error.message), cotizacionId: null };
 
     const cotizacionId = data as string;
-    await guardarEntrega(supabase, cotizacionId, datos.entregaLugar, datos.condicionesFicha);
+    await guardarEntrega(supabase, cotizacionId, datos.entregaLugar, datos.condicionesFicha, {
+      serie: datos.serie,
+      motivo: datos.motivoSerie,
+    });
     // NO se revalida nada acá. Se hacía al nacer el borrador —para que
     // apareciera en la lista de la oportunidad— y costaba caro: `revalidatePath`
     // dentro de una Server Action refresca EL ÁRBOL DE LA RUTA ACTUAL, y como
@@ -169,7 +181,10 @@ export async function guardarBorradorCotizacion(datos: {
   });
   if (error) return { error: limpiarError(error.message), cotizacionId: datos.cotizacionId };
 
-  await guardarEntrega(supabase, datos.cotizacionId, datos.entregaLugar, datos.condicionesFicha);
+  await guardarEntrega(supabase, datos.cotizacionId, datos.entregaLugar, datos.condicionesFicha, {
+    serie: datos.serie,
+    motivo: datos.motivoSerie,
+  });
   return {
     error: null,
     cotizacionId: datos.cotizacionId,
@@ -192,11 +207,14 @@ export async function finalizarCotizacion(
   const { data: cotizacion } = await supabase
     .from("cotizaciones")
     .select(
-      "total, moneda, estado_aprobacion, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre))",
+      "total, moneda, estado_aprobacion, oportunidad_id, serie, motivo_serie, oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre))",
     )
     .eq("id", cotizacionId)
     .maybeSingle();
   if (!cotizacion) return { error: "La cotización no existe" };
+  // Open primero (23-09-2026): a gerencia no llega una Efameinsa sin su motivo.
+  const faltaMotivo = problemaSerie(cotizacion.serie as SerieFacturacion, cotizacion.motivo_serie);
+  if (faltaMotivo) return { error: faltaMotivo };
 
   if (cotizacion.estado_aprobacion === "pendiente_gerencia") {
     const oportunidad = cotizacion.oportunidades as unknown as {
@@ -231,6 +249,8 @@ export async function finalizarCotizacion(
 export async function cambiarSerieBorrador(datos: {
   cotizacionId: string;
   serie: "EFAMEINSA" | "OPEN";
+  /** Por qué pasa a EFAMEINSA (0275); en OPEN se ignora y se limpia. */
+  motivoSerie?: string | null;
 }): Promise<{ error: string | null; cotizacionId?: string }> {
   const supabase = await createClient();
 
@@ -276,7 +296,10 @@ export async function cambiarSerieBorrador(datos: {
   if (error) return { error: limpiarError(error.message) };
 
   const nuevoId = data as string;
-  await guardarEntrega(supabase, nuevoId, original.entrega_lugar);
+  await guardarEntrega(supabase, nuevoId, original.entrega_lugar, undefined, {
+    serie: datos.serie,
+    motivo: datos.motivoSerie,
+  });
 
   // Primero se crea y recién después se borra: si el borrado fallara, queda un
   // borrador de más —visible y borrable— en vez de perder el trabajo.
@@ -299,7 +322,7 @@ export async function duplicarCotizacion(
 
   const { data: original, error: errorOriginal } = await supabase
     .from("cotizaciones")
-    .select("codigo, oportunidad_id, serie, condiciones, vigencia_dias, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, tier_aplicado, color)")
+    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, tier_aplicado, color)")
     .eq("id", cotizacionId)
     .maybeSingle();
   if (errorOriginal) return { error: errorOriginal.message };
@@ -317,7 +340,7 @@ export async function duplicarCotizacion(
     }[]) ?? [];
   if (items.length === 0) return { error: "La cotización original no tiene ítems" };
 
-  const { error: errorRpc } = await supabase.rpc("crear_cotizacion", {
+  const { data: copiaId, error: errorRpc } = await supabase.rpc("crear_cotizacion", {
     p_oportunidad_id: original.oportunidad_id,
     p_serie: original.serie,
     p_items: items.map((i) => ({
@@ -337,6 +360,11 @@ export async function duplicarCotizacion(
     p_vigencia_dias: original.vigencia_dias,
   });
   if (errorRpc) return { error: limpiarError(errorRpc.message) };
+  // La copia conserva la serie y, con ella, el motivo de ir con Efameinsa
+  // (0275): el cliente es el mismo y la explicación también.
+  if (copiaId && original.serie === "EFAMEINSA" && original.motivo_serie) {
+    await supabase.from("cotizaciones").update({ motivo_serie: original.motivo_serie }).eq("id", copiaId as string);
+  }
 
   revalidatePath(`/comercial/oportunidades/${original.oportunidad_id}`);
   // La copia nace como borrador sin número; lo recibe cuando se envía.
@@ -354,6 +382,13 @@ export async function enviarCotizacion(
   cotizacionId: string,
 ): Promise<{ error: string | null; codigo?: string }> {
   const supabase = await createClient();
+  // OPEN PRIMERO (gerencia, 23-09-2026): «La idea es que Open Investments sea
+  // la primera opción». Efameinsa se permite, pero no sale sin su motivo.
+  const { data: previa } = await supabase.from("cotizaciones").select("serie, motivo_serie").eq("id", cotizacionId).maybeSingle();
+  if (previa) {
+    const faltaMotivo = problemaSerie(previa.serie as SerieFacturacion, previa.motivo_serie);
+    if (faltaMotivo) return { error: faltaMotivo };
+  }
   const { data, error } = await supabase.rpc("emitir_cotizacion", { p_cotizacion_id: cotizacionId });
   if (error) return { error: limpiarError(error.message) };
 

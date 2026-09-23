@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { INCLUYE_POR_DEFECTO, type TipoItemInforme } from "@/lib/informes";
 import { esquemaAdjuntoNuevo, MAX_ADJUNTOS, type AdjuntoCierre, type AdjuntoNuevo } from "@/lib/adjuntos-cierre";
 import { esquemaCorreccionInforme, type CorreccionInforme } from "@/lib/correccion-informe";
+import { motivoParaGuardar, motivoSerieSuficiente, problemaSerie } from "@/lib/serie-facturacion";
 
 // Informe de cierre de ventas hacia Central (migraciones 0049 y 0050).
 //
@@ -41,6 +42,12 @@ export interface ContactoEntrada {
 
 export interface DatosInforme {
   serie: "EFAMEINSA" | "OPEN";
+  /**
+   * Por qué este cierre factura con EFAMEINSA y no con OPEN (0275, «Open
+   * primero», gerencia 23-09-2026). Puede venir vacío si la cotización de la
+   * que sale ya lo trae: en ese caso se copia el de ella.
+   */
+  motivoSerie?: string | null;
   presupuestoRef: string | null;
   oportunidadId: string | null;
   ventaId: string | null;
@@ -85,6 +92,8 @@ export interface PresupuestoDisponible {
   id: string;
   codigo: string | null;
   serie: "EFAMEINSA" | "OPEN";
+  /** Solo las del CRM: el motivo con que se cotizó en EFAMEINSA (0275). */
+  motivoSerie?: string | null;
   fecha: string | null;
   monto: number | null;
   items: string[];
@@ -171,7 +180,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, estado, total, garantia, created_at, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, estado, total, garantia, created_at, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, productos(marca, modelo, nombre))",
       )
       .eq("oportunidades.cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
@@ -230,6 +239,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
       id: c.id,
       codigo: c.codigo,
       serie: c.serie as "EFAMEINSA" | "OPEN",
+      motivoSerie: c.motivo_serie ?? null,
       fecha: (c.enviada_at ?? c.created_at)?.slice(0, 10) ?? null,
       monto: c.total,
       items: lineas.map((l) => l.descripcion),
@@ -297,6 +307,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
 function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
   return {
     serie: d.serie,
+    motivo_serie: motivoParaGuardar(d.serie, d.motivoSerie),
     cuenta_id: cuentaId,
     oportunidad_id: d.oportunidadId,
     venta_id: d.ventaId,
@@ -366,7 +377,19 @@ export async function guardarBorradorInforme(
     data: { user },
   } = await supabase.auth.getUser();
 
-  const fila = aFila(cuentaId, datos, user?.id ?? null);
+  // OPEN PRIMERO (gerencia, 23-09-2026): «La idea es que Open Investments sea
+  // la primera opción». Un cierre con Efameinsa lleva su motivo; si el
+  // comercial no lo escribió acá porque ya lo dejó en la cotización de la que
+  // sale, se copia de ella en vez de volver a pedirlo.
+  let d = datos;
+  if (d.serie === "EFAMEINSA" && !motivoSerieSuficiente(d.motivoSerie) && d.cotizacionId) {
+    const { data: cot } = await supabase.from("cotizaciones").select("serie, motivo_serie").eq("id", d.cotizacionId).maybeSingle();
+    if (cot?.serie === "EFAMEINSA" && motivoSerieSuficiente(cot.motivo_serie)) d = { ...d, motivoSerie: cot.motivo_serie };
+  }
+  const faltaMotivo = problemaSerie(d.serie, d.motivoSerie);
+  if (faltaMotivo) return { error: faltaMotivo };
+
+  const fila = aFila(cuentaId, d, user?.id ?? null);
 
   if (informeId) {
     const { error } = await supabase.from("informes_cierre").update(fila).eq("id", informeId);
@@ -734,6 +757,8 @@ export async function corregirInformeEmitido(
 
 export interface BorradorInforme {
   id: string;
+  /** Por qué factura con EFAMEINSA (0275). */
+  motivoSerie: string;
   cuentaId: string;
   /** El comercial de la cartera: es quien lo edita, además de backoffice (política informes_edita). */
   comercialId: string | null;
@@ -810,6 +835,7 @@ export async function cargarBorradorInforme(
       creadoPor: i.creado_por ?? null,
       guardadoAt: i.updated_at ?? i.created_at,
       serie: i.serie === "OPEN" ? "OPEN" : "EFAMEINSA",
+      motivoSerie: texto(i.motivo_serie),
       presupuestoRef: i.presupuesto_ref ?? null,
       ventaId: i.venta_id ?? null,
       cotizacionId: i.cotizacion_id ?? null,

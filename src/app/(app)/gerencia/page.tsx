@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { SEMANAS_POR_MES, esSemanal, resolverPeriodo } from "@/lib/periodo";
 import { cargarResumenGerencia, ETIQUETA_VIA, usd } from "@/lib/reportes";
 import { fechaCalendarioLarga } from "@/lib/fechas";
+import { sumarDias } from "@/lib/calendario";
+import { motivoSerieSuficiente } from "@/lib/serie-facturacion";
 import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Kpi } from "@/components/crm/kpi";
@@ -40,9 +42,10 @@ export default async function GerenciaPage({
   const incluirHistorico = sp.historico !== "no";
 
   const supabase = await createClient();
-  const [{ data: comerciales }, resumen] = await Promise.all([
+  const [{ data: comerciales }, resumen, series] = await Promise.all([
     supabase.from("perfiles").select("id, nombre").eq("rol", "comercial").eq("activo", true).eq("es_prueba", false).eq("es_soporte", false).order("codigo_comercial"),
     cargarResumenGerencia(supabase, { ...periodo, comercialId, incluirHistorico }),
+    seriesDelPeriodo(supabase, periodo, comercialId),
   ]);
 
   if (!resumen) {
@@ -125,6 +128,29 @@ export default async function GerenciaPage({
         />
         <Kpi etiqueta="Pipeline abierto" valor={Math.round(k.pipeline_usd)} prefijo="US$ " sub={`${k.n_abiertas} oportunidad${k.n_abiertas === 1 ? "" : "es"} en curso hoy`} />
       </div>
+
+      {/* OPEN PRIMERO (gerencia, 23-09-2026): «La idea es que Open
+          Investments sea la primera opción». Efameinsa se permite con motivo;
+          esto le dice a gerencia cuántas salieron así y si lo dejaron escrito. */}
+      {series && series.total > 0 && (
+        <Link
+          href={`/central/presupuestos?serie=EFAMEINSA&desde=${periodo.desde}&hasta=${periodo.hasta}${comercialId ? `&comercial=${comercialId}` : ""}`}
+          className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5 text-xs transition-shadow hover:shadow-md"
+        >
+          <span className="text-muted-foreground">
+            Cotizaciones del período con Efameinsa:{" "}
+            <b className="tabular-nums text-foreground">
+              {series.efameinsa} de {series.total}
+            </b>{" "}
+            ({series.conMotivo} con motivo)
+            {series.efameinsa > series.conMotivo && (
+              <span className="text-amber-700"> · {series.efameinsa - series.conMotivo} sin motivo</span>
+            )}
+            <span className="ml-1.5 text-[11px]">· Open es la primera opción</span>
+          </span>
+          <ArrowRight className="size-3.5 text-muted-foreground" />
+        </Link>
+      )}
 
       <SeccionPanel titulo="Ventas por mes — últimos 12 meses (Efameinsa vs Open)">
         <GraficoBarras datos={resumen.serie_mensual.map(barraMensualPorSerie)} resaltarUltima />
@@ -300,6 +326,36 @@ export default async function GerenciaPage({
       </div>
     </div>
   );
+}
+
+/**
+ * Cuántas cotizaciones confirmadas del período salieron con EFAMEINSA y
+ * cuántas de ellas dejaron escrito el motivo (0275). Mismo criterio que la
+ * lista de /central/presupuestos, adonde lleva el enlace: numeradas, enviadas
+ * o aceptadas, sin las de práctica, por fecha de envío en hora de Lima.
+ */
+async function seriesDelPeriodo(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  periodo: { desde: string; hasta: string },
+  comercialId: string | null,
+): Promise<{ total: number; efameinsa: number; conMotivo: number } | null> {
+  let consulta = supabase
+    .from("cotizaciones")
+    .select("serie, motivo_serie, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id)")
+    .not("correlativo", "is", null)
+    .in("estado", ["enviada", "aceptada"])
+    .not("codigo", "like", "PRUEBA%")
+    .gte("enviada_at", `${periodo.desde}T00:00:00-05:00`)
+    .lt("enviada_at", `${sumarDias(periodo.hasta, 1)}T00:00:00-05:00`);
+  if (comercialId) consulta = consulta.eq("oportunidades.comercial_id", comercialId);
+  const { data, error } = await consulta.limit(5000);
+  if (error || !data) return null;
+  const efa = data.filter((c) => c.serie === "EFAMEINSA");
+  return {
+    total: data.length,
+    efameinsa: efa.length,
+    conMotivo: efa.filter((c) => motivoSerieSuficiente(c.motivo_serie as string | null)).length,
+  };
 }
 
 function Metrica({ etiqueta, valor, ayuda, destacada, exito }: { etiqueta: string; valor: string; ayuda: string; destacada?: boolean; exito?: boolean }) {

@@ -312,7 +312,7 @@ export async function cargarContextoCotizador(
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_lista, color, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_lista, color, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
@@ -367,6 +367,7 @@ export async function cargarContextoCotizador(
       codigo: cot.codigo,
       version: cot.version ?? 1,
       serie: cot.serie as "EFAMEINSA" | "OPEN",
+      motivoSerie: cot.motivo_serie ?? null,
       // En qué moneda se imprime, y con qué cambio se congeló (0169).
       monedaImpresa: (cot.moneda_impresa as "USD" | "PEN" | null) ?? "USD",
       tipoCambio: cot.tipo_cambio == null ? null : Number(cot.tipo_cambio),
