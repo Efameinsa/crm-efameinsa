@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2, Loader2 } from "lucide-react";
-import { registrarVisitaPlanta } from "@/lib/acciones/visitas-planta";
+import { buscarEmpresaParaVisita, registrarVisitaPlanta } from "@/lib/acciones/visitas-planta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,11 +53,29 @@ export function VisitaPlantaBoton({
   const [acompanantes, setAcompanantes] = useState<{ nombre: string; dni: string }[]>([]);
   const [equipoAVer, setEquipoAVer] = useState("");
   const [quitarFilm, setQuitarFilm] = useState(false);
+  // La ficha elegida: la que viene de la pantalla o la que se busca acá.
+  const [cuentaElegida, setCuentaElegida] = useState<string | null>(cuentaId);
+  const [sugerencias, setSugerencias] = useState<{ id: string; razon_social: string; num_doc: string | null }[]>([]);
+  const [buscado, setBuscado] = useState(false);
+  useEffect(() => {
+    if (cuentaId || cuentaElegida || !abierto) return;
+    const q = f.ruc.trim().length >= 8 ? f.ruc.trim() : f.empresa.trim();
+    if (q.length < 3) {
+      setSugerencias([]);
+      setBuscado(false);
+      return;
+    }
+    const t = setTimeout(async () => {
+      setSugerencias(await buscarEmpresaParaVisita(q));
+      setBuscado(true);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [f.empresa, f.ruc, cuentaId, cuentaElegida, abierto]);
   const campo = (k: keyof typeof f) => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value })) });
 
   function enviar() {
     startTransition(async () => {
-      const r = await registrarVisitaPlanta({ cuentaId, oportunidadId, ...f, showroom, prenderTv, infocorp, cotizacionRef: cotizacion, acompanantes, equipoAVer, quitarFilm });
+      const r = await registrarVisitaPlanta({ cuentaId: cuentaElegida, oportunidadId, ...f, showroom, prenderTv, infocorp, cotizacionRef: cotizacion, acompanantes, equipoAVer, quitarFilm });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
@@ -106,13 +124,52 @@ export function VisitaPlantaBoton({
           <div className="grid grid-cols-[1fr_9rem] gap-2">
             <div className="grid gap-1">
               <Label className="text-xs">Empresa</Label>
-              <Input {...campo("empresa")} />
+              <Input
+                {...campo("empresa")}
+                onChange={(e) => {
+                  setF((x) => ({ ...x, empresa: e.target.value }));
+                  if (!cuentaId) setCuentaElegida(null);
+                }}
+                placeholder={cuentaId ? undefined : "Escriba el nombre o el RUC y elija la ficha"}
+              />
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">RUC</Label>
-              <Input {...campo("ruc")} inputMode="numeric" />
+              <Input
+                {...campo("ruc")}
+                onChange={(e) => {
+                  setF((x) => ({ ...x, ruc: e.target.value }));
+                  if (!cuentaId) setCuentaElegida(null);
+                }}
+                inputMode="numeric"
+              />
             </div>
           </div>
+          {/* Reunión 23-09: la empresa sale de las fichas; si no está, va como cliente nuevo. */}
+          {!cuentaId && !cuentaElegida && sugerencias.length > 0 && (
+            <ul className="-mt-1 max-h-40 overflow-y-auto rounded-md border border-border bg-background text-sm shadow-sm">
+              {sugerencias.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left hover:bg-accent"
+                    onClick={() => {
+                      setCuentaElegida(c.id);
+                      setF((x) => ({ ...x, empresa: c.razon_social, ruc: c.num_doc ?? x.ruc }));
+                      setSugerencias([]);
+                    }}
+                  >
+                    <span className="truncate">{c.razon_social}</span>
+                    <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{c.num_doc ?? "sin RUC"}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!cuentaId && cuentaElegida && <p className="-mt-1 text-[11px] text-[#1E7F4F]">Enlazada a la ficha del cliente.</p>}
+          {!cuentaId && !cuentaElegida && buscado && sugerencias.length === 0 && (
+            <p className="-mt-1 text-[11px] text-muted-foreground">No hay ficha con ese nombre o RUC: se registra como cliente nuevo.</p>
+          )}
           <div className="grid grid-cols-[1fr_8rem] gap-2">
             <div className="grid gap-1">
               <Label className="text-xs">
