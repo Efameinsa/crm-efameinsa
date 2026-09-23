@@ -49,7 +49,7 @@ interface FilaPresupuesto {
   id: string;
   codigo: string;
   serie: string;
-  estado: "enviada" | "aceptada" | "archivo";
+  estado: "enviada" | "aceptada" | "anulada" | "archivo";
   total: number | null;
   moneda: string;
   enviadaAt: string | null;
@@ -74,6 +74,9 @@ interface Comercial {
 const ETIQUETA_ESTADO: Record<FilaPresupuesto["estado"], string> = {
   enviada: "Enviada al cliente",
   aceptada: "Aceptada",
+  // 0286: salió con su número y ya no vale; se ve en el correlativo (03-09:
+  // los números no se rellenan ni desaparecen).
+  anulada: "Anulada",
   archivo: "Del archivo (Word)",
 };
 
@@ -109,7 +112,7 @@ export default async function PresupuestosCentralPage({
       count: "exact",
     })
     .not("correlativo", "is", null)
-    .in("estado", ["enviada", "aceptada"])
+    .in("estado", ["enviada", "aceptada", "anulada"])
     .not("codigo", "like", "PRUEBA%");
   if (!q) {
     consulta = consulta
@@ -357,6 +360,8 @@ export default async function PresupuestosCentralPage({
                           ? "bg-emerald-100 text-emerald-900"
                           : f.estado === "archivo"
                             ? "bg-secondary text-muted-foreground"
+                            : f.estado === "anulada"
+                              ? "bg-destructive/10 text-destructive"
                             : "bg-sky-100 text-sky-900",
                       )}
                     >
