@@ -78,3 +78,24 @@ export function fechaCalendarioLarga(fecha: string | null | undefined): string {
     year: "numeric",
   });
 }
+
+/**
+ * Para el historial: el día y, si el registro la tiene, la hora de Lima
+ * («23/9/2026 · 3:16 p. m.»). Pedido de gerencia del 23-09: sin la hora no se
+ * sabe cuánto tardó el primer contacto ni en qué orden pasaron las cosas.
+ * Un `date` pelado o un instante a medianoche UTC exacta (lo que dejan las
+ * importaciones del Excel, que solo traían el día) se muestran sin hora, para
+ * no inventar un «7:00 p. m.» que nadie registró.
+ */
+export function fechaConHora(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const texto = String(iso);
+  if (texto.length <= 10) return fechaCalendario(texto);
+  const d = new Date(texto);
+  if (Number.isNaN(d.getTime())) return texto;
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0) {
+    return fechaLima(texto);
+  }
+  const hora = d.toLocaleTimeString("es-PE", { timeZone: ZONA, hour: "numeric", minute: "2-digit" });
+  return `${fechaLima(texto)} · ${hora}`;
+}
