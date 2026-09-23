@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { textoLegible } from "@/lib/texto";
-import { fechaAgendada, fechaLima } from "@/lib/fechas";
+import { fechaAgendada, fechaConHora } from "@/lib/fechas";
 
 const MOSTRADOS_INICIAL = 25;
 
@@ -176,7 +176,7 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
       className={navegable ? "cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none" : undefined}
     >
       <TableCell className="whitespace-nowrap align-top tabular-nums text-muted-foreground">
-        {fechaLima(evento.fecha)}
+        {fechaConHora(evento.fecha)}
       </TableCell>
       <TableCell className="align-top py-2.5">
         {evento.tipo === "actividad" && (

@@ -167,3 +167,25 @@ export async function cancelarVisitaPlanta(visitaId: string, motivo: string): Pr
   revalidatePath("/postventa/agenda");
   return { error: null };
 }
+
+/**
+ * LA EMPRESA DE LA VISITA, DESDE LAS FICHAS (reunión 23-09): «hay que lo llame
+ * a la data que tenemos… para ya escribir y que aparezca, que se vaya
+ * autorrellenando… con el RUC». Busca por nombre o por RUC/DNI entre las
+ * fichas que quien registra puede leer; si no aparece, se escribe a mano y va
+ * como cliente nuevo.
+ */
+export async function buscarEmpresaParaVisita(q: string): Promise<{ id: string; razon_social: string; num_doc: string | null }[]> {
+  await requerirPerfil();
+  const limpio = q.replace(/[,()%*\\]/g, " ").trim();
+  if (limpio.length < 3) return [];
+  const supabase = await createClient();
+  const esDoc = /^\d{8,11}$/.test(limpio);
+  const { data } = await supabase
+    .from("cuentas")
+    .select("id, razon_social, num_doc")
+    .or(esDoc ? `num_doc.eq.${limpio}` : `razon_social.ilike.%${limpio}%,nombre_comercial.ilike.%${limpio}%`)
+    .order("ultima_venta_at", { ascending: false, nullsFirst: false })
+    .limit(8);
+  return (data ?? []) as { id: string; razon_social: string; num_doc: string | null }[];
+}

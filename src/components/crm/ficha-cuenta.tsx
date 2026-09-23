@@ -26,6 +26,10 @@ import { veTodoPostventa } from "@/lib/postventa";
 import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimiento-boton";
 import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
 import { TraerPedidoAntiguoBoton } from "@/components/crm/traer-pedido-antiguo-boton";
+import { PendientesDelCliente } from "@/components/crm/pendientes-del-cliente";
+import { UltimosCierres } from "@/components/crm/ultimos-cierres";
+import { EquiposDelCliente } from "@/components/crm/equipos-del-cliente";
+import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 
 export async function FichaCuenta({
   cuentaId,
@@ -230,6 +234,9 @@ export async function FichaCuenta({
         </div>
       </div>
 
+      {/* Reunión 23-09: los dos últimos cierres y cómo va su pedido, antes que todo. */}
+      <UltimosCierres informes={informes ?? []} />
+
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} soloLectura={comoCentral} />
@@ -271,6 +278,12 @@ export async function FichaCuenta({
                   <VisitaPlantaBoton cuentaId={cuenta.id} empresa={cuenta.razon_social} ruc={cuenta.num_doc as string | null} compacto />
                 )}
                 {haceCasos && !comoGerencia && !comoCentral && <RegistrarSeguimientoBoton cuentaId={cuenta.id} compacto />}
+                {/* La apertura al almacén también para el cliente sin pedido
+                    (Rubí, 23-09: la visita del técnico la tuvo que mandar por
+                    correo «porque no me permite»). */}
+                {haceCasos && !comoGerencia && !comoCentral && (
+                  <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Apertura al almacén" compacto />
+                )}
                 {/* Los pedidos anteriores al circuito entran desde acá (0239). */}
                 {haceCasos && !perfilQueMira.solo_preventivo && !comoGerencia && !comoCentral && (
                   <TraerPedidoAntiguoBoton cuentaId={cuenta.id} compacto />
@@ -338,6 +351,11 @@ export async function FichaCuenta({
           </SeccionPanel>
         </div>
 
+        <div className="space-y-4">
+        {/* Reunión 23-09: lo vivo con el cliente y sus máquinas, al costado,
+            para no tener que ir a Pedidos a buscarlo. */}
+        <PendientesDelCliente cuentaId={cuenta.id} conEnlace={veTodoPostventa(perfilQueMira) && !comoCentral} />
+        <EquiposDelCliente cuentaId={cuenta.id} />
         <SeccionPanel titulo={`Cliente y contactos (${contactos.length})`}>
           {/* Editables: es lo que se imprime en la cotización (24-08). El RUC y la
               razón social salen del bloque del cliente; el contacto principal, del
@@ -365,6 +383,7 @@ export async function FichaCuenta({
           </div>
           <ContactosEditables cuentaId={cuenta.id} contactos={contactos} soloLectura={comoCentral} />
         </SeccionPanel>
+        </div>
       </div>
     </div>
   );

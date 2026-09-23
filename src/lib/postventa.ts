@@ -183,6 +183,21 @@ export function etiquetaResponsable(r: ResponsablePaso): string {
 }
 
 /** Una fila del Excel viejo dice "SI" donde el flujo nuevo pone una fecha. */
+/**
+ * LA PRUEBA QUE NADIE PIDIÓ (reunión 23-09, Hortifrut: dos pedidos para dos
+ * sedes, a uno se le pidió probar y embalar y al otro no — «está en el aire»).
+ * Probar y embalar no espera al pago, así que un pedido vivo con equipo que
+ * todavía no salió y al que nadie le pidió la prueba es trabajo de postventa
+ * hoy. Distinto de «falta la prueba»: esa incluye las que ya se pidieron y
+ * esperan al almacén.
+ */
+export function pruebaSinPedir(s: ServicioPostventa): boolean {
+  if (circuitoDe(s).esServicio) return false;
+  if (s.despachado_at) return false;
+  if (s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje)) return false;
+  return s.prueba_solicitada_at == null;
+}
+
 function marcadoEnExcel(texto: string | null): boolean {
   if (!texto) return false;
   const t = texto.trim().toUpperCase();

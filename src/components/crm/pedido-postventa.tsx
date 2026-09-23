@@ -29,6 +29,7 @@ import {
   guardarInformeServicio,
 } from "@/lib/acciones/postventa";
 import { verificarDespacho } from "@/lib/acciones/almacen";
+import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,16 +89,24 @@ export function PedidoPostventa({
   puedeDefinirCondicion = false,
   /** Quién emitió la apertura de despacho (Rubí, 22-09: «no he hecho ninguna apertura como tal en el sistema» — sí las emitía, solo que la pantalla no lo decía). */
   emitidoApertura = null,
+  /** Las aperturas de llamada de este pedido (0281), ya con su estado en palabras. */
+  aperturas = [],
+  /** Los equipos del pedido, uno por línea y con su serie, para la apertura. */
+  equiposTexto = "",
 }: {
   servicio: ServicioPostventa;
   atencionPuesta?: { id: string; etapa: string; programada_at: string | null; tecnico: string | null; cerrado_at: string | null } | null;
   verPrecios?: boolean;
   puedeDefinirCondicion?: boolean;
   emitidoApertura?: string | null;
+  aperturas?: { id: string; tipo: string; programada_para: string; estado: string; abierta: boolean }[];
+  equiposTexto?: string;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [form, setForm] = useState<Formulario>(null);
+  // Los equipos que van en la apertura: el texto del pedido, con la serie si ya la tiene.
+  const equiposDeLaApertura = equiposTexto || (servicio.equipo ?? "");
 
   // OPTIMISTIC UI (Santos, 02-09): los pasos del pedido son muchos clics
   // seguidos. El check se pinta en el instante en que se toca, con la fecha
@@ -234,7 +243,38 @@ export function PedidoPostventa({
       case "direccion":
         return <BotonPaso onClick={() => setForm({ tipo: "direccion" })}>Verificar ahora</BotonPaso>;
       case "preinstalacion":
-        return <BotonPaso onClick={() => setForm({ tipo: "preinstalacion" })}>Registrar</BotonPaso>;
+        // REUNIÓN 23-09: «lo único que no va es el registrar; se tendría que
+        // llamar envío de apertura». En Lima la videollamada la hace el
+        // almacén: se le manda la apertura y el paso se cumple cuando
+        // postventa revisa su informe. En provincia no hay videollamada: se
+        // sigue registrando lo que confirmó el cliente.
+        if (servicio.modalidad === "provincia") {
+          return <BotonPaso onClick={() => setForm({ tipo: "preinstalacion" })}>Registrar lo que confirmó</BotonPaso>;
+        }
+        return (
+          <span className="flex flex-wrap items-center gap-1.5">
+            {aperturas
+              .filter((a) => a.tipo === "videollamada_preinstalacion" && a.abierta)
+              .map((a) => (
+                <a key={a.id} href={`/aperturas/${a.id}`} className="text-xs font-medium text-primary hover:underline">
+                  Apertura del {fechaHoraLima(a.programada_para)} · {a.estado}
+                </a>
+              ))}
+            {servicio.cuenta_id && (
+              <AperturaLlamadaBoton
+                cuentaId={servicio.cuenta_id}
+                servicioId={servicio.id}
+                equipos={equiposDeLaApertura}
+                tipo="videollamada_preinstalacion"
+                etiqueta="Enviar apertura"
+                compacto
+              />
+            )}
+            <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setForm({ tipo: "preinstalacion" })}>
+              Ya se hizo sin apertura
+            </button>
+          </span>
+        );
       case "apertura":
         // La emite el servidor solo si las cuatro condiciones están; si
         // faltan, el paso ya lo dice y el botón no aparece.
@@ -279,6 +319,25 @@ export function PedidoPostventa({
                   ? `Técnico programado: ${fechaHoraLima(atencionPuesta.programada_at)}${atencionPuesta.tecnico ? ` · ${atencionPuesta.tecnico}` : ""}`
                   : "Atención de puesta en marcha abierta, sin programar"}
               </a>
+            )}
+            {aperturas
+              .filter((a) => a.tipo !== "videollamada_preinstalacion" && a.abierta)
+              .map((a) => (
+                <a key={a.id} href={`/aperturas/${a.id}`} className="text-xs font-medium text-primary hover:underline">
+                  Apertura del {fechaHoraLima(a.programada_para)} · {a.estado}
+                </a>
+              ))}
+            {/* Puesta en marcha por videollamada: la hace el almacén y
+                postventa revisa su informe (reunión 23-09). */}
+            {servicio.cuenta_id && (
+              <AperturaLlamadaBoton
+                cuentaId={servicio.cuenta_id}
+                servicioId={servicio.id}
+                equipos={equiposDeLaApertura}
+                tipo="videollamada_puesta_marcha"
+                etiqueta="Apertura al almacén"
+                compacto
+              />
             )}
             <BotonPaso onClick={() => setForm({ tipo: "puesta" })}>Llenar informe</BotonPaso>
           </span>

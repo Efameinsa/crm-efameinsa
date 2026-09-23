@@ -37,7 +37,7 @@ export default async function AlmacenPage() {
   const hoy = hoyLima();
   const enUnaSemana = new Date(new Date(hoy + "T12:00:00-05:00").getTime() + 7 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
-  const [{ data: pedidos }, { data: atenciones }, { data: visitas }] = await Promise.all([
+  const [{ data: pedidos }, { data: atenciones }, { data: visitas }, { data: aperturas }] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("id, cliente_texto, equipo, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, agencia_at, guia, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en")
@@ -61,7 +61,15 @@ export default async function AlmacenPage() {
       .is("cancelada_at", null)
       .order("fecha")
       .order("hora", { nullsFirst: false }),
+    // Las aperturas de llamada de postventa (0281) que esperan al almacén.
+    supabase
+      .from("aperturas_llamada")
+      .select("id, tomada_at, informe_at")
+      .is("anulada_at", null)
+      .is("informe_at", null)
+      .limit(500),
   ]);
+  const ap = (aperturas ?? []) as { id: string; tomada_at: string | null; informe_at: string | null }[];
 
   const vivos = (pedidos ?? []) as unknown as ServicioPostventa[];
   const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
@@ -93,6 +101,8 @@ export default async function AlmacenPage() {
     { titulo: "Aprobados sin pedido de prueba", numero: sinPedirPrueba.length, ayuda: "Postventa todavía no pidió la prueba; se puede adelantar.", href: "/almacen/pedidos?ver=aprobados" },
   ];
   const cuadrosAtenciones: Cuadro[] = [
+    { titulo: "Aperturas sin tomar", numero: ap.filter((a) => !a.tomada_at).length, ayuda: "Postventa pidió una videollamada o atención; tómela para que sepan que está en sus manos.", href: "/almacen/aperturas", alerta: true },
+    { titulo: "Aperturas sin informe", numero: ap.filter((a) => a.tomada_at).length, ayuda: "Tomadas; falta subir lo que se vio en la llamada.", href: "/almacen/aperturas" },
     { titulo: "Puestas en marcha programadas", numero: porTipo("puesta_en_marcha"), ayuda: "Con día, hora y técnico.", href: "/almacen/atenciones?tipo=puesta_en_marcha" },
     { titulo: "Mantenimientos programados", numero: porTipo("solicitud_mantenimiento"), ayuda: "En planta o en el cliente.", href: "/almacen/atenciones?tipo=solicitud_mantenimiento" },
     { titulo: "Soporte técnico programado", numero: porTipo("problema_tecnico"), ayuda: "Problemas técnicos con técnico asignado.", href: "/almacen/atenciones?tipo=problema_tecnico" },

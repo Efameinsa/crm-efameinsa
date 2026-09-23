@@ -5,7 +5,7 @@ import { MoreHorizontal, FileText, CircleCheckBig, CalendarClock, Wrench } from 
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { textoLegible } from "@/lib/texto";
-import { fechaAgendada, fechaLimaCorta } from "@/lib/fechas";
+import { fechaAgendada, fechaConHora } from "@/lib/fechas";
 import { ETIQUETA_ACTIVIDAD, ICONO_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 
 // Se re-exportan para no tocar a quien ya las importaba desde acá.
@@ -178,7 +178,7 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
               {evento.resultado.nombre}
             </span>
           )}
-          <span className="text-xs text-muted-foreground">{fechaLimaCorta(evento.fecha)}</span>
+          <span className="text-xs text-muted-foreground">{fechaConHora(evento.fecha)}</span>
         </div>
         {evento.tipo === "actividad" && evento.nota && (
           <p className="mt-0.5 whitespace-pre-wrap text-sm text-muted-foreground">{textoLegible(evento.nota)}</p>

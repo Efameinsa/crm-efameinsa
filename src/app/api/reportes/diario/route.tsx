@@ -1,3 +1,4 @@
+import { ETIQUETA_ESTADO_APERTURA, ETIQUETA_TIPO_APERTURA, estadoApertura, type TipoApertura } from "@/lib/aperturas-llamada";
 import { cabeceraArchivo } from "@/lib/nombre-archivo";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
@@ -85,7 +86,7 @@ export async function GET(request: Request) {
       const ROTULO: Record<keyof PendientesPostventa, string> = {
         despachosSinFecha: "Despachos sin fecha todavía",
         despachosConFecha: "Despachos programados, sin salir",
-        videollamadas: "Videollamadas de preinstalación (Lima)",
+        videollamadas: "Videollamadas de preinstalación por pedir al almacén (Lima)",
         puestasEnMarcha: "Puestas en marcha pendientes",
         atencionesSinProgramar: "Atenciones sin programar",
         preventivosPorVencer: TITULO_PREVENTIVOS_POR_OFRECER,
@@ -94,6 +95,41 @@ export async function GET(request: Request) {
         titulo: ROTULO[clave],
         filas: pendientes[clave].map((f) => ({ cliente: f.cliente, detalle: f.detalle })),
       }));
+      // LAS PROGRAMADAS, POR DÍA (Carlos, 23-09: «videollamadas de
+      // preinstalación agrupadas por fecha: 24, 25, 26… solo las
+      // programadas»). Salen de las aperturas al almacén (0281) que siguen
+      // abiertas, desde hoy en adelante, un bloque por día.
+      const { data: aps } = await supabase
+        .from("aperturas_llamada")
+        .select("tipo, programada_para, equipos, tomada_at, informe_at, revisada_at, enviada_cliente_at, cuentas(razon_social)")
+        .is("anulada_at", null)
+        .is("enviada_cliente_at", null)
+        .gte("programada_para", `${fecha}T00:00:00-05:00`)
+        .order("programada_para")
+        .limit(200);
+      const porDia = new Map<string, { cliente: string; detalle: string | null }[]>();
+      for (const a of (aps ?? []) as unknown as {
+        tipo: TipoApertura;
+        programada_para: string;
+        equipos: string;
+        tomada_at: string | null;
+        informe_at: string | null;
+        revisada_at: string | null;
+        enviada_cliente_at: string | null;
+        cuentas: { razon_social: string } | null;
+      }[]) {
+        const d = new Date(a.programada_para);
+        const dia = d.toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "long", day: "2-digit", month: "2-digit" });
+        const hora = d.toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" });
+        porDia.set(dia, [
+          ...(porDia.get(dia) ?? []),
+          {
+            cliente: `${hora} · ${a.cuentas?.razon_social ?? "Cliente"}`,
+            detalle: `${ETIQUETA_TIPO_APERTURA[a.tipo]} · ${a.equipos.split("\n")[0]} · ${ETIQUETA_ESTADO_APERTURA[estadoApertura({ ...a, anulada_at: null })]}`,
+          },
+        ]);
+      }
+      for (const [dia, filas] of porDia) pendientesPostventa.push({ titulo: `Programadas para el ${dia}`, filas });
       const aFila = (e: (typeof eventos)[number]) => ({
         hora: e.hora,
         titulo: e.cliente,
