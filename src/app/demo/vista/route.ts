@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requerirPerfil } from "@/lib/auth";
-import { COOKIE_VISTA } from "@/lib/solo-lectura";
+import { COOKIE_VISTA, esPrecarga } from "@/lib/solo-lectura";
 
 /**
  * Alterna la cuenta de demostración entre la propuesta y el CRM como es hoy
  * (0280). En la vista actual entra por donde entra la cuenta original.
  */
 export async function GET(request: NextRequest) {
+  // Una precarga no es un clic: no se cambia nada (ver esPrecarga).
+  if (esPrecarga(request.headers)) return new NextResponse(null, { status: 204 });
   // ?tema=claro|oscuro: solo cambia el tema de la propuesta y vuelve adonde estaba.
   const tema = request.nextUrl.searchParams.get("tema");
   if (tema === "claro" || tema === "oscuro") {

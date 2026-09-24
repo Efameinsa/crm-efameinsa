@@ -15,7 +15,6 @@ import { cookies, headers } from "next/headers";
 import { COOKIE_AUDITORIA, decodificarInfoAuditoria, ranuraDeHost } from "@/lib/auditoria";
 import { CABECERA_DEMO, COOKIE_VISTA } from "@/lib/solo-lectura";
 import { MarcoPropuesta } from "@/components/propuesta/marco-propuesta";
-import Link from "next/link";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
@@ -95,8 +94,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <span className="ml-2 opacity-90">Viendo el CRM como <b>{perfil.nombre}</b> · solo lectura, nada se guarda</span>
             </span>
             <span className="flex items-center gap-2">
-              <Link href="/demo/vista?v=nueva" className="rounded-full bg-white/10 px-2.5 py-1 font-semibold hover:bg-white/20">Ver la propuesta</Link>
-              <Link href="/demo/salir" className="rounded-full px-2.5 py-1 hover:bg-white/10">Salir</Link>
+              {/* Anclas a secas: son rutas con efecto y un <Link> las precargaría (ver barra-propuesta). */}
+              <a href="/demo/vista?v=nueva" className="rounded-full bg-white/10 px-2.5 py-1 font-semibold hover:bg-white/20">Ver la propuesta</a>
+              <a href="/demo/salir" className="rounded-full px-2.5 py-1 hover:bg-white/10">Salir</a>
             </span>
           </div>
         )}

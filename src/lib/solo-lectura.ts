@@ -58,6 +58,22 @@ const RPC_DE_LECTURA = new Set([
   "ventas_para_el_parque",
 ]);
 
+/**
+ * ¿Este GET es una precarga y no un clic? Next precarga los enlaces a la
+ * vista (`Next-Router-Prefetch`, `RSC`) y los navegadores también pueden
+ * adelantarse (`Sec-Purpose: prefetch`). Una ruta con efecto (cerrar sesión,
+ * cambiar de vista) no debe hacer nada en ese caso: el 24-09 la precarga de
+ * /demo/salir cerraba la sesión de la cuenta de demostración sola.
+ */
+export function esPrecarga(cabeceras: Headers): boolean {
+  return (
+    cabeceras.has("next-router-prefetch") ||
+    cabeceras.has("rsc") ||
+    /prefetch|prerender/i.test(cabeceras.get("sec-purpose") ?? "") ||
+    /prefetch/i.test(cabeceras.get("purpose") ?? "")
+  );
+}
+
 export const MENSAJE_DEMO = "Modo demostración: solo lectura. Nada de lo que se haga aquí se guarda.";
 
 /** ¿Este pedido a Supabase es una lectura? */

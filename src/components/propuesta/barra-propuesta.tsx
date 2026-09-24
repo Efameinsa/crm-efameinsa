@@ -114,13 +114,18 @@ export function BarraPropuesta({
           ))}
         </div>
       )}
+      {/* ENLACES CON EFECTO, SIN PRECARGA (24-09). Santos: «cada vez que quiero
+          ver otras secciones se sale de la cuenta». Eran <Link>, y Next
+          precarga los enlaces a la vista con un GET: /demo/salir cerraba la
+          sesión y /demo/vista?v=actual cambiaba la vista sin que nadie
+          tocara nada. Van como <a> a secas (Next no precarga anclas). */}
       <div className="mt-auto space-y-1 border-t border-border p-3">
-        <Link href="/demo/vista?v=actual" className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] text-foreground/70 hover:bg-accent hover:text-foreground">
+        <a href="/demo/vista?v=actual" className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] text-foreground/70 hover:bg-accent hover:text-foreground">
           <Eye className="size-4" /> Ver cómo es hoy
-        </Link>
-        <Link href="/demo/salir" className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] text-foreground/70 hover:bg-accent hover:text-foreground">
+        </a>
+        <a href="/demo/salir" className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] text-foreground/70 hover:bg-accent hover:text-foreground">
           <LogOut className="size-4" /> Salir de la propuesta
-        </Link>
+        </a>
       </div>
     </aside>
   );
