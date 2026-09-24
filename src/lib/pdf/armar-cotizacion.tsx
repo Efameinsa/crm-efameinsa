@@ -53,7 +53,7 @@ export const PREFIJO_SUBIDA = "storage:";
 async function bajarFotoSubida(fotoPath: string | null): Promise<Buffer | null> {
   if (!fotoPath || !fotoPath.startsWith(PREFIJO_SUBIDA)) return null;
   const ruta = fotoPath.slice(PREFIJO_SUBIDA.length);
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const base = process.env.SUPABASE_URL_INTERNA ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!base) return null;
   try {
     const r = await fetch(`${base}/storage/v1/object/public/productos/${ruta}`);

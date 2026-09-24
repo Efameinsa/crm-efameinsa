@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { urlSupabaseServidor } from "@/lib/supabase/urls";
 import { CABECERA_DEMO, fetchSoloLectura } from "@/lib/solo-lectura";
 
 // `next/headers` solo existe en el servidor. Este archivo llega al navegador
@@ -36,7 +37,7 @@ async function fetchSegunPeticion(entrada: RequestInfo | URL, init?: RequestInit
 // mandando la política `perfiles_admin` de la base.
 export function createAdminClient() {
   return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    urlSupabaseServidor(),
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false }, global: { fetch: fetchSegunPeticion } },
   );

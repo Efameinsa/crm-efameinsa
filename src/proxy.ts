@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ranuraDeHost } from "@/lib/auditoria";
 import { esFalloDeAutenticacion } from "@/lib/fallo-autenticacion";
+import { opcionesCookieSupabase, urlSupabaseServidor } from "@/lib/supabase/urls";
 import { CABECERA_DEMO, COOKIE_DEMO, COOKIE_VISTA, CORREO_DEMO, MENSAJE_DEMO } from "@/lib/solo-lectura";
 import { usaVistaNueva } from "@/lib/propuesta/regla-vista";
 
@@ -42,9 +43,10 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    urlSupabaseServidor(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: opcionesCookieSupabase,
       cookies: {
         getAll() {
           return request.cookies.getAll();

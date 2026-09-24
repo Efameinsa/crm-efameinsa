@@ -106,7 +106,9 @@ async function cargarImagen(archivo: File): Promise<HTMLImageElement | ImageBitm
  */
 export function rutaFoto(fotoPath: string): string {
   if (fotoPath.startsWith("storage:")) {
-    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${fotoPath.slice(8)}`;
+    // En el piloto local la foto se pide al mismo origen por el que entró el navegador.
+    const base = process.env.NEXT_PUBLIC_SUPABASE_MISMO_ORIGEN === "1" ? "" : process.env.NEXT_PUBLIC_SUPABASE_URL;
+    return `${base}/storage/v1/object/public/productos/${fotoPath.slice(8)}`;
   }
   return `/productos/${fotoPath.split("/").pop()}`;
 }

@@ -12,7 +12,7 @@ import type { Perfil, RolUsuario } from "@/types/database";
 // comprueba localmente con la clave pública, que se descarga una vez y queda
 // en memoria mientras la función esté caliente. Si el token está vencido o no
 // se puede comprobar, se cae al camino de siempre (getUser por la red).
-const JWKS = createRemoteJWKSet(new URL(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/.well-known/jwks.json`));
+const JWKS = createRemoteJWKSet(new URL(`${process.env.SUPABASE_URL_INTERNA ?? process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/.well-known/jwks.json`));
 const EMISOR = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1`;
 
 async function usuarioDeLaSesion(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
