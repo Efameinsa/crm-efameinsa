@@ -86,6 +86,8 @@ html:has(.propuesta) {
   --color-amber-800: #9a3412;
   --color-amber-900: #7c2d12;
   --verde-texto: #047857;
+  /* El anillo del PIN de autorización (usa el granate de la casa): en celeste. */
+  --efameinsa-granate: var(--c-celeste);
 
   color: var(--foreground);
   font-family: var(--font-sans);

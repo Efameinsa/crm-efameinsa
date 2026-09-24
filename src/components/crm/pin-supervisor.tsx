@@ -29,7 +29,14 @@ import { cn } from "@/lib/utils";
  *  dibuja el reloj: el tiempo que vale es el `expiraEn` del servidor. */
 const DURACION = 600;
 
-export function PinSupervisor({ plegada = false }: { plegada?: boolean }) {
+/**
+ * `demo` (propuesta, 24-09; Santos en gerencia_test: «¿dónde se ven los PIN
+ * de aprobación?»). La cuenta de demostración NO puede ver el código real:
+ * serviría para autorizar correcciones de verdad (por eso `mi_pin_supervisor`
+ * está fuera de la lista de lecturas permitidas). Muestra uno de ejemplo,
+ * rotulado, con el mismo reloj, para que se vea cómo se usa.
+ */
+export function PinSupervisor({ plegada = false, demo = false }: { plegada?: boolean; demo?: boolean }) {
   const [codigo, setCodigo] = useState<string | null>(null);
   const [restante, setRestante] = useState(0);
   const [cargando, setCargando] = useState(false);
@@ -46,7 +53,7 @@ export function PinSupervisor({ plegada = false }: { plegada?: boolean }) {
   async function pedir() {
     setCargando(true);
     setError(null);
-    const r = await obtenerPinSupervisor();
+    const r = demo ? { error: null, codigo: "0000", expiraEn: DURACION } : await obtenerPinSupervisor();
     setCargando(false);
     if (r.error || !r.codigo) {
       setError(r.error ?? "No se pudo generar el código");
@@ -115,6 +122,11 @@ export function PinSupervisor({ plegada = false }: { plegada?: boolean }) {
           <p className="mt-1.5 text-[10px] leading-snug text-sidebar-foreground/60">
             Sirve para <b>una sola</b> corrección y vence en {restante}s.
           </p>
+          {demo && (
+            <p className="mt-1 text-[10px] leading-snug font-semibold text-sidebar-foreground/70">
+              Código de ejemplo: en la propuesta no se muestra el real, porque autorizaría de verdad.
+            </p>
+          )}
         </div>
       )}
       {error && <p className="mt-1 px-1 text-[10px] text-red-300">{error}</p>}

@@ -67,7 +67,7 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
       <GuardaDemo />
       <SelectorFechaHora />
       <TemaEnElCuerpo oscuro={oscuro} />
-      <BarraPropuesta opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} verComo={tipo === "operaciones" ? VER_COMO : undefined} />
+      <BarraPropuesta opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} verComo={tipo === "operaciones" ? VER_COMO : undefined} pin={tipo === "gerencia" || tipo === "admin" || tipo === "operaciones"} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-card/80 px-6 py-2.5 backdrop-blur-md">
           <form action={buscar.href} method="get" className="flex min-w-64 max-w-xl flex-1 items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 transition-all duration-200 focus-within:border-[var(--c-celeste)] focus-within:bg-card focus-within:ring-4 focus-within:ring-[var(--c-celeste)]/15">

@@ -10,6 +10,7 @@ import {
   PhoneForwarded,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PinSupervisor } from "@/components/crm/pin-supervisor";
 import type { Icono, OpcionMenu } from "@/lib/propuesta/menu";
 
 const ICONOS: Record<Icono, LucideIcon> = {
@@ -85,10 +86,13 @@ export function BarraPropuesta({
   opciones,
   perfil,
   verComo,
+  pin = false,
 }: {
   opciones: OpcionMenu[];
   perfil: string;
   verComo?: { etiqueta: string; href: string }[];
+  /** Gerencia, admin y operaciones: el PIN de autorización, como en la barra de siempre. */
+  pin?: boolean;
 }) {
   const ruta = usePathname();
   return (
@@ -144,7 +148,12 @@ export function BarraPropuesta({
           precarga los enlaces a la vista con un GET: /demo/salir cerraba la
           sesión y /demo/vista?v=actual cambiaba la vista sin que nadie
           tocara nada. Van como <a> a secas (Next no precarga anclas). */}
-      <div className="mt-auto space-y-1 border-t border-border p-3">
+      {pin && (
+        <div className="mt-auto pb-3 [&>div]:px-3">
+          <PinSupervisor demo />
+        </div>
+      )}
+      <div className={cn("space-y-1 border-t border-border p-3", !pin && "mt-auto")}>
         <a href="/demo/vista?v=actual" className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
           <Eye className="size-4" /> Ver cómo es hoy
         </a>
