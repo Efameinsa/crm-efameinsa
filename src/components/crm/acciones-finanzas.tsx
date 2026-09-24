@@ -103,6 +103,13 @@ function AQuienAvisar({ valor, onChange }: { valor: Avisar; onChange: (v: Avisar
   );
 }
 
+/** «1,234.50», «1234,5» o «50» → número. Con coma y punto, la coma es de miles. */
+function leerMonto(t: string): number {
+  const s = t.trim().replace(/\s/g, "");
+  if (!s) return 0;
+  return Number(s.includes(".") ? s.replace(/,/g, "") : s.replace(",", "."));
+}
+
 function hoyLima() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 }
@@ -141,10 +148,17 @@ function DialogoAbono({
     if (!Number.isFinite(n) || n <= 0) return toast.error("Escriba el monto que entró a la cuenta");
     if (!operacion.trim()) return toast.error("Falta el número de operación del banco");
     if (!medio) return toast.error("Elija el banco o el medio por el que entró");
+    // El descuento se revisa ANTES de confirmar: si fallara después, el abono
+    // quedaría guardado sin aviso y reintentar chocaría con la operación ya
+    // registrada (revisión 23-09).
+    const dTexto = descuento.trim();
+    const dNum = dTexto ? leerMonto(dTexto) : 0;
+    if (dTexto && (!Number.isFinite(dNum) || dNum <= 0)) return toast.error("El descuento del banco debe ser un monto, ej. 50 o 1,234.50");
+    if (dNum > 0 && motivoDescuento.trim().length > 0 && motivoDescuento.trim().length < 3) return toast.error("Diga por qué se descontó (ej.: comisión del banco)");
     startTransition(async () => {
       let capturaPath: string | null = null;
       let evidenciaPath: string | null = null;
-      const d = Number(descuento.replace(",", "."));
+      const d = dNum;
       try {
         if (captura) capturaPath = await subirAFinanzas(servicioId, captura);
         if (evidencia && d > 0) evidenciaPath = await subirAFinanzas(servicioId, evidencia);
@@ -234,7 +248,7 @@ function DialogoAbono({
               <Input value={motivoDescuento} onChange={(e) => setMotivoDescuento(e.target.value)} placeholder="ej. comisión de la transferencia" />
             </div>
             <p className="text-[11px] text-muted-foreground">Confirme arriba lo que entró. La diferencia queda pendiente y le avisamos al comercial para que la cobre.</p>
-            {Number(descuento.replace(",", ".")) > 0 && (
+            {leerMonto(descuento) > 0 && (
               <CampoArchivo etiqueta="Evidencia del banco (para mostrársela al cliente)" archivo={evidencia} onChange={setEvidencia} />
             )}
           </div>

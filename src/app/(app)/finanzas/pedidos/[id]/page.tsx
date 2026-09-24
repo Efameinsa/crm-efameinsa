@@ -24,6 +24,9 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
   const p = await unPedido(supabase, id);
   if (!p) notFound();
   const lista = await abonos(supabase, { servicioId: id, limite: 50 });
+  const evidenciaObs = p.observadoAdjunto
+    ? ((await supabase.storage.from("adjuntos").createSignedUrl(p.observadoAdjunto, 3600)).data?.signedUrl ?? null)
+    : null;
   const cuenta = p.serie === "OPEN" ? "Open Investments" : p.serie === "EFAMEINSA" ? "Efameinsa" : null;
   const sugerido = p.despachadoAt ? p.saldo : p.falta > 0 ? p.falta : p.saldo;
 
@@ -81,6 +84,14 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
             <AlertTriangle className="mt-0.5 size-3.5 flex-none" />
             <span>
               <b>Pago observado</b> el {new Date(p.observadoAt).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}: {p.observadoMotivo}
+              {evidenciaObs && (
+                <>
+                  {" · "}
+                  <a href={evidenciaObs} target="_blank" rel="noreferrer" className="font-semibold underline">
+                    ver evidencia
+                  </a>
+                </>
+              )}
             </span>
           </p>
         )}
@@ -111,6 +122,20 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
                       {new Date(`${a.fechaAbono}T12:00:00-05:00`).toLocaleDateString("es-PE", { timeZone: "America/Lima" })} · {a.medio} · op. {a.operacion}
                     </p>
                     {a.nota && <p className="text-muted-foreground">{a.nota}</p>}
+                    {a.descuentoMonto != null && a.descuentoMonto > 0 && (
+                      <p className="text-amber-800">
+                        El banco descontó {formatoMonto(a.moneda, a.descuentoMonto)}
+                        {a.descuentoMotivo ? ` (${a.descuentoMotivo})` : ""}
+                        {a.descuentoUrl && (
+                          <>
+                            {" · "}
+                            <a href={a.descuentoUrl} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">
+                              ver evidencia
+                            </a>
+                          </>
+                        )}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right text-muted-foreground">
                     <p>{a.registradoPor ?? ""}</p>

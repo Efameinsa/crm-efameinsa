@@ -462,7 +462,10 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
           : "Finanzas confirma que el dinero está acreditado, no el voucher. Postventa no cobra.",
       // Finanzas observó el pago (0279): no encuentra el abono o no cuadra.
       // Se ve en el pedido hasta que confirme uno.
+      // Revisión 23-09: la observación que llega DESPUÉS de un abono (la
+      // comisión del saldo) también se ve; confirmar otro abono la limpia.
       ...(s.pago_observado_at && !pagoConfirmado ? { trabado: `Finanzas observó el pago: ${s.pago_observado_motivo ?? "sin detalle"}` } : {}),
+      ...(s.pago_observado_at && pagoConfirmado ? { detalle: `Finanzas observó: ${s.pago_observado_motivo ?? "sin detalle"}` } : {}),
     },
     {
       clave: "aprobado",

@@ -193,8 +193,17 @@ export function PedidoPostventa({
   function accionDePaso(paso: PasoPedido): React.ReactNode {
     // Un pago confirmado que no cubre lo acordado sigue aceptando abonos: el
     // 495-26 quedó «confirmado» con cifra 0 y sin botón para arreglarlo (0232).
-    if (paso.clave === "pago" && paso.hecho && pagoIncompleto) {
-      return <PedirConfirmacionPago servicioId={servicio.id} solicitadoAt={servicio.pago_solicitado_at ?? null} otra />;
+    // Cubierto lo acordado, igual se puede preguntar por el saldo (Carlos,
+    // 23-09: «que se confirme para el saldo»), y ver lo que Finanzas informó.
+    if (paso.clave === "pago" && paso.hecho) {
+      return (
+        <span className="inline-flex flex-wrap items-center gap-2">
+          <a href={`/pedidos/${servicio.id}/pagos`} className="text-[11px] font-medium text-primary hover:underline">
+            Ver lo que informó Finanzas
+          </a>
+          <PedirConfirmacionPago servicioId={servicio.id} solicitadoAt={servicio.pago_solicitado_at ?? null} otra />
+        </span>
+      );
     }
     if (paso.hecho) return null;
     switch (paso.clave) {

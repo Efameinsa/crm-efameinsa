@@ -169,7 +169,10 @@ export function PasosPedidoCentral({
             <Button
               size="sm"
               variant={liquidacionPdf ? "default" : "outline"}
-              disabled={pendiente}
+              // Revisión 23-09: sin el PDF de Finanzas no hay qué aceptar (antes
+              // se podía saltar a Finanzas, incluso justo después de rechazarla).
+              disabled={pendiente || !liquidacionPdf}
+              title={!liquidacionPdf ? "Finanzas todavía no sube la liquidación" : undefined}
               onClick={() => correr(() => liberarPedido({ informeId, marcarLiquidacion: true }), "Liquidación aceptada")}
             >
               <Check className="size-3.5" /> Aceptar
