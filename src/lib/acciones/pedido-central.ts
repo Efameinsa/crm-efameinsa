@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
-import { notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
+import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
 
 // EL CIERRE SE CONVIERTE EN PEDIDO (0290, reunión de Santos con Carlos, 23-09
 // 14:58). Los pasos de Central antes de los dos checks: preparar el pedido con
@@ -101,6 +101,52 @@ export async function rechazarLiquidacion(servicioId: string, motivo: string) {
   revalidar(servicioId);
   revalidatePath("/finanzas/liquidar");
   return { error: null };
+}
+
+/**
+ * LA SIRENA A FINANZAS (0298). Central, 24-09: «a veces hay pedidos urgentes
+ * porque el cliente requiere factura o quieren despachar; necesito mandar
+ * una alerta a Finanzas para que se apure, así tal cual con Comercial».
+ *
+ * Es el mismo canal de la urgencia al comercial (0082): a Finanzas le llega
+ * en vivo una ventanita que no se cierra sola, con campanada y push que se
+ * queda en el celular; el pedido sube al primer lugar de «Pagos por
+ * confirmar» con la razón a la vista. Del segundo aviso por el mismo pedido
+ * en adelante, gerencia también se entera.
+ */
+export async function enviarUrgenciaFinanzas(servicioId: string, mensaje: string): Promise<{ error: string | null; avisoNumero?: number }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("enviar_urgencia_finanzas", { p_servicio: servicioId, p_mensaje: mensaje.trim() || null });
+  if (error) return { error: limpiar(error.message) };
+  const r = data as { servicio_id: string; cliente: string; numero_pedido: string | null; es_prueba: boolean; aviso_numero: number };
+
+  const detalle = mensaje.trim() || "Central pide confirmar este pago de inmediato.";
+  const pedido = r.numero_pedido ? ` (pedido ${r.numero_pedido})` : "";
+  await notificarFinanzas({
+    tipo: "urgencia_finanzas",
+    titulo: `${r.cliente}${pedido} está esperando a Finanzas`,
+    cuerpo: detalle,
+    url: `/finanzas/pedidos/${r.servicio_id}`,
+    esPrueba: r.es_prueba,
+  });
+
+  // Igual que con el comercial: si hizo falta avisar dos veces, ya no es un
+  // olvido y gerencia lo ve. Lo de práctica no le llega a gerencia real.
+  if (r.aviso_numero >= 2 && !r.es_prueba) {
+    await notificar({
+      rol: "gerencia",
+      tipo: "urgencia",
+      titulo: `${r.cliente}${pedido} sigue esperando a Finanzas`,
+      cuerpo: `Central ya le mandó ${r.aviso_numero} avisos de urgencia a Finanzas por este pedido. ${detalle}`,
+      url: `/finanzas/pedidos/${r.servicio_id}`,
+    });
+  }
+
+  revalidar(servicioId);
+  revalidatePath("/central/pedidos");
+  revalidatePath(`/finanzas/pedidos/${servicioId}`);
+  return { error: null, avisoNumero: r.aviso_numero };
 }
 
 /** Corregir una serie ya puesta: con el código de operaciones y el motivo (0290). */

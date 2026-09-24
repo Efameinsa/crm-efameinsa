@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarClock, MessageSquareText } from "lucide-react";
+import { AlertTriangle, CalendarClock, MessageSquareText, Siren } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
@@ -29,6 +29,7 @@ export default async function FinanzasPage() {
   const [pedidos, cobrar, avisos] = await Promise.all([pedidosPorConfirmar(supabase), cuentasPorCobrar(supabase), avisosDeCentral(supabase)]);
 
   const urgentes = pedidos.filter((p) => p.fechaDespacho && diasEntre(hoy, p.fechaDespacho) <= 3);
+  const sirenas = pedidos.filter((p) => p.urgenciaAt);
   const observados = pedidos.filter((p) => p.observadoAt);
   const vencidos = cobrar.filter((p) => (p.diasParaVencer ?? 0) < 0);
 
@@ -43,6 +44,14 @@ export default async function FinanzasPage() {
 
       <div className="grid gap-4 xl:grid-cols-[1fr_20rem]">
         <SeccionPanel titulo={`Pagos por confirmar · ${pedidos.length}`}>
+          {/* La sirena de Central (0298): no se esconde en un chip, va arriba
+              de la lista y esos pedidos ya vienen primero. */}
+          {sirenas.length > 0 && (
+            <p className="mb-3 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm font-semibold text-destructive">
+              <Siren className="size-4 flex-none" />
+              Central pide apurar {sirenas.length === 1 ? "este pedido" : `estos ${sirenas.length} pedidos`}: el cliente necesita la factura o quiere despachar.
+            </p>
+          )}
           {pedidos.length === 0 ? (
             <div className="py-6 text-center">
               <p className="text-sm font-medium text-foreground">No hay pagos por confirmar.</p>
@@ -98,10 +107,15 @@ function FilaPedido({ p, hoy }: { p: PedidoFinanzas; hoy: string }) {
   const esperando = p.liberadoAt ? diasEntre(new Date(p.liberadoAt).toLocaleDateString("en-CA", { timeZone: "America/Lima" }), hoy) : null;
 
   return (
-    <li className={cn("rounded-lg border p-3", p.observadoAt ? "border-amber-300 bg-amber-50/60" : "border-border")}>
+    <li className={cn("rounded-lg border p-3", p.urgenciaAt ? "border-destructive/50 bg-destructive/5" : p.observadoAt ? "border-amber-300 bg-amber-50/60" : "border-border")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
+            {p.urgenciaAt && (
+              <span className="inline-flex items-center gap-1 rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-white">
+                <Siren className="size-3" /> URGENTE
+              </span>
+            )}
             <Link href={`/finanzas/pedidos/${p.id}`} className="text-sm font-semibold text-foreground hover:underline">
               {p.cliente}
             </Link>
@@ -118,6 +132,12 @@ function FilaPedido({ p, hoy }: { p: PedidoFinanzas; hoy: string }) {
             {p.comercialNombre ? ` · ${p.comercialNombre}` : ""}
           </p>
           {p.equipo && <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{p.equipo.replace(/\s+/g, " ")}</p>}
+          {p.urgenciaAt && (
+            <p className="mt-1 text-xs text-destructive">
+              <b>Central pide apurarlo</b> ({new Date(p.urgenciaAt).toLocaleString("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" })}
+              {p.urgenciaN > 1 ? `, ${p.urgenciaN}.º aviso` : ""}): {p.urgenciaMotivo ?? "el cliente está esperando."}
+            </p>
+          )}
           {p.solicitadoAt && (
             <p className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
               Postventa pidió confirmar el abono ·{" "}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowLeft, BadgeCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BadgeCheck, Siren } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -36,6 +36,19 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
         <ArrowLeft className="size-3.5" />
         Volver a Por confirmar
       </Link>
+
+      {/* La sirena de Central (0298): arriba de todo, con la razón. Se queda
+          mientras el pedido no salga: es lo que Finanzas vino a resolver. */}
+      {p.urgenciaAt && !p.despachadoAt && (
+        <p className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <Siren className="mt-0.5 size-4 flex-none" />
+          <span>
+            <b>Central pide apurar este pedido</b> (
+            {new Date(p.urgenciaAt).toLocaleString("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" })}
+            {p.urgenciaN > 1 ? `, ${p.urgenciaN}.º aviso` : ""}): {p.urgenciaMotivo ?? "el cliente está esperando."}
+          </span>
+        </p>
+      )}
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">

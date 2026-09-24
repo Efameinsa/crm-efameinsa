@@ -2036,3 +2036,28 @@ el rumbo en vez de seguir el plan a ciegas, y queda explicado en el commit y en 
 - Unir las tres fichas de Inversiones Huamán Ruiz — de Gabriela, con el file delante.
 - Capacitar a Rubí en la apertura de servicio con un pedido real — de Santos, en persona.
 - La tipificación de WhatsApp a tres opciones — Carlos dijo que lo iba a pensar.
+
+## 24-09-2026 (mediodía) — la sirena de Central a Finanzas (0298)
+
+Central, con Santos: «a veces hay pedidos urgentes porque el cliente requiere factura o quieren
+despachar; necesito mandar una alerta o ventana emergente a Finanzas para que se apure, así tal
+cual con Comercial». Hasta hoy solo tenía el aviso suave de la liberación (0279, se va solo a los
+8 segundos) y el WhatsApp por fuera.
+
+- **Botón «Urgencia a Finanzas»** en cada fila de «Sus pedidos» (`/central/pedidos`) mientras el
+  pedido no esté cerrado ni con el pago completo. Mismo diálogo que la urgencia al comercial
+  (0082): dice qué le llega a Finanzas y que del segundo aviso en adelante gerencia también se
+  entera. `urgencia-finanzas-boton.tsx` + `enviarUrgenciaFinanzas` en `acciones/pedido-central.ts`.
+- **Base**: `enviar_urgencia_finanzas(p_servicio, p_mensaje)` (Central, operaciones o gerencia;
+  exige pedido liberado y no cerrado; respeta la serie de práctica), tabla `urgencias_finanzas`
+  (registro) y en `servicios_postventa` las marcas `urgencia_finanzas_at / _motivo / _n`.
+- **A Finanzas** le llega el tipo nuevo `urgencia_finanzas`: ventanita que no se cierra sola,
+  campanada, push con `requireInteraction` (sw.js), con enlace a `/finanzas/pedidos/<id>`. En
+  «Pagos por confirmar» el pedido va PRIMERO con franja roja, etiqueta URGENTE y el motivo; en el
+  detalle, banda arriba mientras no salga. Lo de práctica solo le suena a Finanzas (práctica).
+- **Gerencia** recibe `urgencia` a partir del 2.º aviso por el mismo pedido (no en práctica).
+
+Probado en local (3065, `--webpack`: el `node_modules` enlazado no le gusta a Turbopack) con
+central0 → practica.finanzas sobre PRUEBA-PED-0001-2026: fila, diálogo, envío, registro,
+notificación, campana, lista y detalle (pantallazos `urg-fin-1..5`). Migración aplicada en la base;
+producción sigue en 61527a8 hasta la ventana de despliegue.

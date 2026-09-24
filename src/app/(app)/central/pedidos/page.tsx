@@ -5,6 +5,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { bloquesPedido, estadoPago, etiquetaResponsable, type ServicioPostventa } from "@/lib/postventa";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
+import { UrgenciaFinanzasBoton } from "@/components/crm/urgencia-finanzas-boton";
 
 export const dynamic = "force-dynamic";
 
@@ -152,6 +153,12 @@ export default async function SusPedidosPage({ searchParams }: { searchParams: P
                       {pago === "completo" ? "Pago confirmado" : pago === "parcial" ? "Pago parcial" : "Pago pendiente"}
                     </span>
                     {s.despachado_at && <span className="rounded-full bg-secondary px-2 py-0.5 font-semibold">Despachado</span>}
+                    {s.urgencia_finanzas_at && !cerrado && (
+                      <span className="rounded-full bg-destructive/10 px-2 py-0.5 font-semibold text-destructive" title={s.urgencia_finanzas_motivo ?? undefined}>
+                        Urgencia a Finanzas {fechaHoraLima(s.urgencia_finanzas_at)}
+                        {(s.urgencia_finanzas_n ?? 0) > 1 ? ` · ${s.urgencia_finanzas_n} avisos` : ""}
+                      </span>
+                    )}
                     {cerrado ? (
                       <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-semibold text-[#1E7F4F]">Cerrado</span>
                     ) : (
@@ -164,6 +171,16 @@ export default async function SusPedidosPage({ searchParams }: { searchParams: P
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1.5">
+                  {/* La sirena a Finanzas (0298): el cliente necesita la factura
+                      o quiere despachar y el pago sigue sin confirmar. */}
+                  {!cerrado && pago !== "completo" && (
+                    <UrgenciaFinanzasBoton
+                      servicioId={s.id}
+                      cliente={(s.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")}
+                      totalUrgencias={s.urgencia_finanzas_n ?? 0}
+                      ultimaAt={s.urgencia_finanzas_at ?? null}
+                    />
+                  )}
                   <a href={`/pedidos/${s.id}/imprimir`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent">
                     <Printer className="size-3.5" /> Pedido
                   </a>

@@ -173,14 +173,15 @@ self.addEventListener("push", (event) => {
       // ventanita dentro del CRM desde el 25-08 (caso Mi Casita Facilita: un
       // cliente reclamó que lo dejaron esperando). Si el aviso desapareciera
       // solo, quien fue al baño vuelve y no se entera.
-      requireInteraction: datos.tipo === "urgencia",
+      // La urgencia a Finanzas (0298) es la misma sirena, con otro destino.
+      requireInteraction: datos.tipo === "urgencia" || datos.tipo === "urgencia_finanzas",
       // Agrupar por destino evita apilar diez avisos del mismo sitio, pero
       // `renotify` es OBLIGATORIO acá: sin él, el segundo aviso reemplazaría al
       // primero EN SILENCIO y un prospecto podría pasar desapercibido — que es
       // justo lo que estos avisos vienen a impedir. Las urgencias no se
       // agrupan nunca: cada cliente que espera es un caso aparte.
-      tag: datos.tipo === "urgencia" ? undefined : datos.url || undefined,
-      renotify: datos.tipo !== "urgencia" && Boolean(datos.url),
+      tag: datos.tipo === "urgencia" || datos.tipo === "urgencia_finanzas" ? undefined : datos.url || undefined,
+      renotify: datos.tipo !== "urgencia" && datos.tipo !== "urgencia_finanzas" && Boolean(datos.url),
       // Sonido pedido EXPLÍCITO (Santos, 31-08: «es delicado recibir un lead
       // y no atenderlo»). `silent: false` le dice al sistema que este aviso
       // debe sonar; si aun así no suena, el mudo está en Windows (el sonido

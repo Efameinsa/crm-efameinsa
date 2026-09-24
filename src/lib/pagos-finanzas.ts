@@ -35,6 +35,10 @@ export interface PedidoFinanzas {
   observadoMotivo: string | null;
   /** Postventa pidió confirmar el abono y todavía no hay respuesta (0295; se limpia al contestar, 0296). */
   solicitadoAt: string | null;
+  /** La sirena de Central (0298): cuándo fue el último aviso, por qué y cuántos lleva. */
+  urgenciaAt: string | null;
+  urgenciaMotivo: string | null;
+  urgenciaN: number;
   /** La evidencia de la observación (ruta en el bucket). */
   observadoAdjunto: string | null;
   pagoConfirmadoAt: string | null;
@@ -54,7 +58,7 @@ export interface PedidoFinanzas {
 }
 
 const COLUMNAS =
-  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, informe_cierre_id, numero_pedido_erp, cerrado_at, completado, created_at";
+  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, informe_cierre_id, numero_pedido_erp, cerrado_at, completado, created_at";
 
 const limpiarCliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const dia = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
@@ -127,6 +131,9 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
         observadoMotivo: (f.pago_observado_motivo as string | null) ?? null,
         // Confirmar u observar lo limpian en la base (0296): si está, espera respuesta.
         solicitadoAt: (f.pago_solicitado_at as string | null) ?? null,
+        urgenciaAt: (f.urgencia_finanzas_at as string | null) ?? null,
+        urgenciaMotivo: (f.urgencia_finanzas_motivo as string | null) ?? null,
+        urgenciaN: Number(f.urgencia_finanzas_n ?? 0),
         observadoAdjunto: (f.pago_observado_adjunto as string | null) ?? null,
         pagoConfirmadoAt: (f.pago_confirmado_at as string | null) ?? null,
         pagoConfirmadoDetalle: (f.pago_confirmado_detalle as string | null) ?? null,
@@ -169,7 +176,11 @@ export async function pedidosPorConfirmar(supabase: SupabaseClient): Promise<Ped
     // Cuentas por cobrar cuando se despachen.
     .filter((p) => p.total != null && p.falta > 0)
     .sort((a, b) => {
-      // Lo que postventa está esperando va primero (0295).
+      // La sirena de Central va primero de todo (0298): el cliente necesita la
+      // factura o quiere despachar. Entre dos, la más reciente arriba.
+      if (Boolean(a.urgenciaAt) !== Boolean(b.urgenciaAt)) return a.urgenciaAt ? -1 : 1;
+      if (a.urgenciaAt && b.urgenciaAt && a.urgenciaAt !== b.urgenciaAt) return a.urgenciaAt > b.urgenciaAt ? -1 : 1;
+      // Lo que postventa está esperando va después (0295).
       if (Boolean(a.solicitadoAt) !== Boolean(b.solicitadoAt)) return a.solicitadoAt ? -1 : 1;
       const fa = a.fechaDespacho ?? "9999-12-31";
       const fb = b.fechaDespacho ?? "9999-12-31";

@@ -96,6 +96,15 @@ const ESTILO_AVISO: Record<
     duracion: Infinity,
     tono: "error",
   },
+  // Central le pide a Finanzas apurar un pedido (0298): el cliente necesita la
+  // factura o quiere despachar. Misma regla que la urgencia al comercial: se
+  // queda hasta que la toquen.
+  urgencia_finanzas: {
+    encabezado: "🚨 Urgente — Central pide apurar este pedido",
+    accion: "Ver el pedido",
+    duracion: Infinity,
+    tono: "error",
+  },
   // Central anuló un cierre (0237) y alguien viene a la planta (0238).
   cierre_anulado: {
     encabezado: "Central anuló un cierre suyo",
@@ -246,6 +255,7 @@ export function CampanaNotificaciones({
       "lead_asignado",
       "cotizacion_pendiente",
       "urgencia",
+      "urgencia_finanzas",
     ].includes(n.tipo);
     if (exigeAccion) sonarCampanada(n.id);
     else sonarAlerta(n.id);
