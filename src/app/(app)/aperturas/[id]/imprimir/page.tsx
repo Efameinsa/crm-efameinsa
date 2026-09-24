@@ -4,6 +4,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { ETIQUETA_TIPO_APERTURA, type AperturaLlamada } from "@/lib/aperturas-llamada";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
+import { MembreteDocumento } from "@/components/crm/membrete-documento";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,15 @@ export default async function ImprimirAperturaPage({ params }: { params: Promise
     : { data: null };
   const urls = (firmadas ?? []).map((f) => f.signedUrl).filter(Boolean) as string[];
   const cliente = a.cuentas?.razon_social ?? "—";
+  let serieEmpresa: "EFAMEINSA" | "OPEN" | null = null;
+  if (a.servicio_id) {
+    const { data: s } = await supabase.from("servicios_postventa").select("informes_cierre!servicios_postventa_informe_cierre_id_fkey(serie)").eq("id", a.servicio_id).maybeSingle();
+    serieEmpresa = ((s?.informes_cierre as unknown as { serie: string } | null)?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? null;
+  }
+  if (!serieEmpresa) {
+    const { data: ult } = await supabase.from("informes_cierre").select("serie").eq("cuenta_id", a.cuenta_id).is("anulado_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    serieEmpresa = (ult?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? null;
+  }
   const titulo = `INFORME DE ${ETIQUETA_TIPO_APERTURA[a.tipo].toUpperCase()}`;
   const filas: [string, string | null][] = [
     ["Cliente", cliente],
@@ -52,13 +62,8 @@ export default async function ImprimirAperturaPage({ params }: { params: Promise
         <BotonImprimir>Imprimir / guardar PDF</BotonImprimir>
       </div>
 
-      <div className="mb-3 flex items-center justify-between border-b-2 border-[#8B1510] pb-2">
-        <div>
-          <p className="text-lg font-bold tracking-wide">EFAMEINSA</p>
-          <p className="text-[11px] text-neutral-600">Corporación Efameinsa e Ingeniería S.A. · Postventa</p>
-        </div>
-        <p className="text-right text-[11px] text-neutral-600">www.efameinsa.com</p>
-      </div>
+      {/* La empresa del cierre del pedido; si no hay pedido, la del último cierre del cliente (Santos, 24-09). */}
+      <MembreteDocumento serie={serieEmpresa} area="Postventa" />
 
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>
 
