@@ -8,6 +8,7 @@ import { tipoDePerfil } from "@/lib/propuesta/menu";
 import { cuentasPorCobrar } from "@/lib/pagos-finanzas";
 import { colaDelDia } from "@/lib/propuesta/cola-del-dia";
 import { ColaDelDia } from "@/components/propuesta/cola-del-dia";
+import { colaCentral, colaFinanzas } from "@/lib/propuesta/cola-central-finanzas";
 
 export const dynamic = "force-dynamic";
 
@@ -26,11 +27,14 @@ export default async function HoyPage({ searchParams }: { searchParams: Promise<
 
   // LA COLA DE TRABAJO (23-09): para quien trabaja casos uno por uno, «Hoy» es
   // la lista de lo que toca, no el tablero. El tablero sigue a un clic.
-  if (["postventa", "almacen", "comercial", "preventivo"].includes(tipo)) {
+  if (["postventa", "almacen", "comercial", "preventivo", "central", "finanzas"].includes(tipo)) {
     const sp = await searchParams;
     const supabase = await createClient();
-    const { tareas, agenda } = await colaDelDia(supabase, perfil, tipo);
+    const { tareas, agenda } =
+      tipo === "central" ? await colaCentral(supabase) : tipo === "finanzas" ? await colaFinanzas(supabase) : await colaDelDia(supabase, perfil, tipo);
     const numeros: Record<string, { etiqueta: string; href: string }> = {
+      central: { etiqueta: "Ver la bandeja de siempre", href: "/central" },
+      finanzas: { etiqueta: "Ver Por confirmar en números", href: "/finanzas" },
       postventa: { etiqueta: "Ver El macro en números", href: "/postventa/macro" },
       almacen: { etiqueta: "Ver Mi día en números", href: "/almacen" },
       comercial: { etiqueta: "Ver mi tablero", href: "/comercial" },

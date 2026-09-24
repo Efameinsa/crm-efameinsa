@@ -15,7 +15,7 @@ import type { Perfil } from "@/types/database";
  */
 
 export type Urgencia = "atrasado" | "hoy" | "semana";
-export type TipoTarea = "pedido" | "apertura" | "atencion" | "caso" | "cliente" | "despacho";
+export type TipoTarea = "pedido" | "apertura" | "atencion" | "caso" | "cliente" | "despacho" | "pago" | "liquidacion" | "serie" | "contacto";
 
 export interface Tarea {
   id: string;
@@ -95,6 +95,17 @@ async function colaPostventa(supabase: Cliente) {
     } else if (pruebaSinPedir(s)) {
       tareas.push({ id: `pru-${s.id}`, urgencia: "hoy", tipo: "pedido", cliente, que: `Pedir prueba y embalaje · ${equipo}`, porque: "Nadie se lo pidió al almacén. No espera al pago.", accion: { etiqueta: "Pedir la prueba", href: `/postventa/pedidos/${s.id}` } });
     }
+    // El pago con Finanzas (0279/0295): lo observado vuelve a postventa; lo
+    // pedido y sin respuesta se recuerda para reclamarlo.
+    const confirmado = s.pago_confirmado_at;
+    if (s.pago_observado_at && (!confirmado || s.pago_observado_at > confirmado) && !(s.pago_solicitado_at && s.pago_solicitado_at > s.pago_observado_at)) {
+      tareas.push({ id: `obs-${s.id}`, urgencia: diasEntre(diaLima(s.pago_observado_at), hoy) >= 1 ? "atrasado" : "hoy", tipo: "pago", cliente, que: `Finanzas observó el pago · ${equipo}`, porque: `«${s.pago_observado_motivo?.trim() || "sin detalle"}». Hable con el comercial y vuelva a pedir la confirmación.`, accion: { etiqueta: "Ver el pedido", href: `/postventa/pedidos/${s.id}` } });
+    } else if (s.pago_solicitado_at && (!confirmado || s.pago_solicitado_at > confirmado) && (!s.pago_observado_at || s.pago_solicitado_at > s.pago_observado_at)) {
+      const dias = diasEntre(diaLima(s.pago_solicitado_at), hoy);
+      if (dias >= 1) {
+        tareas.push({ id: `pag-${s.id}`, urgencia: dias >= 3 ? "hoy" : "semana", tipo: "pago", cliente, que: `Finanzas no responde sobre el abono · ${equipo}`, porque: `Se le pidió confirmarlo hace ${dias} día${dias === 1 ? "" : "s"}. Si urge, llámelos.`, accion: { etiqueta: "Ver el pedido", href: `/postventa/pedidos/${s.id}` } });
+      }
+    }
     if (s.fecha_despacho === hoy && !s.despachado_at) {
       agenda.push({ id: `desp-${s.id}`, hora: s.despacho_hora ? String(s.despacho_hora).slice(0, 5) : "—", titulo: `Despacho · ${cliente}`, detalle: equipo, href: `/postventa/pedidos/${s.id}` });
     }
@@ -152,7 +163,8 @@ async function colaAlmacen(supabase: Cliente) {
       .limit(2000),
     supabase
       .from("aperturas_llamada")
-      .select("id, tipo, programada_para, equipos, tomada_at, informe_at, revisada_at, enviada_cliente_at, anulada_at, cuentas(razon_social)")
+      // Con * para traer `urgente` (0295) sin romper si la columna aún no está.
+      .select("*, cuentas(razon_social)")
       .is("anulada_at", null)
       .is("informe_at", null)
       .limit(300),
@@ -163,6 +175,20 @@ async function colaAlmacen(supabase: Cliente) {
       .gte("programada_at", `${hoy}T00:00:00-05:00`)
       .lt("programada_at", `${hoy}T23:59:59-05:00`),
   ]);
+  const { data: series } = await supabase
+    .from("servicios_postventa")
+    .select("id, cliente_texto, series_pedidas_at")
+    .not("series_pedidas_at", "is", null)
+    .is("cerrado_at", null)
+    .order("series_pedidas_at", { ascending: true })
+    .limit(300);
+  const faltanSeries = new Map<string, number>();
+  const idsSeries = ((series ?? []) as { id: string }[]).map((x) => x.id);
+  // En trozos: un `.in` con cientos de ids revienta la URL y vuelve vacío.
+  for (let i = 0; i < idsSeries.length; i += 100) {
+    const { data } = await supabase.from("pedido_equipos").select("servicio_id").in("servicio_id", idsSeries.slice(i, i + 100)).is("serie", null);
+    for (const r of (data ?? []) as { servicio_id: string }[]) faltanSeries.set(r.servicio_id, (faltanSeries.get(r.servicio_id) ?? 0) + 1);
+  }
   const tareas: Tarea[] = [];
   const agenda: EventoAgenda[] = [];
   for (const s of (pedidos ?? []) as unknown as ServicioPostventa[]) {
@@ -187,10 +213,22 @@ async function colaAlmacen(supabase: Cliente) {
       tareas.push({ id: `gu-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: "Subir la guía", porque: "Salió y falta la foto de la guía en la agencia.", accion: { etiqueta: "Subir guía", href: `/almacen/pedidos/${s.id}` } });
     }
   }
-  for (const a of (aperturas ?? []) as unknown as { id: string; tipo: TipoApertura; programada_para: string; equipos: string; tomada_at: string | null; informe_at: string | null; revisada_at: string | null; enviada_cliente_at: string | null; anulada_at: string | null; cuentas: { razon_social: string } | null }[]) {
+  const urgentes: Tarea[] = [];
+  for (const a of (aperturas ?? []) as unknown as { id: string; tipo: TipoApertura; programada_para: string; equipos: string; tomada_at: string | null; informe_at: string | null; revisada_at: string | null; enviada_cliente_at: string | null; anulada_at: string | null; urgente?: boolean | null; cuentas: { razon_social: string } | null }[]) {
     const cliente = sinRuc(a.cuentas?.razon_social);
     const dia = diaLima(a.programada_para);
-    if (!a.tomada_at) {
+    const para = new Date(a.programada_para).toLocaleString("es-PE", { timeZone: "America/Lima", weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    // URGENTE (0295): sin pedido, autorizada por gerencia con su código. Va
+    // arriba de todo: sin tomar es atrasado; tomada, es de hoy aunque sea para después.
+    if (a.urgente) {
+      urgentes.push(
+        !a.tomada_at
+          ? { id: `apt-${a.id}`, urgencia: "atrasado", tipo: "apertura", cliente, que: `URGENTE · Tomar la apertura · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Para el ${para}. Gerencia la autorizó como urgente; postventa espera el check.`, accion: { etiqueta: "Tomarla", href: `/aperturas/${a.id}` } }
+          : dia <= hoy
+            ? { id: `api-${a.id}`, urgencia: dia < hoy ? "atrasado" : "hoy", tipo: "apertura", cliente, que: "URGENTE · Subir el informe de la llamada", porque: "Gerencia la autorizó como urgente: postventa necesita lo que se vio.", accion: { etiqueta: "Subir informe", href: `/aperturas/${a.id}` } }
+            : { id: `api-${a.id}`, urgencia: "hoy", tipo: "apertura", cliente, que: `URGENTE · Preparar la apertura · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Es para el ${para}. Gerencia la autorizó como urgente.`, accion: { etiqueta: "Abrir", href: `/aperturas/${a.id}` } },
+      );
+    } else if (!a.tomada_at) {
       tareas.push({ id: `apt-${a.id}`, urgencia: dia < hoy ? "atrasado" : dia === hoy ? "hoy" : "semana", tipo: "apertura", cliente, que: `Tomar la apertura · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Para el ${new Date(a.programada_para).toLocaleString("es-PE", { timeZone: "America/Lima", weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}. Postventa espera el check.`, accion: { etiqueta: "Tomarla", href: `/aperturas/${a.id}` } });
     } else if (dia <= hoy) {
       tareas.push({ id: `api-${a.id}`, urgencia: dia < hoy ? "atrasado" : "hoy", tipo: "apertura", cliente, que: "Subir el informe de la llamada", porque: "Ya se hizo (o toca hoy): postventa necesita lo que se vio.", accion: { etiqueta: "Subir informe", href: `/aperturas/${a.id}` } });
@@ -200,7 +238,14 @@ async function colaAlmacen(supabase: Cliente) {
   for (const t of (atenciones ?? []) as unknown as { id: string; programada_at: string; tecnico: string | null; cliente_texto: string | null; cuentas: { razon_social: string } | null }[]) {
     agenda.push({ id: `at-${t.id}`, hora: horaLima(t.programada_at), titulo: `Atención técnica · ${sinRuc(t.cuentas?.razon_social ?? t.cliente_texto)}`, detalle: t.tecnico ?? "Técnico por asignar", href: `/almacen/atenciones` });
   }
-  return { tareas, agenda: agenda.sort((a, b) => a.hora.localeCompare(b.hora)) };
+  // Las series que pidió Central (0290): una tarea por pedido con máquinas sin serie.
+  for (const p of (series ?? []) as { id: string; cliente_texto: string | null; series_pedidas_at: string }[]) {
+    const n = faltanSeries.get(p.id) ?? 0;
+    if (!n) continue;
+    const dias = diasEntre(diaLima(p.series_pedidas_at), hoy);
+    tareas.push({ id: `se-${p.id}`, urgencia: dias >= 1 ? "atrasado" : "hoy", tipo: "serie", cliente: sinRuc(p.cliente_texto), que: `Ingresar ${n === 1 ? "la serie" : `${n} series`}`, porque: `${dias >= 1 ? `Central las pidió hace ${dias} día${dias === 1 ? "" : "s"}` : "Central las pidió hoy"}. Se leen en la placa y quedan fijas.`, accion: { etiqueta: n === 1 ? "Registrar la serie" : "Registrar series", href: `/almacen/pedidos/${p.id}` } });
+  }
+  return { tareas: [...urgentes, ...tareas], agenda: agenda.sort((a, b) => a.hora.localeCompare(b.hora)) };
 }
 
 async function colaComercial(supabase: Cliente, perfil: Perfil) {

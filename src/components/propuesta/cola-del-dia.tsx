@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CalendarClock, CalendarDays, ClipboardList, Package, PhoneForwarded, Truck, UserRound, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowRight, Barcode, CalendarClock, CalendarDays, ClipboardList, FileText, Inbox, Package, PhoneForwarded, Truck, UserRound, Wallet, Wrench } from "lucide-react";
 import type { EventoAgenda, Tarea, TipoTarea, Urgencia } from "@/lib/propuesta/cola-del-dia";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,10 @@ const ICONO: Record<TipoTarea, typeof Package> = {
   caso: ClipboardList,
   cliente: UserRound,
   despacho: Truck,
+  pago: Wallet,
+  liquidacion: FileText,
+  serie: Barcode,
+  contacto: Inbox,
 };
 const FILTRO: Record<TipoTarea, string> = {
   pedido: "Pedidos",
@@ -23,6 +27,10 @@ const FILTRO: Record<TipoTarea, string> = {
   atencion: "Casos técnicos",
   caso: "Seguimientos",
   cliente: "Clientes",
+  pago: "Pagos",
+  liquidacion: "Liquidaciones",
+  serie: "Series",
+  contacto: "Contactos",
 };
 const POR_GRUPO = 15;
 

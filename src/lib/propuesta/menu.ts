@@ -42,7 +42,10 @@ export interface OpcionMenu {
 export interface Pestana {
   clave: string;
   etiqueta: string;
-  /** Pantalla existente que se muestra en esta pestaña (clave de PAGINAS). */
+  /**
+   * Pantalla existente que se muestra en esta pestaña (clave de PAGINAS), o
+   * una vista nueva de la propuesta v2 (clave de VISTAS, con «vista:»).
+   */
   pagina: string;
   /** Parámetros fijos que esa pantalla necesita (ej. todos=1). */
   fijos?: Record<string, string>;
@@ -86,7 +89,7 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     hoy,
     conversaciones,
     { etiqueta: "Seguimiento", href: "/central/derivados", icono: "seguimiento", coincide: ["/central/derivados"] },
-    { etiqueta: "Pedidos", href: "/central/cierres", icono: "pedidos", coincide: ["/central/cierres"] },
+    { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/central/cierres"] },
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/central/clientes", "/central/presupuestos"] },
     { etiqueta: "Agenda", href: "/central/visitas", icono: "agenda", coincide: ["/central/visitas"] },
   ],
@@ -101,7 +104,7 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   ],
   postventa: [
     hoy,
-    { etiqueta: "Pedidos", href: "/postventa/control", icono: "pedidos", coincide: ["/postventa/control", "/postventa/pedidos"] },
+    { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/postventa/control", "/postventa/pedidos"] },
     { etiqueta: "Atenciones", href: "/postventa/atenciones", icono: "atenciones", coincide: ["/postventa/atenciones", "/postventa/casos", "/postventa/informes"] },
     // Reunión 23-09: la orden al almacén que iba por correo (0281).
     { etiqueta: "Aperturas al almacén", href: "/postventa/aperturas", icono: "aperturas", coincide: ["/postventa/aperturas", "/aperturas"] },
@@ -118,13 +121,16 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   ],
   almacen: [
     hoy,
-    { etiqueta: "Pedidos", href: "/almacen/pedidos", icono: "pedidos", coincide: ["/almacen/pedidos"] },
+    { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/almacen/pedidos"] },
     { etiqueta: "Aperturas de postventa", href: "/almacen/aperturas", icono: "aperturas", coincide: ["/almacen/aperturas", "/aperturas"] },
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/almacen/agenda", "/almacen/atenciones", "/almacen/visitas"] },
     { etiqueta: "Informes técnicos", href: "/almacen/informes", icono: "informes", coincide: ["/almacen/informes"] },
   ],
   finanzas: [
     hoy,
+    // Revisión 23-09: lo que Finanzas hace con cada pedido, junto: confirmar
+    // el abono (pedido por postventa) y subir la liquidación (para Central).
+    { etiqueta: "Pagos", href: "/nuevo/pagos", icono: "abonos", coincide: ["/nuevo/pagos", "/finanzas/liquidar", "/finanzas/pedidos"] },
     { etiqueta: "Cobranza", href: "/finanzas/cobrar", icono: "cobranza", coincide: ["/finanzas/cobrar"] },
     { etiqueta: "Abonos", href: "/finanzas/confirmados", icono: "abonos", coincide: ["/finanzas/confirmados"] },
   ],
@@ -180,6 +186,41 @@ export const SECCIONES: Record<string, Seccion> = {
     pestanas: [
       { clave: "", etiqueta: "Clientes", pagina: "central/clientes" },
       { clave: "cotizaciones", etiqueta: "Cotizaciones", pagina: "central/presupuestos" },
+    ],
+  },
+  // PEDIDOS, POR PERFIL (v2, 23-09): cada área abre en lo que le toca hacer
+  // y deja la lista completa en la segunda pestaña.
+  "central/pedidos": {
+    titulo: "Pedidos",
+    ayuda: "Del cierre al pedido: qué paso sigue en cada uno y a quién se espera. Lo suyo, primero.",
+    pestanas: [
+      { clave: "", etiqueta: "Por liberar", pagina: "vista:central-pedidos" },
+      { clave: "todos", etiqueta: "Todos los cierres", pagina: "central/cierres" },
+    ],
+  },
+  "postventa/pedidos": {
+    titulo: "Pedidos",
+    ayuda: "Cada pedido por el paso en que está, y lo que usted pidió a otras áreas y todavía no contestan.",
+    pestanas: [
+      { clave: "", etiqueta: "Por paso", pagina: "postventa/control" },
+      { clave: "esperando", etiqueta: "Esperando a otras áreas", pagina: "vista:postventa-esperando" },
+    ],
+  },
+  "almacen/pedidos": {
+    titulo: "Pedidos",
+    ayuda: "Lo que el almacén tiene que hacer hoy: series, pruebas y despachos.",
+    pestanas: [
+      { clave: "", etiqueta: "Por hacer", pagina: "vista:almacen-pedidos" },
+      { clave: "series", etiqueta: "Series por ingresar", pagina: "vista:almacen-series" },
+      { clave: "todos", etiqueta: "Todos los pedidos", pagina: "almacen/pedidos" },
+    ],
+  },
+  "finanzas/pagos": {
+    titulo: "Pagos",
+    ayuda: "Lo que otras áreas esperan de usted: confirmar abonos y subir liquidaciones.",
+    pestanas: [
+      { clave: "", etiqueta: "Por confirmar", pagina: "vista:finanzas-por-confirmar" },
+      { clave: "liquidar", etiqueta: "Por liquidar", pagina: "vista:finanzas-por-liquidar" },
     ],
   },
   "comercial/oportunidades": {
