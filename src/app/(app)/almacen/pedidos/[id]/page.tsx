@@ -29,11 +29,13 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
   const circuito = circuitoDe(servicio);
   const cliente = (servicio.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 
+  // Una entrada sin `path` (la máquina probada sin fotos dejaba un `null`
+  // en la lista, 0300) no es una foto: se ignora en vez de tumbar la página.
   const fotos: FotoAlmacen[] = [
-    ...((servicio.protocolo_fotos ?? []) as FotoAlmacen[]),
-    ...((servicio.salida_fotos ?? []) as FotoAlmacen[]),
-    ...((servicio.agencia_fotos ?? []) as FotoAlmacen[]),
-  ];
+    ...((servicio.protocolo_fotos ?? []) as (FotoAlmacen | null)[]),
+    ...((servicio.salida_fotos ?? []) as (FotoAlmacen | null)[]),
+    ...((servicio.agencia_fotos ?? []) as (FotoAlmacen | null)[]),
+  ].filter((f): f is FotoAlmacen => Boolean(f && typeof f.path === "string" && f.path));
   const { data: firmadas } = fotos.length
     ? await supabase.storage.from("adjuntos").createSignedUrls(fotos.map((f) => f.path), 3600)
     : { data: null };
