@@ -4,92 +4,78 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { anularApertura, revisarApertura, subirInformeApertura, tomarApertura } from "@/lib/acciones/aperturas-llamada";
+import { anularApertura, asignarTecnicoApertura, revisarApertura, tomarApertura } from "@/lib/acciones/aperturas-llamada";
 import type { EstadoApertura } from "@/lib/aperturas-llamada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 
-/** Lo que hace el almacén: el check y su informe (versión 1). */
-export function AccionesAlmacenApertura({ id, estado, tecnicoInicial }: { id: string; estado: EstadoApertura; tecnicoInicial: string | null }) {
+/**
+ * El check del almacén: «ya la estoy gestionando». El técnico ya lo puso
+ * postventa (0297); el informe va en InformeSoporteApertura.
+ */
+export function AccionesAlmacenApertura({ id, tecnico }: { id: string; tecnico: string | null }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
-  const [tecnico, setTecnico] = useState(tecnicoInicial ?? "");
-  const [informe, setInforme] = useState("");
-  const [faltantes, setFaltantes] = useState("");
-  const [fotos, setFotos] = useState<File[]>([]);
 
   function tomar() {
     startTransition(async () => {
-      const r = await tomarApertura(id, tecnico);
+      const r = await tomarApertura(id);
       if (r.error) return void toast.error(r.error);
-      toast.success("Tomada: postventa ya ve que el almacén la está gestionando");
-      router.refresh();
-    });
-  }
-
-  function subir() {
-    startTransition(async () => {
-      const subidas: { path: string; nombre: string; tipo: string; tamano: number }[] = [];
-      if (fotos.length) {
-        const storage = createClient().storage.from("adjuntos");
-        for (const f of fotos) {
-          const path = `aperturas/${id}/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
-          const { error } = await storage.upload(path, f, { contentType: f.type || "image/jpeg" });
-          if (error) return void toast.error(`No se pudo subir «${f.name}»: ${error.message}`);
-          subidas.push({ path, nombre: f.name, tipo: f.type, tamano: f.size });
-        }
-      }
-      const r = await subirInformeApertura({ id, informe, faltantes, tecnico, fotos: subidas });
-      if (r.error) return void toast.error(r.error);
-      toast.success("Informe subido: postventa recibe el aviso para revisarlo");
-      setFotos([]);
+      toast.success("Tomada: postventa ya recibió el aviso");
       router.refresh();
     });
   }
 
   return (
-    <div className="space-y-4">
-      {estado === "enviada" && (
-        <div className="flex flex-wrap items-end gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
-          <div className="grid min-w-[200px] flex-1 gap-1">
-            <Label className="text-xs">Técnico que hará la llamada</Label>
-            <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Nombre del técnico" />
-          </div>
-          <Button onClick={tomar} disabled={pendiente}>
-            {pendiente ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-            La tomo: ya la estoy gestionando
-          </Button>
-        </div>
-      )}
-      <div className="space-y-3 rounded-lg border border-border p-3">
-        <p className="text-sm font-semibold text-foreground">Informe de la llamada (lo que vio el almacén)</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">
-            Qué se vio <span className="text-destructive">*</span>
-          </Label>
-          <Textarea rows={5} value={informe} onChange={(e) => setInforme(e.target.value)} placeholder="Área, puntos de agua, desagüe, energía, gas, medidas…" />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Lo que le falta al cliente (para cotizar)</Label>
-          <Textarea rows={3} value={faltantes} onChange={(e) => setFaltantes(e.target.value)} placeholder="Uno por línea: válvula de gas, manguera, regulador, manómetro…" />
-        </div>
-        {estado !== "enviada" && (
-          <div className="grid gap-1">
-            <Label className="text-xs">Técnico</Label>
-            <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} />
-          </div>
-        )}
-        <TomarOSubirVarias titulo="Fotos o capturas de la llamada" archivos={fotos} onChange={setFotos} />
-        <Button onClick={subir} disabled={pendiente || !informe.trim()}>
-          {pendiente && <Loader2 className="size-4 animate-spin" />}
-          Subir el informe a postventa
-        </Button>
-      </div>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+      <p className="text-sm text-foreground">
+        Técnico asignado por postventa: <b>{tecnico ?? "todavía no lo asigna"}</b>
+      </p>
+      <Button onClick={tomar} disabled={pendiente}>
+        {pendiente ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+        La tomo: ya la estoy gestionando
+      </Button>
     </div>
+  );
+}
+
+/** Postventa pone o cambia el técnico (0297; Santos, 24-09). */
+export function TecnicoApertura({ id, tecnico }: { id: string; tecnico: string | null }) {
+  const router = useRouter();
+  const [pendiente, startTransition] = useTransition();
+  const [editando, setEditando] = useState(!tecnico);
+  const [valor, setValor] = useState(tecnico ?? "");
+  if (!editando) {
+    return (
+      <span>
+        {tecnico}{" "}
+        <button type="button" className="text-xs text-primary hover:underline" onClick={() => setEditando(true)}>
+          cambiar
+        </button>
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1.5">
+      <Input className="h-8 max-w-56 text-sm" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Nombre del técnico" />
+      <Button
+        size="sm"
+        className="h-8"
+        disabled={pendiente || !valor.trim()}
+        onClick={() =>
+          startTransition(async () => {
+            const r = await asignarTecnicoApertura(id, valor);
+            if (r.error) return void toast.error(r.error);
+            toast.success("Técnico asignado");
+            setEditando(false);
+            router.refresh();
+          })
+        }
+      >
+        Guardar
+      </Button>
+    </span>
   );
 }
 

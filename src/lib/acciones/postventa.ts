@@ -781,6 +781,12 @@ export async function guardarInformeServicio(datos: {
   claseAlmacen?: string | null;
   atencionId?: string | null;
   listaMateriales?: { descripcion: string; cantidad?: number | null; costo?: number | null }[];
+  /** El informe de soporte técnico (0297): secciones editables, Word/PDF y horas del informe. */
+  secciones?: { titulo: string; texto: string }[];
+  documentos?: { path: string; nombre: string; tipo: string; tamano: number }[];
+  horaInformeInicio?: string | null;
+  horaInformeFin?: string | null;
+  aperturaId?: string | null;
 }) {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -833,6 +839,19 @@ export async function guardarInformeServicio(datos: {
       })),
       clase_almacen: datos.claseAlmacen ?? null,
       atencion_id: datos.atencionId ?? null,
+      secciones: (datos.secciones ?? [])
+        .filter((x) => x.titulo?.trim() && x.texto?.trim())
+        .slice(0, 12)
+        .map((x) => ({ titulo: String(x.titulo).trim().slice(0, 80), texto: String(x.texto).trim().slice(0, 6000) })),
+      documentos: (datos.documentos ?? []).slice(0, 10).map((f) => ({
+        path: String(f.path).slice(0, 300),
+        nombre: String(f.nombre).slice(0, 160),
+        tipo: String(f.tipo).slice(0, 120),
+        tamano: Number(f.tamano) || 0,
+      })),
+      hora_informe_inicio: datos.horaInformeInicio || null,
+      hora_informe_fin: datos.horaInformeFin || null,
+      apertura_id: datos.aperturaId ?? null,
       lista_materiales: (datos.listaMateriales ?? [])
         .filter((m) => m.descripcion?.trim())
         .slice(0, 60)

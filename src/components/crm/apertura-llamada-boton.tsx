@@ -4,10 +4,10 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, PhoneForwarded, Siren } from "lucide-react";
-import { enviarAperturaLlamada } from "@/lib/acciones/aperturas-llamada";
+import { datosParaFormatoDeLlamada, enviarAperturaLlamada } from "@/lib/acciones/aperturas-llamada";
 import { buscarEmpresaParaVisita } from "@/lib/acciones/visitas-planta";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
-import { ETIQUETA_TIPO_APERTURA, TIPOS_APERTURA, type TipoApertura } from "@/lib/aperturas-llamada";
+import { ETIQUETA_TIPO_APERTURA, TIPOS_APERTURA, type FormatoLlamada, type TipoApertura } from "@/lib/aperturas-llamada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +36,36 @@ import {
  * nada… permíteme hacer mi apertura de manera directa… para poder guardar,
  * pide el PIN». Sin pedido, marcada urgente y con el código de gerencia; al
  * almacén le llega como URGENTE. Sin `cuentaId`, el diálogo pide el cliente.
+ *
+ * EL TÉCNICO Y EL FORMATO DE LLAMADA (0297; Santos, 24-09). El técnico lo
+ * pone postventa, no el almacén. Y la orden sigue el formato de siempre
+ * (compra, entrega y guía, contacto, problema, mantenimiento, protocolo,
+ * garantía, provincia, puesta en marcha, cambios correctivos): al elegir la
+ * máquina del parque se llena sola; lo que falte se escribe.
  */
+type EquipoParque = Awaited<ReturnType<typeof datosParaFormatoDeLlamada>>["equipos"][number];
+const dmy = (iso: string | null | undefined) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "");
+const RE_CAMPO: Record<"MARCA" | "MODELO", RegExp> = {
+  MARCA: /MARCA\s*:?\s*([^\n]+?)(?=\s+[A-ZÁÉÍÓÚ]{4,}\s*:|\n|$)/i,
+  MODELO: /MODELO\s*:?\s*([^\n]+?)(?=\s+[A-ZÁÉÍÓÚ]{4,}\s*:|\n|$)/i,
+};
+const extraer = (texto: string | null, clave: "MARCA" | "MODELO") => texto?.match(RE_CAMPO[clave])?.[1]?.trim() ?? "";
+
+function formatoDesdeEquipo(e: EquipoParque): FormatoLlamada {
+  const garantia = e.garantia_meses ? `${e.garantia_meses} MESES${e.garantia_hasta ? ` (hasta el ${dmy(e.garantia_hasta)})` : ""}` : "";
+  return {
+    fecha_compra: dmy(e.fecha_venta),
+    entrega_guia: [dmy(e.fecha_despacho), e.guia_remision ? `Guía ${e.guia_remision}` : ""].filter(Boolean).join(" · "),
+    marca: extraer(e.modelo_texto, "MARCA"),
+    modelo: extraer(e.modelo_texto, "MODELO"),
+    serie: e.serie ?? "",
+    fecha_mantenimiento: e.ultimo_mantenimiento ? dmy(e.ultimo_mantenimiento) : "NINGUNO",
+    protocolo: e.protocolo ? "SÍ" : "NO",
+    garantia,
+    provincia: e.ubicacion ?? "",
+    puesta_en_marcha: e.fecha_puesta_marcha ? dmy(e.fecha_puesta_marcha) : "NO SE HIZO",
+  };
+}
 export function AperturaLlamadaBoton({
   cuentaId: cuentaFija = null,
   servicioId = null,
@@ -72,10 +101,42 @@ export function AperturaLlamadaBoton({
   const [urgente, setUrgente] = useState(urgenteInicial);
   const [pin, setPin] = useState("");
   const [cuenta, setCuenta] = useState<{ id: string; nombre: string } | null>(null);
+  const [tecnico, setTecnico] = useState("");
+  const [formato, setFormato] = useState<FormatoLlamada>({});
+  const [parque, setParque] = useState<EquipoParque[] | null>(null);
+  const [equipoParque, setEquipoParque] = useState("");
+  const campoFormato = (clave: keyof FormatoLlamada) => ({
+    value: formato[clave] ?? "",
+    onChange: (e: { target: { value: string } }) => setFormato((f) => ({ ...f, [clave]: e.target.value })),
+  });
   const [busca, setBusca] = useState("");
   const [opciones, setOpciones] = useState<{ id: string; razon_social: string; num_doc: string | null }[]>([]);
   const cuentaId = cuentaFija ?? cuenta?.id ?? null;
   const puedeUrgente = !servicioId;
+
+  // Al abrir (o al elegir el cliente) se traen sus máquinas para el formato.
+  useEffect(() => {
+    if (!abierto || !cuentaId) return;
+    let vigente = true;
+    datosParaFormatoDeLlamada(cuentaId).then((d) => {
+      if (!vigente) return;
+      setParque(d.equipos);
+      setFormato((f) => ({ ...f, contacto: f.contacto || d.contacto || "" }));
+      if (!persona && d.contacto) setPersona(d.contacto);
+    });
+    return () => {
+      vigente = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierto, cuentaId]);
+
+  function elegirEquipo(id: string) {
+    setEquipoParque(id);
+    const e = parque?.find((x) => x.id === id);
+    if (!e) return;
+    setFormato((f) => ({ ...f, ...formatoDesdeEquipo(e) }));
+    if (!texto.trim()) setTexto(`${(e.modelo_texto ?? "").split("\n")[0]}${e.serie ? ` · serie ${e.serie}` : ""}`);
+  }
 
   useEffect(() => {
     if (cuentaFija || busca.trim().length < 3) return;
@@ -90,6 +151,8 @@ export function AperturaLlamadaBoton({
       const r = await enviarAperturaLlamada({
         cuentaId,
         pinUrgente: urgente ? pin : null,
+        tecnico,
+        formato: { ...formato, contacto: formato.contacto || persona, problema: formato.problema || indicaciones },
         servicioId,
         atencionId,
         tipo,
@@ -132,7 +195,7 @@ export function AperturaLlamadaBoton({
           )
         }
       />
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Apertura para el almacén</DialogTitle>
           <DialogDescription>
@@ -207,6 +270,24 @@ export function AperturaLlamadaBoton({
             </div>
           </div>
           <div className="grid gap-1">
+            <Label className="text-xs">Técnico a cargo</Label>
+            <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Lo pone postventa: el almacén lo ve y no lo cambia" />
+          </div>
+          {cuentaId && (parque?.length ?? 0) > 0 && (
+            <div className="grid gap-1">
+              <Label className="text-xs">Máquina del cliente (llena el formato sola)</Label>
+              <select value={equipoParque} onChange={(e) => elegirEquipo(e.target.value)} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                <option value="">Elija la máquina…</option>
+                {parque!.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {(e.modelo_texto ?? "Equipo").split("\n")[0].slice(0, 70)}
+                    {e.serie ? ` · ${e.serie}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="grid gap-1">
             <Label className="text-xs">
               Equipos <span className="text-destructive">*</span>
             </Label>
@@ -225,6 +306,23 @@ export function AperturaLlamadaBoton({
             <Label className="text-xs">Con quién se habla (nombre y celular)</Label>
             <Input value={persona} onChange={(e) => setPersona(e.target.value)} />
           </div>
+          <details className="rounded-lg border border-border p-2.5" open={Boolean(equipoParque)}>
+            <summary className="cursor-pointer text-xs font-semibold text-foreground">Formato de llamada (compra, entrega, garantía…)</summary>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <CampoFormato etiqueta="Fecha de compra"><Input {...campoFormato("fecha_compra")} /></CampoFormato>
+              <CampoFormato etiqueta="Fecha de entrega y N.º de guía"><Input {...campoFormato("entrega_guia")} /></CampoFormato>
+              <CampoFormato etiqueta="Marca"><Input {...campoFormato("marca")} /></CampoFormato>
+              <CampoFormato etiqueta="Modelo"><Input {...campoFormato("modelo")} /></CampoFormato>
+              <CampoFormato etiqueta="Serie"><Input {...campoFormato("serie")} /></CampoFormato>
+              <CampoFormato etiqueta="Fecha de mantenimiento"><Input {...campoFormato("fecha_mantenimiento")} /></CampoFormato>
+              <CampoFormato etiqueta="Protocolo de prueba"><Input {...campoFormato("protocolo")} placeholder="SÍ / NO" /></CampoFormato>
+              <CampoFormato etiqueta="Garantía"><Input {...campoFormato("garantia")} placeholder="24 MESES" /></CampoFormato>
+              <CampoFormato etiqueta="Provincia"><Input {...campoFormato("provincia")} /></CampoFormato>
+              <CampoFormato etiqueta="Fecha de puesta en marcha"><Input {...campoFormato("puesta_en_marcha")} /></CampoFormato>
+              <CampoFormato etiqueta="Cambios correctivos" ancho><Input {...campoFormato("cambios_correctivos")} placeholder="NINGUNO" /></CampoFormato>
+            </div>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">El problema es lo que escribió en «Qué hay que revisar»; la programación, el día y la hora de arriba.</p>
+          </details>
           {puedeUrgente && (
             <div className={urgente ? "grid gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-2.5" : "grid gap-2"}>
               <label className="inline-flex items-start gap-2 text-sm">
@@ -249,5 +347,14 @@ export function AperturaLlamadaBoton({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CampoFormato({ etiqueta, ancho, children }: { etiqueta: string; ancho?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={ancho ? "grid gap-1 sm:col-span-2" : "grid gap-1"}>
+      <Label className="text-[11px] text-muted-foreground">{etiqueta}</Label>
+      {children}
+    </div>
   );
 }

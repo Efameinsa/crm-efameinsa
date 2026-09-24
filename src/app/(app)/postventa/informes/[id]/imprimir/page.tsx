@@ -82,12 +82,25 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
     ["Asunto", (data.asunto as string | null) ?? ASUNTO[tipo] ?? etiquetaTipoServicio(tipo)],
     ["Fecha de ejecución", fechaCorta(data.ejecutado_at as string)],
     ["Fecha de informe", data.fecha_informe ? fechaCorta(`${data.fecha_informe}T12:00:00-05:00`) : fechaCorta(data.created_at as string)],
-    ["Hora de inicio", hora(data.hora_inicio as string | null)],
-    ["Hora de culminación", hora(data.hora_fin as string | null)],
+    // El formato del 24-09 (0297) distingue la llamada del informe.
+    [data.hora_informe_inicio ? "Hora de inicio de llamada" : "Hora de inicio", hora(data.hora_inicio as string | null)],
+    [data.hora_informe_inicio ? "Hora de culminación de llamada" : "Hora de culminación", hora(data.hora_fin as string | null)],
+    ["Hora de inicio de informe", hora((data.hora_informe_inicio as string | null) ?? null)],
+    ["Hora de culminación de informe", hora((data.hora_informe_fin as string | null) ?? null)],
     ["Técnico a cargo", (data.tecnico as string | null) ?? null],
     ["Elaboración de informe", elaborado?.nombre ?? null],
   ];
-  const secciones: [string, string | null][] = [
+  // Las secciones editables del informe de soporte técnico (0297): si las hay,
+  // mandan; cada línea sale como viñeta.
+  const editables = ((data.secciones ?? []) as { titulo: string; texto: string }[]).filter((x) => x.texto?.trim());
+  const documentos = (data.documentos ?? []) as { path: string; nombre: string }[];
+  const { data: docsFirmados } = documentos.length
+    ? await supabase.storage.from("adjuntos").createSignedUrls(documentos.map((d) => d.path), 3600)
+    : { data: null };
+  const secciones: [string, string | null][] = editables.length ? [
+    ["Descripción de equipo", (data.equipo_texto as string | null) ?? equipo?.modelo_texto ?? null],
+    ["Pendiente", data.pendientes as string | null],
+  ] : [
     ["Descripción de equipo", (data.equipo_texto as string | null) ?? equipo?.modelo_texto ?? null],
     [tipo === "llamada" ? "Detalle del problema" : "Trabajo realizado", data.detalle as string | null],
     [tipo === "revision" || tipo === "entrega" ? "Revisión" : "Verificación / pruebas", data.verificacion as string | null],
@@ -130,7 +143,28 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
         </tbody>
       </table>
 
+      {editables.length > 0 && (data.equipo_texto || equipo?.modelo_texto) && (
+        <section className="mt-3">
+          <p className="font-bold">Descripción de equipo:</p>
+          <p className="whitespace-pre-wrap">{(data.equipo_texto as string | null) ?? equipo?.modelo_texto}</p>
+        </section>
+      )}
+      {editables.map((x, i) => (
+        <section key={i} className="mt-3">
+          <p className="font-bold">{x.titulo}:</p>
+          <ul className="ml-5 list-disc">
+            {x.texto
+              .split("\n")
+              .map((l) => l.trim())
+              .filter(Boolean)
+              .map((l, j) => (
+                <li key={j}>{l}</li>
+              ))}
+          </ul>
+        </section>
+      ))}
       {secciones
+        .filter(([k]) => !(editables.length > 0 && k === "Descripción de equipo"))
         .filter(([, v]) => v && v.trim())
         .map(([k, v]) => (
           <section key={k} className="mt-3">
@@ -138,6 +172,21 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
             <p className="whitespace-pre-wrap">{v}</p>
           </section>
         ))}
+
+      {documentos.length > 0 && (
+        <section className="mt-3">
+          <p className="font-bold">Informe adjunto:</p>
+          <ul className="ml-5 list-disc">
+            {documentos.map((d, i) => (
+              <li key={i}>
+                <a href={docsFirmados?.[i]?.signedUrl ?? "#"} target="_blank" rel="noreferrer" className="text-[#8B1510] underline">
+                  {d.nombre}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {data.ciclos != null && (
         <p className="mt-3">

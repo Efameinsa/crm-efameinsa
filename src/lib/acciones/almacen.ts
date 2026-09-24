@@ -99,6 +99,43 @@ export async function confirmarListo(servicioId: string, datos: { nota?: string;
   return ok(servicioId);
 }
 
+/**
+ * LA SALIDA CON SALDO PENDIENTE SE AUTORIZA (0297; Santos, 24-09: «no debería
+ * poder hasta que alguien autorice la salida de la máquina cuando aún hay un
+ * saldo pendiente»). Con el código de gerencia u operaciones y el motivo;
+ * postventa se entera.
+ */
+export async function autorizarSalidaConSaldo(servicioId: string, pin: string, motivo: string, cliente: string) {
+  await requerirPerfil();
+  if (motivo.trim().length < 5) return { error: "Diga por qué sale con saldo pendiente" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("autorizar_salida_con_saldo", { p_servicio: servicioId, p_pin: pin, p_motivo: motivo.trim() });
+  if (error) return { error: limpiar(error.message) };
+  await avisarPostventa(
+    `Salida autorizada con saldo · ${cliente}`,
+    `Se autorizó con código que la máquina salga del almacén con saldo pendiente: ${motivo.trim()}.`,
+    `/postventa/pedidos/${servicioId}`,
+  );
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  return { error: null };
+}
+
+/**
+ * Sumar fotos y documentos a una máquina del pedido, también después de
+ * probada (0297; Santos, 24-09: «almacén tendría que ingresar un informe por
+ * cada equipo… subir varias fotos y varios PDF por serie»).
+ */
+export async function agregarArchivosDelEquipo(itemId: string, servicioId: string, archivos: FotoAlmacen[]) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("agregar_archivos_del_equipo", { p_item: itemId, p_archivos: archivos });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  return { error: null };
+}
+
 export async function registrarSalida(servicioId: string, datos: { fecha: string; fotos: Foto[]; nota?: string; cliente: string }) {
   const supabase = await createClient();
   // Si postventa ya había registrado la salida (con la guía), esto solo suma

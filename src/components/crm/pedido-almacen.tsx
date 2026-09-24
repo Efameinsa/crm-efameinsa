@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageCheck, Truck, FileCheck2, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia } from "@/lib/acciones/almacen";
+import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia, autorizarSalidaConSaldo } from "@/lib/acciones/almacen";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { bloquesPedido, faltanFotosDeCarga, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +102,13 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
 
   const salidaLista = ANGULOS.filter((a) => angulos[a.etiqueta]).length >= 3;
   const puedeSalir = Boolean(servicio.apertura_despacho_at) || !servicio.informe_cierre_id;
+  // CON SALDO PENDIENTE NO SALE SIN AUTORIZACIÓN (0297). El almacén no ve
+  // montos: `despacho_liberado` ya lo resolvió el servidor antes de taparlos.
+  const conSaldo = servicio.despacho_liberado === false && !servicio.despachado_at;
+  const salidaAutorizada = Boolean(servicio.salida_autorizada_at || servicio.despacho_autorizado_por);
+  const trabadaPorSaldo = puedeSalir && conSaldo && !salidaAutorizada;
+  const [pinSalida, setPinSalida] = useState("");
+  const [motivoSalida, setMotivoSalida] = useState("");
   // POSTVENTA YA MARCÓ LA SALIDA, PERO FALTAN LAS FOTOS DE LA CARGA (23-09).
   // Postventa puede registrar el despacho desde su pantalla (con la guía), y
   // eso escondía esta tarjeta: el almacén se quedaba sin dónde subir las
@@ -204,6 +212,25 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
         >
           {!puedeSalir ? (
             <p className="text-xs text-destructive">Sin apertura de despacho no sale nada del almacén. Pídasela a postventa.</p>
+          ) : trabadaPorSaldo ? (
+            <div className="space-y-2 rounded-md border border-amber-500/50 bg-amber-50 p-3 dark:bg-amber-500/10">
+              <p className="text-xs font-semibold text-amber-900 dark:text-amber-300">
+                Este pedido tiene saldo pendiente: la máquina no sale hasta que gerencia u operaciones lo autorice.
+              </p>
+              <p className="text-[11px] text-amber-900/80 dark:text-amber-300/80">
+                Quien autoriza le dicta su código. Queda escrito quién autorizó y por qué, y postventa recibe el aviso.
+              </p>
+              <Input value={motivoSalida} onChange={(e) => setMotivoSalida(e.target.value)} placeholder="Por qué sale con saldo (ej. el cliente paga el saldo contra entrega)" />
+              <CampoCodigo valor={pinSalida} onChange={setPinSalida} tono="amber" id={`pin-salida-${servicio.id}`} />
+              <Button
+                size="sm"
+                disabled={pendiente || motivoSalida.trim().length < 5 || pinSalida.replace(/\D/g, "").length < 4}
+                onClick={() => correr(() => autorizarSalidaConSaldo(servicio.id, pinSalida, motivoSalida, cliente), "Salida autorizada: ya puede registrar la salida")}
+              >
+                {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                Autorizar la salida
+              </Button>
+            </div>
           ) : faltanFotosCarga ? (
             <p className="text-xs text-muted-foreground">
               Postventa ya registró la salida{servicio.guia ? ` (guía ${servicio.guia})` : ""}, pero falta la evidencia del almacén: cinco ángulos de la máquina ya cargada y un video. Mínimo tres fotos.
@@ -211,6 +238,11 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
           ) : (
             <p className="text-xs text-muted-foreground">Cinco ángulos y un video al terminar de cargar. Mínimo tres fotos para registrar.</p>
           )}
+          {servicio.salida_autorizada_at && conSaldo && (
+            <p className="text-[11px] font-medium text-[#1E7F4F]">Salida con saldo autorizada: {servicio.salida_autorizada_motivo}</p>
+          )}
+          {!trabadaPorSaldo && (
+          <>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {ANGULOS.map((a) => (
               <TomarOSubir key={a.etiqueta} titulo={a.titulo} archivo={angulos[a.etiqueta] ?? null} onChange={(f) => setAngulos((x) => ({ ...x, [a.etiqueta]: f }))} compacto />
@@ -246,6 +278,8 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
             {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
             {faltanFotosCarga ? "Subir las fotos de la carga" : "Salió del almacén"}
           </Button>
+          </>
+          )}
         </Tarjeta>
       )}
 

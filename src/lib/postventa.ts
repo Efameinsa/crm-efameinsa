@@ -48,6 +48,10 @@ export interface ServicioPostventa {
   almacen_listo_nota?: string | null;
   salida_fotos?: FotoAlmacen[] | null;
   salida_nota?: string | null;
+  /** Salida del almacén con saldo pendiente, autorizada con código (0297). */
+  salida_autorizada_at?: string | null;
+  salida_autorizada_motivo?: string | null;
+  despacho_autorizado_por?: string | null;
   agencia_at?: string | null;
   agencia_fotos?: FotoAlmacen[] | null;
   protocolo_fotos?: FotoAlmacen[] | null;
