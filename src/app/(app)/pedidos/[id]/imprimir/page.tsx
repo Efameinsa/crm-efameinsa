@@ -97,13 +97,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
       <MembreteDocumento
         serie={(i?.serie as "EFAMEINSA" | "OPEN" | null) ?? null}
         area="Central"
-        derecha={
-          <>
-            Generado el {fecha(new Date().toISOString())}
-            <br />
-            www.efameinsa.com
-          </>
-        }
+        generado={fecha(new Date().toISOString())}
       />
 
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>

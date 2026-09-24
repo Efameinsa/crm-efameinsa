@@ -132,7 +132,7 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
       </div>
 
       {/* La empresa y el logo del cierre al que pertenece (Santos, 24-09). */}
-      <MembreteDocumento serie={serieEmpresa} area="Postventa" derecha="www.efameinsa.com" />
+      <MembreteDocumento serie={serieEmpresa} area="Postventa" />
 
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>
       {equipoLinea && <p className="text-center text-[12px] font-semibold uppercase">MODELO: {equipoLinea}</p>}
