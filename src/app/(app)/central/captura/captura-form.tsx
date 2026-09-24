@@ -1,5 +1,6 @@
 "use client";
 
+import { COOKIE_DEMO } from "@/lib/solo-lectura";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { analizarCaptura, registrarContacto, type AnalisisCaptura, type CoincidenciaCartera } from "@/lib/acciones/leads";
@@ -81,7 +82,10 @@ export function CapturaForm({ campaniasWhatsapp = [] }: { campaniasWhatsapp?: Ca
       email: campo("email"),
     };
     const hayAlgo = Object.values(datos).some((v) => v.trim().length >= 3);
-    if (!hayAlgo) {
+    // Cuenta de demostración (0280): la búsqueda es una acción del servidor y
+    // el proxy la rechaza; sin esto quedaba «buscando» para siempre.
+    const demo = document.cookie.split("; ").includes(`${COOKIE_DEMO}=1`);
+    if (!hayAlgo || demo) {
       setAnalisis(null);
       setBuscando(false);
       return;

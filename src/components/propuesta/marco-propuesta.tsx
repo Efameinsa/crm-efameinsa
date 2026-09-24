@@ -3,6 +3,8 @@ import { Bell, Moon, Plus, Search, Sparkles, Sun } from "lucide-react";
 import "@/app/propuesta.css";
 import { BarraPropuesta } from "@/components/propuesta/barra-propuesta";
 import { BarraProgreso } from "@/components/propuesta/barra-progreso";
+import { GuardaDemo } from "@/components/propuesta/guarda-demo";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 // La letra de la marca (Archivo) va alojada en public/fonts y declarada en
@@ -11,17 +13,21 @@ export const COOKIE_TEMA = "crm-tema";
 import { BUSCAR_EN, MENU, NOMBRE_PERFIL, VER_COMO, tipoDePerfil } from "@/lib/propuesta/menu";
 import type { Perfil } from "@/types/database";
 
-/** Lo que cada perfil crea desde el botón «Nuevo» de la cabecera. */
-const NUEVO: Record<string, string> = {
-  central: "Registrar contacto",
-  comercial: "Nueva cotización",
-  postventa: "Registrar caso",
-  preventivo: "Nueva cotización",
-  almacen: "Nuevo informe técnico",
-  finanzas: "Confirmar abono",
-  operaciones: "Nuevo equipo",
-  gerencia: "Nuevo comunicado",
-  admin: "Nuevo usuario",
+/**
+ * Lo que cada perfil crea desde el botón de la cabecera, y adónde lleva
+ * (24-09: estaba apagado; Santos, en central_test, «no encuentro la manera de
+ * registrar un contacto»). Abre el formulario de siempre dentro de la
+ * propuesta; al enviarlo, GuardaDemo avisa que acá no se guarda.
+ */
+const NUEVO: Record<string, { etiqueta: string; href: string }> = {
+  central: { etiqueta: "Registrar contacto", href: "/central/captura" },
+  comercial: { etiqueta: "Cotizar", href: "/nuevo/oportunidades" },
+  postventa: { etiqueta: "Registrar caso", href: "/postventa/casos/nuevo" },
+  preventivo: { etiqueta: "Cotizar", href: "/nuevo/oportunidades" },
+  almacen: { etiqueta: "Nuevo informe técnico", href: "/almacen/informes" },
+  finanzas: { etiqueta: "Confirmar abono", href: "/nuevo/pagos" },
+  operaciones: { etiqueta: "Nuevo equipo", href: "/operaciones/catalogo" },
+  admin: { etiqueta: "Nuevo usuario", href: "/admin" },
 };
 
 const iniciales = (n: string) =>
@@ -47,6 +53,7 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
   return (
     <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
       <BarraProgreso />
+      <GuardaDemo />
       <BarraPropuesta opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} verComo={tipo === "operaciones" ? VER_COMO : undefined} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-card/80 px-6 py-2.5 backdrop-blur-md">
@@ -61,15 +68,15 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
             />
             <kbd className="hidden whitespace-nowrap rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:block">Ctrl K</kbd>
           </form>
-          <button
-            type="button"
-            disabled
-            title="En la propuesta no se crea nada"
-            className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground opacity-70"
-          >
-            <Plus className="size-4" />
-            {NUEVO[tipo]}
-          </button>
+          {NUEVO[tipo] && (
+            <Link
+              href={NUEVO[tipo].href}
+              className="group inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md"
+            >
+              <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
+              {NUEVO[tipo].etiqueta}
+            </Link>
+          )}
           <span className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground" title="Avisos">
             <Bell className="size-4" />
           </span>
