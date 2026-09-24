@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CampoAdjuntos, useAdjuntos } from "@/components/crm/campo-adjuntos";
 import { CampoCampaniaWhatsapp } from "@/components/crm/campo-campania-whatsapp";
 import type { CampaniaWhatsapp } from "@/lib/acciones/whatsapp-campanas";
+import { COOKIE_DEMO } from "@/lib/solo-lectura";
 import { cn } from "@/lib/utils";
 
 // Cuando a la comercial le entra un WhatsApp o una llamada directa de alguien
@@ -123,7 +124,10 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
     const dato = (n: string) => (form.elements.namedItem(n) as HTMLInputElement | null)?.value ?? "";
     const razonSocial = dato("razon_social");
     const numDoc = dato("num_doc");
-    if (razonSocial.trim().length < 3 && numDoc.replace(/\D/g, "").length < 8) {
+    // Cuenta de demostración (0280): la búsqueda es una acción del servidor
+    // y el proxy la rechaza; no se intenta.
+    const demo = document.cookie.split("; ").includes(`${COOKIE_DEMO}=1`);
+    if (demo || (razonSocial.trim().length < 3 && numDoc.replace(/\D/g, "").length < 8)) {
       setCoincidencias([]);
       return;
     }

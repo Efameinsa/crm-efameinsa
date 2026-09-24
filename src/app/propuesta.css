@@ -626,6 +626,19 @@ html:has(.propuesta) {
   max-width: min(34rem, calc(100% - 2rem));
 }
 
+/* «Pasar contacto a Central» en la cabecera: píldora con borde, como los demás botones de arriba. */
+.propuesta .pasar-a-central > button {
+  border-radius: 0.6rem;
+  height: 2rem;
+  padding: 0 0.8rem;
+  font-weight: 600;
+  border-color: color-mix(in srgb, var(--c-verde) 45%, var(--border));
+  color: var(--verde-texto);
+}
+.propuesta .pasar-a-central > button:hover {
+  background: color-mix(in srgb, var(--c-verde) 10%, transparent);
+}
+
 /* Barras de desplazamiento finas. */
 .propuesta ::-webkit-scrollbar {
   width: 10px;

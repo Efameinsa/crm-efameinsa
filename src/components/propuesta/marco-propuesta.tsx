@@ -4,6 +4,8 @@ import "@/app/propuesta.css";
 import { BarraPropuesta } from "@/components/propuesta/barra-propuesta";
 import { BarraProgreso } from "@/components/propuesta/barra-progreso";
 import { GuardaDemo } from "@/components/propuesta/guarda-demo";
+import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
+import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { SelectorFechaHora } from "@/components/propuesta/selector-fecha-hora";
 import { TemaEnElCuerpo } from "@/components/propuesta/tema-en-el-cuerpo";
 import Link from "next/link";
@@ -52,6 +54,13 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
   const buscar = BUSCAR_EN[tipo];
   // Claro u oscuro, elegido desde la cabecera; la cookie la pone /demo/vista.
   const oscuro = (await cookies()).get(COOKIE_TEMA)?.value === "oscuro";
+  // «PASAR CONTACTO A CENTRAL» (24-09). Santos: «¿de qué manera un comercial
+  // puede derivar a central un contacto? No veo ese formulario». En el CRM de
+  // siempre vive en la cabecera de «Mi día» (comercial) y del día de postventa,
+  // pantallas que la propuesta reemplazó por «Hoy»: sin esto, el botón se
+  // perdía. Queda en la cabecera, a la vista en cualquier sección.
+  const pasaContactos = tipo === "comercial" || tipo === "preventivo" || tipo === "postventa";
+  const campanias = pasaContactos ? await campaniasWhatsappActivas() : [];
   return (
     <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
       <BarraProgreso />
@@ -80,6 +89,11 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
               <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
               {NUEVO[tipo].etiqueta}
             </Link>
+          )}
+          {pasaContactos && (
+            <span className="pasar-a-central">
+              <PasarContactoCentral contexto={tipo === "postventa" ? "postventa" : "comercial"} campaniasWhatsapp={campanias} />
+            </span>
           )}
           <span className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground" title="Avisos">
             <Bell className="size-4" />
