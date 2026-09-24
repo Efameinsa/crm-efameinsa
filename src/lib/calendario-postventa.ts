@@ -44,17 +44,21 @@ export interface EventoCalendario {
 /**
  * El color de cada tipo. Son clases completas y no interpoladas porque
  * Tailwind no ve las clases que se arman con plantillas.
+ *
+ * Con variante oscura (24-09, Santos: «en la agenda al verlo como calendario
+ * no se ven los nombres»): el fondo pastel fijo quedaba claro bajo la letra
+ * clara del modo oscuro. En oscuro el fondo es el mismo tono, translúcido.
  */
 export const COLOR_EVENTO: Record<string, string> = {
-  despacho: "border-l-[#7E1210] bg-[#7E1210]/5",
-  puesta_en_marcha: "border-l-emerald-600 bg-emerald-50",
-  mantenimiento: "border-l-sky-600 bg-sky-50",
-  garantia: "border-l-amber-500 bg-amber-50",
-  repuesto: "border-l-violet-600 bg-violet-50",
-  caso: "border-l-slate-500 bg-slate-50",
-  tarea: "border-l-neutral-400 bg-neutral-50",
-  atencion_tecnica: "border-l-orange-600 bg-orange-50",
-  visita_planta: "border-l-teal-600 bg-teal-50",
+  despacho: "border-l-[#7E1210] bg-[#7E1210]/5 dark:border-l-rose-400 dark:bg-rose-500/15",
+  puesta_en_marcha: "border-l-emerald-600 bg-emerald-50 dark:border-l-emerald-400 dark:bg-emerald-500/15",
+  mantenimiento: "border-l-sky-600 bg-sky-50 dark:border-l-sky-400 dark:bg-sky-500/15",
+  garantia: "border-l-amber-500 bg-amber-50 dark:border-l-amber-400 dark:bg-amber-500/15",
+  repuesto: "border-l-violet-600 bg-violet-50 dark:border-l-violet-400 dark:bg-violet-500/15",
+  caso: "border-l-slate-500 bg-slate-50 dark:border-l-slate-400 dark:bg-slate-400/15",
+  tarea: "border-l-neutral-400 bg-neutral-50 dark:border-l-neutral-400 dark:bg-neutral-400/12",
+  atencion_tecnica: "border-l-orange-600 bg-orange-50 dark:border-l-orange-400 dark:bg-orange-500/15",
+  visita_planta: "border-l-teal-600 bg-teal-50 dark:border-l-teal-400 dark:bg-teal-500/15",
 };
 
 export const ETIQUETA_EVENTO: Record<string, string> = {

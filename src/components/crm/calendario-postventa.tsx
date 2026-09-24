@@ -150,8 +150,8 @@ export function CalendarioPostventa({
 
       {/* Arriba y no al final: sin fecha, un compromiso desaparece. */}
       {porProgramar.length > 0 && (
-        <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50/60 p-2.5">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-amber-800">
+        <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50/60 p-2.5 dark:border-amber-500/40 dark:bg-amber-500/10">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300">
             <CalendarClock className="size-3.5" />
             Por programar ({porProgramar.length})
           </p>
@@ -160,7 +160,7 @@ export function CalendarioPostventa({
               <Link
                 key={p.id}
                 href={`/postventa/pedidos/${p.id}`}
-                className="max-w-[240px] truncate rounded-md border border-amber-300 bg-background px-2 py-1 text-xs text-foreground hover:bg-accent"
+                className="max-w-[240px] truncate rounded-md border border-amber-300 bg-background px-2 py-1 text-xs text-foreground hover:bg-accent dark:border-amber-500/40"
                 title={[p.cliente, p.equipo, p.nota].filter(Boolean).join(" · ")}
               >
                 {p.cliente}
@@ -169,7 +169,7 @@ export function CalendarioPostventa({
             {porProgramar.length > 12 && (
               <Link
                 href="/postventa/control?vista=despachos&estado=sin_fecha"
-                className="rounded-md px-2 py-1 text-xs font-medium text-amber-900 underline"
+                className="rounded-md px-2 py-1 text-xs font-medium text-amber-900 underline dark:text-amber-300"
               >
                 y {porProgramar.length - 12} más
               </Link>

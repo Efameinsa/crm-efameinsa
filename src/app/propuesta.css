@@ -126,6 +126,151 @@ html:has(.propuesta) {
   color-scheme: dark;
 }
 
+/* LOS PASTEL DE LAS PANTALLAS DE SIEMPRE, EN OSCURO (24-09). Santos: «en la
+   agenda al verlo como calendario no se ven los nombres». Muchas pantallas
+   pintan fondos fijos muy claros (bg-sky-50, bg-amber-100…) con letra oscura
+   (text-amber-900…); en el tema oscuro el texto pasa a claro y quedaba claro
+   sobre claro. Acá, solo en el oscuro de la propuesta, cada pastel se vuelve
+   un tinte oscuro de su tono y cada texto oscuro de color, su versión clara. */
+.propuesta[data-tema="oscuro"] {
+  --color-slate-50: color-mix(in srgb, var(--color-slate-500) 10%, var(--card));
+  --color-slate-100: color-mix(in srgb, var(--color-slate-500) 16%, var(--card));
+  --color-slate-200: color-mix(in srgb, var(--color-slate-500) 28%, var(--card));
+  --color-slate-700: var(--color-slate-300);
+  --color-slate-800: var(--color-slate-300);
+  --color-slate-900: var(--color-slate-300);
+  --color-gray-50: color-mix(in srgb, var(--color-gray-500) 10%, var(--card));
+  --color-gray-100: color-mix(in srgb, var(--color-gray-500) 16%, var(--card));
+  --color-gray-200: color-mix(in srgb, var(--color-gray-500) 28%, var(--card));
+  --color-gray-700: var(--color-gray-300);
+  --color-gray-800: var(--color-gray-300);
+  --color-gray-900: var(--color-gray-300);
+  --color-zinc-50: color-mix(in srgb, var(--color-zinc-500) 10%, var(--card));
+  --color-zinc-100: color-mix(in srgb, var(--color-zinc-500) 16%, var(--card));
+  --color-zinc-200: color-mix(in srgb, var(--color-zinc-500) 28%, var(--card));
+  --color-zinc-700: var(--color-zinc-300);
+  --color-zinc-800: var(--color-zinc-300);
+  --color-zinc-900: var(--color-zinc-300);
+  --color-neutral-50: color-mix(in srgb, var(--color-neutral-500) 10%, var(--card));
+  --color-neutral-100: color-mix(in srgb, var(--color-neutral-500) 16%, var(--card));
+  --color-neutral-200: color-mix(in srgb, var(--color-neutral-500) 28%, var(--card));
+  --color-neutral-700: var(--color-neutral-300);
+  --color-neutral-800: var(--color-neutral-300);
+  --color-neutral-900: var(--color-neutral-300);
+  --color-stone-50: color-mix(in srgb, var(--color-stone-500) 10%, var(--card));
+  --color-stone-100: color-mix(in srgb, var(--color-stone-500) 16%, var(--card));
+  --color-stone-200: color-mix(in srgb, var(--color-stone-500) 28%, var(--card));
+  --color-stone-700: var(--color-stone-300);
+  --color-stone-800: var(--color-stone-300);
+  --color-stone-900: var(--color-stone-300);
+  --color-red-50: color-mix(in srgb, var(--color-red-500) 10%, var(--card));
+  --color-red-100: color-mix(in srgb, var(--color-red-500) 16%, var(--card));
+  --color-red-200: color-mix(in srgb, var(--color-red-500) 28%, var(--card));
+  --color-red-700: var(--color-red-300);
+  --color-red-800: var(--color-red-300);
+  --color-red-900: var(--color-red-300);
+  --color-orange-50: color-mix(in srgb, var(--color-orange-500) 10%, var(--card));
+  --color-orange-100: color-mix(in srgb, var(--color-orange-500) 16%, var(--card));
+  --color-orange-200: color-mix(in srgb, var(--color-orange-500) 28%, var(--card));
+  --color-orange-700: var(--color-orange-300);
+  --color-orange-800: var(--color-orange-300);
+  --color-orange-900: var(--color-orange-300);
+  --color-amber-50: color-mix(in srgb, var(--c-naranja) 10%, var(--card));
+  --color-amber-100: color-mix(in srgb, var(--c-naranja) 16%, var(--card));
+  --color-amber-200: color-mix(in srgb, var(--c-naranja) 28%, var(--card));
+  --color-amber-700: #fdba74;
+  --color-amber-800: #fdba74;
+  --color-amber-900: #fdba74;
+  --color-yellow-50: color-mix(in srgb, var(--color-yellow-500) 10%, var(--card));
+  --color-yellow-100: color-mix(in srgb, var(--color-yellow-500) 16%, var(--card));
+  --color-yellow-200: color-mix(in srgb, var(--color-yellow-500) 28%, var(--card));
+  --color-yellow-700: var(--color-yellow-300);
+  --color-yellow-800: var(--color-yellow-300);
+  --color-yellow-900: var(--color-yellow-300);
+  --color-lime-50: color-mix(in srgb, var(--color-lime-500) 10%, var(--card));
+  --color-lime-100: color-mix(in srgb, var(--color-lime-500) 16%, var(--card));
+  --color-lime-200: color-mix(in srgb, var(--color-lime-500) 28%, var(--card));
+  --color-lime-700: var(--color-lime-300);
+  --color-lime-800: var(--color-lime-300);
+  --color-lime-900: var(--color-lime-300);
+  --color-green-50: color-mix(in srgb, var(--color-green-500) 10%, var(--card));
+  --color-green-100: color-mix(in srgb, var(--color-green-500) 16%, var(--card));
+  --color-green-200: color-mix(in srgb, var(--color-green-500) 28%, var(--card));
+  --color-green-700: var(--color-green-300);
+  --color-green-800: var(--color-green-300);
+  --color-green-900: var(--color-green-300);
+  --color-emerald-50: color-mix(in srgb, var(--color-emerald-500) 10%, var(--card));
+  --color-emerald-100: color-mix(in srgb, var(--color-emerald-500) 16%, var(--card));
+  --color-emerald-200: color-mix(in srgb, var(--color-emerald-500) 28%, var(--card));
+  --color-emerald-700: var(--color-emerald-300);
+  --color-emerald-800: var(--color-emerald-300);
+  --color-emerald-900: var(--color-emerald-300);
+  --color-teal-50: color-mix(in srgb, var(--color-teal-500) 10%, var(--card));
+  --color-teal-100: color-mix(in srgb, var(--color-teal-500) 16%, var(--card));
+  --color-teal-200: color-mix(in srgb, var(--color-teal-500) 28%, var(--card));
+  --color-teal-700: var(--color-teal-300);
+  --color-teal-800: var(--color-teal-300);
+  --color-teal-900: var(--color-teal-300);
+  --color-cyan-50: color-mix(in srgb, var(--color-cyan-500) 10%, var(--card));
+  --color-cyan-100: color-mix(in srgb, var(--color-cyan-500) 16%, var(--card));
+  --color-cyan-200: color-mix(in srgb, var(--color-cyan-500) 28%, var(--card));
+  --color-cyan-700: var(--color-cyan-300);
+  --color-cyan-800: var(--color-cyan-300);
+  --color-cyan-900: var(--color-cyan-300);
+  --color-sky-50: color-mix(in srgb, var(--color-sky-500) 10%, var(--card));
+  --color-sky-100: color-mix(in srgb, var(--color-sky-500) 16%, var(--card));
+  --color-sky-200: color-mix(in srgb, var(--color-sky-500) 28%, var(--card));
+  --color-sky-700: var(--color-sky-300);
+  --color-sky-800: var(--color-sky-300);
+  --color-sky-900: var(--color-sky-300);
+  --color-blue-50: color-mix(in srgb, var(--color-blue-500) 10%, var(--card));
+  --color-blue-100: color-mix(in srgb, var(--color-blue-500) 16%, var(--card));
+  --color-blue-200: color-mix(in srgb, var(--color-blue-500) 28%, var(--card));
+  --color-blue-700: var(--color-blue-300);
+  --color-blue-800: var(--color-blue-300);
+  --color-blue-900: var(--color-blue-300);
+  --color-indigo-50: color-mix(in srgb, var(--color-indigo-500) 10%, var(--card));
+  --color-indigo-100: color-mix(in srgb, var(--color-indigo-500) 16%, var(--card));
+  --color-indigo-200: color-mix(in srgb, var(--color-indigo-500) 28%, var(--card));
+  --color-indigo-700: var(--color-indigo-300);
+  --color-indigo-800: var(--color-indigo-300);
+  --color-indigo-900: var(--color-indigo-300);
+  --color-violet-50: color-mix(in srgb, var(--color-violet-500) 10%, var(--card));
+  --color-violet-100: color-mix(in srgb, var(--color-violet-500) 16%, var(--card));
+  --color-violet-200: color-mix(in srgb, var(--color-violet-500) 28%, var(--card));
+  --color-violet-700: var(--color-violet-300);
+  --color-violet-800: var(--color-violet-300);
+  --color-violet-900: var(--color-violet-300);
+  --color-purple-50: color-mix(in srgb, var(--color-purple-500) 10%, var(--card));
+  --color-purple-100: color-mix(in srgb, var(--color-purple-500) 16%, var(--card));
+  --color-purple-200: color-mix(in srgb, var(--color-purple-500) 28%, var(--card));
+  --color-purple-700: var(--color-purple-300);
+  --color-purple-800: var(--color-purple-300);
+  --color-purple-900: var(--color-purple-300);
+  --color-fuchsia-50: color-mix(in srgb, var(--color-fuchsia-500) 10%, var(--card));
+  --color-fuchsia-100: color-mix(in srgb, var(--color-fuchsia-500) 16%, var(--card));
+  --color-fuchsia-200: color-mix(in srgb, var(--color-fuchsia-500) 28%, var(--card));
+  --color-fuchsia-700: var(--color-fuchsia-300);
+  --color-fuchsia-800: var(--color-fuchsia-300);
+  --color-fuchsia-900: var(--color-fuchsia-300);
+  --color-pink-50: color-mix(in srgb, var(--color-pink-500) 10%, var(--card));
+  --color-pink-100: color-mix(in srgb, var(--color-pink-500) 16%, var(--card));
+  --color-pink-200: color-mix(in srgb, var(--color-pink-500) 28%, var(--card));
+  --color-pink-700: var(--color-pink-300);
+  --color-pink-800: var(--color-pink-300);
+  --color-pink-900: var(--color-pink-300);
+  --color-rose-50: color-mix(in srgb, var(--color-rose-500) 10%, var(--card));
+  --color-rose-100: color-mix(in srgb, var(--color-rose-500) 16%, var(--card));
+  --color-rose-200: color-mix(in srgb, var(--color-rose-500) 28%, var(--card));
+  --color-rose-700: var(--color-rose-300);
+  --color-rose-800: var(--color-rose-300);
+  --color-rose-900: var(--color-rose-300);
+}
+.propuesta[data-tema="oscuro"] .bg-white { background-color: var(--card); }
+.propuesta[data-tema="oscuro"] .text-black { color: var(--foreground); }
+.propuesta[data-tema="oscuro"] .bg-\[\#7E1210\]\/5 { background-color: color-mix(in srgb, var(--c-rosa) 14%, transparent); }
+.propuesta[data-tema="oscuro"] .border-l-\[\#7E1210\] { border-left-color: var(--c-rosa); }
+
 /* El verde de la casa (#1E7F4F) escrito a mano en las pantallas de siempre:
    pasa al verde de la propuesta. */
 .propuesta .text-\[\#1E7F4F\] { color: var(--verde-texto); }
@@ -143,6 +288,20 @@ html:has(.propuesta) {
 .propuesta .text-\[\#7E1210\] { color: var(--primary); }
 .propuesta .bg-\[\#7E1210\] { background-color: var(--primary); }
 .propuesta .border-\[\#7E1210\] { border-color: var(--primary); }
+.propuesta .border-l-\[\#7E1210\] { border-left-color: var(--c-rosa); }
+.propuesta .bg-\[\#7E1210\]\/5 { background-color: color-mix(in srgb, var(--c-rosa) 7%, transparent); }
+
+/* Los pastel escritos a mano (agenda del comercial y otras): se mezclan con
+   la tarjeta, así sirven igual en claro y en oscuro (24-09, «no se ven los
+   nombres»). Próxima acción en celeste; tarea personal en violeta. */
+.propuesta .bg-\[\#f7eded\] { background-color: color-mix(in srgb, var(--c-celeste) 12%, var(--card)); }
+.propuesta .bg-\[\#eef3f8\] { background-color: color-mix(in srgb, var(--c-violeta) 12%, var(--card)); }
+.propuesta .bg-\[\#faf9f8\] { background-color: color-mix(in srgb, var(--muted) 55%, var(--card)); }
+.propuesta .bg-\[\#2C5F8A\] { background-color: var(--c-violeta); }
+.propuesta .border-\[\#2C5F8A\] { border-color: var(--c-violeta); }
+.propuesta .text-\[\#2C5F8A\] { color: var(--violeta-texto); }
+.propuesta { --violeta-texto: #6d28d9; }
+.propuesta[data-tema="oscuro"] { --violeta-texto: #c4b5fd; }
 
 /* Títulos marcados y apretados, un escalón más chicos. */
 .propuesta h1,
