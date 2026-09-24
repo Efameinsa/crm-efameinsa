@@ -32,6 +32,9 @@ export type TipoNotificacion =
   | "almacen"
   // Finanzas confirma sus propios pagos (0279, gerencia 23-09).
   | "finanzas"
+  // Central le pide a Finanzas apurar un pedido (0298, 24-09): la misma
+  // sirena de «urgencia», con otro destino y otro texto en pantalla.
+  | "urgencia_finanzas"
   // Lo que ya existía sin tipo propio: la anulación (0237) y la visita (0238).
   | "cierre_anulado"
   | "visita_planta"
@@ -169,7 +172,14 @@ export async function notificarAlmacen(datos: { titulo: string; cuerpo?: string;
  * 23-09). Le suena cuando Central libera un pedido y cuando Central le deriva
  * algo, que antes le llegaba solo por WhatsApp y correo.
  */
-export async function notificarFinanzas(datos: { titulo: string; cuerpo?: string; url?: string; esPrueba?: boolean }): Promise<void> {
+export async function notificarFinanzas(datos: {
+  titulo: string;
+  cuerpo?: string;
+  url?: string;
+  esPrueba?: boolean;
+  /** «urgencia_finanzas» (0298) es la sirena de Central: no se cierra sola y suena la campanada. */
+  tipo?: "finanzas" | "urgencia_finanzas";
+}): Promise<void> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("perfiles")
@@ -180,7 +190,7 @@ export async function notificarFinanzas(datos: { titulo: string; cuerpo?: string
     // Las cuentas _test de la propuesta miran, no reciben avisos (23-09).
     .is("espejo_de", null);
   await Promise.all(
-    (data ?? []).map((p) => notificar({ userId: p.id, tipo: "finanzas", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
+    (data ?? []).map((p) => notificar({ userId: p.id, tipo: datos.tipo ?? "finanzas", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
   );
 }
 

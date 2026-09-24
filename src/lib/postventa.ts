@@ -68,6 +68,10 @@ export interface ServicioPostventa {
   pago_observado_motivo?: string | null;
   /** Cuándo postventa le pidió a Finanzas confirmar el abono (0295). */
   pago_solicitado_at?: string | null;
+  /** La sirena de Central a Finanzas (0298): último aviso, su motivo y cuántos lleva. */
+  urgencia_finanzas_at?: string | null;
+  urgencia_finanzas_motivo?: string | null;
+  urgencia_finanzas_n?: number | null;
   pago_confirmado_captura?: string | null;
   /** La apertura de despacho: el documento con el que almacén despacha (0150). */
   apertura_despacho_at?: string | null;
