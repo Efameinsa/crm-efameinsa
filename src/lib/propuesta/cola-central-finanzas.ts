@@ -287,7 +287,7 @@ export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[];
 
   for (const c of cierres) {
     const base = `Cierre ${c.serie === "OPEN" ? "Open" : "Efameinsa"} ${c.codigo}`;
-    const href = "/central/cierres";
+    const href = `/central/cierres#c-${c.informeId}`;
     if (c.paso === "pedir_series") {
       tareas.push({ id: `cs-${c.informeId}`, urgencia: c.urgente ? "atrasado" : urgenciaPorEdad(c.desde, hoy), tipo: "serie", cliente: c.cliente, que: `Pedir las series · ${base}`, porque: `Se emitió ${dias(c.desde, hoy)}; sin series no sale el pedido.${c.urgente ? " Es urgente." : ""}`, accion: { etiqueta: "Pedir series", href } });
     } else if (c.paso === "generar") {

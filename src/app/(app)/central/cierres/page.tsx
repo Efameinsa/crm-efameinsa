@@ -346,7 +346,10 @@ export default async function CierresCentralPage({
             return (
               <article
                 key={f.id}
+                // Para llegar directo a un cierre desde «Hoy» o «Pedidos» (propuesta v2).
+                id={`c-${f.id}`}
                 className={cn(
+                  "scroll-mt-4 target:ring-2 target:ring-primary",
                   "rounded-lg border p-3",
                   estaAnulado
                     ? "border-dashed border-border bg-secondary/30"

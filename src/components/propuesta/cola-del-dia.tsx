@@ -81,7 +81,7 @@ export function ColaDelDia({
               {saludo}, {/^(postventa|almac[eé]n|central|finanzas)/i.test(nombre) ? nombre : nombre.split(" ")[0]}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {tareas.length === 0 ? "No hay nada pendiente. Buen momento para adelantar la semana." : `Tienes ${tareas.length} cosas por hacer. Empieza por arriba.`}
+              {tareas.length === 0 ? "No hay nada pendiente. Buen momento para adelantar la semana." : tareas.length === 1 ? "Tienes 1 cosa por hacer." : `Tienes ${tareas.length} cosas por hacer. Empieza por arriba.`}
             </p>
           </div>
           {enNumeros && (

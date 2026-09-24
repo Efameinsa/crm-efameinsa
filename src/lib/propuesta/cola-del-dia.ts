@@ -83,12 +83,20 @@ async function colaPostventa(supabase: Cliente) {
   const tareas: Tarea[] = [];
   const agenda: EventoAgenda[] = [];
   const vivos = ((pedidos ?? []) as unknown as ServicioPostventa[]).filter((s) => !s.informe_cierre_id || s.pedido_ejecutado_at);
+  let viejosDelExcel = 0;
 
   for (const s of vivos) {
     const cliente = sinRuc(s.cliente_texto);
     const equipo = primeraLinea(s.equipo) || "Pedido";
     if (s.informe_cierre_id && !s.aprobado_at) {
       tareas.push({ id: `apr-${s.id}`, urgencia: "hoy", tipo: "pedido", cliente, que: `Aprobar el pedido · ${equipo}`, porque: "Central ya lo lanzó y el área todavía no lo tomó.", accion: { etiqueta: "Aprobar", href: `/postventa/pedidos/${s.id}` } });
+    }
+    // Lo que vino del Excel con una fecha vencida hace más de 45 días casi
+    // siempre ya salió y nadie lo marcó: no se mezcla con lo atrasado de
+    // verdad; va junto, en una sola tarea de limpieza (abajo).
+    if (s.fecha_despacho && !s.despachado_at && s.fecha_despacho < hoy && !s.informe_cierre_id && diasEntre(s.fecha_despacho, hoy) > 45) {
+      viejosDelExcel++;
+      continue;
     }
     if (s.fecha_despacho && !s.despachado_at && s.fecha_despacho < hoy) {
       tareas.push({ id: `atr-${s.id}`, urgencia: "atrasado", tipo: "despacho", cliente, que: `Despacho atrasado · ${equipo}`, porque: `Tenía fecha el ${s.fecha_despacho.split("-").reverse().join("/")} y no salió (${diasEntre(s.fecha_despacho, hoy)} días).`, accion: { etiqueta: "Reprogramar", href: `/postventa/pedidos/${s.id}` } });
@@ -109,6 +117,17 @@ async function colaPostventa(supabase: Cliente) {
     if (s.fecha_despacho === hoy && !s.despachado_at) {
       agenda.push({ id: `desp-${s.id}`, hora: s.despacho_hora ? String(s.despacho_hora).slice(0, 5) : "—", titulo: `Despacho · ${cliente}`, detalle: equipo, href: `/postventa/pedidos/${s.id}` });
     }
+  }
+  if (viejosDelExcel > 0) {
+    tareas.push({
+      id: "viejos-excel",
+      urgencia: "semana",
+      tipo: "despacho",
+      cliente: `${viejosDelExcel} pedidos del Excel`,
+      que: "Fecha de despacho vencida hace más de 45 días",
+      porque: "Casi siempre ya salieron y nadie los marcó. Confírmelos en bloque para que no tapen lo atrasado de verdad.",
+      accion: { etiqueta: "Revisar", href: "/postventa/control?vista=despachos" },
+    });
   }
 
   for (const a of (aperturas ?? []) as unknown as {
@@ -140,9 +159,28 @@ async function colaPostventa(supabase: Cliente) {
     }
   }
 
+  // Los seguimientos que vencieron hace más de un mes ya no son «para hoy»:
+  // van juntos en una tarea para reprogramarlos o cerrarlos, y no tapan lo
+  // que sí está atrasado esta semana.
+  let casosViejos = 0;
   for (const c of (casos ?? []) as unknown as { id: string; proxima_accion: string | null; proxima_accion_at: string; cuentas: { razon_social: string } | null }[]) {
     const atrasado = c.proxima_accion_at < hoy;
+    if (atrasado && diasEntre(c.proxima_accion_at.slice(0, 10), hoy) > 30) {
+      casosViejos++;
+      continue;
+    }
     tareas.push({ id: `cs-${c.id}`, urgencia: atrasado ? "atrasado" : "hoy", tipo: "caso", cliente: sinRuc(c.cuentas?.razon_social), que: c.proxima_accion || "Seguimiento del caso", porque: atrasado ? `Quedó para el ${c.proxima_accion_at.split("-").reverse().join("/")}.` : "Quedó para hoy.", accion: { etiqueta: "Abrir", href: `/comercial/oportunidades/${c.id}` } });
+  }
+  if (casosViejos > 0) {
+    tareas.push({
+      id: "casos-viejos",
+      urgencia: "semana",
+      tipo: "caso",
+      cliente: `${casosViejos} seguimientos`,
+      que: "Vencidos hace más de un mes",
+      porque: "Ya no son para hoy: reprográmelos con una fecha real o ciérrelos, para que la lista diga la verdad.",
+      accion: { etiqueta: "Revisarlos", href: "/postventa/casos" },
+    });
   }
 
   for (const v of (visitas ?? []) as { id: string; empresa: string; persona: string; motivo: string; hora: string | null }[]) {

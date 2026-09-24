@@ -131,7 +131,7 @@ export default async function CentralPedidos({ searchParams, base }: PropsVista)
                     key={c.informeId}
                     f={{
                       titulo: c.cliente,
-                      href: "/central/cierres",
+                      href: `/central/cierres#c-${c.informeId}`,
                       sub: c.rechazo ? `Usted la devolvió ${haceCuanto(c.rechazo.at)}: «${c.rechazo.motivo}»` : detalle,
                       estado: c.urgente ? { texto: "Urgente", tono: "urgente" } : c.ejecutadoSinLiquidacion ? { texto: "Ya ejecutado con código", tono: "info" } : null,
                       dato: (
@@ -145,7 +145,7 @@ export default async function CentralPedidos({ searchParams, base }: PropsVista)
                       espera: esDeCentral ? null : `Esperando ${def.quien === "Almacén" ? "al almacén" : "a Finanzas"}${c.rechazo ? " (la corregida)" : ""}`,
                       edad: `En este paso ${haceCuanto(c.desde)}`,
                       edadTono: esDeCentral && d >= 3 ? "urgente" : d >= 1 ? "atencion" : "neutro",
-                      accion: esDeCentral ? { etiqueta: def.accion, href: "/central/cierres" } : null,
+                      accion: esDeCentral ? { etiqueta: def.accion, href: `/central/cierres#c-${c.informeId}` } : null,
                       tono,
                     }}
                   />
