@@ -84,8 +84,8 @@ async function HoyGerencia() {
 
   return (
     <div className="space-y-6">
-      <div className={cn("bg-gradient-to-r from-primary/[0.06] via-white to-white p-5", TARJETA)}>
-        <h1 className="text-2xl font-bold text-foreground">Lo que espera a gerencia</h1>
+      <div className={cn("propuesta-hero p-5", TARJETA)}>
+        <h1 className="text-[22px] font-bold text-foreground">Lo que espera a gerencia</h1>
         <p className="text-sm text-muted-foreground">Cada número abre su lista. Si todo está en cero, no hay nada que decidir hoy.</p>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">

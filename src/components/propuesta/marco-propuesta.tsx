@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { Bell, Moon, Plus, Search, Sparkles, Sun } from "lucide-react";
 import "@/app/propuesta.css";
 import { BarraPropuesta } from "@/components/propuesta/barra-propuesta";
+import { BarraProgreso } from "@/components/propuesta/barra-progreso";
 import { cn } from "@/lib/utils";
 
 // La letra de la marca (Archivo) va alojada en public/fonts y declarada en
@@ -45,10 +46,11 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
   const oscuro = (await cookies()).get(COOKIE_TEMA)?.value === "oscuro";
   return (
     <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
+      <BarraProgreso />
       <BarraPropuesta opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} verComo={tipo === "operaciones" ? VER_COMO : undefined} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-card/85 px-6 py-3 backdrop-blur">
-          <form action={buscar.href} method="get" className="flex min-w-64 max-w-xl flex-1 items-center gap-2 rounded-xl border border-border bg-secondary/60 px-3 py-2 transition-colors focus-within:border-primary/40 focus-within:bg-card">
+        <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-card/80 px-6 py-2.5 backdrop-blur-md">
+          <form action={buscar.href} method="get" className="flex min-w-64 max-w-xl flex-1 items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 transition-all duration-200 focus-within:border-[var(--c-celeste)] focus-within:bg-card focus-within:ring-4 focus-within:ring-[var(--c-celeste)]/15">
             <Search className="size-4 text-muted-foreground" />
             <input
               id="buscar-global"
@@ -63,31 +65,31 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
             type="button"
             disabled
             title="En la propuesta no se crea nada"
-            className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground opacity-70 shadow-sm"
+            className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground opacity-70"
           >
             <Plus className="size-4" />
             {NUEVO[tipo]}
           </button>
-          <span className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground" title="Avisos">
+          <span className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground" title="Avisos">
             <Bell className="size-4" />
           </span>
           <a
             href={`/demo/vista?tema=${oscuro ? "claro" : "oscuro"}`}
-            className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground"
+            className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:border-[var(--c-naranja)] hover:text-[var(--c-naranja)]"
             title={oscuro ? "Ver en claro" : "Ver en oscuro"}
           >
             {oscuro ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </a>
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-900 lg:inline-flex dark:bg-amber-500/15 dark:text-amber-300" title="Vista de la propuesta: se mira, no se guarda">
+            <span className="hidden items-center gap-1 rounded-full bg-[var(--c-verde)]/12 px-2.5 py-1 text-[11px] font-semibold text-[var(--verde-texto)] lg:inline-flex" title="Vista de la propuesta: se mira, no se guarda">
               <Sparkles className="size-3" /> Propuesta · solo lectura
             </span>
             <div className="flex items-center gap-2">
-              <span className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-[#8B1510] to-[#C0392B] text-xs font-bold text-white">
+              <span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--c-celeste)] to-[var(--c-verde)] text-[11px] font-bold text-white ring-2 ring-card">
                 {iniciales(perfil.nombre)}
               </span>
               <div className="hidden text-right leading-tight sm:block">
-                <p className="text-sm font-semibold text-foreground">{perfil.nombre.replace(/^Propuesta · /, "")}</p>
+                <p className="text-[13px] font-semibold text-foreground">{perfil.nombre.replace(/^Propuesta · /, "")}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {NOMBRE_PERFIL[tipo]}
                   {perfil.codigo_comercial ? ` · ${perfil.codigo_comercial}` : ""}

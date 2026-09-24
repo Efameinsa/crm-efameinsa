@@ -75,10 +75,10 @@ export function ColaDelDia({
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="min-w-0 space-y-4">
-        <div className={cn("flex flex-wrap items-end justify-between gap-3 bg-gradient-to-r from-primary/[0.06] via-white to-white p-5", TARJETA)}>
+        <div className={cn("flex flex-wrap items-end justify-between gap-3 propuesta-hero p-5", TARJETA)}>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{fecha}</p>
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="text-[22px] font-bold text-foreground">
               {saludo}, {/^(postventa|almac[eé]n|central|finanzas)/i.test(nombre) ? nombre : nombre.split(" ")[0]}
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -98,12 +98,12 @@ export function ColaDelDia({
             const IconoGrupo = g.clave === "atrasado" ? AlertTriangle : g.clave === "hoy" ? Sun : CalendarClock;
             const tinte = g.clave === "atrasado" && n > 0 ? "bg-destructive/10 text-destructive" : g.clave === "hoy" && n > 0 ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300" : "bg-secondary text-foreground/60";
             return (
-              <a key={g.clave} href={`#${g.clave}`} className={cn("flex items-center gap-3 p-4 transition-colors hover:border-primary/40", TARJETA)}>
-                <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", tinte)}>
-                  <IconoGrupo className="size-5" />
+              <a key={g.clave} href={`#${g.clave}`} className={cn("group/num levanta flex items-center gap-3 p-4 hover:border-[var(--c-celeste)]/50", TARJETA)}>
+                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover/num:scale-110", tinte)}>
+                  <IconoGrupo className="size-[18px]" />
                 </span>
                 <span>
-                  <p className={cn("text-[26px] font-bold leading-none tabular-nums", g.clave === "atrasado" && n > 0 ? "text-destructive" : "text-foreground")}>{n}</p>
+                  <p className={cn("text-[22px] font-bold leading-none tabular-nums", g.clave === "atrasado" && n > 0 ? "text-destructive" : "text-foreground")}>{n}</p>
                   <p className="mt-1 text-xs font-semibold text-foreground">{g.titulo}</p>
                 </span>
               </a>

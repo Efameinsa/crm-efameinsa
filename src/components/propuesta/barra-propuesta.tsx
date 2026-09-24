@@ -39,6 +39,34 @@ const ICONOS: Record<Icono, LucideIcon> = {
   listas: BookMarked,
 };
 
+/** El color de cada sección (v3, 24-09: celeste, verde, naranja; el granate queda en el logo). */
+const TONO: Record<Icono, string> = {
+  hoy: "var(--c-naranja)",
+  conversaciones: "var(--c-verde)",
+  seguimiento: "var(--c-celeste)",
+  pedidos: "var(--c-naranja)",
+  aperturas: "var(--c-verde)",
+  clientes: "var(--c-celeste)",
+  agenda: "var(--c-violeta)",
+  oportunidades: "var(--c-verde)",
+  ventas: "var(--c-celeste)",
+  numeros: "var(--c-naranja)",
+  atenciones: "var(--c-verde)",
+  vender: "var(--c-celeste)",
+  campana: "var(--c-naranja)",
+  informes: "var(--c-verde)",
+  cobranza: "var(--c-celeste)",
+  abonos: "var(--c-verde)",
+  catalogo: "var(--c-naranja)",
+  permisos: "var(--c-violeta)",
+  aprobaciones: "var(--c-verde)",
+  marketing: "var(--c-naranja)",
+  operacion: "var(--c-celeste)",
+  control: "var(--c-verde)",
+  usuarios: "var(--c-celeste)",
+  listas: "var(--c-naranja)",
+};
+
 function activa(opcion: OpcionMenu, ruta: string): boolean {
   if (opcion.href === "/nuevo") return ruta === "/nuevo";
   const base = opcion.href.split("?")[0];
@@ -46,10 +74,12 @@ function activa(opcion: OpcionMenu, ruta: string): boolean {
 }
 
 /**
- * LA BARRA LATERAL DE LA PROPUESTA (v2, 24-09; referencias de Santos: CRM
- * modernos claros, con la barra blanca). Una sola lista corta con «Hoy»
- * primero; la opción activa va en una píldora granate suave, con el icono en
- * granate. Abajo, cómo volver a la vista de siempre y cómo salir.
+ * LA BARRA LATERAL DE LA PROPUESTA (v3, 24-09). Una sola lista corta con
+ * «Hoy» primero. Cada sección con su color; el icono va suelto, sin cajita
+ * ni sombra (Santos: «los iconos del sidebar tienen un sombreado que no me
+ * gusta»). La activa se tiñe de su color y lleva una rayita a la izquierda
+ * (estilos en propuesta.css, `.nav-item`). Abajo, volver a la vista de
+ * siempre y salir.
  */
 export function BarraPropuesta({
   opciones,
@@ -62,14 +92,18 @@ export function BarraPropuesta({
 }) {
   const ruta = usePathname();
   return (
-    <aside className="flex w-[15.5rem] flex-none flex-col border-r border-border bg-card">
+    <aside className="sticky top-0 flex h-screen w-[14.5rem] flex-none flex-col border-r border-border bg-card">
       <div className="px-5 pb-3 pt-5">
-        <Image src="/logo-efameinsa-transparente.png" alt="Efameinsa" width={2345} height={381} className="h-7 w-auto dark:brightness-0 dark:invert" priority />
-        <span className="mt-3 inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+        {/* El logo, tal cual (en oscuro, sobre su placa blanca para no alterarlo). */}
+        <span className="inline-flex rounded-lg dark:bg-white dark:px-2 dark:py-1.5">
+          <Image src="/logo-efameinsa-transparente.png" alt="Efameinsa" width={2345} height={381} className="h-6 w-auto" priority />
+        </span>
+        <span className="mt-3 flex w-fit items-center gap-1.5 rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <span className="size-1.5 animate-pulse rounded-full bg-[var(--c-verde)]" />
           {perfil}
         </span>
       </div>
-      <nav className="flex flex-col gap-1 px-3 pt-2" aria-label="Menú">
+      <nav className="flex flex-col gap-0.5 overflow-y-auto px-3 pt-2" aria-label="Menú">
         {opciones.map((o) => {
           const Icono = ICONOS[o.icono];
           const es = activa(o, ruta);
@@ -78,19 +112,10 @@ export function BarraPropuesta({
               key={o.href + o.etiqueta}
               href={o.href}
               aria-current={es ? "page" : undefined}
-              className={cn(
-                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition-colors duration-150",
-                es ? "bg-primary/10 font-semibold text-primary" : "text-foreground/75 hover:bg-accent hover:text-foreground",
-              )}
+              style={{ "--tono": TONO[o.icono] } as React.CSSProperties}
+              className="nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px]"
             >
-              <span
-                className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-                  es ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground/60 group-hover:bg-card group-hover:text-foreground",
-                )}
-              >
-                <Icono className="size-4" />
-              </span>
+              <Icono className="size-[18px] shrink-0" strokeWidth={es ? 2.3 : 1.9} />
               {o.etiqueta}
             </Link>
           );
@@ -104,7 +129,7 @@ export function BarraPropuesta({
               key={v.href}
               href={v.href}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-accent",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-foreground/70 hover:bg-accent",
                 ruta.startsWith(v.href) && "bg-accent text-foreground",
               )}
             >
@@ -120,10 +145,10 @@ export function BarraPropuesta({
           sesión y /demo/vista?v=actual cambiaba la vista sin que nadie
           tocara nada. Van como <a> a secas (Next no precarga anclas). */}
       <div className="mt-auto space-y-1 border-t border-border p-3">
-        <a href="/demo/vista?v=actual" className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] text-foreground/70 hover:bg-accent hover:text-foreground">
+        <a href="/demo/vista?v=actual" className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
           <Eye className="size-4" /> Ver cómo es hoy
         </a>
-        <a href="/demo/salir" className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] text-foreground/70 hover:bg-accent hover:text-foreground">
+        <a href="/demo/salir" className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
           <LogOut className="size-4" /> Salir de la propuesta
         </a>
       </div>

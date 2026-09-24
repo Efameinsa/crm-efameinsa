@@ -1,12 +1,21 @@
 /*
- * EL TEMA DE LA PROPUESTA (24-09; Santos: «que sea moderno, con letras
- * modernas», con las referencias de CRM claros y uno oscuro).
+ * EL TEMA DE LA PROPUESTA (v3, 24-09).
+ *
+ * Santos, 24-09: «sigues usando los colores iniciales de la empresa, usa los
+ * otros colores más modernos tipo verde, celeste, naranja donde creas
+ * conveniente, y solo algunas partes como el logo deben quedarse tal cual»;
+ * «las letras me parecen un poco grandes»; «los iconos del sidebar tienen un
+ * sombreado que no me gusta»; «algunas animaciones bonitas».
  *
  * Vive SOLO dentro de `.propuesta`, el marco que envuelve las pantallas de
  * las cuentas de demostración. Redefine las mismas variables que usa todo el
  * CRM (colores, radios, tipografía), así también repinta las pantallas de
  * siempre que van por dentro de una sección, sin tocar el CRM oficial: las
  * cuentas reales nunca tienen esta clase.
+ *
+ * La paleta: celeste para lo que se toca (botones, enlaces, pestañas), verde
+ * para lo que está bien o terminado, naranja para lo que pide atención, rosa
+ * para lo urgente. El granate queda solo en el logo.
  */
 /* La letra de la marca, alojada en el propio CRM (funciona sin internet). */
 @font-face {
@@ -17,78 +26,125 @@
   src: url("/fonts/archivo-latin.woff2") format("woff2");
 }
 
+/* Letra un punto más chica: todo el CRM mide en rem, así que baja parejo
+   (texto, espacios y botones) sin tocar una sola pantalla. Solo cuando la
+   página tiene el marco de la propuesta. */
+html:has(.propuesta) {
+  font-size: 14.5px;
+}
+
 .propuesta {
   --font-sans: "Archivo Propuesta", "Segoe UI", Arial, sans-serif;
-  --radius: 0.9rem;
+  --radius: 0.8rem;
 
-  /* Neutros fríos y limpios; el granate sigue siendo el acento. */
-  --app-bg: #f3f4f7;
+  /* Los tres tonos de la propuesta (y un rosa para lo urgente). */
+  --c-celeste: #0ea5e9;
+  --c-verde: #10b981;
+  --c-naranja: #f97316;
+  --c-rosa: #f43f5e;
+  --c-violeta: #8b5cf6;
+
+  --app-bg: #f4f7fa;
   --background: #ffffff;
-  --foreground: #141821;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #141821;
+  --card-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #141821;
-  --primary: #8b1510;
+  --popover-foreground: #0f172a;
+  /* Celeste profundo: se lee bien con letra blanca (contraste AA). */
+  --primary: #0b7fa6;
   --primary-foreground: #ffffff;
-  --secondary: #eef0f4;
-  --secondary-foreground: #141821;
-  --muted: #eef0f4;
-  --muted-foreground: #6b7280;
-  --accent: #f4f5f8;
-  --accent-foreground: #141821;
-  --destructive: #c62828;
+  --secondary: #eef2f6;
+  --secondary-foreground: #0f172a;
+  --muted: #eef2f6;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #e11d48;
   --destructive-foreground: #ffffff;
-  --border: #e4e7ec;
-  --input: #dfe3e9;
-  --ring: #8b1510;
+  --border: #e2e8f0;
+  --input: #dbe2ea;
+  --ring: #0ea5e9;
   --sidebar: #ffffff;
-  --sidebar-foreground: #141821;
-  --sidebar-primary: #8b1510;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #0b7fa6;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4f5f8;
-  --sidebar-accent-foreground: #141821;
-  --sidebar-border: #e4e7ec;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+
+  /* «Atención» pasa de ámbar a naranja y «bien» a verde esmeralda, también en
+     las pantallas de siempre que van por dentro (Tailwind lee estas variables). */
+  --color-amber-50: #fff7ed;
+  --color-amber-100: #ffedd5;
+  --color-amber-200: #fed7aa;
+  --color-amber-300: #fdba74;
+  --color-amber-400: #fb923c;
+  --color-amber-500: #f97316;
+  --color-amber-600: #ea580c;
+  --color-amber-700: #c2410c;
+  --color-amber-800: #9a3412;
+  --color-amber-900: #7c2d12;
+  --verde-texto: #047857;
 
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.006em;
 }
 
-/* Modo oscuro (referencia CRML): negro azulado, tarjetas grafito, granate más vivo para contraste. */
+/* Modo oscuro: azul noche, tarjetas grafito, los tres tonos más luminosos. */
 .propuesta[data-tema="oscuro"] {
-  --app-bg: #0f1117;
-  --background: #171a22;
-  --foreground: #e7e9ef;
-  --card: #171a22;
-  --card-foreground: #e7e9ef;
-  --popover: #1d2029;
-  --popover-foreground: #e7e9ef;
-  --primary: #d64541;
-  --primary-foreground: #ffffff;
-  --secondary: #232733;
-  --secondary-foreground: #e7e9ef;
-  --muted: #232733;
-  --muted-foreground: #9aa1b1;
-  --accent: #232733;
+  --app-bg: #0b1017;
+  --background: #111821;
+  --foreground: #e6edf5;
+  --card: #111821;
+  --card-foreground: #e6edf5;
+  --popover: #17202b;
+  --popover-foreground: #e6edf5;
+  --primary: #38bdf8;
+  --primary-foreground: #06121c;
+  --secondary: #1b2531;
+  --secondary-foreground: #e6edf5;
+  --muted: #1b2531;
+  --muted-foreground: #94a3b8;
+  --accent: #1b2531;
   --accent-foreground: #ffffff;
-  --destructive: #ef5350;
-  --destructive-foreground: #ffffff;
-  --border: #2a2f3b;
-  --input: #2f3542;
-  --ring: #d64541;
-  --sidebar: #12141b;
-  --sidebar-foreground: #e7e9ef;
-  --sidebar-primary: #d64541;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1f2330;
+  --destructive: #fb7185;
+  --destructive-foreground: #1a0509;
+  --border: #243040;
+  --input: #2b394b;
+  --ring: #38bdf8;
+  --sidebar: #0e141c;
+  --sidebar-foreground: #e6edf5;
+  --sidebar-primary: #38bdf8;
+  --sidebar-primary-foreground: #06121c;
+  --sidebar-accent: #1b2531;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #2a2f3b;
+  --sidebar-border: #243040;
+  --verde-texto: #34d399;
   color-scheme: dark;
 }
 
-/* Títulos más marcados y apretados, como en los CRM de referencia. */
+/* El verde de la casa (#1E7F4F) escrito a mano en las pantallas de siempre:
+   pasa al verde de la propuesta. */
+.propuesta .text-\[\#1E7F4F\] { color: var(--verde-texto); }
+.propuesta .bg-\[\#1E7F4F\] { background-color: var(--c-verde); }
+.propuesta .bg-\[\#1E7F4F\]\/5 { background-color: color-mix(in srgb, var(--c-verde) 6%, transparent); }
+.propuesta .bg-\[\#1E7F4F\]\/10 { background-color: color-mix(in srgb, var(--c-verde) 12%, transparent); }
+.propuesta .bg-\[\#1E7F4F\]\/15 { background-color: color-mix(in srgb, var(--c-verde) 16%, transparent); }
+.propuesta .border-\[\#1E7F4F\] { border-color: var(--c-verde); }
+.propuesta .border-\[\#1E7F4F\]\/30,
+.propuesta .border-\[\#1E7F4F\]\/40,
+.propuesta .border-\[\#1E7F4F\]\/50 { border-color: color-mix(in srgb, var(--c-verde) 40%, transparent); }
+.propuesta .border-l-\[\#1E7F4F\] { border-left-color: var(--c-verde); }
+/* Y el granate escrito a mano, al celeste (el logo es una imagen: no cambia). */
+.propuesta .text-\[\#8B1510\],
+.propuesta .text-\[\#7E1210\] { color: var(--primary); }
+.propuesta .bg-\[\#7E1210\] { background-color: var(--primary); }
+.propuesta .border-\[\#7E1210\] { border-color: var(--primary); }
+
+/* Títulos marcados y apretados, un escalón más chicos. */
 .propuesta h1,
 .propuesta h2,
 .propuesta h3 {
@@ -101,7 +157,137 @@
   border-radius: calc(var(--radius) - 0.1rem);
 }
 .propuesta .shadow-sm {
-  box-shadow: 0 1px 2px rgba(20, 24, 33, 0.04), 0 10px 30px -18px rgba(20, 24, 33, 0.18);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -16px rgba(15, 23, 42, 0.16);
+}
+
+/* ── La barra lateral ───────────────────────────────────────────────────
+   Cada sección con su color, el icono sin cajita ni sombra. La activa: fondo
+   teñido de su color y una rayita a la izquierda que entra deslizando. */
+.propuesta .nav-item {
+  position: relative;
+  color: color-mix(in srgb, var(--foreground) 72%, transparent);
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+.propuesta .nav-item svg {
+  color: var(--tono);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.propuesta .nav-item:hover {
+  background: color-mix(in srgb, var(--tono) 8%, transparent);
+  color: var(--foreground);
+}
+.propuesta .nav-item:hover svg {
+  transform: scale(1.12) rotate(-4deg);
+}
+.propuesta .nav-item[aria-current="page"] {
+  background: color-mix(in srgb, var(--tono) 13%, transparent);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.propuesta .nav-item::before {
+  content: "";
+  position: absolute;
+  left: -0.75rem;
+  top: 50%;
+  height: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--tono);
+  transform: translateY(-50%);
+  transition: height 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.propuesta .nav-item[aria-current="page"]::before {
+  height: 60%;
+}
+
+/* ── La tarjeta de bienvenida: un degradé suave de celeste a verde ─────── */
+.propuesta .propuesta-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--c-verde) 16%, transparent) 0%, transparent 55%),
+    radial-gradient(90% 120% at 0% 100%, color-mix(in srgb, var(--c-celeste) 14%, transparent) 0%, transparent 60%),
+    var(--card);
+}
+.propuesta .propuesta-hero::after {
+  content: "";
+  position: absolute;
+  right: -2.5rem;
+  top: -2.5rem;
+  width: 9rem;
+  height: 9rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--c-naranja) 22%, transparent), transparent 70%);
+  animation: flotar 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Movimiento ─────────────────────────────────────────────────────────
+   Cada pantalla entra con un fundido corto hacia arriba y sus bloques en
+   cascada; las tarjetas que se tocan se levantan un poco. Nada dura más de
+   medio segundo: se nota, no estorba. */
+@keyframes entrada {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes flotar {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-10px, 8px); }
+}
+@keyframes brillo {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes avance {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(0.85); }
+}
+
+.propuesta main > * {
+  animation: entrada 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.propuesta main > * > * {
+  animation: entrada 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.propuesta main > * > :nth-child(2) { animation-delay: 0.04s; }
+.propuesta main > * > :nth-child(3) { animation-delay: 0.08s; }
+.propuesta main > * > :nth-child(4) { animation-delay: 0.12s; }
+.propuesta main > * > :nth-child(n + 5) { animation-delay: 0.16s; }
+
+.propuesta .levanta {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.propuesta .levanta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05), 0 16px 32px -18px rgba(15, 23, 42, 0.28);
+}
+
+/* La esqueleta de carga: bloques grises con un brillo que pasa. */
+.propuesta .esqueleto {
+  border-radius: 0.6rem;
+  background: linear-gradient(90deg, var(--secondary) 25%, color-mix(in srgb, var(--secondary) 40%, var(--card)) 50%, var(--secondary) 75%);
+  background-size: 200% 100%;
+  animation: brillo 1.4s linear infinite;
+}
+
+/* La barrita de progreso arriba, mientras llega la pantalla pedida. */
+.propuesta .barra-progreso {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 3px;
+  z-index: 60;
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--c-celeste), var(--c-verde), var(--c-naranja));
+  animation: avance 2.5s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .propuesta *,
+  .propuesta *::before,
+  .propuesta *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Barras de desplazamiento finas. */
