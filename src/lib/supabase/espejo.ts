@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { urlSupabaseServidor } from "@/lib/supabase/urls";
 import { createServerClient } from "@supabase/ssr";
 
 /**
@@ -24,7 +25,7 @@ const enCurso = new Map<string, Promise<Galleta[] | null>>();
 const espejos = new Map<string, { original: string; correo: string; vence: number }>();
 
 function admin() {
-  return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  return createSupabaseClient(urlSupabaseServidor(), process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
@@ -49,7 +50,7 @@ async function abrirSesion(correo: string): Promise<Galleta[] | null> {
   const { data, error } = await admin().auth.admin.generateLink({ type: "magiclink", email: correo });
   if (error || !data?.properties?.hashed_token) return null;
   const tarro = new Map<string, string>();
-  const temporal = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  const temporal = createServerClient(urlSupabaseServidor(), process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
       getAll: () => [...tarro].map(([name, value]) => ({ name, value })),
       setAll: (lista) => lista.forEach(({ name, value }) => tarro.set(name, value)),
