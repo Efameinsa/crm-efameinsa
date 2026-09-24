@@ -1,0 +1,109 @@
+/*
+ * EL TEMA DE LA PROPUESTA (24-09; Santos: «que sea moderno, con letras
+ * modernas», con las referencias de CRM claros y uno oscuro).
+ *
+ * Vive SOLO dentro de `.propuesta`, el marco que envuelve las pantallas de
+ * las cuentas de demostración. Redefine las mismas variables que usa todo el
+ * CRM (colores, radios, tipografía), así también repinta las pantallas de
+ * siempre que van por dentro de una sección, sin tocar el CRM oficial: las
+ * cuentas reales nunca tienen esta clase.
+ */
+.propuesta {
+  /* Tipografía de la marca (Archivo) cargada por next/font en marco-propuesta.tsx. */
+  --font-sans: var(--fuente-propuesta), "Segoe UI", Arial, sans-serif;
+  --radius: 0.9rem;
+
+  /* Neutros fríos y limpios; el granate sigue siendo el acento. */
+  --app-bg: #f3f4f7;
+  --background: #ffffff;
+  --foreground: #141821;
+  --card: #ffffff;
+  --card-foreground: #141821;
+  --popover: #ffffff;
+  --popover-foreground: #141821;
+  --primary: #8b1510;
+  --primary-foreground: #ffffff;
+  --secondary: #eef0f4;
+  --secondary-foreground: #141821;
+  --muted: #eef0f4;
+  --muted-foreground: #6b7280;
+  --accent: #f4f5f8;
+  --accent-foreground: #141821;
+  --destructive: #c62828;
+  --destructive-foreground: #ffffff;
+  --border: #e4e7ec;
+  --input: #dfe3e9;
+  --ring: #8b1510;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #141821;
+  --sidebar-primary: #8b1510;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f5f8;
+  --sidebar-accent-foreground: #141821;
+  --sidebar-border: #e4e7ec;
+
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
+}
+
+/* Modo oscuro (referencia CRML): negro azulado, tarjetas grafito, granate más vivo para contraste. */
+.propuesta[data-tema="oscuro"] {
+  --app-bg: #0f1117;
+  --background: #171a22;
+  --foreground: #e7e9ef;
+  --card: #171a22;
+  --card-foreground: #e7e9ef;
+  --popover: #1d2029;
+  --popover-foreground: #e7e9ef;
+  --primary: #d64541;
+  --primary-foreground: #ffffff;
+  --secondary: #232733;
+  --secondary-foreground: #e7e9ef;
+  --muted: #232733;
+  --muted-foreground: #9aa1b1;
+  --accent: #232733;
+  --accent-foreground: #ffffff;
+  --destructive: #ef5350;
+  --destructive-foreground: #ffffff;
+  --border: #2a2f3b;
+  --input: #2f3542;
+  --ring: #d64541;
+  --sidebar: #12141b;
+  --sidebar-foreground: #e7e9ef;
+  --sidebar-primary: #d64541;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1f2330;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2a2f3b;
+  color-scheme: dark;
+}
+
+/* Títulos más marcados y apretados, como en los CRM de referencia. */
+.propuesta h1,
+.propuesta h2,
+.propuesta h3 {
+  letter-spacing: -0.02em;
+}
+
+/* Las pantallas de siempre que van por dentro: mismas esquinas y sombras suaves. */
+.propuesta .rounded-xl,
+.propuesta .rounded-lg {
+  border-radius: calc(var(--radius) - 0.1rem);
+}
+.propuesta .shadow-sm {
+  box-shadow: 0 1px 2px rgba(20, 24, 33, 0.04), 0 10px 30px -18px rgba(20, 24, 33, 0.18);
+}
+
+/* Barras de desplazamiento finas. */
+.propuesta ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.propuesta ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 35%, transparent);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}

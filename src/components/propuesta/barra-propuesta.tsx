@@ -62,9 +62,9 @@ export function BarraPropuesta({
 }) {
   const ruta = usePathname();
   return (
-    <aside className="flex w-[15.5rem] flex-none flex-col border-r border-border bg-white">
+    <aside className="flex w-[15.5rem] flex-none flex-col border-r border-border bg-card">
       <div className="px-5 pb-3 pt-5">
-        <Image src="/logo-efameinsa-transparente.png" alt="Efameinsa" width={2345} height={381} className="h-7 w-auto" priority />
+        <Image src="/logo-efameinsa-transparente.png" alt="Efameinsa" width={2345} height={381} className="h-7 w-auto dark:brightness-0 dark:invert" priority />
         <span className="mt-3 inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
           {perfil}
         </span>
@@ -86,7 +86,7 @@ export function BarraPropuesta({
               <span
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-                  es ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground/60 group-hover:bg-white group-hover:text-foreground",
+                  es ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground/60 group-hover:bg-card group-hover:text-foreground",
                 )}
               >
                 <Icono className="size-4" />

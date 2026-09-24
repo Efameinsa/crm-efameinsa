@@ -85,7 +85,7 @@ export interface PestanaConteo {
 
 export function PestanasConteo({ pestanas, etiqueta }: { pestanas: PestanaConteo[]; etiqueta: string }) {
   return (
-    <nav className="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-white p-1" aria-label={etiqueta}>
+    <nav className="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1" aria-label={etiqueta}>
       {pestanas.map((p) => (
         <Link
           key={p.href}
@@ -303,8 +303,8 @@ export function Vacio({ titulo, porque, accion }: { titulo: string; porque: stri
 const TONO_ICONO: Record<Tono, string> = {
   neutro: "bg-secondary text-foreground/70",
   urgente: "bg-destructive/10 text-destructive",
-  atencion: "bg-amber-100 text-amber-800",
-  ok: "bg-[#1E7F4F]/10 text-[#1E7F4F]",
+  atencion: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
+  ok: "bg-[#1E7F4F]/10 text-[#1E7F4F] dark:bg-emerald-500/15 dark:text-emerald-300",
   info: "bg-primary/10 text-primary",
 };
 
@@ -333,7 +333,7 @@ export function Numero({
       )}
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{etiqueta}</p>
-        <p className={cn("mt-0.5 text-[26px] font-bold leading-none tabular-nums", tono === "urgente" && activo ? "text-destructive" : tono === "atencion" && activo ? "text-amber-700" : "text-foreground")}>
+        <p className={cn("mt-0.5 text-[26px] font-bold leading-none tabular-nums", tono === "urgente" && activo ? "text-destructive" : tono === "atencion" && activo ? "text-amber-700 dark:text-amber-300" : "text-foreground")}>
           {valor}
         </p>
         {sub && <p className="mt-1 text-[11px] text-muted-foreground">{sub}</p>}

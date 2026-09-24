@@ -7,6 +7,14 @@ import { COOKIE_VISTA } from "@/lib/solo-lectura";
  * (0280). En la vista actual entra por donde entra la cuenta original.
  */
 export async function GET(request: NextRequest) {
+  // ?tema=claro|oscuro: solo cambia el tema de la propuesta y vuelve adonde estaba.
+  const tema = request.nextUrl.searchParams.get("tema");
+  if (tema === "claro" || tema === "oscuro") {
+    const volver = request.headers.get("referer") ?? new URL("/nuevo", request.url).toString();
+    const r = NextResponse.redirect(new URL(volver, request.url));
+    r.cookies.set("crm-tema", tema, { path: "/", sameSite: "lax", maxAge: 60 * 60 * 24 * 30 });
+    return r;
+  }
   const actual = request.nextUrl.searchParams.get("v") === "actual";
   let destino = "/nuevo";
   if (actual) {

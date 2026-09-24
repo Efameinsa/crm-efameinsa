@@ -96,7 +96,7 @@ export function ColaDelDia({
           {GRUPOS.map((g) => {
             const n = cuenta(g.clave);
             const IconoGrupo = g.clave === "atrasado" ? AlertTriangle : g.clave === "hoy" ? Sun : CalendarClock;
-            const tinte = g.clave === "atrasado" && n > 0 ? "bg-destructive/10 text-destructive" : g.clave === "hoy" && n > 0 ? "bg-amber-100 text-amber-800" : "bg-secondary text-foreground/60";
+            const tinte = g.clave === "atrasado" && n > 0 ? "bg-destructive/10 text-destructive" : g.clave === "hoy" && n > 0 ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300" : "bg-secondary text-foreground/60";
             return (
               <a key={g.clave} href={`#${g.clave}`} className={cn("flex items-center gap-3 p-4 transition-colors hover:border-primary/40", TARJETA)}>
                 <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", tinte)}>
@@ -164,7 +164,7 @@ export function ColaDelDia({
                         href={t.accion.href}
                         className={cn(
                           "inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors",
-                          g.clave === "semana" ? "border border-border bg-white text-foreground hover:bg-accent" : "bg-primary text-primary-foreground hover:bg-primary/90",
+                          g.clave === "semana" ? "border border-border bg-card text-foreground hover:bg-accent" : "bg-primary text-primary-foreground hover:bg-primary/90",
                         )}
                       >
                         {t.accion.etiqueta} <ArrowRight className="size-3.5" />
