@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
+import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
@@ -92,17 +93,12 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
         <BotonImprimir>Imprimir / guardar PDF</BotonImprimir>
       </div>
 
-      <div className="mb-3 flex items-center justify-between border-b-2 border-[#8B1510] pb-2">
-        <div>
-          <p className="text-lg font-bold tracking-wide">EFAMEINSA</p>
-          <p className="text-[11px] text-neutral-600">{empresa} · Central</p>
-        </div>
-        <p className="text-right text-[11px] text-neutral-600">
-          Generado el {fecha(new Date().toISOString())}
-          <br />
-          www.efameinsa.com
-        </p>
-      </div>
+      {/* La empresa y el logo del cierre (Santos, 24-09). */}
+      <MembreteDocumento
+        serie={(i?.serie as "EFAMEINSA" | "OPEN" | null) ?? null}
+        area="Central"
+        generado={fecha(new Date().toISOString())}
+      />
 
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>
       {pendientes > 0 && (

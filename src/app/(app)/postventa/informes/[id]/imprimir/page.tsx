@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
+import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { etiquetaTipoServicio } from "@/lib/postventa";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
@@ -58,6 +59,17 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
     .eq("id", id)
     .single();
   if (!data) notFound();
+
+  // De qué empresa es: la del cierre del pedido (o del equipo del parque).
+  let serieEmpresa: "EFAMEINSA" | "OPEN" | null = null;
+  if (data.servicio_id) {
+    const { data: s } = await supabase.from("servicios_postventa").select("informes_cierre!servicios_postventa_informe_cierre_id_fkey(serie)").eq("id", data.servicio_id).maybeSingle();
+    serieEmpresa = ((s?.informes_cierre as unknown as { serie: string } | null)?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? null;
+  }
+  if (!serieEmpresa && data.equipo_id) {
+    const { data: e } = await supabase.from("equipos_instalados").select("informes_cierre!equipos_instalados_informe_cierre_id_fkey(serie)").eq("id", data.equipo_id).maybeSingle();
+    serieEmpresa = ((e?.informes_cierre as unknown as { serie: string } | null)?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? null;
+  }
 
   const cuenta = data.cuentas as unknown as { razon_social: string; num_doc: string | null } | null;
   const equipo = data.equipos_instalados as unknown as { serie: string; modelo_texto: string | null } | null;
@@ -119,13 +131,8 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
         <BotonImprimir>Imprimir / guardar PDF</BotonImprimir>
       </div>
 
-      <div className="mb-3 flex items-center justify-between border-b-2 border-[#8B1510] pb-2">
-        <div>
-          <p className="text-lg font-bold tracking-wide">EFAMEINSA</p>
-          <p className="text-[11px] text-neutral-600">Corporación Efameinsa e Ingeniería S.A. · Postventa</p>
-        </div>
-        <p className="text-right text-[11px] text-neutral-600">www.efameinsa.com</p>
-      </div>
+      {/* La empresa y el logo del cierre al que pertenece (Santos, 24-09). */}
+      <MembreteDocumento serie={serieEmpresa} area="Postventa" />
 
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>
       {equipoLinea && <p className="text-center text-[12px] font-semibold uppercase">MODELO: {equipoLinea}</p>}
