@@ -4,6 +4,8 @@ import "@/app/propuesta.css";
 import { BarraPropuesta } from "@/components/propuesta/barra-propuesta";
 import { BarraProgreso } from "@/components/propuesta/barra-progreso";
 import { GuardaDemo } from "@/components/propuesta/guarda-demo";
+import { SelectorFechaHora } from "@/components/propuesta/selector-fecha-hora";
+import { TemaEnElCuerpo } from "@/components/propuesta/tema-en-el-cuerpo";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +56,8 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
     <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
       <BarraProgreso />
       <GuardaDemo />
+      <SelectorFechaHora />
+      <TemaEnElCuerpo oscuro={oscuro} />
       <BarraPropuesta opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} verComo={tipo === "operaciones" ? VER_COMO : undefined} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-card/80 px-6 py-2.5 backdrop-blur-md">

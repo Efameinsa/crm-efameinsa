@@ -80,7 +80,7 @@ export default async function VisitasPlantaPage({ searchParams }: { searchParams
           Lo que registran comerciales y postventa cuando un cliente viene. Se imprime para vigilancia; queda marcado
           cuándo se imprimió y la visita sigue acá, en el histórico, para buscarla después.
         </p>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="visitas-intro mb-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
             Los checks son el procedimiento de la inducción: vigilancia avisada, Infocorp devuelto, lavandería y film (los
             marca el almacén o Central), «Llegó» avisa al comercial que baje a recibir, y al final que vuelvan a embalar.

@@ -208,7 +208,7 @@ export function AgendaMensual({
       </div>
 
       <DndContext sensors={sensors} onDragStart={(e) => setArrastrando(String(e.active.id))} onDragEnd={onDragEnd}>
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="agenda-mes overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           {/* C3 (plan 11): las siete columnas miden lo mismo. Antes el
               domingo iba a 0.45fr y a Darwin le leyó como maquetación rota
               —«hay algunas columnas que son más anchas que otras»—; la celda
@@ -627,7 +627,7 @@ function Dia({
         key={`v${v.id}`}
         type="button"
         onClick={() => onSelVenta(v.id)}
-        className="my-0.5 block w-full cursor-pointer rounded-md border-l-[3px] border-[#1E7F4F] bg-[#1E7F4F]/10 px-1.5 py-0.5 text-left text-[11.5px] leading-tight transition-[filter] hover:brightness-95"
+        className="agenda-tarjeta my-0.5 block w-full cursor-pointer rounded-md border-l-[3px] border-[#1E7F4F] bg-[#1E7F4F]/10 px-1.5 py-0.5 text-left text-[11.5px] leading-tight transition-[filter] hover:brightness-95"
       >
         <b className="text-[#1E7F4F]">✓ Venta {v.moneda === "PEN" ? "S/" : "US$"} {Number(v.monto).toLocaleString("es-PE")}</b>
         <span className="block truncate text-[10.5px] text-muted-foreground">{v.razonSocial}</span>
@@ -647,7 +647,7 @@ function Dia({
         type="button"
         onClick={() => onSelHecha(h.id)}
         title={h.nota ?? undefined}
-        className="my-0.5 block w-full cursor-pointer rounded-md border-l-[3px] border-muted-foreground/40 bg-secondary px-1.5 py-0.5 text-left text-[11.5px] leading-tight text-muted-foreground transition-[filter] hover:brightness-95"
+        className="agenda-tarjeta my-0.5 block w-full cursor-pointer rounded-md border-l-[3px] border-muted-foreground/40 bg-secondary px-1.5 py-0.5 text-left text-[11.5px] leading-tight text-muted-foreground transition-[filter] hover:brightness-95"
       >
         <span className="line-through">✓ {TIPO_LABEL[h.tipo] ?? h.tipo}</span>
         <span className="block truncate text-[10.5px]">{h.razonSocial}</span>
@@ -659,7 +659,7 @@ function Dia({
     <div
       ref={setNodeRef}
       className={cn(
-        "group min-h-[92px] border-b border-r border-border p-1.5 transition-colors last:border-r-0",
+        "agenda-celda group min-h-[92px] border-b border-r border-border p-1.5 transition-colors last:border-r-0",
         domingo && "border-r-0 bg-[#faf9f8]",
         ultimaFila && "border-b-0",
         isOver && "bg-primary/5 ring-2 ring-inset ring-primary/40",
@@ -667,7 +667,7 @@ function Dia({
     >
       <span
         className={cn(
-          "inline-block rounded-md px-1.5 py-0.5 text-xs tabular-nums",
+          "agenda-numero inline-block rounded-md px-1.5 py-0.5 text-xs tabular-nums",
           otroMes ? "text-muted-foreground/40" : "text-muted-foreground",
           esHoy && "bg-primary font-bold text-primary-foreground",
         )}
@@ -710,7 +710,7 @@ function TarjetaTarea({ t, onSel }: { t: TareaAgenda; onSel: (id: string) => voi
       type="button"
       onClick={() => onSel(t.id)}
       className={cn(
-        "my-0.5 block w-full cursor-pointer rounded-md border-l-[3px] border-[#2C5F8A] bg-[#eef3f8] px-1.5 py-0.5 text-left text-[11.5px] leading-tight transition-[filter] hover:brightness-95",
+        "agenda-tarjeta my-0.5 block w-full cursor-pointer rounded-md border-l-[3px] border-[#2C5F8A] bg-[#eef3f8] px-1.5 py-0.5 text-left text-[11.5px] leading-tight transition-[filter] hover:brightness-95",
         isDragging && "opacity-40",
       )}
     >
@@ -733,7 +733,7 @@ function Tarjeta({ a, vencida, onSel }: { a: AccionAgenda; vencida: boolean; onS
       type="button"
       onClick={() => onSel(a.id)}
       className={cn(
-        "my-0.5 block w-full cursor-pointer rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11.5px] leading-tight transition-[filter] hover:brightness-95",
+        "agenda-tarjeta my-0.5 block w-full cursor-pointer rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11.5px] leading-tight transition-[filter] hover:brightness-95",
         vencida ? "border-destructive bg-destructive/10" : "border-primary bg-[#f7eded]",
         isDragging && "opacity-40",
       )}

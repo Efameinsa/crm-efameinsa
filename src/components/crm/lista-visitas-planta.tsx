@@ -81,7 +81,7 @@ export function ListaVisitasPlanta({
 
   if (visitas.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="vacio-visitas text-sm text-muted-foreground">
         {modo === "comercial"
           ? "No tiene visitas anunciadas. Se anuncian desde la ficha del cliente, con el botón «Viene a la planta»: nombre y DNI de cada persona, fecha, hora y motivo."
           : "No hay visitas registradas para hoy ni para los próximos días. Se registran desde la ficha del cliente («Viene a la planta») por comerciales y postventa."}

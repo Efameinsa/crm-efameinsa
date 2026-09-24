@@ -213,7 +213,7 @@ function Semana({
           <div
             key={iso}
             className={cn(
-              "min-h-[120px] rounded-lg border p-1.5",
+              "cal-celda min-h-[120px] rounded-lg border p-1.5",
               esHoy ? "border-primary/40 bg-primary/5" : "border-border",
             )}
           >
@@ -273,7 +273,7 @@ function Mes({
               <div
                 key={d.iso}
                 className={cn(
-                  "min-h-[86px] rounded-md border p-1",
+                  "cal-celda min-h-[86px] rounded-md border p-1",
                   d.otroMes ? "border-transparent bg-muted/30" : esHoy ? "border-primary/40 bg-primary/5" : "border-border",
                 )}
               >
@@ -371,7 +371,7 @@ function Tarjeta({ evento: e, compacta }: { evento: EventoCalendario; compacta?:
       href={e.href}
       title={`${etiquetaEvento(e.tipo)} · ${e.cliente}${e.ubicacion ? ` · ${e.ubicacion}` : ""}`}
       className={cn(
-        "block rounded border-l-[3px] px-1.5 py-1 transition-opacity hover:opacity-80",
+        "cal-tarjeta block rounded border-l-[3px] px-1.5 py-1 transition-opacity hover:opacity-80",
         colorEvento(e.tipo),
         e.hecho && "opacity-55",
       )}
