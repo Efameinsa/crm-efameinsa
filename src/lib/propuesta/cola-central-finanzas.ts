@@ -1,6 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
-import { ETIQUETA_CANAL } from "@/lib/derivados-central";
+import { ETIQUETA_CANAL, cargarDerivados } from "@/lib/derivados-central";
 import { cuentasPorCobrar, diasEntre, formatoMonto, pedidosPorConfirmar } from "@/lib/pagos-finanzas";
 import type { EventoAgenda, Tarea } from "@/lib/propuesta/cola-del-dia";
 
@@ -260,7 +260,13 @@ const dias = (iso: string, hoy: string) => {
 
 export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[]; agenda: EventoAgenda[] }> {
   const hoy = hoyLima();
-  const [{ data: leads }, cierres] = await Promise.all([
+  // LOS DERIVADOS QUE SE QUEDARON QUIETOS (24-09). Santos: «¿por qué en
+  // central la vista de hoy está vacía?». Central deriva todo al momento y los
+  // cierres ya estaban liberados, así que «Hoy» salía en cero; pero su trabajo
+  // del día sigue: avisar al comercial que no atendió lo que se le derivó (la
+  // misma alerta de «Lo que derivé»). Últimas dos semanas.
+  const desde = new Date(Date.now() - 14 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const [{ data: leads }, cierres, derivados] = await Promise.all([
     supabase
       .from("leads")
       .select("id, canal, nombre_contacto, razon_social, mensaje, recibido_at")
@@ -269,8 +275,37 @@ export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[];
       .order("recibido_at", { ascending: true })
       .limit(100),
     cierresPorLiberar(supabase),
+    cargarDerivados(supabase, { desde, hasta: hoy }),
   ]);
   const tareas: Tarea[] = [];
+
+  for (const d of derivados) {
+    if (!d.alerta || !d.asignadoAt) continue;
+    const quien = d.comercial?.codigo_comercial ?? d.comercial?.nombre ?? "el comercial";
+    const cliente = sinRuc(d.razonSocial || d.nombreContacto || "Contacto sin nombre");
+    const href = `/central/derivados?desde=${desde}&hasta=${hoy}&foco=atencion&q=${encodeURIComponent(d.codigo ?? cliente)}`;
+    if (d.alerta === "demora") {
+      tareas.push({
+        id: `cd-${d.id}`,
+        urgencia: urgenciaPorEdad(d.asignadoAt, hoy),
+        tipo: "contacto",
+        cliente,
+        que: `Avisar a ${quien}: no atiende el derivado`,
+        porque: `Se le derivó ${dias(d.asignadoAt, hoy)} y todavía no registra ninguna gestión.`,
+        accion: { etiqueta: "Ver el derivado", href },
+      });
+    } else {
+      tareas.push({
+        id: `cf-${d.id}`,
+        urgencia: "semana",
+        tipo: "contacto",
+        cliente,
+        que: `Preguntar a ${quien} por el seguimiento`,
+        porque: d.foco === "cotizado" ? "Está cotizado y lleva más de 7 días sin movimiento." : "Está en gestión y lleva más de 7 días sin movimiento.",
+        accion: { etiqueta: "Ver el derivado", href },
+      });
+    }
+  }
 
   for (const l of (leads ?? []) as { id: string; canal: string | null; nombre_contacto: string | null; razon_social: string | null; mensaje: string | null; recibido_at: string }[]) {
     const quien = l.razon_social || l.nombre_contacto || "Contacto sin nombre";
