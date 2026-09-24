@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, Barcode, CalendarClock, CalendarDays, ClipboardList, FileText, Inbox, Package, PhoneForwarded, Truck, UserRound, Wallet, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowRight, Barcode, CalendarClock, CalendarDays, ClipboardList, FileText, Inbox, Package, PhoneForwarded, Sun, Truck, UserRound, Wallet, Wrench } from "lucide-react";
+import { TARJETA } from "@/components/propuesta/kit";
 import type { EventoAgenda, Tarea, TipoTarea, Urgencia } from "@/lib/propuesta/cola-del-dia";
 import { cn } from "@/lib/utils";
 
@@ -74,7 +75,7 @@ export function ColaDelDia({
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="min-w-0 space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className={cn("flex flex-wrap items-end justify-between gap-3 bg-gradient-to-r from-primary/[0.06] via-white to-white p-5", TARJETA)}>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{fecha}</p>
             <h1 className="text-2xl font-bold text-foreground">
@@ -91,20 +92,23 @@ export function ColaDelDia({
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          {GRUPOS.map((g) => (
-            <a
-              key={g.clave}
-              href={`#${g.clave}`}
-              className={cn(
-                "rounded-xl border p-3 shadow-sm transition-colors hover:bg-accent",
-                g.clave === "atrasado" && cuenta("atrasado") > 0 ? "border-destructive/40 bg-destructive/5" : "border-border bg-card",
-              )}
-            >
-              <p className={cn("text-2xl font-bold tabular-nums", g.clave === "atrasado" && cuenta("atrasado") > 0 ? "text-destructive" : "text-foreground")}>{cuenta(g.clave)}</p>
-              <p className="text-xs font-semibold text-foreground">{g.titulo}</p>
-            </a>
-          ))}
+        <div className="grid grid-cols-3 gap-3">
+          {GRUPOS.map((g) => {
+            const n = cuenta(g.clave);
+            const IconoGrupo = g.clave === "atrasado" ? AlertTriangle : g.clave === "hoy" ? Sun : CalendarClock;
+            const tinte = g.clave === "atrasado" && n > 0 ? "bg-destructive/10 text-destructive" : g.clave === "hoy" && n > 0 ? "bg-amber-100 text-amber-800" : "bg-secondary text-foreground/60";
+            return (
+              <a key={g.clave} href={`#${g.clave}`} className={cn("flex items-center gap-3 p-4 transition-colors hover:border-primary/40", TARJETA)}>
+                <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", tinte)}>
+                  <IconoGrupo className="size-5" />
+                </span>
+                <span>
+                  <p className={cn("text-[26px] font-bold leading-none tabular-nums", g.clave === "atrasado" && n > 0 ? "text-destructive" : "text-foreground")}>{n}</p>
+                  <p className="mt-1 text-xs font-semibold text-foreground">{g.titulo}</p>
+                </span>
+              </a>
+            );
+          })}
         </div>
 
         {tipos.length > 1 && (
@@ -141,7 +145,7 @@ export function ColaDelDia({
                 {mostrar.map((t) => {
                   const Icono = ICONO[t.tipo];
                   return (
-                    <li key={t.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
+                    <li key={t.id} className={cn("flex items-center gap-3 p-3 transition-colors hover:border-primary/30", TARJETA)}>
                       <span
                         className={cn(
                           "flex size-9 shrink-0 items-center justify-center rounded-lg",
@@ -159,8 +163,8 @@ export function ColaDelDia({
                       <Link
                         href={t.accion.href}
                         className={cn(
-                          "inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
-                          g.clave === "semana" ? "border border-border text-foreground hover:bg-accent" : "bg-primary text-primary-foreground hover:bg-primary/90",
+                          "inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors",
+                          g.clave === "semana" ? "border border-border bg-white text-foreground hover:bg-accent" : "bg-primary text-primary-foreground hover:bg-primary/90",
                         )}
                       >
                         {t.accion.etiqueta} <ArrowRight className="size-3.5" />
@@ -180,9 +184,9 @@ export function ColaDelDia({
       </div>
 
       <aside className="space-y-4">
-        <div className="rounded-xl border border-border bg-card shadow-sm">
-          <h2 className="flex items-center gap-2 border-b border-border px-4 py-3 text-[13px] font-bold uppercase tracking-wide text-foreground">
-            <CalendarDays className="size-4" /> Tu agenda de hoy
+        <div className={TARJETA}>
+          <h2 className="flex items-center gap-2 border-b border-border/80 px-4 py-3 text-[13px] font-bold uppercase tracking-wide text-foreground">
+            <CalendarDays className="size-4 text-primary" /> Tu agenda de hoy
           </h2>
           {agenda.length === 0 ? (
             <p className="px-4 py-4 text-xs text-muted-foreground">Nada con hora para hoy.</p>

@@ -1,3 +1,4 @@
+import { AlertTriangle, CalendarClock, Hourglass, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { PropsVista } from "@/lib/propuesta/vistas";
 import { hoyLima } from "@/lib/periodo";
@@ -65,10 +66,10 @@ export default async function FinanzasPorConfirmar({ base }: PropsVista) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <Numero etiqueta="Por confirmar" valor={pedidos.length} sub="Pedidos liberados sin su abono" href={base} />
-        <Numero etiqueta="Postventa espera" valor={n("postventa")} sub="Pidieron su respuesta" tono="urgente" href={`${base}#postventa`} />
-        <Numero etiqueta="Salen en 3 días o menos" valor={n("pronto")} sub="Confírmelos primero" tono="atencion" href={`${base}#pronto`} />
-        <Numero etiqueta="Observados" valor={n("observados")} sub="Esperan al comercial" href={`${base}#observados`} />
+        <Numero icono={Wallet} etiqueta="Por confirmar" valor={pedidos.length} sub="Pedidos liberados sin su abono" href={base} />
+        <Numero icono={Hourglass} etiqueta="Postventa espera" valor={n("postventa")} sub="Pidieron su respuesta" tono="urgente" href={`${base}#postventa`} />
+        <Numero icono={CalendarClock} etiqueta="Salen en 3 días o menos" valor={n("pronto")} sub="Confírmelos primero" tono="atencion" href={`${base}#pronto`} />
+        <Numero icono={AlertTriangle} etiqueta="Observados" valor={n("observados")} sub="Esperan al comercial" href={`${base}#observados`} />
       </div>
 
       {GRUPOS.map((g) => {

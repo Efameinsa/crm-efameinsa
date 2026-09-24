@@ -13,6 +13,7 @@ const PAGINAS: Record<string, Carga> = {
   "central/clientes": () => import("@/app/(app)/central/clientes/page"),
   "central/presupuestos": () => import("@/app/(app)/central/presupuestos/page"),
   "central/cierres": () => import("@/app/(app)/central/cierres/page"),
+  "central/pedidos": () => import("@/app/(app)/central/pedidos/page"),
   "comercial": () => import("@/app/(app)/comercial/page"),
   "comercial/oportunidades": () => import("@/app/(app)/comercial/oportunidades/page"),
   "comercial/potenciales": () => import("@/app/(app)/comercial/potenciales/page"),

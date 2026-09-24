@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, Clock, Hourglass, Inbox, Lock } from "lucide-react";
+import { ArrowRight, Check, Clock, Hourglass, Inbox, Lock, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,6 +36,9 @@ const TONO_BORDE: Record<Tono, string> = {
   info: "border-l-primary",
 };
 
+/** La tarjeta de la propuesta: blanca, redondeada, sombra suave (referencias del 24-09). */
+export const TARJETA = "rounded-2xl border border-border/80 bg-card shadow-[0_1px_2px_rgba(20,10,10,0.04),0_10px_30px_-18px_rgba(20,10,10,0.18)]";
+
 export function Pildora({ tono = "neutro", children, className }: { tono?: Tono; children: React.ReactNode; className?: string }) {
   return <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", TONO_PILDORA[tono], className)}>{children}</span>;
 }
@@ -55,13 +58,13 @@ export function EncabezadoSeccion({
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{titulo}</h1>
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground">{titulo}</h1>
         <p className="mt-0.5 max-w-prose text-sm text-muted-foreground">{proposito}</p>
       </div>
       <div className="flex items-center gap-2">
         {extra}
         {accion && (
-          <Link href={accion.href} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+          <Link href={accion.href} className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90">
             {accion.etiqueta}
             <ArrowRight className="size-4" />
           </Link>
@@ -82,15 +85,15 @@ export interface PestanaConteo {
 
 export function PestanasConteo({ pestanas, etiqueta }: { pestanas: PestanaConteo[]; etiqueta: string }) {
   return (
-    <nav className="flex gap-1 overflow-x-auto border-b border-border" aria-label={etiqueta}>
+    <nav className="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-white p-1" aria-label={etiqueta}>
       {pestanas.map((p) => (
         <Link
           key={p.href}
           href={p.href}
           aria-current={p.activa ? "page" : undefined}
           className={cn(
-            "-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-            p.activa ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+            "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            p.activa ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >
           {p.etiqueta}
@@ -98,7 +101,7 @@ export function PestanasConteo({ pestanas, etiqueta }: { pestanas: PestanaConteo
             <span
               className={cn(
                 "min-w-5 rounded-full px-1.5 text-center text-[11px] font-bold tabular-nums",
-                p.alerta && p.conteo > 0 ? "bg-destructive text-white" : "bg-secondary text-muted-foreground",
+                p.activa ? "bg-white/20 text-white" : p.alerta && p.conteo > 0 ? "bg-destructive text-white" : "bg-secondary text-muted-foreground",
               )}
             >
               {p.conteo}
@@ -152,7 +155,7 @@ export interface DatosFila {
 
 export function FilaTrabajo({ f }: { f: DatosFila }) {
   return (
-    <li className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 border-l-4 bg-card px-4 py-3", TONO_BORDE[f.tono ?? "neutro"])}>
+    <li className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 border-l-4 bg-card px-4 py-3 transition-colors hover:bg-accent/40", TONO_BORDE[f.tono ?? "neutro"])}>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           {f.href ? (
@@ -186,7 +189,7 @@ export function FilaTrabajo({ f }: { f: DatosFila }) {
       {f.accion && (
         <Link
           href={f.accion.href}
-          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
         >
           {f.accion.etiqueta}
           <ArrowRight className="size-3.5" />
@@ -213,8 +216,8 @@ export function Grupo({
   pie?: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card">
-      <header className="flex items-baseline justify-between gap-3 border-b border-border px-4 py-2.5">
+    <section className={cn("overflow-hidden", TARJETA)}>
+      <header className="flex items-baseline justify-between gap-3 border-b border-border/80 px-4 py-3">
         <div className="flex items-baseline gap-2">
           <h2 className="text-sm font-bold uppercase tracking-wide text-foreground">{titulo}</h2>
           {conteo != null && <Pildora tono={conteo > 0 ? tono : "neutro"}>{conteo}</Pildora>}
@@ -281,8 +284,10 @@ export function Pasos({ pasos, compacto = false }: { pasos: PasoLinea[]; compact
 /** Nunca en blanco: qué no hay, por qué, y adónde ir. */
 export function Vacio({ titulo, porque, accion }: { titulo: string; porque: string; accion?: { etiqueta: string; href: string } | null }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center">
-      <Inbox className="size-6 text-muted-foreground" />
+    <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center">
+      <span className="flex size-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
+        <Inbox className="size-5" />
+      </span>
       <p className="text-sm font-semibold text-foreground">{titulo}</p>
       <p className="max-w-md text-xs text-muted-foreground">{porque}</p>
       {accion && (
@@ -295,19 +300,49 @@ export function Vacio({ titulo, porque, accion }: { titulo: string; porque: stri
 }
 
 /** Una cifra que se toca y abre su lista. */
-export function Numero({ etiqueta, valor, sub, href, tono = "neutro" }: { etiqueta: string; valor: number | string; sub?: string; href?: string; tono?: Tono }) {
+const TONO_ICONO: Record<Tono, string> = {
+  neutro: "bg-secondary text-foreground/70",
+  urgente: "bg-destructive/10 text-destructive",
+  atencion: "bg-amber-100 text-amber-800",
+  ok: "bg-[#1E7F4F]/10 text-[#1E7F4F]",
+  info: "bg-primary/10 text-primary",
+};
+
+export function Numero({
+  etiqueta,
+  valor,
+  sub,
+  href,
+  tono = "neutro",
+  icono: Icono,
+}: {
+  etiqueta: string;
+  valor: number | string;
+  sub?: string;
+  href?: string;
+  tono?: Tono;
+  icono?: LucideIcon;
+}) {
+  const activo = Number(valor) > 0;
   const cuerpo = (
-    <>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{etiqueta}</p>
-      <p className={cn("mt-1 text-2xl font-bold tabular-nums", tono === "urgente" && Number(valor) > 0 ? "text-destructive" : tono === "atencion" && Number(valor) > 0 ? "text-amber-700" : "text-foreground")}>
-        {valor}
-      </p>
-      {sub && <p className="mt-0.5 text-[11px] text-muted-foreground">{sub}</p>}
-    </>
+    <div className="flex items-start gap-3">
+      {Icono && (
+        <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", activo ? TONO_ICONO[tono] : TONO_ICONO.neutro)}>
+          <Icono className="size-5" />
+        </span>
+      )}
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{etiqueta}</p>
+        <p className={cn("mt-0.5 text-[26px] font-bold leading-none tabular-nums", tono === "urgente" && activo ? "text-destructive" : tono === "atencion" && activo ? "text-amber-700" : "text-foreground")}>
+          {valor}
+        </p>
+        {sub && <p className="mt-1 text-[11px] text-muted-foreground">{sub}</p>}
+      </div>
+    </div>
   );
-  const clase = "block rounded-xl border border-border bg-card p-3 transition-colors";
+  const clase = cn("block p-4 transition-colors", TARJETA);
   return href ? (
-    <Link href={href} className={cn(clase, "hover:border-primary/40 hover:bg-accent/40")}>
+    <Link href={href} className={cn(clase, "hover:border-primary/40")}>
       {cuerpo}
     </Link>
   ) : (

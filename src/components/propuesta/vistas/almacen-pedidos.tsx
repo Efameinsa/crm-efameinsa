@@ -1,3 +1,4 @@
+import { AlertTriangle, ClipboardCheck, FileText, Truck } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
@@ -145,10 +146,10 @@ export default async function AlmacenPedidos({ searchParams, base }: PropsVista)
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Numero etiqueta="Atrasados" valor={atrasados} sub="Despachos con apertura o pruebas fuera de fecha" tono="urgente" href={url(grupos.despachar.some((f) => f.estado?.tono === "urgente") ? "despachar" : "probar")} />
-        <Numero etiqueta="Salen hoy" valor={deHoy} sub="Con apertura y fecha de hoy" tono="atencion" href={url("despachar")} />
-        <Numero etiqueta="Por probar" valor={grupos.probar.length} sub="Postventa pidió la prueba" tono="atencion" href={url("probar")} />
-        <Numero etiqueta="Falta la guía" valor={grupos.guia.length} sub="Ya salieron" tono="atencion" href={url("guia")} />
+        <Numero icono={AlertTriangle} etiqueta="Atrasados" valor={atrasados} sub="Despachos con apertura o pruebas fuera de fecha" tono="urgente" href={url(grupos.despachar.some((f) => f.estado?.tono === "urgente") ? "despachar" : "probar")} />
+        <Numero icono={Truck} etiqueta="Salen hoy" valor={deHoy} sub="Con apertura y fecha de hoy" tono="atencion" href={url("despachar")} />
+        <Numero icono={ClipboardCheck} etiqueta="Por probar" valor={grupos.probar.length} sub="Postventa pidió la prueba" tono="atencion" href={url("probar")} />
+        <Numero icono={FileText} etiqueta="Falta la guía" valor={grupos.guia.length} sub="Ya salieron" tono="atencion" href={url("guia")} />
       </div>
 
       <Chips

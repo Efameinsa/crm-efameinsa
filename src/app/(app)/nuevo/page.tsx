@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
-import { Kpi } from "@/components/crm/kpi";
+import { BadgeDollarSign, Inbox, Landmark, Truck, Users } from "lucide-react";
+import { Numero, TARJETA } from "@/components/propuesta/kit";
+import { cn } from "@/lib/utils";
 import { PantallaExistente } from "@/lib/propuesta/paginas";
 import { tipoDePerfil } from "@/lib/propuesta/menu";
 import { cuentasPorCobrar } from "@/lib/pagos-finanzas";
@@ -82,18 +84,20 @@ async function HoyGerencia() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-foreground">Lo que espera a gerencia</h1>
+      <div className={cn("bg-gradient-to-r from-primary/[0.06] via-white to-white p-5", TARJETA)}>
+        <h1 className="text-2xl font-bold text-foreground">Lo que espera a gerencia</h1>
         <p className="text-sm text-muted-foreground">Cada número abre su lista. Si todo está en cero, no hay nada que decidir hoy.</p>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Kpi etiqueta="Precios por aprobar" valor={aprobaciones.count ?? 0} sub="Cotizaciones bajo lista" alerta={(aprobaciones.count ?? 0) > 0} href="/gerencia/aprobaciones" />
-        <Kpi etiqueta="Contactos sin clasificar" valor={sinClasificar.count ?? 0} sub="En la bandeja de Central" alerta={(sinClasificar.count ?? 0) > 0} href="/central" />
-        <Kpi etiqueta="Despachos atrasados" valor={atrasados.count ?? 0} sub="Tenían fecha y no salieron" alerta={(atrasados.count ?? 0) > 0} href="/nuevo/operacion" />
-        <Kpi etiqueta="Cobros vencidos" valor={vencidos} sub="Pasó el plazo de crédito" alerta={vencidos > 0} href="/nuevo/operacion/cobranza" />
-        <Kpi etiqueta="Cartera para redistribuir" valor={liberables.count ?? 0} sub="Tres meses o más sin venta" href="/nuevo/clientes/liberables" />
+        <Numero icono={BadgeDollarSign} etiqueta="Precios por aprobar" valor={aprobaciones.count ?? 0} sub="Cotizaciones bajo lista" tono="urgente" href="/gerencia/aprobaciones" />
+        <Numero icono={Inbox} etiqueta="Contactos sin clasificar" valor={sinClasificar.count ?? 0} sub="En la bandeja de Central" tono="atencion" href="/central" />
+        <Numero icono={Truck} etiqueta="Despachos atrasados" valor={atrasados.count ?? 0} sub="Tenían fecha y no salieron" tono="urgente" href="/nuevo/operacion" />
+        <Numero icono={Landmark} etiqueta="Cobros vencidos" valor={vencidos} sub="Pasó el plazo de crédito" tono="urgente" href="/nuevo/operacion/cobranza" />
+        <Numero icono={Users} etiqueta="Cartera para redistribuir" valor={(liberables.count ?? 0).toLocaleString("es-PE")} sub="Tres meses o más sin venta" href="/nuevo/clientes/liberables" />
       </div>
+      <div className={cn("p-1", TARJETA)}>
       <PantallaExistente clave="gerencia/reportes" searchParams={Promise.resolve({})} />
+      </div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Hourglass, Upload, XCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { PropsVista } from "@/lib/propuesta/vistas";
 import { pedidosPorLiquidar, type EstadoLiquidacion, type PedidoPorLiquidar } from "@/lib/propuesta/cola-central-finanzas";
@@ -44,9 +45,9 @@ export default async function FinanzasPorLiquidar({ base }: PropsVista) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-2">
-        <Numero etiqueta="Rechazadas" valor={n("rechazada")} sub="Central las devolvió" tono="urgente" href={`${base}#rechazada`} />
-        <Numero etiqueta="Por subir" valor={n("por_subir")} sub="Le toca a usted" tono="atencion" href={`${base}#por_subir`} />
-        <Numero etiqueta="Esperando a Central" valor={n("subida")} sub="Ya las subió" href={`${base}#subida`} />
+        <Numero icono={XCircle} etiqueta="Rechazadas" valor={n("rechazada")} sub="Central las devolvió" tono="urgente" href={`${base}#rechazada`} />
+        <Numero icono={Upload} etiqueta="Por subir" valor={n("por_subir")} sub="Le toca a usted" tono="atencion" href={`${base}#por_subir`} />
+        <Numero icono={Hourglass} etiqueta="Esperando a Central" valor={n("subida")} sub="Ya las subió" href={`${base}#subida`} />
       </div>
 
       {GRUPOS.map((g) => {

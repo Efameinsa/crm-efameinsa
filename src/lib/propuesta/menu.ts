@@ -89,7 +89,7 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     hoy,
     conversaciones,
     { etiqueta: "Seguimiento", href: "/central/derivados", icono: "seguimiento", coincide: ["/central/derivados"] },
-    { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/central/cierres"] },
+    { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/central/cierres", "/central/pedidos"] },
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/central/clientes", "/central/presupuestos"] },
     { etiqueta: "Agenda", href: "/central/visitas", icono: "agenda", coincide: ["/central/visitas"] },
   ],
@@ -195,6 +195,8 @@ export const SECCIONES: Record<string, Seccion> = {
     ayuda: "Del cierre al pedido: qué paso sigue en cada uno y a quién se espera. Lo suyo, primero.",
     pestanas: [
       { clave: "", etiqueta: "Por liberar", pagina: "vista:central-pedidos" },
+      // 24-09: lo que Central ya liberó, con su paso y a quién le toca.
+      { clave: "liberados", etiqueta: "Sus pedidos", pagina: "central/pedidos" },
       { clave: "todos", etiqueta: "Todos los cierres", pagina: "central/cierres" },
     ],
   },
