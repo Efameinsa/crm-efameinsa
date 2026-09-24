@@ -1,19 +1,27 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { headers } from "next/headers";
 import { CABECERA_DEMO, fetchSoloLectura } from "@/lib/solo-lectura";
+
+// `next/headers` solo existe en el servidor. Este archivo llega al navegador
+// por whatsapp-hilo.tsx → lib/whatsapp.ts (donde nunca se llama), y un
+// import fijo rompe la compilación de Vercel (Turbopack). Se carga por nombre
+// y en el momento, así el empaquetador del navegador no lo toca.
+async function cabeceraDemo(): Promise<boolean> {
+  try {
+    const especificador = "next/headers";
+    const { headers } = (await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ especificador)) as typeof import("next/headers");
+    return Boolean((await headers()).get(CABECERA_DEMO));
+  } catch {
+    // Fuera de una petición (cron, scripts, navegador): no hay demostración posible.
+    return false;
+  }
+}
 
 // Durante una petición de una cuenta de demostración (0280), el cliente con
 // service_role tampoco escribe: una acción que avisa por la campana o registra
 // algo con este cliente no debe dejar rastro de la demostración.
 const soloLectura = fetchSoloLectura();
 async function fetchSegunPeticion(entrada: RequestInfo | URL, init?: RequestInit) {
-  let demo = false;
-  try {
-    demo = Boolean((await headers()).get(CABECERA_DEMO));
-  } catch {
-    // Fuera de una petición (cron, scripts): no hay demostración posible.
-  }
-  return demo ? soloLectura(entrada, init) : fetch(entrada, init);
+  return (await cabeceraDemo()) ? soloLectura(entrada, init) : fetch(entrada, init);
 }
 
 // Cliente con service_role: bypassa RLS. SOLO para webhooks, crons y scripts
