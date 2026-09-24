@@ -54,13 +54,65 @@ export interface AperturaLlamada {
   anulada_motivo: string | null;
   /** Sin pedido, autorizada con el código de gerencia (0295). */
   urgente?: boolean | null;
+  /** El FORMATO DE LLAMADA de siempre (0297). */
+  formato?: FormatoLlamada | null;
+  /** El informe de soporte técnico numerado que subió el almacén (0297). */
+  informe_servicio_id?: string | null;
+}
+
+/**
+ * EL FORMATO DE LLAMADA (0297; Santos, 24-09: «ese es el formato de informe
+ * de llamada, así que ajustarlo a ello en el CRM»). Es la tabla que se
+ * mandaba por correo al almacén: casi todo sale solo del parque instalado y
+ * del pedido; postventa lo corrige si hace falta.
+ */
+export interface FormatoLlamada {
+  fecha_compra?: string | null;
+  entrega_guia?: string | null;
+  contacto?: string | null;
+  problema?: string | null;
+  marca?: string | null;
+  modelo?: string | null;
+  serie?: string | null;
+  fecha_mantenimiento?: string | null;
+  protocolo?: string | null;
+  garantia?: string | null;
+  provincia?: string | null;
+  puesta_en_marcha?: string | null;
+  cambios_correctivos?: string | null;
+}
+
+/** Las filas de la tabla, en el orden del formato de siempre. */
+export const FILAS_FORMATO: { clave: keyof FormatoLlamada; etiqueta: string }[] = [
+  { clave: "fecha_compra", etiqueta: "Fecha de compra" },
+  { clave: "entrega_guia", etiqueta: "Fecha de entrega y N.º de guía" },
+  { clave: "contacto", etiqueta: "Contacto" },
+  { clave: "problema", etiqueta: "Problema" },
+  { clave: "fecha_mantenimiento", etiqueta: "Fecha de mantenimiento" },
+  { clave: "protocolo", etiqueta: "Protocolo de prueba" },
+  { clave: "garantia", etiqueta: "Garantía" },
+  { clave: "provincia", etiqueta: "Provincia" },
+  { clave: "puesta_en_marcha", etiqueta: "Fecha de puesta en marcha" },
+  { clave: "cambios_correctivos", etiqueta: "Cambios correctivos" },
+];
+
+/** El texto del problema con marca, modelo y serie debajo, como en el formato. */
+export function problemaConEquipo(f: FormatoLlamada): string {
+  return [
+    f.problema?.trim(),
+    f.marca?.trim() ? `MARCA: ${f.marca.trim()}` : null,
+    f.modelo?.trim() ? `MODELO: ${f.modelo.trim()}` : null,
+    f.serie?.trim() ? `SERIE: ${f.serie.trim()}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export type EstadoApertura = "enviada" | "en_gestion" | "informe_almacen" | "revisada" | "enviada_cliente" | "anulada";
 
 export const ETIQUETA_ESTADO_APERTURA: Record<EstadoApertura, string> = {
   enviada: "Enviada al almacén",
-  en_gestion: "El almacén la está gestionando",
+  en_gestion: "El almacén la tomó",
   informe_almacen: "Informe del almacén: falta revisarlo",
   revisada: "Revisada, falta mandarla al cliente",
   enviada_cliente: "Enviada al cliente",

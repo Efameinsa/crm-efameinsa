@@ -22,6 +22,8 @@ import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
+import { Documentos } from "@/components/crm/informe-soporte-apertura";
+import { agregarArchivosDelEquipo } from "@/lib/acciones/almacen";
 import { cn } from "@/lib/utils";
 
 export function EquiposDelPedido({
@@ -117,6 +119,10 @@ function Fila({
   const [protocolo, setProtocolo] = useState("");
   const [nota, setNota] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
+  // Varios PDF o Word por máquina (0297): el protocolo o el informe completo.
+  const [docs, setDocs] = useState<File[]>([]);
+  const [sumando, setSumando] = useState(false);
+  const archivosGuardados = (Array.isArray(e.protocolo_fotos) ? e.protocolo_fotos : []) as FotoAlmacen[];
   const [lineaTitulo, ...resto] = e.descripcion.split("\n");
 
   function correr(fn: () => Promise<{ error: string | null; pedidoListo?: boolean }>, exito: string) {
@@ -131,17 +137,23 @@ function Fila({
     });
   }
 
-  async function subir(archivos: File[]): Promise<FotoAlmacen[] | null> {
+  async function abrirArchivo(path: string) {
+    const { data } = await createClient().storage.from("adjuntos").createSignedUrl(path, 600);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+    else toast.error("No se pudo abrir el archivo");
+  }
+
+  async function subir(archivos: File[], documentos: File[] = []): Promise<FotoAlmacen[] | null> {
     const storage = createClient().storage.from("adjuntos");
     const salida: FotoAlmacen[] = [];
-    for (const file of archivos) {
+    for (const file of [...archivos, ...documentos]) {
       const path = `pedidos/${servicioId}/almacen/protocolo-${e.orden}-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
       const { error } = await storage.upload(path, file, { contentType: file.type || "image/jpeg" });
       if (error) {
         toast.error(`No se pudo subir «${file.name}»: ${error.message}`);
         return null;
       }
-      salida.push({ path, nombre: file.name.slice(0, 120), tipo: file.type.slice(0, 100), etiqueta: "protocolo" });
+      salida.push({ path, nombre: file.name.slice(0, 120), tipo: file.type.slice(0, 100), etiqueta: documentos.includes(file) ? "documento" : "protocolo" });
     }
     return salida;
   }
@@ -249,14 +261,15 @@ function Fila({
             <Input value={protocolo} onChange={(x) => setProtocolo(x.target.value)} placeholder={`N.º de protocolo (máquina ${e.orden})`} className="h-8 text-sm" />
             <Input value={nota} onChange={(x) => setNota(x.target.value)} placeholder="Nota: probada con carga, embalada en pallet…" className="h-8 text-sm" />
           </div>
-          <TomarOSubirVarias titulo="Protocolo y fotos de esta máquina" archivos={fotos} onChange={setFotos} acepta="image/*,application/pdf" />
+          <TomarOSubirVarias titulo="Fotos de esta máquina" archivos={fotos} onChange={setFotos} maximo={20} />
+          <Documentos archivos={docs} onChange={setDocs} titulo="Protocolo o informe de esta máquina (PDF o Word, varios)" />
           <Button
             size="sm"
             className="h-8"
             disabled={pendiente}
             onClick={() =>
               correr(async () => {
-                const subidas = await subir(fotos);
+                const subidas = await subir(fotos, docs);
                 if (!subidas) return { error: "No se subieron los archivos" };
                 return probarEquipoDelPedido(e.id, servicioId, { protocoloRef: protocolo, nota, fotos: subidas, cliente, equipo: lineaTitulo });
               }, `Máquina ${e.orden} probada y embalada`)
@@ -264,6 +277,64 @@ function Fila({
           >
             {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />} Probada y embalada
           </Button>
+        </div>
+      )}
+
+      {/* Lo que ya se subió de esta máquina, y sumar más después (0297). */}
+      {modo !== "central" && (archivosGuardados.length > 0 || e.prueba_lista_at) && (
+        <div className="mt-2 space-y-1.5">
+          {archivosGuardados.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5">
+              {archivosGuardados.map((a, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => abrirArchivo(a.path)}
+                    className="inline-flex max-w-56 items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+                    title={a.nombre}
+                  >
+                    {a.etiqueta === "documento" || /pdf|word|document/i.test(a.tipo ?? "") ? "📄" : "🖼️"} <span className="truncate">{a.nombre}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {e.prueba_lista_at &&
+            (sumando ? (
+              <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
+                <TomarOSubirVarias titulo="Más fotos de esta máquina" archivos={fotos} onChange={setFotos} maximo={20} />
+                <Documentos archivos={docs} onChange={setDocs} titulo="Más documentos (PDF o Word)" />
+                <div className="flex gap-1.5">
+                  <Button
+                    size="sm"
+                    className="h-8"
+                    disabled={pendiente || fotos.length + docs.length === 0}
+                    onClick={() =>
+                      correr(async () => {
+                        const subidas = await subir(fotos, docs);
+                        if (!subidas) return { error: "No se subieron los archivos" };
+                        const r = await agregarArchivosDelEquipo(e.id, servicioId, subidas);
+                        if (!r.error) {
+                          setFotos([]);
+                          setDocs([]);
+                          setSumando(false);
+                        }
+                        return r;
+                      }, "Archivos agregados a la máquina")
+                    }
+                  >
+                    {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} Guardar
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8" onClick={() => setSumando(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="text-[11px] font-medium text-primary hover:underline" onClick={() => setSumando(true)}>
+                + Agregar fotos o documentos
+              </button>
+            ))}
         </div>
       )}
     </li>

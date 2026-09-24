@@ -129,9 +129,12 @@ function Renglon({ f, vistaAlmacen }: { f: Fila; vistaAlmacen: boolean }) {
             "rounded-full px-2 py-0.5 text-[11px] font-semibold",
             estado === "anulada" && "bg-secondary text-muted-foreground",
             estado === "enviada_cliente" && "bg-[#E7F4EC] text-[#1E7F4F]",
-            leToca && (mia ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"),
+            // Santos, 24-09: postventa ve en verde que el almacén ya la tomó.
+            !vistaAlmacen && estado === "en_gestion" && "bg-[#E7F4EC] text-[#1E7F4F]",
+            leToca && !(!vistaAlmacen && estado === "en_gestion") && (mia ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"),
           )}
         >
+          {!vistaAlmacen && estado === "en_gestion" ? "✓ " : ""}
           {ETIQUETA_ESTADO_APERTURA[estado]}
           {f.faltantes && estado === "informe_almacen" ? " · hay para cotizar" : ""}
         </span>

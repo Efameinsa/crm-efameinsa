@@ -77,7 +77,8 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
     ["Forma de pago", (i?.modalidad_pago ?? []).join(" + ") || null],
     ["Total", verPrecios && i?.monto_total != null ? `${i.moneda ?? ""} ${Number(i.monto_total).toLocaleString("es-PE", { minimumFractionDigits: 2 })}` : null],
     ["Entrega", [i?.entrega_lugar, i?.entrega_direccion].filter(Boolean).join(" · ") || null],
-    ["Fecha de entrega", i?.entrega_fecha ? fecha(i.entrega_fecha) : null],
+    // La fecha de entrega del cierre es texto libre («25/09/2026», «Por confirmar»): va tal cual.
+    ["Fecha de entrega", i?.entrega_fecha?.trim() || null],
     ["Quién recibe", textoContacto(i?.contacto_despacho ?? null)],
   ];
 

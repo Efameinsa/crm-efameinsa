@@ -252,18 +252,14 @@ export function AperturaServicioPanel({
             porque son dos destinatarios distintos, con contenido distinto de
             interesados: el almacén despacha con esto, el cliente coordina la
             recepción. */}
-        <div className="mt-3 grid gap-2 border-t border-border pt-3 sm:grid-cols-2">
+        {/* Santos, 24-09: la apertura de despacho es para el almacén; «enviar al
+            cliente» no va en esta vista. */}
+        <div className="mt-3 border-t border-border pt-3">
           <BotonEnviado
             etiqueta="Al almacén"
             enviadoAt={enviada.almacen}
             disabled={enviando}
             onClick={() => marcarEnviado("almacen")}
-          />
-          <BotonEnviado
-            etiqueta="Al cliente"
-            enviadoAt={enviada.cliente}
-            disabled={enviando}
-            onClick={() => marcarEnviado("cliente")}
           />
         </div>
       </div>

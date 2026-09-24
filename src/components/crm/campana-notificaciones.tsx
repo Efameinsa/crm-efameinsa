@@ -5,12 +5,29 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Bell, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { marcarLeidasDelDestino, marcarNotificacionLeida, marcarTodasLeidas } from "@/lib/acciones/notificaciones";
+import {
+  marcarLeidasDelDestino,
+  marcarNotificacionLeida,
+  marcarTodasLeidas,
+} from "@/lib/acciones/notificaciones";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { fechaHoraLima, fechaLima } from "@/lib/fechas";
-import { alertaSilenciada, prepararAlerta, silenciarAlerta, sonarAlerta, sonarCampanada, sonarPrueba } from "@/lib/sonido-alerta";
+import {
+  alertaSilenciada,
+  prepararAlerta,
+  silenciarAlerta,
+  sonarAlerta,
+  sonarCampanada,
+  sonarPrueba,
+} from "@/lib/sonido-alerta";
 import type { RolUsuario } from "@/types/database";
 
 interface Notificacion {
@@ -32,24 +49,79 @@ interface Notificacion {
  */
 const ESTILO_AVISO: Record<
   string,
-  { encabezado: string; accion: string; duracion: number; tono: "success" | "info" | "warning" | "error" }
+  {
+    encabezado: string;
+    accion: string;
+    duracion: number;
+    tono: "success" | "info" | "warning" | "error";
+  }
 > = {
-  lead_registrado: { encabezado: "Nuevo ingreso", accion: "Ver bandeja", duracion: 12000, tono: "info" },
-  lead_asignado: { encabezado: "Le derivaron un prospecto", accion: "Atenderlo", duracion: 12000, tono: "info" },
-  cotizacion_aprobada: { encabezado: "Gerencia aprobó su cotización", accion: "Enviarla", duracion: 14000, tono: "success" },
-  cotizacion_rechazada: { encabezado: "Gerencia devolvió su cotización", accion: "Corregirla", duracion: 14000, tono: "warning" },
-  cotizacion_pendiente: { encabezado: "Una cotización espera su aprobación", accion: "Revisarla", duracion: 12000, tono: "warning" },
+  lead_registrado: {
+    encabezado: "Nuevo ingreso",
+    accion: "Ver bandeja",
+    duracion: 12000,
+    tono: "info",
+  },
+  lead_asignado: {
+    encabezado: "Le derivaron un prospecto",
+    accion: "Atenderlo",
+    duracion: 12000,
+    tono: "info",
+  },
+  cotizacion_aprobada: {
+    encabezado: "Gerencia aprobó su cotización",
+    accion: "Enviarla",
+    duracion: 14000,
+    tono: "success",
+  },
+  cotizacion_rechazada: {
+    encabezado: "Gerencia devolvió su cotización",
+    accion: "Corregirla",
+    duracion: 14000,
+    tono: "warning",
+  },
+  cotizacion_pendiente: {
+    encabezado: "Una cotización espera su aprobación",
+    accion: "Revisarla",
+    duracion: 12000,
+    tono: "warning",
+  },
   // La única que NO se va sola (duración infinita): existe porque un cliente
   // ya reclamó que lo dejaron esperando (25-08, Mi Casita Facilita). Si esta
   // ventanita desapareciera a los 12 segundos como las demás, un comercial
   // que fue al baño vuelve y no se entera. Se queda hasta que la toque.
-  urgencia: { encabezado: "🚨 Urgente — un cliente está esperando", accion: "Atenderlo ya", duracion: Infinity, tono: "error" },
+  urgencia: {
+    encabezado: "🚨 Urgente — un cliente está esperando",
+    accion: "Atenderlo ya",
+    duracion: Infinity,
+    tono: "error",
+  },
   // Central anuló un cierre (0237) y alguien viene a la planta (0238).
-  cierre_anulado: { encabezado: "Central anuló un cierre suyo", accion: "Ver el motivo", duracion: Infinity, tono: "warning" },
-  visita_planta: { encabezado: "Visita a la planta", accion: "Imprimir para vigilancia", duracion: 14000, tono: "info" },
+  cierre_anulado: {
+    encabezado: "Central anuló un cierre suyo",
+    accion: "Ver el motivo",
+    duracion: Infinity,
+    tono: "warning",
+  },
+  visita_planta: {
+    encabezado: "Visita a la planta",
+    accion: "Imprimir para vigilancia",
+    duracion: 14000,
+    tono: "info",
+  },
   // El cliente respondió a una ficha por WhatsApp (0250): no se va sola, como la urgencia.
-  whatsapp: { encabezado: "💬 WhatsApp — el cliente respondió", accion: "Abrir el chat", duracion: Infinity, tono: "success" },
-  otro: { encabezado: "Aviso nuevo", accion: "Ver", duracion: 8000, tono: "info" },
+  whatsapp: {
+    encabezado: "💬 WhatsApp — el cliente respondió",
+    accion: "Abrir el chat",
+    duracion: Infinity,
+    tono: "success",
+  },
+  otro: {
+    encabezado: "Aviso nuevo",
+    accion: "Ver",
+    duracion: 8000,
+    tono: "info",
+  },
 };
 
 /**
@@ -61,7 +133,10 @@ const ESTILO_AVISO: Record<
  * la bandeja, el panel, «Mis oportunidades».
  */
 function tieneDestinoConcreto(url: string | null): boolean {
-  return Boolean(url && /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(url));
+  return Boolean(
+    url &&
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(url),
+  );
 }
 
 /** Cómo se llama el botón cuando el destino es una pantalla general. */
@@ -105,7 +180,13 @@ function tiempoRelativo(iso: string): string {
   return fechaLima(iso);
 }
 
-export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: RolUsuario }) {
+export function CampanaNotificaciones({
+  userId,
+  rol,
+}: {
+  userId: string;
+  rol?: RolUsuario;
+}) {
   const router = useRouter();
   const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
@@ -129,7 +210,10 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
    */
   const conocidasRef = useRef<Set<string> | null>(null);
 
-  const noLeidas = Math.max(notificaciones.filter((n) => !n.leida_at).length, sinLeerTotal);
+  const noLeidas = Math.max(
+    notificaciones.filter((n) => !n.leida_at).length,
+    sinLeerTotal,
+  );
 
   /**
    * El aviso que ve y oye la persona cuando entra algo nuevo.
@@ -147,12 +231,22 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
    *  · EL SONIDO ES OPCIONAL Y SE RECUERDA (ver lib/sonido-alerta.ts).
    */
   function avisar(n: Notificacion) {
+    // La pantalla abierta se pone al día sola (RefrescoEnVivo): «Series
+    // listas», «Liquidación lista», «Confirmar abono»… cambian lo que se ve.
+    window.dispatchEvent(
+      new CustomEvent("crm:aviso", { detail: { tipo: n.tipo, url: n.url } }),
+    );
     // La campanada triple suena EN TODAS LAS CUENTAS cuando el aviso exige
     // hacer algo (orden del 25-08: «para que sientan la presión al menos del
     // sonido»): prospecto nuevo (Central y gerencia), lead derivado
     // (comercial), cotización por aprobar (gerencia) y urgencia. Los avisos
     // informativos (aprobada/rechazada) conservan el pitido corto.
-    const exigeAccion = ["lead_registrado", "lead_asignado", "cotizacion_pendiente", "urgencia"].includes(n.tipo);
+    const exigeAccion = [
+      "lead_registrado",
+      "lead_asignado",
+      "cotizacion_pendiente",
+      "urgencia",
+    ].includes(n.tipo);
     if (exigeAccion) sonarCampanada(n.id);
     else sonarAlerta(n.id);
     // Para Central, el prospecto nuevo además se queda en pantalla hasta que
@@ -196,7 +290,11 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
       // Ahora las pendientes se piden explícitamente y van primero: lo que
       // dice el número es exactamente lo que se ve arriba de la lista.
       const [recientes, pendientes] = await Promise.all([
-        supabase.from("notificaciones").select(columnas).order("created_at", { ascending: false }).limit(15),
+        supabase
+          .from("notificaciones")
+          .select(columnas)
+          .order("created_at", { ascending: false })
+          .limit(15),
         supabase
           .from("notificaciones")
           .select(columnas, { count: "exact" })
@@ -208,7 +306,8 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
       const sinLeer = pendientes.data ?? [];
       const vistos = new Set(sinLeer.map((n) => n.id));
       const leidas = (recientes.data ?? []).filter((n) => !vistos.has(n.id));
-      if (recientes.data || pendientes.data) setNotificaciones([...sinLeer, ...leidas]);
+      if (recientes.data || pendientes.data)
+        setNotificaciones([...sinLeer, ...leidas]);
       setSinLeerTotal(pendientes.count ?? sinLeer.length);
 
       // EL REPASO TAMBIÉN AVISA (31-08). Si el canal en tiempo real está
@@ -236,29 +335,55 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
     window.addEventListener("focus", alVolver);
     const repaso = setInterval(refrescar, 60000);
 
-    const canal = supabase
-      .channel("notificaciones-propias")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notificaciones", filter: `user_id=eq.${userId}` },
-        (payload) => {
-          const nueva = payload.new as Notificacion;
-          setNotificaciones((prev) => [nueva, ...prev].slice(0, 15));
-          setSinLeerTotal((n) => n + 1);
-          // El canal vivo la anuncia y la anota como conocida: el próximo
-          // repaso no la vuelve a sonar.
-          conocidasRef.current?.add(nueva.id);
-          avisar(nueva);
-        },
-      )
-      .subscribe();
+    // EL CANAL VIVO CON LA SESIÓN (24-09). El navegador se unía al canal sin
+    // el token del usuario: la base, por RLS, no le mandaba ninguna fila y la
+    // campana solo se enteraba con el repaso de cada minuto (~60 s de atraso
+    // en todos los avisos). Se le da el token antes de unirse y se renueva
+    // cuando la sesión lo renueva.
+    let canal: ReturnType<typeof supabase.channel> | null = null;
+    let vigente = true;
+    const { data: escucha } = supabase.auth.onAuthStateChange(
+      (_evento, sesion) => {
+        if (sesion?.access_token)
+          supabase.realtime.setAuth(sesion.access_token);
+      },
+    );
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token)
+        supabase.realtime.setAuth(data.session.access_token);
+      if (!vigente) return;
+      canal = supabase
+        .channel("notificaciones-propias")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notificaciones",
+            filter: `user_id=eq.${userId}`,
+          },
+          (payload) => {
+            const nueva = payload.new as Notificacion;
+            setNotificaciones((prev) => [nueva, ...prev].slice(0, 15));
+            setSinLeerTotal((n) => n + 1);
+            // El canal vivo la anuncia y la anota como conocida: el próximo
+            // repaso no la vuelve a sonar.
+            conocidasRef.current?.add(nueva.id);
+            avisar(nueva);
+          },
+        )
+        .subscribe();
+    })();
 
     // Deja el audio autorizado con el primer clic: si no, el primer aviso del
     // día llegaría mudo porque el navegador todavía no permite sonido.
     const soltarPreparacion = prepararAlerta();
 
     return () => {
-      supabase.removeChannel(canal);
+      vigente = false;
+      escucha.subscription.unsubscribe();
+      if (canal) supabase.removeChannel(canal);
       soltarPreparacion();
       document.removeEventListener("visibilitychange", alVolver);
       window.removeEventListener("focus", alVolver);
@@ -298,7 +423,11 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
     marcarLeidasDelDestino(ruta).then(() => {
       if (!vigente) return;
       const ahora = new Date().toISOString();
-      setNotificaciones((prev) => prev.map((n) => (ids.has(n.id) ? { ...n, leida_at: n.leida_at ?? ahora } : n)));
+      setNotificaciones((prev) =>
+        prev.map((n) =>
+          ids.has(n.id) ? { ...n, leida_at: n.leida_at ?? ahora } : n,
+        ),
+      );
       setSinLeerTotal((v) => Math.max(0, v - ids.size));
     });
     return () => {
@@ -311,7 +440,12 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
   // cada 2 minutos. Deja de insistir en cuanto lo abre o lo marca como leído.
   // Chrome espacia los timers de pestañas en segundo plano, pero un intervalo
   // de 2 minutos sobrevive a esa restricción.
-  const leadsSinLeer = rol === "central" ? notificaciones.filter((n) => !n.leida_at && n.tipo === "lead_registrado").length : 0;
+  const leadsSinLeer =
+    rol === "central"
+      ? notificaciones.filter(
+          (n) => !n.leida_at && n.tipo === "lead_registrado",
+        ).length
+      : 0;
 
   useEffect(() => {
     if (rol !== "central") return;
@@ -321,13 +455,19 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
 
   useEffect(() => {
     if (rol !== "central" || leadsSinLeer === 0) return;
-    const timer = setInterval(() => sonarCampanada(`repique-${Date.now()}`), 120000);
+    const timer = setInterval(
+      () => sonarCampanada(`repique-${Date.now()}`),
+      120000,
+    );
     return () => clearInterval(timer);
   }, [rol, leadsSinLeer]);
 
   useEffect(() => {
     function alClickearFuera(e: MouseEvent) {
-      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) {
+      if (
+        contenedorRef.current &&
+        !contenedorRef.current.contains(e.target as Node)
+      ) {
         setAbierto(false);
       }
     }
@@ -352,7 +492,11 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
    */
   async function alClickearNotificacion(n: Notificacion) {
     if (!n.leida_at) {
-      setNotificaciones((prev) => prev.map((x) => (x.id === n.id ? { ...x, leida_at: new Date().toISOString() } : x)));
+      setNotificaciones((prev) =>
+        prev.map((x) =>
+          x.id === n.id ? { ...x, leida_at: new Date().toISOString() } : x,
+        ),
+      );
       setSinLeerTotal((v) => Math.max(0, v - 1));
       await marcarNotificacionLeida(n.id);
     }
@@ -365,7 +509,12 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
   }
 
   async function alMarcarTodas() {
-    setNotificaciones((prev) => prev.map((x) => ({ ...x, leida_at: x.leida_at ?? new Date().toISOString() })));
+    setNotificaciones((prev) =>
+      prev.map((x) => ({
+        ...x,
+        leida_at: x.leida_at ?? new Date().toISOString(),
+      })),
+    );
     setSinLeerTotal(0);
     await marcarTodasLeidas();
   }
@@ -392,7 +541,12 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
             <span className="text-sm font-semibold">Notificaciones</span>
             <div className="flex items-center gap-3">
               {noLeidas > 0 && (
-                <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" onClick={alMarcarTodas}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 text-xs text-primary"
+                  onClick={alMarcarTodas}
+                >
                   Marcar todas como leídas
                 </Button>
               )}
@@ -421,16 +575,26 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
                   if (!nuevo) sonarAlerta(`prueba-${Date.now()}`);
                 }}
                 className="text-muted-foreground transition-colors hover:text-foreground"
-                aria-label={silenciada ? "Activar el sonido de los avisos" : "Silenciar el sonido de los avisos"}
+                aria-label={
+                  silenciada
+                    ? "Activar el sonido de los avisos"
+                    : "Silenciar el sonido de los avisos"
+                }
                 title={silenciada ? "Sonido apagado" : "Sonido encendido"}
               >
-                {silenciada ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+                {silenciada ? (
+                  <VolumeX className="size-4" />
+                ) : (
+                  <Volume2 className="size-4" />
+                )}
               </button>
             </div>
           </div>
           <div className="max-h-96 overflow-y-auto">
             {notificaciones.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">Sin notificaciones todavía.</p>
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">
+                Sin notificaciones todavía.
+              </p>
             ) : (
               notificaciones.map((n) => (
                 <button
@@ -446,11 +610,21 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
                     )}
                   />
                   <div className="min-w-0">
-                    <p className={cn("text-xs leading-snug", !n.leida_at && "text-foreground", n.leida_at && "text-muted-foreground")}>
-                      <span className="font-semibold text-foreground">{n.titulo}</span>
+                    <p
+                      className={cn(
+                        "text-xs leading-snug",
+                        !n.leida_at && "text-foreground",
+                        n.leida_at && "text-muted-foreground",
+                      )}
+                    >
+                      <span className="font-semibold text-foreground">
+                        {n.titulo}
+                      </span>
                       {n.cuerpo ? ` ${n.cuerpo}` : ""}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{tiempoRelativo(n.created_at)}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {tiempoRelativo(n.created_at)}
+                    </p>
                   </div>
                 </button>
               ))
@@ -459,22 +633,35 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
         </div>
       )}
 
-      <Dialog open={detalle !== null} onOpenChange={(v) => !v && setDetalle(null)}>
+      <Dialog
+        open={detalle !== null}
+        onOpenChange={(v) => !v && setDetalle(null)}
+      >
         {detalle && (
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="pr-6">{(ESTILO_AVISO[detalle.tipo] ?? ESTILO_AVISO.otro).encabezado}</DialogTitle>
-              <DialogDescription>{fechaHoraLima(detalle.created_at)}</DialogDescription>
+              <DialogTitle className="pr-6">
+                {(ESTILO_AVISO[detalle.tipo] ?? ESTILO_AVISO.otro).encabezado}
+              </DialogTitle>
+              <DialogDescription>
+                {fechaHoraLima(detalle.created_at)}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">{detalle.titulo}</p>
+              <p className="text-sm font-semibold text-foreground">
+                {detalle.titulo}
+              </p>
               {detalle.cuerpo && (
                 <p className="whitespace-pre-wrap rounded-md border border-border bg-secondary/40 p-3 text-sm leading-relaxed text-foreground">
                   {detalle.cuerpo}
                 </p>
               )}
             </div>
-            {porQueSinDestino(detalle) && <p className="text-xs text-muted-foreground">{porQueSinDestino(detalle)}</p>}
+            {porQueSinDestino(detalle) && (
+              <p className="text-xs text-muted-foreground">
+                {porQueSinDestino(detalle)}
+              </p>
+            )}
             {detalle.url && (
               <div className="flex justify-end border-t border-border pt-3">
                 <Button
@@ -485,7 +672,8 @@ export function CampanaNotificaciones({ userId, rol }: { userId: string; rol?: R
                     router.push(destino);
                   }}
                 >
-                  {NOMBRE_DEL_DESTINO[detalle.url] ?? "Ir"} <ArrowRight className="size-3.5" />
+                  {NOMBRE_DEL_DESTINO[detalle.url] ?? "Ir"}{" "}
+                  <ArrowRight className="size-3.5" />
                 </Button>
               </div>
             )}

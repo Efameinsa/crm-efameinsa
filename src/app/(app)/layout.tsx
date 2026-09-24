@@ -1,4 +1,5 @@
 import { requerirPerfil } from "@/lib/auth";
+import { RefrescoEnVivo } from "@/components/crm/refresco-en-vivo";
 import { createClient } from "@/lib/supabase/server";
 import { contarAtencionesAbiertas, contarBandejaMiDia } from "@/lib/contadores-postventa";
 import { BarraLateral } from "@/components/crm/barra-lateral";
@@ -134,6 +135,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <AvisoGestionesSinSubir />
         </div>}
         <main className="flex-1 bg-app-bg p-6">{children}</main>
+        <RefrescoEnVivo />
         {/* La pastilla de «hay versión nueva»: la pestaña nace sabiendo su
             versión y pregunta si el servidor ya es otro. Con esto muere el
             Ctrl+Shift+R (Santos, 31-08). */}

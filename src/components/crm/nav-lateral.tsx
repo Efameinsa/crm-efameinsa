@@ -55,6 +55,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // despachar: hasta ahora era la única que no tenía dónde verlo.
     { href: "/central/derivados", etiqueta: "Lo que derivé", icono: Send },
     { href: "/central/cierres", etiqueta: "Cierres de venta", icono: PackageCheck },
+    // Santos, 24-09: «Central debería tener una opción que diga: sus pedidos».
+    // Lo que ya liberó, en qué paso va y a quién le toca.
+    { href: "/central/pedidos", etiqueta: "Sus pedidos", icono: Package },
     // «Que tenga acceso al listado de presupuestos, que permita filtrar día,
     // semana, mes, año» (Carlos, 31-08 y 01-09).
     { href: "/central/presupuestos", etiqueta: "Presupuestos", icono: FileText },
