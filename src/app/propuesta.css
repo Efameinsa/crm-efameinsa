@@ -622,8 +622,10 @@ html:has(.propuesta) {
 }
 
 /* Ventanas con formulario: más anchas, que los campos respiren. */
+/* min-width y no max-width: agranda las chicas sin angostar las que ya son
+   anchas (como «Pasar contacto a Central»). */
 .propuesta [data-slot="dialog-content"]:has(form) {
-  max-width: min(34rem, calc(100% - 2rem));
+  min-width: min(34rem, calc(100% - 2rem));
 }
 
 /* «Pasar contacto a Central» en la cabecera: píldora con borde, como los demás botones de arriba. */
@@ -637,6 +639,42 @@ html:has(.propuesta) {
 }
 .propuesta .pasar-a-central > button:hover {
   background: color-mix(in srgb, var(--c-verde) 10%, transparent);
+}
+
+/* «Pasar un contacto a Central»: bloques con un poco más de aire (24-09,
+   Santos: «está un poco apretado… cuando está presionado el WhatsApp dale
+   un poquito más de margen, pero ligero»). */
+.propuesta .dialogo-pasar form > div > section + section {
+  margin-top: 0.15rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.propuesta .dialogo-pasar section > * + * {
+  margin-top: 0.3rem;
+}
+.propuesta .dialogo-pasar section h3 {
+  margin-bottom: 0.1rem;
+}
+.propuesta .dialogo-pasar .space-y-1\.5 > * + * {
+  margin-top: 0.15rem;
+}
+.propuesta .dialogo-pasar .canales {
+  gap: 0.5rem;
+  padding-top: 0.1rem;
+}
+.propuesta .dialogo-pasar .canales > button {
+  padding: 0.4rem 0.95rem;
+}
+.propuesta .dialogo-pasar .canales > button[aria-pressed="true"] {
+  box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--primary) 80%, transparent);
+}
+.propuesta .campo-campania {
+  margin-top: 0.5rem;
+  padding: 0.8rem 0.9rem 0.9rem;
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--c-verde) 7%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--c-verde) 22%, transparent);
+  animation: emerge 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Barras de desplazamiento finas. */

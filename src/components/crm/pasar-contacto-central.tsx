@@ -251,7 +251,7 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
           archivos: al pegar la captura, el cursor está en cualquier campo. */}
       <DialogContent
         onPaste={adjuntos.onPaste}
-        className="grid max-h-[92dvh] grid-rows-[auto_minmax(0,1fr)] sm:max-w-2xl"
+        className="dialogo-pasar grid max-h-[92dvh] grid-rows-[auto_minmax(0,1fr)] sm:max-w-2xl"
       >
         <DialogHeader>
           <DialogTitle>Pasar un contacto a Central</DialogTitle>
@@ -401,7 +401,7 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
                   <Obligatorio />
                 </Label>
                 <input type="hidden" name="canal" value={canal} />
-                <div className="flex flex-wrap gap-1.5">
+                <div className="canales flex flex-wrap gap-1.5">
                   {CANALES.map(([v, t]) => (
                     <button
                       key={v}

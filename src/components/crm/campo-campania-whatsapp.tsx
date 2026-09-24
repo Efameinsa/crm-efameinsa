@@ -31,12 +31,18 @@ export function CampoCampaniaWhatsapp({ campanias, visible, value, onChange, idB
     );
   }
   return (
-    <div className="space-y-1.5">
+    <div className="campo-campania space-y-1.5">
       <Label htmlFor={idBase}>
         ¿De qué campaña de WhatsApp llegó? <span className="font-normal text-muted-foreground">(si el mensaje traía un código)</span>
       </Label>
       <input type="hidden" name="codigo_campania_wa" value={value} />
-      <Select value={value || "__ninguna"} onValueChange={(v) => onChange(v === "__ninguna" ? "" : (v ?? ""))}>
+      {/* `items`: sin la lista, el Select de Base UI pinta el valor crudo
+          («__ninguna») hasta que se abre (Santos lo vio el 24-09). */}
+      <Select
+        value={value || "__ninguna"}
+        onValueChange={(v) => onChange(v === "__ninguna" ? "" : (v ?? ""))}
+        items={[{ value: "__ninguna", label: "Sin código / no vino de un anuncio" }, ...campanias.map((c) => ({ value: c.codigo, label: `${c.codigo} — ${c.nombre}` }))]}
+      >
         <SelectTrigger id={idBase} className="w-full">
           <SelectValue placeholder="Sin código / no vino de un anuncio" />
         </SelectTrigger>
