@@ -126,6 +126,14 @@ export async function liberarPedido(datos: {
       url: `/finanzas/pedidos/${servicio.id}`,
       esPrueba: servicio.es_prueba === true,
     });
+    // Y al almacén (revisión 23-09: Carlos, «lo tiene postventa, almacén y
+    // Finanzas»; el aviso de Central lo decía pero el almacén no lo recibía).
+    await notificarAlmacen({
+      titulo: `Pedido nuevo · ${(servicio.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
+      cuerpo: `Central lo ejecutó${resumenEquipos}. Postventa le pedirá la prueba y el despacho.`,
+      url: `/almacen/pedidos/${servicio.id}`,
+      esPrueba: servicio.es_prueba === true,
+    });
   }
   return ok();
 }
@@ -707,7 +715,7 @@ export async function registrarSerieDelEquipo(itemId: string, servicioId: string
     if ((count ?? 0) === 0) {
       await notificarCentral({
         titulo: `Series listas · ${(srv.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
-        cuerpo: "El almacén puso todas las series. Ya puede anotar el N.º de pedido e imprimirlo.",
+        cuerpo: "El almacén puso todas las series. Ya puede generar el pedido e imprimirlo.",
         url: "/central/cierres",
         esPrueba: srv.es_prueba === true,
       });

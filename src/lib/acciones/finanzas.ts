@@ -52,7 +52,7 @@ async function avisarInteresados(
       notificar({ userId: p.id, tipo: "finanzas", titulo: texto.titulo, cuerpo: texto.cuerpoPostventa, url: `/postventa/pedidos/${servicioId}` }),
     ),
     ...(comercial
-      ? [notificar({ userId: comercial, tipo: "finanzas", titulo: texto.titulo, cuerpo: texto.cuerpoComercial, url: "/comercial/cierres" })]
+      ? [notificar({ userId: comercial, tipo: "finanzas", titulo: texto.titulo, cuerpo: texto.cuerpoComercial, url: `/pedidos/${servicioId}/pagos` })]
       : []),
   ]);
 }
@@ -86,7 +86,8 @@ export async function confirmarAbono(datos: {
     p_nota: datos.nota?.trim() || null,
   });
   if (error) return { error: limpiar(error.message) };
-  const desc = datos.descuento && datos.descuento.monto > 0 ? datos.descuento : null;
+  let desc = datos.descuento && datos.descuento.monto > 0 ? datos.descuento : null;
+  let errorDescuento: string | null = null;
   if (desc) {
     const { error: e2 } = await supabase.rpc("finanzas_anotar_descuento", {
       p_servicio: datos.servicioId,
@@ -94,7 +95,11 @@ export async function confirmarAbono(datos: {
       p_motivo: desc.motivo,
       p_adjunto: desc.adjuntoPath?.trim() || null,
     });
-    if (e2) return { error: `El abono quedó confirmado, pero no se anotó el descuento: ${limpiar(e2.message)}` };
+    // El abono ya está: se avisa igual y se informa lo que faltó.
+    if (e2) {
+      errorDescuento = `El abono quedó confirmado y avisado, pero no se anotó el descuento: ${limpiar(e2.message)}`;
+      desc = null;
+    }
   }
 
   const monto = datos.monto.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -111,7 +116,7 @@ export async function confirmarAbono(datos: {
     // cliente, lo cobra y registra la llamada con el voucher».
     cuerpoComercial: `Abono de ${monto} acreditado (op. ${datos.operacion.trim()}, ${datos.medio.trim()}).${
       desc
-        ? ` Descontaron ${descTexto} (${desc.motivo.trim()})${desc.adjuntoPath ? ", con la evidencia del banco en el pedido" : ""}: cóbrelo al cliente, registre la gestión con el voucher y Finanzas lo confirma.`
+        ? ` Descontaron ${descTexto} (${desc.motivo.trim()})${desc.adjuntoPath ? ", con la evidencia del banco en el aviso" : ""}: cóbrelo al cliente, registre la gestión con el voucher y Finanzas lo confirma.`
         : ""
     }${cubierto ? " Ya cubre lo acordado antes del despacho." : " Todavía falta para lo acordado antes del despacho."}`,
   }), datos.avisar ?? A_AMBOS);
@@ -121,7 +126,7 @@ export async function confirmarAbono(datos: {
   revalidatePath("/finanzas/confirmados");
   revalidatePath(`/finanzas/pedidos/${datos.servicioId}`);
   revalidatePath(`/postventa/pedidos/${datos.servicioId}`);
-  return { error: null, total: Number(data) };
+  return { error: errorDescuento, total: Number(data) };
 }
 
 export async function observarPago(datos: { servicioId: string; motivo: string; adjuntoPath?: string | null; avisar?: Avisar }): Promise<Resultado> {
@@ -139,7 +144,7 @@ export async function observarPago(datos: { servicioId: string; motivo: string; 
   await avisarInteresados(datos.servicioId, ({ cliente }) => ({
     titulo: `Finanzas observó el pago · ${cliente}`,
     cuerpoPostventa: `${motivo} — el pedido no avanza hasta que se aclare.`,
-    cuerpoComercial: `${motivo}${datos.adjuntoPath ? " (la evidencia está en el pedido)" : ""} — hable con el cliente y avísele a Finanzas.`,
+    cuerpoComercial: `${motivo}${datos.adjuntoPath ? " (la evidencia está en el aviso)" : ""} — hable con el cliente y avísele a Finanzas.`,
   }), datos.avisar ?? A_AMBOS);
 
   revalidatePath("/finanzas");

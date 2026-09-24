@@ -71,11 +71,14 @@ export default async function AlmacenPage() {
   ]);
   const ap = (aperturas ?? []) as { id: string; tomada_at: string | null; informe_at: string | null }[];
   // Las series que Central pidió (0290): pedidos con al menos un equipo sin serie.
-  const { data: pedidasSeries } = await supabase.from("servicios_postventa").select("id").not("series_pedidas_at", "is", null).is("cerrado_at", null).limit(300);
-  const idsSeries = ((pedidasSeries ?? []) as { id: string }[]).map((x) => x.id);
-  const { data: sinSerie } = idsSeries.length
-    ? await supabase.from("pedido_equipos").select("servicio_id").in("servicio_id", idsSeries).is("serie", null)
-    : { data: [] };
+  // Con el filtro en la unión, no con .in() de cientos de ids (que revienta la URL).
+  const { data: sinSerie } = await supabase
+    .from("pedido_equipos")
+    .select("servicio_id, servicios_postventa!inner(id)")
+    .is("serie", null)
+    .not("servicios_postventa.series_pedidas_at", "is", null)
+    .is("servicios_postventa.cerrado_at", null)
+    .limit(2000);
   const pedidosSinSerie = new Set(((sinSerie ?? []) as { servicio_id: string }[]).map((x) => x.servicio_id)).size;
 
   const vivos = (pedidos ?? []) as unknown as ServicioPostventa[];

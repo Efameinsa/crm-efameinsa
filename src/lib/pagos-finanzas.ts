@@ -33,8 +33,10 @@ export interface PedidoFinanzas {
   diasParaVencer: number | null;
   observadoAt: string | null;
   observadoMotivo: string | null;
-  /** Postventa pidió confirmar el abono y todavía no hay respuesta (0295). */
+  /** Postventa pidió confirmar el abono y todavía no hay respuesta (0295; se limpia al contestar, 0296). */
   solicitadoAt: string | null;
+  /** La evidencia de la observación (ruta en el bucket). */
+  observadoAdjunto: string | null;
   pagoConfirmadoAt: string | null;
   pagoConfirmadoDetalle: string | null;
   liberadoAt: string | null;
@@ -52,7 +54,7 @@ export interface PedidoFinanzas {
 }
 
 const COLUMNAS =
-  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_solicitado_at, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, informe_cierre_id, numero_pedido_erp, cerrado_at, completado, created_at";
+  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, informe_cierre_id, numero_pedido_erp, cerrado_at, completado, created_at";
 
 const limpiarCliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const dia = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
@@ -123,13 +125,9 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
         diasParaVencer: venceEl ? diasEntre(hoy, venceEl) : null,
         observadoAt: (f.pago_observado_at as string | null) ?? null,
         observadoMotivo: (f.pago_observado_motivo as string | null) ?? null,
-        // Pendiente si nadie contestó después del pedido: ni confirmó ni observó.
-        solicitadoAt:
-          f.pago_solicitado_at &&
-          !((f.pago_observado_at as string | null) && (f.pago_observado_at as string) > (f.pago_solicitado_at as string)) &&
-          !((f.pago_confirmado_at as string | null) && (f.pago_confirmado_at as string) > (f.pago_solicitado_at as string))
-            ? (f.pago_solicitado_at as string)
-            : null,
+        // Confirmar u observar lo limpian en la base (0296): si está, espera respuesta.
+        solicitadoAt: (f.pago_solicitado_at as string | null) ?? null,
+        observadoAdjunto: (f.pago_observado_adjunto as string | null) ?? null,
         pagoConfirmadoAt: (f.pago_confirmado_at as string | null) ?? null,
         pagoConfirmadoDetalle: (f.pago_confirmado_detalle as string | null) ?? null,
         liberadoAt: (f.pedido_ejecutado_at as string | null) ?? null,
@@ -220,6 +218,10 @@ export interface AbonoConfirmado {
   nota: string | null;
   registradoPor: string | null;
   createdAt: string;
+  /** Lo que el banco descontó y su evidencia (0292, 0295). */
+  descuentoMonto: number | null;
+  descuentoMotivo: string | null;
+  descuentoUrl: string | null;
 }
 
 export async function abonos(
@@ -228,7 +230,7 @@ export async function abonos(
 ): Promise<AbonoConfirmado[]> {
   let consulta = supabase
     .from("pagos_pedido")
-    .select("id, servicio_id, monto, moneda, fecha_abono, operacion, medio, captura_path, nota, registrado_por, created_at, servicios_postventa(cliente_texto), perfiles!pagos_pedido_registrado_por_fkey(nombre)")
+    .select("id, servicio_id, monto, moneda, fecha_abono, operacion, medio, captura_path, nota, registrado_por, created_at, descuento_monto, descuento_motivo, descuento_adjunto, servicios_postventa(cliente_texto), perfiles!pagos_pedido_registrado_por_fkey(nombre)")
     .order("created_at", { ascending: false })
     .limit(filtro.limite ?? 300);
   if (filtro.servicioId) consulta = consulta.eq("servicio_id", filtro.servicioId);
@@ -242,7 +244,7 @@ export async function abonos(
       [(f.servicios_postventa as Fila | null)?.cliente_texto, f.operacion, f.medio].some((v) => String(v ?? "").toLowerCase().includes(q)),
     );
   }
-  const rutas = filas.map((f) => f.captura_path as string | null).filter(Boolean) as string[];
+  const rutas = filas.flatMap((f) => [f.captura_path as string | null, f.descuento_adjunto as string | null]).filter(Boolean) as string[];
   const urls = new Map<string, string>();
   if (rutas.length) {
     const { data: firmadas } = await supabase.storage.from("adjuntos").createSignedUrls(rutas, 3600);
@@ -261,6 +263,9 @@ export async function abonos(
     nota: (f.nota as string | null) ?? null,
     registradoPor: ((f.perfiles as Fila | null)?.nombre as string | null) ?? null,
     createdAt: f.created_at as string,
+    descuentoMonto: f.descuento_monto == null ? null : Number(f.descuento_monto),
+    descuentoMotivo: (f.descuento_motivo as string | null) ?? null,
+    descuentoUrl: f.descuento_adjunto ? (urls.get(f.descuento_adjunto as string) ?? null) : null,
   }));
 }
 
