@@ -1,12 +1,11 @@
 import { cookies } from "next/headers";
-import { Archivo } from "next/font/google";
 import { Bell, Moon, Plus, Search, Sparkles, Sun } from "lucide-react";
 import "@/app/propuesta.css";
 import { BarraPropuesta } from "@/components/propuesta/barra-propuesta";
 import { cn } from "@/lib/utils";
 
-/** La letra de la marca, solo para el marco de la propuesta (ver propuesta.css). */
-const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--fuente-propuesta", display: "swap" });
+// La letra de la marca (Archivo) va alojada en public/fonts y declarada en
+// propuesta.css: next/font/google no compila con Turbopack en esta versión.
 export const COOKIE_TEMA = "crm-tema";
 import { BUSCAR_EN, MENU, NOMBRE_PERFIL, VER_COMO, tipoDePerfil } from "@/lib/propuesta/menu";
 import type { Perfil } from "@/types/database";
@@ -45,7 +44,7 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
   // Claro u oscuro, elegido desde la cabecera; la cookie la pone /demo/vista.
   const oscuro = (await cookies()).get(COOKIE_TEMA)?.value === "oscuro";
   return (
-    <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", archivo.variable, oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
+    <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
       <BarraPropuesta opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} verComo={tipo === "operaciones" ? VER_COMO : undefined} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-card/85 px-6 py-3 backdrop-blur">

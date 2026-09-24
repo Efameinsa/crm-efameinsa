@@ -8,9 +8,17 @@
  * siempre que van por dentro de una sección, sin tocar el CRM oficial: las
  * cuentas reales nunca tienen esta clase.
  */
+/* La letra de la marca, alojada en el propio CRM (funciona sin internet). */
+@font-face {
+  font-family: "Archivo Propuesta";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/archivo-latin.woff2") format("woff2");
+}
+
 .propuesta {
-  /* Tipografía de la marca (Archivo) cargada por next/font en marco-propuesta.tsx. */
-  --font-sans: var(--fuente-propuesta), "Segoe UI", Arial, sans-serif;
+  --font-sans: "Archivo Propuesta", "Segoe UI", Arial, sans-serif;
   --radius: 0.9rem;
 
   /* Neutros fríos y limpios; el granate sigue siendo el acento. */
