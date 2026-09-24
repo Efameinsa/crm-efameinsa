@@ -61,11 +61,13 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
 
   const { data } = await supabase.from("servicios_postventa").select("*").eq("id", id).single();
   // Las fotos del almacén (0246), firmadas para poder verlas.
+  // Una entrada sin `path` (la máquina probada sin fotos dejaba un `null`
+  // en la lista, 0300) no es una foto: se ignora en vez de tumbar la página.
   const fotosAlmacen: FotoAlmacen[] = [
-    ...(((data?.protocolo_fotos ?? []) as FotoAlmacen[])),
-    ...(((data?.salida_fotos ?? []) as FotoAlmacen[])),
-    ...(((data?.agencia_fotos ?? []) as FotoAlmacen[])),
-  ];
+    ...(((data?.protocolo_fotos ?? []) as (FotoAlmacen | null)[])),
+    ...(((data?.salida_fotos ?? []) as (FotoAlmacen | null)[])),
+    ...(((data?.agencia_fotos ?? []) as (FotoAlmacen | null)[])),
+  ].filter((f): f is FotoAlmacen => Boolean(f && typeof f.path === "string" && f.path));
   const { data: firmadasAlmacen } = fotosAlmacen.length
     ? await supabase.storage.from("adjuntos").createSignedUrls(fotosAlmacen.map((f) => f.path), 3600)
     : { data: null };
