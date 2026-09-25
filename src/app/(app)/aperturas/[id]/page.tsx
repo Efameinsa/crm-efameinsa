@@ -125,7 +125,18 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
         )}
       </div>
 
-      <SeccionPanel titulo="La orden de postventa">
+      <SeccionPanel
+        titulo="La orden de postventa"
+        accion={
+          // Para el técnico y el archivo (Lesly, 25-09: «no hay opción para imprimirlo»).
+          <Link
+            href={`/aperturas/${a.id}/orden`}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
+          >
+            <Printer className="size-3.5" /> Imprimir / PDF
+          </Link>
+        }
+      >
         {formato && FILAS_FORMATO.some((f) => (f.clave === "problema" ? problemaConEquipo(formato) : formato[f.clave])) && (
           <table className="mb-4 w-full border-collapse text-sm">
             <caption className="mb-1 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">

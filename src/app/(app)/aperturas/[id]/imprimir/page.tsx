@@ -104,9 +104,13 @@ export default async function ImprimirAperturaPage({ params }: { params: Promise
       <style>{`
         @media print {
           @page { size: A4; margin: 14mm; }
-          body * { visibility: hidden !important; }
-          .hoja-informe, .hoja-informe * { visibility: visible !important; }
-          .hoja-informe { position: absolute; inset: 0; max-width: none; padding: 0; margin: 0; }
+          /* Fuera todo lo que no es la hoja, y sin la altura de la pantalla de
+             atrás: con «visibility: hidden» seguía ocupando lugar y salía una
+             segunda página en blanco (25-09). */
+          body *:not(:has(.hoja-informe)):not(.hoja-informe):not(.hoja-informe *) { display: none !important; }
+          body *:has(.hoja-informe) { min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; border: 0 !important; box-shadow: none !important; background: transparent !important; }
+          html, body { background: #fff !important; }
+          .hoja-informe { max-width: none; padding: 0; margin: 0; }
           .no-imprimir { display: none !important; }
           img { break-inside: avoid; }
         }
