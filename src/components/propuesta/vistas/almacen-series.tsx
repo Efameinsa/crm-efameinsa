@@ -1,4 +1,5 @@
-import { Lock } from "lucide-react";
+import Link from "next/link";
+import { Lock, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { FilaTrabajo, Grupo, Vacio, haceCuanto, type DatosFila } from "@/components/propuesta/kit";
 
@@ -74,11 +75,11 @@ function fila(p: PedidoSeries): DatosFila {
     href: `/almacen/pedidos/${p.id}`,
     sub: equipos || "Máquinas del pedido",
     estado: { texto: p.total > 0 ? `Faltan ${n} de ${p.total}` : `Faltan ${n}`, tono: viejo ? "atencion" : "info" },
-    espera: "Central espera las series para lanzar el pedido",
+    espera: "Central espera los códigos para lanzar el pedido",
     edad: `Pedidas ${haceCuanto(p.pedidasAt)}`,
     edadTono: viejo ? "atencion" : "neutro",
     tono: viejo ? "atencion" : "neutro",
-    accion: { etiqueta: n === 1 ? "Registrar la serie" : "Registrar series", href: `/almacen/pedidos/${p.id}` },
+    accion: { etiqueta: n === 1 ? "Poner el código" : `Poner los ${n} códigos`, href: `/almacen/pedidos/${p.id}` },
   };
 }
 
@@ -94,20 +95,26 @@ export default async function AlmacenSeries() {
         <Lock className="mt-0.5 size-3.5 shrink-0" />
         <span>
           Escriba cada serie tal como se lee en la placa de la máquina. <b>Una vez guardada queda fija</b>: para corregirla hace falta el código de operaciones y el
-          motivo.
+          motivo. Lo que no lleva serie (coches, carros) va con <b>un solo código para todas sus unidades</b>, desde el pedido.
         </span>
       </p>
+      {/* Para anotar en el almacén y pasarlo después (Lesly, 25-09): la misma hoja del CRM de siempre. */}
+      <div className="flex justify-end">
+        <Link href="/almacen/pedidos/codigos" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent">
+          <Printer className="size-3.5" /> Imprimir / PDF
+        </Link>
+      </div>
 
       {pedidos.length === 0 ? (
         <Vacio
           titulo="No hay generación de código pendiente"
-          porque="Central pide las series antes de lanzar un pedido. Cuando lo haga, el pedido aparece acá con las máquinas que faltan."
+          porque="Central pide las series o códigos antes de lanzar un pedido. Cuando lo haga, el pedido aparece acá con cuántas unidades faltan de cada artículo."
           accion={{ etiqueta: "Ver los pedidos en curso", href: "/almacen/pedidos" }}
         />
       ) : (
         <>
           {viejas.length > 0 && (
-            <Grupo titulo="Pedidas hace más de un día" ayuda="Primero estas: el pedido no avanza sin sus series." conteo={viejas.length} tono="atencion">
+            <Grupo titulo="Pedidas hace más de un día" ayuda="Primero estas: el pedido no avanza sin sus códigos." conteo={viejas.length} tono="atencion">
               {viejas.map((p) => (
                 <FilaTrabajo key={p.id} f={fila(p)} />
               ))}

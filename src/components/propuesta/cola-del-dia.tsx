@@ -24,7 +24,7 @@ const ICONO: Record<TipoTarea, typeof Package> = {
 const FILTRO: Record<TipoTarea, string> = {
   pedido: "Pedidos",
   despacho: "Despachos",
-  apertura: "Aperturas",
+  apertura: "Llamadas derivadas",
   atencion: "Casos técnicos",
   caso: "Seguimientos",
   cliente: "Clientes",

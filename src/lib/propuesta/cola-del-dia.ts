@@ -141,7 +141,7 @@ async function colaPostventa(supabase: Cliente) {
     } else if (e === "revisada") {
       tareas.push({ id: `ap-${a.id}`, urgencia: "hoy", tipo: "apertura", cliente, que: "Mandar el informe al cliente", porque: "Ya está revisado; falta enviarlo.", accion: { etiqueta: "Abrir", href: `/aperturas/${a.id}` } });
     } else if (e === "enviada" && diaLima(a.programada_para) <= hoy) {
-      tareas.push({ id: `ap-${a.id}`, urgencia: diaLima(a.programada_para) < hoy ? "atrasado" : "hoy", tipo: "apertura", cliente, que: `El almacén no tomó la apertura · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Era para las ${horaLima(a.programada_para)} y nadie le dio el check.`, accion: { etiqueta: "Ver", href: `/aperturas/${a.id}` } });
+      tareas.push({ id: `ap-${a.id}`, urgencia: diaLima(a.programada_para) < hoy ? "atrasado" : "hoy", tipo: "apertura", cliente, que: `El almacén no tomó la llamada derivada · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Era para las ${horaLima(a.programada_para)} y nadie le dio el check.`, accion: { etiqueta: "Ver", href: `/aperturas/${a.id}` } });
     }
     if (diaLima(a.programada_para) === hoy) {
       agenda.push({ id: `ag-${a.id}`, hora: horaLima(a.programada_para), titulo: `${ETIQUETA_TIPO_APERTURA[a.tipo]} · ${cliente}`, detalle: primeraLinea(a.equipos), href: `/aperturas/${a.id}` });
@@ -261,13 +261,13 @@ async function colaAlmacen(supabase: Cliente) {
     if (a.urgente) {
       urgentes.push(
         !a.tomada_at
-          ? { id: `apt-${a.id}`, urgencia: "atrasado", tipo: "apertura", cliente, que: `URGENTE · Tomar la apertura · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Para el ${para}. Gerencia la autorizó como urgente; postventa espera el check.`, accion: { etiqueta: "Tomarla", href: `/aperturas/${a.id}` } }
+          ? { id: `apt-${a.id}`, urgencia: "atrasado", tipo: "apertura", cliente, que: `URGENTE · Tomar la apertura urgente · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Para el ${para}. Gerencia la autorizó como urgente; postventa espera el check.`, accion: { etiqueta: "Tomarla", href: `/aperturas/${a.id}` } }
           : dia <= hoy
             ? { id: `api-${a.id}`, urgencia: dia < hoy ? "atrasado" : "hoy", tipo: "apertura", cliente, que: "URGENTE · Subir el informe de la llamada", porque: "Gerencia la autorizó como urgente: postventa necesita lo que se vio.", accion: { etiqueta: "Subir informe", href: `/aperturas/${a.id}` } }
-            : { id: `api-${a.id}`, urgencia: "hoy", tipo: "apertura", cliente, que: `URGENTE · Preparar la apertura · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Es para el ${para}. Gerencia la autorizó como urgente.`, accion: { etiqueta: "Abrir", href: `/aperturas/${a.id}` } },
+            : { id: `api-${a.id}`, urgencia: "hoy", tipo: "apertura", cliente, que: `URGENTE · Preparar la apertura urgente · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Es para el ${para}. Gerencia la autorizó como urgente.`, accion: { etiqueta: "Abrir", href: `/aperturas/${a.id}` } },
       );
     } else if (!a.tomada_at) {
-      tareas.push({ id: `apt-${a.id}`, urgencia: dia < hoy ? "atrasado" : dia === hoy ? "hoy" : "semana", tipo: "apertura", cliente, que: `Tomar la apertura · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Para el ${new Date(a.programada_para).toLocaleString("es-PE", { timeZone: "America/Lima", weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}. Postventa espera el check.`, accion: { etiqueta: "Tomarla", href: `/aperturas/${a.id}` } });
+      tareas.push({ id: `apt-${a.id}`, urgencia: dia < hoy ? "atrasado" : dia === hoy ? "hoy" : "semana", tipo: "apertura", cliente, que: `Tomar la llamada derivada · ${ETIQUETA_TIPO_APERTURA[a.tipo]}`, porque: `Para el ${new Date(a.programada_para).toLocaleString("es-PE", { timeZone: "America/Lima", weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}. Postventa espera el check.`, accion: { etiqueta: "Tomarla", href: `/aperturas/${a.id}` } });
     } else if (dia <= hoy) {
       tareas.push({ id: `api-${a.id}`, urgencia: dia < hoy ? "atrasado" : "hoy", tipo: "apertura", cliente, que: "Subir el informe de la llamada", porque: "Ya se hizo (o toca hoy): postventa necesita lo que se vio.", accion: { etiqueta: "Subir informe", href: `/aperturas/${a.id}` } });
     }

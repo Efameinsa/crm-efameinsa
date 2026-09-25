@@ -25,7 +25,7 @@ const despues = (a: string | null | undefined, b: string | null | undefined) => 
 const GRUPOS: { area: Area; titulo: string; ayuda: string; tono: Tono }[] = [
   { area: "devuelto", titulo: "Le devolvieron", ayuda: "Finanzas observó el pago: hay que aclararlo con el comercial.", tono: "urgente" },
   { area: "finanzas", titulo: "Esperando a Finanzas", ayuda: "Pidió confirmar el abono y no hay respuesta.", tono: "atencion" },
-  { area: "almacen", titulo: "Esperando al almacén", ayuda: "Aperturas, pruebas y series pedidas.", tono: "atencion" },
+  { area: "almacen", titulo: "Esperando al almacén", ayuda: "Llamadas derivadas, pruebas y códigos pedidos.", tono: "atencion" },
 ];
 
 async function esperas(supabase: Cliente): Promise<Item[]> {
@@ -108,7 +108,7 @@ async function esperas(supabase: Cliente): Promise<Item[]> {
       dato: urgente ? <span className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-white">URGENTE</span> : null,
       espera: tomada ? "Esperando el informe del almacén" : "Esperando que el almacén la tome",
       edad: `Enviada ${haceCuanto(a.solicitada_at)}`, edadTono: t, tono: t,
-      accion: { etiqueta: "Ver la apertura", href: `/aperturas/${a.id}` },
+      accion: { etiqueta: urgente ? "Ver la apertura urgente" : "Ver la llamada", href: `/aperturas/${a.id}` },
     });
   }
 
@@ -133,7 +133,7 @@ export default async function PostventaEsperando({ searchParams, base }: PropsVi
     return (
       <Vacio
         titulo="No espera a nadie"
-        porque="Acá aparece lo que usted pidió a otra área y todavía no responde: la confirmación del abono a Finanzas, la prueba o una apertura al almacén, las series que pidió Central."
+        porque="Acá aparece lo que usted pidió a otra área y todavía no responde: la confirmación del abono a Finanzas, la prueba o una llamada derivada al almacén, los códigos que pidió Central."
         accion={{ etiqueta: "Ver los pedidos", href: "/postventa/control" }}
       />
     );
