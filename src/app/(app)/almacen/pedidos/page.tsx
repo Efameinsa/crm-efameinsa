@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
@@ -142,6 +143,12 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
             {v}
           </Link>
         ))}
+        {/* Para anotar en el almacén y pasarlo después (Lesly, 25-09). */}
+        {porSeries && (
+          <Link href="/almacen/pedidos/codigos" className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent">
+            <Printer className="size-3.5" /> Imprimir / PDF
+          </Link>
+        )}
       </div>
       <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
         {ver && <input type="hidden" name="ver" value={ver} />}
