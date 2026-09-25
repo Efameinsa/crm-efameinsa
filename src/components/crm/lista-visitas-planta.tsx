@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Ban, Check, Printer } from "lucide-react";
-import { cancelarVisitaPlanta, marcarVisita, marcarVisitaImpresa } from "@/lib/acciones/visitas-planta";
+import { Ban, Check, Pencil, Printer } from "lucide-react";
+import { cancelarVisitaPlanta, marcarVisita, marcarVisitaImpresa, reprogramarVisitaPlanta } from "@/lib/acciones/visitas-planta";
 import { CircuitoVisita, CerrarVisitaBoton, ETIQUETA_RESULTADO } from "@/components/crm/circuito-visita";
 import { cn } from "@/lib/utils";
 
@@ -149,6 +149,9 @@ export function ListaVisitasPlanta({
                     {esHoy ? "Hoy" : fechaLarga(v.fecha)}
                   </p>
                   <p className="text-xs tabular-nums text-muted-foreground">{hora(v.hora)}</p>
+                  {!pasadas && !v.cancelada_at && !v.cerrada_at && !v.llego_at && (modo === "comercial" || modo === "central") && (
+                    <CambiarHoraVisita visita={v} hoy={hoy} />
+                  )}
                   {v.llego_at && <p className="text-[11px] font-semibold text-[#1E7F4F]">Llegó {horaDe(v.llego_at)}</p>}
                   {v.no_vino_at && <p className="text-[11px] font-semibold text-destructive">No vino</p>}
                 </div>
@@ -294,5 +297,84 @@ export function ListaVisitasPlanta({
         }
       `}</style>
     </>
+  );
+}
+
+/**
+ * Cambiar la fecha o la hora (0303). Katerine, 25-09: «en esa vista debería
+ * poder editar la hora». Antes había que cancelar y volver a anunciar. Si
+ * vigilancia ya estaba avisada, el check se apaga para que Central reimprima.
+ */
+function CambiarHoraVisita({ visita: v, hoy }: { visita: VisitaFila; hoy: string }) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [fecha, setFecha] = useState(v.fecha);
+  const [horaNueva, setHoraNueva] = useState(v.hora ? v.hora.slice(0, 5) : "");
+  const [pendiente, startTransition] = useTransition();
+
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+      >
+        <Pencil className="size-3" /> Cambiar fecha u hora
+      </button>
+    );
+  }
+
+  function guardar() {
+    startTransition(async () => {
+      const r = await reprogramarVisitaPlanta(v.id, fecha, horaNueva || null);
+      if (r.error) {
+        toast.error(r.error, { duration: 8000 });
+        return;
+      }
+      toast.success(v.impreso_at ? "Visita cambiada. Central ya fue avisada para volver a avisar a vigilancia." : "Visita cambiada. Central y el almacén ya fueron avisados.");
+      setAbierto(false);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mt-1 space-y-1">
+      <input
+        type="date"
+        value={fecha}
+        min={hoy}
+        onChange={(e) => setFecha(e.target.value)}
+        className="w-full rounded-md border border-border bg-card px-1.5 py-0.5 text-xs"
+      />
+      <input
+        type="time"
+        value={horaNueva}
+        step={900}
+        onChange={(e) => setHoraNueva(e.target.value)}
+        className="w-full rounded-md border border-border bg-card px-1.5 py-0.5 text-xs tabular-nums"
+      />
+      <div className="flex gap-1">
+        <button
+          type="button"
+          disabled={pendiente || !fecha}
+          onClick={guardar}
+          className="rounded-md bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        >
+          {pendiente ? "Guardando…" : "Guardar"}
+        </button>
+        <button
+          type="button"
+          disabled={pendiente}
+          onClick={() => {
+            setAbierto(false);
+            setFecha(v.fecha);
+            setHoraNueva(v.hora ? v.hora.slice(0, 5) : "");
+          }}
+          className="rounded-md px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
   );
 }
