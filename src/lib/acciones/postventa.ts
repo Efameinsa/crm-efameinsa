@@ -486,6 +486,8 @@ export async function registrarDespacho(
   servicioId: string,
   datos: {
     fecha: string;
+    /** HH:MM. Sin ella, la hora programada del despacho; sin esa, las 12:00. */
+    hora?: string;
     transportista?: string;
     guia?: string;
     recibeNombre?: string;
@@ -499,10 +501,16 @@ export async function registrarDespacho(
 
   const { data: servicio } = await supabase
     .from("servicios_postventa")
-    .select("monto, monto_pagado, moneda, informe_cierre_id, pago_confirmado_at, confirmacion_abono, pct_antes_despacho, credito_dias, apertura_despacho_at, tipo_pedido, entrega_en")
+    .select("monto, monto_pagado, moneda, informe_cierre_id, pago_confirmado_at, confirmacion_abono, pct_antes_despacho, credito_dias, apertura_despacho_at, tipo_pedido, entrega_en, despacho_hora")
     .eq("id", servicioId)
     .single();
   if (!servicio) return falla("No se encontró el pedido");
+
+  // La hora de salida (Rubí, 25-09): antes quedaba siempre en 12:00 aunque el
+  // despacho estuviera programado a otra hora. Manda la que se escribe; si no,
+  // la programada; si tampoco hay, el mediodía de siempre.
+  const hora = [datos.hora, servicio.despacho_hora ? String(servicio.despacho_hora).slice(0, 5) : null]
+    .find((h) => typeof h === "string" && /^\d{2}:\d{2}$/.test(h)) ?? "12:00";
 
   // SIN APERTURA NO SALE NADA (0274). La pantalla ya escondía el botón, pero
   // el servidor no lo revisaba: la misma condición que el botón —pedido del
@@ -536,7 +544,7 @@ export async function registrarDespacho(
   const { error } = await supabase
     .from("servicios_postventa")
     .update({
-      despachado_at: `${datos.fecha}T12:00:00-05:00`,
+      despachado_at: `${datos.fecha}T${hora}:00-05:00`,
       fecha_despacho: datos.fecha,
       transportista: datos.transportista?.trim() || null,
       guia: datos.guia?.trim() || null,
