@@ -8,8 +8,12 @@ import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const sinRuc = (s: string | null) => (s ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
-const primeraLinea = (s: string | null) => (s ?? "").split("\n")[0].replace(/\s+/g, " ").trim();
+const sinRuc = (s: string | null) =>
+  (s ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+/** La hora del pedido de la página (una sola lectura del reloj por render del servidor). */
+const ahoraMs = () => Date.now();
+const primeraLinea = (s: string | null) =>
+  (s ?? "").split("\n")[0].replace(/\s+/g, " ").trim();
 
 type Fila = {
   id: string;
@@ -38,7 +42,8 @@ type Fila = {
 export default async function AperturasDePostventaPage() {
   await requerirPerfil();
   const supabase = await createClient();
-  const hace30 = new Date(Date.now() - 30 * 86400000).toISOString();
+  const ahora = ahoraMs();
+  const hace30 = new Date(ahora - 30 * 86400000).toISOString();
   const { data } = await supabase
     .from("servicios_postventa")
     .select(
@@ -50,20 +55,65 @@ export default async function AperturasDePostventaPage() {
     .limit(200);
   const filas = (data ?? []) as unknown as Fila[];
   const porSalir = filas.filter((f) => !f.despachado_at);
-  const salieron = filas.filter((f) => f.despachado_at && f.despachado_at >= hace30);
+  const salieron = filas.filter(
+    (f) => f.despachado_at && f.despachado_at >= hace30,
+  );
 
-  const Lista = ({ lista }: { lista: Fila[] }) => (
+  return (
+    <div className="space-y-4">
+      <SeccionPanel
+        titulo={`Aperturas de postventa por salir · ${porSalir.length}`}
+      >
+        <p className="mb-2 text-xs text-muted-foreground">
+          La hoja que emite postventa para cada pedido: equipos, dirección,
+          contacto y condiciones. Ábrala para preparar el despacho; las marcadas
+          «Nueva» llegaron en las últimas 24 horas.
+        </p>
+        {porSalir.length === 0 ? (
+          <p className="py-4 text-sm text-muted-foreground">
+            No hay aperturas esperando salir: postventa todavía no emitió
+            ninguna nueva.
+          </p>
+        ) : (
+          <Lista lista={porSalir} ahora={ahora} />
+        )}
+      </SeccionPanel>
+      {salieron.length > 0 && (
+        <SeccionPanel
+          titulo={`Ya salieron (últimos 30 días) · ${salieron.length}`}
+        >
+          <Lista lista={salieron} ahora={ahora} />
+        </SeccionPanel>
+      )}
+    </div>
+  );
+}
+
+function Lista({ lista, ahora }: { lista: Fila[]; ahora: number }) {
+  return (
     <ul className="divide-y divide-border rounded-lg border border-border">
       {lista.map((f) => {
-        const nueva = !f.despachado_at && !f.almacen_listo_at && Date.now() - new Date(f.apertura_despacho_at).getTime() < 24 * 3600 * 1000;
+        const nueva =
+          !f.despachado_at &&
+          !f.almacen_listo_at &&
+          ahora - new Date(f.apertura_despacho_at).getTime() < 24 * 3600 * 1000;
         return (
-          <li key={f.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+          <li
+            key={f.id}
+            className="flex flex-wrap items-center gap-3 px-4 py-3"
+          >
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-2 truncate text-sm font-semibold text-foreground">
                 {sinRuc(f.cliente_texto)}
-                {nueva && <span className="rounded bg-primary px-1.5 text-[10px] font-bold uppercase text-primary-foreground">Nueva</span>}
+                {nueva && (
+                  <span className="rounded bg-primary px-1.5 text-[10px] font-bold uppercase text-primary-foreground">
+                    Nueva
+                  </span>
+                )}
               </p>
-              <p className="truncate text-xs text-muted-foreground">{primeraLinea(f.equipo)}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {primeraLinea(f.equipo)}
+              </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Emitida el {fechaHoraLima(f.apertura_despacho_at)}
                 {f.perfiles?.nombre ? ` por ${f.perfiles.nombre}` : ""}
@@ -72,7 +122,13 @@ export default async function AperturasDePostventaPage() {
                 <span
                   className={cn(
                     "font-medium",
-                    f.despachado_at ? "text-[#1E7F4F]" : f.almacen_listo_at ? "text-[#1E7F4F]" : f.fecha_despacho ? "text-amber-700" : "text-foreground",
+                    f.despachado_at
+                      ? "text-[#1E7F4F]"
+                      : f.almacen_listo_at
+                        ? "text-[#1E7F4F]"
+                        : f.fecha_despacho
+                          ? "text-amber-700"
+                          : "text-foreground",
                   )}
                 >
                   {f.despachado_at
@@ -91,33 +147,15 @@ export default async function AperturasDePostventaPage() {
             >
               <FileText className="size-3.5" /> Ver la apertura
             </a>
-            <Link href={`/almacen/pedidos/${f.id}`} className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent">
+            <Link
+              href={`/almacen/pedidos/${f.id}`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+            >
               <Package className="size-3.5" /> El pedido
             </Link>
           </li>
         );
       })}
     </ul>
-  );
-
-  return (
-    <div className="space-y-4">
-      <SeccionPanel titulo={`Aperturas de postventa por salir · ${porSalir.length}`}>
-        <p className="mb-2 text-xs text-muted-foreground">
-          La hoja que emite postventa para cada pedido: equipos, dirección, contacto y condiciones. Ábrala para preparar el despacho; las
-          marcadas «Nueva» llegaron en las últimas 24 horas.
-        </p>
-        {porSalir.length === 0 ? (
-          <p className="py-4 text-sm text-muted-foreground">No hay aperturas esperando salir: postventa todavía no emitió ninguna nueva.</p>
-        ) : (
-          <Lista lista={porSalir} />
-        )}
-      </SeccionPanel>
-      {salieron.length > 0 && (
-        <SeccionPanel titulo={`Ya salieron (últimos 30 días) · ${salieron.length}`}>
-          <Lista lista={salieron} />
-        </SeccionPanel>
-      )}
-    </div>
   );
 }
