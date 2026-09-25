@@ -195,7 +195,8 @@ function Fila({
     <li className={cn("rounded-md border px-2.5 py-2", apagado ? "border-dashed border-border bg-muted/40 text-muted-foreground" : "border-border bg-card")}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
         <span className="mt-0.5 inline-flex size-5 flex-none items-center justify-center rounded-full bg-secondary text-[11px] font-bold">{e.orden}</span>
-        <div className="min-w-0 flex-1">
+        {/* min-w: en la columna angosta (pedido de la propuesta) el botón baja en vez de pisar el nombre. */}
+        <div className="min-w-[11rem] flex-1">
           <p className={cn("text-sm font-semibold leading-tight", apagado && "font-medium")}>
             {lineaTitulo}
             {unidad.n > 1 && <span className="ml-1.5 text-[11px] font-medium text-muted-foreground">· unidad {unidad.k} de {unidad.n}</span>}
@@ -203,24 +204,24 @@ function Fila({
           {resto.length > 0 && <p className="whitespace-pre-line text-[11px] leading-snug text-muted-foreground">{resto.join("\n")}</p>}
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
             {e.serie && e.sin_serie ? (
-              <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F]">Código {e.serie} · sin serie</span>
+              <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] whitespace-nowrap">Código {e.serie} · sin serie</span>
             ) : e.serie ? (
               e.equipo_id && enlaceEquipo ? (
-                <Link href={`${enlaceEquipo}/${e.equipo_id}`} className="inline-flex items-center gap-1 rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] hover:underline">
+                <Link href={`${enlaceEquipo}/${e.equipo_id}`} className="inline-flex items-center gap-1 rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] hover:underline whitespace-nowrap">
                   Serie {e.serie} · en stock
                 </Link>
               ) : (
-                <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F]">Serie {e.serie}</span>
+                <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] whitespace-nowrap">Serie {e.serie}</span>
               )
             ) : (
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-800">Sin serie · sin stock todavía</span>
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-800 whitespace-nowrap">Sin serie · sin stock todavía</span>
             )}
             {e.prueba_lista_at ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium">
                 <Check className="size-3" /> Probada{e.protocolo_ref ? ` · protocolo ${e.protocolo_ref}` : ""}
               </span>
             ) : e.en_este_despacho ? (
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">Pendiente de prueba</span>
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-muted-foreground whitespace-nowrap">Pendiente de prueba</span>
             ) : null}
             {apagado && <span className="rounded-full border border-dashed border-border px-2 py-0.5">No va en este despacho</span>}
           </div>

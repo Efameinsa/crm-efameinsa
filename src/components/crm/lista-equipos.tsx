@@ -86,7 +86,7 @@ export function ListaEquipos({ equipos, hoy, inicial }: { equipos: FilaEquipo[];
           <button
             type="button"
             onClick={() => { setVer("mantenimiento"); sincronizarUrl(q, "mantenimiento"); }}
-            className="cursor-pointer rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900 hover:bg-amber-200"
+            className="cursor-pointer rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900 hover:bg-amber-200 dark:hover:bg-amber-500/25"
           >
             {vencidos} con el mantenimiento vencido
           </button>

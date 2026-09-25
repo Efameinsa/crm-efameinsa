@@ -121,7 +121,7 @@ function Renglon({ f, vistaAlmacen }: { f: Fila; vistaAlmacen: boolean }) {
   return (
     <li>
       <Link href={`/aperturas/${f.id}`} className="flex flex-wrap items-start gap-x-4 gap-y-1 px-4 py-2.5 transition-colors hover:bg-accent">
-        <span className="w-16 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-foreground">{horaLima(f.programada_para)}</span>
+        <span className="w-20 shrink-0 whitespace-nowrap pt-0.5 text-sm font-semibold tabular-nums text-foreground">{horaLima(f.programada_para)}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-foreground">{f.cuentas?.razon_social ?? "Cliente"}</span>
           <span className="block text-xs text-muted-foreground">

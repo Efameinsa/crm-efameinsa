@@ -134,7 +134,7 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
       {/* LO ÚNICO QUE IMPORTA AHORA. */}
       {siguiente ? (
         <a href="#pasos" className={cn("flex items-center gap-4 rounded-xl border p-4 shadow-sm", frena?.grave ? "border-amber-400 bg-amber-50" : "border-primary/30 bg-primary/5")}>
-          <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", frena?.grave ? "bg-amber-200 text-amber-900" : "bg-primary text-primary-foreground")}>
+          <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", frena?.grave ? "bg-amber-200 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300" : "bg-primary text-primary-foreground")}>
             {frena?.grave ? <AlertTriangle className="size-5" /> : <ArrowDown className="size-5" />}
           </span>
           <div className="min-w-0 flex-1">
