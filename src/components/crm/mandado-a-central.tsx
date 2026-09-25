@@ -25,7 +25,7 @@ export function MandadoACentral({
   contexto = "postventa",
 }: {
   filas: Mandado[];
-  contexto?: "postventa" | "comercial";
+  contexto?: "postventa" | "comercial" | "almacen";
 }) {
   const esperando = filas.filter((f) => f.estado === "esperando").length;
   const demorados = filas.filter((f) => f.demorado).length;
@@ -52,7 +52,9 @@ export function MandadoACentral({
           Nada esperando en Central. Lo que registre acá{" "}
           {contexto === "postventa"
             ? "—una atención, o un contacto que llamó directo—"
-            : "—un contacto que le escribió directo—"}{" "}
+            : contexto === "almacen"
+              ? "—un cliente que llamó directo al almacén—"
+              : "—un contacto que le escribió directo—"}{" "}
           entra primero a la cola de Central y aparece en esta lista con su código, hasta que lo deriven. Así se sabe
           que no se perdió, sin volver a registrarlo.
         </p>

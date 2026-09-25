@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
+import { MandadoACentral } from "@/components/crm/mandado-a-central";
+import { listarMandadoACentral } from "@/lib/mandado-a-central";
+import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import type { ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
@@ -120,8 +124,20 @@ export default async function AlmacenPage() {
     { titulo: "Visitas a planta esta semana", numero: (visitas ?? []).length, ayuda: "Clientes que vienen; algunos a recoger repuestos.", href: "/almacen/visitas" },
   ];
 
+  // LA LLAMADA QUE LE ENTRA AL ALMACÉN (Lesly, 25-09): se registra acá y va a
+  // la cola de Central, como el «Pasar contacto a Central» de comercial y
+  // postventa. Abajo, lo que mandó y Central todavía no deriva.
+  const perfilAlmacen = await requerirPerfil();
+  const [mandadoACentral, campaniasWhatsapp] = await Promise.all([
+    listarMandadoACentral(supabase, perfilAlmacen.id),
+    campaniasWhatsappActivas(),
+  ]);
+
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <PasarContactoCentral contexto="almacen" campaniasWhatsapp={campaniasWhatsapp} />
+      </div>
       <SeccionPanel titulo="Pedidos">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {cuadrosPedidos.map((c) => <Tarjeta key={c.titulo} c={c} />)}
@@ -190,6 +206,7 @@ export default async function AlmacenPage() {
           </div>
         </div>
       </SeccionPanel>
+      <MandadoACentral filas={mandadoACentral} contexto="almacen" />
     </div>
   );
 }

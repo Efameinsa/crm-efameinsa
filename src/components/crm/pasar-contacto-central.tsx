@@ -83,7 +83,7 @@ function Obligatorio() {
 }
 
 interface Props {
-  contexto?: "comercial" | "postventa";
+  contexto?: "comercial" | "postventa" | "almacen";
   /** Campañas de WhatsApp activas (fase 1 sin API, 14-09-2026), para cuando le llega un WhatsApp de un anuncio directo. */
   campaniasWhatsapp?: CampaniaWhatsapp[];
 }
@@ -256,7 +256,10 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
         <DialogHeader>
           <DialogTitle>Pasar un contacto a Central</DialogTitle>
           <DialogDescription>
-            {contexto === "postventa"
+            {contexto === "almacen"
+              ? // Lesly, 25-09: al almacén también le llaman clientes directo.
+                "Para el cliente que llama o escribe directo al almacén. Central lo recibe en su cola y lo deriva al área que corresponda."
+              : contexto === "postventa"
               ? // El pedido del ing. Carlos en la reunión del 01-09 (vía Santos):
                 // lo que le llega directo a postventa se REGISTRA y pasa por
                 // Central, que lo deriva a postventa o al área que corresponda.

@@ -59,7 +59,7 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
   // siempre vive en la cabecera de «Mi día» (comercial) y del día de postventa,
   // pantallas que la propuesta reemplazó por «Hoy»: sin esto, el botón se
   // perdía. Queda en la cabecera, a la vista en cualquier sección.
-  const pasaContactos = tipo === "comercial" || tipo === "preventivo" || tipo === "postventa";
+  const pasaContactos = tipo === "comercial" || tipo === "preventivo" || tipo === "postventa" || tipo === "almacen";
   const campanias = pasaContactos ? await campaniasWhatsappActivas() : [];
   return (
     <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
@@ -92,7 +92,7 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
           )}
           {pasaContactos && (
             <span className="pasar-a-central">
-              <PasarContactoCentral contexto={tipo === "postventa" ? "postventa" : "comercial"} campaniasWhatsapp={campanias} />
+              <PasarContactoCentral contexto={tipo === "postventa" ? "postventa" : tipo === "almacen" ? "almacen" : "comercial"} campaniasWhatsapp={campanias} />
             </span>
           )}
           <span className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground" title="Avisos">
