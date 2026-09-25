@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
-import { anularApertura, asignarTecnicoApertura, revisarApertura, tomarApertura } from "@/lib/acciones/aperturas-llamada";
+import { asignarTecnicoApertura, revisarApertura, tomarApertura } from "@/lib/acciones/aperturas-llamada";
 import type { EstadoApertura } from "@/lib/aperturas-llamada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,7 +79,10 @@ export function TecnicoApertura({ id, tecnico }: { id: string; tecnico: string |
   );
 }
 
-/** Lo que hace postventa: la versión para el cliente (versión 2) y anular. */
+/**
+ * Lo que hace postventa: la versión para el cliente (versión 2). Anular,
+ * reprogramar y cambiar el tipo viven arriba, en CambiosApertura (0311).
+ */
 export function AccionesPostventaApertura({
   id,
   estado,
@@ -94,8 +97,6 @@ export function AccionesPostventaApertura({
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [texto, setTexto] = useState(borrador);
-  const [motivo, setMotivo] = useState("");
-  const [anulando, setAnulando] = useState(false);
 
   function revisar(enviada: boolean) {
     startTransition(async () => {
@@ -105,15 +106,6 @@ export function AccionesPostventaApertura({
       router.refresh();
     });
   }
-  function anular() {
-    startTransition(async () => {
-      const r = await anularApertura(id, motivo);
-      if (r.error) return void toast.error(r.error);
-      toast.success("Apertura anulada; el almacén ya no la ve pendiente");
-      router.refresh();
-    });
-  }
-
   return (
     <div className="space-y-3">
       {hayInforme && estado !== "anulada" && (
@@ -134,25 +126,6 @@ export function AccionesPostventaApertura({
               </Button>
             )}
           </div>
-        </div>
-      )}
-      {estado !== "anulada" && estado !== "enviada_cliente" && (
-        <div className="text-xs">
-          {!anulando ? (
-            <button type="button" className="text-muted-foreground underline-offset-2 hover:underline" onClick={() => setAnulando(true)}>
-              Anular esta apertura
-            </button>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <Input className="h-8 max-w-sm text-xs" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por qué se anula (el cliente reprogramó, se pidió dos veces…)" />
-              <Button size="sm" variant="destructive" disabled={pendiente || !motivo.trim()} onClick={anular}>
-                Anular
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setAnulando(false)}>
-                No
-              </Button>
-            </div>
-          )}
         </div>
       )}
     </div>

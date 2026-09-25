@@ -199,11 +199,91 @@ export async function revisarApertura(id: string, informeCliente: string, enviad
 }
 
 export async function anularApertura(id: string, motivo: string) {
-  await requerirPerfil();
+  const perfil = await requerirPerfil();
   const supabase = await createClient();
   const { error } = await supabase.rpc("anular_apertura_llamada", { p_id: id, p_motivo: motivo });
   if (error) return falla(error.message);
-  const { data: a } = await supabase.from("aperturas_llamada").select("servicio_id, cuenta_id").eq("id", id).maybeSingle();
+  const a = await aperturaParaAviso(supabase, id);
+  // El almacén la tenía en su cola (o ya la había tomado): se entera (25-09).
+  if (a)
+    await notificarAlmacen({
+      titulo: `Anulada · ${ETIQUETA_TIPO_APERTURA[a.tipo] ?? "Apertura"} · ${cliente(a.razon)}`,
+      cuerpo: `La del ${cuandoLima(a.programada_para)} ya no va. Motivo: ${motivo.trim()}`,
+      url: `/aperturas/${id}`,
+      esPrueba: (perfil as { es_prueba?: boolean | null }).es_prueba === true,
+    });
   revalidatePath(`/aperturas/${id}`);
   return listo(a?.servicio_id, a?.cuenta_id);
+}
+
+async function aperturaParaAviso(supabase: Awaited<ReturnType<typeof createClient>>, id: string) {
+  const { data } = await supabase
+    .from("aperturas_llamada")
+    .select("tipo, programada_para, servicio_id, cuenta_id, informe_servicio_id, cuentas(razon_social)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    tipo: data.tipo as TipoApertura,
+    programada_para: data.programada_para as string,
+    servicio_id: data.servicio_id as string | null,
+    cuenta_id: data.cuenta_id as string | null,
+    informe_servicio_id: data.informe_servicio_id as string | null,
+    razon: (data.cuentas as unknown as { razon_social: string } | null)?.razon_social,
+  };
+}
+
+/**
+ * REPROGRAMAR (0311; Rubí, 25-09: «la llamada no se realizará porque mañana
+ * habrá despacho, quiero reprogramarla para el lunes»). Antes solo quedaba
+ * anular y volver a llenar toda la orden. Se puede mientras el almacén no
+ * haya subido su informe; el almacén recibe el aviso con la fecha nueva.
+ */
+export async function reprogramarApertura(id: string, programadaPara: string, motivo?: string | null) {
+  const perfil = await requerirPerfil();
+  if (!programadaPara || Number.isNaN(new Date(programadaPara).getTime())) return falla("Falta el día y la hora");
+  const supabase = await createClient();
+  const antes = await aperturaParaAviso(supabase, id);
+  const { error } = await supabase.rpc("reprogramar_apertura_llamada", {
+    p_id: id,
+    p_programada: programadaPara,
+    p_motivo: motivo?.trim() || null,
+  });
+  if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+  if (antes)
+    await notificarAlmacen({
+      titulo: `Reprogramada · ${ETIQUETA_TIPO_APERTURA[antes.tipo] ?? "Apertura"} · ${cliente(antes.razon)}`,
+      cuerpo: `Pasa del ${cuandoLima(antes.programada_para)} al ${cuandoLima(programadaPara)}.${motivo?.trim() ? ` Motivo: ${motivo.trim()}` : ""}`,
+      url: `/aperturas/${id}`,
+      esPrueba: (perfil as { es_prueba?: boolean | null }).es_prueba === true,
+    });
+  revalidatePath(`/aperturas/${id}`);
+  revalidatePath(`/aperturas/${id}/orden`);
+  return listo(antes?.servicio_id, antes?.cuenta_id);
+}
+
+/**
+ * CORREGIR EL TIPO (0311; Rubí, 25-09: eligió «puesta en marcha» y era de
+ * preinstalación). La base arrastra el informe de servicio que salió de la
+ * apertura y el paso de preinstalación del pedido.
+ */
+export async function corregirTipoApertura(id: string, tipo: TipoApertura, motivo?: string | null) {
+  const perfil = await requerirPerfil();
+  if (!TIPOS_APERTURA.includes(tipo)) return falla("Tipo de apertura desconocido");
+  const supabase = await createClient();
+  const antes = await aperturaParaAviso(supabase, id);
+  const { error } = await supabase.rpc("corregir_tipo_apertura", { p_id: id, p_tipo: tipo, p_motivo: motivo?.trim() || null });
+  if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+  if (antes)
+    await notificarAlmacen({
+      titulo: `Corregida · ${cliente(antes.razon)}`,
+      cuerpo: `La apertura del ${cuandoLima(antes.programada_para)} no es «${ETIQUETA_TIPO_APERTURA[antes.tipo]}»: es «${ETIQUETA_TIPO_APERTURA[tipo]}».`,
+      url: `/aperturas/${id}`,
+      esPrueba: (perfil as { es_prueba?: boolean | null }).es_prueba === true,
+    });
+  revalidatePath(`/aperturas/${id}`);
+  revalidatePath(`/aperturas/${id}/orden`);
+  revalidatePath(`/aperturas/${id}/imprimir`);
+  if (antes?.informe_servicio_id) revalidatePath(`/postventa/informes/${antes.informe_servicio_id}`);
+  return listo(antes?.servicio_id, antes?.cuenta_id);
 }

@@ -12,13 +12,16 @@ import {
   estadoApertura,
   FILAS_FORMATO,
   problemaConEquipo,
+  TIPOS_APERTURA,
   type AperturaLlamada,
+  type TipoApertura,
   type FormatoLlamada,
 } from "@/lib/aperturas-llamada";
 import { fechaHoraLima } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AccionesAlmacenApertura, AccionesPostventaApertura, TecnicoApertura } from "@/components/crm/apertura-acciones";
 import { InformeSoporteApertura } from "@/components/crm/informe-soporte-apertura";
+import { CambiosApertura } from "@/components/crm/apertura-cambios";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +48,9 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
   const estado = estadoApertura(a);
   const leToca = aQuienLeToca(estado);
 
-  const ids = [a.solicitada_por, a.tomada_por, a.informe_por, a.revisada_por].filter(Boolean) as string[];
+  // Reprogramaciones y tipo corregido (0311), con quién los hizo.
+  const cambios = ((a as { cambios?: unknown }).cambios ?? []) as { que: string; de: string; a: string; motivo: string | null; por: string | null; at: string }[];
+  const ids = [...new Set([a.solicitada_por, a.tomada_por, a.informe_por, a.revisada_por, ...cambios.map((c) => c.por)].filter(Boolean) as string[])];
   const { data: gente } = ids.length ? await supabase.from("perfiles").select("id, nombre").in("id", ids) : { data: [] };
   const nombre = (x: string | null) => (x ? ((gente ?? []) as { id: string; nombre: string }[]).find((g) => g.id === x)?.nombre ?? "—" : "—");
 
@@ -122,6 +127,30 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
           <p className="mt-3 rounded-md bg-secondary px-3 py-2 text-xs text-muted-foreground">
             Anulada el {fechaHoraLima(a.anulada_at)}: {a.anulada_motivo}
           </p>
+        )}
+        {/* Lo que se movió después de enviarla (0311): reprogramaciones y tipo corregido. */}
+        {cambios.length > 0 && (
+          <ul className="mt-3 space-y-0.5 text-[11px] text-muted-foreground">
+            {cambios.map((c, i) => (
+              <li key={i}>
+                {c.que === "reprogramada"
+                  ? `Reprogramada del ${fechaHoraLima(c.de)} al ${fechaHoraLima(c.a)}`
+                  : `Tipo corregido: era «${ETIQUETA_TIPO_APERTURA[c.de as TipoApertura] ?? c.de}»`}
+                {` · ${nombre(c.por)}, ${fechaHoraLima(c.at)}`}
+                {c.motivo ? ` · ${c.motivo}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
+        {esPostventa && estado !== "anulada" && (
+          <CambiosApertura
+            id={a.id}
+            tipo={a.tipo}
+            programadaPara={a.programada_para}
+            hayInforme={Boolean(a.informe_at)}
+            tomada={Boolean(a.tomada_at)}
+            tipos={TIPOS_APERTURA.map((t) => ({ valor: t, etiqueta: ETIQUETA_TIPO_APERTURA[t] }))}
+          />
         )}
       </div>
 
