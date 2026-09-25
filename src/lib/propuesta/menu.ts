@@ -126,6 +126,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     hoy,
     { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/almacen/pedidos"] },
     { etiqueta: "Llamadas de postventa", href: "/almacen/aperturas", icono: "aperturas", coincide: ["/almacen/aperturas", "/aperturas"] },
+    // Lesly, 25-09: la hoja de apertura que emite postventa, a la vista del almacén.
+    { etiqueta: "Aperturas de postventa", href: "/almacen/aperturas-postventa", icono: "informes", coincide: ["/almacen/aperturas-postventa"] },
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/almacen/agenda", "/almacen/atenciones", "/almacen/visitas"] },
     { etiqueta: "Informes técnicos", href: "/almacen/informes", icono: "informes", coincide: ["/almacen/informes"] },
   ],
@@ -147,6 +149,7 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     hoy,
     { etiqueta: "Catálogo", href: "/operaciones/catalogo", icono: "catalogo", coincide: ["/operaciones/catalogo"] },
     { etiqueta: "Permisos y listas", href: "/nuevo/permisos", icono: "permisos", coincide: ["/nuevo/permisos", "/operaciones/permisos", "/admin/catalogos"] },
+    { etiqueta: "Aperturas de postventa", href: "/almacen/aperturas-postventa", icono: "informes", coincide: ["/almacen/aperturas-postventa"] },
   ],
   gerencia: [
     hoy,

@@ -33,6 +33,7 @@ const PAGINAS: Record<string, Carga> = {
   "postventa/control": () => import("@/app/(app)/postventa/control/page"),
   "almacen": () => import("@/app/(app)/almacen/page"),
   "almacen/pedidos": () => import("@/app/(app)/almacen/pedidos/page"),
+  "almacen/aperturas-postventa": () => import("@/app/(app)/almacen/aperturas-postventa/page"),
   "almacen/agenda": () => import("@/app/(app)/almacen/agenda/page"),
   "almacen/atenciones": () => import("@/app/(app)/almacen/atenciones/page"),
   "almacen/visitas": () => import("@/app/(app)/almacen/visitas/page"),

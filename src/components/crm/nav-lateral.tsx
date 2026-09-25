@@ -286,6 +286,8 @@ const ENLACES_ALMACEN = [
   { href: "/almacen", etiqueta: "Mi día", icono: Gauge },
   { href: "/almacen/pedidos", etiqueta: "Pedidos", icono: Package },
   { href: "/almacen/aperturas", etiqueta: "Llamadas de postventa", icono: PhoneForwarded },
+  // Lesly, 25-09: «almacén no tiene la opción para ver las aperturas que envía postventa».
+  { href: "/almacen/aperturas-postventa", etiqueta: "Aperturas de postventa", icono: FileText },
   { href: "/almacen/atenciones", etiqueta: "Atenciones programadas", icono: Wrench },
   { href: "/almacen/visitas", etiqueta: "Visitas a planta", icono: DoorOpen },
   { href: "/almacen/agenda", etiqueta: "Calendario", icono: CalendarDays },
