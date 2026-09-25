@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
 import { CambiarClave } from "@/components/crm/cambiar-clave";
 import { cerrarSesion } from "@/lib/acciones/auth";
+import { createClient } from "@/lib/supabase/server";
+import { contarAtencionesAbiertas, contarBandejaMiDia } from "@/lib/contadores-postventa";
 
 // La letra de la marca (Archivo) va alojada en public/fonts y declarada en
 // propuesta.css: next/font/google no compila con Turbopack en esta versión.
@@ -80,13 +82,22 @@ export async function MarcoPropuesta({
   // perdía. Queda en la cabecera, a la vista en cualquier sección.
   const pasaContactos = tipo === "comercial" || tipo === "preventivo" || tipo === "postventa" || tipo === "almacen";
   const campanias = pasaContactos ? await campaniasWhatsappActivas() : [];
+  // LOS NÚMEROS DEL MENÚ (auditoría 25-09): los mismos dos de la barra de
+  // siempre para postventa —lo que llega al día y las atenciones abiertas—,
+  // con las mismas consultas livianas. Solo para quien trabaja el área.
+  const contadores: Record<string, number> = {};
+  if (tipo === "postventa") {
+    const supabase = await createClient();
+    const [miDia, atenciones] = await Promise.all([contarBandejaMiDia(supabase, perfil.id), contarAtencionesAbiertas(supabase)]);
+    contadores["/nuevo/atenciones"] = miDia + atenciones;
+  }
   return (
     <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
       <BarraProgreso />
       {demo && <GuardaDemo />}
       <SelectorFechaHora />
       <TemaEnElCuerpo oscuro={oscuro} />
-      <BarraPropuesta demo={demo} opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} pin={tipo === "gerencia" || tipo === "admin" || tipo === "operaciones"} />
+      <BarraPropuesta demo={demo} contadores={contadores} opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} pin={tipo === "gerencia" || tipo === "admin" || tipo === "operaciones"} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-card/80 px-6 py-2.5 backdrop-blur-md">
           <form action={buscar.href} method="get" className="flex min-w-64 max-w-xl flex-1 items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 transition-all duration-200 focus-within:border-[var(--c-marca)] focus-within:bg-card focus-within:ring-4 focus-within:ring-[var(--c-marca)]/15">

@@ -1,6 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
-import { pruebaSinPedir, type ServicioPostventa } from "@/lib/postventa";
+import { faltanFotosDeCarga, pruebaSinPedir, type ServicioPostventa } from "@/lib/postventa";
 import { ETIQUETA_TIPO_APERTURA, estadoApertura, type TipoApertura } from "@/lib/aperturas-llamada";
 import type { Perfil } from "@/types/database";
 
@@ -79,7 +79,7 @@ export async function colaSupervision(
 
 async function colaPostventa(supabase: Cliente) {
   const hoy = hoyLima();
-  const [{ data: pedidos }, { data: aperturas }, { data: atenciones }, { data: casos }, { data: visitas }] = await Promise.all([
+  const [{ data: pedidos }, { data: aperturas }, { data: atenciones }, { data: casos }, { data: visitas }, { data: casosNuevos }] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("*")
@@ -106,17 +106,42 @@ async function colaPostventa(supabase: Cliente) {
       .lte("proxima_accion_at", hoy)
       .limit(1000),
     supabase.from("visitas_planta").select("id, empresa, persona, motivo, hora").eq("fecha", hoy).is("cancelada_at", null),
+    // LOS CASOS NUEVOS, SIN TOMAR (auditoría 25-09): la bandeja de siempre
+    // los pone primero; Hoy solo veía los que ya tenían próxima acción.
+    supabase
+      .from("oportunidades")
+      .select("id, tipo_postventa, created_at, cuentas(razon_social)")
+      .eq("origen", "crm")
+      .eq("etapa", "asignada")
+      .not("tipo_postventa", "is", null)
+      .is("proxima_accion_at", null)
+      .order("created_at", { ascending: true })
+      .limit(50),
   ]);
 
   const tareas: Tarea[] = [];
   const agenda: EventoAgenda[] = [];
+  for (const c of (casosNuevos ?? []) as unknown as { id: string; tipo_postventa: string | null; created_at: string; cuentas: { razon_social: string } | null }[]) {
+    const dias = diasEntre(c.created_at.slice(0, 10), hoy);
+    tareas.push({
+      id: `cn-${c.id}`,
+      urgencia: dias >= 1 ? "atrasado" : "hoy",
+      tipo: "caso",
+      cliente: sinRuc(c.cuentas?.razon_social),
+      que: `Caso nuevo sin tomar${c.tipo_postventa ? ` · ${c.tipo_postventa}` : ""}`,
+      porque: dias >= 1 ? `Llegó hace ${dias} día${dias === 1 ? "" : "s"} y nadie lo tomó.` : "Llegó hoy: tómelo y ponga la próxima acción.",
+      accion: { etiqueta: "Tomarlo", href: `/comercial/oportunidades/${c.id}` },
+    });
+  }
   const vivos = ((pedidos ?? []) as unknown as ServicioPostventa[]).filter((s) => !s.informe_cierre_id || s.pedido_ejecutado_at);
   let viejosDelExcel = 0;
 
   for (const s of vivos) {
     const cliente = sinRuc(s.cliente_texto);
     const equipo = primeraLinea(s.equipo) || "Pedido";
-    if (s.informe_cierre_id && !s.aprobado_at) {
+    // Como la bandeja de siempre: se aprueba lo que Central liberó con la
+    // liquidación aceptada (auditoría 25-09: Hoy lo pedía antes).
+    if (s.informe_cierre_id && !s.aprobado_at && s.liquidacion_at) {
       tareas.push({ id: `apr-${s.id}`, urgencia: "hoy", tipo: "pedido", cliente, que: `Aprobar el pedido · ${equipo}`, porque: "Central ya lo lanzó y el área todavía no lo tomó.", accion: { etiqueta: "Aprobar", href: `/postventa/pedidos/${s.id}` } });
     }
     // Lo que vino del Excel con una fecha vencida hace más de 45 días casi
@@ -219,10 +244,10 @@ async function colaPostventa(supabase: Cliente) {
 
 async function colaAlmacen(supabase: Cliente) {
   const hoy = hoyLima();
-  const [{ data: pedidos }, { data: aperturas }, { data: atenciones }] = await Promise.all([
+  const [{ data: pedidos }, { data: aperturas }, { data: atenciones }, { data: visitasHoy }] = await Promise.all([
     supabase
       .from("servicios_postventa")
-      .select("id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, guia, agencia_at, salida_fotos, informe_cierre_id, pedido_ejecutado_at")
+      .select("id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, guia, agencia_at, salida_fotos, informe_cierre_id, pedido_ejecutado_at, guia_confirmada_at")
       .eq("completado", false)
       .is("cerrado_at", null)
       .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
@@ -240,6 +265,8 @@ async function colaAlmacen(supabase: Cliente) {
       .is("cerrado_at", null)
       .gte("programada_at", `${hoy}T00:00:00-05:00`)
       .lt("programada_at", `${hoy}T23:59:59-05:00`),
+    // Las visitas de hoy, como en «Mi día» (auditoría 25-09).
+    supabase.from("visitas_planta").select("id, empresa, persona, motivo, hora").eq("fecha", hoy).is("cancelada_at", null),
   ]);
   const { data: series } = await supabase
     .from("servicios_postventa")
@@ -272,12 +299,20 @@ async function colaAlmacen(supabase: Cliente) {
         tareas.push({ id: `at-${s.id}`, urgencia: "atrasado", tipo: "despacho", cliente, que: `Despachar · ${equipo}`, porque: `Tenía fecha el ${s.fecha_despacho.split("-").reverse().join("/")} y ya tiene apertura: se puede despachar.`, accion: { etiqueta: "Despachar", href: `/almacen/pedidos/${s.id}` } });
       } else if (s.fecha_despacho === hoy) {
         agenda.push({ id: `d-${s.id}`, hora: s.despacho_hora ? String(s.despacho_hora).slice(0, 5) : "—", titulo: `Despacho · ${cliente}`, detalle: `${equipo}${s.apertura_despacho_at ? "" : " · sin apertura"}`, href: `/almacen/pedidos/${s.id}` });
-        if (!s.almacen_listo_at) tareas.push({ id: `li-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Confirmar que está listo · ${equipo}`, porque: "Sale hoy y el almacén no confirmó.", accion: { etiqueta: "Confirmar", href: `/almacen/pedidos/${s.id}` } });
+        // Solo con apertura: sin ella no es trabajo del almacén (doble filtro, auditoría 25-09).
+        if (!s.almacen_listo_at && s.apertura_despacho_at) tareas.push({ id: `li-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Confirmar que está listo · ${equipo}`, porque: "Sale hoy y el almacén no confirmó.", accion: { etiqueta: "Confirmar", href: `/almacen/pedidos/${s.id}` } });
       }
+    }
+    // Salió, pero faltan las fotos de la carga en el transporte (23-09; auditoría 25-09).
+    if (faltanFotosDeCarga(s)) {
+      tareas.push({ id: `fc-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Subir las fotos de la carga · ${equipo}`, porque: "Salió y faltan las fotos de la máquina puesta en el transporte.", accion: { etiqueta: "Subir fotos", href: `/almacen/pedidos/${s.id}` } });
     }
     if (s.despachado_at && !s.guia && !s.agencia_at && (s.salida_fotos?.length ?? 0) > 0) {
       tareas.push({ id: `gu-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: "Subir la guía", porque: "Salió y falta la foto de la guía en la agencia.", accion: { etiqueta: "Subir guía", href: `/almacen/pedidos/${s.id}` } });
     }
+  }
+  for (const v of (visitasHoy ?? []) as { id: string; empresa: string; persona: string; motivo: string; hora: string | null }[]) {
+    agenda.push({ id: `vis-${v.id}`, hora: v.hora ? v.hora.slice(0, 5) : "—", titulo: `Viene a la planta · ${v.empresa}`, detalle: `${v.persona} · ${v.motivo}`, href: "/almacen/visitas" });
   }
   const urgentes: Tarea[] = [];
   for (const a of (aperturas ?? []) as unknown as { id: string; tipo: TipoApertura; programada_para: string; equipos: string; tomada_at: string | null; informe_at: string | null; revisada_at: string | null; enviada_cliente_at: string | null; anulada_at: string | null; urgente?: boolean | null; cuentas: { razon_social: string } | null }[]) {

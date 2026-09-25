@@ -63,7 +63,10 @@ export function BarraPropuesta({
   verComo,
   pin = false,
   demo = true,
+  contadores = {},
 }: {
+  /** El número de pendientes junto a una opción, por href (como la barra de siempre, 25-09). */
+  contadores?: Record<string, number>;
   /** Cuenta _test: el PIN es de muestra y abajo va «Salir de la propuesta». */
   demo?: boolean;
   opciones: OpcionMenu[];
@@ -97,7 +100,12 @@ export function BarraPropuesta({
               className="nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px]"
             >
               <Icono className="size-[18px] shrink-0" strokeWidth={es ? 2.3 : 1.9} />
-              {o.etiqueta}
+              <span className="flex-1">{o.etiqueta}</span>
+              {(contadores[o.href] ?? 0) > 0 && (
+                <span className="rounded-full bg-[var(--marca-alto)] px-1.5 py-px text-[10px] font-bold tabular-nums text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]">
+                  {contadores[o.href] > 99 ? "99+" : contadores[o.href]}
+                </span>
+              )}
             </Link>
           );
         })}

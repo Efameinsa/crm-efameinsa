@@ -91,7 +91,7 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   central: [
     hoy,
     conversaciones,
-    { etiqueta: "Seguimiento", href: "/central/derivados", icono: "seguimiento", coincide: ["/central/derivados"] },
+    { etiqueta: "Seguimiento", href: "/nuevo/seguimiento", icono: "seguimiento", coincide: ["/nuevo/seguimiento", "/central/derivados", "/central/informe"] },
     { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/central/cierres", "/central/pedidos"] },
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/central/clientes", "/central/presupuestos"] },
     { etiqueta: "Agenda", href: "/central/visitas", icono: "agenda", coincide: ["/central/visitas"] },
@@ -107,8 +107,11 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   ],
   postventa: [
     hoy,
+    // El macro, como en la barra de siempre (auditoría 25-09: Carlos, 16-09:
+    // «primero es el macro»).
+    { etiqueta: "Panorama", href: "/postventa/macro", icono: "numeros", coincide: ["/postventa/macro"] },
     { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/postventa/control", "/postventa/pedidos"] },
-    { etiqueta: "Atenciones", href: "/postventa/atenciones", icono: "atenciones", coincide: ["/postventa/atenciones", "/postventa/casos", "/postventa/informes"] },
+    { etiqueta: "Atenciones", href: "/nuevo/atenciones", icono: "atenciones", coincide: ["/nuevo/atenciones", "/postventa/atenciones", "/postventa/casos", "/postventa/informes"] },
     // Reunión 23-09: la orden al almacén que iba por correo (0281).
     { etiqueta: "Derivación de llamadas", href: "/postventa/aperturas", icono: "aperturas", coincide: ["/postventa/aperturas", "/aperturas"] },
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/comercial/cartera", "/postventa/equipos", "/comercial/parque"] },
@@ -124,6 +127,9 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   ],
   almacen: [
     hoy,
+    // Mi día en números: lo mandado a Central, las visitas de hoy y los
+    // cuadros de despachos y atenciones (auditoría 25-09).
+    { etiqueta: "Panorama", href: "/almacen", icono: "numeros", coincide: [] },
     { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/almacen/pedidos"] },
     { etiqueta: "Llamadas de postventa", href: "/almacen/aperturas", icono: "aperturas", coincide: ["/almacen/aperturas", "/aperturas"] },
     // Lesly, 25-09: la hoja de apertura que emite postventa, a la vista del almacén.
@@ -162,6 +168,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   gerencia: [
     hoy,
     { etiqueta: "Aprobaciones", href: "/gerencia/aprobaciones", icono: "aprobaciones", coincide: ["/gerencia/aprobaciones"] },
+    // Gerencia tenía WhatsApp en su menú de siempre (auditoría 25-09).
+    conversaciones,
     { etiqueta: "Ventas", href: "/nuevo/ventas", icono: "ventas", coincide: ["/nuevo/ventas", "/gerencia/potenciales", "/gerencia/comerciales", "/central/presupuestos", "/central/cierres"] },
     { etiqueta: "Marketing", href: "/nuevo/marketing", icono: "marketing", coincide: ["/nuevo/marketing", "/gerencia/marketing", "/gerencia/finanzas", "/whatsapp"] },
     { etiqueta: "Operación", href: "/nuevo/operacion", icono: "operacion", coincide: ["/nuevo/operacion", "/postventa", "/finanzas"] },
@@ -171,7 +179,7 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   ],
   admin: [
     { etiqueta: "Usuarios", href: "/admin", icono: "usuarios", coincide: [] },
-    { etiqueta: "Catálogo", href: "/operaciones/catalogo", icono: "catalogo", coincide: ["/operaciones/catalogo", "/admin/productos"] },
+    { etiqueta: "Catálogo", href: "/nuevo/catalogo", icono: "catalogo", coincide: ["/nuevo/catalogo", "/operaciones/catalogo", "/admin/productos"] },
     { etiqueta: "Listas del sistema", href: "/admin/catalogos", icono: "listas", coincide: ["/admin/catalogos"] },
   ],
 };
@@ -201,6 +209,16 @@ export const BUSCAR_EN: Record<TipoPerfil, { href: string; ayuda: string }> = {
  * palabra («Clientes», «Agenda») reúne pantallas distintas según quién mira.
  */
 export const SECCIONES: Record<string, Seccion> = {
+  // Lo que Central derivó y, al cierre, su informe del día (auditoría 25-09:
+  // «Informe del día» no tenía entrada en la propuesta).
+  "central/seguimiento": {
+    titulo: "Seguimiento",
+    ayuda: "Lo que usted derivó y cómo va, y el informe del día para gerencia.",
+    pestanas: [
+      { clave: "", etiqueta: "Lo que derivé", pagina: "central/derivados" },
+      { clave: "informe", etiqueta: "Informe del día", pagina: "central/informe" },
+    ],
+  },
   "central/clientes": {
     titulo: "Clientes",
     ayuda: "Toda la cartera, en lectura, y todas las cotizaciones de la empresa.",
@@ -243,7 +261,8 @@ export const SECCIONES: Record<string, Seccion> = {
     ayuda: "Lo que otras áreas esperan de usted: confirmar abonos y subir liquidaciones.",
     pestanas: [
       { clave: "", etiqueta: "Por confirmar", pagina: "vista:finanzas-por-confirmar" },
-      { clave: "liquidar", etiqueta: "Por liquidar", pagina: "vista:finanzas-por-liquidar" },
+      // La pantalla oficial: expediente, «con factura, por actualizar» y «ya liquidados» (auditoría 25-09).
+      { clave: "liquidar", etiqueta: "Por liquidar", pagina: "finanzas/liquidar" },
     ],
   },
   "comercial/oportunidades": {
@@ -276,6 +295,17 @@ export const SECCIONES: Record<string, Seccion> = {
     pestanas: [
       { clave: "", etiqueta: "Calendario", pagina: "comercial/agenda" },
       { clave: "visitas", etiqueta: "Visitas a planta", pagina: "comercial/visitas" },
+    ],
+  },
+  // LA BANDEJA Y LOS CASOS (auditoría 25-09): la bandeja de siempre —casos
+  // nuevos, lo atendido hoy y los reportes diario, semanal y mensual— como
+  // primera pestaña de Atenciones.
+  "postventa/atenciones": {
+    titulo: "Atenciones",
+    ayuda: "Lo que va llegando al área, los casos técnicos en curso y sus informes.",
+    pestanas: [
+      { clave: "", etiqueta: "Bandeja del día", pagina: "postventa" },
+      { clave: "casos", etiqueta: "Casos técnicos", pagina: "postventa/atenciones" },
     ],
   },
   "postventa/clientes": {
@@ -374,6 +404,16 @@ export const SECCIONES: Record<string, Seccion> = {
       { clave: "liquidar", etiqueta: "Por liquidar", pagina: "finanzas/liquidar" },
       { clave: "aperturas", etiqueta: "Aperturas por confirmar", pagina: "finanzas/aperturas" },
       { clave: "cobranza", etiqueta: "Cobranza", pagina: "finanzas/cobrar" },
+    ],
+  },
+  // El catálogo y el alta de productos con sus precios (auditoría 25-09:
+  // «Productos y precios» no tenía entrada en la vista nueva).
+  "admin/catalogo": {
+    titulo: "Catálogo",
+    ayuda: "Los equipos, servicios y repuestos que se cotizan, y el alta de productos con sus precios.",
+    pestanas: [
+      { clave: "", etiqueta: "El catálogo", pagina: "operaciones/catalogo" },
+      { clave: "productos", etiqueta: "Productos y precios", pagina: "admin/productos" },
     ],
   },
   "operaciones/permisos": {

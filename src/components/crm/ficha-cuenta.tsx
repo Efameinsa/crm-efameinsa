@@ -402,7 +402,7 @@ export async function FichaCuenta({
 }
 
 /** Vivo primero, archivo después, cerrado al final (0130). */
-function rangoOportunidad(o: { etapa: string; cerrada_at: string | null }): number {
+export function rangoOportunidad(o: { etapa: string; cerrada_at: string | null }): number {
   if (o.cerrada_at) return 2;
   return o.etapa === "historico" ? 1 : 0;
 }
@@ -425,7 +425,7 @@ function rangoOportunidad(o: { etapa: string; cerrada_at: string | null }): numb
  * anotar una gestión es ser el DUEÑO DEL EXPEDIENTE —así está la regla en la
  * base—, no ser el dueño del cliente; el rótulo tiene que decir lo mismo.
  */
-function ListaOportunidadesCuenta({
+export function ListaOportunidadesCuenta({
   oportunidades,
   quienMira,
   comoGerencia,

@@ -2,7 +2,8 @@ import { AlertTriangle, CalendarClock, Hourglass, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { PropsVista } from "@/lib/propuesta/vistas";
 import { hoyLima } from "@/lib/periodo";
-import { diasEntre, formatoMonto, pedidosPorConfirmar, type PedidoFinanzas } from "@/lib/pagos-finanzas";
+import { avisosDeCentral, diasEntre, formatoMonto, pedidosPorConfirmar, type PedidoFinanzas } from "@/lib/pagos-finanzas";
+import Link from "next/link";
 import { FilaTrabajo, Grupo, haceCuanto, Numero, Pildora, Vacio, type Tono } from "@/components/propuesta/kit";
 
 /**
@@ -16,8 +17,10 @@ import { FilaTrabajo, Grupo, haceCuanto, Numero, Pildora, Vacio, type Tono } fro
  */
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
-type Clave = "postventa" | "pronto" | "observados" | "resto";
+type Clave = "urgencia" | "postventa" | "pronto" | "observados" | "resto";
 const GRUPOS: { clave: Clave; titulo: string; ayuda: string; tono: Tono }[] = [
+  // La sirena de Central (0298) va primero (auditoría 25-09).
+  { clave: "urgencia", titulo: "🚨 Central pide apurar", ayuda: "El cliente necesita la factura o quiere despachar.", tono: "urgente" },
   { clave: "postventa", titulo: "Postventa espera su respuesta", ayuda: "Pidieron confirmar el abono para programar la salida.", tono: "urgente" },
   { clave: "pronto", titulo: "Salen en 3 días o menos", ayuda: "Sin el abono confirmado no se despachan.", tono: "atencion" },
   { clave: "observados", titulo: "Observados", ayuda: "Usted los observó: esperan respuesta del comercial.", tono: "atencion" },
@@ -30,6 +33,7 @@ export async function conteo(supabase: Cliente): Promise<number> {
 export const alerta = true;
 
 function grupoDe(p: PedidoFinanzas, hoy: string): Clave {
+  if (p.urgenciaAt) return "urgencia";
   if (p.solicitadoAt) return "postventa";
   if (p.fechaDespacho && diasEntre(hoy, p.fechaDespacho) <= 3) return "pronto";
   if (p.observadoAt) return "observados";
@@ -48,18 +52,44 @@ function salida(p: PedidoFinanzas, hoy: string): { texto: string; tono: Tono } {
 export default async function FinanzasPorConfirmar({ base }: PropsVista) {
   const supabase = await createClient();
   const hoy = hoyLima();
-  const pedidos = await pedidosPorConfirmar(supabase);
+  const [pedidos, avisos] = await Promise.all([pedidosPorConfirmar(supabase), avisosDeCentral(supabase, 14)]);
+  // LO QUE CENTRAL LE DERIVÓ (auditoría 25-09: solo se veía en /finanzas).
+  const bloqueAvisos =
+    avisos.length > 0 ? (
+      <Grupo titulo="Avisos de Central" ayuda="Lo que Central le derivó en los últimos 14 días." conteo={avisos.length} tono="neutro">
+        {avisos.map((a) => (
+          <FilaTrabajo
+            key={a.id}
+            f={{
+              titulo: a.cliente ?? "Aviso de Central",
+              href: a.servicioId ? `/finanzas/pedidos/${a.servicioId}` : "/finanzas",
+              sub: a.detalle || "Sin detalle",
+              estado: null,
+              dato: null,
+              espera: null,
+              edad: haceCuanto(a.createdAt),
+              edadTono: "neutro",
+              accion: { etiqueta: a.servicioId ? "Ver el pedido" : "Ver", href: a.servicioId ? `/finanzas/pedidos/${a.servicioId}` : "/finanzas" },
+              tono: "neutro",
+            }}
+          />
+        ))}
+      </Grupo>
+    ) : null;
   const porGrupo = new Map<Clave, PedidoFinanzas[]>(GRUPOS.map((g) => [g.clave, []]));
   for (const p of pedidos) porGrupo.get(grupoDe(p, hoy))!.push(p);
   const n = (c: Clave) => porGrupo.get(c)!.length;
 
   if (pedidos.length === 0) {
     return (
+      <div className="space-y-4">
       <Vacio
         titulo="No hay abonos por confirmar"
         porque="Todos los pedidos liberados tienen lo que exige su condición de pago. Cuando Central libere un pedido nuevo aparece aquí, y le suena la campana."
         accion={{ etiqueta: "Ver los cobros pendientes", href: "/finanzas/cobrar" }}
       />
+      {bloqueAvisos}
+      </div>
     );
   }
 
@@ -96,7 +126,9 @@ export default async function FinanzasPorConfirmar({ base }: PropsVista) {
                           <span className="text-xs font-bold tabular-nums text-destructive">Falta {formatoMonto(p.moneda, p.falta)}</span>
                         </>
                       ),
-                      espera: p.observadoAt ? `Observado ${haceCuanto(p.observadoAt)}: ${p.observadoMotivo ?? "sin motivo"} · esperando al comercial` : null,
+                      espera: p.urgenciaAt
+                        ? `Central, ${haceCuanto(p.urgenciaAt)}${p.urgenciaN > 1 ? ` (${p.urgenciaN}.º aviso)` : ""}: ${p.urgenciaMotivo ?? "el cliente está esperando"}`
+                        : p.observadoAt ? `Observado ${haceCuanto(p.observadoAt)}: ${p.observadoMotivo ?? "sin motivo"} · esperando al comercial` : null,
                       edad: p.solicitadoAt ? `Pidió ${haceCuanto(p.solicitadoAt)} · ${s.texto.toLowerCase()}` : s.texto,
                       edadTono: p.solicitadoAt ? "urgente" : s.tono,
                       accion: { etiqueta: "Confirmar u observar", href: `/finanzas/pedidos/${p.id}` },
@@ -109,6 +141,10 @@ export default async function FinanzasPorConfirmar({ base }: PropsVista) {
           </div>
         );
       })}
+      {bloqueAvisos}
+      <p className="text-xs text-muted-foreground">
+        ¿Busca la lista de siempre, con los avisos y el expediente a mano? <Link href="/finanzas" className="font-semibold text-primary hover:underline">Por confirmar en números</Link>
+      </p>
     </div>
   );
 }

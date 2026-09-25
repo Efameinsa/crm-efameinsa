@@ -19,6 +19,12 @@ import { fechaCalendario, fechaLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
+import { guardaFichaPedido } from "@/lib/propuesta/guardas";
+import { ArrowLeft } from "lucide-react";
+import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
+import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
+import { EquipoConSeries } from "@/components/crm/equipo-con-series";
+import { DocumentosExpedientePedido, HerramientasPedido, PagoDelPedido, cargarExpedientePedido } from "@/components/crm/pedido-expediente-bloques";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +40,7 @@ export const dynamic = "force-dynamic";
 export default async function PedidoNuevoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const perfil = await requerirPerfil();
+  guardaFichaPedido(perfil);
   const supabase = await createClient();
   const { data } = await supabase.from("servicios_postventa").select("*").eq("id", id).maybeSingle();
   if (!data) notFound();
@@ -45,7 +52,11 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
     cargarEquiposDelPedido(id),
     supabase.from("aperturas_llamada").select("id, tipo, programada_para, anulada_at, enviada_cliente_at, revisada_at, informe_at, tomada_at").eq("servicio_id", id).order("programada_para", { ascending: false }),
     servicio.informe_cierre_id
-      ? supabase.from("informes_cierre").select("codigo, entrega_direccion, contacto_despacho, forma_pago").eq("id", servicio.informe_cierre_id).maybeSingle()
+      ? supabase
+          .from("informes_cierre")
+          .select("id, codigo, orden_compra, adjuntos, modalidad_pago, entrega_direccion, contacto_despacho, forma_pago")
+          .eq("id", servicio.informe_cierre_id)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
     servicio.apertura_despacho_por ? supabase.from("perfiles").select("nombre").eq("id", servicio.apertura_despacho_por).maybeSingle() : Promise.resolve({ data: null }),
   ]);
@@ -65,6 +76,10 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
   const circuito = circuitoDe(servicio);
   const cliente = (servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   const inf = informe as {
+    id: string;
+    orden_compra: string | null;
+    adjuntos: { tipo?: string; path: string; nombre: string }[] | null;
+    modalidad_pago: string[] | null;
     codigo: string | null;
     entrega_direccion: string | null;
     contacto_despacho: { nombre?: string | null; telefono?: string | null; area?: string | null } | string | null;
@@ -75,9 +90,22 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
     typeof inf?.contacto_despacho === "string"
       ? inf.contacto_despacho
       : [inf?.contacto_despacho?.nombre, inf?.contacto_despacho?.telefono, inf?.contacto_despacho?.area].filter(Boolean).join(" · ");
+  const telefonoContacto = typeof inf?.contacto_despacho === "object" ? (inf?.contacto_despacho?.telefono ?? null) : null;
+  // Fotos del almacén, papeles del cierre, la captura (solo Finanzas y
+  // gerencia la firman) y las fichas de las series (auditoría 25-09).
+  const exp = await cargarExpedientePedido(supabase, servicio, inf?.adjuntos ?? []);
+  // LO VERIFICADO MANDA (auditoría 25-09): la dirección y quién recibe que
+  // postventa confirmó con el cliente; el cierre solo si todavía no hay nada.
+  const direccionEntrega = servicio.direccion_entrega ?? inf?.entrega_direccion ?? servicio.ubicacion ?? null;
+  const quienRecibe = servicio.recibe_nombre
+    ? `${servicio.recibe_nombre}${servicio.recibe_telefono ? ` · ${servicio.recibe_telefono}` : ""}`
+    : recibe;
 
   return (
     <div className="space-y-4">
+      <Link href="/nuevo/pedidos" className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="size-3.5" /> Volver a pedidos
+      </Link>
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -85,6 +113,7 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
               {circuito.esRepuesto ? "Pedido de repuesto" : circuito.esServicio ? "Pedido de servicio" : "Pedido de equipo"}
               {servicio.numero_pedido_erp ? ` · ERP ${servicio.numero_pedido_erp}` : ""}
               {inf?.codigo ? ` · cierre ${inf.codigo}` : ""}
+              {inf?.orden_compra ? ` · OC ${inf.orden_compra}` : ""}
               {servicio.modalidad ? ` · ${servicio.modalidad === "provincia" ? "Provincia" : "Lima"}` : ""}
             </p>
             <h1 className="text-xl font-bold text-foreground">
@@ -96,11 +125,24 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
                 cliente
               )}
             </h1>
-            <p className="line-clamp-2 text-sm text-muted-foreground">{(servicio.equipo ?? "").split("\n").slice(0, 2).join(" · ")}</p>
+            {/* Las series abren la ficha de su máquina (auditoría 25-09). */}
+            <EquipoConSeries texto={servicio.equipo} fichaPorSerie={exp.fichaPorSerie} className="mt-1" />
+            {exp.capturaUrl && (
+              <a href={exp.capturaUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-medium text-primary hover:underline">
+                Ver la captura con que Finanzas confirmó el pago →
+              </a>
+            )}
+            <AvisoMismoCliente cuentaId={servicio.cuenta_id} className="mt-2" />
           </div>
-          <Link href={`/postventa/pedidos/${id}?hoy=1`} className="text-[11px] text-muted-foreground hover:underline">
-            Ficha de hoy
-          </Link>
+          <div className="flex flex-col items-end gap-2">
+            <HerramientasPedido servicioId={servicio.id} aperturaEmitida={Boolean(servicio.apertura_despacho_at)} informeId={inf?.id ?? null} telefono={telefonoContacto} />
+            <Link href={`/postventa/pedidos/${id}?hoy=1`} className="text-[11px] text-muted-foreground hover:underline">
+              Vista anterior de la ficha
+            </Link>
+          </div>
+        </div>
+        <div className="mt-3">
+          <PagoDelPedido servicio={servicio} verPrecios={verPrecios} modalidadPago={inf?.modalidad_pago ?? null} />
         </div>
 
         {/* LA LÍNEA DE AVANCE: tres fases, cada paso un punto. */}
@@ -171,21 +213,24 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
                   ? `Sale el ${fechaCalendario(servicio.fecha_despacho)}${servicio.despacho_hora ? ` a las ${String(servicio.despacho_hora).slice(0, 5)}` : ""}`
                   : "Sin fecha de despacho"}
             </p>
-            {inf?.entrega_direccion && (
+            {direccionEntrega && (
               <p className="mt-1 flex items-start gap-1.5">
-                <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> {inf.entrega_direccion}
+                <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> {direccionEntrega}
               </p>
             )}
-            {recibe && (
+            {quienRecibe && (
               <p className="mt-1 flex items-start gap-1.5">
-                <UserRound className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> Recibe: {recibe}
+                <UserRound className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> Recibe: {quienRecibe}
               </p>
             )}
             <p className="mt-1 flex items-start gap-1.5">
               <Building2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> {textoCondicionPago(servicio) ?? inf?.forma_pago ?? "Condición de pago sin registrar"}
             </p>
+            {servicio.fecha_confirmacion && <p className="mt-1 text-xs text-muted-foreground">Venta del {fechaCalendario(servicio.fecha_confirmacion)}</p>}
           </div>
           <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={cliente} />
+          {exp.galeria.length > 0 && <GaleriaAlmacen fotos={exp.galeria} />}
+          <DocumentosExpedientePedido adjuntos={exp.adjuntos} verPrecios={verPrecios} />
         </aside>
       </div>
     </div>

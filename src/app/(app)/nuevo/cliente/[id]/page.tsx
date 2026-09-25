@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Building2, FileText, MapPin, Phone, Mail, UserRound } from "lucide-react";
+import { ArrowRight, Building2, FileText, MapPin, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios, veTodoPostventa } from "@/lib/postventa";
@@ -8,24 +8,31 @@ import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { fechaLima, fechaAgendada } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
+import { guardaFichaCliente } from "@/lib/propuesta/guardas";
 import { PendientesDelCliente } from "@/components/crm/pendientes-del-cliente";
 import { UltimosCierres } from "@/components/crm/ultimos-cierres";
 import { EquiposDelCliente } from "@/components/crm/equipos-del-cliente";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
 import { ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
-import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
 import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimiento-boton";
+import { Plus } from "lucide-react";
+import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { ResumenCuenta } from "@/components/crm/resumen-cuenta";
+import { GrupoEconomico } from "@/components/crm/grupo-economico";
+import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
+import { ReasignarCarteraBoton } from "@/components/crm/reasignar-cartera-boton";
+import { AccionNuevoInforme } from "@/components/crm/secciones-cliente";
+import { ContactosEditables } from "@/components/crm/contactos-editables";
+import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
+import { CambiarRubro } from "@/components/crm/cambiar-rubro";
+import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor";
+import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
+import { TraerPedidoAntiguoBoton } from "@/components/crm/traer-pedido-antiguo-boton";
+import { ListaOportunidadesCuenta, rangoOportunidad } from "@/components/crm/ficha-cuenta";
 
 export const dynamic = "force-dynamic";
-
-const TIPO_EXPEDIENTE: Record<string, string> = {
-  garantia: "Soporte técnico",
-  repuesto: "Repuestos",
-  mantenimiento: "Mantenimiento preventivo",
-  seguimiento: "Seguimiento de postventa",
-};
 
 const PESTANAS = [
   { clave: "resumen", etiqueta: "Resumen" },
@@ -33,7 +40,8 @@ const PESTANAS = [
   { clave: "equipos", etiqueta: "Equipos" },
   { clave: "ventas", etiqueta: "Ventas" },
   { clave: "historial", etiqueta: "Historial" },
-  { clave: "contactos", etiqueta: "Contactos" },
+  { clave: "documentos", etiqueta: "Documentos y sedes" },
+  { clave: "contactos", etiqueta: "Datos y contactos" },
 ] as const;
 
 /**
@@ -51,17 +59,31 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
   const { tab } = await searchParams;
   const pestana = PESTANAS.find((p) => p.clave === tab)?.clave ?? "resumen";
   const perfil = await requerirPerfil();
+  guardaFichaCliente(perfil);
   const verPrecios = puedeVerPrecios(perfil);
   const esArea = veTodoPostventa(perfil);
+  // LAS MISMAS REGLAS QUE LA FICHA DE SIEMPRE (auditoría 25-09): quién ve cada
+  // acción no cambia con la vista.
+  const comoGerencia = ["gerencia", "admin"].includes(perfil.rol);
+  const haceCasos = Boolean(perfil.es_postventa) || Boolean(perfil.hace_postventa);
+  const puedeCrearRubros = ["gerencia", "admin", "operaciones"].includes(perfil.rol) || Boolean(perfil.es_operaciones);
   const supabase = await createClient();
 
   const { data: cuenta } = await supabase
     .from("cuentas")
-    .select("id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, ultima_venta_at, cartera_desde, notas, fusionada_en, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, es_principal)")
+    .select(
+      "id, razon_social, nombre_comercial, tipo_doc, num_doc, rubro_id, comercial_id, carpetas_servidor, direccion, ultima_venta_at, cartera_desde, notas, fusionada_en, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, direccion, es_principal)",
+    )
     .eq("id", id)
     .maybeSingle();
   if (!cuenta) notFound();
 
+  const [{ data: rubros }, { data: comerciales }] = await Promise.all([
+    supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre"),
+    comoGerencia
+      ? supabase.from("perfiles").select("id, nombre, codigo_comercial").eq("rol", "comercial").eq("activo", true).eq("es_prueba", false).eq("es_soporte", false).order("codigo_comercial")
+      : Promise.resolve({ data: null }),
+  ]);
   const [
     { count: pedidosAbiertos },
     { count: equipos },
@@ -75,17 +97,20 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
     supabase.from("informes_cierre").select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos").eq("cuenta_id", id).order("created_at", { ascending: false }),
     supabase
       .from("oportunidades")
-      .select("id, etapa, tipo_postventa, proxima_accion, proxima_accion_at, proxima_accion_hora, cerrada_at, monto_estimado, moneda, perfiles:comercial_id(codigo_comercial)")
+      .select("id, etapa, intencion, tipo_postventa, proxima_accion, proxima_accion_at, proxima_accion_hora, cerrada_at, monto_estimado, moneda, comercial_id, lead_id, perfiles:comercial_id(nombre, codigo_comercial)")
       .eq("cuenta_id", id)
       .order("cerrada_at", { ascending: true, nullsFirst: true })
       .limit(50),
   ]);
   const dueno = cuenta.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
-  const contactos = (cuenta.contactos ?? []) as { id: string; nombre: string; cargo: string | null; telefono: string | null; email: string | null; es_principal: boolean }[];
+  const contactos = (cuenta.contactos ?? []) as {
+    id: string; nombre: string; cargo: string | null; telefono: string | null; email: string | null; documento: string | null; direccion: string | null; es_principal: boolean;
+  }[];
   const principal = contactos.find((c) => c.es_principal) ?? contactos[0];
   const ops = (oportunidades ?? []) as unknown as {
     id: string; etapa: string; tipo_postventa: string | null; proxima_accion: string | null; proxima_accion_at: string | null; proxima_accion_hora: string | null;
-    cerrada_at: string | null; monto_estimado: number | null; moneda: string; perfiles: { codigo_comercial: string | null } | null;
+    cerrada_at: string | null; monto_estimado: number | null; moneda: string; intencion: string | null; comercial_id: string | null; lead_id: string | null;
+    perfiles: { nombre: string; codigo_comercial: string | null } | null;
   }[];
   const vivas = ops.filter((o) => !o.cerrada_at && !["venta", "rechazada", "derivada", "historico"].includes(o.etapa));
   const siguiente = vivas.filter((o) => o.proxima_accion_at).sort((a, b) => (a.proxima_accion_at! < b.proxima_accion_at! ? -1 : 1))[0];
@@ -108,6 +133,11 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
               <Building2 className="size-3.5" /> Cliente · cartera de {dueno ? `${dueno.codigo_comercial ?? ""} ${dueno.nombre}`.trim() : "nadie"}
             </p>
             <h1 className="truncate text-xl font-bold text-foreground">{cuenta.razon_social}</h1>
+            {comoGerencia && (
+              <div className="mt-1">
+                <ReasignarCarteraBoton cuentaId={cuenta.id} razonSocial={cuenta.razon_social} comercialActual={cuenta.comercial_id as string | null} comerciales={comerciales ?? []} />
+              </div>
+            )}
             <p className="mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
               {cuenta.num_doc && (
                 <span className="inline-flex items-center gap-1">
@@ -125,14 +155,30 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                   {principal.telefono ? ` · ${principal.telefono}` : ""}
                 </span>
               )}
+              {cuenta.cartera_desde && <span>Cliente desde {fechaLima(cuenta.cartera_desde)}</span>}
             </p>
+            <AvisoMismoCliente cuentaId={cuenta.id} baseHref={comoGerencia ? "/gerencia/clientes" : undefined} className="mt-2" />
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {esArea && <RegistrarSeguimientoBoton cuentaId={cuenta.id} compacto />}
-            {esArea && <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Derivar llamada" compacto />}
-            <VisitaPlantaBoton cuentaId={cuenta.id} empresa={cuenta.razon_social} ruc={cuenta.num_doc as string | null} compacto />
-            <Link href={`/comercial/cartera/${cuenta.id}?hoy=1`} className="rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:underline">
-              Ficha de hoy
+          <div className="flex max-w-xl flex-wrap items-center justify-end gap-1.5">
+            {!comoGerencia && <VisitaPlantaBoton cuentaId={cuenta.id} empresa={cuenta.razon_social} ruc={cuenta.num_doc as string | null} compacto />}
+            {haceCasos && !comoGerencia && <RegistrarSeguimientoBoton cuentaId={cuenta.id} compacto />}
+            {haceCasos && !comoGerencia && <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Derivar llamada" compacto />}
+            {!haceCasos && !comoGerencia && cuenta.comercial_id === perfil.id && <RegistrarSeguimientoBoton cuentaId={cuenta.id} compacto comercial />}
+            {haceCasos && !perfil.solo_preventivo && !comoGerencia && <TraerPedidoAntiguoBoton cuentaId={cuenta.id} compacto />}
+            {esArea && !comoGerencia && <OfrecerMantenimientoBoton cuentaId={cuenta.id} compacto />}
+            {haceCasos && !perfil.solo_preventivo && (
+              <Link
+                href={`/postventa/casos/nuevo?cuenta=${cuenta.id}`}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-accent"
+              >
+                <Plus className="size-3.5" /> Registrar un caso
+              </Link>
+            )}
+            <Link
+              href={comoGerencia ? `/gerencia/clientes/${cuenta.id}?hoy=1` : `/comercial/cartera/${cuenta.id}?hoy=1`}
+              className="rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:underline"
+            >
+              Vista anterior de la ficha
             </Link>
           </div>
         </div>
@@ -182,12 +228,8 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                 </Link>
               )}
               <UltimosCierres informes={informes ?? []} />
-              {cuenta.notas && (
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Lo que hay que saber</p>
-                  <p className="line-clamp-6 whitespace-pre-wrap text-sm text-foreground">{cuenta.notas}</p>
-                </div>
-              )}
+              {/* Editable, como en la ficha de siempre (auditoría 25-09). */}
+              <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} />
               <UltimoHistorial cuentaId={cuenta.id} verPrecios={verPrecios} />
             </div>
             <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />
@@ -217,34 +259,49 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
           </div>
         )}
 
-        {pestana === "ventas" && <PestanaVentas cuentaId={cuenta.id} informes={informes ?? []} ops={ops} verPrecios={verPrecios} />}
+        {pestana === "ventas" && (
+          <PestanaVentas cuentaId={cuenta.id} informes={informes ?? []} ops={ops} verPrecios={verPrecios} quienMira={perfil.id} comoGerencia={comoGerencia} />
+        )}
+
+        {pestana === "documentos" && (
+          <div className="max-w-4xl space-y-4">
+            <DocumentosDelServidor
+              cuentaId={cuenta.id}
+              razonSocial={cuenta.razon_social}
+              nombreComercial={cuenta.nombre_comercial as string | null}
+              carpetas={cuenta.carpetas_servidor as Record<string, string> | null}
+            />
+            <GrupoEconomico cuentaId={cuenta.id} comoGerencia={comoGerencia} />
+          </div>
+        )}
 
         {pestana === "historial" && <HistorialCompleto cuentaId={cuenta.id} verPrecios={verPrecios} />}
 
         {pestana === "contactos" && (
-          <div className="grid max-w-4xl gap-3 sm:grid-cols-2">
-            {contactos.length === 0 && <p className="text-sm text-muted-foreground">Sin contactos cargados.</p>}
-            {contactos.map((c) => (
-              <div key={c.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                <p className="font-semibold text-foreground">
-                  {c.nombre}
-                  {c.es_principal && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Principal</span>}
-                </p>
-                {c.cargo && <p className="text-xs text-muted-foreground">{c.cargo}</p>}
-                <div className="mt-2 space-y-1 text-sm">
-                  {c.telefono && (
-                    <p className="flex items-center gap-1.5">
-                      <Phone className="size-3.5 text-muted-foreground" /> {c.telefono}
-                    </p>
-                  )}
-                  {c.email && (
-                    <p className="flex items-center gap-1.5">
-                      <Mail className="size-3.5 text-muted-foreground" /> {c.email}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="grid max-w-5xl gap-4 lg:grid-cols-2">
+            <div className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <p className="text-[13px] font-bold uppercase tracking-wide text-foreground">Datos del cliente</p>
+              <IdentidadCuenta
+                cuentaId={cuenta.id}
+                tipoDoc={cuenta.tipo_doc}
+                numDoc={cuenta.num_doc}
+                razonSocial={cuenta.razon_social}
+                rubroId={(cuenta.rubro_id as number | null) ?? null}
+                rubros={(rubros ?? []) as { id: number; nombre: string }[]}
+              />
+              {(rubros ?? []).length > 0 && (
+                <CambiarRubro
+                  cuentaId={cuenta.id}
+                  rubroId={(cuenta.rubro_id as number | null) ?? null}
+                  rubros={(rubros ?? []) as { id: number; nombre: string }[]}
+                  puedeAgregar={puedeCrearRubros}
+                />
+              )}
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+              <p className="mb-2 text-[13px] font-bold uppercase tracking-wide text-foreground">Contactos ({contactos.length})</p>
+              <ContactosEditables cuentaId={cuenta.id} contactos={contactos} />
+            </div>
           </div>
         )}
       </div>
@@ -287,10 +344,17 @@ async function PestanaVentas({
   informes,
   ops,
   verPrecios,
+  quienMira,
+  comoGerencia,
 }: {
+  quienMira: string;
+  comoGerencia: boolean;
   cuentaId: string;
   informes: { id: string; codigo: string | null; serie: string | null; fecha: string | null; monto_total: number | null; moneda: string | null; emitido_at: string | null; adjuntos: unknown }[];
-  ops: { id: string; etapa: string; tipo_postventa: string | null; proxima_accion: string | null; proxima_accion_at: string | null; cerrada_at: string | null; monto_estimado: number | null; moneda: string; perfiles: { codigo_comercial: string | null } | null }[];
+  ops: {
+    id: string; etapa: string; tipo_postventa: string | null; intencion: string | null; proxima_accion: string | null; proxima_accion_at: string | null; cerrada_at: string | null;
+    monto_estimado: number | null; moneda: string; comercial_id: string | null; perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  }[];
   verPrecios: boolean;
 }) {
   const supabase = await createClient();
@@ -298,32 +362,19 @@ async function PestanaVentas({
   const { ventasConDetalle } = await cargarHistorialCuenta(supabase, cuentaId, { sinMontos: !verPrecios });
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <div className="self-start rounded-xl border border-border bg-card shadow-sm">
-        <p className="border-b border-border px-4 py-3 text-[13px] font-bold uppercase tracking-wide text-foreground">Expedientes ({ops.length})</p>
-        <ul className="divide-y divide-border">
-          {ops.map((o) => (
-            <li key={o.id}>
-              <Link href={`/comercial/oportunidades/${o.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent">
-                <EtapaBadge etapa={o.etapa} />
-                <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                  {TIPO_EXPEDIENTE[o.tipo_postventa ?? ""] ?? "Venta de equipo"}
-                  <span className="text-muted-foreground">
-                    {o.cerrada_at
-                      ? ` · cerrado el ${fechaLima(o.cerrada_at)}`
-                      : o.proxima_accion
-                        ? ` · ${o.proxima_accion}${o.proxima_accion_at ? ` (${o.proxima_accion_at.split("-").reverse().join("/")})` : ""}`
-                        : " · sin próxima acción"}
-                  </span>
-                </span>
-                <span className="text-[11px] text-muted-foreground">{o.perfiles?.codigo_comercial ?? ""}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+      {/* La lista de la ficha de siempre (auditoría 25-09): de quién es cada
+          expediente, su monto, y «trabajar» los del histórico. */}
+      <div className="self-start">
+        <SeccionPanel titulo={`Expedientes (${ops.length})`}>
+          <ListaOportunidadesCuenta oportunidades={[...ops].sort((a, b) => rangoOportunidad(a) - rangoOportunidad(b))} quienMira={quienMira} comoGerencia={comoGerencia} />
+        </SeccionPanel>
       </div>
       <div className="space-y-4">
         <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-          <p className="mb-2 text-[13px] font-bold uppercase tracking-wide text-foreground">Cierres</p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[13px] font-bold uppercase tracking-wide text-foreground">Cierres</p>
+            <AccionNuevoInforme cuentaId={cuentaId} />
+          </div>
           <ListaInformesCierre informes={informes as Parameters<typeof ListaInformesCierre>[0]["informes"]} adjuntosPorInforme={adjuntos} sinPrecios={!verPrecios} />
         </div>
       </div>

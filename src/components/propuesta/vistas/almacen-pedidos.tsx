@@ -2,7 +2,7 @@ import { AlertTriangle, ClipboardCheck, FileText, Truck } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
-import type { ServicioPostventa } from "@/lib/postventa";
+import { ETIQUETA_TIPO_PEDIDO, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
 import type { PropsVista } from "@/lib/propuesta/vistas";
 import { Chips, FilaTrabajo, Grupo, Numero, Vacio, haceCuanto, type DatosFila, type Tono } from "@/components/propuesta/kit";
 
@@ -16,7 +16,7 @@ import { Chips, FilaTrabajo, Grupo, Numero, Vacio, haceCuanto, type DatosFila, t
  * Todo se hace en el pedido; acá solo se lee.
  */
 type Cliente = Awaited<ReturnType<typeof createClient>>;
-type Clave = "despachar" | "probar" | "guia" | "sinApertura" | "adelantar";
+type Clave = "despachar" | "probar" | "fotos" | "guia" | "sinApertura" | "adelantar";
 
 const sinRuc = (s: string | null | undefined) => (s ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const primeraLinea = (s: string | null | undefined) => (s ?? "").split("\n")[0].trim();
@@ -29,13 +29,15 @@ const POR_GRUPO = 6;
 const GRUPOS: { clave: Clave; titulo: string; ayuda: string; tono: Tono }[] = [
   { clave: "despachar", titulo: "Por despachar", ayuda: "Tienen apertura de despacho: se pueden preparar y sacar. Lo atrasado y lo de hoy primero.", tono: "urgente" },
   { clave: "probar", titulo: "Probar y embalar", ayuda: "Postventa pidió la prueba: falta el protocolo y el check.", tono: "atencion" },
+  // Auditoría 25-09: la lista de siempre lo avisaba y esta vista no.
+  { clave: "fotos", titulo: "Salieron, faltan las fotos de la carga", ayuda: "Suba las fotos de la máquina puesta en el transporte.", tono: "atencion" },
   { clave: "guia", titulo: "Salieron, falta la guía", ayuda: "Suba la foto de la guía en la agencia.", tono: "atencion" },
   { clave: "sinApertura", titulo: "Con fecha, sin apertura", ayuda: "Postventa puso fecha pero no emitió la apertura: todavía no hay nada que preparar.", tono: "neutro" },
   { clave: "adelantar", titulo: "Para adelantar", ayuda: "Aprobados; postventa todavía no pidió la prueba.", tono: "neutro" },
 ];
 
 const CAMPOS =
-  "id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, agencia_at, guia, informe_cierre_id, pedido_ejecutado_at, aprobado_at, updated_at";
+  "id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, agencia_at, guia, informe_cierre_id, pedido_ejecutado_at, aprobado_at, updated_at, salida_fotos, tipo_pedido, modalidad, entrega_en, guia_confirmada_at";
 
 async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>> {
   const hoy = hoyLima();
@@ -47,13 +49,27 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
     .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
     .limit(2000);
   const vivos = (data ?? []) as unknown as ServicioPostventa[];
-  const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || ["SI", "SÍ", "OK", "LISTO", "X"].includes(String(s.prueba_embalaje ?? "").trim().toUpperCase());
-  const base = (s: ServicioPostventa) => ({ titulo: sinRuc(s.cliente_texto), href: `/almacen/pedidos/${s.id}`, sub: primeraLinea(s.equipo) || "Pedido" });
-  const out: Record<Clave, (DatosFila & { orden: string })[]> = { despachar: [], probar: [], guia: [], sinApertura: [], adelantar: [] };
+  // El mismo criterio que «Mi día» y la lista de siempre (auditoría 25-09: los conteos no coincidían).
+  const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
+  // Qué es y a dónde va, como en la lista de siempre (auditoría 25-09): el
+  // tipo de pedido y si es de provincia o se recoge en planta.
+  const base = (s: ServicioPostventa) => {
+    const tipo = s.tipo_pedido ? ETIQUETA_TIPO_PEDIDO[s.tipo_pedido as TipoPedido] : null;
+    const destino = (s as { entrega_en?: string | null }).entrega_en === "planta" ? "recoge en planta" : s.modalidad === "provincia" ? "provincia" : null;
+    return {
+      titulo: sinRuc(s.cliente_texto),
+      href: `/almacen/pedidos/${s.id}`,
+      sub: [primeraLinea(s.equipo) || "Pedido", tipo, destino].filter(Boolean).join(" · "),
+    };
+  };
+  const out: Record<Clave, (DatosFila & { orden: string })[]> = { despachar: [], probar: [], fotos: [], guia: [], sinApertura: [], adelantar: [] };
 
   for (const s of vivos) {
     const pedido = `/almacen/pedidos/${s.id}`;
     if (s.despachado_at) {
+      if (faltanFotosDeCarga(s)) {
+        out.fotos.push({ ...base(s), orden: s.despachado_at, estado: { texto: "Salió · faltan fotos de la carga", tono: "atencion" }, edad: `Salió ${haceCuanto(s.despachado_at)}`, tono: "atencion", accion: { etiqueta: "Subir las fotos", href: pedido } });
+      }
       if (!s.guia && !s.agencia_at) {
         out.guia.push({ ...base(s), orden: s.despachado_at, estado: { texto: "Salió · falta la guía", tono: "atencion" }, edad: `Salió ${haceCuanto(s.despachado_at)}`, tono: "atencion", accion: { etiqueta: "Subir la guía", href: pedido } });
       }
@@ -93,7 +109,14 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
         // Los que tienen fecha, por fecha; los sin fecha, al final.
         orden: f ? `${f}${hora}` : `9999${s.apertura_despacho_at}`,
         estado,
-        dato: listo ? <span className="text-[11px] font-semibold text-[#1E7F4F]">Listo para salir</span> : null,
+        dato: (
+          <>
+            {listo && <span className="text-[11px] font-semibold text-[#1E7F4F]">Listo para salir</span>}
+            <span className={`text-[11px] font-medium ${(s as { guia_confirmada_at?: string | null }).guia_confirmada_at ? "text-[#1E7F4F]" : "text-amber-700"}`}>
+              {(s as { guia_confirmada_at?: string | null }).guia_confirmada_at ? "Guía confirmada por Finanzas" : "Falta que Finanzas confirme la guía"}
+            </span>
+          </>
+        ),
         edad: `Apertura ${haceCuanto(s.apertura_despacho_at)}`,
         tono: estado.tono === "neutro" || estado.tono === "info" ? (listo ? "ok" : "info") : estado.tono,
         accion: listo || !f ? { etiqueta: "Despachar", href: pedido } : { etiqueta: "Confirmar que está listo", href: pedido },

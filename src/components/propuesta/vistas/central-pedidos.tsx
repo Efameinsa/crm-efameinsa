@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { PropsVista } from "@/lib/propuesta/vistas";
-import { cierresPorLiberar, PASOS_CENTRAL, quienTiene, type CierrePorLiberar, type PasoCentral } from "@/lib/propuesta/cola-central-finanzas";
+import { alertasCentral, cierresPorLiberar, PASOS_CENTRAL, quienTiene, type CierrePorLiberar, type PasoCentral } from "@/lib/propuesta/cola-central-finanzas";
 import { formatoMonto } from "@/lib/pagos-finanzas";
 import { Chips, FilaTrabajo, Grupo, haceCuanto, Numero, Pildora, Vacio, type Tono } from "@/components/propuesta/kit";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,30 @@ export const alerta = true;
 
 export default async function CentralPedidos({ searchParams, base }: PropsVista) {
   const supabase = await createClient();
-  const cierres = await cierresPorLiberar(supabase);
+  const [cierres, alertas] = await Promise.all([cierresPorLiberar(supabase), alertasCentral(supabase)]);
+  // Pedidos de anulación y observaciones de Facturación, arriba de todo (auditoría 25-09).
+  const bloqueAlertas =
+    alertas.length > 0 ? (
+      <Grupo titulo="Le piden a Central" ayuda="Anulaciones que piden los comerciales y expedientes que Facturación observó." conteo={alertas.length} tono="urgente">
+        {alertas.map((a) => (
+          <FilaTrabajo
+            key={a.id}
+            f={{
+              titulo: a.cliente,
+              href: a.href,
+              sub: a.que,
+              estado: { texto: a.tipo === "anulacion" ? "Piden anular" : "Facturación observó", tono: "urgente" },
+              dato: null,
+              espera: a.motivo || null,
+              edad: haceCuanto(a.at),
+              edadTono: "urgente",
+              accion: { etiqueta: a.tipo === "anulacion" ? "Revisar y anular" : "Corregir", href: a.href },
+              tono: "urgente",
+            }}
+          />
+        ))}
+      </Grupo>
+    ) : null;
   const filtro = searchParams.paso ?? null;
 
   const porPaso = new Map<PasoCentral, CierrePorLiberar[]>(PASOS_CENTRAL.map((p) => [p.clave, []]));
@@ -58,16 +81,20 @@ export default async function CentralPedidos({ searchParams, base }: PropsVista)
 
   if (cierres.length === 0) {
     return (
+      <div className="space-y-4">
+      {bloqueAlertas}
       <Vacio
         titulo="No hay pedidos por liberar"
         porque="Todos los cierres emitidos ya tienen su pedido ejecutado y la liquidación aceptada. Cuando un comercial emita un cierre nuevo, aparece aquí en «Pedir series»."
         accion={{ etiqueta: "Ver los cierres liberados", href: "/central/cierres?ver=liberados" }}
       />
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {bloqueAlertas}
       {/* El tubo: una cifra por paso, en el orden del circuito. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {PASOS_CENTRAL.map((p) => {

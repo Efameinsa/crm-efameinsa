@@ -1,7 +1,8 @@
 import type { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { ETIQUETA_CANAL, cargarDerivados } from "@/lib/derivados-central";
-import { cuentasPorCobrar, diasEntre, formatoMonto, pedidosPorConfirmar } from "@/lib/pagos-finanzas";
+import { avisosDeCentral, cuentasPorCobrar, diasEntre, formatoMonto, pedidosConLiquidacion, pedidosPorConfirmar } from "@/lib/pagos-finanzas";
+import { documentosDeFinanzas } from "@/lib/documentos-finanzas";
 import type { EventoAgenda, Tarea } from "@/lib/propuesta/cola-del-dia";
 
 /**
@@ -258,6 +259,62 @@ const dias = (iso: string, hoy: string) => {
   return d <= 0 ? "hoy" : d === 1 ? "ayer" : `hace ${d} días`;
 };
 
+export interface AlertaCentral {
+  id: string;
+  tipo: "anulacion" | "facturacion";
+  cliente: string;
+  que: string;
+  motivo: string;
+  at: string;
+  href: string;
+}
+
+/**
+ * LO QUE LE PIDEN A CENTRAL Y NO ES UN PASO DEL PEDIDO (auditoría 25-09):
+ * los comerciales que piden anular un cierre (0170) y Facturación que observa
+ * un expediente mal alineado (0306). En la pantalla de siempre viven arriba de
+ * los cierres; en la vista nueva no aparecían ni en «Hoy» ni en «Por liberar».
+ */
+export async function alertasCentral(supabase: Cliente): Promise<AlertaCentral[]> {
+  const [{ data: anul }, { data: obs }] = await Promise.all([
+    supabase
+      .from("anulaciones_solicitadas")
+      .select("id, informe_id, motivo, created_at, informes_cierre(codigo, serie, cliente_nombre), perfiles!anulaciones_solicitadas_solicitada_por_fkey(nombre, codigo_comercial)")
+      .is("atendida_at", null)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("servicios_postventa")
+      .select("id, cliente_texto, informe_cierre_id, facturacion_observada_at, facturacion_observada_motivo")
+      .not("facturacion_observada_at", "is", null)
+      .limit(50),
+  ]);
+  const salida: AlertaCentral[] = [];
+  for (const a of (anul ?? []) as unknown as { id: string; informe_id: string; motivo: string; created_at: string; informes_cierre: { codigo: string; serie: string; cliente_nombre: string } | null; perfiles: { nombre: string; codigo_comercial: string | null } | null }[]) {
+    const quien = a.perfiles?.codigo_comercial ?? a.perfiles?.nombre ?? "El comercial";
+    salida.push({
+      id: `an-${a.id}`,
+      tipo: "anulacion",
+      cliente: sinRuc(a.informes_cierre?.cliente_nombre ?? "Cliente"),
+      que: `${quien} pide anular el cierre ${a.informes_cierre?.serie === "OPEN" ? "Open" : "Efameinsa"} ${a.informes_cierre?.codigo ?? ""}`.trim(),
+      motivo: a.motivo,
+      at: a.created_at,
+      href: "/central/cierres?ver=todos",
+    });
+  }
+  for (const o of (obs ?? []) as { id: string; cliente_texto: string | null; informe_cierre_id: string | null; facturacion_observada_at: string; facturacion_observada_motivo: string | null }[]) {
+    salida.push({
+      id: `fo-${o.id}`,
+      tipo: "facturacion",
+      cliente: sinRuc(o.cliente_texto),
+      que: "Facturación observó el expediente",
+      motivo: o.facturacion_observada_motivo ?? "",
+      at: o.facturacion_observada_at,
+      href: o.informe_cierre_id ? `/central/cierres?ver=todos#c-${o.informe_cierre_id}` : "/central/cierres?ver=todos",
+    });
+  }
+  return salida;
+}
+
 export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[]; agenda: EventoAgenda[] }> {
   const hoy = hoyLima();
   // LOS DERIVADOS QUE SE QUEDARON QUIETOS (24-09). Santos: «¿por qué en
@@ -278,6 +335,18 @@ export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[];
     cargarDerivados(supabase, { desde, hasta: hoy }),
   ]);
   const tareas: Tarea[] = [];
+
+  for (const a of await alertasCentral(supabase)) {
+    tareas.push({
+      id: a.id,
+      urgencia: "atrasado",
+      tipo: a.tipo === "anulacion" ? "pedido" : "liquidacion",
+      cliente: a.cliente,
+      que: a.que,
+      porque: `${a.motivo ? `${a.motivo} · ` : ""}${dias(a.at, hoy)}`,
+      accion: { etiqueta: a.tipo === "anulacion" ? "Revisar y anular" : "Corregir el expediente", href: a.href },
+    });
+  }
 
   for (const d of derivados) {
     if (!d.alerta || !d.asignadoAt) continue;
@@ -341,9 +410,80 @@ export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[];
 
 export async function colaFinanzas(supabase: Cliente): Promise<{ tareas: Tarea[]; agenda: EventoAgenda[] }> {
   const hoy = hoyLima();
-  const [porConfirmar, cobrar, liquidar] = await Promise.all([pedidosPorConfirmar(supabase), cuentasPorCobrar(supabase), pedidosPorLiquidar(supabase)]);
+  const [porConfirmar, cobrar, liquidar, conLiquidacion, avisos, { data: aperturas }] = await Promise.all([
+    pedidosPorConfirmar(supabase),
+    cuentasPorCobrar(supabase),
+    pedidosPorLiquidar(supabase),
+    pedidosConLiquidacion(supabase, 200),
+    avisosDeCentral(supabase, 3),
+    supabase
+      .from("servicios_postventa")
+      .select("id, cliente_texto, numero_pedido_erp, apertura_despacho_at, fecha_despacho")
+      .not("apertura_despacho_at", "is", null)
+      .is("guia_confirmada_at", null)
+      .is("despachado_at", null)
+      .is("cerrado_at", null)
+      .limit(100),
+  ]);
   const tareas: Tarea[] = [];
   const agenda: EventoAgenda[] = [];
+
+  // LA SIRENA DE CENTRAL VA PRIMERO (0298; auditoría 25-09: el pedido urgente
+  // podía quedar escondido en «el resto»).
+  for (const p of porConfirmar.filter((x) => x.urgenciaAt)) {
+    tareas.push({
+      id: `fu-${p.id}`,
+      urgencia: "atrasado",
+      tipo: "pago",
+      cliente: p.cliente,
+      que: `🚨 Central pide apurar${p.urgenciaN > 1 ? ` (${p.urgenciaN}.º aviso)` : ""} · ${p.numeroErp ? `pedido ${p.numeroErp}` : "pedido"}`,
+      porque: p.urgenciaMotivo ?? "El cliente está esperando.",
+      accion: { etiqueta: "Atender", href: `/finanzas/pedidos/${p.id}` },
+    });
+  }
+
+  // LA APERTURA QUE ESPERA SU CONFIRMACIÓN (0308): el almacén no emite la guía sin ella.
+  for (const a of (aperturas ?? []) as { id: string; cliente_texto: string | null; numero_pedido_erp: string | null; apertura_despacho_at: string; fecha_despacho: string | null }[]) {
+    const salida = a.fecha_despacho ? diasEntre(hoy, a.fecha_despacho) : null;
+    tareas.push({
+      id: `fa-${a.id}`,
+      urgencia: salida != null && salida <= 0 ? "atrasado" : salida === 1 ? "hoy" : urgenciaPorEdad(a.apertura_despacho_at, hoy, 1),
+      tipo: "pago",
+      cliente: (a.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, ""),
+      que: `Confirmar la guía · ${a.numero_pedido_erp ? `pedido ${a.numero_pedido_erp}` : "apertura de despacho"}`,
+      porque: `Postventa emitió la apertura ${dias(a.apertura_despacho_at, hoy)}${a.fecha_despacho ? ` · sale el ${fechaCorta(`${a.fecha_despacho}T12:00:00-05:00`)}` : ""}. El almacén espera su confirmación para emitir la guía.`,
+      accion: { etiqueta: "Revisar y confirmar", href: "/finanzas/aperturas" },
+    });
+  }
+
+  // CON FACTURA, LIQUIDACIÓN POR ACTUALIZAR (0306).
+  const docs = await documentosDeFinanzas(supabase, conLiquidacion.map((p) => p.id));
+  for (const p of conLiquidacion) {
+    const d = docs.get(p.id);
+    if (!d || d.facturas.length === 0 || d.liquidaciones.length === 0 || d.liquidaciones[0].facturaNumero) continue;
+    tareas.push({
+      id: `fl-${p.id}`,
+      urgencia: "semana",
+      tipo: "liquidacion",
+      cliente: p.cliente,
+      que: `Actualizar la liquidación con la factura ${d.facturas[0].numero}`,
+      porque: "Facturación ya registró la factura y su liquidación vigente dice «factura pendiente».",
+      accion: { etiqueta: "Subir la actualizada", href: "/finanzas/liquidar" },
+    });
+  }
+
+  // LO QUE CENTRAL LE DERIVÓ (últimos 3 días): antes solo se veía en /finanzas.
+  for (const a of avisos) {
+    tareas.push({
+      id: `fv-${a.id}`,
+      urgencia: urgenciaPorEdad(a.createdAt, hoy, 1),
+      tipo: "contacto",
+      cliente: a.cliente ?? "Aviso de Central",
+      que: "Central le derivó un aviso",
+      porque: a.detalle || "Sin detalle.",
+      accion: { etiqueta: "Ver", href: a.servicioId ? `/finanzas/pedidos/${a.servicioId}` : "/finanzas" },
+    });
+  }
 
   for (const p of porConfirmar) {
     const href = `/finanzas/pedidos/${p.id}`;
@@ -351,7 +491,9 @@ export async function colaFinanzas(supabase: Cliente): Promise<{ tareas: Tarea[]
     const cuenta = p.serie === "OPEN" ? "cuenta Open" : "cuenta Efameinsa";
     const falta = formatoMonto(p.moneda, p.falta);
     const salida = p.fechaDespacho ? diasEntre(hoy, p.fechaDespacho) : null;
-    if (p.solicitadoAt) {
+    if (p.urgenciaAt) {
+      // Ya va arriba como sirena.
+    } else if (p.solicitadoAt) {
       tareas.push({ id: `fs-${p.id}`, urgencia: urgenciaPorEdad(p.solicitadoAt, hoy, 2), tipo: "pago", cliente: p.cliente, que: `Confirmar el abono · ${pedido}`, porque: `Postventa lo pidió ${dias(p.solicitadoAt, hoy)}. Faltan ${falta} en la ${cuenta}.`, accion: { etiqueta: "Confirmar", href } });
     } else if (salida != null && salida <= 3) {
       tareas.push({ id: `fd-${p.id}`, urgencia: salida <= 0 ? "atrasado" : salida === 1 ? "hoy" : "semana", tipo: "pago", cliente: p.cliente, que: `Confirmar el abono · ${pedido}`, porque: `${salida < 0 ? `El despacho era hace ${-salida} días` : salida === 0 ? "Sale hoy" : salida === 1 ? "Sale mañana" : `Sale en ${salida} días`} y faltan ${falta} en la ${cuenta}.`, accion: { etiqueta: "Confirmar", href } });
