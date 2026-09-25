@@ -25,6 +25,8 @@ export interface Tarea {
   que: string;
   porque: string;
   accion: { etiqueta: string; href: string };
+  /** De qué área es (solo en la supervisión de operaciones, 25-09). */
+  area?: string;
 }
 
 export interface EventoAgenda {
@@ -47,6 +49,32 @@ export async function colaDelDia(supabase: Cliente, perfil: Perfil, tipo: string
   if (tipo === "almacen") return colaAlmacen(supabase);
   if (tipo === "comercial" || tipo === "preventivo") return colaComercial(supabase, perfil);
   return { tareas: [], agenda: [] };
+}
+
+/**
+ * LA SUPERVISIÓN DE OPERACIONES (Santos, 25-09: «Lesly tiene que estar atenta
+ * a todo para ir a dar seguimiento a todos los trabajadores»). Lo pendiente de
+ * postventa, almacén, Central y Finanzas en una sola cola, cada tarea con su
+ * área, para ver dónde se atasca el trabajo y a quién ir a buscar.
+ */
+export async function colaSupervision(
+  supabase: Cliente,
+  perfil: Perfil,
+  otras: { central: () => Promise<{ tareas: Tarea[]; agenda: EventoAgenda[] }>; finanzas: () => Promise<{ tareas: Tarea[]; agenda: EventoAgenda[] }> },
+): Promise<{ tareas: Tarea[]; agenda: EventoAgenda[] }> {
+  const [pv, alm, cen, fin] = await Promise.all([
+    colaDelDia(supabase, perfil, "postventa"),
+    colaDelDia(supabase, perfil, "almacen"),
+    otras.central(),
+    otras.finanzas(),
+  ]);
+  const con = (area: string, lista: Tarea[]) => lista.map((t) => ({ ...t, id: `${area}-${t.id}`, area }));
+  const agenda = new Map<string, EventoAgenda>();
+  for (const e of [...pv.agenda, ...alm.agenda, ...cen.agenda, ...fin.agenda]) if (!agenda.has(e.id)) agenda.set(e.id, e);
+  return {
+    tareas: [...con("Postventa", pv.tareas), ...con("Almacén", alm.tareas), ...con("Central", cen.tareas), ...con("Finanzas", fin.tareas)],
+    agenda: [...agenda.values()].sort((a, b) => a.hora.localeCompare(b.hora)),
+  };
 }
 
 async function colaPostventa(supabase: Cliente) {

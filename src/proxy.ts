@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ranuraDeHost } from "@/lib/auditoria";
 import { esFalloDeAutenticacion } from "@/lib/fallo-autenticacion";
-import { CABECERA_DEMO, COOKIE_DEMO, CORREO_DEMO, MENSAJE_DEMO } from "@/lib/solo-lectura";
+import { CABECERA_DEMO, COOKIE_DEMO, COOKIE_VISTA, CORREO_DEMO, MENSAJE_DEMO } from "@/lib/solo-lectura";
+import { usaVistaNueva } from "@/lib/propuesta/regla-vista";
 
 const RUTA_POR_ROL: Record<string, string> = {
   admin: "/admin",
@@ -130,6 +131,14 @@ export async function proxy(request: NextRequest) {
         : perfil.es_postventa && perfil.rol === "comercial"
           ? "/postventa/macro"
           : RUTA_POR_ROL[perfil.rol];
+
+    // Con la vista nueva (25-09) todos entran por «Hoy».
+    const conVistaNueva = usaVistaNueva(false, request.cookies.get(COOKIE_VISTA)?.value);
+    if (conVistaNueva && home) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/nuevo";
+      return NextResponse.redirect(url);
+    }
 
     if (esRutaLogin && home) {
       const url = request.nextUrl.clone();

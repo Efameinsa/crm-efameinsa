@@ -148,6 +148,12 @@ function tieneDestinoConcreto(url: string | null): boolean {
   );
 }
 
+/** Lo que dice el aviso arriba y su botón, para la página del historial (25-09). */
+export function rotuloDeAviso(tipo: string): { encabezado: string; accion: string; tono: "success" | "info" | "warning" | "error" } {
+  const e = ESTILO_AVISO[tipo] ?? ESTILO_AVISO.otro;
+  return { encabezado: e.encabezado, accion: e.accion, tono: e.tono };
+}
+
 /** Cómo se llama el botón cuando el destino es una pantalla general. */
 const NOMBRE_DEL_DESTINO: Record<string, string> = {
   "/central": "Ir a la bandeja de Central",
@@ -343,57 +349,23 @@ export function CampanaNotificaciones({
     };
     document.addEventListener("visibilitychange", alVolver);
     window.addEventListener("focus", alVolver);
-    const repaso = setInterval(refrescar, 60000);
-
-    // EL CANAL VIVO CON LA SESIÓN (24-09). El navegador se unía al canal sin
-    // el token del usuario: la base, por RLS, no le mandaba ninguna fila y la
-    // campana solo se enteraba con el repaso de cada minuto (~60 s de atraso
-    // en todos los avisos). Se le da el token antes de unirse y se renueva
-    // cuando la sesión lo renueva.
-    let canal: ReturnType<typeof supabase.channel> | null = null;
-    let vigente = true;
-    const { data: escucha } = supabase.auth.onAuthStateChange(
-      (_evento, sesion) => {
-        if (sesion?.access_token)
-          supabase.realtime.setAuth(sesion.access_token);
-      },
-    );
-    void (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.access_token)
-        supabase.realtime.setAuth(data.session.access_token);
-      if (!vigente) return;
-      canal = supabase
-        .channel("notificaciones-propias")
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "notificaciones",
-            filter: `user_id=eq.${userId}`,
-          },
-          (payload) => {
-            const nueva = payload.new as Notificacion;
-            setNotificaciones((prev) => [nueva, ...prev].slice(0, 15));
-            setSinLeerTotal((n) => n + 1);
-            // El canal vivo la anuncia y la anota como conocida: el próximo
-            // repaso no la vuelve a sonar.
-            conocidasRef.current?.add(nueva.id);
-            avisar(nueva);
-          },
-        )
-        .subscribe();
-    })();
+    // SIN CANAL EN TIEMPO REAL (25-09). El canal vivo abría una conexión por
+    // pestaña y obligaba a la base a revisar cada aviso contra la seguridad
+    // de cada suscriptor: era lo que más recursos gastaba. El repaso ya
+    // anunciaba lo nuevo (ventana emergente y sonido) desde el 31-08, así que
+    // queda como único camino: cada 20 s con la pestaña a la vista y cada
+    // minuto en segundo plano. Dos consultas chicas sobre índices propios.
+    let vueltas = 0;
+    const repaso = setInterval(() => {
+      vueltas++;
+      if (document.visibilityState === "visible" || vueltas % 3 === 0) refrescar();
+    }, 20000);
 
     // Deja el audio autorizado con el primer clic: si no, el primer aviso del
     // día llegaría mudo porque el navegador todavía no permite sonido.
     const soltarPreparacion = prepararAlerta();
 
     return () => {
-      vigente = false;
-      escucha.subscription.unsubscribe();
-      if (canal) supabase.removeChannel(canal);
       soltarPreparacion();
       document.removeEventListener("visibilitychange", alVolver);
       window.removeEventListener("focus", alVolver);
@@ -640,6 +612,18 @@ export function CampanaNotificaciones({
               ))
             )}
           </div>
+          {/* EL HISTORIAL COMPLETO (25-09): la lista de arriba son las pendientes
+              y las 15 más recientes; todas las de los últimos 60 días, acá. */}
+          <button
+            type="button"
+            onClick={() => {
+              setAbierto(false);
+              router.push("/notificaciones");
+            }}
+            className="flex w-full items-center justify-center gap-1 border-t border-border px-4 py-2.5 text-xs font-semibold text-primary hover:bg-accent"
+          >
+            Ver todas mis notificaciones <ArrowRight className="size-3.5" />
+          </button>
         </div>
       )}
 

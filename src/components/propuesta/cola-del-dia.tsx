@@ -60,8 +60,12 @@ export function ColaDelDia({
 }) {
   const hora = Number(new Date().toLocaleTimeString("en-GB", { timeZone: "America/Lima", hour: "2-digit", hour12: false }));
   const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
-  const tipos = [...new Set(tareas.map((t) => t.tipo))];
-  const visibles = ver ? tareas.filter((t) => t.tipo === ver) : tareas;
+  // En la supervisión de operaciones (25-09) el filtro es por área; en las
+  // demás colas, por tipo de trabajo.
+  const porArea = tareas.some((t) => t.area);
+  const clave = (t: Tarea) => (porArea ? (t.area ?? "") : t.tipo);
+  const tipos = [...new Set(tareas.map(clave))];
+  const visibles = ver ? tareas.filter((t) => clave(t) === ver) : tareas;
   const cuenta = (u: Urgencia) => visibles.filter((t) => t.urgencia === u).length;
   const url = (p: { ver?: string | null; todo?: string | null }) => {
     const q = new URLSearchParams();
@@ -122,7 +126,7 @@ export function ColaDelDia({
                 href={url({ ver: t })}
                 className={cn("rounded-full border px-2.5 py-1 text-xs font-medium", ver === t ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent")}
               >
-                {FILTRO[t]} ({tareas.filter((x) => x.tipo === t).length})
+                {porArea ? t : FILTRO[t as TipoTarea]} ({tareas.filter((x) => clave(x) === t).length})
               </Link>
             ))}
           </div>
@@ -155,7 +159,10 @@ export function ColaDelDia({
                         <Icono className="size-4" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">{t.que}</p>
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {t.area && <span className="mr-1.5 rounded bg-secondary px-1.5 py-0.5 align-[1px] text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t.area}</span>}
+                          {t.que}
+                        </p>
                         <p className="truncate text-xs text-muted-foreground">
                           <b className="font-medium text-foreground">{t.cliente}</b> · {t.porque}
                         </p>

@@ -146,11 +146,18 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Por facturar", href: "/facturacion", icono: "cobranza", coincide: ["/facturacion"] },
     { etiqueta: "Facturados", href: "/facturacion/facturados", icono: "informes", coincide: ["/facturacion/facturados"] },
   ],
+  // LESLY SUPERVISA TODO (Santos, 25-09: «tiene que estar atenta a todo para
+  // ir a dar seguimiento a todos los trabajadores»). Hoy es la supervisión de
+  // las cuatro áreas; cada área tiene su sección con todas sus pantallas.
   operaciones: [
     hoy,
+    { etiqueta: "Autorizaciones", href: "/operaciones", icono: "aprobaciones", coincide: ["/operaciones"] },
+    { etiqueta: "Postventa", href: "/nuevo/postventa", icono: "atenciones", coincide: ["/nuevo/postventa", "/postventa", "/comercial/ruta"] },
+    { etiqueta: "Almacén", href: "/nuevo/almacen", icono: "pedidos", coincide: ["/nuevo/almacen", "/almacen"] },
+    { etiqueta: "Central y cierres", href: "/nuevo/central", icono: "seguimiento", coincide: ["/nuevo/central", "/central"] },
+    { etiqueta: "Finanzas", href: "/nuevo/finanzas", icono: "cobranza", coincide: ["/nuevo/finanzas", "/finanzas"] },
     { etiqueta: "Catálogo", href: "/operaciones/catalogo", icono: "catalogo", coincide: ["/operaciones/catalogo"] },
     { etiqueta: "Permisos y listas", href: "/nuevo/permisos", icono: "permisos", coincide: ["/nuevo/permisos", "/operaciones/permisos", "/admin/catalogos"] },
-    { etiqueta: "Aperturas de postventa", href: "/almacen/aperturas-postventa", icono: "informes", coincide: ["/almacen/aperturas-postventa"] },
   ],
   gerencia: [
     hoy,
@@ -321,6 +328,52 @@ export const SECCIONES: Record<string, Seccion> = {
       { clave: "", etiqueta: "Calendario", pagina: "almacen/agenda" },
       { clave: "atenciones", etiqueta: "Atenciones programadas", pagina: "almacen/atenciones" },
       { clave: "visitas", etiqueta: "Visitas a planta", pagina: "almacen/visitas" },
+    ],
+  },
+  // LAS ÁREAS QUE SUPERVISA OPERACIONES (25-09): las mismas pantallas que usa
+  // cada área, reunidas por área.
+  "operaciones/postventa": {
+    titulo: "Postventa",
+    ayuda: "Todo el trabajo del área: el macro, lo que va llegando, los pedidos, las llamadas derivadas, la agenda y la campaña de preventivos.",
+    pestanas: [
+      { clave: "", etiqueta: "El macro", pagina: "postventa/macro" },
+      { clave: "bandeja", etiqueta: "Bandeja del día", pagina: "postventa" },
+      { clave: "pedidos", etiqueta: "Pedidos", pagina: "postventa/control" },
+      { clave: "llamadas", etiqueta: "Derivación de llamadas", pagina: "postventa/aperturas" },
+      { clave: "agenda", etiqueta: "Agenda", pagina: "postventa/agenda" },
+      { clave: "visitas", etiqueta: "Visitas a planta", pagina: "postventa/visitas" },
+      { clave: "preventivos", etiqueta: "Ruta de mantenimiento", pagina: "comercial/ruta" },
+    ],
+  },
+  "operaciones/almacen": {
+    titulo: "Almacén",
+    ayuda: "El día del almacén, sus pedidos, las aperturas que envía postventa, las llamadas derivadas, las atenciones y los informes técnicos.",
+    pestanas: [
+      { clave: "", etiqueta: "Mi día", pagina: "almacen" },
+      { clave: "pedidos", etiqueta: "Pedidos", pagina: "almacen/pedidos" },
+      { clave: "aperturas", etiqueta: "Aperturas de postventa", pagina: "almacen/aperturas-postventa" },
+      { clave: "llamadas", etiqueta: "Llamadas de postventa", pagina: "almacen/aperturas" },
+      { clave: "atenciones", etiqueta: "Atenciones programadas", pagina: "almacen/atenciones" },
+      { clave: "visitas", etiqueta: "Visitas a planta", pagina: "almacen/visitas" },
+      { clave: "informes", etiqueta: "Informes técnicos", pagina: "almacen/informes" },
+    ],
+  },
+  "operaciones/central": {
+    titulo: "Central y cierres",
+    ayuda: "Los cierres de venta (donde se anulan los que piden los comerciales) y los pedidos que Central ya liberó.",
+    pestanas: [
+      { clave: "", etiqueta: "Cierres de venta", pagina: "central/cierres" },
+      { clave: "pedidos", etiqueta: "Pedidos liberados", pagina: "central/pedidos" },
+    ],
+  },
+  "operaciones/finanzas": {
+    titulo: "Finanzas",
+    ayuda: "Lo que Finanzas tiene pendiente: abonos por confirmar, liquidaciones, aperturas por confirmar y cobranza.",
+    pestanas: [
+      { clave: "", etiqueta: "Por confirmar", pagina: "finanzas" },
+      { clave: "liquidar", etiqueta: "Por liquidar", pagina: "finanzas/liquidar" },
+      { clave: "aperturas", etiqueta: "Aperturas por confirmar", pagina: "finanzas/aperturas" },
+      { clave: "cobranza", etiqueta: "Cobranza", pagina: "finanzas/cobrar" },
     ],
   },
   "operaciones/permisos": {

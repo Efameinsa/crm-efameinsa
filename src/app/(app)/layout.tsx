@@ -15,6 +15,7 @@ import { cookies, headers } from "next/headers";
 import { COOKIE_AUDITORIA, decodificarInfoAuditoria, ranuraDeHost } from "@/lib/auditoria";
 import { CABECERA_DEMO, COOKIE_VISTA } from "@/lib/solo-lectura";
 import { MarcoPropuesta } from "@/components/propuesta/marco-propuesta";
+import { usaVistaNueva } from "@/lib/propuesta/vista";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
@@ -29,22 +30,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // de la cuenta original, en solo lectura, dentro del marco nuevo; con
   // «Ver cómo es hoy» vuelve al marco actual para comparar.
   const demo = Boolean(cabeceras.get(CABECERA_DEMO));
-  if (demo && tarro.get(COOKIE_VISTA)?.value !== "actual") {
-    return <MarcoPropuesta perfil={perfil}>{children}</MarcoPropuesta>;
-  }
+  const vistaNueva = usaVistaNueva(demo, tarro.get(COOKIE_VISTA)?.value);
 
   // Los contadores del menú (plan 23, etapa 5) solo se piden para quien ve
   // la sección Postventa de la barra: cuatro consultas `head: true` de más en
   // CADA navegación de gerencia, central o un comercial normal no le sirven a
   // nadie.
-  const veSeccionPostventa = Boolean(perfil.es_postventa) || Boolean(perfil.es_soporte);
+  const veSeccionPostventa = !vistaNueva && (Boolean(perfil.es_postventa) || Boolean(perfil.es_soporte));
   let contadorMiDia: number | undefined;
   let contadorAtenciones: number | undefined;
   const supabase = await createClient();
   // EL COMUNICADO DE GERENCIA (0232): el que toca mostrarle a esta persona al
   // entrar, si hay uno. Una consulta chica en cada navegación; casi siempre
   // vuelve vacía.
-  const comunicadoP = supabase.rpc("comunicado_pendiente").maybeSingle();
+  const comunicadoP = demo ? Promise.resolve({ data: null }) : supabase.rpc("comunicado_pendiente").maybeSingle();
   if (veSeccionPostventa) {
     [contadorMiDia, contadorAtenciones] = await Promise.all([
       contarBandejaMiDia(supabase, perfil.id),
@@ -53,6 +52,54 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
   const { data: comunicadoCrudo } = await comunicadoP;
   const comunicado = (comunicadoCrudo ?? null) as ComunicadoPendiente | null;
+
+  // LO QUE COMPARTEN LOS DOS MARCOS (25-09, antes del cambio a la vista nueva):
+  // las franjas de auditoría y de práctica, los avisos de activar
+  // notificaciones, instalar y gestiones sin subir, el refresco en vivo, la
+  // versión nueva, el comunicado de gerencia y el asistente. La vista nueva
+  // no los tenía porque solo la usaban cuentas de demostración.
+  const franjaAuditoria = ranuraAuditoria ? (
+    <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-500 px-6 py-2 text-xs font-semibold text-amber-950">
+      <span>
+        Sesión de auditoría de gerencia{auditoria ? ` (${auditoria.auditor})` : ""} · viendo el CRM como{" "}
+        <b>{auditoria?.auditado ?? perfil.nombre}</b> · ranura ver{ranuraAuditoria}
+      </span>
+      <span className="rounded-full bg-amber-950/10 px-2 py-0.5">Solo lectura: nada se registra a su nombre</span>
+    </div>
+  ) : null;
+  const franjaPractica =
+    perfil.es_prueba && !demo ? (
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#6D28D9] px-6 py-2 text-white">
+        <span className="flex items-center gap-2 text-sm font-black uppercase tracking-widest">
+          PRUEBA
+          <span className="text-xs font-semibold normal-case tracking-normal opacity-90">Cuenta de práctica de {perfil.nombre}</span>
+        </span>
+        <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold">Nada de esto cuenta: ni ventas, ni cotizaciones, ni metas</span>
+      </div>
+    ) : null;
+  const avisosArriba = !demo ? (
+    <div className="flex flex-col gap-3 px-6 pt-6 empty:hidden">
+      <CalloutActivarNotificaciones />
+      <AplicacionInstalable />
+      <AvisoGestionesSinSubir />
+    </div>
+  ) : null;
+  const alPie = (
+    <>
+      <RefrescoEnVivo />
+      <AvisoNuevaVersion versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
+      {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && <ComunicadoDeGerencia comunicado={comunicado} />}
+      {["gerencia", "admin"].includes(perfil.rol) && asistenteEncendido() && <AsistenteFlotante nombre={perfil.nombre} />}
+    </>
+  );
+
+  if (vistaNueva) {
+    return (
+      <MarcoPropuesta perfil={perfil} demo={demo} arriba={<>{franjaAuditoria}{franjaPractica}{avisosArriba}</>} alPie={alPie}>
+        {children}
+      </MarcoPropuesta>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-1">

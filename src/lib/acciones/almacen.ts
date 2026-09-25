@@ -37,6 +37,10 @@ async function avisarPostventa(titulo: string, cuerpo: string, url: string) {
     .select("id")
     .eq("es_postventa", true)
     .eq("activo", true)
+    // La cuenta que solo vende preventivo no abre pedidos (layout de
+    // postventa): el aviso la rebotaba (auditoría de avisos, 25-09).
+    .eq("solo_preventivo", false)
+    .is("espejo_de", null)
     .eq("es_prueba", perfil.es_prueba === true);
   await Promise.all((data ?? []).map((p) => notificar({ userId: p.id, tipo: "almacen", titulo, cuerpo, url })));
 }

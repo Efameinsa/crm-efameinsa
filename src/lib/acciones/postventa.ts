@@ -104,6 +104,9 @@ export async function liberarPedido(datos: {
       .select("id")
       .eq("es_postventa", true)
       .eq("activo", true)
+      // Sin la cuenta que solo vende preventivo: no abre pedidos (25-09).
+      .eq("solo_preventivo", false)
+      .is("espejo_de", null)
       // Lo de práctica solo a práctica (23-09: un pedido de práctica le avisó
       // a Postventa 1, Postventa 2, Ariana y Lesly reales).
       .eq("es_prueba", servicio.es_prueba === true);

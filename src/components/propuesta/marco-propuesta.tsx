@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { Bell, Moon, Plus, Search, Sparkles, Sun } from "lucide-react";
+import { Bell, LogOut, Moon, Plus, Search, Sparkles, Sun } from "lucide-react";
 import "@/app/propuesta.css";
 import { BarraPropuesta } from "@/components/propuesta/barra-propuesta";
 import { BarraProgreso } from "@/components/propuesta/barra-progreso";
@@ -10,11 +10,14 @@ import { SelectorFechaHora } from "@/components/propuesta/selector-fecha-hora";
 import { TemaEnElCuerpo } from "@/components/propuesta/tema-en-el-cuerpo";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
+import { CambiarClave } from "@/components/crm/cambiar-clave";
+import { cerrarSesion } from "@/lib/acciones/auth";
 
 // La letra de la marca (Archivo) va alojada en public/fonts y declarada en
 // propuesta.css: next/font/google no compila con Turbopack en esta versión.
 export const COOKIE_TEMA = "crm-tema";
-import { BUSCAR_EN, MENU, NOMBRE_PERFIL, VER_COMO, tipoDePerfil } from "@/lib/propuesta/menu";
+import { BUSCAR_EN, MENU, NOMBRE_PERFIL, tipoDePerfil } from "@/lib/propuesta/menu";
 import type { Perfil } from "@/types/database";
 
 /**
@@ -50,7 +53,22 @@ const iniciales = (n: string) =>
  * barra clara a la izquierda; arriba «Buscar», «Nuevo», la campana y quién
  * está mirando; y una píldora que recuerda que es la propuesta, en solo lectura.
  */
-export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; children: React.ReactNode }) {
+export async function MarcoPropuesta({
+  perfil,
+  demo = true,
+  arriba = null,
+  alPie = null,
+  children,
+}: {
+  perfil: Perfil;
+  /** Cuenta _test (espejo, solo lectura) o cuenta real con la vista nueva (25-09). */
+  demo?: boolean;
+  /** Franjas de auditoría y práctica, y los avisos de activar notificaciones, instalar y gestiones sin subir. */
+  arriba?: React.ReactNode;
+  /** Refresco en vivo, versión nueva, comunicado de gerencia y asistente. */
+  alPie?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   const tipo = tipoDePerfil(perfil);
   const buscar = BUSCAR_EN[tipo];
   // Claro u oscuro, elegido desde la cabecera; la cookie la pone /demo/vista.
@@ -65,10 +83,10 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
   return (
     <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
       <BarraProgreso />
-      <GuardaDemo />
+      {demo && <GuardaDemo />}
       <SelectorFechaHora />
       <TemaEnElCuerpo oscuro={oscuro} />
-      <BarraPropuesta opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} verComo={tipo === "operaciones" ? VER_COMO : undefined} pin={tipo === "gerencia" || tipo === "admin" || tipo === "operaciones"} />
+      <BarraPropuesta demo={demo} opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} pin={tipo === "gerencia" || tipo === "admin" || tipo === "operaciones"} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-card/80 px-6 py-2.5 backdrop-blur-md">
           <form action={buscar.href} method="get" className="flex min-w-64 max-w-xl flex-1 items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 transition-all duration-200 focus-within:border-[var(--c-marca)] focus-within:bg-card focus-within:ring-4 focus-within:ring-[var(--c-marca)]/15">
@@ -96,9 +114,18 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
               <PasarContactoCentral contexto={tipo === "postventa" ? "postventa" : tipo === "almacen" ? "almacen" : "comercial"} campaniasWhatsapp={campanias} />
             </span>
           )}
-          <span className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground" title="Avisos">
-            <Bell className="size-4" />
-          </span>
+          {/* LA CAMPANA DE VERDAD (25-09): la lista de avisos, cada uno lleva a su
+              pantalla, y la ventana emergente con sonido cuando llega uno. En la
+              cuenta _test queda de adorno: lee con la sesión propia, no la del espejo. */}
+          {demo ? (
+            <span className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground" title="En la cuenta real aquí llegan los avisos">
+              <Bell className="size-4" />
+            </span>
+          ) : (
+            <span className="campana-propuesta">
+              <CampanaNotificaciones userId={perfil.id} rol={perfil.rol} />
+            </span>
+          )}
           <a
             href={`/demo/vista?tema=${oscuro ? "claro" : "oscuro"}`}
             className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:border-[var(--c-naranja)] hover:text-[var(--c-naranja)]"
@@ -107,9 +134,24 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
             {oscuro ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </a>
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden items-center gap-1 rounded-full bg-[var(--c-verde)]/12 px-2.5 py-1 text-[11px] font-semibold text-[var(--verde-texto)] lg:inline-flex" title="Vista de la propuesta: se mira, no se guarda">
-              <Sparkles className="size-3" /> Propuesta · solo lectura
-            </span>
+            {demo ? (
+              <span className="hidden items-center gap-1 rounded-full bg-[var(--c-verde)]/12 px-2.5 py-1 text-[11px] font-semibold text-[var(--verde-texto)] lg:inline-flex" title="Vista de la propuesta: se mira, no se guarda">
+                <Sparkles className="size-3" /> Propuesta · solo lectura
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <CambiarClave />
+                <form action={cerrarSesion}>
+                  <button
+                    type="submit"
+                    title="Cerrar sesión"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <LogOut className="size-3.5" /> Salir
+                  </button>
+                </form>
+              </span>
+            )}
             <div className="flex items-center gap-2">
               <span className="flex size-8 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--marca-alto)_0%,var(--c-marca)_45%,var(--c-carbon)_100%)] shadow-[inset_0_1px_0_rgb(255_255_255/0.25)] text-[11px] font-bold text-white ring-2 ring-card">
                 {iniciales(perfil.nombre)}
@@ -117,14 +159,16 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
               <div className="hidden text-right leading-tight sm:block">
                 <p className="text-[13px] font-semibold text-foreground">{perfil.nombre.replace(/^Propuesta · /, "")}</p>
                 <p className="text-[11px] text-muted-foreground">
-                  {NOMBRE_PERFIL[tipo]}
+                  {tipo === "operaciones" ? "Administración de operaciones" : NOMBRE_PERFIL[tipo]}
                   {perfil.codigo_comercial ? ` · ${perfil.codigo_comercial}` : ""}
                 </p>
               </div>
             </div>
           </div>
         </header>
+        {arriba}
         <main className="flex-1 p-6">{children}</main>
+        {alPie}
       </div>
     </div>
   );

@@ -44,7 +44,7 @@ async function avisarInteresados(
   const texto = armar({ cliente, cubierto, esPrueba: s.es_prueba === true });
 
   const { data: postventa } = avisar.postventa
-    ? await supabase.from("perfiles").select("id").eq("es_postventa", true).eq("activo", true).eq("es_prueba", s.es_prueba === true)
+    ? await supabase.from("perfiles").select("id").eq("es_postventa", true).eq("activo", true).eq("solo_preventivo", false).is("espejo_de", null).eq("es_prueba", s.es_prueba === true)
     : { data: [] };
   const comercial = avisar.comercial ? ((s.informes_cierre as unknown as { creado_por: string | null } | null)?.creado_por ?? null) : null;
   await Promise.all([
