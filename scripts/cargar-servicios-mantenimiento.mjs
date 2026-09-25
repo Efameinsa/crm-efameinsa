@@ -70,7 +70,7 @@ function leerFicha(ps) {
 }
 
 const filas = XLSX.utils
-  .sheet_to_json(XLSX.readFile(EXCEL).Sheets["servicio de mantenimiento"], { header: 1, defval: null })
+  .sheet_to_json(XLSX.readFile(EXCEL).Sheets[XLSX.readFile(EXCEL).SheetNames[0]], { header: 1, defval: null })
   .slice(1)
   .filter((r) => r[8])
   .map((r) => ({
@@ -140,6 +140,43 @@ for (const p of pares) {
     }${yaEstan.has(p.sku) ? "  (YA EXISTE: no se toca)" : ""}`,
   );
 }
+// LO QUE YA EXISTE, CONTRA EL EXCEL Y LAS FICHAS (25-09 tarde: llegaron las
+// 11 fichas que faltaban y el Excel cambió). Se informa todo; ACTUALIZAR=1
+// solo completa la ficha de los que no tenían (el precio lo gestiona Lesly).
+const { rows: vivos } = await pg.query(
+  `select p.id, p.sku, p.marca, p.modelo, p.nombre, p.activo, p.ficha,
+     (select pp.precio from precios_producto pp where pp.producto_id = p.id and pp.tier = 'base'
+       order by pp.vigente_hasta nulls first limit 1) precio
+     from productos p where p.sku = any($1)`,
+  [pares.map((p) => p.sku)],
+);
+const porSku = new Map(vivos.map((v) => [v.sku, v]));
+const completar = [];
+for (const p of pares) {
+  const v = porSku.get(p.sku);
+  if (!v) continue;
+  const dif = [];
+  if (Number(v.precio) !== p.fila.precio) dif.push(`precio CRM ${v.precio} ≠ Excel ${p.fila.precio}`);
+  if (v.marca !== p.fila.marca) dif.push(`marca ${v.marca} ≠ ${p.fila.marca}`);
+  if ((v.modelo ?? "") !== p.fila.modelo) dif.push(`modelo ${v.modelo} ≠ ${p.fila.modelo}`);
+  const sinFicha = !(v.ficha?.bloques?.length);
+  if (sinFicha && p.doc) { dif.push(`FICHA NUEVA: ${p.doc.archivo}`); completar.push({ v, p }); }
+  if (dif.length) console.log(`  ${p.sku.padEnd(16)} ${dif.join(" · ")}`);
+}
+const enExcel = new Set(pares.map((p) => p.sku));
+const { rows: todos } = await pg.query(`select sku, nombre, activo from productos where categoria = 'servicio' and sku like 'SER%'`);
+for (const t of todos) if (!enExcel.has(t.sku)) console.log(`  YA NO ESTÁ EN EL EXCEL: ${t.sku} ${t.nombre}${t.activo ? "" : " (inactivo)"}`);
+if (process.env.ACTUALIZAR === "1" && completar.length) {
+  await pg.query("begin");
+  for (const { v, p } of completar) {
+    const ficha = { ...v.ficha, bloques: p.doc.bloques, nombre_ficha: p.doc.archivo, origen: { ...(v.ficha?.origen ?? {}), codigo_word: p.doc.codigo, ficha_completada: "2026-09-25" } };
+    const nombreGenerico = /^SERVICIO DE MANTENIMIENTO PREVENTIVO \S+ \S+$/.test(v.nombre);
+    await pg.query(`update productos set ficha = $2, nombre = $3, updated_at = now() where id = $1`, [v.id, ficha, nombreGenerico ? p.doc.titulo : v.nombre]);
+  }
+  await pg.query("commit");
+  console.log(`✔ fichas completadas: ${completar.length}`);
+}
+
 const sobrantes = docs.filter((d) => !usados.has(d.archivo));
 console.log(`\nWord sin fila en el Excel: ${sobrantes.map((d) => d.archivo).join(" | ") || "ninguno"}`);
 console.log(`Total: ${pares.length} servicios, ${pares.filter((p) => p.doc).length} con ficha, ${pares.filter((p) => !p.doc).length} sin ficha, ${yaEstan.size} ya existían.`);
