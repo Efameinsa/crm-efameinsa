@@ -28,7 +28,7 @@ export async function crearProducto(formData: FormData): Promise<{ error: string
   const sku = String(formData.get("sku") ?? "").trim().toUpperCase() || null;
 
   if (!marca || !modelo || !nombre) return { error: "Marca, modelo y nombre son obligatorios" };
-  if (segmento !== "industrial" && segmento !== "semi_industrial") {
+  if (!["industrial", "semi_industrial", "servicio", "repuesto"].includes(segmento)) {
     return { error: "Segmento inválido" };
   }
 
@@ -98,7 +98,7 @@ export interface DatosEquipo {
   sku: string | null;
   categoria: string | null;
   capacidad: string | null;
-  segmento: "industrial" | "semi_industrial";
+  segmento: "industrial" | "semi_industrial" | "servicio" | "repuesto";
   activo: boolean;
   /** Las tres casillas del encabezado que viven dentro de la ficha y no en la
    *  tabla de productos: son columnas de la hoja técnica, no datos sueltos. */
@@ -317,7 +317,7 @@ export async function fichaDeReferencia(categoria: string): Promise<{
     marca: string;
     modelo: string;
     capacidad: string | null;
-    segmento: "industrial" | "semi_industrial";
+    segmento: "industrial" | "semi_industrial" | "servicio" | "repuesto";
     calentamiento: string | null;
     panel: string | null;
     controles: string | null;
@@ -357,7 +357,7 @@ export async function fichaDeReferencia(categoria: string): Promise<{
       marca: mejor.p.marca as string,
       modelo: mejor.p.modelo as string,
       capacidad: (mejor.p.capacidad as string | null) ?? null,
-      segmento: mejor.p.segmento as "industrial" | "semi_industrial",
+      segmento: mejor.p.segmento as "industrial" | "semi_industrial" | "servicio" | "repuesto",
       calentamiento: texto("calentamiento"),
       panel: texto("panel"),
       controles: texto("controles"),

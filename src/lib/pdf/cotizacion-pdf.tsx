@@ -848,6 +848,11 @@ export function CotizacionPdf({
           // `bloques`— se estima igual, con sus cuatro listas: dar por hecho que
           // no cabe dejaba la foto de un coche a media celda por debajo del
           // centro (visto el 27-08 al cargar el catálogo).
+          // EL SERVICIO VA A TODO EL ANCHO (25-09). Un servicio de mantenimiento
+          // no tiene foto: con la columna de imágenes vacía, el trabajo del
+          // técnico quedaba apretado en la mitad derecha. Los equipos siguen
+          // con su columna, aunque les falte la foto (estándar del ing. Carlos).
+          const esServicioSinImagen = imagenes.length === 0 && (item.categoria ?? "").toLowerCase() === "servicio";
           const bloquesParaMedir: BloqueFicha[] =
             item.bloques ??
             [
@@ -960,6 +965,7 @@ export function CotizacionPdf({
                         ...(cabeEnUnaPagina || altoBloqueImagenes === null
                           ? []
                           : [{ paddingTop: `${Math.max(0, (ALTO_FILA_CUERPO - altoBloqueImagenes) / 2)}mm` }]),
+                        ...(esServicioSinImagen ? [{ width: 0, paddingHorizontal: 0 }] : []),
                       ]}
                     >
                       {imagenes.map((img, k) => (
@@ -978,7 +984,12 @@ export function CotizacionPdf({
                       ))}
                     </View>
 
-                    <View style={estilos.celdaDescripcion}>
+                    <View
+                      style={[
+                        estilos.celdaDescripcion,
+                        ...(esServicioSinImagen ? [{ width: `${COLUMNA_IMAGENES + COLUMNA_DESCRIPCION}mm`, borderLeftWidth: 0 }] : []),
+                      ]}
+                    >
                       {/* La ficha leída tal como está: se imprime en su orden y
                           con sus propios rótulos. Cuando el producto todavía no
                           se reprocesó, se cae al armado por secciones de

@@ -24,7 +24,7 @@ export interface EquipoCatalogo {
   modelo: string;
   nombre: string;
   categoria: string | null;
-  segmento: "industrial" | "semi_industrial";
+  segmento: "industrial" | "semi_industrial" | "servicio" | "repuesto";
   capacidad: string | null;
   activo: boolean;
   fotoPath: string | null;
@@ -115,7 +115,7 @@ export async function cargarCatalogo(
       modelo: p.modelo as string,
       nombre: p.nombre as string,
       categoria: (p.categoria as string | null) ?? null,
-      segmento: p.segmento as "industrial" | "semi_industrial",
+      segmento: p.segmento as "industrial" | "semi_industrial" | "servicio" | "repuesto",
       capacidad: (p.capacidad as string | null) ?? null,
       activo: Boolean(p.activo),
       fotoPath: (p.foto_path as string | null) ?? null,

@@ -50,7 +50,7 @@ export interface EquipoEditable {
   sku: string | null;
   categoria: string | null;
   capacidad: string | null;
-  segmento: "industrial" | "semi_industrial";
+  segmento: "industrial" | "semi_industrial" | "servicio" | "repuesto";
   activo: boolean;
   calentamiento: string | null;
   panel: string | null;
@@ -858,6 +858,9 @@ export function FichaTecnicaEditor({
           >
             <option value="industrial">industrial</option>
             <option value="semi_industrial">semi-industrial</option>
+            {/* Servicios de mantenimiento con su ficha de trabajo (25-09) y repuestos (0190). */}
+            <option value="servicio">servicio</option>
+            <option value="repuesto">repuesto</option>
           </select>
           <span className="pointer-events-none absolute left-3 top-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Segmento
