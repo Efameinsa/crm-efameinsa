@@ -40,33 +40,8 @@ const ICONOS: Record<Icono, LucideIcon> = {
   listas: BookMarked,
 };
 
-/** El color de cada sección (v3, 24-09: celeste, verde, naranja). v4, 25-09: lo celeste pasa al granate claro de la casa. */
-const TONO: Record<Icono, string> = {
-  hoy: "var(--c-naranja)",
-  conversaciones: "var(--c-verde)",
-  seguimiento: "var(--c-marca-claro)",
-  pedidos: "var(--c-naranja)",
-  aperturas: "var(--c-verde)",
-  clientes: "var(--c-marca-claro)",
-  agenda: "var(--c-violeta)",
-  oportunidades: "var(--c-verde)",
-  ventas: "var(--c-marca-claro)",
-  numeros: "var(--c-naranja)",
-  atenciones: "var(--c-verde)",
-  vender: "var(--c-marca-claro)",
-  campana: "var(--c-naranja)",
-  informes: "var(--c-verde)",
-  cobranza: "var(--c-marca-claro)",
-  abonos: "var(--c-verde)",
-  catalogo: "var(--c-naranja)",
-  permisos: "var(--c-violeta)",
-  aprobaciones: "var(--c-verde)",
-  marketing: "var(--c-naranja)",
-  operacion: "var(--c-marca-claro)",
-  control: "var(--c-verde)",
-  usuarios: "var(--c-marca-claro)",
-  listas: "var(--c-naranja)",
-};
+/* Los iconos van en un solo tono (25-09, Santos: «tienen muchos colores»); el
+   color vive en la pastilla de la sección activa (propuesta.css, .barra-carbon). */
 
 function activa(opcion: OpcionMenu, ruta: string): boolean {
   if (opcion.href === "/nuevo") return ruta === "/nuevo";
@@ -116,7 +91,6 @@ export function BarraPropuesta({
               key={o.href + o.etiqueta}
               href={o.href}
               aria-current={es ? "page" : undefined}
-              style={{ "--tono": TONO[o.icono] } as React.CSSProperties}
               className="nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px]"
             >
               <Icono className="size-[18px] shrink-0" strokeWidth={es ? 2.3 : 1.9} />

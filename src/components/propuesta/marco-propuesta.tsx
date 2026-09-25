@@ -111,7 +111,7 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
               <Sparkles className="size-3" /> Propuesta · solo lectura
             </span>
             <div className="flex items-center gap-2">
-              <span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--c-marca)] to-[var(--c-verde)] text-[11px] font-bold text-white ring-2 ring-card">
+              <span className="flex size-8 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--marca-alto)_0%,var(--c-marca)_45%,var(--c-carbon)_100%)] shadow-[inset_0_1px_0_rgb(255_255_255/0.25)] text-[11px] font-bold text-white ring-2 ring-card">
                 {iniciales(perfil.nombre)}
               </span>
               <div className="hidden text-right leading-tight sm:block">
