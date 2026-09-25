@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
-import { notificar, notificarFinanzas } from "@/lib/notificaciones";
+import { notificar, notificarAlmacen, notificarFinanzas } from "@/lib/notificaciones";
 import { evaluarPagoParaDespacho, type ServicioPostventa } from "@/lib/postventa";
 
 /**
@@ -176,5 +176,30 @@ export async function solicitarConfirmacionPago(servicioId: string): Promise<Res
   revalidatePath("/finanzas");
   revalidatePath(`/finanzas/pedidos/${servicioId}`);
   revalidatePath(`/postventa/pedidos/${servicioId}`);
+  return { error: null };
+}
+
+/**
+ * FINANZAS CONFIRMA LA GUÍA (0308, audio de gerencia 25-09 14:20: «para que
+ * con esta notificación él pueda confirmarle al almacén: ok, te autorizo,
+ * emite tu guía de salida»). Revisó la apertura que emitió postventa; el
+ * almacén recibe el aviso.
+ */
+export async function confirmarGuia(servicioId: string, nota: string) {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("finanzas_confirmar_guia", { p_servicio: servicioId, p_nota: nota.trim() || null });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp").eq("id", servicioId).maybeSingle();
+  const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+  await notificarAlmacen({
+    titulo: `Guía autorizada · ${quien}`,
+    cuerpo: `Finanzas revisó la apertura${s?.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: puede emitir la guía de salida.${nota.trim() ? ` Nota: ${nota.trim()}` : ""}`,
+    url: `/almacen/pedidos/${servicioId}`,
+    esPrueba: perfil.es_prueba === true,
+  });
+  revalidatePath("/finanzas/aperturas");
+  revalidatePath("/almacen/aperturas-postventa");
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
   return { error: null };
 }

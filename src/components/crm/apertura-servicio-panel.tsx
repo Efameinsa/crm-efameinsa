@@ -63,7 +63,7 @@ export function AperturaServicioPanel({
         return;
       }
       setEnviada((x) => ({ ...x, [destino]: new Date().toISOString() }));
-      toast.success(destino === "almacen" ? "Marcado: correo enviado al almacén." : "Marcado: correo enviado al cliente.");
+      toast.success(destino === "almacen" ? "Enviada: el almacén y Finanzas ya recibieron el aviso en el CRM." : "Marcado: correo enviado al cliente.");
       router.refresh();
     });
   }
@@ -255,8 +255,10 @@ export function AperturaServicioPanel({
         {/* Santos, 24-09: la apertura de despacho es para el almacén; «enviar al
             cliente» no va en esta vista. */}
         <div className="mt-3 border-t border-border pt-3">
+          {/* Desde el 25-09 (audio de gerencia) el envío llega de verdad: aviso al
+              almacén para preparar y a Finanzas para que confirme la guía. */}
           <BotonEnviado
-            etiqueta="Al almacén"
+            etiqueta="Al almacén y a Finanzas"
             enviadoAt={enviada.almacen}
             disabled={enviando}
             onClick={() => marcarEnviado("almacen")}
@@ -317,7 +319,7 @@ function BotonEnviado({
       disabled={disabled}
       className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-semibold text-foreground hover:bg-accent disabled:opacity-60"
     >
-      <Send className="size-3.5" /> Marcar enviado — {etiqueta}
+      <Send className="size-3.5" /> Enviar — {etiqueta}
     </button>
   );
 }

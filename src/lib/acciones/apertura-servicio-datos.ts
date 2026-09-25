@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fechaHoraLima } from "@/lib/fechas";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { esProvincia, puedeVerPrecios, seriesDeTexto, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
 import { faltantesApertura, filasApertura, horaAmPm, tipoSugerido, type DatosApertura, type FilaApertura, type TipoApertura } from "@/lib/apertura-servicio";
 
@@ -36,9 +37,16 @@ export async function cargarHojaApertura(
   const crudo = data as unknown as ServicioPostventa;
   const s = puedeVerPrecios(perfil) ? crudo : sinPrecios(crudo);
 
+  // LA EMPRESA DEL CIERRE, AUNQUE QUIEN MIRA NO LEA CIERRES (25-09). El
+  // almacén no tiene permiso sobre informes_cierre: la consulta volvía vacía y
+  // la hoja de un pedido Open salía como «CORPORACIÓN EFAMEINSA». Estos
+  // campos no llevan precios (el pedido ya viene filtrado por puedeVerPrecios)
+  // y quien llegó hasta acá ya lee el pedido: se leen con el cliente del
+  // servidor.
+  const lectorInforme = createAdminClient();
   const [{ data: informe }, { data: cuenta }, { data: perfiles }] = await Promise.all([
     s.informe_cierre_id
-      ? supabase
+      ? lectorInforme
           .from("informes_cierre")
           .select("codigo, serie, cliente_nombre, cliente_doc, orden_compra, entrega_direccion, contacto_despacho, modalidad_pago")
           .eq("id", s.informe_cierre_id)

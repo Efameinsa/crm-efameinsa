@@ -69,6 +69,12 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
               <a href={`/api/postventa/pedidos/${servicio.id}/apertura/pdf`} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">
                 ver la apertura
               </a>
+              {" · "}
+              <b className={servicio.guia_confirmada_at ? "text-[#1E7F4F]" : "text-amber-700"}>
+                {servicio.guia_confirmada_at
+                  ? `Finanzas confirmó la guía el ${fechaHoraLima(servicio.guia_confirmada_at)}`
+                  : "falta que Finanzas confirme la guía"}
+              </b>
             </p>
           )}
         </div>

@@ -35,6 +35,7 @@ import {
   type LucideIcon,
   PhoneForwarded,
   FileCheck2,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RolUsuario } from "@/types/database";
@@ -135,6 +136,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/finanzas", etiqueta: "Por confirmar", icono: HandCoins },
     // El pedido que genera Central, esperando la liquidación en PDF (0290).
     { href: "/finanzas/liquidar", etiqueta: "Pedidos por liquidar", icono: ReceiptText },
+    // Audio de gerencia, 25-09: la apertura llega a Finanzas y confirma la guía (0308).
+    { href: "/finanzas/aperturas", etiqueta: "Aperturas por confirmar", icono: Truck },
     { href: "/finanzas/cobrar", etiqueta: "Cuentas por cobrar", icono: Landmark },
     { href: "/finanzas/confirmados", etiqueta: "Confirmados", icono: ReceiptText },
   ],

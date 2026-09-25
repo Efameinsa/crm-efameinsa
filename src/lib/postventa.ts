@@ -50,6 +50,9 @@ export interface ServicioPostventa {
   salida_nota?: string | null;
   /** Salida del almacén con saldo pendiente, autorizada con código (0297). */
   salida_autorizada_at?: string | null;
+  /** Finanzas revisó la apertura y autorizó la guía de salida (0308). */
+  guia_confirmada_at?: string | null;
+  guia_confirmada_nota?: string | null;
   salida_autorizada_motivo?: string | null;
   despacho_autorizado_por?: string | null;
   agencia_at?: string | null;

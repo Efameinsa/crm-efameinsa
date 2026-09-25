@@ -1042,6 +1042,34 @@ export async function marcarAperturaEnviada(servicioId: string, destino: "almace
     .eq("id", servicioId);
   if (error) return falla(error.message);
 
+  // LA APERTURA LLEGA DE VERDAD (audio de gerencia, 25-09 14:20: «no le llega
+  // la apertura… ¿no sería mejor que le llegue la alerta a Finanzas y confirme
+  // la guía?»). Al almacén, para preparar el despacho; a Finanzas, para que
+  // revise y autorice la guía de salida. Ya no depende del correo.
+  if (destino === "almacen") {
+    const perfil = await requerirPerfil();
+    const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp").eq("id", servicioId).maybeSingle();
+    const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+    const pedido = s?.numero_pedido_erp ? ` (pedido ${s.numero_pedido_erp})` : "";
+    const esPrueba = perfil.es_prueba === true;
+    await Promise.all([
+      notificarAlmacen({
+        titulo: `Apertura de despacho · ${quien}`,
+        cuerpo: `Postventa le envió la apertura${pedido}. Ábrala para preparar el despacho; Finanzas confirma la guía.`,
+        url: "/almacen/aperturas-postventa",
+        esPrueba,
+      }),
+      notificarFinanzas({
+        titulo: `Apertura por confirmar · ${quien}`,
+        cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme para que el almacén emita la guía de salida.`,
+        url: "/finanzas/aperturas",
+        esPrueba,
+      }),
+    ]);
+    revalidatePath("/almacen/aperturas-postventa");
+    revalidatePath("/finanzas/aperturas");
+  }
+
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   revalidatePath(`/postventa/pedidos/${servicioId}/apertura`);
   return ok();

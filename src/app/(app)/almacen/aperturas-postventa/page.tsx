@@ -26,6 +26,8 @@ type Fila = {
   despacho_hora: string | null;
   despachado_at: string | null;
   almacen_listo_at: string | null;
+  guia_confirmada_at: string | null;
+  guia_confirmada_nota: string | null;
   perfiles: { nombre: string } | null;
 };
 
@@ -47,7 +49,7 @@ export default async function AperturasDePostventaPage() {
   const { data } = await supabase
     .from("servicios_postventa")
     .select(
-      "id, cliente_texto, equipo, numero_pedido_erp, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, despacho_hora, despachado_at, almacen_listo_at, perfiles!servicios_postventa_apertura_despacho_por_fkey(nombre)",
+      "id, cliente_texto, equipo, numero_pedido_erp, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, despacho_hora, despachado_at, almacen_listo_at, guia_confirmada_at, guia_confirmada_nota, perfiles!servicios_postventa_apertura_despacho_por_fkey(nombre)",
     )
     .not("apertura_despacho_at", "is", null)
     .is("cerrado_at", null)
@@ -138,6 +140,14 @@ function Lista({ lista, ahora }: { lista: Fila[]; ahora: number }) {
                       : "Sin fecha de despacho"}
                 </span>
               </p>
+              {/* La guía la autoriza Finanzas (0308, audio de gerencia 25-09). */}
+              {!f.despachado_at && (
+                <p className={cn("mt-0.5 text-[11px] font-medium", f.guia_confirmada_at ? "text-[#1E7F4F]" : "text-amber-700")}>
+                  {f.guia_confirmada_at
+                    ? `Finanzas confirmó la guía el ${fechaHoraLima(f.guia_confirmada_at)}${f.guia_confirmada_nota ? ` · ${f.guia_confirmada_nota}` : ""}`
+                    : "Esperando que Finanzas confirme la guía de salida"}
+                </p>
+              )}
             </div>
             <a
               href={`/api/postventa/pedidos/${f.id}/apertura/pdf`}

@@ -107,7 +107,9 @@ export function AperturaLlamadaBoton({
   const [tecnico, setTecnico] = useState("");
   const [formato, setFormato] = useState<FormatoLlamada>({});
   const [parque, setParque] = useState<EquipoParque[] | null>(null);
-  const [equipoParque, setEquipoParque] = useState("");
+  // Varias máquinas a la vez (Gabriela, 25-09: «son 2 máquinas que el técnico va a evaluar y no
+  // puedo añadir la segunda»).
+  const [elegidas, setElegidas] = useState<string[]>([]);
   const campoFormato = (clave: keyof FormatoLlamada) => ({
     value: formato[clave] ?? "",
     onChange: (e: { target: { value: string } }) => setFormato((f) => ({ ...f, [clave]: e.target.value })),
@@ -133,12 +135,30 @@ export function AperturaLlamadaBoton({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierto, cuentaId]);
 
-  function elegirEquipo(id: string) {
-    setEquipoParque(id);
+  const renglonDe = (e: EquipoParque) => `${(e.modelo_texto ?? "Equipo").split("\n")[0]}${e.serie ? ` · serie ${e.serie}` : ""}`;
+
+  /** Marca o desmarca una máquina: su renglón entra o sale de «Equipos» y el formato junta los datos de todas. */
+  function alternarEquipo(id: string) {
     const e = parque?.find((x) => x.id === id);
     if (!e) return;
-    setFormato((f) => ({ ...f, ...formatoDesdeEquipo(e) }));
-    if (!texto.trim()) setTexto(`${(e.modelo_texto ?? "").split("\n")[0]}${e.serie ? ` · serie ${e.serie}` : ""}`);
+    const nuevas = elegidas.includes(id) ? elegidas.filter((x) => x !== id) : [...elegidas, id];
+    setElegidas(nuevas);
+    const renglon = renglonDe(e);
+    setTexto((t) => {
+      const lineas = t.split("\n").map((l) => l.trim()).filter(Boolean);
+      const queda = nuevas.includes(id) ? (lineas.includes(renglon) ? lineas : [...lineas, renglon]) : lineas.filter((l) => l !== renglon);
+      return queda.join("\n");
+    });
+    const formatos = nuevas
+      .map((x) => parque!.find((q) => q.id === x))
+      .filter((q): q is EquipoParque => Boolean(q))
+      .map(formatoDesdeEquipo);
+    if (formatos.length === 0) return;
+    const junto: FormatoLlamada = {};
+    for (const clave of Object.keys(formatos[0]) as (keyof FormatoLlamada)[]) {
+      junto[clave] = [...new Set(formatos.map((f) => (f[clave] ?? "").trim()).filter(Boolean))].join(" / ");
+    }
+    setFormato((f) => ({ ...f, ...junto }));
   }
 
   useEffect(() => {
@@ -278,16 +298,22 @@ export function AperturaLlamadaBoton({
           </div>
           {cuentaId && (parque?.length ?? 0) > 0 && (
             <div className="grid gap-1">
-              <Label className="text-xs">Máquina del cliente (llena el formato sola)</Label>
-              <select value={equipoParque} onChange={(e) => elegirEquipo(e.target.value)} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                <option value="">Elija la máquina…</option>
+              <Label className="text-xs">Máquinas del cliente: marque una o varias (llenan el formato solas)</Label>
+              <div className="max-h-40 space-y-0.5 overflow-y-auto rounded-md border border-input p-1.5">
                 {parque!.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {(e.modelo_texto ?? "Equipo").split("\n")[0].slice(0, 70)}
-                    {e.serie ? ` · ${e.serie}` : ""}
-                  </option>
+                  <label
+                    key={e.id}
+                    className={`flex cursor-pointer items-start gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent ${elegidas.includes(e.id) ? "bg-primary/5 font-medium" : ""}`}
+                  >
+                    <input type="checkbox" className="mt-0.5" checked={elegidas.includes(e.id)} onChange={() => alternarEquipo(e.id)} />
+                    <span className="min-w-0">
+                      {(e.modelo_texto ?? "Equipo").split("\n")[0].slice(0, 90)}
+                      {e.serie ? <span className="text-muted-foreground"> · serie {e.serie}</span> : null}
+                    </span>
+                  </label>
                 ))}
-              </select>
+              </div>
+              {elegidas.length > 1 && <p className="text-[11px] text-muted-foreground">{elegidas.length} máquinas: el técnico evalúa todas en la misma atención.</p>}
             </div>
           )}
           <div className="grid gap-1">
@@ -309,7 +335,7 @@ export function AperturaLlamadaBoton({
             <Label className="text-xs">Con quién se habla (nombre y celular)</Label>
             <Input value={persona} onChange={(e) => setPersona(e.target.value)} />
           </div>
-          <details className="rounded-lg border border-border p-2.5" open={Boolean(equipoParque)}>
+          <details className="rounded-lg border border-border p-2.5" open={elegidas.length > 0}>
             <summary className="cursor-pointer text-xs font-semibold text-foreground">Formato de llamada (compra, entrega, garantía…)</summary>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <CampoFormato etiqueta="Fecha de compra"><Input {...campoFormato("fecha_compra")} /></CampoFormato>

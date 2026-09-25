@@ -54,6 +54,7 @@ const PAGINAS: Record<string, Carga> = {
   "gerencia/auditoria": () => import("@/app/(app)/gerencia/auditoria/page"),
   "finanzas": () => import("@/app/(app)/finanzas/page"),
   "finanzas/cobrar": () => import("@/app/(app)/finanzas/cobrar/page"),
+  "finanzas/aperturas": () => import("@/app/(app)/finanzas/aperturas/page"),
   "facturacion": () => import("@/app/(app)/facturacion/page"),
   "facturacion/facturados": () => import("@/app/(app)/facturacion/facturados/page"),
 };

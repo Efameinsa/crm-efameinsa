@@ -136,6 +136,7 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     // Revisión 23-09: lo que Finanzas hace con cada pedido, junto: confirmar
     // el abono (pedido por postventa) y subir la liquidación (para Central).
     { etiqueta: "Pagos", href: "/nuevo/pagos", icono: "abonos", coincide: ["/nuevo/pagos", "/finanzas/liquidar", "/finanzas/pedidos"] },
+    { etiqueta: "Aperturas", href: "/finanzas/aperturas", icono: "pedidos", coincide: ["/finanzas/aperturas"] },
     { etiqueta: "Cobranza", href: "/finanzas/cobrar", icono: "cobranza", coincide: ["/finanzas/cobrar"] },
     { etiqueta: "Abonos", href: "/finanzas/confirmados", icono: "abonos", coincide: ["/finanzas/confirmados"] },
   ],
