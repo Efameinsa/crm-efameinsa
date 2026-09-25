@@ -107,6 +107,8 @@ export interface PresupuestoDisponible {
   /** Solo las del CRM: los renglones tal como se cotizaron, con cantidad y
    *  precio, así el informe no arranca con todos los precios en cero. */
   lineas?: { descripcion: string; cantidad: number; precio_unitario: number; precio_con_igv?: number | null }[];
+  /** Solo las del CRM que salieron a nombre de otra empresa del grupo (0310): a ella se le factura. */
+  facturarA?: { razonSocial: string; numDoc: string | null; direccion: string | null } | null;
 }
 
 export interface VentaSinInforme {
@@ -180,7 +182,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, motivo_serie, estado, total, garantia, created_at, enviada_at, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, estado, total, garantia, created_at, enviada_at, facturar_a_cuenta_id, cliente_snapshot, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, productos(marca, modelo, nombre))",
       )
       .eq("oportunidades.cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
@@ -247,6 +249,12 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
       garantia: c.garantia,
       estado: c.estado,
       lineas,
+      facturarA: c.facturar_a_cuenta_id
+        ? (() => {
+            const snap = (c.cliente_snapshot ?? {}) as { razon_social?: string; num_doc?: string | null; direccion?: string | null };
+            return snap.razon_social ? { razonSocial: snap.razon_social, numDoc: snap.num_doc ?? null, direccion: snap.direccion ?? null } : null;
+          })()
+        : null,
     };
   });
 

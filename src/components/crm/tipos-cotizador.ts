@@ -89,6 +89,8 @@ export interface BorradorEnEdicion {
   /** Cuántas veces salió este número. 1 = como se emitió (migración 0123). */
   version?: number;
   serie: "EFAMEINSA" | "OPEN";
+  /** A nombre de qué empresa del grupo sale (0310); null = la del expediente. */
+  facturarA?: string | null;
   /** Por qué va con EFAMEINSA y no con OPEN (0275, «Open primero»). */
   motivoSerie?: string | null;
   /** En qué moneda se imprime (0169). Los importes del borrador son dólares. */

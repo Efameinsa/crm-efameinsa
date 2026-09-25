@@ -589,3 +589,32 @@ export async function fusionarCuentas(
   revalidatePath("/central", "layout");
   return { error: null, resumen: typeof data === "string" ? data : undefined };
 }
+
+/**
+ * EMPRESAS DEL GRUPO (0310, Katerine 25-09). El cliente pide cotizar a nombre
+ * de otra razón social suya: en vez de abrir otra ficha (y partir la historia
+ * en dos), esa empresa entra como hija de la ficha madre. La base valida el
+ * RUC, reutiliza la ficha si ya existía y no se lleva la cartera de otro
+ * comercial sin el código.
+ */
+export async function agregarEmpresaDelGrupo(datos: {
+  cuentaId: string;
+  ruc: string;
+  razonSocial: string;
+  direccion?: string | null;
+}): Promise<{ error: string | null; empresa?: { id: string; razonSocial: string; numDoc: string } }> {
+  if (!UUID.test(datos.cuentaId)) return { error: "Cliente inválido" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("agregar_empresa_del_grupo", {
+    p_cuenta: datos.cuentaId,
+    p_ruc: datos.ruc,
+    p_razon: datos.razonSocial,
+    p_direccion: datos.direccion?.trim() || null,
+  });
+  if (error) return { error: error.message.replace(/^.*?ERROR:\s*/, "") };
+  const id = data as string;
+  const { data: cuenta } = await supabase.from("cuentas").select("razon_social, num_doc").eq("id", id).maybeSingle();
+  revalidatePath(`/comercial/cartera/${datos.cuentaId}`);
+  revalidatePath(`/nuevo/cliente/${datos.cuentaId}`);
+  return { error: null, empresa: { id, razonSocial: cuenta?.razon_social ?? datos.razonSocial, numDoc: cuenta?.num_doc ?? datos.ruc } };
+}

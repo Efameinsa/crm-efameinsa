@@ -220,8 +220,11 @@ export function FormularioInforme({
   const pideMotivoSerie = serie === "EFAMEINSA" && !motivoHeredado;
   const [comprobante, setComprobante] = useState<"factura" | "boleta_ruc" | "boleta_dni">(b?.comprobante ?? "factura");
   const [clienteNuevo, setClienteNuevo] = useState(b ? b.clienteNuevo : cuenta.esNueva);
-  const [clienteNombre, setClienteNombre] = useState(b?.clienteNombre ?? cuenta.razon_social);
-  const [clienteDoc, setClienteDoc] = useState(b ? b.clienteDoc : (cuenta.num_doc ?? ""));
+  // La cotización que salió a nombre de otra empresa del grupo (0310) trae a
+  // quién se factura: el cierre arranca con ella, no con la del expediente.
+  const facturarInicial = b ? null : (presupuestos[0]?.facturarA ?? null);
+  const [clienteNombre, setClienteNombre] = useState(b?.clienteNombre ?? facturarInicial?.razonSocial ?? cuenta.razon_social);
+  const [clienteDoc, setClienteDoc] = useState(b ? b.clienteDoc : (facturarInicial?.numDoc ?? cuenta.num_doc ?? ""));
   // «Se le factura a» se corrige EN SU SITIO (02-09). Antes «Corregir» abría
   // la sección plegada del final y había que ir a buscar la caja de la razón
   // social entre otras quince: Ariana no la encontró. El caso: FANCAVEL pidió
@@ -231,7 +234,7 @@ export function FormularioInforme({
   // «Pegar una lista»: qué tipo de renglón se está pegando, o nada.
   const [pegando, setPegando] = useState<TipoItemInforme | null>(null);
   const [textoPegado, setTextoPegado] = useState("");
-  const [clienteDireccion, setClienteDireccion] = useState(b ? b.clienteDireccion : (cuenta.direccion ?? ""));
+  const [clienteDireccion, setClienteDireccion] = useState(b ? b.clienteDireccion : (facturarInicial?.direccion ?? cuenta.direccion ?? ""));
   const [clienteCorreo, setClienteCorreo] = useState(b ? b.clienteCorreo : (principal.correo ?? ""));
   const [ordenCompra, setOrdenCompra] = useState(b?.ordenCompra ?? "");
 
@@ -328,6 +331,16 @@ export function FormularioInforme({
     // cotizaciones del CRM la traen; las del archivo viejo no la tienen
     // registrada y se queda la que ya estaba.
     if (p.garantia) setGarantia(p.garantia);
+    // A nombre de quién salió esa cotización (0310): otra empresa del grupo o
+    // la del expediente. Solo si el comercial no corrigió los datos a mano.
+    const anterior = presupuestos.find((x) => x.id === presupuestoId);
+    const esperado = anterior?.facturarA ?? { razonSocial: cuenta.razon_social, numDoc: cuenta.num_doc, direccion: cuenta.direccion };
+    if (clienteNombre === esperado.razonSocial && clienteDoc === (esperado.numDoc ?? "")) {
+      const nuevo = p.facturarA ?? { razonSocial: cuenta.razon_social, numDoc: cuenta.num_doc, direccion: cuenta.direccion };
+      setClienteNombre(nuevo.razonSocial);
+      setClienteDoc(nuevo.numDoc ?? "");
+      setClienteDireccion(nuevo.direccion ?? "");
+    }
     // Solo se pisan los equipos si el comercial todavía no puso precios: si ya
     // estuvo escribiendo, cambiar de presupuesto no puede borrarle el trabajo.
     const intacto = items.every((i) => i.precio_unitario === 0);

@@ -129,6 +129,8 @@ export async function guardarBorradorCotizacion(datos: {
   monedaImpresa?: "USD" | "PEN";
   /** El que fija gerencia en `parametros.tc_usd_pen`; obligatorio si va en soles. */
   tipoCambio?: number | null;
+  /** A nombre de qué empresa del grupo nace el borrador (0310); después se cambia con cotizarANombreDe. */
+  facturarA?: string | null;
 }): Promise<{ error: string | null; cotizacionId: string | null; estadoAprobacion?: string }> {
   const supabase = await createClient();
 
@@ -159,6 +161,9 @@ export async function guardarBorradorCotizacion(datos: {
       serie: datos.serie,
       motivo: datos.motivoSerie,
     });
+    if (datos.facturarA) {
+      await supabase.rpc("cotizar_a_nombre_de", { p_cotizacion: cotizacionId, p_cuenta: datos.facturarA });
+    }
     // NO se revalida nada acá. Se hacía al nacer el borrador —para que
     // apareciera en la lista de la oportunidad— y costaba caro: `revalidatePath`
     // dentro de una Server Action refresca EL ÁRBOL DE LA RUTA ACTUAL, y como
@@ -257,7 +262,7 @@ export async function cambiarSerieBorrador(datos: {
   const { data: original } = await supabase
     .from("cotizaciones")
     .select(
-      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, tier_aplicado, color)",
+      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, tier_aplicado, color)",
     )
     .eq("id", datos.cotizacionId)
     .maybeSingle();
@@ -296,6 +301,10 @@ export async function cambiarSerieBorrador(datos: {
   if (error) return { error: limpiarError(error.message) };
 
   const nuevoId = data as string;
+  // Cambiar de serie no cambia a nombre de quién sale (0310).
+  if (original.facturar_a_cuenta_id) {
+    await supabase.rpc("cotizar_a_nombre_de", { p_cotizacion: nuevoId, p_cuenta: original.facturar_a_cuenta_id });
+  }
   await guardarEntrega(supabase, nuevoId, original.entrega_lugar, undefined, {
     serie: datos.serie,
     motivo: datos.motivoSerie,
@@ -322,7 +331,7 @@ export async function duplicarCotizacion(
 
   const { data: original, error: errorOriginal } = await supabase
     .from("cotizaciones")
-    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, tier_aplicado, color)")
+    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, tier_aplicado, color)")
     .eq("id", cotizacionId)
     .maybeSingle();
   if (errorOriginal) return { error: errorOriginal.message };
@@ -364,6 +373,10 @@ export async function duplicarCotizacion(
   // (0275): el cliente es el mismo y la explicación también.
   if (copiaId && original.serie === "EFAMEINSA" && original.motivo_serie) {
     await supabase.from("cotizaciones").update({ motivo_serie: original.motivo_serie }).eq("id", copiaId as string);
+  }
+  // Y sale a nombre de la misma empresa del grupo (0310).
+  if (copiaId && original.facturar_a_cuenta_id) {
+    await supabase.rpc("cotizar_a_nombre_de", { p_cotizacion: copiaId as string, p_cuenta: original.facturar_a_cuenta_id });
   }
 
   revalidatePath(`/comercial/oportunidades/${original.oportunidad_id}`);
@@ -636,5 +649,18 @@ export async function eliminarCotizacion(
 
   revalidatePath(`/comercial/oportunidades/${cot.oportunidad_id}`);
   revalidatePath("/comercial", "layout");
+  return { error: null };
+}
+
+/**
+ * A NOMBRE DE QUÉ EMPRESA DEL GRUPO SALE EL BORRADOR (0310, Katerine 25-09).
+ * El expediente sigue siendo el mismo; cambia la razón social, el RUC y la
+ * dirección que imprime el PDF. null vuelve a la empresa del expediente. Una
+ * vez enviada no se cambia (la base lo rechaza).
+ */
+export async function cotizarANombreDe(cotizacionId: string, cuentaId: string | null): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cotizar_a_nombre_de", { p_cotizacion: cotizacionId, p_cuenta: cuentaId });
+  if (error) return { error: limpiarError(error.message) };
   return { error: null };
 }

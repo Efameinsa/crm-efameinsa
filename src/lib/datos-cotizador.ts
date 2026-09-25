@@ -17,13 +17,26 @@ import type {
  * catálogo viaja únicamente cuando de verdad se va a cotizar.
  */
 
+export interface EmpresaDelGrupo {
+  id: string;
+  razonSocial: string;
+  numDoc: string | null;
+  esMadre: boolean;
+}
+
 export interface ContextoCotizador {
   oportunidadId: string;
   cuenta: {
+    id: string;
     razonSocial: string;
     tipoDoc: TipoDocumento;
     numDoc: string | null;
     direccion: string | null;
+    /**
+     * Las razones sociales del mismo grupo (0310, Katerine 25-09): la
+     * cotización puede salir a nombre de cualquiera sin abrir otra ficha.
+     */
+    grupo: EmpresaDelGrupo[];
   } | null;
   /** El contacto principal, para tenerlo a mano mientras se cotiza. */
   contacto: { nombre: string; cargo: string | null; telefono: string | null } | null;
@@ -304,6 +317,13 @@ export async function cargarContextoCotizador(
   const lead = oportunidad.leads as unknown as { mensaje: string | null } | null;
 
   const contactos = cuenta?.contactos ?? [];
+  const { data: miembros } = cuenta?.id ? await supabase.rpc("grupo_economico", { p_cuenta_id: cuenta.id }) : { data: [] };
+  const grupo: EmpresaDelGrupo[] = ((miembros ?? []) as { id: string; razon_social: string; num_doc: string | null; es_madre: boolean }[]).map((m) => ({
+    id: m.id,
+    razonSocial: m.razon_social,
+    numDoc: m.num_doc,
+    esMadre: m.es_madre,
+  }));
   const contacto = contactos.find((c) => c.es_principal) ?? contactos[0] ?? null;
 
   let borrador: BorradorEnEdicion | undefined;
@@ -312,7 +332,7 @@ export async function cargarContextoCotizador(
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_lista, color, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_lista, color, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
@@ -368,6 +388,7 @@ export async function cargarContextoCotizador(
       version: cot.version ?? 1,
       serie: cot.serie as "EFAMEINSA" | "OPEN",
       motivoSerie: cot.motivo_serie ?? null,
+      facturarA: (cot.facturar_a_cuenta_id as string | null) ?? null,
       // En qué moneda se imprime, y con qué cambio se congeló (0169).
       monedaImpresa: (cot.moneda_impresa as "USD" | "PEN" | null) ?? "USD",
       tipoCambio: cot.tipo_cambio == null ? null : Number(cot.tipo_cambio),
@@ -412,6 +433,8 @@ export async function cargarContextoCotizador(
       oportunidadId,
       cuenta: cuenta
         ? {
+            id: cuenta.id,
+            grupo,
             razonSocial: cuenta.razon_social,
             tipoDoc: cuenta.tipo_doc,
             numDoc: cuenta.num_doc,

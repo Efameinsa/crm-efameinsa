@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import {
   cambiarSerieBorrador,
+  cotizarANombreDe,
   enviarCotizacion,
   finalizarCotizacion,
   guardarBorradorCotizacion,
@@ -44,6 +45,7 @@ import type {
 } from "@/components/crm/tipos-cotizador";
 import type { ContextoCotizador } from "@/lib/datos-cotizador";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
+import { ANombreDe } from "@/components/crm/a-nombre-de";
 
 /**
  * La pantalla de armar una cotización.
@@ -332,6 +334,15 @@ export function PantallaCotizador({
   const [confirmando, setConfirmando] = useState(false);
   const [confirmada, setConfirmada] = useState<{ codigo: string | null } | null>(null);
   const [ocupado, startTransition] = useTransition();
+  // A nombre de qué empresa del grupo sale (0310, Katerine 25-09). null = la
+  // del expediente. El primer guardado la lleva; después se cambia al toque.
+  const [facturarA, setFacturarA] = useState<string | null>(edicion?.facturarA ?? null);
+  const facturarARef = useRef(facturarA);
+  const [aNombreDe, setANombreDe] = useState<{ razonSocial: string; numDoc: string | null } | null>(() => {
+    const e = edicion?.facturarA ? cuenta?.grupo.find((g) => g.id === edicion.facturarA) : null;
+    return e ? { razonSocial: e.razonSocial, numDoc: e.numDoc } : null;
+  });
+  const razonImpresa = aNombreDe?.razonSocial ?? cuenta?.razonSocial ?? null;
 
   // Se decide UNA vez, al entrar, y no se vuelve a mirar. Si dependiera del
   // carrito en vivo —«ábrelo si está vacío»— bastaría que la pantalla se
@@ -445,6 +456,7 @@ export function PantallaCotizador({
       },
       monedaImpresa,
       tipoCambio: tcDelDocumento,
+      facturarA: facturarARef.current,
     });
 
     if (r.error) {
@@ -740,6 +752,27 @@ export function PantallaCotizador({
     });
   }
 
+  function alCambiarANombreDe(id: string | null, empresa: { razonSocial: string; numDoc: string | null }) {
+    const anterior = { id: facturarA, empresa: aNombreDe };
+    setFacturarA(id);
+    facturarARef.current = id;
+    setANombreDe(id ? { razonSocial: empresa.razonSocial, numDoc: empresa.numDoc } : null);
+    // Sin borrador todavía, viaja con el primer guardado.
+    if (!idRef.current) return;
+    startTransition(async () => {
+      await vaciarPendientes();
+      const r = await cotizarANombreDe(idRef.current!, id);
+      if (r.error) {
+        toast.error(r.error);
+        setFacturarA(anterior.id);
+        facturarARef.current = anterior.id;
+        setANombreDe(anterior.empresa);
+        return;
+      }
+      toast.success(`La cotización sale a nombre de ${empresa.razonSocial}`);
+    });
+  }
+
   function alCambiarSerie(nueva: "EFAMEINSA" | "OPEN") {
     if (nueva === serie) return;
     // Sin borrador todavía, la serie es solo una elección en pantalla.
@@ -862,7 +895,9 @@ export function PantallaCotizador({
                 <span className="font-normal text-muted-foreground"> · {cuenta?.razonSocial ?? "Cuenta sin nombre"}</span>
               </h1>
               <p className="truncate text-[11px] text-muted-foreground">
-                {cuenta?.tipoDoc !== "SIN_DOC" && cuenta?.numDoc ? (
+                {aNombreDe ? (
+                  `Sale a nombre de ${aNombreDe.razonSocial}${aNombreDe.numDoc ? ` · RUC: ${aNombreDe.numDoc}` : ""}`
+                ) : cuenta?.tipoDoc !== "SIN_DOC" && cuenta?.numDoc ? (
                   `${cuenta.tipoDoc}: ${cuenta.numDoc}`
                 ) : (
                   // Carlos, 02-09: RUC o DNI obligatorio antes de cotizar. Se
@@ -874,6 +909,11 @@ export function PantallaCotizador({
                 {contacto ? ` · ${contacto.nombre}${contacto.cargo ? ` (${contacto.cargo})` : ""}` : ""}
                 {contacto?.telefono ? ` · ${contacto.telefono}` : ""}
               </p>
+              {cuenta && (
+                <div className="mt-1">
+                  <ANombreDe cuentaId={cuenta.id} empresas={cuenta.grupo.length ? cuenta.grupo : [{ id: cuenta.id, razonSocial: cuenta.razonSocial, numDoc: cuenta.numDoc, esMadre: true }]} valor={facturarA} bloqueado={ocupado} onCambiar={alCambiarANombreDe} />
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -1729,7 +1769,7 @@ export function PantallaCotizador({
             <dl className="space-y-1 rounded-md bg-secondary p-3 text-xs">
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Cliente</dt>
-                <dd className="text-right font-medium text-foreground">{cuenta?.razonSocial ?? "—"}</dd>
+                <dd className="text-right font-medium text-foreground">{razonImpresa ?? "—"}</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Equipos</dt>
