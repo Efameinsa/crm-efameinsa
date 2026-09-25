@@ -705,6 +705,7 @@ export function PedidoPostventa({
             () =>
               registrarDespacho(servicio.id, {
                 fecha: datos.fecha,
+                hora: datos.hora,
                 transportista: datos.transportista,
                 guia: datos.guia,
                 recibeNombre: datos.recibe,
@@ -717,11 +718,14 @@ export function PedidoPostventa({
         }
         campos={[
           { nombre: "fecha", etiqueta: "Fecha de salida", tipo: "date", inicial: hoy, requerido: true },
-          { nombre: "transportista", etiqueta: "Agencia o transportista", requerido: false },
-          { nombre: "guia", etiqueta: "N.º de guía de remisión", requerido: false },
-          { nombre: "recibe", etiqueta: "Quién recibe", requerido: false },
-          { nombre: "doc", etiqueta: "DNI de quien recibe", requerido: false },
-          { nombre: "telefono", etiqueta: "Su teléfono", requerido: false },
+          // Rubí, 25-09: la hora quedaba siempre en 12:00. Viene la programada y se corrige acá.
+          { nombre: "hora", etiqueta: "Hora de salida", tipo: "time", inicial: servicio.despacho_hora ? String(servicio.despacho_hora).slice(0, 5) : "", requerido: false },
+          // Lo ya cargado viene escrito: un campo en blanco lo borraba al volver a registrar.
+          { nombre: "transportista", etiqueta: "Agencia o transportista", inicial: servicio.transportista ?? "", requerido: false },
+          { nombre: "guia", etiqueta: "N.º de guía de remisión", inicial: servicio.guia ?? "", requerido: false },
+          { nombre: "recibe", etiqueta: "Quién recibe", inicial: servicio.recibe_nombre ?? "", requerido: false },
+          { nombre: "doc", etiqueta: "DNI de quien recibe", inicial: servicio.recibe_doc ?? "", requerido: false },
+          { nombre: "telefono", etiqueta: "Su teléfono", inicial: servicio.recibe_telefono ?? "", requerido: false },
           ...(pagoIncompleto
             ? [{ nombre: "motivo", etiqueta: "Quién autorizó despachar con saldo, y por qué", area: true, requerido: true }]
             : []),
