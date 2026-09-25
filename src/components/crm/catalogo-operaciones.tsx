@@ -291,7 +291,8 @@ type Filtro =
 
 /** Le falta algo para poder cotizarse: precio, ficha o foto. */
 function incompleto(e: EquipoCatalogo): boolean {
-  return e.precios.length === 0 || !e.tieneFicha || !e.fotoPath;
+  // Un servicio no lleva foto ni stock: le basta precio y ficha (25-09).
+  return e.precios.length === 0 || !e.tieneFicha || (!e.fotoPath && e.segmento !== "servicio");
 }
 
 /**
@@ -507,15 +508,17 @@ function TarjetaEquipo({
               porque no son lo mismo: «en almacén» son máquinas contadas
               por su serie; «(ref.)» es lo que decía el Excel el día que
               se cargó. */}
-          <span
-            title={stockDe(e).titulo}
-            className={cn(
-              "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
-              stockDe(e).cantidad > 0 ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : "bg-secondary text-muted-foreground",
-            )}
-          >
-            {stockDe(e).etiqueta}
-          </span>
+          {e.segmento !== "servicio" && (
+            <span
+              title={stockDe(e).titulo}
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                stockDe(e).cantidad > 0 ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : "bg-secondary text-muted-foreground",
+              )}
+            >
+              {stockDe(e).etiqueta}
+            </span>
+          )}
 
           {!e.tieneFicha && (
             <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-700">

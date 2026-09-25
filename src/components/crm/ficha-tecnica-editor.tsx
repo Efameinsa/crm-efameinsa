@@ -256,11 +256,14 @@ export function FichaTecnicaEditor({
     void (async () => {
       try {
         const { equipo: leido, bloques: cuantos, fotoIlegible } = await leerFichaDeWord(archivo);
+        // Un servicio (25-09): su Word casi nunca dice la marca y el modelo
+        // viene a medias; mandan los que Lesly ya tiene en el catálogo.
+        const servicio = leido.segmento === "servicio";
         setD((antes) => ({
           ...antes,
           nombre: leido.nombre,
-          marca: leido.marca,
-          modelo: leido.modelo,
+          marca: servicio && antes.marca ? antes.marca : leido.marca,
+          modelo: servicio && antes.modelo ? antes.modelo : leido.modelo,
           sku: antes.sku ?? leido.sku,
           categoria: leido.categoria,
           segmento: leido.segmento,

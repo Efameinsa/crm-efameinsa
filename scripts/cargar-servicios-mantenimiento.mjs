@@ -23,6 +23,7 @@ import fs from "node:fs";
 import JSZip from "jszip";
 import XLSX from "xlsx";
 import { Client } from "pg";
+import { parrafosDeXml, leerFichaDeServicio } from "../src/lib/fichas/ficha-servicio.mjs";
 
 const CARPETA = "P:/";
 const EXCEL = `${CARPETA}SERVICIO DE MANTENIMEINTO PRECIO Y CODIFICACION.xlsx`;
@@ -38,36 +39,11 @@ function parecido(a, b) {
 
 async function parrafos(ruta) {
   const z = await JSZip.loadAsync(fs.readFileSync(ruta));
-  const x = await z.file("word/document.xml").async("string");
-  return x
-    .split("</w:p>")
-    .map((p) => (p.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || []).map((t) => t.replace(/<[^>]+>/g, "")).join("").replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+  return parrafosDeXml(await z.file("word/document.xml").async("string"));
 }
 
-/** El Word → { equipo, bloques }: cada sistema como subtítulo numerado y sus tareas como viñetas. */
-function leerFicha(ps) {
-  const equipo = (ps.find((p) => /^ITEM\s+[IVX]+\s*:/i.test(p)) ?? "").replace(/^ITEM\s+[IVX]+\s*:\s*/i, "").trim();
-  const inicio = ps.findIndex((p) => /^DESCRIPCI[OÓ]N$/i.test(p));
-  const cuerpo = ps.slice(inicio + 1);
-  const bloques = [{ t: "titulo", texto: "TRABAJOS QUE INCLUYE EL SERVICIO" }];
-  for (let i = 0; i < cuerpo.length; i++) {
-    const p = cuerpo[i];
-    if (/^[✓✔]+$/.test(p) || p === "") continue;
-    if (/^\d{1,2}$/.test(p) && cuerpo[i + 1]) {
-      bloques.push({ t: "subtitulo", texto: `${p}. ${cuerpo[i + 1]}` });
-      i++;
-      continue;
-    }
-    // Un sub-sistema dentro de un sistema («Descarga»): viene seguido de su ✓.
-    if (/^[✓✔]+$/.test(cuerpo[i + 1] ?? "") && p.length < 40) {
-      bloques.push({ t: "subtitulo", texto: p });
-      continue;
-    }
-    bloques.push({ t: "vineta", texto: p });
-  }
-  return { equipo, bloques };
-}
+// El lector vive en el CRM (lo usa también «Cambiar el Word» del catálogo).
+const leerFicha = leerFichaDeServicio;
 
 const filas = XLSX.utils
   .sheet_to_json(XLSX.readFile(EXCEL).Sheets[XLSX.readFile(EXCEL).SheetNames[0]], { header: 1, defval: null })

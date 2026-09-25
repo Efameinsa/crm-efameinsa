@@ -8,6 +8,7 @@ import { leerFichaDeXml } from "@/lib/fichas/ficha-docx.mjs";
 import { imagenesDeDocx, repartirRoles } from "@/lib/fichas/imagenes-docx.mjs";
 import { codigoYNombre } from "@/lib/fichas/nombre-de-ficha";
 import { clasificar } from "@/lib/fichas/clasificar.mjs";
+import { esFichaDeServicio, leerFichaDeServicio, parrafosDeXml } from "@/lib/fichas/ficha-servicio.mjs";
 import { bloquesATexto, type BloqueFicha } from "@/lib/ficha-texto";
 
 /** La tabla de arriba de la ficha, tal como la lee `ficha-docx.mjs`. */
@@ -108,6 +109,31 @@ export async function POST(request: Request) {
     const zip = leerZip(Buffer.from(await archivo.arrayBuffer()));
     const xml = textoDeZip(zip, "word/document.xml");
     if (!xml) throw new Error("el archivo no tiene el cuerpo del documento");
+    // LA FICHA DE UN SERVICIO (25-09): otra forma de Word —sistemas numerados
+    // y tareas con ✓, sin tabla de equipo ni fotos—. Con el lector de equipos
+    // salía desarmada y clasificada como lavadora.
+    const parrafos = parrafosDeXml(xml);
+    if (esFichaDeServicio(archivo.name, parrafos)) {
+      const s = leerFichaDeServicio(parrafos);
+      const base = archivo.name.replace(/\.docx$/i, "").trim();
+      const codigo = base.match(/^([A-Za-z]+\d[A-Za-z0-9]*)\s*[-.]\s*/)?.[1]?.toUpperCase() ?? null;
+      return NextResponse.json({
+        archivo: archivo.name,
+        sku: codigo,
+        // El nombre es el del archivo sin el código, entero: «SERVICIO DE
+        // MANTENIMIENTO PREVENTIVO … RX 280 (220V-60HZ-3PH)» lleva guiones.
+        nombre: (codigo ? base.slice(base.indexOf(codigo) + codigo.length).replace(/^\s*[-.]\s*/, "") : base).replace(/\s+/g, " "),
+        categoria: "servicio",
+        segmento: "servicio",
+        esServicio: true,
+        cabecera: { marca: s.marca, modelo: s.modelo, capacidad: null, panel: null, controles: null, calentamiento: null, extra: [] },
+        fichaTexto: bloquesATexto(s.bloques as BloqueFicha[]),
+        bloques: s.bloques.length,
+        logo: null,
+        foto: null,
+        panel: null,
+      });
+    }
     const { cabecera, bloques, tablaDe } = leerFichaDeXml(xml);
     const roles = repartirRoles(imagenesDeDocx(zip, xml, tablaDe)) as {
       logo: ImagenFicha | null;

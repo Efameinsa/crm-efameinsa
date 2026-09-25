@@ -72,6 +72,23 @@ export const TIPOS_EQUIPO: TipoEquipo[] = [
     casillas: ["capacidad", "calentamiento", "panel", "controles", "montaje"],
     ejemplo: "las dos máquinas en una",
   },
+  // Servicios y repuestos (25-09, Lesly): se editan en el mismo catálogo,
+  // pero no llevan capacidad, panel ni calentamiento —las casillas de
+  // máquina solo le llenaban la ficha de «no sale impresa»—.
+  {
+    clave: "servicio",
+    nombre: "Servicio",
+    rotuloCapacidad: "Capacidad",
+    casillas: [],
+    ejemplo: "mantenimiento preventivo UniMac UWT130",
+  },
+  {
+    clave: "repuesto",
+    nombre: "Repuesto",
+    rotuloCapacidad: "Capacidad",
+    casillas: [],
+    ejemplo: "válvulas, fajas, empaquetaduras",
+  },
 ];
 
 const TODAS: CasillaEquipo[] = ["capacidad", "calentamiento", "panel", "controles", "montaje", "colores"];

@@ -166,7 +166,8 @@ export async function cargarCatalogo(
       inactivos: equipos.length - activos.length,
       sinPrecio: activos.filter((e) => e.precios.length === 0).length,
       sinFicha: activos.filter((e) => !e.tieneFicha).length,
-      sinFoto: activos.filter((e) => !e.fotoPath).length,
+      // Un servicio no lleva foto: su ficha es la lista de trabajos (25-09).
+      sinFoto: activos.filter((e) => !e.fotoPath && e.segmento !== "servicio").length,
       categoriasRepetidas: [...porCategoria.entries()]
         .filter(([, x]) => x.formas.size > 1)
         .map(([normalizada, x]) => ({ normalizada, formas: [...x.formas], equipos: x.equipos })),
