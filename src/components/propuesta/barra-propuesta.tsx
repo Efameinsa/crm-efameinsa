@@ -137,9 +137,11 @@ export function BarraPropuesta({
         </div>
       )}
       <div className={cn("space-y-1 border-t border-sidebar-border p-3", !pin && "mt-auto")}>
-        <a href="/demo/vista?v=actual" className="enlace-barra flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors">
-          <Eye className="size-4" /> {demo ? "Ver cómo es hoy" : "Vista anterior"}
-        </a>
+        {demo && (
+          <a href="/demo/vista?v=actual" className="enlace-barra flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors">
+            <Eye className="size-4" /> Ver cómo es hoy
+          </a>
+        )}
         {demo && (
           <a href="/demo/salir" className="enlace-barra flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors">
             <LogOut className="size-4" /> Salir de la propuesta

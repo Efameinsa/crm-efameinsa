@@ -85,9 +85,12 @@ export async function proxy(request: NextRequest) {
     if (request.method !== "GET" && request.method !== "HEAD") {
       return NextResponse.json({ error: MENSAJE_DEMO }, { status: 403 });
     }
+    // Las cuentas _test ven la vista anterior (25-09): entran por la portada
+    // de su cuenta espejo, que /demo/vista?v=actual resuelve.
     if (pathname === "/" || esRutaLogin) {
       const url = request.nextUrl.clone();
-      url.pathname = "/nuevo";
+      url.pathname = "/demo/vista";
+      url.search = "?v=actual";
       return NextResponse.redirect(url);
     }
     const cabeceras = new Headers(request.headers);

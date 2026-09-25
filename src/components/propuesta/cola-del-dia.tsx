@@ -212,10 +212,6 @@ export function ColaDelDia({
             </ol>
           )}
         </div>
-        <div className="rounded-xl border border-dashed border-border p-4 text-[11px] leading-relaxed text-muted-foreground">
-          <CalendarClock className="mb-1 size-4" />
-          Así propone la nueva vista abrir el día: lo que pide acción, en el orden en que se trabaja. Los números completos siguen a un clic.
-        </div>
       </aside>
     </div>
   );

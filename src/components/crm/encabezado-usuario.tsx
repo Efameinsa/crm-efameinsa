@@ -36,14 +36,6 @@ export function EncabezadoUsuario({ perfil, demo = false }: { perfil: Perfil; de
         </div>
       </div>
       <div className="flex items-center gap-3">
-        {/* LA VISTA NUEVA, A UN CLIC (25-09): gerencia la aprobó; cada cuenta la
-            puede probar antes del cambio general y volver con «Vista anterior».
-            Ancla a secas: es una ruta con efecto y un <Link> la precargaría. */}
-        {!demo && (
-          <a href="/demo/vista?v=nueva" className="hidden rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 sm:inline-flex">
-            Probar la vista nueva
-          </a>
-        )}
         <CampanaNotificaciones userId={perfil.id} rol={perfil.rol} />
         {/* Cuenta de demostración (0280): ni cambia la clave ni cierra la
             sesión de la persona real; «Salir» está en la franja de arriba. */}

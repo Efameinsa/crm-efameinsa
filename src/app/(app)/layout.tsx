@@ -142,7 +142,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </span>
             <span className="flex items-center gap-2">
               {/* Anclas a secas: son rutas con efecto y un <Link> las precargaría (ver barra-propuesta). */}
-              <a href="/demo/vista?v=nueva" className="rounded-full bg-white/10 px-2.5 py-1 font-semibold hover:bg-white/20">Ver la propuesta</a>
               <a href="/demo/salir" className="rounded-full px-2.5 py-1 hover:bg-white/10">Salir</a>
             </span>
           </div>
