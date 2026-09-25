@@ -497,6 +497,10 @@ export async function colaFinanzas(supabase: Cliente): Promise<{ tareas: Tarea[]
       tareas.push({ id: `fs-${p.id}`, urgencia: urgenciaPorEdad(p.solicitadoAt, hoy, 2), tipo: "pago", cliente: p.cliente, que: `Confirmar el abono · ${pedido}`, porque: `Postventa lo pidió ${dias(p.solicitadoAt, hoy)}. Faltan ${falta} en la ${cuenta}.`, accion: { etiqueta: "Confirmar", href } });
     } else if (salida != null && salida <= 3) {
       tareas.push({ id: `fd-${p.id}`, urgencia: salida <= 0 ? "atrasado" : salida === 1 ? "hoy" : "semana", tipo: "pago", cliente: p.cliente, que: `Confirmar el abono · ${pedido}`, porque: `${salida < 0 ? `El despacho era hace ${-salida} días` : salida === 0 ? "Sale hoy" : salida === 1 ? "Sale mañana" : `Sale en ${salida} días`} y faltan ${falta} en la ${cuenta}.`, accion: { etiqueta: "Confirmar", href } });
+    } else {
+      // Lo demás que espera su abono, sin prisa pero a la vista: Hoy no debe
+      // decir «nada pendiente» si hay pagos por confirmar (auditoría 25-09).
+      tareas.push({ id: `fr-${p.id}`, urgencia: "semana", tipo: "pago", cliente: p.cliente, que: `Confirmar el abono · ${pedido}`, porque: `${salida == null ? "Sin fecha de despacho" : `Sale en ${salida} días`}. Faltan ${falta} en la ${cuenta}.`, accion: { etiqueta: "Confirmar", href } });
     }
     if (p.fechaDespacho === hoy) {
       agenda.push({ id: `ag-${p.id}`, hora: "—", titulo: `Sale hoy · ${p.cliente}`, detalle: `Falta confirmar ${falta}`, href });
