@@ -26,14 +26,14 @@ const TONO_PILDORA: Record<Tono, string> = {
   urgente: "bg-destructive/10 text-destructive",
   atencion: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
   ok: "bg-[var(--c-verde)]/12 text-[var(--verde-texto)]",
-  info: "bg-[var(--c-celeste)]/12 text-primary",
+  info: "bg-[var(--c-marca)]/12 text-primary",
 };
 const TONO_BORDE: Record<Tono, string> = {
   neutro: "border-l-border",
   urgente: "border-l-destructive",
   atencion: "border-l-amber-500",
   ok: "border-l-[var(--c-verde)]",
-  info: "border-l-[var(--c-celeste)]",
+  info: "border-l-[var(--c-marca)]",
 };
 
 /** La tarjeta de la propuesta: blanca, redondeada, sombra suave (referencias del 24-09). */
@@ -285,7 +285,7 @@ export function Pasos({ pasos, compacto = false }: { pasos: PasoLinea[]; compact
 export function Vacio({ titulo, porque, accion }: { titulo: string; porque: string; accion?: { etiqueta: string; href: string } | null }) {
   return (
     <div className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-border bg-card px-6 py-9 text-center">
-      <span className="flex size-11 items-center justify-center rounded-full bg-[var(--c-celeste)]/10 text-[var(--c-celeste)]">
+      <span className="flex size-11 items-center justify-center rounded-full bg-[var(--c-marca)]/10 text-[var(--c-marca)]">
         <Inbox className="size-5" />
       </span>
       <p className="text-sm font-semibold text-foreground">{titulo}</p>
@@ -305,7 +305,7 @@ const TONO_ICONO: Record<Tono, string> = {
   urgente: "bg-destructive/10 text-destructive",
   atencion: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
   ok: "bg-[var(--c-verde)]/12 text-[var(--verde-texto)]",
-  info: "bg-[var(--c-celeste)]/12 text-primary",
+  info: "bg-[var(--c-marca)]/12 text-primary",
 };
 
 export function Numero({
@@ -342,7 +342,7 @@ export function Numero({
   );
   const clase = cn("group/num block p-4", TARJETA);
   return href ? (
-    <Link href={href} className={cn(clase, "levanta hover:border-[var(--c-celeste)]/50")}>
+    <Link href={href} className={cn(clase, "levanta hover:border-[var(--c-marca)]/50")}>
       {cuerpo}
     </Link>
   ) : (

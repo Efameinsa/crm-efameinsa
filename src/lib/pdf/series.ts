@@ -156,9 +156,17 @@ export const PUNTOS_IMPORTANTES = [
   "Los equipos ofertados están diseñados y fabricados bajo normas de calidad ISO.",
 ];
 
-export const NOTAS = [
-  "Efameinsa ofrece un convenio de mantenimiento preventivo que les permita tener un normal funcionamiento de los equipos durante el periodo de garantía y posterior a ello.",
-  "La garantía ofrecida está vigente siempre que el Cliente cumpla con los estándares de instalación y mantenimiento periódico de acuerdo al manual del fabricante y/o de Efameinsa por servicio técnico autorizado.",
-];
+// La nota nombra a la empresa que cotiza: una cotización Open decía
+// «Efameinsa ofrece…» (gerencia, 25-09). Cierre, cotización y pedido van con
+// la misma empresa de principio a fin.
+const NOMBRE_EN_NOTA: Record<"EFAMEINSA" | "OPEN", string> = { EFAMEINSA: "Efameinsa", OPEN: "Open Investments" };
+
+export const notasDe = (serie: "EFAMEINSA" | "OPEN") => {
+  const empresa = NOMBRE_EN_NOTA[serie];
+  return [
+    `${empresa} ofrece un convenio de mantenimiento preventivo que les permita tener un normal funcionamiento de los equipos durante el periodo de garantía y posterior a ello.`,
+    `La garantía ofrecida está vigente siempre que el Cliente cumpla con los estándares de instalación y mantenimiento periódico de acuerdo al manual del fabricante y/o de ${empresa} por servicio técnico autorizado.`,
+  ];
+};
 
 export const IGV = 0.18;

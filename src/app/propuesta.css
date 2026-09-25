@@ -16,6 +16,14 @@
  * La paleta: celeste para lo que se toca (botones, enlaces, pestañas), verde
  * para lo que está bien o terminado, naranja para lo que pide atención, rosa
  * para lo urgente. El granate queda solo en el logo.
+ *
+ * v4, 25-09 (reunión con gerencia): «no se ve nuestro… recuperar la gama de
+ * colores granate y el gris oscuro como estaba en la vista oficial, pero solo
+ * es tema de colores; mantener el glass design»; «un poquito más de contraste,
+ * una nadita más de letra»; «unas líneas finas granate»; «el logo un poco más
+ * grande». Lo que se toca vuelve al granate de la casa (--c-marca) y la barra
+ * lateral al carbón de la oficial con su logo blanco; verde, naranja y rosa
+ * siguen marcando estados, y los iconos de cada sección conservan su color.
  */
 /* La letra de la marca, alojada en el propio CRM (funciona sin internet). */
 @font-face {
@@ -30,48 +38,52 @@
    (texto, espacios y botones) sin tocar una sola pantalla. Solo cuando la
    página tiene el marco de la propuesta. */
 html:has(.propuesta) {
-  font-size: 14.5px;
+  font-size: 15px;
 }
 
 .propuesta {
   --font-sans: "Archivo Propuesta", "Segoe UI", Arial, sans-serif;
   --radius: 0.8rem;
 
-  /* Los tres tonos de la propuesta (y un rosa para lo urgente). */
+  /* El granate de la casa: botones, enlaces, foco y las líneas finas (v4). */
+  --c-marca: #8b1510;
+  --c-marca-claro: #e8797d;
+  /* Los tonos de estado de la propuesta (y un rosa para lo urgente). */
   --c-celeste: #0ea5e9;
   --c-verde: #10b981;
   --c-naranja: #f97316;
   --c-rosa: #f43f5e;
   --c-violeta: #8b5cf6;
 
-  --app-bg: #f4f7fa;
+  /* Los grises cálidos y el carbón de la oficial, con un punto más de contraste. */
+  --app-bg: #f3f1f0;
   --background: #ffffff;
-  --foreground: #0f172a;
+  --foreground: #1d1f24;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #1d1f24;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  /* Celeste profundo: se lee bien con letra blanca (contraste AA). */
-  --primary: #0b7fa6;
+  --popover-foreground: #1d1f24;
+  --primary: var(--c-marca);
   --primary-foreground: #ffffff;
-  --secondary: #eef2f6;
-  --secondary-foreground: #0f172a;
-  --muted: #eef2f6;
-  --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  --secondary: #f2eeed;
+  --secondary-foreground: #1d1f24;
+  --muted: #f2eeed;
+  --muted-foreground: #585a61;
+  --accent: #f4eeed;
+  --accent-foreground: #1d1f24;
   --destructive: #e11d48;
   --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #dbe2ea;
-  --ring: #0ea5e9;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #0b7fa6;
+  --border: #e2dcdb;
+  --input: #d6cfce;
+  --ring: var(--c-marca);
+  /* La barra lateral, carbón como en la oficial (en claro y en oscuro). */
+  --sidebar: #16171a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: var(--c-marca);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #e2e8f0;
+  --sidebar-accent: #262830;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #262830;
 
   /* «Atención» pasa de ámbar a naranja y «bien» a verde esmeralda, también en
      las pantallas de siempre que van por dentro (Tailwind lee estas variables). */
@@ -86,8 +98,6 @@ html:has(.propuesta) {
   --color-amber-800: #9a3412;
   --color-amber-900: #7c2d12;
   --verde-texto: #047857;
-  /* El anillo del PIN de autorización (usa el granate de la casa): en celeste. */
-  --efameinsa-granate: var(--c-celeste);
 
   color: var(--foreground);
   font-family: var(--font-sans);
@@ -95,35 +105,37 @@ html:has(.propuesta) {
   letter-spacing: -0.006em;
 }
 
-/* Modo oscuro: azul noche, tarjetas grafito, los tres tonos más luminosos. */
+/* Modo oscuro: grises carbón (los de la oficial) y el granate encendido para
+   que se lea sobre el fondo oscuro. */
 .propuesta[data-tema="oscuro"] {
-  --app-bg: #0b1017;
-  --background: #111821;
-  --foreground: #e6edf5;
-  --card: #111821;
-  --card-foreground: #e6edf5;
-  --popover: #17202b;
-  --popover-foreground: #e6edf5;
-  --primary: #38bdf8;
-  --primary-foreground: #06121c;
-  --secondary: #1b2531;
-  --secondary-foreground: #e6edf5;
-  --muted: #1b2531;
-  --muted-foreground: #94a3b8;
-  --accent: #1b2531;
+  --c-marca: #cc4349;
+  --app-bg: #111214;
+  --background: #1a1b1f;
+  --foreground: #eeeef0;
+  --card: #1a1b1f;
+  --card-foreground: #eeeef0;
+  --popover: #212227;
+  --popover-foreground: #eeeef0;
+  --primary: var(--c-marca);
+  --primary-foreground: #ffffff;
+  --secondary: #26272d;
+  --secondary-foreground: #eeeef0;
+  --muted: #26272d;
+  --muted-foreground: #a4a6ad;
+  --accent: #26272d;
   --accent-foreground: #ffffff;
   --destructive: #fb7185;
   --destructive-foreground: #1a0509;
-  --border: #243040;
-  --input: #2b394b;
-  --ring: #38bdf8;
-  --sidebar: #0e141c;
-  --sidebar-foreground: #e6edf5;
-  --sidebar-primary: #38bdf8;
-  --sidebar-primary-foreground: #06121c;
-  --sidebar-accent: #1b2531;
+  --border: #303139;
+  --input: #3a3b44;
+  --ring: var(--c-marca);
+  --sidebar: #16171a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: var(--c-marca);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #262830;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #243040;
+  --sidebar-border: #262830;
   --verde-texto: #34d399;
   color-scheme: dark;
 }
@@ -264,18 +276,18 @@ html:has(.propuesta) {
 .propuesta .border-\[\#1E7F4F\]\/40,
 .propuesta .border-\[\#1E7F4F\]\/50 { border-color: color-mix(in srgb, var(--c-verde) 40%, transparent); }
 .propuesta .border-l-\[\#1E7F4F\] { border-left-color: var(--c-verde); }
-/* Y el granate escrito a mano, al celeste (el logo es una imagen: no cambia). */
+/* Y el granate escrito a mano: al granate del tema (en oscuro, el encendido). */
 .propuesta .text-\[\#8B1510\],
 .propuesta .text-\[\#7E1210\] { color: var(--primary); }
 .propuesta .bg-\[\#7E1210\] { background-color: var(--primary); }
 .propuesta .border-\[\#7E1210\] { border-color: var(--primary); }
-.propuesta .border-l-\[\#7E1210\] { border-left-color: var(--c-rosa); }
-.propuesta .bg-\[\#7E1210\]\/5 { background-color: color-mix(in srgb, var(--c-rosa) 7%, transparent); }
+.propuesta .border-l-\[\#7E1210\] { border-left-color: var(--primary); }
+.propuesta .bg-\[\#7E1210\]\/5 { background-color: color-mix(in srgb, var(--primary) 7%, transparent); }
 
 /* Los pastel escritos a mano (agenda del comercial y otras): se mezclan con
    la tarjeta, así sirven igual en claro y en oscuro (24-09, «no se ven los
-   nombres»). Próxima acción en celeste; tarea personal en violeta. */
-.propuesta .bg-\[\#f7eded\] { background-color: color-mix(in srgb, var(--c-celeste) 12%, var(--card)); }
+   nombres»). Próxima acción en granate; tarea personal en violeta. */
+.propuesta .bg-\[\#f7eded\] { background-color: color-mix(in srgb, var(--c-marca) 12%, var(--card)); }
 .propuesta .bg-\[\#eef3f8\] { background-color: color-mix(in srgb, var(--c-violeta) 12%, var(--card)); }
 .propuesta .bg-\[\#faf9f8\] { background-color: color-mix(in srgb, var(--muted) 55%, var(--card)); }
 .propuesta .bg-\[\#2C5F8A\] { background-color: var(--c-violeta); }
@@ -340,13 +352,15 @@ html:has(.propuesta) {
   height: 60%;
 }
 
-/* ── La tarjeta de bienvenida: un degradé suave de celeste a verde ─────── */
+/* ── La tarjeta de bienvenida: un degradé suave de granate a verde, con la
+   línea fina granate arriba (v4) ─────────────────────────────────────── */
 .propuesta .propuesta-hero {
   position: relative;
   overflow: hidden;
+  border-top: 2px solid var(--c-marca);
   background:
     radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--c-verde) 16%, transparent) 0%, transparent 55%),
-    radial-gradient(90% 120% at 0% 100%, color-mix(in srgb, var(--c-celeste) 14%, transparent) 0%, transparent 60%),
+    radial-gradient(90% 120% at 0% 100%, color-mix(in srgb, var(--c-marca) 14%, transparent) 0%, transparent 60%),
     var(--card);
 }
 .propuesta .propuesta-hero::after {
@@ -417,7 +431,7 @@ html:has(.propuesta) {
   height: 3px;
   z-index: 60;
   transform-origin: left;
-  background: linear-gradient(90deg, var(--c-celeste), var(--c-verde), var(--c-naranja));
+  background: linear-gradient(90deg, var(--c-marca), var(--c-marca-claro), var(--c-naranja));
   animation: avance 2.5s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
 }
 
@@ -443,12 +457,12 @@ html:has(.propuesta) {
 .propuesta input:not([type="checkbox"]):not([type="radio"]):focus-visible,
 .propuesta select:focus-visible,
 .propuesta textarea:focus-visible {
-  border-color: var(--c-celeste);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-celeste) 16%, transparent);
+  border-color: var(--c-marca);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-marca) 16%, transparent);
   outline: none;
 }
 
-/* Fecha y hora: el icono propio en celeste; la ventanita nativa la reemplaza
+/* Fecha y hora: el icono propio en granate; la ventanita nativa la reemplaza
    selector-fecha-hora.tsx. */
 .propuesta input[type="date"],
 .propuesta input[type="time"] {
@@ -457,10 +471,10 @@ html:has(.propuesta) {
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 16px 16px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230ea5e9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='4'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b1510' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='4'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
 }
 .propuesta input[type="time"] {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230ea5e9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b1510' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
 }
 .propuesta input[type="date"]::-webkit-calendar-picker-indicator,
 .propuesta input[type="time"]::-webkit-calendar-picker-indicator {
@@ -540,6 +554,7 @@ html:has(.propuesta) {
 /* ── Paneles de sección de las pantallas de siempre: más aire ────────── */
 .propuesta .seccion-panel {
   border-radius: 1.1rem;
+  border-top: 2px solid color-mix(in srgb, var(--c-marca) 75%, transparent);
 }
 .propuesta .seccion-cabeza {
   padding: 1rem 1.5rem;
@@ -598,8 +613,8 @@ html:has(.propuesta) {
   height: 3rem;
   border-radius: 999px;
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230ea5e9' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z'/%3E%3Cpath d='M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4'/%3E%3C/svg%3E") center / 22px no-repeat,
-    color-mix(in srgb, var(--c-celeste) 12%, var(--card));
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b1510' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z'/%3E%3Cpath d='M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4'/%3E%3C/svg%3E") center / 22px no-repeat,
+    color-mix(in srgb, var(--c-marca) 12%, var(--card));
 }
 
 /* Ventanas con formulario: más anchas, que los campos respiren. */
@@ -668,4 +683,39 @@ html:has(.propuesta) {
   border: 3px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
+}
+
+/* ── La barra lateral carbón (v4, 25-09) ───────────────────────────────
+   Como la oficial: fondo carbón, letra blanca y el logo blanco grande. Sobre
+   el carbón, la activa lleva un vidrio blanco suave y la rayita en granate
+   encendido; los iconos conservan el color de su sección. */
+.propuesta .barra-carbon {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 3%, transparent), transparent 40%),
+    var(--sidebar);
+  color: var(--sidebar-foreground);
+  border-right: 1px solid color-mix(in srgb, var(--c-marca) 55%, var(--sidebar-border));
+}
+.propuesta .barra-carbon .nav-item {
+  color: color-mix(in srgb, #ffffff 74%, transparent);
+}
+.propuesta .barra-carbon .nav-item:hover {
+  background: color-mix(in srgb, #ffffff 7%, transparent);
+  color: #ffffff;
+}
+.propuesta .barra-carbon .nav-item[aria-current="page"] {
+  background: color-mix(in srgb, #ffffff 11%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 8%, transparent);
+  color: #ffffff;
+}
+.propuesta .barra-carbon .nav-item::before {
+  background: #e0484e;
+}
+.propuesta .barra-carbon .enlace-barra {
+  color: color-mix(in srgb, #ffffff 70%, transparent);
+}
+.propuesta .barra-carbon .enlace-barra:hover,
+.propuesta .barra-carbon .enlace-barra[aria-current="true"] {
+  background: color-mix(in srgb, #ffffff 8%, transparent);
+  color: #ffffff;
 }

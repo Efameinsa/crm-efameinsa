@@ -40,31 +40,31 @@ const ICONOS: Record<Icono, LucideIcon> = {
   listas: BookMarked,
 };
 
-/** El color de cada sección (v3, 24-09: celeste, verde, naranja; el granate queda en el logo). */
+/** El color de cada sección (v3, 24-09: celeste, verde, naranja). v4, 25-09: lo celeste pasa al granate claro de la casa. */
 const TONO: Record<Icono, string> = {
   hoy: "var(--c-naranja)",
   conversaciones: "var(--c-verde)",
-  seguimiento: "var(--c-celeste)",
+  seguimiento: "var(--c-marca-claro)",
   pedidos: "var(--c-naranja)",
   aperturas: "var(--c-verde)",
-  clientes: "var(--c-celeste)",
+  clientes: "var(--c-marca-claro)",
   agenda: "var(--c-violeta)",
   oportunidades: "var(--c-verde)",
-  ventas: "var(--c-celeste)",
+  ventas: "var(--c-marca-claro)",
   numeros: "var(--c-naranja)",
   atenciones: "var(--c-verde)",
-  vender: "var(--c-celeste)",
+  vender: "var(--c-marca-claro)",
   campana: "var(--c-naranja)",
   informes: "var(--c-verde)",
-  cobranza: "var(--c-celeste)",
+  cobranza: "var(--c-marca-claro)",
   abonos: "var(--c-verde)",
   catalogo: "var(--c-naranja)",
   permisos: "var(--c-violeta)",
   aprobaciones: "var(--c-verde)",
   marketing: "var(--c-naranja)",
-  operacion: "var(--c-celeste)",
+  operacion: "var(--c-marca-claro)",
   control: "var(--c-verde)",
-  usuarios: "var(--c-celeste)",
+  usuarios: "var(--c-marca-claro)",
   listas: "var(--c-naranja)",
 };
 
@@ -96,13 +96,13 @@ export function BarraPropuesta({
 }) {
   const ruta = usePathname();
   return (
-    <aside className="sticky top-0 flex h-screen w-[14.5rem] flex-none flex-col border-r border-border bg-card">
+    <aside className="barra-carbon sticky top-0 flex h-screen w-[14.5rem] flex-none flex-col">
       <div className="px-5 pb-3 pt-5">
-        {/* El logo, tal cual (en oscuro, sobre su placa blanca para no alterarlo). */}
-        <span className="inline-flex rounded-lg dark:bg-white dark:px-2 dark:py-1.5">
-          <Image src="/logo-efameinsa-transparente.png" alt="Efameinsa" width={2345} height={381} className="h-6 w-auto" priority />
+        {/* El logo blanco de la oficial, grande (gerencia, 25-09: «el logo un poco más grande»). */}
+        <span className="flex justify-center">
+          <Image src="/efameinsa-blanco.png" alt="Efameinsa" width={442} height={334} className="h-16 w-auto" priority />
         </span>
-        <span className="mt-3 flex w-fit items-center gap-1.5 rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <span className="mt-3 flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white/70">
           <span className="size-1.5 animate-pulse rounded-full bg-[var(--c-verde)]" />
           {perfil}
         </span>
@@ -126,16 +126,14 @@ export function BarraPropuesta({
         })}
       </nav>
       {verComo && verComo.length > 0 && (
-        <div className="mt-3 border-t border-border px-3 pt-3">
-          <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ver como</p>
+        <div className="mt-3 border-t border-sidebar-border px-3 pt-3">
+          <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-white/50">Ver como</p>
           {verComo.map((v) => (
             <Link
               key={v.href}
               href={v.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-foreground/70 hover:bg-accent",
-                ruta.startsWith(v.href) && "bg-accent text-foreground",
-              )}
+              aria-current={ruta.startsWith(v.href) ? "true" : undefined}
+              className="enlace-barra flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]"
             >
               <Package className="size-4" />
               {v.etiqueta}
@@ -153,11 +151,11 @@ export function BarraPropuesta({
           <PinSupervisor demo />
         </div>
       )}
-      <div className={cn("space-y-1 border-t border-border p-3", !pin && "mt-auto")}>
-        <a href="/demo/vista?v=actual" className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
+      <div className={cn("space-y-1 border-t border-sidebar-border p-3", !pin && "mt-auto")}>
+        <a href="/demo/vista?v=actual" className="enlace-barra flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors">
           <Eye className="size-4" /> Ver cómo es hoy
         </a>
-        <a href="/demo/salir" className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
+        <a href="/demo/salir" className="enlace-barra flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors">
           <LogOut className="size-4" /> Salir de la propuesta
         </a>
       </div>

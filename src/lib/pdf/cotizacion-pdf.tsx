@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
-import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, NOTAS, IGV, ENTREGA_POR_DEFECTO } from "./series";
+import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, notasDe, IGV, ENTREGA_POR_DEFECTO } from "./series";
 import { totalesConIgv } from "@/lib/igv";
 import { clasificarFicha } from "@/lib/ficha-tecnica";
 import { encajarEnCaja } from "./medir-imagen";
@@ -852,7 +852,8 @@ export function CotizacionPdf({
           // no tiene foto: con la columna de imágenes vacía, el trabajo del
           // técnico quedaba apretado en la mitad derecha. Los equipos siguen
           // con su columna, aunque les falte la foto (estándar del ing. Carlos).
-          const esServicioSinImagen = imagenes.length === 0 && (item.categoria ?? "").toLowerCase() === "servicio";
+          // El repuesto tampoco trae foto (Excel de repuestos, 25-09): igual, a todo el ancho.
+          const esServicioSinImagen = imagenes.length === 0 && ["servicio", "repuesto"].includes((item.categoria ?? "").toLowerCase());
           const bloquesParaMedir: BloqueFicha[] =
             item.bloques ??
             [
@@ -1231,7 +1232,7 @@ export function CotizacionPdf({
 
         <View style={{ marginTop: 12 }} wrap={false}>
           <Text style={estilos.seccionSubrayada}>Nota:</Text>
-          {NOTAS.map((n, i) => (
+          {notasDe(serie).map((n, i) => (
             <View key={i} style={estilos.listaNumerada}>
               <Text style={estilos.listaNumero}>•</Text>
               <Text style={estilos.notaTexto}>{n}</Text>

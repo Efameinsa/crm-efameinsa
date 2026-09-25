@@ -70,7 +70,7 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
       <BarraPropuesta opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} verComo={tipo === "operaciones" ? VER_COMO : undefined} pin={tipo === "gerencia" || tipo === "admin" || tipo === "operaciones"} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-card/80 px-6 py-2.5 backdrop-blur-md">
-          <form action={buscar.href} method="get" className="flex min-w-64 max-w-xl flex-1 items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 transition-all duration-200 focus-within:border-[var(--c-celeste)] focus-within:bg-card focus-within:ring-4 focus-within:ring-[var(--c-celeste)]/15">
+          <form action={buscar.href} method="get" className="flex min-w-64 max-w-xl flex-1 items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 transition-all duration-200 focus-within:border-[var(--c-marca)] focus-within:bg-card focus-within:ring-4 focus-within:ring-[var(--c-marca)]/15">
             <Search className="size-4 text-muted-foreground" />
             <input
               id="buscar-global"
@@ -110,7 +110,7 @@ export async function MarcoPropuesta({ perfil, children }: { perfil: Perfil; chi
               <Sparkles className="size-3" /> Propuesta · solo lectura
             </span>
             <div className="flex items-center gap-2">
-              <span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--c-celeste)] to-[var(--c-verde)] text-[11px] font-bold text-white ring-2 ring-card">
+              <span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--c-marca)] to-[var(--c-verde)] text-[11px] font-bold text-white ring-2 ring-card">
                 {iniciales(perfil.nombre)}
               </span>
               <div className="hidden text-right leading-tight sm:block">

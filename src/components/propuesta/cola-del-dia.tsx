@@ -98,7 +98,7 @@ export function ColaDelDia({
             const IconoGrupo = g.clave === "atrasado" ? AlertTriangle : g.clave === "hoy" ? Sun : CalendarClock;
             const tinte = g.clave === "atrasado" && n > 0 ? "bg-destructive/10 text-destructive" : g.clave === "hoy" && n > 0 ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300" : "bg-secondary text-foreground/60";
             return (
-              <a key={g.clave} href={`#${g.clave}`} className={cn("group/num levanta flex items-center gap-3 p-4 hover:border-[var(--c-celeste)]/50", TARJETA)}>
+              <a key={g.clave} href={`#${g.clave}`} className={cn("group/num levanta flex items-center gap-3 p-4 hover:border-[var(--c-marca)]/50", TARJETA)}>
                 <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover/num:scale-110", tinte)}>
                   <IconoGrupo className="size-[18px]" />
                 </span>
