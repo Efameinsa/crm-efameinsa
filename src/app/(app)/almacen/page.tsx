@@ -101,7 +101,7 @@ export default async function AlmacenPage() {
   const porTipo = (t: string) => at.filter((a) => a.tipo === t).length;
 
   const cuadrosPedidos: Cuadro[] = [
-    { titulo: "Series por ingresar", numero: pedidosSinSerie, ayuda: "Central las pidió: escríbalas como se leen en la placa. Quedan fijas.", href: "/almacen/pedidos?ver=series", alerta: true },
+    { titulo: "Generación de código", numero: pedidosSinSerie, ayuda: "Central pidió las series para generar el código: escríbalas como se leen en la placa. Quedan fijas.", href: "/almacen/pedidos?ver=series", alerta: true },
     { titulo: "Por probar y embalar", numero: porProbar.length, ayuda: "Postventa pidió la prueba; falta el protocolo y el check.", href: "/almacen/pedidos?ver=probar", alerta: true },
     { titulo: "Despachos de hoy", numero: programadosHoy.length, ayuda: "Programados para hoy y sin salir.", href: "/almacen/pedidos?ver=hoy", alerta: true },
     { titulo: "Programados sin confirmar", numero: porConfirmar.length, ayuda: "Postventa puso fecha; falta decir que el almacén está listo.", href: "/almacen/pedidos?ver=confirmar" },

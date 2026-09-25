@@ -213,7 +213,7 @@ export const SECCIONES: Record<string, Seccion> = {
     ayuda: "Lo que el almacén tiene que hacer hoy: series, pruebas y despachos.",
     pestanas: [
       { clave: "", etiqueta: "Por hacer", pagina: "vista:almacen-pedidos" },
-      { clave: "series", etiqueta: "Series por ingresar", pagina: "vista:almacen-series" },
+      { clave: "series", etiqueta: "Generación de código", pagina: "vista:almacen-series" },
       { clave: "todos", etiqueta: "Todos los pedidos", pagina: "almacen/pedidos" },
     ],
   },

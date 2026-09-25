@@ -56,7 +56,7 @@ export async function pedirSeriesAlAlmacen(informeId: string) {
   if (e2) return { error: limpiar(e2.message), faltan: 0 };
   const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto").eq("id", servicioId).maybeSingle();
   await notificarAlmacen({
-    titulo: `Series por ingresar · ${sinRuc(s?.cliente_texto)}`,
+    titulo: `Generación de código · ${sinRuc(s?.cliente_texto)}`,
     cuerpo: `Central pide la serie de ${faltan} equipo${faltan === 1 ? "" : "s"}. Escríbalas como se leen en la placa: quedan fijas.`,
     url: `/almacen/pedidos/${servicioId}`,
     esPrueba: perfil.es_prueba === true,

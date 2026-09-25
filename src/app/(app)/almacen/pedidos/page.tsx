@@ -20,7 +20,8 @@ const VISTAS: Record<string, string> = {
   "": "Todos los pedidos en curso",
   // Lo que Central le pide (0290, reunión 23-09 14:58): «darle clic… se lo pide
   // al almacén; el almacén ingresa la serie, está bloqueada».
-  series: "Series por ingresar",
+  // «Generación de código» (Lesly, 25-09): así lo llama el almacén.
+  series: "Generación de código",
   probar: "Por probar y embalar",
   hoy: "Despachos de hoy",
   confirmar: "Programados sin confirmar",

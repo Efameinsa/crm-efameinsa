@@ -100,7 +100,7 @@ export default async function AlmacenSeries() {
 
       {pedidos.length === 0 ? (
         <Vacio
-          titulo="No hay series por ingresar"
+          titulo="No hay generación de código pendiente"
           porque="Central pide las series antes de lanzar un pedido. Cuando lo haga, el pedido aparece acá con las máquinas que faltan."
           accion={{ etiqueta: "Ver los pedidos en curso", href: "/almacen/pedidos" }}
         />
