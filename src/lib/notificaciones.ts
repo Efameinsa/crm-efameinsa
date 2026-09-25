@@ -151,13 +151,17 @@ export async function notificarLeadEntrante(datos: {
  * Un aviso a la cuenta del almacén (0246): «que me lleguen las aperturas, que
  * me lleguen las visitas, me tienen que llegar los reportes técnicos» (Lesly,
  * 16-09). Se separa por serie: lo de práctica no le llega al almacén real.
+ *
+ * También a operaciones (25-09): Lesly trabaja con su propia cuenta, que ve el
+ * menú del almacén, y el aviso solo iba a almacen@ — «cuando hay una
+ * derivación de visita no me sale la notificación».
  */
 export async function notificarAlmacen(datos: { titulo: string; cuerpo?: string; url?: string; esPrueba?: boolean }): Promise<void> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("perfiles")
     .select("id")
-    .eq("es_almacen", true)
+    .or("es_almacen.eq.true,es_operaciones.eq.true")
     .eq("activo", true)
     .eq("es_prueba", datos.esPrueba === true)
     // Las cuentas _test de la propuesta miran, no reciben avisos (23-09).
