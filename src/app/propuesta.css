@@ -58,7 +58,9 @@ html:has(.propuesta) {
   --c-celeste: #0ea5e9;
   --c-verde: #10b981;
   --c-naranja: #f97316;
-  --c-rosa: #f43f5e;
+  /* Lo urgente, en un rojo cálido de la familia del granate (v5, 25-09: el
+     rosa «no juega bien» con el granate). */
+  --c-rosa: #c62d25;
   --c-violeta: #8b5cf6;
 
   /* Los grises cálidos y el carbón de la oficial, con un punto más de contraste. */
@@ -77,7 +79,7 @@ html:has(.propuesta) {
   --muted-foreground: #585a61;
   --accent: #f4eeed;
   --accent-foreground: #1d1f24;
-  --destructive: #e11d48;
+  --destructive: #c62d25;
   --destructive-foreground: #ffffff;
   --border: #e2dcdb;
   --input: #d6cfce;
@@ -132,7 +134,8 @@ html:has(.propuesta) {
   --muted-foreground: #a4a6ad;
   --accent: #26272d;
   --accent-foreground: #ffffff;
-  --destructive: #fb7185;
+  --c-rosa: #e8604f;
+  --destructive: #e8604f;
   --destructive-foreground: #1a0509;
   --border: #303139;
   --input: #3a3b44;
