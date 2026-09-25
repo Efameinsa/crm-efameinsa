@@ -23,18 +23,24 @@ import { Client } from "pg";
 const EXCEL = "P:/REPUESTOS.xlsx";
 const limpio = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 
-const filas = XLSX.utils
-  .sheet_to_json(XLSX.readFile(EXCEL).Sheets["REPUESTOS"], { header: 1, defval: null })
+const tabla = XLSX.utils.sheet_to_json(XLSX.readFile(EXCEL).Sheets["REPUESTOS"], { header: 1, defval: null });
+// Las columnas se ubican por su encabezado: el 25-09 por la tarde el Excel
+// volvió sin la columna de costo y todo lo que venía después se corrió.
+const encabezado = tabla[0].map((c) => limpio(c).toLowerCase());
+const col = (re) => encabezado.findIndex((c) => re.test(c));
+const C = { sku: col(/^c[oó]digo/), nombre: col(/^descrip/), modelo: col(/^modelo/), um: col(/^u\/m/), costo: col(/^costo/), marca: col(/^marca/), precio: col(/precio/) };
+for (const k of ["sku", "nombre", "marca", "precio"]) if (C[k] < 0) throw new Error(`Falta la columna «${k}» en ${EXCEL}`);
+const filas = tabla
   .slice(1)
-  .filter((r) => limpio(r[0]))
+  .filter((r) => limpio(r[C.sku]))
   .map((r) => ({
-    sku: limpio(r[0]).toUpperCase(),
-    nombre: limpio(r[1]),
-    modelo: limpio(r[2]),
-    um: limpio(r[3]),
-    costo: Number(r[5]) || null,
-    marca: limpio(r[6]).replace(/´/g, "'").replace(/^SAIL STAR$/, "SAILSTAR").replace(/WHRILPOOL/, "WHIRLPOOL"),
-    precio: Number(String(r[7] ?? "").replace(/[^0-9.]/g, "")) || null,
+    sku: limpio(r[C.sku]).toUpperCase(),
+    nombre: limpio(r[C.nombre]),
+    modelo: C.modelo >= 0 ? limpio(r[C.modelo]) : "",
+    um: C.um >= 0 ? limpio(r[C.um]) : "",
+    costo: C.costo >= 0 ? Number(r[C.costo]) || null : null,
+    marca: limpio(r[C.marca]).replace(/´/g, "'").replace(/^SAIL STAR$/, "SAILSTAR").replace(/WHRILPOOL/, "WHIRLPOOL"),
+    precio: Number(String(r[C.precio] ?? "").replace(/[^0-9.]/g, "")) || null,
   }));
 
 const repetidos = filas.map((f) => f.sku).filter((s, i, a) => a.indexOf(s) !== i);
