@@ -68,13 +68,13 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
 
   const esAlmacen = Boolean(perfil.es_almacen) || ["gerencia", "admin"].includes(perfil.rol) || Boolean(perfil.es_operaciones);
   const esPostventa = veTodoPostventa(perfil) || Boolean(perfil.es_operaciones);
-  const volver = perfil.es_almacen ? "/almacen/aperturas" : "/postventa/aperturas";
+  const volver = `${perfil.es_almacen ? "/almacen/aperturas" : "/postventa/aperturas"}${a.urgente ? "?ver=urgentes" : ""}`;
   const fichaCliente = perfil.es_almacen ? null : `/comercial/cartera/${a.cuenta_id}`;
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <Link href={volver} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-3.5" /> Todas las aperturas
+        <ArrowLeft className="size-3.5" /> {a.urgente ? "Todas las aperturas urgentes" : "Todas las llamadas derivadas"}
       </Link>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

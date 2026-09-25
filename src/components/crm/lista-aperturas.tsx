@@ -30,7 +30,10 @@ const horaLima = (iso: string) => new Date(iso).toLocaleTimeString("es-PE", { ti
  * La usan postventa y el almacén con la misma forma: cada fila dice a quién le
  * toca.
  */
-export async function ListaAperturas({ vistaAlmacen = false }: { vistaAlmacen?: boolean }) {
+/** Qué se lista (25-09, Lesly y Ruby): «llamadas» son las derivaciones de soporte técnico; «urgentes», las aperturas directas sin pedido. */
+export type PestanaAperturas = "llamadas" | "urgentes";
+
+export async function ListaAperturas({ vistaAlmacen = false, pestana = "llamadas" }: { vistaAlmacen?: boolean; pestana?: PestanaAperturas }) {
   const supabase = await createClient();
   const hace30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
   const { data } = await supabase
@@ -38,6 +41,7 @@ export async function ListaAperturas({ vistaAlmacen = false }: { vistaAlmacen?: 
     .select("*, cuentas(razon_social)")
     .or(`anulada_at.is.null,anulada_at.gte.${hace30}`)
     .gte("solicitada_at", new Date(Date.now() - 120 * 86_400_000).toISOString())
+    .or(pestana === "urgentes" ? "urgente.eq.true" : "urgente.is.null,urgente.eq.false")
     .order("programada_para", { ascending: true })
     .limit(500);
   const filas = (data ?? []) as unknown as Fila[];
@@ -59,11 +63,13 @@ export async function ListaAperturas({ vistaAlmacen = false }: { vistaAlmacen?: 
     return (
       <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
         <PhoneForwarded className="mx-auto size-6 text-muted-foreground" />
-        <p className="mt-2 text-sm font-semibold text-foreground">Todavía no hay aperturas</p>
+        <p className="mt-2 text-sm font-semibold text-foreground">{pestana === "urgentes" ? "No hay aperturas urgentes" : "Todavía no hay llamadas derivadas"}</p>
         <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
-          {vistaAlmacen
-            ? "Cuando postventa pida una videollamada o una atención, llega acá con el día, la hora y los equipos."
-            : "Se envían desde el pedido (paso de preinstalación o puesta en marcha) o desde la ficha del cliente con «Enviar apertura». Antes iban por correo."}
+          {pestana === "urgentes"
+            ? "Son las que se mandan sin pedido, con el código de gerencia, cuando hay que sacar algo del almacén de inmediato."
+            : vistaAlmacen
+              ? "Cuando postventa derive una videollamada o una atención técnica, llega acá con el día, la hora y los equipos."
+              : "Se derivan desde el pedido (preinstalación o puesta en marcha), desde el caso técnico o desde la ficha del cliente con «Derivar llamada»."}
         </p>
       </div>
     );
@@ -72,7 +78,7 @@ export async function ListaAperturas({ vistaAlmacen = false }: { vistaAlmacen?: 
   return (
     <div className="space-y-5">
       {abiertas.length === 0 ? (
-        <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">Nada pendiente: todas las aperturas están cerradas.</p>
+        <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">{pestana === "urgentes" ? "Nada pendiente: todas las aperturas urgentes están cerradas." : "Nada pendiente: todas las llamadas derivadas están cerradas."}</p>
       ) : (
         [...porDia.entries()].map(([dia, lista]) => (
           <section key={dia} className="rounded-xl border border-border bg-card shadow-sm">

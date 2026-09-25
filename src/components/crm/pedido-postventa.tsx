@@ -9,6 +9,7 @@ import {
   bloquesPedido,
   circuitoDe,
   saldoPendiente,
+  estadoPago,
   evaluarPagoParaDespacho,
   etiquetaResponsable,
   textoCondicionPago,
@@ -195,13 +196,22 @@ export function PedidoPostventa({
     // 495-26 quedó «confirmado» con cifra 0 y sin botón para arreglarlo (0232).
     // Cubierto lo acordado, igual se puede preguntar por el saldo (Carlos,
     // 23-09: «que se confirme para el saldo»), y ver lo que Finanzas informó.
+    // PERO SOLO SI QUEDA SALDO (Lesly, 25-09, caso Rivera: pago total ya
+    // confirmado y seguía «Pedir confirmación del saldo»; «si ya se confirmó
+    // que el pago es total, no debería aparecer»). `estadoPago` usa el estado
+    // que manda el servidor cuando los precios están tapados.
     if (paso.clave === "pago" && paso.hecho) {
+      const pagoTotal = estadoPago(servicioVisto) === "completo";
       return (
         <span className="inline-flex flex-wrap items-center gap-2">
           <a href={`/pedidos/${servicio.id}/pagos`} className="text-[11px] font-medium text-primary hover:underline">
             Ver lo que informó Finanzas
           </a>
-          <PedirConfirmacionPago servicioId={servicio.id} solicitadoAt={servicio.pago_solicitado_at ?? null} otra />
+          {pagoTotal ? (
+            <span className="text-[11px] font-semibold text-[#1E7F4F]">Pagado completo: no hay saldo por confirmar</span>
+          ) : (
+            <PedirConfirmacionPago servicioId={servicio.id} solicitadoAt={servicio.pago_solicitado_at ?? null} otra />
+          )}
         </span>
       );
     }
@@ -277,7 +287,7 @@ export function PedidoPostventa({
                 servicioId={servicio.id}
                 equipos={equiposDeLaApertura}
                 tipo="videollamada_preinstalacion"
-                etiqueta="Enviar apertura"
+                etiqueta="Derivar llamada"
                 compacto
               />
             )}
@@ -346,7 +356,7 @@ export function PedidoPostventa({
                 servicioId={servicio.id}
                 equipos={equiposDeLaApertura}
                 tipo="videollamada_puesta_marcha"
-                etiqueta="Apertura al almacén"
+                etiqueta="Derivar llamada"
                 compacto
               />
             )}

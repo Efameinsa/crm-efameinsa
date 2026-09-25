@@ -288,7 +288,7 @@ export async function FichaCuenta({
                     (Rubí, 23-09: la visita del técnico la tuvo que mandar por
                     correo «porque no me permite»). */}
                 {haceCasos && !comoGerencia && !comoCentral && (
-                  <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Apertura al almacén" compacto />
+                  <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Derivar llamada" compacto />
                 )}
                 {/* El comercial dueño de la cartera anota su llamada en SU
                     expediente comercial (23-09, 0281): Ariana (C4) se quedó sin

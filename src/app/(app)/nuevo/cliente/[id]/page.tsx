@@ -129,7 +129,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             {esArea && <RegistrarSeguimientoBoton cuentaId={cuenta.id} compacto />}
-            {esArea && <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Apertura al almacén" compacto />}
+            {esArea && <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Derivar llamada" compacto />}
             <VisitaPlantaBoton cuentaId={cuenta.id} empresa={cuenta.razon_social} ruc={cuenta.num_doc as string | null} compacto />
             <Link href={`/comercial/cartera/${cuenta.id}?hoy=1`} className="rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:underline">
               Ficha de hoy

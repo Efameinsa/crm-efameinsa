@@ -350,7 +350,8 @@ export function esProvincia(s: ServicioPostventa): boolean {
  * El orden importa: un paso «trabado» no es un paso pendiente cualquiera, es
  * el que hay que ir a destrabar, y casi siempre está en manos de otra área.
  */
-export type TipoPedido = "equipo" | "repuesto" | "mantenimiento" | "revision";
+/** «embalaje» (0301, reunión 25-09): el servicio de embalaje o enjaulado; se recorre como un repuesto y se cierra con fotos. */
+export type TipoPedido = "equipo" | "repuesto" | "mantenimiento" | "revision" | "embalaje";
 
 /** Una foto o un video que subió el almacén (0246). */
 export interface FotoAlmacen {
@@ -383,6 +384,7 @@ export const ETIQUETA_TIPO_PEDIDO: Record<TipoPedido, string> = {
   repuesto: "Venta de repuesto",
   mantenimiento: "Mantenimiento",
   revision: "Servicio de revisión",
+  embalaje: "Servicio de embalaje",
 };
 
 /**
@@ -404,19 +406,27 @@ export function circuitoDe(s: ServicioPostventa): {
   tipo: TipoPedido;
   esEquipo: boolean;
   esRepuesto: boolean;
+  /** Embalaje o enjaulado (0301): mismo recorrido que el repuesto, con sus propios nombres. */
+  esEmbalaje: boolean;
   esServicio: boolean;
   entregaEnPlanta: boolean;
   conInstalacion: boolean;
 } {
   const tipo: TipoPedido = s.tipo_pedido ?? "equipo";
-  const esRepuesto = tipo === "repuesto";
+  // El embalaje se recorre como un repuesto sin instalación (Lesly y Ruby,
+  // 25-09: «es lo mismo que un repuesto, solamente una foto»): listo y
+  // embalado → despacho → cierre con las fotos de la salida. Ni plano, ni
+  // preinstalación, ni informe.
+  const esEmbalaje = tipo === "embalaje";
+  const esRepuesto = tipo === "repuesto" || esEmbalaje;
   return {
     tipo,
     esEquipo: tipo === "equipo",
     esRepuesto,
+    esEmbalaje,
     esServicio: tipo === "mantenimiento" || tipo === "revision",
-    entregaEnPlanta: esRepuesto && s.entrega_en === "planta",
-    conInstalacion: esRepuesto && s.con_instalacion === true,
+    entregaEnPlanta: tipo === "repuesto" && s.entrega_en === "planta",
+    conInstalacion: tipo === "repuesto" && s.con_instalacion === true,
   };
 }
 
@@ -490,13 +500,15 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       : [
           {
             clave: "prueba",
-            etiqueta: circuito.esRepuesto ? "Repuesto listo y embalado" : "Probado y embalado",
+            etiqueta: circuito.esEmbalaje ? "Embalado y listo para salir" : circuito.esRepuesto ? "Repuesto listo y embalado" : "Probado y embalado",
             responsable: "almacen" as ResponsablePaso,
             hecho: s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje),
             cuando: s.prueba_lista_at,
             detalle: s.protocolo_prueba_ref
               ? `Protocolo ${s.protocolo_prueba_ref}`
-              : circuito.esRepuesto
+              : circuito.esEmbalaje
+                ? "El almacén avisa que la máquina ya está embalada (jaula o caja)"
+                : circuito.esRepuesto
                 ? "El almacén avisa que el repuesto está listo para entregar"
                 : "Con fecha y hora: es lo que prueba que salió bien",
             trabado:
@@ -529,7 +541,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   const faltaParaApertura = [
     !(pagoConfirmado || pagoDesconocido || despachoAutorizadoConSaldo) ? "la confirmación de Finanzas" : null,
     s.direccion_verificada_at == null ? (circuito.esServicio ? "dónde se hace el servicio, verificado" : "la dirección verificada") : null,
-    !circuito.esServicio && !pruebaLista ? (circuito.esRepuesto ? "el repuesto listo y embalado" : "el equipo probado y embalado") : null,
+    !circuito.esServicio && !pruebaLista ? (circuito.esEmbalaje ? "el embalaje listo" : circuito.esRepuesto ? "el repuesto listo y embalado" : "el equipo probado y embalado") : null,
     circuito.esEquipo && !s.sin_plano && !planoEnviado ? "el plano de preinstalación" : null,
     // LA PREINSTALACIÓN YA NO FRENA LA APERTURA. Carlos, 09-09: «preinstalación
     // confirmada, eso es parte de la puesta en marcha… la apertura de despacho
@@ -540,6 +552,31 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
     // desagüe y energía es un viaje perdido.
   ].filter((x): x is string => x != null);
   const aperturaEmitida = s.apertura_despacho_at != null;
+
+  // LA PREINSTALACIÓN, SEGÚN DÓNDE SE ENTREGA (reunión 25-09, Ruby y Lesly).
+  // «Cuando es un despacho a provincia se le hace la llamada después del
+  // despacho, pero cuando es en Lima la llamada se le hace antes, porque se
+  // le va a realizar el despacho y la puesta en marcha». En provincia sigue en
+  // el cierre (el cliente confirma con fotos cuando ya tiene el equipo); en
+  // Lima pasa al bloque del despacho, ANTES de que salga. Mismas columnas.
+  // No es retroactivo: lo que ya salió o ya cerró no pide una llamada que
+  // nadie va a registrar.
+  const pasoPreinstalacion: PasoPedido = {
+    clave: "preinstalacion",
+    etiqueta: provincia ? "Preinstalación confirmada por el cliente" : "Videollamada de preinstalación hecha",
+    responsable: (provincia ? "cliente" : "postventa") as ResponsablePaso,
+    hecho:
+      s.preinstalacion_ok_at != null ||
+      (!provincia && (s.despachado_at != null || s.cerrado_at != null || s.completado || s.puesta_en_marcha != null)),
+    cuando: s.preinstalacion_ok_at,
+    detalle:
+      s.preinstalacion_nota ??
+      (provincia
+        ? "Foto de los puntos de agua, desagüe y energía"
+        : "Antes del despacho: en Lima el despacho y la puesta en marcha van juntos, así que se verifica agua, desagüe y energía por videollamada"),
+  };
+  const preinstalacionAntes = circuito.esEquipo && !provincia;
+  const preinstalacionDespues = circuito.esEquipo && provincia;
 
   const despacho: PasoPedido[] = circuito.entregaEnPlanta
     ? [
@@ -597,6 +634,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
             }`
           : undefined,
     },
+    ...(preinstalacionAntes ? [pasoPreinstalacion] : []),
     {
       clave: "despacho",
       // «Una vez que ingresa la guía de remisión, allá en almacén le tienen que
@@ -662,24 +700,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
     // No es retroactivo: un pedido de Lima que ya despachó la puesta en marcha
     // o que ya cerró antes de que este paso existiera no se reabre para pedir
     // un dato que nadie iba a registrar.
-    ...(circuito.esEquipo
-      ? [
-          {
-            clave: "preinstalacion",
-            etiqueta: provincia ? "Preinstalación confirmada por el cliente" : "Videollamada de preinstalación hecha",
-            responsable: (provincia ? "cliente" : "postventa") as ResponsablePaso,
-            hecho:
-              s.preinstalacion_ok_at != null ||
-              (!provincia && (s.cerrado_at != null || s.completado || s.puesta_en_marcha != null)),
-            cuando: s.preinstalacion_ok_at,
-            detalle:
-              s.preinstalacion_nota ??
-              (provincia
-                ? "Foto de los puntos de agua, desagüe y energía"
-                : "Videollamada para verificar agua, desagüe y energía antes de la puesta en marcha"),
-          },
-        ]
-      : []),
+    ...(preinstalacionDespues ? [pasoPreinstalacion] : []),
     // El repuesto sin instalación no tiene puesta en marcha: se entrega y se
     // cierra. Con instalación, el técnico va. En mantenimiento y revisión,
     // este paso es la ejecución con su informe.

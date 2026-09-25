@@ -6,12 +6,15 @@ import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { LineaAtencion } from "@/components/crm/linea-atencion";
+import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
+import { ETIQUETA_ESTADO_APERTURA, ETIQUETA_TIPO_APERTURA, estadoApertura, type AperturaLlamada } from "@/lib/aperturas-llamada";
 import { tecnicosConocidos } from "@/lib/tecnicos";
 import { FichasRelacionadas } from "@/components/crm/fichas-relacionadas";
 import { candidatosMismoCliente } from "@/lib/acciones/cuentas";
 import { cargarSupervisores } from "@/lib/supervisores";
 import { ConQuienHablar } from "@/components/crm/con-quien-hablar";
 import { EquiposDeLaAtencion } from "@/components/crm/equipos-de-la-atencion";
+import { OtraMaquinaDelCaso } from "@/components/crm/otra-maquina-del-caso";
 import { HistorialDelEquipo } from "@/components/crm/historial-del-equipo";
 import { HistorialPostventaCliente } from "@/components/crm/historial-postventa-cliente";
 import { requerirPerfil } from "@/lib/auth";
@@ -119,6 +122,17 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   } | null) ?? null;
 
   const reloj = relojAtencion(a);
+
+  // LAS LLAMADAS QUE SALIERON DE ESTE CASO (reunión 25-09, Ruby). El caso
+  // técnico solo verificaba la garantía: para derivar la llamada al almacén
+  // había que irse a «Clientes que atiendo», y esa llamada no quedaba colgada
+  // del caso. Ahora se deriva desde acá, con el problema ya escrito.
+  const { data: llamadasDelCaso } = await supabase
+    .from("aperturas_llamada")
+    .select("id, tipo, programada_para, tomada_at, informe_at, revisada_at, enviada_cliente_at, anulada_at, urgente")
+    .eq("atencion_id", a.id)
+    .order("programada_para", { ascending: false });
+  const equiposParaLlamada = [a.equipo_texto, garantia?.serie ? `serie ${garantia.serie}` : null].filter(Boolean).join(" · ");
 
   // ¿QUIÉN PUEDE COTIZAR ESTA ATENCIÓN? La cotización se guarda contra la
   // oportunidad, y `crear_cotizacion` solo la acepta del comercial dueño (o de
@@ -336,7 +350,33 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-4">
-          <SeccionPanel titulo="El circuito">
+          <SeccionPanel
+            titulo="El circuito"
+            accion={
+              a.cuenta_id && !a.cerrado_at ? (
+                <AperturaLlamadaBoton
+                  cuentaId={a.cuenta_id}
+                  atencionId={a.id}
+                  tipo="soporte_videollamada"
+                  etiqueta="Derivar llamada al almacén"
+                  equipos={equiposParaLlamada}
+                  problema={a.detalle ?? ""}
+                  compacto
+                />
+              ) : undefined
+            }
+          >
+            {(llamadasDelCaso ?? []).length > 0 && (
+              <div className="mb-3 space-y-1 rounded-md border border-border bg-secondary/40 p-2.5 text-xs">
+                <p className="font-semibold text-foreground">Llamadas derivadas de este caso</p>
+                {((llamadasDelCaso ?? []) as unknown as AperturaLlamada[]).map((l) => (
+                  <Link key={l.id} href={`/aperturas/${l.id}`} className="flex flex-wrap items-center gap-x-2 text-primary hover:underline">
+                    <span>{ETIQUETA_TIPO_APERTURA[l.tipo]}</span>
+                    <span className="text-muted-foreground">· {fechaHoraLima(l.programada_para)} · {ETIQUETA_ESTADO_APERTURA[estadoApertura(l)]}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
             <LineaAtencion
               atencion={a}
               puedeCotizar={puedeCotizarla}
@@ -428,6 +468,13 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           {a.cuenta_id && (
             <SeccionPanel titulo={a.equipo_id ? "Las máquinas de este caso" : "¿De qué máquina habla el cliente?"}>
               <EquiposDeLaAtencion atencionId={a.id} equipos={equiposDelCliente ?? []} principalId={a.equipo_id} adicionalesIds={adicionalesIds} />
+              {!a.cerrado_at && (a.equipo_id || (equiposDelCliente ?? []).length > 0) && (
+                <OtraMaquinaDelCaso
+                  atencionId={a.id}
+                  cuenta={{ id: a.cuenta_id, razonSocial: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente" }}
+                  hayPrincipal={Boolean(a.equipo_id)}
+                />
+              )}
             </SeccionPanel>
           )}
 

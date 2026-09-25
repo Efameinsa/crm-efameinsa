@@ -188,6 +188,8 @@ export async function ficharEquipoDeLaAtencion(datos: {
   fechaCompra?: string | null;
   garantiaMeses?: number | null;
   ubicacion?: string | null;
+  /** Máquina que no vendimos (vino solo por servicio técnico, 25-09): queda anotado de dónde vino. */
+  observaciones?: string | null;
 }): Promise<{ error: string | null }> {
   if (datos.modelo.trim().length < 3) {
     return { error: "Escriba el modelo de la máquina: es lo que se va a leer cuando el cliente vuelva a llamar" };
@@ -217,6 +219,9 @@ export async function ficharEquipoDeLaAtencion(datos: {
     p_registrado_en: "atencion",
   });
   if (error) return { error: error.message };
+  if (nuevoId && datos.observaciones?.trim()) {
+    await supabase.from("equipos_instalados").update({ observaciones: datos.observaciones.trim() }).eq("id", nuevoId);
+  }
   if (a.equipo_id && nuevoId) {
     const { error: e2 } = await supabase.rpc("agregar_equipo_al_caso", { p_atencion: datos.atencionId, p_equipo: nuevoId });
     if (e2) return { error: e2.message.replace(/^[A-Z0-9]{5}:\s*/, "") };

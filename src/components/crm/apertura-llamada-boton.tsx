@@ -73,9 +73,10 @@ export function AperturaLlamadaBoton({
   equipos = "",
   contacto = "",
   tipo: tipoInicial = "videollamada_preinstalacion",
-  etiqueta = "Enviar apertura de llamada",
+  etiqueta = "Derivar llamada",
   compacto = false,
   urgenteInicial = false,
+  problema = "",
 }: {
   cuentaId?: string | null;
   servicioId?: string | null;
@@ -85,8 +86,10 @@ export function AperturaLlamadaBoton({
   tipo?: TipoApertura;
   etiqueta?: string;
   compacto?: boolean;
-  /** Abre ya marcada como urgente (el botón de «Aperturas al almacén»). */
+  /** Abre ya marcada como urgente (el botón de «Aperturas urgentes»). */
   urgenteInicial?: boolean;
+  /** Lo que reportó el cliente, para no volver a escribirlo (caso técnico, 25-09). */
+  problema?: string;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -96,7 +99,7 @@ export function AperturaLlamadaBoton({
   const [fecha, setFecha] = useState(manana);
   const [hora, setHora] = useState("10:00");
   const [texto, setTexto] = useState(equipos);
-  const [indicaciones, setIndicaciones] = useState("");
+  const [indicaciones, setIndicaciones] = useState(problema);
   const [persona, setPersona] = useState(contacto);
   const [urgente, setUrgente] = useState(urgenteInicial);
   const [pin, setPin] = useState("");
@@ -197,7 +200,7 @@ export function AperturaLlamadaBoton({
       />
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Apertura para el almacén</DialogTitle>
+          <DialogTitle>{urgente ? "Apertura urgente al almacén" : "Derivar la llamada al almacén"}</DialogTitle>
           <DialogDescription>
             El almacén la recibe en su bandeja, le da el check cuando la toma y sube su informe. Usted lo revisa antes de que llegue al cliente.
           </DialogDescription>

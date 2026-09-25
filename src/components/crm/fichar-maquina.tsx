@@ -51,6 +51,12 @@ export function FicharMaquina({
   const [fecha, setFecha] = useState("");
   const [meses, setMeses] = useState("24");
   const [ubicacion, setUbicacion] = useState("");
+  // ¿LA VENDIMOS NOSOTROS? (reunión 25-09, Ruby: «esa máquina no la
+  // compraron aquí, llegó solo por servicio técnico… busqué todo el file y
+  // nunca hubo fecha de compra»). Si vino de afuera, no hay fecha de compra
+  // ni garantía nuestra: se pide desde cuándo la conocemos (la primera vez
+  // que llegó a la planta) y queda anotado en la máquina.
+  const [origen, setOrigen] = useState<"nuestra" | "servicio">("nuestra");
 
   function mirarClientes() {
     if (texto.trim().length < 3) {
@@ -66,15 +72,19 @@ export function FicharMaquina({
 
   function guardar() {
     empezar(async () => {
+      const deAfuera = origen === "servicio";
       const comun = {
         serie: serie.trim() || null,
         modelo,
-        fechaCompra: fecha || null,
-        garantiaMeses: Number(meses) || 24,
+        fechaCompra: deAfuera ? null : fecha || null,
+        garantiaMeses: deAfuera ? 0 : Number(meses) || 24,
         ubicacion: ubicacion.trim() || null,
       };
+      const observaciones = deAfuera
+        ? `No la vendimos: vino solo por servicio técnico.${fecha ? ` Llegó por primera vez a la planta el ${fecha.split("-").reverse().join("/")}.` : ""}`
+        : null;
       const r = atencionId
-        ? await ficharEquipoDeLaAtencion({ atencionId, ...comun })
+        ? await ficharEquipoDeLaAtencion({ atencionId, ...comun, observaciones })
         : await registrarEquipo({ cuentaId: elegida?.id ?? "", ...comun });
       if (r.error) {
         toast.error(r.error);
@@ -85,7 +95,7 @@ export function FicharMaquina({
           ? `Máquina fichada${serie.trim() ? ` (${serie.trim()})` : ""} — garantía verificada`
           : "Máquina registrada en el parque instalado",
       );
-      setSerie(""); setModelo(""); setFecha(""); setUbicacion("");
+      setSerie(""); setModelo(""); setFecha(""); setUbicacion(""); setOrigen("nuestra");
       alTerminar?.();
       router.refresh();
     });
@@ -173,9 +183,41 @@ export function FicharMaquina({
             className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
           />
         </label>
+        {atencionId && (
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-foreground">¿La vendimos nosotros?</span>
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                ["nuestra", "Sí, es una venta nuestra"],
+                ["servicio", "No: vino solo por servicio técnico"],
+              ] as const).map(([v, t]) => (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={origen === v}
+                  onClick={() => setOrigen(v)}
+                  className={cn(
+                    "cursor-pointer rounded-full border px-2.5 py-1 text-xs transition-colors",
+                    origen === v ? "border-primary bg-primary font-medium text-primary-foreground" : "border-border text-muted-foreground hover:bg-accent",
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <label className="space-y-1">
           <span className="text-xs font-medium text-foreground">
-            Fecha de compra <span className="font-normal text-muted-foreground">— de ahí corre la garantía</span>
+            {origen === "servicio" ? (
+              <>
+                Llegó por primera vez a la planta <span className="font-normal text-muted-foreground">— desde cuándo la atendemos</span>
+              </>
+            ) : (
+              <>
+                Fecha de compra <span className="font-normal text-muted-foreground">— de ahí corre la garantía</span>
+              </>
+            )}
           </span>
           <input
             type="date"
@@ -185,7 +227,7 @@ export function FicharMaquina({
           />
         </label>
         <div className="grid grid-cols-2 gap-2">
-          <label className="space-y-1">
+          <label className={cn("space-y-1", origen === "servicio" && "hidden")}>
             <span className="text-xs font-medium text-foreground">Garantía (meses)</span>
             <input
               type="number"
@@ -209,8 +251,9 @@ export function FicharMaquina({
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Sin fecha de compra la garantía queda sin calcular: la máquina se ficha igual y la fecha se completa cuando
-        aparezca su guía de remisión, que es desde donde corre de verdad.
+        {origen === "servicio"
+          ? "Como no la vendimos, no tiene garantía nuestra: queda anotado que vino solo por servicio técnico y desde cuándo la conocemos."
+          : "Sin fecha de compra la garantía queda sin calcular: la máquina se ficha igual y la fecha se completa cuando aparezca su guía de remisión, que es desde donde corre de verdad."}
       </p>
 
       <button

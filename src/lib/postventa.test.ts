@@ -377,3 +377,34 @@ describe("bloquesPedido: el orden de Carlos y la apertura de despacho", () => {
     expect(paso(excel, "despacho").trabado).toBeUndefined();
   });
 });
+
+describe("reunión 25-09: la preinstalación según dónde se entrega, y el embalaje", () => {
+  const claves = (s: Parameters<typeof bloquesPedido>[0]) => bloquesPedido(s).map((b) => b.pasos.map((p) => p.clave));
+
+  it("en Lima la videollamada de preinstalación va en el despacho, antes de que salga", () => {
+    const [, despacho, cierre] = claves(pedido({ modalidad: "lima", tipo_pedido: "equipo" }));
+    expect(despacho.indexOf("preinstalacion")).toBeGreaterThanOrEqual(0);
+    expect(despacho.indexOf("preinstalacion")).toBeLessThan(despacho.indexOf("despacho"));
+    expect(cierre).not.toContain("preinstalacion");
+  });
+
+  it("en provincia sigue después del despacho, en el cierre", () => {
+    const [, despacho, cierre] = claves(pedido({ modalidad: "provincia", tipo_pedido: "equipo" }));
+    expect(despacho).not.toContain("preinstalacion");
+    expect(cierre.indexOf("preinstalacion")).toBeLessThan(cierre.indexOf("puesta"));
+  });
+
+  it("en Lima lo que ya salió no pide la llamada que nadie registró", () => {
+    const s = pedido({ modalidad: "lima", tipo_pedido: "equipo", despachado_at: "2026-09-20T15:00:00Z" });
+    expect(bloquesPedido(s).flatMap((b) => b.pasos).find((p) => p.clave === "preinstalacion")?.hecho).toBe(true);
+  });
+
+  it("el embalaje se recorre como un repuesto: sin plano, sin preinstalación y sin informe", () => {
+    const todas = claves(pedido({ tipo_pedido: "embalaje", modalidad: "provincia" })).flat();
+    expect(todas).not.toContain("plano");
+    expect(todas).not.toContain("preinstalacion");
+    expect(todas).not.toContain("puesta");
+    expect(todas).toContain("prueba");
+    expect(todas).toContain("cerrado");
+  });
+});

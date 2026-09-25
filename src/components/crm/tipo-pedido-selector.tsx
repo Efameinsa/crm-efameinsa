@@ -64,7 +64,7 @@ export function TipoPedidoSelector({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border bg-card px-4 py-2.5 text-sm">
         <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Qué se vendió</span>
         <span className="inline-flex items-center gap-1.5 font-medium">
-          {tipo === "equipo" || tipo === "repuesto" ? <Package className="size-3.5 text-muted-foreground" /> : <Wrench className="size-3.5 text-muted-foreground" />}
+          {tipo === "equipo" || tipo === "repuesto" || tipo === "embalaje" ? <Package className="size-3.5 text-muted-foreground" /> : <Wrench className="size-3.5 text-muted-foreground" />}
           {resumen}
         </span>
         {tipo === "repuesto" && (entregaEn == null || conInstalacion == null) && (
@@ -120,6 +120,7 @@ export function TipoPedidoSelector({
         {t === "equipo" && "Preparación (pago, aprobación, prueba y plano) → despacho → puesta en marcha y cierre."}
         {t === "repuesto" && (e === "planta" ? "Pago y repuesto listo → se entrega en planta → " : "Pago y repuesto listo → dirección, apertura y despacho → ") + (i ? "instalación por el técnico y cierre." : "cierre.")}
         {(t === "mantenimiento" || t === "revision") && "Pago → dónde y con quién, apertura de servicio, programación del técnico → ejecución con informe y cierre."}
+        {t === "embalaje" && "Pago y embalaje listo → dirección, apertura y despacho → cierre con las fotos de la salida (mínimo 3). Sin plano, sin preinstalación y sin informe."}
       </p>
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={guardar} disabled={pendiente || (t === "repuesto" && (e == null || i == null))}>

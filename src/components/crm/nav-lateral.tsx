@@ -188,7 +188,7 @@ const ENLACES_POSTVENTA = [
   // el estatus de cada paso, todos juntos.
   { href: "/postventa/control", etiqueta: "Pedidos", icono: Table2 },
   // La orden al almacén que iba por correo (0281, reunión 23-09).
-  { href: "/postventa/aperturas", etiqueta: "Aperturas al almacén", icono: PhoneForwarded },
+  { href: "/postventa/aperturas", etiqueta: "Derivación de llamadas", icono: PhoneForwarded },
   // «Parque instalado» salió del menú el 08-09: es la misma pregunta que
   // «Clientes que atiendo» —a quién atiendo y qué tiene puesto— buscada por
   // serie en vez de por nombre. Vive como pestaña de esa pantalla, en
@@ -279,7 +279,7 @@ const ENLACE_OPERACIONES = { href: "/operaciones", etiqueta: "Autorizaciones", i
 const ENLACES_ALMACEN = [
   { href: "/almacen", etiqueta: "Mi día", icono: Gauge },
   { href: "/almacen/pedidos", etiqueta: "Pedidos", icono: Package },
-  { href: "/almacen/aperturas", etiqueta: "Aperturas de postventa", icono: PhoneForwarded },
+  { href: "/almacen/aperturas", etiqueta: "Llamadas de postventa", icono: PhoneForwarded },
   { href: "/almacen/atenciones", etiqueta: "Atenciones programadas", icono: Wrench },
   { href: "/almacen/visitas", etiqueta: "Visitas a planta", icono: DoorOpen },
   { href: "/almacen/agenda", etiqueta: "Calendario", icono: CalendarDays },

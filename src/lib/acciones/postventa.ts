@@ -1066,7 +1066,7 @@ export async function definirCondicionPago(
  */
 export async function definirTipoPedido(
   servicioId: string,
-  datos: { tipo: "equipo" | "repuesto" | "mantenimiento" | "revision"; entregaEn?: "planta" | "agencia" | "cliente" | null; conInstalacion?: boolean | null },
+  datos: { tipo: "equipo" | "repuesto" | "mantenimiento" | "revision" | "embalaje"; entregaEn?: "planta" | "agencia" | "cliente" | null; conInstalacion?: boolean | null },
 ) {
   await requerirPerfil();
   const supabase = await createClient();
@@ -1092,7 +1092,7 @@ export async function definirTipoPedido(
 export async function traerPedidoAntiguo(datos: {
   cuentaId: string;
   equipo: string;
-  tipo: "equipo" | "repuesto" | "mantenimiento" | "revision";
+  tipo: "equipo" | "repuesto" | "mantenimiento" | "revision" | "embalaje";
   monto?: number | null;
   moneda?: "USD" | "PEN";
   fechaVenta?: string | null;
