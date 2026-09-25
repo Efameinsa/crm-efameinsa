@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
-import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
+import { notificar, notificarAlmacen, notificarFinanzas } from "@/lib/notificaciones";
 
 // EL CIERRE SE CONVIERTE EN PEDIDO (0290, reunión de Santos con Carlos, 23-09
 // 14:58). Los pasos de Central antes de los dos checks: preparar el pedido con
@@ -160,20 +160,3 @@ export async function corregirSerie(itemId: string, servicioId: string, serie: s
   return { error: null };
 }
 
-/** Finanzas sube la liquidación del pedido; Central recibe el aviso (0290). */
-export async function subirLiquidacion(servicioId: string, path: string, nombre: string) {
-  const perfil = await requerirPerfil();
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("finanzas_subir_liquidacion", { p_servicio: servicioId, p_path: path, p_nombre: nombre });
-  if (error) return { error: limpiar(error.message) };
-  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp").eq("id", servicioId).maybeSingle();
-  await notificarCentral({
-    titulo: `Liquidación lista · ${sinRuc(s?.cliente_texto)}`,
-    cuerpo: `Finanzas subió la liquidación${s?.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}. Revísela: acéptela o recházela con el motivo.`,
-    url: "/central/cierres",
-    esPrueba: perfil.es_prueba === true,
-  });
-  revalidar(servicioId);
-  revalidatePath("/finanzas/liquidar");
-  return { error: null };
-}

@@ -23,7 +23,7 @@ import type { RolUsuario } from "@/types/database";
 
 // Operaciones (0115) y Finanzas (0279) también: hasta el 23-09 la pantalla no
 // los reconocía y guardar la fila de Lesly habría fallado.
-const ROLES = ["admin", "gerencia", "central", "comercial", "operaciones", "finanzas"] as const;
+const ROLES = ["admin", "gerencia", "central", "comercial", "operaciones", "finanzas", "facturacion"] as const;
 
 const esquemaNuevo = z.object({
   nombre: z.string().trim().min(3, "El nombre es muy corto"),

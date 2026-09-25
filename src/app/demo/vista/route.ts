@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         ? "/almacen"
         : p.es_postventa && p.rol === "comercial"
           ? "/postventa/macro"
-          : ({ admin: "/admin", gerencia: "/gerencia", central: "/central", comercial: "/comercial", operaciones: "/operaciones", finanzas: "/finanzas" } as const)[p.rol];
+          : ({ admin: "/admin", gerencia: "/gerencia", central: "/central", comercial: "/comercial", operaciones: "/operaciones", finanzas: "/finanzas", facturacion: "/facturacion" } as const)[p.rol];
   }
   const r = NextResponse.redirect(new URL(destino, request.url));
   r.cookies.set(COOKIE_VISTA, actual ? "actual" : "nueva", { path: "/", sameSite: "lax" });

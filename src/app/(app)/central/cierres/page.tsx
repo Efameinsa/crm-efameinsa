@@ -7,6 +7,9 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ChecksPedidoCentral } from "@/components/crm/checks-pedido-central";
 import { PasosPedidoCentral } from "@/components/crm/pasos-pedido-central";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
+import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
+import { LevantarObservacion } from "@/components/crm/acciones-facturacion";
+import { documentosDeFinanzas } from "@/lib/documentos-finanzas";
 import { AnularCierreBoton } from "@/components/crm/anular-cierre-boton";
 import { DevolverCierreBoton } from "@/components/crm/devolver-cierre-boton";
 import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
@@ -109,7 +112,7 @@ export default async function CierresCentralPage({
   // lista entera y no una por fila (migración 0087).
   const { data: pedidos } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo")
+    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo, facturacion_observada_at, facturacion_observada_motivo")
     .in("informe_cierre_id", todas.map((f) => f.id));
   const pedidoPorInforme = new Map((pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]));
 
@@ -215,6 +218,15 @@ export default async function CierresCentralPage({
         }),
       )
     ).filter((x): x is [string, EquipoDelPedido[]] => x !== null),
+  );
+
+  // LIQUIDACIONES Y FACTURAS PARA IMPRIMIR (0306). Yasmín, 25-09: después de
+  // liberar el pedido «ya no tengo acceso a verla». Gerencia: Central imprime
+  // la liquidación y la factura y arma el expediente físico; Finanzas no carga
+  // papel. Se muestran en todo pedido que ya tenga alguna, liberado o no.
+  const docsFinanzas = await documentosDeFinanzas(
+    supabase,
+    filas.map((f) => pedidoPorInforme.get(f.id)?.id as string | undefined).filter((x): x is string => Boolean(x)),
   );
 
   // La liquidación que subió Finanzas (0290), firmada para abrirla desde acá.
@@ -493,6 +505,30 @@ export default async function CierresCentralPage({
                     descripción… y dé el ok para que avance». Central no
                     decide qué va en el despacho ni prueba nada; solo escribe
                     la serie que le dio el almacén. */}
+                {(() => {
+                  const servicioId = pedido?.id as string | undefined;
+                  const docs = servicioId ? docsFinanzas.get(servicioId) : undefined;
+                  const observada = pedido?.facturacion_observada_at as string | null | undefined;
+                  if (!servicioId || estaAnulado || (!docs && !observada)) return null;
+                  return (
+                    <div className="mt-2 space-y-2 rounded-lg border border-border p-3">
+                      {observada && (
+                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                          <span>
+                            <b>Facturación observó el expediente</b> el {fechaHoraLima(observada)}: {pedido?.facturacion_observada_motivo as string}
+                          </span>
+                          <LevantarObservacion servicioId={servicioId} />
+                        </div>
+                      )}
+                      {docs && (
+                        <>
+                          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Para el expediente físico: liquidación y factura</p>
+                          <DocumentosFinanzasLista docs={docs} />
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
                 {equiposPorInforme.has(f.id) && (
                   <div className="mt-2">
                     <EquiposDelPedido

@@ -2,7 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { SubirLiquidacion } from "@/components/crm/subir-liquidacion";
+import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
+import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
 import { fechaHoraLima } from "@/lib/fechas";
+import { pedidosConLiquidacion, pedidosPorId } from "@/lib/pagos-finanzas";
+import { cotizacionesDeCierres, documentosDeFinanzas, etiquetaEstadoPago } from "@/lib/documentos-finanzas";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +19,13 @@ const sinRuc = (s: string | null) => (s ?? "Cliente").replace(/^\d{8,11}\s*-\s*/
  * sube el PDF de la liquidación, y Central la acepta o se la devuelve con el
  * motivo (0295). Finanzas mira el cierre junto al pedido, porque el pedido es
  * su anexo (Carlos, 23-09 17:24: «tengo que ver el cierre… cierre y el pedido»).
+ *
+ * EL EXPEDIENTE COMPLETO (0306, reunión 25-09 11:44). Jhon: «ya no me llega
+ * nada, llega solamente la alerta». Gerencia: «tiene que tener acceso a esta
+ * información… la cotización, la orden de compra, hasta el voucher». Cada
+ * fila abre el expediente: cotización enlazada, cierre, pedido y adjuntos, en
+ * solo lectura. Y abajo, los pedidos a los que Facturación ya les puso factura
+ * pero cuya liquidación todavía dice «factura pendiente».
  */
 export default async function PedidosPorLiquidarPage() {
   await requerirPerfil();
@@ -42,6 +53,48 @@ export default async function PedidosPorLiquidarPage() {
   const { data: firmadas } = subidas.length
     ? await supabase.storage.from("adjuntos").createSignedUrls(subidas.map((f) => f.liquidacion_adjunto!.path), 3600)
     : { data: [] };
+
+  // Lo que ya aceptó Central y tiene factura, pero su liquidación vigente
+  // sigue diciendo «factura pendiente»: Finanzas la actualiza con el número.
+  const conLiquidacion = await pedidosConLiquidacion(supabase, 300);
+  const [completos, docs, cotizaciones] = await Promise.all([
+    pedidosPorId(supabase, vivas.map((f) => f.id)),
+    documentosDeFinanzas(supabase, [...vivas.map((f) => f.id), ...conLiquidacion.map((p) => p.id)]),
+    cotizacionesDeCierres(supabase, [...vivas.map((f) => f.informe_cierre_id), ...conLiquidacion.map((p) => p.informeId ?? "")]),
+  ]);
+  const completo = new Map(completos.map((p) => [p.id, p]));
+  const porActualizar = conLiquidacion.filter((p) => {
+    const d = docs.get(p.id);
+    return d && d.facturas.length > 0 && d.liquidaciones.length > 0 && !d.liquidaciones[0].facturaNumero;
+  });
+
+  const Expediente = ({ id }: { id: string }) => {
+    const p = completo.get(id) ?? conLiquidacion.find((x) => x.id === id);
+    if (!p?.informeId || !p.codigoCierre) return null;
+    return (
+      <ExpedienteCierre
+        informeId={p.informeId}
+        codigo={p.codigoCierre}
+        cliente={p.cliente}
+        clienteDoc={p.clienteDoc}
+        serie={p.serie ?? "EFAMEINSA"}
+        monto={p.total ?? 0}
+        moneda={p.moneda}
+        modalidadPago={p.modalidadPago}
+        entregaLugar={p.entregaLugar}
+        entregaFecha={p.entregaFecha}
+        adjuntos={p.adjuntos}
+        compendio={null}
+        cotizacion={cotizaciones.get(p.informeId) ?? null}
+        pedidoId={p.id}
+              soloLectura
+      >
+        <div className="rounded-md border border-border p-3">
+          <DocumentosFinanzasLista docs={docs.get(p.id)} />
+        </div>
+      </ExpedienteCierre>
+    );
+  };
 
   const Fila = ({ f, url }: { f: (typeof vivas)[number]; url?: string | null }) => {
     const i = inf.get(f.informe_cierre_id);
@@ -73,6 +126,7 @@ export default async function PedidosPorLiquidarPage() {
             </p>
           )}
         </div>
+        <Expediente id={f.id} />
         <a href={`/api/informes/${f.informe_cierre_id}/pdf`} target="_blank" rel="noreferrer" className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent">
           Ver el cierre
         </a>
@@ -101,6 +155,60 @@ export default async function PedidosPorLiquidarPage() {
           </ul>
         )}
       </SeccionPanel>
+      {porActualizar.length > 0 && (
+        <SeccionPanel titulo={`Con factura, liquidación por actualizar · ${porActualizar.length}`}>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Facturación ya registró la factura, pero su liquidación vigente dice «factura pendiente». Súbala actualizada con el número: Central la
+            imprime para el expediente.
+          </p>
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {porActualizar.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">{p.cliente}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {p.numeroErp ? `Pedido ${p.numeroErp} · ` : ""}Factura {docs.get(p.id)!.facturas.map((x) => x.numero).join(", ")}
+                  </p>
+                </div>
+                <Expediente id={p.id} />
+                <SubirLiquidacion servicioId={p.id} yaSubida />
+              </li>
+            ))}
+          </ul>
+        </SeccionPanel>
+      )}
+      {/* YA LIQUIDADOS (0306): el cliente paga por partes o pide la factura
+          después; desde acá se sube la liquidación actualizada. */}
+      {(() => {
+        const yaLiquidados = conLiquidacion.filter((p) => p.liquidacionAceptadaAt && !porActualizar.some((x) => x.id === p.id)).slice(0, 40);
+        if (yaLiquidados.length === 0) return null;
+        return (
+          <SeccionPanel titulo={`Ya liquidados · ${yaLiquidados.length}`}>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Central ya aceptó su liquidación. Si entró otro pago o salió la factura, suba la liquidación actualizada: la anterior queda en el
+              historial.
+            </p>
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {yaLiquidados.map((p) => {
+                const vigente = docs.get(p.id)?.liquidaciones[0];
+                return (
+                  <li key={p.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-foreground">{p.cliente}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.numeroErp ? `Pedido ${p.numeroErp} · ` : ""}
+                        {vigente ? `${etiquetaEstadoPago(vigente.estadoPago)} · ${vigente.facturaNumero ? `factura ${vigente.facturaNumero}` : "factura pendiente"}` : ""}
+                      </p>
+                    </div>
+                    <Expediente id={p.id} />
+                    <SubirLiquidacion servicioId={p.id} yaSubida />
+                  </li>
+                );
+              })}
+            </ul>
+          </SeccionPanel>
+        );
+      })()}
       {subidas.length > 0 && (
         <SeccionPanel titulo={`Subidas, esperando a Central · ${subidas.length}`}>
           <ul className="divide-y divide-border rounded-lg border border-border">

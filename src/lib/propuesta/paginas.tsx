@@ -53,6 +53,8 @@ const PAGINAS: Record<string, Carga> = {
   "gerencia/auditoria": () => import("@/app/(app)/gerencia/auditoria/page"),
   "finanzas": () => import("@/app/(app)/finanzas/page"),
   "finanzas/cobrar": () => import("@/app/(app)/finanzas/cobrar/page"),
+  "facturacion": () => import("@/app/(app)/facturacion/page"),
+  "facturacion/facturados": () => import("@/app/(app)/facturacion/facturados/page"),
 };
 
 /** Dibuja una pantalla existente con los parámetros de la URL más los fijos de la pestaña. */

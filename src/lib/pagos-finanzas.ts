@@ -55,10 +55,17 @@ export interface PedidoFinanzas {
   comercialNombre: string | null;
   numeroErp: string | null;
   adjuntos: AdjuntoCierreFirmado[];
+  /** Central ya aceptó la liquidación (0290). */
+  liquidacionAceptadaAt: string | null;
+  /** Hay una liquidación subida (la vigente). */
+  liquidacionSubidaAt: string | null;
+  /** Facturación paró el pedido: el expediente no está alineado (0306). */
+  facturacionObservadaAt: string | null;
+  facturacionObservadaMotivo: string | null;
 }
 
 const COLUMNAS =
-  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, informe_cierre_id, numero_pedido_erp, cerrado_at, completado, created_at";
+  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, liquidacion_subida_at, facturacion_observada_at, facturacion_observada_motivo, informe_cierre_id, numero_pedido_erp, cerrado_at, completado, created_at";
 
 const limpiarCliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const dia = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
@@ -149,6 +156,10 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
         comercialNombre: inf?.creado_por ? (nombre.get(inf.creado_por as string) ?? null) : null,
         numeroErp: (f.numero_pedido_erp as string | null) ?? null,
         adjuntos: firmados.get(f.informe_cierre_id as string) ?? [],
+        liquidacionAceptadaAt: (f.liquidacion_at as string | null) ?? null,
+        liquidacionSubidaAt: (f.liquidacion_subida_at as string | null) ?? null,
+        facturacionObservadaAt: (f.facturacion_observada_at as string | null) ?? null,
+        facturacionObservadaMotivo: (f.facturacion_observada_motivo as string | null) ?? null,
       };
     });
 }
@@ -207,6 +218,33 @@ export async function cuentasPorCobrar(supabase: SupabaseClient): Promise<Pedido
   return pedidos
     .filter((p) => p.saldo > 0.009)
     .sort((a, b) => (a.diasParaVencer ?? 0) - (b.diasParaVencer ?? 0));
+}
+
+/**
+ * Los pedidos con liquidación subida (0306): lo que ve Facturación —y lo que
+ * Finanzas tiene que actualizar cuando llega la factura—. Los anulados se
+ * caen en armar().
+ */
+export async function pedidosConLiquidacion(supabase: SupabaseClient, limite = 300): Promise<PedidoFinanzas[]> {
+  const { data } = await supabase
+    .from("servicios_postventa")
+    .select(COLUMNAS)
+    .not("informe_cierre_id", "is", null)
+    .not("liquidacion_subida_at", "is", null)
+    .order("liquidacion_subida_at", { ascending: false })
+    .limit(limite);
+  return armar(supabase, (data ?? []) as Fila[]);
+}
+
+/** Los pedidos de una lista de ids, con todo lo que mira Finanzas. */
+export async function pedidosPorId(supabase: SupabaseClient, ids: string[]): Promise<PedidoFinanzas[]> {
+  const filas: Fila[] = [];
+  const unicos = [...new Set(ids.filter(Boolean))];
+  for (let i = 0; i < unicos.length; i += 50) {
+    const { data } = await supabase.from("servicios_postventa").select(COLUMNAS).in("id", unicos.slice(i, i + 50));
+    filas.push(...((data ?? []) as Fila[]));
+  }
+  return armar(supabase, filas);
 }
 
 export async function unPedido(supabase: SupabaseClient, id: string): Promise<PedidoFinanzas | null> {

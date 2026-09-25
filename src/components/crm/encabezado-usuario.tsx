@@ -11,6 +11,7 @@ const ETIQUETA_ROL: Record<Perfil["rol"], string> = {
   central: "Central",
   comercial: "Comercial",
   finanzas: "Finanzas",
+  facturacion: "Facturación",
   // «Que sea Administración de operaciones» (Santos, 09-09): Lesly no hace
   // operaciones, las ADMINISTRA — autoriza, reparte permisos y cuida el
   // catálogo. El rótulo del rol es lo que ella ve todos los días arriba.

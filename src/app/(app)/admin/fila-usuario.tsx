@@ -16,6 +16,7 @@ const ROLES = [
   ["central", "Central"],
   ["operaciones", "Operaciones"],
   ["finanzas", "Finanzas"],
+  ["facturacion", "Facturación"],
   ["gerencia", "Gerencia"],
   ["admin", "Administrador"],
 ] as const;

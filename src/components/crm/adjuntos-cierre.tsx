@@ -231,10 +231,13 @@ export function AdjuntosCierre({
   adjuntos,
   emitido,
   compacto,
+  soloLectura = false,
 }: {
   informeId: string;
   adjuntos: AdjuntoCierreFirmado[];
   emitido: boolean;
+  /** Finanzas y Facturación miran el expediente, no lo tocan (0306). */
+  soloLectura?: boolean;
   /** En la cola de Central el espacio es una celda de tabla. */
   compacto?: boolean;
 }) {
@@ -328,7 +331,7 @@ export function AdjuntosCierre({
         </div>
       )}
 
-      {lleno ? (
+      {soloLectura ? null : lleno ? (
         <p className="text-[11px] text-muted-foreground">Expediente completo ({MAX_ADJUNTOS} documentos).</p>
       ) : compacto && !abierto ? (
         <button

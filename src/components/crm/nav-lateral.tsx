@@ -34,6 +34,7 @@ import {
   DoorOpen,
   type LucideIcon,
   PhoneForwarded,
+  FileCheck2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RolUsuario } from "@/types/database";
@@ -136,6 +137,11 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/finanzas/liquidar", etiqueta: "Pedidos por liquidar", icono: ReceiptText },
     { href: "/finanzas/cobrar", etiqueta: "Cuentas por cobrar", icono: Landmark },
     { href: "/finanzas/confirmados", etiqueta: "Confirmados", icono: ReceiptText },
+  ],
+  // Facturación (reunión 25-09): revisa el expediente, factura y lo registra.
+  facturacion: [
+    { href: "/facturacion", etiqueta: "Por facturar", icono: FileCheck2 },
+    { href: "/facturacion/facturados", etiqueta: "Facturados", icono: ReceiptText },
   ],
   admin: [
     { href: "/admin", etiqueta: "Usuarios", icono: Users },

@@ -22,6 +22,7 @@ export type TipoPerfil =
   | "preventivo"
   | "almacen"
   | "finanzas"
+  | "facturacion"
   | "operaciones"
   | "gerencia"
   | "admin";
@@ -62,6 +63,7 @@ export function tipoDePerfil(p: Perfil): TipoPerfil {
   if (p.rol === "admin") return "admin";
   if (p.rol === "central") return "central";
   if (p.rol === "finanzas") return "finanzas";
+  if (p.rol === "facturacion") return "facturacion";
   if (p.rol === "operaciones") return "operaciones";
   if (p.es_almacen) return "almacen";
   if (p.es_postventa && p.solo_preventivo) return "preventivo";
@@ -76,6 +78,7 @@ export const NOMBRE_PERFIL: Record<TipoPerfil, string> = {
   preventivo: "Postventa · preventivos",
   almacen: "Almacén",
   finanzas: "Finanzas",
+  facturacion: "Facturación",
   operaciones: "Operaciones",
   gerencia: "Gerencia",
   admin: "Administración",
@@ -134,6 +137,12 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Cobranza", href: "/finanzas/cobrar", icono: "cobranza", coincide: ["/finanzas/cobrar"] },
     { etiqueta: "Abonos", href: "/finanzas/confirmados", icono: "abonos", coincide: ["/finanzas/confirmados"] },
   ],
+  // Reunión 25-09 11:44 (0306): revisa el expediente, factura y la registra.
+  facturacion: [
+    hoy,
+    { etiqueta: "Por facturar", href: "/facturacion", icono: "cobranza", coincide: ["/facturacion"] },
+    { etiqueta: "Facturados", href: "/facturacion/facturados", icono: "informes", coincide: ["/facturacion/facturados"] },
+  ],
   operaciones: [
     hoy,
     { etiqueta: "Catálogo", href: "/operaciones/catalogo", icono: "catalogo", coincide: ["/operaciones/catalogo"] },
@@ -173,6 +182,7 @@ export const BUSCAR_EN: Record<TipoPerfil, { href: string; ayuda: string }> = {
   preventivo: { href: "/comercial/cartera", ayuda: "Cliente o RUC" },
   almacen: { href: "/almacen/pedidos", ayuda: "Cliente, equipo o guía" },
   finanzas: { href: "/finanzas/confirmados", ayuda: "Cliente, N.º de operación o banco" },
+  facturacion: { href: "/facturacion/facturados", ayuda: "Cliente, N.º de factura o de pedido" },
 };
 
 /**

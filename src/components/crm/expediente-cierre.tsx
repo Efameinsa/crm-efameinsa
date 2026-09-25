@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, FolderOpen, Truck, Wallet } from "lucide-react";
+import { ClipboardList, FileSpreadsheet, FileText, FolderOpen, Truck, Wallet } from "lucide-react";
 import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
 import { CompendioGestion } from "@/components/crm/compendio-gestion";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,10 @@ export function ExpedienteCierre({
   entregaFecha,
   adjuntos,
   compendio,
+  cotizacion = null,
+  pedidoId = null,
+  soloLectura = false,
+  children,
 }: {
   informeId: string;
   codigo: string;
@@ -52,6 +56,14 @@ export function ExpedienteCierre({
   entregaFecha: string | null;
   adjuntos: AdjuntoCierreFirmado[];
   compendio: Compendio | null;
+  /** La cotización enlazada al cierre (0306): la que sostiene la venta, no las veinte que hubo antes. */
+  cotizacion?: { id: string; codigo: string } | null;
+  /** El pedido que generó Central, para abrir su hoja (Finanzas y Facturación, 0306). */
+  pedidoId?: string | null;
+  /** Sin «Adjuntar»: Finanzas y Facturación ven el expediente, no lo editan (0306). */
+  soloLectura?: boolean;
+  /** Lo que se agrega según quién mira (las liquidaciones y facturas, 0306). */
+  children?: React.ReactNode;
 }) {
   const [abierto, setAbierto] = useState(false);
 
@@ -96,6 +108,33 @@ export function ExpedienteCierre({
             </VerPdfEnLaApp>
           </div>
 
+          {/* LOS OTROS DOS PAPELES DEL EXPEDIENTE (reunión 25-09 11:44): «la
+              cotización… la última, porque está enlazada con el cierre» y el
+              pedido. Todo tiene que estar congruente: se miran lado a lado. */}
+          {(cotizacion || pedidoId) && (
+            <div className="flex flex-wrap gap-2">
+              {cotizacion && (
+                <VerPdfEnLaApp
+                  url={`/api/cotizaciones/${cotizacion.id}/pdf`}
+                  titulo={`Cotización ${cotizacion.codigo}`}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+                >
+                  <FileSpreadsheet className="size-4" /> Cotización {cotizacion.codigo}
+                </VerPdfEnLaApp>
+              )}
+              {pedidoId && (
+                <a
+                  href={`/pedidos/${pedidoId}/imprimir`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+                >
+                  <ClipboardList className="size-4" /> El pedido
+                </a>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-3 sm:grid-cols-3">
             <Dato icono={<Wallet className="size-3.5" />} titulo="Monto">
               <span className="font-semibold tabular-nums">
@@ -127,9 +166,11 @@ export function ExpedienteCierre({
                   {adjuntos.length}
                 </span>
               </p>
-              <AdjuntosCierre informeId={informeId} adjuntos={adjuntos} emitido />
+              <AdjuntosCierre informeId={informeId} adjuntos={adjuntos} emitido soloLectura={soloLectura} />
             </div>
           </div>
+
+          {children}
 
           {compendio && <CompendioGestion compendio={compendio} />}
         </div>

@@ -30,6 +30,7 @@ const NUEVO: Record<string, { etiqueta: string; href: string }> = {
   preventivo: { etiqueta: "Cotizar", href: "/nuevo/oportunidades" },
   almacen: { etiqueta: "Nuevo informe técnico", href: "/almacen/informes" },
   finanzas: { etiqueta: "Confirmar abono", href: "/nuevo/pagos" },
+  facturacion: { etiqueta: "Registrar factura", href: "/facturacion" },
   operaciones: { etiqueta: "Nuevo equipo", href: "/operaciones/catalogo" },
   admin: { etiqueta: "Nuevo usuario", href: "/admin" },
 };

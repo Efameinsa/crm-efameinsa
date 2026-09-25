@@ -52,6 +52,7 @@ export default async function HoyPage({ searchParams }: { searchParams: Promise<
     postventa: ["postventa/macro", "postventa"],
     almacen: ["almacen"],
     finanzas: ["finanzas"],
+    facturacion: ["facturacion"],
     operaciones: ["operaciones"],
   };
   return (

@@ -8,6 +8,9 @@ import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { AccionesFinanzas } from "@/components/crm/acciones-finanzas";
 import { EstadoDelPedido } from "@/components/crm/estado-del-pedido";
 import { abonos, formatoMonto, unPedido } from "@/lib/pagos-finanzas";
+import { cotizacionesDeCierres, documentosDeFinanzas } from "@/lib/documentos-finanzas";
+import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
+import { SubirLiquidacion } from "@/components/crm/subir-liquidacion";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +26,12 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const p = await unPedido(supabase, id);
   if (!p) notFound();
-  const lista = await abonos(supabase, { servicioId: id, limite: 50 });
+  const [lista, docs, cotizaciones] = await Promise.all([
+    abonos(supabase, { servicioId: id, limite: 50 }),
+    documentosDeFinanzas(supabase, [id]),
+    cotizacionesDeCierres(supabase, p.informeId ? [p.informeId] : []),
+  ]);
+  const misDocs = docs.get(id);
   const evidenciaObs = p.observadoAdjunto
     ? ((await supabase.storage.from("adjuntos").createSignedUrl(p.observadoAdjunto, 3600)).data?.signedUrl ?? null)
     : null;
@@ -77,6 +85,9 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
               entregaFecha={p.entregaFecha}
               adjuntos={p.adjuntos}
               compendio={null}
+              cotizacion={cotizaciones.get(p.informeId) ?? null}
+              pedidoId={p.id}
+              soloLectura
             />
           )}
         </div>
@@ -113,6 +124,22 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
           <AccionesFinanzas servicioId={p.id} cliente={p.cliente} moneda={p.moneda} sugerido={sugerido} cuenta={cuenta} />
         </div>
       </div>
+
+      {/* LAS LIQUIDACIONES DEL PEDIDO (0306): se van actualizando con cada
+          pago y con la factura; Central imprime la vigente. */}
+      {p.numeroErp && (
+        <SeccionPanel titulo="Liquidaciones y facturas">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {p.facturacionObservadaAt
+                ? `Facturación observó el expediente: ${p.facturacionObservadaMotivo}`
+                : "Suba una liquidación nueva por cada pago o cuando salga la factura; la anterior queda en el historial."}
+            </p>
+            <SubirLiquidacion servicioId={p.id} yaSubida={(misDocs?.liquidaciones.length ?? 0) > 0} />
+          </div>
+          <DocumentosFinanzasLista docs={misDocs} />
+        </SeccionPanel>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <SeccionPanel titulo={`Abonos confirmados · ${lista.length}`}>
