@@ -30,11 +30,17 @@ export function TarjetaSupervision({
    *  casos de garantía/repuestos, no ventas, y no compite con la meta. */
   esPostventa?: boolean;
 }) {
-  const pct = meta > 0 ? Math.round((c.seguimientos_efectivos / meta) * 100) : 0;
+  // POSTVENTA CUENTA TODAS SUS GESTIONES (25-09, gerencia: «en el caso de PV1 y
+  // PV2 no se están contabilizando»). Sus llamadas y WhatsApp van sobre casos
+  // de garantía, repuestos o mantenimiento; antes el número grande solo miraba
+  // las de venta, marcaba 0 y la tarjeta decía «Sin actividad». En postventa
+  // el número es el total del día; en comercial sigue siendo la meta de venta.
+  const hechas = esPostventa ? c.seguimientos_efectivos + c.gestiones_postventa : c.seguimientos_efectivos;
+  const pct = meta > 0 ? Math.round((hechas / meta) * 100) : 0;
   // El total de presupuestos del día suma los del CRM y los del archivo: para
   // fechas anteriores al CRM, todo lo que hizo el comercial está en el archivo.
   const cotizaciones = c.cotizaciones + c.cotizaciones_archivo;
-  const sinActividad = c.seguimientos_efectivos === 0 && c.intentos_sin_contacto === 0 && cotizaciones === 0;
+  const sinActividad = c.seguimientos_efectivos === 0 && c.intentos_sin_contacto === 0 && cotizaciones === 0 && c.gestiones_postventa === 0;
 
   return (
     <Link
@@ -76,15 +82,17 @@ export function TarjetaSupervision({
         <span className="shrink-0 text-xs font-semibold tabular-nums text-foreground">
           {/* El rótulo aparece solo cuando hay postventa que distinguir: en los
               demás no agrega nada y ensuciaría siete tarjetas. */}
-          {c.gestiones_postventa > 0 && (
-            <span className="mr-1 font-normal text-muted-foreground">Gestiones de venta</span>
+          {esPostventa ? (
+            <span className="mr-1 font-normal text-muted-foreground">Gestiones del día</span>
+          ) : (
+            c.gestiones_postventa > 0 && <span className="mr-1 font-normal text-muted-foreground">Gestiones de venta</span>
           )}
-          {c.seguimientos_efectivos} / {meta}
+          {hechas} / {meta}
         </span>
         {/* La carga de postventa, aparte del número de la meta. Sin esto,
             quien atiende garantías media mañana parece que no trabajó; con
             esto se ve su día completo y la meta sigue midiendo la venta. */}
-        {c.gestiones_postventa > 0 && (
+        {c.gestiones_postventa > 0 && !esPostventa && (
           <span className="shrink-0 rounded-full bg-[#4A6670]/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#4A6670]">
             Postventa {c.gestiones_postventa}
           </span>
@@ -117,6 +125,12 @@ export function TarjetaSupervision({
               chips cuentan TODO intento por vía (conteste o no); el número
               de la meta solo cuenta contactos reales. Esta línea muestra la
               resta para que nadie tenga que deducirla. */}
+          {esPostventa && (
+            <p className="text-[10px] text-muted-foreground">
+              {c.gestiones_postventa} de postventa (garantía, repuestos, mantenimiento, seguimiento)
+              {c.seguimientos_efectivos > 0 ? ` + ${c.seguimientos_efectivos} de venta` : ""}
+            </p>
+          )}
           {c.intentos_sin_contacto > 0 && (
             <p className="text-[10px] text-muted-foreground">
               {c.seguimientos_efectivos + c.intentos_sin_contacto} gestiones en total = {c.seguimientos_efectivos} con

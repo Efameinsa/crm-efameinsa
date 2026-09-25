@@ -27,7 +27,7 @@ export const IDENTIDAD_SERIE: Record<"EFAMEINSA" | "OPEN", IdentidadSerie> = {
     pie: [
       "www.efameinsa.com",
       "Av. Los Cisnes Mz. H-2 Lt. 18 Urb. Club de Huachipa",
-      "Teléfono: (511) 371-0006  Telefax: (511) 371-0502",
+      "Teléfono: (511) 504-1695  Telefax: (511) 371-0502",
     ],
     cuentasBancarias: null,
   },
