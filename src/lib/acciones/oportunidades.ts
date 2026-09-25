@@ -241,6 +241,8 @@ export async function cambiarEtapa(datos: {
   oportunidadId: string;
   etapa: EtapaOportunidad;
   motivoRechazoId: number | null;
+  /** La nota de la gestión que acompaña el cierre: «Otro» la exige (0305). */
+  notaExplicacion?: string;
 }): Promise<{ error: string | null }> {
   if (!ETAPAS_MANUALES.includes(datos.etapa)) {
     return { error: "Esa etapa no se cambia manualmente" };
@@ -250,6 +252,21 @@ export async function cambiarEtapa(datos: {
   }
 
   const supabase = await createClient();
+
+  // 0305: «Proceso finalizado / despachado» es de postventa —un comercial no
+  // cierra un lead como «finalizado»— y «Otro» no vale sin decir qué pasó.
+  if (datos.etapa === "rechazada" && datos.motivoRechazoId) {
+    const [{ data: motivo }, { data: op }] = await Promise.all([
+      supabase.from("catalogo_motivos_rechazo").select("solo_postventa, requiere_nota").eq("id", datos.motivoRechazoId).maybeSingle(),
+      supabase.from("oportunidades").select("tipo_postventa").eq("id", datos.oportunidadId).maybeSingle(),
+    ]);
+    if (motivo?.solo_postventa && !op?.tipo_postventa) {
+      return { error: "Ese motivo es para cerrar casos de postventa" };
+    }
+    if (motivo?.requiere_nota && !datos.notaExplicacion?.trim()) {
+      return { error: "Con «Otro», cuente en la gestión por qué se cierra" };
+    }
+  }
   // Con .select() de vuelta: Supabase NO devuelve error cuando RLS filtra el
   // update (afecta 0 filas) y la pantalla diría "Etapa actualizada" sin que se
   // haya movido nada. Misma lección que reprogramarAccion y registrarActividad.
@@ -492,6 +509,7 @@ export async function registrarGestionYRechazar(datos: {
     oportunidadId: datos.gestion.oportunidadId,
     etapa: "rechazada",
     motivoRechazoId: datos.motivoRechazoId,
+    notaExplicacion: datos.gestion.nota,
   });
   if (cierre.error) return cierre;
 

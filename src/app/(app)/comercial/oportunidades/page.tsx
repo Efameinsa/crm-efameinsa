@@ -134,7 +134,7 @@ export default async function OportunidadesPage({
     listarOportunidades(supabase, { ...filtrosComunes, orden, ...extra });
 
   const [{ data: motivos }, conteos, { opciones: opcionesRubro, sinRubro }] = await Promise.all([
-    supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).eq("solo_postventa", false).eq("requiere_nota", false).order("nombre"),
     contarOportunidadesPorEtapa(supabase, filtrosComunes),
     cargarOpcionesRubro(supabase, alcanceDe(perfil)),
   ]);

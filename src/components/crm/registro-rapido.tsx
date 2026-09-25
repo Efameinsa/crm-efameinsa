@@ -75,6 +75,10 @@ export interface ResultadoGestion {
 export interface MotivoRechazo {
   id: number;
   nombre: string;
+  /** 0305: «Proceso finalizado / despachado» — el caso de postventa se resolvió, no se perdió. */
+  solo_postventa?: boolean;
+  /** 0305: «Otro» — la nota tiene que decir qué pasó. */
+  requiere_nota?: boolean;
 }
 
 // Reingeniería 19-08 (aprobada por gerencia): el registro se cuenta como
@@ -98,10 +102,13 @@ export function RegistroRapido({
   motivos = [],
   abiertoAlInicio = false,
   agendaDeOtro = null,
+  esPostventa = false,
 }: {
   oportunidadId: string;
   resultados?: ResultadoGestion[];
   motivos?: MotivoRechazo[];
+  /** Es un caso de postventa: cerrar puede ser «se resolvió», no «se perdió» (0305). */
+  esPostventa?: boolean;
   /** Llegó desde «Registrar seguimiento» (0238): el cuadro ya viene abierto. */
   abiertoAlInicio?: boolean;
   /**
@@ -150,6 +157,12 @@ export function RegistroRapido({
     motivos.find((m) => String(m.id) === motivoId)?.nombre ?? "",
   );
   const faltante = !cierra && !!proximaAccionAt && !proximaAccion.trim();
+  // 0305: los motivos se ofrecen donde tienen sentido, y el elegido cambia lo
+  // que dice el botón («cerrar el caso» no es «rechazar») o pide la nota.
+  const motivosVisibles = motivos.filter((m) => !m.solo_postventa || esPostventa);
+  const motivoElegido = motivos.find((m) => String(m.id) === motivoId) ?? null;
+  const cierraResuelto = esRechazo && !!motivoElegido?.solo_postventa;
+  const faltaNotaDelMotivo = esRechazo && !!motivoElegido?.requiere_nota && !nota.trim();
 
   function elegirQueHacer(texto: string) {
     setProximaAccion(texto);
@@ -190,6 +203,10 @@ export function RegistroRapido({
   function registrar() {
     if (esRechazo && !motivoId) {
       toast.error("Seleccione el motivo del rechazo");
+      return;
+    }
+    if (faltaNotaDelMotivo) {
+      toast.error("Con «Otro», cuente en «¿Qué pasó?» por qué se cierra");
       return;
     }
     // 24-08: sin esto, volver a pulsar con el formulario recién limpiado
@@ -298,7 +315,9 @@ export function RegistroRapido({
       }
       toast.success(
         esRechazo
-          ? "Gestión registrada y oportunidad rechazada"
+          ? cierraResuelto
+            ? "Gestión registrada y caso cerrado"
+            : "Gestión registrada y oportunidad rechazada"
           : esDerivacion
             ? "Gestión registrada: la oportunidad pasó a otro"
             : "Gestión registrada",
@@ -449,21 +468,30 @@ export function RegistroRapido({
 
               {esRechazo && (
                 <div className="space-y-1.5">
-                  <p className="text-xs text-muted-foreground">La oportunidad se rechazará. ¿Por qué? (obligatorio)</p>
+                  <p className="text-xs text-muted-foreground">
+                    {esPostventa
+                      ? "El caso se cerrará. ¿Por qué? (obligatorio)"
+                      : "La oportunidad se rechazará. ¿Por qué? (obligatorio)"}
+                  </p>
                   <select
                     value={motivoId}
                     onChange={(e) => setMotivoId(e.target.value)}
                     className="h-9 w-full cursor-pointer rounded-md border border-input bg-background px-2 text-sm text-foreground"
-                    aria-label="Motivo del rechazo"
+                    aria-label="Motivo del cierre"
                   >
                     <option value="">Seleccione el motivo…</option>
-                    {motivos.map((m) => (
+                    {motivosVisibles.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.nombre}
                       </option>
                     ))}
                   </select>
-                  {motivos.length === 0 && (
+                  {motivoElegido?.requiere_nota && (
+                    <p className={cn("text-xs", faltaNotaDelMotivo ? "text-amber-700" : "text-muted-foreground")}>
+                      Cuente en «¿Qué pasó?» por qué se cierra: queda en el historial del cliente.
+                    </p>
+                  )}
+                  {motivosVisibles.length === 0 && (
                     <p className="text-xs text-amber-700">Para rechazar, use el cambio de etapa en la ficha completa.</p>
                   )}
                 </div>
@@ -558,7 +586,7 @@ export function RegistroRapido({
               lleva al campo. */}
           <Button
             onClick={registrar}
-            disabled={enviando || (esRechazo && !motivoId)}
+            disabled={enviando || (esRechazo && !motivoId) || faltaNotaDelMotivo}
             variant={faltante ? "outline" : "default"}
             className={cn(faltante && "border-amber-500 bg-amber-500/10 text-amber-800 hover:bg-amber-500/20")}
           >
@@ -568,6 +596,8 @@ export function RegistroRapido({
               <>
                 <AlertCircle className="size-4" /> Falta indicar qué hacer
               </>
+            ) : cierraResuelto ? (
+              "Registrar y cerrar el caso"
             ) : esRechazo ? (
               "Registrar y rechazar"
             ) : esDerivacion ? (
