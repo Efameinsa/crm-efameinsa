@@ -315,7 +315,7 @@ export function RegistroRapido({
       }
       toast.success(
         esRechazo
-          ? cierraResuelto
+          ? cierraResuelto || esPostventa
             ? "Gestión registrada y caso cerrado"
             : "Gestión registrada y oportunidad rechazada"
           : esDerivacion
@@ -432,7 +432,7 @@ export function RegistroRapido({
                   desde siempre; el problema era que nadie la veía: es el
                   chip 12 de 15 y el rechazo estaba a un toque. Acá se ofrece
                   justo cuando se está por rechazar, que es cuando importa. */}
-              {esRechazo && aFuturo && !pidioNoSerContactado && (
+              {esRechazo && aFuturo && !pidioNoSerContactado && !cierraResuelto && (
                 <div className="rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs leading-relaxed text-amber-900">
                   ¿El cliente dijo que no <b>por ahora</b>, o que no <b>nunca</b>? Si es por ahora, no lo rechace:
                   márquelo como <b>Compra a futuro</b> y queda agendado para retomarlo. El rechazo es para cuando ya
@@ -486,10 +486,24 @@ export function RegistroRapido({
                       </option>
                     ))}
                   </select>
+                  {/* Rubí, 25-09: «no puedo digitar, ¿dónde se digita?». La nota
+                      de «¿Qué pasó?» quedaba arriba, fuera de la vista: la caja
+                      aparece acá mismo y es la misma nota (lo que se escribe en
+                      una se ve en la otra). */}
                   {motivoElegido?.requiere_nota && (
-                    <p className={cn("text-xs", faltaNotaDelMotivo ? "text-amber-700" : "text-muted-foreground")}>
-                      Cuente en «¿Qué pasó?» por qué se cierra: queda en el historial del cliente.
-                    </p>
+                    <div className="space-y-1">
+                      <Textarea
+                        value={nota}
+                        onChange={(e) => setNota(e.target.value)}
+                        placeholder="¿Por qué se cierra? ej.: el repuesto se entregó en tienda, el cliente lo resolvió con su técnico…"
+                        rows={3}
+                        aria-label="Por qué se cierra"
+                        className={cn(faltaNotaDelMotivo && "border-amber-500")}
+                      />
+                      <p className={cn("text-xs", faltaNotaDelMotivo ? "text-amber-700" : "text-muted-foreground")}>
+                        Escriba aquí por qué se cierra: queda en el historial del cliente.
+                      </p>
+                    </div>
                   )}
                   {motivosVisibles.length === 0 && (
                     <p className="text-xs text-amber-700">Para rechazar, use el cambio de etapa en la ficha completa.</p>
@@ -596,7 +610,7 @@ export function RegistroRapido({
               <>
                 <AlertCircle className="size-4" /> Falta indicar qué hacer
               </>
-            ) : cierraResuelto ? (
+            ) : cierraResuelto || (esRechazo && esPostventa) ? (
               "Registrar y cerrar el caso"
             ) : esRechazo ? (
               "Registrar y rechazar"
