@@ -122,7 +122,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           .limit(80)
       : Promise.resolve({ data: [] as { oportunidad_id: string; tipo: string; nota: string | null; realizada_at: string }[] }),
     supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("orden"),
-    supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).eq("solo_postventa", false).order("nombre"),
     supabase
       .from("tareas_agenda")
       .select("id, titulo, fecha, hora, completada")

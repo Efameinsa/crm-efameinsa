@@ -96,7 +96,7 @@ export default async function OportunidadDetallePage({
         )
         .eq("id", id)
         .maybeSingle(),
-      supabase.from("catalogo_motivos_rechazo").select("id, nombre").eq("activo", true).order("nombre"),
+      supabase.from("catalogo_motivos_rechazo").select("id, nombre, solo_postventa, requiere_nota").eq("activo", true).order("nombre"),
       supabase
         .from("cotizaciones")
         .select(
@@ -734,6 +734,7 @@ export default async function OportunidadDetallePage({
                   oportunidadId={oportunidad.id}
                   resultados={resultados ?? []}
                   motivos={motivos ?? []}
+                  esPostventa={oportunidad.tipo_postventa != null}
                   abiertoAlInicio={abrirGestion}
                   agendaDeOtro={
                     comoCompaneraDeArea && !esMio && !comoGerenciaAqui
@@ -887,7 +888,7 @@ export default async function OportunidadDetallePage({
               <CambiarEtapa
                 oportunidadId={oportunidad.id}
                 etapaActual={oportunidad.etapa}
-                motivos={motivos ?? []}
+                motivos={(motivos ?? []).filter((m) => !m.requiere_nota && (!m.solo_postventa || oportunidad.tipo_postventa != null))}
                 yaTieneVenta={Boolean(ventaDeLaOportunidad)}
               />
             )}
