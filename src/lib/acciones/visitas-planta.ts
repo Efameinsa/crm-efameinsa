@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { enviarCorreoN8n } from "@/lib/avisos-n8n";
-import { notificarAlmacen } from "@/lib/notificaciones";
+import { notificarAlmacen, notificarCentral } from "@/lib/notificaciones";
 
 /**
  * Quién viene a la planta (0238).
@@ -165,6 +165,50 @@ export async function cancelarVisitaPlanta(visitaId: string, motivo: string): Pr
   if (error) return { error: limpiar(error.message) };
   revalidatePath("/central/visitas");
   revalidatePath("/postventa/agenda");
+  return { error: null };
+}
+
+/**
+ * Cambiar la fecha o la hora de la visita (0303). Katerine, 25-09: «en esa
+ * vista debería poder editar la hora». La cambia quien la registró, o
+ * Central. Central y el almacén se enteran en su campanita, y los del correo
+ * del anuncio reciben el cambio: tenían la hora vieja.
+ */
+export async function reprogramarVisitaPlanta(visitaId: string, fecha: string, hora: string | null): Promise<{ error: string | null }> {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reprogramar_visita_planta", { p_visita: visitaId, p_fecha: fecha, p_hora: hora || null });
+  if (error) return { error: limpiar(error.message) };
+  const r = data as { cambio: boolean; antes?: string; despues?: string; vigilancia_avisada?: boolean; es_prueba?: boolean } | null;
+  for (const p of ["/comercial/visitas", "/central/visitas", "/almacen/visitas", "/almacen/agenda", "/postventa/visitas", "/postventa/agenda"]) revalidatePath(p);
+  if (!r?.cambio) return { error: null };
+
+  const { data: v } = await supabase.from("visitas_planta").select("empresa, persona").eq("id", visitaId).maybeSingle();
+  const empresa = (v?.empresa as string | undefined) ?? "";
+  const persona = (v?.persona as string | undefined) ?? "";
+  const titulo = `Visita cambiada: ${r.despues} (antes ${r.antes}) · ${empresa}`;
+  const cuerpo = `${persona}. Cambió ${perfil.nombre}.${r.vigilancia_avisada ? " Hay que volver a avisar a vigilancia." : ""}`;
+  await notificarCentral({ titulo, cuerpo, url: "/central/visitas", esPrueba: r.es_prueba === true });
+  await notificarAlmacen({ titulo, cuerpo, url: "/almacen/visitas", esPrueba: r.es_prueba === true });
+
+  if (!r.es_prueba && !perfil.es_prueba) {
+    const para =
+      process.env.AVISOS_VISITA_PARA ??
+      "central@efameinsa.com, contabilidad1@efameinsa.com, logistica2@efameinsa.com, sistemas@efameinsa.com, almacen@efameinsa.com, almacen1@efameinsa.com, crcabrejos@efameinsa.com, kycabrejos@efameinsa.com";
+    const esc = (x: string | null | undefined) => (x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    await enviarCorreoN8n({
+      para,
+      asunto: `CAMBIO DE HORA - VISITA A PLANTA-${esc(empresa).toUpperCase()}-${esc(persona).toUpperCase()}`,
+      html:
+        `<div style="font-family:Calibri,Arial,sans-serif;font-size:14px">` +
+        `<p>Buenos días, la visita de <b>${esc(persona)}</b> (${esc(empresa)}) cambia:</p>` +
+        `<p>Antes: <s>${esc(r.antes)}</s><br>Ahora: <span style="background:#ffff00"><b>${esc(r.despues)}</b></span></p>` +
+        (r.vigilancia_avisada ? `<p>Vigilancia ya tenía la hoja con la hora anterior: hay que volver a avisarle.</p>` : "") +
+        `<p>Gracias,</p>` +
+        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`,
+      responderA: null,
+    });
+  }
   return { error: null };
 }
 
