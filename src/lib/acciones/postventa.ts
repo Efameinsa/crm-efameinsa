@@ -677,13 +677,15 @@ export interface EquipoDelPedido {
   protocolo_ref: string | null;
   protocolo_nota: string | null;
   protocolo_fotos: unknown;
+  /** Lleva el código del modelo, no una serie de placa (coches, carros; 0302). */
+  sin_serie?: boolean | null;
 }
 
 export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPedido[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie")
     .eq("servicio_id", servicioId)
     .order("orden");
   if (data && data.length > 0) return data as EquipoDelPedido[];
@@ -695,7 +697,7 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   // de la primera consulta aunque la siembra ya estuviera en la base.
   const { data: sembrados } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie")
     .eq("servicio_id", servicioId)
     .gte("orden", 1)
     .order("orden");
@@ -707,6 +709,25 @@ export async function registrarSerieDelEquipo(itemId: string, servicioId: string
   const supabase = await createClient();
   const { error } = await supabase.rpc("registrar_serie_del_equipo", { p_item: itemId, p_serie: serie.trim().toUpperCase(), p_garantia_meses: 24 });
   if (error) return falla(enCastellano(error.message));
+  return avisarSiYaEstanTodas(supabase, servicioId);
+}
+
+/**
+ * UN CÓDIGO PARA TODAS LAS UNIDADES QUE NO LLEVAN SERIE (Lesly, 25-09; 0302).
+ * «Los coches no están ingresados por serie: es un código para varios de ese
+ * modelo». Se pone una vez y va a todas las unidades del mismo artículo del
+ * pedido, sin crear fichas en el parque.
+ */
+export async function registrarCodigoSinSerie(itemId: string, servicioId: string, codigo: string): Promise<{ error: string | null; aviso?: string }> {
+  if (!codigo.trim()) return { error: "Escriba el código del modelo" };
+  const supabase = await createClient();
+  const { data: n, error } = await supabase.rpc("registrar_codigo_sin_serie", { p_item: itemId, p_codigo: codigo.trim().toUpperCase() });
+  if (error) return falla(enCastellano(error.message));
+  const r = await avisarSiYaEstanTodas(supabase, servicioId);
+  return { ...r, aviso: `Código puesto a ${n} unidad${n === 1 ? "" : "es"}` };
+}
+
+async function avisarSiYaEstanTodas(supabase: Awaited<ReturnType<typeof createClient>>, servicioId: string): Promise<{ error: string | null }> {
   // Cuando la última serie que Central pidió queda puesta, Central se entera
   // (0290): «ingresa la serie… ¡pum! aparece acá».
   const { data: srv } = await supabase.from("servicios_postventa").select("cliente_texto, series_pedidas_at, es_prueba").eq("id", servicioId).maybeSingle();

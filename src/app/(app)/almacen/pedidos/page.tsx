@@ -79,9 +79,17 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
   const todos = (data ?? []) as unknown as (ServicioPostventa & { series_pedidas_at?: string | null })[];
   // Cuántas series le faltan a cada pedido que Central pidió (0290).
   const faltanSeries = new Map<string, number>();
+  // Qué y cuántos (Lesly, 25-09: «no me sale la cantidad»): «4 × COCHE DE TRANSPORTE DE ROPA».
+  const queFaltaCodificar = new Map<string, Map<string, number>>();
   if (porSeries && todos.length) {
-    const { data: sinSerie } = await supabase.from("pedido_equipos").select("servicio_id").in("servicio_id", todos.map((t) => t.id)).is("serie", null);
-    for (const r of (sinSerie ?? []) as { servicio_id: string }[]) faltanSeries.set(r.servicio_id, (faltanSeries.get(r.servicio_id) ?? 0) + 1);
+    const { data: sinSerie } = await supabase.from("pedido_equipos").select("servicio_id, descripcion").in("servicio_id", todos.map((t) => t.id)).is("serie", null);
+    for (const r of (sinSerie ?? []) as { servicio_id: string; descripcion: string }[]) {
+      faltanSeries.set(r.servicio_id, (faltanSeries.get(r.servicio_id) ?? 0) + 1);
+      const t = r.descripcion.split("\n")[0].trim();
+      const m = queFaltaCodificar.get(r.servicio_id) ?? new Map<string, number>();
+      m.set(t, (m.get(t) ?? 0) + 1);
+      queFaltaCodificar.set(r.servicio_id, m);
+    }
   }
   const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
   const filas = todos.filter((s) => {
@@ -101,7 +109,8 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
   function estado(s: ServicioPostventa & { series_pedidas_at?: string | null }): { texto: string; tono: string } {
     if (porSeries) {
       const n = faltanSeries.get(s.id) ?? 0;
-      return { texto: `Central pide ${n} serie${n === 1 ? "" : "s"}${s.series_pedidas_at ? ` desde el ${new Date(s.series_pedidas_at).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}` : ""}`, tono: "text-destructive" };
+      const que = [...(queFaltaCodificar.get(s.id) ?? new Map<string, number>()).entries()].map(([t, k]) => `${k} × ${t}`).join(" · ");
+      return { texto: `Central pide el código de ${n} unidad${n === 1 ? "" : "es"}${que ? ` (${que})` : ""}${s.series_pedidas_at ? ` desde el ${new Date(s.series_pedidas_at).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}` : ""}`, tono: "text-destructive" };
     }
     // Salió, pero el almacén no dejó la evidencia de la carga (postventa
     // registró la salida desde su pantalla): que se vea para completarla.

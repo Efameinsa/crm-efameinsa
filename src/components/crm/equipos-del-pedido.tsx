@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { equipoVaEnEsteDespacho, registrarSerieDelEquipo, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { equipoVaEnEsteDespacho, registrarCodigoSinSerie, registrarSerieDelEquipo, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido } from "@/lib/acciones/almacen";
 import { corregirSerie } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -51,6 +51,10 @@ export function EquiposDelPedido({
   const sinSerie = van.filter((e) => !e.serie).length;
   const sinProbar = van.filter((e) => !e.prueba_lista_at).length;
   const parcial = van.length < equipos.length;
+  const resumen = [...new Set(equipos.map((e) => e.descripcion.trim()))].map((d) => ({
+    titulo: d.split("\n")[0],
+    n: equipos.filter((e) => e.descripcion.trim() === d).length,
+  }));
 
   return (
     <div className={cn("rounded-lg border p-3", despachado && sinSerie > 0 ? "border-amber-400/60 bg-amber-500/5" : "border-border")}>
@@ -82,10 +86,33 @@ export function EquiposDelPedido({
           <PackageX className="size-3.5" /> Despacho parcial: {equipos.length - van.length} equipo{equipos.length - van.length === 1 ? "" : "s"} no va{equipos.length - van.length === 1 ? "" : "n"} en esta salida.
         </p>
       )}
+      {/* CUÁNTAS DE CADA UNO (Lesly, 25-09: «no me sale la cantidad de cuántos
+          necesitan»): las unidades iguales se cuentan arriba. */}
+      {resumen.some((r) => r.n > 1) && (
+        <p className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+          {resumen.map((r) => (
+            <span key={r.titulo} className="rounded-full bg-secondary px-2 py-0.5 font-semibold text-foreground">
+              {r.n} × {r.titulo}
+            </span>
+          ))}
+        </p>
+      )}
       <ol className="mt-2 space-y-2">
-        {equipos.map((e) => (
-          <Fila key={e.id} e={e} servicioId={servicioId} modo={modo} despachado={despachado} cliente={cliente} enlaceEquipo={enlaceEquipo} />
-        ))}
+        {equipos.map((e) => {
+          const grupo = equipos.filter((x) => x.descripcion.trim() === e.descripcion.trim());
+          return (
+            <Fila
+              key={e.id}
+              e={e}
+              servicioId={servicioId}
+              modo={modo}
+              despachado={despachado}
+              cliente={cliente}
+              enlaceEquipo={enlaceEquipo}
+              unidad={{ k: grupo.indexOf(e) + 1, n: grupo.length, sinCodigo: grupo.filter((x) => !x.serie).length }}
+            />
+          );
+        })}
       </ol>
     </div>
   );
@@ -98,6 +125,7 @@ function Fila({
   despachado,
   cliente,
   enlaceEquipo,
+  unidad,
 }: {
   e: EquipoDelPedido;
   servicioId: string;
@@ -105,11 +133,15 @@ function Fila({
   despachado: boolean;
   cliente: string;
   enlaceEquipo: string | null;
+  /** Qué unidad es de cuántas iguales, y cuántas de ellas siguen sin código. */
+  unidad: { k: number; n: number; sinCodigo: number };
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [serie, setSerie] = useState("");
   const [abrirSerie, setAbrirSerie] = useState(false);
+  // «No lleva serie»: un código de modelo para todas las unidades iguales (0302).
+  const [modoCodigo, setModoCodigo] = useState(false);
   // Corregir una serie ya puesta (0290): queda fija; cambiarla pide el código
   // de operaciones y el motivo, y queda escrito en el pedido.
   const [corrigiendo, setCorrigiendo] = useState(false);
@@ -164,10 +196,15 @@ function Fila({
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
         <span className="mt-0.5 inline-flex size-5 flex-none items-center justify-center rounded-full bg-secondary text-[11px] font-bold">{e.orden}</span>
         <div className="min-w-0 flex-1">
-          <p className={cn("text-sm font-semibold leading-tight", apagado && "font-medium")}>{lineaTitulo}</p>
+          <p className={cn("text-sm font-semibold leading-tight", apagado && "font-medium")}>
+            {lineaTitulo}
+            {unidad.n > 1 && <span className="ml-1.5 text-[11px] font-medium text-muted-foreground">· unidad {unidad.k} de {unidad.n}</span>}
+          </p>
           {resto.length > 0 && <p className="whitespace-pre-line text-[11px] leading-snug text-muted-foreground">{resto.join("\n")}</p>}
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
-            {e.serie ? (
+            {e.serie && e.sin_serie ? (
+              <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F]">Código {e.serie} · sin serie</span>
+            ) : e.serie ? (
               e.equipo_id && enlaceEquipo ? (
                 <Link href={`${enlaceEquipo}/${e.equipo_id}`} className="inline-flex items-center gap-1 rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] hover:underline">
                   Serie {e.serie} · en stock
@@ -203,7 +240,7 @@ function Fila({
         )}
       </div>
 
-      {e.serie && !despachado && (
+      {e.serie && !e.sin_serie && !despachado && (
         <div className="mt-1.5">
           {corrigiendo ? (
             <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
@@ -238,7 +275,23 @@ function Fila({
       {/* La serie: se lee en la placa (postventa o almacén). */}
       {!e.serie && (
         <div className="mt-1.5">
-          {abrirSerie ? (
+          {modoCodigo ? (
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Input value={serie} onChange={(x) => setSerie(x.target.value)} placeholder="Código del modelo" className="h-8 font-mono text-sm uppercase" autoFocus />
+                <Button
+                  size="sm"
+                  className="h-8"
+                  disabled={pendiente || !serie.trim()}
+                  onClick={() => correr(() => registrarCodigoSinSerie(e.id, servicioId, serie), `Código puesto a ${unidad.sinCodigo === 1 ? "la unidad" : `las ${unidad.sinCodigo} unidades`}`)}
+                >
+                  {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} Poner a {unidad.sinCodigo === 1 ? "esta unidad" : `las ${unidad.sinCodigo} unidades`}
+                </Button>
+                <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setModoCodigo(false)}>Cancelar</button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Un solo código para todas las unidades de este artículo que no tienen serie. No entran al parque instalado.</p>
+            </div>
+          ) : abrirSerie ? (
             <div className="flex items-center gap-1.5">
               <Input value={serie} onChange={(x) => setSerie(x.target.value)} placeholder="Serie como se lee en la placa" className="h-8 font-mono text-sm uppercase" autoFocus />
               <Button size="sm" className="h-8" disabled={pendiente || !serie.trim()} onClick={() => correr(() => registrarSerieDelEquipo(e.id, servicioId, serie), "Serie registrada: la máquina ya está en el parque")}>
@@ -247,9 +300,14 @@ function Fila({
               <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setAbrirSerie(false)}>Cancelar</button>
             </div>
           ) : (
-            <button type="button" className="text-[11px] font-medium text-primary hover:underline" onClick={() => setAbrirSerie(true)}>
-              + Registrar la serie (llegó el stock)
-            </button>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <button type="button" className="text-[11px] font-medium text-primary hover:underline" onClick={() => setAbrirSerie(true)}>
+                + Registrar la serie (llegó el stock)
+              </button>
+              <button type="button" className="text-[11px] font-medium text-primary hover:underline" onClick={() => setModoCodigo(true)}>
+                No lleva serie: un código para {unidad.sinCodigo === 1 ? "esta unidad" : `las ${unidad.sinCodigo} unidades`}
+              </button>
+            </div>
           )}
         </div>
       )}
