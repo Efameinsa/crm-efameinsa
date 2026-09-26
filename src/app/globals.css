@@ -439,3 +439,12 @@ html[data-modo-app="instalada"] body {
     animation: none;
   }
 }
+
+/* RESPONSIVE (26-09). Los hijos de una grilla no se achican por debajo de su
+   contenido (min-width: auto): una tabla ancha dentro de un panel empujaba el
+   panel —y la página— más allá del teléfono, aunque la tabla tuviera su propio
+   desplazamiento. En /nuevo/ventas el panel medía 477 px en una grilla de 418 y
+   el iPhone achicaba toda la pantalla. Con esto, lo ancho se desplaza adentro. */
+main .grid > * {
+  min-width: 0;
+}

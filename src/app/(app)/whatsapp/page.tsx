@@ -31,8 +31,8 @@ export default async function WhatsappPage({
   const tipificados = await tipificacionesActuales(conversaciones.map((c) => c.lead_id).filter((x): x is string => Boolean(x)));
 
   return (
-    <div className="flex h-[calc(100vh-8.5rem)] overflow-hidden rounded-lg border border-border bg-card">
-      <div className="w-full max-w-sm">
+    <div className="flex h-[calc(100dvh-11.5rem)] overflow-hidden rounded-lg border border-border bg-card md:h-[calc(100dvh-8.5rem)]">
+      <div className="w-full md:max-w-sm">
         <WhatsappListaConversaciones
           conversaciones={conversaciones}
           filtroActivo={filtro}

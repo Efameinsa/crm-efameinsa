@@ -127,11 +127,11 @@ export function AplicacionInstalable() {
   if (!evento && !safari) return null;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-3 text-sm">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-border bg-secondary px-3 py-2 text-sm sm:px-4">
       <MonitorDown aria-hidden className="size-5 shrink-0 text-primary" />
-      <p className="flex-1 text-foreground">
+      <p className="min-w-0 flex-1 basis-40 text-foreground">
         <strong>Instale el CRM como aplicación.</strong>{" "}
-        <span className="text-muted-foreground">
+        <span className={evento ? "hidden text-muted-foreground sm:inline" : "text-muted-foreground"}>
           {evento
             ? "Se abre en su propia ventana, se ancla a la barra de tareas y recibe los avisos aunque el navegador esté cerrado."
             : esIOS()
@@ -148,7 +148,7 @@ export function AplicacionInstalable() {
       <button
         type="button"
         onClick={descartar}
-        className="text-muted-foreground hover:text-foreground"
+        className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
         aria-label="Descartar"
       >
         ✕

@@ -57,7 +57,7 @@ export function AvisoNuevaVersion({ versionInicial }: { versionInicial: string }
     <button
       type="button"
       onClick={() => location.reload()}
-      className="fixed bottom-4 left-4 z-50 inline-flex items-center gap-2 rounded-full bg-[#7E1210] px-4 py-2.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.03]"
+      className="fixed bottom-20 left-4 z-50 inline-flex md:bottom-4 items-center gap-2 rounded-full bg-[#7E1210] px-4 py-2.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.03]"
     >
       <RefreshCw className="size-4" />
       Hay una versión nueva — Actualizar

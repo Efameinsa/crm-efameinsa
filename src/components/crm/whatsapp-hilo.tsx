@@ -11,7 +11,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet, Copy, Check, PhoneForwarded } from "lucide-react";
+import { ArrowLeft, Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet, Copy, Check, PhoneForwarded } from "lucide-react";
 // `Package` sigue en uso para pintar las fichas que YA se mandaron antes del
 // 21-09; el botón «Mandar equipo» se quitó del chat ese día (Santos: hacía
 // pesada la bandeja).
@@ -365,9 +365,17 @@ export function WhatsappHilo({
   }
 
   return (
-    <div className="flex h-full flex-1 flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <div className="min-w-0">
+    <div className="flex h-full min-w-0 flex-1 flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
+        {/* En el teléfono (26-09) el chat ocupa toda la pantalla: se vuelve a la lista con esto. */}
+        <Link
+          href="/whatsapp"
+          className="inline-flex h-9 flex-none items-center gap-1 rounded-lg border border-border px-2 text-xs font-medium text-foreground md:hidden"
+        >
+          <ArrowLeft className="size-4" /> Chats
+        </Link>
+        {/* En el teléfono, el nombre, el anuncio y el resultado van en su propia fila, a todo lo ancho. */}
+        <div className="order-last min-w-0 basis-full md:order-none md:flex-1 md:basis-auto">
           <p className="truncate text-sm font-semibold text-foreground">{conversacion.nombre_wa || etiquetaDeContactoWa(conversacion)}</p>
           <p className="truncate text-xs text-muted-foreground">
             {etiquetaDeContactoWa(conversacion)}

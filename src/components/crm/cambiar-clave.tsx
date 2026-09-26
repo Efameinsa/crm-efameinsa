@@ -46,7 +46,7 @@ export function CambiarClave() {
         render={
           <Button variant="outline" size="sm" title="Cambiar mi contraseña">
             <KeyRound className="size-4" />
-            Contraseña
+            <span className="hidden sm:inline">Contraseña</span>
           </Button>
         }
       />

@@ -78,7 +78,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
     ) : null;
   const avisosArriba = !demo ? (
-    <div className="flex flex-col gap-3 px-6 pt-6 empty:hidden">
+    <div className="flex flex-col gap-2 px-3 pt-3 empty:hidden sm:px-4 lg:px-6 lg:pt-4">
       <CalloutActivarNotificaciones />
       <AplicacionInstalable />
       <AvisoGestionesSinSubir />
@@ -173,7 +173,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             que lo habitual es que acá no haya nada. `AplicacionInstalable`
             además registra el service worker: aunque no dibuje nada, tiene que
             estar montado en todas las pantallas. */}
-        {!demo && <div className="flex flex-col gap-3 px-6 pt-6 empty:hidden">
+        {!demo && <div className="flex flex-col gap-2 px-3 pt-3 empty:hidden sm:px-4 lg:px-6 lg:pt-4">
           <CalloutActivarNotificaciones />
           <AplicacionInstalable />
           {/* La cola de gestiones guardadas sin internet (plan 26): vacía no

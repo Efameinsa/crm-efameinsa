@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { Bell, LogOut, Moon, Plus, Search, Sparkles, Sun } from "lucide-react";
 import "@/app/propuesta.css";
 import { BarraPropuesta } from "@/components/propuesta/barra-propuesta";
+import { MenuMovil } from "@/components/propuesta/menu-movil";
 import { BarraProgreso } from "@/components/propuesta/barra-progreso";
 import { GuardaDemo } from "@/components/propuesta/guarda-demo";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
@@ -91,16 +92,27 @@ export async function MarcoPropuesta({
     const [miDia, atenciones] = await Promise.all([contarBandejaMiDia(supabase, perfil.id), contarAtencionesAbiertas(supabase)]);
     contadores["/nuevo/atenciones"] = miDia + atenciones;
   }
+  const propsBarra = {
+    demo,
+    contadores,
+    opciones: MENU[tipo],
+    perfil: NOMBRE_PERFIL[tipo],
+    pin: tipo === "gerencia" || tipo === "admin" || tipo === "operaciones",
+  };
   return (
     <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
       <BarraProgreso />
       {demo && <GuardaDemo />}
       <SelectorFechaHora />
       <TemaEnElCuerpo oscuro={oscuro} />
-      <BarraPropuesta demo={demo} contadores={contadores} opciones={MENU[tipo]} perfil={NOMBRE_PERFIL[tipo]} pin={tipo === "gerencia" || tipo === "admin" || tipo === "operaciones"} />
+      <BarraPropuesta {...propsBarra} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-card/80 px-6 py-2.5 backdrop-blur-md">
-          <form action={buscar.href} method="get" className="flex min-w-64 max-w-xl flex-1 items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 transition-all duration-200 focus-within:border-[var(--c-marca)] focus-within:bg-card focus-within:ring-4 focus-within:ring-[var(--c-marca)]/15">
+        {/* RESPONSIVE (26-09): en el teléfono el menú se abre con ☰ (y la barra
+            de abajo), el buscador baja a su propia fila y los botones quedan en
+            ícono. En 1280×720 (las laptops de la oficina) se ve como siempre. */}
+        <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-border/70 bg-card/80 px-3 py-2 backdrop-blur-md sm:gap-3 sm:px-4 lg:px-6 lg:py-2.5">
+          <MenuMovil {...propsBarra} />
+          <form action={buscar.href} method="get" className="order-last flex min-w-0 basis-full items-center gap-2 sm:order-none sm:min-w-64 sm:max-w-xl sm:flex-1 sm:basis-auto rounded-lg border border-border bg-secondary/60 px-3 py-1.5 transition-all duration-200 focus-within:border-[var(--c-marca)] focus-within:bg-card focus-within:ring-4 focus-within:ring-[var(--c-marca)]/15">
             <Search className="size-4 text-muted-foreground" />
             <input
               id="buscar-global"
@@ -117,7 +129,7 @@ export async function MarcoPropuesta({
               className="group inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md"
             >
               <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
-              {NUEVO[tipo].etiqueta}
+              <span className="max-[380px]:hidden">{NUEVO[tipo].etiqueta}</span>
             </Link>
           )}
           {pasaContactos && (
@@ -158,7 +170,7 @@ export async function MarcoPropuesta({
                     title="Cerrar sesión"
                     className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    <LogOut className="size-3.5" /> Salir
+                    <LogOut className="size-3.5" /> <span className="hidden sm:inline">Salir</span>
                   </button>
                 </form>
               </span>
@@ -178,7 +190,7 @@ export async function MarcoPropuesta({
           </div>
         </header>
         {arriba}
-        <main className="flex-1 p-6">{children}</main>
+        <main className="min-w-0 flex-1 p-3 pb-24 sm:p-4 md:pb-6 lg:p-6">{children}</main>
         {alPie}
       </div>
     </div>

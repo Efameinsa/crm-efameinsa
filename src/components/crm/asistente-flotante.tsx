@@ -43,7 +43,7 @@ export function AsistenteFlotante({ nombre }: { nombre: string }) {
         onClick={() => setAbierto((v) => !v)}
         aria-label={abierto ? "Cerrar el asistente" : "Abrir el asistente"}
         aria-expanded={abierto}
-        className="fixed bottom-5 right-5 z-50 flex size-13 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 print:hidden"
+        className="fixed bottom-20 right-4 z-50 flex size-13 items-center md:bottom-5 md:right-5 justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 print:hidden"
       >
         <Sparkles className="size-5" />
       </button>

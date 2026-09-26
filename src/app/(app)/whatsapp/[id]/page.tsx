@@ -37,8 +37,8 @@ export default async function WhatsappConversacionPage({
   ]);
 
   return (
-    <div className="flex h-[calc(100vh-8.5rem)] overflow-hidden rounded-lg border border-border bg-card">
-      <div className="w-full max-w-sm">
+    <div className="flex h-[calc(100dvh-11.5rem)] overflow-hidden rounded-lg border border-border bg-card md:h-[calc(100dvh-8.5rem)]">
+      <div className="hidden w-full md:block md:max-w-sm">
         <WhatsappListaConversaciones
           conversaciones={conversaciones}
           filtroActivo={filtro}

@@ -78,11 +78,13 @@ export function CalloutActivarNotificaciones() {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+    // En el teléfono (26-09) se parte en dos filas y la explicación larga se
+    // calla: en 440 px la frase quedaba en una columna de mil píxeles de alto.
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm sm:px-4">
       <span aria-hidden className="text-base">🔔</span>
-      <p className="flex-1 text-foreground">
+      <p className="min-w-0 flex-1 basis-40 text-foreground">
         <strong>Active los avisos en este equipo.</strong>{" "}
-        <span className="text-muted-foreground">Reciba asignaciones y aprobaciones aunque la pestaña esté cerrada.</span>
+        <span className="hidden text-muted-foreground sm:inline">Reciba asignaciones y aprobaciones aunque la pestaña esté cerrada.</span>
       </p>
       <Button size="sm" onClick={activar} disabled={activando}>
         {activando ? "Activando…" : "Activar notificaciones"}
@@ -90,7 +92,7 @@ export function CalloutActivarNotificaciones() {
       <button
         type="button"
         onClick={descartar}
-        className="text-muted-foreground hover:text-foreground"
+        className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
         aria-label="Descartar"
       >
         ✕

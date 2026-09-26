@@ -242,8 +242,8 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
     >
       <DialogTrigger
         render={
-          <Button type="button" variant="outline" size="sm">
-            <Send className="size-3.5" /> Pasar contacto a Central
+          <Button type="button" variant="outline" size="sm" title="Pasar contacto a Central" aria-label="Pasar contacto a Central">
+            <Send className="size-3.5" /> <span className="hidden sm:inline">Pasar contacto a Central</span>
           </Button>
         }
       />

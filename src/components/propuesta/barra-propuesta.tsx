@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { PinSupervisor } from "@/components/crm/pin-supervisor";
 import type { Icono, OpcionMenu } from "@/lib/propuesta/menu";
 
-const ICONOS: Record<Icono, LucideIcon> = {
+export const ICONOS: Record<Icono, LucideIcon> = {
   hoy: Sun,
   conversaciones: MessageCircle,
   seguimiento: Inbox,
@@ -43,7 +43,7 @@ const ICONOS: Record<Icono, LucideIcon> = {
 /* Los iconos van en un solo tono (25-09, Santos: «tienen muchos colores»); el
    color vive en la pastilla de la sección activa (propuesta.css, .barra-carbon). */
 
-function activa(opcion: OpcionMenu, ruta: string): boolean {
+export function activa(opcion: OpcionMenu, ruta: string): boolean {
   if (opcion.href === "/nuevo") return ruta === "/nuevo";
   const base = opcion.href.split("?")[0];
   return [base, ...opcion.coincide].some((c) => ruta === c || ruta.startsWith(c + "/"));
@@ -64,7 +64,13 @@ export function BarraPropuesta({
   pin = false,
   demo = true,
   contadores = {},
+  movil = false,
+  alNavegar,
 }: {
+  /** En el celular (26-09): el mismo menú, dentro del panel deslizable de MenuMovil. */
+  movil?: boolean;
+  /** Cierra el panel del celular al elegir una opción. */
+  alNavegar?: () => void;
   /** El número de pendientes junto a una opción, por href (como la barra de siempre, 25-09). */
   contadores?: Record<string, number>;
   /** Cuenta _test: el PIN es de muestra y abajo va «Salir de la propuesta». */
@@ -77,7 +83,15 @@ export function BarraPropuesta({
 }) {
   const ruta = usePathname();
   return (
-    <aside className="barra-carbon sticky top-0 flex h-screen w-[14.5rem] flex-none flex-col">
+    <aside
+      className={cn(
+        "barra-carbon flex flex-col",
+        // En laptop, fija a la izquierda; debajo de 1024 px (tablet, celular) se
+        // esconde y la abre el botón de menú (26-09: el gerente mira el CRM en
+        // su iPhone, y 232 px de barra dejaban 200 px de pantalla).
+        movil ? "h-full w-[17rem] max-w-[85vw] overflow-y-auto" : "sticky top-0 hidden h-screen w-[14.5rem] flex-none lg:flex",
+      )}
+    >
       <div className="px-5 pb-3 pt-5">
         {/* El logo blanco de la oficial, grande (gerencia, 25-09: «el logo un poco más grande»). */}
         <span className="flex justify-center">
@@ -97,7 +111,8 @@ export function BarraPropuesta({
               key={o.href + o.etiqueta}
               href={o.href}
               aria-current={es ? "page" : undefined}
-              className="nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px]"
+              onClick={alNavegar}
+              className={cn("nav-item flex items-center gap-3 rounded-lg px-3 text-[13.5px]", movil ? "py-3" : "py-2")}
             >
               <Icono className="size-[18px] shrink-0" strokeWidth={es ? 2.3 : 1.9} />
               <span className="flex-1">{o.etiqueta}</span>
