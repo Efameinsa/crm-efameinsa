@@ -36,6 +36,7 @@ import {
 import { FicharMaquina } from "@/components/crm/fichar-maquina";
 import {
   avanzarAtencion,
+  terminarSeguimiento,
   avisarVentaDeLaAtencion,
   cerrarAtencion,
   diagnosticar,
@@ -414,20 +415,7 @@ export function LineaAtencion({
       ) : a.etapa === "conformidad" ? (
         <PasoCerrar atencion={a} enviando={enviando} correr={correr} />
       ) : a.etapa === "cierre" || a.etapa === "seguimiento" ? (
-        <Caja titulo={a.etapa === "cierre" ? "Cerrada" : "En seguimiento"}>
-          <p className="text-sm text-foreground">{a.motivo_cierre ?? "Sin nota de cierre."}</p>
-          {a.etapa === "cierre" && sigue && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-2"
-              disabled={enviando}
-              onClick={() => correr(() => avanzarAtencion({ atencionId: a.id, hasta: "seguimiento" }), "Pasó a seguimiento.")}
-            >
-              Pasar a seguimiento
-            </Button>
-          )}
-        </Caja>
+        <PasoCerrada atencion={a} enviando={enviando} correr={correr} />
       ) : (
         sigue && (
           <PasoSimple
@@ -640,6 +628,78 @@ function CerrarAntesDeTiempo({
           </Button>
         </div>
       </div>
+    </Caja>
+  );
+}
+
+/**
+ * La atención ya cerrada (26-09). Cerrada es el final normal: no se ofrece
+ * ningún «siguiente paso». El seguimiento es una excepción que se abre a
+ * propósito, diciendo qué queda pendiente con el cliente, y se termina con un
+ * botón que la devuelve a «Cerrada». Antes el botón «Pasar a seguimiento»
+ * aparecía suelto al cerrar y se presionaba por inercia (Perubar, Sierra Travel).
+ */
+function PasoCerrada({
+  atencion: a,
+  enviando,
+  correr,
+}: {
+  atencion: Atencion;
+  enviando: boolean;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+}) {
+  const [abrir, setAbrir] = useState(false);
+  const [nota, setNota] = useState("");
+  const enSeguimiento = a.etapa === "seguimiento";
+  return (
+    <Caja titulo={enSeguimiento ? "Cerrada · en seguimiento con el cliente" : "Cerrada"}>
+      <p className="text-sm text-foreground">{a.motivo_cierre ?? "Sin nota de cierre."}</p>
+      {enSeguimiento ? (
+        <div className="mt-3 space-y-2 rounded-md border border-amber-400/50 bg-amber-500/5 p-2.5">
+          <p className="text-xs text-foreground">
+            <b>Qué queda pendiente:</b> {a.seguimiento_nota ?? "no se anotó."}
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={enviando}
+            onClick={() => correr(() => terminarSeguimiento({ atencionId: a.id }), "Seguimiento terminado: la atención queda cerrada.")}
+          >
+            Terminar seguimiento
+          </Button>
+        </div>
+      ) : abrir ? (
+        <div className="mt-3 space-y-2">
+          <textarea
+            rows={2}
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            placeholder="Qué queda pendiente con el cliente. Ej.: llamar en una semana para confirmar que la máquina sigue bien."
+            className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
+          />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={enviando || nota.trim().length < 10}
+              onClick={() =>
+                correr(() => avanzarAtencion({ atencionId: a.id, hasta: "seguimiento", seguimientoNota: nota }), "Quedó en seguimiento.")
+              }
+            >
+              Dejar en seguimiento
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setAbrir(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-muted-foreground">
+          No hace falta hacer nada más.{" "}
+          <button type="button" className="cursor-pointer underline hover:text-foreground" onClick={() => setAbrir(true)}>
+            ¿Quedó algo pendiente con el cliente?
+          </button>
+        </p>
+      )}
     </Caja>
   );
 }

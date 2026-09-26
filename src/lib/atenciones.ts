@@ -176,6 +176,8 @@ export interface Atencion {
   conformidad_at: string | null;
   cerrado_at: string | null;
   seguimiento_at: string | null;
+  /** Qué queda pendiente con el cliente después del cierre (26-09): sin esto no hay seguimiento. */
+  seguimiento_nota?: string | null;
   /** Primera vez que alguien del área hizo algo: gestión en el caso ligado o
    *  avance de etapa. La fija la base (migración 0146). Puede faltar en
    *  consultas viejas, por eso es opcional. */
@@ -258,8 +260,12 @@ export function queLeFalta(a: Atencion): { texto: string; responsable: string; u
       return { texto: "Falta la conformidad del cliente", responsable: "Cliente", urgente: false };
     case "conformidad":
       return { texto: "Cerrar y adjuntar el informe", responsable: "Postventa", urgente: true };
+    // Cerrada es cerrada (26-09, Rubí): decía «En seguimiento» y hacía creer
+    // que quedaba algo por hacer en un caso terminado a satisfacción.
     case "cierre":
-      return { texto: "En seguimiento", responsable: "Postventa", urgente: false };
+      return { texto: "Cerrada", responsable: "—", urgente: false };
+    case "seguimiento":
+      return { texto: "En seguimiento con el cliente", responsable: "Postventa", urgente: false };
     default:
       return { texto: "Cerrada", responsable: "—", urgente: false };
   }

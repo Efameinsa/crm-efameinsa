@@ -558,6 +558,8 @@ export async function avanzarAtencion(datos: {
   hasta: EtapaAtencion;
   conformidadNombre?: string | null;
   conformidadDoc?: string | null;
+  /** Qué queda pendiente con el cliente; obligatorio para pasar a seguimiento. */
+  seguimientoNota?: string | null;
 }): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { data: a } = await supabase
@@ -583,6 +585,14 @@ export async function avanzarAtencion(datos: {
   if (datos.hasta === "conformidad" && !datos.conformidadNombre?.trim()) {
     return { error: "La conformidad la firma el cliente: escriba quién la dio" };
   }
+  // EL SEGUIMIENTO ES UNA DECISIÓN, NO EL PASO QUE SIGUE (26-09). Dos atenciones
+  // terminadas a satisfacción (Perubar el 14-09, Sierra Travel el 26-09) pasaron
+  // a «seguimiento» seis segundos después del cierre, sin nota: el botón aparecía
+  // justo donde estaba el de «avanzar» de cada paso. Ahora solo entra quien dice
+  // qué queda pendiente con el cliente.
+  if (datos.hasta === "seguimiento" && (datos.seguimientoNota?.trim().length ?? 0) < 10) {
+    return { error: "Escriba qué queda pendiente con el cliente. Si el caso terminó bien, no hace falta seguimiento." };
+  }
 
   const cambios: Record<string, unknown> = { etapa: datos.hasta };
   const sello = SELLO_DE_ETAPA[datos.hasta];
@@ -591,8 +601,35 @@ export async function avanzarAtencion(datos: {
     cambios.conformidad_nombre = datos.conformidadNombre?.trim();
     cambios.conformidad_doc = datos.conformidadDoc?.trim() || null;
   }
+  if (datos.hasta === "seguimiento") cambios.seguimiento_nota = datos.seguimientoNota?.trim();
 
   const { error } = await supabase.from("atenciones").update(cambios).eq("id", datos.atencionId);
+  if (error) return { error: error.message };
+  refrescar(datos.atencionId);
+  return { error: null };
+}
+
+/**
+ * Terminar el seguimiento (26-09): la atención vuelve a «Cerrada». Es la salida
+ * que no existía: una atención en seguimiento se quedaba ahí para siempre. La
+ * nota se conserva y se le suma cómo terminó.
+ */
+export async function terminarSeguimiento(datos: { atencionId: string; nota?: string | null }): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data: a } = await supabase.from("atenciones").select("etapa, seguimiento_nota").eq("id", datos.atencionId).maybeSingle();
+  if (!a) return { error: "Esa atención no existe" };
+  if (a.etapa !== "seguimiento") return { error: "Esta atención no está en seguimiento" };
+  const cierre = datos.nota?.trim();
+  const { error } = await supabase
+    .from("atenciones")
+    .update({
+      etapa: "cierre",
+      seguimiento_at: null,
+      seguimiento_nota: a.seguimiento_nota
+        ? `${a.seguimiento_nota}${cierre ? ` — Terminado: ${cierre}` : " — Terminado."}`
+        : cierre || null,
+    })
+    .eq("id", datos.atencionId);
   if (error) return { error: error.message };
   refrescar(datos.atencionId);
   return { error: null };
