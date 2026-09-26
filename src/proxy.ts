@@ -29,7 +29,7 @@ export async function proxy(request: NextRequest) {
   if (ranura) {
     if (request.method !== "GET" && request.method !== "HEAD") {
       return NextResponse.json(
-        { error: "Sesión de auditoría de gerencia: solo lectura. Nada se registra a nombre de la persona auditada." },
+        { error: "Sesión de auditoría: solo lectura. Nada se registra a nombre de la persona auditada." },
         { status: 403 },
       );
     }

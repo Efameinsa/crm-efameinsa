@@ -26,9 +26,9 @@ export async function GET(request: NextRequest) {
     .eq("id", auditoriaId)
     .maybeSingle();
   if (!aud) return new NextResponse("Esta auditoría no existe", { status: 404 });
-  if (aud.entrada_at) return new NextResponse("Este acceso ya se usó. Vuelva a «Entrar como» desde gerencia.", { status: 410 });
+  if (aud.entrada_at) return new NextResponse("Este acceso ya se usó. Vuelva a «Entrar como» para abrir otro.", { status: 410 });
   if (Date.now() - new Date(aud.abierta_at as string).getTime() > 10 * 60_000) {
-    return new NextResponse("Este acceso venció (10 minutos). Vuelva a «Entrar como» desde gerencia.", { status: 410 });
+    return new NextResponse("Este acceso venció (10 minutos). Vuelva a «Entrar como» para abrir otro.", { status: 410 });
   }
 
   // El destino se arma con el Host con que llegó la petición (la ranura), no
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.verifyOtp({ token_hash: token, type: "magiclink" });
   if (error) return new NextResponse(`No se pudo abrir la sesión: ${error.message}`, { status: 401 });
 
-  const auditor = (aud.auditor as unknown as { nombre: string } | null)?.nombre ?? "gerencia";
+  const auditor = (aud.auditor as unknown as { nombre: string } | null)?.nombre ?? "supervisión";
   const auditado = (aud.auditado as unknown as { nombre: string } | null)?.nombre ?? "la cuenta";
   await admin.from("auditorias_sesion").update({ entrada_at: new Date().toISOString(), ultimo_visto_at: new Date().toISOString() }).eq("id", auditoriaId);
 

@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { requerirRol } from "@/lib/auth";
+import { ROLES_QUE_AUDITAN, puedeAuditar } from "@/lib/alcance-auditoria";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hostDeRanura, RANURAS } from "@/lib/auditoria";
 
@@ -21,13 +22,17 @@ import { hostDeRanura, RANURAS } from "@/lib/auditoria";
 export async function abrirAuditoria(
   perfilId: string,
 ): Promise<{ error: string | null; url?: string; ranura?: number; nombre?: string }> {
-  const yo = await requerirRol(["gerencia", "admin"]);
+  const yo = await requerirRol([...ROLES_QUE_AUDITAN]);
   if (!/^[0-9a-f-]{36}$/i.test(perfilId)) return { error: "Cuenta inválida" };
   if (perfilId === yo.id) return { error: "Para verse a usted mismo no hace falta auditoría" };
 
   const admin = createAdminClient();
-  const { data: perfil } = await admin.from("perfiles").select("id, nombre, rol, activo").eq("id", perfilId).maybeSingle();
+  const { data: perfil } = await admin.from("perfiles").select("id, nombre, rol, activo, es_operaciones").eq("id", perfilId).maybeSingle();
   if (!perfil) return { error: "Esa cuenta no existe" };
+  // Operaciones solo entra como Central, comerciales, Finanzas y Facturación (26-09).
+  if (!puedeAuditar(yo, { id: perfil.id as string, rol: String(perfil.rol), es_operaciones: perfil.es_operaciones as boolean | null })) {
+    return { error: `No puede entrar como ${perfil.nombre}: esa cuenta no está en su alcance` };
+  }
   if (!perfil.activo) return { error: `${perfil.nombre} está desactivado: no se puede entrar como una cuenta inactiva` };
 
   const { data: usuario } = await admin.auth.admin.getUserById(perfilId);

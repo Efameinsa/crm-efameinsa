@@ -61,7 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const franjaAuditoria = ranuraAuditoria ? (
     <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-500 px-6 py-2 text-xs font-semibold text-amber-950">
       <span>
-        Sesión de auditoría de gerencia{auditoria ? ` (${auditoria.auditor})` : ""} · viendo el CRM como{" "}
+        Sesión de auditoría{auditoria ? ` de ${auditoria.auditor}` : ""} · viendo el CRM como{" "}
         <b>{auditoria?.auditado ?? perfil.nombre}</b> · ranura ver{ranuraAuditoria}
       </span>
       <span className="rounded-full bg-amber-950/10 px-2 py-0.5">Solo lectura: nada se registra a su nombre</span>
@@ -118,7 +118,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {ranuraAuditoria && (
           <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-500 px-6 py-2 text-xs font-semibold text-amber-950">
             <span>
-              Sesión de auditoría de gerencia{auditoria ? ` (${auditoria.auditor})` : ""} · viendo el CRM como{" "}
+              Sesión de auditoría{auditoria ? ` de ${auditoria.auditor}` : ""} · viendo el CRM como{" "}
               <b>{auditoria?.auditado ?? perfil.nombre}</b> · ranura ver{ranuraAuditoria}
             </span>
             <span className="rounded-full bg-amber-950/10 px-2 py-0.5">Solo lectura: nada se registra a su nombre</span>

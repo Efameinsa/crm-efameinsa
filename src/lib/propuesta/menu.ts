@@ -164,6 +164,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Finanzas", href: "/nuevo/finanzas", icono: "cobranza", coincide: ["/nuevo/finanzas", "/finanzas"] },
     { etiqueta: "Catálogo", href: "/operaciones/catalogo", icono: "catalogo", coincide: ["/operaciones/catalogo"] },
     { etiqueta: "Permisos y listas", href: "/nuevo/permisos", icono: "permisos", coincide: ["/nuevo/permisos", "/operaciones/permisos", "/admin/catalogos"] },
+    // Como gerencia, pero de Central, comerciales, almacén, Finanzas y Facturación (26-09).
+    { etiqueta: "Ver como otra cuenta", href: "/operaciones/ver-como", icono: "control", coincide: ["/operaciones/ver-como"] },
   ],
   gerencia: [
     hoy,
