@@ -802,9 +802,31 @@ html:has(.propuesta) {
   border-radius: 0.6rem;
   background: var(--card);
 }
-.propuesta .campana-propuesta > div > div.absolute {
-  width: 25rem;
+.propuesta .campana-propuesta .panel-campana {
   border-radius: 1rem;
   overflow: hidden;
   box-shadow: 0 24px 48px -20px rgb(0 0 0 / 0.35);
+}
+
+@media (min-width: 640px) {
+  .propuesta .campana-propuesta .panel-campana {
+    width: 25rem;
+  }
+}
+
+/* LA CAMPANA EN EL TELÉFONO (26-09, Santos desde la vista de gerencia: «se abre
+   pero a la izquierda y está fuera de la vista»). El panel de 25rem se alineaba
+   al borde derecho de la campana, que en el celular queda a la izquierda. Ahí se
+   abre a todo lo ancho bajo la cabecera (la cabecera tiene backdrop-filter: es
+   la referencia del `fixed`, y mide todo el ancho de la pantalla). */
+@media (max-width: 639px) {
+  .propuesta .campana-propuesta .panel-campana {
+    width: auto;
+    left: 0.5rem;
+    right: 0.5rem;
+    top: 3.25rem;
+  }
+  .propuesta .campana-propuesta .max-h-96 {
+    max-height: min(24rem, calc(100dvh - 12rem));
+  }
 }

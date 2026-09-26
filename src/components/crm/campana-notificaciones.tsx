@@ -518,7 +518,9 @@ export function CampanaNotificaciones({
       </button>
 
       {abierto && (
-        <div className="absolute right-0 top-11 z-50 w-80 rounded-xl border border-border bg-popover shadow-lg">
+        // En el teléfono (26-09) se abre a todo lo ancho bajo la cabecera: alineado a la
+        // campana, que ahí queda a la izquierda, salía de la pantalla.
+        <div className="panel-campana fixed inset-x-2 top-14 z-50 rounded-xl border border-border bg-popover shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:w-80">
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
             <span className="text-sm font-semibold">Notificaciones</span>
             <div className="flex items-center gap-3">
