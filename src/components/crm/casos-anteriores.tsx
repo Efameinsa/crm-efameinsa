@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { PackageSearch, ShieldCheck, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { fechaCalendario } from "@/lib/fechas";

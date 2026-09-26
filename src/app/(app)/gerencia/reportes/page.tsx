@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { CheckCircle2, Clock, FileText, MinusCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirRol } from "@/lib/auth";

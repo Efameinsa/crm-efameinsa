@@ -28,7 +28,7 @@ import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { AccionesExpedientePostventa } from "@/components/crm/acciones-expediente-postventa";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { fechaAgendada, fechaHoraLima, fechaLimaCorta } from "@/lib/fechas";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
 import { AnuncioDelLead } from "@/components/crm/anuncio-del-lead";

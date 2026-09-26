@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { ChevronDown } from "lucide-react";
 import { usd } from "@/lib/reportes";
 import { cn } from "@/lib/utils";

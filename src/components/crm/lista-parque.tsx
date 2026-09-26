@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Search } from "lucide-react";
 import type { ClienteParque } from "@/lib/parque";
 import { ETIQUETA_MANTENIMIENTO, type EstadoMantenimiento } from "@/lib/ruta-mantenimiento";

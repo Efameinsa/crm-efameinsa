@@ -8,7 +8,7 @@
 // llegar un mensaje sin que alguien tenga que recargar la página.
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowLeft, Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet, Copy, Check, PhoneForwarded } from "lucide-react";
@@ -40,6 +40,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
+import { repasarMensajes } from "@/lib/whatsapp-repaso-navegador";
+import { COOKIE_DEMO } from "@/lib/solo-lectura";
 
 // Lo mismo que admite hoy el bucket `adjuntos` (0234): fotos, documentos de
 // oficina, audio y video — igual que adjuntar un archivo en WhatsApp Web.
@@ -156,12 +158,38 @@ export function WhatsappHilo({
   const streamRef = useRef<MediaStream | null>(null);
   const cronometroRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Repaso cada 4 s, directo a la base y solo con la pestaña a la vista
+  // (whatsapp-repaso-navegador.ts). La cuenta de demostración (0280) lee con
+  // la sesión de otra persona, cosa que solo sabe hacer el servidor: esa
+  // sigue por la acción.
+  const mensajesRef = useRef(mensajes);
   useEffect(() => {
-    const intervalo = setInterval(async () => {
-      const frescos = await mensajesDe(conversacion.id);
-      setMensajes(frescos);
-    }, 4000);
-    return () => clearInterval(intervalo);
+    mensajesRef.current = mensajes;
+  }, [mensajes]);
+  useEffect(() => {
+    const demo = document.cookie.split("; ").includes(`${COOKIE_DEMO}=1`);
+    let ocupado = false;
+    async function repasar() {
+      if (ocupado || document.visibilityState !== "visible") return;
+      ocupado = true;
+      try {
+        if (demo) setMensajes(await mensajesDe(conversacion.id));
+        else {
+          const frescos = await repasarMensajes(conversacion.id, mensajesRef.current);
+          if (frescos) setMensajes(frescos);
+        }
+      } catch {
+        // un tropiezo de red: el próximo repaso lo vuelve a intentar
+      } finally {
+        ocupado = false;
+      }
+    }
+    const intervalo = setInterval(repasar, 4000);
+    document.addEventListener("visibilitychange", repasar);
+    return () => {
+      clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", repasar);
+    };
   }, [conversacion.id]);
 
   useEffect(() => {

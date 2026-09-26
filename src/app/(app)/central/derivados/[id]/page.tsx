@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { ArrowLeft, FileDown, Mail, Phone, Siren } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { fechaHoraLima } from "@/lib/fechas";

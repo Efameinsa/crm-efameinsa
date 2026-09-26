@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { FileText, MessageCircle, Paperclip } from "lucide-react";
 import type { createClient } from "@/lib/supabase/server";
 import { ETIQUETA_ESTADO_PAGO, estadoPago, saldoPendiente, seriesDeTexto, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";

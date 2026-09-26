@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { TableroControl, type TarjetaControl } from "@/components/crm/tablero-control";
 import { TablaPorPaso, type FilaTabla } from "@/components/crm/tabla-por-paso";
 import { cn } from "@/lib/utils";

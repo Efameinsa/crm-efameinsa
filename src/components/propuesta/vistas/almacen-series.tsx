@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Lock, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { FilaTrabajo, Grupo, Vacio, haceCuanto, type DatosFila } from "@/components/propuesta/kit";

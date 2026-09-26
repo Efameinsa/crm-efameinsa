@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { AlertTriangle, Wrench, PackageSearch, ShieldCheck, Inbox, ArrowRight, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";

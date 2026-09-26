@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { MoreHorizontal, FileText, CircleCheckBig, CalendarClock, Wrench } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";

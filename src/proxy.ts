@@ -60,10 +60,16 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // IMPORTANTE: no quitar. getUser() valida el token contra Supabase Auth
-  // (getSession() solo lee la cookie, sin validar) y además refresca la sesión.
-  const { data: datosUsuario, error: errorSesion } = await supabase.auth.getUser();
-  const user = datosUsuario.user;
+  // IMPORTANTE: no quitar. getClaims() refresca la sesión si el token venció
+  // (getSession por dentro) y comprueba la FIRMA del token acá mismo con la
+  // clave pública ES256, que se descarga una vez y queda en memoria.
+  // Hasta el 26-09 era getUser(): una ida y vuelta a Supabase Auth en CADA
+  // pedido que pasaba por el proxy (~100 k diarios, la mitad de las
+  // peticiones del proyecto en la cuota gratuita, y ~130 ms por clic).
+  // getSession() a secas NO sirve: lee la cookie sin validarla.
+  const { data: datosClaims, error: errorSesion } = await supabase.auth.getClaims();
+  const claims = datosClaims?.claims;
+  const user = claims?.sub ? { id: claims.sub, email: typeof claims.email === "string" ? claims.email : undefined } : null;
 
   // Si quien pregunta TRAE su cookie de sesión y lo único que pasó es que no
   // se pudo verificar contra Supabase, no se le saca: se le deja pasar y en la

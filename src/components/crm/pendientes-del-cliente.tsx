@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { AlertTriangle, ArrowRight, ClipboardList, Package, PhoneForwarded, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { bloquesPedido, etiquetaResponsable, sinPrecios, type ServicioPostventa } from "@/lib/postventa";

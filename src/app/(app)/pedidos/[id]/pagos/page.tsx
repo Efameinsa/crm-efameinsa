@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeft, BadgeCheck, Paperclip } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";

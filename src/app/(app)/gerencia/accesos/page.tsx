@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Laptop, Smartphone, Tablet, MapPin, ShieldAlert, HelpCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirRol } from "@/lib/auth";

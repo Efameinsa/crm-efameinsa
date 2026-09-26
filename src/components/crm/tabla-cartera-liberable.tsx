@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowRightLeft, Loader2 } from "lucide-react";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { ArrowRight, Check, Clock, Hourglass, Inbox, Lock, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 

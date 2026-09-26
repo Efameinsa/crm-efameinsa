@@ -9,7 +9,7 @@ import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
 import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { SelectorFechaHora } from "@/components/propuesta/selector-fecha-hora";
 import { TemaEnElCuerpo } from "@/components/propuesta/tema-en-el-cuerpo";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { cn } from "@/lib/utils";
 import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
 import { CambiarClave } from "@/components/crm/cambiar-clave";

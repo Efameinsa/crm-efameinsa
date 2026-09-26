@@ -1,5 +1,5 @@
 import { ChipOrigen } from "@/components/crm/chip-origen";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { AlertTriangle, FileDown, MessageSquareText, Phone, Siren } from "lucide-react";
 import { fechaHoraLima } from "@/lib/fechas";
 import {

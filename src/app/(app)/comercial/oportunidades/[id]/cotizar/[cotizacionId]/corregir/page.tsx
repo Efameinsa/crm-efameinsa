@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { KeyRound } from "lucide-react";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { PantallaCorreccion } from "@/components/crm/pantalla-correccion";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Check, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CorregirCotizacionBoton } from "@/components/crm/corregir-cotizacion-boton";

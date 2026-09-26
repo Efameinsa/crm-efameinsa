@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Package, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { bloquesPedido, circuitoDe, etiquetaResponsable, sinPrecios, type ServicioPostventa } from "@/lib/postventa";

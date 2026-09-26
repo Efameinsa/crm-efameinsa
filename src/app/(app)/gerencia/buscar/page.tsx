@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Search, FileText, ExternalLink } from "lucide-react";
 import { requerirRol } from "@/lib/auth";
 import { buscarEnTodo, type TipoResultado } from "@/lib/buscar-en-todo";

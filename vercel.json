@@ -5,7 +5,7 @@
       "schedule": "0 11 * * *"
     }
   ],
-  "ignoreCommand": "git cat-file -e ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} 2>/dev/null || exit 1; git diff --quiet ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} HEAD -- . ':(exclude)docs' ':(exclude)*.md' ':(exclude)scripts/data'",
+  "ignoreCommand": "case \"$VERCEL_GIT_COMMIT_REF\" in main|vista-previa/*) ;; *) echo \"$VERCEL_GIT_COMMIT_MESSAGE\" | grep -q '\\[vista-previa\\]' || exit 0;; esac; git cat-file -e ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} 2>/dev/null || exit 1; git diff --quiet ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} HEAD -- . ':(exclude)docs' ':(exclude)*.md' ':(exclude)scripts' ':(exclude)supabase'",
   "regions": [
     "gru1"
   ]

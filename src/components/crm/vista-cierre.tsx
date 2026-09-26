@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FileText, History, Lock, PencilLine, Plus, ShieldCheck, Trash2, Truck, Users, Wallet, X } from "lucide-react";

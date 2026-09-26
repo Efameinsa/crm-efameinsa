@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { ArrowRight, Check, Clock, Send, X } from "lucide-react";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { Button } from "@/components/ui/button";

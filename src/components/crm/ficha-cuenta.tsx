@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { fechaLima } from "@/lib/fechas";
 import { MapPin, FileText, Plus } from "lucide-react";
 import { EtapaBadge } from "@/components/crm/etapa-badge";

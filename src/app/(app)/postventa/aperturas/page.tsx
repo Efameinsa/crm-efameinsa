@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { requerirPerfil } from "@/lib/auth";
 import { ListaAperturas, type PestanaAperturas } from "@/components/crm/lista-aperturas";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";

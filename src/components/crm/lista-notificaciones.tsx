@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCheck } from "lucide-react";
 import { marcarNotificacionLeida, marcarTodasLeidas } from "@/lib/acciones/notificaciones";

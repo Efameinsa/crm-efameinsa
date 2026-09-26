@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowDown, ExternalLink } from "lucide-react";
 import type { EmbudoTotales } from "@/lib/marketing";

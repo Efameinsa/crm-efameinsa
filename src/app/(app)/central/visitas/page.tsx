@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { createClient } from "@/lib/supabase/server";
 import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
 import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
