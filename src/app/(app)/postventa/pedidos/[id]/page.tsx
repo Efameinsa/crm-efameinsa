@@ -26,6 +26,7 @@ import {
   type ServicioPostventa,
 } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
+import { CerrarPedidoAnterior } from "@/components/crm/cerrar-pedido-anterior";
 
 export const dynamic = "force-dynamic";
 
@@ -174,6 +175,14 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
       >
         <ArrowLeft className="size-3.5" /> Volver a postventa
       </Link>
+
+      {/* El pedido del Excel ya entregado no tiene pasos que seguir (0312). */}
+      {(servicio as { origen?: string | null }).origen === "excel" && !servicio.completado && !servicio.cerrado_at && (
+        <CerrarPedidoAnterior
+          servicioId={servicio.id}
+          fechaSugerida={(servicio.fecha_despacho ?? servicio.fecha_confirmacion ?? null)?.slice(0, 10) ?? null}
+        />
+      )}
 
       {/* Cabecera: quién, qué, cuánto y qué lo frena. */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

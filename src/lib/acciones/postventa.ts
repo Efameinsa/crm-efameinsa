@@ -654,6 +654,34 @@ export async function cerrarPedidosAntiguosComoEntregados(
 }
 
 /**
+ * UN pedido anterior al circuito, ya entregado, se cierra desde su ficha (0312).
+ * Rubí, 26-09 (Rojas Damián): el CRM le pedía el plano de preinstalación de una
+ * venta de junio cuyo cliente ya usa la lavadora. No hay pasos que seguir: se
+ * cierra como entregado y queda escrito quién lo gestionó en su momento.
+ */
+export async function cerrarPedidoAnteriorEntregado(datos: {
+  servicioId: string;
+  fecha: string;
+  quien: string;
+  nota?: string;
+}): Promise<{ error: string | null }> {
+  await requerirPerfil();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datos.fecha)) return falla("Ponga la fecha en que se entregó");
+  if (datos.quien.trim().length < 3) return falla("Diga quién gestionó la entrega en su momento");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cerrar_pedido_anterior_entregado", {
+    p_id: datos.servicioId,
+    p_fecha: datos.fecha,
+    p_quien: datos.quien.trim(),
+    p_nota: datos.nota?.trim() || null,
+  });
+  if (error) return falla(error.message);
+  revalidatePath("/postventa/control");
+  revalidatePath(`/postventa/pedidos/${datos.servicioId}`);
+  return { error: null };
+}
+
+/**
  * Las series del pedido, sin cerrarlo (0253). Gary Group salió el 15-09 con
  * guía y ninguna serie llegó al parque: el caso que abrió después no tenía
  * máquinas que elegir. La puerta era «Cerrar pedido»; ahora las series se

@@ -17,6 +17,7 @@ import {
 import { ETIQUETA_ESTADO_APERTURA, aperturaAbierta, estadoApertura } from "@/lib/aperturas-llamada";
 import { fechaCalendario, fechaLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
+import { CerrarPedidoAnterior } from "@/components/crm/cerrar-pedido-anterior";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { guardaFichaPedido } from "@/lib/propuesta/guardas";
@@ -106,6 +107,13 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
       <Link href="/nuevo/pedidos" className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" /> Volver a pedidos
       </Link>
+      {/* El pedido del Excel ya entregado no tiene pasos que seguir (0312). */}
+      {(servicio as { origen?: string | null }).origen === "excel" && !servicio.completado && !servicio.cerrado_at && (
+        <CerrarPedidoAnterior
+          servicioId={servicio.id}
+          fechaSugerida={(servicio.fecha_despacho ?? servicio.fecha_confirmacion ?? null)?.slice(0, 10) ?? null}
+        />
+      )}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
