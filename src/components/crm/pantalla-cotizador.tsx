@@ -32,7 +32,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { fechaCalendario } from "@/lib/fechas";
 import { BuscadorEquiposModal } from "@/components/crm/buscador-equipos-modal";
-import { CajaAgregarItem } from "@/components/crm/caja-agregar-item";
 import { LoQueTieneElClientePanel } from "@/components/crm/lo-que-tiene-el-cliente";
 import type { LoQueTieneElCliente } from "@/lib/lo-que-tiene-el-cliente";
 import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
@@ -380,7 +379,21 @@ export function PantallaCotizador({
         : equiposParaElegir,
     [equiposParaElegir, soloServiciosYRepuestos],
   );
-  const [busquedaPostventa, setBusquedaPostventa] = useState("");
+  // «Lo que tiene este cliente» abre la ventana ya buscando su equipo (26-09).
+  const [pedidoBusqueda, setPedidoBusqueda] = useState<{ texto: string; n: number }>({ texto: "", n: 0 });
+  const buscarEnCatalogo = (texto: string) => setPedidoBusqueda((p) => ({ texto, n: p.n + 1 }));
+  const gruposPostventa = useMemo(() => {
+    const es = (seg: string) => (p: { segmento: string }) => String(p.segmento) === seg;
+    const g: { clave: string; etiqueta: string; incluye: (p: { segmento: string }) => boolean }[] = [
+      { clave: "todo", etiqueta: "Todo", incluye: () => true },
+      { clave: "servicio", etiqueta: "Servicios", incluye: es("servicio") },
+      { clave: "repuesto", etiqueta: "Repuestos", incluye: es("repuesto") },
+    ];
+    if (!soloServiciosYRepuestos) {
+      g.push({ clave: "equipo", etiqueta: "Equipos", incluye: (p) => !["servicio", "repuesto"].includes(String(p.segmento)) });
+    }
+    return g;
+  }, [soloServiciosYRepuestos]);
   const cantidadesEnCarrito = useMemo(() => {
     const m: Record<string, number> = {};
     for (const i of carrito) if (i.producto_id) m[i.producto_id] = (m[i.producto_id] ?? 0) + i.cantidad;
@@ -1077,21 +1090,31 @@ export function PantallaCotizador({
               catálogo —desde la 0190 ahí conviven servicios, repuestos y
               máquinas— y ofrece agregarlo a mano si no aparece. */}
           {esPostventa && loQueTiene && (
-            <LoQueTieneElClientePanel datos={loQueTiene} hoy={hoy} onBuscar={setBusquedaPostventa} />
+            <LoQueTieneElClientePanel datos={loQueTiene} hoy={hoy} onBuscar={buscarEnCatalogo} />
           )}
+          {/* POSTVENTA ELIGE COMO EL COMERCIAL (Santos, 26-09): «los comerciales
+              tienen una vista donde salen todos los productos, van eligiendo y
+              se va sumando; en postventa hay que digitar, poco práctico». La
+              misma ventana, con su catálogo, pestañas Servicios / Repuestos,
+              sin stock en los servicios y el «escribirlo a mano» adentro. */}
           {esPostventa ? (
-            <CajaAgregarItem
+            <BuscadorEquiposModal
               productos={catalogoPostventa}
-              soloServiciosYRepuestos={soloServiciosYRepuestos}
-              texto={busquedaPostventa}
-              onTexto={setBusquedaPostventa}
               enCarrito={cantidadesEnCarrito}
-              moneda="US$"
-              onAgregar={(id) => {
-                const p = productos.find((x) => x.id === id);
+              onAgregar={(e) => {
+                const p = productos.find((x) => x.id === e.id);
                 if (p) agregarProducto(p);
               }}
-              onLineaLibre={agregarLineaLibre}
+              onRestar={restarProducto}
+              onQuitar={quitarProducto}
+              titulo={soloServiciosYRepuestos ? "Ver y agregar servicios y repuestos" : "Ver y agregar servicios, repuestos y equipos"}
+              subtitulo="Todo el catálogo a la vista: mantenimientos, repuestos, visitas… o escriba lo que pide el cliente"
+              grupos={gruposPostventa}
+              mostrarStock={(p) => String(p.segmento) !== "servicio" && p.stock != null}
+              onLineaLibre={(texto) => agregarLineaLibre(texto || undefined)}
+              pedido={pedidoBusqueda}
+              ayuda="Clic o Enter agregan; las cantidades se cambian con − y +, y ✕ lo quita."
+              mensajeVacio={<>Nada del catálogo coincide con lo que escribió. Si es algo puntual, agréguelo escrito a mano.</>}
             />
           ) : (
             <BuscadorEquiposModal
@@ -1111,7 +1134,7 @@ export function PantallaCotizador({
 
           {/* Para el comercial, esto es la excepción: va abajo y en gris,
               porque su camino normal es el buscador de equipos. */}
-          {!esPostventa && (
+          {(
             <button
               type="button"
               onClick={() => agregarLineaLibre()}

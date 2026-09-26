@@ -155,7 +155,10 @@ function PanelDetalle({
   colorElegido,
   onElegirColor,
   onQuitar,
+  mostrarStock = true,
 }: {
+  /** Un servicio no tiene stock: su etiqueta «stock s/d» solo confundía (26-09). */
+  mostrarStock?: boolean;
   equipo: EquipoElegible | null;
   unidades: number;
   /** El color con el que este equipo YA está en la cotización, si está. */
@@ -173,9 +176,9 @@ function PanelDetalle({
     return (
       <div className="hidden h-full flex-col items-center justify-center gap-2 text-center text-xs text-muted-foreground sm:flex">
         <Search className="size-6" />
-        Pase el mouse por un equipo
+        Pase el mouse por una opción
         <br />
-        para verlo acá sin agregarlo.
+        para verla acá sin agregarla.
       </div>
     );
   }
@@ -249,7 +252,7 @@ function PanelDetalle({
         {equipo.precio != null && (
           <span className="text-base font-bold tabular-nums text-foreground">{monto(equipo.precio)}</span>
         )}
-        <BadgeStock stock={equipo.stock} enVivo={equipo.stockEnVivo} />
+        {mostrarStock && <BadgeStock stock={equipo.stock} enVivo={equipo.stockEnVivo} />}
       </div>
       {/* El estado del equipo en la cotización. El «quitar» también está acá
           —es donde mira quien está inspeccionando el equipo— pero desde el
@@ -303,7 +306,9 @@ function PanelDetalle({
           </ul>
         </div>
       )}
-      {equipo.sinFicha && (
+      {/* Un servicio o un repuesto no lleva página de ficha: el PDF los pone a
+          todo el ancho (25-09). El aviso solo vale para las máquinas. */}
+      {equipo.sinFicha && !["servicio", "repuesto"].includes(String(equipo.segmento)) && (
         <p className="rounded-md bg-amber-500/10 p-1.5 text-[11px] font-semibold text-amber-800">
           Sin ficha técnica cargada: su página saldrá vacía en el PDF.
         </p>
@@ -377,6 +382,11 @@ export function BuscadorEquiposModal({
   titulo = "Buscar y agregar equipos",
   subtitulo = "Código, marca, capacidad o como lo pide el cliente: «secadora a gas», «rodillo eléctrico»…",
   mensajeVacio,
+  grupos,
+  mostrarStock,
+  onLineaLibre,
+  pedido,
+  ayuda,
 }: {
   productos: EquipoElegible[];
   /** producto_id → unidades ya en la cotización, para los badges. */
@@ -406,13 +416,47 @@ export function BuscadorEquiposModal({
   titulo?: string;
   subtitulo?: string;
   mensajeVacio?: React.ReactNode;
+  /**
+   * LA MISMA VENTANA PARA POSTVENTA (Santos, 26-09): «los comerciales tienen una
+   * vista donde salen todos los productos, van eligiendo y se va sumando; en
+   * postventa hay que digitar, poco práctico». Postventa usa esta ventana con su
+   * catálogo (servicios y repuestos) y estas cuatro piezas, que el comercial no
+   * pasa y por eso no ve:
+   *  · `grupos`: pestañas para recorrer sin escribir (Todo / Servicios / Repuestos).
+   *  · `mostrarStock`: un servicio no tiene stock; la etiqueta solo confundía.
+   *  · `onLineaLibre`: lo que no está en el catálogo se agrega escrito a mano,
+   *    con lo que se tecleó, sin salir de la ventana.
+   *  · `pedido`: abre la ventana ya buscando algo (el equipo del cliente que se
+   *    tocó en «Lo que tiene este cliente»). Cambia `n` para volver a pedirlo.
+   */
+  grupos?: { clave: string; etiqueta: string; incluye: (p: EquipoElegible) => boolean }[];
+  mostrarStock?: (p: EquipoElegible) => boolean;
+  onLineaLibre?: (texto: string) => void;
+  pedido?: { texto: string; n: number };
+  ayuda?: React.ReactNode;
 }) {
   const [abierto, setAbierto] = useState(abrirAlEntrar);
   const [texto, setTexto] = useState("");
   const [resaltado, setResaltado] = useState(0);
+  const [grupo, setGrupo] = useState<string>(grupos?.[0]?.clave ?? "");
   const listaRef = useRef<HTMLUListElement>(null);
 
-  const coincidencias = useMemo(() => buscarEquipos(productos, texto), [productos, texto]);
+  // Un pedido de afuera abre la ventana con ese texto. Se compara el número y
+  // no el texto: tocar dos veces el mismo equipo del cliente debe abrirla dos veces.
+  const [pedidoVisto, setPedidoVisto] = useState(pedido?.n ?? 0);
+  if (pedido && pedido.n !== pedidoVisto) {
+    setPedidoVisto(pedido.n);
+    setTexto(pedido.texto);
+    setGrupo(grupos?.[0]?.clave ?? "");
+    setAbierto(true);
+  }
+
+  const delGrupo = useMemo(() => {
+    const g = grupos?.find((x) => x.clave === grupo);
+    return g ? productos.filter(g.incluye) : productos;
+  }, [productos, grupos, grupo]);
+  const coincidencias = useMemo(() => buscarEquipos(delGrupo, texto), [delGrupo, texto]);
+  const conStock = (p: EquipoElegible) => (mostrarStock ? mostrarStock(p) : true);
   const enFoco = coincidencias[resaltado] ?? coincidencias[0] ?? null;
   const totalEquipos = Object.values(enCarrito).reduce((a, b) => a + b, 0);
 
@@ -506,6 +550,34 @@ export function BuscadorEquiposModal({
           </button>
           </div>
 
+          {grupos && grupos.length > 1 && (
+            <div className="flex flex-wrap gap-1.5" role="tablist">
+              {grupos.map((g) => {
+                const n = productos.filter(g.incluye).length;
+                return (
+                  <button
+                    key={g.clave}
+                    type="button"
+                    role="tab"
+                    aria-selected={grupo === g.clave}
+                    onClick={() => {
+                      setGrupo(g.clave);
+                      setResaltado(0);
+                    }}
+                    className={cn(
+                      "cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                      grupo === g.clave
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {g.etiqueta} <span className="opacity-70">{n}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr_280px] xl:grid-cols-[1fr_340px]">
             <ul ref={listaRef} className="space-y-1 overflow-y-auto overflow-x-hidden pr-1" role="listbox" aria-label="Equipos">
               {coincidencias.map((p, i) => (
@@ -554,7 +626,7 @@ export function BuscadorEquiposModal({
                           onQuitar={() => onQuitar(p.id)}
                         />
                       )}
-                      <BadgeStock stock={p.stock} enVivo={p.stockEnVivo} />
+                      {conStock(p) && <BadgeStock stock={p.stock} enVivo={p.stockEnVivo} />}
                     </span>
                   </div>
                 </li>
@@ -562,6 +634,18 @@ export function BuscadorEquiposModal({
               {coincidencias.length === 0 && (
                 <li className="flex flex-col items-center gap-2 p-6 text-center text-xs text-muted-foreground">
                   <PackageX className="size-6" />
+                  {onLineaLibre && texto.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onLineaLibre(texto.trim());
+                        setTexto("");
+                      }}
+                      className="cursor-pointer rounded-md border border-primary/40 bg-primary/5 px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary/10"
+                    >
+                      Agregar «{texto.trim()}» escrito a mano
+                    </button>
+                  )}
                   {mensajeVacio ?? (
                     <>
                       Ningún equipo del catálogo coincide con «{texto.trim()}».
@@ -578,13 +662,33 @@ export function BuscadorEquiposModal({
               colorElegido={enFoco ? (coloresEnCarrito?.[enFoco.id] ?? null) : null}
               onElegirColor={onElegirColor}
               onQuitar={onQuitar}
+              mostrarStock={enFoco ? conStock(enFoco) : true}
             />
           </div>
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] text-muted-foreground">
-              Clic o Enter agregan el equipo; las unidades se cambian con − y +, y ✕ lo quita. El stock es el de la
-              CODIFICACIÓN de Lesly, no un inventario en vivo.
+              {ayuda ?? (
+                <>
+                  Clic o Enter agregan el equipo; las unidades se cambian con − y +, y ✕ lo quita. El stock es el de la
+                  CODIFICACIÓN de Lesly, no un inventario en vivo.
+                </>
+              )}
+              {onLineaLibre && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onLineaLibre(texto.trim());
+                      setTexto("");
+                    }}
+                    className="cursor-pointer font-medium text-foreground underline underline-offset-2 hover:text-primary"
+                  >
+                    ¿No está en la lista? Escribirlo a mano
+                  </button>
+                </>
+              )}
             </p>
             {/* «Listo (4 equipos)» describía un trámite, no el paso siguiente
                 (27-08). Lo que de verdad pasa al apretarlo es volver a la
