@@ -269,7 +269,29 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
           </DialogDescription>
         </DialogHeader>
 
-        <form ref={formRef} onSubmit={onSubmit} className="flex min-h-0 flex-col">
+        {/* ENTER NO ENVÍA (Rubí, 26-09): elegía el RUC, presionó Enter y el
+            contacto salió a Central a medio llenar (PRO-09957, se borró). En un
+            campo, Enter elige la sugerencia de cliente si hay una a la vista, o
+            pasa al campo siguiente; el envío queda solo en el botón. */}
+        <form
+          ref={formRef}
+          onSubmit={onSubmit}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+            const t = e.target as HTMLInputElement;
+            if (t.tagName !== "INPUT" || ["submit", "button", "checkbox", "radio", "file"].includes(t.type)) return;
+            e.preventDefault();
+            if ((t.name === "num_doc" || t.name === "razon_social") && coincidencias.length > 0) {
+              usar(coincidencias[0]);
+              return;
+            }
+            const campos = Array.from(
+              formRef.current?.querySelectorAll<HTMLElement>("input:not([type=hidden]):not([type=file]), textarea, select") ?? [],
+            ).filter((x) => !x.hasAttribute("disabled"));
+            campos[campos.indexOf(t) + 1]?.focus();
+          }}
+          className="flex min-h-0 flex-col"
+        >
           {/* El cuerpo desplaza solo: el botón de enviar nunca se va de la
               pantalla, ni en una laptop de 13". */}
           <div className="-mx-1 min-h-0 flex-1 space-y-5 overflow-y-auto px-1 pb-1">
