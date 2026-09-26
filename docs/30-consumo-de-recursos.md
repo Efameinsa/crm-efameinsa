@@ -61,7 +61,7 @@ todos sus adjuntos cada vez.
    navegador, directo a la base y con las mismas reglas de seguridad. Primero
    pide solo id y estado; trae completos y firma solo los mensajes nuevos. Se
    pausa con la pestaña oculta. Cero funciones de Vercel.
-4. `vercel.json`: solo `main` construye. Una rama se construye si se llama
+4. `vercel.json` → `scripts/ignorar-build.sh` (el campo admite 256 caracteres): solo `main` construye. Una rama se construye si se llama
    `vista-previa/…` o si el commit dice `[vista-previa]`. Tampoco construyen
    los commits que solo tocan `scripts/` o `supabase/`, además de docs.
 
