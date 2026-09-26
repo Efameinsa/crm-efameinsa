@@ -6,6 +6,7 @@ import { fechaHoraLima } from "@/lib/fechas";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
+import { SelectorMembrete, empresaDeLaDireccion } from "@/components/crm/selector-membrete";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,15 @@ export const dynamic = "force-dynamic";
  * sacar en papel. Es la misma orden que se ve en la apertura, con el membrete
  * de la empresa del cierre y un espacio para las firmas de la visita.
  */
-export default async function OrdenAperturaPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OrdenAperturaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ empresa?: string | string[] }>;
+}) {
   const { id } = await params;
+  const elegida = empresaDeLaDireccion((await searchParams).empresa);
   await requerirPerfil();
   const supabase = await createClient();
   const { data } = await supabase.from("aperturas_llamada").select("*, cuentas(razon_social, num_doc)").eq("id", id).maybeSingle();
@@ -64,10 +72,11 @@ export default async function OrdenAperturaPage({ params }: { params: Promise<{ 
           ← Volver a la apertura
         </a>
         <TituloParaImprimir titulo={`Orden de postventa - ${cliente}`.replace(/[^\w\s.\-áéíóúñÁÉÍÓÚÑ]/g, "")} />
+        <SelectorMembrete base={`/aperturas/${id}/orden`} actual={elegida ?? serieEmpresa ?? "EFAMEINSA"} deducida={serieEmpresa} />
         <BotonImprimir>Imprimir / guardar PDF</BotonImprimir>
       </div>
 
-      <MembreteDocumento serie={serieEmpresa} area="Postventa" />
+      <MembreteDocumento serie={elegida ?? serieEmpresa} area="Postventa" />
 
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>
       {a.urgente && <p className="mt-1 text-center text-[11px] font-bold uppercase">Urgente · sin pedido</p>}

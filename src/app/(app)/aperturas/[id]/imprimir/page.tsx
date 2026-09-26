@@ -5,6 +5,7 @@ import { ETIQUETA_TIPO_APERTURA, type AperturaLlamada } from "@/lib/aperturas-ll
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
+import { SelectorMembrete, empresaDeLaDireccion } from "@/components/crm/selector-membrete";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,15 @@ const horaCorta = (iso: string | null) =>
  * con el mismo membrete que el informe técnico. Se imprime o se guarda como
  * PDF desde el navegador.
  */
-export default async function ImprimirAperturaPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ImprimirAperturaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ empresa?: string | string[] }>;
+}) {
   const { id } = await params;
+  const elegida = empresaDeLaDireccion((await searchParams).empresa);
   await requerirPerfil();
   const supabase = await createClient();
   const { data } = await supabase.from("aperturas_llamada").select("*, cuentas(razon_social, num_doc)").eq("id", id).maybeSingle();
@@ -59,11 +67,12 @@ export default async function ImprimirAperturaPage({ params }: { params: Promise
           ← Volver a la apertura
         </a>
         <TituloParaImprimir titulo={`${titulo} - ${cliente}`.replace(/[^\w\s.\-áéíóúñÁÉÍÓÚÑ]/g, "")} />
+        <SelectorMembrete base={`/aperturas/${id}/imprimir`} actual={elegida ?? serieEmpresa ?? "EFAMEINSA"} deducida={serieEmpresa} />
         <BotonImprimir>Imprimir / guardar PDF</BotonImprimir>
       </div>
 
       {/* La empresa del cierre del pedido; si no hay pedido, la del último cierre del cliente (Santos, 24-09). */}
-      <MembreteDocumento serie={serieEmpresa} area="Postventa" />
+      <MembreteDocumento serie={elegida ?? serieEmpresa} area="Postventa" />
 
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>
 
