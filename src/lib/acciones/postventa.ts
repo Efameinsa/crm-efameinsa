@@ -520,7 +520,7 @@ export async function registrarDespacho(
   // cierre en el CRM, sin apertura, y que no sea un repuesto que el cliente
   // recoge en planta—. Carlos, 22-09: «no debería permitirte despachar… si es
   // que no ha cumplido los otros pasos».
-  const recogeEnPlanta = servicio.tipo_pedido === "repuesto" && servicio.entrega_en === "planta";
+  const recogeEnPlanta = (servicio.tipo_pedido === "repuesto" || servicio.tipo_pedido === "accesorio") && servicio.entrega_en === "planta";
   if (servicio.informe_cierre_id && !servicio.apertura_despacho_at && !recogeEnPlanta) {
     return falla("Sin apertura de despacho no sale nada del almacén. Emita la apertura del pedido y después registre la salida.");
   }
@@ -1154,7 +1154,7 @@ export async function definirCondicionPago(
  */
 export async function definirTipoPedido(
   servicioId: string,
-  datos: { tipo: "equipo" | "repuesto" | "mantenimiento" | "revision" | "embalaje"; entregaEn?: "planta" | "agencia" | "cliente" | null; conInstalacion?: boolean | null },
+  datos: { tipo: "equipo" | "repuesto" | "accesorio" | "mantenimiento" | "revision" | "embalaje"; entregaEn?: "planta" | "agencia" | "cliente" | null; conInstalacion?: boolean | null },
 ) {
   await requerirPerfil();
   const supabase = await createClient();
@@ -1162,8 +1162,9 @@ export async function definirTipoPedido(
     .from("servicios_postventa")
     .update({
       tipo_pedido: datos.tipo,
-      entrega_en: datos.tipo === "repuesto" ? (datos.entregaEn ?? null) : null,
-      con_instalacion: datos.tipo === "repuesto" ? (datos.conInstalacion ?? null) : null,
+      entrega_en: datos.tipo === "repuesto" || datos.tipo === "accesorio" ? (datos.entregaEn ?? null) : null,
+      // El accesorio no se instala nunca (0314).
+      con_instalacion: datos.tipo === "repuesto" ? (datos.conInstalacion ?? null) : datos.tipo === "accesorio" ? false : null,
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);
@@ -1180,7 +1181,7 @@ export async function definirTipoPedido(
 export async function traerPedidoAntiguo(datos: {
   cuentaId: string;
   equipo: string;
-  tipo: "equipo" | "repuesto" | "mantenimiento" | "revision" | "embalaje";
+  tipo: "equipo" | "repuesto" | "accesorio" | "mantenimiento" | "revision" | "embalaje";
   monto?: number | null;
   moneda?: "USD" | "PEN";
   fechaVenta?: string | null;

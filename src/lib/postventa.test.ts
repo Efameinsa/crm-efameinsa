@@ -408,3 +408,29 @@ describe("reunión 25-09: la preinstalación según dónde se entrega, y el emba
     expect(todas).toContain("cerrado");
   });
 });
+
+describe("0314: el accesorio (coches y carros) no se conecta", () => {
+  const claves = (s: Parameters<typeof bloquesPedido>[0]) => bloquesPedido(s).map((b) => b.pasos.map((p) => p.clave));
+
+  it("en provincia: sin plano, sin preinstalación y sin puesta en marcha, aunque se haya marcado sin plano o no", () => {
+    for (const sin_plano of [true, false]) {
+      const todas = claves(pedido({ tipo_pedido: "accesorio", modalidad: "provincia", sin_plano })).flat();
+      expect(todas).not.toContain("plano");
+      expect(todas).not.toContain("preinstalacion");
+      expect(todas).not.toContain("puesta");
+      expect(todas).toEqual(expect.arrayContaining(["prueba", "direccion", "apertura", "despacho", "cerrado"]));
+    }
+  });
+
+  it("si recoge en planta: se entrega en planta y se cierra, sin apertura", () => {
+    const [, entrega] = claves(pedido({ tipo_pedido: "accesorio", entrega_en: "planta" }));
+    expect(entrega).toEqual(["despacho"]);
+  });
+
+  it("la apertura no pide el equipo probado ni el plano: pide el accesorio listo", () => {
+    const apertura = bloquesPedido(pedido({ tipo_pedido: "accesorio", modalidad: "provincia" }))
+      .flatMap((b) => b.pasos)
+      .find((p) => p.clave === "apertura");
+    expect(apertura?.trabado ?? "").not.toMatch(/plano|probado/);
+  });
+});

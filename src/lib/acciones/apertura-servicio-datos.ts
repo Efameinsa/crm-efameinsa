@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fechaHoraLima } from "@/lib/fechas";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { esProvincia, puedeVerPrecios, seriesDeTexto, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
+import { circuitoDe, esProvincia, puedeVerPrecios, seriesDeTexto, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
 import { faltantesApertura, filasApertura, horaAmPm, tipoSugerido, type DatosApertura, type FilaApertura, type TipoApertura } from "@/lib/apertura-servicio";
 
 /**
@@ -111,6 +111,11 @@ export async function cargarHojaApertura(
   const filas = filasApertura(d);
   const faltantes = faltantesApertura(d);
 
+  // LA LISTA SIGUE EL RECORRIDO DEL PEDIDO (Rubí, 26-09, apertura del coche de
+  // Andinas): mostraba «Plano pendiente» aunque se marcó «No lleva plano», y
+  // «Equipo probado y embalado» y el aviso de preinstalación para un coche.
+  const circuito = circuitoDe(s);
+  const esOk = (v: string | null | undefined) => /^(si|sí|ok|listo|x)$/i.test((v ?? "").trim());
   const condiciones = [
     {
       texto: "Finanzas confirmó el pago",
@@ -128,8 +133,17 @@ export async function cargarHojaApertura(
         ? `${fechaHoraLima(s.direccion_verificada_at)}${s.direccion_verificada_con ? ` · confirmó ${s.direccion_verificada_con}` : ""}`
         : "Pendiente",
     },
+    ...(circuito.esServicio
+      ? []
+      : [
     {
-      texto: "Equipo probado y embalado",
+      texto: circuito.esEmbalaje
+        ? "Embalado y listo para salir"
+        : circuito.esAccesorio
+          ? "Accesorio listo para entregar"
+          : circuito.esRepuesto
+            ? "Repuesto listo y embalado"
+            : "Equipo probado y embalado",
       ok: s.prueba_lista_at != null || /^(si|sí|ok|listo|x)$/i.test((s.prueba_embalaje ?? "").trim()),
       detalle: s.prueba_lista_at
         ? `${fechaHoraLima(s.prueba_lista_at)}${nombreDe((s as { prueba_lista_por?: string | null }).prueba_lista_por) ? ` · ${nombreDe((s as { prueba_lista_por?: string | null }).prueba_lista_por)}` : ""}${s.protocolo_prueba_ref ? ` · protocolo ${s.protocolo_prueba_ref}` : ""}`
@@ -137,18 +151,27 @@ export async function cargarHojaApertura(
           ? "Marcado en el Excel"
           : "Pendiente",
     },
-    {
-      texto: "Plano de preinstalación enviado",
-      ok: s.plano_enviado_at != null || /^(si|sí|ok|listo|x)$/i.test((s.planos_preinstalacion ?? "").trim()),
-      detalle: s.plano_enviado_at
-        ? fechaHoraLima(s.plano_enviado_at)
-        : /^(si|sí|ok|listo|x)$/i.test((s.planos_preinstalacion ?? "").trim())
-          ? "Marcado en el Excel"
-          : "Pendiente",
-    },
+        ]),
+    // El plano solo existe en la venta de equipo; si se marcó «No lleva plano»,
+    // se dice así y con el motivo, no «Pendiente».
+    ...(circuito.esEquipo
+      ? [
+          {
+            texto: "Plano de preinstalación enviado",
+            ok: s.sin_plano === true || s.plano_enviado_at != null || esOk(s.planos_preinstalacion),
+            detalle: s.sin_plano
+              ? `No lleva${s.sin_plano_motivo ? `: ${s.sin_plano_motivo}` : ""}`
+              : s.plano_enviado_at
+                ? fechaHoraLima(s.plano_enviado_at)
+                : esOk(s.planos_preinstalacion)
+                  ? "Marcado en el Excel"
+                  : "Pendiente",
+          },
+        ]
+      : []),
   ];
   const avisoPreinstalacion =
-    esProvincia(s) && s.preinstalacion_ok_at == null
+    circuito.esEquipo && esProvincia(s) && s.preinstalacion_ok_at == null
       ? "Es provincia y el cliente todavía no confirmó la preinstalación (agua, desagüe y energía)."
       : null;
 

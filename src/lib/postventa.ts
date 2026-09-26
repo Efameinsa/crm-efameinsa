@@ -354,7 +354,7 @@ export function esProvincia(s: ServicioPostventa): boolean {
  * el que hay que ir a destrabar, y casi siempre está en manos de otra área.
  */
 /** «embalaje» (0301, reunión 25-09): el servicio de embalaje o enjaulado; se recorre como un repuesto y se cierra con fotos. */
-export type TipoPedido = "equipo" | "repuesto" | "mantenimiento" | "revision" | "embalaje";
+export type TipoPedido = "equipo" | "repuesto" | "accesorio" | "mantenimiento" | "revision" | "embalaje";
 
 /** Una foto o un video que subió el almacén (0246). */
 export interface FotoAlmacen {
@@ -385,6 +385,7 @@ export function faltanFotosDeCarga(s: Pick<ServicioPostventa, "despachado_at" | 
 export const ETIQUETA_TIPO_PEDIDO: Record<TipoPedido, string> = {
   equipo: "Venta de equipo",
   repuesto: "Venta de repuesto",
+  accesorio: "Venta de accesorio",
   mantenimiento: "Mantenimiento",
   revision: "Servicio de revisión",
   embalaje: "Servicio de embalaje",
@@ -411,6 +412,8 @@ export function circuitoDe(s: ServicioPostventa): {
   esRepuesto: boolean;
   /** Embalaje o enjaulado (0301): mismo recorrido que el repuesto, con sus propios nombres. */
   esEmbalaje: boolean;
+  /** Coches y carros (0314): lo que no se conecta. Recorrido de repuesto sin instalación. */
+  esAccesorio: boolean;
   esServicio: boolean;
   entregaEnPlanta: boolean;
   conInstalacion: boolean;
@@ -421,14 +424,20 @@ export function circuitoDe(s: ServicioPostventa): {
   // embalado → despacho → cierre con las fotos de la salida. Ni plano, ni
   // preinstalación, ni informe.
   const esEmbalaje = tipo === "embalaje";
-  const esRepuesto = tipo === "repuesto" || esEmbalaje;
+  // EL ACCESORIO (0314, Rubí 26-09 con el coche de Andinas): lo que no se
+  // conecta a agua, gas ni energía. Se recorre como un repuesto sin
+  // instalación: listo → entrega (en planta, por agencia o en el cliente) →
+  // cierre. Sin plano, sin preinstalación, sin puesta en marcha.
+  const esAccesorio = tipo === "accesorio";
+  const esRepuesto = tipo === "repuesto" || esEmbalaje || esAccesorio;
   return {
     tipo,
     esEquipo: tipo === "equipo",
     esRepuesto,
     esEmbalaje,
+    esAccesorio,
     esServicio: tipo === "mantenimiento" || tipo === "revision",
-    entregaEnPlanta: tipo === "repuesto" && s.entrega_en === "planta",
+    entregaEnPlanta: (tipo === "repuesto" || esAccesorio) && s.entrega_en === "planta",
     conInstalacion: tipo === "repuesto" && s.con_instalacion === true,
   };
 }
@@ -503,7 +512,13 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       : [
           {
             clave: "prueba",
-            etiqueta: circuito.esEmbalaje ? "Embalado y listo para salir" : circuito.esRepuesto ? "Repuesto listo y embalado" : "Probado y embalado",
+            etiqueta: circuito.esEmbalaje
+              ? "Embalado y listo para salir"
+              : circuito.esAccesorio
+                ? "Accesorio listo para entregar"
+                : circuito.esRepuesto
+                  ? "Repuesto listo y embalado"
+                  : "Probado y embalado",
             responsable: "almacen" as ResponsablePaso,
             hecho: s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje),
             cuando: s.prueba_lista_at,
@@ -511,6 +526,8 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
               ? `Protocolo ${s.protocolo_prueba_ref}`
               : circuito.esEmbalaje
                 ? "El almacén avisa que la máquina ya está embalada (jaula o caja)"
+                : circuito.esAccesorio
+                ? "El almacén avisa que el accesorio está listo para entregar"
                 : circuito.esRepuesto
                 ? "El almacén avisa que el repuesto está listo para entregar"
                 : "Con fecha y hora: es lo que prueba que salió bien",
@@ -544,7 +561,15 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   const faltaParaApertura = [
     !(pagoConfirmado || pagoDesconocido || despachoAutorizadoConSaldo) ? "la confirmación de Finanzas" : null,
     s.direccion_verificada_at == null ? (circuito.esServicio ? "dónde se hace el servicio, verificado" : "la dirección verificada") : null,
-    !circuito.esServicio && !pruebaLista ? (circuito.esEmbalaje ? "el embalaje listo" : circuito.esRepuesto ? "el repuesto listo y embalado" : "el equipo probado y embalado") : null,
+    !circuito.esServicio && !pruebaLista
+      ? circuito.esEmbalaje
+        ? "el embalaje listo"
+        : circuito.esAccesorio
+          ? "el accesorio listo"
+          : circuito.esRepuesto
+            ? "el repuesto listo y embalado"
+            : "el equipo probado y embalado"
+      : null,
     circuito.esEquipo && !s.sin_plano && !planoEnviado ? "el plano de preinstalación" : null,
     // LA PREINSTALACIÓN YA NO FRENA LA APERTURA. Carlos, 09-09: «preinstalación
     // confirmada, eso es parte de la puesta en marcha… la apertura de despacho

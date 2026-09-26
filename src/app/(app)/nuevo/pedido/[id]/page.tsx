@@ -118,7 +118,7 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {circuito.esRepuesto ? "Pedido de repuesto" : circuito.esServicio ? "Pedido de servicio" : "Pedido de equipo"}
+              {circuito.esAccesorio ? "Pedido de accesorio" : circuito.esRepuesto ? "Pedido de repuesto" : circuito.esServicio ? "Pedido de servicio" : "Pedido de equipo"}
               {servicio.numero_pedido_erp ? ` · ERP ${servicio.numero_pedido_erp}` : ""}
               {inf?.codigo ? ` · cierre ${inf.codigo}` : ""}
               {inf?.orden_compra ? ` · OC ${inf.orden_compra}` : ""}

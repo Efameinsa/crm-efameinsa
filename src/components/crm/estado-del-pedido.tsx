@@ -61,7 +61,7 @@ export async function EstadoDelPedido({ cuentaId, conEnlace = false }: { cuentaI
                     {equipo}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    {circuito.esRepuesto ? "Repuesto" : circuito.esServicio ? "Servicio" : "Venta de equipo"}
+                    {circuito.esAccesorio ? "Accesorio" : circuito.esRepuesto ? "Repuesto" : circuito.esServicio ? "Servicio" : "Venta de equipo"}
                     {s.numero_pedido_erp ? ` · pedido ERP ${s.numero_pedido_erp}` : ""}
                     {s.fecha_confirmacion ? ` · cierre del ${fechaCalendario(s.fecha_confirmacion)}` : ""}
                   </p>

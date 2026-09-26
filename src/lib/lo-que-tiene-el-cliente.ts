@@ -148,7 +148,7 @@ export async function cargarLoQueTieneElCliente(
       }),
     pedidos: (pedidos ?? []).map((s) => ({
       fecha: ((s.despachado_at ?? s.fecha_despacho ?? s.created_at) as string | null) ?? null,
-      tipo: texto(s.tipo_servicio as string | null) || (s.tipo_pedido === "repuesto" ? "Repuesto" : s.tipo_pedido === "equipo" ? "Equipo" : "Pedido"),
+      tipo: texto(s.tipo_servicio as string | null) || (s.tipo_pedido === "repuesto" ? "Repuesto" : s.tipo_pedido === "accesorio" ? "Accesorio" : s.tipo_pedido === "equipo" ? "Equipo" : "Pedido"),
       equipo: (s.equipo as string | null)?.split("\n")[0] ?? null,
       estado: s.completado ? "Cerrado" : s.despachado_at ? "Despachado" : "En curso",
     })),

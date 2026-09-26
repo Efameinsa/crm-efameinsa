@@ -53,7 +53,7 @@ export function TraerPedidoAntiguoBoton({ cuentaId, compacto = false }: { cuenta
         fechaVenta: f.fechaVenta || null,
         referencia: f.referencia,
         nota: f.nota,
-        entregaEn: tipo === "repuesto" ? entregaEn : null,
+        entregaEn: tipo === "repuesto" || tipo === "accesorio" ? entregaEn : null,
         conInstalacion: tipo === "repuesto" ? conInstalacion : null,
       });
       if (r.error || !r.id) {
@@ -103,6 +103,16 @@ export function TraerPedidoAntiguoBoton({ cuentaId, compacto = false }: { cuenta
               ))}
             </div>
           </div>
+          {tipo === "accesorio" && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-xs text-muted-foreground">Entrega:</span>
+              {(["planta", "agencia", "cliente"] as const).map((k) => (
+                <button key={k} type="button" className={chip(entregaEn === k)} onClick={() => setEntregaEn(k)}>
+                  {{ planta: "Recoge en planta", agencia: "Por agencia", cliente: "En el cliente" }[k]}
+                </button>
+              ))}
+            </div>
+          )}
           {tipo === "repuesto" && (
             <div className="grid gap-1.5">
               <div className="flex flex-wrap items-center gap-1.5">
@@ -164,7 +174,7 @@ export function TraerPedidoAntiguoBoton({ cuentaId, compacto = false }: { cuenta
           <Button variant="ghost" onClick={() => setAbierto(false)}>
             Cancelar
           </Button>
-          <Button onClick={enviar} disabled={pendiente || f.equipo.trim().length < 3 || (tipo === "repuesto" && (entregaEn == null || conInstalacion == null))}>
+          <Button onClick={enviar} disabled={pendiente || f.equipo.trim().length < 3 || (tipo === "repuesto" && (entregaEn == null || conInstalacion == null)) || (tipo === "accesorio" && entregaEn == null)}>
             {pendiente && <Loader2 className="size-4 animate-spin" />}
             Abrir el pedido
           </Button>
