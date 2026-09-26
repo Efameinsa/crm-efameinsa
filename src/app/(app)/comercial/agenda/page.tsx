@@ -171,7 +171,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         <p className="text-xs text-muted-foreground">
           Al terminar el día, descargue el reporte de su gestión para enviarlo a gerencia.
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* El cierre de la semana vive al lado del reporte del día porque son
               el mismo hábito a distinta escala: «tiene que analizarse día a
               día, semanalmente» (ing. Carlos, 27-08). Está siempre, no solo el

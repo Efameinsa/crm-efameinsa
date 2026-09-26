@@ -29,7 +29,7 @@ export function ChipsParam({
   }
 
   return (
-    <div className={cn("flex items-center gap-1 rounded-lg border border-border p-0.5", pendiente && "opacity-60")}>
+    <div className={cn("flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border p-0.5 [&>*]:shrink-0", pendiente && "opacity-60")}>
       {opciones.map((o) => (
         <button
           key={o.valor ?? "_"}

@@ -448,3 +448,11 @@ html[data-modo-app="instalada"] body {
 main .grid > * {
   min-width: 0;
 }
+
+/* Un panel lateral escondido fuera de la pantalla (el «Detalle de la gestión»
+   de la agenda, translate-x-full a la derecha) contaba como ancho de la página:
+   538 px de desplazamiento lateral en 1280×720. `clip` recorta sin crear un
+   contenedor de desplazamiento, así que los encabezados `sticky` siguen andando. */
+body {
+  overflow-x: clip;
+}

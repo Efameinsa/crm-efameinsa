@@ -208,7 +208,19 @@ export function AgendaMensual({
       </div>
 
       <DndContext sensors={sensors} onDragStart={(e) => setArrastrando(String(e.active.id))} onDragEnd={onDragEnd}>
-        <div className="agenda-mes overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="md:hidden">
+          <MesEnLista
+            dias={dias}
+            porDia={porDia}
+            hoy={hoy}
+            onSel={(id) => { cerrar(); setSeleccion(id); }}
+            onSelTarea={(id) => { cerrar(); setTareaSel(id); }}
+            onSelHecha={(id) => { cerrar(); setHechaSel(id); }}
+            onSelVenta={(id) => { cerrar(); setVentaSel(id); }}
+            onAgregar={(iso) => { cerrar(); setAgregarFecha(iso); }}
+          />
+        </div>
+        <div className="agenda-mes hidden overflow-hidden rounded-xl border border-border bg-card shadow-sm md:block">
           {/* C3 (plan 11): las siete columnas miden lo mismo. Antes el
               domingo iba a 0.45fr y a Darwin le leyó como maquetación rota
               —«hay algunas columnas que son más anchas que otras»—; la celda
@@ -272,12 +284,17 @@ export function AgendaMensual({
         onClick={cerrar}
         aria-hidden
       />
+      {/* El panel cerrado queda a la derecha, fuera de la pantalla: dentro de un
+          marco fijo que recorta, para que no cuente como ancho de la página
+          (26-09: 538 px de desplazamiento lateral en 1280×720 y en el iPhone). */}
+      <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
       <aside
         role="dialog"
         aria-label="Detalle de la gestión"
+        aria-hidden={!abierto}
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-[min(560px,94vw)] flex-col border-l border-border bg-card shadow-2xl transition-transform duration-200 ease-out",
-          abierto ? "translate-x-0" : "translate-x-full",
+          "pointer-events-auto absolute inset-y-0 right-0 flex w-[min(560px,94vw)] flex-col border-l border-border bg-card shadow-2xl transition-[transform,visibility] duration-200 ease-out",
+          abierto ? "translate-x-0" : "invisible translate-x-full",
         )}
       >
         <div className="flex items-center gap-2 border-b border-border px-4 py-3">
@@ -588,6 +605,7 @@ export function AgendaMensual({
           )}
         </div>
       </aside>
+      </div>
     </div>
   );
 }
@@ -601,25 +619,12 @@ function Leyenda({ color, children }: { color: string; children: React.ReactNode
   );
 }
 
-function Dia({
-  iso, dia, otroMes, esHoy, domingo, ultimaFila, datos, hoyISO, onSel, onSelTarea, onSelHecha, onSelVenta, onAgregar,
-}: {
-  iso: string; dia: number; otroMes: boolean; esHoy: boolean; domingo: boolean; ultimaFila: boolean;
-  datos?: { acciones: AccionAgenda[]; hechas: HechaAgenda[]; ventas: VentaAgenda[]; tareas: TareaAgenda[] };
-  hoyISO: string;
-  onSel: (id: string) => void;
-  onSelTarea: (id: string) => void;
-  onSelHecha: (id: string) => void;
-  onSelVenta: (id: string) => void;
-  onAgregar: (iso: string) => void;
-}) {
-  const { setNodeRef, isOver } = useDroppable({ id: iso });
-  const MAX = 3;
-  // «N más» dejó de ser texto muerto: el gerente lo señaló en la reunión del
-  // 25-08 — en el calendario de Katerine veía «5 más, 2 más…» sin poder
-  // abrirlos. Ahora se arma la lista COMPLETA y el corte es solo visual: el
-  // botón la despliega y vuelve a plegar en la misma celda.
-  const [expandido, setExpandido] = useState(false);
+/** Las tarjetas de un día (ventas, acciones, tareas y hechas): las mismas en la celda del mes y en la lista del teléfono. */
+function tarjetasDelDia(
+  datos: { acciones: AccionAgenda[]; hechas: HechaAgenda[]; ventas: VentaAgenda[]; tareas: TareaAgenda[] } | undefined,
+  hoyISO: string,
+  { onSel, onSelTarea, onSelHecha, onSelVenta }: { onSel: (id: string) => void; onSelTarea: (id: string) => void; onSelHecha: (id: string) => void; onSelVenta: (id: string) => void },
+): React.ReactNode[] {
   const items: React.ReactNode[] = [];
   for (const v of datos?.ventas ?? []) {
     items.push(
@@ -654,6 +659,83 @@ function Dia({
       </button>,
     );
   }
+
+  return items;
+}
+
+/**
+ * EL MES EN EL TELÉFONO (26-09). Siete columnas en 440 px dejaban celdas de
+ * 58 px con los textos montados. Debajo de 768 px se ve como la agenda del
+ * celular: un día debajo del otro, solo los que tienen algo (y hoy), con las
+ * mismas tarjetas y el mismo «Agregar».
+ */
+function MesEnLista({
+  dias, porDia, hoy, onSel, onSelTarea, onSelHecha, onSelVenta, onAgregar,
+}: {
+  dias: { iso: string; dia: number; otroMes: boolean }[];
+  porDia: Map<string, { acciones: AccionAgenda[]; hechas: HechaAgenda[]; ventas: VentaAgenda[]; tareas: TareaAgenda[] }>;
+  hoy: string;
+  onSel: (id: string) => void;
+  onSelTarea: (id: string) => void;
+  onSelHecha: (id: string) => void;
+  onSelVenta: (id: string) => void;
+  onAgregar: (iso: string) => void;
+}) {
+  const conAlgo = dias.filter((d) => !d.otroMes && (d.iso === hoy || tarjetasDelDia(porDia.get(d.iso), hoy, { onSel, onSelTarea, onSelHecha, onSelVenta }).length > 0));
+  if (conAlgo.length === 0) {
+    return <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">No hay nada agendado este mes.</p>;
+  }
+  return (
+    <ol className="space-y-2">
+      {conAlgo.map((d) => {
+        const items = tarjetasDelDia(porDia.get(d.iso), hoy, { onSel, onSelTarea, onSelHecha, onSelVenta });
+        const fecha = new Date(`${d.iso}T12:00:00-05:00`).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "short" });
+        return (
+          <li key={d.iso} className={cn("rounded-xl border bg-card p-3 shadow-sm", d.iso === hoy ? "border-primary/50" : "border-border")}>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <p className="text-sm font-bold capitalize text-foreground">
+                {fecha}
+                {d.iso === hoy && <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold normal-case text-primary-foreground">Hoy</span>}
+              </p>
+              <button
+                type="button"
+                onClick={() => onAgregar(d.iso)}
+                className="inline-flex h-8 items-center gap-1 rounded-lg border border-dashed border-border px-2.5 text-xs text-muted-foreground"
+                aria-label={`Agregar al ${d.iso}`}
+              >
+                + Agregar
+              </button>
+            </div>
+            <div className="agenda-lista space-y-1 [&_.agenda-tarjeta]:py-1.5 [&_.agenda-tarjeta]:text-[13px] [&_.agenda-tarjeta_span]:text-[12px]">
+              {items.length ? items : <p className="text-xs text-muted-foreground">Nada agendado hoy.</p>}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function Dia({
+  iso, dia, otroMes, esHoy, domingo, ultimaFila, datos, hoyISO, onSel, onSelTarea, onSelHecha, onSelVenta, onAgregar,
+}: {
+  iso: string; dia: number; otroMes: boolean; esHoy: boolean; domingo: boolean; ultimaFila: boolean;
+  datos?: { acciones: AccionAgenda[]; hechas: HechaAgenda[]; ventas: VentaAgenda[]; tareas: TareaAgenda[] };
+  hoyISO: string;
+  onSel: (id: string) => void;
+  onSelTarea: (id: string) => void;
+  onSelHecha: (id: string) => void;
+  onSelVenta: (id: string) => void;
+  onAgregar: (iso: string) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: iso });
+  const MAX = 3;
+  // «N más» dejó de ser texto muerto: el gerente lo señaló en la reunión del
+  // 25-08 — en el calendario de Katerine veía «5 más, 2 más…» sin poder
+  // abrirlos. Ahora se arma la lista COMPLETA y el corte es solo visual: el
+  // botón la despliega y vuelve a plegar en la misma celda.
+  const [expandido, setExpandido] = useState(false);
+  const items = tarjetasDelDia(datos, hoyISO, { onSel, onSelTarea, onSelHecha, onSelVenta });
 
   return (
     <div
