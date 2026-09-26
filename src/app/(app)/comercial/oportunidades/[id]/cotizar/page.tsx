@@ -5,6 +5,7 @@ import { tipoCambioDeGerencia } from "@/lib/datos-cotizador";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
+import { cargarLoQueTieneElCliente } from "@/lib/lo-que-tiene-el-cliente";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,11 @@ export default async function NuevaCotizacionPage({
   // Postventa viene por un mantenimiento o un repuesto, no por una máquina, y
   // la pantalla ordena sus dos entradas según eso (07-09).
   const perfil = await requerirPerfil();
+  // POSTVENTA NO VENDE MÁQUINAS, Y COTIZA MIRANDO LO QUE EL CLIENTE YA TIENE (26-09).
+  const esPostventa = perfil.es_postventa === true || perfil.hace_postventa === true;
+  const soloServiciosYRepuestos = perfil.es_postventa === true || contexto.esCasoPostventa;
+  const loQueTiene =
+    esPostventa && contexto.cuenta ? await cargarLoQueTieneElCliente(await createClient(), contexto.cuenta.id) : null;
 
   // DE QUÉ CASO VIENE. Sin esto el cotizador abría en blanco y el técnico
   // reescribía de memoria la máquina y el diagnóstico que acababa de ver
@@ -97,7 +103,10 @@ export default async function NuevaCotizacionPage({
       productos={contexto.productos}
       historialPrecios={contexto.historialPrecios}
       tipoCambio={await tipoCambioDeGerencia(await createClient())}
-      esPostventa={perfil.es_postventa === true || perfil.hace_postventa === true}
+      esPostventa={esPostventa}
+      soloServiciosYRepuestos={soloServiciosYRepuestos}
+      loQueTiene={loQueTiene}
+      hoy={hoyLima()}
       desdeCaso={desdeCaso}
       skuInicial={sku ?? null}
     />

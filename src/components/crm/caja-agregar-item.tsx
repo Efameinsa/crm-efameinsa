@@ -51,6 +51,9 @@ export function CajaAgregarItem({
   onAgregar,
   onLineaLibre,
   moneda,
+  soloServiciosYRepuestos = false,
+  texto: textoDeAfuera,
+  onTexto,
 }: {
   productos: ItemDelCatalogo[];
   /** Cuántas unidades de cada uno ya están en la cotización. */
@@ -59,8 +62,21 @@ export function CajaAgregarItem({
   /** Agrega una línea escrita a mano con el texto tipeado. */
   onLineaLibre: (texto: string) => void;
   moneda: string;
+  /**
+   * Postventa no vende máquinas (Santos, 26-09): el catálogo que llega ya viene
+   * sin ellas y el texto de ayuda deja de ofrecerlas.
+   */
+  soloServiciosYRepuestos?: boolean;
+  /**
+   * La búsqueda, cuando la maneja la pantalla: tocar un equipo del cliente en
+   * «Lo que tiene este cliente» la llena con su modelo.
+   */
+  texto?: string;
+  onTexto?: (texto: string) => void;
 }) {
-  const [texto, setTexto] = useState("");
+  const [textoPropio, setTextoPropio] = useState("");
+  const texto = textoDeAfuera ?? textoPropio;
+  const setTexto = onTexto ?? setTextoPropio;
   const buscado = texto.trim();
 
   const resultados = useMemo(() => {
@@ -70,8 +86,8 @@ export function CajaAgregarItem({
       .filter((p) =>
         sinTildes([p.nombre, p.marca, p.modelo, p.sku, p.capacidad].filter(Boolean).join(" ")).includes(q),
       )
-      .slice(0, 8);
-  }, [buscado, productos]);
+      .slice(0, soloServiciosYRepuestos ? 15 : 8);
+  }, [buscado, productos, soloServiciosYRepuestos]);
 
   function agregarAMano() {
     onLineaLibre(buscado);
@@ -82,8 +98,9 @@ export function CajaAgregarItem({
     <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
       <p className="text-xs font-semibold text-foreground">¿Qué va a cotizar?</p>
       <p className="mt-0.5 mb-2 text-xs text-muted-foreground">
-        El mantenimiento, el repuesto, el servicio o la máquina. Se busca en el catálogo mientras escribe; lo que no
-        esté, se agrega tal como lo escribió.
+        {soloServiciosYRepuestos
+          ? "El mantenimiento, el servicio o el repuesto. Se busca en el catálogo mientras escribe; lo que no esté, se agrega tal como lo escribió."
+          : "El mantenimiento, el repuesto, el servicio o la máquina. Se busca en el catálogo mientras escribe; lo que no esté, se agrega tal como lo escribió."}
       </p>
 
       <div className="relative">
@@ -99,7 +116,7 @@ export function CajaAgregarItem({
               agregarAMano();
             }
           }}
-          placeholder="Mantenimiento preventivo, bomba de desagüe, LAV180…"
+          placeholder={soloServiciosYRepuestos ? "Mantenimiento preventivo, bomba de desagüe, empaquetadura…" : "Mantenimiento preventivo, bomba de desagüe, LAV180…"}
           className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none"
         />
       </div>

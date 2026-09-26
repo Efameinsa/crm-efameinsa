@@ -33,6 +33,8 @@ import { cn } from "@/lib/utils";
 import { fechaCalendario } from "@/lib/fechas";
 import { BuscadorEquiposModal } from "@/components/crm/buscador-equipos-modal";
 import { CajaAgregarItem } from "@/components/crm/caja-agregar-item";
+import { LoQueTieneElClientePanel } from "@/components/crm/lo-que-tiene-el-cliente";
+import type { LoQueTieneElCliente } from "@/lib/lo-que-tiene-el-cliente";
 import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
 import { AYUDA_SERIE_EFAMEINSA, MOTIVO_SERIE_MINIMO, SERIE_POR_DEFECTO, problemaSerie } from "@/lib/serie-facturacion";
 import { ENTREGA_POR_DEFECTO, GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES, IGV, LUGARES_ENTREGA } from "@/lib/pdf/series";
@@ -202,6 +204,9 @@ export function PantallaCotizador({
   edicion,
   tipoCambio,
   esPostventa = false,
+  soloServiciosYRepuestos = false,
+  loQueTiene = null,
+  hoy = "",
 }: {
   oportunidadId: string;
   cuenta: ContextoCotizador["cuenta"];
@@ -248,6 +253,17 @@ export function PantallaCotizador({
    * por Santos el 07-09, cotizando un servicio desde la cuenta de postventa).
    */
   esPostventa?: boolean;
+  /**
+   * Postventa no vende máquinas (Santos, 26-09): en un caso de postventa, o
+   * cuando cotiza alguien de postventa, el buscador ofrece solo servicios y
+   * repuestos. Un comercial que también hace postventa, en una oportunidad
+   * comercial, sigue viendo el catálogo completo.
+   */
+  soloServiciosYRepuestos?: boolean;
+  /** Equipos, compras y pedidos del cliente, sin montos, para postventa (26-09). */
+  loQueTiene?: LoQueTieneElCliente | null;
+  /** AAAA-MM-DD en Lima, para «en garantía» y «preventivo vencido». */
+  hoy?: string;
 }) {
   const router = useRouter();
   const volverHref = `/comercial/oportunidades/${oportunidadId}`;
@@ -357,6 +373,14 @@ export function PantallaCotizador({
     () => productos.map((p) => ({ ...p, precio: precioReferencia(p) })),
     [productos],
   );
+  const catalogoPostventa = useMemo(
+    () =>
+      soloServiciosYRepuestos
+        ? equiposParaElegir.filter((p) => ["servicio", "repuesto"].includes(String(p.segmento)))
+        : equiposParaElegir,
+    [equiposParaElegir, soloServiciosYRepuestos],
+  );
+  const [busquedaPostventa, setBusquedaPostventa] = useState("");
   const cantidadesEnCarrito = useMemo(() => {
     const m: Record<string, number> = {};
     for (const i of carrito) if (i.producto_id) m[i.producto_id] = (m[i.producto_id] ?? 0) + i.cantidad;
@@ -1052,9 +1076,15 @@ export function PantallaCotizador({
               mal. Ahora se escribe qué se va a cotizar y la caja busca en el
               catálogo —desde la 0190 ahí conviven servicios, repuestos y
               máquinas— y ofrece agregarlo a mano si no aparece. */}
+          {esPostventa && loQueTiene && (
+            <LoQueTieneElClientePanel datos={loQueTiene} hoy={hoy} onBuscar={setBusquedaPostventa} />
+          )}
           {esPostventa ? (
             <CajaAgregarItem
-              productos={equiposParaElegir}
+              productos={catalogoPostventa}
+              soloServiciosYRepuestos={soloServiciosYRepuestos}
+              texto={busquedaPostventa}
+              onTexto={setBusquedaPostventa}
               enCarrito={cantidadesEnCarrito}
               moneda="US$"
               onAgregar={(id) => {
@@ -1097,7 +1127,9 @@ export function PantallaCotizador({
                 {esPostventa ? "Todavía no hay nada en esta cotización." : "Todavía no hay equipos en esta cotización."}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {esPostventa
+                {esPostventa && soloServiciosYRepuestos
+                  ? "Escriba acá arriba el servicio o el repuesto, o toque un equipo del cliente para buscar su mantenimiento."
+                  : esPostventa
                   ? "Agregue el servicio o el repuesto acá arriba, o busque un equipo del catálogo si además va a vender una máquina."
                   : "Búsquelos por código, marca o como los pide el cliente («secadora a gas», «rodillo eléctrico»)."}
               </p>

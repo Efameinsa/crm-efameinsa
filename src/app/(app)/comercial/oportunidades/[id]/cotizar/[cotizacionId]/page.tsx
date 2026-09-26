@@ -6,6 +6,8 @@ import { cargarContextoCotizador } from "@/lib/datos-cotizador";
 import { tipoCambioDeGerencia } from "@/lib/datos-cotizador";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
+import { hoyLima } from "@/lib/periodo";
+import { cargarLoQueTieneElCliente } from "@/lib/lo-que-tiene-el-cliente";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +61,11 @@ export default async function CorregirCotizacionPage({
   const { contexto } = resultado;
   // Igual que en la cotización nueva: postventa viene por un servicio.
   const perfil = await requerirPerfil();
+  // POSTVENTA NO VENDE MÁQUINAS, Y COTIZA MIRANDO LO QUE EL CLIENTE YA TIENE (26-09).
+  const esPostventa = perfil.es_postventa === true || perfil.hace_postventa === true;
+  const soloServiciosYRepuestos = perfil.es_postventa === true || contexto.esCasoPostventa;
+  const loQueTiene =
+    esPostventa && contexto.cuenta ? await cargarLoQueTieneElCliente(await createClient(), contexto.cuenta.id) : null;
   return (
     <PantallaCotizador
       oportunidadId={contexto.oportunidadId}
@@ -68,7 +75,10 @@ export default async function CorregirCotizacionPage({
       productos={contexto.productos}
       historialPrecios={contexto.historialPrecios}
       tipoCambio={await tipoCambioDeGerencia(await createClient())}
-      esPostventa={perfil.es_postventa === true || perfil.hace_postventa === true}
+      esPostventa={esPostventa}
+      soloServiciosYRepuestos={soloServiciosYRepuestos}
+      loQueTiene={loQueTiene}
+      hoy={hoyLima()}
       edicion={contexto.borrador}
     />
   );

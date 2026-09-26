@@ -26,6 +26,8 @@ export interface EmpresaDelGrupo {
 
 export interface ContextoCotizador {
   oportunidadId: string;
+  /** Es un caso de postventa (tipo_postventa): se cotiza servicio o repuesto, no máquinas (26-09). */
+  esCasoPostventa: boolean;
   cuenta: {
     id: string;
     razonSocial: string;
@@ -284,7 +286,7 @@ export async function cargarContextoCotizador(
       .from("oportunidades")
       .select(
         // leads! desambiguado: desde la 0141 hay dos FK entre estas tablas.
-        "id, leads!oportunidades_lead_id_fkey(mensaje), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, es_principal))",
+        "id, tipo_postventa, leads!oportunidades_lead_id_fkey(mensaje), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, es_principal))",
       )
       .eq("id", oportunidadId)
       .maybeSingle(),
@@ -431,6 +433,7 @@ export async function cargarContextoCotizador(
     estado: "editable",
     contexto: {
       oportunidadId,
+      esCasoPostventa: (oportunidad as { tipo_postventa?: string | null } | null)?.tipo_postventa != null,
       cuenta: cuenta
         ? {
             id: cuenta.id,
