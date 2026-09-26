@@ -50,7 +50,8 @@ export default async function ControlPedidosPage({
   // diseñó Santos— y la tabla POR PASO, para «¿a quiénes no les he enviado el
   // plano?» cuando hay veinte pedidos. `falta` deja solo los que deben ese paso.
   const sp = await searchParams;
-  const vista = sp.vista === "paso" ? "paso" : sp.vista === "despachos" ? "despachos" : "tablero";
+  const vista =
+    sp.vista === "paso" ? "paso" : sp.vista === "despachos" ? "despachos" : sp.vista === "cerrados" ? "cerrados" : "tablero";
   const falta = /^[a-z_]+$/.test(sp.falta ?? "") ? (sp.falta as string) : null;
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -73,6 +74,39 @@ export default async function ControlPedidosPage({
     .limit(250);
 
   const verPrecios = puedeVerPrecios(perfil);
+
+  // LOS CERRADOS (Rubí, 26-09: «si cierro un pedido, ¿dónde puedo verlo?»).
+  // Esta pantalla solo traía los vivos, así que un pedido cerrado desaparecía
+  // del área y había que buscarlo por el cliente. Central ya tenía su lista de
+  // cerrados en «Sus pedidos»; postventa, ninguna. Del más reciente al más
+  // antiguo, con buscador por cliente o equipo.
+  const busquedaCerrados = (sp.q ?? "").trim();
+  const cerrados =
+    vista === "cerrados"
+      ? (((
+          await supabase
+            .from("servicios_postventa")
+            .select("id, cliente_texto, equipo, cerrado_at, completado, despachado_at, puesta_en_marcha, informe_cierre_id, updated_at")
+            .or("cerrado_at.not.is.null,completado.eq.true")
+            .order("cerrado_at", { ascending: false, nullsFirst: false })
+            .order("updated_at", { ascending: false })
+            .limit(busquedaCerrados ? 500 : 150)
+        ).data ?? []) as {
+          id: string;
+          cliente_texto: string | null;
+          equipo: string | null;
+          cerrado_at: string | null;
+          completado: boolean;
+          despachado_at: string | null;
+          puesta_en_marcha: string | null;
+          informe_cierre_id: string | null;
+          updated_at: string;
+        }[]).filter((c) => {
+          if (!busquedaCerrados) return true;
+          const t = busquedaCerrados.toUpperCase();
+          return `${c.cliente_texto ?? ""} ${c.equipo ?? ""}`.toUpperCase().includes(t);
+        })
+      : [];
 
   const pedidos: (TarjetaControl & { pasosTabla: FilaTabla["pasos"] })[] = ((data ?? []) as unknown as ServicioPostventa[]).map((crudo) => {
     const s = verPrecios ? crudo : sinPrecios(crudo);
@@ -168,17 +202,72 @@ export default async function ControlPedidosPage({
             >
               Cola del Excel
             </Link>
+            <Link
+              href="/postventa/control?vista=cerrados"
+              className={cn("px-2.5 py-1", vista === "cerrados" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}
+            >
+              Cerrados
+            </Link>
           </span>
         </span>
       }
     >
       <p className="mb-4 max-w-prose text-xs text-muted-foreground">
-        {vista === "paso"
+        {vista === "cerrados"
+          ? "Los pedidos que ya se cerraron, del más reciente al más antiguo. Toque uno para ver todo su recorrido: despacho, puesta en marcha, fotos y documentos."
+          : vista === "paso"
           ? "Una fila por empresa (la flecha despliega sus pedidos y su máquina), una columna por paso. Toque «Falta plano», «Falta despacho» o el paso que quiera y quedan solo los pedidos que lo deben: esa es su lista de trabajo. Cada paso se marca en la ficha del pedido."
           : "Cada pedido está en la fase donde le falta trabajo; la barrita se abre y dice qué falta en esa fase. La tarjeta se puede arrastrar: si intenta pasarla a una fase que todavía no le toca, la alerta le dice qué falta — y al marcar esos pasos en la ficha, pasa sola."}
       </p>
 
-      {vista === "despachos" ? (
+      {vista === "cerrados" ? (
+        <div className="space-y-3">
+          <form action="/postventa/control" className="flex gap-2">
+            <input type="hidden" name="vista" value="cerrados" />
+            <input
+              name="q"
+              defaultValue={busquedaCerrados}
+              placeholder="Buscar por cliente o equipo"
+              className="h-9 w-full max-w-sm rounded-md border border-border bg-background px-3 text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <button type="submit" className="h-9 rounded-md border border-border px-3 text-sm font-medium hover:bg-accent">
+              Buscar
+            </button>
+          </form>
+          {cerrados.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {busquedaCerrados ? `Ningún pedido cerrado coincide con «${busquedaCerrados}».` : "Todavía no hay pedidos cerrados."}
+            </p>
+          ) : (
+            <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+              {cerrados.map((c) => (
+                <li key={c.id}>
+                  <Link href={`/postventa/pedidos/${c.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5 hover:bg-accent">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-foreground">
+                        {(c.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "")}
+                      </span>
+                      <span className="line-clamp-1 text-xs text-muted-foreground">
+                        {c.informe_cierre_id ? "" : "【anterior al circuito】 "}
+                        {(c.equipo ?? "Sin equipo").replace(/\s+/g, " ")}
+                      </span>
+                    </span>
+                    <span className="flex flex-wrap gap-1.5 text-[11px]">
+                      {c.despachado_at && <span className="rounded-full bg-secondary px-2 py-0.5">Despachado {fechaLima(c.despachado_at)}</span>}
+                      <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-semibold text-[#1E7F4F]">
+                        {c.cerrado_at ? `Cerrado ${fechaLima(c.cerrado_at)}` : "Completado"}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!busquedaCerrados && cerrados.length >= 150 && (
+            <p className="text-[11px] text-muted-foreground">Se muestran los 150 más recientes. Use el buscador para encontrar uno anterior.</p>
+          )}
+        </div>
+      ) : vista === "despachos" ? (
         <ColaDespachos
           pestana="lista"
           verValue="despachos"
