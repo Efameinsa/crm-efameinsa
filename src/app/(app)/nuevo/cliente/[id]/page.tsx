@@ -7,7 +7,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios, veTodoPostventa } from "@/lib/postventa";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
-import { fechaLima, fechaAgendada } from "@/lib/fechas";
+import { fechaLima, fechaAgendada, fechaCalendario } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { guardaFichaCliente } from "@/lib/propuesta/guardas";
 import { PendientesDelCliente } from "@/components/crm/pendientes-del-cliente";
@@ -121,7 +121,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
     { etiqueta: "Pedidos abiertos", valor: String(pedidosAbiertos ?? 0), tab: "pedidos", alerta: (pedidosAbiertos ?? 0) > 0 },
     { etiqueta: "Casos técnicos", valor: String(casosAbiertos ?? 0), tab: "pedidos", alerta: (casosAbiertos ?? 0) > 0 },
     { etiqueta: "Equipos", valor: String(equipos ?? 0), tab: "equipos" },
-    { etiqueta: "Última venta", valor: cuenta.ultima_venta_at ? fechaLima(cuenta.ultima_venta_at) : "Nunca", tab: "ventas" },
+    { etiqueta: "Última venta", valor: cuenta.ultima_venta_at ? fechaCalendario(cuenta.ultima_venta_at) : "Nunca", tab: "ventas" },
   ];
 
   return (

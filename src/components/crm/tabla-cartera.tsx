@@ -7,7 +7,7 @@ import { MarcaServidor } from "@/components/crm/marca-servidor";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
 import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimiento-boton";
-import { fechaLima } from "@/lib/fechas";
+import { fechaCalendario } from "@/lib/fechas";
 import { recordarLista, useRetomarScrollDeLista } from "@/components/crm/volver-a-la-lista";
 
 export interface FilaCartera {
@@ -209,7 +209,7 @@ export function TablaCartera({
                 )}
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">
-                {c.ultimaVentaAt ? fechaLima(c.ultimaVentaAt) : "Nunca"}
+                {c.ultimaVentaAt ? fechaCalendario(c.ultimaVentaAt) : "Nunca"}
               </TableCell>
               <TableCell>
                 <ChevronRight className="size-4 text-muted-foreground" />

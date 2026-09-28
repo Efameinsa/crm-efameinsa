@@ -6,12 +6,16 @@
 // las 11:48 de Lima se mostraba como "4:48 p. m." — cinco horas adelantado.
 //
 // LA SUTILEZA: hay dos tipos de columna y NO se tratan igual.
-//   · timestamptz (recibido_at, created_at, ultima_venta_at…) = un INSTANTE.
+//   · timestamptz (recibido_at, created_at…) = un INSTANTE.
 //     Hay que convertirlo a la hora de Lima para que signifique algo.
 //   · date (fecha_venta, proxima_accion_at, gasto_campania.fecha) = un DÍA de
 //     calendario, sin hora. Convertir zona horaria acá lo CORRE un día:
 //     "2026-08-16" se interpreta como medianoche UTC, que en Lima es el 15 a
 //     las 19:00. Por eso se formatea el texto directo, sin pasar por zonas.
+//   · OJO `cuentas.ultima_venta_at`: es timestamptz pero guarda un DÍA. La
+//     base la llena con `fecha_venta::timestamptz` (medianoche UTC), así que
+//     con fechaLima salía un día antes (28-09-2026: Minería Singularidad compró
+//     el 27-03 y la ficha decía 26/3). Se muestra con fechaCalendario.
 
 const ZONA = "America/Lima";
 

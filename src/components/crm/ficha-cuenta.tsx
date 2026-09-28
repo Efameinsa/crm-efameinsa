@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { VolverALaLista } from "@/components/crm/volver-a-la-lista";
-import { fechaLima } from "@/lib/fechas";
+import { fechaLima, fechaCalendario } from "@/lib/fechas";
 import { MapPin, FileText, Plus } from "lucide-react";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { cn } from "@/lib/utils";
@@ -231,7 +231,7 @@ export async function FichaCuenta({
           <span>
             Última venta{" "}
             <span className="font-medium text-foreground">
-              {cuenta.ultima_venta_at ? fechaLima(cuenta.ultima_venta_at) : "Nunca"}
+              {cuenta.ultima_venta_at ? fechaCalendario(cuenta.ultima_venta_at) : "Nunca"}
             </span>
           </span>
         </div>

@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fechaHoraLima, fechaLima } from "@/lib/fechas";
+import { fechaHoraLima, fechaCalendario } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 
 const CANALES = [
@@ -296,7 +296,7 @@ export function CapturaForm({ campaniasWhatsapp = [] }: { campaniasWhatsapp?: Ca
                       {m.etiqueta}
                     </span>
                     {c.ultimaVentaAt && (
-                      <span className="text-[11px] text-muted-foreground">última venta {fechaLima(c.ultimaVentaAt)}</span>
+                      <span className="text-[11px] text-muted-foreground">última venta {fechaCalendario(c.ultimaVentaAt)}</span>
                     )}
                   </p>
                 </div>

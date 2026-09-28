@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MarcaServidor } from "@/components/crm/marca-servidor";
-import { fechaLima } from "@/lib/fechas";
+import { fechaCalendario } from "@/lib/fechas";
 import type { FilaClienteListado } from "@/lib/reportes";
 
 // La fila entera es el objetivo de clic (patrón de tabla-por-comercial.tsx):
@@ -71,7 +71,7 @@ export function TablaClientes({ filas, baseHref = "/gerencia/clientes" }: { fila
               <TableCell className="text-right tabular-nums">
                 {c.total_usd > 0 ? Math.round(c.total_usd).toLocaleString("es-PE") : <span className="text-muted-foreground">—</span>}
               </TableCell>
-              <TableCell className="tabular-nums text-muted-foreground">{c.ultima_venta_at ? fechaLima(c.ultima_venta_at) : "Nunca"}</TableCell>
+              <TableCell className="tabular-nums text-muted-foreground">{c.ultima_venta_at ? fechaCalendario(c.ultima_venta_at) : "Nunca"}</TableCell>
               <TableCell>
                 <ChevronRight className="size-4 text-muted-foreground" />
               </TableCell>

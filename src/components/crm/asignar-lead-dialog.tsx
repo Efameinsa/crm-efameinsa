@@ -14,7 +14,7 @@ import {
 } from "@/lib/acciones/leads";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { fechaLima } from "@/lib/fechas";
+import { fechaCalendario } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -341,7 +341,7 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
                     {c.comercialNombre
                       ? `Cartera de ${c.comercialNombre}${c.codigoComercial ? ` (${c.codigoComercial})` : ""}`
                       : "Sin comercial de cartera"}
-                    {c.ultimaVentaAt ? ` · última venta ${fechaLima(c.ultimaVentaAt)}` : " · sin ventas registradas"}
+                    {c.ultimaVentaAt ? ` · última venta ${fechaCalendario(c.ultimaVentaAt)}` : " · sin ventas registradas"}
                   </span>
                   <span className={cn("mt-1 block font-semibold", elegida || yaUnido ? "text-primary" : "text-muted-foreground")}>
                     {yaUnido

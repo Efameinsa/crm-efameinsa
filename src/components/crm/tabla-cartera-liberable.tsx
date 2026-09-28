@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
 import { reasignarCarteraEnBloque } from "@/lib/acciones/cuentas";
 import { tiempoSinVenta, type FiltroLiberables } from "@/lib/cartera-liberable";
-import { fechaLima } from "@/lib/fechas";
+import { fechaCalendario } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -212,7 +212,7 @@ export function TablaCarteraLiberable({
                 )}
               </TableCell>
               <TableCell className="tabular-nums text-muted-foreground">
-                {f.ultimaVentaAt ? (new Date(f.ultimaVentaAt).getUTCFullYear() < 1990 ? "Sin fecha" : fechaLima(f.ultimaVentaAt)) : "Nunca compró"}
+                {f.ultimaVentaAt ? (new Date(f.ultimaVentaAt).getUTCFullYear() < 1990 ? "Sin fecha" : fechaCalendario(f.ultimaVentaAt)) : "Nunca compró"}
               </TableCell>
               <TableCell className="tabular-nums font-medium text-foreground">
                 {tiempoSinVenta(f.sinVentaDesde, ahora)}
