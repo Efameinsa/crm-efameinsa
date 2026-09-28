@@ -46,8 +46,15 @@ export function FicharMaquina({
   const [texto, setTexto] = useState("");
   const [candidatas, setCandidatas] = useState<{ id: string; razonSocial: string; documento: string | null }[]>([]);
 
-  const [serie, setSerie] = useState("");
-  const [modelo, setModelo] = useState("");
+  // VARIAS MÁQUINAS DE UNA VEZ (gerencia, 28-09, con BUNGARENA: «faltaba
+  // agregar acá otra serie más porque son dos equipos… no hay manera de
+  // agregar más». Carlos: «vas a poder agregar uno, dos, diez, cien equipos»).
+  // La primera queda como la principal del caso; las demás, como otras
+  // máquinas del mismo caso (0253). Fecha, garantía y ubicación son comunes:
+  // casi siempre salieron juntas en el mismo pedido.
+  const [maquinas, setMaquinas] = useState<{ serie: string; modelo: string }[]>([{ serie: "", modelo: "" }]);
+  const cambiar = (i: number, campo: "serie" | "modelo", valor: string) =>
+    setMaquinas((ms) => ms.map((m, j) => (j === i ? { ...m, [campo]: valor } : m)));
   const [fecha, setFecha] = useState("");
   const [meses, setMeses] = useState("24");
   const [ubicacion, setUbicacion] = useState("");
@@ -73,35 +80,48 @@ export function FicharMaquina({
   function guardar() {
     empezar(async () => {
       const deAfuera = origen === "servicio";
-      const comun = {
-        serie: serie.trim() || null,
-        modelo,
-        fechaCompra: deAfuera ? null : fecha || null,
-        garantiaMeses: deAfuera ? 0 : Number(meses) || 24,
-        ubicacion: ubicacion.trim() || null,
-      };
       const observaciones = deAfuera
         ? `No la vendimos: vino solo por servicio técnico.${fecha ? ` Llegó por primera vez a la planta el ${fecha.split("-").reverse().join("/")}.` : ""}`
         : null;
-      const r = atencionId
-        ? await ficharEquipoDeLaAtencion({ atencionId, ...comun, observaciones })
-        : await registrarEquipo({ cuentaId: elegida?.id ?? "", ...comun });
-      if (r.error) {
-        toast.error(r.error);
-        return;
+      // Una por una y en orden: la primera se vuelve la principal del caso y
+      // para las siguientes la acción ya la encuentra puesta.
+      const aGuardar = maquinas.filter((m) => m.modelo.trim().length >= 3);
+      let hechas = 0;
+      for (const m of aGuardar) {
+        const comun = {
+          serie: m.serie.trim() || null,
+          modelo: m.modelo,
+          fechaCompra: deAfuera ? null : fecha || null,
+          garantiaMeses: deAfuera ? 0 : Number(meses) || 24,
+          ubicacion: ubicacion.trim() || null,
+        };
+        const r = atencionId
+          ? await ficharEquipoDeLaAtencion({ atencionId, ...comun, observaciones })
+          : await registrarEquipo({ cuentaId: elegida?.id ?? "", ...comun });
+        if (r.error) {
+          toast.error(`${m.serie.trim() || m.modelo}: ${r.error}`);
+          // Lo que ya se guardó no se repite: quedan en el formulario solo las que faltan.
+          setMaquinas(aGuardar.slice(hechas));
+          if (hechas) router.refresh();
+          return;
+        }
+        hechas++;
       }
       toast.success(
         atencionId
-          ? `Máquina fichada${serie.trim() ? ` (${serie.trim()})` : ""} — garantía verificada`
-          : "Máquina registrada en el parque instalado",
+          ? `${hechas === 1 ? "Máquina fichada" : `${hechas} máquinas fichadas`} — garantía verificada`
+          : `${hechas === 1 ? "Máquina registrada" : `${hechas} máquinas registradas`} en el parque instalado`,
       );
-      setSerie(""); setModelo(""); setFecha(""); setUbicacion(""); setOrigen("nuestra");
+      setMaquinas([{ serie: "", modelo: "" }]); setFecha(""); setUbicacion(""); setOrigen("nuestra");
       alTerminar?.();
       router.refresh();
     });
   }
 
-  const listo = modelo.trim().length >= 3 && (atencionId || elegida);
+  const listo =
+    maquinas.some((m) => m.modelo.trim().length >= 3) &&
+    maquinas.every((m) => !m.serie.trim() || m.modelo.trim().length >= 3) &&
+    (atencionId || elegida);
 
   return (
     <div className="space-y-3">
@@ -162,27 +182,52 @@ export function FicharMaquina({
         </div>
       )}
 
+      <div className="space-y-2">
+        {maquinas.map((m, i) => (
+          <div key={i} className="grid gap-2 rounded-md border border-border p-2 sm:grid-cols-[1fr_1.4fr_auto]">
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-foreground">
+                {maquinas.length > 1 ? `Máquina ${i + 1} · serie` : "Número de serie"}{" "}
+                <span className="font-normal text-muted-foreground">— si ya se tiene</span>
+              </span>
+              <input
+                value={m.serie}
+                onChange={(e) => cambiar(i, "serie", e.target.value)}
+                placeholder="Como se lee en la placa"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 font-mono text-sm outline-none"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-foreground">Modelo de la máquina</span>
+              <input
+                value={m.modelo}
+                onChange={(e) => cambiar(i, "modelo", e.target.value)}
+                placeholder="«Secadora Titan Light 15 kg», «Lavadora Titan Max 17 kg»"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
+              />
+            </label>
+            {maquinas.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setMaquinas((ms) => ms.filter((_, j) => j !== i))}
+                className="cursor-pointer self-end rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-destructive"
+                aria-label={`Quitar la máquina ${i + 1}`}
+              >
+                Quitar
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => setMaquinas((ms) => [...ms, { serie: "", modelo: "" }])}
+          className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-dashed border-border px-2.5 py-1 text-xs font-medium text-primary hover:bg-accent"
+        >
+          <Plus className="size-3.5" /> Agregar otra máquina
+        </button>
+      </div>
+
       <div className="grid gap-2 sm:grid-cols-2">
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-foreground">
-            Número de serie <span className="font-normal text-muted-foreground">— si el cliente ya lo mandó</span>
-          </span>
-          <input
-            value={serie}
-            onChange={(e) => setSerie(e.target.value)}
-            placeholder="Como se lee en la placa"
-            className="h-9 w-full rounded-md border border-input bg-background px-3 font-mono text-sm outline-none"
-          />
-        </label>
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-foreground">Modelo de la máquina</span>
-          <input
-            value={modelo}
-            onChange={(e) => setModelo(e.target.value)}
-            placeholder="«Calandria GMP 120.20», «Lavadora Titan Max 17 kg»"
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
-          />
-        </label>
         {atencionId && (
           <div className="space-y-1">
             <span className="text-xs font-medium text-foreground">¿La vendimos nosotros?</span>
@@ -266,7 +311,13 @@ export function FicharMaquina({
         )}
       >
         <Plus className="size-3.5" />
-        {atencionId ? "Fichar la máquina y verificar la garantía" : "Registrar la máquina"}
+        {atencionId
+          ? maquinas.length > 1
+            ? `Fichar las ${maquinas.length} máquinas y verificar la garantía`
+            : "Fichar la máquina y verificar la garantía"
+          : maquinas.length > 1
+            ? `Registrar las ${maquinas.length} máquinas`
+            : "Registrar la máquina"}
       </button>
     </div>
   );

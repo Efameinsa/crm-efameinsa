@@ -154,7 +154,7 @@ export interface CotizacionParaPdf {
   reemplazada_por?: number | null;
 }
 
-export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Promise<Buffer> {
+export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf, opciones: { sinMontos?: boolean } = {}): Promise<Buffer> {
   const snapshot = cotizacion.cliente_snapshot as {
     razon_social: string;
     tipo_doc: string;
@@ -363,6 +363,7 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf): Pr
 
   const buffer = await renderToBuffer(
     <CotizacionPdf
+      sinMontos={opciones.sinMontos ?? false}
       logoBuffer={LOGO_BUFFER}
       serie={cotizacion.serie}
       numeroDocumento={numeroDocumento}

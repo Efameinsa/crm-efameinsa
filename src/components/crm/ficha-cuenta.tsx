@@ -32,6 +32,8 @@ import { PendientesDelCliente } from "@/components/crm/pendientes-del-cliente";
 import { UltimosCierres } from "@/components/crm/ultimos-cierres";
 import { EquiposDelCliente } from "@/components/crm/equipos-del-cliente";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
+import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
+import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 
 export async function FichaCuenta({
   cuentaId,
@@ -118,7 +120,7 @@ export async function FichaCuenta({
   const { data: oportunidadesCuenta } = await supabase
     .from("oportunidades")
     .select(
-      "id, etapa, intencion, monto_estimado, moneda, proxima_accion, proxima_accion_at, cerrada_at, comercial_id, lead_id, perfiles:comercial_id(nombre, codigo_comercial)",
+      "id, etapa, tipo_postventa, intencion, monto_estimado, moneda, proxima_accion, proxima_accion_at, cerrada_at, comercial_id, lead_id, perfiles:comercial_id(nombre, codigo_comercial)",
     )
     .eq("cuenta_id", cuentaId)
     .order("cerrada_at", { ascending: true, nullsFirst: true })
@@ -138,6 +140,8 @@ export async function FichaCuenta({
   const oportunidades = ((oportunidadesCuenta ?? []) as unknown as {
     id: string;
     etapa: string;
+    /** El tipo de postventa, o null si es comercial: va con su color (28-09). */
+    tipo_postventa?: string | null;
     intencion: string | null;
     monto_estimado: number | null;
     moneda: string;
@@ -176,7 +180,7 @@ export async function FichaCuenta({
   // gerencia y Central (política de la migración 0049).
   const { data: informes } = await supabase
     .from("informes_cierre")
-    .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos")
+    .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos, anulado_at")
     .eq("cuenta_id", cuentaId)
     .order("created_at", { ascending: false });
   const adjuntosPorInforme = await firmarAdjuntosDeCierres(supabase, informes ?? []);
@@ -184,6 +188,7 @@ export async function FichaCuenta({
   return (
     <div className="space-y-4">
       <VolverALaLista />
+      <AnotarClienteReciente id={cuentaId} nombre={cuenta.razon_social} />
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -436,6 +441,7 @@ export function ListaOportunidadesCuenta({
   oportunidades: {
     id: string;
     etapa: string;
+    tipo_postventa?: string | null;
     intencion: string | null;
     monto_estimado: number | null;
     moneda: string;
@@ -489,6 +495,7 @@ export function ListaOportunidadesCuenta({
               className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 p-2.5"
             >
               <EtapaBadge etapa={o.etapa} />
+              <TipoExpedienteBadge tipo={o.tipo_postventa} />
               <span className="min-w-[140px] flex-1 text-xs text-foreground">
                 {o.proxima_accion ?? (cerrada ? "Cerrada" : enHistorico ? "Del archivo de los Excel" : "Sin próxima acción definida")}
                 {o.proxima_accion_at && !cerrada && (

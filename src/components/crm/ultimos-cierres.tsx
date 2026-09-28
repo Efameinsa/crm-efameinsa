@@ -4,7 +4,7 @@ import { bloquesPedido, sinPrecios, type ServicioPostventa } from "@/lib/postven
 import { fechaCalendario, fechaLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 
-type Informe = { id: string; codigo: string | null; serie: string | null; fecha: string | null; emitido_at: string | null };
+type Informe = { id: string; codigo: string | null; serie: string | null; fecha: string | null; emitido_at: string | null; anulado_at?: string | null };
 
 /**
  * LOS DOS ÚLTIMOS CIERRES, ARRIBA, CON CÓMO VA SU PEDIDO.
@@ -18,7 +18,8 @@ type Informe = { id: string; codigo: string | null; serie: string | null; fecha:
  * lista completa sigue más abajo.
  */
 export async function UltimosCierres({ informes }: { informes: Informe[] }) {
-  const ultimos = informes.filter((i) => i.emitido_at).slice(0, 2);
+  // Los anulados no son «lo último que compró» (reunión 28-09, BUNGARENA).
+  const ultimos = informes.filter((i) => i.emitido_at && !i.anulado_at).slice(0, 2);
   if (ultimos.length === 0) return null;
   const supabase = await createClient();
   const { data } = await supabase

@@ -1,4 +1,5 @@
 import { fechaHoraLima, fechaLima } from "@/lib/fechas";
+import { ETIQUETA_TIPO_EXPEDIENTE } from "@/lib/tipo-expediente";
 import { cn } from "@/lib/utils";
 import { Phone, MessageCircle, Globe, Megaphone, Camera, Mail, User, Users, IdCard, UserRoundPen, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -60,12 +61,7 @@ const ETIQUETA_CANAL: Record<string, string> = {
 };
 
 /** Las tres clases de caso que atiende postventa (migración 0080). */
-const ETIQUETA_TIPO_PV: Record<string, string> = {
-  garantia: "Soporte técnico",
-  repuesto: "Repuestos",
-  mantenimiento: "Mantenimiento preventivo",
-  seguimiento: "Seguimiento",
-};
+const ETIQUETA_TIPO_PV: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
 
 /**
  * La cola de triaje. Separada del resto para que el filtro del banco de

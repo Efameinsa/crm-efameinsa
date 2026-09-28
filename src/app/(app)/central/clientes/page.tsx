@@ -4,6 +4,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { TablaClientes } from "@/components/crm/tabla-clientes";
 import { EsperaDeNavegacion } from "@/components/crm/espera-de-navegacion";
 import { FiltrosClientes, Paginacion } from "@/components/crm/filtros-clientes";
+import { ClientesRecientes } from "@/components/crm/clientes-recientes";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,7 @@ export default async function ClientesCentralPage({
   return (
     <div className="space-y-4">
       <FiltrosClientes q={q} comercialId={comercialId} conVenta={conVenta} sinDoc={sinDoc} orden={orden} comerciales={comerciales ?? []} />
+      <ClientesRecientes base="/central/clientes" />
 
       <SeccionPanel
         titulo={`${titulo} — ${total.toLocaleString("es-PE")}`}

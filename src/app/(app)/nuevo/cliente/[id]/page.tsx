@@ -32,6 +32,9 @@ import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor"
 import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
 import { TraerPedidoAntiguoBoton } from "@/components/crm/traer-pedido-antiguo-boton";
 import { ListaOportunidadesCuenta, rangoOportunidad } from "@/components/crm/ficha-cuenta";
+import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
+import { EtapaBadge } from "@/components/crm/etapa-badge";
+import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +98,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
     supabase.from("servicios_postventa").select("id", { count: "exact", head: true }).eq("cuenta_id", id).is("cerrado_at", null),
     supabase.from("equipos_instalados").select("id", { count: "exact", head: true }).eq("cuenta_id", id),
     supabase.from("atenciones").select("id", { count: "exact", head: true }).eq("cuenta_id", id).is("cerrado_at", null),
-    supabase.from("informes_cierre").select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos").eq("cuenta_id", id).order("created_at", { ascending: false }),
+    supabase.from("informes_cierre").select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos, anulado_at").eq("cuenta_id", id).order("created_at", { ascending: false }),
     supabase
       .from("oportunidades")
       .select("id, etapa, intencion, tipo_postventa, proxima_accion, proxima_accion_at, proxima_accion_hora, cerrada_at, monto_estimado, moneda, comercial_id, lead_id, perfiles:comercial_id(nombre, codigo_comercial)")
@@ -117,7 +120,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
   const siguiente = vivas.filter((o) => o.proxima_accion_at).sort((a, b) => (a.proxima_accion_at! < b.proxima_accion_at! ? -1 : 1))[0];
 
   const chips: { etiqueta: string; valor: string; tab: string; alerta?: boolean }[] = [
-    { etiqueta: "Expedientes vivos", valor: String(vivas.length), tab: "ventas" },
+    { etiqueta: "Expedientes vivos", valor: String(vivas.length), tab: "resumen" },
     { etiqueta: "Pedidos abiertos", valor: String(pedidosAbiertos ?? 0), tab: "pedidos", alerta: (pedidosAbiertos ?? 0) > 0 },
     { etiqueta: "Casos técnicos", valor: String(casosAbiertos ?? 0), tab: "pedidos", alerta: (casosAbiertos ?? 0) > 0 },
     { etiqueta: "Equipos", valor: String(equipos ?? 0), tab: "equipos" },
@@ -127,6 +130,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
   return (
     <div className="space-y-4">
       <VolverALaLista />
+      <AnotarClienteReciente id={cuenta.id} nombre={cuenta.razon_social} />
       {/* LA CABECERA FIJA: quién es, de quién es, qué tiene y qué se hace. */}
       <div className="sticky top-0 z-10 -mx-1 rounded-xl border border-border bg-card/95 p-4 shadow-sm backdrop-blur">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -219,6 +223,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
         {pestana === "resumen" && (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="space-y-4">
+              <ExpedientesVivos vivas={vivas} />
               {siguiente && (
                 <Link href={`/comercial/oportunidades/${siguiente.id}`} className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
                   <div className="min-w-0 flex-1">
@@ -239,7 +244,8 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
         )}
 
         {pestana === "pedidos" && (
-          <div className="max-w-3xl">
+          <div className="max-w-3xl space-y-4">
+            <ExpedientesVivos vivas={vivas} />
             <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />
             {(pedidosAbiertos ?? 0) + (casosAbiertos ?? 0) === 0 && (
               <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
@@ -311,6 +317,49 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
   );
 }
 
+/**
+ * LOS EXPEDIENTES VIVOS, CADA UNO CON SU TIPO (gerencia, 28-09). Carlos, en la
+ * ficha de MINERÍA SINGULARIDAD: «yo solamente quiero ver los dos expedientes
+ * vivos, y de los dos, uno entiendo que debe ser el macro y otro el problema de
+ * mantenimiento». Antes el número llevaba a la pestaña de ventas, con todos los
+ * expedientes mezclados y sin decir de qué era cada uno.
+ */
+function ExpedientesVivos({
+  vivas,
+}: {
+  vivas: {
+    id: string; etapa: string; tipo_postventa: string | null; proxima_accion: string | null; proxima_accion_at: string | null;
+    proxima_accion_hora: string | null; perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  }[];
+}) {
+  if (vivas.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-sm">
+      <p className="border-b border-border px-4 py-3 text-[13px] font-bold uppercase tracking-wide text-foreground">
+        Expedientes vivos ({vivas.length})
+      </p>
+      <ul className="divide-y divide-border">
+        {vivas.map((o) => (
+          <li key={o.id}>
+            <Link href={`/comercial/oportunidades/${o.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 transition-colors hover:bg-accent">
+              <TipoExpedienteBadge tipo={o.tipo_postventa} grande />
+              <EtapaBadge etapa={o.etapa} />
+              <span className="min-w-[140px] flex-1 text-xs text-foreground">
+                {o.proxima_accion ?? "Sin próxima acción"}
+                {o.proxima_accion_at && <span className="text-muted-foreground"> · {fechaAgendada(o.proxima_accion_at, o.proxima_accion_hora)}</span>}
+              </span>
+              <span className="text-[11px] text-muted-foreground">
+                {o.perfiles ? `${o.perfiles.codigo_comercial ?? ""} ${o.perfiles.nombre}`.trim() : "sin dueño"}
+              </span>
+              <ArrowRight className="size-4 text-muted-foreground" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 async function UltimoHistorial({ cuentaId, verPrecios }: { cuentaId: string; verPrecios: boolean }) {
   const supabase = await createClient();
   const { eventos } = await cargarHistorialCuenta(supabase, cuentaId, { sinMontos: !verPrecios });
@@ -352,7 +401,7 @@ async function PestanaVentas({
   quienMira: string;
   comoGerencia: boolean;
   cuentaId: string;
-  informes: { id: string; codigo: string | null; serie: string | null; fecha: string | null; monto_total: number | null; moneda: string | null; emitido_at: string | null; adjuntos: unknown }[];
+  informes: { id: string; codigo: string | null; serie: string | null; fecha: string | null; monto_total: number | null; moneda: string | null; emitido_at: string | null; adjuntos: unknown; anulado_at?: string | null }[];
   ops: {
     id: string; etapa: string; tipo_postventa: string | null; intencion: string | null; proxima_accion: string | null; proxima_accion_at: string | null; cerrada_at: string | null;
     monto_estimado: number | null; moneda: string; comercial_id: string | null; perfiles: { nombre: string; codigo_comercial: string | null } | null;

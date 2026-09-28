@@ -7,8 +7,11 @@ import {
   LineaTiempoCuenta,
   ETIQUETA_ACTIVIDAD,
   COLOR_COTIZACION,
+  CuerpoSolicitud,
   type EventoTimeline,
 } from "@/components/crm/linea-tiempo-cuenta";
+import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
+import { bordeTipoExpediente, colorTipoExpediente, etiquetaTipoExpediente } from "@/lib/tipo-expediente";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -30,6 +33,8 @@ function textoBuscable(evento: EventoTimeline): string {
   if (evento.tipo === "cotizacion") {
     return [evento.codigo ?? "", "cotización", evento.estadoLabel].join(" ").toLowerCase();
   }
+  if (evento.tipo === "solicitud") return ["solicitud inicio", evento.mensaje ?? "", evento.codigo ?? "", evento.quien ?? ""].join(" ").toLowerCase();
+  if (evento.tipo === "servicio") return [evento.titulo, evento.detalle ?? ""].join(" ").toLowerCase();
   return "venta cerrada";
 }
 
@@ -41,22 +46,52 @@ function textoBuscable(evento: EventoTimeline): string {
 // una oportunidad, las filas de esa misma oportunidad no navegan (ir a la
 // página en la que ya estás parecía "un clic que no hace nada" — reporte de
 // Darwin 19-08); las de otras oportunidades del cliente sí.
+//
+// CADA EXPEDIENTE CON SU PROPIA HISTORIA (gerencia, 28-09). Rubí: «cuando yo
+// abro las dos me sale el mismo historial general… debería tener una
+// correlación de expedientes para cada tema, para que no se mezcle la
+// información». Carlos, al cierre: «de manera independiente sería mejor… todo
+// el detalle de un solo caso». Dentro de un expediente se ve SOLO lo suyo (con
+// un botón para abrir la del cliente entero); en la ficha del cliente se ve
+// todo, cada fila con el color de su expediente y un filtro para quedarse con
+// uno.
 export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: EventoTimeline[]; oportunidadActualId?: string }) {
   const [vista, setVista] = useState<"tabla" | "timeline">("tabla");
   const [orden, setOrden] = useState<"reciente" | "antiguo">("reciente");
   const [busqueda, setBusqueda] = useState("");
   const [expandido, setExpandido] = useState(false);
+  // En el expediente arranca en «este expediente»; en la ficha, en «todos».
+  const [filtroExpediente, setFiltroExpediente] = useState<string | null>(oportunidadActualId ?? null);
+
+  // Los expedientes que aparecen en esta historia, para el filtro: el de
+  // movimiento más reciente primero, con su tipo y cuántas filas tiene.
+  const expedientes = useMemo(() => {
+    const m = new Map<string, { id: string; tipo: string | null; n: number; ultima: number; primera: string }>();
+    for (const e of eventos) {
+      if (!e.expediente) continue;
+      const t = new Date(e.fecha).getTime();
+      const x = m.get(e.expediente) ?? { id: e.expediente, tipo: e.expedienteTipo ?? null, n: 0, ultima: t, primera: e.fecha };
+      x.n++;
+      if (t > x.ultima) x.ultima = t;
+      if (new Date(e.fecha).getTime() < new Date(x.primera).getTime()) x.primera = e.fecha;
+      m.set(e.expediente, x);
+    }
+    return [...m.values()].sort((a, b) => b.ultima - a.ultima);
+  }, [eventos]);
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    const base = q ? eventos.filter((e) => textoBuscable(e).includes(q)) : eventos;
+    let base = filtroExpediente ? eventos.filter((e) => e.expediente === filtroExpediente) : eventos;
+    base = q ? base.filter((e) => textoBuscable(e).includes(q)) : base;
     // `eventos` llega ordenado descendente (reciente primero) desde el servidor.
     return orden === "reciente" ? base : [...base].reverse();
-  }, [eventos, busqueda, orden]);
+  }, [eventos, busqueda, orden, filtroExpediente]);
 
   if (eventos.length === 0) {
     return <p className="text-sm text-muted-foreground">Sin historial registrado para este cliente todavía.</p>;
   }
+  // En la ficha se pinta de qué expediente es cada fila; dentro de uno solo sobra.
+  const conExpediente = !filtroExpediente;
 
   const visibles = expandido ? filtrados : filtrados.slice(0, MOSTRADOS_INICIAL);
   const restantes = filtrados.length - visibles.length;
@@ -108,6 +143,51 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
         </div>
       </div>
 
+      {oportunidadActualId ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted-foreground">
+            {filtroExpediente ? "Solo lo de este expediente, desde lo que pidió el cliente." : "Toda la historia del cliente, con el color de cada expediente."}
+          </span>
+          <button
+            type="button"
+            onClick={() => setFiltroExpediente(filtroExpediente ? null : oportunidadActualId)}
+            className="rounded-md border border-border px-2 py-1 font-medium text-primary hover:bg-accent"
+          >
+            {filtroExpediente ? "Ver todo el historial del cliente" : "Ver solo este expediente"}
+          </button>
+        </div>
+      ) : (
+        expedientes.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="text-muted-foreground">Expediente:</span>
+            <button
+              type="button"
+              onClick={() => setFiltroExpediente(null)}
+              className={cn(
+                "rounded-full border px-2 py-0.5 font-medium",
+                !filtroExpediente ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent",
+              )}
+            >
+              Todos ({eventos.length})
+            </button>
+            {expedientes.map((x) => (
+              <button
+                key={x.id}
+                type="button"
+                onClick={() => setFiltroExpediente(filtroExpediente === x.id ? null : x.id)}
+                className={cn(
+                  "rounded-full border px-2 py-0.5 font-semibold",
+                  colorTipoExpediente(x.tipo),
+                  filtroExpediente === x.id ? "ring-2 ring-primary ring-offset-1" : "opacity-80 hover:opacity-100",
+                )}
+              >
+                {etiquetaTipoExpediente(x.tipo)} · desde {fechaConHora(x.primera).split(" ")[0]} ({x.n})
+              </button>
+            ))}
+          </div>
+        )
+      )}
+
       {busqueda && (
         <p className="text-xs text-muted-foreground">
           Mostrando {filtrados.length} de {eventos.length}
@@ -117,9 +197,9 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
       {filtrados.length === 0 ? (
         <p className="text-sm text-muted-foreground">Sin resultados para &ldquo;{busqueda}&rdquo;.</p>
       ) : vista === "tabla" ? (
-        <TablaHistorial eventos={visibles} oportunidadActualId={oportunidadActualId} />
+        <TablaHistorial eventos={visibles} oportunidadActualId={oportunidadActualId} conExpediente={conExpediente} />
       ) : (
-        <LineaTiempoCuenta oportunidadActualId={oportunidadActualId} eventos={visibles} />
+        <LineaTiempoCuenta oportunidadActualId={oportunidadActualId} eventos={visibles} conExpediente={conExpediente} />
       )}
 
       {restantes > 0 && (
@@ -135,7 +215,7 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
   );
 }
 
-function TablaHistorial({ eventos, oportunidadActualId }: { eventos: EventoTimeline[]; oportunidadActualId?: string }) {
+function TablaHistorial({ eventos, oportunidadActualId, conExpediente }: { eventos: EventoTimeline[]; oportunidadActualId?: string; conExpediente: boolean }) {
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -149,7 +229,7 @@ function TablaHistorial({ eventos, oportunidadActualId }: { eventos: EventoTimel
         </TableHeader>
         <TableBody>
           {eventos.map((evento) => (
-            <FilaHistorial key={`${evento.tipo}-${evento.id}`} evento={evento} oportunidadActualId={oportunidadActualId} />
+            <FilaHistorial key={`${evento.tipo}-${evento.id}`} evento={evento} oportunidadActualId={oportunidadActualId} conExpediente={conExpediente} />
           ))}
         </TableBody>
       </Table>
@@ -157,7 +237,7 @@ function TablaHistorial({ eventos, oportunidadActualId }: { eventos: EventoTimel
   );
 }
 
-function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline; oportunidadActualId?: string }) {
+function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento: EventoTimeline; oportunidadActualId?: string; conExpediente: boolean }) {
   const router = useRouter();
   // Sin `!= null` la fila prometía navegación que no existe: en la ficha del
   // cliente no llega `oportunidadActualId`, así que las cotizaciones del
@@ -173,12 +253,42 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
       onKeyDown={navegable ? (e) => {
         if (e.key === "Enter") router.push(`/comercial/oportunidades/${evento.oportunidadId}`);
       } : undefined}
-      className={navegable ? "cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none" : undefined}
+      className={cn(
+        navegable && "cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
+        evento.tipo === "solicitud" && "bg-[#7E1210]/5",
+      )}
     >
-      <TableCell className="whitespace-nowrap align-top tabular-nums text-muted-foreground">
+      <TableCell
+        className={cn(
+          "whitespace-nowrap align-top tabular-nums text-muted-foreground",
+          conExpediente && evento.expediente && cn("border-l-4", bordeTipoExpediente(evento.expedienteTipo)),
+          evento.tipo === "solicitud" && "border-l-4 border-l-[#7E1210]",
+        )}
+      >
         {fechaConHora(evento.fecha)}
       </TableCell>
-      <TableCell className="align-top py-2.5">
+      <TableCell className="min-w-0 whitespace-normal break-words align-top py-2.5">
+        {conExpediente && evento.expediente && (
+          <p className="mb-0.5">
+            <TipoExpedienteBadge tipo={evento.expedienteTipo} />
+          </p>
+        )}
+        {evento.tipo === "solicitud" && <CuerpoSolicitud evento={evento} />}
+        {evento.tipo === "servicio" && (
+          <>
+            <p className="text-sm font-semibold text-sky-900 dark:text-sky-300">
+              {evento.href ? (
+                <a href={evento.href} onClick={(e) => e.stopPropagation()} className="hover:underline">
+                  {evento.titulo}
+                </a>
+              ) : (
+                evento.titulo
+              )}
+              {evento.quien && <span className="ml-1.5 text-xs font-normal text-muted-foreground">· postventa: {evento.quien}</span>}
+            </p>
+            {evento.detalle && <p className="mt-0.5 text-sm text-muted-foreground">{evento.detalle}</p>}
+          </>
+        )}
         {evento.tipo === "actividad" && (
           <>
             <p className="text-sm font-semibold text-foreground">
@@ -240,7 +350,7 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
             )}
           </p>
         )}
-        {evento.tipo !== "actividad" && evento.pdfUrl && (
+        {evento.tipo !== "actividad" && evento.tipo !== "solicitud" && evento.pdfUrl && (
           <p className="mt-1">
             <a
               href={evento.pdfUrl}
@@ -250,7 +360,7 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
               className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
             >
               <FileText className="size-3" />
-              {evento.tipo === "venta" ? "Ver el presupuesto" : "Ver PDF"}
+              {evento.tipo === "venta" ? "Ver el presupuesto" : evento.tipo === "cotizacion" && evento.montoReservado ? "Ver PDF (sin montos)" : "Ver PDF"}
             </a>
           </p>
         )}
@@ -272,6 +382,11 @@ function FilaHistorial({ evento, oportunidadActualId }: { evento: EventoTimeline
         {evento.tipo === "venta" && (
           <span className="inline-flex rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 text-[11px] font-semibold text-[#1E7F4F]">
             Venta
+          </span>
+        )}
+        {evento.tipo === "solicitud" && (
+          <span className="inline-flex rounded-full bg-[#7E1210]/10 px-2 py-0.5 text-[11px] font-semibold text-[#7E1210] dark:text-rose-300">
+            {evento.volvio ? "Volvió a escribir" : "Inicio"}
           </span>
         )}
       </TableCell>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ETIQUETA_TIPO_EXPEDIENTE } from "@/lib/tipo-expediente";
 import { PackageSearch, ShieldCheck, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { fechaCalendario } from "@/lib/fechas";
@@ -19,12 +20,7 @@ import type { Perfil } from "@/types/database";
  * se cierren solas o gerencia pida una migración con ensayo.
  */
 
-const ETIQUETA_TIPO: Record<string, string> = {
-  garantia: "Soporte técnico",
-  repuesto: "Repuesto",
-  mantenimiento: "Mantenimiento",
-  seguimiento: "Seguimiento",
-};
+const ETIQUETA_TIPO: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
 
 interface CasoAbierto {
   id: string;

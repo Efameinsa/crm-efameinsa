@@ -11,6 +11,7 @@ import { InformeServicioNuevo } from "@/components/crm/informe-servicio-nuevo";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { estadoGarantia, etiquetaTipoServicio } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
+import { CorregirSerieParque } from "@/components/crm/corregir-serie-parque";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,9 @@ export const dynamic = "force-dynamic";
  */
 export default async function EquipoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requerirPerfil();
+  const perfil = await requerirPerfil();
+  const puedeCorregirSerie =
+    Boolean(perfil.es_postventa || perfil.hace_postventa || perfil.es_operaciones) || ["gerencia", "admin", "operaciones"].includes(perfil.rol);
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -88,23 +91,39 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="space-y-4">
-      <Link
-        href="/postventa/equipos"
-        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-3.5" /> Volver a equipos
-      </Link>
+      <div className="flex flex-wrap items-center gap-3">
+        {cuenta && (
+          <Link
+            href={`/nuevo/cliente/${cuenta.id}?tab=equipos`}
+            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" /> Volver a la ficha del cliente
+          </Link>
+        )}
+        <Link href="/postventa/equipos" className="text-xs text-muted-foreground hover:text-foreground">
+          Todos los equipos
+        </Link>
+      </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <p className="font-mono text-xs font-bold text-muted-foreground">
-          {data.serie ? `Serie ${data.serie}` : "Sin serie todavía"}
-        </p>
-        <h1 className="mt-0.5 text-lg font-bold leading-tight text-foreground">
+        {/* LA SERIE, LO PRIMERO Y GRANDE (gerencia, 28-09: «¿y dónde está la
+            serie?… hay que ordenar un poco la vista»). Es con lo que se cotiza
+            y se identifica la máquina entre veinte iguales. */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="rounded-lg border border-border bg-secondary/50 px-3 py-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Serie</p>
+            <p className={cn("font-mono text-lg font-bold", data.serie ? "text-foreground" : "text-amber-700")}>
+              {(data.serie as string | null) ?? "Sin serie todavía"}
+            </p>
+          </div>
+          {puedeCorregirSerie && <CorregirSerieParque equipoId={id} serieActual={(data.serie as string | null) ?? null} />}
+        </div>
+        <h1 className="mt-2 text-lg font-bold leading-tight text-foreground">
           {(data.modelo_texto as string) ?? "Equipo sin describir"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {cuenta ? (
-            <Link href={`/gerencia/clientes/${cuenta.id}`} className="text-primary hover:underline">
+            <Link href={`/comercial/cartera/${cuenta.id}`} className="text-primary hover:underline">
               {cuenta.razon_social}
             </Link>
           ) : (
@@ -169,6 +188,12 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
           )}
         </dl>
       </div>
+
+      {data.observaciones && (
+        <SeccionPanel titulo="Observaciones del equipo">
+          <p className="whitespace-pre-wrap text-xs text-muted-foreground">{data.observaciones as string}</p>
+        </SeccionPanel>
+      )}
 
       <SeccionPanel
         titulo="Historial del equipo"

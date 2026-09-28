@@ -53,6 +53,8 @@ export interface ContactoInforme {
 }
 
 export interface InformeCierrePdfProps {
+  /** Postventa: el documento entero, con las cifras tapadas (gerencia, 28-09). */
+  sinMontos?: boolean;
   logoBuffer: Buffer;
   serie: "EFAMEINSA" | "OPEN";
   /** "004-2026", o null mientras es borrador: el número se gasta al emitir. */
@@ -274,8 +276,9 @@ function Contacto({ estilos, titulo, c }: { estilos: Estilos; titulo: string; c:
 // La tabla se repite igual para la venta y para el bloque gratuito, con sus
 // propios totales: en el original el "VENTA 2 – GRATUITO" también cierra con
 // SUB TOTAL / IGV / TOTAL, aunque no se cobre.
-function Tabla({ estilos, simbolo, lista }: { estilos: Estilos; simbolo: string; lista: ItemInforme[] }) {
+function Tabla({ estilos, simbolo, lista, sinMontos = false }: { estilos: Estilos; simbolo: string; lista: ItemInforme[]; sinMontos?: boolean }) {
   const { subtotal, igv, total } = totalesConIgv(lista);
+  const monto = (v: number) => cifra(v, sinMontos);
   return (
     <View style={estilos.tabla}>
       {/* Sin "+ IGV" en el rótulo: los importes de las filas van SIN IGV
@@ -325,8 +328,14 @@ function recortar(texto: string, maximo: number): string {
   return `${limpio.slice(0, corte > maximo * 0.6 ? corte : maximo).replace(/[,;:.]$/, "")}…`;
 }
 
-function monto(v: number): string {
-  return v.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/**
+ * POSTVENTA VE EL DOCUMENTO CON LOS NÚMEROS TAPADOS (gerencia, 28-09: «postventa
+ * tiene que ver todo y estarían borraditos los números… en los PDFs… X, X, X,
+ * asterisco, asterisco, algo así, para tapar los números»).
+ */
+export const CIFRA_TAPADA = "*****";
+function cifra(v: number, tapada: boolean): string {
+  return tapada ? CIFRA_TAPADA : v.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function InformeCierrePdf(props: InformeCierrePdfProps) {
@@ -334,8 +343,9 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
     logoBuffer, serie, codigo, fecha, referencia, asunto, presupuestoRef,
     comprobante, clienteNuevo, cliente, contactoVenta, contactoContabilidad, contactoDespacho,
     modalidadPago, formaPago, moneda, notaCondiciones, pctAntesDespacho, creditoDias, garantia, entrega, notaDespacho, urgente,
-    incluye, gratis, notaFinal, items, itemsGratuitos, adjuntos, compendio, firma,
+    incluye, gratis, notaFinal, items, itemsGratuitos, adjuntos, compendio, firma, sinMontos = false,
   } = props;
+  const monto = (v: number) => cifra(v, sinMontos);
 
   const identidad = IDENTIDAD_SERIE[serie];
   const estilos = crearEstilos(identidad.acento);
@@ -419,12 +429,12 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
         <Text style={estilos.tablaTitulo}>
           {presupuestoRef ? `Detalle de ${rotuloDeItems(items).toLowerCase()} según presupuesto ${presupuestoRef}` : `Detalle de ${rotuloDeItems(items).toLowerCase()}`}
         </Text>
-        <Tabla estilos={estilos} simbolo={simbolo} lista={items} />
+        <Tabla estilos={estilos} simbolo={simbolo} lista={items} sinMontos={sinMontos} />
 
         {itemsGratuitos.length > 0 && (
           <>
             <Text style={estilos.bloqueGratuito}>VENTA 2 – GRATUITO</Text>
-            <Tabla estilos={estilos} simbolo={simbolo} lista={itemsGratuitos} />
+            <Tabla estilos={estilos} simbolo={simbolo} lista={itemsGratuitos} sinMontos={sinMontos} />
           </>
         )}
 

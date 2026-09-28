@@ -1,4 +1,5 @@
 "use client";
+import { ETIQUETA_TIPO_EXPEDIENTE } from "@/lib/tipo-expediente";
 
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -65,12 +66,7 @@ interface Props {
   cuentaId?: string | null;
 }
 
-const ETIQUETA_TIPO: Record<string, string> = {
-  garantia: "Soporte técnico",
-  repuesto: "Repuestos",
-  mantenimiento: "Mantenimiento preventivo",
-  seguimiento: "Seguimiento",
-};
+const ETIQUETA_TIPO: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
 
 /** Mismo criterio que `nombre_normalizado` en la base (0158). */
 function mismoNombre(a: string | null | undefined, b: string | null | undefined): boolean {
@@ -468,13 +464,18 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
                 <SelectValue placeholder="Seleccione…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="garantia">Soporte técnico — el equipo no está operativo</SelectItem>
+                <SelectItem value="garantia">Problema técnico (soporte) — el equipo no está operativo</SelectItem>
                 {/* Ariana, 14-09: «a la central no le hemos puesto la opción de
                     puesta en marcha, y lo está reportando como problema
                     técnico» (0231). */}
                 <SelectItem value="puesta_en_marcha">Puesta en marcha — el equipo llegó y hay que instalarlo</SelectItem>
+                {/* Gerencia, 28-09, con BUNGARENA: «el cliente no está pidiendo
+                    puesta en marcha, ha solicitado despacho… que cuando llegue
+                    a la central tengan la opción de que digan despacho» (0317). */}
+                <SelectItem value="despacho">Despacho — pide que le despachen lo que compró</SelectItem>
                 <SelectItem value="repuesto">Repuesto</SelectItem>
                 <SelectItem value="mantenimiento">Mantenimiento preventivo</SelectItem>
+                <SelectItem value="mantenimiento_correctivo">Mantenimiento correctivo — reparar algo que ya falló</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">

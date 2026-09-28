@@ -12,6 +12,7 @@ import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
 import { EsperaDeNavegacion } from "@/components/crm/espera-de-navegacion";
 import { FiltroSeguimiento } from "@/components/crm/filtro-seguimiento";
 import { ETIQUETA_SEGUIMIENTO, leerSeguimiento, parametrosSeguimiento } from "@/lib/seguimiento-cartera";
+import { ClientesRecientes } from "@/components/crm/clientes-recientes";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +118,8 @@ export default async function CarteraPage({
         <FiltroSeguimiento valor={seguimiento} className="[&>select]:h-9 [&>select]:text-sm" />
         <Button type="submit">Buscar</Button>
       </form>
+      {/* Los últimos clientes abiertos, sin volver a escribir (gerencia, 28-09). */}
+      <ClientesRecientes />
 
       <SeccionPanel
         titulo={

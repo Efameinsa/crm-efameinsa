@@ -9,13 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AYUDA_TIPO_EXPEDIENTE, ETIQUETA_TIPO_EXPEDIENTE, TIPOS_EXPEDIENTE } from "@/lib/tipo-expediente";
+import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
 
-const ETIQUETA: Record<string, string> = {
-  garantia: "Soporte técnico",
-  repuesto: "Repuestos",
-  mantenimiento: "Mantenimiento preventivo",
-  seguimiento: "Seguimiento",
-};
+const ETIQUETA: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
 
 const boton =
   "inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-accent";
@@ -41,7 +38,7 @@ export function AccionesExpedientePostventa({
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [abierto, setAbierto] = useState<"caso" | "pasar" | null>(null);
-  const [nuevoTipo, setNuevoTipo] = useState(tipo === "seguimiento" ? "garantia" : "seguimiento");
+  const [nuevoTipo, setNuevoTipo] = useState<string>(TIPOS_EXPEDIENTE.find((t) => t !== tipo) ?? "seguimiento");
   const otras = companeras.filter((c) => c.id !== duenoId);
   const [destino, setDestino] = useState(otras[0]?.id ?? "");
   const [motivo, setMotivo] = useState("");
@@ -65,9 +62,9 @@ export function AccionesExpedientePostventa({
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-1.5">
-      <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-foreground">{ETIQUETA[tipo] ?? tipo}</span>
+      <TipoExpedienteBadge tipo={tipo} grande />
       <button type="button" className={boton} onClick={() => setAbierto("caso")}>
-        <FolderInput className="size-3.5" /> {tipo === "seguimiento" ? "Es un caso" : "Cambiar el tipo"}
+        <FolderInput className="size-3.5" /> {tipo === "seguimiento" ? "Es un caso" : "Reclasificar"}
       </button>
       {otras.length > 0 && (
         <button type="button" className={boton} onClick={() => setAbierto("pasar")}>
@@ -81,7 +78,7 @@ export function AccionesExpedientePostventa({
             <DialogDescription>
               {abierto === "pasar"
                 ? "El expediente pasa a ella con todo su historial; le llega el aviso y queda escrito por qué."
-                : "Si entró como seguimiento pero es un problema técnico, un repuesto o un mantenimiento, se cataloga como caso. Queda escrito por qué."}
+                : "Si Central lo derivó con otro nombre —por ejemplo «problema técnico» cuando el cliente pedía su despacho—, póngale el que es. Queda escrito por qué. Problema técnico y puesta en marcha abren su circuito; despacho y seguimiento no llevan circuito: el despacho se programa en el pedido."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
@@ -101,13 +98,11 @@ export function AccionesExpedientePostventa({
               <div className="grid gap-1">
                 <Label className="text-xs">Qué es</Label>
                 <select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                  {Object.entries(ETIQUETA)
-                    .filter(([k]) => k !== tipo)
-                    .map(([k, v]) => (
-                      <option key={k} value={k}>
-                        {v}
-                      </option>
-                    ))}
+                  {TIPOS_EXPEDIENTE.filter((k) => k !== tipo).map((k) => (
+                    <option key={k} value={k}>
+                      {ETIQUETA[k]} — {AYUDA_TIPO_EXPEDIENTE[k]}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}
@@ -119,7 +114,7 @@ export function AccionesExpedientePostventa({
                 rows={3}
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
-                placeholder={abierto === "pasar" ? "Ej.: es un pedido que ella ya está despachando" : "Ej.: la secadora no calienta: es soporte técnico, no seguimiento"}
+                placeholder={abierto === "pasar" ? "Ej.: es un pedido que ella ya está despachando" : "Ej.: el cliente llama para que le despachen: es despacho, no problema técnico"}
               />
             </div>
           </div>

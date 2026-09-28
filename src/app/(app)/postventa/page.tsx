@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ETIQUETA_TIPO_EXPEDIENTE } from "@/lib/tipo-expediente";
 import { AlertTriangle, Wrench, PackageSearch, ShieldCheck, Inbox, ArrowRight, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
@@ -44,12 +45,7 @@ export const dynamic = "force-dynamic";
  * con SOLO lo de hoy: la semana entera es del Calendario, no de acá.
  */
 
-const ETIQUETA_TIPO_CASO: Record<string, string> = {
-  garantia: "Soporte técnico",
-  repuesto: "Repuesto",
-  mantenimiento: "Mantenimiento",
-  seguimiento: "Seguimiento",
-};
+const ETIQUETA_TIPO_CASO: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
 
 const ICONO_TIPO_ATENCION: Record<TipoAtencion, LucideIcon> = {
   puesta_en_marcha: Wrench,

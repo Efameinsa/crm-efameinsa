@@ -77,8 +77,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     // Sin compendio, con informe.
   }
 
+  // POSTVENTA LO VE CON LOS NÚMEROS TAPADOS (gerencia, 28-09: «postventa tiene
+  // que ver todo y estarían borraditos los números… en los PDFs»). Lo que
+  // cuenta el compendio también lleva cifras: se tapan igual.
+  const sinMontos = Boolean(perfil && !puedeVerPrecios(perfil));
+  if (sinMontos && compendio) {
+    const tapar = (t: string) => t.replace(/((?:US\$|USD|S\/\.?|\$)\s?)[\d.,]+/gi, "$1*****");
+    compendio = { ...compendio, resumen: tapar(compendio.resumen), hitos: compendio.hitos.map((h) => ({ ...h, detalle: h.detalle ? tapar(h.detalle) : h.detalle })) };
+  }
+
   const buffer = await renderToBuffer(
     <InformeCierrePdf
+      sinMontos={sinMontos}
       logoBuffer={LOGO_BUFFER}
       serie={informe.serie}
       codigo={informe.codigo}

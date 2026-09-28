@@ -29,21 +29,21 @@ import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { AccionesExpedientePostventa } from "@/components/crm/acciones-expediente-postventa";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import Link from "next/link";
-import { fechaAgendada, fechaHoraLima, fechaLimaCorta } from "@/lib/fechas";
-import { SolicitudLead } from "@/components/crm/solicitud-lead";
+import { fechaAgendada, fechaLimaCorta } from "@/lib/fechas";
 import { AnuncioDelLead } from "@/components/crm/anuncio-del-lead";
-import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
 import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
 import { PedirExpedienteBoton } from "@/components/crm/pedir-expediente-boton";
 import { cargarSupervisores } from "@/lib/supervisores";
 import { demora, haceCuanto, ETIQUETA_MOTIVO, inicioVentanaOtraFicha } from "@/lib/derivados-central";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
-import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
 import type { TipoDocumento } from "@/lib/documento";
 import { tipificacionesActuales } from "@/lib/acciones/whatsapp-campanas";
 import { anuncioDe } from "@/lib/whatsapp-marketing";
 import { TipificarWhatsapp } from "@/components/crm/tipificar-whatsapp";
+import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
+import { TraerPedidoAntiguoBoton } from "@/components/crm/traer-pedido-antiguo-boton";
+import { nombreDeCampana, recorridoDe } from "@/lib/campana";
 
 // Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
 // el mismo nombre de canal que vio quien se lo derivó.
@@ -128,11 +128,8 @@ export default async function OportunidadDetallePage({
     email: string | null;
   } | null;
 
-  // La foto o el PDF que el prospecto mandó por WhatsApp y Central adjuntó al
-  // registrar (25-08): el comercial la ve junto a la solicitud, sin pedirla.
-  const adjuntosLead = lead?.adjuntos?.length
-    ? ((await firmarAdjuntosDeLeads(supabase, [{ id: "lead", adjuntos: lead.adjuntos }])).get("lead") ?? [])
-    : [];
+  // La foto o el PDF que el prospecto mandó (25-08) viajan ahora con su
+  // solicitud, en la primera fila del historial (gerencia, 28-09).
 
   const cuenta = oportunidad.cuentas as unknown as {
     id: string;
@@ -161,9 +158,6 @@ export default async function OportunidadDetallePage({
 
   // TODO LO QUE NO DEPENDE ENTRE SÍ, EN UN SOLO VIAJE (Santos, 02-09,
   // «pequeños tirones»: esta ficha hacía once consultas, varias en fila).
-  //  · Los otros contactos que se SUMARON a este expediente (0141): el cliente
-  //    que entró dos veces ya no abre un gemelo; lo que pidió por el otro
-  //    canal se muestra junto a la solicitud original.
   //  · El catálogo de rubros para «Cambiar rubro» en la cabecera.
   //  · La sede de una institución con un solo RUC (0158/0159): va por
   //    `grupo_economico` porque la madre no tiene dueño y la RLS no se la
@@ -174,7 +168,6 @@ export default async function OportunidadDetallePage({
   //  · La ruta del contacto desde antes de que fuera suyo (Carlos, 27-08):
   //    la asignación de Central y la primera gestión.
   const [
-    { data: otrosLeadsCrudos },
     { data: rubrosData },
     { data: grupoData },
     { eventos, ventasConDetalle },
@@ -187,11 +180,6 @@ export default async function OportunidadDetallePage({
     { data: gemelaCerrada },
     tipificacionesWa,
   ] = await Promise.all([
-    supabase
-      .from("leads")
-      .select("id, codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, recibido_at")
-      .eq("oportunidad_id", oportunidad.id)
-      .order("recibido_at"),
     supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre"),
     cuenta?.cuenta_padre_id ? supabase.rpc("grupo_economico", { p_cuenta_id: cuenta.id }) : Promise.resolve({ data: null }),
     cuenta?.id
@@ -200,7 +188,7 @@ export default async function OportunidadDetallePage({
     cuenta?.id
       ? supabase
           .from("informes_cierre")
-          .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos")
+          .select("id, codigo, serie, fecha, monto_total, moneda, emitido_at, adjuntos, anulado_at")
           .eq("cuenta_id", cuenta.id)
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [] }),
@@ -327,7 +315,6 @@ export default async function OportunidadDetallePage({
     : { data: null };
 
   const tipificacionWaActual = tipificacionesWa[0] ?? null;
-  const otrosLeads = (otrosLeadsCrudos ?? []).filter((l) => l.id !== oportunidad.lead_id);
   const rubros = (rubrosData ?? []) as { id: number; nombre: string }[];
   const grupo = (grupoData ?? []) as { razon_social: string; num_doc: string | null; es_madre: boolean }[];
   const madre = grupo.find((g) => g.es_madre) ?? null;
@@ -338,13 +325,7 @@ export default async function OportunidadDetallePage({
 
   // Lo que depende de lo anterior: las URL firmadas de los adjuntos (de los
   // contactos sumados y de los informes) y quién derivó. Otro viaje, y basta.
-  const [adjuntosPorLead, adjuntosPorInforme, { data: quienDerivo }, { data: ventaDeLaOportunidad }] = await Promise.all([
-    otrosLeads.some((l) => (l.adjuntos as AdjuntoLead[] | null)?.length)
-      ? firmarAdjuntosDeLeads(
-          supabase,
-          otrosLeads.map((l) => ({ id: l.id, adjuntos: (l.adjuntos as AdjuntoLead[] | null) ?? [] })),
-        )
-      : Promise.resolve(new Map<string, never[]>()),
+  const [adjuntosPorInforme, { data: quienDerivo }, { data: ventaDeLaOportunidad }] = await Promise.all([
     firmarAdjuntosDeCierres(supabase, informes ?? []),
     asignacion?.decidida_por
       ? supabase.from("perfiles").select("nombre").eq("id", asignacion.decidida_por).maybeSingle()
@@ -500,6 +481,14 @@ export default async function OportunidadDetallePage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-lg font-bold text-foreground">{cuenta?.razon_social ?? "Cuenta sin nombre"}</h1>
+            {/* Volver a la ficha principal del cliente (gerencia, 28-09: «ahí no
+                te lleva a la ficha principal»). El expediente es un caso; el
+                cliente, con todos sus expedientes, está en su ficha. */}
+            {cuenta?.id && (
+              <Link href={`/comercial/cartera/${cuenta.id}`} className="text-xs font-medium text-primary hover:underline">
+                Ir a la ficha del cliente (todos sus expedientes) →
+              </Link>
+            )}
             {sedeDe && (
               <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <Building2 className="size-3.5" />
@@ -561,13 +550,17 @@ export default async function OportunidadDetallePage({
           <div className="flex flex-col items-end gap-2">
             <EtapaBadge etapa={oportunidad.etapa} />
             {/* 0284 (reunión 23-09): catalogarlo como caso o pasárselo a la compañera. */}
-            {oportunidad.tipo_postventa && (comoCompaneraDeArea || comoGerenciaAqui) && (
+            {oportunidad.tipo_postventa && (comoCompaneraDeArea || comoGerenciaAqui) ? (
               <AccionesExpedientePostventa
                 oportunidadId={oportunidad.id}
                 tipo={oportunidad.tipo_postventa}
                 duenoId={oportunidad.comercial_id}
                 companeras={companerasPostventa}
               />
+            ) : (
+              // El tipo de gestión, a la vista y con su color para todos
+              // (gerencia, 28-09: «¿qué tipo de gestión es esto?»).
+              <TipoExpedienteBadge tipo={oportunidad.tipo_postventa} grande />
             )}
           </div>
         </div>
@@ -643,13 +636,22 @@ export default async function OportunidadDetallePage({
             />
           )}
 
-          {/* LO PRIMERO, antes de registrar nada: qué pidió este prospecto.
-              Va arriba de todo porque es lo que el comercial necesita leer
-              antes de levantar el teléfono. Pedido de Brenda el 24-08: «cada
-              nuevo prospecto tiene diferente interés de compra». */}
-          {lead && (
-            <SeccionPanel titulo="Solicitud del prospecto">
-              <SolicitudLead mensaje={lead.mensaje} campania={anuncioVisto ? null : lead.utm_campaign} recorrido={lead} compacto />
+          {/* LO QUE PIDIÓ EL CLIENTE YA NO VA CLAVADO ACÁ ARRIBA (gerencia,
+              28-09, con MINERÍA SINGULARIDAD): se leía como la última gestión
+              y confundía. «Ese primer registro debería ir abajo… como punto de
+              partida… con su respectiva hora… con un color especial». Ahora es
+              la primera fila del historial de este expediente, con quién lo
+              registró. Acá arriba queda solo lo que no es historia sino dato
+              para trabajar: de qué anuncio vino y el resultado de la
+              conversación de campaña de WhatsApp. */}
+          {lead && (anuncioVisto || nombreDeCampana(lead.utm_campaign) || recorridoDe(lead) || (lead.canal === "whatsapp" && lead.codigo_campania_wa && oportunidad.lead_id)) && (
+            <SeccionPanel titulo="De dónde vino el contacto">
+              {!anuncioVisto && nombreDeCampana(lead.utm_campaign) && (
+                <p className="text-xs text-muted-foreground">
+                  Campaña: <b className="text-foreground">{nombreDeCampana(lead.utm_campaign)}</b>
+                </p>
+              )}
+              {recorridoDe(lead) && <p className="mt-1 text-[11px] text-muted-foreground">Recorrido en la web: {recorridoDe(lead)}</p>}
               {anuncioVisto && (
                 <div className="mt-2">
                   <AnuncioDelLead
@@ -660,26 +662,6 @@ export default async function OportunidadDetallePage({
                   />
                 </div>
               )}
-              {/* 0236 (14-09): lo que el prospecto dejó, tal cual llegó. La ficha puede tener
-                  otro correo (del Excel viejo o de otra persona); este es el de ESTA solicitud. */}
-              {(lead.email || lead.telefono || lead.nombre_contacto) && (
-                <p className="mt-2 text-xs">
-                  <span className="text-muted-foreground">Dejó: </span>
-                  {[lead.nombre_contacto, lead.telefono].filter(Boolean).join(" · ")}
-                  {lead.email && (
-                    <>
-                      {(lead.nombre_contacto || lead.telefono) ? " · " : ""}
-                      <a href={`mailto:${lead.email}`} className="text-primary underline underline-offset-2">{lead.email}</a>
-                    </>
-                  )}
-                </p>
-              )}
-              <AdjuntosLead adjuntos={adjuntosLead} />
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Entró por {ETIQUETA_CANAL_LEAD[lead.canal] ?? lead.canal}
-                {lead.recibido_at ? ` · ${fechaHoraLima(lead.recibido_at)}` : ""}
-                {lead.codigo ? ` · ${lead.codigo}` : ""}
-              </p>
               {/* WhatsApp de campañas, fase 1 sin API (14-09-2026): este
                   contacto vino con un código de anuncio — acá se marca qué
                   pasó con la conversación. Reemplaza el Excel de resultados. */}
@@ -691,22 +673,6 @@ export default async function OportunidadDetallePage({
                   <TipificarWhatsapp leadId={oportunidad.lead_id} actual={tipificacionWaActual} />
                 </div>
               )}
-              {/* El mismo cliente entró otra vez por otro canal y Central lo
-                  sumó a este expediente (0141): lo que pidió esa segunda vez
-                  se lee acá mismo, no en una ficha gemela. */}
-              {otrosLeads.map((otro) => (
-                <div key={otro.id} className="mt-3 rounded-lg border border-border bg-secondary/50 p-3">
-                  <p className="mb-1.5 text-xs font-semibold text-foreground">
-                    El cliente volvió a escribir por {ETIQUETA_CANAL_LEAD[otro.canal] ?? otro.canal}
-                  </p>
-                  <SolicitudLead mensaje={otro.mensaje} campania={otro.utm_campaign} compacto />
-                  <AdjuntosLead adjuntos={adjuntosPorLead.get(otro.id) ?? []} />
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    {otro.recibido_at ? `${fechaHoraLima(otro.recibido_at)} · ` : ""}
-                    {otro.codigo ?? ""}
-                  </p>
-                </div>
-              ))}
             </SeccionPanel>
           )}
 
@@ -720,6 +686,26 @@ export default async function OportunidadDetallePage({
           <SeccionPanel titulo="Cómo llegó este contacto">
             <RutaDerivacion hitos={rutaDelContacto} />
           </SeccionPanel>
+
+          {/* ES UN DESPACHO (gerencia, 28-09, con BUNGARENA). No lleva el
+              circuito técnico: «si ya tenemos el pedido… continúas gestionando
+              ahí»; y si el pedido no está en el CRM, «nos obligamos a agregar
+              el pedido… para regularizarlo». Las llamadas con el cliente se
+              anotan acá, en este expediente. */}
+          {oportunidad.tipo_postventa === "despacho" && cuenta?.id && (
+            <SeccionPanel titulo="Es un despacho">
+              <p className="text-sm text-foreground">
+                El despacho se programa en el <b>pedido</b> del cliente (abajo, en «Estado del pedido»: botón «Programar despacho» y la videollamada de
+                preinstalación). Lo que se habla con el cliente se anota acá, en «Registrar gestión».
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                ¿El pedido no está en el CRM porque es anterior? Regularícelo trayéndolo:
+              </p>
+              <div className="mt-1.5">
+                <TraerPedidoAntiguoBoton cuentaId={cuenta.id} compacto />
+              </div>
+            </SeccionPanel>
+          )}
 
           <SeccionPanel titulo="Registrar gestión">
             {/* NO SE OFRECE UN FORMULARIO QUE NO PUEDE FUNCIONAR. Si el
@@ -775,7 +761,7 @@ export default async function OportunidadDetallePage({
           {cuenta?.id && <EquiposDelCliente cuentaId={cuenta.id} />}
 
           {cuenta?.id && (
-            <SeccionPanel titulo="Historial del cliente">
+            <SeccionPanel titulo="Historial de este expediente">
               <HistorialCuenta eventos={eventos} oportunidadActualId={oportunidad.id} />
             </SeccionPanel>
           )}

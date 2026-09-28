@@ -69,3 +69,16 @@ export async function registrarEquipo(datos: {
   revalidatePath("/comercial/parque");
   return { error: null, equipoId: data as string };
 }
+
+/**
+ * Corregir o completar la serie de una máquina que ya está en el parque
+ * (gerencia, 28-09: «regularizar la serie del equipo… y lo puedes editar»).
+ * Las reglas —quién, motivo, serie repetida— viven en la base (0318).
+ */
+export async function corregirSerieParque(equipoId: string, serie: string, motivo: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("corregir_serie_parque", { p_equipo: equipoId, p_serie: serie, p_motivo: motivo });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, ""), serie: null as string | null };
+  revalidatePath(`/postventa/equipos/${equipoId}`);
+  return { error: null as string | null, serie: data as string };
+}

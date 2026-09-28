@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { MoreHorizontal, FileText, CircleCheckBig, CalendarClock, Wrench } from "lucide-react";
+import { MoreHorizontal, FileText, CircleCheckBig, CalendarClock, Wrench, Inbox } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { textoLegible } from "@/lib/texto";
 import { fechaAgendada, fechaConHora } from "@/lib/fechas";
 import { ETIQUETA_ACTIVIDAD, ICONO_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
+import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
+import { SolicitudLead } from "@/components/crm/solicitud-lead";
 
 // Se re-exportan para no tocar a quien ya las importaba desde acá.
 export { ETIQUETA_ACTIVIDAD, ICONO_ACTIVIDAD };
@@ -29,7 +31,20 @@ export interface AdjuntoEvento {
   nombre: string;
   url: string; // URL firmada de Storage (bucket privado 'adjuntos'), vence en 1 h
 }
-export interface EventoActividad {
+/**
+ * A QUÉ EXPEDIENTE PERTENECE CADA FILA (gerencia, 28-09). «El cliente es uno
+ * solo… pero hay un caso de cotización, hay un caso de problema técnico. Eso sí
+ * tiene que estar separado». Con esto la ficha pinta cada fila con el color de
+ * su expediente y el expediente muestra solo lo suyo. `expediente` es el id
+ * crudo (aunque sea un cascarón del Excel, que no navega); `expedienteTipo`
+ * es su tipo de postventa, o null si es un expediente comercial.
+ */
+export interface DelExpediente {
+  expediente?: string | null;
+  expedienteTipo?: string | null;
+}
+
+export interface EventoActividad extends DelExpediente {
   tipo: "actividad";
   id: string;
   fecha: string;
@@ -49,7 +64,7 @@ export interface EventoActividad {
   proximaAccionAt?: string | null;
   proximaAccionHora?: string | null;
 }
-export interface EventoCotizacion {
+export interface EventoCotizacion extends DelExpediente {
   tipo: "cotizacion";
   id: string;
   fecha: string;
@@ -72,7 +87,7 @@ export interface EventoCotizacion {
   // acciones. Puede venir null si ese documento no se subió al bucket.
   pdfUrl?: string | null;
 }
-export interface EventoVenta {
+export interface EventoVenta extends DelExpediente {
   tipo: "venta";
   id: string;
   fecha: string;
@@ -94,7 +109,7 @@ export interface EventoVenta {
  * comercial y postventa venden mantenimiento los dos y cada uno tiene que ver
  * lo que hizo el otro (Santos, 02-09).
  */
-export interface EventoServicio {
+export interface EventoServicio extends DelExpediente {
   tipo: "servicio";
   id: string;
   fecha: string;
@@ -108,9 +123,98 @@ export interface EventoServicio {
   oportunidadId: null;
   pdfUrl?: null;
 }
-export type EventoTimeline = EventoActividad | EventoCotizacion | EventoVenta | EventoServicio;
+/**
+ * EL INICIO DEL EXPEDIENTE: lo que el cliente pidió, tal como lo registró
+ * Central (gerencia, 28-09, con MINERÍA SINGULARIDAD). Estaba clavado arriba
+ * del expediente y se leía como si fuera la última gestión: «ese primer
+ * registro debería ir abajo en la cola… como punto de partida… con su
+ * respectiva hora… que tenga un color especial… ¿y quién registró?». Ahora es
+ * una fila más, en su hora, con su color y con quién lo registró.
+ */
+export interface EventoSolicitud extends DelExpediente {
+  tipo: "solicitud";
+  id: string;
+  fecha: string;
+  oportunidadId: string | null;
+  mensaje: string | null;
+  canal: string;
+  codigo: string | null;
+  /** Quién lo registró en Central (o el comercial que lo pasó). */
+  quien: string | null;
+  /** Nombre · teléfono · correo que dejó el cliente en ESTA solicitud (0236). */
+  dejo: string | null;
+  adjuntos?: AdjuntoEvento[];
+  /** El cliente volvió a escribir y se sumó a este expediente (0141). */
+  volvio?: boolean;
+  monto?: null;
+  pdfUrl?: null;
+}
+export type EventoTimeline = EventoActividad | EventoCotizacion | EventoVenta | EventoServicio | EventoSolicitud;
+
+export const ETIQUETA_CANAL_SOLICITUD: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  llamada: "llamada",
+  formulario_web: "el formulario de la web",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  email: "correo",
+  presencial: "visita presencial",
+  referido: "referido",
+  otro: "otro canal",
+};
+
+/** El recuadro de la solicitud: el mismo en la tabla y en la línea de tiempo. */
+export function CuerpoSolicitud({ evento }: { evento: EventoSolicitud }) {
+  return (
+    <div>
+      <p className="text-sm font-semibold text-[#7E1210] dark:text-rose-300">
+        {evento.volvio ? "El cliente volvió a escribir" : "Inicio · lo que solicitó el cliente"}
+        <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+          · entró por {ETIQUETA_CANAL_SOLICITUD[evento.canal] ?? evento.canal}
+          {evento.codigo ? ` · ${evento.codigo}` : ""}
+          {evento.quien ? ` · lo registró ${evento.quien}` : ""}
+        </span>
+      </p>
+      {evento.mensaje ? (
+        <div className="mt-1"><SolicitudLead mensaje={evento.mensaje} compacto /></div>
+      ) : (
+        <p className="mt-0.5 text-sm italic text-muted-foreground">Central no escribió qué pidió el cliente.</p>
+      )}
+      {evento.dejo && <p className="mt-1 text-xs text-muted-foreground">Dejó: {evento.dejo}</p>}
+      {(evento.adjuntos ?? []).length > 0 && (
+        <p className="mt-1 flex flex-wrap gap-2">
+          {evento.adjuntos!.map((ad, i) => (
+            <a
+              key={i}
+              href={ad.url}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+            >
+              📎 {ad.nombre}
+            </a>
+          ))}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; oportunidadActualId?: string }) {
+  if (evento.tipo === "solicitud") {
+    return (
+      <div className="relative flex gap-3">
+        <span className="flex size-8 flex-none items-center justify-center rounded-full bg-[#7E1210]/10 text-[#7E1210]">
+          <Inbox className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1 rounded-lg border border-[#7E1210]/30 bg-[#7E1210]/5 p-2">
+          <CuerpoSolicitud evento={evento} />
+          <p className="mt-1 text-xs text-muted-foreground">{fechaConHora(evento.fecha)}</p>
+        </div>
+      </div>
+    );
+  }
   const Icono =
     evento.tipo === "actividad"
       ? (ICONO_ACTIVIDAD[evento.tipoActividad] ?? MoreHorizontal)
@@ -241,7 +345,16 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
 // Renderiza la lista que le pasen, sin paginar ni filtrar — eso lo maneja
 // HistorialCuenta (dueño del estado de orden/filtro/expansión compartido
 // entre esta vista y la de tabla).
-export function LineaTiempoCuenta({ eventos, oportunidadActualId }: { eventos: EventoTimeline[]; oportunidadActualId?: string }) {
+export function LineaTiempoCuenta({
+  eventos,
+  oportunidadActualId,
+  conExpediente,
+}: {
+  eventos: EventoTimeline[];
+  oportunidadActualId?: string;
+  /** En la ficha: cada evento lleva la etiqueta de color de su expediente (28-09). */
+  conExpediente?: boolean;
+}) {
   const reducido = useReducedMotion();
 
   return (
@@ -256,6 +369,11 @@ export function LineaTiempoCuenta({ eventos, oportunidadActualId }: { eventos: E
         >
           {i < eventos.length - 1 && (
             <span className="absolute left-[15px] top-8 h-[calc(100%-4px)] w-px bg-border" aria-hidden />
+          )}
+          {conExpediente && evento.expediente && (
+            <div className="mb-1 pl-11">
+              <TipoExpedienteBadge tipo={evento.expedienteTipo} />
+            </div>
           )}
           <EventoFila evento={evento} oportunidadActualId={oportunidadActualId} />
         </motion.div>

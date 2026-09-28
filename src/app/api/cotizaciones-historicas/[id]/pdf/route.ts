@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { puedeVerPrecios } from "@/lib/postventa";
+import { taparMontosEnPdf } from "@/lib/pdf/tapar-montos";
+
+export const runtime = "nodejs";
 
 // Abre el PDF de una cotización anterior al CRM (los presupuestos que vivían
 // en las unidades de red S:, T: y O:, hoy en un bucket privado de R2).
@@ -65,7 +70,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const { data: cotizacion } = await supabase
+  // POSTVENTA LA ABRE CON LOS IMPORTES TAPADOS (gerencia, 28-09: «postventa
+  // tiene que ver todo y estarían borraditos los números… en los PDFs»). La
+  // RLS de la 0039 no le abre el archivo, así que la fila se lee con la llave
+  // del servidor y el documento se sirve desde acá —no por URL firmada—,
+  // para que el original con precios nunca llegue a su navegador.
+  const { data: perfil } = await supabase.from("perfiles").select("rol, es_postventa").eq("id", user.id).maybeSingle();
+  const sinMontos = Boolean(perfil && !puedeVerPrecios(perfil));
+
+  const { data: cotizacion } = await (sinMontos ? createAdminClient() : supabase)
     .from("cotizaciones_historicas")
     .select("pdf_path, archivo")
     .eq("id", id)
@@ -76,6 +89,25 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   // tandas: mientras no tengan ruta, no hay nada que abrir.
   if (!cotizacion.pdf_path) {
     return NextResponse.json({ error: "Esta cotización no tiene PDF disponible" }, { status: 404 });
+  }
+
+  if (sinMontos) {
+    const objeto = await s3.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: cotizacion.pdf_path }));
+    const original = new Uint8Array(await objeto.Body!.transformToByteArray());
+    try {
+      const { pdf } = await taparMontosEnPdf(original);
+      return new NextResponse(new Uint8Array(pdf), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="${nombreDescarga(cotizacion.archivo).replace(/\.pdf$/i, "")} (sin montos).pdf"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch (e) {
+      // Si el documento no se deja leer, no se entrega con precios: se dice.
+      console.error(`[cotizacion historica ${id}] no se pudieron tapar los montos:`, e);
+      return NextResponse.json({ error: "No se pudo preparar este documento sin montos" }, { status: 500 });
+    }
   }
 
   const url = await getSignedUrl(

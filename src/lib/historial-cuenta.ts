@@ -1,6 +1,8 @@
 import type { createClient } from "@/lib/supabase/server";
 import { totalConIgv } from "@/lib/monto-cotizacion";
 import type { EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
+import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
+import type { AdjuntoLead } from "@/lib/validaciones/lead";
 
 // Se muestran las 300 actividades más recientes por cuenta — de sobra para el
 // volumen real del piloto (~50 gestiones/día por comercial); si algún día se
@@ -30,6 +32,8 @@ interface FilaOportunidad { id: string; origen: string | null }
 interface FilaCotHist {
   id: string; codigo: string | null; correlativo: number | null; anio: number | null; serie: string | null;
   fecha: string | null; monto_sin_igv: number | null; items: string[] | null; n_equipos: number | null; pdf_path: string | null;
+  /** Solo en el paquete de postventa (0319): hay documento, pero la ruta no viaja. */
+  tiene_pdf?: boolean;
 }
 interface FilaActividad {
   id: string; tipo: string; nota: string | null; realizada_at: string; oportunidad_id: string;
@@ -121,6 +125,38 @@ export async function cargarHistorialCuenta(
   );
   const aDonde = (id: string | null) => (id && opsConTrabajo.has(id) ? id : null);
 
+  // EL TIPO DE CADA EXPEDIENTE Y EL CONTACTO QUE LO ORIGINÓ (gerencia, 28-09).
+  // Van aparte porque el paquete sin cifras de postventa no los trae; la RLS
+  // deja ver los de postventa a toda el área (0317) y los comerciales a su
+  // dueño — lo que no se alcanza a ver sale como «comercial».
+  // Por cuenta y no con `.in(ids)`: un cliente con decenas de expedientes
+  // revienta la URL (trampa conocida).
+  const { data: opsTipo } = await supabase.from("oportunidades").select("id, tipo_postventa, lead_id").eq("cuenta_id", cuentaId);
+  const tipoDe = new Map<string, string | null>((opsTipo ?? []).map((o) => [o.id as string, (o.tipo_postventa as string | null) ?? null]));
+  const delExpediente = (opId: string | null | undefined) =>
+    opId ? { expediente: opId, expedienteTipo: tipoDe.get(opId) ?? null } : { expediente: null, expedienteTipo: null };
+  const leadOriginal = new Map<string, string>(
+    (opsTipo ?? []).filter((o) => o.lead_id).map((o) => [o.lead_id as string, o.id as string]),
+  );
+  type FilaLead = {
+    id: string; codigo: string | null; canal: string; mensaje: string | null; recibido_at: string | null; created_at: string;
+    nombre_contacto: string | null; telefono: string | null; email: string | null; oportunidad_id: string | null;
+    adjuntos: AdjuntoLead[] | null; perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  };
+  const camposLead =
+    "id, codigo, canal, mensaje, recibido_at, created_at, nombre_contacto, telefono, email, oportunidad_id, adjuntos, perfiles:recibido_por(nombre, codigo_comercial)";
+  const opsDelCliente = new Set(opIds);
+  const { data: leadsCuenta } = opIds.length
+    ? await supabase.from("leads").select(camposLead).eq("cuenta_id", cuentaId).limit(200)
+    : { data: [] };
+  const leadsDelCliente = new Map<string, FilaLead>();
+  for (const l of (leadsCuenta ?? []) as unknown as FilaLead[])
+    if (leadOriginal.has(l.id) || (l.oportunidad_id && opsDelCliente.has(l.oportunidad_id))) leadsDelCliente.set(l.id, l);
+  const adjuntosPorLead = await firmarAdjuntosDeLeads(
+    supabase as never,
+    [...leadsDelCliente.values()].map((l) => ({ id: l.id, adjuntos: l.adjuntos })),
+  );
+
   // Cotizaciones que la empresa emitió ANTES del CRM (tabla
   // cotizaciones_historicas, 2.644 documentos de las unidades S: y T:).
   // Cuelgan de la cuenta y no de una oportunidad, porque en su momento no
@@ -142,13 +178,13 @@ export async function cargarHistorialCuenta(
   const [{ data: servicios }, { data: atenciones }] = await Promise.all([
     supabase
       .from("servicios_postventa")
-      .select("id, fecha_confirmacion, tipo_servicio, equipo, monto, moneda, completado, created_at, perfiles!servicios_postventa_responsable_id_fkey(nombre)")
+      .select("id, fecha_confirmacion, tipo_servicio, equipo, monto, moneda, completado, created_at, oportunidad_id, perfiles!servicios_postventa_responsable_id_fkey(nombre)")
       .eq("cuenta_id", cuentaId)
       .order("fecha_confirmacion", { ascending: false, nullsFirst: false })
       .limit(60),
     supabase
       .from("atenciones")
-      .select("id, tipo, etapa, equipo_texto, detalle, registrado_at, created_at, cerrado_at, perfiles!atenciones_tomada_por_fkey(nombre)")
+      .select("id, tipo, etapa, equipo_texto, detalle, registrado_at, created_at, cerrado_at, oportunidad_id, perfiles!atenciones_tomada_por_fkey(nombre)")
       .eq("cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
       .limit(60),
@@ -200,8 +236,8 @@ export async function cargarHistorialCuenta(
     if (!c.codigo) continue;
     const previo = documentoPorCodigo.get(c.codigo);
     // Con PDF gana: es el único que se puede abrir.
-    if (!previo || (!previo.tienePdf && c.pdf_path))
-      documentoPorCodigo.set(c.codigo, { id: c.id, items: c.items ?? [], tienePdf: Boolean(c.pdf_path) });
+    const tienePdf = Boolean(c.pdf_path || c.tiene_pdf);
+    if (!previo || (!previo.tienePdf && tienePdf)) documentoPorCodigo.set(c.codigo, { id: c.id, items: c.items ?? [], tienePdf });
   }
 
   const TIPO_ATENCION: Record<string, string> = { problema_tecnico: "Problema técnico", solicitud_repuesto: "Repuesto" };
@@ -215,6 +251,7 @@ export async function cargarHistorialCuenta(
       quien: (sv.perfiles as unknown as { nombre: string } | null)?.nombre ?? null,
       href: `/postventa/pedidos/${sv.id}`,
       oportunidadId: null,
+      ...delExpediente(sv.oportunidad_id as string | null),
       monto: sv.monto != null ? Number(sv.monto) : null,
       moneda: (sv.moneda as string | null) ?? null,
     })),
@@ -227,6 +264,7 @@ export async function cargarHistorialCuenta(
       quien: (at.perfiles as unknown as { nombre: string } | null)?.nombre ?? null,
       href: `/postventa/atenciones/${at.id}`,
       oportunidadId: null,
+      ...delExpediente(at.oportunidad_id as string | null),
     })),
     ...(actividades ?? []).map((a): EventoTimeline => {
       const resultado = a.catalogo_resultados_gestion as unknown as { codigo: string; nombre: string } | null;
@@ -235,6 +273,7 @@ export async function cargarHistorialCuenta(
         id: a.id,
         fecha: a.realizada_at,
         oportunidadId: aDonde(a.oportunidad_id),
+        ...delExpediente(a.oportunidad_id),
         tipoActividad: a.tipo,
         nota: a.nota,
         resultado,
@@ -254,6 +293,7 @@ export async function cargarHistorialCuenta(
         id: c.id,
         fecha: c.created_at,
         oportunidadId: aDonde(c.oportunidad_id),
+        ...delExpediente(c.oportunidad_id),
         codigo: c.codigo,
         estadoLabel: label,
         color,
@@ -267,6 +307,10 @@ export async function cargarHistorialCuenta(
         // la venta. Repetir acá solo una de esas acciones haría creer que la
         // cronología es el lugar donde se opera, y escondería el resto. La fila
         // ya lleva el enlace a la oportunidad.
+        // EXCEPTO para postventa (gerencia, 28-09): el expediente del
+        // comercial no se le abre, y tiene que poder ver qué se le cotizó al
+        // cliente. El PDF le sale con los números tapados.
+        pdfUrl: paquete ? `/api/cotizaciones/${c.id}/pdf` : undefined,
       };
     }),
     ...(cotHistoricas ?? []).map((c): EventoTimeline => ({
@@ -286,7 +330,7 @@ export async function cargarHistorialCuenta(
       // pide recién al hacer clic (vence en minutos) y así la política de
       // cartera decide en ese momento. Sin pdf_path el documento aún no está
       // subido o solo existe en .doc, y entonces no se ofrece nada.
-      pdfUrl: c.pdf_path ? `/api/cotizaciones-historicas/${c.id}/pdf` : null,
+      pdfUrl: c.pdf_path || c.tiene_pdf ? `/api/cotizaciones-historicas/${c.id}/pdf` : null,
     })),
     ...(ventas ?? []).map((v): EventoTimeline => {
       // "Venta cerrada — USD 9.618" a secas deja al comercial preguntándose de
@@ -304,11 +348,29 @@ export async function cargarHistorialCuenta(
         // fechada ayer en el historial del cliente.
         fecha: `${v.fecha_venta}T12:00:00`,
         oportunidadId: aDonde(v.oportunidad_id),
+        ...delExpediente(v.oportunidad_id),
         monto: v.monto_total,
         moneda: v.moneda,
         anulada: v.anulada_at != null,
         presupuesto: v.referencia_historica,
         pdfUrl: documento?.tienePdf ? `/api/cotizaciones-historicas/${documento.id}/pdf` : null,
+      };
+    }),
+    ...[...leadsDelCliente.values()].map((l): EventoTimeline => {
+      const opId = leadOriginal.get(l.id) ?? l.oportunidad_id;
+      return {
+        tipo: "solicitud",
+        id: `solicitud-${l.id}`,
+        fecha: l.recibido_at ?? l.created_at,
+        oportunidadId: aDonde(opId),
+        ...delExpediente(opId),
+        mensaje: l.mensaje,
+        canal: l.canal,
+        codigo: l.codigo,
+        quien: l.perfiles ? `${l.perfiles.codigo_comercial ? `${l.perfiles.codigo_comercial} · ` : ""}${l.perfiles.nombre}` : null,
+        dejo: [l.nombre_contacto, l.telefono, l.email].filter(Boolean).join(" · ") || null,
+        adjuntos: (adjuntosPorLead.get(l.id) ?? []).map((a) => ({ nombre: a.nombre, url: a.url })),
+        volvio: !leadOriginal.has(l.id),
       };
     }),
   ].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());

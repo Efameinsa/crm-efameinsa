@@ -6,6 +6,7 @@ import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
 import type { AdjuntoCierreFirmado } from "@/lib/adjuntos-cierre";
 import type { VentaConDetalle } from "@/lib/historial-cuenta";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
+import { cn } from "@/lib/utils";
 
 // Las tres secciones que sabían del CLIENTE y solo vivían en "Ver ficha
 // completa" (/comercial/cartera/[id]).
@@ -38,6 +39,8 @@ export interface InformeCuenta {
   monto_total: number;
   moneda: string;
   emitido_at: string | null;
+  /** Anulado (gerencia, 28-09, con BUNGARENA: «hay dos cierres… vaya a saber si se corrigió»). */
+  anulado_at?: string | null;
 }
 
 export function AccionNuevoInforme({ cuentaId }: { cuentaId: string }) {
@@ -75,9 +78,18 @@ export function ListaInformesCierre({
         <li key={inf.id} className="space-y-2 rounded-lg border border-border px-3 py-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="flex items-center gap-2.5 text-sm">
-              <span className="font-mono text-xs font-semibold text-foreground">
+              <span className={cn("font-mono text-xs font-semibold text-foreground", inf.anulado_at && "text-muted-foreground line-through")}>
                 {inf.emitido_at ? `Nº ${inf.codigo}` : "Borrador"}
               </span>
+              {/* Un cierre anulado sigue en la lista porque existió, pero se
+                  dice: con dos cierres a la vista, postventa no sabía cuál era
+                  el bueno (reunión 28-09, BUNGARENA: OPEN 018 anulado, vale el
+                  EFAMEINSA 002). */}
+              {inf.anulado_at && (
+                <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-destructive">
+                  Anulado
+                </span>
+              )}
               <span className="text-xs text-muted-foreground">
                 {inf.serie === "OPEN" ? "Open Investments" : "Efameinsa"}
               </span>

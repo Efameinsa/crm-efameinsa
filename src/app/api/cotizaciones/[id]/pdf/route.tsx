@@ -4,6 +4,8 @@ import { renderizarCotizacionPdf, type CotizacionParaPdf } from "@/lib/pdf/armar
 import { cabeceraArchivo } from "@/lib/nombre-archivo";
 import { quitarPaginasEnBlanco } from "@/lib/pdf/paginas-en-blanco";
 import { codigoConVersion } from "@/lib/version-cotizacion";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { puedeVerPrecios } from "@/lib/postventa";
 
 export const runtime = "nodejs";
 
@@ -19,17 +21,35 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const { data: cotizacion, error } = await supabase
-    .from("cotizaciones")
-    .select(
-      `codigo, correlativo, serie, moneda, moneda_impresa, tipo_cambio, condiciones, vigencia_dias, entrega_lugar,
+  // POSTVENTA VE TODAS LAS COTIZACIONES DEL CLIENTE, CON LOS NÚMEROS TAPADOS
+  // (gerencia, 28-09: «postventa tiene que ver todo y estarían borraditos los
+  // números… en los PDFs»). La RLS solo le abre las de sus expedientes; las del
+  // comercial se leen con la llave del servidor, y SIEMPRE salen sin cifras.
+  const { data: perfil } = await supabase.from("perfiles").select("rol, es_postventa, hace_postventa").eq("id", user.id).maybeSingle();
+  const sinMontos = Boolean(perfil && !puedeVerPrecios(perfil));
+  const esAreaPostventa = Boolean(perfil?.es_postventa || perfil?.hace_postventa);
+
+  const consulta = (cliente: typeof supabase) =>
+    cliente
+      .from("cotizaciones")
+      .select(
+        `codigo, correlativo, serie, moneda, moneda_impresa, tipo_cambio, condiciones, vigencia_dias, entrega_lugar,
        tiempo_entrega, garantia, forma_pago, saldo, cliente_snapshot, created_at, version,
        cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path, logo_path, panel_path)),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
-    )
-    .eq("id", id)
-    .maybeSingle();
+      )
+      .eq("id", id)
+      .maybeSingle();
+  let { data: cotizacion, error } = await consulta(supabase);
+  let lectura = supabase;
+  if (!cotizacion && !error && esAreaPostventa) {
+    lectura = createAdminClient() as unknown as typeof supabase;
+    ({ data: cotizacion, error } = await consulta(lectura));
+  }
+  // Una cotización de otro que se leyó con la llave del servidor va sin cifras,
+  // aunque quien la pide sea un comercial que hace postventa.
+  const taparCifras = sinMontos || lectura !== supabase;
 
   // Un fallo de la consulta NO es «no encontrada». El 05-09 la migración 0179
   // agregó una segunda relación entre cotizaciones y oportunidades, PostgREST
@@ -55,7 +75,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const vigente = Number(cotizacion.version ?? 1);
   const { data: archivadas } =
     vigente > 1
-      ? await supabase
+      ? await lectura
           .from("cotizacion_versiones")
           .select("version, items, moneda, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, archivada_at")
           .eq("cotizacion_id", id)
@@ -67,11 +87,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (Number.isInteger(pedida) && pedida >= 1 && pedida < vigente) {
     const vieja = archivadas?.find((a) => Number(a.version) === pedida);
     if (!vieja) return NextResponse.json({ error: `La versión ${pedida} no está archivada` }, { status: 404 });
-    base = { ...base, ...(await comoEstaba(supabase, vieja)), version: pedida, corregida_at: nacio(pedida), reemplazada_por: vigente };
+    base = { ...base, ...(await comoEstaba(lectura, vieja)), version: pedida, corregida_at: nacio(pedida), reemplazada_por: vigente };
   }
 
   const paraPdf = enMonedaDelDocumento(base);
-  const buffer = await renderizarCotizacionPdf(paraPdf);
+  const buffer = await renderizarCotizacionPdf(paraPdf, { sinMontos: taparCifras });
   const snapshot = cotizacion.cliente_snapshot as { razon_social: string };
   const nombreCodigo = cotizacion.codigo
     ? base.reemplazada_por

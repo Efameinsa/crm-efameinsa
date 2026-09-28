@@ -340,9 +340,9 @@ export async function asignarLead(
   // cliente a otro comercial, la base exige el código del supervisor. La
   // versión sin autorización quedó revocada, así que esta no es la puerta
   // amable — es la única que hay.
-  // PUESTA EN MARCHA (0231). El enum viejo de tres clases no la tiene: viaja
-  // como «garantia» (no se cobra) y el tipo real queda en `sugerido_atencion`,
-  // que es lo que lee el trigger que abre la atención (0132).
+  // PUESTA EN MARCHA (0231): el tipo del caso técnico va en `sugerido_atencion`,
+  // que lee el trigger que abre la atención (0132). Desde la 0317 el
+  // expediente también se llama «puesta en marcha».
   const esPuestaEnMarcha = tipoPostventa === "puesta_en_marcha";
   if (esPuestaEnMarcha) {
     const { error: eTipo } = await supabase.from("leads").update({ sugerido_atencion: "puesta_en_marcha" }).eq("id", leadId);
@@ -351,7 +351,8 @@ export async function asignarLead(
   const { data: oportunidadId, error } = await supabase.rpc("asignar_lead_con_pin", {
     p_lead_id: leadId,
     p_comercial_id: comercialId,
-    p_tipo_postventa: esPuestaEnMarcha ? "garantia" : (tipoPostventa ?? null),
+    // Desde la 0317 la puesta en marcha (y el despacho) son tipos del expediente.
+    p_tipo_postventa: tipoPostventa ?? null,
     p_pin: pin ?? null,
     p_nota: extra?.motivoNuevo?.trim() || null,
   });

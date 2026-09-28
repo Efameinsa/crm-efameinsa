@@ -274,6 +274,8 @@ export interface ItemPdf {
 }
 
 export interface CotizacionPdfProps {
+  /** Postventa: la cotización entera, con las cifras tapadas (gerencia, 28-09). */
+  sinMontos?: boolean;
   logoBuffer: Buffer;
   serie: "EFAMEINSA" | "OPEN";
   /** "5-26" (correlativo-año corto, como los modelos). NULL en un borrador:
@@ -557,7 +559,10 @@ export function CotizacionPdf({
   firma,
   notaVersion = null,
   reemplazada = false,
+  sinMontos = false,
 }: CotizacionPdfProps) {
+  // «X, X, X, asterisco, asterisco… para tapar los números» (gerencia, 28-09).
+  const monto = (v: number) => (sinMontos ? "*****" : formatoMonto(v));
   const identidad = IDENTIDAD_SERIE[serie];
   const estilos = crearEstilos(identidad.acento);
 
@@ -717,21 +722,21 @@ export function CotizacionPdf({
                 )}
               </Text>
               <Text style={[estilos.td, estilos.cCant]}>{item.cantidad}</Text>
-              <Text style={[estilos.td, estilos.cPrecio]}>{formatoMonto(item.precio_unitario)}</Text>
-              <Text style={[estilos.td, estilos.cSub]}>{formatoMonto(item.cantidad * item.precio_unitario)}</Text>
+              <Text style={[estilos.td, estilos.cPrecio]}>{monto(item.precio_unitario)}</Text>
+              <Text style={[estilos.td, estilos.cSub]}>{monto(item.cantidad * item.precio_unitario)}</Text>
             </View>
           ))}
           <View style={estilos.totalFila}>
             <Text style={estilos.totalEtiqueta}>SUB TOTAL {simbolo}</Text>
-            <Text style={estilos.totalValor}>{formatoMonto(subtotal)}</Text>
+            <Text style={estilos.totalValor}>{monto(subtotal)}</Text>
           </View>
           <View style={estilos.totalFila}>
             <Text style={estilos.totalEtiqueta}>I.G.V. (18%) {simbolo}</Text>
-            <Text style={estilos.totalValor}>{formatoMonto(igv)}</Text>
+            <Text style={estilos.totalValor}>{monto(igv)}</Text>
           </View>
           <View style={[estilos.totalFila, estilos.totalDestacado]}>
             <Text style={estilos.totalEtiqueta}>TOTAL INCLUIDO IGV A PAGAR {simbolo}</Text>
-            <Text style={[estilos.totalValor, { color: identidad.acento }]}>{formatoMonto(total)}</Text>
+            <Text style={[estilos.totalValor, { color: identidad.acento }]}>{monto(total)}</Text>
           </View>
         </View>
       </Page>
