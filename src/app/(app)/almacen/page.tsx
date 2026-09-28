@@ -120,7 +120,10 @@ export default async function AlmacenPage() {
     { titulo: "Aperturas sin informe", numero: ap.filter((a) => a.tomada_at).length, ayuda: "Tomadas; falta subir lo que se vio en la llamada.", href: "/almacen/aperturas" },
     { titulo: "Puestas en marcha programadas", numero: porTipo("puesta_en_marcha"), ayuda: "Con día, hora y técnico.", href: "/almacen/atenciones?tipo=puesta_en_marcha" },
     { titulo: "Mantenimientos programados", numero: porTipo("solicitud_mantenimiento"), ayuda: "En planta o en el cliente.", href: "/almacen/atenciones?tipo=solicitud_mantenimiento" },
-    { titulo: "Soporte técnico programado", numero: porTipo("problema_tecnico"), ayuda: "Problemas técnicos con técnico asignado.", href: "/almacen/atenciones?tipo=problema_tecnico" },
+    { titulo: "Problemas técnicos programados", numero: porTipo("problema_tecnico"), ayuda: "Fallas con técnico asignado.", href: "/almacen/atenciones?tipo=problema_tecnico" },
+    // Soporte técnico es un tipo de caso propio desde la 0324 (reunión 28-09):
+    // orientar, capacitar o asistir sin avería.
+    { titulo: "Soporte técnico programado", numero: porTipo("soporte_tecnico"), ayuda: "Orientar, capacitar o asistir sin avería.", href: "/almacen/atenciones?tipo=soporte_tecnico" },
     { titulo: "Visitas a planta esta semana", numero: (visitas ?? []).length, ayuda: "Clientes que vienen; algunos a recoger repuestos.", href: "/almacen/visitas" },
   ];
 

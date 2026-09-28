@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  * 16-09). Es lo que el almacén prepara: repuestos, herramientas, la máquina
  * en planta si el mantenimiento es acá.
  */
-const TIPOS = ["", "puesta_en_marcha", "solicitud_mantenimiento", "problema_tecnico", "solicitud_repuesto"] as const;
+const TIPOS = ["", "puesta_en_marcha", "solicitud_mantenimiento", "problema_tecnico", "soporte_tecnico", "solicitud_repuesto"] as const;
 const ETIQUETA: Record<string, string> = { "": "Todas", ...ETIQUETA_TIPO_ATENCION };
 
 interface Fila {

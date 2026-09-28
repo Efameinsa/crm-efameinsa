@@ -105,6 +105,7 @@ const TIEMPO_ENTREGA_POR_DEFECTO = "Inmediata";
 /** Cómo se lee cada tipo de caso dentro de la cotización. */
 const ETIQUETA_CASO: Record<string, string> = {
   problema_tecnico: "Servicio técnico",
+  soporte_tecnico: "Soporte técnico",
   solicitud_repuesto: "Repuesto",
   solicitud_mantenimiento: "Mantenimiento",
   puesta_en_marcha: "Puesta en marcha",

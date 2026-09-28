@@ -250,7 +250,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
                 <span className="rounded-full bg-secondary px-1.5 text-[10px] font-semibold">
                   pista {PISTA_DE_TIPO[a.tipo]}
                 </span>
-                <CambiarTipoAtencion atencionId={a.id} tipo={a.tipo} etapa={a.etapa} />
+                <CambiarTipoAtencion atencionId={a.id} tipo={a.tipo} cerrada={Boolean(a.cerrado_at)} />
               </span>
               {/* LA PUESTA EN MARCHA ES DEL PEDIDO (Carlos, 15-09; 0244): «tiene que
                   ser relacionado con el cliente máster». Se engancha sola al
@@ -360,7 +360,9 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
                   tipo="soporte_videollamada"
                   etiqueta="Derivar llamada al almacén"
                   equipos={equiposParaLlamada}
-                  problema={a.detalle ?? ""}
+                  // Con los antecedentes (reunión 28-09): «en esa derivación
+                  // de llamada pones todos los antecedentes».
+                  problema={[a.detalle ?? "", a.diagnostico ? `Antecedentes: ${a.diagnostico}` : ""].filter(Boolean).join("\n\n")}
                   compacto
                 />
               ) : undefined
@@ -416,12 +418,14 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
             </SeccionPanel>
           )}
 
+          {/* «Antecedentes», no «lo que encontró el técnico» (reunión 28-09):
+              lo escribe postventa antes de programar, no el técnico después. */}
           {a.diagnostico && (
-            <SeccionPanel titulo="Lo que encontró el técnico">
+            <SeccionPanel titulo="Antecedentes del caso">
               <p className="whitespace-pre-line text-sm text-foreground">{a.diagnostico}</p>
               {a.diagnosticado_at && (
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  Diagnosticado el {fechaHoraLima(a.diagnosticado_at)}.
+                  Anotados el {fechaHoraLima(a.diagnosticado_at)}.
                 </p>
               )}
             </SeccionPanel>

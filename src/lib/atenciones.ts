@@ -28,6 +28,9 @@ export type EtapaAtencion = (typeof ETAPAS_ATENCION)[number];
 export type TipoAtencion =
   | "puesta_en_marcha"
   | "problema_tecnico"
+  /** Orientar, capacitar o asistir sin avería. Caso técnico desde la 0324
+   *  (reunión 28-09: «en soporte técnico está bien todo el circuito»). */
+  | "soporte_tecnico"
   | "solicitud_repuesto"
   | "solicitud_mantenimiento";
 export type ClasificacionAtencion = "garantia" | "preventivo" | "correctivo" | "facturable" | "revision";
@@ -38,11 +41,18 @@ export type ClasificacionAtencion = "garantia" | "preventivo" | "correctivo" | "
  * Se escriben como él las dictó, con una sola licencia: «Cierre CRM» se muestra
  * «Cierre». Dentro del CRM, aclarar que el cierre es del CRM es como poner un
  * cartel que diga «cartel».
+ *
+ * «DIAGNÓSTICO» SE MUESTRA «ANTECEDENTES» (reunión 28-09): «diagnóstico es un
+ * resultado de algo… sería mejor antecedente». Es lo que postventa sabe del
+ * caso ANTES de programar —historial, qué necesita el cliente, qué debe hacer
+ * el técnico—, no lo que encontró el técnico. En la base la etapa sigue
+ * llamándose `diagnostico`: es un sello con fecha y cambiarle el nombre no
+ * cambia nada de lo que significa.
  */
 export const ETIQUETA_ETAPA: Record<EtapaAtencion, string> = {
   solicitud: "Solicitud",
   registro: "Registro",
-  diagnostico: "Diagnóstico",
+  diagnostico: "Antecedentes",
   planificacion: "Planificación",
   atencion: "Atención",
   pruebas: "Pruebas",
@@ -83,10 +93,10 @@ export const PASOS_VISIBLES: {
   // verdes desde el minuto cero y creía haber registrado algo: «entonces
   // nosotros todavía seguimos atrapados en registro… como si faltara algo»
   // (Carlos, 09-09). Se marcan como ajenas para que se lea de un vistazo que
-  // el trabajo del área empieza en el Diagnóstico.
+  // el trabajo del área empieza en los Antecedentes.
   { clave: "solicitud", etiqueta: "Solicitud", cubre: ["solicitud"], icono: "inbox", deCentral: true },
   { clave: "registro", etiqueta: "Registro", cubre: ["registro"], icono: "serie", deCentral: true },
-  { clave: "diagnostico", etiqueta: "Diagnóstico", cubre: ["diagnostico"], icono: "diagnostico" },
+  { clave: "diagnostico", etiqueta: "Antecedentes", cubre: ["diagnostico"], icono: "diagnostico" },
   { clave: "planificacion", etiqueta: "Planificación", cubre: ["planificacion"], icono: "agenda" },
   { clave: "atencion", etiqueta: "Atención", cubre: ["atencion"], icono: "trabajo" },
   { clave: "pruebas", etiqueta: "Pruebas y conformidad", cubre: ["pruebas", "conformidad"], icono: "firma" },
@@ -98,7 +108,8 @@ export const PASOS_VISIBLES: {
 export const AYUDA_ETAPA: Record<EtapaAtencion, string> = {
   solicitud: "Registrada y derivada a Central. Central decide si la atiende el área o un comercial.",
   registro: "Central la devolvió al área. Falta tomarla y verificar garantía.",
-  diagnostico: "Se sabe qué le pasa al equipo y quién paga.",
+  diagnostico:
+    "Lo que postventa sabe antes de programar: el historial, qué necesita el cliente, qué debe hacer el técnico y quién paga.",
   planificacion: "Con día, hora y técnico asignado.",
   atencion: "El técnico está en el cliente o ya fue.",
   pruebas: "Se probó el equipo después de la intervención.",
@@ -110,8 +121,18 @@ export const AYUDA_ETAPA: Record<EtapaAtencion, string> = {
 export const ETIQUETA_TIPO_ATENCION: Record<TipoAtencion, string> = {
   puesta_en_marcha: "Puesta en marcha",
   problema_tecnico: "Problema técnico",
+  soporte_tecnico: "Soporte técnico",
   solicitud_repuesto: "Repuesto",
   solicitud_mantenimiento: "Mantenimiento",
+};
+
+/** Una línea por tipo, para quien elige o reclasifica sin saberse el vocabulario. */
+export const AYUDA_TIPO_ATENCION: Record<TipoAtencion, string> = {
+  puesta_en_marcha: "el equipo llegó y hay que instalarlo y arrancarlo",
+  problema_tecnico: "la máquina falla",
+  soporte_tecnico: "orientar, capacitar o asistir sin avería",
+  solicitud_repuesto: "pide una pieza",
+  solicitud_mantenimiento: "preventivo o correctivo",
 };
 
 /**
@@ -123,9 +144,101 @@ export const ETIQUETA_TIPO_ATENCION: Record<TipoAtencion, string> = {
 export const PISTA_DE_TIPO: Record<TipoAtencion, "tecnica" | "comercial"> = {
   puesta_en_marcha: "tecnica",
   problema_tecnico: "tecnica",
+  soporte_tecnico: "tecnica",
   solicitud_repuesto: "comercial",
   solicitud_mantenimiento: "comercial",
 };
+
+/**
+ * EL CIRCUITO DE CADA TIPO (reunión de gerencia del 28-09, 14:18).
+ *
+ * Hasta hoy los cinco tipos recorrían los mismos siete pasos, y reclasificar
+ * «solo cambia el nombre» (Carlos, mirando la pantalla). Lo que se decidió:
+ *
+ *  · Problema técnico, soporte técnico y mantenimiento: el circuito completo.
+ *  · Puesta en marcha: los antecedentes son OPCIONALES (a veces hay historia
+ *    —«de las cinco lavadoras se puso en marcha cuatro»—, a veces no) y la
+ *    atención también: «a veces se soluciona en la llamada». Pruebas y
+ *    conformidad sí: «eso sí es obligatorio».
+ *  · Repuesto: antecedentes OPCIONALES y «pruebas y conformidad no va»: de la
+ *    atención pasa al cierre.
+ *
+ * - obligatorio: hay que hacerlo (o cerrar el caso antes de tiempo).
+ * - opcional: tiene «Saltar este paso», y en la tira queda como saltado.
+ * - no_corresponde: se pinta en gris con «No corresponde a <tipo>» y el
+ *   circuito lo pasa de largo solo.
+ *
+ * Solicitud, registro y cierre son de todos. El seguimiento es una decisión
+ * después del cierre, nunca un paso que se espera.
+ *
+ * ESPEJO EN LA BASE: `regla_circuito_atencion` (0324) dice lo mismo para que
+ * la base no deje saltear un paso obligatorio. Si esto cambia, cambia aquella
+ * (scripts/_probar-circuito.mjs las compara).
+ */
+export type ReglaPaso = "obligatorio" | "opcional" | "no_corresponde";
+
+const COMPLETO: Record<EtapaAtencion, ReglaPaso> = {
+  solicitud: "obligatorio",
+  registro: "obligatorio",
+  diagnostico: "obligatorio",
+  planificacion: "obligatorio",
+  atencion: "obligatorio",
+  pruebas: "obligatorio",
+  conformidad: "obligatorio",
+  cierre: "obligatorio",
+  seguimiento: "opcional",
+};
+
+export const CIRCUITO_POR_TIPO: Record<TipoAtencion, Record<EtapaAtencion, ReglaPaso>> = {
+  problema_tecnico: COMPLETO,
+  soporte_tecnico: COMPLETO,
+  solicitud_mantenimiento: COMPLETO,
+  puesta_en_marcha: { ...COMPLETO, diagnostico: "opcional", atencion: "opcional" },
+  solicitud_repuesto: { ...COMPLETO, diagnostico: "opcional", pruebas: "no_corresponde", conformidad: "no_corresponde" },
+};
+
+/** La regla de una etapa en el circuito del tipo. Un tipo desconocido lleva el circuito completo. */
+export function reglaDelPaso(tipo: TipoAtencion | string, etapa: EtapaAtencion): ReglaPaso {
+  return (CIRCUITO_POR_TIPO[tipo as TipoAtencion] ?? COMPLETO)[etapa];
+}
+
+/**
+ * La regla de una casilla de la tira, que puede cubrir dos etapas («Pruebas y
+ * conformidad»): no corresponde si no corresponde ninguna; obligatoria si lo
+ * es alguna; si no, opcional.
+ */
+export function reglaDeLaCasilla(tipo: TipoAtencion | string, cubre: EtapaAtencion[]): ReglaPaso {
+  const reglas = cubre.map((e) => reglaDelPaso(tipo, e));
+  if (reglas.every((r) => r === "no_corresponde")) return "no_corresponde";
+  if (reglas.includes("obligatorio")) return "obligatorio";
+  return "opcional";
+}
+
+/**
+ * Al llegar a `etapa`, las que vienen justo después y NO corresponden al tipo
+ * se pasan de largo solas. Devuelve dónde queda el caso y cuáles se marcaron.
+ * Ejemplo: un repuesto que termina su atención queda en «conformidad» con
+ * pruebas y conformidad como «No corresponde a Repuesto», listo para cerrar.
+ */
+export function saltarLoQueNoCorresponde(
+  tipo: TipoAtencion | string,
+  etapa: EtapaAtencion,
+): { etapa: EtapaAtencion; omitidas: EtapaAtencion[] } {
+  const omitidas: EtapaAtencion[] = [];
+  let actual = etapa;
+  for (let i = pasoDe(etapa) + 1; i < ETAPAS_ATENCION.length; i++) {
+    const e = ETAPAS_ATENCION[i];
+    if (reglaDelPaso(tipo, e) !== "no_corresponde") break;
+    omitidas.push(e);
+    actual = e;
+  }
+  return { etapa: actual, omitidas };
+}
+
+/** El texto con que queda anotado un paso que el tipo no lleva. */
+export function motivoNoCorresponde(tipo: TipoAtencion | string): string {
+  return `No corresponde a ${ETIQUETA_TIPO_ATENCION[tipo as TipoAtencion] ?? tipo}`;
+}
 
 export const ETIQUETA_CLASIFICACION: Record<ClasificacionAtencion, string> = {
   garantia: "Garantía",
@@ -247,7 +360,7 @@ export function queLeFalta(a: Atencion): { texto: string; responsable: string; u
     case "registro":
       return a.en_garantia === null
         ? { texto: "Verificar la garantía", responsable: "Postventa", urgente: true }
-        : { texto: "Diagnosticar qué le pasa", responsable: "Postventa", urgente: false };
+        : { texto: "Anotar los antecedentes", responsable: "Postventa", urgente: false };
     case "diagnostico":
       return { texto: "Poner día, hora y técnico", responsable: "Postventa", urgente: true };
     case "planificacion":
@@ -255,7 +368,10 @@ export function queLeFalta(a: Atencion): { texto: string; responsable: string; u
         ? { texto: "La atención ya pasó y no está marcada", responsable: "Técnico", urgente: true }
         : { texto: "Esperando la fecha de atención", responsable: "Técnico", urgente: false };
     case "atencion":
-      return { texto: "Probar el equipo", responsable: "Técnico", urgente: false };
+      // El repuesto no lleva pruebas ni conformidad (reunión 28-09).
+      return reglaDelPaso(a.tipo, "pruebas") === "no_corresponde"
+        ? { texto: "Anotar qué se hizo y cerrar", responsable: "Postventa", urgente: false }
+        : { texto: "Probar el equipo", responsable: "Técnico", urgente: false };
     case "pruebas":
       return { texto: "Falta la conformidad del cliente", responsable: "Cliente", urgente: false };
     case "conformidad":
@@ -278,6 +394,8 @@ export function queLeFalta(a: Atencion): { texto: string; responsable: string; u
  */
 const HORAS_LIMITE: Record<TipoAtencion, number> = {
   problema_tecnico: 2,
+  // Sin avería no hay equipo parado: corre como una puesta en marcha.
+  soporte_tecnico: 24,
   puesta_en_marcha: 24,
   solicitud_repuesto: 24,
   solicitud_mantenimiento: 24,

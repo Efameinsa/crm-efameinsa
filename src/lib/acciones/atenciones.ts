@@ -6,8 +6,13 @@ import { notificarAlmacen } from "@/lib/notificaciones";
 import { avisarAtencionProgramadaN8n } from "@/lib/avisos-n8n";
 import {
   ETAPAS_ATENCION,
+  ETIQUETA_ETAPA,
+  ETIQUETA_TIPO_ATENCION,
   SE_COBRA,
   faltaDecirPorQueNoSeFactura,
+  motivoNoCorresponde,
+  reglaDelPaso,
+  saltarLoQueNoCorresponde,
   SELLO_DE_ETAPA,
   type ClasificacionAtencion,
   type EtapaAtencion,
@@ -39,9 +44,10 @@ function refrescar(id?: string) {
  */
 export async function registrarAtencion(datos: {
   cuentaId: string;
-  /** null para soporte técnico, que no es un caso técnico (0321). */
+  /** Desde la 0324 soporte técnico también es un tipo de caso técnico. null
+   *  solo si viaja un tipo de expediente sin caso técnico. */
   tipo: TipoAtencion | null;
-  /** El tipo del expediente cuando no hay caso técnico (soporte técnico, 0321). */
+  /** El tipo del expediente cuando no hay caso técnico. */
   tipoExpediente?: string | null;
   detalle: string;
   equipoId?: string | null;
@@ -189,6 +195,9 @@ export async function ficharEquipoDeLaAtencion(datos: {
   atencionId: string;
   serie?: string | null;
   modelo: string;
+  /** Si el modelo se eligió de las sugerencias del catálogo (reunión 28-09). */
+  productoId?: string | null;
+  /** La fecha de DESPACHO (guía de remisión): de ahí corre la garantía (28-09). */
   fechaCompra?: string | null;
   garantiaMeses?: number | null;
   ubicacion?: string | null;
@@ -198,7 +207,7 @@ export async function ficharEquipoDeLaAtencion(datos: {
   if (datos.modelo.trim().length < 3) {
     return { error: "Escriba el modelo de la máquina: es lo que se va a leer cuando el cliente vuelva a llamar" };
   }
-  if (datos.fechaCompra && !RE_FECHA.test(datos.fechaCompra)) return { error: "La fecha de compra no es válida" };
+  if (datos.fechaCompra && !RE_FECHA.test(datos.fechaCompra)) return { error: "La fecha de despacho no es válida" };
 
   const supabase = await createClient();
   const { data: a } = await supabase
@@ -215,7 +224,7 @@ export async function ficharEquipoDeLaAtencion(datos: {
     p_cuenta: a.cuenta_id,
     p_serie: datos.serie?.trim() || null,
     p_modelo: datos.modelo.trim(),
-    p_producto: null,
+    p_producto: datos.productoId ?? null,
     p_fecha_compra: datos.fechaCompra || null,
     p_garantia_meses: datos.garantiaMeses ?? 24,
     p_ubicacion: datos.ubicacion?.trim() || null,
@@ -292,13 +301,16 @@ export async function seguirSinIdentificarEquipo(datos: {
   return { error: null };
 }
 
-/** Diagnóstico: qué le pasa y, sobre todo, quién paga. */
+/**
+ * Antecedentes (la etapa `diagnostico` de la base; reunión 28-09): lo que
+ * postventa sabe antes de programar y, sobre todo, quién paga.
+ */
 export async function diagnosticar(datos: {
   atencionId: string;
   clasificacion: ClasificacionAtencion;
   detalle: string;
 }): Promise<{ error: string | null }> {
-  if (datos.detalle.trim().length < 5) return { error: "Escriba el diagnóstico, aunque sea en una línea" };
+  if (datos.detalle.trim().length < 5) return { error: "Escriba los antecedentes, aunque sea en una línea" };
   const supabase = await createClient();
   const { error } = await supabase
     .from("atenciones")
@@ -337,16 +349,21 @@ export async function programarAtencion(datos: {
   // La hora se guarda en hora de Lima, no en la del servidor (que corre en UTC).
   const cuando = `${datos.fecha}T${datos.hora ?? "09:00"}:00-05:00`;
   const supabase = await createClient();
-  // LA PUESTA EN MARCHA NO LLEVA DIAGNÓSTICO (Ariana, 14-09; 0231): el equipo
-  // acaba de llegar, no hay nada que diagnosticar ni quién-paga que decidir.
-  // Se programa desde el registro y el diagnóstico queda marcado como
-  // omitido, con su razón, para que la tira cuente lo que pasó.
+  // PROGRAMAR SIN ANTECEDENTES. Desde la reunión del 28-09 los antecedentes
+  // son opcionales en la puesta en marcha y en el repuesto, y obligatorios en
+  // el resto (antes solo la puesta en marcha se los saltaba, 0231). Si el tipo
+  // los permite saltar y se programa sin ellos, quedan anotados como saltados
+  // para que la tira cuente lo que pasó.
   const { data: antes } = await supabase
     .from("atenciones")
     .select("tipo, etapa, etapas_omitidas")
     .eq("id", datos.atencionId)
     .maybeSingle();
-  const saltaDiagnostico = antes?.tipo === "puesta_en_marcha" && (antes.etapa === "registro" || antes.etapa === "solicitud");
+  const sinAntecedentes = antes?.etapa === "registro" || antes?.etapa === "solicitud";
+  if (antes && sinAntecedentes && reglaDelPaso(antes.tipo as TipoAtencion, "diagnostico") === "obligatorio") {
+    return { error: `En ${ETIQUETA_TIPO_ATENCION[antes.tipo as TipoAtencion] ?? "este caso"} primero van los antecedentes (Paso 2)` };
+  }
+  const saltaDiagnostico = Boolean(antes && sinAntecedentes);
   const { error } = await supabase
     .from("atenciones")
     .update({
@@ -357,7 +374,7 @@ export async function programarAtencion(datos: {
         ? {
             etapas_omitidas: {
               ...((antes?.etapas_omitidas as Record<string, unknown> | null) ?? {}),
-              diagnostico: { motivo: "Puesta en marcha: no lleva diagnóstico", at: new Date().toISOString() },
+              diagnostico: { motivo: "Se programó sin antecedentes", at: new Date().toISOString() },
             },
           }
         : {}),
@@ -375,7 +392,7 @@ export async function programarAtencion(datos: {
     const { data: a } = await supabase.from("atenciones").select("tipo, cliente_texto, equipo_texto, es_prueba, cuentas(razon_social)").eq("id", datos.atencionId).maybeSingle();
     const cli = (a?.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? a?.cliente_texto ?? "Cliente";
     await notificarAlmacen({
-      titulo: `${a?.tipo === "puesta_en_marcha" ? "Puesta en marcha" : a?.tipo === "solicitud_mantenimiento" ? "Mantenimiento" : a?.tipo === "solicitud_repuesto" ? "Repuesto" : "Atención técnica"} programada · ${cli}`,
+      titulo: `${a?.tipo === "problema_tecnico" ? "Atención técnica" : (ETIQUETA_TIPO_ATENCION[a?.tipo as TipoAtencion] ?? "Atención técnica")} programada · ${cli}`,
       cuerpo: `${datos.fecha}${datos.hora ? ` ${datos.hora}` : ""} · ${datos.tecnico.trim()}${a?.equipo_texto ? ` · ${a.equipo_texto}` : ""}`,
       url: `/almacen/atenciones`,
       esPrueba: a?.es_prueba === true,
@@ -402,7 +419,7 @@ async function avisarProgramacionAlAlmacen(
   try {
     const { data: a } = await supabase
       .from("atenciones")
-      .select("id, tipo, detalle, en_garantia, equipo_id, equipo_texto, cliente_texto, es_prueba, cuentas(razon_social, num_doc)")
+      .select("id, tipo, detalle, diagnostico, en_garantia, equipo_id, equipo_texto, cliente_texto, es_prueba, cuentas(razon_social, num_doc)")
       .eq("id", atencionId)
       .maybeSingle();
     if (!a) return;
@@ -443,7 +460,9 @@ async function avisarProgramacionAlAlmacen(
       equipo: a.equipo_texto ?? null,
       serie,
       enGarantia: a.en_garantia,
-      reporto: a.detalle ?? null,
+      // Con los antecedentes (reunión 28-09): «en esa derivación de llamada
+      // pones todos los antecedentes», para que el técnico no llegue a ciegas.
+      reporto: [a.detalle, a.diagnostico ? `Antecedentes: ${a.diagnostico}` : null].filter(Boolean).join("\n") || null,
       cuando,
       tecnico,
       antecedentes,
@@ -486,11 +505,27 @@ export async function registrarTrabajo(datos: {
   const supabase = await createClient();
   const { data: a } = await supabase
     .from("atenciones")
-    .select("etapa, equipo_id")
+    .select("etapa, equipo_id, tipo, etapas_omitidas")
     .eq("id", datos.atencionId)
     .maybeSingle();
   if (!a) return { error: "Esa atención no existe" };
   if (a.etapa !== "atencion") return { error: "Esto se registra cuando la atención está en la etapa de atención" };
+
+  // LO QUE EL TIPO NO LLEVA SE PASA DE LARGO (reunión 28-09): el repuesto no
+  // tiene pruebas ni conformidad, así que del trabajo va directo al cierre.
+  // Quedan anotadas como «No corresponde a Repuesto», no como hechas.
+  const ahora = new Date().toISOString();
+  const salto = saltarLoQueNoCorresponde(a.tipo as TipoAtencion, "atencion");
+  const siguiente =
+    salto.omitidas.length > 0
+      ? {
+          etapa: salto.etapa,
+          etapas_omitidas: {
+            ...((a.etapas_omitidas as Record<string, unknown> | null) ?? {}),
+            ...Object.fromEntries(salto.omitidas.map((e) => [e, { motivo: motivoNoCorresponde(a.tipo as TipoAtencion), at: ahora }])),
+          },
+        }
+      : { etapa: "pruebas", pruebas_at: ahora };
 
   const { error } = await supabase
     .from("atenciones")
@@ -498,8 +533,7 @@ export async function registrarTrabajo(datos: {
       trabajo_realizado: datos.trabajo.trim(),
       repuestos_usados: datos.repuestos?.trim() || null,
       ciclos: datos.ciclos ?? null,
-      etapa: "pruebas",
-      pruebas_at: new Date().toISOString(),
+      ...siguiente,
     })
     .eq("id", datos.atencionId);
   if (error) return { error: error.message };
@@ -531,6 +565,19 @@ export async function registrarPruebas(datos: {
   }
 
   const supabase = await createClient();
+  const { data: a } = await supabase
+    .from("atenciones")
+    .select("tipo, etapas_omitidas")
+    .eq("id", datos.atencionId)
+    .maybeSingle();
+  if (!a) return { error: "Esa atención no existe" };
+  if (reglaDelPaso(a.tipo as TipoAtencion, "pruebas") === "no_corresponde") {
+    return { error: `${motivoNoCorresponde(a.tipo as TipoAtencion)}: no lleva pruebas ni conformidad, se cierra` };
+  }
+  // Si la atención se había saltado (puesta en marcha resuelta en la llamada)
+  // y hay que volver al cliente, la visita vuelve a estar pendiente de verdad.
+  const omitidas = { ...((a.etapas_omitidas as Record<string, unknown> | null) ?? {}) };
+  delete omitidas.atencion;
   const ahora = new Date().toISOString();
   const { error } = await supabase
     .from("atenciones")
@@ -548,7 +595,7 @@ export async function registrarPruebas(datos: {
             conformidad_nombre: datos.conformidadNombre?.trim(),
             conformidad_doc: datos.conformidadDoc?.trim() || null,
           }
-        : { etapa: "planificacion", programada_at: null }),
+        : { etapa: "planificacion", programada_at: null, etapas_omitidas: omitidas }),
     })
     .eq("id", datos.atencionId);
   if (error) return { error: error.message };
@@ -568,10 +615,13 @@ export async function avanzarAtencion(datos: {
   const supabase = await createClient();
   const { data: a } = await supabase
     .from("atenciones")
-    .select("etapa, en_garantia, clasificacion, programada_at")
+    .select("etapa, tipo, en_garantia, clasificacion, programada_at")
     .eq("id", datos.atencionId)
     .maybeSingle();
   if (!a) return { error: "Esa atención no existe" };
+  if (reglaDelPaso(a.tipo as TipoAtencion, datos.hasta) === "no_corresponde") {
+    return { error: `${motivoNoCorresponde(a.tipo as TipoAtencion)}: «${ETIQUETA_ETAPA[datos.hasta]}»` };
+  }
 
   const desde = ETAPAS_ATENCION.indexOf(a.etapa as EtapaAtencion);
   const hasta = ETAPAS_ATENCION.indexOf(datos.hasta);
@@ -581,7 +631,7 @@ export async function avanzarAtencion(datos: {
 
   // Los frenos que hacen que el dato signifique algo.
   if (datos.hasta === "diagnostico" && !a.clasificacion) {
-    return { error: "Antes del diagnóstico hay que decir si es garantía, preventivo, correctivo, facturable o una revisión" };
+    return { error: "Antes de los antecedentes hay que decir si es garantía, preventivo, correctivo, facturable o una revisión" };
   }
   if (datos.hasta === "atencion" && !a.programada_at) {
     return { error: "Primero hay que programarla: día, hora y técnico" };
@@ -760,14 +810,16 @@ export async function avisarVentaDeLaAtencion(datos: {
  * anotado que no aplicó, con su motivo, y la tira lo pinta distinto (0198).
  */
 /**
- * CAMBIAR EL TIPO DE LA ATENCIÓN TÉCNICA (0231). Ariana, 14-09: Central
- * registra la llamada como «problema técnico» cuando el cliente en realidad
- * pide su puesta en marcha, y el caso entra por el circuito equivocado.
- * Solo entre problema técnico y puesta en marcha, y solo antes de planificar.
+ * CAMBIAR EL TIPO DE LA ATENCIÓN TÉCNICA (0231, 0238, 0324). Ariana, 14-09:
+ * Central registra la llamada como «problema técnico» cuando el cliente en
+ * realidad pide su puesta en marcha, y el caso entra por el circuito
+ * equivocado. Desde la reunión del 28-09 («solo cambia el nombre») el cambio
+ * cambia el circuito de verdad —la base acomoda los pasos, `retipar_atencion`—
+ * y se puede hacer en cualquier etapa abierta.
  */
 export async function cambiarTipoAtencion(datos: {
   atencionId: string;
-  tipo: "problema_tecnico" | "puesta_en_marcha" | "solicitud_repuesto" | "solicitud_mantenimiento";
+  tipo: TipoAtencion;
 }): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("cambiar_tipo_atencion", { p_atencion: datos.atencionId, p_tipo: datos.tipo });

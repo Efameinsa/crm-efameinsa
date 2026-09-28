@@ -53,9 +53,10 @@ import { cn } from "@/lib/utils";
  */
 const TIPOS = [
   { valor: "problema_tecnico", etiqueta: "Problema técnico", icono: AlertTriangle, ayuda: "La máquina falla" },
-  // Santos, 28-09: «otra pestañita que diga soporte técnico». Orientar o
-  // asistir sin que haya falla: no abre el circuito técnico (0321).
-  { valor: "soporte_tecnico", etiqueta: "Soporte técnico", icono: Headset, ayuda: "Orientación o asistencia: uso, configuración, limpieza, dudas (no hay falla)" },
+  // Santos, 28-09: «otra pestañita que diga soporte técnico» (0321). Y la
+  // reunión de gerencia de ese día decidió que lleva el circuito técnico
+  // completo (0324): es un tipo de caso técnico más.
+  { valor: "soporte_tecnico", etiqueta: "Soporte técnico", icono: Headset, ayuda: "Orientar, capacitar o asistir sin avería" },
   { valor: "puesta_en_marcha", etiqueta: "Puesta en marcha", icono: ShieldCheck, ayuda: "Instalación y arranque" },
   { valor: "solicitud_repuesto", etiqueta: "Repuesto", icono: Cpu, ayuda: "Pide una pieza" },
   { valor: "solicitud_mantenimiento", etiqueta: "Mantenimiento", icono: Truck, ayuda: "Preventivo o correctivo" },
@@ -147,9 +148,9 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
       }
       const r = await registrarAtencion({
         cuentaId,
-        // Soporte técnico no es un caso técnico: viaja como tipo del expediente (0321).
-        tipo: tipo === "soporte_tecnico" ? null : tipo,
-        tipoExpediente: tipo === "soporte_tecnico" ? "soporte_tecnico" : null,
+        // Desde la 0324 soporte técnico es un tipo de caso técnico: viaja como
+        // tal y la base le pone el mismo nombre al expediente.
+        tipo,
         detalle: problema,
         equipoId: ficha?.equipoId ?? null,
         serie: ficha?.serie ?? serie.trim() ?? null,

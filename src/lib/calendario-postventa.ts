@@ -1,4 +1,5 @@
 import type { ServicioPostventa } from "@/lib/postventa";
+import { ETIQUETA_TIPO_ATENCION, type TipoAtencion } from "@/lib/atenciones";
 
 /**
  * El calendario del área: qué técnico se mueve, adónde y qué día.
@@ -259,7 +260,9 @@ export function eventoDeAtencion(a: {
   const enLima = new Date(a.programada_at).toLocaleString("sv-SE", { timeZone: "America/Lima" });
   const [fecha, horaCompleta] = enLima.split(" ");
   const hora = horaCompleta?.slice(0, 5) ?? null;
-  const etiqueta = a.tipo === "puesta_en_marcha" ? "Puesta en marcha" : a.tipo === "problema_tecnico" ? "Problema técnico" : a.tipo === "solicitud_mantenimiento" ? "Mantenimiento" : "Repuesto";
+  // Del vocabulario único: con soporte técnico (0324) la cadena de ternarios
+  // lo habría llamado «Repuesto».
+  const etiqueta = ETIQUETA_TIPO_ATENCION[a.tipo as TipoAtencion] ?? "Atención técnica";
   return {
     clave: `atencion-${a.id}`,
     fecha,

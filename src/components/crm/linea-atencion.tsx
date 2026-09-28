@@ -25,9 +25,14 @@ import {
   ETIQUETA_ETAPA,
   AYUDA_ETAPA,
   ETIQUETA_CLASIFICACION,
+  ETIQUETA_TIPO_ATENCION,
   COLOR_CLASIFICACION,
   SE_COBRA,
+  motivoNoCorresponde,
   pasoDe,
+  reglaDeLaCasilla,
+  reglaDelPaso,
+  saltarLoQueNoCorresponde,
   siguienteEtapa,
   type Atencion,
   type ClasificacionAtencion,
@@ -133,6 +138,10 @@ export function LineaAtencion({
   const [enviando, empezar] = useTransition();
   const paso = pasoDe(a.etapa);
   const sigue = siguienteEtapa(a.etapa);
+  // La que late en la tira: la siguiente que el tipo SÍ lleva. En un repuesto
+  // que está en atención late el cierre, no las pruebas que no corresponden.
+  const ultimaSinCorresponder = sigue ? saltarLoQueNoCorresponde(a.tipo, a.etapa).etapa : null;
+  const lateEn = ultimaSinCorresponder ? siguienteEtapa(ultimaSinCorresponder) : null;
 
   /**
    * Hasta dónde llega el riel verde, de 0 a 1. Se mide en CASILLAS de la tira
@@ -205,11 +214,18 @@ export function LineaAtencion({
             // «No aplicó» NO es «hecha». Un caso resuelto por videollamada no
             // tuvo visita: pintarla verde diría que sí ocurrió (0198).
             const omitida = p.cubre.some((c) => Boolean(omitidas[c]));
-            const hecha = i <= paso && !omitida;
+            // EL CIRCUITO DEL TIPO (reunión 28-09). Lo que el tipo no lleva va
+            // en gris con «No corresponde a <tipo>» desde el principio —no
+            // recién cuando se pasa de largo—, y lo opcional lo dice debajo
+            // del nombre. Así se ve de un vistazo que un repuesto no tiene
+            // pruebas y que una puesta en marcha puede resolverse en la llamada.
+            const regla = reglaDeLaCasilla(a.tipo, p.cubre);
+            const noCorresponde = regla === "no_corresponde";
+            const hecha = i <= paso && !omitida && !noCorresponde;
             // Un paso que cubre dos etapas late si el panel está pidiendo
             // cualquiera de las dos, y muestra el sello de la última que se
             // haya cumplido: la firma del cliente es la fecha que importa.
-            const actual = !a.cerrado_at && sigue !== null && p.cubre.includes(sigue);
+            const actual = !a.cerrado_at && lateEn !== null && p.cubre.includes(lateEn);
             const sello = p.cubre.map((c) => sellos[c]).filter(Boolean).pop() ?? null;
             const seleccionada = p.cubre.includes(etapaVista as EtapaAtencion);
             const Dibujo = DIBUJO[p.icono];
@@ -226,7 +242,7 @@ export function LineaAtencion({
                 <button
                   type="button"
                   onClick={() => setVista(e === a.etapa ? null : e)}
-                  title={p.cubre.map((c) => AYUDA_ETAPA[c]).join(" ")}
+                  title={noCorresponde ? motivoNoCorresponde(a.tipo) : p.cubre.map((c) => AYUDA_ETAPA[c]).join(" ")}
                   className="flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-md px-1 pb-1 text-center transition-colors hover:bg-accent/50"
                 >
                   <span data-actual={actual} className="halo-atencion relative flex flex-none rounded-full">
@@ -241,8 +257,9 @@ export function LineaAtencion({
                         "medalla-atencion relative flex size-11 flex-none items-center justify-center overflow-hidden rounded-full border-2 bg-background",
                         actual && "border-primary text-primary",
                         hecha && "border-[#1E7F4F] text-[#1E7F4F]",
-                        omitida && "border-border text-muted-foreground/70",
-                        !actual && !hecha && !omitida && "border-dashed border-border text-muted-foreground/45",
+                        omitida && !noCorresponde && "border-border text-muted-foreground/70",
+                        noCorresponde && "border-dashed border-border bg-muted text-muted-foreground/35",
+                        !actual && !hecha && !omitida && !noCorresponde && "border-dashed border-border text-muted-foreground/45",
                         seleccionada && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
                       )}
                     >
@@ -256,7 +273,7 @@ export function LineaAtencion({
                         <Check className="size-2.5" strokeWidth={3.5} />
                       </span>
                     )}
-                    {omitida && (
+                    {omitida && !noCorresponde && (
                       <span
                         title={p.cubre.map((c) => omitidas[c]?.motivo).filter(Boolean).join(" · ")}
                         className="absolute -bottom-0.5 -right-0.5 z-10 flex size-4 items-center justify-center rounded-full border-2 border-background bg-muted-foreground/70 text-background"
@@ -274,13 +291,23 @@ export function LineaAtencion({
                       actual && "text-primary",
                       hecha && "text-[#1E7F4F]",
                       !actual && !hecha && "text-muted-foreground/60",
+                      noCorresponde && "text-muted-foreground/40 line-through decoration-muted-foreground/30",
                     )}
                   >
                     {p.etiqueta}
                   </span>
-                  <span className="text-[10px] tabular-nums leading-none text-muted-foreground">
-                    {omitida
-                      ? "no aplicó"
+                  <span
+                    className={cn(
+                      "text-[10px] tabular-nums leading-none text-muted-foreground",
+                      noCorresponde && "leading-tight text-muted-foreground/70",
+                    )}
+                  >
+                    {noCorresponde
+                      ? motivoNoCorresponde(a.tipo)
+                      : omitida
+                      ? "saltado"
+                      : regla === "opcional" && !hecha && p.clave !== "seguimiento"
+                      ? "opcional"
                       : p.deCentral && sello
                         ? `Central · ${new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" })}`
                         : sello
@@ -371,7 +398,7 @@ export function LineaAtencion({
       {/* ── La caja: la etapa seleccionada, o el paso que toca ────────── */}
       {etapaVista !== a.etapa ? (
         <ActaEtapa
-          etapa={etapaVista}
+          etapa={etapaVista as EtapaAtencion}
           atencion={a}
           hecha={pasoDe(etapaVista as Atencion["etapa"]) < paso}
           sello={sellos[etapaVista] ?? null}
@@ -384,20 +411,11 @@ export function LineaAtencion({
             devuelva, aparece acá para tomarla.
           </p>
         </Caja>
-      ) : a.etapa === "registro" && a.tipo === "puesta_en_marcha" ? (
-        // LA PUESTA EN MARCHA SE PROGRAMA DIRECTO (Ariana, 14-09; 0231): el
-        // equipo acaba de llegar, no hay garantía que verificar ni diagnóstico
-        // que hacer. Del registro se pasa a poner día, hora y técnico.
-        <PasoPlanificar
-          atencion={a}
-          cliente={cliente}
-          serie={garantia?.serie ?? null}
-          tecnicos={tecnicos}
-          enviando={enviando}
-          correr={correr}
-          puestaEnMarcha
-        />
       ) : a.etapa === "registro" ? (
+        // LA PUESTA EN MARCHA YA NO SALTA EL REGISTRO (reunión 28-09): el
+        // registro «jala la máquina» —de ahí corre la garantía— y los
+        // antecedentes son opcionales, con su botón «No hay antecedentes».
+        // Hasta hoy (0231) pasaba directo a programar sin saber qué máquina.
         <PasoRegistro atencion={a} garantia={garantia} hayMaquinas={hayMaquinas} pedidoSinSeries={pedidoSinSeries} enviando={enviando} correr={correr} />
       ) : a.etapa === "diagnostico" ? (
         <PasoPlanificar
@@ -407,7 +425,12 @@ export function LineaAtencion({
           tecnicos={tecnicos}
           enviando={enviando}
           correr={correr}
+          puestaEnMarcha={a.tipo === "puesta_en_marcha"}
         />
+      ) : a.etapa === "atencion" && omitidas.atencion ? (
+        // La atención se saltó (puesta en marcha resuelta en la llamada): no
+        // hay visita que anotar, pero las pruebas y la conformidad sí van.
+        <PasoPruebas atencion={a} enviando={enviando} correr={correr} />
       ) : a.etapa === "atencion" ? (
         <PasoTrabajo atencion={a} puedeCotizar={puedeCotizar} enviando={enviando} correr={correr} />
       ) : a.etapa === "pruebas" ? (
@@ -442,9 +465,16 @@ export function LineaAtencion({
           saltear». Va justo encima de la salida de emergencia y debajo del
           paso normal: primero se intenta hacer, después se dice que no
           aplicaba, y solo al final se cierra a la fuerza. */}
-      {etapaVista === a.etapa && sigue && SE_PUEDE_SALTEAR.includes(sigue) && (
-        <SaltearEtapa atencion={a} siguiente={sigue} enviando={enviando} correr={correr} />
-      )}
+      {/* Desde la reunión del 28-09 se saltea SOLO lo que el tipo marca como
+          opcional (los antecedentes tienen su propio botón en el Paso 2). Lo
+          obligatorio se hace, o el caso se cierra antes de tiempo abajo. */}
+      {etapaVista === a.etapa &&
+        sigue &&
+        sigue !== "diagnostico" &&
+        sigue !== "seguimiento" &&
+        reglaDelPaso(a.tipo, sigue) === "opcional" && (
+          <SaltearEtapa atencion={a} siguiente={sigue} enviando={enviando} correr={correr} />
+        )}
 
       {etapaVista === a.etapa && a.etapa !== "cierre" && a.etapa !== "seguimiento" && a.etapa !== "conformidad" && (
         <CerrarAntesDeTiempo atencion={a} enviando={enviando} correr={correr} />
@@ -453,19 +483,14 @@ export function LineaAtencion({
   );
 }
 
-/** Las que se pueden saltear. El diagnóstico no: decir qué le pasa al equipo y
- *  quién paga es el corazón del caso. Solicitud y registro son de Central, ya
- *  ocurrieron. Y el cierre se hace, no se saltea. La base lo vuelve a
- *  comprobar igual (0198). */
-const SE_PUEDE_SALTEAR: EtapaAtencion[] = ["planificacion", "atencion", "pruebas", "conformidad"];
-
 /**
- * «Esta etapa no aplica en este caso».
+ * «Saltar este paso» — solo para los pasos OPCIONALES del tipo (reunión 28-09;
+ * la base lo vuelve a comprobar, 0324b). Ejemplo: la atención de una puesta en
+ * marcha que «se soluciona en la llamada».
  *
- * Plegado detrás de un enlace para que no compita con el paso que toca: el
- * camino normal sigue siendo hacer la etapa. El motivo es obligatorio porque
- * es lo único que va a leer quien revise el caso dentro de seis meses —y
- * porque la etapa NO se sella como cumplida: en la tira queda «no aplicó».
+ * El motivo viene escrito y se puede corregir: es lo único que va a leer quien
+ * revise el caso dentro de seis meses, y la etapa NO se sella como cumplida:
+ * en la tira queda «saltado».
  */
 function SaltearEtapa({
   atencion: a,
@@ -479,23 +504,26 @@ function SaltearEtapa({
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
-  const [motivo, setMotivo] = useState("");
+  const [motivo, setMotivo] = useState(
+    siguiente === "atencion" ? "Se solucionó en la llamada: no hizo falta visita" : "",
+  );
+  const tipo = ETIQUETA_TIPO_ATENCION[a.tipo] ?? "este tipo";
   if (!abierto) {
     return (
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="cursor-pointer text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-dashed border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary"
       >
-        «{ETIQUETA_ETAPA[siguiente]}» no aplica en este caso
+        Saltar este paso · «{ETIQUETA_ETAPA[siguiente]}» es opcional en {tipo}
       </button>
     );
   }
   return (
-    <Caja titulo={`«${ETIQUETA_ETAPA[siguiente]}» no aplica`}>
+    <Caja titulo={`Saltar «${ETIQUETA_ETAPA[siguiente]}»`}>
       <p className="mb-2 text-xs text-muted-foreground">
-        El circuito sigue sin esta etapa y NO se marca como hecha: en la tira queda «no aplicó», con lo que
-        escriba acá. Ejemplo: se resolvió por videollamada, así que no hay visita que programar.
+        En {tipo} este paso es opcional. El circuito sigue sin él y NO se marca como hecho: en la tira queda
+        «saltado», con lo que escriba acá.
       </p>
       <textarea
         rows={2}
@@ -512,13 +540,13 @@ function SaltearEtapa({
           onClick={() =>
             correr(
               () => omitirEtapa({ atencionId: a.id, etapa: siguiente, motivo }),
-              `«${ETIQUETA_ETAPA[siguiente]}» quedó como que no aplicaba.`,
+              `«${ETIQUETA_ETAPA[siguiente]}» quedó saltado.`,
             )
           }
         >
-          Saltear esta etapa
+          Saltar este paso
         </Button>
-        <Button size="sm" variant="ghost" disabled={enviando} onClick={() => { setAbierto(false); setMotivo(""); }}>
+        <Button size="sm" variant="ghost" disabled={enviando} onClick={() => setAbierto(false)}>
           Mejor no
         </Button>
       </div>
@@ -725,13 +753,29 @@ function ActaEtapa({
   sello,
   onVolver,
 }: {
-  etapa: string;
+  etapa: EtapaAtencion;
   atencion: Atencion;
   hecha: boolean;
   sello: string | null;
   onVolver: () => void;
 }) {
-  const etiqueta = ETIQUETA_ETAPA[etapa as keyof typeof ETIQUETA_ETAPA] ?? etapa;
+  const etiqueta = ETIQUETA_ETAPA[etapa] ?? etapa;
+  const noCorresponde = reglaDelPaso(a.tipo, etapa) === "no_corresponde";
+  const saltada = a.etapas_omitidas?.[etapa];
+  if (noCorresponde || saltada) {
+    return (
+      <Caja titulo={`${noCorresponde ? "No corresponde" : "Saltado"} · ${etiqueta}`}>
+        <p className="max-w-prose text-sm text-muted-foreground">
+          {noCorresponde
+            ? `${motivoNoCorresponde(a.tipo)}: el circuito de este tipo no lleva este paso y lo pasa de largo.`
+            : `Este paso se saltó${saltada?.motivo ? `: «${saltada.motivo}»` : "."}`}
+        </p>
+        <Button size="sm" variant="outline" className="mt-3" onClick={onVolver}>
+          Volver al paso actual
+        </Button>
+      </Caja>
+    );
+  }
 
   // Lo que cada etapa dejó escrito, cuando lo dejó.
   const lineas: { titulo: string; valor: string }[] = [];
@@ -766,6 +810,7 @@ function ActaEtapa({
         valor: `${ETIQUETA_CLASIFICACION[a.clasificacion]} · ${SE_COBRA[a.clasificacion] ? "se cobra" : "no se cobra"}`,
       });
     }
+    if (etapa === "diagnostico" && a.diagnostico) lineas.push({ titulo: "Antecedentes", valor: a.diagnostico });
     if (etapa === "planificacion" && a.tecnico) lineas.push({ titulo: "Técnico", valor: a.tecnico });
     // Lo que la visita dejó escrito (0182): antes estas dos etapas eran un
     // sello con fecha y nada más.
@@ -808,7 +853,8 @@ function ActaEtapa({
         )
       ) : (
         <p className="max-w-prose text-sm text-muted-foreground">
-          {AYUDA_ETAPA[etapa as keyof typeof AYUDA_ETAPA] ?? "Se habilita al completar los pasos anteriores."}{" "}
+          {AYUDA_ETAPA[etapa] ?? "Se habilita al completar los pasos anteriores."}{" "}
+          {reglaDelPaso(a.tipo, etapa) === "opcional" && `En ${ETIQUETA_TIPO_ATENCION[a.tipo] ?? "este tipo"} es opcional. `}
           Se habilita cuando la atención llegue a este punto.
         </p>
       )}
@@ -819,7 +865,7 @@ function ActaEtapa({
   );
 }
 
-/** Registro: verificar la garantía y diagnosticar. Los dos condicionales. */
+/** Registro: verificar la garantía (la máquina) y anotar los antecedentes. */
 function PasoRegistro({
   atencion: a,
   garantia,
@@ -905,9 +951,20 @@ function PasoRegistro({
     );
   }
 
+  // LOS ANTECEDENTES (reunión 28-09): «diagnóstico es un resultado… sería
+  // mejor antecedente». Lo que postventa sabe ANTES de programar, para que el
+  // técnico no llegue a ciegas: «de las cinco lavadoras solo se puso en marcha
+  // cuatro», «no terminó de pagar», «ya le pidieron el punto de desagüe y no
+  // lo hizo». En la puesta en marcha y el repuesto es opcional.
+  const opcional = reglaDelPaso(a.tipo, "diagnostico") === "opcional";
   return (
-    <Caja titulo="Paso 2 · Diagnóstico: qué le pasa y quién paga">
+    <Caja titulo={`Paso 2 · Antecedentes: qué se sabe del caso y quién paga${opcional ? " (opcional)" : ""}`}>
       <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Lo que el técnico tiene que saber antes de que se programe: el historial de la máquina, qué necesita el
+          cliente y qué tiene que hacer él.
+          {opcional && ` En ${ETIQUETA_TIPO_ATENCION[a.tipo]} es opcional: si no hay nada que contar, siga sin antecedentes.`}
+        </p>
         {/* Si se siguió sin identificar la máquina, se dice acá: clasificar
             «garantía» a ciegas es justo lo que no se puede hacer (0181). */}
         {a.garantia_omitida_at && (
@@ -944,24 +1001,41 @@ function PasoRegistro({
           )}
         </div>
         <textarea
-          rows={2}
           value={detalle}
           onChange={(e) => setDetalle(e.target.value)}
-          placeholder="Qué encontró: «la bomba de desagüe está trabada», «falta cambiar la válvula de entrada»"
+          rows={3}
+          placeholder="«De las cinco lavadoras se puso en marcha cuatro; falta la serie B» · «Ya se le pidió el punto de desagüe y no lo hizo: verificar la preinstalación» · «Muestra el error E3 desde el lunes»"
           className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
         />
-        <Button
-          size="sm"
-          disabled={enviando || !clasificacion || detalle.trim().length < 5}
-          onClick={() =>
-            correr(
-              () => diagnosticar({ atencionId: a.id, clasificacion: clasificacion as ClasificacionAtencion, detalle }),
-              "Diagnóstico guardado.",
-            )
-          }
-        >
-          Guardar el diagnóstico <ChevronRight className="size-3.5" />
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            disabled={enviando || !clasificacion || detalle.trim().length < 5}
+            onClick={() =>
+              correr(
+                () => diagnosticar({ atencionId: a.id, clasificacion: clasificacion as ClasificacionAtencion, detalle }),
+                "Antecedentes guardados.",
+              )
+            }
+          >
+            Guardar los antecedentes <ChevronRight className="size-3.5" />
+          </Button>
+          {opcional && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={enviando}
+              onClick={() =>
+                correr(
+                  () => omitirEtapa({ atencionId: a.id, etapa: "diagnostico", motivo: "No hay antecedentes" }),
+                  "Sin antecedentes: ahora a planificar.",
+                )
+              }
+            >
+              No hay antecedentes, seguir <ChevronRight className="size-3.5" />
+            </Button>
+          )}
+        </div>
       </div>
     </Caja>
   );
@@ -983,7 +1057,7 @@ function PasoPlanificar({
   tecnicos: string[];
   enviando: boolean;
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
-  /** Viene del registro sin pasar por el diagnóstico: es una puesta en marcha. */
+  /** Es una puesta en marcha: se programa la llamada o la visita de arranque. */
   puestaEnMarcha?: boolean;
 }) {
   const [fecha, setFecha] = useState("");
@@ -992,12 +1066,17 @@ function PasoPlanificar({
   const [orden, setOrden] = useState<string | null>(null);
 
   return (
-    <Caja titulo={puestaEnMarcha ? "Programar la puesta en marcha: cuándo y con quién" : "Paso 3 · Planificación: cuándo y con quién"}>
+    <Caja titulo={puestaEnMarcha ? "Paso 3 · Planificación: programar la puesta en marcha" : "Paso 3 · Planificación: cuándo y con quién"}>
       <p className="mb-3 text-sm text-muted-foreground">
         {puestaEnMarcha
-          ? "Es una puesta en marcha: no lleva verificación de garantía ni diagnóstico. Con día, hora y técnico queda programada y entra al calendario del área."
+          ? "Con día, hora y técnico queda programada y entra al calendario del área. Si es una llamada o videollamada, derívela al almacén con «Derivar llamada al almacén» (arriba): lleva los antecedentes."
           : "Esto entra al calendario del área y arma la orden para el almacén."}
       </p>
+      {a.diagnostico && (
+        <p className="mb-3 rounded-md border border-border bg-secondary/40 p-2.5 text-xs text-foreground">
+          <b>Antecedentes:</b> {a.diagnostico}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <SelectorFecha valor={fecha || null} onCambiar={(f) => setFecha(f ?? "")} etiquetaVacia="Elegir el día" />
         <SelectorHora valor={hora || null} onCambiar={(h) => setHora(h ?? "")} />
@@ -1037,7 +1116,7 @@ function PasoPlanificar({
               cliente,
               serie,
               equipo: a.equipo_texto,
-              problema: a.detalle ?? "",
+              problema: [a.detalle ?? "", a.diagnostico ? `Antecedentes: ${a.diagnostico}` : ""].filter(Boolean).join("\n"),
               codigoError: null,
               fecha,
               hora: hora || null,
@@ -1156,6 +1235,8 @@ function PasoTrabajo({
   const [trabajo, setTrabajo] = useState("");
   const [repuestos, setRepuestos] = useState("");
   const [ciclos, setCiclos] = useState("");
+  // El repuesto no lleva pruebas ni conformidad (reunión 28-09): de acá, al cierre.
+  const alCierre = reglaDelPaso(a.tipo, "pruebas") === "no_corresponde";
 
   return (
     <Caja titulo="Paso · Qué se hizo en el cliente">
@@ -1209,11 +1290,11 @@ function PasoTrabajo({
                   repuestos: repuestos || null,
                   ciclos: ciclos.trim() === "" ? null : Number(ciclos),
                 }),
-              "Trabajo registrado. Ahora las pruebas.",
+              alCierre ? "Trabajo registrado. Ahora el cierre." : "Trabajo registrado. Ahora las pruebas.",
             )
           }
         >
-          Guardar y pasar a pruebas <ChevronRight className="size-3.5" />
+          {alCierre ? "Guardar y pasar al cierre" : "Guardar y pasar a pruebas"} <ChevronRight className="size-3.5" />
         </Button>
         <div className="border-t border-border pt-3">
           <AvisarQueHayVenta

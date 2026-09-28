@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ETIQUETA_TIPO_EXPEDIENTE } from "@/lib/tipo-expediente";
-import { AlertTriangle, Wrench, PackageSearch, ShieldCheck, Inbox, ArrowRight, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Wrench, PackageSearch, ShieldCheck, Inbox, ArrowRight, Headset, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -50,6 +50,8 @@ const ETIQUETA_TIPO_CASO: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
 const ICONO_TIPO_ATENCION: Record<TipoAtencion, LucideIcon> = {
   puesta_en_marcha: Wrench,
   problema_tecnico: AlertTriangle,
+  // El mismo auricular que la pestaña «Soporte técnico» de Registrar un caso.
+  soporte_tecnico: Headset,
   solicitud_repuesto: PackageSearch,
   solicitud_mantenimiento: Wrench,
 };
