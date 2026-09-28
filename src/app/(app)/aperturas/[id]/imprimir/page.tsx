@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
-import { ETIQUETA_TIPO_APERTURA, type AperturaLlamada } from "@/lib/aperturas-llamada";
+import { MOTIVO_APERTURA, numeroInforme, tituloHojaApertura, type AperturaLlamada } from "@/lib/aperturas-llamada";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
@@ -50,10 +50,24 @@ export default async function ImprimirAperturaPage({
     const { data: ult } = await supabase.from("informes_cierre").select("serie").eq("cuenta_id", a.cuenta_id).is("anulado_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
     serieEmpresa = (ult?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? null;
   }
-  const titulo = `INFORME DE ${ETIQUETA_TIPO_APERTURA[a.tipo].toUpperCase()}`;
+  // EL MISMO NÚMERO QUE EL INFORME DEL ALMACÉN (reunión 28-09 14:18): «todos
+  // los registros documentarios tienen que tener un código… este detalle
+  // tiene que tener el mismo número de correlativo del informe de almacén».
+  // La hoja para el cliente es la versión revisada de ese informe, no otro.
+  const { data: inf } = a.informe_servicio_id
+    ? await supabase.from("informes_servicio").select("correlativo, anio, es_prueba").eq("id", a.informe_servicio_id).maybeSingle()
+    : { data: null };
+  const n = numeroInforme(inf as { correlativo: number | null; anio: number | null; es_prueba: boolean | null } | null);
+  const numero = n ? `Informe N.º ${n}` : null;
+  // «Solamente debería ser informe de videollamada»: el tipo va como motivo.
+  const titulo = tituloHojaApertura(a.tipo);
+  // El motivo va en el cuerpo como fila. El «problema» que escribió postventa
+  // para el almacén NO se imprime: es interno (trae notas como «la cliente es
+  // un poco especial…») y la hoja es la versión revisada para el cliente.
   const filas: [string, string | null][] = [
     ["Cliente", cliente],
     ["RUC / DNI", a.cuentas?.num_doc ?? null],
+    ["Motivo", MOTIVO_APERTURA[a.tipo]],
     ["Fecha de ejecución", fechaCorta(a.programada_para)],
     ["Hora", horaCorta(a.programada_para)],
     ["Técnico a cargo", a.tecnico],
@@ -66,13 +80,13 @@ export default async function ImprimirAperturaPage({
         <a href={`/aperturas/${id}`} className="text-xs text-muted-foreground hover:underline">
           ← Volver a la apertura
         </a>
-        <TituloParaImprimir titulo={`${titulo} - ${cliente}`.replace(/[^\w\s.\-áéíóúñÁÉÍÓÚÑ]/g, "")} />
+        <TituloParaImprimir titulo={`${titulo}${n ? ` ${n}` : ""} - ${cliente}`.replace(/[^\w\s.\-áéíóúñÁÉÍÓÚÑ]/g, "")} />
         <SelectorMembrete base={`/aperturas/${id}/imprimir`} actual={elegida ?? serieEmpresa ?? "EFAMEINSA"} deducida={serieEmpresa} />
         <BotonImprimir>Imprimir / guardar PDF</BotonImprimir>
       </div>
 
       {/* La empresa del cierre del pedido; si no hay pedido, la del último cierre del cliente (Santos, 24-09). */}
-      <MembreteDocumento serie={elegida ?? serieEmpresa} area="Postventa" />
+      <MembreteDocumento serie={elegida ?? serieEmpresa} area="Postventa" numero={numero} />
 
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>
 

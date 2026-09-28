@@ -26,6 +26,26 @@ export const ETIQUETA_TIPO_APERTURA: Record<TipoApertura, string> = {
   revision: "Revisión del equipo",
 };
 
+/**
+ * EL TÍTULO DE LA HOJA Y EL MOTIVO (reunión 28-09 14:18). «Tiene que salir
+ * informe de videollamada… solamente debería ser informe de videollamada
+ * porque tenemos para varios casos. Donde se detalla lo que se tiene que hacer
+ * es en el problema… ahí se tiene que colocar para qué es la llamada: puesta en
+ * marcha, preinstalación». El tipo deja de ir en el título y pasa al cuerpo.
+ */
+export const MOTIVO_APERTURA: Record<TipoApertura, string> = {
+  videollamada_preinstalacion: "Preinstalación",
+  videollamada_puesta_marcha: "Puesta en marcha",
+  soporte_videollamada: "Soporte técnico",
+  atencion_in_situ: "Atención técnica en el local del cliente",
+  revision: "Revisión del equipo",
+};
+export function tituloHojaApertura(tipo: TipoApertura): string {
+  if (tipo === "atencion_in_situ") return "INFORME DE ATENCIÓN TÉCNICA";
+  if (tipo === "revision") return "INFORME DE REVISIÓN";
+  return "INFORME DE VIDEOLLAMADA";
+}
+
 export interface AperturaLlamada {
   id: string;
   cuenta_id: string;

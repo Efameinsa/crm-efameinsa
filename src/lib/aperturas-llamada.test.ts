@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { aQuienLeToca, borradorParaCliente, estadoApertura, limpiarBusqueda, numeroInforme } from "./aperturas-llamada";
+import { aQuienLeToca, borradorParaCliente, estadoApertura, limpiarBusqueda, numeroInforme, tituloHojaApertura } from "./aperturas-llamada";
 
 describe("limpiarBusqueda", () => {
   it("saca lo que rompe el filtro y deja las palabras", () => {
     expect(limpiarBusqueda("  cruz,  gallegos (yoni)* ")).toBe("cruz gallegos yoni");
     expect(limpiarBusqueda("20604375038")).toBe("20604375038");
     expect(limpiarBusqueda(undefined)).toBe("");
+  });
+});
+
+describe("tituloHojaApertura", () => {
+  it("toda videollamada se titula igual; el motivo va en el cuerpo", () => {
+    expect(tituloHojaApertura("videollamada_preinstalacion")).toBe("INFORME DE VIDEOLLAMADA");
+    expect(tituloHojaApertura("videollamada_puesta_marcha")).toBe("INFORME DE VIDEOLLAMADA");
+    expect(tituloHojaApertura("soporte_videollamada")).toBe("INFORME DE VIDEOLLAMADA");
+    expect(tituloHojaApertura("atencion_in_situ")).toBe("INFORME DE ATENCIÓN TÉCNICA");
   });
 });
 

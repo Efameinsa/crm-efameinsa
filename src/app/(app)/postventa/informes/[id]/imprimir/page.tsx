@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { etiquetaTipoServicio } from "@/lib/postventa";
+import { MOTIVO_APERTURA, numeroInforme, tituloHojaApertura, type TipoApertura } from "@/lib/aperturas-llamada";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 
@@ -88,13 +89,24 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
   const urls = (firmadas ?? []).filter((f) => f.signedUrl).map((f) => f.signedUrl!);
 
   const tipo = String(data.tipo);
-  const numero = data.correlativo != null ? `N.º ${data.es_prueba ? "PRUEBA " : ""}${String(data.correlativo).padStart(3, "0")}-${data.anio}` : "";
-  const titulo = `${TITULO[tipo] ?? "INFORME TÉCNICO"} ${numero}`;
+  // El número va a la derecha de la cabecera, junto a «Postventa» (reunión
+  // 28-09 14:18: «al lado derecho indique el número del correlativo»); es el
+  // mismo que lleva la hoja para el cliente de la llamada.
+  const n = numeroInforme({ correlativo: data.correlativo as number | null, anio: data.anio as number | null, es_prueba: data.es_prueba as boolean | null });
+  const numero = n ? `Informe N.º ${n}` : null;
+  // Si nació de una llamada derivada: «solamente debería ser informe de
+  // videollamada», y el motivo (preinstalación, puesta en marcha…) va en el cuerpo.
+  const { data: apertura } = data.apertura_id
+    ? await supabase.from("aperturas_llamada").select("tipo").eq("id", data.apertura_id as string).maybeSingle()
+    : { data: null };
+  const tipoApertura = (apertura?.tipo ?? null) as TipoApertura | null;
+  const titulo = tipoApertura ? tituloHojaApertura(tipoApertura) : (TITULO[tipo] ?? "INFORME TÉCNICO");
   const equipoLinea = [equipo?.modelo_texto ?? data.equipo_texto, equipo?.serie].filter(Boolean).join(" / ");
   const cliente = cuenta?.razon_social ?? (data.cliente_texto as string | null) ?? "—";
   const filas: [string, string | null][] = [
     ["Cliente", cliente],
     ["Asunto", (data.asunto as string | null) ?? ASUNTO[tipo] ?? etiquetaTipoServicio(tipo)],
+    ["Motivo", tipoApertura ? MOTIVO_APERTURA[tipoApertura] : null],
     ["Fecha de ejecución", fechaCorta(data.ejecutado_at as string)],
     ["Fecha de informe", data.fecha_informe ? fechaCorta(`${data.fecha_informe}T12:00:00-05:00`) : fechaCorta(data.created_at as string)],
     // El formato del 24-09 (0297) distingue la llamada del informe.
@@ -130,12 +142,12 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
         <a href={`/postventa/informes/${id}`} className="text-xs text-muted-foreground hover:underline">
           ← Volver al informe
         </a>
-        <TituloParaImprimir titulo={`${titulo} - ${cliente}`.replace(/[^\w\s.\-áéíóúñÁÉÍÓÚÑ]/g, "")} />
+        <TituloParaImprimir titulo={`${titulo}${n ? ` ${n}` : ""} - ${cliente}`.replace(/[^\w\s.\-áéíóúñÁÉÍÓÚÑ]/g, "")} />
         <BotonImprimir>Imprimir / guardar PDF</BotonImprimir>
       </div>
 
       {/* La empresa y el logo del cierre al que pertenece (Santos, 24-09). */}
-      <MembreteDocumento serie={serieEmpresa} area="Postventa" />
+      <MembreteDocumento serie={serieEmpresa} area="Postventa" numero={numero} />
 
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>
       {equipoLinea && <p className="text-center text-[12px] font-semibold uppercase">MODELO: {equipoLinea}</p>}
