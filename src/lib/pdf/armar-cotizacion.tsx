@@ -1,7 +1,9 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 import { readFileSync } from "node:fs";
 import { join, basename } from "node:path";
-import { CotizacionPdf, type ItemPdf, type SeccionFicha, type BloqueFicha } from "@/lib/pdf/cotizacion-pdf";
+import { CotizacionPdf, type CotizacionPdfProps, type ItemPdf, type SeccionFicha, type BloqueFicha } from "@/lib/pdf/cotizacion-pdf";
+import { CotizacionPostventaPdf } from "@/lib/pdf/cotizacion-postventa-pdf";
+import { variantePostventa } from "@/lib/pdf/formato-postventa";
 import { correoEnSerie } from "@/lib/pdf/series";
 import { etiquetaVersion, notaDeVersion } from "@/lib/version-cotizacion";
 
@@ -154,7 +156,16 @@ export interface CotizacionParaPdf {
   reemplazada_por?: number | null;
 }
 
-export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf, opciones: { sinMontos?: boolean } = {}): Promise<Buffer> {
+export async function renderizarCotizacionPdf(
+  cotizacion: CotizacionParaPdf,
+  opciones: {
+    sinMontos?: boolean;
+    /** El expediente es de postventa (`oportunidades.tipo_postventa` no nulo):
+     *  sale con los formatos de repuestos o mantenimiento de Santos (28-09).
+     *  Sin esto, el documento de equipos de siempre. */
+    postventa?: boolean;
+  } = {},
+): Promise<Buffer> {
   const snapshot = cotizacion.cliente_snapshot as {
     razon_social: string;
     tipo_doc: string;
@@ -278,6 +289,7 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf, opc
         nombre: string;
         capacidad: string | null;
         categoria: string | null;
+        segmento?: string | null;
         ficha: Record<string, unknown> | null;
         foto_path: string | null;
         logo_path?: string | null;
@@ -330,6 +342,8 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf, opc
       cantidad: item.cantidad,
       precio_unitario: item.precio_unitario,
       precio_con_igv: item.precio_con_igv ?? null,
+      segmento: item.productos?.segmento ?? null,
+      descripcionLinea: item.descripcion,
     };
   }));
 
@@ -361,49 +375,57 @@ export async function renderizarCotizacionPdf(cotizacion: CotizacionParaPdf, opc
     : null;
   const fecha = creada.toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" });
 
-  const buffer = await renderToBuffer(
-    <CotizacionPdf
-      sinMontos={opciones.sinMontos ?? false}
-      logoBuffer={LOGO_BUFFER}
-      serie={cotizacion.serie}
-      numeroDocumento={numeroDocumento}
-      fecha={fecha}
-      cliente={{
-        razon_social: snapshot.razon_social,
-        tipo_doc: snapshot.tipo_doc,
-        num_doc: snapshot.num_doc,
-        direccion: snapshot.direccion,
-        telefono: contactoPrincipal?.telefono ?? null,
-        email: contactoPrincipal?.email ?? null,
-        atencion: contactoPrincipal?.nombre ?? null,
-      }}
-      items={items}
-      moneda={cotizacion.moneda}
-      condiciones={cotizacion.condiciones}
-      vigenciaDias={cotizacion.vigencia_dias}
-      entregaLugar={cotizacion.entrega_lugar}
-      garantia={cotizacion.garantia}
-      tiempoEntrega={cotizacion.tiempo_entrega}
-      formaPago={cotizacion.forma_pago}
-      saldo={cotizacion.saldo}
-      firma={{
-        nombre: perfilComercial?.nombre ?? "Área Comercial",
-        cargo: perfilComercial?.cargo ?? null,
-        telefono: perfilComercial?.telefono ?? null,
-        celular: perfilComercial?.celular ?? null,
-        // El dominio del correo cambia con la razón social con la que se
-        // cotiza — salvo quien tenga cargado su correo de OPEN, que no siempre
-        // cambia de dominio (ver correoEnSerie en series.ts).
-        email: correoEnSerie(
-          perfilComercial?.email_contacto ?? null,
-          cotizacion.serie,
-          perfilComercial?.email_open ?? null,
-        ),
-      }}
-      notaVersion={notaVersion}
-      reemplazada={reemplazada}
-    />,
-  );;
+  const props: CotizacionPdfProps = {
+    sinMontos: opciones.sinMontos ?? false,
+    logoBuffer: LOGO_BUFFER,
+    serie: cotizacion.serie,
+    numeroDocumento,
+    fecha,
+    cliente: {
+      razon_social: snapshot.razon_social,
+      tipo_doc: snapshot.tipo_doc,
+      num_doc: snapshot.num_doc,
+      direccion: snapshot.direccion,
+      telefono: contactoPrincipal?.telefono ?? null,
+      email: contactoPrincipal?.email ?? null,
+      atencion: contactoPrincipal?.nombre ?? null,
+    },
+    items,
+    moneda: cotizacion.moneda,
+    condiciones: cotizacion.condiciones,
+    vigenciaDias: cotizacion.vigencia_dias,
+    entregaLugar: cotizacion.entrega_lugar,
+    garantia: cotizacion.garantia,
+    tiempoEntrega: cotizacion.tiempo_entrega,
+    formaPago: cotizacion.forma_pago,
+    saldo: cotizacion.saldo,
+    firma: {
+      nombre: perfilComercial?.nombre ?? "Área Comercial",
+      cargo: perfilComercial?.cargo ?? null,
+      telefono: perfilComercial?.telefono ?? null,
+      celular: perfilComercial?.celular ?? null,
+      // El dominio del correo cambia con la razón social con la que se
+      // cotiza — salvo quien tenga cargado su correo de OPEN, que no siempre
+      // cambia de dominio (ver correoEnSerie en series.ts).
+      email: correoEnSerie(
+        perfilComercial?.email_contacto ?? null,
+        cotizacion.serie,
+        perfilComercial?.email_open ?? null,
+      ),
+    },
+    notaVersion,
+    reemplazada,
+  };
 
-  return buffer;
+  // POSTVENTA IMPRIME SUS PROPIOS FORMATOS (Santos, 28-09): repuestos o
+  // mantenimiento según lo que se cotiza (ver variantePostventa). Los mismos
+  // datos, otro cuerpo; lo comercial sigue saliendo con el de equipos.
+  if (opciones.postventa) {
+    const variante = variantePostventa(
+      items.map((i) => ({ segmento: i.segmento, categoria: i.categoria, concepto: i.nombre })),
+    );
+    return renderToBuffer(<CotizacionPostventaPdf {...props} variante={variante} />);
+  }
+
+  return renderToBuffer(<CotizacionPdf {...props} />);
 }

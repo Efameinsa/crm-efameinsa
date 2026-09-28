@@ -60,7 +60,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { data: cotizacion, error } = await supabase
     .from("cotizaciones")
     .select(
-      `codigo, correlativo, serie, moneda, cliente_snapshot, created_at, version,
+      `oportunidad_id, codigo, correlativo, serie, moneda, cliente_snapshot, created_at, version,
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
     )
@@ -82,7 +82,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const ids = items.map((i) => i.producto_id).filter((x): x is string => Boolean(x));
   const { data: productos } = await supabase
     .from("productos")
-    .select("id, sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path, logo_path, panel_path")
+    .select("id, sku, marca, modelo, nombre, capacidad, categoria, segmento, ficha, foto_path, logo_path, panel_path")
     .in("id", ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"]);
 
   const porId = new Map((productos ?? []).map((p) => [p.id as string, p]));
@@ -110,7 +110,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     })),
   } as CotizacionParaPdf;
 
-  const buffer = await renderizarCotizacionPdf(paraPdf);
+  // La vista previa de una corrección es el documento de verdad: si el
+  // expediente es de postventa, con su formato (Santos, 28-09).
+  const { data: expediente } = await supabase
+    .from("oportunidades")
+    .select("tipo_postventa")
+    .eq("id", cotizacion.oportunidad_id)
+    .maybeSingle();
+  const buffer = await renderizarCotizacionPdf(paraPdf, { postventa: expediente?.tipo_postventa != null });
   const { pdf: limpio } = await quitarPaginasEnBlanco(new Uint8Array(buffer));
 
   return new NextResponse(Buffer.from(limpio), {

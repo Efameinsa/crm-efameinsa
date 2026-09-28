@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
-import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, notasDe, IGV, ENTREGA_POR_DEFECTO } from "./series";
+import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, notasDe, IGV, ENTREGA_POR_DEFECTO, type IdentidadSerie } from "./series";
 import { totalesConIgv } from "@/lib/igv";
 import { clasificarFicha } from "@/lib/ficha-tecnica";
 import { encajarEnCaja } from "./medir-imagen";
@@ -271,6 +271,12 @@ export interface ItemPdf {
   precio_unitario: number;
   /** Precio pactado CON IGV, cuando el renglón se marcó así (0233). */
   precio_con_igv?: number | null;
+  /** Segmento del catálogo («servicio», «repuesto», «industrial»…). Solo lo
+   *  lee el formato de postventa para elegir entre repuestos y mantenimiento. */
+  segmento?: string | null;
+  /** Lo que se escribió en el renglón (`cotizacion_items.descripcion`): en
+   *  postventa lleva la SERIE de la máquina del cliente debajo del concepto. */
+  descripcionLinea?: string | null;
 }
 
 export interface CotizacionPdfProps {
@@ -332,7 +338,9 @@ export interface CotizacionPdfProps {
   reemplazada?: boolean;
 }
 
-function crearEstilos(acento: string) {
+// Exportado para el formato de postventa (cotizacion-postventa-pdf.tsx): la
+// misma hoja, el mismo membrete y la misma letra, con otro cuerpo.
+export function crearEstilos(acento: string) {
   return StyleSheet.create({
     page: {
       // 29.4 mm hasta el borde superior de la tabla, 20 mm de margen lateral y
@@ -524,7 +532,7 @@ function crearEstilos(acento: string) {
   });
 }
 
-function formatoMonto(v: number): string {
+export function formatoMonto(v: number): string {
   return v.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -539,7 +547,96 @@ function partirDato(linea: string): [string, string] | null {
   return [linea.slice(0, i).trim(), linea.slice(i + 1).trim()];
 }
 
-const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+export const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+
+type Estilos = ReturnType<typeof crearEstilos>;
+
+// Membrete calcado del papel oficial: logo a la izquierda con la razón
+// social debajo, el rubro a la derecha, y la línea de la marca cruzando el
+// ancho completo.
+export function membreteDe(estilos: Estilos, identidad: IdentidadSerie, logoBuffer: Buffer) {
+  return (
+    <View style={estilos.membrete} fixed>
+      <View style={estilos.membreteFila}>
+        {identidad.usaLogo ? (
+          <View style={estilos.logoBloque}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
+            <Image src={logoBuffer} style={estilos.logo} />
+            <Text style={estilos.membreteRazon}>{identidad.nombreLegal}</Text>
+          </View>
+        ) : (
+          <View style={estilos.logoBloque}>
+            <Text style={estilos.wordmark}>{identidad.nombreLegal}</Text>
+            <Text style={estilos.membreteSub}>{identidad.subtitulo}</Text>
+          </View>
+        )}
+        {identidad.usaLogo && (
+          // Ancho holgado y 7.5 pt para que el rubro entre en UNA línea, como
+          // en el papel: con menos espacio Helvetica lo partía en "Equipos
+          // Indus-/triales." y quedaba feo.
+          <Text style={[estilos.membreteSub, { width: 330, textAlign: "right", fontSize: 7.5 }]}>
+            {identidad.subtitulo}
+          </Text>
+        )}
+      </View>
+      <View style={estilos.membreteLinea} />
+    </View>
+  );
+}
+
+// Pie: la web en granate, la línea debajo cruzando toda la hoja, y los
+// datos de contacto abajo — el mismo orden que el papel impreso.
+export function pieDe(
+  estilos: Estilos,
+  identidad: IdentidadSerie,
+  serie: "EFAMEINSA" | "OPEN",
+  notaVersion: string | null,
+  reemplazada: boolean,
+) {
+  return (
+    <>
+      <View style={estilos.pie} fixed>
+        {serie === "EFAMEINSA" && <Text style={estilos.pieWeb}>{identidad.pie[0]}</Text>}
+        <View style={estilos.pieLinea} />
+        {identidad.pie.slice(serie === "EFAMEINSA" ? 1 : 0).map((linea, i) => (
+          <Text key={i} style={estilos.pieTexto}>
+            {linea}
+          </Text>
+        ))}
+      </View>
+      {/* La versión, en todas las hojas: la ficha técnica también viaja
+          suelta, y una hoja suelta de una versión reemplazada tiene que
+          decirlo igual (decisión de gerencia del 23-09). */}
+      {notaVersion && (
+        <Text style={reemplazada ? [estilos.pieVersion, estilos.pieVersionReemplazada] : estilos.pieVersion} fixed>
+          {notaVersion}
+        </Text>
+      )}
+    </>
+  );
+}
+
+/** La tabla BANCO | MONEDA | CUENTA CORRIENTE | CCI de la serie. */
+export function tablaCuentasDe(estilos: Estilos, cuentas: NonNullable<IdentidadSerie["cuentasBancarias"]>["cuentas"]) {
+  return (
+    <View style={estilos.tabla}>
+      <View style={{ flexDirection: "row" }}>
+        <Text style={[estilos.bancoTh, estilos.bBanco]}>BANCO</Text>
+        <Text style={[estilos.bancoTh, estilos.bMoneda]}>MONEDA</Text>
+        <Text style={[estilos.bancoTh, estilos.bCorriente]}>CUENTA CORRIENTE</Text>
+        <Text style={[estilos.bancoTh, estilos.bCci]}>CCI</Text>
+      </View>
+      {cuentas.map((c, i) => (
+        <View key={i} style={[estilos.tdFila, { borderTopColor: BORDE }]}>
+          <Text style={[estilos.bancoTd, estilos.bBanco, estilos.negrita]}>{c.banco}</Text>
+          <Text style={[estilos.bancoTd, estilos.bMoneda]}>{c.moneda}</Text>
+          <Text style={[estilos.bancoTd, estilos.bCorriente]}>{c.corriente}</Text>
+          <Text style={[estilos.bancoTd, estilos.bCci]}>{c.cci}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 export function CotizacionPdf({
   logoBuffer,
@@ -583,60 +680,8 @@ export function CotizacionPdf({
   const { subtotal, igv, total } = totalesConIgv(items);
   const simbolo = moneda === "USD" ? "US$" : "S/";
 
-  // Membrete calcado del papel oficial: logo a la izquierda con la razón
-  // social debajo, el rubro a la derecha, y la línea de la marca cruzando el
-  // ancho completo.
-  const membrete = (
-    <View style={estilos.membrete} fixed>
-      <View style={estilos.membreteFila}>
-        {identidad.usaLogo ? (
-          <View style={estilos.logoBloque}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
-            <Image src={logoBuffer} style={estilos.logo} />
-            <Text style={estilos.membreteRazon}>{identidad.nombreLegal}</Text>
-          </View>
-        ) : (
-          <View style={estilos.logoBloque}>
-            <Text style={estilos.wordmark}>{identidad.nombreLegal}</Text>
-            <Text style={estilos.membreteSub}>{identidad.subtitulo}</Text>
-          </View>
-        )}
-        {identidad.usaLogo && (
-          // Ancho holgado y 7.5 pt para que el rubro entre en UNA línea, como
-          // en el papel: con menos espacio Helvetica lo partía en "Equipos
-          // Indus-/triales." y quedaba feo.
-          <Text style={[estilos.membreteSub, { width: 330, textAlign: "right", fontSize: 7.5 }]}>
-            {identidad.subtitulo}
-          </Text>
-        )}
-      </View>
-      <View style={estilos.membreteLinea} />
-    </View>
-  );
-
-  // Pie: la web en granate, la línea debajo cruzando toda la hoja, y los
-  // datos de contacto abajo — el mismo orden que el papel impreso.
-  const pie = (
-    <>
-      <View style={estilos.pie} fixed>
-        {serie === "EFAMEINSA" && <Text style={estilos.pieWeb}>{identidad.pie[0]}</Text>}
-        <View style={estilos.pieLinea} />
-        {identidad.pie.slice(serie === "EFAMEINSA" ? 1 : 0).map((linea, i) => (
-          <Text key={i} style={estilos.pieTexto}>
-            {linea}
-          </Text>
-        ))}
-      </View>
-      {/* La versión, en todas las hojas: la ficha técnica también viaja
-          suelta, y una hoja suelta de una versión reemplazada tiene que
-          decirlo igual (decisión de gerencia del 23-09). */}
-      {notaVersion && (
-        <Text style={reemplazada ? [estilos.pieVersion, estilos.pieVersionReemplazada] : estilos.pieVersion} fixed>
-          {notaVersion}
-        </Text>
-      )}
-    </>
-  );
+  const membrete = membreteDe(estilos, identidad, logoBuffer);
+  const pie = pieDe(estilos, identidad, serie, notaVersion, reemplazada);
 
   return (
     <Document>
@@ -1203,22 +1248,7 @@ export function CotizacionPdf({
               <Text style={estilos.negrita}>RUC: </Text>
               {identidad.cuentasBancarias.ruc}
             </Text>
-            <View style={estilos.tabla}>
-              <View style={{ flexDirection: "row" }}>
-                <Text style={[estilos.bancoTh, estilos.bBanco]}>BANCO</Text>
-                <Text style={[estilos.bancoTh, estilos.bMoneda]}>MONEDA</Text>
-                <Text style={[estilos.bancoTh, estilos.bCorriente]}>CUENTA CORRIENTE</Text>
-                <Text style={[estilos.bancoTh, estilos.bCci]}>CCI</Text>
-              </View>
-              {identidad.cuentasBancarias.cuentas.map((c, i) => (
-                <View key={i} style={[estilos.tdFila, { borderTopColor: BORDE }]}>
-                  <Text style={[estilos.bancoTd, estilos.bBanco, estilos.negrita]}>{c.banco}</Text>
-                  <Text style={[estilos.bancoTd, estilos.bMoneda]}>{c.moneda}</Text>
-                  <Text style={[estilos.bancoTd, estilos.bCorriente]}>{c.corriente}</Text>
-                  <Text style={[estilos.bancoTd, estilos.bCci]}>{c.cci}</Text>
-                </View>
-              ))}
-            </View>
+            {tablaCuentasDe(estilos, identidad.cuentasBancarias.cuentas)}
           </View>
         )}
 

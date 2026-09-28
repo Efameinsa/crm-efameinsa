@@ -35,7 +35,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .select(
         `oportunidad_id, codigo, correlativo, serie, moneda, moneda_impresa, tipo_cambio, condiciones, vigencia_dias, entrega_lugar,
        tiempo_entrega, garantia, forma_pago, saldo, cliente_snapshot, created_at, version,
-       cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path, logo_path, panel_path)),
+       cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, segmento, ficha, foto_path, logo_path, panel_path)),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
       )
@@ -97,7 +97,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const paraPdf = enMonedaDelDocumento(base);
-  const buffer = await renderizarCotizacionPdf(paraPdf, { sinMontos: taparCifras });
+  // Un expediente de postventa imprime los formatos de repuestos o de
+  // mantenimiento que dio Santos el 28-09, no el de equipos.
+  const buffer = await renderizarCotizacionPdf(paraPdf, { sinMontos: taparCifras, postventa: dePostventa });
   const snapshot = cotizacion.cliente_snapshot as { razon_social: string };
   const nombreCodigo = cotizacion.codigo
     ? base.reemplazada_por
@@ -159,7 +161,7 @@ async function comoEstaba(
   const { data: productos } = ids.length
     ? await supabase
         .from("productos")
-        .select("id, sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path, logo_path, panel_path")
+        .select("id, sku, marca, modelo, nombre, capacidad, categoria, segmento, ficha, foto_path, logo_path, panel_path")
         .in("id", ids)
     : { data: [] };
   const porId = new Map((productos ?? []).map((p) => [p.id as string, p]));
