@@ -385,6 +385,7 @@ export function BuscadorEquiposModal({
   grupos,
   mostrarStock,
   onLineaLibre,
+  maquinasDelCliente,
   pedido,
   ayuda,
 }: {
@@ -431,12 +432,37 @@ export function BuscadorEquiposModal({
    */
   grupos?: { clave: string; etiqueta: string; incluye: (p: EquipoElegible) => boolean }[];
   mostrarStock?: (p: EquipoElegible) => boolean;
-  onLineaLibre?: (texto: string) => void;
+  onLineaLibre?: (texto: string, cantidad?: number, precio?: number) => void;
+  /**
+   * Las máquinas del cliente («LAVADORA UNIMAC UCG040 · SERIE 123»), para
+   * sumarlas al concepto de la línea escrita a mano con un clic (Carlos, 28-09:
+   * «siempre en la cotización tiene que ir… para la lavadora del cliente, con
+   * la serie del cliente»).
+   */
+  maquinasDelCliente?: string[];
   pedido?: { texto: string; n: number };
   ayuda?: React.ReactNode;
 }) {
   const [abierto, setAbierto] = useState(abrirAlEntrar);
   const [texto, setTexto] = useState("");
+  // LA LÍNEA A MANO SE ARMA ACÁ ADENTRO (Santos, 28-09: «está escribiendo
+  // producto por producto de manera manual en la otra vista; debería ser más
+  // amigable, no saltarse del modal»). Concepto, cantidad y precio en la misma
+  // ventana; al agregarla queda en la cotización y se puede seguir eligiendo.
+  const [aMano, setAMano] = useState<{ concepto: string; cantidad: string; precio: string } | null>(null);
+  const [agregadasAMano, setAgregadasAMano] = useState<string[]>([]);
+  function abrirAMano(desde: string) {
+    setAMano({ concepto: desde.toUpperCase(), cantidad: "1", precio: "" });
+  }
+  function confirmarAMano() {
+    if (!aMano || !onLineaLibre) return;
+    const concepto = aMano.concepto.trim();
+    if (concepto.length < 3) return;
+    onLineaLibre(concepto, Math.max(1, Number(aMano.cantidad) || 1), Math.max(0, Number(aMano.precio) || 0));
+    setAgregadasAMano((l) => [...l, concepto.split("\n")[0]]);
+    setAMano(null);
+    setTexto("");
+  }
   const [resaltado, setResaltado] = useState(0);
   const [grupo, setGrupo] = useState<string>(grupos?.[0]?.clave ?? "");
   const listaRef = useRef<HTMLUListElement>(null);
@@ -578,7 +604,7 @@ export function BuscadorEquiposModal({
             </div>
           )}
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr_280px] xl:grid-cols-[1fr_340px]">
+          <div className="relative grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr_280px] xl:grid-cols-[1fr_340px]">
             <ul ref={listaRef} className="space-y-1 overflow-y-auto overflow-x-hidden pr-1" role="listbox" aria-label="Equipos">
               {coincidencias.map((p, i) => (
                 <li key={p.id}>
@@ -637,10 +663,7 @@ export function BuscadorEquiposModal({
                   {onLineaLibre && texto.trim() && (
                     <button
                       type="button"
-                      onClick={() => {
-                        onLineaLibre(texto.trim());
-                        setTexto("");
-                      }}
+                      onClick={() => abrirAMano(texto.trim())}
                       className="cursor-pointer rounded-md border border-primary/40 bg-primary/5 px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary/10"
                     >
                       Agregar «{texto.trim()}» escrito a mano
@@ -656,6 +679,71 @@ export function BuscadorEquiposModal({
                 </li>
               )}
             </ul>
+            {aMano && onLineaLibre && (
+              <div className="absolute inset-0 z-20 flex items-start justify-center bg-background/80 p-4 backdrop-blur-sm">
+                <div className="w-full max-w-lg space-y-3 rounded-xl border border-border bg-card p-4 shadow-lg">
+                  <p className="text-sm font-bold text-foreground">Escribir a mano lo que no está en el catálogo</p>
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium text-foreground">Concepto — como lo va a leer el cliente</span>
+                    <textarea
+                      value={aMano.concepto}
+                      onChange={(e) => setAMano({ ...aMano, concepto: e.target.value })}
+                      rows={4}
+                      autoFocus
+                      placeholder={"VÁLVULA COLECTORA DE AGUA PARA LAVADORA INDUSTRIAL\nMARCA: UNIMAC\nMODELO: UCG040\nSERIE: …"}
+                      className="w-full rounded-md border border-input bg-background p-2 text-sm uppercase outline-none"
+                    />
+                  </label>
+                  {(maquinasDelCliente ?? []).length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[11px] text-muted-foreground">Para qué máquina del cliente (se agrega al concepto con su serie):</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {maquinasDelCliente!.map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setAMano({ ...aMano, concepto: `${aMano.concepto.trim()}\n${m.replace(" · ", "\n")}`.trim() })}
+                            className="cursor-pointer rounded-full border border-border px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+                          >
+                            + {m}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="space-y-1">
+                      <span className="text-xs font-medium text-foreground">Cantidad</span>
+                      <Input type="number" min={1} value={aMano.cantidad} onChange={(e) => setAMano({ ...aMano, cantidad: e.target.value })} />
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-xs font-medium text-foreground">Precio unitario (sin IGV)</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={aMano.precio}
+                        onChange={(e) => setAMano({ ...aMano, precio: e.target.value })}
+                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), confirmarAMano())}
+                      />
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <button type="button" onClick={() => setAMano(null)} className="cursor-pointer rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent">
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={confirmarAMano}
+                      disabled={aMano.concepto.trim().length < 3}
+                      className="cursor-pointer rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Agregar a la cotización
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <PanelDetalle
               equipo={enFoco}
               unidades={enFoco ? (enCarrito[enFoco.id] ?? 0) : 0}
@@ -679,14 +767,14 @@ export function BuscadorEquiposModal({
                   {" "}
                   <button
                     type="button"
-                    onClick={() => {
-                      onLineaLibre(texto.trim());
-                      setTexto("");
-                    }}
+                    onClick={() => abrirAMano(texto.trim())}
                     className="cursor-pointer font-medium text-foreground underline underline-offset-2 hover:text-primary"
                   >
                     ¿No está en la lista? Escribirlo a mano
                   </button>
+                  {agregadasAMano.length > 0 && (
+                    <span className="ml-1 font-medium text-foreground">· Escritas a mano: {agregadasAMano.join(", ")}</span>
+                  )}
                 </>
               )}
             </p>

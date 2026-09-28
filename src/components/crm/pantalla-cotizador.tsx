@@ -663,7 +663,7 @@ export function PantallaCotizador({
    * lo que la persona ya tipeó es el nombre del ítem, y volver a escribirlo
    * sería el tipo de trabajo doble que hace que nadie use la pantalla.
    */
-  function agregarLineaLibre(texto?: string) {
+  function agregarLineaLibre(texto?: string, cantidad?: number, precio?: number) {
     // VIENE DEL CASO: la primera línea nace escrita. No se adivina el precio
     // —eso lo pone quien cotiza— pero el QUÉ ya lo sabe el sistema: el tipo de
     // caso, la máquina y lo que encontró el técnico. Solo en la primera línea:
@@ -692,8 +692,9 @@ export function PantallaCotizador({
         producto_id: null,
         descripcion: concepto,
         nombre: concepto,
-        cantidad: 1,
-        precio_unitario: 0,
+        // Desde la ventana del catálogo ya vienen puestos (28-09).
+        cantidad: cantidad ?? 1,
+        precio_unitario: precio ?? 0,
         // Sin producto no hay precio de referencia contra el cual contrastar:
         // una línea escrita a mano no dispara la aprobación de gerencia, que
         // existe para los descuentos sobre el precio de lista (Carlos, 25-08).
@@ -1111,7 +1112,8 @@ export function PantallaCotizador({
               subtitulo="Todo el catálogo a la vista: mantenimientos, repuestos, visitas… o escriba lo que pide el cliente"
               grupos={gruposPostventa}
               mostrarStock={(p) => String(p.segmento) !== "servicio" && p.stock != null}
-              onLineaLibre={(texto) => agregarLineaLibre(texto || undefined)}
+              onLineaLibre={(texto, cantidad, precio) => agregarLineaLibre(texto || undefined, cantidad, precio)}
+              maquinasDelCliente={(loQueTiene?.equipos ?? []).map((e) => [e.equipo.toUpperCase(), e.serie ? `SERIE: ${e.serie}` : null].filter(Boolean).join(" · "))}
               pedido={pedidoBusqueda}
               ayuda="Clic o Enter agregan; las cantidades se cambian con − y +, y ✕ lo quita."
               mensajeVacio={<>Nada del catálogo coincide con lo que escribió. Si es algo puntual, agréguelo escrito a mano.</>}
