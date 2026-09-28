@@ -26,6 +26,7 @@ import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
 import { EquipoConSeries } from "@/components/crm/equipo-con-series";
 import { DocumentosExpedientePedido, HerramientasPedido, PagoDelPedido, cargarExpedientePedido } from "@/components/crm/pedido-expediente-bloques";
+import { cierresDePostventa } from "@/lib/precios-postventa";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,10 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
   const supabase = await createClient();
   const { data } = await supabase.from("servicios_postventa").select("*").eq("id", id).maybeSingle();
   if (!data) notFound();
-  const verPrecios = puedeVerPrecios(perfil);
+  // El pedido de lo que vendió postventa (repuesto, servicio) se ve con cifras (28-09).
+  const verPrecios =
+    puedeVerPrecios(perfil) ||
+    (Boolean(data.informe_cierre_id) && (await cierresDePostventa(supabase, [data.informe_cierre_id as string])).has(data.informe_cierre_id as string));
   const servicio = verPrecios ? (data as unknown as ServicioPostventa) : sinPrecios(data as unknown as ServicioPostventa);
 
   const [{ data: atencionPuesta }, listaEquipos, { data: aperturasData }, { data: informe }, { data: emisor }] = await Promise.all([

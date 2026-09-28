@@ -227,6 +227,18 @@ export async function cargarHistorialCuenta(
             .order("fecha_venta", { ascending: false }),
         ])) as [{ data: FilaActividad[] | null }, { data: FilaCotizacion[] | null }, { data: FilaVenta[] | null }];
 
+  // LO QUE COTIZÓ POSTVENTA SE VE CON SU TOTAL (Santos, 28-09): el paquete sin
+  // cifras (0221) tapa todas las cotizaciones; las de expedientes de postventa
+  // se leen aparte (la RLS se las abre al área) y llevan su monto.
+  const totalPostventa = new Map<string, number | null>();
+  if (paquete) {
+    const ids = (cotizaciones ?? []).filter((c) => tipoDe.get(c.oportunidad_id)).map((c) => c.id);
+    if (ids.length) {
+      const { data: conTotal } = await supabase.from("cotizaciones").select("id, total").in("id", ids.slice(0, 150));
+      for (const c of conTotal ?? []) totalPostventa.set(c.id as string, c.total != null ? Number(c.total) : null);
+    }
+  }
+
   // URLs firmadas para los adjuntos (bucket privado): una sola llamada batch.
   type AdjuntoMeta = { path: string; nombre: string };
   const todasLasRutas = (actividades ?? []).flatMap((a) => ((a as { adjuntos?: AdjuntoMeta[] }).adjuntos ?? []).map((x) => x.path));
@@ -321,8 +333,10 @@ export async function cargarHistorialCuenta(
         color,
         // Con IGV, como en el cotizador y el PDF (UX, 08-09). null cuando la
         // historia se mira sin cifras.
-        monto: c.total != null ? totalConIgv(c.total) : null,
-        montoReservado: Boolean(paquete),
+        monto: totalPostventa.has(c.id)
+          ? (totalPostventa.get(c.id) != null ? totalConIgv(totalPostventa.get(c.id)!) : null)
+          : c.total != null ? totalConIgv(c.total) : null,
+        montoReservado: Boolean(paquete) && !totalPostventa.has(c.id),
         moneda: c.moneda,
         // A propósito SIN pdfUrl: la cotización del CRM vive en su oportunidad,
         // donde además de bajar el PDF se la envía, se la duplica y se registra

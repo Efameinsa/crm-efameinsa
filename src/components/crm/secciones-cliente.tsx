@@ -58,12 +58,15 @@ export function ListaInformesCierre({
   informes,
   adjuntosPorInforme,
   sinPrecios = false,
+  conCifras,
 }: {
   informes: InformeCuenta[];
   /** El expediente de cada informe, ya con sus URLs firmadas (migración 0099). */
   adjuntosPorInforme?: Map<string, AdjuntoCierreFirmado[]>;
   /** El área de postventa ve el número y el expediente, no las cifras ni el PDF (0165). */
   sinPrecios?: boolean;
+  /** Cierres de expedientes de postventa: esos sí con su monto (28-09). */
+  conCifras?: Set<string>;
 }) {
   if (informes.length === 0) {
     return (
@@ -94,7 +97,7 @@ export function ListaInformesCierre({
                 {inf.serie === "OPEN" ? "Open Investments" : "Efameinsa"}
               </span>
               <span className="tabular-nums text-muted-foreground">{fechaCalendario(inf.fecha)}</span>
-              {!sinPrecios && (
+              {(!sinPrecios || conCifras?.has(inf.id)) && (
                 <span className="font-semibold tabular-nums text-foreground">
                   {inf.moneda} {Number(inf.monto_total).toLocaleString("es-PE")}
                 </span>

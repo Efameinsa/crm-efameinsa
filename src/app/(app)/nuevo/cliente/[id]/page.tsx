@@ -36,6 +36,7 @@ import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
+import { cierresDePostventa } from "@/lib/precios-postventa";
 
 export const dynamic = "force-dynamic";
 
@@ -435,7 +436,7 @@ async function PestanaVentas({
             <p className="text-[13px] font-bold uppercase tracking-wide text-foreground">Cierres</p>
             <AccionNuevoInforme cuentaId={cuentaId} />
           </div>
-          <ListaInformesCierre informes={informes as Parameters<typeof ListaInformesCierre>[0]["informes"]} adjuntosPorInforme={adjuntos} sinPrecios={!verPrecios} />
+          <ListaInformesCierre informes={informes as Parameters<typeof ListaInformesCierre>[0]["informes"]} adjuntosPorInforme={adjuntos} sinPrecios={!verPrecios} conCifras={verPrecios ? undefined : await cierresDePostventa(supabase, informes.map((i) => i.id))} />
         </div>
       </div>
       {ventasConDetalle.length > 0 && (

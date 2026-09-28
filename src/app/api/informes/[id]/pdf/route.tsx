@@ -9,6 +9,7 @@ import { etiquetaTipo, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
 import { cargarCompendio, oportunidadDelInforme } from "@/lib/compendio-cierre";
 import { fechaCalendario } from "@/lib/fechas";
 import { puedeVerPrecios } from "@/lib/postventa";
+import { cierresDePostventa } from "@/lib/precios-postventa";
 
 // PDF del informe de cierre de ventas que se le manda a Central.
 // La autorización la hace RLS (migración 0049): el comercial ve los de SU
@@ -80,7 +81,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   // POSTVENTA LO VE CON LOS NÚMEROS TAPADOS (gerencia, 28-09: «postventa tiene
   // que ver todo y estarían borraditos los números… en los PDFs»). Lo que
   // cuenta el compendio también lleva cifras: se tapan igual.
-  const sinMontos = Boolean(perfil && !puedeVerPrecios(perfil));
+  // El cierre de un expediente de postventa es trabajo del área: sale completo (28-09).
+  const sinMontos = Boolean(perfil && !puedeVerPrecios(perfil)) && !(await cierresDePostventa(supabase, [id])).has(id);
   if (sinMontos && compendio) {
     const tapar = (t: string) => t.replace(/((?:US\$|USD|S\/\.?|\$)\s?)[\d.,]+/gi, "$1*****");
     compendio = { ...compendio, resumen: tapar(compendio.resumen), hitos: compendio.hitos.map((h) => ({ ...h, detalle: h.detalle ? tapar(h.detalle) : h.detalle })) };

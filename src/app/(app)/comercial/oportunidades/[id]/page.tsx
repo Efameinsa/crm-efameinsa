@@ -44,6 +44,7 @@ import { TipificarWhatsapp } from "@/components/crm/tipificar-whatsapp";
 import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
 import { TraerPedidoAntiguoBoton } from "@/components/crm/traer-pedido-antiguo-boton";
 import { nombreDeCampana, recorridoDe } from "@/lib/campana";
+import { cierresDePostventa } from "@/lib/precios-postventa";
 
 // Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
 // el mismo nombre de canal que vio quien se lo derivó.
@@ -799,7 +800,7 @@ export default async function OportunidadDetallePage({
                 cantidad={(informes ?? []).length}
                 accion={<AccionNuevoInforme cuentaId={cuenta.id} />}
               >
-                <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} sinPrecios={!puedeVerPrecios(await requerirPerfil())} />
+                <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} sinPrecios={!puedeVerPrecios(perfilQueMira)} conCifras={puedeVerPrecios(perfilQueMira) ? undefined : await cierresDePostventa(supabase, (informes ?? []).map((i) => i.id as string))} />
               </SeccionPlegable>
 
               {ventasConDetalle.length > 0 && (

@@ -33,7 +33,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     cliente
       .from("cotizaciones")
       .select(
-        `codigo, correlativo, serie, moneda, moneda_impresa, tipo_cambio, condiciones, vigencia_dias, entrega_lugar,
+        `oportunidad_id, codigo, correlativo, serie, moneda, moneda_impresa, tipo_cambio, condiciones, vigencia_dias, entrega_lugar,
        tiempo_entrega, garantia, forma_pago, saldo, cliente_snapshot, created_at, version,
        cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, ficha, foto_path, logo_path, panel_path)),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
@@ -49,7 +49,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
   // Una cotización de otro que se leyó con la llave del servidor va sin cifras,
   // aunque quien la pide sea un comercial que hace postventa.
-  const taparCifras = sinMontos || lectura !== supabase;
+  // Lo que cotiza postventa en SUS expedientes sale completo, con precio
+  // unitario y total (Santos, 28-09): se tapa solo lo que vendió un comercial.
+  const { data: expediente } = cotizacion
+    ? await lectura.from("oportunidades").select("tipo_postventa").eq("id", (cotizacion as { oportunidad_id: string }).oportunidad_id).maybeSingle()
+    : { data: null };
+  const dePostventa = expediente?.tipo_postventa != null;
+  const taparCifras = !dePostventa && (sinMontos || lectura !== supabase);
 
   // Un fallo de la consulta NO es «no encontrada». El 05-09 la migración 0179
   // agregó una segunda relación entre cotizaciones y oportunidades, PostgREST

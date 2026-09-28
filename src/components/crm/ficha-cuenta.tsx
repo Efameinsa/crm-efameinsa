@@ -35,6 +35,7 @@ import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
 import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
+import { cierresDePostventa } from "@/lib/precios-postventa";
 
 export async function FichaCuenta({
   cuentaId,
@@ -357,7 +358,7 @@ export async function FichaCuenta({
             titulo="Informes de cierre"
             accion={comoCentral ? undefined : <AccionNuevoInforme cuentaId={cuenta.id} />}
           >
-            <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} sinPrecios={!verPrecios} />
+            <ListaInformesCierre informes={informes ?? []} adjuntosPorInforme={adjuntosPorInforme} sinPrecios={!verPrecios} conCifras={verPrecios ? undefined : await cierresDePostventa(supabase, (informes ?? []).map((i) => i.id as string))} />
           </SeccionPanel>
 
           {ventasConDetalle.length > 0 && (
