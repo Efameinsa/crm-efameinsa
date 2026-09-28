@@ -37,6 +37,7 @@ import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
 import { cierresDePostventa } from "@/lib/precios-postventa";
+import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
 
 export const dynamic = "force-dynamic";
 
@@ -184,6 +185,10 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
               >
                 <Plus className="size-3.5" /> Registrar un caso
               </Link>
+            )}
+            {/* Otra razón social del mismo cliente (28-09): «que lo permita hacer el comercial». */}
+            {(cuenta.comercial_id === perfil.id || comoGerencia || perfil.rol === "central") && (
+              <VincularRazonSocial cuentaId={cuenta.id} razonSocial={cuenta.razon_social} />
             )}
             <Link
               href={comoGerencia ? `/gerencia/clientes/${cuenta.id}?hoy=1` : `/comercial/cartera/${cuenta.id}?hoy=1`}

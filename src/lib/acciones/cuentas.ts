@@ -618,3 +618,15 @@ export async function agregarEmpresaDelGrupo(datos: {
   revalidatePath(`/nuevo/cliente/${datos.cuentaId}`);
   return { error: null, empresa: { id, razonSocial: cuenta?.razon_social ?? datos.razonSocial, numDoc: cuenta?.num_doc ?? datos.ruc } };
 }
+
+/**
+ * Otra razón social del mismo cliente, en su grupo (reunión 28-09: «que lo
+ * permita hacer el comercial»). Las reglas viven en la base (0326).
+ */
+export async function vincularOtraRazonSocial(cuentaId: string, numDoc: string, razonSocial: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("vincular_otra_razon_social", { p_cuenta: cuentaId, p_num_doc: numDoc, p_razon_social: razonSocial });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  revalidatePath(`/nuevo/cliente/${cuentaId}`);
+  return { error: null as string | null };
+}

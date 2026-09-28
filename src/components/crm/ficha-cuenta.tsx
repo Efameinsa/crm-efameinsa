@@ -36,6 +36,7 @@ import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
 import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
 import { cierresDePostventa } from "@/lib/precios-postventa";
+import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
 
 export async function FichaCuenta({
   cuentaId,
@@ -336,6 +337,11 @@ export async function FichaCuenta({
             comoGerencia={comoGerencia}
             baseHref={comoCentral ? "/central/clientes" : undefined}
           />
+          {(cuenta.comercial_id === perfilQueMira.id || comoGerencia || comoCentral) && (
+            <div>
+              <VincularRazonSocial cuentaId={cuenta.id} razonSocial={cuenta.razon_social} />
+            </div>
+          )}
 
           {/* La «riqueza de postventa»: los informes y las fotos que viven en
               el servidor de la oficina, a un clic desde la ficha (plan 24,
