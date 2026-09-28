@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VolverALaLista } from "@/components/crm/volver-a-la-lista";
 import { fechaLima } from "@/lib/fechas";
 import { MapPin, FileText, Plus } from "lucide-react";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
@@ -182,6 +183,7 @@ export async function FichaCuenta({
 
   return (
     <div className="space-y-4">
+      <VolverALaLista />
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

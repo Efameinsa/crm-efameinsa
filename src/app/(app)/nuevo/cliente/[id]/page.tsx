@@ -1,3 +1,4 @@
+import { VolverALaLista } from "@/components/crm/volver-a-la-lista";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Building2, FileText, MapPin, UserRound } from "lucide-react";
@@ -125,6 +126,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
 
   return (
     <div className="space-y-4">
+      <VolverALaLista />
       {/* LA CABECERA FIJA: quién es, de quién es, qué tiene y qué se hace. */}
       <div className="sticky top-0 z-10 -mx-1 rounded-xl border border-border bg-card/95 p-4 shadow-sm backdrop-blur">
         <div className="flex flex-wrap items-start justify-between gap-3">

@@ -3,11 +3,12 @@
 import { useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { corriendoInstalada, noInstaladaEnElServidor, suscribirModoAplicacion } from "@/lib/modo-aplicacion";
+import { sinFlechaDelNavegador, noInstaladaEnElServidor, suscribirModoAplicacion } from "@/lib/modo-aplicacion";
 import { Button } from "@/components/ui/button";
 
 /**
- * La flecha «atrás», SOLO cuando el CRM corre instalado.
+ * La flecha «atrás», SOLO cuando no está la del navegador: CRM instalado o
+ * a pantalla completa (esto último, desde el 28-09-2026: Ariana no la veía).
  *
  * Es la contrapartida de lo que ganamos: la ventana de la aplicación instalada
  * no tiene barra del navegador —eso es justo lo que Santos quería, «que parezca
@@ -21,7 +22,7 @@ import { Button } from "@/components/ui/button";
  */
 export function BotonAtrasApp() {
   const router = useRouter();
-  const instalada = useSyncExternalStore(suscribirModoAplicacion, corriendoInstalada, noInstaladaEnElServidor);
+  const instalada = useSyncExternalStore(suscribirModoAplicacion, sinFlechaDelNavegador, noInstaladaEnElServidor);
 
   if (!instalada) return null;
 

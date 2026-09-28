@@ -15,12 +15,19 @@
  * desincronizar la hidratación.
  */
 
-/** Suscripción al cambio de modo (pasar de pestaña a ventana instalada). */
+/** Suscripción al cambio de modo (pasar de pestaña a ventana instalada o a pantalla completa). */
 export function suscribirModoAplicacion(alCambiar: () => void): () => void {
   if (typeof window === "undefined" || !window.matchMedia) return () => {};
-  const consulta = window.matchMedia("(display-mode: standalone)");
-  consulta.addEventListener("change", alCambiar);
-  return () => consulta.removeEventListener("change", alCambiar);
+  const consultas = ["standalone", "fullscreen", "minimal-ui", "window-controls-overlay"].map((m) =>
+    window.matchMedia(`(display-mode: ${m})`),
+  );
+  consultas.forEach((c) => c.addEventListener("change", alCambiar));
+  // F11 no siempre dispara el cambio de display-mode: el tamaño de la ventana sí cambia.
+  window.addEventListener("resize", alCambiar);
+  return () => {
+    consultas.forEach((c) => c.removeEventListener("change", alCambiar));
+    window.removeEventListener("resize", alCambiar);
+  };
 }
 
 /** Lectura del navegador. Devuelve un booleano: estable entre renders. */
@@ -31,6 +38,22 @@ export function corriendoInstalada(): boolean {
   return (
     window.matchMedia?.("(display-mode: standalone)").matches === true ||
     (window.navigator as { standalone?: boolean }).standalone === true
+  );
+}
+
+/**
+ * ¿Falta la flecha de volver del navegador? Instalada, o a pantalla completa:
+ * Ariana trabaja así (28-09-2026) y el navegador lo reporta como «fullscreen»
+ * —o, con F11, solo se nota en que la ventana ocupa la pantalla entera—.
+ */
+export function sinFlechaDelNavegador(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    corriendoInstalada() ||
+    ["fullscreen", "minimal-ui", "window-controls-overlay"].some(
+      (m) => window.matchMedia?.(`(display-mode: ${m})`).matches === true,
+    ) ||
+    (window.innerHeight >= window.screen.height - 2 && window.innerWidth >= window.screen.width - 2)
   );
 }
 

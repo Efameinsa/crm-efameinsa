@@ -13,6 +13,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
 import { CambiarClave } from "@/components/crm/cambiar-clave";
+import { BotonAtrasApp } from "@/components/crm/boton-atras-app";
 import { cerrarSesion } from "@/lib/acciones/auth";
 import { createClient } from "@/lib/supabase/server";
 import { contarAtencionesAbiertas, contarBandejaMiDia } from "@/lib/contadores-postventa";
@@ -112,6 +113,9 @@ export async function MarcoPropuesta({
             ícono. En 1280×720 (las laptops de la oficina) se ve como siempre. */}
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-border/70 bg-card/80 px-3 py-2 backdrop-blur-md sm:gap-3 sm:px-4 lg:px-6 lg:py-2.5">
           <MenuMovil {...propsBarra} />
+          {/* La flecha de volver cuando no está la del navegador (app instalada o
+              pantalla completa). La vista nueva no la tenía: Ariana, 28-09-2026. */}
+          <BotonAtrasApp />
           <form action={buscar.href} method="get" className="order-last flex min-w-0 basis-full items-center gap-2 sm:order-none sm:min-w-64 sm:max-w-xl sm:flex-1 sm:basis-auto rounded-lg border border-border bg-secondary/60 px-3 py-1.5 transition-all duration-200 focus-within:border-[var(--c-marca)] focus-within:bg-card focus-within:ring-4 focus-within:ring-[var(--c-marca)]/15">
             <Search className="size-4 text-muted-foreground" />
             <input

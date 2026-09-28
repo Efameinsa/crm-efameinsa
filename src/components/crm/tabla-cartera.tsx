@@ -8,6 +8,7 @@ import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boto
 import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
 import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimiento-boton";
 import { fechaLima } from "@/lib/fechas";
+import { recordarLista, useRetomarScrollDeLista } from "@/components/crm/volver-a-la-lista";
 
 export interface FilaCartera {
   id: string;
@@ -87,6 +88,12 @@ export function TablaCartera({
   seguimientoComercial?: boolean;
 }) {
   const router = useRouter();
+  // «Volver a clientes» desde la ficha retoma esta página y este scroll (Ariana, 28-09).
+  useRetomarScrollDeLista();
+  const abrir = (id: string) => {
+    recordarLista();
+    router.push(`/comercial/cartera/${id}`);
+  };
 
   return (
     <div className="overflow-x-auto">
@@ -110,9 +117,9 @@ export function TablaCartera({
               key={c.id}
               role="link"
               tabIndex={0}
-              onClick={() => router.push(`/comercial/cartera/${c.id}`)}
+              onClick={() => abrir(c.id)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") router.push(`/comercial/cartera/${c.id}`);
+                if (e.key === "Enter") abrir(c.id);
               }}
               className="cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
             >
