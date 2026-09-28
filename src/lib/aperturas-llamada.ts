@@ -149,3 +149,21 @@ export function borradorParaCliente(a: Pick<AperturaLlamada, "informe_almacen" |
   if (a.faltantes?.trim()) partes.push(`Para dejar la instalación lista se necesita:\n${a.faltantes.trim()}`);
   return partes.filter(Boolean).join("\n\n");
 }
+
+/**
+ * Lo que se escribe en el buscador de llamadas derivadas (reunión 28-09), sin
+ * los signos que rompen el filtro de la base (comas, paréntesis, comodines).
+ */
+export function limpiarBusqueda(q: string | undefined | null): string {
+  return (q ?? "")
+    .replace(/[,()%*\\"'.:]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
+
+/** El número del informe como se imprime: «004-2026» (o «PRUEBA 004-2026»). */
+export function numeroInforme(i: { correlativo: number | null; anio: number | null; es_prueba?: boolean | null } | null | undefined): string | null {
+  if (!i || i.correlativo == null) return null;
+  return `${i.es_prueba ? "PRUEBA " : ""}${String(i.correlativo).padStart(3, "0")}-${i.anio ?? ""}`;
+}

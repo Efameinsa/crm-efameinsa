@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { aQuienLeToca, borradorParaCliente, estadoApertura } from "./aperturas-llamada";
+import { aQuienLeToca, borradorParaCliente, estadoApertura, limpiarBusqueda, numeroInforme } from "./aperturas-llamada";
+
+describe("limpiarBusqueda", () => {
+  it("saca lo que rompe el filtro y deja las palabras", () => {
+    expect(limpiarBusqueda("  cruz,  gallegos (yoni)* ")).toBe("cruz gallegos yoni");
+    expect(limpiarBusqueda("20604375038")).toBe("20604375038");
+    expect(limpiarBusqueda(undefined)).toBe("");
+  });
+});
+
+describe("numeroInforme", () => {
+  it("sale como en el papel: 004-2026", () => {
+    expect(numeroInforme({ correlativo: 4, anio: 2026 })).toBe("004-2026");
+    expect(numeroInforme({ correlativo: 4, anio: 2026, es_prueba: true })).toBe("PRUEBA 004-2026");
+    expect(numeroInforme({ correlativo: null, anio: 2026 })).toBeNull();
+  });
+});
 
 const base = { anulada_at: null, enviada_cliente_at: null, revisada_at: null, informe_at: null, tomada_at: null };
 

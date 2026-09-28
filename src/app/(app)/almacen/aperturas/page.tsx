@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requerirPerfil } from "@/lib/auth";
-import { ListaAperturas, type PestanaAperturas } from "@/components/crm/lista-aperturas";
+import { ListaAperturas, type FiltrosAperturas, type PestanaAperturas } from "@/components/crm/lista-aperturas";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +22,12 @@ function Pestanas({ base, activa }: { base: string; activa: PestanaAperturas }) 
 }
 
 /** Lo que postventa le deriva al almacén (0281): «que me lleguen las aperturas» (Lesly, 16-09); nombre y pestañas del 25-09. */
-export default async function AperturasAlmacenPage({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+export default async function AperturasAlmacenPage({ searchParams }: { searchParams: Promise<{ ver?: string } & FiltrosAperturas> }) {
   await requerirPerfil();
-  const pestana: PestanaAperturas = (await searchParams).ver === "urgentes" ? "urgentes" : "llamadas";
+  const sp = await searchParams;
+  const pestana: PestanaAperturas = sp.ver === "urgentes" ? "urgentes" : "llamadas";
+  // El buscador por cliente (reunión 28-09): cliente, tipo, estado y página.
+  const filtros: FiltrosAperturas = { q: sp.q, tipo: sp.tipo, estado: sp.estado, pagina: sp.pagina };
   return (
     <div className="space-y-4">
       <div>
@@ -36,7 +39,7 @@ export default async function AperturasAlmacenPage({ searchParams }: { searchPar
         </p>
       </div>
       <Pestanas base="/almacen/aperturas" activa={pestana} />
-      <ListaAperturas vistaAlmacen pestana={pestana} />
+      <ListaAperturas vistaAlmacen pestana={pestana} base="/almacen/aperturas" filtros={filtros} />
     </div>
   );
 }

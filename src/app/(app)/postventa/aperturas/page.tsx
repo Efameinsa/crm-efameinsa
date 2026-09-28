@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requerirPerfil } from "@/lib/auth";
-import { ListaAperturas, type PestanaAperturas } from "@/components/crm/lista-aperturas";
+import { ListaAperturas, type FiltrosAperturas, type PestanaAperturas } from "@/components/crm/lista-aperturas";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 import { cn } from "@/lib/utils";
 
@@ -30,9 +30,12 @@ function Pestanas({ base, activa }: { base: string; activa: PestanaAperturas }) 
  * técnico. Se llama así ahora, y lo urgente (la apertura directa, sin pedido,
  * con código de gerencia) va en su propia pestaña.
  */
-export default async function AperturasPostventaPage({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+export default async function AperturasPostventaPage({ searchParams }: { searchParams: Promise<{ ver?: string } & FiltrosAperturas> }) {
   await requerirPerfil();
-  const pestana: PestanaAperturas = (await searchParams).ver === "urgentes" ? "urgentes" : "llamadas";
+  const sp = await searchParams;
+  const pestana: PestanaAperturas = sp.ver === "urgentes" ? "urgentes" : "llamadas";
+  // El buscador por cliente (reunión 28-09): cliente, tipo, estado y página.
+  const filtros: FiltrosAperturas = { q: sp.q, tipo: sp.tipo, estado: sp.estado, pagina: sp.pagina };
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -50,7 +53,7 @@ export default async function AperturasPostventaPage({ searchParams }: { searchP
         {pestana === "urgentes" && <AperturaLlamadaBoton tipo="atencion_in_situ" etiqueta="Apertura urgente" urgenteInicial />}
       </div>
       <Pestanas base="/postventa/aperturas" activa={pestana} />
-      <ListaAperturas pestana={pestana} />
+      <ListaAperturas pestana={pestana} base="/postventa/aperturas" filtros={filtros} />
     </div>
   );
 }
