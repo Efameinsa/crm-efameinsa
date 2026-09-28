@@ -52,6 +52,8 @@ export interface AperturaLlamada {
   enviada_cliente_at: string | null;
   anulada_at: string | null;
   anulada_motivo: string | null;
+  /** Quién la anuló (0325). Null en las anuladas antes de la 0325. */
+  anulada_por?: string | null;
   /** Sin pedido, autorizada con el código de gerencia (0295). */
   urgente?: boolean | null;
   /** El FORMATO DE LLAMADA de siempre (0297). */

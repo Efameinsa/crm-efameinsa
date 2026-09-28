@@ -208,7 +208,8 @@ export async function anularApertura(id: string, motivo: string) {
   if (a)
     await notificarAlmacen({
       titulo: `Anulada · ${ETIQUETA_TIPO_APERTURA[a.tipo] ?? "Apertura"} · ${cliente(a.razon)}`,
-      cuerpo: `La del ${cuandoLima(a.programada_para)} ya no va. Motivo: ${motivo.trim()}`,
+      // Con el nombre de quien la anuló (0325; Rubí, 28-09: «yo no la anulé»).
+      cuerpo: `La del ${cuandoLima(a.programada_para)} ya no va. La anuló ${perfil.nombre}. Motivo: ${motivo.trim()}`,
       url: `/aperturas/${id}`,
       esPrueba: (perfil as { es_prueba?: boolean | null }).es_prueba === true,
     });

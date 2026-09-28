@@ -50,7 +50,7 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
 
   // Reprogramaciones y tipo corregido (0311), con quién los hizo.
   const cambios = ((a as { cambios?: unknown }).cambios ?? []) as { que: string; de: string; a: string; motivo: string | null; por: string | null; at: string }[];
-  const ids = [...new Set([a.solicitada_por, a.tomada_por, a.informe_por, a.revisada_por, ...cambios.map((c) => c.por)].filter(Boolean) as string[])];
+  const ids = [...new Set([a.solicitada_por, a.tomada_por, a.informe_por, a.revisada_por, a.anulada_por, ...cambios.map((c) => c.por)].filter(Boolean) as string[])];
   const { data: gente } = ids.length ? await supabase.from("perfiles").select("id, nombre").in("id", ids) : { data: [] };
   const nombre = (x: string | null) => (x ? ((gente ?? []) as { id: string; nombre: string }[]).find((g) => g.id === x)?.nombre ?? "—" : "—");
 
@@ -125,7 +125,10 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
         </div>
         {a.anulada_at && (
           <p className="mt-3 rounded-md bg-secondary px-3 py-2 text-xs text-muted-foreground">
-            Anulada el {fechaHoraLima(a.anulada_at)}: {a.anulada_motivo}
+            {/* Quién la anuló (0325; Rubí, 28-09: «yo no la anulé»). Las de
+                antes de la 0325 no guardaban el nombre: se dice, no se inventa. */}
+            Anulada el {fechaHoraLima(a.anulada_at)}
+            {a.anulada_por ? ` por ${nombre(a.anulada_por)}` : " (sin registro de quién: fue antes del 28-09)"}: {a.anulada_motivo}
           </p>
         )}
         {/* Lo que se movió después de enviarla (0311): reprogramaciones y tipo corregido. */}
