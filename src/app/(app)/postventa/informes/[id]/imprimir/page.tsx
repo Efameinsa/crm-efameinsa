@@ -51,7 +51,10 @@ const hora = (h: string | null) => (h ? h.slice(0, 5) : null);
 
 export default async function ImprimirInformePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requerirPerfil();
+  const perfil = await requerirPerfil();
+  // El almacén imprime el informe (28-09) pero su módulo es «sin cifras» (0246):
+  // la hoja le sale sin precios ni costos.
+  const sinCifras = Boolean(perfil.es_almacen) && !perfil.es_operaciones && !["gerencia", "admin"].includes(perfil.rol);
   const supabase = await createClient();
   const { data } = await supabase
     .from("informes_servicio")
@@ -208,7 +211,7 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
           <table className="mt-1 w-full border-collapse text-[11px]">
             <thead>
               <tr>
-                {["Código", "Descripción", "Cantidad", "Precio", "IGV", "Stock"].map((h) => (
+                {(sinCifras ? ["Código", "Descripción", "Cantidad", "Stock"] : ["Código", "Descripción", "Cantidad", "Precio", "IGV", "Stock"]).map((h) => (
                   <th key={h} className="border border-neutral-500 bg-neutral-100 px-2 py-1 text-left">{h}</th>
                 ))}
               </tr>
@@ -219,8 +222,12 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
                   <td className="border border-neutral-500 px-2 py-1 font-mono">{r.codigo ?? "—"}</td>
                   <td className="border border-neutral-500 px-2 py-1">{r.descripcion}</td>
                   <td className="border border-neutral-500 px-2 py-1">{r.cantidad != null ? `${r.cantidad} und` : "—"}</td>
-                  <td className="border border-neutral-500 px-2 py-1">{r.precio != null ? `$${Number(r.precio).toFixed(2)}` : "—"}</td>
-                  <td className="border border-neutral-500 px-2 py-1">No incluye</td>
+                  {!sinCifras && (
+                    <>
+                      <td className="border border-neutral-500 px-2 py-1">{r.precio != null ? `$${Number(r.precio).toFixed(2)}` : "—"}</td>
+                      <td className="border border-neutral-500 px-2 py-1">No incluye</td>
+                    </>
+                  )}
                   <td className="border border-neutral-500 px-2 py-1">{r.stock ?? "—"}</td>
                 </tr>
               ))}
@@ -235,7 +242,7 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
           <table className="mt-1 w-full border-collapse text-[11px]">
             <thead>
               <tr>
-                {["Descripción", "Cantidad", "Costo unit.", "Subtotal"].map((h) => (
+                {(sinCifras ? ["Descripción", "Cantidad"] : ["Descripción", "Cantidad", "Costo unit.", "Subtotal"]).map((h) => (
                   <th key={h} className="border border-neutral-500 bg-neutral-100 px-2 py-1 text-left">{h}</th>
                 ))}
               </tr>
@@ -245,11 +252,15 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
                 <tr key={i}>
                   <td className="border border-neutral-500 px-2 py-1">{m.descripcion}</td>
                   <td className="border border-neutral-500 px-2 py-1">{m.cantidad != null ? `${m.cantidad} und` : "—"}</td>
-                  <td className="border border-neutral-500 px-2 py-1">{m.costo != null ? `$${Number(m.costo).toFixed(2)}` : "—"}</td>
-                  <td className="border border-neutral-500 px-2 py-1">{m.costo != null ? `$${(Number(m.costo) * (m.cantidad ?? 1)).toFixed(2)}` : "—"}</td>
+                  {!sinCifras && (
+                    <>
+                      <td className="border border-neutral-500 px-2 py-1">{m.costo != null ? `$${Number(m.costo).toFixed(2)}` : "—"}</td>
+                      <td className="border border-neutral-500 px-2 py-1">{m.costo != null ? `$${(Number(m.costo) * (m.cantidad ?? 1)).toFixed(2)}` : "—"}</td>
+                    </>
+                  )}
                 </tr>
               ))}
-              {totalMateriales > 0 && (
+              {totalMateriales > 0 && !sinCifras && (
                 <tr>
                   <td colSpan={3} className="border border-neutral-500 px-2 py-1 text-right font-bold">Total estimado (sin IGV)</td>
                   <td className="border border-neutral-500 px-2 py-1 font-bold">${totalMateriales.toFixed(2)}</td>

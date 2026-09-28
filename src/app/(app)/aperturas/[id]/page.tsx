@@ -234,14 +234,11 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
           {informeNum && (
             <p className="mt-1 text-xs">
               Informe de soporte técnico <b>N.° {informeNum.correlativo}-{informeNum.anio}</b>
-              {!perfil.es_almacen && (
-                <>
-                  {" · "}
-                  <Link href={`/postventa/informes/${informeNum.id}/imprimir`} className="font-semibold text-primary hover:underline">
-                    Ver e imprimir
-                  </Link>
-                </>
-              )}
+              {/* El almacén también lo imprime (Lesly, 28-09); la hoja le sale sin cifras. */}
+              {" · "}
+              <Link href={`/postventa/informes/${informeNum.id}/imprimir`} className="font-semibold text-primary hover:underline">
+                Ver e imprimir
+              </Link>
             </p>
           )}
           {docs.length > 0 && (
