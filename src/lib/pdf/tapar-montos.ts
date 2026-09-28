@@ -44,6 +44,11 @@ export function esImporte(texto: string, anterior: string): boolean {
 }
 
 export async function taparMontosEnPdf(bytes: Uint8Array): Promise<{ pdf: Uint8Array; tapados: number }> {
+  // En el servidor de Vercel no existe DOMMatrix (acá lo pone @napi-rs/canvas,
+  // que allá no está) y pdfjs lo pide al cargarse: «DOMMatrix is not defined».
+  // Para leer el texto basta una matriz 2D afín.
+  const gm = globalThis as { DOMMatrix?: unknown };
+  if (typeof gm.DOMMatrix === "undefined") gm.DOMMatrix = Matriz2D;
   // El «worker» de pdfjs se carga en el mismo hilo: empaquetado, pdfjs no
   // encuentra su archivo aparte y falla con «Setting up fake worker failed».
   const g = globalThis as { pdfjsWorker?: unknown };
@@ -83,4 +88,39 @@ export async function taparMontosEnPdf(bytes: Uint8Array): Promise<{ pdf: Uint8A
   }
   await lector.cleanup();
   return { pdf: await pdf.save(), tapados };
+}
+
+/** Lo mínimo de DOMMatrix (2D afín) que pdfjs usa para leer texto. */
+class Matriz2D {
+  a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+  constructor(init?: number[]) {
+    if (Array.isArray(init) && init.length >= 6) [this.a, this.b, this.c, this.d, this.e, this.f] = init;
+  }
+  get is2D() { return true; }
+  get isIdentity() { return this.a === 1 && this.b === 0 && this.c === 0 && this.d === 1 && this.e === 0 && this.f === 0; }
+  private por(m: Matriz2D, antes: boolean): this {
+    const [x, y] = antes ? [m, this] : [this, m];
+    const r = [x.a * y.a + x.c * y.b, x.b * y.a + x.d * y.b, x.a * y.c + x.c * y.d, x.b * y.c + x.d * y.d, x.a * y.e + x.c * y.f + x.e, x.b * y.e + x.d * y.f + x.f];
+    [this.a, this.b, this.c, this.d, this.e, this.f] = r;
+    return this;
+  }
+  multiplySelf(m: Matriz2D) { return this.por(m, false); }
+  preMultiplySelf(m: Matriz2D) { return this.por(m, true); }
+  multiply(m: Matriz2D) { return new Matriz2D([this.a, this.b, this.c, this.d, this.e, this.f]).multiplySelf(m); }
+  translate(x = 0, y = 0) { return this.multiply(new Matriz2D([1, 0, 0, 1, x, y])); }
+  translateSelf(x = 0, y = 0) { return this.multiplySelf(new Matriz2D([1, 0, 0, 1, x, y])); }
+  scale(x = 1, y = x) { return this.multiply(new Matriz2D([x, 0, 0, y, 0, 0])); }
+  scaleSelf(x = 1, y = x) { return this.multiplySelf(new Matriz2D([x, 0, 0, y, 0, 0])); }
+  invertSelf() {
+    const det = this.a * this.d - this.b * this.c;
+    if (!det) { [this.a, this.b, this.c, this.d, this.e, this.f] = [NaN, NaN, NaN, NaN, NaN, NaN]; return this; }
+    const { a, b, c, d, e, f } = this;
+    [this.a, this.b, this.c, this.d, this.e, this.f] = [d / det, -b / det, -c / det, a / det, (c * f - d * e) / det, (b * e - a * f) / det];
+    return this;
+  }
+  inverse() { return new Matriz2D([this.a, this.b, this.c, this.d, this.e, this.f]).invertSelf(); }
+  transformPoint(p: { x?: number; y?: number }) {
+    const x = p.x ?? 0, y = p.y ?? 0;
+    return { x: this.a * x + this.c * y + this.e, y: this.b * x + this.d * y + this.f, z: 0, w: 1 };
+  }
 }
