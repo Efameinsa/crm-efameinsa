@@ -76,6 +76,8 @@ export const requerirPerfil = cache(async (): Promise<Perfil> => {
     .single();
 
   if (!perfil) redirect("/login");
+  // Desactivada en el admin: se le cierra la sesión (28-09-2026; antes nada lo miraba).
+  if (perfil.activo === false) redirect("/cuenta-desactivada");
 
   return perfil as Perfil;
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, useEffect, useCallback } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { ChevronLeft, ChevronRight, X, CalendarDays, Clock, Check, Trash2, Plus } from "lucide-react";

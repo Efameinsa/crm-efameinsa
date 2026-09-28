@@ -1,5 +1,5 @@
 import { AlertTriangle, ClipboardCheck, FileText, Truck } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { ETIQUETA_TIPO_PEDIDO, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";

@@ -12,7 +12,7 @@
 // posición de la lista se guarda por pestaña y se repone al abrir, los
 // enlaces no desplazan la página, y el buscador conserva lo escrito.
 
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MessageCircle, Search, X } from "lucide-react";

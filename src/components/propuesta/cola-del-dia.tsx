@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { AlertTriangle, ArrowRight, Barcode, CalendarClock, CalendarDays, ClipboardList, FileText, Inbox, Package, PhoneForwarded, Sun, Truck, UserRound, Wallet, Wrench } from "lucide-react";
 import { TARJETA } from "@/components/propuesta/kit";
 import type { EventoAgenda, Tarea, TipoTarea, Urgencia } from "@/lib/propuesta/cola-del-dia";

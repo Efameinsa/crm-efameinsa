@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SEMANAS_POR_MES, esSemanal, resolverPeriodo } from "@/lib/periodo";

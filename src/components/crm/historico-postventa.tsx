@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Camera, ChevronRight, Cpu } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";

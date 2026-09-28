@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { CircleAlert, FilePlus2 } from "lucide-react";
 import type { DecisionGerencia, ItemRechazado } from "@/lib/datos-cotizador";
 import { Button } from "@/components/ui/button";

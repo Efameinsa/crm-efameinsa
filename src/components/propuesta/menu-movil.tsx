@@ -10,7 +10,7 @@
 // Los dos van por portal a <body>: la cabecera tiene backdrop-filter y eso
 // vuelve relativos a ella los `position: fixed` de adentro.
 
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";

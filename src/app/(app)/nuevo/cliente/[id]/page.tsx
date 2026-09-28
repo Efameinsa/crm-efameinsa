@@ -1,5 +1,5 @@
 import { VolverALaLista } from "@/components/crm/volver-a-la-lista";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { notFound } from "next/navigation";
 import { ArrowRight, Building2, FileText, MapPin, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";

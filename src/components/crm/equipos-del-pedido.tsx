@@ -9,7 +9,7 @@
 // si va en este despacho, y —para el almacén— su protocolo de prueba.
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { createClient } from "@/lib/supabase/server";
 import { esSemanal, periodoPreset, resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
 import { cargarPulsoSemana } from "@/lib/pulso-semana";

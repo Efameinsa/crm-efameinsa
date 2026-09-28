@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { ArrowLeft } from "lucide-react";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { RegistroCaso } from "@/components/crm/registro-caso";

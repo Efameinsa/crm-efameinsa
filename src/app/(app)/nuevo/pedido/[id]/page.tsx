@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowDown, Building2, Check, MapPin, Truck, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";

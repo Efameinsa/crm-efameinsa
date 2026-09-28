@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { montoCotizacion } from "@/lib/monto-cotizacion";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { CircleCheckBig, Copy, FileDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";

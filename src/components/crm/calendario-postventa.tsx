@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { AgendarEnDia, type AtencionPorProgramar } from "@/components/crm/agendar-en-dia";
 import { ChevronLeft, ChevronRight, CalendarClock } from "lucide-react";
 import {

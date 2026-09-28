@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { SeccionPlegable } from "@/components/crm/seccion-panel";
 import type { PendientesPostventa } from "@/lib/agenda-postventa-datos";
 import { DIAS_AVISO_PREVENTIVO, REGLA_PREVENTIVO, TITULO_PREVENTIVOS_POR_OFRECER } from "@/lib/preventivo";

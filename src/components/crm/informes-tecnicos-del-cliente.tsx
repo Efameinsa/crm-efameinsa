@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { etiquetaTipoServicio } from "@/lib/postventa";

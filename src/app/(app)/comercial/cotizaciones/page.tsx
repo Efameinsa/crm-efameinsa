@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
 import { codigoConVersion } from "@/lib/version-cotizacion";
 import { hoyLima } from "@/lib/periodo";

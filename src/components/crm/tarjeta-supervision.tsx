@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
 import { Clock, FileText, TrendingUp, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";

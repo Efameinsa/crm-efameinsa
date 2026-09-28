@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Wrench, Package, FileText, ShieldCheck, ShieldX } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";

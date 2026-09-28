@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { CalendarClock, PackageCheck, Truck, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { type ServicioPostventa } from "@/lib/postventa";

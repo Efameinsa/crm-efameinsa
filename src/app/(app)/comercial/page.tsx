@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Archive, FileWarning, Search, X } from "lucide-react";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { requerirPerfil } from "@/lib/auth";

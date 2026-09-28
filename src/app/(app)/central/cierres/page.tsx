@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { AlertTriangle, Ban, CheckCircle2, Package, Truck } from "lucide-react";
 import { requerirRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";

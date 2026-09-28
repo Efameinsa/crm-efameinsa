@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { ChevronRight, FileText, PhoneCall, CalendarClock } from "lucide-react";
 import { fechaLima, fechaHoraLima } from "@/lib/fechas";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Check, CircleDashed, OctagonAlert } from "lucide-react";
 import { FilasPorPaso } from "@/components/crm/filas-por-paso";
 import { cn } from "@/lib/utils";

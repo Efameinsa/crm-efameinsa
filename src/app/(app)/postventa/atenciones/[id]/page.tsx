@@ -1,5 +1,5 @@
 import { CambiarTipoAtencion } from "@/components/crm/cambiar-tipo-atencion";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { ArrowLeft, Building2, Clock, FileText, Wrench, Package, PhoneCall } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";

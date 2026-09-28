@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaCalendario } from "@/lib/fechas";
 import { textoCondicionPago } from "@/lib/postventa";

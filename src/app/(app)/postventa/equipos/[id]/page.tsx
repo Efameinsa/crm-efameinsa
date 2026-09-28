@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink, FolderOpen, ShieldCheck, ShieldOff } from "lucide-react";

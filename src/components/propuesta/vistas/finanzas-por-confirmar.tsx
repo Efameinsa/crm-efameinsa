@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { PropsVista } from "@/lib/propuesta/vistas";
 import { hoyLima } from "@/lib/periodo";
 import { avisosDeCentral, diasEntre, formatoMonto, pedidosPorConfirmar, type PedidoFinanzas } from "@/lib/pagos-finanzas";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { FilaTrabajo, Grupo, haceCuanto, Numero, Pildora, Vacio, type Tono } from "@/components/propuesta/kit";
 
 /**

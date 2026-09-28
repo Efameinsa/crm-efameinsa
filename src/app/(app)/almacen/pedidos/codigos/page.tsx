@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";

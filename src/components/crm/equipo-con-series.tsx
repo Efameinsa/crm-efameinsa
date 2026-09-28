@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Cpu } from "lucide-react";
 import { seriesDeTexto } from "@/lib/postventa";
 import { cn } from "@/lib/utils";

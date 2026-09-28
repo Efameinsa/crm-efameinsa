@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Search, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
 import { fechaCalendario } from "@/lib/fechas";
 import { estadoGarantia } from "@/lib/postventa";

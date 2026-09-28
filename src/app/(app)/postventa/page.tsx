@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { ETIQUETA_TIPO_EXPEDIENTE } from "@/lib/tipo-expediente";
 import { AlertTriangle, Wrench, PackageSearch, ShieldCheck, Inbox, ArrowRight, Headset, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";

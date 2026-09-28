@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { Check, ChevronDown, ChevronRight, CircleDashed, OctagonAlert } from "lucide-react";
 import { fechaLimaCorta } from "@/lib/fechas";
 import { cn } from "@/lib/utils";

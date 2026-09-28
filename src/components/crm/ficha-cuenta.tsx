@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { VolverALaLista } from "@/components/crm/volver-a-la-lista";
 import { fechaLima, fechaCalendario } from "@/lib/fechas";
 import { MapPin, FileText, Plus } from "lucide-react";

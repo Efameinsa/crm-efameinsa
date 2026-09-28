@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { notFound, redirect } from "next/navigation";
 import { enVistaNueva } from "@/lib/propuesta/vista";
 import { ArrowLeft, FileText, MessageCircle, Paperclip } from "lucide-react";

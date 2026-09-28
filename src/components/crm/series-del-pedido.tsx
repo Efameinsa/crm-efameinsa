@@ -7,7 +7,7 @@
 // fecha de la guía como inicio de garantía. Lo ve postventa y el almacén.
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Plus, ScanBarcode, X } from "lucide-react";
