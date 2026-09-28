@@ -215,6 +215,25 @@ export function PedidoPostventa({
         </span>
       );
     }
+    // OTRA VIDEOLLAMADA SOBRE EL MISMO PEDIDO (reunión 28-09 14:18). Hecha la
+    // de preinstalación, el paso quedaba en ✓ sin botones: «¿y si quieres otra
+    // videollamada? — No, ya no se puede realizar». Pero «a veces el cliente
+    // dice, ya hicieron la videollamada de preinstalación, pero no lo ha
+    // terminado… no tiene listo». Se deriva otra (de nuevo preinstalación u
+    // otro tipo, se elige en el diálogo); la anterior queda como estaba, con
+    // su informe, en «Informes del pedido».
+    if (paso.hecho && (paso.clave === "preinstalacion" || paso.clave === "puesta") && servicio.cuenta_id) {
+      return (
+        <AperturaLlamadaBoton
+          cuentaId={servicio.cuenta_id}
+          servicioId={servicio.id}
+          equipos={equiposDeLaApertura}
+          tipo={paso.clave === "preinstalacion" ? "videollamada_preinstalacion" : "soporte_videollamada"}
+          etiqueta="Otra videollamada"
+          compacto
+        />
+      );
+    }
     if (paso.hecho) return null;
     switch (paso.clave) {
       case "aprobado":
