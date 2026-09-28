@@ -34,6 +34,7 @@ import { EquiposDelCliente } from "@/components/crm/equipos-del-cliente";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
 import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
+import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
 
 export async function FichaCuenta({
   cuentaId,
@@ -374,6 +375,10 @@ export async function FichaCuenta({
         {/* Reunión 23-09: lo vivo con el cliente y sus máquinas, al costado,
             para no tener que ir a Pedidos a buscarlo. */}
         <PendientesDelCliente cuentaId={cuenta.id} conEnlace={veTodoPostventa(perfilQueMira) && !comoCentral} />
+        <InformesTecnicosDelCliente
+          cuentaId={cuenta.id}
+          conEnlace={(Boolean(perfilQueMira.es_postventa) && !perfilQueMira.solo_preventivo) || Boolean(perfilQueMira.es_almacen) || ["gerencia", "admin"].includes(perfilQueMira.rol)}
+        />
         <EquiposDelCliente cuentaId={cuenta.id} />
         <SeccionPanel titulo={`Cliente y contactos (${contactos.length})`}>
           {/* Editables: es lo que se imprime en la cotización (24-08). El RUC y la

@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { totalConIgv } from "@/lib/monto-cotizacion";
+import { etiquetaTipoServicio } from "@/lib/postventa";
 import type { EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
@@ -175,7 +176,7 @@ export async function cargarHistorialCuenta(
   // Lo que hizo postventa con este cliente: servicios (los 605 informes
   // importados de R:\ y los pedidos del CRM) y atenciones. El comercial lo ve
   // en la misma cronología, porque mantenimiento lo venden los dos.
-  const [{ data: servicios }, { data: atenciones }] = await Promise.all([
+  const [{ data: servicios }, { data: atenciones }, { data: informesTecnicos }] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("id, fecha_confirmacion, tipo_servicio, equipo, monto, moneda, completado, created_at, oportunidad_id, perfiles!servicios_postventa_responsable_id_fkey(nombre)")
@@ -187,6 +188,15 @@ export async function cargarHistorialCuenta(
       .select("id, tipo, etapa, equipo_texto, detalle, registrado_at, created_at, cerrado_at, oportunidad_id, perfiles!atenciones_tomada_por_fkey(nombre)")
       .eq("cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
+      .limit(60),
+    // LOS INFORMES TÉCNICOS (28-09): el que el almacén registra al atender una
+    // llamada derivada no tiene máquina, y no salía en ninguna parte de la
+    // ficha (Rubí, con KARINA SAAVEDRA HOSPEDAJE, informe 004-2026).
+    supabase
+      .from("informes_servicio")
+      .select("id, correlativo, anio, tipo, modalidad, ejecutado_at, emitido_at, tecnico, equipo_texto, detalle, es_prueba, servicio_id")
+      .eq("cuenta_id", cuentaId)
+      .order("ejecutado_at", { ascending: false })
       .limit(60),
   ]);
 
@@ -254,6 +264,18 @@ export async function cargarHistorialCuenta(
       ...delExpediente(sv.oportunidad_id as string | null),
       monto: sv.monto != null ? Number(sv.monto) : null,
       moneda: (sv.moneda as string | null) ?? null,
+    })),
+    ...(informesTecnicos ?? []).map((inf): EventoTimeline => ({
+      tipo: "servicio",
+      id: `informe-${inf.id}`,
+      fecha: inf.ejecutado_at as string,
+      titulo: `Informe técnico: ${etiquetaTipoServicio(inf.tipo as string)}${
+        inf.correlativo != null ? ` N.º ${inf.es_prueba ? "PRUEBA " : ""}${String(inf.correlativo).padStart(3, "0")}-${inf.anio}` : " (borrador)"
+      }${inf.modalidad === "videollamada" ? " · videollamada" : ""}`,
+      detalle: [(inf.equipo_texto as string | null)?.split("\n")[0], inf.detalle as string | null].filter(Boolean).join(" · ").slice(0, 160) || null,
+      quien: (inf.tecnico as string | null) ?? null,
+      href: `/postventa/informes/${inf.id}`,
+      oportunidadId: null,
     })),
     ...(atenciones ?? []).map((at): EventoTimeline => ({
       tipo: "servicio",

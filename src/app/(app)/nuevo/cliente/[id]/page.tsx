@@ -35,6 +35,7 @@ import { ListaOportunidadesCuenta, rangoOportunidad } from "@/components/crm/fic
 import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
+import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,9 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
   guardaFichaCliente(perfil);
   const verPrecios = puedeVerPrecios(perfil);
   const esArea = veTodoPostventa(perfil);
+  // Quién puede abrir un informe técnico: su pantalla vive en /postventa (28-09).
+  const abreInformes =
+    (Boolean(perfil.es_postventa) && !perfil.solo_preventivo) || Boolean(perfil.es_almacen) || ["gerencia", "admin"].includes(perfil.rol);
   // LAS MISMAS REGLAS QUE LA FICHA DE SIEMPRE (auditoría 25-09): quién ve cada
   // acción no cambia con la vista.
   const comoGerencia = ["gerencia", "admin"].includes(perfil.rol);
@@ -239,7 +243,10 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
               <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} />
               <UltimoHistorial cuentaId={cuenta.id} verPrecios={verPrecios} />
             </div>
-            <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />
+            <div className="space-y-4">
+              <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />
+              <InformesTecnicosDelCliente cuentaId={cuenta.id} conEnlace={abreInformes} />
+            </div>
           </div>
         )}
 
@@ -247,6 +254,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
           <div className="max-w-3xl space-y-4">
             <ExpedientesVivos vivas={vivas} />
             <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />
+            <InformesTecnicosDelCliente cuentaId={cuenta.id} conEnlace={abreInformes} />
             {(pedidosAbiertos ?? 0) + (casosAbiertos ?? 0) === 0 && (
               <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                 No hay pedidos ni casos técnicos abiertos con este cliente. Lo cerrado está en «Ventas» e «Historial».
@@ -273,6 +281,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
 
         {pestana === "documentos" && (
           <div className="max-w-4xl space-y-4">
+            <InformesTecnicosDelCliente cuentaId={cuenta.id} conEnlace={abreInformes} />
             <DocumentosDelServidor
               cuentaId={cuenta.id}
               razonSocial={cuenta.razon_social}
