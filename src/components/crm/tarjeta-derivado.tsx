@@ -120,6 +120,13 @@ export function TarjetaDerivado({
                 sin evidencia
               </span>
             )}
+            {/* AUTODERIVADO (0327): postventa lo registró y lo atiende ella; a
+                Central le llega para supervisar, no para repartir (28-09). */}
+            {fila.registradoPor && fila.asignadoA === fila.registradoPor.id && (
+              <span className="rounded-full bg-sky-500/15 px-1.5 py-px text-[10px] font-semibold text-sky-800 dark:text-sky-300">
+                Autoderivado por postventa
+              </span>
+            )}
             <span>
               registrado por{" "}
               <b className="text-foreground">

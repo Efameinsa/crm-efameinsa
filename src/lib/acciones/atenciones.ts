@@ -61,6 +61,11 @@ export async function registrarAtencion(datos: {
    * teléfono, que es de donde salen los casos «sin equipo identificar».
    */
   adjuntos?: { path: string; nombre: string; tipo: string; tamano: number }[];
+  /**
+   * AUTODERIVADO (0327, reunión 28-09): lo atiende quien lo registró, sin
+   * pasar por el reparto de Central, que lo ve en sus derivados para supervisar.
+   */
+  autoderivar?: boolean;
 }): Promise<{
   error: string | null;
   codigo?: string;
@@ -83,7 +88,7 @@ export async function registrarAtencion(datos: {
 Otras máquinas del mismo caso: ${otras.join(", ")} (${otras.length + (datos.serie ? 1 : 0)} equipos en total).` : datos.detalle.trim();
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("registrar_atencion_postventa", {
+  const { data, error } = await supabase.rpc(datos.autoderivar ? "registrar_caso_autoderivado" : "registrar_atencion_postventa", {
     p_cuenta: datos.cuentaId,
     p_tipo: datos.tipo,
     p_tipo_expediente: datos.tipoExpediente ?? null,

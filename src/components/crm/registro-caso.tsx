@@ -132,7 +132,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
    * El camino nuevo (0132): registrar NO crea la atención, crea el aviso en la
    * bandeja de Central. La atención nace cuando Central la devuelve al área.
    */
-  function derivarACentral() {
+  function derivarACentral(autoderivar = false) {
     if (!cuentaId) {
       toast.error("Falta el cliente: Central no puede derivar un caso sin cliente");
       return;
@@ -157,9 +157,16 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
         seriesAdicionales: otrasSeries,
         codigoError: codigoError || null,
         adjuntos: subida.adjuntos,
+        autoderivar,
       });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
+        return;
+      }
+      // AUTODERIVADO: el caso ya es suyo; se abre para seguir trabajándolo.
+      if (autoderivar && !r.repetido && r.oportunidad) {
+        toast.success(`Registrado como ${r.codigo} y a su nombre. Central lo ve como autoderivado.`, { duration: 7000 });
+        router.push(`/comercial/oportunidades/${r.oportunidad}`);
         return;
       }
       // EL AVISO TIENE QUE DECIR DÓNDE ESTÁ LO ANTERIOR. «No se duplicó» a
@@ -476,21 +483,32 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
       <Paso numero={3} titulo="¿Qué hacemos?">
         <div className="grid gap-2 lg:grid-cols-2">
           <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3">
+            {/* AUTODERIVADO (reunión 28-09 14:18): «¿para qué iría a la central?
+                ¿Para que otra vez la devuelva? No tiene sentido… que le aparezca
+                a Central solamente una notificación… autoderivado». */}
             <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <Send className="size-4" /> Derivar a Central
+              <Send className="size-4" /> Lo atiendo yo
             </p>
             <p className="mb-2 text-[11px] text-muted-foreground">
-              Va a la bandeja de Central con la sugerencia ya puesta. Central decide si lo atiende el área o un
-              comercial, y cuando lo devuelve aparece en «Atenciones» para programarlo.
+              El caso queda a su nombre con su circuito, sin esperar el reparto. Central lo ve en sus derivados como
+              «autoderivado» para hacerle seguimiento.
             </p>
             <button
               type="button"
               disabled={pendiente || !cuentaId || problema.trim().length < 10}
-              onClick={() => derivarACentral()}
+              onClick={() => derivarACentral(true)}
               className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
               {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
-              Registrar y derivar a Central
+              Registrar y atenderlo
+            </button>
+            <button
+              type="button"
+              disabled={pendiente || !cuentaId || problema.trim().length < 10}
+              onClick={() => derivarACentral(false)}
+              className="mt-2 w-full cursor-pointer text-center text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+            >
+              ¿Es para un comercial? Mandarlo a Central para que lo reparta
             </button>
           </div>
           <Desenlace
