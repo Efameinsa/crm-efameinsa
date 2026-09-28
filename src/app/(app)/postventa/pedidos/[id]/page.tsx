@@ -10,6 +10,7 @@ import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postv
 import type { FotoAlmacen } from "@/lib/postventa";
 import { requerirPerfil } from "@/lib/auth";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
+import { InformesDelPedido } from "@/components/crm/informes-del-pedido";
 import { ETIQUETA_ESTADO_APERTURA, aperturaAbierta, estadoApertura } from "@/lib/aperturas-llamada";
 import { EquipoConSeries } from "@/components/crm/equipo-con-series";
 import { fechaCalendario } from "@/lib/fechas";
@@ -366,6 +367,8 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
         />
 
         <div className="space-y-4">
+          {/* Todos los informes del pedido, cada uno abre su detalle (reunión 28-09). */}
+          <InformesDelPedido servicio={servicio} equiposTexto={equiposTexto} />
           <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={(servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")} />
           {/* Lo que subió el almacén: protocolo, salida, guía (0246). */}
           {galeriaAlmacen.length > 0 && <GaleriaAlmacen fotos={galeriaAlmacen} />}

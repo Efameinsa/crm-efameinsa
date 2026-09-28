@@ -19,6 +19,7 @@ import { fechaCalendario, fechaLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { CerrarPedidoAnterior } from "@/components/crm/cerrar-pedido-anterior";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
+import { InformesDelPedido } from "@/components/crm/informes-del-pedido";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { guardaFichaPedido } from "@/lib/propuesta/guardas";
 import { ArrowLeft } from "lucide-react";
@@ -215,6 +216,8 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
           />
         </div>
         <aside className="space-y-4">
+          {/* Todos los informes del pedido, cada uno abre su detalle (reunión 28-09). */}
+          <InformesDelPedido servicio={servicio} equiposTexto={equiposTexto} />
           <div className="rounded-xl border border-border bg-card p-4 text-sm shadow-sm">
             <p className="mb-2 text-[12px] font-bold uppercase tracking-wide text-foreground">La entrega</p>
             <p className="flex items-start gap-1.5">
