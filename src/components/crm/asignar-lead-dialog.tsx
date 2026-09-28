@@ -464,7 +464,8 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
                 <SelectValue placeholder="Seleccione…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="garantia">Problema técnico (soporte) — el equipo no está operativo</SelectItem>
+                <SelectItem value="garantia">Problema técnico — el equipo falla o no está operativo</SelectItem>
+                <SelectItem value="soporte_tecnico">Soporte técnico — orientar o asistir, sin falla</SelectItem>
                 {/* Ariana, 14-09: «a la central no le hemos puesto la opción de
                     puesta en marcha, y lo está reportando como problema
                     técnico» (0231). */}

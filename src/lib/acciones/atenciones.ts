@@ -39,7 +39,10 @@ function refrescar(id?: string) {
  */
 export async function registrarAtencion(datos: {
   cuentaId: string;
-  tipo: TipoAtencion;
+  /** null para soporte técnico, que no es un caso técnico (0321). */
+  tipo: TipoAtencion | null;
+  /** El tipo del expediente cuando no hay caso técnico (soporte técnico, 0321). */
+  tipoExpediente?: string | null;
   detalle: string;
   equipoId?: string | null;
   serie?: string | null;
@@ -77,6 +80,7 @@ Otras máquinas del mismo caso: ${otras.join(", ")} (${otras.length + (datos.ser
   const { data, error } = await supabase.rpc("registrar_atencion_postventa", {
     p_cuenta: datos.cuentaId,
     p_tipo: datos.tipo,
+    p_tipo_expediente: datos.tipoExpediente ?? null,
     p_detalle: detalle,
     p_equipo: datos.equipoId ?? null,
     p_serie: datos.serie?.trim() || null,

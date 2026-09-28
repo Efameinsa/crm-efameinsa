@@ -136,7 +136,7 @@ export type DesenlaceCaso = "telefono" | "derivar" | "cotizar";
  */
 export async function registrarCaso(datos: {
   cuentaId: string;
-  tipo: "garantia" | "repuesto" | "mantenimiento";
+  tipo: "garantia" | "repuesto" | "mantenimiento" | "soporte_tecnico";
   problema: string;
   codigoError?: string | null;
   equipoId?: string | null;

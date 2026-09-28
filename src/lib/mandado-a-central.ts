@@ -116,6 +116,7 @@ interface FilaLead {
 /** El enum viejo de tres clases (0080), para lo que se mandó antes de la pista técnica. */
 const ETIQUETA_SUGERIDO_TIPO: Record<string, string> = {
   garantia: "Garantía",
+  soporte_tecnico: "Soporte técnico",
   repuesto: "Repuesto",
   mantenimiento: "Mantenimiento",
 };

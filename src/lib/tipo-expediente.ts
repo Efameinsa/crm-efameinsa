@@ -10,6 +10,7 @@
  */
 export const TIPOS_EXPEDIENTE = [
   "garantia",
+  "soporte_tecnico",
   "puesta_en_marcha",
   "despacho",
   "mantenimiento",
@@ -22,6 +23,7 @@ export type TipoExpediente = (typeof TIPOS_EXPEDIENTE)[number];
 
 export const ETIQUETA_TIPO_EXPEDIENTE: Record<string, string> = {
   garantia: "Problema técnico",
+  soporte_tecnico: "Soporte técnico",
   puesta_en_marcha: "Puesta en marcha",
   despacho: "Despacho",
   mantenimiento: "Mantenimiento preventivo",
@@ -32,7 +34,8 @@ export const ETIQUETA_TIPO_EXPEDIENTE: Record<string, string> = {
 
 /** Qué es cada uno, en una línea, para el desplegable de Central y el de reclasificar. */
 export const AYUDA_TIPO_EXPEDIENTE: Record<string, string> = {
-  garantia: "el equipo falla o no está operativo (soporte técnico)",
+  garantia: "el equipo falla o no está operativo",
+  soporte_tecnico: "orientar o asistir al cliente (uso, configuración, limpieza, dudas) sin que haya una falla",
   puesta_en_marcha: "el equipo ya llegó y hay que ponerlo en marcha",
   despacho: "el cliente pide que le despachen lo que compró",
   mantenimiento: "mantenimiento programado para que no falle",
@@ -44,6 +47,7 @@ export const AYUDA_TIPO_EXPEDIENTE: Record<string, string> = {
 /** Clases completas (Tailwind no ve las interpoladas). Fondo + letra + borde. */
 export const COLOR_TIPO_EXPEDIENTE: Record<string, string> = {
   garantia: "border-amber-500/40 bg-amber-500/15 text-amber-800 dark:text-amber-300",
+  soporte_tecnico: "border-teal-600/40 bg-teal-500/15 text-teal-800 dark:text-teal-300",
   puesta_en_marcha: "border-emerald-600/40 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300",
   despacho: "border-[#7E1210]/40 bg-[#7E1210]/10 text-[#7E1210] dark:text-rose-300",
   mantenimiento: "border-sky-600/40 bg-sky-500/15 text-sky-800 dark:text-sky-300",
@@ -56,6 +60,7 @@ export const COLOR_TIPO_EXPEDIENTE: Record<string, string> = {
 /** El borde izquierdo de la fila del historial, del mismo color que la etiqueta. */
 export const BORDE_TIPO_EXPEDIENTE: Record<string, string> = {
   garantia: "border-l-amber-500",
+  soporte_tecnico: "border-l-teal-600",
   puesta_en_marcha: "border-l-emerald-600",
   despacho: "border-l-[#7E1210]",
   mantenimiento: "border-l-sky-600",
