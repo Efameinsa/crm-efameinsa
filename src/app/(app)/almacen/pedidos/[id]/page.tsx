@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
@@ -42,6 +42,8 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
   const galeria = fotos.map((f, i) => ({ ...f, url: firmadas?.[i]?.signedUrl ?? null }));
   // Las series (0253): el almacén las lee en la placa al probar o al despachar.
   const listaEquipos = await cargarEquiposDelPedido(servicio.id);
+  const seriesPedidasAt = (data as { series_pedidas_at?: string | null }).series_pedidas_at ?? null;
+  const conSerie = listaEquipos.filter((e) => e.serie).length;
 
   return (
     <div className="space-y-4">
@@ -79,6 +81,25 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
           )}
         </div>
       </div>
+
+      {/* La solicitud de código de Central y la respuesta del almacén, para imprimir (Lesly, 28-09, 0316). */}
+      {seriesPedidasAt && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-xs shadow-sm">
+          <span className="text-muted-foreground">
+            Central pidió el código el <b className="text-foreground">{fechaHoraLima(seriesPedidasAt)}</b>
+            {conSerie > 0 && <> · {conSerie === listaEquipos.length ? "el almacén ya respondió todas" : `${conSerie} de ${listaEquipos.length} respondidas`}</>}
+          </span>
+          <span className="flex-1" />
+          <a href={`/almacen/pedidos/${servicio.id}/solicitud`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 font-semibold hover:bg-secondary">
+            <Printer className="size-3.5" /> Imprimir la solicitud
+          </a>
+          {conSerie > 0 && (
+            <a href={`/almacen/pedidos/${servicio.id}/solicitud?que=respuesta`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-primary bg-primary px-2.5 py-1 font-semibold text-primary-foreground hover:opacity-90">
+              <Printer className="size-3.5" /> Imprimir la respuesta
+            </a>
+          )}
+        </div>
+      )}
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-4">
