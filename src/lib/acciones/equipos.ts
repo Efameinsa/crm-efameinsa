@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { ModeloCatalogo } from "@/lib/modelos-catalogo";
 
 /**
  * El alta de una máquina en el parque instalado (0181).
@@ -18,10 +19,28 @@ import { createClient } from "@/lib/supabase/server";
 
 const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * Los equipos del catálogo para sugerir el modelo al fichar (reunión 28-09:
+ * «va poniendo Titan, que se vaya recomendando»). Solo máquinas —industrial y
+ * semi-industrial activas—: repuestos y servicios no se fichan en el parque.
+ */
+export async function modelosDelCatalogo(): Promise<ModeloCatalogo[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("productos")
+    .select("id, nombre, marca, modelo, capacidad")
+    .eq("activo", true)
+    .in("segmento", ["industrial", "semi_industrial"])
+    .order("nombre");
+  return (data ?? []) as ModeloCatalogo[];
+}
+
 export async function registrarEquipo(datos: {
   cuentaId: string;
   serie?: string | null;
   modelo: string;
+  /** Si el modelo se eligió de las sugerencias del catálogo. */
+  productoId?: string | null;
   fechaCompra?: string | null;
   garantiaMeses?: number | null;
   ubicacion?: string | null;
@@ -56,7 +75,7 @@ export async function registrarEquipo(datos: {
     p_cuenta: datos.cuentaId,
     p_serie: serie,
     p_modelo: datos.modelo.trim(),
-    p_producto: null,
+    p_producto: datos.productoId ?? null,
     p_fecha_compra: datos.fechaCompra || null,
     p_garantia_meses: meses,
     p_ubicacion: datos.ubicacion?.trim() || null,

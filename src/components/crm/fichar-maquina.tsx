@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Search, Plus } from "lucide-react";
 import { buscarClientes } from "@/lib/acciones/casos";
-import { registrarEquipo } from "@/lib/acciones/equipos";
+import { modelosDelCatalogo, registrarEquipo } from "@/lib/acciones/equipos";
 import { ficharEquipoDeLaAtencion } from "@/lib/acciones/atenciones";
+import { ModeloDeMaquina } from "@/components/crm/modelo-de-maquina";
+import type { ModeloCatalogo } from "@/lib/modelos-catalogo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -27,6 +29,11 @@ import { cn } from "@/lib/utils";
  * identidad de la máquina— pero la foto de la placa llega cuando llega, y la
  * atención no puede esperar a eso. Sin serie la máquina queda fichada igual,
  * lista para completarla después.
+ *
+ * REUNIÓN 28-09: el modelo sugiere los equipos del catálogo mientras se
+ * escribe (y admite texto libre), y la fecha es la del DESPACHO —la guía de
+ * remisión—, «de ahí corre la garantía»: «no es la fecha de compra, es la
+ * fecha de la guía… solamente hay que cambiar el nombre». El dato es el mismo.
  */
 export function FicharMaquina({
   atencionId,
@@ -52,9 +59,23 @@ export function FicharMaquina({
   // La primera queda como la principal del caso; las demás, como otras
   // máquinas del mismo caso (0253). Fecha, garantía y ubicación son comunes:
   // casi siempre salieron juntas en el mismo pedido.
-  const [maquinas, setMaquinas] = useState<{ serie: string; modelo: string }[]>([{ serie: "", modelo: "" }]);
-  const cambiar = (i: number, campo: "serie" | "modelo", valor: string) =>
-    setMaquinas((ms) => ms.map((m, j) => (j === i ? { ...m, [campo]: valor } : m)));
+  const vacia = { serie: "", modelo: "", productoId: null as string | null };
+  const [maquinas, setMaquinas] = useState<{ serie: string; modelo: string; productoId: string | null }[]>([vacia]);
+  const cambiar = (i: number, cambios: Partial<(typeof maquinas)[number]>) =>
+    setMaquinas((ms) => ms.map((m, j) => (j === i ? { ...m, ...cambios } : m)));
+  // Los equipos del catálogo, una sola vez por formulario, para sugerir el modelo.
+  const [catalogo, setCatalogo] = useState<ModeloCatalogo[]>([]);
+  useEffect(() => {
+    let vivo = true;
+    modelosDelCatalogo()
+      .then((l) => vivo && setCatalogo(l))
+      .catch(() => {
+        /* sin sugerencias se escribe a mano, como antes */
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
   const [fecha, setFecha] = useState("");
   const [meses, setMeses] = useState("24");
   const [ubicacion, setUbicacion] = useState("");
@@ -91,6 +112,7 @@ export function FicharMaquina({
         const comun = {
           serie: m.serie.trim() || null,
           modelo: m.modelo,
+          productoId: m.productoId,
           fechaCompra: deAfuera ? null : fecha || null,
           garantiaMeses: deAfuera ? 0 : Number(meses) || 24,
           ubicacion: ubicacion.trim() || null,
@@ -112,7 +134,7 @@ export function FicharMaquina({
           ? `${hechas === 1 ? "Máquina fichada" : `${hechas} máquinas fichadas`} — garantía verificada`
           : `${hechas === 1 ? "Máquina registrada" : `${hechas} máquinas registradas`} en el parque instalado`,
       );
-      setMaquinas([{ serie: "", modelo: "" }]); setFecha(""); setUbicacion(""); setOrigen("nuestra");
+      setMaquinas([vacia]); setFecha(""); setUbicacion(""); setOrigen("nuestra");
       alTerminar?.();
       router.refresh();
     });
@@ -124,7 +146,7 @@ export function FicharMaquina({
     (atencionId || elegida);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* De quién es: solo cuando no se sabe todavía. */}
       {!atencionId && (
         <div className="space-y-1.5">
@@ -182,55 +204,59 @@ export function FicharMaquina({
         </div>
       )}
 
-      <div className="space-y-2">
+      {/* UNA TARJETA POR MÁQUINA, con su número arriba (reunión 28-09: «está
+          muy pequeño… tiene que estar mejor maquetado»). Serie y modelo lado a
+          lado cuando hay ancho; uno debajo del otro cuando no. */}
+      <div className="space-y-3">
         {maquinas.map((m, i) => (
-          <div key={i} className="grid gap-2 rounded-md border border-border p-2 sm:grid-cols-[1fr_1.4fr_auto]">
-            <label className="space-y-1">
-              <span className="text-xs font-medium text-foreground">
-                {maquinas.length > 1 ? `Máquina ${i + 1} · serie` : "Número de serie"}{" "}
-                <span className="font-normal text-muted-foreground">— si ya se tiene</span>
-              </span>
-              <input
-                value={m.serie}
-                onChange={(e) => cambiar(i, "serie", e.target.value)}
-                placeholder="Como se lee en la placa"
-                className="h-9 w-full rounded-md border border-input bg-background px-3 font-mono text-sm outline-none"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-medium text-foreground">Modelo de la máquina</span>
-              <input
-                value={m.modelo}
-                onChange={(e) => cambiar(i, "modelo", e.target.value)}
-                placeholder="«Secadora Titan Light 15 kg», «Lavadora Titan Max 17 kg»"
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
-              />
-            </label>
+          <div key={i} className="space-y-3 rounded-lg border border-border bg-card p-3">
             {maquinas.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setMaquinas((ms) => ms.filter((_, j) => j !== i))}
-                className="cursor-pointer self-end rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-destructive"
-                aria-label={`Quitar la máquina ${i + 1}`}
-              >
-                Quitar
-              </button>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground">Máquina {i + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => setMaquinas((ms) => ms.filter((_, j) => j !== i))}
+                  className="cursor-pointer rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-destructive"
+                  aria-label={`Quitar la máquina ${i + 1}`}
+                >
+                  Quitar
+                </button>
+              </div>
             )}
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
+              <label className="block space-y-1.5">
+                <span className="block text-sm font-medium text-foreground">
+                  Número de serie <span className="font-normal text-muted-foreground">— si ya se tiene</span>
+                </span>
+                <input
+                  value={m.serie}
+                  onChange={(e) => cambiar(i, { serie: e.target.value })}
+                  placeholder="Como se lee en la placa"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 font-mono text-sm outline-none focus:border-primary"
+                />
+              </label>
+              <ModeloDeMaquina
+                etiqueta="Modelo de la máquina"
+                valor={m.modelo}
+                catalogo={catalogo}
+                onCambiar={(texto, producto) => cambiar(i, { modelo: texto, productoId: producto?.id ?? null })}
+              />
+            </div>
           </div>
         ))}
         <button
           type="button"
-          onClick={() => setMaquinas((ms) => [...ms, { serie: "", modelo: "" }])}
-          className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-dashed border-border px-2.5 py-1 text-xs font-medium text-primary hover:bg-accent"
+          onClick={() => setMaquinas((ms) => [...ms, vacia])}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1.5 text-sm font-medium text-primary hover:bg-accent"
         >
-          <Plus className="size-3.5" /> Agregar otra máquina
+          <Plus className="size-4" /> Agregar otra máquina
         </button>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         {atencionId && (
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-foreground">¿La vendimos nosotros?</span>
+          <div className="space-y-1.5 md:col-span-2">
+            <span className="block text-sm font-medium text-foreground">¿La vendimos nosotros?</span>
             <div className="flex flex-wrap gap-1.5">
               {([
                 ["nuestra", "Sí, es una venta nuestra"],
@@ -242,7 +268,7 @@ export function FicharMaquina({
                   aria-pressed={origen === v}
                   onClick={() => setOrigen(v)}
                   className={cn(
-                    "cursor-pointer rounded-full border px-2.5 py-1 text-xs transition-colors",
+                    "cursor-pointer rounded-full border px-3 py-1.5 text-sm transition-colors",
                     origen === v ? "border-primary bg-primary font-medium text-primary-foreground" : "border-border text-muted-foreground hover:bg-accent",
                   )}
                 >
@@ -252,15 +278,16 @@ export function FicharMaquina({
             </div>
           </div>
         )}
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-foreground">
+        <label className="block space-y-1.5">
+          <span className="block text-sm font-medium text-foreground">
             {origen === "servicio" ? (
               <>
                 Llegó por primera vez a la planta <span className="font-normal text-muted-foreground">— desde cuándo la atendemos</span>
               </>
             ) : (
               <>
-                Fecha de compra <span className="font-normal text-muted-foreground">— de ahí corre la garantía</span>
+                Fecha de despacho (guía de remisión){" "}
+                <span className="font-normal text-muted-foreground">— de ahí corre la garantía</span>
               </>
             )}
           </span>
@@ -268,37 +295,37 @@ export function FicharMaquina({
             type="date"
             value={fecha}
             onChange={(e) => setFecha(e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-primary"
           />
         </label>
-        <div className="grid grid-cols-2 gap-2">
-          <label className={cn("space-y-1", origen === "servicio" && "hidden")}>
-            <span className="text-xs font-medium text-foreground">Garantía (meses)</span>
+        <div className="grid grid-cols-2 gap-3">
+          <label className={cn("block space-y-1.5", origen === "servicio" && "hidden")}>
+            <span className="block text-sm font-medium text-foreground">Garantía (meses)</span>
             <input
               type="number"
               min={0}
               max={120}
               value={meses}
               onChange={(e) => setMeses(e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-primary"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-xs font-medium text-foreground">Dónde está</span>
+          <label className="block space-y-1.5">
+            <span className="block text-sm font-medium text-foreground">Dónde está</span>
             <input
               value={ubicacion}
               onChange={(e) => setUbicacion(e.target.value)}
               placeholder="Sede, piso"
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-primary"
             />
           </label>
         </div>
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {origen === "servicio"
           ? "Como no la vendimos, no tiene garantía nuestra: queda anotado que vino solo por servicio técnico y desde cuándo la conocemos."
-          : "Sin fecha de compra la garantía queda sin calcular: la máquina se ficha igual y la fecha se completa cuando aparezca su guía de remisión, que es desde donde corre de verdad."}
+          : "Sin la fecha de la guía la garantía queda sin calcular: la máquina se ficha igual y la fecha se completa cuando aparezca su guía de remisión."}
       </p>
 
       <button
@@ -306,7 +333,7 @@ export function FicharMaquina({
         onClick={guardar}
         disabled={pendiente || !listo}
         className={cn(
-          "inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground",
+          "inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground",
           "hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
