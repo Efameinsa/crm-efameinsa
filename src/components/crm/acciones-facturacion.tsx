@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCheck, FileCheck2, Loader2, Paperclip, X } from "lucide-react";
+import { AlertTriangle, CheckCheck, FileCheck2, Loader2, Paperclip, Send, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { levantarObservacion, observarExpediente, registrarFactura } from "@/lib/acciones/facturacion";
+import { levantarObservacion, marcarFacturaEnviada, observarExpediente, registrarFactura } from "@/lib/acciones/facturacion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -190,6 +190,61 @@ export function LevantarObservacion({ servicioId }: { servicioId: string }) {
     >
       {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCheck className="size-3.5" />}
       Ya está corregido
+    </Button>
+  );
+}
+
+/**
+ * «Enviada al cliente» (0331): registrar la factura y mandársela al cliente son
+ * dos pasos. Marcarla deja la fecha y quién lo hizo; se desmarca si fue un error.
+ */
+export function FacturaEnviada({
+  facturaId,
+  servicioId,
+  enviadaAt,
+  enviadaPor,
+}: {
+  facturaId: string;
+  servicioId: string;
+  enviadaAt: string | null;
+  enviadaPor: string | null;
+}) {
+  const router = useRouter();
+  const [pendiente, startTransition] = useTransition();
+
+  function cambiar(enviada: boolean) {
+    startTransition(async () => {
+      const r = await marcarFacturaEnviada(facturaId, servicioId, enviada);
+      if (r.error) return void toast.error(r.error, { duration: 9000 });
+      toast.success(enviada ? "Marcada como enviada al cliente" : "Se quitó la marca de enviada");
+      router.refresh();
+    });
+  }
+
+  if (enviadaAt) {
+    const cuando = new Date(enviadaAt).toLocaleString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    return (
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+        <span className="inline-flex items-center gap-1 rounded-md bg-[#1E7F4F]/10 px-2 py-0.5 text-[11px] font-semibold text-[#1E7F4F]">
+          <CheckCheck className="size-3.5" /> Enviada {cuando}
+          {enviadaPor ? ` · ${enviadaPor}` : ""}
+        </span>
+        <button
+          type="button"
+          onClick={() => cambiar(false)}
+          disabled={pendiente}
+          className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:opacity-50"
+          title="Quitar la marca si se marcó por error"
+        >
+          {pendiente ? <Loader2 className="size-3 animate-spin" /> : "deshacer"}
+        </button>
+      </span>
+    );
+  }
+  return (
+    <Button size="sm" variant="outline" onClick={() => cambiar(true)} disabled={pendiente} className="whitespace-nowrap">
+      {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+      Marcar enviada al cliente
     </Button>
   );
 }

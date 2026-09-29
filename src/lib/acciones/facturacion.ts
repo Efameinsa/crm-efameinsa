@@ -150,3 +150,16 @@ export async function levantarObservacion(servicioId: string) {
   revalidar(servicioId);
   return { error: null };
 }
+
+/**
+ * Facturación marca (o desmarca) que la factura ya se le envió al cliente (0331).
+ * Registrarla y enviarla son dos pasos distintos: el gerente pidió ver los dos.
+ */
+export async function marcarFacturaEnviada(facturaId: string, servicioId: string, enviada: boolean) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("facturacion_marcar_enviada", { p_factura: facturaId, p_enviada: enviada });
+  if (error) return { error: limpiar(error.message) };
+  revalidar(servicioId);
+  return { error: null };
+}

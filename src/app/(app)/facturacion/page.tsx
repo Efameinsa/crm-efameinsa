@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -113,6 +113,24 @@ function FilaPorFacturar({
               </>
             )}
           </p>
+          {/* LAS LIQUIDACIONES A LA VISTA (29-09, gerente con Contabilidad): la
+              vigente y las anteriores, con su PDF, sin tener que abrir el
+              expediente. Finanzas sube una por cada movimiento del pago. */}
+          {docs && docs.liquidaciones.length > 0 && (
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+              {docs.liquidaciones.map((l, i) => {
+                const rotulo = i === 0 ? "Liquidación vigente" : `Liquidación ${docs.liquidaciones.length - i}`;
+                const detalle = `${fechaHoraLima(l.subidaAt)} · ${etiquetaEstadoPago(l.estadoPago)}`;
+                return l.url ? (
+                  <a key={l.id} href={l.url} target="_blank" rel="noreferrer" className={cn("inline-flex items-center gap-1 hover:underline", i === 0 ? "font-semibold text-primary" : "text-muted-foreground")} title={detalle}>
+                    <FileText className="size-3.5" /> {rotulo} <span className="font-normal text-muted-foreground">({detalle})</span>
+                  </a>
+                ) : (
+                  <span key={l.id} className="text-muted-foreground">{rotulo} ({detalle}) · sin archivo</span>
+                );
+              })}
+            </p>
+          )}
           {p.facturacionObservadaAt && (
             <p className="mt-1 flex items-start gap-1 text-[11px] font-medium text-destructive">
               <AlertTriangle className="mt-0.5 size-3.5 flex-none" />
