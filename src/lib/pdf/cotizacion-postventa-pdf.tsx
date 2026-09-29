@@ -41,13 +41,17 @@ const LINEA = 0.7;
 
 const pv = StyleSheet.create({
   parrafo: { textAlign: "justify", marginBottom: 12 },
-  tabla: { borderWidth: LINEA, borderColor: NEGRO, marginBottom: 14 },
-  fila: { flexDirection: "row", borderTopWidth: LINEA, borderTopColor: NEGRO },
+  // Cada renglón con su recuadro entero, montado sobre el anterior (como
+  // filaDetalle): dentro de un recuadro común, una tabla que casi llenaba la
+  // hoja saltaba entera a la siguiente y dejaba la primera en blanco
+  // (Tomy Jiro, 12 ítems, 29-09).
+  tablaFin: { marginBottom: 14 },
+  fila: { flexDirection: "row", borderWidth: LINEA, borderColor: NEGRO, marginTop: -LINEA },
   // En el detalle de trabajos cada fila lleva su recuadro entero y se monta
   // una línea sobre la anterior: la tabla es larga y se corta entre hojas, y
   // así la hoja que la corta queda cerrada abajo y la siguiente abre arriba.
   filaDetalle: { flexDirection: "row", borderWidth: LINEA, borderColor: NEGRO, marginTop: -LINEA },
-  filaEncabezado: { flexDirection: "row", backgroundColor: GRIS_TABLA },
+  filaEncabezado: { flexDirection: "row", backgroundColor: GRIS_TABLA, borderWidth: LINEA, borderColor: NEGRO },
   th: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: NEGRO, paddingVertical: 4, paddingHorizontal: 4, textAlign: "center", lineHeight: 1.2 },
   td: { fontSize: 9, color: NEGRO, paddingVertical: 4, paddingHorizontal: 4, lineHeight: 1.3 },
   celdaCentrada: { justifyContent: "center", alignItems: "center" },
@@ -135,6 +139,7 @@ export function CotizacionPostventaPdf({
   vigenciaDias,
   entregaLugar,
   tiempoEntrega,
+  garantia,
   formaPago,
   saldo,
   firma,
@@ -169,6 +174,11 @@ export function CotizacionPostventaPdf({
       ["Lugar de ejecución", lugarDeEjecucion(entregaLugar)],
       ["Tiempo de ejecución", tiempoEntrega?.trim() || null],
       ["Forma de pago", pago || null],
+      // LA GARANTÍA QUE SE MARCÓ (Gabriela, 29-09: «en el borrador sigue
+      // saliendo en condiciones comerciales diferente a lo que se marca»).
+      // El formato de postventa no la imprimía y la nota de garantía salía
+      // aunque fuera «Sin garantía».
+      ["Garantía", garantia?.trim() || null],
     ] as [string, string | null][]
   ).filter((c): c is [string, string] => Boolean(c[1]));
 
@@ -180,6 +190,10 @@ export function CotizacionPostventaPdf({
         .map((item, i) => ({ item, i }))
         .filter(({ item }) => item.segmento === "servicio" && (item.bloques?.length ?? 0) > 0)
     : [];
+
+  // «Sin garantía»: la nota de cómo se conserva la garantía no va.
+  const sinGarantia = /sin\s+garant/i.test(garantia ?? "");
+  const notaGarantia = sinGarantia ? [] : [notasDe(serie)[1]];
 
   const vinetas = (lista: string[]) =>
     lista.map((n, i) => (
@@ -231,8 +245,8 @@ export function CotizacionPostventaPdf({
         </Text>
 
         {/* ── ITEM. | CONCEPTO | CANT | PRECIO UNITARIO | SUB-TOTAL ── */}
-        <View style={pv.tabla}>
-          <View style={pv.filaEncabezado}>
+        <>
+          <View style={pv.filaEncabezado} wrap={false}>
             <Text style={[pv.th, pv.cItem]}>ITEM.</Text>
             <Text style={[pv.th, pv.cConcepto, pv.divisor]}>CONCEPTO</Text>
             <Text style={[pv.th, pv.cCant, pv.divisor]}>CANT</Text>
@@ -282,7 +296,8 @@ export function CotizacionPostventaPdf({
               <Text style={[pv.totalValor, pv.divisor]}>{monto(valor)}</Text>
             </View>
           ))}
-        </View>
+          <View style={pv.tablaFin} />
+        </>
 
         {/* ── Lugar, tiempo y forma de pago ── */}
         {(ejecucion.length > 0 || condiciones) && (
@@ -339,7 +354,7 @@ export function CotizacionPostventaPdf({
             <View wrap={false}>
               <Text style={pv.validez}>Validez de cotización ({vigenciaDias} días)</Text>
               <Text style={pv.notaTitulo}>Nota:</Text>
-              {vinetas(notasDe(serie))}
+              {vinetas(sinGarantia ? [notasDe(serie)[0]] : notasDe(serie))}
             </View>
           </>
         ) : (
@@ -352,7 +367,7 @@ export function CotizacionPostventaPdf({
               <Text style={pv.notaTitulo}>Nota:</Text>
               {/* La garantía es la de la serie —con el nombre de quien cotiza
                   (gerencia, 25-09)—; las otras tres son las del Word. */}
-              {vinetas([notasDe(serie)[1], ...NOTAS_REPUESTOS])}
+              {vinetas([...notaGarantia, ...NOTAS_REPUESTOS])}
             </View>
           </>
         )}
