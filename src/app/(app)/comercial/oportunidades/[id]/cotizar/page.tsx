@@ -94,6 +94,17 @@ export default async function NuevaCotizacionPage({
     }
   }
 
+  // Las condiciones de la última cotización de este expediente: la nueva
+  // arranca con ellas en vez de las de por defecto (Gabriela, 29-09).
+  const { data: previa } = await (await createClient())
+    .from("cotizaciones")
+    .select("condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo")
+    .eq("oportunidad_id", contexto.oportunidadId)
+    .neq("estado", "anulada")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   return (
     <PantallaCotizador
       oportunidadId={contexto.oportunidadId}
@@ -109,6 +120,15 @@ export default async function NuevaCotizacionPage({
       hoy={hoyLima()}
       desdeCaso={desdeCaso}
       skuInicial={sku ?? null}
+      condicionesPrevias={previa ? {
+        condiciones: previa.condiciones,
+        vigenciaDias: previa.vigencia_dias,
+        entregaLugar: previa.entrega_lugar,
+        tiempoEntrega: previa.tiempo_entrega,
+        garantia: previa.garantia,
+        formaPago: previa.forma_pago,
+        saldo: previa.saldo,
+      } : null}
     />
   );
 }
