@@ -199,6 +199,7 @@ export function PantallaCotizador({
   solicitud,
   desdeCaso = null,
   skuInicial = null,
+  condicionesPrevias = null,
   productos,
   historialPrecios,
   edicion,
@@ -223,6 +224,20 @@ export function PantallaCotizador({
    */
   /** El equipo que el cliente pidió por WhatsApp (0250): nace ya en el renglón, con su precio de lista. */
   skuInicial?: string | null;
+  /**
+   * Las condiciones de la última cotización de este expediente (Gabriela,
+   * 29-09: empezó otra y le salieron 24 meses y 30/70 en vez de su contado,
+   * sin garantía y 7 días). Una cotización nueva arranca con ellas.
+   */
+  condicionesPrevias?: {
+    condiciones: string | null;
+    vigenciaDias: number | null;
+    entregaLugar: string | null;
+    tiempoEntrega: string | null;
+    garantia: string | null;
+    formaPago: string | null;
+    saldo: string | null;
+  } | null;
   desdeCaso?: {
     id: string;
     tipo: string;
@@ -332,13 +347,14 @@ export function PantallaCotizador({
       })) ?? []
     );
   });
-  const [condiciones, setCondiciones] = useState(edicion?.condiciones ?? CONDICIONES_POR_DEFECTO);
-  const [vigenciaDias, setVigenciaDias] = useState(edicion?.vigenciaDias ?? 15);
-  const [entregaLugar, setEntregaLugar] = useState<string>(edicion?.entregaLugar ?? ENTREGA_POR_DEFECTO);
-  const [tiempoEntrega, setTiempoEntrega] = useState(edicion?.tiempoEntrega ?? TIEMPO_ENTREGA_POR_DEFECTO);
-  const [garantia, setGarantia] = useState(edicion?.garantia ?? GARANTIA_POR_DEFECTO);
-  const [formaPago, setFormaPago] = useState(edicion?.formaPago ?? FORMA_PAGO_POR_DEFECTO);
-  const [saldo, setSaldo] = useState(edicion?.saldo ?? SALDO_POR_DEFECTO);
+  const previas = edicion ? null : condicionesPrevias;
+  const [condiciones, setCondiciones] = useState(edicion?.condiciones ?? previas?.condiciones ?? CONDICIONES_POR_DEFECTO);
+  const [vigenciaDias, setVigenciaDias] = useState(edicion?.vigenciaDias ?? previas?.vigenciaDias ?? 15);
+  const [entregaLugar, setEntregaLugar] = useState<string>(edicion?.entregaLugar ?? previas?.entregaLugar ?? ENTREGA_POR_DEFECTO);
+  const [tiempoEntrega, setTiempoEntrega] = useState(edicion?.tiempoEntrega ?? previas?.tiempoEntrega ?? TIEMPO_ENTREGA_POR_DEFECTO);
+  const [garantia, setGarantia] = useState(edicion?.garantia ?? previas?.garantia ?? GARANTIA_POR_DEFECTO);
+  const [formaPago, setFormaPago] = useState(edicion?.formaPago ?? previas?.formaPago ?? FORMA_PAGO_POR_DEFECTO);
+  const [saldo, setSaldo] = useState(edicion?.saldo ?? previas?.saldo ?? SALDO_POR_DEFECTO);
 
   const [cotizacionId, setCotizacionId] = useState<string | null>(edicion?.cotizacionId ?? null);
   // Lo que la BASE dice de la aprobación. Solo importa para un caso, pero es un

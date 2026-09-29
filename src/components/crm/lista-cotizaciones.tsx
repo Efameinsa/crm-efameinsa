@@ -80,6 +80,9 @@ export function ListaCotizaciones({
   const [codigo, setCodigo] = useState("");
   const [errorPin, setErrorPin] = useState<string | null>(null);
   const rutaCotizar = `/comercial/oportunidades/${oportunidadId}/cotizar`;
+  // El borrador más reciente del expediente (la lista viene de más nueva a más vieja).
+  const borradorVivo = cotizaciones.find((c) => c.estado === "borrador") ?? null;
+  const [preguntaNueva, setPreguntaNueva] = useState(false);
 
   function onRegistrarVenta(id: string) {
     if (!confirm("¿Confirmar la venta con esta cotización?")) return;
@@ -181,17 +184,58 @@ export function ListaCotizaciones({
           </div>
         </div>
       )}
-      <Button
-        size="lg"
-        className="w-full"
-        nativeButton={false}
-        render={
-          <Link href={rutaCotizar}>
-            <Plus className="size-4" />
-            Nueva cotización
-          </Link>
-        }
-      />
+      {/* ¿SEGUIR EL BORRADOR O EMPEZAR OTRA? (Gabriela, 29-09: tenía 11 ítems
+          en un borrador, pulsó «Nueva cotización» y se encontró con 2 ítems y
+          otras condiciones: era un documento nuevo). Si el expediente ya tiene
+          un borrador, el botón primero lo ofrece. */}
+      {borradorVivo && !preguntaNueva ? (
+        <Button size="lg" className="w-full" onClick={() => setPreguntaNueva(true)}>
+          <Plus className="size-4" />
+          Nueva cotización
+        </Button>
+      ) : !borradorVivo ? (
+        <Button
+          size="lg"
+          className="w-full"
+          nativeButton={false}
+          render={
+            <Link href={rutaCotizar}>
+              <Plus className="size-4" />
+              Nueva cotización
+            </Link>
+          }
+        />
+      ) : (
+        <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          <p className="text-amber-900 dark:text-amber-200">
+            <b className="font-semibold">Este expediente ya tiene un borrador</b> de {montoCotizacion(borradorVivo.total, borradorVivo.moneda)} con IGV, del{" "}
+            {fechaHoraLima(borradorVivo.created_at)}
+            {borradorVivo.estado_aprobacion === "rechazada_gerencia" ? ", rechazado por gerencia: se corrige y se vuelve a confirmar" : ""}.
+            ¿Sigue ese o empieza otra cotización aparte?
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              nativeButton={false}
+              render={
+                <Link href={`${rutaCotizar}/${borradorVivo.id}`}>
+                  <Pencil className="size-3.5" />
+                  Seguir el borrador
+                </Link>
+              }
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={rutaCotizar}>Empezar otra (copia las condiciones)</Link>}
+            />
+            <Button size="sm" variant="ghost" onClick={() => setPreguntaNueva(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {cotizaciones.length === 0 ? (
         <p className="text-sm text-muted-foreground">Todavía no hay cotizaciones.</p>
