@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaCalendario } from "@/lib/fechas";
+
+const horaLima = (iso: string) =>
+  new Date(iso).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "numeric", minute: "2-digit" });
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -61,7 +64,7 @@ export default async function MisCierresPage({
   let consulta = supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, cliente_nombre, cliente_doc, monto_total, moneda, urgente, anulado_at, anulado_motivo",
+      "id, codigo, serie, fecha, emitido_at, updated_at, cliente_nombre, cliente_doc, monto_total, moneda, urgente, anulado_at, anulado_motivo",
       { count: "exact" },
     )
     .eq("es_de_quien_mira", true);
@@ -254,8 +257,10 @@ export default async function MisCierresPage({
                   vea así, se puede terminar. */}
               <span className="flex flex-wrap items-center justify-end gap-1">
                 {!f.emitido_at && (
-                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                    sin numerar
+                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700" title="Hora del último guardado">
+                    {/* Con la hora (Santos, 29-09): dos borradores del mismo
+                        cliente y el mismo día se veían idénticos. */}
+                    sin numerar{f.updated_at ? ` · ${horaLima(f.updated_at)}` : ""}
                   </span>
                 )}
                 {f.urgente && !f.anulado_at && (
