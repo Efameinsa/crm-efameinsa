@@ -8,6 +8,7 @@ import {
   KanbanSquare, KeyRound, Landmark, LogOut, Megaphone, MessageCircle, Package, ReceiptText, Route, ShieldCheck, Sun,
   Users, Wrench, BookMarked, type LucideIcon,
   PhoneForwarded,
+  Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PinSupervisor } from "@/components/crm/pin-supervisor";
@@ -38,6 +39,7 @@ export const ICONOS: Record<Icono, LucideIcon> = {
   control: ShieldCheck,
   usuarios: Users,
   listas: BookMarked,
+  files: Archive,
 };
 
 /* Los iconos van en un solo tono (25-09, Santos: «tienen muchos colores»); el
