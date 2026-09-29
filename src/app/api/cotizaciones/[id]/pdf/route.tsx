@@ -119,6 +119,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   return new NextResponse(new Uint8Array(limpio), {
     headers: {
       "Content-Type": "application/pdf",
+      // El borrador cambia mientras se cotiza: que el navegador no muestre el
+      // PDF de antes (Gabriela, 29-09: «tengo 11 ítems y solo aparecen 8»).
+      "Cache-Control": "no-store",
       // "Presu_2195-26, WAYRA INMOBILIARIA.pdf": pedido del área comercial el
       // 24-08 — «cosa que lo que descarga ya está listo para enviar por
       // correo», sin renombrarlo a mano. El borrador todavía no tiene número.

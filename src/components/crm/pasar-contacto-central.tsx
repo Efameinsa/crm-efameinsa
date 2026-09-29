@@ -473,7 +473,7 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
                 <Label>Fotos y archivos que le mandó</Label>
                 <CampoAdjuntos
                   ctl={adjuntos}
-                  ayuda="La foto de la placa, del equipo o el PDF que le mandaron · hasta 5 archivos de 10 MB"
+                  ayuda="La foto o el video de la placa o del equipo, o el PDF que le mandaron · hasta 5 archivos (10 MB; videos 25 MB)"
                 />
               </div>
             </Seccion>

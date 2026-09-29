@@ -32,12 +32,15 @@ export function VisitaPlantaBoton({
   empresa,
   ruc,
   compacto = false,
+  cabecera = false,
 }: {
   cuentaId: string | null;
   oportunidadId?: string | null;
   empresa: string;
   ruc: string | null;
   compacto?: boolean;
+  /** En la cabecera: solo el ícono en laptops, para no partirla en dos filas. */
+  cabecera?: boolean;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -105,9 +108,9 @@ export function VisitaPlantaBoton({
               Viene a la planta
             </button>
           ) : (
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" title="El cliente viene a la planta: Central lo imprime para vigilancia">
               <Building2 className="size-3.5" />
-              Viene a la planta
+              {cabecera ? <span className="max-2xl:hidden">Viene a la planta</span> : "Viene a la planta"}
             </Button>
           )
         }
