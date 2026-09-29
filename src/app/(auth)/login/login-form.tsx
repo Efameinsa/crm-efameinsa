@@ -52,7 +52,6 @@ export function LoginForm() {
               CRM
             </span>
             <h1 className="mt-5 text-[22px] font-bold tracking-tight text-white">Iniciar sesión</h1>
-            <p className="mt-1 text-sm text-white/60">Ingrese con su correo de la empresa.</p>
           </div>
 
           <form action={accion} className="relative mt-7 space-y-4">
@@ -134,7 +133,6 @@ export function LoginForm() {
         </div>
       </div>
 
-      <p className="mt-6 text-center text-xs text-white/45">Acceso exclusivo para personal autorizado de Efameinsa.</p>
     </motion.div>
   );
 }
