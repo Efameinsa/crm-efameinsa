@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { esDesfaseDeVersion } from "@/lib/desfase-de-version";
 
 /**
  * La pastilla «Hay una versión nueva» (Santos, 31-08: «me preocupa que
@@ -22,6 +23,11 @@ import { RefreshCw } from "lucide-react";
  *   embebido por el servidor al renderizar) y pregunta a /api/version cada 5
  *   minutos y al volver el foco — el momento típico de «dejé la pestaña
  *   abierta desde ayer».
+ * · 29-09, CRM en la PC local: pregunta cada minuto (la respuesta es local y
+ *   mínima) y, si un botón falla porque el servidor ya no reconoce la acción
+ *   de la versión vieja («Failed to find Server Action»), la pastilla sale en
+ *   el acto. A Katerine el informe de cierre le dio error un minuto después
+ *   de una actualización, y nada le dijo que recargara.
  */
 export function AvisoNuevaVersion({ versionInicial }: { versionInicial: string }) {
   const [hayNueva, setHayNueva] = useState(false);
@@ -42,12 +48,20 @@ export function AvisoNuevaVersion({ versionInicial }: { versionInicial: string }
     const alVolver = () => {
       if (document.visibilityState === "visible") void revisar();
     };
-    const cada = setInterval(revisar, 5 * 60 * 1000);
+    const cada = setInterval(revisar, 60 * 1000);
     document.addEventListener("visibilitychange", alVolver);
+    const alFallar = (e: PromiseRejectionEvent | ErrorEvent) => {
+      const causa = "reason" in e ? e.reason : (e.error ?? { message: e.message });
+      if (esDesfaseDeVersion(causa)) setHayNueva(true);
+    };
+    window.addEventListener("unhandledrejection", alFallar);
+    window.addEventListener("error", alFallar);
     return () => {
       viva = false;
       clearInterval(cada);
       document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("unhandledrejection", alFallar);
+      window.removeEventListener("error", alFallar);
     };
   }, [versionInicial]);
 
