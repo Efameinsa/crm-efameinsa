@@ -194,10 +194,10 @@ export const VER_COMO: { etiqueta: string; href: string }[] = [
 
 /** Adónde busca cada perfil desde la cabecera. */
 export const BUSCAR_EN: Record<TipoPerfil, { href: string; ayuda: string }> = {
-  central: { href: "/gerencia/buscar", ayuda: "Presupuesto, cierre, PRO, RUC, cliente o serie" },
-  gerencia: { href: "/gerencia/buscar", ayuda: "Presupuesto, cierre, PRO, RUC, cliente o serie" },
-  operaciones: { href: "/gerencia/buscar", ayuda: "Presupuesto, cierre, PRO, RUC, cliente o serie" },
-  admin: { href: "/gerencia/buscar", ayuda: "Presupuesto, cierre, PRO, RUC, cliente o serie" },
+  central: { href: "/buscar", ayuda: "Presupuesto, cierre, PRO, RUC, cliente o serie" },
+  gerencia: { href: "/buscar", ayuda: "Presupuesto, cierre, PRO, RUC, cliente o serie" },
+  operaciones: { href: "/buscar", ayuda: "Presupuesto, cierre, PRO, RUC, cliente o serie" },
+  admin: { href: "/buscar", ayuda: "Presupuesto, cierre, PRO, RUC, cliente o serie" },
   comercial: { href: "/comercial/cartera", ayuda: "Cliente o RUC de su cartera" },
   postventa: { href: "/comercial/cartera", ayuda: "Cliente o RUC" },
   preventivo: { href: "/comercial/cartera", ayuda: "Cliente o RUC" },
@@ -375,6 +375,11 @@ export const SECCIONES: Record<string, Seccion> = {
       { clave: "agenda", etiqueta: "Agenda", pagina: "postventa/agenda" },
       { clave: "visitas", etiqueta: "Visitas a planta", pagina: "postventa/visitas" },
       { clave: "preventivos", etiqueta: "Ruta de mantenimiento", pagina: "comercial/ruta" },
+      // Lesly (29-09): «en la vista de postventa con mi usuario no puedo ver los
+      // clientes que atienden». Las mismas tres de «Clientes» de postventa.
+      { clave: "clientes", etiqueta: "Clientes", pagina: "comercial/cartera" },
+      { clave: "maquinas", etiqueta: "Máquinas", pagina: "postventa/equipos" },
+      { clave: "ventas-empresa", etiqueta: "Ventas de la empresa", pagina: "comercial/parque", fijos: { todos: "1" } },
     ],
   },
   "operaciones/almacen": {
