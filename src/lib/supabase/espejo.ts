@@ -1,5 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { urlSupabaseServidor } from "@/lib/supabase/urls";
+import { fetchRedInterna, urlSupabaseServidor } from "@/lib/supabase/urls";
 import { createServerClient } from "@supabase/ssr";
 
 /**
@@ -27,6 +27,7 @@ const espejos = new Map<string, { original: string; correo: string; vence: numbe
 function admin() {
   return createSupabaseClient(urlSupabaseServidor(), process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: fetchRedInterna() },
   });
 }
 
@@ -51,6 +52,7 @@ async function abrirSesion(correo: string): Promise<Galleta[] | null> {
   if (error || !data?.properties?.hashed_token) return null;
   const tarro = new Map<string, string>();
   const temporal = createServerClient(urlSupabaseServidor(), process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    global: { fetch: fetchRedInterna() },
     cookies: {
       getAll: () => [...tarro].map(([name, value]) => ({ name, value })),
       setAll: (lista) => lista.forEach(({ name, value }) => tarro.set(name, value)),

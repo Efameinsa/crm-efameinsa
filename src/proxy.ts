@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ranuraDeHost } from "@/lib/auditoria";
 import { esFalloDeAutenticacion } from "@/lib/fallo-autenticacion";
-import { opcionesCookieSupabase, urlSupabaseServidor } from "@/lib/supabase/urls";
+import { opcionesCookieSupabase, fetchRedInterna, urlSupabaseServidor } from "@/lib/supabase/urls";
 import { CABECERA_DEMO, COOKIE_DEMO, COOKIE_VISTA, CORREO_DEMO, MENSAJE_DEMO } from "@/lib/solo-lectura";
 import { usaVistaNueva } from "@/lib/propuesta/regla-vista";
 
@@ -47,6 +47,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookieOptions: opcionesCookieSupabase,
+      global: { fetch: fetchRedInterna() },
       cookies: {
         getAll() {
           return request.cookies.getAll();

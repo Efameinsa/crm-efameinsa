@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { codificarInfoAuditoria, COOKIE_AUDITORIA, ranuraDeHost } from "@/lib/auditoria";
-import { opcionesCookieSupabase, urlSupabaseServidor } from "@/lib/supabase/urls";
+import { opcionesCookieSupabase, fetchRedInterna, urlSupabaseServidor } from "@/lib/supabase/urls";
 
 /**
  * La puerta de una ranura de auditoría (0160): recibe el token de un solo uso
@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
 
   const supabase = createServerClient(urlSupabaseServidor(), process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookieOptions: opcionesCookieSupabase,
+    global: { fetch: fetchRedInterna() },
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (lista) => {
