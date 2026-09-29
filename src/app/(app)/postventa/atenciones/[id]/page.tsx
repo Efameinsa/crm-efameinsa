@@ -26,6 +26,7 @@ import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import {
   ETIQUETA_TIPO_ATENCION,
   PISTA_DE_TIPO,
+  faltaLaMaquina,
   relojAtencion,
   type Atencion,
 } from "@/lib/atenciones";
@@ -159,6 +160,9 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   // lo que entró por Central: una atención registrada a mano no tiene ruta y
   // mostrarla vacía sería ruido (mismo criterio que la vista del comercial).
   let rutaDelContacto: Hito[] | null = null;
+  // AUTODERIVADO (0327): lo registró y se lo asignó la misma persona del área,
+  // sin pasar por el reparto. Ni la tira ni la ruta pueden decir «Central».
+  let autoderivado = false;
   if (a.oportunidad_id) {
     const [{ data: op }, { data: leadDirecto }] = await Promise.all([
       supabase.from("oportunidades").select("id, lead_id, created_at").eq("id", a.oportunidad_id).maybeSingle(),
@@ -166,7 +170,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
       // expediente ya abierto; el primero en llegar es el que cuenta la ruta.
       supabase
         .from("leads")
-        .select("id, canal, recibido_at, asignado_at")
+        .select("id, canal, recibido_at, asignado_at, recibido_por, asignado_por, asignado_a")
         .eq("oportunidad_id", a.oportunidad_id)
         .order("recibido_at")
         .limit(1)
@@ -177,7 +181,11 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
       const [{ data: lead }, { data: asignacion }, { data: primeraGestion }] = await Promise.all([
         leadDirecto
           ? Promise.resolve({ data: leadDirecto })
-          : supabase.from("leads").select("id, canal, recibido_at, asignado_at").eq("id", leadId).maybeSingle(),
+          : supabase
+              .from("leads")
+              .select("id, canal, recibido_at, asignado_at, recibido_por, asignado_por, asignado_a")
+              .eq("id", leadId)
+              .maybeSingle(),
         supabase
           .from("asignaciones")
           .select("motivo, decidida_por, created_at")
@@ -198,15 +206,18 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           ? await supabase.from("perfiles").select("nombre").eq("id", asignacion.decidida_por).maybeSingle()
           : { data: null };
         const asignadoAt = lead.asignado_at ?? asignacion?.created_at ?? op?.created_at ?? null;
+        autoderivado = Boolean(
+          lead.recibido_por && lead.recibido_por === lead.asignado_por && lead.recibido_por === lead.asignado_a,
+        );
         rutaDelContacto = [
           {
-            titulo: "Llegó a Central",
+            titulo: autoderivado ? "Lo registró postventa" : "Llegó a Central",
             fecha: lead.recibido_at,
             detalle: ETIQUETA_CANAL[lead.canal] ?? lead.canal,
             pendiente: "Sin registro de ingreso",
           },
           {
-            titulo: "Se derivó a postventa",
+            titulo: autoderivado ? "Autoderivado: lo atiende quien lo registró" : "Se derivó a postventa",
             fecha: asignadoAt,
             demora: demora(lead.recibido_at, asignadoAt),
             detalle: [
@@ -385,6 +396,9 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               tecnicos={tecnicos}
               garantia={garantia}
               hayMaquinas={(equiposDelCliente ?? []).length > 0}
+              equipos={equiposDelCliente ?? []}
+              cuenta={a.cuenta_id ? { id: a.cuenta_id, razonSocial: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente" } : null}
+              autoderivado={autoderivado}
               pedidoSinSeries={(pedidosSinSeries ?? [])[0] ?? null}
               cliente={a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente"}
             />
@@ -468,8 +482,11 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
 
           {/* El clic de la garantía (Carlos, 01-09): cuando el equipo aún no
               está identificado, acá salen las series del cliente para
-              contrastar con la foto de la placa. Un clic vincula y verifica. */}
-          {a.cuenta_id && (
+              contrastar con la foto de la placa. Un clic vincula y verifica.
+              Mientras el Paso 1 la está pidiendo, la lista va DENTRO del paso
+              y no acá (Rubí, 28-09): dos listas iguales a la vez confunden, y
+              esta quedaba debajo de «Con quién hablar», fuera de la vista. */}
+          {a.cuenta_id && !(faltaLaMaquina(a) && !a.equipo_id) && (
             <SeccionPanel titulo={a.equipo_id ? "Las máquinas de este caso" : "¿De qué máquina habla el cliente?"}>
               <EquiposDeLaAtencion atencionId={a.id} equipos={equiposDelCliente ?? []} principalId={a.equipo_id} adicionalesIds={adicionalesIds} />
               {!a.cerrado_at && (a.equipo_id || (equiposDelCliente ?? []).length > 0) && (

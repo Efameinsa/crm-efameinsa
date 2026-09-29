@@ -28,6 +28,7 @@ import {
   ETIQUETA_TIPO_ATENCION,
   COLOR_CLASIFICACION,
   SE_COBRA,
+  faltaLaMaquina,
   motivoNoCorresponde,
   pasoDe,
   reglaDeLaCasilla,
@@ -39,6 +40,8 @@ import {
   type EtapaAtencion,
 } from "@/lib/atenciones";
 import { FicharMaquina } from "@/components/crm/fichar-maquina";
+import { EquiposDeLaAtencion, type EquipoDelCliente } from "@/components/crm/equipos-de-la-atencion";
+import { OtraMaquinaDelCaso } from "@/components/crm/otra-maquina-del-caso";
 import {
   avanzarAtencion,
   terminarSeguimiento,
@@ -103,11 +106,22 @@ export function LineaAtencion({
   garantia,
   cliente,
   hayMaquinas = false,
+  equipos = [],
+  cuenta = null,
+  autoderivado = false,
   pedidoSinSeries = null,
   puedeCotizar = false,
   tecnicos = [],
 }: {
   atencion: Atencion;
+  /** Las máquinas del cliente: la del caso se elige DENTRO del Paso 1, no en
+   *  otro panel (Rubí, 28-09). */
+  equipos?: EquipoDelCliente[];
+  /** La ficha del cliente, para registrar una máquina que no está en su parque. */
+  cuenta?: { id: string; razonSocial: string } | null;
+  /** Lo registró y lo atiende postventa, sin pasar por el reparto (0327): la
+   *  solicitud y el registro no son de Central. */
+  autoderivado?: boolean;
   /** Si esta persona puede cotizar la pista del caso. Lo decide la página:
    *  la cotización la hace quien tiene la cuenta (cfd867e, 07-09). */
   puedeCotizar?: boolean;
@@ -149,7 +163,10 @@ export function LineaAtencion({
    * una sola casilla: contarlas por separado dejaría el riel corto justo en el
    * tramo final, que es donde más se mira.
    */
-  const casillasHechas = PASOS_VISIBLES.filter((p) => pasoDe(p.clave) <= paso).length;
+  // Mientras falte la máquina el Registro NO está hecho: late él, no los
+  // Antecedentes, y el riel llega solo hasta la Solicitud (Rubí, 28-09).
+  const sinMaquina = faltaLaMaquina(a);
+  const casillasHechas = PASOS_VISIBLES.filter((p) => pasoDe(p.clave) <= paso).length - (sinMaquina ? 1 : 0);
   const avanceDeLaPista =
     PASOS_VISIBLES.length > 1 ? Math.max(0, casillasHechas - 1) / (PASOS_VISIBLES.length - 1) : 0;
   // La tira es NAVEGABLE (Santos, 01-09: «ponlo como tabs… ni se puede
@@ -221,11 +238,14 @@ export function LineaAtencion({
             // pruebas y que una puesta en marcha puede resolverse en la llamada.
             const regla = reglaDeLaCasilla(a.tipo, p.cubre);
             const noCorresponde = regla === "no_corresponde";
-            const hecha = i <= paso && !omitida && !noCorresponde;
+            const esperaLaMaquina = sinMaquina && e === "registro";
+            const hecha = i <= paso && !omitida && !noCorresponde && !esperaLaMaquina;
             // Un paso que cubre dos etapas late si el panel está pidiendo
             // cualquiera de las dos, y muestra el sello de la última que se
             // haya cumplido: la firma del cliente es la fecha que importa.
-            const actual = !a.cerrado_at && lateEn !== null && p.cubre.includes(lateEn);
+            const actual = sinMaquina
+              ? esperaLaMaquina
+              : !a.cerrado_at && lateEn !== null && p.cubre.includes(lateEn);
             const sello = p.cubre.map((c) => sellos[c]).filter(Boolean).pop() ?? null;
             const seleccionada = p.cubre.includes(etapaVista as EtapaAtencion);
             const Dibujo = DIBUJO[p.icono];
@@ -306,10 +326,12 @@ export function LineaAtencion({
                       ? motivoNoCorresponde(a.tipo)
                       : omitida
                       ? "saltado"
+                      : esperaLaMaquina
+                      ? "falta la máquina"
                       : regla === "opcional" && !hecha && p.clave !== "seguimiento"
                       ? "opcional"
                       : p.deCentral && sello
-                        ? `Central · ${new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" })}`
+                        ? `${autoderivado ? "Postventa" : "Central"} · ${new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" })}`
                         : sello
                         ? new Date(sello).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" })
                         : "—"}
@@ -416,7 +438,7 @@ export function LineaAtencion({
         // registro «jala la máquina» —de ahí corre la garantía— y los
         // antecedentes son opcionales, con su botón «No hay antecedentes».
         // Hasta hoy (0231) pasaba directo a programar sin saber qué máquina.
-        <PasoRegistro atencion={a} garantia={garantia} hayMaquinas={hayMaquinas} pedidoSinSeries={pedidoSinSeries} enviando={enviando} correr={correr} />
+        <PasoRegistro atencion={a} garantia={garantia} hayMaquinas={hayMaquinas} equipos={equipos} cuenta={cuenta} pedidoSinSeries={pedidoSinSeries} enviando={enviando} correr={correr} />
       ) : a.etapa === "diagnostico" ? (
         <PasoPlanificar
           atencion={a}
@@ -870,6 +892,8 @@ function PasoRegistro({
   atencion: a,
   garantia,
   hayMaquinas,
+  equipos = [],
+  cuenta = null,
   pedidoSinSeries = null,
   enviando,
   correr,
@@ -877,6 +901,8 @@ function PasoRegistro({
   atencion: Atencion;
   garantia: { en_garantia: boolean; hizo_preventivo: boolean } | null;
   hayMaquinas: boolean;
+  equipos?: EquipoDelCliente[];
+  cuenta?: { id: string; razonSocial: string } | null;
   pedidoSinSeries?: { id: string; equipo: string | null; despachado_at: string | null; guia: string | null } | null;
   enviando: boolean;
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
@@ -899,7 +925,7 @@ function PasoRegistro({
       // Las dos salidas de acá abajo son las que faltaban.
       if (!hayMaquinas) {
         return (
-          <Caja titulo="Paso 1 · Verificar la garantía">
+          <Caja titulo="Paso 1 · Registro: ¿de qué máquina habla el cliente?">
             {pedidoSinSeries ? (
               // Gary Group, 18-09: el pedido salió con guía y nadie registró
               // las series; el caso decía «no tiene ninguna máquina». Ahora
@@ -915,7 +941,7 @@ function PasoRegistro({
               </p>
             ) : (
               <p className="mb-3 text-sm text-muted-foreground">
-                Este cliente no tiene ninguna máquina registrada, así que no hay nada que elegir a la derecha.
+                Este cliente no tiene ninguna máquina registrada, así que no hay de dónde elegir.
                 Fíchela acá con lo que diga el cliente por teléfono —la serie se completa después— o siga sin
                 identificarla si por ahora no hay forma de saberlo.
               </p>
@@ -927,19 +953,28 @@ function PasoRegistro({
           </Caja>
         );
       }
+      // LA LISTA VA ACÁ, NO «A LA DERECHA» (Rubí, 28-09: «no puedo registrar
+      // nada»). La caja mandaba a elegir la máquina en otro panel —debajo de
+      // «Con quién hablar», fuera de la vista— y acá no había nada que
+      // apretar. Es la regla de esta pantalla: una sola caja, la del paso que
+      // toca, con lo que hace falta para cumplirlo adentro.
       return (
-        <Caja titulo="Paso 1 · Verificar la garantía">
+        <Caja titulo="Paso 1 · Registro: ¿de qué máquina habla el cliente?">
           <p className="mb-3 text-sm text-muted-foreground">
-            La garantía se verifica sobre la máquina. Elíjala en{" "}
-            <b className="text-foreground">«¿De qué máquina habla el cliente?»</b> (a la derecha, contrastando con
-            la foto de la placa): ese clic la vincula y deja la garantía verificada al instante.
+            Elija la máquina del caso con <b className="text-foreground">«Es esta»</b>, contrastando con la foto de
+            la placa: queda vinculada y con la garantía verificada al instante. Si el caso abarca más de una, las
+            demás se agregan después.
           </p>
-          <SeguirSinIdentificar atencionId={a.id} enviando={enviando} correr={correr} />
+          <EquiposDeLaAtencion atencionId={a.id} equipos={equipos} />
+          {cuenta && <OtraMaquinaDelCaso atencionId={a.id} cuenta={cuenta} hayPrincipal={false} />}
+          <div className="mt-4 border-t border-border pt-3">
+            <SeguirSinIdentificar atencionId={a.id} enviando={enviando} correr={correr} />
+          </div>
         </Caja>
       );
     }
     return (
-      <Caja titulo="Paso 1 · Verificar la garantía">
+      <Caja titulo="Paso 1 · Registro: verificar la garantía">
         <p className="mb-3 text-sm text-muted-foreground">
           Lo primero que se verifica, antes de terminar de escuchar el problema: si está en garantía y si el
           cliente viene haciendo su mantenimiento preventivo. Sale del parque instalado, no hay que preguntarlo.

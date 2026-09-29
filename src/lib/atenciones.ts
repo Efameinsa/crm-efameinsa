@@ -323,6 +323,25 @@ export interface Atencion {
   pruebas_conforme?: boolean | null;
 }
 
+/**
+ * EL REGISTRO NO ESTÁ HECHO HASTA QUE SE SABE DE QUÉ MÁQUINA SE HABLA.
+ *
+ * La base sella `registro` en el instante en que el caso nace, así que la tira
+ * lo pintaba verde y hacía latir «Antecedentes» mientras el panel seguía
+ * pidiendo la máquina. Rubí, 28-09, sobre una puesta en marcha que acababa de
+ * registrar ella misma: «aquí no debería de ir para registrar, pero no puedo
+ * registrar nada». Es lo que la reunión de ese día había definido: en el
+ * registro «se registra la serie, el modelo, para activar la garantía».
+ *
+ * Se cumple al elegir la máquina o al decir que por ahora no se puede
+ * identificar; hasta entonces el paso que late es el Registro.
+ */
+export function faltaLaMaquina(
+  a: Pick<Atencion, "etapa" | "en_garantia" | "garantia_omitida_at" | "cerrado_at">,
+): boolean {
+  return a.etapa === "registro" && !a.cerrado_at && a.en_garantia === null && !a.garantia_omitida_at;
+}
+
 /** El índice de la etapa, para pintar la barra de avance. */
 export function pasoDe(etapa: EtapaAtencion): number {
   return ETAPAS_ATENCION.indexOf(etapa);

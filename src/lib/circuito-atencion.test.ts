@@ -4,6 +4,7 @@ import {
   ETAPAS_ATENCION,
   ETIQUETA_ETAPA,
   ETIQUETA_TIPO_ATENCION,
+  faltaLaMaquina,
   PASOS_VISIBLES,
   motivoNoCorresponde,
   reglaDeLaCasilla,
@@ -100,5 +101,32 @@ describe("pasar de largo lo que no corresponde", () => {
   it("los opcionales no se saltean solos: los salta una persona", () => {
     expect(saltarLoQueNoCorresponde("puesta_en_marcha", "registro")).toEqual({ etapa: "registro", omitidas: [] });
     expect(saltarLoQueNoCorresponde("puesta_en_marcha", "planificacion")).toEqual({ etapa: "planificacion", omitidas: [] });
+  });
+});
+
+/**
+ * Rubí, 28-09: la tira hacía latir «Antecedentes» mientras el panel seguía
+ * pidiendo la máquina. El registro se cumple al saber de qué máquina se habla.
+ */
+describe("el registro espera la máquina", () => {
+  const recien = { etapa: "registro", en_garantia: null, garantia_omitida_at: null, cerrado_at: null } as const;
+
+  it("un caso recién nacido, sin máquina, todavía no cumplió el registro", () => {
+    expect(faltaLaMaquina(recien)).toBe(true);
+  });
+
+  it("con la garantía verificada —en garantía o fuera de ella— ya se cumplió", () => {
+    expect(faltaLaMaquina({ ...recien, en_garantia: true })).toBe(false);
+    expect(faltaLaMaquina({ ...recien, en_garantia: false })).toBe(false);
+  });
+
+  it("seguir sin identificar la máquina también lo cumple", () => {
+    expect(faltaLaMaquina({ ...recien, garantia_omitida_at: "2026-09-29T13:00:00Z" })).toBe(false);
+  });
+
+  it("no aplica fuera del registro ni en un caso cerrado", () => {
+    expect(faltaLaMaquina({ ...recien, etapa: "solicitud" })).toBe(false);
+    expect(faltaLaMaquina({ ...recien, etapa: "planificacion" })).toBe(false);
+    expect(faltaLaMaquina({ ...recien, cerrado_at: "2026-09-29T13:00:00Z" })).toBe(false);
   });
 });
