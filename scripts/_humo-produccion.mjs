@@ -22,7 +22,7 @@ async function sesion(email) {
     const { data } = await admin.auth.admin.generateLink({ type: "magiclink", email });
     if (!data?.properties) { await new Promise((r) => setTimeout(r, 4000)); continue; }
     const jar = new Map();
-    const ssr = createServerClient(url, anon, { cookies: { getAll: () => [...jar.entries()].map(([n, v]) => ({ name: n, value: v })), setAll: (l) => l.forEach(({ name, value }) => jar.set(name, value)) } });
+    const ssr = createServerClient(url, anon, { ...(process.env.NEXT_PUBLIC_SUPABASE_COOKIE ? { cookieOptions: { name: process.env.NEXT_PUBLIC_SUPABASE_COOKIE } } : {}), cookies: { getAll: () => [...jar.entries()].map(([n, v]) => ({ name: n, value: v })), setAll: (l) => l.forEach(({ name, value }) => jar.set(name, value)) } });
     await ssr.auth.verifyOtp({ token_hash: data.properties.hashed_token, type: "magiclink" });
     return [...jar.entries()].map(([n, v]) => `${n}=${encodeURIComponent(v)}`).join("; ");
   }
