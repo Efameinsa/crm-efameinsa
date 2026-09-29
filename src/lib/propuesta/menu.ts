@@ -31,7 +31,8 @@ export type Icono =
   | "hoy" | "conversaciones" | "seguimiento" | "pedidos" | "clientes" | "agenda" | "oportunidades" | "ventas"
   | "numeros" | "atenciones" | "vender" | "campana" | "informes" | "cobranza" | "abonos" | "catalogo" | "permisos"
   | "aprobaciones" | "marketing" | "operacion" | "control" | "usuarios" | "listas"
-  | "aperturas";
+  | "aperturas"
+  | "files";
 
 export interface OpcionMenu {
   etiqueta: string;
@@ -95,6 +96,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/central/cierres", "/central/pedidos"] },
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/central/clientes", "/central/presupuestos"] },
     { etiqueta: "Agenda", href: "/central/visitas", icono: "agenda", coincide: ["/central/visitas"] },
+      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
   comercial: [
     hoy,
@@ -104,6 +107,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/comercial/cartera", "/comercial/parque", "/comercial/ruta"] },
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/comercial/agenda", "/comercial/visitas"] },
     { etiqueta: "Mis números", href: "/comercial/mi-gestion", icono: "numeros", coincide: ["/comercial/mi-gestion"] },
+      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
   postventa: [
     hoy,
@@ -117,6 +122,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/comercial/cartera", "/postventa/equipos", "/comercial/parque"] },
     { etiqueta: "Vender", href: "/nuevo/vender", icono: "vender", coincide: ["/nuevo/vender", "/comercial/ruta", "/comercial/cotizaciones", "/comercial/cierres", "/comercial/mi-gestion", "/comercial/oportunidades"] },
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/postventa/agenda", "/postventa/visitas"] },
+      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
   preventivo: [
     hoy,
@@ -124,6 +131,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Cotizaciones y ventas", href: "/nuevo/ventas", icono: "ventas", coincide: ["/nuevo/ventas", "/comercial/cotizaciones", "/comercial/cierres", "/comercial/oportunidades"] },
     { etiqueta: "Clientes", href: "/comercial/cartera", icono: "clientes", coincide: ["/comercial/cartera"] },
     { etiqueta: "Mis números", href: "/comercial/mi-gestion", icono: "numeros", coincide: ["/comercial/mi-gestion"] },
+      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
   almacen: [
     hoy,
@@ -136,6 +145,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Aperturas de postventa", href: "/almacen/aperturas-postventa", icono: "informes", coincide: ["/almacen/aperturas-postventa"] },
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/almacen/agenda", "/almacen/atenciones", "/almacen/visitas"] },
     { etiqueta: "Informes técnicos", href: "/almacen/informes", icono: "informes", coincide: ["/almacen/informes"] },
+      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
   finanzas: [
     hoy,
@@ -145,12 +156,16 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Aperturas", href: "/finanzas/aperturas", icono: "pedidos", coincide: ["/finanzas/aperturas"] },
     { etiqueta: "Cobranza", href: "/finanzas/cobrar", icono: "cobranza", coincide: ["/finanzas/cobrar"] },
     { etiqueta: "Abonos", href: "/finanzas/confirmados", icono: "abonos", coincide: ["/finanzas/confirmados"] },
+      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
   // Reunión 25-09 11:44 (0306): revisa el expediente, factura y la registra.
   facturacion: [
     hoy,
     { etiqueta: "Por facturar", href: "/facturacion", icono: "cobranza", coincide: ["/facturacion"] },
     { etiqueta: "Facturados", href: "/facturacion/facturados", icono: "informes", coincide: ["/facturacion/facturados"] },
+      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
   // LESLY SUPERVISA TODO (Santos, 25-09: «tiene que estar atenta a todo para
   // ir a dar seguimiento a todos los trabajadores»). Hoy es la supervisión de
@@ -166,6 +181,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Permisos y listas", href: "/nuevo/permisos", icono: "permisos", coincide: ["/nuevo/permisos", "/operaciones/permisos", "/admin/catalogos"] },
     // Como gerencia, pero de Central, comerciales, almacén, Finanzas y Facturación (26-09).
     { etiqueta: "Ver como otra cuenta", href: "/operaciones/ver-como", icono: "control", coincide: ["/operaciones/ver-como"] },
+      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
   gerencia: [
     hoy,
@@ -178,11 +195,15 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/gerencia/clientes", "/gerencia/cartera-liberable"] },
     { etiqueta: "Reportes", href: "/nuevo/reportes", icono: "numeros", coincide: ["/nuevo/reportes", "/gerencia/supervision", "/gerencia/gestion-whatsapp", "/gerencia/reportes"] },
     { etiqueta: "Control", href: "/nuevo/control", icono: "control", coincide: ["/nuevo/control", "/gerencia/accesos", "/gerencia/auditoria"] },
+      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
   admin: [
     { etiqueta: "Usuarios", href: "/admin", icono: "usuarios", coincide: [] },
     { etiqueta: "Catálogo", href: "/nuevo/catalogo", icono: "catalogo", coincide: ["/nuevo/catalogo", "/operaciones/catalogo", "/admin/productos"] },
     { etiqueta: "Listas del sistema", href: "/admin/catalogos", icono: "listas", coincide: ["/admin/catalogos"] },
+      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
 };
 
