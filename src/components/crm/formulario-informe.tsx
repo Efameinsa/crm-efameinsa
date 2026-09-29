@@ -512,12 +512,20 @@ export function FormularioInforme({
     // 0142) — pero el comercial tiene que ver QUÉ está emitiendo sin, tipo
     // por tipo, antes de gastar el número. Si Carlos decide el bloqueo duro,
     // esta es la línea que se endurece.
+    //
+    // 29-09 (Santos, con el cierre 045-2026 de Huamán Ruiz): la ventana pedía
+    // «la cotización» aunque el cierre ya estaba atado a Presu_927-26, y «la
+    // orden de compra» en una venta de repuesto al contado que nunca la tiene.
+    // Un aviso que sale siempre deja de leerse. Ahora la cotización elegida en
+    // «¿De qué presupuesto copio los equipos?» cuenta como presente, y la orden
+    // de compra ya no se reclama: se adjunta cuando existe.
     const TIPOS_ESPERADOS: [string, string][] = [
       ["cotizacion", "la cotización"],
-      ["orden_compra", "la orden de compra"],
       ["voucher", "el voucher de pago"],
     ];
     const presentes = new Set([...subidos.map((s) => s.tipo), ...pendientes.map((p) => p.tipo)]);
+    const hayCotizacionElegida = Boolean(presupuesto) || (!presupuestoId && Boolean(b?.cotizacionId || b?.presupuestoRef));
+    if (hayCotizacionElegida) presentes.add("cotizacion");
     const faltantes = TIPOS_ESPERADOS.filter(([tipo]) => !presentes.has(tipo));
     if (faltantes.length > 0) {
       const lista = faltantes.map(([, nombre]) => `· Falta ${nombre}`).join("\n");
