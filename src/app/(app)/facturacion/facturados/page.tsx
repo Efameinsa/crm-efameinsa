@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Input } from "@/components/ui/input";
+import { FacturaEnviada } from "@/components/crm/acciones-facturacion";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ const diaDe = (fecha: string) => new Date(`${fecha}T12:00:00-05:00`).toLocaleDat
 /**
  * FACTURADOS (0306): lo que Facturación ya registró, lo más nuevo arriba. Con
  * buscador por cliente, número de factura o de pedido; el PDF se abre para
- * reimprimir.
+ * reimprimir. Desde el 29-09 (0331) también dice si ya se le envió al cliente.
  */
 export default async function FacturadosPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await requerirPerfil();
@@ -21,12 +22,14 @@ export default async function FacturadosPage({ searchParams }: { searchParams: P
   const supabase = await createClient();
   const { data } = await supabase
     .from("facturas_pedido")
-    .select("id, servicio_id, numero, fecha_emision, path, nota, created_at, perfiles!facturas_pedido_registrada_por_fkey(nombre), servicios_postventa(cliente_texto, numero_pedido_erp, monto, moneda)")
+    .select("id, servicio_id, numero, fecha_emision, path, nota, created_at, enviada_cliente_at, perfiles!facturas_pedido_registrada_por_fkey(nombre), enviador:perfiles!facturas_pedido_enviada_cliente_por_fkey(nombre), servicios_postventa(cliente_texto, numero_pedido_erp, monto, moneda)")
     .order("created_at", { ascending: false })
     .limit(300);
   type Fila = {
     id: string; servicio_id: string; numero: string; fecha_emision: string; path: string | null; nota: string | null; created_at: string;
+    enviada_cliente_at: string | null;
     perfiles: { nombre: string } | null;
+    enviador: { nombre: string } | null;
     servicios_postventa: { cliente_texto: string | null; numero_pedido_erp: string | null; monto: number | null; moneda: string | null } | null;
   };
   let filas = (data ?? []) as unknown as Fila[];
@@ -57,6 +60,7 @@ export default async function FacturadosPage({ searchParams }: { searchParams: P
                 <th className="px-3 py-2">Cliente</th>
                 <th className="px-3 py-2">Pedido</th>
                 <th className="px-3 py-2">Registró</th>
+                <th className="px-3 py-2">Enviada al cliente</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
@@ -75,6 +79,9 @@ export default async function FacturadosPage({ searchParams }: { searchParams: P
                     </Link>
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{f.perfiles?.nombre ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    <FacturaEnviada facturaId={f.id} servicioId={f.servicio_id} enviadaAt={f.enviada_cliente_at} enviadaPor={f.enviador?.nombre ?? null} />
+                  </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right">
                     {f.path && url.get(f.path) ? (
                       <a href={url.get(f.path) ?? undefined} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
