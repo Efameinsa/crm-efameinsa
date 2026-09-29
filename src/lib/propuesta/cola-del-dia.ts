@@ -2,6 +2,7 @@ import type { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { faltanFotosDeCarga, pruebaSinPedir, type ServicioPostventa } from "@/lib/postventa";
 import { ETIQUETA_TIPO_APERTURA, estadoApertura, type TipoApertura } from "@/lib/aperturas-llamada";
+import { atencionesEnOtraFicha } from "@/lib/gestion-en-otra-ficha";
 import type { Perfil } from "@/types/database";
 
 /**
@@ -354,16 +355,59 @@ async function colaComercial(supabase: Cliente, perfil: Perfil) {
   const enUnaSemana = new Date(Date.now() + 7 * 86_400_000).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const { data } = await supabase
     .from("oportunidades")
-    .select("id, etapa, proxima_accion, proxima_accion_at, proxima_accion_hora, created_at, cuentas(razon_social), actividades(count)")
+    .select("id, etapa, proxima_accion, proxima_accion_at, proxima_accion_hora, created_at, cuenta_id, cuentas(razon_social), actividades(count), leads!oportunidades_lead_id_fkey(recibido_at)")
     .eq("comercial_id", perfil.id)
     .is("cerrada_at", null)
     .not("etapa", "in", '("venta","rechazada","derivada","historico")')
     .limit(2000);
   const tareas: Tarea[] = [];
   const agenda: EventoAgenda[] = [];
-  for (const o of (data ?? []) as unknown as { id: string; etapa: string; proxima_accion: string | null; proxima_accion_at: string | null; proxima_accion_hora: string | null; created_at: string; cuentas: { razon_social: string } | null; actividades: { count: number }[] | null }[]) {
+  type Fila = {
+    id: string; etapa: string; proxima_accion: string | null; proxima_accion_at: string | null; proxima_accion_hora: string | null;
+    created_at: string; cuenta_id: string | null; cuentas: { razon_social: string } | null; actividades: { count: number }[] | null;
+    leads: { recibido_at: string | null } | null;
+  };
+  const filas = (data ?? []) as unknown as Fila[];
+
+  // YA LO ATENDIERON EN OTRA FICHA DEL MISMO CLIENTE (29-09, Ariana con VILMA
+  // GARCIA y EGOAVIL). La regla existe desde el 09-09 y el 11-09 en Mi día
+  // (`atencionesEnOtraFicha`), pero esta vista, que pasó a todas las cuentas
+  // el 25-09, no la traía: la ficha derivada vacía volvía a salir como
+  // «Primer contacto» y el gemelo de un cliente ya cerrado, como vencido.
+  // Igual que en Mi día: la recién asignada se mide desde que llegó el lead;
+  // la vencida, desde lo último entre su vencimiento y su propia gestión.
+  // No se esconden: son fichas repetidas que alguien tiene que archivar.
+  const nuevasSinGestion = filas.filter((o) => o.etapa === "asignada" && (o.actividades?.[0]?.count ?? 0) === 0);
+  const vencidasCandidatas = filas.filter((o) => !nuevasSinGestion.includes(o) && o.proxima_accion_at && o.proxima_accion_at < hoy);
+  const ultimaPropia = new Map<string, string>();
+  const idsVencidas = vencidasCandidatas.map((o) => o.id);
+  for (let i = 0; i < idsVencidas.length; i += 100) {
+    const { data: acts } = await supabase.from("actividades").select("oportunidad_id, realizada_at").in("oportunidad_id", idsVencidas.slice(i, i + 100));
+    for (const a of (acts ?? []) as { oportunidad_id: string; realizada_at: string }[]) {
+      const actual = ultimaPropia.get(a.oportunidad_id);
+      if (!actual || a.realizada_at > actual) ultimaPropia.set(a.oportunidad_id, a.realizada_at);
+    }
+  }
+  const alLado = await atencionesEnOtraFicha(supabase, [
+    ...nuevasSinGestion.map((o) => ({ id: o.id, cuentaId: o.cuenta_id, recibidoAt: o.leads?.recibido_at ?? null, creadaAt: o.created_at })),
+    ...vencidasCandidatas.map((o) => ({
+      id: o.id,
+      cuentaId: o.cuenta_id,
+      recibidoAt: [o.proxima_accion_at, ultimaPropia.get(o.id)].filter((x): x is string => Boolean(x)).sort().pop() ?? null,
+      creadaAt: o.created_at,
+    })),
+  ]);
+
+  for (const o of filas) {
     const cliente = sinRuc(o.cuentas?.razon_social);
     const href = `/comercial/oportunidades/${o.id}`;
+    const alLadoDeEsta = alLado.get(o.id);
+    if (alLadoDeEsta) {
+      const esNueva = nuevasSinGestion.includes(o);
+      const cuando = new Date(esNueva ? alLadoDeEsta.fecha : alLadoDeEsta.ultima).toLocaleDateString("es-PE", { timeZone: "America/Lima" });
+      tareas.push({ id: `al-${o.id}`, urgencia: "semana", tipo: "cliente", cliente, que: "Ya atendido en otra ficha suya", porque: `Lo gestionó el ${cuando} en otra ficha del mismo cliente. Si es la misma consulta, archive esta.`, accion: { etiqueta: "Revisar", href } });
+      continue;
+    }
     // «Sin gestión» solo si de verdad no hay ninguna: una marca de WhatsApp
     // «no contesta» deja la etapa en asignada, pero SÍ es gestión.
     const gestiones = o.actividades?.[0]?.count ?? 0;
