@@ -456,7 +456,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
           <p className="mb-1 text-xs font-medium text-foreground">Fotos que le mandó el cliente</p>
           <CampoAdjuntos
             ctl={adjuntos}
-            ayuda="La foto de la placa —la que aclara la serie—, del equipo o del error · hasta 5 archivos de 10 MB"
+            ayuda="La foto de la placa —la que aclara la serie—, la foto o el video del equipo o del error · hasta 5 archivos (10 MB; videos 25 MB)"
           />
         </div>
       </Paso>

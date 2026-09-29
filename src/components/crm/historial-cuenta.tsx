@@ -87,6 +87,13 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
     return orden === "reciente" ? base : [...base].reverse();
   }, [eventos, busqueda, orden, filtroExpediente]);
 
+  // LA HISTORIA DE ANTES, A LA VISTA (Katerine, 29-09: «este prospecto tiene
+  // historial pero no está en el CRM»). Sus gestiones de mayo estaban, en los
+  // expedientes históricos del mismo cliente; dentro del expediente nuevo solo
+  // se veía lo suyo, y el botón para ver lo demás no decía que había algo.
+  const deOtrosExpedientes = oportunidadActualId ? eventos.filter((e) => e.expediente !== oportunidadActualId) : [];
+  const ultimaDeOtros = deOtrosExpedientes.reduce<string | null>((m, e) => (!m || e.fecha > m ? e.fecha : m), null);
+
   if (eventos.length === 0) {
     return <p className="text-sm text-muted-foreground">Sin historial registrado para este cliente todavía.</p>;
   }
@@ -143,6 +150,22 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
         </div>
       </div>
 
+      {oportunidadActualId && filtroExpediente && deOtrosExpedientes.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setFiltroExpediente(null)}
+          className="flex w-full items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left text-xs text-amber-900 transition-colors hover:bg-amber-500/15 dark:text-amber-200"
+        >
+          <span>
+            <b className="font-semibold">Este cliente ya tiene historia:</b> {deOtrosExpedientes.length}{" "}
+            {deOtrosExpedientes.length === 1 ? "movimiento" : "movimientos"} en otros expedientes
+            {ultimaDeOtros ? `, el último el ${fechaAgendada(ultimaDeOtros.slice(0, 10))}` : ""}.
+          </span>
+          <span className="inline-flex flex-none items-center gap-0.5 font-semibold">
+            Ver todo el historial <ChevronRight className="size-3.5" />
+          </span>
+        </button>
+      )}
       {oportunidadActualId ? (
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-muted-foreground">

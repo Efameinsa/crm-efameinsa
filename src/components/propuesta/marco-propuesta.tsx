@@ -6,6 +6,7 @@ import { MenuMovil } from "@/components/propuesta/menu-movil";
 import { BarraProgreso } from "@/components/propuesta/barra-progreso";
 import { GuardaDemo } from "@/components/propuesta/guarda-demo";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
+import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
 import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { SelectorFechaHora } from "@/components/propuesta/selector-fecha-hora";
 import { TemaEnElCuerpo } from "@/components/propuesta/tema-en-el-cuerpo";
@@ -139,6 +140,15 @@ export async function MarcoPropuesta({
           {pasaContactos && (
             <span className="pasar-a-central">
               <PasarContactoCentral contexto={tipo === "postventa" ? "postventa" : tipo === "almacen" ? "almacen" : "comercial"} campaniasWhatsapp={campanias} />
+            </span>
+          )}
+          {/* «VIENE A LA PLANTA» A LA VISTA (Gabriela, 29-09: «ya no aparece la
+              opción de registrar cliente que viene a planta»). En la vista nueva
+              quedó escondida en Agenda › Visitas a planta y en la ficha; vuelve a
+              la cabecera para quien recibe clientes en la planta. */}
+          {(tipo === "comercial" || tipo === "preventivo" || tipo === "postventa") && (
+            <span className="pasar-a-central">
+              <VisitaPlantaBoton cuentaId={null} empresa="" ruc={null} cabecera />
             </span>
           )}
           {/* LA CAMPANA DE VERDAD (25-09): la lista de avisos, cada uno lleva a su

@@ -29,11 +29,17 @@ const MIME_POR_EXTENSION: Record<string, string> = {
   jpeg: "image/jpeg",
   png: "image/png",
   webp: "image/webp",
+  // Videos (Central, 29-09: «no se puede adjuntar videos»; 0337).
+  mp4: "video/mp4",
+  "3gp": "video/3gpp",
+  mov: "video/quicktime",
+  webm: "video/webm",
 };
 
 export const MAX_ADJUNTOS = 5;
-export const MAX_TAMANO = 10 * 1024 * 1024; // límite del bucket
-export const ACEPTA_ADJUNTOS = ".pdf,.doc,.docx,.xls,.xlsx,image/jpeg,image/png,image/webp";
+export const MAX_TAMANO = 10 * 1024 * 1024; // fotos y documentos
+export const MAX_TAMANO_VIDEO = 25 * 1024 * 1024; // límite del bucket (0337)
+export const ACEPTA_ADJUNTOS = ".pdf,.doc,.docx,.xls,.xlsx,image/jpeg,image/png,image/webp,.mp4,.3gp,.mov,.webm,video/mp4,video/3gpp,video/quicktime,video/webm";
 
 function tipoDeArchivo(f: File): string | null {
   if (f.type && Object.values(MIME_POR_EXTENSION).includes(f.type)) return f.type;
@@ -92,11 +98,12 @@ export function useAdjuntos() {
         }
         const tipo = tipoDeArchivo(f);
         if (!tipo) {
-          toast.error(`"${f.name}": solo se aceptan fotos, PDF, Word o Excel`);
+          toast.error(`"${f.name}": solo se aceptan fotos, videos, PDF, Word o Excel`);
           continue;
         }
-        if (f.size > MAX_TAMANO) {
-          toast.error(`"${f.name}" pasa de 10 MB`);
+        const esVideo = tipo.startsWith("video/");
+        if (f.size > (esVideo ? MAX_TAMANO_VIDEO : MAX_TAMANO)) {
+          toast.error(`"${f.name}" pasa de ${esVideo ? "25" : "10"} MB`);
           continue;
         }
         const esImagen = tipo.startsWith("image/");
@@ -222,7 +229,7 @@ export function CampoAdjuntos({
           )}
         </span>
         <span className="text-xs text-muted-foreground">
-          {ayuda ?? `Fotos, PDF, Word o Excel · hasta ${MAX_ADJUNTOS} archivos de 10 MB`}
+          {ayuda ?? `Fotos, videos, PDF, Word o Excel · hasta ${MAX_ADJUNTOS} archivos (10 MB; videos 25 MB)`}
         </span>
         <input
           type="file"
