@@ -111,6 +111,8 @@ interface FilaLead {
   asignado_at: string | null;
   asignado_a: string | null;
   oportunidad_id: string | null;
+  anulado_at: string | null;
+  anulado_motivo: string | null;
 }
 
 /** El enum viejo de tres clases (0080), para lo que se mandó antes de la pista técnica. */
@@ -139,7 +141,7 @@ export async function listarMandadoACentral(
   perfilId: string,
 ): Promise<Mandado[]> {
   const campos =
-    "id, codigo, estado, canal, razon_social, nombre_contacto, num_doc, telefono, email, mensaje, sugerido_atencion, sugerido_tipo, adjuntos, recibido_at, asignado_at, asignado_a, oportunidad_id";
+    "id, codigo, estado, canal, razon_social, nombre_contacto, num_doc, telefono, email, mensaje, sugerido_atencion, sugerido_tipo, adjuntos, recibido_at, asignado_at, asignado_a, oportunidad_id, anulado_at, anulado_motivo";
   // SIETE DÍAS, NO VEINTICUATRO HORAS (Carlos, 22-09). Brenda derivó a
   // Central el contacto de Inversiones Huamán Ruiz el lunes; el martes a las
   // 11 de la mañana buscaron en su cuenta qué había mandado y no había nada:
@@ -205,6 +207,10 @@ export async function listarMandadoACentral(
     } else if (f.estado === "duplicado") {
       estado = "cerrado";
       frase = `Central lo marcó como repetido: ya estaba registrado · hace ${cuanto}`;
+    } else if (f.estado === "descartado" && f.anulado_at) {
+      // 0338: lo anuló quien lo mandó, con código. No es que Central lo descartara.
+      estado = "cerrado";
+      frase = `Lo anuló usted con código${f.anulado_motivo ? `: «${f.anulado_motivo}»` : ""} · hace ${cuanto}`;
     } else if (f.estado === "descartado") {
       estado = "cerrado";
       frase = `Central lo descartó · hace ${cuanto}`;

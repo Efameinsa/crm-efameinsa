@@ -223,7 +223,15 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
         toast.error(r.error);
         return;
       }
-      toast.success(`Contacto ${r.codigo ?? ""} enviado a Central`.trim());
+      if (r.repetido) {
+        const hace = r.minutos !== undefined && r.minutos < 60 ? `hace ${Math.max(1, r.minutos)} min` : "hoy";
+        toast.info(
+          `Ese teléfono ya lo mandó ${hace} (${r.codigo}) y sigue en la bandeja de Central. No se duplicó. Si algún dato estaba mal, ábralo en «Lo que mandé a Central» y corríjalo con código.`,
+          { duration: 12000 },
+        );
+      } else {
+        toast.success(`Contacto ${r.codigo ?? ""} enviado a Central`.trim());
+      }
       limpiarTodo();
       setAbierto(false);
       router.refresh();
