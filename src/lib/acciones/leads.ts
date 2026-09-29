@@ -136,7 +136,7 @@ export async function contactosDeLaCuenta(cuentaId: string): Promise<ContactoDeL
 
 export async function registrarContacto(
   formData: FormData,
-): Promise<{ error: string | null; codigo?: string }> {
+): Promise<{ error: string | null; codigo?: string; repetido?: boolean; minutos?: number }> {
   const datos = esquemaCaptura.safeParse(Object.fromEntries(formData));
   if (!datos.success) {
     return { error: datos.error.issues[0].message };
@@ -163,6 +163,30 @@ export async function registrarContacto(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sesión expirada" };
+
+  // EL MISMO CONTACTO DOS VECES NO. Almacén, 29-09: PRO-10052 a las 11:00 y
+  // PRO-10053 a las 11:01, iguales; Katerine el 24-09 (PRO-09876/09877), y 9
+  // pares en 60 días entre Central, Brenda, Katerine y Almacén. Si esta misma
+  // persona ya mandó ese teléfono y sigue en la bandeja de Central, no se crea
+  // otro: se le dice cuál es, como en el registro de postventa (0206). Si el
+  // primero tenía un dato mal, se corrige con código desde «Lo que mandé a
+  // Central» (0338).
+  const digitos = (d.telefono ?? "").replace(/\D/g, "").slice(-9);
+  if (digitos.length >= 6) {
+    const { data: pendientes } = await supabase
+      .from("leads")
+      .select("codigo, telefono, recibido_at")
+      .eq("recibido_por", user.id)
+      .eq("estado", "pendiente_triaje")
+      .gte("recibido_at", new Date(Date.now() - 24 * 36e5).toISOString())
+      .order("recibido_at", { ascending: false })
+      .limit(50);
+    const previo = (pendientes ?? []).find((p) => (p.telefono ?? "").replace(/\D/g, "").slice(-9) === digitos);
+    if (previo) {
+      const minutos = Math.round((Date.now() - new Date(previo.recibido_at).getTime()) / 60000);
+      return { error: null, codigo: previo.codigo ?? undefined, repetido: true, minutos };
+    }
+  }
 
   // R1: si no es comercial, el triaje termina aquí mismo.
   const esComercial = d.area_destino === "comercial";
@@ -958,6 +982,51 @@ export async function corregirDatosLead(
 
   revalidatePath("/central");
   return { error: null };
+}
+
+/**
+ * Quien pasó un contacto a Central lo anula mientras sigue en la bandeja, con
+ * código de supervisor y motivo (0338). Almacén, 29-09: registró dos veces un
+ * contacto con la razón social equivocada y no tenía cómo deshacerlo.
+ */
+export async function anularMiRegistro(
+  leadId: string,
+  pin: string,
+  motivo: string,
+): Promise<{ error: string | null; resumen?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("anular_mi_registro", { p_lead: leadId, p_pin: pin, p_motivo: motivo });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  revalidarLoMandado();
+  return { error: null, resumen: typeof data === "string" ? data : undefined };
+}
+
+/** Lo mismo, pero corrigiendo los datos en vez de anular (0338). */
+export async function corregirMiRegistro(
+  leadId: string,
+  pin: string,
+  motivo: string,
+  datos: { nombre: string; razonSocial: string; telefono: string; email: string; numDoc: string; mensaje: string },
+): Promise<{ error: string | null; resumen?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("corregir_mi_registro", {
+    p_lead: leadId,
+    p_pin: pin,
+    p_motivo: motivo,
+    p_nombre: datos.nombre,
+    p_razon_social: datos.razonSocial,
+    p_telefono: datos.telefono,
+    p_email: datos.email,
+    p_num_doc: datos.numDoc,
+    p_mensaje: datos.mensaje,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  revalidarLoMandado();
+  return { error: null, resumen: typeof data === "string" ? data : undefined };
+}
+
+function revalidarLoMandado() {
+  for (const ruta of ["/central", "/almacen", "/comercial", "/postventa", "/postventa/atenciones"]) revalidatePath(ruta);
 }
 
 export interface CuentaParaUnir {

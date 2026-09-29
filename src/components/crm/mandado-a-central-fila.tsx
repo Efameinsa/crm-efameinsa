@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "@/components/enlace";
 import { ArrowRight, Check, Clock, Send, X } from "lucide-react";
 import { AdjuntosLead } from "@/components/crm/adjuntos-lead";
+import { CorregirOAnularMandado } from "@/components/crm/corregir-o-anular-mandado";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fechaHoraLima } from "@/lib/fechas";
@@ -143,6 +144,12 @@ export function FilaMandado({ fila }: { fila: Mandado }) {
               <p className="mt-1 text-sm text-muted-foreground">No se adjuntó ningún archivo.</p>
             )}
           </div>
+
+          {/* Mientras sigue en la bandeja de Central, quien lo mandó lo puede
+              corregir o anular con código (0338). */}
+          {fila.estado === "esperando" && (
+            <CorregirOAnularMandado leadId={fila.id} detalle={d} onListo={() => setAbierto(false)} />
+          )}
 
           {/* Si el caso lo trabaja otra área no hay expediente que abrir para
               quien lo mandó, y se dice, en vez de dejar un botón que no lleva
