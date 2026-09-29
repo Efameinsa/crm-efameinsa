@@ -5,6 +5,11 @@
 # Solo `main` construye (26-09: 45 de 179 builds eran de ramas de prueba que
 # nadie abría). Una rama se construye si se llama vista-previa/… o si el
 # commit lleva «[vista-previa]».
+# «[construir]» en el mensaje fuerza el build (29-09): cambiar solo variables
+# de entorno —como al pasar al piloto local— no trae código nuevo, y sin esto
+# el filtro cancelaba el despliegue y las variables no entraban.
+echo "$VERCEL_GIT_COMMIT_MESSAGE" | grep -q '\[construir\]' && exit 1
+
 case "$VERCEL_GIT_COMMIT_REF" in
   main|vista-previa/*) ;;
   *) echo "$VERCEL_GIT_COMMIT_MESSAGE" | grep -q '\[vista-previa\]' || exit 0 ;;
