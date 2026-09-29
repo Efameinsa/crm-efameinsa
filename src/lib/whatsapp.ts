@@ -69,7 +69,23 @@ interface ResultadoEnvio {
   error: string | null;
 }
 
-async function llamarGraphAPI(cuerpo: Record<string, unknown>): Promise<ResultadoEnvio> {
+/**
+ * ¿Es un identificador de usuario de WhatsApp (BSUID) y no un teléfono?
+ *
+ * Desde el 31-03-2026 quien escribe con nombre de usuario de WhatsApp no
+ * muestra su número: Meta manda `PE.1028809843524508` y el CRM lo guarda en
+ * `telefono`. A ese identificador se le escribe con `recipient`, no con `to`
+ * (`to` es solo para teléfonos): con `to`, Meta responde «(#131009) Parameter
+ * value is not valid». Pasó del 23 al 28-09 con 15 mensajes de Katerine y
+ * Moisés, respuestas automáticas incluidas (29-09, probado contra Meta).
+ */
+export function esIdentificadorWhatsapp(destino: string): boolean {
+  return /^[A-Z]{2}\.[0-9A-Za-z]+$/.test(destino);
+}
+
+async function llamarGraphAPI(cuerpoPedido: Record<string, unknown>): Promise<ResultadoEnvio> {
+  const { to, ...resto } = cuerpoPedido;
+  const cuerpo = typeof to === "string" && esIdentificadorWhatsapp(to) ? { ...resto, recipient: to } : cuerpoPedido;
   const creds = credenciales();
   if (!creds) {
     return { ok: false, wamid: null, error: "WhatsApp todavía no está configurado (falta el token del número real o de pruebas)." };

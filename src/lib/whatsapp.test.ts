@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ventanaDe } from "@/lib/whatsapp";
+import { esIdentificadorWhatsapp, ventanaDe } from "@/lib/whatsapp";
 
 // Las dos ventanas de Meta (0265): 24 h desde el último mensaje del cliente,
 // y 72 h desde el clic en el anuncio. Se puede escribir mientras UNA esté
@@ -31,5 +31,19 @@ describe("la ventana para escribir por WhatsApp", () => {
 
   it("sin mensajes del cliente no hay ventana", () => {
     expect(ventanaDe(null).abierta).toBe(false);
+  });
+});
+
+// Quien escribe con nombre de usuario de WhatsApp llega con un BSUID en vez de
+// teléfono, y a ese se le escribe con `recipient` (29-09, error 131009).
+describe("esIdentificadorWhatsapp", () => {
+  it("reconoce el identificador de usuario de Meta (BSUID)", () => {
+    expect(esIdentificadorWhatsapp("PE.1028809843524508")).toBe(true);
+    expect(esIdentificadorWhatsapp("BR.1234567890")).toBe(true);
+  });
+  it("un teléfono sigue siendo teléfono", () => {
+    expect(esIdentificadorWhatsapp("51952538982")).toBe(false);
+    expect(esIdentificadorWhatsapp("+51952538982")).toBe(false);
+    expect(esIdentificadorWhatsapp("")).toBe(false);
   });
 });
