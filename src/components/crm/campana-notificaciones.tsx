@@ -224,6 +224,8 @@ export function CampanaNotificaciones({
    * que suene dos veces lo que el canal vivo ya anunció.
    */
   const conocidasRef = useRef<Set<string> | null>(null);
+  /** El repaso completo, para pedirlo al abrir la campana (29-09). */
+  const refrescarRef = useRef<((conRecientes?: boolean) => Promise<void>) | null>(null);
 
   const noLeidas = Math.max(
     notificaciones.filter((n) => !n.leida_at).length,
@@ -297,8 +299,35 @@ export function CampanaNotificaciones({
      * el 28-08: «no se están prendiendo el color cuando le llegan las
      * notificaciones». Se relee al volver a la pestaña y cada minuto.
      */
-    async function refrescar() {
+    async function refrescar(conRecientes = true) {
       const columnas = "id, tipo, titulo, cuerpo, url, leida_at, created_at";
+      // EL REPASO SOLO PIDE LAS PENDIENTES (29-09). Las 15 recientes ya leídas
+      // no cambian solas: se piden al entrar, al volver a la pestaña y al abrir
+      // la campana. Así cada repaso es una consulta y no dos.
+      if (!conRecientes) {
+        const pendientes = await supabase
+          .from("notificaciones")
+          .select(columnas, { count: "exact" })
+          .is("leida_at", null)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (!pendientes.data) return;
+        const sinLeer = pendientes.data;
+        const vistos = new Set(sinLeer.map((n) => n.id));
+        const ahora = new Date().toISOString();
+        // Lo que ya no está pendiente se leyó en otra pestaña: queda en gris.
+        setNotificaciones((prev) => [
+          ...sinLeer,
+          ...prev.filter((n) => !vistos.has(n.id)).map((n) => (n.leida_at ? n : { ...n, leida_at: ahora })),
+        ]);
+        setSinLeerTotal(pendientes.count ?? sinLeer.length);
+        if (conocidasRef.current !== null) {
+          const nuevas = sinLeer.filter((n) => !conocidasRef.current!.has(n.id));
+          for (const n of sinLeer) conocidasRef.current.add(n.id);
+          for (const n of nuevas.slice(0, 3)) avisar(n);
+        }
+        return;
+      }
       // DOS consultas, no una. Antes se pedían solo las 15 más recientes y el
       // número se contaba aparte sobre toda la base: si una pendiente quedaba
       // más atrás de esas 15, la campana marcaba «2» y la lista salía toda en
@@ -343,6 +372,7 @@ export function CampanaNotificaciones({
       }
     }
 
+    refrescarRef.current = refrescar;
     refrescar();
     const alVolver = () => {
       if (document.visibilityState === "visible") refrescar();
@@ -353,13 +383,24 @@ export function CampanaNotificaciones({
     // pestaña y obligaba a la base a revisar cada aviso contra la seguridad
     // de cada suscriptor: era lo que más recursos gastaba. El repaso ya
     // anunciaba lo nuevo (ventana emergente y sonido) desde el 31-08, así que
-    // queda como único camino: cada 20 s con la pestaña a la vista y cada
-    // minuto en segundo plano. Dos consultas chicas sobre índices propios.
-    let vueltas = 0;
+    // queda como único camino.
+    //
+    // MENOS SEGUIDO (29-09). Cada 20 s en cada pestaña eran 1 600 a 3 600
+    // consultas por persona al día: la campana era el 16 % de todo lo que
+    // recibía la base, con la base saturada y la cuota gastada. Ahora: Central
+    // (mide la entrega rápida del prospecto) cada 30 s a la vista y cada
+    // minuto en segundo plano; el resto cada minuto a la vista y cada 5 en
+    // segundo plano. Al volver a la pestaña se repasa enseguida igual.
+    const esCentral = rol === "central";
+    const cadaVisible = esCentral ? 30_000 : 60_000;
+    const cadaOculta = esCentral ? 60_000 : 300_000;
+    let ultimo = Date.now();
     const repaso = setInterval(() => {
-      vueltas++;
-      if (document.visibilityState === "visible" || vueltas % 3 === 0) refrescar();
-    }, 20000);
+      const cada = document.visibilityState === "visible" ? cadaVisible : cadaOculta;
+      if (Date.now() - ultimo < cada - 1000) return;
+      ultimo = Date.now();
+      refrescar(false);
+    }, 15_000);
 
     // Deja el audio autorizado con el primer clic: si no, el primer aviso del
     // día llegaría mudo porque el navegador todavía no permite sonido.
@@ -505,7 +546,10 @@ export function CampanaNotificaciones({
     <div className="relative" ref={contenedorRef}>
       <button
         type="button"
-        onClick={() => setAbierto((v) => !v)}
+        onClick={() => {
+          if (!abierto) refrescarRef.current?.(true);
+          setAbierto((v) => !v);
+        }}
         className="relative flex items-center justify-center rounded-md border border-border p-2 text-foreground transition-colors hover:bg-accent"
         aria-label={`Notificaciones${noLeidas > 0 ? `, ${noLeidas} sin leer` : ""}`}
       >
