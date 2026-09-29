@@ -1,5 +1,5 @@
 import Link from "@/components/enlace";
-import { FileText, FilePlus2 } from "lucide-react";
+import { FileText, FilePlus2, Pencil } from "lucide-react";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fechaCalendario } from "@/lib/fechas";
 import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
@@ -112,6 +112,26 @@ export function ListaInformesCierre({
                 ciegos… va a tener que ser mostrado»). El 22-09 lo intentaron
                 desde ESTA lista y el botón no estaba: solo se ocultan los
                 montos, el documento se ve. */}
+            {/* SEGUIR EL BORRADOR DESDE ACÁ (Gabriela, 29-09: «aún no puedo
+                editar mi cierre de Inversiones Huamán Ruiz»). Entraba por el
+                expediente y el borrador solo tenía «Ver PDF»: editar vivía
+                únicamente en «Mis cierres». */}
+            <span className="flex items-center gap-1.5">
+            {!inf.emitido_at && !inf.anulado_at ? (
+              <Link
+                href={`/comercial/cierres/${inf.id}/editar`}
+                className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                <Pencil className="size-3" /> Seguir editando
+              </Link>
+            ) : (
+              <Link
+                href={`/comercial/cierres/${inf.id}`}
+                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+              >
+                Abrir
+              </Link>
+            )}
             {(
               <VerPdfEnLaApp
                 url={`/api/informes/${inf.id}/pdf`}
@@ -121,6 +141,7 @@ export function ListaInformesCierre({
                 <FileText className="size-3" /> Ver PDF
               </VerPdfEnLaApp>
             )}
+            </span>
           </div>
 
           {/* El expediente: la OC del cliente, el voucher, la cotización
