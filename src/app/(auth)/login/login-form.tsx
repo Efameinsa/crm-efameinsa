@@ -43,9 +43,13 @@ export function LoginForm() {
 
           <div className="relative flex flex-col items-center text-center">
             <Image src="/efameinsa-blanco.png" alt="Efameinsa" width={442} height={334} priority className="h-16 w-auto drop-shadow-[0_4px_18px_rgba(0,0,0,0.35)]" />
-            <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.2em] text-white/80">
+            {/* No es solo comercial (Santos, 29-09): lo usan almacén, finanzas,
+                facturación, postventa y gerencia. «CRM» va debajo porque es
+                el nombre con que todos lo conocen. */}
+            <p className="mt-4 text-[15px] font-semibold tracking-tight text-white/90">Sistema Integrado de Gestión</p>
+            <span className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.24em] text-white/75">
               <span className="size-1.5 rounded-full bg-[#e0483f] shadow-[0_0_8px_#e0483f]" />
-              CRM Comercial
+              CRM
             </span>
             <h1 className="mt-5 text-[22px] font-bold tracking-tight text-white">Iniciar sesión</h1>
             <p className="mt-1 text-sm text-white/60">Ingrese con su correo de la empresa.</p>
