@@ -86,14 +86,28 @@ export default async function MisCotizacionesPage({
   const supabase = await createClient();
   const anioActual = Number(new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }).slice(0, 4));
 
+  // POSTVENTA VE LAS COTIZACIONES DEL ÁREA (29-09). Rubí, Ariana y Gabriela no
+  // tienen cartera propia y cotizan en los expedientes del área (0323), que en
+  // su mayoría están a nombre de PV: filtrando por «el dueño soy yo», Ariana y
+  // Gabriela no veían las cotizaciones que ellas mismas hicieron.
+  let duenos = [perfil.id];
+  if (perfil.es_postventa) {
+    const { data: area } = await supabase
+      .from("perfiles")
+      .select("id")
+      .eq("es_postventa", true)
+      .eq("es_prueba", perfil.es_prueba === true);
+    duenos = [...new Set([perfil.id, ...((area ?? []) as { id: string }[]).map((x) => x.id)])];
+  }
+
   let qArchivo = supabase
     .from("cotizaciones_historicas")
     .select("id, codigo, serie, cliente, fecha, monto_sin_igv, anio, cargada_por", { count: "exact" })
-    .eq("comercial_id", perfil.id);
+    .in("comercial_id", duenos);
   let qCrm = supabase
     .from("cotizaciones")
     .select("id, codigo, serie, total, moneda, enviada_at, vigencia_dias, version, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
-    .eq("oportunidades.comercial_id", perfil.id)
+    .in("oportunidades.comercial_id", duenos)
     .not("enviada_at", "is", null);
   // Los borradores no tienen número: se buscan por el cliente, en memoria, y
   // solo en la primera página — son pocos y son lo que falta terminar.
@@ -102,7 +116,7 @@ export default async function MisCotizacionesPage({
       ? supabase
           .from("cotizaciones")
           .select("id, codigo, serie, total, moneda, created_at, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
-          .eq("oportunidades.comercial_id", perfil.id)
+          .in("oportunidades.comercial_id", duenos)
           .eq("estado", "borrador")
           .is("enviada_at", null)
           .order("created_at", { ascending: false })
