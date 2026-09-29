@@ -36,6 +36,7 @@ export default async function AprobacionesPage() {
     .from("cotizaciones")
     .select(
       `id, codigo, serie, total, moneda, created_at, oportunidad_id, version,
+       autor:perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre)),
        cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
     )
@@ -91,6 +92,11 @@ export default async function AprobacionesPage() {
               cuentas: { razon_social: string } | null;
               perfiles: { nombre: string } | null;
             } | null;
+            // QUIÉN LA HIZO, no de quién es el expediente (29-09). En postventa
+            // cualquiera del área cotiza en expedientes a nombre de PV: una
+            // cotización de Gabriela (PV2) salía «De Rubí Simeon».
+            const autor = c.autor as unknown as { nombre: string; codigo_comercial: string | null } | null;
+            const dueno = oportunidad?.perfiles?.nombre ?? null;
             const items = (c.cotizacion_items as unknown as {
               id: string;
               cantidad: number;
@@ -121,7 +127,8 @@ export default async function AprobacionesPage() {
                           enviarla (migración 0064). */}
                       <span className="font-mono">{c.codigo ?? "Borrador"}</span>
                       {c.codigo && <EtiquetaVersion version={c.version} />} · Serie {c.serie} · De{" "}
-                      {oportunidad?.perfiles?.nombre ?? "un comercial"} ·{" "}
+                      {autor?.nombre ?? dueno ?? "un comercial"}
+                      {autor && dueno && autor.nombre !== dueno && ` (expediente de ${dueno})`} ·{" "}
                       {fechaLima(c.created_at)} ·{" "}
                       <span className="font-semibold text-amber-700">
                         {porDecidir} de {items.length} por debajo de la referencia
