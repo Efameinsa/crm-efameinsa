@@ -729,7 +729,15 @@ export function PedidoPostventa({
         campos={[
           { nombre: "fecha", etiqueta: "Fecha de despacho", tipo: "date", inicial: servicio.fecha_despacho ?? hoy, requerido: true },
           { nombre: "hora", etiqueta: "Hora (a la que sale del almacén)", tipo: "time", inicial: servicio.despacho_hora ? String(servicio.despacho_hora).slice(0, 5) : "", requerido: true },
-          { nombre: "nota", etiqueta: "Nota (horario, con quién coordinó)", inicial: servicio.despacho_nota ?? "", requerido: false },
+          {
+            nombre: "nota",
+            etiqueta: "Con quién del cliente coordinó (nombre y celular) y en qué horario recibe",
+            area: true,
+            // Una nota que es solo una fecha («25/09/2026») viene de la fecha tentativa de antes: la fecha ya va arriba.
+            inicial: /^\s*\d{1,2}\/\d{1,2}\/\d{2,4}\s*$/.test(servicio.despacho_nota ?? "") ? "" : servicio.despacho_nota ?? "",
+            ejemplo: "Ej.: Juan Pérez (almacén), 987 654 321 — recibe de 2 a 5 pm",
+            requerido: false,
+          },
           ...(servicio.apertura_despacho_at
             ? [{ nombre: "pin", etiqueta: "La apertura ya salió: código de operaciones o gerencia para cambiar la fecha", requerido: true }]
             : []),
@@ -891,6 +899,8 @@ interface Campo {
   /** Un archivo (foto, pantallazo, PDF) en vez de texto: llega en el segundo argumento de onEnviar. */
   archivo?: boolean;
   inicial?: string;
+  /** Texto gris dentro del campo vacío: un ejemplo de qué se escribe ahí. */
+  ejemplo?: string;
   requerido?: boolean;
   /** Lista cerrada: se elige, no se tipea (0232). */
   opciones?: { valor: string; etiqueta: string }[];
@@ -1014,6 +1024,7 @@ function Cuadro({
                 <Textarea
                   id={`campo-${c.nombre}`}
                   rows={2}
+                  placeholder={c.ejemplo}
                   value={datos[c.nombre]}
                   onChange={(e) => setValores((v) => ({ ...v, [c.nombre]: e.target.value }))}
                 />
@@ -1021,6 +1032,7 @@ function Cuadro({
                 <Input
                   id={`campo-${c.nombre}`}
                   type={c.tipo ?? "text"}
+                  placeholder={c.ejemplo}
                   value={datos[c.nombre]}
                   onChange={(e) => setValores((v) => ({ ...v, [c.nombre]: e.target.value }))}
                 />
