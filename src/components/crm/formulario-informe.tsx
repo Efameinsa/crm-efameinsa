@@ -643,7 +643,9 @@ export function FormularioInforme({
         toast.success("Documentos agregados al expediente.");
       }
       olvidarLocal();
-      router.push(`/comercial/cierres/${b.id}`);
+      // Si Central lo había devuelto, allá el aviso cambia a «ahora avísele a
+      // Central» con el botón a la vista (30-09).
+      router.push(`/comercial/cierres/${b.id}?corregido=1`);
       router.refresh();
     });
   }

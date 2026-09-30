@@ -8,6 +8,7 @@ import { VistaCierre, type InformeVista, type ItemVista, type VersionVista } fro
 import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
 import { cargarCompendio, oportunidadDelInforme } from "@/lib/compendio-cierre";
 import type { ContactoInforme } from "@/lib/pdf/informe-cierre-pdf";
+import { AvisoDevolucionCierre, devolucionAbierta } from "@/components/crm/aviso-devolucion-cierre";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,15 @@ export const dynamic = "force-dynamic";
  * RLS limita quién llega: el comercial ve los informes de SU cartera (0049);
  * gerencia, Central y operaciones ven todo. Si no es suyo, no existe para él.
  */
-export default async function CierrePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CierrePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ corregido?: string }>;
+}) {
   const { id } = await params;
+  const { corregido } = await searchParams;
   const perfil = await requerirPerfil();
   const supabase = await createClient();
 
@@ -38,7 +46,7 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
   // vista completa, con cifras, no es para esa área (salvo un cierre propio).
   if (!puedeVerPrecios(perfil) && informe.creado_por !== perfil.id) notFound();
 
-  const [adjuntosPorInforme, compendio, { data: versionesData }, { data: ventanaData }] = await Promise.all([
+  const [adjuntosPorInforme, compendio, { data: versionesData }, { data: ventanaData }, devolucion] = await Promise.all([
     firmarAdjuntosDeCierres(supabase, [{ id: informe.id, adjuntos: (informe.adjuntos ?? []) as AdjuntoCierre[] }]),
     cargarCompendio(await oportunidadDelInforme(informe)).catch(() => null),
     supabase
@@ -49,6 +57,7 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
     // La ventana viva de este usuario, si la hay (0154): un F5 a mitad de la
     // corrección no debe obligar a pedir otro código.
     supabase.rpc("correccion_informe_abierta", { p_informe: informe.id }),
+    devolucionAbierta(supabase, informe.id),
   ]);
   const ventanaCruda = ventanaData as { expira_at: string; autorizo: string; motivo: string } | null;
   const correccionAbierta = ventanaCruda?.expira_at
@@ -140,6 +149,15 @@ export default async function CierrePage({ params }: { params: Promise<{ id: str
       >
         <ArrowLeft className="size-3.5" /> Mis cierres
       </Link>
+      {devolucion && informe.anulado_at == null && (
+        <AvisoDevolucionCierre
+          informeId={informe.id}
+          devolucion={devolucion}
+          recienCorregido={corregido === "1"}
+          // Lo reenvía quien lo emitió; gerencia y operaciones también, para destrabar (0178).
+          puedeReenviar={informe.creado_por === perfil.id || ["gerencia", "admin", "operaciones"].includes(perfil.rol)}
+        />
+      )}
       <VistaCierre
         informe={vista}
         adjuntos={adjuntosPorInforme.get(informe.id) ?? []}
