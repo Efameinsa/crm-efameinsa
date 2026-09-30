@@ -34,7 +34,9 @@ export const ETIQUETA_ACTIVIDAD: Record<string, string> = {
   whatsapp: "WhatsApp",
   email: "Correo",
   visita: "Visita",
-  reunion_online: "Reunión online",
+  // «Videollamada» desde el 30-09 (ing. Carlos: «Visitas y videollamadas… ya
+  // te puse internet, haz tu videollamada»). El tipo en la base no cambia.
+  reunion_online: "Videollamada",
   showroom: "Showroom",
   filtro: "Filtro",
   nota: "Nota",

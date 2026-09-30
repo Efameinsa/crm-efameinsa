@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { cargarPotenciales, resumirSemana, type ProyeccionSemana } from "@/lib/potenciales-semana";
 import { SEMANAS_POR_MES } from "@/lib/periodo";
 import { resumirAtenciones, type Atencion } from "@/lib/atenciones";
+import { esMarcaWhatsapp, WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
+import { cargarIndicadoresDelPeriodo, indicadoresParaDocumento, type IndicadoresDocumento } from "@/lib/indicadores-comerciales";
 
 /**
  * El cierre de la semana.
@@ -122,6 +124,12 @@ export interface CierreSemanal {
   medidas: { gestiones: Medida; cotizaciones: Medida; venta: Medida };
   /** La frase que cierra el bloque. «No es darle con palo, sino ver tu realidad.» */
   veredicto: { titulo: string; frase: string; estado: Medida["estado"] };
+  /**
+   * WhatsApp de campaña, visitas y videollamadas de la semana (ing. Carlos,
+   * 30-09: «esos dos puntos tienen que estar en su reporte… semanal»). Null
+   * para postventa, o si no se pudo calcular: el cierre sale igual.
+   */
+  indicadores?: IndicadoresDocumento | null;
 }
 
 /**
@@ -193,7 +201,7 @@ export async function cargarCierreSemanal(
         .limit(300),
       supabase
         .from("actividades")
-        .select("realizada_at, tipo, oportunidades!inner(comercial_id)")
+        .select("realizada_at, tipo, nota, oportunidades!inner(comercial_id)")
         .eq("oportunidades.comercial_id", comercialId)
         .in("tipo", TIPOS_CONTACTO)
         .gte("realizada_at", `${lunes}T00:00:00`)
@@ -233,12 +241,16 @@ export async function cargarCierreSemanal(
 
   const proyeccion = resumirSemana(lunes, potenciales);
 
+  // Las marcas de un botón en los chats de campaña no son gestión propia
+  // (30-09): van en su indicador, no en «Contactos con cliente».
+  const acts = (actsData ?? []).filter((a) => WHATSAPP_CUENTA_PARA_META || !esMarcaWhatsapp(a.tipo as string, a.nota as string | null));
+
   // Las gestiones se cuentan por día en hora de Lima: la columna es timestamptz
   // y tomar los diez primeros caracteres del UTC corre el día para todo lo
   // registrado después de las 19:00 (el mismo error de fecha que ya apareció
   // dos veces en este proyecto).
   const gestionesPorDia = new Map<string, number>();
-  for (const a of actsData ?? []) {
+  for (const a of acts) {
     const dia = new Date(a.realizada_at as string).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
     gestionesPorDia.set(dia, (gestionesPorDia.get(dia) ?? 0) + 1);
   }
@@ -273,7 +285,7 @@ export async function cargarCierreSemanal(
   const metaVenta = perfil?.meta_mensual ? Number(perfil.meta_mensual) / SEMANAS_POR_MES : null;
 
   const medidas = {
-    gestiones: medir(actsData?.length ?? 0, metaGestiones),
+    gestiones: medir(acts.length, metaGestiones),
     cotizaciones: medir(cotsData?.length ?? 0, metaCotizaciones),
     venta: medir(vendidoUsd, metaVenta),
   };
@@ -326,9 +338,21 @@ export async function cargarCierreSemanal(
         .limit(500)
     : { data: null };
 
+  let indicadores: IndicadoresDocumento | null = null;
+  if (!perfil?.es_postventa) {
+    try {
+      const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+      const eq = await cargarIndicadoresDelPeriodo(supabase, [comercialId], lunes, sabado, hoy);
+      indicadores = indicadoresParaDocumento(eq, comercialId);
+    } catch {
+      indicadores = null;
+    }
+  }
+
   return {
     lunes,
     sabado,
+    indicadores,
     comercial: { nombre: perfil?.nombre ?? "—", codigo: perfil?.codigo_comercial ?? null },
     postventa: atencionesSemana
       ? (({ recibidas, atendidas, enProceso, cerradas, facturables }) => ({
@@ -345,7 +369,7 @@ export async function cargarCierreSemanal(
     vendidoUsd,
     diferenciaUsd: vendidoUsd - proyeccion.totalSemana,
     ventas,
-    gestiones: actsData?.length ?? 0,
+    gestiones: acts.length,
     cotizacionesEnviadas: cotsData?.length ?? 0,
     cotizadoUsd,
     medidas,

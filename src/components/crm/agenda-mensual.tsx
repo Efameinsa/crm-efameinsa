@@ -43,7 +43,7 @@ export interface HistItem { tipo: string; nota: string | null; fecha: string }
 
 const TIPO_LABEL: Record<string, string> = {
   llamada: "Llamada", whatsapp: "WhatsApp", email: "Correo", visita: "Visita",
-  reunion_online: "Reunión online", showroom: "Showroom", filtro: "Filtro", nota: "Nota", otro: "Gestión",
+  reunion_online: "Videollamada", showroom: "Showroom", filtro: "Filtro", nota: "Nota", otro: "Gestión",
 };
 // MESES, sumarMes y diasDelMes viven en @/lib/calendario: el calendario de
 // postventa (plan 16 §5) usa la misma grilla y dos copias se habrían ido

@@ -1,4 +1,7 @@
 import Link from "@/components/enlace";
+import { FilaIndicadores } from "@/components/crm/indicadores-comerciales";
+import { cargarGestionesEfectivas, cargarIndicadoresDelDia } from "@/lib/indicadores-comerciales";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Archive, FileWarning, Search, X } from "lucide-react";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
 import { requerirPerfil } from "@/lib/auth";
@@ -602,7 +605,11 @@ export default async function ComercialPage({
   // Las cuatro cosas que siguen no dependen entre sí: van en un solo viaje
   // en vez de en fila (Santos, 02-09, «pequeños tirones»: cada await en
   // secuencia era una ida y vuelta más por clic).
-  const [{ data: inactivasData }, { data: ventasData }, [pulso], parque] = await Promise.all([
+  // LOS INDICADORES DEL DÍA (ing. Carlos, 30-09: visitas y videollamadas
+  // «para ellos», y la gestión sin el WhatsApp de campaña). Solo para quien
+  // vende: postventa y la cuenta de soporte no compiten en estas metas.
+  const mideIndicadores = !perfil.es_postventa && !perfil.es_soporte;
+  const [{ data: inactivasData }, { data: ventasData }, [pulso], parque, indicadores, misGestiones, { data: metaGlobal }] = await Promise.all([
     supabase
     .from("v_oportunidades_inactivas")
     .select("id, etapa, intencion, motivo_inactividad, cuentas(razon_social)")
@@ -636,7 +643,17 @@ export default async function ComercialPage({
     // El parque de su cartera, solo para quien vende mantenimiento (la llave
     // hace_postventa: hoy Ariana).
     veTodoPostventa(perfil) ? cargarParque(supabase, { comercialId: perfil.id, hoy }) : Promise.resolve([]),
+    mideIndicadores ? cargarIndicadoresDelDia(supabase, [perfil.id], hoy, hoy) : Promise.resolve(null),
+    // Con la llave de servicio y clavado a SU id, como el cierre mensual: la
+    // RLS de actividades mira al dueño de la oportunidad y le escondía la
+    // llamada que hizo en la ficha de otro (medido 30-09 con C5: 6 acá, 7 en
+    // Control). Solo vuelven conteos.
+    mideIndicadores ? cargarGestionesEfectivas(createAdminClient(), [perfil.id], hoy, hoy) : Promise.resolve(null),
+    supabase.from("parametros").select("valor").eq("clave", "meta_seguimientos_diarios").maybeSingle(),
   ]);
+  const misIndicadores = indicadores?.porComercial.get(perfil.id) ?? null;
+  const metaGestiones =
+    Number((perfil as unknown as { meta_gestiones_diarias?: number | null }).meta_gestiones_diarias) || Number(metaGlobal?.valor) || 30;
 
   const inactivas: FilaInactiva[] = (inactivasData ?? []).map((op) => ({
     id: op.id,
@@ -703,6 +720,14 @@ export default async function ComercialPage({
   return (
     <div className="space-y-5">
       {pulso && <BarraSemana pulso={pulso} href="/comercial/mi-gestion" />}
+
+      {indicadores && misIndicadores && (
+        <FilaIndicadores
+          eq={indicadores}
+          c={misIndicadores}
+          gestiones={{ hechas: misGestiones?.get(perfil.id)?.efectivas ?? 0, meta: metaGestiones, rotulo: "Gestiones efectivas · hoy" }}
+        />
+      )}
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">

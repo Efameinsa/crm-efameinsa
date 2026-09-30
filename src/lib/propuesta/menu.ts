@@ -497,6 +497,8 @@ export const SECCIONES: Record<string, Seccion> = {
       { clave: "", etiqueta: "Supervisión diaria", pagina: "gerencia/supervision" },
       { clave: "whatsapp", etiqueta: "Gestión de WhatsApp", pagina: "gerencia/gestion-whatsapp" },
       { clave: "cierre", etiqueta: "Cierre del día", pagina: "gerencia/reportes" },
+      // Las metas de los indicadores (0353, 30-09).
+      { clave: "metas", etiqueta: "Metas", pagina: "gerencia/metas" },
     ],
   },
   "gerencia/control": {
