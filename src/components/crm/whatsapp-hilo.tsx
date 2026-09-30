@@ -30,6 +30,7 @@ import {
   type Sticker,
 } from "@/lib/acciones/whatsapp-chat";
 import { TipificarWhatsapp } from "@/components/crm/tipificar-whatsapp";
+import type { Oportunidad } from "@/types/database";
 import type { TipificacionActual } from "@/lib/acciones/whatsapp-campanas";
 import { audioAMp3 } from "@/lib/audio-a-mp3";
 import { etiquetaDeContactoWa, esTelefonoDeVerdad } from "@/lib/contacto-whatsapp";
@@ -123,6 +124,7 @@ export function WhatsappHilo({
   esCentral,
   comerciales,
   tipificacionActual,
+  intencionActual,
 }: {
   conversacion: ConversacionDetalle;
   mensajesIniciales: MensajeWhatsapp[];
@@ -130,6 +132,8 @@ export function WhatsappHilo({
   comerciales: { id: string; nombre: string }[];
   /** El resultado que ya se marcó para este contacto (interesado, cotizado…), si alguno. */
   tipificacionActual: TipificacionActual | null;
+  /** El interés de compra del expediente, solo si es de quien mira (ver TipificarWhatsapp). */
+  intencionActual?: Oportunidad["intencion"] | null;
 }) {
   const router = useRouter();
   // `key={conversacion.id}` en el padre (WhatsappConversacionPage) remonta
@@ -437,7 +441,7 @@ export function WhatsappHilo({
               SubmitApplication) y alimenta el informe por anuncio. */}
           {conversacion.lead_id && (
             <div className="mt-1.5">
-              <TipificarWhatsapp leadId={conversacion.lead_id} actual={tipificacionActual} telefono={esTelefonoDeVerdad(conversacion.telefono) ? conversacion.telefono : null} compacto />
+              <TipificarWhatsapp leadId={conversacion.lead_id} actual={tipificacionActual} telefono={esTelefonoDeVerdad(conversacion.telefono) ? conversacion.telefono : null} compacto intencionActual={intencionActual} />
             </div>
           )}
         </div>

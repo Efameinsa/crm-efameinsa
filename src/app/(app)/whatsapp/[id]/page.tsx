@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { requerirPerfil } from "@/lib/auth";
 import { conversacionesDe, conversacionPorId, mensajesDe, comercialesActivos, type FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
 import { tipificacionesActuales } from "@/lib/acciones/whatsapp-campanas";
+import { createClient } from "@/lib/supabase/server";
+import type { Oportunidad } from "@/types/database";
 import { WhatsappListaConversaciones } from "@/components/crm/whatsapp-lista-conversaciones";
 import { WhatsappHilo } from "@/components/crm/whatsapp-hilo";
 
@@ -31,10 +33,18 @@ export default async function WhatsappConversacionPage({
   ]);
 
   if (!conversacion) notFound();
-  const [tipificacionActual, tipificados] = await Promise.all([
+  const [tipificacionActual, tipificados, expediente] = await Promise.all([
     conversacion.lead_id ? tipificacionesActuales([conversacion.lead_id]).then((t) => t[0] ?? null) : Promise.resolve(null),
     tipificacionesActuales(conversaciones.map((c) => c.lead_id).filter((x): x is string => Boolean(x))),
+    // El interés de compra, para preguntarlo al marcar «Interesado» (30-09):
+    // solo si el expediente es de quien mira, el único que puede calificarlo.
+    conversacion.oportunidad_id
+      ? createClient().then((sb) =>
+          sb.from("oportunidades").select("intencion, comercial_id").eq("id", conversacion.oportunidad_id!).maybeSingle().then((r) => r.data),
+        )
+      : Promise.resolve(null),
   ]);
+  const intencionActual = expediente && expediente.comercial_id === perfil.id ? (expediente.intencion as Oportunidad["intencion"]) : null;
 
   return (
     <div className="flex h-[calc(100dvh-11.5rem)] overflow-hidden rounded-lg border border-border bg-card md:h-[calc(100dvh-8.5rem)]">
@@ -55,6 +65,7 @@ export default async function WhatsappConversacionPage({
         esCentral={esCentral}
         comerciales={comerciales}
         tipificacionActual={tipificacionActual}
+        intencionActual={intencionActual}
       />
     </div>
   );

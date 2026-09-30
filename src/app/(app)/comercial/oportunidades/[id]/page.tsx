@@ -671,7 +671,11 @@ export default async function OportunidadDetallePage({
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     Código {lead.codigo_campania_wa} · resultado de la conversación
                   </p>
-                  <TipificarWhatsapp leadId={oportunidad.lead_id} actual={tipificacionWaActual} />
+                  <TipificarWhatsapp
+                    leadId={oportunidad.lead_id}
+                    actual={tipificacionWaActual}
+                    intencionActual={esMio ? oportunidad.intencion : null}
+                  />
                 </div>
               )}
             </SeccionPanel>
@@ -849,6 +853,9 @@ export default async function OportunidadDetallePage({
 
           <SeccionPanel titulo="Calificación">
             <CalificacionOportunidad
+              // Remonta si el interés cambió desde otro lado (el resultado
+              // del WhatsApp lo califica en el mismo clic): su estado es local.
+              key={oportunidad.intencion}
               oportunidadId={oportunidad.id}
               intencionInicial={oportunidad.intencion}
               montoInicial={oportunidad.monto_estimado}
@@ -873,6 +880,8 @@ export default async function OportunidadDetallePage({
               </div>
             ) : (
               <CambiarEtapa
+                // Igual que Calificación: el resultado del WhatsApp mueve la etapa desde otro panel.
+                key={oportunidad.etapa}
                 oportunidadId={oportunidad.id}
                 etapaActual={oportunidad.etapa}
                 motivos={(motivos ?? []).filter((m) => !m.requiere_nota && (!m.solo_postventa || oportunidad.tipo_postventa != null))}

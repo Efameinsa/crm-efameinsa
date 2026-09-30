@@ -8,12 +8,21 @@
 // Cada clic agrega una fila nueva a `tipificaciones_whatsapp` — no se corrige
 // la anterior, se registra la más reciente — así que este componente siempre
 // muestra el ÚLTIMO estado y, debajo, quién y cuándo lo puso.
+//
+// Interesado / cotizado piden el interés de compra en el mismo paso (30-09,
+// Moisés con Emperatriz: marcaba «Interesado» y la ficha seguía «Sin
+// definir»; había que ir a calificar aparte). Solo se pregunta al dueño del
+// expediente y solo mientras siga sin calificar: si ya tiene nivel, el clic
+// guarda directo y el cambio de nivel se hace en «Calificación» de la ficha.
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { MessageCircle, Copy, Check, ExternalLink } from "lucide-react";
 import { tipificarWhatsApp, type TipificacionActual } from "@/lib/acciones/whatsapp-campanas";
 import { ETIQUETA_TIPIFICACION, type TipificacionWhatsapp } from "@/lib/whatsapp-marketing";
+import { INTENCION_COMPRA } from "@/lib/catalogos-ui";
+import type { Oportunidad } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fechaHoraLima } from "@/lib/fechas";
@@ -37,6 +46,11 @@ const TONO: Record<TipificacionActual["estado"], string> = {
   continuado_por_mi_linea: "border-amber-400 bg-amber-50 text-amber-800",
 };
 
+type Intencion = Oportunidad["intencion"];
+
+/** Los cinco niveles, sin «Sin definir»: eso es lo que queda si elige «Calificar después». */
+const NIVELES = INTENCION_COMPRA.filter((o) => o.valor !== "sin_definir");
+
 interface Props {
   leadId: string;
   actual?: TipificacionActual | null;
@@ -44,12 +58,22 @@ interface Props {
   telefono?: string | null;
   /** Compacto: solo el estado vigente + botón "Cambiar", para listas largas (la bandeja de Central). */
   compacto?: boolean;
+  /**
+   * El interés de compra del expediente, SOLO si quien mira es su dueño (el
+   * único que puede calificarlo). Con «sin_definir», interesado/cotizado
+   * preguntan el nivel antes de guardar.
+   */
+  intencionActual?: Intencion | null;
 }
 
-export function TipificarWhatsapp({ leadId, actual, telefono, compacto = false }: Props) {
+export function TipificarWhatsapp({ leadId, actual, telefono, compacto = false, intencionActual }: Props) {
   const [abierto, setAbierto] = useState(!actual && !compacto);
   const [nota, setNota] = useState("");
   const [pendiente, setPendiente] = useState<TipificacionWhatsapp | null>(null);
+  // Calificado en este mismo componente: no se vuelve a preguntar mientras la
+  // pantalla trae el dato nuevo del servidor.
+  const [yaCalificado, setYaCalificado] = useState(false);
+  const router = useRouter();
   const [enviando, startTransition] = useTransition();
   const [copiado, setCopiado] = useState(false);
   const numeroLimpio = (telefono ?? "").replace(/\D/g, "");
@@ -71,20 +95,29 @@ export function TipificarWhatsapp({ leadId, actual, telefono, compacto = false }
       setPendiente(valor);
       return;
     }
+    if ((valor === "interesado" || valor === "cotizado") && intencionActual === "sin_definir" && !yaCalificado) {
+      setPendiente(valor);
+      return;
+    }
     guardar(valor, "");
   }
 
-  function guardar(valor: TipificacionWhatsapp, notaTexto: string) {
+  function guardar(valor: TipificacionWhatsapp, notaTexto: string, intencion?: Intencion) {
     startTransition(async () => {
-      const r = await tipificarWhatsApp(leadId, valor, notaTexto);
+      const r = await tipificarWhatsApp(leadId, valor, notaTexto, intencion);
       if (r.error) {
         toast.error(r.error);
         return;
       }
       toast.success(r.aviso ?? `Marcado como "${ETIQUETA_TIPIFICACION[valor]}"`);
+      if (intencion) setYaCalificado(true);
       setPendiente(null);
       setNota("");
       setAbierto(false);
+      // La marca mueve la etapa y el interés de la ficha, y el revalidatePath
+      // de la acción no repintaba la pantalla abierta: se seguía viendo
+      // «Asignada» y «Sin definir» hasta recargar.
+      router.refresh();
     });
   }
 
@@ -105,7 +138,7 @@ export function TipificarWhatsapp({ leadId, actual, telefono, compacto = false }
             {actual.registrado_por_nombre ?? "—"} · {fechaHoraLima(actual.registrado_at)}
           </span>
           {actual.nota && <span className="text-[11px] italic text-muted-foreground">«{actual.nota}»</span>}
-          {compacto && !abierto && (
+          {!abierto && (
             <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => setAbierto(true)}>
               Cambiar
             </Button>
@@ -133,6 +166,39 @@ export function TipificarWhatsapp({ leadId, actual, telefono, compacto = false }
               </button>
             ))}
           </div>
+
+          {(pendiente === "interesado" || pendiente === "cotizado") && (
+            <div className="space-y-1.5 rounded-md border border-[#1E7F4F]/40 bg-[#1E7F4F]/5 p-2">
+              <p className="text-[11px] font-semibold text-foreground">
+                {ETIQUETA_TIPIFICACION[pendiente]}. ¿Qué tan cerca está de comprar?
+              </p>
+              <div className="grid gap-1 sm:grid-cols-2">
+                {NIVELES.map((n) => (
+                  <button
+                    key={n.valor}
+                    type="button"
+                    disabled={enviando}
+                    onClick={() => guardar(pendiente, "", n.valor as Intencion)}
+                    className="flex cursor-pointer items-start gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 text-left transition-colors hover:bg-accent disabled:opacity-50"
+                  >
+                    <span className={cn("mt-1 size-2 shrink-0 rounded-full", n.color)} />
+                    <span className="min-w-0">
+                      <span className="block text-[11px] font-semibold text-foreground">{n.etiqueta}</span>
+                      <span className="block text-[11px] leading-tight text-muted-foreground">{n.criterio}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" size="sm" variant="ghost" onClick={() => setPendiente(null)} disabled={enviando}>
+                  Cancelar
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => guardar(pendiente, "")} disabled={enviando}>
+                  Calificar después
+                </Button>
+              </div>
+            </div>
+          )}
 
           {pendiente === "continuado_por_mi_linea" && (
             <div className="space-y-1.5 rounded-md border border-amber-300 bg-amber-50 p-2">
