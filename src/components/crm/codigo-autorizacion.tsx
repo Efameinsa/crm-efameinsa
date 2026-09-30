@@ -34,6 +34,24 @@ export function CodigoAutorizacion() {
 
   useEffect(() => detener, [detener]);
 
+  // SE RECARGA AL USARSE (0343, Santos 30-09): mientras el código está en
+  // pantalla se pregunta cada 5 s. Si alguien lo usó, la base ya generó otro y
+  // se muestra enseguida: no hay que esperar a que venza para dar el siguiente.
+  const [recienCambio, setRecienCambio] = useState(false);
+  useEffect(() => {
+    if (!codigo || false) return;
+    const t = setInterval(async () => {
+      const r = await obtenerPinSupervisor();
+      if (r.error || !r.codigo) return;
+      if (r.codigo === codigo) return;
+      setCodigo(r.codigo);
+      setRestante(r.expiraEn ?? DURACION);
+      setRecienCambio(true);
+      setTimeout(() => setRecienCambio(false), 8000);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [codigo]);
+
   async function pedir() {
     setCargando(true);
     setError(null);
@@ -93,6 +111,7 @@ export function CodigoAutorizacion() {
           </span>
 
           <span className="font-mono text-4xl font-bold tracking-[0.35em] text-foreground">{codigo}</span>
+          {recienCambio && <span className="text-xs font-semibold text-amber-700">Se usó el anterior: este es el nuevo.</span>}
         </div>
       ) : (
         <div className="mt-3">
@@ -106,8 +125,8 @@ export function CodigoAutorizacion() {
             {restante === 0 && codigo === null && !cargando ? "Ver mi código" : "Pedir otro"}
           </button>
           <p className="mt-2 max-w-prose text-[11px] leading-snug text-muted-foreground">
-            Dura diez minutos y sirve para <strong className="text-foreground">una</strong> corrección. Si hacen falta
-            dos, son dos códigos.
+            Dura diez minutos y sirve para <strong className="text-foreground">una</strong> corrección. Apenas se usa,
+            cambia solo: el siguiente se puede dar enseguida.
           </p>
         </div>
       )}
