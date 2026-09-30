@@ -57,7 +57,9 @@ export async function enviarAperturaLlamada(datos: {
     p_atencion: datos.atencionId ?? null,
     p_pin_urgente: datos.pinUrgente?.trim() || null,
     p_tecnico: datos.tecnico?.trim() || null,
-    p_formato: datos.formato ?? null,
+    // Un solo contacto (Gabriela, 30-09: puso a LUCERO y al almacén le llegaba
+    // el contacto principal de la ficha): «Con quién se habla» manda también en el formato.
+    p_formato: datos.formato ? { ...datos.formato, contacto: datos.contacto?.trim() || datos.formato.contacto || null } : null,
   });
   if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
   const { data: c } = await supabase.from("cuentas").select("razon_social").eq("id", datos.cuentaId).maybeSingle();

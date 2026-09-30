@@ -126,7 +126,7 @@ export function AperturaLlamadaBoton({
     datosParaFormatoDeLlamada(cuentaId).then((d) => {
       if (!vigente) return;
       setParque(d.equipos);
-      setFormato((f) => ({ ...f, contacto: f.contacto || d.contacto || "" }));
+      // El contacto del formato es el de «Con quién se habla», no otro aparte.
       if (!persona && d.contacto) setPersona(d.contacto);
     });
     return () => {
@@ -175,7 +175,7 @@ export function AperturaLlamadaBoton({
         cuentaId,
         pinUrgente: urgente ? pin : null,
         tecnico,
-        formato: { ...formato, contacto: formato.contacto || persona, problema: formato.problema || indicaciones },
+        formato: { ...formato, contacto: persona, problema: formato.problema || indicaciones },
         servicioId,
         atencionId,
         tipo,

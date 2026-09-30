@@ -61,7 +61,9 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
   const urls = (firmadas ?? []).map((f) => f.signedUrl).filter(Boolean) as string[];
 
   // El formato de llamada (0297) y el informe numerado con sus documentos.
-  const formato = (a.formato ?? null) as FormatoLlamada | null;
+  // El contacto del formato es el de «con quién se habla» (30-09): las de antes
+  // guardaban aparte el contacto principal de la ficha.
+  const formato = a.formato ? ({ ...(a.formato as FormatoLlamada), contacto: a.contacto?.trim() || (a.formato as FormatoLlamada).contacto } as FormatoLlamada) : null;
   const { data: informeNum } = a.informe_servicio_id
     ? await supabase.from("informes_servicio").select("id, correlativo, anio, documentos").eq("id", a.informe_servicio_id).maybeSingle()
     : { data: null };
