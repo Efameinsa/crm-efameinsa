@@ -37,6 +37,9 @@ export type TipoNotificacion =
   // Central le pide a Finanzas apurar un pedido (0298, 24-09): la misma
   // sirena de «urgencia», con otro destino y otro texto en pantalla.
   | "urgencia_finanzas"
+  // Central apura al almacén por las series que pidió (0358, 30-09): la misma
+  // sirena, con destino el almacén.
+  | "urgencia_almacen"
   // Lo que ya existía sin tipo propio: la anulación (0237) y la visita (0238).
   | "cierre_anulado"
   | "visita_planta"
@@ -158,7 +161,14 @@ export async function notificarLeadEntrante(datos: {
  * menú del almacén, y el aviso solo iba a almacen@ — «cuando hay una
  * derivación de visita no me sale la notificación».
  */
-export async function notificarAlmacen(datos: { titulo: string; cuerpo?: string; url?: string; esPrueba?: boolean }): Promise<void> {
+export async function notificarAlmacen(datos: {
+  titulo: string;
+  cuerpo?: string;
+  url?: string;
+  esPrueba?: boolean;
+  /** «urgencia_almacen» (0358) es la sirena de Central: no se cierra sola y suena la campanada. */
+  tipo?: "almacen" | "urgencia_almacen";
+}): Promise<void> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("perfiles")
@@ -169,7 +179,7 @@ export async function notificarAlmacen(datos: { titulo: string; cuerpo?: string;
     // Las cuentas _test de la propuesta miran, no reciben avisos (23-09).
     .is("espejo_de", null);
   await Promise.all(
-    (data ?? []).map((p) => notificar({ userId: p.id, tipo: "almacen", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
+    (data ?? []).map((p) => notificar({ userId: p.id, tipo: datos.tipo ?? "almacen", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
   );
 }
 

@@ -113,7 +113,7 @@ export default async function CierresCentralPage({
   // lista entera y no una por fila (migración 0087).
   const { data: pedidos } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo, facturacion_observada_at, facturacion_observada_motivo")
+    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo, facturacion_observada_at, facturacion_observada_motivo, apuro_almacen_at, apuro_almacen_n, apuro_finanzas_at, apuro_finanzas_n")
     .in("informe_cierre_id", todas.map((f) => f.id));
   const pedidoPorInforme = new Map((pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]));
 
@@ -514,6 +514,8 @@ export default async function CierresCentralPage({
                           : null
                       }
                       pedidoEjecutadoAt={(pedido?.pedido_ejecutado_at as string | null) ?? null}
+                      apuroAlmacen={pedido?.apuro_almacen_at ? { at: pedido.apuro_almacen_at as string, n: Number(pedido.apuro_almacen_n ?? 1) } : null}
+                      apuroFinanzas={pedido?.apuro_finanzas_at ? { at: pedido.apuro_finanzas_at as string, n: Number(pedido.apuro_finanzas_n ?? 1) } : null}
                     />
                   );
                 })()}

@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, FileText, Loader2, PackageSearch, Printer, X } from "lucide-react";
+import { BellRing, Check, FileText, Loader2, PackageSearch, Printer, X } from "lucide-react";
 import { liberarPedido } from "@/lib/acciones/postventa";
-import { generarPedido, pedirSeriesAlAlmacen, prepararPedido, rechazarLiquidacion } from "@/lib/acciones/pedido-central";
+import { apurarDesdeCentral, generarPedido, pedirSeriesAlAlmacen, prepararPedido, rechazarLiquidacion } from "@/lib/acciones/pedido-central";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -37,6 +37,8 @@ export function PasosPedidoCentral({
   liquidacionPdf,
   liquidacionRechazo = null,
   pedidoEjecutadoAt,
+  apuroAlmacen = null,
+  apuroFinanzas = null,
 }: {
   informeId: string;
   servicioId: string | null;
@@ -48,6 +50,9 @@ export function PasosPedidoCentral({
   /** La última vez que Central la devolvió a Finanzas, si todavía no llega la corregida. */
   liquidacionRechazo?: { motivo: string; at: string } | null;
   pedidoEjecutadoAt: string | null;
+  /** El último «Apurar» de Central a cada área y cuántos van (0358). */
+  apuroAlmacen?: { at: string; n: number } | null;
+  apuroFinanzas?: { at: string; n: number } | null;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -86,7 +91,17 @@ export function PasosPedidoCentral({
               <b className="tabular-nums">{series.con} de {series.total}</b> con serie
             </p>
             {seriesPedidasAt ? (
-              <p className="text-[11px] text-muted-foreground">Pedidas al almacén el {cuando(seriesPedidasAt)}{seriesListas ? "" : " · esperando"}</p>
+              <>
+                <p className="text-[11px] text-muted-foreground">Pedidas al almacén el {cuando(seriesPedidasAt)}{seriesListas ? "" : " · esperando"}</p>
+                {!seriesListas && (
+                  <Apurar
+                    etiqueta="Apurar al almacén"
+                    ultimo={apuroAlmacen}
+                    disabled={pendiente}
+                    onClick={() => correr(() => apurarDesdeCentral(servicioId, "almacen"), "Al almacén le sonó la alarma")}
+                  />
+                )}
+              </>
             ) : (
               !seriesListas && (
                 <Button size="sm" variant="outline" className="mt-1" disabled={pendiente} onClick={() => correr(() => pedirSeriesAlAlmacen(informeId), "Pedido al almacén: le llegó el aviso")}>
@@ -134,7 +149,30 @@ export function PasosPedidoCentral({
             La rechazó el {cuando(liquidacionRechazo.at)}: {liquidacionRechazo.motivo}. Esperando la corregida de Finanzas.
           </p>
         ) : (
-          !liquidacionAt && <p className="text-[11px] text-muted-foreground">Finanzas todavía no la subió.</p>
+          !liquidacionAt && (
+            <>
+              <p className="text-[11px] text-muted-foreground">Finanzas todavía no la subió.</p>
+              {/* Finanzas solo ve en «Liquidar» los pedidos con número (paso 2). */}
+              {numeroPedido && servicioId ? (
+                <Apurar
+                  etiqueta="Apurar a Finanzas"
+                  ultimo={apuroFinanzas}
+                  disabled={pendiente}
+                  onClick={() => correr(() => apurarDesdeCentral(servicioId, "finanzas"), "A Finanzas le sonó la alarma")}
+                />
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Para apurar a Finanzas, primero genere el pedido (paso 2): recién ahí lo ve.</p>
+              )}
+            </>
+          )
+        )}
+        {liquidacionRechazo && !liquidacionAt && !liquidacionPdf && numeroPedido && servicioId && (
+          <Apurar
+            etiqueta="Apurar a Finanzas"
+            ultimo={apuroFinanzas}
+            disabled={pendiente}
+            onClick={() => correr(() => apurarDesdeCentral(servicioId, "finanzas"), "A Finanzas le sonó la alarma")}
+          />
         )}
         {liquidacionAt ? (
           <p className="text-[11px] text-[#1E7F4F]">Aceptada el {cuando(liquidacionAt)}</p>
@@ -221,6 +259,37 @@ export function PasosPedidoCentral({
         )}
       </Paso>
     </ol>
+  );
+}
+
+/**
+ * «Apurar» (0358, Central 30-09): la sirena al área que tiene el paso en la
+ * mano. Dice cuándo fue el último apuro, para no bombardear.
+ */
+function Apurar({
+  etiqueta,
+  ultimo,
+  disabled,
+  onClick,
+}: {
+  etiqueta: string;
+  ultimo: { at: string; n: number } | null;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const hora = ultimo ? new Date(ultimo.at).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : null;
+  return (
+    <div className="mt-1.5">
+      <Button size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10" disabled={disabled} onClick={onClick}>
+        <BellRing className="size-3.5" /> {etiqueta}
+      </Button>
+      {ultimo && (
+        <p className="mt-0.5 text-[11px] text-destructive">
+          Apurado el {hora}
+          {ultimo.n > 1 ? ` · ${ultimo.n} veces` : ""}
+        </p>
+      )}
+    </div>
   );
 }
 
