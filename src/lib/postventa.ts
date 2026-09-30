@@ -109,6 +109,8 @@ export interface ServicioPostventa {
   /** A domicilio o en agencia, y cuál (0259). */
   entrega_modo?: "domicilio" | "agencia" | null;
   agencia_destino?: string | null;
+  /** Entrega en agencia: dirección de la agencia donde lo deja el almacén (0345). */
+  agencia_direccion?: string | null;
   apertura_tipo?: string | null;
   apertura_fecha?: string | null;
   apertura_hora?: string | null;

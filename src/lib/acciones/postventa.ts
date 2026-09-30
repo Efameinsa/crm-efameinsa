@@ -402,6 +402,8 @@ export async function verificarDireccion(
     /** A domicilio o en agencia, y cuál (0259). */
     entregaModo?: "domicilio" | "agencia" | null;
     agenciaDestino?: string | null;
+    /** La dirección de la agencia donde el almacén lo deja: el primer destino (0345). */
+    agenciaDireccion?: string | null;
     pin?: string | null;
   },
 ) {
@@ -410,6 +412,9 @@ export async function verificarDireccion(
   // El DNI de quien recibe es obligatorio (Lesly, 21-09: «tiene que ser obligatorio»).
   if (!datos.recibeDoc?.trim() || datos.recibeDoc.replace(/\D/g, "").length < 8) return falla("El DNI de quien recibe es obligatorio (8 dígitos): sin él la agencia no entrega");
   if (datos.entregaModo === "agencia" && !datos.agenciaDestino?.trim()) return falla("Diga en qué agencia y a qué ciudad (ej. «Marvisur, agencia Trujillo»): en Cusco hay seis");
+  // Rubí y Lesly, 30-09: sin la dirección de la agencia el almacén no sabe a
+  // dónde llevarlo; la del cliente es el destino final, no el primero.
+  if (datos.entregaModo === "agencia" && !datos.agenciaDireccion?.trim()) return falla("Escriba la dirección de la agencia donde el almacén deja el equipo (la primera dirección)");
   const candado = await candadoDeApertura(servicioId, datos.pin);
   if (candado.error) return { error: candado.error, pidePin: candado.pidePin };
 
@@ -422,7 +427,13 @@ export async function verificarDireccion(
       ...(datos.recibeNombre?.trim() ? { recibe_nombre: datos.recibeNombre.trim() } : {}),
       recibe_doc: datos.recibeDoc.trim(),
       ...(datos.recibeTelefono?.trim() ? { recibe_telefono: datos.recibeTelefono.trim() } : {}),
-      ...(datos.entregaModo ? { entrega_modo: datos.entregaModo, agencia_destino: datos.entregaModo === "agencia" ? datos.agenciaDestino?.trim() || null : null } : {}),
+      ...(datos.entregaModo
+        ? {
+            entrega_modo: datos.entregaModo,
+            agencia_destino: datos.entregaModo === "agencia" ? datos.agenciaDestino?.trim() || null : null,
+            agencia_direccion: datos.entregaModo === "agencia" ? datos.agenciaDireccion?.trim() || null : null,
+          }
+        : {}),
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);

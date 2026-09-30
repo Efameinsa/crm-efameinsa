@@ -91,6 +91,8 @@ export interface DatosApertura {
   /** A domicilio o en agencia, y cuál (0259: en Cusco hay seis agencias). */
   entregaModo: "domicilio" | "agencia" | null;
   agenciaDestino: string | null;
+  /** Dirección de la agencia donde lo deja el almacén: el primer destino (0345). */
+  agenciaDireccion?: string | null;
   fecha: string | null;
   hora: string | null;
   recibeNombre: string | null;
@@ -123,15 +125,26 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
 
   // Carlos, 21-09: la apertura tiene que decir si va A DOMICILIO o EN AGENCIA,
   // y en agencia cuál y a qué ciudad. Antes iba perdido en la nota.
-  const entrega =
+  // Rubí y Lesly, 30-09: en agencia hay DOS direcciones y el almacén las
+  // confundía (ANDINAS: bajo «ENTREGA EN AGENCIA» iba la dirección del
+  // cliente en Ica). Primero adónde lo lleva el almacén; después dónde lo
+  // recibe el cliente.
+  const direccion =
     d.entregaModo === "agencia"
-      ? `ENTREGA EN AGENCIA: ${d.agenciaDestino ?? "(agencia por confirmar)"}`
-      : d.entregaModo === "domicilio"
-        ? "ENTREGA A DOMICILIO"
-        : null;
-  const direccion = [entrega, d.direccion ?? "—", d.direccionFinal ? `DIRECCIÓN FINAL: ${d.direccionFinal}` : null]
-    .filter(Boolean)
-    .join("\n");
+      ? [
+          "1) PRIMER DESTINO (donde lo deja el almacén):",
+          `AGENCIA: ${d.agenciaDestino ?? "(agencia por confirmar)"}`,
+          d.agenciaDireccion ?? "(falta la dirección de la agencia)",
+          "",
+          "2) DESTINO FINAL (donde lo recibe el cliente):",
+          d.direccion ?? "—",
+          d.direccionFinal ? `Luego sigue a: ${d.direccionFinal}` : null,
+        ]
+          .filter((x) => x !== null)
+          .join("\n")
+      : [d.entregaModo === "domicilio" ? "ENTREGA A DOMICILIO" : null, d.direccion ?? "—", d.direccionFinal ? `DIRECCIÓN FINAL: ${d.direccionFinal}` : null]
+          .filter(Boolean)
+          .join("\n");
 
   const recibe = [d.recibeNombre ?? "—", d.recibeDoc ? `DNI: ${d.recibeDoc}` : null, d.recibeTelefono ? `Cel: ${d.recibeTelefono}` : null]
     .filter(Boolean)
@@ -185,6 +198,7 @@ export function faltantesApertura(d: DatosApertura): string[] {
   const falta: string[] = [];
   if (!d.equipo) falta.push("la descripción del equipo");
   if (!d.direccion) falta.push("la dirección");
+  if (d.entregaModo === "agencia" && !d.agenciaDireccion) falta.push("la dirección de la agencia (primer destino)");
   if (!d.fecha) falta.push("el día del servicio");
   if (!d.hora) falta.push("la hora");
   if (!d.recibeNombre) falta.push("quién recibe");

@@ -126,10 +126,20 @@ describe("las nueve filas llevan lo que el correo lleva", () => {
 
   it("dice si la entrega es a domicilio o en agencia, y cuál (0259)", () => {
     const agencia = filasApertura({ ...MOTORGAS, entregaModo: "agencia", agenciaDestino: "Marvisur, agencia Cusco – Wanchaq" })[2].informacion;
-    expect(agencia.startsWith("ENTREGA EN AGENCIA: Marvisur, agencia Cusco – Wanchaq")).toBe(true);
+    expect(agencia).toContain("AGENCIA: Marvisur, agencia Cusco – Wanchaq");
     const domicilio = filasApertura({ ...MOTORGAS, entregaModo: "domicilio" })[2].informacion;
     expect(domicilio.startsWith("ENTREGA A DOMICILIO")).toBe(true);
     expect(filasApertura(MOTORGAS)[2].informacion.startsWith("EN NUESTRAS INSTALACIONES")).toBe(true);
+  });
+
+  it("por agencia separa el primer destino (la agencia) del destino final (el cliente) (0345)", () => {
+    const d = { ...PERU_VACATION, entregaModo: "agencia" as const, agenciaDestino: "Marvisur, agencia Ica", agenciaDireccion: "Av. Paseo de la República 3570, San Isidro" };
+    const texto = filasApertura(d)[2].informacion;
+    expect(texto.indexOf("1) PRIMER DESTINO")).toBeLessThan(texto.indexOf("Av. Paseo de la República 3570"));
+    expect(texto.indexOf("Av. Paseo de la República 3570")).toBeLessThan(texto.indexOf("2) DESTINO FINAL"));
+    expect(texto.indexOf("2) DESTINO FINAL")).toBeLessThan(texto.indexOf("Calle Bolívar 150 Miraflores"));
+    expect(faltantesApertura(d)).not.toContain("la dirección de la agencia (primer destino)");
+    expect(faltantesApertura({ ...d, agenciaDireccion: null })).toContain("la dirección de la agencia (primer destino)");
   });
 
   it("sin dirección final, la fila 3 es solo la dirección", () => {

@@ -80,7 +80,15 @@ export async function cargarHojaApertura(
     .eq("servicio_id", s.id)
     .order("orden");
   const queVan = (equiposLista ?? []).filter((e) => e.en_este_despacho);
-  const equipoTexto = queVan.length > 0 ? queVan.map((e) => e.descripcion.trim()).join("\n\n") : (s.equipo ?? null);
+  // CANTIDAD (Rubí y Lesly, 30-09): cada unidad es una fila; las iguales se
+  // juntan con su número para que el almacén no tenga que contarlas.
+  const grupos = new Map<string, number>();
+  for (const e of queVan) {
+    const desc = e.descripcion.trim();
+    grupos.set(desc, (grupos.get(desc) ?? 0) + 1);
+  }
+  const equipoTexto =
+    grupos.size > 0 ? [...grupos].map(([desc, n]) => `CANTIDAD: ${n}\n${desc}`).join("\n\n") : (s.equipo ?? null);
   const seriesLista = queVan.map((e) => e.serie).filter((x): x is string => Boolean(x));
   const series = seriesLista.length > 0 ? seriesLista : seriesDeTexto(s.equipo);
   const serieAparte = seriesLista.length === 0 && /serie/i.test(s.equipo ?? "") ? null : series.join(" · ") || null;
@@ -99,6 +107,7 @@ export async function cargarHojaApertura(
     direccionFinal: s.direccion_final ?? null,
     entregaModo: s.entrega_modo ?? null,
     agenciaDestino: s.agencia_destino ?? null,
+    agenciaDireccion: s.agencia_direccion ?? null,
     fecha: s.apertura_fecha ?? s.fecha_despacho ?? null,
     hora: horaAmPm(s.apertura_hora),
     recibeNombre: s.recibe_nombre ?? contacto?.nombre ?? null,

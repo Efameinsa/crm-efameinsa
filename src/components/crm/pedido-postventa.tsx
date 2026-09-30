@@ -238,6 +238,15 @@ export function PedidoPostventa({
         />
       );
     }
+    // Verificada la dirección, se puede corregir (Rubí, 30-09: «falta liberar
+    // para volver a digitar»). Con la apertura ya emitida el cuadro pide código.
+    if (paso.hecho && paso.clave === "direccion") {
+      return (
+        <button type="button" className="text-[11px] font-medium text-primary hover:underline" onClick={() => setForm({ tipo: "direccion" })}>
+          Corregir
+        </button>
+      );
+    }
     if (paso.hecho) return null;
     switch (paso.clave) {
       case "aprobado":
@@ -602,6 +611,7 @@ export function PedidoPostventa({
                 recibeTelefono: datos.telefono,
                 entregaModo: datos.entrega === "agencia" ? "agencia" : "domicilio",
                 agenciaDestino: datos.agencia,
+                agenciaDireccion: datos.agencia_direccion,
                 pin: datos.pin,
               }),
             "Dirección y quién recibe, verificados",
@@ -615,7 +625,7 @@ export function PedidoPostventa({
             requerido: true,
             opciones: [
               { valor: "domicilio", etiqueta: "A domicilio (la dirección de abajo)" },
-              { valor: "agencia", etiqueta: "En agencia (el cliente recoge)" },
+              { valor: "agencia", etiqueta: "Por agencia (el almacén lo deja en una agencia)" },
             ],
           },
           {
@@ -625,13 +635,20 @@ export function PedidoPostventa({
             requerido: false,
           },
           {
+            nombre: "agencia_direccion",
+            etiqueta: "Primera dirección: la agencia donde el almacén deja el equipo (obligatorio si es en agencia)",
+            inicial: servicio.agencia_direccion ?? "",
+            ejemplo: "Ej.: Marvisur, Av. Paseo de la República 3570, San Isidro",
+            requerido: false,
+          },
+          {
             nombre: "direccion",
-            etiqueta: "Dirección tal como la confirmó (la final del cliente)",
+            etiqueta: "Dirección final: donde lo recibe el cliente, tal como la confirmó",
             area: true,
             inicial: servicio.direccion_entrega ?? servicio.ubicacion ?? "",
             requerido: true,
           },
-          { nombre: "confirmo", etiqueta: "Con quién habló (nombre y cargo)", requerido: true },
+          { nombre: "confirmo", etiqueta: "Con quién habló (nombre y cargo)", inicial: servicio.direccion_verificada_con ?? "", requerido: true },
           { nombre: "recibe", etiqueta: "Quién recibe el equipo", inicial: servicio.recibe_nombre ?? "", requerido: true },
           { nombre: "doc", etiqueta: "DNI de quien recibe (obligatorio: la agencia lo pide)", inicial: servicio.recibe_doc ?? "", requerido: true },
           { nombre: "telefono", etiqueta: "Teléfono de quien recibe", inicial: servicio.recibe_telefono ?? "", requerido: true },
