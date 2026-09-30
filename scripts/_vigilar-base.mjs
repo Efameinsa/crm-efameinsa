@@ -16,6 +16,9 @@ const r = { hora };
 // 1. Salud de los servicios.
 try {
   const s = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/health?services=db,rest,auth,storage`, { headers: { Authorization: `Bearer ${TOKEN}` } })).json();
+  // 29-09 20:04: la API de administración devolvió un error suelto en vez de
+  // la lista; eso es la API de Supabase fallando, no la base caída.
+  if (!Array.isArray(s)) throw new Error(`la API de administración respondió ${JSON.stringify(s).slice(0, 80)}`);
   r.salud = s.every((x) => x.status === "ACTIVE_HEALTHY") ? "sana" : s.map((x) => `${x.name}:${x.status}`).join(" ");
 } catch (e) {
   r.salud = `sin respuesta (${e.message})`;
