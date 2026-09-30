@@ -324,8 +324,8 @@ export function CorregirSolicitudBoton({
                 <span>
                   <span className="block text-sm font-semibold text-foreground">Es de otro cliente</span>
                   <span className="block text-xs text-muted-foreground">
-                    Se registró en la ficha equivocada{fichaActual ? ` (${fichaActual})` : ""}. Se muda entera, con su
-                    expediente.
+                    Se registró en la ficha equivocada{fichaActual ? ` (${fichaActual})` : ""}. Se muda a la correcta;
+                    antes de confirmar le dice qué se lleva.
                   </span>
                 </span>
               </button>
