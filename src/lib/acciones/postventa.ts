@@ -384,10 +384,21 @@ export async function emitirAperturaDespacho(servicioId: string) {
  * La apertura ya salió al almacén y al cliente; cambiar dirección, quién
  * recibe o la fecha después de eso se autoriza, no se edita.
  */
-async function candadoDeApertura(servicioId: string, pin?: string | null): Promise<{ error: string | null; pidePin?: boolean }> {
+/**
+ * Con la apertura emitida, cambiar lo que va impreso pide código. Pero solo si
+ * de verdad CAMBIA (Rubí, 30-09: «no se hará ninguna modificación» y le pedía
+ * código igual): programar la fecha por primera vez, o volver a guardar lo
+ * mismo, no mueve nada de lo que el almacén ya tiene en su hoja.
+ */
+async function candadoDeApertura(
+  servicioId: string,
+  pin?: string | null,
+  cambia?: (s: Record<string, unknown>) => boolean,
+): Promise<{ error: string | null; pidePin?: boolean }> {
   const supabase = await createClient();
-  const { data: s } = await supabase.from("servicios_postventa").select("apertura_despacho_at").eq("id", servicioId).maybeSingle();
+  const { data: s } = await supabase.from("servicios_postventa").select("*").eq("id", servicioId).maybeSingle();
   if (!s?.apertura_despacho_at) return { error: null };
+  if (cambia && !cambia(s)) return { error: null };
   if (!pin?.trim()) return { error: "La apertura ya se emitió: para cambiar esto hace falta el código de operaciones o gerencia", pidePin: true };
   const { error } = await supabase.rpc("validar_codigo_autorizacion", { p_pin: pin.trim(), p_ambito: "operaciones" });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, ""), pidePin: true };
@@ -418,7 +429,19 @@ export async function verificarDireccion(
   // Rubí y Lesly, 30-09: sin la dirección de la agencia el almacén no sabe a
   // dónde llevarlo; la del cliente es el destino final, no el primero.
   if (datos.entregaModo === "agencia" && !datos.agenciaDireccion?.trim()) return falla("Escriba la dirección de la agencia donde el almacén deja el equipo (la primera dirección)");
-  const candado = await candadoDeApertura(servicioId, datos.pin);
+  const candado = await candadoDeApertura(servicioId, datos.pin, (s) => {
+    const igual = (a: unknown, b: string | null | undefined) => String(a ?? "").trim() === (b ?? "").trim();
+    const modo = datos.entregaModo ?? s.entrega_modo;
+    return (
+      !igual(s.direccion_entrega, datos.direccion) ||
+      !igual(s.direccion_verificada_con, datos.confirmoNombre) ||
+      (!!datos.recibeNombre?.trim() && !igual(s.recibe_nombre, datos.recibeNombre)) ||
+      !igual(s.recibe_doc, datos.recibeDoc) ||
+      (!!datos.recibeTelefono?.trim() && !igual(s.recibe_telefono, datos.recibeTelefono)) ||
+      (!!datos.entregaModo && !igual(s.entrega_modo, datos.entregaModo)) ||
+      (modo === "agencia" && (!igual(s.agencia_destino, datos.agenciaDestino) || !igual(s.agencia_direccion, datos.agenciaDireccion)))
+    );
+  });
   if (candado.error) return { error: candado.error, pidePin: candado.pidePin };
 
   const { error } = await supabase
@@ -477,11 +500,17 @@ export async function marcarPlanoNoEnviado(servicioId: string, motivo: string, a
 
 export async function programarDespacho(servicioId: string, fecha: string, hora?: string | null, nota?: string, pin?: string | null) {
   const supabase = await createClient();
-  const candado = await candadoDeApertura(servicioId, pin);
-  if (candado.error) return { error: candado.error, pidePin: candado.pidePin };
   // Con hora (Carlos, 22-09: «solamente falta ponerle hora»): así ocupa su
   // franja en el calendario y el almacén sabe a qué hora preparar la carga.
   const horaLimpia = hora && /^\d{2}:\d{2}/.test(hora) ? hora.slice(0, 5) : null;
+  // El código solo si ya había fecha y se cambia la fecha o la hora: la nota
+  // de con quién coordinó se puede completar sin pedir permiso.
+  const candado = await candadoDeApertura(
+    servicioId,
+    pin,
+    (s) => !!s.fecha_despacho && (String(s.fecha_despacho) !== (fecha || "") || String(s.despacho_hora ?? "").slice(0, 5) !== (horaLimpia ?? "")),
+  );
+  if (candado.error) return { error: candado.error, pidePin: candado.pidePin };
   const { error } = await supabase
     .from("servicios_postventa")
     .update({ fecha_despacho: fecha || null, despacho_hora: horaLimpia, despacho_nota: nota?.trim() || null })

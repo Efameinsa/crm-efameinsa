@@ -4,7 +4,7 @@ import { useEffect, useMemo, useOptimistic, useState, useTransition } from "reac
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, X } from "lucide-react";
+import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, Lock, X } from "lucide-react";
 import {
   bloquesPedido,
   circuitoDe,
@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { TipoPedidoSelector } from "@/components/crm/tipo-pedido-selector";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 
 /**
  * La ficha del pedido: los diez pasos del circuito, agrupados de a tres.
@@ -653,7 +654,28 @@ export function PedidoPostventa({
           { nombre: "doc", etiqueta: "DNI de quien recibe (obligatorio: la agencia lo pide)", inicial: servicio.recibe_doc ?? "", requerido: true },
           { nombre: "telefono", etiqueta: "Teléfono de quien recibe", inicial: servicio.recibe_telefono ?? "", requerido: true },
           ...(servicio.apertura_despacho_at
-            ? [{ nombre: "pin", etiqueta: "La apertura ya salió: código de operaciones o gerencia para cambiarlo", requerido: true }]
+            ? [
+                {
+                  nombre: "pin",
+                  etiqueta: "La apertura ya salió y está cambiando lo que va impreso. Pida el código de 4 números a operaciones (Lesly) o a gerencia.",
+                  codigo: true,
+                  requerido: true,
+                  // El mismo criterio que el servidor (verificarDireccion): solo si algo cambia.
+                  soloSi: (d: Record<string, string>) => {
+                    const igual = (a: string | null | undefined, b: string | undefined) => (a ?? "").trim() === (b ?? "").trim();
+                    const modo = d.entrega === "agencia" ? "agencia" : "domicilio";
+                    return (
+                      !igual(servicio.direccion_entrega, d.direccion) ||
+                      !igual(servicio.direccion_verificada_con, d.confirmo) ||
+                      (!!d.recibe?.trim() && !igual(servicio.recibe_nombre, d.recibe)) ||
+                      !igual(servicio.recibe_doc, d.doc) ||
+                      (!!d.telefono?.trim() && !igual(servicio.recibe_telefono, d.telefono)) ||
+                      !igual(servicio.entrega_modo, modo) ||
+                      (modo === "agencia" && (!igual(servicio.agencia_destino, d.agencia) || !igual(servicio.agencia_direccion, d.agencia_direccion)))
+                    );
+                  },
+                },
+              ]
             : []),
         ]}
       />
@@ -767,7 +789,18 @@ export function PedidoPostventa({
             requerido: false,
           },
           ...(servicio.apertura_despacho_at
-            ? [{ nombre: "pin", etiqueta: "La apertura ya salió: código de operaciones o gerencia para cambiar la fecha", requerido: true }]
+            ? [
+                {
+                  nombre: "pin",
+                  etiqueta: "La apertura ya salió con otra fecha u hora. Para cambiarla, pida el código de 4 números a operaciones (Lesly) o a gerencia.",
+                  codigo: true,
+                  requerido: true,
+                  // Programar por primera vez o completar la nota no pide código (Rubí, 30-09).
+                  soloSi: (d: Record<string, string>) =>
+                    !!servicio.fecha_despacho &&
+                    (d.fecha !== servicio.fecha_despacho || (d.hora ?? "").slice(0, 5) !== String(servicio.despacho_hora ?? "").slice(0, 5)),
+                },
+              ]
             : []),
         ]}
       />
@@ -932,6 +965,12 @@ interface Campo {
   requerido?: boolean;
   /** Lista cerrada: se elige, no se tipea (0232). */
   opciones?: { valor: string; etiqueta: string }[];
+  /** El código de autorización de 4 cifras: las cuatro casillas de siempre
+   *  (CampoCodigo), en un recuadro con candado que dice a quién pedirlo. Rubí,
+   *  30-09: como caja de texto común parecía que había que escribir algo más. */
+  codigo?: boolean;
+  /** El campo aparece solo mientras esto dé true (y solo entonces se exige). */
+  soloSi?: (datos: Record<string, string>) => boolean;
 }
 
 /**
@@ -996,11 +1035,17 @@ function Cuadro({
     acc[c.nombre] = valores[c.nombre] ?? c.inicial ?? "";
     return acc;
   }, {});
+  // Los que dependen de otros (el código, solo si algo cambia) se miran con lo
+  // ya escrito; oculto no se exige ni se manda.
+  const visibles = campos.filter((c) => !c.soloSi || c.soloSi(datos));
+  for (const c of campos) if (!visibles.includes(c)) datos[c.nombre] = "";
 
   function enviar() {
-    const falta = campos.find((c) => c.requerido && (c.archivo ? !archivos[c.nombre] : !datos[c.nombre]?.trim()));
+    const falta = visibles.find(
+      (c) => c.requerido && (c.archivo ? !archivos[c.nombre] : c.codigo ? datos[c.nombre].length < 4 : !datos[c.nombre]?.trim()),
+    );
     if (falta) {
-      toast.error(`Falta: ${falta.etiqueta.toLowerCase()}`);
+      toast.error(falta.codigo ? "Falta el código de 4 números" : `Falta: ${falta.etiqueta.toLowerCase()}`);
       return;
     }
     onEnviar(datos, archivos);
@@ -1023,7 +1068,21 @@ function Cuadro({
           <DialogDescription>{descripcion}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
-          {campos.map((c) => (
+          {visibles.map((c) =>
+            c.codigo ? (
+              <div key={c.nombre} className="grid gap-2.5 rounded-xl border border-amber-300 bg-amber-50 p-3 dark:border-amber-500/40 dark:bg-amber-500/10">
+                <p className="flex items-start gap-2 text-sm text-amber-900 dark:text-amber-200">
+                  <Lock className="mt-0.5 size-4 shrink-0" />
+                  <span>{c.etiqueta}</span>
+                </p>
+                <CampoCodigo
+                  id={`campo-${c.nombre}`}
+                  tono="amber"
+                  valor={datos[c.nombre]}
+                  onChange={(v) => setValores((x) => ({ ...x, [c.nombre]: v }))}
+                />
+              </div>
+            ) : (
             <div key={c.nombre} className="grid gap-1.5">
               <Label htmlFor={`campo-${c.nombre}`} className="text-xs">
                 {c.etiqueta}
@@ -1066,7 +1125,8 @@ function Cuadro({
                 />
               )}
             </div>
-          ))}
+            ),
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={cerrar}>
