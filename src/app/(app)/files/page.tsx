@@ -2,8 +2,9 @@ import { Archive, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { AccionFile, PedirFiles } from "@/components/crm/files-acciones";
+import { AccionFile, AccionTermine, PedirFiles } from "@/components/crm/files-acciones";
 import { fechaHoraLima } from "@/lib/fechas";
+import { haceCuanto, horaLima, lineaDePasos } from "@/lib/files-recojo";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,12 @@ export const dynamic = "force-dynamic";
  * gerencia— lleva el cuaderno: entrega, recibe de vuelta y ve lo prestado.
  * Un file prestado de un día para otro sale en rojo: «máximo al final del
  * día… mañana me lo devuelves».
+ *
+ * 30-09 (0350), Carlos: «que me lleve una notificación para ir a recoger el
+ * file… el botoncito donde dice files, Terminé». Quien tiene el file aprieta
+ * «Terminé, pueden recogerlo» y a Central le llega el aviso; en su lista esos
+ * van primero, en granate, con cuánto hace que esperan. El historial muestra
+ * la hora de cada paso «para que no haya manera de errores».
  */
 
 type Fila = {
@@ -32,6 +39,9 @@ type Fila = {
   recibido_at: string | null;
   devuelto_at: string | null;
   anulado_at: string | null;
+  termine_at: string | null;
+  termine_aviso_at: string | null;
+  termine_avisos: number;
   cliente_texto: string | null;
   cliente_doc: string | null;
   empresa: "open" | "efameinsa" | "ambos" | null;
@@ -54,7 +64,7 @@ export default async function FilesPage() {
   const { data } = await supabase
     .from("prestamos_file")
     .select(
-      `id, grupo, solicitado_at, nota, entregado_at, recibido_at, devuelto_at, anulado_at, cliente_texto, cliente_doc, empresa,
+      `id, grupo, solicitado_at, nota, entregado_at, recibido_at, devuelto_at, anulado_at, termine_at, termine_aviso_at, termine_avisos, cliente_texto, cliente_doc, empresa,
        cuentas(razon_social, num_doc),
        solicitante:perfiles!prestamos_file_solicitado_por_fkey(id, nombre, codigo_comercial),
        entrego:perfiles!prestamos_file_entregado_por_fkey(nombre),
@@ -67,14 +77,29 @@ export default async function FilesPage() {
 
   const vivos = filas.filter((f) => !f.anulado_at && !f.devuelto_at);
   const porEntregar = vivos.filter((f) => !f.entregado_at).sort((a, b) => a.solicitado_at.localeCompare(b.solicitado_at));
-  const prestados = vivos.filter((f) => f.entregado_at).sort((a, b) => a.entregado_at!.localeCompare(b.entregado_at!));
+  // Los que ya avisaron «Terminé» van primero: Central sale a recogerlos (0350).
+  const prestados = vivos
+    .filter((f) => f.entregado_at)
+    .sort((a, b) => (a.termine_at ? 0 : 1) - (b.termine_at ? 0 : 1) || (a.termine_at ?? a.entregado_at!).localeCompare(b.termine_at ?? b.entregado_at!));
+  const porRecoger = prestados.filter((f) => f.termine_at).length;
   const mios = filas.filter((f) => f.solicitante?.id === perfil.id);
   const misVivos = mios.filter((f) => !f.anulado_at && !f.devuelto_at);
   const historial = filas.filter((f) => f.anulado_at || f.devuelto_at).slice(0, 60);
+  // Pedidos con 2 o más files en su poder que todavía no avisó (0350).
+  const porGrupo = new Map<string, Fila[]>();
+  for (const f of misVivos) if (f.entregado_at && !f.termine_at) porGrupo.set(f.grupo, [...(porGrupo.get(f.grupo) ?? []), f]);
+  const pedidosEnMiPoder = [...porGrupo].map(([grupo, filasDelGrupo]) => ({ grupo, filas: filasDelGrupo })).filter((g) => g.filas.length > 1);
 
-  const estado = (f: Fila) => {
+  const ahora = new Date();
+  const estado = (f: Fila, mio: boolean) => {
     if (f.anulado_at) return { texto: "Anulado", tono: "bg-muted text-muted-foreground" };
     if (f.devuelto_at) return { texto: `Devuelto ${fechaHoraLima(f.devuelto_at)}`, tono: "bg-[#1E7F4F]/10 text-[#1E7F4F]" };
+    // «Terminé» (0350): quien lo tiene ya avisó; Central lo ve como alerta.
+    if (f.entregado_at && f.termine_at) {
+      if (mio) return { texto: `Avisado a Central ${horaLima(f.termine_aviso_at ?? f.termine_at)} · esperando recojo`, tono: "bg-primary/10 text-primary" };
+      const veces = f.termine_avisos > 1 ? ` · recordó ${f.termine_avisos - 1} ${f.termine_avisos === 2 ? "vez" : "veces"}` : "";
+      return { texto: `Listo para recoger · ${haceCuanto(f.termine_at, ahora)}${veces}`, tono: "bg-primary text-primary-foreground" };
+    }
     if (f.entregado_at) {
       const vencido = diaLima(f.entregado_at) < hoy;
       return { texto: `${vencido ? "Prestado desde" : "Entregado"} ${fechaHoraLima(f.entregado_at)}${f.recibido_at ? "" : " · falta firmar «Recibí»"}`, tono: vencido ? "bg-destructive/10 text-destructive" : "bg-amber-500/10 text-amber-800" };
@@ -82,8 +107,8 @@ export default async function FilesPage() {
     return { texto: `Pedido ${fechaHoraLima(f.solicitado_at)}`, tono: "bg-sky-500/10 text-sky-800" };
   };
 
-  const fila = (f: Fila, acciones: React.ReactNode, conQuien = true) => {
-    const e = estado(f);
+  const fila = (f: Fila, acciones: React.ReactNode, conQuien = true, conPasos = false) => {
+    const e = estado(f, !conQuien);
     return (
       <li key={f.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
         <Archive className="size-4 flex-none text-primary" />
@@ -99,8 +124,9 @@ export default async function FilesPage() {
             {f.entrego ? ` · entregó ${f.entrego.nombre}` : ""}
             {f.recibio_vuelta ? ` · recibió de vuelta ${f.recibio_vuelta.nombre}` : ""}
           </p>
+          {conPasos && <p className="text-[11px] tabular-nums text-muted-foreground">{lineaDePasos(f)}</p>}
         </div>
-        <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-semibold", e.tono)}>{e.texto}</span>
+        <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums", e.tono)}>{e.texto}</span>
         <div className="flex gap-2">{acciones}</div>
       </li>
     );
@@ -114,7 +140,7 @@ export default async function FilesPage() {
       {perfil.rol !== "central" && (
         <SeccionPanel titulo="Pedir files a Central">
           <p className="mb-3 text-xs text-muted-foreground">
-            El archivador físico del cliente. Agregue uno o varios y marque si es el de OPEN, el de EFAMEINSA o los dos; Central recibe el aviso, se lo entrega y usted firma con «Recibí el file». Devuélvalo al terminar el día.
+            El archivador físico del cliente. Agregue uno o varios y marque si es el de OPEN, el de EFAMEINSA o los dos; Central recibe el aviso, se lo entrega y usted firma con «Recibí el file». Al terminar apriete «Terminé, pueden recogerlo» y Central pasa por él; devuélvalo el mismo día.
           </p>
           <PedirFiles />
         </SeccionPanel>
@@ -122,12 +148,23 @@ export default async function FilesPage() {
 
       {misVivos.length > 0 && (
         <SeccionPanel titulo={`Mis files · ${misVivos.length}`}>
+          {/* Varios files del mismo pedido en su poder: un solo «Terminé» y un solo aviso. */}
+          {pedidosEnMiPoder.map((g) => (
+            <div key={g.grupo} className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+              <span className="min-w-[12rem] flex-1 text-muted-foreground">
+                Pedido del {fechaHoraLima(g.filas[0].solicitado_at)} · <b className="font-semibold text-foreground">{g.filas.length} files</b> en su poder:{" "}
+                {g.filas.map((f) => f.cliente_texto ?? f.cuentas?.razon_social ?? "Cliente").join(" · ")}
+              </span>
+              <AccionTermine id={g.filas[0].id} ultimoAviso={null} cuantos={g.filas.length} />
+            </div>
+          ))}
           <ul className="divide-y divide-border rounded-lg border border-border">
             {misVivos.map((f) =>
               fila(
                 f,
                 <>
                   {f.entregado_at && !f.recibido_at && <AccionFile id={f.id} accion="recibi" variante="default" />}
+                  {f.entregado_at && <AccionTermine id={f.id} ultimoAviso={f.termine_aviso_at} variante={f.recibido_at ? "default" : "outline"} />}
                   {!f.entregado_at && <AccionFile id={f.id} accion="anular" variante="ghost" />}
                 </>,
                 false,
@@ -148,7 +185,7 @@ export default async function FilesPage() {
               </ul>
             )}
           </SeccionPanel>
-          <SeccionPanel titulo={`Prestados · ${prestados.length}${vencidos ? ` · ${vencidos} de días anteriores` : ""}`}>
+          <SeccionPanel titulo={`Prestados · ${prestados.length}${porRecoger ? ` · ${porRecoger} para recoger` : ""}${vencidos ? ` · ${vencidos} de días anteriores` : ""}`}>
             {vencidos > 0 && (
               <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-destructive">
                 <AlertTriangle className="size-3.5" /> En rojo: entregados antes de hoy y todavía sin devolver.
@@ -157,7 +194,9 @@ export default async function FilesPage() {
             {prestados.length === 0 ? (
               <p className="py-3 text-sm text-muted-foreground">Todos los files están en el archivador.</p>
             ) : (
-              <ul className="divide-y divide-border rounded-lg border border-border">{prestados.map((f) => fila(f, <AccionFile id={f.id} accion="devolver" />))}</ul>
+              <ul className="divide-y divide-border rounded-lg border border-border">
+                {prestados.map((f) => fila(f, <AccionFile id={f.id} accion="devolver" variante={f.termine_at ? "default" : "outline"} />, true, true))}
+              </ul>
             )}
           </SeccionPanel>
         </>
@@ -166,7 +205,7 @@ export default async function FilesPage() {
       {(llevaElCuaderno ? historial : mios.filter((f) => f.anulado_at || f.devuelto_at).slice(0, 30)).length > 0 && (
         <SeccionPanel titulo="Historial">
           <ul className="divide-y divide-border rounded-lg border border-border">
-            {(llevaElCuaderno ? historial : mios.filter((f) => f.anulado_at || f.devuelto_at).slice(0, 30)).map((f) => fila(f, null, llevaElCuaderno))}
+            {(llevaElCuaderno ? historial : mios.filter((f) => f.anulado_at || f.devuelto_at).slice(0, 30)).map((f) => fila(f, null, llevaElCuaderno, true))}
           </ul>
         </SeccionPanel>
       )}
