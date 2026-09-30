@@ -1,6 +1,7 @@
 import Link from "@/components/enlace";
 import { Lock, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { torresSinSegundaSerie } from "@/lib/torres";
 import { FilaTrabajo, Grupo, Vacio, haceCuanto, type DatosFila } from "@/components/propuesta/kit";
 
 /**
@@ -48,12 +49,14 @@ export async function pedidosConSeriesPendientes(supabase: Cliente): Promise<Ped
   if (pedidos.length === 0) return [];
   const ahora = Date.now();
   const equipos = await equiposDe(supabase, pedidos.map((p) => p.id));
+  // La torre con una sola serie sigue pendiente: falta la de la secadora (0359).
+  const torres = await torresSinSegundaSerie(supabase);
   const porPedido = new Map<string, typeof equipos>();
   for (const e of equipos) porPedido.set(e.servicio_id, [...(porPedido.get(e.servicio_id) ?? []), e]);
   return pedidos
     .map((p) => {
       const lista = porPedido.get(p.id) ?? [];
-      return { id: p.id, cliente: sinRuc(p.cliente_texto), pedidasAt: p.series_pedidas_at, total: lista.length, viejo: ahora - new Date(p.series_pedidas_at).getTime() > UN_DIA, faltan: lista.filter((e) => !e.serie).map((e) => primeraLinea(e.descripcion)) };
+      return { id: p.id, cliente: sinRuc(p.cliente_texto), pedidasAt: p.series_pedidas_at, total: lista.length, viejo: ahora - new Date(p.series_pedidas_at).getTime() > UN_DIA, faltan: [...lista.filter((e) => !e.serie).map((e) => primeraLinea(e.descripcion)), ...Array.from({ length: torres.get(p.id) ?? 0 }, () => "Serie de la secadora (torre)")] };
     })
     .filter((p) => p.faltan.length > 0);
 }

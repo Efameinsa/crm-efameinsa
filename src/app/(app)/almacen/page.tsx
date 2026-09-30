@@ -10,6 +10,7 @@ import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import type { ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
+import { torresSinSegundaSerie } from "@/lib/torres";
 import { FileSpreadsheet } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -84,7 +85,9 @@ export default async function AlmacenPage() {
     .not("servicios_postventa.series_pedidas_at", "is", null)
     .is("servicios_postventa.cerrado_at", null)
     .limit(2000);
-  const pedidosSinSerie = new Set(((sinSerie ?? []) as { servicio_id: string }[]).map((x) => x.servicio_id)).size;
+  // Y las torres con una sola serie: falta la de la secadora (0359, Lesly 30-09).
+  const torresIncompletas = await torresSinSegundaSerie(supabase);
+  const pedidosSinSerie = new Set([...((sinSerie ?? []) as { servicio_id: string }[]).map((x) => x.servicio_id), ...torresIncompletas.keys()]).size;
 
   const vivos = (pedidos ?? []) as unknown as ServicioPostventa[];
   const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
