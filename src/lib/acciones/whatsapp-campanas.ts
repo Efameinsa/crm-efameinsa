@@ -15,6 +15,10 @@ import { revalidatePath } from "next/cache";
 import { enviarEventoMeta } from "@/lib/meta-capi";
 import { createClient } from "@/lib/supabase/server";
 import type { TipificacionWhatsapp } from "@/lib/whatsapp-marketing";
+import { INTENCION_COMPRA } from "@/lib/catalogos-ui";
+import type { Oportunidad } from "@/types/database";
+
+type Intencion = Oportunidad["intencion"];
 
 export interface CampaniaWhatsapp {
   id: string;
@@ -151,10 +155,21 @@ export async function tipificarWhatsApp(
   leadId: string,
   estado: TipificacionWhatsapp,
   nota?: string,
+  /**
+   * El interés de compra elegido en el mismo clic (Santos, 30-09, con Moisés y
+   * Emperatriz: «para no hacer doble trabajo»). Solo con interesado/cotizado;
+   * nunca se deduce solo: «interesado» no dice si ya tiene local o solo
+   * pregunta, y un nivel inventado ensucia la proyección.
+   */
+  intencion?: Intencion,
 ): Promise<{ error: string | null; aviso?: string }> {
   if (estado === "continuado_por_mi_linea" && !nota?.trim()) {
     return { error: "Escriba por qué sigue la conversación fuera del CRM." };
   }
+  if (intencion && (intencion === "sin_definir" || !INTENCION_COMPRA.some((o) => o.valor === intencion))) {
+    return { error: "Ese nivel de interés no existe." };
+  }
+  if (intencion && estado !== "interesado" && estado !== "cotizado") intencion = undefined;
 
   const supabase = await createClient();
   const {
@@ -182,7 +197,7 @@ export async function tipificarWhatsApp(
   // contacto, y mueve la etapa donde tiene sentido. Si el contacto todavía
   // no tiene expediente (retenido en Central, o de práctica sin derivar), la
   // tipificación se guarda igual y se avisa en palabras.
-  const aviso = await dejarGestionEnElExpediente(supabase, leadId, estado, nota?.trim() || null, user.id);
+  const aviso = await dejarGestionEnElExpediente(supabase, leadId, estado, nota?.trim() || null, user.id, intencion);
 
   revalidatePath("/central");
   revalidatePath("/central/derivados");
@@ -214,6 +229,7 @@ async function dejarGestionEnElExpediente(
   estado: TipificacionWhatsapp,
   nota: string | null,
   userId: string,
+  intencion?: Intencion,
 ): Promise<string | undefined> {
   const { data: lead } = await supabase.from("leads").select("oportunidad_id, estado").eq("id", leadId).maybeSingle();
   if (!lead?.oportunidad_id) {
@@ -223,10 +239,28 @@ async function dejarGestionEnElExpediente(
   }
   const oportunidadId = lead.oportunidad_id;
 
+  // La calificación va primero y con .select(): si RLS la filtra (el
+  // expediente es de otro), el update «pasa» sin tocar nada y la gestión no
+  // debe decir un interés que no quedó guardado.
+  let calificada: string | null = null;
+  if (intencion) {
+    const { data: filas } = await supabase.from("oportunidades").update({ intencion }).eq("id", oportunidadId).select("id");
+    if (filas && filas.length > 0) {
+      const o = INTENCION_COMPRA.find((x) => x.valor === intencion)!;
+      calificada = `Interés de compra: ${o.etiqueta} (${o.criterio.toLowerCase()}).`;
+    }
+  }
+  const partes = [NOTA_GESTION[estado], calificada, nota].filter(Boolean);
+  const sobreElInteres = calificada
+    ? ` ${calificada}`
+    : intencion
+      ? " El interés de compra no se guardó: lo pone el dueño del expediente."
+      : "";
+
   const { error: eAct } = await supabase.from("actividades").insert({
     oportunidad_id: oportunidadId,
     tipo: "whatsapp",
-    nota: nota ? `${NOTA_GESTION[estado]} ${nota}` : NOTA_GESTION[estado],
+    nota: partes.join(" "),
     realizada_por: userId,
     adjuntos: [],
   });
@@ -241,10 +275,10 @@ async function dejarGestionEnElExpediente(
   // sin respuesta y continuado no mueven nada; cotizado tampoco (la etapa
   // «cotizada» la pone el cotizador, regla de la casa).
   const { data: op } = await supabase.from("oportunidades").select("etapa").eq("id", oportunidadId).maybeSingle();
-  if (!op) return undefined;
+  if (!op) return sobreElInteres.trim() || undefined;
   if (estado === "interesado" && (op.etapa === "asignada" || op.etapa === "filtrada")) {
     await supabase.from("oportunidades").update({ etapa: "seguimiento" }).eq("id", oportunidadId);
-    return "Quedó marcado y anotado como gestión. El expediente pasó a seguimiento.";
+    return `Quedó marcado y anotado como gestión. El expediente pasó a seguimiento.${sobreElInteres}`;
   }
   if ((estado === "no_interesado" || estado === "equivocado") && !["venta", "rechazada", "derivada", "historico"].includes(op.etapa)) {
     await supabase
@@ -253,7 +287,7 @@ async function dejarGestionEnElExpediente(
       .eq("id", oportunidadId);
     return "Quedó marcado y anotado como gestión. El expediente se cerró como rechazado.";
   }
-  return "Quedó marcado y anotado como gestión en el expediente.";
+  return `Quedó marcado y anotado como gestión en el expediente.${sobreElInteres}`;
 }
 
 export interface TipificacionActual {
