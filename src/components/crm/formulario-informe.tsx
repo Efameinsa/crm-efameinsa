@@ -548,12 +548,13 @@ export function FormularioInforme({
         toast.error(r.error);
         return;
       }
-      toast.success(`Informe Nº ${r.codigo} emitido`);
-      window.open(`/api/informes/${id}/pdf`, "_blank");
-      // Un borrador que se estaba editando ya no es borrador: se pasa a la
-      // pantalla del cierre emitido, que es donde vive desde ahora.
-      if (b) router.push(`/comercial/cierres/${id}`);
-      else router.refresh();
+      toast.success(`Informe Nº ${r.codigo} emitido`, { duration: 10000 });
+      // Nuevo o borrador, se pasa a la pantalla del cierre emitido, que tiene
+      // su número y el botón del PDF. Gabriela, 29-09: emitió el 046-2026 desde
+      // «Nuevo informe», la pantalla se quedó en el formulario y el PDF (que se
+      // abría con window.open después de esperar al servidor) lo bloqueaba
+      // Chrome — creyó que no se había emitido.
+      router.push(`/comercial/cierres/${id}`);
     });
   }
 
