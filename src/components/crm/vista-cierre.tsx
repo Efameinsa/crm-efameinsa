@@ -753,23 +753,26 @@ export function VistaCierre({
             )}
           </Tarjeta>
 
-          {!editando && (
-            <Tarjeta
-              titulo="Expediente"
-              icono={<FileText className="size-3.5" />}
-              compacta
-              accion={
-                <span className="rounded-full bg-secondary px-1.5 text-[11px] font-semibold tabular-nums text-foreground">{adjuntos.length}</span>
-              }
-            >
-              <AdjuntosCierre informeId={informe.id} adjuntos={adjuntos} emitido={emitido} compacto />
-              {emitido && !anulado && (
-                <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-                  Agregar pide el código y queda firmado. Quitar no se puede: el expediente solo crece.
-                </p>
-              )}
-            </Tarjeta>
-          )}
+          {/* También mientras se corrige (Santos, 30-09): la corrección se pide
+              justamente para completar el expediente —el voucher que faltaba— y
+              la autorización abierta ya firma lo que se agregue (0342). */}
+          <Tarjeta
+            titulo="Expediente"
+            icono={<FileText className="size-3.5" />}
+            compacta
+            accion={
+              <span className="rounded-full bg-secondary px-1.5 text-[11px] font-semibold tabular-nums text-foreground">{adjuntos.length}</span>
+            }
+          >
+            <AdjuntosCierre informeId={informe.id} adjuntos={adjuntos} emitido={emitido} autorizado={ventanaViva} compacto={!editando} />
+            {emitido && !anulado && (
+              <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                {ventanaViva
+                  ? `Con la autorización de ${ventana?.autorizo ?? "operaciones"} los documentos se agregan sin otro código. Quitar no se puede: el expediente solo crece.`
+                  : "Agregar pide el código y queda firmado. Quitar no se puede: el expediente solo crece."}
+              </p>
+            )}
+          </Tarjeta>
         </aside>
       </div>
 

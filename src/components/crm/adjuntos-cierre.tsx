@@ -232,10 +232,13 @@ export function AdjuntosCierre({
   emitido,
   compacto,
   soloLectura = false,
+  autorizado = false,
 }: {
   informeId: string;
   adjuntos: AdjuntoCierreFirmado[];
   emitido: boolean;
+  /** Hay una corrección autorizada abierta sobre este cierre: sube sin pedir otro código (0342). */
+  autorizado?: boolean;
   /** Finanzas y Facturación miran el expediente, no lo tocan (0306). */
   soloLectura?: boolean;
   /** En la cola de Central el espacio es una celda de tabla. */
@@ -266,7 +269,7 @@ export function AdjuntosCierre({
 
   function adjuntar(tipo: TipoAdjunto, archivos: File[]) {
     const nuevos = archivos.map((archivo) => ({ tipo, archivo }));
-    if (emitido) {
+    if (emitido && !autorizado) {
       // Sellado: primero se junta lo que se quiere agregar, después el código.
       setPendientes((p) => [...p, ...nuevos]);
       return;
