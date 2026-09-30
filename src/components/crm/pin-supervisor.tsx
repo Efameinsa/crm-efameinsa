@@ -50,6 +50,24 @@ export function PinSupervisor({ plegada = false, demo = false }: { plegada?: boo
 
   useEffect(() => detener, [detener]);
 
+  // SE RECARGA AL USARSE (0343, Santos 30-09): mientras el código está en
+  // pantalla se pregunta cada 5 s. Si alguien lo usó, la base ya generó otro y
+  // se muestra enseguida: no hay que esperar a que venza para dar el siguiente.
+  const [recienCambio, setRecienCambio] = useState(false);
+  useEffect(() => {
+    if (!codigo || demo) return;
+    const t = setInterval(async () => {
+      const r = await obtenerPinSupervisor();
+      if (r.error || !r.codigo) return;
+      if (r.codigo === codigo) return;
+      setCodigo(r.codigo);
+      setRestante(r.expiraEn ?? DURACION);
+      setRecienCambio(true);
+      setTimeout(() => setRecienCambio(false), 8000);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [codigo, demo]);
+
   async function pedir() {
     setCargando(true);
     setError(null);
@@ -119,8 +137,11 @@ export function PinSupervisor({ plegada = false, demo = false }: { plegada?: boo
             </span>
             <span className="font-mono text-2xl font-bold tracking-[0.2em] text-sidebar-foreground">{codigo}</span>
           </div>
+          {recienCambio && (
+            <p className="mt-1.5 text-[10px] font-semibold leading-snug text-amber-300">Se usó el anterior: este es el nuevo.</p>
+          )}
           <p className="mt-1.5 text-[10px] leading-snug text-sidebar-foreground/60">
-            Sirve para <b>una sola</b> corrección y vence en {restante}s.
+            Sirve para <b>una sola</b> corrección: al usarse cambia solo. Vence en {restante}s.
           </p>
           {demo && (
             <p className="mt-1 text-[10px] leading-snug font-semibold text-sidebar-foreground/70">
