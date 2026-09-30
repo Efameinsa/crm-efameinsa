@@ -59,8 +59,22 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
         <h1 className="mt-0.5 text-lg font-bold leading-tight text-foreground">{cliente}</h1>
         <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{servicio.equipo}</p>
         <div className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+          {/* Por agencia hay dos direcciones (Rubí y Lesly, 30-09): primero adónde lo lleva el almacén. */}
+          {servicio.entrega_modo === "agencia" && (
+            <p className="inline-flex items-start gap-1 font-semibold text-foreground">
+              <MapPin className="mt-0.5 size-3.5 flex-none" />
+              <span>
+                1) Se deja en la agencia: {servicio.agencia_destino ?? "(agencia por confirmar)"}
+                {servicio.agencia_direccion ? ` — ${servicio.agencia_direccion}` : " — (falta la dirección de la agencia)"}
+              </span>
+            </p>
+          )}
           {(servicio.direccion_entrega || servicio.ubicacion) && (
-            <p className="inline-flex items-start gap-1"><MapPin className="mt-0.5 size-3.5 flex-none" /> {servicio.direccion_entrega ?? servicio.ubicacion}</p>
+            <p className="inline-flex items-start gap-1">
+              <MapPin className="mt-0.5 size-3.5 flex-none" />
+              {servicio.entrega_modo === "agencia" ? "2) Destino final del cliente: " : ""}
+              {servicio.direccion_entrega ?? servicio.ubicacion}
+            </p>
           )}
           {servicio.fecha_despacho && <p>Despacho programado: <b className="text-foreground">{servicio.fecha_despacho}{servicio.despacho_hora ? ` · ${String(servicio.despacho_hora).slice(0, 5)}` : ""}</b>{servicio.despacho_nota ? ` · ${servicio.despacho_nota}` : ""}</p>}
           {servicio.recibe_nombre && <p>Recibe: {servicio.recibe_nombre}{servicio.recibe_telefono ? ` · ${servicio.recibe_telefono}` : ""}</p>}
