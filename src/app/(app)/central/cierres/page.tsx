@@ -72,6 +72,7 @@ interface FilaInforme {
   anulado_at: string | null;
   anulado_motivo: string | null;
   perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  cotizaciones: { id: string; codigo: string } | null;
 }
 
 export default async function CierresCentralPage({
@@ -94,7 +95,7 @@ export default async function CierresCentralPage({
   const { data } = await supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial)",
+      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
     )
     .not("emitido_at", "is", null)
     .order("emitido_at", { ascending: false })
@@ -425,7 +426,8 @@ export default async function CierresCentralPage({
                       )}
                       {documentos.length === 0 && !estaAnulado && (
                         <span className="flex items-center gap-1 font-medium text-amber-700">
-                          <Package className="size-3" /> sin documentos adjuntos
+                          <Package className="size-3" />{" "}
+                          {f.cotizaciones ? "solo la cotización: sin voucher ni orden de compra" : "sin documentos adjuntos"}
                         </span>
                       )}
                     </p>
@@ -447,6 +449,7 @@ export default async function CierresCentralPage({
                       entregaFecha={f.entrega_fecha}
                       adjuntos={documentos}
                       compendio={compendios.get(f.id) ?? null}
+                      cotizacion={f.cotizaciones}
                     />
                     {/* Por liberar: la tira de pasos de abajo reemplaza a los checks (0290). */}
                     {!estaAnulado && (liberado(f.id) || pedido?.aprobado_at != null) && (

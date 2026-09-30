@@ -60,7 +60,7 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
     servicio.informe_cierre_id
       ? supabase
           .from("informes_cierre")
-          .select("id, codigo, orden_compra, adjuntos, modalidad_pago, entrega_direccion, contacto_despacho, forma_pago")
+          .select("id, codigo, orden_compra, adjuntos, modalidad_pago, entrega_direccion, contacto_despacho, forma_pago, cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)")
           .eq("id", servicio.informe_cierre_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -245,7 +245,11 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
           </div>
           <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={cliente} />
           {exp.galeria.length > 0 && <GaleriaAlmacen fotos={exp.galeria} />}
-          <DocumentosExpedientePedido adjuntos={exp.adjuntos} verPrecios={verPrecios} />
+          <DocumentosExpedientePedido
+            adjuntos={exp.adjuntos}
+            verPrecios={verPrecios}
+            cotizacion={(informe as { cotizaciones?: { id: string; codigo: string } | null } | null)?.cotizaciones ?? null}
+          />
         </aside>
       </div>
     </div>

@@ -66,6 +66,10 @@ export function ExpedienteCierre({
   children?: React.ReactNode;
 }) {
   const [abierto, setAbierto] = useState(false);
+  // La cotización enlazada cuenta como un papel más del expediente: desde el
+  // 29-09 el cierre no obliga a adjuntarla si se eligió en «¿De qué presupuesto
+  // copio los equipos?», y Central veía «Documentos del expediente 0» (30-09).
+  const totalDocumentos = adjuntos.length + (cotizacion ? 1 : 0);
 
   return (
     <Dialog open={abierto} onOpenChange={setAbierto}>
@@ -75,7 +79,7 @@ export function ExpedienteCierre({
             <FolderOpen className="size-3.5" />
             Expediente
             <span className="ml-0.5 rounded-full bg-secondary px-1.5 text-[11px] font-semibold tabular-nums">
-              {adjuntos.length}
+              {totalDocumentos}
             </span>
           </Button>
         }
@@ -108,30 +112,19 @@ export function ExpedienteCierre({
             </VerPdfEnLaApp>
           </div>
 
-          {/* LOS OTROS DOS PAPELES DEL EXPEDIENTE (reunión 25-09 11:44): «la
-              cotización… la última, porque está enlazada con el cierre» y el
-              pedido. Todo tiene que estar congruente: se miran lado a lado. */}
-          {(cotizacion || pedidoId) && (
+          {/* EL PEDIDO, el otro papel del expediente (reunión 25-09 11:44):
+              todo tiene que estar congruente y se mira lado a lado. La
+              cotización enlazada va con los documentos, más abajo. */}
+          {pedidoId && (
             <div className="flex flex-wrap gap-2">
-              {cotizacion && (
-                <VerPdfEnLaApp
-                  url={`/api/cotizaciones/${cotizacion.id}/pdf`}
-                  titulo={`Cotización ${cotizacion.codigo}`}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
-                >
-                  <FileSpreadsheet className="size-4" /> Cotización {cotizacion.codigo}
-                </VerPdfEnLaApp>
-              )}
-              {pedidoId && (
-                <a
-                  href={`/pedidos/${pedidoId}/imprimir`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
-                >
-                  <ClipboardList className="size-4" /> El pedido
-                </a>
-              )}
+              <a
+                href={`/pedidos/${pedidoId}/imprimir`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+              >
+                <ClipboardList className="size-4" /> El pedido
+              </a>
             </div>
           )}
 
@@ -163,9 +156,24 @@ export function ExpedienteCierre({
               <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                 Documentos del expediente
                 <span className="rounded-full bg-secondary px-1.5 text-[11px] font-semibold tabular-nums text-foreground">
-                  {adjuntos.length}
+                  {totalDocumentos}
                 </span>
               </p>
+              {/* «La cotización… la última, porque está enlazada con el cierre»
+                  (reunión 25-09): la que sostiene la venta, no las veinte que hubo. */}
+              {cotizacion && (
+                <VerPdfEnLaApp
+                  url={`/api/cotizaciones/${cotizacion.id}/pdf`}
+                  titulo={`Cotización ${cotizacion.codigo}`}
+                  className="mb-2 flex w-full cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-2 text-left text-xs hover:bg-accent"
+                >
+                  <FileSpreadsheet className="size-3.5 flex-none text-muted-foreground" />
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-foreground">Cotización {cotizacion.codigo}</span>
+                    <span className="block text-muted-foreground">La enlazada al cierre</span>
+                  </span>
+                </VerPdfEnLaApp>
+              )}
               <AdjuntosCierre informeId={informeId} adjuntos={adjuntos} emitido soloLectura={soloLectura} />
             </div>
           </div>
