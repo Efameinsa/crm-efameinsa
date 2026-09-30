@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Link from "@/components/enlace";
 import { netoDeBruto, redondear2, totalesConIgv } from "@/lib/igv";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, ChevronDown, ClipboardPaste, FileText, PencilLine, Plus, Save, Trash2, TriangleAlert, Undo2 } from "lucide-react";
+import { Check, ChevronDown, ClipboardPaste, FileText, History, Lock, PencilLine, Plus, Save, ShieldCheck, Trash2, TriangleAlert, Undo2 } from "lucide-react";
+import { marcarSinGuardar } from "@/lib/sin-guardar";
 import {
   INCLUYE_POR_DEFECTO,
   ORDEN_TIPOS_ITEM,
@@ -19,6 +21,7 @@ import { GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES } from "@/lib/pdf/series";
 import {
   guardarBorradorInforme,
   emitirInforme,
+  corregirInformeEmitido,
   guardarContactoEntrega,
   quitarAdjuntoInforme,
   type BorradorInforme,
@@ -39,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { hoyLima } from "@/lib/periodo";
 import { AYUDA_SERIE_EFAMEINSA, MOTIVO_SERIE_MINIMO, SERIE_POR_DEFECTO, motivoSerieSuficiente } from "@/lib/serie-facturacion";
+import type { CorreccionInforme } from "@/lib/correccion-informe";
 
 // Informe de cierre de ventas: la pantalla que el comercial llena.
 //
@@ -90,6 +94,70 @@ function Campo({ etiqueta, children, pista }: { etiqueta: string; children: Reac
       <div className="mt-1">{children}</div>
     </label>
   );
+}
+
+// CORRECCIÓN DE UN CIERRE EMITIDO (Santos, 30-09). Lo que la corrección con
+// código no puede cambiar —la venta, el presupuesto, la serie, la condición de
+// despacho— se sigue viendo en su sitio, igual que siempre, pero gris y sin
+// responder. Al pasar el mouse se dice por qué y qué hacer.
+const AVISO_BLOQUEADO =
+  "Estos campos no se pueden editar en una corrección. Si aquí hay un error, lo mejor es anular el cierre y emitir uno nuevo.";
+
+function Bloqueado({ activo, children }: { activo: boolean; children: React.ReactNode }) {
+  if (!activo) return <>{children}</>;
+  return (
+    <div className="group relative cursor-not-allowed" aria-disabled="true">
+      <div className="pointer-events-none select-none opacity-55">{children}</div>
+      <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+        <Lock className="size-3" /> No se edita en una corrección
+      </span>
+      <div
+        role="tooltip"
+        className="invisible absolute left-0 top-full z-20 mt-1 max-w-sm rounded-md bg-foreground px-2.5 py-1.5 text-xs leading-snug text-background shadow-lg group-hover:visible"
+      >
+        {AVISO_BLOQUEADO}
+      </div>
+    </div>
+  );
+}
+
+/** Lo que llega de la corrección abierta con el código de operaciones (0154). */
+export interface CorreccionEnFormulario {
+  codigo: string;
+  autorizo: string;
+  expiraAt: string;
+  motivo: string;
+  /** La venta a la que está atada, dicha en texto: en una corrección no se cambia. */
+  ventaTexto: string | null;
+}
+
+/** Los datos del formulario en el idioma de la corrección (las claves que acepta la base). */
+function aCorreccion(d: DatosInforme): Record<string, unknown> {
+  const c = d.contactoDespacho ?? {};
+  return {
+    cliente_nombre: d.clienteNombre,
+    cliente_doc: d.clienteDoc ?? "",
+    cliente_direccion: d.clienteDireccion ?? "",
+    cliente_correo: d.clienteCorreo ?? "",
+    orden_compra: d.ordenCompra ?? "",
+    cliente_nuevo: d.clienteNuevo,
+    urgente: d.urgente,
+    modalidad_pago: d.modalidadPago,
+    forma_pago: d.formaPago ?? "",
+    comprobante: d.comprobante,
+    nota_condiciones: d.notaCondiciones ?? "",
+    entrega_fecha: d.entregaFecha ?? "",
+    entrega_hora: d.entregaHora ?? "",
+    entrega_lugar: d.entregaLugar ?? "",
+    entrega_direccion: d.entregaDireccion ?? "",
+    nota_despacho: d.notaDespacho ?? "",
+    contacto_despacho: { area: c.area ?? null, nombre: c.nombre ?? null, telefono: c.telefono ?? null, correo: c.correo ?? null },
+    items: d.items,
+    incluye: d.incluye,
+    gratis: d.gratis ?? "",
+    garantia: d.garantia ?? "",
+    nota_final: d.notaFinal ?? "",
+  };
 }
 
 function Pastilla({
@@ -164,13 +232,17 @@ export function FormularioInforme({
   prellenado,
   ventaPreseleccionada,
   borrador,
+  correccion = null,
 }: {
   prellenado: PrellenadoInforme;
   /** Cuando se llega desde el aviso de "Mi día", ya se sabe de qué venta es. */
   ventaPreseleccionada?: string;
   /** Un borrador ya guardado, para seguirlo donde quedó (03-09). */
   borrador?: BorradorInforme;
+  /** Cierre YA EMITIDO con la corrección autorizada abierta: mismo formulario, con lo intocable bloqueado (30-09). */
+  correccion?: CorreccionEnFormulario | null;
 }) {
+  const enCorreccion = correccion != null;
   const router = useRouter();
   const hoyISO = hoyLima();
   const [guardando, startTransition] = useTransition();
@@ -413,6 +485,169 @@ export function FormularioInforme({
   // Se avisa, pero NO se bloquea: un equipo puede ir de regalo a propósito.
   const sinPrecio = items.filter((i) => i.bloque !== "gratuito" && i.descripcion.trim() && i.precio_unitario <= 0);
 
+  // ── Lo escrito no se pierde (Santos, 30-09) ─────────────────────────────
+  // Un despliegue, un F5 o un corte de luz a mitad del formulario se comían
+  // todo lo que no se había guardado. Ahora cada cambio queda en ESTE
+  // navegador (no en la base: es un borrador personal, no un documento) y al
+  // volver se ofrece recuperarlo. Se borra al guardar, emitir o corregir.
+  const claveLocal = `crm:cierre-en-curso:${b?.id ?? `nuevo:${cuenta.id}`}`;
+  const inicial = useRef<string | null>(null);
+  const extrasRecibe = { otroRecibe, otroNombre, otroDocumento, otroTelefono };
+  const foto = JSON.stringify({ d: datos(), x: extrasRecibe });
+  if (inicial.current === null) inicial.current = foto;
+  const hayCambios = foto !== inicial.current || pendientes.length > 0;
+  const [recuperable, setRecuperable] = useState<{ at: string; d: DatosInforme; x: typeof extrasRecibe } | null>(null);
+
+  useEffect(() => {
+    try {
+      const guardado = localStorage.getItem(claveLocal);
+      if (!guardado) return;
+      const r = JSON.parse(guardado) as { at: string; foto: string };
+      const vieja = !b?.guardadoAt ? false : new Date(r.at).getTime() < new Date(b.guardadoAt).getTime();
+      if (r.foto === inicial.current || vieja) {
+        localStorage.removeItem(claveLocal);
+        return;
+      }
+      const f = JSON.parse(r.foto) as { d: DatosInforme; x: typeof extrasRecibe };
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage solo existe en el navegador, después de hidratar
+      setRecuperable({ at: r.at, d: f.d, x: f.x });
+    } catch {
+      /* navegador sin almacenamiento: no hay nada que recuperar */
+    }
+    // Solo al abrir la pantalla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    marcarSinGuardar(claveLocal, hayCambios);
+    if (!hayCambios || recuperable) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(claveLocal, JSON.stringify({ at: new Date().toISOString(), foto }));
+      } catch {
+        /* sin almacenamiento: se sigue sin la red */
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [foto, hayCambios, claveLocal, recuperable]);
+
+  // Salir de la pantalla con cambios: el navegador pregunta antes.
+  useEffect(() => {
+    if (!hayCambios) return;
+    const alSalir = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", alSalir);
+    return () => window.removeEventListener("beforeunload", alSalir);
+  }, [hayCambios]);
+  useEffect(() => () => marcarSinGuardar(claveLocal, false), [claveLocal]);
+
+  function olvidarLocal() {
+    try {
+      localStorage.removeItem(claveLocal);
+    } catch {
+      /* nada */
+    }
+    inicial.current = foto;
+    marcarSinGuardar(claveLocal, false);
+  }
+
+  function recuperar() {
+    if (!recuperable) return;
+    const d = recuperable.d;
+    setSerie(d.serie);
+    setMotivoSerie(d.motivoSerie ?? "");
+    setComprobante(d.comprobante);
+    setClienteNuevo(d.clienteNuevo);
+    setClienteNombre(d.clienteNombre);
+    setClienteDoc(d.clienteDoc ?? "");
+    setClienteDireccion(d.clienteDireccion ?? "");
+    setClienteCorreo(d.clienteCorreo ?? "");
+    setOrdenCompra(d.ordenCompra ?? "");
+    setModalidad(d.modalidadPago.filter(esPreset).slice(0, 1));
+    setModalidadOtra(d.modalidadPago.find((m) => !esPreset(m)) ?? "");
+    setFormaPago(d.formaPago);
+    setNotaCondiciones(d.notaCondiciones ?? "");
+    setPctAntesDespacho(d.pctAntesDespacho == null ? "" : String(d.pctAntesDespacho));
+    setCreditoDias(d.creditoDias == null ? "" : String(d.creditoDias));
+    setGarantia(d.garantia ?? "");
+    setEntregaFecha(d.entregaFecha ?? "");
+    setEntregaFechaIso(fechaIsoDesdeCalendario(d.entregaFecha ?? ""));
+    setEntregaHora(d.entregaHora ?? "");
+    setEntregaLugar(d.entregaLugar ?? "");
+    setEntregaDireccion(d.entregaDireccion ?? "");
+    setNotaDespacho(d.notaDespacho ?? "");
+    setUrgente(d.urgente);
+    setIncluye(d.incluye);
+    setGratis(d.gratis ?? "");
+    setNotaFinal(d.notaFinal ?? "");
+    setItems(d.items);
+    if (!enCorreccion) {
+      if (d.ventaId && ventasSinInforme.some((v) => v.id === d.ventaId)) setVentaId(d.ventaId);
+      const p = presupuestos.find((x) => (d.cotizacionId && x.fuente === "crm" && x.id === d.cotizacionId) || (d.presupuestoRef && x.codigo === d.presupuestoRef));
+      if (p) setPresupuestoId(p.id);
+    }
+    setOtroRecibe(recuperable.x.otroRecibe);
+    setOtroNombre(recuperable.x.otroNombre);
+    setOtroDocumento(recuperable.x.otroDocumento);
+    setOtroTelefono(recuperable.x.otroTelefono);
+    setRecuperable(null);
+    toast.success("Listo: está todo lo que había escrito. Revíselo y guárdelo.");
+  }
+
+  function descartarRecuperable() {
+    setRecuperable(null);
+    try {
+      localStorage.removeItem(claveLocal);
+    } catch {
+      /* nada */
+    }
+  }
+
+  // ── Guardar la corrección de un cierre emitido ─────────────────────────
+  // Primero los documentos (entran con la autorización abierta, 0342) y
+  // después los cambios: guardar la corrección cierra la autorización.
+  function guardarCorreccion() {
+    if (!b || !correccion) return;
+    const antes = JSON.parse(inicial.current ?? "{}") as { d?: DatosInforme };
+    const viejo = antes.d ? aCorreccion(antes.d) : {};
+    const nuevo = aCorreccion(datos());
+    const cambios: Record<string, unknown> = {};
+    for (const k of Object.keys(nuevo)) if (JSON.stringify(viejo[k]) !== JSON.stringify(nuevo[k])) cambios[k] = nuevo[k];
+    if (Object.keys(cambios).length === 0 && pendientes.length === 0) {
+      toast.info("Todavía no cambió nada.");
+      return;
+    }
+    startTransition(async () => {
+      if (otroRecibe && otroNombre.trim() && "contacto_despacho" in cambios) {
+        const rc = await guardarContactoEntrega({ cuentaId: cuenta.id, nombre: otroNombre, documento: otroDocumento, telefono: otroTelefono });
+        if (rc.error) toast.error(`No se pudo guardar el contacto: ${rc.error}`);
+      }
+      if (pendientes.length) {
+        const ra = await subirArchivosCierre(b.id, pendientes);
+        if (ra.error) {
+          toast.error(ra.error, { duration: 8000 });
+          return;
+        }
+        setSubidos((ra.adjuntos ?? []).map((a) => ({ tipo: a.tipo, nombre: a.nombre, path: a.path })));
+        setPendientes([]);
+      }
+      if (Object.keys(cambios).length > 0) {
+        const r = await corregirInformeEmitido(b.id, cambios as CorreccionInforme);
+        if (r.error) {
+          toast.error(r.error, { duration: 8000 });
+          return;
+        }
+        toast.success(`Cierre N.º ${correccion.codigo} corregido: ahora es la versión ${r.version ?? ""}. El PDF ya sale corregido.`);
+      } else {
+        toast.success("Documentos agregados al expediente.");
+      }
+      olvidarLocal();
+      router.push(`/comercial/cierres/${b.id}`);
+      router.refresh();
+    });
+  }
+
   function guardar(): Promise<string | null> {
     return new Promise((resolver) => {
       startTransition(async () => {
@@ -450,6 +685,7 @@ export function FormularioInforme({
           setPendientes([]);
         }
 
+        olvidarLocal();
         resolver(r.informeId!);
       });
     });
@@ -572,7 +808,41 @@ export function FormularioInforme({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-secondary/50 px-3.5 py-2.5">
+      {recuperable && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3.5 py-2.5">
+          <p className="flex items-start gap-2 text-sm text-foreground">
+            <History className="mt-0.5 size-4 flex-none text-amber-700" />
+            <span>
+              <b>Hay cambios que no llegó a guardar</b> ({fechaHoraLima(recuperable.at)}). Quedaron en este equipo: ¿los
+              recupera?
+            </span>
+          </p>
+          <div className="flex gap-1.5">
+            <Button type="button" size="sm" onClick={recuperar}>
+              Recuperar lo que escribí
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={descartarRecuperable}>
+              Descartar
+            </Button>
+          </div>
+        </div>
+      )}
+      {correccion && (
+        <div className="flex flex-wrap items-start gap-2 rounded-lg border border-primary/40 bg-primary/5 px-3.5 py-2.5 text-sm text-foreground">
+          <ShieldCheck className="mt-0.5 size-4 flex-none text-primary" />
+          <p suppressHydrationWarning>
+            <b>Corrigiendo con autorización de {correccion.autorizo}</b>, válida hasta las{" "}
+            {new Date(correccion.expiraAt).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", timeZone: "America/Lima" })} · «
+            {correccion.motivo}».
+            <span className="text-muted-foreground">
+              {" "}
+              Es el mismo formulario: cambie lo que haga falta, agregue documentos y pulse «Guardar corrección». Lo que está
+              en gris no se edita en una corrección.
+            </span>
+          </p>
+        </div>
+      )}
+      <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-secondary/50 px-3.5 py-2.5", enCorreccion && "hidden")}>
         {b ? (
           <p className="text-sm text-foreground">
             Borrador guardado el <b>{fechaHoraLima(b.guardadoAt)}</b>.
@@ -713,7 +983,12 @@ export function FormularioInforme({
           {/* OPEN PRIMERO (gerencia, 23-09-2026): Efameinsa se permite, con
               su motivo. A la vista y no en la sección plegada: es lo que
               gerencia va a mirar. */}
-          {serie === "EFAMEINSA" &&
+          {serie === "EFAMEINSA" && enCorreccion && (
+            <Bloqueado activo>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">Factura Efameinsa{motivoSerie ? ` · «${motivoSerie}»` : ""}</p>
+            </Bloqueado>
+          )}
+          {serie === "EFAMEINSA" && !enCorreccion &&
             (pideMotivoSerie ? (
               <div className="mt-2 space-y-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
                 <Campo etiqueta="¿Por qué factura Efameinsa y no Open?" pista={AYUDA_SERIE_EFAMEINSA}>
@@ -752,7 +1027,16 @@ export function FormularioInforme({
           ))}
         </div>
 
-        {ventasSinInforme.length > 0 && (
+        {enCorreccion && (
+          <Bloqueado activo>
+            <Campo etiqueta="¿De qué venta es este informe?">
+              <select disabled className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm">
+                <option>{correccion?.ventaTexto ?? "Sin atar a una venta"}</option>
+              </select>
+            </Campo>
+          </Bloqueado>
+        )}
+        {!enCorreccion && ventasSinInforme.length > 0 && (
           <Campo etiqueta="¿De qué venta es este informe?" pista="solo las ventas registradas en el CRM">
             <select
               value={ventaId ?? ""}
@@ -778,7 +1062,16 @@ export function FormularioInforme({
             solo para no volver a tipear los equipos. Ahora lo dice el rótulo,
             se puede decir que ninguno, y al elegir la venta se preselecciona
             sola la que corresponde por número de presupuesto. */}
-        {presupuestos.length > 0 && (
+        {enCorreccion && (
+          <Bloqueado activo>
+            <Campo etiqueta="¿De qué presupuesto copio los equipos?">
+              <select disabled className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm">
+                <option>{presupuesto?.codigo ?? b?.presupuestoRef ?? "De ninguno — cargados a mano"}</option>
+              </select>
+            </Campo>
+          </Bloqueado>
+        )}
+        {!enCorreccion && presupuestos.length > 0 && (
           <Campo
             etiqueta="¿De qué presupuesto copio los equipos?"
             pista="las cotizaciones que le hiciste a este cliente en el CRM y, más abajo, las que ya tenía en el archivo de antes — es un atajo para no tipearlos"
@@ -1023,6 +1316,7 @@ export function FormularioInforme({
             venta a crédito es la normal de la casa y postventa no tiene por
             qué pedir autorización en cada salida. Con este número, la
             aprobación del informe ya deja autorizada la condición. */}
+        <Bloqueado activo={enCorreccion}>
         <Campo
           etiqueta="Antes de despachar debe estar pagado"
           pista="lo decide el despacho: con esto pagado, postventa despacha sin pedir autorización"
@@ -1068,6 +1362,7 @@ export function FormularioInforme({
             </p>
           )}
         </Campo>
+        </Bloqueado>
 
         <Campo etiqueta="Forma de pago">
           <div className="flex gap-1.5">
@@ -1267,14 +1562,16 @@ export function FormularioInforme({
         <div className="block">
           <span className="text-xs font-semibold text-foreground">Documentos del expediente</span>
           <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
-            opcional — el voucher también se puede adjuntar después de emitido
+            {enCorreccion
+              ? `lo que agregue sube al guardar la corrección, con la autorización de ${correccion?.autorizo}; lo ya subido no se quita`
+              : "opcional — el voucher también se puede adjuntar después de emitido"}
           </span>
           <div className="mt-1 space-y-2">
             <PastillasAdjuntar onArchivos={agregarPendientes} deshabilitado={guardando} />
             {(subidos.length > 0 || pendientes.length > 0) && (
               <div className="flex flex-wrap gap-1.5">
                 {subidos.map((d, i) => (
-                  <ChipAdjunto key={d.path || i} tipo={d.tipo} nombre={d.nombre} onQuitar={() => quitarSubido(i)} />
+                  <ChipAdjunto key={d.path || i} tipo={d.tipo} nombre={d.nombre} onQuitar={enCorreccion ? undefined : () => quitarSubido(i)} />
                 ))}
                 {pendientes.map((p, i) => (
                   <ChipAdjunto
@@ -1295,6 +1592,7 @@ export function FormularioInforme({
         <section className="space-y-3 rounded-lg border border-dashed border-border p-3.5">
           <h3 className="text-sm font-semibold text-foreground">Lo que el CRM ya completó</h3>
 
+          <Bloqueado activo={enCorreccion}>
           <Campo etiqueta="Razón social que factura">
             <div className="flex gap-1.5">
               <Pastilla activa={serie === "EFAMEINSA"} onClick={() => setSerie("EFAMEINSA")}>
@@ -1305,6 +1603,7 @@ export function FormularioInforme({
               </Pastilla>
             </div>
           </Campo>
+          </Bloqueado>
 
           <Campo etiqueta="Comprobante">
             <div className="flex flex-wrap gap-1.5">
@@ -1346,7 +1645,18 @@ export function FormularioInforme({
         </section>
       )}
 
-      <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+      {correccion && b && (
+        <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 border-t border-border bg-background/95 py-3 backdrop-blur">
+          <p className="mr-auto text-xs text-muted-foreground">
+            {hayCambios ? "Tiene cambios sin guardar." : "Todavía no cambió nada."}
+          </p>
+          <Button variant="outline" nativeButton={false} render={<Link href={`/comercial/cierres/${b.id}`}>Cancelar</Link>} />
+          <Button type="button" onClick={guardarCorreccion} disabled={guardando}>
+            <Save className="size-4" /> {guardando ? "Guardando…" : "Guardar corrección"}
+          </Button>
+        </div>
+      )}
+      <div className={cn("flex flex-wrap gap-2 border-t border-border pt-4", enCorreccion && "hidden")}>
         <Button type="button" variant="outline" onClick={guardarBorrador} disabled={guardando}>
           <Save className="size-4" /> Guardar borrador
         </Button>

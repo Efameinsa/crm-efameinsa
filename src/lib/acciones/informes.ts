@@ -811,7 +811,10 @@ export async function cargarBorradorInforme(
   informeId: string,
 ): Promise<
   | { estado: "borrador"; borrador: BorradorInforme }
-  | { estado: "emitido" | "anulado" }
+  // El emitido también trae sus datos: la corrección con código se hace en
+  // este mismo formulario, no en otra pantalla (Santos, 30-09).
+  | { estado: "emitido"; borrador: BorradorInforme; codigo: string; emitidoAt: string }
+  | { estado: "anulado" }
   | { estado: "no-existe" }
 > {
   if (!z.string().uuid().safeParse(informeId).success) return { estado: "no-existe" };
@@ -824,7 +827,6 @@ export async function cargarBorradorInforme(
     .maybeSingle();
   if (!i) return { estado: "no-existe" };
   if (i.anulado_at) return { estado: "anulado" };
-  if (i.emitido_at) return { estado: "emitido" };
 
   const contacto = (c: unknown): ContactoEntrada => (c && typeof c === "object" ? (c as ContactoEntrada) : {});
   const texto = (v: unknown): string => (v == null ? "" : String(v));
@@ -837,9 +839,7 @@ export async function cargarBorradorInforme(
     precio_con_igv: it.precio_con_igv == null ? null : Number(it.precio_con_igv),
   }));
 
-  return {
-    estado: "borrador",
-    borrador: {
+  const borrador: BorradorInforme = {
       id: i.id,
       cuentaId: i.cuenta_id,
       comercialId: (i.cuentas as unknown as { comercial_id: string | null } | null)?.comercial_id ?? null,
@@ -879,6 +879,7 @@ export async function cargarBorradorInforme(
         nombre: a.nombre,
         path: a.path,
       })),
-    },
   };
+  if (i.emitido_at) return { estado: "emitido", borrador, codigo: String(i.codigo ?? ""), emitidoAt: i.emitido_at };
+  return { estado: "borrador", borrador };
 }
