@@ -294,7 +294,9 @@ async function PorDia({ vistaAlmacen, pestana }: { vistaAlmacen: boolean; pestan
       {abiertas.length === 0 ? (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">{pestana === "urgentes" ? "Nada pendiente: todas las aperturas urgentes están cerradas." : "Nada pendiente: todas las llamadas derivadas están cerradas."}</p>
       ) : (
-        [...porDia.entries()].map(([dia, lista]) => (
+        // En el almacén, el día más reciente arriba (Lesly, 30-09): las atrasadas de hace una semana tapaban lo de hoy.
+        // Dentro del día sigue por hora; postventa conserva su agenda de la más antigua a la más nueva.
+        (vistaAlmacen ? [...porDia.entries()].reverse() : [...porDia.entries()]).map(([dia, lista]) => (
           <section key={dia} className="rounded-xl border border-border bg-card shadow-sm">
             <h2
               className={cn(
