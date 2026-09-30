@@ -127,9 +127,8 @@ export function AperturaLlamadaBoton({
     datosParaFormatoDeLlamada(cuentaId).then((d) => {
       if (!vigente) return;
       setParque(d.equipos);
-      // El contacto del formato es el de «Con quién se habla», no otro aparte.
-      // Sin pisar lo que ya se escribió mientras llegaban los datos.
-      if (d.contacto) setPersona((p) => p || d.contacto || "");
+      // A quién llama el almacén lo escribe postventa (Lesly, 30-09): los contactos de la
+      // ficha y el de la última apertura quedan solo como sugerencias, nada se pone solo.
       setContactos(d.contactos);
     });
     return () => {
@@ -173,6 +172,7 @@ export function AperturaLlamadaBoton({
   function enviar() {
     if (!cuentaId) return void toast.error("Elija el cliente");
     if (urgente && pin.replace(/\D/g, "").length < 4) return void toast.error("La apertura urgente pide el código de gerencia");
+    if (persona.replace(/\D/g, "").length < 6) return void toast.error("Escriba a quién va a llamar el almacén: nombre y celular");
     startTransition(async () => {
       const r = await enviarAperturaLlamada({
         cuentaId,
@@ -335,10 +335,15 @@ export function AperturaLlamadaBoton({
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-xs">Con quién se habla (nombre y celular)</Label>
-            <Input value={persona} onChange={(e) => setPersona(e.target.value)} />
-            {contactos.length > 1 && (
-              <div className="flex flex-wrap gap-1">
+            <Label className="text-xs">A quién llama el almacén (nombre y celular)</Label>
+            <Input
+              value={persona}
+              onChange={(e) => setPersona(e.target.value)}
+              placeholder="Ej.: Juan Pérez, técnico del cliente · 987 654 321"
+            />
+            {contactos.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="text-[11px] text-muted-foreground">Sugerencias:</span>
                 {contactos.map((c) => (
                   <button
                     key={c}
