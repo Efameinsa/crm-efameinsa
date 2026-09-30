@@ -18,7 +18,11 @@ import { notificar } from "@/lib/notificaciones";
  * de la cola de Central y ponérselo al comercial delante, con el motivo
  * escrito, hasta que lo arregle.
  */
-export async function devolverCierre(informeId: string, motivo: string): Promise<{ error: string | null }> {
+export async function devolverCierre(
+  informeId: string,
+  motivo: string,
+  pin?: string,
+): Promise<{ error: string | null; autorizo?: string | null }> {
   await requerirPerfil();
   const supabase = await createClient();
 
@@ -26,13 +30,18 @@ export async function devolverCierre(informeId: string, motivo: string): Promise
     return { error: "Escriba qué está mal. El comercial solo va a leer eso para corregirlo." };
   }
 
+  // 0351: si el cierre ya avanzó, la base exige el código de gerencia. Sin
+  // avance se llama igual que siempre, sin p_pin.
   const { data, error } = await supabase.rpc("devolver_cierre", {
     p_informe: informeId,
     p_motivo: motivo.trim(),
+    ...(pin?.trim() ? { p_pin: pin.trim() } : {}),
   });
-  if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
+  // Solo se quita el código técnico: los mensajes de la base traen «:» propios
+  // («El PIN de X ya cambió: pídale el nuevo») que antes se comían.
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
 
-  const r = data as { codigo: string | null; comercial: string | null };
+  const r = data as { codigo: string | null; comercial: string | null; autorizo: string | null };
   if (r?.comercial) {
     await notificar({
       userId: r.comercial,
@@ -45,7 +54,28 @@ export async function devolverCierre(informeId: string, motivo: string): Promise
 
   revalidatePath("/central/cierres");
   revalidatePath("/comercial/cierres");
-  return { error: null };
+  return { error: null, autorizo: r?.autorizo ?? null };
+}
+
+export interface AvanceCierre {
+  avanzo: boolean;
+  enFinanzas: boolean;
+  pasos: string[];
+}
+
+/**
+ * ¿El pedido de este cierre ya avanzó? (0351, Carlos 30-09: «ya le habían
+ * pedido serie… ya está en finanzas… va a tener que solicitar eso»). La regla
+ * vive en la base (avance_del_cierre) para que el diálogo y devolver_cierre
+ * nunca se contradigan.
+ */
+export async function avanceDelCierre(informeId: string): Promise<{ avance: AvanceCierre | null; error: string | null }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("avance_del_cierre", { p_informe: informeId });
+  if (error) return { avance: null, error: error.message };
+  const d = data as { avanzo: boolean; en_finanzas: boolean; pasos: string[] | null };
+  return { avance: { avanzo: d.avanzo, enFinanzas: d.en_finanzas, pasos: d.pasos ?? [] }, error: null };
 }
 
 /** El comercial dice «ya está corregido» y el cierre vuelve a la cola de Central. */
