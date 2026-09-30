@@ -7,6 +7,7 @@ import { FormularioInforme } from "@/components/crm/formulario-informe";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { createClient } from "@/lib/supabase/server";
 import { fechaCalendario } from "@/lib/fechas";
+import { AvisoDevolucionCierre, devolucionAbierta } from "@/components/crm/aviso-devolucion-cierre";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +42,13 @@ export default async function EditarBorradorCierrePage({ params }: { params: Pro
   const { borrador } = resultado;
   if (resultado.estado === "emitido") {
     const supabase = await createClient();
-    const [{ data: ventana }, { data: venta }, { data: datos }] = await Promise.all([
+    const [{ data: ventana }, { data: venta }, { data: datos }, devolucion] = await Promise.all([
       supabase.rpc("correccion_informe_abierta", { p_informe: id }),
       borrador.ventaId
         ? supabase.from("ventas").select("fecha, monto, moneda").eq("id", borrador.ventaId).maybeSingle()
         : Promise.resolve({ data: null }),
       prellenarInforme(borrador.cuentaId).then((r) => ({ data: r.datos ?? null })),
+      devolucionAbierta(supabase, id),
     ]);
     const v = ventana as { expira_at: string; autorizo: string; motivo: string } | null;
     if (!v || !datos) redirect(`/comercial/cierres/${id}`);
@@ -56,6 +58,7 @@ export default async function EditarBorradorCierrePage({ params }: { params: Pro
         <Link href={`/comercial/cierres/${id}`} className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
           <ArrowLeft className="size-4" /> Volver al cierre sin guardar
         </Link>
+        {devolucion && <AvisoDevolucionCierre informeId={id} devolucion={devolucion} puedeReenviar={false} enCorreccion />}
         <SeccionPanel titulo={`Corregir el cierre N.º ${resultado.codigo}`}>
           <FormularioInforme
             prellenado={datos}
