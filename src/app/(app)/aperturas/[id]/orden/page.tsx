@@ -35,7 +35,9 @@ export default async function OrdenAperturaPage({
   if (!data) notFound();
   const a = data as unknown as AperturaLlamada & { cuentas: { razon_social: string; num_doc: string | null } | null };
   const cliente = a.cuentas?.razon_social ?? "—";
-  const formato = (a.formato ?? null) as FormatoLlamada | null;
+  // El contacto del formato es el de «con quién se habla» (30-09): las de antes
+  // guardaban aparte el contacto principal de la ficha.
+  const formato = a.formato ? ({ ...(a.formato as FormatoLlamada), contacto: a.contacto?.trim() || (a.formato as FormatoLlamada).contacto } as FormatoLlamada) : null;
 
   const ids = [a.solicitada_por].filter(Boolean) as string[];
   const { data: gente } = ids.length ? await supabase.from("perfiles").select("id, nombre").in("id", ids) : { data: [] };
