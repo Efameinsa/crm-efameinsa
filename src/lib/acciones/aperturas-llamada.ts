@@ -45,6 +45,9 @@ export async function enviarAperturaLlamada(datos: {
   if (!datos.cuentaId) return falla("Elija el cliente");
   if (!TIPOS_APERTURA.includes(datos.tipo)) return falla("Tipo de apertura desconocido");
   if (!datos.programadaPara || Number.isNaN(new Date(datos.programadaPara).getTime())) return falla("Falta el día y la hora");
+  // Lesly (30-09): postventa escribe siempre a quién llama el almacén; puede ser un técnico
+  // o un electricista del cliente que no está en la ficha.
+  if ((datos.contacto ?? "").replace(/\D/g, "").length < 6) return falla("Escriba a quién va a llamar el almacén: nombre y celular");
   const supabase = await createClient();
   const { data: id, error } = await supabase.rpc("enviar_apertura_llamada", {
     p_cuenta: datos.cuentaId,
@@ -129,8 +132,8 @@ export async function datosParaFormatoDeLlamada(cuentaId: string) {
       .order("fecha_venta", { ascending: false, nullsFirst: false })
       .limit(30),
     supabase.from("contactos").select("nombre, telefono").eq("cuenta_id", cuentaId).order("es_principal", { ascending: false }).limit(10),
-    // Con quién se habló en la última apertura del cliente (Gabriela, 30-09: puso a LUCERO
-    // y en la siguiente volvía a salir FLOR MARIA, el contacto principal de la ficha).
+    // Con quién se habló en la última apertura del cliente: una sugerencia más, nunca
+    // se pone sola (Gabriela, 30-09: salía FLOR MARIA, el contacto principal de la ficha).
     supabase.from("aperturas_llamada").select("contacto").eq("cuenta_id", cuentaId).is("anulada_at", null).not("contacto", "is", null).order("solicitada_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const contactos = ((listaContactos ?? []) as { nombre: string | null; telefono: string | null }[])
@@ -146,7 +149,6 @@ export async function datosParaFormatoDeLlamada(cuentaId: string) {
     }
   }
   return {
-    contacto: ultimo || contactos[0] || null,
     contactos: [...new Set([ultimo, ...contactos].filter(Boolean))],
     equipos: ((equipos ?? []) as {
       id: string; serie: string | null; modelo_texto: string | null; fecha_venta: string | null; fecha_despacho: string | null; guia_remision: string | null;
