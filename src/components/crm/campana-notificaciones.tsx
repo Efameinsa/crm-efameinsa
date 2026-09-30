@@ -125,6 +125,15 @@ const ESTILO_AVISO: Record<
     duracion: Infinity,
     tono: "success",
   },
+  // «Terminé, pueden recogerlo» (0350): quien tenía el file ya acabó y Central
+  // tiene que pasar por él. Carlos, 30-09: «que me lleve una notificación para
+  // ir a recoger el file». Se queda un rato más que un aviso informativo.
+  file_recoger: {
+    encabezado: "Listo para recoger",
+    accion: "Ir a files",
+    duracion: 14000,
+    tono: "warning",
+  },
   otro: {
     encabezado: "Aviso nuevo",
     accion: "Ver",
@@ -167,6 +176,7 @@ const NOMBRE_DEL_DESTINO: Record<string, string> = {
   "/comercial/cartera": "Ver mi cartera",
   "/comercial/cierres": "Ver mis cierres",
   "/postventa": "Ir a postventa",
+  "/files": "Ir a files",
 };
 
 /**

@@ -70,3 +70,12 @@ export async function devolverFile(id: string) {
 export async function anularPedidoFile(id: string, motivo: string | null) {
   return llamar("files_anular", { p_id: id, p_motivo: motivo });
 }
+/**
+ * «Terminé, pueden recogerlo» (0350): avisa a Central que ya puede pasar por
+ * el file. Con `todoElPedido`, marca todos los del mismo pedido que tenga en
+ * su poder con un solo aviso. Pasados 30 minutos, la misma llamada es el
+ * «Recordar a Central».
+ */
+export async function termineConElFile(id: string, todoElPedido: boolean) {
+  return llamar("files_termine", { p_id: id, p_todo_el_pedido: todoElPedido });
+}
