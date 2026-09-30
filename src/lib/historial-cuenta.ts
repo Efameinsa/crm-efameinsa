@@ -1,10 +1,11 @@
 import type { createClient } from "@/lib/supabase/server";
 import { totalConIgv } from "@/lib/monto-cotizacion";
 import { etiquetaTipoServicio } from "@/lib/postventa";
-import type { EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
+import type { CambioSolicitud, EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
 import type { ExpedienteArchivado } from "@/lib/asi-se-quedo";
+import { requerirPerfil } from "@/lib/auth";
 
 // Se muestran las 300 actividades más recientes por cuenta — de sobra para el
 // volumen real del piloto (~50 gestiones/día por comercial); si algún día se
@@ -163,9 +164,10 @@ export async function cargarHistorialCuenta(
     id: string; codigo: string | null; canal: string; mensaje: string | null; recibido_at: string | null; created_at: string;
     nombre_contacto: string | null; telefono: string | null; email: string | null; oportunidad_id: string | null;
     adjuntos: AdjuntoLead[] | null; perfiles: { nombre: string; codigo_comercial: string | null } | null;
+    estado: string; recibido_por: string | null; razon_social: string | null; num_doc: string | null;
   };
   const camposLead =
-    "id, codigo, canal, mensaje, recibido_at, created_at, nombre_contacto, telefono, email, oportunidad_id, adjuntos, perfiles:recibido_por(nombre, codigo_comercial)";
+    "id, codigo, canal, mensaje, recibido_at, created_at, nombre_contacto, telefono, email, oportunidad_id, adjuntos, estado, recibido_por, razon_social, num_doc, perfiles:recibido_por(nombre, codigo_comercial)";
   const opsDelCliente = new Set(opIds);
   const { data: leadsCuenta } = opIds.length
     ? await supabase.from("leads").select(camposLead).eq("cuenta_id", cuentaId).limit(200)
@@ -173,6 +175,14 @@ export async function cargarHistorialCuenta(
   const leadsDelCliente = new Map<string, FilaLead>();
   for (const l of (leadsCuenta ?? []) as unknown as FilaLead[])
     if (leadOriginal.has(l.id) || (l.oportunidad_id && opsDelCliente.has(l.oportunidad_id))) leadsDelCliente.set(l.id, l);
+  // LO QUE SE CORRIGIÓ DE CADA SOLICITUD, y si quien mira puede corregirla
+  // (0354, Rubí 30-09). La marca «editado» sale siempre: es lo que evita que
+  // se reescriba sin que se note.
+  const cambiosPorLead = await cargarCambiosDeSolicitudes(supabase, [...leadsDelCliente.keys()]);
+  const quienMira = await requerirPerfil();
+  const puedeCorregir = (l: FilaLead) =>
+    (l.estado === "pendiente_triaje" || l.estado === "asignado") &&
+    (["central", "gerencia", "admin"].includes(quienMira.rol) || l.recibido_por === quienMira.id);
   const adjuntosPorLead = await firmarAdjuntosDeLeads(
     supabase as never,
     [...leadsDelCliente.values()].map((l) => ({ id: l.id, adjuntos: l.adjuntos })),
@@ -427,6 +437,14 @@ export async function cargarHistorialCuenta(
         dejo: [l.nombre_contacto, l.telefono, l.email].filter(Boolean).join(" · ") || null,
         adjuntos: (adjuntosPorLead.get(l.id) ?? []).map((a) => ({ nombre: a.nombre, url: a.url })),
         volvio: !leadOriginal.has(l.id),
+        leadId: l.id,
+        puedeCorregir: puedeCorregir(l),
+        cambios: cambiosPorLead.get(l.id) ?? [],
+        // Con qué arranca la búsqueda de «era de otro cliente»: el dominio del
+        // correo (si no es de un correo gratuito), el RUC o la razón social.
+        sugerenciaFicha: sugerenciaParaBuscar(l),
+        fichaActual: l.razon_social,
+        cuentaActualId: cuentaId,
       };
     }),
   ].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
@@ -437,4 +455,49 @@ export async function cargarHistorialCuenta(
   })) as unknown as VentaConDetalle[];
 
   return { eventos, ventasConDetalle, archivados };
+}
+
+const CORREOS_GRATUITOS = /@(gmail|hotmail|outlook|yahoo|live|icloud)\./i;
+
+function sugerenciaParaBuscar(l: { email: string | null; num_doc: string | null; razon_social: string | null }): string | null {
+  if (l.email && !CORREOS_GRATUITOS.test(l.email)) return l.email.split("@")[1] ?? null;
+  if (l.num_doc && l.num_doc.replace(/\D/g, "").length === 11) return l.num_doc;
+  return null;
+}
+
+/**
+ * El historial de cambios de varias solicitudes. En tandas: un `.in` con
+ * cientos de ids revienta la URL (trampa conocida del CRM y del nginx local).
+ */
+async function cargarCambiosDeSolicitudes(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: string[],
+): Promise<Map<string, CambioSolicitud[]>> {
+  const porLead = new Map<string, CambioSolicitud[]>();
+  for (let i = 0; i < ids.length; i += 40) {
+    const { data } = await supabase
+      .from("lead_solicitud_cambios")
+      .select(
+        "lead_id, tipo, antes, despues, motivo, hecho_at, autorizo, quien:perfiles!lead_solicitud_cambios_hecho_por_fkey(nombre, codigo_comercial)",
+      )
+      .in("lead_id", ids.slice(i, i + 40))
+      .order("hecho_at", { ascending: false });
+    for (const c of (data ?? []) as unknown as {
+      lead_id: string; tipo: "texto" | "ficha"; antes: string | null; despues: string | null; motivo: string | null;
+      hecho_at: string; autorizo: string | null; quien: { nombre: string; codigo_comercial: string | null } | null;
+    }[]) {
+      const lista = porLead.get(c.lead_id) ?? [];
+      lista.push({
+        tipo: c.tipo,
+        antes: c.antes,
+        despues: c.despues,
+        motivo: c.motivo,
+        at: c.hecho_at,
+        conCodigo: c.autorizo != null,
+        quien: c.quien ? `${c.quien.codigo_comercial ? `${c.quien.codigo_comercial} · ` : ""}${c.quien.nombre}` : null,
+      });
+      porLead.set(c.lead_id, lista);
+    }
+  }
+  return porLead;
 }

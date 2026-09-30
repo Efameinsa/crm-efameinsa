@@ -9,6 +9,7 @@ import { fechaAgendada, fechaConHora } from "@/lib/fechas";
 import { ETIQUETA_ACTIVIDAD, ICONO_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
 import { SolicitudLead } from "@/components/crm/solicitud-lead";
+import { CorregirSolicitudBoton, MarcaEditado } from "@/components/crm/corregir-solicitud";
 
 // Se re-exportan para no tocar a quien ya las importaba desde acá.
 export { ETIQUETA_ACTIVIDAD, ICONO_ACTIVIDAD };
@@ -148,8 +149,29 @@ export interface EventoSolicitud extends DelExpediente {
   adjuntos?: AdjuntoEvento[];
   /** El cliente volvió a escribir y se sumó a este expediente (0141). */
   volvio?: boolean;
+  /** Para el lápiz (0354): el id del contacto, si quien mira lo puede corregir y lo que ya se corrigió. */
+  leadId?: string;
+  puedeCorregir?: boolean;
+  cambios?: CambioSolicitud[];
+  /** Con qué arranca la búsqueda de «es de otro cliente». */
+  sugerenciaFicha?: string | null;
+  /** La ficha donde está hoy. */
+  fichaActual?: string | null;
+  cuentaActualId?: string | null;
   monto?: null;
   pdfUrl?: null;
+}
+
+/** Una corrección de lo que pidió el cliente, o su mudanza de ficha (0354). */
+export interface CambioSolicitud {
+  tipo: "texto" | "ficha";
+  /** Texto de antes, o en una mudanza la ficha de origen. */
+  antes: string | null;
+  despues: string | null;
+  motivo: string | null;
+  at: string;
+  quien: string | null;
+  conCodigo: boolean;
 }
 export type EventoTimeline = EventoActividad | EventoCotizacion | EventoVenta | EventoServicio | EventoSolicitud;
 
@@ -169,19 +191,33 @@ export const ETIQUETA_CANAL_SOLICITUD: Record<string, string> = {
 export function CuerpoSolicitud({ evento }: { evento: EventoSolicitud }) {
   return (
     <div>
-      <p className="text-sm font-semibold text-[#7E1210] dark:text-rose-300">
-        {evento.volvio ? "El cliente volvió a escribir" : "Inicio · lo que solicitó el cliente"}
-        <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-          · entró por {ETIQUETA_CANAL_SOLICITUD[evento.canal] ?? evento.canal}
-          {evento.codigo ? ` · ${evento.codigo}` : ""}
-          {evento.quien ? ` · lo registró ${evento.quien}` : ""}
-        </span>
-      </p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-semibold text-[#7E1210] dark:text-rose-300">
+          {evento.volvio ? "El cliente volvió a escribir" : "Inicio · lo que solicitó el cliente"}
+          <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+            · entró por {ETIQUETA_CANAL_SOLICITUD[evento.canal] ?? evento.canal}
+            {evento.codigo ? ` · ${evento.codigo}` : ""}
+            {evento.quien ? ` · lo registró ${evento.quien}` : ""}
+          </span>
+        </p>
+        {/* El lápiz al costado (Rubí, 30-09), solo para quien lo puede usar. */}
+        {evento.puedeCorregir && evento.leadId && (
+          <CorregirSolicitudBoton
+            leadId={evento.leadId}
+            codigo={evento.codigo}
+            mensaje={evento.mensaje}
+            fichaActual={evento.fichaActual ?? null}
+            cuentaActualId={evento.cuentaActualId ?? null}
+            sugerenciaFicha={evento.sugerenciaFicha}
+          />
+        )}
+      </div>
       {evento.mensaje ? (
         <div className="mt-1"><SolicitudLead mensaje={evento.mensaje} compacto /></div>
       ) : (
         <p className="mt-0.5 text-sm italic text-muted-foreground">Central no escribió qué pidió el cliente.</p>
       )}
+      <MarcaEditado cambios={evento.cambios ?? []} />
       {evento.dejo && <p className="mt-1 text-xs text-muted-foreground">Dejó: {evento.dejo}</p>}
       {(evento.adjuntos ?? []).length > 0 && (
         <p className="mt-1 flex flex-wrap gap-2">

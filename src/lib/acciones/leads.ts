@@ -939,6 +939,12 @@ export async function corregirSolicitudLead(
    * formulario, acá viajan solo los metadatos, como en la captura.
    */
   adjuntos: AdjuntoLead[] = [],
+  /**
+   * LA FIRMA QUE PIDE LA CORRECCIÓN (0354). En la bandeja o en los primeros 15
+   * minutos, ninguna; después, un motivo; con cotización o venta en el
+   * expediente, además el código de supervisor. La base decide y lo dice.
+   */
+  firma: { motivo?: string | null; pin?: string | null } = {},
 ): Promise<{ error: string | null }> {
   if (adjuntos.length > 0) {
     const r = esquemaAdjuntosLead.safeParse(adjuntos);
@@ -949,13 +955,77 @@ export async function corregirSolicitudLead(
     p_lead_id: leadId,
     p_texto: texto?.trim() || null,
     p_adjuntos: adjuntos.length > 0 ? adjuntos : null,
+    p_motivo: firma.motivo?.trim() || null,
+    p_pin: firma.pin?.trim() || null,
   });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
 
+  // Se corrige también desde la ficha del cliente y desde el expediente.
+  revalidatePath("/", "layout");
   revalidatePath("/central");
   revalidatePath("/central/derivados");
   revalidatePath(`/central/derivados/${leadId}`);
   return { error: null };
+}
+
+/** Qué firma pide HOY corregir el texto: «libre», «motivo» o «codigo» (0354). */
+export async function firmaParaCorregirSolicitud(leadId: string): Promise<"libre" | "motivo" | "codigo"> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("firma_para_corregir_solicitud", { p_lead_id: leadId });
+  return (data as "libre" | "motivo" | "codigo" | null) ?? "motivo";
+}
+
+export interface PreviaMoverSolicitud {
+  bloqueo: string | null;
+  pide_codigo: boolean;
+  gestiones: number;
+  tiene_expediente: boolean;
+  /** El expediente nació de esta solicitud (viaja con ella); si no, ella se muda sola (0355). */
+  expediente_propio?: boolean;
+  atiende_ahora: string | null;
+  atendera: string | null;
+  suma_a_expediente_abierto: boolean;
+}
+
+/** Lo que va a pasar si se muda la solicitud a esa ficha, antes de confirmar (0354). */
+export async function previaMoverSolicitud(leadId: string, cuentaId: string): Promise<PreviaMoverSolicitud | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("previa_mover_solicitud", { p_lead_id: leadId, p_cuenta_id: cuentaId });
+  return (data as PreviaMoverSolicitud | null) ?? null;
+}
+
+/**
+ * «ESTO ERA DE OTRO CLIENTE» (0354). Rubí, 30-09: registró la consulta de
+ * Vidawasi con un teléfono de Cristo Vive y quedó en la ficha equivocada, con
+ * expediente y todo. Muda la solicitud a la ficha correcta sin llevarse nada
+ * que no haya traído ella; la base decide si hace falta código.
+ */
+export async function moverSolicitudAOtraFicha(
+  leadId: string,
+  cuentaId: string,
+  motivo: string,
+  pin: string | null = null,
+): Promise<{
+  error: string | null;
+  resultado?: {
+    destino: string;
+    origen: string | null;
+    expediente: string | null;
+    sumada_a_expediente_abierto: boolean;
+    contactos_mudados: number;
+    ficha_cerrada: boolean;
+  };
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("mover_solicitud_a_otra_ficha", {
+    p_lead_id: leadId,
+    p_cuenta_id: cuentaId,
+    p_motivo: motivo.trim(),
+    p_pin: pin?.trim() || null,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  revalidatePath("/", "layout");
+  return { error: null, resultado: data as never };
 }
 
 /**

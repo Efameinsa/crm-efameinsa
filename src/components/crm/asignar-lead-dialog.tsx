@@ -303,6 +303,23 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
             <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
               Posiblemente pertenece a
             </p>
+            {/* EL RUC Y EL TELÉFONO NO DICEN LO MISMO (Rubí, 30-09): PRO-09964
+                traía el RUC y el correo de Vidawasi con un teléfono de Cristo
+                Vive, se derivó a la ficha del teléfono y la consulta quedó en
+                el cliente equivocado. El documento pesa más que un número
+                que se pudo tipear mal: se dice antes de derivar. */}
+            {(() => {
+              const porDoc = coincidencias.find((c) => c.motivo === "documento");
+              const porTel = coincidencias.find((c) => c.motivo === "telefono");
+              if (!porDoc || !porTel || porDoc.cuentaId === porTel.cuentaId) return null;
+              return (
+                <p className="rounded-md border border-amber-400 bg-amber-50 px-2.5 py-2 text-xs leading-snug text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
+                  <b>El RUC y el teléfono no son del mismo cliente.</b> El RUC es de <b>{porDoc.razonSocial}</b>; el
+                  teléfono, de <b>{porTel.razonSocial}</b>. Confirme con quien lo registró antes de derivar: casi
+                  siempre el teléfono quedó mal anotado.
+                </p>
+              );
+            })()}
             {coincidencias.map((c) => {
               const m = MOTIVO[c.motivo];
               const elegida = cuentaElegida === c.cuentaId;
