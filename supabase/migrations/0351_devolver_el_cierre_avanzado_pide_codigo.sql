@@ -22,15 +22,18 @@
 --   · Almacén: Central pidió las series (series_pedidas_at o, en la vía
 --     vieja, serie_solicitada_at) o alguna máquina ya tiene serie
 --     (pedido_equipos.serie).
---   · Finanzas: el pedido ya se generó (numero_pedido_erp; los viejos lo
---     tienen del ERP sin pedido_generado_at), Central le metió urgencia
+--   · Finanzas: Central le metió urgencia
 --     (urgencia_finanzas_at), Finanzas subió la liquidación
 --     (liquidacion_subida_at, liquidacion_at o una fila en
 --     liquidaciones_pedido), se pidió o registró el pago
 --     (pago_solicitado_at, pago_confirmado_at o pagos_pedido), o ya hay
 --     factura (facturas_pedido).
---   · Salida: pedido ejecutado, apertura de despacho, salida autorizada o
---     despachado.
+--   · Salida: apertura de despacho, salida autorizada o despachado.
+-- NO CUENTA que el pedido tenga número (numero_pedido_erp, pedido_generado_at)
+-- ni que esté marcado ejecutado: son marcas de Central, no trabajo de otra
+-- área, y con el número contando TODA devolución pediría código. Carlos
+-- habló de lo que otros ya trabajaron: «ya le habían pedido serie… ya está
+-- en finanzas».
 -- Un cierre emitido sin pedido, o con el pedido recién creado y nada más, se
 -- sigue devolviendo como siempre: solo con el motivo (0178). Eso es lo que
 -- Carlos pidió en 05-09 y no cambia.
@@ -86,11 +89,8 @@ begin
     end if;
 
     -- Finanzas
-    if s.numero_pedido_erp is not null or s.pedido_generado_at is not null then
-      v_pasos := array_append(v_pasos, format('pedido %s generado', coalesce(s.numero_pedido_erp, '')));
-      v_finanzas := true;
-    end if;
     if s.urgencia_finanzas_at is not null then
+      v_pasos := array_append(v_pasos, 'urgencia a Finanzas');
       v_finanzas := true;
     end if;
     if s.liquidacion_subida_at is not null or s.liquidacion_at is not null
@@ -109,9 +109,6 @@ begin
     end if;
 
     -- Salida
-    if s.pedido_ejecutado_at is not null then
-      v_pasos := array_append(v_pasos, 'pedido ejecutado');
-    end if;
     if s.apertura_despacho_at is not null or s.salida_autorizada_at is not null or s.despachado_at is not null then
       v_pasos := array_append(v_pasos, 'en despacho');
     end if;
@@ -207,13 +204,23 @@ begin
                        coalesce(v_inf.codigo, ''), coalesce(v_sup, 'gerencia'));
     v_cuerpo := left(format('Lo devolvió %s. Ya tenía: %s. Motivo: %s',
                             coalesce(v_quien, 'Central'), coalesce(v_pasos, '—'), v_motivo), 500);
-    perform crear_notificacion(null, 'gerencia'::rol_usuario, 'cierre_devuelto', v_titulo, v_cuerpo,
-                               '/central/cierres?ver=devueltos');
-    if (v_avance->>'en_finanzas')::boolean then
-      perform crear_notificacion(null, 'finanzas'::rol_usuario, 'cierre_devuelto', v_titulo,
-                                 v_cuerpo || ' — El pedido queda en pausa hasta que el comercial lo corrija.',
-                                 '/finanzas/liquidar');
-    end if;
+    -- Solo personas reales: ni las cuentas de práctica ni las «Propuesta ·»
+    -- (que tienen rol finanzas y se llevaban 12 avisos por devolución). Uno
+    -- por persona: gerencia primero, Finanzas solo si el pedido ya estaba allá.
+    insert into notificaciones (user_id, tipo, titulo, cuerpo, url)
+    select distinct on (d.id) d.id, 'cierre_devuelto', v_titulo, d.cuerpo, d.url
+      from (
+        select p.id, 1 as orden, v_cuerpo as cuerpo, '/central/cierres?ver=devueltos' as url
+          from perfiles p
+         where p.activo and not coalesce(p.es_prueba, false) and p.rol = 'gerencia'::rol_usuario
+        union all
+        select p.id, 2, v_cuerpo || ' — El pedido queda en pausa hasta que el comercial lo corrija.', '/finanzas/liquidar'
+          from perfiles p
+         where (v_avance->>'en_finanzas')::boolean
+           and p.activo and not coalesce(p.es_prueba, false) and p.rol = 'finanzas'::rol_usuario
+           and p.nombre not like 'Propuesta ·%'
+      ) d
+     order by d.id, d.orden;
   end if;
 
   return jsonb_build_object(
