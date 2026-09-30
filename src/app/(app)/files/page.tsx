@@ -34,6 +34,7 @@ type Fila = {
   anulado_at: string | null;
   cliente_texto: string | null;
   cliente_doc: string | null;
+  empresa: "open" | "efameinsa" | "ambos" | null;
   cuentas: { razon_social: string; num_doc: string | null } | null;
   solicitante: { id: string; nombre: string; codigo_comercial: string | null } | null;
   entrego: { nombre: string } | null;
@@ -41,6 +42,8 @@ type Fila = {
 };
 
 const diaLima = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+// De qué empresa es el archivador (0341); los pedidos anteriores no lo decían.
+const EMPRESA: Record<NonNullable<Fila["empresa"]>, string> = { open: "OPEN", efameinsa: "EFAMEINSA", ambos: "OPEN y EFAMEINSA" };
 const quien = (p: Fila["solicitante"]) => (p ? `${p.codigo_comercial ? `${p.codigo_comercial} · ` : ""}${p.nombre}` : "—");
 
 export default async function FilesPage() {
@@ -51,7 +54,7 @@ export default async function FilesPage() {
   const { data } = await supabase
     .from("prestamos_file")
     .select(
-      `id, grupo, solicitado_at, nota, entregado_at, recibido_at, devuelto_at, anulado_at, cliente_texto, cliente_doc,
+      `id, grupo, solicitado_at, nota, entregado_at, recibido_at, devuelto_at, anulado_at, cliente_texto, cliente_doc, empresa,
        cuentas(razon_social, num_doc),
        solicitante:perfiles!prestamos_file_solicitado_por_fkey(id, nombre, codigo_comercial),
        entrego:perfiles!prestamos_file_entregado_por_fkey(nombre),
@@ -84,8 +87,11 @@ export default async function FilesPage() {
     return (
       <li key={f.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
         <Archive className="size-4 flex-none text-primary" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">{f.cliente_texto ?? f.cuentas?.razon_social ?? "Cliente"}</p>
+        <div className="min-w-[12rem] flex-1">
+          <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-sm font-semibold text-foreground">
+            <span className="max-w-full shrink-0 truncate">{f.cliente_texto ?? f.cuentas?.razon_social ?? "Cliente"}</span>
+            {f.empresa && <span className="flex-none rounded border border-primary/30 px-1.5 py-px text-[10px] font-bold tracking-wide text-primary">{EMPRESA[f.empresa]}</span>}
+          </p>
           <p className="text-xs text-muted-foreground">
             {conQuien && <>Lo pidió <b className="font-semibold text-foreground">{quien(f.solicitante)}</b> · </>}
             {(f.cliente_doc ?? f.cuentas?.num_doc) ? `${f.cliente_doc ?? f.cuentas?.num_doc} · ` : ""}
@@ -108,7 +114,7 @@ export default async function FilesPage() {
       {perfil.rol !== "central" && (
         <SeccionPanel titulo="Pedir files a Central">
           <p className="mb-3 text-xs text-muted-foreground">
-            El archivador físico del cliente. Agregue uno o varios; Central recibe el aviso, se lo entrega y usted firma con «Recibí el file». Devuélvalo al terminar el día.
+            El archivador físico del cliente. Agregue uno o varios y marque si es el de OPEN, el de EFAMEINSA o los dos; Central recibe el aviso, se lo entrega y usted firma con «Recibí el file». Devuélvalo al terminar el día.
           </p>
           <PedirFiles />
         </SeccionPanel>

@@ -51,8 +51,12 @@ async function llamar(fn: string, args: Record<string, unknown>) {
   return { error: null };
 }
 
-export async function solicitarFiles(cuentas: string[], nota: string | null) {
-  return llamar("files_solicitar", { p_cuentas: cuentas, p_nota: nota });
+/** De qué empresa del grupo es el archivador que se pide (0341). */
+export type EmpresaFile = "open" | "efameinsa" | "ambos";
+
+/** Cada cliente con su empresa, en el mismo orden. */
+export async function solicitarFiles(pedidos: { cuenta: string; empresa: EmpresaFile }[], nota: string | null) {
+  return llamar("files_solicitar", { p_cuentas: pedidos.map((p) => p.cuenta), p_nota: nota, p_empresas: pedidos.map((p) => p.empresa) });
 }
 export async function entregarFile(id: string) {
   return llamar("files_entregar", { p_id: id });
