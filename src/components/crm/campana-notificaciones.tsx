@@ -129,9 +129,18 @@ const ESTILO_AVISO: Record<
   // tiene que pasar por él. Carlos, 30-09: «que me lleve una notificación para
   // ir a recoger el file». Se queda un rato más que un aviso informativo.
   file_recoger: {
-    encabezado: "Listo para recoger",
+    encabezado: "📁 Listo para recoger",
     accion: "Ir a files",
-    duracion: 14000,
+    duracion: 20000,
+    tono: "warning",
+  },
+  // Alguien pide files a Central (0357). Hasta el 30-09 salía como «Aviso
+  // nuevo» con pitido corto; Central pidió «campanita, alarma, ventana
+  // emergente» para no perderse ni el pedido ni el recojo.
+  file_pedido: {
+    encabezado: "📁 Piden files",
+    accion: "Ir a files",
+    duracion: 20000,
     tono: "warning",
   },
   otro: {
@@ -266,7 +275,7 @@ export function CampanaNotificaciones({
     // La campanada triple suena EN TODAS LAS CUENTAS cuando el aviso exige
     // hacer algo (orden del 25-08: «para que sientan la presión al menos del
     // sonido»): prospecto nuevo (Central y gerencia), lead derivado
-    // (comercial), cotización por aprobar (gerencia) y urgencia. Los avisos
+    // (comercial), cotización por aprobar (gerencia), urgencia y files. Los avisos
     // informativos (aprobada/rechazada) conservan el pitido corto.
     const exigeAccion = [
       "lead_registrado",
@@ -274,6 +283,9 @@ export function CampanaNotificaciones({
       "cotizacion_pendiente",
       "urgencia",
       "urgencia_finanzas",
+      // Files: pedir y «Terminé» (Central, 30-09) mueven a alguien a caminar.
+      "file_pedido",
+      "file_recoger",
     ].includes(n.tipo);
     if (exigeAccion) sonarCampanada(n.id);
     else sonarAlerta(n.id);
