@@ -402,11 +402,53 @@ export function CampanaNotificaciones({
       refrescar(false);
     }, 15_000);
 
+    // EL CANAL VIVO VUELVE, SOLO CON LA BASE LOCAL (29-09). Se apagó el 25-09
+    // por lo que costaba en Supabase de la nube; con la base en la VM de la
+    // oficina ese costo no existe y Santos pidió la campana al instante, con
+    // sonido y ventanita. Se prende con NEXT_PUBLIC_CAMPANA_EN_VIVO=1 (solo en
+    // el .env del CRM local): en Vercel, que lee la nube, sigue apagado. El
+    // repaso de arriba queda de respaldo por si el canal se corta.
+    let canal: ReturnType<typeof supabase.channel> | null = null;
+    let vigente = true;
+    let soltarEscucha: (() => void) | null = null;
+    if (process.env.NEXT_PUBLIC_CAMPANA_EN_VIVO === "1") {
+      // El canal se une con el token del usuario: sin él, la base (por RLS) no
+      // le manda ninguna fila (24-09). Se renueva cuando la sesión se renueva.
+      const { data: escucha } = supabase.auth.onAuthStateChange((_evento, sesion) => {
+        if (sesion?.access_token) supabase.realtime.setAuth(sesion.access_token);
+      });
+      soltarEscucha = () => escucha.subscription.unsubscribe();
+      void (async () => {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.access_token) supabase.realtime.setAuth(data.session.access_token);
+        if (!vigente) return;
+        canal = supabase
+          .channel(`notificaciones-${userId}`)
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "notificaciones", filter: `user_id=eq.${userId}` },
+            (payload) => {
+              const nueva = payload.new as Notificacion;
+              // Si el repaso ya la trajo, no se duplica ni vuelve a sonar.
+              if (conocidasRef.current?.has(nueva.id)) return;
+              conocidasRef.current?.add(nueva.id);
+              setNotificaciones((prev) => [nueva, ...prev.filter((n) => n.id !== nueva.id)].slice(0, 50));
+              setSinLeerTotal((n) => n + 1);
+              avisar(nueva);
+            },
+          )
+          .subscribe();
+      })();
+    }
+
     // Deja el audio autorizado con el primer clic: si no, el primer aviso del
     // día llegaría mudo porque el navegador todavía no permite sonido.
     const soltarPreparacion = prepararAlerta();
 
     return () => {
+      vigente = false;
+      soltarEscucha?.();
+      if (canal) supabase.removeChannel(canal);
       soltarPreparacion();
       document.removeEventListener("visibilitychange", alVolver);
       window.removeEventListener("focus", alVolver);
