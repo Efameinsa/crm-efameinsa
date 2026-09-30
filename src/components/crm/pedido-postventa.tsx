@@ -62,6 +62,7 @@ import { TipoPedidoSelector } from "@/components/crm/tipo-pedido-selector";
 
 type Formulario =
   | null
+  | { tipo: "apertura" }
   | { tipo: "condicion" }
   | { tipo: "prueba" }
   | { tipo: "sin_plano" }
@@ -323,23 +324,10 @@ export function PedidoPostventa({
       case "apertura":
         // La emite el servidor solo si las cuatro condiciones están; si
         // faltan, el paso ya lo dice y el botón no aparece.
+        // Se confirma antes: Rubí (30-09) la emitió de un clic queriendo
+        // retroceder, y el aviso le llegó al almacén.
         return paso.trabado ? null : (
-          <BotonPaso
-            onClick={() =>
-              startTransition(async () => {
-                const r = await emitirAperturaDespacho(servicio.id);
-                if (r.error) {
-                  toast.error(r.error, { duration: 8000 });
-                  return;
-                }
-                toast.success("Apertura de despacho emitida");
-                window.open(`/postventa/pedidos/${servicio.id}/apertura`, "_blank", "noopener");
-                router.refresh();
-              })
-            }
-          >
-            Emitir apertura
-          </BotonPaso>
+          <BotonPaso onClick={() => setForm({ tipo: "apertura" })}>Emitir apertura</BotonPaso>
         );
       case "despacho":
         return (
@@ -714,6 +702,29 @@ export function PedidoPostventa({
             requerido: false,
           },
         ]}
+      />
+
+      <Cuadro
+        abierto={form?.tipo === "apertura"}
+        cerrar={() => setForm(null)}
+        titulo="¿Emitir la apertura de despacho?"
+        descripcion="Le llega al almacén y con ella despacha sin preguntar a nadie. Después, cambiar la entrega pide código de operaciones o gerencia."
+        boton="Sí, emitir la apertura"
+        pendiente={pendiente}
+        onEnviar={() =>
+          startTransition(async () => {
+            const r = await emitirAperturaDespacho(servicio.id);
+            if (r.error) {
+              toast.error(r.error, { duration: 8000 });
+              return;
+            }
+            toast.success("Apertura de despacho emitida");
+            setForm(null);
+            window.open(`/postventa/pedidos/${servicio.id}/apertura`, "_blank", "noopener");
+            router.refresh();
+          })
+        }
+        campos={[]}
       />
 
       <Cuadro
