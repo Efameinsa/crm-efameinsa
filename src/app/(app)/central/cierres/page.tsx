@@ -152,10 +152,18 @@ export default async function CierresCentralPage({
   // en la cola de Central: está en la de él.
   const { data: devoluciones } = await supabase
     .from("devoluciones_cierre")
-    .select("informe_id, motivo, devuelto_at")
+    .select("informe_id, motivo, devuelto_at, quien:perfiles!devoluciones_cierre_devuelto_por_fkey(nombre), sup:perfiles!devoluciones_cierre_autorizo_fkey(nombre)")
     .is("resuelto_at", null);
+  // 0351: «Devuelto por X con autorización de Y» cuando el pedido ya había avanzado.
   const devueltoPorInforme = new Map(
-    (devoluciones ?? []).map((d) => [d.informe_id as string, d as { motivo: string; devuelto_at: string }]),
+    (devoluciones ?? []).map((d) => {
+      const quien = d.quien as unknown as { nombre: string } | null;
+      const sup = d.sup as unknown as { nombre: string } | null;
+      return [
+        d.informe_id as string,
+        { motivo: d.motivo as string, devuelto_at: d.devuelto_at as string, por: quien?.nombre ?? null, autorizo: sup?.nombre ?? null },
+      ];
+    }),
   );
 
   const liberado = (id: string) => {
@@ -468,8 +476,14 @@ export default async function CierresCentralPage({
                         rechazarlo y que lo haga bien». */}
                     {devueltoPorInforme.has(f.id) ? (
                       <p className="mt-2 rounded-md border border-amber-400/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-400">
-                        <b>Devuelto al comercial</b> el{" "}
-                        {fechaHoraLima(devueltoPorInforme.get(f.id)!.devuelto_at)}: {devueltoPorInforme.get(f.id)!.motivo}
+                        <b>Devuelto al comercial</b>
+                        {devueltoPorInforme.get(f.id)!.por ? ` por ${devueltoPorInforme.get(f.id)!.por}` : ""}
+                        {devueltoPorInforme.get(f.id)!.autorizo ? (
+                          <>
+                            {" "}con autorización de <b>{devueltoPorInforme.get(f.id)!.autorizo}</b>
+                          </>
+                        ) : null}{" "}
+                        el {fechaHoraLima(devueltoPorInforme.get(f.id)!.devuelto_at)}: {devueltoPorInforme.get(f.id)!.motivo}
                       </p>
                     ) : (
                       !estaAnulado &&
