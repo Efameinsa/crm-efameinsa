@@ -162,6 +162,22 @@ export const ETIQUETA_ESTADO_PAGO: Record<EstadoPago, string> = {
 
 export type ResponsablePaso = "postventa" | "almacen" | "finanzas" | "cliente" | "central";
 
+/**
+ * «No se le envió» (Rubí, 30-09): el equipo llevaba plano y no salió. Se
+ * guarda en las mismas columnas que «No lleva plano» (0259), con el motivo
+ * empezando por este prefijo, para no abrir otra migración por una marca.
+ */
+export const PREFIJO_PLANO_NO_ENVIADO = "No se le envió";
+
+export function planoNoEnviado(s: Pick<ServicioPostventa, "sin_plano" | "sin_plano_motivo">): boolean {
+  return s.sin_plano === true && (s.sin_plano_motivo ?? "").startsWith(PREFIJO_PLANO_NO_ENVIADO);
+}
+
+/** El porqué sin el prefijo: «pedido anterior al circuito, ya se entregó». */
+export function motivoPlanoNoEnviado(s: Pick<ServicioPostventa, "sin_plano_motivo">): string {
+  return (s.sin_plano_motivo ?? "").slice(PREFIJO_PLANO_NO_ENVIADO.length).replace(/^[\s:·—-]+/, "").trim();
+}
+
 export interface PasoPedido {
   clave: string;
   etiqueta: string;
@@ -539,16 +555,28 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
         ]),
     // El plano solo cuando el pedido lo lleva (0259, Carlos 21-09: un calderín
     // o un accesorio no tiene plano; el paso se salta y queda dicho por qué).
-    ...(circuito.esEquipo && !s.sin_plano
+    // «No se le envió» (Rubí, 30-09): el equipo sí lleva plano, pero el
+    // pedido es de antes del circuito y el plano nunca salió. El paso no se
+    // esconde como en «No lleva plano»: queda a la vista, cerrado y dicho así.
+    ...(circuito.esEquipo && (!s.sin_plano || planoNoEnviado(s))
       ? [
-          {
-            clave: "plano",
-            etiqueta: "Plano de preinstalación enviado",
-            responsable: "postventa" as ResponsablePaso,
-            hecho: s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion),
-            cuando: s.plano_enviado_at,
-            detalle: "Va en paralelo: cuanto antes salga, antes prepara el cliente agua, desagüe y energía",
-          },
+          planoNoEnviado(s)
+            ? {
+                clave: "plano",
+                etiqueta: "Plano de preinstalación: no se le envió",
+                responsable: "postventa" as ResponsablePaso,
+                hecho: true,
+                cuando: null,
+                detalle: motivoPlanoNoEnviado(s) || undefined,
+              }
+            : {
+                clave: "plano",
+                etiqueta: "Plano de preinstalación enviado",
+                responsable: "postventa" as ResponsablePaso,
+                hecho: s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion),
+                cuando: s.plano_enviado_at,
+                detalle: "Va en paralelo: cuanto antes salga, antes prepara el cliente agua, desagüe y energía",
+              },
         ]
       : []),
   ];
@@ -657,7 +685,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
               // El plano se marca en otro bloque (preparación): sin decir
               // dónde, postventa creía que la apertura estaba rota (22-09).
               circuito.esEquipo && !s.sin_plano && !planoEnviado
-                ? ". Márquelo arriba, en «Plano de preinstalación enviado»: «Marcar enviado» o «No lleva plano»"
+                ? ". Márquelo arriba, en «Plano de preinstalación enviado»: «Marcar enviado», «No se le envió» o «No lleva plano»"
                 : ""
             }`
           : undefined,

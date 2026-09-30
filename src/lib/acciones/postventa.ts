@@ -6,7 +6,7 @@ import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
-import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, evaluarPagoParaDespacho, PREFIJO_PLANO_NO_ENVIADO, puedeVerPrecios, textoCondicionPago, type ServicioPostventa } from "@/lib/postventa";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 
 /**
@@ -439,6 +439,15 @@ export async function marcarSinPlano(servicioId: string, motivo: string) {
   if (error) return falla(error.message);
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   return ok();
+}
+
+/**
+ * El equipo llevaba plano y no se le envió (Rubí, 30-09: «se pasó antes que
+ * llegue»). No es «No lleva plano»: el paso queda a la vista como no enviado.
+ */
+export async function marcarPlanoNoEnviado(servicioId: string, motivo: string) {
+  if (!motivo.trim()) return falla("Diga por qué no se le envió (ej. «el equipo llegó antes de mandarle el plano»)");
+  return marcarSinPlano(servicioId, `${PREFIJO_PLANO_NO_ENVIADO}: ${motivo.trim()}`);
 }
 
 export async function programarDespacho(servicioId: string, fecha: string, hora?: string | null, nota?: string, pin?: string | null) {

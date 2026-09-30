@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fechaHoraLima } from "@/lib/fechas";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { circuitoDe, esProvincia, puedeVerPrecios, seriesDeTexto, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
+import { circuitoDe, esProvincia, planoNoEnviado, PREFIJO_PLANO_NO_ENVIADO, puedeVerPrecios, seriesDeTexto, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
 import { faltantesApertura, filasApertura, horaAmPm, tipoSugerido, type DatosApertura, type FilaApertura, type TipoApertura } from "@/lib/apertura-servicio";
 
 /**
@@ -160,7 +160,9 @@ export async function cargarHojaApertura(
             texto: "Plano de preinstalación enviado",
             ok: s.sin_plano === true || s.plano_enviado_at != null || esOk(s.planos_preinstalacion),
             detalle: s.sin_plano
-              ? `No lleva${s.sin_plano_motivo ? `: ${s.sin_plano_motivo}` : ""}`
+              ? planoNoEnviado(s)
+                ? s.sin_plano_motivo ?? PREFIJO_PLANO_NO_ENVIADO
+                : `No lleva${s.sin_plano_motivo ? `: ${s.sin_plano_motivo}` : ""}`
               : s.plano_enviado_at
                 ? fechaHoraLima(s.plano_enviado_at)
                 : esOk(s.planos_preinstalacion)
