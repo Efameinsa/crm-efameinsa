@@ -855,6 +855,45 @@ function revalidarSeries(servicioId: string) {
 }
 
 /**
+ * ¿LE FALTA O LE SOBRA UN DÍGITO? (Lesly, 30-09). La secadora Unimac de
+ * Hortifrut entró como 260200156 y la placa dice 2602001565: las Unimac del
+ * parque tienen 10 caracteres, esa tenía 9. Antes de registrar (o corregir) se
+ * compara con las series de la misma marca; si casi todas miden lo mismo y
+ * esta no, se pide confirmar. Solo avisa: hay series legítimamente distintas.
+ */
+const MARCAS_CON_SERIE = ["SPEED QUEEN", "ELECTROLUX", "WHIRLPOOL", "SAMSUNG", "HUEBSCH", "UNIMAC", "PRIMUS", "GIRBAU", "CISSELL", "MAYTAG", "IPSO", "LG"];
+
+export async function revisarLargoDeSerie(itemId: string, serie: string): Promise<{ aviso: string | null }> {
+  const largo = serie.replace(/[^a-z0-9]/gi, "").length;
+  if (!largo) return { aviso: null };
+  const supabase = await createClient();
+  const { data: item } = await supabase.from("pedido_equipos").select("descripcion").eq("id", itemId).maybeSingle();
+  const desc = (item?.descripcion ?? "").toUpperCase();
+  const marca = MARCAS_CON_SERIE.find((m) => new RegExp(`(^|[^A-Z])${m}([^A-Z]|$)`).test(desc));
+  if (!marca) return { aviso: null };
+  const { data } = await supabase
+    .from("equipos_instalados")
+    .select("serie")
+    .ilike("modelo_texto", `%${marca}%`)
+    .not("serie", "is", null)
+    .eq("es_prueba", false)
+    .limit(2000);
+  const conteo = new Map<number, number>();
+  for (const f of data ?? []) {
+    const l = String(f.serie).replace(/[^a-z0-9]/gi, "").length;
+    if (l) conteo.set(l, (conteo.get(l) ?? 0) + 1);
+  }
+  const total = [...conteo.values()].reduce((a, b) => a + b, 0);
+  const [comun, veces] = [...conteo.entries()].sort((a, b) => b[1] - a[1])[0] ?? [0, 0];
+  // Con pocas series, o marcas donde el largo varía (Primus), no hay regla que defender.
+  if (total < 10 || veces / total < 0.75 || largo === comun) return { aviso: null };
+  const marcaBonita = marca.charAt(0) + marca.slice(1).toLowerCase();
+  return {
+    aviso: `Las series ${marca === "LG" ? "LG" : marcaBonita} del parque tienen ${comun} caracteres (${veces} de ${total}) y esta tiene ${largo}: ${largo < comun ? "¿le falta" : "¿le sobra"} ${Math.abs(comun - largo) === 1 ? "un dígito" : `${Math.abs(comun - largo)} dígitos`}? Revise la placa.`,
+  };
+}
+
+/**
  * UN CÓDIGO PARA TODAS LAS UNIDADES QUE NO LLEVAN SERIE (Lesly, 25-09; 0302).
  * «Los coches no están ingresados por serie: es un código para varios de ese
  * modelo». Se pone una vez y va a todas las unidades del mismo artículo del
