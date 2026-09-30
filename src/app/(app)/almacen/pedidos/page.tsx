@@ -7,6 +7,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
 import { ETIQUETA_TIPO_PEDIDO, circuitoDe, faltanFotosDeCarga, type ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
+import { torresSinSegundaSerie } from "@/lib/torres";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,13 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
       const m = queFaltaCodificar.get(r.servicio_id) ?? new Map<string, number>();
       m.set(t, (m.get(t) ?? 0) + 1);
       queFaltaCodificar.set(r.servicio_id, m);
+    }
+    // La torre con una sola serie sigue pendiente: falta la de la secadora (0359).
+    for (const [id, n] of await torresSinSegundaSerie(supabase)) {
+      faltanSeries.set(id, (faltanSeries.get(id) ?? 0) + n);
+      const m = queFaltaCodificar.get(id) ?? new Map<string, number>();
+      m.set("serie de la secadora (torre)", n);
+      queFaltaCodificar.set(id, m);
     }
   }
   const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
