@@ -1,5 +1,6 @@
 import { Document, Page, View, Text, Image, StyleSheet, Svg, Path } from "@react-pdf/renderer";
 import type { CierreSemanal } from "@/lib/cierre-semanal";
+import { BloqueIndicadoresPdf } from "@/lib/pdf/indicadores-pdf";
 
 /**
  * El cierre de la semana, en una hoja.
@@ -277,7 +278,7 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
             compararlo con algo. Dime qué tengo que mejorar». */}
         {!area && (
         <View style={e.tarjetas}>
-          <Medidor etiqueta="Contactos con cliente" m={cierre.medidas.gestiones} />
+          <Medidor etiqueta="Contactos con cliente (sin WhatsApp de campaña)" m={cierre.medidas.gestiones} />
           <Medidor etiqueta="Cotizaciones enviadas" m={cierre.medidas.cotizaciones} />
           <Medidor
             etiqueta="Vendido"
@@ -291,6 +292,17 @@ export function CierreSemanalPdf({ logoBuffer, rango, cierre }: { logoBuffer: Bu
             <Text style={e.tarjetaPie}>{ventas.length} venta(s) cerrada(s)</Text>
           </View>
         </View>
+        )}
+
+        {/* WhatsApp de campaña, visitas y videollamadas (30-09). */}
+        {!area && cierre.indicadores && (
+          <BloqueIndicadoresPdf
+            ind={cierre.indicadores}
+            rotuloWhatsapp="WhatsApp de campaña · semana"
+            rotuloPeriodo="semana"
+            anterior="la semana anterior"
+            conHoy={false}
+          />
         )}
 
         {/* La frase que cierra. «No es darle con palo, sino ver tu realidad.» */}

@@ -48,7 +48,7 @@ const ETIQUETA_GESTION: Record<string, string> = {
   email: "correo",
   visita: "visita",
   showroom: "visita a planta",
-  reunion_online: "reunión",
+  reunion_online: "videollamada",
   filtro: "filtro",
   otro: "gestión",
 };

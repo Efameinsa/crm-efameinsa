@@ -1,16 +1,25 @@
 import Link from "@/components/enlace";
 import { WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
+import { TIPOS_GESTION_META } from "@/lib/indicadores-comerciales";
+import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { Clock, FileText, TrendingUp, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usd } from "@/lib/reportes";
 import { horaCorta, type ComercialSupervision } from "@/lib/supervision";
+
+/** Las vías que cuentan para la meta (supervision_diaria, 0307): los chips suman el total. */
+const TIPOS_DE_LA_META = new Set<string>(TIPOS_GESTION_META);
 
 const ETIQUETA_TIPO: Record<string, string> = {
   llamada: "Llamadas",
   whatsapp: "WhatsApp",
   email: "Correo",
   visita: "Visitas",
-  reunion_online: "Reuniones online",
+  // «Videollamada» desde el 30-09 (ing. Carlos: «visitas y videollamadas»).
+  // El tipo en la base sigue siendo reunion_online.
+  reunion_online: "Videollamadas",
+  showroom: "Visita a planta",
+  nota: "Notas internas",
 };
 
 // Tarjeta de supervisión de un comercial en un día. Mismo lenguaje visual que
@@ -22,6 +31,7 @@ export function TarjetaSupervision({
   meta,
   fecha,
   esPostventa = false,
+  indicadores,
 }: {
   c: ComercialSupervision;
   meta: number;
@@ -29,6 +39,8 @@ export function TarjetaSupervision({
   /** Postventa se muestra (pedido 25-08) pero rotulada: sus gestiones son
    *  casos de garantía/repuestos, no ventas, y no compite con la meta. */
   esPostventa?: boolean;
+  /** WhatsApp de campaña, visitas y videollamadas (30-09): cada uno en su línea. */
+  indicadores?: React.ReactNode;
 }) {
   // POSTVENTA CUENTA TODAS SUS GESTIONES (25-09, gerencia: «en el caso de PV1 y
   // PV2 no se están contabilizando»). Sus llamadas y WhatsApp van sobre casos
@@ -40,7 +52,8 @@ export function TarjetaSupervision({
   // El total de presupuestos del día suma los del CRM y los del archivo: para
   // fechas anteriores al CRM, todo lo que hizo el comercial está en el archivo.
   const cotizaciones = c.cotizaciones + c.cotizaciones_archivo;
-  const sinActividad = c.seguimientos_efectivos === 0 && c.intentos_sin_contacto === 0 && cotizaciones === 0 && c.gestiones_postventa === 0;
+  const sinActividad =
+    c.seguimientos_efectivos === 0 && c.intentos_sin_contacto === 0 && cotizaciones === 0 && c.gestiones_postventa === 0 && !c.gestion_whatsapp;
 
   return (
     <Link
@@ -85,7 +98,11 @@ export function TarjetaSupervision({
           {esPostventa ? (
             <span className="mr-1 font-normal text-muted-foreground">Gestiones del día</span>
           ) : (
-            c.gestiones_postventa > 0 && <span className="mr-1 font-normal text-muted-foreground">Gestiones de venta</span>
+            // 30-09: el rótulo dice qué NO entra, porque hasta ayer entraba.
+            <span className="mr-1 font-normal text-muted-foreground">
+              {c.gestiones_postventa > 0 ? "Gestiones de venta" : "Gestiones efectivas"}
+              {!WHATSAPP_CUENTA_PARA_META && <span className="hidden sm:inline"> (sin WhatsApp de campaña)</span>}
+            </span>
           )}
           {hechas} / {meta}
         </span>
@@ -99,20 +116,24 @@ export function TarjetaSupervision({
         )}
       </div>
 
-      {/* LA OTRA BARRA: GESTIÓN DE WHATSAPP (Santos, 23-09). Las marcas de un
-          botón en los chats, aparte de las llamadas y mensajes. No tiene meta
-          propia todavía: la barra se dibuja contra la misma meta solo para
-          dar escala. */}
-      {(c.gestion_whatsapp ?? 0) > 0 && (
+      {/* LA OTRA BARRA: GESTIÓN DE WHATSAPP (Santos, 23-09). Desde el 30-09
+          ya no suma arriba; su indicador de verdad (chats de anuncio,
+          calificados el mismo día, tiempo de respuesta) va en las líneas de
+          abajo. Acá queda el conteo de marcas, para que se vea adónde fueron. */}
+      {WHATSAPP_CUENTA_PARA_META && (c.gestion_whatsapp ?? 0) > 0 && (
         <div className="mt-1.5 flex items-center gap-2">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
             <div className="h-full rounded-full bg-[#25A366]" style={{ width: `${Math.min(meta > 0 ? ((c.gestion_whatsapp ?? 0) / meta) * 100 : 0, 100)}%` }} />
           </div>
           <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-            <b className="font-semibold text-foreground">Gestión de WhatsApp {c.gestion_whatsapp}</b>
-            {WHATSAPP_CUENTA_PARA_META ? " · incluida arriba" : " · aparte de la meta"}
+            <b className="font-semibold text-foreground">Gestión de WhatsApp {c.gestion_whatsapp}</b> · incluida arriba
           </span>
         </div>
+      )}
+      {!WHATSAPP_CUENTA_PARA_META && (c.gestion_whatsapp ?? 0) > 0 && (
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          + {c.gestion_whatsapp} marca{c.gestion_whatsapp === 1 ? "" : "s"} en chats de WhatsApp, aparte: no suman a la meta.
+        </p>
       )}
 
       {sinActividad ? (
@@ -137,15 +158,32 @@ export function TarjetaSupervision({
               contacto real + {c.intentos_sin_contacto} que no contestaron
             </p>
           )}
+          {/* Los chips suman el total de arriba: solo las vías de contacto que
+              cuentan para la meta. Lo demás (notas internas, filtros, la
+              visita a planta, que va en su indicador) se nombra aparte, en
+              gris, para que la suma de los chips no descuadre (30-09). */}
           <div className="mt-1 flex flex-wrap gap-1.5">
-            {Object.entries(c.por_tipo).map(([tipo, n]) => (
-              <span key={tipo} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-foreground">
-                {ETIQUETA_TIPO[tipo] ?? tipo}: {n}
-              </span>
-            ))}
+            {Object.entries(c.por_tipo)
+              .filter(([tipo]) => TIPOS_DE_LA_META.has(tipo))
+              .map(([tipo, n]) => (
+                <span key={tipo} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-foreground">
+                  {ETIQUETA_TIPO[tipo] ?? tipo}: {n}
+                </span>
+              ))}
           </div>
+          {Object.entries(c.por_tipo).some(([tipo]) => !TIPOS_DE_LA_META.has(tipo)) && (
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Aparte:{" "}
+              {Object.entries(c.por_tipo)
+                .filter(([tipo]) => !TIPOS_DE_LA_META.has(tipo))
+                .map(([tipo, n]) => `${(ETIQUETA_TIPO[tipo] ?? ETIQUETA_ACTIVIDAD[tipo] ?? tipo).toLowerCase()} ${n}`)
+                .join(" · ")}
+            </p>
+          )}
         </div>
       )}
+
+      {indicadores}
 
       <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
         {c.intentos_sin_contacto > 0 && <span>{c.intentos_sin_contacto} intento{c.intentos_sin_contacto === 1 ? "" : "s"} sin contacto</span>}

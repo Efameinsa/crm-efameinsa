@@ -1,4 +1,5 @@
-import { WHATSAPP_CUENTA_PARA_META, marcasWhatsappDelDia } from "@/lib/gestion-whatsapp";
+import { WHATSAPP_CUENTA_PARA_META, esMarcaWhatsapp } from "@/lib/gestion-whatsapp";
+import { cargarIndicadoresDelDia, indicadoresParaDocumento } from "@/lib/indicadores-comerciales";
 import { ETIQUETA_ESTADO_APERTURA, ETIQUETA_TIPO_APERTURA, estadoApertura, type TipoApertura } from "@/lib/aperturas-llamada";
 import { cabeceraArchivo } from "@/lib/nombre-archivo";
 import { NextResponse } from "next/server";
@@ -48,16 +49,32 @@ export async function GET(request: Request) {
   }
 
   const r = data as unknown as Parameters<typeof ReporteDiarioPdf>[0] & { fecha: string };
-  // La gestión de WhatsApp, en su propia barra (23-09).
+  // La gestión de WhatsApp, aparte (23-09), y fuera de la meta desde el 30-09.
+  // Las marcas salen de la lista de seguimientos y el número se recalcula DE
+  // ESA MISMA LISTA: así el total de la sección 1 y el número grande cuadran
+  // sin que nadie tenga que restar de cabeza (el reclamo del 25-08).
+  const marcas = r.seguimientos.filter((s) => esMarcaWhatsapp(s.tipo, s.nota));
+  r.resumen = { ...r.resumen, gestion_whatsapp: marcas.length };
+  if (!WHATSAPP_CUENTA_PARA_META && marcas.length > 0) {
+    const propias = r.seguimientos.filter((s) => !esMarcaWhatsapp(s.tipo, s.nota));
+    r.seguimientos = propias;
+    r.resumen = {
+      ...r.resumen,
+      seguimientos_efectivos: propias.filter((s) => s.efectivo).length,
+      intentos_sin_contacto: propias.filter((s) => !s.efectivo).length,
+    };
+  }
+
+  // WhatsApp de campaña, visitas y videollamadas (ing. Carlos, 30-09: «esos
+  // dos puntos tienen que estar en su reporte diario»). Si algo falla, el
+  // reporte sale igual sin la sección.
+  let indicadores: Parameters<typeof ReporteDiarioPdf>[0]["indicadores"];
   try {
-    const marcas = await marcasWhatsappDelDia(supabase, fecha, [comercialId]);
-    const n = marcas.get(comercialId) ?? 0;
-    r.resumen = { ...r.resumen, gestion_whatsapp: n };
-    if (!WHATSAPP_CUENTA_PARA_META && n > 0) {
-      r.resumen = { ...r.resumen, seguimientos_efectivos: Math.max(0, r.resumen.seguimientos_efectivos - n) };
-    }
+    const eq = await cargarIndicadoresDelDia(supabase, [comercialId], fecha, hoyLima());
+    const base = indicadoresParaDocumento(eq, comercialId);
+    indicadores = base ? { ...base, marcas: marcas.map((m) => ({ hora: m.hora, cliente: m.cliente, nota: m.nota })) } : undefined;
   } catch {
-    // Sin la barra de WhatsApp, pero con reporte.
+    indicadores = undefined;
   }
 
   // La proyección de la semana (ing. Carlos, 27-08). Se calcula ACÁ y no dentro
@@ -205,6 +222,7 @@ export async function GET(request: Request) {
       planificacion_manana={r.planificacion_manana}
       proyeccion={proyeccion}
       pendientesPostventa={pendientesPostventa}
+      indicadores={indicadores}
     />,
   );
 
@@ -217,7 +235,7 @@ export async function GET(request: Request) {
     await supabase.rpc("guardar_reporte_diario", {
       p_comercial: comercialId,
       p_fecha: fecha,
-      p_contenido: { ...r, proyeccion, fecha_larga: fechaLarga },
+      p_contenido: { ...r, proyeccion, indicadores, fecha_larga: fechaLarga },
     });
   } catch {
     // Sin registro, pero con reporte. Es el orden correcto de prioridades.

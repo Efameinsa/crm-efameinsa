@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { esMarcaWhatsapp, WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
 import { lunesSemana } from "@/lib/potenciales-semana";
 import { sabadoDe } from "@/lib/cierre-semanal";
 
@@ -84,7 +85,7 @@ export async function cargarHistorialSemanas(
       .maybeSingle(),
     supabase
       .from("actividades")
-      .select("realizada_at, oportunidades!inner(comercial_id)")
+      .select("realizada_at, tipo, nota, oportunidades!inner(comercial_id)")
       .eq("oportunidades.comercial_id", comercialId)
       .in("tipo", ["llamada", "whatsapp", "email", "visita", "showroom", "reunion_online"])
       .gte("realizada_at", masAntiguo + "T00:00:00")
@@ -129,7 +130,11 @@ export async function cargarHistorialSemanas(
     }
     return m;
   };
-  const gestionesPorLunes = contar(acts, "realizada_at");
+  // Las marcas de WhatsApp de campaña no son gestión propia (30-09).
+  const gestionesPorLunes = contar(
+    (acts ?? []).filter((a) => WHATSAPP_CUENTA_PARA_META || !esMarcaWhatsapp(a.tipo as string, a.nota as string | null)),
+    "realizada_at",
+  );
   const cotsPorLunes = contar(cots, "enviada_at");
 
   // La meta semanal de venta sale de la mensual repartida (138.667 / 4,33 =

@@ -3,6 +3,8 @@ import { requerirRol } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { PREFIJO_MARCA_WHATSAPP, WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { PildoraEstado, lineaWhatsapp } from "@/components/crm/indicadores-comerciales";
+import { cargarMetasIndicadores, cargarWhatsappCampania, evaluarWhatsapp } from "@/lib/indicadores-comerciales";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +69,23 @@ export default async function GestionWhatsappPage() {
     porPersona.set(f.realizada_por, p);
   }
   const personas = [...porPersona.values()].sort((a, b) => b.total - a.total);
+
+  // EL INDICADOR (30-09): lo que esta pantalla vino a preparar. Chats de
+  // anuncio de los mismos siete días, por comercial, contra las metas.
+  const { data: comercialesData } = await supabase
+    .from("perfiles")
+    .select("id, nombre, codigo_comercial")
+    .eq("rol", "comercial")
+    .eq("activo", true)
+    .eq("es_prueba", false)
+    .eq("es_postventa", false)
+    .order("codigo_comercial");
+  const comerciales = (comercialesData ?? []) as { id: string; nombre: string; codigo_comercial: string | null }[];
+  const [metas, campania] = await Promise.all([
+    cargarMetasIndicadores(supabase),
+    cargarWhatsappCampania(supabase, comerciales.map((c) => c.id), dias[0], hoy),
+  ]);
+  const conChats = comerciales.filter((c) => (campania.get(c.id)?.chats ?? 0) > 0);
   const maxDia = Math.max(1, ...personas.flatMap((p) => Object.values(p.porDia)));
   const diaCorto = (d: string) => {
     const [y, m, dd] = d.split("-").map(Number);
@@ -78,13 +97,43 @@ export default async function GestionWhatsappPage() {
       <div>
         <h1 className="text-xl font-bold text-foreground">Gestión de WhatsApp</h1>
         <p className="text-sm text-muted-foreground">
-          Las marcas que cada quien pone en los chats (interesado, cotizado, no contesta…), los últimos {DIAS} días. Sus KPIs están por definirse: esta
-          pantalla no mide contra ninguna meta.{" "}
+          Las marcas que cada quien pone en los chats (interesado, cotizado, no contesta…), los últimos {DIAS} días.{" "}
           {WHATSAPP_CUENTA_PARA_META
             ? "Por ahora se siguen sumando a los seguimientos de la meta diaria; en supervisión y en el reporte diario van en su propia barra."
-            : "No suman a la meta diaria de seguimientos."}
+            : "Desde el 30-09 no suman a la meta de gestiones: el WhatsApp de campaña se mide con su propio indicador."}
         </p>
       </div>
+
+      <SeccionPanel titulo={`WhatsApp de campaña · últimos ${DIAS} días`}>
+        {conChats.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Ningún comercial recibió chats de anuncio en estos días: no hay nada que medir.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {conChats.map((c) => {
+              const w = campania.get(c.id)!;
+              const estado = evaluarWhatsapp(w, metas, false);
+              return (
+                <li key={c.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 py-2 text-xs">
+                  <b className="font-semibold text-foreground">
+                    {c.codigo_comercial ? `${c.codigo_comercial} · ` : ""}
+                    {c.nombre}
+                  </b>
+                  <span className="tabular-nums text-muted-foreground">
+                    {w.chats} chat{w.chats === 1 ? "" : "s"} · {lineaWhatsapp(w)}
+                    {w.fueraDeHorario > 0 ? ` · ${w.fueraDeHorario} fuera de horario` : ""}
+                  </span>
+                  {estado && <PildoraEstado evaluacion={estado} />}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Metas: {metas.waCalificadosPct} % de los chats calificados el mismo día en que llegan, y la primera respuesta de una persona en{" "}
+          {metas.waRespuestaMin} min o menos (mediana, contando solo los chats que llegaron en horario de oficina: L-V 08:30-18:00, S 08:30-13:00; el
+          acuse automático no cuenta).
+        </p>
+      </SeccionPanel>
 
       <div className="flex flex-wrap gap-2 text-[11px]">
         {MARCAS.map((m) => (

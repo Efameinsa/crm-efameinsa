@@ -73,14 +73,34 @@ export async function cargarSupervisionDiaria(
     return null;
   }
   const sup = data as unknown as SupervisionDiaria;
-  // La gestión de WhatsApp, aparte (23-09).
+  // La gestión de WhatsApp, aparte (23-09); y fuera de la meta desde el 30-09.
   const marcas = await marcasWhatsappDelDia(supabase, sup.fecha ?? fecha, sup.comerciales.map((c) => c.id));
-  for (const c of sup.comerciales) {
-    c.gestion_whatsapp = marcas.get(c.id) ?? 0;
-    if (!WHATSAPP_CUENTA_PARA_META && c.gestion_whatsapp > 0) {
-      c.seguimientos_efectivos = Math.max(0, c.seguimientos_efectivos - c.gestion_whatsapp);
+  if (!WHATSAPP_CUENTA_PARA_META) {
+    let quitadas = 0;
+    for (const c of sup.comerciales) {
+      const m = marcas.get(c.id) ?? { total: 0, enVenta: 0 };
+      c.gestion_whatsapp = m.total;
+      if (m.total === 0) continue;
+      // Las marcas no llevan resultado («no contestó» no existe en un botón):
+      // la función SQL las contó TODAS como efectivas, las de venta en el
+      // número grande y las de postventa en «Postventa N». Se restan de donde
+      // cayeron y de su chip, para que el número y los chips sigan cuadrando
+      // (el reclamo del gerente del 25-08).
+      c.seguimientos_efectivos = Math.max(0, c.seguimientos_efectivos - m.enVenta);
+      c.gestiones_postventa = Math.max(0, c.gestiones_postventa - (m.total - m.enVenta));
+      if (c.por_tipo.whatsapp !== undefined) {
+        const resto = c.por_tipo.whatsapp - m.total;
+        if (resto > 0) c.por_tipo.whatsapp = resto;
+        else delete c.por_tipo.whatsapp;
+      }
+      const cumplia = c.cumple_meta;
       c.cumple_meta = c.seguimientos_efectivos >= (c.meta_gestiones ?? sup.meta_seguimientos);
+      if (cumplia && !c.cumple_meta) sup.totales.comerciales_en_meta = Math.max(0, sup.totales.comerciales_en_meta - 1);
+      quitadas += m.enVenta;
     }
+    sup.totales.seguimientos_efectivos = Math.max(0, sup.totales.seguimientos_efectivos - quitadas);
+  } else {
+    for (const c of sup.comerciales) c.gestion_whatsapp = marcas.get(c.id)?.total ?? 0;
   }
   return sup;
 }
