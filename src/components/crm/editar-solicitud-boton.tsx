@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PencilLine } from "lucide-react";
-import { corregirSolicitudLead } from "@/lib/acciones/leads";
+import { corregirSolicitudLead, firmaParaCorregirSolicitud } from "@/lib/acciones/leads";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +15,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { Textarea } from "@/components/ui/textarea";
 import { CampoAdjuntos, useAdjuntos } from "@/components/crm/campo-adjuntos";
 
@@ -65,6 +67,14 @@ export function EditarSolicitudBoton({
   const [texto, setTexto] = useState(mensaje ?? "");
   const [enviando, startTransition] = useTransition();
   const adjuntos = useAdjuntos();
+  // La firma que pide cambiar el TEXTO (0354): libre en la bandeja o en los
+  // primeros 15 min; después un motivo; con cotización, además el código.
+  const [firma, setFirma] = useState<"libre" | "motivo" | "codigo" | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [pin, setPin] = useState("");
+  useEffect(() => {
+    if (abierto) firmaParaCorregirSolicitud(leadId).then(setFirma);
+  }, [abierto, leadId]);
 
   // Los contactos de Google Ads llegan con pares "Clave: valor" separados por
   // ·. Eso no lo escribió una persona: si Central lo va a reemplazar por lo que
@@ -75,14 +85,23 @@ export function EditarSolicitudBoton({
   const hayFotos = adjuntos.archivos.length > 0;
   // Se guarda si cambió el texto O si hay algo que adjuntar: pegar las fotos
   // sin reescribir lo que pide es el caso que motivó esto.
-  const listo = textoCambio || hayFotos;
+  const pideMotivo = textoCambio && (firma === "motivo" || firma === "codigo");
+  const pideCodigo = textoCambio && firma === "codigo";
+  const firmaLista =
+    !textoCambio ||
+    (firma !== null && (!pideMotivo || motivo.trim().length >= 5) && (!pideCodigo || pin.replace(/\D/g, "").length === 4));
+  const listo = (textoCambio || hayFotos) && firmaLista;
 
   function abrir(v: boolean) {
     setAbierto(v);
     if (v) setTexto(esDeFormulario ? "" : mensaje ?? "");
     // Al cerrar se descartan las fotos elegidas: la próxima vez el diálogo no
     // puede abrir con las de otro contacto.
-    if (!v) adjuntos.limpiar();
+    if (!v) {
+      adjuntos.limpiar();
+      setMotivo("");
+      setPin("");
+    }
   }
 
   function guardar() {
@@ -95,9 +114,10 @@ export function EditarSolicitudBoton({
         toast.error(subida.error);
         return;
       }
-      const r = await corregirSolicitudLead(leadId, textoCambio ? texto : null, subida.adjuntos);
+      const r = await corregirSolicitudLead(leadId, textoCambio ? texto : null, subida.adjuntos, { motivo, pin });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
+        setPin("");
         return;
       }
       toast.success(
@@ -168,6 +188,30 @@ export function EditarSolicitudBoton({
           </p>
         </div>
 
+        {pideMotivo && (
+          <div className="space-y-1.5">
+            <Label htmlFor="solicita-motivo">Por qué lo corrige</Label>
+            <Input
+              id="solicita-motivo"
+              placeholder="ej.: el cliente volvió a llamar y agregó la secadora"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+            />
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              Ya está derivado: el motivo queda en el historial y se le avisa a quien lo atiende.
+            </p>
+          </div>
+        )}
+        {pideCodigo && (
+          <div className="space-y-1.5 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+            <Label htmlFor="solicita-pin" className="text-sm">Código del supervisor</Label>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              El expediente ya tiene cotización o venta: cambiar lo que pidió el cliente lo autoriza gerencia u operaciones.
+            </p>
+            <CampoCodigo id="solicita-pin" valor={pin} onChange={setPin} tono="amber" enmascarar />
+          </div>
+        )}
+
         {/* Las fotos que el cliente mandó por OTRO canal (el WhatsApp mientras
             el contacto entró por la web). Se suman a las que ya tiene; no se
             reemplaza nada. */}
@@ -188,7 +232,11 @@ export function EditarSolicitudBoton({
             <p className="text-[11px] text-muted-foreground">
               {texto.trim().length < 5
                 ? "Escriba qué solicita, o adjunte lo que mandó — con una de las dos alcanza."
-                : "Es el mismo texto que ya está guardado. Adjunte algo o cambie el texto."}
+                : !firmaLista
+                  ? pideCodigo && motivo.trim().length >= 5
+                    ? "Falta el código del supervisor."
+                    : "Escriba por qué lo corrige."
+                  : "Es el mismo texto que ya está guardado. Adjunte algo o cambie el texto."}
             </p>
           )}
           <Button onClick={guardar} disabled={!listo || enviando}>
