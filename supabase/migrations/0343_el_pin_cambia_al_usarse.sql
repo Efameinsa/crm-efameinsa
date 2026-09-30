@@ -125,3 +125,11 @@ begin
     execute replace(v, viejo, nuevo);
   end if;
 end $$;
+
+-- 5. Mismo dueño que las funciones que las llaman. En la base local (VM) la
+--    migración corre como supabase_admin: las nuevas quedaban suyas y
+--    `mi_pin_supervisor` (de postgres) respondía «permission denied for
+--    function codigo_pin_supervisor_uso» a Lesly (30-09).
+alter function codigo_pin_supervisor_uso(uuid, bigint, integer) owner to postgres;
+alter function pin_usos_supervisor(uuid) owner to postgres;
+alter function autorizacion_numera_uso() owner to postgres;
