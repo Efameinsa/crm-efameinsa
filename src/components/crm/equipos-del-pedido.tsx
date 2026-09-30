@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { equipoVaEnEsteDespacho, registrarCodigoSinSerie, registrarSerieDelEquipo, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { agregarParteDelEquipo, equipoVaEnEsteDespacho, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido } from "@/lib/acciones/almacen";
 import { corregirSerie } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 
 export function EquiposDelPedido({
   servicioId,
-  equipos,
+  equipos: todos,
   modo,
   despachado,
   cliente,
@@ -47,6 +47,9 @@ export function EquiposDelPedido({
   /** null: la serie va sin enlace (Central no entra a la ficha de la máquina). */
   enlaceEquipo?: string | null;
 }) {
+  // La secadora de una torre (0359) va dentro de su unidad, no es otro equipo.
+  const equipos = todos.filter((e) => !e.parte_de);
+  const partesDe = (id: string) => todos.filter((x) => x.parte_de === id);
   const van = equipos.filter((e) => e.en_este_despacho);
   const sinSerie = van.filter((e) => !e.serie).length;
   const sinProbar = van.filter((e) => !e.prueba_lista_at).length;
@@ -110,6 +113,7 @@ export function EquiposDelPedido({
               cliente={cliente}
               enlaceEquipo={enlaceEquipo}
               unidad={{ k: grupo.indexOf(e) + 1, n: grupo.length, sinCodigo: grupo.filter((x) => !x.serie).length }}
+              partes={partesDe(e.id)}
             />
           );
         })}
@@ -126,6 +130,7 @@ function Fila({
   cliente,
   enlaceEquipo,
   unidad,
+  partes,
 }: {
   e: EquipoDelPedido;
   servicioId: string;
@@ -135,8 +140,13 @@ function Fila({
   enlaceEquipo: string | null;
   /** Qué unidad es de cuántas iguales, y cuántas de ellas siguen sin código. */
   unidad: { k: number; n: number; sinCodigo: number };
+  /** Las otras máquinas de esta unidad, cada una con su serie (torre: la secadora; 0359). */
+  partes: EquipoDelPedido[];
 }) {
   const router = useRouter();
+  const [abrirParte, setAbrirParte] = useState(false);
+  const [parteNombre, setParteNombre] = useState("Secadora");
+  const [parteSerie, setParteSerie] = useState("");
   const [pendiente, startTransition] = useTransition();
   const [serie, setSerie] = useState("");
   const [abrirSerie, setAbrirSerie] = useState(false);
@@ -225,6 +235,63 @@ function Fila({
             ) : null}
             {apagado && <span className="rounded-full border border-dashed border-border px-2 py-0.5">No va en este despacho</span>}
           </div>
+          {/* LA OTRA MÁQUINA DE LA TORRE (Lesly, 30-09; 0359): su serie y su ficha en el parque. */}
+          {partes.map((p) => (
+            <div key={p.id} className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+              <span className="font-semibold text-foreground">{p.parte_nombre ?? "Otra máquina"}:</span>
+              {p.equipo_id && enlaceEquipo ? (
+                <Link href={`${enlaceEquipo}/${p.equipo_id}`} className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] hover:underline whitespace-nowrap">
+                  Serie {p.serie}
+                </Link>
+              ) : (
+                <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] whitespace-nowrap">Serie {p.serie}</span>
+              )}
+              {!despachado && (
+                <button
+                  type="button"
+                  disabled={pendiente}
+                  className="text-muted-foreground hover:text-destructive hover:underline"
+                  onClick={() => {
+                    if (confirm(`¿Quitar la serie ${p.serie} (${p.parte_nombre ?? "otra máquina"}) de esta unidad?`)) {
+                      correr(() => quitarParteDelEquipo(p.id, servicioId), "Serie quitada");
+                    }
+                  }}
+                >
+                  Quitar
+                </button>
+              )}
+            </div>
+          ))}
+          {e.serie && !e.sin_serie && !despachado && partes.length < 3 && (
+            abrirParte ? (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <Input value={parteNombre} onChange={(x) => setParteNombre(x.target.value)} placeholder="Qué máquina (ej. Secadora)" className="h-8 w-32 text-sm" />
+                <Input value={parteSerie} onChange={(x) => setParteSerie(x.target.value)} placeholder="Serie como se lee en la placa" className="h-8 w-56 font-mono text-sm uppercase" autoFocus />
+                <Button
+                  size="sm"
+                  className="h-8"
+                  disabled={pendiente || !parteNombre.trim() || !parteSerie.trim()}
+                  onClick={() =>
+                    correr(async () => {
+                      const r = await agregarParteDelEquipo(e.id, servicioId, parteNombre, parteSerie);
+                      if (!r.error) {
+                        setAbrirParte(false);
+                        setParteSerie("");
+                      }
+                      return r;
+                    }, `${parteNombre.trim() || "Máquina"} registrada: ya está en el parque con su serie`)
+                  }
+                >
+                  {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} Registrar
+                </Button>
+                <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setAbrirParte(false)}>Cancelar</button>
+              </div>
+            ) : (
+              <button type="button" className="mt-1 text-[11px] font-medium text-primary hover:underline" onClick={() => setAbrirParte(true)}>
+                + Otra serie en esta unidad (torre: la secadora)
+              </button>
+            )
+          )}
         </div>
         {modo === "postventa" && !despachado && (
           <button

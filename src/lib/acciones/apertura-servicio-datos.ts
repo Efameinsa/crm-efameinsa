@@ -76,7 +76,7 @@ export async function cargarHojaApertura(
   const contacto = (informe?.contacto_despacho ?? null) as { nombre?: string; telefono?: string } | null;
   const { data: equiposLista } = await supabase
     .from("pedido_equipos")
-    .select("orden, descripcion, serie, en_este_despacho")
+    .select("orden, descripcion, serie, en_este_despacho, parte_de")
     .eq("servicio_id", s.id)
     .order("orden");
   const queVan = (equiposLista ?? []).filter((e) => e.en_este_despacho);
@@ -84,6 +84,8 @@ export async function cargarHojaApertura(
   // juntan con su número para que el almacén no tenga que contarlas.
   const grupos = new Map<string, number>();
   for (const e of queVan) {
+    // La secadora de una torre (0359) no es otra unidad: solo aporta su serie.
+    if (e.parte_de) continue;
     const desc = e.descripcion.trim();
     grupos.set(desc, (grupos.get(desc) ?? 0) + 1);
   }
