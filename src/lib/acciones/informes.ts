@@ -552,7 +552,10 @@ export async function agregarAdjuntosInforme(
   if (!informe) return { error: "Informe no encontrado" };
 
   if (informe.emitido_at) {
-    if (!pin) {
+    // Con la corrección autorizada abierta sobre este cierre, el código de
+    // Lesly ya se dio: la base firma con esa autorización (0342).
+    const { data: ventana } = pin ? { data: null } : await supabase.rpc("correccion_informe_abierta", { p_informe: informeId });
+    if (!pin && !ventana) {
       return {
         error: "El expediente de un cierre emitido está sellado: pida el código a operaciones o gerencia.",
         requiereCodigo: true,
@@ -561,7 +564,7 @@ export async function agregarAdjuntosInforme(
     const { data: sellado, error: errorSellado } = await supabase.rpc("agregar_adjuntos_cierre_sellado", {
       p_informe: informeId,
       p_nuevos: revisados.data.map((a) => ({ ...a, subido_por: user?.id ?? null, subido_at: new Date().toISOString() })),
-      p_pin: pin,
+      p_pin: pin ?? "",
     });
     if (errorSellado) return { error: errorSellado.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
     revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
