@@ -100,8 +100,12 @@ export async function cargarHojaApertura(
   const d: DatosApertura = {
     tipo,
     empresa: empresaCorta,
-    cliente: cuenta?.razon_social ?? informe?.cliente_nombre ?? s.cliente_texto ?? "Cliente sin nombre",
-    ruc: cuenta?.num_doc ?? informe?.cliente_doc ?? null,
+    // EL CLIENTE ES A QUIEN SE LE VENDIÓ (Rubí, 30-09): el cierre manda sobre
+    // la ficha. INVERSIONES URGA S.A.C. compró colgada de la ficha de la
+    // persona (empresa del grupo, 0310) y la apertura salía a nombre de la
+    // persona natural. Nombre y RUC salen juntos de la misma fuente.
+    cliente: informe?.cliente_nombre?.trim() ? informe.cliente_nombre : (cuenta?.razon_social ?? s.cliente_texto ?? "Cliente sin nombre"),
+    ruc: informe?.cliente_nombre?.trim() ? (informe.cliente_doc ?? null) : (cuenta?.num_doc ?? null),
     equipo: equipoTexto,
     serie: serieAparte,
     nota: s.apertura_nota ?? null,
