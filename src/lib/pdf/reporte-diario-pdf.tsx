@@ -1,6 +1,8 @@
 import { WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import type { ProyeccionSemana } from "@/lib/potenciales-semana";
+import type { IndicadoresDocumento } from "@/lib/indicadores-comerciales";
+import { BloqueIndicadoresPdf } from "@/lib/pdf/indicadores-pdf";
 
 // Reporte diario de gestión del comercial. Reemplaza la agenda que hoy se
 // arma a mano en Excel y se exporta a PDF (ejemplo del ing. Carlos:
@@ -79,7 +81,17 @@ export interface ReporteDiarioProps {
     titulo: string;
     filas: { cliente: string; detalle: string | null }[];
   }[];
+  /**
+   * WhatsApp de campaña, visitas y videollamadas (ing. Carlos, 30-09: «esos
+   * dos puntos tienen que estar en su reporte diario»). Opcional: si no se
+   * pudo calcular, el reporte sale igual.
+   */
+  indicadores?: IndicadoresDocumento & {
+    /** Las marcas de un botón en los chats: salen de la lista de seguimientos y van aparte. */
+    marcas: { hora: string | null; cliente: string; nota: string | null }[];
+  };
 }
+
 
 // Márgenes: el ing. Carlos, 24-08, sobre este reporte impreso — el texto salía
 // apretado y llegando al borde. 32 pt son 11 mm, por debajo del margen que
@@ -136,8 +148,8 @@ const e = StyleSheet.create({
 });
 
 const TIPO: Record<string, string> = {
-  llamada: "Llamada", whatsapp: "WhatsApp", email: "Correo", visita: "Visita", showroom: "Showroom",
-  reunion_online: "Reunión online",
+  llamada: "Llamada", whatsapp: "WhatsApp", email: "Correo", visita: "Visita", showroom: "Visita a planta",
+  reunion_online: "Videollamada",
 };
 const ETAPA: Record<string, string> = {
   asignada: "Recibido", filtrada: "Filtrado", cotizada: "Cotizado",
@@ -179,7 +191,7 @@ function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: string; su
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
-  pendientesPostventa,
+  pendientesPostventa, indicadores,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -205,7 +217,9 @@ export function ReporteDiarioPdf({
         {/* Avance hacia la meta: lo primero que se ve. */}
         <View style={e.metaCaja}>
           <View style={e.metaFila}>
-            <Text style={e.metaEtiqueta}>Seguimientos efectivos del día</Text>
+            <Text style={e.metaEtiqueta}>
+              {WHATSAPP_CUENTA_PARA_META ? "Seguimientos efectivos del día" : "Gestiones efectivas del día (sin WhatsApp de campaña)"}
+            </Text>
             <Text style={[e.metaNumero, { color: cumple ? VERDE : GRANATE }]}>
               {resumen.seguimientos_efectivos} / {resumen.meta_seguimientos}
             </Text>
@@ -226,33 +240,18 @@ export function ReporteDiarioPdf({
               ? `  ${resumen.complementarias} actividad${resumen.complementarias === 1 ? "" : "es"} complementaria${resumen.complementarias === 1 ? "" : "s"} registrada${resumen.complementarias === 1 ? "" : "s"}.`
               : ""}
           </Text>
-          {/* LA OTRA BARRA (Santos, 23-09): la gestión de WhatsApp, aparte.
-              Sin meta propia todavía; la escala es la misma meta. */}
-          {(resumen.gestion_whatsapp ?? 0) > 0 && (
-            <View style={{ marginTop: 8 }}>
-              <View style={e.metaFila}>
-                <Text style={e.metaEtiqueta}>Gestión de WhatsApp (marcas en los chats)</Text>
-                <Text style={[e.metaNumero, { color: "#25A366" }]}>{resumen.gestion_whatsapp}</Text>
-              </View>
-              <View style={e.barraFondo}>
-                <View
-                  style={[
-                    e.barraRelleno,
-                    {
-                      width: `${Math.min(resumen.meta_seguimientos > 0 ? ((resumen.gestion_whatsapp ?? 0) / resumen.meta_seguimientos) * 100 : 0, 100)}%`,
-                      backgroundColor: "#25A366",
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={{ fontSize: 7, color: GRIS, marginTop: 10 }}>
-                {WHATSAPP_CUENTA_PARA_META
-                  ? "Ya están sumadas en los seguimientos de arriba. Su meta propia está por definirse."
-                  : "No suman a la meta de seguimientos. Su meta propia está por definirse."}
-              </Text>
-            </View>
+          {/* LA OTRA BARRA (Santos, 23-09): mientras las marcas sumaban,
+              se dibujaban aparte. Desde el 30-09 no suman y su medida es el
+              indicador de WhatsApp de campaña, más abajo. */}
+          {WHATSAPP_CUENTA_PARA_META && (resumen.gestion_whatsapp ?? 0) > 0 && (
+            <Text style={{ fontSize: 7, color: GRIS, marginTop: 4 }}>
+              {`Incluye ${resumen.gestion_whatsapp} marca${resumen.gestion_whatsapp === 1 ? "" : "s"} de WhatsApp (botones en los chats).`}
+            </Text>
           )}
         </View>
+
+        {/* INDICADORES (30-09): cada uno por su lado. */}
+        {indicadores && <BloqueIndicadoresPdf ind={indicadores} rotuloWhatsapp="WhatsApp de campaña · hoy" rotuloPeriodo="semana" anterior="la semana pasada" />}
 
         <View style={e.tarjetas}>
           <Tarjeta etiqueta="Leads recibidos" valor={String(resumen.leads_recibidos)} sub="derivados por Central" />
@@ -301,6 +300,20 @@ export function ReporteDiarioPdf({
             ))
           )}
         </Seccion>
+
+        {/* Las marcas de WhatsApp, aparte de los seguimientos (30-09): se
+            ven, pero no inflan el total de la sección 1. */}
+        {indicadores && indicadores.marcas.length > 0 && (
+          <Seccion titulo="1b. WHATSAPP DE CAMPAÑA (APARTE, NO SUMA A LA META)" total={indicadores.marcas.length}>
+            {indicadores.marcas.map((m, i) => (
+              <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                <Text style={{ width: "7%" }}>{m.hora ?? "—"}</Text>
+                <Text style={{ width: "37%", paddingRight: 6 }}>{corta(m.cliente, 70)}</Text>
+                <Text style={{ width: "56%", color: GRIS }}>{corta(m.nota, 200)}</Text>
+              </View>
+            ))}
+          </Seccion>
+        )}
 
         <Seccion
           titulo="2. PRESUPUESTOS DEL DÍA"

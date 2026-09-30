@@ -1,6 +1,8 @@
 import type { createClient } from "@/lib/supabase/server";
 import { SEMANAS_POR_MES } from "@/lib/periodo";
 import { lunesDe, sumarDias } from "@/lib/calendario";
+import { esMarcaWhatsapp, WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
+import { TIPOS_GESTION_META } from "@/lib/indicadores-comerciales";
 
 /**
  * Cómo va la semana, en una sola barra de tres tramos.
@@ -113,7 +115,10 @@ export async function cargarPulsoSemana(
   // la gestión la hace quien la hace.
   let qActividades = supabase
     .from("actividades")
-    .select("realizada_por, realizada_at, catalogo_resultados_gestion(codigo), oportunidades(tipo_postventa)")
+    .select("realizada_por, realizada_at, tipo, nota, catalogo_resultados_gestion(codigo), oportunidades(tipo_postventa)")
+    // Solo contacto con el cliente, como la supervisión: una «Nota» o un
+    // «Filtro» no son gestión (hasta el 30-09 se colaban acá).
+    .in("tipo", [...TIPOS_GESTION_META])
     .gte("realizada_at", `${lunes}T00:00:00`)
     .lte("realizada_at", `${sabado}T23:59:59`)
     .limit(3000);
@@ -202,6 +207,8 @@ export async function cargarPulsoSemana(
   for (const a of actividades ?? []) {
     const resultado = (a.catalogo_resultados_gestion as unknown as { codigo: string } | null)?.codigo;
     if (resultado === "NO_CONTESTO") continue; // intento, no seguimiento
+    // Las marcas de un botón en los chats de campaña, aparte (30-09).
+    if (!WHATSAPP_CUENTA_PARA_META && esMarcaWhatsapp(a.tipo as string, a.nota as string | null)) continue;
     const op = a.oportunidades as unknown as { tipo_postventa: string | null } | null;
     if (op?.tipo_postventa) continue; // la carga de postventa no compite en la meta comercial
     const id = a.realizada_por as string;

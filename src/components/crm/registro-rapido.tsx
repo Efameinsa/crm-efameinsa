@@ -38,7 +38,9 @@ const TIPOS_CONTACTO = [
   ["whatsapp", "WhatsApp"],
   ["email", "Correo"],
   ["visita", "Visita"],
-  ["reunion_online", "Reu online"],
+  // «Videollamada» desde el 30-09: se mide por semana (meta en Metas) y el
+  // nombre tiene que ser el mismo que el comercial ve en sus indicadores.
+  ["reunion_online", "Videollamada"],
   ["showroom", "Showroom"],
 ] as const;
 

@@ -1,4 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
+import { BloqueIndicadoresPdf } from "@/lib/pdf/indicadores-pdf";
 import type { CierreMensual } from "@/lib/cierre-mensual";
 
 /**
@@ -209,7 +210,7 @@ export function CierreMensualPdf({ logoBuffer, cierre }: { logoBuffer: Buffer; c
           <View style={e.tarjeta}>
             <Text style={e.tarjetaEtiqueta}>Gestiones efectivas</Text>
             <Text style={e.tarjetaValor}>{gestiones.efectivas}</Text>
-            <Text style={e.tarjetaPie}>de {gestiones.total} gestiones</Text>
+            <Text style={e.tarjetaPie}>de {gestiones.total} gestiones · sin WhatsApp de campaña</Text>
           </View>
           <View style={e.tarjeta}>
             <Text style={e.tarjetaEtiqueta}>Cotizaciones enviadas</Text>
@@ -227,6 +228,17 @@ export function CierreMensualPdf({ logoBuffer, cierre }: { logoBuffer: Buffer; c
             <Text style={e.tarjetaPie}>{usd(abiertas.montoUsd)}</Text>
           </View>
         </View>
+
+        {/* WhatsApp de campaña, visitas y videollamadas (ing. Carlos, 30-09). */}
+        {cierre.indicadores && (
+          <BloqueIndicadoresPdf
+            ind={cierre.indicadores}
+            rotuloWhatsapp="WhatsApp de campaña · mes"
+            rotuloPeriodo="mes"
+            anterior="el mes anterior"
+            conHoy={false}
+          />
+        )}
 
         {/* «Cada semana cómo te vas acercando a tu meta» (ing. Carlos, 31-08):
             el mes no se lee de un saque, se lee viendo dónde se cayó. */}

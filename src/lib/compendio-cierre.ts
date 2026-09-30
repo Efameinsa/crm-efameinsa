@@ -62,7 +62,7 @@ const ETIQUETA_TIPO: Record<string, string> = {
   whatsapp: "WhatsApp",
   email: "Correo",
   visita: "Visita",
-  reunion_online: "Reunión online",
+  reunion_online: "Videollamada",
   showroom: "Showroom",
   filtro: "Filtro",
   nota: "Nota",

@@ -16,6 +16,11 @@ import { BarraSemana } from "@/components/crm/barra-semana";
 import { HistorialCierresSemana } from "@/components/crm/historial-cierres-semana";
 import { cargarHistorialSemanas } from "@/lib/historial-semanas";
 import { cn } from "@/lib/utils";
+import { hoyLima } from "@/lib/periodo";
+import { lunesDe, sumarDias } from "@/lib/calendario";
+import { FilaIndicadores } from "@/components/crm/indicadores-comerciales";
+import { cargarGestionesEfectivas, cargarIndicadoresDelDia, cargarIndicadoresDelPeriodo } from "@/lib/indicadores-comerciales";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Panel individual del comercial. Lo ve el propio comercial (/comercial/
 // mi-gestion) y gerencia (/gerencia/comerciales/[id]). Todos los números
@@ -56,7 +61,12 @@ export async function PanelGestionComercial({
   // no repetir el mismo número dos veces.
   const mes = periodoPreset("mes");
 
-  const [resumen, resumenMes, { data: rechazadas }, pulsos, semanas] = await Promise.all([
+  // LA VISTA DEL PERÍODO de visitas, videollamadas y WhatsApp de campaña (ing.
+  // Carlos, 30-09: «reporte diario, reporte semanal, reporte mensual, todo»).
+  // Con el filtro en un día, la semana de ese día; en un mes, el mes.
+  const hoy = hoyLima();
+  const unDia = periodo.desde === periodo.hasta;
+  const [resumen, resumenMes, { data: rechazadas }, pulsos, semanas, indicadores, { data: quien }, gestionesDia] = await Promise.all([
     cargarResumenGerencia(supabase, { ...periodo, comercialId, incluirHistorico }),
     cargarResumenGerencia(supabase, { ...mes, comercialId, incluirHistorico }),
     supabase
@@ -70,7 +80,20 @@ export async function PanelGestionComercial({
     semanal ? cargarPulsoSemana(supabase, periodo.desde, comercialId) : Promise.resolve([]),
     // El histórico de cierres de semana: lo que dijo cada sábado (0177).
     cargarHistorialSemanas(comercialId, supabase),
+    // Un día: la semana de ese día. Una semana: de lunes a sábado entera
+    // (contra la semana pasada entera, como en su inicio y en Control).
+    unDia
+      ? cargarIndicadoresDelDia(supabase, [comercialId], periodo.desde, hoy)
+      : semanal
+        ? cargarIndicadoresDelPeriodo(supabase, [comercialId], lunesDe(periodo.desde), sumarDias(lunesDe(periodo.desde), 5), hoy)
+        : cargarIndicadoresDelPeriodo(supabase, [comercialId], periodo.desde, periodo.hasta, hoy),
+    supabase.from("perfiles").select("es_postventa, meta_gestiones_diarias").eq("id", comercialId).maybeSingle(),
+    // Llave de servicio clavada a este comercial (lo autoriza la página que
+    // arma el panel: el propio, o gerencia): la RLS escondía las gestiones
+    // hechas en fichas de otro. Solo vuelven conteos.
+    unDia ? cargarGestionesEfectivas(createAdminClient(), [comercialId], periodo.desde, periodo.desde) : Promise.resolve(null),
   ]);
+  const misIndicadores = quien?.es_postventa ? null : indicadores.porComercial.get(comercialId);
   const pulso = pulsos[0];
 
   const k = resumen?.kpis;
@@ -122,6 +145,21 @@ export async function PanelGestionComercial({
               <BarraSemana pulso={pulso} titulo={esGerencia ? `La semana de ${nombre.split(" ")[0]}` : "Su semana"} />
             )}
           </div>
+
+          {misIndicadores && (
+            <SeccionPanel titulo={unDia ? "Indicadores del día" : semanal ? "Indicadores de la semana" : "Indicadores del período"}>
+              <FilaIndicadores
+                eq={indicadores}
+                c={misIndicadores}
+                rotuloWhatsapp={unDia ? "WhatsApp de campaña · día" : semanal ? "WhatsApp de campaña · semana" : "WhatsApp de campaña · período"}
+                gestiones={
+                  unDia && gestionesDia
+                    ? { hechas: gestionesDia.get(comercialId)?.efectivas ?? 0, meta: Number(quien?.meta_gestiones_diarias) || 35, rotulo: "Gestiones efectivas" }
+                    : null
+                }
+              />
+            </SeccionPanel>
+          )}
 
           <div className={cn("grid gap-3", !semanal && "lg:grid-cols-[1fr_1.4fr]")}>
             {!semanal && periodo.preset !== "mes" && (

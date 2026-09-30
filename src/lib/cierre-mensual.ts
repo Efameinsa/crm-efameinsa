@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { lunesDe, sumarDias, MESES } from "@/lib/calendario";
+import { PREFIJO_MARCA_WHATSAPP, WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
+import { cargarIndicadoresDelPeriodo, indicadoresParaDocumento, type IndicadoresDocumento } from "@/lib/indicadores-comerciales";
 
 /**
  * El cierre del MES del comercial.
@@ -109,6 +111,12 @@ export interface CierreMensual {
   /** `meta_mensual` del perfil. `null` = no hay meta cargada; no se inventa una. */
   meta: { montoUsd: number | null; faltaUsd: number | null; avance: number | null };
   semanas: SemanaMes[];
+  /**
+   * WhatsApp de campaña, visitas y videollamadas del mes (ing. Carlos, 30-09:
+   * «reporte diario, reporte semanal, reporte mensual, todo»). Null si no se
+   * pudo calcular: el reporte sale igual.
+   */
+  indicadores: IndicadoresDocumento | null;
   abiertas: { cantidad: number; montoUsd: number; detalle: AbiertaMes[] };
   tc: number;
   /** Ni una gestión, ni una cotización, ni una venta: el PDF lo dice y sale igual. */
@@ -208,7 +216,7 @@ export async function cargarCierreMensual(mes: string, comercialId: string): Pro
   const tc = Number(tcFila?.valor) || 3.75;
   const idsNoContesto = new Set((noContesto ?? []).map((r) => String(r.id)));
 
-  const [{ data: actsData }, { data: cotsData }, { data: ventasData }] = await Promise.all([
+  const [{ data: actsTodas }, { data: cotsData }, { data: ventasData }, { data: marcasData }] = await Promise.all([
     // Por `realizada_por`: la gestión es de quien la hizo (regla del informe
     // diario). Tope alto a propósito: el mes más cargado de 2026 fueron 210
     // gestiones, pero Supabase corta en 1.000 filas SIN AVISAR y ese corte
@@ -231,7 +239,7 @@ export async function cargarCierreMensual(mes: string, comercialId: string): Pro
     // tiene que autorizar igual antes.
     createAdminClient()
       .from("actividades")
-      .select("realizada_at, tipo, resultado_id")
+      .select("id, realizada_at, tipo, resultado_id")
       .eq("realizada_por", comercialId)
       .in("tipo", TIPOS_CONTACTO)
       .gte("realizada_at", inicioUtc)
@@ -256,7 +264,22 @@ export async function cargarCierreMensual(mes: string, comercialId: string): Pro
       .gte("fecha_venta", desde)
       .lte("fecha_venta", hasta)
       .limit(500),
+    // Las marcas de un botón en los chats de campaña (30-09): solo sus ids,
+    // para sacarlas de la cuenta sin traer ninguna nota. Mismo cliente y
+    // misma llave que la consulta de arriba, por la misma razón.
+    createAdminClient()
+      .from("actividades")
+      .select("id")
+      .eq("realizada_por", comercialId)
+      .eq("tipo", "whatsapp")
+      .ilike("nota", `${PREFIJO_MARCA_WHATSAPP}%`)
+      .gte("realizada_at", inicioUtc)
+      .lte("realizada_at", finUtc)
+      .limit(5000),
   ]);
+  // Fuera de la meta de gestiones desde el 30-09 (gestion-whatsapp.ts).
+  const idsMarcas = new Set(WHATSAPP_CUENTA_PARA_META ? [] : (marcasData ?? []).map((m) => String(m.id)));
+  const actsData = (actsTodas ?? []).filter((a) => !idsMarcas.has(String(a.id)));
 
   const enUsd = (monto: number, moneda: string) => (moneda === "PEN" ? monto / tc : monto);
 
@@ -359,8 +382,17 @@ export async function cargarCierreMensual(mes: string, comercialId: string): Pro
       ? { montoUsd: metaMonto, faltaUsd: metaMonto - vendidoUsd, avance: vendidoUsd / metaMonto }
       : { montoUsd: null, faltaUsd: null, avance: null };
 
+  let indicadores: IndicadoresDocumento | null = null;
+  try {
+    const eq = await cargarIndicadoresDelPeriodo(supabase, [comercialId], desde, hasta, diaLima(new Date().toISOString()));
+    indicadores = indicadoresParaDocumento(eq, comercialId);
+  } catch {
+    indicadores = null;
+  }
+
   return {
     mes,
+    indicadores,
     desde,
     hasta,
     rotulo: rotuloDelMes(mes),

@@ -53,6 +53,7 @@ const PAGINAS: Record<string, Carga> = {
   "gerencia/panel": () => import("@/app/(app)/gerencia/page"),
   "gerencia/supervision": () => import("@/app/(app)/gerencia/supervision/page"),
   "gerencia/gestion-whatsapp": () => import("@/app/(app)/gerencia/gestion-whatsapp/page"),
+  "gerencia/metas": () => import("@/app/(app)/gerencia/metas/page"),
   "gerencia/potenciales": () => import("@/app/(app)/gerencia/potenciales/page"),
   "gerencia/marketing": () => import("@/app/(app)/gerencia/marketing/page"),
   "gerencia/finanzas": () => import("@/app/(app)/gerencia/finanzas/page"),
