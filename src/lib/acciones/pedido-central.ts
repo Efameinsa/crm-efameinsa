@@ -149,6 +149,54 @@ export async function enviarUrgenciaFinanzas(servicioId: string, mensaje: string
   return { error: null, avisoNumero: r.aviso_numero };
 }
 
+/**
+ * APURAR DESDE EL CIERRE (0358). Central, 30-09: «botón de alerta con alarma,
+ * notificación y todo, para apresurar a almacén y a liquidaciones Finanzas».
+ * La sirena de la 0298 solo existía con el pedido liberado; esta va en los
+ * pasos 1 (series) y 3 (liquidación) de la tarjeta del cierre. La base valida
+ * que haya algo que apurar y deja uno cada 10 minutos por área; del segundo
+ * apuro en adelante gerencia también se entera.
+ */
+export async function apurarDesdeCentral(servicioId: string, area: "almacen" | "finanzas"): Promise<{ error: string | null; avisoNumero?: number }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("apurar_desde_central", { p_servicio: servicioId, p_area: area, p_mensaje: null });
+  if (error) return { error: limpiar(error.message) };
+  const r = data as { servicio_id: string; cliente: string; numero_pedido: string | null; es_prueba: boolean; faltan: number; aviso_numero: number };
+  const pedido = r.numero_pedido ? ` (pedido ${r.numero_pedido})` : "";
+  const vez = r.aviso_numero > 1 ? ` Es el aviso n.º ${r.aviso_numero}.` : "";
+
+  let titulo: string;
+  let cuerpo: string;
+  let url: string;
+  if (area === "almacen") {
+    titulo = `${r.cliente}${pedido}: Central espera las series`;
+    cuerpo = `Faltan ${r.faltan} serie${r.faltan === 1 ? "" : "s"}. Escríbalas como se leen en la placa.${vez}`;
+    url = `/almacen/pedidos/${r.servicio_id}`;
+    await notificarAlmacen({ tipo: "urgencia_almacen", titulo, cuerpo, url, esPrueba: r.es_prueba });
+  } else {
+    titulo = `${r.cliente}${pedido}: Central espera la liquidación`;
+    cuerpo = `Súbala en «Liquidar» para que Central pueda ejecutar el pedido.${vez}`;
+    url = "/finanzas/liquidar";
+    await notificarFinanzas({ tipo: "urgencia_finanzas", titulo, cuerpo, url, esPrueba: r.es_prueba });
+  }
+
+  // Si hizo falta apurar dos veces, ya no es un olvido y gerencia lo ve (0298).
+  if (r.aviso_numero >= 2 && !r.es_prueba) {
+    await notificar({
+      rol: "gerencia",
+      tipo: "urgencia",
+      titulo: `${r.cliente}${pedido} sigue esperando ${area === "almacen" ? "al almacén (series)" : "a Finanzas (liquidación)"}`,
+      cuerpo: `Central ya apuró ${r.aviso_numero} veces.`,
+      url,
+    });
+  }
+
+  revalidar(servicioId);
+  revalidatePath("/finanzas/liquidar");
+  return { error: null, avisoNumero: r.aviso_numero };
+}
+
 /** Corregir una serie ya puesta: con el código de operaciones y el motivo (0290). */
 export async function corregirSerie(itemId: string, servicioId: string, serie: string, pin: string, motivo: string) {
   await requerirPerfil();

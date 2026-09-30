@@ -105,6 +105,14 @@ const ESTILO_AVISO: Record<
     duracion: Infinity,
     tono: "error",
   },
+  // Central apura al almacén por las series de un pedido (0358, 30-09):
+  // «alarma, notificación y todo». Igual que la de Finanzas.
+  urgencia_almacen: {
+    encabezado: "🚨 Urgente — Central pide las series",
+    accion: "Ver el pedido",
+    duracion: Infinity,
+    tono: "error",
+  },
   // Central anuló un cierre (0237) y alguien viene a la planta (0238).
   cierre_anulado: {
     encabezado: "Central anuló un cierre suyo",
@@ -283,6 +291,7 @@ export function CampanaNotificaciones({
       "cotizacion_pendiente",
       "urgencia",
       "urgencia_finanzas",
+      "urgencia_almacen",
       // Files: pedir y «Terminé» (Central, 30-09) mueven a alguien a caminar.
       "file_pedido",
       "file_recoger",
