@@ -101,6 +101,7 @@ export function AperturaLlamadaBoton({
   const [texto, setTexto] = useState(equipos);
   const [indicaciones, setIndicaciones] = useState(problema);
   const [persona, setPersona] = useState(contacto);
+  const [contactos, setContactos] = useState<string[]>([]);
   const [urgente, setUrgente] = useState(urgenteInicial);
   const [pin, setPin] = useState("");
   const [cuenta, setCuenta] = useState<{ id: string; nombre: string } | null>(null);
@@ -127,7 +128,9 @@ export function AperturaLlamadaBoton({
       if (!vigente) return;
       setParque(d.equipos);
       // El contacto del formato es el de «Con quién se habla», no otro aparte.
-      if (!persona && d.contacto) setPersona(d.contacto);
+      // Sin pisar lo que ya se escribió mientras llegaban los datos.
+      if (d.contacto) setPersona((p) => p || d.contacto || "");
+      setContactos(d.contactos);
     });
     return () => {
       vigente = false;
@@ -334,6 +337,20 @@ export function AperturaLlamadaBoton({
           <div className="grid gap-1">
             <Label className="text-xs">Con quién se habla (nombre y celular)</Label>
             <Input value={persona} onChange={(e) => setPersona(e.target.value)} />
+            {contactos.length > 1 && (
+              <div className="flex flex-wrap gap-1">
+                {contactos.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setPersona(c)}
+                    className={`rounded-full border px-2 py-0.5 text-[11px] ${persona === c ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <details className="rounded-lg border border-border p-2.5" open={elegidas.length > 0}>
             <summary className="cursor-pointer text-xs font-semibold text-foreground">Formato de llamada (compra, entrega, garantía…)</summary>

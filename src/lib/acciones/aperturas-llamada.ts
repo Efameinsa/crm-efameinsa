@@ -121,15 +121,22 @@ export async function asignarTecnicoApertura(id: string, tecnico: string) {
 export async function datosParaFormatoDeLlamada(cuentaId: string) {
   await requerirPerfil();
   const supabase = await createClient();
-  const [{ data: equipos }, { data: contacto }] = await Promise.all([
+  const [{ data: equipos }, { data: listaContactos }, { data: ultima }] = await Promise.all([
     supabase
       .from("equipos_instalados")
       .select("id, serie, modelo_texto, fecha_venta, fecha_despacho, guia_remision, fecha_puesta_marcha, garantia_meses, garantia_hasta, ultimo_mantenimiento, ubicacion, servicio_id")
       .eq("cuenta_id", cuentaId)
       .order("fecha_venta", { ascending: false, nullsFirst: false })
       .limit(30),
-    supabase.from("contactos").select("nombre, telefono").eq("cuenta_id", cuentaId).order("es_principal", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("contactos").select("nombre, telefono").eq("cuenta_id", cuentaId).order("es_principal", { ascending: false }).limit(10),
+    // Con quién se habló en la última apertura del cliente (Gabriela, 30-09: puso a LUCERO
+    // y en la siguiente volvía a salir FLOR MARIA, el contacto principal de la ficha).
+    supabase.from("aperturas_llamada").select("contacto").eq("cuenta_id", cuentaId).is("anulada_at", null).not("contacto", "is", null).order("solicitada_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
+  const contactos = ((listaContactos ?? []) as { nombre: string | null; telefono: string | null }[])
+    .map((c) => [c.nombre, c.telefono].filter(Boolean).join(" · "))
+    .filter(Boolean);
+  const ultimo = ((ultima as { contacto: string | null } | null)?.contacto ?? "").trim();
   const protocolos = new Set<string>();
   const ids = ((equipos ?? []) as { servicio_id: string | null }[]).map((e) => e.servicio_id).filter(Boolean) as string[];
   if (ids.length) {
@@ -139,7 +146,8 @@ export async function datosParaFormatoDeLlamada(cuentaId: string) {
     }
   }
   return {
-    contacto: contacto ? [contacto.nombre, contacto.telefono].filter(Boolean).join(" · ") : null,
+    contacto: ultimo || contactos[0] || null,
+    contactos: [...new Set([ultimo, ...contactos].filter(Boolean))],
     equipos: ((equipos ?? []) as {
       id: string; serie: string | null; modelo_texto: string | null; fecha_venta: string | null; fecha_despacho: string | null; guia_remision: string | null;
       fecha_puesta_marcha: string | null; garantia_meses: number | null; garantia_hasta: string | null; ultimo_mantenimiento: string | null; ubicacion: string | null; servicio_id: string | null;
