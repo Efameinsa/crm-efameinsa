@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Archive, Check, Loader2, Plus, Search, X } from "lucide-react";
+import { Archive, BellRing, Check, Loader2, Plus, Search, X } from "lucide-react";
 import {
   anularPedidoFile,
   buscarClientesParaFile,
@@ -11,12 +11,14 @@ import {
   devolverFile,
   entregarFile,
   solicitarFiles,
+  termineConElFile,
   type ClienteParaFile,
   type EmpresaFile,
 } from "@/lib/acciones/files";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { horaLima, recordarDesde } from "@/lib/files-recojo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -174,6 +176,57 @@ export function AccionFile({ id, accion, variante = "outline" }: { id: string; a
     <Button size="sm" variant={variante} onClick={hacer} disabled={pendiente} className="whitespace-nowrap">
       {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : accion === "anular" ? <X className="size-3.5" /> : <Check className="size-3.5" />}
       {TEXTO[accion].etiqueta}
+    </Button>
+  );
+}
+
+/**
+ * «TERMINÉ, PUEDEN RECOGERLO» (0350). Carlos, 30-09: «que me lleve una
+ * notificación para ir a recoger el file… el botoncito donde dice files,
+ * Terminé». El primer clic avisa a Central; después el botón se vuelve
+ * «Recordar a Central», que solo se habilita cada 30 minutos (la base
+ * también lo impide) para no llenarle la campana.
+ *
+ * `cuantos` > 1: el botón del pedido entero, un solo aviso para todos.
+ */
+export function AccionTermine({
+  id,
+  ultimoAviso,
+  cuantos = 1,
+  variante = "default",
+}: {
+  id: string;
+  ultimoAviso: string | null;
+  cuantos?: number;
+  variante?: "default" | "outline";
+}) {
+  const router = useRouter();
+  const [pendiente, startTransition] = useTransition();
+  const [ahora, setAhora] = useState(() => new Date());
+  // El botón se habilita solo cuando se cumplen los 30 minutos, sin recargar.
+  useEffect(() => {
+    if (!ultimoAviso) return;
+    const t = setInterval(() => setAhora(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, [ultimoAviso]);
+  const espera = recordarDesde(ultimoAviso, ahora);
+
+  function hacer() {
+    startTransition(async () => {
+      const r = await termineConElFile(id, cuantos > 1);
+      if (r.error) return void toast.error(r.error, { duration: 9000 });
+      toast.success(ultimoAviso ? "Le recordamos a Central que pase a recogerlo" : `Avisado a Central: pasará a recoger ${cuantos > 1 ? `los ${cuantos} files` : "el file"}`);
+      router.refresh();
+    });
+  }
+
+  const etiqueta = !ultimoAviso
+    ? cuantos > 1 ? `Terminé con los ${cuantos}, pueden recogerlos` : "Terminé, pueden recogerlo"
+    : espera ? `Recordar desde las ${horaLima(espera)}` : "Recordar a Central";
+  return (
+    <Button size="sm" variant={ultimoAviso ? "outline" : variante} onClick={hacer} disabled={pendiente || Boolean(espera)} className="whitespace-nowrap tabular-nums">
+      {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <BellRing className="size-3.5" />}
+      {etiqueta}
     </Button>
   );
 }
