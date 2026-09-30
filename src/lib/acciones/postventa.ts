@@ -94,7 +94,9 @@ export async function liberarPedido(datos: {
     const { data: equipos } = await supabase
       .from("pedido_equipos")
       .select("serie")
-      .eq("servicio_id", servicio.id);
+      .eq("servicio_id", servicio.id)
+      // La secadora de una torre no es otro equipo (0359).
+      .is("parte_de", null);
     const total = equipos?.length ?? 0;
     const conSerie = (equipos ?? []).filter((e) => e.serie).length;
     const resumenEquipos =
@@ -755,13 +757,16 @@ export interface EquipoDelPedido {
   protocolo_fotos: unknown;
   /** Lleva el código del modelo, no una serie de placa (coches, carros; 0302). */
   sin_serie?: boolean | null;
+  /** Segunda máquina de la misma unidad: la secadora de una torre (0359). */
+  parte_de?: string | null;
+  parte_nombre?: string | null;
 }
 
 export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPedido[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie, parte_de, parte_nombre")
     .eq("servicio_id", servicioId)
     .order("orden");
   if (data && data.length > 0) return data as EquipoDelPedido[];
@@ -773,7 +778,7 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   // de la primera consulta aunque la siembra ya estuviera en la base.
   const { data: sembrados } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie, parte_de, parte_nombre")
     .eq("servicio_id", servicioId)
     .gte("orden", 1)
     .order("orden");
@@ -786,6 +791,38 @@ export async function registrarSerieDelEquipo(itemId: string, servicioId: string
   const { error } = await supabase.rpc("registrar_serie_del_equipo", { p_item: itemId, p_serie: serie.trim().toUpperCase(), p_garantia_meses: 24 });
   if (error) return falla(enCastellano(error.message));
   return avisarSiYaEstanTodas(supabase, servicioId);
+}
+
+/**
+ * LA TORRE LLEVA DOS SERIES (Lesly, 30-09; 0359): «en el caso de las torres
+ * siempre se pone dos series». La segunda máquina (la secadora) queda como
+ * parte de la unidad, con su serie y su propia ficha en el parque. No avisa
+ * «series listas» a Central: la unidad ya tenía su serie.
+ */
+export async function agregarParteDelEquipo(itemId: string, servicioId: string, nombre: string, serie: string): Promise<{ error: string | null }> {
+  if (!nombre.trim()) return { error: "Diga qué máquina es (ej. Secadora)" };
+  if (!serie.trim()) return { error: "Escriba la serie como se lee en la placa" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("agregar_parte_del_equipo", { p_item: itemId, p_nombre: nombre.trim(), p_serie: serie.trim().toUpperCase() });
+  if (error) return falla(enCastellano(error.message));
+  revalidarSeries(servicioId);
+  return ok();
+}
+
+/** Quitar la segunda máquina agregada por error, antes del despacho (0359). */
+export async function quitarParteDelEquipo(itemId: string, servicioId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("quitar_parte_del_equipo", { p_item: itemId });
+  if (error) return falla(enCastellano(error.message));
+  revalidarSeries(servicioId);
+  return ok();
+}
+
+function revalidarSeries(servicioId: string) {
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath("/central/cierres");
+  revalidatePath("/postventa/equipos");
 }
 
 /**
