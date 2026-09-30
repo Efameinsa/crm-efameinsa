@@ -1,7 +1,8 @@
 import Link from "@/components/enlace";
 import { notFound, redirect } from "next/navigation";
 import { enVistaNueva } from "@/lib/propuesta/vista";
-import { ArrowLeft, FileText, MessageCircle, Paperclip } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, FileText, MessageCircle, Paperclip } from "lucide-react";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 import { createClient } from "@/lib/supabase/server";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
@@ -97,7 +98,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
   const { data: informe } = servicio.informe_cierre_id
     ? await supabase
         .from("informes_cierre")
-        .select("id, codigo, serie, cliente_nombre, cliente_doc, orden_compra, adjuntos, entrega_direccion, contacto_despacho, forma_pago, modalidad_pago, items")
+        .select("id, codigo, serie, cliente_nombre, cliente_doc, orden_compra, adjuntos, entrega_direccion, contacto_despacho, forma_pago, modalidad_pago, items, cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)")
         .eq("id", servicio.informe_cierre_id)
         .single()
     : { data: null };
@@ -152,6 +153,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
   // La RLS ya lo permitía (informes_lectura_postventa, 0165; el bucket
   // `adjuntos` es legible por cualquier sesión): esto era solo pantalla.
   const adjuntos = (informe?.adjuntos ?? []) as Adjunto[];
+  const cotizacionEnlazada = ((informe as { cotizaciones?: { id: string; codigo: string } | null } | null)?.cotizaciones ?? null);
   const { data: adjuntosFirmados } = adjuntos.length
     ? await supabase.storage.from("adjuntos").createSignedUrls(adjuntos.map((a) => a.path), 3600)
     : { data: [] };
@@ -385,8 +387,23 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
                 La OC y el voucher pueden traer montos; en el CRM las cifras siguen ocultas.
               </p>
             )}
+            {/* La cotización enlazada al cierre: desde el 29-09 no se adjunta si
+                se eligió al armar el cierre (30-09). */}
+            {cotizacionEnlazada && (
+              <VerPdfEnLaApp
+                url={`/api/cotizaciones/${cotizacionEnlazada.id}/pdf`}
+                titulo={`Cotización ${cotizacionEnlazada.codigo}`}
+                className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-2 text-left text-xs hover:bg-accent"
+              >
+                <FileSpreadsheet className="size-3.5 flex-none text-muted-foreground" />
+                <span className="min-w-0">
+                  <span className="block font-semibold text-foreground">Cotización {cotizacionEnlazada.codigo}</span>
+                  <span className="block text-muted-foreground">La enlazada al cierre</span>
+                </span>
+              </VerPdfEnLaApp>
+            )}
             {adjuntos.length === 0 ? (
-              <p className="mt-2 text-xs text-muted-foreground">
+              cotizacionEnlazada ? null : <p className="mt-2 text-xs text-muted-foreground">
                 El comercial todavía no adjuntó nada al cierre. Acá van la cotización, la orden de compra, los
                 vouchers y los acuerdos firmados.
               </p>

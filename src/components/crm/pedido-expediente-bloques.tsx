@@ -1,5 +1,6 @@
 import Link from "@/components/enlace";
-import { FileText, MessageCircle, Paperclip } from "lucide-react";
+import { FileSpreadsheet, FileText, MessageCircle, Paperclip } from "lucide-react";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 import type { createClient } from "@/lib/supabase/server";
 import { ETIQUETA_ESTADO_PAGO, estadoPago, saldoPendiente, seriesDeTexto, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
@@ -156,13 +157,35 @@ export function PagoDelPedido({ servicio, verPrecios, modalidadPago }: { servici
 }
 
 /** Los papeles del expediente (OC, voucher, cotización firmada, acuerdos), para abrirlos. */
-export function DocumentosExpedientePedido({ adjuntos, verPrecios }: { adjuntos: AdjuntoFirmado[]; verPrecios: boolean }) {
+export function DocumentosExpedientePedido({
+  adjuntos,
+  verPrecios,
+  cotizacion = null,
+}: {
+  adjuntos: AdjuntoFirmado[];
+  verPrecios: boolean;
+  /** La cotización enlazada al cierre: desde el 29-09 no se adjunta si se eligió al armar el cierre (30-09). */
+  cotizacion?: { id: string; codigo: string } | null;
+}) {
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">Documentos del expediente</h2>
       {!verPrecios && <p className="mt-1 text-[11px] leading-snug text-muted-foreground">La OC y el voucher pueden traer montos; en el CRM las cifras siguen ocultas.</p>}
+      {cotizacion && (
+        <VerPdfEnLaApp
+          url={`/api/cotizaciones/${cotizacion.id}/pdf`}
+          titulo={`Cotización ${cotizacion.codigo}`}
+          className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-2 text-left text-xs hover:bg-accent"
+        >
+          <FileSpreadsheet className="size-3.5 flex-none text-muted-foreground" />
+          <span className="min-w-0">
+            <span className="block font-semibold text-foreground">Cotización {cotizacion.codigo}</span>
+            <span className="block text-muted-foreground">La enlazada al cierre</span>
+          </span>
+        </VerPdfEnLaApp>
+      )}
       {adjuntos.length === 0 ? (
-        <p className="mt-2 text-xs text-muted-foreground">
+        cotizacion ? null : <p className="mt-2 text-xs text-muted-foreground">
           El comercial todavía no adjuntó nada al cierre. Acá van la cotización, la orden de compra, los vouchers y los acuerdos firmados.
         </p>
       ) : (
