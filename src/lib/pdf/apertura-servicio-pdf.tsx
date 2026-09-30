@@ -36,10 +36,11 @@ const e = StyleSheet.create({
   cabecera: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", borderBottomWidth: 2, borderBottomColor: GRANATE, paddingBottom: 10, marginBottom: 10 },
   logo: { width: 120 },
   // Open Investments no tiene logo en imagen: va como wordmark, igual que en su cierre.
-  wordmark: { fontSize: 16, fontFamily: "Helvetica-Bold", color: "#C0392B", textTransform: "uppercase", letterSpacing: 1 },
-  wordmarkSub: { fontSize: 8, color: GRIS },
+  // lineHeight propio: con el 1.35 de la página el lema se montaba sobre el nombre.
+  wordmark: { fontSize: 16, lineHeight: 1.2, fontFamily: "Helvetica-Bold", color: "#8B1510", textTransform: "uppercase", letterSpacing: 1 },
+  wordmarkSub: { fontSize: 8, lineHeight: 1.2, marginTop: 1, color: GRIS },
   empresa: { fontSize: 9, fontFamily: "Helvetica-Bold", color: GRANATE, textTransform: "uppercase" },
-  titulo: { marginTop: 3, fontSize: 15, fontFamily: "Helvetica-Bold" },
+  titulo: { marginTop: 3, fontSize: 15, lineHeight: 1.2, fontFamily: "Helvetica-Bold" },
   sub: { marginTop: 2, fontSize: 8, color: GRIS },
   cabeceraDer: { textAlign: "right", fontSize: 8.5 },
   tabla: { marginTop: 8, borderWidth: 1, borderColor: "#8A8480" },
@@ -69,14 +70,18 @@ export function AperturaServicioPdf({
           <View>
             {/* La empresa del cierre manda (Santos, 24-09): Open sin nada de Efameinsa. */}
             {empresaLarga.toUpperCase().startsWith("OPEN") ? (
+              // Lesly, 30-09: «doble encabezado». El nombre va una sola vez:
+              // la razón social como wordmark, sin repetirla debajo.
               <>
-                <Text style={e.wordmark}>Open Investments</Text>
+                <Text style={e.wordmark}>{empresaLarga}</Text>
                 <Text style={e.wordmarkSub}>Laundry &amp; Equipment</Text>
               </>
             ) : (
-              <Image src={logoBuffer} style={e.logo} />
+              <>
+                <Image src={logoBuffer} style={e.logo} />
+                <Text style={e.empresa}>{empresaLarga}</Text>
+              </>
             )}
-            <Text style={e.empresa}>{empresaLarga}</Text>
             <Text style={e.titulo}>Apertura de servicio</Text>
             <Text style={e.sub}>En coordinación con el Ing. Carlos, queda en agenda el siguiente servicio.</Text>
           </View>
