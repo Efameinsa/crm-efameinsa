@@ -8,6 +8,8 @@ export interface DevolucionAbierta {
   motivo: string;
   devueltoAt: string;
   devueltoPor: string | null;
+  /** Quien dio el código cuando el pedido ya había avanzado (0351). */
+  autorizo: string | null;
 }
 
 /** La devolución de Central que sigue sin responder, si la hay (0178). */
@@ -17,17 +19,24 @@ export async function devolucionAbierta(
 ): Promise<DevolucionAbierta | null> {
   const { data } = await supabase
     .from("devoluciones_cierre")
-    .select("motivo, devuelto_at, devuelto_por")
+    .select("motivo, devuelto_at, devuelto_por, autorizo")
     .eq("informe_id", informeId)
     .is("resuelto_at", null)
     .order("devuelto_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (!data) return null;
-  const { data: quien } = data.devuelto_por
-    ? await supabase.from("perfiles").select("nombre").eq("id", data.devuelto_por).maybeSingle()
-    : { data: null };
-  return { motivo: data.motivo as string, devueltoAt: data.devuelto_at as string, devueltoPor: (quien?.nombre as string | undefined) ?? null };
+  const ids = [data.devuelto_por, data.autorizo].filter((x): x is string => Boolean(x));
+  const { data: nombres } = ids.length
+    ? await supabase.from("perfiles").select("id, nombre").in("id", ids)
+    : { data: [] as { id: string; nombre: string }[] };
+  const nombre = (id: string | null) => (id ? ((nombres ?? []).find((p) => p.id === id)?.nombre as string | undefined) ?? null : null);
+  return {
+    motivo: data.motivo as string,
+    devueltoAt: data.devuelto_at as string,
+    devueltoPor: nombre(data.devuelto_por as string | null),
+    autorizo: data.autorizo ? (nombre(data.autorizo as string) ?? "gerencia") : null,
+  };
 }
 
 /**
@@ -71,7 +80,10 @@ export function AvisoDevolucionCierre({
         {recienCorregido ? <PartyPopper className="mt-0.5 size-4 flex-none" /> : <CornerDownLeft className="mt-0.5 size-4 flex-none" />}
         {recienCorregido
           ? "Corrección guardada. Falta un paso: avísele a Central que ya está."
-          : `${devolucion.devueltoPor ?? "Central"} le devolvió este cierre el ${fechaHoraLima(devolucion.devueltoAt)}`}
+          : `${devolucion.devueltoPor ?? "Central"} le devolvió este cierre${
+              // 0351: si el pedido ya había avanzado, la devolución lleva firma de gerencia.
+              devolucion.autorizo ? ` con autorización de ${devolucion.autorizo}` : ""
+            } el ${fechaHoraLima(devolucion.devueltoAt)}`}
       </p>
       <p className="mt-1 pl-6 text-sm text-foreground">
         <span className="text-muted-foreground">Motivo: </span>«{devolucion.motivo}»
