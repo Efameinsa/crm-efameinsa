@@ -862,3 +862,28 @@ export function indicadoresParaDocumento(eq: IndicadoresEquipo, id: string): Ind
     },
   };
 }
+
+/**
+ * ¿Quiénes venden de verdad? Los que hicieron al menos una gestión de contacto
+ * sobre un expediente de venta en los últimos 30 días. Criterio de datos y no
+ * una lista de códigos (coordinador, 30-09): hoy deja fuera al Almacén y a
+ * C3/C6, que no tienen gestión; cuando alguien empiece a vender, entra solo.
+ * Postventa y las cuentas de práctica se filtran antes, por su perfil.
+ */
+export async function idsQueVenden(supabase: Cliente, ids: string[], hoy: string): Promise<Set<string>> {
+  const desde = `${sumarDias(hoy, -29)}T00:00:00-05:00`;
+  const pares = await Promise.all(
+    ids.map(async (id) => {
+      const { data } = await supabase
+        .from("actividades")
+        .select("id, oportunidades!inner(tipo_postventa)")
+        .eq("realizada_por", id)
+        .in("tipo", [...TIPOS_GESTION_META])
+        .is("oportunidades.tipo_postventa", null)
+        .gte("realizada_at", desde)
+        .limit(1);
+      return [id, (data ?? []).length > 0] as const;
+    }),
+  );
+  return new Set(pares.filter(([, vende]) => vende).map(([id]) => id));
+}

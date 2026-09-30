@@ -7,7 +7,7 @@ import { Kpi } from "@/components/crm/kpi";
 import { FiltroFechaSupervision } from "@/components/crm/filtro-fecha-supervision";
 import { TarjetaSupervision } from "@/components/crm/tarjeta-supervision";
 import { LineasIndicadoresSupervision, ResumenEquipoHoy } from "@/components/crm/indicadores-comerciales";
-import { cargarIndicadoresDelDia } from "@/lib/indicadores-comerciales";
+import { cargarIndicadoresDelDia, idsQueVenden } from "@/lib/indicadores-comerciales";
 
 // Depende de searchParams y de datos vivos: nunca cachear.
 export const dynamic = "force-dynamic";
@@ -41,7 +41,11 @@ export default async function SupervisionPage({
   // WhatsApp de campaña, visitas y videollamadas (ing. Carlos, 30-09: «¿cuántas
   // visitas hay el día de hoy?… las visitas de este comercial»). Se calculan
   // en TypeScript, al lado de la función SQL, sin tocarla.
-  const ids = resumen.comerciales.map((c) => c.id);
+  // Solo quien vende: ni postventa ni práctica (por perfil), ni cuentas sin
+  // una gestión comercial en 30 días (Almacén, C3, C6 al 30-09). Sin eso
+  // salían tarjetas con «Visitas 0/2» de gente que no visita a nadie.
+  const candidatos = resumen.comerciales.filter((c) => !c.es_postventa).map((c) => c.id);
+  const ids = [...(await idsQueVenden(supabase, candidatos, hoy))];
   const [indicadores, { count: programadasPlanta }] = await Promise.all([
     cargarIndicadoresDelDia(supabase, ids, fecha, hoy),
     supabase
