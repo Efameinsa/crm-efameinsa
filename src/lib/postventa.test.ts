@@ -434,3 +434,26 @@ describe("0314: el accesorio (coches y carros) no se conecta", () => {
     expect(apertura?.trabado ?? "").not.toMatch(/plano|probado/);
   });
 });
+
+describe("«No se le envió» el plano (Rubí, 30-09)", () => {
+  const paso = (s: Parameters<typeof bloquesPedido>[0]) =>
+    bloquesPedido(s).flatMap((b) => b.pasos).find((p) => p.clave === "plano");
+
+  it("el paso queda a la vista, cerrado y dicho como no enviado", () => {
+    const p = paso(pedido({ tipo_pedido: "equipo", sin_plano: true, sin_plano_motivo: "No se le envió: el equipo llegó antes" }));
+    expect(p?.hecho).toBe(true);
+    expect(p?.etiqueta).toBe("Plano de preinstalación: no se le envió");
+    expect(p?.detalle).toBe("el equipo llegó antes");
+  });
+
+  it("«No lleva plano» sigue escondiendo el paso", () => {
+    expect(paso(pedido({ tipo_pedido: "equipo", sin_plano: true, sin_plano_motivo: "Es un calderín" }))).toBeUndefined();
+  });
+
+  it("no traba la apertura por el plano", () => {
+    const apertura = bloquesPedido(pedido({ tipo_pedido: "equipo", sin_plano: true, sin_plano_motivo: "No se le envió: x" }))
+      .flatMap((b) => b.pasos)
+      .find((p) => p.clave === "apertura");
+    expect(apertura?.trabado ?? "").not.toContain("plano");
+  });
+});

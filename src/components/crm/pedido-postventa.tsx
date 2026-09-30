@@ -24,6 +24,7 @@ import {
   verificarDireccion,
   programarDespacho,
   marcarSinPlano,
+  marcarPlanoNoEnviado,
   registrarDespacho,
   cerrarPedido,
   guardarInformeServicio,
@@ -63,6 +64,7 @@ type Formulario =
   | { tipo: "condicion" }
   | { tipo: "prueba" }
   | { tipo: "sin_plano" }
+  | { tipo: "plano_no_enviado" }
   | { tipo: "direccion" }
   | { tipo: "preinstalacion" }
   | { tipo: "programar" }
@@ -272,6 +274,8 @@ export function PedidoPostventa({
               Marcar enviado
             </BotonPaso>
             {/* Repuesto, accesorio, calderín: no hay plano que mandar (0259). */}
+            {/* Llevaba plano y no salió: el equipo llegó antes (Rubí, 30-09). */}
+            <BotonPaso onClick={() => setForm({ tipo: "plano_no_enviado" })}>No se le envió</BotonPaso>
             <BotonPaso onClick={() => setForm({ tipo: "sin_plano" })}>No lleva plano</BotonPaso>
           </span>
         );
@@ -657,6 +661,22 @@ export function PedidoPostventa({
         pendiente={pendiente}
         onEnviar={(datos) => correr(() => marcarSinPlano(servicio.id, datos.motivo), "Listo: el circuito sigue sin el plano", { sin_plano: true })}
         campos={[{ nombre: "motivo", etiqueta: "Por qué no lleva plano", inicial: "Es un repuesto / accesorio, no requiere instalación", requerido: true }]}
+      />
+
+      <Cuadro
+        abierto={form?.tipo === "plano_no_enviado"}
+        cerrar={() => setForm(null)}
+        titulo="El plano de preinstalación no se le envió"
+        descripcion="El equipo sí llevaba plano, pero no salió a tiempo. El paso se cierra como «no se le envió», a la vista y con el motivo: no es lo mismo que «No lleva plano»."
+        boton="Marcar no enviado"
+        pendiente={pendiente}
+        onEnviar={(datos) =>
+          correr(() => marcarPlanoNoEnviado(servicio.id, datos.motivo), "Listo: queda dicho que el plano no se le envió", {
+            sin_plano: true,
+            sin_plano_motivo: `No se le envió: ${datos.motivo}`,
+          })
+        }
+        campos={[{ nombre: "motivo", etiqueta: "Por qué no se le envió", inicial: "El equipo llegó al cliente antes de mandarle el plano", requerido: true }]}
       />
 
       <Cuadro
