@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, MapPin, Phone, Pencil, Plus, Trash2, User, WandSparkles } from "lucide-react";
+import { ArrowUp, HardHat, Mail, MapPin, Phone, Pencil, Plus, Trash2, User, WandSparkles } from "lucide-react";
 import { toast } from "sonner";
-import { eliminarContacto, guardarContacto } from "@/lib/acciones/contactos";
+import { eliminarContacto, guardarContacto, pasarContactoAComercial } from "@/lib/acciones/contactos";
+import { textoAgregado } from "@/lib/contacto-operativo";
 import { nombrePropio } from "@/lib/texto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,11 @@ export interface ContactoEditable {
   documento: string | null;
   direccion: string | null;
   es_principal: boolean;
+  /** 0352: 'operativo' = recibe despachos, técnico, logística; lo sumó postventa o el almacén. */
+  categoria?: string | null;
+  origen?: string | null;
+  agregado_at?: string | null;
+  agregado?: { nombre: string | null } | null;
 }
 
 const VACIO = {
@@ -61,6 +67,9 @@ export function ContactosEditables({
   const [editando, setEditando] = useState<string | null>(null);
   const [campos, setCampos] = useState<Campos>(VACIO);
   const [guardando, startTransition] = useTransition();
+  // Primero los de siempre; debajo los operativos que sumó postventa o el almacén (0352).
+  const comerciales = contactos.filter((c) => c.categoria !== "operativo");
+  const operativos = contactos.filter((c) => c.categoria === "operativo");
 
   function abrir(c: ContactoEditable | null) {
     if (c) {
@@ -76,8 +85,8 @@ export function ContactosEditables({
       });
     } else {
       setEditando("nuevo");
-      // El primero que se agrega a un cliente sin contactos es el principal.
-      setCampos({ ...VACIO, esPrincipal: contactos.length === 0 });
+      // El primero que se agrega a un cliente sin contactos comerciales es el principal.
+      setCampos({ ...VACIO, esPrincipal: comerciales.length === 0 });
     }
   }
 
@@ -95,6 +104,17 @@ export function ContactosEditables({
       toast.success(editando === "nuevo" ? "Contacto agregado" : "Contacto actualizado");
       setEditando(null);
       router.refresh();
+    });
+  }
+
+  function aComercial(c: ContactoEditable) {
+    startTransition(async () => {
+      const r = await pasarContactoAComercial({ contactoId: c.id, cuentaId });
+      if (r.error) toast.error(r.error);
+      else {
+        toast.success(`${c.nombre} ya es contacto comercial`);
+        router.refresh();
+      }
     });
   }
 
@@ -223,13 +243,7 @@ export function ContactosEditables({
     </div>
   );
 
-  return (
-    <div className="space-y-3">
-      {contactos.length === 0 && editando !== "nuevo" && (
-        <p className="text-sm text-muted-foreground">Sin contactos registrados.</p>
-      )}
-
-      {contactos.map((c) =>
+  const tarjeta = (c: ContactoEditable) =>
         editando === c.id ? (
           <div key={c.id}>{formulario}</div>
         ) : (
@@ -267,6 +281,17 @@ export function ContactosEditables({
                     </p>
                   )}
                 </div>
+                {c.categoria === "operativo" && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    {textoAgregado(c) && <p className="text-[11px] text-muted-foreground">{textoAgregado(c)}</p>}
+                    {!soloLectura && (
+                      <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" disabled={guardando} onClick={() => aComercial(c)}>
+                        <ArrowUp className="size-3" />
+                        Pasar a comercial
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
               {!soloLectura && (
                 <div className="flex shrink-0 items-center gap-1">
@@ -287,7 +312,31 @@ export function ContactosEditables({
               )}
             </div>
           </div>
-        ),
+        );
+
+  return (
+    <div className="space-y-3">
+      {comerciales.length === 0 && editando !== "nuevo" && (
+        <p className="text-sm text-muted-foreground">
+          {operativos.length > 0
+            ? "Sin contactos comerciales: solo hay los operativos de abajo, que no salen en la cotización."
+            : "Sin contactos registrados."}
+        </p>
+      )}
+
+      {comerciales.map(tarjeta)}
+
+      {operativos.length > 0 && (
+        <div className="space-y-2 border-t border-border pt-3">
+          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            <HardHat className="size-3.5" />
+            Contactos operativos · reciben despachos, técnicos
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            Los sumó postventa o el almacén al escribirlos a mano. No salen en la cotización; si ahora le compran, páselos a comercial.
+          </p>
+          {operativos.map(tarjeta)}
+        </div>
       )}
 
       {soloLectura ? null : editando === "nuevo" ? (

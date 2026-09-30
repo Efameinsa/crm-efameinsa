@@ -25,7 +25,7 @@ import { GrupoEconomico } from "@/components/crm/grupo-economico";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { ReasignarCarteraBoton } from "@/components/crm/reasignar-cartera-boton";
 import { AccionNuevoInforme } from "@/components/crm/secciones-cliente";
-import { ContactosEditables } from "@/components/crm/contactos-editables";
+import { ContactosEditables, type ContactoEditable } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor";
@@ -82,7 +82,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
   const { data: cuenta } = await supabase
     .from("cuentas")
     .select(
-      "id, razon_social, nombre_comercial, tipo_doc, num_doc, rubro_id, comercial_id, carpetas_servidor, direccion, ultima_venta_at, cartera_desde, notas, fusionada_en, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, direccion, es_principal)",
+      "id, razon_social, nombre_comercial, tipo_doc, num_doc, rubro_id, comercial_id, carpetas_servidor, direccion, ultima_venta_at, cartera_desde, notas, fusionada_en, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, direccion, es_principal, categoria, origen, agregado_at, agregado:perfiles!contactos_agregado_por_fkey(nombre))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -113,10 +113,9 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
       .limit(50),
   ]);
   const dueno = cuenta.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
-  const contactos = (cuenta.contactos ?? []) as {
-    id: string; nombre: string; cargo: string | null; telefono: string | null; email: string | null; documento: string | null; direccion: string | null; es_principal: boolean;
-  }[];
-  const principal = contactos.find((c) => c.es_principal) ?? contactos[0];
+  const contactos = (cuenta.contactos ?? []) as unknown as ContactoEditable[];
+  // Un operativo (0352: quien recibe, el técnico) no es la cara del cliente: va último.
+  const principal = contactos.find((c) => c.es_principal) ?? contactos.find((c) => c.categoria !== "operativo") ?? contactos[0];
   const ops = (oportunidades ?? []) as unknown as {
     id: string; etapa: string; tipo_postventa: string | null; proxima_accion: string | null; proxima_accion_at: string | null; proxima_accion_hora: string | null;
     cerrada_at: string | null; monto_estimado: number | null; moneda: string; intencion: string | null; comercial_id: string | null; lead_id: string | null;

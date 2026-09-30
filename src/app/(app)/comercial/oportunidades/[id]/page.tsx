@@ -20,7 +20,7 @@ import { SeccionPanel, SeccionPlegable } from "@/components/crm/seccion-panel";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
 import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor";
 import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
-import { ContactosEditables } from "@/components/crm/contactos-editables";
+import { ContactosEditables, type ContactoEditable } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { FichasRelacionadas } from "@/components/crm/fichas-relacionadas";
 import { candidatosMismoCliente } from "@/lib/acciones/cuentas";
@@ -95,7 +95,7 @@ export default async function OportunidadDetallePage({
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, tipo_postventa, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, pagina_entrada, pagina_envio, referente, recibido_at, nombre_contacto, telefono, email), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal))",
+          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, tipo_postventa, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, pagina_entrada, pagina_envio, referente, recibido_at, nombre_contacto, telefono, email), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal, categoria))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -144,7 +144,7 @@ export default async function OportunidadDetallePage({
     rubro_id: number | null;
     cuenta_padre_id: string | null;
     carpetas_servidor: Record<string, string> | null;
-    contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
+    contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null; categoria?: string | null }[];
   } | null;
 
   // «¿ES EL MISMO CLIENTE?» (0272, ítem 9 de la reunión del 22-09): Carlos, al
@@ -198,7 +198,7 @@ export default async function OportunidadDetallePage({
     cuenta?.id
       ? supabase
           .from("contactos")
-          .select("id, nombre, cargo, telefono, email, documento, direccion, es_principal")
+          .select("id, nombre, cargo, telefono, email, documento, direccion, es_principal, categoria, origen, agregado_at, agregado:perfiles!contactos_agregado_por_fkey(nombre)")
           .eq("cuenta_id", cuenta.id)
           .order("es_principal", { ascending: false })
       : Promise.resolve({ data: [] }),
@@ -324,7 +324,7 @@ export default async function OportunidadDetallePage({
   // Todas con el mismo RUC = sedes de una institución, no razones sociales distintas.
   const sedeDe =
     madre && grupo.length > 1 && grupo.every((g) => g.num_doc && g.num_doc === grupo[0].num_doc) ? madre.razon_social : null;
-  const contactosCuenta = contactosData ?? [];
+  const contactosCuenta = (contactosData ?? []) as unknown as ContactoEditable[];
 
   // Lo que depende de lo anterior: las URL firmadas de los adjuntos (de los
   // contactos sumados y de los informes) y quién derivó. Otro viaje, y basta.
@@ -583,6 +583,10 @@ export default async function OportunidadDetallePage({
                 <span className="font-medium text-foreground">
                   {c.nombre}
                   {c.cargo ? ` (${c.cargo})` : ""}
+                  {/* 0352: lo sumó postventa o el almacén (recibe despachos, técnico): no es a quien se cotiza. */}
+                  {c.categoria === "operativo" && (
+                    <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">operativo</span>
+                  )}
                 </span>
                 {c.telefono && (
                   <span className="inline-flex items-center gap-1">

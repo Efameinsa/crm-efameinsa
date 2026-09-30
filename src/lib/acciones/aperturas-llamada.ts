@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar, notificarAlmacen } from "@/lib/notificaciones";
+import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
+import { ultimos9 } from "@/lib/contacto-operativo";
 import { ETIQUETA_TIPO_APERTURA, TIPOS_APERTURA, type FormatoLlamada, type TipoApertura } from "@/lib/aperturas-llamada";
 
 // Las cinco acciones de la apertura de llamada (0281). Las reglas de quién
@@ -65,6 +67,9 @@ export async function enviarAperturaLlamada(datos: {
     p_formato: datos.formato ? { ...datos.formato, contacto: datos.contacto?.trim() || datos.formato.contacto || null } : null,
   });
   if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+  // Si no estaba en la ficha, se suma como contacto operativo (0352; Carlos, 30-09:
+  // «tú hoy día ingresas algo manual, tiene que sumar al contacto»).
+  await sumarContactoOperativo(datos.cuentaId, datos.contacto, "apertura");
   const { data: c } = await supabase.from("cuentas").select("razon_social").eq("id", datos.cuentaId).maybeSingle();
   await notificarAlmacen({
     titulo: `${datos.pinUrgente ? "URGENTE · " : ""}${ETIQUETA_TIPO_APERTURA[datos.tipo]} · ${cliente(c?.razon_social)}`,
@@ -131,15 +136,28 @@ export async function datosParaFormatoDeLlamada(cuentaId: string) {
       .eq("cuenta_id", cuentaId)
       .order("fecha_venta", { ascending: false, nullsFirst: false })
       .limit(30),
-    supabase.from("contactos").select("nombre, telefono").eq("cuenta_id", cuentaId).order("es_principal", { ascending: false }).limit(10),
+    // Primero los comerciales; después los operativos (0352: técnicos, logística, quien recibe).
+    supabase
+      .from("contactos")
+      .select("nombre, telefono, categoria")
+      .eq("cuenta_id", cuentaId)
+      .order("categoria", { ascending: true })
+      .order("es_principal", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(12),
     // Con quién se habló en la última apertura del cliente: una sugerencia más, nunca
     // se pone sola (Gabriela, 30-09: salía FLOR MARIA, el contacto principal de la ficha).
     supabase.from("aperturas_llamada").select("contacto").eq("cuenta_id", cuentaId).is("anulada_at", null).not("contacto", "is", null).order("solicitada_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
-  const contactos = ((listaContactos ?? []) as { nombre: string | null; telefono: string | null }[])
-    .map((c) => [c.nombre, c.telefono].filter(Boolean).join(" · "))
-    .filter(Boolean);
+  const deLaFicha = ((listaContactos ?? []) as { nombre: string | null; telefono: string | null; categoria: string | null }[])
+    .map((c) => ({ texto: [c.nombre, c.telefono].filter(Boolean).join(" · "), operativo: c.categoria === "operativo", tel: ultimos9(c.telefono) }))
+    .filter((c) => c.texto);
   const ultimo = ((ultima as { contacto: string | null } | null)?.contacto ?? "").trim();
+  // La última apertura va primero, salvo que sea alguien que ya está en la ficha con ese celular.
+  const telUltimo = ultimos9(ultimo);
+  const contactos: { texto: string; operativo: boolean }[] = [];
+  if (ultimo && !(telUltimo.length >= 6 && deLaFicha.some((c) => c.tel === telUltimo))) contactos.push({ texto: ultimo, operativo: false });
+  for (const c of deLaFicha) if (!contactos.some((x) => x.texto === c.texto)) contactos.push({ texto: c.texto, operativo: c.operativo });
   const protocolos = new Set<string>();
   const ids = ((equipos ?? []) as { servicio_id: string | null }[]).map((e) => e.servicio_id).filter(Boolean) as string[];
   if (ids.length) {
@@ -149,7 +167,7 @@ export async function datosParaFormatoDeLlamada(cuentaId: string) {
     }
   }
   return {
-    contactos: [...new Set([ultimo, ...contactos].filter(Boolean))],
+    contactos,
     equipos: ((equipos ?? []) as {
       id: string; serie: string | null; modelo_texto: string | null; fecha_venta: string | null; fecha_despacho: string | null; guia_remision: string | null;
       fecha_puesta_marcha: string | null; garantia_meses: number | null; garantia_hasta: string | null; ultimo_mantenimiento: string | null; ubicacion: string | null; servicio_id: string | null;
