@@ -4,6 +4,7 @@ import { etiquetaTipoServicio } from "@/lib/postventa";
 import type { EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
+import type { ExpedienteArchivado } from "@/lib/asi-se-quedo";
 
 // Se muestran las 300 actividades más recientes por cuenta — de sobra para el
 // volumen real del piloto (~50 gestiones/día por comercial); si algún día se
@@ -77,6 +78,12 @@ export interface VentaConDetalle {
 export interface HistorialCuentaResultado {
   eventos: EventoTimeline[];
   ventasConDetalle: VentaConDetalle[];
+  /**
+   * Los expedientes del cliente que están en «Histórico», con lo que quedó
+   * agendado al archivarse. Alimentan «Así se quedó» (30-09): el expediente
+   * nuevo enseña el archivo sin reactivarlo ni contarlo como trabajo.
+   */
+  archivados: ExpedienteArchivado[];
 }
 
 // Fusiona actividades + cotizaciones + ventas de TODAS las oportunidades de
@@ -132,10 +139,23 @@ export async function cargarHistorialCuenta(
   // dueño — lo que no se alcanza a ver sale como «comercial».
   // Por cuenta y no con `.in(ids)`: un cliente con decenas de expedientes
   // revienta la URL (trampa conocida).
-  const { data: opsTipo } = await supabase.from("oportunidades").select("id, tipo_postventa, lead_id").eq("cuenta_id", cuentaId);
+  const { data: opsTipo } = await supabase
+    .from("oportunidades")
+    .select("id, tipo_postventa, lead_id, etapa, proxima_accion, proxima_accion_at")
+    .eq("cuenta_id", cuentaId);
+  const archivados: ExpedienteArchivado[] = (opsTipo ?? [])
+    .filter((o) => o.etapa === "historico")
+    .map((o) => ({
+      id: o.id as string,
+      proxima_accion: (o.proxima_accion as string | null) ?? null,
+      proxima_accion_at: (o.proxima_accion_at as string | null) ?? null,
+    }));
+  const idsArchivados = new Set(archivados.map((a) => a.id));
   const tipoDe = new Map<string, string | null>((opsTipo ?? []).map((o) => [o.id as string, (o.tipo_postventa as string | null) ?? null]));
   const delExpediente = (opId: string | null | undefined) =>
-    opId ? { expediente: opId, expedienteTipo: tipoDe.get(opId) ?? null } : { expediente: null, expedienteTipo: null };
+    opId
+      ? { expediente: opId, expedienteTipo: tipoDe.get(opId) ?? null, expedienteArchivado: idsArchivados.has(opId) }
+      : { expediente: null, expedienteTipo: null, expedienteArchivado: false };
   const leadOriginal = new Map<string, string>(
     (opsTipo ?? []).filter((o) => o.lead_id).map((o) => [o.lead_id as string, o.id as string]),
   );
@@ -416,5 +436,5 @@ export async function cargarHistorialCuenta(
     documentoArchivo: (v.referencia_historica ? documentoPorCodigo.get(v.referencia_historica) : undefined) ?? null,
   })) as unknown as VentaConDetalle[];
 
-  return { eventos, ventasConDetalle };
+  return { eventos, ventasConDetalle, archivados };
 }

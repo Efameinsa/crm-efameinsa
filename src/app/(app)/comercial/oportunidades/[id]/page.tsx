@@ -45,6 +45,8 @@ import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
 import { TraerPedidoAntiguoBoton } from "@/components/crm/traer-pedido-antiguo-boton";
 import { nombreDeCampana, recorridoDe } from "@/lib/campana";
 import { cierresDePostventa } from "@/lib/precios-postventa";
+import { resumirAsiSeQuedo } from "@/lib/asi-se-quedo";
+import { AsiSeQuedoRecuadro } from "@/components/crm/asi-se-quedo";
 
 // Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
 // el mismo nombre de canal que vio quien se lo derivó.
@@ -171,7 +173,7 @@ export default async function OportunidadDetallePage({
   const [
     { data: rubrosData },
     { data: grupoData },
-    { eventos, ventasConDetalle },
+    { eventos, ventasConDetalle, archivados },
     { data: informes },
     { data: contactosData },
     { data: asignacion },
@@ -185,7 +187,7 @@ export default async function OportunidadDetallePage({
     cuenta?.cuenta_padre_id ? supabase.rpc("grupo_economico", { p_cuenta_id: cuenta.id }) : Promise.resolve({ data: null }),
     cuenta?.id
       ? cargarHistorialCuenta(supabase, cuenta.id, { sinMontos: !puedeVerPrecios(perfilQueMira) })
-      : Promise.resolve({ eventos: [], ventasConDetalle: [] }),
+      : Promise.resolve({ eventos: [], ventasConDetalle: [], archivados: [] }),
     cuenta?.id
       ? supabase
           .from("informes_cierre")
@@ -428,6 +430,10 @@ export default async function OportunidadDetallePage({
     ? laConsultaSeResolvioAlLado.catalogo_motivos_rechazo[0]?.nombre
     : laConsultaSeResolvioAlLado?.catalogo_motivos_rechazo?.nombre;
 
+  // «Así se quedó» (30-09): lo archivado del cliente, a la vista y sin contar
+  // como trabajo. Sale de la historia que esta página ya carga.
+  const asiSeQuedo = resumirAsiSeQuedo(eventos, archivados, oportunidad.id);
+
   const rutaDelContacto: Hito[] = [
     lead
       ? {
@@ -547,6 +553,7 @@ export default async function OportunidadDetallePage({
                 Sin próxima acción — agéndela al registrar la gestión
               </p>
             )}
+            {asiSeQuedo && <AsiSeQuedoRecuadro resumen={asiSeQuedo} hrefHistoria="#historial-expediente" />}
           </div>
           <div className="flex flex-col items-end gap-2">
             <EtapaBadge etapa={oportunidad.etapa} />
@@ -766,7 +773,7 @@ export default async function OportunidadDetallePage({
           {cuenta?.id && <EquiposDelCliente cuentaId={cuenta.id} />}
 
           {cuenta?.id && (
-            <SeccionPanel titulo="Historial de este expediente">
+            <SeccionPanel titulo="Historial de este expediente" id="historial-expediente">
               <HistorialCuenta eventos={eventos} oportunidadActualId={oportunidad.id} />
             </SeccionPanel>
           )}
