@@ -79,19 +79,29 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
     return [...m.values()].sort((a, b) => b.ultima - a.ultima);
   }, [eventos]);
 
+  // LO ARCHIVADO VIENE CON EL EXPEDIENTE (Santos, 30-09). Dentro de un
+  // expediente se ve lo suyo MÁS lo que el cliente tiene en «Histórico», en
+  // gris y rotulado «De antes»: es la misma conversación retomada, no otro
+  // caso. Otro expediente VIVO (un caso de postventa) sigue aparte, como pidió
+  // Rubí el 28-09.
+  const esDeAntes = (e: EventoTimeline) => Boolean(e.expedienteArchivado) && e.expediente !== oportunidadActualId;
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    let base = filtroExpediente ? eventos.filter((e) => e.expediente === filtroExpediente) : eventos;
+    let base = filtroExpediente
+      ? eventos.filter((e) => e.expediente === filtroExpediente || (filtroExpediente === oportunidadActualId && esDeAntes(e)))
+      : eventos;
     base = q ? base.filter((e) => textoBuscable(e).includes(q)) : base;
     // `eventos` llega ordenado descendente (reciente primero) desde el servidor.
     return orden === "reciente" ? base : [...base].reverse();
-  }, [eventos, busqueda, orden, filtroExpediente]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventos, busqueda, orden, filtroExpediente, oportunidadActualId]);
 
   // LA HISTORIA DE ANTES, A LA VISTA (Katerine, 29-09: «este prospecto tiene
   // historial pero no está en el CRM»). Sus gestiones de mayo estaban, en los
   // expedientes históricos del mismo cliente; dentro del expediente nuevo solo
   // se veía lo suyo, y el botón para ver lo demás no decía que había algo.
-  const deOtrosExpedientes = oportunidadActualId ? eventos.filter((e) => e.expediente !== oportunidadActualId) : [];
+  const deOtrosExpedientes = oportunidadActualId ? eventos.filter((e) => e.expediente !== oportunidadActualId && !esDeAntes(e)) : [];
+  const hayDeAntes = oportunidadActualId ? eventos.some(esDeAntes) : false;
   const ultimaDeOtros = deOtrosExpedientes.reduce<string | null>((m, e) => (!m || e.fecha > m ? e.fecha : m), null);
 
   if (eventos.length === 0) {
@@ -169,7 +179,11 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
       {oportunidadActualId ? (
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-muted-foreground">
-            {filtroExpediente ? "Solo lo de este expediente, desde lo que pidió el cliente." : "Toda la historia del cliente, con el color de cada expediente."}
+            {filtroExpediente
+              ? hayDeAntes
+                ? "Lo de este expediente y, en gris, lo de antes (archivado)."
+                : "Solo lo de este expediente, desde lo que pidió el cliente."
+              : "Toda la historia del cliente, con el color de cada expediente."}
           </span>
           <button
             type="button"
@@ -267,6 +281,8 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento:
   // archivo —que no cuelgan de ninguna oportunidad— salían con cursor de
   // enlace y llevaban a /comercial/oportunidades/null.
   const navegable = evento.oportunidadId != null && evento.oportunidadId !== oportunidadActualId;
+  // Dentro de un expediente, lo archivado se lee como memoria: gris y rotulado.
+  const deAntes = !conExpediente && Boolean(evento.expedienteArchivado) && evento.expediente !== oportunidadActualId;
 
   return (
     <TableRow
@@ -279,6 +295,7 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento:
       className={cn(
         navegable && "cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
         evento.tipo === "solicitud" && "bg-[#7E1210]/5",
+        deAntes && "bg-muted/40 opacity-75",
       )}
     >
       <TableCell
@@ -294,6 +311,13 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento:
         {conExpediente && evento.expediente && (
           <p className="mb-0.5">
             <TipoExpedienteBadge tipo={evento.expedienteTipo} />
+          </p>
+        )}
+        {deAntes && (
+          <p className="mb-0.5">
+            <span className="inline-flex rounded border border-dashed border-border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              De antes · archivado
+            </span>
           </p>
         )}
         {evento.tipo === "solicitud" && <CuerpoSolicitud evento={evento} />}

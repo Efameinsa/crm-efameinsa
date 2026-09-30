@@ -42,6 +42,8 @@ export interface AdjuntoEvento {
 export interface DelExpediente {
   expediente?: string | null;
   expedienteTipo?: string | null;
+  /** Su expediente está en «Histórico»: se enseña como «de antes», no como trabajo (30-09). */
+  expedienteArchivado?: boolean;
 }
 
 export interface EventoActividad extends DelExpediente {
