@@ -112,6 +112,12 @@ export interface FilaApertura {
   observaciones: string;
 }
 
+/** ¿El texto ya contiene esa dirección? Sin mirar mayúsculas, espacios ni signos. */
+function yaDice(texto: string | null | undefined, direccion: string): boolean {
+  const limpio = (x: string) => x.toUpperCase().replace(/[^A-Z0-9ÁÉÍÓÚÑ]/g, "");
+  return Boolean(texto) && limpio(texto as string).includes(limpio(direccion));
+}
+
 /**
  * Las nueve filas del formato, en su orden. Lo que falta se deja como «—»
  * bien visible en vez de inventarse: el correo sale igual y quien lo revisa
@@ -138,7 +144,8 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
           "",
           "2) DESTINO FINAL (donde lo recibe el cliente):",
           d.direccion ?? "—",
-          d.direccionFinal ? `Luego sigue a: ${d.direccionFinal}` : null,
+          // ANDINAS, 30-09: la dirección ya venía dentro de la nota y salía dos veces.
+          d.direccionFinal && !yaDice(d.direccion, d.direccionFinal) ? `Luego sigue a: ${d.direccionFinal}` : null,
         ]
           .filter((x) => x !== null)
           .join("\n")

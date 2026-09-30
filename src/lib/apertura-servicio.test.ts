@@ -142,6 +142,19 @@ describe("las nueve filas llevan lo que el correo lleva", () => {
     expect(faltantesApertura({ ...d, agenciaDireccion: null })).toContain("la dirección de la agencia (primer destino)");
   });
 
+  it("no repite la dirección final si ya viene en la nota (ANDINAS, 30-09)", () => {
+    const d = {
+      ...PERU_VACATION,
+      entregaModo: "agencia" as const,
+      agenciaDestino: "ANGENCIA MARVISUR",
+      agenciaDireccion: "Jr. Humboldt 460 - La Victoria",
+      direccion: "NOTA: LA CLIENTE SOLICITA CON ENTREGA A DOMICILIO A NRO. 103 INT. D URB. SANTA MARIA DE SARAJA (ESPALDA CHIFA CENTRAL) ICA - ICA - ICA.",
+      direccionFinal: "NRO. 103 INT. D URB. SANTA MARIA DE SARAJA (ESPALDA CHIFA CENTRAL) ICA - ICA - ICA",
+    };
+    expect(filasApertura(d)[2].informacion).not.toContain("Luego sigue a");
+    expect(filasApertura({ ...d, direccionFinal: "Calle Otra 123, Pisco" })[2].informacion).toContain("Luego sigue a: Calle Otra 123, Pisco");
+  });
+
   it("sin dirección final, la fila 3 es solo la dirección", () => {
     expect(filasApertura(PERU_VACATION)[2].informacion).toBe("Calle Bolívar 150 Miraflores");
   });
