@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { agregarParteDelEquipo, equipoVaEnEsteDespacho, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { agregarParteDelEquipo, equipoVaEnEsteDespacho, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido } from "@/lib/acciones/almacen";
 import { corregirSerie } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -158,6 +158,9 @@ function Fila({
   const [serieNueva, setSerieNueva] = useState("");
   const [motivoSerie, setMotivoSerie] = useState("");
   const [pinSerie, setPinSerie] = useState("");
+  // Aviso de largo (Lesly, 30-09): la serie de una Unimac entró con un dígito menos.
+  // Sale una vez por valor; con el mismo valor, el segundo clic registra igual.
+  const [avisoSerie, setAvisoSerie] = useState<{ para: string; texto: string } | null>(null);
   const [protocolo, setProtocolo] = useState("");
   const [nota, setNota] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
@@ -178,6 +181,24 @@ function Fila({
       router.refresh();
     });
   }
+
+  const confirmando = (valor: string) => avisoSerie?.para === valor.trim().toUpperCase();
+
+  function conRevision(valor: string, hacer: () => void) {
+    if (confirmando(valor)) {
+      setAvisoSerie(null);
+      hacer();
+      return;
+    }
+    startTransition(async () => {
+      const r = await revisarLargoDeSerie(e.id, valor);
+      if (r.aviso) setAvisoSerie({ para: valor.trim().toUpperCase(), texto: r.aviso });
+      else hacer();
+    });
+  }
+
+  const avisoDeSerie = (valor: string) =>
+    confirmando(valor) ? <p className="text-[11px] font-medium text-amber-800">{avisoSerie?.texto} Si está bien así, vuelva a pulsar.</p> : null;
 
   async function abrirArchivo(path: string) {
     const { data } = await createClient().storage.from("adjuntos").createSignedUrl(path, 600);
@@ -272,19 +293,22 @@ function Fila({
                   className="h-8"
                   disabled={pendiente || !parteNombre.trim() || !parteSerie.trim()}
                   onClick={() =>
-                    correr(async () => {
-                      const r = await agregarParteDelEquipo(e.id, servicioId, parteNombre, parteSerie);
-                      if (!r.error) {
-                        setAbrirParte(false);
-                        setParteSerie("");
-                      }
-                      return r;
-                    }, `${parteNombre.trim() || "Máquina"} registrada: ya está en el parque con su serie`)
+                    conRevision(parteSerie, () =>
+                      correr(async () => {
+                        const r = await agregarParteDelEquipo(e.id, servicioId, parteNombre, parteSerie);
+                        if (!r.error) {
+                          setAbrirParte(false);
+                          setParteSerie("");
+                        }
+                        return r;
+                      }, `${parteNombre.trim() || "Máquina"} registrada: ya está en el parque con su serie`),
+                    )
                   }
                 >
-                  {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} Registrar
+                  {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} {confirmando(parteSerie) ? "Sí, registrar así" : "Registrar"}
                 </Button>
                 <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setAbrirParte(false)}>Cancelar</button>
+                <div className="basis-full">{avisoDeSerie(parteSerie)}</div>
               </div>
             ) : (
               <button type="button" className="mt-1 text-[11px] font-medium text-primary hover:underline" onClick={() => setAbrirParte(true)}>
@@ -317,15 +341,16 @@ function Fila({
                 <Input value={serieNueva} onChange={(x) => setSerieNueva(x.target.value)} placeholder="Serie correcta" className="h-8 font-mono text-sm uppercase" />
                 <Input value={motivoSerie} onChange={(x) => setMotivoSerie(x.target.value)} placeholder="Por qué (ej.: se leyó mal la placa)" className="h-8 text-sm" />
               </div>
+              {avisoDeSerie(serieNueva)}
               <CampoCodigo valor={pinSerie} onChange={setPinSerie} tono="amber" id={`pin-serie-${e.id}`} />
               <div className="flex gap-1.5">
                 <Button
                   size="sm"
                   className="h-8"
                   disabled={pendiente || !serieNueva.trim() || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4}
-                  onClick={() => correr(() => corregirSerie(e.id, servicioId, serieNueva, pinSerie, motivoSerie), "Serie corregida; quedó escrito en el pedido")}
+                  onClick={() => conRevision(serieNueva, () => correr(() => corregirSerie(e.id, servicioId, serieNueva, pinSerie, motivoSerie), "Serie corregida; quedó escrito en el pedido"))}
                 >
-                  Corregir
+                  {confirmando(serieNueva) ? "Sí, corregir así" : "Corregir"}
                 </Button>
                 <Button size="sm" variant="ghost" className="h-8" onClick={() => setCorrigiendo(false)}>
                   Cancelar
@@ -360,12 +385,20 @@ function Fila({
               <p className="text-[11px] text-muted-foreground">Un solo código para todas las unidades de este artículo que no tienen serie. No entran al parque instalado.</p>
             </div>
           ) : abrirSerie ? (
-            <div className="flex items-center gap-1.5">
-              <Input value={serie} onChange={(x) => setSerie(x.target.value)} placeholder="Serie como se lee en la placa" className="h-8 font-mono text-sm uppercase" autoFocus />
-              <Button size="sm" className="h-8" disabled={pendiente || !serie.trim()} onClick={() => correr(() => registrarSerieDelEquipo(e.id, servicioId, serie), "Serie registrada: la máquina ya está en el parque")}>
-                {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} Registrar
-              </Button>
-              <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setAbrirSerie(false)}>Cancelar</button>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Input value={serie} onChange={(x) => setSerie(x.target.value)} placeholder="Serie como se lee en la placa" className="h-8 font-mono text-sm uppercase" autoFocus />
+                <Button
+                  size="sm"
+                  className="h-8"
+                  disabled={pendiente || !serie.trim()}
+                  onClick={() => conRevision(serie, () => correr(() => registrarSerieDelEquipo(e.id, servicioId, serie), "Serie registrada: la máquina ya está en el parque"))}
+                >
+                  {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} {confirmando(serie) ? "Sí, registrar así" : "Registrar"}
+                </Button>
+                <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setAbrirSerie(false)}>Cancelar</button>
+              </div>
+              {avisoDeSerie(serie)}
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
