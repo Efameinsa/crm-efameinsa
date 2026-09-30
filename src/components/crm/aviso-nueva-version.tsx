@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { esDesfaseDeVersion } from "@/lib/desfase-de-version";
+import { haySinGuardar } from "@/lib/sin-guardar";
 
 /**
  * La pastilla «Hay una versión nueva» (Santos, 31-08: «me preocupa que
@@ -28,6 +29,10 @@ import { esDesfaseDeVersion } from "@/lib/desfase-de-version";
  *   de la versión vieja («Failed to find Server Action»), la pastilla sale en
  *   el acto. A Katerine el informe de cierre le dio error un minuto después
  *   de una actualización, y nada le dijo que recargara.
+ * · 30-09 (Santos): «que el aviso diga que guardes los cambios primero». La
+ *   pastilla lo dice en su texto y, si la pantalla tiene algo escrito sin
+ *   guardar (lib/sin-guardar), pregunta antes de recargar. El formulario del
+ *   cierre además guarda lo escrito en el navegador y lo ofrece al volver.
  */
 export function AvisoNuevaVersion({ versionInicial }: { versionInicial: string }) {
   const [hayNueva, setHayNueva] = useState(false);
@@ -67,14 +72,29 @@ export function AvisoNuevaVersion({ versionInicial }: { versionInicial: string }
 
   if (!hayNueva) return null;
 
+  function actualizar() {
+    if (
+      haySinGuardar() &&
+      !confirm(
+        "Tiene cambios sin guardar en esta pantalla.\n\nPulse «Cancelar», guarde primero y después actualice.\n\n¿Actualizar igual ahora?",
+      )
+    ) {
+      return;
+    }
+    location.reload();
+  }
+
   return (
     <button
       type="button"
-      onClick={() => location.reload()}
-      className="fixed bottom-20 left-4 z-50 inline-flex md:bottom-4 items-center gap-2 rounded-full bg-[#7E1210] px-4 py-2.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.03]"
+      onClick={actualizar}
+      className="fixed bottom-20 left-4 z-50 inline-flex md:bottom-4 items-center gap-2.5 rounded-2xl bg-[#7E1210] px-4 py-2.5 text-left text-white shadow-lg transition-transform hover:scale-[1.03]"
     >
-      <RefreshCw className="size-4" />
-      Hay una versión nueva — Actualizar
+      <RefreshCw className="size-4 flex-none" />
+      <span className="leading-tight">
+        <span className="block text-sm font-bold">Hay una versión nueva del CRM</span>
+        <span className="block text-xs font-medium text-white/85">Guarde lo que está haciendo y luego pulse aquí</span>
+      </span>
     </button>
   );
 }

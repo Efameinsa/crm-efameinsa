@@ -278,8 +278,12 @@ export function VistaCierre({
   }
   // «Editar»: si la ventana sigue viva se entra directo; si no, el cuadro
   // del motivo y el código. El código lo dicta Lesly o gerencia por teléfono.
+  // Desde el 30-09 la corrección se hace en el MISMO formulario del cierre
+  // (/editar), no en esta vista: Gabriela no reconocía la pantalla y no
+  // encontraba dónde subir el voucher. El editor en línea de abajo queda sin uso.
+  const irAlFormulario = () => router.push(`/comercial/cierres/${informe.id}/editar`);
   function editar() {
-    if (ventana && new Date(ventana.expiraAt).getTime() > Date.now()) setEditando(true);
+    if (ventana && new Date(ventana.expiraAt).getTime() > Date.now()) irAlFormulario();
     else {
       setVentana(null);
       setPidiendoCodigo(true);
@@ -295,8 +299,8 @@ export function VistaCierre({
       }
       setVentana({ expiraAt: r.ventana.expiraAt, autorizo: r.ventana.autorizo, motivo: motivo.trim() });
       setPidiendoCodigo(false);
-      setEditando(true);
       setPin("");
+      irAlFormulario();
       toast.success(`Autorizado por ${r.ventana.autorizo}. Tiene ${Math.round(r.ventana.minutos)} minutos para corregir.`);
     });
   }
