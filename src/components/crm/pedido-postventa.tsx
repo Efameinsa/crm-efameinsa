@@ -15,6 +15,7 @@ import {
   textoCondicionPago,
   type ServicioPostventa,
   type PasoPedido,
+  textoPlanoNoEnviado,
 } from "@/lib/postventa";
 import {
   aprobarPedido,
@@ -667,16 +668,27 @@ export function PedidoPostventa({
         abierto={form?.tipo === "plano_no_enviado"}
         cerrar={() => setForm(null)}
         titulo="El plano de preinstalación no se le envió"
-        descripcion="El equipo sí llevaba plano, pero no salió a tiempo. El paso se cierra como «no se le envió», a la vista y con el motivo: no es lo mismo que «No lleva plano»."
+        descripcion="El equipo sí llevaba plano, pero no salió a tiempo. El paso se cierra como «no se le envió», a la vista, con el motivo y con quién lo tenía a cargo: no es lo mismo que «No lleva plano»."
         boton="Marcar no enviado"
         pendiente={pendiente}
         onEnviar={(datos) =>
-          correr(() => marcarPlanoNoEnviado(servicio.id, datos.motivo), "Listo: queda dicho que el plano no se le envió", {
+          correr(() => marcarPlanoNoEnviado(servicio.id, datos.motivo, datos.a_cargo), "Listo: queda dicho que el plano no se le envió", {
             sin_plano: true,
-            sin_plano_motivo: `No se le envió: ${datos.motivo}`,
+            sin_plano_motivo: textoPlanoNoEnviado(datos.motivo, datos.a_cargo),
           })
         }
-        campos={[{ nombre: "motivo", etiqueta: "Por qué no se le envió", inicial: "El equipo llegó al cliente antes de mandarle el plano", requerido: true }]}
+        campos={[
+          {
+            nombre: "motivo",
+            etiqueta: "Por qué no se le envió",
+            // Puede marcarse tarde: el equipo ya instalado y en marcha (Rubí, 30-09).
+            inicial: servicio.puesta_en_marcha
+              ? "El equipo llegó y se puso en marcha sin que se le mandara el plano"
+              : "El equipo llegó al cliente antes de mandarle el plano",
+            requerido: true,
+          },
+          { nombre: "a_cargo", etiqueta: "Quién tenía a cargo enviarlo (nombre)", requerido: true },
+        ]}
       />
 
       <Cuadro

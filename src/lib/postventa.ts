@@ -173,6 +173,11 @@ export function planoNoEnviado(s: Pick<ServicioPostventa, "sin_plano" | "sin_pla
   return s.sin_plano === true && (s.sin_plano_motivo ?? "").startsWith(PREFIJO_PLANO_NO_ENVIADO);
 }
 
+/** Lo que se guarda: el porqué y quién tenía a cargo el envío (Rubí, 30-09). */
+export function textoPlanoNoEnviado(motivo: string, aCargo: string): string {
+  return `${PREFIJO_PLANO_NO_ENVIADO}: ${motivo.trim()} · Lo tenía a cargo: ${aCargo.trim()}`;
+}
+
 /** El porqué sin el prefijo: «pedido anterior al circuito, ya se entregó». */
 export function motivoPlanoNoEnviado(s: Pick<ServicioPostventa, "sin_plano_motivo">): string {
   return (s.sin_plano_motivo ?? "").slice(PREFIJO_PLANO_NO_ENVIADO.length).replace(/^[\s:·—-]+/, "").trim();

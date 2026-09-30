@@ -9,6 +9,7 @@ import {
   bloquesPedido,
   evaluarPagoParaDespacho,
   textoCondicionPago,
+  textoPlanoNoEnviado,
   type ServicioPostventa,
 } from "./postventa";
 
@@ -444,6 +445,12 @@ describe("«No se le envió» el plano (Rubí, 30-09)", () => {
     expect(p?.hecho).toBe(true);
     expect(p?.etiqueta).toBe("Plano de preinstalación: no se le envió");
     expect(p?.detalle).toBe("el equipo llegó antes");
+  });
+
+  it("guarda quién lo tenía a cargo y lo muestra en el paso", () => {
+    const p = paso(pedido({ tipo_pedido: "equipo", sin_plano: true, sin_plano_motivo: textoPlanoNoEnviado("ya en marcha", "Juan Pérez") }));
+    expect(p?.hecho).toBe(true);
+    expect(p?.detalle).toBe("ya en marcha · Lo tenía a cargo: Juan Pérez");
   });
 
   it("«No lleva plano» sigue escondiendo el paso", () => {
