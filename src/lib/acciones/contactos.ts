@@ -56,6 +56,8 @@ export async function guardarContacto(datos: {
     documento: datos.documento.trim() || null,
     direccion: datos.direccion.trim() || null,
     es_principal: datos.esPrincipal,
+    // El principal sale en la cotización: si se marca a un operativo (0352), pasa a comercial.
+    ...(datos.esPrincipal ? { categoria: "comercial" } : {}),
   };
 
   // Un solo principal por cuenta: es el que la cotización usa para el
@@ -131,5 +133,27 @@ export async function eliminarContacto(datos: {
 
   revalidatePath("/comercial", "layout");
   revalidatePath("/gerencia", "layout");
+  return { error: null };
+}
+
+/**
+ * Un contacto operativo pasa a comercial (0352). Carlos, 30-09: «en comercial
+ * sucede mucho: ya cambiaron el logístico». El que postventa sumó para recibir
+ * un despacho puede ser, meses después, a quien hay que cotizarle. Lo hace
+ * quien corrige los contactos de la ficha (el comercial dueño, gerencia).
+ */
+export async function pasarContactoAComercial(datos: { contactoId: string; cuentaId: string }): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contactos")
+    .update({ categoria: "comercial" })
+    .eq("id", datos.contactoId)
+    .eq("cuenta_id", datos.cuentaId)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { error: "No se pudo cambiar: este cliente no está en su cartera" };
+  revalidatePath("/comercial", "layout");
+  revalidatePath("/gerencia", "layout");
+  revalidatePath("/nuevo", "layout");
   return { error: null };
 }

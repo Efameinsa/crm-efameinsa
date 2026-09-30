@@ -8,6 +8,7 @@ import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/li
 import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
+import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
 
 /**
  * Las acciones del circuito de postventa (migración 0087).
@@ -437,9 +438,18 @@ export async function verificarDireccion(
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);
+  // Quien recibe queda en la ficha como contacto operativo si no estaba (0352; Carlos, 30-09).
+  await sumarContactoOperativo(await cuentaDelPedido(servicioId), { nombre: datos.recibeNombre, telefono: datos.recibeTelefono }, "direccion_verificada");
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   revalidatePath(`/postventa/pedidos/${servicioId}/apertura`);
   return ok();
+}
+
+/** De qué cliente es el pedido: para sumarle a su ficha a quien recibe (0352). */
+async function cuentaDelPedido(servicioId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("servicios_postventa").select("cuenta_id").eq("id", servicioId).maybeSingle();
+  return (data?.cuenta_id as string | null | undefined) ?? null;
 }
 
 /** Este pedido no lleva plano de preinstalación (0259): el paso se salta y queda el motivo. */
@@ -475,6 +485,9 @@ export async function programarDespacho(servicioId: string, fecha: string, hora?
     .update({ fecha_despacho: fecha || null, despacho_hora: horaLimpia, despacho_nota: nota?.trim() || null })
     .eq("id", servicioId);
   if (error) return falla(error.message);
+  // «Con quién del cliente coordinó (nombre y celular)»: si trae un celular que no
+  // está en la ficha, esa persona se suma como contacto operativo (0352).
+  if (nota?.trim()) await sumarContactoOperativo(await cuentaDelPedido(servicioId), nota, "programar_despacho");
   // «Recepcionas almacén que hay una programación de despacho para mañana,
   // para que estés lista: de repente tengo que contratar un montacarga»
   // (Carlos, 16-09; 0246).
@@ -526,7 +539,7 @@ export async function registrarDespacho(
 
   const { data: servicio } = await supabase
     .from("servicios_postventa")
-    .select("monto, monto_pagado, moneda, informe_cierre_id, pago_confirmado_at, confirmacion_abono, pct_antes_despacho, credito_dias, apertura_despacho_at, tipo_pedido, entrega_en, despacho_hora")
+    .select("monto, monto_pagado, moneda, informe_cierre_id, pago_confirmado_at, confirmacion_abono, pct_antes_despacho, credito_dias, apertura_despacho_at, tipo_pedido, entrega_en, despacho_hora, cuenta_id")
     .eq("id", servicioId)
     .single();
   if (!servicio) return falla("No se encontró el pedido");
@@ -581,6 +594,8 @@ export async function registrarDespacho(
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);
+  // Quien recibió queda en la ficha como contacto operativo si no estaba (0352).
+  await sumarContactoOperativo(servicio.cuenta_id as string | null, { nombre: datos.recibeNombre, telefono: datos.recibeTelefono }, "despacho");
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   return ok();
 }

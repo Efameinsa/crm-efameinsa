@@ -101,7 +101,7 @@ export function AperturaLlamadaBoton({
   const [texto, setTexto] = useState(equipos);
   const [indicaciones, setIndicaciones] = useState(problema);
   const [persona, setPersona] = useState(contacto);
-  const [contactos, setContactos] = useState<string[]>([]);
+  const [contactos, setContactos] = useState<{ texto: string; operativo: boolean }[]>([]);
   const [urgente, setUrgente] = useState(urgenteInicial);
   const [pin, setPin] = useState("");
   const [cuenta, setCuenta] = useState<{ id: string; nombre: string } | null>(null);
@@ -346,12 +346,14 @@ export function AperturaLlamadaBoton({
                 <span className="text-[11px] text-muted-foreground">Sugerencias:</span>
                 {contactos.map((c) => (
                   <button
-                    key={c}
+                    key={c.texto}
                     type="button"
-                    onClick={() => setPersona(c)}
-                    className={`rounded-full border px-2 py-0.5 text-[11px] ${persona === c ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}
+                    onClick={() => setPersona(c.texto)}
+                    title={c.operativo ? "Contacto operativo: recibe despachos o atiende al técnico; no es contacto comercial" : undefined}
+                    className={`rounded-full border px-2 py-0.5 text-[11px] ${persona === c.texto ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}
                   >
-                    {c}
+                    {c.texto}
+                    {c.operativo && <span className="ml-1 rounded-full bg-muted px-1 text-[10px] text-muted-foreground">operativo</span>}
                   </button>
                 ))}
               </div>

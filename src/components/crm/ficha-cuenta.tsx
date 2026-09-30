@@ -17,7 +17,7 @@ import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { ReasignarCarteraBoton } from "@/components/crm/reasignar-cartera-boton";
 import { AccionNuevoInforme, ListaInformesCierre, TablaComprasAnteriores } from "@/components/crm/secciones-cliente";
 import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
-import { ContactosEditables } from "@/components/crm/contactos-editables";
+import { ContactosEditables, type ContactoEditable } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +69,7 @@ export async function FichaCuenta({
   const { data: cuenta } = await supabase
     .from("cuentas")
     .select(
-      "id, razon_social, nombre_comercial, tipo_doc, num_doc, rubro_id, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, carpetas_servidor, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, direccion, es_principal)",
+      "id, razon_social, nombre_comercial, tipo_doc, num_doc, rubro_id, direccion, distrito, provincia, departamento, ultima_venta_at, cartera_desde, comercial_id, notas, carpetas_servidor, perfiles(nombre, codigo_comercial), contactos(id, nombre, cargo, telefono, email, documento, direccion, es_principal, categoria, origen, agregado_at, agregado:perfiles!contactos_agregado_por_fkey(nombre))",
     )
     .eq("id", cuentaId)
     .maybeSingle();
@@ -101,16 +101,7 @@ export async function FichaCuenta({
         .order("codigo_comercial")
     : { data: null };
   const contactos =
-    (cuenta.contactos as unknown as {
-      id: string;
-      nombre: string;
-      cargo: string | null;
-      telefono: string | null;
-      email: string | null;
-      documento: string | null;
-      direccion: string | null;
-      es_principal: boolean;
-    }[]) ?? [];
+(cuenta.contactos as unknown as ContactoEditable[]) ?? [];
 
   const { eventos, ventasConDetalle } = await cargarHistorialCuenta(supabase, cuentaId, { sinMontos: !verPrecios });
 
