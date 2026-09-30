@@ -5,6 +5,7 @@ import Link from "@/components/enlace";
 import { TableroControl, type TarjetaControl } from "@/components/crm/tablero-control";
 import { TablaPorPaso, type FilaTabla } from "@/components/crm/tabla-por-paso";
 import { cn } from "@/lib/utils";
+import { FileSpreadsheet } from "lucide-react";
 import { fechaLima } from "@/lib/fechas";
 import { ColaDespachos } from "@/components/crm/cola-despachos";
 import {
@@ -178,6 +179,15 @@ export default async function ControlPedidosPage({
           <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
             {pedidos.length} en curso
           </span>
+          <a
+            href="/api/postventa/pedidos/reporte"
+            download
+            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-accent"
+            title="Excel con cada pedido en curso, qué lo frena y los pasos que faltan (Lesly, 30-09)"
+          >
+            <FileSpreadsheet className="size-3.5" aria-hidden />
+            Reporte de pendientes
+          </a>
           <span className="inline-flex overflow-hidden rounded-md border border-border text-xs font-medium">
             <Link
               href="/postventa/control"

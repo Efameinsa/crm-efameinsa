@@ -10,6 +10,7 @@ import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import type { ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
+import { FileSpreadsheet } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -141,7 +142,20 @@ export default async function AlmacenPage() {
       <div className="flex justify-end">
         <PasarContactoCentral contexto="almacen" campaniasWhatsapp={campaniasWhatsapp} />
       </div>
-      <SeccionPanel titulo="Pedidos">
+      <SeccionPanel
+        titulo="Pedidos"
+        accion={
+          <a
+          href="/api/postventa/pedidos/reporte?de=almacen"
+          download
+          className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-accent"
+          title="Excel con cada pedido en curso, qué lo frena y los pasos que faltan (Lesly, 30-09)"
+        >
+          <FileSpreadsheet className="size-3.5" aria-hidden />
+          Reporte de pendientes
+        </a>
+        }
+      >
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {cuadrosPedidos.map((c) => <Tarjeta key={c.titulo} c={c} />)}
         </div>
