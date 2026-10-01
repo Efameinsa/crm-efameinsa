@@ -2,9 +2,9 @@ import { Archive, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { AccionFile, AccionTermine, PedirFiles } from "@/components/crm/files-acciones";
+import { AccionFile, AccionTermine, EntregarFileDirecto, PedirFiles } from "@/components/crm/files-acciones";
 import { fechaHoraLima } from "@/lib/fechas";
-import { haceCuanto, horaLima, lineaDePasos } from "@/lib/files-recojo";
+import { haceCuanto, horaLima, lineaDePasos, origenDelFile } from "@/lib/files-recojo";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +45,8 @@ type Fila = {
   cliente_texto: string | null;
   cliente_doc: string | null;
   empresa: "open" | "efameinsa" | "ambos" | null;
+  entrega_directa: boolean;
+  pedido_numero: string | null;
   cuentas: { razon_social: string; num_doc: string | null } | null;
   solicitante: { id: string; nombre: string; codigo_comercial: string | null } | null;
   entrego: { nombre: string } | null;
@@ -64,7 +66,7 @@ export default async function FilesPage() {
   const { data } = await supabase
     .from("prestamos_file")
     .select(
-      `id, grupo, solicitado_at, nota, entregado_at, recibido_at, devuelto_at, anulado_at, termine_at, termine_aviso_at, termine_avisos, cliente_texto, cliente_doc, empresa,
+      `id, grupo, solicitado_at, nota, entregado_at, recibido_at, devuelto_at, anulado_at, termine_at, termine_aviso_at, termine_avisos, cliente_texto, cliente_doc, empresa, entrega_directa, pedido_numero,
        cuentas(razon_social, num_doc),
        solicitante:perfiles!prestamos_file_solicitado_por_fkey(id, nombre, codigo_comercial),
        entrego:perfiles!prestamos_file_entregado_por_fkey(nombre),
@@ -118,13 +120,18 @@ export default async function FilesPage() {
             {f.empresa && <span className="flex-none rounded border border-primary/30 px-1.5 py-px text-[10px] font-bold tracking-wide text-primary">{EMPRESA[f.empresa]}</span>}
           </p>
           <p className="text-xs text-muted-foreground">
-            {conQuien && <>Lo pidió <b className="font-semibold text-foreground">{quien(f.solicitante)}</b> · </>}
+            {/* Entrega directa (0365): nadie lo pidió; `solicitante` es quien lo recibió. */}
+            {conQuien && <>{f.entrega_directa ? "Entregado directo a" : "Lo pidió"} <b className="font-semibold text-foreground">{quien(f.solicitante)}</b> · </>}
             {(f.cliente_doc ?? f.cuentas?.num_doc) ? `${f.cliente_doc ?? f.cuentas?.num_doc} · ` : ""}
             {f.nota ? `«${f.nota}»` : "sin nota"}
             {f.entrego ? ` · entregó ${f.entrego.nombre}` : ""}
             {f.recibio_vuelta ? ` · recibió de vuelta ${f.recibio_vuelta.nombre}` : ""}
           </p>
-          {conPasos && <p className="text-[11px] tabular-nums text-muted-foreground">{lineaDePasos(f)}</p>}
+          {conPasos ? (
+            <p className="text-[11px] tabular-nums text-muted-foreground">{lineaDePasos(f)}</p>
+          ) : (
+            f.entrega_directa && <p className="text-[11px] font-medium text-primary">{origenDelFile(f)}</p>
+          )}
         </div>
         <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums", e.tono)}>{e.texto}</span>
         <div className="flex gap-2">{acciones}</div>
@@ -176,6 +183,14 @@ export default async function FilesPage() {
 
       {llevaElCuaderno && (
         <>
+          {/* Entrega directa (0365, Carlos 01-10): el file sale sin que nadie
+              lo pida. Con pedido se hace desde el cierre; acá, sin pedido. */}
+          <SeccionPanel titulo="Entregar sin pedido">
+            <p className="text-xs text-muted-foreground">
+              Cuando lleva el file en la mano sin que se lo hayan pedido. Si es por un pedido recién generado, hágalo desde el cierre («Entregar el file a postventa») para que quede enlazado. Quien lo recibe firma «Recibí el file» y sigue el circuito de siempre.
+            </p>
+            <EntregarFileDirecto />
+          </SeccionPanel>
           <SeccionPanel titulo={`Por entregar · ${porEntregar.length}`}>
             {porEntregar.length === 0 ? (
               <p className="py-3 text-sm text-muted-foreground">No hay pedidos de files esperando.</p>

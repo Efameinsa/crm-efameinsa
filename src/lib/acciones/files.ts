@@ -79,3 +79,72 @@ export async function anularPedidoFile(id: string, motivo: string | null) {
 export async function termineConElFile(id: string, todoElPedido: boolean) {
   return llamar("files_termine", { p_id: id, p_todo_el_pedido: todoElPedido });
 }
+
+/**
+ * ENTREGA DIRECTA (0365). Carlos, reunión 01-10 11:05: al generar el pedido,
+ * Central «agarra el expediente y físicamente se lo lleva a postventa… pero
+ * esa entrega no está registrada… yo te entrego porque hemos generado un
+ * pedido. Entonces no sé si lo enlazamos». Central lo registra sin que nadie
+ * lo haya pedido; quien lo recibe firma «Recibí el file» y sigue el circuito
+ * de siempre. Con `pedido`, queda enlazado al pedido recién generado.
+ */
+export async function entregarFileDirecto(datos: { cuenta: string; a: string; empresa: EmpresaFile; pedido?: string | null; nota?: string | null }) {
+  const r = await llamar("files_entregar_directo", {
+    p_cuenta: datos.cuenta,
+    p_a: datos.a,
+    p_empresa: datos.empresa,
+    p_pedido: datos.pedido ?? null,
+    p_nota: datos.nota?.trim() || null,
+  });
+  if (!r.error) revalidatePath("/central/cierres");
+  return r;
+}
+
+export interface PersonaParaFile {
+  id: string;
+  nombre: string;
+  codigo: string | null;
+  postventa: boolean;
+}
+
+/**
+ * A quién se le puede entregar el file: las personas activas del mismo mundo
+ * (real o práctica) que quien entrega; postventa primero. `sugerida` es quien
+ * tiene ese pedido en postventa o, si todavía nadie lo tomó, quien atendió el
+ * último pedido de ese cliente en postventa.
+ */
+export async function personasParaRecibirFile(opciones: { servicioId?: string | null; cuentaId?: string | null } = {}): Promise<{
+  personas: PersonaParaFile[];
+  sugerida: string | null;
+}> {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("perfiles")
+    .select("id, nombre, codigo_comercial, es_postventa, es_prueba")
+    .eq("activo", true)
+    .neq("id", perfil.id)
+    .order("nombre");
+  const personas = ((data ?? []) as { id: string; nombre: string; codigo_comercial: string | null; es_postventa: boolean | null; es_prueba: boolean | null }[])
+    .filter((p) => Boolean(p.es_prueba) === Boolean(perfil.es_prueba))
+    .map((p) => ({ id: p.id, nombre: p.nombre, codigo: p.codigo_comercial, postventa: Boolean(p.es_postventa) }))
+    .sort((a, b) => Number(b.postventa) - Number(a.postventa) || a.nombre.localeCompare(b.nombre, "es"));
+  const dePostventa = new Set(personas.filter((p) => p.postventa).map((p) => p.id));
+
+  let sugerida: string | null = null;
+  if (opciones.servicioId) {
+    const { data: s } = await supabase.from("servicios_postventa").select("responsable_id").eq("id", opciones.servicioId).maybeSingle();
+    if (s?.responsable_id && dePostventa.has(s.responsable_id as string)) sugerida = s.responsable_id as string;
+  }
+  if (!sugerida && opciones.cuentaId) {
+    const { data: previos } = await supabase
+      .from("servicios_postventa")
+      .select("responsable_id")
+      .eq("cuenta_id", opciones.cuentaId)
+      .not("responsable_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    sugerida = ((previos ?? []) as { responsable_id: string }[]).map((p) => p.responsable_id).find((id) => dePostventa.has(id)) ?? null;
+  }
+  return { personas, sugerida };
+}

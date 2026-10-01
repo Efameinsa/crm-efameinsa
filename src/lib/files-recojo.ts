@@ -43,17 +43,33 @@ export type PasosDelFile = {
   termine_at: string | null;
   devuelto_at: string | null;
   anulado_at: string | null;
+  /** Central lo entregó sin que nadie lo pidiera (0365). */
+  entrega_directa?: boolean;
+  /** El pedido que motivó la entrega directa (0365). */
+  pedido_numero?: string | null;
 };
+
+/**
+ * Cómo salió del archivador una entrega directa (0365, Carlos 01-10: «yo te
+ * entrego porque hemos generado un pedido»). Null si fue un pedido normal.
+ */
+export function origenDelFile(f: Pick<PasosDelFile, "entrega_directa" | "pedido_numero">): string | null {
+  if (!f.entrega_directa) return null;
+  return f.pedido_numero ? `Entregado directo por Central al generar el pedido N° ${f.pedido_numero}` : "Entregado directo por Central, sin pedido";
+}
 
 /**
  * «Pedido 30/9 09:01 · Entregado 09:10 · Recibido 09:12 · Terminé 11:40 ·
  * Devuelto 11:55». El día se repite solo cuando cambia, así se lee de un
- * vistazo si el file durmió fuera del archivador.
+ * vistazo si el file durmió fuera del archivador. En la entrega directa
+ * (0365) no hubo pedido: el primer paso dice de dónde salió.
  */
 export function lineaDePasos(f: PasosDelFile): string {
+  const origen = origenDelFile(f);
   const pasos: [string, string | null][] = [
-    ["Pedido", f.solicitado_at],
-    ["Entregado", f.entregado_at],
+    ...(origen ? ([[origen, f.entregado_at ?? f.solicitado_at]] as [string, string][]) : []),
+    ["Pedido", origen ? null : f.solicitado_at],
+    ["Entregado", origen ? null : f.entregado_at],
     ["Recibido", f.recibido_at],
     ["Terminé", f.termine_at],
     ["Devuelto", f.devuelto_at],
