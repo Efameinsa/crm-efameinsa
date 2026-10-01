@@ -5,7 +5,7 @@ import Link from "@/components/enlace";
 import { TableroControl, type TarjetaControl } from "@/components/crm/tablero-control";
 import { TablaPorPaso, type FilaTabla } from "@/components/crm/tabla-por-paso";
 import { cn } from "@/lib/utils";
-import { FileSpreadsheet } from "lucide-react";
+import { FileText } from "lucide-react";
 import { fechaLima } from "@/lib/fechas";
 import { ColaDespachos } from "@/components/crm/cola-despachos";
 import {
@@ -180,13 +180,14 @@ export default async function ControlPedidosPage({
             {pedidos.length} en curso
           </span>
           <a
-            href="/api/postventa/pedidos/reporte"
-            download
+            href="/postventa/control/reporte"
+            target="_blank"
+            rel="noreferrer"
             className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-accent"
-            title="Excel con cada pedido en curso, qué lo frena y los pasos que faltan (Lesly, 30-09)"
+            title="Cada pedido en curso, qué lo frena y los pasos que faltan, para imprimir o guardar en PDF (Lesly, 01-10). Adentro también se baja en Excel."
           >
-            <FileSpreadsheet className="size-3.5" aria-hidden />
-            Reporte de pendientes
+            <FileText className="size-3.5" aria-hidden />
+            Reporte de pendientes (PDF)
           </a>
           <span className="inline-flex overflow-hidden rounded-md border border-border text-xs font-medium">
             <Link
