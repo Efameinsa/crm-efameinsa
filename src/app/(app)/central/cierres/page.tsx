@@ -117,6 +117,24 @@ export default async function CierresCentralPage({
     .in("informe_cierre_id", todas.map((f) => f.id));
   const pedidoPorInforme = new Map((pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]));
 
+  // El file que Central ya le llevó a postventa con cada pedido (0365, Carlos
+  // 01-10): mientras no vuelva al archivador, el paso 2 dice a quién y si firmó.
+  const idsPedido = (pedidos ?? []).filter((p) => p.numero_pedido_erp).map((p) => p.id as string);
+  const { data: filesDePedidos } = idsPedido.length
+    ? await supabase
+        .from("prestamos_file")
+        .select("pedido_id, entregado_at, recibido_at, quien:perfiles!prestamos_file_solicitado_por_fkey(nombre)")
+        .in("pedido_id", idsPedido)
+        .is("anulado_at", null)
+        .is("devuelto_at", null)
+    : { data: [] };
+  const fileDePedido = new Map(
+    ((filesDePedidos ?? []) as unknown as { pedido_id: string; entregado_at: string; recibido_at: string | null; quien: { nombre: string } | null }[]).map((x) => [
+      x.pedido_id,
+      { a: x.quien?.nombre ?? "postventa", at: x.entregado_at, recibido: Boolean(x.recibido_at) },
+    ]),
+  );
+
   // Los números de cierre que no llevan documento y quedaron anulados por
   // gerencia (0164, Carlos 03-09: «todo lo vacío queda anulado; el reporte es
   // el correlativo»). Se listan en la pestaña de anulados para que nadie
@@ -516,6 +534,8 @@ export default async function CierresCentralPage({
                       pedidoEjecutadoAt={(pedido?.pedido_ejecutado_at as string | null) ?? null}
                       apuroAlmacen={pedido?.apuro_almacen_at ? { at: pedido.apuro_almacen_at as string, n: Number(pedido.apuro_almacen_n ?? 1) } : null}
                       apuroFinanzas={pedido?.apuro_finanzas_at ? { at: pedido.apuro_finanzas_at as string, n: Number(pedido.apuro_finanzas_n ?? 1) } : null}
+                      cliente={{ cuentaId: f.cuenta_id, nombre: f.cliente_nombre, empresa: f.serie === "OPEN" ? "open" : f.serie === "EFAMEINSA" ? "efameinsa" : null }}
+                      fileEntregado={pedido?.id ? (fileDePedido.get(pedido.id as string) ?? null) : null}
                     />
                   );
                 })()}

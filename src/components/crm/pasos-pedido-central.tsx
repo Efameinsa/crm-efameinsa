@@ -9,6 +9,8 @@ import { apurarDesdeCentral, generarPedido, pedirSeriesAlAlmacen, prepararPedido
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
+import { EntregarFileDirecto } from "@/components/crm/files-acciones";
+import type { EmpresaFile } from "@/lib/acciones/files";
 import { cn } from "@/lib/utils";
 
 /**
@@ -39,6 +41,8 @@ export function PasosPedidoCentral({
   pedidoEjecutadoAt,
   apuroAlmacen = null,
   apuroFinanzas = null,
+  cliente = null,
+  fileEntregado = null,
 }: {
   informeId: string;
   servicioId: string | null;
@@ -53,6 +57,10 @@ export function PasosPedidoCentral({
   /** El último «Apurar» de Central a cada área y cuántos van (0358). */
   apuroAlmacen?: { at: string; n: number } | null;
   apuroFinanzas?: { at: string; n: number } | null;
+  /** El cliente del cierre y su empresa, para entregar el file con el pedido (0365). */
+  cliente?: { cuentaId: string; nombre: string; empresa: EmpresaFile | null } | null;
+  /** El file que Central ya entregó con este pedido y sigue fuera del archivador (0365). */
+  fileEntregado?: { a: string; at: string; recibido: boolean } | null;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -124,6 +132,17 @@ export function PasosPedidoCentral({
               <a href={`/pedidos/${servicioId}/imprimir`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
                 <Printer className="size-3.5" /> Imprimir el pedido
               </a>
+            )}
+            {/* El file a postventa (0365, Carlos 01-10 11:05): «yo te entrego
+                porque hemos generado un pedido… no sé si lo enlazamos». */}
+            {fileEntregado ? (
+              <p className="mt-1 text-[11px] text-[#1E7F4F]">
+                File entregado a <b>{fileEntregado.a}</b> el {cuando(fileEntregado.at)}
+                {fileEntregado.recibido ? " · firmó «Recibí»" : <span className="text-amber-800"> · falta que firme «Recibí»</span>}
+              </p>
+            ) : (
+              servicioId &&
+              cliente && <EntregarFileDirecto pedido={{ servicioId, numero: numeroPedido, cuentaId: cliente.cuentaId, cliente: cliente.nombre, empresa: cliente.empresa }} />
             )}
           </>
         ) : (

@@ -3,17 +3,20 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Archive, BellRing, Check, Loader2, Plus, Search, X } from "lucide-react";
+import { Archive, BellRing, Check, HandHelping, Loader2, Plus, Search, X } from "lucide-react";
 import {
   anularPedidoFile,
   buscarClientesParaFile,
   confirmarFileRecibido,
   devolverFile,
   entregarFile,
+  entregarFileDirecto,
+  personasParaRecibirFile,
   solicitarFiles,
   termineConElFile,
   type ClienteParaFile,
   type EmpresaFile,
+  type PersonaParaFile,
 } from "@/lib/acciones/files";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -228,5 +231,189 @@ export function AccionTermine({
       {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <BellRing className="size-3.5" />}
       {etiqueta}
     </Button>
+  );
+}
+
+/**
+ * ENTREGA DIRECTA DEL FILE (0365). Carlos, reunión 01-10 11:05: «Lo único que
+ * tiene que hacer Alondra es agarrar el expediente y físicamente llevarle a
+ * postventa… pero esa entrega no está registrada… yo te entrego porque hemos
+ * generado un pedido. Entonces no sé si lo enlazamos».
+ *
+ * Con `pedido`: el botón del paso «Generar el pedido» en los cierres de
+ * Central; el cliente y el pedido ya vienen dados y la persona sugerida es
+ * quien tiene ese cliente en postventa. Sin `pedido`: «Entregar sin pedido»
+ * en /files, buscando el cliente. En los dos casos quien recibe firma
+ * «Recibí el file» y sigue el circuito de siempre.
+ */
+export function EntregarFileDirecto({
+  pedido = null,
+}: {
+  pedido?: { servicioId: string; numero: string; cuentaId: string; cliente: string; empresa: EmpresaFile | null } | null;
+}) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [cargando, setCargando] = useState(false);
+  const [personas, setPersonas] = useState<PersonaParaFile[]>([]);
+  const [a, setA] = useState("");
+  const [marca, setMarca] = useState<Marca>({
+    open: pedido?.empresa === "open" || pedido?.empresa === "ambos",
+    efameinsa: pedido?.empresa === "efameinsa" || pedido?.empresa === "ambos",
+  });
+  const [cliente, setCliente] = useState<{ id: string; nombre: string } | null>(pedido ? { id: pedido.cuentaId, nombre: pedido.cliente } : null);
+  const [q, setQ] = useState("");
+  const [resultados, setResultados] = useState<ClienteParaFile[]>([]);
+  const [nota, setNota] = useState("");
+  const [enviando, startTransition] = useTransition();
+  const turno = useRef(0);
+  const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function abrir() {
+    setAbierto(true);
+    if (personas.length > 0) return;
+    setCargando(true);
+    const r = await personasParaRecibirFile({ servicioId: pedido?.servicioId ?? null, cuentaId: pedido?.cuentaId ?? null });
+    setPersonas(r.personas);
+    if (r.sugerida) setA(r.sugerida);
+    setCargando(false);
+  }
+
+  function escribir(valor: string) {
+    setQ(valor);
+    if (espera.current) clearTimeout(espera.current);
+    const texto = valor.trim();
+    const mio = ++turno.current;
+    if (texto.length < 3) return void setResultados([]);
+    espera.current = setTimeout(async () => {
+      const r = await buscarClientesParaFile(texto);
+      if (mio === turno.current) setResultados(r);
+    }, 300);
+  }
+
+  function registrar() {
+    const empresa = empresaDe(marca);
+    if (!cliente) return void toast.error("Elija el cliente");
+    if (!a) return void toast.error("Elija a quién se lo entrega");
+    if (!empresa) return void toast.error("Marque OPEN, EFAMEINSA o ambos");
+    startTransition(async () => {
+      const r = await entregarFileDirecto({ cuenta: cliente.id, a, empresa, pedido: pedido?.servicioId ?? null, nota: nota || null });
+      if (r.error) return void toast.error(r.error, { duration: 9000 });
+      const nombre = personas.find((p) => p.id === a)?.nombre ?? "postventa";
+      toast.success(`Entrega registrada: a ${nombre} le llegó el aviso para firmar «Recibí el file»`);
+      setAbierto(false);
+      if (!pedido) {
+        setCliente(null);
+        setNota("");
+        setMarca({ open: false, efameinsa: false });
+      }
+      router.refresh();
+    });
+  }
+
+  if (!abierto) {
+    return (
+      <Button size="sm" variant="outline" className="mt-1.5" onClick={abrir}>
+        <HandHelping className="size-3.5" /> {pedido ? "Entregar el file a postventa" : "Entregar sin pedido"}
+      </Button>
+    );
+  }
+
+  const dePostventa = personas.filter((p) => p.postventa);
+  const otras = personas.filter((p) => !p.postventa);
+  const etiqueta = (p: PersonaParaFile) => `${p.codigo ? `${p.codigo} · ` : ""}${p.nombre}`;
+
+  return (
+    <div className="mt-1.5 grid gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-2 text-xs">
+      {pedido ? (
+        <p className="text-muted-foreground">
+          File de <b className="text-foreground">{pedido.cliente}</b>, en la mano por el pedido <b className="font-mono text-foreground">{pedido.numero}</b>.
+        </p>
+      ) : cliente ? (
+        <p className="flex items-center gap-2">
+          <Archive className="size-3.5 text-primary" />
+          <b className="min-w-0 flex-1 truncate">{cliente.nombre}</b>
+          <button type="button" onClick={() => setCliente(null)} className="text-muted-foreground hover:text-destructive" aria-label="Cambiar el cliente">
+            <X className="size-3.5" />
+          </button>
+        </p>
+      ) : (
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input className="h-8 pl-8 text-xs" value={q} onChange={(e) => escribir(e.target.value)} placeholder="Cliente por nombre o RUC (mínimo 3 letras)" autoFocus />
+          {resultados.length > 0 && (
+            <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
+              {resultados.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCliente({ id: c.id, nombre: c.razonSocial });
+                      escribir("");
+                    }}
+                    className="block w-full px-3 py-1.5 text-left hover:bg-accent"
+                  >
+                    <span className="block truncate font-medium">{c.razonSocial}</span>
+                    <span className="text-muted-foreground">{c.documento ?? "sin documento"}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <label className="grid gap-0.5">
+        <span className="font-semibold text-foreground">Se lo entrega a</span>
+        {cargando ? (
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" /> Cargando…
+          </span>
+        ) : (
+          // Select nativo: el de Base UI muestra el valor crudo (el id) hasta que se elige.
+          <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={a} onChange={(e) => setA(e.target.value)}>
+            <option value="">Elija a la persona…</option>
+            {dePostventa.length > 0 && (
+              <optgroup label="Postventa">
+                {dePostventa.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {etiqueta(p)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {otras.length > 0 && (
+              <optgroup label="Otras áreas">
+                {otras.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {etiqueta(p)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        )}
+      </label>
+
+      <span className={cn("flex items-center gap-3 font-semibold", !empresaDe(marca) && "text-amber-800")}>
+        {(["open", "efameinsa"] as const).map((k) => (
+          <label key={k} className="flex cursor-pointer items-center gap-1.5">
+            <input type="checkbox" className="size-4 accent-primary" checked={marca[k]} onChange={(e) => setMarca((v) => ({ ...v, [k]: e.target.checked }))} />
+            {k === "open" ? "OPEN" : "EFAMEINSA"}
+          </label>
+        ))}
+      </span>
+
+      <Input className="h-8 text-xs" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Nota (opcional)" />
+
+      <div className="flex flex-wrap gap-1.5">
+        <Button size="sm" onClick={registrar} disabled={enviando || cargando || !a || !cliente || !empresaDe(marca)}>
+          {enviando ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+          Registrar la entrega
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setAbierto(false)}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
   );
 }

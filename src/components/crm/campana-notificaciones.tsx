@@ -151,6 +151,14 @@ const ESTILO_AVISO: Record<
     duracion: 20000,
     tono: "warning",
   },
+  // Central le llevó el file en la mano sin que lo pidiera, por lo general al
+  // generar el pedido (0365, Carlos 01-10). Falta su firma «Recibí el file».
+  file_entregado: {
+    encabezado: "📁 Central le entregó un file",
+    accion: "Firmar «Recibí»",
+    duracion: 20000,
+    tono: "info",
+  },
   otro: {
     encabezado: "Aviso nuevo",
     accion: "Ver",
