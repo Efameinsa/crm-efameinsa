@@ -36,6 +36,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       condiciones={hoja.condiciones}
       avisoPreinstalacion={hoja.avisoPreinstalacion}
       observaciones={hoja.servicio.observaciones ?? null}
+      tipo={hoja.d.tipo}
     />,
   );
 

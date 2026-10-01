@@ -4,7 +4,7 @@ import { ArrowLeft, Download, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { fechaHoraLima } from "@/lib/fechas";
-import { asuntoApertura, cuerpoApertura } from "@/lib/apertura-servicio";
+import { asuntoApertura, cuerpoApertura, queQuedaEnAgenda } from "@/lib/apertura-servicio";
 import { cargarHojaApertura } from "@/lib/acciones/apertura-servicio-datos";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { AperturaServicioPanel } from "@/components/crm/apertura-servicio-panel";
@@ -102,7 +102,7 @@ export default async function AperturaServicioPage({ params }: { params: Promise
             <p className="text-[11px] font-bold uppercase tracking-wide text-[#7E1210]">{empresaLarga}</p>
             <h1 className="mt-1 text-xl font-bold">Apertura de servicio</h1>
             <p className="text-[11px] text-neutral-600">
-              En coordinación con el Ing. Carlos, queda en agenda el siguiente servicio.
+              En coordinación con el Ing. Carlos, queda en agenda el siguiente {queQuedaEnAgenda(d.tipo)}.
             </p>
           </div>
           <div className="text-right text-[11px]">
@@ -132,14 +132,14 @@ export default async function AperturaServicioPage({ params }: { params: Promise
           </div>
         </div>
 
-        {/* Las nueve filas, en el orden de siempre. */}
+        {/* Las diez filas, en el orden del modelo de Lesly (01-10). */}
         <table className="mt-4 w-full border-collapse text-[12px]">
           <thead>
             <tr className="bg-neutral-100 text-left">
               <th className="w-8 border border-neutral-400 px-2 py-1 font-bold">N°</th>
-              <th className="w-56 border border-neutral-400 px-2 py-1 font-bold">DESCRIPCIÓN</th>
+              <th className="w-48 border border-neutral-400 px-2 py-1 font-bold">DESCRIPCIÓN</th>
               <th className="border border-neutral-400 px-2 py-1 font-bold">INFORMACIÓN</th>
-              <th className="w-24 border border-neutral-400 px-2 py-1 font-bold">OBSERVACIONES</th>
+              <th className="w-48 border border-neutral-400 px-2 py-1 font-bold">OBSERVACIONES</th>
             </tr>
           </thead>
           <tbody>
@@ -148,7 +148,15 @@ export default async function AperturaServicioPage({ params }: { params: Promise
                 <td className="border border-neutral-400 px-2 py-1.5 text-center">{f.n}</td>
                 <td className="border border-neutral-400 px-2 py-1.5 font-semibold">{f.descripcion}</td>
                 <td className="whitespace-pre-line border border-neutral-400 px-2 py-1.5">{f.informacion}</td>
-                <td className="border border-neutral-400 px-2 py-1.5 text-center">{f.observaciones}</td>
+                <td className={`whitespace-pre-line border border-neutral-400 px-2 py-1.5 ${f.observaciones.includes("\n") ? "text-left" : "text-center"}`}>
+                  {f.n === 1 && f.observaciones ? <b>{f.observaciones}</b> : f.observaciones}
+                  {f.resaltado && (
+                    <span className="mt-2 block text-left">
+                      NOTA:
+                      <b className="mt-1 block bg-yellow-300 px-0.5">{f.resaltado}</b>
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

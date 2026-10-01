@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
-import type { FilaApertura } from "@/lib/apertura-servicio";
+import { queQuedaEnAgenda, type FilaApertura, type TipoApertura } from "@/lib/apertura-servicio";
 
 // El PDF descargable de la apertura de servicio (ítem 8 de la reunión del
 // 22-09): Carlos, viendo la pantalla en vivo: «ya no trabajes como en Word,
@@ -29,6 +29,8 @@ export interface AperturaServicioPdfProps {
   condiciones: { texto: string; ok: boolean; detalle: string }[];
   avisoPreinstalacion: string | null;
   observaciones: string | null;
+  /** Para decir «despacho» o «servicio» en el encabezado, como el correo. */
+  tipo?: TipoApertura | null;
 }
 
 const e = StyleSheet.create({
@@ -61,7 +63,7 @@ const e = StyleSheet.create({
 });
 
 export function AperturaServicioPdf({
-  logoBuffer, empresaLarga, emitida, emitidoPor, informeCodigo, ordenCompra, numeroPedidoErp, filas, condiciones, avisoPreinstalacion, observaciones,
+  logoBuffer, empresaLarga, emitida, emitidoPor, informeCodigo, ordenCompra, numeroPedidoErp, filas, condiciones, avisoPreinstalacion, observaciones, tipo,
 }: AperturaServicioPdfProps) {
   return (
     <Document>
@@ -83,7 +85,7 @@ export function AperturaServicioPdf({
               </>
             )}
             <Text style={e.titulo}>Apertura de servicio</Text>
-            <Text style={e.sub}>En coordinación con el Ing. Carlos, queda en agenda el siguiente servicio.</Text>
+            <Text style={e.sub}>En coordinación con el Ing. Carlos, queda en agenda el siguiente {queQuedaEnAgenda(tipo)}.</Text>
           </View>
           <View style={e.cabeceraDer}>
             <Text>
@@ -120,16 +122,26 @@ export function AperturaServicioPdf({
         <View style={e.tabla}>
           <View style={e.th}>
             <Text style={[e.thTexto, { width: 22 }]}>N°</Text>
-            <Text style={[e.thTexto, { width: 150 }]}>DESCRIPCIÓN</Text>
+            <Text style={[e.thTexto, { width: 130 }]}>DESCRIPCIÓN</Text>
             <Text style={[e.thTexto, { flex: 1 }]}>INFORMACIÓN</Text>
-            <Text style={[e.thTexto, { width: 70 }]}>OBSERVACIONES</Text>
+            <Text style={[e.thTexto, { width: 130 }]}>OBSERVACIONES</Text>
           </View>
           {filas.map((f) => (
             <View key={f.n} style={e.fila} wrap={false}>
               <Text style={[e.celda, { width: 22, textAlign: "center" }]}>{f.n}</Text>
-              <Text style={[e.celda, { width: 150, fontFamily: "Helvetica-Bold" }]}>{f.descripcion}</Text>
+              <Text style={[e.celda, { width: 130, fontFamily: "Helvetica-Bold" }]}>{f.descripcion}</Text>
               <Text style={[e.celda, { flex: 1 }]}>{f.informacion}</Text>
-              <Text style={[e.celda, { width: 70, textAlign: "center", borderRightWidth: 0 }]}>{f.observaciones}</Text>
+              <View style={[e.celda, { width: 130, borderRightWidth: 0 }]}>
+                <Text style={{ textAlign: f.observaciones.includes("\n") ? "left" : "center", fontFamily: f.n === 1 ? "Helvetica-Bold" : "Helvetica" }}>
+                  {f.observaciones}
+                </Text>
+                {f.resaltado && (
+                  <>
+                    <Text style={{ marginTop: 6 }}>NOTA:</Text>
+                    <Text style={{ marginTop: 2, fontFamily: "Helvetica-Bold", backgroundColor: "#FDE047" }}>{f.resaltado}</Text>
+                  </>
+                )}
+              </View>
             </View>
           ))}
         </View>
