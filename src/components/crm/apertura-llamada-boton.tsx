@@ -120,6 +120,82 @@ export function AperturaLlamadaBoton({
   const cuentaId = cuentaFija ?? cuenta?.id ?? null;
   const puedeUrgente = !servicioId;
 
+  // EL BORRADOR (Rubí, 01-10, CONGELADOS Y FRESCOS): llenó la ventana, no llegó
+  // a enviarse y al cerrarla se perdió todo. Lo escrito se guarda en este
+  // navegador mientras no se envíe; al volver a abrir se ofrece recuperarlo.
+  const claveBorrador = `crm:derivar-llamada:${cuentaFija ?? "elegir-cliente"}:${servicioId ?? atencionId ?? "ficha"}`;
+  type Borrador = {
+    tipo: TipoApertura; fecha: string; hora: string; texto: string; indicaciones: string; persona: string;
+    tecnico: string; formato: FormatoLlamada; elegidas: string[]; cuenta: { id: string; nombre: string } | null; at: string;
+  };
+  const [ofrecido, setOfrecido] = useState<Borrador | null>(null);
+  const escribio =
+    texto.trim() !== equipos.trim() || indicaciones.trim() !== problema.trim() || persona.trim() !== contacto.trim() || tecnico.trim() !== "";
+
+  useEffect(() => {
+    // Mientras se ofrece el anterior no se pisa: primero se recupera o se descarta.
+    if (!abierto || ofrecido || !escribio) return;
+    const t = setTimeout(() => {
+      try {
+        const b: Borrador = { tipo, fecha, hora, texto, indicaciones, persona, tecnico, formato, elegidas, cuenta, at: new Date().toISOString() };
+        localStorage.setItem(claveBorrador, JSON.stringify(b));
+      } catch {
+        /* sin almacenamiento: se sigue sin borrador */
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [abierto, ofrecido, escribio, claveBorrador, tipo, fecha, hora, texto, indicaciones, persona, tecnico, formato, elegidas, cuenta]);
+
+  function recuperar(b: Borrador) {
+    setTipo(b.tipo);
+    setFecha(b.fecha);
+    setHora(b.hora);
+    setTexto(b.texto);
+    setIndicaciones(b.indicaciones);
+    setPersona(b.persona);
+    setTecnico(b.tecnico);
+    setFormato(b.formato ?? {});
+    setElegidas(b.elegidas ?? []);
+    if (!cuentaFija && b.cuenta) setCuenta(b.cuenta);
+    setOfrecido(null);
+  }
+  function descartar() {
+    try {
+      localStorage.removeItem(claveBorrador);
+    } catch {}
+    setOfrecido(null);
+  }
+
+  // Cerrar sin enviar no es enviar: se dice, para que nadie se quede con la
+  // idea de que el almacén ya la tiene.
+  function cambiarAbierto(v: boolean) {
+    if (v) {
+      try {
+        const b = JSON.parse(localStorage.getItem(claveBorrador) ?? "null") as Borrador | null;
+        setOfrecido(b && b.at ? b : null);
+      } catch {
+        setOfrecido(null);
+      }
+    }
+    if (!v && !pendiente && escribio) {
+      toast.warning("No se envió al almacén", {
+        description: "Lo que escribió quedó guardado en esta computadora: al volver a abrir «Derivar llamada» puede recuperarlo.",
+        duration: 10000,
+      });
+    }
+    setAbierto(v);
+  }
+
+  // Lo que falta, dicho en el pie: el botón ya no se apaga sin explicar por qué.
+  const falta = [
+    !cuentaId && "el cliente",
+    !texto.trim() && ((parque?.length ?? 0) > 0 ? "marcar la máquina (o escribir el equipo)" : "escribir el equipo"),
+    !fecha && "el día",
+    !hora && "la hora",
+    persona.replace(/\D/g, "").length < 6 && "a quién llama el almacén, con su celular",
+    urgente && pin.replace(/\D/g, "").length < 4 && "el código de gerencia",
+  ].filter(Boolean) as string[];
+
   // Al abrir (o al elegir el cliente) se traen sus máquinas para el formato.
   useEffect(() => {
     if (!abierto || !cuentaId) return;
@@ -170,9 +246,7 @@ export function AperturaLlamadaBoton({
   }, [busca, cuentaFija]);
 
   function enviar() {
-    if (!cuentaId) return void toast.error("Elija el cliente");
-    if (urgente && pin.replace(/\D/g, "").length < 4) return void toast.error("La apertura urgente pide el código de gerencia");
-    if (persona.replace(/\D/g, "").length < 6) return void toast.error("Escriba a quién va a llamar el almacén: nombre y celular");
+    if (falta.length || !cuentaId) return void toast.error(`Para enviar falta: ${falta.join(", ")}`, { duration: 8000 });
     startTransition(async () => {
       const r = await enviarAperturaLlamada({
         cuentaId,
@@ -193,6 +267,9 @@ export function AperturaLlamadaBoton({
         return;
       }
       toast.success(urgente ? "Apertura URGENTE enviada: el almacén ya la tiene" : "Apertura enviada: el almacén ya la tiene en su bandeja");
+      try {
+        localStorage.removeItem(claveBorrador);
+      } catch {}
       setPin("");
       setAbierto(false);
       if (r.id) router.push(`/aperturas/${r.id}`);
@@ -201,7 +278,7 @@ export function AperturaLlamadaBoton({
   }
 
   return (
-    <Dialog open={abierto} onOpenChange={setAbierto}>
+    <Dialog open={abierto} onOpenChange={cambiarAbierto}>
       <DialogTrigger
         render={
           compacto ? (
@@ -228,6 +305,21 @@ export function AperturaLlamadaBoton({
             El almacén la recibe en su bandeja, le da el check cuando la toma y sube su informe. Usted lo revisa antes de que llegue al cliente.
           </DialogDescription>
         </DialogHeader>
+        {ofrecido && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+            <span>
+              Tiene una derivación que <b>no se envió</b> ({new Date(ofrecido.at).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}).
+            </span>
+            <span className="flex gap-1.5">
+              <Button size="sm" onClick={() => recuperar(ofrecido)}>
+                Recuperar lo que escribí
+              </Button>
+              <Button size="sm" variant="ghost" onClick={descartar}>
+                Descartar
+              </Button>
+            </span>
+          </div>
+        )}
         <div className="grid gap-3">
           {!cuentaFija && (
             <div className="grid gap-1">
@@ -389,11 +481,16 @@ export function AperturaLlamadaBoton({
             </div>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setAbierto(false)}>
+        <DialogFooter className="sm:items-center">
+          {falta.length > 0 && (
+            <p className="text-xs text-destructive sm:mr-auto">
+              Para enviar falta: <b>{falta.join(", ")}</b>.
+            </p>
+          )}
+          <Button variant="ghost" onClick={() => cambiarAbierto(false)}>
             Cancelar
           </Button>
-          <Button onClick={enviar} disabled={pendiente || !cuentaId || !texto.trim() || !fecha || !hora || (urgente && pin.replace(/\D/g, "").length < 4)}>
+          <Button onClick={enviar} disabled={pendiente}>
             {pendiente && <Loader2 className="size-4 animate-spin" />}
             Enviar al almacén
           </Button>
