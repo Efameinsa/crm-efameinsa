@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Archive, Loader2, Search } from "lucide-react";
+import { Archive, Globe, Headset, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
 import { FiltroRubro, type OpcionRubro, type ValorRubro } from "@/components/crm/filtro-rubro";
 import { cn } from "@/lib/utils";
+import type { OrigenOportunidad } from "@/lib/reportes";
 import type { EtapaOportunidad } from "@/types/database";
 
 // Filtros de "Mis oportunidades" (docs/10-plan-ajustes-reunion-21-08.md,
@@ -18,6 +19,11 @@ import type { EtapaOportunidad } from "@/types/database";
 // trabajo diario acotado a lo nacido en el CRM (ver comentario en page.tsx).
 // Desde el 01-09 la fila de filtros trae también el rubro de la cuenta
 // (`?rubro=`), pedido por Carlos para trabajar la cartera por sectores.
+// Desde el 01-10, el origen (`?origen=`, 0362): Desiré (C9) no podía separar
+// lo que le derivó Central de lo que entró solo por campaña — «solamente
+// faltaría un filtro ahí arriba: Derivaciones o campaña». Va en las dos
+// vistas: con «Derivadas por Central» + «Asignada» ve de un vistazo las
+// derivaciones que le faltan atender.
 
 // Las etapas del trabajo. «historico» NO está acá: es el archivo de los Excel
 // (0130) y va aparte, al final de la fila, para que se lea como lo que es —un
@@ -46,6 +52,7 @@ export function FiltrosOportunidades({
   totalGeneral,
   enHistorico = 0,
   rubro = null,
+  origen = null,
   opcionesRubro = [],
   sinRubro = 0,
 }: {
@@ -63,6 +70,8 @@ export function FiltrosOportunidades({
   enHistorico?: number;
   /** Rubro de la cuenta elegido (`?rubro=`): id del catálogo o «sin». */
   rubro?: ValorRubro | null;
+  /** Por dónde llegó (`?origen=`, 0362): Central, campaña/web o propias. */
+  origen?: OrigenOportunidad | null;
   /** Rubros del catálogo con clientes de la cartera en cada uno. */
   opcionesRubro?: OpcionRubro[];
   /** Clientes de la cartera que todavía no tienen rubro. */
@@ -134,6 +143,36 @@ export function FiltrosOportunidades({
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-0.5 text-xs text-muted-foreground">Origen:</span>
+        <Chip activo={origen === null} onClick={() => navegar({ origen: null })}>
+          Todas
+        </Chip>
+        <Chip
+          activo={origen === "central"}
+          onClick={() => navegar({ origen: "central" })}
+          titulo="Las que Central registró y le asignó: llamadas, WhatsApp y correos que atendió Central."
+        >
+          <Headset className="mr-1.5 size-3.5" />
+          Derivadas por Central
+        </Chip>
+        <Chip
+          activo={origen === "campana"}
+          onClick={() => navegar({ origen: "campana" })}
+          titulo="Las que entraron solas: chats de anuncios de WhatsApp, formularios de la web y de Google Ads."
+        >
+          <Globe className="mr-1.5 size-3.5" />
+          Campaña y web
+        </Chip>
+        <Chip
+          activo={origen === "propia"}
+          onClick={() => navegar({ origen: "propia" })}
+          titulo="Sin contacto de entrada: las que abrió usted o vinieron de los Excel."
+        >
+          Propias
+        </Chip>
       </div>
 
       {vista === "tabla" && (

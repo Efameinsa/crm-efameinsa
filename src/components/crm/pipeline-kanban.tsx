@@ -33,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PuntoInteres } from "@/components/crm/punto-interes";
+import { PastillaOrigenOportunidad } from "@/components/crm/pastilla-origen-oportunidad";
+import type { OrigenOportunidad } from "@/lib/reportes";
 import { cn } from "@/lib/utils";
 import type { EtapaOportunidad } from "@/types/database";
 
@@ -46,6 +48,9 @@ export interface OportunidadKanban {
   updated_at: string;
   cotizacion_pendiente: boolean;
   cotizacion_rechazada: boolean;
+  /** Central / campaña / propia (0362, Desiré 01-10). */
+  origen_lead?: OrigenOportunidad | null;
+  via?: string | null;
 }
 
 const COLUMNAS: { etapa: EtapaOportunidad; etiqueta: string; droppable: boolean }[] = [
@@ -93,6 +98,7 @@ function Tarjeta({ op, arrastrando }: { op: OportunidadKanban; arrastrando?: boo
         >
           {dias === 0 ? "Hoy" : `${dias} día${dias === 1 ? "" : "s"}`}
         </span>
+        <PastillaOrigenOportunidad origen={op.origen_lead} via={op.via} />
       </div>
       {op.cotizacion_pendiente && (
         <span className="mt-2 inline-block rounded-md bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-700">

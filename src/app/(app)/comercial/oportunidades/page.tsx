@@ -2,7 +2,7 @@ import Link from "@/components/enlace";
 import { Archive } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { listarOportunidades, contarOportunidadesPorEtapa, type OrdenOportunidades, type TipoClienteFiltro } from "@/lib/reportes";
+import { listarOportunidades, contarOportunidadesPorEtapa, type OrdenOportunidades, type OrigenOportunidad, type TipoClienteFiltro } from "@/lib/reportes";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { FiltrosOportunidades } from "@/components/crm/filtros-oportunidades";
 import { TablaOportunidades } from "@/components/crm/tabla-oportunidades";
@@ -24,6 +24,7 @@ const POR_COLUMNA = 40;
 // arrastran).
 const ETAPAS_TABLERO: EtapaOportunidad[] = ["asignada", "filtrada", "cotizada", "seguimiento", "potencial"];
 const ORDENES: OrdenOportunidades[] = ["reciente", "monto", "proxima_accion", "cuenta"];
+const ORIGENES: OrigenOportunidad[] = ["central", "campana", "propia"];
 const ETAPAS: EtapaOportunidad[] = [
   "asignada",
   "filtrada",
@@ -82,6 +83,7 @@ export default async function OportunidadesPage({
     hasta?: string;
     solo_crm?: string;
     rubro?: string;
+    origen?: string;
     orden?: string;
     pagina?: string;
     ver?: string;
@@ -120,6 +122,10 @@ export default async function OportunidadesPage({
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(sp.desde ?? "") ? (sp.desde as string) : null;
   const hasta = /^\d{4}-\d{2}-\d{2}$/.test(sp.hasta ?? "") ? (sp.hasta as string) : null;
   const soloCrm = sp.solo_crm === "1";
+  // Desiré (C9), 01-10: «Derivaciones o campaña… para saber si ya atendí mis
+  // derivaciones». Va con los filtros comunes: pestañas, Tabla y Kanban lo
+  // respetan igual (0362).
+  const origen: OrigenOportunidad | null = ORIGENES.includes(sp.origen as OrigenOportunidad) ? (sp.origen as OrigenOportunidad) : null;
   const orden: OrdenOportunidades = ORDENES.includes(sp.orden as OrdenOportunidades) ? (sp.orden as OrdenOportunidades) : "reciente";
   const pagina = Math.max(1, parseInt(sp.pagina ?? "1", 10) || 1);
   const supabase = await createClient();
@@ -129,7 +135,7 @@ export default async function OportunidadesPage({
   // desde la 0152, así que la Tabla, el Kanban y las pestañas lo respetan igual
   // que a los demás.
   const rubro = leerFiltroRubro(sp.rubro);
-  const filtrosComunes = { q, tipoCliente, desde, hasta, soloCrm, rubro: rubroParaRpc(rubro) };
+  const filtrosComunes = { q, tipoCliente, desde, hasta, soloCrm, rubro: rubroParaRpc(rubro), origen };
   const listar = (extra: { etapa?: string | null; limite: number; offset: number }) =>
     listarOportunidades(supabase, { ...filtrosComunes, orden, ...extra });
 
@@ -164,6 +170,8 @@ export default async function OportunidadesPage({
       updated_at: op.updated_at,
       cotizacion_pendiente: op.cotizacion_estado === "pendiente_gerencia",
       cotizacion_rechazada: op.cotizacion_estado === "rechazada_gerencia",
+      origen_lead: op.origen_lead,
+      via: op.via,
     }));
 
     return (
@@ -182,6 +190,7 @@ export default async function OportunidadesPage({
           totalGeneral={totalGeneral}
           enHistorico={enHistorico}
           rubro={rubro}
+          origen={origen}
           opcionesRubro={opcionesRubro}
           sinRubro={sinRubro}
         />
@@ -224,6 +233,7 @@ export default async function OportunidadesPage({
         totalGeneral={totalGeneral}
         enHistorico={enHistorico}
         rubro={rubro}
+        origen={origen}
         opcionesRubro={opcionesRubro}
         sinRubro={sinRubro}
       />
@@ -246,7 +256,7 @@ export default async function OportunidadesPage({
         {filas.length === 0 ? (
           <Vacio
             rubroSin={rubro === "sin"}
-            hayFiltros={Boolean(q || etapa || tipoCliente || desde || hasta || soloCrm || rubro !== null)}
+            hayFiltros={Boolean(q || etapa || tipoCliente || desde || hasta || soloCrm || rubro !== null || origen)}
             q={q}
             etapa={etapa}
             enHistorico={enHistorico}
@@ -296,14 +306,14 @@ function TabsModo({ modo }: { modo: "kanban" | "ruta" }) {
 
 /**
  * La misma búsqueda, pero mirando otra pestaña. Conserva todo lo que el
- * usuario ya había filtrado (texto, empresa/persona, fechas, rubro, orden) y
+ * usuario ya había filtrado (texto, empresa/persona, fechas, rubro, origen, orden) y
  * solo cambia la etapa: si le decimos «están en el Histórico», el clic tiene
  * que llevarlo AHÍ con su búsqueda puesta, no a un histórico en blanco donde
  * tenga que volver a escribir el nombre.
  */
 function urlConEtapa(sp: Record<string, string | undefined>, etapa: string) {
   const params = new URLSearchParams();
-  for (const clave of ["q", "tipo", "desde", "hasta", "solo_crm", "rubro", "orden", "modo"] as const) {
+  for (const clave of ["q", "tipo", "desde", "hasta", "solo_crm", "rubro", "origen", "orden", "modo"] as const) {
     const valor = sp[clave];
     if (valor) params.set(clave, valor);
   }

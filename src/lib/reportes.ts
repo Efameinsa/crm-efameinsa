@@ -278,8 +278,14 @@ export interface FilaOportunidadListado {
   tipo_doc: string;
   es_empresa: boolean;
   cotizacion_estado: string | null;
+  /** Por dónde llegó (0362, Desiré 01-10): Central la derivó, entró sola por
+   *  campaña/web, o es propia (sin lead: la abrió el comercial o vino del Excel). */
+  origen_lead: OrigenOportunidad;
+  /** Canal y fuente del lead que manda («whatsapp · meta_ads», «llamada»…); null en las propias. */
+  via: string | null;
 }
 
+export type OrigenOportunidad = "central" | "campana" | "propia";
 export type OrdenOportunidades = "reciente" | "monto" | "proxima_accion" | "cuenta";
 export type TipoClienteFiltro = "empresa" | "persona";
 
@@ -301,6 +307,7 @@ export async function listarOportunidades(
     limite?: number;
     offset?: number;
     rubro?: RubroFiltro;
+    origen?: OrigenOportunidad | null;
   },
 ): Promise<{ total: number; filas: FilaOportunidadListado[] }> {
   const { data, error } = await supabase.rpc("listar_oportunidades", {
@@ -315,6 +322,9 @@ export async function listarOportunidades(
     p_limite: opciones.limite ?? 50,
     p_offset: opciones.offset ?? 0,
     p_rubro: opciones.rubro ?? null,
+    // Solo cuando se filtra (0362): sin la migración aplicada, la lista
+    // normal sigue funcionando con la firma vieja.
+    ...(opciones.origen ? { p_origen: opciones.origen } : {}),
   });
   if (error) {
     console.error("listar_oportunidades:", error.message);
@@ -336,6 +346,7 @@ export async function contarOportunidadesPorEtapa(
     hasta?: string | null;
     soloCrm?: boolean;
     rubro?: RubroFiltro;
+    origen?: OrigenOportunidad | null;
   },
 ): Promise<Record<string, number>> {
   const { data, error } = await supabase.rpc("contar_oportunidades_por_etapa", {
@@ -346,6 +357,9 @@ export async function contarOportunidadesPorEtapa(
     p_hasta: opciones.hasta ?? null,
     p_solo_crm: opciones.soloCrm ?? false,
     p_rubro: opciones.rubro ?? null,
+    // Solo cuando se filtra (0362): sin la migración aplicada, la lista
+    // normal sigue funcionando con la firma vieja.
+    ...(opciones.origen ? { p_origen: opciones.origen } : {}),
   });
   if (error) {
     console.error("contar_oportunidades_por_etapa:", error.message);
