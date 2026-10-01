@@ -16,6 +16,7 @@ import { CalendarClock, Loader2, Repeat, XCircle } from "lucide-react";
 import { anularApertura, corregirTipoApertura, reprogramarApertura } from "@/lib/acciones/aperturas-llamada";
 import type { TipoApertura } from "@/lib/aperturas-llamada";
 import { Button } from "@/components/ui/button";
+import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { Input } from "@/components/ui/input";
 
 type Panel = "reprogramar" | "tipo" | "anular" | null;
@@ -79,6 +80,7 @@ export function CambiosApertura({
   hayInforme,
   tomada,
   tipos,
+  anularPideCodigo = false,
 }: {
   id: string;
   tipo: TipoApertura;
@@ -88,6 +90,8 @@ export function CambiosApertura({
   /** El almacén ya la tomó: se le avisa de cualquier cambio. */
   tomada: boolean;
   tipos: { valor: TipoApertura; etiqueta: string }[];
+  /** Postventa anula con el código de operaciones o gerencia (Lesly, 01-10). */
+  anularPideCodigo?: boolean;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -97,10 +101,12 @@ export function CambiosApertura({
   const [hora, setHora] = useState(actual.hora);
   const [nuevoTipo, setNuevoTipo] = useState<TipoApertura>(tipo);
   const [motivo, setMotivo] = useState("");
+  const [pin, setPin] = useState("");
 
   function abrir(p: Panel) {
     setPanel(panel === p ? null : p);
     setMotivo("");
+    setPin("");
   }
   function hecho(mensaje: string) {
     toast.success(mensaje);
@@ -123,7 +129,7 @@ export function CambiosApertura({
   }
   function anular() {
     startTransition(async () => {
-      const r = await anularApertura(id, motivo);
+      const r = await anularApertura(id, motivo, pin);
       if (r.error) return void toast.error(r.error);
       hecho("Apertura anulada; el almacén ya no la ve pendiente");
     });
@@ -246,14 +252,27 @@ export function CambiosApertura({
             ))}
           </div>
           <Input className="h-8 max-w-md text-xs" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="U otro motivo…" />
-          <div className="flex gap-2">
-            <Button size="sm" variant="destructive" disabled={pendiente || !motivo.trim()} onClick={anular}>
+          {anularPideCodigo && (
+            <div className="grid gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-500/40 dark:bg-amber-500/10">
+              <p className="text-xs text-amber-900 dark:text-amber-200">
+                Para anular, pida el <b>código de 4 números</b> a operaciones (Lesly) o a gerencia.
+              </p>
+              <CampoCodigo valor={pin} onChange={setPin} tono="amber" id={`pin-anular-${id}`} />
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="destructive" disabled={pendiente || !motivo.trim() || (anularPideCodigo && pin.length < 4)} onClick={anular}>
               {pendiente && <Loader2 className="size-4 animate-spin" />}
               Anular la apertura
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
               No, dejarla
             </Button>
+            {(!motivo.trim() || (anularPideCodigo && pin.length < 4)) && (
+              <span className="text-[11px] text-destructive">
+                Falta: {[!motivo.trim() && "el motivo", anularPideCodigo && pin.length < 4 && "el código"].filter(Boolean).join(" y ")}
+              </span>
+            )}
           </div>
         </div>
       )}

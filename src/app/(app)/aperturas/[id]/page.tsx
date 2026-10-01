@@ -22,6 +22,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AccionesAlmacenApertura, AccionesPostventaApertura, TecnicoApertura } from "@/components/crm/apertura-acciones";
 import { InformeSoporteApertura } from "@/components/crm/informe-soporte-apertura";
 import { CambiosApertura } from "@/components/crm/apertura-cambios";
+import { anulaSinCodigo } from "@/lib/aperturas-llamada";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -155,6 +156,7 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
             hayInforme={Boolean(a.informe_at)}
             tomada={Boolean(a.tomada_at)}
             tipos={TIPOS_APERTURA.map((t) => ({ valor: t, etiqueta: ETIQUETA_TIPO_APERTURA[t] }))}
+            anularPideCodigo={!anulaSinCodigo(perfil)}
           />
         )}
       </div>

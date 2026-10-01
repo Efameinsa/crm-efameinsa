@@ -460,11 +460,23 @@ export function AperturaLlamadaBoton({
               <CampoFormato etiqueta="Modelo"><Input {...campoFormato("modelo")} /></CampoFormato>
               <CampoFormato etiqueta="Serie"><Input {...campoFormato("serie")} /></CampoFormato>
               <CampoFormato etiqueta="Fecha de mantenimiento"><Input {...campoFormato("fecha_mantenimiento")} /></CampoFormato>
-              <CampoFormato etiqueta="Protocolo de prueba"><Input {...campoFormato("protocolo")} placeholder="SÍ / NO" /></CampoFormato>
-              <CampoFormato etiqueta="Garantía"><Input {...campoFormato("garantia")} placeholder="24 MESES" /></CampoFormato>
+              {/* Sin textos grises que parezcan respuestas (Lesly, 01-10): «SÍ / NO» y
+                  «24 MESES» se leían como llenados y la orden salía con «—». */}
+              <CampoFormato etiqueta="Protocolo de prueba">
+                <select
+                  value={formato.protocolo ?? ""}
+                  onChange={(e) => setFormato((f) => ({ ...f, protocolo: e.target.value }))}
+                  className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                >
+                  <option value="">Elegir…</option>
+                  <option value="SÍ">SÍ</option>
+                  <option value="NO">NO</option>
+                </select>
+              </CampoFormato>
+              <CampoFormato etiqueta="Garantía"><Input {...campoFormato("garantia")} placeholder="Escriba los meses (ej. 24)" /></CampoFormato>
               <CampoFormato etiqueta="Provincia"><Input {...campoFormato("provincia")} /></CampoFormato>
               <CampoFormato etiqueta="Fecha de puesta en marcha"><Input {...campoFormato("puesta_en_marcha")} /></CampoFormato>
-              <CampoFormato etiqueta="Cambios correctivos" ancho><Input {...campoFormato("cambios_correctivos")} placeholder="NINGUNO" /></CampoFormato>
+              <CampoFormato etiqueta="Cambios correctivos" ancho><Input {...campoFormato("cambios_correctivos")} placeholder="Escriba «ninguno» si no hubo" /></CampoFormato>
             </div>
             <p className="mt-1.5 text-[11px] text-muted-foreground">El problema es lo que escribió en «Qué hay que revisar»; la programación, el día y la hora de arriba.</p>
           </details>

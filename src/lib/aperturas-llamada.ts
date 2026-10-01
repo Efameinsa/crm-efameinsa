@@ -104,6 +104,11 @@ export interface FormatoLlamada {
   cambios_correctivos?: string | null;
 }
 
+/** Quién anula una llamada derivada sin código: operaciones y gerencia, que son quienes lo dictan (Lesly, 01-10). */
+export function anulaSinCodigo(perfil: { rol: string; es_operaciones?: boolean | null }): boolean {
+  return ["gerencia", "admin", "operaciones"].includes(perfil.rol) || perfil.es_operaciones === true;
+}
+
 /** Las filas de la tabla, en el orden del formato de siempre. */
 export const FILAS_FORMATO: { clave: keyof FormatoLlamada; etiqueta: string }[] = [
   { clave: "fecha_compra", etiqueta: "Fecha de compra" },

@@ -5,7 +5,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { notificar, notificarAlmacen } from "@/lib/notificaciones";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
 import { ultimos9 } from "@/lib/contacto-operativo";
-import { ETIQUETA_TIPO_APERTURA, TIPOS_APERTURA, type FormatoLlamada, type TipoApertura } from "@/lib/aperturas-llamada";
+import { anulaSinCodigo, ETIQUETA_TIPO_APERTURA, TIPOS_APERTURA, type FormatoLlamada, type TipoApertura } from "@/lib/aperturas-llamada";
 
 // Las cinco acciones de la apertura de llamada (0281). Las reglas de quién
 // puede qué viven en las funciones de la base; acá solo se avisa al otro lado.
@@ -228,10 +228,22 @@ export async function revisarApertura(id: string, informeCliente: string, enviad
   return listo(a?.servicio_id, a?.cuenta_id);
 }
 
-export async function anularApertura(id: string, motivo: string) {
+export async function anularApertura(id: string, motivo: string, pin?: string | null) {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
-  const { error } = await supabase.rpc("anular_apertura_llamada", { p_id: id, p_motivo: motivo });
+  // CON CÓDIGO (Lesly, 01-10: «les permite anular sin solicitar pin en la
+  // derivación de llamada»). Postventa anula con el código de operaciones o
+  // gerencia, como en el resto del CRM; y queda escrito quién lo autorizó.
+  let autorizo: string | null = null;
+  if (!anulaSinCodigo(perfil)) {
+    if ((pin ?? "").replace(/\D/g, "").length < 4) return falla("Anular una llamada derivada pide el código de operaciones (Lesly) o de gerencia");
+    const { data: quien, error: e } = await supabase.rpc("validar_codigo_autorizacion", { p_pin: pin!.trim(), p_ambito: "operaciones" });
+    if (e) return falla(e.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+    const { data: sup } = await supabase.from("perfiles").select("nombre").eq("id", quien as string).maybeSingle();
+    autorizo = sup?.nombre ?? "operaciones";
+  }
+  const motivoFinal = autorizo ? `${motivo.trim()} · autorizó ${autorizo}` : motivo.trim();
+  const { error } = await supabase.rpc("anular_apertura_llamada", { p_id: id, p_motivo: motivoFinal });
   if (error) return falla(error.message);
   const a = await aperturaParaAviso(supabase, id);
   // El almacén la tenía en su cola (o ya la había tomado): se entera (25-09).
@@ -239,7 +251,7 @@ export async function anularApertura(id: string, motivo: string) {
     await notificarAlmacen({
       titulo: `Anulada · ${ETIQUETA_TIPO_APERTURA[a.tipo] ?? "Apertura"} · ${cliente(a.razon)}`,
       // Con el nombre de quien la anuló (0325; Rubí, 28-09: «yo no la anulé»).
-      cuerpo: `La del ${cuandoLima(a.programada_para)} ya no va. La anuló ${perfil.nombre}. Motivo: ${motivo.trim()}`,
+      cuerpo: `La del ${cuandoLima(a.programada_para)} ya no va. La anuló ${perfil.nombre}. Motivo: ${motivoFinal}`,
       url: `/aperturas/${id}`,
       esPrueba: (perfil as { es_prueba?: boolean | null }).es_prueba === true,
     });
