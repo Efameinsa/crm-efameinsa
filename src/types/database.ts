@@ -76,6 +76,8 @@ export interface Perfil {
   es_operaciones?: boolean;
   /** La cuenta del almacén (0246): pedidos, atenciones programadas, visitas e informes; marca lo suyo del despacho. */
   es_almacen?: boolean;
+  /** Piloto de trabajo de campo (0363, Carlos 01-10): el CRM registra la ubicación del navegador. */
+  trabajo_de_campo?: boolean;
   created_at: string;
   updated_at: string;
 }

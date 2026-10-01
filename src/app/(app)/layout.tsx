@@ -7,6 +7,7 @@ import { EncabezadoUsuario } from "@/components/crm/encabezado-usuario";
 import { CalloutActivarNotificaciones } from "@/components/crm/callout-activar-notificaciones";
 import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
 import { AvisoGestionesSinSubir } from "@/components/crm/aviso-gestiones-sin-subir";
+import { UbicacionDeCampo } from "@/components/crm/ubicacion-de-campo";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
 import { AsistenteFlotante } from "@/components/crm/asistente-flotante";
 import { ComunicadoDeGerencia, type ComunicadoPendiente } from "@/components/crm/comunicado-de-gerencia";
@@ -77,8 +78,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold">Nada de esto cuenta: ni ventas, ni cotizaciones, ni metas</span>
       </div>
     ) : null;
+  // PILOTO DE TRABAJO DE CAMPO (0363; Carlos, 01-10-2026): la ubicación del
+  // navegador, solo para quien gerencia marcó. Nunca en la ranura de
+  // auditoría: ahí el navegador es del auditor y se anotaría su ubicación a
+  // nombre de la persona auditada.
+  const ubicacionDeCampo = perfil.trabajo_de_campo && !ranuraAuditoria && !demo ? <UbicacionDeCampo /> : null;
   const avisosArriba = !demo ? (
     <div className="flex flex-col gap-2 px-3 pt-3 empty:hidden sm:px-4 lg:px-6 lg:pt-4">
+      {ubicacionDeCampo}
       <CalloutActivarNotificaciones />
       <AplicacionInstalable />
       <AvisoGestionesSinSubir />
@@ -174,6 +181,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             además registra el service worker: aunque no dibuje nada, tiene que
             estar montado en todas las pantallas. */}
         {!demo && <div className="flex flex-col gap-2 px-3 pt-3 empty:hidden sm:px-4 lg:px-6 lg:pt-4">
+          {ubicacionDeCampo}
           <CalloutActivarNotificaciones />
           <AplicacionInstalable />
           {/* La cola de gestiones guardadas sin internet (plan 26): vacía no

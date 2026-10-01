@@ -7,6 +7,7 @@ import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { describirEquipo, haceCuanto, huellaEquipo, ipsDeLaOficina, zonaDeAcceso } from "@/lib/accesos";
 import { ubicarIps } from "@/lib/geoip";
 import { MapaAccesos, type PuntoAcceso } from "@/components/crm/mapa-accesos";
+import { SeccionTrabajoDeCampo } from "@/components/crm/seccion-trabajo-de-campo";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ interface Acceso {
   created_at: string;
 }
 
-export default async function AccesosPage({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+export default async function AccesosPage({ searchParams }: { searchParams: Promise<{ ver?: string; campo?: string }> }) {
   await requerirRol(["gerencia", "admin"]);
   const sp = await searchParams;
   const soloFuera = sp.ver === "fuera";
@@ -113,6 +114,10 @@ export default async function AccesosPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-4">
+      {/* El piloto de trabajo de campo (0363; Carlos, 01-10-2026): ubicación
+          del navegador, precisa, solo de quien está marcado. Va primero porque
+          es la pregunta que gerencia trae ahora. */}
+      <SeccionTrabajoDeCampo dia={sp.campo} otrosParametros={soloFuera ? "ver=fuera" : undefined} />
       <SeccionPanel
         titulo="Dónde están los equipos"
         accion={<span className="text-xs text-muted-foreground">{puntos.length} lugares</span>}
