@@ -7,7 +7,7 @@ import { opcionesCookieSupabase, fetchRedInterna, urlSupabaseServidor } from "@/
 /**
  * La puerta de una ranura de auditoría (0160): recibe el token de un solo uso
  * que generó «Entrar como», abre la sesión de la cuenta auditada EN ESTA
- * dirección (ver1…ver5) y manda a la pantalla de inicio de esa persona.
+ * dirección (ver1…ver9) y manda a la pantalla de inicio de esa persona.
  *
  * Solo responde en un host de auditoría: en crm.efameinsa.com el mismo enlace
  * devuelve 404, para que nunca se pise la sesión de gerencia por error.

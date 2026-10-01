@@ -19,7 +19,7 @@ const RUTA_POR_ROL: Record<string, string> = {
 };
 
 export async function proxy(request: NextRequest) {
-  // AUDITORÍA (0160). En ver1…ver5.crm.efameinsa.com la sesión es de otra
+  // AUDITORÍA (0160). En ver1…ver9.efameinsa.com la sesión es de otra
   // persona y el CRM es SOLO LECTURA: cualquier escritura —las acciones de
   // servidor viajan por POST— se rechaza acá, antes de tocar nada. La única
   // excepción es la puerta por la que entra el token de un solo uso.
