@@ -195,6 +195,21 @@ export function AperturaLlamadaBoton({
     persona.replace(/\D/g, "").length < 6 && "a quién llama el almacén, con su celular",
     urgente && pin.replace(/\D/g, "").length < 4 && "el código de gerencia",
   ].filter(Boolean) as string[];
+  // Lo que queda vacío del formato no frena el envío (no siempre se sabe), pero se dice:
+  // la orden sale con «—» y el almacén no tiene a quién preguntar.
+  const vaciosFormato = (
+    [
+      ["fecha_compra", "fecha de compra"],
+      ["marca", "marca"],
+      ["modelo", "modelo"],
+      ["serie", "serie"],
+      ["protocolo", "protocolo"],
+      ["garantia", "garantía"],
+      ["cambios_correctivos", "cambios correctivos"],
+    ] as [keyof FormatoLlamada, string][]
+  )
+    .filter(([k]) => !(formato[k] ?? "").trim())
+    .map(([, e]) => e);
 
   // Al abrir (o al elegir el cliente) se traen sus máquinas para el formato.
   useEffect(() => {
@@ -451,8 +466,10 @@ export function AperturaLlamadaBoton({
               </div>
             )}
           </div>
-          <details className="rounded-lg border border-border p-2.5" open={elegidas.length > 0}>
-            <summary className="cursor-pointer text-xs font-semibold text-foreground">Formato de llamada (compra, entrega, garantía…)</summary>
+          {/* A la vista siempre (Gabriela y Lesly, 01-10, ALBERGUE OLLANTAYTAMBO): con un
+              cliente sin máquinas en el parque venía plegado y la orden salió sin formato. */}
+          <div className="rounded-lg border border-border p-2.5">
+            <p className="text-xs font-semibold text-foreground">Formato de llamada (compra, entrega, garantía…)</p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <CampoFormato etiqueta="Fecha de compra"><Input {...campoFormato("fecha_compra")} /></CampoFormato>
               <CampoFormato etiqueta="Fecha de entrega y N.º de guía"><Input {...campoFormato("entrega_guia")} /></CampoFormato>
@@ -479,7 +496,7 @@ export function AperturaLlamadaBoton({
               <CampoFormato etiqueta="Cambios correctivos" ancho><Input {...campoFormato("cambios_correctivos")} placeholder="Escriba «ninguno» si no hubo" /></CampoFormato>
             </div>
             <p className="mt-1.5 text-[11px] text-muted-foreground">El problema es lo que escribió en «Qué hay que revisar»; la programación, el día y la hora de arriba.</p>
-          </details>
+          </div>
           {puedeUrgente && (
             <div className={urgente ? "grid gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-2.5" : "grid gap-2"}>
               <label className="inline-flex items-start gap-2 text-sm">
@@ -494,11 +511,15 @@ export function AperturaLlamadaBoton({
           )}
         </div>
         <DialogFooter className="sm:items-center">
-          {falta.length > 0 && (
+          {falta.length > 0 ? (
             <p className="text-xs text-destructive sm:mr-auto">
               Para enviar falta: <b>{falta.join(", ")}</b>.
             </p>
-          )}
+          ) : vaciosFormato.length > 0 ? (
+            <p className="text-xs text-amber-700 sm:mr-auto dark:text-amber-300">
+              En el formato quedan vacíos: {vaciosFormato.join(", ")}. Saldrán con «—».
+            </p>
+          ) : null}
           <Button variant="ghost" onClick={() => cambiarAbierto(false)}>
             Cancelar
           </Button>
