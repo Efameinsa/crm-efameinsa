@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { urlApp, enlaceApp } from "./url-app";
+import { urlApp, enlaceApp, urlDesdePeticion } from "./url-app";
 
 const previo = { APP_URL: process.env.APP_URL, VERCEL: process.env.VERCEL_PROJECT_PRODUCTION_URL };
 afterEach(() => {
@@ -32,5 +32,21 @@ describe("urlApp", () => {
     process.env.APP_URL = "https://crm.efameinsa.com/";
     expect(enlaceApp("/central")).toBe("https://crm.efameinsa.com/central");
     expect(enlaceApp("central")).toBe("https://crm.efameinsa.com/central");
+  });
+});
+
+describe("urlDesdePeticion (30-09: detrás del nginx de la VM)", () => {
+  const pedido = (h: Record<string, string>) => ({ headers: new Headers(h), url: "https://localhost:3000/demo/vista" });
+  it("usa el Host por el que entró la persona, no el origen interno", () => {
+    expect(urlDesdePeticion("/login", pedido({ host: "crm.efameinsa.com", "x-forwarded-proto": "https" })).toString()).toBe("https://crm.efameinsa.com/login");
+  });
+  it("prefiere X-Forwarded-Host (primer valor)", () => {
+    expect(urlDesdePeticion("/nuevo", pedido({ host: "localhost:3000", "x-forwarded-host": "ver3.efameinsa.com, otro", "x-forwarded-proto": "https" })).toString()).toBe("https://ver3.efameinsa.com/nuevo");
+  });
+  it("respeta un destino absoluto (referer)", () => {
+    expect(urlDesdePeticion("https://crm.efameinsa.com/gerencia", pedido({ host: "crm.efameinsa.com" })).toString()).toBe("https://crm.efameinsa.com/gerencia");
+  });
+  it("sin Host cae en request.url", () => {
+    expect(urlDesdePeticion("/login", pedido({})).toString()).toBe("https://localhost:3000/login");
   });
 });
