@@ -6,6 +6,7 @@ import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
 import type { AdjuntoLead } from "@/lib/validaciones/lead";
 import type { ExpedienteArchivado } from "@/lib/asi-se-quedo";
 import { requerirPerfil } from "@/lib/auth";
+import { ETIQUETA_TIPO_APERTURA, type TipoApertura } from "@/lib/aperturas-llamada";
 
 // Se muestran las 300 actividades más recientes por cuenta — de sobra para el
 // volumen real del piloto (~50 gestiones/día por comercial); si algún día se
@@ -206,7 +207,7 @@ export async function cargarHistorialCuenta(
   // Lo que hizo postventa con este cliente: servicios (los 605 informes
   // importados de R:\ y los pedidos del CRM) y atenciones. El comercial lo ve
   // en la misma cronología, porque mantenimiento lo venden los dos.
-  const [{ data: servicios }, { data: atenciones }, { data: informesTecnicos }] = await Promise.all([
+  const [{ data: servicios }, { data: atenciones }, { data: informesTecnicos }, { data: llamadasDerivadas }] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("id, fecha_confirmacion, tipo_servicio, equipo, monto, moneda, completado, created_at, oportunidad_id, perfiles!servicios_postventa_responsable_id_fkey(nombre)")
@@ -227,6 +228,15 @@ export async function cargarHistorialCuenta(
       .select("id, correlativo, anio, tipo, modalidad, ejecutado_at, emitido_at, tecnico, equipo_texto, detalle, es_prueba, servicio_id")
       .eq("cuenta_id", cuentaId)
       .order("ejecutado_at", { ascending: false })
+      .limit(60),
+    // LAS LLAMADAS DERIVADAS AL ALMACÉN (Rubí, 01-10, CONGELADOS Y FRESCOS):
+    // «en el historial de llamadas no se guardó nada». Una derivación no salía
+    // en la ficha del cliente: solo en el caso o en el pedido desde donde se hizo.
+    supabase
+      .from("aperturas_llamada")
+      .select("id, tipo, programada_para, solicitada_at, tomada_at, informe_at, anulada_at, tecnico, equipos, indicaciones, urgente, perfiles!aperturas_llamada_solicitada_por_fkey(nombre)")
+      .eq("cuenta_id", cuentaId)
+      .order("solicitada_at", { ascending: false })
       .limit(60),
   ]);
 
@@ -319,6 +329,22 @@ export async function cargarHistorialCuenta(
       href: `/postventa/informes/${inf.id}`,
       oportunidadId: null,
     })),
+    ...(llamadasDerivadas ?? []).map((l): EventoTimeline => {
+      const programada = new Date(l.programada_para as string).toLocaleString("es-PE", {
+        timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
+      });
+      const estado = l.anulada_at ? "anulada" : l.informe_at ? "con informe del almacén" : l.tomada_at ? "el almacén la tomó" : "esperando que el almacén la tome";
+      return {
+        tipo: "servicio",
+        id: `llamada-${l.id}`,
+        fecha: l.solicitada_at as string,
+        titulo: `${l.urgente ? "URGENTE · " : ""}Llamada derivada al almacén: ${ETIQUETA_TIPO_APERTURA[l.tipo as TipoApertura] ?? l.tipo} · para el ${programada} · ${estado}`,
+        detalle: [(l.equipos as string | null)?.split("\n")[0], l.indicaciones as string | null, l.tecnico ? `Técnico: ${l.tecnico}` : null].filter(Boolean).join(" · ").slice(0, 200) || null,
+        quien: (l.perfiles as unknown as { nombre: string } | null)?.nombre ?? null,
+        href: `/aperturas/${l.id}`,
+        oportunidadId: null,
+      };
+    }),
     ...(atenciones ?? []).map((at): EventoTimeline => ({
       tipo: "servicio",
       id: `atencion-${at.id}`,
