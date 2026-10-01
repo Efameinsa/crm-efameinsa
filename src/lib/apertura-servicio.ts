@@ -149,7 +149,9 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
   let obsDireccion = "";
   let resaltadoDireccion: string | null = null;
   if (d.entregaModo === "agencia") {
-    direccion = [`AGENCIA ${d.agenciaDestino ?? "(agencia por confirmar)"}`, d.agenciaDireccion ?? "(falta la dirección de la agencia)"].join("\n");
+    // «AGENCIA AGENCIA SHALOM» (CRISTO REY, 01-10): si el nombre ya lo dice (o «ANGENCIA»), no se repite.
+    const agencia = d.agenciaDestino ?? "(agencia por confirmar)";
+    direccion = [/^\s*an?gencia\b/i.test(agencia) ? agencia : `AGENCIA ${agencia}`, d.agenciaDireccion ?? "(falta la dirección de la agencia)"].join("\n");
     obsDireccion = [
       "DESTINO FINAL:",
       d.direccion ?? "—",
