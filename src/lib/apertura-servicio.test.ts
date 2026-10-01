@@ -84,11 +84,24 @@ describe("los tres formatos son el mismo, y solo cambia el encabezado", () => {
     expect(a).toEqual(b);
   });
 
-  it("son exactamente nueve filas, y las dos últimas son del formato", () => {
+  it("son diez filas, y las tres últimas son del formato con su responsable (modelo de Lesly, 01-10)", () => {
     const filas = filasApertura(PERU_VACATION);
-    expect(filas).toHaveLength(9);
-    expect(filas[7].informacion).toBe("Gestión de Contabilidad");
-    expect(filas[8].informacion).toBe("Gestión de Contabilidad");
+    expect(filas).toHaveLength(10);
+    expect(filas.map((f) => f.descripcion)).toEqual([
+      "SERVICIO A REALIZAR",
+      "CLIENTE",
+      "DIRECCIÓN",
+      "PROGRAMACIÓN",
+      "PERSONA QUE RECIBE",
+      "PERSONAL ASIGNADO PARA EL SERVICIO",
+      "MEDIO DE TRANSPORTE PERSONAL TÉCNICO",
+      "REQUISICIÓN POR MOVILIDAD (IDA Y VUELTA, REFERENCIA).",
+      "MONTO DE VIÁTICOS",
+      "COORDINACIÓN CON LOGÍSTICA",
+    ]);
+    expect(filas[7]).toMatchObject({ informacion: "Gestión de Contabilidad", observaciones: "Sara Campos" });
+    expect(filas[8]).toMatchObject({ informacion: "Gestión de Contabilidad", observaciones: "Sara Campos" });
+    expect(filas[9]).toMatchObject({ informacion: "Herramientas, repuestos traídos anteriormente y EPP", observaciones: "Abdías Cabezas" });
   });
 });
 
@@ -106,7 +119,7 @@ describe("el asunto del correo", () => {
 describe("las nueve filas llevan lo que el correo lleva", () => {
   it("la fila 1 junta el encabezado, el equipo, la serie y la nota entre paréntesis", () => {
     const [primera] = filasApertura(MERCEDARIAS);
-    expect(primera.descripcion).toBe("APERTURA DE SERVICIO");
+    expect(primera.descripcion).toBe("SERVICIO A REALIZAR");
     expect(primera.informacion).toContain("SERVICIO DE MANTENIMIENTO:");
     expect(primera.informacion).toContain("MODELO: TITAN C");
     expect(primera.informacion).toContain("Serie: 804KWCF35059");
@@ -126,18 +139,20 @@ describe("las nueve filas llevan lo que el correo lleva", () => {
 
   it("dice si la entrega es a domicilio o en agencia, y cuál (0259)", () => {
     const agencia = filasApertura({ ...MOTORGAS, entregaModo: "agencia", agenciaDestino: "Marvisur, agencia Cusco – Wanchaq" })[2].informacion;
-    expect(agencia).toContain("AGENCIA: Marvisur, agencia Cusco – Wanchaq");
+    expect(agencia).toContain("AGENCIA Marvisur, agencia Cusco – Wanchaq");
     const domicilio = filasApertura({ ...MOTORGAS, entregaModo: "domicilio" })[2].informacion;
     expect(domicilio.startsWith("ENTREGA A DOMICILIO")).toBe(true);
     expect(filasApertura(MOTORGAS)[2].informacion.startsWith("EN NUESTRAS INSTALACIONES")).toBe(true);
   });
 
-  it("por agencia separa el primer destino (la agencia) del destino final (el cliente) (0345)", () => {
+  it("por agencia: la agencia en INFORMACIÓN y el destino final en OBSERVACIONES (0345; modelo de Lesly, 01-10)", () => {
     const d = { ...PERU_VACATION, entregaModo: "agencia" as const, agenciaDestino: "Marvisur, agencia Ica", agenciaDireccion: "Av. Paseo de la República 3570, San Isidro" };
-    const texto = filasApertura(d)[2].informacion;
-    expect(texto.indexOf("1) PRIMER DESTINO")).toBeLessThan(texto.indexOf("Av. Paseo de la República 3570"));
-    expect(texto.indexOf("Av. Paseo de la República 3570")).toBeLessThan(texto.indexOf("2) DESTINO FINAL"));
-    expect(texto.indexOf("2) DESTINO FINAL")).toBeLessThan(texto.indexOf("Calle Bolívar 150 Miraflores"));
+    const fila = filasApertura(d)[2];
+    expect(fila.informacion).toBe("AGENCIA Marvisur, agencia Ica\nAv. Paseo de la República 3570, San Isidro");
+    expect(fila.observaciones).toBe("DESTINO FINAL:\nCalle Bolívar 150 Miraflores");
+    expect(fila.resaltado ?? null).toBeNull();
+    // Si la agencia lo lleva hasta el cliente, la nota resaltada del modelo.
+    expect(filasApertura({ ...d, direccionFinal: "Abtao 951 – Hotel Brancaccio" })[2].resaltado).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
     expect(faltantesApertura(d)).not.toContain("la dirección de la agencia (primer destino)");
     expect(faltantesApertura({ ...d, agenciaDireccion: null })).toContain("la dirección de la agencia (primer destino)");
   });
@@ -151,8 +166,8 @@ describe("las nueve filas llevan lo que el correo lleva", () => {
       direccion: "NOTA: LA CLIENTE SOLICITA CON ENTREGA A DOMICILIO A NRO. 103 INT. D URB. SANTA MARIA DE SARAJA (ESPALDA CHIFA CENTRAL) ICA - ICA - ICA.",
       direccionFinal: "NRO. 103 INT. D URB. SANTA MARIA DE SARAJA (ESPALDA CHIFA CENTRAL) ICA - ICA - ICA",
     };
-    expect(filasApertura(d)[2].informacion).not.toContain("Luego sigue a");
-    expect(filasApertura({ ...d, direccionFinal: "Calle Otra 123, Pisco" })[2].informacion).toContain("Luego sigue a: Calle Otra 123, Pisco");
+    expect(filasApertura(d)[2].observaciones).not.toContain("SANTA MARIA DE SARAJA (ESPALDA CHIFA CENTRAL) ICA - ICA - ICA\nNRO.");
+    expect(filasApertura({ ...d, direccionFinal: "Calle Otra 123, Pisco" })[2].observaciones).toContain("Calle Otra 123, Pisco");
   });
 
   it("sin dirección final, la fila 3 es solo la dirección", () => {
@@ -220,11 +235,14 @@ describe("avisa qué falta antes de mandarlo", () => {
 });
 
 describe("el correo listo para pegar", () => {
-  it("abre como los de Lesly y trae las nueve filas numeradas", () => {
+  it("abre como los de Lesly, trae las diez filas numeradas y cierra con «Atentamente»", () => {
     const cuerpo = cuerpoApertura(MERCEDARIAS);
-    expect(cuerpo).toContain("Buen día Estimados,");
+    expect(cuerpo).toMatch(/^(Buenos Días|Buenas Tardes|Buenas Noches) Estimados,/);
     expect(cuerpo).toContain("en coordinación con el Ing. Carlos");
-    for (let n = 1; n <= 9; n++) expect(cuerpo).toMatch(new RegExp(`^${n}\\. `, "m"));
+    expect(cuerpo).toContain("se ha quedado en agenda el siguiente servicio:");
+    expect(cuerpoApertura(MOTORGAS)).toContain("se ha quedado en agenda el siguiente despacho:");
+    for (let n = 1; n <= 10; n++) expect(cuerpo).toMatch(new RegExp(`^${n}\\. `, "m"));
+    expect(cuerpo.trimEnd().endsWith("Atentamente,")).toBe(true);
     expect(cuerpo).toContain("SERVICIO DE MANTENIMIENTO:");
     expect(cuerpo).toContain("[08:00 AM]");
     expect(cuerpo).toContain("RUC: 20138427014");

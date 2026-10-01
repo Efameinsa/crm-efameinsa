@@ -102,14 +102,24 @@ export interface DatosApertura {
   transporte: string | null;
 }
 
-/** Las filas 8 y 9 del formato son siempre estas: son del formato, no datos. */
+/** Las filas 8, 9 y 10 del formato son siempre estas: son del formato, no datos (modelo de Lesly, 01-10). */
 export const GESTION_CONTABILIDAD = "Gestión de Contabilidad";
+export const RESPONSABLE_CONTABILIDAD = "Sara Campos";
+export const COORDINACION_LOGISTICA = "Herramientas, repuestos traídos anteriormente y EPP";
+export const RESPONSABLE_LOGISTICA = "Abdías Cabezas";
 
 export interface FilaApertura {
   n: number;
   descripcion: string;
   informacion: string;
   observaciones: string;
+  /** Lo que en el modelo va resaltado en amarillo (fila 3: «EQUIPO DEBERÁ LLEGAR A DOMICILIO»). */
+  resaltado?: string | null;
+}
+
+/** «despacho» para las entregas, «servicio» para el mantenimiento: como dice el correo de siempre. */
+export function queQuedaEnAgenda(tipo: TipoApertura | null | undefined): string {
+  return tipo === "mantenimiento" ? "servicio" : "despacho";
 }
 
 /** ¿El texto ya contiene esa dirección? Sin mirar mayúsculas, espacios ni signos. */
@@ -130,43 +140,50 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     .trim();
 
   // Carlos, 21-09: la apertura tiene que decir si va A DOMICILIO o EN AGENCIA,
-  // y en agencia cuál y a qué ciudad. Antes iba perdido en la nota.
-  // Rubí y Lesly, 30-09: en agencia hay DOS direcciones y el almacén las
-  // confundía (ANDINAS: bajo «ENTREGA EN AGENCIA» iba la dirección del
-  // cliente en Ica). Primero adónde lo lleva el almacén; después dónde lo
-  // recibe el cliente.
-  const direccion =
-    d.entregaModo === "agencia"
-      ? [
-          "1) PRIMER DESTINO (donde lo deja el almacén):",
-          `AGENCIA: ${d.agenciaDestino ?? "(agencia por confirmar)"}`,
-          d.agenciaDireccion ?? "(falta la dirección de la agencia)",
-          "",
-          "2) DESTINO FINAL (donde lo recibe el cliente):",
-          d.direccion ?? "—",
-          // ANDINAS, 30-09: la dirección ya venía dentro de la nota y salía dos veces.
-          d.direccionFinal && !yaDice(d.direccion, d.direccionFinal) ? `Luego sigue a: ${d.direccionFinal}` : null,
-        ]
-          .filter((x) => x !== null)
-          .join("\n")
-      : [d.entregaModo === "domicilio" ? "ENTREGA A DOMICILIO" : null, d.direccion ?? "—", d.direccionFinal ? `DIRECCIÓN FINAL: ${d.direccionFinal}` : null]
-          .filter(Boolean)
-          .join("\n");
+  // y en agencia cuál y a qué ciudad.
+  // MODELO DE LESLY (01-10): en INFORMACIÓN va adónde lo lleva el almacén (la
+  // agencia y su dirección); en OBSERVACIONES, «DESTINO FINAL:» con la dirección
+  // del cliente y, si la agencia tiene que llevarlo hasta el cliente, la NOTA
+  // resaltada «EQUIPO DEBERÁ LLEGAR A DOMICILIO».
+  let direccion: string;
+  let obsDireccion = "";
+  let resaltadoDireccion: string | null = null;
+  if (d.entregaModo === "agencia") {
+    direccion = [`AGENCIA ${d.agenciaDestino ?? "(agencia por confirmar)"}`, d.agenciaDireccion ?? "(falta la dirección de la agencia)"].join("\n");
+    obsDireccion = [
+      "DESTINO FINAL:",
+      d.direccion ?? "—",
+      // ANDINAS, 30-09: la dirección ya venía dentro de la nota y salía dos veces.
+      d.direccionFinal && !yaDice(d.direccion, d.direccionFinal) ? d.direccionFinal : null,
+    ]
+      .filter((x) => x !== null)
+      .join("\n");
+    if (d.direccionFinal) resaltadoDireccion = "EQUIPO DEBERÁ LLEGAR A DOMICILIO";
+  } else {
+    direccion = [
+      d.entregaModo === "domicilio" ? "ENTREGA A DOMICILIO" : null,
+      d.direccion ?? "—",
+      d.direccionFinal && !yaDice(d.direccion, d.direccionFinal) ? `DIRECCIÓN FINAL: ${d.direccionFinal}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
 
   const recibe = [d.recibeNombre ?? "—", d.recibeDoc ? `DNI: ${d.recibeDoc}` : null, d.recibeTelefono ? `Cel: ${d.recibeTelefono}` : null]
     .filter(Boolean)
     .join("\n");
 
   return [
-    { n: 1, descripcion: "APERTURA DE SERVICIO", informacion: equipo, observaciones: d.hora ?? "—" },
+    { n: 1, descripcion: "SERVICIO A REALIZAR", informacion: equipo, observaciones: d.hora ?? "—" },
     { n: 2, descripcion: "CLIENTE", informacion: `${d.cliente}${d.ruc ? `\nRUC: ${d.ruc}` : ""}`, observaciones: "" },
-    { n: 3, descripcion: "DIRECCIÓN", informacion: direccion, observaciones: "" },
-    { n: 4, descripcion: "DÍA DEL SERVICIO", informacion: d.fecha ? fechaCalendario(d.fecha) : "—", observaciones: "" },
-    { n: 5, descripcion: "PERSONAL QUE RECIBE", informacion: recibe, observaciones: "" },
+    { n: 3, descripcion: "DIRECCIÓN", informacion: direccion, observaciones: obsDireccion, resaltado: resaltadoDireccion },
+    { n: 4, descripcion: "PROGRAMACIÓN", informacion: d.fecha ? fechaCalendario(d.fecha) : "—", observaciones: "" },
+    { n: 5, descripcion: "PERSONA QUE RECIBE", informacion: recibe, observaciones: "" },
     { n: 6, descripcion: "PERSONAL ASIGNADO PARA EL SERVICIO", informacion: d.tecnico ?? "—", observaciones: "" },
     { n: 7, descripcion: "MEDIO DE TRANSPORTE PERSONAL TÉCNICO", informacion: d.transporte ?? "—", observaciones: "" },
-    { n: 8, descripcion: "REQUISICIÓN POR MOVILIDAD (IDA Y VUELTA, REFERENCIA).", informacion: GESTION_CONTABILIDAD, observaciones: "" },
-    { n: 9, descripcion: "MONTO DE VIÁTICOS", informacion: GESTION_CONTABILIDAD, observaciones: "" },
+    { n: 8, descripcion: "REQUISICIÓN POR MOVILIDAD (IDA Y VUELTA, REFERENCIA).", informacion: GESTION_CONTABILIDAD, observaciones: RESPONSABLE_CONTABILIDAD },
+    { n: 9, descripcion: "MONTO DE VIÁTICOS", informacion: GESTION_CONTABILIDAD, observaciones: RESPONSABLE_CONTABILIDAD },
+    { n: 10, descripcion: "COORDINACIÓN CON LOGÍSTICA", informacion: COORDINACION_LOGISTICA, observaciones: RESPONSABLE_LOGISTICA },
   ];
 }
 
@@ -186,17 +203,23 @@ export function cuerpoApertura(d: DatosApertura): string {
   const filas = filasApertura(d)
     .map((f) => {
       const info = f.informacion.split("\n").filter(Boolean);
-      const cabeza = `${f.n}. ${f.descripcion}${f.observaciones ? `   [${f.observaciones}]` : ""}`;
-      return [cabeza, ...info.map((x) => `   ${x}`)].join("\n");
+      const obs = [...f.observaciones.split("\n"), f.resaltado ? `NOTA: ${f.resaltado}` : ""].map((x) => x.trim()).filter(Boolean);
+      // Una observación corta (la hora, un nombre) va al lado; una larga (el destino final), debajo.
+      const corta = obs.length === 1 && obs[0].length <= 20;
+      const cabeza = `${f.n}. ${f.descripcion}${corta ? `   [${obs[0]}]` : ""}`;
+      return [cabeza, ...info.map((x) => `   ${x}`), ...(!corta && obs.length ? ["   Observaciones:", ...obs.map((x) => `   ${x}`)] : [])].join("\n");
     })
     .join("\n\n");
 
+  // El saludo según la hora de Lima, como el modelo («Buenas Tardes Estimados,»).
+  const hora = Number(new Date().toLocaleString("en-US", { timeZone: "America/Lima", hour: "numeric", hour12: false }));
+  const saludo = hora < 12 ? "Buenos Días" : hora < 19 ? "Buenas Tardes" : "Buenas Noches";
   return (
-    "Buen día Estimados,\n\n" +
+    `${saludo} Estimados,\n\n` +
     "Por medio de la presente, pongo de su conocimiento que en coordinación con el Ing. Carlos; " +
-    "se ha quedado en agenda el siguiente servicio:\n\n" +
+    `se ha quedado en agenda el siguiente ${queQuedaEnAgenda(d.tipo)}:\n\n` +
     filas +
-    "\n"
+    "\n\nAtentamente,\n"
   );
 }
 
