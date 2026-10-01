@@ -8,6 +8,7 @@ import { PuntoInteres } from "@/components/crm/punto-interes";
 import type { FilaOportunidadListado } from "@/lib/reportes";
 import { fechaCalendario } from "@/lib/fechas";
 import { TrabajarHistoricaBoton } from "@/components/crm/trabajar-historica-boton";
+import { PastillaOrigenOportunidad } from "@/components/crm/pastilla-origen-oportunidad";
 
 // Presentacional pura: la página ya trae la fila filtrada, ordenada y
 // paginada desde listar_oportunidades() (migración 0054) — antes esta tabla
@@ -51,6 +52,8 @@ export function TablaOportunidades({ filas }: { filas: FilaOportunidadListado[] 
                   <span className="line-clamp-2 min-w-0" title={op.razon_social}>
                     {op.razon_social}
                   </span>
+                  {/* Central / Campaña WA / Web (Desiré, 01-10): por dónde llegó, sin entrar. */}
+                  <PastillaOrigenOportunidad origen={op.origen_lead} via={op.via} className="mt-0.5" />
                   {op.origen !== "crm" && (
                     <span className="mt-0.5 flex-none rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                       Excel
