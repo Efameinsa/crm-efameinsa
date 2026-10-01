@@ -8,6 +8,9 @@ import { FiltroFechaSupervision } from "@/components/crm/filtro-fecha-supervisio
 import { TarjetaSupervision } from "@/components/crm/tarjeta-supervision";
 import { LineasIndicadoresSupervision, ResumenEquipoHoy } from "@/components/crm/indicadores-comerciales";
 import { cargarIndicadoresDelDia, idsQueVenden } from "@/lib/indicadores-comerciales";
+import { VisitasEquipo } from "@/components/crm/visitas-equipo";
+import { cargarVisitasEquipo } from "@/lib/visitas-equipo";
+import { lunesDe, sumarDias } from "@/lib/calendario";
 
 // Depende de searchParams y de datos vivos: nunca cachear.
 export const dynamic = "force-dynamic";
@@ -46,7 +49,13 @@ export default async function SupervisionPage({
   // salían tarjetas con «Visitas 0/2» de gente que no visita a nadie.
   const candidatos = resumen.comerciales.filter((c) => !c.es_postventa).map((c) => c.id);
   const ids = [...(await idsQueVenden(supabase, candidatos, hoy))];
-  const [indicadores, { count: programadasPlanta }] = await Promise.all([
+  // La LISTA de visitas, no solo el número (ing. Carlos, 01-10 11:05: «lo que
+  // no vi es la bendita visitas, no sé dónde están»). La semana entera, de
+  // lunes a domingo, de todos los que no son postventa: también los que aún
+  // no venden, si tienen algo agendado.
+  const lunes = lunesDe(fecha);
+  const domingo = sumarDias(lunes, 6);
+  const [indicadores, { count: programadasPlanta }, visitas] = await Promise.all([
     cargarIndicadoresDelDia(supabase, ids, fecha, hoy),
     supabase
       .from("visitas_planta")
@@ -54,6 +63,7 @@ export default async function SupervisionPage({
       .eq("fecha", fecha)
       .is("cancelada_at", null)
       .is("cerrada_at", null),
+    cargarVisitasEquipo(supabase, { desde: lunes, hasta: domingo, hoy, ids: candidatos }),
   ]);
   const codigos = new Map(resumen.comerciales.map((c) => [c.id, c.codigo ?? c.nombre.split(" ")[0]]));
   // Postventa TAMBIÉN se muestra (pedido de gerencia 25-08: «hay que mostrar
@@ -61,6 +71,7 @@ export default async function SupervisionPage({
   // KPI «En meta» — un caso de garantía no es una gestión de venta y medirla
   // contra la meta de 30 seguimientos sería injusto en ambas direcciones.
   const comerciales = resumen.comerciales.filter((c) => !c.es_postventa);
+  const nombresVisitas = new Map(comerciales.map((c) => [c.id, c.codigo ? `${c.codigo} · ${c.nombre}` : c.nombre]));
   const postventa = resumen.comerciales.filter((c) => c.es_postventa);
 
   return (
@@ -92,6 +103,13 @@ export default async function SupervisionPage({
       </div>
 
       <ResumenEquipoHoy eq={indicadores} nombres={codigos} programadasPlanta={programadasPlanta ?? 0} esHoy={fecha === hoy} />
+      {/* Los números de arriba llevan a la lista de abajo: Carlos buscó las
+          visitas en esta pantalla y no las encontró (01-10). */}
+      <p className="-mt-2 text-right text-xs">
+        <a href="#visitas" className="font-medium text-primary hover:underline">
+          Ver quién visita a quién esta semana ↓
+        </a>
+      </p>
 
       {(totales.comerciales_sin_actividad > 0 || totales.cotizaciones_archivo_sin_asesor > 0) && (
         <div className="space-y-1 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
@@ -142,6 +160,18 @@ export default async function SupervisionPage({
           </Link>
           .
         </p>
+      </SeccionPanel>
+
+      <SeccionPanel titulo="Visitas del equipo" id="visitas">
+        <VisitasEquipo
+          lista={visitas}
+          nombres={nombresVisitas}
+          orden={comerciales.map((c) => c.id)}
+          fecha={fecha}
+          desde={lunes}
+          hasta={domingo}
+          hoy={hoy}
+        />
       </SeccionPanel>
     </div>
   );
