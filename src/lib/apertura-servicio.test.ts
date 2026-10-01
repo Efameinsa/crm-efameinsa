@@ -153,6 +153,8 @@ describe("las nueve filas llevan lo que el correo lleva", () => {
     expect(fila.resaltado ?? null).toBeNull();
     // Si la agencia lo lleva hasta el cliente, la nota resaltada del modelo.
     expect(filasApertura({ ...d, direccionFinal: "Abtao 951 – Hotel Brancaccio" })[2].resaltado).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
+    expect(filasApertura({ ...d, agenciaDestino: "AGENCIA SHALOM" })[2].informacion.startsWith("AGENCIA SHALOM\n")).toBe(true);
+    expect(filasApertura({ ...d, agenciaDestino: "ANGENCIA MARVISUR" })[2].informacion.startsWith("ANGENCIA MARVISUR\n")).toBe(true);
     expect(faltantesApertura(d)).not.toContain("la dirección de la agencia (primer destino)");
     expect(faltantesApertura({ ...d, agenciaDireccion: null })).toContain("la dirección de la agencia (primer destino)");
   });
