@@ -153,10 +153,10 @@ export default async function AlmacenPage() {
             target="_blank"
             rel="noreferrer"
             className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-accent"
-            title="Cada pedido en curso, qué lo frena y los pasos que faltan, para imprimir o guardar en PDF (Lesly, 01-10). Adentro también se baja en Excel."
+            title="Códigos dados, pendientes de código, por probar, despachos y otras actividades, para imprimir o guardar en PDF (Lesly, 01-10)."
           >
             <FileText className="size-3.5" aria-hidden />
-            Reporte de pendientes (PDF)
+            Reporte del almacén (PDF)
           </a>
         }
       >
