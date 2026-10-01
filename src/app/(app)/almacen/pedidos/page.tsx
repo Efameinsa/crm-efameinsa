@@ -100,6 +100,31 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
       queFaltaCodificar.set(id, m);
     }
   }
+  // LO YA RESPONDIDO (Lesly, 01-10: «cuando doy código y salgo de la página ya
+  // no tengo la opción de ver lo que respondí para imprimir»). Al completar las
+  // series el pedido sale de la cola; queda abajo, con su hoja de respuesta.
+  const respondidos: { s: (typeof todos)[number]; at: string }[] = [];
+  if (porSeries) {
+    const candidatos = todos.filter((t) => (faltanSeries.get(t.id) ?? 0) === 0).map((t) => t.id);
+    const ultima = new Map<string, string>();
+    for (let i = 0; i < candidatos.length; i += 100) {
+      const { data: filas } = await supabase
+        .from("pedido_equipos")
+        .select("servicio_id, serie_registrada_at")
+        .in("servicio_id", candidatos.slice(i, i + 100))
+        .not("serie", "is", null);
+      for (const f of (filas ?? []) as { servicio_id: string; serie_registrada_at: string | null }[]) {
+        const at = f.serie_registrada_at ?? "";
+        if (at > (ultima.get(f.servicio_id) ?? "")) ultima.set(f.servicio_id, at);
+      }
+    }
+    const hace30 = new Date(new Date(`${hoy}T00:00:00-05:00`).getTime() - 30 * 86_400_000).toISOString();
+    for (const t of todos) {
+      const at = ultima.get(t.id);
+      if (at && at >= hace30) respondidos.push({ s: t, at });
+    }
+    respondidos.sort((a, b) => b.at.localeCompare(a.at));
+  }
   const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
   const filas = todos.filter((s) => {
     switch (ver) {
@@ -205,6 +230,33 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
             );
           })}
         </ul>
+      )}
+      {porSeries && respondidos.length > 0 && (
+        <div className="mt-5 border-t border-border pt-3">
+          <h3 className="text-sm font-semibold text-foreground">Ya respondidos · últimos 30 días</h3>
+          <p className="mb-2 text-[11px] text-muted-foreground">El código ya se dio: queda acá para volver a imprimir la respuesta.</p>
+          <ul className="divide-y divide-border">
+            {respondidos.slice(0, 40).map(({ s, at }) => (
+              <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2">
+                <span className="w-24 flex-none text-xs tabular-nums text-muted-foreground">
+                  {new Date(at).toLocaleDateString("en-CA", { timeZone: "America/Lima" })}
+                </span>
+                <Link href={`/almacen/pedidos/${s.id}`} className="min-w-0 flex-1 hover:underline">
+                  <span className="block text-sm font-semibold text-foreground">{cliente(s.cliente_texto)}</span>
+                  <span className="line-clamp-1 break-words text-xs text-muted-foreground">{s.equipo}</span>
+                </Link>
+                <a
+                  href={`/almacen/pedidos/${s.id}/solicitud?que=respuesta`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md border border-primary bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                >
+                  <Printer className="size-3.5" /> Imprimir la respuesta
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </SeccionPanel>
   );
