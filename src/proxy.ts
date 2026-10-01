@@ -86,6 +86,14 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const esRutaLogin = pathname === "/login";
 
+  // DIAGNÓSTICO 01-10-2026 (quién entra por la red local y quién por internet):
+  // una línea por cambio de pantalla en el registro del servicio. Se lee con
+  // /opt/piloto/quien-entra-por-donde.sh. Quitar cuando todos vayan por la red local.
+  if (user && process.env.REGISTRAR_ACCESOS === "1") {
+    const ip = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "-";
+    console.log(`[acceso] ${user.id} ${request.headers.get("host") ?? "-"} ${ip} ${pathname}`);
+  }
+
   // CUENTAS DE DEMOSTRACIÓN DE LA PROPUESTA (0280). Gerencia recorre la
   // navegación nueva con `…_test@efameinsa.com`: el servidor lee con la sesión
   // de la cuenta original (espejo.ts) y NADA se escribe. Primera barrera:
