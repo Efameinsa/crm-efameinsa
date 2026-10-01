@@ -11,7 +11,7 @@ import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import type { ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import { torresSinSegundaSerie } from "@/lib/torres";
-import { FileSpreadsheet } from "lucide-react";
+import { FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -149,14 +149,15 @@ export default async function AlmacenPage() {
         titulo="Pedidos"
         accion={
           <a
-          href="/api/postventa/pedidos/reporte?de=almacen"
-          download
-          className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-accent"
-          title="Excel con cada pedido en curso, qué lo frena y los pasos que faltan (Lesly, 30-09)"
-        >
-          <FileSpreadsheet className="size-3.5" aria-hidden />
-          Reporte de pendientes
-        </a>
+            href="/almacen/pedidos/reporte"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-accent"
+            title="Cada pedido en curso, qué lo frena y los pasos que faltan, para imprimir o guardar en PDF (Lesly, 01-10). Adentro también se baja en Excel."
+          >
+            <FileText className="size-3.5" aria-hidden />
+            Reporte de pendientes (PDF)
+          </a>
         }
       >
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
