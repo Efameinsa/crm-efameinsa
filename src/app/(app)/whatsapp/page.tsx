@@ -1,6 +1,6 @@
 import { MessageCircle } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
-import { conversacionesDe, comercialesActivos, type FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
+import { conversacionesDe, comercialesActivos, contarChatsNoLeidos, type FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
 import { tipificacionesActuales } from "@/lib/acciones/whatsapp-campanas";
 import { WhatsappListaConversaciones } from "@/components/crm/whatsapp-lista-conversaciones";
 
@@ -17,15 +17,16 @@ export default async function WhatsappPage({
 }) {
   const perfil = await requerirPerfil();
   const sp = await searchParams;
-  const filtro = (["sin_atender", "mias", "todas", "cerradas"].includes(sp.filtro ?? "") ? sp.filtro : "sin_atender") as FiltroConversaciones;
+  const filtro = (["no_leidos", "sin_atender", "mias", "todas", "cerradas"].includes(sp.filtro ?? "") ? sp.filtro : "sin_atender") as FiltroConversaciones;
   // Elegir "ver los chats de…" es cosa de quien deriva y supervisa, no de un
   // comercial normal (Santos, 15-09: pidió una vista por comercial antes de
   // ver la mezcla de "Todas").
   const esCentral = perfil.rol === "central" || perfil.rol === "gerencia" || perfil.rol === "admin";
 
-  const [conversaciones, comerciales] = await Promise.all([
+  const [conversaciones, comerciales, chatsNoLeidos] = await Promise.all([
     conversacionesDe(filtro, esCentral ? sp.comercial : undefined),
     esCentral ? comercialesActivos() : Promise.resolve([]),
+    contarChatsNoLeidos(esCentral ? sp.comercial : undefined),
   ]);
 
   const tipificados = await tipificacionesActuales(conversaciones.map((c) => c.lead_id).filter((x): x is string => Boolean(x)));
@@ -39,6 +40,7 @@ export default async function WhatsappPage({
           comerciales={comerciales}
           comercialActivo={sp.comercial}
           leadsTipificados={tipificados.map((t) => t.lead_id)}
+          chatsNoLeidos={chatsNoLeidos}
         />
       </div>
       <div className="hidden flex-1 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground md:flex">

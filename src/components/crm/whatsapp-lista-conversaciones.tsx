@@ -1,9 +1,9 @@
 "use client";
 
 // Lista de conversaciones de la bandeja de WhatsApp (fase 2, 15-09-2026).
-// Cuatro pestañas: Sin atender (lo que nadie tomó), Mías (lo que tengo
-// asignado), Todas (Central y gerencia) y Cerradas — mismo criterio de
-// filtros que otras bandejas del CRM.
+// Pestañas: No leídos (lo que me escribieron y no abrí, 0374), Sin atender
+// (lo que nadie tomó), Mías (lo que tengo asignado), Todas (Central y
+// gerencia) y Cerradas — mismo criterio de filtros que otras bandejas del CRM.
 //
 // LA LISTA NO SE CORRE (23-09, comercial: «le hago clic a un cliente del
 // chat y como que se corre»). Cada chat es otra página, así que al abrirlo la
@@ -13,14 +13,15 @@
 // enlaces no desplazan la página, y el buscador conserva lo escrito.
 
 import Link from "@/components/enlace";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MessageCircle, Search, X } from "lucide-react";
+import { CheckCheck, MessageCircle, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { coincideBusquedaWa, etiquetaDeContactoWa } from "@/lib/contacto-whatsapp";
 import { cn } from "@/lib/utils";
 import { fechaHoraLima } from "@/lib/fechas";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { buscarConversacionesWa, type ConversacionWhatsapp, type FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
+import { buscarConversacionesWa, marcarChatsLeidos, type ConversacionWhatsapp, type FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
 import { ventanaDe } from "@/lib/whatsapp";
 
 const TODOS_LOS_COMERCIALES = "__todos";
@@ -33,6 +34,9 @@ const ESTADO_LEGIBLE: Record<ConversacionWhatsapp["estado"], string> = {
 };
 
 const PESTANAS: { valor: FiltroConversaciones; etiqueta: string }[] = [
+  // Primera, como el filtro de WhatsApp (comercial, 02-10: «tengo que estar
+  // buscando en cada chat»).
+  { valor: "no_leidos", etiqueta: "No leídos" },
   { valor: "sin_atender", etiqueta: "Sin atender" },
   { valor: "mias", etiqueta: "Mías" },
   { valor: "todas", etiqueta: "Todas" },
@@ -72,6 +76,7 @@ export function WhatsappListaConversaciones({
   comerciales,
   comercialActivo,
   leadsTipificados = [],
+  chatsNoLeidos = 0,
 }: {
   conversaciones: ConversacionWhatsapp[];
   filtroActivo: FiltroConversaciones;
@@ -81,9 +86,15 @@ export function WhatsappListaConversaciones({
   comercialActivo?: string;
   /** Los leads que YA tienen resultado marcado (22-09): el resto se ve «sin marcar». */
   leadsTipificados?: string[];
+  /** Chats abiertos que le escribieron y no abrió, para el número de «No leídos» (0374). */
+  chatsNoLeidos?: number;
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const [marcando, iniciarMarcado] = useTransition();
+  // El chat abierto ya se está leyendo: el servidor contó antes de que se marcara.
+  const sinLeerDe = (c: ConversacionWhatsapp) => (c.id === idActivo ? 0 : c.no_leidos);
+  const noLeidosEnPestana = chatsNoLeidos - (conversaciones.some((c) => c.id === idActivo && c.no_leidos > 0) ? 1 : 0);
   // MARCAR ANTES DE QUE TERMINE EL DÍA (Carlos, 22-09): «antes del final del
   // día tiene que haber clasificado, porque si no, al día siguiente ya no
   // tiene sentido; la atención es en el día». Acá se ve cuántas faltan.
@@ -161,8 +172,20 @@ export function WhatsappListaConversaciones({
     router.push(`/whatsapp?${sp.toString()}`, { scroll: false });
   }
 
+  function marcarTodosLeidos() {
+    const ids = conversaciones.filter((c) => sinLeerDe(c) > 0).map((c) => c.id);
+    iniciarMarcado(async () => {
+      const r = await marcarChatsLeidos(ids);
+      if (r.error) toast.error(r.error);
+      else router.refresh();
+    });
+  }
+
   function fila(c: ConversacionWhatsapp, mostrarEstado = false) {
     const semaforo = ventanaSemaforo(c.ultimo_mensaje_cliente_at, c.anuncio_at);
+    // Como WhatsApp: el no leído va en negrita, con la hora en verde y el
+    // globito con cuántos mensajes le faltan ver. Se reconoce de un vistazo.
+    const sinLeer = sinLeerDe(c);
     return (
       <Link
         key={c.id}
@@ -172,13 +195,18 @@ export function WhatsappListaConversaciones({
         className={cn(
           "flex items-start gap-2.5 border-b border-border/60 px-3 py-3 transition-colors hover:bg-secondary/50",
           idActivo === c.id && "bg-secondary",
+          sinLeer > 0 && idActivo !== c.id && "bg-emerald-50/60 dark:bg-emerald-950/20",
         )}
       >
         <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", semaforo.color)} title={semaforo.titulo} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm font-semibold text-foreground">{c.nombre_wa || etiquetaDeContactoWa(c)}</p>
-            <span className="shrink-0 text-[10px] text-muted-foreground">{fechaHoraLima(c.ultimo_mensaje_at)}</span>
+            <p className={cn("truncate text-sm text-foreground", sinLeer > 0 ? "font-bold" : "font-semibold")}>
+              {c.nombre_wa || etiquetaDeContactoWa(c)}
+            </p>
+            <span className={cn("shrink-0 text-[10px]", sinLeer > 0 ? "font-semibold text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>
+              {fechaHoraLima(c.ultimo_mensaje_at)}
+            </span>
           </div>
           {c.nombre_wa && <p className="truncate text-[11px] tabular-nums text-muted-foreground">{etiquetaDeContactoWa(c)}</p>}
           {c.codigo_campania_wa && (
@@ -198,7 +226,19 @@ export function WhatsappListaConversaciones({
               </span>
             )
           )}
-          <p className="truncate text-xs text-muted-foreground">{c.ultimo_texto ?? "—"}</p>
+          <div className="flex items-center gap-2">
+            <p className={cn("min-w-0 flex-1 truncate text-xs", sinLeer > 0 ? "font-medium text-foreground" : "text-muted-foreground")}>
+              {c.ultimo_texto ?? "—"}
+            </p>
+            {sinLeer > 0 && (
+              <span
+                className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-[10px] font-bold tabular-nums text-white"
+                aria-label={`${sinLeer} sin leer`}
+              >
+                {sinLeer > 99 ? "99+" : sinLeer}
+              </span>
+            )}
+          </div>
           {c.asignado_a_nombre && <p className="truncate text-[10px] text-muted-foreground/70">Con {c.asignado_a_nombre}</p>}
         </div>
       </Link>
@@ -219,6 +259,16 @@ export function WhatsappListaConversaciones({
             )}
           >
             {p.etiqueta}
+            {p.valor === "no_leidos" && noLeidosEnPestana > 0 && (
+              <span
+                className={cn(
+                  "ml-1 rounded-full px-1.5 text-[10px] font-bold tabular-nums",
+                  filtroActivo === p.valor ? "bg-white/25 text-white" : "bg-emerald-600 text-white",
+                )}
+              >
+                {noLeidosEnPestana > 99 ? "99+" : noLeidosEnPestana}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -266,6 +316,21 @@ export function WhatsappListaConversaciones({
         </div>
       </div>
 
+      {filtroActivo === "no_leidos" && !busqueda && conversaciones.some((c) => sinLeerDe(c) > 0) && (
+        <div className="flex items-center justify-between gap-2 border-b border-border bg-secondary/30 px-3 py-1.5">
+          <p className="text-[11px] text-muted-foreground">Le escribieron y todavía no los abrió.</p>
+          <button
+            type="button"
+            onClick={marcarTodosLeidos}
+            disabled={marcando}
+            className="flex shrink-0 cursor-pointer items-center gap-1 text-[11px] font-medium text-primary hover:underline disabled:opacity-50"
+          >
+            <CheckCheck className="size-3.5" />
+            {marcando ? "Marcando…" : "Marcar todos como leídos"}
+          </button>
+        </div>
+      )}
+
       {sinMarcar > 0 && !busqueda && (
         <p className="border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-900">
           {sinMarcar} sin marcar. El resultado se marca el mismo día: después ya no mide nada.
@@ -293,6 +358,8 @@ export function WhatsappListaConversaciones({
             <MessageCircle className="size-8 opacity-30" />
             {busqueda.trim() ? (
               <p>{buscando ? "Buscando…" : `Ningún chat con «${busqueda.trim()}».`}</p>
+            ) : filtroActivo === "no_leidos" ? (
+              <p>Está al día: no hay chats sin leer.</p>
             ) : (
               <p>Nada por acá todavía.</p>
             )}

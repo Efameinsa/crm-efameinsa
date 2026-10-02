@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requerirPerfil } from "@/lib/auth";
-import { conversacionesDe, conversacionPorId, mensajesDe, comercialesActivos, type FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
+import { conversacionesDe, conversacionPorId, mensajesDe, comercialesActivos, contarChatsNoLeidos, type FiltroConversaciones } from "@/lib/acciones/whatsapp-chat";
 import { tipificacionesActuales } from "@/lib/acciones/whatsapp-campanas";
 import { createClient } from "@/lib/supabase/server";
 import type { Oportunidad } from "@/types/database";
@@ -19,17 +19,18 @@ export default async function WhatsappConversacionPage({
   const perfil = await requerirPerfil();
   const { id } = await params;
   const sp = await searchParams;
-  const filtro = (["sin_atender", "mias", "todas", "cerradas"].includes(sp.filtro ?? "") ? sp.filtro : "todas") as FiltroConversaciones;
+  const filtro = (["no_leidos", "sin_atender", "mias", "todas", "cerradas"].includes(sp.filtro ?? "") ? sp.filtro : "todas") as FiltroConversaciones;
   const esCentral = perfil.rol === "central" || perfil.rol === "gerencia" || perfil.rol === "admin";
 
   // Santos, 21-09: «quiero que cargue más rápido… la opción de productos se
   // demora bastante». El botón «Mandar equipo» se quitó del chat; los
   // stickers (URL firmadas una por una) los trae el panel al abrirse.
-  const [conversacion, mensajes, conversaciones, comerciales] = await Promise.all([
+  const [conversacion, mensajes, conversaciones, comerciales, chatsNoLeidos] = await Promise.all([
     conversacionPorId(id),
     mensajesDe(id),
-    conversacionesDe(filtro, esCentral ? sp.comercial : undefined),
+    conversacionesDe(filtro, esCentral ? sp.comercial : undefined, id),
     comercialesActivos(),
+    contarChatsNoLeidos(esCentral ? sp.comercial : undefined),
   ]);
 
   if (!conversacion) notFound();
@@ -56,6 +57,7 @@ export default async function WhatsappConversacionPage({
           comerciales={esCentral ? comerciales : undefined}
           comercialActivo={sp.comercial}
           leadsTipificados={tipificados.map((t) => t.lead_id)}
+          chatsNoLeidos={chatsNoLeidos}
         />
       </div>
       <WhatsappHilo
