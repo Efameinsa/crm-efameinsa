@@ -5,6 +5,7 @@ import { cabeceraArchivo } from "@/lib/nombre-archivo";
 import { quitarPaginasEnBlanco } from "@/lib/pdf/paginas-en-blanco";
 import { codigoConVersion } from "@/lib/version-cotizacion";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { renglonEnSoles } from "@/lib/moneda-impresa";
 import { puedeVerPrecios } from "@/lib/postventa";
 
 export const runtime = "nodejs";
@@ -35,7 +36,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .select(
         `oportunidad_id, codigo, correlativo, serie, moneda, moneda_impresa, tipo_cambio, condiciones, vigencia_dias, entrega_lugar,
        tiempo_entrega, garantia, forma_pago, saldo, cliente_snapshot, created_at, version,
-       cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, segmento, ficha, foto_path, logo_path, panel_path)),
+       cotizacion_items(cantidad, precio_unitario, precio_con_igv, precio_impreso, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, segmento, ficha, foto_path, logo_path, panel_path)),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
       )
@@ -191,20 +192,18 @@ async function comoEstaba(
 /**
  * La misma cotización, vista en la moneda del documento.
  *
- * Multiplica los precios unitarios por el tipo de cambio congelado y cambia la
- * moneda que lee el dibujo. No toca la base: es una copia para imprimir.
+ * Imprime en soles lo que el comercial escribió en soles (0366); el resto lo
+ * multiplica por el tipo de cambio congelado. Cambia la moneda que lee el
+ * dibujo. No toca la base: es una copia para imprimir.
  */
 function enMonedaDelDocumento(c: CotizacionParaPdf): CotizacionParaPdf {
   const tc = Number(c.tipo_cambio ?? 0);
   if (c.moneda_impresa !== "PEN" || !(tc > 0)) return c;
-  const items = (c.cotizacion_items as { precio_unitario: number; precio_con_igv?: number | null }[] | null) ?? [];
+  const items = (c.cotizacion_items as { cantidad: number; precio_unitario: number; precio_con_igv?: number | null; precio_impreso?: number | null }[] | null) ?? [];
   return {
     ...c,
     moneda: "PEN",
-    cotizacion_items: items.map((i) => ({
-      ...i,
-      precio_unitario: Math.round(Number(i.precio_unitario) * tc * 100) / 100,
-      precio_con_igv: i.precio_con_igv == null ? null : Math.round(Number(i.precio_con_igv) * tc * 100) / 100,
-    })),
+    // Lo escrito en soles sale tal cual (0366); lo demás se convierte.
+    cotizacion_items: items.map((i) => renglonEnSoles(i, tc)),
   };
 }

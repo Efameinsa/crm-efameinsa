@@ -38,6 +38,7 @@ import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
 import { AYUDA_SERIE_EFAMEINSA, MOTIVO_SERIE_MINIMO, SERIE_POR_DEFECTO, problemaSerie } from "@/lib/serie-facturacion";
 import { ENTREGA_POR_DEFECTO, GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES, IGV, LUGARES_ENTREGA } from "@/lib/pdf/series";
 import { netoDeBruto, redondear2, totalesConIgv } from "@/lib/igv";
+import { renglonEnSoles } from "@/lib/moneda-impresa";
 import type {
   BorradorEnEdicion,
   HistorialPrecio,
@@ -337,6 +338,9 @@ export function PantallaCotizador({
         // Al reabrir, el renglón pactado con IGV vuelve con su check marcado
         // y su cifra negociada: si no, el autoguardado lo borraría (0233).
         precio_con_igv: i.precio_con_igv ?? null,
+        // Lo escrito en soles vuelve tal cual: si no, al reabrir el borrador
+        // se vería reconvertido (3,949.98 en vez de 3,950) (0366).
+        precio_impreso: i.precio_impreso ?? null,
         precioPiso: i.precioPiso,
         // Se resuelve contra el catálogo, no se asume `false`. Al reabrir un
         // borrador que ya traía un equipo sin ficha, el aviso desaparecía y el
@@ -431,12 +435,14 @@ export function PantallaCotizador({
   const payload = useMemo(
     () =>
       JSON.stringify({
-        items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, tier_aplicado, color }) => ({
+        items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color }) => ({
           producto_id,
           descripcion,
           cantidad,
           precio_unitario,
           precio_con_igv: precio_con_igv ?? null,
+          // Solo vale si el papel sale en soles (0366).
+          precio_impreso: enSoles ? (precio_impreso ?? null) : null,
           tier_aplicado,
           color,
         })),
@@ -749,7 +755,12 @@ export function PantallaCotizador({
   }
 
   function actualizarItem(i: number, cambios: Partial<ItemCarrito>) {
-    setCarrito((c) => c.map((item, idx) => (idx === i ? { ...item, ...cambios } : item)));
+    // Si el precio cambia por otra vía (el piso, el tier, el check de IGV sin
+    // cifra escrita), lo escrito en soles ya no corresponde: se descarta y
+    // ese renglón vuelve a convertirse desde dólares (0366).
+    const tocaPrecio = "precio_unitario" in cambios || "precio_con_igv" in cambios;
+    const ajuste = tocaPrecio && !("precio_impreso" in cambios) ? { precio_impreso: null } : {};
+    setCarrito((c) => c.map((item, idx) => (idx === i ? { ...item, ...cambios, ...ajuste } : item)));
   }
 
   function quitarItem(i: number) {
@@ -761,8 +772,11 @@ export function PantallaCotizador({
   // brutos y el IGV es la diferencia (0233): 2 × 3.600 + 1.600 = 8.800, no
   // 8.799,99. Sin renglones así, es subtotal × 1,18 como siempre.
   const totales = totalesConIgv(carrito);
-  const subtotal = totales.subtotal;
-  const igv = totales.igv;
+  // Lo que se muestra y se imprime en soles se suma EN SOLES, desde lo escrito
+  // (0366): convertir el total en dólares daba 16,449.99 en vez de 16,450.
+  const carritoVista = enSoles ? carrito.map((r) => renglonEnSoles(r, tcDelDocumento)) : carrito;
+  const totalesVista = totalesConIgv(carritoVista);
+  const importeVista = (n: number) => `${simbolo} ${monto(dosDecimales(n))}`;
   // Todas las líneas del catálogo = son máquinas; cualquier línea escrita a
   // mano ya es un ítem, no un equipo.
   const soloMaquinas = carrito.length > 0 && carrito.every((i) => i.producto_id !== null);
@@ -1326,8 +1340,14 @@ export function PantallaCotizador({
                                 actualizarItem(
                                   i,
                                   e.target.checked
-                                    ? { precio_con_igv: redondear2(item.precio_unitario * (1 + IGV)) }
-                                    : { precio_con_igv: null },
+                                    ? {
+                                        precio_con_igv: redondear2(item.precio_unitario * (1 + IGV)),
+                                        precio_impreso: item.precio_impreso == null ? null : redondear2(item.precio_impreso * (1 + IGV)),
+                                      }
+                                    : {
+                                        precio_con_igv: null,
+                                        precio_impreso: item.precio_impreso == null ? null : netoDeBruto(item.precio_impreso),
+                                      },
                                 )
                               }
                             />
@@ -1338,14 +1358,23 @@ export function PantallaCotizador({
                             min={0}
                             step="0.01"
                             className={cn("w-32 tabular-nums", bajoLista && "border-amber-500 text-amber-800")}
-                            value={aVista(conIgv ? (item.precio_con_igv ?? 0) : item.precio_unitario)}
+                            // En soles se muestra lo que se escribió, no la vuelta
+                            // por dólares: antes el campo se reescribía mientras
+                            // se tecleaba (3950 → 3949.98) (Gabriela, 01-10; 0366).
+                            value={
+                              enSoles && item.precio_impreso != null
+                                ? item.precio_impreso
+                                : aVista(conIgv ? (item.precio_con_igv ?? 0) : item.precio_unitario)
+                            }
                             onChange={(e) => {
-                              const escrito = aDolares(Number(e.target.value) || 0);
+                              const vista = Number(e.target.value) || 0;
+                              const escrito = aDolares(vista);
+                              const impreso = enSoles ? vista : null;
                               actualizarItem(
                                 i,
                                 conIgv
-                                  ? { precio_con_igv: escrito, precio_unitario: netoDeBruto(escrito), tier_aplicado: undefined }
-                                  : { precio_unitario: escrito, tier_aplicado: undefined },
+                                  ? { precio_con_igv: escrito, precio_unitario: netoDeBruto(escrito), precio_impreso: impreso, tier_aplicado: undefined }
+                                  : { precio_unitario: escrito, precio_impreso: impreso, tier_aplicado: undefined },
                               );
                             }}
                             // EL ENTER QUE NO HACÍA NADA. Se escribe el
@@ -1370,11 +1399,11 @@ export function PantallaCotizador({
                         <div className="min-w-[7rem] space-y-1 text-right">
                           <Label className="text-[11px] text-muted-foreground">Subtotal</Label>
                           <p className="h-9 text-sm font-semibold tabular-nums leading-9 text-foreground">
-                            {importe(item.cantidad * item.precio_unitario)}
+                            {importeVista(item.cantidad * carritoVista[i].precio_unitario)}
                           </p>
                           {conIgv && (
                             <p className="text-[11px] text-muted-foreground">
-                              sin IGV {importe(item.precio_unitario)} c/u · con IGV {importe(item.cantidad * (item.precio_con_igv ?? 0))}
+                              sin IGV {importeVista(carritoVista[i].precio_unitario)} c/u · con IGV {importeVista(item.cantidad * (carritoVista[i].precio_con_igv ?? 0))}
                             </p>
                           )}
                         </div>
@@ -1762,15 +1791,15 @@ export function PantallaCotizador({
                       catálogo de máquinas (informe de UX del 08-09). */}
                   {carrito.length} {carrito.length === 1 ? unidad : `${unidad}s`}
                 </span>
-                <span className="tabular-nums">{importe(subtotal)}</span>
+                <span className="tabular-nums">{importeVista(totalesVista.subtotal)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>IGV {(IGV * 100).toFixed(0)}%</span>
-                <span className="tabular-nums">{importe(igv)}</span>
+                <span className="tabular-nums">{importeVista(totalesVista.igv)}</span>
               </div>
               <div className="flex justify-between border-t border-border pt-1.5 text-base font-bold text-foreground">
                 <span>Total con IGV</span>
-                <span className="tabular-nums">{importe(totales.total)}</span>
+                <span className="tabular-nums">{importeVista(totalesVista.total)}</span>
               </div>
             </div>
 
@@ -1851,7 +1880,7 @@ export function PantallaCotizador({
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Total con IGV</dt>
-                <dd className="font-bold tabular-nums text-foreground">{importe(totales.total)}</dd>
+                <dd className="font-bold tabular-nums text-foreground">{importeVista(totalesVista.total)}</dd>
                 {enSoles && (
                   <>
                     <dt className="text-muted-foreground">Equivale a</dt>

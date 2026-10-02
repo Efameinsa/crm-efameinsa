@@ -16,6 +16,8 @@ export interface ItemCotizacion {
   precio_unitario: number;
   /** Precio unitario pactado CON IGV, cuando el renglón se marcó así (0233). */
   precio_con_igv?: number | null;
+  /** El precio tal como se escribió en soles (con IGV si el renglón va con IGV), para que el PDF no lo reconvierta (0366). */
+  precio_impreso?: number | null;
   tier_aplicado?: string;
   /** Color con el que se ofrece este equipo, elegido en el buscador (migración
    *  0088). null/ausente = no se eligió: el PDF lista los disponibles. */
@@ -262,7 +264,7 @@ export async function cambiarSerieBorrador(datos: {
   const { data: original } = await supabase
     .from("cotizaciones")
     .select(
-      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, tier_aplicado, color)",
+      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color)",
     )
     .eq("id", datos.cotizacionId)
     .maybeSingle();
@@ -278,6 +280,7 @@ export async function cambiarSerieBorrador(datos: {
       cantidad: number;
       precio_unitario: number;
       precio_con_igv: number | null;
+      precio_impreso: number | null;
       tier_aplicado: string | null;
       color: string | null;
     }[]) ?? [];
@@ -292,6 +295,7 @@ export async function cambiarSerieBorrador(datos: {
       cantidad: i.cantidad,
       precio_unitario: i.precio_unitario,
       precio_con_igv: i.precio_con_igv,
+      precio_impreso: i.precio_impreso,
       tier_aplicado: i.tier_aplicado ?? undefined,
       color: i.color,
     })),
@@ -331,7 +335,7 @@ export async function duplicarCotizacion(
 
   const { data: original, error: errorOriginal } = await supabase
     .from("cotizaciones")
-    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, tier_aplicado, color)")
+    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color)")
     .eq("id", cotizacionId)
     .maybeSingle();
   if (errorOriginal) return { error: errorOriginal.message };
@@ -344,6 +348,7 @@ export async function duplicarCotizacion(
       cantidad: number;
       precio_unitario: number;
       precio_con_igv: number | null;
+      precio_impreso: number | null;
       tier_aplicado: string | null;
       color: string | null;
     }[]) ?? [];
@@ -360,6 +365,7 @@ export async function duplicarCotizacion(
       cantidad: i.cantidad,
       precio_unitario: i.precio_unitario,
       precio_con_igv: i.precio_con_igv,
+      precio_impreso: i.precio_impreso,
       tier_aplicado: i.tier_aplicado ?? undefined,
       // El color elegido es parte de lo que se le ofreció al cliente: sin él,
       // la copia saldría con otro color y otra foto en el PDF.
