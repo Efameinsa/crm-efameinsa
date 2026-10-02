@@ -142,6 +142,47 @@ async function llamar(fn: string, args: Record<string, unknown>) {
   return { error: null };
 }
 
+/** Un file del inventario físico de Central (0372). */
+export interface FileDelInventario {
+  id: string;
+  empresa: "efameinsa" | "open";
+  tipo: "archivador" | "file";
+  nombre: string;
+  /** «Estante PRIMERO · SEGUNDO CAJÓN» */
+  ubicacion: string | null;
+  anio: number | null;
+  documento: string | null;
+}
+
+type FilaInventario = { id: string; empresa: "efameinsa" | "open"; tipo: "archivador" | "file"; nombre: string; estante: string | null; cajon: string | null; anio: number | null; documento: string | null };
+
+/**
+ * INVENTARIO DE FILES (0372). Santos, 02-10: «en la búsqueda de solicitud de
+ * files, solo tenga esta data de Efameinsa y Open Investments». Se busca en
+ * el inventario que Central levantó al 23-09-2026, no en las fichas del CRM:
+ * cada resultado ya dice de qué empresa es y dónde está.
+ */
+export async function buscarInventarioFiles(q: string): Promise<FileDelInventario[]> {
+  await requerirPerfil();
+  const texto = q.trim();
+  if (texto.length < 3) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("buscar_inventario_files", { p_q: texto });
+  return ((data ?? []) as FilaInventario[]).map((f) => ({
+    id: f.id,
+    empresa: f.empresa,
+    tipo: f.tipo,
+    nombre: f.nombre,
+    ubicacion: [f.estante && `Estante ${f.estante}`, f.cajon].filter(Boolean).join(" · ") || null,
+    anio: f.anio,
+    documento: f.documento,
+  }));
+}
+
+export async function solicitarFilesDelInventario(ids: string[], nota: string | null) {
+  return llamar("files_solicitar_inventario", { p_items: ids, p_nota: nota });
+}
+
 /** De qué empresa del grupo es el archivador que se pide (0341). */
 export type EmpresaFile = "open" | "efameinsa" | "ambos";
 
