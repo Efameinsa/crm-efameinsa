@@ -44,7 +44,7 @@ async function personaActual() {
   if (!user) return null;
   const { data: perfil } = await supabase
     .from("perfiles")
-    .select("id, nombre, trabajo_de_campo, es_prueba, rastreo_excluido, activo")
+    .select("id, nombre, rol, trabajo_de_campo, es_prueba, rastreo_excluido, activo")
     .eq("id", user.id)
     .maybeSingle();
   if (!perfil || perfil.activo === false) return null;
@@ -53,6 +53,7 @@ async function personaActual() {
     perfil: perfil as {
       id: string;
       nombre: string | null;
+      rol: string | null;
       trabajo_de_campo: boolean | null;
       es_prueba: boolean | null;
       rastreo_excluido: boolean | null;

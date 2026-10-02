@@ -24,7 +24,7 @@ import { AYUDA_PERMISO, permisoPendiente, plugin, type EstadoRastreo, type Rastr
  * Nunca bloquea el CRM: si algo falta, lo dice y deja trabajar.
  */
 
-type Fase = "iniciando" | "oculto" | "consentimiento" | "trabajando" | "desactivado";
+type Fase = "iniciando" | "oculto" | "consentimiento" | "trabajando" | "desactivado" | "sinGps" | "error";
 
 const SONDEO_MS = 3000;
 
@@ -62,7 +62,10 @@ export function RastreoNativo() {
   const revisar = useCallback(async () => {
     try {
       const p = rastreo.current ?? (rastreo.current = await plugin());
-      if (!p) return setFase("oculto");
+      // Este componente solo se monta dentro de la app (User-Agent o cookie). Si el módulo de GPS no está,
+      // es un APK anterior al GPS: antes no decía nada y la persona se quedaba sin saber por qué
+      // (02-10-2026, el celular de Santos con C5). Ahora lo dice.
+      if (!p) return setFase("sinGps");
       let e = await p.estado();
       const r = await fetch(`/api/campo/dispositivo?instalacion_id=${encodeURIComponent(e.instalacionId)}`, { credentials: "include", cache: "no-store" });
       if (!r.ok) return; // sin sesión o sin red: no se cambia nada
@@ -88,7 +91,9 @@ export function RastreoNativo() {
       setEstado(await p.estado());
       setFase("trabajando");
     } catch (err) {
+      // Un fallo en silencio dejaba la pantalla sin nada: ahora se ve qué pasó y se puede reintentar.
       setAviso(err instanceof Error ? err.message : "No se pudo revisar el GPS.");
+      setFase((f) => (f === "iniciando" ? "error" : f));
     }
   }, [vincular]);
 
@@ -147,6 +152,42 @@ export function RastreoNativo() {
   }
 
   if (fase === "iniciando" || fase === "oculto") return null;
+
+  if (fase === "sinGps") {
+    return (
+      <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm">
+        <p className="flex items-center gap-2 font-semibold text-amber-950">
+          <AlertTriangle className="size-4" aria-hidden /> Esta versión de la app no trae el GPS
+        </p>
+        <p className="mt-1 text-foreground">
+          Instale la versión nueva de la app (pídale el APK a Sistemas) y vuelva a abrirla: ahí le saldrá la pantalla para aceptar el
+          registro de la ubicación del celular de la empresa.
+        </p>
+      </div>
+    );
+  }
+
+  if (fase === "error") {
+    return (
+      <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm">
+        <p className="flex items-center gap-2 font-semibold text-amber-950">
+          <AlertTriangle className="size-4" aria-hidden /> No se pudo preparar el GPS de este celular
+        </p>
+        {aviso && <p className="mt-1 text-muted-foreground">{aviso}</p>}
+        <button
+          type="button"
+          onClick={() => {
+            setAviso(null);
+            setFase("iniciando");
+            void revisar();
+          }}
+          className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-amber-600 px-4 text-sm font-semibold text-white"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   if (fase === "desactivado") {
     return (
