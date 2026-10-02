@@ -464,7 +464,7 @@ export function PantallaCotizador({
         // El motivo de ir con Efameinsa (0275) se autoguarda como el resto.
         motivoSerie,
       }),
-    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, monedaImpresa, tcDelDocumento, motivoSerie],
+    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, monedaImpresa, enSoles, tcDelDocumento, motivoSerie],
   );
 
   const payloadRef = useRef(payload);
@@ -752,6 +752,45 @@ export function PantallaCotizador({
 
   function quitarProducto(productoId: string) {
     setCarrito((c) => c.filter((i) => i.producto_id !== productoId));
+  }
+
+  // CAMBIAR DE MONEDA CON PRECIOS YA ESCRITOS (Gabriela, 01-10). Escribía
+  // 3,950 pensando en soles con el documento todavía en dólares; al pasarlo a
+  // soles el CRM lo convertía y salía S/ 14,338.50. Ahora, si hay líneas
+  // escritas a mano con precio, se pregunta: ¿esos números ya están en la
+  // moneda nueva (se mantienen) o hay que convertirlos? Las líneas del
+  // catálogo siempre se convierten: su precio de lista está en dólares.
+  const [monedaPendiente, setMonedaPendiente] = useState<"USD" | "PEN" | null>(null);
+  const hayPreciosEscritos = carrito.some((r) => r.producto_id === null && (r.precio_con_igv ?? r.precio_unitario) > 0);
+  function cambiarMoneda(nueva: "USD" | "PEN") {
+    if (nueva === monedaImpresa) return;
+    if (hayPreciosEscritos) setMonedaPendiente(nueva);
+    else setMonedaImpresa(nueva);
+  }
+  function confirmarMoneda(mantenerNumeros: boolean) {
+    const nueva = monedaPendiente;
+    if (!nueva) return;
+    if (mantenerNumeros) {
+      setCarrito((c) =>
+        c.map((r) => {
+          if (r.producto_id !== null) return r;
+          const conIgvR = r.precio_con_igv != null;
+          // El número que se ve hoy en el campo, en la moneda de ahora.
+          const visto =
+            enSoles && r.precio_impreso != null
+              ? r.precio_impreso
+              : aVista(conIgvR ? (r.precio_con_igv ?? 0) : r.precio_unitario);
+          // Ese mismo número, leído en la moneda nueva.
+          const usd = nueva === "PEN" ? dosDecimales(visto / tcDelDocumento) : visto;
+          const impreso = nueva === "PEN" ? visto : null;
+          return conIgvR
+            ? { ...r, precio_con_igv: usd, precio_unitario: netoDeBruto(usd), precio_impreso: impreso }
+            : { ...r, precio_unitario: usd, precio_impreso: impreso };
+        }),
+      );
+    }
+    setMonedaImpresa(nueva);
+    setMonedaPendiente(null);
   }
 
   function actualizarItem(i: number, cambios: Partial<ItemCarrito>) {
@@ -1165,13 +1204,73 @@ export function PantallaCotizador({
             />
           )}
 
+          {/* LA MONEDA SE ELIGE ACÁ, ANTES DE ESCRIBIR PRECIOS (Gabriela, 01-10):
+              estaba solo en la columna de la derecha y el precio se escribía
+              creyendo que era en soles. Es el mismo valor que el selector de
+              la derecha; los dos pasan por la misma pregunta. */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-border bg-card px-3 py-2">
+            <span className="text-xs font-semibold text-foreground">Precios en</span>
+            <div className="inline-flex overflow-hidden rounded-md border border-border" role="group" aria-label="Moneda de la cotización">
+              {(["PEN", "USD"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  disabled={ocupado}
+                  onClick={() => cambiarMoneda(m)}
+                  aria-pressed={monedaImpresa === m}
+                  className={cn(
+                    "cursor-pointer px-3 py-1 text-xs font-semibold transition-colors",
+                    monedaImpresa === m
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {m === "PEN" ? "Soles S/" : "Dólares US$"}
+                </button>
+              ))}
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              {enSoles
+                ? `Lo que escriba sale tal cual en soles en el PDF (cambio de gerencia S/ ${tcDelDocumento.toFixed(2)}).`
+                : "Si el cliente paga en soles, elíjalo antes de escribir los precios."}
+            </span>
+          </div>
+
+          {monedaPendiente && (
+            <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
+              <p className="font-semibold text-foreground">
+                ¿Los precios que escribió a mano ya están en {monedaPendiente === "PEN" ? "soles" : "dólares"}?
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Los equipos del catálogo se convierten siempre; esto es solo para las líneas escritas a mano.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button type="button" size="sm" onClick={() => confirmarMoneda(true)}>
+                  Sí, dejar los mismos números en {monedaPendiente === "PEN" ? "soles" : "dólares"}
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => confirmarMoneda(false)}>
+                  No, convertirlos al tipo de cambio
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setMonedaPendiente(null)}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Para el comercial, esto es la excepción: va abajo y en gris,
-              porque su camino normal es el buscador de equipos. */}
+              porque su camino normal es el buscador de equipos. Para
+              postventa es el camino de todos los días: va como botón. */}
           {(
             <button
               type="button"
               onClick={() => agregarLineaLibre()}
-              className="cursor-pointer text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+              className={cn(
+                "cursor-pointer",
+                esPostventa
+                  ? "inline-flex w-fit items-center gap-1.5 rounded-md border border-primary/40 bg-background px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary/5"
+                  : "text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground",
+              )}
             >
               + Agregar una línea escrita a mano (mantenimiento, repuesto, servicio)
             </button>
@@ -1215,11 +1314,17 @@ export function PantallaCotizador({
                     <div className="flex flex-wrap items-start gap-3">
                       {/* La foto sigue al color elegido: es la que va a salir en
                           el PDF, así que se ve acá antes de mandarlo. */}
-                      <Miniatura
-                        fotoPath={(item.color && producto?.fotosPorColor?.[item.color]) || producto?.fotoPath}
-                      />
+                      {item.producto_id !== null && (
+                        <Miniatura
+                          fotoPath={(item.color && producto?.fotosPorColor?.[item.color]) || producto?.fotoPath}
+                        />
+                      )}
 
-                      <div className="min-w-[12rem] flex-1">
+                      {/* El concepto escrito a mano ocupa todo el ancho: el de
+                          postventa lleva servicio, marca, modelo y serie, y en
+                          una columna angosta no se leía (01-10). Cantidad y
+                          precio bajan a la fila de abajo. */}
+                      <div className={cn("min-w-[12rem] flex-1", item.producto_id === null && "basis-full")}>
                         {/* La línea escrita a mano se edita acá mismo: es todo
                             lo que el cliente va a leer de ese renglón. */}
                         {item.producto_id === null ? (
@@ -1244,9 +1349,9 @@ export function PantallaCotizador({
                                   agregarLineaLibre();
                                 }
                               }}
-                              rows={1}
+                              rows={3}
                               placeholder={"«Mantenimiento preventivo de lavadora 17 kg», «Resistencia 3 kW»\nMARCA · MODELO · MEDIDAS · SERIE, cada uno en su renglón si hace falta"}
-                              className="mt-0.5 min-h-9 text-sm"
+                              className="mt-0.5 min-h-20 text-sm"
                             />
                             {/* LA DUDA DE SANTOS, 07-09: «no hay opción para
                                 confirmar… ¿con Enter se consolida?». No hay que
@@ -1361,11 +1466,15 @@ export function PantallaCotizador({
                             // En soles se muestra lo que se escribió, no la vuelta
                             // por dólares: antes el campo se reescribía mientras
                             // se tecleaba (3950 → 3949.98) (Gabriela, 01-10; 0366).
-                            value={
-                              enSoles && item.precio_impreso != null
-                                ? item.precio_impreso
-                                : aVista(conIgv ? (item.precio_con_igv ?? 0) : item.precio_unitario)
-                            }
+                            placeholder="0.00"
+                            value={(() => {
+                              const v =
+                                enSoles && item.precio_impreso != null
+                                  ? item.precio_impreso
+                                  : aVista(conIgv ? (item.precio_con_igv ?? 0) : item.precio_unitario);
+                              // Vacío en vez de 0: con el 0 puesto, escribir 3950 dejaba «03950».
+                              return v === 0 ? "" : v;
+                            })()}
                             onChange={(e) => {
                               const vista = Number(e.target.value) || 0;
                               const escrito = aDolares(vista);
@@ -1561,7 +1670,7 @@ export function PantallaCotizador({
               <Label htmlFor="moneda">Moneda del documento</Label>
               <Select
                 value={monedaImpresa}
-                onValueChange={(v) => setMonedaImpresa((v as "USD" | "PEN") ?? "USD")}
+                onValueChange={(v) => cambiarMoneda((v as "USD" | "PEN") ?? "USD")}
                 disabled={ocupado}
               >
                 <SelectTrigger id="moneda" className="w-full">
