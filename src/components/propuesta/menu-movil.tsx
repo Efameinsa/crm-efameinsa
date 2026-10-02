@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { Menu, MoreHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
 import { BarraPropuesta, ICONOS, activa } from "@/components/propuesta/barra-propuesta";
 import type { OpcionMenu } from "@/lib/propuesta/menu";
 
@@ -23,6 +24,7 @@ type Props = React.ComponentProps<typeof BarraPropuesta>;
 
 export function MenuMovil(props: Props) {
   const ruta = usePathname();
+  const chatsEsperando = usePendientesWhatsapp();
   const [abierto, setAbierto] = useState(false);
   const [montado, setMontado] = useState(false);
 
@@ -95,7 +97,7 @@ export function MenuMovil(props: Props) {
               <ul className="grid" style={{ gridTemplateColumns: `repeat(${abajo.length + 1}, minmax(0, 1fr))` }}>
                 {abajo.map((o) => (
                   <li key={o.href + o.etiqueta}>
-                    <ItemAbajo opcion={o} activa={activa(o, ruta)} contador={props.contadores?.[o.href] ?? 0} />
+                    <ItemAbajo opcion={o} activa={activa(o, ruta)} contador={o.href === "/whatsapp" ? chatsEsperando : (props.contadores?.[o.href] ?? 0)} />
                   </li>
                 ))}
                 <li>
@@ -134,7 +136,12 @@ function ItemAbajo({ opcion, activa: es, contador }: { opcion: OpcionMenu; activ
       <Icono className="size-5" strokeWidth={es ? 2.3 : 1.9} />
       <span className="max-w-full truncate">{opcion.etiqueta}</span>
       {contador > 0 && (
-        <span className="absolute right-[18%] top-1.5 rounded-full bg-[var(--marca-alto)] px-1 text-[9px] font-bold tabular-nums text-white">
+        <span
+          className={cn(
+            "absolute right-[18%] top-1.5 rounded-full px-1 text-[9px] font-bold tabular-nums text-white",
+            opcion.href === "/whatsapp" ? "bg-emerald-600" : "bg-[var(--marca-alto)]",
+          )}
+        >
           {contador > 99 ? "99+" : contador}
         </span>
       )}

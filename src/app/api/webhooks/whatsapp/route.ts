@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notificar, notificarLeadEntrante } from "@/lib/notificaciones";
+import { avisoDeMensajeWhatsapp } from "@/lib/aviso-whatsapp";
 import { responderAutomatico } from "@/lib/whatsapp";
 import { enviarEventoMeta } from "@/lib/meta-capi";
 import { normalizarTelefono } from "@/lib/telefono";
@@ -437,7 +438,56 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
 
     if (tipo === "interactive" && equipoSku) {
       await atenderBotonDeFicha(admin, conversacion, telefono, nombreWa, mensaje.interactive?.button_reply?.id ?? "", equipoSku);
+    } else if (!esConversacionNueva) {
+      // El chat nuevo ya avisó como lead (derivado o retenido); acá va lo que
+      // el cliente escribe DESPUÉS, que hasta el 02-10 entraba mudo.
+      await avisarMensajeEntrante(admin, conversacion, nombreWa || conversacion.nombre_wa || telefono, tipo, texto);
     }
+  }
+}
+
+/**
+ * «Le escribieron por WhatsApp» al dueño del chat, o a Central si nadie lo
+ * tiene (ver lib/aviso-whatsapp.ts). Un solo aviso pendiente por chat: el
+ * anterior sin leer se reemplaza por uno que cuenta los mensajes sin
+ * responder. Nunca tumba el webhook.
+ */
+async function avisarMensajeEntrante(
+  admin: ReturnType<typeof createAdminClient>,
+  conversacion: { id: string; asignado_a: string | null },
+  quien: string,
+  tipo: string,
+  texto: string | null,
+) {
+  try {
+    const url = `/whatsapp/${conversacion.id}`;
+    const { data: ultimaNuestra } = await admin
+      .from("wa_mensajes")
+      .select("timestamp_meta")
+      .eq("conversacion_id", conversacion.id)
+      .eq("direccion", "saliente")
+      .order("timestamp_meta", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    let sinResponder = admin
+      .from("wa_mensajes")
+      .select("id", { count: "exact", head: true })
+      .eq("conversacion_id", conversacion.id)
+      .eq("direccion", "entrante");
+    if (ultimaNuestra?.timestamp_meta) sinResponder = sinResponder.gt("timestamp_meta", ultimaNuestra.timestamp_meta);
+    const { count } = await sinResponder;
+
+    await admin.from("notificaciones").delete().eq("tipo", "whatsapp_mensaje").eq("url", url).is("leida_at", null);
+    const { titulo, cuerpo } = avisoDeMensajeWhatsapp({ quien, tipo, texto, sinResponder: count ?? 1 });
+    await notificar({
+      ...(conversacion.asignado_a ? { userId: conversacion.asignado_a } : { rol: "central" }),
+      tipo: "whatsapp_mensaje",
+      titulo,
+      cuerpo,
+      url,
+    });
+  } catch (e) {
+    console.error("webhook whatsapp: no se pudo avisar el mensaje", conversacion.id, e);
   }
 }
 

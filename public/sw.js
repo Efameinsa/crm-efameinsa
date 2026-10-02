@@ -162,7 +162,9 @@ self.addEventListener("push", (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(datos.title || "CRM Efameinsa", {
+    // El mensaje de un cliente (02-10) se lee como en WhatsApp: «💬 Juan
+    // Pérez» y debajo lo que escribió; y se queda hasta que lo toquen.
+    self.registration.showNotification((datos.tipo === "whatsapp_mensaje" ? "💬 " : "") + (datos.title || "CRM Efameinsa"), {
       body: datos.body || "",
       // Antes acá iba `logo-efameinsa.png`, que mide 2345×381: el sistema lo
       // aplastaba dentro de un cuadrado y no se reconocía. Ahora va el ícono
@@ -174,7 +176,7 @@ self.addEventListener("push", (event) => {
       // cliente reclamó que lo dejaron esperando). Si el aviso desapareciera
       // solo, quien fue al baño vuelve y no se entera.
       // La urgencia a Finanzas (0298) es la misma sirena, con otro destino.
-      requireInteraction: datos.tipo === "urgencia" || datos.tipo === "urgencia_finanzas" || datos.tipo === "urgencia_almacen",
+      requireInteraction: datos.tipo === "urgencia" || datos.tipo === "urgencia_finanzas" || datos.tipo === "urgencia_almacen" || datos.tipo === "whatsapp_mensaje",
       // Agrupar por destino evita apilar diez avisos del mismo sitio, pero
       // `renotify` es OBLIGATORIO acá: sin él, el segundo aviso reemplazaría al
       // primero EN SILENCIO y un prospecto podría pasar desapercibido — que es

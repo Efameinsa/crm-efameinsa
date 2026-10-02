@@ -44,7 +44,9 @@ export type TipoNotificacion =
   | "cierre_anulado"
   | "visita_planta"
   // El cliente tocó un botón en una ficha mandada por WhatsApp (0250).
-  | "whatsapp";
+  | "whatsapp"
+  // El cliente escribió en un chat que ya existía (02-10): uno por chat.
+  | "whatsapp_mensaje";
 
 interface Destinatario {
   userId?: string;
