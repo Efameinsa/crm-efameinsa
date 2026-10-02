@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { origenDe, type Origen } from "@/lib/campana";
+import { traerPorLotes } from "@/lib/lotes";
 
 /**
  * Lo que Central derivó, con el rastro completo de lo que el comercial hizo
@@ -431,6 +432,12 @@ export async function cargarDerivado(
   return fila ?? null;
 }
 
+/** Si alguna consulta falló, no se arma una pantalla con huecos que parecen datos. */
+function exigir(rs: { error: string | null }[]) {
+  const fallo = rs.find((r) => r.error);
+  if (fallo) throw new Error(`No se pudo cargar lo derivado: ${fallo.error}`);
+}
+
 async function armar(
   supabase: Awaited<ReturnType<typeof createClient>>,
   leads: LeadCrudo[],
@@ -460,21 +467,33 @@ async function armar(
   // primer lead). Se piden ambos y el directo manda.
   const idsOpDirecta = [...new Set(leads.map((l) => l.oportunidad_id).filter((x): x is string => Boolean(x)))];
 
-  const [{ data: opsDeLead }, { data: opsDirectas }, { data: opsCuenta }] = await Promise.all([
-    supabase
-      .from("oportunidades")
-      .select("id, lead_id, etapa, cerrada_at, proxima_accion, proxima_accion_at")
-      .in("lead_id", ids),
-    idsOpDirecta.length
-      ? supabase
-          .from("oportunidades")
-          .select("id, lead_id, etapa, cerrada_at, proxima_accion, proxima_accion_at")
-          .in("id", idsOpDirecta)
-      : Promise.resolve({ data: [] as never[] }),
-    cuentaIds.length && Number.isFinite(margenDesde)
-      ? supabase.from("oportunidades").select("id, cuenta_id, comercial_id").in("cuenta_id", cuentaIds)
-      : Promise.resolve({ data: [] as { id: string; cuenta_id: string; comercial_id: string | null }[] }),
+  // TODO VA POR LOTES (02-10). Con «Esta semana» Central tenía 400 derivados,
+  // y `.in("lead_id", 400 ids)` es una URL que Kong rechaza con 414. supabase-js
+  // no lanza: devolvía `data: null`, ninguna oportunidad, ninguna gestión, y la
+  // pantalla decía «Sin atender · 400» y «Nadie lo ha tocado» en contactos que la
+  // comercial ya había llamado y cerrado (PRO-09979, «No prosperó» el 28-09). Si
+  // un lote falla se corta con error: una lista que miente es peor que ninguna.
+  const ops0 = await Promise.all([
+    traerPorLotes(ids, (lote) =>
+      supabase
+        .from("oportunidades")
+        .select("id, lead_id, etapa, cerrada_at, proxima_accion, proxima_accion_at")
+        .in("lead_id", lote),
+    ),
+    traerPorLotes(idsOpDirecta, (lote) =>
+      supabase
+        .from("oportunidades")
+        .select("id, lead_id, etapa, cerrada_at, proxima_accion, proxima_accion_at")
+        .in("id", lote),
+    ),
+    Number.isFinite(margenDesde)
+      ? traerPorLotes(cuentaIds, (lote) =>
+          supabase.from("oportunidades").select("id, cuenta_id, comercial_id").in("cuenta_id", lote),
+        )
+      : Promise.resolve({ data: [] as { id: string; cuenta_id: string; comercial_id: string | null }[], error: null }),
   ]);
+  exigir(ops0);
+  const [{ data: opsDeLead }, { data: opsDirectas }, { data: opsCuenta }] = ops0;
   const ops = [...new Map([...(opsDeLead ?? []), ...(opsDirectas ?? [])].map((o) => [o.id, o])).values()];
   const opIds = ops.map((o) => o.id);
   const opIdsPropias = new Set(opIds);
@@ -486,64 +505,76 @@ async function armar(
   type ActCruda = { oportunidad_id: string; tipo: string; nota: string | null; realizada_at: string };
   const isoMargen = Number.isFinite(margenDesde) ? new Date(margenDesde).toISOString() : null;
 
-  const [
-    { data: cots },
-    { data: acts },
-    { data: asignaciones },
-    { data: cuentas },
-    { data: urgencias },
-    { data: actsGemelas },
-    { data: cotsGemelas },
-  ] = await Promise.all([
-    opIds.length
-      ? supabase
-          .from("cotizaciones")
-          .select("id, codigo, oportunidad_id, estado, enviada_at, total, moneda, created_at")
-          .in("oportunidad_id", opIds)
-          .order("created_at")
-      : Promise.resolve({ data: [] as { oportunidad_id: string }[] }),
-    opIds.length
-      ? supabase
-          .from("actividades")
-          .select("oportunidad_id, tipo, nota, realizada_at")
-          .in("oportunidad_id", opIds)
-          .order("realizada_at")
-      : Promise.resolve({ data: [] as { oportunidad_id: string; tipo: string; nota: string | null; realizada_at: string }[] }),
-    supabase.from("asignaciones").select("lead_id, motivo").in("lead_id", ids),
+  type CotCruda = CotizacionResumen & { oportunidad_id: string };
+  const CAMPOS_COT = "id, codigo, oportunidad_id, estado, enviada_at, total, moneda, created_at";
+  const vacio = <T,>() => Promise.resolve({ data: [] as T[], error: null });
+
+  const resultados = await Promise.all([
+    traerPorLotes<CotCruda>(opIds, (lote) =>
+      supabase.from("cotizaciones").select(CAMPOS_COT).in("oportunidad_id", lote).order("created_at"),
+    ),
+    traerPorLotes<ActCruda>(opIds, (lote) =>
+      supabase
+        .from("actividades")
+        .select("oportunidad_id, tipo, nota, realizada_at")
+        .in("oportunidad_id", lote)
+        .order("realizada_at"),
+    ),
+    traerPorLotes<{ lead_id: string; motivo: string }>(ids, (lote) =>
+      supabase.from("asignaciones").select("lead_id, motivo").in("lead_id", lote),
+    ),
     // El nombre del CLIENTE. Muchos contactos entran por el formulario de la
     // web sin razón social —el PRO-09015 llegó como «hotel dubai»— y el nombre
     // por el que todos lo llaman está en la cuenta. Sin esto, buscar por ese
     // nombre encontraba la fila pero la fila mostraba otro nombre, que confunde
     // más que no encontrarla.
-    cuentaIds.length
-      ? supabase.from("cuentas").select("id, razon_social").in("id", cuentaIds)
-      : Promise.resolve({ data: [] as { id: string; razon_social: string }[] }),
-    supabase
-      .from("recordatorios_urgencia")
-      .select("lead_id, created_at")
-      .in("lead_id", ids)
-      .order("created_at", { ascending: false }),
+    traerPorLotes<{ id: string; razon_social: string }>(cuentaIds, (lote) =>
+      supabase.from("cuentas").select("id, razon_social").in("id", lote),
+    ),
+    traerPorLotes<{ lead_id: string; created_at: string }>(ids, (lote) =>
+      supabase.from("recordatorios_urgencia").select("lead_id, created_at").in("lead_id", lote),
+    ),
     // Las gestiones en las fichas gemelas, acotadas por fecha: la historia
     // vieja de la cuenta (hay importadas de 2024) no es atención a ESTA
     // derivación. El corte fino, por el asignado_at de cada lead, se hace
     // abajo; este .gte solo evita traer años de actividad de gusto.
-    opIdsGemelas.length && isoMargen
-      ? supabase
-          .from("actividades")
-          .select("oportunidad_id, tipo, nota, realizada_at")
-          .in("oportunidad_id", opIdsGemelas)
-          .gte("realizada_at", isoMargen)
-          .order("realizada_at")
-      : Promise.resolve({ data: [] as ActCruda[] }),
-    opIdsGemelas.length && isoMargen
-      ? supabase
-          .from("cotizaciones")
-          .select("id, codigo, oportunidad_id, estado, enviada_at, total, moneda, created_at")
-          .in("oportunidad_id", opIdsGemelas)
-          .gte("created_at", isoMargen)
-          .order("created_at")
-      : Promise.resolve({ data: [] as (CotizacionResumen & { oportunidad_id: string })[] }),
+    isoMargen
+      ? traerPorLotes<ActCruda>(opIdsGemelas, (lote) =>
+          supabase
+            .from("actividades")
+            .select("oportunidad_id, tipo, nota, realizada_at")
+            .in("oportunidad_id", lote)
+            .gte("realizada_at", isoMargen)
+            .order("realizada_at"),
+        )
+      : vacio<ActCruda>(),
+    isoMargen
+      ? traerPorLotes<CotCruda>(opIdsGemelas, (lote) =>
+          supabase
+            .from("cotizaciones")
+            .select(CAMPOS_COT)
+            .in("oportunidad_id", lote)
+            .gte("created_at", isoMargen)
+            .order("created_at"),
+        )
+      : vacio<CotCruda>(),
   ]);
+  exigir(resultados);
+  const [
+    { data: cots },
+    { data: acts },
+    { data: asignaciones },
+    { data: cuentas },
+    { data: urgenciasCrudas },
+    { data: actsGemelas },
+    { data: cotsGemelas },
+  ] = resultados;
+  // Por lotes cada tanda viene ordenada, pero no el conjunto: se reordena acá.
+  // Las actividades tienen que ir ascendentes (primera y última gestión) y las
+  // urgencias de la más nueva a la más vieja.
+  acts.sort((a, b) => a.realizada_at.localeCompare(b.realizada_at));
+  actsGemelas.sort((a, b) => a.realizada_at.localeCompare(b.realizada_at));
+  const urgencias = [...urgenciasCrudas].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const opPorLead = new Map((ops ?? []).map((o) => [o.lead_id as string, o]));
   const opPorId = new Map((ops ?? []).map((o) => [o.id as string, o]));
