@@ -318,7 +318,7 @@ export function WhatsappListaConversaciones({
 
       {filtroActivo === "no_leidos" && !busqueda && conversaciones.some((c) => sinLeerDe(c) > 0) && (
         <div className="flex items-center justify-between gap-2 border-b border-border bg-secondary/30 px-3 py-1.5">
-          <p className="text-[11px] text-muted-foreground">Le escribieron y todavía no los abrió.</p>
+          <p className="text-[11px] text-muted-foreground">Le escribieron, no los abrió y aún puede responderles desde acá.</p>
           <button
             type="button"
             onClick={marcarTodosLeidos}

@@ -16,7 +16,7 @@ import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { anuncioDe, type AnuncioDeLaConversacion } from "@/lib/whatsapp-marketing";
 import { digitosDeBusqueda } from "@/lib/contacto-whatsapp";
-import { enviarTexto, enviarMedia, enviarFichaEquipo, enviarProductosCatalogo, type TipoMedia } from "@/lib/whatsapp";
+import { enviarTexto, enviarMedia, enviarFichaEquipo, enviarProductosCatalogo, ventanaDe, type TipoMedia } from "@/lib/whatsapp";
 
 // Mismo bucket privado que los adjuntos de un lead (0029): un archivo, un
 // código, y una URL firmada de vida corta —acá basta con minutos, el tiempo
@@ -101,7 +101,7 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
   // como si estuvieran leídos (02-10, la pestaña decía 99+ y la lista vacía).
   if (filtro === "no_leidos") {
     const lecturas = await lecturasPropias(supabase);
-    const pendientes = (data ?? []).filter((c) => noLeido(c.ultimo_mensaje_cliente_at, lecturas.get(c.id)) || c.id === mantener);
+    const pendientes = (data ?? []).filter((c) => pendienteDeLeer(c, lecturas) || c.id === mantener);
     return conUltimoTexto(supabase, pendientes);
   }
   return conUltimoTexto(supabase, data ?? []);
@@ -120,10 +120,25 @@ async function lecturasPropias(supabase: Awaited<ReturnType<typeof createClient>
  */
 export async function contarChatsNoLeidos(comercialId?: string): Promise<number> {
   const supabase = await createClient();
-  let consulta = supabase.from("wa_conversaciones").select("id, ultimo_mensaje_cliente_at").neq("estado", "cerrada");
+  let consulta = supabase.from("wa_conversaciones").select("id, ultimo_mensaje_cliente_at, anuncio_at").neq("estado", "cerrada");
   if (comercialId) consulta = consulta.eq("asignado_a", comercialId);
   const [{ data }, lecturas] = await Promise.all([consulta, lecturasPropias(supabase)]);
-  return (data ?? []).filter((c) => noLeido(c.ultimo_mensaje_cliente_at, lecturas.get(c.id))).length;
+  return (data ?? []).filter((c) => pendienteDeLeer(c, lecturas)).length;
+}
+
+/**
+ * Un chat cuenta como no leído si el cliente escribió después de la última
+ * lectura Y todavía se le puede contestar desde el chat (ventana de 24 h, o
+ * 72 h si vino de un anuncio). Santos, 02-10: Moisés tenía 99+ con chats de
+ * hace días que ya había atendido por llamada; con la ventana cerrada desde
+ * acá no se puede hacer nada y solo tapaban lo nuevo. Si el cliente vuelve a
+ * escribir, la ventana se abre y el chat vuelve a la pestaña.
+ */
+function pendienteDeLeer(
+  c: { id: string; ultimo_mensaje_cliente_at: string | null; anuncio_at?: string | null },
+  lecturas: Map<string, string>,
+): boolean {
+  return noLeido(c.ultimo_mensaje_cliente_at, lecturas.get(c.id)) && ventanaDe(c.ultimo_mensaje_cliente_at, c.anuncio_at ?? null).abierta;
 }
 
 function noLeido(ultimoDelCliente: string | null, leidoAt: string | undefined): boolean {
@@ -206,6 +221,7 @@ async function conUltimoTexto(supabase: Awaited<ReturnType<typeof createClient>>
   // el último texto: ninguna consulta de más por chat (0374).
   const sinLeer = new Map<string, number>();
   const lecturas = await lecturasPropias(supabase);
+  const conVentana = new Set(data.filter((c) => ventanaDe(c.ultimo_mensaje_cliente_at, c.anuncio_at).abierta).map((c) => c.id));
   if (conIds.length > 0) {
     const { data: mensajes } = await supabase
       .from("wa_mensajes")
@@ -214,7 +230,7 @@ async function conUltimoTexto(supabase: Awaited<ReturnType<typeof createClient>>
       .order("created_at", { ascending: false });
     for (const m of mensajes ?? []) {
       if (!ultimos.has(m.conversacion_id)) ultimos.set(m.conversacion_id, m.texto ?? "(sin texto)");
-      if (m.direccion === "entrante" && noLeido(m.timestamp_meta, lecturas.get(m.conversacion_id))) {
+      if (m.direccion === "entrante" && conVentana.has(m.conversacion_id) && noLeido(m.timestamp_meta, lecturas.get(m.conversacion_id))) {
         sinLeer.set(m.conversacion_id, (sinLeer.get(m.conversacion_id) ?? 0) + 1);
       }
     }
@@ -237,7 +253,7 @@ async function conUltimoTexto(supabase: Awaited<ReturnType<typeof createClient>>
     anuncio_at: c.anuncio_at ?? null,
     // El globito cuenta mensajes; si los de este chat no entraron en la
     // consulta (tope de 1 000 filas), al menos dice que hay uno.
-    no_leidos: sinLeer.get(c.id) ?? (noLeido(c.ultimo_mensaje_cliente_at, lecturas.get(c.id)) ? 1 : 0),
+    no_leidos: sinLeer.get(c.id) ?? (pendienteDeLeer(c, lecturas) ? 1 : 0),
   }));
 }
 
