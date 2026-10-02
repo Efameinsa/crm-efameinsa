@@ -89,6 +89,10 @@ export async function guardarContacto(datos: {
       .from("contactos")
       .insert({ ...campos, cuenta_id: datos.cuentaId })
       .select("id");
+    // 42501 = RLS: llegaba en inglés («new row violates row-level security…»).
+    if (error?.code === "42501") {
+      return { error: "No se pudo agregar: este cliente no está en su cartera ni tiene un caso suyo abierto" };
+    }
     if (error) return { error: error.message };
     if (!data || data.length === 0) {
       return { error: "No se pudo agregar: este cliente no está en su cartera" };
