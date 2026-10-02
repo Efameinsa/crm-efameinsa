@@ -3,7 +3,19 @@
 import { useMemo, useState } from "react";
 import Link from "@/components/enlace";
 import { Search } from "lucide-react";
-import type { ClienteParque } from "@/lib/parque";
+import {
+  deOrigenParque,
+  estadoGestionParque,
+  ETIQUETA_GESTION_PARQUE,
+  filtrarParque,
+  mesesDelAnio,
+  MESES_CORTOS,
+  personasDelParque,
+  type ClienteParque,
+  type EstadoGestionParque,
+  type FiltrosParque,
+  type OrigenParque,
+} from "@/lib/parque";
 import { ETIQUETA_MANTENIMIENTO, type EstadoMantenimiento } from "@/lib/ruta-mantenimiento";
 import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
 import { fechaCalendario, fechaLimaCorta } from "@/lib/fechas";
@@ -31,6 +43,11 @@ import { cn } from "@/lib/utils";
  *
  * Lo que sigue yendo al servidor es cambiar de conjunto —«Mi cartera» /
  * «Toda la empresa»—, que es otra lista, y ahí sí sale la pantalla de carga.
+ *
+ * 02-10, GERENCIA: MES Y GESTIÓN. Carlos, con Ariana y Gabriela: «ahora me vas
+ * a dar por mes. Dentro de un año, por mes», y «ahora quién lo hizo. Si no lo
+ * hizo, o le falta hacer, o está en proceso». Los cortes son puros y viven en
+ * `filtrarParque` (lib/parque.ts), con sus pruebas.
  */
 
 const POR_TANDA = 80;
@@ -42,32 +59,46 @@ const COLOR: Record<EstadoMantenimiento, string> = {
   sin_dato: "bg-secondary text-muted-foreground",
 };
 
-type Origen = "postventa" | "comercial" | null;
+const TITULO_GESTION: Record<EstadoGestionParque, string> = {
+  nadie: "Nadie registró ninguna llamada, visita ni mensaje con este cliente",
+  falta: "Alguien ya habló con él, pero no quedó ninguna oportunidad de mantenimiento abierta: le falta el seguimiento",
+  en_proceso: "Ya hay una oportunidad de mantenimiento abierta: se entra a esa, no se abre otra",
+};
+
+type Origen = OrigenParque;
+type Valores = Required<Pick<FiltrosParque, "estado" | "anio" | "mes" | "gestion" | "quien">> & { q: string; origen: Origen };
 
 export function ListaParque({
   todos,
   verTodo,
   inicial,
+  yo,
 }: {
   todos: ClienteParque[];
   verTodo: boolean;
-  inicial: { q: string; estado: EstadoMantenimiento | null; anio: string | null; origen: Origen };
+  inicial: Valores;
+  /** Clave de quien mira (`clavePersona`), para el atajo «Las mías». */
+  yo: string | null;
 }) {
-  const [q, setQ] = useState(inicial.q);
-  const [estado, setEstado] = useState<EstadoMantenimiento | null>(inicial.estado);
-  const [anio, setAnio] = useState<string | null>(inicial.anio);
-  const [origen, setOrigen] = useState<Origen>(inicial.origen);
+  const [v, setV] = useState<Valores>(inicial);
   const [visibles, setVisibles] = useState(POR_TANDA);
+  const { q, estado, anio, mes, origen, gestion, quien } = v;
 
   // La URL refleja el filtro sin pedirle nada al servidor.
-  function sincronizarUrl(cambios: Partial<{ q: string; estado: EstadoMantenimiento | null; anio: string | null; origen: Origen }>) {
-    const estadoFinal = { q, estado, anio, origen, ...cambios };
+  function cambiar(cambios: Partial<Valores>) {
+    const n = { ...v, ...cambios };
+    // El mes vive dentro del año: si se suelta el año, se suelta el mes.
+    if (!n.anio) n.mes = null;
+    setV(n);
     const p = new URLSearchParams();
     if (verTodo) p.set("todos", "1");
-    if (estadoFinal.q.trim()) p.set("q", estadoFinal.q.trim());
-    if (estadoFinal.estado) p.set("estado", estadoFinal.estado);
-    if (estadoFinal.anio) p.set("anio", estadoFinal.anio);
-    if (estadoFinal.origen) p.set("origen", estadoFinal.origen);
+    if (n.q.trim()) p.set("q", n.q.trim());
+    if (n.estado) p.set("estado", n.estado);
+    if (n.anio) p.set("anio", n.anio);
+    if (n.mes) p.set("mes", n.mes);
+    if (n.origen) p.set("origen", n.origen);
+    if (n.gestion) p.set("gestion", n.gestion);
+    if (n.quien) p.set("quien", n.quien);
     const s = p.toString();
     window.history.replaceState(null, "", `/comercial/parque${s ? `?${s}` : ""}`);
     setVisibles(POR_TANDA);
@@ -78,22 +109,17 @@ export function ListaParque({
   // los demás. El que ya compró mantenimiento va en el primer lote aunque
   // también nos haya comprado equipos; el segundo es «todo lo demás», incluidos
   // los 35 con la máquina fichada y sin fila de venta.
-  const deOrigen = (c: ClienteParque) =>
-    origen === "postventa" ? c.ventasDePostventa > 0 : origen === "comercial" ? c.ventasDePostventa === 0 : true;
+  const delLote = useMemo(() => todos.filter((c) => deOrigenParque(c, origen)), [todos, origen]);
 
-  const patron = q.trim().toLowerCase();
-  const filas = useMemo(
-    () =>
-      todos.filter(
-        (c) =>
-          (!estado || c.estado === estado) &&
-          deOrigen(c) &&
-          (!anio || (c.ultimaCompraAt ?? "").slice(0, 4) === anio) &&
-          (!patron || c.razonSocial.toLowerCase().includes(patron) || (c.numDoc ?? "").includes(patron)),
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [todos, estado, anio, origen, patron],
-  );
+  const filas = useMemo(() => filtrarParque(todos, v), [todos, v]);
+  // Los conteos de gestión y de personas se cuentan con todo lo demás puesto
+  // —lote, año, mes, estado, búsqueda— pero sin su propio recorte: así se lee
+  // «de los de marzo de 2025, 14 no los llamó nadie y 6 son de Ariana».
+  const sinGestion = useMemo(() => filtrarParque(todos, { ...v, gestion: null, quien: null }), [todos, v]);
+  const cuentaGestion = (g: EstadoGestionParque) => sinGestion.filter((c) => estadoGestionParque(c) === g).length;
+  const personas = useMemo(() => personasDelParque(sinGestion), [sinGestion]);
+  const misClientes = yo ? (personas.find((p) => p.clave === yo)?.n ?? 0) : 0;
+
   const cuenta = (e: EstadoMantenimiento) => todos.filter((c) => c.estado === e).length;
   const conCierreDePostventa = todos.filter((c) => c.ventasDePostventa > 0).length;
   const soloComercial = todos.filter((c) => c.ventasDePostventa === 0).length;
@@ -101,13 +127,17 @@ export function ListaParque({
   // sobre el lote elegido: es como se sabe si un año ya se terminó.
   const anios = useMemo(
     () =>
-      [...todos.filter(deOrigen).reduce((m, c) => {
+      [...delLote.reduce((m, c) => {
         const a = (c.ultimaCompraAt ?? "").slice(0, 4);
         if (a) m.set(a, (m.get(a) ?? 0) + 1);
         return m;
       }, new Map<string, number>())].sort((a, b) => b[0].localeCompare(a[0])),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [todos, origen],
+    [delLote],
+  );
+  // Y dentro del año, los meses (02-10): de enero a diciembre, solo los que tienen ventas.
+  const meses = useMemo(
+    () => (anio ? [...mesesDelAnio(delLote, anio)].sort((a, b) => a[0].localeCompare(b[0])) : []),
+    [delLote, anio],
   );
   const mostradas = filas.slice(0, visibles);
 
@@ -116,6 +146,7 @@ export function ListaParque({
       "cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
       activo ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent",
     );
+  const rotulo = "mr-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground";
 
   return (
     <>
@@ -125,29 +156,17 @@ export function ListaParque({
           <input
             type="search"
             value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              sincronizarUrl({ q: e.target.value });
-            }}
+            onChange={(e) => cambiar({ q: e.target.value })}
             placeholder="Buscar por cliente o RUC…"
             className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-2 text-sm outline-none focus:border-primary"
           />
         </label>
         <div className="flex flex-wrap gap-1.5">
-          <button type="button" className={chip(!estado)} onClick={() => { setEstado(null); sincronizarUrl({ estado: null }); }}>
+          <button type="button" className={chip(!estado)} onClick={() => cambiar({ estado: null })}>
             Todos ({todos.length})
           </button>
           {(["nunca", "vencido", "al_dia", "sin_dato"] as EstadoMantenimiento[]).map((e) => (
-            <button
-              key={e}
-              type="button"
-              className={chip(estado === e)}
-              onClick={() => {
-                const nuevo = estado === e ? null : e;
-                setEstado(nuevo);
-                sincronizarUrl({ estado: nuevo });
-              }}
-            >
+            <button key={e} type="button" className={chip(estado === e)} onClick={() => cambiar({ estado: estado === e ? null : e })}>
               {ETIQUETA_MANTENIMIENTO[e]} ({cuenta(e)})
             </button>
           ))}
@@ -172,11 +191,7 @@ export function ListaParque({
                 key={String(valor)}
                 type="button"
                 className={cn(chip(origen === valor), "font-semibold")}
-                onClick={() => {
-                  setOrigen(valor);
-                  setAnio(null);
-                  sincronizarUrl({ origen: valor, anio: null });
-                }}
+                onClick={() => cambiar({ origen: valor, anio: null, mes: null })}
               >
                 {texto}
               </button>
@@ -187,26 +202,91 @@ export function ListaParque({
 
       {anios.length > 1 && (
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Compró en</span>
-          <button type="button" className={chip(!anio)} onClick={() => { setAnio(null); sincronizarUrl({ anio: null }); }}>
+          <span className={rotulo}>Compró en</span>
+          <button type="button" className={chip(!anio)} onClick={() => cambiar({ anio: null })}>
             Todos los años
           </button>
           {anios.map(([a, n]) => (
-            <button
-              key={a}
-              type="button"
-              className={chip(anio === a)}
-              onClick={() => {
-                const nuevo = anio === a ? null : a;
-                setAnio(nuevo);
-                sincronizarUrl({ anio: nuevo });
-              }}
-            >
+            <button key={a} type="button" className={chip(anio === a)} onClick={() => cambiar({ anio: anio === a ? null : a, mes: null })}>
               {a} ({n})
             </button>
           ))}
         </div>
       )}
+
+      {/* EL MES, DENTRO DEL AÑO (gerencia, 02-10): «dentro de un año, por mes».
+          Aparece recién cuando se elige un año. */}
+      {anio && meses.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <span className={rotulo}>Mes de {anio}</span>
+          <button type="button" className={chip(!mes)} onClick={() => cambiar({ mes: null })}>
+            Todo el año
+          </button>
+          {meses.map(([m, n]) => (
+            <button key={m} type="button" className={chip(mes === m)} onClick={() => cambiar({ mes: mes === m ? null : m })}>
+              {MESES_CORTOS[Number(m) - 1]} ({n})
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* LA GESTIÓN: QUIÉN Y EN QUÉ QUEDÓ (gerencia, 02-10). «Ahora quién lo
+          hizo. Si no lo hizo, o le falta hacer, o está en proceso.» Son tres
+          personas vendiendo el preventivo: cada una sigue la suya y no toca al
+          cliente que otra ya está trabajando. */}
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <span className={rotulo}>Última gestión</span>
+        <button type="button" className={chip(!gestion)} onClick={() => cambiar({ gestion: null })}>
+          Todas
+        </button>
+        {(["nadie", "falta", "en_proceso"] as EstadoGestionParque[]).map((g) => (
+          <button
+            key={g}
+            type="button"
+            className={chip(gestion === g)}
+            title={TITULO_GESTION[g]}
+            onClick={() => cambiar({ gestion: gestion === g ? null : g })}
+          >
+            {ETIQUETA_GESTION_PARQUE[g]} ({cuentaGestion(g)})
+          </button>
+        ))}
+        <span className="mx-1 hidden h-4 w-px bg-border sm:inline-block" />
+        {yo && (misClientes > 0 || quien === yo) && (
+          <button
+            type="button"
+            className={cn(chip(quien === yo), "font-semibold")}
+            title="Los clientes donde la última gestión o la oportunidad abierta es suya: para continuar su gestión"
+            onClick={() => cambiar({ quien: quien === yo ? null : yo })}
+          >
+            Las mías ({misClientes})
+          </button>
+        )}
+        {(personas.length > 0 || quien) && (
+          <label
+            className={cn(
+              "flex h-7 items-center gap-1.5 rounded-full border bg-background px-2.5 text-xs",
+              quien ? "border-primary bg-primary/5" : "border-border",
+            )}
+          >
+            <span className="font-semibold text-muted-foreground">Quién</span>
+            <select
+              value={quien ?? ""}
+              onChange={(e) => cambiar({ quien: e.target.value || null })}
+              className={cn("cursor-pointer bg-transparent outline-none", quien ? "font-semibold text-primary" : "text-foreground")}
+              aria-label="Quién hizo la gestión"
+            >
+              <option value="">cualquiera</option>
+              {personas.map((p) => (
+                <option key={p.clave} value={p.clave}>
+                  {p.nombre} ({p.n})
+                </option>
+              ))}
+              {/* Si vino por la URL alguien que con estos filtros no aparece, igual se muestra. */}
+              {quien && !personas.some((p) => p.clave === quien) && <option value={quien}>{quien} (0)</option>}
+            </select>
+          </label>
+        )}
+      </div>
 
       {filas.length === 0 ? (
         <p className="text-sm text-muted-foreground">

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   columnaDe,
+  cumpleAntiguedad,
   diasEntre,
   diasSinMantenimiento,
   diasDeAtraso,
@@ -205,6 +206,37 @@ describe("filtrarRuta", () => {
     // Fijo de Lima escrito como se apunta, con su código y su anexo.
     expect(tieneTelefono(fila({ telefono: "(01) 719-3800 anexo 12" }))).toBe(true);
     expect(tieneTelefono(fila({ telefono: "972094462" }))).toBe(true);
+  });
+});
+
+// Gerencia, 02-10: en «Nunca le hicimos mantenimiento» salía una venta de
+// hace 21 días. «Por antigüedad, por meses […] seis meses, un año, etc.».
+describe("la antigüedad en meses", () => {
+  const recien = fila({ id: "r", razonSocial: "VENDIDO HACE 21 DIAS", compraAt: "2026-08-07" });
+  const ochoMeses = fila({ id: "o", razonSocial: "COMPRO EN DICIEMBRE", compraAt: "2025-12-28" });
+  const mantViejo = fila({ id: "m", razonSocial: "MANT HACE 14 MESES", compraAt: "2023-01-10", ultimoMantenimiento: "2025-06-20" });
+  const sinFechas = fila({ id: "s" });
+
+  it("es un piso: la venta de hace 21 días no tiene 6 meses sin mantenimiento", () => {
+    expect(cumpleAntiguedad(recien, HOY, "3")).toBe(false);
+    expect(cumpleAntiguedad(ochoMeses, HOY, "6")).toBe(true);
+    expect(cumpleAntiguedad(ochoMeses, HOY, "12")).toBe(false);
+  });
+
+  it("cuenta desde el último mantenimiento cuando lo hubo, no desde la compra", () => {
+    expect(cumpleAntiguedad(mantViejo, HOY, "12")).toBe(true);
+    expect(cumpleAntiguedad(mantViejo, HOY, "24")).toBe(false);
+  });
+
+  it("lo que no tiene fechas no cumple ninguna antigüedad", () => {
+    expect(cumpleAntiguedad(sinFechas, HOY, "3")).toBe(false);
+  });
+
+  it("se cruza con «nunca»: la tanda ya no trae la máquina recién vendida", () => {
+    const todas = [recien, ochoMeses, mantViejo, sinFechas];
+    expect(filtrarRuta(todas, HOY, { mant: "nunca" }).map((f) => f.id)).toEqual(["r", "o"]);
+    expect(filtrarRuta(todas, HOY, { mant: "nunca", antig: "6" }).map((f) => f.id)).toEqual(["o"]);
+    expect(filtrarRuta(todas, HOY, { antig: "12" }).map((f) => f.id)).toEqual(["m"]);
   });
 });
 

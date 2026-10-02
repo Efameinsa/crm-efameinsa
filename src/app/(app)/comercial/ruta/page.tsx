@@ -24,6 +24,7 @@ export default async function RutaMantenimientoPage({
     mant?: string;
     compra?: string;
     llamada?: string;
+    antig?: string;
     tel?: string;
   }>;
 }) {
