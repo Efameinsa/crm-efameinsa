@@ -4,7 +4,10 @@ import { useEffect, useMemo, useOptimistic, useState, useTransition } from "reac
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, Lock, X } from "lucide-react";
+import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, Lock, X, FileText } from "lucide-react";
+import Link from "@/components/enlace";
+import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
+import type { DocPaso, DocumentosPorPaso } from "@/lib/documentos-por-paso";
 import {
   bloquesPedido,
   circuitoDe,
@@ -98,6 +101,8 @@ export function PedidoPostventa({
   aperturas = [],
   /** Los equipos del pedido, uno por línea y con su serie, para la apertura. */
   equiposTexto = "",
+  /** Los informes y papeles que prueban cada paso, por clave de paso (Santos, 02-10). */
+  documentos = {},
 }: {
   servicio: ServicioPostventa;
   atencionPuesta?: { id: string; etapa: string; programada_at: string | null; tecnico: string | null; cerrado_at: string | null } | null;
@@ -106,6 +111,7 @@ export function PedidoPostventa({
   emitidoApertura?: string | null;
   aperturas?: { id: string; tipo: string; programada_para: string; estado: string; abierta: boolean }[];
   equiposTexto?: string;
+  documentos?: DocumentosPorPaso;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -538,6 +544,7 @@ export function PedidoPostventa({
                       {/* Un paso hecho puede seguir aceptando acción: el pago
                           parcial recibe más abonos (0232). */}
                       {accionDePaso(paso)}
+                      <DocumentosDelPaso docs={documentos[paso.clave]} />
                     </div>
                   ) : (
                     <div
@@ -570,6 +577,7 @@ export function PedidoPostventa({
                           {paso.detalle ?? `Lo mueve ${etiquetaResponsable(paso.responsable).toLowerCase()}`}
                         </p>
                       )}
+                      <DocumentosDelPaso docs={documentos[paso.clave]} />
                     </div>
                   )}
                 </div>
@@ -1261,5 +1269,34 @@ function CampoArchivo({
         }}
       />
     </label>
+  );
+}
+
+// Los papeles que prueban el paso, debajo de él: un clic y se abren (Santos,
+// 02-10: «deberían salir para ver los informes respectivos con un click»).
+// Los PDF del CRM se abren en el visor de la app; lo demás, en su pantalla o
+// en pestaña nueva si es un archivo subido.
+function DocumentosDelPaso({ docs }: { docs?: DocPaso[] }) {
+  if (!docs?.length) return null;
+  const clase =
+    "inline-flex cursor-pointer items-center gap-1 rounded-md border border-primary/25 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10";
+  return (
+    <span className="flex basis-full flex-wrap gap-1.5 pt-1">
+      {docs.map((d) =>
+        d.tipo === "pdf" ? (
+          <VerPdfEnLaApp key={d.href} url={d.href} titulo={d.texto} className={clase}>
+            <FileText className="size-3" /> {d.texto}
+          </VerPdfEnLaApp>
+        ) : d.tipo === "archivo" ? (
+          <a key={d.href} href={d.href} target="_blank" rel="noreferrer" className={clase}>
+            <Paperclip className="size-3" /> {d.texto}
+          </a>
+        ) : (
+          <Link key={d.href} href={d.href} prefetch={false} className={clase}>
+            <FileText className="size-3" /> {d.texto}
+          </Link>
+        ),
+      )}
+    </span>
   );
 }

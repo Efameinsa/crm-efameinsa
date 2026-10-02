@@ -30,6 +30,8 @@ import {
 import { cn } from "@/lib/utils";
 import { CerrarPedidoAnterior } from "@/components/crm/cerrar-pedido-anterior";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
+import { documentosPorPaso } from "@/lib/documentos-por-paso";
+import { numeroInforme } from "@/lib/aperturas-llamada";
 
 export const dynamic = "force-dynamic";
 
@@ -119,7 +121,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
   // Las aperturas de llamada de este pedido (0281, reunión 23-09).
   const { data: aperturasData } = await supabase
     .from("aperturas_llamada")
-    .select("id, tipo, programada_para, anulada_at, enviada_cliente_at, revisada_at, informe_at, tomada_at")
+    .select("id, tipo, programada_para, anulada_at, enviada_cliente_at, revisada_at, informe_at, tomada_at, informe_cliente, informe_servicio_id, informes_servicio!aperturas_llamada_informe_servicio_id_fkey(correlativo, anio, es_prueba)")
     .eq("servicio_id", servicio.id)
     .order("programada_para", { ascending: false });
   const aperturas = ((aperturasData ?? []) as unknown as (Parameters<typeof estadoApertura>[0] & { id: string; tipo: string; programada_para: string })[]).map((a) => ({
@@ -167,6 +169,47 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
   const capturaUrl = capturaPath
     ? ((await supabase.storage.from("adjuntos").createSignedUrl(capturaPath, 3600)).data?.signedUrl ?? null)
     : null;
+
+  // Los informes técnicos del pedido (la puesta en marcha en el local), para
+  // colgarlos de su paso en el riel.
+  const { data: informesTecnicos } = await supabase
+    .from("informes_servicio")
+    .select("id, tipo, correlativo, anio, es_prueba")
+    .or([`servicio_id.eq.${servicio.id}`, ...(atencionPuesta?.id ? [`atencion_id.eq.${atencionPuesta.id}`] : [])].join(","))
+    .limit(50);
+  const crudasAperturas = (aperturasData ?? []) as unknown as {
+    id: string;
+    tipo: string;
+    anulada_at: string | null;
+    revisada_at: string | null;
+    informe_cliente: string | null;
+    informe_servicio_id: string | null;
+    informes_servicio: { correlativo: number | null; anio: number | null; es_prueba: boolean | null } | null;
+  }[];
+  const documentos = documentosPorPaso({
+    servicioId: servicio.id,
+    cierre: informe?.id ? { id: informe.id, codigo: informe.codigo ?? null } : null,
+    cotizacion: cotizacionEnlazada,
+    adjuntos: adjuntos.map((a) => ({ tipo: a.tipo, nombre: a.nombre, url: urlAdjunto.get(a.path) ?? null })),
+    capturaFinanzas: capturaUrl,
+    protocolo: Boolean(servicio.prueba_lista_at || servicio.prueba_solicitada_at || listaEquipos.some((e) => (e as { prueba_lista_at?: string | null }).prueba_lista_at)),
+    aperturaDespacho: Boolean(servicio.apertura_despacho_at),
+    fotos: galeriaAlmacen.map((f) => ({ etiqueta: f.etiqueta, nombre: f.nombre, url: f.url })),
+    aperturas: crudasAperturas.map((a) => ({
+      id: a.id,
+      tipo: a.tipo,
+      anulada: Boolean(a.anulada_at),
+      revisada: Boolean(a.revisada_at),
+      conHojaCliente: Boolean(a.informe_cliente),
+      informeId: a.informe_servicio_id,
+      informeNumero: numeroInforme(a.informes_servicio),
+    })),
+    informes: ((informesTecnicos ?? []) as { id: string; tipo: string; correlativo: number | null; anio: number | null; es_prueba: boolean | null }[]).map((i) => ({
+      id: i.id,
+      tipo: i.tipo,
+      numero: numeroInforme(i),
+    })),
+  });
 
   const contacto = informe?.contacto_despacho as { nombre?: string; telefono?: string } | null;
   const telefono = contacto?.telefono?.replace(/\D/g, "");
@@ -367,6 +410,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
           emitidoApertura={emisor?.nombre ?? null}
           aperturas={aperturas}
           equiposTexto={equiposTexto}
+          documentos={documentos}
         />
 
         <div className="space-y-4">
@@ -374,7 +418,11 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
           <InformesDelPedido servicio={servicio} equiposTexto={equiposTexto} />
           <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={(servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")} />
           {/* Lo que subió el almacén: protocolo, salida, guía (0246). */}
-          {galeriaAlmacen.length > 0 && <GaleriaAlmacen fotos={galeriaAlmacen} />}
+          {galeriaAlmacen.length > 0 && (
+            <div id="fotos-almacen" className="scroll-mt-4">
+              <GaleriaAlmacen fotos={galeriaAlmacen} />
+            </div>
+          )}
           {/* Los documentos del expediente. Antes venían impresos dentro del
               file que Finanzas bajaba; ahora son estos. */}
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
