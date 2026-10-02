@@ -103,7 +103,7 @@ export async function SeccionTrabajoDeCampo({ dia: diaPedido, otrosParametros }:
   // y se leería «no abrió el CRM», que sería mentira.
   const { data: celulares, error: errorCelulares } = await supabase
     .from("dispositivos_campo")
-    .select("id, user_id, token, ultimo_envio_at")
+    .select("id, user_id, token, ultimo_envio_at, plataforma, version_app")
     .in("user_id", ids)
     .eq("activo", true)
     .order("created_at", { ascending: false });
@@ -114,6 +114,9 @@ export async function SeccionTrabajoDeCampo({ dia: diaPedido, otrosParametros }:
     celularPor.set(c.user_id as string, {
       id: c.id as string,
       token: c.token as string,
+      // La app de Android se vincula sola (0368); un Traccar Client se vincula con código a mano (0367).
+      plataforma: (c.plataforma as string | null) === "android" ? "android" : "traccar",
+      versionApp: (c.version_app as string | null) ?? null,
       ultimoEnvio: c.ultimo_envio_at
         ? `${fechaHoraLima(c.ultimo_envio_at as string)} (${haceCuanto(c.ultimo_envio_at as string)})`
         : "todavía no envió nada",

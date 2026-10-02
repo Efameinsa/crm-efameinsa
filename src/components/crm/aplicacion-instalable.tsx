@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { Download, MonitorDown } from "lucide-react";
 import { registrarServiceWorker } from "@/lib/push-cliente";
+import { esApp } from "@/lib/nativo";
 import {
   corriendoInstalada,
   esIOS,
@@ -79,6 +80,14 @@ export function AplicacionInstalable() {
   // El service worker se registra pase lo que pase: no depende de que el aviso
   // se muestre. Es lo que sostiene el push.
   useEffect(() => {
+    // Dentro de la app de Android NO hay service worker (01-10-2026): no hay PWA que instalar, el push
+    // es nativo y la página sin conexión también. Y hace daño: sus peticiones salen SIN la marca
+    // «EfameinsaApp/» del User-Agent (el WebView no se la pone a los service workers), así que el
+    // servidor creía que era un navegador. Se desregistra el que hubiera de antes.
+    if (esApp()) {
+      void navigator.serviceWorker?.getRegistrations().then((registros) => registros.forEach((r) => void r.unregister()));
+      return;
+    }
     void registrarServiceWorker();
   }, []);
 

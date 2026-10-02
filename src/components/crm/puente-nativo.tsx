@@ -108,6 +108,8 @@ export function PuenteNativo() {
   useEffect(() => {
     if (!esApp()) return;
     document.documentElement.dataset.app = "android";
+    // Respaldo de la marca del User-Agent: el servidor la lee (layout) cuando una petición sale sin ella.
+    document.cookie = `efa-app=android; path=/; max-age=31536000; samesite=lax${window.location.protocol === "https:" ? "; secure" : ""}`;
 
     const alHacerClic = (e: MouseEvent) => {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;

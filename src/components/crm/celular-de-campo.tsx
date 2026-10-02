@@ -24,6 +24,9 @@ export const URL_SERVIDOR_OSMAND = "https://crm.efameinsa.com/api/campo/osmand";
 export interface CelularVinculado {
   id: string;
   token: string;
+  /** «android»: la app del CRM (se vincula sola, 24/7). «traccar»: Traccar Client con código. */
+  plataforma: "android" | "traccar";
+  versionApp: string | null;
   /** «hace 3 min», «todavía no envió nada». */
   ultimoEnvio: string;
 }
@@ -112,21 +115,29 @@ export function CelularDeCampo({
       {celular ? (
         <>
           <span className="text-foreground">
-            Celular (GPS) vinculado · último envío: <span className="font-medium">{celular.ultimoEnvio}</span>
+            {celular.plataforma === "android" ? `App Android ${celular.versionApp ?? ""} · GPS 24/7` : "Celular (Traccar) vinculado"} · último
+            envío: <span className="font-medium">{celular.ultimoEnvio}</span>
           </span>
-          <Button size="xs" variant="outline" onClick={() => setAbierto(true)}>
-            Ver instrucciones
-          </Button>
-          <Button size="xs" variant="outline" disabled={enviando} onClick={() => setConfirmarOtro(true)}>
-            Vincular otro
-          </Button>
+          {/* La app se vincula sola: no hay código ni instrucciones que pasar. */}
+          {celular.plataforma !== "android" && (
+            <>
+              <Button size="xs" variant="outline" onClick={() => setAbierto(true)}>
+                Ver instrucciones
+              </Button>
+              <Button size="xs" variant="outline" disabled={enviando} onClick={() => setConfirmarOtro(true)}>
+                Vincular otro
+              </Button>
+            </>
+          )}
           <Button size="xs" variant="ghost" disabled={enviando} onClick={desactivar} className="text-destructive">
             Desactivar
           </Button>
         </>
       ) : (
         <>
-          <span className="text-muted-foreground">Sin celular: solo la ubicación del navegador (sin GPS en la laptop).</span>
+          <span className="text-muted-foreground">
+            Sin celular: solo la ubicación del navegador (sin GPS en la laptop). La app de Android se vincula sola al aceptar; con Traccar, use el botón.
+          </span>
           <Button size="xs" disabled={enviando} onClick={vincular}>
             Vincular celular
           </Button>
