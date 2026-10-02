@@ -139,7 +139,13 @@ function Celda({ p, siguiente, marcada }: { p: PasoTabla | undefined; siguiente:
       className={cn("px-2 py-1.5 text-center align-middle", marcada && !p.hecho && "bg-primary/5")}
       title={p.hecho ? `${p.etiqueta} · ${p.cuando ? fechaLimaCorta(p.cuando) : "hecho"}` : p.trabado ? `${p.etiqueta} · ${p.trabado}` : `${p.etiqueta} · le toca a ${p.dueno}`}
     >
-      {p.hecho ? (
+      {p.hecho && p.clave === "pago" && /parcial/i.test(p.etiqueta) ? (
+        // Reunión 02-10: un pago parcial no es un visto verde como el completo.
+        <span className="inline-flex flex-col items-center text-amber-700">
+          <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold">Parcial</span>
+          {p.cuando && <span className="text-[10px] tabular-nums text-muted-foreground">{fechaLimaCorta(p.cuando)}</span>}
+        </span>
+      ) : p.hecho ? (
         <span className="inline-flex flex-col items-center text-[#1E7F4F]">
           <Check className="size-4" />
           {p.cuando && <span className="text-[10px] tabular-nums text-muted-foreground">{fechaLimaCorta(p.cuando)}</span>}

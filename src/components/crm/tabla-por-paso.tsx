@@ -52,7 +52,10 @@ const CORTO: Record<string, string> = {
   cerrado: "Cerrado",
 };
 
-export function TablaPorPaso({ filas, falta, base }: { filas: FilaTabla[]; falta: string | null; base: string }) {
+export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: FilaTabla[]; falta: string | null; base: string; q?: string }) {
+  // Reunión 02-10: buscar al cliente por nombre en vez de Ctrl+F.
+  const buscado = q.trim().toLowerCase();
+  const filas = buscado ? todas.filter((f) => f.cliente.toLowerCase().includes(buscado) || f.equipo.toLowerCase().includes(buscado)) : todas;
   // Las columnas salen de los pasos que existen en los pedidos, en su orden.
   const columnas: { clave: string; etiqueta: string }[] = [];
   for (const f of filas) for (const p of f.pasos) if (!columnas.some((c) => c.clave === p.clave)) columnas.push({ clave: p.clave, etiqueta: CORTO[p.clave] ?? p.etiqueta });
@@ -66,10 +69,22 @@ export function TablaPorPaso({ filas, falta, base }: { filas: FilaTabla[]; falta
       : f.pasos.some((p) => p.clave === clave && !p.hecho);
   const pendientesPor = (clave: string) => filas.filter((f) => debe(f, clave)).length;
   const visibles = falta ? filas.filter((f) => debe(f, falta)) : filas;
-  const enlace = (clave: string | null) => `${base}?vista=paso${clave ? `&falta=${clave}` : ""}`;
+  const enlace = (clave: string | null) => `${base}?vista=paso${clave ? `&falta=${clave}` : ""}${buscado ? `&q=${encodeURIComponent(q.trim())}` : ""}`;
 
   return (
     <div className="space-y-3">
+      <form action={base} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="vista" value="paso" />
+        {falta && <input type="hidden" name="falta" value={falta} />}
+        <input
+          name="q"
+          defaultValue={q}
+          placeholder="Buscar cliente o equipo…"
+          className="h-8 w-64 rounded-md border border-border bg-background px-2 text-sm"
+        />
+        <button type="submit" className="h-8 rounded-md border border-border px-3 text-xs font-medium hover:bg-accent">Buscar</button>
+        {buscado && <Link href={`${base}?vista=paso${falta ? `&falta=${falta}` : ""}`} className="text-xs text-muted-foreground underline">Quitar búsqueda</Link>}
+      </form>
       {/* Los pendientes por paso, de un toque. Es la pregunta de Carlos hecha botón. */}
       <div className="flex flex-wrap items-center gap-1.5">
         <Link
@@ -120,17 +135,19 @@ export function TablaPorPaso({ filas, falta, base }: { filas: FilaTabla[]; falta
       </div>
 
       {visibles.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Ningún pedido tiene ese paso pendiente.</p>
+        <p className="text-sm text-muted-foreground">{buscado ? `Ningún pedido de «${q.trim()}»${falta ? " con ese paso pendiente" : ""}.` : "Ningún pedido tiene ese paso pendiente."}</p>
       ) : (
         // EL CLIENTE NO ENSANCHA LA TABLA (Carlos, 16-09: «hay una barra
         // horizontal que se va mucho a la derecha… horrible»). El nombre y el
         // equipo se cortan con puntos suspensivos dentro de una columna de
         // ancho fijo; con 122 pedidos la tabla medía 5 700 px.
-        <div className="overflow-x-auto rounded-md border border-border">
+        // Reunión 02-10: el encabezado queda fijo al bajar («al final no ven
+        // qué columna es»), así que la tabla lleva su propio scroll.
+        <div className="max-h-[75vh] overflow-auto rounded-md border border-border">
           <table className="w-full text-xs">
-            <thead>
+            <thead className="sticky top-0 z-20 bg-background">
               <tr className="border-b border-border bg-secondary/40 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                <th className="sticky left-0 bg-secondary/40 px-2 py-2 font-medium">Pedido</th>
+                <th className="sticky left-0 z-30 bg-secondary px-2 py-2 font-medium">Pedido</th>
                 {columnas.map((c) => (
                   <th key={c.clave} className={cn("px-2 py-2 text-center font-medium", falta === c.clave && "text-primary")}>
                     {c.etiqueta}

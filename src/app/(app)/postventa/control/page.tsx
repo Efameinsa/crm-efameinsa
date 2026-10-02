@@ -292,7 +292,7 @@ export default async function ControlPedidosPage({
       ) : pedidos.length === 0 ? (
         <p className="text-sm text-muted-foreground">No hay pedidos del flujo en curso ahora mismo.</p>
       ) : vista === "paso" ? (
-        <TablaPorPaso filas={filas} falta={falta} base="/postventa/control" />
+        <TablaPorPaso filas={filas} falta={falta} base="/postventa/control" q={(sp.q ?? "").trim()} />
       ) : (
         <TableroControl pedidos={pedidos} />
       )}

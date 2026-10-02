@@ -594,7 +594,7 @@ function CerrarAntesDeTiempo({
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
-  const [resultado, setResultado] = useState<"resuelto" | "no_procede" | "derivado">("resuelto");
+  const [resultado, setResultado] = useState<"resuelto" | "no_procede" | "derivado" | null>(null);
   const [motivo, setMotivo] = useState("");
   // Por qué se cierra sin facturar. Solo cuenta si el caso se cobra y no hay
   // cotización; el servidor decide si hace falta (0189).
@@ -666,9 +666,9 @@ function CerrarAntesDeTiempo({
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
-            disabled={enviando || motivo.trim().length < 10}
+            disabled={enviando || !resultado || motivo.trim().length < 10}
             onClick={() =>
-              correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.")
+              resultado && correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.")
             }
           >
             Cerrar la atención
@@ -1628,7 +1628,7 @@ function PasoCerrar({
   enviando: boolean;
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
 }) {
-  const [resultado, setResultado] = useState<"resuelto" | "no_procede" | "derivado">("resuelto");
+  const [resultado, setResultado] = useState<"resuelto" | "no_procede" | "derivado" | null>(null);
   const [motivo, setMotivo] = useState("");
   // Por qué se cierra sin facturar. Solo cuenta si el caso se cobra y no hay
   // cotización; el servidor decide si hace falta (0189).
@@ -1690,9 +1690,9 @@ function PasoCerrar({
         )}
         <Button
           size="sm"
-          disabled={enviando || motivo.trim().length < 10}
+          disabled={enviando || !resultado || motivo.trim().length < 10}
           onClick={() =>
-            correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.")
+            resultado && correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.")
           }
         >
           Cerrar la atención
