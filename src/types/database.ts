@@ -78,6 +78,8 @@ export interface Perfil {
   es_almacen?: boolean;
   /** Piloto de trabajo de campo (0363, Carlos 01-10): el CRM registra la ubicación del navegador. */
   trabajo_de_campo?: boolean;
+  /** Gerencia la deja fuera del GPS de la app de Android (0370). */
+  rastreo_excluido?: boolean;
   created_at: string;
   updated_at: string;
 }

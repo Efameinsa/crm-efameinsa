@@ -10,6 +10,7 @@ import { AvisoGestionesSinSubir } from "@/components/crm/aviso-gestiones-sin-sub
 import { UbicacionDeCampo } from "@/components/crm/ubicacion-de-campo";
 import { PuenteNativo } from "@/components/crm/puente-nativo";
 import { RastreoNativo } from "@/components/crm/rastreo-nativo";
+import { seRastrea } from "@/lib/campo-rastreo";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
 import { AsistenteFlotante } from "@/components/crm/asistente-flotante";
 import { ComunicadoDeGerencia, type ComunicadoPendiente } from "@/components/crm/comunicado-de-gerencia";
@@ -87,8 +88,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Dentro de la app de Android el GPS lo hace el servicio nativo (24/7 por regla de
   // gerencia, 01-10-2026) y el aviso del navegador sobra: la app lo dice en su User-Agent y, si una petición sale sin él (service worker), en la cookie efa-app.
   const enApp = /EfameinsaApp\//.test(cabeceras.get("user-agent") ?? "") || tarro.get("efa-app")?.value === "android";
+  // 02-10-2026 (Santos: «¿no se puede rastrear todas las cuentas que instalen la apk?»): en la app se
+  // rastrea a TODA cuenta real (lib/campo-rastreo.ts), sin marcar a nadie; el aviso del navegador del
+  // piloto de la 0363 sigue siendo solo para las marcadas.
   const ubicacionDeCampo =
-    perfil.trabajo_de_campo && !ranuraAuditoria && !demo ? enApp ? <RastreoNativo /> : <UbicacionDeCampo /> : null;
+    !ranuraAuditoria && !demo
+      ? enApp
+        ? seRastrea(perfil)
+          ? <RastreoNativo />
+          : null
+        : perfil.trabajo_de_campo
+          ? <UbicacionDeCampo />
+          : null
+      : null;
   const avisosArriba = !demo ? (
     <div className="flex flex-col gap-2 px-3 pt-3 empty:hidden sm:px-4 lg:px-6 lg:pt-4">
       {ubicacionDeCampo}

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generarToken } from "@/lib/campo-osmand";
 import { VERSION_CONSENTIMIENTO } from "@/lib/campo-consentimiento";
+import { seRastrea } from "@/lib/campo-rastreo";
 import { nombreDelCelular, validarVinculacion } from "@/lib/campo-dispositivo";
 
 export const runtime = "nodejs";
@@ -43,11 +44,20 @@ async function personaActual() {
   if (!user) return null;
   const { data: perfil } = await supabase
     .from("perfiles")
-    .select("id, nombre, trabajo_de_campo, activo")
+    .select("id, nombre, trabajo_de_campo, es_prueba, rastreo_excluido, activo")
     .eq("id", user.id)
     .maybeSingle();
   if (!perfil || perfil.activo === false) return null;
-  return { supabase, perfil: perfil as { id: string; nombre: string | null; trabajo_de_campo: boolean | null } };
+  return {
+    supabase,
+    perfil: perfil as {
+      id: string;
+      nombre: string | null;
+      trabajo_de_campo: boolean | null;
+      es_prueba: boolean | null;
+      rastreo_excluido: boolean | null;
+    },
+  };
 }
 
 export async function GET(request: Request) {
@@ -76,7 +86,8 @@ export async function GET(request: Request) {
 
   return NextResponse.json(
     {
-      marcado: Boolean(yo.perfil.trabajo_de_campo),
+      // «marcado» = se la rastrea: toda cuenta real, salvo exclusión de gerencia (lib/campo-rastreo.ts).
+      marcado: seRastrea(yo.perfil),
       consentimiento: (consentimientos ?? []).length > 0,
       version_consentimiento: VERSION_CONSENTIMIENTO,
       dispositivo: dispositivo ? { activo: Boolean(dispositivo.activo) } : null,
@@ -88,8 +99,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const yo = await personaActual();
   if (!yo) return NextResponse.json({ error: "No autenticado" }, { status: 401, headers: sinCache });
-  if (!yo.perfil.trabajo_de_campo) {
-    return NextResponse.json({ error: "no_marcado", detalle: "Gerencia no la marcó para el trabajo de campo." }, { status: 403, headers: sinCache });
+  if (!seRastrea(yo.perfil)) {
+    return NextResponse.json({ error: "no_marcado", detalle: "A esta cuenta no se le registra la ubicación." }, { status: 403, headers: sinCache });
   }
 
   const v = validarVinculacion(await request.json().catch(() => null));
