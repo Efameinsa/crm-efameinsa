@@ -95,8 +95,16 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
   if (comercialId) consulta = consulta.eq("asignado_a", comercialId);
 
   const { data } = await consulta;
-  const lista = await conUltimoTexto(supabase, data ?? []);
-  return filtro === "no_leidos" ? lista.filter((c) => c.no_leidos > 0 || c.id === mantener) : lista;
+  // El filtro se decide con dos horas (último mensaje del cliente contra la
+  // última lectura), no contando mensajes: la base entrega hasta 1 000 filas
+  // por consulta y con cientos de chats los más viejos llegaban sin mensajes,
+  // como si estuvieran leídos (02-10, la pestaña decía 99+ y la lista vacía).
+  if (filtro === "no_leidos") {
+    const lecturas = await lecturasPropias(supabase);
+    const pendientes = (data ?? []).filter((c) => noLeido(c.ultimo_mensaje_cliente_at, lecturas.get(c.id)) || c.id === mantener);
+    return conUltimoTexto(supabase, pendientes);
+  }
+  return conUltimoTexto(supabase, data ?? []);
 }
 
 /** La última vez que quien mira abrió cada chat (0374). RLS: solo las suyas. */
@@ -227,7 +235,9 @@ async function conUltimoTexto(supabase: Awaited<ReturnType<typeof createClient>>
     ultimo_texto: ultimos.get(c.id) ?? null,
     de_anuncio: Boolean(c.ctwa_clid),
     anuncio_at: c.anuncio_at ?? null,
-    no_leidos: sinLeer.get(c.id) ?? 0,
+    // El globito cuenta mensajes; si los de este chat no entraron en la
+    // consulta (tope de 1 000 filas), al menos dice que hay uno.
+    no_leidos: sinLeer.get(c.id) ?? (noLeido(c.ultimo_mensaje_cliente_at, lecturas.get(c.id)) ? 1 : 0),
   }));
 }
 
