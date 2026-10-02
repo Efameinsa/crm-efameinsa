@@ -7,6 +7,7 @@ import { Archive, BellRing, Check, HandHelping, Loader2, Plus, Search, X } from 
 import {
   anularPedidoFile,
   buscarClientesParaFile,
+  crearSedeParaFile,
   confirmarFileRecibido,
   devolverFile,
   entregarFile,
@@ -35,6 +36,75 @@ import { cn } from "@/lib/utils";
 type Marca = { open: boolean; efameinsa: boolean };
 const empresaDe = (m: Marca | undefined): EmpresaFile | null =>
   m?.open && m?.efameinsa ? "ambos" : m?.open ? "open" : m?.efameinsa ? "efameinsa" : null;
+
+/**
+ * Lista de resultados del buscador de clientes. Para las instituciones con
+ * muchas sedes bajo un mismo RUC (MINSA, Marina de Guerra, ESSALUD; 0158) cada
+ * sede es una ficha distinta: se muestran todas y al final se ofrece «Otra sede
+ * (nueva)» para escribir la que no existe todavía (0369).
+ */
+function ListaClientesFile({ resultados, onElegir, compacto = false }: { resultados: ClienteParaFile[]; onElegir: (c: ClienteParaFile) => void; compacto?: boolean }) {
+  const [creando, setCreando] = useState<string | null>(null);
+  const [nombre, setNombre] = useState("");
+  const [guardando, startTransition] = useTransition();
+  const familias = [...new Map(resultados.filter((c) => c.familia).map((c) => [c.familia!.id, c.familia!.nombre])).entries()];
+
+  function crear(madreId: string) {
+    startTransition(async () => {
+      const r = await crearSedeParaFile(madreId, nombre);
+      if (r.error || !r.cliente) return void toast.error(r.error ?? "No se pudo crear la sede", { duration: 9000 });
+      setCreando(null);
+      setNombre("");
+      onElegir(r.cliente);
+    });
+  }
+
+  return (
+    <ul className={cn("absolute z-20 mt-1 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg", compacto ? "max-h-60" : "max-h-80")}>
+      {resultados.map((c) => (
+        <li key={c.id}>
+          <button type="button" onClick={() => onElegir(c)} className={cn("flex w-full items-center justify-between gap-3 text-left hover:bg-accent", compacto ? "px-3 py-1.5" : "px-3 py-2 text-sm")}>
+            <span className={cn("min-w-0", c.familia && !c.esMadre && "pl-3")}>
+              <span className="block truncate font-medium">{c.razonSocial}</span>
+              <span className="text-xs text-muted-foreground">
+                {c.documento ?? "sin documento"}
+                {c.familia ? (c.esMadre ? " · institución (RUC compartido)" : " · sede") : ""}
+                {c.cartera ? ` · cartera ${c.cartera}` : ""}
+              </span>
+            </span>
+            {!compacto && <Plus className="size-4 flex-none text-primary" />}
+          </button>
+        </li>
+      ))}
+      {familias.map(([id, nombreMadre]) => (
+        <li key={`nueva-${id}`} className="border-t border-border bg-secondary/40 px-3 py-2 text-xs">
+          {creando === id ? (
+            <div className="flex items-center gap-2">
+              <Input
+                autoFocus
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && nombre.trim() && !guardando && crear(id)}
+                placeholder={`Nombre de la sede de ${nombreMadre}`}
+                className="h-8 text-xs"
+              />
+              <Button size="sm" onClick={() => crear(id)} disabled={guardando || !nombre.trim()}>
+                {guardando ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />} Crear
+              </Button>
+              <button type="button" onClick={() => setCreando(null)} className="text-muted-foreground hover:text-destructive" aria-label="Cancelar">
+                <X className="size-4" />
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setCreando(id)} className="flex w-full items-center gap-2 font-semibold text-primary">
+              <Plus className="size-4" /> ¿No está la sede? Otra sede de {nombreMadre} (nueva)
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function PedirFiles() {
   const router = useRouter();
@@ -94,24 +164,7 @@ export function PedirFiles() {
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={q} onChange={(e) => escribir(e.target.value)} placeholder="Buscar el cliente por nombre o RUC (mínimo 3 letras)" className="pl-9" />
         {buscando && <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
-        {resultados.length > 0 && (
-          <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
-            {resultados.map((c) => (
-              <li key={c.id}>
-                <button type="button" onClick={() => agregar(c)} className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-accent">
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{c.razonSocial}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {c.documento ?? "sin documento"}
-                      {c.cartera ? ` · cartera ${c.cartera}` : ""}
-                    </span>
-                  </span>
-                  <Plus className="size-4 flex-none text-primary" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        {resultados.length > 0 && <ListaClientesFile resultados={resultados} onElegir={agregar} />}
       </div>
 
       {elegidos.length > 0 && (
@@ -341,23 +394,14 @@ export function EntregarFileDirecto({
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input className="h-8 pl-8 text-xs" value={q} onChange={(e) => escribir(e.target.value)} placeholder="Cliente por nombre o RUC (mínimo 3 letras)" autoFocus />
           {resultados.length > 0 && (
-            <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
-              {resultados.map((c) => (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCliente({ id: c.id, nombre: c.razonSocial });
-                      escribir("");
-                    }}
-                    className="block w-full px-3 py-1.5 text-left hover:bg-accent"
-                  >
-                    <span className="block truncate font-medium">{c.razonSocial}</span>
-                    <span className="text-muted-foreground">{c.documento ?? "sin documento"}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <ListaClientesFile
+              compacto
+              resultados={resultados}
+              onElegir={(c) => {
+                setCliente({ id: c.id, nombre: c.razonSocial });
+                escribir("");
+              }}
+            />
           )}
         </div>
       )}
