@@ -13,7 +13,7 @@
  *    versión que no está instalada en todos los celulares bloquea a esa gente de
  *    hecho: antes de subirla, avisar y entregar el APK.
  */
-export const VERSION_ULTIMA_APP = "1.0.0";
+export const VERSION_ULTIMA_APP = "1.1.0";
 export const VERSION_MINIMA_APP = "1.0.0";
 
 /** Compara «1.2.10» con «1.2.9» número por número; negativo si a < b. */

@@ -9,6 +9,8 @@ import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
 import { AvisoGestionesSinSubir } from "@/components/crm/aviso-gestiones-sin-subir";
 import { UbicacionDeCampo } from "@/components/crm/ubicacion-de-campo";
 import { PuenteNativo } from "@/components/crm/puente-nativo";
+import { VigilanteConducta } from "@/components/crm/vigilante-conducta";
+import { seVigila } from "@/lib/seguridad-conducta";
 import { RastreoNativo } from "@/components/crm/rastreo-nativo";
 import { seRastrea } from "@/lib/campo-rastreo";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
@@ -113,6 +115,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <>
       {/* La app de Android (01-10-2026): PDF, descargas, imprimir y enlaces. Fuera de la app no hace nada. */}
       <PuenteNativo />
+      {/* Conducta sospechosa (0373): solo mira y avisa a gerencia, no bloquea. No en auditoría ni demostración, ni a gerencia/admin. */}
+      {seVigila(perfil) && !ranuraAuditoria && !demo && <VigilanteConducta />}
       <RefrescoEnVivo />
       <AvisoNuevaVersion versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
       {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && <ComunicadoDeGerencia comunicado={comunicado} />}

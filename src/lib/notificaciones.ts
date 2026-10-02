@@ -44,7 +44,9 @@ export type TipoNotificacion =
   | "cierre_anulado"
   | "visita_planta"
   // El cliente tocó un botón en una ficha mandada por WhatsApp (0250).
-  | "whatsapp";
+  | "whatsapp"
+  // Conducta sospechosa de una cuenta: capturas, copias, descargas en ráfaga (0373, Santos 02-10).
+  | "seguridad";
 
 interface Destinatario {
   userId?: string;
