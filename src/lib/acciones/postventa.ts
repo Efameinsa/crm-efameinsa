@@ -9,6 +9,7 @@ import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
+import { lineasGuia, type GuiaApertura } from "@/lib/apertura-servicio";
 
 /**
  * Las acciones del circuito de postventa (migración 0087).
@@ -1186,6 +1187,10 @@ export async function guardarAperturaServicio(
     transporte?: string | null;
     nota?: string | null;
     direccionFinal?: string | null;
+    guia?: string | null;
+    guiaDetalle?: string | null;
+    coordinaContabilidad?: string | null;
+    coordinaLogistica?: string | null;
   },
 ) {
   await requerirPerfil();
@@ -1194,6 +1199,9 @@ export async function guardarAperturaServicio(
   const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
   if (datos.tipo && !["entrega", "entrega_puesta_marcha", "mantenimiento"].includes(datos.tipo)) {
     return falla("Ese no es uno de los tres formatos de apertura");
+  }
+  if (datos.guia && !["traslado", "materiales", "ambas"].includes(datos.guia)) {
+    return falla("Esa no es una de las guías que se pueden pedir");
   }
 
   const { error } = await supabase
@@ -1206,6 +1214,11 @@ export async function guardarAperturaServicio(
       transporte: limpio(datos.transporte),
       apertura_nota: limpio(datos.nota),
       direccion_final: limpio(datos.direccionFinal),
+      // undefined = no tocar: quien guarda desde otra pantalla no los borra.
+      ...(datos.guia !== undefined ? { apertura_guia: limpio(datos.guia) } : {}),
+      ...(datos.guiaDetalle !== undefined ? { apertura_guia_detalle: limpio(datos.guiaDetalle) } : {}),
+      ...(datos.coordinaContabilidad !== undefined ? { apertura_coordina_contabilidad: limpio(datos.coordinaContabilidad) } : {}),
+      ...(datos.coordinaLogistica !== undefined ? { apertura_coordina_logistica: limpio(datos.coordinaLogistica) } : {}),
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);
@@ -1239,7 +1252,14 @@ export async function marcarAperturaEnviada(servicioId: string, destino: "almace
   // revise y autorice la guía de salida. Ya no depende del correo.
   if (destino === "almacen") {
     const perfil = await requerirPerfil();
-    const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp").eq("id", servicioId).maybeSingle();
+    const { data: s } = await supabase
+      .from("servicios_postventa")
+      .select("cliente_texto, numero_pedido_erp, apertura_guia, apertura_guia_detalle")
+      .eq("id", servicioId)
+      .maybeSingle();
+    // La guía pedida en la apertura (0371) le llega a Finanzas, que es quien la autoriza.
+    const guia = lineasGuia(s?.apertura_guia as GuiaApertura | null, s?.apertura_guia_detalle);
+    const pideGuia = guia.length ? ` Se solicita: ${guia.join(" / ").toLowerCase()}.` : "";
     const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
     const pedido = s?.numero_pedido_erp ? ` (pedido ${s.numero_pedido_erp})` : "";
     const esPrueba = perfil.es_prueba === true;
@@ -1252,7 +1272,7 @@ export async function marcarAperturaEnviada(servicioId: string, destino: "almace
       }),
       notificarFinanzas({
         titulo: `Apertura por confirmar · ${quien}`,
-        cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme para que el almacén emita la guía de salida.`,
+        cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme para que el almacén emita la guía de salida.${pideGuia}`,
         url: "/finanzas/aperturas",
         esPrueba,
       }),

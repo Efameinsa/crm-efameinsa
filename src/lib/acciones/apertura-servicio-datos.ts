@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { fechaHoraLima } from "@/lib/fechas";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { circuitoDe, esProvincia, planoNoEnviado, PREFIJO_PLANO_NO_ENVIADO, puedeVerPrecios, seriesDeTexto, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
-import { faltantesApertura, filasApertura, horaAmPm, tipoSugerido, type DatosApertura, type FilaApertura, type TipoApertura } from "@/lib/apertura-servicio";
+import { faltantesApertura, filasApertura, horaAmPm, tipoSugerido, type DatosApertura, type FilaApertura, type GuiaApertura, type TipoApertura } from "@/lib/apertura-servicio";
 
 /**
  * Todo lo que necesita la hoja de la apertura de servicio, en un solo lugar.
@@ -121,6 +121,13 @@ export async function cargarHojaApertura(
     recibeTelefono: s.recibe_telefono ?? contacto?.telefono ?? null,
     tecnico: s.tecnico_asignado ?? null,
     transporte: s.transporte ?? s.transportista ?? null,
+    guia: (s.apertura_guia as GuiaApertura | null) ?? null,
+    guiaDetalle: s.apertura_guia_detalle ?? null,
+    // Lesly, 02-10: «no es Sara, es Jhon». Si postventa no lo escribió, quien
+    // confirmó el pago en Finanzas: es con quien se coordina el dinero.
+    coordinaContabilidad:
+      s.apertura_coordina_contabilidad ?? nombreDe((s as { pago_confirmado_por?: string | null }).pago_confirmado_por),
+    coordinaLogistica: s.apertura_coordina_logistica ?? null,
   };
 
   const filas = filasApertura(d);

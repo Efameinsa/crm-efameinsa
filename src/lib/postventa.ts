@@ -118,6 +118,11 @@ export interface ServicioPostventa {
   transporte?: string | null;
   apertura_nota?: string | null;
   direccion_final?: string | null;
+  /** La guía que se pide con la apertura y con quién coordina el técnico (0371, Lesly 02-10). */
+  apertura_guia?: string | null;
+  apertura_guia_detalle?: string | null;
+  apertura_coordina_contabilidad?: string | null;
+  apertura_coordina_logistica?: string | null;
   /** «Ya lo mandé»: el correo de la apertura, marcado por separado al almacén y al cliente (0271). */
   apertura_enviada_almacen_at?: string | null;
   apertura_enviada_cliente_at?: string | null;

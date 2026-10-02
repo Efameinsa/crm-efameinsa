@@ -4,7 +4,7 @@ import { ArrowLeft, Download, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { fechaHoraLima } from "@/lib/fechas";
-import { asuntoApertura, cuerpoApertura, queQuedaEnAgenda } from "@/lib/apertura-servicio";
+import { asuntoApertura, cuerpoApertura, esFilaLarga, queQuedaEnAgenda } from "@/lib/apertura-servicio";
 import { cargarHojaApertura } from "@/lib/acciones/apertura-servicio-datos";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { AperturaServicioPanel } from "@/components/crm/apertura-servicio-panel";
@@ -56,7 +56,11 @@ export default async function AperturaServicioPage({ params }: { params: Promise
           .hoja, .hoja * { visibility: visible !important; }
           .hoja { position: absolute; inset: 0 0 auto 0; box-shadow: none !important; border: 0 !important; border-radius: 0 !important; margin: 0 !important; padding: 0 !important; }
           .hoja th:nth-child(2) { width: 9.5rem; }
-          .hoja tr { break-inside: avoid; }
+          /* Solo las filas cortas no se parten. Una fila larga (la 1 de
+             TOMY JIRO, 02-10, con doce repuestos) que no cabía se iba entera
+             a la hoja 2 y dejaba la primera en blanco. */
+          .hoja tr.corta { break-inside: avoid; }
+          .hoja thead { display: table-header-group; }
           .hoja { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-imprimir { display: none !important; }
           body { background: white !important; }
@@ -132,7 +136,7 @@ export default async function AperturaServicioPage({ params }: { params: Promise
           </div>
         </div>
 
-        {/* Las diez filas, en el orden del modelo de Lesly (01-10). */}
+        {/* Las once filas: el modelo de Lesly (01-10) con primer destino y destino final separados (02-10). */}
         <table className="mt-4 w-full border-collapse text-[12px]">
           <thead>
             <tr className="bg-neutral-100 text-left">
@@ -144,10 +148,22 @@ export default async function AperturaServicioPage({ params }: { params: Promise
           </thead>
           <tbody>
             {filas.map((f) => (
-              <tr key={f.n} className="align-top">
+              <tr key={f.n} className={`align-top ${esFilaLarga(f) ? "" : "corta"}`}>
                 <td className="border border-neutral-400 px-2 py-1.5 text-center">{f.n}</td>
                 <td className="border border-neutral-400 px-2 py-1.5 font-semibold">{f.descripcion}</td>
-                <td className="whitespace-pre-line border border-neutral-400 px-2 py-1.5">{f.informacion}</td>
+                <td className="whitespace-pre-line border border-neutral-400 px-2 py-1.5">
+                  {f.informacion}
+                  {f.notas && f.notas.length > 0 && (
+                    <span className="mt-2 block border-t border-dashed border-neutral-400 pt-1.5">
+                      <b>NOTAS:</b>
+                      {f.notas.map((x) => (
+                        <span key={x} className="block">
+                          {x}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </td>
                 <td className={`whitespace-pre-line border border-neutral-400 px-2 py-1.5 ${f.observaciones.includes("\n") ? "text-left" : "text-center"}`}>
                   {f.n === 1 && f.observaciones ? <b>{f.observaciones}</b> : f.observaciones}
                   {f.resaltado && (
@@ -226,6 +242,10 @@ export default async function AperturaServicioPage({ params }: { params: Promise
           transporte: s.transporte ?? s.transportista ?? null,
           nota: s.apertura_nota ?? null,
           direccionFinal: s.direccion_final ?? null,
+          guia: d.guia ?? null,
+          guiaDetalle: d.guiaDetalle ?? null,
+          coordinaContabilidad: d.coordinaContabilidad ?? null,
+          coordinaLogistica: s.apertura_coordina_logistica ?? null,
         }}
         asunto={asuntoApertura(d)}
         cuerpo={cuerpoApertura(d)}

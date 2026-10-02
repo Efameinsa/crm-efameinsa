@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
-import { queQuedaEnAgenda, type FilaApertura, type TipoApertura } from "@/lib/apertura-servicio";
+import { esFilaLarga, queQuedaEnAgenda, type FilaApertura, type TipoApertura } from "@/lib/apertura-servicio";
 
 // El PDF descargable de la apertura de servicio (ítem 8 de la reunión del
 // 22-09): Carlos, viendo la pantalla en vivo: «ya no trabajes como en Word,
@@ -8,7 +8,7 @@ import { queQuedaEnAgenda, type FilaApertura, type TipoApertura } from "@/lib/ap
 // impresión del navegador; esto es un archivo propio, como el del cierre.
 //
 // Calca la hoja que ya se ve en pantalla (`/postventa/pedidos/[id]/apertura`):
-// arriba las nueve filas del formato de correo, abajo las condiciones
+// arriba las once filas del formato de correo, abajo las condiciones
 // verificadas que le dan autoridad al papel frente a almacén.
 
 const GRANATE = "#7E1210";
@@ -127,10 +127,23 @@ export function AperturaServicioPdf({
             <Text style={[e.thTexto, { width: 130 }]}>OBSERVACIONES</Text>
           </View>
           {filas.map((f) => (
-            <View key={f.n} style={e.fila} wrap={false}>
+            // Solo las filas cortas no se parten (TOMY JIRO, 02-10): la fila 1
+            // con doce repuestos no cabía bajo la cabecera, se iba entera a la
+            // hoja 2 y la primera salía en blanco.
+            <View key={f.n} style={e.fila} wrap={esFilaLarga(f)}>
               <Text style={[e.celda, { width: 22, textAlign: "center" }]}>{f.n}</Text>
               <Text style={[e.celda, { width: 130, fontFamily: "Helvetica-Bold" }]}>{f.descripcion}</Text>
-              <Text style={[e.celda, { flex: 1 }]}>{f.informacion}</Text>
+              <View style={[e.celda, { flex: 1 }]}>
+                <Text>{f.informacion}</Text>
+                {f.notas && f.notas.length > 0 && (
+                  <View style={{ marginTop: 6, paddingTop: 4, borderTopWidth: 0.5, borderTopColor: BORDE, borderStyle: "dashed" }}>
+                    <Text style={{ fontFamily: "Helvetica-Bold" }}>NOTAS:</Text>
+                    {f.notas.map((x) => (
+                      <Text key={x}>{x}</Text>
+                    ))}
+                  </View>
+                )}
+              </View>
               <View style={[e.celda, { width: 130, borderRightWidth: 0 }]}>
                 <Text style={{ textAlign: f.observaciones.includes("\n") ? "left" : "center", fontFamily: f.n === 1 ? "Helvetica-Bold" : "Helvetica" }}>
                   {f.observaciones}
