@@ -9,6 +9,7 @@ import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
 import { AvisoGestionesSinSubir } from "@/components/crm/aviso-gestiones-sin-subir";
 import { UbicacionDeCampo } from "@/components/crm/ubicacion-de-campo";
 import { PuenteNativo } from "@/components/crm/puente-nativo";
+import { RastreoNativo } from "@/components/crm/rastreo-nativo";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
 import { AsistenteFlotante } from "@/components/crm/asistente-flotante";
 import { ComunicadoDeGerencia, type ComunicadoPendiente } from "@/components/crm/comunicado-de-gerencia";
@@ -83,7 +84,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // navegador, solo para quien gerencia marcó. Nunca en la ranura de
   // auditoría: ahí el navegador es del auditor y se anotaría su ubicación a
   // nombre de la persona auditada.
-  const ubicacionDeCampo = perfil.trabajo_de_campo && !ranuraAuditoria && !demo ? <UbicacionDeCampo /> : null;
+  // Dentro de la app de Android el GPS lo hace el servicio nativo (24/7 por regla de
+  // gerencia, 01-10-2026) y el aviso del navegador sobra: la app lo dice en su User-Agent y, si una petición sale sin él (service worker), en la cookie efa-app.
+  const enApp = /EfameinsaApp\//.test(cabeceras.get("user-agent") ?? "") || tarro.get("efa-app")?.value === "android";
+  const ubicacionDeCampo =
+    perfil.trabajo_de_campo && !ranuraAuditoria && !demo ? enApp ? <RastreoNativo /> : <UbicacionDeCampo /> : null;
   const avisosArriba = !demo ? (
     <div className="flex flex-col gap-2 px-3 pt-3 empty:hidden sm:px-4 lg:px-6 lg:pt-4">
       {ubicacionDeCampo}
