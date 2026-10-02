@@ -624,13 +624,25 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   // Lima pasa al bloque del despacho, ANTES de que salga. Mismas columnas.
   // No es retroactivo: lo que ya salió o ya cerró no pide una llamada que
   // nadie va a registrar.
+  //
+  // 01-10 (Rubí, con Bryan Ninamango): el rótulo decía «Preinstalación
+  // confirmada por el cliente» también mientras faltaba, y se leía como cosa
+  // hecha aunque el circulito estuviera vacío. Como «Entrega en planta» →
+  // «Entregado en planta»: pendiente dice lo que falta, hecho dice que pasó.
+  const preinstalacionHecha =
+    s.preinstalacion_ok_at != null ||
+    (!provincia && (s.despachado_at != null || s.cerrado_at != null || s.completado || s.puesta_en_marcha != null));
   const pasoPreinstalacion: PasoPedido = {
     clave: "preinstalacion",
-    etiqueta: provincia ? "Preinstalación confirmada por el cliente" : "Videollamada de preinstalación hecha",
+    etiqueta: provincia
+      ? preinstalacionHecha
+        ? "Preinstalación confirmada por el cliente"
+        : "Preinstalación: falta que el cliente la confirme"
+      : preinstalacionHecha
+        ? "Videollamada de preinstalación hecha"
+        : "Videollamada de preinstalación: falta hacerla",
     responsable: (provincia ? "cliente" : "postventa") as ResponsablePaso,
-    hecho:
-      s.preinstalacion_ok_at != null ||
-      (!provincia && (s.despachado_at != null || s.cerrado_at != null || s.completado || s.puesta_en_marcha != null)),
+    hecho: preinstalacionHecha,
     cuando: s.preinstalacion_ok_at,
     detalle:
       s.preinstalacion_nota ??

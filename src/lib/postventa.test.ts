@@ -353,10 +353,18 @@ describe("bloquesPedido: el orden de Carlos y la apertura de despacho", () => {
   // por videollamada, no por foto. Comparte columna con la de provincia.
   it("en Lima el equipo también lleva preinstalación, pero como videollamada", () => {
     const s = pedido({ modalidad: "lima" });
-    expect(paso(s, "preinstalacion").etiqueta).toBe("Videollamada de preinstalación hecha");
+    expect(paso(s, "preinstalacion").etiqueta).toBe("Videollamada de preinstalación: falta hacerla");
     expect(paso(s, "preinstalacion").responsable).toBe("postventa");
     expect(paso(s, "preinstalacion").hecho).toBe(false);
     expect(paso({ ...s, preinstalacion_ok_at: "2026-09-22T10:00:00Z" }, "preinstalacion").hecho).toBe(true);
+    expect(paso({ ...s, preinstalacion_ok_at: "2026-09-22T10:00:00Z" }, "preinstalacion").etiqueta).toBe("Videollamada de preinstalación hecha");
+  });
+
+  // 01-10 (Rubí): pendiente no puede sonar a hecho.
+  it("en provincia, mientras falta, el rótulo no dice «confirmada»", () => {
+    const s = pedido({ modalidad: "provincia" });
+    expect(paso(s, "preinstalacion").etiqueta).toBe("Preinstalación: falta que el cliente la confirme");
+    expect(paso({ ...s, preinstalacion_ok_at: "2026-09-22T10:00:00Z" }, "preinstalacion").etiqueta).toBe("Preinstalación confirmada por el cliente");
   });
 
   it("la videollamada de Lima no reabre un pedido que ya avanzó sin ella", () => {
