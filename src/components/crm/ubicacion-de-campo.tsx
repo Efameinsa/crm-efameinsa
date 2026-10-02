@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MapPin, X } from "lucide-react";
 import { registrarUbicacionCampo, type LecturaUbicacion } from "@/lib/acciones/ubicacion-campo";
-import { INTERVALO_MIN, textoPrecision, type EstadoUbicacion, type OrigenUbicacion } from "@/lib/ubicacion-campo";
+import { INTERVALO_MIN, textoPrecision, type EstadoUbicacion, type OrigenNavegador } from "@/lib/ubicacion-campo";
 
 /**
  * LA UBICACIÓN DEL PILOTO DE TRABAJO DE CAMPO (0363).
@@ -101,7 +101,7 @@ export function UbicacionDeCampo() {
   const [oculto, setOculto] = useState(false);
   const enCurso = useRef(false);
 
-  const registrar = useCallback(async (origen: OrigenUbicacion, minimoMin = 0) => {
+  const registrar = useCallback(async (origen: OrigenNavegador, minimoMin = 0) => {
     if (enCurso.current) return;
     const previa = Number(leer(CLAVE_ULTIMA, "local") ?? 0);
     if (minimoMin > 0 && Date.now() - previa < minimoMin * 60_000) return;
