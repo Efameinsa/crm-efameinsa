@@ -6,6 +6,7 @@ import { Check, ChevronDown, ChevronRight, CircleDashed, OctagonAlert } from "lu
 import { fechaLimaCorta } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import type { FilaTabla, PasoTabla } from "@/components/crm/tabla-por-paso";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * LAS FILAS DE «POR PASO», AGRUPADAS POR EMPRESA Y DESPLEGABLES.
@@ -72,7 +73,7 @@ export function FilasPorPaso({
                   {abierto ? <ChevronDown className="mt-0.5 size-4 shrink-0 text-primary" /> : <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />}
                   <span className="min-w-0">
                     <span className="line-clamp-1 break-words font-semibold text-foreground" title={g.cliente}>
-                      {g.cliente}
+                      <NombreAFicha cuentaId={g.pedidos[0].cuentaId}>{g.cliente}</NombreAFicha>
                     </span>
                     <span className="text-[11px] text-muted-foreground">
                       {g.pedidos.length === 1 ? (

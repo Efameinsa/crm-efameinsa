@@ -16,6 +16,7 @@ import {
   type Atencion,
 } from "@/lib/atenciones";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * La pista de nueve etapas (embudo + lista), con los filtros EN EL NAVEGADOR.
@@ -148,7 +149,7 @@ export function VistaAtenciones({
                 </span>
                 <span className="min-w-[180px] flex-1">
                   <span className="block text-sm font-medium text-foreground">
-                    {a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre"}
+                    <NombreAFicha cuentaId={a.cuenta_id}>{a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre"}</NombreAFicha>
                   </span>
                   <span className="line-clamp-1 break-words text-xs text-muted-foreground">
                     {ETIQUETA_TIPO_ATENCION[a.tipo]}

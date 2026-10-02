@@ -3,6 +3,7 @@ import { ArrowRight, Building2, ChevronDown } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { agruparPorCliente } from "@/lib/fichas-del-mismo-cliente";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * UNA FILA POR CLIENTE, NO POR CASO.
@@ -114,7 +115,7 @@ function Caso({
       </span>
       <Link href={caso.href} className="min-w-[200px] flex-1 hover:underline">
         {/* Dentro de un cliente el nombre ya está arriba: acá manda el caso. */}
-        <p className="text-sm font-semibold text-foreground">{sangrado ? caso.etiqueta : caso.cliente}</p>
+        <p className="text-sm font-semibold text-foreground">{sangrado ? caso.etiqueta : <NombreAFicha cuentaId={caso.cuentaId}>{caso.cliente}</NombreAFicha>}</p>
         <p className="line-clamp-1 text-xs text-muted-foreground no-underline">
           {sangrado ? caso.detalle : `${caso.etiqueta}${caso.detalle ? ` · ${caso.detalle}` : ""}`}
         </p>
@@ -181,7 +182,7 @@ export function BandejaPorCliente({
                 <Building2 className="size-4" />
               </span>
               <span className="min-w-[200px] flex-1">
-                <span className="block text-sm font-semibold text-foreground">{g.cliente}</span>
+                <span className="block text-sm font-semibold text-foreground"><NombreAFicha cuentaId={g.fichas[0]?.id}>{g.cliente}</NombreAFicha></span>
                 {/* DECÍA «casos activos» Y NO ERA VERDAD: son los que faltan
                     tomar. NESSUS tiene ocho expedientes abiertos y acá salían
                     «2 casos activos», así que quien ya gestionó los otros seis

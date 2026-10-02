@@ -9,6 +9,7 @@ import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimient
 import { cn } from "@/lib/utils";
 import { preventivosPorOfrecer } from "@/lib/agenda-postventa-datos";
 import { DIAS_AVISO_PREVENTIVO, REGLA_PREVENTIVO } from "@/lib/preventivo";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export const dynamic = "force-dynamic";
 
@@ -232,8 +233,11 @@ export default async function MacroPostventaPage() {
                 <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 text-sm">
                   <span className="w-24 flex-none text-xs tabular-nums text-muted-foreground">{s.fecha_confirmacion ?? "sin fecha"}</span>
                   <span className="min-w-0 flex-1">
-                    <Link href={`/postventa/pedidos/${s.id}`} className="font-semibold text-foreground hover:underline">
+                    <NombreAFicha cuentaId={s.cuenta_id} className="font-semibold text-foreground">
                       {s.cuentas?.razon_social ?? s.cliente_texto ?? "Cliente sin nombre"}
+                    </NombreAFicha>
+                    <Link href={`/postventa/pedidos/${s.id}`} className="ml-2 text-xs text-primary hover:underline">
+                      ver pedido
                     </Link>
                     <span className="line-clamp-2 break-words text-xs text-muted-foreground">{s.equipo}{s.despacho_nota ? ` · ${s.despacho_nota}` : ""}</span>
                   </span>

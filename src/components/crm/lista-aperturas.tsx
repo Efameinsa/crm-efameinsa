@@ -13,6 +13,7 @@ import {
   type TipoApertura,
 } from "@/lib/aperturas-llamada";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 type Fila = AperturaLlamada & {
   cuentas: { razon_social: string; num_doc?: string | null } | null;
@@ -353,7 +354,7 @@ function Renglon({ f, vistaAlmacen, conFecha = true }: { f: Fila; vistaAlmacen: 
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-foreground">{f.cuentas?.razon_social ?? "Cliente"}</span>
+          <span className="block truncate text-sm font-semibold text-foreground"><NombreAFicha cuentaId={f.cuenta_id}>{f.cuentas?.razon_social ?? "Cliente"}</NombreAFicha></span>
           <span className="block text-xs text-muted-foreground">
             {f.urgente && <span className="mr-1 rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-white">URGENTE</span>}
             {ETIQUETA_TIPO_APERTURA[f.tipo]} · {f.equipos.split("\n")[0]}

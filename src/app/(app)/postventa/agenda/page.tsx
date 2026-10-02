@@ -13,6 +13,7 @@ import { filtrarPorZona } from "@/lib/calendario-postventa";
 import { diasDelMes, diasDeSemana, lunesDe, rotuloDia, sumarDias } from "@/lib/calendario";
 import { requerirPerfil } from "@/lib/auth";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export const dynamic = "force-dynamic";
 
@@ -208,7 +209,7 @@ export default async function AgendaPostventaPage({
                 <li key={e.clave} className={e.fecha < hoy ? "text-muted-foreground" : ""}>
                   <Link href={e.href} className="hover:underline">
                     <span className="capitalize">{rotuloDia(e.fecha)}</span>
-                    {e.hora ? ` · ${e.hora}` : ""} · {e.titulo} · {e.cliente}
+                    {e.hora ? ` · ${e.hora}` : ""} · {e.titulo} · <NombreAFicha cuentaId={e.cuentaId}>{e.cliente}</NombreAFicha>
                   </Link>
                 </li>
               ))}

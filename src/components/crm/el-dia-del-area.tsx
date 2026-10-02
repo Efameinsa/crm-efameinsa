@@ -11,6 +11,7 @@ import {
   type CasilleroDia,
 } from "@/lib/dia-postventa";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * «La agenda diaria», que Carlos pidió dos veces el 09-09 y las dos con la
@@ -65,7 +66,7 @@ export async function ElDiaDelArea() {
     q,
     supabase
       .from("atenciones")
-      .select("id, cliente_texto, tecnico, programada_at, cuentas(razon_social)")
+      .select("id, cuenta_id, cliente_texto, tecnico, programada_at, cuentas(razon_social)")
       .gte("programada_at", `${hoy}T00:00:00-05:00`)
       .lte("programada_at", `${hoy}T23:59:59-05:00`)
       .is("cerrado_at", null)
@@ -137,7 +138,7 @@ export async function ElDiaDelArea() {
           <ul className="space-y-1">
             {(visitas ?? []).map((v) => {
               const x = v as unknown as {
-                id: string; cliente_texto: string | null; tecnico: string | null; programada_at: string;
+                id: string; cuenta_id: string | null; cliente_texto: string | null; tecnico: string | null; programada_at: string;
                 cuentas: { razon_social: string } | null;
               };
               return (
@@ -150,7 +151,7 @@ export async function ElDiaDelArea() {
                       {new Date(x.programada_at).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" })}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-foreground">
-                      {x.cuentas?.razon_social ?? x.cliente_texto ?? "Cliente sin nombre"}
+                      <NombreAFicha cuentaId={x.cuenta_id}>{x.cuentas?.razon_social ?? x.cliente_texto ?? "Cliente sin nombre"}</NombreAFicha>
                     </span>
                     {x.tecnico && <span className="text-muted-foreground">{x.tecnico}</span>}
                   </Link>

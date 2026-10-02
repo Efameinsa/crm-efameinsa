@@ -34,6 +34,7 @@ export interface PasoTabla {
 export interface FilaTabla {
   id: string;
   cliente: string;
+  cuentaId?: string | null;
   equipo: string;
   pasos: PasoTabla[];
   /** Máquinas sin serie, con el motivo que marcó el almacén (null: sin motivo). 0378. */

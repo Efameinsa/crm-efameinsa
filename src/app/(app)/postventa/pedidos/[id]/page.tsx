@@ -29,6 +29,7 @@ import {
 } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import { CerrarPedidoAnterior } from "@/components/crm/cerrar-pedido-anterior";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export const dynamic = "force-dynamic";
 
@@ -193,7 +194,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
           <div className="min-w-[240px] flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-lg font-bold leading-tight text-foreground">
-                {servicio.cliente_texto ?? "Cliente sin nombre"}
+                <NombreAFicha cuentaId={(servicio as { cuenta_id?: string | null }).cuenta_id}>{servicio.cliente_texto ?? "Cliente sin nombre"}</NombreAFicha>
               </h1>
               {servicio.modalidad && (
                 <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold capitalize text-foreground">

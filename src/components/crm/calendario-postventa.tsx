@@ -19,6 +19,7 @@ import {
   sumarMes,
 } from "@/lib/calendario";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * El calendario de atenciones técnicas del área.
@@ -353,7 +354,7 @@ function Dia({
               {/* EL DOBLE FILTRO (Carlos, 22-09): el punto rojo dice que
                   postventa todavía no cumplió, aunque ya tenga fecha. */}
               {e.trabado && <span className="inline-block size-2 flex-none rounded-full bg-destructive" title={e.trabado} />}
-              {e.cliente}
+              <NombreAFicha cuentaId={e.cuentaId}>{e.cliente}</NombreAFicha>
             </p>
             <p className="text-xs text-muted-foreground">
               {etiquetaEvento(e.tipo)} · {e.titulo}
@@ -383,7 +384,7 @@ function Tarjeta({ evento: e, compacta }: { evento: EventoCalendario; compacta?:
       <p className="flex items-center gap-1 truncate text-[11px] font-semibold leading-tight text-foreground">
         {e.hora && <span className="font-mono tabular-nums">{e.hora} </span>}
         {e.trabado && <span className="inline-block size-1.5 flex-none rounded-full bg-destructive" title={e.trabado} />}
-        <span className="truncate">{e.cliente}</span>
+        <span className="truncate"><NombreAFicha cuentaId={e.cuentaId}>{e.cliente}</NombreAFicha></span>
       </p>
       {!compacta && (
         <p className="truncate text-[10px] leading-tight text-muted-foreground">

@@ -6,6 +6,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaHoraLima } from "@/lib/fechas";
 import { etiquetaTipoServicio, seriesDeTexto } from "@/lib/postventa";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export const dynamic = "force-dynamic";
 
@@ -96,9 +97,7 @@ export default async function InformeServicioPage({ params }: { params: Promise<
             </p>
             <h1 className="mt-0.5 break-words text-lg font-bold leading-tight text-foreground">
               {cuenta ? (
-                <Link href={`/gerencia/clientes/${cuenta.id}`} className="hover:underline">
-                  {cuenta.razon_social}
-                </Link>
+                <NombreAFicha cuentaId={cuenta.id}>{cuenta.razon_social}</NombreAFicha>
               ) : (
                 ((data.cliente_texto as string) ?? "Cliente sin identificar")
               )}

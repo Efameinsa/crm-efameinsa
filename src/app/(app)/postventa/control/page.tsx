@@ -17,6 +17,7 @@ import {
   sinPrecios,
   type ServicioPostventa,
 } from "@/lib/postventa";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export const dynamic = "force-dynamic";
 
@@ -87,13 +88,14 @@ export default async function ControlPedidosPage({
       ? (((
           await supabase
             .from("servicios_postventa")
-            .select("id, cliente_texto, equipo, cerrado_at, completado, despachado_at, puesta_en_marcha, informe_cierre_id, updated_at")
+            .select("id, cuenta_id, cliente_texto, equipo, cerrado_at, completado, despachado_at, puesta_en_marcha, informe_cierre_id, updated_at")
             .or("cerrado_at.not.is.null,completado.eq.true")
             .order("cerrado_at", { ascending: false, nullsFirst: false })
             .order("updated_at", { ascending: false })
             .limit(busquedaCerrados ? 500 : 150)
         ).data ?? []) as {
           id: string;
+          cuenta_id: string | null;
           cliente_texto: string | null;
           equipo: string | null;
           cerrado_at: string | null;
@@ -129,6 +131,7 @@ export default async function ControlPedidosPage({
       id: s.id,
       fase,
       cliente: (s.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, ""),
+      cuentaId: s.cuenta_id ?? null,
       // El pedido anterior al circuito se reconoce de un vistazo (0239).
       equipo: (s.informe_cierre_id ? "" : "【anterior al circuito】 ") + (s.equipo ?? "Sin equipo"),
       hechos: avance.hechos,
@@ -199,6 +202,7 @@ export default async function ControlPedidosPage({
   const filas: FilaTabla[] = pedidos.map((t) => ({
     id: t.id,
     cliente: t.cliente,
+    cuentaId: t.cuentaId,
     equipo: t.equipo,
     pasos: conInforme(t.pasosTabla, informePor.get(t.id)),
     sinStock: sinStockPor.get(t.id),
@@ -291,7 +295,7 @@ export default async function ControlPedidosPage({
                   <Link href={`/postventa/pedidos/${c.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5 hover:bg-accent">
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-foreground">
-                        {(c.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "")}
+                        <NombreAFicha cuentaId={c.cuenta_id}>{(c.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "")}</NombreAFicha>
                       </span>
                       <span className="line-clamp-1 text-xs text-muted-foreground">
                         {c.informe_cierre_id ? "" : "【anterior al circuito】 "}

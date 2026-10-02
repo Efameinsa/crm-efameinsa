@@ -47,6 +47,8 @@ export interface Mandado {
   demorado: boolean;
   /** A dónde lleva la fila, cuando ya hay algo que abrir. */
   href: string | null;
+  /** La ficha del cliente, si el pedido ya está enlazado a una (02-10). */
+  cuentaId: string | null;
   /** Todo lo que se mandó, tal cual quedó registrado: se abre al tocar la fila. */
   detalle: DetalleMandado;
 }
@@ -111,6 +113,7 @@ interface FilaLead {
   asignado_at: string | null;
   asignado_a: string | null;
   oportunidad_id: string | null;
+  cuenta_id: string | null;
   anulado_at: string | null;
   anulado_motivo: string | null;
 }
@@ -141,7 +144,7 @@ export async function listarMandadoACentral(
   perfilId: string,
 ): Promise<Mandado[]> {
   const campos =
-    "id, codigo, estado, canal, razon_social, nombre_contacto, num_doc, telefono, email, mensaje, sugerido_atencion, sugerido_tipo, adjuntos, recibido_at, asignado_at, asignado_a, oportunidad_id, anulado_at, anulado_motivo";
+    "id, codigo, estado, canal, razon_social, nombre_contacto, num_doc, telefono, email, mensaje, sugerido_atencion, sugerido_tipo, adjuntos, recibido_at, asignado_at, asignado_a, oportunidad_id, cuenta_id, anulado_at, anulado_motivo";
   // SIETE DÍAS, NO VEINTICUATRO HORAS (Carlos, 22-09). Brenda derivó a
   // Central el contacto de Inversiones Huamán Ruiz el lunes; el martes a las
   // 11 de la mañana buscaron en su cuenta qué había mandado y no había nada:
@@ -232,6 +235,7 @@ export async function listarMandadoACentral(
       // pantalla propia para quien lo registró, y un enlace que lleva a un
       // «no encontrado» es peor que ningún enlace.
       href: f.oportunidad_id && mio ? `/comercial/oportunidades/${f.oportunidad_id}` : null,
+      cuentaId: f.cuenta_id,
       detalle: {
         registradoAt: f.recibido_at,
         canal: ETIQUETA_CANAL[f.canal] ?? f.canal,

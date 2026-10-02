@@ -6,6 +6,7 @@ import { Search, ShieldCheck, ShieldOff, Wrench } from "lucide-react";
 import { fechaCalendario } from "@/lib/fechas";
 import { estadoGarantia } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * El parque instalado, con la búsqueda y los filtros EN EL NAVEGADOR.
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 export interface FilaEquipo {
   id: string;
   serie: string | null;
+  cuenta_id: string | null;
   cliente_texto: string | null;
   modelo_texto: string | null;
   ubicacion: string | null;
@@ -160,7 +162,7 @@ export function ListaEquipos({ equipos, hoy, inicial }: { equipos: FilaEquipo[];
                   </p>
                   <p className="line-clamp-1 text-sm text-foreground">{e.modelo_texto ?? "Equipo sin describir"}</p>
                   <p className="text-xs text-muted-foreground">
-                    {e.cuentas?.razon_social ?? e.cliente_texto ?? "—"}
+                    <NombreAFicha cuentaId={e.cuenta_id}>{e.cuentas?.razon_social ?? e.cliente_texto ?? "—"}</NombreAFicha>
                     {e.ubicacion && ` · ${e.ubicacion}`}
                     {/* De quién es el cliente, en la lista (gerencia, 10-09). */}
                     {e.cuentas?.perfiles?.codigo_comercial && (

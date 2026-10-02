@@ -9,6 +9,7 @@ import { fechaLima, fechaCalendario } from "@/lib/fechas";
 import { etiquetaTipoServicio, type ServicioPostventa } from "@/lib/postventa";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * LOS PEDIDOS «ANTERIORES AL CIRCUITO», DEPURADOS EN BLOQUE (ítem 10, 22-09).
@@ -116,7 +117,7 @@ export function TablaHistoricaSeleccionable({ filas, verPrecios }: { filas: Serv
                   )}
                 </TableCell>
                 <TableCell className="max-w-[220px] align-top text-xs font-medium whitespace-normal break-words">
-                  {s.cliente_texto ?? "—"}
+                  <NombreAFicha cuentaId={s.cuenta_id}>{s.cliente_texto ?? "—"}</NombreAFicha>
                   {s.fecha_confirmacion && (
                     <span className="block text-[11px] font-normal text-muted-foreground">
                       compra {fechaCalendario(s.fecha_confirmacion)}

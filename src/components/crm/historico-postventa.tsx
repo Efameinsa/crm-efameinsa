@@ -3,6 +3,7 @@ import { Camera, ChevronRight, Cpu } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { seriesDeTexto, etiquetaTipoServicio } from "@/lib/postventa";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * El archivo del área: los informes del sistema y lo que vino del Excel.
@@ -28,11 +29,13 @@ interface InformeNuevo {
   cliente_texto: string | null;
   equipo_texto: string | null;
   fotos: unknown[];
+  cuenta_id: string | null;
   cuentas: { razon_social: string } | null;
 }
 
 interface InformeExcel {
   id: string;
+  cuenta_id: string | null;
   cliente_texto: string | null;
   equipo: string | null;
   detalle: string | null;
@@ -47,13 +50,13 @@ export async function HistoricoPostventa() {
     supabase
       .from("informes_servicio")
       .select(
-        "id, correlativo, anio, es_prueba, tipo, modalidad, ejecutado_at, tecnico, detalle, observaciones, ciclos, cliente_texto, equipo_texto, fotos, cuentas(razon_social)",
+        "id, correlativo, anio, es_prueba, tipo, modalidad, ejecutado_at, tecnico, detalle, observaciones, ciclos, cliente_texto, equipo_texto, fotos, cuenta_id, cuentas(razon_social)",
       )
       .order("ejecutado_at", { ascending: false })
       .limit(200),
     supabase
       .from("soporte_tecnico")
-      .select("id, cliente_texto, equipo, detalle, fecha_ejecutado, fecha_envio")
+      .select("id, cuenta_id, cliente_texto, equipo, detalle, fecha_ejecutado, fecha_envio")
       .order("fecha_ejecutado", { ascending: false, nullsFirst: false })
       .limit(300),
     supabase.from("equipos_instalados").select("id, serie"),
@@ -88,7 +91,7 @@ export async function HistoricoPostventa() {
             >
               <div className="min-w-[220px] flex-1 space-y-0.5">
                 <p className="text-sm font-semibold leading-snug text-foreground">
-                  {i.cuentas?.razon_social ?? i.cliente_texto ?? "Cliente sin identificar"}
+                  <NombreAFicha cuentaId={i.cuenta_id}>{i.cuentas?.razon_social ?? i.cliente_texto ?? "Cliente sin identificar"}</NombreAFicha>
                 </p>
                 <Equipo texto={i.equipo_texto} fichaPorSerie={fichaPorSerie} />
                 <p className="text-xs leading-snug text-muted-foreground">
@@ -136,7 +139,7 @@ export async function HistoricoPostventa() {
                 {/* `break-words` porque acá hay razones sociales de 60
                     caracteres sin espacios cómodos donde partir. */}
                 <p className="break-words text-sm font-semibold leading-snug text-foreground">
-                  {s.cliente_texto ?? "Cliente sin identificar"}
+                  <NombreAFicha cuentaId={s.cuenta_id}>{s.cliente_texto ?? "Cliente sin identificar"}</NombreAFicha>
                 </p>
                 <Equipo texto={s.equipo} fichaPorSerie={fichaPorSerie} />
                 <p className="text-xs leading-snug text-muted-foreground">{s.detalle ?? "Sin detalle"}</p>

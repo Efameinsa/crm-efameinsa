@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { fechaHoraLima } from "@/lib/fechas";
 import type { EstadoMandado, Mandado } from "@/lib/mandado-a-central";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * Una fila de «Lo que mandé a Central», y lo que se abre al tocarla.
@@ -101,7 +102,7 @@ export function FilaMandado({ fila }: { fila: Mandado }) {
           <DialogHeader>
             <DialogTitle className="pr-6">
               <span className="mr-2 font-mono text-xs font-semibold text-muted-foreground">{fila.codigo}</span>
-              {fila.cliente}
+              <NombreAFicha cuentaId={fila.cuentaId}>{fila.cliente}</NombreAFicha>
             </DialogTitle>
             <DialogDescription>{fila.frase}</DialogDescription>
           </DialogHeader>
