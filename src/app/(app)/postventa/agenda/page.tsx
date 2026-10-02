@@ -10,7 +10,7 @@ import { cargarEventosPostventa, pendientesDePostventa } from "@/lib/agenda-post
 import { PendientesPorTipo } from "@/components/crm/pendientes-por-tipo";
 import { CalendarioPostventa, type VistaCalendario } from "@/components/crm/calendario-postventa";
 import { filtrarPorZona } from "@/lib/calendario-postventa";
-import { diasDelMes, diasDeSemana, lunesDe } from "@/lib/calendario";
+import { diasDelMes, diasDeSemana, lunesDe, rotuloDia, sumarDias } from "@/lib/calendario";
 import { requerirPerfil } from "@/lib/auth";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 
@@ -39,7 +39,7 @@ const REDIRECCIONES: Record<string, string> = {
 export default async function AgendaPostventaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string; q?: string; estado?: string; vista?: string; fecha?: string; zona?: string }>;
+  searchParams: Promise<{ ver?: string; q?: string; estado?: string; vista?: string; fecha?: string; zona?: string; cliente?: string }>;
 }) {
   const sp = await searchParams;
 
@@ -68,6 +68,11 @@ export default async function AgendaPostventaPage({
     : "semana";
   const fecha = /^\d{4}-\d{2}-\d{2}$/.test(sp.fecha ?? "") ? (sp.fecha as string) : hoy;
   const zona = sp.zona === "lima" || sp.zona === "provincia" ? sp.zona : "";
+  // Reunión 02-10: «quiero ver el cronograma de un solo cliente» (¿era el
+  // miércoles 30 o el viernes 2?). Filtra la grilla y lista sus fechas.
+  const cliente = (sp.cliente ?? "").trim();
+  const delCliente = (e: { cliente: string; titulo: string }) =>
+    `${e.cliente} ${e.titulo}`.toLowerCase().includes(cliente.toLowerCase());
 
   const dias =
     vista === "mes"
@@ -122,7 +127,12 @@ export default async function AgendaPostventaPage({
     detalle: a.detalle,
   }));
 
-  const eventos = filtrarPorZona(eventosTodos, zona);
+  const eventos = filtrarPorZona(eventosTodos, zona).filter((e) => !cliente || delCliente(e));
+  const fechasDelCliente = cliente
+    ? (await cargarEventosPostventa(supabase, perfil, sumarDias(hoy, -90), sumarDias(hoy, 180)))
+        .filter(delCliente)
+        .sort((a, b) => a.fecha.localeCompare(b.fecha))
+    : [];
   const porProgramar = ((abiertos ?? []) as unknown as ServicioPostventa[])
     .filter((s) => !s.completado && !s.fecha_despacho && !s.puesta_en_marcha)
     .map((s) => ({
@@ -167,7 +177,47 @@ export default async function AgendaPostventaPage({
       </SeccionPanel>
 
     <SeccionPanel titulo="Calendario de atenciones" accion={<BotonesAgendar />}>
+      <form action="/postventa/agenda" className="mb-3 flex flex-wrap items-center gap-2">
+        <input type="hidden" name="ver" value="calendario" />
+        <input type="hidden" name="vista" value={vista} />
+        <input type="hidden" name="fecha" value={fecha} />
+        {zona && <input type="hidden" name="zona" value={zona} />}
+        <input
+          name="cliente"
+          defaultValue={cliente}
+          placeholder="Buscar cliente en el calendario…"
+          className="h-8 w-64 rounded-md border border-border bg-background px-2 text-sm"
+        />
+        <button type="submit" className="h-8 rounded-md border border-border px-3 text-xs font-medium hover:bg-accent">Buscar</button>
+        {cliente && (
+          <Link href={`/postventa/agenda?ver=calendario&vista=${vista}&fecha=${fecha}${zona ? `&zona=${zona}` : ""}`} className="text-xs text-muted-foreground underline">
+            Ver todos
+          </Link>
+        )}
+      </form>
+      {cliente && (
+        <div className="mb-3 rounded-md border border-border p-3 text-sm">
+          <p className="mb-1.5 font-medium">
+            Fechas de «{cliente}» <span className="font-normal text-muted-foreground">(3 meses atrás y 6 adelante)</span>
+          </p>
+          {fechasDelCliente.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No tiene nada agendado en ese tiempo. Revise cómo está escrito el nombre.</p>
+          ) : (
+            <ul className="space-y-1">
+              {fechasDelCliente.map((e) => (
+                <li key={e.clave} className={e.fecha < hoy ? "text-muted-foreground" : ""}>
+                  <Link href={e.href} className="hover:underline">
+                    <span className="capitalize">{rotuloDia(e.fecha)}</span>
+                    {e.hora ? ` · ${e.hora}` : ""} · {e.titulo} · {e.cliente}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       <CalendarioPostventa
+        cliente={cliente}
         vista={vista}
         fecha={fecha}
         hoy={hoy}

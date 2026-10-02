@@ -58,7 +58,10 @@ export function CalendarioPostventa({
   atencionesPorProgramar,
   rutaBase = "/postventa/agenda",
   soloLectura = false,
+  cliente = "",
 }: {
+  /** Filtro por cliente de la agenda (reunión 02-10): se conserva al navegar. */
+  cliente?: string;
   vista: VistaCalendario;
   /** Dónde vive el calendario: el del almacén (0252) navega en su propia ruta. */
   rutaBase?: string;
@@ -90,6 +93,7 @@ export function CalendarioPostventa({
     });
     const z = cambios.zona ?? zona;
     if (z) p.set("zona", z);
+    if (cliente) p.set("cliente", cliente);
     return `${rutaBase}?${p.toString()}`;
   };
 
