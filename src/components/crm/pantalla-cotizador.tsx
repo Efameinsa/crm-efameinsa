@@ -39,6 +39,12 @@ import { AYUDA_SERIE_EFAMEINSA, MOTIVO_SERIE_MINIMO, SERIE_POR_DEFECTO, problema
 import { ENTREGA_POR_DEFECTO, GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES, IGV, LUGARES_ENTREGA } from "@/lib/pdf/series";
 import { netoDeBruto, redondear2, totalesConIgv } from "@/lib/igv";
 import { renglonEnSoles } from "@/lib/moneda-impresa";
+import {
+  FORMA_PAGO_POR_DEFECTO,
+  SALDO_POR_DEFECTO,
+  avisoCondicionPago,
+  saldoAlCambiarForma,
+} from "@/lib/condicion-pago-cotizacion";
 import type {
   BorradorEnEdicion,
   HistorialPrecio,
@@ -112,8 +118,6 @@ const ETIQUETA_CASO: Record<string, string> = {
   puesta_en_marcha: "Puesta en marcha",
 };
 
-const FORMA_PAGO_POR_DEFECTO = "30 % con la O/C";
-
 /**
  * LAS CONDICIONES DE PAGO, YA NO A MANO (reunión 07-09, punto 2.2).
  *
@@ -138,7 +142,6 @@ const FORMAS_PAGO = [
   "Crédito 30 días",
 ];
 const OTRA_FORMA_PAGO = "__otra__";
-const SALDO_POR_DEFECTO = "70 % antes del despacho";
 
 /** El sello de la barra superior: qué sabe la base de lo que hay en pantalla. */
 type EstadoGuardado =
@@ -359,6 +362,7 @@ export function PantallaCotizador({
   const [garantia, setGarantia] = useState(edicion?.garantia ?? previas?.garantia ?? GARANTIA_POR_DEFECTO);
   const [formaPago, setFormaPago] = useState(edicion?.formaPago ?? previas?.formaPago ?? FORMA_PAGO_POR_DEFECTO);
   const [saldo, setSaldo] = useState(edicion?.saldo ?? previas?.saldo ?? SALDO_POR_DEFECTO);
+  const avisoPago = avisoCondicionPago(formaPago, saldo);
 
   const [cotizacionId, setCotizacionId] = useState<string | null>(edicion?.cotizacionId ?? null);
   // Lo que la BASE dice de la aprobación. Solo importa para un caso, pero es un
@@ -1800,9 +1804,13 @@ export function PantallaCotizador({
                     <select
                       id="forma-pago"
                       value={FORMAS_PAGO.includes(formaPago) ? formaPago : OTRA_FORMA_PAGO}
-                      onChange={(e) =>
-                        setFormaPago(e.target.value === OTRA_FORMA_PAGO ? "" : e.target.value)
-                      }
+                      onChange={(e) => {
+                        const nueva = e.target.value === OTRA_FORMA_PAGO ? "" : e.target.value;
+                        setFormaPago(nueva);
+                        // «Contado» con «70 % antes del despacho» abajo se
+                        // contradecía en el PDF (02-10): la forma trae su saldo.
+                        setSaldo((s) => saldoAlCambiarForma(nueva, s));
+                      }}
                       className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
                     >
                       {FORMAS_PAGO.map((f) => (
@@ -1863,6 +1871,7 @@ export function PantallaCotizador({
                       ))}
                   </ul>
                 )}
+                {avisoPago && <p className="mt-1 text-[11px] text-amber-700">{avisoPago}</p>}
               </div>
             </div>
 
@@ -2006,7 +2015,25 @@ export function PantallaCotizador({
                   </>
                 )}
               </div>
+              {/* Lo que el cliente va a leer sobre cómo pagar: la 990-26 se
+                  confirmó con el 30/70 por defecto cuando era al contado. */}
+              <div className="flex justify-between gap-3 border-t border-border pt-1">
+                <dt className="text-muted-foreground">Forma de pago</dt>
+                <dd className="text-right font-medium text-foreground">{formaPago.trim() || "—"}</dd>
+              </div>
+              {saldo.trim() && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">Saldo</dt>
+                  <dd className="text-right font-medium text-foreground">{saldo.trim()}</dd>
+                </div>
+              )}
             </dl>
+            {avisoPago && (
+              <p className="flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-2 text-xs font-medium text-amber-800">
+                <CircleAlert className="mt-px size-3.5 shrink-0" />
+                {avisoPago}
+              </p>
+            )}
             {haySinFicha && (
               <p className="flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-2 text-xs font-medium text-amber-800">
                 <CircleAlert className="mt-px size-3.5 shrink-0" />
