@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AccionFile, AccionTermine, EntregarFileDirecto, PedirFiles } from "@/components/crm/files-acciones";
+import { TiemposDeFiles } from "@/components/crm/files-tiempos";
 import { fechaHoraLima } from "@/lib/fechas";
 import { haceCuanto, horaLima, lineaDePasos, origenDelFile } from "@/lib/files-recojo";
 import { cn } from "@/lib/utils";
@@ -216,6 +217,10 @@ export default async function FilesPage() {
                 {prestados.map((f) => fila(f, <AccionFile id={f.id} accion="devolver" variante={f.termine_at ? "default" : "outline"} />, true, true))}
               </ul>
             )}
+          </SeccionPanel>
+          {/* 02-10, Santos: medir cuánto tarda cada paso, en horario de oficina. */}
+          <SeccionPanel titulo="Tiempos de los files">
+            <TiemposDeFiles filas={filas} />
           </SeccionPanel>
         </>
       )}
