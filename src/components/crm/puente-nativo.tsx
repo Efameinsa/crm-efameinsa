@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import {
   abrirDocumento,
   descargarArchivo,
@@ -10,8 +10,11 @@ import {
   esDeEsteSitio,
   EVENTO_VER_PDF,
   imprimirPagina,
+  versionDeLaApp,
   type DetalleVerPdf,
 } from "@/lib/nativo";
+import { appDesactualizada, VERSION_ULTIMA_APP } from "@/lib/app-version";
+import { sinCambios } from "@/lib/modo-aplicacion";
 import { VisorPdfNativo } from "@/components/crm/visor-pdf-nativo";
 
 /**
@@ -84,8 +87,16 @@ function ventanaFalsa(): Window {
   } as unknown as Window;
 }
 
+/** La versión instalada si ya no sirve con este CRM; null si está al día o si no es la app. */
+function versionVieja(): string | null {
+  const instalada = versionDeLaApp();
+  return esApp() && appDesactualizada(instalada) ? instalada : null;
+}
+
 export function PuenteNativo() {
   const [pdf, setPdf] = useState<DetalleVerPdf | null>(null);
+  // La versión de la app que ya no sirve con este CRM (ver src/lib/app-version.ts).
+  const vieja = useSyncExternalStore(sinCambios, versionVieja, () => null);
 
   const cerrarPdf = useCallback(() => {
     // El visor puso una entrada en el historial: así «atrás» lo cierra y no
@@ -144,6 +155,17 @@ export function PuenteNativo() {
     };
   }, []);
 
-  if (!pdf) return null;
-  return <VisorPdfNativo origen={pdf.blob} titulo={pdf.nombre} onCerrar={cerrarPdf} />;
+  return (
+    <>
+      {vieja && (
+        <div
+          role="alert"
+          className="fixed inset-x-0 bottom-16 z-[65] mx-3 rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-amber-950 shadow-lg"
+        >
+          Esta versión de la app ({vieja}) quedó vieja. Instale la {VERSION_ULTIMA_APP}: pídale el APK nuevo a Sistemas.
+        </div>
+      )}
+      {pdf && <VisorPdfNativo origen={pdf.blob} titulo={pdf.nombre} onCerrar={cerrarPdf} />}
+    </>
+  );
 }

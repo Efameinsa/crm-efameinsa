@@ -43,7 +43,13 @@ export function describirEquipo(userAgent: string | null | undefined): Equipo {
               ? "Linux"
               : "Sin identificar";
 
-  const navegador = /Edg\//i.test(ua)
+  // La app de Android (01-10-2026) agrega «EfameinsaApp/<versión>» al User-Agent: en
+  // Accesos se lee como «App 1.0.0», no como un «Chrome» cualquiera.
+  const app = /EfameinsaApp\/([\w.-]+)/.exec(ua)?.[1];
+
+  const navegador = app
+    ? `App ${app}`
+    : /Edg\//i.test(ua)
     ? "Edge"
     : /OPR\/|Opera/i.test(ua)
       ? "Opera"

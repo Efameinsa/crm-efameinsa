@@ -175,7 +175,9 @@ export default async function ControlPedidosPage({
     <SeccionPanel
       titulo="Control de pedidos"
       accion={
-        <span className="flex items-center gap-2">
+        // flex-wrap: en el celular (412 px) las pestañas «Tablero · Por paso · Cola del Excel» se
+        // salían por la derecha y quedaban cortadas (hallazgo de la prueba de la app, 01-10-2026).
+        <span className="flex flex-wrap items-center justify-end gap-2">
           <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
             {pedidos.length} en curso
           </span>

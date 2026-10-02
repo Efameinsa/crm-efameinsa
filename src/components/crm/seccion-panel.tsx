@@ -54,7 +54,10 @@ export function SeccionPanel({
 }) {
   return (
     <div id={id} className="seccion-panel scroll-mt-4 rounded-xl border border-border bg-card shadow-sm">
-      <div className="seccion-cabeza flex items-center justify-between border-b border-border px-5 py-3">
+      {/* flex-wrap: en un celular (360-412 px) el título y los botones de la derecha no caben
+          en una línea y empujaban la página hacia los lados (hallazgo de la prueba de la app de
+          Android, 01-10-2026: «Control de pedidos» y «Bitácora de ingresos»). Si caben, nada cambia. */}
+      <div className="seccion-cabeza flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b border-border px-5 py-3">
         <h2 className="text-[13px] font-bold uppercase tracking-wide text-foreground">{titulo}</h2>
         {accion}
       </div>

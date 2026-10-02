@@ -20,6 +20,14 @@ describe("describirEquipo", () => {
     expect(e.resumen).toBe("Mac · Safari");
   });
 
+  it("reconoce la app de Android por la marca que agrega al User-Agent (no la lee como «Chrome»)", () => {
+    const e = describirEquipo(
+      "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36 EfameinsaApp/1.0.0",
+    );
+    expect(e.resumen).toBe("Android · App 1.0.0");
+    expect(e.tipo).toBe("celular");
+  });
+
   it("distingue el celular, que es la mitad del uso real", () => {
     expect(describirEquipo("Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Safari/604.1").tipo).toBe("celular");
     expect(describirEquipo("Mozilla/5.0 (Linux; Android 14; SM-A546E) Chrome/126.0 Mobile Safari/537.36").sistema).toBe(

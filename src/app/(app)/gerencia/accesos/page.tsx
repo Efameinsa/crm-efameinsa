@@ -232,7 +232,9 @@ export default async function AccesosPage({ searchParams }: { searchParams: Prom
                   </span>
                   <span className="min-w-[150px] flex-1 font-medium text-foreground">{quien?.nombre ?? "Usuario dado de baja"}</span>
                   <span className="w-[140px] text-muted-foreground">{equipo.resumen}</span>
-                  <span className="w-[112px] font-mono text-muted-foreground">{a.ip ?? "sin IP"}</span>
+                  {/* break-all: una IPv6 («2800:200:ede0:6e4:…») es una palabra de ~280 px que se salía de la casilla y
+                      ensanchaba toda la página en el celular (hallazgo de la prueba de la app, 01-10-2026). */}
+                  <span className="w-[112px] break-all font-mono text-muted-foreground">{a.ip ?? "sin IP"}</span>
                   <span className={cn("w-[124px] text-right font-medium", zona.fuera ? "text-amber-800" : "text-muted-foreground")}>
                     {zona.etiqueta}
                   </span>
