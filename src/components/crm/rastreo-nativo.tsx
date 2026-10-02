@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Loader2, MapPin, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Loader2, ShieldCheck } from "lucide-react";
 import { TEXTO_CONSENTIMIENTO, VERSION_CONSENTIMIENTO } from "@/lib/campo-consentimiento";
 import { AYUDA_PERMISO, permisoPendiente, plugin, type EstadoRastreo, type RastreoPlugin } from "@/lib/rastreo-nativo";
 
@@ -21,17 +21,13 @@ import { AYUDA_PERMISO, permisoPendiente, plugin, type EstadoRastreo, type Rastr
  *   4. Android pide, una por una, las cuatro cosas sin las que el GPS se corta con la
  *      pantalla apagada: ubicación, «todo el tiempo», aviso fijo y sin ahorro de batería.
  *
- * Nunca bloquea el CRM: si algo falta, lo dice y deja trabajar.
+ * Nunca bloquea el CRM: si algo falta, lo dice y deja trabajar. Y cuando todo está en orden NO SE VE NADA:
+ * para la persona no hay diferencia (Santos, 02-10-2026); el estado lo ve gerencia en «Trabajo de campo».
  */
 
 type Fase = "iniciando" | "oculto" | "consentimiento" | "trabajando" | "desactivado" | "sinGps" | "error";
 
 const SONDEO_MS = 3000;
-
-function hora(ms: number | null): string {
-  if (!ms) return "—";
-  return new Date(ms).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", timeZone: "America/Lima" });
-}
 
 export function RastreoNativo() {
   const [fase, setFase] = useState<Fase>("iniciando");
@@ -189,17 +185,8 @@ export function RastreoNativo() {
     );
   }
 
-  if (fase === "desactivado") {
-    return (
-      <div role="status" className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm sm:px-4">
-        <MapPin className="mt-0.5 size-4 flex-none text-muted-foreground" aria-hidden />
-        <p className="text-foreground">
-          <span className="font-semibold">Gerencia desactivó el GPS de este celular.</span>{" "}
-          <span className="text-muted-foreground">Ya no se registra la ubicación.</span>
-        </p>
-      </div>
-    );
-  }
+  // Si gerencia desactivó este celular, la persona no tiene nada que hacer: no se le muestra nada.
+  if (fase === "desactivado") return null;
 
   if (fase === "consentimiento") {
     return (
@@ -250,21 +237,9 @@ export function RastreoNativo() {
     );
   }
 
-  if (!estado) return null;
-  const guardando = estado.pendientes > 0;
-  return (
-    <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm sm:px-4">
-      <MapPin className="size-4 flex-none text-primary" aria-hidden />
-      <p className="min-w-0 flex-1 basis-56 text-foreground">
-        <span className="font-semibold">GPS activo, las 24 horas.</span>{" "}
-        <span className="text-muted-foreground">
-          {estado.ultimoError === "desactivado"
-            ? "Gerencia lo desactivó."
-            : guardando
-              ? `Sin señal con el CRM: ${estado.pendientes} punto${estado.pendientes === 1 ? "" : "s"} guardado${estado.pendientes === 1 ? "" : "s"} en el celular. Último envío ${hora(estado.ultimoEnvio)}.`
-              : `Último envío ${hora(estado.ultimoEnvio)}.`}
-        </span>
-      </p>
-    </div>
-  );
+  // TODO EN ORDEN → NO SE VE NADA (Santos, 02-10-2026: «para el usuario no haya diferencia»). Ya aceptó y
+  // dio los permisos: la línea «GPS activo, las 24 horas · último envío…» sobraba. Solo se le muestra algo
+  // cuando hay algo que hacer: aceptar, un permiso que falta, o un fallo. Gerencia ve el estado en
+  // «Trabajo de campo»; la persona, no.
+  return null;
 }
