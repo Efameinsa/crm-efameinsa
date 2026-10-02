@@ -418,10 +418,18 @@ export async function verificarDireccion(
     agenciaDestino?: string | null;
     /** La dirección de la agencia donde el almacén lo deja: el primer destino (0345). */
     agenciaDireccion?: string | null;
+    /**
+     * Destino verificado (Rubí, 01-10, caso Ninamango): la empresa puede tener
+     * dirección fiscal en Lima y pedir el equipo para provincia. Cambia el
+     * circuito: preinstalación (videollamada antes / confirmación después) y
+     * puesta en marcha (en el lugar / remota).
+     */
+    destino?: "lima" | "provincia" | null;
     pin?: string | null;
   },
 ) {
   const supabase = await createClient();
+  if (datos.destino && datos.destino !== "lima" && datos.destino !== "provincia") return falla("El destino es Lima o provincia");
   if (!datos.direccion.trim()) return falla("Escriba la dirección tal como la confirmó el cliente");
   // El DNI de quien recibe es obligatorio (Lesly, 21-09: «tiene que ser obligatorio»).
   if (!datos.recibeDoc?.trim() || datos.recibeDoc.replace(/\D/g, "").length < 8) return falla("El DNI de quien recibe es obligatorio (8 dígitos): sin él la agencia no entrega");
@@ -439,6 +447,7 @@ export async function verificarDireccion(
       !igual(s.recibe_doc, datos.recibeDoc) ||
       (!!datos.recibeTelefono?.trim() && !igual(s.recibe_telefono, datos.recibeTelefono)) ||
       (!!datos.entregaModo && !igual(s.entrega_modo, datos.entregaModo)) ||
+      (!!datos.destino && !igual(s.modalidad, datos.destino)) ||
       (modo === "agencia" && (!igual(s.agencia_destino, datos.agenciaDestino) || !igual(s.agencia_direccion, datos.agenciaDireccion)))
     );
   });
@@ -453,6 +462,7 @@ export async function verificarDireccion(
       ...(datos.recibeNombre?.trim() ? { recibe_nombre: datos.recibeNombre.trim() } : {}),
       recibe_doc: datos.recibeDoc.trim(),
       ...(datos.recibeTelefono?.trim() ? { recibe_telefono: datos.recibeTelefono.trim() } : {}),
+      ...(datos.destino ? { modalidad: datos.destino } : {}),
       ...(datos.entregaModo
         ? {
             entrega_modo: datos.entregaModo,

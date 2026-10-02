@@ -610,6 +610,7 @@ export function PedidoPostventa({
                 recibeNombre: datos.recibe,
                 recibeDoc: datos.doc,
                 recibeTelefono: datos.telefono,
+                destino: datos.destino === "provincia" ? "provincia" : datos.destino === "lima" ? "lima" : null,
                 entregaModo: datos.entrega === "agencia" ? "agencia" : "domicilio",
                 agenciaDestino: datos.agencia,
                 agenciaDireccion: datos.agencia_direccion,
@@ -619,6 +620,16 @@ export function PedidoPostventa({
           )
         }
         campos={[
+          {
+            nombre: "destino",
+            etiqueta: "Destino del equipo: ¿dónde se instala? (no siempre es la dirección fiscal; cambia la preinstalación y la puesta en marcha)",
+            inicial: servicio.modalidad ?? "",
+            requerido: true,
+            opciones: [
+              { valor: "lima", etiqueta: "Lima (videollamada de preinstalación antes del despacho; puesta en marcha en el lugar)" },
+              { valor: "provincia", etiqueta: "Provincia (el cliente confirma la preinstalación después; puesta en marcha remota)" },
+            ],
+          },
           {
             nombre: "entrega",
             etiqueta: "Entrega",
@@ -665,6 +676,7 @@ export function PedidoPostventa({
                     const igual = (a: string | null | undefined, b: string | undefined) => (a ?? "").trim() === (b ?? "").trim();
                     const modo = d.entrega === "agencia" ? "agencia" : "domicilio";
                     return (
+                      (!!d.destino && !igual(servicio.modalidad, d.destino)) ||
                       !igual(servicio.direccion_entrega, d.direccion) ||
                       !igual(servicio.direccion_verificada_con, d.confirmo) ||
                       (!!d.recibe?.trim() && !igual(servicio.recibe_nombre, d.recibe)) ||
