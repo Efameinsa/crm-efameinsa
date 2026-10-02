@@ -16,6 +16,15 @@ describe("¿se rastrea a esta persona en la app?", () => {
     expect(seRastrea({ es_prueba: true, trabajo_de_campo: true })).toBe(true);
   });
 
+  it("gerencia y administración no se rastrean por defecto (hasta que Santos decida), salvo marcadas a mano", () => {
+    expect(seRastrea({ rol: "gerencia" })).toBe(false);
+    expect(seRastrea({ rol: "admin" })).toBe(false);
+    expect(seRastrea({ rol: "gerencia", trabajo_de_campo: true })).toBe(true);
+    expect(seRastrea({ rol: "comercial" })).toBe(true);
+    expect(seRastrea({ rol: "central" })).toBe(true);
+    expect(seRastrea({ rol: "postventa" })).toBe(true);
+  });
+
   it("la exclusión de gerencia gana sobre todo lo demás", () => {
     expect(seRastrea({ rastreo_excluido: true })).toBe(false);
     expect(seRastrea({ rastreo_excluido: true, trabajo_de_campo: true })).toBe(false);
