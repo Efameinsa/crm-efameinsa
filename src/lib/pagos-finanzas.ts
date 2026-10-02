@@ -275,7 +275,7 @@ export interface AbonoConfirmado {
 
 export async function abonos(
   supabase: SupabaseClient,
-  filtro: { servicioId?: string; desde?: string; hasta?: string; q?: string; limite?: number },
+  filtro: { servicioId?: string; desde?: string; hasta?: string; q?: string; limite?: number; segun?: "abono" | "confirmado" },
 ): Promise<AbonoConfirmado[]> {
   let consulta = supabase
     .from("pagos_pedido")
@@ -283,8 +283,15 @@ export async function abonos(
     .order("created_at", { ascending: false })
     .limit(filtro.limite ?? 300);
   if (filtro.servicioId) consulta = consulta.eq("servicio_id", filtro.servicioId);
-  if (filtro.desde) consulta = consulta.gte("fecha_abono", filtro.desde);
-  if (filtro.hasta) consulta = consulta.lte("fecha_abono", filtro.hasta);
+  // Reunión 02-10: «qué ejecutó por día» es el día en que Finanzas lo
+  // confirmó en el CRM, no la fecha del depósito que dice el banco.
+  if (filtro.segun === "confirmado") {
+    if (filtro.desde) consulta = consulta.gte("created_at", `${filtro.desde}T00:00:00-05:00`);
+    if (filtro.hasta) consulta = consulta.lte("created_at", `${filtro.hasta}T23:59:59.999-05:00`);
+  } else {
+    if (filtro.desde) consulta = consulta.gte("fecha_abono", filtro.desde);
+    if (filtro.hasta) consulta = consulta.lte("fecha_abono", filtro.hasta);
+  }
   const { data } = await consulta;
   let filas = (data ?? []) as Fila[];
   const q = filtro.q?.trim().toLowerCase();

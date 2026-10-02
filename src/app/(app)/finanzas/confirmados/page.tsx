@@ -13,14 +13,19 @@ const esFecha = (s: string | undefined) => /^\d{4}-\d{2}-\d{2}$/.test(s ?? "");
  * de operación y banco. Es el respaldo cuando alguien pregunta «¿ese pago
  * entró?»: se busca por cliente, operación o banco, y se filtra por fecha.
  */
-export default async function ConfirmadosPage({ searchParams }: { searchParams: Promise<{ q?: string; desde?: string; hasta?: string }> }) {
+export default async function ConfirmadosPage({ searchParams }: { searchParams: Promise<{ q?: string; desde?: string; hasta?: string; segun?: string }> }) {
   await requerirPerfil();
   const sp = await searchParams;
   const desde = esFecha(sp.desde) ? sp.desde! : "";
   const hasta = esFecha(sp.hasta) ? sp.hasta! : "";
   const q = (sp.q ?? "").trim();
+  const segun = sp.segun === "confirmado" ? "confirmado" : "abono";
   const supabase = await createClient();
-  const lista = await abonos(supabase, { q, desde: desde || undefined, hasta: hasta || undefined });
+  const lista = await abonos(supabase, { q, desde: desde || undefined, hasta: hasta || undefined, segun });
+  // Atajos «lo que se confirmó hoy / ayer» (reunión 02-10, caso Julca).
+  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const ayer = new Date(Date.now() - 86_400_000).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const dia = (d: string) => `/finanzas/confirmados?segun=confirmado&desde=${d}&hasta=${d}`;
 
   const totales = new Map<string, number>();
   for (const a of lista) totales.set(a.moneda, (totales.get(a.moneda) ?? 0) + a.monto);
@@ -37,6 +42,10 @@ export default async function ConfirmadosPage({ searchParams }: { searchParams: 
           placeholder="Cliente, N.º de operación o banco"
           className="h-8 min-w-56 flex-1 rounded-md border border-input bg-background px-2 text-sm"
         />
+        <select name="segun" defaultValue={segun} className="h-8 rounded-md border border-input bg-background px-2 text-sm">
+          <option value="abono">Fecha del abono (banco)</option>
+          <option value="confirmado">Día en que se confirmó en el CRM</option>
+        </select>
         <label className="flex items-center gap-1 text-xs text-muted-foreground">
           Desde
           <input type="date" name="desde" defaultValue={desde} className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground" />
@@ -48,6 +57,8 @@ export default async function ConfirmadosPage({ searchParams }: { searchParams: 
         <button type="submit" className="h-8 rounded-md border border-border px-2.5 text-xs font-medium hover:bg-secondary">
           Filtrar
         </button>
+        <Link href={dia(hoy)} className="text-xs font-medium text-primary hover:underline">Confirmados hoy</Link>
+        <Link href={dia(ayer)} className="text-xs font-medium text-primary hover:underline">Ayer</Link>
         {(q || desde || hasta) && (
           <Link href="/finanzas/confirmados" className="text-xs text-muted-foreground hover:underline">
             Quitar filtros
@@ -76,7 +87,7 @@ export default async function ConfirmadosPage({ searchParams }: { searchParams: 
                 <tr key={a.id} className="border-b border-border align-top">
                   <td className="py-2 pr-3 text-xs tabular-nums">
                     {new Date(`${a.fechaAbono}T12:00:00-05:00`).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}
-                    <p className="text-[11px] text-muted-foreground">por {a.registradoPor ?? "—"}</p>
+                    <p className="text-[11px] text-muted-foreground">por {a.registradoPor ?? "—"} · confirmado el {new Date(a.createdAt).toLocaleString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
                   </td>
                   <td className="py-2 pr-3">
                     <Link href={`/finanzas/pedidos/${a.servicioId}`} className="font-medium text-foreground hover:underline">
