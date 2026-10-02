@@ -64,11 +64,16 @@ export async function SeccionTrabajoDeCampo({ dia: diaPedido, otrosParametros }:
 
   // Consulta aparte: si la 0363 todavía no está aplicada, la columna no existe
   // y esto falla solo, sin tumbar el resto de «Accesos y equipos».
-  const { data: perfilesCampo, error } = await supabase
-    .from("perfiles")
-    .select("id, nombre, codigo_comercial")
-    .eq("trabajo_de_campo", true)
-    .order("codigo_comercial");
+  //
+  // Salen los marcados a mano (piloto de la 0363) Y todos los que tienen la app de Android vinculada
+  // (0370: se rastrea a toda cuenta real, no hay que marcar a nadie).
+  const { data: conApp } = await supabase.from("dispositivos_campo").select("user_id").eq("activo", true).eq("plataforma", "android");
+  const idsConApp = [...new Set((conApp ?? []).map((d) => d.user_id as string))];
+  let consultaPerfiles = supabase.from("perfiles").select("id, nombre, codigo_comercial").order("codigo_comercial");
+  consultaPerfiles = idsConApp.length
+    ? consultaPerfiles.or(`trabajo_de_campo.eq.true,id.in.(${idsConApp.join(",")})`)
+    : consultaPerfiles.eq("trabajo_de_campo", true);
+  const { data: perfilesCampo, error } = await consultaPerfiles;
   if (error) return null;
 
   const enlaceDia = (d: string) => `/gerencia/accesos?${otrosParametros ? `${otrosParametros}&` : ""}campo=${d}`;
@@ -90,8 +95,8 @@ export async function SeccionTrabajoDeCampo({ dia: diaPedido, otrosParametros }:
     return (
       <SeccionPanel titulo="Trabajo de campo">
         <p className="max-w-prose text-sm text-muted-foreground">
-          Nadie está marcado para el piloto de trabajo de campo. Cuando admin marque a alguien, aquí aparecen su último
-          punto y su recorrido del día.
+          Todavía nadie tiene la app de Android vinculada ni está marcado para el piloto del navegador. Cuando alguien
+          inicie sesión en la app y acepte, aquí aparecen su último punto y su recorrido del día.
         </p>
       </SeccionPanel>
     );
