@@ -53,7 +53,7 @@ export function EquipoConSeries({
           );
         }
         return series.includes(trozo.toUpperCase()) ? (
-          <span key={i} className="font-mono font-semibold text-foreground" title="Todavía sin ficha en el parque instalado">
+          <span key={i} className="font-mono font-semibold text-foreground" title="Todavía sin ficha en el registro de máquinas">
             {trozo}
           </span>
         ) : (

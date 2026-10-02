@@ -74,7 +74,7 @@ export default async function ParquePage({
 
   return (
     <SeccionPanel
-      titulo={verTodo ? "Las ventas de la empresa" : "Mi parque"}
+      titulo={verTodo ? "Las ventas de la empresa" : "Mis clientes con máquinas"}
       accion={
         <span className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-secondary px-2.5 py-0.5 font-semibold text-foreground">

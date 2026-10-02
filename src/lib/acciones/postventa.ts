@@ -45,7 +45,7 @@ function falla(mensaje: string) {
 function enCastellano(mensaje: string): string {
   const m = mensaje.replace(/^[A-Z0-9]{5}:\s*/, "");
   if (/duplicate key|ya existe|unique constraint/i.test(m)) {
-    return "Esa serie ya está registrada en otra máquina del parque. Revísela en la placa; si es la correcta, avise a operaciones.";
+    return "Esa serie ya está registrada en otra máquina. Revísela en la placa; si es la correcta, avise a operaciones.";
   }
   if (/ON CONFLICT|constraint|violates|null value|invalid input/i.test(m)) {
     return `No se pudo guardar por una falla del sistema, no por lo que escribió. Avise a operaciones (${m.slice(0, 120)}).`;
@@ -687,7 +687,7 @@ export async function cerrarPedido(
       p_garantia_meses: garantia,
       p_meses_mantenimiento: mantenimiento,
     });
-    if (eParque) return falla(`La serie ${serie} no se pudo subir al parque: ${enCastellano(eParque.message)}`);
+    if (eParque) return falla(`La serie ${serie} no se pudo registrar: ${enCastellano(eParque.message)}`);
   }
 
   const { error } = await supabase
@@ -900,7 +900,7 @@ export async function revisarLargoDeSerie(itemId: string, serie: string): Promis
   if (total < 10 || veces / total < 0.75 || largo === comun) return { aviso: null };
   const marcaBonita = marca.charAt(0) + marca.slice(1).toLowerCase();
   return {
-    aviso: `Las series ${marca === "LG" ? "LG" : marcaBonita} del parque tienen ${comun} caracteres (${veces} de ${total}) y esta tiene ${largo}: ${largo < comun ? "¿le falta" : "¿le sobra"} ${Math.abs(comun - largo) === 1 ? "un dígito" : `${Math.abs(comun - largo)} dígitos`}? Revise la placa.`,
+    aviso: `Las series ${marca === "LG" ? "LG" : marcaBonita} registradas tienen ${comun} caracteres (${veces} de ${total}) y esta tiene ${largo}: ${largo < comun ? "¿le falta" : "¿le sobra"} ${Math.abs(comun - largo) === 1 ? "un dígito" : `${Math.abs(comun - largo)} dígitos`}? Revise la placa.`,
   };
 }
 

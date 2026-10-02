@@ -806,7 +806,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       responsable: "postventa",
       hecho: s.cerrado_at != null || s.completado,
       cuando: s.cerrado_at,
-      detalle: circuito.esEquipo ? "Al cerrar, el equipo entra al parque instalado con su garantía" : "Al cerrar, queda en el historial del cliente",
+      detalle: circuito.esEquipo ? "Al cerrar, el equipo entra al registro de máquinas con su garantía" : "Al cerrar, queda en el historial del cliente",
     },
   ];
 

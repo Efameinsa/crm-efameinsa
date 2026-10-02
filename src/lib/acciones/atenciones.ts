@@ -175,7 +175,7 @@ export async function vincularEquipoAtencion(
     .select("id, serie")
     .eq("id", equipoId)
     .maybeSingle();
-  if (!eq) return { error: "Esa máquina no está en el parque instalado" };
+  if (!eq) return { error: "Esa máquina no está en el registro de máquinas" };
 
   const { error } = await supabase.from("atenciones").update({ equipo_id: equipoId }).eq("id", atencionId);
   if (error) return { error: error.message };

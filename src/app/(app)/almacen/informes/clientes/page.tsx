@@ -88,7 +88,7 @@ export default async function ClientesInformesAlmacenPage({ searchParams }: { se
                     {f.zona ? ` · ${f.zona}` : ""}
                   </span>
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Máquinas en el parque">
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Máquinas registradas">
                   <Wrench className="size-3.5" /> {f.maquinas}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Pedidos (en curso)">

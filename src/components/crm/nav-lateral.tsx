@@ -278,7 +278,7 @@ const ENLACE_RUTA = { href: "/comercial/ruta", etiqueta: "Ruta de mantenimiento"
 // «Mi parque» (Santos, 02-09): solo para quien vende mantenimiento —hoy
 // Ariana, con la llave `hace_postventa` que reparte Lesly—. Al resto de
 // comerciales no se les muestra hasta que gerencia decida.
-const ENLACE_PARQUE = { href: "/comercial/parque", etiqueta: "Mi parque", icono: Wrench };
+const ENLACE_PARQUE = { href: "/comercial/parque", etiqueta: "Mis clientes con máquinas", icono: Wrench };
 
 // La pantalla del administrador de operaciones (0114): el código que dicta y
 // lo que se hizo con él.

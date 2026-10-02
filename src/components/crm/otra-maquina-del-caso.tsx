@@ -31,7 +31,7 @@ export function OtraMaquinaDelCaso({ atencionId, cuenta, hayPrincipal }: { atenc
         onClick={() => setAbierto(true)}
         className="mt-3 inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-primary/50 px-3 py-2 text-sm font-medium text-primary hover:bg-accent"
       >
-        <Plus className="size-4" /> {hayPrincipal ? "Registrar otra máquina del caso" : "Registrar la máquina (no está en su parque)"}
+        <Plus className="size-4" /> {hayPrincipal ? "Registrar otra máquina del caso" : "Registrar la máquina (todavía no está registrada)"}
       </button>
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent className="sm:max-w-2xl">

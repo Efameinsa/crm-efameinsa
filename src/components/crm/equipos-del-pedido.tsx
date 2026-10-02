@@ -73,7 +73,7 @@ export function EquiposDelPedido({
           : despachado
             ? sinSerie > 0
               ? `El pedido ya salió y ${sinSerie === 1 ? "una máquina está" : `${sinSerie} máquinas están`} sin serie: sin ella postventa no puede atender un caso.`
-              : "Todas las máquinas que salieron están en el parque con su serie."
+              : "Todas las máquinas que salieron están registradas con su serie."
             : `Con serie = hay stock. ${
                 modo === "postventa"
                   ? "Marque cuál va en este despacho; lo demás espera."
@@ -301,7 +301,7 @@ function Fila({
                           setParteSerie("");
                         }
                         return r;
-                      }, `${parteNombre.trim() || "Máquina"} registrada: ya está en el parque con su serie`),
+                      }, `${parteNombre.trim() || "Máquina"} registrada con su serie`),
                     )
                   }
                 >
@@ -382,7 +382,7 @@ function Fila({
                 </Button>
                 <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setModoCodigo(false)}>Cancelar</button>
               </div>
-              <p className="text-[11px] text-muted-foreground">Un solo código para todas las unidades de este artículo que no tienen serie. No entran al parque instalado.</p>
+              <p className="text-[11px] text-muted-foreground">Un solo código para todas las unidades de este artículo que no tienen serie. No entran al registro de máquinas.</p>
             </div>
           ) : abrirSerie ? (
             <div className="space-y-1">
@@ -392,7 +392,7 @@ function Fila({
                   size="sm"
                   className="h-8"
                   disabled={pendiente || !serie.trim()}
-                  onClick={() => conRevision(serie, () => correr(() => registrarSerieDelEquipo(e.id, servicioId, serie), "Serie registrada: la máquina ya está en el parque"))}
+                  onClick={() => conRevision(serie, () => correr(() => registrarSerieDelEquipo(e.id, servicioId, serie), "Serie registrada: la máquina ya está en el registro de máquinas"))}
                 >
                   {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} {confirmando(serie) ? "Sí, registrar así" : "Registrar"}
                 </Button>

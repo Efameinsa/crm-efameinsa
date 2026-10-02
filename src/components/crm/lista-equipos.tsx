@@ -126,7 +126,7 @@ export function ListaEquipos({ equipos, hoy, inicial }: { equipos: FilaEquipo[];
             <p>Nada que coincida con esa búsqueda.</p>
           ) : (
             <>
-              <p>Todavía no hay equipos registrados en el parque instalado.</p>
+              <p>Todavía no hay máquinas registradas.</p>
               <p>
                 Cada máquina entra acá con su serie cuando se cierra un pedido de despacho. Desde ese momento el sistema
                 sabe hasta cuándo tiene garantía, cuántos ciclos lleva y cuándo le toca el próximo mantenimiento

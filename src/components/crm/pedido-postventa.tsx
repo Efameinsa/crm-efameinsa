@@ -934,7 +934,7 @@ export function PedidoPostventa({
         abierto={form?.tipo === "cerrar"}
         cerrar={() => setForm(null)}
         titulo="Cerrar el pedido"
-        descripcion="Al cerrar, cada serie que anote acá entra al parque instalado con su garantía calculada y su primer mantenimiento agendado. Si van varias, sepárelas con coma."
+        descripcion="Al cerrar, cada serie que anote acá entra al registro de máquinas con su garantía calculada y su primer mantenimiento agendado. Si van varias, sepárelas con coma."
         boton="Cerrar el pedido"
         pendiente={pendiente}
         onEnviar={(datos) =>
@@ -944,7 +944,7 @@ export function PedidoPostventa({
                 series: (datos.series ?? "").split(/[,;\n]/),
                 garantiaMeses: datos.garantia ? Number(datos.garantia) : 24,
               }),
-            "Pedido cerrado. El equipo ya está en el parque instalado.",
+            "Pedido cerrado. El equipo ya está en el registro de máquinas.",
           )
         }
         campos={[

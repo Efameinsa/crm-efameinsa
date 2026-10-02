@@ -43,7 +43,7 @@ export function SeriesDelPedido({
         toast.error(r.error);
         return;
       }
-      toast.success(`${r.fichadas ?? 0} máquina(s) registradas en el parque`);
+      toast.success(`${r.fichadas ?? 0} máquina(s) registradas`);
       setSeries([""]);
       router.refresh();
     });
@@ -58,9 +58,9 @@ export function SeriesDelPedido({
         {vendidos != null ? `El cierre vendió ${vendidos} equipo${vendidos === 1 ? "" : "s"}. ` : ""}
         {equipos.length === 0
           ? despachado
-            ? "El pedido ya salió y ninguna máquina está en el parque: sin serie, postventa no puede atender un caso de este cliente."
+            ? "El pedido ya salió y ninguna máquina está registrada: sin serie, postventa no puede atender un caso de este cliente."
             : "Todavía sin series: se toman de la placa en la prueba o de la guía al salir."
-          : `${equipos.length} en el parque${faltan ? `, faltan ${faltan}` : ""}.`}
+          : `${equipos.length} registrada${equipos.length === 1 ? "" : "s"}${faltan ? `, faltan ${faltan}` : ""}.`}
       </p>
       {equipos.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-1.5">
@@ -90,7 +90,7 @@ export function SeriesDelPedido({
               <Plus className="size-3.5" /> Otra serie
             </button>
             <Button size="sm" onClick={guardar} disabled={pendiente || !series.some((s) => s.trim())}>
-              {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} Registrar en el parque
+              {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} Registrar las máquinas
             </Button>
           </div>
         </div>
