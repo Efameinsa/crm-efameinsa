@@ -761,6 +761,11 @@ export function PantallaCotizador({
   // moneda nueva (se mantienen) o hay que convertirlos? Las líneas del
   // catálogo siempre se convierten: su precio de lista está en dólares.
   const [monedaPendiente, setMonedaPendiente] = useState<"USD" | "PEN" | null>(null);
+  const preguntaMonedaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (monedaPendiente) preguntaMonedaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [monedaPendiente]);
+  const ultimaLineaLibre = carrito.map((r) => r.producto_id === null).lastIndexOf(true);
   const hayPreciosEscritos = carrito.some((r) => r.producto_id === null && (r.precio_con_igv ?? r.precio_unitario) > 0);
   function cambiarMoneda(nueva: "USD" | "PEN") {
     if (nueva === monedaImpresa) return;
@@ -1237,7 +1242,7 @@ export function PantallaCotizador({
           </div>
 
           {monedaPendiente && (
-            <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
+            <div ref={preguntaMonedaRef} className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
               <p className="font-semibold text-foreground">
                 ¿Los precios que escribió a mano ya están en {monedaPendiente === "PEN" ? "soles" : "dólares"}?
               </p>
@@ -1380,11 +1385,13 @@ export function PantallaCotizador({
                                 Listo · agregar otro servicio
                               </button>
                             </div>
-                            <p className="mt-1 text-[11px] text-muted-foreground">
-                              <b className="text-foreground">Enter</b> baja de renglón dentro del concepto;{" "}
-                              <b className="text-foreground">Ctrl+Enter</b> —acá o Enter en el precio— agrega otra línea.
-                              Al no estar en el catálogo, esta línea no lleva ficha técnica ni foto en el PDF.
-                            </p>
+                            {i === ultimaLineaLibre && (
+                              <p className="mt-1 text-[11px] text-muted-foreground">
+                                <b className="text-foreground">Enter</b> baja de renglón dentro del concepto;{" "}
+                                <b className="text-foreground">Ctrl+Enter</b> —acá o Enter en el precio— agrega otra línea.
+                                Al no estar en el catálogo, esta línea no lleva ficha técnica ni foto en el PDF.
+                              </p>
+                            )}
                           </>
                         ) : (
                           <p className="text-sm font-medium text-foreground">
@@ -1584,8 +1591,10 @@ export function PantallaCotizador({
                           </div>
                         )}
                         {item.fueraDeCatalogo && (
-                          <p className="text-xs font-semibold text-amber-700">
-                            Fuera de catálogo — escrito a mano, sin ficha técnica en el PDF
+                          <p className={cn("text-xs", esPostventa ? "text-muted-foreground" : "font-semibold text-amber-700")}>
+                            {esPostventa
+                              ? "Escrito a mano · sale en el PDF sin ficha técnica ni foto"
+                              : "Fuera de catálogo — escrito a mano, sin ficha técnica en el PDF"}
                           </p>
                         )}
                         {!item.fueraDeCatalogo && item.sinFicha && (
