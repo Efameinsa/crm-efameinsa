@@ -12,7 +12,10 @@
  */
 
 export type EstadoUbicacion = "ok" | "denegado" | "no_disponible" | "tiempo_agotado" | "no_soportado";
-export type OrigenUbicacion = "ingreso" | "periodica" | "manual";
+/** «app»: el GPS del celular con Traccar Client (0367); los otros, el navegador (0363). */
+export type OrigenUbicacion = "ingreso" | "periodica" | "manual" | "app";
+/** Lo que puede mandar el navegador: «app» solo entra por /api/campo/osmand. */
+export type OrigenNavegador = Exclude<OrigenUbicacion, "app">;
 
 export interface RegistroUbicacion {
   id: string;
@@ -25,7 +28,41 @@ export interface RegistroUbicacion {
   detalle: string | null;
   ip: string | null;
   user_agent: string | null;
+  /** Hora de llegada al CRM. */
   created_at: string;
+  /**
+   * Hora de la lectura (0367). En el navegador es la de llegada; la app del
+   * celular junta posiciones sin señal y las manda después, así que el
+   * recorrido se ordena por esta. null en filas viejas sin la 0367.
+   */
+  registrada_at?: string | null;
+  velocidad_mps?: number | null;
+  rumbo?: number | null;
+  /** 0-100 %, solo la app. */
+  bateria?: number | null;
+  dispositivo_id?: string | null;
+}
+
+/** La hora que cuenta para el recorrido: la de la lectura, no la de llegada. */
+export function horaDeLectura(r: Pick<RegistroUbicacion, "created_at" | "registrada_at">): string {
+  return r.registrada_at ?? r.created_at;
+}
+
+/** ¿Vino del GPS del celular (Traccar Client) o del navegador? */
+export function esDeLaApp(r: Pick<RegistroUbicacion, "origen">): boolean {
+  return r.origen === "app";
+}
+
+/** Si llegó más de 2 min después de leída: la app la tuvo en cola sin señal. */
+export function llegoEnCola(r: Pick<RegistroUbicacion, "created_at" | "registrada_at">): boolean {
+  if (!r.registrada_at) return false;
+  return new Date(r.created_at).getTime() - new Date(r.registrada_at).getTime() > 2 * 60_000;
+}
+
+/** «32 km/h»; quieto (< 1 km/h) o sin dato, null. */
+export function textoVelocidad(mps: number | null | undefined): string | null {
+  if (mps == null || mps * 3.6 < 1) return null;
+  return `${Math.round(mps * 3.6)} km/h`;
 }
 
 /** Cada cuánto manda el navegador una lectura mientras el CRM está abierto. */
@@ -79,16 +116,16 @@ export interface TramoSinSenal {
 }
 
 /**
- * Los tramos sin lectura entre dos registros (de cualquier estado: una fila
+ * Los tramos sin lectura entre dos registros, por la hora de la lectura (de cualquier estado: una fila
  * «denegado» también prueba que el CRM estaba abierto). Si la última lectura
  * es vieja y el día es hoy, el tramo queda abierto hasta `ahora`.
  */
 export function tramosSinSenal(
-  registros: Pick<RegistroUbicacion, "created_at">[],
+  registros: Pick<RegistroUbicacion, "created_at" | "registrada_at">[],
   opciones: { ahora?: number; esHoy?: boolean; huecoMin?: number } = {},
 ): TramoSinSenal[] {
   const umbral = (opciones.huecoMin ?? HUECO_MIN) * 60_000;
-  const tiempos = registros.map((r) => new Date(r.created_at).getTime()).sort((a, b) => a - b);
+  const tiempos = registros.map((r) => new Date(horaDeLectura(r)).getTime()).sort((a, b) => a - b);
   const tramos: TramoSinSenal[] = [];
   for (let i = 1; i < tiempos.length; i++) {
     const hueco = tiempos[i] - tiempos[i - 1];

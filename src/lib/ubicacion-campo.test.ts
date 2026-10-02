@@ -1,5 +1,15 @@
 import { describe, expect, test } from "vitest";
-import { distanciaM, duracion, precisionDudosa, textoPrecision, tramosSinSenal, urlGoogleMaps } from "@/lib/ubicacion-campo";
+import {
+  distanciaM,
+  duracion,
+  horaDeLectura,
+  llegoEnCola,
+  precisionDudosa,
+  textoPrecision,
+  textoVelocidad,
+  tramosSinSenal,
+  urlGoogleMaps,
+} from "@/lib/ubicacion-campo";
 
 const a = (hhmm: string) => ({ created_at: `2026-10-02T${hhmm}:00-05:00` });
 
@@ -51,5 +61,22 @@ describe("textos", () => {
     const d = distanciaM({ lat: -12.0464, lon: -77.0428 }, { lat: -12.0473, lon: -77.0428 });
     expect(d).toBeGreaterThan(95);
     expect(d).toBeLessThan(105);
+  });
+});
+
+describe("GPS del celular (0367): la hora que cuenta es la del GPS", () => {
+  test("posiciones que llegaron juntas al volver la señal no inventan huecos", () => {
+    const llegada = "2026-10-02T12:00:00-05:00";
+    const enCola = ["10:00", "10:05", "10:10"].map((h) => ({ created_at: llegada, registrada_at: `2026-10-02T${h}:00-05:00` }));
+    expect(tramosSinSenal([...enCola, { created_at: llegada, registrada_at: llegada }]).map((t) => t.minutos)).toEqual([110]);
+    expect(llegoEnCola(enCola[0])).toBe(true);
+    expect(llegoEnCola({ created_at: llegada, registrada_at: llegada })).toBe(false);
+    expect(horaDeLectura({ created_at: llegada, registrada_at: null })).toBe(llegada);
+  });
+
+  test("velocidad en km/h; quieto no se muestra", () => {
+    expect(textoVelocidad(8.3)).toBe("30 km/h");
+    expect(textoVelocidad(0.1)).toBeNull();
+    expect(textoVelocidad(null)).toBeNull();
   });
 });

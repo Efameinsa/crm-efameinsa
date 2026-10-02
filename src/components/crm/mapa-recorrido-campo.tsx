@@ -10,6 +10,12 @@ import "leaflet/dist/leaflet.css";
  * círculo del TAMAÑO REAL de la precisión que declaró el equipo, en metros.
  * Un punto con ±8 m se ve como un punto; uno con ±900 m se ve como lo que es,
  * un barrio. Así nadie lee de más una lectura gruesa.
+ *
+ * 0367: los puntos del GPS del celular (Traccar Client) van rellenos y los del
+ * navegador huecos. Si ese día hay GPS, la línea del recorrido une solo los
+ * del GPS: mezclarla con la laptop (ubicada por wifi a 50 m) la haría saltar
+ * de un lado a otro. Con un punto por minuto, el círculo de precisión se dibuja
+ * solo cuando dice algo (más de 30 m, o el último).
  */
 
 export interface PuntoCampo {
@@ -17,6 +23,11 @@ export interface PuntoCampo {
   lon: number;
   precision: number | null;
   hora: string;
+  /** Del GPS del celular (true) o del navegador (false). */
+  gps?: boolean;
+  /** «32 km/h», o null si estaba quieto o sin dato. */
+  velocidad?: string | null;
+  bateria?: number | null;
 }
 
 export interface RecorridoCampo {
@@ -48,25 +59,36 @@ export function MapaRecorridoCampo({ recorridos }: { recorridos: RecorridoCampo[
       const capas: import("leaflet").Layer[] = [];
       for (const r of recorridos) {
         if (r.puntos.length === 0) continue;
-        if (r.puntos.length > 1) {
-          capas.push(L.polyline(r.puntos.map((p) => [p.lat, p.lon] as [number, number]), { color: r.color, weight: 2, opacity: 0.6, dashArray: "4 4" }).addTo(m));
+        const delGps = r.puntos.filter((p) => p.gps);
+        const linea = delGps.length > 1 ? delGps : r.puntos;
+        if (linea.length > 1) {
+          capas.push(
+            L.polyline(linea.map((p) => [p.lat, p.lon] as [number, number]), {
+              color: r.color,
+              weight: delGps.length > 1 ? 3 : 2,
+              opacity: 0.6,
+              dashArray: delGps.length > 1 ? undefined : "4 4",
+            }).addTo(m),
+          );
         }
         r.puntos.forEach((p, i) => {
           const ultimo = i === r.puntos.length - 1;
-          if (p.precision != null) {
+          if (p.precision != null && (!p.gps || ultimo || p.precision > 30)) {
             L.circle([p.lat, p.lon], { radius: p.precision, color: r.color, weight: 1, fillOpacity: 0.08, opacity: 0.4 }).addTo(m);
           }
           const punto = L.circleMarker([p.lat, p.lon], {
-            radius: ultimo ? 7 : 4,
+            radius: ultimo ? 7 : p.gps ? 3 : 4,
             color: r.color,
             weight: 2,
-            fillColor: ultimo ? r.color : "#ffffff",
+            fillColor: ultimo || p.gps ? r.color : "#ffffff",
             fillOpacity: 1,
           })
             .addTo(m)
             .bindPopup(
               `<div style="font-size:12px"><strong>${escapar(r.nombre)}</strong>${ultimo ? " · último" : ""}<br>${escapar(p.hora)} · ${
-                p.precision != null ? `±${Math.round(p.precision)} m` : "sin precisión"
+                p.gps ? "GPS del celular" : "navegador"
+              } · ${p.precision != null ? `±${Math.round(p.precision)} m` : "sin precisión"}${p.velocidad ? ` · ${escapar(p.velocidad)}` : ""}${
+                p.bateria != null ? ` · batería ${Math.round(p.bateria)} %` : ""
               }</div>`,
             );
           capas.push(punto);

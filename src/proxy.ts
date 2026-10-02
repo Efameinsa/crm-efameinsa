@@ -197,6 +197,9 @@ export const config = {
     // api/version: solo dice qué commit sirve el servidor (la pastilla de
     // «hay versión nueva», 31-08). Sin un dato de negocio; pasar por el proxy
     // solo le sumaría latencia a un ping de cada 5 minutos.
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|offline|api/version|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|api/marketing/catalogo-whatsapp|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // api/campo/osmand: la manda Traccar Client desde el celular del piloto de
+    // trabajo de campo (0367, 01-10-2026), sin cookies; su llave es el token
+    // del celular. Detrás del proxy recibiría la redirección al login.
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|offline|api/version|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|api/marketing/catalogo-whatsapp|api/campo/osmand|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
