@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, Send } from "lucide-react";
+import { CheckCircle2, Loader2, Paperclip, Send } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { asignarTecnicoApertura, revisarApertura, tomarApertura } from "@/lib/acciones/aperturas-llamada";
 import type { EstadoApertura } from "@/lib/aperturas-llamada";
 import { Button } from "@/components/ui/button";
@@ -97,10 +98,20 @@ export function AccionesPostventaApertura({
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [texto, setTexto] = useState(borrador);
+  // Reunión 02-10: «que suban la constancia de que ya se le envió al cliente».
+  const [constancia, setConstancia] = useState<File | null>(null);
 
   function revisar(enviada: boolean) {
     startTransition(async () => {
-      const r = await revisarApertura(id, texto, enviada);
+      let ruta: string | null = null;
+      if (enviada) {
+        if (!constancia) return void toast.error("Adjunte la constancia del envío: el correo o la captura del WhatsApp al cliente");
+        if (constancia.size > 10 * 1024 * 1024) return void toast.error("La constancia pasa de 10 MB");
+        ruta = `aperturas/${id}/constancia-${crypto.randomUUID()}-${constancia.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
+        const { error } = await createClient().storage.from("adjuntos").upload(ruta, constancia, { contentType: constancia.type || "application/octet-stream" });
+        if (error) return void toast.error(`No se pudo subir la constancia: ${error.message}`);
+      }
+      const r = await revisarApertura(id, texto, enviada, ruta);
       if (r.error) return void toast.error(r.error);
       toast.success(enviada ? "Listo: queda como enviada al cliente" : "Revisión guardada: ya se puede imprimir para el cliente");
       router.refresh();
@@ -121,7 +132,14 @@ export function AccionesPostventaApertura({
               Guardar la revisión
             </Button>
             {estado !== "enviada_cliente" && (
-              <Button onClick={() => revisar(true)} disabled={pendiente || !texto.trim()}>
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-border px-2.5 py-1.5 text-xs hover:bg-accent">
+                <Paperclip className="size-3.5" />
+                {constancia ? constancia.name : "Constancia del envío (correo o captura)"}
+                <input type="file" accept="image/*,application/pdf,.eml,.msg" className="hidden" onChange={(e) => setConstancia(e.target.files?.[0] ?? null)} />
+              </label>
+            )}
+            {estado !== "enviada_cliente" && (
+              <Button onClick={() => revisar(true)} disabled={pendiente || !texto.trim() || !constancia}>
                 <Send className="size-4" /> Guardar y marcar enviada al cliente
               </Button>
             )}

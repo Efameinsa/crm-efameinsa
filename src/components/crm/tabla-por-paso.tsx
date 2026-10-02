@@ -58,6 +58,7 @@ const CORTO: Record<string, string> = {
   apertura: "Apertura",
   despacho: "Despacho",
   puesta: "Puesta en marcha",
+  informe: "Informe enviado",
   cerrado: "Cerrado",
 };
 
@@ -68,6 +69,11 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
   // Las columnas salen de los pasos que existen en los pedidos, en su orden.
   const columnas: { clave: string; etiqueta: string }[] = [];
   for (const f of filas) for (const p of f.pasos) if (!columnas.some((c) => c.clave === p.clave)) columnas.push({ clave: p.clave, etiqueta: CORTO[p.clave] ?? p.etiqueta });
+  // Orden fijo: «Informe enviado» solo existe en algunos pedidos y no puede
+  // quedar después de «Cerrado» por el pedido que tocó primero.
+  const orden = Object.keys(CORTO);
+  const lugar = (c: string) => (orden.includes(c) ? orden.indexOf(c) : orden.length - 1);
+  columnas.sort((a, b) => lugar(a.clave) - lugar(b.clave));
 
   // «prueba_sin_pedir» no es un paso: es la prueba pendiente que nadie le
   // pidió al almacén (el paso sin hacer y sin el «solicitado, sin respuesta»).

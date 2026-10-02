@@ -167,9 +167,24 @@ export default async function ControlPedidosPage({
   // Sin stock y por qué (0378): las máquinas sin serie de cada pedido. En
   // tandas de 100: un .in() con 250 ids revienta la URL (502 del nginx).
   const sinStockPor = new Map<string, (string | null)[]>();
+  // El informe técnico enviado al cliente (reunión 02-10): de las llamadas
+  // derivadas del pedido. Solo aparece en los pedidos que tienen alguna.
+  const informePor = new Map<string, { enviada: string | null; conConstancia: boolean; listas: number }>();
   if (vista === "paso") {
     const ids = pedidos.map((t) => t.id);
     for (let i = 0; i < ids.length; i += 100) {
+      const { data: ap } = await supabase
+        .from("aperturas_llamada")
+        .select("servicio_id, informe_at, enviada_cliente_at, constancia_envio_path")
+        .in("servicio_id", ids.slice(i, i + 100))
+        .is("anulada_at", null);
+      for (const x of (ap ?? []) as { servicio_id: string; informe_at: string | null; enviada_cliente_at: string | null; constancia_envio_path: string | null }[]) {
+        const v = informePor.get(x.servicio_id) ?? { enviada: null, conConstancia: false, listas: 0 };
+        if (x.informe_at) v.listas++;
+        if (x.enviada_cliente_at && (!v.enviada || x.enviada_cliente_at > v.enviada)) v.enviada = x.enviada_cliente_at;
+        if (x.constancia_envio_path) v.conConstancia = true;
+        informePor.set(x.servicio_id, v);
+      }
       const { data: eq } = await supabase
         .from("pedido_equipos")
         .select("servicio_id, sin_stock_motivo")
@@ -185,7 +200,7 @@ export default async function ControlPedidosPage({
     id: t.id,
     cliente: t.cliente,
     equipo: t.equipo,
-    pasos: t.pasosTabla,
+    pasos: conInforme(t.pasosTabla, informePor.get(t.id)),
     sinStock: sinStockPor.get(t.id),
   }));
 
@@ -320,4 +335,23 @@ export default async function ControlPedidosPage({
       </p>
     </SeccionPanel>
   );
+}
+
+/** Mete el paso «Informe enviado» antes del cierre del pedido (reunión 02-10). */
+function conInforme(pasos: FilaTabla["pasos"], inf: { enviada: string | null; conConstancia: boolean; listas: number } | undefined): FilaTabla["pasos"] {
+  if (!inf) return pasos;
+  const paso = {
+    clave: "informe",
+    etiqueta: inf.enviada
+      ? `Informe técnico enviado al cliente${inf.conConstancia ? " (con constancia)" : " (sin constancia, marcado antes del 02-10)"}`
+      : inf.listas > 0
+        ? "Informe técnico del almacén listo: falta enviarlo al cliente"
+        : "Informe técnico: el almacén todavía no lo sube",
+    hecho: Boolean(inf.enviada),
+    cuando: inf.enviada,
+    trabado: null,
+    dueno: inf.listas > 0 ? "Postventa" : "Almacén",
+  };
+  const i = pasos.findIndex((p) => p.clave === "cerrado");
+  return i < 0 ? [...pasos, paso] : [...pasos.slice(0, i), paso, ...pasos.slice(i)];
 }

@@ -218,10 +218,11 @@ export async function subirInformeApertura(datos: {
   return listo(a?.servicio_id, a?.cuenta_id);
 }
 
-export async function revisarApertura(id: string, informeCliente: string, enviada: boolean) {
+export async function revisarApertura(id: string, informeCliente: string, enviada: boolean, constancia?: string | null) {
   await requerirPerfil();
   const supabase = await createClient();
-  const { error } = await supabase.rpc("revisar_apertura_llamada", { p_id: id, p_informe_cliente: informeCliente, p_enviada: enviada });
+  // 0379: marcar enviada pide la constancia del envío (reunión 02-10).
+  const { error } = await supabase.rpc("revisar_apertura_llamada", { p_id: id, p_informe_cliente: informeCliente, p_enviada: enviada, p_constancia: constancia ?? null });
   if (error) return falla(error.message);
   const { data: a } = await supabase.from("aperturas_llamada").select("servicio_id, cuenta_id").eq("id", id).maybeSingle();
   revalidatePath(`/aperturas/${id}`);
