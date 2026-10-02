@@ -207,8 +207,17 @@ export function WhatsappHilo({
   const cantidadMensajes = mensajes.length;
   useEffect(() => {
     if (document.cookie.split("; ").includes(`${COOKIE_DEMO}=1`)) return;
+    // OJO: supabase-js no manda la consulta hasta que alguien la espera
+    // (`then`/`await`). Con `void` sola nunca salió del navegador y ningún
+    // chat se marcaba leído (02-10, Moisés y Desiré: «ya lo leí y sigue
+    // apareciendo»; cero llamadas en el registro de nginx).
     const marcar = () => {
-      if (document.visibilityState === "visible") void createClient().rpc("marcar_chat_leido", { p_conversacion: conversacion.id });
+      if (document.visibilityState !== "visible") return;
+      createClient()
+        .rpc("marcar_chat_leido", { p_conversacion: conversacion.id })
+        .then(({ error }) => {
+          if (error) console.warn("No se pudo marcar el chat como leído:", error.message);
+        });
     };
     marcar();
     document.addEventListener("visibilitychange", marcar);
