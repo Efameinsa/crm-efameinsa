@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Download, ExternalLink, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { abrirDocumento, esApp } from "@/lib/nativo";
 
 /**
  * Un PDF del CRM abierto DENTRO del CRM.
@@ -62,6 +63,12 @@ export function VerPdfEnLaApp({
   }, [abierto]);
 
   async function abrir() {
+    // En la app de Android el iframe no muestra PDF: el puente lo abre con su
+    // propio visor (pdf.js) y con los mismos mensajes de error.
+    if (esApp()) {
+      void abrirDocumento(url, titulo);
+      return;
+    }
     setAbierto(true);
     if (blobUrl || cargando) return;
     setCargando(true);

@@ -8,6 +8,7 @@ import { CalloutActivarNotificaciones } from "@/components/crm/callout-activar-n
 import { AplicacionInstalable } from "@/components/crm/aplicacion-instalable";
 import { AvisoGestionesSinSubir } from "@/components/crm/aviso-gestiones-sin-subir";
 import { UbicacionDeCampo } from "@/components/crm/ubicacion-de-campo";
+import { PuenteNativo } from "@/components/crm/puente-nativo";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
 import { AsistenteFlotante } from "@/components/crm/asistente-flotante";
 import { ComunicadoDeGerencia, type ComunicadoPendiente } from "@/components/crm/comunicado-de-gerencia";
@@ -93,6 +94,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ) : null;
   const alPie = (
     <>
+      {/* La app de Android (01-10-2026): PDF, descargas, imprimir y enlaces. Fuera de la app no hace nada. */}
+      <PuenteNativo />
       <RefrescoEnVivo />
       <AvisoNuevaVersion versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
       {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && <ComunicadoDeGerencia comunicado={comunicado} />}

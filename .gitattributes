@@ -1,0 +1,2 @@
+# El worker de pdf.js se copia byte a byte (una prueba lo compara con node_modules).
+public/vendor/* -text
