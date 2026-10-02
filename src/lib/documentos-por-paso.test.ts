@@ -68,6 +68,8 @@ describe("documentosPorPaso", () => {
     });
     expect(d.preinstalacion.map((x) => x.texto)).toEqual(["Informe N.º 012-2026", "Hoja para el cliente"]);
     expect(d.puesta.map((x) => x.texto)).toEqual(["Llamada de puesta en marcha (sin informe aún)", "Informe N.º 015-2026"]);
+    expect(d.preinstalacion[0].corregir).toBe("/postventa/informes/i1?corregir=1");
+    expect(d.puesta[1].corregir).toBe("/postventa/informes/i2?corregir=1");
   });
 
   it("un archivo que no se pudo firmar no deja un enlace roto", () => {

@@ -16,6 +16,8 @@ export type DocPaso = {
   href: string;
   /** pdf: se abre en el visor del CRM · pagina: otra pantalla del CRM · archivo: el archivo subido, en pestaña nueva. */
   tipo: "pdf" | "pagina" | "archivo";
+  /** Los informes de servicio se corrigen con código (0383): el lápiz al lado lleva al cuadro abierto. */
+  corregir?: string;
 };
 
 export type DocumentosPorPaso = Record<string, DocPaso[]>;
@@ -98,6 +100,7 @@ export function documentosPorPaso(d: {
         texto: a.informeNumero ? `Informe N.º ${a.informeNumero}` : `Informe de ${MOTIVO[a.tipo] ?? "la llamada"}`,
         href: `/postventa/informes/${a.informeId}/imprimir`,
         tipo: "pagina",
+        corregir: `/postventa/informes/${a.informeId}?corregir=1`,
       });
     }
     if (a.conHojaCliente && a.revisada) poner(paso, { texto: "Hoja para el cliente", href: `/aperturas/${a.id}/imprimir`, tipo: "pagina" });
@@ -107,7 +110,12 @@ export function documentosPorPaso(d: {
   // Los informes técnicos que no salieron de una llamada: la puesta en marcha en el local.
   for (const i of d.informes) {
     if (informesDeLlamada.has(i.id) || i.tipo !== "puesta_en_marcha") continue;
-    poner("puesta", { texto: i.numero ? `Informe N.º ${i.numero}` : "Informe de puesta en marcha (borrador)", href: `/postventa/informes/${i.id}/imprimir`, tipo: "pagina" });
+    poner("puesta", {
+      texto: i.numero ? `Informe N.º ${i.numero}` : "Informe de puesta en marcha (borrador)",
+      href: `/postventa/informes/${i.id}/imprimir`,
+      tipo: "pagina",
+      corregir: `/postventa/informes/${i.id}?corregir=1`,
+    });
   }
 
   return docs;

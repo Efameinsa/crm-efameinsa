@@ -4,7 +4,7 @@ import { useEffect, useMemo, useOptimistic, useState, useTransition } from "reac
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, Lock, X, FileText } from "lucide-react";
+import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, Lock, X, FileText, Pencil } from "lucide-react";
 import Link from "@/components/enlace";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 import type { DocPaso, DocumentosPorPaso } from "@/lib/documentos-por-paso";
@@ -1292,9 +1292,22 @@ function DocumentosDelPaso({ docs }: { docs?: DocPaso[] }) {
             <Paperclip className="size-3" /> {d.texto}
           </a>
         ) : (
-          <Link key={d.href} href={d.href} prefetch={false} className={clase}>
-            <FileText className="size-3" /> {d.texto}
-          </Link>
+          <span key={d.href} className="inline-flex items-center gap-0.5">
+            <Link href={d.href} prefetch={false} className={clase}>
+              <FileText className="size-3" /> {d.texto}
+            </Link>
+            {d.corregir && (
+              <Link
+                href={d.corregir}
+                prefetch={false}
+                title="Corregir este informe (pide el código de operaciones)"
+                aria-label={`Corregir ${d.texto}`}
+                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <Pencil className="size-3" />
+              </Link>
+            )}
+          </span>
         ),
       )}
     </span>
