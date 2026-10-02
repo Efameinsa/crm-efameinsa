@@ -36,7 +36,16 @@ export interface FilaTabla {
   cliente: string;
   equipo: string;
   pasos: PasoTabla[];
+  /** Máquinas sin serie, con el motivo que marcó el almacén (null: sin motivo). 0378. */
+  sinStock?: (string | null)[];
 }
+
+const MOTIVOS_SIN_STOCK: { clave: string; etiqueta: string }[] = [
+  { clave: "importacion", etiqueta: "por importar" },
+  { clave: "compra_local", etiqueta: "compra local" },
+  { clave: "fabricacion", etiqueta: "en fabricación" },
+  { clave: "sin_motivo", etiqueta: "sin motivo marcado" },
+];
 
 /** Cómo se llama cada paso cuando hay que hacerlo caber en una cabecera. */
 const CORTO: Record<string, string> = {
@@ -63,8 +72,13 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
   // «prueba_sin_pedir» no es un paso: es la prueba pendiente que nadie le
   // pidió al almacén (el paso sin hacer y sin el «solicitado, sin respuesta»).
   // Reunión 23-09: la que se olvidó con Hortifrut.
-  const debe = (f: FilaTabla, clave: string) =>
-    clave === "prueba_sin_pedir"
+  // Reunión 02-10: «¿por qué no despachas? Porque no tienes el producto».
+  const debe = (f: FilaTabla, clave: string): boolean =>
+    clave === "sin_stock"
+      ? (f.sinStock?.length ?? 0) > 0
+      : clave.startsWith("sin_stock:")
+        ? (f.sinStock ?? []).some((m) => (m ?? "sin_motivo") === clave.slice(10))
+        : clave === "prueba_sin_pedir"
       ? f.pasos.some((p) => p.clave === "prueba" && !p.hecho && !p.trabado) && !f.pasos.some((p) => p.clave === "despacho" && p.hecho)
       : f.pasos.some((p) => p.clave === clave && !p.hecho);
   const pendientesPor = (clave: string) => filas.filter((f) => debe(f, clave)).length;
@@ -132,6 +146,30 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
             Prueba sin pedir al almacén ({pendientesPor("prueba_sin_pedir")})
           </Link>
         )}
+        <Link
+          href={enlace("sin_stock")}
+          className={cn(
+            "rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors",
+            falta === "sin_stock"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-orange-500/50 bg-orange-500/10 text-orange-800 hover:bg-orange-500/20",
+          )}
+        >
+          Sin stock ({pendientesPor("sin_stock")})
+        </Link>
+        {falta?.startsWith("sin_stock") &&
+          MOTIVOS_SIN_STOCK.map((m) => (
+            <Link
+              key={m.clave}
+              href={enlace(`sin_stock:${m.clave}`)}
+              className={cn(
+                "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors",
+                falta === `sin_stock:${m.clave}` ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent",
+              )}
+            >
+              {m.etiqueta} ({pendientesPor(`sin_stock:${m.clave}`)})
+            </Link>
+          ))}
       </div>
 
       {visibles.length === 0 ? (

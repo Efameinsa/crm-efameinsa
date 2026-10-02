@@ -101,6 +101,22 @@ export default async function MacroPostventaPage() {
   const vivos = ((pedidos ?? []) as unknown as ServicioPostventa[]).filter((s) => !s.informe_cierre_id || s.pedido_ejecutado_at);
   const porCasillero = (c: string) => vivos.filter((s) => casilleroDelPedido(s, hoy) === c);
   const atrasados = vivos.filter((s) => s.fecha_despacho && s.fecha_despacho < hoy && !s.despachado_at);
+  // EN CURSO SIN DESPACHO PORQUE NO HAY EL PRODUCTO (reunión 02-10, 0378):
+  // máquinas sin serie de pedidos que no salieron, con el porqué del almacén.
+  const sinDespachar = vivos.filter((s) => !s.despachado_at).map((s) => s.id);
+  const motivosSinStock = new Map<string, Set<string>>();
+  for (let i = 0; i < sinDespachar.length; i += 100) {
+    const { data: eq } = await supabase
+      .from("pedido_equipos")
+      .select("servicio_id, sin_stock_motivo")
+      .in("servicio_id", sinDespachar.slice(i, i + 100))
+      .is("serie", null)
+      .is("parte_de", null);
+    for (const x of (eq ?? []) as { servicio_id: string; sin_stock_motivo: string | null }[]) {
+      motivosSinStock.set(x.servicio_id, (motivosSinStock.get(x.servicio_id) ?? new Set()).add(x.sin_stock_motivo ?? "sin_motivo"));
+    }
+  }
+  const sinStockCon = (m: string) => [...motivosSinStock.values()].filter((v) => v.has(m)).length;
   const porAprobar = vivos.filter((s) => s.informe_cierre_id && !s.aprobado_at);
   const sinPedirPrueba = vivos.filter(pruebaSinPedir);
   const porTipo = (t: TipoPedido) => vivos.filter((s) => circuitoDe(s).tipo === t).length;
@@ -125,6 +141,13 @@ export default async function MacroPostventaPage() {
     { titulo: "Sin apertura de despacho", numero: porCasillero("sin_apertura").length, ayuda: "Falta pago, prueba, plano o dirección.", href: "/postventa/control?vista=paso" },
     { titulo: "Listos, sin fecha", numero: porCasillero("listo_sin_fecha").length, ayuda: "Con apertura: solo falta decidir cuándo salen.", href: "/postventa/control?vista=despachos&estado=sin_fecha" },
     { titulo: "Despachos programados", numero: porCasillero("despacho_programado").length, ayuda: "Con día puesto y el camión sin salir.", href: "/postventa/control?vista=despachos" },
+    {
+      titulo: "Sin despachar: sin stock",
+      numero: motivosSinStock.size,
+      ayuda: `${sinStockCon("importacion")} por importar · ${sinStockCon("compra_local")} compra local · ${sinStockCon("fabricacion")} en fabricación · ${sinStockCon("sin_motivo")} sin motivo marcado por el almacén.`,
+      href: "/postventa/control?vista=paso&falta=sin_stock",
+      alerta: true,
+    },
     { titulo: "Atrasados", numero: atrasados.length, ayuda: "Tenían fecha y no salieron.", href: "/postventa/control?vista=despachos&estado=atrasados", alerta: true },
     { titulo: "Despachados, falta la puesta en marcha", numero: porCasillero("puesta_pendiente").length, ayuda: "El equipo salió; el cliente aún no lo tiene andando.", href: "/postventa/control" },
   ];

@@ -164,11 +164,29 @@ export default async function ControlPedidosPage({
 
   // La tabla por paso trabaja sobre los mismos pedidos: todos los pasos de
   // las tres fases, en orden, con su fecha y su responsable.
+  // Sin stock y por qué (0378): las máquinas sin serie de cada pedido. En
+  // tandas de 100: un .in() con 250 ids revienta la URL (502 del nginx).
+  const sinStockPor = new Map<string, (string | null)[]>();
+  if (vista === "paso") {
+    const ids = pedidos.map((t) => t.id);
+    for (let i = 0; i < ids.length; i += 100) {
+      const { data: eq } = await supabase
+        .from("pedido_equipos")
+        .select("servicio_id, sin_stock_motivo")
+        .in("servicio_id", ids.slice(i, i + 100))
+        .is("serie", null)
+        .is("parte_de", null);
+      for (const x of (eq ?? []) as { servicio_id: string; sin_stock_motivo: string | null }[]) {
+        sinStockPor.set(x.servicio_id, [...(sinStockPor.get(x.servicio_id) ?? []), x.sin_stock_motivo]);
+      }
+    }
+  }
   const filas: FilaTabla[] = pedidos.map((t) => ({
     id: t.id,
     cliente: t.cliente,
     equipo: t.equipo,
     pasos: t.pasosTabla,
+    sinStock: sinStockPor.get(t.id),
   }));
 
   return (
