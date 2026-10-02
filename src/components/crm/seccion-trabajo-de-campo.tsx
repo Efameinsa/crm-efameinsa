@@ -23,6 +23,7 @@ import {
   type RegistroUbicacion,
 } from "@/lib/ubicacion-campo";
 import { cn } from "@/lib/utils";
+import { analizarRecorrido } from "@/lib/recorrido-campo";
 
 /**
  * «TRABAJO DE CAMPO» EN ACCESOS Y EQUIPOS (0363).
@@ -158,7 +159,12 @@ export async function SeccionTrabajoDeCampo({ dia: diaPedido, otrosParametros }:
     const conUbicacion = suyos.filter((r) => r.estado === "ok" && r.lat != null && r.lon != null);
     const delGps = conUbicacion.filter(esDeLaApp);
     const precisiones = conUbicacion.map((r) => r.precision_m ?? Infinity).sort((a, b) => a - b);
+    // Kilómetros, paradas y lecturas descartadas del GPS (lib/recorrido-campo.ts).
+    const analisis = analizarRecorrido(
+      delGps.map((r) => ({ lat: r.lat!, lon: r.lon!, precision: r.precision_m, t: Date.parse(horaDeLectura(r)) })),
+    );
     return {
+      analisis,
       id: p.id as string,
       nombre: (p.nombre as string) ?? "—",
       codigo: (p.codigo_comercial as string | null) ?? null,
@@ -182,6 +188,7 @@ export async function SeccionTrabajoDeCampo({ dia: diaPedido, otrosParametros }:
       lon: r.lon!,
       precision: r.precision_m,
       hora: horaLima(horaDeLectura(r)),
+      t: Date.parse(horaDeLectura(r)),
       gps: esDeLaApp(r),
       velocidad: textoVelocidad(r.velocidad_mps),
       bateria: r.bateria ?? null,
@@ -191,12 +198,14 @@ export async function SeccionTrabajoDeCampo({ dia: diaPedido, otrosParametros }:
   return (
     <SeccionPanel titulo="Trabajo de campo" accion={navegacion}>
       <p className="mb-3 max-w-prose text-xs text-muted-foreground">
-        Dos fuentes. <strong className="text-foreground">GPS</strong>: el celular con Traccar Client, cada minuto
-        aunque la pantalla esté apagada (típicamente ±3-15 m al aire libre). <strong className="text-foreground">Navegador</strong>:
-        la laptop con el CRM abierto, al ingresar y cada {INTERVALO_MIN} min, ubicada por las redes wifi cercanas (sin
-        GPS: ±20-100 m o más). Cada lectura trae el radio de error que declara el propio equipo:{" "}
-        <strong className="text-destructive">en rojo</strong> si pasa de 100 m. Más de {HUECO_MIN} min sin lecturas es
-        «sin señal»: el CRM cerrado y el celular apagado, sin batería o sin permiso.
+        Dos fuentes. <strong className="text-foreground">GPS</strong>: el celular de la empresa con la app del CRM, un
+        punto por minuto o cada 20 m, las 24 horas y aunque la pantalla esté apagada (típicamente ±3-10 m al aire libre y
+        15-50 m bajo techo: es el límite del GPS del celular, el mapa no lo mejora). Cinco minutos o más en el mismo lugar se
+        juntan en una <strong className="text-foreground">parada</strong>, y las lecturas con más de 100 m de error no se
+        unen a la línea. <strong className="text-foreground">Navegador</strong>: la laptop con el CRM abierto, al ingresar y
+        cada {INTERVALO_MIN} min, ubicada por las redes wifi cercanas (sin GPS: ±20-100 m o más). Cada lectura trae el radio
+        de error que declara el propio equipo: <strong className="text-destructive">en rojo</strong> si pasa de 100 m. Más de{" "}
+        {HUECO_MIN} min sin lecturas es «sin señal»: el CRM cerrado y el celular apagado, sin batería o sin permiso.
       </p>
 
       <MapaRecorridoCampo recorridos={recorridos} />
@@ -216,6 +225,18 @@ export async function SeccionTrabajoDeCampo({ dia: diaPedido, otrosParametros }:
                 {p.mediana != null && Number.isFinite(p.mediana) && ` · precisión típica ${textoPrecision(p.mediana)}`}
                 {p.fallas.length > 0 && ` · ${p.fallas.length} sin ubicación`}
               </p>
+              {p.analisis.nodos.length > 0 && (
+                <p className="basis-full text-xs text-muted-foreground">
+                  Recorrido del GPS: <strong className="text-foreground">{p.analisis.km} km</strong> ·{" "}
+                  <strong className="text-foreground">
+                    {p.analisis.paradas.length} parada{p.analisis.paradas.length === 1 ? "" : "s"}
+                  </strong>
+                  {p.analisis.paradas.length > 0 &&
+                    ` (${p.analisis.paradas.map((x) => `${x.minutos} min`).join(", ")})`}
+                  {p.analisis.descartados.length > 0 &&
+                    ` · ${p.analisis.descartados.length} lectura${p.analisis.descartados.length === 1 ? "" : "s"} descartada${p.analisis.descartados.length === 1 ? "" : "s"} por error de más de 100 m`}
+                </p>
+              )}
             </div>
 
             {/* El último punto conocido, de cualquier día. */}
