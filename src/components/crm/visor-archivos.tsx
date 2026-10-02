@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { abrirDocumento, esApp } from "@/lib/nativo";
 import {
   Image as ImagenIcono,
   FileText,
@@ -235,7 +236,9 @@ export function VisorArchivos({
                               type="button"
                               title={e.nombre}
                               onClick={() => {
-                                if (pdf && e.url) setVisor({ url: e.url, nombre: e.nombre, tipo: "pdf" });
+                                // En la app de Android el iframe no muestra PDF: el puente lo abre con su visor.
+                                if (pdf && e.url && esApp()) void abrirDocumento(e.url, e.nombre);
+                                else if (pdf && e.url) setVisor({ url: e.url, nombre: e.nombre, tipo: "pdf" });
                                 else if (e.url) window.open(e.url, "_blank");
                               }}
                               className="group overflow-hidden rounded-xl border border-border bg-card text-left shadow-sm transition hover:shadow-md"
