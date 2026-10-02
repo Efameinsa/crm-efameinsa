@@ -217,7 +217,7 @@ async function Resultados({
       </div>
       <ul className="divide-y divide-border">
         {filas.map((f) => (
-          <Renglon key={f.id} f={f} vistaAlmacen={vistaAlmacen} conFecha />
+          <Renglon key={f.id} f={f} vistaAlmacen={vistaAlmacen} />
         ))}
       </ul>
       {paginas > 1 && (
@@ -333,7 +333,7 @@ async function PorDia({ vistaAlmacen, pestana }: { vistaAlmacen: boolean; pestan
 const fechaCortaLima = (iso: string) =>
   new Date(iso).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "short", year: "2-digit" });
 
-function Renglon({ f, vistaAlmacen, conFecha = false }: { f: Fila; vistaAlmacen: boolean; conFecha?: boolean }) {
+function Renglon({ f, vistaAlmacen, conFecha = true }: { f: Fila; vistaAlmacen: boolean; conFecha?: boolean }) {
   const estado = estadoApertura(f);
   const leToca = aQuienLeToca(estado);
   const mia = (vistaAlmacen && leToca === "almacen") || (!vistaAlmacen && leToca === "postventa");
