@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition, useEffect, useCallback } from "react"
 import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { ChevronLeft, ChevronRight, X, CalendarDays, Clock, Check, Trash2, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, CalendarDays, Clock, Check, Trash2, Plus, Copy, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { reprogramarAccion } from "@/lib/acciones/oportunidades";
 import { crearTarea, actualizarTarea, eliminarTarea } from "@/lib/acciones/tareas";
@@ -16,6 +16,7 @@ import { PuntoInteres } from "@/components/crm/punto-interes";
 import { fechaCalendarioLarga } from "@/lib/fechas";
 import { MESES, sumarMes, diasDelMes } from "@/lib/calendario";
 import { cn } from "@/lib/utils";
+import type { ContactoRapido } from "@/lib/contacto-rapido";
 
 // Agenda mensual con panel lateral (patrón validado con gerencia sobre el
 // mockup de Asana): la grilla es la vista, el dato sigue siendo la próxima
@@ -34,11 +35,13 @@ export interface AccionAgenda {
   hora: string | null;
   cuentaId: string;
   razonSocial: string;
+  /** El celular del contacto principal (o el correo si no hay teléfono): ver ClienteConContacto. */
+  contacto?: ContactoRapido | null;
 }
-export interface HechaAgenda { id: string; tipo: string; nota: string | null; fecha: string; razonSocial: string; oportunidadId: string }
+export interface HechaAgenda { id: string; tipo: string; nota: string | null; fecha: string; razonSocial: string; oportunidadId: string; contacto?: ContactoRapido | null }
 // Tarea personal (migración 0028): sin cliente; lo de clientes va por oportunidad.
 export interface TareaAgenda { id: string; titulo: string; fecha: string; hora: string | null; completada: boolean }
-export interface VentaAgenda { id: string; fecha: string; monto: number; moneda: string; razonSocial: string; oportunidadId: string }
+export interface VentaAgenda { id: string; fecha: string; monto: number; moneda: string; razonSocial: string; oportunidadId: string; contacto?: ContactoRapido | null }
 export interface HistItem { tipo: string; nota: string | null; fecha: string }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -424,7 +427,7 @@ export function AgendaMensual({
                 <p className="text-lg font-bold leading-snug text-foreground">
                   ✓ {TIPO_LABEL[hechaAbierta.tipo] ?? hechaAbierta.tipo}
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">{hechaAbierta.razonSocial}</p>
+                <ClienteConContacto razonSocial={hechaAbierta.razonSocial} contacto={hechaAbierta.contacto} />
                 <p className="mt-1 text-xs text-muted-foreground">Realizada el {fechaCalendarioLarga(hechaAbierta.fecha)}</p>
               </div>
               {hechaAbierta.nota && (
@@ -446,7 +449,7 @@ export function AgendaMensual({
                 <p className="text-lg font-bold leading-snug text-[#1E7F4F]">
                   ✓ Venta {ventaAbierta.moneda === "PEN" ? "S/" : "US$"} {Number(ventaAbierta.monto).toLocaleString("es-PE")}
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">{ventaAbierta.razonSocial}</p>
+                <ClienteConContacto razonSocial={ventaAbierta.razonSocial} contacto={ventaAbierta.contacto} />
                 <p className="mt-1 text-xs text-muted-foreground">Cerrada el {fechaCalendarioLarga(ventaAbierta.fecha)}</p>
               </div>
               <button
@@ -524,7 +527,7 @@ export function AgendaMensual({
             <div className="space-y-4">
               <div>
                 <p className="text-lg font-bold leading-snug text-foreground">{seleccionada.accion ?? "Definir próxima acción"}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{seleccionada.razonSocial}</p>
+                <ClienteConContacto razonSocial={seleccionada.razonSocial} contacto={seleccionada.contacto} />
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <EtapaBadge etapa={seleccionada.etapa as never} />
                   <PuntoInteres intencion={seleccionada.intencion} />
@@ -826,5 +829,47 @@ function Tarjeta({ a, vencida, onSel }: { a: AccionAgenda; vencida: boolean; onS
       </b>
       <span className="block truncate text-[10.5px] text-muted-foreground">{a.razonSocial}</span>
     </button>
+  );
+}
+
+// Comerciales, 02-10: «al costado del nombre debería aparecer su celular para
+// contactarlo rápido […] para que no tenga que abrir la ficha». Un solo dato
+// —el del contacto principal, de preferencia celular; si no hay teléfono, el
+// correo—; los demás siguen en «Abrir ficha completa». Tocar el número llama
+// (en el celular); el botón de al lado lo copia, que es lo que sirve en la PC.
+function ClienteConContacto({ razonSocial, contacto }: { razonSocial: string; contacto?: ContactoRapido | null }) {
+  const copiar = (texto: string) =>
+    navigator.clipboard.writeText(texto).then(
+      () => toast.success(`Copiado: ${texto}`),
+      () => toast.error("No se pudo copiar"),
+    );
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-muted-foreground">
+      <span>{razonSocial}</span>
+      {contacto ? (
+        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+          <span aria-hidden>·</span>
+          <a
+            href={contacto.tipo === "telefono" ? `tel:${contacto.marcar}` : `mailto:${contacto.valor}`}
+            className="inline-flex items-center gap-1 font-semibold text-foreground hover:text-primary hover:underline"
+            title={contacto.tipo === "telefono" ? "Llamar" : "Escribir un correo"}
+          >
+            {contacto.tipo === "telefono" ? <Phone className="size-3.5" /> : <Mail className="size-3.5" />}
+            <span className={contacto.tipo === "telefono" ? "font-mono" : undefined}>{contacto.valor}</span>
+          </a>
+          <button
+            type="button"
+            onClick={() => copiar(contacto.tipo === "telefono" ? contacto.valor.replace(/\s/g, "") : contacto.valor)}
+            className="cursor-pointer rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            title="Copiar"
+            aria-label="Copiar"
+          >
+            <Copy className="size-3.5" />
+          </button>
+        </span>
+      ) : (
+        <span className="whitespace-nowrap text-xs" title="Este cliente no tiene teléfono ni correo cargado">· sin teléfono ni correo</span>
+      )}
+    </p>
   );
 }

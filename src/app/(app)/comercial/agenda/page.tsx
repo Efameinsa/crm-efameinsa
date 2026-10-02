@@ -9,6 +9,7 @@ import { AgendaMensual, type AccionAgenda, type HechaAgenda, type VentaAgenda, t
 import { SemanaPotenciales } from "@/components/crm/semana-potenciales";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { cargarPotenciales, lunesSemana } from "@/lib/potenciales-semana";
+import { contactoRapido, type ContactoFila } from "@/lib/contacto-rapido";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   // comercial no podía ver. Ahora se piden acotadas en Postgres, en tres
   // baldes que son justo los que usa AgendaMensual (mes, vencidas, sin fecha).
   const CAMPOS =
-    "id, etapa, intencion, monto_estimado, moneda, proxima_accion, proxima_accion_at, proxima_accion_hora, cuenta_id, cuentas(razon_social)";
+    "id, etapa, intencion, monto_estimado, moneda, proxima_accion, proxima_accion_at, proxima_accion_hora, cuenta_id, cuentas(razon_social, contactos(telefono, email, es_principal, categoria, created_at))";
   // `historico` entra en la lista de excluidas el 31-08 (migración 0130): las
   // 20.443 filas del archivo de los Excel llenaban «Vencidas» y «Sin fecha» de
   // trabajo que nadie pidió. Siguen buscándose desde «Mis oportunidades».
@@ -77,6 +78,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     hora: o.proxima_accion_hora ? String(o.proxima_accion_hora).slice(0, 5) : null,
     cuentaId: o.cuenta_id,
     razonSocial: (o.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
+    contacto: contactoRapido((o.cuentas as unknown as { contactos: ContactoFila[] } | null)?.contactos),
   });
 
   // Una vencida de este mismo mes cae en los dos primeros baldes: se deduplica
@@ -90,7 +92,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const [{ data: hechasData }, { data: ventasData }, { data: histData }, { data: resultados }, { data: motivos }, { data: tareasData }] = await Promise.all([
     supabase
       .from("actividades")
-      .select("id, tipo, nota, realizada_at, oportunidad_id, oportunidades!inner(comercial_id, cuentas(razon_social))")
+      .select("id, tipo, nota, realizada_at, oportunidad_id, oportunidades!inner(comercial_id, cuentas(razon_social, contactos(telefono, email, es_principal, categoria, created_at)))")
       .eq("oportunidades.comercial_id", perfil.id)
       .gte("realizada_at", `${inicioMes}T00:00:00`)
       .lte("realizada_at", `${finMes}T23:59:59`)
@@ -107,7 +109,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     // acota la consulta, así que el histórico viejo no se cuela.
     supabase
       .from("ventas")
-      .select("id, fecha_venta, monto_total, moneda, oportunidad_id, oportunidades!inner(comercial_id, cuentas(razon_social))")
+      .select("id, fecha_venta, monto_total, moneda, oportunidad_id, oportunidades!inner(comercial_id, cuentas(razon_social, contactos(telefono, email, es_principal, categoria, created_at)))")
       .eq("oportunidades.comercial_id", perfil.id)
       .is("anulada_at", null)
       .gte("fecha_venta", inicioMes)
@@ -140,6 +142,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     fecha: String(a.realizada_at).slice(0, 10),
     razonSocial:
       ((a.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social) ?? "Cuenta sin nombre",
+    contacto: contactoRapido((a.oportunidades as unknown as { cuentas: { contactos: ContactoFila[] } | null } | null)?.cuentas?.contactos),
   }));
 
   const ventas: VentaAgenda[] = (ventasData ?? []).map((v) => ({
@@ -150,6 +153,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     moneda: v.moneda,
     razonSocial:
       ((v.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social) ?? "Cuenta sin nombre",
+    contacto: contactoRapido((v.oportunidades as unknown as { cuentas: { contactos: ContactoFila[] } | null } | null)?.cuentas?.contactos),
   }));
 
   // La proyección de la semana que va al pie (ing. Carlos, 27-08).
