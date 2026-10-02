@@ -152,6 +152,9 @@ export interface FileDelInventario {
   ubicacion: string | null;
   anio: number | null;
   documento: string | null;
+  /** Estante y cajón por separado, para corregirlos (0381). */
+  estante: string | null;
+  cajon: string | null;
 }
 
 type FilaInventario = { id: string; empresa: "efameinsa" | "open"; tipo: "archivador" | "file"; nombre: string; estante: string | null; cajon: string | null; anio: number | null; documento: string | null };
@@ -176,7 +179,43 @@ export async function buscarInventarioFiles(q: string): Promise<FileDelInventari
     ubicacion: [f.estante && `Estante ${f.estante}`, f.cajon].filter(Boolean).join(" · ") || null,
     anio: f.anio,
     documento: f.documento,
+    estante: f.estante,
+    cajon: f.cajon,
   }));
+}
+
+/** Lo que Central escribe al agregar o corregir un file del inventario. */
+export interface DatosFileInventario {
+  empresa: "efameinsa" | "open";
+  tipo: "archivador" | "file";
+  nombre: string;
+  anio: number | null;
+  estante: string | null;
+  cajon: string | null;
+  documento: string | null;
+}
+
+/**
+ * Central agrega y corrige el inventario (0381). 02-10: «ella también debería
+ * poder agregarlos por el sistema para no estar dándome a mí las
+ * actualizaciones». Sin `id` agrega; con `id` corrige.
+ */
+export async function guardarFileInventario(id: string | null, d: DatosFileInventario) {
+  return llamar("inventario_files_guardar", {
+    p_id: id,
+    p_empresa: d.empresa,
+    p_tipo: d.tipo,
+    p_nombre: d.nombre,
+    p_anio: d.anio,
+    p_estante: d.estante,
+    p_cajon: d.cajon,
+    p_documento: d.documento,
+  });
+}
+
+/** El file ya no está en el archivador: deja de salir al pedir (no se borra). */
+export async function darDeBajaFileInventario(id: string) {
+  return llamar("inventario_files_baja", { p_id: id });
 }
 
 export async function solicitarFilesDelInventario(ids: string[], nota: string | null) {

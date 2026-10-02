@@ -113,7 +113,7 @@ function ListaClientesFile({ resultados, onElegir, compacto = false }: { resulta
 const EMPRESA_INV: Record<FileDelInventario["empresa"], string> = { efameinsa: "EFAMEINSA", open: "OPEN" };
 
 /** Empresa, tipo, año y dónde está: lo que Central necesita para sacarlo. */
-function DatosDelFile({ f }: { f: FileDelInventario }) {
+export function DatosDelFile({ f }: { f: FileDelInventario }) {
   return (
     <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
       <span className={cn("rounded border px-1.5 py-px text-[10px] font-bold tracking-wide", f.empresa === "open" ? "border-sky-600/40 text-sky-800" : "border-primary/30 text-primary")}>
@@ -206,7 +206,7 @@ export function PedirFiles() {
         )}
         {sinResultados && (
           <p className="mt-1.5 rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-800">
-            «{buscado}» no está en el inventario de files de EFAMEINSA ni de OPEN (levantado al 23-09-2026). Pruebe con otra parte del nombre o el RUC; si el file existe y no aparece, avísele a Central para que lo agregue.
+            «{buscado}» no está en el inventario de files de EFAMEINSA ni de OPEN (levantado al 23-09-2026). Pruebe con otra parte del nombre o el RUC; si el file existe y no aparece, avísele a Central: ella lo agrega al inventario desde esta misma pantalla.
           </p>
         )}
       </div>

@@ -4,6 +4,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AccionFile, AccionTermine, EntregarFileDirecto, PedirFiles } from "@/components/crm/files-acciones";
 import { TiemposDeFiles } from "@/components/crm/files-tiempos";
+import { InventarioFiles } from "@/components/crm/files-inventario";
 import { fechaHoraLima } from "@/lib/fechas";
 import { haceCuanto, horaLima, lineaDePasos, origenDelFile } from "@/lib/files-recojo";
 import { cn } from "@/lib/utils";
@@ -151,7 +152,7 @@ export default async function FilesPage() {
       {perfil.rol !== "central" && (
         <SeccionPanel titulo="Pedir files a Central">
           <p className="mb-3 text-xs text-muted-foreground">
-            Busque en el inventario de files de EFAMEINSA y OPEN INVESTMENTS (al 23-09-2026): cada resultado dice de qué empresa es y en qué estante y cajón está. Agregue uno o varios; Central recibe el aviso, se lo entrega y usted firma con «Recibí el file». Al terminar apriete «Terminé, pueden recogerlo» y Central pasa por él; devuélvalo el mismo día.
+            Busque en el inventario de files de EFAMEINSA y OPEN INVESTMENTS que lleva Central: cada resultado dice de qué empresa es y en qué estante y cajón está. Agregue uno o varios; Central recibe el aviso, se lo entrega y usted firma con «Recibí el file». Al terminar apriete «Terminé, pueden recogerlo» y Central pasa por él; devuélvalo el mismo día.
           </p>
           <PedirFiles />
         </SeccionPanel>
@@ -217,6 +218,13 @@ export default async function FilesPage() {
                 {prestados.map((f) => fila(f, <AccionFile id={f.id} accion="devolver" variante={f.termine_at ? "default" : "outline"} />, true, true))}
               </ul>
             )}
+          </SeccionPanel>
+          {/* 0381, Central 02-10: ella misma agrega los files nuevos y los cambia de lugar. */}
+          <SeccionPanel titulo="Inventario de files">
+            <p className="mb-3 text-xs text-muted-foreground">
+              Lo que se busca al pedir files. Agregue los files nuevos (por ejemplo, los de un cierre reciente), corrija el estante o el cajón cuando los cambie de lugar y dé de baja los que ya no están en el archivador.
+            </p>
+            <InventarioFiles />
           </SeccionPanel>
           {/* 02-10, Santos: medir cuánto tarda cada paso, en horario de oficina. */}
           <SeccionPanel titulo="Tiempos de los files">
