@@ -9,6 +9,7 @@ import {
   pistaDeBusqueda,
   type DerivadoFila,
   type FocoDerivado,
+  LIMITE_DERIVADOS,
 } from "@/lib/derivados-central";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
@@ -198,6 +199,12 @@ export default async function DerivadosPage({
         comerciales={comerciales ?? []}
         comercialId={sp.comercial ?? null}
       />
+      {derivados.length >= LIMITE_DERIVADOS && (
+        <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Se muestran los {LIMITE_DERIVADOS} derivados más recientes del período: hay más. Elige un período más corto o
+          filtra por comercial para verlos todos.
+        </p>
+      )}
 
       {/* QUIÉN LO REGISTRÓ — la pregunta que esta pantalla no contestaba.
           Carlos, 08-09: «acá está lo que he derivado, pero lo que yo he

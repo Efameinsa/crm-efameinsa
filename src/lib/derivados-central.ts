@@ -249,6 +249,14 @@ function clasificar(
   return { foco: "en_gestion", alerta: diasQuieto > DIAS_SIN_MOVER ? "frio" : null };
 }
 
+/**
+ * Cuántas derivaciones trae la lista como máximo. Eran 400 y la semana del
+ * 28-09 ya tuvo 405: las 5 más viejas se quedaban fuera sin que nadie lo
+ * supiera. 1.000 es el techo de filas de PostgREST; si un período lo pasa, la
+ * pantalla lo dice en vez de cortar callada.
+ */
+export const LIMITE_DERIVADOS = 1000;
+
 interface Filtros {
   desde: string;
   hasta: string;
@@ -412,7 +420,7 @@ export async function cargarDerivados(
   }
 
   const [{ data: leads }, { data: perfiles }] = await Promise.all([
-    q.order("asignado_at", { ascending: false }).limit(f.limite ?? 400),
+    q.order("asignado_at", { ascending: false }).limit(f.limite ?? LIMITE_DERIVADOS),
     perfilesP,
   ]);
   return armar(supabase, (leads ?? []) as LeadCrudo[], perfiles ?? []);
