@@ -57,7 +57,7 @@ export interface ConversacionWhatsapp {
 
 
 const COLUMNAS_CONVERSACION =
-  "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, perfiles(nombre)";
+  "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, perfiles!wa_conversaciones_asignado_a_fkey(nombre)";
 
 export type FiltroConversaciones = "no_leidos" | "sin_atender" | "mias" | "todas" | "cerradas";
 
@@ -270,7 +270,7 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
   const { data } = await supabase
     .from("wa_conversaciones")
     .select(
-      "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, referral, perfiles(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
+      "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, referral, perfiles!wa_conversaciones_asignado_a_fkey(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
     )
     .eq("id", id)
     .maybeSingle();
