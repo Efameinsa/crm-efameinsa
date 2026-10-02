@@ -46,7 +46,9 @@ export type TipoNotificacion =
   // El cliente tocó un botón en una ficha mandada por WhatsApp (0250).
   | "whatsapp"
   // El cliente escribió en un chat que ya existía (02-10): uno por chat.
-  | "whatsapp_mensaje";
+  | "whatsapp_mensaje"
+  // Conducta sospechosa de una cuenta: capturas, copias, descargas en ráfaga (0373, Santos 02-10).
+  | "seguridad";
 
 interface Destinatario {
   userId?: string;

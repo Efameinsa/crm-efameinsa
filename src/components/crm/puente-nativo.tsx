@@ -16,6 +16,7 @@ import {
 import { appDesactualizada, VERSION_ULTIMA_APP } from "@/lib/app-version";
 import { sinCambios } from "@/lib/modo-aplicacion";
 import { VisorPdfNativo } from "@/components/crm/visor-pdf-nativo";
+import { avisarConducta, EVENTOS_DEL_PUENTE } from "@/components/crm/vigilante-conducta";
 
 /**
  * La parte del puente que vive en la pantalla (ver `src/lib/nativo.ts`).
@@ -39,6 +40,9 @@ function manejarEnlace(a: HTMLAnchorElement): boolean {
   const nombre = a.getAttribute("download") || undefined;
   if (/^(blob|data):/i.test(href)) {
     if (!descarga) return false;
+    // Un archivo armado en el celular (Excel, CSV…): se avisa a gerencia (0373). Los documentos del
+    // servidor (/api) los anota el propio servidor.
+    avisarConducta(EVENTOS_DEL_PUENTE.descarga, { nombre });
     void descargarArchivo(href, nombre ?? "archivo");
     return true;
   }
@@ -128,6 +132,7 @@ export function PuenteNativo() {
 
     const imprimirOriginal = window.print;
     window.print = () => {
+      avisarConducta(EVENTOS_DEL_PUENTE.impresion);
       void imprimirPagina();
     };
 

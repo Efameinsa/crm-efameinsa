@@ -8,6 +8,7 @@ import { describirEquipo, haceCuanto, huellaEquipo, ipsDeLaOficina, zonaDeAcceso
 import { ubicarIps } from "@/lib/geoip";
 import { MapaAccesos, type PuntoAcceso } from "@/components/crm/mapa-accesos";
 import { SeccionTrabajoDeCampo } from "@/components/crm/seccion-trabajo-de-campo";
+import { SeccionSeguridad } from "@/components/crm/seccion-seguridad";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -118,6 +119,7 @@ export default async function AccesosPage({ searchParams }: { searchParams: Prom
           del navegador, precisa, solo de quien está marcado. Va primero porque
           es la pregunta que gerencia trae ahora. */}
       <SeccionTrabajoDeCampo dia={sp.campo} otrosParametros={soloFuera ? "ver=fuera" : undefined} />
+      <SeccionSeguridad />
       <SeccionPanel
         titulo="Dónde están los equipos"
         accion={<span className="text-xs text-muted-foreground">{puntos.length} lugares</span>}

@@ -148,6 +148,8 @@ async function abrirArchivoGuardado(uri: string, tipo: string, nombre: string) {
 async function compartirArchivoGuardado(uri: string, nombre: string) {
   try {
     const { Share } = await import("@capacitor/share");
+    // Mandar el archivo a otra aplicación (WhatsApp, correo…): gerencia se entera (0373, vigilante-conducta).
+    window.dispatchEvent(new CustomEvent("efa-compartir", { detail: { nombre } }));
     await Share.share({ title: nombre, files: [uri], dialogTitle: "Abrir o compartir" });
   } catch {
     /* la persona cerró la hoja de compartir: no es un error */

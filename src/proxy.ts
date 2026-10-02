@@ -5,6 +5,7 @@ import { esFalloDeAutenticacion } from "@/lib/fallo-autenticacion";
 import { opcionesCookieSupabase, fetchRedInterna, urlSupabaseServidor } from "@/lib/supabase/urls";
 import { CABECERA_DEMO, COOKIE_DEMO, COOKIE_VISTA, CORREO_DEMO, MENSAJE_DEMO } from "@/lib/solo-lectura";
 import { usaVistaNueva } from "@/lib/propuesta/regla-vista";
+import { esRutaDeExportacion } from "@/lib/seguridad-conducta";
 
 const RUTA_POR_ROL: Record<string, string> = {
   admin: "/admin",
@@ -92,6 +93,26 @@ export async function proxy(request: NextRequest) {
   if (user && process.env.REGISTRAR_ACCESOS === "1") {
     const ip = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "-";
     console.log(`[acceso] ${user.id} ${request.headers.get("host") ?? "-"} ${ip} ${pathname}`);
+  }
+
+  // CONDUCTA SOSPECHOSA (0373, Santos 02-10-2026): cada vez que una cuenta pide un documento
+  // (PDF, reporte, Excel) se anota, y si son muchos seguidos se avisa a gerencia. Solo MIRA: la
+  // respuesta del documento no se toca ni se espera. Se salta la precarga del navegador, las
+  // sesiones de auditoría (ahí el navegador es del auditor, no de la persona) y la demostración.
+  if (
+    user &&
+    request.method === "GET" &&
+    esRutaDeExportacion(pathname) &&
+    !request.headers.get("next-router-prefetch") &&
+    !/prefetch/i.test(request.headers.get("sec-purpose") ?? request.headers.get("purpose") ?? "") &&
+    ranuraDeHost(request.headers.get("host")) === null &&
+    !request.headers.get(CABECERA_DEMO)
+  ) {
+    const agente = request.headers.get("user-agent") ?? "";
+    const origen = /EfameinsaApp\//.test(agente) || request.cookies.get("efa-app")?.value === "android" ? "app" : "web";
+    void import("@/lib/seguridad-alertas")
+      .then((m) => m.registrarEvento({ userId: user.id, tipo: "exportacion", origen, detalle: { ruta: pathname }, dispositivo: agente }))
+      .catch(() => {});
   }
 
   // CUENTAS DE DEMOSTRACIÓN DE LA PROPUESTA (0280). Gerencia recorre la
