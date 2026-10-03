@@ -357,13 +357,33 @@ export async function emitirAperturaDespacho(servicioId: string) {
     .update({ apertura_despacho_at: new Date().toISOString(), apertura_despacho_por: perfil.id })
     .eq("id", servicioId);
   if (error) return falla(error.message);
-  // «Que me lleguen las aperturas» (Lesly, 16-09; 0246).
-  await notificarAlmacen({
-    titulo: `Apertura de despacho · ${(s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
-    cuerpo: `${s.equipo ?? ""}${s.fecha_despacho ? ` · programado para el ${s.fecha_despacho}` : " · falta programar el día"}. Con esto el almacén despacha sin preguntar.`,
-    url: `/almacen/pedidos/${servicioId}`,
-    esPrueba: s.es_prueba === true,
-  });
+  const quien = (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "");
+  const pedido = s.numero_pedido_erp ? ` (pedido ${s.numero_pedido_erp})` : "";
+  // La guía pedida en la apertura (0371) le llega a Finanzas, que es quien la autoriza.
+  const guia = lineasGuia(s.apertura_guia as GuiaApertura | null, s.apertura_guia_detalle);
+  const pideGuia = guia.length ? ` Se solicita: ${guia.join(" / ").toLowerCase()}.` : "";
+  await Promise.all([
+    // «Que me lleguen las aperturas» (Lesly, 16-09; 0246).
+    notificarAlmacen({
+      titulo: `Apertura de despacho · ${quien}`,
+      cuerpo: `${s.equipo ?? ""}${s.fecha_despacho ? ` · programado para el ${s.fecha_despacho}` : " · falta programar el día"}. Finanzas confirma la guía de salida.`,
+      url: `/almacen/pedidos/${servicioId}`,
+      esPrueba: s.es_prueba === true,
+    }),
+    // LA APERTURA LE LLEGA A FINANZAS AL EMITIRSE (Lesly, 02-10: «las aperturas
+    // que se generan en postventa deben llegar a Finanzas para que puedan
+    // confirmar»). Antes el aviso solo salía si postventa además pulsaba
+    // «enviar al almacén»: Tomy Jiro (PED-0006-2026) quedó esperando sin que
+    // Finanzas se enterara.
+    notificarFinanzas({
+      titulo: `Apertura por confirmar · ${quien}`,
+      cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      url: "/finanzas/aperturas",
+      esPrueba: s.es_prueba === true,
+    }),
+  ]);
+  revalidatePath("/finanzas/aperturas");
+  revalidatePath("/almacen/aperturas-postventa");
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   revalidatePath("/postventa/control");
   return ok();
@@ -799,6 +819,8 @@ export interface EquipoDelPedido {
   sin_serie?: boolean | null;
   /** Sin serie todavía, y por qué (0378): importación, compra local o fabricación. */
   sin_stock_motivo?: string | null;
+  /** De dónde sale la máquina (0385): importación, compra local o fabricación. No se borra con la serie. */
+  procedencia?: string | null;
   /** Segunda máquina de la misma unidad: la secadora de una torre (0359). */
   parte_de?: string | null;
   parte_nombre?: string | null;
@@ -808,7 +830,7 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   const supabase = await createClient();
   const { data } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie, sin_stock_motivo, parte_de, parte_nombre")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie, sin_stock_motivo, procedencia, parte_de, parte_nombre")
     .eq("servicio_id", servicioId)
     .order("orden");
   if (data && data.length > 0) return data as EquipoDelPedido[];
@@ -820,7 +842,7 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   // de la primera consulta aunque la siembra ya estuviera en la base.
   const { data: sembrados } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie, sin_stock_motivo, parte_de, parte_nombre")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie, sin_stock_motivo, procedencia, parte_de, parte_nombre")
     .eq("servicio_id", servicioId)
     .gte("orden", 1)
     .order("orden");
@@ -926,6 +948,23 @@ export async function registrarCodigoSinSerie(itemId: string, servicioId: string
  * marca el almacén y deja filtrar «sin stock» en el control de pedidos.
  * Motivo vacío lo quita.
  */
+/**
+ * LA PROCEDENCIA EN LA GENERACIÓN DE CÓDIGO (0385; Lesly, 02-10: «tres
+ * opciones para marcar: importación, compra local, fabricación»). Se marca
+ * para todas las unidades iguales del pedido y no se borra con la serie.
+ */
+export async function marcarProcedencia(itemId: string, servicioId: string, procedencia: string | null): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("marcar_procedencia", { p_item: itemId, p_procedencia: procedencia || null });
+  if (error) return falla(enCastellano(error.message));
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath("/almacen/pedidos");
+  revalidatePath("/postventa/control");
+  revalidatePath("/postventa/macro");
+  return { error: null };
+}
+
 export async function marcarSinStock(itemId: string, motivo: string | null): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("marcar_sin_stock", { p_item: itemId, p_motivo: motivo || null });
@@ -996,7 +1035,8 @@ export async function guardarInformeServicio(datos: {
   horaFin?: string | null;
   verificacion?: string | null;
   pendientes?: string | null;
-  repuestos?: { codigo?: string; descripcion: string; cantidad?: number | null; precio?: number | null; stock?: string | null }[];
+  /** El cuadro «para cotizar» (0242; con unidad e IGV desde el 03-10, cuadro de Lesly). */
+  repuestos?: { codigo?: string; descripcion: string; cantidad?: number | null; unidad?: string | null; precio?: number | null; igv?: "incluye" | "no_incluye" | null; stock?: string | null }[];
   /**
    * Fotos YA subidas al bucket privado `adjuntos` por el cliente; acá solo se
    * guardan los metadatos, igual que en el registro de gestión. El manual las
@@ -1057,7 +1097,9 @@ export async function guardarInformeServicio(datos: {
           codigo: String(r.codigo ?? "").trim().slice(0, 40) || null,
           descripcion: String(r.descripcion).trim().slice(0, 200),
           cantidad: r.cantidad == null || Number.isNaN(Number(r.cantidad)) ? null : Number(r.cantidad),
+          unidad: r.unidad ? String(r.unidad).trim().slice(0, 12) : "und",
           precio: r.precio == null || Number.isNaN(Number(r.precio)) ? null : Number(r.precio),
+          igv: r.igv === "incluye" ? "incluye" : "no_incluye",
           stock: r.stock ? String(r.stock).trim().slice(0, 40) : null,
         })),
       fotos: (datos.fotos ?? []).slice(0, 10).map((f) => ({
@@ -1270,7 +1312,7 @@ export async function marcarAperturaEnviada(servicioId: string, destino: "almace
     const perfil = await requerirPerfil();
     const { data: s } = await supabase
       .from("servicios_postventa")
-      .select("cliente_texto, numero_pedido_erp, apertura_guia, apertura_guia_detalle")
+      .select("cliente_texto, numero_pedido_erp, apertura_guia, apertura_guia_detalle, guia_confirmada_at")
       .eq("id", servicioId)
       .maybeSingle();
     // La guía pedida en la apertura (0371) le llega a Finanzas, que es quien la autoriza.
@@ -1286,12 +1328,18 @@ export async function marcarAperturaEnviada(servicioId: string, destino: "almace
         url: "/almacen/aperturas-postventa",
         esPrueba,
       }),
-      notificarFinanzas({
-        titulo: `Apertura por confirmar · ${quien}`,
-        cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme para que el almacén emita la guía de salida.${pideGuia}`,
-        url: "/finanzas/aperturas",
-        esPrueba,
-      }),
+      // A Finanzas ya le llegó al emitirse la apertura (0384); acá solo se le
+      // repite si la guía sigue sin confirmar y la apertura pide un comprobante.
+      ...(pideGuia && !s?.guia_confirmada_at
+        ? [
+            notificarFinanzas({
+              titulo: `Apertura por confirmar · ${quien}`,
+              cuerpo: `Postventa envió la apertura al almacén${pedido} y la guía sigue sin confirmar.${pideGuia}`,
+              url: "/finanzas/aperturas",
+              esPrueba,
+            }),
+          ]
+        : []),
     ]);
     revalidatePath("/almacen/aperturas-postventa");
     revalidatePath("/finanzas/aperturas");

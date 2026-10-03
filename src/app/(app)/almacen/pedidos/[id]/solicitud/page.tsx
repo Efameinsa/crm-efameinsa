@@ -5,6 +5,7 @@ import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
+import { CasillasProcedencia } from "@/components/crm/casillas-procedencia";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ type Unidad = {
   descripcion: string;
   serie: string | null;
   sin_serie: boolean | null;
+  procedencia: string | null;
   serie_registrada_at: string | null;
   perfiles: Perfil;
 };
@@ -63,7 +65,7 @@ export default async function SolicitudDeCodigoPage({
   };
   const { data: filas } = await supabase
     .from("pedido_equipos")
-    .select("orden, descripcion, serie, sin_serie, serie_registrada_at, perfiles!pedido_equipos_serie_registrada_por_fkey(nombre, codigo_comercial)")
+    .select("orden, descripcion, serie, sin_serie, procedencia, serie_registrada_at, perfiles!pedido_equipos_serie_registrada_por_fkey(nombre, codigo_comercial)")
     .eq("servicio_id", id)
     .order("orden");
   const unidades = (filas ?? []) as unknown as Unidad[];
@@ -115,6 +117,7 @@ export default async function SolicitudDeCodigoPage({
             <th className={`${cabecera} w-10`}>N.º</th>
             <th className={cabecera}>Artículo</th>
             <th className={`${cabecera} w-48`}>Serie o código</th>
+            <th className={`${cabecera} w-32`}>Procedencia</th>
             {respuesta && <th className={`${cabecera} w-48`}>Registró</th>}
           </tr>
         </thead>
@@ -125,6 +128,9 @@ export default async function SolicitudDeCodigoPage({
               <td className={`${celda} whitespace-pre-line`}>{u.descripcion}</td>
               <td className={celda}>
                 {respuesta ? (u.serie ? <>{u.serie}{u.sin_serie ? <span className="block text-[10px]">código (sin serie)</span> : null}</> : <i>pendiente</i>) : null}
+              </td>
+              <td className={`${celda} text-[10.5px] leading-tight`}>
+                <CasillasProcedencia marcada={u.procedencia} />
               </td>
               {respuesta && (
                 <td className={celda}>

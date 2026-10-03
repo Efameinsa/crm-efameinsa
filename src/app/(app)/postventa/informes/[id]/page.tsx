@@ -7,6 +7,8 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaHoraLima } from "@/lib/fechas";
 import { etiquetaTipoServicio, seriesDeTexto } from "@/lib/postventa";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
+import { Suspense } from "react";
+import { CorregirInformeServicio } from "@/components/crm/corregir-informe-servicio";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +46,14 @@ const ETIQUETA_CAPACITACION: Record<string, string> = {
 
 export default async function InformeServicioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requerirPerfil();
+  const perfil = (await requerirPerfil()) as unknown as {
+    id: string;
+    rol: string;
+    es_postventa?: boolean | null;
+    hace_postventa?: boolean | null;
+    es_operaciones?: boolean | null;
+    es_almacen?: boolean | null;
+  };
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -69,6 +78,27 @@ export default async function InformeServicioPage({ params }: { params: Promise<
   const { data: firmadas } = fotos.length
     ? await supabase.storage.from("adjuntos").createSignedUrls(fotos.map((f) => f.path), 3600)
     : { data: null };
+  // Quién puede corregirlo (0383): lo mismo que decide la base; acá solo se
+  // esconde el botón a quien de todos modos recibiría un «no».
+  const puedeCorregir =
+    Boolean(perfil.es_postventa || perfil.hace_postventa || perfil.es_operaciones) ||
+    ["gerencia", "admin", "operaciones"].includes(perfil.rol) ||
+    Boolean(perfil.es_almacen && data.elaborado_por === perfil.id);
+  // Como en la hoja impresa: el almacén ve qué falta, no cuánto cuesta.
+  const sinCifras = Boolean(perfil.es_almacen) && !perfil.es_operaciones && !["gerencia", "admin"].includes(perfil.rol);
+  const repuestos = ((data.repuestos ?? []) as { codigo: string | null; descripcion: string; cantidad: number | null; unidad?: string | null; precio: number | null; igv?: string | null; stock: string | null }[]).filter((r) => r?.descripcion);
+  const secciones = ((data.secciones ?? []) as { titulo: string; texto: string }[]).filter((x) => x.titulo?.trim() || x.texto?.trim());
+  // Las correcciones hechas, con quién y quién autorizó.
+  const { data: versionesData } = await supabase
+    .from("informes_servicio_versiones")
+    .select("version, motivo, antes, despues, created_at, cambiado_por, autorizo")
+    .eq("informe_id", id)
+    .order("version", { ascending: false });
+  const versiones = (versionesData ?? []) as { version: number; motivo: string; antes: Record<string, unknown>; despues: Record<string, unknown>; created_at: string; cambiado_por: string; autorizo: string | null }[];
+  const idsPersonas = [...new Set(versiones.flatMap((v) => [v.cambiado_por, v.autorizo]).filter(Boolean) as string[])];
+  const { data: personas } = idsPersonas.length ? await supabase.from("perfiles").select("id, nombre").in("id", idsPersonas) : { data: [] };
+  const nombreDe = new Map((personas ?? []).map((p) => [p.id as string, p.nombre as string]));
+
   const urlPorRuta = new Map((firmadas ?? []).filter((f) => f.signedUrl && f.path).map((f) => [f.path!, f.signedUrl!]));
 
   return (
@@ -87,6 +117,30 @@ export default async function InformeServicioPage({ params }: { params: Promise<
         >
           <Printer className="size-3.5" /> Ver como informe para imprimir
         </Link>
+        {puedeCorregir && (
+          <Suspense>
+            <CorregirInformeServicio
+              informe={{
+                id,
+                numero: data.correlativo != null ? `${data.es_prueba ? "PRUEBA " : ""}${String(data.correlativo).padStart(3, "0")}-${data.anio}` : null,
+                asunto: (data.asunto as string | null) ?? null,
+                tecnico: (data.tecnico as string | null) ?? null,
+                ejecutado_at: (data.ejecutado_at as string | null) ?? null,
+                hora_inicio: (data.hora_inicio as string | null) ?? null,
+                hora_fin: (data.hora_fin as string | null) ?? null,
+                equipo_texto: (data.equipo_texto as string | null) ?? null,
+                detalle: (data.detalle as string | null) ?? null,
+                verificacion: (data.verificacion as string | null) ?? null,
+                observaciones: (data.observaciones as string | null) ?? null,
+                accesorios: (data.accesorios as string | null) ?? null,
+                pendientes: (data.pendientes as string | null) ?? null,
+                secciones,
+                cliente_conforme_nombre: (data.cliente_conforme_nombre as string | null) ?? null,
+                cliente_conforme_doc: (data.cliente_conforme_doc as string | null) ?? null,
+              }}
+            />
+          </Suspense>
+        )}
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -138,14 +192,52 @@ export default async function InformeServicioPage({ params }: { params: Promise<
         )}
       </div>
 
-      {(data.detalle || data.verificacion || data.observaciones || data.accesorios || data.pendientes) && (
+      {(secciones.length > 0 || data.detalle || data.verificacion || data.observaciones || data.accesorios || data.pendientes) && (
         <SeccionPanel titulo="El servicio">
           <div className="space-y-3 text-sm">
+            {/* El informe del almacén se escribe en secciones (0297): hasta el
+                02-10 esta ficha no las mostraba y su informe se veía vacío. */}
+            {secciones.map((x, i) => (
+              <Bloque key={i} titulo={x.titulo || "Sin título"}>{x.texto || null}</Bloque>
+            ))}
             <Bloque titulo="Trabajo realizado">{data.detalle as string | null}</Bloque>
             <Bloque titulo="Verificación">{data.verificacion as string | null}</Bloque>
             <Bloque titulo="Accesorios necesarios para la instalación">{data.accesorios as string | null}</Bloque>
             <Bloque titulo="Observaciones y recomendaciones">{data.observaciones as string | null}</Bloque>
             <Bloque titulo="Pendientes con el cliente">{data.pendientes as string | null}</Bloque>
+          </div>
+        </SeccionPanel>
+      )}
+
+      {/* EL CUADRO PARA COTIZAR (0242; Lesly, 02-10): lo que el almacén anotó que le falta al cliente. */}
+      {repuestos.length > 0 && (
+        <SeccionPanel titulo={`Para cotizar · ${repuestos.length}`}>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[36rem] border-collapse text-xs">
+              <thead className="text-left text-[11px] text-muted-foreground">
+                <tr>
+                  {(sinCifras ? ["Código", "Descripción", "Cantidad", "Stock"] : ["Código", "Descripción", "Cantidad", "Precio", "IGV", "Stock"]).map((h) => (
+                    <th key={h} className="border-b border-border px-2 py-1.5 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {repuestos.map((r, i) => (
+                  <tr key={i} className="border-b border-border/60 align-top">
+                    <td className="px-2 py-1.5 font-mono">{r.codigo || "—"}</td>
+                    <td className="px-2 py-1.5">{r.descripcion}</td>
+                    <td className="px-2 py-1.5 whitespace-nowrap">{r.cantidad != null ? `${r.cantidad} ${r.unidad ?? "und"}` : "—"}</td>
+                    {!sinCifras && (
+                      <>
+                        <td className="px-2 py-1.5 whitespace-nowrap">{r.precio != null ? `$${Number(r.precio).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : "—"}</td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">{r.igv === "incluye" ? "Incluye" : "No incluye"}</td>
+                      </>
+                    )}
+                    <td className="px-2 py-1.5 whitespace-nowrap">{r.stock || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </SeccionPanel>
       )}
@@ -241,8 +333,58 @@ export default async function InformeServicioPage({ params }: { params: Promise<
           </Link>
         )}
       </SeccionPanel>
+
+      {versiones.length > 0 && (
+        <SeccionPanel titulo={`Correcciones (${versiones.length})`}>
+          <ul className="space-y-3 text-xs">
+            {versiones.map((v) => (
+              <li key={v.version} className="rounded-lg border border-border p-3">
+                <p className="font-semibold text-foreground">
+                  Versión {v.version} · {fechaHoraLima(v.created_at)} · {nombreDe.get(v.cambiado_por) ?? "—"}
+                  {v.autorizo && <span className="font-normal text-muted-foreground"> · autorizó {nombreDe.get(v.autorizo) ?? "—"}</span>}
+                </p>
+                <p className="mt-0.5 text-muted-foreground">{v.motivo}</p>
+                <ul className="mt-1.5 space-y-1">
+                  {Object.keys(v.despues).map((campo) => (
+                    <li key={campo} className="break-words">
+                      <span className="font-semibold text-foreground">{ETIQUETA_CAMPO[campo] ?? campo}:</span>{" "}
+                      <span className="text-muted-foreground line-through">{resumen(v.antes[campo])}</span>{" → "}
+                      <span className="text-foreground">{resumen(v.despues[campo])}</span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </SeccionPanel>
+      )}
     </div>
   );
+}
+
+const ETIQUETA_CAMPO: Record<string, string> = {
+  asunto: "Asunto",
+  tecnico: "Técnico",
+  ejecutado_at: "Fecha del servicio",
+  hora_inicio: "Hora de inicio",
+  hora_fin: "Hora de fin",
+  equipo_texto: "Equipo",
+  detalle: "Trabajo realizado",
+  verificacion: "Verificación",
+  observaciones: "Observaciones",
+  accesorios: "Accesorios",
+  pendientes: "Pendientes",
+  secciones: "Secciones",
+  cliente_conforme_nombre: "Conformidad (nombre)",
+  cliente_conforme_doc: "Conformidad (DNI)",
+};
+
+/** Un valor del historial dicho en una línea corta. */
+function resumen(v: unknown): string {
+  if (v == null || v === "") return "(vacío)";
+  if (Array.isArray(v)) return v.map((x) => (x as { titulo?: string; texto?: string }).titulo || (x as { texto?: string }).texto || "").filter(Boolean).join(" · ").slice(0, 160) || "(vacío)";
+  const t = String(v);
+  return t.length > 160 ? `${t.slice(0, 160)}…` : t;
 }
 
 function Bloque({ titulo, children }: { titulo: string; children: string | null }) {

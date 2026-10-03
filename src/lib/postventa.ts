@@ -53,6 +53,9 @@ export interface ServicioPostventa {
   /** Finanzas revisó la apertura y autorizó la guía de salida (0308). */
   guia_confirmada_at?: string | null;
   guia_confirmada_nota?: string | null;
+  /** Con qué comprobante autorizó Finanzas la guía (0384). */
+  guia_comprobante_tipo?: "factura" | "boleta" | "sin_comprobante" | null;
+  guia_comprobante_numero?: string | null;
   salida_autorizada_motivo?: string | null;
   despacho_autorizado_por?: string | null;
   agencia_at?: string | null;
@@ -1035,4 +1038,15 @@ export function estadoGarantia(hasta: string | null): {
     etiqueta: meses <= 1 ? "En garantía, vence este mes" : `En garantía, ${meses} meses`,
     porVencer: dias <= 60,
   };
+}
+
+/**
+ * El comprobante con que Finanzas autorizó la guía (0384), en una frase:
+ * «Factura F001-1234», «Boleta B001-55», «Sin comprobante todavía».
+ */
+export function textoComprobante(tipo: string | null | undefined, numero: string | null | undefined): string {
+  if (tipo === "factura") return `Factura ${numero ?? ""}`.trim();
+  if (tipo === "boleta") return `Boleta ${numero ?? ""}`.trim();
+  if (tipo === "sin_comprobante") return "Sin comprobante todavía";
+  return "";
 }

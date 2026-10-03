@@ -7,7 +7,7 @@ import { PedidoAlmacen } from "@/components/crm/pedido-almacen";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postventa";
-import { bloquesPedido, circuitoDe, ETIQUETA_TIPO_PEDIDO, sinPrecios, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, circuitoDe, ETIQUETA_TIPO_PEDIDO, sinPrecios, textoComprobante, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 
@@ -88,7 +88,7 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
               {" · "}
               <b className={servicio.guia_confirmada_at ? "text-[#1E7F4F]" : "text-amber-700"}>
                 {servicio.guia_confirmada_at
-                  ? `Finanzas confirmó la guía el ${fechaHoraLima(servicio.guia_confirmada_at)}`
+                  ? `Finanzas confirmó la guía el ${fechaHoraLima(servicio.guia_confirmada_at)}${servicio.guia_comprobante_tipo ? ` · ${textoComprobante(servicio.guia_comprobante_tipo, servicio.guia_comprobante_numero)}` : ""}`
                   : "falta que Finanzas confirme la guía"}
               </b>
             </p>

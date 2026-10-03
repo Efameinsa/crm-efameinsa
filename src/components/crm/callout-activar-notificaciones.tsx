@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { activarNotificaciones, soportaPush } from "@/lib/push-cliente";
-import { suscripcionRegistrada } from "@/lib/acciones/notificaciones";
+import { guardarSuscripcionPush, suscripcionRegistrada } from "@/lib/acciones/notificaciones";
 import { Button } from "@/components/ui/button";
 
 const CLAVE_DESCARTADO = "efameinsa_notif_callout_descartado";
@@ -28,12 +28,6 @@ export function CalloutActivarNotificaciones() {
     //    no, el aviso vuelve a salir.
     (async () => {
       if (!soportaPush()) return;
-      try {
-        const descartado = Number(localStorage.getItem(CLAVE_DESCARTADO));
-        if (descartado && Date.now() - descartado < 7 * 24 * 3600 * 1000) return;
-      } catch {
-        /* sin almacenamiento: se ofrece igual */
-      }
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
         try {
           const reg = await navigator.serviceWorker.getRegistration();
@@ -44,9 +38,25 @@ export function CalloutActivarNotificaciones() {
           // el aviso se escondía justo cuando más falta hacía. Se le pregunta
           // a la base antes de esconderse.
           if (sub && (await suscripcionRegistrada(sub.endpoint))) return;
+          // EL EQUIPO CAMBIÓ DE CUENTA (02-10, Lesly en la cuenta del almacén
+          // recibía sus propios avisos de aprobaciones): el permiso ya está
+          // dado y la suscripción vive, pero está a nombre de quien entró
+          // antes. Se traspasa sola a quien está ahora (0139: el endpoint es de
+          // quien inició sesión al último) sin pedirle un clic.
+          const json = sub?.toJSON();
+          if (json?.endpoint && json.keys?.p256dh && json.keys?.auth) {
+            const r = await guardarSuscripcionPush({ endpoint: json.endpoint, claves: { p256dh: json.keys.p256dh, auth: json.keys.auth } });
+            if (!r.error) return;
+          }
         } catch {
           return;
         }
+      }
+      try {
+        const descartado = Number(localStorage.getItem(CLAVE_DESCARTADO));
+        if (descartado && Date.now() - descartado < 7 * 24 * 3600 * 1000) return;
+      } catch {
+        /* sin almacenamiento: se ofrece igual */
       }
       setVisible(true);
     })();

@@ -1,4 +1,4 @@
-import { cerrarSesion } from "@/lib/acciones/auth";
+import { FormularioSalir } from "@/components/crm/formulario-salir";
 import { Button } from "@/components/ui/button";
 import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
 import { CambiarClave } from "@/components/crm/cambiar-clave";
@@ -41,11 +41,11 @@ export function EncabezadoUsuario({ perfil, demo = false }: { perfil: Perfil; de
             sesión de la persona real; «Salir» está en la franja de arriba. */}
         {!demo && <CambiarClave />}
         {!demo && (
-          <form action={cerrarSesion}>
+          <FormularioSalir>
             <Button type="submit" variant="outline" size="sm">
               Cerrar sesión
             </Button>
-          </form>
+          </FormularioSalir>
         )}
       </div>
     </header>

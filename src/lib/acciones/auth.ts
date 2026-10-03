@@ -50,8 +50,13 @@ export async function iniciarSesion(
   redirect("/");
 }
 
-export async function cerrarSesion() {
+export async function cerrarSesion(formData?: FormData) {
   const supabase = await createClient();
+  // El aviso push de este navegador deja de ser de quien sale (02-10, Lesly en
+  // la cuenta del almacén recibiendo sus propios avisos): sin esto, el equipo
+  // le seguía mostrando sus avisos a quien entrara después.
+  const endpoint = String(formData?.get("push_endpoint") ?? "").trim();
+  if (endpoint) await supabase.from("push_suscripciones").delete().eq("endpoint", endpoint);
   await supabase.auth.signOut();
   redirect("/login");
 }

@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarSinStock, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido } from "@/lib/acciones/almacen";
 import { corregirSerie } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -25,6 +25,13 @@ import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 import { Documentos } from "@/components/crm/informe-soporte-apertura";
 import { agregarArchivosDelEquipo } from "@/lib/acciones/almacen";
 import { cn } from "@/lib/utils";
+
+/** Las tres opciones de la generación de código (0385), con el nombre que usa Lesly. */
+const PROCEDENCIA: Record<string, string> = {
+  importacion: "Importación",
+  compra_local: "Compra local",
+  fabricacion: "Fabricación",
+};
 
 const MOTIVO_SIN_STOCK: Record<string, string> = {
   importacion: "por importar",
@@ -256,23 +263,6 @@ function Fila({
                 <span className="rounded-full bg-orange-500/15 px-2 py-0.5 font-semibold text-orange-800 whitespace-nowrap">
                   Sin serie · sin stock{e.sin_stock_motivo ? ` · ${MOTIVO_SIN_STOCK[e.sin_stock_motivo] ?? e.sin_stock_motivo}` : " todavía"}
                 </span>
-                {!despachado && (
-                  <select
-                    aria-label="Por qué no hay stock"
-                    value={e.sin_stock_motivo ?? ""}
-                    disabled={pendiente}
-                    onChange={(ev) => {
-                      const m = ev.target.value;
-                      correr(() => marcarSinStock(e.id, m || null), m ? `Marcado: ${MOTIVO_SIN_STOCK[m]}` : "Motivo quitado");
-                    }}
-                    className="h-6 rounded border border-border bg-background px-1 text-[11px]"
-                  >
-                    <option value="">¿Por qué no hay stock?</option>
-                    <option value="importacion">Por importar</option>
-                    <option value="compra_local">Compra local</option>
-                    <option value="fabricacion">En fabricación</option>
-                  </select>
-                )}
               </>
             )}
             {e.prueba_lista_at ? (
@@ -283,6 +273,40 @@ function Fila({
               <span className="rounded-full bg-secondary px-2 py-0.5 text-muted-foreground whitespace-nowrap">Pendiente de prueba</span>
             ) : null}
             {apagado && <span className="rounded-full border border-dashed border-border px-2 py-0.5">No va en este despacho</span>}
+          </div>
+          {/* LA PROCEDENCIA (0385; Lesly, 02-10: «en la generación de códigos, tres
+              opciones para marcar: importación, compra local, fabricación»). Va
+              para todas las unidades iguales; sin serie, es también el porqué
+              del sin stock. */}
+          <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px]" role="radiogroup" aria-label="Procedencia de la máquina">
+            <span className="text-muted-foreground">Procedencia:</span>
+            {despachado ? (
+              <span className="font-semibold text-foreground">{e.procedencia ? PROCEDENCIA[e.procedencia] ?? e.procedencia : "sin marcar"}</span>
+            ) : (
+              Object.entries(PROCEDENCIA).map(([valor, etiqueta]) => {
+                const marcada = e.procedencia === valor;
+                return (
+                  <button
+                    key={valor}
+                    type="button"
+                    role="radio"
+                    aria-checked={marcada}
+                    disabled={pendiente}
+                    title={marcada ? "Tocar de nuevo para quitarla" : `Marcar ${etiqueta.toLowerCase()}${unidad.n > 1 ? ` para las ${unidad.n} unidades iguales` : ""}`}
+                    onClick={() =>
+                      correr(() => marcarProcedencia(e.id, servicioId, marcada ? null : valor), marcada ? "Procedencia quitada" : `Marcado: ${etiqueta.toLowerCase()}`)
+                    }
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium transition-colors",
+                      marcada ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground hover:bg-accent",
+                    )}
+                  >
+                    {marcada && <Check className="size-3" />}
+                    {etiqueta}
+                  </button>
+                );
+              })
+            )}
           </div>
           {/* LA OTRA MÁQUINA DE LA TORRE (Lesly, 30-09; 0359): su serie y su ficha en el parque. */}
           {partes.map((p) => (
