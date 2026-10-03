@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
 import { CambiarClave } from "@/components/crm/cambiar-clave";
 import { BotonAtrasApp } from "@/components/crm/boton-atras-app";
-import { cerrarSesion } from "@/lib/acciones/auth";
+import { FormularioSalir } from "@/components/crm/formulario-salir";
 import { createClient } from "@/lib/supabase/server";
 import { contarAtencionesAbiertas, contarBandejaMiDia } from "@/lib/contadores-postventa";
 
@@ -178,7 +178,7 @@ export async function MarcoPropuesta({
             ) : (
               <span className="flex items-center gap-1.5">
                 <CambiarClave />
-                <form action={cerrarSesion}>
+                <FormularioSalir>
                   <button
                     type="submit"
                     title="Cerrar sesión"
@@ -186,7 +186,7 @@ export async function MarcoPropuesta({
                   >
                     <LogOut className="size-3.5" /> <span className="hidden sm:inline">Salir</span>
                   </button>
-                </form>
+                </FormularioSalir>
               </span>
             )}
             <div className="flex items-center gap-2">
