@@ -31,6 +31,7 @@ import {
   type Atencion,
 } from "@/lib/atenciones";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export const dynamic = "force-dynamic";
 
@@ -252,7 +253,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               <ArrowLeft className="size-3.5" /> Atenciones del área
             </Link>
             <h1 className="text-lg font-bold leading-snug text-foreground">
-              {a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre"}
+              <NombreAFicha cuentaId={a.cuenta_id}>{a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre"}</NombreAFicha>
             </h1>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">

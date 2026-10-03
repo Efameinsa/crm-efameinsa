@@ -60,7 +60,7 @@ export default function ErrorDePantalla({
   // Cuenta de demostración de la propuesta (0280): toda acción se rechaza a
   // propósito, y eso no es una falla. Se dice así, sin asustar a nadie.
   const [demo] = useState(() => typeof document !== "undefined" && document.cookie.split("; ").includes(`${COOKIE_DEMO}=1`));
-  // AUDITORÍA (ver1…ver5): es solo lectura y guardar SIEMPRE falla. Carlos lo
+  // AUDITORÍA (ver1…ver9): es solo lectura y guardar SIEMPRE falla. Carlos lo
   // vio el 23-09 al registrar una serie «como auditor»: el error genérico no
   // decía por qué.
   const [enAuditoria] = useState(() => typeof window !== "undefined" && /^ver[1-5]\./i.test(window.location.hostname));

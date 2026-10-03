@@ -73,6 +73,11 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
     ? await supabase.storage.from("adjuntos").createSignedUrls(documentosInforme.map((d) => d.path), 3600)
     : { data: null };
   const docs = documentosInforme.map((d, i) => ({ nombre: d.nombre, url: docsFirmados?.[i]?.signedUrl ?? "#" }));
+  // La constancia del envío al cliente (0379, reunión 02-10).
+  const rutaConstancia = (a as { constancia_envio_path?: string | null }).constancia_envio_path ?? null;
+  const urlConstancia = rutaConstancia
+    ? (await supabase.storage.from("adjuntos").createSignedUrl(rutaConstancia, 3600)).data?.signedUrl ?? null
+    : null;
 
   const esAlmacen = Boolean(perfil.es_almacen) || ["gerencia", "admin"].includes(perfil.rol) || Boolean(perfil.es_operaciones);
   const esPostventa = veTodoPostventa(perfil) || Boolean(perfil.es_operaciones);
@@ -322,6 +327,14 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
             <p className="mb-2 text-[11px] text-muted-foreground">
               Revisada por {nombre(a.revisada_por)} · {fechaHoraLima(a.revisada_at)}
               {a.enviada_cliente_at ? ` · enviada al cliente el ${fechaHoraLima(a.enviada_cliente_at)}` : ""}
+              {urlConstancia && (
+                <>
+                  {" · "}
+                  <a href={urlConstancia} target="_blank" rel="noreferrer" className="font-medium text-primary underline">
+                    ver constancia
+                  </a>
+                </>
+              )}
             </p>
           )}
           <AccionesPostventaApertura

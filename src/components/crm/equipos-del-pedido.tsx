@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { agregarParteDelEquipo, equipoVaEnEsteDespacho, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarSinStock, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido } from "@/lib/acciones/almacen";
 import { corregirSerie } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -25,6 +25,12 @@ import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 import { Documentos } from "@/components/crm/informe-soporte-apertura";
 import { agregarArchivosDelEquipo } from "@/lib/acciones/almacen";
 import { cn } from "@/lib/utils";
+
+const MOTIVO_SIN_STOCK: Record<string, string> = {
+  importacion: "por importar",
+  compra_local: "compra local",
+  fabricacion: "en fabricación",
+};
 
 export function EquiposDelPedido({
   servicioId,
@@ -73,7 +79,7 @@ export function EquiposDelPedido({
           : despachado
             ? sinSerie > 0
               ? `El pedido ya salió y ${sinSerie === 1 ? "una máquina está" : `${sinSerie} máquinas están`} sin serie: sin ella postventa no puede atender un caso.`
-              : "Todas las máquinas que salieron están en el parque con su serie."
+              : "Todas las máquinas que salieron están registradas con su serie."
             : `Con serie = hay stock. ${
                 modo === "postventa"
                   ? "Marque cuál va en este despacho; lo demás espera."
@@ -245,7 +251,29 @@ function Fila({
                 <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] whitespace-nowrap">Serie {e.serie}</span>
               )
             ) : (
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-800 whitespace-nowrap">Sin serie · sin stock todavía</span>
+              <>
+                {/* Reunión 02-10: sin stock en naranja, y con su porqué si el almacén lo marcó. */}
+                <span className="rounded-full bg-orange-500/15 px-2 py-0.5 font-semibold text-orange-800 whitespace-nowrap">
+                  Sin serie · sin stock{e.sin_stock_motivo ? ` · ${MOTIVO_SIN_STOCK[e.sin_stock_motivo] ?? e.sin_stock_motivo}` : " todavía"}
+                </span>
+                {!despachado && (
+                  <select
+                    aria-label="Por qué no hay stock"
+                    value={e.sin_stock_motivo ?? ""}
+                    disabled={pendiente}
+                    onChange={(ev) => {
+                      const m = ev.target.value;
+                      correr(() => marcarSinStock(e.id, m || null), m ? `Marcado: ${MOTIVO_SIN_STOCK[m]}` : "Motivo quitado");
+                    }}
+                    className="h-6 rounded border border-border bg-background px-1 text-[11px]"
+                  >
+                    <option value="">¿Por qué no hay stock?</option>
+                    <option value="importacion">Por importar</option>
+                    <option value="compra_local">Compra local</option>
+                    <option value="fabricacion">En fabricación</option>
+                  </select>
+                )}
+              </>
             )}
             {e.prueba_lista_at ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium">
@@ -301,7 +329,7 @@ function Fila({
                           setParteSerie("");
                         }
                         return r;
-                      }, `${parteNombre.trim() || "Máquina"} registrada: ya está en el parque con su serie`),
+                      }, `${parteNombre.trim() || "Máquina"} registrada con su serie`),
                     )
                   }
                 >
@@ -382,7 +410,7 @@ function Fila({
                 </Button>
                 <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setModoCodigo(false)}>Cancelar</button>
               </div>
-              <p className="text-[11px] text-muted-foreground">Un solo código para todas las unidades de este artículo que no tienen serie. No entran al parque instalado.</p>
+              <p className="text-[11px] text-muted-foreground">Un solo código para todas las unidades de este artículo que no tienen serie. No entran al registro de máquinas.</p>
             </div>
           ) : abrirSerie ? (
             <div className="space-y-1">
@@ -392,7 +420,7 @@ function Fila({
                   size="sm"
                   className="h-8"
                   disabled={pendiente || !serie.trim()}
-                  onClick={() => conRevision(serie, () => correr(() => registrarSerieDelEquipo(e.id, servicioId, serie), "Serie registrada: la máquina ya está en el parque"))}
+                  onClick={() => conRevision(serie, () => correr(() => registrarSerieDelEquipo(e.id, servicioId, serie), "Serie registrada: la máquina ya está en el registro de máquinas"))}
                 >
                   {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} {confirmando(serie) ? "Sí, registrar así" : "Registrar"}
                 </Button>

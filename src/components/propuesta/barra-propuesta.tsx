@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/enlace";
+import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
@@ -84,6 +85,9 @@ export function BarraPropuesta({
   pin?: boolean;
 }) {
   const ruta = usePathname();
+  // Los chats que le escribieron (02-10) los sabe la campana, no el servidor.
+  const chatsEsperando = usePendientesWhatsapp();
+  const cuentas: Record<string, number> = { ...contadores, "/whatsapp": chatsEsperando };
   return (
     <aside
       className={cn(
@@ -118,9 +122,14 @@ export function BarraPropuesta({
             >
               <Icono className="size-[18px] shrink-0" strokeWidth={es ? 2.3 : 1.9} />
               <span className="flex-1">{o.etiqueta}</span>
-              {(contadores[o.href] ?? 0) > 0 && (
-                <span className="rounded-full bg-[var(--marca-alto)] px-1.5 py-px text-[10px] font-bold tabular-nums text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]">
-                  {contadores[o.href] > 99 ? "99+" : contadores[o.href]}
+              {(cuentas[o.href] ?? 0) > 0 && (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]",
+                    o.href === "/whatsapp" ? "bg-emerald-600" : "bg-[var(--marca-alto)]",
+                  )}
+                >
+                  {cuentas[o.href] > 99 ? "99+" : cuentas[o.href]}
                 </span>
               )}
             </Link>

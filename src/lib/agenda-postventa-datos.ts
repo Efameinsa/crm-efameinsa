@@ -37,7 +37,7 @@ export async function cargarEventosPostventa(
   let consultaCasos = supabase
     .from("oportunidades")
     .select(
-      "id, etapa, intencion, tipo_postventa, proxima_accion, proxima_accion_at, proxima_accion_hora, cuentas(razon_social, departamento, distrito)",
+      "id, cuenta_id, etapa, intencion, tipo_postventa, proxima_accion, proxima_accion_at, proxima_accion_hora, cuentas(razon_social, departamento, distrito)",
     )
     .not("tipo_postventa", "is", null)
     .gte("proxima_accion_at", desde)
@@ -67,13 +67,13 @@ export async function cargarEventosPostventa(
     // Las atenciones con día y técnico, y quién viene a la planta (0238).
     supabase
       .from("atenciones")
-      .select("id, tipo, programada_at, tecnico, cliente_texto, cerrado_at, cuentas(razon_social, departamento)")
+      .select("id, cuenta_id, tipo, programada_at, tecnico, cliente_texto, cerrado_at, cuentas(razon_social, departamento)")
       .gte("programada_at", `${desde}T00:00:00-05:00`)
       .lte("programada_at", `${hasta}T23:59:59-05:00`)
       .limit(300),
     supabase
       .from("visitas_planta")
-      .select("id, empresa, persona, motivo, fecha, hora, cancelada_at")
+      .select("id, cuenta_id, empresa, persona, motivo, fecha, hora, cancelada_at")
       .gte("fecha", desde)
       .lte("fecha", hasta)
       .limit(100),
@@ -83,6 +83,7 @@ export async function cargarEventosPostventa(
   const eventosPedidos = listaPedidos.flatMap(eventosDePedido);
   const eventosCasos = ((casos ?? []) as unknown as {
     id: string;
+    cuenta_id: string | null;
     etapa: string;
     intencion: string | null;
     tipo_postventa: string | null;
@@ -102,6 +103,7 @@ export async function cargarEventosPostventa(
         proxima_accion_at: c.proxima_accion_at,
         proxima_accion_hora: c.proxima_accion_hora,
         cliente: c.cuentas?.razon_social ?? "Cliente sin nombre",
+        cuentaId: c.cuenta_id,
         zona: dep ? (dep === "LIMA" ? "lima" : "provincia") : null,
       };
     })
@@ -109,13 +111,14 @@ export async function cargarEventosPostventa(
     .filter((e): e is EventoCalendario => e !== null);
   const eventosTareas = ((tareas ?? []) as unknown as TareaAgendable[]).map(eventoDeTarea);
   const eventosAtenciones = ((programadas ?? []) as unknown as {
-    id: string; tipo: string; programada_at: string; tecnico: string | null; cliente_texto: string | null; cerrado_at: string | null;
+    id: string; cuenta_id: string | null; tipo: string; programada_at: string; tecnico: string | null; cliente_texto: string | null; cerrado_at: string | null;
     cuentas: { razon_social: string; departamento: string | null } | null;
   }[]).map((a) => {
     const dep = (a.cuentas?.departamento ?? "").toUpperCase();
     return eventoDeAtencion({
       id: a.id, tipo: a.tipo, programada_at: a.programada_at, tecnico: a.tecnico, cerrado_at: a.cerrado_at,
       cliente: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre",
+      cuentaId: a.cuenta_id,
       zona: dep ? (dep === "LIMA" ? "lima" : "provincia") : null,
     });
   });
@@ -143,6 +146,8 @@ export function eventosDelDia(eventos: EventoCalendario[], fecha: string): Event
 export interface FilaPendiente {
   id: string;
   cliente: string;
+  /** La ficha, para que el nombre lleve ahí (02-10). */
+  cuentaId?: string | null;
   detalle: string | null;
   /** Desde cuándo espera (ISO), para poder ordenar por antigüedad. */
   desde: string | null;
@@ -194,7 +199,7 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
       .limit(400),
     supabase
       .from("atenciones")
-      .select("id, tipo, detalle, cliente_texto, solicitado_at, cuentas(razon_social)")
+      .select("id, cuenta_id, tipo, detalle, cliente_texto, solicitado_at, cuentas(razon_social)")
       .eq("etapa", "diagnostico")
       .is("cerrado_at", null)
       .order("solicitado_at", { ascending: true })
@@ -223,6 +228,7 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
     .map((s) => ({
       id: s.id,
       cliente: s.cliente_texto ?? "Cliente sin nombre",
+      cuentaId: s.cuenta_id ?? null,
       detalle: s.equipo,
       desde: s.created_at ?? null,
       url: `/postventa/pedidos/${s.id}`,
@@ -232,6 +238,7 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
     .map((s) => ({
       id: s.id,
       cliente: s.cliente_texto ?? "Cliente sin nombre",
+      cuentaId: s.cuenta_id ?? null,
       // Reunión 23-09: «despachos programados sin salir, ¿qué significa?».
       // Tienen fecha pero están en fases distintas; cada fila dice qué le
       // falta para salir, que es lo que se pregunta.
@@ -257,6 +264,7 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
     .map((s) => ({
       id: s.id,
       cliente: s.cliente_texto ?? "Cliente sin nombre",
+      cuentaId: s.cuenta_id ?? null,
       detalle: s.equipo,
       desde: s.despachado_at ?? s.fecha_despacho ?? null,
       url: `/postventa/pedidos/${s.id}`,
@@ -274,6 +282,7 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
     .map((s) => ({
       id: s.id,
       cliente: s.cliente_texto ?? "Cliente sin nombre",
+      cuentaId: s.cuenta_id ?? null,
       detalle: s.equipo,
       desde: s.despachado_at,
       url: `/postventa/pedidos/${s.id}`,
@@ -281,6 +290,7 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
 
   const atencionesSinProgramar = ((aProgramar ?? []) as unknown as {
     id: string;
+    cuenta_id: string | null;
     tipo: string;
     detalle: string | null;
     cliente_texto: string | null;
@@ -289,6 +299,7 @@ export async function pendientesDePostventa(supabase: SupabaseClient): Promise<P
   }[]).map((a) => ({
     id: a.id,
     cliente: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre",
+    cuentaId: a.cuenta_id,
     detalle: `${ETIQUETA_TIPO_ATENCION[a.tipo as TipoAtencion] ?? a.tipo}${a.detalle ? ` · ${a.detalle}` : ""}`,
     desde: a.solicitado_at,
     url: `/postventa/atenciones/${a.id}`,
@@ -320,7 +331,7 @@ export async function preventivosPorOfrecer(supabase: SupabaseClient): Promise<F
   const limite = sumarDiasIso(hoy, DIAS_AVISO_PREVENTIVO);
   const { data: equipos } = await supabase
     .from("equipos_instalados")
-    .select("id, serie, modelo_texto, cliente_texto, proximo_mantenimiento, cuentas(razon_social)")
+    .select("id, cuenta_id, serie, modelo_texto, cliente_texto, proximo_mantenimiento, cuentas(razon_social)")
     .not("proximo_mantenimiento", "is", null)
     .lte("proximo_mantenimiento", limite)
     .order("proximo_mantenimiento", { ascending: true })
@@ -328,6 +339,7 @@ export async function preventivosPorOfrecer(supabase: SupabaseClient): Promise<F
 
   const listaEquipos = (equipos ?? []) as unknown as {
     id: string;
+    cuenta_id: string | null;
     serie: string;
     modelo_texto: string | null;
     cliente_texto: string | null;
@@ -351,6 +363,7 @@ export async function preventivosPorOfrecer(supabase: SupabaseClient): Promise<F
     .map((e) => ({
       id: e.id,
       cliente: e.cuentas?.razon_social ?? e.cliente_texto ?? "Cliente sin nombre",
+      cuentaId: e.cuenta_id,
       detalle: `${e.modelo_texto ?? "Equipo"} · serie ${e.serie} · ${e.proximo_mantenimiento < hoy ? "venció" : "vence"} ${e.proximo_mantenimiento}`,
       desde: e.proximo_mantenimiento,
       url: `/postventa/equipos/${e.id}`,

@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { PhoneOff, Search, X } from "lucide-react";
 import {
+  ETIQUETA_ANTIGUEDAD,
   ETIQUETA_COMPRA,
   ETIQUETA_LLAMADA,
   ETIQUETA_MANTENIMIENTO,
+  type AntiguedadMinima,
   type EstadoCompra,
   type EstadoLlamada,
   type EstadoMantenimiento,
@@ -37,6 +39,8 @@ export interface ValoresFiltroRuta {
   mant: EstadoMantenimiento | null;
   compra: EstadoCompra | null;
   llamada: EstadoLlamada | null;
+  /** «Sin mantenimiento hace»: piso en meses (gerencia, 02-10). */
+  antig: AntiguedadMinima | null;
   tel: "sin" | "con" | null;
 }
 
@@ -44,13 +48,18 @@ const ATAJOS: {
   clave: string;
   etiqueta: string;
   titulo: string;
-  filtros: { mant?: EstadoMantenimiento; compra?: EstadoCompra; llamada?: EstadoLlamada };
+  filtros: { mant?: EstadoMantenimiento; compra?: EstadoCompra; llamada?: EstadoLlamada; antig?: AntiguedadMinima };
 }[] = [
+  // 02-10, Carlos: en esta tanda salía una venta de hace 21 días —«nunca le
+  // hemos vendido mantenimiento porque lo hemos vendido hace 21 días»—. Una
+  // máquina recién entregada todavía no necesita el preventivo (toca a los 6
+  // meses), así que la tanda ya viene con el piso de 6 meses puesto. Quien
+  // quiera verlas todas cambia «Sin mant. hace» a «todos».
   {
     clave: "nunca_mant",
     etiqueta: "Nunca le hicimos mantenimiento",
-    titulo: "Compró y nunca volvió: la llamada tiene argumento propio",
-    filtros: { mant: "nunca" },
+    titulo: "Compró hace 6 meses o más y nunca volvió: la llamada tiene argumento propio",
+    filtros: { mant: "nunca", antig: "6" },
   },
   {
     clave: "vencidos",
@@ -82,7 +91,7 @@ export function FiltrosRuta({
   /** Cuántas hay en la pestaña sin filtrar. */
   total: number;
 }) {
-  const { q, mant, compra, llamada, tel } = valores;
+  const { q, mant, compra, llamada, antig, tel } = valores;
   const [texto, setTexto] = useState(q);
   // Lo último que se mandó a buscar: cuando la URL vuelve con eso mismo, el
   // campo no se toca —si no, con el internet lento se borraba lo tecleado
@@ -107,19 +116,20 @@ export function FiltrosRuta({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texto]);
 
-  const hayFiltro = Boolean(mant || compra || llamada || tel || q);
+  const hayFiltro = Boolean(mant || compra || llamada || antig || tel || q);
 
   function atajoActivo(a: (typeof ATAJOS)[number]) {
     return (
       (a.filtros.mant ?? null) === mant &&
       (a.filtros.compra ?? null) === compra &&
-      (a.filtros.llamada ?? null) === llamada
+      (a.filtros.llamada ?? null) === llamada &&
+      (a.filtros.antig ?? null) === antig
     );
   }
 
   return (
     <div className="relative mb-4 rounded-xl border border-border bg-muted/30 p-3">
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -149,6 +159,14 @@ export function FiltrosRuta({
           onChange={(v) => onCambiar({ llamada: v as EstadoLlamada | null })}
           opciones={Object.entries(ETIQUETA_LLAMADA).map(([valor, texto]) => ({ valor, texto }))}
         />
+        {/* Gerencia, 02-10: «por antigüedad, por meses […] seis meses, un año,
+            etc.». Desde el último mantenimiento o, si nunca hubo, desde la compra. */}
+        <Filtro
+          etiqueta="Sin mant. hace"
+          valor={antig}
+          onChange={(v) => onCambiar({ antig: v as AntiguedadMinima | null })}
+          opciones={(["3", "6", "12", "24"] as AntiguedadMinima[]).map((valor) => ({ valor, texto: ETIQUETA_ANTIGUEDAD[valor] }))}
+        />
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -163,11 +181,12 @@ export function FiltrosRuta({
               onClick={() =>
                 onCambiar(
                   activo
-                    ? { mant: null, compra: null, llamada: null }
+                    ? { mant: null, compra: null, llamada: null, antig: null }
                     : {
                         mant: a.filtros.mant ?? null,
                         compra: a.filtros.compra ?? null,
                         llamada: a.filtros.llamada ?? null,
+                        antig: a.filtros.antig ?? null,
                       },
                 )
               }
@@ -213,7 +232,7 @@ export function FiltrosRuta({
               type="button"
               onClick={() => {
                 setTexto("");
-                onCambiar({ mant: null, compra: null, llamada: null, tel: null, q: "" });
+                onCambiar({ mant: null, compra: null, llamada: null, antig: null, tel: null, q: "" });
               }}
               className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-accent"
             >

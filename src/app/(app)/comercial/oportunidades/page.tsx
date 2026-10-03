@@ -91,6 +91,7 @@ export default async function OportunidadesPage({
     mant?: string;
     compra?: string;
     llamada?: string;
+    antig?: string;
     tel?: string;
   }>;
 }) {

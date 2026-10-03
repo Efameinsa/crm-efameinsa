@@ -132,7 +132,7 @@ export function FicharMaquina({
       toast.success(
         atencionId
           ? `${hechas === 1 ? "Máquina fichada" : `${hechas} máquinas fichadas`} — garantía verificada`
-          : `${hechas === 1 ? "Máquina registrada" : `${hechas} máquinas registradas`} en el parque instalado`,
+          : `${hechas === 1 ? "Máquina registrada" : `${hechas} máquinas registradas`} en el registro de máquinas`,
       );
       setMaquinas([vacia]); setFecha(""); setUbicacion(""); setOrigen("nuestra");
       alTerminar?.();

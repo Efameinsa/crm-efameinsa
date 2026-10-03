@@ -13,6 +13,7 @@ import {
   type TipoApertura,
 } from "@/lib/aperturas-llamada";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 type Fila = AperturaLlamada & {
   cuentas: { razon_social: string; num_doc?: string | null } | null;
@@ -217,7 +218,7 @@ async function Resultados({
       </div>
       <ul className="divide-y divide-border">
         {filas.map((f) => (
-          <Renglon key={f.id} f={f} vistaAlmacen={vistaAlmacen} conFecha />
+          <Renglon key={f.id} f={f} vistaAlmacen={vistaAlmacen} />
         ))}
       </ul>
       {paginas > 1 && (
@@ -333,7 +334,7 @@ async function PorDia({ vistaAlmacen, pestana }: { vistaAlmacen: boolean; pestan
 const fechaCortaLima = (iso: string) =>
   new Date(iso).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "short", year: "2-digit" });
 
-function Renglon({ f, vistaAlmacen, conFecha = false }: { f: Fila; vistaAlmacen: boolean; conFecha?: boolean }) {
+function Renglon({ f, vistaAlmacen, conFecha = true }: { f: Fila; vistaAlmacen: boolean; conFecha?: boolean }) {
   const estado = estadoApertura(f);
   const leToca = aQuienLeToca(estado);
   const mia = (vistaAlmacen && leToca === "almacen") || (!vistaAlmacen && leToca === "postventa");
@@ -353,7 +354,7 @@ function Renglon({ f, vistaAlmacen, conFecha = false }: { f: Fila; vistaAlmacen:
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-foreground">{f.cuentas?.razon_social ?? "Cliente"}</span>
+          <span className="block truncate text-sm font-semibold text-foreground"><NombreAFicha cuentaId={f.cuenta_id}>{f.cuentas?.razon_social ?? "Cliente"}</NombreAFicha></span>
           <span className="block text-xs text-muted-foreground">
             {f.urgente && <span className="mr-1 rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-white">URGENTE</span>}
             {ETIQUETA_TIPO_APERTURA[f.tipo]} · {f.equipos.split("\n")[0]}

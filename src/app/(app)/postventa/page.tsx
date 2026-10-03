@@ -30,6 +30,7 @@ import {
   type ServicioPostventa,
 } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export const dynamic = "force-dynamic";
 
@@ -218,7 +219,7 @@ export default async function PostventaPage() {
 
   const { data: atendidasHoy } = await supabase
     .from("atenciones")
-    .select("id, cliente_texto, tipo, etapa, solicitado_at, tomada_at, cerrado_at, cuentas(razon_social), tomadaPor:tomada_por(nombre, codigo_comercial)")
+    .select("id, cuenta_id, cliente_texto, tipo, etapa, solicitado_at, tomada_at, cerrado_at, cuentas(razon_social), tomadaPor:tomada_por(nombre, codigo_comercial)")
     .gte("tomada_at", `${hoyIso}T00:00:00-05:00`)
     .order("tomada_at", { ascending: false })
     .limit(30);
@@ -480,6 +481,7 @@ export default async function PostventaPage() {
           <div className="space-y-1.5">
             {((atendidasHoy ?? []) as unknown as {
               id: string;
+              cuenta_id: string | null;
               cliente_texto: string | null;
               tipo: TipoAtencion;
               solicitado_at: string;
@@ -502,7 +504,7 @@ export default async function PostventaPage() {
                   </span>
                   <span className="min-w-[200px] flex-1">
                     <span className="block text-sm font-medium text-foreground">
-                      {a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre"}
+                      <NombreAFicha cuentaId={a.cuenta_id}>{a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre"}</NombreAFicha>
                     </span>
                     <span className="block text-xs text-muted-foreground">{ETIQUETA_TIPO_ATENCION[a.tipo]}</span>
                   </span>
@@ -564,7 +566,7 @@ export default async function PostventaPage() {
                     {fechaLima(s.fecha_despacho ?? s.puesta_en_marcha)}
                   </span>
                   <div className="min-w-[200px] flex-1">
-                    <p className="text-sm font-medium text-foreground">{s.cliente_texto ?? "—"}</p>
+                    <p className="text-sm font-medium text-foreground"><NombreAFicha cuentaId={s.cuenta_id}>{s.cliente_texto ?? "—"}</NombreAFicha></p>
                     <p className="line-clamp-1 text-xs text-muted-foreground">{s.equipo ?? "Sin equipo"}</p>
                   </div>
                   {frena && (
@@ -603,7 +605,7 @@ export default async function PostventaPage() {
                   </span>
                   <div className="min-w-[200px] flex-1">
                     <p className="text-sm font-medium text-foreground">
-                      {(s.cliente_texto ?? "—").replace(/^\d{8,11}\s*-\s*/, "")}
+                      <NombreAFicha cuentaId={s.cuenta_id}>{(s.cliente_texto ?? "—").replace(/^\d{8,11}\s*-\s*/, "")}</NombreAFicha>
                     </p>
                     <p className="line-clamp-1 text-xs text-muted-foreground">{s.equipo ?? "Sin equipo"}</p>
                   </div>

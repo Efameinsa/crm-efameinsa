@@ -82,10 +82,10 @@ function yaSonoEnOtraPestana(idAviso: string): boolean {
   return false;
 }
 
-function nota(ctx: AudioContext, hz: number, empiezaEn: number, dura: number, volumen: number): void {
+function nota(ctx: AudioContext, hz: number, empiezaEn: number, dura: number, volumen: number, forma: OscillatorType = "sine"): void {
   const osc = ctx.createOscillator();
   const ganancia = ctx.createGain();
-  osc.type = "sine";
+  osc.type = forma;
   osc.frequency.value = hz;
 
   // Rampa de entrada y salida: sin esto el tono chasquea al empezar y al cortar.
@@ -183,6 +183,24 @@ export function sonarCampanada(idAviso: string): void {
     motivo(ctx, 0, 1.6);
     motivo(ctx, 0.38, 1.6);
     motivo(ctx, 0.76, 1.6);
+  });
+}
+
+/**
+ * El «tun-tun» de WhatsApp (comerciales, 02-10: «que suene como WhatsApp»).
+ *
+ * No es el sonido de WhatsApp —ese es de Meta—, pero se le parece en lo que
+ * importa: dos golpes cortos, graves y redondos, muy distintos del pitido
+ * agudo de la campana. Así se sabe SIN MIRAR que es un cliente escribiendo y
+ * no un aviso del sistema. Triangular en vez de senoidal: suena a «pop», no a
+ * timbre.
+ */
+export function sonarWhatsapp(idAviso: string): void {
+  if (alertaSilenciada()) return;
+  conAudioListo((ctx) => {
+    if (yaSonoEnOtraPestana(idAviso)) return;
+    nota(ctx, 523.3, 0, 0.09, 0.42, "triangle");
+    nota(ctx, 784, 0.12, 0.16, 0.42, "triangle");
   });
 }
 

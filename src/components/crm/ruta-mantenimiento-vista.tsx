@@ -2,9 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { ListaRuta } from "@/components/crm/lista-ruta";
 import {
   PESTANAS_RUTA as PESTANAS,
+  ETIQUETA_ANTIGUEDAD,
   ETIQUETA_COMPRA,
   ETIQUETA_LLAMADA,
   ETIQUETA_MANTENIMIENTO,
+  type AntiguedadMinima,
   type ColumnaRuta,
   type EstadoCompra,
   type EstadoLlamada,
@@ -69,7 +71,7 @@ export async function RutaMantenimientoVista({
   hrefBase,
 }: {
   perfil: Perfil;
-  sp: { ver?: string; q?: string; todos?: string; mant?: string; compra?: string; llamada?: string; tel?: string };
+  sp: { ver?: string; q?: string; todos?: string; mant?: string; compra?: string; llamada?: string; antig?: string; tel?: string };
   /** La URL de la pantalla que la muestra: `/comercial/ruta` o `/comercial/oportunidades`. */
   hrefBase: string;
 }) {
@@ -79,6 +81,7 @@ export async function RutaMantenimientoVista({
     mant: opcion<EstadoMantenimiento>(sp.mant, ETIQUETA_MANTENIMIENTO),
     compra: opcion<EstadoCompra>(sp.compra, ETIQUETA_COMPRA),
     llamada: opcion<EstadoLlamada>(sp.llamada, ETIQUETA_LLAMADA),
+    antig: opcion<AntiguedadMinima>(sp.antig, ETIQUETA_ANTIGUEDAD),
     tel: (sp.tel === "sin" || sp.tel === "con" ? sp.tel : null) as "sin" | "con" | null,
     q: busqueda,
   };
@@ -248,7 +251,7 @@ export async function RutaMantenimientoVista({
       filas={filas}
       hoy={hoy}
       hrefBase={hrefBase}
-      inicial={{ ver: pestana, q: busqueda, mant: filtros.mant, compra: filtros.compra, llamada: filtros.llamada, tel: filtros.tel }}
+      inicial={{ ver: pestana, q: busqueda, mant: filtros.mant, compra: filtros.compra, llamada: filtros.llamada, antig: filtros.antig, tel: filtros.tel }}
     />
   );
 }

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { urlDesdePeticion } from "@/lib/url-app";
 import { createClientReal } from "@/lib/supabase/server";
 import { esPrecarga } from "@/lib/solo-lectura";
 
@@ -13,5 +14,5 @@ export async function GET(request: NextRequest) {
   if (esPrecarga(request.headers)) return new NextResponse(null, { status: 204 });
   const supabase = await createClientReal();
   await supabase.auth.signOut({ scope: "global" });
-  return NextResponse.redirect(new URL("/login", request.url));
+  return NextResponse.redirect(urlDesdePeticion("/login", request));
 }

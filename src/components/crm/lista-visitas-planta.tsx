@@ -7,6 +7,7 @@ import { Ban, Check, Pencil, Printer } from "lucide-react";
 import { cancelarVisitaPlanta, marcarVisita, marcarVisitaImpresa, reprogramarVisitaPlanta } from "@/lib/acciones/visitas-planta";
 import { CircuitoVisita, CerrarVisitaBoton, ETIQUETA_RESULTADO } from "@/components/crm/circuito-visita";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export interface VisitaFila {
   id: string;
@@ -166,7 +167,7 @@ export function ListaVisitasPlanta({
                     )}
                   </p>
                   <p className="text-xs text-foreground">
-                    {v.empresa}
+                    <NombreAFicha cuentaId={v.cuenta_id}>{v.empresa}</NombreAFicha>
                     {v.ruc && <span className="ml-1 text-muted-foreground">· RUC {v.ruc}</span>}
                     {v.telefono && <span className="ml-1 text-muted-foreground">· {v.telefono}</span>}
                     {v.cotizacion_ref && <span className="ml-1 text-muted-foreground">· cot. {v.cotizacion_ref}</span>}

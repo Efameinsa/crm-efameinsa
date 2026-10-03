@@ -41,7 +41,7 @@ export default async function EquiposPage({
   const { data, count } = await supabase
     .from("equipos_instalados")
     .select(
-      "id, serie, cliente_texto, modelo_texto, ubicacion, fecha_despacho, garantia_hasta, ciclos_ultimo, ultimo_mantenimiento, proximo_mantenimiento, cuentas(razon_social, num_doc, perfiles(codigo_comercial, nombre))",
+      "id, serie, cuenta_id, cliente_texto, modelo_texto, ubicacion, fecha_despacho, garantia_hasta, ciclos_ultimo, ultimo_mantenimiento, proximo_mantenimiento, cuentas(razon_social, num_doc, perfiles(codigo_comercial, nombre))",
       { count: "exact" },
     )
     .order("proximo_mantenimiento", { ascending: true, nullsFirst: false })

@@ -6,6 +6,7 @@ import { fechaCalendario } from "@/lib/fechas";
 import { etiquetaEtapaPostventa, slaCaso, veTodoPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import type { Perfil } from "@/types/database";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * «Casos anteriores»: los casos técnicos que existían ANTES de la pista de
@@ -33,6 +34,7 @@ interface CasoAbierto {
   proxima_accion: string | null;
   proxima_accion_at: string | null;
   equipo_id: string | null;
+  cuenta_id: string | null;
   cuentas: { razon_social: string } | null;
 }
 
@@ -49,7 +51,7 @@ export async function CasosAnteriores({ perfil }: { perfil: Perfil }) {
   let consultaCasos = supabase
     .from("oportunidades")
     .select(
-      "id, etapa, intencion, tipo_postventa, serie_texto, codigo_error, created_at, proxima_accion, proxima_accion_at, equipo_id, cuentas(razon_social)",
+      "id, cuenta_id, etapa, intencion, tipo_postventa, serie_texto, codigo_error, created_at, proxima_accion, proxima_accion_at, equipo_id, cuentas(razon_social)",
     )
     .not("tipo_postventa", "is", null)
     .eq("origen", "crm")
@@ -122,7 +124,7 @@ export async function CasosAnteriores({ perfil }: { perfil: Perfil }) {
             </span>
             <div className="min-w-[220px] flex-1">
               <p className="break-words text-sm font-semibold text-foreground">
-                {c.cuentas?.razon_social ?? "Cliente sin nombre"}
+                <NombreAFicha cuentaId={c.cuenta_id}>{c.cuentas?.razon_social ?? "Cliente sin nombre"}</NombreAFicha>
               </p>
               <p className="line-clamp-1 text-xs text-muted-foreground">
                 {c.tipo_postventa ? (ETIQUETA_TIPO[c.tipo_postventa] ?? c.tipo_postventa) : "Sin clasificar"}

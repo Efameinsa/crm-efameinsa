@@ -8,7 +8,7 @@ import { hostDeRanura, RANURAS } from "@/lib/auditoria";
 
 /**
  * «Entrar como»: gerencia abre una pestaña ya logueada como otra cuenta,
- * en una ranura (ver1…ver5) de solo lectura, y queda registrado (0160).
+ * en una ranura (ver1…ver9) de solo lectura, y queda registrado (0160).
  *
  * Es la ÚNICA acción, junto con crear y borrar usuarios, que usa el
  * service_role: generar un acceso de un solo uso para otra cuenta no se

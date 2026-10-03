@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Check, ChevronDown, CircleDashed, OctagonAlert } from "lucide-react";
 import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * El tablero de control de pedidos, interactivo.
@@ -43,6 +44,8 @@ export interface TarjetaControl {
   id: string;
   fase: 1 | 2 | 3;
   cliente: string;
+  /** Para que el nombre lleve a la ficha (02-10). */
+  cuentaId: string | null;
   equipo: string;
   hechos: number;
   total: number;
@@ -202,7 +205,10 @@ function Tarjeta({
     >
       <Link href={`/postventa/pedidos/${p.id}`} className="absolute inset-0 rounded-lg" aria-label={`Abrir el pedido de ${p.cliente}`} />
 
-      <p className="line-clamp-1 text-sm font-semibold text-foreground">{p.cliente}</p>
+      {/* Encima del enlace que cubre la tarjeta: el nombre abre la ficha (02-10). */}
+      <p className="line-clamp-1 text-sm font-semibold text-foreground">
+        <NombreAFicha cuentaId={p.cuentaId} className="relative z-10">{p.cliente}</NombreAFicha>
+      </p>
       <p className="line-clamp-1 text-xs text-muted-foreground">{p.equipo}</p>
 
       {/* El avance se abre como checklist DE SU FASE (Santos: «debería salir

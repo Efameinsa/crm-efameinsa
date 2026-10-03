@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { puedeVerPrecios } from "@/lib/postventa";
@@ -9,21 +8,17 @@ import { taparMontosEnPdf } from "@/lib/pdf/tapar-montos";
 export const runtime = "nodejs";
 
 // Abre el PDF de una cotización anterior al CRM (los presupuestos que vivían
-// en las unidades de red S:, T: y O:, hoy en un bucket privado de R2).
+// en el servidor de archivos de la empresa, hoy en el bucket privado
+// `archivo-presupuestos` del Storage de la VM; R2 solo como respaldo).
 //
-// POR QUÉ UNA REDIRECCIÓN Y NO LA URL EN LA PÁGINA: el bucket es privado y la
-// firma vence en minutos. Si la ficha del cliente trajera las URLs ya
-// firmadas, una pestaña abierta media hora quedaría con enlaces muertos y
-// además dejaría precios de clientes en el HTML de la página. Acá el enlace es
-// siempre el mismo (/api/cotizaciones-historicas/<id>/pdf) y la firma se pide
-// en el momento del clic.
+// POR QUÉ UNA RUTA Y NO EL ARCHIVO EN LA PÁGINA: el enlace es siempre el mismo
+// (/api/cotizaciones-historicas/<id>/pdf) y el documento se lee en el momento
+// del clic, así la ficha no lleva precios de clientes en su HTML.
 //
 // LA AUTORIZACIÓN LA HACE RLS, no este archivo: la consulta va con la sesión
 // del usuario, así que la política de la migración 0039 ya decide si puede ver
 // esa cotización (backoffice todo; el comercial, lo de las cuentas de SU
 // cartera). Si no le corresponde, el select devuelve vacío y aquí sale un 404.
-
-const VENCE_EN_SEGUNDOS = 300;
 
 const { R2_ACCOUNT_ID, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } = process.env;
 
@@ -49,20 +44,22 @@ function nombreDescarga(archivo: string): string {
   return base.toLowerCase().endsWith(".pdf") ? base : `${base}.pdf`;
 }
 
+const BUCKET_LOCAL = "archivo-presupuestos";
+
+async function leerPdf(ruta: string): Promise<Uint8Array | null> {
+  const { data } = await createAdminClient().storage.from(BUCKET_LOCAL).download(ruta);
+  if (data) return new Uint8Array(await data.arrayBuffer());
+  if (!s3 || !R2_BUCKET) return null;
+  try {
+    const objeto = await s3.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: ruta }));
+    return new Uint8Array(await objeto.Body!.transformToByteArray());
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-
-  if (!s3 || !R2_BUCKET) {
-    // Se dicen los NOMBRES que faltan, nunca los valores: sin esto, un 503
-    // seco obliga a adivinar cuál de las cuatro quedó mal escrita en Vercel.
-    const faltan = Object.entries({ R2_ACCOUNT_ID, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY })
-      .filter(([, v]) => !v)
-      .map(([k]) => k);
-    return NextResponse.json(
-      { error: "El archivo de cotizaciones no está configurado", faltan },
-      { status: 503 },
-    );
-  }
 
   const supabase = await createClient();
   const {
@@ -91,9 +88,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Esta cotización no tiene PDF disponible" }, { status: 404 });
   }
 
+  // EL ARCHIVO VIVE EN LA VM (Santos, 01-10-2026: «todo debería ser aquí»):
+  // bucket privado `archivo-presupuestos` del Storage local, con la misma
+  // clave que tenía en R2. El documento se entrega desde acá, sin URL firmada
+  // (la firma saldría con la dirección interna de la VM). R2 queda solo de
+  // respaldo para el despliegue de Vercel, que no ve el Storage local.
+  const original = await leerPdf(cotizacion.pdf_path);
+  if (!original) return NextResponse.json({ error: "No se encontró el PDF de esta cotización" }, { status: 404 });
+
   if (sinMontos) {
-    const objeto = await s3.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: cotizacion.pdf_path }));
-    const original = new Uint8Array(await objeto.Body!.transformToByteArray());
     try {
       const { pdf } = await taparMontosEnPdf(original);
       return new NextResponse(new Uint8Array(pdf), {
@@ -110,20 +113,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     }
   }
 
-  const url = await getSignedUrl(
-    s3,
-    new GetObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: cotizacion.pdf_path,
-      // Que el navegador lo muestre en vez de descargarlo, y con el nombre
-      // original del presupuesto — no con el de la ruta interna del bucket.
-      ResponseContentType: "application/pdf",
-      ResponseContentDisposition: `inline; filename="${nombreDescarga(cotizacion.archivo)}"`,
-    }),
-    { expiresIn: VENCE_EN_SEGUNDOS },
-  );
-
-  // no-store: la URL firmada vence en minutos, guardarla en una caché
-  // intermedia solo produce enlaces caducados.
-  return NextResponse.redirect(url, { status: 307, headers: { "Cache-Control": "no-store" } });
+  return new NextResponse(new Uint8Array(original), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="${nombreDescarga(cotizacion.archivo)}"`,
+      "Cache-Control": "private, no-store",
+    },
+  });
 }

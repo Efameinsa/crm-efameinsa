@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Copy, Check, Save, Mail, Send } from "lucide-react";
 import { guardarAperturaServicio, marcarAperturaEnviada } from "@/lib/acciones/postventa";
-import { TIPOS_APERTURA, type TipoApertura } from "@/lib/apertura-servicio";
+import { GUIAS_APERTURA, LOGISTICA_POR_DEFECTO, TIPOS_APERTURA, type GuiaApertura, type TipoApertura } from "@/lib/apertura-servicio";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +40,10 @@ export function AperturaServicioPanel({
     transporte: string | null;
     nota: string | null;
     direccionFinal: string | null;
+    guia: GuiaApertura | null;
+    guiaDetalle: string | null;
+    coordinaContabilidad: string | null;
+    coordinaLogistica: string | null;
   };
   asunto: string;
   cuerpo: string;
@@ -92,6 +96,10 @@ export function AperturaServicioPanel({
         transporte: v.transporte,
         nota: v.nota,
         direccionFinal: v.direccionFinal,
+        guia: v.guia,
+        guiaDetalle: v.guia ? v.guiaDetalle : null,
+        coordinaContabilidad: v.coordinaContabilidad,
+        coordinaLogistica: v.coordinaLogistica,
       });
       if (r.error) {
         toast.error(r.error);
@@ -178,15 +186,66 @@ export function AperturaServicioPanel({
               <option value="MOVILIDAD PROPIA" />
             </datalist>
           </Campo>
-          <Campo
-            etiqueta="Nota de la apertura"
-            ayuda="Lo que va entre paréntesis: las guías que se solicitan."
-            ancho
-          >
+          {/* Lesly, 02-10: «que tenga ese campo ya para solicitar la guía».
+              Antes se escribía a mano en la nota, cada vez con otras palabras. */}
+          <fieldset className="sm:col-span-2">
+            <legend className="mb-1.5 text-xs font-medium text-foreground">¿Se solicita guía?</legend>
+            <div className="flex flex-wrap gap-1.5">
+              {[{ clave: null, etiqueta: "No se pide guía" }, ...GUIAS_APERTURA].map((g) => (
+                <label
+                  key={g.clave ?? "ninguna"}
+                  className={cn(
+                    "cursor-pointer rounded-md border px-2.5 py-1.5 text-xs transition-colors",
+                    v.guia === g.clave ? "border-primary bg-primary/5 font-semibold text-foreground" : "border-border text-muted-foreground hover:bg-accent",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="guia-apertura"
+                    className="sr-only"
+                    checked={v.guia === g.clave}
+                    onChange={() => setV((x) => ({ ...x, guia: g.clave }))}
+                  />
+                  {g.etiqueta}
+                </label>
+              ))}
+            </div>
+            {v.guia && (
+              <input
+                value={v.guiaDetalle ?? ""}
+                onChange={cambiar("guiaDetalle")}
+                placeholder={v.guia === "traslado" ? "Precisión (opcional)" : "Qué materiales lleva (opcional), ej. tubería de cobre y conexiones"}
+                className={cn(ENTRADA, "mt-1.5")}
+              />
+            )}
+          </fieldset>
+          <Campo etiqueta="Notas" ayuda="Van en el apartado NOTAS de «Servicio a realizar», debajo de la guía." ancho>
             <input
               value={v.nota ?? ""}
               onChange={cambiar("nota")}
-              placeholder="ej. se solicita 01 guía para la entrega del equipo"
+              placeholder="ej. llevar escalera; el cliente pide llamar antes de llegar"
+              className={ENTRADA}
+            />
+          </Campo>
+          <Campo
+            etiqueta="Contabilidad: con quién coordina el técnico"
+            ayuda="Movilidad y viáticos. Nombre y/o número. Si se deja vacío, sale quien confirmó el pago."
+          >
+            <input
+              value={v.coordinaContabilidad ?? ""}
+              onChange={cambiar("coordinaContabilidad")}
+              placeholder="ej. Jhon Kalsin · 9XX XXX XXX"
+              className={ENTRADA}
+            />
+          </Campo>
+          <Campo
+            etiqueta="Logística: con quién coordina"
+            ayuda={`Herramientas, repuestos y EPP. Si se deja vacío, sale «${LOGISTICA_POR_DEFECTO}».`}
+          >
+            <input
+              value={v.coordinaLogistica ?? ""}
+              onChange={cambiar("coordinaLogistica")}
+              placeholder={`ej. ${LOGISTICA_POR_DEFECTO} · 9XX XXX XXX`}
               className={ENTRADA}
             />
           </Campo>

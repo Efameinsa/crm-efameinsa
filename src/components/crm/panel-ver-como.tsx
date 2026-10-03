@@ -67,7 +67,7 @@ export async function PanelVerComoOtraCuenta({ yo }: { yo: { id: string; rol: st
     <div className="space-y-4">
       <SeccionPanel titulo="Auditoría de cuentas">
         <p className="mb-3 max-w-prose text-xs text-muted-foreground">
-          «Entrar como» abre una pestaña nueva ya logueada como esa persona, en una dirección aparte (ver1 a ver5), así su
+          «Entrar como» abre una pestaña nueva ya logueada como esa persona, en una dirección aparte (ver1 a ver9), así su
           propia sesión no se toca y puede tener varias abiertas a la vez.{" "}
           {!deGerencia && "Aquí están las cuentas de Central, comerciales, almacén, postventa, Finanzas y Facturación. "} En esa pestaña el CRM es{" "}
           <b className="text-foreground">solo lectura</b>: se navega todo lo que ella ve, no se registra nada a su nombre. Cada

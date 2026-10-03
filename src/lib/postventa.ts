@@ -118,6 +118,11 @@ export interface ServicioPostventa {
   transporte?: string | null;
   apertura_nota?: string | null;
   direccion_final?: string | null;
+  /** La guía que se pide con la apertura y con quién coordina el técnico (0371, Lesly 02-10). */
+  apertura_guia?: string | null;
+  apertura_guia_detalle?: string | null;
+  apertura_coordina_contabilidad?: string | null;
+  apertura_coordina_logistica?: string | null;
   /** «Ya lo mandé»: el correo de la apertura, marcado por separado al almacén y al cliente (0271). */
   apertura_enviada_almacen_at?: string | null;
   apertura_enviada_cliente_at?: string | null;
@@ -624,13 +629,25 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   // Lima pasa al bloque del despacho, ANTES de que salga. Mismas columnas.
   // No es retroactivo: lo que ya salió o ya cerró no pide una llamada que
   // nadie va a registrar.
+  //
+  // 01-10 (Rubí, con Bryan Ninamango): el rótulo decía «Preinstalación
+  // confirmada por el cliente» también mientras faltaba, y se leía como cosa
+  // hecha aunque el circulito estuviera vacío. Como «Entrega en planta» →
+  // «Entregado en planta»: pendiente dice lo que falta, hecho dice que pasó.
+  const preinstalacionHecha =
+    s.preinstalacion_ok_at != null ||
+    (!provincia && (s.despachado_at != null || s.cerrado_at != null || s.completado || s.puesta_en_marcha != null));
   const pasoPreinstalacion: PasoPedido = {
     clave: "preinstalacion",
-    etiqueta: provincia ? "Preinstalación confirmada por el cliente" : "Videollamada de preinstalación hecha",
+    etiqueta: provincia
+      ? preinstalacionHecha
+        ? "Preinstalación confirmada por el cliente"
+        : "Preinstalación: falta que el cliente la confirme"
+      : preinstalacionHecha
+        ? "Videollamada de preinstalación hecha"
+        : "Videollamada de preinstalación: falta hacerla",
     responsable: (provincia ? "cliente" : "postventa") as ResponsablePaso,
-    hecho:
-      s.preinstalacion_ok_at != null ||
-      (!provincia && (s.despachado_at != null || s.cerrado_at != null || s.completado || s.puesta_en_marcha != null)),
+    hecho: preinstalacionHecha,
     cuando: s.preinstalacion_ok_at,
     detalle:
       s.preinstalacion_nota ??
@@ -789,7 +806,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       responsable: "postventa",
       hecho: s.cerrado_at != null || s.completado,
       cuando: s.cerrado_at,
-      detalle: circuito.esEquipo ? "Al cerrar, el equipo entra al parque instalado con su garantía" : "Al cerrar, queda en el historial del cliente",
+      detalle: circuito.esEquipo ? "Al cerrar, el equipo entra al registro de máquinas con su garantía" : "Al cerrar, queda en el historial del cliente",
     },
   ];
 

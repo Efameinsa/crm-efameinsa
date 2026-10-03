@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
-import { cargarParque } from "@/lib/parque";
+import { cargarParque, clavePersona, ETIQUETA_GESTION_PARQUE, type EstadoGestionParque } from "@/lib/parque";
 import type { EstadoMantenimiento } from "@/lib/ruta-mantenimiento";
 import { veTodoPostventa } from "@/lib/postventa";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -40,7 +40,16 @@ export const dynamic = "force-dynamic";
 export default async function ParquePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; estado?: string; todos?: string; anio?: string; origen?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    estado?: string;
+    todos?: string;
+    anio?: string;
+    mes?: string;
+    origen?: string;
+    gestion?: string;
+    quien?: string;
+  }>;
 }) {
   const [perfil, sp] = await Promise.all([requerirPerfil(), searchParams]);
   // Solo para quien vende mantenimiento (Santos, 02-09: «solo prepárala para
@@ -56,11 +65,16 @@ export default async function ParquePage({
 
   const todos = await cargarParque(supabase, { comercialId: verTodo ? null : perfil.id, hoy: hoyLima() });
 
+  const anio = /^\d{4}$/.test(sp.anio ?? "") ? (sp.anio as string) : null;
+  // El mes vive dentro del año (gerencia, 02-10): sin año, se ignora.
+  const mes = anio && /^(0[1-9]|1[0-2])$/.test(sp.mes ?? "") ? (sp.mes as string) : null;
+  const gestion = sp.gestion && sp.gestion in ETIQUETA_GESTION_PARQUE ? (sp.gestion as EstadoGestionParque) : null;
+
   const enlaceConjunto = (todosFlag: boolean) => `/comercial/parque${todosFlag ? "?todos=1" : ""}`;
 
   return (
     <SeccionPanel
-      titulo={verTodo ? "Las ventas de la empresa" : "Mi parque"}
+      titulo={verTodo ? "Las ventas de la empresa" : "Mis clientes con máquinas"}
       accion={
         <span className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-secondary px-2.5 py-0.5 font-semibold text-foreground">
@@ -81,7 +95,8 @@ export default async function ParquePage({
         Sus clientes con máquinas, y a cuáles toca venderles el mantenimiento. El semáforo es el del preventivo:
         <b className="text-destructive"> nunca</b>, <b className="text-amber-800">vencido</b> (más de 6 meses) o{" "}
         <b className="text-[#1E7F4F]">al día</b>. La última gestión es de quien sea, comercial o postventa: los dos
-        venden mantenimiento y los dos ven lo que hizo el otro. Si ya hay una oportunidad abierta, se entra a esa.
+        venden mantenimiento y los dos ven lo que hizo el otro. Si ya hay una oportunidad abierta, se entra a esa. Con
+        «Quién» cada uno sigue su propia gestión y ve qué clientes ya está trabajando otro.
       </p>
 
       <ListaParque
@@ -90,9 +105,13 @@ export default async function ParquePage({
         inicial={{
           q: (sp.q ?? "").trim(),
           estado,
-          anio: /^\d{4}$/.test(sp.anio ?? "") ? (sp.anio as string) : null,
+          anio,
+          mes,
           origen: sp.origen === "postventa" || sp.origen === "comercial" ? sp.origen : null,
+          gestion,
+          quien: (sp.quien ?? "").trim().slice(0, 80) || null,
         }}
+        yo={clavePersona(perfil.nombre, perfil.codigo_comercial)}
       />
     </SeccionPanel>
   );

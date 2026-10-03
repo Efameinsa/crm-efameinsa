@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { urlDesdePeticion } from "@/lib/url-app";
 import { requerirPerfil } from "@/lib/auth";
 import { COOKIE_VISTA, esPrecarga } from "@/lib/solo-lectura";
 
@@ -12,8 +13,8 @@ export async function GET(request: NextRequest) {
   // ?tema=claro|oscuro: solo cambia el tema de la propuesta y vuelve adonde estaba.
   const tema = request.nextUrl.searchParams.get("tema");
   if (tema === "claro" || tema === "oscuro") {
-    const volver = request.headers.get("referer") ?? new URL("/nuevo", request.url).toString();
-    const r = NextResponse.redirect(new URL(volver, request.url));
+    const volver = request.headers.get("referer") ?? urlDesdePeticion("/nuevo", request).toString();
+    const r = NextResponse.redirect(urlDesdePeticion(volver, request));
     r.cookies.set("crm-tema", tema, { path: "/", sameSite: "lax", maxAge: 60 * 60 * 24 * 30 });
     return r;
   }
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
           ? "/postventa/macro"
           : ({ admin: "/admin", gerencia: "/gerencia", central: "/central", comercial: "/comercial", operaciones: "/operaciones", finanzas: "/finanzas", facturacion: "/facturacion" } as const)[p.rol];
   }
-  const r = NextResponse.redirect(new URL(destino, request.url));
+  const r = NextResponse.redirect(urlDesdePeticion(destino, request));
   // Para las cuentas reales la elección se recuerda (25-09): quien activa la
   // vista nueva o vuelve a la anterior no la pierde al cerrar el navegador.
   r.cookies.set(COOKIE_VISTA, actual ? "actual" : "nueva", { path: "/", sameSite: "lax", maxAge: 60 * 60 * 24 * 365 });

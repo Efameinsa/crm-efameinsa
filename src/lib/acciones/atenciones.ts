@@ -175,7 +175,7 @@ export async function vincularEquipoAtencion(
     .select("id, serie")
     .eq("id", equipoId)
     .maybeSingle();
-  if (!eq) return { error: "Esa máquina no está en el parque instalado" };
+  if (!eq) return { error: "Esa máquina no está en el registro de máquinas" };
 
   const { error } = await supabase.from("atenciones").update({ equipo_id: equipoId }).eq("id", atencionId);
   if (error) return { error: error.message };
@@ -702,6 +702,10 @@ export async function cerrarAtencion(datos: {
   /** Por qué no se facturó, cuando el caso se cobraba y no hay cotización. */
   noFacturado?: string;
 }): Promise<{ error: string | null; pideMotivoSinFacturar?: boolean }> {
+  // Reunión 02-10: el resultado se elige siempre; antes venía «resuelto» de fábrica.
+  if (!["resuelto", "no_procede", "derivado"].includes(datos.resultado)) {
+    return { error: "Elija cómo terminó: resuelto, no procede o derivado" };
+  }
   if (datos.motivo.trim().length < 10) {
     return { error: "Escriba en qué quedó: es lo que se va a leer cuando el cliente vuelva a llamar" };
   }

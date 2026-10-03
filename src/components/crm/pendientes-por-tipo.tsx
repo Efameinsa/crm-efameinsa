@@ -2,6 +2,7 @@ import Link from "@/components/enlace";
 import { SeccionPlegable } from "@/components/crm/seccion-panel";
 import type { PendientesPostventa } from "@/lib/agenda-postventa-datos";
 import { DIAS_AVISO_PREVENTIVO, REGLA_PREVENTIVO, TITULO_PREVENTIVOS_POR_OFRECER } from "@/lib/preventivo";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * «¿QUÉ ME FALTA?», SEPARADO POR TIPO (Carlos, 22-09, ítem 6 de la reunión):
@@ -45,7 +46,7 @@ export function PendientesPorTipo({ pendientes }: { pendientes: PendientesPostve
                       href={f.url}
                       className="flex flex-wrap items-baseline gap-x-2 rounded px-1.5 py-1 text-xs hover:bg-accent"
                     >
-                      <span className="font-medium text-foreground">{f.cliente}</span>
+                      <span className="font-medium text-foreground"><NombreAFicha cuentaId={f.cuentaId}>{f.cliente}</NombreAFicha></span>
                       {f.detalle && <span className="text-muted-foreground">{f.detalle}</span>}
                     </Link>
                   </li>

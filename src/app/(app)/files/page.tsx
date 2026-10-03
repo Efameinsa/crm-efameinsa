@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AccionFile, AccionTermine, EntregarFileDirecto, PedirFiles } from "@/components/crm/files-acciones";
+import { TiemposDeFiles } from "@/components/crm/files-tiempos";
+import { InventarioFiles } from "@/components/crm/files-inventario";
 import { fechaHoraLima } from "@/lib/fechas";
 import { haceCuanto, horaLima, lineaDePasos, origenDelFile } from "@/lib/files-recojo";
 import { cn } from "@/lib/utils";
@@ -45,6 +47,8 @@ type Fila = {
   cliente_texto: string | null;
   cliente_doc: string | null;
   empresa: "open" | "efameinsa" | "ambos" | null;
+  /** Estante y cajón del inventario (0372); los pedidos anteriores no lo tienen. */
+  ubicacion: string | null;
   entrega_directa: boolean;
   pedido_numero: string | null;
   cuentas: { razon_social: string; num_doc: string | null } | null;
@@ -66,7 +70,7 @@ export default async function FilesPage() {
   const { data } = await supabase
     .from("prestamos_file")
     .select(
-      `id, grupo, solicitado_at, nota, entregado_at, recibido_at, devuelto_at, anulado_at, termine_at, termine_aviso_at, termine_avisos, cliente_texto, cliente_doc, empresa, entrega_directa, pedido_numero,
+      `id, grupo, solicitado_at, nota, entregado_at, recibido_at, devuelto_at, anulado_at, termine_at, termine_aviso_at, termine_avisos, cliente_texto, cliente_doc, empresa, ubicacion, entrega_directa, pedido_numero,
        cuentas(razon_social, num_doc),
        solicitante:perfiles!prestamos_file_solicitado_por_fkey(id, nombre, codigo_comercial),
        entrego:perfiles!prestamos_file_entregado_por_fkey(nombre),
@@ -118,6 +122,7 @@ export default async function FilesPage() {
           <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-sm font-semibold text-foreground">
             <span className="max-w-full shrink-0 truncate">{f.cliente_texto ?? f.cuentas?.razon_social ?? "Cliente"}</span>
             {f.empresa && <span className="flex-none rounded border border-primary/30 px-1.5 py-px text-[10px] font-bold tracking-wide text-primary">{EMPRESA[f.empresa]}</span>}
+            {f.ubicacion && <span className="flex-none text-[11px] font-medium text-muted-foreground">{f.ubicacion}</span>}
           </p>
           <p className="text-xs text-muted-foreground">
             {/* Entrega directa (0365): nadie lo pidió; `solicitante` es quien lo recibió. */}
@@ -147,7 +152,7 @@ export default async function FilesPage() {
       {perfil.rol !== "central" && (
         <SeccionPanel titulo="Pedir files a Central">
           <p className="mb-3 text-xs text-muted-foreground">
-            El archivador físico del cliente. Agregue uno o varios y marque si es el de OPEN, el de EFAMEINSA o los dos; Central recibe el aviso, se lo entrega y usted firma con «Recibí el file». Al terminar apriete «Terminé, pueden recogerlo» y Central pasa por él; devuélvalo el mismo día.
+            Busque en el inventario de files de EFAMEINSA y OPEN INVESTMENTS que lleva Central: cada resultado dice de qué empresa es y en qué estante y cajón está. Agregue uno o varios; Central recibe el aviso, se lo entrega y usted firma con «Recibí el file». Al terminar apriete «Terminé, pueden recogerlo» y Central pasa por él; devuélvalo el mismo día.
           </p>
           <PedirFiles />
         </SeccionPanel>
@@ -213,6 +218,17 @@ export default async function FilesPage() {
                 {prestados.map((f) => fila(f, <AccionFile id={f.id} accion="devolver" variante={f.termine_at ? "default" : "outline"} />, true, true))}
               </ul>
             )}
+          </SeccionPanel>
+          {/* 0381, Central 02-10: ella misma agrega los files nuevos y los cambia de lugar. */}
+          <SeccionPanel titulo="Inventario de files">
+            <p className="mb-3 text-xs text-muted-foreground">
+              Lo que se busca al pedir files. Agregue los files nuevos (por ejemplo, los de un cierre reciente), corrija el estante o el cajón cuando los cambie de lugar y dé de baja los que ya no están en el archivador.
+            </p>
+            <InventarioFiles />
+          </SeccionPanel>
+          {/* 02-10, Santos: medir cuánto tarda cada paso, en horario de oficina. */}
+          <SeccionPanel titulo="Tiempos de los files">
+            <TiemposDeFiles filas={filas} />
           </SeccionPanel>
         </>
       )}

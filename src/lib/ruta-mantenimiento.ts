@@ -188,6 +188,20 @@ export type EstadoMantenimiento = "nunca" | "vencido" | "al_dia" | "sin_dato";
 export type EstadoCompra = "menos_1a" | "entre_1_2a" | "mas_2a" | "sin_dato";
 export type EstadoLlamada = "nunca" | "hace_mas_30d" | "reciente";
 
+/**
+ * EL CUARTO EJE: LA ANTIGÜEDAD, EN MESES (gerencia, 02-10). Carlos, mirando la
+ * tanda «Nunca le hicimos mantenimiento»: «nunca le hemos vendido
+ * mantenimiento porque lo hemos vendido hace 21 días […] por antigüedad, por
+ * meses». Y después: «puede ser con los que ya le vendiste, pero hace seis
+ * meses. Te permite filtrar: seis meses, un año, etc.».
+ *
+ * Es un piso, no un tramo: «6 meses o más» deja afuera la máquina recién
+ * vendida, que todavía no necesita el preventivo. Se mide con el mismo reloj
+ * de la campaña —desde el último mantenimiento o, si nunca hubo, desde la
+ * compra— para que sirva igual a «nunca» que a «vencido».
+ */
+export type AntiguedadMinima = "3" | "6" | "12" | "24";
+
 // Las etiquetas van cortas a propósito: cada desplegable ya lleva su rótulo al
 // lado («Mantenimiento», «Compró», «Llamada»), y con la frase entera adentro
 // los tres no entraban en una fila y se apilaban.
@@ -204,6 +218,25 @@ export const ETIQUETA_COMPRA: Record<EstadoCompra, string> = {
   mas_2a: "hace más de 2 años",
   sin_dato: "sin registro",
 };
+
+export const ETIQUETA_ANTIGUEDAD: Record<AntiguedadMinima, string> = {
+  "3": "3 meses o más",
+  "6": "6 meses o más",
+  "12": "1 año o más",
+  "24": "2 años o más",
+};
+
+/** Los mismos años que usa `estadoCompra` (365 y 730), para que no se contradigan. */
+const DIAS_ANTIGUEDAD: Record<AntiguedadMinima, number> = { "3": 90, "6": 180, "12": 365, "24": 730 };
+
+/**
+ * Si la máquina lleva al menos ese tiempo sin mantenimiento. Lo que no tiene
+ * ninguna fecha no cumple: no se le inventa una antigüedad.
+ */
+export function cumpleAntiguedad(f: FilaRuta, hoy: string, minimo: AntiguedadMinima): boolean {
+  const d = diasSinMantenimiento(f, hoy);
+  return d != null && d >= DIAS_ANTIGUEDAD[minimo];
+}
 
 export const ETIQUETA_LLAMADA: Record<EstadoLlamada, string> = {
   nunca: "nunca",
@@ -249,6 +282,8 @@ export interface FiltrosRuta {
   mant?: EstadoMantenimiento | null;
   compra?: EstadoCompra | null;
   llamada?: EstadoLlamada | null;
+  /** Antigüedad mínima sin mantenimiento (02-10). */
+  antig?: AntiguedadMinima | null;
   /**
    * «sin»: los clientes a los que no se les puede llamar porque no tienen
    * ningún teléfono cargado. Ariana, 10-09: «¿cómo voy a gestionar si no
@@ -274,6 +309,7 @@ export function filtrarRuta(filas: FilaRuta[], hoy: string, filtros: FiltrosRuta
     if (filtros.mant && estadoMantenimiento(f, hoy) !== filtros.mant) return false;
     if (filtros.compra && estadoCompra(f, hoy) !== filtros.compra) return false;
     if (filtros.llamada && estadoLlamada(f, hoy) !== filtros.llamada) return false;
+    if (filtros.antig && !cumpleAntiguedad(f, hoy, filtros.antig)) return false;
     if (filtros.tel === "sin" && tieneTelefono(f)) return false;
     if (filtros.tel === "con" && !tieneTelefono(f)) return false;
     if (!patron) return true;

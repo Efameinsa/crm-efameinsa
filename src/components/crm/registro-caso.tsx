@@ -120,7 +120,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
       setFicha(r);
       setBuscada(true);
       setBuscando(false);
-      if (!r) toast.info("Esa serie todavía no está en el parque instalado. Elija el cliente y el caso se registra igual.");
+      if (!r) toast.info("Esa serie todavía no está en el registro de máquinas. Elija el cliente y el caso se registra igual.");
     });
   }
 

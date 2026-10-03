@@ -27,7 +27,10 @@ import {
   sonarAlerta,
   sonarCampanada,
   sonarPrueba,
+  sonarWhatsapp,
 } from "@/lib/sonido-alerta";
+import { tituloDePestanaWhatsapp } from "@/lib/aviso-whatsapp";
+import { anunciarPendientesWhatsapp } from "@/lib/pendientes-whatsapp";
 import type { RolUsuario } from "@/types/database";
 
 interface Notificacion {
@@ -130,6 +133,14 @@ const ESTILO_AVISO: Record<
   whatsapp: {
     encabezado: "💬 WhatsApp — el cliente respondió",
     accion: "Abrir el chat",
+    duracion: Infinity,
+    tono: "success",
+  },
+  // El cliente escribió en un chat que ya tenía (comerciales, 02-10). Se queda
+  // hasta que lo toquen, como en el celular; uno por chat (ver `avisar`).
+  whatsapp_mensaje: {
+    encabezado: "💬 Le escribieron por WhatsApp",
+    accion: "Responder",
     duracion: Infinity,
     tono: "success",
   },
@@ -250,6 +261,11 @@ export function CampanaNotificaciones({
   /** Sin leer en toda la base, no solo entre las 15 que se muestran. */
   const [sinLeerTotal, setSinLeerTotal] = useState(0);
   const contenedorRef = useRef<HTMLDivElement>(null);
+  /** La ruta al momento del aviso: `avisar` vive dentro del efecto y no ve la actual. */
+  const rutaRef = useRef(ruta);
+  useEffect(() => {
+    rutaRef.current = ruta;
+  }, [ruta]);
   /**
    * Los avisos que esta ventana YA conoce, para que el repaso periódico pueda
    * distinguir lo nuevo. Existe por el hallazgo de Santos del 31-08 (ronda de
@@ -288,6 +304,10 @@ export function CampanaNotificaciones({
     window.dispatchEvent(
       new CustomEvent("crm:aviso", { detail: { tipo: n.tipo, url: n.url } }),
     );
+    if (n.tipo === "whatsapp_mensaje") {
+      avisarWhatsapp(n);
+      return;
+    }
     // La campanada triple suena EN TODAS LAS CUENTAS cuando el aviso exige
     // hacer algo (orden del 25-08: «para que sientan la presión al menos del
     // sonido»): prospecto nuevo (Central y gerencia), lead derivado
@@ -322,6 +342,26 @@ export function CampanaNotificaciones({
             onClick: () => router.push(n.url!),
           }
         : undefined,
+    });
+  }
+
+  /**
+   * El mensaje de un cliente, como lo avisa WhatsApp (comerciales, 02-10):
+   * su sonido propio, y una ventanita que dice QUIÉN arriba y QUÉ escribió
+   * debajo, con «Responder». Una sola por chat: si el mismo cliente vuelve a
+   * escribir, la ventanita se reemplaza (id = el chat) en vez de apilarse.
+   * Si el chat ya está abierto y a la vista, no se interrumpe: el mensaje
+   * aparece en la conversación, igual que en WhatsApp.
+   */
+  function avisarWhatsapp(n: Notificacion) {
+    if (document.visibilityState === "visible" && rutaRef.current === n.url) return;
+    sonarWhatsapp(n.id);
+    toast.success(`💬 ${n.titulo}`, {
+      id: n.url ?? n.id,
+      description: n.cuerpo ?? undefined,
+      duration: Infinity,
+      closeButton: true,
+      action: n.url ? { label: "Responder", onClick: () => router.push(n.url!) } : undefined,
     });
   }
 
@@ -471,8 +511,16 @@ export function CampanaNotificaciones({
               // Si el repaso ya la trajo, no se duplica ni vuelve a sonar.
               if (conocidasRef.current?.has(nueva.id)) return;
               conocidasRef.current?.add(nueva.id);
-              setNotificaciones((prev) => [nueva, ...prev.filter((n) => n.id !== nueva.id)].slice(0, 50));
-              setSinLeerTotal((n) => n + 1);
+              // El aviso de WhatsApp REEMPLAZA al pendiente del mismo chat (el
+              // servidor ya borró el anterior): no suma uno más al número.
+              const reemplaza = (n: Notificacion) =>
+                nueva.tipo === "whatsapp_mensaje" && n.tipo === "whatsapp_mensaje" && n.url === nueva.url && !n.leida_at;
+              let reemplazadas = 0;
+              setNotificaciones((prev) => {
+                reemplazadas = prev.filter(reemplaza).length;
+                return [nueva, ...prev.filter((n) => n.id !== nueva.id && !reemplaza(n))].slice(0, 50);
+              });
+              setSinLeerTotal((n) => Math.max(1, n + 1 - reemplazadas));
               avisar(nueva);
             },
           )
@@ -551,11 +599,67 @@ export function CampanaNotificaciones({
         ).length
       : 0;
 
+  // Los chats que escribieron y nadie abrió todavía, el más reciente primero.
+  const chatsEsperando = notificaciones.filter((n) => !n.leida_at && n.tipo === "whatsapp_mensaje");
+  const firmaChats = chatsEsperando.map((n) => `${n.id}|${n.titulo}`).join(",");
+
   useEffect(() => {
-    if (rol !== "central") return;
-    const base = document.title.replace(/^🔴 \(\d+\) /, "");
-    document.title = leadsSinLeer > 0 ? `🔴 (${leadsSinLeer}) ${base}` : base;
-  }, [rol, leadsSinLeer]);
+    anunciarPendientesWhatsapp(chatsEsperando.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firmaChats]);
+
+  /**
+   * EL TÍTULO DE LA PESTAÑA, que se ve aunque la persona esté en otra pestaña
+   * o en otro programa con el navegador al costado.
+   *
+   *  · Central con prospectos sin leer: «🔴 (n)» delante (25-08).
+   *  · Chats de WhatsApp esperando (02-10): con la pestaña a la vista, «💬 (n)»
+   *    delante; en segundo plano el título PARPADEA entre «💬 (2) Juan y 1
+   *    más» y el de la página, como WhatsApp Web — el movimiento es lo que se
+   *    nota de reojo.
+   *
+   * El título original se recuerda aparte: Next lo cambia al navegar, y lo
+   * que no empieza con nuestras marcas es el de la página.
+   */
+  const baseTituloRef = useRef<string | null>(null);
+  useEffect(() => {
+    const rojos = rol === "central" ? leadsSinLeer : 0;
+    const chats = firmaChats ? firmaChats.split(",").map((f) => ({ titulo: f.split("|").slice(1).join("|") })) : [];
+    const leerBase = () => {
+      if (!/^(🔴|💬) /.test(document.title)) baseTituloRef.current = document.title;
+      return baseTituloRef.current ?? document.title;
+    };
+    let tic = 0;
+    const pintar = () => {
+      const base = leerBase();
+      const rojo = rojos > 0 ? `🔴 (${rojos}) ` : "";
+      if (chats.length === 0) {
+        document.title = `${rojo}${base}`;
+        return;
+      }
+      tic += 1;
+      if (document.visibilityState === "visible") document.title = `${rojo}💬 (${chats.length}) ${base}`;
+      // Parpadea los primeros segundos y después se queda en el aviso: Chrome
+      // espacia los timers de una pestaña oculta hasta uno por minuto, y un
+      // parpadeo así de lento dejaría el aviso escondido la mitad del tiempo.
+      else document.title = tic % 2 || tic > 8 ? `${rojo}${tituloDePestanaWhatsapp(chats)}` : `${rojo}${base}`;
+    };
+    pintar();
+    if (chats.length === 0) return;
+    const timer = setInterval(pintar, 1500);
+    return () => {
+      clearInterval(timer);
+      document.title = leerBase();
+    };
+  }, [rol, leadsSinLeer, firmaChats, ruta]);
+
+  // Un chat sin responder vuelve a sonar cada 3 minutos, como el repique de
+  // Central: el que salió a atender a alguien vuelve y lo oye.
+  useEffect(() => {
+    if (!firmaChats) return;
+    const timer = setInterval(() => sonarWhatsapp(`repique-wa-${Date.now()}`), 180_000);
+    return () => clearInterval(timer);
+  }, [firmaChats]);
 
   useEffect(() => {
     if (rol !== "central" || leadsSinLeer === 0) return;

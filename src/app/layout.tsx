@@ -36,6 +36,18 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className="h-full antialiased">
+      <head>
+        {/* PILOTO LOCAL (23-09): por la red de la oficina el CRM se abre por
+            http://IP:8080, sin candado, y ahí el navegador no trae
+            crypto.randomUUID (registro rápido, adjuntos, WhatsApp la usan).
+            getRandomValues sí existe siempre: con eso se arma el mismo UUID v4. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "if(window.crypto&&!crypto.randomUUID){crypto.randomUUID=function(){var b=crypto.getRandomValues(new Uint8Array(16));b[6]=b[6]&15|64;b[8]=b[8]&63|128;var h=[].map.call(b,function(x){return(x+256).toString(16).slice(1)}).join('');return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20)}}",
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         {children}
         <Toaster />

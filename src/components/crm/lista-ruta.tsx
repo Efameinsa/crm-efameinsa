@@ -51,6 +51,7 @@ export function ListaRuta({
     mant: inicial.mant,
     compra: inicial.compra,
     llamada: inicial.llamada,
+    antig: inicial.antig,
     tel: inicial.tel,
   });
   const [visibles, setVisibles] = useState(POR_TANDA);
@@ -60,7 +61,7 @@ export function ListaRuta({
     const p = new URLSearchParams(cola ?? "");
     p.set("ver", ver);
     if (v.q) p.set("q", v.q); else p.delete("q");
-    for (const k of ["mant", "compra", "llamada", "tel"] as const) {
+    for (const k of ["mant", "compra", "llamada", "antig", "tel"] as const) {
       if (v[k]) p.set(k, v[k] as string); else p.delete(k);
     }
     window.history.replaceState(null, "", `${base}?${p.toString()}`);
@@ -92,10 +93,10 @@ export function ListaRuta({
   // Cuántos de esta pestaña no se pueden llamar, contados con la tanda puesta
   // pero sin el propio recorte del teléfono.
   const sinTelefono = filtrarRuta(enPestana, hoy, { ...filtros, tel: null }).filter((f) => !tieneTelefono(f)).length;
-  const lista = useMemo(() => ordenarRuta(filtrarRuta(enPestana, hoy, filtros), hoy), [enPestana, hoy, filtros.q, filtros.mant, filtros.compra, filtros.llamada, filtros.tel]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lista = useMemo(() => ordenarRuta(filtrarRuta(enPestana, hoy, filtros), hoy), [enPestana, hoy, filtros.q, filtros.mant, filtros.compra, filtros.llamada, filtros.antig, filtros.tel]); // eslint-disable-line react-hooks/exhaustive-deps
   const mostradas = lista.slice(0, visibles);
   const cerrada = pestana === "cerrados" || pestana === "cotizados";
-  const hayFiltro = Boolean(valores.q || valores.mant || valores.compra || valores.llamada || valores.tel);
+  const hayFiltro = Boolean(valores.q || valores.mant || valores.compra || valores.llamada || valores.antig || valores.tel);
 
   return (
     <SeccionPanel
@@ -154,7 +155,7 @@ export function ListaRuta({
           {hayFiltro && (
             <button
               type="button"
-              onClick={() => cambiarFiltros({ q: "", mant: null, compra: null, llamada: null, tel: null })}
+              onClick={() => cambiarFiltros({ q: "", mant: null, compra: null, llamada: null, antig: null, tel: null })}
               className="mt-2 inline-block cursor-pointer text-sm font-semibold text-primary hover:underline"
             >
               Quitar los filtros

@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies, headers } from "next/headers";
 import { CABECERA_DEMO, fetchSoloLectura } from "@/lib/solo-lectura";
 import { galletasDelEspejo } from "@/lib/supabase/espejo";
+import { fetchRedInterna, opcionesCookieSupabase, urlSupabaseServidor } from "@/lib/supabase/urls";
 
 // Cliente para Server Components / Server Actions / Route Handlers.
 // En Server Components la escritura de cookies falla silenciosamente a propósito:
@@ -15,12 +16,12 @@ export async function createClient() {
     const galletas = await galletasDelEspejo(demoId);
     if (!galletas) throw new Error("Esta cuenta de demostración no tiene cuenta original asignada.");
     const tarro = new Map(galletas.map((g) => [g.name, g.value]));
-    return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    return createServerClient(urlSupabaseServidor(), process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
       cookies: {
         getAll: () => [...tarro].map(([name, value]) => ({ name, value })),
         setAll: (lista) => lista.forEach(({ name, value }) => tarro.set(name, value)),
       },
-      global: { fetch: fetchSoloLectura() },
+      global: { fetch: fetchRedInterna(fetchSoloLectura()) },
     });
   }
   return createClientReal();
@@ -31,9 +32,11 @@ export async function createClientReal() {
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    urlSupabaseServidor(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: opcionesCookieSupabase,
+      global: { fetch: fetchRedInterna() },
       cookies: {
         getAll() {
           return cookieStore.getAll();

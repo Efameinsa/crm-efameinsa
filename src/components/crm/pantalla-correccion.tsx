@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { avisoCondicionPago } from "@/lib/condicion-pago-cotizacion";
 import { BuscadorEquiposModal, ReemplazarEquipoModal } from "@/components/crm/buscador-equipos-modal";
 import { GARANTIAS_FRECUENTES, IGV, LUGARES_ENTREGA } from "@/lib/pdf/series";
 import type { BorradorEnEdicion, CorreccionAbierta, ItemCarrito, ProductoCotizable } from "@/components/crm/tipos-cotizador";
@@ -647,6 +648,10 @@ export function PantallaCorreccion({
                 <Input id="saldo" disabled={vencida} value={saldo} onChange={(e) => setSaldo(e.target.value)} />
               </div>
             </div>
+            {/* Al corregir «al contado» (990-26, 02-10) el saldo del 70 % quedaba abajo. */}
+            {avisoCondicionPago(formaPago, saldo) && (
+              <p className="text-[11px] text-amber-700">{avisoCondicionPago(formaPago, saldo)}</p>
+            )}
             <div className="space-y-1">
               <Label htmlFor="vigencia" className="text-xs font-normal text-muted-foreground">
                 Vigencia (días)

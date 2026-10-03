@@ -142,6 +142,86 @@ async function llamar(fn: string, args: Record<string, unknown>) {
   return { error: null };
 }
 
+/** Un file del inventario físico de Central (0372). */
+export interface FileDelInventario {
+  id: string;
+  empresa: "efameinsa" | "open";
+  tipo: "archivador" | "file";
+  nombre: string;
+  /** «Estante PRIMERO · SEGUNDO CAJÓN» */
+  ubicacion: string | null;
+  anio: number | null;
+  documento: string | null;
+  /** Estante y cajón por separado, para corregirlos (0381). */
+  estante: string | null;
+  cajon: string | null;
+}
+
+type FilaInventario = { id: string; empresa: "efameinsa" | "open"; tipo: "archivador" | "file"; nombre: string; estante: string | null; cajon: string | null; anio: number | null; documento: string | null };
+
+/**
+ * INVENTARIO DE FILES (0372). Santos, 02-10: «en la búsqueda de solicitud de
+ * files, solo tenga esta data de Efameinsa y Open Investments». Se busca en
+ * el inventario que Central levantó al 23-09-2026, no en las fichas del CRM:
+ * cada resultado ya dice de qué empresa es y dónde está.
+ */
+export async function buscarInventarioFiles(q: string): Promise<FileDelInventario[]> {
+  await requerirPerfil();
+  const texto = q.trim();
+  if (texto.length < 3) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("buscar_inventario_files", { p_q: texto });
+  return ((data ?? []) as FilaInventario[]).map((f) => ({
+    id: f.id,
+    empresa: f.empresa,
+    tipo: f.tipo,
+    nombre: f.nombre,
+    ubicacion: [f.estante && `Estante ${f.estante}`, f.cajon].filter(Boolean).join(" · ") || null,
+    anio: f.anio,
+    documento: f.documento,
+    estante: f.estante,
+    cajon: f.cajon,
+  }));
+}
+
+/** Lo que Central escribe al agregar o corregir un file del inventario. */
+export interface DatosFileInventario {
+  empresa: "efameinsa" | "open";
+  tipo: "archivador" | "file";
+  nombre: string;
+  anio: number | null;
+  estante: string | null;
+  cajon: string | null;
+  documento: string | null;
+}
+
+/**
+ * Central agrega y corrige el inventario (0381). 02-10: «ella también debería
+ * poder agregarlos por el sistema para no estar dándome a mí las
+ * actualizaciones». Sin `id` agrega; con `id` corrige.
+ */
+export async function guardarFileInventario(id: string | null, d: DatosFileInventario) {
+  return llamar("inventario_files_guardar", {
+    p_id: id,
+    p_empresa: d.empresa,
+    p_tipo: d.tipo,
+    p_nombre: d.nombre,
+    p_anio: d.anio,
+    p_estante: d.estante,
+    p_cajon: d.cajon,
+    p_documento: d.documento,
+  });
+}
+
+/** El file ya no está en el archivador: deja de salir al pedir (no se borra). */
+export async function darDeBajaFileInventario(id: string) {
+  return llamar("inventario_files_baja", { p_id: id });
+}
+
+export async function solicitarFilesDelInventario(ids: string[], nota: string | null) {
+  return llamar("files_solicitar_inventario", { p_items: ids, p_nota: nota });
+}
+
 /** De qué empresa del grupo es el archivador que se pide (0341). */
 export type EmpresaFile = "open" | "efameinsa" | "ambos";
 

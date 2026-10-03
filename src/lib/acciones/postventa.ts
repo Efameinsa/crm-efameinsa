@@ -9,6 +9,7 @@ import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
+import { lineasGuia, type GuiaApertura } from "@/lib/apertura-servicio";
 
 /**
  * Las acciones del circuito de postventa (migración 0087).
@@ -44,7 +45,7 @@ function falla(mensaje: string) {
 function enCastellano(mensaje: string): string {
   const m = mensaje.replace(/^[A-Z0-9]{5}:\s*/, "");
   if (/duplicate key|ya existe|unique constraint/i.test(m)) {
-    return "Esa serie ya está registrada en otra máquina del parque. Revísela en la placa; si es la correcta, avise a operaciones.";
+    return "Esa serie ya está registrada en otra máquina. Revísela en la placa; si es la correcta, avise a operaciones.";
   }
   if (/ON CONFLICT|constraint|violates|null value|invalid input/i.test(m)) {
     return `No se pudo guardar por una falla del sistema, no por lo que escribió. Avise a operaciones (${m.slice(0, 120)}).`;
@@ -418,10 +419,18 @@ export async function verificarDireccion(
     agenciaDestino?: string | null;
     /** La dirección de la agencia donde el almacén lo deja: el primer destino (0345). */
     agenciaDireccion?: string | null;
+    /**
+     * Destino verificado (Rubí, 01-10, caso Ninamango): la empresa puede tener
+     * dirección fiscal en Lima y pedir el equipo para provincia. Cambia el
+     * circuito: preinstalación (videollamada antes / confirmación después) y
+     * puesta en marcha (en el lugar / remota).
+     */
+    destino?: "lima" | "provincia" | null;
     pin?: string | null;
   },
 ) {
   const supabase = await createClient();
+  if (datos.destino && datos.destino !== "lima" && datos.destino !== "provincia") return falla("El destino es Lima o provincia");
   if (!datos.direccion.trim()) return falla("Escriba la dirección tal como la confirmó el cliente");
   // El DNI de quien recibe es obligatorio (Lesly, 21-09: «tiene que ser obligatorio»).
   if (!datos.recibeDoc?.trim() || datos.recibeDoc.replace(/\D/g, "").length < 8) return falla("El DNI de quien recibe es obligatorio (8 dígitos): sin él la agencia no entrega");
@@ -439,6 +448,7 @@ export async function verificarDireccion(
       !igual(s.recibe_doc, datos.recibeDoc) ||
       (!!datos.recibeTelefono?.trim() && !igual(s.recibe_telefono, datos.recibeTelefono)) ||
       (!!datos.entregaModo && !igual(s.entrega_modo, datos.entregaModo)) ||
+      (!!datos.destino && !igual(s.modalidad, datos.destino)) ||
       (modo === "agencia" && (!igual(s.agencia_destino, datos.agenciaDestino) || !igual(s.agencia_direccion, datos.agenciaDireccion)))
     );
   });
@@ -453,6 +463,7 @@ export async function verificarDireccion(
       ...(datos.recibeNombre?.trim() ? { recibe_nombre: datos.recibeNombre.trim() } : {}),
       recibe_doc: datos.recibeDoc.trim(),
       ...(datos.recibeTelefono?.trim() ? { recibe_telefono: datos.recibeTelefono.trim() } : {}),
+      ...(datos.destino ? { modalidad: datos.destino } : {}),
       ...(datos.entregaModo
         ? {
             entrega_modo: datos.entregaModo,
@@ -676,7 +687,7 @@ export async function cerrarPedido(
       p_garantia_meses: garantia,
       p_meses_mantenimiento: mantenimiento,
     });
-    if (eParque) return falla(`La serie ${serie} no se pudo subir al parque: ${enCastellano(eParque.message)}`);
+    if (eParque) return falla(`La serie ${serie} no se pudo registrar: ${enCastellano(eParque.message)}`);
   }
 
   const { error } = await supabase
@@ -786,6 +797,8 @@ export interface EquipoDelPedido {
   protocolo_fotos: unknown;
   /** Lleva el código del modelo, no una serie de placa (coches, carros; 0302). */
   sin_serie?: boolean | null;
+  /** Sin serie todavía, y por qué (0378): importación, compra local o fabricación. */
+  sin_stock_motivo?: string | null;
   /** Segunda máquina de la misma unidad: la secadora de una torre (0359). */
   parte_de?: string | null;
   parte_nombre?: string | null;
@@ -795,7 +808,7 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   const supabase = await createClient();
   const { data } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie, parte_de, parte_nombre")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie, sin_stock_motivo, parte_de, parte_nombre")
     .eq("servicio_id", servicioId)
     .order("orden");
   if (data && data.length > 0) return data as EquipoDelPedido[];
@@ -807,7 +820,7 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   // de la primera consulta aunque la siembra ya estuviera en la base.
   const { data: sembrados } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie, parte_de, parte_nombre")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, sin_serie, sin_stock_motivo, parte_de, parte_nombre")
     .eq("servicio_id", servicioId)
     .gte("orden", 1)
     .order("orden");
@@ -889,7 +902,7 @@ export async function revisarLargoDeSerie(itemId: string, serie: string): Promis
   if (total < 10 || veces / total < 0.75 || largo === comun) return { aviso: null };
   const marcaBonita = marca.charAt(0) + marca.slice(1).toLowerCase();
   return {
-    aviso: `Las series ${marca === "LG" ? "LG" : marcaBonita} del parque tienen ${comun} caracteres (${veces} de ${total}) y esta tiene ${largo}: ${largo < comun ? "¿le falta" : "¿le sobra"} ${Math.abs(comun - largo) === 1 ? "un dígito" : `${Math.abs(comun - largo)} dígitos`}? Revise la placa.`,
+    aviso: `Las series ${marca === "LG" ? "LG" : marcaBonita} registradas tienen ${comun} caracteres (${veces} de ${total}) y esta tiene ${largo}: ${largo < comun ? "¿le falta" : "¿le sobra"} ${Math.abs(comun - largo) === 1 ? "un dígito" : `${Math.abs(comun - largo)} dígitos`}? Revise la placa.`,
   };
 }
 
@@ -906,6 +919,20 @@ export async function registrarCodigoSinSerie(itemId: string, servicioId: string
   if (error) return falla(enCastellano(error.message));
   const r = await avisarSiYaEstanTodas(supabase, servicioId);
   return { ...r, aviso: `Código puesto a ${n} unidad${n === 1 ? "" : "es"}` };
+}
+
+/**
+ * Por qué una máquina del pedido sigue sin serie (reunión 02-10, 0378): lo
+ * marca el almacén y deja filtrar «sin stock» en el control de pedidos.
+ * Motivo vacío lo quita.
+ */
+export async function marcarSinStock(itemId: string, motivo: string | null): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("marcar_sin_stock", { p_item: itemId, p_motivo: motivo || null });
+  if (error) return falla(enCastellano(error.message));
+  revalidatePath("/postventa/control");
+  revalidatePath("/postventa/macro");
+  return { error: null };
 }
 
 async function avisarSiYaEstanTodas(supabase: Awaited<ReturnType<typeof createClient>>, servicioId: string): Promise<{ error: string | null }> {
@@ -1176,6 +1203,10 @@ export async function guardarAperturaServicio(
     transporte?: string | null;
     nota?: string | null;
     direccionFinal?: string | null;
+    guia?: string | null;
+    guiaDetalle?: string | null;
+    coordinaContabilidad?: string | null;
+    coordinaLogistica?: string | null;
   },
 ) {
   await requerirPerfil();
@@ -1184,6 +1215,9 @@ export async function guardarAperturaServicio(
   const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
   if (datos.tipo && !["entrega", "entrega_puesta_marcha", "mantenimiento"].includes(datos.tipo)) {
     return falla("Ese no es uno de los tres formatos de apertura");
+  }
+  if (datos.guia && !["traslado", "materiales", "ambas"].includes(datos.guia)) {
+    return falla("Esa no es una de las guías que se pueden pedir");
   }
 
   const { error } = await supabase
@@ -1196,6 +1230,11 @@ export async function guardarAperturaServicio(
       transporte: limpio(datos.transporte),
       apertura_nota: limpio(datos.nota),
       direccion_final: limpio(datos.direccionFinal),
+      // undefined = no tocar: quien guarda desde otra pantalla no los borra.
+      ...(datos.guia !== undefined ? { apertura_guia: limpio(datos.guia) } : {}),
+      ...(datos.guiaDetalle !== undefined ? { apertura_guia_detalle: limpio(datos.guiaDetalle) } : {}),
+      ...(datos.coordinaContabilidad !== undefined ? { apertura_coordina_contabilidad: limpio(datos.coordinaContabilidad) } : {}),
+      ...(datos.coordinaLogistica !== undefined ? { apertura_coordina_logistica: limpio(datos.coordinaLogistica) } : {}),
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);
@@ -1229,7 +1268,14 @@ export async function marcarAperturaEnviada(servicioId: string, destino: "almace
   // revise y autorice la guía de salida. Ya no depende del correo.
   if (destino === "almacen") {
     const perfil = await requerirPerfil();
-    const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp").eq("id", servicioId).maybeSingle();
+    const { data: s } = await supabase
+      .from("servicios_postventa")
+      .select("cliente_texto, numero_pedido_erp, apertura_guia, apertura_guia_detalle")
+      .eq("id", servicioId)
+      .maybeSingle();
+    // La guía pedida en la apertura (0371) le llega a Finanzas, que es quien la autoriza.
+    const guia = lineasGuia(s?.apertura_guia as GuiaApertura | null, s?.apertura_guia_detalle);
+    const pideGuia = guia.length ? ` Se solicita: ${guia.join(" / ").toLowerCase()}.` : "";
     const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
     const pedido = s?.numero_pedido_erp ? ` (pedido ${s.numero_pedido_erp})` : "";
     const esPrueba = perfil.es_prueba === true;
@@ -1242,7 +1288,7 @@ export async function marcarAperturaEnviada(servicioId: string, destino: "almace
       }),
       notificarFinanzas({
         titulo: `Apertura por confirmar · ${quien}`,
-        cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme para que el almacén emita la guía de salida.`,
+        cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme para que el almacén emita la guía de salida.${pideGuia}`,
         url: "/finanzas/aperturas",
         esPrueba,
       }),

@@ -36,6 +36,9 @@ const EXCEPCIONES = new Map([
   // Al registrar la venta desde el informe (0148) lee la nota de UNA venta
   // por su id para mostrar el aviso; no cuenta ni suma.
   ["src/lib/acciones/cotizaciones.ts", "busca por id, no cuenta"],
+  // Corregir un informe ya emitido (30-09) muestra la fecha y el monto de SU
+  // venta, buscada por id; no cuenta ni suma.
+  ["src/app/(app)/comercial/cierres/[id]/editar/page.tsx", "busca por id, no cuenta"],
 ]);
 
 function archivos(dir: string): string[] {

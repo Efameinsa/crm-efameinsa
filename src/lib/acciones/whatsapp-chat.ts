@@ -16,7 +16,7 @@ import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { anuncioDe, type AnuncioDeLaConversacion } from "@/lib/whatsapp-marketing";
 import { digitosDeBusqueda } from "@/lib/contacto-whatsapp";
-import { enviarTexto, enviarMedia, enviarFichaEquipo, enviarProductosCatalogo, type TipoMedia } from "@/lib/whatsapp";
+import { enviarTexto, enviarMedia, enviarFichaEquipo, enviarProductosCatalogo, ventanaDe, type TipoMedia } from "@/lib/whatsapp";
 
 // Mismo bucket privado que los adjuntos de un lead (0029): un archivo, un
 // código, y una URL firmada de vida corta —acá basta con minutos, el tiempo
@@ -48,13 +48,18 @@ export interface ConversacionWhatsapp {
   de_anuncio: boolean;
   /** Cuándo entró ese clic: las 72 h se cuentan desde ahí, no desde el último mensaje (0265). */
   anuncio_at: string | null;
+  /**
+   * Mensajes del cliente que QUIEN MIRA todavía no vio (0374, 02-10): los que
+   * llegaron después de la última vez que abrió el chat. 0 = leído.
+   */
+  no_leidos: number;
 }
 
 
 const COLUMNAS_CONVERSACION =
-  "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, perfiles(nombre)";
+  "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, perfiles!wa_conversaciones_asignado_a_fkey(nombre)";
 
-export type FiltroConversaciones = "sin_atender" | "mias" | "todas" | "cerradas";
+export type FiltroConversaciones = "no_leidos" | "sin_atender" | "mias" | "todas" | "cerradas";
 
 /**
  * `comercialId`: para Central/gerencia, ver los chats de UN comercial en
@@ -64,7 +69,12 @@ export type FiltroConversaciones = "sin_atender" | "mias" | "todas" | "cerradas"
  * solo le devuelve lo suyo de todos modos, así que acá no hace falta
  * comprobar el rol a mano.
  */
-export async function conversacionesDe(filtro: FiltroConversaciones, comercialId?: string): Promise<ConversacionWhatsapp[]> {
+/**
+ * `mantener`: el chat que se está mirando sigue en «No leídos» aunque al
+ * abrirlo haya pasado a leído — en WhatsApp tampoco desaparece de la lista
+ * mientras uno lo lee.
+ */
+export async function conversacionesDe(filtro: FiltroConversaciones, comercialId?: string, mantener?: string): Promise<ConversacionWhatsapp[]> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -76,7 +86,8 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
     .select(COLUMNAS_CONVERSACION)
     .order("ultimo_mensaje_at", { ascending: false, nullsFirst: false });
 
-  if (filtro === "sin_atender") consulta = consulta.eq("estado", "sin_atender");
+  if (filtro === "no_leidos") consulta = consulta.neq("estado", "cerrada");
+  else if (filtro === "sin_atender") consulta = consulta.eq("estado", "sin_atender");
   else if (filtro === "mias") consulta = consulta.eq("asignado_a", user.id).neq("estado", "cerrada");
   else if (filtro === "cerradas") consulta = consulta.eq("estado", "cerrada");
   else consulta = consulta.neq("estado", "cerrada");
@@ -84,7 +95,82 @@ export async function conversacionesDe(filtro: FiltroConversaciones, comercialId
   if (comercialId) consulta = consulta.eq("asignado_a", comercialId);
 
   const { data } = await consulta;
+  // El filtro se decide con dos horas (último mensaje del cliente contra la
+  // última lectura), no contando mensajes: la base entrega hasta 1 000 filas
+  // por consulta y con cientos de chats los más viejos llegaban sin mensajes,
+  // como si estuvieran leídos (02-10, la pestaña decía 99+ y la lista vacía).
+  if (filtro === "no_leidos") {
+    const lecturas = await lecturasPropias(supabase);
+    const pendientes = (data ?? []).filter((c) => pendienteDeLeer(c, lecturas) || c.id === mantener);
+    return conUltimoTexto(supabase, pendientes);
+  }
   return conUltimoTexto(supabase, data ?? []);
+}
+
+/** La última vez que quien mira abrió cada chat (0374). RLS: solo las suyas. */
+async function lecturasPropias(supabase: Awaited<ReturnType<typeof createClient>>): Promise<Map<string, string>> {
+  const { data } = await supabase.from("wa_lecturas").select("conversacion_id, leido_at");
+  return new Map((data ?? []).map((l) => [l.conversacion_id as string, l.leido_at as string]));
+}
+
+/**
+ * Cuántos chats abiertos le escribieron a quien mira y no los abrió, para el
+ * número de la pestaña «No leídos». No trae mensajes: alcanza con comparar la
+ * hora del último mensaje del cliente con la de su última lectura.
+ */
+export async function contarChatsNoLeidos(comercialId?: string): Promise<number> {
+  const supabase = await createClient();
+  let consulta = supabase.from("wa_conversaciones").select("id, ultimo_mensaje_cliente_at, anuncio_at").neq("estado", "cerrada");
+  if (comercialId) consulta = consulta.eq("asignado_a", comercialId);
+  const [{ data }, lecturas] = await Promise.all([consulta, lecturasPropias(supabase)]);
+  return (data ?? []).filter((c) => pendienteDeLeer(c, lecturas)).length;
+}
+
+/**
+ * Un chat cuenta como no leído si el cliente escribió después de la última
+ * lectura Y todavía se le puede contestar desde el chat (ventana de 24 h, o
+ * 72 h si vino de un anuncio). Santos, 02-10: Moisés tenía 99+ con chats de
+ * hace días que ya había atendido por llamada; con la ventana cerrada desde
+ * acá no se puede hacer nada y solo tapaban lo nuevo. Si el cliente vuelve a
+ * escribir, la ventana se abre y el chat vuelve a la pestaña.
+ */
+function pendienteDeLeer(
+  c: { id: string; ultimo_mensaje_cliente_at: string | null; anuncio_at?: string | null },
+  lecturas: Map<string, string>,
+): boolean {
+  return noLeido(c.ultimo_mensaje_cliente_at, lecturas.get(c.id)) && ventanaDe(c.ultimo_mensaje_cliente_at, c.anuncio_at ?? null).abierta;
+}
+
+function noLeido(ultimoDelCliente: string | null, leidoAt: string | undefined): boolean {
+  if (!ultimoDelCliente) return false;
+  return !leidoAt || new Date(ultimoDelCliente).getTime() > new Date(leidoAt).getTime();
+}
+
+/** «Marcar como leídos»: los chats que se ven en la pestaña, de una vez (0374). */
+export async function marcarChatsLeidos(ids: string[]): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Su sesión venció: vuelva a entrar." };
+  if (ids.length === 0) return {};
+  const ahora = new Date().toISOString();
+  const { error } = await supabase
+    .from("wa_lecturas")
+    .upsert(ids.map((id) => ({ conversacion_id: id, user_id: user.id, leido_at: ahora })), { onConflict: "conversacion_id,user_id" });
+  if (error) return { error: error.message };
+  // Y sus avisos de la campana, para que el número verde del menú baje igual.
+  // De a 40: un `.in` con cientos de rutas revienta el largo de la URL (502).
+  for (let i = 0; i < ids.length; i += 40) {
+    await supabase
+      .from("notificaciones")
+      .update({ leida_at: ahora })
+      .eq("tipo", "whatsapp_mensaje")
+      .is("leida_at", null)
+      .in("url", ids.slice(i, i + 40).map((id) => `/whatsapp/${id}`));
+  }
+  revalidatePath("/whatsapp");
+  return {};
 }
 
 /**
@@ -131,14 +217,22 @@ async function conUltimoTexto(supabase: Awaited<ReturnType<typeof createClient>>
   if (data.length === 0) return [];
   const conIds = data.map((c) => c.id);
   const ultimos = new Map<string, string>();
+  // Los no leídos se cuentan con los mismos mensajes que ya se traían para
+  // el último texto: ninguna consulta de más por chat (0374).
+  const sinLeer = new Map<string, number>();
+  const lecturas = await lecturasPropias(supabase);
+  const conVentana = new Set(data.filter((c) => ventanaDe(c.ultimo_mensaje_cliente_at, c.anuncio_at).abierta).map((c) => c.id));
   if (conIds.length > 0) {
     const { data: mensajes } = await supabase
       .from("wa_mensajes")
-      .select("conversacion_id, texto, created_at")
+      .select("conversacion_id, texto, created_at, direccion, timestamp_meta")
       .in("conversacion_id", conIds)
       .order("created_at", { ascending: false });
     for (const m of mensajes ?? []) {
       if (!ultimos.has(m.conversacion_id)) ultimos.set(m.conversacion_id, m.texto ?? "(sin texto)");
+      if (m.direccion === "entrante" && conVentana.has(m.conversacion_id) && noLeido(m.timestamp_meta, lecturas.get(m.conversacion_id))) {
+        sinLeer.set(m.conversacion_id, (sinLeer.get(m.conversacion_id) ?? 0) + 1);
+      }
     }
   }
 
@@ -157,6 +251,9 @@ async function conUltimoTexto(supabase: Awaited<ReturnType<typeof createClient>>
     ultimo_texto: ultimos.get(c.id) ?? null,
     de_anuncio: Boolean(c.ctwa_clid),
     anuncio_at: c.anuncio_at ?? null,
+    // El globito cuenta mensajes; si los de este chat no entraron en la
+    // consulta (tope de 1 000 filas), al menos dice que hay uno.
+    no_leidos: sinLeer.get(c.id) ?? (pendienteDeLeer(c, lecturas) ? 1 : 0),
   }));
 }
 
@@ -189,7 +286,7 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
   const { data } = await supabase
     .from("wa_conversaciones")
     .select(
-      "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, referral, perfiles(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
+      "id, telefono, usuario_wa, nombre_wa, lead_id, asignado_a, estado, ultimo_mensaje_cliente_at, ultimo_mensaje_at, codigo_campania_wa, ctwa_clid, anuncio_at, referral, perfiles!wa_conversaciones_asignado_a_fkey(nombre), leads(codigo, nombre_contacto, oportunidad_id)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -217,6 +314,8 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
     de_anuncio: Boolean(data.ctwa_clid || data.referral),
     anuncio_at: data.anuncio_at ?? null,
     anuncio: anuncioDe(data.referral),
+    // Este chat se está mirando: para la pantalla abierta ya está leído.
+    no_leidos: 0,
     campania_nombre: (campania as { nombre: string } | null)?.nombre ?? null,
   };
 }

@@ -38,6 +38,7 @@ import {
   Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
 import type { RolUsuario } from "@/types/database";
 
 const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icono: LucideIcon }[]> = {
@@ -277,7 +278,7 @@ const ENLACE_RUTA = { href: "/comercial/ruta", etiqueta: "Ruta de mantenimiento"
 // «Mi parque» (Santos, 02-09): solo para quien vende mantenimiento —hoy
 // Ariana, con la llave `hace_postventa` que reparte Lesly—. Al resto de
 // comerciales no se les muestra hasta que gerencia decida.
-const ENLACE_PARQUE = { href: "/comercial/parque", etiqueta: "Mi parque", icono: Wrench };
+const ENLACE_PARQUE = { href: "/comercial/parque", etiqueta: "Mis clientes con máquinas", icono: Wrench };
 
 // La pantalla del administrador de operaciones (0114): el código que dicta y
 // lo que se hizo con él.
@@ -345,6 +346,7 @@ export function NavLateral({
   plegada?: boolean;
 }) {
   const pathname = usePathname();
+  const chatsEsperando = usePendientesWhatsapp();
   // Un comercial que además vende mantenimiento ve la barra de un comercial
   // más su ruta, y nada del área. Hasta el 27-08 se le sumaban las cuatro
   // pantallas de postventa, y Carlos lo cortó mirando el menú de Ariana: ella
@@ -467,12 +469,16 @@ export function NavLateral({
         const Icono = enlace.icono;
         // Las dos colas del área, y solo esas dos: un número en cada entrada
         // del menú deja de significar «lo urgente» y vuelve a ser ruido.
+        // Y los chats que le escribieron (02-10), en verde como en WhatsApp.
+        const esWhatsapp = enlace.href === "/whatsapp";
         const contador =
           enlace.href === "/postventa"
             ? contadorMiDia
             : enlace.href === "/postventa/atenciones"
               ? contadorAtenciones
-              : undefined;
+              : esWhatsapp
+                ? chatsEsperando
+                : undefined;
         return (
           <div key={enlace.href} className="contents">
           <Link
@@ -497,7 +503,11 @@ export function NavLateral({
                   <span
                     className={cn(
                       "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
-                      activo ? "bg-sidebar-primary-foreground/20" : "bg-sidebar-accent/70",
+                      esWhatsapp
+                        ? "bg-emerald-600 text-white"
+                        : activo
+                          ? "bg-sidebar-primary-foreground/20"
+                          : "bg-sidebar-accent/70",
                     )}
                   >
                     {contador}

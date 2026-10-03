@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ranuraDeHost } from "@/lib/auditoria";
 import { esFalloDeAutenticacion } from "@/lib/fallo-autenticacion";
+import { opcionesCookieSupabase, fetchRedInterna, urlSupabaseServidor } from "@/lib/supabase/urls";
 import { CABECERA_DEMO, COOKIE_DEMO, COOKIE_VISTA, CORREO_DEMO, MENSAJE_DEMO } from "@/lib/solo-lectura";
 import { usaVistaNueva } from "@/lib/propuesta/regla-vista";
 import { esRutaDeExportacion } from "@/lib/seguridad-conducta";
@@ -19,7 +20,7 @@ const RUTA_POR_ROL: Record<string, string> = {
 };
 
 export async function proxy(request: NextRequest) {
-  // AUDITORÍA (0160). En ver1…ver5.crm.efameinsa.com la sesión es de otra
+  // AUDITORÍA (0160). En ver1…ver9.efameinsa.com la sesión es de otra
   // persona y el CRM es SOLO LECTURA: cualquier escritura —las acciones de
   // servidor viajan por POST— se rechaza acá, antes de tocar nada. La única
   // excepción es la puerta por la que entra el token de un solo uso.
@@ -43,9 +44,11 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    urlSupabaseServidor(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: opcionesCookieSupabase,
+      global: { fetch: fetchRedInterna() },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -83,6 +86,14 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const esRutaLogin = pathname === "/login";
+
+  // DIAGNÓSTICO 01-10-2026 (quién entra por la red local y quién por internet):
+  // una línea por cambio de pantalla en el registro del servicio. Se lee con
+  // /opt/piloto/quien-entra-por-donde.sh. Quitar cuando todos vayan por la red local.
+  if (user && process.env.REGISTRAR_ACCESOS === "1") {
+    const ip = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "-";
+    console.log(`[acceso] ${user.id} ${request.headers.get("host") ?? "-"} ${ip} ${pathname}`);
+  }
 
   // CONDUCTA SOSPECHOSA (0373, Santos 02-10-2026): cada vez que una cuenta pide un documento
   // (PDF, reporte, Excel) se anota, y si son muchos seguidos se avisa a gerencia. Solo MIRA: la

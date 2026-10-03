@@ -63,14 +63,156 @@ export interface ClienteParque {
   mesesSinMantenimiento: number | null;
   estado: EstadoMantenimiento;
   garantiaHasta: string | null;
-  ultimaGestion: { at: string; quien: string; tipo: string } | null;
+  /**
+   * `quienClave` identifica a la persona igual aquí que en `enGestion` (su
+   * código, o su nombre si no tiene): es con lo que se filtra «quién lo hizo».
+   */
+  ultimaGestion: { at: string; quien: string; quienClave: string | null; tipo: string } | null;
   /**
    * El cliente pidió que no lo contacten (0217). No se le esconde de la lista
    * —desaparecer sin explicación es peor—: se marca, y no se le ofrece llamar.
    */
   noContactar: boolean;
   /** Oportunidad de mantenimiento ya abierta, por quien sea: se ve, no se duplica. */
-  enGestion: { oportunidadId: string; quien: string; desde: string; proximaAccion: string | null } | null;
+  enGestion: {
+    oportunidadId: string;
+    quien: string;
+    quienCorto: string;
+    quienClave: string | null;
+    desde: string;
+    proximaAccion: string | null;
+  } | null;
+}
+
+/**
+ * La misma persona tiene que dar la misma clave venga de donde venga: de la
+ * última actividad (0210) o de la oportunidad abierta. El código comercial es
+ * único; quien no lo tiene (gerencia, un perfil de área) va por su nombre.
+ */
+export function clavePersona(nombre: string | null, codigo: string | null): string | null {
+  return codigo?.trim() || nombre?.trim() || null;
+}
+
+/** «Ariana (PV1)»: primer nombre y código, como se lee en la lista. */
+export function nombreCorto(nombre: string | null, codigo: string | null): string {
+  if (!nombre) return "—";
+  return `${nombre.split(" ")[0]}${codigo ? ` (${codigo})` : ""}`;
+}
+
+/**
+ * LOS FILTROS DE «LAS VENTAS DE LA EMPRESA», puros para poder probarlos.
+ *
+ * Gerencia, 02-10 (Carlos, con Ariana y Gabriela vendiendo el preventivo):
+ *
+ *   · EL MES: «inclusive me das alternativas por año. Es más, ahora me vas a
+ *     dar por mes. Dentro de un año, por mes». El mes vive dentro del año: sin
+ *     año no hay mes.
+ *   · LA GESTIÓN: «así como el mes, porque ya hay año. Ahora el mes, ahora
+ *     quién lo hizo. Si no lo hizo, o le falta hacer, o está en proceso». Son
+ *     tres personas vendiendo lo mismo: cada una filtra lo suyo para continuar
+ *     SU gestión —«filtramos lo que ha hecho Ariana. Uy, Ariana soy yo,
+ *     entonces voy a continuar mi gestión»— y no toca al cliente que otra ya
+ *     está trabajando.
+ */
+export type EstadoGestionParque = "nadie" | "en_proceso" | "falta";
+
+export const ETIQUETA_GESTION_PARQUE: Record<EstadoGestionParque, string> = {
+  nadie: "Nadie lo ha llamado",
+  en_proceso: "En proceso",
+  falta: "Llamado, sin oportunidad abierta",
+};
+
+/**
+ * En qué está el cliente para la venta del mantenimiento:
+ *   · en proceso: ya hay una oportunidad de mantenimiento abierta, de quien sea;
+ *   · le falta: alguien habló con él pero no quedó nada abierto —le falta el
+ *     seguimiento—;
+ *   · nadie: no hay ninguna gestión registrada.
+ */
+export function estadoGestionParque(c: Pick<ClienteParque, "enGestion" | "ultimaGestion">): EstadoGestionParque {
+  if (c.enGestion) return "en_proceso";
+  if (c.ultimaGestion) return "falta";
+  return "nadie";
+}
+
+/**
+ * Quiénes tienen la mano en este cliente: el de la última gestión y el dueño
+ * de la oportunidad abierta. Si Ariana tiene abierta la oportunidad y la
+ * última llamada la hizo Gabriela, el cliente aparece para las dos — es
+ * justamente lo que cada una tiene que ver antes de llamar.
+ */
+export function personasDeGestion(c: Pick<ClienteParque, "enGestion" | "ultimaGestion">): string[] {
+  const claves = [c.ultimaGestion?.quienClave, c.enGestion?.quienClave].filter((x): x is string => Boolean(x));
+  return [...new Set(claves)];
+}
+
+export type OrigenParque = "postventa" | "comercial" | null;
+
+export interface FiltrosParque {
+  q?: string | null;
+  estado?: EstadoMantenimiento | null;
+  origen?: OrigenParque;
+  anio?: string | null;
+  /** "01".."12". Solo cuenta si hay año. */
+  mes?: string | null;
+  gestion?: EstadoGestionParque | null;
+  /** Clave de la persona (`clavePersona`). */
+  quien?: string | null;
+}
+
+export const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
+
+/** El orden del barrido (Carlos, 10-09): primero los que ya compraron mantenimiento. */
+export function deOrigenParque(c: Pick<ClienteParque, "ventasDePostventa">, origen: OrigenParque | undefined): boolean {
+  return origen === "postventa" ? c.ventasDePostventa > 0 : origen === "comercial" ? c.ventasDePostventa === 0 : true;
+}
+
+/** Todos los filtros se cruzan con Y, como en la ruta. */
+export function filtrarParque(todos: ClienteParque[], f: FiltrosParque): ClienteParque[] {
+  const patron = (f.q ?? "").trim().toLowerCase();
+  const mes = f.anio ? f.mes : null;
+  return todos.filter((c) => {
+    if (f.estado && c.estado !== f.estado) return false;
+    if (!deOrigenParque(c, f.origen)) return false;
+    const compra = c.ultimaCompraAt ?? "";
+    if (f.anio && compra.slice(0, 4) !== f.anio) return false;
+    if (mes && compra.slice(5, 7) !== mes) return false;
+    if (f.gestion && estadoGestionParque(c) !== f.gestion) return false;
+    if (f.quien && !personasDeGestion(c).includes(f.quien)) return false;
+    if (patron && !(c.razonSocial.toLowerCase().includes(patron) || (c.numDoc ?? "").includes(patron))) return false;
+    return true;
+  });
+}
+
+/** Cuántos clientes compraron en cada mes de ese año, para los botones. */
+export function mesesDelAnio(filas: ClienteParque[], anio: string): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const c of filas) {
+    const f = c.ultimaCompraAt ?? "";
+    if (f.slice(0, 4) !== anio) continue;
+    const mes = f.slice(5, 7);
+    if (/^\d{2}$/.test(mes)) m.set(mes, (m.get(mes) ?? 0) + 1);
+  }
+  return m;
+}
+
+/**
+ * Las personas que aparecen gestionando, con cuántos clientes cada una, de la
+ * que más tiene a la que menos. El nombre que se muestra es el corto.
+ */
+export function personasDelParque(filas: ClienteParque[]): { clave: string; nombre: string; n: number }[] {
+  const m = new Map<string, { clave: string; nombre: string; n: number }>();
+  for (const c of filas) {
+    const nombres = new Map<string, string>();
+    if (c.ultimaGestion?.quienClave) nombres.set(c.ultimaGestion.quienClave, c.ultimaGestion.quien);
+    if (c.enGestion?.quienClave) nombres.set(c.enGestion.quienClave, c.enGestion.quienCorto);
+    for (const [clave, nombre] of nombres) {
+      const prev = m.get(clave);
+      if (prev) prev.n += 1;
+      else m.set(clave, { clave, nombre, n: 1 });
+    }
+  }
+  return [...m.values()].sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre, "es"));
 }
 
 const ORDEN_ESTADO: Record<EstadoMantenimiento, number> = { nunca: 0, vencido: 1, sin_dato: 2, al_dia: 3 };
@@ -251,6 +393,8 @@ export async function cargarParque(
     c.enGestion = {
       oportunidadId: o.id as string,
       quien: p ? `${p.nombre}${p.codigo_comercial ? ` (${p.codigo_comercial})` : ""}` : "alguien",
+      quienCorto: p ? nombreCorto(p.nombre, p.codigo_comercial) : "alguien",
+      quienClave: p ? clavePersona(p.nombre, p.codigo_comercial) : null,
       desde: (o.created_at as string).slice(0, 10),
       proximaAccion: (o.proxima_accion as string | null) ?? null,
     };
@@ -273,7 +417,8 @@ export async function cargarParque(
     if (!c || c.ultimaGestion) continue;
     c.ultimaGestion = {
       at: g.realizada_at,
-      quien: g.quien ? `${g.quien.split(" ")[0]}${g.codigo ? ` (${g.codigo})` : ""}` : "—",
+      quien: nombreCorto(g.quien, g.codigo),
+      quienClave: clavePersona(g.quien, g.codigo),
       tipo: g.tipo,
     };
   }

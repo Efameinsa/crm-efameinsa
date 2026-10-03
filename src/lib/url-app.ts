@@ -37,6 +37,19 @@ export function urlApp(): string {
   return DOMINIO_PREVISTO;
 }
 
+/**
+ * Dirección absoluta para REDIRIGIR desde una ruta (route.ts), armada con el
+ * Host por el que entró la persona. 30-09-2026: detrás del nginx de la VM,
+ * `request.url` trae el origen interno (https://localhost:3000) y
+ * `new URL("/login", request.url)` mandaba al navegador a un sitio que no
+ * existe: se rompían «cuenta desactivada» y el cambio de vista (/demo/vista).
+ */
+export function urlDesdePeticion(ruta: string, request: { headers: Headers; url: string }): URL {
+  const host = (request.headers.get("x-forwarded-host") ?? request.headers.get("host"))?.split(",")[0].trim();
+  const proto = (request.headers.get("x-forwarded-proto") ?? new URL(request.url).protocol.replace(":", "")).split(",")[0].trim();
+  return new URL(ruta, host ? `${proto}://${host}` : request.url);
+}
+
 /** Enlace absoluto a una ruta del CRM, para lo que se lee fuera del sistema. */
 export function enlaceApp(ruta: string): string {
   return `${urlApp()}${ruta.startsWith("/") ? ruta : `/${ruta}`}`;

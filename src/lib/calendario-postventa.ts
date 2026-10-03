@@ -27,6 +27,8 @@ export interface EventoCalendario {
   tipo: string;
   titulo: string;
   cliente: string;
+  /** La ficha del cliente, para que su nombre lleve ahí (02-10). */
+  cuentaId?: string | null;
   ubicacion: string | null;
   /** «lima» | «provincia» | null cuando no se sabe. */
   zona: string | null;
@@ -99,6 +101,7 @@ export function eventosDePedido(s: ServicioPostventa): EventoCalendario[] {
   const cliente = s.cliente_texto ?? "Cliente sin nombre";
   const base = {
     cliente,
+    cuentaId: s.cuenta_id ?? null,
     ubicacion: s.ubicacion,
     zona: s.modalidad,
     href: `/postventa/pedidos/${s.id}`,
@@ -147,6 +150,7 @@ export interface CasoAgendable {
   proxima_accion_at: string | null;
   proxima_accion_hora: string | null;
   cliente: string;
+  cuentaId?: string | null;
   zona: string | null;
 }
 
@@ -160,6 +164,7 @@ export function eventoDeCaso(c: CasoAgendable): EventoCalendario | null {
     tipo: c.tipo_postventa ?? "caso",
     titulo: c.proxima_accion ?? "Atención programada",
     cliente: c.cliente,
+    cuentaId: c.cuentaId ?? null,
     ubicacion: null,
     zona: c.zona,
     href: `/comercial/oportunidades/${c.id}`,
@@ -254,6 +259,7 @@ export function eventoDeAtencion(a: {
   programada_at: string;
   tecnico: string | null;
   cliente: string;
+  cuentaId?: string | null;
   cerrado_at: string | null;
   zona: string | null;
 }): EventoCalendario {
@@ -270,6 +276,7 @@ export function eventoDeAtencion(a: {
     tipo: a.tipo === "puesta_en_marcha" ? "puesta_en_marcha" : "atencion_tecnica",
     titulo: `${etiqueta}${a.tecnico ? ` · ${a.tecnico}` : ""}`,
     cliente: a.cliente,
+    cuentaId: a.cuentaId ?? null,
     ubicacion: null,
     zona: a.zona,
     href: `/postventa/atenciones/${a.id}`,
@@ -287,6 +294,7 @@ export function eventoDeVisita(v: {
   fecha: string;
   hora: string | null;
   cancelada_at: string | null;
+  cuenta_id?: string | null;
 }): EventoCalendario {
   return {
     clave: `visita-${v.id}`,
@@ -295,6 +303,7 @@ export function eventoDeVisita(v: {
     tipo: "visita_planta",
     titulo: `Viene a planta: ${v.persona} · ${v.motivo}`,
     cliente: v.empresa,
+    cuentaId: v.cuenta_id ?? null,
     ubicacion: "Planta Efameinsa",
     zona: "lima",
     href: "/central/visitas",

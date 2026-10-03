@@ -7,6 +7,7 @@ import { queLoFrena, etiquetaResponsable, etiquetaTipoServicio, sinPrecios, type
 import { idsDeCuentasQueCasan, condicionCuentaIn } from "@/lib/buscar-cuentas";
 import { TablaHistoricaSeleccionable } from "@/components/crm/tabla-historica-seleccionable";
 import { cn } from "@/lib/utils";
+import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 /**
  * La cola de despachos (`servicios_postventa`), compartida entre el
@@ -192,7 +193,7 @@ function FilaDespacho({ servicio: s, alerta }: { servicio: ServicioPostventa; al
         {s.fecha_despacho ? fechaLima(s.fecha_despacho) : "—"}
       </span>
       <div className="min-w-[200px] flex-1">
-        <p className="text-sm font-medium text-foreground">{s.cliente_texto ?? "—"}</p>
+        <p className="text-sm font-medium text-foreground"><NombreAFicha cuentaId={s.cuenta_id}>{s.cliente_texto ?? "—"}</NombreAFicha></p>
         <p className="line-clamp-1 text-xs text-muted-foreground">{s.equipo ?? "Sin equipo"}</p>
         {!s.fecha_despacho && s.despacho_nota && (
           <p className="text-[11px] text-muted-foreground">{s.despacho_nota}</p>
@@ -245,7 +246,7 @@ function TablaHistoricaDespachos({ filas, verPrecios }: { filas: ServicioPostven
           {filas.map((s) => (
             <TableRow key={s.id}>
               <TableCell className="max-w-[220px] align-top text-xs font-medium whitespace-normal break-words">
-                {s.cliente_texto ?? "—"}
+                <NombreAFicha cuentaId={s.cuenta_id}>{s.cliente_texto ?? "—"}</NombreAFicha>
                 {s.fecha_confirmacion && (
                   <span className="block text-[11px] font-normal text-muted-foreground">
                     compra {fechaCalendario(s.fecha_confirmacion)}

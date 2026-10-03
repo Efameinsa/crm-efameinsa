@@ -60,6 +60,12 @@ const ACCIONES_FRECUENTES = [
   "Visitar al cliente",
 ] as const;
 
+// 01-10, a pedido de Gabriela (PV2): en postventa lo que sigue a una atención
+// es mandarle al cliente el informe técnico, y lo escribía a mano cada vez.
+// Solo en expedientes de postventa: a un comercial no le toca y sería un chip
+// más que leer.
+const ACCIONES_POSTVENTA = ["Enviar el informe técnico"] as const;
+
 function fechaISO(diasDesdeHoy: number): string {
   const d = new Date();
   d.setDate(d.getDate() + diasDesdeHoy);
@@ -541,7 +547,7 @@ export function RegistroRapido({
                     </p>
                   )}
                   <div className="flex flex-wrap gap-1.5">
-                    {ACCIONES_FRECUENTES.map((a) => (
+                    {[...ACCIONES_FRECUENTES, ...(esPostventa ? ACCIONES_POSTVENTA : [])].map((a) => (
                       <button
                         key={a}
                         type="button"

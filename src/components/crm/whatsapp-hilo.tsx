@@ -200,6 +200,30 @@ export function WhatsappHilo({
     fondoRef.current?.scrollTo({ top: fondoRef.current.scrollHeight });
   }, [mensajes.length]);
 
+  // LEÍDO ES HABERLO VISTO (0374, 02-10): al entrar, cuando llega un mensaje
+  // con la pestaña a la vista y al volver a la pestaña. La lista nunca marca:
+  // un enlace precargado no es haber abierto el chat. La cuenta de
+  // demostración mira con la sesión de otro y no deja rastro.
+  const cantidadMensajes = mensajes.length;
+  useEffect(() => {
+    if (document.cookie.split("; ").includes(`${COOKIE_DEMO}=1`)) return;
+    // OJO: supabase-js no manda la consulta hasta que alguien la espera
+    // (`then`/`await`). Con `void` sola nunca salió del navegador y ningún
+    // chat se marcaba leído (02-10, Moisés y Desiré: «ya lo leí y sigue
+    // apareciendo»; cero llamadas en el registro de nginx).
+    const marcar = () => {
+      if (document.visibilityState !== "visible") return;
+      createClient()
+        .rpc("marcar_chat_leido", { p_conversacion: conversacion.id })
+        .then(({ error }) => {
+          if (error) console.warn("No se pudo marcar el chat como leído:", error.message);
+        });
+    };
+    marcar();
+    document.addEventListener("visibilitychange", marcar);
+    return () => document.removeEventListener("visibilitychange", marcar);
+  }, [conversacion.id, cantidadMensajes]);
+
   // 72 h cuando vino de un anuncio, 24 en el resto (22-09).
   const estadoVentana = ventanaDe(conversacion.ultimo_mensaje_cliente_at, conversacion.anuncio_at);
   const ventana = estadoVentana.abierta;

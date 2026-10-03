@@ -34,9 +34,19 @@ export interface PasoTabla {
 export interface FilaTabla {
   id: string;
   cliente: string;
+  cuentaId?: string | null;
   equipo: string;
   pasos: PasoTabla[];
+  /** Máquinas sin serie, con el motivo que marcó el almacén (null: sin motivo). 0378. */
+  sinStock?: (string | null)[];
 }
+
+const MOTIVOS_SIN_STOCK: { clave: string; etiqueta: string }[] = [
+  { clave: "importacion", etiqueta: "por importar" },
+  { clave: "compra_local", etiqueta: "compra local" },
+  { clave: "fabricacion", etiqueta: "en fabricación" },
+  { clave: "sin_motivo", etiqueta: "sin motivo marcado" },
+];
 
 /** Cómo se llama cada paso cuando hay que hacerlo caber en una cabecera. */
 const CORTO: Record<string, string> = {
@@ -49,27 +59,53 @@ const CORTO: Record<string, string> = {
   apertura: "Apertura",
   despacho: "Despacho",
   puesta: "Puesta en marcha",
+  informe: "Informe enviado",
   cerrado: "Cerrado",
 };
 
-export function TablaPorPaso({ filas, falta, base }: { filas: FilaTabla[]; falta: string | null; base: string }) {
+export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: FilaTabla[]; falta: string | null; base: string; q?: string }) {
+  // Reunión 02-10: buscar al cliente por nombre en vez de Ctrl+F.
+  const buscado = q.trim().toLowerCase();
+  const filas = buscado ? todas.filter((f) => f.cliente.toLowerCase().includes(buscado) || f.equipo.toLowerCase().includes(buscado)) : todas;
   // Las columnas salen de los pasos que existen en los pedidos, en su orden.
   const columnas: { clave: string; etiqueta: string }[] = [];
   for (const f of filas) for (const p of f.pasos) if (!columnas.some((c) => c.clave === p.clave)) columnas.push({ clave: p.clave, etiqueta: CORTO[p.clave] ?? p.etiqueta });
+  // Orden fijo: «Informe enviado» solo existe en algunos pedidos y no puede
+  // quedar después de «Cerrado» por el pedido que tocó primero.
+  const orden = Object.keys(CORTO);
+  const lugar = (c: string) => (orden.includes(c) ? orden.indexOf(c) : orden.length - 1);
+  columnas.sort((a, b) => lugar(a.clave) - lugar(b.clave));
 
   // «prueba_sin_pedir» no es un paso: es la prueba pendiente que nadie le
   // pidió al almacén (el paso sin hacer y sin el «solicitado, sin respuesta»).
   // Reunión 23-09: la que se olvidó con Hortifrut.
-  const debe = (f: FilaTabla, clave: string) =>
-    clave === "prueba_sin_pedir"
+  // Reunión 02-10: «¿por qué no despachas? Porque no tienes el producto».
+  const debe = (f: FilaTabla, clave: string): boolean =>
+    clave === "sin_stock"
+      ? (f.sinStock?.length ?? 0) > 0
+      : clave.startsWith("sin_stock:")
+        ? (f.sinStock ?? []).some((m) => (m ?? "sin_motivo") === clave.slice(10))
+        : clave === "prueba_sin_pedir"
       ? f.pasos.some((p) => p.clave === "prueba" && !p.hecho && !p.trabado) && !f.pasos.some((p) => p.clave === "despacho" && p.hecho)
       : f.pasos.some((p) => p.clave === clave && !p.hecho);
   const pendientesPor = (clave: string) => filas.filter((f) => debe(f, clave)).length;
   const visibles = falta ? filas.filter((f) => debe(f, falta)) : filas;
-  const enlace = (clave: string | null) => `${base}?vista=paso${clave ? `&falta=${clave}` : ""}`;
+  const enlace = (clave: string | null) => `${base}?vista=paso${clave ? `&falta=${clave}` : ""}${buscado ? `&q=${encodeURIComponent(q.trim())}` : ""}`;
 
   return (
     <div className="space-y-3">
+      <form action={base} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="vista" value="paso" />
+        {falta && <input type="hidden" name="falta" value={falta} />}
+        <input
+          name="q"
+          defaultValue={q}
+          placeholder="Buscar cliente o equipo…"
+          className="h-8 w-64 rounded-md border border-border bg-background px-2 text-sm"
+        />
+        <button type="submit" className="h-8 rounded-md border border-border px-3 text-xs font-medium hover:bg-accent">Buscar</button>
+        {buscado && <Link href={`${base}?vista=paso${falta ? `&falta=${falta}` : ""}`} className="text-xs text-muted-foreground underline">Quitar búsqueda</Link>}
+      </form>
       {/* Los pendientes por paso, de un toque. Es la pregunta de Carlos hecha botón. */}
       <div className="flex flex-wrap items-center gap-1.5">
         <Link
@@ -117,20 +153,46 @@ export function TablaPorPaso({ filas, falta, base }: { filas: FilaTabla[]; falta
             Prueba sin pedir al almacén ({pendientesPor("prueba_sin_pedir")})
           </Link>
         )}
+        <Link
+          href={enlace("sin_stock")}
+          className={cn(
+            "rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors",
+            falta === "sin_stock"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-orange-500/50 bg-orange-500/10 text-orange-800 hover:bg-orange-500/20",
+          )}
+        >
+          Sin stock ({pendientesPor("sin_stock")})
+        </Link>
+        {falta?.startsWith("sin_stock") &&
+          MOTIVOS_SIN_STOCK.map((m) => (
+            <Link
+              key={m.clave}
+              href={enlace(`sin_stock:${m.clave}`)}
+              className={cn(
+                "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors",
+                falta === `sin_stock:${m.clave}` ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent",
+              )}
+            >
+              {m.etiqueta} ({pendientesPor(`sin_stock:${m.clave}`)})
+            </Link>
+          ))}
       </div>
 
       {visibles.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Ningún pedido tiene ese paso pendiente.</p>
+        <p className="text-sm text-muted-foreground">{buscado ? `Ningún pedido de «${q.trim()}»${falta ? " con ese paso pendiente" : ""}.` : "Ningún pedido tiene ese paso pendiente."}</p>
       ) : (
         // EL CLIENTE NO ENSANCHA LA TABLA (Carlos, 16-09: «hay una barra
         // horizontal que se va mucho a la derecha… horrible»). El nombre y el
         // equipo se cortan con puntos suspensivos dentro de una columna de
         // ancho fijo; con 122 pedidos la tabla medía 5 700 px.
-        <div className="overflow-x-auto rounded-md border border-border">
+        // Reunión 02-10: el encabezado queda fijo al bajar («al final no ven
+        // qué columna es»), así que la tabla lleva su propio scroll.
+        <div className="max-h-[75vh] overflow-auto rounded-md border border-border">
           <table className="w-full text-xs">
-            <thead>
+            <thead className="sticky top-0 z-20 bg-background">
               <tr className="border-b border-border bg-secondary/40 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                <th className="sticky left-0 bg-secondary/40 px-2 py-2 font-medium">Pedido</th>
+                <th className="sticky left-0 z-30 bg-secondary px-2 py-2 font-medium">Pedido</th>
                 {columnas.map((c) => (
                   <th key={c.clave} className={cn("px-2 py-2 text-center font-medium", falta === c.clave && "text-primary")}>
                     {c.etiqueta}

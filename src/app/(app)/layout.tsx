@@ -26,7 +26,7 @@ import { usaVistaNueva } from "@/lib/propuesta/vista";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const perfil = await requerirPerfil();
 
-  // La franja de auditoría (0160): en ver1…ver5 la sesión es de otra persona
+  // La franja de auditoría (0160): en ver1…ver9 la sesión es de otra persona
   // y hay que decirlo en todas las pantallas, arriba, sin que se pueda cerrar.
   const [cabeceras, tarro] = await Promise.all([headers(), cookies()]);
   const ranuraAuditoria = ranuraDeHost(cabeceras.get("host"));
