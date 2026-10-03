@@ -88,6 +88,8 @@ export interface DatosApertura {
   nota: string | null;
   direccion: string | null;
   direccionFinal: string | null;
+  /** Observación del destino (0388, Rubí 03-10): la sede o la dirección de la agencia en destino adonde tiene que llegar. */
+  destinoObservacion?: string | null;
   /** A domicilio o en agencia, y cuál (0259: en Cusco hay seis agencias). */
   entregaModo: "domicilio" | "agencia" | null;
   agenciaDestino: string | null;
@@ -209,7 +211,7 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     { n: 1, descripcion: "SERVICIO A REALIZAR", informacion: equipo, observaciones: d.hora ?? "—", notas },
     { n: 2, descripcion: "CLIENTE", informacion: `${d.cliente}${d.ruc ? `\nRUC: ${d.ruc}` : ""}`, observaciones: "" },
     { n: 3, descripcion: "PRIMER DESTINO", informacion: primerDestino, observaciones: "" },
-    { n: 4, descripcion: "DESTINO FINAL", informacion: destinoFinal, observaciones: "", resaltado: resaltadoDestino },
+    { n: 4, descripcion: "DESTINO FINAL", informacion: destinoFinal, observaciones: d.destinoObservacion?.trim() ?? "", resaltado: resaltadoDestino },
     { n: 5, descripcion: "PROGRAMACIÓN", informacion: d.fecha ? fechaCalendario(d.fecha) : "—", observaciones: "" },
     { n: 6, descripcion: "PERSONA QUE RECIBE", informacion: recibe, observaciones: "" },
     { n: 7, descripcion: "PERSONAL ASIGNADO PARA EL SERVICIO", informacion: d.tecnico ?? "—", observaciones: "" },

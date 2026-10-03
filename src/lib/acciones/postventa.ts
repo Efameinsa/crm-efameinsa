@@ -1245,6 +1245,8 @@ export async function guardarAperturaServicio(
     transporte?: string | null;
     nota?: string | null;
     direccionFinal?: string | null;
+    /** La sede o dirección de la agencia en destino (0388, Rubí 03-10). */
+    destinoObservacion?: string | null;
     guia?: string | null;
     guiaDetalle?: string | null;
     coordinaContabilidad?: string | null;
@@ -1272,6 +1274,7 @@ export async function guardarAperturaServicio(
       transporte: limpio(datos.transporte),
       apertura_nota: limpio(datos.nota),
       direccion_final: limpio(datos.direccionFinal),
+      ...(datos.destinoObservacion !== undefined ? { destino_observacion: limpio(datos.destinoObservacion) } : {}),
       // undefined = no tocar: quien guarda desde otra pantalla no los borra.
       ...(datos.guia !== undefined ? { apertura_guia: limpio(datos.guia) } : {}),
       ...(datos.guiaDetalle !== undefined ? { apertura_guia_detalle: limpio(datos.guiaDetalle) } : {}),

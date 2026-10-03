@@ -40,6 +40,7 @@ export function AperturaServicioPanel({
     transporte: string | null;
     nota: string | null;
     direccionFinal: string | null;
+    destinoObservacion: string | null;
     guia: GuiaApertura | null;
     guiaDetalle: string | null;
     coordinaContabilidad: string | null;
@@ -96,6 +97,7 @@ export function AperturaServicioPanel({
         transporte: v.transporte,
         nota: v.nota,
         direccionFinal: v.direccionFinal,
+        destinoObservacion: v.destinoObservacion,
         guia: v.guia,
         guiaDetalle: v.guia ? v.guiaDetalle : null,
         coordinaContabilidad: v.coordinaContabilidad,
@@ -258,6 +260,21 @@ export function AperturaServicioPanel({
               value={v.direccionFinal ?? ""}
               onChange={cambiar("direccionFinal")}
               placeholder="ej. LOTE 14 TOMA DE BAUTISTA, GROCIO PRADO – CHINCHA – ICA"
+              className={ENTRADA}
+            />
+          </Campo>
+          {/* Rubí, 03-10: «en la parte de destino debería ir una opción para observación,
+              para detallar la sede o dirección de la agencia en destino». */}
+          <Campo
+            etiqueta="Observación del destino"
+            ayuda="La sede o la dirección de la agencia en destino adonde tiene que llegar el pedido. Sale en la fila «Destino final», en observaciones."
+            ancho
+          >
+            <textarea
+              value={v.destinoObservacion ?? ""}
+              onChange={cambiar("destinoObservacion")}
+              rows={2}
+              placeholder="ej. Recoge en Espinoza Cargo, sede El Tambo: Av. Huancavelica 1250 – Huancayo"
               className={ENTRADA}
             />
           </Campo>
