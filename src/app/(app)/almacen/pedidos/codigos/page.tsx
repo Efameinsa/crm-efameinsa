@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
+import { CasillasProcedencia } from "@/components/crm/casillas-procedencia";
 
 export const dynamic = "force-dynamic";
 
@@ -31,12 +32,12 @@ export default async function CodigosParaImprimirPage() {
     .limit(200);
   const pedidos = (data ?? []) as unknown as { id: string; cliente_texto: string | null; series_pedidas_at: string; informes_cierre: { codigo: string; serie: string } | null }[];
 
-  const unidades: { servicio_id: string; orden: number; descripcion: string }[] = [];
+  const unidades: { servicio_id: string; orden: number; descripcion: string; procedencia: string | null }[] = [];
   const ids = pedidos.map((p) => p.id);
   for (let i = 0; i < ids.length; i += 100) {
     const { data: filas } = await supabase
       .from("pedido_equipos")
-      .select("servicio_id, orden, descripcion")
+      .select("servicio_id, orden, descripcion, procedencia")
       .in("servicio_id", ids.slice(i, i + 100))
       .is("serie", null)
       .order("orden");
@@ -86,6 +87,7 @@ export default async function CodigosParaImprimirPage() {
                   <th className="w-10 border border-neutral-500 bg-neutral-100 px-2 py-0.5 text-left">N.º</th>
                   <th className="border border-neutral-500 bg-neutral-100 px-2 py-0.5 text-left">Artículo</th>
                   <th className="w-56 border border-neutral-500 bg-neutral-100 px-2 py-0.5 text-left">Serie o código</th>
+                  <th className="w-36 border border-neutral-500 bg-neutral-100 px-2 py-0.5 text-left">Procedencia</th>
                 </tr>
               </thead>
               <tbody>
@@ -94,6 +96,9 @@ export default async function CodigosParaImprimirPage() {
                     <td className="border border-neutral-500 px-2 py-1.5">{u.orden}</td>
                     <td className="border border-neutral-500 px-2 py-1.5">{u.descripcion.split("\n")[0]}</td>
                     <td className="border border-neutral-500 px-2 py-1.5" />
+                    <td className="border border-neutral-500 px-2 py-1 text-[10.5px] leading-tight">
+                      <CasillasProcedencia marcada={u.procedencia} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

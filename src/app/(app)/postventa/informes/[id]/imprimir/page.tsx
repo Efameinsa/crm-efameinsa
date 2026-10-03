@@ -79,7 +79,9 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
   const equipo = data.equipos_instalados as unknown as { serie: string; modelo_texto: string | null } | null;
   const elaborado = data.perfiles as unknown as { nombre: string } | null;
   const fotos = (data.fotos ?? []) as { path: string; etiqueta?: string }[];
-  const repuestos = (data.repuestos ?? []) as { codigo: string | null; descripcion: string; cantidad: number | null; precio: number | null; stock: string | null }[];
+  const repuestos = (data.repuestos ?? []) as { codigo: string | null; descripcion: string; cantidad: number | null; unidad?: string | null; precio: number | null; igv?: string | null; stock: string | null }[];
+  // Hasta cuatro decimales: así vienen del sistema (US$ 0.2401).
+  const dolares = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
   // Los materiales que faltan para instalar (0252): la lista con cantidades y costos que pidió Lesly.
   const materiales = (data.lista_materiales ?? []) as { descripcion: string; cantidad: number | null; costo: number | null }[];
   const totalMateriales = materiales.reduce((t, m) => t + (m.costo ?? 0) * (m.cantidad ?? 1), 0);
@@ -233,11 +235,11 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
                 <tr key={i}>
                   <td className="border border-neutral-500 px-2 py-1 font-mono">{r.codigo ?? "—"}</td>
                   <td className="border border-neutral-500 px-2 py-1">{r.descripcion}</td>
-                  <td className="border border-neutral-500 px-2 py-1">{r.cantidad != null ? `${r.cantidad} und` : "—"}</td>
+                  <td className="border border-neutral-500 px-2 py-1">{r.cantidad != null ? `${r.cantidad} ${r.unidad ?? "und"}` : "—"}</td>
                   {!sinCifras && (
                     <>
-                      <td className="border border-neutral-500 px-2 py-1">{r.precio != null ? `$${Number(r.precio).toFixed(2)}` : "—"}</td>
-                      <td className="border border-neutral-500 px-2 py-1">No incluye</td>
+                      <td className="border border-neutral-500 px-2 py-1">{r.precio != null ? dolares(Number(r.precio)) : "—"}</td>
+                      <td className="border border-neutral-500 px-2 py-1">{r.igv === "incluye" ? "Incluye" : "No incluye"}</td>
                     </>
                   )}
                   <td className="border border-neutral-500 px-2 py-1">{r.stock ?? "—"}</td>

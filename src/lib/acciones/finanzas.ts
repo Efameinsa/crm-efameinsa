@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar, notificarAlmacen, notificarFinanzas } from "@/lib/notificaciones";
-import { evaluarPagoParaDespacho, type ServicioPostventa } from "@/lib/postventa";
+import { evaluarPagoParaDespacho, textoComprobante, type ServicioPostventa } from "@/lib/postventa";
 
 /**
  * Lo que Finanzas escribe en el CRM (0279). Solo dos cosas, y las dos por
@@ -185,16 +185,27 @@ export async function solicitarConfirmacionPago(servicioId: string): Promise<Res
  * emite tu guía de salida»). Revisó la apertura que emitió postventa; el
  * almacén recibe el aviso.
  */
-export async function confirmarGuia(servicioId: string, nota: string) {
+export async function confirmarGuia(
+  servicioId: string,
+  nota: string,
+  /** Con qué comprobante sale (0384; Lesly, 02-10: «si tiene factura o boleta, nos pongan los números»). */
+  comprobante: { tipo: "factura" | "boleta" | "sin_comprobante" | null; numero: string },
+) {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
-  const { error } = await supabase.rpc("finanzas_confirmar_guia", { p_servicio: servicioId, p_nota: nota.trim() || null });
+  const { error } = await supabase.rpc("finanzas_confirmar_guia", {
+    p_servicio: servicioId,
+    p_nota: nota.trim() || null,
+    p_comprobante_tipo: comprobante.tipo,
+    p_comprobante_numero: comprobante.numero.trim() || null,
+  });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
   const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp").eq("id", servicioId).maybeSingle();
   const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+  const conQue = textoComprobante(comprobante.tipo, comprobante.numero.trim() || null);
   await notificarAlmacen({
     titulo: `Guía autorizada · ${quien}`,
-    cuerpo: `Finanzas revisó la apertura${s?.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: puede emitir la guía de salida.${nota.trim() ? ` Nota: ${nota.trim()}` : ""}`,
+    cuerpo: `Finanzas revisó la apertura${s?.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: puede emitir la guía de salida.${conQue ? ` ${conQue}.` : ""}${nota.trim() ? ` Nota: ${nota.trim()}` : ""}`,
     url: `/almacen/pedidos/${servicioId}`,
     esPrueba: perfil.es_prueba === true,
   });

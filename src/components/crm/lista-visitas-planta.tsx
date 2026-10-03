@@ -11,6 +11,8 @@ import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export interface VisitaFila {
   id: string;
+  /** Cliente o proveedor (0386): al proveedor lo registra el almacén. */
+  tipo_visitante?: string | null;
   empresa: string;
   ruc: string | null;
   persona: string;
@@ -85,7 +87,9 @@ export function ListaVisitasPlanta({
       <p className="vacio-visitas text-sm text-muted-foreground">
         {modo === "comercial"
           ? "No tiene visitas anunciadas. Se anuncian desde la ficha del cliente, con el botón «Viene a la planta»: nombre y DNI de cada persona, fecha, hora y motivo."
-          : "No hay visitas registradas para hoy ni para los próximos días. Se registran desde la ficha del cliente («Viene a la planta») por comerciales y postventa."}
+          : modo === "almacen"
+            ? "No hay visitas registradas para hoy ni para los próximos días. Los clientes los anuncian comerciales y postventa desde la ficha («Viene a la planta»); los proveedores, el almacén con «Registrar visita de proveedor»."
+            : "No hay visitas registradas para hoy ni para los próximos días. Se registran desde la ficha del cliente («Viene a la planta») por comerciales y postventa."}
       </p>
     );
   }
@@ -167,6 +171,9 @@ export function ListaVisitasPlanta({
                     )}
                   </p>
                   <p className="text-xs text-foreground">
+                    {v.tipo_visitante === "proveedor" && (
+                      <span className="mr-1 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-sky-800 dark:text-sky-200">Proveedor</span>
+                    )}
                     <NombreAFicha cuentaId={v.cuenta_id}>{v.empresa}</NombreAFicha>
                     {v.ruc && <span className="ml-1 text-muted-foreground">· RUC {v.ruc}</span>}
                     {v.telefono && <span className="ml-1 text-muted-foreground">· {v.telefono}</span>}
@@ -270,7 +277,7 @@ export function ListaVisitasPlanta({
           <table>
             <tbody>
               <tr><th>Fecha</th><td className="capitalize">{fechaLarga(imprimiendo.fecha)} · {hora(imprimiendo.hora)}</td></tr>
-              <tr><th>Empresa</th><td>{imprimiendo.empresa}{imprimiendo.ruc ? ` · RUC ${imprimiendo.ruc}` : ""}</td></tr>
+              <tr><th>{imprimiendo.tipo_visitante === "proveedor" ? "Proveedor" : "Empresa"}</th><td>{imprimiendo.empresa}{imprimiendo.ruc ? ` · RUC ${imprimiendo.ruc}` : ""}</td></tr>
               <tr><th>Persona</th><td>{imprimiendo.persona}{imprimiendo.dni ? ` · DNI ${imprimiendo.dni}` : ""}</td></tr>
               {(imprimiendo.acompanantes ?? []).map((a, i) => (
                 <tr key={i}><th>Acompañante</th><td>{a.nombre}{a.dni ? ` · DNI ${a.dni}` : ""}</td></tr>

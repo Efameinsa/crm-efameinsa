@@ -1,4 +1,5 @@
 import Link from "@/components/enlace";
+import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -183,13 +184,15 @@ export default async function AgendaPostventaPage({
         <input type="hidden" name="vista" value={vista} />
         <input type="hidden" name="fecha" value={fecha} />
         {zona && <input type="hidden" name="zona" value={zona} />}
-        <input
-          name="cliente"
-          defaultValue={cliente}
-          placeholder="Buscar cliente en el calendario…"
-          className="h-8 w-64 rounded-md border border-border bg-background px-2 text-sm"
-        />
-        <button type="submit" className="h-8 rounded-md border border-border px-3 text-xs font-medium hover:bg-accent">Buscar</button>
+        {/* Reunión 02-10 16:55: «debe cambiar dinámicamente, sin el Enter». */}
+        <div className="w-72 max-w-full">
+          <BusquedaEnVivo
+            name="cliente"
+            inicial={cliente}
+            placeholder="Buscar cliente en el calendario…"
+            fijos={{ ver: "calendario", vista, fecha, ...(zona ? { zona } : {}) }}
+          />
+        </div>
         {cliente && (
           <Link href={`/postventa/agenda?ver=calendario&vista=${vista}&fecha=${fecha}${zona ? `&zona=${zona}` : ""}`} className="text-xs text-muted-foreground underline">
             Ver todos

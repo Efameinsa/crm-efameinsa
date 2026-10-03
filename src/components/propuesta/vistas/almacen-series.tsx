@@ -98,7 +98,8 @@ export default async function AlmacenSeries() {
         <Lock className="mt-0.5 size-3.5 shrink-0" />
         <span>
           Escriba cada serie tal como se lee en la placa de la máquina. <b>Una vez guardada queda fija</b>: para corregirla hace falta el código de operaciones y el
-          motivo. Lo que no lleva serie (coches, carros) va con <b>un solo código para todas sus unidades</b>, desde el pedido.
+          motivo. Lo que no lleva serie (coches, carros) va con <b>un solo código para todas sus unidades</b>, desde el pedido. Y en cada
+          máquina marque su <b>procedencia: importación, compra local o fabricación</b>.
         </span>
       </p>
       {/* Para anotar en el almacén y pasarlo después (Lesly, 25-09): la misma hoja del CRM de siempre. */}

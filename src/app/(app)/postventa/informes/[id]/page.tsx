@@ -84,6 +84,9 @@ export default async function InformeServicioPage({ params }: { params: Promise<
     Boolean(perfil.es_postventa || perfil.hace_postventa || perfil.es_operaciones) ||
     ["gerencia", "admin", "operaciones"].includes(perfil.rol) ||
     Boolean(perfil.es_almacen && data.elaborado_por === perfil.id);
+  // Como en la hoja impresa: el almacén ve qué falta, no cuánto cuesta.
+  const sinCifras = Boolean(perfil.es_almacen) && !perfil.es_operaciones && !["gerencia", "admin"].includes(perfil.rol);
+  const repuestos = ((data.repuestos ?? []) as { codigo: string | null; descripcion: string; cantidad: number | null; unidad?: string | null; precio: number | null; igv?: string | null; stock: string | null }[]).filter((r) => r?.descripcion);
   const secciones = ((data.secciones ?? []) as { titulo: string; texto: string }[]).filter((x) => x.titulo?.trim() || x.texto?.trim());
   // Las correcciones hechas, con quién y quién autorizó.
   const { data: versionesData } = await supabase
@@ -202,6 +205,39 @@ export default async function InformeServicioPage({ params }: { params: Promise<
             <Bloque titulo="Accesorios necesarios para la instalación">{data.accesorios as string | null}</Bloque>
             <Bloque titulo="Observaciones y recomendaciones">{data.observaciones as string | null}</Bloque>
             <Bloque titulo="Pendientes con el cliente">{data.pendientes as string | null}</Bloque>
+          </div>
+        </SeccionPanel>
+      )}
+
+      {/* EL CUADRO PARA COTIZAR (0242; Lesly, 02-10): lo que el almacén anotó que le falta al cliente. */}
+      {repuestos.length > 0 && (
+        <SeccionPanel titulo={`Para cotizar · ${repuestos.length}`}>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[36rem] border-collapse text-xs">
+              <thead className="text-left text-[11px] text-muted-foreground">
+                <tr>
+                  {(sinCifras ? ["Código", "Descripción", "Cantidad", "Stock"] : ["Código", "Descripción", "Cantidad", "Precio", "IGV", "Stock"]).map((h) => (
+                    <th key={h} className="border-b border-border px-2 py-1.5 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {repuestos.map((r, i) => (
+                  <tr key={i} className="border-b border-border/60 align-top">
+                    <td className="px-2 py-1.5 font-mono">{r.codigo || "—"}</td>
+                    <td className="px-2 py-1.5">{r.descripcion}</td>
+                    <td className="px-2 py-1.5 whitespace-nowrap">{r.cantidad != null ? `${r.cantidad} ${r.unidad ?? "und"}` : "—"}</td>
+                    {!sinCifras && (
+                      <>
+                        <td className="px-2 py-1.5 whitespace-nowrap">{r.precio != null ? `$${Number(r.precio).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : "—"}</td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">{r.igv === "incluye" ? "Incluye" : "No incluye"}</td>
+                      </>
+                    )}
+                    <td className="px-2 py-1.5 whitespace-nowrap">{r.stock || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </SeccionPanel>
       )}

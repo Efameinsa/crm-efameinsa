@@ -10,6 +10,7 @@ import {
   type PedidoFinanzas,
 } from "@/lib/pagos-finanzas";
 import { fechaHoraLima } from "@/lib/fechas";
+import { textoComprobante } from "@/lib/postventa";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,8 @@ type FilaAp = {
   fecha_despacho: string | null;
   guia_confirmada_at: string | null;
   guia_confirmada_nota: string | null;
+  guia_comprobante_tipo: string | null;
+  guia_comprobante_numero: string | null;
   despachado_at: string | null;
 };
 
@@ -37,7 +40,7 @@ export default async function AperturasPorConfirmarPage() {
   const { data } = await supabase
     .from("servicios_postventa")
     .select(
-      "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, despachado_at",
+      "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, despachado_at",
     )
     .not("apertura_despacho_at", "is", null)
     .is("cerrado_at", null)
@@ -119,6 +122,7 @@ function FilaApertura({ f, p }: { f: FilaAp; p: PedidoFinanzas | undefined }) {
           <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-[#1E7F4F]">
             <CheckCircle2 className="size-3.5" /> Guía confirmada el{" "}
             {fechaHoraLima(f.guia_confirmada_at)}
+            {f.guia_comprobante_tipo ? ` · ${textoComprobante(f.guia_comprobante_tipo, f.guia_comprobante_numero)}` : ""}
             {f.guia_confirmada_nota ? ` · ${f.guia_confirmada_nota}` : ""}
           </p>
         )}

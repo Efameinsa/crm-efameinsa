@@ -24,11 +24,14 @@ export function BusquedaEnVivo({
   placeholder,
   name = "q",
   autoFocus = false,
+  fijos,
 }: {
   inicial: string;
   placeholder: string;
   name?: string;
   autoFocus?: boolean;
+  /** Parámetros que la búsqueda tiene que llevar aunque la URL no los traiga (la pestaña del calendario). */
+  fijos?: Record<string, string>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -54,6 +57,7 @@ export function BusquedaEnVivo({
     if (texto.trim() === enviado.current) return;
     const t = setTimeout(() => {
       const params = new URLSearchParams(sp.toString());
+      for (const [k, v] of Object.entries(fijos ?? {})) params.set(k, v);
       if (texto.trim()) params.set(name, texto.trim());
       else params.delete(name);
       params.delete("pagina");

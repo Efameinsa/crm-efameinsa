@@ -405,12 +405,19 @@ export const SECCIONES: Record<string, Seccion> = {
   },
   "operaciones/almacen": {
     titulo: "Almacén",
-    ayuda: "El día del almacén, sus pedidos, las aperturas que envía postventa, las llamadas derivadas, las atenciones y los informes técnicos.",
+    ayuda: "Lo mismo que ve el almacén: su día, lo que tiene por hacer, la generación de código, las aperturas, las llamadas, el calendario, las visitas y los informes técnicos.",
+    // LA VISTA DEL ALMACÉN, PARA LESLY (02-10): «vista de almacén para Lesly».
+    // Su sección tenía siete pestañas y le faltaban justo las colas del almacén
+    // —«Por hacer» y «Generación de código»— y el calendario. Ahora son las
+    // mismas pantallas que abre la cuenta del almacén, en el mismo orden.
     pestanas: [
       { clave: "", etiqueta: "Mi día", pagina: "almacen" },
-      { clave: "pedidos", etiqueta: "Pedidos", pagina: "almacen/pedidos" },
+      { clave: "por-hacer", etiqueta: "Por hacer", pagina: "vista:almacen-pedidos" },
+      { clave: "series", etiqueta: "Generación de código", pagina: "vista:almacen-series" },
+      { clave: "pedidos", etiqueta: "Todos los pedidos", pagina: "almacen/pedidos" },
       { clave: "aperturas", etiqueta: "Aperturas de postventa", pagina: "almacen/aperturas-postventa" },
       { clave: "llamadas", etiqueta: "Llamadas de postventa", pagina: "almacen/aperturas" },
+      { clave: "calendario", etiqueta: "Calendario", pagina: "almacen/agenda" },
       { clave: "atenciones", etiqueta: "Atenciones programadas", pagina: "almacen/atenciones" },
       { clave: "visitas", etiqueta: "Visitas a planta", pagina: "almacen/visitas" },
       { clave: "informes", etiqueta: "Informes técnicos", pagina: "almacen/informes" },

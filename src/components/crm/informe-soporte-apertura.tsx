@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
+import { TablaParaCotizar, filasComoTexto, filasParaGuardar, type FilaCotizar } from "@/components/crm/tabla-para-cotizar";
 
 /**
  * EL INFORME DE SOPORTE TÉCNICO DEL ALMACÉN (0297; Santos, 24-09, con la foto
@@ -109,7 +110,8 @@ export function InformeSoporteApertura({
   const [informeInicio, setInformeInicio] = useState(horaAhora());
   const [descripcion, setDescripcion] = useState(equipos);
   const [secciones, setSecciones] = useState<Seccion[]>(PLANTILLAS[tipo] ?? PLANTILLAS.soporte_videollamada);
-  const [faltantes, setFaltantes] = useState("");
+  // El cuadro para cotizar (Lesly, 02-10): una fila por repuesto.
+  const [paraCotizar, setParaCotizar] = useState<FilaCotizar[]>([]);
   const [fotos, setFotos] = useState<File[]>([]);
   const [documentos, setDocumentos] = useState<File[]>([]);
 
@@ -154,7 +156,7 @@ export function InformeSoporteApertura({
         horaInformeInicio: informeInicio || null,
         horaInformeFin: horaAhora(),
         secciones: conTexto,
-        pendientes: faltantes.trim() || null,
+        repuestos: filasParaGuardar(paraCotizar),
         fotos: fotosSubidas,
         documentos: docsSubidos,
         aperturaId,
@@ -163,7 +165,7 @@ export function InformeSoporteApertura({
       if (r.error || !idInforme) return void toast.error(r.error ?? "No se pudo guardar el informe");
       // El texto que postventa corrige para el cliente: las secciones, tal cual.
       const texto = conTexto.map((s) => `${s.titulo.toUpperCase()}:\n${s.texto.trim()}`).join("\n\n") || "Informe adjunto en Word/PDF.";
-      const r2 = await subirInformeApertura({ id: aperturaId, informe: texto, faltantes, fotos: fotosSubidas, informeServicioId: idInforme });
+      const r2 = await subirInformeApertura({ id: aperturaId, informe: texto, faltantes: filasComoTexto(paraCotizar), fotos: fotosSubidas, informeServicioId: idInforme });
       if (r2.error) return void toast.error(r2.error);
       toast.success("Informe guardado y numerado: postventa recibe el aviso para revisarlo");
       router.refresh();
@@ -227,9 +229,7 @@ export function InformeSoporteApertura({
         </Button>
       </div>
 
-      <Campo etiqueta="Lo que le falta al cliente (para cotizar)">
-        <Textarea rows={2} value={faltantes} onChange={(e) => setFaltantes(e.target.value)} placeholder="Uno por línea: válvula de gas, manguera, regulador…" />
-      </Campo>
+      <TablaParaCotizar filas={paraCotizar} onChange={setParaCotizar} />
 
       <TomarOSubirVarias titulo="Fotos o capturas de la llamada" archivos={fotos} onChange={setFotos} maximo={20} />
       <Documentos archivos={documentos} onChange={setDocumentos} />
