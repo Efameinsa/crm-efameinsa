@@ -50,6 +50,8 @@ export async function enviarAperturaLlamada(datos: {
   // Lesly (30-09): postventa escribe siempre a quién llama el almacén; puede ser un técnico
   // o un electricista del cliente que no está en la ficha.
   if ((datos.contacto ?? "").replace(/\D/g, "").length < 6) return falla("Escriba a quién va a llamar el almacén: nombre y celular");
+  // Lesly (03-10): llegaban sin técnico al almacén.
+  if (!datos.tecnico?.trim()) return falla("Escriba el técnico a cargo");
   const supabase = await createClient();
   const { data: id, error } = await supabase.rpc("enviar_apertura_llamada", {
     p_cuenta: datos.cuentaId,
@@ -111,7 +113,7 @@ export async function tomarApertura(id: string) {
   return listo(a?.servicio_id, a?.cuenta_id);
 }
 
-/** Postventa pone o cambia el técnico de la apertura (0297). */
+/** Postventa pone o cambia el técnico de la apertura (0297); el almacén también, mientras no suba el informe (0387, Lesly 03-10). */
 export async function asignarTecnicoApertura(id: string, tecnico: string) {
   await requerirPerfil();
   const supabase = await createClient();

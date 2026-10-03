@@ -212,9 +212,9 @@ export default async function AperturaPage({ params }: { params: Promise<{ id: s
             </div>
           )}
           <div>
-            <dt className="text-xs text-muted-foreground">Técnico a cargo (lo pone postventa)</dt>
+            <dt className="text-xs text-muted-foreground">Técnico a cargo</dt>
             <dd className="text-foreground">
-              {esPostventa && estado !== "anulada" ? <TecnicoApertura id={a.id} tecnico={a.tecnico} /> : (a.tecnico ?? <span className="text-amber-800">Sin asignar</span>)}
+              {(esPostventa || (esAlmacen && (estado === "enviada" || estado === "en_gestion"))) && estado !== "anulada" ? <TecnicoApertura id={a.id} tecnico={a.tecnico} /> : (a.tecnico ?? <span className="text-amber-800">Sin asignar</span>)}
             </dd>
           </div>
           <div>
