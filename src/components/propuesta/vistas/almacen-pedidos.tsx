@@ -1,7 +1,8 @@
-import { AlertTriangle, ClipboardCheck, FileText, Truck } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, FileText, PhoneForwarded, Truck } from "lucide-react";
 import Link from "@/components/enlace";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
+import { ETIQUETA_TIPO_APERTURA, type AperturaLlamada } from "@/lib/aperturas-llamada";
 import { ETIQUETA_TIPO_PEDIDO, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
 import type { PropsVista } from "@/lib/propuesta/vistas";
 import { Chips, FilaTrabajo, Grupo, Numero, Vacio, haceCuanto, type DatosFila, type Tono } from "@/components/propuesta/kit";
@@ -16,7 +17,7 @@ import { Chips, FilaTrabajo, Grupo, Numero, Vacio, haceCuanto, type DatosFila, t
  * Todo se hace en el pedido; acá solo se lee.
  */
 type Cliente = Awaited<ReturnType<typeof createClient>>;
-type Clave = "despachar" | "probar" | "fotos" | "guia" | "sinApertura" | "adelantar";
+type Clave = "despachar" | "llamadas" | "probar" | "fotos" | "guia" | "sinApertura" | "adelantar";
 
 const sinRuc = (s: string | null | undefined) => (s ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const primeraLinea = (s: string | null | undefined) => (s ?? "").split("\n")[0].trim();
@@ -28,6 +29,10 @@ const POR_GRUPO = 6;
 
 const GRUPOS: { clave: Clave; titulo: string; ayuda: string; tono: Tono }[] = [
   { clave: "despachar", titulo: "Por despachar", ayuda: "Tienen apertura de despacho: se pueden preparar y sacar. Lo atrasado y lo de hoy primero.", tono: "urgente" },
+  // LAS LLAMADAS EN EL «POR HACER» (Lesly, 03-10): «que en la vista de almacén
+  // donde indica por hacer también salgan los informes de llamadas pendientes».
+  // Las derivadas por postventa que el almacén todavía no informó.
+  { clave: "llamadas", titulo: "Llamadas: falta el informe", ayuda: "Derivadas por postventa: tómela y, al terminar, suba el informe.", tono: "atencion" },
   { clave: "probar", titulo: "Probar y embalar", ayuda: "Postventa pidió la prueba: falta el protocolo y el check.", tono: "atencion" },
   // Auditoría 25-09: la lista de siempre lo avisaba y esta vista no.
   { clave: "fotos", titulo: "Salieron, faltan las fotos de la carga", ayuda: "Suba las fotos de la máquina puesta en el transporte.", tono: "atencion" },
@@ -62,7 +67,33 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
       sub: [primeraLinea(s.equipo) || "Pedido", tipo, destino].filter(Boolean).join(" · "),
     };
   };
-  const out: Record<Clave, (DatosFila & { orden: string })[]> = { despachar: [], probar: [], fotos: [], guia: [], sinApertura: [], adelantar: [] };
+  const out: Record<Clave, (DatosFila & { orden: string })[]> = { despachar: [], llamadas: [], probar: [], fotos: [], guia: [], sinApertura: [], adelantar: [] };
+
+  // Las llamadas que esperan al almacén: el mismo criterio que «Mi día» (sin anular y sin informe).
+  const { data: llamadas } = await supabase
+    .from("aperturas_llamada")
+    .select("id, tipo, equipos, tecnico, programada_para, tomada_at, urgente, cuentas(razon_social)")
+    .is("anulada_at", null)
+    .is("informe_at", null)
+    .limit(500);
+  for (const a of (llamadas ?? []) as unknown as (Pick<AperturaLlamada, "id" | "tipo" | "equipos" | "tecnico" | "programada_para" | "tomada_at" | "urgente"> & { cuentas: { razon_social: string } | null })[]) {
+    const dia = diaLima(a.programada_para);
+    const hora = new Date(a.programada_para).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "numeric", minute: "2-digit" });
+    const tono: Tono = a.urgente || dia < hoy ? "urgente" : dia === hoy ? "atencion" : "neutro";
+    out.llamadas.push({
+      titulo: sinRuc(a.cuentas?.razon_social),
+      href: `/aperturas/${a.id}`,
+      sub: [ETIQUETA_TIPO_APERTURA[a.tipo], primeraLinea(a.equipos), a.tecnico].filter(Boolean).join(" · "),
+      orden: a.programada_para,
+      estado: {
+        texto: [a.urgente ? "Urgente" : null, dia < hoy ? `Atrasada · era el ${ddmm(dia, hoy)}` : dia === hoy ? `Hoy · ${hora}` : `Para el ${ddmm(dia, hoy)} · ${hora}`].filter(Boolean).join(" · "),
+        tono,
+      },
+      espera: a.tomada_at ? "Tomada: falta subir el informe" : "Nadie la tomó todavía",
+      tono,
+      accion: { etiqueta: a.tomada_at ? "Subir el informe" : "Tomar la llamada", href: `/aperturas/${a.id}` },
+    });
+  }
 
   for (const s of vivos) {
     const pedido = `/almacen/pedidos/${s.id}`;
@@ -140,10 +171,10 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
   return out;
 }
 
-/** El número de la pestaña: lo que el almacén puede mover (despachar con apertura, probar, guía). */
+/** El número de la pestaña: lo que el almacén puede mover (despachar con apertura, llamadas sin informe, probar, guía). */
 export async function conteo(supabase: Cliente): Promise<number> {
   const g = await clasificar(supabase);
-  return g.despachar.length + g.probar.length + g.guia.length;
+  return g.despachar.length + g.llamadas.length + g.probar.length + g.guia.length;
 }
 
 export default async function AlmacenPedidos({ searchParams, base }: PropsVista) {
@@ -153,13 +184,14 @@ export default async function AlmacenPedidos({ searchParams, base }: PropsVista)
   const total = GRUPOS.reduce((n, g) => n + grupos[g.clave].length, 0);
   const url = (clave: Clave | null) => (clave ? `${base}?ver=${clave}` : base);
   const atrasados = grupos.despachar.filter((f) => f.estado?.tono === "urgente").length + grupos.probar.filter((f) => f.estado?.tono === "urgente").length;
+  const llamadasAtrasadas = grupos.llamadas.filter((f) => f.estado?.tono === "urgente").length;
   const deHoy = grupos.despachar.filter((f) => f.estado?.texto.startsWith("Sale hoy")).length;
 
   if (total === 0) {
     return (
       <Vacio
-        titulo="El almacén no tiene pedidos pendientes"
-        porque="Aparecen acá cuando postventa pide una prueba, pone fecha de despacho o emite la apertura. También los que salieron sin guía."
+        titulo="El almacén no tiene pedidos ni llamadas pendientes"
+        porque="Aparecen acá cuando postventa pide una prueba, pone fecha de despacho, emite la apertura o deriva una llamada. También los que salieron sin guía."
         accion={{ etiqueta: "Ver todos los pedidos", href: "/almacen/pedidos" }}
       />
     );
@@ -168,9 +200,10 @@ export default async function AlmacenPedidos({ searchParams, base }: PropsVista)
   const visibles = ver ? GRUPOS.filter((g) => g.clave === ver) : GRUPOS;
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         <Numero icono={AlertTriangle} etiqueta="Atrasados" valor={atrasados} sub="Despachos con apertura o pruebas fuera de fecha" tono="urgente" href={url(grupos.despachar.some((f) => f.estado?.tono === "urgente") ? "despachar" : "probar")} />
         <Numero icono={Truck} etiqueta="Salen hoy" valor={deHoy} sub="Con apertura y fecha de hoy" tono="atencion" href={url("despachar")} />
+        <Numero icono={PhoneForwarded} etiqueta="Llamadas sin informe" valor={grupos.llamadas.length} sub={llamadasAtrasadas ? `${llamadasAtrasadas} atrasadas o urgentes` : "Derivadas por postventa"} tono={llamadasAtrasadas ? "urgente" : "atencion"} href={url("llamadas")} />
         <Numero icono={ClipboardCheck} etiqueta="Por probar" valor={grupos.probar.length} sub="Postventa pidió la prueba" tono="atencion" href={url("probar")} />
         <Numero icono={FileText} etiqueta="Falta la guía" valor={grupos.guia.length} sub="Ya salieron" tono="atencion" href={url("guia")} />
       </div>
