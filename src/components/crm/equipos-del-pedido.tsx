@@ -180,6 +180,12 @@ function Fila({
   // Varios PDF o Word por máquina (0297): el protocolo o el informe completo.
   const [docs, setDocs] = useState<File[]>([]);
   const [sumando, setSumando] = useState(false);
+  // La otra máquina de la torre se prueba con la unidad pero con lo suyo (Lesly, 03-10):
+  // «no da la opción para agregar las fotos y el informe de la otra máquina».
+  const [dePartes, setDePartes] = useState<Record<string, { protocolo: string; fotos: File[]; docs: File[] }>>({});
+  const deParte = (id: string) => dePartes[id] ?? { protocolo: "", fotos: [], docs: [] };
+  const cambiarParte = (id: string, cambio: Partial<{ protocolo: string; fotos: File[]; docs: File[] }>) =>
+    setDePartes((x) => ({ ...x, [id]: { ...deParte(id), ...cambio } }));
   const archivosGuardados = (Array.isArray(e.protocolo_fotos) ? e.protocolo_fotos : []) as FotoAlmacen[];
   const [lineaTitulo, ...resto] = e.descripcion.split("\n");
 
@@ -219,11 +225,11 @@ function Fila({
     else toast.error("No se pudo abrir el archivo");
   }
 
-  async function subir(archivos: File[], documentos: File[] = []): Promise<FotoAlmacen[] | null> {
+  async function subir(archivos: File[], documentos: File[] = [], sufijo = ""): Promise<FotoAlmacen[] | null> {
     const storage = createClient().storage.from("adjuntos");
     const salida: FotoAlmacen[] = [];
     for (const file of [...archivos, ...documentos]) {
-      const path = `pedidos/${servicioId}/almacen/protocolo-${e.orden}-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
+      const path = `pedidos/${servicioId}/almacen/protocolo-${e.orden}${sufijo}-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
       const { error } = await storage.upload(path, file, { contentType: file.type || "image/jpeg" });
       if (error) {
         toast.error(`No se pudo subir «${file.name}»: ${error.message}`);
@@ -333,6 +339,8 @@ function Fila({
                   Quitar
                 </button>
               )}
+              {e.prueba_lista_at && p.protocolo_ref && <span className="text-muted-foreground">· protocolo {p.protocolo_ref}</span>}
+              {modo !== "central" && <ArchivosDeParte p={p} servicioId={servicioId} probada={Boolean(e.prueba_lista_at)} />}
             </div>
           ))}
           {e.serie && !e.sin_serie && !despachado && partes.length < 3 && (
@@ -472,8 +480,23 @@ function Fila({
             <Input value={protocolo} onChange={(x) => setProtocolo(x.target.value)} placeholder={`N.º de protocolo (máquina ${e.orden})`} className="h-8 text-sm" />
             <Input value={nota} onChange={(x) => setNota(x.target.value)} placeholder="Nota: probada con carga, embalada en pallet…" className="h-8 text-sm" />
           </div>
-          <TomarOSubirVarias titulo="Fotos de esta máquina" archivos={fotos} onChange={setFotos} maximo={20} />
-          <Documentos archivos={docs} onChange={setDocs} titulo="Protocolo o informe de esta máquina (PDF o Word, varios)" />
+          <TomarOSubirVarias titulo={partes.length ? "Fotos de la primera máquina" : "Fotos de esta máquina"} archivos={fotos} onChange={setFotos} maximo={20} />
+          <Documentos archivos={docs} onChange={setDocs} titulo={partes.length ? "Protocolo o informe de la primera máquina (PDF o Word, varios)" : "Protocolo o informe de esta máquina (PDF o Word, varios)"} />
+          {partes.map((p) => (
+            <div key={p.id} className="space-y-1.5 border-t border-border pt-1.5">
+              <p className="text-[11px] font-semibold text-foreground">
+                {p.parte_nombre ?? "Otra máquina"} · serie {p.serie}
+              </p>
+              <Input
+                value={deParte(p.id).protocolo}
+                onChange={(x) => cambiarParte(p.id, { protocolo: x.target.value })}
+                placeholder={`N.º de protocolo (${(p.parte_nombre ?? "otra máquina").toLowerCase()}); vacío = el mismo de arriba`}
+                className="h-8 text-sm"
+              />
+              <TomarOSubirVarias titulo={`Fotos de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`} archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} maximo={20} />
+              <Documentos archivos={deParte(p.id).docs} onChange={(d) => cambiarParte(p.id, { docs: d })} titulo={`Protocolo o informe de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()} (PDF o Word, varios)`} />
+            </div>
+          ))}
           <Button
             size="sm"
             className="h-8"
@@ -482,8 +505,15 @@ function Fila({
               correr(async () => {
                 const subidas = await subir(fotos, docs);
                 if (!subidas) return { error: "No se subieron los archivos" };
-                return probarEquipoDelPedido(e.id, servicioId, { protocoloRef: protocolo, nota, fotos: subidas, cliente, equipo: lineaTitulo });
-              }, `Máquina ${e.orden} probada y embalada`)
+                const deLasPartes: { id: string; protocoloRef: string; fotos: FotoAlmacen[] }[] = [];
+                for (const p of partes) {
+                  const d = deParte(p.id);
+                  const s = await subir(d.fotos, d.docs, `-parte-${p.orden}`);
+                  if (!s) return { error: "No se subieron los archivos" };
+                  deLasPartes.push({ id: p.id, protocoloRef: d.protocolo, fotos: s });
+                }
+                return probarEquipoDelPedido(e.id, servicioId, { protocoloRef: protocolo, nota, fotos: subidas, cliente, equipo: lineaTitulo, partes: deLasPartes });
+              }, partes.length ? `Máquina ${e.orden} probada y embalada, con la ${(partes[0].parte_nombre ?? "otra máquina").toLowerCase()}` : `Máquina ${e.orden} probada y embalada`)
             }
           >
             {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />} Probada y embalada
@@ -549,5 +579,83 @@ function Fila({
         </div>
       )}
     </li>
+  );
+}
+
+/** Lo que se subió de la otra máquina de la torre, y sumar más después (0389, Lesly 03-10). */
+function ArchivosDeParte({ p, servicioId, probada }: { p: EquipoDelPedido; servicioId: string; probada: boolean }) {
+  const router = useRouter();
+  const [pendiente, startTransition] = useTransition();
+  const [abierto, setAbierto] = useState(false);
+  const [fotos, setFotos] = useState<File[]>([]);
+  const [docs, setDocs] = useState<File[]>([]);
+  const guardados = (Array.isArray(p.protocolo_fotos) ? p.protocolo_fotos : []) as FotoAlmacen[];
+  const nombre = (p.parte_nombre ?? "otra máquina").toLowerCase();
+
+  async function abrir(path: string) {
+    const { data } = await createClient().storage.from("adjuntos").createSignedUrl(path, 600);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+    else toast.error("No se pudo abrir el archivo");
+  }
+
+  function guardar() {
+    startTransition(async () => {
+      const storage = createClient().storage.from("adjuntos");
+      const subidas: FotoAlmacen[] = [];
+      for (const file of [...fotos, ...docs]) {
+        const path = `pedidos/${servicioId}/almacen/protocolo-parte-${p.orden}-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
+        const { error } = await storage.upload(path, file, { contentType: file.type || "image/jpeg" });
+        if (error) return void toast.error(`No se pudo subir «${file.name}»: ${error.message}`);
+        subidas.push({ path, nombre: file.name.slice(0, 120), tipo: file.type.slice(0, 100), etiqueta: docs.includes(file) ? "documento" : "protocolo" });
+      }
+      const r = await agregarArchivosDelEquipo(p.id, servicioId, subidas);
+      if (r.error) return void toast.error(r.error);
+      toast.success(`Archivos agregados a la ${nombre}`);
+      setFotos([]);
+      setDocs([]);
+      setAbierto(false);
+      router.refresh();
+    });
+  }
+
+  if (!probada && guardados.length === 0) return null;
+  return (
+    <div className="basis-full space-y-1.5 pl-2">
+      {guardados.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5">
+          {guardados.map((a, i) => (
+            <li key={i}>
+              <button
+                type="button"
+                onClick={() => abrir(a.path)}
+                className="inline-flex max-w-56 items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+                title={a.nombre}
+              >
+                {a.etiqueta === "documento" || /pdf|word|document/i.test(a.tipo ?? "") ? "📄" : "🖼️"} <span className="truncate">{a.nombre}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {probada &&
+        (abierto ? (
+          <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
+            <TomarOSubirVarias titulo={`Fotos de la ${nombre}`} archivos={fotos} onChange={setFotos} maximo={20} />
+            <Documentos archivos={docs} onChange={setDocs} titulo={`Protocolo o informe de la ${nombre} (PDF o Word)`} />
+            <div className="flex gap-1.5">
+              <Button size="sm" className="h-8" disabled={pendiente || fotos.length + docs.length === 0} onClick={guardar}>
+                {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} Guardar
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => setAbierto(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" className="text-[11px] font-medium text-primary hover:underline" onClick={() => setAbierto(true)}>
+            + Fotos o informe de la {nombre}
+          </button>
+        ))}
+    </div>
   );
 }

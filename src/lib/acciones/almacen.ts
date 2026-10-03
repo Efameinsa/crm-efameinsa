@@ -70,7 +70,15 @@ export async function marcarProbado(servicioId: string, datos: { protocoloRef?: 
 export async function probarEquipoDelPedido(
   itemId: string,
   servicioId: string,
-  datos: { protocoloRef?: string; fotos?: Foto[]; nota?: string; cliente: string; equipo: string },
+  datos: {
+    protocoloRef?: string;
+    fotos?: Foto[];
+    nota?: string;
+    cliente: string;
+    equipo: string;
+    /** La otra máquina de la torre (0389, Lesly 03-10): su protocolo, sus fotos y su informe. */
+    partes?: { id: string; protocoloRef?: string; fotos?: Foto[] }[];
+  },
 ): Promise<{ error: string | null; pedidoListo?: boolean }> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("almacen_probar_equipo", {
@@ -78,6 +86,7 @@ export async function probarEquipoDelPedido(
     p_protocolo_ref: datos.protocoloRef?.trim() || null,
     p_fotos: datos.fotos ?? [],
     p_nota: datos.nota?.trim() || null,
+    p_partes: (datos.partes ?? []).map((p) => ({ id: p.id, protocolo_ref: p.protocoloRef?.trim() || null, fotos: p.fotos ?? [] })),
   });
   if (error) return { error: limpiar(error.message) };
   const pedidoListo = data === true;
