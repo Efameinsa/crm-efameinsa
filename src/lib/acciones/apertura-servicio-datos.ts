@@ -111,6 +111,7 @@ export async function cargarHojaApertura(
     nota: s.apertura_nota ?? null,
     direccion: s.direccion_entrega ?? informe?.entrega_direccion ?? s.ubicacion ?? null,
     direccionFinal: s.direccion_final ?? null,
+    destinoObservacion: s.destino_observacion ?? null,
     entregaModo: s.entrega_modo ?? null,
     agenciaDestino: s.agencia_destino ?? null,
     agenciaDireccion: s.agencia_direccion ?? null,

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { FileText, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { guardarInformeServicio } from "@/lib/acciones/postventa";
-import { subirInformeApertura } from "@/lib/acciones/aperturas-llamada";
+import { asignarTecnicoApertura, subirInformeApertura } from "@/lib/acciones/aperturas-llamada";
 import type { TipoApertura } from "@/lib/aperturas-llamada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,6 +109,8 @@ export function InformeSoporteApertura({
   const [llamadaFin, setLlamadaFin] = useState("");
   const [informeInicio, setInformeInicio] = useState(horaAhora());
   const [descripcion, setDescripcion] = useState(equipos);
+  // El almacén pone o cambia el técnico aquí mismo (Lesly, 03-10: «quiere poner a otro técnico y ya no se puede»).
+  const [tecnicoInforme, setTecnicoInforme] = useState(tecnico ?? "");
   const [secciones, setSecciones] = useState<Seccion[]>(PLANTILLAS[tipo] ?? PLANTILLAS.soporte_videollamada);
   // El cuadro para cotizar (Lesly, 02-10): una fila por repuesto.
   const [paraCotizar, setParaCotizar] = useState<FilaCotizar[]>([]);
@@ -133,7 +135,13 @@ export function InformeSoporteApertura({
 
   function guardar() {
     if (conTexto.length === 0 && documentos.length === 0) return void toast.error("Escriba al menos una sección o adjunte el informe en Word o PDF");
+    const quien = tecnicoInforme.trim();
+    if (!quien) return void toast.error("Escriba el técnico a cargo");
     startTransition(async () => {
+      if (quien !== (tecnico ?? "").trim()) {
+        const rt = await asignarTecnicoApertura(aperturaId, quien);
+        if (rt.error) return void toast.error(rt.error);
+      }
       let fotosSubidas, docsSubidos;
       try {
         fotosSubidas = await subir(fotos, "fotos");
@@ -149,7 +157,7 @@ export function InformeSoporteApertura({
         tipo: TIPO_INFORME[tipo],
         modalidad: tipo === "atencion_in_situ" || tipo === "revision" ? "in_situ" : "videollamada",
         ejecutadoAt: `${fecha}T${llamadaInicio || "12:00"}:00-05:00`,
-        tecnico,
+        tecnico: quien,
         asunto,
         horaInicio: llamadaInicio || null,
         horaFin: llamadaFin || null,
@@ -192,8 +200,8 @@ export function InformeSoporteApertura({
           <Campo etiqueta="Hora de inicio del informe">
             <Input type="time" value={informeInicio} onChange={(e) => setInformeInicio(e.target.value)} />
           </Campo>
-          <Campo etiqueta="Técnico a cargo">
-            <Input value={tecnico ?? "Postventa todavía no lo asignó"} readOnly className="bg-muted/40" />
+          <Campo etiqueta="Técnico a cargo *">
+            <Input value={tecnicoInforme} onChange={(e) => setTecnicoInforme(e.target.value)} placeholder={tecnico ? undefined : "Postventa no lo asignó: escríbalo"} />
           </Campo>
         </div>
         <p className="mt-1 text-[11px] text-muted-foreground">

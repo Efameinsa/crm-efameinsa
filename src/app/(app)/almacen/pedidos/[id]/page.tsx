@@ -76,6 +76,12 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
               {servicio.direccion_entrega ?? servicio.ubicacion}
             </p>
           )}
+          {servicio.destino_observacion && (
+            <p className="inline-flex items-start gap-1 sm:col-span-2">
+              <MapPin className="mt-0.5 size-3.5 flex-none" />
+              <span className="whitespace-pre-wrap">Observación del destino: {servicio.destino_observacion}</span>
+            </p>
+          )}
           {servicio.fecha_despacho && <p>Despacho programado: <b className="text-foreground">{servicio.fecha_despacho}{servicio.despacho_hora ? ` · ${String(servicio.despacho_hora).slice(0, 5)}` : ""}</b>{servicio.despacho_nota ? ` · ${servicio.despacho_nota}` : ""}</p>}
           {servicio.recibe_nombre && <p>Recibe: {servicio.recibe_nombre}{servicio.recibe_telefono ? ` · ${servicio.recibe_telefono}` : ""}</p>}
           {servicio.numero_pedido_erp && <p>Pedido: {servicio.numero_pedido_erp}</p>}

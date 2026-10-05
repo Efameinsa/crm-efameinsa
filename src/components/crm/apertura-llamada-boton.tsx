@@ -193,6 +193,8 @@ export function AperturaLlamadaBoton({
     !fecha && "el día",
     !hora && "la hora",
     persona.replace(/\D/g, "").length < 6 && "a quién llama el almacén, con su celular",
+    // Lesly (03-10): enviaban sin técnico y el almacén no podía ponerlo.
+    !tecnico.trim() && "el técnico a cargo",
     urgente && pin.replace(/\D/g, "").length < 4 && "el código de gerencia",
   ].filter(Boolean) as string[];
   // Lo que queda vacío del formato no frena el envío (no siempre se sabe), pero se dice:
@@ -403,8 +405,10 @@ export function AperturaLlamadaBoton({
             </div>
           </div>
           <div className="grid gap-1">
-            <Label className="text-xs">Técnico a cargo</Label>
-            <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Lo pone postventa: el almacén lo ve y no lo cambia" />
+            <Label className="text-xs">
+              Técnico a cargo <span className="text-destructive">*</span>
+            </Label>
+            <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Quién atiende la llamada (el almacén lo puede cambiar)" />
           </div>
           {cuentaId && (parque?.length ?? 0) > 0 && (
             <div className="grid gap-1">

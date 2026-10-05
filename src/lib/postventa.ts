@@ -121,6 +121,8 @@ export interface ServicioPostventa {
   transporte?: string | null;
   apertura_nota?: string | null;
   direccion_final?: string | null;
+  /** La sede o dirección de la agencia en destino, al lado del destino final (0388, Rubí 03-10). */
+  destino_observacion?: string | null;
   /** La guía que se pide con la apertura y con quién coordina el técnico (0371, Lesly 02-10). */
   apertura_guia?: string | null;
   apertura_guia_detalle?: string | null;

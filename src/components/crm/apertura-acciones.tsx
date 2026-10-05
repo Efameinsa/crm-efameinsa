@@ -31,7 +31,7 @@ export function AccionesAlmacenApertura({ id, tecnico }: { id: string; tecnico: 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
       <p className="text-sm text-foreground">
-        Técnico asignado por postventa: <b>{tecnico ?? "todavía no lo asigna"}</b>
+        Técnico a cargo: <b>{tecnico ?? "sin asignar (escríbalo arriba o en el informe)"}</b>
       </p>
       <Button onClick={tomar} disabled={pendiente}>
         {pendiente ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
@@ -41,7 +41,7 @@ export function AccionesAlmacenApertura({ id, tecnico }: { id: string; tecnico: 
   );
 }
 
-/** Postventa pone o cambia el técnico (0297; Santos, 24-09). */
+/** Postventa pone o cambia el técnico (0297; Santos, 24-09); el almacén también antes del informe (0387, Lesly 03-10). */
 export function TecnicoApertura({ id, tecnico }: { id: string; tecnico: string | null }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
