@@ -36,7 +36,7 @@ import { LoQueTieneElClientePanel } from "@/components/crm/lo-que-tiene-el-clien
 import type { LoQueTieneElCliente } from "@/lib/lo-que-tiene-el-cliente";
 import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
 import { AYUDA_SERIE_EFAMEINSA, MOTIVO_SERIE_MINIMO, SERIE_POR_DEFECTO, problemaSerie } from "@/lib/serie-facturacion";
-import { ENTREGA_POR_DEFECTO, GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES, IGV, LUGARES_ENTREGA } from "@/lib/pdf/series";
+import { ENTREGA_POR_DEFECTO, GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES, IGV, LUGARES_ENTREGA, esSinGarantia } from "@/lib/pdf/series";
 import { netoDeBruto, redondear2, totalesConIgv } from "@/lib/igv";
 import { renglonEnSoles } from "@/lib/moneda-impresa";
 import {
@@ -1398,10 +1398,32 @@ export function PantallaCotizador({
                             )}
                           </>
                         ) : (
-                          <p className="text-sm font-medium text-foreground">
-                            {producto?.sku && <span className="font-mono text-xs font-bold text-primary">{producto.sku} · </span>}
-                            {item.nombre}
-                          </p>
+                          <>
+                            <p className="text-sm font-medium text-foreground">
+                              {producto?.sku && <span className="font-mono text-xs font-bold text-primary">{producto.sku} · </span>}
+                              {item.nombre}
+                            </p>
+                            {/* EL DETALLE DEL RENGLÓN (Gabriela, 03-10: «no me
+                                permite realizar modificaciones como la serie
+                                del equipo o, en un repuesto, que especifique
+                                para qué equipo es»). El nombre del catálogo no
+                                se toca; lo escrito acá sale impreso debajo,
+                                renglón por renglón. */}
+                            <Label className="mt-2 block text-[11px] text-muted-foreground">
+                              Detalle <span className="font-normal">— sale debajo, en el PDF (opcional)</span>
+                            </Label>
+                            <Textarea
+                              value={item.descripcion ?? ""}
+                              onChange={(e) => actualizarItem(i, { descripcion: e.target.value })}
+                              rows={2}
+                              placeholder={
+                                String(producto?.segmento) === "servicio"
+                                  ? "SERIE: …  ·  la máquina del cliente, cada dato en su renglón"
+                                  : "«Para la lavadora LG Titan Max 17 kg» · SERIE: …"
+                              }
+                              className="mt-0.5 min-h-14 text-sm"
+                            />
+                          </>
                         )}
                         {producto?.capacidad && (
                           <p className="text-xs text-muted-foreground">{producto.capacidad}</p>
@@ -1846,31 +1868,39 @@ export function PantallaCotizador({
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Sale impreso en la última página
                 </p>
-                {[
-                  ["Tiempo de entrega", tiempoEntrega],
-                  ["Garantía", garantia],
-                  ["Forma de pago", formaPago],
-                  ["Saldo", saldo],
-                ].filter(([, v]) => v.trim()).length === 0 ? (
-                  <p className="mt-1 text-[11px] text-amber-700">
-                    Sin ninguna condición: el cliente no va a leer ni entrega ni garantía.
-                  </p>
-                ) : (
-                  <ul className="mt-1 space-y-0.5">
-                    {[
-                      ["Tiempo de entrega", tiempoEntrega],
-                      ["Garantía", garantia],
-                      ["Forma de pago", formaPago],
-                      ["Saldo", saldo],
-                    ]
-                      .filter(([, v]) => v.trim())
-                      .map(([rotulo, valor]) => (
-                        <li key={rotulo} className="text-[11px] text-foreground">
-                          <span className="font-semibold">{rotulo}:</span> {valor}
-                        </li>
-                      ))}
-                  </ul>
-                )}
+                {(() => {
+                  // «Sin garantía» no se imprime (Gabriela, 03-10): acá
+                  // tampoco, para que lo que se ve sea lo que sale.
+                  const sinGarantia = esSinGarantia(garantia);
+                  const impresas = [
+                    ["Tiempo de entrega", tiempoEntrega],
+                    ["Garantía", sinGarantia ? "" : garantia],
+                    ["Forma de pago", formaPago],
+                    ["Saldo", saldo],
+                  ].filter(([, v]) => v.trim());
+                  return (
+                    <>
+                      {impresas.length === 0 ? (
+                        <p className="mt-1 text-[11px] text-amber-700">
+                          Sin ninguna condición: el cliente no va a leer ni entrega ni garantía.
+                        </p>
+                      ) : (
+                        <ul className="mt-1 space-y-0.5">
+                          {impresas.map(([rotulo, valor]) => (
+                            <li key={rotulo} className="text-[11px] text-foreground">
+                              <span className="font-semibold">{rotulo}:</span> {valor}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {sinGarantia && (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          «Sin garantía»: el PDF no lleva el renglón de garantía.
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
                 {avisoPago && <p className="mt-1 text-[11px] text-amber-700">{avisoPago}</p>}
               </div>
             </div>

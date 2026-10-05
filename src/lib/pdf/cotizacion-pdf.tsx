@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
-import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, notasDe, IGV, ENTREGA_POR_DEFECTO, type IdentidadSerie } from "./series";
+import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, notasDe, IGV, ENTREGA_POR_DEFECTO, esSinGarantia, type IdentidadSerie } from "./series";
 import { totalesConIgv } from "@/lib/igv";
 import { clasificarFicha } from "@/lib/ficha-tecnica";
 import { encajarEnCaja } from "./medir-imagen";
@@ -669,7 +669,9 @@ export function CotizacionPdf({
   const condicionesAcordadas = (
     [
       ["Tiempo de entrega", tiempoEntrega],
-      ["Garantía", garantia],
+      // «Sin garantía» no se imprime: lo que no se da no ocupa renglón
+      // (Gabriela, 03-10).
+      ["Garantía", esSinGarantia(garantia) ? null : garantia],
       ["Forma de pago", formaPago],
       ["Saldo", saldo],
     ] as [string, string | null][]
@@ -765,6 +767,23 @@ export function CotizacionPdf({
                     </Text>
                   </>
                 )}
+                {/* El detalle escrito en el renglón de un producto del
+                    catálogo —la serie, para qué máquina es el repuesto— va
+                    debajo (Gabriela, 03-10). En una línea a mano ya es el
+                    nombre, y no se repite. */}
+                {item.descripcionLinea?.trim() && item.descripcionLinea.trim() !== item.nombre.trim() ? (
+                  <>
+                    {"\n"}
+                    <Text style={{ fontSize: 8.5 }}>
+                      {item.descripcionLinea
+                        .split(/\r?\n/)
+                        .map((l) => l.trim())
+                        .filter(Boolean)
+                        .join("\n")
+                        .toUpperCase()}
+                    </Text>
+                  </>
+                ) : null}
               </Text>
               <Text style={[estilos.td, estilos.cCant]}>{item.cantidad}</Text>
               <Text style={[estilos.td, estilos.cPrecio]}>{monto(item.precio_unitario)}</Text>

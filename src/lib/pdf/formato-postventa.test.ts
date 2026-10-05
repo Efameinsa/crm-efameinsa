@@ -147,3 +147,51 @@ describe("el PDF de postventa", () => {
     expect(texto).not.toContain("377.60");
   }, 60000);
 });
+
+describe("«Sin garantía» no se imprime (Gabriela, 03-10)", () => {
+  it("reconoce las formas en que se escribe, y no las garantías reales", async () => {
+    const { esSinGarantia } = await import("./series");
+    expect(esSinGarantia("Sin garantía")).toBe(true);
+    expect(esSinGarantia("  SIN GARANTIA del servicio")).toBe(true);
+    expect(esSinGarantia("12 meses")).toBe(false);
+    expect(esSinGarantia("Garantía de fábrica")).toBe(false);
+    expect(esSinGarantia(null)).toBe(false);
+  });
+
+  // Un repuesto del catálogo con su detalle escrito en el renglón (para qué
+  // máquina es, la serie): Gabriela, 03-10.
+  const conDetalle = (garantia: string) =>
+    ({
+      codigo: "Presu_9996-26", correlativo: 9996, serie: "OPEN", moneda: "USD",
+      moneda_impresa: "USD", tipo_cambio: null, condiciones: null, vigencia_dias: 7,
+      entrega_lugar: null, tiempo_entrega: "Inmediata", forma_pago: "Contado", saldo: null,
+      created_at: "2026-10-03T15:00:00Z",
+      cliente_snapshot: { razon_social: "TOMY JIRO EIRL", tipo_doc: "RUC", num_doc: "20000000003", direccion: "Lima" },
+      oportunidades: null,
+      perfiles: { nombre: "Gabriela Palacios", cargo: "Post Venta", telefono: "504-1695", celular: null, email_contacto: "postventa2@efameinsa.com", email_open: null },
+      garantia,
+      cotizacion_items: [
+        {
+          cantidad: 1, precio_unitario: 90, color: null,
+          descripcion: "PARA LAVADORA LG TITAN MAX 17 KG\nSERIE: 507KWEL2A076",
+          productos: { nombre: "BOMBA DE DRENAJE", marca: "LG", modelo: "TITAN MAX", capacidad: null, categoria: null, segmento: "repuesto", ficha: null, foto_path: null, sku: null },
+        },
+      ],
+    }) as unknown as CotizacionParaPdf;
+
+  it("en el PDF de postventa: sin el renglón de garantía y con el detalle del repuesto", async () => {
+    const texto = await textoDelPdf(new Uint8Array(await renderizarCotizacionPdf(conDetalle("Sin garantía"), { postventa: true })));
+    expect(texto).toContain("BOMBA DE DRENAJE");
+    expect(texto).toContain("PARA LAVADORA LG TITAN MAX 17 KG");
+    expect(texto).toContain("SERIE: 507KWEL2A076");
+    expect(texto).not.toMatch(/sin\s+garant/i);
+    const conGarantia = await textoDelPdf(new Uint8Array(await renderizarCotizacionPdf(conDetalle("12 meses"), { postventa: true })));
+    expect(conGarantia).toContain("12 meses");
+  }, 60000);
+
+  it("en el PDF de equipos: igual", async () => {
+    const texto = await textoDelPdf(new Uint8Array(await renderizarCotizacionPdf(conDetalle("Sin garantía"))));
+    expect(texto).toContain("SERIE: 507KWEL2A076");
+    expect(texto).not.toMatch(/sin\s+garant/i);
+  }, 60000);
+});
