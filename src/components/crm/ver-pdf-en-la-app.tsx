@@ -33,7 +33,15 @@ export function VerPdfEnLaApp({
   children,
   title,
   "aria-label": ariaLabel,
+  antesDeAbrir,
 }: {
+  /**
+   * Lo que hay que terminar antes de pedir el PDF —el autoguardado del
+   * cotizador—. Con esto el documento se pide de nuevo CADA vez: el de un
+   * borrador cambia entre una mirada y otra (Gabriela, 05-10: «cambio el
+   * precio de 1250 a 1000 y en el PDF del borrador no aparece»).
+   */
+  antesDeAbrir?: () => Promise<unknown>;
   /** El endpoint que devuelve el PDF. Relativo, para que siga la sesión de esta dirección. */
   url: string;
   /** Cómo se llama el documento en la barra del visor y en la descarga. */
@@ -57,23 +65,53 @@ export function VerPdfEnLaApp({
 
   useEffect(() => {
     if (!abierto) return;
-    const cerrarConEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setAbierto(false); };
+    const cerrarConEsc = (e: KeyboardEvent) => { if (e.key === "Escape") cerrar(); };
     window.addEventListener("keydown", cerrarConEsc);
     return () => window.removeEventListener("keydown", cerrarConEsc);
   }, [abierto]);
+
+  // «ATRÁS» CIERRA EL VISOR (Gabriela, 05-10: «cuando ya está en el PDF y
+  // aprieta para atrás, sale a otra parte y es donde se pierde»). El visor
+  // ocupa toda la pantalla y se siente como una página: al abrirlo se suma un
+  // paso al historial con el mismo estado de Next, y el botón de atrás del
+  // navegador (o del mouse) lo saca a él, no a la pantalla de abajo.
+  const pasoPropio = useRef(false);
+  useEffect(() => {
+    if (!abierto) return;
+    const alVolver = () => {
+      pasoPropio.current = false;
+      setAbierto(false);
+    };
+    window.addEventListener("popstate", alVolver);
+    return () => window.removeEventListener("popstate", alVolver);
+  }, [abierto]);
+  function cerrar() {
+    if (pasoPropio.current) {
+      pasoPropio.current = false;
+      window.history.back();
+    }
+    setAbierto(false);
+  }
 
   async function abrir() {
     // En la app de Android el iframe no muestra PDF: el puente lo abre con su
     // propio visor (pdf.js) y con los mismos mensajes de error.
     if (esApp()) {
+      if (antesDeAbrir) await antesDeAbrir();
       void abrirDocumento(url, titulo);
       return;
     }
+    if (!abierto && !pasoPropio.current) {
+      window.history.pushState({ ...(window.history.state ?? {}), visorPdf: true }, "");
+      pasoPropio.current = true;
+    }
     setAbierto(true);
-    if (blobUrl || cargando) return;
+    if (cargando) return;
+    if (blobUrl && !antesDeAbrir) return;
     setCargando(true);
     setError(null);
     try {
+      if (antesDeAbrir) await antesDeAbrir();
       const r = await fetch(url, { cache: "no-store" });
       if (!r.ok) {
         // El servidor contesta en JSON cuando no puede dar el documento. Se
@@ -118,7 +156,7 @@ export function VerPdfEnLaApp({
           role="dialog"
           aria-modal="true"
           aria-label={titulo}
-          onClick={() => setAbierto(false)}
+          onClick={cerrar}
         >
           <div className="flex items-center gap-2 px-4 py-3 text-white" onClick={(e) => e.stopPropagation()}>
             <span className="min-w-0 flex-1 truncate text-sm">{titulo}</span>
@@ -147,7 +185,7 @@ export function VerPdfEnLaApp({
             )}
             <button
               type="button"
-              onClick={() => setAbierto(false)}
+              onClick={cerrar}
               className="rounded-full p-1.5 hover:bg-white/15"
               aria-label="Cerrar"
             >
@@ -170,7 +208,7 @@ export function VerPdfEnLaApp({
                 <p className="mt-2 text-sm leading-relaxed text-foreground">{error}</p>
                 <button
                   type="button"
-                  onClick={() => setAbierto(false)}
+                  onClick={cerrar}
                   className="mt-3 cursor-pointer rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent"
                 >
                   Volver

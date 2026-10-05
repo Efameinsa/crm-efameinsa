@@ -368,6 +368,10 @@ export function PantallaCotizador({
   // LA NOTA DEL PDF DE POSTVENTA, EDITABLE (Gabriela, 05-10: «no en todos
   // incluye el examen médico ocupacional»). null = la de siempre del formato;
   // si se toca, sale lo escrito: una viñeta por renglón (0391).
+  // EL PRECIO QUE SE ACABA DE ESCRIBIR, CON SU ACUSE (Gabriela, 05-10: «que
+  // haya una acción que dé la impresión de que ya se confirmó ese precio»).
+  // El autoguardado ya existía, pero su sello está arriba, lejos del campo.
+  const [precioTocado, setPrecioTocado] = useState<number | null>(null);
   const [notasTexto, setNotasTexto] = useState<string | null>(edicion?.notasPdf ? edicion.notasPdf.join("\n") : null);
   const avisoPago = avisoCondicionPago(formaPago, saldo);
 
@@ -1563,6 +1567,7 @@ export function PantallaCotizador({
                               return v === 0 ? "" : v;
                             })()}
                             onChange={(e) => {
+                              setPrecioTocado(i);
                               const vista = Number(e.target.value) || 0;
                               const escrito = aDolares(vista);
                               const impreso = enSoles ? vista : null;
@@ -1580,17 +1585,40 @@ export function PantallaCotizador({
                             // que el servicio no se había registrado (Santos,
                             // 08-09). El precio es el ÚLTIMO campo de la línea:
                             // es donde el Enter tiene más sentido, no menos.
+                            // Salir del campo o Enter guardan en el acto, sin
+                            // esperar el medio segundo del autoguardado.
+                            onBlur={() => void encolarGuardado()}
                             onKeyDown={(e) => {
-                              if (
-                                e.key === "Enter" &&
-                                item.producto_id === null &&
-                                item.nombre.trim().length > 0
-                              ) {
-                                e.preventDefault();
+                              if (e.key !== "Enter") return;
+                              e.preventDefault();
+                              if (item.producto_id === null && item.nombre.trim().length > 0) {
                                 agregarLineaLibre();
+                              } else {
+                                e.currentTarget.blur();
                               }
                             }}
                           />
+                          {precioTocado === i && (
+                            <p
+                              className={cn(
+                                "flex items-center gap-1 text-[11px] font-medium",
+                                guardado.tipo === "limpio" ? "text-[#1E7F4F]" : guardado.tipo === "error" ? "text-destructive" : "text-muted-foreground",
+                              )}
+                              aria-live="polite"
+                            >
+                              {guardado.tipo === "limpio" ? (
+                                <>
+                                  <Check className="size-3" /> Precio guardado
+                                </>
+                              ) : guardado.tipo === "error" ? (
+                                "No se guardó: revise el aviso de arriba"
+                              ) : (
+                                <>
+                                  <Loader2 className="size-3 animate-spin" /> Guardando…
+                                </>
+                              )}
+                            </p>
+                          )}
                         </div>
                         <div className="min-w-[7rem] space-y-1 text-right">
                           <Label className="text-[11px] text-muted-foreground">Subtotal</Label>
@@ -2087,6 +2115,9 @@ export function PantallaCotizador({
                 <VerPdfEnLaApp
                   url={`/api/cotizaciones/${cotizacionId}/pdf`}
                   titulo="Presupuesto borrador"
+                  // Primero se guarda lo último que se escribió y después se
+                  // pide el PDF, siempre nuevo (Gabriela, 05-10).
+                  antesDeAbrir={vaciarPendientes}
                   className="inline-flex cursor-pointer items-center gap-1 font-medium text-primary hover:underline"
                 >
                   <FileDown className="size-3.5" />
