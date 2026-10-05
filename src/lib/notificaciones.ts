@@ -48,7 +48,10 @@ export type TipoNotificacion =
   // El cliente escribió en un chat que ya existía (02-10): uno por chat.
   | "whatsapp_mensaje"
   // Conducta sospechosa de una cuenta: capturas, copias, descargas en ráfaga (0373, Santos 02-10).
-  | "seguridad";
+  | "seguridad"
+  // Postventa pide al ingeniero revisar un borrador, y el acuse de que lo vio (0392, Gabriela 05-10).
+  | "cotizacion_revision"
+  | "cotizacion_vista";
 
 interface Destinatario {
   userId?: string;
