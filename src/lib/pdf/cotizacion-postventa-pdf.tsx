@@ -216,6 +216,38 @@ export function CotizacionPostventaPdf({
     </View>
   );
 
+  // ── Cierre y firma: logo de la serie a la izquierda, datos a la derecha ──
+  // Va DENTRO del mismo bloque que la validez y la nota (Santos, 05-10: «ten
+  // criterio visual»): sola, la firma se iba a una hoja casi vacía; así baja
+  // acompañada y la hoja de antes cierra con la tabla de cuentas.
+  const cierre = (
+    <View style={{ marginTop: 20 }}>
+      <Text style={{ marginBottom: 8 }}>
+        Agradeciendo su atención a la presente, quedamos de ustedes a la espera de su apreciable orden.
+      </Text>
+      <Text>Atentamente.</Text>
+
+      <View style={[estilos.firmaBloque, { gap: 28 }]}>
+        {identidad.usaLogo ? (
+          // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML
+          <Image src={logoBuffer} style={[estilos.firmaLogo, { width: 150 }]} />
+        ) : (
+          <View>
+            <Text style={[estilos.firmaWordmark, { color: identidad.acento, fontSize: 14 }]}>{identidad.nombreLegal}</Text>
+            <Text style={estilos.membreteSub}>{identidad.subtitulo}</Text>
+          </View>
+        )}
+        <View style={estilos.firmaDatos}>
+          <Text style={estilos.negrita}>{firma.nombre}</Text>
+          <Text style={[estilos.negrita, { marginBottom: 4 }]}>{firma.cargo ?? "Post Venta"}</Text>
+          {firma.telefono && <Text>Teléfono : {firma.telefono}</Text>}
+          {firma.celular && <Text>Celular : {firma.celular}</Text>}
+          {firma.email && <Text style={{ marginTop: 4 }}>Email : {firma.email}</Text>}
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <Document>
       <Page size="A4" style={estilos.page}>
@@ -371,6 +403,7 @@ export function CotizacionPostventaPdf({
               <Text style={pv.validez}>Validez de cotización ({vigenciaDias} días)</Text>
               <Text style={pv.notaTitulo}>Nota:</Text>
               {vinetas(sinGarantia ? [notasDe(serie)[0]] : notasDe(serie))}
+              {cierre}
             </View>
           </>
         ) : (
@@ -384,36 +417,11 @@ export function CotizacionPostventaPdf({
               {/* La garantía es la de la serie —con el nombre de quien cotiza
                   (gerencia, 25-09)—; las otras tres son las del Word. */}
               {vinetas([...notaGarantia, ...(notasPdf ?? NOTAS_REPUESTOS)])}
+              {cierre}
             </View>
           </>
         )}
 
-        {/* ── Cierre y firma: logo de la serie a la izquierda, datos a la derecha ── */}
-        <View style={{ marginTop: 20 }} wrap={false}>
-          <Text style={{ marginBottom: 8 }}>
-            Agradeciendo su atención a la presente, quedamos de ustedes a la espera de su apreciable orden.
-          </Text>
-          <Text>Atentamente.</Text>
-
-          <View style={[estilos.firmaBloque, { gap: 28 }]}>
-            {identidad.usaLogo ? (
-              // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML
-              <Image src={logoBuffer} style={[estilos.firmaLogo, { width: 150 }]} />
-            ) : (
-              <View>
-                <Text style={[estilos.firmaWordmark, { color: identidad.acento, fontSize: 14 }]}>{identidad.nombreLegal}</Text>
-                <Text style={estilos.membreteSub}>{identidad.subtitulo}</Text>
-              </View>
-            )}
-            <View style={estilos.firmaDatos}>
-              <Text style={estilos.negrita}>{firma.nombre}</Text>
-              <Text style={[estilos.negrita, { marginBottom: 4 }]}>{firma.cargo ?? "Post Venta"}</Text>
-              {firma.telefono && <Text>Teléfono : {firma.telefono}</Text>}
-              {firma.celular && <Text>Celular : {firma.celular}</Text>}
-              {firma.email && <Text style={{ marginTop: 4 }}>Email : {firma.email}</Text>}
-            </View>
-          </View>
-        </View>
       </Page>
     </Document>
   );
