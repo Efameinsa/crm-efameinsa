@@ -687,6 +687,55 @@ export function CotizacionPdf({
   const membrete = membreteDe(estilos, identidad, logoBuffer);
   const pie = pieDe(estilos, identidad, serie, notaVersion, reemplazada);
 
+  const filaItem = (item: ItemPdf, i: number) => (
+    <View key={i} style={estilos.tdFila}>
+      <Text style={[estilos.td, estilos.cItem]}>{ROMANOS[i] ?? i + 1}</Text>
+      <Text style={[estilos.td, estilos.cDesc]}>
+        {item.nombre.toUpperCase()}
+        {/* Una línea escrita a mano —un mantenimiento, un flete— no
+            tiene marca ni modelo: sin esto salía «MARCA: — · MODELO: —»
+            debajo de «MANTENIMIENTO PREVENTIVO», que en un documento
+            que va al cliente se lee como un dato que faltó cargar. */}
+        {item.marca === "—" && item.modelo === "—" ? null : (
+          <>
+            {"\n"}
+            <Text style={{ color: GRIS, fontSize: 8.5 }}>
+              MARCA: {item.marca.toUpperCase()} · MODELO: {item.modelo.toUpperCase()}
+              {item.capacidad ? ` · ${item.capacidad}` : ""}
+          {/* El color elegido va también en la tabla de precios: es la
+              página que el cliente lee, y dos coches del mismo modelo
+              en colores distintos se distinguen solo por acá. */}
+          {/* En LG la misma máquina se vende apilable y no apilable:
+              sin esto, el cliente no sabe cuál le están cotizando. */}
+              {item.montaje ? ` · ${item.montaje.toUpperCase()}` : ""}
+              {item.color ? ` · COLOR: ${item.color.toUpperCase()}` : ""}
+            </Text>
+          </>
+        )}
+        {/* El detalle escrito en el renglón de un producto del
+            catálogo —la serie, para qué máquina es el repuesto— va
+            debajo (Gabriela, 03-10). En una línea a mano ya es el
+            nombre, y no se repite. */}
+        {item.descripcionLinea?.trim() && item.descripcionLinea.trim() !== item.nombre.trim() ? (
+          <>
+            {"\n"}
+            <Text style={{ fontSize: 8.5 }}>
+              {item.descripcionLinea
+                .split(/\r?\n/)
+                .map((l) => l.trim())
+                .filter(Boolean)
+                .join("\n")
+                .toUpperCase()}
+            </Text>
+          </>
+        ) : null}
+      </Text>
+      <Text style={[estilos.td, estilos.cCant]}>{item.cantidad}</Text>
+      <Text style={[estilos.td, estilos.cPrecio]}>{monto(item.precio_unitario)}</Text>
+      <Text style={[estilos.td, estilos.cSub]}>{monto(item.cantidad * item.precio_unitario)}</Text>
+    </View>
+  );
+
   return (
     <Document>
       <Page size="A4" style={estilos.page}>
@@ -744,65 +793,24 @@ export function CotizacionPdf({
             <Text style={[estilos.th, estilos.cPrecio]}>P. UNITARIO {simbolo}</Text>
             <Text style={[estilos.th, estilos.cSub]}>SUBTOTAL {simbolo}</Text>
           </View>
-          {items.map((item, i) => (
-            <View key={i} style={estilos.tdFila}>
-              <Text style={[estilos.td, estilos.cItem]}>{ROMANOS[i] ?? i + 1}</Text>
-              <Text style={[estilos.td, estilos.cDesc]}>
-                {item.nombre.toUpperCase()}
-                {/* Una línea escrita a mano —un mantenimiento, un flete— no
-                    tiene marca ni modelo: sin esto salía «MARCA: — · MODELO: —»
-                    debajo de «MANTENIMIENTO PREVENTIVO», que en un documento
-                    que va al cliente se lee como un dato que faltó cargar. */}
-                {item.marca === "—" && item.modelo === "—" ? null : (
-                  <>
-                    {"\n"}
-                    <Text style={{ color: GRIS, fontSize: 8.5 }}>
-                      MARCA: {item.marca.toUpperCase()} · MODELO: {item.modelo.toUpperCase()}
-                      {item.capacidad ? ` · ${item.capacidad}` : ""}
-                  {/* El color elegido va también en la tabla de precios: es la
-                      página que el cliente lee, y dos coches del mismo modelo
-                      en colores distintos se distinguen solo por acá. */}
-                  {/* En LG la misma máquina se vende apilable y no apilable:
-                      sin esto, el cliente no sabe cuál le están cotizando. */}
-                      {item.montaje ? ` · ${item.montaje.toUpperCase()}` : ""}
-                      {item.color ? ` · COLOR: ${item.color.toUpperCase()}` : ""}
-                    </Text>
-                  </>
-                )}
-                {/* El detalle escrito en el renglón de un producto del
-                    catálogo —la serie, para qué máquina es el repuesto— va
-                    debajo (Gabriela, 03-10). En una línea a mano ya es el
-                    nombre, y no se repite. */}
-                {item.descripcionLinea?.trim() && item.descripcionLinea.trim() !== item.nombre.trim() ? (
-                  <>
-                    {"\n"}
-                    <Text style={{ fontSize: 8.5 }}>
-                      {item.descripcionLinea
-                        .split(/\r?\n/)
-                        .map((l) => l.trim())
-                        .filter(Boolean)
-                        .join("\n")
-                        .toUpperCase()}
-                    </Text>
-                  </>
-                ) : null}
-              </Text>
-              <Text style={[estilos.td, estilos.cCant]}>{item.cantidad}</Text>
-              <Text style={[estilos.td, estilos.cPrecio]}>{monto(item.precio_unitario)}</Text>
-              <Text style={[estilos.td, estilos.cSub]}>{monto(item.cantidad * item.precio_unitario)}</Text>
+          {/* La última fila y los totales viajan juntos (Brenda, 876-26, 05-10):
+              con seis equipos el TOTAL no entraba y pasaba solo a otra hoja.
+              Así, si no entran, bajan en bloque y el total nunca queda suelto. */}
+          {items.slice(0, -1).map((item, i) => filaItem(item, i))}
+          <View wrap={false}>
+            {items.length > 0 && filaItem(items[items.length - 1], items.length - 1)}
+            <View style={estilos.totalFila}>
+              <Text style={estilos.totalEtiqueta}>SUB TOTAL {simbolo}</Text>
+              <Text style={estilos.totalValor}>{monto(subtotal)}</Text>
             </View>
-          ))}
-          <View style={estilos.totalFila}>
-            <Text style={estilos.totalEtiqueta}>SUB TOTAL {simbolo}</Text>
-            <Text style={estilos.totalValor}>{monto(subtotal)}</Text>
-          </View>
-          <View style={estilos.totalFila}>
-            <Text style={estilos.totalEtiqueta}>I.G.V. (18%) {simbolo}</Text>
-            <Text style={estilos.totalValor}>{monto(igv)}</Text>
-          </View>
-          <View style={[estilos.totalFila, estilos.totalDestacado]}>
-            <Text style={estilos.totalEtiqueta}>TOTAL INCLUIDO IGV A PAGAR {simbolo}</Text>
-            <Text style={[estilos.totalValor, { color: identidad.acento }]}>{monto(total)}</Text>
+            <View style={estilos.totalFila}>
+              <Text style={estilos.totalEtiqueta}>I.G.V. (18%) {simbolo}</Text>
+              <Text style={estilos.totalValor}>{monto(igv)}</Text>
+            </View>
+            <View style={[estilos.totalFila, estilos.totalDestacado]}>
+              <Text style={estilos.totalEtiqueta}>TOTAL INCLUIDO IGV A PAGAR {simbolo}</Text>
+              <Text style={[estilos.totalValor, { color: identidad.acento }]}>{monto(total)}</Text>
+            </View>
           </View>
         </View>
       </Page>
