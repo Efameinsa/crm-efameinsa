@@ -142,6 +142,8 @@ export interface CotizacionParaPdf {
   garantia: string | null;
   forma_pago: string | null;
   saldo: string | null;
+  /** La «Nota» de postventa escrita para esta cotización (0391); null = la de siempre. */
+  notas_pdf?: string[] | null;
   cliente_snapshot: unknown;
   created_at: string;
   cotizacion_items: unknown;
@@ -282,6 +284,7 @@ export async function renderizarCotizacionPdf(
       precio_con_igv?: number | null;
       descripcion: string | null;
       color: string | null;
+      nombre_impreso?: string | null;
       productos: {
         sku: string;
         marca: string;
@@ -302,7 +305,8 @@ export async function renderizarCotizacionPdf(
       // Equipo escrito a mano (migración 0062): no está en el catálogo
       // todavía, así que lo único que lo describe es lo que tecleó el
       // comercial. Sin ficha, no genera página de especificaciones.
-      nombre: item.productos?.nombre ?? item.descripcion ?? "Producto",
+      // El nombre propio del renglón manda sobre el del catálogo (0390).
+      nombre: (item.productos ? item.nombre_impreso?.trim() || item.productos.nombre : null) ?? item.descripcion ?? "Producto",
       marca: item.productos?.marca ?? "—",
       modelo: item.productos?.modelo ?? "—",
       capacidad: item.productos?.capacidad ?? null,
@@ -399,6 +403,7 @@ export async function renderizarCotizacionPdf(
     tiempoEntrega: cotizacion.tiempo_entrega,
     formaPago: cotizacion.forma_pago,
     saldo: cotizacion.saldo,
+    notasPdf: cotizacion.notas_pdf ?? null,
     firma: {
       nombre: perfilComercial?.nombre ?? "Área Comercial",
       cargo: perfilComercial?.cargo ?? null,

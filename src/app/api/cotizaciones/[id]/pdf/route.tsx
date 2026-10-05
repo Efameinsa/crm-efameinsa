@@ -35,8 +35,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .from("cotizaciones")
       .select(
         `oportunidad_id, codigo, correlativo, serie, moneda, moneda_impresa, tipo_cambio, condiciones, vigencia_dias, entrega_lugar,
-       tiempo_entrega, garantia, forma_pago, saldo, cliente_snapshot, created_at, version,
-       cotizacion_items(cantidad, precio_unitario, precio_con_igv, precio_impreso, descripcion, color, productos(sku, marca, modelo, nombre, capacidad, categoria, segmento, ficha, foto_path, logo_path, panel_path)),
+       tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, cliente_snapshot, created_at, version,
+       cotizacion_items(cantidad, precio_unitario, precio_con_igv, precio_impreso, descripcion, color, nombre_impreso, productos(sku, marca, modelo, nombre, capacidad, categoria, segmento, ficha, foto_path, logo_path, panel_path)),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
       )
@@ -160,6 +160,7 @@ async function comoEstaba(
     cantidad: number;
     precio_unitario: number;
     color: string | null;
+    nombre_impreso?: string | null;
   }[];
   const ids = items.map((i) => i.producto_id).filter((x): x is string => Boolean(x));
   const { data: productos } = ids.length
@@ -184,6 +185,7 @@ async function comoEstaba(
       precio_con_igv: null,
       descripcion: i.descripcion,
       color: i.color,
+      nombre_impreso: i.nombre_impreso ?? null,
       productos: i.producto_id ? (porId.get(i.producto_id) ?? null) : null,
     })),
   };

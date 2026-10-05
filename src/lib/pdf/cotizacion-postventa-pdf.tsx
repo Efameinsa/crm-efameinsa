@@ -146,6 +146,7 @@ export function CotizacionPostventaPdf({
   notaVersion = null,
   reemplazada = false,
   sinMontos = false,
+  notasPdf = null,
 }: CotizacionPdfProps & { variante: VariantePostventa }) {
   const identidad = IDENTIDAD_SERIE[serie];
   const estilos = crearEstilos(identidad.acento);
@@ -320,7 +321,8 @@ export function CotizacionPostventaPdf({
               <Text style={pv.notaTitulo} minPresenceAhead={40}>
                 Nota:
               </Text>
-              {vinetas(NOTAS_MANTENIMIENTO)}
+              {/* Escrita para esta cotización si postventa la cambió (Gabriela, 05-10). */}
+              {vinetas(notasPdf ?? NOTAS_MANTENIMIENTO)}
             </View>
 
             {/* ── ITEM I: DETALLE DEL SERVICIO… — un cuadro por servicio con ficha ── */}
@@ -368,7 +370,7 @@ export function CotizacionPostventaPdf({
               <Text style={pv.notaTitulo}>Nota:</Text>
               {/* La garantía es la de la serie —con el nombre de quien cotiza
                   (gerencia, 25-09)—; las otras tres son las del Word. */}
-              {vinetas([...notaGarantia, ...NOTAS_REPUESTOS])}
+              {vinetas([...notaGarantia, ...(notasPdf ?? NOTAS_REPUESTOS)])}
             </View>
           </>
         )}

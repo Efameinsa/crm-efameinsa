@@ -14,6 +14,8 @@ import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 export const dynamic = "force-dynamic";
 
+const haceDias = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+
 export default async function AprobacionesPage() {
   const supabase = await createClient();
   // Lo ya resuelto. Pedido del ing. Carlos el 25-08: «si ya aprobaste, no
@@ -31,6 +33,33 @@ export default async function AprobacionesPage() {
     .in("estado_aprobacion", ["aprobada_gerencia", "rechazada_gerencia"])
     .order("aprobada_at", { ascending: false, nullsFirst: false })
     .limit(30);
+
+  // LOS BORRADORES DE POSTVENTA (Santos, 05-10: «cuando Gabriela hace una
+  // cotización se genera un borrador y el ingeniero debe poder verlo, como
+  // los de los comerciales»). Los de un comercial llegan acá porque casi
+  // siempre ceden algo sobre la referencia; los de postventa (servicios y
+  // repuestos a precio de catálogo) salían «auto aprobados» y gerencia no se
+  // enteraba hasta que estaban enviados. Se muestran para mirarlos: no hay
+  // nada que aprobar, y si algo sí cede precio ya está en la lista de arriba.
+  const { data: borradoresCrudos } = await supabase
+    .from("cotizaciones")
+    .select(
+      `id, total, moneda, serie, created_at, updated_at,
+       autor:perfiles!cotizaciones_creada_por_fkey(nombre, es_postventa, es_prueba),
+       oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social))`,
+    )
+    .eq("estado", "borrador")
+    .neq("estado_aprobacion", "pendiente_gerencia")
+    .gte("created_at", haceDias(30))
+    .order("updated_at", { ascending: false })
+    .limit(200);
+  const borradoresPostventa = (borradoresCrudos ?? [])
+    .map((b) => ({
+      ...b,
+      autor: b.autor as unknown as { nombre: string; es_postventa: boolean | null; es_prueba: boolean | null } | null,
+      cliente: (b.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social ?? "Cliente sin nombre",
+    }))
+    .filter((b) => b.autor?.es_postventa && !b.autor.es_prueba && Number(b.total) > 0);
 
   const { data: cotizaciones } = await supabase
     .from("cotizaciones")
@@ -192,6 +221,51 @@ export default async function AprobacionesPage() {
             );
           })}
         </div>
+      )}
+    </SeccionPanel>
+    <SeccionPanel
+      titulo="Borradores de postventa"
+      accion={
+        borradoresPostventa.length > 0 ? (
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+            {borradoresPostventa.length} en los últimos 30 días
+          </span>
+        ) : undefined
+      }
+    >
+      {borradoresPostventa.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Postventa no tiene cotizaciones en borrador en los últimos 30 días.</p>
+      ) : (
+        <>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Cotizaciones de servicios y repuestos que postventa está armando y todavía no envió. Van a precio de catálogo, así que no piden
+            aprobación: están acá para que se puedan revisar antes de que salgan.
+          </p>
+          <div className="divide-y divide-border rounded-lg border border-border">
+            {borradoresPostventa.map((b) => (
+              <div key={b.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">{b.cliente}</p>
+                  <p className="text-xs text-muted-foreground">
+                    De {b.autor?.nombre ?? "postventa"} · Serie {b.serie} · actualizado el {fechaLima(b.updated_at ?? b.created_at)}
+                  </p>
+                </div>
+                <span className="flex items-center gap-3">
+                  <span className="text-sm font-semibold tabular-nums text-foreground">
+                    {b.moneda} {Number(b.total).toLocaleString("es-PE")}
+                  </span>
+                  <VerPdfEnLaApp
+                    url={`/api/cotizaciones/${b.id}/pdf`}
+                    titulo={`Borrador de ${b.cliente}`}
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-accent"
+                  >
+                    <FileDown className="size-3.5" /> Ver PDF
+                  </VerPdfEnLaApp>
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </SeccionPanel>
     <HistorialAprobaciones filas={historial ?? []} />

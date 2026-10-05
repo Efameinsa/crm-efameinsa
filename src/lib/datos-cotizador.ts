@@ -334,7 +334,7 @@ export async function cargarContextoCotizador(
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, precio_lista, color, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, precio_lista, color, nombre_impreso, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
@@ -401,6 +401,7 @@ export async function cargarContextoCotizador(
       garantia: cot.garantia,
       formaPago: cot.forma_pago,
       saldo: cot.saldo,
+      notasPdf: (cot.notas_pdf as string[] | null) ?? null,
       estadoAprobacion: cot.estado_aprobacion,
       notaGerencia: cot.nota_gerencia,
       items: (cot.cotizacion_items as unknown as {
@@ -412,9 +413,11 @@ export async function cargarContextoCotizador(
         precio_impreso: number | null;
         precio_lista: number | null;
         color: string | null;
+        nombre_impreso: string | null;
         productos: { marca: string; modelo: string; nombre: string } | null;
       }[]).map((i) => ({
         producto_id: i.producto_id,
+        nombre_impreso: i.nombre_impreso ?? null,
         descripcion: i.descripcion,
         nombre: i.productos
           ? `${i.productos.marca} ${i.productos.modelo} — ${i.productos.nombre}`
