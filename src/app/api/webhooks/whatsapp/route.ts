@@ -367,10 +367,14 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
 
       if (lead) {
         if (asignacion?.resultado === "asignado" && asignacion.comercial_id && nuevaConversacion) {
+          // 0395: si ya era cliente suyo, se lo dice — vino por el anuncio de
+          // otro, pero la cartera manda.
           await notificar({
             userId: asignacion.comercial_id,
             tipo: "lead_asignado",
-            titulo: "Nuevo WhatsApp de campaña para usted",
+            titulo: asignacion.por_cartera
+              ? `Su cliente ${asignacion.razon_social ?? ""} le escribió por WhatsApp`.replace(/\s+/g, " ")
+              : "Nuevo WhatsApp de campaña para usted",
             cuerpo: `${quien} · ${lead.codigo}`,
             url: `/whatsapp/${nuevaConversacion.id}`,
           });
@@ -443,6 +447,7 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
       // el cliente escribe DESPUÉS, que hasta el 02-10 entraba mudo.
       await avisarMensajeEntrante(admin, conversacion, nombreWa || conversacion.nombre_wa || telefono, tipo, texto);
     }
+    if (!esNumero && texto) await avisarTelefonoDeOtroComercial(admin, conversacion.id, nombreWa || conversacion.nombre_wa || telefono, texto);
   }
 }
 
@@ -525,8 +530,38 @@ function productoDeCampania(codigo: string | null, nombre: string | null): strin
   return limpio || null;
 }
 
+/**
+ * El cruce de Alvaro Quiroz (05-10): cliente de C9 que escribió con su número
+ * oculto desde el anuncio de Moisés y le llegó a C2. Sin número no hay con qué
+ * empatar la cartera; cuando lo escribe en el chat, la base mira de quién es
+ * (0395) y se avisa UNA vez a Central, al dueño y a quien tiene el chat.
+ */
+async function avisarTelefonoDeOtroComercial(admin: ReturnType<typeof createAdminClient>, conversacionId: string, quien: string, texto: string) {
+  try {
+    const { data, error } = await admin.rpc("telefono_escrito_de_otro_comercial", { p_conversacion_id: conversacionId, p_texto: texto });
+    if (error) {
+      console.error("webhook whatsapp: telefono_escrito_de_otro_comercial", error.message);
+      return;
+    }
+    const fila = (data as { telefono: string; razon_social: string | null; dueno_id: string; dueno_nombre: string; dueno_codigo: string | null; codigo_lead: string | null; asignado_a: string | null }[] | null)?.[0];
+    if (!fila) return;
+    const dueno = fila.dueno_codigo ? `${fila.dueno_nombre} (${fila.dueno_codigo})` : fila.dueno_nombre;
+    const de = fila.razon_social ?? fila.codigo_lead ?? "un contacto";
+    const cuerpo = `${quien} escribió el celular ${fila.telefono}, que ya es de ${de}, de ${dueno}. Central decide quién lo atiende (Derivar).`;
+    const url = `/whatsapp/${conversacionId}`;
+    await notificarLeadEntrante({ titulo: `WhatsApp cruzado: el cliente ya es de ${fila.dueno_codigo ?? fila.dueno_nombre}`, cuerpo });
+    await notificar({ userId: fila.dueno_id, tipo: "lead_asignado", titulo: `Un cliente suyo escribe por WhatsApp a otro comercial`, cuerpo, url });
+    if (fila.asignado_a) {
+      await notificar({ userId: fila.asignado_a, tipo: "lead_asignado", titulo: `Este cliente ya es de ${dueno}`, cuerpo, url });
+    }
+  } catch (err) {
+    console.error("webhook whatsapp: telefono_escrito_de_otro_comercial", err);
+  }
+}
+
 interface ResultadoAsignacion {
   resultado: "asignado" | "retenido_cartera_ajena" | "retenido_sin_turno" | "retenido_error";
+  por_cartera?: boolean;
   comercial_id?: string;
   comercial_nombre?: string;
   comercial_codigo?: string | null;
