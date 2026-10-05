@@ -15,6 +15,8 @@ import { EsperaDeNavegacion } from "@/components/crm/espera-de-navegacion";
 import { cn } from "@/lib/utils";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
+const haceDias = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -123,6 +125,26 @@ export default async function MisCotizacionesPage({
           .limit(POR_PAGINA)
       : null;
 
+  // LO QUE PASÓ POR GERENCIA (Santos, 05-10, desde postventa: «debería salir
+  // lo que ya fue enviado a gerencia para confirmar, y también los que
+  // rechazó y los que aprobó… aparte de en las notificaciones, debería estar
+  // ahí registrado»). La campana avisa una vez y se pierde entre otras; acá
+  // queda el registro: esperando, aprobadas y rechazadas con la observación.
+  const qGerencia =
+    perfil.es_postventa && pag === 1
+      ? supabase
+          .from("cotizaciones")
+          .select(
+            "id, codigo, total, moneda, estado, estado_aprobacion, nota_gerencia, aprobada_at, updated_at, enviada_at, oportunidad_id, autor:perfiles!cotizaciones_creada_por_fkey(nombre), oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))",
+          )
+          .in("oportunidades.comercial_id", duenos)
+          .in("estado_aprobacion", ["pendiente_gerencia", "aprobada_gerencia", "rechazada_gerencia"])
+          .gte("updated_at", haceDias(60))
+          .order("updated_at", { ascending: false })
+          .limit(30)
+          .then((r) => r.data ?? [])
+      : Promise.resolve([]);
+
   if (busqueda) {
     // El número se busca tal como lo dicen ellas —"1549" o "1549-25"— y el
     // cliente por cualquier parte del nombre.
@@ -131,12 +153,13 @@ export default async function MisCotizacionesPage({
     qCrm = qCrm.ilike("codigo", patron);
   }
 
-  const [{ data: archivo, count: totalArchivo }, { data: crm }, borradoresCrudos] = await Promise.all([
+  const [{ data: archivo, count: totalArchivo }, { data: crm }, borradoresCrudos, porGerencia] = await Promise.all([
     qArchivo
       .order("fecha", { ascending: false, nullsFirst: false })
       .range((pag - 1) * POR_PAGINA, pag * POR_PAGINA - 1),
     qCrm.order("enviada_at", { ascending: false }).limit(POR_PAGINA),
     qBorradores ? qBorradores.then((r) => r.data ?? []) : Promise.resolve([]),
+    qGerencia,
   ]);
 
   const razonSocial = (op: unknown) =>
@@ -352,6 +375,69 @@ export default async function MisCotizacionesPage({
           </Link>
         )}
       </form>
+
+      {porGerencia.length > 0 && !busqueda && (
+        <div className="mb-4">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Lo que pasó por gerencia · últimos 60 días
+          </p>
+          <div className="space-y-1.5">
+            {porGerencia.map((c) => {
+              const estado = c.estado_aprobacion as string;
+              const autor = (c.autor as unknown as { nombre: string } | null)?.nombre;
+              const sello =
+                estado === "pendiente_gerencia"
+                  ? { texto: "Esperando a gerencia", clase: "bg-amber-500/10 text-amber-800" }
+                  : estado === "aprobada_gerencia"
+                    ? { texto: "Aprobada por gerencia", clase: "bg-[#1E7F4F]/10 text-[#1E7F4F]" }
+                    : { texto: "Rechazada por gerencia", clase: "bg-destructive/10 text-destructive" };
+              // Una aprobada que sigue en borrador todavía hay que confirmarla.
+              const siguePorConfirmar = estado === "aprobada_gerencia" && c.estado === "borrador";
+              return (
+                <div key={`g-${c.id}`} className="rounded-lg border border-border px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">{razonSocial(c.oportunidades)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-mono">{c.codigo ?? "Borrador"}</span>
+                        {autor ? ` · de ${autor}` : ""} · {c.moneda} {Number(c.total).toLocaleString("es-PE")}
+                        {c.aprobada_at ? ` · gerencia contestó el ${fechaLima(c.aprobada_at as string)}` : ` · ${fechaLima(c.updated_at as string)}`}
+                      </p>
+                    </div>
+                    <span className="flex items-center gap-2">
+                      <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", sello.clase)}>{sello.texto}</span>
+                      {c.estado === "borrador" ? (
+                        <Link
+                          href={`/comercial/oportunidades/${c.oportunidad_id}/cotizar/${c.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                        >
+                          <PencilLine className="size-3" /> {siguePorConfirmar ? "Confirmar" : "Abrir"}
+                        </Link>
+                      ) : (
+                        <VerPdfEnLaApp
+                          url={`/api/cotizaciones/${c.id}/pdf`}
+                          titulo={`${c.codigo ?? "Cotización"} · ${razonSocial(c.oportunidades)}`}
+                          className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary hover:underline"
+                        >
+                          <FileDown className="size-3" /> PDF
+                        </VerPdfEnLaApp>
+                      )}
+                    </span>
+                  </div>
+                  {c.nota_gerencia && (
+                    <p className="mt-1 text-xs text-foreground">
+                      <b>Gerencia:</b> {c.nota_gerencia as string}
+                    </p>
+                  )}
+                  {siguePorConfirmar && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">Ya la aprobaron: falta confirmarla para que tome su número.</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {borradores.length > 0 && (
         <div className="mb-4">

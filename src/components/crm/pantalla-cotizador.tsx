@@ -358,13 +358,18 @@ export function PantallaCotizador({
     );
   });
   const previas = edicion ? null : condicionesPrevias;
-  const [condiciones, setCondiciones] = useState(edicion?.condiciones ?? previas?.condiciones ?? CONDICIONES_POR_DEFECTO);
+  // LO BORRADO SE QUEDA BORRADO (Gabriela, 05-10: «borro el saldo, salgo, vuelvo
+  // a abrir y sigue el 70 % por defecto»). Un campo vacío se guarda como NULL,
+  // y al reabrir un borrador ese NULL caía otra vez en el valor por defecto.
+  // Los valores por defecto son para una cotización NUEVA; la que se reabre
+  // trae lo que dejó quien la editó, aunque sea nada.
+  const [condiciones, setCondiciones] = useState(edicion ? (edicion.condiciones ?? "") : (previas?.condiciones ?? CONDICIONES_POR_DEFECTO));
   const [vigenciaDias, setVigenciaDias] = useState(edicion?.vigenciaDias ?? previas?.vigenciaDias ?? 15);
   const [entregaLugar, setEntregaLugar] = useState<string>(edicion?.entregaLugar ?? previas?.entregaLugar ?? ENTREGA_POR_DEFECTO);
-  const [tiempoEntrega, setTiempoEntrega] = useState(edicion?.tiempoEntrega ?? previas?.tiempoEntrega ?? TIEMPO_ENTREGA_POR_DEFECTO);
-  const [garantia, setGarantia] = useState(edicion?.garantia ?? previas?.garantia ?? GARANTIA_POR_DEFECTO);
-  const [formaPago, setFormaPago] = useState(edicion?.formaPago ?? previas?.formaPago ?? FORMA_PAGO_POR_DEFECTO);
-  const [saldo, setSaldo] = useState(edicion?.saldo ?? previas?.saldo ?? SALDO_POR_DEFECTO);
+  const [tiempoEntrega, setTiempoEntrega] = useState(edicion ? (edicion.tiempoEntrega ?? "") : (previas?.tiempoEntrega ?? TIEMPO_ENTREGA_POR_DEFECTO));
+  const [garantia, setGarantia] = useState(edicion ? (edicion.garantia ?? "") : (previas?.garantia ?? GARANTIA_POR_DEFECTO));
+  const [formaPago, setFormaPago] = useState(edicion ? (edicion.formaPago ?? "") : (previas?.formaPago ?? FORMA_PAGO_POR_DEFECTO));
+  const [saldo, setSaldo] = useState(edicion ? (edicion.saldo ?? "") : (previas?.saldo ?? SALDO_POR_DEFECTO));
   // LA NOTA DEL PDF DE POSTVENTA, EDITABLE (Gabriela, 05-10: «no en todos
   // incluye el examen médico ocupacional»). null = la de siempre del formato;
   // si se toca, sale lo escrito: una viñeta por renglón (0391).
