@@ -149,6 +149,14 @@ const ESTILO_AVISO: Record<
     duracion: Infinity,
     tono: "success",
   },
+  // Clientes esperando su respuesta en WhatsApp (0394, Central con el
+  // ingeniero, 05-10). Como la urgencia: se queda hasta que la toquen.
+  whatsapp_sin_respuesta: {
+    encabezado: "⏰ Clientes esperan su respuesta en WhatsApp",
+    accion: "Responder",
+    duracion: Infinity,
+    tono: "error",
+  },
   // El cliente escribió en un chat que ya tenía (comerciales, 02-10). Se queda
   // hasta que lo toquen, como en el celular; uno por chat (ver `avisar`).
   whatsapp_mensaje: {
@@ -331,6 +339,7 @@ export function CampanaNotificaciones({
       "lead_asignado",
       "cotizacion_pendiente",
       "cotizacion_revision",
+      "whatsapp_sin_respuesta",
       "urgencia",
       "urgencia_finanzas",
       "urgencia_almacen",
