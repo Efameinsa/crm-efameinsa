@@ -150,6 +150,16 @@ function mezclarFicha(anterior: Record<string, unknown>, datos: DatosEquipo) {
   };
 }
 
+/**
+ * Un repuesto o un servicio lleva ese mismo segmento, diga lo que diga el
+ * desplegable. Postventa busca por segmento: el manómetro de Lesly (05-10)
+ * entró como «Repuesto» con segmento semi-industrial y no le aparecía a nadie.
+ */
+function segmentoDe(datos: DatosEquipo): DatosEquipo["segmento"] {
+  const cat = datos.categoria?.trim().toLowerCase();
+  return cat === "repuesto" || cat === "servicio" ? cat : datos.segmento;
+}
+
 function revisar(datos: DatosEquipo): string | null {
   if (datos.nombre.trim().length < 3) return "El nombre necesita al menos tres letras";
   if (datos.marca.trim() === "" || datos.modelo.trim() === "") return "Marca y modelo son obligatorios";
@@ -178,7 +188,7 @@ export async function guardarEquipo(id: string, datos: DatosEquipo): Promise<{ e
       sku: datos.sku?.trim().toUpperCase() || null,
       categoria: datos.categoria?.trim() || null,
       capacidad: datos.capacidad?.trim() || null,
-      segmento: datos.segmento,
+      segmento: segmentoDe(datos),
       activo: datos.activo,
       ficha,
     })
@@ -218,7 +228,7 @@ export async function crearEquipoDesdeFicha(
       sku: datos.sku?.trim().toUpperCase() || null,
       categoria: datos.categoria?.trim() || null,
       capacidad: datos.capacidad?.trim() || null,
-      segmento: datos.segmento,
+      segmento: segmentoDe(datos),
       activo: datos.activo,
       ficha,
     })
@@ -227,7 +237,7 @@ export async function crearEquipoDesdeFicha(
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
 
   if (precioBase && precioBase > 0) {
-    const tier = datos.segmento === "semi_industrial" ? "optimo" : "base";
+    const tier = segmentoDe(datos) === "semi_industrial" ? "optimo" : "base";
     const { error: ep } = await supabase.rpc("fijar_precio_producto", {
       p_producto: data.id,
       p_tier: tier,
