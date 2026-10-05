@@ -284,6 +284,10 @@ export function FormularioInforme({
   // cotización de la que sale; sin cotización arranca en OPEN. Si queda en
   // EFAMEINSA se pide el motivo, salvo que la cotización ya lo traiga.
   const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(b?.serie ?? presupuestos[0]?.serie ?? SERIE_POR_DEFECTO);
+  // La moneda es la que vio el cliente en la cotización (05-10: la 2218-26
+  // salió en soles y el cierre 004-2026 en dólares, porque acá estaba fija).
+  const [moneda, setMoneda] = useState<"USD" | "PEN">(b?.moneda ?? presupuestos[0]?.moneda ?? "USD");
+  const simbolo = moneda === "PEN" ? "S/" : "US$";
   const [motivoSerie, setMotivoSerie] = useState<string>(b?.motivoSerie ?? "");
   const motivoHeredado =
     presupuesto?.fuente === "crm" && presupuesto.serie === "EFAMEINSA" && motivoSerieSuficiente(presupuesto.motivoSerie)
@@ -416,7 +420,11 @@ export function FormularioInforme({
     // Solo se pisan los equipos si el comercial todavía no puso precios: si ya
     // estuvo escribiendo, cambiar de presupuesto no puede borrarle el trabajo.
     const intacto = items.every((i) => i.precio_unitario === 0);
-    if (intacto) setItems(equiposDe(p));
+    if (intacto) {
+      setItems(equiposDe(p));
+      // Los precios llegan en la moneda en que se imprimió la cotización.
+      if (p.moneda) setMoneda(p.moneda);
+    }
   }
 
   function datos(): DatosInforme {
@@ -453,7 +461,7 @@ export function FormularioInforme({
       contactoDespacho,
       modalidadPago: modalidadOtra.trim() ? [...modalidad, modalidadOtra.trim()] : modalidad,
       formaPago,
-      moneda: "USD",
+      moneda,
       notaCondiciones: notaCondiciones || null,
       pctAntesDespacho: pctAntesDespacho.trim() === "" ? null : Number(pctAntesDespacho),
       creditoDias: creditoDias.trim() === "" ? null : Number(creditoDias),
@@ -556,6 +564,7 @@ export function FormularioInforme({
     if (!recuperable) return;
     const d = recuperable.d;
     setSerie(d.serie);
+    setMoneda(d.moneda === "PEN" ? "PEN" : "USD");
     setMotivoSerie(d.motivoSerie ?? "");
     setComprobante(d.comprobante);
     setClienteNuevo(d.clienteNuevo);
@@ -1106,6 +1115,24 @@ export function FormularioInforme({
         <div>
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <span className="text-xs font-semibold text-foreground">{tituloDeItems(items)}</span>
+            {/* La moneda se ve y se cambia acá, junto a los precios. Cambiarla
+                NO convierte: solo dice en qué están escritos los números. Una
+                corrección no la toca (corregir_informe_emitido no la acepta). */}
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              Precios en
+              {enCorreccion ? (
+                <b className="text-foreground">{moneda === "PEN" ? "Soles" : "Dólares"}</b>
+              ) : (
+                <>
+                  <Pastilla activa={moneda === "USD"} onClick={() => setMoneda("USD")}>
+                    Dólares
+                  </Pastilla>
+                  <Pastilla activa={moneda === "PEN"} onClick={() => setMoneda("PEN")}>
+                    Soles
+                  </Pastilla>
+                </>
+              )}
+            </span>
             <span className="text-[11px] text-muted-foreground">
               {items.length === 0
                 ? "Agregue lo que se vendió: equipos, repuestos o servicios."
@@ -1279,10 +1306,10 @@ export function FormularioInforme({
             </div>
           )}
           <p className="mt-2 text-right text-xs tabular-nums text-muted-foreground">
-            Sub total US$ {totales.subtotal.toLocaleString("es-PE", { minimumFractionDigits: 2 })} · IGV US${" "}
+            Sub total {simbolo} {totales.subtotal.toLocaleString("es-PE", { minimumFractionDigits: 2 })} · IGV {simbolo}{" "}
             {totales.igv.toLocaleString("es-PE", { minimumFractionDigits: 2 })} ·{" "}
             <b className="text-foreground">
-              Total US$ {totales.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+              Total {simbolo} {totales.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
             </b>
           </p>
         </div>

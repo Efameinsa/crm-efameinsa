@@ -1,5 +1,6 @@
 "use server";
 
+import { renglonEnSoles } from "@/lib/moneda-impresa";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { enviarEventoMeta } from "@/lib/meta-capi";
@@ -107,6 +108,9 @@ export interface PresupuestoDisponible {
   /** Solo las del CRM: los renglones tal como se cotizaron, con cantidad y
    *  precio, así el informe no arranca con todos los precios en cero. */
   lineas?: { descripcion: string; cantidad: number; precio_unitario: number; precio_con_igv?: number | null }[];
+  /** Solo las del CRM: la moneda en que se IMPRIMIÓ. Si salió en soles, las
+   *  líneas ya vienen en soles y el cierre se hace en soles (05-10, 2218-26). */
+  moneda?: "USD" | "PEN";
   /** Solo las del CRM que salieron a nombre de otra empresa del grupo (0310): a ella se le factura. */
   facturarA?: { razonSocial: string; numDoc: string | null; direccion: string | null } | null;
 }
@@ -182,7 +186,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, motivo_serie, estado, total, garantia, created_at, enviada_at, facturar_a_cuenta_id, cliente_snapshot, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, descripcion, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, estado, total, garantia, created_at, enviada_at, facturar_a_cuenta_id, cliente_snapshot, moneda_impresa, tipo_cambio, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, precio_impreso, descripcion, productos(marca, modelo, nombre))",
       )
       .eq("oportunidades.cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
@@ -223,18 +227,32 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     cantidad: number;
     precio_unitario: number;
     precio_con_igv?: number | null;
+    precio_impreso?: number | null;
     descripcion: string | null;
     productos: { marca: string; modelo: string; nombre: string } | null;
   };
   // El rótulo del equipo es el mismo que usa el cuadro de potenciales.
   const delCrm: PresupuestoDisponible[] = (delCotizador ?? []).map((c) => {
+    // ⚠️ 05-10, Katerine (C5): cotizó Presu_2218-26 EN SOLES y el cierre
+    // 004-2026 le salió en dólares, con los mismos números. El cotizador
+    // guarda dólares y solo convierte al imprimir; el cierre copiaba los
+    // dólares y tenía la moneda fija en USD. Ahora las líneas llegan con los
+    // mismos precios en soles que vio el cliente (misma conversión que el PDF).
+    const enSoles = c.moneda_impresa === "PEN" && Number(c.tipo_cambio) > 0;
     const lineas = ((c.cotizacion_items as unknown as ItemCotizado[]) ?? []).map((i) => {
       const prod = i.productos;
-      return {
-        descripcion: prod ? `${prod.nombre} ${prod.marca} ${prod.modelo}` : (i.descripcion ?? "Equipo"),
+      const base = {
         cantidad: i.cantidad,
         precio_unitario: Number(i.precio_unitario),
         precio_con_igv: i.precio_con_igv == null ? null : Number(i.precio_con_igv),
+        precio_impreso: i.precio_impreso == null ? null : Number(i.precio_impreso),
+      };
+      const precios = enSoles ? renglonEnSoles(base, Number(c.tipo_cambio)) : base;
+      return {
+        descripcion: prod ? `${prod.nombre} ${prod.marca} ${prod.modelo}` : (i.descripcion ?? "Equipo"),
+        cantidad: precios.cantidad,
+        precio_unitario: precios.precio_unitario,
+        precio_con_igv: precios.precio_con_igv,
       };
     });
     return {
@@ -249,6 +267,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
       garantia: c.garantia,
       estado: c.estado,
       lineas,
+      moneda: enSoles ? ("PEN" as const) : ("USD" as const),
       facturarA: c.facturar_a_cuenta_id
         ? (() => {
             const snap = (c.cliente_snapshot ?? {}) as { razon_social?: string; num_doc?: string | null; direccion?: string | null };
@@ -334,7 +353,7 @@ function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
     contacto_despacho: d.contactoDespacho,
     modalidad_pago: d.modalidadPago,
     forma_pago: d.formaPago,
-    moneda: d.moneda,
+    moneda: d.moneda === "PEN" ? "PEN" : "USD",
     // El total con IGV, que es lo que se cobra. Se calcula acá y no en el
     // navegador: el importe del documento no puede depender de lo que
     // mandó el cliente.
@@ -419,7 +438,7 @@ export async function emitirInforme(informeId: string): Promise<{ error: string 
   const { data, error } = await supabase.rpc("emitir_informe", { p_id: informeId });
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
 
-  const { data: informe } = await supabase.from("informes_cierre").select("cuenta_id, oportunidad_id, items").eq("id", informeId).maybeSingle();
+  const { data: informe } = await supabase.from("informes_cierre").select("cuenta_id, oportunidad_id, items, moneda").eq("id", informeId).maybeSingle();
   if (informe) revalidatePath(`/comercial/cartera/${informe.cuenta_id}`);
   // La venta llega a Meta como Purchase con su valor (0257), si el cliente
   // entró por un lead. Mejor esfuerzo: no toca el informe.
@@ -428,7 +447,7 @@ export async function emitirInforme(informeId: string): Promise<{ error: string 
     if (lead) {
       const items = (informe.items ?? []) as { bloque?: string; cantidad?: number; precio_con_igv?: number; precio_unitario?: number }[];
       const valor = items.filter((i) => !i.bloque || i.bloque === "venta").reduce((t, i) => t + (Number(i.cantidad) || 1) * (Number(i.precio_con_igv ?? i.precio_unitario) || 0), 0);
-      await enviarEventoMeta({ evento: "Purchase", leadId: lead.id, eventId: `${lead.id}:Purchase:${informeId}`, valor: valor || null, moneda: "USD" });
+      await enviarEventoMeta({ evento: "Purchase", leadId: lead.id, eventId: `${lead.id}:Purchase:${informeId}`, valor: valor || null, moneda: informe.moneda === "PEN" ? "PEN" : "USD" });
     }
   }
   return { error: null, codigo: data as string };
@@ -777,6 +796,7 @@ export interface BorradorInforme {
   creadoPor: string | null;
   guardadoAt: string;
   serie: "EFAMEINSA" | "OPEN";
+  moneda: "USD" | "PEN";
   presupuestoRef: string | null;
   ventaId: string | null;
   cotizacionId: string | null;
@@ -846,6 +866,7 @@ export async function cargarBorradorInforme(
       creadoPor: i.creado_por ?? null,
       guardadoAt: i.updated_at ?? i.created_at,
       serie: i.serie === "OPEN" ? "OPEN" : "EFAMEINSA",
+      moneda: i.moneda === "PEN" ? "PEN" : "USD",
       motivoSerie: texto(i.motivo_serie),
       presupuestoRef: i.presupuesto_ref ?? null,
       ventaId: i.venta_id ?? null,
