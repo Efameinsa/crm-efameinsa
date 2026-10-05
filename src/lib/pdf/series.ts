@@ -170,3 +170,12 @@ export const notasDe = (serie: "EFAMEINSA" | "OPEN") => {
 };
 
 export const IGV = 0.18;
+
+/**
+ * «Sin garantía» (o «sin garantia», «SIN GARANTÍA DEL SERVICIO»): la
+ * cotización no imprime el renglón de garantía ni la nota de cómo se conserva
+ * (Gabriela, 03-10: «cuando se coloque sin garantía que no aparezca en el PDF»).
+ */
+export function esSinGarantia(garantia: string | null | undefined): boolean {
+  return /^\s*sin\s+garant/i.test(garantia ?? "");
+}

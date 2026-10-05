@@ -1043,7 +1043,8 @@ export async function guardarInformeServicio(datos: {
    * exige en los cinco formatos —«todo proceso contará con un registro
    * fotográfico que será adjuntado en el informe»— y son lo que Carlos quiere
    * poder mostrar cuando el cliente reclama: «venga el informe, la foto… ahí
-   * está la hora y fecha, no hay problema». Máximo 10.
+   * está la hora y fecha, no hay problema». Salen todas (Lesly, 05-10: «si el
+   * cliente tiene 15 fotos… deben salir todas»); el tope de 100 es solo de resguardo.
    */
   fotos?: { path: string; nombre: string; tipo: string; tamano: number }[];
   /** Los informes del almacén (0252): qué informe es, de qué atención, y los materiales que faltan. */
@@ -1102,7 +1103,7 @@ export async function guardarInformeServicio(datos: {
           igv: r.igv === "incluye" ? "incluye" : "no_incluye",
           stock: r.stock ? String(r.stock).trim().slice(0, 40) : null,
         })),
-      fotos: (datos.fotos ?? []).slice(0, 10).map((f) => ({
+      fotos: (datos.fotos ?? []).slice(0, 100).map((f) => ({
         path: String(f.path).slice(0, 300),
         nombre: String(f.nombre).slice(0, 120),
         tipo: String(f.tipo).slice(0, 100),

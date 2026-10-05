@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet, Svg, Path } from "@react-pdf/renderer";
-import { IDENTIDAD_SERIE, notasDe } from "./series";
+import { IDENTIDAD_SERIE, notasDe, esSinGarantia } from "./series";
 import { totalesConIgv } from "@/lib/igv";
 import {
   crearEstilos,
@@ -177,8 +177,9 @@ export function CotizacionPostventaPdf({
       // LA GARANTÍA QUE SE MARCÓ (Gabriela, 29-09: «en el borrador sigue
       // saliendo en condiciones comerciales diferente a lo que se marca»).
       // El formato de postventa no la imprimía y la nota de garantía salía
-      // aunque fuera «Sin garantía».
-      ["Garantía", garantia?.trim() || null],
+      // aunque fuera «Sin garantía». Y «Sin garantía» tampoco va escrito: no
+      // se le ofrece al cliente lo que no se da (Gabriela, 03-10).
+      ["Garantía", esSinGarantia(garantia) ? null : garantia?.trim() || null],
     ] as [string, string | null][]
   ).filter((c): c is [string, string] => Boolean(c[1]));
 
@@ -192,7 +193,7 @@ export function CotizacionPostventaPdf({
     : [];
 
   // «Sin garantía»: la nota de cómo se conserva la garantía no va.
-  const sinGarantia = /sin\s+garant/i.test(garantia ?? "");
+  const sinGarantia = esSinGarantia(garantia);
   const notaGarantia = sinGarantia ? [] : [notasDe(serie)[1]];
 
   const vinetas = (lista: string[]) =>

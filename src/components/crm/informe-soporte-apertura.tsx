@@ -108,6 +108,8 @@ export function InformeSoporteApertura({
   const [llamadaInicio, setLlamadaInicio] = useState(new Date(programadaPara).toLocaleTimeString("en-GB", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" }));
   const [llamadaFin, setLlamadaFin] = useState("");
   const [informeInicio, setInformeInicio] = useState(horaAhora());
+  // A mano (Lesly, 05-10): «la hora de culminación de informe la toma automáticamente y no debería ser así».
+  const [informeFin, setInformeFin] = useState("");
   const [descripcion, setDescripcion] = useState(equipos);
   // El almacén pone o cambia el técnico aquí mismo (Lesly, 03-10: «quiere poner a otro técnico y ya no se puede»).
   const [tecnicoInforme, setTecnicoInforme] = useState(tecnico ?? "");
@@ -137,6 +139,7 @@ export function InformeSoporteApertura({
     if (conTexto.length === 0 && documentos.length === 0) return void toast.error("Escriba al menos una sección o adjunte el informe en Word o PDF");
     const quien = tecnicoInforme.trim();
     if (!quien) return void toast.error("Escriba el técnico a cargo");
+    if (!informeFin) return void toast.error("Escriba la hora de culminación del informe");
     startTransition(async () => {
       if (quien !== (tecnico ?? "").trim()) {
         const rt = await asignarTecnicoApertura(aperturaId, quien);
@@ -162,7 +165,7 @@ export function InformeSoporteApertura({
         horaInicio: llamadaInicio || null,
         horaFin: llamadaFin || null,
         horaInformeInicio: informeInicio || null,
-        horaInformeFin: horaAhora(),
+        horaInformeFin: informeFin,
         secciones: conTexto,
         repuestos: filasParaGuardar(paraCotizar),
         fotos: fotosSubidas,
@@ -200,12 +203,15 @@ export function InformeSoporteApertura({
           <Campo etiqueta="Hora de inicio del informe">
             <Input type="time" value={informeInicio} onChange={(e) => setInformeInicio(e.target.value)} />
           </Campo>
+          <Campo etiqueta="Hora de culminación del informe *">
+            <Input type="time" value={informeFin} onChange={(e) => setInformeFin(e.target.value)} />
+          </Campo>
           <Campo etiqueta="Técnico a cargo *">
             <Input value={tecnicoInforme} onChange={(e) => setTecnicoInforme(e.target.value)} placeholder={tecnico ? undefined : "Postventa no lo asignó: escríbalo"} />
           </Campo>
         </div>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          La fecha del informe, la hora de culminación del informe y quién lo elabora se ponen solos al guardar. El número del informe también.
+          La fecha del informe y quién lo elabora se ponen solos al guardar. El número del informe también.
         </p>
       </div>
 
@@ -239,7 +245,7 @@ export function InformeSoporteApertura({
 
       <TablaParaCotizar filas={paraCotizar} onChange={setParaCotizar} />
 
-      <TomarOSubirVarias titulo="Fotos o capturas de la llamada" archivos={fotos} onChange={setFotos} maximo={20} />
+      <TomarOSubirVarias titulo="Fotos o capturas de la llamada" archivos={fotos} onChange={setFotos} maximo={100} />
       <Documentos archivos={documentos} onChange={setDocumentos} />
 
       <Button onClick={guardar} disabled={pendiente}>

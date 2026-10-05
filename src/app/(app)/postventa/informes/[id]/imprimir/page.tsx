@@ -59,7 +59,7 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
   const supabase = await createClient();
   const { data } = await supabase
     .from("informes_servicio")
-    .select("*, cuentas(razon_social, num_doc), equipos_instalados(serie, modelo_texto), perfiles!informes_servicio_elaborado_por_fkey(nombre)")
+    .select("*, cuentas(razon_social, num_doc), equipos_instalados(serie, modelo_texto), perfiles!informes_servicio_elaborado_por_fkey(nombre, es_almacen)")
     .eq("id", id)
     .single();
   if (!data) notFound();
@@ -77,7 +77,7 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
 
   const cuenta = data.cuentas as unknown as { razon_social: string; num_doc: string | null } | null;
   const equipo = data.equipos_instalados as unknown as { serie: string; modelo_texto: string | null } | null;
-  const elaborado = data.perfiles as unknown as { nombre: string } | null;
+  const elaborado = data.perfiles as unknown as { nombre: string; es_almacen: boolean | null } | null;
   const fotos = (data.fotos ?? []) as { path: string; etiqueta?: string }[];
   const repuestos = (data.repuestos ?? []) as { codigo: string | null; descripcion: string; cantidad: number | null; unidad?: string | null; precio: number | null; igv?: string | null; stock: string | null }[];
   // Hasta cuatro decimales: así vienen del sistema (US$ 0.2401).
@@ -102,6 +102,11 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
     ? await supabase.from("aperturas_llamada").select("tipo").eq("id", data.apertura_id as string).maybeSingle()
     : { data: null };
   const tipoApertura = (apertura?.tipo ?? null) as TipoApertura | null;
+  // DE QUIÉN ES EL INFORME (Lesly, 05-10, con el 018-2026: «sale arriba a la
+  // derecha como postventa y está mal, debe salir almacén»). El informe de una
+  // llamada derivada y los informes del almacén (0252) son del almacén aunque
+  // los imprima postventa; la hoja revisada para el cliente sigue en Postventa.
+  const area = data.apertura_id || data.clase_almacen || elaborado?.es_almacen ? "Almacén" : "Postventa";
   const titulo = tipoApertura ? tituloHojaApertura(tipoApertura) : (TITULO[tipo] ?? "INFORME TÉCNICO");
   const equipoLinea = [equipo?.modelo_texto ?? data.equipo_texto, equipo?.serie].filter(Boolean).join(" / ");
   const cliente = cuenta?.razon_social ?? (data.cliente_texto as string | null) ?? "—";
@@ -149,7 +154,7 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
       </div>
 
       {/* La empresa y el logo del cierre al que pertenece (Santos, 24-09). */}
-      <MembreteDocumento serie={serieEmpresa} area="Postventa" numero={numero} />
+      <MembreteDocumento serie={serieEmpresa} area={area} numero={numero} />
 
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>
       {equipoLinea && <p className="text-center text-[12px] font-semibold uppercase">MODELO: {equipoLinea}</p>}
