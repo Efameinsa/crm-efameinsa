@@ -136,7 +136,7 @@ export async function ReporteAlmacenHoja({ desde: desdeParam, hasta: hastaParam 
   const unidad = (u: Unidad) => `${u.parte_nombre ? `${u.parte_nombre} · ` : ""}${corto(primera(u.descripcion), 80)}`;
 
   return (
-    <div className="hoja-informe mx-auto max-w-6xl bg-white p-8 text-[12px] leading-snug text-black">
+    <div className="hoja-informe mx-auto max-w-3xl bg-white p-8 text-[12px] leading-snug text-black">
       <div className="no-imprimir mb-4 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/almacen" className="text-xs text-muted-foreground hover:underline">
@@ -186,10 +186,10 @@ export async function ReporteAlmacenHoja({ desde: desdeParam, hasta: hastaParam 
           <table className="mt-1 w-full border-collapse text-[10.5px]">
             <thead>
               <tr>
-                <th className={`${th} w-56`}>Cliente</th>
+                <th className={`${th} w-40`}>Cliente</th>
                 <th className={th}>Unidad</th>
-                <th className={`${th} w-44`}>Serie o código</th>
-                <th className={`${th} w-24`}>Dado el</th>
+                <th className={`${th} w-32`}>Serie o código</th>
+                <th className={`${th} w-20`}>Dado el</th>
               </tr>
             </thead>
             <tbody>
@@ -221,9 +221,9 @@ export async function ReporteAlmacenHoja({ desde: desdeParam, hasta: hastaParam 
           <table className="mt-1 w-full border-collapse text-[10.5px]">
             <thead>
               <tr>
-                <th className={`${th} w-56`}>Cliente</th>
+                <th className={`${th} w-40`}>Cliente</th>
                 <th className={th}>Qué falta codificar</th>
-                <th className={`${th} w-24`}>Pedido el</th>
+                <th className={`${th} w-20`}>Pedido el</th>
               </tr>
             </thead>
             <tbody>
@@ -259,10 +259,10 @@ export async function ReporteAlmacenHoja({ desde: desdeParam, hasta: hastaParam 
           <table className="mt-1 w-full border-collapse text-[10.5px]">
             <thead>
               <tr>
-                <th className={`${th} w-56`}>Cliente</th>
+                <th className={`${th} w-40`}>Cliente</th>
                 <th className={th}>Equipos (probados / total)</th>
-                <th className={`${th} w-24`}>Pidió la prueba</th>
-                <th className={`${th} w-24`}>Despacho</th>
+                <th className={`${th} w-20`}>Pidió la prueba</th>
+                <th className={`${th} w-20`}>Despacho</th>
               </tr>
             </thead>
             <tbody>
@@ -309,11 +309,11 @@ export async function ReporteAlmacenHoja({ desde: desdeParam, hasta: hastaParam 
           <table className="mt-1 w-full border-collapse text-[10.5px]">
             <thead>
               <tr>
-                <th className={`${th} w-56`}>Cliente</th>
+                <th className={`${th} w-40`}>Cliente</th>
                 <th className={th}>Equipo</th>
-                <th className={`${th} w-48`}>Destino</th>
-                <th className={`${th} w-36`}>Guía / transporte</th>
-                <th className={`${th} w-24`}>Salió</th>
+                <th className={`${th} w-32`}>Destino</th>
+                <th className={`${th} w-28`}>Guía / transporte</th>
+                <th className={`${th} w-20`}>Salió</th>
               </tr>
             </thead>
             <tbody>
@@ -336,10 +336,10 @@ export async function ReporteAlmacenHoja({ desde: desdeParam, hasta: hastaParam 
           <table className="mt-1 w-full border-collapse text-[10.5px]">
             <thead>
               <tr>
-                <th className={`${th} w-24`}>Fecha</th>
-                <th className={`${th} w-56`}>Cliente</th>
+                <th className={`${th} w-20`}>Fecha</th>
+                <th className={`${th} w-40`}>Cliente</th>
                 <th className={th}>Equipo</th>
-                <th className={`${th} w-48`}>Cómo está</th>
+                <th className={`${th} w-32`}>Cómo está</th>
               </tr>
             </thead>
             <tbody>
@@ -372,7 +372,7 @@ export async function ReporteAlmacenHoja({ desde: desdeParam, hasta: hastaParam 
 
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 10mm; }
+          @page { size: A4 portrait; margin: 10mm; }
           body *:not(:has(.hoja-informe)):not(.hoja-informe):not(.hoja-informe *) { display: none !important; }
           body *:has(.hoja-informe) { min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; border: 0 !important; box-shadow: none !important; background: transparent !important; }
           html, body { background: #fff !important; }

@@ -94,7 +94,7 @@ export function TomarOSubirVarias({
   archivos,
   onChange,
   acepta = "image/*",
-  maximo = 10,
+  maximo = 100,
 }: {
   titulo: string;
   archivos: File[];
