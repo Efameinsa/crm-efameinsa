@@ -45,6 +45,9 @@ const PESTANAS = [
   { clave: "devueltos", etiqueta: "Devueltos" },
   { clave: "liberados", etiqueta: "Liberados" },
   { clave: "anulados", etiqueta: "Anulados" },
+  // Cierres en Word anteriores al CRM, subidos con el número que sigue y sin
+  // sumar venta (gerencia 05-10 16:38, 0397).
+  { clave: "reg", etiqueta: "Regularizados (REG)" },
   { clave: "todos", etiqueta: "Todos" },
 ] as const;
 
@@ -71,6 +74,7 @@ interface FilaInforme {
   adjuntos: AdjuntoCierre[] | null;
   anulado_at: string | null;
   anulado_motivo: string | null;
+  regularizado: boolean;
   perfiles: { nombre: string; codigo_comercial: string | null } | null;
   cotizaciones: { id: string; codigo: string } | null;
 }
@@ -95,7 +99,7 @@ export default async function CierresCentralPage({
   const { data } = await supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
+      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, regularizado, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
     )
     .not("emitido_at", "is", null)
     .order("emitido_at", { ascending: false })
@@ -200,6 +204,7 @@ export default async function CierresCentralPage({
   const devueltos = todas.filter((f) => devuelto(f.id));
   const anulados = todas.filter(anulado);
   const liberados = todas.filter((f) => liberado(f.id) && !anulado(f));
+  const regularizados = todas.filter((f) => f.regularizado && !anulado(f));
   const filas =
     pestana === "por_liberar"
       ? porLiberar
@@ -209,7 +214,9 @@ export default async function CierresCentralPage({
           ? liberados
           : pestana === "anulados"
             ? anulados
-            : todas;
+            : pestana === "reg"
+              ? regularizados
+              : todas;
   const urgentes = porLiberar.filter((f) => f.urgente).length;
 
   // EL COMPENDIO DE LA GESTIÓN, que es lo que Carlos pidió para que Central
@@ -330,7 +337,9 @@ export default async function CierresCentralPage({
                   ? liberados.length
                   : p.clave === "anulados"
                     ? anulados.length
-                    : todas.length;
+                    : p.clave === "reg"
+                      ? regularizados.length
+                      : todas.length;
             return (
               <Link
                 key={p.clave}
@@ -410,6 +419,14 @@ export default async function CierresCentralPage({
                       {estaAnulado && (
                         <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
                           Anulado
+                        </span>
+                      )}
+                      {f.regularizado && (
+                        <span
+                          title="Pedido regularizado: cierre en Word anterior al CRM. No suma venta y el almacén ya entregó: las series las escribe Central."
+                          className="rounded-full bg-[#7A5C00]/10 px-2 py-0.5 text-[10px] font-bold text-[#7A5C00]"
+                        >
+                          REG
                         </span>
                       )}
                       {f.urgente && !yaLiberado && !estaAnulado && (
@@ -520,6 +537,7 @@ export default async function CierresCentralPage({
                   return (
                     <PasosPedidoCentral
                       informeId={f.id}
+                      regularizado={f.regularizado}
                       servicioId={(pedido?.id as string | undefined) ?? null}
                       numeroPedido={(pedido?.numero_pedido_erp as string | null) ?? null}
                       seriesPedidasAt={(pedido?.series_pedidas_at as string | null) ?? null}

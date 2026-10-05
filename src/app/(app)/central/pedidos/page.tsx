@@ -141,6 +141,7 @@ export default async function SusPedidosPage({ searchParams }: { searchParams: P
                   <p className="text-xs text-muted-foreground">
                     {c ? `Cierre ${c.serie === "OPEN" ? "Open" : "Efameinsa"} ${c.codigo}` : ""}
                     {s.numero_pedido_erp ? ` · Pedido ${s.numero_pedido_erp}` : ""}
+                    {s.regularizado ? " · REG (regularizado)" : ""}
                     {s.pedido_ejecutado_at ? ` · liberado ${fechaHoraLima(s.pedido_ejecutado_at)}` : ""}
                   </p>
                   <p className="mt-1 flex flex-wrap gap-1.5 text-[11px]">

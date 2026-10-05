@@ -43,6 +43,7 @@ export function PasosPedidoCentral({
   apuroFinanzas = null,
   cliente = null,
   fileEntregado = null,
+  regularizado = false,
 }: {
   informeId: string;
   servicioId: string | null;
@@ -61,6 +62,8 @@ export function PasosPedidoCentral({
   cliente?: { cuentaId: string; nombre: string; empresa: EmpresaFile | null } | null;
   /** El file que Central ya entregó con este pedido y sigue fuera del archivador (0365). */
   fileEntregado?: { a: string; at: string; recibido: boolean } | null;
+  /** Cierre en Word anterior al CRM (REG, 0397): el almacén ya entregó, las series las copia Central. */
+  regularizado?: boolean;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -84,7 +87,16 @@ export function PasosPedidoCentral({
     <ol className="mt-3 grid gap-2 lg:grid-cols-4">
       {/* 1 · SERIES */}
       <Paso n={1} titulo="Series de los equipos" hecho={seriesListas}>
-        {!servicioId ? (
+        {!servicioId && regularizado ? (
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-muted-foreground">
+              REG: el almacén ya entregó. Verifique las series en las máquinas del cliente y cópielas usted; no se le piden al almacén.
+            </p>
+            <Button size="sm" disabled={pendiente} onClick={() => correr(() => prepararPedido(informeId), "Lista de equipos lista: copie las series abajo")}>
+              Las escribo yo
+            </Button>
+          </div>
+        ) : !servicioId ? (
           <div className="flex flex-wrap gap-1.5">
             <Button size="sm" disabled={pendiente} onClick={() => correr(() => pedirSeriesAlAlmacen(informeId), "Pedido al almacén: le llegó el aviso con los equipos")}>
               <PackageSearch className="size-3.5" /> Pedir series al almacén
@@ -111,7 +123,7 @@ export function PasosPedidoCentral({
                 )}
               </>
             ) : (
-              !seriesListas && (
+              !seriesListas && !regularizado && (
                 <Button size="sm" variant="outline" className="mt-1" disabled={pendiente} onClick={() => correr(() => pedirSeriesAlAlmacen(informeId), "Pedido al almacén: le llegó el aviso")}>
                   <PackageSearch className="size-3.5" /> Pedir al almacén
                 </Button>

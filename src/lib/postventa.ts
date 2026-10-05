@@ -15,6 +15,8 @@
 
 export interface ServicioPostventa {
   id: string;
+  /** Pedido de un cierre en Word anterior al CRM (REG, 0397): ya entregado, no suma venta. */
+  regularizado?: boolean;
   cliente_texto: string | null;
   cuenta_id: string | null;
   equipo: string | null;
