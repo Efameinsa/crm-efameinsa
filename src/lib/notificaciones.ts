@@ -51,7 +51,9 @@ export type TipoNotificacion =
   | "seguridad"
   // Postventa pide al ingeniero revisar un borrador, y el acuse de que lo vio (0392, Gabriela 05-10).
   | "cotizacion_revision"
-  | "cotizacion_vista";
+  | "cotizacion_vista"
+  // Clientes que escribieron por WhatsApp y esperan la respuesta del comercial (0394, Central 05-10).
+  | "whatsapp_sin_respuesta";
 
 interface Destinatario {
   userId?: string;

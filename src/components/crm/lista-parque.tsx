@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "@/components/enlace";
 import { Search } from "lucide-react";
 import {
+  comproParque,
   deOrigenParque,
   estadoGestionParque,
   ETIQUETA_GESTION_PARQUE,
@@ -12,6 +13,7 @@ import {
   MESES_CORTOS,
   personasDelParque,
   type ClienteParque,
+  type CompraParque,
   type EstadoGestionParque,
   type FiltrosParque,
   type OrigenParque,
@@ -66,7 +68,7 @@ const TITULO_GESTION: Record<EstadoGestionParque, string> = {
 };
 
 type Origen = OrigenParque;
-type Valores = Required<Pick<FiltrosParque, "estado" | "anio" | "mes" | "gestion" | "quien">> & { q: string; origen: Origen };
+type Valores = Required<Pick<FiltrosParque, "estado" | "anio" | "mes" | "gestion" | "quien" | "compro">> & { q: string; origen: Origen };
 
 export function ListaParque({
   todos,
@@ -82,7 +84,7 @@ export function ListaParque({
 }) {
   const [v, setV] = useState<Valores>(inicial);
   const [visibles, setVisibles] = useState(POR_TANDA);
-  const { q, estado, anio, mes, origen, gestion, quien } = v;
+  const { q, estado, anio, mes, origen, gestion, quien, compro } = v;
 
   // La URL refleja el filtro sin pedirle nada al servidor.
   function cambiar(cambios: Partial<Valores>) {
@@ -99,6 +101,7 @@ export function ListaParque({
     if (n.origen) p.set("origen", n.origen);
     if (n.gestion) p.set("gestion", n.gestion);
     if (n.quien) p.set("quien", n.quien);
+    if (n.compro) p.set("compro", n.compro);
     const s = p.toString();
     window.history.replaceState(null, "", `/comercial/parque${s ? `?${s}` : ""}`);
     setVisibles(POR_TANDA);
@@ -116,6 +119,7 @@ export function ListaParque({
   // —lote, año, mes, estado, búsqueda— pero sin su propio recorte: así se lee
   // «de los de marzo de 2025, 14 no los llamó nadie y 6 son de Ariana».
   const sinGestion = useMemo(() => filtrarParque(todos, { ...v, gestion: null, quien: null }), [todos, v]);
+  const sinCompra = useMemo(() => filtrarParque(todos, { ...v, compro: null }), [todos, v]);
   const cuentaGestion = (g: EstadoGestionParque) => sinGestion.filter((c) => estadoGestionParque(c) === g).length;
   const personas = useMemo(() => personasDelParque(sinGestion), [sinGestion]);
   const misClientes = yo ? (personas.find((p) => p.clave === yo)?.n ?? 0) : 0;
@@ -229,6 +233,26 @@ export function ListaParque({
           ))}
         </div>
       )}
+
+      {/* QUÉ COMPRÓ (Gabriela, 05-10: «un ítem donde pueda discriminar
+          máquinas de repuestos»). Se cuenta con todo lo demás puesto. */}
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <span className={rotulo}>Qué compró</span>
+        <button type="button" className={chip(!compro)} onClick={() => cambiar({ compro: null })}>
+          Todo
+        </button>
+        {(
+          [
+            ["maquina", "Máquinas"],
+            ["repuesto", "Repuestos"],
+            ["mantenimiento", "Mantenimiento"],
+          ] as [CompraParque, string][]
+        ).map(([valor, texto]) => (
+          <button key={valor} type="button" className={chip(compro === valor)} onClick={() => cambiar({ compro: compro === valor ? null : valor })}>
+            {texto} ({sinCompra.filter((c) => comproParque(c, valor)).length})
+          </button>
+        ))}
+      </div>
 
       {/* LA GESTIÓN: QUIÉN Y EN QUÉ QUEDÓ (gerencia, 02-10). «Ahora quién lo
           hizo. Si no lo hizo, o le falta hacer, o está en proceso.» Son tres
@@ -365,6 +389,16 @@ function FilaParque({ c }: { c: ClienteParque }) {
         <span className="block max-w-56 truncate text-[11px] text-muted-foreground" title={c.modelos.join(" · ")}>
           {c.modelos.join(" · ") || "no consta qué equipo"}
         </span>
+        {(c.ventasDeRepuesto > 0 || c.ventasDeMantenimiento > 0) && (
+          <span className="block text-[11px] text-muted-foreground">
+            {[
+              c.ventasDeRepuesto > 0 ? `${c.ventasDeRepuesto} venta${c.ventasDeRepuesto === 1 ? "" : "s"} de repuestos` : null,
+              c.ventasDeMantenimiento > 0 ? `${c.ventasDeMantenimiento} de mantenimiento` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        )}
         {c.ultimaCompraAt && <span className="block text-[11px] text-muted-foreground">compró {fechaCalendario(c.ultimaCompraAt)}</span>}
       </td>
       <td className="px-2 py-2">

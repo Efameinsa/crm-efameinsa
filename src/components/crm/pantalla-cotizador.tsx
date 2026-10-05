@@ -371,7 +371,17 @@ export function PantallaCotizador({
   const [tiempoEntrega, setTiempoEntrega] = useState(edicion ? (edicion.tiempoEntrega ?? "") : (previas?.tiempoEntrega ?? TIEMPO_ENTREGA_POR_DEFECTO));
   const [garantia, setGarantia] = useState(edicion ? (edicion.garantia ?? "") : (previas?.garantia ?? GARANTIA_POR_DEFECTO));
   const [formaPago, setFormaPago] = useState(edicion ? (edicion.formaPago ?? "") : (previas?.formaPago ?? FORMA_PAGO_POR_DEFECTO));
-  const [saldo, setSaldo] = useState(edicion ? (edicion.saldo ?? "") : (previas?.saldo ?? SALDO_POR_DEFECTO));
+  // Una cotización nueva copia las condiciones de la anterior; si aquella iba
+  // al contado (saldo vacío), el vacío caía en el 70 % por defecto y salía
+  // «Contado» con «70 % antes del despacho» (Gabriela, 05-10). El saldo sale
+  // de la forma de pago, no del valor por defecto.
+  const [saldo, setSaldo] = useState(
+    edicion
+      ? (edicion.saldo ?? "")
+      : previas
+        ? (previas.saldo ?? saldoAlCambiarForma(previas.formaPago ?? FORMA_PAGO_POR_DEFECTO, ""))
+        : SALDO_POR_DEFECTO,
+  );
   // LA NOTA DEL PDF DE POSTVENTA, EDITABLE (Gabriela, 05-10: «no en todos
   // incluye el examen médico ocupacional»). null = la de siempre del formato;
   // si se toca, sale lo escrito: una viñeta por renglón (0391).
