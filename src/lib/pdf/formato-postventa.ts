@@ -73,6 +73,12 @@ export function lineasDelConcepto(item: {
   capacidad: string | null;
   descripcionLinea?: string | null;
   deCatalogo: boolean;
+  /**
+   * Lo que trae un repuesto del catálogo en sus características (un kit y sus
+   * piezas). Lesly, 05-10: «por más que ya lo agregué no sale en la
+   * cotización». Va debajo, con guion, como en el Word de postventa.
+   */
+  detalle?: string[];
 }): string[] {
   const propias = (item.descripcionLinea ?? "")
     .split(/\r?\n/)
@@ -89,6 +95,10 @@ export function lineasDelConcepto(item: {
   if (item.capacidad) lineas.push(`CAPACIDAD: ${plano(item.capacidad)}`);
   const yaDichas = new Set(lineas.map((l) => l.toUpperCase()));
   for (const l of propias) if (!yaDichas.has(l.toUpperCase())) lineas.push(l);
+  for (const d of item.detalle ?? []) {
+    const t = plano(d);
+    if (t && !yaDichas.has(t.toUpperCase())) lineas.push(`- ${t}`);
+  }
   return lineas;
 }
 
