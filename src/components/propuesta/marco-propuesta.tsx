@@ -126,7 +126,6 @@ export async function MarcoPropuesta({
               className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               autoComplete="off"
             />
-            <kbd className="hidden whitespace-nowrap rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:block">Ctrl K</kbd>
           </form>
           {NUEVO[tipo] && (
             <Link
