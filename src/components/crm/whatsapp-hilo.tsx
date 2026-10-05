@@ -439,6 +439,18 @@ export function WhatsappHilo({
             {conversacion.codigo_campania_wa && ` · código ${conversacion.codigo_campania_wa}`}
             {restaVentana && ` · ventana de ${estadoVentana.horas} h: ${restaVentana}`}
           </p>
+          {/* Quién lo atiende (Central, 05-10): si nadie, por qué y qué hacer. */}
+          {conversacion.asignado_a_nombre ? (
+            <p className="truncate text-[11px] text-muted-foreground">
+              Lo atiende <b className="font-semibold text-foreground">{conversacion.asignado_a_nombre}</b>
+            </p>
+          ) : (
+            conversacion.sin_comercial_motivo && (
+              <p className="mt-0.5 text-[11px] font-medium text-amber-700">
+                Ningún comercial lo atiende: {conversacion.sin_comercial_motivo}. Use «Derivar» para pasárselo a alguien.
+              </p>
+            )
+          )}
           {/* Ítem 10 de la reunión del 22-09: con nombre de usuario de
               WhatsApp («@anibal3127») no hay número que copiar ni al que
               llamar — el botón de arriba ya no aparece, pero eso no dice qué

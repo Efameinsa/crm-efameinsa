@@ -239,7 +239,15 @@ export function WhatsappListaConversaciones({
               </span>
             )}
           </div>
-          {c.asignado_a_nombre && <p className="truncate text-[10px] text-muted-foreground/70">Con {c.asignado_a_nombre}</p>}
+          {c.asignado_a_nombre ? (
+            <p className="truncate text-[10px] text-muted-foreground">Lo atiende {c.asignado_a_nombre}</p>
+          ) : (
+            c.sin_comercial_motivo && (
+              <p className="truncate text-[10px] font-medium text-amber-700" title={`Ningún comercial lo atiende: ${c.sin_comercial_motivo}. Derívelo.`}>
+                Sin comercial · {c.sin_comercial_motivo}
+              </p>
+            )
+          )}
         </div>
       </Link>
     );

@@ -53,6 +53,30 @@ export interface ConversacionWhatsapp {
    * llegaron después de la última vez que abrió el chat. 0 = leído.
    */
   no_leidos: number;
+  /**
+   * POR QUÉ NINGÚN COMERCIAL LO ATIENDE (Central, 05-10: «no es notorio qué
+   * comercial lo está atendiendo… al parecer no le responden hace días»). El
+   * chat se retuvo al llegar (0262) —casi siempre porque el número ya es de la
+   * cartera de otro comercial— y se queda sin dueño hasta que Central lo
+   * derive. Es la razón del registro de asignaciones; null si tiene comercial.
+   */
+  sin_comercial_motivo: string | null;
+}
+
+/** El último motivo de retención de cada chat sin comercial (solo Central y backoffice lo leen). */
+async function motivosSinComercial(supabase: Awaited<ReturnType<typeof createClient>>, ids: string[]): Promise<Map<string, string>> {
+  const motivos = new Map<string, string>();
+  if (ids.length === 0) return motivos;
+  const { data } = await supabase
+    .from("wa_asignaciones_automaticas")
+    .select("conversacion_id, resultado, detalle, created_at")
+    .in("conversacion_id", ids)
+    .order("created_at", { ascending: false });
+  for (const r of data ?? []) {
+    if (!r.conversacion_id || motivos.has(r.conversacion_id)) continue;
+    motivos.set(r.conversacion_id, (r.detalle as string | null)?.trim() || (r.resultado === "retenido_sin_turno" ? "no había comercial de turno" : "se retuvo al llegar"));
+  }
+  return motivos;
 }
 
 
@@ -221,6 +245,7 @@ async function conUltimoTexto(supabase: Awaited<ReturnType<typeof createClient>>
   // el último texto: ninguna consulta de más por chat (0374).
   const sinLeer = new Map<string, number>();
   const lecturas = await lecturasPropias(supabase);
+  const motivos = await motivosSinComercial(supabase, data.filter((c) => !c.asignado_a && c.estado !== "cerrada").map((c) => c.id));
   const conVentana = new Set(data.filter((c) => ventanaDe(c.ultimo_mensaje_cliente_at, c.anuncio_at).abierta).map((c) => c.id));
   if (conIds.length > 0) {
     const { data: mensajes } = await supabase
@@ -254,6 +279,7 @@ async function conUltimoTexto(supabase: Awaited<ReturnType<typeof createClient>>
     // El globito cuenta mensajes; si los de este chat no entraron en la
     // consulta (tope de 1 000 filas), al menos dice que hay uno.
     no_leidos: sinLeer.get(c.id) ?? (pendienteDeLeer(c, lecturas) ? 1 : 0),
+    sin_comercial_motivo: c.asignado_a || c.estado === "cerrada" ? null : (motivos.get(c.id) ?? "nadie lo derivó"),
   }));
 }
 
@@ -292,6 +318,7 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
     .maybeSingle();
   if (!data) return null;
   const lead = data.leads as unknown as { codigo: string; nombre_contacto: string; oportunidad_id: string | null } | null;
+  const motivos = !data.asignado_a && data.estado !== "cerrada" ? await motivosSinComercial(supabase, [data.id]) : null;
   const { data: campania } = data.codigo_campania_wa
     ? await supabase.from("campanias_whatsapp").select("nombre").eq("codigo", data.codigo_campania_wa).maybeSingle()
     : { data: null };
@@ -316,6 +343,7 @@ export async function conversacionPorId(id: string): Promise<ConversacionDetalle
     anuncio: anuncioDe(data.referral),
     // Este chat se está mirando: para la pantalla abierta ya está leído.
     no_leidos: 0,
+    sin_comercial_motivo: motivos ? (motivos.get(data.id) ?? "nadie lo derivó") : null,
     campania_nombre: (campania as { nombre: string } | null)?.nombre ?? null,
   };
 }
