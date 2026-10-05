@@ -9,7 +9,7 @@ import { HistorialDecisionesGerencia } from "@/components/crm/historial-decision
 import { decisionesDeGerencia, type DecisionGerencia } from "@/lib/datos-cotizador";
 import { HistorialAprobaciones } from "@/components/crm/historial-aprobaciones";
 import { CompendioGestion } from "@/components/crm/compendio-gestion";
-import { cargarCompendio, type Compendio } from "@/lib/compendio-cierre";
+import { cargarCompendio, ETIQUETA_TIPO_GESTION, type Compendio, type HitoGestion } from "@/lib/compendio-cierre";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export default async function AprobacionesPage() {
     .select(
       `id, codigo, serie, total, moneda, created_at, oportunidad_id, version,
        autor:perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial, es_postventa, rol),
-       oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre)),
+       oportunidades!cotizaciones_oportunidad_id_fkey(cuenta_id, cuentas(razon_social), perfiles(nombre)),
        cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
     )
     .eq("estado_aprobacion", "pendiente_gerencia")
@@ -59,15 +59,38 @@ export default async function AprobacionesPage() {
   // versión llega con la observación de la primera a la vista, que es lo que
   // Carlos pidió el 15-09 con el caso de Brenda.
   const historiales = new Map<string, DecisionGerencia[]>();
+  // LO HECHO CON EL CLIENTE EN OTROS EXPEDIENTES (Gabriela, 05-10, ANTUAN).
+  // En postventa la llamada suele quedar en el expediente del mantenimiento y
+  // la cotización sale desde otro: gerencia veía «0 gestiones» y rechazó por
+  // «no indica que se realizó ninguna gestión», aunque la llamada existía.
+  const otrasGestiones = new Map<string, HitoGestion[]>();
+  const hace90 = new Date(Date.now() - 90 * 864e5).toISOString();
   await Promise.all(
     (cotizaciones ?? []).map(async (c) => {
       if (!c.oportunidad_id) return;
-      const [compendio, decisiones] = await Promise.all([
+      const cuentaId = (c.oportunidades as unknown as { cuenta_id: string | null } | null)?.cuenta_id ?? null;
+      const [compendio, decisiones, otras] = await Promise.all([
         cargarCompendio(c.oportunidad_id),
         decisionesDeGerencia(supabase, { oportunidadId: c.oportunidad_id }),
+        cuentaId
+          ? supabase
+              .from("actividades")
+              .select("tipo, nota, realizada_at, perfiles:realizada_por(nombre), oportunidades!inner(cuenta_id)")
+              .eq("oportunidades.cuenta_id", cuentaId)
+              .neq("oportunidad_id", c.oportunidad_id)
+              .gte("realizada_at", hace90)
+              .order("realizada_at", { ascending: false })
+              .limit(8)
+          : Promise.resolve({ data: null }),
       ]);
       if (compendio) compendios.set(c.id, compendio);
       if (decisiones.length) historiales.set(c.id, decisiones);
+      const lista = (otras.data ?? []) as unknown as { tipo: string; nota: string | null; realizada_at: string; perfiles: { nombre: string } | null }[];
+      if (lista.length)
+        otrasGestiones.set(
+          c.id,
+          lista.map((a) => ({ fecha: a.realizada_at, tipo: ETIQUETA_TIPO_GESTION[a.tipo] ?? a.tipo, detalle: a.nota, quien: a.perfiles?.nombre ?? null })),
+        );
     }),
   );
 
@@ -145,18 +168,33 @@ export default async function AprobacionesPage() {
                     {c.moneda} {c.total.toLocaleString("es-PE")}
                   </span>
                 </div>
-                {compendios.has(c.id) && (
+                {(compendios.has(c.id) || otrasGestiones.has(c.id)) && (
                   <details className="group mt-2.5 rounded-lg border border-border bg-secondary/40">
                     <summary className="flex cursor-pointer list-none items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-accent">
                       <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
                       Ver la gestión de este cliente
                       <span className="font-normal text-muted-foreground">
-                        · {compendios.get(c.id)!.gestiones}{" "}
-                        {compendios.get(c.id)!.gestiones === 1 ? "gestión" : "gestiones"}
+                        · {compendios.get(c.id)?.gestiones ?? 0}{" "}
+                        {compendios.get(c.id)?.gestiones === 1 ? "gestión" : "gestiones"} en este expediente
+                        {otrasGestiones.has(c.id) && ` + ${otrasGestiones.get(c.id)!.length} en otros expedientes`}
                       </span>
                     </summary>
-                    <div className="p-2 pt-0">
-                      <CompendioGestion compendio={compendios.get(c.id)!} titulo="Cómo se llegó hasta acá" />
+                    <div className="space-y-2 p-2 pt-0">
+                      {compendios.has(c.id) && <CompendioGestion compendio={compendios.get(c.id)!} titulo="Cómo se llegó hasta acá" />}
+                      {otrasGestiones.has(c.id) && (
+                        <div className="rounded-md border border-border bg-background p-2.5">
+                          <p className="text-xs font-semibold text-foreground">Con este cliente, en otros expedientes (últimos 90 días)</p>
+                          <ul className="mt-1.5 space-y-1.5">
+                            {otrasGestiones.get(c.id)!.map((h, i) => (
+                              <li key={i} className="text-xs text-muted-foreground">
+                                <span className="font-medium text-foreground">{h.tipo}</span> · {fechaLima(h.fecha)}
+                                {h.quien && ` · ${h.quien}`}
+                                {h.detalle && <span className="block text-foreground/80">{h.detalle}</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </details>
                 )}

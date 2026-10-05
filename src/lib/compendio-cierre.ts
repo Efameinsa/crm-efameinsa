@@ -57,7 +57,7 @@ const dias = (desde: string | null, hasta: string | null): number | null => {
   return Math.max(0, Math.round((new Date(hasta).getTime() - new Date(desde).getTime()) / 864e5));
 };
 
-const ETIQUETA_TIPO: Record<string, string> = {
+export const ETIQUETA_TIPO_GESTION: Record<string, string> = {
   llamada: "Llamada",
   whatsapp: "WhatsApp",
   email: "Correo",
@@ -197,7 +197,7 @@ export async function cargarCompendio(oportunidadId: string | null): Promise<Com
 
   const hitos: HitoGestion[] = seleccion.map((a) => ({
     fecha: a.realizada_at,
-    tipo: ETIQUETA_TIPO[a.tipo] ?? a.tipo,
+    tipo: ETIQUETA_TIPO_GESTION[a.tipo] ?? a.tipo,
     detalle: a.nota,
     quien: a.perfiles?.nombre && a.perfiles.nombre !== perfil?.nombre ? a.perfiles.nombre : null,
   }));
