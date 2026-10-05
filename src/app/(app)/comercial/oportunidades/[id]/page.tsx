@@ -1,4 +1,4 @@
-import { Phone, Mail, MapPin, FileText, CalendarClock, Building2 } from "lucide-react";
+import { Phone, Mail, MapPin, FileText, CalendarClock, Building2, MessageCircle } from "lucide-react";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { versionesAnteriores } from "@/lib/versiones-cotizacion";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
@@ -75,11 +75,14 @@ export default async function OportunidadDetallePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ gestion?: string }>;
+  searchParams: Promise<{ gestion?: string; tipo?: string }>;
 }) {
   const { id } = await params;
   // «Registrar seguimiento» desde la ficha (0238) llega con el cuadro abierto.
-  const abrirGestion = (await searchParams).gestion === "1";
+  const sp = await searchParams;
+  const abrirGestion = sp.gestion === "1";
+  // Desde el chat (05-10) llega «tipo=whatsapp»: la gestión que se va a anotar es ese chat.
+  const tipoGestionInicial = sp.tipo === "whatsapp" ? ("whatsapp" as const) : undefined;
   // Crear rubros nuevos es de operaciones y gerencia desde el 04-09 (0170).
   const perfilQueMira = await requerirPerfil();
   const puedeCrearRubrosAqui =
@@ -313,6 +316,21 @@ export default async function OportunidadDetallePage({
         .maybeSingle()
     : { data: null };
   const anuncioVisto = anuncioDe((conversacionWa as { referral?: unknown } | null)?.referral);
+
+  // EL CHAT DE ESTE EXPEDIENTE (05-10, Santos). Del chat se llega acá para
+  // anotar la gestión; de acá se vuelve al chat para leer qué se habló. Puede
+  // ser el contacto que abrió el expediente o uno que se sumó después.
+  const { data: leadsDelExpediente } = await supabase.from("leads").select("id").eq("oportunidad_id", oportunidad.id);
+  const idsLeads = [...new Set([oportunidad.lead_id, ...(leadsDelExpediente ?? []).map((l) => l.id as string)].filter((x): x is string => Boolean(x)))];
+  const { data: chatWa } = idsLeads.length
+    ? await supabase
+        .from("wa_conversaciones")
+        .select("id, estado")
+        .in("lead_id", idsLeads)
+        .order("ultimo_mensaje_at", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
   const { data: campaniaWa } = anuncioVisto && lead?.codigo_campania_wa
     ? await supabase.from("campanias_whatsapp").select("nombre").eq("codigo", lead.codigo_campania_wa).maybeSingle()
     : { data: null };
@@ -724,6 +742,15 @@ export default async function OportunidadDetallePage({
           )}
 
           <SeccionPanel titulo="Registrar gestión">
+            {chatWa && (
+              <p className="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                <MessageCircle className="size-3.5" />
+                Este cliente escribió por WhatsApp{chatWa.estado === "cerrada" ? " (chat cerrado)" : ""}.
+                <Link href={`/whatsapp/${chatWa.id}`} className="font-medium text-[#8B1510] underline underline-offset-2">
+                  Ver el chat
+                </Link>
+              </p>
+            )}
             {/* NO SE OFRECE UN FORMULARIO QUE NO PUEDE FUNCIONAR. Si el
                 expediente es de otra persona, la base rechaza la gestión
                 (política actividades_insert) y hasta hoy eso se descubría
@@ -738,6 +765,7 @@ export default async function OportunidadDetallePage({
                   motivos={motivos ?? []}
                   esPostventa={oportunidad.tipo_postventa != null}
                   abiertoAlInicio={abrirGestion}
+                  tipoInicial={tipoGestionInicial}
                   agendaDeOtro={
                     comoCompaneraDeArea && !esMio && !comoGerenciaAqui
                       ? `${duenoExpediente?.codigo_comercial ? `${duenoExpediente.codigo_comercial} · ` : ""}${duenoExpediente?.nombre ?? "otra persona"}`

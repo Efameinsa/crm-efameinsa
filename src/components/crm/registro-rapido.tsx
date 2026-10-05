@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { registrarActividad, registrarGestionYRechazar, registrarGestionYDerivar } from "@/lib/acciones/oportunidades";
@@ -50,7 +50,7 @@ const TIPOS_INTERNOS = [
   ["otro", "Otro"],
 ] as const;
 
-type TipoGestion = (typeof TIPOS_CONTACTO)[number][0] | (typeof TIPOS_INTERNOS)[number][0];
+export type TipoGestion = (typeof TIPOS_CONTACTO)[number][0] | (typeof TIPOS_INTERNOS)[number][0];
 
 /** Lo que un comercial agenda nueve de cada diez veces. Se puede escribir otra cosa igual. */
 const ACCIONES_FRECUENTES = [
@@ -111,6 +111,7 @@ export function RegistroRapido({
   abiertoAlInicio = false,
   agendaDeOtro = null,
   esPostventa = false,
+  tipoInicial,
 }: {
   oportunidadId: string;
   resultados?: ResultadoGestion[];
@@ -125,10 +126,15 @@ export function RegistroRapido({
    * expediente sigue siendo de su dueño, y se dice antes de escribir.
    */
   agendaDeOtro?: string | null;
+  /**
+   * Con qué viene marcado «¿Qué hiciste?». Desde el chat (05-10, Santos: que
+   * el clic en el WhatsApp lleve directo a anotar la gestión) llega «whatsapp».
+   */
+  tipoInicial?: TipoGestion;
 }) {
   const reducido = useReducedMotion();
   const [expandido, setExpandido] = useState(abiertoAlInicio);
-  const [tipo, setTipo] = useState<TipoGestion>("llamada");
+  const [tipo, setTipo] = useState<TipoGestion>(tipoInicial ?? "llamada");
   const [nota, setNota] = useState("");
   const [resultadoId, setResultadoId] = useState<number | null>(null);
   const [proximaAccion, setProximaAccion] = useState("");
@@ -145,6 +151,13 @@ export function RegistroRapido({
   // demás y enfoca ese campo. Nada de errores rojos que hay que leer.
   const [faltaQueHacer, setFaltaQueHacer] = useState(false);
   const refQueHacer = useRef<HTMLInputElement>(null);
+  // Si se llegó para anotar (desde la cartera o desde el chat), el formulario
+  // queda a la vista: está debajo del anuncio y del recorrido del contacto, y
+  // sin esto había que bajar a buscarlo.
+  const refRaiz = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (abiertoAlInicio) refRaiz.current?.scrollIntoView({ block: "start" });
+  }, [abiertoAlInicio]);
 
   const resultado = resultados.find((r) => r.id === resultadoId) ?? null;
   const esRechazo = resultado?.efecto === "rechazo";
@@ -335,7 +348,7 @@ export function RegistroRapido({
   }
 
   return (
-    <div className="space-y-4 rounded-md border border-border p-4">
+    <div ref={refRaiz} className="scroll-mt-24 space-y-4 rounded-md border border-border p-4">
       <Paso n="1" titulo="¿Qué hiciste?" atenuado={faltaQueHacer}>
         <div className="flex flex-wrap gap-2">
           {TIPOS_CONTACTO.map(([valor, etiqueta]) => (

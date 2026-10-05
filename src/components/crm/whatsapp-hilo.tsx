@@ -11,7 +11,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet, Copy, Check, PhoneForwarded } from "lucide-react";
+import { ArrowLeft, Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet, Copy, Check, PhoneForwarded, NotebookPen } from "lucide-react";
 // `Package` sigue en uso para pintar las fichas que YA se mandaron antes del
 // 21-09; el botón «Mandar equipo» se quitó del chat ese día (Santos: hacía
 // pesada la bandeja).
@@ -41,6 +41,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
+import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { repasarMensajes } from "@/lib/whatsapp-repaso-navegador";
 import { COOKIE_DEMO } from "@/lib/solo-lectura";
 
@@ -125,6 +126,7 @@ export function WhatsappHilo({
   comerciales,
   tipificacionActual,
   intencionActual,
+  gestionEnExpediente = null,
 }: {
   conversacion: ConversacionDetalle;
   mensajesIniciales: MensajeWhatsapp[];
@@ -134,6 +136,8 @@ export function WhatsappHilo({
   tipificacionActual: TipificacionActual | null;
   /** El interés de compra del expediente, solo si es de quien mira (ver TipificarWhatsapp). */
   intencionActual?: Oportunidad["intencion"] | null;
+  /** La última gestión anotada en el expediente desde que empezó este chat (sin contar las marcas de los botones). */
+  gestionEnExpediente?: { tipo: string; realizada_at: string } | null;
 }) {
   const router = useRouter();
   // `key={conversacion.id}` en el padre (WhatsappConversacionPage) remonta
@@ -478,6 +482,28 @@ export function WhatsappHilo({
           {conversacion.lead_id && (
             <div className="mt-1.5">
               <TipificarWhatsapp leadId={conversacion.lead_id} actual={tipificacionActual} telefono={esTelefonoDeVerdad(conversacion.telefono) ? conversacion.telefono : null} compacto intencionActual={intencionActual} />
+            </div>
+          )}
+          {/* DEL CHAT A LA FICHA EN UN CLIC (Santos, 05-10). Lo que cuenta
+              para gerencia es la gestión del expediente —qué se habló, en qué
+              quedó, qué sigue—, no el botón del resultado. Antes había que
+              copiar el número y buscarlo en Clientes; ahora se llega con el
+              formulario abierto y «WhatsApp» ya elegido, y acá se ve si falta. */}
+          {conversacion.oportunidad_id && !esCentral && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <Link
+                href={`/comercial/oportunidades/${conversacion.oportunidad_id}?gestion=1&tipo=whatsapp`}
+                className="inline-flex h-7 items-center gap-1 rounded-md bg-[#8B1510] px-2.5 text-xs font-semibold text-white hover:bg-[#5E0D0B]"
+              >
+                <NotebookPen className="size-3.5" /> Registrar gestión
+              </Link>
+              {gestionEnExpediente ? (
+                <span className="text-[11px] text-muted-foreground">
+                  Última gestión en el expediente: {ETIQUETA_ACTIVIDAD[gestionEnExpediente.tipo] ?? gestionEnExpediente.tipo} · {fechaHoraLima(gestionEnExpediente.realizada_at)}
+                </span>
+              ) : (
+                <span className="text-[11px] font-medium text-amber-700">Falta anotar en el expediente qué se habló con el cliente.</span>
+              )}
             </div>
           )}
         </div>

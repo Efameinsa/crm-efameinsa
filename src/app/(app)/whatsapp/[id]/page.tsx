@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Oportunidad } from "@/types/database";
 import { WhatsappListaConversaciones } from "@/components/crm/whatsapp-lista-conversaciones";
 import { WhatsappHilo } from "@/components/crm/whatsapp-hilo";
+import { esMarcaWhatsapp } from "@/lib/gestion-whatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export default async function WhatsappConversacionPage({
   ]);
 
   if (!conversacion) notFound();
-  const [tipificacionActual, tipificados, expediente] = await Promise.all([
+  const [tipificacionActual, tipificados, expediente, gestiones] = await Promise.all([
     conversacion.lead_id ? tipificacionesActuales([conversacion.lead_id]).then((t) => t[0] ?? null) : Promise.resolve(null),
     tipificacionesActuales(conversaciones.map((c) => c.lead_id).filter((x): x is string => Boolean(x))),
     // El interés de compra, para preguntarlo al marcar «Interesado» (30-09):
@@ -44,7 +45,26 @@ export default async function WhatsappConversacionPage({
           sb.from("oportunidades").select("intencion, comercial_id").eq("id", conversacion.oportunidad_id!).maybeSingle().then((r) => r.data),
         )
       : Promise.resolve(null),
+    // ¿Ya se anotó en el expediente lo que se habló? (05-10, gerencia: el
+    // botón del resultado no basta, tiene que quedar qué se dijo). Las marcas
+    // de los botones («Por WhatsApp: …») no cuentan como gestión.
+    conversacion.oportunidad_id
+      ? createClient().then((sb) =>
+          sb
+            .from("actividades")
+            .select("tipo, nota, realizada_at")
+            .eq("oportunidad_id", conversacion.oportunidad_id!)
+            .order("realizada_at", { ascending: false })
+            .limit(15)
+            .then((r) => r.data ?? []),
+        )
+      : Promise.resolve([]),
   ]);
+  // Solo cuenta lo anotado desde que empezó este chat: una gestión de meses
+  // atrás no dice nada de esta conversación.
+  const inicioChat = mensajes[0]?.created_at ?? null;
+  const gestionEnExpediente =
+    gestiones.find((g) => !esMarcaWhatsapp(g.tipo, g.nota) && (!inicioChat || g.realizada_at >= inicioChat)) ?? null;
   const intencionActual = expediente && expediente.comercial_id === perfil.id ? (expediente.intencion as Oportunidad["intencion"]) : null;
 
   return (
@@ -68,6 +88,7 @@ export default async function WhatsappConversacionPage({
         comerciales={comerciales}
         tipificacionActual={tipificacionActual}
         intencionActual={intencionActual}
+        gestionEnExpediente={gestionEnExpediente ? { tipo: gestionEnExpediente.tipo, realizada_at: gestionEnExpediente.realizada_at } : null}
       />
     </div>
   );
