@@ -1,4 +1,4 @@
-import { fechaHoraLima, fechaLima } from "@/lib/fechas";
+import { fechaLima } from "@/lib/fechas";
 import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
 import { codigoConVersion } from "@/lib/version-cotizacion";
 import { ChevronRight, FileDown } from "lucide-react";
@@ -11,11 +11,8 @@ import { HistorialAprobaciones } from "@/components/crm/historial-aprobaciones";
 import { CompendioGestion } from "@/components/crm/compendio-gestion";
 import { cargarCompendio, type Compendio } from "@/lib/compendio-cierre";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
-import { VerBorradorGerencia } from "@/components/crm/ver-borrador-gerencia";
 
 export const dynamic = "force-dynamic";
-
-const haceDias = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
 
 export default async function AprobacionesPage() {
   const supabase = await createClient();
@@ -35,41 +32,11 @@ export default async function AprobacionesPage() {
     .order("aprobada_at", { ascending: false, nullsFirst: false })
     .limit(30);
 
-  // LOS BORRADORES DE POSTVENTA (Santos, 05-10: «cuando Gabriela hace una
-  // cotización se genera un borrador y el ingeniero debe poder verlo, como
-  // los de los comerciales»). Los de un comercial llegan acá porque casi
-  // siempre ceden algo sobre la referencia; los de postventa (servicios y
-  // repuestos a precio de catálogo) salían «auto aprobados» y gerencia no se
-  // enteraba hasta que estaban enviados. Se muestran para mirarlos: no hay
-  // nada que aprobar, y si algo sí cede precio ya está en la lista de arriba.
-  const { data: borradoresCrudos } = await supabase
-    .from("cotizaciones")
-    .select(
-      `id, total, moneda, serie, created_at, updated_at, estado_aprobacion, revision_pedida_at, vista_gerencia_at,
-       autor:perfiles!cotizaciones_creada_por_fkey(nombre, es_postventa, es_prueba),
-       vista:perfiles!cotizaciones_vista_gerencia_por_fkey(nombre),
-       oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social))`,
-    )
-    .eq("estado", "borrador")
-    .neq("estado_aprobacion", "pendiente_gerencia")
-    .gte("created_at", haceDias(30))
-    .order("updated_at", { ascending: false })
-    .limit(200);
-  const borradoresPostventa = (borradoresCrudos ?? [])
-    .map((b) => ({
-      ...b,
-      autor: b.autor as unknown as { nombre: string; es_postventa: boolean | null; es_prueba: boolean | null } | null,
-      cliente: (b.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social ?? "Cliente sin nombre",
-    }))
-    .filter((b) => b.autor?.es_postventa && !b.autor.es_prueba && Number(b.total) > 0)
-    // Lo que postventa pidió revisar y nadie vio todavía, primero (0392).
-    .sort((a, b) => Number(Boolean(b.revision_pedida_at && !b.vista_gerencia_at)) - Number(Boolean(a.revision_pedida_at && !a.vista_gerencia_at)));
-
   const { data: cotizaciones } = await supabase
     .from("cotizaciones")
     .select(
       `id, codigo, serie, total, moneda, created_at, oportunidad_id, version,
-       autor:perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial),
+       autor:perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial, es_postventa, rol),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre)),
        cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
     )
@@ -128,7 +95,10 @@ export default async function AprobacionesPage() {
             // QUIÉN LA HIZO, no de quién es el expediente (29-09). En postventa
             // cualquiera del área cotiza en expedientes a nombre de PV: una
             // cotización de Gabriela (PV2) salía «De Rubí Simeon».
-            const autor = c.autor as unknown as { nombre: string; codigo_comercial: string | null } | null;
+            const autor = c.autor as unknown as { nombre: string; codigo_comercial: string | null; es_postventa: boolean | null; rol: string } | null;
+            // POSTVENTA EN CAPACITACIÓN (gerencia, 05-10; 0396): toda cotización
+            // de postventa llega acá, a cualquier precio. Se dice por qué.
+            const porCapacitacion = Boolean(autor?.es_postventa) && autor?.rol === "comercial";
             const dueno = oportunidad?.perfiles?.nombre ?? null;
             const items = (c.cotizacion_items as unknown as {
               id: string;
@@ -164,7 +134,9 @@ export default async function AprobacionesPage() {
                       {autor && dueno && autor.nombre !== dueno && ` (expediente de ${dueno})`} ·{" "}
                       {fechaLima(c.created_at)} ·{" "}
                       <span className="font-semibold text-amber-700">
-                        {porDecidir} de {items.length} por debajo de la referencia
+                        {porCapacitacion
+                          ? `Postventa en capacitación · ${porDecidir} de ${items.length} por aprobar`
+                          : `${porDecidir} de ${items.length} por debajo de la referencia`}
                         {cedido > 0 && ` · se ceden ${c.moneda} ${Math.round(cedido).toLocaleString("es-PE")}`}
                       </span>
                     </p>
@@ -205,6 +177,7 @@ export default async function AprobacionesPage() {
                   <AprobarCotizacionBotones
                     cotizacionId={c.id}
                     moneda={c.moneda}
+                    porCapacitacion={porCapacitacion}
                     items={items.map((i) => ({
                       id: i.id,
                       nombre: i.productos
@@ -225,60 +198,6 @@ export default async function AprobacionesPage() {
             );
           })}
         </div>
-      )}
-    </SeccionPanel>
-    <SeccionPanel
-      titulo="Borradores de postventa"
-      accion={
-        borradoresPostventa.length > 0 ? (
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-            {borradoresPostventa.length} en los últimos 30 días
-          </span>
-        ) : undefined
-      }
-    >
-      {borradoresPostventa.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Postventa no tiene cotizaciones en borrador en los últimos 30 días.</p>
-      ) : (
-        <>
-          <p className="mb-2 text-xs text-muted-foreground">
-            Cotizaciones de servicios y repuestos que postventa está armando y todavía no envió. Van a precio de catálogo, así que no piden
-            aprobación: están acá para que se puedan revisar antes de que salgan. Al abrir el PDF, quien la hizo recibe el aviso de que usted la vio.
-          </p>
-          <div className="divide-y divide-border rounded-lg border border-border">
-            {borradoresPostventa.map((b) => (
-              <div key={b.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">{b.cliente}</p>
-                  <p className="text-xs text-muted-foreground">
-                    De {b.autor?.nombre ?? "postventa"} · Serie {b.serie} · actualizado el {fechaLima(b.updated_at ?? b.created_at)}
-                  </p>
-                  <p className="mt-0.5 flex flex-wrap gap-1.5 text-[11px]">
-                    {b.revision_pedida_at && !b.vista_gerencia_at && (
-                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-800">
-                        Pidió su revisión el {fechaHoraLima(b.revision_pedida_at as string)} · ábrala para que sepa que la vio
-                      </span>
-                    )}
-                    {b.vista_gerencia_at && (
-                      <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-semibold text-[#1E7F4F]">
-                        Vista por {(b.vista as unknown as { nombre: string } | null)?.nombre ?? "gerencia"} el {fechaHoraLima(b.vista_gerencia_at as string)}
-                      </span>
-                    )}
-                    {b.estado_aprobacion === "rechazada_gerencia" && (
-                      <span className="rounded-full bg-destructive/10 px-2 py-0.5 font-semibold text-destructive">Rechazada por gerencia</span>
-                    )}
-                  </p>
-                </div>
-                <span className="flex items-center gap-3">
-                  <span className="text-sm font-semibold tabular-nums text-foreground">
-                    {b.moneda} {Number(b.total).toLocaleString("es-PE")}
-                  </span>
-                  <VerBorradorGerencia cotizacionId={b.id} cliente={b.cliente} />
-                </span>
-              </div>
-            ))}
-          </div>
-        </>
       )}
     </SeccionPanel>
     <HistorialAprobaciones filas={historial ?? []} />

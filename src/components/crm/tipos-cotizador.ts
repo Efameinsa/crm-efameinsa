@@ -108,10 +108,6 @@ export interface BorradorEnEdicion {
   saldo: string | null;
   /** La «Nota» del PDF de postventa escrita para esta cotización (0391); null = la de siempre. */
   notasPdf?: string[] | null;
-  /** Postventa pidió al ingeniero revisarla, y cuándo y quién de gerencia la vio (0392). */
-  revisionPedidaAt?: string | null;
-  vistaGerenciaAt?: string | null;
-  vistaGerenciaPor?: string | null;
   /** Lo que dice la BASE sobre la aprobación del precio. Manda sobre el cálculo
    *  de la pantalla: un borrador que gerencia YA aprobó se puede enviar aunque
    *  sus precios sigan por debajo de la referencia. */
