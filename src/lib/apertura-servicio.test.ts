@@ -157,6 +157,9 @@ describe("las filas llevan lo que el correo lleva", () => {
       "SE SOLICITA GUÍA ADICIONAL PARA LLEVAR MATERIALES",
       "llamar antes",
     ]);
+    expect(filasApertura({ ...base, guia: "repuestos", guiaDetalle: "manómetro (posible venta)" })[0].notas).toEqual([
+      "SE SOLICITA GUÍA PARA EL TRASLADO DE REPUESTOS: MANÓMETRO (POSIBLE VENTA)",
+    ]);
     expect(cuerpoApertura({ ...base, guia: "traslado" })).toContain("NOTAS:\n   - SE SOLICITA GUÍA PARA EL TRASLADO DEL EQUIPO");
   });
 

@@ -118,12 +118,14 @@ export interface DatosApertura {
   coordinaLogistica?: string | null;
 }
 
-export type GuiaApertura = "traslado" | "materiales" | "ambas";
+export type GuiaApertura = "traslado" | "materiales" | "repuestos" | "ambas";
 
 export const GUIAS_APERTURA: { clave: GuiaApertura; etiqueta: string }[] = [
   { clave: "traslado", etiqueta: "Guía para el traslado del equipo" },
   { clave: "materiales", etiqueta: "Guía adicional para llevar materiales" },
-  { clave: "ambas", etiqueta: "Las dos" },
+  // Santos, 05-10: el técnico de mantenimiento lleva un manómetro para posible venta.
+  { clave: "repuestos", etiqueta: "Guía para llevar repuestos" },
+  { clave: "ambas", etiqueta: "Equipo y materiales" },
 ];
 
 /** Las líneas de la guía, como van en el apartado NOTAS de la fila 1. */
@@ -134,6 +136,7 @@ export function lineasGuia(guia: GuiaApertura | null | undefined, detalle?: stri
   const materiales = `SE SOLICITA GUÍA ADICIONAL PARA LLEVAR MATERIALES${extra}`;
   if (guia === "traslado") return [`${traslado}${extra}`];
   if (guia === "materiales") return [materiales];
+  if (guia === "repuestos") return [`SE SOLICITA GUÍA PARA EL TRASLADO DE REPUESTOS${extra}`];
   return [traslado, materiales];
 }
 

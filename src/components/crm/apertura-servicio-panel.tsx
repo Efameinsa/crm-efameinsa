@@ -216,7 +216,13 @@ export function AperturaServicioPanel({
               <input
                 value={v.guiaDetalle ?? ""}
                 onChange={cambiar("guiaDetalle")}
-                placeholder={v.guia === "traslado" ? "Precisión (opcional)" : "Qué materiales lleva (opcional), ej. tubería de cobre y conexiones"}
+                placeholder={
+                  v.guia === "traslado"
+                    ? "Precisión (opcional)"
+                    : v.guia === "repuestos"
+                      ? "Qué repuestos lleva (opcional), ej. manómetro (posible venta)"
+                      : "Qué materiales lleva (opcional), ej. tubería de cobre y conexiones"
+                }
                 className={cn(ENTRADA, "mt-1.5")}
               />
             )}
