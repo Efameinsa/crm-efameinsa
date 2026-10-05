@@ -280,6 +280,8 @@ export interface ItemPdf {
 }
 
 export interface CotizacionPdfProps {
+  /** Postventa: las viñetas de la «Nota» escritas para esta cotización (0391); null = las de siempre. */
+  notasPdf?: string[] | null;
   /** Postventa: la cotización entera, con las cifras tapadas (gerencia, 28-09). */
   sinMontos?: boolean;
   logoBuffer: Buffer;

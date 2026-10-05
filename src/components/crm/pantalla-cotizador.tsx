@@ -10,11 +10,13 @@ import {
   FileDown,
   ImageOff,
   Loader2,
+  Pencil,
   Phone,
   RotateCcw,
   TriangleAlert,
   Trash2,
 } from "lucide-react";
+import { NOTAS_MANTENIMIENTO, NOTAS_REPUESTOS, variantePostventa } from "@/lib/pdf/formato-postventa";
 import { toast } from "sonner";
 import {
   cambiarSerieBorrador,
@@ -344,6 +346,7 @@ export function PantallaCotizador({
         // Lo escrito en soles vuelve tal cual: si no, al reabrir el borrador
         // se vería reconvertido (3,949.98 en vez de 3,950) (0366).
         precio_impreso: i.precio_impreso ?? null,
+        nombre_impreso: i.nombre_impreso ?? null,
         precioPiso: i.precioPiso,
         // Se resuelve contra el catálogo, no se asume `false`. Al reabrir un
         // borrador que ya traía un equipo sin ficha, el aviso desaparecía y el
@@ -362,6 +365,10 @@ export function PantallaCotizador({
   const [garantia, setGarantia] = useState(edicion?.garantia ?? previas?.garantia ?? GARANTIA_POR_DEFECTO);
   const [formaPago, setFormaPago] = useState(edicion?.formaPago ?? previas?.formaPago ?? FORMA_PAGO_POR_DEFECTO);
   const [saldo, setSaldo] = useState(edicion?.saldo ?? previas?.saldo ?? SALDO_POR_DEFECTO);
+  // LA NOTA DEL PDF DE POSTVENTA, EDITABLE (Gabriela, 05-10: «no en todos
+  // incluye el examen médico ocupacional»). null = la de siempre del formato;
+  // si se toca, sale lo escrito: una viñeta por renglón (0391).
+  const [notasTexto, setNotasTexto] = useState<string | null>(edicion?.notasPdf ? edicion.notasPdf.join("\n") : null);
   const avisoPago = avisoCondicionPago(formaPago, saldo);
 
   const [cotizacionId, setCotizacionId] = useState<string | null>(edicion?.cotizacionId ?? null);
@@ -439,8 +446,9 @@ export function PantallaCotizador({
   const payload = useMemo(
     () =>
       JSON.stringify({
-        items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color }) => ({
+        items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso }) => ({
           producto_id,
+          nombre_impreso: nombre_impreso?.trim() || null,
           descripcion,
           cantidad,
           precio_unitario,
@@ -461,6 +469,8 @@ export function PantallaCotizador({
         garantia,
         formaPago,
         saldo,
+        // Solo postventa la escribe; undefined = no se toca (0391).
+        notasPdf: esPostventa ? (notasTexto === null ? null : notasTexto.split("\n")) : undefined,
         // Sin esto, elegir soles no ensuciaba el borrador: no se guardaba y el
         // PDF seguía saliendo en dólares (reportado el 04-09, mismo día).
         monedaImpresa,
@@ -468,7 +478,7 @@ export function PantallaCotizador({
         // El motivo de ir con Efameinsa (0275) se autoguarda como el resto.
         motivoSerie,
       }),
-    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, monedaImpresa, enSoles, tcDelDocumento, motivoSerie],
+    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, notasTexto, esPostventa, monedaImpresa, enSoles, tcDelDocumento, motivoSerie],
   );
 
   const payloadRef = useRef(payload);
@@ -494,6 +504,7 @@ export function PantallaCotizador({
       garantia: string;
       formaPago: string;
       saldo: string;
+      notasPdf?: string[] | null;
       motivoSerie: string;
     };
     // Una línea a mano sin concepto todavía (el botón «+ Agregar una línea»
@@ -517,6 +528,7 @@ export function PantallaCotizador({
         garantia: datos.garantia,
         formaPago: datos.formaPago,
         saldo: datos.saldo,
+        notasPdf: datos.notasPdf,
       },
       monedaImpresa,
       tipoCambio: tcDelDocumento,
@@ -1399,10 +1411,52 @@ export function PantallaCotizador({
                           </>
                         ) : (
                           <>
-                            <p className="text-sm font-medium text-foreground">
-                              {producto?.sku && <span className="font-mono text-xs font-bold text-primary">{producto.sku} · </span>}
-                              {item.nombre}
-                            </p>
+                            {/* EL NOMBRE, A LA MEDIDA DE ESTA COTIZACIÓN (Santos,
+                                05-10, desde postventa: «personalizar más su
+                                cotización, sin editar los servicios y repuestos
+                                que Lesly configura para todos»). El lápiz abre
+                                el nombre que sale impreso en ESTE renglón; el
+                                catálogo, el código, el precio de referencia y
+                                la ficha no cambian. Solo postventa: el nombre
+                                de una máquina que vende un comercial es el de
+                                su ficha técnica. */}
+                            {item.nombre_impreso != null ? (
+                              <>
+                                <Label className="block text-[11px] text-muted-foreground">
+                                  {producto?.sku && <span className="font-mono font-bold text-primary">{producto.sku} · </span>}
+                                  Nombre en esta cotización <span className="font-normal">— el catálogo no cambia</span>
+                                </Label>
+                                <Textarea
+                                  autoFocus
+                                  value={item.nombre_impreso}
+                                  onChange={(e) => actualizarItem(i, { nombre_impreso: e.target.value })}
+                                  rows={2}
+                                  className="mt-0.5 min-h-12 text-sm font-medium"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => actualizarItem(i, { nombre_impreso: null })}
+                                  className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                                >
+                                  <RotateCcw className="size-3" /> Volver al nombre del catálogo: {producto?.nombre ?? item.nombre}
+                                </button>
+                              </>
+                            ) : (
+                              <p className="group text-sm font-medium text-foreground">
+                                {producto?.sku && <span className="font-mono text-xs font-bold text-primary">{producto.sku} · </span>}
+                                {item.nombre}
+                                {esPostventa && (
+                                  <button
+                                    type="button"
+                                    onClick={() => actualizarItem(i, { nombre_impreso: producto?.nombre ?? item.nombre })}
+                                    className="ml-1.5 inline-flex translate-y-[-1px] items-center gap-1 rounded-md border border-border px-1.5 py-0.5 align-middle text-[11px] font-normal text-muted-foreground hover:border-primary/40 hover:bg-accent hover:text-primary"
+                                    title="Cambiar cómo sale el nombre en esta cotización (el catálogo no cambia)"
+                                  >
+                                    <Pencil className="size-3" /> Editar nombre
+                                  </button>
+                                )}
+                              </p>
+                            )}
                             {/* EL DETALLE DEL RENGLÓN (Gabriela, 03-10: «no me
                                 permite realizar modificaciones como la serie
                                 del equipo o, en un repuesto, que especifique
@@ -1904,6 +1958,43 @@ export function PantallaCotizador({
                 {avisoPago && <p className="mt-1 text-[11px] text-amber-700">{avisoPago}</p>}
               </div>
             </div>
+
+            {esPostventa && (() => {
+              // La de siempre depende de lo que se cotiza, como en el PDF.
+              const variante = variantePostventa(
+                carrito.map((it) => {
+                  const p = it.producto_id ? productos.find((x) => x.id === it.producto_id) : undefined;
+                  return { segmento: (p?.segmento as string | undefined) ?? null, concepto: p?.nombre ?? it.nombre };
+                }),
+              );
+              const deSiempre = variante === "mantenimiento" ? NOTAS_MANTENIMIENTO : NOTAS_REPUESTOS;
+              return (
+                <div className="space-y-1.5">
+                  <Label htmlFor="notas-pdf">
+                    Nota del PDF <span className="font-normal text-muted-foreground">— una viñeta por renglón</span>
+                  </Label>
+                  <Textarea
+                    id="notas-pdf"
+                    value={notasTexto ?? deSiempre.join("\n")}
+                    onChange={(e) => setNotasTexto(e.target.value)}
+                    rows={Math.min(10, Math.max(4, (notasTexto ?? deSiempre.join("\n")).split("\n").length + 1))}
+                    className="text-xs"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    {notasTexto === null ? (
+                      <>Es la nota de siempre {variante === "mantenimiento" ? "del mantenimiento" : "de repuestos"}. Quite o cambie lo que no aplique: solo cambia en esta cotización.</>
+                    ) : (
+                      <>
+                        Nota propia de esta cotización.{" "}
+                        <button type="button" onClick={() => setNotasTexto(null)} className="font-medium text-primary underline-offset-2 hover:underline">
+                          Volver a la de siempre
+                        </button>
+                      </>
+                    )}
+                  </p>
+                </div>
+              );
+            })()}
 
             <div className="space-y-2">
               <Label htmlFor="condiciones">Otra cláusula</Label>

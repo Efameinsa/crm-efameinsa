@@ -106,6 +106,8 @@ export interface BorradorEnEdicion {
   garantia: string | null;
   formaPago: string | null;
   saldo: string | null;
+  /** La «Nota» del PDF de postventa escrita para esta cotización (0391); null = la de siempre. */
+  notasPdf?: string[] | null;
   /** Lo que dice la BASE sobre la aprobación del precio. Manda sobre el cálculo
    *  de la pantalla: un borrador que gerencia YA aprobó se puede enviar aunque
    *  sus precios sigan por debajo de la referencia. */
@@ -125,5 +127,7 @@ export interface BorradorEnEdicion {
     precioPiso: number | null;
     /** Color con el que se estaba ofreciendo el equipo (migración 0088). */
     color: string | null;
+    /** El nombre propio de este renglón (0390); null = el del catálogo. */
+    nombre_impreso?: string | null;
   }[];
 }

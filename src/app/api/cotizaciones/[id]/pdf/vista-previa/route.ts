@@ -31,6 +31,7 @@ interface ItemPedido {
   precio_unitario: number;
   precio_con_igv?: number | null;
   color?: string | null;
+  nombre_impreso?: string | null;
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -60,7 +61,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { data: cotizacion, error } = await supabase
     .from("cotizaciones")
     .select(
-      `oportunidad_id, codigo, correlativo, serie, moneda, cliente_snapshot, created_at, version,
+      `oportunidad_id, codigo, correlativo, serie, moneda, notas_pdf, cliente_snapshot, created_at, version,
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
     )
@@ -100,12 +101,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     garantia: cuerpo.garantia ?? null,
     forma_pago: cuerpo.forma_pago ?? null,
     saldo: cuerpo.saldo ?? null,
+    notas_pdf: cotizacion.notas_pdf ?? null,
     cotizacion_items: items.map((i) => ({
       cantidad: i.cantidad,
       precio_unitario: i.precio_unitario,
       precio_con_igv: i.precio_con_igv ?? null,
       descripcion: i.descripcion ?? null,
       color: i.color ?? null,
+      nombre_impreso: i.nombre_impreso ?? null,
       productos: i.producto_id ? (porId.get(i.producto_id) ?? null) : null,
     })),
   } as CotizacionParaPdf;

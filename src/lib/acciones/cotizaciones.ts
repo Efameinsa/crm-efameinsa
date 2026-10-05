@@ -22,6 +22,8 @@ export interface ItemCotizacion {
   /** Color con el que se ofrece este equipo, elegido en el buscador (migración
    *  0088). null/ausente = no se eligió: el PDF lista los disponibles. */
   color?: string | null;
+  /** El nombre con el que sale impreso este renglón del catálogo (0390). null = el del catálogo, que no cambia. */
+  nombre_impreso?: string | null;
 }
 
 /**
@@ -56,6 +58,8 @@ export interface CondicionesFicha {
   garantia: string | null;
   formaPago: string | null;
   saldo: string | null;
+  /** Las viñetas de la «Nota» de postventa (0391): null = la de siempre; undefined = no tocarla. */
+  notasPdf?: string[] | null;
 }
 
 async function guardarEntrega(
@@ -66,7 +70,7 @@ async function guardarEntrega(
   /** Por qué va con EFAMEINSA (0275). undefined = no tocarlo. */
   motivoSerie?: { serie: SerieFacturacion; motivo: string | null | undefined },
 ): Promise<void> {
-  const campos: Record<string, string | null> = {};
+  const campos: Record<string, string | string[] | null> = {};
   if (entregaLugar) campos.entrega_lugar = entregaLugar;
   // OPEN PRIMERO (gerencia, 23-09-2026): el motivo de facturar con Efameinsa
   // viaja en este mismo UPDATE y no por `crear_cotizacion`, por la misma
@@ -79,6 +83,10 @@ async function guardarEntrega(
     campos.garantia = condicionesFicha.garantia?.trim() || null;
     campos.forma_pago = condicionesFicha.formaPago?.trim() || null;
     campos.saldo = condicionesFicha.saldo?.trim() || null;
+    if (condicionesFicha.notasPdf !== undefined) {
+      const lineas = (condicionesFicha.notasPdf ?? []).map((l) => l.trim()).filter(Boolean).slice(0, 30);
+      campos.notas_pdf = condicionesFicha.notasPdf === null ? null : lineas;
+    }
   }
   if (Object.keys(campos).length === 0) return;
   await supabase.from("cotizaciones").update(campos).eq("id", cotizacionId);
@@ -264,7 +272,7 @@ export async function cambiarSerieBorrador(datos: {
   const { data: original } = await supabase
     .from("cotizaciones")
     .select(
-      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color)",
+      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso)",
     )
     .eq("id", datos.cotizacionId)
     .maybeSingle();
@@ -283,6 +291,7 @@ export async function cambiarSerieBorrador(datos: {
       precio_impreso: number | null;
       tier_aplicado: string | null;
       color: string | null;
+      nombre_impreso: string | null;
     }[]) ?? [];
   if (items.length === 0) return { error: "El borrador no tiene equipos" };
 
@@ -298,6 +307,7 @@ export async function cambiarSerieBorrador(datos: {
       precio_impreso: i.precio_impreso,
       tier_aplicado: i.tier_aplicado ?? undefined,
       color: i.color,
+      nombre_impreso: i.nombre_impreso,
     })),
     p_condiciones: original.condiciones,
     p_vigencia_dias: original.vigencia_dias,
@@ -335,7 +345,7 @@ export async function duplicarCotizacion(
 
   const { data: original, error: errorOriginal } = await supabase
     .from("cotizaciones")
-    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color)")
+    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso)")
     .eq("id", cotizacionId)
     .maybeSingle();
   if (errorOriginal) return { error: errorOriginal.message };
@@ -351,6 +361,7 @@ export async function duplicarCotizacion(
       precio_impreso: number | null;
       tier_aplicado: string | null;
       color: string | null;
+      nombre_impreso: string | null;
     }[]) ?? [];
   if (items.length === 0) return { error: "La cotización original no tiene ítems" };
 
@@ -370,6 +381,7 @@ export async function duplicarCotizacion(
       // El color elegido es parte de lo que se le ofreció al cliente: sin él,
       // la copia saldría con otro color y otra foto en el PDF.
       color: i.color,
+      nombre_impreso: i.nombre_impreso,
     })),
     p_condiciones: original.condiciones,
     p_vigencia_dias: original.vigencia_dias,
