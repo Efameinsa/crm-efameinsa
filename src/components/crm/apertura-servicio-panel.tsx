@@ -136,7 +136,7 @@ export function AperturaServicioPanel({
 
         <fieldset className="mt-3">
           <legend className="mb-1.5 text-xs font-medium text-foreground">¿Qué se va a hacer?</legend>
-          <div className="grid gap-1.5 sm:grid-cols-3">
+          <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
             {TIPOS_APERTURA.map((t) => (
               <label
                 key={t.clave}
