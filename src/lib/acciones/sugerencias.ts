@@ -1,6 +1,6 @@
 "use server";
 
-// BUZÓN DE SUGERENCIAS (0398, Santos 05-10). Todo el personal escribe qué
+// BUZÓN DE SUGERENCIAS (0399, Santos 05-10). Todo el personal escribe qué
 // falta, qué falla o qué mejorar, con capturas; admin lo lee y responde.
 // Las capturas las sube el navegador al bucket 'adjuntos' (como las gestiones)
 // y acá llegan solo sus metadatos.

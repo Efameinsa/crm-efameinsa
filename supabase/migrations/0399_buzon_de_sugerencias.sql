@@ -1,4 +1,4 @@
--- 0398 · Buzón de sugerencias (Santos, 05-10). Todo el personal deja comentarios
+-- 0399 · Buzón de sugerencias (Santos, 05-10). Todo el personal deja comentarios
 -- sobre el CRM —qué falta, qué falla, qué se puede mejorar— con texto y varias
 -- capturas de pantalla, y Santos (admin) los lee, les cambia el estado y les
 -- responde desde la misma pantalla. Las capturas van al bucket privado
@@ -20,7 +20,7 @@ create table if not exists public.sugerencias (
   updated_at timestamptz not null default now()
 );
 
-comment on table public.sugerencias is 'Buzón de sugerencias del personal sobre el CRM, con capturas; lo atiende admin (0398).';
+comment on table public.sugerencias is 'Buzón de sugerencias del personal sobre el CRM, con capturas; lo atiende admin (0399).';
 
 create index if not exists sugerencias_autor_idx on public.sugerencias (autor_id, created_at desc);
 create index if not exists sugerencias_estado_idx on public.sugerencias (estado, created_at desc);

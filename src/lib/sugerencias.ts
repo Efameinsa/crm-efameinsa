@@ -1,4 +1,4 @@
-// Tipos y catálogos del buzón de sugerencias (0398). Aparte de la acción
+// Tipos y catálogos del buzón de sugerencias (0399). Aparte de la acción
 // «use server» porque esa solo puede exportar funciones asíncronas.
 
 export type TipoSugerencia = "mejora" | "error" | "idea" | "duda";

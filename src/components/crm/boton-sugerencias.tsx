@@ -5,7 +5,7 @@ import { Lightbulb } from "lucide-react";
 import Link from "@/components/enlace";
 
 /**
- * El buzón de sugerencias a un clic desde cualquier pantalla (0398). Lleva la
+ * El buzón de sugerencias a un clic desde cualquier pantalla (0399). Lleva la
  * pantalla de origen en «desde» para que el formulario ya diga de dónde viene
  * el comentario.
  */

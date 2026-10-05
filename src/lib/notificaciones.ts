@@ -54,7 +54,7 @@ export type TipoNotificacion =
   | "cotizacion_vista"
   // Clientes que escribieron por WhatsApp y esperan la respuesta del comercial (0394, Central 05-10).
   | "whatsapp_sin_respuesta"
-  // Buzón de sugerencias del personal (0398, Santos 05-10): llega a admin y vuelve con la respuesta.
+  // Buzón de sugerencias del personal (0399, Santos 05-10): llega a admin y vuelve con la respuesta.
   | "sugerencia";
 
 interface Destinatario {

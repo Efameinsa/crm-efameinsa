@@ -5,7 +5,7 @@ import { listarSugerencias } from "@/lib/acciones/sugerencias";
 import { FormularioSugerencia, ListaSugerencias } from "@/components/crm/buzon-sugerencias";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 
-// BUZÓN DE SUGERENCIAS (0398, Santos 05-10). Cualquiera escribe a la
+// BUZÓN DE SUGERENCIAS (0399, Santos 05-10). Cualquiera escribe a la
 // izquierda y ve sus sugerencias con la respuesta a la derecha. Admin y
 // gerencia ven la bandeja de todos; solo admin cambia el estado y responde.
 export const dynamic = "force-dynamic";

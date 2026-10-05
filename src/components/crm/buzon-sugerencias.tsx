@@ -1,6 +1,6 @@
 "use client";
 
-// BUZÓN DE SUGERENCIAS (0398, Santos 05-10): «que todos puedan dejar ahí sus
+// BUZÓN DE SUGERENCIAS (0399, Santos 05-10): «que todos puedan dejar ahí sus
 // comentarios pegando varios screenshots… bien bonito y fácil de usar, y yo
 // pueda verlo luego desde la vista de admin».
 //
