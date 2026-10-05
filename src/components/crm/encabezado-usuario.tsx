@@ -2,6 +2,7 @@ import { FormularioSalir } from "@/components/crm/formulario-salir";
 import { Button } from "@/components/ui/button";
 import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
 import { CambiarClave } from "@/components/crm/cambiar-clave";
+import { BotonSugerencias } from "@/components/crm/boton-sugerencias";
 import { BotonAtrasApp } from "@/components/crm/boton-atras-app";
 import type { Perfil } from "@/types/database";
 
@@ -39,6 +40,7 @@ export function EncabezadoUsuario({ perfil, demo = false }: { perfil: Perfil; de
         <CampanaNotificaciones userId={perfil.id} rol={perfil.rol} />
         {/* Cuenta de demostración (0280): ni cambia la clave ni cierra la
             sesión de la persona real; «Salir» está en la franja de arriba. */}
+        {!demo && <BotonSugerencias />}
         {!demo && <CambiarClave />}
         {!demo && (
           <FormularioSalir>
