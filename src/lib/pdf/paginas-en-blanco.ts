@@ -30,6 +30,16 @@ import { inflateSync } from "node:zlib";
  * «Agradeciendo su atención» y la firma— dibuja quince. El umbral va en ocho:
  * deja tres de holgura sobre el membrete y queda al doble de distancia de la
  * página con menos contenido de verdad.
+ *
+ * PERO CONTAR NO ALCANZA (Brenda, 05-10, cotización 876-26). Con seis equipos
+ * la tabla del resumen no entró entera en la primera hoja y la última fila
+ * —«TOTAL INCLUIDO IGV A PAGAR US$ 26,030.80»— pasó sola a la segunda. Esa
+ * hoja dibujaba seis textos: los tres del membrete de OPEN y los tres del
+ * total. Quedó bajo el umbral, se borró, y al cliente le llegó una cotización
+ * sin el total. Lo mismo le pasaría a la última viñeta de una ficha que se
+ * corre a otra hoja. Por eso, además de pocos, los textos tienen que ser
+ * TODOS de la papelería: los que se repiten en cada hoja del documento. Basta
+ * un texto propio —un monto, una viñeta— para que la hoja se quede.
  */
 const TEXTOS_DEL_MEMBRETE = 8;
 
@@ -49,35 +59,53 @@ function textoDeLaPagina(bytes: Uint8Array): string {
   }
 }
 
-/** Cuántas veces dibuja texto cada página, en orden. */
-export async function textosPorPagina(pdf: Uint8Array): Promise<number[]> {
+/**
+ * Los textos que dibuja cada página, en orden: uno por operador Tj/TJ, con los
+ * trozos de la cadena pegados (sin el espaciado entre letras de TJ). No hace
+ * falta decodificarlos: dentro de un mismo PDF el mismo texto con la misma
+ * fuente se escribe siempre igual, y eso es todo lo que se compara.
+ */
+export async function textosDePaginas(pdf: Uint8Array): Promise<string[][]> {
   const doc = await PDFDocument.load(pdf);
   return doc.getPages().map((pagina) => {
     const contenidos = pagina.node.Contents();
-    if (!contenidos) return 0;
+    if (!contenidos) return [];
     const refs = "asArray" in contenidos ? contenidos.asArray() : [contenidos];
-    let n = 0;
+    const textos: string[] = [];
     for (const ref of refs) {
       const stream = pagina.doc.context.lookup(ref) as { getContents?: () => Uint8Array } | undefined;
       const datos = stream?.getContents?.();
       if (!datos) continue;
-      n += (textoDeLaPagina(datos).match(/\bTj\b|\bTJ\b/g) ?? []).length;
+      for (const m of textoDeLaPagina(datos).matchAll(/(\[[^\]]*\]|<[0-9A-Fa-f\s]*>|\((?:\\.|[^\\)])*\))\s*(?:Tj|TJ)\b/g)) {
+        textos.push((m[1].match(/<[^>]*>|\((?:\\.|[^\\)])*\)/g) ?? []).join(""));
+      }
     }
-    return n;
+    return textos;
   });
+}
+
+/** Cuántas veces dibuja texto cada página, en orden. */
+export async function textosPorPagina(pdf: Uint8Array): Promise<number[]> {
+  return (await textosDePaginas(pdf)).map((t) => t.length);
 }
 
 export async function quitarPaginasEnBlanco(
   pdf: Uint8Array,
 ): Promise<{ pdf: Uint8Array; quitadas: number[] }> {
-  const textos = await textosPorPagina(pdf);
-  const enBlanco = textos
-    .map((n, i) => ({ n, i }))
-    .filter((p) => p.n <= TEXTOS_DEL_MEMBRETE)
+  const paginas = await textosDePaginas(pdf);
+  // La papelería: lo que aparece en TODAS las hojas (membrete y pie).
+  const papeleria = new Set(paginas[0] ?? []);
+  for (const textos of paginas.slice(1)) {
+    const deEsta = new Set(textos);
+    for (const t of papeleria) if (!deEsta.has(t)) papeleria.delete(t);
+  }
+  const enBlanco = paginas
+    .map((textos, i) => ({ textos, i }))
+    .filter((p) => p.textos.length <= TEXTOS_DEL_MEMBRETE && p.textos.every((t) => papeleria.has(t)))
     .map((p) => p.i);
 
   if (enBlanco.length === 0) return { pdf, quitadas: [] };
-  if (enBlanco.length > Math.floor(textos.length * MAXIMO_QUITABLE)) {
+  if (enBlanco.length > Math.floor(paginas.length * MAXIMO_QUITABLE)) {
     return { pdf, quitadas: [] };
   }
 
