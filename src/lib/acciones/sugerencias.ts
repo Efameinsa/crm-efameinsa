@@ -9,6 +9,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notificar } from "@/lib/notificaciones";
+import { avisarSugerenciaEnviadaEducanet, avisarSugerenciaImplementadaEducanet } from "@/lib/avisos-educanet";
+import { hoyLima } from "@/lib/periodo";
 import {
   ESTADOS_SUGERENCIA,
   TIPOS_SUGERENCIA,
@@ -19,6 +21,7 @@ import {
 } from "@/lib/sugerencias";
 
 const MAX_ADJUNTOS = 10;
+const SUGERENCIAS_CON_PUNTOS_POR_DIA = 3;
 
 export async function enviarSugerencia(datos: {
   tipo: TipoSugerencia;
@@ -56,6 +59,20 @@ export async function enviarSugerencia(datos: {
     .select("id")
     .single();
   if (error || !fila) return { error: "No se pudo guardar la sugerencia. Intente de nuevo." };
+
+  // PUNTOS EN CRECE (Santos, 05-10): cada sugerencia suma, pero solo las tres
+  // primeras del día, para premiar el aporte y no el volumen. Crece decide
+  // cuántos (3, o 1 si es una duda) y no repite el mismo evento.
+  if (user.email) {
+    const { count } = await supabase
+      .from("sugerencias")
+      .select("id", { count: "exact", head: true })
+      .eq("autor_id", user.id)
+      .gte("created_at", `${hoyLima()}T00:00:00-05:00`);
+    if ((count ?? 0) <= SUGERENCIAS_CON_PUNTOS_POR_DIA) {
+      await avisarSugerenciaEnviadaEducanet({ email: user.email, id: fila.id as string, tipo: datos.tipo, titulo });
+    }
+  }
 
   const { data: perfil } = await supabase.from("perfiles").select("nombre").eq("id", user.id).maybeSingle();
   await notificar({
@@ -143,6 +160,15 @@ export async function atenderSugerencia(datos: {
     .select("autor_id, titulo");
   if (error) return { error: "No se pudo guardar." };
   if (!filas?.length) return { error: "Solo el administrador puede atender las sugerencias." };
+
+  // Implementada: puntos extra en Crece para quien la propuso (el id fijo del
+  // evento hace que marcarla «Hecha» dos veces no sume dos veces).
+  if (datos.estado === "hecha") {
+    const { data: autor } = await createAdminClient().auth.admin.getUserById(filas[0].autor_id as string);
+    if (autor?.user?.email) {
+      await avisarSugerenciaImplementadaEducanet({ email: autor.user.email, id: datos.id, titulo: filas[0].titulo as string });
+    }
+  }
 
   const etiqueta = ESTADOS_SUGERENCIA.find((e) => e.valor === datos.estado)!.etiqueta;
   if (filas[0].autor_id !== user.id) {

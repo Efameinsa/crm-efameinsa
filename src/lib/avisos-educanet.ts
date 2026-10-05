@@ -23,9 +23,14 @@ type TipoEventoEducanet =
   | "cotizacion_creada"
   | "cierre_venta"
   | "gestion_registrada"
-  | "lead_respondido";
+  | "lead_respondido"
+  // Buzón de sugerencias (0399, 05-10): Crece da puntos al enviarla y si se implementa.
+  | "sugerencia_enviada"
+  | "sugerencia_implementada";
 
 interface PayloadEventoEducanet {
+  /** Id fijo del evento: Crece descarta los repetidos, así un reintento no suma dos veces. */
+  eventId?: string;
   tipo: TipoEventoEducanet;
   email: string;
   descripcion?: string;
@@ -55,9 +60,9 @@ async function enviarEventoEducanet(datos: PayloadEventoEducanet): Promise<void>
   if (!url || !secret) return; // entorno sin Educanet configurado: silencio, no error
 
   const body = JSON.stringify({
-    eventId: randomUUID(),
     fecha: new Date().toISOString(),
     ...datos,
+    eventId: datos.eventId ?? randomUUID(),
   });
   const firma = createHmac("sha256", secret).update(body).digest("hex");
 
@@ -122,6 +127,27 @@ export async function avisarGestionRegistradaEducanet(datos: {
     nota: recortar(datos.nota, 140),
     resultado: recortar(datos.resultado, 60),
     descripcion: `Gestión registrada: ${datos.tipoGestion}`,
+  });
+}
+
+/** Una sugerencia al buzón del CRM. Crece pone los puntos según el tipo (error, mejora, idea, duda). */
+export async function avisarSugerenciaEnviadaEducanet(datos: { email: string; id: string; tipo: string; titulo: string }): Promise<void> {
+  await enviarEventoEducanet({
+    tipo: "sugerencia_enviada",
+    eventId: `sugerencia-${datos.id}`,
+    email: datos.email,
+    subtipo: datos.tipo,
+    descripcion: recortar(datos.titulo, 140),
+  });
+}
+
+/** Admin marcó la sugerencia como «Hecha»: puntos extra para quien la propuso, una sola vez. */
+export async function avisarSugerenciaImplementadaEducanet(datos: { email: string; id: string; titulo: string }): Promise<void> {
+  await enviarEventoEducanet({
+    tipo: "sugerencia_implementada",
+    eventId: `sugerencia-hecha-${datos.id}`,
+    email: datos.email,
+    descripcion: recortar(datos.titulo, 140),
   });
 }
 

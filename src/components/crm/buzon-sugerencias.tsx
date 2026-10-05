@@ -162,15 +162,24 @@ export function FormularioSugerencia({ userId }: { userId: string }) {
           maxLength={5000}
           placeholder={"Qué estaba haciendo, qué esperaba que pasara y qué pasó.\nSi es una idea: cómo le ayudaría a vender o a atender mejor."}
         />
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>Pantalla:</span>
-          <Input
-            value={pantalla}
-            onChange={(e) => setPantalla(e.target.value)}
-            maxLength={300}
-            placeholder="¿En qué pantalla? (opcional)"
-            className="h-8 max-w-xs text-xs"
-          />
+        {/* «¿En qué parte ocurre?» (Santos, 05-10: «Pantalla» no se entendía).
+            Desde el CRM se llena sola con la pantalla de origen; solo se
+            escribe si el comentario es de la web u otro proceso. */}
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">¿En qué parte ocurre?</span>
+            <Input
+              value={pantalla}
+              onChange={(e) => setPantalla(e.target.value)}
+              maxLength={300}
+              placeholder="Ej.: web efameinsa.com, cotizador, almacén…"
+              className="h-8 max-w-xs text-xs"
+            />
+          </div>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Si escribe desde una pantalla del CRM, se llena solo y no hace falta tocarlo. Si es sobre la web u otro
+            proceso, escríbalo aquí.
+          </p>
         </div>
       </div>
 
@@ -237,7 +246,10 @@ export function FormularioSugerencia({ userId }: { userId: string }) {
       </div>
 
       <div className="flex items-center justify-end gap-3">
-        <span className="text-[11px] text-muted-foreground">Lo lee el área de sistemas. Le avisamos en la campana cuando haya respuesta.</span>
+        <span className="text-[11px] leading-snug text-muted-foreground">
+          Cada sugerencia suma <b className="text-foreground">3 puntos en Crece</b> (1 si es una duda; hasta 3 por día) y{" "}
+          <b className="text-foreground">15 más</b> si se implementa. La respuesta le llega a la campana.
+        </span>
         <Button onClick={enviar} disabled={enviando} className="gap-1.5">
           <Send className="size-4" /> {enviando ? "Enviando…" : "Enviar sugerencia"}
         </Button>
