@@ -326,31 +326,44 @@ export function CotizacionPostventaPdf({
             </View>
 
             {/* ── ITEM I: DETALLE DEL SERVICIO… — un cuadro por servicio con ficha ── */}
-            {detalles.map(({ item, i }) => (
-              <View key={i} style={{ marginTop: 14 }}>
-                <Text style={pv.detalleTitulo} minPresenceAhead={60}>
-                  ITEM {numero(i)}: {tituloDelDetalle(item.nombre)}
-                </Text>
-                <View style={{ paddingTop: LINEA }}>
-                  <View style={pv.filaDetalle} wrap={false}>
-                    <Text style={[pv.dTexto, pv.dItem, { fontFamily: "Helvetica-Bold", textAlign: "center" }]}>ITEM</Text>
-                    <Text style={[pv.dTexto, pv.dDesc, pv.divisor, { fontFamily: "Helvetica-Bold", textAlign: "center" }]}>
-                      DESCRIPCIÓN
-                    </Text>
-                    <View style={[pv.dCheck, pv.divisor]} />
-                  </View>
-                  {filasDelDetalle(item.bloques ?? []).map((f, k) => (
-                    // Un sistema no se queda solo al pie de la hoja: se lleva
-                    // al menos su primera tarea a la siguiente.
-                    <View key={k} style={pv.filaDetalle} wrap={false} minPresenceAhead={f.sistema ? 24 : undefined}>
-                      <Text style={[pv.dTexto, pv.dItem, { fontFamily: "Helvetica-Bold", textAlign: "center" }]}>{f.numero ?? ""}</Text>
-                      <Text style={[pv.dTexto, pv.dDesc, pv.divisor, f.sistema ? { fontFamily: "Helvetica-Bold" } : {}]}>{f.texto}</Text>
-                      <View style={[pv.dCheck, pv.divisor, pv.celdaCentrada]}>{f.sistema && <Visto />}</View>
-                    </View>
-                  ))}
+            {detalles.map(({ item, i }) => {
+              const filas = filasDelDetalle(item.bloques ?? []);
+              const fila = (f: (typeof filas)[number], k: number) => (
+                // Un sistema no se queda solo al pie de la hoja: se lleva
+                // al menos su primera tarea a la siguiente.
+                <View key={k} style={pv.filaDetalle} wrap={false} minPresenceAhead={f.sistema ? 24 : undefined}>
+                  <Text style={[pv.dTexto, pv.dItem, { fontFamily: "Helvetica-Bold", textAlign: "center" }]}>{f.numero ?? ""}</Text>
+                  <Text style={[pv.dTexto, pv.dDesc, pv.divisor, f.sistema ? { fontFamily: "Helvetica-Bold" } : {}]}>{f.texto}</Text>
+                  <View style={[pv.dCheck, pv.divisor, pv.celdaCentrada]}>{f.sistema && <Visto />}</View>
                 </View>
-              </View>
-            ))}
+              );
+              // EL TÍTULO NO SE QUEDA SOLO AL PIE (Santos, 05-10, con la foto
+              // de un PDF donde «ITEM I: DETALLE DEL SERVICIO…» y la cabecera
+              // de la tabla cerraban la hoja y las tareas empezaban en la
+              // otra). Título, cabecera y las primeras filas son un solo
+              // bloque: si no entran juntos, pasan juntos a la hoja siguiente.
+              const juntas = 4;
+              return (
+                <View key={i} style={{ marginTop: 14 }}>
+                  <View wrap={false}>
+                    <Text style={pv.detalleTitulo}>
+                      ITEM {numero(i)}: {tituloDelDetalle(item.nombre)}
+                    </Text>
+                    <View style={{ paddingTop: LINEA }}>
+                      <View style={pv.filaDetalle}>
+                        <Text style={[pv.dTexto, pv.dItem, { fontFamily: "Helvetica-Bold", textAlign: "center" }]}>ITEM</Text>
+                        <Text style={[pv.dTexto, pv.dDesc, pv.divisor, { fontFamily: "Helvetica-Bold", textAlign: "center" }]}>
+                          DESCRIPCIÓN
+                        </Text>
+                        <View style={[pv.dCheck, pv.divisor]} />
+                      </View>
+                      {filas.slice(0, juntas).map(fila)}
+                    </View>
+                  </View>
+                  {filas.slice(juntas).map((f, k) => fila(f, k + juntas))}
+                </View>
+              );
+            })}
 
             <View style={{ marginTop: 16 }}>{cuentas}</View>
 
