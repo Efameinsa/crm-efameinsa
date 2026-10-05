@@ -1,4 +1,4 @@
-import { fechaLima } from "@/lib/fechas";
+import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
 import { codigoConVersion } from "@/lib/version-cotizacion";
 import { ChevronRight, FileDown } from "lucide-react";
@@ -11,6 +11,7 @@ import { HistorialAprobaciones } from "@/components/crm/historial-aprobaciones";
 import { CompendioGestion } from "@/components/crm/compendio-gestion";
 import { cargarCompendio, type Compendio } from "@/lib/compendio-cierre";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
+import { VerBorradorGerencia } from "@/components/crm/ver-borrador-gerencia";
 
 export const dynamic = "force-dynamic";
 
@@ -44,8 +45,9 @@ export default async function AprobacionesPage() {
   const { data: borradoresCrudos } = await supabase
     .from("cotizaciones")
     .select(
-      `id, total, moneda, serie, created_at, updated_at,
+      `id, total, moneda, serie, created_at, updated_at, estado_aprobacion, revision_pedida_at, vista_gerencia_at,
        autor:perfiles!cotizaciones_creada_por_fkey(nombre, es_postventa, es_prueba),
+       vista:perfiles!cotizaciones_vista_gerencia_por_fkey(nombre),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social))`,
     )
     .eq("estado", "borrador")
@@ -59,7 +61,9 @@ export default async function AprobacionesPage() {
       autor: b.autor as unknown as { nombre: string; es_postventa: boolean | null; es_prueba: boolean | null } | null,
       cliente: (b.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social ?? "Cliente sin nombre",
     }))
-    .filter((b) => b.autor?.es_postventa && !b.autor.es_prueba && Number(b.total) > 0);
+    .filter((b) => b.autor?.es_postventa && !b.autor.es_prueba && Number(b.total) > 0)
+    // Lo que postventa pidió revisar y nadie vio todavía, primero (0392).
+    .sort((a, b) => Number(Boolean(b.revision_pedida_at && !b.vista_gerencia_at)) - Number(Boolean(a.revision_pedida_at && !a.vista_gerencia_at)));
 
   const { data: cotizaciones } = await supabase
     .from("cotizaciones")
@@ -239,7 +243,7 @@ export default async function AprobacionesPage() {
         <>
           <p className="mb-2 text-xs text-muted-foreground">
             Cotizaciones de servicios y repuestos que postventa está armando y todavía no envió. Van a precio de catálogo, así que no piden
-            aprobación: están acá para que se puedan revisar antes de que salgan.
+            aprobación: están acá para que se puedan revisar antes de que salgan. Al abrir el PDF, quien la hizo recibe el aviso de que usted la vio.
           </p>
           <div className="divide-y divide-border rounded-lg border border-border">
             {borradoresPostventa.map((b) => (
@@ -249,18 +253,27 @@ export default async function AprobacionesPage() {
                   <p className="text-xs text-muted-foreground">
                     De {b.autor?.nombre ?? "postventa"} · Serie {b.serie} · actualizado el {fechaLima(b.updated_at ?? b.created_at)}
                   </p>
+                  <p className="mt-0.5 flex flex-wrap gap-1.5 text-[11px]">
+                    {b.revision_pedida_at && !b.vista_gerencia_at && (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-800">
+                        Pidió su revisión el {fechaHoraLima(b.revision_pedida_at as string)} · ábrala para que sepa que la vio
+                      </span>
+                    )}
+                    {b.vista_gerencia_at && (
+                      <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-semibold text-[#1E7F4F]">
+                        Vista por {(b.vista as unknown as { nombre: string } | null)?.nombre ?? "gerencia"} el {fechaHoraLima(b.vista_gerencia_at as string)}
+                      </span>
+                    )}
+                    {b.estado_aprobacion === "rechazada_gerencia" && (
+                      <span className="rounded-full bg-destructive/10 px-2 py-0.5 font-semibold text-destructive">Rechazada por gerencia</span>
+                    )}
+                  </p>
                 </div>
                 <span className="flex items-center gap-3">
                   <span className="text-sm font-semibold tabular-nums text-foreground">
                     {b.moneda} {Number(b.total).toLocaleString("es-PE")}
                   </span>
-                  <VerPdfEnLaApp
-                    url={`/api/cotizaciones/${b.id}/pdf`}
-                    titulo={`Borrador de ${b.cliente}`}
-                    className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-accent"
-                  >
-                    <FileDown className="size-3.5" /> Ver PDF
-                  </VerPdfEnLaApp>
+                  <VerBorradorGerencia cotizacionId={b.id} cliente={b.cliente} />
                 </span>
               </div>
             ))}

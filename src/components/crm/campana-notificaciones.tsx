@@ -83,6 +83,19 @@ const ESTILO_AVISO: Record<
     duracion: 14000,
     tono: "warning",
   },
+  // Postventa pide revisar un borrador (0392) y el acuse de que gerencia lo vio.
+  cotizacion_revision: {
+    encabezado: "Postventa pide revisar una cotización",
+    accion: "Revisarla",
+    duracion: 12000,
+    tono: "warning",
+  },
+  cotizacion_vista: {
+    encabezado: "Gerencia vio su cotización",
+    accion: "Abrirla",
+    duracion: 14000,
+    tono: "success",
+  },
   cotizacion_pendiente: {
     encabezado: "Una cotización espera su aprobación",
     accion: "Revisarla",
@@ -317,6 +330,7 @@ export function CampanaNotificaciones({
       "lead_registrado",
       "lead_asignado",
       "cotizacion_pendiente",
+      "cotizacion_revision",
       "urgencia",
       "urgencia_finanzas",
       "urgencia_almacen",

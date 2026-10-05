@@ -8,7 +8,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AgregarCotizacionVieja } from "@/components/crm/agregar-cotizacion-vieja";
 import { CorregirCotizacionBoton } from "@/components/crm/corregir-cotizacion-boton";
-import { fechaLima } from "@/lib/fechas";
+import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
 import { EsperaDeNavegacion } from "@/components/crm/espera-de-navegacion";
@@ -72,6 +72,8 @@ interface Fila {
   oportunidadHref: string | null;
   delArchivo: boolean;
   nota: string | null;
+  /** Borrador que postventa mandó a revisar al ingeniero, y si ya lo vio (0392). */
+  revision?: { vista: boolean; detalle: string } | null;
   /** Versión vigente de una cotización corregida (0123): «v2» junto al número. */
   version?: number;
 }
@@ -117,7 +119,7 @@ export default async function MisCotizacionesPage({
     pag === 1
       ? supabase
           .from("cotizaciones")
-          .select("id, codigo, serie, total, moneda, created_at, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
+          .select("id, codigo, serie, total, moneda, created_at, oportunidad_id, revision_pedida_at, vista_gerencia_at, vista:perfiles!cotizaciones_vista_gerencia_por_fkey(nombre), oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
           .in("oportunidades.comercial_id", duenos)
           .eq("estado", "borrador")
           .is("enviada_at", null)
@@ -180,6 +182,11 @@ export default async function MisCotizacionesPage({
       oportunidadHref: null,
       delArchivo: false,
       nota: null,
+      revision: c.vista_gerencia_at
+        ? { vista: true, detalle: `Vista por ${(c.vista as unknown as { nombre: string } | null)?.nombre ?? "gerencia"} el ${fechaHoraLima(c.vista_gerencia_at as string)}` }
+        : c.revision_pedida_at
+          ? { vista: false, detalle: `Pedida al ingeniero el ${fechaHoraLima(c.revision_pedida_at as string)}; todavía no la abre` }
+          : null,
     }))
     .filter((f) => !busqueda || contiene(f.cliente) || (f.codigo != null && contiene(f.codigo)));
 
@@ -303,13 +310,16 @@ export default async function MisCotizacionesPage({
         className={cn(
           "w-24 rounded-full px-2 py-0.5 text-center text-[10px] font-semibold",
           f.borrador
-            ? "bg-amber-500/10 text-amber-700"
+            ? f.revision?.vista
+              ? "bg-[#1E7F4F]/10 text-[#1E7F4F]"
+              : "bg-amber-500/10 text-amber-700"
             : f.delArchivo
               ? "bg-secondary text-muted-foreground"
               : "bg-primary/10 text-primary",
         )}
+        title={f.revision?.detalle}
       >
-        {f.borrador ? "sin numerar" : (f.nota ?? (f.delArchivo ? "del archivo" : "del CRM"))}
+        {f.borrador ? (f.revision ? (f.revision.vista ? "visto por gerencia" : "en revisión") : "sin numerar") : (f.nota ?? (f.delArchivo ? "del archivo" : "del CRM"))}
       </span>
       <span className="relative z-10 flex w-28 items-center justify-end gap-2 text-[11px]">
         {f.borrador ? (
