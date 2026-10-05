@@ -47,6 +47,7 @@ export default async function ParquePage({
     anio?: string;
     mes?: string;
     origen?: string;
+    compro?: string;
     gestion?: string;
     quien?: string;
   }>;
@@ -110,6 +111,7 @@ export default async function ParquePage({
           origen: sp.origen === "postventa" || sp.origen === "comercial" ? sp.origen : null,
           gestion,
           quien: (sp.quien ?? "").trim().slice(0, 80) || null,
+          compro: sp.compro === "maquina" || sp.compro === "repuesto" || sp.compro === "mantenimiento" ? sp.compro : null,
         }}
         yo={clavePersona(perfil.nombre, perfil.codigo_comercial)}
       />

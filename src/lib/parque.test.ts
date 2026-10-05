@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   clavePersona,
   estadoGestionParque,
+  comproParque,
   filtrarParque,
   mesesDelAnio,
   nombreCorto,
@@ -26,6 +27,8 @@ function cliente(p: Partial<ClienteParque> = {}): ClienteParque {
     ultimaCompraAt: "2025-03-14",
     ventasDePostventa: 1,
     ventasDeComercial: 0,
+    ventasDeRepuesto: 0,
+    ventasDeMantenimiento: 1,
     ultimoMantenimiento: null,
     mesesSinMantenimiento: null,
     estado: "nunca",
@@ -137,5 +140,16 @@ describe("lo que ya existía sigue igual", () => {
     expect(ids(filtrarParque(TODOS, { q: "gabriela" }))).toEqual(["c"]);
     expect(ids(filtrarParque(TODOS, { estado: "al_dia" }))).toEqual([]);
     expect(filtrarParque(TODOS, {})).toHaveLength(4);
+  });
+});
+
+describe("qué compró (Gabriela, 05-10)", () => {
+  it("máquina: fichada o vendida por un comercial; repuesto y mantenimiento por su venta", () => {
+    const soloRepuesto = cliente({ equipos: 0, ventasDeComercial: 0, ventasDeRepuesto: 2, ventasDeMantenimiento: 0 });
+    const maquina = cliente({ equipos: 0, ventasDeComercial: 1, ventasDeRepuesto: 0, ventasDeMantenimiento: 0 });
+    expect(comproParque(soloRepuesto, "maquina")).toBe(false);
+    expect(comproParque(soloRepuesto, "repuesto")).toBe(true);
+    expect(comproParque(maquina, "maquina")).toBe(true);
+    expect(filtrarParque([soloRepuesto, maquina], { compro: "repuesto" })).toEqual([soloRepuesto]);
   });
 });

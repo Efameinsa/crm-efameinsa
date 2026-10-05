@@ -59,6 +59,9 @@ export interface ClienteParque {
    */
   ventasDePostventa: number;
   ventasDeComercial: number;
+  /** De las de postventa, cuántas fueron repuestos y cuántas mantenimiento (0393). */
+  ventasDeRepuesto: number;
+  ventasDeMantenimiento: number;
   ultimoMantenimiento: string | null;
   mesesSinMantenimiento: number | null;
   estado: EstadoMantenimiento;
@@ -148,6 +151,18 @@ export function personasDeGestion(c: Pick<ClienteParque, "enGestion" | "ultimaGe
 
 export type OrigenParque = "postventa" | "comercial" | null;
 
+/**
+ * QUÉ COMPRÓ (Gabriela, 05-10: «un ítem donde pueda discriminar máquinas de
+ * repuestos»). Máquina: la fichada en el parque o una venta de comercial;
+ * repuesto y mantenimiento: las ventas de postventa de ese tipo (0393).
+ */
+export type CompraParque = "maquina" | "repuesto" | "mantenimiento";
+export function comproParque(c: Pick<ClienteParque, "equipos" | "ventasDeComercial" | "ventasDeRepuesto" | "ventasDeMantenimiento">, que: CompraParque): boolean {
+  if (que === "maquina") return c.equipos > 0 || c.ventasDeComercial > 0;
+  if (que === "repuesto") return c.ventasDeRepuesto > 0;
+  return c.ventasDeMantenimiento > 0;
+}
+
 export interface FiltrosParque {
   q?: string | null;
   estado?: EstadoMantenimiento | null;
@@ -158,6 +173,7 @@ export interface FiltrosParque {
   gestion?: EstadoGestionParque | null;
   /** Clave de la persona (`clavePersona`). */
   quien?: string | null;
+  compro?: CompraParque | null;
 }
 
 export const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
@@ -179,6 +195,7 @@ export function filtrarParque(todos: ClienteParque[], f: FiltrosParque): Cliente
     if (mes && compra.slice(5, 7) !== mes) return false;
     if (f.gestion && estadoGestionParque(c) !== f.gestion) return false;
     if (f.quien && !personasDeGestion(c).includes(f.quien)) return false;
+    if (f.compro && !comproParque(c, f.compro)) return false;
     if (patron && !(c.razonSocial.toLowerCase().includes(patron) || (c.numDoc ?? "").includes(patron))) return false;
     return true;
   });
@@ -272,6 +289,8 @@ export async function cargarParque(
     ultima_venta: string | null;
     ventas: number | null;
     equipos: string[] | null;
+    de_repuesto: number | null;
+    de_mantenimiento: number | null;
   };
   const filas = (equipos ?? []) as unknown as Fila[];
   const filasVenta = (ventas ?? []) as unknown as FilaVenta[];
@@ -295,6 +314,8 @@ export async function cargarParque(
         ultimaCompraAt: c.ultima_venta_at ?? e.fecha_venta ?? null,
         ventasDePostventa: 0,
         ventasDeComercial: 0,
+        ventasDeRepuesto: 0,
+        ventasDeMantenimiento: 0,
         ultimoMantenimiento: e.ultimo_mantenimiento ?? null,
         mesesSinMantenimiento: null,
         estado: "sin_dato",
@@ -338,6 +359,8 @@ export async function cargarParque(
         ultimaCompraAt: vt.ultima_venta ?? null,
         ventasDePostventa: Number(vt.de_postventa ?? 0),
         ventasDeComercial: Number(vt.de_comercial ?? 0),
+        ventasDeRepuesto: Number(vt.de_repuesto ?? 0),
+        ventasDeMantenimiento: Number(vt.de_mantenimiento ?? 0),
         ultimoMantenimiento: null,
         mesesSinMantenimiento: null,
         estado: "sin_dato",
@@ -352,6 +375,8 @@ export async function cargarParque(
       if (vt.no_contactar) prev.noContactar = true;
       prev.ventasDePostventa += Number(vt.de_postventa ?? 0);
       prev.ventasDeComercial += Number(vt.de_comercial ?? 0);
+      prev.ventasDeRepuesto += Number(vt.de_repuesto ?? 0);
+      prev.ventasDeMantenimiento += Number(vt.de_mantenimiento ?? 0);
     }
   }
 
