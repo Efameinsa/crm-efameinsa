@@ -1,5 +1,5 @@
 import Link from "@/components/enlace";
-import { AlertTriangle, Ban, CheckCircle2, Package, Truck } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle2, Package, Printer, Truck } from "lucide-react";
 import { requerirRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
@@ -494,6 +494,19 @@ export default async function CierresCentralPage({
                       compendio={compendios.get(f.id) ?? null}
                       cotizacion={f.cotizaciones}
                     />
+                    {/* EL PEDIDO YA GENERADO, A UN CLIC (Central 06-10, San Fernando:
+                        «quiero ver el pedido pero ya está liberado, ¿dónde lo veo?»).
+                        Central no entra a la ficha del pedido: abre su hoja. */}
+                    {!estaAnulado && pedido?.id && pedido.numero_pedido_erp && (
+                      <a
+                        href={`/pedidos/${pedido.id}/imprimir`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+                      >
+                        <Printer className="size-3.5" /> Ver pedido {pedido.numero_pedido_erp as string}
+                      </a>
+                    )}
                     {/* Por liberar: la tira de pasos de abajo reemplaza a los checks (0290). */}
                     {!estaAnulado && (liberado(f.id) || pedido?.aprobado_at != null) && (
                     <ChecksPedidoCentral

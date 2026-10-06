@@ -176,12 +176,40 @@ export async function atenderSugerencia(datos: {
     await notificar({
       userId: filas[0].autor_id as string,
       tipo: "sugerencia",
-      titulo: `Su sugerencia: ${etiqueta.toLowerCase()}`,
+      // «Hecha» se dice como lo que es para quien reportó: ya está resuelto (Santos, 06-10).
+      titulo: datos.estado === "hecha" ? "✅ Ya se solucionó lo que reportó" : `Su sugerencia: ${etiqueta.toLowerCase()}`,
       cuerpo: respuesta ? `«${filas[0].titulo}» · ${respuesta.slice(0, 140)}` : `«${filas[0].titulo}»`,
       url: `/sugerencias?ver=${datos.id}`,
     });
   }
   revalidatePath("/sugerencias");
   revalidatePath("/observaciones");
+  return { error: null };
+}
+
+/**
+ * «YA SE SOLUCIONÓ LO QUE REPORTÓ» (0409, Santos 06-10): el autor da por visto
+ * el aviso de sus sugerencias marcadas «Hecha». También deja leídas en la
+ * campana las notificaciones de esas mismas sugerencias.
+ */
+export async function marcarSolucionesVistas(ids: string[]): Promise<{ error: string | null }> {
+  if (!ids.length) return { error: null };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Su sesión venció: vuelva a entrar." };
+  for (const id of ids.slice(0, 20)) {
+    const { error } = await supabase.rpc("marcar_solucion_vista", { p_id: id });
+    if (error) return { error: "No se pudo guardar." };
+  }
+  await supabase
+    .from("notificaciones")
+    .update({ leida_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .eq("tipo", "sugerencia")
+    .in("url", ids.map((id) => `/sugerencias?ver=${id}`))
+    .is("leida_at", null);
+  revalidatePath("/sugerencias");
   return { error: null };
 }

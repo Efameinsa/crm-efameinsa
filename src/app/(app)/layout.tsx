@@ -16,6 +16,7 @@ import { seRastrea } from "@/lib/campo-rastreo";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
 import { AsistenteFlotante } from "@/components/crm/asistente-flotante";
 import { ComunicadoDeGerencia, type ComunicadoPendiente } from "@/components/crm/comunicado-de-gerencia";
+import { AvisoSugerenciaResuelta, type SugerenciaResuelta } from "@/components/crm/aviso-sugerencia-resuelta";
 import { asistenteEncendido } from "@/lib/asistente/herramientas";
 import { cookies, headers } from "next/headers";
 import { COOKIE_AUDITORIA, decodificarInfoAuditoria, ranuraDeHost } from "@/lib/auditoria";
@@ -50,6 +51,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // entrar, si hay uno. Una consulta chica en cada navegación; casi siempre
   // vuelve vacía.
   const comunicadoP = demo ? Promise.resolve({ data: null }) : supabase.rpc("comunicado_pendiente").maybeSingle();
+  // «Ya se solucionó lo que reportó» (0409): sus sugerencias marcadas «Hecha»
+  // que todavía no vio. Casi siempre vuelve vacía.
+  const resueltasP = demo || ranuraAuditoria
+    ? Promise.resolve({ data: null })
+    : supabase
+        .from("sugerencias")
+        .select("id, titulo, respuesta, respondida_at")
+        .eq("autor_id", perfil.id)
+        .eq("estado", "hecha")
+        .is("solucion_vista_at", null)
+        .order("respondida_at", { ascending: false })
+        .limit(10);
   if (veSeccionPostventa) {
     [contadorMiDia, contadorAtenciones] = await Promise.all([
       contarBandejaMiDia(supabase, perfil.id),
@@ -58,6 +71,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
   const { data: comunicadoCrudo } = await comunicadoP;
   const comunicado = (comunicadoCrudo ?? null) as ComunicadoPendiente | null;
+  const resueltas = ((await resueltasP).data ?? []) as SugerenciaResuelta[];
+  // Un aviso a la vez: el comunicado de gerencia va primero.
+  const avisoResueltas = !comunicado && resueltas.length > 0 ? <AvisoSugerenciaResuelta sugerencias={resueltas} /> : null;
 
   // LO QUE COMPARTEN LOS DOS MARCOS (25-09, antes del cambio a la vista nueva):
   // las franjas de auditoría y de práctica, los avisos de activar
@@ -120,6 +136,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <RefrescoEnVivo />
       <AvisoNuevaVersion versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
       {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && <ComunicadoDeGerencia comunicado={comunicado} />}
+      {avisoResueltas}
       {["gerencia", "admin"].includes(perfil.rol) && asistenteEncendido() && <AsistenteFlotante nombre={perfil.nombre} />}
     </>
   );
@@ -224,6 +241,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && (
           <ComunicadoDeGerencia comunicado={comunicado} />
         )}
+        {avisoResueltas}
         {/* El asistente, en todas las pantallas y solo para gerencia: la
             pregunta nace de lo que se está mirando, así que no puede vivir en
             otra sección. Para los demás roles ni se dibuja.
