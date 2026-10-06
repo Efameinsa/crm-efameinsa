@@ -52,6 +52,8 @@ export interface ProductoCotizable {
   stock?: number | null;
   /** Descripción del maestro de Lesly: solo alimenta la búsqueda del selector. */
   descripcion?: string | null;
+  /** Un kit: sus piezas con cantidad, tal como están en la ficha (0405). */
+  piezasKit?: string[];
 }
 
 export interface ItemCarrito extends ItemCotizacion {
@@ -129,5 +131,6 @@ export interface BorradorEnEdicion {
     color: string | null;
     /** El nombre propio de este renglón (0390); null = el del catálogo. */
     nombre_impreso?: string | null;
+    detalle_kit?: string[] | null;
   }[];
 }

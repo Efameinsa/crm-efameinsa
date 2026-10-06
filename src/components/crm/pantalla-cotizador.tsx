@@ -56,6 +56,7 @@ import type {
 import type { ContextoCotizador } from "@/lib/datos-cotizador";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 import { ANombreDe } from "@/components/crm/a-nombre-de";
+import { CantidadesDelKit } from "@/components/crm/cantidades-del-kit";
 
 /**
  * La pantalla de armar una cotización.
@@ -347,6 +348,7 @@ export function PantallaCotizador({
         // se vería reconvertido (3,949.98 en vez de 3,950) (0366).
         precio_impreso: i.precio_impreso ?? null,
         nombre_impreso: i.nombre_impreso ?? null,
+        detalle_kit: i.detalle_kit ?? null,
         precioPiso: i.precioPiso,
         // Se resuelve contra el catálogo, no se asume `false`. Al reabrir un
         // borrador que ya traía un equipo sin ficha, el aviso desaparecía y el
@@ -469,9 +471,10 @@ export function PantallaCotizador({
   const payload = useMemo(
     () =>
       JSON.stringify({
-        items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso }) => ({
+        items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit }) => ({
           producto_id,
           nombre_impreso: nombre_impreso?.trim() || null,
+          detalle_kit: detalle_kit?.length ? detalle_kit : null,
           descripcion,
           cantidad,
           precio_unitario,
@@ -1508,6 +1511,13 @@ export function PantallaCotizador({
                               }
                               className="mt-0.5 min-h-14 text-sm"
                             />
+                            {(producto?.piezasKit?.length ?? 0) > 0 && (
+                              <CantidadesDelKit
+                                piezasFicha={producto!.piezasKit!}
+                                detalle={item.detalle_kit ?? null}
+                                onCambio={(detalle_kit) => actualizarItem(i, { detalle_kit })}
+                              />
+                            )}
                           </>
                         )}
                         {producto?.capacidad && (

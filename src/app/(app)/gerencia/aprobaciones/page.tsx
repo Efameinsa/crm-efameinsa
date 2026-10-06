@@ -1,3 +1,4 @@
+import { cambiosDelKit, piezasDeKit } from "@/lib/kit";
 import Link from "next/link";
 import { fechaLima } from "@/lib/fechas";
 import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
@@ -39,7 +40,7 @@ export default async function AprobacionesPage() {
       `id, codigo, serie, total, moneda, created_at, oportunidad_id, version,
        autor:perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial, es_postventa, rol),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuenta_id, cuentas(razon_social), perfiles(nombre)),
-       cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
+       cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, descripcion, detalle_kit, productos(marca, modelo, nombre, segmento, foto_path, ficha))`,
     )
     .eq("estado_aprobacion", "pendiente_gerencia")
     .order("created_at", { ascending: true });
@@ -134,7 +135,8 @@ export default async function AprobacionesPage() {
               bajo_lista: boolean;
               requiere_aprobacion: boolean;
               descripcion: string | null;
-              productos: { marca: string; modelo: string; nombre: string; segmento: string; foto_path: string | null } | null;
+              detalle_kit: string[] | null;
+              productos: { marca: string; modelo: string; nombre: string; segmento: string; foto_path: string | null; ficha: Record<string, unknown> | null } | null;
             }[]) ?? [];
             // Desde la migración 0074 gerencia decide una sola cosa: equipos
             // cotizados por debajo del precio de referencia. Se muestra cuánto
@@ -245,6 +247,7 @@ export default async function AprobacionesPage() {
                       requiereAprobacion: i.requiere_aprobacion,
                       esIndustrial: i.productos?.segmento === "industrial",
                       fotoPath: i.productos?.foto_path ?? null,
+                      kitCambiado: cambiosDelKit(piezasDeKit(i.productos?.ficha), i.detalle_kit),
                     }))}
                   />
                 </div>

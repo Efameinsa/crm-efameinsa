@@ -1,3 +1,4 @@
+import { bloquesConKit } from "@/lib/kit";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { readFileSync } from "node:fs";
 import { join, basename } from "node:path";
@@ -285,6 +286,7 @@ export async function renderizarCotizacionPdf(
       descripcion: string | null;
       color: string | null;
       nombre_impreso?: string | null;
+      detalle_kit?: string[] | null;
       productos: {
         sku: string;
         marca: string;
@@ -335,7 +337,8 @@ export async function renderizarCotizacionPdf(
       // La descripción leída del Word tal como está (paso 3 de fichas-v). Cuando
       // existe manda sobre los cuatro cajones de arriba: es la ficha en su
       // orden, con sus títulos, subtítulos y viñetas.
-      bloques: Array.isArray(ficha?.bloques) ? (ficha.bloques as BloqueFicha[]) : undefined,
+      // Las cantidades del kit de ESTA cotización reemplazan las de la ficha (0405).
+      bloques: bloquesConKit(Array.isArray(ficha?.bloques) ? (ficha.bloques as BloqueFicha[]) : undefined, item.detalle_kit),
       secciones: seccionesDeFicha(ficha),
       // Del disco o del almacenamiento, según de dónde venga (0121).
       fotoBuffer:

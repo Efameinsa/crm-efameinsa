@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { contenidoDeFicha } from "@/lib/ficha-tecnica";
+import { piezasDeKit } from "@/lib/kit";
 import type { TipoDocumento } from "@/lib/documento";
 import type {
   BorradorEnEdicion,
@@ -128,6 +129,7 @@ function mapearProducto(pr: {
     caracteristicas,
     nDimensiones,
     sinFicha,
+    piezasKit: piezasDeKit(ficha),
     sinFoto: !pr.foto_path,
     // Stock según la columna del Excel de Lesly, guardado al cargar el equipo.
     stock: typeof ficha?.stock_referencia === "number" ? (ficha.stock_referencia as number) : null,
@@ -334,7 +336,7 @@ export async function cargarContextoCotizador(
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, precio_lista, color, nombre_impreso, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, precio_lista, color, nombre_impreso, detalle_kit, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
@@ -414,10 +416,12 @@ export async function cargarContextoCotizador(
         precio_lista: number | null;
         color: string | null;
         nombre_impreso: string | null;
+        detalle_kit: string[] | null;
         productos: { marca: string; modelo: string; nombre: string } | null;
       }[]).map((i) => ({
         producto_id: i.producto_id,
         nombre_impreso: i.nombre_impreso ?? null,
+        detalle_kit: i.detalle_kit ?? null,
         descripcion: i.descripcion,
         nombre: i.productos
           ? `${i.productos.marca} ${i.productos.modelo} — ${i.productos.nombre}`

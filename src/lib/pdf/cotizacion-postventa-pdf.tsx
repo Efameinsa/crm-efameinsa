@@ -1,3 +1,4 @@
+import { partirCantidad } from "@/lib/kit";
 import { Document, Page, View, Text, Image, StyleSheet, Svg, Path } from "@react-pdf/renderer";
 import { IDENTIDAD_SERIE, notasDe, esSinGarantia } from "./series";
 import { totalesConIgv } from "@/lib/igv";
@@ -54,6 +55,8 @@ const pv = StyleSheet.create({
   filaEncabezado: { flexDirection: "row", backgroundColor: GRIS_TABLA, borderWidth: LINEA, borderColor: NEGRO },
   th: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: NEGRO, paddingVertical: 4, paddingHorizontal: 4, textAlign: "center", lineHeight: 1.2 },
   td: { fontSize: 9, color: NEGRO, paddingVertical: 4, paddingHorizontal: 4, lineHeight: 1.3 },
+  /** Una línea dentro de una celda partida en filas (kit): sin el relleno vertical de la celda. */
+  tdLinea: { paddingVertical: 0 },
   celdaCentrada: { justifyContent: "center", alignItems: "center" },
   divisor: { borderLeftWidth: LINEA, borderLeftColor: NEGRO },
   cItem: { width: "8%" },
@@ -308,9 +311,28 @@ export function CotizacionPostventaPdf({
                   <Text style={[pv.td, { textAlign: "center" }]}>{numero(i)}</Text>
                 </View>
                 <View style={[pv.cConcepto, pv.divisor]}>
-                  <Text style={[pv.td, esMantenimiento ? { fontFamily: "Helvetica-Bold" } : {}]}>
-                    {lineas.map((l) => l.toUpperCase()).join("\n")}
-                  </Text>
+                  {/* Las piezas de un kit llevan su cantidad en columna propia
+                      (Lesly, buzón 06-10: «debería salir ordenando las
+                      cantidades»; la ficha las alinea con espacios). */}
+                  {lineas.some((l) => l.startsWith("- ") && partirCantidad(l)) ? (
+                    <View style={{ paddingVertical: 4 }}>
+                      {lineas.map((l, j) => {
+                        const pieza = l.startsWith("- ") ? partirCantidad(l) : null;
+                        return pieza ? (
+                          <View key={j} style={{ flexDirection: "row" }}>
+                            <Text style={[pv.td, pv.tdLinea, { flex: 1 }]}>{`- ${pieza.texto}`.toUpperCase()}</Text>
+                            <Text style={[pv.td, pv.tdLinea, { width: 62, textAlign: "right" }]}>{`${pieza.numero} ${pieza.unidad}`}</Text>
+                          </View>
+                        ) : (
+                          <Text key={j} style={[pv.td, pv.tdLinea, esMantenimiento ? { fontFamily: "Helvetica-Bold" } : {}]}>{l.toUpperCase()}</Text>
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <Text style={[pv.td, esMantenimiento ? { fontFamily: "Helvetica-Bold" } : {}]}>
+                      {lineas.map((l) => l.toUpperCase()).join("\n")}
+                    </Text>
+                  )}
                 </View>
                 <View style={[pv.cCant, pv.divisor, pv.celdaCentrada]}>
                   <Text style={[pv.td, { textAlign: "center" }]}>{String(item.cantidad).padStart(2, "0")}</Text>

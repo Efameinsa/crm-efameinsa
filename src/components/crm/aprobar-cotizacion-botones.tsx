@@ -36,6 +36,8 @@ export interface ItemAprobacion {
   /** Para que gerencia VEA qué máquina está aprobando (pedido 25-08: revisó
    *  el coche CO408 y preguntó por la imagen — la vista nunca la tuvo). */
   fotoPath?: string | null;
+  /** Piezas del kit cuya cantidad se cambió en esta cotización: «DUCTO FLEXIBLE 4": 3 → 10 METROS» (0405). */
+  kitCambiado?: string[];
 }
 
 /**
@@ -162,6 +164,11 @@ export function AprobarCotizacionBotones({
                     {i.esIndustrial ? "Industrial" : "Semi-industrial"}
                   </span>
                 </p>
+                {(i.kitCambiado?.length ?? 0) > 0 && (
+                  <div className="mt-1 rounded-md border border-amber-400/60 bg-amber-500/5 px-2 py-1 text-[11px] text-amber-900">
+                    <b>Kit con cantidades cambiadas:</b> {i.kitCambiado!.join(" · ")}
+                  </div>
+                )}
 
                 {/* Referencia contra lo que piden, uno al lado del otro. Es el
                     pedido textual del 25-08: «la vista del gerente debe ver

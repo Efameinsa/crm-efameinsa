@@ -36,7 +36,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .select(
         `oportunidad_id, codigo, correlativo, serie, moneda, moneda_impresa, tipo_cambio, condiciones, vigencia_dias, entrega_lugar,
        tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, cliente_snapshot, created_at, version,
-       cotizacion_items(cantidad, precio_unitario, precio_con_igv, precio_impreso, descripcion, color, nombre_impreso, productos(sku, marca, modelo, nombre, capacidad, categoria, segmento, ficha, foto_path, logo_path, panel_path)),
+       cotizacion_items(cantidad, precio_unitario, precio_con_igv, precio_impreso, descripcion, color, nombre_impreso, detalle_kit, productos(sku, marca, modelo, nombre, capacidad, categoria, segmento, ficha, foto_path, logo_path, panel_path)),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
       )

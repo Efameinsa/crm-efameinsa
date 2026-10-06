@@ -129,6 +129,7 @@ export function PantallaCorreccion({
     fueraDeCatalogo: i.producto_id === null,
     color: i.color,
     nombre_impreso: i.nombre_impreso ?? null,
+    detalle_kit: i.detalle_kit ?? null,
   });
 
   // El documento tal como el cliente lo tiene HOY. Se congela al entrar: es
@@ -295,7 +296,7 @@ export function PantallaCorreccion({
   function cuerpoParaGuardar() {
     return {
       cotizacionId: edicion.cotizacionId,
-      items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, color, nombre_impreso }) => ({
+      items: carrito.map(({ producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, color, nombre_impreso, detalle_kit }) => ({
         producto_id,
         descripcion,
         cantidad,
@@ -304,6 +305,7 @@ export function PantallaCorreccion({
         color,
         // Si no viaja, corregir con PIN le devolvería el nombre del catálogo (0390).
         nombre_impreso: nombre_impreso ?? null,
+        detalle_kit: detalle_kit ?? null,
       })),
       condiciones,
       vigenciaDias,
