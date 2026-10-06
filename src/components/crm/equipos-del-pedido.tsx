@@ -71,14 +71,20 @@ export function EquiposDelPedido({
   const resumen = [...new Set(equipos.map((e) => e.descripcion.trim()))].map((d) => ({
     titulo: d.split("\n")[0],
     n: equipos.filter((e) => e.descripcion.trim() === d).length,
+    torre: esTorre(d),
   }));
+  // Cada torre son dos máquinas (Rubí, 06-10: «una torre sería tener 2 ítems,
+  // uno por la lavadora y otro por la secadora»).
+  const torres = equipos.filter((e) => esTorre(e.descripcion)).length;
 
   return (
     <div className={cn("rounded-lg border p-3", despachado && sinSerie > 0 ? "border-amber-400/60 bg-amber-500/5" : "border-border")}>
       <p className="flex items-center gap-1.5 text-sm font-semibold">
         <ScanBarcode className="size-4" /> Equipos de este pedido
         <span className="ml-auto rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-          {equipos.length === 1 ? "1 equipo" : `${equipos.length} equipos`}{parcial ? ` · van ${van.length}` : ""}
+          {equipos.length === 1 ? "1 equipo" : `${equipos.length} equipos`}
+          {torres > 0 ? ` · ${equipos.length + torres} máquinas` : ""}
+          {parcial ? ` · van ${van.length}` : ""}
         </span>
       </p>
       <p className="mt-0.5 text-xs text-muted-foreground">
@@ -110,6 +116,7 @@ export function EquiposDelPedido({
           {resumen.map((r) => (
             <span key={r.titulo} className="rounded-full bg-secondary px-2 py-0.5 font-semibold text-foreground">
               {r.n} × {r.titulo}
+              {r.torre ? ` (${r.n} lavadora${r.n === 1 ? "" : "s"} + ${r.n} secadora${r.n === 1 ? "" : "s"})` : ""}
             </span>
           ))}
         </p>
@@ -262,6 +269,10 @@ function Fila({
           </p>
           {resto.length > 0 && <p className="whitespace-pre-line text-[11px] leading-snug text-muted-foreground">{resto.join("\n")}</p>}
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+            {/* LA TORRE EN DOS RENGLONES (Rubí, 06-10): esta es la lavadora; la secadora va debajo. */}
+            {torre && !e.sin_serie && (
+              <span className="font-semibold text-foreground">{(e.serie ?? "").includes("/") ? "Lavadora / Secadora:" : "1. Lavadora:"}</span>
+            )}
             {e.serie && e.sin_serie ? (
               <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] whitespace-nowrap">Código {e.serie} · sin serie</span>
             ) : e.serie ? (
@@ -324,9 +335,9 @@ function Fila({
             )}
           </div>
           {/* LA OTRA MÁQUINA DE LA TORRE (Lesly, 30-09; 0359): su serie y su ficha en el parque. */}
-          {partes.map((p) => (
+          {partes.map((p, i) => (
             <div key={p.id} className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
-              <span className="font-semibold text-foreground">{p.parte_nombre ?? "Otra máquina"}:</span>
+              <span className="font-semibold text-foreground">{torre ? `${i + 2}. ` : ""}{p.parte_nombre ?? "Otra máquina"}:</span>
               {p.equipo_id && enlaceEquipo ? (
                 <Link href={`${enlaceEquipo}/${p.equipo_id}`} className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] hover:underline whitespace-nowrap">
                   Serie {p.serie}
@@ -352,6 +363,16 @@ function Fila({
               {modo !== "central" && <ArchivosDeParte p={p} servicioId={servicioId} probada={Boolean(e.prueba_lista_at)} />}
             </div>
           ))}
+          {/* La secadora de la torre sin serie todavía: su renglón igual se ve (Rubí, 06-10). */}
+          {torre && !e.sin_serie && partes.length === 0 && !(e.serie ?? "").includes("/") && (
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+              <span className="font-semibold text-foreground">2. Secadora:</span>
+              <span className="rounded-full bg-orange-500/15 px-2 py-0.5 font-semibold text-orange-800 whitespace-nowrap">
+                {e.serie ? "falta su serie" : "Sin serie · sin stock todavía"}
+              </span>
+              {serieSugerida && <span className="text-muted-foreground">· la descripción dice {serieSugerida}</span>}
+            </div>
+          )}
           {e.serie && !e.sin_serie && !despachado && partes.length < 3 && (
             abrirParte ? (
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
