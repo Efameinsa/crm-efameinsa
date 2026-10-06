@@ -149,6 +149,58 @@ function Chip({ activo, onClick, children }: { activo: boolean; onClick: () => v
   );
 }
 
+// IR A UNA PÁGINA (buzón de Ariana, 06-10). Con 85 páginas, avanzar de una
+// en una tomaba mucho: el número de la página se puede escribir y con Enter
+// (o al salir del cuadro) salta directo. Fuera de rango se ajusta al borde.
+function IrAPagina({
+  pagina,
+  totalPaginas,
+  urlDe,
+}: {
+  pagina: number;
+  totalPaginas: number;
+  urlDe: (p: number) => string;
+}) {
+  const router = useRouter();
+  const [valor, setValor] = useState(String(pagina));
+
+  const ir = () => {
+    const n = parseInt(valor, 10);
+    if (!Number.isFinite(n)) return setValor(String(pagina));
+    const destino = Math.min(totalPaginas, Math.max(1, n));
+    if (destino === pagina) return setValor(String(pagina));
+    setValor(String(destino));
+    marcarPendiente();
+    router.push(urlDe(destino));
+  };
+
+  return (
+    <form
+      className="flex items-center gap-1 px-2 tabular-nums"
+      onSubmit={(e) => {
+        e.preventDefault();
+        ir();
+      }}
+    >
+      <label className="flex items-center gap-1">
+        Página
+        <input
+          type="text"
+          inputMode="numeric"
+          aria-label={`Ir a la página (de 1 a ${totalPaginas})`}
+          title="Escriba el número de página y presione Enter"
+          value={valor}
+          onChange={(e) => setValor(e.target.value.replace(/[^0-9]/g, ""))}
+          onBlur={ir}
+          onFocus={(e) => e.target.select()}
+          className="h-7 w-12 rounded-md border border-border bg-background px-1 text-center text-xs text-foreground"
+        />
+        de {totalPaginas}
+      </label>
+    </form>
+  );
+}
+
 export function Paginacion({
   pagina,
   totalPaginas,
@@ -214,9 +266,7 @@ export function Paginacion({
             <ChevronLeft className="size-3.5" /> Anterior
           </Link>
         )}
-        <span className="px-2 tabular-nums">
-          Página {pagina} de {totalPaginas}
-        </span>
+        <IrAPagina key={pagina} pagina={pagina} totalPaginas={totalPaginas} urlDe={urlDe} />
         {pagina >= totalPaginas ? (
           <span className={apagado}>Siguiente <ChevronRight className="size-3.5" /></span>
         ) : (
