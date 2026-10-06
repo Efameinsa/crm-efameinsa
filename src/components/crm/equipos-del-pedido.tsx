@@ -82,7 +82,7 @@ export function EquiposDelPedido({
       </p>
       <p className="mt-0.5 text-xs text-muted-foreground">
         {equipos.length === 0
-          ? "El cierre no trae líneas de venta: no hay lista que armar."
+          ? "El cierre no trae equipos que lleven serie (por ejemplo, un servicio de mantenimiento): no hay lista que armar."
           : despachado
             ? sinSerie > 0
               ? `El pedido ya salió y ${sinSerie === 1 ? "una máquina está" : `${sinSerie} máquinas están`} sin serie: sin ella postventa no puede atender un caso.`

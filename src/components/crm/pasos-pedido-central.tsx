@@ -79,7 +79,9 @@ export function PasosPedidoCentral({
       router.refresh();
     });
 
-  const seriesListas = series.total > 0 && series.con === series.total;
+  // 0404: un pedido de puro servicio (mantenimiento, revisión) no tiene equipos que lleven serie.
+  const sinEquipos = Boolean(servicioId) && series.total === 0;
+  const seriesListas = sinEquipos || (series.total > 0 && series.con === series.total);
   const faltanSeries = series.total - series.con;
   const cuando = (iso: string) => new Date(iso).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
@@ -105,6 +107,8 @@ export function PasosPedidoCentral({
               Las escribo yo
             </Button>
           </div>
+        ) : sinEquipos ? (
+          <p className="text-[11px] text-muted-foreground">Es un servicio: no hay equipos que lleven serie.</p>
         ) : (
           <>
             <p className="text-xs text-foreground">
