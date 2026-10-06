@@ -32,12 +32,29 @@ export interface Tecnico {
 
 const etiquetaAviso = (a: string) => AREAS_DE_AVISO.find((x) => x.clave === a)?.etiqueta ?? a;
 
+/**
+ * Cloudflare (Email Obfuscation) reescribe en el HTML todo lo que parece un
+ * correo por «[email protected]» y un script que lo repone: con React eso
+ * choca al hidratar. Por eso la arroba va en su propio nodo y el mailto: se
+ * arma al hacer clic, no en el HTML.
+ */
 function Correo({ v }: { v: string | null }) {
   if (!v) return <span className="text-muted-foreground">—</span>;
+  const [usuario, dominio] = v.split("@");
   return (
-    <a href={`mailto:${v}`} className="inline-flex items-center gap-1 break-all text-foreground hover:text-primary hover:underline">
+    <a
+      href="#"
+      onClick={(e) => {
+        e.preventDefault();
+        window.location.href = `mailto:${usuario}@${dominio}`;
+      }}
+      className="inline-flex items-center gap-1 break-all text-foreground hover:text-primary hover:underline">
       <Mail className="size-3 shrink-0 text-muted-foreground" />
-      {v}
+      <span>
+        {usuario}
+        <span>@</span>
+        {dominio}
+      </span>
     </a>
   );
 }
