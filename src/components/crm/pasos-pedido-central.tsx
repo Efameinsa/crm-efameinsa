@@ -157,6 +157,19 @@ export function PasosPedidoCentral({
               cliente && <EntregarFileDirecto pedido={{ servicioId, numero: numeroPedido, cuentaId: cliente.cuentaId, cliente: cliente.nombre, empresa: cliente.empresa }} />
             )}
           </>
+        ) : regularizado && (!servicioId || faltanSeries > 0) ? (
+          // REG (0403, Santos 06-10): el almacén ya entregó y nadie más va a
+          // escribir las series; sin ellas el pedido no se genera.
+          <>
+            <Button size="sm" disabled>
+              <FileText className="size-3.5" /> Generar el pedido
+            </Button>
+            <p className="mt-1 text-[11px] text-amber-800">
+              {!servicioId
+                ? "REG: primero «Las escribo yo» (paso 1) y copie las series."
+                : `REG: ${faltanSeries === 1 ? "falta una serie" : `faltan ${faltanSeries} series`}. Cópiela${faltanSeries === 1 ? "" : "s"} abajo, en «Equipos de este pedido».`}
+            </p>
+          </>
         ) : (
           <>
             <Button size="sm" disabled={pendiente} onClick={() => correr(() => generarPedido(informeId), "Pedido generado: ya se puede imprimir")}>
