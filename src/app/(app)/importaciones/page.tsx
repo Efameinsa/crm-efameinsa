@@ -28,7 +28,7 @@ export default async function ImportacionesPage({ searchParams }: { searchParams
           <h1 className="text-lg font-semibold text-foreground">Por importar</h1>
           <p className="mt-0.5 max-w-3xl text-sm text-muted-foreground">
             Las máquinas de pedidos vendidos que todavía no tienen serie porque no hay stock. Anote la fecha estimada de
-            llegada: postventa y el almacén la ven en el pedido y pueden avisar al cliente.
+            llegada: el almacén, operaciones y gerencia ven esta misma lista y pueden avisar al cliente.
           </p>
         </div>
       </div>
