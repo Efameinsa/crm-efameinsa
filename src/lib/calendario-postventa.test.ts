@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   eventosDePedido,
   eventoDeCaso,
+  eventoDeLlamada,
   agruparPorDia,
   filtrarPorZona,
   sinFecha,
@@ -188,5 +189,29 @@ describe("la grilla compartida con la agenda comercial", () => {
   it("rotula la semana como se dice en voz alta", () => {
     expect(rotuloSemana("2026-08-24")).toBe("Semana del 24 al 29 de agosto");
     expect(rotuloSemana("2026-08-31")).toBe("Semana del 31 de agosto al 5 de septiembre de 2026");
+  });
+});
+
+describe("eventoDeLlamada (buzón de Rubí, 06-10)", () => {
+  const base = {
+    id: "ap-1",
+    tipo: "atencion_in_situ",
+    programada_para: "2026-10-06T22:30:00+00:00",
+    tecnico: null,
+    tomada_at: "2026-10-06T22:40:00+00:00",
+    informe_at: null,
+    cliente: "DUO LAVANDERIA",
+    zona: "lima",
+  };
+  it("la derivación cae en su día y hora de Lima y lleva a la apertura", () => {
+    const e = eventoDeLlamada(base);
+    expect(e.fecha).toBe("2026-10-06");
+    expect(e.hora).toBe("17:30");
+    expect(e.href).toBe("/aperturas/ap-1");
+    expect(e.titulo).toContain("el almacén la tomó");
+    expect(e.hecho).toBe(false);
+  });
+  it("con informe del almacén se pinta como hecha", () => {
+    expect(eventoDeLlamada({ ...base, informe_at: "2026-10-06T23:00:00+00:00" }).hecho).toBe(true);
   });
 });

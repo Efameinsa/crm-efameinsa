@@ -109,7 +109,7 @@ export async function GET(request: Request) {
         // Reunión 23-09: «ahí está mezclada el de Gabriela con… Rubí». El reporte
         // es de UNA persona: los casos salen solo de su cartera y lo compartido
         // del área se rotula aparte abajo. Los montos siguen tapados igual.
-        cargarEventosPostventa(supabase, perfil, fecha, manana, { soloMisCasos: true }),
+        cargarEventosPostventa(supabase, perfil, fecha, manana, { soloMisCasos: true, sinLlamadas: true }),
         supabase.from("bitacora_dia").select("orden, texto").eq("perfil_id", comercialId).eq("fecha", fecha).order("orden"),
         pendientesDePostventa(supabase),
       ]);
