@@ -33,7 +33,7 @@ export async function PanelVerComoOtraCuenta({ yo }: { yo: { id: string; rol: st
   const [{ data: perfiles }, { data: auditorias }] = await Promise.all([
     supabase
       .from("perfiles")
-      .select("id, nombre, rol, codigo_comercial, activo, es_prueba, es_postventa, es_operaciones, es_almacen, email_contacto")
+      .select("id, nombre, rol, codigo_comercial, activo, es_prueba, es_postventa, es_operaciones, es_almacen, es_importaciones, email_contacto")
       .eq("activo", true)
       .eq("es_prueba", false)
       .order("rol")
@@ -54,7 +54,7 @@ export async function PanelVerComoOtraCuenta({ yo }: { yo: { id: string; rol: st
 
   const cuentas = (perfiles ?? []).filter((p) => puedeAuditar(yo, { id: p.id as string, rol: String(p.rol), es_operaciones: p.es_operaciones as boolean | null }));
   const area = (p: (typeof cuentas)[number]) =>
-    p.es_operaciones ? "Operaciones" : p.es_almacen ? "Almacén" : p.es_postventa ? "Postventa" : ETIQUETA_ROL[p.rol] ?? p.rol;
+    p.es_operaciones ? "Operaciones" : p.es_importaciones ? "Importaciones" : p.es_almacen ? "Almacén" : p.es_postventa ? "Postventa" : ETIQUETA_ROL[p.rol] ?? p.rol;
 
   // Solo la fecha del último ingreso de las cuentas en pantalla (0315): el
   // registro de accesos completo (IP, ubicación) sigue siendo de gerencia.

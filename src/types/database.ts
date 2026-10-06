@@ -76,6 +76,8 @@ export interface Perfil {
   es_operaciones?: boolean;
   /** La cuenta del almacén (0246): pedidos, atenciones programadas, visitas e informes; marca lo suyo del despacho. */
   es_almacen?: boolean;
+  /** Importaciones (0402, 06-10): lo que falta importar para los pedidos y su fecha de llegada. */
+  es_importaciones?: boolean;
   /** Piloto de trabajo de campo (0363, Carlos 01-10): el CRM registra la ubicación del navegador. */
   trabajo_de_campo?: boolean;
   /** Gerencia la deja fuera del GPS de la app de Android (0370). */

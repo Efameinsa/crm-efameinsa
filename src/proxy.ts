@@ -153,7 +153,7 @@ export async function proxy(request: NextRequest) {
   if (user && (pathname === "/" || esRutaLogin)) {
     const { data: perfil } = await supabase
       .from("perfiles")
-      .select("rol, es_postventa, es_operaciones, es_almacen")
+      .select("rol, es_postventa, es_operaciones, es_almacen, es_importaciones")
       .eq("id", user.id)
       .single();
 
@@ -167,6 +167,8 @@ export async function proxy(request: NextRequest) {
       ? null
       : perfil.es_operaciones
         ? "/operaciones"
+        : perfil.es_importaciones
+          ? "/importaciones"
         : perfil.es_almacen
           ? "/almacen"
         : perfil.es_postventa && perfil.rol === "comercial"

@@ -21,6 +21,7 @@ export type TipoPerfil =
   | "postventa"
   | "preventivo"
   | "almacen"
+  | "importaciones"
   | "finanzas"
   | "facturacion"
   | "operaciones"
@@ -66,6 +67,7 @@ export function tipoDePerfil(p: Perfil): TipoPerfil {
   if (p.rol === "finanzas") return "finanzas";
   if (p.rol === "facturacion") return "facturacion";
   if (p.rol === "operaciones") return "operaciones";
+  if (p.es_importaciones) return "importaciones";
   if (p.es_almacen) return "almacen";
   if (p.es_postventa && p.solo_preventivo) return "preventivo";
   if (p.es_postventa) return "postventa";
@@ -78,6 +80,7 @@ export const NOMBRE_PERFIL: Record<TipoPerfil, string> = {
   postventa: "Postventa",
   preventivo: "Postventa · preventivos",
   almacen: "Almacén",
+  importaciones: "Importaciones",
   finanzas: "Finanzas",
   facturacion: "Facturación",
   operaciones: "Operaciones",
@@ -147,6 +150,10 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Informes técnicos", href: "/almacen/informes", icono: "informes", coincide: ["/almacen/informes"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+  ],
+  // IMPORTACIONES (0402, 06-10): una sola pantalla, lo que falta traer.
+  importaciones: [
+    { etiqueta: "Por importar", href: "/importaciones", icono: "pedidos", coincide: ["/importaciones"] },
   ],
   finanzas: [
     hoy,
@@ -223,6 +230,7 @@ export const BUSCAR_EN: Record<TipoPerfil, { href: string; ayuda: string }> = {
   postventa: { href: "/comercial/cartera", ayuda: "Cliente o RUC" },
   preventivo: { href: "/comercial/cartera", ayuda: "Cliente o RUC" },
   almacen: { href: "/almacen/pedidos", ayuda: "Cliente, equipo o guía" },
+  importaciones: { href: "/importaciones", ayuda: "Cliente o equipo" },
   finanzas: { href: "/finanzas/confirmados", ayuda: "Cliente, N.º de operación o banco" },
   facturacion: { href: "/facturacion/facturados", ayuda: "Cliente, N.º de factura o de pedido" },
 };
