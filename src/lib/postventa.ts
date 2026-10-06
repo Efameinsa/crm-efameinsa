@@ -512,7 +512,9 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
           : adelantoCubierto
             ? `Finanzas confirmó el adelanto acordado (${Number(s.pct_antes_despacho)} %)`
             : "Finanzas confirmó un pago parcial"
-        : pagoDesconocido
+        : s.origen === "caso"
+          ? "Servicio abierto desde un caso: sin cobro en el pedido"
+          : pagoDesconocido
           ? "Pago sin registrar en el sistema"
           : pagado
             ? "Cobrado del todo, falta la confirmación de Finanzas"

@@ -1506,3 +1506,70 @@ export async function traerPedidoAntiguo(datos: {
   revalidatePath("/postventa/agenda");
   return { error: null, id: data as string };
 }
+
+/**
+ * APERTURA DE SERVICIO DESDE UN CASO (0407; reunión de gerencia 06-10 11:01:
+ * «va a haber casos que van a tener que hacer una apertura que no proviene de
+ * un pedido»). Nace un pedido de servicio con la apertura ya emitida y le
+ * llega a Finanzas (autoriza la guía) y al almacén, igual que la de un pedido.
+ */
+export async function abrirAperturaDesdeCaso(
+  atencionId: string,
+  datos: {
+    tipoPedido: "mantenimiento" | "revision";
+    formato: "mantenimiento" | "puesta_marcha";
+    fecha: string;
+    hora: string;
+    tecnico: string;
+    transporte: string;
+    direccion: string;
+    confirmo: string;
+    destino: "lima" | "provincia";
+    guia: string | null;
+    guiaDetalle: string;
+    nota: string;
+  },
+): Promise<{ error: string | null; servicioId?: string }> {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { data: servicioId, error } = await supabase.rpc("apertura_desde_caso", {
+    p_atencion: atencionId,
+    p_tipo_pedido: datos.tipoPedido,
+    p_apertura_tipo: datos.formato,
+    p_fecha: datos.fecha || null,
+    p_hora: datos.hora || null,
+    p_tecnico: datos.tecnico,
+    p_transporte: datos.transporte,
+    p_direccion: datos.direccion,
+    p_confirmo: datos.confirmo,
+    p_destino: datos.destino,
+    p_guia: datos.guia || null,
+    p_guia_detalle: datos.guiaDetalle || null,
+    p_nota: datos.nota || null,
+  });
+  if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+  const id = servicioId as string;
+  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", id).maybeSingle();
+  const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+  const guia = lineasGuia((datos.guia || null) as GuiaApertura | null, datos.guiaDetalle || null);
+  const pideGuia = guia.length ? ` Se solicita: ${guia.join(" / ").toLowerCase()}.` : "";
+  const esPrueba = s?.es_prueba === true || perfil.es_prueba === true;
+  await Promise.all([
+    notificarFinanzas({
+      titulo: `Apertura por confirmar · ${quien}`,
+      cuerpo: `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      url: "/finanzas/aperturas",
+      esPrueba,
+    }),
+    notificarAlmacen({
+      titulo: `Apertura de servicio · ${quien}`,
+      cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Finanzas confirma la guía.`,
+      url: `/almacen/pedidos/${id}`,
+      esPrueba,
+    }),
+  ]);
+  revalidatePath(`/postventa/atenciones/${atencionId}`);
+  revalidatePath("/finanzas/aperturas");
+  revalidatePath("/almacen/aperturas-postventa");
+  return { error: null, servicioId: id };
+}
