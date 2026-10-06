@@ -319,7 +319,9 @@ export function estadoPago(s: ServicioPostventa): EstadoPago {
   const conCifras = s.monto != null && (s.informe_cierre_id != null || Number(s.monto_pagado ?? 0) > 0);
   const pagado = conCifras
     ? saldoPendiente(s) === 0
-    : saldoPendiente(s) === 0 || s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
+    : // Sin monto no hay saldo que medir: el 0 de saldoPendiente no es «pagado»
+      // (HANCO HUILLCA 06-10 salía «Pagado completo» debiendo el saldo).
+      (s.monto != null && saldoPendiente(s) === 0) || s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
   if (pagado) return "completo";
   // Las filas del Excel nunca cargaron el monto pagado: la columna era texto y
   // casi todas están vacías. Decir «falta el saldo» sobre una venta que quizá

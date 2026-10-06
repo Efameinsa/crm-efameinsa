@@ -159,6 +159,11 @@ describe("estadoPago", () => {
     expect(estadoPago(pedido({ monto: 10000, informe_cierre_id: null, pago_confirmado_at: "2026-08-01T10:00:00Z" }))).toBe("completo");
   });
 
+  it("fila del Excel SIN monto ni marca: no se sabe, no es «completo» (HANCO 06-10)", () => {
+    expect(estadoPago(pedido({ monto: null, monto_pagado: null, informe_cierre_id: null, confirmacion_abono: "ADELANTO CONFIRMADO" }))).toBe("sin_registrar");
+    expect(estadoPago(pedido({ monto: null, informe_cierre_id: null, confirmacion_abono: "SI" }))).toBe("completo");
+  });
+
   it("con cifras reales, el saldo manda sobre la marca de confirmación (0232)", () => {
     // El 495-26 del 14-09: Finanzas confirmó con captura y sin cifra, quedó
     // pagado 0 y la pantalla decía «completo» mientras el servidor pedía
