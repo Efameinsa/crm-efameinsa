@@ -33,7 +33,8 @@ export type Icono =
   | "numeros" | "atenciones" | "vender" | "campana" | "informes" | "cobranza" | "abonos" | "catalogo" | "permisos"
   | "aprobaciones" | "marketing" | "operacion" | "control" | "usuarios" | "listas"
   | "aperturas"
-  | "files";
+  | "files"
+  | "observaciones";
 
 export interface OpcionMenu {
   etiqueta: string;
@@ -202,6 +203,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/gerencia/clientes", "/gerencia/cartera-liberable"] },
     { etiqueta: "Reportes", href: "/nuevo/reportes", icono: "numeros", coincide: ["/nuevo/reportes", "/gerencia/supervision", "/gerencia/gestion-whatsapp", "/gerencia/reportes"] },
     { etiqueta: "Control", href: "/nuevo/control", icono: "control", coincide: ["/nuevo/control", "/gerencia/accesos", "/gerencia/auditoria"] },
+    // Lo que el personal reporta desde el 💡 (Santos, 06-10): admin lo atiende, gerencia lo ve.
+    { etiqueta: "Observaciones", href: "/observaciones", icono: "observaciones", coincide: ["/observaciones", "/sugerencias"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],
@@ -209,6 +212,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Usuarios", href: "/admin", icono: "usuarios", coincide: [] },
     { etiqueta: "Catálogo", href: "/nuevo/catalogo", icono: "catalogo", coincide: ["/nuevo/catalogo", "/operaciones/catalogo", "/admin/productos"] },
     { etiqueta: "Listas del sistema", href: "/admin/catalogos", icono: "listas", coincide: ["/admin/catalogos"] },
+    // Lo que el personal reporta desde el 💡 (Santos, 06-10): admin lo atiende, gerencia lo ve.
+    { etiqueta: "Observaciones", href: "/observaciones", icono: "observaciones", coincide: ["/observaciones", "/sugerencias"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],

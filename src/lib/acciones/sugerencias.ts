@@ -80,10 +80,11 @@ export async function enviarSugerencia(datos: {
     tipo: "sugerencia",
     titulo: `💡 ${perfil?.nombre ?? "Alguien"} dejó una sugerencia`,
     cuerpo: titulo + (datos.adjuntos.length ? ` · ${datos.adjuntos.length} captura${datos.adjuntos.length === 1 ? "" : "s"}` : ""),
-    url: `/sugerencias?ver=${fila.id}`,
+    url: `/observaciones?ver=${fila.id}`,
   });
 
   revalidatePath("/sugerencias");
+  revalidatePath("/observaciones");
   return { error: null };
 }
 
@@ -181,5 +182,6 @@ export async function atenderSugerencia(datos: {
     });
   }
   revalidatePath("/sugerencias");
+  revalidatePath("/observaciones");
   return { error: null };
 }
