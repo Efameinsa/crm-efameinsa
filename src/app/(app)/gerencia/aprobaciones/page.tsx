@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { fechaLima } from "@/lib/fechas";
 import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
 import { codigoConVersion } from "@/lib/version-cotizacion";
@@ -112,6 +113,7 @@ export default async function AprobacionesPage() {
         <div className="space-y-2">
           {cotizaciones.map((c) => {
             const oportunidad = c.oportunidades as unknown as {
+              cuenta_id: string | null;
               cuentas: { razon_social: string } | null;
               perfiles: { nombre: string } | null;
             } | null;
@@ -145,8 +147,22 @@ export default async function AprobacionesPage() {
               <div key={c.id} className="rounded-lg border border-border bg-background p-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
+                    {/* EL NOMBRE ABRE LA FICHA INTEGRAL (gerencia, 06-10): «al dar
+                        click en el nombre me permita ver su ficha integral sin
+                        necesidad de buscarlo». */}
                     <p className="text-sm font-semibold text-foreground">
-                      {oportunidad?.cuentas?.razon_social ?? "Cuenta sin nombre"}
+                      {oportunidad?.cuenta_id ? (
+                        <Link
+                          href={`/gerencia/clientes/${oportunidad.cuenta_id}`}
+                          prefetch={false}
+                          title="Ver la ficha integral del cliente"
+                          className="hover:underline"
+                        >
+                          {oportunidad.cuentas?.razon_social ?? "Cuenta sin nombre"}
+                        </Link>
+                      ) : (
+                        oportunidad?.cuentas?.razon_social ?? "Cuenta sin nombre"
+                      )}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {/* Todavía no tiene número: el correlativo se asigna al
