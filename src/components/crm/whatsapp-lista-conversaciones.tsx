@@ -182,7 +182,12 @@ export function WhatsappListaConversaciones({
   }
 
   function fila(c: ConversacionWhatsapp, mostrarEstado = false) {
-    const semaforo = ventanaSemaforo(c.ultimo_mensaje_cliente_at, c.anuncio_at);
+    // Un chat cerrado ya no espera nada: el punto rojo/verde de la ventana se
+    // leía como «pendiente» (Moisés, 06-10: «ya están atendidos y no salen»).
+    const semaforo =
+      c.estado === "cerrada"
+        ? { color: "bg-muted-foreground/30", titulo: "Chat cerrado" }
+        : ventanaSemaforo(c.ultimo_mensaje_cliente_at, c.anuncio_at);
     // Como WhatsApp: el no leído va en negrita, con la hora en verde y el
     // globito con cuántos mensajes le faltan ver. Se reconoce de un vistazo.
     const sinLeer = sinLeerDe(c);
@@ -324,6 +329,24 @@ export function WhatsappListaConversaciones({
         </div>
       </div>
 
+      {/* La búsqueda se recuerda al volver (23-09), así que tiene que verse:
+          Moisés, 06-10, dejó «Edy» escrito y creyó que esos chats cerrados
+          seguían en su bandeja. */}
+      {busqueda.trim() && (
+        <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-900 dark:bg-amber-950/30">
+          <p className="min-w-0 truncate text-[11px] font-medium text-amber-900 dark:text-amber-200">
+            Solo se ven los chats con «{busqueda.trim()}»
+          </p>
+          <button
+            type="button"
+            onClick={() => escribir("")}
+            className="shrink-0 cursor-pointer text-[11px] font-semibold text-primary hover:underline"
+          >
+            Ver toda la bandeja
+          </button>
+        </div>
+      )}
+
       {filtroActivo === "no_leidos" && !busqueda && conversaciones.some((c) => sinLeerDe(c) > 0) && (
         <div className="flex items-center justify-between gap-2 border-b border-border bg-secondary/30 px-3 py-1.5">
           <p className="text-[11px] text-muted-foreground">Le escribieron, no los abrió y aún puede responderles desde acá.</p>
@@ -355,7 +378,7 @@ export function WhatsappListaConversaciones({
         {busqueda.trim() && deOtrasPestanas.length > 0 && (
           <>
             <p className="border-b border-border bg-secondary/40 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              En otras pestañas
+              En otras pestañas · no están en «{PESTANAS.find((p) => p.valor === filtroActivo)?.etiqueta}»
             </p>
             {deOtrasPestanas.map((c) => fila(c, true))}
           </>
