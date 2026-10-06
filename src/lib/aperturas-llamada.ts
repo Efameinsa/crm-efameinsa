@@ -102,6 +102,18 @@ export interface FormatoLlamada {
   provincia?: string | null;
   puesta_en_marcha?: string | null;
   cambios_correctivos?: string | null;
+  /** Con dos o más máquinas, una fila por máquina (Rubí, 06-10): marca, modelo y
+   *  serie ya no se juntan con « / » en un solo renglón. */
+  maquinas?: MaquinaFormato[] | null;
+}
+
+/** Los campos de texto del formato (todos menos la lista de máquinas). */
+export type CampoFormatoLlamada = Exclude<keyof FormatoLlamada, "maquinas">;
+
+export interface MaquinaFormato {
+  marca: string;
+  modelo: string;
+  serie: string;
 }
 
 /** Quién anula una llamada derivada sin código: operaciones y gerencia, que son quienes lo dictan (Lesly, 01-10). */
@@ -110,7 +122,7 @@ export function anulaSinCodigo(perfil: { rol: string; es_operaciones?: boolean |
 }
 
 /** Las filas de la tabla, en el orden del formato de siempre. */
-export const FILAS_FORMATO: { clave: keyof FormatoLlamada; etiqueta: string }[] = [
+export const FILAS_FORMATO: { clave: CampoFormatoLlamada; etiqueta: string }[] = [
   { clave: "fecha_compra", etiqueta: "Fecha de compra" },
   { clave: "entrega_guia", etiqueta: "Fecha de entrega y N.º de guía" },
   { clave: "contacto", etiqueta: "Contacto" },
@@ -125,6 +137,19 @@ export const FILAS_FORMATO: { clave: keyof FormatoLlamada; etiqueta: string }[] 
 
 /** El texto del problema con marca, modelo y serie debajo, como en el formato. */
 export function problemaConEquipo(f: FormatoLlamada): string {
+  const maquinas = (f.maquinas ?? []).filter((m) => m.marca.trim() || m.modelo.trim() || m.serie.trim());
+  if (maquinas.length > 1)
+    return [
+      f.problema?.trim(),
+      ...maquinas.map((m, i) =>
+        [`${i + 1}.`, m.marca.trim() && `MARCA: ${m.marca.trim()}`, m.modelo.trim() && `MODELO: ${m.modelo.trim()}`, m.serie.trim() && `SERIE: ${m.serie.trim()}`]
+          .filter(Boolean)
+          .join(" · ")
+          .replace(". · ", ". "),
+      ),
+    ]
+      .filter(Boolean)
+      .join("\n");
   return [
     f.problema?.trim(),
     f.marca?.trim() ? `MARCA: ${f.marca.trim()}` : null,

@@ -3,11 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, PhoneForwarded, Siren } from "lucide-react";
+import { Loader2, PhoneForwarded, Plus, Siren, X } from "lucide-react";
 import { datosParaFormatoDeLlamada, enviarAperturaLlamada } from "@/lib/acciones/aperturas-llamada";
 import { buscarEmpresaParaVisita } from "@/lib/acciones/visitas-planta";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
-import { ETIQUETA_TIPO_APERTURA, TIPOS_APERTURA, type FormatoLlamada, type TipoApertura } from "@/lib/aperturas-llamada";
+import { ETIQUETA_TIPO_APERTURA, TIPOS_APERTURA, type CampoFormatoLlamada, type FormatoLlamada, type MaquinaFormato, type TipoApertura } from "@/lib/aperturas-llamada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +67,13 @@ function formatoDesdeEquipo(e: EquipoParque): FormatoLlamada {
     puesta_en_marcha: e.fecha_puesta_marcha ? dmy(e.fecha_puesta_marcha) : "NO SE HIZO",
   };
 }
+/** Con varias máquinas, marca, modelo y serie también quedan juntos con « / » para lo que lee un solo renglón. */
+function aplanar(f: FormatoLlamada): FormatoLlamada {
+  const filas = f.maquinas ?? [];
+  if (filas.length < 2) return { ...f, maquinas: null };
+  const unir = (k: keyof MaquinaFormato) => [...new Set(filas.map((m) => m[k].trim()).filter(Boolean))].join(" / ");
+  return { ...f, marca: unir("marca"), modelo: unir("modelo"), serie: unir("serie") };
+}
 export function AperturaLlamadaBoton({
   cuentaId: cuentaFija = null,
   servicioId = null,
@@ -112,7 +119,7 @@ export function AperturaLlamadaBoton({
   // Varias máquinas a la vez (Gabriela, 25-09: «son 2 máquinas que el técnico va a evaluar y no
   // puedo añadir la segunda»).
   const [elegidas, setElegidas] = useState<string[]>([]);
-  const campoFormato = (clave: keyof FormatoLlamada) => ({
+  const campoFormato = (clave: CampoFormatoLlamada) => ({
     value: formato[clave] ?? "",
     onChange: (e: { target: { value: string } }) => setFormato((f) => ({ ...f, [clave]: e.target.value })),
   });
@@ -209,9 +216,9 @@ export function AperturaLlamadaBoton({
       ["protocolo", "protocolo"],
       ["garantia", "garantía"],
       ["cambios_correctivos", "cambios correctivos"],
-    ] as [keyof FormatoLlamada, string][]
+    ] as [CampoFormatoLlamada, string][]
   )
-    .filter(([k]) => !(formato[k] ?? "").trim())
+    .filter(([k]) => !(aplanar(formato)[k] ?? "").trim())
     .map(([, e]) => e);
 
   // Al abrir (o al elegir el cliente) se traen sus máquinas para el formato.
@@ -251,10 +258,30 @@ export function AperturaLlamadaBoton({
       .map(formatoDesdeEquipo);
     if (formatos.length === 0) return;
     const junto: FormatoLlamada = {};
-    for (const clave of Object.keys(formatos[0]) as (keyof FormatoLlamada)[]) {
+    for (const clave of Object.keys(formatos[0]) as CampoFormatoLlamada[]) {
       junto[clave] = [...new Set(formatos.map((f) => (f[clave] ?? "").trim()).filter(Boolean))].join(" / ");
     }
-    setFormato((f) => ({ ...f, ...junto }));
+    const maquinas = formatos.length > 1 ? formatos.map((f) => ({ marca: f.marca ?? "", modelo: f.modelo ?? "", serie: f.serie ?? "" })) : null;
+    setFormato((f) => ({ ...f, ...junto, maquinas }));
+  }
+
+  // Una fila por máquina (Rubí, 06-10): con dos o más, cada una con su marca, modelo y serie.
+  const filasMaquina = (formato.maquinas?.length ?? 0) > 1 ? formato.maquinas! : null;
+  function cambiarFila(i: number, clave: keyof MaquinaFormato, valor: string) {
+    setFormato((f) => ({ ...f, maquinas: (f.maquinas ?? []).map((m, j) => (j === i ? { ...m, [clave]: valor } : m)) }));
+  }
+  function agregarFila() {
+    setFormato((f) => ({
+      ...f,
+      maquinas: [...((f.maquinas?.length ?? 0) > 1 ? f.maquinas! : [{ marca: f.marca ?? "", modelo: f.modelo ?? "", serie: f.serie ?? "" }]), { marca: "", modelo: "", serie: "" }],
+    }));
+  }
+  function quitarFila(i: number) {
+    setFormato((f) => {
+      const quedan = (f.maquinas ?? []).filter((_, j) => j !== i);
+      // Si queda una sola, vuelve a los tres campos de siempre con sus datos.
+      return quedan.length > 1 ? { ...f, maquinas: quedan } : { ...f, ...quedan[0], maquinas: null };
+    });
   }
 
   useEffect(() => {
@@ -270,7 +297,7 @@ export function AperturaLlamadaBoton({
         cuentaId,
         pinUrgente: urgente ? pin : null,
         tecnico,
-        formato: { ...formato, contacto: persona, problema: formato.problema || indicaciones },
+        formato: { ...aplanar(formato), contacto: persona, problema: formato.problema || indicaciones },
         servicioId,
         atencionId,
         tipo,
@@ -479,9 +506,45 @@ export function AperturaLlamadaBoton({
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <CampoFormato etiqueta="Fecha de compra"><Input {...campoFormato("fecha_compra")} /></CampoFormato>
               <CampoFormato etiqueta="Fecha de entrega y N.º de guía"><Input {...campoFormato("entrega_guia")} /></CampoFormato>
-              <CampoFormato etiqueta="Marca"><Input {...campoFormato("marca")} /></CampoFormato>
-              <CampoFormato etiqueta="Modelo"><Input {...campoFormato("modelo")} /></CampoFormato>
-              <CampoFormato etiqueta="Serie"><Input {...campoFormato("serie")} /></CampoFormato>
+              {filasMaquina ? (
+                <div className="grid gap-1 sm:col-span-2">
+                  <Label className="text-[11px] text-muted-foreground">Máquinas ({filasMaquina.length}): una por fila, con su marca, modelo y serie</Label>
+                  <div className="space-y-1.5">
+                    {filasMaquina.map((m, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <span className="w-5 shrink-0 text-right text-xs font-semibold text-muted-foreground">{i + 1}.</span>
+                        <div className="grid min-w-0 flex-1 gap-1.5 sm:grid-cols-3">
+                          <Input value={m.marca} onChange={(e) => cambiarFila(i, "marca", e.target.value)} placeholder="Marca" aria-label={`Marca de la máquina ${i + 1}`} />
+                          <Input value={m.modelo} onChange={(e) => cambiarFila(i, "modelo", e.target.value)} placeholder="Modelo" aria-label={`Modelo de la máquina ${i + 1}`} />
+                          <Input value={m.serie} onChange={(e) => cambiarFila(i, "serie", e.target.value)} placeholder="Serie" aria-label={`Serie de la máquina ${i + 1}`} />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => quitarFila(i)}
+                          title="Quitar esta máquina"
+                          className="shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button type="button" onClick={agregarFila} className="inline-flex w-fit items-center gap-1 text-xs text-primary hover:underline">
+                    <Plus className="h-3 w-3" /> Otra máquina
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <CampoFormato etiqueta="Marca"><Input {...campoFormato("marca")} /></CampoFormato>
+                  <CampoFormato etiqueta="Modelo"><Input {...campoFormato("modelo")} /></CampoFormato>
+                  <CampoFormato etiqueta="Serie">
+                    <Input {...campoFormato("serie")} />
+                    <button type="button" onClick={agregarFila} className="inline-flex w-fit items-center gap-1 text-[11px] text-primary hover:underline">
+                      <Plus className="h-3 w-3" /> Otra máquina (otra serie)
+                    </button>
+                  </CampoFormato>
+                </>
+              )}
               <CampoFormato etiqueta="Fecha de mantenimiento"><Input {...campoFormato("fecha_mantenimiento")} /></CampoFormato>
               {/* Sin textos grises que parezcan respuestas (Lesly, 01-10): «SÍ / NO» y
                   «24 MESES» se leían como llenados y la orden salía con «—». */}
