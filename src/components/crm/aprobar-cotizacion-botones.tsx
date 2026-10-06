@@ -59,10 +59,13 @@ export function AprobarCotizacionBotones({
   cotizacionId,
   moneda,
   items,
+  porCapacitacion = false,
 }: {
   cotizacionId: string;
   moneda: string;
   items: ItemAprobacion[];
+  /** Cotización de postventa en capacitación (0396): todo pasa por gerencia. */
+  porCapacitacion?: boolean;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -114,9 +117,18 @@ export function AprobarCotizacionBotones({
         <DialogHeader>
           <DialogTitle>Revisar precios equipo por equipo</DialogTitle>
           <DialogDescription>
-            Solo se decide sobre los equipos cotizados <b>por debajo del precio de referencia</b>. Al
-            precio de referencia o por encima, el comercial cotiza y envía sin pedir permiso, sea
-            industrial o semi-industrial.
+            {porCapacitacion ? (
+              <>
+                Es de <b>postventa</b>: mientras dure su capacitación, toda cotización del área pasa por
+                gerencia, esté por encima o por debajo del precio de catálogo. Decida cada renglón.
+              </>
+            ) : (
+              <>
+                Solo se decide sobre los equipos cotizados <b>por debajo del precio de referencia</b>. Al
+                precio de referencia o por encima, el comercial cotiza y envía sin pedir permiso, sea
+                industrial o semi-industrial.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 

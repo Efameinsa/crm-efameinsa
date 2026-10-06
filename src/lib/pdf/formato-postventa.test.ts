@@ -77,6 +77,19 @@ describe("el concepto del renglón", () => {
     ).toEqual(["SERVICIO DE MANTENIMIENTO PREVENTIVO LAVADORA", "MARCA: LG", "MODELO: GIANT C MAX (CWG27MDCRS)", "CAPACIDAD: 13 kg", "SERIE: 507KWEL2A076"]);
   });
 
+  it("un repuesto suma sus piezas debajo, con guion (Lesly 05-10, kit de instalación LG)", () => {
+    expect(
+      lineasDelConcepto({
+        nombre: "KIT DE INSTALACION PARA SECADORA LG",
+        marca: "LG",
+        modelo: "LG",
+        capacidad: null,
+        deCatalogo: true,
+        detalle: ["MANOMETRO PARA GAS BAJA PRESION", "CODO FN 1/2", "  "],
+      }),
+    ).toEqual(["KIT DE INSTALACION PARA SECADORA LG", "MARCA: LG", "MODELO: LG", "- MANOMETRO PARA GAS BAJA PRESION", "- CODO FN 1/2"]);
+  });
+
   it("el título del detalle y el lugar de ejecución", () => {
     expect(tituloDelDetalle("SERVICIO DE MANTENIMIENTO PREVENTIVO SECADORA INDUSTRIAL GAS UNIMAC UT055L")).toBe(
       "DETALLE DEL SERVICIO DE MANTENIMIENTO PREVENTIVO DE SECADORA INDUSTRIAL GAS UNIMAC UT055L",

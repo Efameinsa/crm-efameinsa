@@ -76,6 +76,14 @@ describe("los tres formatos son el mismo, y solo cambia el encabezado", () => {
     expect(tituloDe("entrega")).toBe("ENTREGA DE:");
     expect(tituloDe("entrega_puesta_marcha")).toBe("ENTREGA Y PUESTA EN MARCHA DE:");
     expect(tituloDe("mantenimiento")).toBe("SERVICIO DE MANTENIMIENTO:");
+    expect(tituloDe("puesta_marcha")).toBe("PUESTA EN MARCHA DE:");
+  });
+
+  it("solo puesta en marcha: el técnico va sin equipo y queda en agenda un servicio (Rubí, 05-10)", () => {
+    const d = { ...PERU_VACATION, tipo: "puesta_marcha" as const };
+    expect(filasApertura(d)[0].informacion.startsWith("PUESTA EN MARCHA DE:")).toBe(true);
+    expect(cuerpoApertura(d)).toContain("el siguiente servicio:");
+    expect(faltantesApertura({ ...d, tecnico: null })).toContain("el técnico asignado");
   });
 
   it("el resto de las filas no cambia entre formatos", () => {
@@ -148,6 +156,9 @@ describe("las filas llevan lo que el correo lleva", () => {
       "SE SOLICITA GUÍA PARA EL TRASLADO DEL EQUIPO",
       "SE SOLICITA GUÍA ADICIONAL PARA LLEVAR MATERIALES",
       "llamar antes",
+    ]);
+    expect(filasApertura({ ...base, guia: "repuestos", guiaDetalle: "manómetro (posible venta)" })[0].notas).toEqual([
+      "SE SOLICITA GUÍA PARA EL TRASLADO DE REPUESTOS: MANÓMETRO (POSIBLE VENTA)",
     ]);
     expect(cuerpoApertura({ ...base, guia: "traslado" })).toContain("NOTAS:\n   - SE SOLICITA GUÍA PARA EL TRASLADO DEL EQUIPO");
   });
@@ -275,7 +286,7 @@ describe("el correo listo para pegar", () => {
     expect(cuerpo).toContain("RUC: 20138427014");
   });
 
-  it("hay un formato por cada uno de los tres casos que describió Lesly", () => {
-    expect(TIPOS_APERTURA.map((t) => t.clave)).toEqual(["entrega", "entrega_puesta_marcha", "mantenimiento"]);
+  it("hay un formato por cada caso: los tres de Lesly y la puesta en marcha sola de Rubí (05-10)", () => {
+    expect(TIPOS_APERTURA.map((t) => t.clave)).toEqual(["entrega", "entrega_puesta_marcha", "puesta_marcha", "mantenimiento"]);
   });
 });

@@ -20,7 +20,7 @@ import { fechaCalendario } from "@/lib/fechas";
  * ya está en el sistema y se llena solo.
  */
 
-export type TipoApertura = "entrega" | "entrega_puesta_marcha" | "mantenimiento";
+export type TipoApertura = "entrega" | "entrega_puesta_marcha" | "puesta_marcha" | "mantenimiento";
 
 export const TIPOS_APERTURA: { clave: TipoApertura; titulo: string; ayuda: string }[] = [
   {
@@ -32,6 +32,13 @@ export const TIPOS_APERTURA: { clave: TipoApertura; titulo: string; ayuda: strin
     clave: "entrega_puesta_marcha",
     titulo: "ENTREGA Y PUESTA EN MARCHA DE:",
     ayuda: "El técnico lleva la máquina y la instala.",
+  },
+  // SOLO PUESTA EN MARCHA (Rubí, 05-10): el equipo ya está donde el cliente
+  // —llegó por agencia o lo recogió— y el técnico va sin equipo a instalarlo.
+  {
+    clave: "puesta_marcha",
+    titulo: "PUESTA EN MARCHA DE:",
+    ayuda: "El equipo ya está con el cliente. El técnico va sin equipo a instalarlo.",
   },
   {
     clave: "mantenimiento",
@@ -111,12 +118,14 @@ export interface DatosApertura {
   coordinaLogistica?: string | null;
 }
 
-export type GuiaApertura = "traslado" | "materiales" | "ambas";
+export type GuiaApertura = "traslado" | "materiales" | "repuestos" | "ambas";
 
 export const GUIAS_APERTURA: { clave: GuiaApertura; etiqueta: string }[] = [
   { clave: "traslado", etiqueta: "Guía para el traslado del equipo" },
   { clave: "materiales", etiqueta: "Guía adicional para llevar materiales" },
-  { clave: "ambas", etiqueta: "Las dos" },
+  // Santos, 05-10: el técnico de mantenimiento lleva un manómetro para posible venta.
+  { clave: "repuestos", etiqueta: "Guía para llevar repuestos" },
+  { clave: "ambas", etiqueta: "Equipo y materiales" },
 ];
 
 /** Las líneas de la guía, como van en el apartado NOTAS de la fila 1. */
@@ -127,6 +136,7 @@ export function lineasGuia(guia: GuiaApertura | null | undefined, detalle?: stri
   const materiales = `SE SOLICITA GUÍA ADICIONAL PARA LLEVAR MATERIALES${extra}`;
   if (guia === "traslado") return [`${traslado}${extra}`];
   if (guia === "materiales") return [materiales];
+  if (guia === "repuestos") return [`SE SOLICITA GUÍA PARA EL TRASLADO DE REPUESTOS${extra}`];
   return [traslado, materiales];
 }
 
@@ -151,9 +161,9 @@ export interface FilaApertura {
   notas?: string[];
 }
 
-/** «despacho» para las entregas, «servicio» para el mantenimiento: como dice el correo de siempre. */
+/** «despacho» para las entregas, «servicio» cuando no sale equipo: como dice el correo de siempre. */
 export function queQuedaEnAgenda(tipo: TipoApertura | null | undefined): string {
-  return tipo === "mantenimiento" ? "servicio" : "despacho";
+  return tipo === "mantenimiento" || tipo === "puesta_marcha" ? "servicio" : "despacho";
 }
 
 /** ¿El texto ya contiene esa dirección? Sin mirar mayúsculas, espacios ni signos. */

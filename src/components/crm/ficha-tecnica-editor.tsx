@@ -502,7 +502,7 @@ export function FichaTecnicaEditor({
                       marca: r.referencia.marca,
                       modelo: r.referencia.modelo,
                       capacidad: r.referencia.capacidad,
-                      segmento: r.referencia.segmento,
+                      segmento: t.clave === "repuesto" || t.clave === "servicio" ? t.clave : r.referencia.segmento,
                       calentamiento: r.referencia.calentamiento,
                       panel: r.referencia.panel,
                       controles: r.referencia.controles,
@@ -512,7 +512,7 @@ export function FichaTecnicaEditor({
                     ponerBloques(textoABloques(r.referencia.fichaTexto));
                     setCopiadaDe(r.referencia.de);
                   } else {
-                    setD({ ...d, categoria: t.clave });
+                    setD({ ...d, categoria: t.clave, ...(t.clave === "repuesto" || t.clave === "servicio" ? { segmento: t.clave } : {}) });
                   }
                   setEligiendoTipo(false);
                 })
@@ -839,7 +839,13 @@ export function FichaTecnicaEditor({
         <label className="relative block">
           <select
             value={d.categoria ?? ""}
-            onChange={(e) => set("categoria", e.target.value || null)}
+            onChange={(e) => {
+              const cat = e.target.value || null;
+              // Repuesto y servicio arrastran su segmento: es por donde los busca postventa.
+              setTocado(true);
+              setConfirmandoSalida(false);
+              setD({ ...d, categoria: cat, ...(cat === "repuesto" || cat === "servicio" ? { segmento: cat } : {}) });
+            }}
             className="peer h-[52px] w-full rounded-lg border border-border bg-card px-3 pt-5 text-sm capitalize outline-none transition-colors focus:border-primary"
           >
             {TIPOS_EQUIPO.map((t) => (

@@ -136,7 +136,7 @@ export function AperturaServicioPanel({
 
         <fieldset className="mt-3">
           <legend className="mb-1.5 text-xs font-medium text-foreground">¿Qué se va a hacer?</legend>
-          <div className="grid gap-1.5 sm:grid-cols-3">
+          <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
             {TIPOS_APERTURA.map((t) => (
               <label
                 key={t.clave}
@@ -216,7 +216,13 @@ export function AperturaServicioPanel({
               <input
                 value={v.guiaDetalle ?? ""}
                 onChange={cambiar("guiaDetalle")}
-                placeholder={v.guia === "traslado" ? "Precisión (opcional)" : "Qué materiales lleva (opcional), ej. tubería de cobre y conexiones"}
+                placeholder={
+                  v.guia === "traslado"
+                    ? "Precisión (opcional)"
+                    : v.guia === "repuestos"
+                      ? "Qué repuestos lleva (opcional), ej. manómetro (posible venta)"
+                      : "Qué materiales lleva (opcional), ej. tubería de cobre y conexiones"
+                }
                 className={cn(ENTRADA, "mt-1.5")}
               />
             )}

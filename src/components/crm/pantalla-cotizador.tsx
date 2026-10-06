@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Check,
   CircleAlert,
-  Clock,
   CloudOff,
   FileDown,
   ImageOff,
@@ -33,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
+import { fechaCalendario } from "@/lib/fechas";
 import { BuscadorEquiposModal } from "@/components/crm/buscador-equipos-modal";
 import { LoQueTieneElClientePanel } from "@/components/crm/lo-que-tiene-el-cliente";
 import type { LoQueTieneElCliente } from "@/lib/lo-que-tiene-el-cliente";
@@ -55,7 +54,6 @@ import type {
   ProductoCotizable,
 } from "@/components/crm/tipos-cotizador";
 import type { ContextoCotizador } from "@/lib/datos-cotizador";
-import { pedirRevisionGerencia } from "@/lib/acciones/revision-gerencia";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 import { ANombreDe } from "@/components/crm/a-nombre-de";
 
@@ -389,14 +387,6 @@ export function PantallaCotizador({
   // haya una acción que dé la impresión de que ya se confirmó ese precio»).
   // El autoguardado ya existía, pero su sello está arriba, lejos del campo.
   const [precioTocado, setPrecioTocado] = useState<number | null>(null);
-  // LA REVISIÓN DEL INGENIERO (0392; Gabriela, 05-10: «quiero saber cómo sé
-  // que el ingeniero lo vio… así como sale para derivar llamada a almacén»).
-  const [revision, setRevision] = useState({
-    pedida: edicion?.revisionPedidaAt ?? null,
-    vista: edicion?.vistaGerenciaAt ?? null,
-    quien: edicion?.vistaGerenciaPor ?? null,
-  });
-  const [pidiendoRevision, setPidiendoRevision] = useState(false);
   const [notasTexto, setNotasTexto] = useState<string | null>(edicion?.notasPdf ? edicion.notasPdf.join("\n") : null);
   const avisoPago = avisoCondicionPago(formaPago, saldo);
 
@@ -406,6 +396,10 @@ export function PantallaCotizador({
   // aunque sus precios sigan por debajo de la referencia. Cualquier cambio lo
   // vuelve a poner en juego — `editar_cotizacion` recalcula el estado.
   const [estadoAprobacion, setEstadoAprobacion] = useState(edicion?.estadoAprobacion ?? "auto_aprobada");
+  // El mismo estado para quien decide justo después de guardar: el clic de
+  // «Confirmar» lee el render anterior, y el primer guardado de un borrador
+  // de postventa es el que lo vuelve «pendiente de gerencia» (0396).
+  const estadoAprobacionRef = useRef(estadoAprobacion);
   const [guardado, setGuardado] = useState<EstadoGuardado>({ tipo: "limpio" });
   const [confirmando, setConfirmando] = useState(false);
   const [confirmada, setConfirmada] = useState<{ codigo: string | null } | null>(null);
@@ -572,7 +566,10 @@ export function PantallaCotizador({
 
     ultimoError.current = null;
     guardadoRef.current = actual;
-    if (r.estadoAprobacion) setEstadoAprobacion(r.estadoAprobacion);
+    if (r.estadoAprobacion) {
+      estadoAprobacionRef.current = r.estadoAprobacion;
+      setEstadoAprobacion(r.estadoAprobacion);
+    }
     // Quedarse sin equipos borra el borrador (no existe un documento vacío).
     // Se dice, porque es lo único que esta pantalla hace sin preguntar.
     if (idRef.current && !r.cotizacionId) {
@@ -622,21 +619,6 @@ export function PantallaCotizador({
     await encolarGuardado();
     return guardadoRef.current === payloadRef.current;
   }, [encolarGuardado]);
-
-  async function pedirRevision() {
-    if (!idRef.current) return;
-    setPidiendoRevision(true);
-    try {
-      // Lo último que se escribió tiene que estar guardado antes de que él lo abra.
-      await vaciarPendientes();
-      const r = await pedirRevisionGerencia(idRef.current);
-      if (r.error) return void toast.error(r.error);
-      setRevision({ pedida: new Date().toISOString(), vista: null, quien: null });
-      toast.success("Se le avisó al ingeniero. Cuando abra la cotización, le llega el aviso de que la vio.");
-    } finally {
-      setPidiendoRevision(false);
-    }
-  }
 
   // El navegador avisa si se cierra la pestaña con algo sin guardar. No
   // sustituye al autoguardado: lo cubre entre la tecla y los 600 ms.
@@ -907,10 +889,15 @@ export function PantallaCotizador({
   const hayLineaLibreVacia = carrito.some((i) => i.producto_id === null && i.nombre.trim() === "");
   // Un descuento que gerencia ya firmó no se vuelve a pedir.
   const yaAprobada = estadoAprobacion === "aprobada_gerencia";
-  const iraAGerencia = (hayBajoLista || haySinPrecio) && !yaAprobada;
+  // POSTVENTA EN CAPACITACIÓN (gerencia, 05-10; 0396): toda cotización de
+  // postventa pasa por gerencia, a cualquier precio. Lo decide la base al
+  // guardar; acá se lee lo que dijo.
+  const porCapacitacion = esPostventa && estadoAprobacion === "pendiente_gerencia" && !hayBajoLista && !haySinPrecio;
+  const iraAGerencia = (hayBajoLista || haySinPrecio || estadoAprobacion === "pendiente_gerencia") && !yaAprobada;
   const motivoAprobacion = [
     hayBajoLista && "precio por debajo de la referencia",
     haySinPrecio && "equipo sin precio cargado",
+    porCapacitacion && "por ahora toda cotización de postventa pasa por gerencia",
   ]
     .filter(Boolean)
     .join(" y ");
@@ -997,7 +984,7 @@ export function PantallaCotizador({
         );
         return;
       }
-      if (iraAGerencia) {
+      if (iraAGerencia || estadoAprobacionRef.current === "pendiente_gerencia") {
         const r = await finalizarCotizacion(idRef.current);
         if (r.error) {
           toast.error(r.error);
@@ -2148,27 +2135,6 @@ export function PantallaCotizador({
               <p className="text-center text-[11px] text-muted-foreground">
                 Le pone el número y la cierra. Mandársela al cliente es aparte, por correo o WhatsApp.
               </p>
-            )}
-
-            {esPostventa && cotizacionId && !iraAGerencia && (
-              <div className="rounded-md border border-border p-2.5 text-xs">
-                {revision.vista ? (
-                  <p className="flex items-center gap-1.5 font-semibold text-[#1E7F4F]">
-                    <Check className="size-3.5" /> Vista por {revision.quien ?? "gerencia"} el {fechaHoraLima(revision.vista)}
-                  </p>
-                ) : revision.pedida ? (
-                  <p className="flex items-center gap-1.5 font-semibold text-amber-800">
-                    <Clock className="size-3.5" /> Pedida al ingeniero el {fechaHoraLima(revision.pedida)} · todavía no la abre
-                  </p>
-                ) : (
-                  <p className="text-muted-foreground">
-                    ¿Quiere que el ingeniero la revise antes de confirmarla? Le llega el aviso, y usted sabrá cuándo la vio.
-                  </p>
-                )}
-                <Button type="button" variant="outline" size="sm" className="mt-2 w-full" onClick={pedirRevision} disabled={pidiendoRevision || ocupado}>
-                  {pidiendoRevision ? "Avisando…" : revision.pedida || revision.vista ? "Volver a pedir la revisión" : "Pedir revisión al ingeniero"}
-                </Button>
-              </div>
             )}
 
             <div className="flex items-center justify-between gap-2 text-xs">

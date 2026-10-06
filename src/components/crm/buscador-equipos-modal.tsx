@@ -143,6 +143,43 @@ const monto = (n: number) => `US$ ${n.toLocaleString("es-PE", { minimumFractionD
  * material ("Fabricado en acero inoxidable de alta resistencia.")—, así que
  * se saca esa línea a la lista rápida de specs, junto a Capacidad/Voltaje.
  */
+/** Un servicio o un repuesto se reconoce por lo que es, no por su modelo. */
+function esServicioORepuesto(equipo: EquipoElegible): boolean {
+  return ["servicio", "repuesto"].includes(String(equipo.segmento));
+}
+
+/**
+ * El texto de cada fila. En una máquina manda el modelo; en un servicio o un
+ * repuesto manda el nombre —«MANOMETRO PARA GAS»—, en grande y en negrita, y
+ * el código y el modelo van debajo en gris (Santos, 05-10): el modelo de un
+ * repuesto («0-32" W.C») no le dice nada a quien lo busca.
+ */
+function TextoDeFila({ equipo: p }: { equipo: EquipoElegible }) {
+  if (esServicioORepuesto(p)) {
+    return (
+      <span className="min-w-0 flex-1">
+        <span className="line-clamp-2 text-sm font-bold leading-snug text-foreground">{p.nombre}</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          <span className="font-mono">{p.sku ?? "s/cód"}</span>
+          {" · "}
+          {p.marca} {p.modelo}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span className="min-w-0 flex-1">
+      <span className="block truncate text-sm font-medium text-foreground">
+        <span className="font-mono text-xs font-bold text-primary">{p.sku ?? "s/cód"}</span>
+        {" · "}
+        {p.marca} {p.modelo}
+        {p.capacidad ? ` · ${p.capacidad}` : ""}
+      </span>
+      <span className="block truncate text-xs text-muted-foreground">{p.nombre}</span>
+    </span>
+  );
+}
+
 function materialTambor(caracteristicas: string[] | undefined): string | null {
   const idx = caracteristicas?.findIndex((c) => c.trim().toUpperCase() === "TAMBOR") ?? -1;
   return idx === -1 ? null : (caracteristicas![idx + 1] ?? null);
@@ -241,13 +278,22 @@ function PanelDetalle({
           ))}
         </div>
       )}
-      <div>
-        <p className="font-mono text-xs font-bold text-primary">{equipo.sku ?? "sin código"}</p>
-        <p className="text-sm font-semibold leading-snug text-foreground">
-          {equipo.marca} {equipo.modelo}
-        </p>
-        <p className="text-xs text-muted-foreground">{equipo.nombre}</p>
-      </div>
+      {esServicioORepuesto(equipo) ? (
+        <div>
+          <p className="text-base font-bold leading-snug text-foreground">{equipo.nombre}</p>
+          <p className="text-xs text-muted-foreground">
+            <span className="font-mono">{equipo.sku ?? "sin código"}</span> · {equipo.marca} {equipo.modelo}
+          </p>
+        </div>
+      ) : (
+        <div>
+          <p className="font-mono text-xs font-bold text-primary">{equipo.sku ?? "sin código"}</p>
+          <p className="text-sm font-semibold leading-snug text-foreground">
+            {equipo.marca} {equipo.modelo}
+          </p>
+          <p className="text-xs text-muted-foreground">{equipo.nombre}</p>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-1.5">
         {equipo.precio != null && (
           <span className="text-base font-bold tabular-nums text-foreground">{monto(equipo.precio)}</span>
@@ -308,7 +354,7 @@ function PanelDetalle({
       )}
       {/* Un servicio o un repuesto no lleva página de ficha: el PDF los pone a
           todo el ancho (25-09). El aviso solo vale para las máquinas. */}
-      {equipo.sinFicha && !["servicio", "repuesto"].includes(String(equipo.segmento)) && (
+      {equipo.sinFicha && !esServicioORepuesto(equipo) && (
         <p className="rounded-md bg-amber-500/10 p-1.5 text-[11px] font-semibold text-amber-800">
           Sin ficha técnica cargada: su página saldrá vacía en el PDF.
         </p>
@@ -628,15 +674,7 @@ export function BuscadorEquiposModal({
                     )}
                   >
                     <Miniatura equipo={p} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-foreground">
-                        <span className="font-mono text-xs font-bold text-primary">{p.sku ?? "s/cód"}</span>
-                        {" · "}
-                        {p.marca} {p.modelo}
-                        {p.capacidad ? ` · ${p.capacidad}` : ""}
-                      </span>
-                      <span className="block truncate text-xs text-muted-foreground">{p.nombre}</span>
-                    </span>
+                    <TextoDeFila equipo={p} />
                     {/* Apilado en vertical a propósito: en laptop, contador y
                         stock lado a lado desbordaban la fila — la cantidad
                         quedaba fuera de vista y aparecía scroll horizontal. */}
@@ -950,15 +988,7 @@ export function ReemplazarEquipoModal({
                     )}
                   >
                     <Miniatura equipo={p} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-foreground">
-                        <span className="font-mono text-xs font-bold text-primary">{p.sku ?? "s/cód"}</span>
-                        {" · "}
-                        {p.marca} {p.modelo}
-                        {p.capacidad ? ` · ${p.capacidad}` : ""}
-                      </span>
-                      <span className="block truncate text-xs text-muted-foreground">{p.nombre}</span>
-                    </span>
+                    <TextoDeFila equipo={p} />
                     <span className="flex flex-none flex-col items-end gap-1">
                       {esActual ? (
                         <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">

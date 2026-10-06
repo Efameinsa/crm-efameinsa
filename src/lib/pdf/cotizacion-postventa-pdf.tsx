@@ -295,6 +295,12 @@ export function CotizacionPostventaPdf({
               capacidad: item.capacidad,
               descripcionLinea: item.descripcionLinea,
               deCatalogo: item.marca !== "—" || item.modelo !== "—" || Boolean(item.segmento),
+              // Las piezas o características del repuesto (el servicio tiene su
+              // propio cuadro de detalle más abajo).
+              detalle:
+                item.segmento === "repuesto" || (item.categoria ?? "").toLowerCase() === "repuesto"
+                  ? (item.bloques ?? []).flatMap((b) => (b.t === "titulo" ? [] : b.t === "dato" ? [`${b.rotulo}: ${b.valor}`] : [b.texto]))
+                  : [],
             });
             return (
               <View key={i} style={pv.fila} wrap={false}>

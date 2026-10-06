@@ -14,6 +14,7 @@ import Link from "@/components/enlace";
 import { cn } from "@/lib/utils";
 import { CampanaNotificaciones } from "@/components/crm/campana-notificaciones";
 import { CambiarClave } from "@/components/crm/cambiar-clave";
+import { BotonSugerencias } from "@/components/crm/boton-sugerencias";
 import { BotonAtrasApp } from "@/components/crm/boton-atras-app";
 import { FormularioSalir } from "@/components/crm/formulario-salir";
 import { createClient } from "@/lib/supabase/server";
@@ -126,7 +127,6 @@ export async function MarcoPropuesta({
               className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               autoComplete="off"
             />
-            <kbd className="hidden whitespace-nowrap rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground sm:block">Ctrl K</kbd>
           </form>
           {NUEVO[tipo] && (
             <Link
@@ -177,6 +177,7 @@ export async function MarcoPropuesta({
               </span>
             ) : (
               <span className="flex items-center gap-1.5">
+                <BotonSugerencias />
                 <CambiarClave />
                 <FormularioSalir>
                   <button
