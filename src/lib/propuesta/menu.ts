@@ -34,7 +34,8 @@ export type Icono =
   | "aprobaciones" | "marketing" | "operacion" | "control" | "usuarios" | "listas"
   | "aperturas"
   | "files"
-  | "observaciones";
+  | "observaciones"
+  | "directorio";
 
 export interface OpcionMenu {
   etiqueta: string;
@@ -102,6 +103,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Agenda", href: "/central/visitas", icono: "agenda", coincide: ["/central/visitas"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
   ],
   comercial: [
     hoy,
@@ -113,6 +116,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Mis números", href: "/comercial/mi-gestion", icono: "numeros", coincide: ["/comercial/mi-gestion"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
   ],
   postventa: [
     hoy,
@@ -128,6 +133,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/postventa/agenda", "/postventa/visitas"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
   ],
   preventivo: [
     hoy,
@@ -137,6 +144,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Mis números", href: "/comercial/mi-gestion", icono: "numeros", coincide: ["/comercial/mi-gestion"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
   ],
   almacen: [
     hoy,
@@ -154,6 +163,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Catálogo", href: "/almacen/catalogo", icono: "catalogo", coincide: ["/almacen/catalogo"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
   ],
   // IMPORTACIONES (0402, 06-10): una sola pantalla, lo que falta traer.
   importaciones: [
@@ -169,6 +180,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Abonos", href: "/finanzas/confirmados", icono: "abonos", coincide: ["/finanzas/confirmados"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
   ],
   // Reunión 25-09 11:44 (0306): revisa el expediente, factura y la registra.
   facturacion: [
@@ -177,6 +190,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Facturados", href: "/facturacion/facturados", icono: "informes", coincide: ["/facturacion/facturados"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
   ],
   // LESLY SUPERVISA TODO (Santos, 25-09: «tiene que estar atenta a todo para
   // ir a dar seguimiento a todos los trabajadores»). Hoy es la supervisión de
@@ -194,6 +209,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Ver como otra cuenta", href: "/operaciones/ver-como", icono: "control", coincide: ["/operaciones/ver-como"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
   ],
   gerencia: [
     hoy,
@@ -210,6 +227,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Observaciones", href: "/observaciones", icono: "observaciones", coincide: ["/observaciones", "/sugerencias"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
   ],
   admin: [
     { etiqueta: "Usuarios", href: "/admin", icono: "usuarios", coincide: [] },
@@ -219,6 +238,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Observaciones", href: "/observaciones", icono: "observaciones", coincide: ["/observaciones", "/sugerencias"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
   ],
 };
 

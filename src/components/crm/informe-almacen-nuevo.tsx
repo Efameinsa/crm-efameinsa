@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
 type Material = { descripcion: string; cantidad: string; costo: string };
 
@@ -223,7 +224,8 @@ export function InformeAlmacenNuevo({ pedidos, atenciones }: { pedidos: PedidoPa
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Técnico</Label>
-          <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} className="h-8 text-sm" placeholder="Quién lo hizo" />
+          <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} className="h-8 text-sm" placeholder="Quién lo hizo" list={ID_LISTA_TECNICOS} />
+          <ListaTecnicos />
         </div>
       </div>
 

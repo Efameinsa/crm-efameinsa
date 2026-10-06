@@ -9,6 +9,7 @@ import { guardarInformeServicio } from "@/lib/acciones/postventa";
 import { TIPOS_SERVICIO } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
+import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
 /**
  * El informe que vuelve de una atención, cargado desde la ficha de la máquina.
@@ -180,8 +181,10 @@ export function InformeServicioNuevo({
           value={tecnico}
           onChange={(e) => setTecnico(e.target.value)}
           placeholder="Técnico"
+          list={ID_LISTA_TECNICOS}
           className="w-32 rounded-md border border-border bg-background px-2 py-1 text-xs"
         />
+        <ListaTecnicos />
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           Ciclos
           <input

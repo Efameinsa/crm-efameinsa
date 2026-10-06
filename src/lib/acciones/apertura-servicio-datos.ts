@@ -3,6 +3,7 @@ import { fechaHoraLima } from "@/lib/fechas";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { circuitoDe, esProvincia, planoNoEnviado, PREFIJO_PLANO_NO_ENVIADO, puedeVerPrecios, seriesDeTexto, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
 import { faltantesApertura, filasApertura, horaAmPm, tipoSugerido, type DatosApertura, type FilaApertura, type GuiaApertura, type TipoApertura } from "@/lib/apertura-servicio";
+import { conDni, relacionDeTecnicos } from "@/lib/tecnicos";
 
 /**
  * Todo lo que necesita la hoja de la apertura de servicio, en un solo lugar.
@@ -44,7 +45,7 @@ export async function cargarHojaApertura(
   // y quien llegó hasta acá ya lee el pedido: se leen con el cliente del
   // servidor.
   const lectorInforme = createAdminClient();
-  const [{ data: informe }, { data: cuenta }, { data: perfiles }] = await Promise.all([
+  const [{ data: informe }, { data: cuenta }, { data: perfiles }, relacion] = await Promise.all([
     s.informe_cierre_id
       ? lectorInforme
           .from("informes_cierre")
@@ -66,6 +67,8 @@ export async function cargarHojaApertura(
           (s as { prueba_lista_por?: string | null }).prueba_lista_por,
         ].filter((x): x is string => !!x),
       ),
+    // La relación de técnicos (0410): el DNI sale junto al nombre en la fila 7.
+    relacionDeTecnicos(supabase),
   ]);
   const nombreDe = (pid: string | null | undefined) => (perfiles ?? []).find((p) => p.id === pid)?.nombre ?? null;
 
@@ -120,7 +123,7 @@ export async function cargarHojaApertura(
     recibeNombre: s.recibe_nombre ?? contacto?.nombre ?? null,
     recibeDoc: s.recibe_doc ?? null,
     recibeTelefono: s.recibe_telefono ?? contacto?.telefono ?? null,
-    tecnico: s.tecnico_asignado ?? null,
+    tecnico: conDni(s.tecnico_asignado, relacion),
     transporte: s.transporte ?? s.transportista ?? null,
     guia: (s.apertura_guia as GuiaApertura | null) ?? null,
     guiaDetalle: s.apertura_guia_detalle ?? null,

@@ -10,6 +10,7 @@ import type { EstadoApertura } from "@/lib/aperturas-llamada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
 /**
  * El check del almacén: «ya la estoy gestionando». El técnico ya lo puso
@@ -59,7 +60,8 @@ export function TecnicoApertura({ id, tecnico }: { id: string; tecnico: string |
   }
   return (
     <span className="flex items-center gap-1.5">
-      <Input className="h-8 max-w-56 text-sm" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Nombre del técnico" />
+      <Input className="h-8 max-w-56 text-sm" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Nombre del técnico" list={ID_LISTA_TECNICOS} />
+      <ListaTecnicos />
       <Button
         size="sm"
         className="h-8"
