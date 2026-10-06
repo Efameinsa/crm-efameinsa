@@ -25,6 +25,7 @@ import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 import { Documentos } from "@/components/crm/informe-soporte-apertura";
 import { agregarArchivosDelEquipo } from "@/lib/acciones/almacen";
 import { cn } from "@/lib/utils";
+import { esTorre, seriesDeLaDescripcion } from "@/lib/torres";
 
 /** Las tres opciones de la generación de código (0385), con el nombre que usa Lesly. */
 const PROCEDENCIA: Record<string, string> = {
@@ -188,6 +189,14 @@ function Fila({
     setDePartes((x) => ({ ...x, [id]: { ...deParte(id), ...cambio } }));
   const archivosGuardados = (Array.isArray(e.protocolo_fotos) ? e.protocolo_fotos : []) as FotoAlmacen[];
   const [lineaTitulo, ...resto] = e.descripcion.split("\n");
+  // LA TORRE CON UNA SOLA SERIE (GENNER FASHION, almacén 06-10: «solo me
+  // permite ingresar una serie cuando en la descripción me aparecen 2»). La
+  // serie de la secadora que ya trae el cierre se propone al abrir el campo.
+  const torre = esTorre(e.descripcion);
+  const torreIncompleta = torre && Boolean(e.serie) && !e.sin_serie && !(e.serie ?? "").includes("/") && partes.length === 0;
+  const serieSugerida = torre
+    ? (seriesDeLaDescripcion(e.descripcion).find((x) => x !== e.serie?.trim().toUpperCase() && !partes.some((p) => p.serie?.trim().toUpperCase() === x)) ?? "")
+    : "";
 
   function correr(fn: () => Promise<{ error: string | null; pedidoListo?: boolean }>, exito: string) {
     startTransition(async () => {
@@ -371,10 +380,26 @@ function Fila({
                 <div className="basis-full">{avisoDeSerie(parteSerie)}</div>
               </div>
             ) : (
-              <button type="button" className="mt-1 text-[11px] font-medium text-primary hover:underline" onClick={() => setAbrirParte(true)}>
-                + Otra serie en esta unidad (torre: la secadora)
+              <button
+                type="button"
+                className="mt-1 text-[11px] font-medium text-primary hover:underline"
+                onClick={() => {
+                  setParteSerie((x) => x || serieSugerida);
+                  setAbrirParte(true);
+                }}
+              >
+                {torreIncompleta ? "+ Serie de la secadora (la torre lleva dos placas)" : "+ Otra serie en esta unidad (torre: la secadora)"}
               </button>
             )
+          )}
+          {/* Ya salió: la segunda serie no se agrega desde aquí, pero se dice por qué
+              (antes el botón no aparecía y parecía una falla; GENNER FASHION 06-10). */}
+          {torreIncompleta && despachado && (
+            <p className="mt-1 text-[11px] text-amber-800">
+              Esta torre tiene una sola serie y el pedido ya figura despachado: la de la secadora
+              {serieSugerida ? ` (${serieSugerida}, según la descripción)` : ""} ya no se agrega desde el pedido. Postventa la registra al cerrar el
+              pedido, o la corrige operaciones con su código.
+            </p>
           )}
         </div>
         {modo === "postventa" && !despachado && (
