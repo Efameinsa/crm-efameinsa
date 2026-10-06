@@ -200,9 +200,20 @@ export async function confirmarGuia(
     p_comprobante_numero: comprobante.numero.trim() || null,
   });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
-  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp").eq("id", servicioId).maybeSingle();
+  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp, apertura_despacho_por").eq("id", servicioId).maybeSingle();
   const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   const conQue = textoComprobante(comprobante.tipo, comprobante.numero.trim() || null);
+  // Y a quien emitió la apertura (reunión de gerencia 06-10 11:01: «que me
+  // llegue a mí una alertita que ya confirmó»).
+  if (s?.apertura_despacho_por) {
+    await notificar({
+      userId: s.apertura_despacho_por as string,
+      tipo: "finanzas",
+      titulo: `Guía autorizada · ${quien}`,
+      cuerpo: `Finanzas autorizó la guía${s.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: el almacén ya puede emitirla.${conQue ? ` ${conQue}.` : ""}`,
+      url: `/postventa/pedidos/${servicioId}`,
+    });
+  }
   await notificarAlmacen({
     titulo: `Guía autorizada · ${quien}`,
     cuerpo: `Finanzas revisó la apertura${s?.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: puede emitir la guía de salida.${conQue ? ` ${conQue}.` : ""}${nota.trim() ? ` Nota: ${nota.trim()}` : ""}`,
@@ -212,5 +223,6 @@ export async function confirmarGuia(
   revalidatePath("/finanzas/aperturas");
   revalidatePath("/almacen/aperturas-postventa");
   revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
   return { error: null };
 }

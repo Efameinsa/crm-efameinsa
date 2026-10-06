@@ -703,10 +703,18 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       responsable: "postventa",
       hecho: aperturaEmitida,
       cuando: s.apertura_despacho_at ?? null,
+      // Postventa ve si Finanzas ya autorizó la guía (reunión 06-10 11:01:
+      // «que me salga un check de que ya lo recibió contabilidad»).
       detalle: aperturaEmitida
-        ? circuito.esServicio
-          ? "Con este documento el técnico sale con todo definido"
-          : "Con este documento almacén despacha sin preguntar a nadie"
+        ? s.guia_confirmada_at
+          ? `✓ Finanzas autorizó la guía el ${new Date(s.guia_confirmada_at).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}${
+              textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero) ? ` · ${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero)}` : ""
+            }`
+          : s.despachado_at
+            ? circuito.esServicio
+              ? "Con este documento el técnico sale con todo definido"
+              : "Con este documento almacén despacha sin preguntar a nadie"
+            : "Le llegó a Finanzas: falta que autorice la guía"
         : faltaParaApertura.length === 0
           ? "Todo cumplido: se puede emitir"
           : undefined,
