@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { abrirAperturaDesdeCaso } from "@/lib/acciones/postventa";
 import { GUIAS_APERTURA } from "@/lib/apertura-servicio";
+import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
 /**
  * APERTURA DE SERVICIO DESDE UN CASO (0407). Reunión de gerencia 06-10 11:01:
@@ -124,7 +125,8 @@ export function AperturaServicioCaso({
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">Técnico que va <span className="text-destructive">*</span></Label>
-            <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Ej.: DANNY SOLIS" />
+            <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Elija de la relación de técnicos o escriba" list={ID_LISTA_TECNICOS} />
+            <ListaTecnicos />
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">Transporte</Label>

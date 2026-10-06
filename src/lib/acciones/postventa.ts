@@ -6,6 +6,7 @@ import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
+import { correoAlArea } from "@/lib/correo-al-area";
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
@@ -381,6 +382,23 @@ export async function emitirAperturaDespacho(servicioId: string) {
       url: "/finanzas/aperturas",
       esPrueba: s.es_prueba === true,
     }),
+    // Y por correo, al de la empresa del pedido (directorio 0410).
+    correoAlArea({
+      areas: ["finanzas"],
+      servicioId,
+      titulo: `Apertura por confirmar · ${quien}`,
+      cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      url: "/finanzas/aperturas",
+      esPrueba: s.es_prueba === true,
+    }),
+    correoAlArea({
+      areas: ["almacen"],
+      servicioId,
+      titulo: `Apertura de despacho · ${quien}`,
+      cuerpo: `${s.equipo ?? ""}${s.fecha_despacho ? ` · programado para el ${s.fecha_despacho}` : " · falta programar el día"}. Finanzas confirma la guía de salida.`,
+      url: `/almacen/pedidos/${servicioId}`,
+      esPrueba: s.es_prueba === true,
+    }),
   ]);
   revalidatePath("/finanzas/aperturas");
   revalidatePath("/almacen/aperturas-postventa");
@@ -431,8 +449,8 @@ async function candadoDeApertura(
  * LA APERTURA CORREGIDA VUELVE A FINANZAS (reunión de gerencia 06-10 11:01:
  * «ni bien aparezca eso, que sea una alarma… una modificación, y que le llegue
  * al correo»). Si el pedido no salió, la autorización de la guía queda sin
- * efecto (0406) y Finanzas y el almacén reciben el aviso. El correo sale
- * cuando esté el directorio de correos de cada área.
+ * efecto (0406) y Finanzas y el almacén reciben el aviso. Y por correo, a
+ * quienes el directorio (0410) marca para esas áreas.
  */
 async function avisarAperturaCorregida(servicioId: string, que: string) {
   const supabase = await createClient();
@@ -450,6 +468,22 @@ async function avisarAperturaCorregida(servicioId: string, que: string) {
       esPrueba: s.es_prueba === true,
     }),
     notificarAlmacen({
+      titulo: `Apertura corregida · ${quien}`,
+      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " No emita la guía hasta que Finanzas la vuelva a autorizar." : ""}`,
+      url: `/almacen/pedidos/${servicioId}`,
+      esPrueba: s.es_prueba === true,
+    }),
+    correoAlArea({
+      areas: ["finanzas"],
+      servicioId,
+      titulo: `Apertura corregida · ${quien}`,
+      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " Su autorización de la guía quedó sin efecto: revísela y vuelva a autorizarla." : " Revísela antes de autorizar la guía."}`,
+      url: "/finanzas/aperturas",
+      esPrueba: s.es_prueba === true,
+    }),
+    correoAlArea({
+      areas: ["almacen"],
+      servicioId,
       titulo: `Apertura corregida · ${quien}`,
       cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " No emita la guía hasta que Finanzas la vuelva a autorizar." : ""}`,
       url: `/almacen/pedidos/${servicioId}`,
@@ -1562,6 +1596,23 @@ export async function abrirAperturaDesdeCaso(
       esPrueba,
     }),
     notificarAlmacen({
+      titulo: `Apertura de servicio · ${quien}`,
+      cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Finanzas confirma la guía.`,
+      url: `/almacen/pedidos/${id}`,
+      esPrueba,
+    }),
+    // Sin cierre no hay serie: sale con los correos de EFAMEINSA (0410).
+    correoAlArea({
+      areas: ["finanzas"],
+      empresa: "EFAMEINSA",
+      titulo: `Apertura por confirmar · ${quien}`,
+      cuerpo: `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      url: "/finanzas/aperturas",
+      esPrueba,
+    }),
+    correoAlArea({
+      areas: ["almacen"],
+      empresa: "EFAMEINSA",
       titulo: `Apertura de servicio · ${quien}`,
       cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Finanzas confirma la guía.`,
       url: `/almacen/pedidos/${id}`,

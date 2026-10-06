@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
 /**
  * «ENVIAR APERTURA» (0281, reunión 23-09).
@@ -408,7 +409,8 @@ export function AperturaLlamadaBoton({
             <Label className="text-xs">
               Técnico a cargo <span className="text-destructive">*</span>
             </Label>
-            <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Quién atiende la llamada (el almacén lo puede cambiar)" />
+            <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Quién atiende la llamada (el almacén lo puede cambiar)" list={ID_LISTA_TECNICOS} />
+            <ListaTecnicos />
           </div>
           {cuentaId && (parque?.length ?? 0) > 0 && (
             <div className="grid gap-1">

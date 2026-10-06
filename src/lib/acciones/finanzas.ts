@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar, notificarAlmacen, notificarFinanzas } from "@/lib/notificaciones";
+import { correoAlArea } from "@/lib/correo-al-area";
 import { evaluarPagoParaDespacho, textoComprobante, type ServicioPostventa } from "@/lib/postventa";
 
 /**
@@ -220,6 +221,26 @@ export async function confirmarGuia(
     url: `/almacen/pedidos/${servicioId}`,
     esPrueba: perfil.es_prueba === true,
   });
+  // Y por correo, al de la empresa del pedido (directorio 0410).
+  const delPedido = s?.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : "";
+  await Promise.all([
+    correoAlArea({
+      areas: ["postventa"],
+      servicioId,
+      titulo: `Guía autorizada · ${quien}`,
+      cuerpo: `Finanzas autorizó la guía${delPedido}: el almacén ya puede emitirla.${conQue ? ` ${conQue}.` : ""}`,
+      url: `/postventa/pedidos/${servicioId}`,
+      esPrueba: perfil.es_prueba === true,
+    }),
+    correoAlArea({
+      areas: ["almacen"],
+      servicioId,
+      titulo: `Guía autorizada · ${quien}`,
+      cuerpo: `Finanzas revisó la apertura${delPedido}: puede emitir la guía de salida.${conQue ? ` ${conQue}.` : ""}${nota.trim() ? ` Nota: ${nota.trim()}` : ""}`,
+      url: `/almacen/pedidos/${servicioId}`,
+      esPrueba: perfil.es_prueba === true,
+    }),
+  ]);
   revalidatePath("/finanzas/aperturas");
   revalidatePath("/almacen/aperturas-postventa");
   revalidatePath(`/almacen/pedidos/${servicioId}`);

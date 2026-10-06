@@ -8,6 +8,7 @@ import { guardarAperturaServicio, marcarAperturaEnviada } from "@/lib/acciones/p
 import { GUIAS_APERTURA, LOGISTICA_POR_DEFECTO, TIPOS_APERTURA, type GuiaApertura, type TipoApertura } from "@/lib/apertura-servicio";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
+import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
 /**
  * Lo que hay que coordinar antes de que salga la apertura de servicio, y el
@@ -170,9 +171,11 @@ export function AperturaServicioPanel({
             <input
               value={v.tecnico ?? ""}
               onChange={cambiar("tecnico")}
-              placeholder="ej. Cristian Dolorier"
+              placeholder="Elija de la relación de técnicos o escriba"
               className={ENTRADA}
+              list={ID_LISTA_TECNICOS}
             />
+            <ListaTecnicos />
           </Campo>
           <Campo etiqueta="Medio de transporte del técnico">
             <input

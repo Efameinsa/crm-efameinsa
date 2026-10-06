@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 import { TablaParaCotizar, filasComoTexto, filasParaGuardar, type FilaCotizar } from "@/components/crm/tabla-para-cotizar";
+import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
 /**
  * EL INFORME DE SOPORTE TÉCNICO DEL ALMACÉN (0297; Santos, 24-09, con la foto
@@ -207,7 +208,8 @@ export function InformeSoporteApertura({
             <Input type="time" value={informeFin} onChange={(e) => setInformeFin(e.target.value)} />
           </Campo>
           <Campo etiqueta="Técnico a cargo *">
-            <Input value={tecnicoInforme} onChange={(e) => setTecnicoInforme(e.target.value)} placeholder={tecnico ? undefined : "Postventa no lo asignó: escríbalo"} />
+            <Input value={tecnicoInforme} onChange={(e) => setTecnicoInforme(e.target.value)} placeholder={tecnico ? undefined : "Postventa no lo asignó: escríbalo"} list={ID_LISTA_TECNICOS} />
+            <ListaTecnicos />
           </Campo>
         </div>
         <p className="mt-1 text-[11px] text-muted-foreground">
