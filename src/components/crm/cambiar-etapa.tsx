@@ -13,6 +13,8 @@ import type { EtapaOportunidad } from "@/types/database";
 interface Props {
   oportunidadId: string;
   etapaActual: EtapaOportunidad;
+  /** El motivo con que ya está rechazada, para que se vea y se pueda corregir. */
+  motivoActual?: number | null;
   motivos: { id: number; nombre: string }[];
   /**
    * Si esta oportunidad YA tiene su venta registrada. Cuando la tiene, lo que
@@ -22,7 +24,7 @@ interface Props {
   yaTieneVenta?: boolean;
 }
 
-export function CambiarEtapa({ oportunidadId, etapaActual, motivos, yaTieneVenta = false }: Props) {
+export function CambiarEtapa({ oportunidadId, etapaActual, motivoActual = null, motivos, yaTieneVenta = false }: Props) {
   // 24-08: sin este refresh el cambio SÍ se guardaba, pero la pantalla seguía
   // mostrando la etapa vieja —el badge de la cabecera, el tablero, Mi día— hasta
   // recargar a mano. En la capacitación se leyó como «no me quiere actualizar la
@@ -30,10 +32,18 @@ export function CambiarEtapa({ oportunidadId, etapaActual, motivos, yaTieneVenta
   // que se le diga que vuelva a pedir la página.
   const router = useRouter();
   const [etapa, setEtapa] = useState<EtapaOportunidad>(etapaActual);
-  const [motivoId, setMotivoId] = useState<string>("");
+  // Buzón de Moisés (06-10): en una oportunidad YA rechazada el motivo salía en
+  // «Seleccione…» —como si no tuviera— y el botón quedaba apagado sin decir
+  // por qué. Se precarga el motivo que tiene y cambiarlo cuenta como cambio.
+  const motivoInicial =
+    etapaActual === "rechazada" && motivoActual != null && motivos.some((m) => m.id === motivoActual)
+      ? String(motivoActual)
+      : "";
+  const [motivoId, setMotivoId] = useState<string>(motivoInicial);
   const [enviando, startTransition] = useTransition();
 
   const esVenta = etapa === "venta";
+  const sinCambios = etapa === etapaActual && (etapa !== "rechazada" || motivoId === motivoInicial);
 
   function cerrarVendida() {
     startTransition(async () => {
@@ -63,7 +73,7 @@ export function CambiarEtapa({ oportunidadId, etapaActual, motivos, yaTieneVenta
         toast.error(resultado.error);
         return;
       }
-      toast.success("Etapa actualizada");
+      toast.success(etapa === etapaActual ? "Motivo del rechazo actualizado" : "Etapa actualizada");
       router.refresh();
     });
   }
@@ -129,9 +139,16 @@ export function CambiarEtapa({ oportunidadId, etapaActual, motivos, yaTieneVenta
       )}
 
       {!esVenta && (
-        <Button onClick={guardar} disabled={enviando || etapa === etapaActual}>
-          {enviando ? "Guardando…" : "Actualizar etapa"}
+        <Button onClick={guardar} disabled={enviando || sinCambios}>
+          {enviando ? "Guardando…" : etapa === etapaActual && etapa === "rechazada" ? "Actualizar motivo" : "Actualizar etapa"}
         </Button>
+      )}
+
+      {!esVenta && sinCambios && etapaActual === "rechazada" && (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Ya está en «Rechazada». Para reabrirla, elija arriba otra etapa (por ejemplo, Seguimiento); para corregir
+          solo el motivo, elija otro motivo.
+        </p>
       )}
     </div>
   );
