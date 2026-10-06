@@ -38,6 +38,8 @@ export interface CotizacionResumen {
   estado: string;
   estado_aprobacion: string;
   total: number;
+  /** Con IGV como en el PDF, si algún renglón se pactó con IGV (06-10). */
+  total_con_igv?: number | null;
   moneda: string;
   nota_gerencia: string | null;
   created_at: string;
@@ -208,7 +210,7 @@ export function ListaCotizaciones({
       ) : (
         <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
           <p className="text-amber-900 dark:text-amber-200">
-            <b className="font-semibold">Este expediente ya tiene un borrador</b> de {montoCotizacion(borradorVivo.total, borradorVivo.moneda)} con IGV, del{" "}
+            <b className="font-semibold">Este expediente ya tiene un borrador</b> de {montoCotizacion(borradorVivo.total, borradorVivo.moneda, borradorVivo.total_con_igv)} con IGV, del{" "}
             {fechaHoraLima(borradorVivo.created_at)}
             {borradorVivo.estado_aprobacion === "rechazada_gerencia" ? ", rechazado por gerencia: se corrige y se vuelve a confirmar" : ""}.
             ¿Sigue ese o empieza otra cotización aparte?
@@ -303,7 +305,7 @@ export function ListaCotizaciones({
                     esDePrueba ? "text-muted-foreground line-through" : "text-foreground",
                   )}
                 >
-                  {montoCotizacion(c.total, c.moneda)}
+                  {montoCotizacion(c.total, c.moneda, c.total_con_igv)}
                   <span className="ml-1 text-[11px] font-normal text-muted-foreground no-underline">
                     {esDePrueba ? "no cuenta" : "con IGV"}
                   </span>

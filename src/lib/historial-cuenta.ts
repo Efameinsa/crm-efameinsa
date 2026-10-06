@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { totalConIgv } from "@/lib/monto-cotizacion";
+import { totalesConIgvExactos } from "@/lib/total-con-igv-exacto";
 import { etiquetaTipoServicio } from "@/lib/postventa";
 import type { CambioSolicitud, EventoTimeline } from "@/components/crm/linea-tiempo-cuenta";
 import { firmarAdjuntosDeLeads } from "@/lib/adjuntos-lead";
@@ -279,6 +280,11 @@ export async function cargarHistorialCuenta(
     }
   }
 
+  // EL TOTAL CON IGV DEL PDF (Katerine, 06-10): con renglones pactados con IGV,
+  // neto × 1,18 podía dar un centavo de más. Solo reemplaza una cifra que ya se
+  // iba a mostrar: donde el paquete esconde montos, sigue escondido.
+  const conIgvExacto = await totalesConIgvExactos(supabase, (cotizaciones ?? []).map((c) => c.id as string));
+
   // URLs firmadas para los adjuntos (bucket privado): una sola llamada batch.
   type AdjuntoMeta = { path: string; nombre: string };
   const todasLasRutas = (actividades ?? []).flatMap((a) => ((a as { adjuntos?: AdjuntoMeta[] }).adjuntos ?? []).map((x) => x.path));
@@ -390,8 +396,8 @@ export async function cargarHistorialCuenta(
         // Con IGV, como en el cotizador y el PDF (UX, 08-09). null cuando la
         // historia se mira sin cifras.
         monto: totalPostventa.has(c.id)
-          ? (totalPostventa.get(c.id) != null ? totalConIgv(totalPostventa.get(c.id)!) : null)
-          : c.total != null ? totalConIgv(c.total) : null,
+          ? (totalPostventa.get(c.id) != null ? (conIgvExacto.get(c.id) ?? totalConIgv(totalPostventa.get(c.id)!)) : null)
+          : c.total != null ? (conIgvExacto.get(c.id) ?? totalConIgv(c.total)) : null,
         montoReservado: Boolean(paquete) && !totalPostventa.has(c.id),
         moneda: c.moneda,
         // A propósito SIN pdfUrl: la cotización del CRM vive en su oportunidad,
