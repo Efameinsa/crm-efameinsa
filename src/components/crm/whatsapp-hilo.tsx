@@ -11,7 +11,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet, Copy, Check, PhoneForwarded, NotebookPen } from "lucide-react";
+import { ArrowLeft, Send, MessageCircleOff, RotateCcw, Paperclip, FileText, Loader2, Mic, Trash2, Sticker as StickerIcon, Package, MousePointerClick, ShoppingCart, FileSpreadsheet, Copy, Check, PhoneForwarded, NotebookPen, RefreshCcw } from "lucide-react";
 // `Package` sigue en uso para pintar las fichas que YA se mandaron antes del
 // 21-09; el botón «Mandar equipo» se quitó del chat ese día (Santos: hacía
 // pesada la bandeja).
@@ -23,6 +23,7 @@ import {
   derivarConversacion,
   cerrarConversacion,
   reabrirConversacion,
+  abrirSeguimientoDesdeChat,
   mensajesDe,
   stickersActivos,
   type ConversacionDetalle,
@@ -39,7 +40,7 @@ import { AnuncioDelLead } from "@/components/crm/anuncio-del-lead";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fechaHoraLima } from "@/lib/fechas";
+import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { repasarMensajes } from "@/lib/whatsapp-repaso-navegador";
@@ -127,6 +128,7 @@ export function WhatsappHilo({
   tipificacionActual,
   intencionActual,
   gestionEnExpediente = null,
+  volvioTrasRechazo = null,
 }: {
   conversacion: ConversacionDetalle;
   mensajesIniciales: MensajeWhatsapp[];
@@ -138,6 +140,8 @@ export function WhatsappHilo({
   intencionActual?: Oportunidad["intencion"] | null;
   /** La última gestión anotada en el expediente desde que empezó este chat (sin contar las marcas de los botones). */
   gestionEnExpediente?: { tipo: string; realizada_at: string } | null;
+  /** El cliente escribió después de que su expediente se cerrara como rechazado (0408). */
+  volvioTrasRechazo?: { rechazadoAt: string | null } | null;
 }) {
   const router = useRouter();
   // `key={conversacion.id}` en el padre (WhatsappConversacionPage) remonta
@@ -416,6 +420,14 @@ export function WhatsappHilo({
     });
   }
 
+  function abrirSeguimiento() {
+    startTransition(async () => {
+      const r = await abrirSeguimientoDesdeChat(conversacion.id);
+      if (r.error || !r.oportunidadId) toast.error(r.error ?? "No se pudo abrir el seguimiento");
+      else router.push(`/comercial/oportunidades/${r.oportunidadId}?gestion=1&tipo=whatsapp`);
+    });
+  }
+
   function reabrir() {
     startTransition(async () => {
       const r = await reabrirConversacion(conversacion.id);
@@ -489,7 +501,21 @@ export function WhatsappHilo({
               quedó, qué sigue—, no el botón del resultado. Antes había que
               copiar el número y buscarlo en Clientes; ahora se llega con el
               formulario abierto y «WhatsApp» ya elegido, y acá se ve si falta. */}
-          {conversacion.oportunidad_id && !esCentral && (
+          {/* VOLVIÓ A ESCRIBIR DESPUÉS DEL RECHAZO (0408; Ariana, 06-10, con
+              «ss» pidiendo «precio de 17 kilos» días después de que lo
+              cerraran). «Registrar gestión» llevaba a un expediente cerrado
+              que no aparece en ningún pendiente: acá se reabre primero. */}
+          {conversacion.oportunidad_id && !esCentral && volvioTrasRechazo && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <Button size="sm" className="h-7 gap-1 bg-[#8B1510] px-2.5 text-xs font-semibold text-white hover:bg-[#5E0D0B]" onClick={abrirSeguimiento} disabled={enviando}>
+                <RefreshCcw className="size-3.5" /> Volvió a escribir: abrir seguimiento
+              </Button>
+              <span className="text-[11px] font-medium text-amber-700">
+                Su expediente se cerró como rechazado{volvioTrasRechazo.rechazadoAt ? ` el ${fechaLima(volvioTrasRechazo.rechazadoAt)}` : ""} y el cliente escribió después.
+              </span>
+            </div>
+          )}
+          {conversacion.oportunidad_id && !esCentral && !volvioTrasRechazo && (
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
               <Link
                 href={`/comercial/oportunidades/${conversacion.oportunidad_id}?gestion=1&tipo=whatsapp`}

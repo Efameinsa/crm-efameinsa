@@ -486,6 +486,22 @@ export async function derivarConversacion(conversacionId: string, comercialId: s
   return { error: null };
 }
 
+/**
+ * «Volvió a escribir: abrir seguimiento» (0408; Ariana, 06-10). El cliente
+ * escribió después de que su expediente se cerrara como rechazado: se reabre
+ * en seguimiento (o se usa el que ya estaba vivo) y se va a anotar la gestión.
+ */
+export async function abrirSeguimientoDesdeChat(conversacionId: string): Promise<{ error: string | null; oportunidadId: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("wa_abrir_seguimiento", { p_conversacion_id: conversacionId });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, ""), oportunidadId: null };
+
+  revalidatePath(`/whatsapp/${conversacionId}`);
+  revalidatePath("/comercial");
+  revalidatePath("/comercial/oportunidades");
+  return { error: null, oportunidadId: data as string };
+}
+
 export async function cerrarConversacion(conversacionId: string): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { error } = await supabase.from("wa_conversaciones").update({ estado: "cerrada" }).eq("id", conversacionId);

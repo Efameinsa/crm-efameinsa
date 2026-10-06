@@ -42,7 +42,7 @@ export default async function WhatsappConversacionPage({
     // solo si el expediente es de quien mira, el único que puede calificarlo.
     conversacion.oportunidad_id
       ? createClient().then((sb) =>
-          sb.from("oportunidades").select("intencion, comercial_id").eq("id", conversacion.oportunidad_id!).maybeSingle().then((r) => r.data),
+          sb.from("oportunidades").select("intencion, comercial_id, etapa, cerrada_at").eq("id", conversacion.oportunidad_id!).maybeSingle().then((r) => r.data),
         )
       : Promise.resolve(null),
     // ¿Ya se anotó en el expediente lo que se habló? (05-10, gerencia: el
@@ -66,6 +66,16 @@ export default async function WhatsappConversacionPage({
   const gestionEnExpediente =
     gestiones.find((g) => !esMarcaWhatsapp(g.tipo, g.nota) && (!inicioChat || g.realizada_at >= inicioChat)) ?? null;
   const intencionActual = expediente && expediente.comercial_id === perfil.id ? (expediente.intencion as Oportunidad["intencion"]) : null;
+  // El cliente escribió DESPUÉS de que su expediente se cerrara como
+  // rechazado (0408; Ariana, 06-10): «Registrar gestión» llevaría a un
+  // expediente cerrado; el chat ofrece abrir el seguimiento.
+  const rechazadoAt = expediente?.etapa === "rechazada" ? ((expediente.cerrada_at as string | null) ?? null) : null;
+  const volvioTrasRechazo =
+    expediente?.etapa === "rechazada" &&
+    Boolean(conversacion.ultimo_mensaje_cliente_at) &&
+    (!rechazadoAt || conversacion.ultimo_mensaje_cliente_at! > rechazadoAt)
+      ? { rechazadoAt }
+      : null;
 
   return (
     <div className="flex h-[calc(100dvh-11.5rem)] overflow-hidden rounded-lg border border-border bg-card md:h-[calc(100dvh-8.5rem)]">
@@ -89,6 +99,7 @@ export default async function WhatsappConversacionPage({
         tipificacionActual={tipificacionActual}
         intencionActual={intencionActual}
         gestionEnExpediente={gestionEnExpediente ? { tipo: gestionEnExpediente.tipo, realizada_at: gestionEnExpediente.realizada_at } : null}
+        volvioTrasRechazo={volvioTrasRechazo}
       />
     </div>
   );
