@@ -304,6 +304,11 @@ const ENLACES_ALMACEN = [
   { href: "/almacen/informes", etiqueta: "Informes técnicos", icono: FileText },
 ];
 
+// EL CATÁLOGO PARA CONSULTAR (Lesly, 06-10): «que almacén tenga la vista de
+// catálogo solo para ver la información». Va solo en la barra de la cuenta
+// del almacén: operaciones ya tiene «El catálogo» editable en la suya.
+const ENLACE_CATALOGO_ALMACEN = { href: "/almacen/catalogo", etiqueta: "Catálogo", icono: Package };
+
 export function NavLateral({
   rol,
   esPostventa = false,
@@ -388,7 +393,7 @@ export function NavLateral({
 
   const secciones: { titulo?: string; enlaces: typeof ENLACES_POSTVENTA }[] =
     esAlmacen && rol !== "gerencia" && rol !== "admin"
-      ? [{ titulo: "Almacén", enlaces: ENLACES_ALMACEN }]
+      ? [{ titulo: "Almacén", enlaces: [...ENLACES_ALMACEN, ENLACE_CATALOGO_ALMACEN] }]
       : rol === "operaciones"
       ? [
           { titulo: "Operaciones", enlaces: ENLACES_POR_ROL[rol] },

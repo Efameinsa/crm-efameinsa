@@ -149,6 +149,9 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Aperturas de postventa", href: "/almacen/aperturas-postventa", icono: "informes", coincide: ["/almacen/aperturas-postventa"] },
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/almacen/agenda", "/almacen/atenciones", "/almacen/visitas"] },
     { etiqueta: "Informes técnicos", href: "/almacen/informes", icono: "informes", coincide: ["/almacen/informes"] },
+    // Lesly, 06-10: el catálogo para consultar —buscar, ver ficha, foto y
+    // stock—, sin cargar ni editar.
+    { etiqueta: "Catálogo", href: "/almacen/catalogo", icono: "catalogo", coincide: ["/almacen/catalogo"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
   ],

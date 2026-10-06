@@ -33,9 +33,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const { data: perfil } = await supabase.from("perfiles").select("rol, nombre, cargo").eq("id", user.id).maybeSingle();
+  const { data: perfil } = await supabase
+    .from("perfiles")
+    .select("rol, nombre, cargo, es_almacen, es_operaciones")
+    .eq("id", user.id)
+    .maybeSingle();
   const rol = perfil?.rol as string | undefined;
-  if (!rol || !["operaciones", "gerencia", "admin"].includes(rol)) {
+  // El almacén también ve la hoja impresa: consulta el catálogo (06-10). Ver
+  // un PDF no modifica nada.
+  const puedeVer = (rol && ["operaciones", "gerencia", "admin"].includes(rol)) || perfil?.es_almacen || perfil?.es_operaciones;
+  if (!puedeVer) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
