@@ -57,7 +57,11 @@ export async function cerrarSesion(formData?: FormData) {
   // le seguía mostrando sus avisos a quien entrara después.
   const endpoint = String(formData?.get("push_endpoint") ?? "").trim();
   if (endpoint) await supabase.from("push_suscripciones").delete().eq("endpoint", endpoint);
-  await supabase.auth.signOut();
+  // SOLO ESTE EQUIPO (06-10): signOut() sin más cierra la sesión en TODOS los
+  // equipos de la cuenta. Alguien pulsó «Salir» con postventa2@ y a Gabriela,
+  // que cotizaba en otra PC, la cotización ya no se guardó («An unexpected
+  // response…»). Cerrar en todas partes queda para la cuenta desactivada.
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
 }
 
