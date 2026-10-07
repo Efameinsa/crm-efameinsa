@@ -6,6 +6,7 @@ import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { PedidoAlmacen } from "@/components/crm/pedido-almacen";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
+import { InformesDelPedido } from "@/components/crm/informes-del-pedido";
 import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postventa";
 import { bloquesPedido, circuitoDe, ETIQUETA_TIPO_PEDIDO, sinPrecios, textoComprobante, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { fechaHoraLima } from "@/lib/fechas";
@@ -129,6 +130,9 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
         </div>
 
         <div className="space-y-4">
+          {/* El informe de prueba y embalaje y los demás del pedido: Ariana (07-10) no lo encontraba
+              porque este panel solo estaba en la pantalla de postventa. */}
+          <InformesDelPedido servicio={servicio} equiposTexto={servicio.equipo ?? ""} />
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">El circuito entero</h2>
             {bloques.map((b) => (
