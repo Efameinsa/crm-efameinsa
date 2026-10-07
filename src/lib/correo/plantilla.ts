@@ -31,6 +31,8 @@ export interface DatosCorreo {
    * se les pone la marca alrededor sin tocar su contenido.
    */
   contenidoHtml?: string;
+  /** El contenido de confianza usa casi todo el ancho (tablas anchas que en el celular no caben con los márgenes normales). */
+  contenidoAncho?: boolean;
   /** Texto de la firma; `null` la quita. Por defecto, la de la empresa. */
   firma?: string | null;
   /** Resumen que Gmail muestra junto al asunto en la lista. */
@@ -105,7 +107,7 @@ export function armarCorreo(d: DatosCorreo): string {
     );
   }
 
-  if (d.contenidoHtml) filas.push(fila(d.contenidoHtml, "0 32px 16px 32px"));
+  if (d.contenidoHtml) filas.push(fila(d.contenidoHtml, d.contenidoAncho ? "0 12px 16px 12px" : "0 32px 16px 32px"));
 
   if (d.nota?.trim()) {
     filas.push(

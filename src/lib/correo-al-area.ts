@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { enviarCorreoN8n } from "@/lib/avisos-n8n";
 import { enlaceApp } from "@/lib/url-app";
 import { fechaCalendario } from "@/lib/fechas";
-import { armarCorreo } from "@/lib/correo/plantilla";
+import { armarAviso } from "@/lib/correo/aviso";
 import { correosDelArea, type AreaDeAviso, type Empresa, type FilaDirectorio } from "@/lib/directorio";
 
 /** La empresa del pedido: la serie de su cierre. Sin cierre (apertura desde un caso), EFAMEINSA. */
@@ -79,15 +79,13 @@ export async function correoAlArea(d: {
     const r = await enviarCorreoN8n({
       para: para.join(", "),
       asunto: `${empresa === "OPEN" ? "OPEN" : "EFAMEINSA"} // ${d.titulo}`,
-      html: armarCorreo({
+      html: armarAviso({
         empresa,
-        pretitulo: `Aviso para ${d.areas.map((a) => ETIQUETA_AREA[a]).join(" y ")}`,
+        paraArea: d.areas.map((a) => ETIQUETA_AREA[a]).join(" y "),
         titulo: d.titulo,
-        parrafos: [d.cuerpo],
+        cuerpo: d.cuerpo,
+        enlace: d.url ? enlaceApp(d.url) : undefined,
         tabla,
-        boton: d.url ? { texto: "Abrir en el CRM", url: enlaceApp(d.url) } : undefined,
-        preheader: d.cuerpo.length > 110 ? `${d.cuerpo.slice(0, 107)}…` : d.cuerpo,
-        pie: "Este correo lo manda el CRM con el mismo aviso que sonó en la campana. A quién le llega se ajusta en el Directorio del CRM.",
       }),
       deNombre: `${marca} · CRM`,
     });
