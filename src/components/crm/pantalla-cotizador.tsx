@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Check,
   CircleAlert,
+  CopyPlus,
   CloudOff,
   FileDown,
   ImageOff,
@@ -790,10 +791,15 @@ export function PantallaCotizador({
     if (producto) agregarProducto(producto, color);
   }
 
+  // Con el mismo servicio en dos renglones (una serie en cada uno), el «−» del
+  // buscador resta del último renglón, no de todos a la vez.
   function restarProducto(productoId: string) {
-    setCarrito((c) =>
-      c.map((i) => (i.producto_id === productoId ? { ...i, cantidad: i.cantidad - 1 } : i)).filter((i) => i.cantidad > 0),
-    );
+    setCarrito((c) => {
+      const ultimo = c.map((i) => i.producto_id).lastIndexOf(productoId);
+      return c
+        .map((i, idx) => (idx === ultimo ? { ...i, cantidad: i.cantidad - 1 } : i))
+        .filter((i) => i.cantidad > 0);
+    });
   }
 
   function quitarProducto(productoId: string) {
@@ -851,6 +857,21 @@ export function PantallaCotizador({
     const tocaPrecio = "precio_unitario" in cambios || "precio_con_igv" in cambios;
     const ajuste = tocaPrecio && !("precio_impreso" in cambios) ? { precio_impreso: null } : {};
     setCarrito((c) => c.map((item, idx) => (idx === i ? { ...item, ...cambios, ...ajuste } : item)));
+  }
+
+  /**
+   * OTRO RENGLÓN IGUAL (Gabriela, 07-10: «agregar otro ítem para el mismo
+   * servicio de mantenimiento, misma marca y modelo pero diferente serie»).
+   * Desde el buscador el mismo servicio solo sumaba cantidad en el renglón que
+   * ya estaba, y las dos series quedaban en un solo detalle. Esto pone una
+   * copia justo debajo —mismo precio y nombre—, con cantidad 1 y el detalle
+   * vacío para escribir la otra serie.
+   */
+  function duplicarItem(i: number) {
+    setCarrito((c) => {
+      const copia: ItemCarrito = { ...c[i], cantidad: 1, descripcion: "" };
+      return [...c.slice(0, i + 1), copia, ...c.slice(i + 1)];
+    });
   }
 
   function quitarItem(i: number) {
@@ -1521,6 +1542,14 @@ export function PantallaCotizador({
                               }
                               className="mt-0.5 min-h-14 text-sm"
                             />
+                            <button
+                              type="button"
+                              onClick={() => duplicarItem(i)}
+                              className="mt-1 inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[11px] text-muted-foreground hover:border-primary/40 hover:bg-accent hover:text-primary"
+                              title="Agrega debajo el mismo ítem, con su propio detalle (por ejemplo, otra serie)"
+                            >
+                              <CopyPlus className="size-3" /> Otro renglón igual (otra serie)
+                            </button>
                             {(producto?.piezasKit?.length ?? 0) > 0 && (
                               <CantidadesDelKit
                                 piezasFicha={producto!.piezasKit!}
