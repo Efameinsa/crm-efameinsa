@@ -311,6 +311,7 @@ export async function asignarLead(
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  let pinYaUsado = false;
 
   // SE COMPRUEBA EN EL SERVIDOR, no solo en el botón: la regla vale aunque el
   // diálogo cambie. Solo cuando el contacto todavía no está en ninguna ficha —
@@ -348,6 +349,25 @@ export async function asignarLead(
           requiereMotivoNuevo: true,
         };
       }
+      // Y si esa coincidencia es la cartera de OTRO comercial, la razón no
+      // alcanza: lo autoriza gerencia con su código (HOTEL PULLMAN / ATTKO,
+      // 07-10: Central lo derivó a C1 como nuevo y el cliente era de C4). Se
+      // valida acá —el código se quema al usarse— y queda escrito en la nota.
+      const ajena = coincidencias.find((c) => c.comercialId && c.comercialId !== comercialId);
+      if (ajena && !loUneSolo && !tipoPostventa) {
+        if (!pin) {
+          return {
+            error: `Este contacto coincide con ${ajena.razonSocial}${ajena.codigoComercial ? `, que es de la cartera de ${ajena.codigoComercial}` : ""}. Derivarlo como cliente nuevo a otro comercial lo autoriza gerencia con su código.`,
+            requierePin: true,
+          };
+        }
+        const { data: supervisor, error: errorPin } = await supabase.rpc("validar_pin_supervisor", { p_pin: pin });
+        if (errorPin || !supervisor) {
+          return { error: errorPin?.message.replace(/^[A-Z0-9]{5}:\s*/, "") ?? "El código del supervisor no es válido.", requierePin: true };
+        }
+        pinYaUsado = true;
+        extra = { ...extra, motivoNuevo: `${extra?.motivoNuevo?.trim() ?? ""} (autorizado con código de supervisor; coincidía con ${ajena.razonSocial}, cartera de ${ajena.codigoComercial ?? "otro comercial"})` };
+      }
     }
   }
   // La sede se fija ANTES de asignar: queda en leads.cuenta_id, que es la
@@ -377,7 +397,7 @@ export async function asignarLead(
     p_comercial_id: comercialId,
     // Desde la 0317 la puesta en marcha (y el despacho) son tipos del expediente.
     p_tipo_postventa: tipoPostventa ?? null,
-    p_pin: pin ?? null,
+    p_pin: pinYaUsado ? null : (pin ?? null),
     p_nota: extra?.motivoNuevo?.trim() || null,
   });
   if (error) {
