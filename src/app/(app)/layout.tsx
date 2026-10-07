@@ -133,7 +133,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <PuenteNativo />
       {/* Conducta sospechosa (0373): solo mira y avisa a gerencia, no bloquea. No en auditoría ni demostración, ni a gerencia/admin. */}
       {seVigila(perfil) && !ranuraAuditoria && !demo && <VigilanteConducta />}
-      <RefrescoEnVivo />
+      <RefrescoEnVivo versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
       <AvisoNuevaVersion versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
       {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && <ComunicadoDeGerencia comunicado={comunicado} />}
       {avisoResueltas}
@@ -230,7 +230,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <AvisoGestionesSinSubir />
         </div>}
         <main className="flex-1 bg-app-bg p-6">{children}</main>
-        <RefrescoEnVivo />
+        <RefrescoEnVivo versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
         {/* La pastilla de «hay versión nueva»: la pestaña nace sabiendo su
             versión y pregunta si el servidor ya es otro. Con esto muere el
             Ctrl+Shift+R (Santos, 31-08). */}
