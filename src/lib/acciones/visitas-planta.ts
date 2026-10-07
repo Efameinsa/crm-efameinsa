@@ -40,12 +40,14 @@ export async function registrarVisitaPlanta(datos: {
   quitarFilm?: boolean;
   /** Un proveedor, no un cliente (0386; Lesly, 03-10): lo registra el almacén, sin ficha. */
   proveedor?: boolean;
+  /** Una videollamada con un cliente (0413; Brenda, 07-10): no entra a la planta, solo hay que abrir la lavandería. */
+  videollamada?: boolean;
 }): Promise<{ error: string | null; id?: string; correoEnviado?: boolean }> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
   // Si no escribieron la cotización, va la última que se le envió a ese cliente.
   let cotizacionRef = datos.cotizacionRef?.trim() || "";
-  if (!cotizacionRef && datos.cuentaId && !datos.proveedor) {
+  if (!cotizacionRef && datos.cuentaId && !datos.proveedor && !datos.videollamada) {
     const { data: ult } = await supabase
       .from("cotizaciones")
       .select("codigo, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id)")
@@ -74,7 +76,7 @@ export async function registrarVisitaPlanta(datos: {
     p_acompanantes: (datos.acompanantes ?? []).filter((a) => a.nombre?.trim()).map((a) => ({ nombre: a.nombre.trim().slice(0, 120), dni: a.dni?.trim().slice(0, 20) || null })),
     p_equipo_a_ver: datos.equipoAVer?.trim() || null,
     p_quitar_film: datos.quitarFilm === true,
-    p_tipo: datos.proveedor ? "proveedor" : "cliente",
+    p_tipo: datos.proveedor ? "proveedor" : datos.videollamada ? "videollamada" : "cliente",
   });
   if (error) return { error: limpiar(error.message) };
   revalidatePath("/central/visitas");
@@ -82,7 +84,7 @@ export async function registrarVisitaPlanta(datos: {
   revalidatePath("/almacen/visitas");
   // El almacén también se entera en su bandeja: viene alguien a recoger (0246).
   await notificarAlmacen({
-    titulo: `Visita ${datos.proveedor ? "de proveedor" : datos.showroom ? "al showroom" : "a planta"} el ${datos.fecha}${datos.hora ? ` ${datos.hora.slice(0, 5)}` : ""} · ${datos.empresa.trim()}`,
+    titulo: `${datos.videollamada ? "Videollamada" : "Visita"} ${datos.proveedor ? "de proveedor" : datos.videollamada ? "· abrir lavandería" : datos.showroom ? "al showroom" : "a planta"} el ${datos.fecha}${datos.hora ? ` ${datos.hora.slice(0, 5)}` : ""} · ${datos.empresa.trim()}`,
     cuerpo: `${datos.persona.trim()}${datos.dni ? ` (DNI ${datos.dni})` : ""}. ${datos.motivo.trim()}`,
     url: "/almacen/visitas",
     esPrueba: perfil.es_prueba === true,
@@ -108,12 +110,14 @@ export async function registrarVisitaPlanta(datos: {
       para,
       asunto: datos.proveedor
         ? `VISITA DE PROVEEDOR A PLANTA-${esc(datos.empresa).toUpperCase()}-${esc(datos.persona).toUpperCase()}`
-        : datos.showroom
+        : datos.videollamada
+          ? `VIDEOLLAMADA-ABRIR LAVANDERÍA-${esc(datos.empresa).toUpperCase()}-${esc(datos.persona).toUpperCase()}`
+          : datos.showroom
           ? `VISITA SHOWROOM-PROSPECTO-${esc(datos.persona).toUpperCase()}`
           : `VISITA A PLANTA-${esc(datos.empresa).toUpperCase()}-${esc(datos.persona).toUpperCase()}`,
       html:
         `<div style="font-family:Calibri,Arial,sans-serif;font-size:14px">` +
-        `<p>Buenos días, para informar la siguiente visita${datos.proveedor ? " de proveedor" : ""}:</p>` +
+        `<p>Buenos días, ${datos.videollamada ? "para informar la siguiente videollamada con un cliente (no viene a la planta)" : `para informar la siguiente visita${datos.proveedor ? " de proveedor" : ""}`}:</p>` +
         `<table style="border-collapse:collapse"><tr>${th("FECHA")}${th("HORA")}${th(datos.proveedor ? "PROVEEDOR" : "PROSPECTO")}${th("N° COTIZACIÓN")}${th("OBSERVACIÓN")}</tr>` +
         `<tr>${td(`<span style="background:#ffff00">${fecha}</span>`)}${td(`<span style="color:#c00">${hora}</span>`)}` +
         `${td(`${datos.dni ? `DNI ${esc(datos.dni)} - ` : datos.ruc ? `RUC ${esc(datos.ruc)} - ` : ""}${esc(datos.persona)}` +
