@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
 import { SelectorHora } from "@/components/crm/selector-hora";
+import { ACEPTA_ADJUNTOS, MAX_TAMANO, MAX_TAMANO_VIDEO, tipoDeArchivo } from "@/components/crm/campo-adjuntos";
 import { cn } from "@/lib/utils";
 
 // SIGUEN SIENDO CHIPS, NO UN DESPLEGABLE (decisión 27-08, con «Reu online» ya
@@ -252,12 +253,16 @@ export function RegistroRapido({
         const storage = createClient().storage.from("adjuntos");
         for (const f of archivos) {
           const path = `${oportunidadId}/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
-          const { error } = await storage.upload(path, f, { contentType: f.type || "application/octet-stream" });
+          // El tipo se resuelve también por extensión: un .mov o un .3gp del
+          // celular llega a veces sin file.type y el bucket rechaza el
+          // octet-stream.
+          const tipoArchivo = tipoDeArchivo(f) ?? (f.type || "application/octet-stream");
+          const { error } = await storage.upload(path, f, { contentType: tipoArchivo });
           if (error) {
             toast.error(`No se pudo subir "${f.name}": ${error.message}`);
             return;
           }
-          adjuntos.push({ path, nombre: f.name, tipo: f.type, tamano: f.size });
+          adjuntos.push({ path, nombre: f.name, tipo: tipoArchivo, tamano: f.size });
         }
       }
       const datos = {
@@ -383,17 +388,21 @@ export function RegistroRapido({
         />
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <label className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-accent">
-            <Paperclip className="size-3" /> Adjuntar (PDF, Word, foto)
+            <Paperclip className="size-3" /> Adjuntar (PDF, Word, foto, video)
+            {/* Videos (Rubí, postventa 07-10): el bucket ya los aceptaba hasta
+                25 MB desde la 0337; acá el seguimiento solo dejaba fotos y
+                documentos. Mismas reglas que el formulario de Central. */}
             <input
               type="file"
               multiple
-              accept=".pdf,.doc,.docx,.xls,.xlsx,image/jpeg,image/png,image/webp"
+              accept={ACEPTA_ADJUNTOS}
               className="hidden"
               onChange={(e) => {
                 const nuevos = Array.from(e.target.files ?? []);
-                const grandes = nuevos.filter((f) => f.size > 10 * 1024 * 1024);
-                if (grandes.length) toast.error(`Máximo 10 MB por archivo: ${grandes.map((f) => f.name).join(", ")}`);
-                setArchivos((prev) => [...prev, ...nuevos.filter((f) => f.size <= 10 * 1024 * 1024)].slice(0, 5));
+                const pasa = (f: File) => f.size > (tipoDeArchivo(f)?.startsWith("video/") ? MAX_TAMANO_VIDEO : MAX_TAMANO);
+                const grandes = nuevos.filter(pasa);
+                if (grandes.length) toast.error(`Máximo 10 MB por archivo (videos 25 MB): ${grandes.map((f) => f.name).join(", ")}`);
+                setArchivos((prev) => [...prev, ...nuevos.filter((f) => !pasa(f))].slice(0, 5));
                 setExpandido(true);
                 e.target.value = "";
               }}
