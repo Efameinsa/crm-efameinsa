@@ -172,6 +172,27 @@ export async function fechaDelProtocolo(itemId: string, servicioId: string, fech
   return { error: null };
 }
 
+/**
+ * LOS DATOS DE LA HOJA DE PROTOCOLO DE CADA MÁQUINA (0417; Ariana, 07-10: el
+ * informe como el modelo): equipo y capacidad, modelo de placa, serie,
+ * técnico a cargo, quién lo elaboró y las fechas. «secadora» es la de una
+ * torre sin renglón propio.
+ */
+export async function datosDelProtocolo(
+  itemId: string,
+  servicioId: string,
+  maquina: "principal" | "secadora",
+  datos: Record<string, string>,
+) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("datos_del_protocolo", { p_item: itemId, p_maquina: maquina, p_datos: datos });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath(`/pedidos/${servicioId}/protocolo`);
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  return { error: null };
+}
+
 export async function registrarSalida(servicioId: string, datos: { fecha: string; fotos: Foto[]; nota?: string; cliente: string }) {
   const supabase = await createClient();
   // Si postventa ya había registrado la salida (con la guía), esto solo suma
