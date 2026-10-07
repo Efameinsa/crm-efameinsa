@@ -117,13 +117,16 @@ export function armarCorreo(d: DatosCorreo): string {
     );
   }
 
+  // EL «BOTÓN» ES UN ENLACE DE TEXTO (Santos, 07-10): el botón con fondo y
+  // relleno llegaba a su correo sin estilos, como texto suelto, y nadie sabía
+  // que era un enlace. Subrayado, en cursiva y en granate se entiende como
+  // hipervínculo en cualquier cliente —Gmail, Outlook o el celular— porque no
+  // depende de fondos ni de relleno, que son justo lo que algunos recortan.
   const url = urlSegura(d.boton?.url);
   if (d.boton && url) {
     filas.push(
       fila(
-        `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="${COLORES.granate}" style="background-color:${COLORES.granate};border-radius:6px">` +
-          `<a href="${escaparHtml(url)}" target="_blank" style="display:inline-block;padding:12px 22px;font-family:${FUENTE};font-size:14px;font-weight:700;color:#ffffff;text-decoration:none">${escaparHtml(d.boton.texto)}</a>` +
-          `</td></tr></table>`,
+        `<a href="${escaparHtml(url)}" target="_blank" style="font-family:${FUENTE};font-size:15px;font-weight:700;font-style:italic;color:${COLORES.granate};text-decoration:underline">${escaparHtml(d.boton.texto)}</a>`,
         "4px 32px 20px 32px",
       ),
     );

@@ -41,6 +41,12 @@ describe("armarCorreo (HTML de correo con la marca)", () => {
     expect(urlSegura("https://a.com/b c")).toBeNull();
   });
 
+  it("el enlace va subrayado y en cursiva, sin depender de fondos (07-10)", () => {
+    const h = armarCorreo({ titulo: "t", boton: { texto: "Abrir en el CRM", url: "https://crm.efameinsa.com/x" } });
+    expect(h).toMatch(/<a href="https:\/\/crm\.efameinsa\.com\/x"[^>]*font-style:italic[^>]*text-decoration:underline[^>]*>Abrir en el CRM<\/a>/);
+    expect(h).not.toContain("border-radius:6px");
+  });
+
   it("lleva el texto oculto de vista previa y la firma por defecto", () => {
     const h = armarCorreo({ titulo: "t", preheader: "Resumen visible en Gmail" });
     expect(h).toContain("Resumen visible en Gmail");
