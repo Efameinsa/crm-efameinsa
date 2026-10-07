@@ -41,7 +41,7 @@ export const MAX_TAMANO = 10 * 1024 * 1024; // fotos y documentos
 export const MAX_TAMANO_VIDEO = 25 * 1024 * 1024; // límite del bucket (0337)
 export const ACEPTA_ADJUNTOS = ".pdf,.doc,.docx,.xls,.xlsx,image/jpeg,image/png,image/webp,.mp4,.3gp,.mov,.webm,video/mp4,video/3gpp,video/quicktime,video/webm";
 
-function tipoDeArchivo(f: File): string | null {
+export function tipoDeArchivo(f: File): string | null {
   if (f.type && Object.values(MIME_POR_EXTENSION).includes(f.type)) return f.type;
   const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
   return MIME_POR_EXTENSION[ext] ?? null;
