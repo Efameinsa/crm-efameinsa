@@ -92,9 +92,15 @@ export function VisitaPlantaBoton({
           : r.correoEnviado
           ? "Visita registrada. Central tiene el aviso y el correo salió a Central, Contabilidad, Logística, Almacén y gerencia."
           : "Visita registrada. Central ya tiene el aviso para imprimirlo a vigilancia.",
+        // Se repite lo marcado, para que quien registra vea que el film quedó pedido (Katerine y Lesly, 07-10).
+        { description: quitarFilm && equipoAVer.trim() ? `Almacén quitará el film a: ${equipoAVer.trim()}.` : undefined },
       );
       setAbierto(false);
       setF((x) => ({ ...x, persona: "", dni: "", telefono: "", motivo: "" }));
+      // Que la próxima visita no herede la máquina ni el film de ésta.
+      setEquipoAVer("");
+      setQuitarFilm(false);
+      setAcompanantes([]);
       router.refresh();
     });
   }

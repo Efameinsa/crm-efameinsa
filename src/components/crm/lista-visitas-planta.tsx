@@ -185,6 +185,7 @@ export function ListaVisitasPlanta({
                   <p className="text-xs text-muted-foreground">
                     {v.motivo}
                     {v.equipo_a_ver && <span className="ml-1 font-medium text-foreground">· viene a ver: {v.equipo_a_ver}</span>}
+                    {v.quitar_film && <span className="ml-1 rounded-full bg-yellow-300/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-yellow-950">Quitar el film</span>}
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
                     Registró {v.registradoPor}
