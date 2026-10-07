@@ -4,6 +4,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
+import { FechaDelProtocolo } from "@/components/crm/fecha-del-protocolo";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,9 @@ type Archivo = { path: string; nombre?: string | null; tipo?: string | null; eti
 
 const fechaHora = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+const soloFecha = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric" }) : null;
+const delDia = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : null);
 const esImagen = (a: { path: string; tipo?: string | null }) => (a.tipo ?? "").startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(a.path);
 
 /**
@@ -38,7 +42,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
   if (!s) notFound();
   const { data: equiposData } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, serie, prueba_lista_at, prueba_lista_por, protocolo_ref, protocolo_nota, protocolo_fotos, parte_de, parte_nombre")
+    .select("id, orden, descripcion, serie, prueba_lista_at, prueba_lista_por, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, parte_de, parte_nombre")
     .eq("servicio_id", id)
     .order("orden");
   const equipos = (equiposData ?? []) as {
@@ -51,6 +55,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
     protocolo_ref: string | null;
     protocolo_nota: string | null;
     protocolo_fotos: Archivo[] | null;
+    protocolo_fecha: string | null;
     parte_de: string | null;
     parte_nombre: string | null;
   }[];
@@ -98,6 +103,13 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
   const { data: gente } = ids.length ? await supabase.from("perfiles").select("id, nombre").in("id", ids) : { data: [] };
   const nombre = (x: string | null) => (x ? ((gente ?? []) as { id: string; nombre: string }[]).find((g) => g.id === x)?.nombre ?? null : null);
 
+  // Quién puede corregir la fecha del protocolo: los mismos que suben sus archivos (0416).
+  const permisos = await Promise.all(["es_almacen", "puede_postventa", "es_backoffice", "es_operaciones"].map((f) => supabase.rpc(f)));
+  const puedeEditar = permisos.some((r) => r.data === true);
+  // Borrador: alguna máquina sin marcar como probada (Ariana, 07-10: revisar el informe antes de finalizar).
+  const borrador = equipos.length > 0 ? equipos.some((e) => !e.prueba_lista_at) : !s.prueba_lista_at;
+  const fechaDe = (e: (typeof equipos)[number]) => delDia(e.protocolo_fecha) ?? soloFecha(e.prueba_lista_at);
+
   const refs = [...new Set([s.protocolo_prueba_ref, ...equipos.map((e) => e.protocolo_ref)].map((r) => r?.trim()).filter(Boolean) as string[])];
   const numero = refs.length ? `Protocolo N.º ${refs.join(" / ")}` : null;
   const cliente = (s.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
@@ -122,6 +134,11 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
 
       <MembreteDocumento serie={cierre?.serie === "OPEN" ? "OPEN" : "EFAMEINSA"} area="Almacén" numero={numero} />
 
+      {borrador && (
+        <p className="mb-2 rounded border-2 border-dashed border-amber-500 bg-amber-50 px-3 py-1.5 text-center text-[12px] font-bold uppercase tracking-wide text-amber-800">
+          Borrador · falta marcar {equipos.filter((e) => !e.prueba_lista_at).length > 1 ? "las máquinas" : "la máquina"} como probada y embalada
+        </p>
+      )}
       <h1 className="text-center text-base font-bold uppercase">{titulo}</h1>
 
       <table className="mt-3 w-full border-collapse text-[12px]">
@@ -143,7 +160,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
           <table className="mt-1 w-full border-collapse text-[12px]">
             <thead>
               <tr>
-                {["#", "Equipo", "Serie", "N.º protocolo", "Probado"].map((h) => (
+                {["#", "Equipo", "Serie", "N.º protocolo", "Fecha del protocolo"].map((h) => (
                   <th key={h} className="border border-neutral-500 bg-neutral-100 px-2 py-1 text-left">{h}</th>
                 ))}
               </tr>
@@ -159,7 +176,12 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
                   <td className="w-32 border border-neutral-500 px-2 py-1 align-top font-mono">{e.serie ?? "—"}</td>
                   <td className="w-24 border border-neutral-500 px-2 py-1 align-top">{e.protocolo_ref ?? "—"}</td>
                   <td className="w-36 border border-neutral-500 px-2 py-1 align-top">
-                    {e.prueba_lista_at ? `${fechaHora(e.prueba_lista_at)}${nombre(e.prueba_lista_por) ? ` · ${nombre(e.prueba_lista_por)}` : ""}` : "Pendiente"}
+                    {fechaDe(e) ?? "Pendiente"}
+                    {e.prueba_lista_at && nombre(e.prueba_lista_por) && <span className="block text-[11px]">{nombre(e.prueba_lista_por)}</span>}
+                    {e.protocolo_fecha && e.prueba_lista_at && (
+                      <span className="no-imprimir block text-[10px] text-neutral-500">Registrado en el CRM el {fechaHora(e.prueba_lista_at)}</span>
+                    )}
+                    {puedeEditar && <FechaDelProtocolo itemId={e.id} servicioId={id} fecha={e.protocolo_fecha ?? (e.prueba_lista_at ? new Date(e.prueba_lista_at).toLocaleDateString("en-CA", { timeZone: "America/Lima" }) : null)} />}
                   </td>
                 </tr>
               ))}
