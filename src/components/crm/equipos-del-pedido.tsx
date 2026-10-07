@@ -87,6 +87,16 @@ export function EquiposDelPedido({
           {parcial ? ` · van ${van.length}` : ""}
         </span>
       </p>
+      {modo === "almacen" && equipos.length > 0 && (
+        <a
+          href={`/pedidos/${servicioId}/protocolo`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-accent"
+        >
+          📄 Ver el informe de prueba y embalaje
+        </a>
+      )}
       <p className="mt-0.5 text-xs text-muted-foreground">
         {equipos.length === 0
           ? "El cierre no trae equipos que lleven serie (por ejemplo, un servicio de mantenimiento): no hay lista que armar."
@@ -558,6 +568,47 @@ function Fila({
               <Documentos archivos={deParte(p.id).docs} onChange={(d) => cambiarParte(p.id, { docs: d })} titulo={`Protocolo o informe de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()} (PDF o Word, varios)`} />
             </div>
           ))}
+          {/* GUARDAR LAS FOTOS SIN MARCAR LA MÁQUINA COMO PROBADA (Ariana, 07-10: «ni bien subo las
+              fotos debería generarse el informe»). Antes nada se guardaba hasta «Probada y embalada»,
+              así que el informe no tenía nada que mostrar. Con esto las fotos quedan en el informe
+              de inmediato y la máquina se marca probada cuando el almacén lo decide. */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="mr-1.5 h-8"
+            disabled={pendiente || fotos.length + docs.length + fotosSec.length + docsSec.length + partes.reduce((n, p) => n + deParte(p.id).fotos.length + deParte(p.id).docs.length, 0) === 0}
+            onClick={() =>
+              correr(async () => {
+                const propias = [...(await subir(fotos, docs) ?? [])];
+                if (fotos.length + docs.length > 0 && propias.length === 0) return { error: "No se subieron los archivos" };
+                if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
+                  const deSecadora = await subir(fotosSec, docsSec, "-secadora");
+                  if (!deSecadora) return { error: "No se subieron los archivos" };
+                  propias.push(...deSecadora);
+                }
+                if (propias.length > 0) {
+                  const r = await agregarArchivosDelEquipo(e.id, servicioId, propias);
+                  if (r.error) return r;
+                }
+                for (const p of partes) {
+                  const d = deParte(p.id);
+                  if (d.fotos.length + d.docs.length === 0) continue;
+                  const sp = await subir(d.fotos, d.docs, `-parte-${p.orden}`);
+                  if (!sp) return { error: "No se subieron los archivos" };
+                  const r = await agregarArchivosDelEquipo(p.id, servicioId, sp);
+                  if (r.error) return r;
+                }
+                setFotos([]);
+                setDocs([]);
+                setFotosSec([]);
+                setDocsSec([]);
+                setDePartes({});
+                return { error: null };
+              }, "Fotos guardadas: ya están en el informe de prueba y embalaje")
+            }
+          >
+            Guardar fotos
+          </Button>
           <Button
             size="sm"
             className="h-8"
