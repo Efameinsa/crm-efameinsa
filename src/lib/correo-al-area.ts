@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { enviarCorreoN8n } from "@/lib/avisos-n8n";
 import { enlaceApp } from "@/lib/url-app";
+import { fechaCalendario } from "@/lib/fechas";
+import { armarCorreo } from "@/lib/correo/plantilla";
 import { correosDelArea, type AreaDeAviso, type Empresa, type FilaDirectorio } from "@/lib/directorio";
 
 /** La empresa del pedido: la serie de su cierre. Sin cierre (apertura desde un caso), EFAMEINSA. */
@@ -12,22 +14,33 @@ export async function empresaDelServicio(servicioId: string): Promise<Empresa> {
   return inf?.serie === "OPEN" ? "OPEN" : "EFAMEINSA";
 }
 
-const escapar = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const ETIQUETA_AREA: Record<AreaDeAviso, string> = { finanzas: "Finanzas", almacen: "Almacén", postventa: "Postventa", central: "Central" };
 
-export function htmlDelAviso(d: { titulo: string; cuerpo: string; url?: string; empresa: Empresa }): string {
-  const marca = d.empresa === "OPEN" ? "OPEN INVESTMENTS" : "CORPORACIÓN EFAMEINSA";
-  const boton = d.url
-    ? `<p style="margin:20px 0"><a href="${enlaceApp(d.url)}" style="background:#7e1210;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600">Abrir en el CRM</a></p>`
-    : "";
-  return (
-    `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;max-width:560px">` +
-    `<p style="font-size:11px;letter-spacing:.08em;color:#7e1210;font-weight:700;margin:0 0 6px">${marca} · AVISO DEL CRM</p>` +
-    `<h2 style="font-size:17px;margin:0 0 10px">${escapar(d.titulo)}</h2>` +
-    `<p style="line-height:1.5;margin:0">${escapar(d.cuerpo)}</p>` +
-    boton +
-    `<p style="font-size:11px;color:#888;margin-top:24px">Este correo lo manda el CRM con el mismo aviso que sonó en la campana. ` +
-    `A quién le llega se ajusta en el Directorio del CRM.</p></div>`
-  );
+/**
+ * LOS DATOS DEL PEDIDO que acompañan al aviso, en una tabla: quien lo lee en el
+ * celular entiende de qué pedido se trata sin abrir el CRM. Salen del propio
+ * pedido (lo que el almacén y Finanzas ya ven en pantalla) y nunca llevan montos.
+ */
+export async function datosDelPedido(servicioId: string): Promise<{ etiqueta: string; valor: string }[]> {
+  const admin = createAdminClient();
+  const { data: s } = await admin
+    .from("servicios_postventa")
+    .select("cliente_texto, numero_pedido_erp, equipo, fecha_despacho, apertura_fecha, apertura_hora, tecnico_asignado")
+    .eq("id", servicioId)
+    .maybeSingle();
+  if (!s) return [];
+  const filas: { etiqueta: string; valor: string }[] = [];
+  const cliente = (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "").trim();
+  if (cliente) filas.push({ etiqueta: "Cliente", valor: cliente });
+  if (s.numero_pedido_erp) filas.push({ etiqueta: "Pedido", valor: String(s.numero_pedido_erp) });
+  const equipo = (s.equipo ?? "").trim();
+  if (equipo) filas.push({ etiqueta: "Equipo", valor: equipo.length > 400 ? `${equipo.slice(0, 400)}…` : equipo });
+  const dia = s.fecha_despacho ?? s.apertura_fecha;
+  const hora = s.apertura_hora ? ` · ${String(s.apertura_hora).slice(0, 5)}` : "";
+  filas.push({ etiqueta: s.fecha_despacho ? "Despacho programado" : "Fecha programada", valor: dia ? `${fechaCalendario(dia)}${hora}` : "Falta programar el día" });
+  const tecnico = (s.tecnico_asignado ?? "").trim();
+  if (tecnico) filas.push({ etiqueta: "Técnico", valor: tecnico });
+  return filas;
 }
 
 /**
@@ -51,6 +64,8 @@ export async function correoAlArea(d: {
   cuerpo: string;
   url?: string;
   esPrueba?: boolean;
+  /** Datos extra para la tabla; si hay `servicioId`, los del pedido van primero. */
+  datos?: { etiqueta: string; valor: string }[];
 }): Promise<void> {
   if (d.esPrueba) return;
   try {
@@ -59,10 +74,22 @@ export async function correoAlArea(d: {
     const { data } = await admin.from("directorio").select("nombre, correo_efameinsa, correo_open, avisos, activo").eq("activo", true);
     const para = correosDelArea((data ?? []) as FilaDirectorio[], d.areas, empresa);
     if (!para.length) return;
+    const tabla = [...(d.servicioId ? await datosDelPedido(d.servicioId) : []), ...(d.datos ?? [])];
+    const marca = empresa === "OPEN" ? "OPEN INVESTMENTS" : "EFAMEINSA";
     const r = await enviarCorreoN8n({
       para: para.join(", "),
       asunto: `${empresa === "OPEN" ? "OPEN" : "EFAMEINSA"} // ${d.titulo}`,
-      html: htmlDelAviso({ titulo: d.titulo, cuerpo: d.cuerpo, url: d.url, empresa }),
+      html: armarCorreo({
+        empresa,
+        pretitulo: `Aviso para ${d.areas.map((a) => ETIQUETA_AREA[a]).join(" y ")}`,
+        titulo: d.titulo,
+        parrafos: [d.cuerpo],
+        tabla,
+        boton: d.url ? { texto: "Abrir en el CRM", url: enlaceApp(d.url) } : undefined,
+        preheader: d.cuerpo.length > 110 ? `${d.cuerpo.slice(0, 107)}…` : d.cuerpo,
+        pie: "Este correo lo manda el CRM con el mismo aviso que sonó en la campana. A quién le llega se ajusta en el Directorio del CRM.",
+      }),
+      deNombre: `${marca} · CRM`,
     });
     if (r.error) console.error("correoAlArea:", r.error);
   } catch (e) {

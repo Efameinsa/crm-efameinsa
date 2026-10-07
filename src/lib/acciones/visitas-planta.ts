@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { enviarCorreoN8n } from "@/lib/avisos-n8n";
+import { armarCorreo } from "@/lib/correo/plantilla";
 import { notificarAlmacen, notificarCentral } from "@/lib/notificaciones";
 
 /**
@@ -115,7 +116,7 @@ export async function registrarVisitaPlanta(datos: {
           : datos.showroom
           ? `VISITA SHOWROOM-PROSPECTO-${esc(datos.persona).toUpperCase()}`
           : `VISITA A PLANTA-${esc(datos.empresa).toUpperCase()}-${esc(datos.persona).toUpperCase()}`,
-      html:
+      html: armarCorreo({ pretitulo: "Registro de visita", titulo: datos.proveedor ? "Visita de proveedor a planta" : datos.showroom ? "Visita al showroom" : "Visita a planta", contenidoHtml:
         `<div style="font-family:Calibri,Arial,sans-serif;font-size:14px">` +
         `<p>Buenos días, ${datos.videollamada ? "para informar la siguiente videollamada con un cliente (no viene a la planta)" : `para informar la siguiente visita${datos.proveedor ? " de proveedor" : ""}`}:</p>` +
         `<table style="border-collapse:collapse"><tr>${th("FECHA")}${th("HORA")}${th(datos.proveedor ? "PROVEEDOR" : "PROSPECTO")}${th("N° COTIZACIÓN")}${th("OBSERVACIÓN")}</tr>` +
@@ -131,7 +132,7 @@ export async function registrarVisitaPlanta(datos: {
         (datos.infocorp ? `Se solicita Infocorp: ${esc(datos.empresa)}${datos.ruc ? ` (RUC ${esc(datos.ruc)})` : datos.dni ? ` (DNI ${esc(datos.dni)})` : ""}<br>` : "") +
         `</p>` +
         `<p>Gracias,</p>` +
-        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`,
+        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`, firma: null }),
       responderA: null,
     });
     correoEnviado = !r.error;
@@ -208,13 +209,13 @@ export async function reprogramarVisitaPlanta(visitaId: string, fecha: string, h
     await enviarCorreoN8n({
       para,
       asunto: `CAMBIO DE HORA - VISITA A PLANTA-${esc(empresa).toUpperCase()}-${esc(persona).toUpperCase()}`,
-      html:
+      html: armarCorreo({ pretitulo: "Cambio de hora", titulo: "Cambió la hora de una visita a planta", contenidoHtml:
         `<div style="font-family:Calibri,Arial,sans-serif;font-size:14px">` +
         `<p>Buenos días, la visita de <b>${esc(persona)}</b> (${esc(empresa)}) cambia:</p>` +
         `<p>Antes: <s>${esc(r.antes)}</s><br>Ahora: <span style="background:#ffff00"><b>${esc(r.despues)}</b></span></p>` +
         (r.vigilancia_avisada ? `<p>Vigilancia ya tenía la hoja con la hora anterior: hay que volver a avisarle.</p>` : "") +
         `<p>Gracias,</p>` +
-        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`,
+        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`, firma: null }),
       responderA: null,
     });
   }
