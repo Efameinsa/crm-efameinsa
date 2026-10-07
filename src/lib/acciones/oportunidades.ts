@@ -255,11 +255,15 @@ export async function cambiarEtapa(datos: {
 
   // 0305: «Proceso finalizado / despachado» es de postventa —un comercial no
   // cierra un lead como «finalizado»— y «Otro» no vale sin decir qué pasó.
+  // Si ya estaba rechazada y solo se corrige el motivo (buzón de Moisés,
+  // 06-10), la fecha de cierre es la de entonces, no la de hoy.
+  let cerradaAntes: string | null = null;
   if (datos.etapa === "rechazada" && datos.motivoRechazoId) {
     const [{ data: motivo }, { data: op }] = await Promise.all([
       supabase.from("catalogo_motivos_rechazo").select("solo_postventa, requiere_nota").eq("id", datos.motivoRechazoId).maybeSingle(),
-      supabase.from("oportunidades").select("tipo_postventa").eq("id", datos.oportunidadId).maybeSingle(),
+      supabase.from("oportunidades").select("tipo_postventa, etapa, cerrada_at").eq("id", datos.oportunidadId).maybeSingle(),
     ]);
+    if (op?.etapa === "rechazada") cerradaAntes = op.cerrada_at ?? null;
     if (motivo?.solo_postventa && !op?.tipo_postventa) {
       return { error: "Ese motivo es para cerrar casos de postventa" };
     }
@@ -283,7 +287,7 @@ export async function cambiarEtapa(datos: {
       // dejaría archivadas para siempre y sin forma de volver. Y el resto de
       // etapas, que son abiertas, tampoco llevan fecha.
       cerrada_at:
-        datos.etapa === "rechazada" || datos.etapa === "derivada" ? new Date().toISOString() : null,
+        datos.etapa === "rechazada" || datos.etapa === "derivada" ? cerradaAntes ?? new Date().toISOString() : null,
     })
     .eq("id", datos.oportunidadId)
     .select("id");

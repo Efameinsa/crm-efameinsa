@@ -8,6 +8,8 @@ import { InventarioFiles } from "@/components/crm/files-inventario";
 import { fechaHoraLima } from "@/lib/fechas";
 import { haceCuanto, horaLima, lineaDePasos, origenDelFile } from "@/lib/files-recojo";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +32,11 @@ export const dynamic = "force-dynamic";
  * «Terminé, pueden recogerlo» y a Central le llega el aviso; en su lista esos
  * van primero, en granate, con cuánto hace que esperan. El historial muestra
  * la hora de cada paso «para que no haya manera de errores».
+ *
+ * 06-10, Central: «faltaría un cuadro de búsqueda por día, mes, nombre de
+ * empresa». El buscador filtra las listas del cuaderno (por entregar,
+ * prestados e historial) por empresa o RUC y por el día o el mes de
+ * cualquiera de sus pasos (pedido, entrega, devolución).
  */
 
 type Fila = {
@@ -62,8 +69,15 @@ const diaLima = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { tim
 const EMPRESA: Record<NonNullable<Fila["empresa"]>, string> = { open: "OPEN", efameinsa: "EFAMEINSA", ambos: "OPEN y EFAMEINSA" };
 const quien = (p: Fila["solicitante"]) => (p ? `${p.codigo_comercial ? `${p.codigo_comercial} · ` : ""}${p.nombre}` : "—");
 
-export default async function FilesPage() {
+const sinTildes = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+export default async function FilesPage({ searchParams }: { searchParams: Promise<{ q?: string; dia?: string; mes?: string }> }) {
   const perfil = await requerirPerfil();
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim();
+  const dia = /^\d{4}-\d{2}-\d{2}$/.test(sp.dia ?? "") ? sp.dia! : "";
+  const mes = /^\d{4}-\d{2}$/.test(sp.mes ?? "") ? sp.mes! : "";
+  const buscando = Boolean(q || dia || mes);
   const supabase = await createClient();
   const llevaElCuaderno = ["central", "gerencia", "admin", "operaciones"].includes(perfil.rol) || Boolean(perfil.es_operaciones);
 
@@ -77,8 +91,22 @@ export default async function FilesPage() {
        recibio_vuelta:perfiles!prestamos_file_devuelto_recibido_por_fkey(nombre)`,
     )
     .order("solicitado_at", { ascending: false })
-    .limit(400);
-  const filas = (data ?? []) as unknown as Fila[];
+    .limit(buscando ? 3000 : 400);
+  const todas = (data ?? []) as unknown as Fila[];
+  // El buscador (06-10): empresa/RUC y el día o mes de cualquiera de sus pasos.
+  const coincide = (f: Fila) => {
+    if (q) {
+      const texto = sinTildes([f.cliente_texto, f.cliente_doc, f.cuentas?.razon_social, f.cuentas?.num_doc, f.nota, f.pedido_numero].filter(Boolean).join(" "));
+      if (!sinTildes(q).split(/\s+/).every((p) => texto.includes(p))) return false;
+    }
+    if (dia || mes) {
+      const dias = [f.solicitado_at, f.entregado_at, f.devuelto_at].filter((x): x is string => Boolean(x)).map(diaLima);
+      if (dia && !dias.includes(dia)) return false;
+      if (mes && !dias.some((d) => d.startsWith(mes))) return false;
+    }
+    return true;
+  };
+  const filas = buscando ? todas.filter(coincide) : todas;
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
   const vivos = filas.filter((f) => !f.anulado_at && !f.devuelto_at);
@@ -90,7 +118,7 @@ export default async function FilesPage() {
   const porRecoger = prestados.filter((f) => f.termine_at).length;
   const mios = filas.filter((f) => f.solicitante?.id === perfil.id);
   const misVivos = mios.filter((f) => !f.anulado_at && !f.devuelto_at);
-  const historial = filas.filter((f) => f.anulado_at || f.devuelto_at).slice(0, 60);
+  const historial = filas.filter((f) => f.anulado_at || f.devuelto_at).slice(0, buscando ? 400 : 60);
   // Pedidos con 2 o más files en su poder que todavía no avisó (0350).
   const porGrupo = new Map<string, Fila[]>();
   for (const f of misVivos) if (f.entregado_at && !f.termine_at) porGrupo.set(f.grupo, [...(porGrupo.get(f.grupo) ?? []), f]);
@@ -188,6 +216,34 @@ export default async function FilesPage() {
 
       {llevaElCuaderno && (
         <>
+          <SeccionPanel titulo="Buscar en el cuaderno">
+            <form method="get" className="flex flex-wrap items-end gap-2">
+              <label className="min-w-[14rem] flex-1 space-y-1 text-[11px] font-medium text-muted-foreground">
+                Empresa o RUC
+                <Input name="q" defaultValue={q} placeholder="Ej.: AGROCASAGRANDE o 20601226015" className="h-9" />
+              </label>
+              <label className="space-y-1 text-[11px] font-medium text-muted-foreground">
+                Día
+                <Input type="date" name="dia" defaultValue={dia} className="h-9 w-40" />
+              </label>
+              <label className="space-y-1 text-[11px] font-medium text-muted-foreground">
+                Mes
+                <Input type="month" name="mes" defaultValue={mes} className="h-9 w-40" />
+              </label>
+              <Button type="submit" size="sm" className="h-9">Buscar</Button>
+              {buscando && (
+                <a href="/files" className="h-9 px-2 text-xs font-medium leading-9 text-primary hover:underline">Quitar filtro</a>
+              )}
+            </form>
+            {buscando && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {filas.length === 0
+                  ? "Ningún file coincide con la búsqueda."
+                  : `${filas.length === 1 ? "1 file coincide" : `${filas.length} files coinciden`}: las listas de abajo muestran solo esos.`}{" "}
+                El día y el mes se buscan en cualquiera de sus pasos: pedido, entrega o devolución.
+              </p>
+            )}
+          </SeccionPanel>
           {/* Entrega directa (0365, Carlos 01-10): el file sale sin que nadie
               lo pida. Con pedido se hace desde el cierre; acá, sin pedido. */}
           <SeccionPanel titulo="Entregar sin pedido">

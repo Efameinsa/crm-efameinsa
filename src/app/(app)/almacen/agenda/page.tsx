@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { CalendarioPostventa, type VistaCalendario } from "@/components/crm/calendario-postventa";
-import { eventoDeAtencion, eventoDeVisita, eventosDePedido, filtrarPorZona, type EventoCalendario } from "@/lib/calendario-postventa";
+import { eventoDeAtencion, eventoDeLlamada, eventoDeVisita, eventosDePedido, filtrarPorZona, type EventoCalendario } from "@/lib/calendario-postventa";
 import { diasDelMes, diasDeSemana, lunesDe } from "@/lib/calendario";
 import { sinPrecios, type ServicioPostventa } from "@/lib/postventa";
 
@@ -27,7 +27,7 @@ export default async function AgendaAlmacenPage({ searchParams }: { searchParams
   const desde = dias[0];
   const hasta = dias[dias.length - 1];
 
-  const [{ data: pedidos }, { data: programadas }, { data: visitas }] = await Promise.all([
+  const [{ data: pedidos }, { data: programadas }, { data: visitas }, { data: llamadas }] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("*")
@@ -40,6 +40,14 @@ export default async function AgendaAlmacenPage({ searchParams }: { searchParams
       .lte("programada_at", `${hasta}T23:59:59-05:00`)
       .limit(300),
     supabase.from("visitas_planta").select("id, empresa, persona, motivo, fecha, hora, cancelada_at").gte("fecha", desde).lte("fecha", hasta).limit(100),
+    // Las llamadas que postventa le derivó (buzón de Rubí, 06-10).
+    supabase
+      .from("aperturas_llamada")
+      .select("id, cuenta_id, tipo, programada_para, tecnico, urgente, tomada_at, informe_at, cuentas(razon_social, departamento)")
+      .is("anulada_at", null)
+      .gte("programada_para", `${desde}T00:00:00-05:00`)
+      .lte("programada_para", `${hasta}T23:59:59-05:00`)
+      .limit(300),
   ]);
 
   const eventosPedidos = ((pedidos ?? []) as unknown as ServicioPostventa[]).map(sinPrecios).flatMap(eventosDePedido);
@@ -66,12 +74,26 @@ export default async function AgendaAlmacenPage({ searchParams }: { searchParams
     });
   });
   const eventosVisitas = ((visitas ?? []) as unknown as Parameters<typeof eventoDeVisita>[0][]).map(eventoDeVisita);
-  const eventos: EventoCalendario[] = filtrarPorZona([...eventosPedidos, ...eventosAtenciones, ...eventosVisitas], zona);
+  const eventosLlamadas = (
+    (llamadas ?? []) as unknown as (Omit<Parameters<typeof eventoDeLlamada>[0], "cliente" | "zona"> & {
+      cuenta_id: string | null;
+      cuentas: { razon_social: string; departamento: string | null } | null;
+    })[]
+  ).map((l) => {
+    const dep = (l.cuentas?.departamento ?? "").toUpperCase();
+    return eventoDeLlamada({
+      ...l,
+      cliente: l.cuentas?.razon_social ?? "Cliente sin nombre",
+      cuentaId: l.cuenta_id,
+      zona: dep ? (dep === "LIMA" ? "lima" : "provincia") : null,
+    });
+  });
+  const eventos: EventoCalendario[] = filtrarPorZona([...eventosPedidos, ...eventosAtenciones, ...eventosVisitas, ...eventosLlamadas], zona);
 
   return (
     <SeccionPanel titulo="Calendario del almacén">
       <p className="mb-3 text-xs text-muted-foreground">
-        Despachos programados, puestas en marcha, atenciones con técnico y visitas a la planta. Lo programa postventa; acá se ve
+        Despachos programados, puestas en marcha, atenciones con técnico, llamadas derivadas y visitas a la planta. Lo programa postventa; acá se ve
         qué toca cada día.
       </p>
       <CalendarioPostventa vista={vista} fecha={fecha} hoy={hoy} zona={zona} eventos={eventos} porProgramar={[]} atencionesPorProgramar={[]} rutaBase="/almacen/agenda" soloLectura />

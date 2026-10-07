@@ -25,6 +25,7 @@ export default async function HoyPage({ searchParams }: { searchParams: Promise<
   const tipo = tipoDePerfil(perfil);
 
   if (tipo === "admin") redirect("/admin");
+  if (tipo === "importaciones") redirect("/importaciones");
   if (tipo === "gerencia") return <HoyGerencia />;
 
   // LA COLA DE TRABAJO (23-09): para quien trabaja casos uno por uno, «Hoy» es

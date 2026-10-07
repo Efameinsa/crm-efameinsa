@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { requerirPerfil } from "@/lib/auth";
 import { bloquesATexto, textoABloques, type BloqueFicha } from "@/lib/ficha-texto";
 
 /** Una viñeta por línea, que es como se pega desde la ficha en Word. */
@@ -16,7 +17,26 @@ function texto(formData: FormData, campo: string): string | null {
   return String(formData.get(campo) ?? "").trim() || null;
 }
 
+
+/**
+ * QUIÉN TOCA EL CATÁLOGO (Lesly, 06-10). El almacén lo consulta y no lo
+ * modifica: «que almacén tenga la vista de catálogo solo para ver la
+ * información, mas no para subir o editar». La RLS (0116) ya niega la
+ * escritura a todo lo que no sea operaciones o gerencia/admin, pero un UPDATE
+ * negado por RLS no da error: toca cero filas y la pantalla diría «guardado».
+ * Por eso se pregunta acá antes, con el mismo criterio que la política.
+ */
+async function noPuedeEditarCatalogo(): Promise<string | null> {
+  const perfil = await requerirPerfil();
+  if (["operaciones", "gerencia", "admin"].includes(perfil.rol) || perfil.es_operaciones) return null;
+  return perfil.es_almacen
+    ? "El almacén consulta el catálogo, no lo modifica. Pida el cambio a operaciones (Lesly)."
+    : "El catálogo lo modifican operaciones o gerencia.";
+}
+
 export async function crearProducto(formData: FormData): Promise<{ error: string | null }> {
+  const sinPermiso = await noPuedeEditarCatalogo();
+  if (sinPermiso) return { error: sinPermiso };
   const supabase = await createClient();
 
   const marca = String(formData.get("marca") ?? "").trim();
@@ -167,6 +187,8 @@ function revisar(datos: DatosEquipo): string | null {
 }
 
 export async function guardarEquipo(id: string, datos: DatosEquipo): Promise<{ error: string | null }> {
+  const sinPermiso = await noPuedeEditarCatalogo();
+  if (sinPermiso) return { error: sinPermiso };
   const mal = revisar(datos);
   if (mal) return { error: mal };
 
@@ -210,6 +232,8 @@ export async function crearEquipoDesdeFicha(
   datos: DatosEquipo,
   precioBase: number | null,
 ): Promise<{ error: string | null; id?: string }> {
+  const sinPermiso = await noPuedeEditarCatalogo();
+  if (sinPermiso) return { error: sinPermiso };
   const mal = revisar(datos);
   if (mal) return { error: mal };
 
@@ -255,6 +279,8 @@ export async function fijarPrecio(
   tier: string,
   precio: number,
 ): Promise<{ error: string | null; anterior?: number | null; sinCambio?: boolean }> {
+  const sinPermiso = await noPuedeEditarCatalogo();
+  if (sinPermiso) return { error: sinPermiso };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fijar_precio_producto", {
     p_producto: productoId,
@@ -298,6 +324,8 @@ export async function fijarImagenProducto(
   rol: "foto" | "logo" | "panel",
   ruta: string | null,
 ): Promise<{ error: string | null }> {
+  const sinPermiso = await noPuedeEditarCatalogo();
+  if (sinPermiso) return { error: sinPermiso };
   const supabase = await createClient();
   const columna = { foto: "foto_path", logo: "logo_path", panel: "panel_path" }[rol];
   const { error } = await supabase
@@ -391,6 +419,8 @@ export async function fichaDeReferencia(categoria: string): Promise<{
  * comercial deje de encontrarlo.
  */
 export async function eliminarEquipo(id: string): Promise<{ error: string | null; apagado?: boolean }> {
+  const sinPermiso = await noPuedeEditarCatalogo();
+  if (sinPermiso) return { error: sinPermiso };
   const supabase = await createClient();
 
   const { count } = await supabase

@@ -7,6 +7,7 @@ import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { SelectorMembrete, empresaDeLaDireccion } from "@/components/crm/selector-membrete";
+import { conDni, relacionDeTecnicos } from "@/lib/tecnicos";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,9 @@ export default async function OrdenAperturaPage({
   const elegida = empresaDeLaDireccion((await searchParams).empresa);
   await requerirPerfil();
   const supabase = await createClient();
-  const { data } = await supabase.from("aperturas_llamada").select("*, cuentas(razon_social, num_doc)").eq("id", id).maybeSingle();
+  const [{ data }, relacion] = await Promise.all([ supabase.from("aperturas_llamada").select("*, cuentas(razon_social, num_doc)").eq("id", id).maybeSingle(),
+    relacionDeTecnicos(supabase),
+  ]);
   if (!data) notFound();
   const a = data as unknown as AperturaLlamada & { cuentas: { razon_social: string; num_doc: string | null } | null };
   const cliente = a.cuentas?.razon_social ?? "—";
@@ -60,7 +63,7 @@ export default async function OrdenAperturaPage({
     ["RUC / DNI", a.cuentas?.num_doc ?? null],
     ["Programada para", fechaHoraLima(a.programada_para)],
     ["Contacto", a.contacto],
-    ["Técnico a cargo", a.tecnico ?? "Sin asignar"],
+    ["Técnico a cargo", conDni(a.tecnico, relacion) ?? "Sin asignar"],
     ["La envió", envio ? `${envio} · ${fechaHoraLima(a.solicitada_at)}` : null],
   ];
   const filasFormato = formato

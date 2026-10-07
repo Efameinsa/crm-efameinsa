@@ -6,6 +6,7 @@ import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { SelectorMembrete, empresaDeLaDireccion } from "@/components/crm/selector-membrete";
+import { conDni, relacionDeTecnicos } from "@/lib/tecnicos";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,9 @@ export default async function ImprimirAperturaPage({
   const elegida = empresaDeLaDireccion((await searchParams).empresa);
   await requerirPerfil();
   const supabase = await createClient();
-  const { data } = await supabase.from("aperturas_llamada").select("*, cuentas(razon_social, num_doc)").eq("id", id).maybeSingle();
+  const [{ data }, relacion] = await Promise.all([ supabase.from("aperturas_llamada").select("*, cuentas(razon_social, num_doc)").eq("id", id).maybeSingle(),
+    relacionDeTecnicos(supabase),
+  ]);
   if (!data || !data.informe_cliente) notFound();
   const a = data as unknown as AperturaLlamada & { cuentas: { razon_social: string; num_doc: string | null } | null };
   const fotos = a.informe_fotos ?? [];
@@ -70,7 +73,7 @@ export default async function ImprimirAperturaPage({
     ["Motivo", MOTIVO_APERTURA[a.tipo]],
     ["Fecha de ejecución", fechaCorta(a.programada_para)],
     ["Hora", horaCorta(a.programada_para)],
-    ["Técnico a cargo", a.tecnico],
+    ["Técnico a cargo", conDni(a.tecnico, relacion)],
     ["Fecha de informe", fechaCorta(a.revisada_at)],
   ];
 

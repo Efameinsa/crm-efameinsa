@@ -404,23 +404,36 @@ export function ListaSugerencias({
   esAdmin,
   verTodas,
   userId,
+  filtroInicial,
+  conFiltroTipo = false,
 }: {
   sugerencias: Sugerencia[];
   esAdmin: boolean;
   /** Admin y gerencia ven las de todos, con el nombre de quien la dejó. */
   verTodas: boolean;
   userId: string;
+  /** /observaciones abre con todas a la vista; el buzón, con las nuevas. */
+  filtroInicial?: EstadoSugerencia | "todas";
+  /** /observaciones: además filtra por tipo y busca por texto o persona. */
+  conFiltroTipo?: boolean;
 }) {
   const params = useSearchParams();
   const ver = params.get("ver");
-  const [filtro, setFiltro] = useState<EstadoSugerencia | "todas" | "mias">(verTodas ? "nueva" : "todas");
+  const [filtro, setFiltro] = useState<EstadoSugerencia | "todas" | "mias">(filtroInicial ?? (verTodas ? "nueva" : "todas"));
+  const [tipo, setTipo] = useState<TipoSugerencia | "todos">("todos");
+  const [texto, setTexto] = useState("");
   const conteo = useMemo(() => {
     const c: Record<string, number> = {};
     for (const s of sugerencias) c[s.estado] = (c[s.estado] ?? 0) + 1;
     return c;
   }, [sugerencias]);
+  const buscado = texto.trim().toLowerCase();
   const lista = sugerencias.filter((s) =>
-    s.id === ver ? true : filtro === "todas" ? true : filtro === "mias" ? s.autor_id === userId : s.estado === filtro,
+    s.id === ver
+      ? true
+      : (filtro === "todas" ? true : filtro === "mias" ? s.autor_id === userId : s.estado === filtro) &&
+        (tipo === "todos" || s.tipo === tipo) &&
+        (!buscado || [s.titulo, s.detalle, s.autor_nombre, s.pantalla ?? ""].some((c) => c.toLowerCase().includes(buscado))),
   );
 
   return (
@@ -443,11 +456,35 @@ export function ListaSugerencias({
           ))}
         </div>
       )}
+      {conFiltroTipo && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {[{ valor: "todos" as const, etiqueta: "Todos los tipos", emoji: "" }, ...TIPOS_SUGERENCIA].map((t) => (
+            <button
+              key={t.valor}
+              type="button"
+              onClick={() => setTipo(t.valor)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                tipo === t.valor ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:border-foreground/40",
+              )}
+            >
+              {t.emoji ? `${t.emoji} ` : ""}
+              {t.etiqueta}
+            </button>
+          ))}
+          <Input
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            placeholder="Buscar por texto, persona o pantalla"
+            className="ml-auto h-8 w-full text-xs sm:w-64"
+          />
+        </div>
+      )}
       {lista.length === 0 ? (
         <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
           {verTodas ? <Inbox className="size-6" /> : <Clock className="size-6" />}
           {verTodas
-            ? "No hay sugerencias en este estado."
+            ? conFiltroTipo ? "Ninguna observación coincide con este estado, tipo o búsqueda." : "No hay sugerencias en este estado."
             : "Todavía no ha dejado sugerencias. Lo que escriba a la izquierda aparece aquí, con su respuesta."}
         </div>
       ) : (

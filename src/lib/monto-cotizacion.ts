@@ -40,8 +40,10 @@ export function totalConIgv(totalSinIgv: number | string | null | undefined): nu
 export function montoCotizacion(
   totalSinIgv: number | string | null | undefined,
   moneda: string | null | undefined,
+  /** El total con IGV exacto del PDF cuando hay renglones pactados con IGV (`totalesConIgvExactos`). */
+  conIgvExacto?: number | null,
 ): string | null {
-  const conIgv = totalConIgv(totalSinIgv);
+  const conIgv = conIgvExacto ?? totalConIgv(totalSinIgv);
   if (conIgv == null) return null;
   return `${moneda ?? "USD"} ${conIgv.toLocaleString("es-PE", { maximumFractionDigits: 2 })}`;
 }

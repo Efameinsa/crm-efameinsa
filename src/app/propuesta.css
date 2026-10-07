@@ -408,11 +408,16 @@ html:has(.propuesta) {
   to { transform: scaleX(0.85); }
 }
 
+/* «backwards», no «both»: con «both» el contenedor se queda para siempre con
+   un transform (aunque sea «none» en el keyframe, Chrome lo cuenta) y todo lo
+   «fixed» de adentro deja de medirse contra la ventana. Le pasó a C9 el 06-10:
+   el panel lateral de la agenda quedó del alto de la página y, con un día
+   desplegado y la página bajada, se veía en blanco. */
 .propuesta main > * {
-  animation: entrada 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: entrada 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 .propuesta main > * > * {
-  animation: entrada 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: entrada 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 .propuesta main > * > :nth-child(2) { animation-delay: 0.04s; }
 .propuesta main > * > :nth-child(3) { animation-delay: 0.08s; }

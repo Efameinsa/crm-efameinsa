@@ -24,6 +24,8 @@ export interface ItemCotizacion {
   color?: string | null;
   /** El nombre con el que sale impreso este renglón del catálogo (0390). null = el del catálogo, que no cambia. */
   nombre_impreso?: string | null;
+  /** Las piezas del kit con las cantidades de ESTA cotización (0405). null = las de la ficha. */
+  detalle_kit?: string[] | null;
 }
 
 /**
@@ -272,7 +274,7 @@ export async function cambiarSerieBorrador(datos: {
   const { data: original } = await supabase
     .from("cotizaciones")
     .select(
-      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso)",
+      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit)",
     )
     .eq("id", datos.cotizacionId)
     .maybeSingle();
@@ -292,6 +294,7 @@ export async function cambiarSerieBorrador(datos: {
       tier_aplicado: string | null;
       color: string | null;
       nombre_impreso: string | null;
+      detalle_kit: string[] | null;
     }[]) ?? [];
   if (items.length === 0) return { error: "El borrador no tiene equipos" };
 
@@ -308,6 +311,7 @@ export async function cambiarSerieBorrador(datos: {
       tier_aplicado: i.tier_aplicado ?? undefined,
       color: i.color,
       nombre_impreso: i.nombre_impreso,
+      detalle_kit: i.detalle_kit,
     })),
     p_condiciones: original.condiciones,
     p_vigencia_dias: original.vigencia_dias,
@@ -345,7 +349,7 @@ export async function duplicarCotizacion(
 
   const { data: original, error: errorOriginal } = await supabase
     .from("cotizaciones")
-    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso)")
+    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit)")
     .eq("id", cotizacionId)
     .maybeSingle();
   if (errorOriginal) return { error: errorOriginal.message };
@@ -362,6 +366,7 @@ export async function duplicarCotizacion(
       tier_aplicado: string | null;
       color: string | null;
       nombre_impreso: string | null;
+      detalle_kit: string[] | null;
     }[]) ?? [];
   if (items.length === 0) return { error: "La cotización original no tiene ítems" };
 
@@ -382,6 +387,7 @@ export async function duplicarCotizacion(
       // la copia saldría con otro color y otra foto en el PDF.
       color: i.color,
       nombre_impreso: i.nombre_impreso,
+      detalle_kit: i.detalle_kit,
     })),
     p_condiciones: original.condiciones,
     p_vigencia_dias: original.vigencia_dias,

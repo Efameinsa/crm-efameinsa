@@ -31,7 +31,7 @@ export function EncabezadoUsuario({ perfil, demo = false }: { perfil: Perfil; de
           <p className="text-xs text-muted-foreground">
             {/* Postventa y almacén viajan con rol comercial, pero no son
                 vendedores: el rótulo dice lo que la persona es (Santos, 17-09). */}
-            {perfil.es_almacen ? "Almacén" : perfil.es_postventa ? "Postventa" : ETIQUETA_ROL[perfil.rol]}
+            {perfil.es_importaciones ? "Importaciones" : perfil.es_almacen ? "Almacén" : perfil.es_postventa ? "Postventa" : ETIQUETA_ROL[perfil.rol]}
             {perfil.codigo_comercial ? ` · ${perfil.codigo_comercial}` : ""}
           </p>
         </div>

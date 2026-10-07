@@ -1,6 +1,7 @@
 import { Phone, Mail, MapPin, FileText, CalendarClock, Building2, MessageCircle } from "lucide-react";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { versionesAnteriores } from "@/lib/versiones-cotizacion";
+import { totalesConIgvExactos } from "@/lib/total-con-igv-exacto";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
@@ -98,7 +99,7 @@ export default async function OportunidadDetallePage({
           // entre oportunidades y leads (lead_id y leads.oportunidad_id) y el
           // embed sin desambiguar hace fallar la consulta ENTERA — el 01-09
           // dejó todas las fichas en «ya no se puede mostrar» una hora.
-          "id, etapa, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, tipo_postventa, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, pagina_entrada, pagina_envio, referente, recibido_at, nombre_contacto, telefono, email), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal, categoria))",
+          "id, etapa, motivo_rechazo_id, origen, intencion, monto_estimado, moneda, segmento, proxima_accion, proxima_accion_at, proxima_accion_hora, lead_id, created_at, comercial_id, tipo_postventa, perfiles:comercial_id(nombre, codigo_comercial), leads!oportunidades_lead_id_fkey(codigo, canal, mensaje, adjuntos, utm_campaign, codigo_campania_wa, plataforma_campania_wa, pagina_entrada, pagina_envio, referente, recibido_at, nombre_contacto, telefono, email), cuentas(id, razon_social, nombre_comercial, tipo_doc, num_doc, direccion, rubro_id, cuenta_padre_id, carpetas_servidor, contactos(nombre, cargo, telefono, email, es_principal, categoria))",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -280,9 +281,13 @@ export default async function OportunidadDetallePage({
   // versiones de las que tienen alguna: el 99 % de las fichas no paga la
   // consulta.
   const corregidas = (cotizaciones ?? []).filter((c) => Number(c.version ?? 1) > 1).map((c) => c.id as string);
-  const anteriores = await versionesAnteriores(supabase, corregidas);
+  const [anteriores, conIgvExacto] = await Promise.all([
+    versionesAnteriores(supabase, corregidas),
+    totalesConIgvExactos(supabase, (cotizaciones ?? []).map((c) => c.id as string)),
+  ]);
   const cotizacionesConVersion = (cotizaciones ?? []).map((c) => ({
     ...c,
+    total_con_igv: conIgvExacto.get(c.id as string) ?? null,
     version: Number(c.version ?? 1),
     versionesAnteriores: anteriores.get(c.id as string) ?? [],
   }));
@@ -923,6 +928,7 @@ export default async function OportunidadDetallePage({
                 key={oportunidad.etapa}
                 oportunidadId={oportunidad.id}
                 etapaActual={oportunidad.etapa}
+                motivoActual={oportunidad.motivo_rechazo_id ?? null}
                 motivos={(motivos ?? []).filter((m) => !m.requiere_nota && (!m.solo_postventa || oportunidad.tipo_postventa != null))}
                 yaTieneVenta={Boolean(ventaDeLaOportunidad)}
               />

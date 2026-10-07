@@ -1,5 +1,6 @@
 import type { ServicioPostventa } from "@/lib/postventa";
 import { ETIQUETA_TIPO_ATENCION, type TipoAtencion } from "@/lib/atenciones";
+import { ETIQUETA_TIPO_APERTURA, type TipoApertura } from "@/lib/aperturas-llamada";
 
 /**
  * El calendario del área: qué técnico se mueve, adónde y qué día.
@@ -16,7 +17,7 @@ import { ETIQUETA_TIPO_ATENCION, type TipoAtencion } from "@/lib/atenciones";
  * con un cuaderno, un Excel y un grupo de WhatsApp llevando lo mismo.
  */
 
-export type OrigenEvento = "pedido" | "caso" | "tarea" | "atencion" | "visita";
+export type OrigenEvento = "pedido" | "caso" | "tarea" | "atencion" | "visita" | "llamada";
 
 export interface EventoCalendario {
   /** Único en la grilla: un mismo pedido aporta despacho y puesta en marcha. */
@@ -64,6 +65,7 @@ export const COLOR_EVENTO: Record<string, string> = {
   tarea: "border-l-neutral-400 bg-neutral-50 dark:border-l-neutral-400 dark:bg-neutral-400/12",
   atencion_tecnica: "border-l-orange-600 bg-orange-50 dark:border-l-orange-400 dark:bg-orange-500/15",
   visita_planta: "border-l-teal-600 bg-teal-50 dark:border-l-teal-400 dark:bg-teal-500/15",
+  llamada_almacen: "border-l-indigo-600 bg-indigo-50 dark:border-l-indigo-400 dark:bg-indigo-500/15",
 };
 
 export const ETIQUETA_EVENTO: Record<string, string> = {
@@ -79,6 +81,7 @@ export const ETIQUETA_EVENTO: Record<string, string> = {
   tarea: "Personal",
   atencion_tecnica: "Atención técnica",
   visita_planta: "Viene a planta",
+  llamada_almacen: "Derivada al almacén",
 };
 
 export function colorEvento(tipo: string): string {
@@ -309,5 +312,44 @@ export function eventoDeVisita(v: {
     href: "/central/visitas",
     origen: "visita",
     hecho: Boolean(v.cancelada_at),
+  };
+}
+
+/**
+ * LA LLAMADA DERIVADA AL ALMACÉN SALE EN LA AGENDA (buzón de Rubí, 06-10:
+ * «que las derivaciones de las llamadas también aparezcan en la agenda para
+ * realizar un mejor seguimiento»). Duo Lavandería se derivó para el 6 a las
+ * 17:30 y solo se veía en la ficha del cliente. Tiene día, hora y alguien que
+ * la atiende: es una cita del área como cualquier otra.
+ */
+export function eventoDeLlamada(l: {
+  id: string;
+  tipo: string;
+  programada_para: string;
+  tecnico: string | null;
+  urgente?: boolean | null;
+  tomada_at: string | null;
+  informe_at: string | null;
+  cliente: string;
+  cuentaId?: string | null;
+  zona: string | null;
+}): EventoCalendario {
+  const enLima = new Date(l.programada_para).toLocaleString("sv-SE", { timeZone: "America/Lima" });
+  const [fecha, horaCompleta] = enLima.split(" ");
+  const hora = horaCompleta?.slice(0, 5) ?? null;
+  const estado = l.informe_at ? "con informe" : l.tomada_at ? "el almacén la tomó" : "esperando al almacén";
+  return {
+    clave: `llamada-${l.id}`,
+    fecha,
+    hora: hora === "00:00" ? null : hora,
+    tipo: "llamada_almacen",
+    titulo: `${l.urgente ? "URGENTE · " : ""}${ETIQUETA_TIPO_APERTURA[l.tipo as TipoApertura] ?? "Llamada"}${l.tecnico ? ` · ${l.tecnico}` : ""} · ${estado}`,
+    cliente: l.cliente,
+    cuentaId: l.cuentaId ?? null,
+    ubicacion: null,
+    zona: l.zona,
+    href: `/aperturas/${l.id}`,
+    origen: "llamada",
+    hecho: Boolean(l.informe_at),
   };
 }

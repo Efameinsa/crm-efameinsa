@@ -46,7 +46,7 @@ export default async function AlmacenPage() {
   const [{ data: pedidos }, { data: atenciones }, { data: visitas }, { data: aperturas }] = await Promise.all([
     supabase
       .from("servicios_postventa")
-      .select("id, cliente_texto, equipo, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, agencia_at, guia, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en")
+      .select("id, cliente_texto, equipo, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, agencia_at, guia, guia_confirmada_at, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en")
       .eq("completado", false)
       .is("cerrado_at", null)
       .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
@@ -94,6 +94,8 @@ export default async function AlmacenPage() {
   const porProbar = vivos.filter((s) => s.prueba_solicitada_at && !probado(s));
   const sinPedirPrueba = vivos.filter((s) => s.aprobado_at && !s.prueba_solicitada_at && !probado(s) && s.informe_cierre_id);
   const conApertura = vivos.filter((s) => s.apertura_despacho_at && !s.despachado_at);
+  // Finanzas autorizó la guía y todavía no se emite (reunión de gerencia 06-10 11:01).
+  const guiasAutorizadas = conApertura.filter((s) => s.guia_confirmada_at && !s.guia);
   const programados = vivos.filter((s) => s.fecha_despacho && !s.despachado_at);
   const programadosHoy = programados.filter((s) => s.fecha_despacho === hoy);
   const atrasados = programados.filter((s) => (s.fecha_despacho as string) < hoy);
@@ -115,6 +117,7 @@ export default async function AlmacenPage() {
     { titulo: "Programados sin confirmar", numero: porConfirmar.length, ayuda: "Postventa puso fecha; falta decir que el almacén está listo.", href: "/almacen/pedidos?ver=confirmar" },
     { titulo: "De esos, sin apertura", numero: sinApertura.length, ayuda: "Postventa todavía no cumplió: no hay nada que preparar todavía.", href: "/almacen/pedidos?ver=confirmar", alerta: true },
     { titulo: "Atrasados", numero: atrasados.length, ayuda: "Tenían fecha y no salieron.", href: "/almacen/pedidos?ver=atrasados", alerta: true },
+    { titulo: "Guías autorizadas por Finanzas", numero: guiasAutorizadas.length, ayuda: "Finanzas revisó la apertura y dijo con qué comprobante sale: emita la guía.", href: "/almacen/pedidos?ver=guias", alerta: true },
     { titulo: "Con apertura, sin salir", numero: conApertura.length, ayuda: "Ya se puede despachar.", href: "/almacen/pedidos?ver=apertura" },
     { titulo: "Salieron, sin guía", numero: salidosSinGuia.length, ayuda: "Falta la foto de la guía en la agencia.", href: "/almacen/pedidos?ver=guia", alerta: true },
     { titulo: "Aprobados sin pedido de prueba", numero: sinPedirPrueba.length, ayuda: "Postventa todavía no pidió la prueba; se puede adelantar.", href: "/almacen/pedidos?ver=aprobados" },

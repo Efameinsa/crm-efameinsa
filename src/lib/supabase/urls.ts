@@ -30,7 +30,15 @@ export function fetchRedInterna(base: typeof fetch = fetch): typeof fetch {
   return desviado as typeof fetch;
 }
 
+// 06-10 (sugerencia de Lesly 6e47bfb4): una pestaña que quedó abierta en la
+// dirección vieja armaba los enlaces firmados con ella y el link del informe de
+// protocolo salía como crm-local.activasme.site. Desde ahí se usa la pública.
+const DOMINIO_VIEJO = "crm-local.activasme.site";
+
 export function urlSupabaseNavegador(): string {
+  if (typeof window !== "undefined" && window.location.hostname === DOMINIO_VIEJO) {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  }
   if (process.env.NEXT_PUBLIC_SUPABASE_MISMO_ORIGEN === "1" && typeof window !== "undefined") {
     return window.location.origin;
   }

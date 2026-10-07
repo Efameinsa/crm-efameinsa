@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, Boxes, Plus, Search, TriangleAlert } from "lucide-react";
+import { AlertTriangle, Boxes, FileText, Plus, Search, TriangleAlert } from "lucide-react";
 import { buscarEquipos, retiradosQueCoinciden } from "@/lib/buscar-equipo";
+import { textoABloques } from "@/lib/ficha-texto";
 import { rutaFoto } from "@/lib/foto-producto";
 import { AccionesEquipo } from "@/components/crm/acciones-equipo";
 import type { EquipoCatalogo, SaludCatalogo } from "@/lib/catalogo-operaciones";
@@ -29,10 +30,27 @@ import { cn } from "@/lib/utils";
  * Y SE ABRE HACIENDO CLIC EN EL EQUIPO. Lo que se abre no es un formulario: es
  * la hoja técnica tal como sale impresa, editable encima.
  */
-export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalogo[]; salud: SaludCatalogo }) {
+export function CatalogoOperaciones({
+  equipos,
+  salud,
+  soloLectura = false,
+}: {
+  equipos: EquipoCatalogo[];
+  salud: SaludCatalogo;
+  /**
+   * LA VISTA DEL ALMACÉN (Lesly, 06-10): «que almacén tenga la vista de
+   * catálogo solo para ver la información, mas no para subir o editar». La
+   * misma pantalla —el mismo buscador, los mismos filtros, la misma tarjeta—
+   * sin lo que sirve para mantenerla: ni cargar, ni subir el Word, ni el ⋮, ni
+   * los avisos de lo incompleto. La ficha abre para leerse, no editable. Las
+   * acciones de servidor también lo rechazan (`acciones/productos.ts`).
+   */
+  soloLectura?: boolean;
+}) {
   const [texto, setTexto] = useState("");
   const [filtro, setFiltro] = useState<Filtro>({ tipo: "todas" });
   const [abierto, setAbierto] = useState<EquipoEditable | null>(null);
+  const [consultado, setConsultado] = useState<EquipoCatalogo | null>(null);
   // El que se acaba de cargar: sube al principio y se resalta un rato. Sin
   // esto, un equipo nuevo cae en su lugar alfabético entre ciento veinte y
   // hay que ir a buscarlo (reportado 28-08: «ahora se me perdió y no lo veo»).
@@ -93,7 +111,7 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
     <div className="space-y-4">
       {/* Lo que está mal, arriba: un catálogo se mantiene por sus huecos, y un
           hueco no aparece nunca en una lista de lo que hay. */}
-      {(salud.categoriasRepetidas.length > 0 || salud.sinPrecio > 0 || salud.sinFicha > 0 || salud.sinFoto > 0) && (
+      {!soloLectura && (salud.categoriasRepetidas.length > 0 || salud.sinPrecio > 0 || salud.sinFicha > 0 || salud.sinFoto > 0) && (
         <div className="space-y-2 rounded-lg border-2 border-amber-300 bg-amber-50/70 p-3">
           <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-amber-900">
             <TriangleAlert className="size-3.5" /> Revisar
@@ -135,14 +153,16 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
               className="pl-8"
             />
           </div>
-          <Button size="sm" onClick={() => setAbierto(EQUIPO_NUEVO)}>
-            <Plus className="size-3.5" /> Cargar un equipo
-          </Button>
+          {!soloLectura && (
+            <Button size="sm" onClick={() => setAbierto(EQUIPO_NUEVO)}>
+              <Plus className="size-3.5" /> Cargar un equipo
+            </Button>
+          )}
           {/* EL ATAJO PARA LOS QUE YA TIENEN FICHA. Casi todo lo que Lesly
               carga ya está escrito en un Word suyo: escribirlo otra vez a mano
               es copiar cuarenta líneas y equivocarse en alguna. Arrastra el
               archivo y la hoja abre llena (Santos, 31-08). */}
-          <SubirFichaWord onLeida={setAbierto} />
+          {!soloLectura && <SubirFichaWord onLeida={setAbierto} />}
         </div>
 
         {/* UN FILTRO A LA VEZ.
@@ -176,10 +196,13 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
           <Pastilla
             activa={filtro.tipo === "sin_stock"}
             onClick={() => setFiltro(filtro.tipo === "sin_stock" ? { tipo: "todas" } : { tipo: "sin_stock" })}
-            titulo="Para encontrarlos y actualizarles la cantidad"
+            titulo={soloLectura ? "Los que hoy no se pueden prometer" : "Para encontrarlos y actualizarles la cantidad"}
           >
             Sin stock {conteos.sinStock}
           </Pastilla>
+          {/* Incompletos y apagados son trabajo de quien mantiene el catálogo. */}
+          {!soloLectura && (
+          <>
           <Pastilla
             activa={filtro.tipo === "incompletos"}
             onClick={() => setFiltro(filtro.tipo === "incompletos" ? { tipo: "todas" } : { tipo: "incompletos" })}
@@ -194,6 +217,8 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
           >
             Fuera del catálogo {salud.inactivos}
           </Pastilla>
+          </>
+          )}
         </div>
 
         <p className="text-xs text-muted-foreground">
@@ -203,7 +228,7 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
           {texto.trim() && resultados.length === 0 && " — si acá no sale, al comercial tampoco le sale."}
         </p>
 
-        {filtro.tipo !== "fuera" && retirados.length > 0 && (
+        {!soloLectura && filtro.tipo !== "fuera" && retirados.length > 0 && (
           <div className="rounded-lg border border-dashed border-border bg-secondary/40 p-3 text-xs leading-snug text-muted-foreground">
             <p>
               {resultados.length === 0
@@ -238,11 +263,24 @@ export function CatalogoOperaciones({ equipos, salud }: { equipos: EquipoCatalog
             key={e.id}
             equipo={e}
             nueva={e.id === recienCargado}
-            onAbrir={() => setAbierto(aEditable(e))}
+            soloLectura={soloLectura}
+            onAbrir={() => (soloLectura ? setConsultado(e) : setAbierto(aEditable(e)))}
             onDuplicar={() => setAbierto(duplicado(e))}
           />
         ))}
       </div>
+
+      {/* La ficha para leer: lo que abre el almacén al pulsar un equipo. */}
+      <Dialog open={consultado !== null} onOpenChange={(v) => !v && setConsultado(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {consultado?.marca} {consultado?.modelo}
+            </DialogTitle>
+          </DialogHeader>
+          {consultado && <FichaConsulta equipo={consultado} />}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={abierto !== null} onOpenChange={(v) => !v && setAbierto(null)}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-5xl">
@@ -404,10 +442,13 @@ function Pastilla({
 function TarjetaEquipo({
   equipo: e,
   nueva = false,
+  soloLectura = false,
   onAbrir,
   onDuplicar,
 }: {
   equipo: EquipoCatalogo;
+  /** Almacén: la tarjeta abre la ficha para leerla y no lleva el ⋮. */
+  soloLectura?: boolean;
   /** Recién cargado: sube al principio y se resalta hasta que se lo vea. */
   nueva?: boolean;
   onAbrir: () => void;
@@ -420,7 +461,7 @@ function TarjetaEquipo({
       tabIndex={0}
       onClick={onAbrir}
       onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && onAbrir()}
-      title="Abrir la ficha para verla o corregirla"
+      title={soloLectura ? "Abrir la ficha" : "Abrir la ficha para verla o corregirla"}
       className={cn(
         "group flex cursor-pointer gap-3 rounded-lg border p-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/40",
         nueva
@@ -465,14 +506,16 @@ function TarjetaEquipo({
               fuera del catálogo
             </span>
           )}
-          <span className="ml-auto">
-            <AccionesEquipo
-              nombre={`${e.marca} ${e.modelo}`}
-              equipoId={e.id}
-              onEditar={onAbrir}
-              onDuplicar={onDuplicar}
-            />
-          </span>
+          {!soloLectura && (
+            <span className="ml-auto">
+              <AccionesEquipo
+                nombre={`${e.marca} ${e.modelo}`}
+                equipoId={e.id}
+                onEditar={onAbrir}
+                onDuplicar={onDuplicar}
+              />
+            </span>
+          )}
         </p>
         <p className="truncate text-xs text-muted-foreground">{e.nombre}</p>
         <p className="mt-0.5 flex flex-wrap gap-x-2 text-[11px] text-muted-foreground">
@@ -528,5 +571,133 @@ function TarjetaEquipo({
         </div>
       </div>
     </article>
+  );
+}
+
+/**
+ * La ficha de un equipo para LEERLA (vista del almacén, 06-10): la foto, la
+ * cabecera, el precio, el stock y la descripción tal como se imprime. Sin un
+ * solo campo editable; el PDF abre la hoja que recibe el cliente.
+ */
+function FichaConsulta({ equipo: e }: { equipo: EquipoCatalogo }) {
+  const bloques = textoABloques(e.fichaTexto);
+  const stock = stockDe(e);
+  const cabecera: [string, string | null][] = [
+    ["Código", e.sku],
+    ["Categoría", e.categoria],
+    ["Segmento", e.segmento.replace("_", "-")],
+    ["Capacidad", e.capacidad],
+    ["Calentamiento", e.calentamiento],
+    ["Panel", e.panel],
+    ["Controles", e.controles],
+    ["Montaje", e.montaje],
+    ["Colores", e.colores.length ? e.colores.join(", ") : null],
+    ...e.encabezadoExtra.map((x): [string, string | null] => [x.rotulo, x.valor || null]),
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="size-48 flex-none self-center overflow-hidden rounded-md border border-border bg-white sm:self-start">
+          {e.fotoPath ? (
+            <Image
+              src={rutaFoto(e.fotoPath)}
+              alt={`${e.marca} ${e.modelo}`}
+              width={192}
+              height={192}
+              className="size-full object-contain"
+              unoptimized
+            />
+          ) : (
+            <span className="flex size-full items-center justify-center text-xs text-muted-foreground">sin foto</span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="text-sm text-muted-foreground">{e.nombre}</p>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+            {cabecera
+              .filter(([, v]) => v)
+              .map(([k, v]) => (
+                <div key={k} className="contents">
+                  <dt className="font-semibold text-muted-foreground">{k}</dt>
+                  <dd className="text-foreground">{v}</dd>
+                </div>
+              ))}
+          </dl>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+            {e.precios.length === 0 ? (
+              <span className="text-xs font-semibold text-amber-700">sin precio</span>
+            ) : (
+              e.precios.map((p) => (
+                <span key={p.tier} className="text-xs tabular-nums text-foreground">
+                  <span className="capitalize text-muted-foreground">Precio {p.tier}</span>{" "}
+                  {p.precio.toLocaleString("es-PE")}
+                </span>
+              ))
+            )}
+            {e.segmento !== "servicio" && (
+              <span
+                title={stock.titulo}
+                className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                  stock.cantidad > 0 ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : "bg-secondary text-muted-foreground",
+                )}
+              >
+                {stock.etiqueta}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border p-3">
+        {bloques.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Este equipo no tiene ficha cargada: la cotización sale sin especificaciones. Avise a operaciones.
+          </p>
+        ) : (
+          <div className="space-y-1 text-xs leading-relaxed text-foreground">
+            {bloques.map((b, i) =>
+              b.t === "titulo" ? (
+                <p key={i} className="pt-1 text-sm font-bold">
+                  {b.texto}
+                </p>
+              ) : b.t === "subtitulo" ? (
+                <p key={i} className="pt-1 font-semibold">
+                  {b.texto}
+                </p>
+              ) : b.t === "dato" ? (
+                <p key={i}>
+                  <span className="font-semibold">{b.rotulo}:</span> {b.valor}
+                </p>
+              ) : (
+                <p key={i} className="pl-3 -indent-3">
+                  • {b.texto}
+                </p>
+              ),
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <a
+          href={`/api/productos/${e.id}/vista-previa`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+        >
+          <FileText className="size-3.5" /> Ver el PDF, Efameinsa
+        </a>
+        <a
+          href={`/api/productos/${e.id}/vista-previa?serie=OPEN`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+        >
+          <FileText className="size-3.5" /> en Open
+        </a>
+        <span className="text-[11px] text-muted-foreground">Solo consulta: los cambios los hace operaciones.</span>
+      </div>
+    </div>
   );
 }

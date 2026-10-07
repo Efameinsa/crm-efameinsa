@@ -7,6 +7,7 @@ import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { LineaAtencion } from "@/components/crm/linea-atencion";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
+import { AperturaServicioCaso } from "@/components/crm/apertura-servicio-caso";
 import { ETIQUETA_ESTADO_APERTURA, ETIQUETA_TIPO_APERTURA, estadoApertura, type AperturaLlamada } from "@/lib/aperturas-llamada";
 import { tecnicosConocidos } from "@/lib/tecnicos";
 import { FichasRelacionadas } from "@/components/crm/fichas-relacionadas";
@@ -61,6 +62,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
 
   const a = data as unknown as Atencion & {
     oportunidad_id: string | null;
+    servicio_id: string | null;
     recibidoPor: { nombre: string; codigo_comercial: string | null } | null;
     cuentas: { razon_social: string; num_doc: string | null } | null;
     perfiles: { nombre: string; codigo_comercial: string | null } | null;
@@ -366,6 +368,15 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
             titulo="El circuito"
             accion={
               a.cuenta_id && !a.cerrado_at ? (
+                <span className="flex flex-wrap items-center gap-1.5">
+                {/* Apertura de servicio sin pedido (0407, reunión 06-10 11:01). */}
+                {a.servicio_id ? (
+                  <Link href={`/postventa/pedidos/${a.servicio_id}`} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-primary hover:bg-accent">
+                    Ver su apertura de servicio
+                  </Link>
+                ) : (
+                  <AperturaServicioCaso atencionId={a.id} enGarantia={Boolean(a.en_garantia)} tecnicoSugerido={a.tecnico} />
+                )}
                 <AperturaLlamadaBoton
                   cuentaId={a.cuenta_id}
                   atencionId={a.id}
@@ -377,6 +388,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
                   problema={[a.detalle ?? "", a.diagnostico ? `Antecedentes: ${a.diagnostico}` : ""].filter(Boolean).join("\n\n")}
                   compacto
                 />
+                </span>
               ) : undefined
             }
           >

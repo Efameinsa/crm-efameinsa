@@ -6,6 +6,7 @@ import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
+import { correoAlArea } from "@/lib/correo-al-area";
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
@@ -381,6 +382,23 @@ export async function emitirAperturaDespacho(servicioId: string) {
       url: "/finanzas/aperturas",
       esPrueba: s.es_prueba === true,
     }),
+    // Y por correo, al de la empresa del pedido (directorio 0410).
+    correoAlArea({
+      areas: ["finanzas"],
+      servicioId,
+      titulo: `Apertura por confirmar · ${quien}`,
+      cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      url: "/finanzas/aperturas",
+      esPrueba: s.es_prueba === true,
+    }),
+    correoAlArea({
+      areas: ["almacen"],
+      servicioId,
+      titulo: `Apertura de despacho · ${quien}`,
+      cuerpo: `${s.equipo ?? ""}${s.fecha_despacho ? ` · programado para el ${s.fecha_despacho}` : " · falta programar el día"}. Finanzas confirma la guía de salida.`,
+      url: `/almacen/pedidos/${servicioId}`,
+      esPrueba: s.es_prueba === true,
+    }),
   ]);
   revalidatePath("/finanzas/aperturas");
   revalidatePath("/almacen/aperturas-postventa");
@@ -415,7 +433,7 @@ async function candadoDeApertura(
   servicioId: string,
   pin?: string | null,
   cambia?: (s: Record<string, unknown>) => boolean,
-): Promise<{ error: string | null; pidePin?: boolean }> {
+): Promise<{ error: string | null; pidePin?: boolean; corrige?: boolean }> {
   const supabase = await createClient();
   const { data: s } = await supabase.from("servicios_postventa").select("*").eq("id", servicioId).maybeSingle();
   if (!s?.apertura_despacho_at) return { error: null };
@@ -423,7 +441,57 @@ async function candadoDeApertura(
   if (!pin?.trim()) return { error: "La apertura ya se emitió: para cambiar esto hace falta el código de operaciones o gerencia", pidePin: true };
   const { error } = await supabase.rpc("validar_codigo_autorizacion", { p_pin: pin.trim(), p_ambito: "operaciones" });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, ""), pidePin: true };
-  return { error: null };
+  // `corrige`: la apertura emitida cambia; Finanzas tiene que volver a verla (0406).
+  return { error: null, corrige: true };
+}
+
+/**
+ * LA APERTURA CORREGIDA VUELVE A FINANZAS (reunión de gerencia 06-10 11:01:
+ * «ni bien aparezca eso, que sea una alarma… una modificación, y que le llegue
+ * al correo»). Si el pedido no salió, la autorización de la guía queda sin
+ * efecto (0406) y Finanzas y el almacén reciben el aviso. Y por correo, a
+ * quienes el directorio (0410) marca para esas áreas.
+ */
+async function avisarAperturaCorregida(servicioId: string, que: string) {
+  const supabase = await createClient();
+  const { data: anulada, error } = await supabase.rpc("apertura_corregida", { p_servicio: servicioId, p_que: que });
+  if (error) return;
+  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp, es_prueba, despachado_at").eq("id", servicioId).maybeSingle();
+  if (!s || s.despachado_at) return;
+  const quien = (s.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+  const pedido = s.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : "";
+  await Promise.all([
+    notificarFinanzas({
+      titulo: `Apertura corregida · ${quien}`,
+      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " Su autorización de la guía quedó sin efecto: revísela y vuelva a autorizarla." : " Revísela antes de autorizar la guía."}`,
+      url: "/finanzas/aperturas",
+      esPrueba: s.es_prueba === true,
+    }),
+    notificarAlmacen({
+      titulo: `Apertura corregida · ${quien}`,
+      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " No emita la guía hasta que Finanzas la vuelva a autorizar." : ""}`,
+      url: `/almacen/pedidos/${servicioId}`,
+      esPrueba: s.es_prueba === true,
+    }),
+    correoAlArea({
+      areas: ["finanzas"],
+      servicioId,
+      titulo: `Apertura corregida · ${quien}`,
+      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " Su autorización de la guía quedó sin efecto: revísela y vuelva a autorizarla." : " Revísela antes de autorizar la guía."}`,
+      url: "/finanzas/aperturas",
+      esPrueba: s.es_prueba === true,
+    }),
+    correoAlArea({
+      areas: ["almacen"],
+      servicioId,
+      titulo: `Apertura corregida · ${quien}`,
+      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " No emita la guía hasta que Finanzas la vuelva a autorizar." : ""}`,
+      url: `/almacen/pedidos/${servicioId}`,
+      esPrueba: s.es_prueba === true,
+    }),
+  ]);
+  revalidatePath("/finanzas/aperturas");
+  revalidatePath("/almacen/aperturas-postventa");
 }
 
 export async function verificarDireccion(
@@ -494,6 +562,7 @@ export async function verificarDireccion(
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);
+  if (candado.corrige) await avisarAperturaCorregida(servicioId, "la dirección o quién recibe");
   // Quien recibe queda en la ficha como contacto operativo si no estaba (0352; Carlos, 30-09).
   await sumarContactoOperativo(await cuentaDelPedido(servicioId), { nombre: datos.recibeNombre, telefono: datos.recibeTelefono }, "direccion_verificada");
   revalidatePath(`/postventa/pedidos/${servicioId}`);
@@ -547,6 +616,7 @@ export async function programarDespacho(servicioId: string, fecha: string, hora?
     .update({ fecha_despacho: fecha || null, despacho_hora: horaLimpia, despacho_nota: nota?.trim() || null })
     .eq("id", servicioId);
   if (error) return falla(error.message);
+  if (candado.corrige) await avisarAperturaCorregida(servicioId, "la fecha o la hora del despacho");
   // «Con quién del cliente coordinó (nombre y celular)»: si trae un celular que no
   // está en la ficha, esa persona se suma como contacto operativo (0352).
   if (nota?.trim()) await sumarContactoOperativo(await cuentaDelPedido(servicioId), nota, "programar_despacho");
@@ -1264,6 +1334,25 @@ export async function guardarAperturaServicio(
   if (datos.guia && !["traslado", "materiales", "repuestos", "ambas"].includes(datos.guia)) {
     return falla("Esa no es una de las guías que se pueden pedir");
   }
+  // Con la apertura emitida, lo que cambie de esto va a Finanzas y al almacén (0406).
+  const { data: antes } = await supabase
+    .from("servicios_postventa")
+    .select("apertura_despacho_at, apertura_fecha, apertura_hora, direccion_final, apertura_guia, apertura_guia_detalle")
+    .eq("id", servicioId)
+    .maybeSingle();
+  const cambios = antes?.apertura_despacho_at
+    ? (
+        [
+          ["la fecha", antes.apertura_fecha, datos.fecha],
+          ["la hora", String(antes.apertura_hora ?? "").slice(0, 5), (datos.hora ?? "").slice(0, 5)],
+          ["la dirección final", antes.direccion_final, datos.direccionFinal],
+          ["la guía que se pide", antes.apertura_guia, datos.guia],
+          ["el detalle de la guía", antes.apertura_guia_detalle, datos.guiaDetalle],
+        ] as [string, unknown, string | null | undefined][]
+      )
+        .filter(([, a, d]) => d !== undefined && String(a ?? "").trim() !== (limpio(d) ?? ""))
+        .map(([que]) => que)
+    : [];
 
   const { error } = await supabase
     .from("servicios_postventa")
@@ -1284,6 +1373,7 @@ export async function guardarAperturaServicio(
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);
+  if (cambios.length) await avisarAperturaCorregida(servicioId, cambios.join(", "));
 
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   revalidatePath(`/postventa/pedidos/${servicioId}/apertura`);
@@ -1449,4 +1539,88 @@ export async function traerPedidoAntiguo(datos: {
   revalidatePath("/postventa/control");
   revalidatePath("/postventa/agenda");
   return { error: null, id: data as string };
+}
+
+/**
+ * APERTURA DE SERVICIO DESDE UN CASO (0407; reunión de gerencia 06-10 11:01:
+ * «va a haber casos que van a tener que hacer una apertura que no proviene de
+ * un pedido»). Nace un pedido de servicio con la apertura ya emitida y le
+ * llega a Finanzas (autoriza la guía) y al almacén, igual que la de un pedido.
+ */
+export async function abrirAperturaDesdeCaso(
+  atencionId: string,
+  datos: {
+    tipoPedido: "mantenimiento" | "revision";
+    formato: "mantenimiento" | "puesta_marcha";
+    fecha: string;
+    hora: string;
+    tecnico: string;
+    transporte: string;
+    direccion: string;
+    confirmo: string;
+    destino: "lima" | "provincia";
+    guia: string | null;
+    guiaDetalle: string;
+    nota: string;
+  },
+): Promise<{ error: string | null; servicioId?: string }> {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { data: servicioId, error } = await supabase.rpc("apertura_desde_caso", {
+    p_atencion: atencionId,
+    p_tipo_pedido: datos.tipoPedido,
+    p_apertura_tipo: datos.formato,
+    p_fecha: datos.fecha || null,
+    p_hora: datos.hora || null,
+    p_tecnico: datos.tecnico,
+    p_transporte: datos.transporte,
+    p_direccion: datos.direccion,
+    p_confirmo: datos.confirmo,
+    p_destino: datos.destino,
+    p_guia: datos.guia || null,
+    p_guia_detalle: datos.guiaDetalle || null,
+    p_nota: datos.nota || null,
+  });
+  if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+  const id = servicioId as string;
+  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", id).maybeSingle();
+  const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+  const guia = lineasGuia((datos.guia || null) as GuiaApertura | null, datos.guiaDetalle || null);
+  const pideGuia = guia.length ? ` Se solicita: ${guia.join(" / ").toLowerCase()}.` : "";
+  const esPrueba = s?.es_prueba === true || perfil.es_prueba === true;
+  await Promise.all([
+    notificarFinanzas({
+      titulo: `Apertura por confirmar · ${quien}`,
+      cuerpo: `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      url: "/finanzas/aperturas",
+      esPrueba,
+    }),
+    notificarAlmacen({
+      titulo: `Apertura de servicio · ${quien}`,
+      cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Finanzas confirma la guía.`,
+      url: `/almacen/pedidos/${id}`,
+      esPrueba,
+    }),
+    // Sin cierre no hay serie: sale con los correos de EFAMEINSA (0410).
+    correoAlArea({
+      areas: ["finanzas"],
+      empresa: "EFAMEINSA",
+      titulo: `Apertura por confirmar · ${quien}`,
+      cuerpo: `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      url: "/finanzas/aperturas",
+      esPrueba,
+    }),
+    correoAlArea({
+      areas: ["almacen"],
+      empresa: "EFAMEINSA",
+      titulo: `Apertura de servicio · ${quien}`,
+      cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Finanzas confirma la guía.`,
+      url: `/almacen/pedidos/${id}`,
+      esPrueba,
+    }),
+  ]);
+  revalidatePath(`/postventa/atenciones/${atencionId}`);
+  revalidatePath("/finanzas/aperturas");
+  revalidatePath("/almacen/aperturas-postventa");
+  return { error: null, servicioId: id };
 }

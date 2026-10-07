@@ -319,7 +319,9 @@ export function estadoPago(s: ServicioPostventa): EstadoPago {
   const conCifras = s.monto != null && (s.informe_cierre_id != null || Number(s.monto_pagado ?? 0) > 0);
   const pagado = conCifras
     ? saldoPendiente(s) === 0
-    : saldoPendiente(s) === 0 || s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
+    : // Sin monto no hay saldo que medir: el 0 de saldoPendiente no es «pagado»
+      // (HANCO HUILLCA 06-10 salía «Pagado completo» debiendo el saldo).
+      (s.monto != null && saldoPendiente(s) === 0) || s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
   if (pagado) return "completo";
   // Las filas del Excel nunca cargaron el monto pagado: la columna era texto y
   // casi todas están vacías. Decir «falta el saldo» sobre una venta que quizá
@@ -512,7 +514,9 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
           : adelantoCubierto
             ? `Finanzas confirmó el adelanto acordado (${Number(s.pct_antes_despacho)} %)`
             : "Finanzas confirmó un pago parcial"
-        : pagoDesconocido
+        : s.origen === "caso"
+          ? "Servicio abierto desde un caso: sin cobro en el pedido"
+          : pagoDesconocido
           ? "Pago sin registrar en el sistema"
           : pagado
             ? "Cobrado del todo, falta la confirmación de Finanzas"
@@ -703,10 +707,18 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       responsable: "postventa",
       hecho: aperturaEmitida,
       cuando: s.apertura_despacho_at ?? null,
+      // Postventa ve si Finanzas ya autorizó la guía (reunión 06-10 11:01:
+      // «que me salga un check de que ya lo recibió contabilidad»).
       detalle: aperturaEmitida
-        ? circuito.esServicio
-          ? "Con este documento el técnico sale con todo definido"
-          : "Con este documento almacén despacha sin preguntar a nadie"
+        ? s.guia_confirmada_at
+          ? `✓ Finanzas autorizó la guía el ${new Date(s.guia_confirmada_at).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}${
+              textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero) ? ` · ${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero)}` : ""
+            }`
+          : s.despachado_at
+            ? circuito.esServicio
+              ? "Con este documento el técnico sale con todo definido"
+              : "Con este documento almacén despacha sin preguntar a nadie"
+            : "Le llegó a Finanzas: falta que autorice la guía"
         : faltaParaApertura.length === 0
           ? "Todo cumplido: se puede emitir"
           : undefined,

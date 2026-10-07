@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "@/components/enlace";
 import { Lightbulb } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
 import { listarSugerencias } from "@/lib/acciones/sugerencias";
@@ -37,7 +38,16 @@ export default async function SugerenciasPage() {
             <FormularioSugerencia userId={perfil.id} />
           </Suspense>
         </SeccionPanel>
-        <SeccionPanel titulo={verTodas ? "Bandeja de sugerencias" : "Mis sugerencias"}>
+        <SeccionPanel
+          titulo={verTodas ? "Bandeja de sugerencias" : "Mis sugerencias"}
+          accion={
+            verTodas ? (
+              <Link href="/observaciones" className="text-xs font-medium text-[#8B1510] hover:underline">
+                Ver todas a pantalla completa →
+              </Link>
+            ) : undefined
+          }
+        >
           <Suspense>
             <ListaSugerencias sugerencias={sugerencias} esAdmin={esAdmin} verTodas={verTodas} userId={perfil.id} />
           </Suspense>

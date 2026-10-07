@@ -79,7 +79,9 @@ export function PasosPedidoCentral({
       router.refresh();
     });
 
-  const seriesListas = series.total > 0 && series.con === series.total;
+  // 0404: un pedido de puro servicio (mantenimiento, revisión) no tiene equipos que lleven serie.
+  const sinEquipos = Boolean(servicioId) && series.total === 0;
+  const seriesListas = sinEquipos || (series.total > 0 && series.con === series.total);
   const faltanSeries = series.total - series.con;
   const cuando = (iso: string) => new Date(iso).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
@@ -105,6 +107,8 @@ export function PasosPedidoCentral({
               Las escribo yo
             </Button>
           </div>
+        ) : sinEquipos ? (
+          <p className="text-[11px] text-muted-foreground">Es un servicio: no hay equipos que lleven serie.</p>
         ) : (
           <>
             <p className="text-xs text-foreground">
@@ -156,6 +160,19 @@ export function PasosPedidoCentral({
               servicioId &&
               cliente && <EntregarFileDirecto pedido={{ servicioId, numero: numeroPedido, cuentaId: cliente.cuentaId, cliente: cliente.nombre, empresa: cliente.empresa }} />
             )}
+          </>
+        ) : regularizado && (!servicioId || faltanSeries > 0) ? (
+          // REG (0403, Santos 06-10): el almacén ya entregó y nadie más va a
+          // escribir las series; sin ellas el pedido no se genera.
+          <>
+            <Button size="sm" disabled>
+              <FileText className="size-3.5" /> Generar el pedido
+            </Button>
+            <p className="mt-1 text-[11px] text-amber-800">
+              {!servicioId
+                ? "REG: primero «Las escribo yo» (paso 1) y copie las series."
+                : `REG: ${faltanSeries === 1 ? "falta una serie" : `faltan ${faltanSeries} series`}. Cópiela${faltanSeries === 1 ? "" : "s"} abajo, en «Equipos de este pedido».`}
+            </p>
           </>
         ) : (
           <>

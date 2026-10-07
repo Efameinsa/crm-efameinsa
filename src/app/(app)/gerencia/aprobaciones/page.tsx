@@ -1,3 +1,5 @@
+import { cambiosDelKit, piezasDeKit } from "@/lib/kit";
+import Link from "next/link";
 import { fechaLima } from "@/lib/fechas";
 import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
 import { codigoConVersion } from "@/lib/version-cotizacion";
@@ -26,7 +28,7 @@ export default async function AprobacionesPage() {
     .select(
       `id, codigo, serie, total, moneda, estado, estado_aprobacion, aprobada_at, nota_gerencia, enviada_at, version,
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre)),
-       cotizacion_items(cantidad, precio_lista, precio_unitario, bajo_lista, aprobado, descripcion, productos(marca, modelo, nombre))`,
+       cotizacion_items(cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, aprobado, descripcion, productos(marca, modelo, nombre))`,
     )
     .in("estado_aprobacion", ["aprobada_gerencia", "rechazada_gerencia"])
     .order("aprobada_at", { ascending: false, nullsFirst: false })
@@ -38,7 +40,7 @@ export default async function AprobacionesPage() {
       `id, codigo, serie, total, moneda, created_at, oportunidad_id, version,
        autor:perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial, es_postventa, rol),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuenta_id, cuentas(razon_social), perfiles(nombre)),
-       cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, descripcion, productos(marca, modelo, nombre, segmento, foto_path))`,
+       cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, descripcion, detalle_kit, productos(marca, modelo, nombre, segmento, foto_path, ficha))`,
     )
     .eq("estado_aprobacion", "pendiente_gerencia")
     .order("created_at", { ascending: true });
@@ -112,6 +114,7 @@ export default async function AprobacionesPage() {
         <div className="space-y-2">
           {cotizaciones.map((c) => {
             const oportunidad = c.oportunidades as unknown as {
+              cuenta_id: string | null;
               cuentas: { razon_social: string } | null;
               perfiles: { nombre: string } | null;
             } | null;
@@ -132,7 +135,8 @@ export default async function AprobacionesPage() {
               bajo_lista: boolean;
               requiere_aprobacion: boolean;
               descripcion: string | null;
-              productos: { marca: string; modelo: string; nombre: string; segmento: string; foto_path: string | null } | null;
+              detalle_kit: string[] | null;
+              productos: { marca: string; modelo: string; nombre: string; segmento: string; foto_path: string | null; ficha: Record<string, unknown> | null } | null;
             }[]) ?? [];
             // Desde la migración 0074 gerencia decide una sola cosa: equipos
             // cotizados por debajo del precio de referencia. Se muestra cuánto
@@ -145,8 +149,22 @@ export default async function AprobacionesPage() {
               <div key={c.id} className="rounded-lg border border-border bg-background p-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
+                    {/* EL NOMBRE ABRE LA FICHA INTEGRAL (gerencia, 06-10): «al dar
+                        click en el nombre me permita ver su ficha integral sin
+                        necesidad de buscarlo». */}
                     <p className="text-sm font-semibold text-foreground">
-                      {oportunidad?.cuentas?.razon_social ?? "Cuenta sin nombre"}
+                      {oportunidad?.cuenta_id ? (
+                        <Link
+                          href={`/gerencia/clientes/${oportunidad.cuenta_id}`}
+                          prefetch={false}
+                          title="Ver la ficha integral del cliente"
+                          className="hover:underline"
+                        >
+                          {oportunidad.cuentas?.razon_social ?? "Cuenta sin nombre"}
+                        </Link>
+                      ) : (
+                        oportunidad?.cuentas?.razon_social ?? "Cuenta sin nombre"
+                      )}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {/* Todavía no tiene número: el correlativo se asigna al
@@ -229,6 +247,7 @@ export default async function AprobacionesPage() {
                       requiereAprobacion: i.requiere_aprobacion,
                       esIndustrial: i.productos?.segmento === "industrial",
                       fotoPath: i.productos?.foto_path ?? null,
+                      kitCambiado: cambiosDelKit(piezasDeKit(i.productos?.ficha), i.detalle_kit),
                     }))}
                   />
                 </div>

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fechaCalendarioLarga } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
+import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
 export interface AtencionPorProgramar {
   id: string;
@@ -133,8 +134,10 @@ export function AgendarEnDia({
                         value={tecnico}
                         onChange={(e) => setTecnico(e.target.value)}
                         placeholder="Qué técnico va"
+                        list={ID_LISTA_TECNICOS}
                         className="h-9 min-w-[150px] flex-1 rounded-md border border-input bg-background px-3 text-sm"
                       />
+                      <ListaTecnicos />
                       <Button
                         size="sm"
                         disabled={enviando || !tecnico.trim()}

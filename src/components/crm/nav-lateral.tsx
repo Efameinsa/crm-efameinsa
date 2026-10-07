@@ -36,6 +36,7 @@ import {
   PhoneForwarded,
   FileCheck2,
   Truck,
+  MessageSquareWarning,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
@@ -117,6 +118,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // Entrar como cualquier cuenta, en una pestaña aparte y solo lectura (0160).
     { href: "/gerencia/auditoria", etiqueta: "Auditoría de cuentas", icono: Users },
     { href: "/gerencia/cartera-liberable", etiqueta: "Cartera liberable", icono: FileText },
+    { href: "/observaciones", etiqueta: "Observaciones del sistema", icono: MessageSquareWarning },
   ],
   // OPERACIONES (0115). Su día no es vender: es autorizar lo que los demás
   // no pueden corregir solos, repartir los permisos que se dan y se quitan,
@@ -157,6 +159,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // motivos y resultados era nombrar dos cosas distintas con la misma
     // palabra (Santos, 02-09).
     { href: "/admin/catalogos", etiqueta: "Listas del sistema", icono: BookMarked },
+    { href: "/observaciones", etiqueta: "Observaciones del sistema", icono: MessageSquareWarning },
   ],
 };
 
@@ -301,6 +304,11 @@ const ENLACES_ALMACEN = [
   { href: "/almacen/informes", etiqueta: "Informes técnicos", icono: FileText },
 ];
 
+// EL CATÁLOGO PARA CONSULTAR (Lesly, 06-10): «que almacén tenga la vista de
+// catálogo solo para ver la información». Va solo en la barra de la cuenta
+// del almacén: operaciones ya tiene «El catálogo» editable en la suya.
+const ENLACE_CATALOGO_ALMACEN = { href: "/almacen/catalogo", etiqueta: "Catálogo", icono: Package };
+
 export function NavLateral({
   rol,
   esPostventa = false,
@@ -385,7 +393,7 @@ export function NavLateral({
 
   const secciones: { titulo?: string; enlaces: typeof ENLACES_POSTVENTA }[] =
     esAlmacen && rol !== "gerencia" && rol !== "admin"
-      ? [{ titulo: "Almacén", enlaces: ENLACES_ALMACEN }]
+      ? [{ titulo: "Almacén", enlaces: [...ENLACES_ALMACEN, ENLACE_CATALOGO_ALMACEN] }]
       : rol === "operaciones"
       ? [
           { titulo: "Operaciones", enlaces: ENLACES_POR_ROL[rol] },

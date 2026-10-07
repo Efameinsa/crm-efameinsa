@@ -559,6 +559,18 @@ export interface CoincidenciaCartera {
 // El orden de los motivos ES el orden de confianza: documento > teléfono >
 // correo > nombre (puede haber muchas "María Leguía": el nombre solo
 // advierte, no decide).
+const PALABRAS_GENERICAS = new Set([
+  "empresa", "privado", "privada", "natural", "persona", "particular", "negocio", "ninguno", "ninguna",
+  "otro", "otros", "hotel", "hospital", "clinica", "lavanderia", "restaurante", "colegio", "senor",
+  "senora", "srta", "independiente", "casa", "hogar",
+]);
+
+function empresaReconocible(tokens: string[]): string[] {
+  if (tokens.length !== 1) return tokens;
+  const t = tokens[0].toLowerCase();
+  return t.length >= 6 && !PALABRAS_GENERICAS.has(t) ? tokens : [];
+}
+
 export async function buscarCoincidencias(datos: {
   nombre?: string | null;
   razonSocial?: string | null;
@@ -597,7 +609,24 @@ export async function buscarCoincidencias(datos: {
   const celulares = celularesDe(datos.telefono ?? undefined);
   const telefonos = [...new Set([tel && tel.length >= 8 ? tel : null, ...celulares].filter((x): x is string => Boolean(x)))];
   const email = datos.email?.trim().toLowerCase();
-  const tokens = tokenizarBusqueda([datos.nombre, datos.razonSocial].filter(Boolean).join(" "));
+  // LA EMPRESA Y LA PERSONA SE BUSCAN POR SEPARADO.
+  //
+  // Iban juntas en una sola búsqueda («Ivan Garay hospital Pampas») y cada
+  // palabra tenía que estar en la razón social. El 05-10 el PRO-10744 entró por
+  // la web sin RUC, con un celular y un Gmail que el CRM no conocía, y la ficha
+  // HOSPITAL DE PAMPAS DE TAYACAJA (C4 desde 2022) no salió porque «Ivan Garay»
+  // no está en su razón social: Central lo derivó a C2 como cliente nuevo y
+  // quedaron dos fichas del mismo hospital. Ahora la razón social se busca sola
+  // contra las fichas, y el nombre de la persona contra las fichas (persona
+  // natural: la razón social ES su nombre) y contra los contactos.
+  //
+  // Una sola palabra genérica («Empresa», «privado», «NATURAL», «SR RONY») no
+  // identifica a nadie: en los derivados de 30 días traía decenas de fichas sin
+  // relación. Con una palabra sola se busca solo si es un nombre propio largo
+  // («LAVIPRONTO», «AGROKASA»).
+  const tokensEmpresa = empresaReconocible(tokenizarBusqueda(datos.razonSocial ?? ""));
+  const tokensPersona = tokenizarBusqueda(datos.nombre ?? "");
+  const mismaBusqueda = tokensEmpresa.join(" ").toLowerCase() === tokensPersona.join(" ").toLowerCase();
 
   // LAS CINCO BÚSQUEDAS SALEN JUNTAS, no una detrás de otra.
   //
@@ -610,12 +639,15 @@ export async function buscarCoincidencias(datos: {
   // estuvo — documento, teléfono, correo y recién después nombre.
   const nada = Promise.resolve({ data: null });
 
-  let qCuentas = supabase.from("cuentas").select(CAMPOS);
-  for (const t of tokens) qCuentas = qCuentas.ilike("razon_social", `%${t}%`);
+  const cuentasConNombre = (tokens: string[]) => {
+    let q = supabase.from("cuentas").select(CAMPOS).is("fusionada_en", null);
+    for (const t of tokens) q = q.ilike("razon_social", `%${t}%`);
+    return q.limit(5);
+  };
   let qContactos = supabase.from("contactos").select(`cuentas(${CAMPOS})`);
-  for (const t of tokens) qContactos = qContactos.ilike("nombre", `%${t}%`);
+  for (const t of tokensPersona) qContactos = qContactos.ilike("nombre", `%${t}%`);
 
-  const [doc, telef, telefSucio, correo, nomCuenta, nomContacto] = await Promise.all([
+  const [doc, telef, telefSucio, correo, empresaCuenta, personaCuenta, nomContacto] = await Promise.all([
     numDoc && numDoc.length >= 8
       ? supabase.from("cuentas").select(CAMPOS).eq("num_doc", numDoc).limit(3)
       : nada,
@@ -630,8 +662,9 @@ export async function buscarCoincidencias(datos: {
     email && email.includes("@")
       ? supabase.from("contactos").select(`cuentas(${CAMPOS})`).ilike("email", email).limit(4)
       : nada,
-    tokens.length > 0 ? qCuentas.limit(5) : nada,
-    tokens.length > 0 ? qContactos.limit(5) : nada,
+    tokensEmpresa.length > 0 ? cuentasConNombre(tokensEmpresa) : nada,
+    tokensPersona.length > 0 && !mismaBusqueda ? cuentasConNombre(tokensPersona) : nada,
+    tokensPersona.length > 0 ? qContactos.limit(5) : nada,
   ]);
 
   const deContacto = (d: unknown) => ((d ?? []) as { cuentas: unknown }[]).map((x) => x.cuentas as CuentaFila);
@@ -645,7 +678,8 @@ export async function buscarCoincidencias(datos: {
     agregar(fichasSucias as unknown as CuentaFila[], "telefono");
   }
   agregar(deContacto(correo.data), "correo");
-  agregar(nomCuenta.data as unknown as CuentaFila[], "nombre");
+  agregar(empresaCuenta.data as unknown as CuentaFila[], "nombre");
+  agregar(personaCuenta.data as unknown as CuentaFila[], "nombre");
   agregar(deContacto(nomContacto.data), "nombre");
   const orden: Record<CoincidenciaCartera["motivo"], number> = { documento: 0, telefono: 1, correo: 2, nombre: 3 };
   return [...out.values()].sort((a, b) => orden[a.motivo] - orden[b.motivo]).slice(0, 6);

@@ -2,6 +2,7 @@ import { CheckCircle2, XCircle, FileDown } from "lucide-react";
 import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
 import { codigoConVersion } from "@/lib/version-cotizacion";
 import { montoCotizacion } from "@/lib/monto-cotizacion";
+import { totalesConIgv } from "@/lib/igv";
 import { fechaHoraLima } from "@/lib/fechas";
 import { SeccionPlegable } from "@/components/crm/seccion-panel";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ interface ItemHist {
   cantidad: number;
   precio_lista: number | null;
   precio_unitario: number;
+  precio_con_igv?: number | null;
   bajo_lista: boolean;
   aprobado: boolean | null;
   descripcion: string | null;
@@ -60,6 +62,9 @@ export function HistorialAprobaciones({ filas }: { filas: FilaHistorial[] }) {
         {filas.map((c) => {
           const op = c.oportunidades as { cuentas: { razon_social: string } | null; perfiles: { nombre: string } | null } | null;
           const items = ((c.cotizacion_items as ItemHist[]) ?? []).filter((i) => i.aprobado !== null);
+          // El total con IGV va con TODOS los renglones, como en el PDF (06-10).
+          const todos = (c.cotizacion_items as ItemHist[]) ?? [];
+          const conIgvExacto = todos.some((i) => i.precio_con_igv != null) ? totalesConIgv(todos).total : null;
           const rechazada = c.estado_aprobacion === "rechazada_gerencia";
           const cedido = items
             .filter((i) => i.aprobado && i.precio_lista != null)
@@ -84,7 +89,7 @@ export function HistorialAprobaciones({ filas }: { filas: FilaHistorial[] }) {
               <p className="text-xs text-muted-foreground">
                 <span className="font-mono">{c.codigo ?? "Borrador"}</span>
                 {c.codigo && <EtiquetaVersion version={c.version} />} · Serie {c.serie} · De{" "}
-                {op?.perfiles?.nombre ?? "un comercial"} · {montoCotizacion(c.total, c.moneda)} con IGV
+                {op?.perfiles?.nombre ?? "un comercial"} · {montoCotizacion(c.total, c.moneda, conIgvExacto)} con IGV
                 {c.enviada_at ? " · ya enviada al cliente" : " · todavía sin enviar"}
                 {cedido > 0 && (
                   <span className="font-semibold text-foreground">

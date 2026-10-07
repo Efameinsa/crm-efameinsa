@@ -440,14 +440,69 @@ async function procesarValor(admin: ReturnType<typeof createAdminClient>, valor:
       })
       .eq("id", conversacion.id);
 
+    // Volvió a escribir un cliente cuyo expediente ya se cerró como rechazado
+    // (0408; Ariana, 06-10): el chat va al comercial de la ficha.
+    const traspaso = esConversacionNueva ? null : await chatAlDuenoDeLaFicha(admin, conversacion.id);
+    if (traspaso) {
+      conversacion = { ...conversacion, asignado_a: traspaso.ahora };
+      await avisarTraspasoPorRechazo(conversacion.id, nombreWa || conversacion.nombre_wa || telefono, traspaso);
+    }
+
     if (tipo === "interactive" && equipoSku) {
       await atenderBotonDeFicha(admin, conversacion, telefono, nombreWa, mensaje.interactive?.button_reply?.id ?? "", equipoSku);
+    } else if (traspaso) {
+      // El aviso del traspaso ya le dijo al dueño que le escribieron.
     } else if (!esConversacionNueva) {
       // El chat nuevo ya avisó como lead (derivado o retenido); acá va lo que
       // el cliente escribe DESPUÉS, que hasta el 02-10 entraba mudo.
       await avisarMensajeEntrante(admin, conversacion, nombreWa || conversacion.nombre_wa || telefono, tipo, texto);
     }
     if (!esNumero && texto) await avisarTelefonoDeOtroComercial(admin, conversacion.id, nombreWa || conversacion.nombre_wa || telefono, texto);
+  }
+}
+
+interface TraspasoPorRechazo {
+  antes: string | null;
+  ahora: string;
+  ahora_nombre: string;
+  ahora_codigo: string | null;
+  razon_social: string | null;
+  lead_codigo: string | null;
+}
+
+/** 0408: si el expediente está rechazado y la ficha es de otro comercial activo, el chat pasa a él. Nunca tumba el webhook. */
+async function chatAlDuenoDeLaFicha(admin: ReturnType<typeof createAdminClient>, conversacionId: string): Promise<TraspasoPorRechazo | null> {
+  try {
+    const { data, error } = await admin.rpc("wa_chat_al_dueno_de_la_ficha", { p_conversacion_id: conversacionId });
+    if (error) {
+      console.error("webhook whatsapp: wa_chat_al_dueno_de_la_ficha", error.message);
+      return null;
+    }
+    return (data as TraspasoPorRechazo | null) ?? null;
+  } catch (err) {
+    console.error("webhook whatsapp: wa_chat_al_dueno_de_la_ficha", err);
+    return null;
+  }
+}
+
+async function avisarTraspasoPorRechazo(conversacionId: string, quien: string, t: TraspasoPorRechazo) {
+  const cliente = t.razon_social ?? quien;
+  const url = `/whatsapp/${conversacionId}`;
+  await notificar({
+    userId: t.ahora,
+    tipo: "lead_asignado",
+    titulo: `Su cliente ${cliente} volvió a escribir por WhatsApp`.replace(/\s+/g, " "),
+    cuerpo: `Su expediente estaba cerrado como rechazado${t.lead_codigo ? ` (${t.lead_codigo})` : ""}. El chat pasó a usted: ábralo y use «Abrir seguimiento».`,
+    url,
+  });
+  if (t.antes && t.antes !== t.ahora) {
+    await notificar({
+      userId: t.antes,
+      tipo: "lead_asignado",
+      titulo: `El chat de ${cliente} pasó a ${t.ahora_codigo ?? t.ahora_nombre}`.replace(/\s+/g, " "),
+      cuerpo: `El cliente volvió a escribir y es de la cartera de ${t.ahora_nombre}: ahora lo atiende esa persona.`,
+      url: "/whatsapp",
+    });
   }
 }
 

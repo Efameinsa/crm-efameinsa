@@ -1,3 +1,4 @@
+import { partirCantidad } from "@/lib/kit";
 import { Document, Page, View, Text, Image, StyleSheet, Svg, Path } from "@react-pdf/renderer";
 import { IDENTIDAD_SERIE, notasDe, esSinGarantia } from "./series";
 import { totalesConIgv } from "@/lib/igv";
@@ -54,6 +55,10 @@ const pv = StyleSheet.create({
   filaEncabezado: { flexDirection: "row", backgroundColor: GRIS_TABLA, borderWidth: LINEA, borderColor: NEGRO },
   th: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: NEGRO, paddingVertical: 4, paddingHorizontal: 4, textAlign: "center", lineHeight: 1.2 },
   td: { fontSize: 9, color: NEGRO, paddingVertical: 4, paddingHorizontal: 4, lineHeight: 1.3 },
+  /** Una línea dentro de una celda partida en filas (kit): sin el relleno vertical de la celda. */
+  tdLinea: { paddingVertical: 0 },
+  /** Pieza de kit: un punto menos de letra para que entre en una línea con su cantidad. */
+  tdPieza: { fontSize: 8.5 },
   celdaCentrada: { justifyContent: "center", alignItems: "center" },
   divisor: { borderLeftWidth: LINEA, borderLeftColor: NEGRO },
   cItem: { width: "8%" },
@@ -153,6 +158,28 @@ export function CotizacionPostventaPdf({
   const membrete = membreteDe(estilos, identidad, logoBuffer);
   const pie = pieDe(estilos, identidad, serie, notaVersion, reemplazada);
   const esMantenimiento = variante === "mantenimiento";
+  const lineasPorItem = items.map((item) =>
+    lineasDelConcepto({
+      nombre: item.nombre,
+      marca: item.marca,
+      modelo: item.modelo,
+      capacidad: item.capacidad,
+      descripcionLinea: item.descripcionLinea,
+      deCatalogo: item.marca !== "—" || item.modelo !== "—" || Boolean(item.segmento),
+      // Las piezas o características del repuesto (el servicio tiene su
+      // propio cuadro de detalle más abajo).
+      detalle:
+        item.segmento === "repuesto" || (item.categoria ?? "").toLowerCase() === "repuesto"
+          ? (item.bloques ?? []).flatMap((b) => (b.t === "titulo" ? [] : b.t === "dato" ? [`${b.rotulo}: ${b.valor}`] : [b.texto]))
+          : [],
+    }),
+  );
+  // Con un kit en la tabla, el concepto se ensancha (ITEM. y CANT ceden un
+  // poco) para que cada pieza y su cantidad entren en una sola línea.
+  const hayKit = lineasPorItem.some((ls) => ls.some((l) => l.startsWith("- ") && partirCantidad(l)));
+  const col = hayKit
+    ? { item: { width: "6.5%" }, concepto: { width: "48%" }, cant: { width: "6.5%" } }
+    : { item: pv.cItem, concepto: pv.cConcepto, cant: pv.cCant };
 
   // «USD$ 125.00 + IGV» en cada renglón y «USD$ 405.00» en los totales, como
   // el Word. En soles, «S/». Con las cifras tapadas (gerencia, 28-09) va el
@@ -281,38 +308,44 @@ export function CotizacionPostventaPdf({
         {/* ── ITEM. | CONCEPTO | CANT | PRECIO UNITARIO | SUB-TOTAL ── */}
         <>
           <View style={pv.filaEncabezado} wrap={false}>
-            <Text style={[pv.th, pv.cItem]}>ITEM.</Text>
-            <Text style={[pv.th, pv.cConcepto, pv.divisor]}>CONCEPTO</Text>
-            <Text style={[pv.th, pv.cCant, pv.divisor]}>CANT</Text>
+            <Text style={[pv.th, col.item]}>ITEM.</Text>
+            <Text style={[pv.th, col.concepto, pv.divisor]}>CONCEPTO</Text>
+            <Text style={[pv.th, col.cant, pv.divisor]}>CANT</Text>
             <Text style={[pv.th, pv.cPrecio, pv.divisor]}>{`PRECIO UNITARIO\n${encabezadoMoneda}`}</Text>
             <Text style={[pv.th, pv.cSub, pv.divisor]}>{`SUB-TOTAL\n${encabezadoMoneda}`}</Text>
           </View>
           {items.map((item, i) => {
-            const lineas = lineasDelConcepto({
-              nombre: item.nombre,
-              marca: item.marca,
-              modelo: item.modelo,
-              capacidad: item.capacidad,
-              descripcionLinea: item.descripcionLinea,
-              deCatalogo: item.marca !== "—" || item.modelo !== "—" || Boolean(item.segmento),
-              // Las piezas o características del repuesto (el servicio tiene su
-              // propio cuadro de detalle más abajo).
-              detalle:
-                item.segmento === "repuesto" || (item.categoria ?? "").toLowerCase() === "repuesto"
-                  ? (item.bloques ?? []).flatMap((b) => (b.t === "titulo" ? [] : b.t === "dato" ? [`${b.rotulo}: ${b.valor}`] : [b.texto]))
-                  : [],
-            });
+            const lineas = lineasPorItem[i];
             return (
               <View key={i} style={pv.fila} wrap={false}>
-                <View style={[pv.cItem, pv.celdaCentrada]}>
+                <View style={[col.item, pv.celdaCentrada]}>
                   <Text style={[pv.td, { textAlign: "center" }]}>{numero(i)}</Text>
                 </View>
-                <View style={[pv.cConcepto, pv.divisor]}>
-                  <Text style={[pv.td, esMantenimiento ? { fontFamily: "Helvetica-Bold" } : {}]}>
-                    {lineas.map((l) => l.toUpperCase()).join("\n")}
-                  </Text>
+                <View style={[col.concepto, pv.divisor]}>
+                  {/* Las piezas de un kit llevan su cantidad en columna propia
+                      (Lesly, buzón 06-10: «debería salir ordenando las
+                      cantidades»; la ficha las alinea con espacios). */}
+                  {lineas.some((l) => l.startsWith("- ") && partirCantidad(l)) ? (
+                    <View style={{ paddingVertical: 4 }}>
+                      {lineas.map((l, j) => {
+                        const pieza = l.startsWith("- ") ? partirCantidad(l) : null;
+                        return pieza ? (
+                          <View key={j} style={{ flexDirection: "row" }}>
+                            <Text style={[pv.td, pv.tdLinea, pv.tdPieza, { flex: 1 }]}>{`- ${pieza.texto}`.toUpperCase()}</Text>
+                            <Text style={[pv.td, pv.tdLinea, pv.tdPieza, { width: 50, paddingLeft: 2, textAlign: "right" }]}>{`${pieza.numero} ${pieza.unidad}`}</Text>
+                          </View>
+                        ) : (
+                          <Text key={j} style={[pv.td, pv.tdLinea, esMantenimiento ? { fontFamily: "Helvetica-Bold" } : {}]}>{l.toUpperCase()}</Text>
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <Text style={[pv.td, esMantenimiento ? { fontFamily: "Helvetica-Bold" } : {}]}>
+                      {lineas.map((l) => l.toUpperCase()).join("\n")}
+                    </Text>
+                  )}
                 </View>
-                <View style={[pv.cCant, pv.divisor, pv.celdaCentrada]}>
+                <View style={[col.cant, pv.divisor, pv.celdaCentrada]}>
                   <Text style={[pv.td, { textAlign: "center" }]}>{String(item.cantidad).padStart(2, "0")}</Text>
                 </View>
                 <View style={[pv.cPrecio, pv.divisor, pv.celdaCentrada]}>

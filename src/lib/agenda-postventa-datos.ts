@@ -5,6 +5,7 @@ import { DIAS_AVISO_PREVENTIVO } from "@/lib/preventivo";
 import {
   eventoDeAtencion,
   eventoDeCaso,
+  eventoDeLlamada,
   eventoDeTarea,
   eventoDeVisita,
   eventosDePedido,
@@ -29,7 +30,7 @@ export async function cargarEventosPostventa(
   desde: string,
   hasta: string,
   /** El reporte diario es de UNA persona: sus casos, no los de la compañera (reunión 23-09). */
-  opciones: { soloMisCasos?: boolean } = {},
+  opciones: { soloMisCasos?: boolean; sinLlamadas?: boolean } = {},
 ): Promise<EventoCalendario[]> {
   const verPrecios = puedeVerPrecios(perfil);
   // El área ve todos los casos, estén en la cartera de quien estén (01-09).
@@ -45,7 +46,7 @@ export async function cargarEventosPostventa(
     .limit(300);
   if (!verTodo) consultaCasos = consultaCasos.eq("comercial_id", perfil.id);
 
-  const [{ data: pedidos }, { data: casos }, { data: tareas }, { data: programadas }, { data: visitas }] = await Promise.all([
+  const [{ data: pedidos }, { data: casos }, { data: tareas }, { data: programadas }, { data: visitas }, { data: llamadas }] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("*")
@@ -77,6 +78,17 @@ export async function cargarEventosPostventa(
       .gte("fecha", desde)
       .lte("fecha", hasta)
       .limit(100),
+    // Las llamadas derivadas al almacén (buzón de Rubí, 06-10). El reporte
+    // diario ya las lista aparte, por día: ahí no se repiten.
+    opciones.sinLlamadas
+      ? Promise.resolve({ data: [] })
+      : supabase
+          .from("aperturas_llamada")
+          .select("id, cuenta_id, tipo, programada_para, tecnico, urgente, tomada_at, informe_at, cuentas(razon_social, departamento)")
+          .is("anulada_at", null)
+          .gte("programada_para", `${desde}T00:00:00-05:00`)
+          .lte("programada_para", `${hasta}T23:59:59-05:00`)
+          .limit(300),
   ]);
 
   const listaPedidos = ((pedidos ?? []) as unknown as ServicioPostventa[]).map((s) => (verPrecios ? s : sinPrecios(s)));
@@ -124,7 +136,21 @@ export async function cargarEventosPostventa(
   });
   const eventosVisitas = ((visitas ?? []) as unknown as Parameters<typeof eventoDeVisita>[0][]).map(eventoDeVisita);
 
-  return [...eventosPedidos, ...eventosCasos, ...eventosTareas, ...eventosAtenciones, ...eventosVisitas];
+  const eventosLlamadas = ((llamadas ?? []) as unknown as {
+    id: string; cuenta_id: string | null; tipo: string; programada_para: string; tecnico: string | null; urgente: boolean | null;
+    tomada_at: string | null; informe_at: string | null;
+    cuentas: { razon_social: string; departamento: string | null } | null;
+  }[]).map((l) => {
+    const dep = (l.cuentas?.departamento ?? "").toUpperCase();
+    return eventoDeLlamada({
+      ...l,
+      cliente: l.cuentas?.razon_social ?? "Cliente sin nombre",
+      cuentaId: l.cuenta_id,
+      zona: dep ? (dep === "LIMA" ? "lima" : "provincia") : null,
+    });
+  });
+
+  return [...eventosPedidos, ...eventosCasos, ...eventosTareas, ...eventosAtenciones, ...eventosVisitas, ...eventosLlamadas];
 }
 
 /** Los eventos de un día, ordenados por hora (los sin hora al final). */

@@ -13,6 +13,20 @@ export function esTorre(descripcion: string): boolean {
 }
 
 /**
+ * Las series que el cierre ya trae escritas en la descripción (GENNER FASHION,
+ * 06-10: «… Serie: 501KWYP7X378 Serie: 304KWQW0V220»). Sirven para proponer la
+ * de la secadora al abrir «+ Serie de la secadora»; el almacén la confirma con
+ * la placa. Solo cuenta lo que viene tras «Serie:» / «S/N:».
+ */
+export function seriesDeLaDescripcion(descripcion: string): string[] {
+  const salida: string[] = [];
+  for (const m of descripcion.toUpperCase().matchAll(/\b(?:SERIE|S\/N)\s*[:#]\s*([A-Z0-9][A-Z0-9-]{4,})/g)) {
+    if (!salida.includes(m[1])) salida.push(m[1]);
+  }
+  return salida;
+}
+
+/**
  * LAS TORRES A LAS QUE LES FALTA LA SEGUNDA SERIE (Lesly, 30-09). Una torre con
  * la serie de la lavadora ya no tenía «unidades sin serie» y salía de
  * «Generación de código» antes de poner la secadora: Lesly no la encontraba
