@@ -188,6 +188,8 @@ function Fila({
   // Varios PDF o Word por máquina (0297): el protocolo o el informe completo.
   const [docs, setDocs] = useState<File[]>([]);
   const [sumando, setSumando] = useState(false);
+  const [fotosSec, setFotosSec] = useState<File[]>([]);
+  const [docsSec, setDocsSec] = useState<File[]>([]);
   // La otra máquina de la torre se prueba con la unidad pero con lo suyo (Lesly, 03-10):
   // «no da la opción para agregar las fotos y el informe de la otra máquina».
   const [dePartes, setDePartes] = useState<Record<string, { protocolo: string; fotos: File[]; docs: File[] }>>({});
@@ -528,6 +530,14 @@ function Fila({
           </div>
           <TomarOSubirVarias titulo={partes.length ? "Fotos de la primera máquina" : "Fotos de esta máquina"} archivos={fotos} onChange={setFotos} maximo={20} />
           <Documentos archivos={docs} onChange={setDocs} titulo={partes.length ? "Protocolo o informe de la primera máquina (PDF o Word, varios)" : "Protocolo o informe de esta máquina (PDF o Word, varios)"} />
+          {/* La torre cuya secadora aún no tiene su renglón (sin stock): sus fotos y su informe igual se suben (Ariana, 07-10). */}
+          {torre && partes.length === 0 && (
+            <div className="space-y-1.5 border-t border-border pt-1.5">
+              <p className="text-[11px] font-semibold text-foreground">Secadora de la torre</p>
+              <TomarOSubirVarias titulo="Fotos de la secadora" archivos={fotosSec} onChange={setFotosSec} maximo={20} />
+              <Documentos archivos={docsSec} onChange={setDocsSec} titulo="Protocolo o informe de la secadora (PDF o Word, varios)" />
+            </div>
+          )}
           {partes.map((p) => (
             <div key={p.id} className="space-y-1.5 border-t border-border pt-1.5">
               <p className="text-[11px] font-semibold text-foreground">
@@ -551,6 +561,11 @@ function Fila({
               correr(async () => {
                 const subidas = await subir(fotos, docs);
                 if (!subidas) return { error: "No se subieron los archivos" };
+                if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
+                  const deSecadora = await subir(fotosSec, docsSec, "-secadora");
+                  if (!deSecadora) return { error: "No se subieron los archivos" };
+                  subidas.push(...deSecadora);
+                }
                 const deLasPartes: { id: string; protocoloRef: string; fotos: FotoAlmacen[] }[] = [];
                 for (const p of partes) {
                   const d = deParte(p.id);
