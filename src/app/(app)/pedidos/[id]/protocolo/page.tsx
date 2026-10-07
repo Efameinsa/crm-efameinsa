@@ -38,7 +38,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
   if (!s) notFound();
   const { data: equiposData } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, serie, prueba_lista_at, prueba_lista_por, protocolo_ref, protocolo_nota, protocolo_fotos")
+    .select("id, orden, descripcion, serie, prueba_lista_at, prueba_lista_por, protocolo_ref, protocolo_nota, protocolo_fotos, parte_de, parte_nombre")
     .eq("servicio_id", id)
     .order("orden");
   const equipos = (equiposData ?? []) as {
@@ -51,6 +51,8 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
     protocolo_ref: string | null;
     protocolo_nota: string | null;
     protocolo_fotos: Archivo[] | null;
+    parte_de: string | null;
+    parte_nombre: string | null;
   }[];
   const cierre = s.informes_cierre as unknown as { codigo: string | null; serie: string | null } | null;
 
@@ -65,6 +67,32 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
     ? await supabase.storage.from("adjuntos").createSignedUrls(archivos.map((a) => a.path), 3600)
     : { data: null };
   const url = (i: number) => firmadas?.[i]?.signedUrl ?? null;
+
+  // LOS ARCHIVOS, MÁQUINA POR MÁQUINA (Ariana, 07-10: «el CRM debería generar
+  // el informe completo del protocolo» con lo de la lavadora y lo de la
+  // secadora). Iban todos en un solo montón y no se sabía de qué máquina era
+  // cada foto. La secadora de una torre sin renglón propio sube con el sufijo
+  // «-secadora» (35cef069); la que sí lo tiene es una parte (`parte_de`).
+  const tituloDe = (e: (typeof equipos)[number], k: number) =>
+    e.parte_de
+      ? `${e.parte_nombre ?? "Otra máquina"} de la torre`
+      : `Máquina ${k + 1}: ${(e.descripcion ?? "").split("\n")[0].slice(0, 80)}`;
+  const grupos: { clave: string; titulo: string; indices: number[] }[] = [];
+  const grupo = (clave: string, titulo: string) => {
+    let g = grupos.find((x) => x.clave === clave);
+    if (!g) grupos.push((g = { clave, titulo, indices: [] }));
+    return g;
+  };
+  equipos.forEach((e, k) => {
+    archivos.forEach((a, i) => {
+      if (a.equipo !== e.id) return;
+      if (/-secadora-/.test(a.path)) grupo(`${e.id}-sec`, `Secadora de la torre (máquina ${k + 1})`).indices.push(i);
+      else grupo(e.id, tituloDe(e, k)).indices.push(i);
+    });
+  });
+  archivos.forEach((a, i) => {
+    if (!a.equipo) grupo("pedido", "Del pedido").indices.push(i);
+  });
 
   const ids = [...new Set([s.prueba_lista_por, ...equipos.map((e) => e.prueba_lista_por)].filter(Boolean) as string[])];
   const { data: gente } = ids.length ? await supabase.from("perfiles").select("id, nombre").in("id", ids) : { data: [] };
@@ -140,36 +168,40 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
         </section>
       )}
 
-      {archivos.some((a) => !esImagen(a)) && (
-        <section className="mt-4">
-          <p className="font-bold">Protocolo y documentos adjuntos:</p>
-          <ul className="ml-5 list-disc">
-            {archivos.map((a, i) =>
-              esImagen(a) ? null : (
-                <li key={a.path}>
-                  <a href={url(i) ?? "#"} target="_blank" rel="noreferrer" className="text-[#8B1510] underline">
-                    {a.nombre ?? a.path.split("/").pop()}
-                  </a>
-                </li>
-              ),
+      {grupos.map((g) => {
+        const docs = g.indices.filter((i) => !esImagen(archivos[i]));
+        const fotos = g.indices.filter((i) => esImagen(archivos[i]) && url(i));
+        return (
+          <section key={g.clave} className="mt-4 break-inside-avoid-page">
+            <p className="border-b border-neutral-400 font-bold">{g.titulo}</p>
+            {docs.length > 0 && (
+              <>
+                <p className="mt-1 font-semibold">Protocolo y documentos:</p>
+                <ul className="ml-5 list-disc">
+                  {docs.map((i) => (
+                    <li key={archivos[i].path}>
+                      <a href={url(i) ?? "#"} target="_blank" rel="noreferrer" className="text-[#8B1510] underline">
+                        {archivos[i].nombre ?? archivos[i].path.split("/").pop()}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
-          </ul>
-        </section>
-      )}
-
-      {archivos.some((a) => esImagen(a)) && (
-        <section className="mt-4">
-          <p className="font-bold">Registro fotográfico:</p>
-          <div className="mt-1 grid grid-cols-2 gap-2">
-            {archivos.map((a, i) =>
-              esImagen(a) && url(i) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={a.path} src={url(i)!} alt={a.nombre ?? `Foto ${i + 1}`} className="max-h-72 w-full rounded border border-neutral-300 object-contain" />
-              ) : null,
+            {fotos.length > 0 && (
+              <>
+                <p className="mt-1 font-semibold">Registro fotográfico:</p>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  {fotos.map((i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={archivos[i].path} src={url(i)!} alt={archivos[i].nombre ?? `Foto ${i + 1}`} className="max-h-72 w-full rounded border border-neutral-300 object-contain" />
+                  ))}
+                </div>
+              </>
             )}
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })}
 
       {archivos.length === 0 && (
         <p className="mt-4 text-[12px] italic text-neutral-600">
