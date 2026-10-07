@@ -7,6 +7,7 @@ import { ChevronRight, FileDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AprobarCotizacionBotones } from "@/components/crm/aprobar-cotizacion-botones";
+import { ObservarCotizacionBoton } from "@/components/crm/observar-cotizacion-boton";
 import { HistorialDecisionesGerencia } from "@/components/crm/historial-decisiones-gerencia";
 import { decisionesDeGerencia, type DecisionGerencia } from "@/lib/datos-cotizador";
 import { HistorialAprobaciones } from "@/components/crm/historial-aprobaciones";
@@ -37,7 +38,7 @@ export default async function AprobacionesPage() {
   const { data: cotizaciones } = await supabase
     .from("cotizaciones")
     .select(
-      `id, codigo, serie, total, moneda, created_at, oportunidad_id, version,
+      `id, codigo, serie, total, moneda, created_at, oportunidad_id, version, observacion_estado,
        autor:perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial, es_postventa, rol),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuenta_id, cuentas(razon_social), perfiles(nombre)),
        cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, descripcion, detalle_kit, productos(marca, modelo, nombre, segmento, foto_path, ficha))`,
@@ -182,8 +183,21 @@ export default async function AprobacionesPage() {
                       </span>
                     </p>
                   </div>
-                  <span className="text-sm font-bold tabular-nums text-foreground">
-                    {c.moneda} {c.total.toLocaleString("es-PE")}
+                  <span className="flex flex-col items-end gap-1">
+                    <span className="text-sm font-bold tabular-nums text-foreground">
+                      {c.moneda} {c.total.toLocaleString("es-PE")}
+                    </span>
+                    {/* 0415: observada = espera a la comercial; respondida = le toca a gerencia. */}
+                    {c.observacion_estado === "observada" && (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                        Observada · espera respuesta de la comercial
+                      </span>
+                    )}
+                    {c.observacion_estado === "respondida" && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                        La comercial respondió
+                      </span>
+                    )}
                   </span>
                 </div>
                 {(compendios.has(c.id) || otrasGestiones.has(c.id)) && (
@@ -230,6 +244,8 @@ export default async function AprobacionesPage() {
                     <FileDown className="size-3.5" />
                     Ver PDF
                   </VerPdfEnLaApp>
+                  <span className="flex items-center gap-2">
+                  <ObservarCotizacionBoton cotizacionId={c.id} />
                   <AprobarCotizacionBotones
                     cotizacionId={c.id}
                     moneda={c.moneda}
@@ -250,6 +266,7 @@ export default async function AprobacionesPage() {
                       kitCambiado: cambiosDelKit(piezasDeKit(i.productos?.ficha), i.detalle_kit),
                     }))}
                   />
+                  </span>
                 </div>
               </div>
             );

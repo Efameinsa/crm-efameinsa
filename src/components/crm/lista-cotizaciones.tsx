@@ -42,6 +42,8 @@ export interface CotizacionResumen {
   total_con_igv?: number | null;
   moneda: string;
   nota_gerencia: string | null;
+  /** 0415: gerencia observó sin rechazar (observada) o la comercial ya respondió (respondida). */
+  observacion_estado?: string | null;
   created_at: string;
   enviada_at: string | null;
   /** Versión vigente (0123): 1 la original; desde 2, corregida. */
@@ -324,7 +326,11 @@ export function ListaCotizaciones({
                     aprobacion.clases,
                   )}
                 >
-                  {aprobacion.etiqueta}
+                  {c.estado_aprobacion === "pendiente_gerencia" && c.observacion_estado === "observada"
+                    ? "Observada por gerencia · responda"
+                    : c.estado_aprobacion === "pendiente_gerencia" && c.observacion_estado === "respondida"
+                      ? "Respondida · espera a gerencia"
+                      : aprobacion.etiqueta}
                 </span>
               )}
 

@@ -13,6 +13,9 @@ export type TipoNotificacion =
   | "cotizacion_pendiente"
   | "cotizacion_aprobada"
   | "cotizacion_rechazada"
+  // Gerencia observó una cotización sin rechazarla, y la comercial respondió (0415).
+  | "cotizacion_observada"
+  | "cotizacion_respondida"
   | "lead_registrado"
   // Se usó el código que dictó operaciones o gerencia: quien autorizó tiene que
   // enterarse de para qué sirvió (migración 0123).
