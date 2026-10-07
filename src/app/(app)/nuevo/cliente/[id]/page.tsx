@@ -1,7 +1,7 @@
 import { VolverALaLista } from "@/components/crm/volver-a-la-lista";
 import Link from "@/components/enlace";
 import { notFound } from "next/navigation";
-import { ArrowRight, Building2, FileText, MapPin, UserRound } from "lucide-react";
+import { ArrowRight, Building2, ClipboardList, FileText, MapPin, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios, veTodoPostventa } from "@/lib/postventa";
@@ -38,6 +38,7 @@ import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
 import { cierresDePostventa } from "@/lib/precios-postventa";
 import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
+import { AperturaServicioCaso, type CasoParaApertura } from "@/components/crm/apertura-servicio-caso";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
     { count: casosAbiertos },
     { data: informes },
     { data: oportunidades },
+    { data: casosSinApertura },
   ] = await Promise.all([
     supabase.from("servicios_postventa").select("id", { count: "exact", head: true }).eq("cuenta_id", id).is("cerrado_at", null),
     supabase.from("equipos_instalados").select("id", { count: "exact", head: true }).eq("cuenta_id", id),
@@ -111,6 +113,15 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
       .eq("cuenta_id", id)
       .order("cerrada_at", { ascending: true, nullsFirst: true })
       .limit(50),
+    // Casos abiertos sin apertura de servicio (0407): de ellos sale la de la cabecera.
+    supabase
+      .from("atenciones")
+      .select("id, tipo, equipo_texto, detalle, en_garantia, tecnico, solicitado_at")
+      .eq("cuenta_id", id)
+      .is("cerrado_at", null)
+      .is("servicio_id", null)
+      .order("solicitado_at", { ascending: false })
+      .limit(20),
   ]);
   const dueno = cuenta.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
   const contactos = (cuenta.contactos ?? []) as unknown as ContactoEditable[];
@@ -123,6 +134,17 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
   }[];
   const vivas = ops.filter((o) => !o.cerrada_at && !["venta", "rechazada", "derivada", "historico"].includes(o.etapa));
   const siguiente = vivas.filter((o) => o.proxima_accion_at).sort((a, b) => (a.proxima_accion_at! < b.proxima_accion_at! ? -1 : 1))[0];
+
+  const casosApertura: CasoParaApertura[] = (casosSinApertura ?? []).map((c) => ({
+    id: c.id as string,
+    etiqueta: [
+      c.solicitado_at ? fechaLima(c.solicitado_at as string) : null,
+      (c.equipo_texto as string | null) || (c.tipo as string | null),
+      ((c.detalle as string | null) ?? "").slice(0, 70) || null,
+    ].filter(Boolean).join(" · "),
+    enGarantia: Boolean(c.en_garantia),
+    tecnico: (c.tecnico as string | null) ?? null,
+  }));
 
   const chips: { etiqueta: string; valor: string; tab: string; alerta?: boolean }[] = [
     { etiqueta: "Expedientes vivos", valor: String(vivas.length), tab: "resumen" },
@@ -176,6 +198,21 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
             {haceCasos && !comoGerencia && <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Derivar llamada" compacto />}
             {!haceCasos && !comoGerencia && cuenta.comercial_id === perfil.id && <RegistrarSeguimientoBoton cuentaId={cuenta.id} compacto comercial />}
             {haceCasos && !perfil.solo_preventivo && !comoGerencia && <TraerPedidoAntiguoBoton cuentaId={cuenta.id} compacto />}
+            {/* Apertura de servicio desde la ficha (buzón, Rubí 07-10): para una
+                visita al local del cliente, no solo para un despacho. Sale de un
+                caso; si no hay uno abierto, primero se registra. */}
+            {haceCasos && !perfil.solo_preventivo && !comoGerencia &&
+              (casosApertura.length > 0 ? (
+                <AperturaServicioCaso casos={casosApertura} direccionSugerida={cuenta.direccion as string | null} />
+              ) : (
+                <Link
+                  href={`/postventa/casos/nuevo?cuenta=${cuenta.id}`}
+                  title="La apertura de servicio sale de un caso: regístrelo y emítala desde el caso («Apertura de servicio»)"
+                  className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-accent"
+                >
+                  <ClipboardList className="size-3.5" /> Apertura de servicio
+                </Link>
+              ))}
             {esArea && !comoGerencia && <OfrecerMantenimientoBoton cuentaId={cuenta.id} compacto />}
             {haceCasos && !perfil.solo_preventivo && (
               <Link

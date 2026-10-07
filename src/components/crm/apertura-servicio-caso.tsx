@@ -19,26 +19,38 @@ import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnico
  * tiene que viajar— necesita su apertura con el formato de siempre. «Derivar
  * llamada» es la orden al almacén para una videollamada; esto es la apertura
  * de servicio: va a Finanzas (autoriza la guía) y al almacén (la emite).
+ *
+ * También desde la cabecera de la ficha del cliente (buzón, Rubí 07-10: «no
+ * solo es para despacho, también para una visita al local del cliente»): ahí
+ * llega con `casos` —los abiertos del cliente sin apertura— y se elige de cuál
+ * sale.
  */
+export type CasoParaApertura = { id: string; etiqueta: string; enGarantia: boolean; tecnico: string | null };
+
 export function AperturaServicioCaso({
-  atencionId,
-  enGarantia,
+  atencionId: atencionFija,
+  enGarantia: garantiaFija,
   direccionSugerida,
   tecnicoSugerido,
+  casos,
 }: {
-  atencionId: string;
-  enGarantia: boolean;
+  atencionId?: string;
+  enGarantia?: boolean;
   direccionSugerida?: string | null;
   tecnicoSugerido?: string | null;
+  casos?: CasoParaApertura[];
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
+  const [atencionId, setAtencionId] = useState(atencionFija ?? casos?.[0]?.id ?? "");
+  const enGarantia = garantiaFija ?? casos?.find((c) => c.id === atencionId)?.enGarantia ?? false;
+  const tecnicoDelCaso = tecnicoSugerido ?? casos?.find((c) => c.id === atencionId)?.tecnico;
   const [pendiente, startTransition] = useTransition();
   const [tipoPedido, setTipoPedido] = useState<"mantenimiento" | "revision">(enGarantia ? "revision" : "mantenimiento");
   const [formato, setFormato] = useState<"mantenimiento" | "puesta_marcha">("mantenimiento");
   const [fecha, setFecha] = useState("");
   const [hora, setHora] = useState("");
-  const [tecnico, setTecnico] = useState(tecnicoSugerido ?? "");
+  const [tecnico, setTecnico] = useState(tecnicoDelCaso ?? "");
   const [transporte, setTransporte] = useState("");
   const [direccion, setDireccion] = useState(direccionSugerida ?? "");
   const [confirmo, setConfirmo] = useState("");
@@ -48,6 +60,7 @@ export function AperturaServicioCaso({
   const [nota, setNota] = useState("");
 
   const falta = [
+    !atencionId && "el caso",
     !fecha && "el día",
     !tecnico.trim() && "el técnico",
     !direccion.trim() && "dónde se hace",
@@ -101,6 +114,25 @@ export function AperturaServicioCaso({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
+          {casos && (
+            <div className="grid gap-1 sm:col-span-2">
+              <Label className="text-xs">Caso del que sale la apertura <span className="text-destructive">*</span></Label>
+              <select
+                className={select}
+                value={atencionId}
+                onChange={(e) => {
+                  const c = casos.find((x) => x.id === e.target.value);
+                  setAtencionId(e.target.value);
+                  setTipoPedido(c?.enGarantia ? "revision" : "mantenimiento");
+                  if (!tecnico.trim() && c?.tecnico) setTecnico(c.tecnico);
+                }}
+              >
+                {casos.map((c) => (
+                  <option key={c.id} value={c.id}>{c.etiqueta}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="grid gap-1">
             <Label className="text-xs">Servicio</Label>
             <select className={select} value={tipoPedido} onChange={(e) => setTipoPedido(e.target.value as "mantenimiento" | "revision")}>
