@@ -89,6 +89,28 @@ export function TomarOSubir({
  * Varias fotos a la vez (informe técnico, caso, protocolo): la cámara suma de
  * a una; la galería deja elegir varias.
  */
+/**
+ * El botón «Agregar fotos» al costado de cada máquina (Ariana, almacén 07-10):
+ * suma a la misma lista que el bloque de fotos de abajo y dice cuántas lleva.
+ */
+export function BotonAgregarFotos({ archivos, onChange, maximo = 20 }: { archivos: File[]; onChange: (f: File[]) => void; maximo?: number }) {
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-primary/40 px-2 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/5">
+      <Camera className="size-3" /> Agregar fotos{archivos.length > 0 ? ` (${archivos.length})` : ""}
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          onChange([...archivos, ...Array.from(e.target.files ?? [])].slice(0, maximo));
+          e.target.value = "";
+        }}
+      />
+    </label>
+  );
+}
+
 export function TomarOSubirVarias({
   titulo,
   archivos,

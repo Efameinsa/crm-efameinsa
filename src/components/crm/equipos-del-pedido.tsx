@@ -21,7 +21,7 @@ import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
+import { BotonAgregarFotos, TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 import { Documentos } from "@/components/crm/informe-soporte-apertura";
 import { agregarArchivosDelEquipo } from "@/lib/acciones/almacen";
 import { cn } from "@/lib/utils";
@@ -259,6 +259,8 @@ function Fila({
   }
 
   const apagado = !e.en_este_despacho;
+  // El mismo momento en que sale el bloque de fotos de abajo.
+  const puedeSubirFotos = modo === "almacen" && e.en_este_despacho && !e.prueba_lista_at;
   return (
     <li className={cn("rounded-md border px-2.5 py-2", apagado ? "border-dashed border-border bg-muted/40 text-muted-foreground" : "border-border bg-card")}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
@@ -300,6 +302,7 @@ function Fila({
             ) : e.en_este_despacho ? (
               <span className="rounded-full bg-secondary px-2 py-0.5 text-muted-foreground whitespace-nowrap">Pendiente de prueba</span>
             ) : null}
+            {puedeSubirFotos && <BotonAgregarFotos archivos={fotos} onChange={setFotos} />}
             {apagado && <span className="rounded-full border border-dashed border-border px-2 py-0.5">No va en este despacho</span>}
           </div>
           {/* LA PROCEDENCIA (0385; Lesly, 02-10: «en la generación de códigos, tres
@@ -361,6 +364,7 @@ function Fila({
                   Quitar
                 </button>
               )}
+              {puedeSubirFotos && <BotonAgregarFotos archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} />}
               {e.prueba_lista_at && p.protocolo_ref && <span className="text-muted-foreground">· protocolo {p.protocolo_ref}</span>}
               {modo !== "central" && <ArchivosDeParte p={p} servicioId={servicioId} probada={Boolean(e.prueba_lista_at)} />}
             </div>
@@ -373,6 +377,7 @@ function Fila({
                 {e.serie ? "falta su serie" : "Sin serie · sin stock todavía"}
               </span>
               {serieSugerida && <span className="text-muted-foreground">· la descripción dice {serieSugerida}</span>}
+              {puedeSubirFotos && <BotonAgregarFotos archivos={fotosSec} onChange={setFotosSec} />}
             </div>
           )}
           {e.serie && !e.sin_serie && !despachado && partes.length < 3 && (
