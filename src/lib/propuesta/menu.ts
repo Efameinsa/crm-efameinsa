@@ -203,6 +203,9 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Almacén", href: "/nuevo/almacen", icono: "pedidos", coincide: ["/nuevo/almacen", "/almacen"] },
     { etiqueta: "Central y cierres", href: "/nuevo/central", icono: "seguimiento", coincide: ["/nuevo/central", "/central"] },
     { etiqueta: "Finanzas", href: "/nuevo/finanzas", icono: "cobranza", coincide: ["/nuevo/finanzas", "/finanzas"] },
+    // Lesly (buzón, 06-10): «tengo una vista macro, ¿desde dónde aperturo mi
+    // agenda?». Su calendario general, sin entrar por Postventa ni Almacén.
+    { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda"] },
     { etiqueta: "Catálogo", href: "/operaciones/catalogo", icono: "catalogo", coincide: ["/operaciones/catalogo"] },
     { etiqueta: "Permisos y listas", href: "/nuevo/permisos", icono: "permisos", coincide: ["/nuevo/permisos", "/operaciones/permisos", "/admin/catalogos"] },
     // Como gerencia, pero de Central, comerciales, almacén, Finanzas y Facturación (26-09).
@@ -458,6 +461,19 @@ export const SECCIONES: Record<string, Seccion> = {
       { clave: "atenciones", etiqueta: "Atenciones programadas", pagina: "almacen/atenciones" },
       { clave: "visitas", etiqueta: "Visitas a planta", pagina: "almacen/visitas" },
       { clave: "informes", etiqueta: "Informes técnicos", pagina: "almacen/informes" },
+    ],
+  },
+  // LA AGENDA DE OPERACIONES (Lesly, buzón 06-10). «Todo junto» es el
+  // calendario de postventa, que con su perfil ya reúne pedidos, casos,
+  // atenciones, llamadas derivadas, visitas y sus propias tareas; el del
+  // almacén va aparte para ver solo lo que le toca a la planta.
+  "operaciones/agenda": {
+    titulo: "Agenda",
+    ayuda: "Todo lo que tiene fecha en postventa y almacén, en un solo calendario; y aparte, solo lo del almacén.",
+    pestanas: [
+      { clave: "", etiqueta: "Todo junto", pagina: "postventa/agenda" },
+      { clave: "almacen", etiqueta: "Solo almacén", pagina: "almacen/agenda" },
+      { clave: "visitas", etiqueta: "Visitas a planta", pagina: "postventa/visitas" },
     ],
   },
   "operaciones/central": {
