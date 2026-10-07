@@ -247,7 +247,7 @@ export function FormularioSugerencia({ userId }: { userId: string }) {
 
       <div className="flex items-center justify-end gap-3">
         <span className="text-[11px] leading-snug text-muted-foreground">
-          Cada sugerencia suma <b className="text-foreground">3 puntos en Crece</b> (1 si es una duda; hasta 3 por día) y{" "}
+          Cada sugerencia suma <b className="text-foreground">3 puntos en Crece</b> (1 si es una duda), sin límite, y{" "}
           <b className="text-foreground">15 más</b> si se implementa. La respuesta le llega a la campana.
         </span>
         <Button onClick={enviar} disabled={enviando} className="gap-1.5">

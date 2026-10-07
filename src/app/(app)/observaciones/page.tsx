@@ -4,7 +4,7 @@ import { MessageSquareWarning } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
 import { listarSugerencias } from "@/lib/acciones/sugerencias";
 import { ListaSugerencias } from "@/components/crm/buzon-sugerencias";
-import { listarPendientesDecision } from "@/lib/acciones/pendientes-decision";
+import { listarOrdenesAlAgente, listarPendientesDecision } from "@/lib/acciones/pendientes-decision";
 import { PendientesDecision } from "@/components/crm/pendientes-decision";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ESTADOS_SUGERENCIA, TIPOS_SUGERENCIA } from "@/lib/sugerencias";
@@ -20,7 +20,7 @@ export default async function ObservacionesPage() {
   const perfil = await requerirPerfil();
   if (perfil.rol !== "admin" && perfil.rol !== "gerencia") redirect("/sugerencias");
   const esAdmin = perfil.rol === "admin";
-  const [sugerencias, pendientes] = await Promise.all([listarSugerencias(), listarPendientesDecision()]);
+  const [sugerencias, pendientes, ordenes] = await Promise.all([listarSugerencias(), listarPendientesDecision(), listarOrdenesAlAgente()]);
 
   const porEstado = (e: string) => sugerencias.filter((s) => s.estado === e).length;
   const porTipo = TIPOS_SUGERENCIA.map((t) => ({ ...t, n: sugerencias.filter((s) => s.tipo === t.valor).length }));
@@ -45,7 +45,7 @@ export default async function ObservacionesPage() {
         </div>
       </div>
 
-      <PendientesDecision pendientes={pendientes} esAdmin={esAdmin} />
+      <PendientesDecision pendientes={pendientes} ordenes={ordenes} esAdmin={esAdmin} />
 
       <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
         <Cifra etiqueta="Recibidas" valor={sugerencias.length} />

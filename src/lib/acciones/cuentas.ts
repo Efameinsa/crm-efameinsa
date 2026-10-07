@@ -630,3 +630,11 @@ export async function vincularOtraRazonSocial(cuentaId: string, numDoc: string, 
   revalidatePath(`/nuevo/cliente/${cuentaId}`);
   return { error: null as string | null };
 }
+
+/** El RUC está en la cartera de otro comercial: el asesor se lo pide a gerencia (0414). */
+export async function pedirUnionRazonSocial(cuentaId: string, numDoc: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("pedir_union_razon_social", { p_cuenta: cuentaId, p_num_doc: numDoc });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  return { error: null as string | null };
+}

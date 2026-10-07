@@ -174,6 +174,9 @@ export function ListaVisitasPlanta({
                     {v.tipo_visitante === "proveedor" && (
                       <span className="mr-1 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-sky-800 dark:text-sky-200">Proveedor</span>
                     )}
+                    {v.tipo_visitante === "videollamada" && (
+                      <span className="mr-1 rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-violet-800 dark:text-violet-200">Videollamada</span>
+                    )}
                     <NombreAFicha cuentaId={v.cuenta_id}>{v.empresa}</NombreAFicha>
                     {v.ruc && <span className="ml-1 text-muted-foreground">· RUC {v.ruc}</span>}
                     {v.telefono && <span className="ml-1 text-muted-foreground">· {v.telefono}</span>}
@@ -182,6 +185,7 @@ export function ListaVisitasPlanta({
                   <p className="text-xs text-muted-foreground">
                     {v.motivo}
                     {v.equipo_a_ver && <span className="ml-1 font-medium text-foreground">· viene a ver: {v.equipo_a_ver}</span>}
+                    {v.quitar_film && <span className="ml-1 rounded-full bg-yellow-300/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-yellow-950">Quitar el film</span>}
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
                     Registró {v.registradoPor}

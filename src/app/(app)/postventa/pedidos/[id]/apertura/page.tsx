@@ -8,6 +8,8 @@ import { asuntoApertura, cuerpoApertura, esFilaLarga, queQuedaEnAgenda } from "@
 import { cargarHojaApertura } from "@/lib/acciones/apertura-servicio-datos";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { AperturaServicioPanel } from "@/components/crm/apertura-servicio-panel";
+import { destinatariosDelArea, type FilaDirectorio } from "@/lib/directorio";
+import { empresaDeApertura } from "@/lib/correo/apertura";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +45,12 @@ export default async function AperturaServicioPage({ params }: { params: Promise
   const hoja = await cargarHojaApertura(supabase, id, perfil);
   if (!hoja) notFound();
   const { servicio: s, informe, empresaLarga, emitidoPor, d, filas, faltantes, condiciones, avisoPreinstalacion } = hoja;
+
+  // A QUIÉN SE PUEDE ENVIAR POR CORREO (0410): almacén y Finanzas —Finanzas
+  // confirma la guía y contabilidad coordina viáticos—, en el correo de la
+  // empresa del pedido. Postventa los puede quitar o agregar en el diálogo.
+  const { data: filasDirectorio } = await supabase.from("directorio").select("nombre, correo_efameinsa, correo_open, avisos, activo").eq("activo", true);
+  const destinatarios = destinatariosDelArea((filasDirectorio ?? []) as FilaDirectorio[], ["almacen", "finanzas"], empresaDeApertura(d));
 
   return (
     <div className="mx-auto max-w-3xl space-y-3">
@@ -251,6 +259,8 @@ export default async function AperturaServicioPage({ params }: { params: Promise
         asunto={asuntoApertura(d)}
         cuerpo={cuerpoApertura(d)}
         faltantes={faltantes}
+        destinatarios={destinatarios}
+        empresaCorreo={empresaDeApertura(d)}
         enviadaAlmacenAt={s.apertura_enviada_almacen_at ?? null}
         enviadaClienteAt={s.apertura_enviada_cliente_at ?? null}
       />

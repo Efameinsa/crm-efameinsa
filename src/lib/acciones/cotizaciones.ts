@@ -616,6 +616,55 @@ export async function resolverAprobacionCotizacion(datos: {
 }
 
 /**
+ * Gerencia OBSERVA una cotización sin rechazarla (0415, pedido de Brenda 07-10).
+ *
+ * La cotización sigue esperando a gerencia y la comercial puede editarla y
+ * responder; no queda como histórico ni cuenta como rechazada. Rechazar sigue
+ * existiendo para cuando el precio no va.
+ */
+export async function observarCotizacion(datos: { cotizacionId: string; nota: string }): Promise<{ error: string | null }> {
+  if (datos.nota.trim().length < 5) return { error: "Escriba qué observa, para que la comercial sepa qué corregir o responder." };
+  const supabase = await createClient();
+  const { comercialId, codigo, oportunidadId, cliente } = await comercialDeCotizacion(supabase, datos.cotizacionId);
+  const { error } = await supabase.rpc("observar_cotizacion", { p_cotizacion_id: datos.cotizacionId, p_nota: datos.nota });
+  if (error) return { error: limpiarError(error.message) };
+
+  if (comercialId) {
+    const cual = [codigo ? `la cotización ${codigo}` : "su cotización", cliente].filter(Boolean).join(" · ");
+    await notificar({
+      userId: comercialId,
+      tipo: "cotizacion_observada",
+      titulo: `Gerencia observó ${cual}`,
+      cuerpo: `${datos.nota.trim()} — No se rechazó: responda a gerencia o actualice la misma cotización.`,
+      url: oportunidadId ? `/comercial/oportunidades/${oportunidadId}/cotizar/${datos.cotizacionId}` : "/comercial/oportunidades",
+    });
+  }
+  revalidatePath("/gerencia/aprobaciones");
+  revalidatePath("/comercial", "layout");
+  return { error: null };
+}
+
+/** La comercial responde a la observación de gerencia sobre su cotización (0415). */
+export async function responderObservacionCotizacion(datos: { cotizacionId: string; texto: string }): Promise<{ error: string | null }> {
+  if (datos.texto.trim().length < 3) return { error: "Escriba su respuesta a gerencia." };
+  const supabase = await createClient();
+  const { codigo, cliente } = await comercialDeCotizacion(supabase, datos.cotizacionId);
+  const { error } = await supabase.rpc("responder_observacion_cotizacion", { p_cotizacion_id: datos.cotizacionId, p_texto: datos.texto });
+  if (error) return { error: limpiarError(error.message) };
+
+  await notificar({
+    rol: "gerencia",
+    tipo: "cotizacion_respondida",
+    titulo: `Respondieron su observación · ${[codigo ?? "Cotización", cliente].filter(Boolean).join(" · ")}`,
+    cuerpo: datos.texto.trim(),
+    url: "/gerencia/aprobaciones",
+  });
+  revalidatePath("/gerencia/aprobaciones");
+  revalidatePath("/comercial", "layout");
+  return { error: null };
+}
+
+/**
  * Borra una cotización que nunca salió al cliente.
  *
  * Pedido de Katerine (C5) el 24-08: probando el cotizador le quedaron varios

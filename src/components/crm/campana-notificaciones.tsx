@@ -83,6 +83,19 @@ const ESTILO_AVISO: Record<
     duracion: 14000,
     tono: "warning",
   },
+  // Gerencia observa sin rechazar y la comercial responde (0415).
+  cotizacion_observada: {
+    encabezado: "Gerencia observó su cotización",
+    accion: "Responder",
+    duracion: 14000,
+    tono: "warning",
+  },
+  cotizacion_respondida: {
+    encabezado: "La comercial respondió su observación",
+    accion: "Revisarla",
+    duracion: 14000,
+    tono: "info",
+  },
   // Postventa pide revisar un borrador (0392) y el acuse de que gerencia lo vio.
   cotizacion_revision: {
     encabezado: "Postventa pide revisar una cotización",

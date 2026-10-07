@@ -210,7 +210,7 @@ export interface DecisionGerencia {
   id: string;
   decididoAt: string;
   decididoPor: string | null;
-  resultado: "aprobada_gerencia" | "rechazada_gerencia";
+  resultado: "aprobada_gerencia" | "rechazada_gerencia" | "observada" | "respondida";
   nota: string | null;
   /** Número de la cotización sobre la que se decidió (null si era borrador). */
   codigo: string | null;
@@ -336,7 +336,7 @@ export async function cargarContextoCotizador(
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, precio_lista, color, nombre_impreso, detalle_kit, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, observacion_estado, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, precio_lista, color, nombre_impreso, detalle_kit, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
@@ -406,6 +406,13 @@ export async function cargarContextoCotizador(
       notasPdf: (cot.notas_pdf as string[] | null) ?? null,
       estadoAprobacion: cot.estado_aprobacion,
       notaGerencia: cot.nota_gerencia,
+      // La conversación con gerencia sobre ESTA cotización (0415): lo que
+      // observó, lo que se le respondió.
+      observacionEstado: (cot.observacion_estado as "observada" | "respondida" | null) ?? null,
+      conversacion:
+        cot.observacion_estado || cot.estado_aprobacion === "pendiente_gerencia"
+          ? (await decisionesDeGerencia(supabase, { cotizacionId: cot.id })).filter((d) => d.resultado === "observada" || d.resultado === "respondida")
+          : [],
       items: (cot.cotizacion_items as unknown as {
         producto_id: string | null;
         descripcion: string | null;

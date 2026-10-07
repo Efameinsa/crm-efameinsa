@@ -48,6 +48,8 @@ export function VisitaPlantaBoton({
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const [f, setF] = useState({ empresa, ruc: ruc ?? "", persona: "", dni: "", telefono: "", motivo: "", fecha: hoy, hora: "10:00" });
   const [showroom, setShowroom] = useState(false);
+  // Brenda, 07-10: la lavandería también se abre para una videollamada con un cliente de provincia.
+  const [videollamada, setVideollamada] = useState(false);
   const [prenderTv, setPrenderTv] = useState(false);
   const [infocorp, setInfocorp] = useState(false);
   const [cotizacion, setCotizacion] = useState("");
@@ -56,6 +58,8 @@ export function VisitaPlantaBoton({
   const [acompanantes, setAcompanantes] = useState<{ nombre: string; dni: string }[]>([]);
   const [equipoAVer, setEquipoAVer] = useState("");
   const [quitarFilm, setQuitarFilm] = useState(false);
+  // Almacén necesita más que el modelo para quitar el film: voltaje, fase, capacidad… (Lesly, 07-10).
+  const [caractFilm, setCaractFilm] = useState("");
   // La ficha elegida: la que viene de la pantalla o la que se busca acá.
   const [cuentaElegida, setCuentaElegida] = useState<string | null>(cuentaId);
   const [sugerencias, setSugerencias] = useState<{ id: string; razon_social: string; num_doc: string | null }[]>([]);
@@ -77,19 +81,34 @@ export function VisitaPlantaBoton({
   const campo = (k: keyof typeof f) => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value })) });
 
   function enviar() {
+    if (!videollamada && quitarFilm && (!equipoAVer.trim() || !caractFilm.trim())) {
+      toast.error("Para quitarle el film escriba qué máquina es y sus características (voltaje, fase, capacidad…): almacén las necesita.");
+      return;
+    }
+    const equipoCompleto = quitarFilm && caractFilm.trim() ? `${equipoAVer.trim()} — ${caractFilm.trim()}` : equipoAVer;
     startTransition(async () => {
-      const r = await registrarVisitaPlanta({ cuentaId: cuentaElegida, oportunidadId, ...f, showroom, prenderTv, infocorp, cotizacionRef: cotizacion, acompanantes, equipoAVer, quitarFilm });
+      const r = await registrarVisitaPlanta({ cuentaId: cuentaElegida, oportunidadId, ...f, showroom: showroom || videollamada, prenderTv, infocorp, cotizacionRef: cotizacion, videollamada,
+        ...(videollamada ? { acompanantes: [], equipoAVer: "", quitarFilm: false } : { acompanantes, equipoAVer: equipoCompleto, quitarFilm }) });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
       }
       toast.success(
-        r.correoEnviado
+        videollamada
+          ? "Videollamada registrada. Almacén ya sabe que hay que abrir la lavandería" + (r.correoEnviado ? " y el correo salió a Central, Contabilidad, Logística, Almacén y gerencia." : ".")
+          : r.correoEnviado
           ? "Visita registrada. Central tiene el aviso y el correo salió a Central, Contabilidad, Logística, Almacén y gerencia."
           : "Visita registrada. Central ya tiene el aviso para imprimirlo a vigilancia.",
+        // Se repite lo marcado, para que quien registra vea que el film quedó pedido (Katerine y Lesly, 07-10).
+        { description: quitarFilm && equipoCompleto.trim() ? `Almacén quitará el film a: ${equipoCompleto.trim()}.` : undefined },
       );
       setAbierto(false);
       setF((x) => ({ ...x, persona: "", dni: "", telefono: "", motivo: "" }));
+      // Que la próxima visita no herede la máquina ni el film de ésta.
+      setEquipoAVer("");
+      setQuitarFilm(false);
+      setCaractFilm("");
+      setAcompanantes([]);
       router.refresh();
     });
   }
@@ -102,28 +121,32 @@ export function VisitaPlantaBoton({
             <button
               type="button"
               className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-accent"
-              title="El cliente viene a la planta: Central lo imprime para vigilancia"
+              title="El cliente viene a la planta (Central lo imprime para vigilancia) o hay una videollamada y hay que abrir la lavandería"
             >
               <Building2 className="size-3.5" />
-              Viene a la planta
+              Visita o videollamada
             </button>
           ) : (
-            <Button variant="outline" size="sm" title="El cliente viene a la planta: Central lo imprime para vigilancia">
+            <Button variant="outline" size="sm" title="El cliente viene a la planta (Central lo imprime para vigilancia) o hay una videollamada y hay que abrir la lavandería">
               <Building2 className="size-3.5" />
-              {cabecera ? <span className="max-2xl:hidden">Viene a la planta</span> : "Viene a la planta"}
+              {cabecera ? <span className="max-2xl:hidden">Visita o videollamada</span> : "Visita o videollamada"}
             </Button>
           )
         }
       />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Visita a la planta</DialogTitle>
+          <DialogTitle>{videollamada ? "Videollamada: abrir la lavandería" : "Visita a la planta"}</DialogTitle>
           <DialogDescription>
-            Lo que vigilancia necesita en la puerta. Central recibe el aviso y lo imprime; el correo con la tabla sale a
-            Central, Contabilidad, Logística, Sistemas, Almacén y gerencia, como el de siempre.
+            {videollamada ? "Nadie entra a la planta: Almacén recibe el aviso para abrir la lavandería a la hora de la videollamada. El correo sale a Central, Contabilidad, Logística, Sistemas, Almacén y gerencia." : <>Lo que vigilancia necesita en la puerta. Central recibe el aviso y lo imprime; el correo con la tabla sale a
+            Central, Contabilidad, Logística, Sistemas, Almacén y gerencia, como el de siempre.</>}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
+          <label className="flex items-center gap-2 rounded-md border border-border bg-muted/40 p-2 text-sm">
+            <input type="checkbox" checked={videollamada} onChange={(e) => setVideollamada(e.target.checked)} className="size-4" />
+            Es una videollamada (el cliente no viene a la planta)
+          </label>
           <div className="grid grid-cols-[1fr_9rem] gap-2">
             <div className="grid gap-1">
               <Label className="text-xs">Empresa</Label>
@@ -176,7 +199,7 @@ export function VisitaPlantaBoton({
           <div className="grid grid-cols-[1fr_8rem] gap-2">
             <div className="grid gap-1">
               <Label className="text-xs">
-                Quién viene <span className="text-destructive">*</span>
+                {videollamada ? "Con quién es la videollamada" : "Quién viene"} <span className="text-destructive">*</span>
               </Label>
               <Input {...campo("persona")} placeholder="Nombre y apellido" autoFocus />
             </div>
@@ -189,6 +212,7 @@ export function VisitaPlantaBoton({
             <Label className="text-xs">Teléfono de contacto</Label>
             <Input {...campo("telefono")} inputMode="tel" />
           </div>
+          {!videollamada && (<>
           <div className="grid gap-1">
             <Label className="text-xs">¿Viene acompañado? Nombre y DNI de cada uno (vigilancia los pide)</Label>
             {acompanantes.map((a, i) => (
@@ -212,9 +236,16 @@ export function VisitaPlantaBoton({
               Quitarle el film
             </label>
           </div>
+          {quitarFilm && (
+            <div className="grid gap-1">
+              <Label className="text-xs">Características de la máquina <span className="text-destructive">*</span></Label>
+              <Input value={caractFilm} onChange={(e) => setCaractFilm(e.target.value)} placeholder="ej. 220 V trifásica, 17 kg, gas / eléctrica, color" />
+            </div>
+          )}
+          </>)}
           <div className="grid gap-1">
             <Label className="text-xs">
-              Para qué viene <span className="text-destructive">*</span>
+              {videollamada ? "Para qué es" : "Para qué viene"} <span className="text-destructive">*</span>
             </Label>
             <Input {...campo("motivo")} placeholder="ej. ver su máquina en mantenimiento y pagar el saldo" />
           </div>
@@ -225,7 +256,7 @@ export function VisitaPlantaBoton({
           <div className="grid gap-1 rounded-md border border-border p-2">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Lo que hay que preparar</p>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={showroom} onChange={(e) => setShowroom(e.target.checked)} className="size-4" />
+              <input type="checkbox" checked={showroom || videollamada} disabled={videollamada} onChange={(e) => setShowroom(e.target.checked)} className="size-4" />
               Abrir lavandería (showroom)
             </label>
             <label className="flex items-center gap-2 text-sm">
@@ -256,7 +287,7 @@ export function VisitaPlantaBoton({
           </Button>
           <Button onClick={enviar} disabled={pendiente || !f.persona.trim() || !f.motivo.trim() || !f.fecha}>
             {pendiente && <Loader2 className="size-4 animate-spin" />}
-            Registrar la visita
+            {videollamada ? "Pedir la lavandería" : "Registrar la visita"}
           </Button>
         </DialogFooter>
       </DialogContent>

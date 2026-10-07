@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { enviarCorreoN8n } from "@/lib/avisos-n8n";
+import { armarCorreo } from "@/lib/correo/plantilla";
 import { notificarAlmacen, notificarCentral } from "@/lib/notificaciones";
 
 /**
@@ -40,12 +41,14 @@ export async function registrarVisitaPlanta(datos: {
   quitarFilm?: boolean;
   /** Un proveedor, no un cliente (0386; Lesly, 03-10): lo registra el almacén, sin ficha. */
   proveedor?: boolean;
+  /** Una videollamada con un cliente (0413; Brenda, 07-10): no entra a la planta, solo hay que abrir la lavandería. */
+  videollamada?: boolean;
 }): Promise<{ error: string | null; id?: string; correoEnviado?: boolean }> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
   // Si no escribieron la cotización, va la última que se le envió a ese cliente.
   let cotizacionRef = datos.cotizacionRef?.trim() || "";
-  if (!cotizacionRef && datos.cuentaId && !datos.proveedor) {
+  if (!cotizacionRef && datos.cuentaId && !datos.proveedor && !datos.videollamada) {
     const { data: ult } = await supabase
       .from("cotizaciones")
       .select("codigo, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id)")
@@ -74,7 +77,7 @@ export async function registrarVisitaPlanta(datos: {
     p_acompanantes: (datos.acompanantes ?? []).filter((a) => a.nombre?.trim()).map((a) => ({ nombre: a.nombre.trim().slice(0, 120), dni: a.dni?.trim().slice(0, 20) || null })),
     p_equipo_a_ver: datos.equipoAVer?.trim() || null,
     p_quitar_film: datos.quitarFilm === true,
-    p_tipo: datos.proveedor ? "proveedor" : "cliente",
+    p_tipo: datos.proveedor ? "proveedor" : datos.videollamada ? "videollamada" : "cliente",
   });
   if (error) return { error: limpiar(error.message) };
   revalidatePath("/central/visitas");
@@ -82,7 +85,7 @@ export async function registrarVisitaPlanta(datos: {
   revalidatePath("/almacen/visitas");
   // El almacén también se entera en su bandeja: viene alguien a recoger (0246).
   await notificarAlmacen({
-    titulo: `Visita ${datos.proveedor ? "de proveedor" : datos.showroom ? "al showroom" : "a planta"} el ${datos.fecha}${datos.hora ? ` ${datos.hora.slice(0, 5)}` : ""} · ${datos.empresa.trim()}`,
+    titulo: `${datos.videollamada ? "Videollamada" : "Visita"} ${datos.proveedor ? "de proveedor" : datos.videollamada ? "· abrir lavandería" : datos.showroom ? "al showroom" : "a planta"} el ${datos.fecha}${datos.hora ? ` ${datos.hora.slice(0, 5)}` : ""} · ${datos.empresa.trim()}`,
     cuerpo: `${datos.persona.trim()}${datos.dni ? ` (DNI ${datos.dni})` : ""}. ${datos.motivo.trim()}`,
     url: "/almacen/visitas",
     esPrueba: perfil.es_prueba === true,
@@ -108,12 +111,14 @@ export async function registrarVisitaPlanta(datos: {
       para,
       asunto: datos.proveedor
         ? `VISITA DE PROVEEDOR A PLANTA-${esc(datos.empresa).toUpperCase()}-${esc(datos.persona).toUpperCase()}`
-        : datos.showroom
+        : datos.videollamada
+          ? `VIDEOLLAMADA-ABRIR LAVANDERÍA-${esc(datos.empresa).toUpperCase()}-${esc(datos.persona).toUpperCase()}`
+          : datos.showroom
           ? `VISITA SHOWROOM-PROSPECTO-${esc(datos.persona).toUpperCase()}`
           : `VISITA A PLANTA-${esc(datos.empresa).toUpperCase()}-${esc(datos.persona).toUpperCase()}`,
-      html:
+      html: armarCorreo({ pretitulo: "Registro de visita", titulo: datos.proveedor ? "Visita de proveedor a planta" : datos.showroom ? "Visita al showroom" : "Visita a planta", contenidoHtml:
         `<div style="font-family:Calibri,Arial,sans-serif;font-size:14px">` +
-        `<p>Buenos días, para informar la siguiente visita${datos.proveedor ? " de proveedor" : ""}:</p>` +
+        `<p>Buenos días, ${datos.videollamada ? "para informar la siguiente videollamada con un cliente (no viene a la planta)" : `para informar la siguiente visita${datos.proveedor ? " de proveedor" : ""}`}:</p>` +
         `<table style="border-collapse:collapse"><tr>${th("FECHA")}${th("HORA")}${th(datos.proveedor ? "PROVEEDOR" : "PROSPECTO")}${th("N° COTIZACIÓN")}${th("OBSERVACIÓN")}</tr>` +
         `<tr>${td(`<span style="background:#ffff00">${fecha}</span>`)}${td(`<span style="color:#c00">${hora}</span>`)}` +
         `${td(`${datos.dni ? `DNI ${esc(datos.dni)} - ` : datos.ruc ? `RUC ${esc(datos.ruc)} - ` : ""}${esc(datos.persona)}` +
@@ -127,7 +132,7 @@ export async function registrarVisitaPlanta(datos: {
         (datos.infocorp ? `Se solicita Infocorp: ${esc(datos.empresa)}${datos.ruc ? ` (RUC ${esc(datos.ruc)})` : datos.dni ? ` (DNI ${esc(datos.dni)})` : ""}<br>` : "") +
         `</p>` +
         `<p>Gracias,</p>` +
-        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`,
+        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`, firma: null }),
       responderA: null,
     });
     correoEnviado = !r.error;
@@ -204,13 +209,13 @@ export async function reprogramarVisitaPlanta(visitaId: string, fecha: string, h
     await enviarCorreoN8n({
       para,
       asunto: `CAMBIO DE HORA - VISITA A PLANTA-${esc(empresa).toUpperCase()}-${esc(persona).toUpperCase()}`,
-      html:
+      html: armarCorreo({ pretitulo: "Cambio de hora", titulo: "Cambió la hora de una visita a planta", contenidoHtml:
         `<div style="font-family:Calibri,Arial,sans-serif;font-size:14px">` +
         `<p>Buenos días, la visita de <b>${esc(persona)}</b> (${esc(empresa)}) cambia:</p>` +
         `<p>Antes: <s>${esc(r.antes)}</s><br>Ahora: <span style="background:#ffff00"><b>${esc(r.despues)}</b></span></p>` +
         (r.vigilancia_avisada ? `<p>Vigilancia ya tenía la hoja con la hora anterior: hay que volver a avisarle.</p>` : "") +
         `<p>Gracias,</p>` +
-        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`,
+        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`, firma: null }),
       responderA: null,
     });
   }

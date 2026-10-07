@@ -141,6 +141,16 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
   const loUneSola = (coincidencias ?? []).some((c) => c.motivo === "documento" || c.motivo === "telefono");
   const pideMotivoNuevo =
     (coincidencias?.length ?? 0) > 0 && !cuentaId && !cuentaElegida && !institucion && !loUneSola;
+  /**
+   * DERIVAR COMO NUEVO UN CLIENTE QUE ES DE OTRA CARTERA PIDE CÓDIGO (07-10).
+   * Caso HOTEL PULLMAN / ATTKO: el contacto coincidía con una ficha de C4 y
+   * Central lo derivó como «cliente nuevo» a C1 sin que nadie lo autorizara;
+   * C1 no pudo cotizar con el RUC porque el cliente seguía siendo de C4. La
+   * razón escrita no basta cuando la coincidencia es de OTRO comercial: eso
+   * lo autoriza gerencia, igual que un traspaso de cartera.
+   */
+  const nuevoConClienteAjeno =
+    pideMotivoNuevo && !esPostventa && !!comercialId && (coincidencias ?? []).some((c) => c.comercialId && c.comercialId !== comercialId);
 
   useEffect(() => {
     if (!abierto) return;
@@ -207,6 +217,10 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
     // de esas fichas, o se dice por qué no lo es. La base lo vuelve a exigir.
     if (pideMotivoNuevo && motivoNuevo.trim().length < 10) {
       toast.error("Este contacto coincide con un cliente que ya tenemos: elija su ficha para unirlo, o escriba por qué es un cliente nuevo.");
+      return;
+    }
+    if (nuevoConClienteAjeno && pin.length !== 4) {
+      toast.error("Este contacto coincide con un cliente de otra cartera: gerencia debe darle el código para derivarlo como nuevo.");
       return;
     }
     let sede: EleccionSede | null = null;
@@ -389,6 +403,14 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
                   placeholder="Ej.: es otra empresa del mismo grupo, con otro RUC y otra planta"
                   className="bg-card"
                 />
+                {nuevoConClienteAjeno && (
+                  <label className="block space-y-1 pt-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-amber-900">
+                      Código del supervisor (coincide con un cliente de otra cartera)
+                    </span>
+                    <CampoCodigo valor={pin} onChange={setPin} tono="amber" />
+                  </label>
+                )}
               </div>
             )}
           </div>
@@ -535,7 +557,7 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
         <DialogFooter>
           <Button
             onClick={confirmar}
-            disabled={enviando || (!!traspaso && pin.length !== 4)}
+            disabled={enviando || ((!!traspaso || nuevoConClienteAjeno) && pin.length !== 4)}
             variant={traspaso ? "destructive" : "default"}
           >
             {enviando

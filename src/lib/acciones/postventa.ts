@@ -1604,6 +1604,7 @@ export async function abrirAperturaDesdeCaso(
     // Sin cierre no hay serie: sale con los correos de EFAMEINSA (0410).
     correoAlArea({
       areas: ["finanzas"],
+      servicioId: id,
       empresa: "EFAMEINSA",
       titulo: `Apertura por confirmar · ${quien}`,
       cuerpo: `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
@@ -1612,6 +1613,7 @@ export async function abrirAperturaDesdeCaso(
     }),
     correoAlArea({
       areas: ["almacen"],
+      servicioId: id,
       empresa: "EFAMEINSA",
       titulo: `Apertura de servicio · ${quien}`,
       cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Finanzas confirma la guía.`,

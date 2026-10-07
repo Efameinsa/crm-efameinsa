@@ -21,7 +21,7 @@ import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
+import { BotonAgregarFotos, TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 import { Documentos } from "@/components/crm/informe-soporte-apertura";
 import { agregarArchivosDelEquipo } from "@/lib/acciones/almacen";
 import { cn } from "@/lib/utils";
@@ -188,6 +188,8 @@ function Fila({
   // Varios PDF o Word por máquina (0297): el protocolo o el informe completo.
   const [docs, setDocs] = useState<File[]>([]);
   const [sumando, setSumando] = useState(false);
+  const [fotosSec, setFotosSec] = useState<File[]>([]);
+  const [docsSec, setDocsSec] = useState<File[]>([]);
   // La otra máquina de la torre se prueba con la unidad pero con lo suyo (Lesly, 03-10):
   // «no da la opción para agregar las fotos y el informe de la otra máquina».
   const [dePartes, setDePartes] = useState<Record<string, { protocolo: string; fotos: File[]; docs: File[] }>>({});
@@ -257,6 +259,8 @@ function Fila({
   }
 
   const apagado = !e.en_este_despacho;
+  // El mismo momento en que sale el bloque de fotos de abajo.
+  const puedeSubirFotos = modo === "almacen" && e.en_este_despacho && !e.prueba_lista_at;
   return (
     <li className={cn("rounded-md border px-2.5 py-2", apagado ? "border-dashed border-border bg-muted/40 text-muted-foreground" : "border-border bg-card")}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
@@ -298,6 +302,7 @@ function Fila({
             ) : e.en_este_despacho ? (
               <span className="rounded-full bg-secondary px-2 py-0.5 text-muted-foreground whitespace-nowrap">Pendiente de prueba</span>
             ) : null}
+            {puedeSubirFotos && <BotonAgregarFotos archivos={fotos} onChange={setFotos} />}
             {apagado && <span className="rounded-full border border-dashed border-border px-2 py-0.5">No va en este despacho</span>}
           </div>
           {/* LA PROCEDENCIA (0385; Lesly, 02-10: «en la generación de códigos, tres
@@ -359,6 +364,7 @@ function Fila({
                   Quitar
                 </button>
               )}
+              {puedeSubirFotos && <BotonAgregarFotos archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} />}
               {e.prueba_lista_at && p.protocolo_ref && <span className="text-muted-foreground">· protocolo {p.protocolo_ref}</span>}
               {modo !== "central" && <ArchivosDeParte p={p} servicioId={servicioId} probada={Boolean(e.prueba_lista_at)} />}
             </div>
@@ -371,6 +377,7 @@ function Fila({
                 {e.serie ? "falta su serie" : "Sin serie · sin stock todavía"}
               </span>
               {serieSugerida && <span className="text-muted-foreground">· la descripción dice {serieSugerida}</span>}
+              {puedeSubirFotos && <BotonAgregarFotos archivos={fotosSec} onChange={setFotosSec} />}
             </div>
           )}
           {e.serie && !e.sin_serie && !despachado && partes.length < 3 && (
@@ -528,6 +535,14 @@ function Fila({
           </div>
           <TomarOSubirVarias titulo={partes.length ? "Fotos de la primera máquina" : "Fotos de esta máquina"} archivos={fotos} onChange={setFotos} maximo={20} />
           <Documentos archivos={docs} onChange={setDocs} titulo={partes.length ? "Protocolo o informe de la primera máquina (PDF o Word, varios)" : "Protocolo o informe de esta máquina (PDF o Word, varios)"} />
+          {/* La torre cuya secadora aún no tiene su renglón (sin stock): sus fotos y su informe igual se suben (Ariana, 07-10). */}
+          {torre && partes.length === 0 && (
+            <div className="space-y-1.5 border-t border-border pt-1.5">
+              <p className="text-[11px] font-semibold text-foreground">Secadora de la torre</p>
+              <TomarOSubirVarias titulo="Fotos de la secadora" archivos={fotosSec} onChange={setFotosSec} maximo={20} />
+              <Documentos archivos={docsSec} onChange={setDocsSec} titulo="Protocolo o informe de la secadora (PDF o Word, varios)" />
+            </div>
+          )}
           {partes.map((p) => (
             <div key={p.id} className="space-y-1.5 border-t border-border pt-1.5">
               <p className="text-[11px] font-semibold text-foreground">
@@ -551,6 +566,11 @@ function Fila({
               correr(async () => {
                 const subidas = await subir(fotos, docs);
                 if (!subidas) return { error: "No se subieron los archivos" };
+                if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
+                  const deSecadora = await subir(fotosSec, docsSec, "-secadora");
+                  if (!deSecadora) return { error: "No se subieron los archivos" };
+                  subidas.push(...deSecadora);
+                }
                 const deLasPartes: { id: string; protocoloRef: string; fotos: FotoAlmacen[] }[] = [];
                 for (const p of partes) {
                   const d = deParte(p.id);

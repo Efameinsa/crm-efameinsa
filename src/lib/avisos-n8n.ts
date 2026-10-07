@@ -190,29 +190,74 @@ export async function avisarAtencionProgramadaN8n(datos: AvisoAtencionProgramada
 }
 
 /**
- * UN CORREO CUALQUIERA, por el flujo genérico del n8n propio («CRM · Correo
- * genérico», webhook crm-correo). Nació para el feedback de la web que cada
- * persona deja en el comunicado de gerencia (0233). Best-effort, como todo lo
- * que sale por n8n: el CRM guarda el texto antes de intentar mandarlo.
+ * UN CORREO CUALQUIERA, por el n8n propio. Nació para el feedback de la web que
+ * cada persona deja en el comunicado de gerencia (0233).
+ *
+ * SALE DESDE gestion1@efameinsa.com (Santos, 07-10: «usaremos gestion1@»), por
+ * el flujo «CRM · Correo gestion1» (webhook crm-correo-gestion1), que responde
+ * de verdad si el SMTP del hosting aceptó el correo. Así el remitente es el de
+ * la empresa y llega con SPF, DKIM y DMARC en PASS.
+ *
+ * LA GMAIL QUEDA DE RESPALDO: si gestion1@ no sale (clave cambiada, tope del
+ * hosting, SMTP caído), el mismo correo se reintenta por el flujo de siempre,
+ * «CRM · Correo genérico» (webhook crm-correo, corporacionefameinsa.sa@gmail.com).
+ * Un problema del Plesk no puede dejar a la empresa sin avisos. Esa vía no
+ * entiende `cc`/`cco`/`deNombre`: salen solo por gestion1@.
+ *
+ * CORREO_REMITENTE=gmail en el entorno vuelve a la Gmail sin tocar código.
+ *
+ * Best-effort, como todo lo que sale por n8n: el CRM guarda el texto antes de
+ * intentar mandarlo.
  */
 export async function enviarCorreoN8n(datos: {
   para: string;
   asunto: string;
   html: string;
   responderA?: string | null;
-}): Promise<{ error: string | null }> {
+  /** Nombre que ve quien recibe (por defecto «EFAMEINSA»); la dirección es siempre gestion1@. */
+  deNombre?: string | null;
+  cc?: string | null;
+  cco?: string | null;
+}): Promise<{ error: string | null; por?: "gestion1" | "gmail" }> {
   const base = process.env.N8N_LEAD_WEBHOOK_URL;
   if (!base) return { error: "El correo no está configurado en este entorno" };
-  const url = base.replace("crm-lead-nuevo", "crm-correo");
+  const secreto = process.env.N8N_WEBHOOK_SECRET ?? "";
+  const viaGmail = process.env.CORREO_REMITENTE === "gmail";
+
+  if (!viaGmail) {
+    try {
+      const r = await fetch(base.replace("crm-lead-nuevo", "crm-correo-gestion1"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secreto,
+          para: datos.para,
+          asunto: datos.asunto,
+          html: datos.html,
+          responder_a: datos.responderA ?? "",
+          de_nombre: datos.deNombre ?? "",
+          cc: datos.cc ?? "",
+          cco: datos.cco ?? "",
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const j = (await r.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (r.ok && j?.ok === true) return { error: null, por: "gestion1" };
+      console.error(`avisos-n8n: gestion1@ no mandó el correo (${r.status}${j?.error ? `: ${j.error}` : ""}); se reintenta por la Gmail`);
+    } catch (e) {
+      console.error("avisos-n8n: gestion1@ no contestó; se reintenta por la Gmail:", e instanceof Error ? e.message : e);
+    }
+  }
+
   try {
-    const r = await fetch(url, {
+    const r = await fetch(base.replace("crm-lead-nuevo", "crm-correo"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ secreto: process.env.N8N_WEBHOOK_SECRET ?? "", para: datos.para, asunto: datos.asunto, html: datos.html, responder_a: datos.responderA ?? "" }),
+      body: JSON.stringify({ secreto, para: datos.para, asunto: datos.asunto, html: datos.html, responder_a: datos.responderA ?? "" }),
       signal: AbortSignal.timeout(6000),
     });
     if (!r.ok) return { error: `El correo no salió (${r.status})` };
-    return { error: null };
+    return { error: null, por: "gmail" };
   } catch (e) {
     console.error("avisos-n8n: no se pudo mandar el correo:", e instanceof Error ? e.message : e);
     return { error: "El correo no salió: n8n no contestó" };

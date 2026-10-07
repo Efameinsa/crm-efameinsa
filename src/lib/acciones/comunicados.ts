@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { enviarCorreoN8n } from "@/lib/avisos-n8n";
+import { armarCorreo } from "@/lib/correo/plantilla";
 
 /** Leído, cumplido o «lo veo luego» (0232). */
 export async function acusarComunicado(
@@ -42,18 +43,17 @@ export async function enviarFeedbackComunicado(datos: {
     .eq("id", datos.comunicadoId)
     .maybeSingle();
   if (!c?.feedback_correo) return { error: null, correoEnviado: false };
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>");
   const quien = `${perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : ""}${perfil.nombre}`;
   const r = await enviarCorreoN8n({
     para: c.feedback_correo,
     asunto: `Feedback de la web · ${quien}`,
-    html:
-      `<div style="font-family:Arial,sans-serif;max-width:560px">` +
-      `<h2 style="color:#7E1210;margin:0 0 6px">Feedback de la web</h2>` +
-      `<p style="margin:2px 0;color:#6B6B6B">De <b style="color:#111">${esc(quien)}</b> · comunicado «${esc(c.titulo)}»</p>` +
-      `<div style="white-space:pre-wrap;font-size:15px;background:#F6F4F2;padding:12px;border-radius:6px;margin-top:10px">${esc(datos.texto.trim())}</div>` +
-      `<p style="color:#6B6B6B;font-size:12px;margin-top:10px">Enviado desde el CRM el ${new Date().toLocaleString("es-PE", { timeZone: "America/Lima" })}.</p>` +
-      `</div>`,
+    html: armarCorreo({
+      pretitulo: "Feedback de la web",
+      titulo: `Feedback de ${quien}`,
+      parrafos: [`Comunicado «${c.titulo}»`],
+      nota: datos.texto.trim(),
+      pie: `Enviado desde el CRM el ${new Date().toLocaleString("es-PE", { timeZone: "America/Lima" })}.`,
+    }),
   });
   // El texto ya quedó guardado en el CRM: si el correo no salió, se dice, pero
   // no se le hace escribir de nuevo.

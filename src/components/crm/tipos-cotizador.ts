@@ -116,6 +116,10 @@ export interface BorradorEnEdicion {
   estadoAprobacion: string;
   /** Por qué gerencia lo rechazó, para poder corregir sin ir a buscarlo. */
   notaGerencia: string | null;
+  /** Gerencia observó sin rechazar (0415): 'observada' espera a la comercial, 'respondida' a gerencia. */
+  observacionEstado?: "observada" | "respondida" | null;
+  /** Lo que gerencia observó y lo que se le respondió, de la más reciente a la más vieja. */
+  conversacion?: import("@/lib/datos-cotizador").DecisionGerencia[];
   items: {
     producto_id: string | null;
     descripcion: string | null;

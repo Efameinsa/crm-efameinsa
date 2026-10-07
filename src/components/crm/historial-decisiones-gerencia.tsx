@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react";
+import { Check, MessageCircleQuestion, Reply, X } from "lucide-react";
 import type { DecisionGerencia } from "@/lib/datos-cotizador";
 import { cn } from "@/lib/utils";
 
@@ -32,17 +32,28 @@ export function HistorialDecisionesGerencia({
       <ul className="divide-y divide-border">
         {decisiones.map((d) => {
           const rechazo = d.resultado === "rechazada_gerencia";
+          // 0415: gerencia observa sin rechazar y la comercial responde.
+          const observada = d.resultado === "observada";
+          const respondida = d.resultado === "respondida";
+          const Icono = observada ? MessageCircleQuestion : respondida ? Reply : rechazo ? X : Check;
+          const etiqueta = observada ? "Observada" : respondida ? "Respuesta de la comercial" : rechazo ? "Rechazada" : "Aprobada";
           return (
             <li key={d.id} className="px-3 py-2">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
                 <span
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold",
-                    rechazo ? "bg-destructive/10 text-destructive" : "bg-[#1E7F4F]/10 text-[#1E7F4F]",
+                    observada
+                      ? "bg-amber-500/10 text-amber-800"
+                      : respondida
+                        ? "bg-primary/10 text-primary"
+                        : rechazo
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-[#1E7F4F]/10 text-[#1E7F4F]",
                   )}
                 >
-                  {rechazo ? <X className="size-3" /> : <Check className="size-3" />}
-                  {rechazo ? "Rechazada" : "Aprobada"}
+                  <Icono className="size-3" />
+                  {etiqueta}
                 </span>
                 {d.codigo && <span className="font-medium text-foreground">{d.codigo}</span>}
                 <span className="text-muted-foreground">

@@ -1,5 +1,6 @@
 "use client";
 
+import { ObservacionDeGerencia } from "@/components/crm/observacion-de-gerencia";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -1114,6 +1115,15 @@ export function PantallaCotizador({
               </p>
             </div>
           )}
+          {edicion?.cotizacionId &&
+            estadoAprobacion === "pendiente_gerencia" &&
+            (edicion.observacionEstado || (edicion.conversacion?.length ?? 0) > 0) && (
+              <ObservacionDeGerencia
+                cotizacionId={edicion.cotizacionId}
+                estado={edicion.observacionEstado ?? null}
+                conversacion={edicion.conversacion ?? []}
+              />
+            )}
           {yaAprobada && (
             <p className="flex items-center gap-1.5 rounded-lg border border-[#1E7F4F]/40 bg-[#1E7F4F]/5 p-3 text-xs font-medium text-[#1E7F4F]">
               <Check className="size-3.5" />
