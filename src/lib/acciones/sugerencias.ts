@@ -10,7 +10,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notificar } from "@/lib/notificaciones";
 import { avisarSugerenciaEnviadaEducanet, avisarSugerenciaImplementadaEducanet } from "@/lib/avisos-educanet";
-import { hoyLima } from "@/lib/periodo";
 import {
   ESTADOS_SUGERENCIA,
   TIPOS_SUGERENCIA,
@@ -21,7 +20,6 @@ import {
 } from "@/lib/sugerencias";
 
 const MAX_ADJUNTOS = 10;
-const SUGERENCIAS_CON_PUNTOS_POR_DIA = 3;
 
 export async function enviarSugerencia(datos: {
   tipo: TipoSugerencia;
@@ -60,18 +58,12 @@ export async function enviarSugerencia(datos: {
     .single();
   if (error || !fila) return { error: "No se pudo guardar la sugerencia. Intente de nuevo." };
 
-  // PUNTOS EN CRECE (Santos, 05-10): cada sugerencia suma, pero solo las tres
-  // primeras del día, para premiar el aporte y no el volumen. Crece decide
-  // cuántos (3, o 1 si es una duda) y no repite el mismo evento.
+  // PUNTOS EN CRECE: TODAS las sugerencias suman, sin límite (Santos, 07-10:
+  // «no debería haber límites, todas las sugerencias suman»; antes solo las
+  // tres primeras del día). Crece decide cuántos (3, o 1 si es una duda), no
+  // repite el mismo evento y tampoco les aplica tope mensual.
   if (user.email) {
-    const { count } = await supabase
-      .from("sugerencias")
-      .select("id", { count: "exact", head: true })
-      .eq("autor_id", user.id)
-      .gte("created_at", `${hoyLima()}T00:00:00-05:00`);
-    if ((count ?? 0) <= SUGERENCIAS_CON_PUNTOS_POR_DIA) {
-      await avisarSugerenciaEnviadaEducanet({ email: user.email, id: fila.id as string, tipo: datos.tipo, titulo });
-    }
+    await avisarSugerenciaEnviadaEducanet({ email: user.email, id: fila.id as string, tipo: datos.tipo, titulo });
   }
 
   const { data: perfil } = await supabase.from("perfiles").select("nombre").eq("id", user.id).maybeSingle();
