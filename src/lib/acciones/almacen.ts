@@ -78,6 +78,8 @@ export async function probarEquipoDelPedido(
     equipo: string;
     /** La otra máquina de la torre (0389, Lesly 03-10): su protocolo, sus fotos y su informe. */
     partes?: { id: string; protocoloRef?: string; fotos?: Foto[] }[];
+    /** El día en que de verdad se hizo el protocolo (0416); vacío = hoy. */
+    fecha?: string | null;
   },
 ): Promise<{ error: string | null; pedidoListo?: boolean }> {
   const supabase = await createClient();
@@ -89,6 +91,12 @@ export async function probarEquipoDelPedido(
     p_partes: (datos.partes ?? []).map((p) => ({ id: p.id, protocolo_ref: p.protocoloRef?.trim() || null, fotos: p.fotos ?? [] })),
   });
   if (error) return { error: limpiar(error.message) };
+  if (datos.fecha) {
+    for (const id of [itemId, ...(datos.partes ?? []).map((p) => p.id)]) {
+      const r = await supabase.rpc("fecha_del_protocolo", { p_item: id, p_fecha: datos.fecha });
+      if (r.error) return { error: `Quedó probada, pero no se guardó la fecha: ${limpiar(r.error.message)}` };
+    }
+  }
   const pedidoListo = data === true;
   if (pedidoListo) {
     await avisarPostventa(
@@ -146,6 +154,21 @@ export async function agregarArchivosDelEquipo(itemId: string, servicioId: strin
   if (error) return { error: limpiar(error.message) };
   revalidatePath(`/almacen/pedidos/${servicioId}`);
   revalidatePath(`/postventa/pedidos/${servicioId}`);
+  return { error: null };
+}
+
+/**
+ * LA FECHA REAL DEL PROTOCOLO (0416; Ariana, 07-10: «colocar la fecha en la que
+ * realmente se efectuó, especialmente cuando el protocolo fue realizado
+ * anteriormente al registro en el CRM»). Se corrige desde el informe.
+ */
+export async function fechaDelProtocolo(itemId: string, servicioId: string, fecha: string | null) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("fecha_del_protocolo", { p_item: itemId, p_fecha: fecha || null });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath(`/pedidos/${servicioId}/protocolo`);
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
   return { error: null };
 }
 

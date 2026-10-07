@@ -34,6 +34,9 @@ const PROCEDENCIA: Record<string, string> = {
   fabricacion: "Fabricación",
 };
 
+/** Hoy en Lima, como «aaaa-mm-dd» (el valor del campo de fecha). */
+const hoyLima = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+
 const MOTIVO_SIN_STOCK: Record<string, string> = {
   importacion: "por importar",
   compra_local: "compra local",
@@ -194,6 +197,7 @@ function Fila({
   const [avisoSerie, setAvisoSerie] = useState<{ para: string; texto: string } | null>(null);
   const [protocolo, setProtocolo] = useState("");
   const [nota, setNota] = useState("");
+  const [fechaProtocolo, setFechaProtocolo] = useState(hoyLima);
   const [fotos, setFotos] = useState<File[]>([]);
   // Varios PDF o Word por máquina (0297): el protocolo o el informe completo.
   const [docs, setDocs] = useState<File[]>([]);
@@ -266,6 +270,37 @@ function Fila({
       salida.push({ path, nombre: file.name.slice(0, 120), tipo: file.type.slice(0, 100), etiqueta: documentos.includes(file) ? "documento" : "protocolo" });
     }
     return salida;
+  }
+
+  const porGuardar = fotos.length + docs.length + fotosSec.length + docsSec.length + partes.reduce((n, p) => n + deParte(p.id).fotos.length + deParte(p.id).docs.length, 0);
+
+  /** Sube y guarda lo elegido de cada máquina sin marcarla como probada. */
+  async function guardarFotos(): Promise<{ error: string | null }> {
+    const propias = [...(await subir(fotos, docs) ?? [])];
+    if (fotos.length + docs.length > 0 && propias.length === 0) return { error: "No se subieron los archivos" };
+    if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
+      const deSecadora = await subir(fotosSec, docsSec, "-secadora");
+      if (!deSecadora) return { error: "No se subieron los archivos" };
+      propias.push(...deSecadora);
+    }
+    if (propias.length > 0) {
+      const r = await agregarArchivosDelEquipo(e.id, servicioId, propias);
+      if (r.error) return r;
+    }
+    for (const p of partes) {
+      const d = deParte(p.id);
+      if (d.fotos.length + d.docs.length === 0) continue;
+      const sp = await subir(d.fotos, d.docs, `-parte-${p.orden}`);
+      if (!sp) return { error: "No se subieron los archivos" };
+      const r = await agregarArchivosDelEquipo(p.id, servicioId, sp);
+      if (r.error) return r;
+    }
+    setFotos([]);
+    setDocs([]);
+    setFotosSec([]);
+    setDocsSec([]);
+    setDePartes({});
+    return { error: null };
   }
 
   const apagado = !e.en_este_despacho;
@@ -543,6 +578,12 @@ function Fila({
             <Input value={protocolo} onChange={(x) => setProtocolo(x.target.value)} placeholder={`N.º de protocolo (máquina ${e.orden})`} className="h-8 text-sm" />
             <Input value={nota} onChange={(x) => setNota(x.target.value)} placeholder="Nota: probada con carga, embalada en pallet…" className="h-8 text-sm" />
           </div>
+          {/* La fecha en que de verdad se hizo (Ariana, 07-10): el protocolo pudo hacerse antes de registrarlo en el CRM. */}
+          <label className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+            Fecha en que se hizo el protocolo:
+            <Input type="date" value={fechaProtocolo} max={hoyLima()} onChange={(x) => setFechaProtocolo(x.target.value)} className="h-8 w-40 text-sm" />
+            <span>(si lo deja así, queda la de hoy)</span>
+          </label>
           <TomarOSubirVarias titulo={partes.length ? "Fotos de la primera máquina" : "Fotos de esta máquina"} archivos={fotos} onChange={setFotos} maximo={20} />
           <Documentos archivos={docs} onChange={setDocs} titulo={partes.length ? "Protocolo o informe de la primera máquina (PDF o Word, varios)" : "Protocolo o informe de esta máquina (PDF o Word, varios)"} />
           {/* La torre cuya secadora aún no tiene su renglón (sin stock): sus fotos y su informe igual se suben (Ariana, 07-10). */}
@@ -576,38 +617,42 @@ function Fila({
             size="sm"
             variant="outline"
             className="mr-1.5 h-8"
-            disabled={pendiente || fotos.length + docs.length + fotosSec.length + docsSec.length + partes.reduce((n, p) => n + deParte(p.id).fotos.length + deParte(p.id).docs.length, 0) === 0}
-            onClick={() =>
-              correr(async () => {
-                const propias = [...(await subir(fotos, docs) ?? [])];
-                if (fotos.length + docs.length > 0 && propias.length === 0) return { error: "No se subieron los archivos" };
-                if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
-                  const deSecadora = await subir(fotosSec, docsSec, "-secadora");
-                  if (!deSecadora) return { error: "No se subieron los archivos" };
-                  propias.push(...deSecadora);
-                }
-                if (propias.length > 0) {
-                  const r = await agregarArchivosDelEquipo(e.id, servicioId, propias);
-                  if (r.error) return r;
-                }
-                for (const p of partes) {
-                  const d = deParte(p.id);
-                  if (d.fotos.length + d.docs.length === 0) continue;
-                  const sp = await subir(d.fotos, d.docs, `-parte-${p.orden}`);
-                  if (!sp) return { error: "No se subieron los archivos" };
-                  const r = await agregarArchivosDelEquipo(p.id, servicioId, sp);
-                  if (r.error) return r;
-                }
-                setFotos([]);
-                setDocs([]);
-                setFotosSec([]);
-                setDocsSec([]);
-                setDePartes({});
-                return { error: null };
-              }, "Fotos guardadas: ya están en el informe de prueba y embalaje")
-            }
+            disabled={pendiente || porGuardar === 0}
+            onClick={() => correr(guardarFotos, "Fotos guardadas: ya están en el informe de prueba y embalaje")}
           >
             Guardar fotos
+          </Button>
+          {/* EL BORRADOR DEL INFORME ANTES DE CERRAR (Ariana, 07-10: «una opción para visualizar el
+              informe como borrador antes de guardar los cambios… verificar que todo sea correcto antes
+              de finalizar el registro»). Guarda lo elegido sin marcar la máquina y abre el informe. */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="mr-1.5 h-8"
+            disabled={pendiente}
+            onClick={() => {
+              // La pestaña se abre con el clic (si se abre después de subir, el navegador la bloquea).
+              const ventana = window.open("about:blank", "_blank");
+              const informe = `/pedidos/${servicioId}/protocolo`;
+              if (porGuardar === 0) {
+                if (ventana) ventana.location.href = informe;
+                else router.push(informe);
+                return;
+              }
+              startTransition(async () => {
+                const r = await guardarFotos();
+                if (r.error) {
+                  ventana?.close();
+                  toast.error(r.error, { duration: 9000 });
+                  return;
+                }
+                if (ventana) ventana.location.href = informe;
+                toast.success("Fotos guardadas. El borrador del informe se abrió en otra pestaña; la máquina sigue sin marcar como probada.");
+                router.refresh();
+              });
+            }}
+          >
+            📄 Ver el borrador del informe
           </Button>
           <Button
             size="sm"
@@ -629,7 +674,7 @@ function Fila({
                   if (!s) return { error: "No se subieron los archivos" };
                   deLasPartes.push({ id: p.id, protocoloRef: d.protocolo, fotos: s });
                 }
-                return probarEquipoDelPedido(e.id, servicioId, { protocoloRef: protocolo, nota, fotos: subidas, cliente, equipo: lineaTitulo, partes: deLasPartes });
+                return probarEquipoDelPedido(e.id, servicioId, { protocoloRef: protocolo, nota, fotos: subidas, cliente, equipo: lineaTitulo, partes: deLasPartes, fecha: fechaProtocolo && fechaProtocolo !== hoyLima() ? fechaProtocolo : null });
               }, partes.length ? `Máquina ${e.orden} probada y embalada, con la ${(partes[0].parte_nombre ?? "otra máquina").toLowerCase()}` : `Máquina ${e.orden} probada y embalada`)
             }
           >
