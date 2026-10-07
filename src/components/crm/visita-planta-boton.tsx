@@ -58,6 +58,8 @@ export function VisitaPlantaBoton({
   const [acompanantes, setAcompanantes] = useState<{ nombre: string; dni: string }[]>([]);
   const [equipoAVer, setEquipoAVer] = useState("");
   const [quitarFilm, setQuitarFilm] = useState(false);
+  // Almacén necesita más que el modelo para quitar el film: voltaje, fase, capacidad… (Lesly, 07-10).
+  const [caractFilm, setCaractFilm] = useState("");
   // La ficha elegida: la que viene de la pantalla o la que se busca acá.
   const [cuentaElegida, setCuentaElegida] = useState<string | null>(cuentaId);
   const [sugerencias, setSugerencias] = useState<{ id: string; razon_social: string; num_doc: string | null }[]>([]);
@@ -79,9 +81,14 @@ export function VisitaPlantaBoton({
   const campo = (k: keyof typeof f) => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value })) });
 
   function enviar() {
+    if (!videollamada && quitarFilm && (!equipoAVer.trim() || !caractFilm.trim())) {
+      toast.error("Para quitarle el film escriba qué máquina es y sus características (voltaje, fase, capacidad…): almacén las necesita.");
+      return;
+    }
+    const equipoCompleto = quitarFilm && caractFilm.trim() ? `${equipoAVer.trim()} — ${caractFilm.trim()}` : equipoAVer;
     startTransition(async () => {
       const r = await registrarVisitaPlanta({ cuentaId: cuentaElegida, oportunidadId, ...f, showroom: showroom || videollamada, prenderTv, infocorp, cotizacionRef: cotizacion, videollamada,
-        ...(videollamada ? { acompanantes: [], equipoAVer: "", quitarFilm: false } : { acompanantes, equipoAVer, quitarFilm }) });
+        ...(videollamada ? { acompanantes: [], equipoAVer: "", quitarFilm: false } : { acompanantes, equipoAVer: equipoCompleto, quitarFilm }) });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
@@ -93,13 +100,14 @@ export function VisitaPlantaBoton({
           ? "Visita registrada. Central tiene el aviso y el correo salió a Central, Contabilidad, Logística, Almacén y gerencia."
           : "Visita registrada. Central ya tiene el aviso para imprimirlo a vigilancia.",
         // Se repite lo marcado, para que quien registra vea que el film quedó pedido (Katerine y Lesly, 07-10).
-        { description: quitarFilm && equipoAVer.trim() ? `Almacén quitará el film a: ${equipoAVer.trim()}.` : undefined },
+        { description: quitarFilm && equipoCompleto.trim() ? `Almacén quitará el film a: ${equipoCompleto.trim()}.` : undefined },
       );
       setAbierto(false);
       setF((x) => ({ ...x, persona: "", dni: "", telefono: "", motivo: "" }));
       // Que la próxima visita no herede la máquina ni el film de ésta.
       setEquipoAVer("");
       setQuitarFilm(false);
+      setCaractFilm("");
       setAcompanantes([]);
       router.refresh();
     });
@@ -228,6 +236,12 @@ export function VisitaPlantaBoton({
               Quitarle el film
             </label>
           </div>
+          {quitarFilm && (
+            <div className="grid gap-1">
+              <Label className="text-xs">Características de la máquina <span className="text-destructive">*</span></Label>
+              <Input value={caractFilm} onChange={(e) => setCaractFilm(e.target.value)} placeholder="ej. 220 V trifásica, 17 kg, gas / eléctrica, color" />
+            </div>
+          )}
           </>)}
           <div className="grid gap-1">
             <Label className="text-xs">
