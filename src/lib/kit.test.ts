@@ -35,6 +35,18 @@ describe("kit con cantidades", () => {
     expect(bloques?.[0].texto).toBe("CARACTERÍSTICAS");
   });
 
+  it("la pieza en 0 no sale en la cotización (Rubí, buzón 06-10)", () => {
+    const piezas = piezasDeKit(FICHA);
+    const nuevas = piezas.map((p, i) => (i === 0 ? conCantidad(partirCantidad(p)!, "0") : i === 2 ? conCantidad(partirCantidad(p)!, "10") : p));
+    const bloques = bloquesConKit(FICHA.bloques, detalleKitSiCambio(piezas, nuevas));
+    expect(bloques?.map((b) => b.texto)).toEqual([
+      "CARACTERÍSTICAS",
+      "MANGUERA DE GAS 1/2 X 1500 MM 1 UND",
+      'DUCTO FLEXIBLE 4" 10 METROS',
+      "NIPLE FN 1/4 X 2 2 UND",
+    ]);
+  });
+
   it("si vuelve a las cantidades de la ficha no hay nada que aprobar", () => {
     const piezas = piezasDeKit(FICHA);
     expect(detalleKitSiCambio(piezas, piezas.map((p) => conCantidad(partirCantidad(p)!, partirCantidad(p)!.numero)))).toBeNull();

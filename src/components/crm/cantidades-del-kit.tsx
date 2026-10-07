@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { conCantidad, detalleKitSiCambio, partirCantidad } from "@/lib/kit";
+import { conCantidad, detalleKitSiCambio, partirCantidad, piezaEnCero } from "@/lib/kit";
 
 /**
  * LAS CANTIDADES DEL KIT EN ESTA COTIZACIÓN (gerencia, reunión 06-10 11:01).
@@ -71,6 +71,7 @@ export function CantidadesDelKit({
         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] text-amber-800">
             Cantidades cambiadas: ajuste el precio del kit. La cotización pasa por gerencia para aprobarlo.
+            {actuales.some(piezaEnCero) && " Las piezas en 0 no salen en la cotización."}
           </p>
           <button
             type="button"

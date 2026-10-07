@@ -53,16 +53,24 @@ export function piezasDeKit(ficha: Record<string, unknown> | null | undefined): 
   return piezas.length >= 2 ? piezas : [];
 }
 
+/** ¿La pieza va en 0? Rubí (buzón, 06-10): «cuando coloque 0 que no aparezca en la cotización». */
+export function piezaEnCero(linea: string): boolean {
+  const p = partirCantidad(linea);
+  return p !== null && Number(p.numero.replace(",", ".")) === 0;
+}
+
 /**
  * Los bloques de la ficha con las cantidades de ESTA cotización: cada viñeta
- * con cantidad se reemplaza, en orden, por la del renglón. Lo demás no cambia.
+ * con cantidad se reemplaza, en orden, por la del renglón. La pieza que quedó
+ * en 0 no sale. Lo demás no cambia.
  */
 export function bloquesConKit<T extends Bloque>(bloques: T[] | undefined, detalleKit: string[] | null | undefined): T[] | undefined {
   if (!bloques || !detalleKit?.length) return bloques;
   let i = 0;
-  return bloques.map((b) => {
-    if (b.t !== "vineta" || typeof b.texto !== "string" || !partirCantidad(b.texto) || i >= detalleKit.length) return b;
-    return { ...b, texto: detalleKit[i++] };
+  return bloques.flatMap((b) => {
+    if (b.t !== "vineta" || typeof b.texto !== "string" || !partirCantidad(b.texto) || i >= detalleKit.length) return [b];
+    const linea = detalleKit[i++];
+    return piezaEnCero(linea) ? [] : [{ ...b, texto: linea }];
   });
 }
 
