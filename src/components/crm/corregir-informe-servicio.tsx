@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
+import { TablaParaCotizar, filasParaGuardar, type FilaCotizar } from "@/components/crm/tabla-para-cotizar";
 import { corregirInformeServicio, type CambiosInforme } from "@/lib/acciones/informes-servicio";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ export type InformeCorregible = {
   accesorios: string | null;
   pendientes: string | null;
   secciones: { titulo: string; texto: string }[];
+  repuestos: { codigo: string | null; descripcion: string; cantidad: number | null; unidad?: string | null; precio: number | null; igv?: string | null; stock: string | null }[];
   cliente_conforme_nombre: string | null;
   cliente_conforme_doc: string | null;
 };
@@ -48,6 +50,17 @@ const TEXTOS: { campo: keyof InformeCorregible & keyof CambiosInforme; etiqueta:
 
 const fechaLima = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" }) : "");
 const hhmm = (t: string | null) => (t ? t.slice(0, 5) : "");
+/** Lo guardado en el cuadro, como filas editables de la tabla del informe. */
+const comoFilas = (r: InformeCorregible["repuestos"]): FilaCotizar[] =>
+  r.map((x) => ({
+    codigo: x.codigo ?? "",
+    descripcion: x.descripcion ?? "",
+    cantidad: x.cantidad != null ? String(x.cantidad) : "",
+    unidad: x.unidad ?? "und",
+    precio: x.precio != null ? String(x.precio) : "",
+    igv: x.igv === "incluye" ? "incluye" : "no_incluye",
+    stock: x.stock ?? "",
+  }));
 
 /**
  * «Corregir informe» (0383, Santos 02-10): cualquiera de postventa —y el
@@ -69,6 +82,9 @@ export function CorregirInformeServicio({ informe }: { informe: InformeCorregibl
   }) as Record<string, string>;
   const [valores, setValores] = useState<Record<string, string>>(inicial);
   const [secciones, setSecciones] = useState(informe.secciones);
+  // El cuadro para cotizar (buzón del almacén, 06-10): tras una segunda
+  // videollamada aparece qué cotizar y se agrega corrigiendo el informe.
+  const [paraCotizar, setParaCotizar] = useState(() => comoFilas(informe.repuestos));
   const [motivo, setMotivo] = useState("");
   const [pin, setPin] = useState("");
 
@@ -76,6 +92,7 @@ export function CorregirInformeServicio({ informe }: { informe: InformeCorregibl
     if (v) {
       setValores(inicial());
       setSecciones(informe.secciones);
+      setParaCotizar(comoFilas(informe.repuestos));
       setMotivo("");
       setPin("");
     }
@@ -96,6 +113,8 @@ export function CorregirInformeServicio({ informe }: { informe: InformeCorregibl
     }
     const limpias = secciones.map((s) => ({ titulo: s.titulo.trim(), texto: s.texto.trim() })).filter((s) => s.titulo || s.texto);
     if (JSON.stringify(limpias) !== JSON.stringify(informe.secciones)) c.secciones = limpias;
+    const cuadro = filasParaGuardar(paraCotizar);
+    if (JSON.stringify(cuadro) !== JSON.stringify(filasParaGuardar(comoFilas(informe.repuestos)))) c.repuestos = cuadro;
     return c as CambiosInforme;
   }
 
@@ -189,6 +208,8 @@ export function CorregirInformeServicio({ informe }: { informe: InformeCorregibl
             >
               <Plus className="size-3" /> Agregar una sección
             </button>
+
+            <TablaParaCotizar filas={paraCotizar} onChange={setParaCotizar} />
 
             <div className="grid gap-3 sm:grid-cols-2">
               {TEXTOS.map((t) => (

@@ -135,6 +135,7 @@ export default async function InformeServicioPage({ params }: { params: Promise<
                 accesorios: (data.accesorios as string | null) ?? null,
                 pendientes: (data.pendientes as string | null) ?? null,
                 secciones,
+                repuestos,
                 cliente_conforme_nombre: (data.cliente_conforme_nombre as string | null) ?? null,
                 cliente_conforme_doc: (data.cliente_conforme_doc as string | null) ?? null,
               }}
@@ -375,6 +376,7 @@ const ETIQUETA_CAMPO: Record<string, string> = {
   accesorios: "Accesorios",
   pendientes: "Pendientes",
   secciones: "Secciones",
+  repuestos: "Para cotizar",
   cliente_conforme_nombre: "Conformidad (nombre)",
   cliente_conforme_doc: "Conformidad (DNI)",
 };
@@ -382,7 +384,7 @@ const ETIQUETA_CAMPO: Record<string, string> = {
 /** Un valor del historial dicho en una línea corta. */
 function resumen(v: unknown): string {
   if (v == null || v === "") return "(vacío)";
-  if (Array.isArray(v)) return v.map((x) => (x as { titulo?: string; texto?: string }).titulo || (x as { texto?: string }).texto || "").filter(Boolean).join(" · ").slice(0, 160) || "(vacío)";
+  if (Array.isArray(v)) return v.map((x) => (x as { titulo?: string; texto?: string }).titulo || (x as { texto?: string }).texto || (x as { descripcion?: string }).descripcion || "").filter(Boolean).join(" · ").slice(0, 160) || "(vacío)";
   const t = String(v);
   return t.length > 160 ? `${t.slice(0, 160)}…` : t;
 }
