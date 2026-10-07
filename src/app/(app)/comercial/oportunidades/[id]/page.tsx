@@ -1,5 +1,6 @@
 import { Phone, Mail, MapPin, FileText, CalendarClock, Building2, MessageCircle } from "lucide-react";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
+import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
 import { versionesAnteriores } from "@/lib/versiones-cotizacion";
 import { totalesConIgvExactos } from "@/lib/total-con-igv-exacto";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
@@ -598,6 +599,12 @@ export default async function OportunidadDetallePage({
 
         {/* Otra razón social del mismo dueño (23-09): se ve antes de cotizar. */}
         <AvisoMismoCliente cuentaId={cuenta?.id} className="mt-3" />
+        {/* Katerine 07-10: «que el asesor pueda generarlo directamente», desde el expediente. */}
+        {cuenta && esMio && (
+          <div className="mt-2">
+            <VincularRazonSocial cuentaId={cuenta.id} razonSocial={cuenta.razon_social} />
+          </div>
+        )}
 
         {cuenta?.contactos && cuenta.contactos.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-4 border-t border-border pt-3 text-xs text-muted-foreground">

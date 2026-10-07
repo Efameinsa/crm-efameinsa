@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2, Loader2 } from "lucide-react";
-import { vincularOtraRazonSocial } from "@/lib/acciones/cuentas";
+import { pedirUnionRazonSocial, vincularOtraRazonSocial } from "@/lib/acciones/cuentas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,16 +21,33 @@ export function VincularRazonSocial({ cuentaId, razonSocial }: { cuentaId: strin
   const [doc, setDoc] = useState("");
   const [razon, setRazon] = useState("");
   const [pendiente, startTransition] = useTransition();
+  const [ajena, setAjena] = useState(false);
 
   function guardar() {
     startTransition(async () => {
       const r = await vincularOtraRazonSocial(cuentaId, doc, razon);
-      if (r.error) return void toast.error(r.error, { duration: 8000 });
+      if (r.error) {
+        // El RUC es cliente de otro comercial: no se puede solo, se le pide a gerencia.
+        setAjena(/autoriza gerencia/.test(r.error));
+        return void toast.error(r.error, { duration: 8000 });
+      }
       toast.success("Listo: la otra razón social quedó en el grupo de este cliente.");
       setAbierto(false);
       setDoc("");
       setRazon("");
       router.refresh();
+    });
+  }
+
+  function pedir() {
+    startTransition(async () => {
+      const r = await pedirUnionRazonSocial(cuentaId, doc);
+      if (r.error) return void toast.error(r.error, { duration: 8000 });
+      toast.success("Listo: le pedimos a gerencia que la una. Le avisamos apenas se decida.");
+      setAbierto(false);
+      setAjena(false);
+      setDoc("");
+      setRazon("");
     });
   }
 
@@ -55,7 +72,7 @@ export function VincularRazonSocial({ cuentaId, razonSocial }: { cuentaId: strin
           <div className="grid gap-3">
             <div className="grid gap-1">
               <Label className="text-xs">RUC (o DNI) de la otra empresa</Label>
-              <Input value={doc} onChange={(e) => setDoc(e.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric" maxLength={11} autoFocus />
+              <Input value={doc} onChange={(e) => { setDoc(e.target.value.replace(/[^0-9]/g, "")); setAjena(false); }} inputMode="numeric" maxLength={11} autoFocus />
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">Razón social (si todavía no está en el CRM)</Label>
@@ -66,6 +83,11 @@ export function VincularRazonSocial({ cuentaId, razonSocial }: { cuentaId: strin
             <Button variant="ghost" onClick={() => setAbierto(false)}>
               Cancelar
             </Button>
+            {ajena && (
+              <Button variant="outline" onClick={pedir} disabled={pendiente}>
+                Pedirle a gerencia que la una
+              </Button>
+            )}
             <Button onClick={guardar} disabled={pendiente || ![8, 11].includes(doc.length)}>
               {pendiente && <Loader2 className="size-4 animate-spin" />}
               Vincular
