@@ -25,6 +25,9 @@ import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnico
  * llega con `casos` —los abiertos del cliente sin apertura— y se elige de cuál
  * sale.
  */
+/** Garantía y revisión van aparte (buzón, Rubí 07-10: «son diferentes servicios», 0418). */
+type TipoServicioApertura = "garantia" | "revision" | "mantenimiento";
+
 export type CasoParaApertura = { id: string; etiqueta: string; enGarantia: boolean; tecnico: string | null };
 
 export function AperturaServicioCaso({
@@ -46,7 +49,7 @@ export function AperturaServicioCaso({
   const enGarantia = garantiaFija ?? casos?.find((c) => c.id === atencionId)?.enGarantia ?? false;
   const tecnicoDelCaso = tecnicoSugerido ?? casos?.find((c) => c.id === atencionId)?.tecnico;
   const [pendiente, startTransition] = useTransition();
-  const [tipoPedido, setTipoPedido] = useState<"mantenimiento" | "revision">(enGarantia ? "revision" : "mantenimiento");
+  const [tipoPedido, setTipoPedido] = useState<TipoServicioApertura>(enGarantia ? "garantia" : "mantenimiento");
   const [formato, setFormato] = useState<"mantenimiento" | "puesta_marcha">("mantenimiento");
   const [fecha, setFecha] = useState("");
   const [hora, setHora] = useState("");
@@ -123,7 +126,7 @@ export function AperturaServicioCaso({
                 onChange={(e) => {
                   const c = casos.find((x) => x.id === e.target.value);
                   setAtencionId(e.target.value);
-                  setTipoPedido(c?.enGarantia ? "revision" : "mantenimiento");
+                  setTipoPedido(c?.enGarantia ? "garantia" : "mantenimiento");
                   if (!tecnico.trim() && c?.tecnico) setTecnico(c.tecnico);
                 }}
               >
@@ -135,8 +138,9 @@ export function AperturaServicioCaso({
           )}
           <div className="grid gap-1">
             <Label className="text-xs">Servicio</Label>
-            <select className={select} value={tipoPedido} onChange={(e) => setTipoPedido(e.target.value as "mantenimiento" | "revision")}>
-              <option value="revision">Revisión / garantía</option>
+            <select className={select} value={tipoPedido} onChange={(e) => setTipoPedido(e.target.value as TipoServicioApertura)}>
+              <option value="garantia">Garantía</option>
+              <option value="revision">Revisión</option>
               <option value="mantenimiento">Mantenimiento</option>
             </select>
           </div>

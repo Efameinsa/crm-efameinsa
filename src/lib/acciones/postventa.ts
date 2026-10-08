@@ -1550,7 +1550,7 @@ export async function traerPedidoAntiguo(datos: {
 export async function abrirAperturaDesdeCaso(
   atencionId: string,
   datos: {
-    tipoPedido: "mantenimiento" | "revision";
+    tipoPedido: "garantia" | "revision" | "mantenimiento";
     formato: "mantenimiento" | "puesta_marcha";
     fecha: string;
     hora: string;
