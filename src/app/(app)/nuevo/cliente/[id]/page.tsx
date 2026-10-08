@@ -38,6 +38,7 @@ import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
 import { cierresDePostventa } from "@/lib/precios-postventa";
 import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
+import { ETIQUETA_TIPO_ATENCION, type TipoAtencion } from "@/lib/atenciones";
 import { AperturaServicioCaso, type CasoParaApertura } from "@/components/crm/apertura-servicio-caso";
 
 export const dynamic = "force-dynamic";
@@ -139,7 +140,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
     id: c.id as string,
     etiqueta: [
       c.solicitado_at ? fechaLima(c.solicitado_at as string) : null,
-      (c.equipo_texto as string | null) || (c.tipo as string | null),
+      (c.equipo_texto as string | null) || ETIQUETA_TIPO_ATENCION[c.tipo as TipoAtencion] || (c.tipo as string | null),
       ((c.detalle as string | null) ?? "").slice(0, 70) || null,
     ].filter(Boolean).join(" · "),
     enGarantia: Boolean(c.en_garantia),
