@@ -30,7 +30,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -48,6 +50,40 @@ interface Comercial {
   // Central sigue teniendo papeles viejos con el código anterior — verlo aquí
   // evita la duda del ing. Carlos: "me sale C8, pero C8 ya no hay".
   codigo_anterior?: string | null;
+}
+
+// Central pidió (buzón 09-10) que la lista para derivar vaya por número
+// correlativo —C1, C2, C3…, igual que PV1, PV2— y separada por colores, en vez
+// de por nombre. Se agrupa por el prefijo del código y dentro del grupo por el
+// número; el 0 (cuenta de práctica/pruebas) va al final de su grupo.
+const GRUPOS_DE_CODIGO = [
+  { prefijo: "C", titulo: "Comerciales", punto: "bg-blue-500", texto: "text-blue-700 dark:text-blue-300" },
+  { prefijo: "PV", titulo: "Post Venta", punto: "bg-emerald-500", texto: "text-emerald-700 dark:text-emerald-300" },
+  { prefijo: "ALM", titulo: "Almacén", punto: "bg-amber-500", texto: "text-amber-700 dark:text-amber-300" },
+  { prefijo: "IMP", titulo: "Importaciones", punto: "bg-violet-500", texto: "text-violet-700 dark:text-violet-300" },
+] as const;
+const GRUPO_OTROS = { prefijo: "", titulo: "Otros", punto: "bg-muted-foreground", texto: "text-muted-foreground" };
+
+function partesDelCodigo(codigo: string | null) {
+  const m = (codigo ?? "").trim().toUpperCase().match(/^([A-Z]+)(\d*)$/);
+  if (!m) return { grupo: GRUPOS_DE_CODIGO.length, numero: Infinity };
+  const i = GRUPOS_DE_CODIGO.findIndex((g) => g.prefijo === m[1]);
+  // Sin número (PV «área», ALM) va primero; el 0 de práctica, último.
+  const numero = m[2] === "" ? -1 : Number(m[2]) === 0 ? Infinity : Number(m[2]);
+  return { grupo: i === -1 ? GRUPOS_DE_CODIGO.length : i, numero };
+}
+
+function agruparPorCodigo(comerciales: Comercial[]) {
+  const ordenados = comerciales
+    .map((c) => ({ c, ...partesDelCodigo(c.codigo_comercial) }))
+    .sort((a, b) => a.grupo - b.grupo || a.numero - b.numero || a.c.nombre.localeCompare(b.c.nombre, "es"));
+  const grupos: { estilo: (typeof GRUPOS_DE_CODIGO)[number] | typeof GRUPO_OTROS; lista: Comercial[] }[] = [];
+  for (const o of ordenados) {
+    const estilo = GRUPOS_DE_CODIGO[o.grupo] ?? GRUPO_OTROS;
+    if (grupos.at(-1)?.estilo !== estilo) grupos.push({ estilo, lista: [] });
+    grupos.at(-1)!.lista.push(o.c);
+  }
+  return grupos;
 }
 
 interface Props {
@@ -495,12 +531,20 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
               <SelectValue placeholder="Seleccione…" />
             </SelectTrigger>
             <SelectContent>
-              {comerciales.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nombre} {c.codigo_comercial ? `(${c.codigo_comercial}` : ""}
-                  {c.codigo_comercial && c.codigo_anterior ? ` · antes ${c.codigo_anterior}` : ""}
-                  {c.codigo_comercial ? ")" : ""}
-                </SelectItem>
+              {agruparPorCodigo(comerciales).map(({ estilo, lista }) => (
+                <SelectGroup key={estilo.titulo}>
+                  <SelectLabel className={`font-semibold ${estilo.texto}`}>{estilo.titulo}</SelectLabel>
+                  {lista.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <span className={`size-2 shrink-0 rounded-full ${estilo.punto}`} aria-hidden />
+                      <span>
+                        {c.codigo_comercial ? <b className={estilo.texto}>{c.codigo_comercial} · </b> : null}
+                        {c.nombre}
+                        {c.codigo_comercial && c.codigo_anterior ? ` (antes ${c.codigo_anterior})` : ""}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               ))}
             </SelectContent>
           </Select>
