@@ -1322,6 +1322,8 @@ export async function guardarAperturaServicio(
     guiaDetalle?: string | null;
     coordinaContabilidad?: string | null;
     coordinaLogistica?: string | null;
+    /** Solo en un pedido sin cierre: con cierre manda la serie del cierre (0421). */
+    empresa?: "EFAMEINSA" | "OPEN" | null;
   },
 ) {
   await requerirPerfil();
@@ -1334,10 +1336,13 @@ export async function guardarAperturaServicio(
   if (datos.guia && !["traslado", "materiales", "repuestos", "ambas"].includes(datos.guia)) {
     return falla("Esa no es una de las guías que se pueden pedir");
   }
+  if (datos.empresa && !["EFAMEINSA", "OPEN"].includes(datos.empresa)) {
+    return falla("La apertura sale a nombre de EFAMEINSA o de OPEN");
+  }
   // Con la apertura emitida, lo que cambie de esto va a Finanzas y al almacén (0406).
   const { data: antes } = await supabase
     .from("servicios_postventa")
-    .select("apertura_despacho_at, apertura_fecha, apertura_hora, direccion_final, apertura_guia, apertura_guia_detalle")
+    .select("apertura_despacho_at, apertura_fecha, apertura_hora, direccion_final, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa")
     .eq("id", servicioId)
     .maybeSingle();
   const cambios = antes?.apertura_despacho_at
@@ -1348,6 +1353,7 @@ export async function guardarAperturaServicio(
           ["la dirección final", antes.direccion_final, datos.direccionFinal],
           ["la guía que se pide", antes.apertura_guia, datos.guia],
           ["el detalle de la guía", antes.apertura_guia_detalle, datos.guiaDetalle],
+          ["la empresa", antes.apertura_empresa ?? "EFAMEINSA", antes.informe_cierre_id ? undefined : datos.empresa],
         ] as [string, unknown, string | null | undefined][]
       )
         .filter(([, a, d]) => d !== undefined && String(a ?? "").trim() !== (limpio(d) ?? ""))
@@ -1370,6 +1376,8 @@ export async function guardarAperturaServicio(
       ...(datos.guiaDetalle !== undefined ? { apertura_guia_detalle: limpio(datos.guiaDetalle) } : {}),
       ...(datos.coordinaContabilidad !== undefined ? { apertura_coordina_contabilidad: limpio(datos.coordinaContabilidad) } : {}),
       ...(datos.coordinaLogistica !== undefined ? { apertura_coordina_logistica: limpio(datos.coordinaLogistica) } : {}),
+      // Con cierre, la empresa es la de su serie: no se cambia acá.
+      ...(datos.empresa !== undefined && !antes?.informe_cierre_id ? { apertura_empresa: datos.empresa } : {}),
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);
@@ -1564,6 +1572,8 @@ export async function abrirAperturaDesdeCaso(
     guia: string | null;
     guiaDetalle: string;
     nota: string;
+    /** Con qué empresa sale la apertura (0421, Rubí 09-10). */
+    empresa?: "EFAMEINSA" | "OPEN";
   },
 ): Promise<{ error: string | null; servicioId?: string }> {
   const perfil = await requerirPerfil();
@@ -1584,6 +1594,7 @@ export async function abrirAperturaDesdeCaso(
     p_nota: datos.nota || null,
     p_recibe_nombre: datos.recibe?.trim() || null,
     p_recibe_telefono: datos.recibeTelefono?.trim() || null,
+    p_empresa: datos.empresa === "OPEN" ? "OPEN" : "EFAMEINSA",
   });
   if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
   const id = servicioId as string;
@@ -1605,11 +1616,11 @@ export async function abrirAperturaDesdeCaso(
       url: `/almacen/pedidos/${id}`,
       esPrueba,
     }),
-    // Sin cierre no hay serie: sale con los correos de EFAMEINSA (0410).
+    // Sin cierre no hay serie: sale con los correos de la empresa elegida (0410, 0421).
     correoAlArea({
       areas: ["finanzas"],
       servicioId: id,
-      empresa: "EFAMEINSA",
+      empresa: datos.empresa === "OPEN" ? "OPEN" : "EFAMEINSA",
       titulo: `Apertura por confirmar · ${quien}`,
       cuerpo: `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
       url: "/finanzas/aperturas",
@@ -1618,7 +1629,7 @@ export async function abrirAperturaDesdeCaso(
     correoAlArea({
       areas: ["almacen"],
       servicioId: id,
-      empresa: "EFAMEINSA",
+      empresa: datos.empresa === "OPEN" ? "OPEN" : "EFAMEINSA",
       titulo: `Apertura de servicio · ${quien}`,
       cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Finanzas confirma la guía.`,
       url: `/almacen/pedidos/${id}`,

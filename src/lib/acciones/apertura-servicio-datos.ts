@@ -72,7 +72,9 @@ export async function cargarHojaApertura(
   ]);
   const nombreDe = (pid: string | null | undefined) => (perfiles ?? []).find((p) => p.id === pid)?.nombre ?? null;
 
-  const esOpen = informe?.serie === "OPEN";
+  // Sin cierre (apertura desde un caso), la empresa la elige postventa (0421,
+  // buzón Rubí 09-10); con cierre manda la serie del cierre.
+  const esOpen = informe?.serie ? informe.serie === "OPEN" : s.apertura_empresa === "OPEN";
   const empresaCorta = esOpen ? "OPEN INVESTMENTS" : "CORPORACION EFAMEINSA";
   const empresaLarga = esOpen ? "OPEN INVESTMENTS S.A.C." : "CORPORACIÓN EFAMEINSA S.A.";
 

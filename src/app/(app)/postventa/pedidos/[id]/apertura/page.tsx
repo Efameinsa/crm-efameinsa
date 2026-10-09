@@ -261,6 +261,7 @@ export default async function AperturaServicioPage({ params }: { params: Promise
         faltantes={faltantes}
         destinatarios={destinatarios}
         empresaCorreo={empresaDeApertura(d)}
+        empresaElegible={!s.informe_cierre_id}
         enviadaAlmacenAt={s.apertura_enviada_almacen_at ?? null}
         enviadaClienteAt={s.apertura_enviada_cliente_at ?? null}
       />
