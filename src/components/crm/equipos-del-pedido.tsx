@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
-import { probarEquipoDelPedido } from "@/lib/acciones/almacen";
+import { probarEquipoDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
 import { corregirSerie } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
@@ -197,7 +197,11 @@ function Fila({
   const [avisoSerie, setAvisoSerie] = useState<{ para: string; texto: string } | null>(null);
   const [protocolo, setProtocolo] = useState("");
   const [nota, setNota] = useState("");
-  const [fechaProtocolo, setFechaProtocolo] = useState(hoyLima);
+  // El técnico y la fecha de la prueba quedan en la hoja del informe (Lesly, 09-10).
+  const fechaGuardada = e.protocolo_datos?.principal?.fecha_ejecucion ?? e.protocolo_fecha ?? null;
+  const tecnicoGuardado = e.protocolo_datos?.principal?.tecnico ?? "";
+  const [fechaProtocolo, setFechaProtocolo] = useState(() => fechaGuardada ?? hoyLima());
+  const [tecnico, setTecnico] = useState(tecnicoGuardado);
   const [fotos, setFotos] = useState<File[]>([]);
   // Varios PDF o Word por máquina (0297): el protocolo o el informe completo.
   const [docs, setDocs] = useState<File[]>([]);
@@ -274,8 +278,25 @@ function Fila({
 
   const porGuardar = fotos.length + docs.length + fotosSec.length + docsSec.length + partes.reduce((n, p) => n + deParte(p.id).fotos.length + deParte(p.id).docs.length, 0);
 
+  // Si deja la fecha de hoy y no había otra guardada, se toma la del día en que la marque probada.
+  const fechaElegida = fechaProtocolo && (fechaGuardada || fechaProtocolo !== hoyLima()) ? fechaProtocolo : "";
+  const datosCambiados = tecnico.trim() !== tecnicoGuardado || (fechaElegida !== "" && fechaElegida !== fechaGuardada);
+
+  /** El técnico y la fecha van a la hoja de cada máquina de la unidad (la secadora de la torre también). */
+  function guardarTecnicoYFecha() {
+    if (!datosCambiados) return Promise.resolve({ error: null });
+    const maquinas: { id: string; maquina: "principal" | "secadora" }[] = [
+      { id: e.id, maquina: "principal" },
+      ...(torre && partes.length === 0 ? [{ id: e.id, maquina: "secadora" as const }] : []),
+      ...partes.map((p) => ({ id: p.id, maquina: "principal" as const })),
+    ];
+    return tecnicoYFechaDeLaPrueba(servicioId, maquinas, { tecnico, fecha: fechaElegida });
+  }
+
   /** Sube y guarda lo elegido de cada máquina sin marcarla como probada. */
   async function guardarFotos(): Promise<{ error: string | null }> {
+    const t = await guardarTecnicoYFecha();
+    if (t.error) return t;
     const propias = [...(await subir(fotos, docs) ?? [])];
     if (fotos.length + docs.length > 0 && propias.length === 0) return { error: "No se subieron los archivos" };
     if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
@@ -578,12 +599,19 @@ function Fila({
             <Input value={protocolo} onChange={(x) => setProtocolo(x.target.value)} placeholder={`N.º de protocolo (máquina ${e.orden})`} className="h-8 text-sm" />
             <Input value={nota} onChange={(x) => setNota(x.target.value)} placeholder="Nota: probada con carga, embalada en pallet…" className="h-8 text-sm" />
           </div>
-          {/* La fecha en que de verdad se hizo (Ariana, 07-10): el protocolo pudo hacerse antes de registrarlo en el CRM. */}
-          <label className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-            Fecha en que se hizo el protocolo:
-            <Input type="date" value={fechaProtocolo} max={hoyLima()} onChange={(x) => setFechaProtocolo(x.target.value)} className="h-8 w-40 text-sm" />
-            <span>(si lo deja así, queda la de hoy)</span>
-          </label>
+          {/* La fecha en que de verdad se hizo (Ariana, 07-10): el protocolo pudo hacerse antes de registrarlo en el CRM.
+              Y quién la hizo (Lesly, 09-10): los dos salen en el informe («Fecha de Ejecución», «Técnico a Cargo»). */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
+            <label className="flex flex-wrap items-center gap-1.5">
+              Fecha en que se hizo la prueba:
+              <Input type="date" value={fechaProtocolo} max={hoyLima()} onChange={(x) => setFechaProtocolo(x.target.value)} className="h-8 w-40 text-sm" />
+            </label>
+            <label className="flex flex-wrap items-center gap-1.5">
+              Técnico que hizo la prueba:
+              <Input value={tecnico} onChange={(x) => setTecnico(x.target.value)} placeholder="Nombre del técnico" maxLength={120} className="h-8 w-56 text-sm" />
+            </label>
+            <span>(salen en el informe; si deja la fecha de hoy, queda la de hoy)</span>
+          </div>
           <TomarOSubirVarias titulo={partes.length ? "Fotos de la primera máquina" : "Fotos de esta máquina"} archivos={fotos} onChange={setFotos} maximo={20} />
           <Documentos archivos={docs} onChange={setDocs} titulo={partes.length ? "Protocolo o informe de la primera máquina (PDF o Word, varios)" : "Protocolo o informe de esta máquina (PDF o Word, varios)"} />
           {/* La torre cuya secadora aún no tiene su renglón (sin stock): sus fotos y su informe igual se suben (Ariana, 07-10). */}
@@ -617,10 +645,10 @@ function Fila({
             size="sm"
             variant="outline"
             className="mr-1.5 h-8"
-            disabled={pendiente || porGuardar === 0}
-            onClick={() => correr(guardarFotos, "Fotos guardadas: ya están en el informe de prueba y embalaje")}
+            disabled={pendiente || (porGuardar === 0 && !datosCambiados)}
+            onClick={() => correr(guardarFotos, porGuardar === 0 ? "Técnico y fecha guardados: ya salen en el informe" : "Fotos guardadas: ya están en el informe de prueba y embalaje")}
           >
-            Guardar fotos
+            {porGuardar === 0 && datosCambiados ? "Guardar técnico y fecha" : "Guardar fotos"}
           </Button>
           {/* EL BORRADOR DEL INFORME ANTES DE CERRAR (Ariana, 07-10: «una opción para visualizar el
               informe como borrador antes de guardar los cambios… verificar que todo sea correcto antes
@@ -634,7 +662,7 @@ function Fila({
               // La pestaña se abre con el clic (si se abre después de subir, el navegador la bloquea).
               const ventana = window.open("about:blank", "_blank");
               const informe = `/pedidos/${servicioId}/protocolo`;
-              if (porGuardar === 0) {
+              if (porGuardar === 0 && !datosCambiados) {
                 if (ventana) ventana.location.href = informe;
                 else router.push(informe);
                 return;
@@ -647,7 +675,7 @@ function Fila({
                   return;
                 }
                 if (ventana) ventana.location.href = informe;
-                toast.success("Fotos guardadas. El borrador del informe se abrió en otra pestaña; la máquina sigue sin marcar como probada.");
+                toast.success("Guardado. El borrador del informe se abrió en otra pestaña; la máquina sigue sin marcar como probada.");
                 router.refresh();
               });
             }}
@@ -660,6 +688,8 @@ function Fila({
             disabled={pendiente}
             onClick={() =>
               correr(async () => {
+                const t = await guardarTecnicoYFecha();
+                if (t.error) return t;
                 const subidas = await subir(fotos, docs);
                 if (!subidas) return { error: "No se subieron los archivos" };
                 if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {

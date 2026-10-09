@@ -193,6 +193,38 @@ export async function datosDelProtocolo(
   return { error: null };
 }
 
+/**
+ * EL TÉCNICO Y LA FECHA DE LA PRUEBA AL SUBIR EL PROTOCOLO (Lesly, 09-10:
+ * «técnico que realizó la prueba y fecha de prueba del equipo, ya que muchas
+ * veces no es la fecha que se sube el protocolo o se ejecuta el informe»).
+ * Van a la hoja de cada máquina (0417) sin pisar lo demás que ya tenga.
+ */
+export async function tecnicoYFechaDeLaPrueba(
+  servicioId: string,
+  maquinas: { id: string; maquina: "principal" | "secadora" }[],
+  datos: { tecnico: string; fecha: string },
+) {
+  const tecnico = datos.tecnico.trim();
+  const fecha = datos.fecha.trim();
+  if (!tecnico && !fecha) return { error: null };
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("pedido_equipos")
+    .select("id, protocolo_datos")
+    .in("id", [...new Set(maquinas.map((m) => m.id))]);
+  const guardados = new Map((data ?? []).map((x) => [x.id as string, (x.protocolo_datos ?? {}) as Record<string, Record<string, string>>]));
+  for (const m of maquinas) {
+    const antes = guardados.get(m.id)?.[m.maquina] ?? {};
+    const nuevos = { ...antes, ...(tecnico ? { tecnico } : {}), ...(fecha ? { fecha_ejecucion: fecha } : {}) };
+    const { error } = await supabase.rpc("datos_del_protocolo", { p_item: m.id, p_maquina: m.maquina, p_datos: nuevos });
+    if (error) return { error: limpiar(error.message) };
+  }
+  revalidatePath(`/pedidos/${servicioId}/protocolo`);
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  return { error: null };
+}
+
 export async function registrarSalida(servicioId: string, datos: { fecha: string; fotos: Foto[]; nota?: string; cliente: string }) {
   const supabase = await createClient();
   // Si postventa ya había registrado la salida (con la guía), esto solo suma
