@@ -65,14 +65,26 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
   if (!data) notFound();
 
   // De qué empresa es: la del cierre del pedido (o del equipo del parque).
+  // El informe de una llamada derivada sin servicio ni equipo salía siempre
+  // EFAMEINSA aunque la derivación fuera de OPEN (Lesly, 09-10, 032-2026):
+  // ahora toma el servicio de la llamada y, si no hay, el último cierre del
+  // cliente, igual que la hoja de la derivación (/aperturas/[id]/imprimir).
   let serieEmpresa: "EFAMEINSA" | "OPEN" | null = null;
-  if (data.servicio_id) {
-    const { data: s } = await supabase.from("servicios_postventa").select("informes_cierre!servicios_postventa_informe_cierre_id_fkey(serie)").eq("id", data.servicio_id).maybeSingle();
-    serieEmpresa = ((s?.informes_cierre as unknown as { serie: string } | null)?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? null;
+  const { data: deLaLlamada } = data.apertura_id && !data.servicio_id
+    ? await supabase.from("aperturas_llamada").select("servicio_id").eq("id", data.apertura_id as string).maybeSingle()
+    : { data: null };
+  const servicioId = (data.servicio_id as string | null) ?? (deLaLlamada?.servicio_id as string | null) ?? null;
+  if (servicioId) {
+    const { data: s } = await supabase.from("servicios_postventa").select("apertura_empresa, informes_cierre!servicios_postventa_informe_cierre_id_fkey(serie)").eq("id", servicioId).maybeSingle();
+    serieEmpresa = ((s?.informes_cierre as unknown as { serie: string } | null)?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? ((s?.apertura_empresa as "EFAMEINSA" | "OPEN" | null) ?? null);
   }
   if (!serieEmpresa && data.equipo_id) {
     const { data: e } = await supabase.from("equipos_instalados").select("informes_cierre!equipos_instalados_informe_cierre_id_fkey(serie)").eq("id", data.equipo_id).maybeSingle();
     serieEmpresa = ((e?.informes_cierre as unknown as { serie: string } | null)?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? null;
+  }
+  if (!serieEmpresa && data.cuenta_id) {
+    const { data: ult } = await supabase.from("informes_cierre").select("serie").eq("cuenta_id", data.cuenta_id as string).is("anulado_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    serieEmpresa = (ult?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? null;
   }
 
   const cuenta = data.cuentas as unknown as { razon_social: string; num_doc: string | null } | null;

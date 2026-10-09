@@ -8,6 +8,7 @@ import { notificar } from "@/lib/notificaciones";
 import { avisarLeadNuevoN8n, avisarLeadDerivadoN8n } from "@/lib/avisos-n8n";
 import { esquemaCaptura, esquemaAdjuntosLead, type AdjuntoLead } from "@/lib/validaciones/lead";
 import { CANAL_LABEL } from "@/lib/canal-contacto";
+import { historiaDeCuentas, type HistoriaDelCliente } from "@/lib/central/historia-del-cliente";
 
 export interface ResultadoDuplicado {
   cuenta: { id: string; razon_social: string; comercial_nombre: string | null } | null;
@@ -1218,7 +1219,8 @@ export async function buscarCuentasParaUnir(texto: string): Promise<CuentaParaUn
   for (const t of tokens) porContacto = porContacto.ilike("nombre", `%${t}%`);
 
   const nada = Promise.resolve({ data: null });
-  const [nombre, doc, contacto, correo, telefono] = await Promise.all([
+  const siglas = patronDeSiglas(q);
+  const [nombre, doc, contacto, correo, telefono, porSiglas] = await Promise.all([
     tokens.length > 0 ? porNombre.limit(8) : nada,
     soloDigitos.length >= 8
       ? supabase.from("cuentas").select(CAMPOS).ilike("num_doc", `%${soloDigitos}%`).limit(5)
@@ -1241,6 +1243,9 @@ export async function buscarCuentasParaUnir(texto: string): Promise<CuentaParaUn
           .eq("telefono_normalizado", tel)
           .limit(6)
       : nada,
+    // «PUCP» no está escrito en ninguna ficha: la ficha dice «PONTIFICA
+    // UNIVERSIDAD CATOLICA DEL PERU». Central, 09-10.
+    siglas ? supabase.from("cuentas").select(CAMPOS).is("fusionada_en", null).filter("razon_social", "imatch", siglas).limit(6) : nada,
   ]);
 
   const out = new Map<string, CuentaParaUnir>();
@@ -1267,9 +1272,95 @@ export async function buscarCuentasParaUnir(texto: string): Promise<CuentaParaUn
   deContacto((correo as { data: unknown }).data, (c) => `contacto ${c.email ?? ""}`.trim());
   deContacto((telefono as { data: unknown }).data, (c) => `contacto ${c.nombre ?? ""} · ${c.telefono ?? ""}`.trim());
   for (const c of ((nombre as { data: unknown }).data ?? []) as Fila[]) agregar(c, null);
+  // Como sigla manda si se escribió en mayúsculas o si como palabra no salió
+  // nada: «lima» o «peru» no tienen que traer cuanta ficha empiece con L-I-M-A.
+  const nombreVacio = (((nombre as { data: unknown }).data ?? []) as Fila[]).length === 0;
+  if (q === q.toUpperCase() || nombreVacio) {
+    for (const c of ((porSiglas as { data: unknown }).data ?? []) as Fila[]) agregar(c, `por las siglas ${q.toUpperCase()}`);
+  }
   deContacto((contacto as { data: unknown }).data, (c) => `contacto ${c.nombre ?? ""}`.trim());
 
   return [...out.values()].slice(0, 8);
+}
+
+/**
+ * Una sigla escrita sola («PUCP», «BCP», «SENATI» no: esa ya es nombre) se
+ * busca como las iniciales de palabras seguidas de la razón social, dejando
+ * saltar las cortas («del», «de», «y»). Sin `\s`: en esta base no matchea
+ * (ver la nota del 09-09); se usan clases POSIX.
+ */
+function patronDeSiglas(texto: string): string | null {
+  const t = texto.trim();
+  if (!/^[A-Za-zÑñ]{3,5}$/.test(t)) return null;
+  const SEP = "(([^[:alnum:]]+[[:alpha:]]{1,3})*[^[:alnum:]]+)";
+  return "(^|[^[:alnum:]])" + [...t.toUpperCase()].map((l) => `${l}[[:alpha:]]*`).join(SEP);
+}
+
+export interface ResumenDeLaEmpresa {
+  id: string;
+  razonSocial: string;
+  numDoc: string | null;
+  cartera: string | null;
+  carteraDesde: string | null;
+  ultimaVenta: string | null;
+  /** Las cotizaciones de antes del CRM (Excel/Word): ahí suele estar la historia vieja. */
+  cotizacionesArchivo: { codigo: string | null; fecha: string | null; quien: string | null; monto: number | null }[];
+  totalCotizacionesArchivo: number;
+  historia: HistoriaDelCliente | null;
+}
+
+/**
+ * LA HISTORIA DE LA EMPRESA, AUNQUE EL CONTACTO NO COINCIDA (Santos, 09-10).
+ *
+ * «Llegó un prospecto que decía que era de la PUCP»: el aviso de la bandeja
+ * solo cruza el teléfono, el documento y el correo de la PERSONA, y esa
+ * persona era nueva. Pero la institución tiene historia con C4, y eso cambia a
+ * quién se deriva. Esto le deja a Central buscar la empresa que el contacto
+ * nombra y leer su historia sin unir ni derivar nada.
+ */
+export async function historiaDeLaEmpresa(cuentaId: string): Promise<ResumenDeLaEmpresa | null> {
+  const supabase = await createClient();
+  const [{ data: c }, historias, { data: archivo, count }] = await Promise.all([
+    supabase
+      .from("cuentas")
+      .select("id, razon_social, num_doc, tipo_doc, cartera_desde, ultima_venta_at, perfiles(nombre, codigo_comercial)")
+      .eq("id", cuentaId)
+      .maybeSingle(),
+    historiaDeCuentas(supabase, [cuentaId]),
+    supabase
+      .from("cotizaciones_historicas")
+      .select("codigo, fecha, monto_sin_igv, asesor_codigo, perfiles!cotizaciones_historicas_comercial_id_fkey(nombre, codigo_comercial)", { count: "exact" })
+      .eq("cuenta_id", cuentaId)
+      .order("fecha", { ascending: false })
+      .limit(4),
+  ]);
+  if (!c) return null;
+  const p = c.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
+  type FilaArchivo = {
+    codigo: string | null;
+    fecha: string | null;
+    monto_sin_igv: number | null;
+    asesor_codigo: string | null;
+    perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  };
+  return {
+    id: c.id,
+    razonSocial: c.razon_social,
+    numDoc: c.tipo_doc === "SIN_DOC" ? null : c.num_doc,
+    cartera: p ? `${p.codigo_comercial ? `${p.codigo_comercial} · ` : ""}${p.nombre}` : null,
+    carteraDesde: c.cartera_desde,
+    ultimaVenta: c.ultima_venta_at,
+    cotizacionesArchivo: ((archivo ?? []) as unknown as FilaArchivo[]).map((a) => ({
+      codigo: a.codigo,
+      fecha: a.fecha,
+      monto: a.monto_sin_igv,
+      quien: a.perfiles
+        ? `${a.perfiles.codigo_comercial ? `${a.perfiles.codigo_comercial} · ` : ""}${a.perfiles.nombre}`
+        : a.asesor_codigo,
+    })),
+    totalCotizacionesArchivo: count ?? 0,
+    historia: historias.get(cuentaId) ?? null,
+  };
 }
 
 /**

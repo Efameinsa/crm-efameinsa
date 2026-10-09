@@ -27,15 +27,18 @@ export function HistoriaDelClienteDesplegable({
   h,
   razonSocial,
   cuentaId,
+  abierta = false,
 }: {
   h: HistoriaDelCliente;
   razonSocial: string;
   cuentaId: string;
+  /** Desde «Ver la historia de la empresa» se pidió a propósito: nace abierto. */
+  abierta?: boolean;
 }) {
   const hayAlgo = h.cotizaciones.length > 0 || h.gestiones.length > 0 || h.pendientes.length > 0;
 
   return (
-    <details className="group mt-2 rounded-md border border-border bg-muted/30">
+    <details open={abierta} className="group mt-2 rounded-md border border-border bg-muted/30">
       <summary className="flex cursor-pointer list-none items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-accent">
         <ChevronRight className="size-3.5 flex-none transition-transform group-open:rotate-90" />
         Ver la historia de {razonSocial}
