@@ -24,6 +24,7 @@ import { cargarSupervisores } from "@/lib/supervisores";
 import { EditarSolicitudBoton } from "@/components/crm/editar-solicitud-boton";
 import { EditarDatosLeadBoton } from "@/components/crm/editar-datos-lead-boton";
 import { UnirACuentaBoton } from "@/components/crm/unir-a-cuenta-boton";
+import { HistoriaEmpresaBoton } from "@/components/crm/historia-empresa-boton";
 import { dominioDeCorreo } from "@/lib/central/coincidencias-bandeja";
 import { origenDe, fuenteLegible, nombreDeCampana } from "@/lib/campana";
 import { ChipOrigen } from "@/components/crm/chip-origen";
@@ -439,6 +440,9 @@ export default async function CentralPage() {
                     sugerencia={dominioDeCorreo(lead.email) ?? lead.razon_social ?? null}
                     supervisores={supervisores}
                   />
+                  {/* La persona puede ser nueva y la empresa no (Santos,
+                      09-10, «Centrum PUCP»: cliente de C4). Solo mira. */}
+                  <HistoriaEmpresaBoton razonSocial={lead.razon_social} dominio={dominioDeCorreo(lead.email)} />
                   <EditarSolicitudBoton
                     leadId={lead.id}
                     contacto={lead.nombre_contacto ?? lead.codigo ?? "el contacto"}
