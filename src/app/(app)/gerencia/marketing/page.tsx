@@ -15,6 +15,8 @@ import { GraficoGasto } from "@/components/crm/grafico-gasto";
 import { EmbudoReal } from "@/components/crm/embudo-real";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { cargarSaldoGoogleAds } from "@/lib/saldo-ads-datos";
+import { SaldoGoogleAdsTarjeta } from "@/components/crm/saldo-google-ads";
 
 // Todo el panel depende de searchParams (rango de fechas y plataforma) y de
 // datos que cambian con cada sincronización: nunca debe servirse desde caché,
@@ -42,10 +44,11 @@ export default async function MarketingPage({
     cargarResumenMarketing(supabase, { desde, hasta, plataforma }),
     supabase.rpc("leads_por_origen", { p_desde: desde, p_hasta: hasta }),
   ]);
-  const [embudo, conversiones, { data: experimentoCrudo }] = await Promise.all([
+  const [embudo, conversiones, { data: experimentoCrudo }, saldoAds] = await Promise.all([
     cargarEmbudoReal(supabase, resumen, { desde, hasta }),
     cargarConversionesDeCampana(supabase, desde, hasta),
     supabase.rpc("experimento_web", { p_desde: desde, p_hasta: hasta }),
+    cargarSaldoGoogleAds(supabase),
   ]);
   interface FilaExperimento { variante: string; leads: number; con_telefono: number; contactados: number; calificados: number; cotizados: number; ganados: number; descartados: number }
   const experimento = ((experimentoCrudo ?? []) as FilaExperimento[]).filter((f) => f.leads > 0);
@@ -109,6 +112,12 @@ export default async function MarketingPage({
         )}
         {" "}· ventas convertidas al <TipoCambioInline valor={embudo.tcUsdPen} editable /> para ROAS y costo por venta
       </p>
+
+      {/* Saldo de Google Ads (0421, gerencia 07-10): la cuenta es prepago y
+          quedarse sin saldo apaga los anuncios. No depende del período. */}
+      <SeccionPanel titulo="Saldo de Google Ads" id="saldo-google-ads">
+        <SaldoGoogleAdsTarjeta datos={saldoAds} />
+      </SeccionPanel>
 
       {resumen.totalesPorMoneda.length === 0 ? (
         <SeccionPanel titulo="Sin datos todavía">

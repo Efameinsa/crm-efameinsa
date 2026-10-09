@@ -170,6 +170,14 @@ const ESTILO_AVISO: Record<
     duracion: Infinity,
     tono: "error",
   },
+  // Saldo de Google Ads por acabarse (0421, gerencia 07-10): quedarse sin
+  // saldo apaga los anuncios, así que se queda hasta que lo toquen.
+  saldo_ads: {
+    encabezado: "💳 Google Ads: recargar saldo",
+    accion: "Ver saldo",
+    duracion: Infinity,
+    tono: "error",
+  },
   // El cliente escribió en un chat que ya tenía (comerciales, 02-10). Se queda
   // hasta que lo toquen, como en el celular; uno por chat (ver `avisar`).
   whatsapp_mensaje: {
@@ -353,6 +361,7 @@ export function CampanaNotificaciones({
       "cotizacion_pendiente",
       "cotizacion_revision",
       "whatsapp_sin_respuesta",
+      "saldo_ads",
       "urgencia",
       "urgencia_finanzas",
       "urgencia_almacen",
