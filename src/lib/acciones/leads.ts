@@ -1194,6 +1194,24 @@ export interface CuentaParaUnir {
  * que se toma mirando eso.
  */
 export async function buscarCuentasParaUnir(texto: string): Promise<CuentaParaUnir[]> {
+  const enteras = await buscarCuentas(texto);
+  if (enteras.length > 0) return enteras;
+  // «Centrum PUCP» entero no está en ninguna ficha; «PUCP» sí (Central, 09-10:
+  // escribió lo que dijo el contacto y le salió vacío). Si el texto completo no
+  // trae nada, se prueba palabra por palabra y se dice con cuál salió.
+  const palabras = [...new Set(texto.trim().split(/[\s,.;:()/-]+/).filter((p) => p.length >= 3))];
+  if (palabras.length < 2) return enteras;
+  const porPalabra = await Promise.all(palabras.slice(0, 4).map((p) => buscarCuentas(p)));
+  const out = new Map<string, CuentaParaUnir>();
+  porPalabra.forEach((lista, i) => {
+    for (const c of lista) {
+      if (!out.has(c.id)) out.set(c.id, { ...c, detalle: [`por «${palabras[i]}»`, c.detalle].filter(Boolean).join(" · ") });
+    }
+  });
+  return [...out.values()].slice(0, 8);
+}
+
+async function buscarCuentas(texto: string): Promise<CuentaParaUnir[]> {
   const q = texto.trim();
   if (q.length < 3) return [];
   const supabase = await createClient();
