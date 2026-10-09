@@ -2,7 +2,7 @@
  * Formularios de Meta → CRM de Efameinsa (09-10-2026).
  *
  * Meta escribe cada formulario en este Google Sheets. Este script, cada
- * minuto, toma las filas nuevas y las manda al CRM, que las asigna al
+ * 5 minutos, toma las filas nuevas y las manda al CRM, que las asigna al
  * comercial dueño de la campaña (o a Central si la campaña no tiene dueño).
  *
  * NO toca las pestañas que llena Meta. Lleva su control en la pestaña
@@ -30,9 +30,9 @@ function instalar() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'enviarAlCrm') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('enviarAlCrm').timeBased().everyMinutes(1).create();
+  ScriptApp.newTrigger('enviarAlCrm').timeBased().everyMinutes(5).create();
   hojaControl_();
-  Logger.log('Listo: enviarAlCrm correrá cada minuto.');
+  Logger.log('Listo: enviarAlCrm correrá cada 5 minutos.');
 }
 
 function enviarAlCrm() {
@@ -147,6 +147,6 @@ function avisar_(errores) {
     correo,
     'Formularios de Meta: no se pudieron enviar al CRM',
     'El script del Sheets «' + SpreadsheetApp.getActiveSpreadsheet().getName() + '» no pudo mandar contactos al CRM. ' +
-      'Se reintenta solo cada minuto; los contactos siguen guardados en el Sheets.\n\n' + errores.join('\n')
+      'Se reintenta solo cada 5 minutos; los contactos siguen guardados en el Sheets.\n\n' + errores.join('\n')
   );
 }

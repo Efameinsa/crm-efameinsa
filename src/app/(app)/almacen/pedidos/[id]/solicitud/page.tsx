@@ -6,6 +6,7 @@ import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { CasillasProcedencia } from "@/components/crm/casillas-procedencia";
+import { esTorre } from "@/lib/torres";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,10 @@ const quien = (p: { nombre: string; codigo_comercial: string | null } | null | u
 
 type Perfil = { nombre: string; codigo_comercial: string | null } | null;
 type Unidad = {
+  id: string;
   orden: number;
+  parte_de: string | null;
+  parte_nombre: string | null;
   descripcion: string;
   serie: string | null;
   sin_serie: boolean | null;
@@ -35,6 +39,11 @@ type Unidad = {
  * una línea en blanco por unidad para anotar la serie en el almacén.
  * `?que=respuesta`: la serie o el código que el almacén dio a cada unidad,
  * quién lo registró y cuándo. Las que faltan salen como pendientes.
+ *
+ * Lesly, 09-10: la torre (lavadora + secadora, 0359) salía en dos filas y
+ * parecían dos torres. Ahora la parte va en la MISMA fila de su unidad:
+ * «Lavadora: …» y «Secadora: …» dentro de la celda de la serie. La torre que
+ * aún no tiene la secadora registrada deja los dos renglones para anotar.
  */
 export default async function SolicitudDeCodigoPage({
   params,
@@ -65,11 +74,22 @@ export default async function SolicitudDeCodigoPage({
   };
   const { data: filas } = await supabase
     .from("pedido_equipos")
-    .select("orden, descripcion, serie, sin_serie, procedencia, serie_registrada_at, perfiles!pedido_equipos_serie_registrada_por_fkey(nombre, codigo_comercial)")
+    .select("id, orden, parte_de, parte_nombre, descripcion, serie, sin_serie, procedencia, serie_registrada_at, perfiles!pedido_equipos_serie_registrada_por_fkey(nombre, codigo_comercial)")
     .eq("servicio_id", id)
     .order("orden");
-  const unidades = (filas ?? []) as unknown as Unidad[];
-  const respondidas = unidades.filter((u) => u.serie).length;
+  const todas = (filas ?? []) as unknown as Unidad[];
+  const unidades = todas.filter((u) => !u.parte_de);
+  // Las series de cada fila: la unidad y sus partes (torre: lavadora y secadora).
+  const lineasDe = (u: Unidad) => {
+    const partes = todas.filter((p) => p.parte_de === u.id);
+    const torre = esTorre(u.descripcion) && !(u.serie ?? "").includes("/");
+    if (partes.length === 0 && !torre) return [{ nombre: null as string | null, fila: u as Unidad | null }];
+    return [
+      { nombre: torre ? "Lavadora" : "Máquina", fila: u as Unidad | null },
+      ...(partes.length ? partes.map((p) => ({ nombre: p.parte_nombre ?? "Otra máquina", fila: p as Unidad | null })) : [{ nombre: "Secadora", fila: null }]),
+    ];
+  };
+  const respondidas = unidades.filter((u) => lineasDe(u).every((l) => l.fila?.serie)).length;
   const hoy = new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima" });
   const cierre = pedido.informes_cierre;
   const titulo = respuesta ? "Respuesta del almacén · series y códigos" : "Solicitud de código al almacén";
@@ -122,23 +142,50 @@ export default async function SolicitudDeCodigoPage({
           </tr>
         </thead>
         <tbody>
-          {unidades.map((u) => (
-            <tr key={u.orden}>
-              <td className={celda}>{u.orden}</td>
-              <td className={`${celda} whitespace-pre-line`}>{u.descripcion}</td>
-              <td className={celda}>
-                {respuesta ? (u.serie ? <>{u.serie}{u.sin_serie ? <span className="block text-[10px]">código (sin serie)</span> : null}</> : <i>pendiente</i>) : null}
-              </td>
-              <td className={`${celda} text-[10.5px] leading-tight`}>
-                <CasillasProcedencia marcada={u.procedencia} />
-              </td>
-              {respuesta && (
-                <td className={celda}>
-                  {u.serie ? (u.serie_registrada_at ? <>{quien(u.perfiles)}<span className="block text-[10px]">{fechaHora(u.serie_registrada_at)}</span></> : "antes del 28-09") : "—"}
+          {unidades.map((u) => {
+            const lineas = lineasDe(u);
+            const varias = lineas.length > 1;
+            const serieDe = (f: Unidad | null) =>
+              f?.serie ? <>{f.serie}{f.sin_serie ? <span className="block text-[10px]">código (sin serie)</span> : null}</> : <i>pendiente</i>;
+            const registroDe = (f: Unidad | null) =>
+              f?.serie ? (f.serie_registrada_at ? <>{quien(f.perfiles)}<span className="block text-[10px]">{fechaHora(f.serie_registrada_at)}</span></> : "antes del 28-09") : "—";
+            return (
+              <tr key={u.id}>
+                <td className={celda}>{u.orden}</td>
+                <td className={`${celda} whitespace-pre-line`}>
+                  {u.descripcion}
+                  {varias && <span className="mt-1 block text-[10.5px] font-semibold">1 torre: {lineas.map((l) => l.nombre?.toLowerCase()).join(" + ")}</span>}
                 </td>
-              )}
-            </tr>
-          ))}
+                <td className={celda}>
+                  {varias ? (
+                    lineas.map((l, i) => (
+                      <div key={i} className={i ? "mt-2 border-t border-dashed border-neutral-400 pt-2" : ""}>
+                        <span className="block text-[10.5px] font-semibold uppercase">{l.nombre}</span>
+                        {respuesta ? serieDe(l.fila) : <span className="mt-4 block border-b border-neutral-400" />}
+                      </div>
+                    ))
+                  ) : respuesta ? (
+                    serieDe(u)
+                  ) : null}
+                </td>
+                <td className={`${celda} text-[10.5px] leading-tight`}>
+                  <CasillasProcedencia marcada={u.procedencia} />
+                </td>
+                {respuesta && (
+                  <td className={celda}>
+                    {varias
+                      ? lineas.map((l, i) => (
+                          <div key={i} className={i ? "mt-2 border-t border-dashed border-neutral-400 pt-2" : ""}>
+                            <span className="block text-[10.5px] font-semibold uppercase">{l.nombre}</span>
+                            {registroDe(l.fila)}
+                          </div>
+                        ))
+                      : registroDe(u)}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 

@@ -6,7 +6,7 @@ import { registrarFormularioMeta, type ResultadoFormulario } from "@/lib/meta-fo
 // La página de Facebook es de otro portafolio y el CRM no puede leer sus
 // formularios directo; Meta sí los escribe en un Google Sheets, y un Apps
 // Script (scripts/apps-script/formularios-meta-al-crm.gs) manda cada fila
-// nueva acá, cada minuto.
+// nueva acá, cada 5 minutos.
 //
 // POST con `Authorization: Bearer <META_SHEETS_CLAVE>` y
 //   { filas: [ { "id": "l:123…", "ad_id": "ag:…", "campaign_name": "…",

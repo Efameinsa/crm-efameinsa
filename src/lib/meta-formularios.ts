@@ -38,6 +38,12 @@ function limpiarValor(valor: string): string {
   return valor.replace(/^[a-z]{1,3}:(?=\S)/i, "").trim();
 }
 
+/** «¿en_qué_sector_se_encuentra_su_proyecto?» → «En qué sector se encuentra su proyecto». */
+function etiquetaDePregunta(nombre: string): string {
+  const limpio = nombre.replace(/_/g, " ").replace(/[¿?]/g, "").replace(/\s+/g, " ").trim();
+  return limpio.charAt(0).toUpperCase() + limpio.slice(1);
+}
+
 export function mapearCampos(campos: { name: string; values: string[] }[]) {
   let nombre = "";
   let primerNombre = "";
@@ -56,7 +62,7 @@ export function mapearCampos(campos: { name: string; values: string[] }[]) {
     else if (CAMPOS_EMAIL.has(clave)) email = email || valor;
     else if (CAMPOS_TELEFONO.has(clave)) telefono = telefono || valor;
     else if (CAMPOS_EMPRESA.has(clave)) razonSocial = razonSocial || valor;
-    else if (!CAMPOS_NOMBRE.has(clave)) extras.push(`${c.name.replace(/_/g, " ").replace(/\?$/, "")}: ${valor}`);
+    else if (!CAMPOS_NOMBRE.has(clave)) extras.push(`${etiquetaDePregunta(c.name)}: ${valor}`);
   }
   const nombreFinal = nombre || [primerNombre, apellido].filter(Boolean).join(" ").trim();
   return { nombre: nombreFinal, email, telefono, razonSocial, extras };
