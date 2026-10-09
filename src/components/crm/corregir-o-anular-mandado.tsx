@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Ban, Pencil } from "lucide-react";
 import { anularMiRegistro, corregirMiRegistro } from "@/lib/acciones/leads";
+import { CampoAdjuntos, useAdjuntos } from "@/components/crm/campo-adjuntos";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { DetalleMandado } from "@/lib/mandado-a-central";
+import { cn } from "@/lib/utils";
 
 /**
  * «¿Se registró mal?» dentro de una fila de «Lo que mandé a Central» (0338).
@@ -21,7 +23,22 @@ import type { DetalleMandado } from "@/lib/mandado-a-central";
  * Llamada mediante PIN». Mismo trato que «¿Serie equivocada? Corregir con
  * código»: se puede, con el código de gerencia u operaciones y el motivo, y
  * solo mientras sigue en la bandeja de Central.
+ *
+ * Brenda, 09-10: registró una llamada como WhatsApp (el registro trae WhatsApp
+ * marcado de entrada) y la vía no se podía corregir acá. Desde la 0423 se
+ * corrige todo lo que la ventana muestra: también la vía, y se pueden agregar
+ * archivos (agregar, no quitar: lo ya mandado pudo verlo Central).
  */
+
+/** Las mismas seis vías que ofrece el registro (pasar-contacto-central). */
+const CANALES = [
+  ["whatsapp", "WhatsApp"],
+  ["llamada", "Llamada"],
+  ["email", "Correo"],
+  ["presencial", "Presencial"],
+  ["referido", "Referido"],
+  ["otro", "Otro"],
+] as const;
 export function CorregirOAnularMandado({
   leadId,
   detalle,
@@ -41,20 +58,44 @@ export function CorregirOAnularMandado({
   const [telefono, setTelefono] = useState(detalle.telefono ?? "");
   const [email, setEmail] = useState(detalle.email ?? "");
   const [mensaje, setMensaje] = useState(detalle.mensaje ?? "");
+  const [canal, setCanal] = useState(detalle.canalClave);
+  const adjuntos = useAdjuntos();
+  const caben = Math.max(0, 5 - detalle.adjuntos.length);
   const [enviando, startTransition] = useTransition();
 
   const listoParaEnviar = pin.replace(/\D/g, "").length === 4 && motivo.trim().length >= 5;
 
   function enviar() {
     startTransition(async () => {
+      if (modo === "corregir" && adjuntos.archivos.length > caben) {
+        toast.error(`Son hasta 5 archivos por registro: puede agregar ${caben}.`);
+        return;
+      }
+      // Los archivos primero, como al registrar: si una subida falla no se
+      // corrige nada y se reintenta.
+      const subida = modo === "corregir" ? await adjuntos.subir() : { adjuntos: [], error: null };
+      if (subida.error) {
+        toast.error(subida.error);
+        return;
+      }
       const r =
         modo === "anular"
           ? await anularMiRegistro(leadId, pin, motivo)
-          : await corregirMiRegistro(leadId, pin, motivo, { nombre, razonSocial: razon, telefono, email, numDoc: ruc, mensaje });
+          : await corregirMiRegistro(leadId, pin, motivo, {
+              nombre,
+              razonSocial: razon,
+              telefono,
+              email,
+              numDoc: ruc,
+              mensaje,
+              canal,
+              adjuntosNuevos: subida.adjuntos ?? [],
+            });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
       }
+      adjuntos.limpiar();
       toast.success(r.resumen ?? (modo === "anular" ? "Registro anulado" : "Registro corregido"));
       setModo("nada");
       onListo();
@@ -95,7 +136,28 @@ export function CorregirOAnularMandado({
       </p>
 
       {modo === "corregir" && (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2" onPaste={adjuntos.onPaste}>
+          <div className="space-y-1 sm:col-span-2">
+            <Label className="text-xs">¿Por dónde llegó?</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {CANALES.map(([v, t]) => (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={canal === v}
+                  onClick={() => setCanal(v)}
+                  className={cn(
+                    "cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors",
+                    canal === v
+                      ? "border-primary bg-primary font-medium text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground",
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="space-y-1">
             <Label htmlFor={`cm-razon-${leadId}`} className="text-xs">Razón social (como en SUNAT)</Label>
             <Input id={`cm-razon-${leadId}`} value={razon} onChange={(e) => setRazon(e.target.value)} className="h-8 text-sm" />
@@ -120,6 +182,19 @@ export function CorregirOAnularMandado({
             <Label htmlFor={`cm-msj-${leadId}`} className="text-xs">Lo que pide</Label>
             <Textarea id={`cm-msj-${leadId}`} value={mensaje} onChange={(e) => setMensaje(e.target.value)} rows={3} className="text-sm" />
           </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label className="text-xs">Agregar fotos o archivos</Label>
+            {caben > 0 ? (
+              <CampoAdjuntos
+                ctl={adjuntos}
+                ayuda={`Se suman a ${detalle.adjuntos.length === 0 ? "lo registrado" : `los ${detalle.adjuntos.length} que ya tiene`} · puede agregar ${caben} más (10 MB; videos 25 MB)`}
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Ya tiene los 5 archivos que admite un registro. Si falta otro, mándelo en un registro nuevo cuando Central derive este.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -139,7 +214,11 @@ export function CorregirOAnularMandado({
       </div>
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant={modo === "anular" ? "destructive" : "default"} disabled={enviando || !listoParaEnviar} onClick={enviar}>
-          {modo === "anular" ? "Anular" : "Guardar la corrección"}
+          {adjuntos.progreso
+            ? `Subiendo archivo ${adjuntos.progreso.hecho + 1} de ${adjuntos.progreso.total}…`
+            : modo === "anular"
+              ? "Anular"
+              : "Guardar la corrección"}
         </Button>
         <Button size="sm" variant="ghost" disabled={enviando} onClick={() => setModo("nada")}>
           Cancelar
