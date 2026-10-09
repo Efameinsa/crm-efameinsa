@@ -130,6 +130,8 @@ export interface ServicioPostventa {
   apertura_guia_detalle?: string | null;
   apertura_coordina_contabilidad?: string | null;
   apertura_coordina_logistica?: string | null;
+  /** Empresa elegida para la apertura de un pedido sin cierre (0421). */
+  apertura_empresa?: "EFAMEINSA" | "OPEN" | null;
   /** «Ya lo mandé»: el correo de la apertura, marcado por separado al almacén y al cliente (0271). */
   apertura_enviada_almacen_at?: string | null;
   apertura_enviada_cliente_at?: string | null;

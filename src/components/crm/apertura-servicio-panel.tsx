@@ -38,6 +38,7 @@ export function AperturaServicioPanel({
   enviadaClienteAt = null,
   destinatarios = [],
   empresaCorreo = "EFAMEINSA",
+  empresaElegible = false,
 }: {
   servicioId: string;
   inicial: {
@@ -63,8 +64,11 @@ export function AperturaServicioPanel({
   /** Los que el directorio marca para almacén y Finanzas, en el correo de la empresa del pedido (0410). */
   destinatarios?: Destinatario[];
   empresaCorreo?: "EFAMEINSA" | "OPEN";
+  /** Sin cierre de venta, postventa elige con qué empresa sale la apertura (0421, Rubí 09-10). */
+  empresaElegible?: boolean;
 }) {
   const [v, setV] = useState(inicial);
+  const [empresa, setEmpresa] = useState<"EFAMEINSA" | "OPEN">(empresaCorreo);
   const [copiado, setCopiado] = useState<"asunto" | "cuerpo" | null>(null);
   const [guardando, empezar] = useTransition();
   const [enviando, empezarEnvio] = useTransition();
@@ -147,6 +151,7 @@ export function AperturaServicioPanel({
         guiaDetalle: v.guia ? v.guiaDetalle : null,
         coordinaContabilidad: v.coordinaContabilidad,
         coordinaLogistica: v.coordinaLogistica,
+        ...(empresaElegible ? { empresa } : {}),
       });
       if (r.error) {
         toast.error(r.error);
@@ -205,6 +210,14 @@ export function AperturaServicioPanel({
         </fieldset>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {empresaElegible && (
+            <Campo ancho etiqueta="Empresa con la que sale la apertura" ayuda="Este pedido no viene de un cierre: elija la empresa. Con cierre, sale la del cierre.">
+              <select value={empresa} onChange={(e) => setEmpresa(e.target.value as "EFAMEINSA" | "OPEN")} className={ENTRADA}>
+                <option value="EFAMEINSA">CORPORACIÓN EFAMEINSA S.A.</option>
+                <option value="OPEN">OPEN INVESTMENTS S.A.C.</option>
+              </select>
+            </Campo>
+          )}
           <Campo etiqueta="Día del servicio">
             <input type="date" value={v.fecha ?? ""} onChange={cambiar("fecha")} className={ENTRADA} />
           </Campo>

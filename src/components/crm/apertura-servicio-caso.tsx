@@ -63,6 +63,7 @@ export function AperturaServicioCaso({
   const [guia, setGuia] = useState("");
   const [guiaDetalle, setGuiaDetalle] = useState("");
   const [nota, setNota] = useState("");
+  const [empresa, setEmpresa] = useState<"EFAMEINSA" | "OPEN">("EFAMEINSA");
 
   const falta = [
     !atencionId && "el caso",
@@ -90,6 +91,7 @@ export function AperturaServicioCaso({
         guia: guia || null,
         guiaDetalle,
         nota,
+        empresa,
       });
       if (r.error) return void toast.error(r.error, { duration: 9000 });
       toast.success("Apertura emitida: le llegó a Finanzas y al almacén");
@@ -140,6 +142,15 @@ export function AperturaServicioCaso({
               </select>
             </div>
           )}
+          {/* Rubí, 09-10: «la opción de escoger con qué empresa realizar la apertura». Sin cierre no
+              hay serie de la que tomarla (0421). */}
+          <div className="grid gap-1 sm:col-span-2">
+            <Label className="text-xs">Empresa con la que sale la apertura</Label>
+            <select className={select} value={empresa} onChange={(e) => setEmpresa(e.target.value as "EFAMEINSA" | "OPEN")}>
+              <option value="EFAMEINSA">CORPORACIÓN EFAMEINSA S.A.</option>
+              <option value="OPEN">OPEN INVESTMENTS S.A.C.</option>
+            </select>
+          </div>
           <div className="grid gap-1">
             <Label className="text-xs">Servicio</Label>
             <select className={select} value={tipoPedido} onChange={(e) => setTipoPedido(e.target.value as TipoServicioApertura)}>
