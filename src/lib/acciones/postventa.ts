@@ -1558,6 +1558,8 @@ export async function abrirAperturaDesdeCaso(
     transporte: string;
     direccion: string;
     confirmo: string;
+    recibe?: string;
+    recibeTelefono?: string;
     destino: "lima" | "provincia";
     guia: string | null;
     guiaDetalle: string;
@@ -1580,6 +1582,8 @@ export async function abrirAperturaDesdeCaso(
     p_guia: datos.guia || null,
     p_guia_detalle: datos.guiaDetalle || null,
     p_nota: datos.nota || null,
+    p_recibe_nombre: datos.recibe?.trim() || null,
+    p_recibe_telefono: datos.recibeTelefono?.trim() || null,
   });
   if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
   const id = servicioId as string;
