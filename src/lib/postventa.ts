@@ -412,8 +412,11 @@ export interface FotoAlmacen {
 export const FOTOS_DE_CARGA_DESDE = "2026-09-19";
 
 /** Salió (lo marcó postventa) pero el almacén no dejó las fotos de la carga. */
-export function faltanFotosDeCarga(s: Pick<ServicioPostventa, "despachado_at" | "informe_cierre_id" | "salida_fotos">): boolean {
+export function faltanFotosDeCarga(s: Pick<ServicioPostventa, "despachado_at" | "informe_cierre_id" | "salida_fotos"> & { tipo_pedido?: TipoPedido | null }): boolean {
   return (
+    // En un servicio sale el técnico, no una máquina cargada (Lesly, 09-10).
+    s.tipo_pedido !== "revision" &&
+    s.tipo_pedido !== "mantenimiento" &&
     Boolean(s.despachado_at) &&
     Boolean(s.informe_cierre_id) &&
     (s.salida_fotos?.length ?? 0) === 0 &&

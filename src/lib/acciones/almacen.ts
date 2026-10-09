@@ -232,7 +232,7 @@ export async function registrarSalida(servicioId: string, datos: { fecha: string
   // ya está (23-09, Titan 676-26).
   const { data: antes } = await supabase
     .from("servicios_postventa")
-    .select("despachado_at, guia, agencia_at")
+    .select("despachado_at, guia, agencia_at, tipo_pedido")
     .eq("id", servicioId)
     .maybeSingle();
   const { error } = await supabase.rpc("almacen_registrar_salida", {
@@ -242,7 +242,14 @@ export async function registrarSalida(servicioId: string, datos: { fecha: string
     p_nota: datos.nota?.trim() || null,
   });
   if (error) return { error: limpiar(error.message) };
-  if (antes?.despachado_at) {
+  // En un servicio sale el técnico, no una máquina (Lesly, 09-10).
+  if (!antes?.despachado_at && (antes?.tipo_pedido === "revision" || antes?.tipo_pedido === "mantenimiento")) {
+    await avisarPostventa(
+      `Salió el técnico · ${datos.cliente}`,
+      `El ${datos.fecha}${datos.fotos.length ? `, con ${datos.fotos.length} foto${datos.fotos.length === 1 ? "" : "s"} de lo que lleva` : ""}. El servicio se cierra con el informe del técnico.`,
+      `/postventa/pedidos/${servicioId}`,
+    );
+  } else if (antes?.despachado_at) {
     await avisarPostventa(
       `Fotos de la carga · ${datos.cliente}`,
       `El almacén subió ${datos.fotos.length} fotos/video de la máquina cargada en el transporte${antes.guia ? ` (guía ${antes.guia})` : ""}.`,

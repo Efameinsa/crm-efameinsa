@@ -128,7 +128,9 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
     }
     respondidos.sort((a, b) => b.at.localeCompare(a.at));
   }
-  const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
+  // Un servicio (revisión o mantenimiento) no se prueba ni se embala: para el
+  // almacén solo sale el técnico (Lesly, 09-10).
+  const probado = (s: ServicioPostventa) => circuitoDe(s).esServicio || s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
   const filas = todos.filter((s) => {
     switch (ver) {
       case "probar": return Boolean(s.prueba_solicitada_at) && !probado(s);
@@ -137,7 +139,7 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
       case "atrasados": return Boolean(s.fecha_despacho) && (s.fecha_despacho as string) < hoy && !s.despachado_at;
       case "apertura": return Boolean(s.apertura_despacho_at) && !s.despachado_at;
       case "guias": return Boolean(s.apertura_despacho_at) && Boolean(s.guia_confirmada_at) && !s.despachado_at && !s.guia;
-      case "guia": return Boolean(s.despachado_at) && !s.guia && !s.agencia_at;
+      case "guia": return Boolean(s.despachado_at) && !s.guia && !s.agencia_at && !circuitoDe(s).esServicio;
       case "aprobados": return Boolean(s.aprobado_at) && !s.prueba_solicitada_at && !probado(s) && Boolean(s.informe_cierre_id);
       case "series": return (faltanSeries.get(s.id) ?? 0) > 0;
       default: return true;
@@ -155,6 +157,13 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
     if (faltanFotosDeCarga(s) && !s.cerrado_at && !s.completado)
       return { texto: `Salió${s.guia ? ` · guía ${s.guia}` : ""} · faltan las fotos de la carga`, tono: "text-amber-700" };
     if (s.cerrado_at || s.completado) return { texto: `Entregado · pedido cerrado${s.guia ? ` · guía ${s.guia}` : ""}`, tono: "text-[#1E7F4F]" };
+    if (circuitoDe(s).esServicio) {
+      if (s.despachado_at)
+        return { texto: `El técnico salió el ${new Date(s.despachado_at).toLocaleDateString("en-CA", { timeZone: "America/Lima" })} · lo cierra postventa con el informe`, tono: "text-[#1E7F4F]" };
+      if (s.fecha_despacho && !s.apertura_despacho_at) return { texto: `Servicio para el ${s.fecha_despacho} · postventa no ha cumplido`, tono: "text-destructive" };
+      if (s.fecha_despacho) return { texto: `Servicio para el ${s.fecha_despacho} · registrar la salida del técnico`, tono: (s.fecha_despacho as string) < hoy ? "text-destructive" : "text-amber-700" };
+      return { texto: "Servicio · sin fecha todavía", tono: "text-muted-foreground" };
+    }
     if (s.agencia_at || s.guia) return { texto: `Despachado · guía ${s.guia ?? "—"}`, tono: "text-[#1E7F4F]" };
     if (s.despachado_at) return { texto: "Salió del almacén · falta la guía", tono: "text-amber-700" };
     if (s.fecha_despacho && s.almacen_listo_at) return { texto: `Listo para el ${s.fecha_despacho}`, tono: "text-[#1E7F4F]" };
