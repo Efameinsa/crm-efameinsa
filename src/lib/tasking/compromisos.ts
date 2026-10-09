@@ -6,6 +6,10 @@ import type { Compromiso, EstadoCompromiso, Persona, Reunion } from './tipos';
 
 // Si los subtítulos en vivo captaron menos palabras que esto, se usa el audio grabado como respaldo.
 const MIN_PALABRAS_TEXTO = 40;
+// En una reunión se hablan ~100 a 150 palabras por minuto. Si los subtítulos de Chrome se
+// cortaron a mitad de una reunión larga (09-10: «si dura dos o tres horas»), quedan muy por
+// debajo de esto y la IA solo vería el comienzo: entonces manda el audio completo.
+const MIN_PALABRAS_POR_MINUTO = 25;
 
 async function personasPorId(ids?: string[]) {
   let q = db().from('personas').select('*');
@@ -49,7 +53,9 @@ export async function procesarReunion(id: string) {
 
     let resultado;
     let fuente: 'texto' | 'audio' = 'texto';
-    if (palabras >= MIN_PALABRAS_TEXTO || r.audio_partes === 0) {
+    const minutos = Math.max(1, (fin.getTime() - inicio.getTime()) / 60_000);
+    const textoCompleto = palabras >= Math.max(MIN_PALABRAS_TEXTO, minutos * MIN_PALABRAS_POR_MINUTO);
+    if (textoCompleto || r.audio_partes === 0) {
       if (palabras === 0) throw new Error('No se captó nada de la reunión (sin texto ni audio). Revisa el micrófono.');
       resultado = await actaDesdeTexto({ transcripcion: r.transcripcion, participantes: lista, inicio, fin, titulo: r.titulo });
     } else {

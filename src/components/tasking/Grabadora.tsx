@@ -57,6 +57,9 @@ export default function Grabadora({ personas, tituloSugerido }: { personas: Pers
   const parteRef = useRef(0);
   const colaSubidas = useRef<Promise<void>>(Promise.resolve());
   const recorderRef = useRef<MediaRecorder | null>(null);
+  // Llave propia de esta grabación: sigue valiendo aunque la sesión del CRM se renueve a mitad de una reunión larga.
+  const llaveRef = useRef('');
+  const cabeceraLlave = (): Record<string, string> => (llaveRef.current ? { 'x-tasking-grabacion': llaveRef.current } : {});
   const streamRef = useRef<MediaStream | null>(null);
   const recogRef = useRef<Reconocedor | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
@@ -98,7 +101,7 @@ export default function Grabadora({ personas, tituloSugerido }: { personas: Pers
     if (!id || !texto) return;
     textoPendiente.current = '';
     try {
-      const r = await fetch(`/api/tasking/reuniones/${id}/texto`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto }) });
+      const r = await fetch(`/api/tasking/reuniones/${id}/texto`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...cabeceraLlave() }, body: JSON.stringify({ texto }) });
       if (!r.ok) throw new Error();
     } catch {
       textoPendiente.current = `${texto} ${textoPendiente.current}`; // se reintenta en la próxima vuelta
@@ -111,7 +114,7 @@ export default function Grabadora({ personas, tituloSugerido }: { personas: Pers
     colaSubidas.current = colaSubidas.current.then(async () => {
       for (let intento = 0; intento < 4; intento++) {
         try {
-          const r = await fetch(`/api/tasking/reuniones/${idRef.current}/audio?n=${n}`, { method: 'POST', body: blob });
+          const r = await fetch(`/api/tasking/reuniones/${idRef.current}/audio?n=${n}`, { method: 'POST', headers: cabeceraLlave(), body: blob });
           if (r.ok) break;
         } catch {}
         await new Promise((res) => setTimeout(res, 1500 * (intento + 1)));
@@ -177,7 +180,9 @@ export default function Grabadora({ personas, tituloSugerido }: { personas: Pers
       setFase('preparar');
       return setError((await r.json().catch(() => ({}))).error || 'No se pudo crear la reunión.');
     }
-    idRef.current = (await r.json()).id;
+    const creada = await r.json();
+    idRef.current = creada.id;
+    llaveRef.current = creada.llave ?? '';
     streamRef.current = stream;
     grabandoRef.current = true;
 
@@ -233,7 +238,7 @@ export default function Grabadora({ personas, tituloSugerido }: { personas: Pers
     await enviarTexto();
     if (textoPendiente.current) await enviarTexto();
     const id = idRef.current!;
-    const r = await fetch(`/api/tasking/reuniones/${id}/terminar`, { method: 'POST' });
+    const r = await fetch(`/api/tasking/reuniones/${id}/terminar`, { method: 'POST', headers: cabeceraLlave() });
     if (!r.ok) {
       setError('No se pudo cerrar la reunión. Ábrela desde «Reuniones» y pulsa «Procesar».');
       return;
@@ -241,7 +246,7 @@ export default function Grabadora({ personas, tituloSugerido }: { personas: Pers
     setFase('procesando');
     const t0 = Date.now();
     const revisar = async () => {
-      const estado = await fetch(`/api/tasking/reuniones/${id}`).then((x) => x.json()).catch(() => null);
+      const estado = await fetch(`/api/tasking/reuniones/${id}`, { headers: cabeceraLlave() }).then((x) => x.json()).catch(() => null);
       if (estado?.estado === 'lista' || estado?.estado === 'error' || Date.now() - t0 > 6 * 60_000) {
         router.push(`/tasking/reuniones/${id}`);
         router.refresh();

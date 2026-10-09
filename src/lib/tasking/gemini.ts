@@ -220,6 +220,9 @@ async function subirAudio(audio: Buffer, mimeType: string) {
 
 /** Respaldo: si los subtítulos en vivo fallaron, Gemini escucha el audio completo. */
 export async function actaDesdeAudio(o: { audio: Buffer; mimeType: string; participantes: Persona[]; inicio: Date; fin: Date; titulo: string }) {
+  // Transcribir 2 o 3 horas no cabe en una sola respuesta (tope ~65 000 tokens de salida, y una
+  // hora hablada son ~15 000 palabras): en reuniones largas se pide solo el acta.
+  const conTranscripcion = o.fin.getTime() - o.inicio.getTime() <= 45 * 60_000;
   const parteAudio: Parte =
     o.audio.length < 14 * 1024 * 1024
       ? { inlineData: { mimeType: o.mimeType, data: o.audio.toString('base64') } }
@@ -228,9 +231,9 @@ export async function actaDesdeAudio(o: { audio: Buffer; mimeType: string; parti
     [
       parteAudio,
       {
-        text: `${contexto(o.participantes, o.inicio, o.fin, o.titulo)}\n\nEl audio adjunto es la reunión completa. Primero escribe en "transcripcion" lo que se dijo (texto corrido, con puntuación). Luego arma el acta y los compromisos.`,
+        text: `${contexto(o.participantes, o.inicio, o.fin, o.titulo)}\n\nEl audio adjunto es la reunión completa. ${conTranscripcion ? 'Primero escribe en "transcripcion" lo que se dijo (texto corrido, con puntuación). Luego arma' : 'Escúchalo entero y arma'} el acta y los compromisos.`,
       },
     ],
-    true,
+    conTranscripcion,
   );
 }

@@ -1,13 +1,13 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notificarLeadEntrante } from "@/lib/notificaciones";
-import { avisarLeadNuevoN8n } from "@/lib/avisos-n8n";
+import { registrarFormularioMeta } from "@/lib/meta-formularios";
 
 // Webhook de formularios instantáneos de Meta Ads (campaña «Clientes
 // potenciales»). Santos, 21-09: «los formularios que van a llegar van a
 // enviarse al área Central del CRM y Central ya lo derivará con su
-// procedimiento». Distinto del WhatsApp: acá nadie escribió, así que no hay
+// procedimiento». Desde la 0428 (09-10) va al comercial dueño de la campaña
+// si el anuncio está cargado en `campanias_whatsapp`. Distinto del WhatsApp: acá nadie escribió, así que no hay
 // conversación ni turno — entra a la bandeja de triaje como los de Google.
 //
 // Cómo llega: Meta avisa por el webhook de la PÁGINA (campo `leadgen`) con
@@ -46,35 +46,6 @@ interface LeadDeMeta {
   platform?: string;
   is_organic?: boolean;
   field_data?: { name: string; values: string[] }[];
-}
-
-const CAMPOS_NOMBRE = new Set(["full_name", "first_name", "last_name", "nombre", "nombre_completo"]);
-const CAMPOS_EMAIL = new Set(["email", "correo", "correo_electronico"]);
-const CAMPOS_TELEFONO = new Set(["phone_number", "telefono", "celular", "whatsapp", "numero_de_telefono"]);
-const CAMPOS_EMPRESA = new Set(["company_name", "empresa", "negocio", "razon_social", "nombre_de_la_empresa"]);
-
-function mapearCampos(campos: { name: string; values: string[] }[]) {
-  let nombre = "";
-  let primerNombre = "";
-  let apellido = "";
-  let email = "";
-  let telefono = "";
-  let razonSocial = "";
-  const extras: string[] = [];
-  for (const c of campos) {
-    const clave = (c.name ?? "").toLowerCase().trim();
-    const valor = (c.values ?? []).map((v) => String(v ?? "").trim()).filter(Boolean).join(", ");
-    if (!valor) continue;
-    if (clave === "full_name" || clave === "nombre" || clave === "nombre_completo") nombre = nombre || valor;
-    else if (clave === "first_name") primerNombre = valor;
-    else if (clave === "last_name") apellido = valor;
-    else if (CAMPOS_EMAIL.has(clave)) email = email || valor;
-    else if (CAMPOS_TELEFONO.has(clave)) telefono = telefono || valor;
-    else if (CAMPOS_EMPRESA.has(clave)) razonSocial = razonSocial || valor;
-    else if (!CAMPOS_NOMBRE.has(clave)) extras.push(`${c.name.replace(/_/g, " ")}: ${valor}`);
-  }
-  const nombreFinal = nombre || [primerNombre, apellido].filter(Boolean).join(" ").trim();
-  return { nombre: nombreFinal, email, telefono, razonSocial, extras };
 }
 
 export async function POST(request: NextRequest) {
@@ -133,52 +104,16 @@ async function procesarLead(leadgenId: string, aviso: NonNullable<CambioLeadgen[
     return;
   }
 
-  const { nombre, email, telefono, razonSocial, extras } = mapearCampos(datos.field_data ?? []);
-  if (!nombre && !telefono && !email) return;
-
-  const partes = [...extras];
-  if (datos.campaign_name) partes.push(`Campaña: ${datos.campaign_name}`);
-  if (datos.ad_name) partes.push(`Anuncio: ${datos.ad_name}`);
-  partes.push(`Formulario de Meta${datos.platform ? ` (${datos.platform})` : ""}`);
-
-  const { data: creado, error } = await admin
-    .from("leads")
-    .insert({
-      canal: "facebook",
-      area_destino: "comercial",
-      estado: "pendiente_triaje",
-      nombre_contacto: nombre || "Sin nombre",
-      telefono: telefono || null,
-      email: email || null,
-      razon_social: razonSocial || null,
-      mensaje: partes.join(" · "),
-      fuente: "meta_ads",
-      utm_source: "meta",
-      utm_medium: "cpc",
-      utm_campaign: datos.campaign_id ?? null,
-      utm_content: datos.ad_id ?? aviso.ad_id ?? null,
-      lead_externo_id: `meta:${leadgenId}`,
-      recibido_por: null,
-    })
-    .select("id, codigo")
-    .single();
-  if (error) {
-    if (error.code !== "23505") console.error("meta-leads: error insertando", error.message);
-    return;
-  }
-
-  const cuerpo = [nombre || "Sin nombre", razonSocial, datos.campaign_name ?? "Formulario de Meta"].filter(Boolean).join(" · ");
-  await notificarLeadEntrante({ titulo: "Nuevo contacto de Meta Ads (formulario)", cuerpo });
-  await avisarLeadNuevoN8n({
-    titulo: "Nuevo lead de Meta Ads (formulario)",
-    codigo: creado.codigo,
-    nombre: nombre || "Sin nombre",
-    telefono: telefono || null,
-    email: email || null,
-    canal: "facebook",
-    razonSocial: razonSocial || null,
-    campania: datos.campaign_name ?? null,
-    mensaje: partes.join(" · "),
+  // Desde la 0428 el formulario va al comercial dueño de la campaña (o a
+  // Central si no tiene), igual que el que llega por Google Sheets.
+  const resultado = await registrarFormularioMeta({
+    leadId: leadgenId,
+    campos: datos.field_data ?? [],
+    adId: datos.ad_id ?? aviso.ad_id ?? null,
+    adName: datos.ad_name ?? null,
+    campaignId: datos.campaign_id ?? null,
+    campaignName: datos.campaign_name ?? null,
+    platform: datos.platform ?? null,
   });
-  console.log(`meta-leads: lead ${creado.codigo} creado desde el formulario de Meta`);
+  if (resultado.estado === "creado") console.log(`meta-leads: lead ${resultado.codigo} creado desde el formulario de Meta`);
 }

@@ -1,5 +1,6 @@
 import { db } from '@/lib/tasking/db';
 import { exigirAdmin, fallo, json } from '@/lib/tasking/api';
+import { llaveGrabacion } from '@/lib/tasking/auth';
 
 export async function POST(req: Request) {
   const no = await exigirAdmin();
@@ -11,5 +12,5 @@ export async function POST(req: Request) {
     .select('id, inicio')
     .single();
   if (error) return fallo(error.message, 500);
-  return json(data);
+  return json({ ...data, llave: llaveGrabacion(data.id) });
 }
