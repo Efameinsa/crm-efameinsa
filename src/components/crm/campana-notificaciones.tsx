@@ -142,6 +142,16 @@ const ESTILO_AVISO: Record<
     duracion: Infinity,
     tono: "error",
   },
+  // Entró un pedido nuevo: el comercial emitió su cierre (0339). Hasta el
+  // 09-10 salía como «Aviso nuevo» de 8 segundos con pitido corto; Central
+  // pidió (buzón) «una alerta y una notificación grande» para pedir las
+  // series a tiempo. Como la urgencia: se queda hasta que la toquen.
+  cierre_emitido: {
+    encabezado: "📦 Nuevo pedido — pedir las series a tiempo",
+    accion: "Ver los cierres",
+    duracion: Infinity,
+    tono: "warning",
+  },
   // Central anuló un cierre (0237) y alguien viene a la planta (0238).
   cierre_anulado: {
     encabezado: "Central anuló un cierre suyo",
@@ -362,6 +372,8 @@ export function CampanaNotificaciones({
       "cotizacion_revision",
       "whatsapp_sin_respuesta",
       "saldo_ads",
+      // Pedido nuevo: Central tiene que pedir las series (buzón, 09-10).
+      "cierre_emitido",
       "urgencia",
       "urgencia_finanzas",
       "urgencia_almacen",
