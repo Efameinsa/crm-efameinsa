@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies, headers } from "next/headers";
 import { CABECERA_DEMO, fetchSoloLectura } from "@/lib/solo-lectura";
 import { galletasDelEspejo } from "@/lib/supabase/espejo";
+import { fetchAnotaPinFallido } from "@/lib/supabase/intento-pin";
 import { fetchRedInterna, opcionesCookieSupabase, urlSupabaseServidor } from "@/lib/supabase/urls";
 
 // Cliente para Server Components / Server Actions / Route Handlers.
@@ -36,7 +37,7 @@ export async function createClientReal() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookieOptions: opcionesCookieSupabase,
-      global: { fetch: fetchRedInterna() },
+      global: { fetch: fetchAnotaPinFallido(fetchRedInterna()) },
       cookies: {
         getAll() {
           return cookieStore.getAll();
