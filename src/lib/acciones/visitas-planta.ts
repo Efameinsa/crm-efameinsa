@@ -39,6 +39,8 @@ export async function registrarVisitaPlanta(datos: {
   acompanantes?: { nombre: string; dni?: string | null }[];
   equipoAVer?: string | null;
   quitarFilm?: boolean;
+  /** Preparación de máquinas para visita de clientes (0422; Brenda, 09-10): al área de prueba o sin film. */
+  maquinas?: { maquina: string; caracteristicas?: string | null; moverAPrueba?: boolean; quitarFilm?: boolean }[];
   /** Un proveedor, no un cliente (0386; Lesly, 03-10): lo registra el almacén, sin ficha. */
   proveedor?: boolean;
   /** Una videollamada con un cliente (0413; Brenda, 07-10): no entra a la planta, solo hay que abrir la lavandería. */
@@ -59,6 +61,10 @@ export async function registrarVisitaPlanta(datos: {
       .maybeSingle();
     cotizacionRef = (ult?.codigo as string | null) ?? "";
   }
+  const maquinas = (datos.maquinas ?? [])
+    .filter((m) => m.maquina?.trim())
+    .map((m) => ({ maquina: m.maquina.trim().slice(0, 160), caracteristicas: m.caracteristicas?.trim().slice(0, 200) || null, moverAPrueba: m.moverAPrueba === true, quitarFilm: m.quitarFilm === true }));
+  const queHacer = (m: (typeof maquinas)[number]) => [m.moverAPrueba && "llevar al área de prueba", m.quitarFilm && "quitar el film"].filter(Boolean).join(" y ");
   const { data, error } = await supabase.rpc("registrar_visita_planta", {
     p_cuenta: datos.cuentaId,
     p_empresa: datos.empresa.trim(),
@@ -78,6 +84,7 @@ export async function registrarVisitaPlanta(datos: {
     p_equipo_a_ver: datos.equipoAVer?.trim() || null,
     p_quitar_film: datos.quitarFilm === true,
     p_tipo: datos.proveedor ? "proveedor" : datos.videollamada ? "videollamada" : "cliente",
+    p_maquinas: maquinas.map((m) => ({ maquina: m.maquina, caracteristicas: m.caracteristicas, mover_a_prueba: m.moverAPrueba, quitar_film: m.quitarFilm })),
   });
   if (error) return { error: limpiar(error.message) };
   revalidatePath("/central/visitas");
@@ -86,7 +93,9 @@ export async function registrarVisitaPlanta(datos: {
   // El almacén también se entera en su bandeja: viene alguien a recoger (0246).
   await notificarAlmacen({
     titulo: `${datos.videollamada ? "Videollamada" : "Visita"} ${datos.proveedor ? "de proveedor" : datos.videollamada ? "· abrir lavandería" : datos.showroom ? "al showroom" : "a planta"} el ${datos.fecha}${datos.hora ? ` ${datos.hora.slice(0, 5)}` : ""} · ${datos.empresa.trim()}`,
-    cuerpo: `${datos.persona.trim()}${datos.dni ? ` (DNI ${datos.dni})` : ""}. ${datos.motivo.trim()}`,
+    cuerpo:
+      `${datos.persona.trim()}${datos.dni ? ` (DNI ${datos.dni})` : ""}. ${datos.motivo.trim()}` +
+      (maquinas.length ? ` Preparar máquinas: ${maquinas.map((m) => `${m.maquina} (${queHacer(m)})`).join("; ")}.` : ""),
     url: "/almacen/visitas",
     esPrueba: perfil.es_prueba === true,
   });
@@ -127,6 +136,10 @@ export async function registrarVisitaPlanta(datos: {
         `${td(cotizacionRef ? `N° ${esc(cotizacionRef)}` : "—")}${td(esc(datos.motivo))}</tr></table>` +
         `<p>` +
         (datos.equipoAVer ? `Viene a ver: <b>${esc(datos.equipoAVer)}</b>${datos.quitarFilm ? ` — <span style="background:#ffff00">quitar el film</span>` : ""}<br>` : "") +
+        (maquinas.length
+          ? `<b>Preparación de máquinas para visita de clientes:</b><br>` +
+            maquinas.map((m) => `• <b>${esc(m.maquina)}</b>${m.caracteristicas ? ` — ${esc(m.caracteristicas)}` : ""} — <span style="background:#ffff00">${queHacer(m)}</span><br>`).join("")
+          : "") +
         (datos.prenderTv ? `<span style="background:#ffff00">Prender TV</span><br>` : "") +
         (datos.showroom ? `<span style="background:#ffff00">Abrir lavandería</span><br>` : "") +
         (datos.infocorp ? `Se solicita Infocorp: ${esc(datos.empresa)}${datos.ruc ? ` (RUC ${esc(datos.ruc)})` : datos.dni ? ` (DNI ${esc(datos.dni)})` : ""}<br>` : "") +

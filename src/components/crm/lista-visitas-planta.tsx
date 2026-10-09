@@ -33,6 +33,8 @@ export interface VisitaFila {
   acompanantes?: { nombre: string; dni?: string | null }[] | null;
   equipo_a_ver?: string | null;
   quitar_film?: boolean;
+  /** Preparación de máquinas para visita de clientes (0422). */
+  maquinas_preparar?: { maquina: string; caracteristicas?: string | null; mover_a_prueba?: boolean; quitar_film?: boolean }[] | null;
   infocorp_enviado_at?: string | null;
   showroom_listo_at?: string | null;
   film_retirado_at?: string | null;
@@ -133,7 +135,7 @@ export function ListaVisitasPlanta({
     { clave: "impreso", texto: "Vigilancia avisada", hecho: v.impreso_at, mio: modo === "central", pedido: true },
     { clave: "infocorp", texto: "Infocorp enviado", hecho: v.infocorp_enviado_at, mio: modo === "central", pedido: Boolean(v.infocorp) },
     { clave: "showroom", texto: "Lavandería abierta", hecho: v.showroom_listo_at, mio: modo === "central" || modo === "almacen", pedido: Boolean(v.showroom) },
-    { clave: "film", texto: `Film retirado${v.equipo_a_ver ? ` · ${v.equipo_a_ver}` : ""}`, hecho: v.film_retirado_at, mio: modo === "central" || modo === "almacen", pedido: Boolean(v.quitar_film) },
+    { clave: "film", texto: v.maquinas_preparar?.length ? "Máquinas preparadas" : `Film retirado${v.equipo_a_ver ? ` · ${v.equipo_a_ver}` : ""}`, hecho: v.film_retirado_at, mio: modo === "central" || modo === "almacen", pedido: Boolean(v.quitar_film) },
     { clave: "tv", texto: "TV listo", hecho: v.tv_listo_at, mio: modo === "central" || modo === "almacen", pedido: Boolean(v.prender_tv) },
     { clave: "llego", texto: "Llegó", hecho: v.llego_at, mio: modo === "central", pedido: true },
     { clave: "reembalado", texto: "Vuelto a embalar", hecho: v.reembalado_at, mio: modo === "central" || modo === "almacen", pedido: Boolean(v.quitar_film || v.showroom) },
@@ -184,9 +186,24 @@ export function ListaVisitasPlanta({
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {v.motivo}
-                    {v.equipo_a_ver && <span className="ml-1 font-medium text-foreground">· viene a ver: {v.equipo_a_ver}</span>}
-                    {v.quitar_film && <span className="ml-1 rounded-full bg-yellow-300/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-yellow-950">Quitar el film</span>}
+                    {!v.maquinas_preparar?.length && v.equipo_a_ver && <span className="ml-1 font-medium text-foreground">· viene a ver: {v.equipo_a_ver}</span>}
+                    {!v.maquinas_preparar?.length && v.quitar_film && <span className="ml-1 rounded-full bg-yellow-300/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-yellow-950">Quitar el film</span>}
                   </p>
+                  {(v.maquinas_preparar?.length ?? 0) > 0 && (
+                    <div className="mt-0.5 text-xs">
+                      <p className="font-medium text-foreground">Preparación de máquinas para visita de clientes:</p>
+                      <ul className="ml-3 list-disc">
+                        {v.maquinas_preparar!.map((m, i) => (
+                          <li key={i}>
+                            <span className="font-medium text-foreground">{m.maquina}</span>
+                            {m.caracteristicas && <span className="text-muted-foreground"> — {m.caracteristicas}</span>}
+                            {m.mover_a_prueba && <span className="ml-1 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-sky-800 dark:text-sky-200">Al área de prueba</span>}
+                            {m.quitar_film && <span className="ml-1 rounded-full bg-yellow-300/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-yellow-950">Quitar el film</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
                     Registró {v.registradoPor}
                     {v.cancelada_at && ` · CANCELADA${v.cancelada_motivo ? `: ${v.cancelada_motivo}` : ""}`}
