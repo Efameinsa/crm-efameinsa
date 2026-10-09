@@ -166,7 +166,7 @@ export async function tipificarWhatsApp(
   if (estado === "continuado_por_mi_linea" && !nota?.trim()) {
     return { error: "Escriba por qué sigue la conversación fuera del CRM." };
   }
-  if (intencion && (intencion === "sin_definir" || !INTENCION_COMPRA.some((o) => o.valor === intencion))) {
+  if (intencion && (intencion === "sin_definir" || intencion === "no_responde" || !INTENCION_COMPRA.some((o) => o.valor === intencion))) {
     return { error: "Ese nivel de interés no existe." };
   }
   if (intencion && estado !== "interesado" && estado !== "cotizado") intencion = undefined;

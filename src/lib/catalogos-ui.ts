@@ -40,6 +40,7 @@ export const COLOR_INTENCION: Record<string, string> = {
   medio: "bg-amber-500",
   medio_bajo: "bg-amber-500/50",
   bajo: "bg-muted-foreground/45",
+  no_responde: "border border-muted-foreground/60 bg-muted-foreground/15",
   sin_definir: "border border-dashed border-muted-foreground/50 bg-transparent",
 };
 
@@ -49,6 +50,11 @@ export const INTENCION_COMPRA: OpcionConCriterio[] = [
   { valor: "medio", etiqueta: "Medio", criterio: "Está buscando ubicación", color: COLOR_INTENCION.medio },
   { valor: "medio_bajo", etiqueta: "Medio bajo", criterio: "Está buscando financiamiento", color: COLOR_INTENCION.medio_bajo },
   { valor: "bajo", etiqueta: "Bajo", criterio: "Solo quiere saber, sin intención concreta", color: COLOR_INTENCION.bajo },
+  // «No responde» (Moisés, buzón 09-10): hay prospectos que no contestan ni la
+  // llamada ni el WhatsApp, y gerencia pide que la ficha quede calificada en
+  // su totalidad. No es «Bajo» (eso dice que habló y no tiene intención) ni
+  // «Sin definir» (eso dice que nadie lo calificó todavía).
+  { valor: "no_responde", etiqueta: "No responde", criterio: "No contesta llamadas ni WhatsApp: no se pudo calificar", color: COLOR_INTENCION.no_responde },
   { valor: "sin_definir", etiqueta: "Sin definir", criterio: "Todavía no se ha calificado", color: COLOR_INTENCION.sin_definir },
 ];
 
