@@ -10,7 +10,7 @@ import { writeFileSync } from "node:fs";
 
 const BASE = process.env.BASE ?? "https://crm.efameinsa.com";
 const RUTA = process.env.RUTA ?? "/";
-const COMO = process.env.COMO ?? "lesly@efameinsa.com";
+const COMO = process.env.COMO ?? "logistica2@efameinsa.com";
 const SALIDA = process.env.SALIDA ?? "scripts/data/_bajado.bin";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

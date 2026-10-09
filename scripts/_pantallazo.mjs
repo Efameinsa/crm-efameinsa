@@ -11,7 +11,7 @@ const CHROME = "C:/Users/diseno/AppData/Local/Google/Chrome/Application/chrome.e
 const PUPPETEER = "C:/Users/diseno/AppData/Local/Temp/claude/C--Users-diseno--local-bin/9777f871-38bc-4fdf-87c7-a83b0fa8cd1e/scratchpad/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js";
 const BASE = process.env.BASE ?? "https://crm.efameinsa.com";
 const RUTA = process.env.RUTA ?? "/";
-const COMO = process.env.COMO ?? "lesly@efameinsa.com";
+const COMO = process.env.COMO ?? "logistica2@efameinsa.com";
 const SALIDA = process.env.SALIDA ?? "scripts/data/_pantallazos";
 const NOMBRE = process.env.NOMBRE ?? (RUTA.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "inicio");
 
