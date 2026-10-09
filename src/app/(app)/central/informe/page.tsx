@@ -110,7 +110,36 @@ export default async function InformeCentralPage({
             {perfil.nombre} · {fechaCalendarioLarga(fecha)}
           </p>
         </div>
-        <BotonInformeCentral fecha={fecha} />
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Central, 09-10: «¿dónde encuentro los registros que hubo durante
+              el día, aparte de las derivaciones?». Están en la sección 2;
+              con esto también se pueden ver los de un día anterior. */}
+          <form method="get" className="flex items-center gap-1.5">
+            <label htmlFor="fecha-informe" className="text-xs text-muted-foreground">
+              Ver otro día
+            </label>
+            <input
+              id="fecha-informe"
+              type="date"
+              name="fecha"
+              defaultValue={fecha}
+              max={hoy}
+              className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground"
+            />
+            <button
+              type="submit"
+              className="h-8 rounded-md border border-border bg-secondary px-2.5 text-xs font-semibold text-foreground hover:bg-secondary/80"
+            >
+              Ver
+            </button>
+            {fecha !== hoy && (
+              <a href="/central/informe" className="text-xs font-semibold text-primary underline-offset-2 hover:underline">
+                Hoy
+              </a>
+            )}
+          </form>
+          <BotonInformeCentral fecha={fecha} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -136,7 +165,9 @@ export default async function InformeCentralPage({
         }
       >
         {informe.contactos.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Todavía no entró ningún contacto este día.</p>
+          <p className="text-sm text-muted-foreground">
+            {fecha === hoy ? "Todavía no entró ningún contacto hoy." : "Ese día no entró ningún contacto."}
+          </p>
         ) : (
           <div className="space-y-2">
             {informe.contactos.map((c) => (
