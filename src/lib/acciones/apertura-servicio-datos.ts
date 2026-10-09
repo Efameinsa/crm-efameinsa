@@ -81,24 +81,39 @@ export async function cargarHojaApertura(
   const contacto = (informe?.contacto_despacho ?? null) as { nombre?: string; telefono?: string } | null;
   const { data: equiposLista } = await supabase
     .from("pedido_equipos")
-    .select("orden, descripcion, serie, en_este_despacho, parte_de")
+    .select("id, orden, descripcion, serie, en_este_despacho, parte_de")
     .eq("servicio_id", s.id)
     .order("orden");
   const queVan = (equiposLista ?? []).filter((e) => e.en_este_despacho);
   // CANTIDAD (Rubí y Lesly, 30-09): cada unidad es una fila; las iguales se
   // juntan con su número para que el almacén no tenga que contarlas.
-  const grupos = new Map<string, number>();
+  // CADA SERIE BAJO SU MÁQUINA (buzón Rubí 09-10, LINO ESPIRITU): antes iban
+  // todas juntas al final («604KWNM5N407 · 604KWJU5N412 · 304KWUC0V206») y no
+  // se sabía cuál era de la lavadora y cuáles de la torre.
+  const grupos = new Map<string, { n: number; series: string[] }>();
   for (const e of queVan) {
     // La secadora de una torre (0359) no es otra unidad: solo aporta su serie.
     if (e.parte_de) continue;
     const desc = e.descripcion.trim();
-    grupos.set(desc, (grupos.get(desc) ?? 0) + 1);
+    const g = grupos.get(desc) ?? { n: 0, series: [] };
+    g.n += 1;
+    const parte = queVan.find((p) => p.parte_de === e.id && p.serie);
+    if (e.serie && parte) g.series.push(`LAVADORA ${e.serie} / SECADORA ${parte.serie}`);
+    else if (e.serie) g.series.push(e.serie);
+    else if (parte) g.series.push(`SECADORA ${parte.serie}`);
+    grupos.set(desc, g);
   }
   const equipoTexto =
-    grupos.size > 0 ? [...grupos].map(([desc, n]) => `CANTIDAD: ${n}\n${desc}`).join("\n\n") : (s.equipo ?? null);
+    grupos.size > 0
+      ? [...grupos]
+          .map(([desc, g]) => [`CANTIDAD: ${g.n}`, desc, g.series.length ? `${g.series.length > 1 ? "Series" : "Serie"}: ${g.series.join(" · ")}` : null].filter(Boolean).join("\n"))
+          .join("\n\n")
+      : (s.equipo ?? null);
   const seriesLista = queVan.map((e) => e.serie).filter((x): x is string => Boolean(x));
-  const series = seriesLista.length > 0 ? seriesLista : seriesDeTexto(s.equipo);
-  const serieAparte = seriesLista.length === 0 && /serie/i.test(s.equipo ?? "") ? null : series.join(" · ") || null;
+  // Las series registradas ya van bajo cada equipo; la línea aparte queda para
+  // las que solo están en el texto (pedido del Excel o desde un caso).
+  const serieAparte =
+    seriesLista.length > 0 || /serie/i.test(s.equipo ?? "") ? null : seriesDeTexto(s.equipo).join(" · ") || null;
 
   const tipo = ((s.apertura_tipo as TipoApertura | null) ?? tipoSugerido(s)) as TipoApertura;
 
