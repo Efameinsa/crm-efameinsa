@@ -48,8 +48,11 @@ const TONO: Record<TipificacionActual["estado"], string> = {
 
 type Intencion = Oportunidad["intencion"];
 
-/** Los cinco niveles, sin «Sin definir»: eso es lo que queda si elige «Calificar después». */
-const NIVELES = INTENCION_COMPRA.filter((o) => o.valor !== "sin_definir");
+/**
+ * Los cinco niveles, sin «Sin definir» (lo que queda si elige «Calificar
+ * después») ni «No responde» (quien marca interesado o cotizado sí respondió).
+ */
+const NIVELES = INTENCION_COMPRA.filter((o) => o.valor !== "sin_definir" && o.valor !== "no_responde");
 
 interface Props {
   leadId: string;

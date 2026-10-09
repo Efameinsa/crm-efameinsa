@@ -182,7 +182,7 @@ export interface Oportunidad {
   comercial_id: string;
   etapa: EtapaOportunidad;
   motivo_rechazo_id: number | null;
-  intencion: "alto_potencial" | "medio_alto" | "medio" | "medio_bajo" | "bajo" | "sin_definir";
+  intencion: "alto_potencial" | "medio_alto" | "medio" | "medio_bajo" | "bajo" | "no_responde" | "sin_definir";
   segmento: "industrial" | "semi_industrial" | null;
   monto_estimado: number | null;
   moneda: "PEN" | "USD";
