@@ -37,6 +37,7 @@ import {
   FileCheck2,
   Truck,
   MessageSquareWarning,
+  ListChecks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
@@ -160,6 +161,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // palabra (Santos, 02-09).
     { href: "/admin/catalogos", etiqueta: "Listas del sistema", icono: BookMarked },
     { href: "/observaciones", etiqueta: "Observaciones del sistema", icono: MessageSquareWarning },
+    { href: "/tasking", etiqueta: "Tasking", icono: ListChecks },
   ],
 };
 

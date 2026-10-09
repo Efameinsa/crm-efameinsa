@@ -226,6 +226,6 @@ export const config = {
     // vendor: el «worker» de pdf.js que usa la app de Android para mostrar PDF
     // (public/vendor, 01-10-2026). Un worker pedido detrás de una redirección
     // al login no arranca; es código público y no lleva ningún dato.
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|offline|api/version|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|api/marketing/catalogo-whatsapp|api/campo/osmand|vendor|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|offline|api/version|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|api/marketing/catalogo-whatsapp|api/campo/osmand|api/tasking|t/|vendor|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

@@ -10,7 +10,7 @@ import {
   Users, Wrench, BookMarked, type LucideIcon,
   PhoneForwarded,
   Archive,
-  MessageSquareWarning, Contact
+  MessageSquareWarning, Contact, ListChecks
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PinSupervisor } from "@/components/crm/pin-supervisor";
@@ -43,6 +43,7 @@ export const ICONOS: Record<Icono, LucideIcon> = {
   listas: BookMarked,
   files: Archive,
   observaciones: MessageSquareWarning,
+  tasking: ListChecks,
   directorio: Contact,
 };
 

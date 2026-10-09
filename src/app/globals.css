@@ -456,3 +456,47 @@ main .grid > * {
 body {
   overflow-x: clip;
 }
+
+/* TASKING (actas de reunión y compromisos, solo admin, 09-10-2026). Clases con
+   prefijo tk- para no chocar con las del CRM; el color es el granate de marca. */
+@theme {
+  --color-tk-50: #fbf1f0;
+  --color-tk-100: #f5dcda;
+  --color-tk-200: #ebb9b5;
+  --color-tk-300: #dc8c86;
+  --color-tk-500: #a51c17;
+  --color-tk-600: #7e1210;
+  --color-tk-700: #630e0c;
+}
+@utility tk-tarjeta {
+  @apply rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,.04)];
+}
+@utility tk-btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility tk-btn-primario {
+  @apply tk-btn bg-tk-600 text-white hover:bg-tk-700;
+}
+@utility tk-btn-claro {
+  @apply tk-btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50;
+}
+@utility tk-btn-peligro {
+  @apply tk-btn bg-red-600 text-white hover:bg-red-700;
+}
+@utility tk-btn-chico {
+  @apply rounded-lg! px-2.5! py-1.5! text-xs!;
+}
+@utility tk-campo {
+  @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-tk-500 focus:ring-4 focus:ring-tk-100;
+}
+@utility tk-etiqueta {
+  @apply mb-1 block text-xs font-semibold tracking-wide text-slate-500 uppercase;
+}
+@utility tk-chip {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+}
+@keyframes tk-pulso {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .55; transform: scale(.85); }
+}
+.tk-punto-vivo { animation: tk-pulso 1.4s ease-in-out infinite; }
