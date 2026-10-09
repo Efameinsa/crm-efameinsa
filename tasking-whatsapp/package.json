@@ -1,0 +1,16 @@
+{
+  "name": "tasking-whatsapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Envía por WhatsApp los avisos de Tasking desde un chip vinculado por QR",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "baileys": "^7.0.0-rc14",
+    "pino": "^10.4.0",
+    "qrcode": "^1.5.4"
+  }
+}
