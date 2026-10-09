@@ -1,10 +1,10 @@
 import { db } from '@/lib/tasking/db';
 import { exigirAdmin, fallo, json } from '@/lib/tasking/api';
+import { puedeGrabar } from '@/lib/tasking/auth';
 
-export async function GET(_req: Request, ctx: RouteContext<'/api/tasking/reuniones/[id]'>) {
-  const no = await exigirAdmin();
-  if (no) return no;
+export async function GET(req: Request, ctx: RouteContext<'/api/tasking/reuniones/[id]'>) {
   const { id } = await ctx.params;
+  if (!(await puedeGrabar(req, id))) return fallo('Solo el administrador del CRM usa Tasking.', 401);
   const { data } = await db().from('reuniones').select('id, estado, error, titulo').eq('id', id).maybeSingle();
   if (!data) return fallo('No existe la reunión.', 404);
   const { count } = await db().from('compromisos').select('id', { count: 'exact', head: true }).eq('reunion_id', id);

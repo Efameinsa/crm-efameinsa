@@ -78,3 +78,19 @@ export function claveServicioCorrecta(req: Request) {
   const b = Buffer.from(esperado);
   return esperado.length > 0 && a.length === b.length && timingSafeEqual(a, b);
 }
+
+// LLAVE DE GRABACIÓN (09-10). Una reunión puede durar 2 o 3 horas y la sesión del
+// CRM renueva su token cada hora: si una renovación falla a mitad de la reunión, el
+// texto y el audio se rechazarían. La grabadora recibe al crear la reunión una
+// llave propia (firmada con su id) y la manda en cada envío; vale solo para ESA reunión.
+export function llaveGrabacion(reunionId: string) {
+  return createHmac("sha256", secreto()).update(`grabacion:${reunionId}`).digest("base64url");
+}
+
+/** El admin con sesión, o la grabadora de esa misma reunión con su llave. */
+export async function puedeGrabar(req: Request, reunionId: string) {
+  const recibida = req.headers.get("x-tasking-grabacion") ?? "";
+  const esperada = llaveGrabacion(reunionId);
+  if (recibida.length === esperada.length && timingSafeEqual(Buffer.from(recibida), Buffer.from(esperada))) return true;
+  return esAdmin();
+}

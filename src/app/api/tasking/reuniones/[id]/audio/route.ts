@@ -1,11 +1,11 @@
 import { BUCKET_AUDIO, db } from '@/lib/tasking/db';
-import { exigirAdmin, fallo, json } from '@/lib/tasking/api';
+import { fallo, json } from '@/lib/tasking/api';
+import { puedeGrabar } from '@/lib/tasking/auth';
 
 // Respaldo del audio en trozos de ~15 s (si los subtítulos fallan, Gemini escucha el audio).
 export async function POST(req: Request, ctx: RouteContext<'/api/tasking/reuniones/[id]/audio'>) {
-  const no = await exigirAdmin();
-  if (no) return no;
   const { id } = await ctx.params;
+  if (!(await puedeGrabar(req, id))) return fallo('Solo el administrador del CRM usa Tasking.', 401);
   const n = Number(new URL(req.url).searchParams.get('n'));
   if (!Number.isInteger(n) || n < 0 || n > 99_999) return fallo('Número de parte inválido.');
   const cuerpo = new Uint8Array(await req.arrayBuffer());
