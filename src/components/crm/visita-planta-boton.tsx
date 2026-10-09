@@ -18,6 +18,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+type MaquinaAPreparar = { maquina: string; caracteristicas: string; moverAPrueba: boolean; quitarFilm: boolean };
+
 /**
  * «Viene a la planta» (0238).
  *
@@ -56,10 +58,11 @@ export function VisitaPlantaBoton({
   // Capítulo 1 de Catherine: «¿Usted viene solo? ¿Viene con familiares, con
   // amigos, con socios? ¿Me puede brindar el número de DNI y nombre completo?»
   const [acompanantes, setAcompanantes] = useState<{ nombre: string; dni: string }[]>([]);
-  const [equipoAVer, setEquipoAVer] = useState("");
-  const [quitarFilm, setQuitarFilm] = useState(false);
-  // Almacén necesita más que el modelo para quitar el film: voltaje, fase, capacidad… (Lesly, 07-10).
-  const [caractFilm, setCaractFilm] = useState("");
+  // Preparación de máquinas para visita de clientes (0422; Brenda, 09-10): qué
+  // máquinas llevar al área de prueba o a cuáles quitarles el film. Almacén
+  // necesita más que el modelo para quitar el film: voltaje, fase, capacidad… (Lesly, 07-10).
+  const [maquinas, setMaquinas] = useState<MaquinaAPreparar[]>([]);
+  const cambiarMaquina = (i: number, cambio: Partial<MaquinaAPreparar>) => setMaquinas((xs) => xs.map((x, j) => (j === i ? { ...x, ...cambio } : x)));
   // La ficha elegida: la que viene de la pantalla o la que se busca acá.
   const [cuentaElegida, setCuentaElegida] = useState<string | null>(cuentaId);
   const [sugerencias, setSugerencias] = useState<{ id: string; razon_social: string; num_doc: string | null }[]>([]);
@@ -81,14 +84,25 @@ export function VisitaPlantaBoton({
   const campo = (k: keyof typeof f) => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value })) });
 
   function enviar() {
-    if (!videollamada && quitarFilm && (!equipoAVer.trim() || !caractFilm.trim())) {
-      toast.error("Para quitarle el film escriba qué máquina es y sus características (voltaje, fase, capacidad…): almacén las necesita.");
+    const lista = maquinas.filter((m) => m.maquina.trim());
+    if (maquinas.some((m) => !m.maquina.trim() && (m.quitarFilm || m.caracteristicas.trim()))) {
+      toast.error("Escriba qué máquina es en cada fila de «Preparación de máquinas», o quite la fila.");
       return;
     }
-    const equipoCompleto = quitarFilm && caractFilm.trim() ? `${equipoAVer.trim()} — ${caractFilm.trim()}` : equipoAVer;
+    if (lista.some((m) => !m.moverAPrueba && !m.quitarFilm)) {
+      toast.error("En cada máquina marque qué hay que hacer: llevarla al área de prueba, quitarle el film o las dos.");
+      return;
+    }
+    if (lista.some((m) => m.quitarFilm && !m.caracteristicas.trim())) {
+      toast.error("Para quitarle el film escriba las características de la máquina (voltaje, fase, capacidad…): almacén las necesita.");
+      return;
+    }
+    const resumen = lista
+      .map((m) => `${m.maquina.trim()}${m.caracteristicas.trim() ? ` — ${m.caracteristicas.trim()}` : ""} (${[m.moverAPrueba && "al área de prueba", m.quitarFilm && "quitar el film"].filter(Boolean).join(" y ")})`)
+      .join("; ");
     startTransition(async () => {
       const r = await registrarVisitaPlanta({ cuentaId: cuentaElegida, oportunidadId, ...f, showroom: showroom || videollamada, prenderTv, infocorp, cotizacionRef: cotizacion, videollamada,
-        ...(videollamada ? { acompanantes: [], equipoAVer: "", quitarFilm: false } : { acompanantes, equipoAVer: equipoCompleto, quitarFilm }) });
+        acompanantes: videollamada ? [] : acompanantes, maquinas: lista });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
@@ -100,14 +114,12 @@ export function VisitaPlantaBoton({
           ? "Visita registrada. Central tiene el aviso y el correo salió a Central, Contabilidad, Logística, Almacén y gerencia."
           : "Visita registrada. Central ya tiene el aviso para imprimirlo a vigilancia.",
         // Se repite lo marcado, para que quien registra vea que el film quedó pedido (Katerine y Lesly, 07-10).
-        { description: quitarFilm && equipoCompleto.trim() ? `Almacén quitará el film a: ${equipoCompleto.trim()}.` : undefined },
+        { description: resumen ? `Almacén prepara: ${resumen}.` : undefined },
       );
       setAbierto(false);
       setF((x) => ({ ...x, persona: "", dni: "", telefono: "", motivo: "" }));
       // Que la próxima visita no herede la máquina ni el film de ésta.
-      setEquipoAVer("");
-      setQuitarFilm(false);
-      setCaractFilm("");
+      setMaquinas([]);
       setAcompanantes([]);
       router.refresh();
     });
@@ -226,23 +238,43 @@ export function VisitaPlantaBoton({
               + Acompañante
             </button>
           </div>
-          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
-            <div className="grid gap-1">
-              <Label className="text-xs">¿Viene a ver una máquina en especial?</Label>
-              <Input value={equipoAVer} onChange={(e) => setEquipoAVer(e.target.value)} placeholder="ej. LG Titan Max 17 kg del showroom" />
-            </div>
-            <label className="flex items-center gap-2 pb-2 text-sm">
-              <input type="checkbox" checked={quitarFilm} onChange={(e) => setQuitarFilm(e.target.checked)} className="size-4" />
-              Quitarle el film
-            </label>
-          </div>
-          {quitarFilm && (
-            <div className="grid gap-1">
-              <Label className="text-xs">Características de la máquina <span className="text-destructive">*</span></Label>
-              <Input value={caractFilm} onChange={(e) => setCaractFilm(e.target.value)} placeholder="ej. 220 V trifásica, 17 kg, gas / eléctrica, color" />
-            </div>
-          )}
           </>)}
+          <div className="grid gap-2 rounded-md border border-border p-2">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Preparación de máquinas para visita de clientes</p>
+              <p className="text-[11px] text-muted-foreground">Qué equipos tiene que preparar almacén para la exhibición: llevarlos al área de prueba o quitarles el film.</p>
+            </div>
+            {maquinas.map((m, i) => (
+              <div key={i} className="grid gap-1.5 rounded-md bg-muted/40 p-2">
+                <div className="grid grid-cols-[1fr_auto] items-center gap-1.5">
+                  <Input value={m.maquina} onChange={(e) => cambiarMaquina(i, { maquina: e.target.value })} placeholder="Máquina, ej. LG Titan Max 17 kg" />
+                  <button type="button" onClick={() => setMaquinas((xs) => xs.filter((_, j) => j !== i))} className="text-xs text-muted-foreground hover:text-destructive">
+                    Quitar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={m.moverAPrueba} onChange={(e) => cambiarMaquina(i, { moverAPrueba: e.target.checked })} className="size-4" />
+                    Llevar al área de prueba
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={m.quitarFilm} onChange={(e) => cambiarMaquina(i, { quitarFilm: e.target.checked })} className="size-4" />
+                    Quitarle el film
+                  </label>
+                </div>
+                {m.quitarFilm && (
+                  <Input value={m.caracteristicas} onChange={(e) => cambiarMaquina(i, { caracteristicas: e.target.value })} placeholder="Características * ej. 220 V trifásica, 17 kg, gas / eléctrica, color" />
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setMaquinas((xs) => [...xs, { maquina: "", caracteristicas: "", moverAPrueba: true, quitarFilm: false }])}
+              className="justify-self-start text-xs font-medium text-primary hover:underline"
+            >
+              + Máquina a preparar
+            </button>
+          </div>
           <div className="grid gap-1">
             <Label className="text-xs">
               {videollamada ? "Para qué es" : "Para qué viene"} <span className="text-destructive">*</span>

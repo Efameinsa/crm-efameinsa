@@ -6,4 +6,4 @@
  * pantalla del comercial no abría).
  */
 export const COLUMNAS_VISITA =
-  "id, tipo_visitante, empresa, ruc, persona, dni, telefono, motivo, fecha, hora, registrado_at, impreso_at, cancelada_at, cancelada_motivo, cuenta_id, showroom, prender_tv, infocorp, cotizacion_ref, acompanantes, equipo_a_ver, quitar_film, infocorp_enviado_at, showroom_listo_at, film_retirado_at, tv_listo_at, llego_at, no_vino_at, reembalado_at, notas_central, atendida_at, resultado, resultado_nota, cerrada_at, perfiles!visitas_planta_registrado_por_fkey(nombre, codigo_comercial)";
+  "id, tipo_visitante, empresa, ruc, persona, dni, telefono, motivo, fecha, hora, registrado_at, impreso_at, cancelada_at, cancelada_motivo, cuenta_id, showroom, prender_tv, infocorp, cotizacion_ref, acompanantes, equipo_a_ver, quitar_film, maquinas_preparar, infocorp_enviado_at, showroom_listo_at, film_retirado_at, tv_listo_at, llego_at, no_vino_at, reembalado_at, notas_central, atendida_at, resultado, resultado_nota, cerrada_at, perfiles!visitas_planta_registrado_por_fkey(nombre, codigo_comercial)";

@@ -66,7 +66,7 @@ export default async function VisitasPlantaPage({ searchParams }: { searchParams
       id: x.id, empresa: x.empresa, ruc: x.ruc, persona: x.persona, dni: x.dni, telefono: x.telefono, motivo: x.motivo,
       fecha: x.fecha, hora: x.hora, registrado_at: x.registrado_at, impreso_at: x.impreso_at, cancelada_at: x.cancelada_at,
       cancelada_motivo: x.cancelada_motivo, cuenta_id: x.cuenta_id, showroom: x.showroom, prender_tv: x.prender_tv, infocorp: x.infocorp, cotizacion_ref: x.cotizacion_ref,
-      acompanantes: x.acompanantes, equipo_a_ver: x.equipo_a_ver, quitar_film: x.quitar_film, infocorp_enviado_at: x.infocorp_enviado_at, showroom_listo_at: x.showroom_listo_at,
+      acompanantes: x.acompanantes, equipo_a_ver: x.equipo_a_ver, quitar_film: x.quitar_film, maquinas_preparar: x.maquinas_preparar, infocorp_enviado_at: x.infocorp_enviado_at, showroom_listo_at: x.showroom_listo_at,
       film_retirado_at: x.film_retirado_at, tv_listo_at: x.tv_listo_at, llego_at: x.llego_at, no_vino_at: x.no_vino_at, reembalado_at: x.reembalado_at, notas_central: x.notas_central,
       atendida_at: x.atendida_at, resultado: x.resultado, resultado_nota: x.resultado_nota, cerrada_at: x.cerrada_at,
       registradoPor: x.perfiles ? `${x.perfiles.codigo_comercial ? x.perfiles.codigo_comercial + " · " : ""}${x.perfiles.nombre}` : "—",
