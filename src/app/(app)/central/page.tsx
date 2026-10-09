@@ -3,6 +3,7 @@ import { ETIQUETA_TIPO_EXPEDIENTE } from "@/lib/tipo-expediente";
 import { cn } from "@/lib/utils";
 import { Phone, MessageCircle, Globe, Megaphone, Camera, Mail, User, Users, IdCard, UserRoundPen, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { requerirPerfil } from "@/lib/auth";
 import { AsignarLeadDialog } from "@/components/crm/asignar-lead-dialog";
 import { DescartarLeadBoton } from "@/components/crm/descartar-lead-boton";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -100,6 +101,13 @@ export default async function CentralPage() {
   // faltaba aplicarla acá, que es donde entra todo.
   const { hasta: sinPinHasta } = await permisoSinPin();
   const modoEnsayo = sinPinHasta !== null;
+  // Derivar a postventa pide el código del supervisor (ing. Carlos, 09-10,
+  // 0420): Central no deriva sola. Quien tiene el código no se lo pide.
+  const perfil = await requerirPerfil();
+  const pideCodigoPostventa =
+    !modoEnsayo &&
+    !["gerencia", "admin", "operaciones"].includes(perfil.rol) &&
+    !(perfil as { es_operaciones?: boolean | null }).es_operaciones;
 
   const [
     { data: leads, count: totalPendientes },
@@ -395,6 +403,7 @@ export default async function CentralPage() {
                       email={lead.email}
                       mensaje={lead.mensaje}
                       comerciales={comerciales ?? []}
+                      pideCodigoPostventa={pideCodigoPostventa}
                       sugerencia={
                         lead.sugerido_a
                           ? {

@@ -64,6 +64,12 @@ interface Props {
   sugerencia?: { comercialId: string | null; tipo: string | null; quien: string | null } | null;
   /** La ficha a la que el contacto YA está unido (sede elegida, «Es un cliente que ya tenemos»); null si a ninguna. */
   cuentaId?: string | null;
+  /**
+   * DERIVAR A POSTVENTA PIDE CÓDIGO (ing. Carlos, 09-10, 0420): «que a la
+   * central se le pida PIN, que no derive unilateralmente». Falso para quien
+   * tiene el código (gerencia, operaciones) o con el código levantado.
+   */
+  pideCodigoPostventa?: boolean;
 }
 
 const ETIQUETA_TIPO: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
@@ -93,7 +99,7 @@ const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: 
 // histórico (RUC/DNI, teléfono, correo, nombre). Un match fuerte preselecciona
 // al comercial de esa cartera (regla R3); los de nombre solo advierten:
 // puede haber muchas "María Leguía".
-export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales, sugerencia, cuentaId = null }: Props) {
+export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales, sugerencia, cuentaId = null, pideCodigoPostventa = false }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[] | null>(null);
   /**
@@ -133,6 +139,7 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
   // Derivar a Post Venta es derivar un CASO, no entregar un cliente: hay que
   // decir de qué clase es, y la cartera del comercial no se toca (0080).
   const esPostventa = comerciales.find((c) => c.id === comercialId)?.es_postventa === true;
+  const codigoPostventa = esPostventa && pideCodigoPostventa;
 
   // ¿Hace falta decir por qué es un cliente nuevo? Solo si hay coincidencias,
   // el contacto no está ya en una ficha, Central no eligió ninguna, y la base
@@ -217,6 +224,10 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
     // de esas fichas, o se dice por qué no lo es. La base lo vuelve a exigir.
     if (pideMotivoNuevo && motivoNuevo.trim().length < 10) {
       toast.error("Este contacto coincide con un cliente que ya tenemos: elija su ficha para unirlo, o escriba por qué es un cliente nuevo.");
+      return;
+    }
+    if (codigoPostventa && pin.length !== 4) {
+      toast.error("Derivar a postventa lo autoriza gerencia u operaciones: escriba su código de cuatro dígitos.");
       return;
     }
     if (nuevoConClienteAjeno && pin.length !== 4) {
@@ -521,6 +532,17 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
             <p className="text-[11px] text-muted-foreground">
               El cliente sigue en la cartera de su comercial: postventa recibe el caso, no el cliente.
             </p>
+            {/* Ing. Carlos, 09-10: a postventa no se deriva sin autorización (0420). */}
+            {codigoPostventa && (
+              <div className="space-y-1 border-t border-primary/20 pt-2">
+                <Label htmlFor="codigo-postventa">Código del supervisor</Label>
+                <CampoCodigo id="codigo-postventa" valor={pin} onChange={setPin} />
+                <p className="text-[11px] text-muted-foreground">
+                  Derivar a postventa lo autoriza gerencia u operaciones: pídale su código y escríbalo aquí. Queda
+                  anotado quién lo autorizó.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -557,7 +579,7 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
         <DialogFooter>
           <Button
             onClick={confirmar}
-            disabled={enviando || ((!!traspaso || nuevoConClienteAjeno) && pin.length !== 4)}
+            disabled={enviando || ((!!traspaso || nuevoConClienteAjeno || codigoPostventa) && pin.length !== 4)}
             variant={traspaso ? "destructive" : "default"}
           >
             {enviando

@@ -401,9 +401,12 @@ export async function asignarLead(
     p_nota: extra?.motivoNuevo?.trim() || null,
   });
   if (error) {
-    const requierePin = /DERIVACION_MUEVE_CARTERA/.test(error.message);
+    // DERIVACION_A_POSTVENTA (0420): a postventa, Central no deriva sola.
+    const requierePin = /DERIVACION_MUEVE_CARTERA|DERIVACION_A_POSTVENTA/.test(error.message);
     return {
-      error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "").replace(/^DERIVACION_MUEVE_CARTERA:\s*/, ""),
+      error: error.message
+        .replace(/^[A-Z0-9]{5}:\s*/, "")
+        .replace(/^(DERIVACION_MUEVE_CARTERA|DERIVACION_A_POSTVENTA):\s*/, ""),
       requierePin,
     };
   }
