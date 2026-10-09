@@ -48,7 +48,7 @@ const QUIENES = [
   ["Comercial C1", "comercial1@efameinsa.com", ["/comercial", "/comercial/agenda", "/comercial/cartera", "/comercial/cotizaciones", "/comercial/oportunidades", "/comercial/ruta", "/comercial/parque"]],
   ["Comercial C5", "comercial5@efameinsa.com", ["/comercial", "/comercial/cotizaciones", "/comercial/cierres"]],
   ["Postventa", "postventa@efameinsa.com", ["/postventa", "/postventa/atenciones", "/postventa/casos", "/postventa/agenda", "/postventa/equipos", "/postventa/control", "/postventa/soporte"]],
-  ["Operaciones", "lesly@efameinsa.com", ["/operaciones", "/operaciones/catalogo", "/operaciones/permisos"]],
+  ["Operaciones", "logistica2@efameinsa.com", ["/operaciones", "/operaciones/catalogo", "/operaciones/permisos"]],
   ["Gerencia", "crcabrejos@efameinsa.com", ["/gerencia", "/gerencia/supervision", "/gerencia/reportes", "/gerencia/finanzas", "/gerencia/clientes", "/gerencia/aprobaciones"]],
 ];
 

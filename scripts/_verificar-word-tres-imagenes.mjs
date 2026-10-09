@@ -89,7 +89,7 @@ async function imagenesDelPdf(bytes) {
 }
 
 mkdirSync(SALIDA, { recursive: true });
-const cookie = await entrar("lesly@efameinsa.com");
+const cookie = await entrar("logistica2@efameinsa.com");
 
 console.log("\n1 · LA PANTALLA LEE EL WORD");
 const cuerpo = new FormData();
