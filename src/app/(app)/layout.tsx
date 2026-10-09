@@ -14,6 +14,7 @@ import { seVigila } from "@/lib/seguridad-conducta";
 import { RastreoNativo } from "@/components/crm/rastreo-nativo";
 import { seRastrea } from "@/lib/campo-rastreo";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
+import { VigilanteDeCuenta } from "@/components/crm/vigilante-de-cuenta";
 import { AsistenteFlotante } from "@/components/crm/asistente-flotante";
 import { ComunicadoDeGerencia, type ComunicadoPendiente } from "@/components/crm/comunicado-de-gerencia";
 import { AvisoSugerenciaResuelta, type SugerenciaResuelta } from "@/components/crm/aviso-sugerencia-resuelta";
@@ -135,6 +136,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {seVigila(perfil) && !ranuraAuditoria && !demo && <VigilanteConducta />}
       <RefrescoEnVivo versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
       <AvisoNuevaVersion versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
+      {/* Otra cuenta entró en este mismo navegador (buzón, Ariana 09-10). En demostración y auditoría la sesión es a propósito de otra persona. */}
+      {!demo && !ranuraAuditoria && <VigilanteDeCuenta userId={perfil.id} nombre={perfil.nombre} />}
       {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && <ComunicadoDeGerencia comunicado={comunicado} />}
       {avisoResueltas}
       {["gerencia", "admin"].includes(perfil.rol) && asistenteEncendido() && <AsistenteFlotante nombre={perfil.nombre} />}
@@ -235,6 +238,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             versión y pregunta si el servidor ya es otro. Con esto muere el
             Ctrl+Shift+R (Santos, 31-08). */}
         <AvisoNuevaVersion versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
+        {!demo && !ranuraAuditoria && <VigilanteDeCuenta userId={perfil.id} nombre={perfil.nombre} />}
         {/* «Ni bien entra, un pop-up que pase las 4 láminas y un link, y una
             disposición de gerencia» (Carlos, 14-09). No en las cuentas de
             práctica ni en la ranura de auditoría. */}
