@@ -71,6 +71,8 @@ export interface Mandado {
 export interface DetalleMandado {
   registradoAt: string;
   canal: string;
+  /** La vía como la guarda la base (whatsapp, llamada…), para corregirla. */
+  canalClave: string;
   contacto: string | null;
   razonSocial: string | null;
   ruc: string | null;
@@ -239,6 +241,7 @@ export async function listarMandadoACentral(
       detalle: {
         registradoAt: f.recibido_at,
         canal: ETIQUETA_CANAL[f.canal] ?? f.canal,
+        canalClave: f.canal,
         contacto: f.nombre_contacto,
         razonSocial: f.razon_social,
         ruc: f.num_doc,

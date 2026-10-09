@@ -1133,8 +1133,21 @@ export async function corregirMiRegistro(
   leadId: string,
   pin: string,
   motivo: string,
-  datos: { nombre: string; razonSocial: string; telefono: string; email: string; numDoc: string; mensaje: string },
+  datos: {
+    nombre: string;
+    razonSocial: string;
+    telefono: string;
+    email: string;
+    numDoc: string;
+    mensaje: string;
+    canal: string;
+    adjuntosNuevos: AdjuntoLead[];
+  },
 ): Promise<{ error: string | null; resumen?: string }> {
+  // Los archivos ya están en el bucket; acá solo se valida que sean rutas de
+  // leads, igual que al registrar (0423).
+  const adjuntos = esquemaAdjuntosLead.safeParse(datos.adjuntosNuevos);
+  if (!adjuntos.success) return { error: "Los archivos no son válidos. Quítelos y vuelva a agregarlos." };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("corregir_mi_registro", {
     p_lead: leadId,
@@ -1146,6 +1159,8 @@ export async function corregirMiRegistro(
     p_email: datos.email,
     p_num_doc: datos.numDoc,
     p_mensaje: datos.mensaje,
+    p_canal: datos.canal,
+    p_adjuntos_nuevos: adjuntos.data,
   });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
   revalidarLoMandado();
