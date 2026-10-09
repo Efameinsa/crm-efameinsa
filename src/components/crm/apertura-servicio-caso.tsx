@@ -57,6 +57,8 @@ export function AperturaServicioCaso({
   const [transporte, setTransporte] = useState("");
   const [direccion, setDireccion] = useState(direccionSugerida ?? "");
   const [confirmo, setConfirmo] = useState("");
+  const [recibe, setRecibe] = useState("");
+  const [recibeTelefono, setRecibeTelefono] = useState("");
   const [destino, setDestino] = useState<"lima" | "provincia" | "">("");
   const [guia, setGuia] = useState("");
   const [guiaDetalle, setGuiaDetalle] = useState("");
@@ -82,6 +84,8 @@ export function AperturaServicioCaso({
         transporte,
         direccion,
         confirmo,
+        recibe,
+        recibeTelefono,
         destino: destino as "lima" | "provincia",
         guia: guia || null,
         guiaDetalle,
@@ -183,6 +187,17 @@ export function AperturaServicioCaso({
               <option value="lima">Lima</option>
               <option value="provincia">Provincia</option>
             </select>
+          </div>
+          {/* Rubí, 09-10: «por qué no aparece el nombre de quien recibe si coloqué el nombre». La fila
+              PERSONA QUE RECIBE de la apertura salía «—»: este formulario no la pedía. Si se deja
+              vacía, va quien confirmó la dirección. */}
+          <div className="grid gap-1">
+            <Label className="text-xs">Persona que recibe al técnico</Label>
+            <Input value={recibe} onChange={(e) => setRecibe(e.target.value)} placeholder={confirmo.trim() ? `Si lo deja vacío: ${confirmo.trim()}` : "Si lo deja vacío, va quien confirmó"} />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-xs">Celular de quien recibe</Label>
+            <Input value={recibeTelefono} onChange={(e) => setRecibeTelefono(e.target.value)} inputMode="tel" />
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">Guía que se pide al almacén</Label>
