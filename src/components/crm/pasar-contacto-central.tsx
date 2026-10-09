@@ -95,7 +95,12 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
   // instancias del diálogo se pisarían el mismo timeout.
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [abierto, setAbierto] = useState(false);
-  const [canal, setCanal] = useState<string>("whatsapp");
+  // SE ELIGE, NO VIENE PUESTO (09-10). Venía WhatsApp marcado y Brenda mandó
+  // una llamada como WhatsApp sin notarlo (PRO-10877): el canal es el dato con
+  // el que gerencia mide de dónde llegan los clientes. Igual que en la captura
+  // de Central, vacío hasta que se toca un botón.
+  const [canal, setCanal] = useState<string>("");
+  const [faltaCanal, setFaltaCanal] = useState(false);
   const [codigoCampaniaWa, setCodigoCampaniaWa] = useState("");
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[]>([]);
   // «¿QUIÉN LLAMA?» (Carlos, 22-09): en vez de retipear el nombre de la
@@ -195,7 +200,8 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
   function limpiarTodo() {
     if (temporizador.current) clearTimeout(temporizador.current);
     formRef.current?.reset();
-    setCanal("whatsapp");
+    setCanal("");
+    setFaltaCanal(false);
     setCodigoCampaniaWa("");
     setCoincidencias([]);
     setContactosCuenta([]);
@@ -204,6 +210,12 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!canal) {
+      setFaltaCanal(true);
+      toast.error("Elija por dónde llegó el contacto: WhatsApp, llamada, correo…");
+      formRef.current?.querySelector<HTMLElement>(".canales button")?.focus();
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     // area_destino siempre comercial: este atajo existe para contactos de
     // venta. Lo de servicio técnico o postventa lo sigue tomando Central.
@@ -426,21 +438,29 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
             </Seccion>
 
             <Seccion icono={MessageSquare} titulo="Qué necesita">
-              {/* El canal en botones y no en una lista desplegable: son seis y
-                  casi siempre es WhatsApp — se confirma de un toque. */}
+              {/* El canal en botones y no en una lista desplegable: son seis
+                  y se elige de un toque. Ninguno viene marcado (09-10). */}
               <div className="space-y-1.5">
                 <Label>
                   ¿Por dónde llegó?
                   <Obligatorio />
                 </Label>
                 <input type="hidden" name="canal" value={canal} />
-                <div className="canales flex flex-wrap gap-1.5">
+                <div
+                  className={cn(
+                    "canales flex flex-wrap gap-1.5",
+                    faltaCanal && !canal && "rounded-full ring-2 ring-destructive/60 ring-offset-2",
+                  )}
+                >
                   {CANALES.map(([v, t]) => (
                     <button
                       key={v}
                       type="button"
                       aria-pressed={canal === v}
-                      onClick={() => setCanal(v)}
+                      onClick={() => {
+                        setCanal(v);
+                        setFaltaCanal(false);
+                      }}
                       className={cn(
                         "cursor-pointer rounded-full border px-3 py-1.5 text-xs transition-colors",
                         canal === v
