@@ -7,7 +7,7 @@ import { Check, Loader2, PackageCheck, Truck, FileCheck2, Warehouse } from "luci
 import { createClient } from "@/lib/supabase/client";
 import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia, autorizarSalidaConSaldo } from "@/lib/acciones/almacen";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
-import { bloquesPedido, faltanFotosDeCarga, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, circuitoDe, faltanFotosDeCarga, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +40,13 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const cliente = (servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
-  const probado = servicio.prueba_lista_at != null || String(servicio.prueba_embalaje ?? "").toUpperCase() === "SI";
+  // UN SERVICIO NO SE PRUEBA NI SE EMBALA (Lesly, 09-10, MERCEDARIAS): en
+  // una revisión o un mantenimiento no sale ninguna máquina, sale el técnico
+  // (con materiales o repuestos, si la apertura los pide). El renglón
+  // «Servicio técnico» se veía como una máquina sin protocolo y el pedido no
+  // pasaba de «pendiente de prueba», aunque el servicio ya se había hecho.
+  const esServicio = circuitoDe(servicio).esServicio;
+  const probado = esServicio || servicio.prueba_lista_at != null || String(servicio.prueba_embalaje ?? "").toUpperCase() === "SI";
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   // EL DOBLE FILTRO (Carlos, 22-09): «tú programas el despacho, pero de nada
   // se va a despachar. No debería permitirte despachar si no ha cumplido los
@@ -100,7 +106,8 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
     });
   }
 
-  const salidaLista = ANGULOS.filter((a) => angulos[a.etiqueta]).length >= 3;
+  // En el servicio las fotos (lo que lleva el técnico) son opcionales.
+  const salidaLista = esServicio || ANGULOS.filter((a) => angulos[a.etiqueta]).length >= 3;
   const puedeSalir = Boolean(servicio.apertura_despacho_at) || !servicio.informe_cierre_id;
   // CON SALDO PENDIENTE NO SALE SIN AUTORIZACIÓN (0297). El almacén no ve
   // montos: `despacho_liberado` ya lo resolvió el servidor antes de taparlos.
@@ -204,10 +211,10 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
       )}
 
       {/* 3 · La salida */}
-      {probado && (!servicio.despachado_at || faltanFotosCarga) && (
+      {probado && (!servicio.despachado_at || (faltanFotosCarga && !esServicio)) && (
         <Tarjeta
           icono={Truck}
-          titulo={faltanFotosCarga ? "Fotos de la carga en el transporte" : "Registrar la salida"}
+          titulo={faltanFotosCarga ? "Fotos de la carga en el transporte" : esServicio ? "Registrar la salida del técnico" : "Registrar la salida"}
           tono={puedeSalir ? "activa" : "bloqueada"}
         >
           {!puedeSalir ? (
@@ -235,6 +242,11 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
             <p className="text-xs text-muted-foreground">
               Postventa ya registró la salida{servicio.guia ? ` (guía ${servicio.guia})` : ""}, pero falta la evidencia del almacén: cinco ángulos de la máquina ya cargada y un video. Mínimo tres fotos.
             </p>
+          ) : esServicio ? (
+            <p className="text-xs text-muted-foreground">
+              Es un servicio{servicio.tipo_pedido === "mantenimiento" ? " de mantenimiento" : " de revisión"}: no hay máquina que probar ni embalar. Registre el día en que salió el técnico
+              {servicio.apertura_guia ? " con lo que pide la apertura (materiales o repuestos)" : ""}. Las fotos de lo que lleva son opcionales.
+            </p>
           ) : (
             <p className="text-xs text-muted-foreground">Cinco ángulos y un video al terminar de cargar. Mínimo tres fotos para registrar.</p>
           )}
@@ -244,10 +256,10 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
           {!trabadaPorSaldo && (
           <>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {ANGULOS.map((a) => (
+            {(esServicio ? ANGULOS.slice(0, 2).map((a, i) => ({ ...a, titulo: `Lo que lleva el técnico${i ? " (otra foto)" : ""}` })) : ANGULOS).map((a) => (
               <TomarOSubir key={a.etiqueta} titulo={a.titulo} archivo={angulos[a.etiqueta] ?? null} onChange={(f) => setAngulos((x) => ({ ...x, [a.etiqueta]: f }))} compacto />
             ))}
-            <TomarOSubir titulo="Video (corto)" archivo={video} onChange={setVideo} video compacto />
+            {!esServicio && <TomarOSubir titulo="Video (corto)" archivo={video} onChange={setVideo} video compacto />}
           </div>
           <div className="grid gap-2 sm:grid-cols-[10rem_1fr]">
             <div className="grid gap-1">
@@ -256,7 +268,7 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">Nota</Label>
-              <Input value={notaSalida} onChange={(e) => setNotaSalida(e.target.value)} placeholder="ej. salió en la camioneta de la empresa a las 4 pm" />
+              <Input value={notaSalida} onChange={(e) => setNotaSalida(e.target.value)} placeholder={esServicio ? "ej. salió el técnico Juan a las 8 am con los materiales" : "ej. salió en la camioneta de la empresa a las 4 pm"} />
             </div>
           </div>
           <Button
@@ -272,19 +284,27 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
                 const fotos = await subir(archivos);
                 if (!fotos) return { error: "No se subieron los archivos" };
                 return registrarSalida(servicio.id, { fecha: fechaSalida, fotos, nota: notaSalida, cliente });
-              }, faltanFotosCarga ? "Fotos de la carga subidas. Postventa ya las ve." : "Salida registrada. Falta la guía en la agencia.")
+              }, faltanFotosCarga ? "Fotos de la carga subidas. Postventa ya las ve." : esServicio ? "Salida del técnico registrada. El servicio lo cierra postventa con el informe." : "Salida registrada. Falta la guía en la agencia.")
             }
           >
             {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
-            {faltanFotosCarga ? "Subir las fotos de la carga" : "Salió del almacén"}
+            {faltanFotosCarga ? "Subir las fotos de la carga" : esServicio ? "Salió el técnico" : "Salió del almacén"}
           </Button>
           </>
           )}
         </Tarjeta>
       )}
 
+      {/* El servicio termina para el almacén cuando sale el técnico: no hay agencia ni guía de la máquina. */}
+      {esServicio && servicio.despachado_at && (
+        <div className="rounded-xl border border-[#1E7F4F]/30 bg-[#1E7F4F]/5 p-4 text-sm text-[#1E7F4F]">
+          <Check className="mr-1 inline size-4" />
+          El técnico salió el {new Date(servicio.despachado_at).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}. Para el almacén el servicio está hecho; lo cierra postventa con el informe del técnico.
+        </div>
+      )}
+
       {/* 4 · En la agencia (o en el cliente) */}
-      {servicio.despachado_at && !servicio.agencia_at && (
+      {!esServicio && servicio.despachado_at && !servicio.agencia_at && (
         <Tarjeta icono={PackageCheck} titulo="En la agencia o en el cliente" tono="activa">
           <p className="text-xs text-muted-foreground">
             La guía de remisión es lo que el cliente necesita para recoger. Foto de la guía y foto de la máquina entregada.
@@ -327,7 +347,7 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
         </Tarjeta>
       )}
 
-      {servicio.agencia_at && (
+      {!esServicio && servicio.agencia_at && (
         <div className="rounded-xl border border-[#1E7F4F]/30 bg-[#1E7F4F]/5 p-4 text-sm text-[#1E7F4F]">
           <Check className="mr-1 inline size-4" />
           Despachado con guía {servicio.guia}. {servicio.despacho_verificado_at ? "Postventa ya lo verificó." : "Falta el doble check de postventa."}
