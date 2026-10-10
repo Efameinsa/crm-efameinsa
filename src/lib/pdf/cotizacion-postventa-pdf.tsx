@@ -158,8 +158,9 @@ export function CotizacionPostventaPdf({
   const membrete = membreteDe(estilos, identidad, logoBuffer);
   const pie = pieDe(estilos, identidad, serie, notaVersion, reemplazada);
   const esMantenimiento = variante === "mantenimiento";
-  const lineasPorItem = items.map((item) =>
-    lineasDelConcepto({
+  const lineasPorItem = items.map((item) => {
+    const esRepuesto = item.segmento === "repuesto" || (item.categoria ?? "").toLowerCase() === "repuesto";
+    return lineasDelConcepto({
       nombre: item.nombre,
       marca: item.marca,
       modelo: item.modelo,
@@ -168,12 +169,12 @@ export function CotizacionPostventaPdf({
       deCatalogo: item.marca !== "—" || item.modelo !== "—" || Boolean(item.segmento),
       // Las piezas o características del repuesto (el servicio tiene su
       // propio cuadro de detalle más abajo).
-      detalle:
-        item.segmento === "repuesto" || (item.categoria ?? "").toLowerCase() === "repuesto"
-          ? (item.bloques ?? []).flatMap((b) => (b.t === "titulo" ? [] : b.t === "dato" ? [`${b.rotulo}: ${b.valor}`] : [b.texto]))
-          : [],
-    }),
-  );
+      detalle: esRepuesto
+        ? (item.bloques ?? []).flatMap((b) => (b.t === "titulo" ? [] : b.t === "dato" ? [`${b.rotulo}: ${b.valor}`] : [b.texto]))
+        : [],
+      esRepuesto,
+    });
+  });
   // Con un kit en la tabla, el concepto se ensancha (ITEM. y CANT ceden un
   // poco) para que cada pieza y su cantidad entren en una sola línea.
   const hayKit = lineasPorItem.some((ls) => ls.some((l) => l.startsWith("- ") && partirCantidad(l)));

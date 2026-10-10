@@ -90,6 +90,38 @@ describe("el concepto del renglón", () => {
     ).toEqual(["KIT DE INSTALACION PARA SECADORA LG", "MARCA: LG", "MODELO: LG", "- MANOMETRO PARA GAS BAJA PRESION", "- CODO FN 1/2"]);
   });
 
+  it("un repuesto no repite su nombre y el equipo escrito reemplaza la marca y el modelo del catálogo (Rubí 10-10)", () => {
+    const kit = {
+      nombre: "KIT DE POLEA PARA FAJA DE TRANSMISION P/SEC UT055",
+      marca: "UNIMAC/ALLIANCE",
+      modelo: "S/N",
+      capacidad: null,
+      deCatalogo: true,
+      esRepuesto: true,
+      detalle: ["KIT DE POLEA PARA FAJA DE TRANSMISION QUE INCLUYE PERNO, NIPLE, TUERCA PARA SECADORA  INDUSTRIAL UT055"],
+    };
+    expect(lineasDelConcepto(kit)).toEqual([
+      "KIT DE POLEA PARA FAJA DE TRANSMISION P/SEC UT055",
+      "MARCA: UNIMAC/ALLIANCE",
+      "- INCLUYE PERNO, NIPLE, TUERCA PARA SECADORA INDUSTRIAL UT055",
+    ]);
+    expect(
+      lineasDelConcepto({ ...kit, descripcionLinea: "SECADORA INDUSTRIAL A GAS \nMARCA: UNIMAC \nMODELO: UT055 \nSERIE: 251100726" }),
+    ).toEqual([
+      "KIT DE POLEA PARA FAJA DE TRANSMISION P/SEC UT055",
+      "- INCLUYE PERNO, NIPLE, TUERCA PARA SECADORA INDUSTRIAL UT055",
+      "SECADORA INDUSTRIAL A GAS",
+      "MARCA: UNIMAC",
+      "MODELO: UT055",
+      "SERIE: 251100726",
+    ]);
+    // Una característica que solo repite el nombre no sale.
+    expect(lineasDelConcepto({ ...kit, detalle: ["KIT DE POLEA PARA FAJA DE TRANSMISION P/SEC UT055"] })).toEqual([
+      "KIT DE POLEA PARA FAJA DE TRANSMISION P/SEC UT055",
+      "MARCA: UNIMAC/ALLIANCE",
+    ]);
+  });
+
   it("el título del detalle y el lugar de ejecución", () => {
     expect(tituloDelDetalle("SERVICIO DE MANTENIMIENTO PREVENTIVO SECADORA INDUSTRIAL GAS UNIMAC UT055L")).toBe(
       "DETALLE DEL SERVICIO DE MANTENIMIENTO PREVENTIVO DE SECADORA INDUSTRIAL GAS UNIMAC UT055L",
