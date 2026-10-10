@@ -13,6 +13,7 @@ import { cargarPotenciales, lunesSemana, resumirSemana } from "@/lib/potenciales
 import { cargarEventosPostventa, eventosDelDia, pendientesDePostventa, type PendientesPostventa } from "@/lib/agenda-postventa-datos";
 import { etiquetaEvento } from "@/lib/calendario-postventa";
 import { TITULO_PREVENTIVOS_POR_OFRECER } from "@/lib/preventivo";
+import { gestionesPorRuta, type RutaPostventa } from "@/lib/reporte-postventa-rutas";
 
 // PDF del cierre del día del comercial. La autorización real la hace la
 // función SQL (el propio comercial o backoffice); acá solo se comprueba que
@@ -96,22 +97,28 @@ export async function GET(request: Request) {
   // ver los procesos, que salgan sus despachados». Y «otras gestiones», lo
   // que se digita en la bitácora como en Central. Se calcula ACÁ, igual que
   // la proyección, por la misma razón: la función SQL no se toca.
+  let rutasPostventa: RutaPostventa[] | undefined;
   let pendientesPostventa: { titulo: string; filas: { cliente: string; detalle: string | null }[] }[] | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
-      .select("id, rol, es_postventa, hace_postventa")
+      .select("id, rol, es_postventa, hace_postventa, reporte_solo_lo_propio")
       .eq("id", comercialId)
       .maybeSingle();
     if (perfil?.es_postventa) {
       const manana = r.planificacion_manana.fecha;
+      // SOLO LO PROPIO (buzón, Ariana PV3, 10-10: «el reporte debe reflejar
+      // únicamente las gestiones que está realizando Postventa 3»). Sin lo
+      // del área ni sus pendientes, que son de las compañeras, y lo que hizo
+      // en dos cuadros por ruta. Rubí y Gabriela siguen como pidió Carlos.
+      const soloPropio = Boolean(perfil.reporte_solo_lo_propio);
       const [eventos, { data: bitacora }, pendientes] = await Promise.all([
         // Reunión 23-09: «ahí está mezclada el de Gabriela con… Rubí». El reporte
         // es de UNA persona: los casos salen solo de su cartera y lo compartido
         // del área se rotula aparte abajo. Los montos siguen tapados igual.
         cargarEventosPostventa(supabase, perfil, fecha, manana, { soloMisCasos: true, sinLlamadas: true }),
         supabase.from("bitacora_dia").select("orden, texto").eq("perfil_id", comercialId).eq("fecha", fecha).order("orden"),
-        pendientesDePostventa(supabase),
+        soloPropio ? null : pendientesDePostventa(supabase),
       ]);
       // 5b. PENDIENTES DEL ÁREA (22-09, ítem 6): mismos bloques que el panel
       // «Pendiente por tipo» de la agenda, para que el PDF diga lo mismo.
@@ -123,22 +130,26 @@ export async function GET(request: Request) {
         atencionesSinProgramar: "Atenciones sin programar",
         preventivosPorVencer: TITULO_PREVENTIVOS_POR_OFRECER,
       };
-      pendientesPostventa = (Object.keys(ROTULO) as (keyof PendientesPostventa)[]).map((clave) => ({
-        titulo: ROTULO[clave],
-        filas: pendientes[clave].map((f) => ({ cliente: f.cliente, detalle: f.detalle })),
-      }));
+      pendientesPostventa = pendientes
+        ? (Object.keys(ROTULO) as (keyof PendientesPostventa)[]).map((clave) => ({
+            titulo: ROTULO[clave],
+            filas: pendientes[clave].map((f) => ({ cliente: f.cliente, detalle: f.detalle })),
+          }))
+        : undefined;
       // LAS PROGRAMADAS, POR DÍA (Carlos, 23-09: «videollamadas de
       // preinstalación agrupadas por fecha: 24, 25, 26… solo las
       // programadas»). Salen de las aperturas al almacén (0281) que siguen
       // abiertas, desde hoy en adelante, un bloque por día.
-      const { data: aps } = await supabase
-        .from("aperturas_llamada")
-        .select("tipo, programada_para, equipos, tomada_at, informe_at, revisada_at, enviada_cliente_at, cuentas(razon_social)")
-        .is("anulada_at", null)
-        .is("enviada_cliente_at", null)
-        .gte("programada_para", `${fecha}T00:00:00-05:00`)
-        .order("programada_para")
-        .limit(200);
+      const { data: aps } = soloPropio
+        ? { data: [] }
+        : await supabase
+          .from("aperturas_llamada")
+          .select("tipo, programada_para, equipos, tomada_at, informe_at, revisada_at, enviada_cliente_at, cuentas(razon_social)")
+          .is("anulada_at", null)
+          .is("enviada_cliente_at", null)
+          .gte("programada_para", `${fecha}T00:00:00-05:00`)
+          .order("programada_para")
+          .limit(200);
       const porDia = new Map<string, { cliente: string; detalle: string | null }[]>();
       for (const a of (aps ?? []) as unknown as {
         tipo: TipoApertura;
@@ -161,7 +172,9 @@ export async function GET(request: Request) {
           },
         ]);
       }
-      for (const [dia, filas] of porDia) pendientesPostventa.push({ titulo: `Programadas para el ${dia}`, filas });
+      for (const [dia, filas] of porDia) pendientesPostventa?.push({ titulo: `Programadas para el ${dia}`, filas });
+      // Lo del área (despachos, visitas a planta…) no es de quien pidió solo lo suyo.
+      const suyo = (e: (typeof eventos)[number]) => !soloPropio || e.origen === "tarea" || e.origen === "caso";
       const aFila = (e: (typeof eventos)[number]) => ({
         hora: e.hora,
         titulo: e.cliente,
@@ -171,7 +184,7 @@ export async function GET(request: Request) {
       // Hoy: lo del circuito (despachado, atendido, visitado) y la bitácora,
       // en «actividades complementarias»; ya está tal cual en el calendario.
       r.complementarias = [
-        ...eventosDelDia(eventos, fecha).map((e) => ({
+        ...eventosDelDia(eventos, fecha).filter(suyo).map((e) => ({
           hora: e.hora,
           titulo:
             e.origen === "tarea"
@@ -191,11 +204,13 @@ export async function GET(request: Request) {
         tareas: [
           ...r.planificacion_manana.tareas,
           ...eventosDelDia(eventos, manana)
+            .filter(suyo)
             .filter((e) => e.origen !== "tarea" && !(e.origen === "caso" && yaEstan.has(`${e.hora ?? ""}|${e.cliente}`)))
             .map(aFila),
         ],
       };
       r.agenda = { ...r.agenda, manana: r.planificacion_manana.gestiones.length + r.planificacion_manana.tareas.length };
+      if (soloPropio) rutasPostventa = await gestionesPorRuta(supabase, comercialId, fecha, r.seguimientos);
     }
   } catch {
     // Sin la agenda del área, pero con reporte.
@@ -222,6 +237,7 @@ export async function GET(request: Request) {
       planificacion_manana={r.planificacion_manana}
       proyeccion={proyeccion}
       pendientesPostventa={pendientesPostventa}
+      rutasPostventa={rutasPostventa}
       indicadores={indicadores}
     />,
   );

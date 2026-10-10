@@ -15,6 +15,7 @@ import { diasDelMes, diasDeSemana, lunesDe, rotuloDia, sumarDias } from "@/lib/c
 import { requerirPerfil } from "@/lib/auth";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
+import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 
 export const dynamic = "force-dynamic";
 
@@ -159,7 +160,9 @@ export default async function AgendaPostventaPage({
         <PendientesPorTipo pendientes={pendientes} />
       </SeccionPanel>
 
-      <SeccionPanel titulo="Otras gestiones de hoy">
+      {/* El botón del reporte también acá (buzón, Ariana PV3, 10-10: «no se
+          puede acceder al reporte de la agenda»): vivía solo en la bandeja. */}
+      <SeccionPanel titulo="Otras gestiones de hoy" accion={<BotonReporteDiario fecha={hoy} compacto />}>
         <p className="mb-2 text-xs text-muted-foreground">
           Lo que hizo hoy y no es un caso ni un pedido: correos, llamadas que no abrieron atención, coordinaciones. Entra al
           reporte del día tal cual, numerado.
