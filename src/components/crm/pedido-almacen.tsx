@@ -36,7 +36,22 @@ const ANGULOS: { etiqueta: string; titulo: string }[] = [
 
 type Archivos = Record<string, File | null>;
 
-export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: ServicioPostventa; porEquipo?: boolean }) {
+/** Una máquina que sale en este despacho, con su serie (la secadora de la torre va aparte). */
+export interface MaquinaDeLaSalida {
+  clave: string;
+  titulo: string;
+  serie: string | null;
+}
+
+export function PedidoAlmacen({
+  servicio,
+  porEquipo = false,
+  maquinas = [],
+}: {
+  servicio: ServicioPostventa;
+  porEquipo?: boolean;
+  maquinas?: MaquinaDeLaSalida[];
+}) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const cliente = (servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
@@ -79,17 +94,23 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
   const [fotoGuia, setFotoGuia] = useState<File | null>(null);
   const [fotoMaquina, setFotoMaquina] = useState<File | null>(null);
 
-  async function subir(archivos: { file: File; etiqueta: string }[]): Promise<FotoAlmacen[] | null> {
+  async function subir(archivos: { file: File; etiqueta: string; maquina?: MaquinaDeLaSalida }[]): Promise<FotoAlmacen[] | null> {
     const storage = createClient().storage.from("adjuntos");
     const salida: FotoAlmacen[] = [];
-    for (const { file, etiqueta } of archivos) {
+    for (const { file, etiqueta, maquina } of archivos) {
       const path = `pedidos/${servicio.id}/almacen/${etiqueta}-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
       const { error } = await storage.upload(path, file, { contentType: file.type || "image/jpeg" });
       if (error) {
         toast.error(`No se pudo subir «${file.name}»: ${error.message}`);
         return null;
       }
-      salida.push({ path, nombre: file.name.slice(0, 120), tipo: file.type.slice(0, 100), etiqueta });
+      salida.push({
+        path,
+        nombre: file.name.slice(0, 120),
+        tipo: file.type.slice(0, 100),
+        etiqueta,
+        ...(maquina ? { maquina: maquina.titulo, serie: maquina.serie } : {}),
+      });
     }
     return salida;
   }
@@ -106,8 +127,28 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
     });
   }
 
+  // FOTOS POR SERIE (Lesly, 10-10, PED-0013 LINO ESPIRITU: «el cliente tiene
+  // varios equipos»). Con dos máquinas o más, cada una tiene sus ángulos y su
+  // video, y las fotos quedan marcadas con su serie y en el orden del pedido.
+  // Cada máquina necesita al menos una foto; el servidor sigue pidiendo tres
+  // en total.
+  const porMaquina = !esServicio && maquinas.length >= 2;
+  const claveFoto = (m: MaquinaDeLaSalida, etiqueta: string) => `${m.clave}|${etiqueta}`;
+  const fotosDe = (m: MaquinaDeLaSalida) => ANGULOS.filter((a) => angulos[claveFoto(m, a.etiqueta)]).length;
+  const archivosPorMaquina = () =>
+    maquinas.flatMap((m) => [
+      ...ANGULOS.filter((a) => angulos[claveFoto(m, a.etiqueta)]).map((a) => ({ file: angulos[claveFoto(m, a.etiqueta)]!, etiqueta: a.etiqueta, maquina: m })),
+      ...(angulos[claveFoto(m, "video")] ? [{ file: angulos[claveFoto(m, "video")]!, etiqueta: "video", maquina: m }] : []),
+    ]);
+  const faltaMaquina = porMaquina ? maquinas.find((m) => fotosDe(m) === 0) : undefined;
   // En el servicio las fotos (lo que lleva el técnico) son opcionales.
-  const salidaLista = esServicio || ANGULOS.filter((a) => angulos[a.etiqueta]).length >= 3;
+  const salidaLista = esServicio
+    ? true
+    : porMaquina
+      ? !faltaMaquina && maquinas.reduce((n, m) => n + fotosDe(m), 0) >= 3
+      : ANGULOS.filter((a) => angulos[a.etiqueta]).length >= 3;
+  // Ya salió con las fotos juntas: puede sumar las de cada máquina (PED-0013).
+  const sumarPorMaquina = porMaquina && Boolean(servicio.despachado_at) && !servicio.despacho_verificado_at;
   const puedeSalir = Boolean(servicio.apertura_despacho_at) || !servicio.informe_cierre_id;
   // CON SALDO PENDIENTE NO SALE SIN AUTORIZACIÓN (0297). El almacén no ve
   // montos: `despacho_liberado` ya lo resolvió el servidor antes de taparlos.
@@ -248,19 +289,27 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
               {servicio.apertura_guia ? " con lo que pide la apertura (materiales o repuestos)" : ""}. Las fotos de lo que lleva son opcionales.
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground">Cinco ángulos y un video al terminar de cargar. Mínimo tres fotos para registrar.</p>
+            <p className="text-xs text-muted-foreground">
+              {porMaquina
+                ? `Este pedido lleva ${maquinas.length} máquinas: suba las fotos de cada una con su serie (cinco ángulos y un video). Al menos una foto por máquina y tres en total.`
+                : "Cinco ángulos y un video al terminar de cargar. Mínimo tres fotos para registrar."}
+            </p>
           )}
           {servicio.salida_autorizada_at && conSaldo && (
             <p className="text-[11px] font-medium text-[#1E7F4F]">Salida con saldo autorizada: {servicio.salida_autorizada_motivo}</p>
           )}
           {!trabadaPorSaldo && (
           <>
+          {porMaquina ? (
+            <FotosPorMaquina maquinas={maquinas} angulos={angulos} setAngulos={setAngulos} claveFoto={claveFoto} fotosDe={fotosDe} />
+          ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {(esServicio ? ANGULOS.slice(0, 2).map((a, i) => ({ ...a, titulo: `Lo que lleva el técnico${i ? " (otra foto)" : ""}` })) : ANGULOS).map((a) => (
               <TomarOSubir key={a.etiqueta} titulo={a.titulo} archivo={angulos[a.etiqueta] ?? null} onChange={(f) => setAngulos((x) => ({ ...x, [a.etiqueta]: f }))} compacto />
             ))}
             {!esServicio && <TomarOSubir titulo="Video (corto)" archivo={video} onChange={setVideo} video compacto />}
           </div>
+          )}
           <div className="grid gap-2 sm:grid-cols-[10rem_1fr]">
             <div className="grid gap-1">
               <Label className="text-xs">Fecha de salida</Label>
@@ -274,13 +323,15 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
           <Button
             size="sm"
             disabled={pendiente || !puedeSalir || !salidaLista}
-            title={!salidaLista ? "Faltan fotos (mínimo 3)" : undefined}
+            title={!salidaLista ? (faltaMaquina ? `Falta al menos una foto de ${faltaMaquina.titulo}${faltaMaquina.serie ? ` (${faltaMaquina.serie})` : ""}` : "Faltan fotos (mínimo 3)") : undefined}
             onClick={() =>
               correr(async () => {
-                const archivos = [
-                  ...ANGULOS.filter((a) => angulos[a.etiqueta]).map((a) => ({ file: angulos[a.etiqueta]!, etiqueta: a.etiqueta })),
-                  ...(video ? [{ file: video, etiqueta: "video" }] : []),
-                ];
+                const archivos = porMaquina
+                  ? archivosPorMaquina()
+                  : [
+                      ...ANGULOS.filter((a) => angulos[a.etiqueta]).map((a) => ({ file: angulos[a.etiqueta]!, etiqueta: a.etiqueta })),
+                      ...(video ? [{ file: video, etiqueta: "video" }] : []),
+                    ];
                 const fotos = await subir(archivos);
                 if (!fotos) return { error: "No se subieron los archivos" };
                 return registrarSalida(servicio.id, { fecha: fechaSalida, fotos, nota: notaSalida, cliente });
@@ -292,6 +343,33 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
           </Button>
           </>
           )}
+        </Tarjeta>
+      )}
+
+      {/* Ya salió con las fotos juntas: sumar las de cada máquina con su serie (Lesly, 10-10). */}
+      {sumarPorMaquina && !faltanFotosCarga && (
+        <Tarjeta icono={Truck} titulo="Fotos de la salida por máquina" tono="normal">
+          <p className="text-xs text-muted-foreground">
+            La salida ya está registrada{(servicio.salida_fotos?.length ?? 0) > 0 ? ` con ${servicio.salida_fotos!.length} fotos juntas` : ""}. Si quiere, suba aquí las fotos de cada máquina: quedan con su serie y ordenadas en las fotos del almacén.
+          </p>
+          <FotosPorMaquina maquinas={maquinas} angulos={angulos} setAngulos={setAngulos} claveFoto={claveFoto} fotosDe={fotosDe} />
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={pendiente || maquinas.every((m) => fotosDe(m) === 0 && !angulos[claveFoto(m, "video")])}
+            onClick={() =>
+              correr(async () => {
+                const fotos = await subir(archivosPorMaquina());
+                if (!fotos) return { error: "No se subieron los archivos" };
+                const r = await registrarSalida(servicio.id, { fecha: fechaSalida, fotos, nota: "", cliente });
+                if (!r.error) setAngulos({});
+                return r;
+              }, "Fotos subidas, cada una con su serie.")
+            }
+          >
+            {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
+            Subir las fotos por máquina
+          </Button>
         </Tarjeta>
       )}
 
@@ -353,6 +431,56 @@ export function PedidoAlmacen({ servicio, porEquipo = false }: { servicio: Servi
           Despachado con guía {servicio.guia}. {servicio.despacho_verificado_at ? "Postventa ya lo verificó." : "Falta el doble check de postventa."}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Un bloque por máquina, con su serie: cinco ángulos y un video (Lesly, 10-10). */
+function FotosPorMaquina({
+  maquinas,
+  angulos,
+  setAngulos,
+  claveFoto,
+  fotosDe,
+}: {
+  maquinas: MaquinaDeLaSalida[];
+  angulos: Archivos;
+  setAngulos: React.Dispatch<React.SetStateAction<Archivos>>;
+  claveFoto: (m: MaquinaDeLaSalida, etiqueta: string) => string;
+  fotosDe: (m: MaquinaDeLaSalida) => number;
+}) {
+  return (
+    <div className="space-y-2">
+      {maquinas.map((m, i) => (
+        <div key={m.clave} className="rounded-lg border border-border bg-card p-2.5">
+          <p className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-semibold text-foreground">
+            <span className="inline-flex size-5 items-center justify-center rounded-full bg-primary/10 text-[11px] text-primary">{i + 1}</span>
+            {m.titulo}
+            <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-medium">{m.serie ? `Serie ${m.serie}` : "sin serie todavía"}</span>
+            <span className={cn("text-[11px] font-normal", fotosDe(m) ? "text-[#1E7F4F]" : "text-muted-foreground")}>
+              {fotosDe(m) ? `${fotosDe(m)} de 5 fotos` : "sin fotos"}
+            </span>
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {ANGULOS.map((a) => (
+              <TomarOSubir
+                key={a.etiqueta}
+                titulo={a.titulo}
+                archivo={angulos[claveFoto(m, a.etiqueta)] ?? null}
+                onChange={(f) => setAngulos((x) => ({ ...x, [claveFoto(m, a.etiqueta)]: f }))}
+                compacto
+              />
+            ))}
+            <TomarOSubir
+              titulo="Video (corto)"
+              archivo={angulos[claveFoto(m, "video")] ?? null}
+              onChange={(f) => setAngulos((x) => ({ ...x, [claveFoto(m, "video")]: f }))}
+              video
+              compacto
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
