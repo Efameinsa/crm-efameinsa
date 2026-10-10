@@ -82,6 +82,16 @@ export interface ReporteDiarioProps {
     filas: { cliente: string; detalle: string | null }[];
   }[];
   /**
+   * LO PROPIO, POR RUTA (buzón, Ariana PV3, 10-10): la regularización de los
+   * pedidos de equipos y el mantenimiento y los repuestos, en cuadros aparte.
+   * Si llega, reemplaza la tabla de la sección 1 (los seguimientos van en el
+   * cuadro de su ruta) y no sale lo del área.
+   */
+  rutasPostventa?: {
+    titulo: string;
+    filas: { hora: string | null; cliente: string; detalle: string | null }[];
+  }[];
+  /**
    * WhatsApp de campaña, visitas y videollamadas (ing. Carlos, 30-09: «esos
    * dos puntos tienen que estar en su reporte diario»). Opcional: si no se
    * pudo calcular, el reporte sale igual.
@@ -191,7 +201,7 @@ function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: string; su
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
-  pendientesPostventa, indicadores,
+  pendientesPostventa, rutasPostventa, indicadores,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -272,6 +282,33 @@ export function ReporteDiarioPdf({
           />
         </View>
 
+        {rutasPostventa ? (
+          <Seccion titulo="1. GESTIONES DEL DÍA, POR RUTA" total={rutasPostventa.reduce((t, b) => t + b.filas.length, 0)}>
+            {rutasPostventa.map((b) => (
+              <View key={b.titulo}>
+                <View style={e.subtitulo2}>
+                  <Text style={e.subtitulo2Texto}>{b.titulo.toUpperCase()} ({b.filas.length})</Text>
+                </View>
+                <View style={e.th}>
+                  <Text style={[e.thTexto, { width: "7%" }]}>Hora</Text>
+                  <Text style={[e.thTexto, { width: "30%" }]}>Cliente</Text>
+                  <Text style={[e.thTexto, { width: "63%" }]}>Gestión</Text>
+                </View>
+                {b.filas.length === 0 ? (
+                  <Text style={e.vacio}>Sin gestiones de esta ruta este día.</Text>
+                ) : (
+                  b.filas.map((f, i) => (
+                    <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                      <Text style={{ width: "7%" }}>{f.hora ?? "—"}</Text>
+                      <Text style={{ width: "30%", paddingRight: 6 }}>{corta(f.cliente, 70)}</Text>
+                      <Text style={{ width: "63%", color: GRIS }}>{corta(f.detalle, 400)}</Text>
+                    </View>
+                  ))
+                )}
+              </View>
+            ))}
+          </Seccion>
+        ) : (
         <Seccion titulo="1. SEGUIMIENTOS REALIZADOS" total={seguimientos.length}>
           <View style={e.th}>
             <Text style={[e.thTexto, { width: "7%" }]}>Hora</Text>
@@ -300,6 +337,7 @@ export function ReporteDiarioPdf({
             ))
           )}
         </Seccion>
+        )}
 
         {/* Las marcas de WhatsApp, aparte de los seguimientos (30-09): se
             ven, pero no inflan el total de la sección 1. */}
