@@ -1,11 +1,13 @@
 import Link from "@/components/enlace";
-import { FileText, Printer } from "lucide-react";
+import { FileText, Printer, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { bloquesPedido, estadoPago, etiquetaResponsable, type ServicioPostventa } from "@/lib/postventa";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { UrgenciaFinanzasBoton } from "@/components/crm/urgencia-finanzas-boton";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -31,20 +33,57 @@ const FILTROS = [
   { clave: "cerrados", etiqueta: "Cerrados (60 días)" },
 ];
 
-export default async function SusPedidosPage({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+export default async function SusPedidosPage({ searchParams }: { searchParams: Promise<{ ver?: string; q?: string }> }) {
   await requerirPerfil();
-  const { ver = "" } = await searchParams;
+  const { ver = "", q } = await searchParams;
+  // EL BUSCADOR (buzón, Central 10-10: «encontrar rápido el pedido que se
+  // realizó de tal cliente para imprimir algún documento»). Busca en TODOS los
+  // pedidos liberados, también los cerrados hace más de 60 días: por cliente,
+  // RUC, N.º de pedido, N.º de cierre o serie de una máquina. Comas y paréntesis
+  // rompen el filtro .or() de PostgREST: se cambian por espacios.
+  const busqueda = (q ?? "").replace(/[,()*%\\]/g, " ").replace(/\s+/g, " ").trim();
   const supabase = await createClient();
   const hace60 = haceDias(60);
 
+  // Los espacios valen como comodín: «lima airport» encuentra «LIMA AIRPORT PARTNERS».
+  const patron = `%${busqueda.replace(/ /g, "%")}%`;
+  // Lo que coincide fuera del pedido mismo: el N.º o el RUC del cierre y la
+  // serie de una máquina. Se juntan en ids para el mismo .or().
+  let idsPorCierre: string[] = [];
+  let idsPorSerie: string[] = [];
+  if (busqueda) {
+    const [{ data: cierresQ }, { data: seriesQ }] = await Promise.all([
+      supabase.from("informes_cierre").select("id").or(`codigo.ilike.${patron},cliente_doc.ilike.${patron},cliente_nombre.ilike.${patron}`).limit(100),
+      busqueda.length >= 4
+        ? supabase.from("pedido_equipos").select("servicio_id").ilike("serie", patron).limit(100)
+        : Promise.resolve({ data: [] }),
+    ]);
+    idsPorCierre = ((cierresQ ?? []) as { id: string }[]).map((c) => c.id);
+    idsPorSerie = [...new Set(((seriesQ ?? []) as { servicio_id: string }[]).map((e) => e.servicio_id))];
+  }
+  const filtroBusqueda = [
+    `cliente_texto.ilike.${patron}`,
+    `numero_pedido_erp.ilike.${patron}`,
+    ...(idsPorCierre.length ? [`informe_cierre_id.in.(${idsPorCierre.join(",")})`] : []),
+    ...(idsPorSerie.length ? [`id.in.(${idsPorSerie.join(",")})`] : []),
+  ].join(",");
+
   const hace90 = haceDias(90);
   const [{ data: pedidos }, { data: emitidos }, { data: liberados }] = await Promise.all([
-    supabase
-      .from("servicios_postventa")
-      .select("*")
-      .not("informe_cierre_id", "is", null)
-      .not("pedido_ejecutado_at", "is", null)
-      .or(`cerrado_at.is.null,cerrado_at.gte.${hace60}`)
+    (busqueda
+      ? supabase
+          .from("servicios_postventa")
+          .select("*")
+          .not("informe_cierre_id", "is", null)
+          .not("pedido_ejecutado_at", "is", null)
+          .or(filtroBusqueda)
+      : supabase
+          .from("servicios_postventa")
+          .select("*")
+          .not("informe_cierre_id", "is", null)
+          .not("pedido_ejecutado_at", "is", null)
+          .or(`cerrado_at.is.null,cerrado_at.gte.${hace60}`)
+    )
       .order("pedido_ejecutado_at", { ascending: false })
       .limit(300),
     // Lo que falta liberar (se hace en «Cierres de venta»): emitidos de los últimos 90 días sin pedido ejecutado.
@@ -76,6 +115,9 @@ export default async function SusPedidosPage({ searchParams }: { searchParams: P
     return { s, siguiente, sr, pago: estadoPago(s), cerrado: Boolean(s.cerrado_at) };
   });
   const enCurso = filas.filter((f) => !f.cerrado);
+  // Buscando, «En curso» pasa a «Todos»: el pedido que se busca para imprimir
+  // muchas veces ya está cerrado.
+  const conBusqueda = (f: (typeof filas)[number][]) => (busqueda ? filas : f);
   const visibles =
     ver === "cerrados"
       ? filas.filter((f) => f.cerrado)
@@ -85,7 +127,7 @@ export default async function SusPedidosPage({ searchParams }: { searchParams: P
           ? enCurso.filter((f) => f.sr.total > f.sr.con)
           : ver === "despacho"
             ? enCurso.filter((f) => !f.s.despachado_at)
-            : enCurso;
+            : conBusqueda(enCurso);
   const cuenta = (clave: string) =>
     clave === "cerrados"
       ? filas.filter((f) => f.cerrado).length
@@ -95,7 +137,11 @@ export default async function SusPedidosPage({ searchParams }: { searchParams: P
           ? enCurso.filter((f) => f.sr.total > f.sr.con).length
           : clave === "despacho"
             ? enCurso.filter((f) => !f.s.despachado_at).length
-            : enCurso.length;
+            : conBusqueda(enCurso).length;
+  const enlace = (clave: string) => {
+    const p = new URLSearchParams({ ...(clave ? { ver: clave } : {}), ...(busqueda ? { q: busqueda } : {}) }).toString();
+    return p ? `/central/pedidos?${p}` : "/central/pedidos";
+  };
 
   return (
     <div className="space-y-4">
@@ -111,24 +157,42 @@ export default async function SusPedidosPage({ searchParams }: { searchParams: P
         )}
       </div>
 
+      <form className="flex gap-2" action="/central/pedidos">
+        {ver && <input type="hidden" name="ver" value={ver} />}
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input name="q" defaultValue={busqueda} placeholder="Buscar por cliente, RUC, N.º de pedido, N.º de cierre o serie" className="pl-8" />
+        </div>
+        <Button type="submit" size="sm">
+          Buscar
+        </Button>
+        {busqueda && (
+          <Link href={ver ? `/central/pedidos?ver=${ver}` : "/central/pedidos"} className="self-center text-xs font-medium text-muted-foreground hover:text-foreground">
+            Limpiar
+          </Link>
+        )}
+      </form>
+
       <div className="flex flex-wrap gap-1.5">
         {FILTROS.map((f) => (
           <Link
             key={f.clave}
-            href={f.clave ? `/central/pedidos?ver=${f.clave}` : "/central/pedidos"}
+            href={enlace(f.clave)}
             className={cn(
               "rounded-full border px-3 py-1 text-xs font-medium",
               ver === f.clave ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground hover:bg-accent",
             )}
           >
-            {f.etiqueta} <span className="opacity-70">{cuenta(f.clave)}</span>
+            {busqueda && !f.clave ? "Todos" : f.etiqueta} <span className="opacity-70">{cuenta(f.clave)}</span>
           </Link>
         ))}
       </div>
 
       {visibles.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          {ver ? "Ningún pedido en esta vista." : "Todavía no hay pedidos liberados en curso. Cuando libere uno desde Cierres de venta, aparece aquí."}
+          {busqueda
+            ? `Ningún pedido liberado coincide con «${busqueda}». Pruebe con parte del nombre, el RUC o el N.º del cierre (por ejemplo 012). Si el cierre todavía no se libera, está en Cierres de venta.`
+            : ver ? "Ningún pedido en esta vista." : "Todavía no hay pedidos liberados en curso. Cuando libere uno desde Cierres de venta, aparece aquí."}
         </div>
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">

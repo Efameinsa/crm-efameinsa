@@ -1,5 +1,5 @@
 import Link from "@/components/enlace";
-import { AlertTriangle, Ban, CheckCircle2, Package, Printer, Truck } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle2, Package, Printer, Search, Truck } from "lucide-react";
 import { requerirRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
@@ -16,6 +16,8 @@ import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cier
 import { cargarCompendio, oportunidadDelInforme, type Compendio } from "@/lib/compendio-cierre";
 import { equiposDelPedido, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -82,7 +84,7 @@ interface FilaInforme {
 export default async function CierresCentralPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string }>;
+  searchParams: Promise<{ ver?: string; q?: string }>;
 }) {
   // Operaciones también: es quien anula los cierres que le piden los
   // comerciales (0170). La pantalla tenía su propio candado además del de la
@@ -93,17 +95,40 @@ export default async function CierresCentralPage({
   const fichaDe = (cuentaId: string) =>
     ["gerencia", "admin"].includes(perfilQueMira.rol) ? `/gerencia/clientes/${cuentaId}` : `/central/clientes/${cuentaId}`;
   const sp = await searchParams;
-  const pestana: Pestana = (PESTANAS.find((p) => p.clave === sp.ver)?.clave ?? "por_liberar") as Pestana;
+  // EL BUSCADOR (buzón, Central 10-10: «encontrar rápido el pedido que se
+  // realizó de tal cliente para imprimir algún documento»). Por N.º del cierre,
+  // cliente, RUC, asunto o N.º de pedido, en todos los cierres emitidos y no
+  // solo en los 200 últimos. Buscando, la pestaña por defecto es «Todos».
+  // Comas y paréntesis rompen el .or() de PostgREST: se cambian por espacios.
+  const busqueda = (sp.q ?? "").replace(/[,()*%\\]/g, " ").replace(/\s+/g, " ").trim();
+  const pestana: Pestana = (PESTANAS.find((p) => p.clave === sp.ver)?.clave ?? (busqueda ? "todos" : "por_liberar")) as Pestana;
+  const enlace = (ver: string) => `/central/cierres?${new URLSearchParams({ ver, ...(busqueda ? { q: busqueda } : {}) })}`;
 
   const supabase = await createClient();
-  const { data } = await supabase
+  // Los espacios valen como comodín: «lima airport» encuentra «LIMA AIRPORT PARTNERS».
+  const patron = `%${busqueda.replace(/ /g, "%")}%`;
+  const { data: porNumeroDePedido } = busqueda
+    ? await supabase.from("servicios_postventa").select("informe_cierre_id").ilike("numero_pedido_erp", patron).not("informe_cierre_id", "is", null).limit(100)
+    : { data: [] };
+  const idsPorPedido = ((porNumeroDePedido ?? []) as { informe_cierre_id: string }[]).map((p) => p.informe_cierre_id);
+  let consulta = supabase
     .from("informes_cierre")
     .select(
       "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, regularizado, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
     )
-    .not("emitido_at", "is", null)
-    .order("emitido_at", { ascending: false })
-    .limit(200);
+    .not("emitido_at", "is", null);
+  if (busqueda) {
+    consulta = consulta.or(
+      [
+        `codigo.ilike.${patron}`,
+        `cliente_nombre.ilike.${patron}`,
+        `cliente_doc.ilike.${patron}`,
+        `asunto.ilike.${patron}`,
+        ...(idsPorPedido.length ? [`id.in.(${idsPorPedido.join(",")})`] : []),
+      ].join(","),
+    );
+  }
+  const { data } = await consulta.order("emitido_at", { ascending: false }).limit(200);
 
   const todas = (data ?? []) as unknown as FilaInforme[];
 
@@ -343,7 +368,7 @@ export default async function CierresCentralPage({
             return (
               <Link
                 key={p.clave}
-                href={`/central/cierres?ver=${p.clave}`}
+                href={enlace(p.clave)}
                 className={cn(
                   "rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors",
                   pestana === p.clave
@@ -358,6 +383,22 @@ export default async function CierresCentralPage({
         </div>
       }
     >
+      <form className="mb-3 flex gap-2" action="/central/cierres">
+        {sp.ver && <input type="hidden" name="ver" value={pestana} />}
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input name="q" defaultValue={busqueda} placeholder="Buscar por cliente, RUC, N.º del cierre (012 o 012-2026) o N.º de pedido" className="pl-8" />
+        </div>
+        <Button type="submit" size="sm">
+          Buscar
+        </Button>
+        {busqueda && (
+          <Link href={`/central/cierres?ver=${pestana}`} className="self-center text-xs font-medium text-muted-foreground hover:text-foreground">
+            Limpiar
+          </Link>
+        )}
+      </form>
+
       {pestana === "por_liberar" && urgentes > 0 && (
         <p className="mb-3 flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs font-semibold text-destructive">
           <AlertTriangle className="size-3.5" />
@@ -380,7 +421,9 @@ export default async function CierresCentralPage({
 
       {filas.length === 0 ? (
         <p className="max-w-prose text-sm text-muted-foreground">
-          {pestana === "por_liberar"
+          {busqueda
+            ? `Ningún cierre ${pestana === "todos" ? "" : "de esta pestaña "}coincide con «${busqueda}». Pruebe con parte del nombre, el RUC o el N.º del cierre${pestana === "todos" ? "" : ", o mire en «Todos»"}.`
+            : pestana === "por_liberar"
             ? "No queda ningún cierre por liberar. Cuando un comercial emita uno, aparece acá con todo lo que adjuntó."
             : "Todavía no hay cierres en esta lista."}
         </p>
