@@ -123,7 +123,7 @@ export function FiltrosOportunidades({
             type="search"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
-            placeholder="Buscar por cliente…"
+            placeholder="Buscar por cliente, RUC/DNI, teléfono o correo…"
             className="pl-9"
           />
         </div>
