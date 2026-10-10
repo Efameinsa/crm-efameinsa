@@ -9,6 +9,8 @@ const TITULO: Record<string, string> = {
   video: "Video",
   guia: "Guía de remisión",
   maquina: "Máquina entregada",
+  en_local: "En el local del cliente",
+  recibe: "Quien recibe",
   protocolo: "Protocolo de prueba",
 };
 
