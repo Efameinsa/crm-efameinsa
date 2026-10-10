@@ -98,7 +98,7 @@ export interface DatosApertura {
   /** Observación del destino (0388, Rubí 03-10): la sede o la dirección de la agencia en destino adonde tiene que llegar. */
   destinoObservacion?: string | null;
   /** A domicilio o en agencia, y cuál (0259: en Cusco hay seis agencias). */
-  entregaModo: "domicilio" | "agencia" | null;
+  entregaModo: "domicilio" | "agencia" | "planta" | null;
   agenciaDestino: string | null;
   /** Dirección de la agencia donde lo deja el almacén: el primer destino (0345). */
   agenciaDireccion?: string | null;
@@ -206,6 +206,12 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     primerDestino = [/^\s*an?gencia\b/i.test(agencia) ? agencia : `AGENCIA ${agencia}`, d.agenciaDireccion ?? "(falta la dirección de la agencia)"].join("\n");
     destinoFinal = [d.direccion ?? "—", finalAparte].filter(Boolean).join("\n");
     if (d.direccionFinal) resaltadoDestino = "EQUIPO DEBERÁ LLEGAR A DOMICILIO";
+  } else if (d.entregaModo === "planta") {
+    // EL CLIENTE LO RECOGE (Ariana, 10-10; 0434): equipos industriales que
+    // vienen a buscar con su transporte. El almacén no lo lleva a ninguna
+    // parte; la dirección es adonde va el equipo (la puesta en marcha).
+    primerDestino = "RECOJO EN NUESTRAS INSTALACIONES\n(el cliente lo recoge en planta con su transporte)";
+    destinoFinal = [d.direccion ?? "—", finalAparte].filter(Boolean).join("\n");
   } else {
     primerDestino = [d.entregaModo === "domicilio" ? "ENTREGA A DOMICILIO" : null, d.direccion ?? "—"].filter(Boolean).join("\n");
     destinoFinal = finalAparte ?? (d.direccion ? "EL MISMO (se entrega directo al cliente)" : "—");

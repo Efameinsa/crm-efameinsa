@@ -108,7 +108,7 @@ export default async function OportunidadDetallePage({
       supabase
         .from("cotizaciones")
         .select(
-          "id, codigo, serie, estado, estado_aprobacion, observacion_estado, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at, entrega_lugar, version",
+          "id, codigo, serie, estado, estado_aprobacion, observacion_estado, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at, entrega_lugar, version, anulada_at, anulada_motivo",
         )
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),

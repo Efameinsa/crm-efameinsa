@@ -8,6 +8,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AgregarCotizacionVieja } from "@/components/crm/agregar-cotizacion-vieja";
 import { CorregirCotizacionBoton } from "@/components/crm/corregir-cotizacion-boton";
+import { AnularCotizacionBoton } from "@/components/crm/anular-cotizacion-boton";
 import { fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
@@ -72,6 +73,8 @@ interface Fila {
   oportunidadHref: string | null;
   delArchivo: boolean;
   nota: string | null;
+  /** 0433: anulada con código; el número sigue en la lista, en rojo. */
+  anulada?: boolean;
   /** Versión vigente de una cotización corregida (0123): «v2» junto al número. */
   version?: number;
 }
@@ -108,7 +111,7 @@ export default async function MisCotizacionesPage({
     .in("comercial_id", duenos);
   let qCrm = supabase
     .from("cotizaciones")
-    .select("id, codigo, serie, total, moneda, enviada_at, vigencia_dias, version, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
+    .select("id, codigo, serie, estado, total, moneda, enviada_at, vigencia_dias, version, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
     .in("oportunidades.comercial_id", duenos)
     .not("enviada_at", "is", null);
   // Los borradores no tienen número: se buscan por el cliente, en memoria, y
@@ -205,12 +208,16 @@ export default async function MisCotizacionesPage({
       fecha: c.enviada_at as string,
       monto: Number(c.total),
       moneda: c.moneda as string,
-      ...relojDeVigencia(c.enviada_at as string | null, c.vigencia_dias as number | null),
+      // Una anulada ya no espera respuesta: sin reloj de vigencia.
+      ...(c.estado === "anulada"
+        ? { venceEl: null, diasSinRespuesta: null }
+        : relojDeVigencia(c.enviada_at as string | null, c.vigencia_dias as number | null)),
       href: `/api/cotizaciones/${c.id}/pdf`,
       borrador: false,
       oportunidadHref: `/comercial/oportunidades/${c.oportunidad_id}`,
       delArchivo: false,
-      nota: null,
+      nota: c.estado === "anulada" ? "anulada" : null,
+      anulada: c.estado === "anulada",
       version: Number(c.version ?? 1),
     })),
     ...(archivo ?? []).map((c) => ({
@@ -304,14 +311,16 @@ export default async function MisCotizacionesPage({
           "w-24 rounded-full px-2 py-0.5 text-center text-[10px] font-semibold",
           f.borrador
             ? "bg-amber-500/10 text-amber-700"
-            : f.delArchivo
+            : f.anulada
+              ? "bg-destructive/10 text-destructive"
+              : f.delArchivo
               ? "bg-secondary text-muted-foreground"
               : "bg-primary/10 text-primary",
         )}
       >
         {f.borrador ? "sin numerar" : (f.nota ?? (f.delArchivo ? "del archivo" : "del CRM"))}
       </span>
-      <span className="relative z-10 flex w-28 items-center justify-end gap-2 text-[11px]">
+      <span className="relative z-10 flex w-36 items-center justify-end gap-2 text-[11px]">
         {f.borrador ? (
           <>
             <Link
@@ -335,8 +344,11 @@ export default async function MisCotizacionesPage({
             {/* Corregir conservando el número pide el código de operaciones o
                 gerencia (0123): es el único camino sobre un documento que el
                 cliente ya tiene. */}
-            {f.oportunidadHref && (
-              <CorregirCotizacionBoton cotizacionId={f.id} codigo={f.codigo} volverHref={f.oportunidadHref} variante="enlace" />
+            {f.oportunidadHref && !f.anulada && (
+              <>
+                <CorregirCotizacionBoton cotizacionId={f.id} codigo={f.codigo} volverHref={f.oportunidadHref} variante="enlace" />
+                <AnularCotizacionBoton cotizacionId={f.id} codigo={f.codigo} />
+              </>
             )}
             <FileDown className="size-3.5 text-muted-foreground" />
           </>

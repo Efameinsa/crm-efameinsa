@@ -68,7 +68,7 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          {ETIQUETA_TIPO_PEDIDO[circuito.tipo]}{circuito.entregaEnPlanta ? " · el cliente recoge en planta" : ""}{servicio.modalidad === "provincia" ? " · provincia" : " · Lima"}
+          {ETIQUETA_TIPO_PEDIDO[circuito.tipo]}{circuito.entregaEnPlanta || servicio.entrega_modo === "planta" ? " · el cliente recoge en planta" : ""}{servicio.modalidad === "provincia" ? " · provincia" : " · Lima"}
           {!servicio.informe_cierre_id ? " · anterior al circuito" : ""}
         </p>
         <h1 className="mt-0.5 text-lg font-bold leading-tight text-foreground">{cliente}</h1>
@@ -84,10 +84,16 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
               </span>
             </p>
           )}
+          {servicio.entrega_modo === "planta" && (
+            <p className="inline-flex items-start gap-1 font-semibold text-foreground">
+              <MapPin className="mt-0.5 size-3.5 flex-none" />
+              <span>1) Lo recoge el cliente en nuestras instalaciones, con su transporte</span>
+            </p>
+          )}
           {(servicio.direccion_entrega || servicio.ubicacion) && (
             <p className="inline-flex items-start gap-1">
               <MapPin className="mt-0.5 size-3.5 flex-none" />
-              {servicio.entrega_modo === "agencia" ? "2) Destino final del cliente: " : ""}
+              {servicio.entrega_modo === "agencia" || servicio.entrega_modo === "planta" ? "2) Destino final del cliente: " : ""}
               {servicio.direccion_entrega ?? servicio.ubicacion}
             </p>
           )}

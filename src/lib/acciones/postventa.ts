@@ -503,7 +503,7 @@ export async function verificarDireccion(
     recibeDoc?: string;
     recibeTelefono?: string;
     /** A domicilio o en agencia, y cuál (0259). */
-    entregaModo?: "domicilio" | "agencia" | null;
+    entregaModo?: "domicilio" | "agencia" | "planta" | null;
     agenciaDestino?: string | null;
     /** La dirección de la agencia donde el almacén lo deja: el primer destino (0345). */
     agenciaDireccion?: string | null;

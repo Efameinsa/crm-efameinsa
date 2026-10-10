@@ -20,6 +20,8 @@ export type TipoNotificacion =
   // Se usó el código que dictó operaciones o gerencia: quien autorizó tiene que
   // enterarse de para qué sirvió (migración 0123).
   | "cotizacion_corregida"
+  // Y lo mismo cuando el código sirvió para anular una cotización numerada (0433).
+  | "cotizacion_anulada"
   // Central avisa que un cliente está esperando y nadie lo atiende (25-08).
   | "urgencia"
   // El cliente que ya está en manos de alguien volvió a escribir a Central

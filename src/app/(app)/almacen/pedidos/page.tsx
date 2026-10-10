@@ -61,7 +61,7 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
   const porSeries = ver === "series";
   let consulta = supabase
     .from("servicios_postventa")
-    .select("id, cliente_texto, equipo, ubicacion, direccion_entrega, modalidad, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, protocolo_prueba_ref, almacen_listo_at, agencia_at, guia, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, transportista, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en, con_instalacion, despacho_nota, updated_at, series_pedidas_at");
+    .select("id, cliente_texto, equipo, ubicacion, direccion_entrega, modalidad, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, protocolo_prueba_ref, almacen_listo_at, agencia_at, guia, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, transportista, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en, entrega_modo, con_instalacion, despacho_nota, updated_at, series_pedidas_at");
   // Las series las pide Central ANTES de lanzar el pedido: esa cola no pasa por
   // el filtro de «ya lanzado» que usan las demás.
   consulta = porSeries ? consulta.not("series_pedidas_at", "is", null) : consulta.or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null");
@@ -235,7 +235,7 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
                     <span className="block text-sm font-semibold text-foreground">{cliente(s.cliente_texto)}</span>
                     <span className="line-clamp-1 break-words text-xs text-muted-foreground">{s.equipo}</span>
                     <span className="text-[11px] text-muted-foreground">
-                      {ETIQUETA_TIPO_PEDIDO[c.tipo]}{c.entregaEnPlanta ? " · recoge en planta" : s.modalidad === "provincia" ? " · provincia" : ""}
+                      {ETIQUETA_TIPO_PEDIDO[c.tipo]}{c.entregaEnPlanta || s.entrega_modo === "planta" ? " · recoge en planta" : s.modalidad === "provincia" ? " · provincia" : ""}
                       {!s.informe_cierre_id ? " · anterior al circuito" : ""}
                     </span>
                   </span>
