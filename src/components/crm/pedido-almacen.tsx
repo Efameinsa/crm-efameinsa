@@ -97,8 +97,13 @@ export function PedidoAlmacen({
   // ESPIRITU, Santa Clara): en Lima la máquina no pasa por una agencia, la
   // lleva la camioneta hasta el cliente. Se elige dónde se entregó y, en el
   // cliente, hay una foto por máquina con su serie y la de quien recibe.
-  const [lugarEntrega, setLugarEntrega] = useState<"agencia" | "cliente">(esProvincia(servicio) ? "agencia" : "cliente");
-  const enCliente = lugarEntrega === "cliente";
+  // RECOJO EN NUESTRAS INSTALACIONES (Ariana, 10-10; 0434): equipos
+  // industriales que el cliente viene a buscar con su transporte.
+  const [lugarEntrega, setLugarEntrega] = useState<"agencia" | "cliente" | "planta">(
+    servicio.entrega_modo === "planta" ? "planta" : esProvincia(servicio) ? "agencia" : "cliente",
+  );
+  const enPlanta = lugarEntrega === "planta";
+  const enCliente = lugarEntrega === "cliente" || enPlanta;
   const [fotosEntrega, setFotosEntrega] = useState<Archivos>({});
 
   async function subir(archivos: { file: File; etiqueta: string; maquina?: MaquinaDeLaSalida }[]): Promise<FotoAlmacen[] | null> {
@@ -342,7 +347,7 @@ export function PedidoAlmacen({
                 const fotos = await subir(archivos);
                 if (!fotos) return { error: "No se subieron los archivos" };
                 return registrarSalida(servicio.id, { fecha: fechaSalida, fotos, nota: notaSalida, cliente });
-              }, faltanFotosCarga ? "Fotos de la carga subidas. Postventa ya las ve." : esServicio ? "Salida del técnico registrada. El servicio lo cierra postventa con el informe." : esProvincia(servicio) ? "Salida registrada. Falta la guía en la agencia." : "Salida registrada. Falta registrar la entrega al cliente.")
+              }, faltanFotosCarga ? "Fotos de la carga subidas. Postventa ya las ve." : esServicio ? "Salida del técnico registrada. El servicio lo cierra postventa con el informe." : servicio.entrega_modo === "planta" ? "Salida registrada. Falta registrar el recojo en nuestras instalaciones." : esProvincia(servicio) ? "Salida registrada. Falta la guía en la agencia." : "Salida registrada. Falta registrar la entrega al cliente.")
             }
           >
             {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
@@ -390,11 +395,12 @@ export function PedidoAlmacen({
 
       {/* 4 · En la agencia, o en la casa o el local del cliente (Lima) */}
       {!esServicio && servicio.despachado_at && !servicio.agencia_at && (
-        <Tarjeta icono={PackageCheck} titulo={enCliente ? "Entregado en la casa o el local del cliente" : "En la agencia o en el cliente"} tono="activa">
+        <Tarjeta icono={PackageCheck} titulo={enPlanta ? "Recogido en nuestras instalaciones" : enCliente ? "Entregado en la casa o el local del cliente" : "En la agencia o en el cliente"} tono="activa">
           <div className="flex flex-wrap gap-1.5">
             {([
               ["agencia", "En la agencia (provincia)"],
               ["cliente", "En la casa o el local del cliente (Lima)"],
+              ["planta", "Lo recogió el cliente en nuestras instalaciones"],
             ] as const).map(([clave, texto]) => (
               <button
                 key={clave}
@@ -410,22 +416,24 @@ export function PedidoAlmacen({
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            {enCliente
+            {enPlanta
+              ? "El cliente vino a recogerla con su transporte. Foto de la guía firmada, foto de cada máquina cargada en su vehículo y de quien la recogió."
+              : enCliente
               ? "La máquina se entregó directo al cliente. Foto de la guía firmada, foto de cada máquina ya en su lugar y, si se puede, de quien recibe."
               : "La guía de remisión es lo que el cliente necesita para recoger. Foto de la guía y foto de la máquina entregada."}
           </p>
           <div className="grid gap-2 sm:grid-cols-3">
             <div className="grid gap-1">
-              <Label className="text-xs">{enCliente ? "Quién la llevó" : "Agencia o transportista"}</Label>
-              <Input value={transportista} onChange={(e) => setTransportista(e.target.value)} placeholder={enCliente ? "ej. camioneta propia, chofer Juan" : "ej. Shalom, Marvisur, camioneta propia"} />
+              <Label className="text-xs">{enPlanta ? "Transporte del cliente" : enCliente ? "Quién la llevó" : "Agencia o transportista"}</Label>
+              <Input value={transportista} onChange={(e) => setTransportista(e.target.value)} placeholder={enPlanta ? "ej. camión del cliente, placa ABC-123" : enCliente ? "ej. camioneta propia, chofer Juan" : "ej. Shalom, Marvisur, camioneta propia"} />
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">N.º de guía de remisión <span className="text-destructive">*</span></Label>
               <Input value={guia} onChange={(e) => setGuia(e.target.value)} placeholder="ej. T001-0004567" />
             </div>
             <div className="grid gap-1">
-              <Label className="text-xs">Quién recibió</Label>
-              <Input value={recibe} onChange={(e) => setRecibe(e.target.value)} placeholder={enCliente ? (servicio.recibe_nombre ?? "nombre de quien recibió en el local") : "nombre en la agencia o en el cliente"} />
+              <Label className="text-xs">{enPlanta ? "Quién la recogió" : "Quién recibió"}</Label>
+              <Input value={recibe} onChange={(e) => setRecibe(e.target.value)} placeholder={enPlanta ? (servicio.recibe_nombre ?? "nombre y DNI de quien la recogió") : enCliente ? (servicio.recibe_nombre ?? "nombre de quien recibió en el local") : "nombre en la agencia o en el cliente"} />
             </div>
           </div>
           {enCliente ? (
@@ -434,13 +442,13 @@ export function PedidoAlmacen({
               {(maquinas.length ? maquinas : [{ clave: "unica", titulo: "Máquina entregada", serie: null }]).map((m) => (
                 <TomarOSubir
                   key={m.clave}
-                  titulo={maquinas.length > 1 ? `${m.titulo}${m.serie ? ` · ${m.serie}` : ""}` : "Máquina en el local del cliente"}
+                  titulo={maquinas.length > 1 ? `${m.titulo}${m.serie ? ` · ${m.serie}` : ""}` : enPlanta ? "Máquina cargada en el vehículo del cliente" : "Máquina en el local del cliente"}
                   archivo={fotosEntrega[m.clave] ?? null}
                   onChange={(f) => setFotosEntrega((x) => ({ ...x, [m.clave]: f }))}
                   compacto
                 />
               ))}
-              <TomarOSubir titulo="Quien recibe, con la máquina" archivo={fotosEntrega.recibe ?? null} onChange={(f) => setFotosEntrega((x) => ({ ...x, recibe: f }))} compacto />
+              <TomarOSubir titulo={enPlanta ? "Quien la recoge, con la máquina" : "Quien recibe, con la máquina"} archivo={fotosEntrega.recibe ?? null} onChange={(f) => setFotosEntrega((x) => ({ ...x, recibe: f }))} compacto />
             </div>
           ) : (
           <div className="grid gap-2 sm:grid-cols-2">
@@ -457,8 +465,8 @@ export function PedidoAlmacen({
                   enCliente
                     ? [
                         ...(fotoGuia ? [{ file: fotoGuia, etiqueta: "guia" }] : []),
-                        ...maquinas.filter((m) => fotosEntrega[m.clave]).map((m) => ({ file: fotosEntrega[m.clave]!, etiqueta: "en_local", maquina: m })),
-                        ...(!maquinas.length && fotosEntrega.unica ? [{ file: fotosEntrega.unica, etiqueta: "en_local" }] : []),
+                        ...maquinas.filter((m) => fotosEntrega[m.clave]).map((m) => ({ file: fotosEntrega[m.clave]!, etiqueta: enPlanta ? "en_planta" : "en_local", maquina: m })),
+                        ...(!maquinas.length && fotosEntrega.unica ? [{ file: fotosEntrega.unica, etiqueta: enPlanta ? "en_planta" : "en_local" }] : []),
                         ...(fotosEntrega.recibe ? [{ file: fotosEntrega.recibe, etiqueta: "recibe" }] : []),
                       ]
                     : [
@@ -467,12 +475,12 @@ export function PedidoAlmacen({
                       ],
                 );
                 if (!fotos) return { error: "No se subieron las fotos" };
-                return registrarAgencia(servicio.id, { transportista, guia, fotos, recibe, cliente, enCliente });
-              }, enCliente ? "Entrega en el local del cliente registrada. Postventa da el doble check." : "Entrega registrada con su guía. Postventa da el doble check.")
+                return registrarAgencia(servicio.id, { transportista, guia, fotos, recibe, cliente, enCliente, enPlanta });
+              }, enPlanta ? "Recojo en nuestras instalaciones registrado. Postventa da el doble check." : enCliente ? "Entrega en el local del cliente registrada. Postventa da el doble check." : "Entrega registrada con su guía. Postventa da el doble check.")
             }
           >
             {pendiente ? <Loader2 className="size-4 animate-spin" /> : <PackageCheck className="size-4" />}
-            {enCliente ? "Entregado al cliente" : "Entregado con guía"}
+            {enPlanta ? "Lo recogió el cliente" : enCliente ? "Entregado al cliente" : "Entregado con guía"}
           </Button>
         </Tarjeta>
       )}
@@ -480,7 +488,11 @@ export function PedidoAlmacen({
       {!esServicio && servicio.agencia_at && (
         <div className="rounded-xl border border-[#1E7F4F]/30 bg-[#1E7F4F]/5 p-4 text-sm text-[#1E7F4F]">
           <Check className="mr-1 inline size-4" />
-          {(servicio.agencia_fotos ?? []).some((f) => f?.etiqueta === "en_local" || f?.etiqueta === "recibe") ? "Entregado en el local del cliente" : "Despachado"} con guía {servicio.guia}. {servicio.despacho_verificado_at ? "Postventa ya lo verificó." : "Falta el doble check de postventa."}
+          {(servicio.agencia_fotos ?? []).some((f) => f?.etiqueta === "en_planta")
+            ? "Recogido por el cliente en nuestras instalaciones"
+            : (servicio.agencia_fotos ?? []).some((f) => f?.etiqueta === "en_local" || f?.etiqueta === "recibe")
+              ? "Entregado en el local del cliente"
+              : "Despachado"} con guía {servicio.guia}. {servicio.despacho_verificado_at ? "Postventa ya lo verificó." : "Falta el doble check de postventa."}
         </div>
       )}
     </div>

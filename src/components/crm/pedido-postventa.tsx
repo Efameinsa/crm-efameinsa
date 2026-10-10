@@ -619,7 +619,7 @@ export function PedidoPostventa({
                 recibeDoc: datos.doc,
                 recibeTelefono: datos.telefono,
                 destino: datos.destino === "provincia" ? "provincia" : datos.destino === "lima" ? "lima" : null,
-                entregaModo: datos.entrega === "agencia" ? "agencia" : "domicilio",
+                entregaModo: datos.entrega === "agencia" || datos.entrega === "planta" ? datos.entrega : "domicilio",
                 agenciaDestino: datos.agencia,
                 agenciaDireccion: datos.agencia_direccion,
                 pin: datos.pin,
@@ -646,6 +646,8 @@ export function PedidoPostventa({
             opciones: [
               { valor: "domicilio", etiqueta: "A domicilio (la dirección de abajo)" },
               { valor: "agencia", etiqueta: "Por agencia (el almacén lo deja en una agencia)" },
+              // Equipos industriales que el cliente recoge con su transporte (Ariana, 10-10; 0434).
+              { valor: "planta", etiqueta: "Recojo en nuestras instalaciones (el cliente lo recoge en planta)" },
             ],
           },
           {
@@ -682,7 +684,7 @@ export function PedidoPostventa({
                   // El mismo criterio que el servidor (verificarDireccion): solo si algo cambia.
                   soloSi: (d: Record<string, string>) => {
                     const igual = (a: string | null | undefined, b: string | undefined) => (a ?? "").trim() === (b ?? "").trim();
-                    const modo = d.entrega === "agencia" ? "agencia" : "domicilio";
+                    const modo = d.entrega === "agencia" || d.entrega === "planta" ? d.entrega : "domicilio";
                     return (
                       (!!d.destino && !igual(servicio.modalidad, d.destino)) ||
                       !igual(servicio.direccion_entrega, d.direccion) ||

@@ -10,6 +10,7 @@ const TITULO: Record<string, string> = {
   guia: "Guía de remisión",
   maquina: "Máquina entregada",
   en_local: "En el local del cliente",
+  en_planta: "Recogida en nuestras instalaciones",
   recibe: "Quien recibe",
   protocolo: "Protocolo de prueba",
 };

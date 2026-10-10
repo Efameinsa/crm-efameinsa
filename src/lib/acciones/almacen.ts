@@ -267,11 +267,12 @@ export async function registrarSalida(servicioId: string, datos: { fecha: string
 
 export async function registrarAgencia(
   servicioId: string,
-  datos: { transportista?: string; guia: string; fotos: Foto[]; recibe?: string; cliente: string; enCliente?: boolean },
+  datos: { transportista?: string; guia: string; fotos: Foto[]; recibe?: string; cliente: string; enCliente?: boolean; enPlanta?: boolean },
 ) {
   const supabase = await createClient();
   // En Lima se entrega en la casa o el local del cliente, sin agencia (Lesly, 10-10).
-  const transportista = datos.transportista?.trim() || (datos.enCliente ? "Entrega directa al cliente" : "");
+  // O lo recoge el cliente en nuestras instalaciones con su transporte (Ariana, 10-10; 0434).
+  const transportista = datos.transportista?.trim() || (datos.enPlanta ? "Transporte del cliente" : datos.enCliente ? "Entrega directa al cliente" : "");
   const { error } = await supabase.rpc("almacen_registrar_agencia", {
     p_servicio: servicioId,
     p_transportista: transportista || null,
@@ -281,7 +282,7 @@ export async function registrarAgencia(
   });
   if (error) return { error: limpiar(error.message) };
   await avisarPostventa(
-    datos.enCliente ? `Entregado en el local del cliente · ${datos.cliente}` : `Entregado en agencia · ${datos.cliente}`,
+    datos.enPlanta ? `Recogido en nuestras instalaciones · ${datos.cliente}` : datos.enCliente ? `Entregado en el local del cliente · ${datos.cliente}` : `Entregado en agencia · ${datos.cliente}`,
     datos.enCliente
       ? `${transportista} · guía ${datos.guia}${datos.recibe?.trim() ? ` · recibió ${datos.recibe.trim()}` : ""}, con ${datos.fotos.length} fotos. Verifique la entrega.`
       : `${transportista ? `${transportista} · ` : ""}guía ${datos.guia}. Verifique el envío y mándele la guía al cliente.`,

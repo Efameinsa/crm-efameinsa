@@ -111,8 +111,8 @@ export interface ServicioPostventa {
   /** No lleva plano de preinstalación (repuesto, accesorio) y por qué (0259). */
   sin_plano?: boolean | null;
   sin_plano_motivo?: string | null;
-  /** A domicilio o en agencia, y cuál (0259). */
-  entrega_modo?: "domicilio" | "agencia" | null;
+  /** A domicilio o en agencia, y cuál (0259); o el cliente lo recoge en nuestras instalaciones (0434). */
+  entrega_modo?: "domicilio" | "agencia" | "planta" | null;
   agencia_destino?: string | null;
   /** Entrega en agencia: dirección de la agencia donde lo deja el almacén (0345). */
   agencia_direccion?: string | null;

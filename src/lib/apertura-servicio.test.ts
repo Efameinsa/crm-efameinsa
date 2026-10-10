@@ -195,6 +195,13 @@ describe("las filas llevan lo que el correo lleva", () => {
     expect(faltantesApertura({ ...d, agenciaDireccion: null })).toContain("la dirección de la agencia (primer destino)");
   });
 
+  it("recojo en nuestras instalaciones: el cliente lo recoge y la dirección es el destino final (Ariana, 10-10; 0434)", () => {
+    const filas = filasApertura({ ...PERU_VACATION, entregaModo: "planta" });
+    expect(filas[2].informacion).toBe("RECOJO EN NUESTRAS INSTALACIONES\n(el cliente lo recoge en planta con su transporte)");
+    expect(filas[3].informacion).toBe("Calle Bolívar 150 Miraflores");
+    expect(faltantesApertura({ ...PERU_VACATION, entregaModo: "planta" })).not.toContain("la dirección de la agencia (primer destino)");
+  });
+
   it("no repite la dirección final si ya viene en la nota (ANDINAS, 30-09)", () => {
     const d = {
       ...PERU_VACATION,
