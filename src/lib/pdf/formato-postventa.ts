@@ -79,6 +79,8 @@ export function lineasDelConcepto(item: {
    * cotización». Va debajo, con guion, como en el Word de postventa.
    */
   detalle?: string[];
+  /** Un repuesto: su marca y modelo son los de la pieza, no los de la máquina. */
+  esRepuesto?: boolean;
 }): string[] {
   const propias = (item.descripcionLinea ?? "")
     .split(/\r?\n/)
@@ -89,17 +91,49 @@ export function lineasDelConcepto(item: {
   // El modelo del catálogo a veces trae su código en otra línea
   // («GIANT C MAX\n(CWG27MDCRS)»): en el renglón va seguido.
   const plano = (s: string) => s.replace(/\s+/g, " ").trim();
-  const lineas = [plano(item.nombre)];
-  if (item.marca && item.marca !== "—") lineas.push(`MARCA: ${plano(item.marca)}`);
-  if (item.modelo && item.modelo !== "—") lineas.push(`MODELO: ${plano(item.modelo)}`);
-  if (item.capacidad) lineas.push(`CAPACIDAD: ${plano(item.capacidad)}`);
-  const yaDichas = new Set(lineas.map((l) => l.toUpperCase()));
-  for (const l of propias) if (!yaDichas.has(l.toUpperCase())) lineas.push(l);
-  for (const d of item.detalle ?? []) {
-    const t = plano(d);
-    if (t && !yaDichas.has(t.toUpperCase())) lineas.push(`- ${t}`);
+  const nombre = plano(item.nombre);
+  const lineas = [nombre];
+  // Si en el renglón de un repuesto se escribió el equipo del cliente (MARCA:,
+  // MODELO:), ese manda: la marca y el modelo del catálogo de la pieza («UNIMAC/ALLIANCE»,
+  // «S/N») no son los de la máquina (Rubí, 10-10). «S/N» no sale nunca.
+  const escribioElEquipo = Boolean(item.esRepuesto) && propias.some((l) => /^(MARCA|MODELO)\s*:/i.test(l));
+  const conDato = (v: string | null | undefined) => Boolean(v && v !== "—" && !/^(S\/?N|N\/?A|-+)$/i.test(plano(v)));
+  if (!escribioElEquipo) {
+    if (conDato(item.marca)) lineas.push(`MARCA: ${plano(item.marca)}`);
+    if (conDato(item.modelo)) lineas.push(`MODELO: ${plano(item.modelo)}`);
+    if (conDato(item.capacidad)) lineas.push(`CAPACIDAD: ${plano(item.capacidad!)}`);
   }
+  const yaDichas = new Set(lineas.map((l) => l.toUpperCase()));
+  // Lo que trae el repuesto va pegado a su nombre y, después, lo escrito en el
+  // renglón (para qué equipo es, la serie). Una característica que empieza
+  // repitiendo el nombre («KIT DE POLEA PARA FAJA DE TRANSMISION QUE INCLUYE
+  // PERNO…») sale solo con lo que agrega: «INCLUYE PERNO…».
+  for (const d of item.detalle ?? []) {
+    const t = sinElNombre(plano(d), nombre);
+    if (t && !yaDichas.has(t.toUpperCase())) {
+      lineas.push(`- ${t}`);
+      yaDichas.add(t.toUpperCase());
+    }
+  }
+  for (const l of propias) if (!yaDichas.has(l.toUpperCase())) lineas.push(l);
   return lineas;
+}
+
+/**
+ * La característica sin las palabras con que repite el nombre del repuesto.
+ * Vacía si no agrega nada; tal cual si no empieza por el nombre (las piezas
+ * de un kit: «MANOMETRO PARA GAS BAJA PRESION»).
+ */
+function sinElNombre(texto: string, nombre: string): string {
+  const palabra = (w: string) => w.toUpperCase().replace(/[^\p{L}\p{N}/]/gu, "");
+  const delTexto = texto.split(" ");
+  const delNombre = nombre.split(" ").map(palabra).filter(Boolean);
+  let comunes = 0;
+  while (comunes < delTexto.length && comunes < delNombre.length && palabra(delTexto[comunes]) === delNombre[comunes]) comunes++;
+  if (comunes < Math.min(4, delNombre.length)) return texto;
+  const resto = delTexto.slice(comunes).join(" ").replace(/^(QUE|Y|,|-)\s+/i, "").trim();
+  const enElNombre = new Set(delNombre);
+  return resto.split(" ").map(palabra).filter(Boolean).every((w) => enElNombre.has(w)) ? "" : resto;
 }
 
 /**

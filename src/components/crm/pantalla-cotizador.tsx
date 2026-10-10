@@ -1538,7 +1538,9 @@ export function PantallaCotizador({
                               placeholder={
                                 String(producto?.segmento) === "servicio"
                                   ? "SERIE: …  ·  la máquina del cliente, cada dato en su renglón"
-                                  : "«Para la lavadora LG Titan Max 17 kg» · SERIE: …"
+                                  : String(producto?.segmento) === "repuesto"
+                                    ? "Para qué equipo es, cada dato en su renglón: SECADORA INDUSTRIAL A GAS · MARCA: … · MODELO: … · SERIE: … (reemplaza la marca y el modelo del repuesto)"
+                                    : "«Para la lavadora LG Titan Max 17 kg» · SERIE: …"
                               }
                               className="mt-0.5 min-h-14 text-sm"
                             />
