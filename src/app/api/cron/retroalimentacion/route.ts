@@ -34,17 +34,15 @@ export async function GET(request: NextRequest) {
     const { data, error } = await admin.rpc("retroalimentacion_candidatos", { p_dias: 7 });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     const candidatos = (data ?? []) as Candidato[];
-    const { data: hechos } = await admin
-      .from("eventos_meta")
-      .select("event_id")
-      .in("event_id", candidatos.map((c) => c.clave).slice(0, 1000))
-      .is("error", null);
-    const ya = new Set((hechos ?? []).map((h) => h.event_id));
-    const nuevos = candidatos.filter((c) => !ya.has(c.clave));
-    for (const c of nuevos) {
+    // enviarEventoMeta salta lo ya enviado; un `.in` con cientos de claves
+    // revienta la URL, así que el conteo sale de lo que se anotó en esta corrida.
+    const desde = new Date().toISOString();
+    for (const c of candidatos) {
       await enviarEventoMeta({ evento: c.evento, leadId: c.lead_id, eventId: c.clave, valor: c.valor, moneda: c.moneda ?? undefined, ocurrioAt: c.ocurrio_at });
     }
-    resumen.meta = { candidatos: candidatos.length, enviados: nuevos.length };
+    const { count: enviados } = await admin.from("eventos_meta").select("id", { count: "exact", head: true }).gte("enviado_at", desde);
+    const { count: conError } = await admin.from("eventos_meta").select("id", { count: "exact", head: true }).gte("enviado_at", desde).not("error", "is", null);
+    resumen.meta = { candidatos: candidatos.length, enviados: enviados ?? 0, con_error: conError ?? 0 };
   } else {
     resumen.meta = "sin META_CAPI_TOKEN";
   }
