@@ -402,6 +402,9 @@ export interface FotoAlmacen {
   tipo: string;
   /** frente · lateral_izq · lateral_der · posterior · arriba · video · guia · maquina · protocolo */
   etiqueta: string;
+  /** De qué máquina es la foto de la salida, cuando el pedido lleva varias (Lesly, 10-10). */
+  maquina?: string | null;
+  serie?: string | null;
 }
 
 /**

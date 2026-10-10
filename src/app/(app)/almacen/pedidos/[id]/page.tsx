@@ -3,7 +3,7 @@ import { ArrowLeft, MapPin, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
-import { PedidoAlmacen } from "@/components/crm/pedido-almacen";
+import { PedidoAlmacen, type MaquinaDeLaSalida } from "@/components/crm/pedido-almacen";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { InformesDelPedido } from "@/components/crm/informes-del-pedido";
@@ -45,6 +45,20 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
   const listaEquipos = await cargarEquiposDelPedido(servicio.id);
   const seriesPedidasAt = (data as { series_pedidas_at?: string | null }).series_pedidas_at ?? null;
   const conSerie = listaEquipos.filter((e) => e.serie).length;
+  // Las máquinas que salen, una por serie y en el orden del pedido: la
+  // secadora de la torre va después de su lavadora (Lesly, 10-10).
+  const primeraLinea = (t: string) => t.split("\n")[0].replace(/^[^·]*·\s*/, "").trim();
+  const maquinasSalida: MaquinaDeLaSalida[] = listaEquipos
+    .filter((e) => !e.parte_de && e.en_este_despacho)
+    .flatMap((e) => {
+      const partes = listaEquipos.filter((p) => p.parte_de === e.id);
+      const enTorre = partes.some((p) => /secadora/i.test(p.parte_nombre ?? ""));
+      return [
+      { clave: e.id, titulo: `${enTorre ? "Lavadora · " : ""}${e.descripcion.split("\n")[0].trim() || "Máquina"}`, serie: e.serie },
+      ...partes
+        .map((p) => ({ clave: p.id, titulo: `${p.parte_nombre ?? "Otra máquina"} · ${primeraLinea(p.descripcion) || "de la torre"}`, serie: p.serie })),
+      ];
+    });
 
   return (
     <div className="space-y-4">
@@ -124,7 +138,7 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-4">
-          <PedidoAlmacen servicio={servicio} porEquipo={listaEquipos.length > 0} />
+          <PedidoAlmacen servicio={servicio} porEquipo={listaEquipos.length > 0} maquinas={maquinasSalida} />
           {/* Máquina por máquina, cada una con su protocolo (0260): va ancho, que acá se trabaja. */}
           {/* En un servicio el renglón es el servicio, no una máquina que probar (Lesly, 09-10). */}
           {!circuito.esServicio && (
