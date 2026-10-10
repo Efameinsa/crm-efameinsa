@@ -385,7 +385,7 @@ function Vacio({
     return (
       <p className="text-sm text-muted-foreground">
         Nada coincide con esos filtros{etapa === "historico" ? " dentro del Histórico" : ""}.
-        {q ? <> Se buscó «{q}» por nombre de cliente, RUC y DNI.</> : null}
+        {q ? <> Se buscó «{q}» por nombre de cliente, RUC/DNI y el teléfono, correo y nombre de sus contactos.</> : null}
       </p>
     );
   }
