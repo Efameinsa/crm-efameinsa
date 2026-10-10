@@ -11,6 +11,7 @@ import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { fechaHoraLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { CorregirCotizacionBoton } from "@/components/crm/corregir-cotizacion-boton";
+import { AnularCotizacionBoton } from "@/components/crm/anular-cotizacion-boton";
 import { cn } from "@/lib/utils";
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
@@ -44,6 +45,9 @@ export interface CotizacionResumen {
   nota_gerencia: string | null;
   /** 0415: gerencia observó sin rechazar (observada) o la comercial ya respondió (respondida). */
   observacion_estado?: string | null;
+  /** 0433: anulada con código, y por qué. */
+  anulada_at?: string | null;
+  anulada_motivo?: string | null;
   created_at: string;
   enviada_at: string | null;
   /** Versión vigente (0123): 1 la original; desde 2, corregida. */
@@ -250,6 +254,9 @@ export function ListaCotizaciones({
             (c.estado_aprobacion === "auto_aprobada" || c.estado_aprobacion === "aprobada_gerencia");
           const esBorrador = c.estado === "borrador";
           const esBorradorSinNumero = esBorrador && !c.codigo;
+          // Anulada (0433): sigue en la lista —el número no desaparece—, pero
+          // tachada y con el motivo, para que nadie la tome por vigente.
+          const esAnulada = c.estado === "anulada";
           // DE PRÁCTICA, Y QUE SE VEA. Las cotizaciones de la serie PRUEBA_
           // (migración 0145) no cuentan para nada, pero en la lista se veían
           // idénticas a las de verdad. Una de práctica al lado de una real,
@@ -265,7 +272,11 @@ export function ListaCotizaciones({
               key={c.id}
               className={cn(
                 "rounded-lg border p-3",
-                puedeVender ? "border-[#1E7F4F]/40 bg-[#1E7F4F]/5" : "border-border bg-background",
+                puedeVender
+                  ? "border-[#1E7F4F]/40 bg-[#1E7F4F]/5"
+                  : esAnulada
+                    ? "border-destructive/30 bg-destructive/5 opacity-80"
+                    : "border-border bg-background",
               )}
             >
               <div className="flex items-start justify-between gap-2">
@@ -290,7 +301,11 @@ export function ListaCotizaciones({
                 <span
                   className={cn(
                     "flex-none rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                    esBorrador ? "bg-secondary text-muted-foreground" : aprobacion.clases,
+                    esBorrador
+                      ? "bg-secondary text-muted-foreground"
+                      : esAnulada
+                        ? "bg-destructive/10 text-destructive"
+                        : aprobacion.clases,
                   )}
                 >
                   {ESTADO_ENVIO[c.estado] ?? c.estado}
@@ -304,12 +319,12 @@ export function ListaCotizaciones({
                 <span
                   className={cn(
                     "text-base font-bold tabular-nums",
-                    esDePrueba ? "text-muted-foreground line-through" : "text-foreground",
+                    esDePrueba || esAnulada ? "text-muted-foreground line-through" : "text-foreground",
                   )}
                 >
                   {montoCotizacion(c.total, c.moneda, c.total_con_igv)}
                   <span className="ml-1 text-[11px] font-normal text-muted-foreground no-underline">
-                    {esDePrueba ? "no cuenta" : "con IGV"}
+                    {esAnulada ? "anulada, no cuenta" : esDePrueba ? "no cuenta" : "con IGV"}
                   </span>
                 </span>
                 <span className="text-[11px] text-muted-foreground">{c.serie}</span>
@@ -319,7 +334,7 @@ export function ListaCotizaciones({
                   ejes: la aprobación del precio y el envío. El sello de
                   aprobación solo aparece cuando informa algo —espera, rechazo o
                   visto bueno a mano de gerencia—; la auto-aprobada no dice nada. */}
-              {c.estado_aprobacion !== "auto_aprobada" && (
+              {c.estado_aprobacion !== "auto_aprobada" && !esAnulada && (
                 <span
                   className={cn(
                     "mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold",
@@ -338,7 +353,14 @@ export function ListaCotizaciones({
                 {fechaHoraLima(c.created_at)}
                 {c.enviada_at ? ` · confirmada ${fechaHoraLima(c.enviada_at)}` : ""}
                 {esUltima ? " · la más reciente" : ""}
+                {esAnulada && c.anulada_at ? ` · anulada ${fechaHoraLima(c.anulada_at)}` : ""}
               </p>
+
+              {esAnulada && c.anulada_motivo && (
+                <p className="mt-2 rounded-md border border-destructive/20 bg-background px-2 py-1.5 text-[11px] text-muted-foreground">
+                  <b className="text-destructive">Anulada:</b> &ldquo;{c.anulada_motivo}&rdquo;
+                </p>
+              )}
 
               {/* CUÁL ES LA FINAL (gerencia, 23-09: «cada vez que haya una
                   corrección tiene que estar debidamente sustentada pero se
@@ -449,7 +471,7 @@ export function ListaCotizaciones({
                     sirve porque el número ya salió al banco (migración 0123).
                     Va acá, junto a «Duplicar», porque es la misma decisión
                     tomada al revés y conviene verlas juntas. */}
-                {!esBorrador && (
+                {!esBorrador && !esAnulada && (
                   <CorregirCotizacionBoton
                     cotizacionId={c.id}
                     codigo={c.codigo}
@@ -457,6 +479,9 @@ export function ListaCotizaciones({
                     variante="enlace"
                   />
                 )}
+                {/* Anular (0433): para la que salió mal y se rehízo. No se
+                    borra —el número ya se gastó—; queda tachada con el motivo. */}
+                {!esBorrador && !esAnulada && <AnularCotizacionBoton cotizacionId={c.id} codigo={c.codigo} />}
                 {/* Solo un borrador SIN número: uno que ya tiene número
                     comprometió su correlativo con contabilidad, y una enviada la
                     tiene el cliente. La base lo impide igual (migración 0065). */}

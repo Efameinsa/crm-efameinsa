@@ -95,6 +95,8 @@ export async function cargarPotenciales(
         .select("id, oportunidad_id, codigo, total, moneda, enviada_at")
         .in("oportunidad_id", ids)
         .not("enviada_at", "is", null)
+        // Una anulada (0433) no es el valor de nada: no se proyecta.
+        .neq("estado", "anulada")
         .order("enviada_at", { ascending: false })
     : { data: [] };
   // La última enviada de cada oportunidad, que es el valor por defecto.

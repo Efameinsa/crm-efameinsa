@@ -57,6 +57,8 @@ interface FilaPresupuesto {
   cliente: string;
   /** Del archivo del Word (anterior al CRM): el PDF sale de otra ruta. */
   delArchivo: boolean;
+  /** 0433: por qué se anuló, para que Central no tenga que preguntar. */
+  motivoAnulada?: string | null;
   /** El documento se le entregó al cliente en soles (0169). El total sigue en dólares. */
   enSoles?: boolean;
   /** Versión vigente de una corregida (0123): el número va con su «v2». */
@@ -108,7 +110,7 @@ export default async function PresupuestosCentralPage({
   // tabla de cantidades: una cotización de las 8 pm no cae en «mañana».
   let consulta = supabase
     .from("cotizaciones")
-    .select("id, codigo, serie, estado, total, moneda, moneda_impresa, enviada_at, version, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))", {
+    .select("id, codigo, serie, estado, total, moneda, moneda_impresa, enviada_at, version, anulada_motivo, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))", {
       count: "exact",
     })
     .not("correlativo", "is", null)
@@ -187,6 +189,7 @@ export default async function PresupuestosCentralPage({
       delArchivo: false,
       enSoles: c.moneda_impresa === "PEN",
       version: Number(c.version ?? 1),
+      motivoAnulada: (c.anulada_motivo as string | null) ?? null,
     };
   });
 
@@ -208,9 +211,10 @@ export default async function PresupuestosCentralPage({
   }
   filas.sort((a, b) => (b.enviadaAt ?? "").localeCompare(a.enviadaAt ?? ""));
 
-  // Suma por moneda: un total que mezcle soles con dólares no dice nada.
+  // Suma por moneda: un total que mezcle soles con dólares no dice nada. Las
+  // anuladas se listan pero no suman (0433).
   const sumaPorMoneda = new Map<string, number>();
-  for (const f of filas) if (f.total != null) sumaPorMoneda.set(f.moneda, (sumaPorMoneda.get(f.moneda) ?? 0) + f.total);
+  for (const f of filas) if (f.total != null && f.estado !== "anulada") sumaPorMoneda.set(f.moneda, (sumaPorMoneda.get(f.moneda) ?? 0) + f.total);
   const monedas = [...sumaPorMoneda.keys()].sort();
   const aceptados = filas.filter((f) => f.estado === "aceptada").length;
 
@@ -367,6 +371,11 @@ export default async function PresupuestosCentralPage({
                     >
                       {ETIQUETA_ESTADO[f.estado]}
                     </span>
+                    {f.motivoAnulada && (
+                      <p className="mt-0.5 max-w-56 text-[10px] leading-snug text-muted-foreground" title={f.motivoAnulada}>
+                        {f.motivoAnulada.length > 80 ? `${f.motivoAnulada.slice(0, 80)}…` : f.motivoAnulada}
+                      </p>
+                    )}
                   </TableCell>
                   <TableCell className="py-1.5">
                     <VerPdfEnLaApp

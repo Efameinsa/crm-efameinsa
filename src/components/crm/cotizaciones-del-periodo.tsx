@@ -150,9 +150,16 @@ export async function CotizacionesDelPeriodo({
                         archivo
                       </span>
                     )}
+                    {f.estado === "anulada" && (
+                      <span className="ml-1.5 rounded-full bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
+                        anulada
+                      </span>
+                    )}
                   </td>
                   <td className="py-1.5 pl-2 whitespace-nowrap text-muted-foreground">{f.fecha}</td>
-                  <td className="py-1.5 pl-2 text-right tabular-nums text-foreground">
+                  <td
+                    className={`py-1.5 pl-2 text-right tabular-nums ${f.estado === "anulada" ? "text-muted-foreground line-through" : "text-foreground"}`}
+                  >
                     {f.monto != null ? `${f.moneda} ${f.monto.toLocaleString("es-PE")}` : "—"}
                   </td>
                   <td className="py-1.5 pl-2 text-right">
