@@ -155,6 +155,22 @@ export async function observarPago(datos: { servicioId: string; motivo: string; 
 }
 
 /**
+ * LA EMPRESA DE UN PEDIDO SIN CIERRE (0432). Buzón, Jhon 10-10: para buscar el
+ * abono en la carpeta y el banco de la empresa correcta. Los pedidos del Excel
+ * de postventa no traen empresa; Finanzas la deja anotada y la apertura sale
+ * con la misma. Con cierre, manda la serie del cierre (la base lo frena).
+ */
+export async function anotarEmpresaDelPedido(servicioId: string, empresa: "EFAMEINSA" | "OPEN"): Promise<Resultado> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("finanzas_anotar_empresa", { p_servicio: servicioId, p_empresa: empresa });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath("/finanzas");
+  revalidatePath(`/finanzas/pedidos/${servicioId}`);
+  return { error: null };
+}
+
+/**
  * POSTVENTA LE PIDE A FINANZAS QUE CONFIRME EL ABONO (0295). Carlos, 23-09
  * 17:48: «tiene que haber un clic para que le manden automático a Finanzas, y
  * una notificación que diga: me solicita confirmar el abono del pedido 55».

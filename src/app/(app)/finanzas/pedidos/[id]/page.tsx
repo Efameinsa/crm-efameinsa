@@ -11,6 +11,7 @@ import { abonos, formatoMonto, unPedido } from "@/lib/pagos-finanzas";
 import { cotizacionesDeCierres, documentosDeFinanzas } from "@/lib/documentos-finanzas";
 import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
 import { SubirLiquidacion } from "@/components/crm/subir-liquidacion";
+import { EmpresaDelPedido } from "@/components/crm/empresa-del-pedido";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +66,6 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
             <p className="text-xs text-muted-foreground">
               {p.clienteDoc ? `${p.clienteDoc} · ` : ""}
               {p.codigoCierre ? `Cierre ${p.codigoCierre}` : ""}
-              {cuenta ? ` · Cuenta ${cuenta}` : ""}
               {p.numeroErp ? ` · Pedido ${p.numeroErp}` : ""}
               {p.comercialNombre ? ` · ${p.comercialNombre}` : ""}
             </p>
@@ -91,6 +91,8 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
             />
           )}
         </div>
+
+        <EmpresaDelPedido servicioId={p.id} serie={p.serie} origen={p.serieOrigen} codigoCierre={p.codigoCierre} />
 
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Cifra etiqueta="Total del cierre" valor={p.total != null ? formatoMonto(p.moneda, p.total) : "—"} />

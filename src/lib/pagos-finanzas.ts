@@ -46,7 +46,10 @@ export interface PedidoFinanzas {
   liberadoAt: string | null;
   informeId: string | null;
   codigoCierre: string | null;
+  /** La empresa de la operación: la serie del cierre o, sin cierre, la anotada en la apertura o por Finanzas (0421, 0432). */
   serie: "EFAMEINSA" | "OPEN" | null;
+  /** De dónde salió la empresa: «cierre» manda; «anotada» se puede corregir mientras no haya cierre. */
+  serieOrigen: "cierre" | "anotada" | null;
   comprobante: string | null;
   modalidadPago: string[];
   entregaLugar: string | null;
@@ -65,7 +68,7 @@ export interface PedidoFinanzas {
 }
 
 const COLUMNAS =
-  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, liquidacion_subida_at, facturacion_observada_at, facturacion_observada_motivo, informe_cierre_id, numero_pedido_erp, cerrado_at, completado, created_at";
+  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, liquidacion_subida_at, facturacion_observada_at, facturacion_observada_motivo, informe_cierre_id, apertura_empresa, numero_pedido_erp, cerrado_at, completado, created_at";
 
 const limpiarCliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const dia = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
@@ -147,7 +150,8 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
         liberadoAt: (f.pedido_ejecutado_at as string | null) ?? null,
         informeId: (f.informe_cierre_id as string | null) ?? null,
         codigoCierre: (inf?.codigo as string | null) ?? null,
-        serie: (inf?.serie as "EFAMEINSA" | "OPEN" | null) ?? null,
+        serie: ((inf?.serie ?? f.apertura_empresa) as "EFAMEINSA" | "OPEN" | null) ?? null,
+        serieOrigen: inf?.serie ? "cierre" : f.apertura_empresa ? "anotada" : null,
         comprobante: (inf?.comprobante as string | null) ?? null,
         modalidadPago: (inf?.modalidad_pago as string[] | null) ?? [],
         entregaLugar: (inf?.entrega_lugar as string | null) ?? null,
