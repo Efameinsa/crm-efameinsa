@@ -1,4 +1,4 @@
-import { Search, Ban, Send } from "lucide-react";
+import { Search, Ban, Send, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { resolverPeriodo, type PresetPeriodo } from "@/lib/periodo";
 import {
@@ -10,6 +10,8 @@ import {
   type DerivadoFila,
   type FocoDerivado,
   LIMITE_DERIVADOS,
+  comercialDelFiltro,
+  COMERCIAL_POSTVENTA,
 } from "@/lib/derivados-central";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { FiltroPeriodo } from "@/components/crm/filtro-periodo";
@@ -84,6 +86,17 @@ export default async function DerivadosPage({
   const { hasta: sinPinHasta } = await permisoSinPin();
   const modoEnsayo = sinPinHasta !== null;
 
+  // Los comerciales se piden antes que lo derivado: «Toda postventa» se
+  // resuelve con sus códigos (PV, PV1, PV2…) a una lista de ids.
+  const { data: comerciales } = await supabase
+    .from("perfiles")
+    // Los perfiles de práctica viajan también: el diálogo los ofrece solo
+    // cuando el contacto que se corrige es del banco de pruebas.
+    .select("id, nombre, codigo_comercial, es_prueba")
+    .eq("rol", "comercial")
+    .eq("activo", true)
+    .order("codigo_comercial");
+
   // LOS RECHAZADOS NO PUEDEN QUEDAR EN UN LIMBO (Carlos, 04-09, 10:10:
   // «¿qué pasa con los rechazados? Cuando pone rechazado, ¿qué hace? Están en
   // un limbo. La idea es que la central tenga el reporte más abajo de sus
@@ -92,20 +105,12 @@ export default async function DerivadosPage({
   // derivación a un comercial —descartado, duplicado y derivado a otra área—,
   // que hasta hoy vivían en pantallas distintas o en ninguna. Todos se pueden
   // retomar: «cualquier eventualidad la podemos retomar».
-  const [{ data: comerciales }, supervisores, derivados, quienRegistro, { data: avisos }, { data: rechazados }] = await Promise.all([
-    supabase
-      .from("perfiles")
-      // Los perfiles de práctica viajan también: el diálogo los ofrece solo
-      // cuando el contacto que se corrige es del banco de pruebas.
-      .select("id, nombre, codigo_comercial, es_prueba")
-      .eq("rol", "comercial")
-      .eq("activo", true)
-      .order("codigo_comercial"),
+  const [supervisores, derivados, quienRegistro, { data: avisos }, { data: rechazados }] = await Promise.all([
     cargarSupervisores(supabase),
     cargarDerivados(supabase, {
       desde: periodo.desde,
       hasta: periodo.hasta,
-      comercial: sp.comercial ?? null,
+      comercial: comercialDelFiltro(sp.comercial, comerciales ?? [], modoEnsayo),
       // QUIÉN REGISTRÓ, que no es quién derivó (Carlos, 08-09).
       registradoPor: sp.registro ?? null,
       canal: sp.canal ?? null,
@@ -196,7 +201,12 @@ export default async function DerivadosPage({
         {...periodo}
         presetActivo={periodo.preset}
         presets={PRESETS}
-        comerciales={comerciales ?? []}
+        comerciales={[
+          // Postventa son varios perfiles (PV, PV1, PV2…): Central pidió el
+          // 10-10 verlos juntos, para el reporte de lo que quedó sin atender.
+          { id: COMERCIAL_POSTVENTA, nombre: "Toda postventa (PV, PV1, PV2…)" },
+          ...(comerciales ?? []),
+        ]}
         comercialId={sp.comercial ?? null}
       />
       {derivados.length >= LIMITE_DERIVADOS && (
@@ -326,6 +336,22 @@ export default async function DerivadosPage({
             Buscar
           </Button>
         </form>
+      </div>
+
+      {/* EL REPORTE PARA GERENCIA (Central, 10-10: «las derivaciones de
+          octubre a PV1 y PV2 sin atender, un documento para descargar y
+          enviar a gerencia»). Baja en Excel exactamente lo que se está
+          mirando: período, comercial o toda postventa, cajón y búsqueda. */}
+      <div className="-mt-1 mb-3 flex flex-wrap items-center justify-end gap-2 text-[11px] text-muted-foreground">
+        <span>Baja lo que se ve, con estos filtros: período, a quién, estado y búsqueda.</span>
+        <a
+          href={`/api/central/derivados/reporte?${conParams({ desde: periodo.desde, hasta: periodo.hasta }).split("?")[1]}`}
+          download
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-semibold text-foreground hover:bg-accent"
+        >
+          <Download className="size-3.5" /> Descargar Excel
+          {visibles.length > 0 && <span className="text-muted-foreground">· {visibles.length}</span>}
+        </a>
       </div>
 
       {/* Lo que hice hoy: los avisos que salieron a otras áreas, con la

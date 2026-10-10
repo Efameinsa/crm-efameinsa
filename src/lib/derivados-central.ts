@@ -257,10 +257,31 @@ function clasificar(
  */
 export const LIMITE_DERIVADOS = 1000;
 
+/**
+ * TODA POSTVENTA DE UNA VEZ (Central, 10-10: «un reporte de todo el mes de
+ * octubre de las derivaciones al área de PV1 y PV2 sin atender, para enviarlo
+ * a gerencia»). El combo elegía un solo comercial, y postventa son varios
+ * perfiles (PV, PV1, PV2, PV3). «postventa» en la URL los junta: todos los que
+ * tienen código PV, sin el de práctica salvo en modo ensayo.
+ */
+export const COMERCIAL_POSTVENTA = "postventa";
+
+export function comercialDelFiltro(
+  valor: string | null | undefined,
+  comerciales: { id: string; codigo_comercial: string | null; es_prueba?: boolean | null }[],
+  incluirPractica: boolean,
+): string | string[] | null {
+  if (valor !== COMERCIAL_POSTVENTA) return valor ?? null;
+  return comerciales
+    .filter((c) => /^PV/i.test(c.codigo_comercial ?? "") && (incluirPractica || !c.es_prueba))
+    .map((c) => c.id);
+}
+
 interface Filtros {
   desde: string;
   hasta: string;
-  comercial?: string | null;
+  /** Un comercial, o varios (toda postventa: PV, PV1, PV2…). */
+  comercial?: string | string[] | null;
   /**
    * Quién REGISTRÓ el contacto (`recibido_por`). Es el filtro que pidió Carlos
    * el 08-09 para poder auditar —«que jale el filtro por gestor, o por
@@ -339,7 +360,8 @@ export async function cargarDerivados(
     .lte("asignado_at", `${f.hasta}T23:59:59-05:00`);
   // es_prueba es NOT NULL default false: el .eq no traga filas por null.
   if (!f.incluirPractica) q = q.eq("es_prueba", false);
-  if (f.comercial) q = q.eq("asignado_a", f.comercial);
+  if (Array.isArray(f.comercial)) q = q.in("asignado_a", f.comercial.length ? f.comercial : ["00000000-0000-0000-0000-000000000000"]);
+  else if (f.comercial) q = q.eq("asignado_a", f.comercial);
   // «sin_perfil» son los que entraron solos por el formulario web: no los
   // registró nadie, y separarlos es la mitad de la auditoría.
   if (f.registradoPor === "sin_perfil") q = q.is("recibido_por", null);
