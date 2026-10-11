@@ -39,13 +39,15 @@ export async function enviarEventoMeta(datos: {
   eventId: string;
   valor?: number | null;
   moneda?: string;
+  /** Cuándo pasó de verdad (la tarea de retroalimentación, 0435). Sin él, ahora. */
+  ocurrioAt?: string | null;
 }): Promise<void> {
   const token = process.env.META_CAPI_TOKEN;
   if (!token) return;
   const admin = createAdminClient();
 
   // Ya se mandó este mismo evento: no se repite (Meta lo deduplicaría igual, pero no gastamos la llamada).
-  const { data: previo } = await admin.from("eventos_meta").select("id").eq("event_id", datos.eventId).maybeSingle();
+  const { data: previo } = await admin.from("eventos_meta").select("id").eq("event_id", datos.eventId).is("error", null).limit(1).maybeSingle();
   if (previo) return;
 
   const { data: lead } = await admin
@@ -70,7 +72,8 @@ export async function enviarEventoMeta(datos: {
     data: [
       {
         event_name: datos.evento,
-        event_time: Math.floor(Date.now() / 1000),
+        // Meta rechaza más de 7 días atrás y cualquier hora futura.
+        event_time: Math.floor(Math.min(Date.now(), Math.max(Date.now() - 6.9 * 86_400_000, Date.parse(datos.ocurrioAt ?? "") || Date.now())) / 1000),
         event_id: datos.eventId,
         // Desde WhatsApp (anuncio de mensajes) o desde el sistema (cotización, venta).
         action_source: conv?.ctwa_clid ? "business_messaging" : "system_generated",
