@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
-import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
+import { notificar, notificarAlmacen, notificarCentral, notificarFacturacion, notificarFinanzas } from "@/lib/notificaciones";
 import { correoAlArea } from "@/lib/correo-al-area";
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
@@ -367,7 +367,7 @@ export async function emitirAperturaDespacho(servicioId: string) {
     // «Que me lleguen las aperturas» (Lesly, 16-09; 0246).
     notificarAlmacen({
       titulo: `Apertura de despacho · ${quien}`,
-      cuerpo: `${s.equipo ?? ""}${s.fecha_despacho ? ` · programado para el ${s.fecha_despacho}` : " · falta programar el día"}. Finanzas confirma la guía de salida.`,
+      cuerpo: `${s.equipo ?? ""}${s.fecha_despacho ? ` · programado para el ${s.fecha_despacho}` : " · falta programar el día"}. Contabilidad (o Finanzas) confirma la guía de salida.`,
       url: `/almacen/pedidos/${servicioId}`,
       esPrueba: s.es_prueba === true,
     }),
@@ -380,6 +380,13 @@ export async function emitirAperturaDespacho(servicioId: string) {
       titulo: `Apertura por confirmar · ${quien}`,
       cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
       url: "/finanzas/aperturas",
+      esPrueba: s.es_prueba === true,
+    }),
+    // Y a Contabilidad, que es quien la autoriza (buzón, Jhon 12-10; 0439).
+    notificarFacturacion({
+      titulo: `Apertura por confirmar · ${quien}`,
+      cuerpo: `Postventa emitió la apertura de despacho${pedido}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      url: "/facturacion/aperturas",
       esPrueba: s.es_prueba === true,
     }),
     // Y por correo, al de la empresa del pedido (directorio 0410).
@@ -395,12 +402,13 @@ export async function emitirAperturaDespacho(servicioId: string) {
       areas: ["almacen"],
       servicioId,
       titulo: `Apertura de despacho · ${quien}`,
-      cuerpo: `${s.equipo ?? ""}${s.fecha_despacho ? ` · programado para el ${s.fecha_despacho}` : " · falta programar el día"}. Finanzas confirma la guía de salida.`,
+      cuerpo: `${s.equipo ?? ""}${s.fecha_despacho ? ` · programado para el ${s.fecha_despacho}` : " · falta programar el día"}. Contabilidad (o Finanzas) confirma la guía de salida.`,
       url: `/almacen/pedidos/${servicioId}`,
       esPrueba: s.es_prueba === true,
     }),
   ]);
   revalidatePath("/finanzas/aperturas");
+  revalidatePath("/facturacion/aperturas");
   revalidatePath("/almacen/aperturas-postventa");
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   revalidatePath("/postventa/control");
@@ -467,9 +475,16 @@ async function avisarAperturaCorregida(servicioId: string, que: string) {
       url: "/finanzas/aperturas",
       esPrueba: s.es_prueba === true,
     }),
+    // Y a Contabilidad, que es quien la autoriza (buzón, Jhon 12-10; 0439).
+    notificarFacturacion({
+      titulo: `Apertura corregida · ${quien}`,
+      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " Su autorización de la guía quedó sin efecto: revísela y vuelva a autorizarla." : " Revísela antes de autorizar la guía."}`,
+      url: "/facturacion/aperturas",
+      esPrueba: s.es_prueba === true,
+    }),
     notificarAlmacen({
       titulo: `Apertura corregida · ${quien}`,
-      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " No emita la guía hasta que Finanzas la vuelva a autorizar." : ""}`,
+      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " No emita la guía hasta que Contabilidad o Finanzas la vuelva a autorizar." : ""}`,
       url: `/almacen/pedidos/${servicioId}`,
       esPrueba: s.es_prueba === true,
     }),
@@ -485,12 +500,13 @@ async function avisarAperturaCorregida(servicioId: string, que: string) {
       areas: ["almacen"],
       servicioId,
       titulo: `Apertura corregida · ${quien}`,
-      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " No emita la guía hasta que Finanzas la vuelva a autorizar." : ""}`,
+      cuerpo: `Postventa corrigió ${que} en la apertura${pedido}.${anulada ? " No emita la guía hasta que Contabilidad o Finanzas la vuelva a autorizar." : ""}`,
       url: `/almacen/pedidos/${servicioId}`,
       esPrueba: s.es_prueba === true,
     }),
   ]);
   revalidatePath("/finanzas/aperturas");
+  revalidatePath("/facturacion/aperturas");
   revalidatePath("/almacen/aperturas-postventa");
 }
 
@@ -1434,7 +1450,7 @@ export async function marcarAperturaEnviada(servicioId: string, destino: "almace
     await Promise.all([
       notificarAlmacen({
         titulo: `Apertura de despacho · ${quien}`,
-        cuerpo: `Postventa le envió la apertura${pedido}. Ábrala para preparar el despacho; Finanzas confirma la guía.`,
+        cuerpo: `Postventa le envió la apertura${pedido}. Ábrala para preparar el despacho; Contabilidad (o Finanzas) confirma la guía.`,
         url: "/almacen/aperturas-postventa",
         esPrueba,
       }),
@@ -1448,11 +1464,19 @@ export async function marcarAperturaEnviada(servicioId: string, destino: "almace
               url: "/finanzas/aperturas",
               esPrueba,
             }),
+            // Y a Contabilidad, que es quien la autoriza (buzón, Jhon 12-10; 0439).
+            notificarFacturacion({
+              titulo: `Apertura por confirmar · ${quien}`,
+              cuerpo: `Postventa envió la apertura al almacén${pedido} y la guía sigue sin confirmar.${pideGuia}`,
+              url: "/facturacion/aperturas",
+              esPrueba,
+            }),
           ]
         : []),
     ]);
     revalidatePath("/almacen/aperturas-postventa");
     revalidatePath("/finanzas/aperturas");
+    revalidatePath("/facturacion/aperturas");
   }
 
   revalidatePath(`/postventa/pedidos/${servicioId}`);
@@ -1618,9 +1642,16 @@ export async function abrirAperturaDesdeCaso(
       url: "/finanzas/aperturas",
       esPrueba,
     }),
+    // Y a Contabilidad, que es quien la autoriza (buzón, Jhon 12-10; 0439).
+    notificarFacturacion({
+      titulo: `Apertura por confirmar · ${quien}`,
+      cuerpo: `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      url: "/facturacion/aperturas",
+      esPrueba,
+    }),
     notificarAlmacen({
       titulo: `Apertura de servicio · ${quien}`,
-      cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Finanzas confirma la guía.`,
+      cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Contabilidad (o Finanzas) confirma la guía.`,
       url: `/almacen/pedidos/${id}`,
       esPrueba,
     }),
@@ -1639,13 +1670,14 @@ export async function abrirAperturaDesdeCaso(
       servicioId: id,
       empresa: datos.empresa === "OPEN" ? "OPEN" : "EFAMEINSA",
       titulo: `Apertura de servicio · ${quien}`,
-      cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Finanzas confirma la guía.`,
+      cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Contabilidad (o Finanzas) confirma la guía.`,
       url: `/almacen/pedidos/${id}`,
       esPrueba,
     }),
   ]);
   revalidatePath(`/postventa/atenciones/${atencionId}`);
   revalidatePath("/finanzas/aperturas");
+  revalidatePath("/facturacion/aperturas");
   revalidatePath("/almacen/aperturas-postventa");
   return { error: null, servicioId: id };
 }

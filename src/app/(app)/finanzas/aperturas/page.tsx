@@ -35,7 +35,10 @@ type FilaAp = {
  * aviso y se confirma acá, con la hoja y el estado del pago a la vista.
  */
 export default async function AperturasPorConfirmarPage() {
-  await requerirPerfil();
+  const perfil = await requerirPerfil();
+  // Contabilidad (la cuenta de Facturación) no entra a /finanzas: ve la hoja y
+  // el pago acá mismo, sin el enlace al pedido de Finanzas (buzón, Jhon 12-10).
+  const conPedido = perfil.rol !== "facturacion";
   const supabase = await createClient();
   const { data } = await supabase
     .from("servicios_postventa")
@@ -65,7 +68,8 @@ export default async function AperturasPorConfirmarPage() {
       <SeccionPanel titulo={`Aperturas por confirmar · ${porConfirmar.length}`}>
         <p className="mb-2 text-xs text-muted-foreground">
           Postventa emitió la apertura de despacho. Revise la hoja y el pago y
-          confirme: el almacén recibe el aviso y emite la guía de salida.
+          confirme: el almacén recibe el aviso y emite la guía de salida. La
+          autoriza Contabilidad; si Contabilidad no está, Finanzas.
         </p>
         {porConfirmar.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground">
@@ -74,7 +78,7 @@ export default async function AperturasPorConfirmarPage() {
         ) : (
           <ul className="divide-y divide-border rounded-lg border border-border">
             {porConfirmar.map((f) => (
-              <FilaApertura key={f.id} f={f} p={pedidos.get(f.id)} />
+              <FilaApertura key={f.id} f={f} p={pedidos.get(f.id)} conPedido={conPedido} />
             ))}
           </ul>
         )}
@@ -83,7 +87,7 @@ export default async function AperturasPorConfirmarPage() {
         <SeccionPanel titulo={`Confirmadas · ${confirmadas.length}`}>
           <ul className="divide-y divide-border rounded-lg border border-border">
             {confirmadas.map((f) => (
-              <FilaApertura key={f.id} f={f} p={pedidos.get(f.id)} />
+              <FilaApertura key={f.id} f={f} p={pedidos.get(f.id)} conPedido={conPedido} />
             ))}
           </ul>
         </SeccionPanel>
@@ -92,7 +96,7 @@ export default async function AperturasPorConfirmarPage() {
   );
 }
 
-function FilaApertura({ f, p }: { f: FilaAp; p: PedidoFinanzas | undefined }) {
+function FilaApertura({ f, p, conPedido }: { f: FilaAp; p: PedidoFinanzas | undefined; conPedido: boolean }) {
   const falta = p ? (p.despachadoAt ? p.saldo : p.falta) : 0;
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -135,12 +139,14 @@ function FilaApertura({ f, p }: { f: FilaAp; p: PedidoFinanzas | undefined }) {
       >
         <FileText className="size-3.5" /> Ver la apertura
       </a>
-      <Link
-        href={`/finanzas/pedidos/${f.id}`}
-        className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent"
-      >
-        El pedido
-      </Link>
+      {conPedido && (
+        <Link
+          href={`/finanzas/pedidos/${f.id}`}
+          className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+        >
+          El pedido
+        </Link>
+      )}
       {!f.guia_confirmada_at && (
         <ConfirmarGuiaBoton
           servicioId={f.id}

@@ -721,7 +721,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       // «que me salga un check de que ya lo recibió contabilidad»).
       detalle: aperturaEmitida
         ? s.guia_confirmada_at
-          ? `✓ Finanzas autorizó la guía el ${new Date(s.guia_confirmada_at).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}${
+          ? `✓ Guía autorizada el ${new Date(s.guia_confirmada_at).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}${
               textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero) ? ` · ${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero)}` : ""
             }`
           : s.despachado_at

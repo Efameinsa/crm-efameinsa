@@ -151,6 +151,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   facturacion: [
     { href: "/facturacion", etiqueta: "Por facturar", icono: FileCheck2 },
     { href: "/facturacion/facturados", etiqueta: "Facturados", icono: ReceiptText },
+    // Buzón, Jhon 12-10 (0439): la apertura la autoriza Contabilidad; Finanzas, si no está.
+    { href: "/facturacion/aperturas", etiqueta: "Aperturas por confirmar", icono: Truck },
   ],
   admin: [
     { href: "/admin", etiqueta: "Usuarios", icono: Users },
