@@ -16,17 +16,25 @@ export function BotonReporteDiario({
   comercialId,
   etiqueta = "Reporte del día",
   compacto = false,
+  elegirFecha = false,
 }: {
   fecha: string;
+  /**
+   * REPORTES POR DÍA (12-10, gerencia revisando a postventa): un selector de
+   * fecha al lado para abrir el reporte de cualquier día pasado. `fecha` es
+   * hoy y es el tope. Abrir un día pasado no pisa el que ya se grabó.
+   */
+  elegirFecha?: boolean;
   /** Sin esto, el servidor devuelve el del usuario en sesión. */
   comercialId?: string;
   etiqueta?: string;
   compacto?: boolean;
 }) {
   const [generando, setGenerando] = useState(false);
+  const [dia, setDia] = useState(fecha);
 
   function abrir() {
-    const params = new URLSearchParams({ fecha });
+    const params = new URLSearchParams({ fecha: elegirFecha && dia ? dia : fecha });
     if (comercialId) params.set("comercial", comercialId);
     setGenerando(true);
     const url = `/api/reportes/diario?${params.toString()}`;
@@ -46,7 +54,7 @@ export function BotonReporteDiario({
     setTimeout(() => setGenerando(false), 2500);
   }
 
-  return (
+  const boton = (
     <button
       type="button"
       onClick={abrir}
@@ -60,5 +68,23 @@ export function BotonReporteDiario({
       {generando ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />}
       {etiqueta}
     </button>
+  );
+  if (!elegirFecha) return boton;
+  return (
+    <span className="inline-flex items-center gap-1">
+      <input
+        type="date"
+        aria-label="Día del reporte"
+        title="Elija el día: hoy o cualquier día anterior"
+        value={dia}
+        max={fecha}
+        onChange={(ev) => setDia(ev.target.value)}
+        className={cn(
+          "rounded-lg border border-border bg-background font-semibold text-foreground",
+          compacto ? "px-1.5 py-1 text-[11px]" : "px-2 py-1.5 text-xs",
+        )}
+      />
+      {boton}
+    </span>
   );
 }
