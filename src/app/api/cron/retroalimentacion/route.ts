@@ -75,8 +75,13 @@ export async function GET(request: NextRequest) {
           lead_id: c.leadId, conversion: c.evento, clave: c.clave, gclid: c.gclid, valor: c.valor, moneda: c.moneda,
           conversion_at: c.ocurrioAt, error: res.get(c.clave) ?? null, enviado_at: new Date().toISOString(),
         }));
-        await admin.from("eventos_google").upsert(filas, { onConflict: "clave" });
-        resumen.google = { enviados: lote.length, con_error: filas.filter((f) => f.error).length };
+        const { error: errAnotar } = await admin.from("eventos_google").upsert(filas, { onConflict: "clave" });
+        const fallas = filas.filter((f) => f.error);
+        resumen.google = {
+          enviados: lote.length, con_error: fallas.length,
+          ...(fallas.length ? { primer_error: fallas[0].error } : {}),
+          ...(errAnotar ? { no_se_anoto: errAnotar.message } : {}),
+        };
       } catch (e) {
         resumen.google = { error: e instanceof Error ? e.message : String(e) };
       }
