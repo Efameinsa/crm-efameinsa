@@ -172,7 +172,14 @@ const CANAL: Record<string, string> = {
   whatsapp: "WhatsApp", llamada: "Llamada", formulario_web: "Web", facebook: "Facebook",
   instagram: "Instagram", email: "Correo", presencial: "Presencial", referido: "Referido", otro: "Otro",
 };
-export const corta = (s: string | null, n: number) => (!s ? "—" : s.length > n ? `${s.slice(0, n - 1)}…` : s);
+// Los saltos de línea se aplanan (buzón, Gabriela 12-10): una nota que es un
+// correo pegado entero, con decenas de renglones en blanco, hacía una fila
+// altísima y react-pdf reventaba («unsupported number») al caer en el corte de
+// página. En una celda de tabla se lee mejor de corrido.
+export const corta = (s: string | null, n: number) => {
+  const t = (s ?? "").replace(/\s+/g, " ").trim();
+  return !t ? "—" : t.length > n ? `${t.slice(0, n - 1)}…` : t;
+};
 export const dinero = (m: number, mon: string) => `${mon === "PEN" ? "S/" : "US$"} ${Math.round(m).toLocaleString("es-PE")}`;
 
 export function Seccion({ titulo, total, children }: { titulo: string; total: string | number; children: React.ReactNode }) {
