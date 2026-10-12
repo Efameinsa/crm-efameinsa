@@ -39,6 +39,7 @@ export function AperturaServicioPanel({
   destinatarios = [],
   empresaCorreo = "EFAMEINSA",
   empresaElegible = false,
+  notaAutomatica = null,
 }: {
   servicioId: string;
   inicial: {
@@ -50,6 +51,8 @@ export function AperturaServicioPanel({
     nota: string | null;
     direccionFinal: string | null;
     destinoObservacion: string | null;
+    /** La NOTA en amarillo del destino final, ya con la automática puesta si no hay otra (0438). */
+    destinoNota: string;
     guia: GuiaApertura | null;
     guiaDetalle: string | null;
     coordinaContabilidad: string | null;
@@ -66,6 +69,8 @@ export function AperturaServicioPanel({
   empresaCorreo?: "EFAMEINSA" | "OPEN";
   /** Sin cierre de venta, postventa elige con qué empresa sale la apertura (0421, Rubí 09-10). */
   empresaElegible?: boolean;
+  /** La nota que sale sola en el destino final («EQUIPO DEBERÁ LLEGAR A DOMICILIO» por agencia), o null. */
+  notaAutomatica?: string | null;
 }) {
   const [v, setV] = useState(inicial);
   const [empresa, setEmpresa] = useState<"EFAMEINSA" | "OPEN">(empresaCorreo);
@@ -147,6 +152,8 @@ export function AperturaServicioPanel({
         nota: v.nota,
         direccionFinal: v.direccionFinal,
         destinoObservacion: v.destinoObservacion,
+        // Igual a la automática = se deja en automático (sigue al modo de entrega); vacía = sin nota.
+        destinoNota: v.destinoNota.trim() === (notaAutomatica ?? "") ? null : v.destinoNota.trim(),
         guia: v.guia,
         guiaDetalle: v.guia ? v.guiaDetalle : null,
         coordinaContabilidad: v.coordinaContabilidad,
@@ -341,6 +348,25 @@ export function AperturaServicioPanel({
               onChange={cambiar("destinoObservacion")}
               rows={2}
               placeholder="ej. Recoge en Espinoza Cargo, sede El Tambo: Av. Huancavelica 1250 – Huancayo"
+              className={ENTRADA}
+            />
+          </Campo>
+          {/* Rubí, 12-10: «agregar un item de NOTA en destino final para poder modificar y poner alguna observación»;
+              luego: sin resaltar y en la columna «Información». */}
+          <Campo
+            etiqueta="Nota del destino final"
+            ayuda={
+              notaAutomatica
+                ? `Sale en la fila «Destino final», en información, debajo de la dirección (sin resaltar). Por defecto dice «${notaAutomatica}»: cámbiela o bórrela si no va.`
+                : "Sale en la fila «Destino final», en información, debajo de la dirección (sin resaltar). Si se deja vacía, no sale."
+            }
+            ancho
+          >
+            <textarea
+              value={v.destinoNota}
+              onChange={cambiar("destinoNota")}
+              rows={2}
+              placeholder="ej. EL EQUIPO SE QUEDA EN LA AGENCIA DE DESTINO, EL CLIENTE LO RECOGE"
               className={ENTRADA}
             />
           </Campo>

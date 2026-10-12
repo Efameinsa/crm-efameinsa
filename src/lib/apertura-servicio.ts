@@ -97,6 +97,12 @@ export interface DatosApertura {
   direccionFinal: string | null;
   /** Observación del destino (0388, Rubí 03-10): la sede o la dirección de la agencia en destino adonde tiene que llegar. */
   destinoObservacion?: string | null;
+  /**
+   * La NOTA en amarillo del destino final (0438, Rubí 12-10): null = la de
+   * siempre («EQUIPO DEBERÁ LLEGAR A DOMICILIO» cuando la agencia lo lleva al
+   * cliente); "" = sin nota; otro texto = esa nota.
+   */
+  destinoNota?: string | null;
   /** A domicilio o en agencia, y cuál (0259: en Cusco hay seis agencias). */
   entregaModo: "domicilio" | "agencia" | "planta" | null;
   agenciaDestino: string | null;
@@ -155,7 +161,7 @@ export interface FilaApertura {
   descripcion: string;
   informacion: string;
   observaciones: string;
-  /** Lo que en el modelo va resaltado en amarillo (destino final: «EQUIPO DEBERÁ LLEGAR A DOMICILIO»). */
+  /** Texto en amarillo debajo de las observaciones. Desde el 12-10 (Rubí) la nota del destino final ya no lo usa: va en «información». */
   resaltado?: string | null;
   /** El apartado NOTAS de la fila 1: la guía que se pide y avisos para quien despacha (Lesly, 02-10). */
   notas?: string[];
@@ -164,6 +170,13 @@ export interface FilaApertura {
 /** «despacho» para las entregas, «servicio» cuando no sale equipo: como dice el correo de siempre. */
 export function queQuedaEnAgenda(tipo: TipoApertura | null | undefined): string {
   return tipo === "mantenimiento" || tipo === "puesta_marcha" ? "servicio" : "despacho";
+}
+
+export const NOTA_LLEGA_A_DOMICILIO = "EQUIPO DEBERÁ LLEGAR A DOMICILIO";
+
+/** La nota que sale sola en el destino final si postventa no escribió otra: por agencia y con dirección final. */
+export function notaDestinoAutomatica(d: Pick<DatosApertura, "entregaModo" | "direccionFinal">): string | null {
+  return d.entregaModo === "agencia" && d.direccionFinal?.trim() ? NOTA_LLEGA_A_DOMICILIO : null;
 }
 
 /** ¿El texto ya contiene esa dirección? Sin mirar mayúsculas, espacios ni signos. */
@@ -197,7 +210,10 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
   //   · Destino final: donde queda el equipo.
   let primerDestino: string;
   let destinoFinal: string;
-  let resaltadoDestino: string | null = null;
+  // NOTA EDITABLE (Rubí, 12-10: «agregar un item de NOTA en destino final
+  // para poder modificar y poner alguna observación»): si postventa la
+  // escribió manda la suya; vacía, no sale. Se agrega abajo, a la información.
+  const resaltadoDestino = d.destinoNota == null ? notaDestinoAutomatica(d) : d.destinoNota.trim() || null;
   // ANDINAS, 30-09: la dirección final ya venía dentro de la otra y salía dos veces.
   const finalAparte = d.direccionFinal && !yaDice(d.direccion, d.direccionFinal) ? d.direccionFinal : null;
   if (d.entregaModo === "agencia") {
@@ -205,7 +221,6 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     const agencia = d.agenciaDestino ?? "(agencia por confirmar)";
     primerDestino = [/^\s*an?gencia\b/i.test(agencia) ? agencia : `AGENCIA ${agencia}`, d.agenciaDireccion ?? "(falta la dirección de la agencia)"].join("\n");
     destinoFinal = [d.direccion ?? "—", finalAparte].filter(Boolean).join("\n");
-    if (d.direccionFinal) resaltadoDestino = "EQUIPO DEBERÁ LLEGAR A DOMICILIO";
   } else if (d.entregaModo === "planta") {
     // EL CLIENTE LO RECOGE (Ariana, 10-10; 0434): equipos industriales que
     // vienen a buscar con su transporte. El almacén no lo lleva a ninguna
@@ -215,6 +230,13 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
   } else {
     primerDestino = [d.entregaModo === "domicilio" ? "ENTREGA A DOMICILIO" : null, d.direccion ?? "—"].filter(Boolean).join("\n");
     destinoFinal = finalAparte ?? (d.direccion ? "EL MISMO (se entrega directo al cliente)" : "—");
+  }
+
+  // LA NOTA VA EN «INFORMACIÓN», SIN RESALTAR (Rubí, 12-10: «quitar el
+  // resaltado de esta parte de NOTA y ponerla en la parte de información de
+  // destino final»): debajo de la dirección, como un dato más del destino.
+  if (resaltadoDestino && !yaDice(destinoFinal, resaltadoDestino)) {
+    destinoFinal = destinoFinal === "—" ? resaltadoDestino : `${destinoFinal}\n${resaltadoDestino}`;
   }
 
   const recibe = [d.recibeNombre ?? "—", d.recibeDoc ? `DNI: ${d.recibeDoc}` : null, d.recibeTelefono ? `Cel: ${d.recibeTelefono}` : null]
@@ -227,7 +249,7 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     { n: 1, descripcion: "SERVICIO A REALIZAR", informacion: equipo, observaciones: d.hora ?? "—", notas },
     { n: 2, descripcion: "CLIENTE", informacion: `${d.cliente}${d.ruc ? `\nRUC: ${d.ruc}` : ""}`, observaciones: "" },
     { n: 3, descripcion: "PRIMER DESTINO", informacion: primerDestino, observaciones: "" },
-    { n: 4, descripcion: "DESTINO FINAL", informacion: destinoFinal, observaciones: d.destinoObservacion?.trim() ?? "", resaltado: resaltadoDestino },
+    { n: 4, descripcion: "DESTINO FINAL", informacion: destinoFinal, observaciones: d.destinoObservacion?.trim() ?? "" },
     { n: 5, descripcion: "PROGRAMACIÓN", informacion: d.fecha ? fechaCalendario(d.fecha) : "—", observaciones: "" },
     { n: 6, descripcion: "PERSONA QUE RECIBE", informacion: recibe, observaciones: "" },
     { n: 7, descripcion: "PERSONAL ASIGNADO PARA EL SERVICIO", informacion: d.tecnico ?? "—", observaciones: "" },
