@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  notaDestinoAutomatica,
   TIPOS_APERTURA,
   tituloDe,
   tipoSugerido,
@@ -193,6 +194,18 @@ describe("las filas llevan lo que el correo lleva", () => {
     expect(filasApertura({ ...d, agenciaDestino: "ANGENCIA MARVISUR" })[2].informacion.startsWith("ANGENCIA MARVISUR\n")).toBe(true);
     expect(faltantesApertura(d)).not.toContain("la dirección de la agencia (primer destino)");
     expect(faltantesApertura({ ...d, agenciaDireccion: null })).toContain("la dirección de la agencia (primer destino)");
+  });
+
+  it("la NOTA del destino final se cambia o se quita (Rubí, 12-10; 0438)", () => {
+    const d = { ...PERU_VACATION, entregaModo: "agencia" as const, agenciaDestino: "EXPRESO LOS CHANKAS", agenciaDireccion: "Jr. Luna Pizarro 459 - La Victoria", direccionFinal: "Av. José María Arguedas 112 - Andahuaylas" };
+    expect(filasApertura({ ...d, destinoNota: null })[3].resaltado).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
+    expect(filasApertura({ ...d, destinoNota: "  EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS " })[3].resaltado).toBe("EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS");
+    expect(filasApertura({ ...d, destinoNota: "" })[3].resaltado ?? null).toBeNull();
+    // También a domicilio, donde antes no había nota.
+    expect(filasApertura({ ...PERU_VACATION, entregaModo: "domicilio", destinoNota: "LLAMAR 1 HORA ANTES" })[3].resaltado).toBe("LLAMAR 1 HORA ANTES");
+    expect(cuerpoApertura({ ...d, destinoNota: "LLAMAR 1 HORA ANTES" })).toContain("NOTA: LLAMAR 1 HORA ANTES");
+    expect(notaDestinoAutomatica(d)).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
+    expect(notaDestinoAutomatica({ ...d, direccionFinal: null })).toBeNull();
   });
 
   it("recojo en nuestras instalaciones: el cliente lo recoge y la dirección es el destino final (Ariana, 10-10; 0434)", () => {

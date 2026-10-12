@@ -97,6 +97,12 @@ export interface DatosApertura {
   direccionFinal: string | null;
   /** Observación del destino (0388, Rubí 03-10): la sede o la dirección de la agencia en destino adonde tiene que llegar. */
   destinoObservacion?: string | null;
+  /**
+   * La NOTA en amarillo del destino final (0438, Rubí 12-10): null = la de
+   * siempre («EQUIPO DEBERÁ LLEGAR A DOMICILIO» cuando la agencia lo lleva al
+   * cliente); "" = sin nota; otro texto = esa nota.
+   */
+  destinoNota?: string | null;
   /** A domicilio o en agencia, y cuál (0259: en Cusco hay seis agencias). */
   entregaModo: "domicilio" | "agencia" | "planta" | null;
   agenciaDestino: string | null;
@@ -166,6 +172,13 @@ export function queQuedaEnAgenda(tipo: TipoApertura | null | undefined): string 
   return tipo === "mantenimiento" || tipo === "puesta_marcha" ? "servicio" : "despacho";
 }
 
+export const NOTA_LLEGA_A_DOMICILIO = "EQUIPO DEBERÁ LLEGAR A DOMICILIO";
+
+/** La nota que sale sola en el destino final si postventa no escribió otra: por agencia y con dirección final. */
+export function notaDestinoAutomatica(d: Pick<DatosApertura, "entregaModo" | "direccionFinal">): string | null {
+  return d.entregaModo === "agencia" && d.direccionFinal?.trim() ? NOTA_LLEGA_A_DOMICILIO : null;
+}
+
 /** ¿El texto ya contiene esa dirección? Sin mirar mayúsculas, espacios ni signos. */
 function yaDice(texto: string | null | undefined, direccion: string): boolean {
   const limpio = (x: string) => x.toUpperCase().replace(/[^A-Z0-9ÁÉÍÓÚÑ]/g, "");
@@ -197,7 +210,10 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
   //   · Destino final: donde queda el equipo.
   let primerDestino: string;
   let destinoFinal: string;
-  let resaltadoDestino: string | null = null;
+  // NOTA EDITABLE (Rubí, 12-10: «agregar un item de NOTA en destino final
+  // para poder modificar y poner alguna observación»): si postventa la
+  // escribió manda la suya; vacía, no sale.
+  const resaltadoDestino = d.destinoNota == null ? notaDestinoAutomatica(d) : d.destinoNota.trim() || null;
   // ANDINAS, 30-09: la dirección final ya venía dentro de la otra y salía dos veces.
   const finalAparte = d.direccionFinal && !yaDice(d.direccion, d.direccionFinal) ? d.direccionFinal : null;
   if (d.entregaModo === "agencia") {
@@ -205,7 +221,6 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     const agencia = d.agenciaDestino ?? "(agencia por confirmar)";
     primerDestino = [/^\s*an?gencia\b/i.test(agencia) ? agencia : `AGENCIA ${agencia}`, d.agenciaDireccion ?? "(falta la dirección de la agencia)"].join("\n");
     destinoFinal = [d.direccion ?? "—", finalAparte].filter(Boolean).join("\n");
-    if (d.direccionFinal) resaltadoDestino = "EQUIPO DEBERÁ LLEGAR A DOMICILIO";
   } else if (d.entregaModo === "planta") {
     // EL CLIENTE LO RECOGE (Ariana, 10-10; 0434): equipos industriales que
     // vienen a buscar con su transporte. El almacén no lo lleva a ninguna

@@ -1321,6 +1321,8 @@ export async function guardarAperturaServicio(
     direccionFinal?: string | null;
     /** La sede o dirección de la agencia en destino (0388, Rubí 03-10). */
     destinoObservacion?: string | null;
+    /** La NOTA en amarillo del destino final (0438): null = la automática, "" = sin nota. */
+    destinoNota?: string | null;
     guia?: string | null;
     guiaDetalle?: string | null;
     coordinaContabilidad?: string | null;
@@ -1345,7 +1347,7 @@ export async function guardarAperturaServicio(
   // Con la apertura emitida, lo que cambie de esto va a Finanzas y al almacén (0406).
   const { data: antes } = await supabase
     .from("servicios_postventa")
-    .select("apertura_despacho_at, apertura_fecha, apertura_hora, direccion_final, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa")
+    .select("apertura_despacho_at, apertura_fecha, apertura_hora, direccion_final, destino_nota, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa")
     .eq("id", servicioId)
     .maybeSingle();
   const cambios = antes?.apertura_despacho_at
@@ -1354,6 +1356,7 @@ export async function guardarAperturaServicio(
           ["la fecha", antes.apertura_fecha, datos.fecha],
           ["la hora", String(antes.apertura_hora ?? "").slice(0, 5), (datos.hora ?? "").slice(0, 5)],
           ["la dirección final", antes.direccion_final, datos.direccionFinal],
+          ["la nota del destino final", antes.destino_nota, datos.destinoNota],
           ["la guía que se pide", antes.apertura_guia, datos.guia],
           ["el detalle de la guía", antes.apertura_guia_detalle, datos.guiaDetalle],
           ["la empresa", antes.apertura_empresa ?? "EFAMEINSA", antes.informe_cierre_id ? undefined : datos.empresa],
@@ -1374,6 +1377,8 @@ export async function guardarAperturaServicio(
       apertura_nota: limpio(datos.nota),
       direccion_final: limpio(datos.direccionFinal),
       ...(datos.destinoObservacion !== undefined ? { destino_observacion: limpio(datos.destinoObservacion) } : {}),
+      // Aquí "" no es null: es «sin nota» (null = la automática).
+      ...(datos.destinoNota !== undefined ? { destino_nota: datos.destinoNota === null ? null : datos.destinoNota.trim() } : {}),
       // undefined = no tocar: quien guarda desde otra pantalla no los borra.
       ...(datos.guia !== undefined ? { apertura_guia: limpio(datos.guia) } : {}),
       ...(datos.guiaDetalle !== undefined ? { apertura_guia_detalle: limpio(datos.guiaDetalle) } : {}),

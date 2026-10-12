@@ -4,7 +4,7 @@ import { ArrowLeft, Download, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { fechaHoraLima } from "@/lib/fechas";
-import { asuntoApertura, cuerpoApertura, esFilaLarga, queQuedaEnAgenda } from "@/lib/apertura-servicio";
+import { asuntoApertura, cuerpoApertura, esFilaLarga, notaDestinoAutomatica, queQuedaEnAgenda } from "@/lib/apertura-servicio";
 import { cargarHojaApertura } from "@/lib/acciones/apertura-servicio-datos";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { AperturaServicioPanel } from "@/components/crm/apertura-servicio-panel";
@@ -251,6 +251,7 @@ export default async function AperturaServicioPage({ params }: { params: Promise
           nota: s.apertura_nota ?? null,
           direccionFinal: s.direccion_final ?? null,
           destinoObservacion: s.destino_observacion ?? null,
+          destinoNota: s.destino_nota ?? notaDestinoAutomatica(d) ?? "",
           guia: d.guia ?? null,
           guiaDetalle: d.guiaDetalle ?? null,
           coordinaContabilidad: d.coordinaContabilidad ?? null,
@@ -259,6 +260,7 @@ export default async function AperturaServicioPage({ params }: { params: Promise
         asunto={asuntoApertura(d)}
         cuerpo={cuerpoApertura(d)}
         faltantes={faltantes}
+        notaAutomatica={notaDestinoAutomatica(d)}
         destinatarios={destinatarios}
         empresaCorreo={empresaDeApertura(d)}
         empresaElegible={!s.informe_cierre_id}
