@@ -120,6 +120,56 @@ export function tituloDeItems(items: { tipo?: string | null }[]): string {
   return r.charAt(0).toUpperCase() + r.slice(1);
 }
 
+/** El tipo del renglón según el catálogo de la cotización: repuesto, servicio o equipo. */
+export function tipoItemDelProducto(p: { segmento?: string | null; categoria?: string | null } | null | undefined): TipoItemInforme {
+  if (p?.segmento === "repuesto" || p?.categoria === "repuesto") return "repuesto";
+  if (p?.segmento === "servicio" || p?.categoria === "servicio") return "servicio";
+  return "equipo";
+}
+
+/**
+ * QUÉ SE VENDE, ASÍ LLEGA EL PEDIDO A POSTVENTA (Rubí, buzón 12-10; 0436).
+ *
+ * El circuito del pedido (equipo, repuesto, mantenimiento…) se deducía solo
+ * de los renglones al liberar el pedido, y postventa lo corregía después con
+ * «Cambiar». Ahora el comercial lo ve y lo elige en el cierre:
+ * `informes_cierre.tipo_pedido` (null = «según los renglones») manda sobre la
+ * deducción. Los valores son los de `servicios_postventa.tipo_pedido`.
+ */
+export type TipoPedidoCierre = "equipo" | "repuesto" | "accesorio" | "mantenimiento" | "revision" | "embalaje";
+
+export const TIPOS_PEDIDO_CIERRE: { valor: TipoPedidoCierre; etiqueta: string; ayuda: string }[] = [
+  { valor: "equipo", etiqueta: "Venta de equipo", ayuda: "prueba, plano, despacho y puesta en marcha" },
+  { valor: "repuesto", etiqueta: "Venta de repuesto", ayuda: "pago, repuesto listo, entrega (y la instalación si va el técnico)" },
+  { valor: "mantenimiento", etiqueta: "Mantenimiento", ayuda: "apertura de servicio, programación del técnico e informe" },
+  { valor: "revision", etiqueta: "Otro servicio (revisión)", ayuda: "apertura de servicio, visita del técnico e informe" },
+  { valor: "accesorio", etiqueta: "Accesorio (coches, carros)", ayuda: "se entrega y se cierra, sin plano ni puesta en marcha" },
+  { valor: "embalaje", etiqueta: "Servicio de embalaje", ayuda: "se cierra con las fotos de la salida" },
+];
+
+export function etiquetaTipoPedidoCierre(t: string | null | undefined): string {
+  return TIPOS_PEDIDO_CIERRE.find((x) => x.valor === t)?.etiqueta ?? "Venta de equipo";
+}
+
+/** La misma deducción que hace la base al liberar el pedido (tipo_pedido_del_informe, 0404). */
+export function tipoPedidoDeItems(items: { tipo?: string | null; descripcion?: string | null; bloque?: string | null }[]): TipoPedidoCierre {
+  const v = items
+    .filter((x) => (x.bloque ?? "venta") === "venta")
+    .map((x) => {
+      const servicio = x.tipo === "servicio" || (x.tipo == null && /^\s*SERVICIO\s/.test((x.descripcion ?? "").toUpperCase()));
+      return { tipo: servicio ? "servicio" : (x.tipo ?? "equipo"), d: (x.descripcion ?? "").toLowerCase() };
+    });
+  if (v.length === 0) return "equipo";
+  if (v.every((x) => /^\s*(coche|carro)\s/.test(x.d))) return "accesorio";
+  if (v.every((x) => x.tipo === "repuesto")) return "repuesto";
+  if (v.every((x) => x.tipo === "servicio")) {
+    if (v.every((x) => /(embala|jaula|enjaul)/.test(x.d))) return "embalaje";
+    if (v.some((x) => /revisi/.test(x.d)) && !v.some((x) => /manteni/.test(x.d))) return "revision";
+    return "mantenimiento";
+  }
+  return "equipo";
+}
+
 /**
  * «Pegar una lista»: cada línea es un renglón. Sirve para el cierre de
  * repuestos, que trae diez o quince líneas y tipearlas una por una es donde

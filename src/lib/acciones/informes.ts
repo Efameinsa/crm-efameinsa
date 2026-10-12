@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { enviarEventoMeta } from "@/lib/meta-capi";
 import { totalesConIgv } from "@/lib/igv";
 import { createClient } from "@/lib/supabase/server";
-import { INCLUYE_POR_DEFECTO, type TipoItemInforme } from "@/lib/informes";
+import { INCLUYE_POR_DEFECTO, TIPOS_PEDIDO_CIERRE, tipoItemDelProducto, type TipoItemInforme, type TipoPedidoCierre } from "@/lib/informes";
 import { esquemaAdjuntoNuevo, MAX_ADJUNTOS, type AdjuntoCierre, type AdjuntoNuevo } from "@/lib/adjuntos-cierre";
 import { esquemaCorreccionInforme, type CorreccionInforme } from "@/lib/correccion-informe";
 import { motivoParaGuardar, motivoSerieSuficiente, problemaSerie } from "@/lib/serie-facturacion";
@@ -87,6 +87,11 @@ export interface DatosInforme {
   gratis: string | null;
   notaFinal: string | null;
   items: ItemInformeEntrada[];
+  /**
+   * Qué se vende, y por eso qué circuito sigue el pedido en postventa (Rubí,
+   * 12-10; 0436). null = según los renglones (tipo_pedido_del_informe).
+   */
+  tipoPedido?: TipoPedidoCierre | null;
 }
 
 export interface PresupuestoDisponible {
@@ -107,7 +112,7 @@ export interface PresupuestoDisponible {
   estado?: string | null;
   /** Solo las del CRM: los renglones tal como se cotizaron, con cantidad y
    *  precio, así el informe no arranca con todos los precios en cero. */
-  lineas?: { descripcion: string; cantidad: number; precio_unitario: number; precio_con_igv?: number | null }[];
+  lineas?: { descripcion: string; cantidad: number; precio_unitario: number; precio_con_igv?: number | null; tipo?: TipoItemInforme }[];
   /** Solo las del CRM: la moneda en que se IMPRIMIÓ. Si salió en soles, las
    *  líneas ya vienen en soles y el cierre se hace en soles (05-10, 2218-26). */
   moneda?: "USD" | "PEN";
@@ -186,7 +191,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, motivo_serie, estado, total, garantia, created_at, enviada_at, facturar_a_cuenta_id, cliente_snapshot, moneda_impresa, tipo_cambio, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, precio_impreso, descripcion, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, estado, total, garantia, created_at, enviada_at, facturar_a_cuenta_id, cliente_snapshot, moneda_impresa, tipo_cambio, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, precio_impreso, descripcion, productos(marca, modelo, nombre, segmento, categoria))",
       )
       .eq("oportunidades.cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
@@ -229,7 +234,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     precio_con_igv?: number | null;
     precio_impreso?: number | null;
     descripcion: string | null;
-    productos: { marca: string; modelo: string; nombre: string } | null;
+    productos: { marca: string; modelo: string; nombre: string; segmento: string | null; categoria: string | null } | null;
   };
   // El rótulo del equipo es el mismo que usa el cuadro de potenciales.
   const delCrm: PresupuestoDisponible[] = (delCotizador ?? []).map((c) => {
@@ -253,6 +258,11 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
         cantidad: precios.cantidad,
         precio_unitario: precios.precio_unitario,
         precio_con_igv: precios.precio_con_igv,
+        // ⚠️ 12-10, Rubí: el variador F8496601 del cierre 053-2026 era un
+        // repuesto en la cotización y llegó al cierre como «Equipo» (el tipo
+        // no se copiaba), así que el pedido entró a postventa como venta de
+        // equipo. Ahora el renglón trae el tipo del catálogo.
+        tipo: tipoItemDelProducto(prod),
       };
     });
     return {
@@ -374,6 +384,7 @@ function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
     gratis: d.gratis,
     nota_final: d.notaFinal,
     items: d.items,
+    tipo_pedido: d.tipoPedido ?? null,
     creado_por: creadoPor,
   };
 }
@@ -825,6 +836,8 @@ export interface BorradorInforme {
   notaFinal: string;
   items: ItemInformeEntrada[];
   adjuntos: { tipo: string; nombre: string; path: string }[];
+  /** Qué se vende (0436); null = según los renglones. */
+  tipoPedido: TipoPedidoCierre | null;
 }
 
 export async function cargarBorradorInforme(
@@ -893,6 +906,7 @@ export async function cargarBorradorInforme(
       urgente: Boolean(i.urgente),
       incluye: ((i.incluye ?? []) as string[]).map(texto),
       gratis: texto(i.gratis),
+      tipoPedido: (TIPOS_PEDIDO_CIERRE.some((t) => t.valor === i.tipo_pedido) ? i.tipo_pedido : null) as TipoPedidoCierre | null,
       notaFinal: texto(i.nota_final),
       items,
       adjuntos: ((i.adjuntos ?? []) as { tipo: string; nombre: string; path: string }[]).map((a) => ({
