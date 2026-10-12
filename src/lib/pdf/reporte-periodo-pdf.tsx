@@ -53,6 +53,7 @@ export interface ReportePeriodoProps {
   hoy: string;
 }
 
+const TOPE_PENDIENTES = 150;
 const usd = (n: number) => `US$ ${Math.round(n).toLocaleString("es-PE")}`;
 
 export function ReportePeriodoPdf({
@@ -252,16 +253,21 @@ export function ReportePeriodoPdf({
           ) : (
             pendientes.map((b) => (
               <View key={b.titulo} style={{ marginBottom: 6 }}>
-                <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: CARBON, marginTop: 4, marginBottom: 2 }}>{b.titulo}</Text>
+                <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: CARBON, marginTop: 4, marginBottom: 2 }}>
+                  {b.titulo} ({b.filas.length})
+                </Text>
                 {b.filas.length === 0 ? (
                   <Text style={e.vacio}>Nada pendiente.</Text>
                 ) : (
-                  b.filas.map((f, i) => (
+                  b.filas.slice(0, TOPE_PENDIENTES).map((f, i) => (
                     <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
                       <Text style={{ width: "40%", paddingRight: 6 }}>{corta(f.cliente, 55)}</Text>
                       <Text style={{ width: "60%", color: GRIS }}>{corta(f.detalle, 160)}</Text>
                     </View>
                   ))
+                )}
+                {b.filas.length > TOPE_PENDIENTES && (
+                  <Text style={e.vacio}>…y {b.filas.length - TOPE_PENDIENTES} más: están todas en la agenda del CRM, la fecha más antigua al final.</Text>
                 )}
               </View>
             ))
