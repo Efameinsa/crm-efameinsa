@@ -127,6 +127,8 @@ export interface ServicioPostventa {
   destino_observacion?: string | null;
   /** La NOTA en amarillo del destino final: null = la automática, "" = sin nota (0438, Rubí 12-10). */
   destino_nota?: string | null;
+  /** Observaciones escritas por fila de la apertura: {"6": "…"} (0445, Rubí 12-10). */
+  apertura_obs_filas?: Record<string, string> | null;
   /** La guía que se pide con la apertura y con quién coordina el técnico (0371, Lesly 02-10). */
   apertura_guia?: string | null;
   apertura_guia_detalle?: string | null;

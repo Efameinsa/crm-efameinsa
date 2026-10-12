@@ -133,6 +133,7 @@ export async function cargarHojaApertura(
     direccionFinal: s.direccion_final ?? null,
     destinoObservacion: s.destino_observacion ?? null,
     destinoNota: s.destino_nota ?? null,
+    obsFilas: (s.apertura_obs_filas as Record<string, string> | null) ?? null,
     entregaModo: s.entrega_modo ?? null,
     agenciaDestino: s.agencia_destino ?? null,
     agenciaDireccion: s.agencia_direccion ?? null,

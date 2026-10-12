@@ -129,6 +129,12 @@ export interface DatosApertura {
   coordinaContabilidad?: string | null;
   /** Con quién coordina herramientas, repuestos y EPP (0371). Vacío = «Almacén». */
   coordinaLogistica?: string | null;
+  /**
+   * Observaciones escritas a mano por fila (0445, Rubí 12-10: «opción para
+   * editar en observación de cliente»): {"6": "…"}. Van en la columna de
+   * observaciones de esa fila, debajo de lo que ya sale solo.
+   */
+  obsFilas?: Record<string, string> | null;
 }
 
 export type GuiaApertura = "traslado" | "materiales" | "repuestos" | "ambas";
@@ -177,6 +183,27 @@ export interface FilaApertura {
 /** «despacho» para las entregas, «servicio» cuando no sale equipo: como dice el correo de siempre. */
 export function queQuedaEnAgenda(tipo: TipoApertura | null | undefined): string {
   return tipo === "mantenimiento" || tipo === "puesta_marcha" ? "servicio" : "despacho";
+}
+
+/** Las filas que no tienen campo propio para sus observaciones: se escriben en la apertura (0445). */
+export const FILAS_CON_OBSERVACION_LIBRE: { n: number; etiqueta: string; ejemplo: string }[] = [
+  { n: 2, etiqueta: "Cliente", ejemplo: "ej. Facturar a nombre de la sede Cusco" },
+  { n: 3, etiqueta: "Primer destino", ejemplo: "ej. Entregar en ventanilla de carga" },
+  { n: 5, etiqueta: "Programación", ejemplo: "ej. Solo de lunes a viernes" },
+  { n: 6, etiqueta: "Persona que recibe", ejemplo: "ej. Si no está, recibe el Sr. Pérez (encargado de mantenimiento)" },
+  { n: 7, etiqueta: "Personal asignado", ejemplo: "ej. Llevar SCTR" },
+  { n: 8, etiqueta: "Medio de transporte", ejemplo: "ej. Bus Cruz del Sur, salida 9 p. m." },
+];
+
+/** Deja solo las filas con texto; nada escrito = null. */
+export function limpiarObsFilas(o: Record<string, string | null | undefined> | null | undefined): Record<string, string> | null {
+  const filas = new Set(FILAS_CON_OBSERVACION_LIBRE.map((f) => String(f.n)));
+  const limpio = Object.fromEntries(
+    Object.entries(o ?? {})
+      .filter(([k, v]) => filas.has(k) && typeof v === "string" && v.trim())
+      .map(([k, v]) => [k, (v as string).trim()]),
+  );
+  return Object.keys(limpio).length ? limpio : null;
 }
 
 export const NOTA_LLEGA_A_DOMICILIO = "EQUIPO DEBERÁ LLEGAR A DOMICILIO";
@@ -254,7 +281,7 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
   const contabilidad = d.coordinaContabilidad?.trim() || "—";
   const logistica = d.coordinaLogistica?.trim() || LOGISTICA_POR_DEFECTO;
 
-  return [
+  const filas: FilaApertura[] = [
     { n: 1, descripcion: "SERVICIO A REALIZAR", informacion: equipo, observaciones: d.hora ?? "—", notas },
     { n: 2, descripcion: "CLIENTE", informacion: `${d.cliente}${d.ruc ? `\nRUC: ${d.ruc}` : ""}`, observaciones: "" },
     { n: 3, descripcion: "PRIMER DESTINO", informacion: primerDestino, observaciones: "" },
@@ -267,6 +294,16 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     { n: 10, descripcion: "MONTO DE VIÁTICOS", informacion: GESTION_CONTABILIDAD, observaciones: contabilidad },
     { n: 11, descripcion: "COORDINACIÓN CON LOGÍSTICA", informacion: COORDINACION_LOGISTICA, observaciones: logistica },
   ];
+  // LO QUE POSTVENTA ESCRIBIÓ EN CADA FILA (Rubí, 12-10; 0445): debajo de lo
+  // que ya sale solo; un «—» vacío se reemplaza.
+  const obsFilas = limpiarObsFilas(d.obsFilas);
+  if (!obsFilas) return filas;
+  return filas.map((f) => {
+    const extra = obsFilas[String(f.n)];
+    if (!extra) return f;
+    const base = f.observaciones.trim() === "—" ? "" : f.observaciones;
+    return { ...f, observaciones: [base, extra].filter(Boolean).join("\n") };
+  });
 }
 
 /**

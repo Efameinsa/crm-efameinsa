@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  limpiarObsFilas,
   notaDestinoAutomatica,
   TIPOS_APERTURA,
   tituloDe,
@@ -194,6 +195,18 @@ describe("las filas llevan lo que el correo lleva", () => {
     expect(filasApertura({ ...d, agenciaDestino: "ANGENCIA MARVISUR" })[2].informacion.startsWith("ANGENCIA MARVISUR\n")).toBe(true);
     expect(faltantesApertura(d)).not.toContain("la dirección de la agencia (primer destino)");
     expect(faltantesApertura({ ...d, agenciaDireccion: null })).toContain("la dirección de la agencia (primer destino)");
+  });
+
+  it("las observaciones de las filas se escriben a mano (Rubí, 12-10; 0445)", () => {
+    const f = filasApertura({ ...PERU_VACATION, obsFilas: { "6": "  Si no está, recibe el Sr. Pérez ", "2": "", "4": "no va", "11": "no va" } });
+    expect(f[5].observaciones).toBe("Si no está, recibe el Sr. Pérez");
+    expect(f[1].observaciones).toBe("");
+    // Solo las filas sin campo propio: destino final y logística tienen los suyos.
+    expect(f[3].observaciones).not.toContain("no va");
+    expect(f[10].observaciones).not.toContain("no va");
+    expect(cuerpoApertura({ ...PERU_VACATION, obsFilas: { "6": "Llamar antes" } })).toContain("6. PERSONA QUE RECIBE   [Llamar antes]");
+    expect(limpiarObsFilas({ "2": " ", "6": "x" })).toEqual({ "6": "x" });
+    expect(limpiarObsFilas({ "2": " " })).toBeNull();
   });
 
   it("la NOTA del destino final se cambia o se quita (Rubí, 12-10; 0438)", () => {

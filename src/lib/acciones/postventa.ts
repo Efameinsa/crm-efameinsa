@@ -10,7 +10,7 @@ import { correoAlArea } from "@/lib/correo-al-area";
 import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
-import { lineasGuia, type GuiaApertura } from "@/lib/apertura-servicio";
+import { limpiarObsFilas, lineasGuia, type GuiaApertura } from "@/lib/apertura-servicio";
 
 /**
  * Las acciones del circuito de postventa (migración 0087).
@@ -1339,6 +1339,8 @@ export async function guardarAperturaServicio(
     destinoObservacion?: string | null;
     /** La NOTA en amarillo del destino final (0438): null = la automática, "" = sin nota. */
     destinoNota?: string | null;
+    /** Observaciones escritas por fila de la hoja (0445): {"6": "…"}. */
+    obsFilas?: Record<string, string> | null;
     guia?: string | null;
     guiaDetalle?: string | null;
     coordinaContabilidad?: string | null;
@@ -1363,9 +1365,12 @@ export async function guardarAperturaServicio(
   // Con la apertura emitida, lo que cambie de esto va a Finanzas y al almacén (0406).
   const { data: antes } = await supabase
     .from("servicios_postventa")
-    .select("apertura_despacho_at, apertura_fecha, apertura_hora, direccion_final, destino_nota, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa")
+    .select("apertura_despacho_at, apertura_fecha, apertura_hora, direccion_final, destino_nota, apertura_obs_filas, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa")
     .eq("id", servicioId)
     .maybeSingle();
+  const mismasObs = (a: Record<string, string> | null, b: Record<string, string> | null) =>
+    JSON.stringify(Object.entries(a ?? {}).sort()) === JSON.stringify(Object.entries(b ?? {}).sort());
+  const obsFilas = datos.obsFilas !== undefined ? limpiarObsFilas(datos.obsFilas) : undefined;
   const cambios = antes?.apertura_despacho_at
     ? (
         [
@@ -1380,6 +1385,11 @@ export async function guardarAperturaServicio(
       )
         .filter(([, a, d]) => d !== undefined && String(a ?? "").trim() !== (limpio(d) ?? ""))
         .map(([que]) => que)
+        .concat(
+          obsFilas !== undefined && mismasObs(limpiarObsFilas(antes.apertura_obs_filas as Record<string, string> | null), obsFilas) === false
+            ? ["las observaciones de la hoja"]
+            : [],
+        )
     : [];
 
   const { error } = await supabase
@@ -1395,6 +1405,7 @@ export async function guardarAperturaServicio(
       ...(datos.destinoObservacion !== undefined ? { destino_observacion: limpio(datos.destinoObservacion) } : {}),
       // Aquí "" no es null: es «sin nota» (null = la automática).
       ...(datos.destinoNota !== undefined ? { destino_nota: datos.destinoNota === null ? null : datos.destinoNota.trim() } : {}),
+      ...(obsFilas !== undefined ? { apertura_obs_filas: obsFilas } : {}),
       // undefined = no tocar: quien guarda desde otra pantalla no los borra.
       ...(datos.guia !== undefined ? { apertura_guia: limpio(datos.guia) } : {}),
       ...(datos.guiaDetalle !== undefined ? { apertura_guia_detalle: limpio(datos.guiaDetalle) } : {}),
