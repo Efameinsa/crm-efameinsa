@@ -210,6 +210,12 @@ export async function guardarBorradorCotizacion(datos: {
     p_tipo_cambio: datos.monedaImpresa === "PEN" ? (datos.tipoCambio ?? null) : null,
   });
   if (error) return { error: limpiarError(error.message), cotizacionId: datos.cotizacionId };
+  // VACIAR «Otra cláusula» no se guardaba (Gabriela, 12-10): editar_cotizacion
+  // hace coalesce(p_condiciones, condiciones), así que el null de un campo
+  // borrado dejaba el texto viejo y el PDF lo seguía imprimiendo. Se limpia acá.
+  if (!datos.condiciones?.trim()) {
+    await supabase.from("cotizaciones").update({ condiciones: null }).eq("id", datos.cotizacionId);
+  }
 
   await guardarEntrega(supabase, datos.cotizacionId, datos.entregaLugar, datos.condicionesFicha, {
     serie: datos.serie,
