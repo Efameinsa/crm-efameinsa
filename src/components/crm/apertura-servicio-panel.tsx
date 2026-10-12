@@ -10,7 +10,7 @@ import { esCorreoDeLaEmpresa, type Destinatario } from "@/lib/directorio";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { GUIAS_APERTURA, LOGISTICA_POR_DEFECTO, TIPOS_APERTURA, type GuiaApertura, type TipoApertura } from "@/lib/apertura-servicio";
+import { FILAS_CON_OBSERVACION_LIBRE, GUIAS_APERTURA, LOGISTICA_POR_DEFECTO, TIPOS_APERTURA, type GuiaApertura, type TipoApertura } from "@/lib/apertura-servicio";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
@@ -53,6 +53,8 @@ export function AperturaServicioPanel({
     destinoObservacion: string | null;
     /** La NOTA en amarillo del destino final, ya con la automática puesta si no hay otra (0438). */
     destinoNota: string;
+    /** Observaciones escritas por fila de la hoja (0445): {"6": "…"}. */
+    obsFilas: Record<string, string>;
     guia: GuiaApertura | null;
     guiaDetalle: string | null;
     coordinaContabilidad: string | null;
@@ -154,6 +156,7 @@ export function AperturaServicioPanel({
         destinoObservacion: v.destinoObservacion,
         // Igual a la automática = se deja en automático (sigue al modo de entrega); vacía = sin nota.
         destinoNota: v.destinoNota.trim() === (notaAutomatica ?? "") ? null : v.destinoNota.trim(),
+        obsFilas: v.obsFilas,
         guia: v.guia,
         guiaDetalle: v.guia ? v.guiaDetalle : null,
         coordinaContabilidad: v.coordinaContabilidad,
@@ -371,6 +374,25 @@ export function AperturaServicioPanel({
               className={ENTRADA}
             />
           </Campo>
+        </div>
+
+        {/* Rubí, 12-10: «añadir opción para editar en "observación de cliente"» (0445). */}
+        <h3 className="mt-4 text-xs font-semibold text-foreground">Observaciones de la hoja</h3>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Lo que escriba sale en la columna «Observaciones» de esa fila, en la hoja, el PDF y el correo. Vacío, no sale nada.
+        </p>
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          {FILAS_CON_OBSERVACION_LIBRE.map((f) => (
+            <Campo key={f.n} etiqueta={`${f.n}. ${f.etiqueta}`}>
+              <textarea
+                value={v.obsFilas[String(f.n)] ?? ""}
+                onChange={(e) => setV((x) => ({ ...x, obsFilas: { ...x.obsFilas, [String(f.n)]: e.target.value } }))}
+                rows={2}
+                placeholder={f.ejemplo}
+                className={ENTRADA}
+              />
+            </Campo>
+          ))}
         </div>
 
         <button

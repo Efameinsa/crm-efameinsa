@@ -252,6 +252,7 @@ export default async function AperturaServicioPage({ params }: { params: Promise
           direccionFinal: s.direccion_final ?? null,
           destinoObservacion: s.destino_observacion ?? null,
           destinoNota: s.destino_nota ?? notaDestinoAutomatica(d) ?? "",
+          obsFilas: d.obsFilas ?? {},
           guia: d.guia ?? null,
           guiaDetalle: d.guiaDetalle ?? null,
           coordinaContabilidad: d.coordinaContabilidad ?? null,
