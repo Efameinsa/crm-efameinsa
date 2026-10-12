@@ -391,7 +391,7 @@ export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[];
       porque:
         n === 1
           ? g.filas[0].foco === "cotizado" ? "Está cotizado y lleva más de 7 días sin movimiento." : "Está en gestión y lleva más de 7 días sin movimiento."
-          : `${cotizados ? `${cotizados} cotizados, ` : ""}más de 7 días sin movimiento: ${nombres.slice(0, 4).join(", ")}${n > 4 ? "…" : ""}`,
+          : `${cotizados ? `${cotizados} cotizado${cotizados === 1 ? "" : "s"}, ` : ""}más de 7 días sin movimiento: ${nombres.slice(0, 4).join(", ")}${n > 4 ? "…" : ""}`,
       accion: {
         etiqueta: n === 1 ? "Ver el derivado" : "Ver la lista",
         href: `/central/derivados?desde=${desde}&hasta=${hoy}&foco=atencion${g.comercialId ? `&comercial=${g.comercialId}` : ""}`,
