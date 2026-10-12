@@ -432,8 +432,6 @@ export async function enviarCotizacion(
   revalidatePath("/comercial", "layout");
   const codigo = (data as string) ?? undefined;
 
-  await avisarGerenciaSiEsServicio(supabase, cotizacionId, codigo);
-
   // Aviso a Educanet (best-effort, no bloquea el envio si falla).
   const { comercialId } = await comercialDeCotizacion(supabase, cotizacionId);
   if (comercialId) {
@@ -457,52 +455,6 @@ export async function enviarCotizacion(
   }
 
   return { error: null, codigo };
-}
-
-/**
- * Gerencia se entera de cada cotización de SERVICIO que un comercial confirma.
- *
- * Buzón, Brenda 12-10: cotizó el mantenimiento de NEWREST (minera) y gerencia
- * «no le aparecían los registros». Una cotización de servicio escrita a mano
- * sale sola (auto_aprobada), sin pasar por /gerencia/aprobaciones, así que
- * gerencia no tenía cómo enterarse. Si ya la aprobó gerencia, no se repite.
- * Es renglón de servicio el del catálogo con segmento «servicio» o la línea a
- * mano que empieza por «SERVICIO». Best-effort: nunca frena la confirmación.
- */
-async function avisarGerenciaSiEsServicio(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  cotizacionId: string,
-  codigo: string | undefined,
-): Promise<void> {
-  try {
-    const { data: cot } = await supabase
-      .from("cotizaciones")
-      .select(
-        "total, moneda, estado_aprobacion, oportunidad_id, cotizacion_items(descripcion, productos(segmento)), oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social), perfiles(nombre))",
-      )
-      .eq("id", cotizacionId)
-      .maybeSingle();
-    if (!cot || cot.estado_aprobacion === "aprobada_gerencia") return;
-    const items =
-      (cot.cotizacion_items as unknown as { descripcion: string | null; productos: { segmento: string | null } | null }[]) ?? [];
-    const esServicio = items.some(
-      (i) => i.productos?.segmento === "servicio" || (!i.productos && /^\s*servicio/i.test(i.descripcion ?? "")),
-    );
-    if (!esServicio) return;
-    const oportunidad = cot.oportunidades as unknown as {
-      cuentas: { razon_social: string } | null;
-      perfiles: { nombre: string } | null;
-    } | null;
-    await notificar({
-      rol: "gerencia",
-      tipo: "cotizacion_servicio",
-      titulo: `${oportunidad?.perfiles?.nombre ?? "Un comercial"} confirmó la cotización de servicio ${codigo ?? ""}`.trim(),
-      cuerpo: `${oportunidad?.cuentas?.razon_social ?? "Cliente"} · ${cot.moneda} ${Number(cot.total).toLocaleString("en-US")}`,
-      url: `/comercial/oportunidades/${cot.oportunidad_id}`,
-    });
-  } catch (err) {
-    console.error("avisarGerenciaSiEsServicio()", err);
-  }
 }
 
 /**

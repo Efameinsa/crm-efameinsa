@@ -1,6 +1,6 @@
 import { cambiosDelKit, piezasDeKit } from "@/lib/kit";
 import Link from "next/link";
-import { fechaLima } from "@/lib/fechas";
+import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
 import { codigoConVersion } from "@/lib/version-cotizacion";
 import { ChevronRight, FileDown } from "lucide-react";
@@ -143,6 +143,9 @@ export default async function AprobacionesPage() {
             // cotizados por debajo del precio de referencia. Se muestra cuánto
             // se está cediendo en total, que es la pregunta real.
             const porDecidir = items.filter((i) => i.requiere_aprobacion).length;
+            // 0440: líneas escritas a mano con precio (sin catálogo) de un comercial.
+            const aMano = items.filter((i) => i.requiere_aprobacion && !i.productos).length;
+            const porLineaAMano = !porCapacitacion && aMano > 0 && aMano === porDecidir;
             const cedido = items
               .filter((i) => i.bajo_lista && i.precio_lista != null)
               .reduce((s, i) => s + (Number(i.precio_lista) - Number(i.precio_unitario)) * i.cantidad, 0);
@@ -174,11 +177,15 @@ export default async function AprobacionesPage() {
                       {c.codigo && <EtiquetaVersion version={c.version} />} · Serie {c.serie} · De{" "}
                       {autor?.nombre ?? dueno ?? "un comercial"}
                       {autor && dueno && autor.nombre !== dueno && ` (expediente de ${dueno})`} ·{" "}
-                      {fechaLima(c.created_at)} ·{" "}
+                      {/* La fecha en que la comercial la hizo, no la de hoy: un
+                          borrador puede esperar días (NEWREST, 07-10). */}
+                      Hecha el {fechaHoraLima(c.created_at)} ·{" "}
                       <span className="font-semibold text-amber-700">
                         {porCapacitacion
                           ? `Postventa en capacitación · ${porDecidir} de ${items.length} por aprobar`
-                          : `${porDecidir} de ${items.length} por debajo de la referencia`}
+                          : porLineaAMano
+                            ? `${porDecidir} de ${items.length} escritas a mano con precio`
+                            : `${porDecidir} de ${items.length} por debajo de la referencia`}
                         {cedido > 0 && ` · se ceden ${c.moneda} ${Math.round(cedido).toLocaleString("es-PE")}`}
                       </span>
                     </p>
@@ -250,6 +257,7 @@ export default async function AprobacionesPage() {
                     cotizacionId={c.id}
                     moneda={c.moneda}
                     porCapacitacion={porCapacitacion}
+                    porLineaAMano={porLineaAMano}
                     items={items.map((i) => ({
                       id: i.id,
                       nombre: i.productos
