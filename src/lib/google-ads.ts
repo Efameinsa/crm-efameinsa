@@ -1,5 +1,6 @@
 /**
- * Google Ads API: conversiones offline por clic (gclid) desde el CRM (0435).
+ * Google Ads: conversiones offline por clic (gclid) desde el CRM (0435). Las
+ * acciones se crean con la API de Google Ads y los clics se suben por Data Manager.
  *
  * Santos, 10-10: «las conversiones deben guiar las pujas de google ya». Por eso
  * las dos acciones se crean como PRINCIPALES (primaryForGoal): Google deja de
@@ -131,13 +132,46 @@ export interface ConversionClic {
   moneda: string | null;
 }
 
-/** «2026-10-10 14:35:02-05:00», el formato que pide la API. */
+/** «2026-10-10T14:35:02-05:00» (ISO 8601 en hora de Lima), el formato de Data Manager. */
 function horaLima(iso: string): string {
   const p = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Lima", hour12: false,
     year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
   }).formatToParts(new Date(iso)).reduce<Record<string, string>>((a, x) => ((a[x.type] = x.value), a), {});
-  return `${p.year}-${p.month}-${p.day} ${p.hour === "24" ? "00" : p.hour}:${p.minute}:${p.second}-05:00`;
+  return `${p.year}-${p.month}-${p.day}T${p.hour === "24" ? "00" : p.hour}:${p.minute}:${p.second}-05:00`;
+}
+
+/**
+ * Una llamada a Data Manager (events:ingest). Desde 2026 Google no deja a las
+ * integraciones nuevas usar uploadClickConversions de la API de Google Ads
+ * (CUSTOMER_NOT_ALLOWLISTED_FOR_THIS_FEATURE): las conversiones por gclid van
+ * por aquí. Si un evento falla, falla la llamada entera. Devuelve null o el error.
+ */
+async function ingerir(token: string, accion: string, conversiones: ConversionClic[]): Promise<string | null> {
+  const cid = soloDigitos(process.env.GOOGLE_ADS_CUSTOMER_ID);
+  const login = soloDigitos(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID) || cid;
+  const r = await fetch("https://datamanager.googleapis.com/v1/events:ingest", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      destinations: [{
+        operatingAccount: { accountType: "GOOGLE_ADS", accountId: cid },
+        loginAccount: { accountType: "GOOGLE_ADS", accountId: login },
+        productDestinationId: accion.split("/").pop(),
+      }],
+      events: conversiones.map((c) => ({
+        adIdentifiers: { gclid: c.gclid },
+        eventTimestamp: horaLima(c.ocurrioAt),
+        transactionId: c.clave,
+        eventSource: "OTHER",
+        ...(c.valor != null ? { conversionValue: Number(c.valor), currency: c.moneda ?? "USD" } : {}),
+      })),
+    }),
+    signal: AbortSignal.timeout(60_000),
+  });
+  if (r.ok) return null;
+  const j = (await r.json().catch(() => ({}))) as { error?: { message?: string } };
+  return `Data Manager ${r.status}: ${j.error?.message ?? "sin detalle"}`.slice(0, 500);
 }
 
 /** Sube un lote. Devuelve, por clave, null si entró o el error de esa fila. */
@@ -145,27 +179,15 @@ export async function subirConversionesDeClic(lote: ConversionClic[]): Promise<M
   const token = await tokenDeAcceso();
   const acciones = await asegurarAccionesDeConversion(token);
   const resultado = new Map<string, string | null>();
-  for (let i = 0; i < lote.length; i += 200) {
-    const parte = lote.slice(i, i + 200);
-    const r = await llamar(token, ":uploadClickConversions", {
-      partialFailure: true,
-      conversions: parte.map((c) => ({
-        gclid: c.gclid,
-        conversionAction: acciones[c.evento],
-        conversionDateTime: horaLima(c.ocurrioAt),
-        ...(c.valor != null ? { conversionValue: Number(c.valor), currencyCode: c.moneda ?? "USD" } : {}),
-      })),
-    });
-    // Errores parciales: cada detalle dice el índice de la fila en «location».
-    const fallas = new Map<number, string>();
-    const pf = r.partialFailureError as { details?: { errors?: { message?: string; location?: { fieldPathElements?: { index?: number }[] } }[] }[] } | undefined;
-    for (const d of pf?.details ?? []) {
-      for (const e of d.errors ?? []) {
-        const idx = e.location?.fieldPathElements?.find((f) => f.index != null)?.index;
-        if (idx != null) fallas.set(idx, e.message ?? "error");
-      }
+  for (const evento of Object.keys(CONVERSIONES_GOOGLE) as EventoGoogle[]) {
+    const deEste = lote.filter((c) => c.evento === evento);
+    for (let i = 0; i < deEste.length; i += 500) {
+      const parte = deEste.slice(i, i + 500);
+      const error = await ingerir(token, acciones[evento], parte);
+      if (!error) { parte.forEach((c) => resultado.set(c.clave, null)); continue; }
+      // Uno malo tumba la llamada entera: se reintenta de a uno para saber cuál.
+      for (const c of parte) resultado.set(c.clave, parte.length === 1 ? error : await ingerir(token, acciones[evento], [c]));
     }
-    parte.forEach((c, j) => resultado.set(c.clave, fallas.get(j) ?? null));
   }
   return resultado;
 }
