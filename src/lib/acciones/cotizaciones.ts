@@ -210,6 +210,12 @@ export async function guardarBorradorCotizacion(datos: {
     p_tipo_cambio: datos.monedaImpresa === "PEN" ? (datos.tipoCambio ?? null) : null,
   });
   if (error) return { error: limpiarError(error.message), cotizacionId: datos.cotizacionId };
+  // VACIAR «Otra cláusula» no se guardaba (Gabriela, 12-10): editar_cotizacion
+  // hace coalesce(p_condiciones, condiciones), así que el null de un campo
+  // borrado dejaba el texto viejo y el PDF lo seguía imprimiendo. Se limpia acá.
+  if (!datos.condiciones?.trim()) {
+    await supabase.from("cotizaciones").update({ condiciones: null }).eq("id", datos.cotizacionId);
+  }
 
   await guardarEntrega(supabase, datos.cotizacionId, datos.entregaLugar, datos.condicionesFicha, {
     serie: datos.serie,
@@ -287,7 +293,7 @@ export async function cambiarSerieBorrador(datos: {
   const { data: original } = await supabase
     .from("cotizaciones")
     .select(
-      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, atencion_pdf, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit)",
+      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, atencion_pdf, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, tiempo_ejecucion, moneda_impresa, tipo_cambio, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit)",
     )
     .eq("id", datos.cotizacionId)
     .maybeSingle();
@@ -328,6 +334,11 @@ export async function cambiarSerieBorrador(datos: {
     })),
     p_condiciones: original.condiciones,
     p_vigencia_dias: original.vigencia_dias,
+    // Ni la moneda ni las condiciones cambian con la serie (Gabriela, 12-10:
+    // al pasar a OPEN desaparecían tiempo de entrega, forma de pago y tiempo
+    // de ejecución del borrador nuevo, y el soles volvía a dólares).
+    p_moneda_impresa: original.moneda_impresa ?? "USD",
+    p_tipo_cambio: original.moneda_impresa === "PEN" ? original.tipo_cambio : null,
   });
   if (error) return { error: limpiarError(error.message) };
 
@@ -336,10 +347,20 @@ export async function cambiarSerieBorrador(datos: {
   if (original.facturar_a_cuenta_id) {
     await supabase.rpc("cotizar_a_nombre_de", { p_cotizacion: nuevoId, p_cuenta: original.facturar_a_cuenta_id });
   }
-  await guardarEntrega(supabase, nuevoId, original.entrega_lugar, undefined, {
-    serie: datos.serie,
-    motivo: datos.motivoSerie,
-  });
+  await guardarEntrega(
+    supabase,
+    nuevoId,
+    original.entrega_lugar,
+    {
+      tiempoEntrega: original.tiempo_entrega,
+      garantia: original.garantia,
+      formaPago: original.forma_pago,
+      saldo: original.saldo,
+      notasPdf: (original.notas_pdf as string[] | null) ?? null,
+      tiempoEjecucion: original.tiempo_ejecucion,
+    },
+    { serie: datos.serie, motivo: datos.motivoSerie },
+  );
   // A quién va dirigida (0443) tampoco cambia con la serie.
   if (original.atencion_pdf) {
     await supabase.from("cotizaciones").update({ atencion_pdf: original.atencion_pdf }).eq("id", nuevoId);

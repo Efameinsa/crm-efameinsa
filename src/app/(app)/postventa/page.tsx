@@ -32,6 +32,8 @@ import {
 } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
+import { MisPendientesAnotados } from "@/components/crm/mis-pendientes-anotados";
+import { pendientesAnotados } from "@/lib/pendientes-anotados";
 
 export const dynamic = "force-dynamic";
 
@@ -217,6 +219,9 @@ export default async function PostventaPage() {
   // ARBOLEDA porque «no aparecían» las que había emitido (el porqué completo,
   // en src/lib/mandado-a-central.ts).
   const mandadoACentral = await listarMandadoACentral(supabase, perfil.id);
+  // Lo que ella anota a mano con su tipo (Importación, Llamada programada,
+  // Pendiente de stock…; buzón de Rubí, 12-10, 0444).
+  const misPendientes = await pendientesAnotados(supabase, perfil.id);
 
   const { data: atendidasHoy } = await supabase
     .from("atenciones")
@@ -466,6 +471,8 @@ export default async function PostventaPage() {
           vuelve. Sin esto el trabajo registrado desaparece de la pantalla
           entre que se registra y Central lo deriva. */}
       <MandadoACentral filas={mandadoACentral} contexto="postventa" />
+
+      <MisPendientesAnotados hoy={hoyIso} lista={misPendientes} />
 
       {/* El registro de lo atendido: la atención que salió de la bandeja
           porque alguien ya hizo algo con ella, con la hora y quién. Lo que

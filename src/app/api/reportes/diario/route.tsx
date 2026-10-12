@@ -16,6 +16,7 @@ import { TITULO_PREVENTIVOS_POR_OFRECER } from "@/lib/preventivo";
 import { gestionesPorRuta, type RutaPostventa } from "@/lib/reporte-postventa-rutas";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pendientesPropios, presupuestosPropios, ventasPropias } from "@/lib/trabajo-propio";
+import { pendientesAnotados, bloquesPendientesAnotados } from "@/lib/pendientes-anotados";
 
 // PDF del cierre del día del comercial. La autorización real la hace la
 // función SQL (el propio comercial o backoffice); acá solo se comprueba que
@@ -176,6 +177,15 @@ export async function GET(request: Request) {
             filas: pendientes[clave].map((f) => ({ cliente: f.cliente, detalle: f.detalle })),
           }))
         : undefined;
+      // Los que anotó a mano con su tipo (buzón, Rubí 12-10, 0444): solo en el
+      // reporte de hoy, porque de un día pasado no se sabe cuáles seguían abiertos.
+      if (fecha >= hoyLima()) {
+        const anotados = bloquesPendientesAnotados(await pendientesAnotados(createAdminClient(), comercialId).catch(() => []));
+        if (anotados.length > 0) {
+          pendientesPostventa = [...(pendientesPostventa ?? []), ...anotados];
+          tituloPendientes ??= "5b. PENDIENTES DEL ÁREA Y LOS ANOTADOS";
+        }
+      }
       // LAS PROGRAMADAS, POR DÍA (Carlos, 23-09: «videollamadas de
       // preinstalación agrupadas por fecha: 24, 25, 26… solo las
       // programadas»). Salen de las aperturas al almacén (0281) que siguen
