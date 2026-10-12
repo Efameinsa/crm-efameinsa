@@ -173,7 +173,99 @@ const fechaCorta = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
  * cartera para hoy y los que se pasaron de fecha (mismo criterio que la
  * tarjeta «Agenda» del reporte del día: oportunidades vivas del CRM).
  */
-export async function pendientesPropios(admin: SupabaseClient, personaId: string, hoy: string): Promise<BloquePendientes[]> {
+/**
+ * Con `alCierreDe` (un día pasado), lo que estaba pendiente AL CERRAR ESE DÍA
+ * y no lo de hoy (12-10: el reporte del viernes mostraba «para hoy» los del
+ * lunes). Se reconstruye:
+ *   · presupuestos: armados hasta esa noche que todavía no habían salido (y no
+ *     estaban anulados); si salieron después, se dice cuándo;
+ *   · seguimientos: la próxima acción que dejó la última gestión registrada
+ *     hasta esa noche en cada oportunidad de su cartera (cada gestión guarda
+ *     la próxima acción que se programó). Una oportunidad sin gestiones lleva
+ *     la que tiene ahora, que es la que se le puso al crearla.
+ */
+export async function pendientesPropios(
+  admin: SupabaseClient,
+  personaId: string,
+  hoy: string,
+  alCierreDe?: string,
+): Promise<BloquePendientes[]> {
+  if (alCierreDe && alCierreDe < hoy) return pendientesAlCierre(admin, personaId, alCierreDe);
+  return pendientesDeHoy(admin, personaId, hoy);
+}
+
+const montoCorto = (total: number | string, moneda: string) =>
+  `${moneda === "PEN" ? "S/" : "US$"} ${Math.round(Number(total) || 0).toLocaleString("es-PE")}`;
+
+async function pendientesAlCierre(admin: SupabaseClient, personaId: string, dia: string): Promise<BloquePendientes[]> {
+  const fin = finDia(dia);
+  const [{ data: cots }, { data: acts }, { data: opps }] = await Promise.all([
+    admin
+      .from("cotizaciones")
+      .select("codigo, total, moneda, estado, estado_aprobacion, created_at, enviada_at, anulada_at, oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(razon_social))")
+      .eq("creada_por", personaId)
+      .lt("created_at", fin)
+      .gte("created_at", inicioDia(sumarDias(dia, -60)))
+      .or(`enviada_at.is.null,enviada_at.gte.${fin}`)
+      .order("created_at", { ascending: false })
+      .limit(500),
+    admin
+      .from("actividades")
+      .select("oportunidad_id, realizada_at, proxima_accion, proxima_accion_at, oportunidades!inner(comercial_id)")
+      .eq("oportunidades.comercial_id", personaId)
+      .lt("realizada_at", fin)
+      .order("realizada_at", { ascending: false })
+      .limit(10000),
+    admin
+      .from("oportunidades")
+      .select("id, created_at, proxima_accion, proxima_accion_at, cuentas(razon_social)")
+      .eq("comercial_id", personaId)
+      .eq("origen", "crm")
+      .lt("created_at", fin)
+      .limit(5000),
+  ]);
+
+  // Anuladas después de esa noche: ese día seguían pendientes.
+  const finMs = Date.parse(fin);
+  const vivas = ((cots ?? []) as unknown as (FilaCotizacion & { anulada_at: string | null })[]).filter(
+    (c) => !c.anulada_at || Date.parse(c.anulada_at) >= finMs,
+  );
+  const porEnviar = vivas.map((c) => {
+    const salio = c.enviada_at ? ` · salió después, el ${fechaCorta(diaLima(c.enviada_at))}` : "";
+    const estado = c.enviada_at ? "Todavía no salía" : estadoPresupuesto(c.estado, c.estado_aprobacion, false);
+    return {
+      cliente: c.oportunidades?.cuentas?.razon_social ?? "Cliente sin nombre",
+      detalle: `${c.codigo ?? "Sin número"} · ${estado} · armado el ${fechaCorta(diaLima(c.created_at))} · ${montoCorto(c.total, c.moneda)}${salio}`,
+    };
+  });
+
+  // La última gestión de cada oportunidad hasta esa noche (vienen de la más nueva a la más vieja).
+  type Act = { oportunidad_id: string; proxima_accion: string | null; proxima_accion_at: string | null };
+  const ultima = new Map<string, Act>();
+  for (const a of (acts ?? []) as unknown as Act[]) if (!ultima.has(a.oportunidad_id)) ultima.set(a.oportunidad_id, a);
+
+  type Opp = { id: string; proxima_accion: string | null; proxima_accion_at: string | null; cuentas: { razon_social: string } | null };
+  const filas: { cliente: string; accion: string | null; fecha: string }[] = [];
+  for (const o of (opps ?? []) as unknown as Opp[]) {
+    const a = ultima.get(o.id);
+    const fecha = a ? a.proxima_accion_at : o.proxima_accion_at;
+    if (!fecha || fecha > dia) continue;
+    filas.push({ cliente: o.cuentas?.razon_social ?? "Cliente sin nombre", accion: a ? a.proxima_accion : o.proxima_accion, fecha });
+  }
+  filas.sort((x, y) => y.fecha.localeCompare(x.fecha));
+  const fila = (f: (typeof filas)[number]) => ({
+    cliente: f.cliente,
+    detalle: `${f.fecha === dia ? "Ese día" : `Programado el ${fechaCorta(f.fecha)}`}${f.accion ? ` · ${f.accion}` : ""}`,
+  });
+
+  return [
+    { titulo: "Presupuestos que no habían salido", filas: porEnviar },
+    { titulo: "Seguimientos programados para ese día", filas: filas.filter((f) => f.fecha === dia).map(fila) },
+    { titulo: "Seguimientos que ya se habían pasado de fecha", filas: filas.filter((f) => f.fecha < dia).map(fila) },
+  ];
+}
+
+async function pendientesDeHoy(admin: SupabaseClient, personaId: string, hoy: string): Promise<BloquePendientes[]> {
   const [{ data: cots }, { data: opps }] = await Promise.all([
     admin
       .from("cotizaciones")
@@ -198,7 +290,7 @@ export async function pendientesPropios(admin: SupabaseClient, personaId: string
 
   const porEnviar = ((cots ?? []) as unknown as (FilaCotizacion & { created_at: string })[]).map((c) => ({
     cliente: c.oportunidades?.cuentas?.razon_social ?? "Cliente sin nombre",
-    detalle: `${c.codigo ?? "Sin número"} · ${estadoPresupuesto(c.estado, c.estado_aprobacion, false)} · armado el ${fechaCorta(diaLima(c.created_at))} · ${c.moneda === "PEN" ? "S/" : "US$"} ${Math.round(Number(c.total) || 0).toLocaleString("es-PE")}`,
+    detalle: `${c.codigo ?? "Sin número"} · ${estadoPresupuesto(c.estado, c.estado_aprobacion, false)} · armado el ${fechaCorta(diaLima(c.created_at))} · ${montoCorto(c.total, c.moneda)}`,
   }));
 
   type Opp = { proxima_accion: string | null; proxima_accion_at: string; proxima_accion_hora: string | null; cuentas: { razon_social: string } | null };

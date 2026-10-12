@@ -150,8 +150,15 @@ export async function GET(request: Request) {
       // «Sus pendientes de ella, no de Rubí» (gerencia, 12-10): quien pidió
       // solo lo suyo ve SUS presupuestos sin salir y SUS seguimientos.
       if (soloPropio) {
-        pendientesPostventa = await pendientesPropios(createAdminClient(), comercialId, hoyLima()).catch(() => undefined);
-        tituloPendientes = "5b. SUS PENDIENTES";
+        // Los del día del reporte: el del viernes dice lo que quedó pendiente
+        // el viernes, no lo de hoy.
+        const pasado = fecha < hoyLima();
+        pendientesPostventa = await pendientesPropios(createAdminClient(), comercialId, hoyLima(), fecha).catch(() => undefined);
+        tituloPendientes = pasado ? "5b. SUS PENDIENTES AL CIERRE DEL DÍA" : "5b. SUS PENDIENTES";
+        // La tarjeta «Agenda» de un día pasado, con la misma cuenta que la lista.
+        if (pasado && pendientesPostventa) {
+          r.agenda = { ...r.agenda, pendiente_hoy: pendientesPostventa[1].filas.length, vencidas: pendientesPostventa[2].filas.length };
+        }
       }
       // 5b. PENDIENTES DEL ÁREA (22-09, ítem 6): mismos bloques que el panel
       // «Pendiente por tipo» de la agenda, para que el PDF diga lo mismo.
@@ -261,6 +268,7 @@ export async function GET(request: Request) {
     <ReporteDiarioPdf
       logoBuffer={LOGO_BUFFER}
       fecha={fechaLarga}
+      fechaCorta={fecha}
       comercial={r.comercial}
       resumen={r.resumen}
       seguimientos={r.seguimientos}
@@ -284,7 +292,20 @@ export async function GET(request: Request) {
   // reporte que la persona está esperando no se cae porque el registro no pudo
   // escribirse.
   try {
-    await supabase.rpc("guardar_reporte_diario", {
+    // Un día PASADO se puede volver a abrir para revisarlo (12-10: «una parte
+    // para ver los reportes por día»), pero no pisa el que la persona ya dejó
+    // grabado: ese es el que se entregó. Solo se graba si ese día no tenía.
+    let yaGrabado = false;
+    if (fecha < hoyLima()) {
+      const { data: previo } = await supabase
+        .from("reportes_diarios")
+        .select("id")
+        .eq("comercial_id", comercialId)
+        .eq("fecha", fecha)
+        .maybeSingle();
+      yaGrabado = Boolean(previo);
+    }
+    if (!yaGrabado) await supabase.rpc("guardar_reporte_diario", {
       p_comercial: comercialId,
       p_fecha: fecha,
       p_contenido: { ...r, proyeccion, indicadores, fecha_larga: fechaLarga },

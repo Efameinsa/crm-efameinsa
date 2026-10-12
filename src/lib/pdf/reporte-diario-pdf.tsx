@@ -30,6 +30,8 @@ const BORDE = "#D8D4D3";
 const FILA_GRIS = "#F4F2F1";
 
 export interface ReporteDiarioProps {
+  /** YYYY-MM-DD, para el pie de página. */
+  fechaCorta?: string;
   logoBuffer: Buffer;
   /** La proyección de la semana (ing. Carlos, 27-08). Opcional: si un día no
    *  se puede calcular, el reporte sale igual sin esa sección. */
@@ -210,7 +212,7 @@ export function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: str
 }
 
 export function ReporteDiarioPdf({
-  logoBuffer, fecha, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
+  logoBuffer, fecha, fechaCorta, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
   pendientesPostventa, tituloPendientes, rutasPostventa, indicadores,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
@@ -438,16 +440,27 @@ export function ReporteDiarioPdf({
         </Seccion>
 
         {pendientesPostventa && (
-          <Seccion
-            titulo={tituloPendientes ?? "5b. PENDIENTES DEL ÁREA"}
-            total={pendientesPostventa.reduce((t, b) => t + b.filas.length, 0)}
-          >
-            {pendientesPostventa.every((b) => b.filas.length === 0) ? (
-              <Text style={e.vacio}>Sin pendientes por tipo: al día en despachos, videollamadas, puestas en marcha, atenciones y preventivos.</Text>
-            ) : (
-              pendientesPostventa.map((b) =>
-                b.filas.length === 0 ? null : (
+          // La cabecera va DENTRO del primer bloque (que no se parte): así no
+          // queda sola al pie de una hoja con su contenido en la siguiente.
+          <View style={e.seccion}>
+            {(() => {
+              const cabecera = (
+                <View style={e.seccionCabecera}>
+                  <Text style={e.seccionTitulo}>{tituloPendientes ?? "5b. PENDIENTES DEL ÁREA"}</Text>
+                  <Text style={e.seccionTotal}>TOTAL: {pendientesPostventa.reduce((t, b) => t + b.filas.length, 0)}</Text>
+                </View>
+              );
+              const conFilas = pendientesPostventa.filter((b) => b.filas.length > 0);
+              if (conFilas.length === 0)
+                return (
+                  <View wrap={false}>
+                    {cabecera}
+                    <Text style={e.vacio}>Sin pendientes por tipo: al día en despachos, videollamadas, puestas en marcha, atenciones y preventivos.</Text>
+                  </View>
+                );
+              return conFilas.map((b, k) => (
                   <View key={b.titulo} wrap={false}>
+                    {k === 0 && cabecera}
                     <View style={e.subtitulo2}>
                       <Text style={e.subtitulo2Texto}>{b.titulo.toUpperCase()} ({b.filas.length})</Text>
                     </View>
@@ -461,10 +474,9 @@ export function ReporteDiarioPdf({
                       <Text style={[e.vacio, { paddingVertical: 3 }]}>y {b.filas.length - 10} más</Text>
                     )}
                   </View>
-                ),
-              )
-            )}
-          </Seccion>
+              ));
+            })()}
+          </View>
         )}
 
         <Seccion
@@ -569,9 +581,15 @@ export function ReporteDiarioPdf({
           </Seccion>
         )}
 
+        {/* Pie fijo sin «Página X de Y»: con el número dinámico (`render`)
+            react-pdf lo desacomodaba en reportes de varias páginas (el del
+            viernes 09-10 de Gabriela: sin pie en 1-4 y arriba en 5-6). */}
         <View style={e.pie} fixed>
           <Text style={e.pieTexto}>Generado automáticamente por el CRM de Efameinsa</Text>
-          <Text style={e.pieTexto} render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
+          <Text style={e.pieTexto}>
+            {comercial.codigo ? `${comercial.codigo} · ` : ""}
+            {fechaCorta ? `${fechaCorta.slice(8, 10)}/${fechaCorta.slice(5, 7)}/${fechaCorta.slice(0, 4)}` : fecha}
+          </Text>
         </View>
       </Page>
     </Document>

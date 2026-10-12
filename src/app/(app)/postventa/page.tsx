@@ -415,7 +415,7 @@ export default async function PostventaPage() {
           {/* Buzón, Gabriela PV2 12-10: el reporte de las fechas que elija (semana, mes, de un día a otro). */}
           <BotonReportePeriodo hoy={hoyIso} compacto />
           <BotonCierreSemanal semana={lunes} compacto />
-          <BotonReporteDiario fecha={hoyIso} compacto />
+          <BotonReporteDiario fecha={hoyIso} compacto elegirFecha />
         </div>
       </div>
 
