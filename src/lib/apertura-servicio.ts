@@ -20,7 +20,7 @@ import { fechaCalendario } from "@/lib/fechas";
  * ya está en el sistema y se llena solo.
  */
 
-export type TipoApertura = "entrega" | "entrega_puesta_marcha" | "puesta_marcha" | "mantenimiento";
+export type TipoApertura = "entrega" | "entrega_puesta_marcha" | "puesta_marcha" | "mantenimiento" | "entrega_garantia";
 
 export const TIPOS_APERTURA: { clave: TipoApertura; titulo: string; ayuda: string }[] = [
   {
@@ -44,6 +44,13 @@ export const TIPOS_APERTURA: { clave: TipoApertura; titulo: string; ayuda: strin
     clave: "mantenimiento",
     titulo: "SERVICIO DE MANTENIMIENTO:",
     ayuda: "El técnico va a hacer mantenimiento preventivo o correctivo.",
+  },
+  // REPUESTOS POR GARANTÍA (buzón Rubí 12-10, 0441): salen sin cobro desde
+  // un caso del cliente, con la lista de repuestos como en un pedido.
+  {
+    clave: "entrega_garantia",
+    titulo: "ENTREGA DE REPUESTOS POR GARANTÍA:",
+    ayuda: "Repuestos que salen por garantía, sin cobro. Puede no ir técnico.",
   },
 ];
 
@@ -318,8 +325,8 @@ export function faltantesApertura(d: DatosApertura): string[] {
   if (!d.recibeNombre) falta.push("quién recibe");
   if (!d.recibeTelefono) falta.push("el teléfono de quien recibe");
   // El técnico no hace falta en una entrega por agencia: no va nadie.
-  if (d.tipo !== "entrega" && !d.tecnico) falta.push("el técnico asignado");
+  if (d.tipo !== "entrega" && d.tipo !== "entrega_garantia" && !d.tecnico) falta.push("el técnico asignado");
   if (!d.transporte) falta.push("el medio de transporte");
-  if (d.tipo !== "entrega" && !d.coordinaContabilidad?.trim()) falta.push("con quién coordina contabilidad (movilidad y viáticos)");
+  if (d.tipo !== "entrega" && d.tipo !== "entrega_garantia" && !d.coordinaContabilidad?.trim()) falta.push("con quién coordina contabilidad (movilidad y viáticos)");
   return falta;
 }

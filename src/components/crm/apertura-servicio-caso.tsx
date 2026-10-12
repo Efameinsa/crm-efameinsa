@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardList, Loader2 } from "lucide-react";
+import { ClipboardList, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { abrirAperturaDesdeCaso } from "@/lib/acciones/postventa";
+import { abrirAperturaDesdeCaso, buscarRepuestosParaGarantia } from "@/lib/acciones/postventa";
 import { GUIAS_APERTURA } from "@/lib/apertura-servicio";
 import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
@@ -27,6 +27,10 @@ import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnico
  */
 /** Garantía y revisión van aparte (buzón, Rubí 07-10: «son diferentes servicios», 0418). */
 type TipoServicioApertura = "garantia" | "revision" | "mantenimiento";
+
+/** Formatos de la apertura desde un caso. «Repuestos por garantía»: buzón Rubí 12-10 (0441). */
+type FormatoCaso = "mantenimiento" | "puesta_marcha" | "entrega_garantia";
+type Repuesto = { cantidad: string; descripcion: string; sku: string | null };
 
 export type CasoParaApertura = { id: string; etiqueta: string; enGarantia: boolean; tecnico: string | null };
 
@@ -50,7 +54,12 @@ export function AperturaServicioCaso({
   const tecnicoDelCaso = tecnicoSugerido ?? casos?.find((c) => c.id === atencionId)?.tecnico;
   const [pendiente, startTransition] = useTransition();
   const [tipoPedido, setTipoPedido] = useState<TipoServicioApertura>(enGarantia ? "garantia" : "mantenimiento");
-  const [formato, setFormato] = useState<"mantenimiento" | "puesta_marcha">("mantenimiento");
+  const [formato, setFormato] = useState<FormatoCaso>("mantenimiento");
+  const esGarantia = formato === "entrega_garantia";
+  const [repuestos, setRepuestos] = useState<Repuesto[]>([]);
+  const [busca, setBusca] = useState("");
+  const [hallados, setHallados] = useState<{ sku: string | null; descripcion: string }[] | null>(null);
+  const [buscando, startBusqueda] = useTransition();
   const [fecha, setFecha] = useState("");
   const [hora, setHora] = useState("");
   const [tecnico, setTecnico] = useState(tecnicoDelCaso ?? "");
@@ -65,11 +74,13 @@ export function AperturaServicioCaso({
   const [nota, setNota] = useState("");
   const [empresa, setEmpresa] = useState<"EFAMEINSA" | "OPEN">("EFAMEINSA");
 
+  const repuestosListos = repuestos.filter((x) => x.descripcion.trim());
   const falta = [
     !atencionId && "el caso",
+    esGarantia && repuestosListos.length === 0 && "los repuestos",
     !fecha && "el día",
-    !tecnico.trim() && "el técnico",
-    !direccion.trim() && "dónde se hace",
+    !esGarantia && !tecnico.trim() && "el técnico",
+    !direccion.trim() && (esGarantia ? "adónde se entregan" : "dónde se hace"),
     !confirmo.trim() && "con quién lo confirmó",
     !destino && "Lima o provincia",
   ].filter(Boolean) as string[];
@@ -92,13 +103,36 @@ export function AperturaServicioCaso({
         guiaDetalle,
         nota,
         empresa,
+        repuestos: esGarantia
+          ? repuestosListos.map((x) => ({ cantidad: Math.max(1, Number(x.cantidad) || 1), descripcion: x.descripcion, sku: x.sku }))
+          : undefined,
       });
       if (r.error) return void toast.error(r.error, { duration: 9000 });
-      toast.success("Apertura emitida: le llegó a Finanzas y al almacén");
+      toast.success(esGarantia ? "Apertura de repuestos por garantía emitida: le llegó a Contabilidad y al almacén" : "Apertura emitida: le llegó a Finanzas y al almacén");
       setAbierto(false);
       if (r.servicioId) router.push(`/postventa/pedidos/${r.servicioId}`);
       else router.refresh();
     });
+
+  const elegirFormato = (f: FormatoCaso) => {
+    setFormato(f);
+    // Por garantía: el servicio es «Garantía» y la guía, la de repuestos.
+    if (f === "entrega_garantia") {
+      setTipoPedido("garantia");
+      if (!guia) setGuia("repuestos");
+      if (repuestos.length === 0) setRepuestos([{ cantidad: "1", descripcion: "", sku: null }]);
+    }
+  };
+  const buscar = () =>
+    startBusqueda(async () => {
+      setHallados(await buscarRepuestosParaGarantia(busca));
+    });
+  const agregar = (x: { sku: string | null; descripcion: string }) => {
+    setRepuestos((l) => [...l.filter((y) => y.descripcion.trim()), { cantidad: "1", descripcion: x.descripcion, sku: x.sku }]);
+    setHallados(null);
+    setBusca("");
+  };
+  const cambiar = (i: number, cambio: Partial<Repuesto>) => setRepuestos((l) => l.map((y, j) => (j === i ? { ...y, ...cambio } : y)));
 
   const select = "h-9 rounded-md border border-input bg-background px-2 text-sm";
   return (
@@ -153,7 +187,7 @@ export function AperturaServicioCaso({
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">Servicio</Label>
-            <select className={select} value={tipoPedido} onChange={(e) => setTipoPedido(e.target.value as TipoServicioApertura)}>
+            <select className={select} value={tipoPedido} disabled={esGarantia} onChange={(e) => setTipoPedido(e.target.value as TipoServicioApertura)}>
               <option value="garantia">Garantía</option>
               <option value="revision">Revisión</option>
               <option value="mantenimiento">Mantenimiento</option>
@@ -161,11 +195,87 @@ export function AperturaServicioCaso({
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">Formato de la apertura</Label>
-            <select className={select} value={formato} onChange={(e) => setFormato(e.target.value as "mantenimiento" | "puesta_marcha")}>
+            <select className={select} value={formato} onChange={(e) => elegirFormato(e.target.value as FormatoCaso)}>
               <option value="mantenimiento">Servicio técnico / mantenimiento</option>
               <option value="puesta_marcha">Puesta en marcha</option>
+              <option value="entrega_garantia">Entrega de repuestos por garantía</option>
             </select>
           </div>
+          {esGarantia && (
+            <div className="grid gap-2 rounded-md border border-border p-3 sm:col-span-2">
+              <div>
+                <Label className="text-xs">Repuestos que se entregan <span className="text-destructive">*</span></Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Salen por garantía: <b>sin cobro</b>. Contabilidad la confirma «sin comprobante» y el almacén prepara los repuestos y emite la guía. La hoja sale como la de un pedido: «ENTREGA DE REPUESTOS POR GARANTÍA:» con cada repuesto y su cantidad.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      buscar();
+                    }
+                  }}
+                  placeholder="Buscar en el catálogo por código o nombre"
+                />
+                <Button type="button" variant="outline" size="sm" className="h-9" onClick={buscar} disabled={buscando || busca.trim().length < 2}>
+                  {buscando ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
+                  Buscar
+                </Button>
+              </div>
+              {hallados && (
+                <div className="max-h-40 overflow-y-auto rounded-md border border-border text-xs">
+                  {hallados.length === 0 ? (
+                    <p className="p-2 text-muted-foreground">No hay repuestos del catálogo con «{busca}». Escríbalo a mano con «Agregar repuesto».</p>
+                  ) : (
+                    hallados.map((x) => (
+                      <button
+                        key={`${x.sku}-${x.descripcion}`}
+                        type="button"
+                        className="block w-full border-b border-border px-2 py-1.5 text-left last:border-0 hover:bg-accent"
+                        onClick={() => agregar(x)}
+                      >
+                        {x.sku && <span className="mr-1 font-mono text-muted-foreground">{x.sku}</span>}
+                        {x.descripcion}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+              {repuestos.map((x, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input className="w-16" type="number" min={1} value={x.cantidad} onChange={(e) => cambiar(i, { cantidad: e.target.value })} aria-label="Cantidad" />
+                  <Input
+                    value={x.descripcion}
+                    onChange={(e) => cambiar(i, { descripcion: e.target.value, sku: null })}
+                    placeholder="Descripción del repuesto (o búsquelo arriba)"
+                  />
+                  {x.sku && <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{x.sku}</span>}
+                  <button
+                    type="button"
+                    className="shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
+                    onClick={() => setRepuestos((l) => l.filter((_, j) => j !== i))}
+                    title="Quitar"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="justify-self-start"
+                onClick={() => setRepuestos((l) => [...l, { cantidad: "1", descripcion: "", sku: null }])}
+              >
+                <Plus className="size-4" />
+                Agregar repuesto
+              </Button>
+            </div>
+          )}
           <div className="grid gap-1">
             <Label className="text-xs">Día <span className="text-destructive">*</span></Label>
             <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
@@ -175,7 +285,7 @@ export function AperturaServicioCaso({
             <Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
           </div>
           <div className="grid gap-1">
-            <Label className="text-xs">Técnico que va <span className="text-destructive">*</span></Label>
+            <Label className="text-xs">Técnico que va {esGarantia ? <span className="text-muted-foreground">(si va alguno)</span> : <span className="text-destructive">*</span>}</Label>
             <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Elija de la relación de técnicos o escriba" list={ID_LISTA_TECNICOS} />
             <ListaTecnicos />
           </div>
@@ -184,7 +294,7 @@ export function AperturaServicioCaso({
             <Input value={transporte} onChange={(e) => setTransporte(e.target.value)} placeholder="Ej.: TRANSPORTE CONTRATADO, bus a Jaén" />
           </div>
           <div className="grid gap-1 sm:col-span-2">
-            <Label className="text-xs">Dónde se hace el servicio, tal como lo confirmó el cliente <span className="text-destructive">*</span></Label>
+            <Label className="text-xs">{esGarantia ? "Adónde se entregan los repuestos" : "Dónde se hace el servicio"}, tal como lo confirmó el cliente <span className="text-destructive">*</span></Label>
             <Textarea rows={2} value={direccion} onChange={(e) => setDireccion(e.target.value)} />
           </div>
           <div className="grid gap-1">

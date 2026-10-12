@@ -1351,7 +1351,7 @@ export async function guardarAperturaServicio(
   const supabase = await createClient();
 
   const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
-  if (datos.tipo && !["entrega", "entrega_puesta_marcha", "puesta_marcha", "mantenimiento"].includes(datos.tipo)) {
+  if (datos.tipo && !["entrega", "entrega_puesta_marcha", "puesta_marcha", "mantenimiento", "entrega_garantia"].includes(datos.tipo)) {
     return falla("Ese no es uno de los formatos de apertura");
   }
   if (datos.guia && !["traslado", "materiales", "repuestos", "ambas"].includes(datos.guia)) {
@@ -1591,7 +1591,7 @@ export async function abrirAperturaDesdeCaso(
   atencionId: string,
   datos: {
     tipoPedido: "garantia" | "revision" | "mantenimiento";
-    formato: "mantenimiento" | "puesta_marcha";
+    formato: "mantenimiento" | "puesta_marcha" | "entrega_garantia";
     fecha: string;
     hora: string;
     tecnico: string;
@@ -1606,10 +1606,19 @@ export async function abrirAperturaDesdeCaso(
     nota: string;
     /** Con qué empresa sale la apertura (0421, Rubí 09-10). */
     empresa?: "EFAMEINSA" | "OPEN";
+    /** Entrega de repuestos por garantía (0441, Rubí 12-10): lo que sale, sin cobro. */
+    repuestos?: { cantidad: number; descripcion: string; sku?: string | null }[];
   },
 ): Promise<{ error: string | null; servicioId?: string }> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
+  const esGarantia = datos.formato === "entrega_garantia";
+  const repuestos = esGarantia
+    ? (datos.repuestos ?? [])
+        .map((r) => ({ cantidad: Math.max(1, Math.round(Number(r.cantidad) || 1)), descripcion: r.descripcion.trim(), sku: r.sku?.trim() || null }))
+        .filter((r) => r.descripcion)
+    : null;
+  if (esGarantia && !repuestos?.length) return falla("Agregue los repuestos que se entregan por garantía");
   const { data: servicioId, error } = await supabase.rpc("apertura_desde_caso", {
     p_atencion: atencionId,
     p_tipo_pedido: datos.tipoPedido,
@@ -1627,6 +1636,7 @@ export async function abrirAperturaDesdeCaso(
     p_recibe_nombre: datos.recibe?.trim() || null,
     p_recibe_telefono: datos.recibeTelefono?.trim() || null,
     p_empresa: datos.empresa === "OPEN" ? "OPEN" : "EFAMEINSA",
+    p_repuestos: repuestos,
   });
   if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
   const id = servicioId as string;
@@ -1635,23 +1645,30 @@ export async function abrirAperturaDesdeCaso(
   const guia = lineasGuia((datos.guia || null) as GuiaApertura | null, datos.guiaDetalle || null);
   const pideGuia = guia.length ? ` Se solicita: ${guia.join(" / ").toLowerCase()}.` : "";
   const esPrueba = s?.es_prueba === true || perfil.es_prueba === true;
+  // Por garantía no se cobra: Contabilidad la confirma «sin comprobante» (0441).
+  const paraConfirmar = esGarantia
+    ? `Postventa emitió una apertura de ENTREGA DE REPUESTOS POR GARANTÍA (sin cobro, sin cierre de venta) para el ${datos.fecha}: ${repuestos!.map((r) => `${r.cantidad} x ${r.descripcion}`).join(" · ")}. Confírmela «sin comprobante» para que el almacén emita la guía.${pideGuia}`
+    : `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`;
+  const paraAlmacen = esGarantia
+    ? `Repuestos por garantía (sin cobro) · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""}${datos.tecnico.trim() ? ` con ${datos.tecnico.trim()}` : ""}. Contabilidad (o Finanzas) confirma la guía.`
+    : `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Contabilidad (o Finanzas) confirma la guía.`;
   await Promise.all([
     notificarFinanzas({
       titulo: `Apertura por confirmar · ${quien}`,
-      cuerpo: `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      cuerpo: paraConfirmar,
       url: "/finanzas/aperturas",
       esPrueba,
     }),
     // Y a Contabilidad, que es quien la autoriza (buzón, Jhon 12-10; 0439).
     notificarFacturacion({
       titulo: `Apertura por confirmar · ${quien}`,
-      cuerpo: `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      cuerpo: paraConfirmar,
       url: "/facturacion/aperturas",
       esPrueba,
     }),
     notificarAlmacen({
-      titulo: `Apertura de servicio · ${quien}`,
-      cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Contabilidad (o Finanzas) confirma la guía.`,
+      titulo: `${esGarantia ? "Repuestos por garantía" : "Apertura de servicio"} · ${quien}`,
+      cuerpo: paraAlmacen,
       url: `/almacen/pedidos/${id}`,
       esPrueba,
     }),
@@ -1661,7 +1678,7 @@ export async function abrirAperturaDesdeCaso(
       servicioId: id,
       empresa: datos.empresa === "OPEN" ? "OPEN" : "EFAMEINSA",
       titulo: `Apertura por confirmar · ${quien}`,
-      cuerpo: `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`,
+      cuerpo: paraConfirmar,
       url: "/finanzas/aperturas",
       esPrueba,
     }),
@@ -1669,8 +1686,8 @@ export async function abrirAperturaDesdeCaso(
       areas: ["almacen"],
       servicioId: id,
       empresa: datos.empresa === "OPEN" ? "OPEN" : "EFAMEINSA",
-      titulo: `Apertura de servicio · ${quien}`,
-      cuerpo: `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Contabilidad (o Finanzas) confirma la guía.`,
+      titulo: `${esGarantia ? "Repuestos por garantía" : "Apertura de servicio"} · ${quien}`,
+      cuerpo: paraAlmacen,
       url: `/almacen/pedidos/${id}`,
       esPrueba,
     }),
@@ -1680,4 +1697,25 @@ export async function abrirAperturaDesdeCaso(
   revalidatePath("/facturacion/aperturas");
   revalidatePath("/almacen/aperturas-postventa");
   return { error: null, servicioId: id };
+}
+
+/**
+ * Repuestos del catálogo para la apertura de ENTREGA DE REPUESTOS POR GARANTÍA
+ * (0441, Rubí 12-10): por código o nombre, solo los activos. También se puede
+ * escribir la línea a mano.
+ */
+export async function buscarRepuestosParaGarantia(q: string): Promise<{ sku: string | null; descripcion: string }[]> {
+  await requerirPerfil();
+  const texto = q.replace(/[,()%*]/g, " ").trim();
+  if (texto.length < 2) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("productos")
+    .select("sku, nombre")
+    .eq("activo", true)
+    .eq("segmento", "repuesto")
+    .or(`sku.ilike.%${texto}%,nombre.ilike.%${texto}%`)
+    .order("nombre")
+    .limit(15);
+  return (data ?? []).map((p) => ({ sku: (p.sku as string | null) ?? null, descripcion: String(p.nombre ?? "").trim() })).filter((p) => p.descripcion);
 }

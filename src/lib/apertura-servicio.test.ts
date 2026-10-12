@@ -316,6 +316,29 @@ describe("el correo listo para pegar", () => {
   });
 
   it("hay un formato por cada caso: los tres de Lesly y la puesta en marcha sola de Rubí (05-10)", () => {
-    expect(TIPOS_APERTURA.map((t) => t.clave)).toEqual(["entrega", "entrega_puesta_marcha", "puesta_marcha", "mantenimiento"]);
+    expect(TIPOS_APERTURA.map((t) => t.clave)).toEqual(["entrega", "entrega_puesta_marcha", "puesta_marcha", "mantenimiento", "entrega_garantia"]);
+  });
+});
+
+describe("entrega de repuestos por garantía (buzón Rubí 12-10, 0441)", () => {
+  const GARANTIA: DatosApertura = {
+    ...MOTORGAS,
+    tipo: "entrega_garantia",
+    equipo: "CANTIDAD: 2\nEMPAQUETADURA DE PUERTA MOD MDS47123611\n\nCANTIDAD: 1\nVALVULA DE DRENAJE MDB-O-3",
+    serie: null,
+    tecnico: null,
+  };
+  it("la fila 1 sale con su encabezado y los repuestos con su cantidad, como un pedido", () => {
+    const f1 = filasApertura(GARANTIA)[0];
+    expect(f1.informacion.startsWith("ENTREGA DE REPUESTOS POR GARANTÍA:")).toBe(true);
+    expect(f1.informacion).toContain("CANTIDAD: 2\nEMPAQUETADURA DE PUERTA");
+  });
+  it("no exige técnico ni a quién coordinar viáticos", () => {
+    const falta = faltantesApertura(GARANTIA);
+    expect(falta).not.toContain("el técnico asignado");
+    expect(falta).not.toContain("con quién coordina contabilidad (movilidad y viáticos)");
+  });
+  it("queda como despacho en el correo", () => {
+    expect(cuerpoApertura(GARANTIA)).toContain("el siguiente despacho");
   });
 });
