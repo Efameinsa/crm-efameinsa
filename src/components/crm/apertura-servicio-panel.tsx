@@ -352,13 +352,13 @@ export function AperturaServicioPanel({
             />
           </Campo>
           {/* Rubí, 12-10: «agregar un item de NOTA en destino final para poder modificar y poner alguna observación»;
-              luego: sin resaltar y en la columna «Información». */}
+              luego: sin resaltar y en la columna «Observaciones». */}
           <Campo
             etiqueta="Nota del destino final"
             ayuda={
               notaAutomatica
-                ? `Sale en la fila «Destino final», en información, debajo de la dirección (sin resaltar). Por defecto dice «${notaAutomatica}»: cámbiela o bórrela si no va.`
-                : "Sale en la fila «Destino final», en información, debajo de la dirección (sin resaltar). Si se deja vacía, no sale."
+                ? `Sale en la fila «Destino final», en la columna de observaciones (sin resaltar). Por defecto dice «${notaAutomatica}»: cámbiela o bórrela si no va.`
+                : "Sale en la fila «Destino final», en la columna de observaciones (sin resaltar). Si se deja vacía, no sale."
             }
             ancho
           >
