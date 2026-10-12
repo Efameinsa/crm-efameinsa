@@ -268,9 +268,15 @@ export function ReportePeriodoPdf({
           )}
         </Seccion>
 
+        {/* Sin «Página X de Y»: con el número dinámico (`render`) react-pdf
+            revienta («unsupported number») en reportes de varias páginas, como
+            la semana de Gabriela del 05-10 con 104 seguimientos. */}
         <View style={e.pie} fixed>
           <Text style={e.pieTexto}>Generado automáticamente por el CRM de Efameinsa</Text>
-          <Text style={e.pieTexto} render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
+          <Text style={e.pieTexto}>
+            {comercial.codigo ? `${comercial.codigo} · ` : ""}
+            {rango}
+          </Text>
         </View>
       </Page>
     </Document>
