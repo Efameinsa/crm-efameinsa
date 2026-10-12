@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { TIPOS_PENDIENTE, ETIQUETA_TIPO_PENDIENTE, type TipoPendiente } from "@/lib/pendientes-anotados";
 
 // Tareas personales de la agenda (migración 0028): sin cliente, del propio
 // comercial. RLS garantiza que cada uno solo toca las suyas.
@@ -37,6 +38,42 @@ export async function crearTarea(datos: {
   // calendario del área: crear una tiene que refrescarlo igual.
   revalidatePath("/postventa/agenda");
   return { error: null, id: data.id };
+}
+
+/** Un pendiente anotado con su tipo (0444, buzón de Rubí 12-10): ver `pendientes-anotados.ts`. */
+export async function crearPendienteAnotado(datos: {
+  tipo: TipoPendiente;
+  titulo: string;
+  fecha: string;
+  hora: string | null;
+}): Promise<{ error: string | null }> {
+  const titulo = datos.titulo.trim();
+  if (!TIPOS_PENDIENTE.includes(datos.tipo)) return { error: "Elija el tipo de pendiente" };
+  if (!titulo) return { error: "Escriba qué está pendiente (cliente y qué falta)" };
+  if (!RE_FECHA.test(datos.fecha)) return { error: "Fecha inválida" };
+  if (datos.hora !== null && !RE_HORA.test(datos.hora)) return { error: "Hora inválida" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesión expirada" };
+
+  const { error } = await supabase
+    .from("tareas_agenda")
+    .insert({
+      comercial_id: user.id,
+      titulo: `${ETIQUETA_TIPO_PENDIENTE[datos.tipo]}: ${titulo}`,
+      fecha: datos.fecha,
+      hora: datos.hora,
+      tipo_pendiente: datos.tipo,
+    });
+  if (error) return { error: error.message };
+
+  revalidatePath("/postventa");
+  revalidatePath("/postventa/agenda");
+  revalidatePath("/comercial/agenda");
+  return { error: null };
 }
 
 export async function actualizarTarea(datos: {
