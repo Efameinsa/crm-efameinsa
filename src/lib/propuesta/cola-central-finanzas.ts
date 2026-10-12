@@ -400,6 +400,28 @@ export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[];
     });
   }
 
+  // EL INFOCORP QUE PIDEN LOS COMERCIALES (0447; Brenda, buzón 12-10): antes
+  // era un correo a Central; ahora es una fila de su día hasta que suba el reporte.
+  const { data: infocorp } = await supabase
+    .from("solicitudes_infocorp")
+    .select("id, ruc, razon_social, nota, created_at, perfiles!solicitudes_infocorp_solicitado_por_fkey(nombre, codigo_comercial)")
+    .is("atendido_at", null)
+    .eq("es_prueba", false)
+    .order("created_at", { ascending: true })
+    .limit(50);
+  for (const i of (infocorp ?? []) as unknown as { id: string; ruc: string | null; razon_social: string; nota: string | null; created_at: string; perfiles: { nombre: string; codigo_comercial: string | null } | null }[]) {
+    const quien = i.perfiles?.codigo_comercial ?? i.perfiles?.nombre ?? "Un comercial";
+    tareas.push({
+      id: `ic-${i.id}`,
+      urgencia: urgenciaPorEdad(i.created_at, hoy),
+      tipo: "cliente",
+      cliente: sinRuc(i.razon_social),
+      que: `Sacar el Infocorp que pidió ${quien}`,
+      porque: `${i.ruc ? `RUC ${i.ruc}. ` : ""}Lo pidió ${dias(i.created_at, hoy)}.${i.nota ? ` ${i.nota.split(/\r?\n/)[0].slice(0, 80)}` : ""}`,
+      accion: { etiqueta: "Subir el reporte", href: "/central/infocorp" },
+    });
+  }
+
   for (const l of (leads ?? []) as { id: string; canal: string | null; nombre_contacto: string | null; razon_social: string | null; mensaje: string | null; recibido_at: string }[]) {
     const quien = l.razon_social || l.nombre_contacto || "Contacto sin nombre";
     tareas.push({

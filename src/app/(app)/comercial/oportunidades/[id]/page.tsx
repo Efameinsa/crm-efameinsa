@@ -49,6 +49,7 @@ import { nombreDeCampana, recorridoDe } from "@/lib/campana";
 import { cierresDePostventa } from "@/lib/precios-postventa";
 import { resumirAsiSeQuedo } from "@/lib/asi-se-quedo";
 import { AsiSeQuedoRecuadro } from "@/components/crm/asi-se-quedo";
+import { InfocorpExpediente, type SolicitudInfocorp } from "@/components/crm/infocorp-expediente";
 
 // Mismo vocabulario que usa Central en su bandeja, para que el comercial lea
 // el mismo nombre de canal que vio quien se lo derivó.
@@ -505,6 +506,40 @@ export default async function OportunidadDetallePage({
     },
   ];
 
+  // EL INFOCORP DEL CLIENTE (0447; Brenda, buzón 12-10): lo pedido a Central
+  // y el reporte que subió. La base solo devuelve los que pidió quien mira
+  // (o todos, a Central y gerencia): es información de crédito.
+  let infocorp: SolicitudInfocorp[] = [];
+  if (cuenta?.id) {
+    const { data: filas } = await supabase
+      .from("solicitudes_infocorp")
+      .select("id, ruc, razon_social, nota, created_at, atendido_at, resultado, archivo_path, archivo_nombre, perfiles!solicitudes_infocorp_solicitado_por_fkey(nombre, codigo_comercial)")
+      .eq("cuenta_id", cuenta.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    const conArchivo = (filas ?? []).filter((f) => f.archivo_path);
+    const { data: firmadas } = conArchivo.length
+      ? await supabase.storage.from("adjuntos").createSignedUrls(conArchivo.map((f) => f.archivo_path as string), 3600)
+      : { data: [] };
+    const url = new Map(conArchivo.map((f, i) => [f.id, firmadas?.[i]?.signedUrl ?? null]));
+    infocorp = (filas ?? []).map((f) => {
+      const p = f.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
+      return {
+        id: f.id,
+        ruc: f.ruc,
+        razon_social: f.razon_social,
+        nota: f.nota,
+        created_at: f.created_at,
+        atendido_at: f.atendido_at,
+        resultado: f.resultado,
+        archivo_nombre: f.archivo_nombre,
+        url: url.get(f.id) ?? null,
+        quien: p ? (p.codigo_comercial ?? p.nombre) : null,
+      };
+    });
+  }
+  const rucParaInfocorp = cuenta?.tipo_doc === "RUC" || cuenta?.tipo_doc === "DNI" ? cuenta.num_doc : null;
+
   return (
     <div className="space-y-4">
       {/* Encabezado: identidad de la cuenta + estado, siempre visible arriba */}
@@ -914,6 +949,18 @@ export default async function OportunidadDetallePage({
               segmentoInicial={oportunidad.segmento}
             />
           </SeccionPanel>
+
+          {cuenta?.id && (
+            <SeccionPanel titulo="Infocorp" id="infocorp">
+              <InfocorpExpediente
+                cuentaId={cuenta.id}
+                oportunidadId={oportunidad.id}
+                ruc={rucParaInfocorp}
+                razonSocial={cuenta.razon_social ?? "Cliente sin nombre"}
+                solicitudes={infocorp}
+              />
+            </SeccionPanel>
+          )}
 
           <SeccionPanel titulo="Etapa">
             {/* Si viene del archivo de los Excel (0130), lo primero no es

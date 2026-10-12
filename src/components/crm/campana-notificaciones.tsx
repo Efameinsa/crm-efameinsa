@@ -123,6 +123,13 @@ const ESTILO_AVISO: Record<
     duracion: 14000,
     tono: "warning",
   },
+  // El Infocorp pedido por el CRM (0447): a Central le llega el pedido; al comercial, la respuesta.
+  infocorp: {
+    encabezado: "Infocorp",
+    accion: "Abrirlo",
+    duracion: 14000,
+    tono: "info",
+  },
   cotizacion_pendiente: {
     encabezado: "Una cotización espera su aprobación",
     accion: "Revisarla",

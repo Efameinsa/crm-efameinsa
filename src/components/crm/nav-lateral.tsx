@@ -7,6 +7,7 @@ import {
   ClipboardList,
   KanbanSquare,
   Building2,
+  FileSearch,
   FileText,
   BarChart3,
   TrendingUp,
@@ -68,6 +69,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/central/presupuestos", etiqueta: "Presupuestos", icono: FileText },
     // Quién viene a la planta: Central lo imprime para vigilancia (0238).
     { href: "/central/visitas", etiqueta: "Visitas a planta", icono: DoorOpen },
+    // Los comerciales piden el Infocorp por el CRM (0447; Brenda, buzón 12-10).
+    { href: "/central/infocorp", etiqueta: "Infocorp", icono: FileSearch },
     { href: "/central/informe", etiqueta: "Informe del día", icono: FileText },
   ],
   // Orden pedido por Darwin el 23-08 (plan 11, C2): el día arranca en "Mi
