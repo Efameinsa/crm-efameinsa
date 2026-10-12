@@ -22,6 +22,9 @@ export type TipoNotificacion =
   | "cotizacion_corregida"
   // Y lo mismo cuando el código sirvió para anular una cotización numerada (0433).
   | "cotizacion_anulada"
+  // Un comercial confirmó una cotización de servicio sin pasar por aprobación:
+  // gerencia se entera en el momento (buzón, Brenda 12-10: NEWREST).
+  | "cotizacion_servicio"
   // Central avisa que un cliente está esperando y nadie lo atiende (25-08).
   | "urgencia"
   // El cliente que ya está en manos de alguien volvió a escribir a Central

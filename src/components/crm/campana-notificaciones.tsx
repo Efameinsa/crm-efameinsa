@@ -109,6 +109,13 @@ const ESTILO_AVISO: Record<
     duracion: 14000,
     tono: "success",
   },
+  // Un comercial confirmó una cotización de servicio (buzón, Brenda 12-10).
+  cotizacion_servicio: {
+    encabezado: "Se confirmó una cotización de servicio",
+    accion: "Verla",
+    duracion: 14000,
+    tono: "info",
+  },
   cotizacion_pendiente: {
     encabezado: "Una cotización espera su aprobación",
     accion: "Revisarla",
