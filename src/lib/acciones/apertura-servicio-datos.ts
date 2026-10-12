@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fechaHoraLima } from "@/lib/fechas";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { circuitoDe, esProvincia, planoNoEnviado, PREFIJO_PLANO_NO_ENVIADO, puedeVerPrecios, seriesDeTexto, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
+import { circuitoDe, esProvincia, pedidoSinCobro, planoNoEnviado, PREFIJO_PLANO_NO_ENVIADO, puedeVerPrecios, seriesDeTexto, sinPrecios, textoSinCobro, type ServicioPostventa } from "@/lib/postventa";
 import { faltantesApertura, filasApertura, horaAmPm, tipoSugerido, type DatosApertura, type FilaApertura, type GuiaApertura, type TipoApertura } from "@/lib/apertura-servicio";
 import { conDni, relacionDeTecnicos } from "@/lib/tecnicos";
 
@@ -162,7 +162,11 @@ export async function cargarHojaApertura(
   const circuito = circuitoDe(s);
   const esOk = (v: string | null | undefined) => /^(si|sí|ok|listo|x)$/i.test((v ?? "").trim());
   const condiciones = [
-    {
+    // Garantía o servicio desde un caso: no hay cobro, no se espera a
+    // Finanzas (Rubí, 12-10, entrega de repuestos por garantía).
+    pedidoSinCobro(s)
+      ? { texto: textoSinCobro(s), ok: true, detalle: "No pasa por Finanzas: no hay pago que confirmar" }
+      : {
       texto: "Finanzas confirmó el pago",
       ok: s.pago_confirmado_at != null,
       detalle: s.pago_confirmado_at

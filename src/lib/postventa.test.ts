@@ -10,6 +10,7 @@ import {
   evaluarPagoParaDespacho,
   textoCondicionPago,
   textoPlanoNoEnviado,
+  pedidoSinCobro,
   type ServicioPostventa,
 } from "./postventa";
 
@@ -475,5 +476,22 @@ describe("«No se le envió» el plano (Rubí, 30-09)", () => {
       .flatMap((b) => b.pasos)
       .find((p) => p.clave === "apertura");
     expect(apertura?.trabado ?? "").not.toContain("plano");
+  });
+});
+
+describe("sin cobro: garantía desde un caso (Rubí, 12-10)", () => {
+  const pago = (s: ServicioPostventa) => bloquesPedido(s).flatMap((b) => b.pasos).find((p) => p.clave === "pago")!;
+
+  it("la entrega de repuestos por garantía no espera a Finanzas", () => {
+    const s = pedido({ origen: "caso", monto: null, tipo_pedido: "repuesto", tipo_servicio: "GARANTÍA · ENTREGA DE REPUESTOS", apertura_tipo: "entrega_garantia" } as Partial<ServicioPostventa>);
+    expect(pedidoSinCobro(s)).toBe(true);
+    expect(pago(s).hecho).toBe(true);
+    expect(pago(s).etiqueta).toBe("Sin cobro: entrega por garantía");
+  });
+
+  it("un pedido del CRM sigue pidiendo la confirmación de Finanzas", () => {
+    const s = pedido({ monto: 10000, monto_pagado: 0 });
+    expect(pedidoSinCobro(s)).toBe(false);
+    expect(pago(s).hecho).toBe(false);
   });
 });
