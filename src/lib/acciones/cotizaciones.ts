@@ -368,7 +368,11 @@ export async function cambiarSerieBorrador(datos: {
 
   // Primero se crea y recién después se borra: si el borrado fallara, queda un
   // borrador de más —visible y borrable— en vez de perder el trabajo.
-  const { error: errorBorrado } = await eliminarCotizacion(datos.cotizacionId);
+  // Sin el código de supervisor: no se pierde nada, el borrador nuevo lleva lo
+  // mismo. Con eliminarCotizacion, a postventa el borrado le pedía el código,
+  // fallaba en silencio y cada cambio de serie dejaba una copia más (Gabriela,
+  // 12-10: cinco borradores iguales de HOTELERA CUSCO).
+  const { error: errorBorrado } = await borrarBorrador(supabase, datos.cotizacionId);
   if (errorBorrado) {
     return {
       error: `Se creó el borrador en ${datos.serie}, pero el anterior quedó en la lista: bórrelo a mano.`,
@@ -740,6 +744,14 @@ export async function eliminarCotizacion(
     if (!valido) return { error: "Ese código no es válido o ya venció", pidePin: true };
   }
 
+  return borrarBorrador(supabase, cotizacionId);
+}
+
+/** Borra un borrador que no salió al cliente; los permisos los pone quien llama. */
+async function borrarBorrador(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cotizacionId: string,
+): Promise<{ error: string | null }> {
   const { data: cot } = await supabase
     .from("cotizaciones")
     .select("codigo, estado, enviada_at, oportunidad_id")
