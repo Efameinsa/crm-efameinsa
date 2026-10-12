@@ -194,7 +194,8 @@ export function AperturaServicioPanel({
         <fieldset className="mt-3">
           <legend className="mb-1.5 text-xs font-medium text-foreground">¿Qué se va a hacer?</legend>
           <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
-            {TIPOS_APERTURA.map((t) => (
+            {/* Repuestos por garantía (0441) nace desde un caso del cliente: en los demás pedidos no se ofrece. */}
+            {TIPOS_APERTURA.filter((t) => t.clave !== "entrega_garantia" || inicial.tipo === "entrega_garantia").map((t) => (
               <label
                 key={t.clave}
                 className={cn(

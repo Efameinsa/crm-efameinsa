@@ -62,12 +62,15 @@ export function AprobarCotizacionBotones({
   moneda,
   items,
   porCapacitacion = false,
+  porLineaAMano = false,
 }: {
   cotizacionId: string;
   moneda: string;
   items: ItemAprobacion[];
   /** Cotización de postventa en capacitación (0396): todo pasa por gerencia. */
   porCapacitacion?: boolean;
+  /** Líneas escritas a mano con precio (0440): no tienen lista contra la que medirse. */
+  porLineaAMano?: boolean;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -123,6 +126,12 @@ export function AprobarCotizacionBotones({
               <>
                 Es de <b>postventa</b>: mientras dure su capacitación, toda cotización del área pasa por
                 gerencia, esté por encima o por debajo del precio de catálogo. Decida cada renglón.
+              </>
+            ) : porLineaAMano ? (
+              <>
+                Tiene <b>líneas escritas a mano con precio</b> (servicios u otros conceptos fuera del
+                catálogo): no hay precio de lista contra el que medirlas, así que pasan por gerencia antes de
+                que la comercial la confirme y le ponga número. Apruebe, rechace u observe cada renglón.
               </>
             ) : (
               <>

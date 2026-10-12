@@ -214,6 +214,7 @@ export function PantallaCotizador({
   edicion,
   tipoCambio,
   esPostventa = false,
+  lineaAManoPideAprobacion = false,
   soloServiciosYRepuestos = false,
   loQueTiene = null,
   hoy = "",
@@ -277,6 +278,12 @@ export function PantallaCotizador({
    * por Santos el 07-09, cotizando un servicio desde la cuenta de postventa).
    */
   esPostventa?: boolean;
+  /**
+   * Quien cotiza es comercial (0440): una línea escrita a mano con precio no
+   * tiene lista contra la que medirse y pasa por gerencia. Lo decide la base
+   * al guardar; esto solo adelanta el botón y el aviso.
+   */
+  lineaAManoPideAprobacion?: boolean;
   /**
    * Postventa no vende máquinas (Santos, 26-09): en un caso de postventa, o
    * cuando cotiza alguien de postventa, el buscador ofrece solo servicios y
@@ -908,6 +915,10 @@ export function PantallaCotizador({
   );
   // Un equipo sin NINGÚN precio cargado no se puede contrastar contra nada.
   const haySinPrecio = carrito.some((i) => i.producto_id !== null && i.precioPiso === null);
+  // Una línea escrita a mano con precio tampoco tiene contra qué medirse
+  // (Brenda, NEWREST 12-10; 0440): pasa por gerencia sin gastar el número.
+  const hayAManoConPrecio =
+    lineaAManoPideAprobacion && carrito.some((i) => i.producto_id === null && i.precio_unitario > 0);
   // Una línea escrita a mano sin concepto saldría en el PDF como un renglón
   // con precio y sin nada que lo explique. La base tampoco la aceptaría (el
   // check item_identificable), así que se avisa acá antes de intentarlo.
@@ -917,11 +928,14 @@ export function PantallaCotizador({
   // POSTVENTA EN CAPACITACIÓN (gerencia, 05-10; 0396): toda cotización de
   // postventa pasa por gerencia, a cualquier precio. Lo decide la base al
   // guardar; acá se lee lo que dijo.
-  const porCapacitacion = esPostventa && estadoAprobacion === "pendiente_gerencia" && !hayBajoLista && !haySinPrecio;
-  const iraAGerencia = (hayBajoLista || haySinPrecio || estadoAprobacion === "pendiente_gerencia") && !yaAprobada;
+  const porCapacitacion =
+    esPostventa && estadoAprobacion === "pendiente_gerencia" && !hayBajoLista && !haySinPrecio && !hayAManoConPrecio;
+  const iraAGerencia =
+    (hayBajoLista || haySinPrecio || hayAManoConPrecio || estadoAprobacion === "pendiente_gerencia") && !yaAprobada;
   const motivoAprobacion = [
     hayBajoLista && "precio por debajo de la referencia",
     haySinPrecio && "equipo sin precio cargado",
+    hayAManoConPrecio && "línea escrita a mano con precio",
     porCapacitacion && "por ahora toda cotización de postventa pasa por gerencia",
   ]
     .filter(Boolean)

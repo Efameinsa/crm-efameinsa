@@ -115,6 +115,7 @@ export default async function NuevaCotizacionPage({
       historialPrecios={contexto.historialPrecios}
       tipoCambio={await tipoCambioDeGerencia(await createClient())}
       esPostventa={esPostventa}
+      lineaAManoPideAprobacion={perfil.rol === "comercial"}
       soloServiciosYRepuestos={soloServiciosYRepuestos}
       loQueTiene={loQueTiene}
       hoy={hoyLima()}
