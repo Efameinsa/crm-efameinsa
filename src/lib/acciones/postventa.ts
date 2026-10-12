@@ -1608,6 +1608,14 @@ export async function abrirAperturaDesdeCaso(
     empresa?: "EFAMEINSA" | "OPEN";
     /** Entrega de repuestos por garantía (0441, Rubí 12-10): lo que sale, sin cobro. */
     repuestos?: { cantidad: number; descripcion: string; sku?: string | null }[];
+    /** Las demás filas de la hoja, como en un pedido (buzón Rubí 12-10). */
+    recibeDoc?: string;
+    coordinaContabilidad?: string;
+    coordinaLogistica?: string;
+    destinoObservacion?: string;
+    entregaModo?: "domicilio" | "agencia" | "planta";
+    agencia?: string;
+    agenciaDireccion?: string;
   },
 ): Promise<{ error: string | null; servicioId?: string }> {
   const perfil = await requerirPerfil();
@@ -1619,6 +1627,11 @@ export async function abrirAperturaDesdeCaso(
         .filter((r) => r.descripcion)
     : null;
   if (esGarantia && !repuestos?.length) return falla("Agregue los repuestos que se entregan por garantía");
+  const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
+  const modo = esGarantia && datos.entregaModo && ["domicilio", "agencia", "planta"].includes(datos.entregaModo) ? datos.entregaModo : null;
+  if (modo === "agencia" && (!limpio(datos.agencia) || !limpio(datos.agenciaDireccion))) {
+    return falla("Escriba la agencia y su dirección (donde el almacén deja los repuestos)");
+  }
   const { data: servicioId, error } = await supabase.rpc("apertura_desde_caso", {
     p_atencion: atencionId,
     p_tipo_pedido: datos.tipoPedido,
@@ -1640,6 +1653,21 @@ export async function abrirAperturaDesdeCaso(
   });
   if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
   const id = servicioId as string;
+  // Las filas que apertura_desde_caso no recibe se completan en el pedido recién creado, antes de
+  // los avisos: la hoja que abren Contabilidad y el almacén ya sale completa (buzón Rubí 12-10).
+  const extras = {
+    recibe_doc: limpio(datos.recibeDoc),
+    apertura_coordina_contabilidad: limpio(datos.coordinaContabilidad),
+    apertura_coordina_logistica: limpio(datos.coordinaLogistica),
+    destino_observacion: limpio(datos.destinoObservacion),
+    ...(modo
+      ? { entrega_modo: modo, agencia_destino: modo === "agencia" ? limpio(datos.agencia) : null, agencia_direccion: modo === "agencia" ? limpio(datos.agenciaDireccion) : null }
+      : {}),
+  };
+  if (Object.values(extras).some((v) => v !== null)) {
+    const { error: e2 } = await supabase.from("servicios_postventa").update(extras).eq("id", id);
+    if (e2) console.error("apertura desde caso: no se guardaron las filas de la hoja", e2.message);
+  }
   const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", id).maybeSingle();
   const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   const guia = lineasGuia((datos.guia || null) as GuiaApertura | null, datos.guiaDetalle || null);
