@@ -57,11 +57,25 @@ export function modeloDeLaDescripcion(descripcion: string): string | null {
   return m ? m[1].trim().replace(/[.:-]+$/, "") || null : null;
 }
 
-/** Lo que se propone para la hoja cuando el almacén no lo escribió. */
+/**
+ * Lo que se propone para la hoja cuando el almacén no lo escribió.
+ *
+ * En un pedido de repuestos (entrega por garantía, 0441) cada renglón es un
+ * repuesto: la hoja lleva su nombre tal cual y su código (que va en «serie»),
+ * no el tipo de máquina adivinado por la descripción (Almacén, 12-10: «VALVULA
+ * SELENOIDE … P/LAVADORA» salía «PRUEBA DE LAVADORA»).
+ */
 export function propuestaDeHoja(
   e: { descripcion: string; serie: string | null; parte_nombre: string | null },
   maquina: Maquina,
+  repuesto = false,
 ): Required<Pick<DatosHoja, "equipo">> & Pick<DatosHoja, "modelo" | "serie"> {
+  if (repuesto)
+    return {
+      equipo: e.descripcion.replace(/\s+/g, " ").trim().slice(0, 200).toUpperCase() || "REPUESTO",
+      modelo: undefined,
+      serie: e.serie?.trim() || undefined,
+    };
   const parte = e.parte_nombre ?? null;
   const secadora = maquina === "secadora" || /SECADORA/i.test(parte ?? "");
   const tipo = tipoDe(e.descripcion, maquina, parte);

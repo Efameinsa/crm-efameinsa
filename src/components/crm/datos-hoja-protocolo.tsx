@@ -28,6 +28,7 @@ export function DatosHojaProtocolo({
   maquina,
   valores,
   faltan,
+  repuesto = false,
 }: {
   itemId: string;
   servicioId: string;
@@ -35,11 +36,22 @@ export function DatosHojaProtocolo({
   /** Lo que sale hoy en la hoja (guardado o propuesto). */
   valores: DatosHoja;
   faltan: string[];
+  /** Pedido de repuestos (0441): la hoja lleva el nombre del repuesto y su código, sin modelo de placa. */
+  repuesto?: boolean;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [datos, setDatos] = useState<DatosHoja>(valores);
   const [pendiente, startTransition] = useTransition();
+  const campos = repuesto
+    ? CAMPOS.filter((c) => c.clave !== "modelo").map((c) =>
+        c.clave === "equipo"
+          ? { ...c, etiqueta: "Nombre del repuesto (sale en el título)", ayuda: "VALVULA SOLENOIDE 24V" }
+          : c.clave === "serie"
+            ? { ...c, etiqueta: "Código del repuesto" }
+            : c,
+      )
+    : CAMPOS;
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
   if (!abierto)
@@ -55,7 +67,7 @@ export function DatosHojaProtocolo({
   return (
     <div className="no-imprimir mt-2 rounded border border-neutral-300 bg-neutral-50 p-3">
       <div className="grid grid-cols-2 gap-2">
-        {CAMPOS.map((c) => (
+        {campos.map((c) => (
           <label key={c.clave} className="text-[11px] font-semibold text-neutral-700">
             {c.etiqueta}
             <input

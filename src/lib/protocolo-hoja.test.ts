@@ -38,6 +38,18 @@ describe("propuestaDeHoja", () => {
   });
 });
 
+describe("propuestaDeHoja en un pedido de repuestos", () => {
+  it("el nombre del repuesto y su código, no la máquina", () => {
+    expect(
+      propuestaDeHoja(
+        { descripcion: "VALVULA SELENOIDE KCT26 / 60L DC 24V P/LAVADORA GP50/ BARRERA 100-50", serie: "IM0205230021", parte_nombre: null },
+        "principal",
+        true,
+      ),
+    ).toEqual({ equipo: "VALVULA SELENOIDE KCT26 / 60L DC 24V P/LAVADORA GP50/ BARRERA 100-50", modelo: undefined, serie: "IM0205230021" });
+  });
+});
+
 describe("modeloDeLaDescripcion y fechaLarga", () => {
   it("corta el modelo en la siguiente etiqueta", () => {
     expect(modeloDeLaDescripcion("MODELO: WT7900HBA SERIE: 1")).toBe("WT7900HBA");

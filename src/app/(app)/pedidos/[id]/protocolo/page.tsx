@@ -39,7 +39,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
   const { data: s } = await supabase
     .from("servicios_postventa")
     .select(
-      "id, cliente_texto, numero_pedido_erp, prueba_embalaje, prueba_solicitada_at, prueba_lista_at, prueba_lista_por, protocolo_prueba_ref, protocolo_fotos, informes_cierre!servicios_postventa_informe_cierre_id_fkey(codigo, serie)",
+      "id, cliente_texto, numero_pedido_erp, tipo_pedido, prueba_embalaje, prueba_solicitada_at, prueba_lista_at, prueba_lista_por, protocolo_prueba_ref, protocolo_fotos, informes_cierre!servicios_postventa_informe_cierre_id_fkey(codigo, serie)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -90,13 +90,15 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
   const hoy = diaLima(new Date().toISOString())!;
   const cliente = (s.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   const serieEmpresa = cierre?.serie === "OPEN" ? "OPEN" : "EFAMEINSA";
+  // Pedido de repuestos (0441): una hoja por repuesto, con su nombre y su código (Almacén, 12-10).
+  const deRepuestos = s.tipo_pedido === "repuesto";
 
   // Las hojas: lo que el almacén completó (0417) y, si no, lo que se lee del pedido.
   type Hoja = { clave: string; item: (typeof equipos)[number] | null; maquina: Maquina; datos: DatosHoja; faltan: string[]; indices: number[] };
   const hojas: Hoja[] = [];
   const armar = (e: (typeof equipos)[number], maquina: Maquina, indices: number[]) => {
     const guardado = (e.protocolo_datos ?? {})[maquina] ?? {};
-    const propuesta = propuestaDeHoja(e, maquina);
+    const propuesta = propuestaDeHoja(e, maquina, deRepuestos);
     const ejecucion = guardado.fecha_ejecucion ?? e.protocolo_fecha ?? diaLima(e.prueba_lista_at);
     const datos: DatosHoja = {
       equipo: guardado.equipo ?? propuesta.equipo,
@@ -108,8 +110,8 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
       elaborado: guardado.elaborado ?? nombre(e.prueba_lista_por) ?? undefined,
     };
     const faltan = [
-      !guardado.modelo && "modelo de la placa",
-      !datos.serie && "serie",
+      !deRepuestos && !guardado.modelo && "modelo de la placa",
+      !deRepuestos && !datos.serie && "serie",
       !ejecucion && "fecha de ejecución",
       !datos.tecnico && "técnico a cargo",
       !datos.elaborado && "quién elaboró",
@@ -122,7 +124,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
     const deSecadora = propios.filter((i) => /-secadora-/.test(archivos[i].path));
     armar(e, "principal", propios.filter((i) => !deSecadora.includes(i)));
     const tieneParte = equipos.some((p) => p.parte_de === e.id);
-    if (deSecadora.length > 0 || (!e.parte_de && !tieneParte && esTorre(e.descripcion ?? ""))) armar(e, "secadora", deSecadora);
+    if (deSecadora.length > 0 || (!deRepuestos && !e.parte_de && !tieneParte && esTorre(e.descripcion ?? ""))) armar(e, "secadora", deSecadora);
   });
   const sueltos = archivos.map((a, i) => (a.equipo ? -1 : i)).filter((i) => i >= 0);
   // Los pedidos anteriores a la 0260 no tienen máquinas: una sola hoja con lo del pedido.
@@ -162,7 +164,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
       )}
       {hojas.length > 1 && (
         <p className="no-imprimir mb-3 text-[11px] text-neutral-600">
-          {hojas.length} hojas, una por máquina, como el formato de protocolo de siempre. Al imprimir, cada una sale en su página.
+          {hojas.length} hojas, una por {deRepuestos ? "repuesto" : "máquina"}, como el formato de protocolo de siempre. Al imprimir, cada una sale en su página.
         </p>
       )}
 
@@ -170,7 +172,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
         const e = h.item;
         const docs = h.indices.filter((i) => !esImagen(archivos[i]));
         const fotos = h.indices.filter((i) => esImagen(archivos[i]) && url(i));
-        const modelo = [h.datos.modelo, h.datos.serie].filter(Boolean).join(" /");
+        const modelo = deRepuestos ? h.datos.modelo : [h.datos.modelo, h.datos.serie].filter(Boolean).join(" /");
         const filas: [string, string | null | undefined][] = [
           ["Cliente", cliente],
           ["Asunto", "Protocolo de Prueba"],
@@ -186,6 +188,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
 
             <h1 className="mt-4 text-center text-[15px] font-bold uppercase underline">INFORME DE PROTOCOLO DE PRUEBA DE {h.datos.equipo}</h1>
             {modelo && <p className="mt-1 text-center text-[14px] font-bold uppercase underline">MODELO: {modelo}</p>}
+            {deRepuestos && h.datos.serie && <p className="mt-1 text-center text-[14px] font-bold uppercase underline">CÓDIGO: {h.datos.serie}</p>}
 
             <div className="mt-4 border-y border-black py-2 text-[13px]">
               {filas.map(([k, v]) => (
@@ -195,7 +198,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
               ))}
             </div>
 
-            {e && puedeEditar && <DatosHojaProtocolo itemId={e.id} servicioId={id} maquina={h.maquina} valores={h.datos} faltan={h.faltan} />}
+            {e && puedeEditar && <DatosHojaProtocolo itemId={e.id} servicioId={id} maquina={h.maquina} valores={h.datos} faltan={h.faltan} repuesto={deRepuestos} />}
 
             {h.maquina === "principal" && e?.protocolo_nota && (
               <p className="mt-3 text-[12px]">
