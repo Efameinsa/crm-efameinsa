@@ -64,6 +64,8 @@ export interface CondicionesFicha {
   notasPdf?: string[] | null;
   /** Cuánto dura el trabajo (0442), solo postventa; undefined = no tocarlo. */
   tiempoEjecucion?: string | null;
+  /** A quién va dirigida (0443): null = el contacto principal de la ficha; undefined = no tocarlo. */
+  atencionPdf?: { nombre: string; telefono: string; email: string } | null;
 }
 
 async function guardarEntrega(
@@ -74,7 +76,7 @@ async function guardarEntrega(
   /** Por qué va con EFAMEINSA (0275). undefined = no tocarlo. */
   motivoSerie?: { serie: SerieFacturacion; motivo: string | null | undefined },
 ): Promise<void> {
-  const campos: Record<string, string | string[] | null> = {};
+  const campos: Record<string, string | string[] | Record<string, string | null> | null> = {};
   if (entregaLugar) campos.entrega_lugar = entregaLugar;
   // OPEN PRIMERO (gerencia, 23-09-2026): el motivo de facturar con Efameinsa
   // viaja en este mismo UPDATE y no por `crear_cotizacion`, por la misma
@@ -93,6 +95,12 @@ async function guardarEntrega(
     if (condicionesFicha.notasPdf !== undefined) {
       const lineas = (condicionesFicha.notasPdf ?? []).map((l) => l.trim()).filter(Boolean).slice(0, 30);
       campos.notas_pdf = condicionesFicha.notasPdf === null ? null : lineas;
+    }
+    if (condicionesFicha.atencionPdf !== undefined) {
+      const a = condicionesFicha.atencionPdf;
+      const limpio = (x: string | undefined) => (x ?? "").trim().replace(/\s+/g, " ").slice(0, 200) || null;
+      const propia = a ? { nombre: limpio(a.nombre), telefono: limpio(a.telefono), email: limpio(a.email) } : null;
+      campos.atencion_pdf = propia && (propia.nombre || propia.telefono || propia.email) ? propia : null;
     }
   }
   if (Object.keys(campos).length === 0) return;
@@ -279,7 +287,7 @@ export async function cambiarSerieBorrador(datos: {
   const { data: original } = await supabase
     .from("cotizaciones")
     .select(
-      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit)",
+      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, atencion_pdf, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit)",
     )
     .eq("id", datos.cotizacionId)
     .maybeSingle();
@@ -332,6 +340,10 @@ export async function cambiarSerieBorrador(datos: {
     serie: datos.serie,
     motivo: datos.motivoSerie,
   });
+  // A quién va dirigida (0443) tampoco cambia con la serie.
+  if (original.atencion_pdf) {
+    await supabase.from("cotizaciones").update({ atencion_pdf: original.atencion_pdf }).eq("id", nuevoId);
+  }
 
   // Primero se crea y recién después se borra: si el borrado fallara, queda un
   // borrador de más —visible y borrable— en vez de perder el trabajo.

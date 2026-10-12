@@ -147,6 +147,8 @@ export interface CotizacionParaPdf {
   notas_pdf?: string[] | null;
   /** Cuánto dura el trabajo (0442), solo en el PDF de postventa. */
   tiempo_ejecucion?: string | null;
+  /** A quién va dirigida ESTA cotización (0443); null = el contacto principal de la ficha. */
+  atencion_pdf?: unknown;
   cliente_snapshot: unknown;
   created_at: string;
   cotizacion_items: unknown;
@@ -159,6 +161,17 @@ export interface CotizacionParaPdf {
   corregida_at?: string | null;
   /** Solo al imprimir una versión archivada: cuál es la vigente. */
   reemplazada_por?: number | null;
+}
+
+/** El destinatario propio de la cotización (0443), o null si sale el de la ficha. */
+export function atencionDeLaCotizacion(
+  valor: unknown,
+): { nombre: string | null; telefono: string | null; email: string | null } | null {
+  if (!valor || typeof valor !== "object") return null;
+  const v = valor as Record<string, unknown>;
+  const limpio = (x: unknown) => (typeof x === "string" && x.trim() ? x.trim().replace(/\s+/g, " ") : null);
+  const r = { nombre: limpio(v.nombre), telefono: limpio(v.telefono), email: limpio(v.email) };
+  return r.nombre || r.telefono || r.email ? r : null;
 }
 
 export async function renderizarCotizacionPdf(
@@ -185,6 +198,15 @@ export async function renderizarCotizacionPdf(
       cuentas: { contactos: { nombre: string; telefono: string | null; email: string | null; es_principal: boolean }[] } | null;
     } | null)?.cuentas?.contactos ?? []);
   const contactoPrincipal = contactos.find((c) => c.es_principal) ?? contactos[0] ?? null;
+  // Gabriela, 12-10: «los que aparecen por defecto no son las personas con
+  // las cuales se realiza la cotización». Si esta cotización tiene su propio
+  // destinatario (0443), sale ese, tal cual —un campo vacío no se imprime—.
+  const propia = atencionDeLaCotizacion(cotizacion.atencion_pdf);
+  const destinatario = propia ?? {
+    nombre: contactoPrincipal?.nombre ?? null,
+    telefono: contactoPrincipal?.telefono ?? null,
+    email: contactoPrincipal?.email ?? null,
+  };
 
   const perfilComercial = cotizacion.perfiles as unknown as {
     nombre: string;
@@ -395,9 +417,9 @@ export async function renderizarCotizacionPdf(
       tipo_doc: snapshot.tipo_doc,
       num_doc: snapshot.num_doc,
       direccion: snapshot.direccion,
-      telefono: contactoPrincipal?.telefono ?? null,
-      email: contactoPrincipal?.email ?? null,
-      atencion: contactoPrincipal?.nombre ?? null,
+      telefono: destinatario.telefono,
+      email: destinatario.email,
+      atencion: destinatario.nombre,
     },
     items,
     moneda: cotizacion.moneda,
