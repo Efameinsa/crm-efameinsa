@@ -264,6 +264,23 @@ export function saldoPendiente(s: ServicioPostventa): number {
 }
 
 /**
+ * El pedido no tiene nada que cobrar: nació de un caso (apertura desde la
+ * ficha del cliente, 0441) — entrega de repuestos por garantía, mantenimiento
+ * o puesta en marcha — y no lleva monto. Ahí no hay pago que Finanzas
+ * confirme (Rubí, 12-10: «es un traslado por garantía y no hay cobro»).
+ */
+export function pedidoSinCobro(s: Pick<ServicioPostventa, "origen" | "pago_confirmado_at">): boolean {
+  return s.origen === "caso" && s.pago_confirmado_at == null;
+}
+
+/** Qué se dice en lugar de «Finanzas confirmó el pago» cuando no hay cobro. */
+export function textoSinCobro(s: Pick<ServicioPostventa, "tipo_servicio"> & { apertura_tipo?: string | null }): string {
+  return s.apertura_tipo === "entrega_garantia" || /garant/i.test(s.tipo_servicio ?? "")
+    ? "Sin cobro: entrega por garantía"
+    : "Sin cobro: servicio abierto desde un caso";
+}
+
+/**
  * ¿Lo pagado cubre lo acordado para despachar? (0232)
  *
  * La regla vieja comparaba con el TOTAL, y toda venta a crédito —que es la
@@ -526,17 +543,19 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
           : adelantoCubierto
             ? `Finanzas confirmó el adelanto acordado (${Number(s.pct_antes_despacho)} %)`
             : "Finanzas confirmó un pago parcial"
-        : s.origen === "caso"
-          ? "Servicio abierto desde un caso: sin cobro en el pedido"
+        : pedidoSinCobro(s)
+          ? textoSinCobro(s)
           : pagoDesconocido
           ? "Pago sin registrar en el sistema"
           : pagado
             ? "Cobrado del todo, falta la confirmación de Finanzas"
             : `Confirmación de Finanzas${s.monto ? ` · faltan ${s.moneda} ${saldo.toLocaleString("es-PE")}` : ""}`,
       responsable: "finanzas",
-      hecho: pagoConfirmado,
+      hecho: pagoConfirmado || pedidoSinCobro(s),
       cuando: s.pago_confirmado_at,
-      detalle: pagoConfirmado
+      detalle: pedidoSinCobro(s)
+        ? "No pasa por Finanzas: no hay pago que confirmar"
+        : pagoConfirmado
         ? [s.pago_confirmado_detalle, condicion ? `Condición: ${condicion}` : null].filter(Boolean).join(" · ") || undefined
         : pagoDesconocido
           ? "Viene del Excel: el monto pagado nunca se cargó"

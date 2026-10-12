@@ -14,6 +14,7 @@ import {
   saldoPendiente,
   estadoPago,
   evaluarPagoParaDespacho,
+  pedidoSinCobro,
   etiquetaResponsable,
   textoCondicionPago,
   type ServicioPostventa,
@@ -211,6 +212,9 @@ export function PedidoPostventa({
     // confirmado y seguía «Pedir confirmación del saldo»; «si ya se confirmó
     // que el pago es total, no debería aparecer»). `estadoPago` usa el estado
     // que manda el servidor cuando los precios están tapados.
+    // Sin cobro (garantía o servicio desde un caso): no hay nada que pedirle
+    // a Finanzas ni nada que ver de ellos (Rubí, 12-10).
+    if (paso.clave === "pago" && pedidoSinCobro(servicio)) return null;
     if (paso.clave === "pago" && paso.hecho) {
       const pagoTotal = estadoPago(servicioVisto) === "completo";
       return (
