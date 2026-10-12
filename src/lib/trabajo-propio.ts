@@ -165,7 +165,6 @@ export interface BloquePendientes {
   filas: { cliente: string; detalle: string | null }[];
 }
 
-const TOPE_VENCIDAS = 150;
 const fechaCorta = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 /**
@@ -209,15 +208,12 @@ export async function pendientesPropios(admin: SupabaseClient, personaId: string
     detalle: `${o.proxima_accion_at === hoy ? (o.proxima_accion_hora ? o.proxima_accion_hora.slice(0, 5) : "Hoy") : `Programado el ${fechaCorta(o.proxima_accion_at)}`}${o.proxima_accion ? ` · ${o.proxima_accion}` : ""}`,
   });
   const paraHoy = lista.filter((o) => o.proxima_accion_at === hoy).map(fila);
-  const vencidas = lista.filter((o) => o.proxima_accion_at < hoy);
-  const filasVencidas = vencidas.slice(0, TOPE_VENCIDAS).map(fila);
-  if (vencidas.length > TOPE_VENCIDAS) {
-    filasVencidas.push({ cliente: `…y ${vencidas.length - TOPE_VENCIDAS} más`, detalle: "Están todas en la agenda del CRM, con la fecha más antigua al final." });
-  }
+  const vencidas = lista.filter((o) => o.proxima_accion_at < hoy).map(fila);
 
+  // Sin la cuenta en el título: cada PDF la pone (y recorta) a su manera.
   return [
-    { titulo: `Presupuestos que todavía no salieron (${porEnviar.length})`, filas: porEnviar },
-    { titulo: `Seguimientos programados para hoy (${paraHoy.length})`, filas: paraHoy },
-    { titulo: `Seguimientos que se pasaron de fecha (${vencidas.length})`, filas: filasVencidas },
+    { titulo: "Presupuestos que todavía no salieron", filas: porEnviar },
+    { titulo: "Seguimientos programados para hoy", filas: paraHoy },
+    { titulo: "Seguimientos que se pasaron de fecha", filas: vencidas },
   ];
 }
