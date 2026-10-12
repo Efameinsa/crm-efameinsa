@@ -172,7 +172,7 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
     if (s.fecha_despacho && !s.apertura_despacho_at) return { texto: `Programado para el ${s.fecha_despacho} · postventa no ha cumplido`, tono: "text-destructive" };
     if (s.fecha_despacho) return { texto: `Programado para el ${s.fecha_despacho} · confirmar que está listo`, tono: (s.fecha_despacho as string) < hoy ? "text-destructive" : "text-amber-700" };
     if (s.apertura_despacho_at && s.guia_confirmada_at)
-      return { texto: `Finanzas autorizó la guía${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero) ? ` · ${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero)}` : ""} · esperando fecha`, tono: "text-[#1E7F4F]" };
+      return { texto: `Guía autorizada${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero) ? ` · ${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero)}` : ""} · esperando fecha`, tono: "text-[#1E7F4F]" };
     if (s.apertura_despacho_at) return { texto: "Con apertura · esperando fecha y que Finanzas autorice la guía", tono: "text-foreground" };
     if (probado(s)) return { texto: `Probado y embalado${s.protocolo_prueba_ref ? ` · protocolo ${s.protocolo_prueba_ref}` : ""}`, tono: "text-foreground" };
     if (s.prueba_solicitada_at) return { texto: "Postventa pidió la prueba", tono: "text-destructive" };

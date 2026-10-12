@@ -189,6 +189,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     hoy,
     { etiqueta: "Por facturar", href: "/facturacion", icono: "cobranza", coincide: ["/facturacion"] },
     { etiqueta: "Facturados", href: "/facturacion/facturados", icono: "informes", coincide: ["/facturacion/facturados"] },
+    // Buzón, Jhon 12-10 (0439): la apertura la autoriza Contabilidad; Finanzas, si no está.
+    { etiqueta: "Aperturas", href: "/facturacion/aperturas", icono: "pedidos", coincide: ["/facturacion/aperturas"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.

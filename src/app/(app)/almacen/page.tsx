@@ -117,7 +117,7 @@ export default async function AlmacenPage() {
     { titulo: "Programados sin confirmar", numero: porConfirmar.length, ayuda: "Postventa puso fecha; falta decir que el almacén está listo.", href: "/almacen/pedidos?ver=confirmar" },
     { titulo: "De esos, sin apertura", numero: sinApertura.length, ayuda: "Postventa todavía no cumplió: no hay nada que preparar todavía.", href: "/almacen/pedidos?ver=confirmar", alerta: true },
     { titulo: "Atrasados", numero: atrasados.length, ayuda: "Tenían fecha y no salieron.", href: "/almacen/pedidos?ver=atrasados", alerta: true },
-    { titulo: "Guías autorizadas por Finanzas", numero: guiasAutorizadas.length, ayuda: "Finanzas revisó la apertura y dijo con qué comprobante sale: emita la guía.", href: "/almacen/pedidos?ver=guias", alerta: true },
+    { titulo: "Guías autorizadas", numero: guiasAutorizadas.length, ayuda: "Contabilidad o Finanzas revisó la apertura y dijo con qué comprobante sale: emita la guía.", href: "/almacen/pedidos?ver=guias", alerta: true },
     { titulo: "Con apertura, sin salir", numero: conApertura.length, ayuda: "Ya se puede despachar.", href: "/almacen/pedidos?ver=apertura" },
     { titulo: "Salieron, sin guía", numero: salidosSinGuia.length, ayuda: "Falta la foto de la guía en la agencia.", href: "/almacen/pedidos?ver=guia", alerta: true },
     { titulo: "Aprobados sin pedido de prueba", numero: sinPedirPrueba.length, ayuda: "Postventa todavía no pidió la prueba; se puede adelantar.", href: "/almacen/pedidos?ver=aprobados" },

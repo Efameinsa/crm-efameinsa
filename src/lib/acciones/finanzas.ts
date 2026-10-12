@@ -220,6 +220,9 @@ export async function confirmarGuia(
   const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp, apertura_despacho_por").eq("id", servicioId).maybeSingle();
   const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   const conQue = textoComprobante(comprobante.tipo, comprobante.numero.trim() || null);
+  // La autoriza Contabilidad (la cuenta de Facturación) y, si no está, Finanzas
+  // (buzón, Jhon 12-10; 0439): el aviso dice quién fue.
+  const area = perfil.rol === "facturacion" ? "Contabilidad" : "Finanzas";
   // Y a quien emitió la apertura (reunión de gerencia 06-10 11:01: «que me
   // llegue a mí una alertita que ya confirmó»).
   if (s?.apertura_despacho_por) {
@@ -227,13 +230,13 @@ export async function confirmarGuia(
       userId: s.apertura_despacho_por as string,
       tipo: "finanzas",
       titulo: `Guía autorizada · ${quien}`,
-      cuerpo: `Finanzas autorizó la guía${s.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: el almacén ya puede emitirla.${conQue ? ` ${conQue}.` : ""}`,
+      cuerpo: `${area} autorizó la guía${s.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: el almacén ya puede emitirla.${conQue ? ` ${conQue}.` : ""}`,
       url: `/postventa/pedidos/${servicioId}`,
     });
   }
   await notificarAlmacen({
     titulo: `Guía autorizada · ${quien}`,
-    cuerpo: `Finanzas revisó la apertura${s?.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: puede emitir la guía de salida.${conQue ? ` ${conQue}.` : ""}${nota.trim() ? ` Nota: ${nota.trim()}` : ""}`,
+    cuerpo: `${area} revisó la apertura${s?.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: puede emitir la guía de salida.${conQue ? ` ${conQue}.` : ""}${nota.trim() ? ` Nota: ${nota.trim()}` : ""}`,
     url: `/almacen/pedidos/${servicioId}`,
     esPrueba: perfil.es_prueba === true,
   });
@@ -244,7 +247,7 @@ export async function confirmarGuia(
       areas: ["postventa"],
       servicioId,
       titulo: `Guía autorizada · ${quien}`,
-      cuerpo: `Finanzas autorizó la guía${delPedido}: el almacén ya puede emitirla.${conQue ? ` ${conQue}.` : ""}`,
+      cuerpo: `${area} autorizó la guía${delPedido}: el almacén ya puede emitirla.${conQue ? ` ${conQue}.` : ""}`,
       url: `/postventa/pedidos/${servicioId}`,
       esPrueba: perfil.es_prueba === true,
     }),
@@ -252,12 +255,13 @@ export async function confirmarGuia(
       areas: ["almacen"],
       servicioId,
       titulo: `Guía autorizada · ${quien}`,
-      cuerpo: `Finanzas revisó la apertura${delPedido}: puede emitir la guía de salida.${conQue ? ` ${conQue}.` : ""}${nota.trim() ? ` Nota: ${nota.trim()}` : ""}`,
+      cuerpo: `${area} revisó la apertura${delPedido}: puede emitir la guía de salida.${conQue ? ` ${conQue}.` : ""}${nota.trim() ? ` Nota: ${nota.trim()}` : ""}`,
       url: `/almacen/pedidos/${servicioId}`,
       esPrueba: perfil.es_prueba === true,
     }),
   ]);
   revalidatePath("/finanzas/aperturas");
+  revalidatePath("/facturacion/aperturas");
   revalidatePath("/almacen/aperturas-postventa");
   revalidatePath(`/almacen/pedidos/${servicioId}`);
   revalidatePath(`/postventa/pedidos/${servicioId}`);
