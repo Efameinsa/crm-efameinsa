@@ -1,6 +1,7 @@
 import Link from "@/components/enlace";
 import { AlertTriangle, ArrowRight, Barcode, CalendarClock, CalendarDays, ClipboardList, FileText, Inbox, Package, PhoneForwarded, Sun, Truck, UserRound, Wallet, Wrench } from "lucide-react";
 import { TARJETA } from "@/components/propuesta/kit";
+import { PreguntarSeguimientoBoton } from "@/components/propuesta/preguntar-seguimiento-boton";
 import type { EventoAgenda, Tarea, TipoTarea, Urgencia } from "@/lib/propuesta/cola-del-dia";
 import { cn } from "@/lib/utils";
 
@@ -167,6 +168,7 @@ export function ColaDelDia({
                           <b className="font-medium text-foreground">{t.cliente}</b> · {t.porque}
                         </p>
                       </div>
+                      {t.preguntar && <PreguntarSeguimientoBoton leadIds={t.preguntar.leadIds} comercial={t.preguntar.comercial} />}
                       <Link
                         href={t.accion.href}
                         className={cn(

@@ -348,6 +348,13 @@ export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[];
     });
   }
 
+  // LOS QUIETOS, UNO POR COMERCIAL (buzón, Central 12-10). Eran una fila por
+  // contacto —136 «Preguntar a C9 por el seguimiento»— y ningún botón que
+  // hiciera la pregunta. Ahora una fila por comercial con «Preguntarle»: un
+  // solo aviso con la lista (0446). Lo ya preguntado sale por 7 días; si
+  // sigue quieto después, vuelve.
+  const quietos = new Map<string, { quien: string; comercialId: string | null; filas: typeof derivados }>();
+  const hace7 = Date.now() - 7 * 864e5;
   for (const d of derivados) {
     if (!d.alerta || !d.asignadoAt) continue;
     const quien = d.comercial?.codigo_comercial ?? d.comercial?.nombre ?? "el comercial";
@@ -364,16 +371,33 @@ export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[];
         accion: { etiqueta: "Ver el derivado", href },
       });
     } else {
-      tareas.push({
-        id: `cf-${d.id}`,
-        urgencia: "semana",
-        tipo: "contacto",
-        cliente,
-        que: `Preguntar a ${quien} por el seguimiento`,
-        porque: d.foco === "cotizado" ? "Está cotizado y lleva más de 7 días sin movimiento." : "Está en gestión y lleva más de 7 días sin movimiento.",
-        accion: { etiqueta: "Ver el derivado", href },
-      });
+      if (d.preguntadoAt && new Date(d.preguntadoAt).getTime() > hace7) continue;
+      const k = d.asignadoA ?? quien;
+      const g = quietos.get(k) ?? { quien, comercialId: d.asignadoA, filas: [] };
+      g.filas.push(d);
+      quietos.set(k, g);
     }
+  }
+  for (const [k, g] of quietos) {
+    const n = g.filas.length;
+    const nombres = g.filas.map((d) => sinRuc(d.razonSocial || d.nombreContacto || "Contacto sin nombre"));
+    const cotizados = g.filas.filter((d) => d.foco === "cotizado").length;
+    tareas.push({
+      id: `cf-${k}`,
+      urgencia: "semana",
+      tipo: "contacto",
+      cliente: n === 1 ? nombres[0] : `${n} contactos`,
+      que: `Preguntar a ${g.quien} por el seguimiento`,
+      porque:
+        n === 1
+          ? g.filas[0].foco === "cotizado" ? "Está cotizado y lleva más de 7 días sin movimiento." : "Está en gestión y lleva más de 7 días sin movimiento."
+          : `${cotizados ? `${cotizados} cotizados, ` : ""}más de 7 días sin movimiento: ${nombres.slice(0, 4).join(", ")}${n > 4 ? "…" : ""}`,
+      accion: {
+        etiqueta: n === 1 ? "Ver el derivado" : "Ver la lista",
+        href: `/central/derivados?desde=${desde}&hasta=${hoy}&foco=atencion${g.comercialId ? `&comercial=${g.comercialId}` : ""}`,
+      },
+      preguntar: g.comercialId ? { leadIds: g.filas.map((d) => d.id), comercial: g.quien } : undefined,
+    });
   }
 
   for (const l of (leads ?? []) as { id: string; canal: string | null; nombre_contacto: string | null; razon_social: string | null; mensaje: string | null; recibido_at: string }[]) {

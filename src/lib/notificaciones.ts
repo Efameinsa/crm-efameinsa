@@ -25,6 +25,8 @@ export type TipoNotificacion =
   // Un comercial confirmó una cotización de servicio sin pasar por aprobación:
   // gerencia se entera en el momento (buzón, Brenda 12-10: NEWREST).
   | "cotizacion_servicio"
+  // Central pregunta por derivados quietos más de 7 días (0446, buzón Central 12-10).
+  | "consulta_seguimiento"
   // Central avisa que un cliente está esperando y nadie lo atiende (25-08).
   | "urgencia"
   // El cliente que ya está en manos de alguien volvió a escribir a Central

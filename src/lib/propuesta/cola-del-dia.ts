@@ -28,6 +28,8 @@ export interface Tarea {
   accion: { etiqueta: string; href: string };
   /** De qué área es (solo en la supervisión de operaciones, 25-09). */
   area?: string;
+  /** Botón «Preguntarle» de Central: estos contactos, a este comercial (0446). */
+  preguntar?: { leadIds: string[]; comercial: string };
 }
 
 export interface EventoAgenda {

@@ -910,6 +910,46 @@ export async function enviarUrgencia(
 }
 
 /**
+ * PREGUNTAR POR EL SEGUIMIENTO (0446). Buzón, Central 12-10: su «Hoy» tenía
+ * 136 filas «Preguntar a C9 por el seguimiento» y ningún botón que hiciera la
+ * pregunta. No es la sirena: un solo aviso por comercial con la lista de sus
+ * derivados quietos, que se va solo como cualquier aviso. La pregunta queda
+ * registrada y esos contactos salen del «Hoy» de Central por 7 días.
+ */
+export async function preguntarSeguimiento(
+  leadIds: string[],
+): Promise<{ error: string | null; comerciales?: number; contactos?: number }> {
+  if (leadIds.length === 0) return { error: "No hay contactos por preguntar" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("preguntar_seguimiento", { p_lead_ids: leadIds });
+  if (error) return { error: error.message };
+
+  const grupos = (data ?? []) as {
+    comercial_id: string;
+    contactos: { lead_id: string; nombre: string; oportunidad_id: string | null }[];
+  }[];
+  await Promise.all(
+    grupos.map((g) => {
+      const n = g.contactos.length;
+      const nombres = g.contactos.slice(0, 8).map((c) => c.nombre.replace(/^\d{8,11}\s*-\s*/, ""));
+      const resto = n > nombres.length ? ` y ${n - nombres.length} más` : "";
+      const unico = n === 1 ? g.contactos[0].oportunidad_id : null;
+      return notificar({
+        userId: g.comercial_id,
+        tipo: "consulta_seguimiento",
+        titulo: n === 1 ? `Central pregunta por el seguimiento de ${nombres[0]}` : `Central pregunta por el seguimiento de ${n} contactos`,
+        cuerpo: `Llevan más de 7 días sin una gestión registrada: ${nombres.join(", ")}${resto}. Registre lo que hizo (llamada, WhatsApp, cotización) o cierre el expediente si ya no procede.`,
+        url: unico ? `/comercial/oportunidades/${unico}` : "/comercial/oportunidades",
+      });
+    }),
+  );
+
+  revalidatePath("/central");
+  revalidatePath("/central/derivados");
+  return { error: null, comerciales: grupos.length, contactos: grupos.reduce((s, g) => s + g.contactos.length, 0) };
+}
+
+/**
  * ¿Esta derivación le quita el cliente a otro comercial?
  *
  * Se pregunta ANTES de derivar, para poder avisarlo en pantalla con nombre y
