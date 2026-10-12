@@ -243,6 +243,11 @@ export function TarjetaDerivado({
               {haceCuanto(fila.urgencias.ultima)}
             </p>
           )}
+          {fila.preguntadoAt && (
+            <p className="mt-1 text-xs font-medium text-muted-foreground">
+              Se le preguntó por el seguimiento · {haceCuanto(fila.preguntadoAt)}
+            </p>
+          )}
         </div>
       </div>
 

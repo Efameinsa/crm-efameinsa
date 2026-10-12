@@ -116,6 +116,13 @@ const ESTILO_AVISO: Record<
     duracion: 14000,
     tono: "info",
   },
+  // Central pregunta por derivados quietos más de 7 días (0446, buzón Central 12-10).
+  consulta_seguimiento: {
+    encabezado: "Central pregunta por su seguimiento",
+    accion: "Ver mis expedientes",
+    duracion: 14000,
+    tono: "warning",
+  },
   cotizacion_pendiente: {
     encabezado: "Una cotización espera su aprobación",
     accion: "Revisarla",

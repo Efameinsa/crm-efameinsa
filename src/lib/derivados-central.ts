@@ -148,6 +148,8 @@ export interface DerivadoFila {
   ultimaGestion: GestionResumen | null;
   cotizaciones: CotizacionResumen[];
   urgencias: { ultima: string; total: number } | null;
+  /** Cuándo Central le preguntó al comercial por el seguimiento (0446); null = nunca. */
+  preguntadoAt: string | null;
   foco: FocoDerivado;
   alerta: AlertaDerivado;
 }
@@ -564,6 +566,9 @@ async function armar(
     traerPorLotes<{ lead_id: string; created_at: string }>(ids, (lote) =>
       supabase.from("recordatorios_urgencia").select("lead_id, created_at").in("lead_id", lote),
     ),
+    traerPorLotes<{ lead_id: string; created_at: string }>(ids, (lote) =>
+      supabase.from("consultas_seguimiento").select("lead_id, created_at").in("lead_id", lote),
+    ),
     // Las gestiones en las fichas gemelas, acotadas por fecha: la historia
     // vieja de la cuenta (hay importadas de 2024) no es atención a ESTA
     // derivación. El corte fino, por el asignado_at de cada lead, se hace
@@ -596,6 +601,7 @@ async function armar(
     { data: asignaciones },
     { data: cuentas },
     { data: urgenciasCrudas },
+    { data: consultas },
     { data: actsGemelas },
     { data: cotsGemelas },
   ] = resultados;
@@ -650,6 +656,12 @@ async function armar(
     const previo = urgenciasPorLead.get(u.lead_id);
     // Vienen de la más nueva a la más vieja: la primera es la última enviada.
     urgenciasPorLead.set(u.lead_id, { ultima: previo?.ultima ?? u.created_at, total: (previo?.total ?? 0) + 1 });
+  }
+
+  const preguntadoPorLead = new Map<string, string>();
+  for (const c of consultas ?? []) {
+    const previo = preguntadoPorLead.get(c.lead_id);
+    if (!previo || c.created_at > previo) preguntadoPorLead.set(c.lead_id, c.created_at);
   }
 
   const perfilPorId = new Map(perfiles.map((c) => [c.id, c]));
@@ -720,6 +732,7 @@ async function armar(
       ultimaGestion,
       cotizaciones,
       urgencias: urgenciasPorLead.get(l.id) ?? null,
+      preguntadoAt: preguntadoPorLead.get(l.id) ?? null,
     };
     return { ...base, ...clasificar(base, ahora) };
   });
