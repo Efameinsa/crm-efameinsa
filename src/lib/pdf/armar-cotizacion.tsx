@@ -145,6 +145,8 @@ export interface CotizacionParaPdf {
   saldo: string | null;
   /** La «Nota» de postventa escrita para esta cotización (0391); null = la de siempre. */
   notas_pdf?: string[] | null;
+  /** Cuánto dura el trabajo (0442), solo en el PDF de postventa. */
+  tiempo_ejecucion?: string | null;
   cliente_snapshot: unknown;
   created_at: string;
   cotizacion_items: unknown;
@@ -407,6 +409,7 @@ export async function renderizarCotizacionPdf(
     formaPago: cotizacion.forma_pago,
     saldo: cotizacion.saldo,
     notasPdf: cotizacion.notas_pdf ?? null,
+    tiempoEjecucion: cotizacion.tiempo_ejecucion ?? null,
     firma: {
       nombre: perfilComercial?.nombre ?? "Área Comercial",
       cargo: perfilComercial?.cargo ?? null,

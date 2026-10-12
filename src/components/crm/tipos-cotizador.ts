@@ -110,6 +110,8 @@ export interface BorradorEnEdicion {
   saldo: string | null;
   /** La «Nota» del PDF de postventa escrita para esta cotización (0391); null = la de siempre. */
   notasPdf?: string[] | null;
+  /** Cuánto dura el trabajo, en el PDF de postventa después de la forma de pago (0442). */
+  tiempoEjecucion?: string | null;
   /** Lo que dice la BASE sobre la aprobación del precio. Manda sobre el cálculo
    *  de la pantalla: un borrador que gerencia YA aprobó se puede enviar aunque
    *  sus precios sigan por debajo de la referencia. */

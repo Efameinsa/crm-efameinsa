@@ -62,6 +62,8 @@ export interface CondicionesFicha {
   saldo: string | null;
   /** Las viñetas de la «Nota» de postventa (0391): null = la de siempre; undefined = no tocarla. */
   notasPdf?: string[] | null;
+  /** Cuánto dura el trabajo (0442), solo postventa; undefined = no tocarlo. */
+  tiempoEjecucion?: string | null;
 }
 
 async function guardarEntrega(
@@ -85,6 +87,9 @@ async function guardarEntrega(
     campos.garantia = condicionesFicha.garantia?.trim() || null;
     campos.forma_pago = condicionesFicha.formaPago?.trim() || null;
     campos.saldo = condicionesFicha.saldo?.trim() || null;
+    if (condicionesFicha.tiempoEjecucion !== undefined) {
+      campos.tiempo_ejecucion = condicionesFicha.tiempoEjecucion?.trim() || null;
+    }
     if (condicionesFicha.notasPdf !== undefined) {
       const lineas = (condicionesFicha.notasPdf ?? []).map((l) => l.trim()).filter(Boolean).slice(0, 30);
       campos.notas_pdf = condicionesFicha.notasPdf === null ? null : lineas;

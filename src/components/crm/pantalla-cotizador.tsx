@@ -380,6 +380,9 @@ export function PantallaCotizador({
   const [tiempoEntrega, setTiempoEntrega] = useState(edicion ? (edicion.tiempoEntrega ?? "") : (previas?.tiempoEntrega ?? TIEMPO_ENTREGA_POR_DEFECTO));
   const [garantia, setGarantia] = useState(edicion ? (edicion.garantia ?? "") : (previas?.garantia ?? GARANTIA_POR_DEFECTO));
   const [formaPago, setFormaPago] = useState(edicion ? (edicion.formaPago ?? "") : (previas?.formaPago ?? FORMA_PAGO_POR_DEFECTO));
+  // Cuánto dura el trabajo («1 día»), aparte de cuándo se atiende (Gabriela,
+  // 12-10; 0442). Solo postventa lo escribe.
+  const [tiempoEjecucion, setTiempoEjecucion] = useState(edicion?.tiempoEjecucion ?? "");
   // Una cotización nueva copia las condiciones de la anterior; si aquella iba
   // al contado (saldo vacío), el vacío caía en el 70 % por defecto y salía
   // «Contado» con «70 % antes del despacho» (Gabriela, 05-10). El saldo sale
@@ -506,6 +509,7 @@ export function PantallaCotizador({
         saldo,
         // Solo postventa la escribe; undefined = no se toca (0391).
         notasPdf: esPostventa ? (notasTexto === null ? null : notasTexto.split("\n")) : undefined,
+        tiempoEjecucion: esPostventa ? tiempoEjecucion : undefined,
         // Sin esto, elegir soles no ensuciaba el borrador: no se guardaba y el
         // PDF seguía saliendo en dólares (reportado el 04-09, mismo día).
         monedaImpresa,
@@ -513,7 +517,7 @@ export function PantallaCotizador({
         // El motivo de ir con Efameinsa (0275) se autoguarda como el resto.
         motivoSerie,
       }),
-    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, notasTexto, esPostventa, monedaImpresa, enSoles, tcDelDocumento, motivoSerie],
+    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, notasTexto, tiempoEjecucion, esPostventa, monedaImpresa, enSoles, tcDelDocumento, motivoSerie],
   );
 
   const payloadRef = useRef(payload);
@@ -540,6 +544,7 @@ export function PantallaCotizador({
       formaPago: string;
       saldo: string;
       notasPdf?: string[] | null;
+      tiempoEjecucion?: string;
       motivoSerie: string;
     };
     // Una línea a mano sin concepto todavía (el botón «+ Agregar una línea»
@@ -564,6 +569,7 @@ export function PantallaCotizador({
         formaPago: datos.formaPago,
         saldo: datos.saldo,
         notasPdf: datos.notasPdf,
+        tiempoEjecucion: datos.tiempoEjecucion,
       },
       monedaImpresa,
       tipoCambio: tcDelDocumento,
@@ -2033,6 +2039,19 @@ export function PantallaCotizador({
                     <Input id="saldo" value={saldo} onChange={(e) => setSaldo(e.target.value)} />
                   </div>
                 </div>
+                {esPostventa && (
+                  <div className="space-y-1">
+                    <Label htmlFor="tiempo-ejecucion" className="text-xs font-normal text-muted-foreground">
+                      Tiempo de ejecución
+                    </Label>
+                    <Input
+                      id="tiempo-ejecucion"
+                      placeholder="Cuánto dura el trabajo, p. ej. 1 día"
+                      value={tiempoEjecucion}
+                      onChange={(e) => setTiempoEjecucion(e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
               {/* Se muestra tal cual va a salir impreso. Es la única forma de
                   que se note lo que falta: un renglón vacío no se imprime y,
@@ -2051,6 +2070,7 @@ export function PantallaCotizador({
                     ["Garantía", sinGarantia ? "" : garantia],
                     ["Forma de pago", formaPago],
                     ["Saldo", saldo],
+                    ["Tiempo de ejecución", esPostventa ? tiempoEjecucion : ""],
                   ].filter(([, v]) => v.trim());
                   return (
                     <>
