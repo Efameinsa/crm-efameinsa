@@ -27,6 +27,8 @@ export type TipoNotificacion =
   | "cotizacion_servicio"
   // Central pregunta por derivados quietos más de 7 días (0446, buzón Central 12-10).
   | "consulta_seguimiento"
+  // El comercial pide el Infocorp a Central y Central lo devuelve (0447, buzón Brenda 12-10).
+  | "infocorp"
   // Central avisa que un cliente está esperando y nadie lo atiende (25-08).
   | "urgencia"
   // El cliente que ya está en manos de alguien volvió a escribir a Central
@@ -238,7 +240,7 @@ export async function notificarFinanzas(datos: {
  * Finanzas subió la liquidación. Separado por serie como los demás: lo de
  * práctica no le llega a la Central real.
  */
-export async function notificarCentral(datos: { titulo: string; cuerpo?: string; url?: string; esPrueba?: boolean }): Promise<void> {
+export async function notificarCentral(datos: { titulo: string; cuerpo?: string; url?: string; esPrueba?: boolean; tipo?: TipoNotificacion }): Promise<void> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("perfiles")
@@ -249,7 +251,7 @@ export async function notificarCentral(datos: { titulo: string; cuerpo?: string;
     // Las cuentas _test de la propuesta miran, no reciben avisos (23-09).
     .is("espejo_de", null);
   await Promise.all(
-    (data ?? []).map((p) => notificar({ userId: p.id, tipo: "almacen", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
+    (data ?? []).map((p) => notificar({ userId: p.id, tipo: datos.tipo ?? "almacen", titulo: datos.titulo, cuerpo: datos.cuerpo, url: datos.url })),
   );
 }
 
