@@ -11,6 +11,10 @@ import {
   INCLUYE_POR_DEFECTO,
   ORDEN_TIPOS_ITEM,
   TIPOS_ITEM,
+  TIPOS_PEDIDO_CIERRE,
+  etiquetaTipoPedidoCierre,
+  tipoPedidoDeItems,
+  type TipoPedidoCierre,
   avisosDeIdentidad,
   renglonesDesdeTexto,
   tipoDeItem,
@@ -157,6 +161,7 @@ function aCorreccion(d: DatosInforme): Record<string, unknown> {
     gratis: d.gratis ?? "",
     garantia: d.garantia ?? "",
     nota_final: d.notaFinal ?? "",
+    tipo_pedido: d.tipoPedido ?? "",
   };
 }
 
@@ -204,6 +209,7 @@ function equiposDe(p: PresupuestoDisponible | undefined): ItemInformeEntrada[] {
       cantidad: l.cantidad,
       precio_unitario: l.precio_unitario,
       precio_con_igv: l.precio_con_igv ?? null,
+      tipo: l.tipo,
     }));
   return (p.items ?? []).map((nombre) => ({
     bloque: "venta" as const,
@@ -279,6 +285,9 @@ export function FormularioInforme({
   // nombre del equipo, así que el comercial completa marca y modelo — que es
   // exactamente lo que hoy escribe a mano en el Word.
   const [items, setItems] = useState<ItemInformeEntrada[]>(() => (b ? b.items : equiposDe(presupuestos[0])));
+  // Qué se vende (Rubí, 12-10; 0436): null = lo que dicen los renglones.
+  const [tipoPedido, setTipoPedido] = useState<TipoPedidoCierre | null>(b?.tipoPedido ?? null);
+  const tipoDeducido = tipoPedidoDeItems(items);
 
   // OPEN PRIMERO (gerencia, 23-09-2026). El cierre hereda la serie de la
   // cotización de la que sale; sin cotización arranca en OPEN. Si queda en
@@ -476,6 +485,7 @@ export function FormularioInforme({
       gratis: gratis || null,
       notaFinal: notaFinal || null,
       items,
+      tipoPedido,
     };
   }
 
@@ -1311,6 +1321,33 @@ export function FormularioInforme({
             <b className="text-foreground">
               Total {simbolo} {totales.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
             </b>
+          </p>
+        </div>
+
+        {/* QUÉ SE VENDE (Rubí, buzón 12-10; 0436). El circuito del pedido en
+            postventa salía solo de los renglones, y el variador F8496601 del
+            cierre 053-2026 —copiado como «Equipo»— llegó como venta de
+            equipo. El comercial lo ve y lo cambia acá; si el pedido ya está
+            en postventa, la corrección lo cambia también allá. */}
+        <div className="rounded-md border border-border bg-secondary/30 p-2.5">
+          <p className="text-xs font-semibold text-foreground">Qué se vende · así llega el pedido a postventa</p>
+          <p className="mb-1.5 text-[11px] text-muted-foreground">
+            Por defecto sale de los renglones. Si no corresponde, elija lo que se vendió: postventa sigue los pasos de ese tipo.
+          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Pastilla activa={tipoPedido == null} onClick={() => setTipoPedido(null)}>
+              Según los renglones ({etiquetaTipoPedidoCierre(tipoDeducido).toLowerCase()})
+            </Pastilla>
+            {TIPOS_PEDIDO_CIERRE.map((t) => (
+              <Pastilla key={t.valor} activa={tipoPedido === t.valor} onClick={() => setTipoPedido(t.valor)}>
+                {t.etiqueta}
+              </Pastilla>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Llega como <b className="text-foreground">{etiquetaTipoPedidoCierre(tipoPedido ?? tipoDeducido)}</b>:{" "}
+            {TIPOS_PEDIDO_CIERRE.find((t) => t.valor === (tipoPedido ?? tipoDeducido))?.ayuda}.
+            {enCorreccion && " Si el pedido ya está en postventa y no se cerró, cambia también allá."}
           </p>
         </div>
 

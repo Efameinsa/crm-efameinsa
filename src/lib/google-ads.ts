@@ -5,9 +5,12 @@
  * las dos acciones se crean como PRINCIPALES (primaryForGoal): Google deja de
  * perseguir solo el formulario lleno y busca al que cotiza y compra.
  *
- * Necesita cinco variables (GOOGLE_ADS_DEVELOPER_TOKEN, _CLIENT_ID,
- * _CLIENT_SECRET, _REFRESH_TOKEN, _CUSTOMER_ID; _LOGIN_CUSTOMER_ID si se entra
- * por una cuenta administradora). Sin ellas no hace nada: el CRM funciona igual.
+ * Necesita cuatro variables (GOOGLE_ADS_CLIENT_ID, _CLIENT_SECRET,
+ * _REFRESH_TOKEN, _CUSTOMER_ID; _LOGIN_CUSTOMER_ID si se entra por la cuenta
+ * administradora 495-971-1562). Sin ellas no hace nada: el CRM funciona igual.
+ * Desde el 09-09-2026 Google ya no usa el developer token: el nivel de acceso
+ * es del proyecto de Google Cloud dueño del cliente OAuth (efameinsa-medicion).
+ * Si GOOGLE_ADS_DEVELOPER_TOKEN tiene valor se manda igual; si no, se omite.
  */
 
 export const CONVERSIONES_GOOGLE = {
@@ -20,8 +23,7 @@ const soloDigitos = (s: string | undefined) => (s ?? "").replace(/\D/g, "");
 
 export function googleAdsConfigurado(): boolean {
   return Boolean(
-    process.env.GOOGLE_ADS_DEVELOPER_TOKEN &&
-      process.env.GOOGLE_ADS_CLIENT_ID &&
+    process.env.GOOGLE_ADS_CLIENT_ID &&
       process.env.GOOGLE_ADS_CLIENT_SECRET &&
       process.env.GOOGLE_ADS_REFRESH_TOKEN &&
       process.env.GOOGLE_ADS_CUSTOMER_ID,
@@ -50,14 +52,14 @@ async function tokenDeAcceso(): Promise<string> {
 async function llamar(token: string, ruta: string, cuerpo: unknown): Promise<Record<string, unknown>> {
   const cid = soloDigitos(process.env.GOOGLE_ADS_CUSTOMER_ID);
   const login = soloDigitos(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID);
-  const versiones = versionQueSirve ? [versionQueSirve] : (process.env.GOOGLE_ADS_API_VERSION ?? "v24,v23,v22,v21").split(",");
+  const versiones = versionQueSirve ? [versionQueSirve] : (process.env.GOOGLE_ADS_API_VERSION ?? "v25,v24,v23,v22,v21").split(",");
   let ultimo = "";
   for (const v of versiones) {
     const r = await fetch(`https://googleads.googleapis.com/${v.trim()}/customers/${cid}${ruta}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        "developer-token": process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
+        ...(process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? { "developer-token": process.env.GOOGLE_ADS_DEVELOPER_TOKEN } : {}),
         "Content-Type": "application/json",
         ...(login ? { "login-customer-id": login } : {}),
       },

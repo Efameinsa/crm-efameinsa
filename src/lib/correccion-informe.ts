@@ -54,6 +54,8 @@ export const esquemaCorreccionInforme = z
     gratis: z.string().trim().max(600).optional(),
     garantia: z.string().trim().max(400).optional(),
     nota_final: z.string().trim().max(1000).optional(),
+    // Qué se vende (0436): "" vuelve a «según los renglones».
+    tipo_pedido: z.enum(["equipo", "repuesto", "accesorio", "mantenimiento", "revision", "embalaje", ""]).optional(),
   })
   .strict();
 
