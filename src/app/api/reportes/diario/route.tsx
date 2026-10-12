@@ -14,6 +14,8 @@ import { cargarEventosPostventa, eventosDelDia, pendientesDePostventa, type Pend
 import { etiquetaEvento } from "@/lib/calendario-postventa";
 import { TITULO_PREVENTIVOS_POR_OFRECER } from "@/lib/preventivo";
 import { gestionesPorRuta, type RutaPostventa } from "@/lib/reporte-postventa-rutas";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { pendientesPropios, presupuestosPropios, ventasPropias } from "@/lib/trabajo-propio";
 
 // PDF del cierre del día del comercial. La autorización real la hace la
 // función SQL (el propio comercial o backoffice); acá solo se comprueba que
@@ -99,10 +101,11 @@ export async function GET(request: Request) {
   // la proyección, por la misma razón: la función SQL no se toca.
   let rutasPostventa: RutaPostventa[] | undefined;
   let pendientesPostventa: { titulo: string; filas: { cliente: string; detalle: string | null }[] }[] | undefined;
+  let tituloPendientes: string | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
-      .select("id, rol, es_postventa, hace_postventa, reporte_solo_lo_propio")
+      .select("id, rol, es_postventa, hace_postventa, reporte_solo_lo_propio, reporte_por_rutas")
       .eq("id", comercialId)
       .maybeSingle();
     if (perfil?.es_postventa) {
@@ -112,6 +115,30 @@ export async function GET(request: Request) {
       // del área ni sus pendientes, que son de las compañeras, y lo que hizo
       // en dos cuadros por ruta. Rubí y Gabriela siguen como pidió Carlos.
       const soloPropio = Boolean(perfil.reporte_solo_lo_propio);
+      // PRESUPUESTOS Y VENTAS POR QUIEN LOS HIZO (buzón, Gabriela PV2, 12-10:
+      // «en ventas cerradas no le está jalando nada»). La función SQL los
+      // cuenta por el dueño del cliente y postventa cotiza y cierra sobre
+      // clientes de otras carteras: ver `trabajo-propio.ts`. La ruta ya
+      // autorizó con la función (el propio o backoffice).
+      try {
+        const admin = createAdminClient();
+        const { data: tcFila } = await admin.from("parametros").select("valor").eq("clave", "tc_usd_pen").maybeSingle();
+        const [cots, vts] = await Promise.all([
+          presupuestosPropios(admin, comercialId, fecha, fecha),
+          ventasPropias(admin, comercialId, fecha, fecha, Number(tcFila?.valor) || 3.75),
+        ]);
+        r.cotizaciones = cots;
+        r.ventas = vts;
+        r.resumen = {
+          ...r.resumen,
+          cotizaciones: cots.length,
+          cotizaciones_enviadas: cots.filter((c) => c.enviada).length,
+          ventas: vts.length,
+          monto_vendido_usd: vts.reduce((t, v) => t + v.monto_usd, 0),
+        };
+      } catch {
+        // Se queda con lo que trajo la función.
+      }
       const [eventos, { data: bitacora }, pendientes] = await Promise.all([
         // Reunión 23-09: «ahí está mezclada el de Gabriela con… Rubí». El reporte
         // es de UNA persona: los casos salen solo de su cartera y lo compartido
@@ -120,6 +147,12 @@ export async function GET(request: Request) {
         supabase.from("bitacora_dia").select("orden, texto").eq("perfil_id", comercialId).eq("fecha", fecha).order("orden"),
         soloPropio ? null : pendientesDePostventa(supabase),
       ]);
+      // «Sus pendientes de ella, no de Rubí» (gerencia, 12-10): quien pidió
+      // solo lo suyo ve SUS presupuestos sin salir y SUS seguimientos.
+      if (soloPropio) {
+        pendientesPostventa = await pendientesPropios(createAdminClient(), comercialId, hoyLima()).catch(() => undefined);
+        tituloPendientes = "5b. SUS PENDIENTES";
+      }
       // 5b. PENDIENTES DEL ÁREA (22-09, ítem 6): mismos bloques que el panel
       // «Pendiente por tipo» de la agenda, para que el PDF diga lo mismo.
       const ROTULO: Record<keyof PendientesPostventa, string> = {
@@ -130,7 +163,7 @@ export async function GET(request: Request) {
         atencionesSinProgramar: "Atenciones sin programar",
         preventivosPorVencer: TITULO_PREVENTIVOS_POR_OFRECER,
       };
-      pendientesPostventa = pendientes
+      if (pendientes) pendientesPostventa = pendientes
         ? (Object.keys(ROTULO) as (keyof PendientesPostventa)[]).map((clave) => ({
             titulo: ROTULO[clave],
             filas: pendientes[clave].map((f) => ({ cliente: f.cliente, detalle: f.detalle })),
@@ -210,7 +243,9 @@ export async function GET(request: Request) {
         ],
       };
       r.agenda = { ...r.agenda, manana: r.planificacion_manana.gestiones.length + r.planificacion_manana.tareas.length };
-      if (soloPropio) rutasPostventa = await gestionesPorRuta(supabase, comercialId, fecha, r.seguimientos);
+      // Los dos cuadros por ruta son de Ariana (0431); Gabriela pidió solo lo
+      // suyo pero con sus seguimientos en la tabla de siempre (0437).
+      if (soloPropio && perfil.reporte_por_rutas) rutasPostventa = await gestionesPorRuta(supabase, comercialId, fecha, r.seguimientos);
     }
   } catch {
     // Sin la agenda del área, pero con reporte.
@@ -237,6 +272,7 @@ export async function GET(request: Request) {
       planificacion_manana={r.planificacion_manana}
       proyeccion={proyeccion}
       pendientesPostventa={pendientesPostventa}
+      tituloPendientes={tituloPendientes}
       rutasPostventa={rutasPostventa}
       indicadores={indicadores}
     />,

@@ -15,6 +15,7 @@ import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { BotonCierreSemanal } from "@/components/crm/boton-cierre-semanal";
 import { BotonReporteMensual } from "@/components/crm/boton-reporte-mensual";
+import { BotonReportePeriodo } from "@/components/crm/boton-reporte-periodo";
 import { hoyLima } from "@/lib/periodo";
 import { lunesSemana } from "@/lib/potenciales-semana";
 import { mesPorDefecto } from "@/lib/cierre-mensual";
@@ -411,6 +412,8 @@ export default async function PostventaPage() {
               comercial: puede meterlo a la cola, nunca asignárselo solo. */}
           <PasarContactoCentral contexto="postventa" campaniasWhatsapp={campaniasWhatsapp} />
           <BotonReporteMensual mes={mesPorDefecto(hoyIso)} compacto />
+          {/* Buzón, Gabriela PV2 12-10: el reporte de las fechas que elija (semana, mes, de un día a otro). */}
+          <BotonReportePeriodo hoy={hoyIso} compacto />
           <BotonCierreSemanal semana={lunes} compacto />
           <BotonReporteDiario fecha={hoyIso} compacto />
         </div>
