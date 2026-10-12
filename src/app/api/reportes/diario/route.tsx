@@ -103,6 +103,8 @@ export async function GET(request: Request) {
   let rutasPostventa: RutaPostventa[] | undefined;
   let pendientesPostventa: { titulo: string; filas: { cliente: string; detalle: string | null }[] }[] | undefined;
   let tituloPendientes: string | undefined;
+  let pendientesAnotadosPdf: { titulo: string; filas: { cliente: string; detalle: string | null }[] }[] | undefined;
+  let movimientoDelArea: { titulo: string; hora: string | null }[] | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
@@ -155,7 +157,7 @@ export async function GET(request: Request) {
         // el viernes, no lo de hoy.
         const pasado = fecha < hoyLima();
         pendientesPostventa = await pendientesPropios(createAdminClient(), comercialId, hoyLima(), fecha).catch(() => undefined);
-        tituloPendientes = pasado ? "5b. SUS PENDIENTES AL CIERRE DEL DÍA" : "5b. SUS PENDIENTES";
+        tituloPendientes = pasado ? "SUS PENDIENTES AL CIERRE DEL DÍA" : "SUS PENDIENTES";
         // La tarjeta «Agenda» de un día pasado, con la misma cuenta que la lista.
         if (pasado && pendientesPostventa) {
           r.agenda = { ...r.agenda, pendiente_hoy: pendientesPostventa[1].filas.length, vencidas: pendientesPostventa[2].filas.length };
@@ -171,20 +173,20 @@ export async function GET(request: Request) {
         atencionesSinProgramar: "Atenciones sin programar",
         preventivosPorVencer: TITULO_PREVENTIVOS_POR_OFRECER,
       };
-      if (pendientes) pendientesPostventa = pendientes
-        ? (Object.keys(ROTULO) as (keyof PendientesPostventa)[]).map((clave) => ({
-            titulo: ROTULO[clave],
-            filas: pendientes[clave].map((f) => ({ cliente: f.cliente, detalle: f.detalle })),
-          }))
-        : undefined;
+      if (pendientes) {
+        pendientesPostventa = (Object.keys(ROTULO) as (keyof PendientesPostventa)[]).map((clave) => ({
+          titulo: ROTULO[clave],
+          filas: pendientes[clave].map((f) => ({ cliente: f.cliente, detalle: f.detalle })),
+        }));
+        tituloPendientes = "PENDIENTES DEL ÁREA (PARA CONOCIMIENTO, NO SON GESTIÓN SUYA)";
+      }
       // Los que anotó a mano con su tipo (buzón, Rubí 12-10, 0444): solo en el
       // reporte de hoy, porque de un día pasado no se sabe cuáles seguían abiertos.
+      // En su propio apartado, uno por tipo, antes de lo del área (buzón, Rubí
+      // 12-10: «que se diferencie cada apartado y que aparezca solo mi gestión»).
       if (fecha >= hoyLima()) {
         const anotados = bloquesPendientesAnotados(await pendientesAnotados(createAdminClient(), comercialId).catch(() => []));
-        if (anotados.length > 0) {
-          pendientesPostventa = [...(pendientesPostventa ?? []), ...anotados];
-          tituloPendientes ??= "5b. PENDIENTES DEL ÁREA Y LOS ANOTADOS";
-        }
+        if (anotados.length > 0) pendientesAnotadosPdf = anotados;
       }
       // LAS PROGRAMADAS, POR DÍA (Carlos, 23-09: «videollamadas de
       // preinstalación agrupadas por fecha: 24, 25, 26… solo las
@@ -225,25 +227,30 @@ export async function GET(request: Request) {
       for (const [dia, filas] of porDia) pendientesPostventa?.push({ titulo: `Programadas para el ${dia}`, filas });
       // Lo del área (despachos, visitas a planta…) no es de quien pidió solo lo suyo.
       const suyo = (e: (typeof eventos)[number]) => !soloPropio || e.origen === "tarea" || e.origen === "caso";
+      const propio = (e: (typeof eventos)[number]) => e.origen === "tarea" || e.origen === "caso";
       const aFila = (e: (typeof eventos)[number]) => ({
         hora: e.hora,
         titulo: e.cliente,
         tipo: etiquetaEvento(e.tipo),
         detalle: e.titulo + (e.ubicacion ? ` · ${e.ubicacion}` : ""),
       });
-      // Hoy: lo del circuito (despachado, atendido, visitado) y la bitácora,
-      // en «actividades complementarias»; ya está tal cual en el calendario.
+      // Hoy: sus casos, sus tareas y la bitácora, en «actividades
+      // complementarias»; lo del circuito del área (despachado, visitado…) va
+      // en su apartado, «para conocimiento» (buzón, Rubí 12-10: «que aparezca
+      // solo de mi gestión realizada»). Quien pidió solo lo suyo no lo recibe.
+      const deHoy = eventosDelDia(eventos, fecha);
       r.complementarias = [
-        ...eventosDelDia(eventos, fecha).filter(suyo).map((e) => ({
+        ...deHoy.filter(propio).map((e) => ({
           hora: e.hora,
-          titulo:
-            e.origen === "tarea"
-              ? e.titulo
-              : `${e.origen === "caso" ? "" : "Del área · "}${etiquetaEvento(e.tipo)} · ${e.cliente} · ${e.titulo}`,
+          titulo: e.origen === "tarea" ? e.titulo : `${etiquetaEvento(e.tipo)} · ${e.cliente} · ${e.titulo}`,
         })),
         ...(bitacora ?? []).map((b) => ({ hora: null, titulo: b.texto })),
         ...r.complementarias,
       ];
+      if (!soloPropio)
+        movimientoDelArea = deHoy
+          .filter((e) => !propio(e))
+          .map((e) => ({ hora: e.hora, titulo: `${etiquetaEvento(e.tipo)} · ${e.cliente} · ${e.titulo}` }));
       r.resumen = { ...r.resumen, complementarias: r.complementarias.length };
       // Mañana: al lado de las gestiones y tareas que ya trae la función SQL.
       // Las tareas propias y los casos de la cartera propia ya vienen de ahí:
@@ -291,6 +298,8 @@ export async function GET(request: Request) {
       proyeccion={proyeccion}
       pendientesPostventa={pendientesPostventa}
       tituloPendientes={tituloPendientes}
+      pendientesAnotados={pendientesAnotadosPdf}
+      movimientoDelArea={movimientoDelArea}
       rutasPostventa={rutasPostventa}
       indicadores={indicadores}
     />,

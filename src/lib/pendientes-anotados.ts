@@ -6,14 +6,25 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * stock»). Son tareas propias (0028) con su tipo (0444): lo que el circuito no
  * ve solo —un repuesto que viene importado, un stock que falta, una llamada que
  * quedó para otro día— y que tiene que salir en el reporte hasta resolverse.
+ * «Pendiente de cierre» y «Problema técnico» (buzón, Rubí, 12-10, 0449): los
+ * anotaba como «Otro pendiente» con «CIERRE -» o «PROBLEMA TECNICO -» delante.
  */
-export const TIPOS_PENDIENTE = ["importacion", "llamada_programada", "pendiente_stock", "otro"] as const;
+export const TIPOS_PENDIENTE = [
+  "importacion",
+  "llamada_programada",
+  "pendiente_stock",
+  "pendiente_cierre",
+  "problema_tecnico",
+  "otro",
+] as const;
 export type TipoPendiente = (typeof TIPOS_PENDIENTE)[number];
 
 export const ETIQUETA_TIPO_PENDIENTE: Record<TipoPendiente, string> = {
   importacion: "Importación",
   llamada_programada: "Llamada programada",
   pendiente_stock: "Pendiente de stock",
+  pendiente_cierre: "Pendiente de cierre",
+  problema_tecnico: "Problema técnico",
   otro: "Otro pendiente",
 };
 
@@ -47,18 +58,23 @@ export async function pendientesAnotados(supabase: SupabaseClient, perfilId: str
   );
 }
 
+/** Uno por tipo, en el orden de TIPOS_PENDIENTE, solo los que tienen algo. */
+export function pendientesPorTipo(lista: PendienteAnotado[]): { tipo: TipoPendiente; lista: PendienteAnotado[] }[] {
+  return TIPOS_PENDIENTE.map((tipo) => ({ tipo, lista: lista.filter((p) => p.tipo === tipo) })).filter(
+    (g) => g.lista.length > 0,
+  );
+}
+
 /** Bloques para «5b» del reporte diario: uno por tipo, solo los que tienen algo. */
 export function bloquesPendientesAnotados(
   lista: PendienteAnotado[],
 ): { titulo: string; filas: { cliente: string; detalle: string | null }[] }[] {
-  return TIPOS_PENDIENTE.map((tipo) => ({
-    titulo: `${ETIQUETA_TIPO_PENDIENTE[tipo]} (anotados)`,
-    filas: lista
-      .filter((p) => p.tipo === tipo)
-      .map((p) => ({
+  return pendientesPorTipo(lista).map(({ tipo, lista: delTipo }) => ({
+    titulo: ETIQUETA_TIPO_PENDIENTE[tipo],
+    filas: delTipo.map((p) => ({
         // La fecha a la izquierda: el texto es lo largo y va donde hay lugar.
         cliente: `Para el ${p.fecha.split("-").reverse().join("/")}${p.hora ? ` ${p.hora}` : ""}`,
         detalle: p.titulo,
       })),
-  })).filter((b) => b.filas.length > 0);
+  }));
 }

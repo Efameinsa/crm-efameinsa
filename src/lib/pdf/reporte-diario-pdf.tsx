@@ -90,8 +90,16 @@ export interface ReporteDiarioProps {
    * Si llega, reemplaza la tabla de la sección 1 (los seguimientos van en el
    * cuadro de su ruta) y no sale lo del área.
    */
-  /** Rótulo de la sección de pendientes; sin él, «5b. PENDIENTES DEL ÁREA». */
+  /** Rótulo de la sección de pendientes, sin número; sin él, «PENDIENTES DEL ÁREA». */
   tituloPendientes?: string;
+  /**
+   * Lo que la persona anotó a mano, un bloque por tipo (0444, 0449). Va en su
+   * propio apartado, antes de lo del área (buzón, Rubí 12-10: «que se
+   * diferencie cada apartado y que aparezca solo de mi gestión realizada»).
+   */
+  pendientesAnotados?: { titulo: string; filas: { cliente: string; detalle: string | null }[] }[];
+  /** Lo del circuito del área en el día (despachos, visitas a planta…): aparte de su gestión. */
+  movimientoDelArea?: { titulo: string; hora: string | null }[];
   rutasPostventa?: {
     titulo: string;
     filas: { hora: string | null; cliente: string; detalle: string | null }[];
@@ -184,6 +192,53 @@ export const corta = (s: string | null, n: number) => {
 };
 export const dinero = (m: number, mon: string) => `${mon === "PEN" ? "S/" : "US$"} ${Math.round(m).toLocaleString("es-PE")}`;
 
+/** Un apartado de pendientes en bloques con subtítulo (los del área, los propios, los anotados). */
+function BloquesPendientes({
+  titulo,
+  bloques,
+  vacio,
+}: {
+  titulo: string;
+  bloques: { titulo: string; filas: { cliente: string; detalle: string | null }[] }[];
+  vacio: string;
+}) {
+  // La cabecera va DENTRO del primer bloque (que no se parte): así no
+  // queda sola al pie de una hoja con su contenido en la siguiente.
+  const cabecera = (
+    <View style={e.seccionCabecera}>
+      <Text style={e.seccionTitulo}>{titulo}</Text>
+      <Text style={e.seccionTotal}>TOTAL: {bloques.reduce((t, b) => t + b.filas.length, 0)}</Text>
+    </View>
+  );
+  const conFilas = bloques.filter((b) => b.filas.length > 0);
+  return (
+    <View style={e.seccion}>
+      {conFilas.length === 0 ? (
+        <View wrap={false}>
+          {cabecera}
+          <Text style={e.vacio}>{vacio}</Text>
+        </View>
+      ) : (
+        conFilas.map((b, k) => (
+          <View key={b.titulo} wrap={false}>
+            {k === 0 && cabecera}
+            <View style={e.subtitulo2}>
+              <Text style={e.subtitulo2Texto}>{b.titulo.toUpperCase()} ({b.filas.length})</Text>
+            </View>
+            {b.filas.slice(0, 10).map((f, i) => (
+              <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                <Text style={{ width: "38%", paddingRight: 6 }}>{corta(f.cliente, 42)}</Text>
+                <Text style={{ width: "62%", color: GRIS }}>{f.detalle ? corta(f.detalle, 70) : "—"}</Text>
+              </View>
+            ))}
+            {b.filas.length > 10 && <Text style={[e.vacio, { paddingVertical: 3 }]}>y {b.filas.length - 10} más</Text>}
+          </View>
+        ))
+      )}
+    </View>
+  );
+}
+
 export function Seccion({ titulo, total, children }: { titulo: string; total: string | number; children: React.ReactNode }) {
   // La sección SÍ puede partirse entre páginas. Con wrap={false} el día de 19
   // seguimientos de Katerine (25-08) superaba el alto de la hoja y react-pdf
@@ -213,7 +268,7 @@ export function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: str
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, fechaCorta, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
-  pendientesPostventa, tituloPendientes, rutasPostventa, indicadores,
+  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -439,45 +494,46 @@ export function ReporteDiarioPdf({
           )}
         </Seccion>
 
-        {pendientesPostventa && (
-          // La cabecera va DENTRO del primer bloque (que no se parte): así no
-          // queda sola al pie de una hoja con su contenido en la siguiente.
-          <View style={e.seccion}>
-            {(() => {
-              const cabecera = (
-                <View style={e.seccionCabecera}>
-                  <Text style={e.seccionTitulo}>{tituloPendientes ?? "5b. PENDIENTES DEL ÁREA"}</Text>
-                  <Text style={e.seccionTotal}>TOTAL: {pendientesPostventa.reduce((t, b) => t + b.filas.length, 0)}</Text>
-                </View>
-              );
-              const conFilas = pendientesPostventa.filter((b) => b.filas.length > 0);
-              if (conFilas.length === 0)
-                return (
-                  <View wrap={false}>
-                    {cabecera}
-                    <Text style={e.vacio}>Sin pendientes por tipo: al día en despachos, videollamadas, puestas en marcha, atenciones y preventivos.</Text>
+        {/* Los apartados «5b, 5c…» llevan su letra en el orden en que salen: sin saltos. */}
+        {(() => {
+          const letras = "bcdef";
+          let n = 0;
+          const apartados: React.ReactNode[] = [];
+          if (pendientesAnotados && pendientesAnotados.length > 0)
+            apartados.push(
+              <BloquesPendientes
+                key="anotados"
+                titulo={`5${letras[n++]}. SUS PENDIENTES ANOTADOS, POR TIPO`}
+                bloques={pendientesAnotados}
+                vacio=""
+              />,
+            );
+          if (movimientoDelArea && movimientoDelArea.length > 0)
+            apartados.push(
+              <Seccion
+                key="area"
+                titulo={`5${letras[n++]}. MOVIMIENTO DEL ÁREA HOY (PARA CONOCIMIENTO, NO ES GESTIÓN SUYA)`}
+                total={movimientoDelArea.length}
+              >
+                {movimientoDelArea.map((a, i) => (
+                  <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                    <Text style={{ width: "12%" }}>{a.hora ?? "—"}</Text>
+                    <Text style={{ width: "88%", color: GRIS }}>{corta(a.titulo, 110)}</Text>
                   </View>
-                );
-              return conFilas.map((b, k) => (
-                  <View key={b.titulo} wrap={false}>
-                    {k === 0 && cabecera}
-                    <View style={e.subtitulo2}>
-                      <Text style={e.subtitulo2Texto}>{b.titulo.toUpperCase()} ({b.filas.length})</Text>
-                    </View>
-                    {b.filas.slice(0, 10).map((f, i) => (
-                      <View key={i} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
-                        <Text style={{ width: "38%", paddingRight: 6 }}>{corta(f.cliente, 42)}</Text>
-                        <Text style={{ width: "62%", color: GRIS }}>{f.detalle ? corta(f.detalle, 70) : "—"}</Text>
-                      </View>
-                    ))}
-                    {b.filas.length > 10 && (
-                      <Text style={[e.vacio, { paddingVertical: 3 }]}>y {b.filas.length - 10} más</Text>
-                    )}
-                  </View>
-              ));
-            })()}
-          </View>
-        )}
+                ))}
+              </Seccion>,
+            );
+          if (pendientesPostventa)
+            apartados.push(
+              <BloquesPendientes
+                key="pendientes"
+                titulo={`5${letras[n++]}. ${tituloPendientes ?? "PENDIENTES DEL ÁREA"}`}
+                bloques={pendientesPostventa}
+                vacio="Sin pendientes por tipo: al día en despachos, videollamadas, puestas en marcha, atenciones y preventivos."
+              />,
+            );
+          return apartados;
+        })()}
 
         <Seccion
           titulo="6. PLANIFICACIÓN DEL DÍA SIGUIENTE"

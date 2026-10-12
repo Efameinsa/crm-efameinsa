@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   TIPOS_PENDIENTE,
   ETIQUETA_TIPO_PENDIENTE,
+  pendientesPorTipo,
   type PendienteAnotado,
   type TipoPendiente,
 } from "@/lib/pendientes-anotados";
@@ -115,36 +116,43 @@ export function MisPendientesAnotados({ hoy, lista }: { hoy: string; lista: Pend
       {lista.length === 0 ? (
         <p className="max-w-prose text-sm text-muted-foreground">
           No tiene pendientes anotados. Anote aquí lo que el sistema no ve solo —un repuesto en importación, una
-          llamada programada, un pedido que espera stock—: sale en su reporte diario, por tipo, hasta que lo marque
-          resuelto.
+          llamada programada, un pedido que espera stock, un cierre por concretar, un problema técnico en curso—:
+          sale en su reporte diario, por tipo, hasta que lo marque resuelto.
         </p>
       ) : (
-        <ul className="space-y-1.5">
-          {lista.map((p) => (
-            <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2.5">
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground">
-                {ETIQUETA_TIPO_PENDIENTE[p.tipo]}
-              </span>
-              <span className="min-w-[180px] flex-1 text-sm text-foreground">{p.titulo}</span>
-              <span className={cn("text-xs tabular-nums", p.fecha < hoy ? "font-semibold text-destructive" : "text-muted-foreground")}>
-                {p.fecha.split("-").reverse().join("/")}
-                {p.hora ? ` ${p.hora}` : ""}
-              </span>
-              <Button size="sm" variant="outline" disabled={enviando} onClick={() => resolver(p.id)}>
-                <Check className="size-3.5" /> Resuelto
-              </Button>
-              <button
-                type="button"
-                disabled={enviando}
-                onClick={() => quitar(p.id)}
-                title="Quitar (anotado por error)"
-                className="cursor-pointer rounded p-1 text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            </li>
+        // Un apartado por tipo (buzón, Rubí, 12-10: «que se diferencie cada apartado»).
+        <div className="space-y-4">
+          {pendientesPorTipo(lista).map(({ tipo: t, lista: delTipo }) => (
+            <section key={t}>
+              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {ETIQUETA_TIPO_PENDIENTE[t]} ({delTipo.length})
+              </h3>
+              <ul className="space-y-1.5">
+                {delTipo.map((p) => (
+                  <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2.5">
+                    <span className="min-w-[180px] flex-1 text-sm text-foreground">{p.titulo}</span>
+                    <span className={cn("text-xs tabular-nums", p.fecha < hoy ? "font-semibold text-destructive" : "text-muted-foreground")}>
+                      {p.fecha.split("-").reverse().join("/")}
+                      {p.hora ? ` ${p.hora}` : ""}
+                    </span>
+                    <Button size="sm" variant="outline" disabled={enviando} onClick={() => resolver(p.id)}>
+                      <Check className="size-3.5" /> Resuelto
+                    </Button>
+                    <button
+                      type="button"
+                      disabled={enviando}
+                      onClick={() => quitar(p.id)}
+                      title="Quitar (anotado por error)"
+                      className="cursor-pointer rounded p-1 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
     </SeccionPanel>
   );
