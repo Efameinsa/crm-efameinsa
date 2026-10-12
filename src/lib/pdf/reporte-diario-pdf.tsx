@@ -22,10 +22,10 @@ import { BloqueIndicadoresPdf } from "@/lib/pdf/indicadores-pdf";
 //    supervisar la jornada; el detalle completo vive en el CRM.
 // Helvetica = fuente base de @react-pdf sin incrustar TTF (equivalente a Arial).
 
-const GRANATE = "#7E1210";
-const CARBON = "#2C2E35";
-const GRIS = "#6B6B6B";
-const VERDE = "#1E7F4F";
+export const GRANATE = "#7E1210";
+export const CARBON = "#2C2E35";
+export const GRIS = "#6B6B6B";
+export const VERDE = "#1E7F4F";
 const BORDE = "#D8D4D3";
 const FILA_GRIS = "#F4F2F1";
 
@@ -57,7 +57,8 @@ export interface ReporteDiarioProps {
     resultado: string | null;
     efectivo: boolean;
   }[];
-  cotizaciones: { codigo: string | null; cliente: string; total: number; moneda: string; enviada: boolean; aprobacion: string }[];
+  /** `estado_texto` lo trae postventa (12-10): «En gerencia», «Observado por gerencia»… */
+  cotizaciones: { codigo: string | null; cliente: string; total: number; moneda: string; enviada: boolean; aprobacion: string; estado_texto?: string }[];
   ventas: { cliente: string; monto: number; moneda: string }[];
   leads: { codigo: string | null; nombre: string; canal: string; hora: string | null }[];
   complementarias: { titulo: string; hora: string | null }[];
@@ -87,6 +88,8 @@ export interface ReporteDiarioProps {
    * Si llega, reemplaza la tabla de la sección 1 (los seguimientos van en el
    * cuadro de su ruta) y no sale lo del área.
    */
+  /** Rótulo de la sección de pendientes; sin él, «5b. PENDIENTES DEL ÁREA». */
+  tituloPendientes?: string;
   rutasPostventa?: {
     titulo: string;
     filas: { hora: string | null; cliente: string; detalle: string | null }[];
@@ -109,7 +112,7 @@ export interface ReporteDiarioProps {
 // la última columna se recortaba en papel aunque en pantalla se viera entera.
 // 40 pt ≈ 14 mm entra en cualquier impresora, y el interlineado da aire a las
 // filas sin sumar páginas.
-const e = StyleSheet.create({
+export const e = StyleSheet.create({
   pagina: {
     paddingTop: 32,
     paddingBottom: 52,
@@ -157,7 +160,7 @@ const e = StyleSheet.create({
   pieTexto: { fontSize: 6.5, color: GRIS },
 });
 
-const TIPO: Record<string, string> = {
+export const TIPO: Record<string, string> = {
   llamada: "Llamada", whatsapp: "WhatsApp", email: "Correo", visita: "Visita", showroom: "Visita a planta",
   reunion_online: "Videollamada",
 };
@@ -169,10 +172,10 @@ const CANAL: Record<string, string> = {
   whatsapp: "WhatsApp", llamada: "Llamada", formulario_web: "Web", facebook: "Facebook",
   instagram: "Instagram", email: "Correo", presencial: "Presencial", referido: "Referido", otro: "Otro",
 };
-const corta = (s: string | null, n: number) => (!s ? "—" : s.length > n ? `${s.slice(0, n - 1)}…` : s);
-const dinero = (m: number, mon: string) => `${mon === "PEN" ? "S/" : "US$"} ${Math.round(m).toLocaleString("es-PE")}`;
+export const corta = (s: string | null, n: number) => (!s ? "—" : s.length > n ? `${s.slice(0, n - 1)}…` : s);
+export const dinero = (m: number, mon: string) => `${mon === "PEN" ? "S/" : "US$"} ${Math.round(m).toLocaleString("es-PE")}`;
 
-function Seccion({ titulo, total, children }: { titulo: string; total: string | number; children: React.ReactNode }) {
+export function Seccion({ titulo, total, children }: { titulo: string; total: string | number; children: React.ReactNode }) {
   // La sección SÍ puede partirse entre páginas. Con wrap={false} el día de 19
   // seguimientos de Katerine (25-08) superaba el alto de la hoja y react-pdf
   // recortaba las filas por dentro — se leía media nota y nada más. El corte
@@ -189,7 +192,7 @@ function Seccion({ titulo, total, children }: { titulo: string; total: string | 
   );
 }
 
-function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: string; sub?: string }) {
+export function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: string; sub?: string }) {
   return (
     <View style={e.tarjeta}>
       <Text style={e.tarjetaEtiqueta}>{etiqueta}</Text>
@@ -201,7 +204,7 @@ function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: string; su
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
-  pendientesPostventa, rutasPostventa, indicadores,
+  pendientesPostventa, tituloPendientes, rutasPostventa, indicadores,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -374,7 +377,7 @@ export function ReporteDiarioPdf({
                     "…LAVANDERIAS CLEANEnviado". */}
                 <Text style={{ width: "46%", paddingRight: 6 }}>{corta(c.cliente, 52)}</Text>
                 <Text style={{ width: "20%", color: GRIS }}>
-                  {c.aprobacion === "pendiente_gerencia" ? "Por aprobar" : c.enviada ? "Enviado" : "Borrador"}
+                  {c.estado_texto ?? (c.aprobacion === "pendiente_gerencia" ? "Por aprobar" : c.enviada ? "Enviado" : "Borrador")}
                 </Text>
                 <Text style={{ width: "20%", textAlign: "right" }}>{dinero(c.total, c.moneda)}</Text>
               </View>
@@ -429,7 +432,7 @@ export function ReporteDiarioPdf({
 
         {pendientesPostventa && (
           <Seccion
-            titulo="5b. PENDIENTES DEL ÁREA"
+            titulo={tituloPendientes ?? "5b. PENDIENTES DEL ÁREA"}
             total={pendientesPostventa.reduce((t, b) => t + b.filas.length, 0)}
           >
             {pendientesPostventa.every((b) => b.filas.length === 0) ? (

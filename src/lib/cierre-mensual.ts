@@ -4,6 +4,7 @@ import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { lunesDe, sumarDias, MESES } from "@/lib/calendario";
 import { PREFIJO_MARCA_WHATSAPP, WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
 import { cargarIndicadoresDelPeriodo, indicadoresParaDocumento, type IndicadoresDocumento } from "@/lib/indicadores-comerciales";
+import { presupuestosPropios, ventasPropias } from "@/lib/trabajo-propio";
 
 /**
  * El cierre del MES del comercial.
@@ -207,7 +208,7 @@ export async function cargarCierreMensual(mes: string, comercialId: string): Pro
 
   const [{ data: tcFila }, { data: perfil }, { data: noContesto }] = await Promise.all([
     supabase.from("parametros").select("valor").eq("clave", "tc_usd_pen").maybeSingle(),
-    supabase.from("perfiles").select("nombre, codigo_comercial, meta_mensual").eq("id", comercialId).maybeSingle(),
+    supabase.from("perfiles").select("nombre, codigo_comercial, meta_mensual, es_postventa").eq("id", comercialId).maybeSingle(),
     // El resultado se identifica por CÓDIGO y no por nombre: «No contestó» se
     // puede reescribir desde el mantenimiento de listas de operaciones; el
     // código, no.
@@ -216,7 +217,7 @@ export async function cargarCierreMensual(mes: string, comercialId: string): Pro
   const tc = Number(tcFila?.valor) || 3.75;
   const idsNoContesto = new Set((noContesto ?? []).map((r) => String(r.id)));
 
-  const [{ data: actsTodas }, { data: cotsData }, { data: ventasData }, { data: marcasData }] = await Promise.all([
+  const [{ data: actsTodas }, { data: cotsCartera }, { data: ventasCartera }, { data: marcasData }] = await Promise.all([
     // Por `realizada_por`: la gestión es de quien la hizo (regla del informe
     // diario). Tope alto a propósito: el mes más cargado de 2026 fueron 210
     // gestiones, pero Supabase corta en 1.000 filas SIN AVISAR y ese corte
@@ -277,6 +278,29 @@ export async function cargarCierreMensual(mes: string, comercialId: string): Pro
       .lte("realizada_at", finUtc)
       .limit(5000),
   ]);
+  // POSTVENTA: presupuestos y ventas por quien los hizo, no por el dueño del
+  // cliente (buzón, Gabriela PV2, 12-10: su mes salía con «0 ventas» habiendo
+  // cerrado PERUVIAN NATURE, cliente de la cartera de Rubí). Ver
+  // `trabajo-propio.ts`; la ruta ya autorizó.
+  let cotsData = cotsCartera;
+  let ventasData = ventasCartera;
+  if (perfil?.es_postventa) {
+    const admin = createAdminClient();
+    const [cots, vts] = await Promise.all([
+      presupuestosPropios(admin, comercialId, desde, hasta),
+      ventasPropias(admin, comercialId, desde, hasta, tc),
+    ]);
+    cotsData = cots
+      .filter((c) => c.enviada)
+      .map((c) => ({ total: c.total, moneda: c.moneda, enviada_at: `${c.fecha}T12:00:00${OFFSET_LIMA}` })) as unknown as typeof cotsCartera;
+    ventasData = vts.map((v) => ({
+      fecha_venta: v.fecha,
+      monto_total: v.monto,
+      moneda: v.moneda,
+      oportunidades: { cuentas: { razon_social: v.cliente } },
+    })) as unknown as typeof ventasCartera;
+  }
+
   // Fuera de la meta de gestiones desde el 30-09 (gestion-whatsapp.ts).
   const idsMarcas = new Set(WHATSAPP_CUENTA_PARA_META ? [] : (marcasData ?? []).map((m) => String(m.id)));
   const actsData = (actsTodas ?? []).filter((a) => !idsMarcas.has(String(a.id)));
