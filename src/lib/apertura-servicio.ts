@@ -161,7 +161,7 @@ export interface FilaApertura {
   descripcion: string;
   informacion: string;
   observaciones: string;
-  /** Lo que en el modelo va resaltado en amarillo (destino final: «EQUIPO DEBERÁ LLEGAR A DOMICILIO»). */
+  /** Texto en amarillo debajo de las observaciones. Desde el 12-10 (Rubí) la nota del destino final ya no lo usa: va en «información». */
   resaltado?: string | null;
   /** El apartado NOTAS de la fila 1: la guía que se pide y avisos para quien despacha (Lesly, 02-10). */
   notas?: string[];
@@ -212,7 +212,7 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
   let destinoFinal: string;
   // NOTA EDITABLE (Rubí, 12-10: «agregar un item de NOTA en destino final
   // para poder modificar y poner alguna observación»): si postventa la
-  // escribió manda la suya; vacía, no sale.
+  // escribió manda la suya; vacía, no sale. Se agrega abajo, a la información.
   const resaltadoDestino = d.destinoNota == null ? notaDestinoAutomatica(d) : d.destinoNota.trim() || null;
   // ANDINAS, 30-09: la dirección final ya venía dentro de la otra y salía dos veces.
   const finalAparte = d.direccionFinal && !yaDice(d.direccion, d.direccionFinal) ? d.direccionFinal : null;
@@ -232,6 +232,13 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     destinoFinal = finalAparte ?? (d.direccion ? "EL MISMO (se entrega directo al cliente)" : "—");
   }
 
+  // LA NOTA VA EN «INFORMACIÓN», SIN RESALTAR (Rubí, 12-10: «quitar el
+  // resaltado de esta parte de NOTA y ponerla en la parte de información de
+  // destino final»): debajo de la dirección, como un dato más del destino.
+  if (resaltadoDestino && !yaDice(destinoFinal, resaltadoDestino)) {
+    destinoFinal = destinoFinal === "—" ? resaltadoDestino : `${destinoFinal}\n${resaltadoDestino}`;
+  }
+
   const recibe = [d.recibeNombre ?? "—", d.recibeDoc ? `DNI: ${d.recibeDoc}` : null, d.recibeTelefono ? `Cel: ${d.recibeTelefono}` : null]
     .filter(Boolean)
     .join("\n");
@@ -242,7 +249,7 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     { n: 1, descripcion: "SERVICIO A REALIZAR", informacion: equipo, observaciones: d.hora ?? "—", notas },
     { n: 2, descripcion: "CLIENTE", informacion: `${d.cliente}${d.ruc ? `\nRUC: ${d.ruc}` : ""}`, observaciones: "" },
     { n: 3, descripcion: "PRIMER DESTINO", informacion: primerDestino, observaciones: "" },
-    { n: 4, descripcion: "DESTINO FINAL", informacion: destinoFinal, observaciones: d.destinoObservacion?.trim() ?? "", resaltado: resaltadoDestino },
+    { n: 4, descripcion: "DESTINO FINAL", informacion: destinoFinal, observaciones: d.destinoObservacion?.trim() ?? "" },
     { n: 5, descripcion: "PROGRAMACIÓN", informacion: d.fecha ? fechaCalendario(d.fecha) : "—", observaciones: "" },
     { n: 6, descripcion: "PERSONA QUE RECIBE", informacion: recibe, observaciones: "" },
     { n: 7, descripcion: "PERSONAL ASIGNADO PARA EL SERVICIO", informacion: d.tecnico ?? "—", observaciones: "" },

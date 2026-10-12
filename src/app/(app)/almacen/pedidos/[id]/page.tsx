@@ -106,7 +106,7 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
           {servicio.destino_nota?.trim() && (
             <p className="inline-flex items-start gap-1 sm:col-span-2">
               <MapPin className="mt-0.5 size-3.5 flex-none" />
-              <span className="whitespace-pre-wrap">Nota del destino final: <b className="bg-yellow-200 px-0.5 text-foreground">{servicio.destino_nota}</b></span>
+              <span className="whitespace-pre-wrap">Nota del destino final: <b className="text-foreground">{servicio.destino_nota}</b></span>
             </p>
           )}
           {servicio.fecha_despacho && <p>Despacho programado: <b className="text-foreground">{servicio.fecha_despacho}{servicio.despacho_hora ? ` · ${String(servicio.despacho_hora).slice(0, 5)}` : ""}</b>{servicio.despacho_nota ? ` · ${servicio.despacho_nota}` : ""}</p>}

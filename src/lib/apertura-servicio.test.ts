@@ -187,9 +187,8 @@ describe("las filas llevan lo que el correo lleva", () => {
     const filas = filasApertura(d);
     expect(filas[2].informacion).toBe("AGENCIA Marvisur, agencia Ica\nAv. Paseo de la República 3570, San Isidro");
     expect(filas[3].informacion).toBe("Calle Bolívar 150 Miraflores");
-    expect(filas[3].resaltado ?? null).toBeNull();
-    // Si la agencia lo lleva hasta el cliente, la nota resaltada del modelo.
-    expect(filasApertura({ ...d, direccionFinal: "Abtao 951 – Hotel Brancaccio" })[3].resaltado).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
+    // Si la agencia lo lleva hasta el cliente, la nota del modelo (debajo, en la información).
+    expect(filasApertura({ ...d, direccionFinal: "Abtao 951 – Hotel Brancaccio" })[3].informacion).toBe("Calle Bolívar 150 Miraflores\nAbtao 951 – Hotel Brancaccio\nEQUIPO DEBERÁ LLEGAR A DOMICILIO");
     expect(filasApertura({ ...d, agenciaDestino: "AGENCIA SHALOM" })[2].informacion.startsWith("AGENCIA SHALOM\n")).toBe(true);
     expect(filasApertura({ ...d, agenciaDestino: "ANGENCIA MARVISUR" })[2].informacion.startsWith("ANGENCIA MARVISUR\n")).toBe(true);
     expect(faltantesApertura(d)).not.toContain("la dirección de la agencia (primer destino)");
@@ -198,12 +197,16 @@ describe("las filas llevan lo que el correo lleva", () => {
 
   it("la NOTA del destino final se cambia o se quita (Rubí, 12-10; 0438)", () => {
     const d = { ...PERU_VACATION, entregaModo: "agencia" as const, agenciaDestino: "EXPRESO LOS CHANKAS", agenciaDireccion: "Jr. Luna Pizarro 459 - La Victoria", direccionFinal: "Av. José María Arguedas 112 - Andahuaylas" };
-    expect(filasApertura({ ...d, destinoNota: null })[3].resaltado).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
-    expect(filasApertura({ ...d, destinoNota: "  EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS " })[3].resaltado).toBe("EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS");
-    expect(filasApertura({ ...d, destinoNota: "" })[3].resaltado ?? null).toBeNull();
+    const base = "Calle Bolívar 150 Miraflores\nAv. José María Arguedas 112 - Andahuaylas";
+    expect(filasApertura({ ...d, destinoNota: null })[3].informacion).toBe(`${base}\nEQUIPO DEBERÁ LLEGAR A DOMICILIO`);
+    expect(filasApertura({ ...d, destinoNota: "  EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS " })[3].informacion).toBe(`${base}\nEL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS`);
+    expect(filasApertura({ ...d, destinoNota: "" })[3].informacion).toBe(base);
+    // Sin resaltar (Rubí, 12-10): va en la información, no en amarillo.
+    expect(filasApertura({ ...d, destinoNota: null })[3].resaltado ?? null).toBeNull();
     // También a domicilio, donde antes no había nota.
-    expect(filasApertura({ ...PERU_VACATION, entregaModo: "domicilio", destinoNota: "LLAMAR 1 HORA ANTES" })[3].resaltado).toBe("LLAMAR 1 HORA ANTES");
-    expect(cuerpoApertura({ ...d, destinoNota: "LLAMAR 1 HORA ANTES" })).toContain("NOTA: LLAMAR 1 HORA ANTES");
+    expect(filasApertura({ ...PERU_VACATION, entregaModo: "domicilio", destinoNota: "LLAMAR 1 HORA ANTES" })[3].informacion).toBe("EL MISMO (se entrega directo al cliente)\nLLAMAR 1 HORA ANTES");
+    expect(cuerpoApertura({ ...d, destinoNota: "LLAMAR 1 HORA ANTES" })).toContain("   LLAMAR 1 HORA ANTES");
+    expect(cuerpoApertura({ ...d, destinoNota: "LLAMAR 1 HORA ANTES" })).not.toContain("NOTA: LLAMAR");
     expect(notaDestinoAutomatica(d)).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
     expect(notaDestinoAutomatica({ ...d, direccionFinal: null })).toBeNull();
   });
