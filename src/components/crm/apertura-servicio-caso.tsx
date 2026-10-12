@@ -73,6 +73,16 @@ export function AperturaServicioCaso({
   const [guiaDetalle, setGuiaDetalle] = useState("");
   const [nota, setNota] = useState("");
   const [empresa, setEmpresa] = useState<"EFAMEINSA" | "OPEN">("EFAMEINSA");
+  // LAS FILAS DE LA HOJA, COMO EN UN PEDIDO (buzón Rubí 12-10: «que se añada los items de la
+  // imagen»): primer destino (agencia), observación del destino final, DNI de quien recibe y con
+  // quién se coordina contabilidad y logística. Antes salían «—» o por defecto.
+  const [entregaModo, setEntregaModo] = useState<"domicilio" | "agencia" | "planta">("domicilio");
+  const [agencia, setAgencia] = useState("");
+  const [agenciaDireccion, setAgenciaDireccion] = useState("");
+  const [destinoObservacion, setDestinoObservacion] = useState("");
+  const [recibeDoc, setRecibeDoc] = useState("");
+  const [coordinaContabilidad, setCoordinaContabilidad] = useState("");
+  const [coordinaLogistica, setCoordinaLogistica] = useState("");
 
   const repuestosListos = repuestos.filter((x) => x.descripcion.trim());
   const falta = [
@@ -80,6 +90,8 @@ export function AperturaServicioCaso({
     esGarantia && repuestosListos.length === 0 && "los repuestos",
     !fecha && "el día",
     !esGarantia && !tecnico.trim() && "el técnico",
+    esGarantia && entregaModo === "agencia" && !agencia.trim() && "la agencia",
+    esGarantia && entregaModo === "agencia" && !agenciaDireccion.trim() && "la dirección de la agencia",
     !direccion.trim() && (esGarantia ? "adónde se entregan" : "dónde se hace"),
     !confirmo.trim() && "con quién lo confirmó",
     !destino && "Lima o provincia",
@@ -103,6 +115,11 @@ export function AperturaServicioCaso({
         guiaDetalle,
         nota,
         empresa,
+        recibeDoc,
+        coordinaContabilidad,
+        coordinaLogistica,
+        destinoObservacion,
+        ...(esGarantia ? { entregaModo, agencia, agenciaDireccion } : {}),
         repuestos: esGarantia
           ? repuestosListos.map((x) => ({ cantidad: Math.max(1, Number(x.cantidad) || 1), descripcion: x.descripcion, sku: x.sku }))
           : undefined,
@@ -293,9 +310,44 @@ export function AperturaServicioCaso({
             <Label className="text-xs">Transporte</Label>
             <Input value={transporte} onChange={(e) => setTransporte(e.target.value)} placeholder="Ej.: TRANSPORTE CONTRATADO, bus a Jaén" />
           </div>
+          {esGarantia && (
+            <>
+              <div className="grid gap-1 sm:col-span-2">
+                <Label className="text-xs">Cómo llegan los repuestos (fila «Primer destino»)</Label>
+                <select className={select} value={entregaModo} onChange={(e) => setEntregaModo(e.target.value as "domicilio" | "agencia" | "planta")}>
+                  <option value="domicilio">A domicilio (el almacén los lleva al cliente)</option>
+                  <option value="agencia">Por agencia (el almacén los deja en la agencia)</option>
+                  <option value="planta">Los recoge el cliente en nuestras instalaciones</option>
+                </select>
+              </div>
+              {entregaModo === "agencia" && (
+                <>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Agencia <span className="text-destructive">*</span></Label>
+                    <Input value={agencia} onChange={(e) => setAgencia(e.target.value)} placeholder="Ej.: EXPRESO LOS CHANKAS" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Dirección de la agencia (donde los deja el almacén) <span className="text-destructive">*</span></Label>
+                    <Input value={agenciaDireccion} onChange={(e) => setAgenciaDireccion(e.target.value)} placeholder="Ej.: JR. LUNA PIZARRO N° 459 - LA VICTORIA" />
+                  </div>
+                </>
+              )}
+            </>
+          )}
           <div className="grid gap-1 sm:col-span-2">
-            <Label className="text-xs">{esGarantia ? "Adónde se entregan los repuestos" : "Dónde se hace el servicio"}, tal como lo confirmó el cliente <span className="text-destructive">*</span></Label>
+            <Label className="text-xs">
+              {esGarantia ? (entregaModo === "agencia" ? "Destino final: adónde tienen que llegar los repuestos" : "Adónde se entregan los repuestos") : "Dónde se hace el servicio"}, tal
+              como lo confirmó el cliente <span className="text-destructive">*</span>
+            </Label>
             <Textarea rows={2} value={direccion} onChange={(e) => setDireccion(e.target.value)} />
+          </div>
+          <div className="grid gap-1 sm:col-span-2">
+            <Label className="text-xs">Observación del destino final</Label>
+            <Input
+              value={destinoObservacion}
+              onChange={(e) => setDestinoObservacion(e.target.value)}
+              placeholder="Ej.: DESTINO DEL CLIENTE: AV. … (sale en «Observaciones» de la fila «Destino final»)"
+            />
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">Con quién lo confirmó (nombre y cargo) <span className="text-destructive">*</span></Label>
@@ -319,6 +371,23 @@ export function AperturaServicioCaso({
           <div className="grid gap-1">
             <Label className="text-xs">Celular de quien recibe</Label>
             <Input value={recibeTelefono} onChange={(e) => setRecibeTelefono(e.target.value)} inputMode="tel" />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-xs">DNI de quien recibe</Label>
+            <Input
+              value={recibeDoc}
+              onChange={(e) => setRecibeDoc(e.target.value)}
+              inputMode="numeric"
+              placeholder={esGarantia && entregaModo === "agencia" ? "Sin él la agencia no entrega" : ""}
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-xs">Contabilidad (movilidad y viáticos): con quién</Label>
+            <Input value={coordinaContabilidad} onChange={(e) => setCoordinaContabilidad(e.target.value)} placeholder="Ej.: Jhon Kalsin Sullca" />
+          </div>
+          <div className="grid gap-1 sm:col-span-2">
+            <Label className="text-xs">Logística (herramientas, repuestos y EPP): con quién</Label>
+            <Input value={coordinaLogistica} onChange={(e) => setCoordinaLogistica(e.target.value)} placeholder="Si lo deja vacío: Almacén" />
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">Guía que se pide al almacén</Label>
