@@ -71,6 +71,7 @@ export default async function CorregirCotizacionPage({
       oportunidadId={contexto.oportunidadId}
       cuenta={contexto.cuenta}
       contacto={contexto.contacto}
+      contactos={contexto.contactos}
       solicitud={contexto.solicitud}
       productos={contexto.productos}
       historialPrecios={contexto.historialPrecios}

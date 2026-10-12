@@ -152,6 +152,7 @@ export function CotizacionPostventaPdf({
   reemplazada = false,
   sinMontos = false,
   notasPdf = null,
+  tiempoEjecucion = null,
 }: CotizacionPdfProps & { variante: VariantePostventa }) {
   const identidad = IDENTIDAD_SERIE[serie];
   const estilos = crearEstilos(identidad.acento);
@@ -201,8 +202,12 @@ export function CotizacionPostventaPdf({
   const ejecucion = (
     [
       ["Lugar de ejecución", lugarDeEjecucion(entregaLugar)],
-      ["Tiempo de ejecución", tiempoEntrega?.trim() || null],
+      // Gabriela, 12-10 (0442): «Tiempo de entrega» es cuándo se atiende
+      // («Inmediata») y salía rotulado «Tiempo de ejecución»; lo que dura el
+      // trabajo («1 día») tiene su propio renglón, después de la forma de pago.
+      ["Tiempo de entrega", tiempoEntrega?.trim() || null],
       ["Forma de pago", pago || null],
+      ["Tiempo de ejecución", tiempoEjecucion?.trim() || null],
       // LA GARANTÍA QUE SE MARCÓ (Gabriela, 29-09: «en el borrador sigue
       // saliendo en condiciones comerciales diferente a lo que se marca»).
       // El formato de postventa no la imprimía y la nota de garantía salía

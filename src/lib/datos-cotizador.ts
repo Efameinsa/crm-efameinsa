@@ -42,7 +42,9 @@ export interface ContextoCotizador {
     grupo: EmpresaDelGrupo[];
   } | null;
   /** El contacto principal, para tenerlo a mano mientras se cotiza. */
-  contacto: { nombre: string; cargo: string | null; telefono: string | null } | null;
+  contacto: { nombre: string; cargo: string | null; telefono: string | null; email: string | null } | null;
+  /** Todos los contactos de la ficha: de ahí se elige a quién va dirigida (0443, Gabriela 12-10). */
+  contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null }[];
   /** Lo que pidió el prospecto: se cotiza contra esto, conviene releerlo. */
   solicitud: string | null;
   productos: ProductoCotizable[];
@@ -288,7 +290,7 @@ export async function cargarContextoCotizador(
       .from("oportunidades")
       .select(
         // leads! desambiguado: desde la 0141 hay dos FK entre estas tablas.
-        "id, tipo_postventa, leads!oportunidades_lead_id_fkey(mensaje), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, es_principal))",
+        "id, tipo_postventa, leads!oportunidades_lead_id_fkey(mensaje), cuentas(id, razon_social, tipo_doc, num_doc, direccion, contactos(nombre, cargo, telefono, email, es_principal))",
       )
       .eq("id", oportunidadId)
       .maybeSingle(),
@@ -316,7 +318,7 @@ export async function cargarContextoCotizador(
     tipo_doc: TipoDocumento;
     num_doc: string | null;
     direccion: string | null;
-    contactos: { nombre: string; cargo: string | null; telefono: string | null; es_principal: boolean }[];
+    contactos: { nombre: string; cargo: string | null; telefono: string | null; email: string | null; es_principal: boolean }[];
   } | null;
   const lead = oportunidad.leads as unknown as { mensaje: string | null } | null;
 
@@ -336,7 +338,7 @@ export async function cargarContextoCotizador(
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, observacion_estado, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, precio_lista, color, nombre_impreso, detalle_kit, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, observacion_estado, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, atencion_pdf, tiempo_ejecucion, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, precio_lista, color, nombre_impreso, detalle_kit, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
@@ -404,6 +406,8 @@ export async function cargarContextoCotizador(
       formaPago: cot.forma_pago,
       saldo: cot.saldo,
       notasPdf: (cot.notas_pdf as string[] | null) ?? null,
+      tiempoEjecucion: cot.tiempo_ejecucion ?? null,
+      atencionPdf: (cot.atencion_pdf as { nombre: string | null; telefono: string | null; email: string | null } | null) ?? null,
       estadoAprobacion: cot.estado_aprobacion,
       notaGerencia: cot.nota_gerencia,
       // La conversación con gerencia sobre ESTA cotización (0415): lo que
@@ -460,7 +464,10 @@ export async function cargarContextoCotizador(
             direccion: cuenta.direccion,
           }
         : null,
-      contacto: contacto ? { nombre: contacto.nombre, cargo: contacto.cargo, telefono: contacto.telefono } : null,
+      contacto: contacto ? { nombre: contacto.nombre, cargo: contacto.cargo, telefono: contacto.telefono, email: contacto.email } : null,
+      contactos: [contacto, ...contactos.filter((c) => c !== contacto)]
+        .filter((c): c is NonNullable<typeof c> => Boolean(c))
+        .map((c) => ({ nombre: c.nombre, cargo: c.cargo, telefono: c.telefono, email: c.email })),
       solicitud: lead?.mensaje ?? null,
       productos: (productos ?? []).map((pr) => {
         const base = mapearProducto(pr as unknown as Parameters<typeof mapearProducto>[0]);

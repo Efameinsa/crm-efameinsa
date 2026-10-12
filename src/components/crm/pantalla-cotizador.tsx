@@ -205,6 +205,7 @@ export function PantallaCotizador({
   oportunidadId,
   cuenta,
   contacto,
+  contactos = [],
   solicitud,
   desdeCaso = null,
   skuInicial = null,
@@ -222,6 +223,8 @@ export function PantallaCotizador({
   oportunidadId: string;
   cuenta: ContextoCotizador["cuenta"];
   contacto: ContextoCotizador["contacto"];
+  /** Los contactos de la ficha, para elegir a quién va dirigida (0443). */
+  contactos?: ContextoCotizador["contactos"];
   solicitud: string | null;
   /**
    * De qué caso de postventa viene esta cotización, si viene de uno.
@@ -380,6 +383,9 @@ export function PantallaCotizador({
   const [tiempoEntrega, setTiempoEntrega] = useState(edicion ? (edicion.tiempoEntrega ?? "") : (previas?.tiempoEntrega ?? TIEMPO_ENTREGA_POR_DEFECTO));
   const [garantia, setGarantia] = useState(edicion ? (edicion.garantia ?? "") : (previas?.garantia ?? GARANTIA_POR_DEFECTO));
   const [formaPago, setFormaPago] = useState(edicion ? (edicion.formaPago ?? "") : (previas?.formaPago ?? FORMA_PAGO_POR_DEFECTO));
+  // Cuánto dura el trabajo («1 día»), aparte de cuándo se atiende (Gabriela,
+  // 12-10; 0442). Solo postventa lo escribe.
+  const [tiempoEjecucion, setTiempoEjecucion] = useState(edicion?.tiempoEjecucion ?? "");
   // Una cotización nueva copia las condiciones de la anterior; si aquella iba
   // al contado (saldo vacío), el vacío caía en el 70 % por defecto y salía
   // «Contado» con «70 % antes del despacho» (Gabriela, 05-10). El saldo sale
@@ -399,6 +405,19 @@ export function PantallaCotizador({
   // El autoguardado ya existía, pero su sello está arriba, lejos del campo.
   const [precioTocado, setPrecioTocado] = useState<number | null>(null);
   const [notasTexto, setNotasTexto] = useState<string | null>(edicion?.notasPdf ? edicion.notasPdf.join("\n") : null);
+  // A QUIÉN VA DIRIGIDA (Gabriela, 12-10: «los que aparecen por defecto no
+  // son las personas con las cuales se realiza la cotización»). null = el
+  // contacto principal de la ficha, como siempre; si se toca, sale lo escrito
+  // solo en esta cotización (0443). La ficha del cliente no cambia.
+  const [atencion, setAtencion] = useState<{ nombre: string; telefono: string; email: string } | null>(
+    edicion?.atencionPdf
+      ? {
+          nombre: edicion.atencionPdf.nombre ?? "",
+          telefono: edicion.atencionPdf.telefono ?? "",
+          email: edicion.atencionPdf.email ?? "",
+        }
+      : null,
+  );
   const avisoPago = avisoCondicionPago(formaPago, saldo);
 
   const [cotizacionId, setCotizacionId] = useState<string | null>(edicion?.cotizacionId ?? null);
@@ -506,6 +525,8 @@ export function PantallaCotizador({
         saldo,
         // Solo postventa la escribe; undefined = no se toca (0391).
         notasPdf: esPostventa ? (notasTexto === null ? null : notasTexto.split("\n")) : undefined,
+        tiempoEjecucion: esPostventa ? tiempoEjecucion : undefined,
+        atencionPdf: atencion,
         // Sin esto, elegir soles no ensuciaba el borrador: no se guardaba y el
         // PDF seguía saliendo en dólares (reportado el 04-09, mismo día).
         monedaImpresa,
@@ -513,7 +534,7 @@ export function PantallaCotizador({
         // El motivo de ir con Efameinsa (0275) se autoguarda como el resto.
         motivoSerie,
       }),
-    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, notasTexto, esPostventa, monedaImpresa, enSoles, tcDelDocumento, motivoSerie],
+    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, notasTexto, atencion, tiempoEjecucion, esPostventa, monedaImpresa, enSoles, tcDelDocumento, motivoSerie],
   );
 
   const payloadRef = useRef(payload);
@@ -540,6 +561,8 @@ export function PantallaCotizador({
       formaPago: string;
       saldo: string;
       notasPdf?: string[] | null;
+      tiempoEjecucion?: string;
+      atencionPdf: { nombre: string; telefono: string; email: string } | null;
       motivoSerie: string;
     };
     // Una línea a mano sin concepto todavía (el botón «+ Agregar una línea»
@@ -564,6 +587,8 @@ export function PantallaCotizador({
         formaPago: datos.formaPago,
         saldo: datos.saldo,
         notasPdf: datos.notasPdf,
+        tiempoEjecucion: datos.tiempoEjecucion,
+        atencionPdf: datos.atencionPdf,
       },
       monedaImpresa,
       tipoCambio: tcDelDocumento,
@@ -1830,6 +1855,83 @@ export function PantallaCotizador({
         {/* ── Resumen: lo que va impreso y el botón que cierra ───────────── */}
         <aside className="space-y-3 lg:sticky lg:top-20 lg:self-start">
           <div className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+            {/* El «Atención:», el teléfono y el correo del PDF. Salían siempre
+                del contacto principal de la ficha (Gabriela, 12-10). */}
+            <div className="space-y-1.5">
+              <Label htmlFor="atencion-nombre">A quién va dirigida</Label>
+              {contactos.length > 1 && (
+                <select
+                  aria-label="Elegir un contacto del cliente"
+                  value=""
+                  onChange={(e) => {
+                    const c = contactos[Number(e.target.value)];
+                    if (c) setAtencion({ nombre: c.nombre, telefono: c.telefono ?? "", email: c.email ?? "" });
+                  }}
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                >
+                  <option value="">Elegir otro contacto del cliente…</option>
+                  {contactos.map((c, i) => (
+                    <option key={i} value={i}>
+                      {c.nombre}
+                      {c.cargo ? ` (${c.cargo})` : ""}
+                      {c.email ? ` · ${c.email}` : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Input
+                id="atencion-nombre"
+                placeholder="Nombre de la persona"
+                value={atencion?.nombre ?? contacto?.nombre ?? ""}
+                onChange={(e) =>
+                  setAtencion((a) => ({
+                    nombre: e.target.value,
+                    telefono: a?.telefono ?? contacto?.telefono ?? "",
+                    email: a?.email ?? contacto?.email ?? "",
+                  }))
+                }
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  aria-label="Correo"
+                  type="email"
+                  placeholder="Correo"
+                  value={atencion?.email ?? contacto?.email ?? ""}
+                  onChange={(e) =>
+                    setAtencion((a) => ({
+                      nombre: a?.nombre ?? contacto?.nombre ?? "",
+                      telefono: a?.telefono ?? contacto?.telefono ?? "",
+                      email: e.target.value,
+                    }))
+                  }
+                />
+                <Input
+                  aria-label="Teléfono"
+                  placeholder="Teléfono"
+                  value={atencion?.telefono ?? contacto?.telefono ?? ""}
+                  onChange={(e) =>
+                    setAtencion((a) => ({
+                      nombre: a?.nombre ?? contacto?.nombre ?? "",
+                      telefono: e.target.value,
+                      email: a?.email ?? contacto?.email ?? "",
+                    }))
+                  }
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {atencion === null ? (
+                  <>Es el contacto principal de la ficha. Cámbielo si la cotización va a otra persona: solo cambia en esta cotización.</>
+                ) : (
+                  <>
+                    Sale así en esta cotización (la ficha del cliente no cambia).{" "}
+                    <button type="button" onClick={() => setAtencion(null)} className="font-medium text-primary underline-offset-2 hover:underline">
+                      Volver al contacto principal
+                    </button>
+                  </>
+                )}
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="serie">Serie</Label>
               <Select value={serie} onValueChange={(v) => alCambiarSerie((v as typeof serie) ?? SERIE_POR_DEFECTO)} disabled={ocupado}>
@@ -2033,6 +2135,19 @@ export function PantallaCotizador({
                     <Input id="saldo" value={saldo} onChange={(e) => setSaldo(e.target.value)} />
                   </div>
                 </div>
+                {esPostventa && (
+                  <div className="space-y-1">
+                    <Label htmlFor="tiempo-ejecucion" className="text-xs font-normal text-muted-foreground">
+                      Tiempo de ejecución
+                    </Label>
+                    <Input
+                      id="tiempo-ejecucion"
+                      placeholder="Cuánto dura el trabajo, p. ej. 1 día"
+                      value={tiempoEjecucion}
+                      onChange={(e) => setTiempoEjecucion(e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
               {/* Se muestra tal cual va a salir impreso. Es la única forma de
                   que se note lo que falta: un renglón vacío no se imprime y,
@@ -2051,6 +2166,7 @@ export function PantallaCotizador({
                     ["Garantía", sinGarantia ? "" : garantia],
                     ["Forma de pago", formaPago],
                     ["Saldo", saldo],
+                    ["Tiempo de ejecución", esPostventa ? tiempoEjecucion : ""],
                   ].filter(([, v]) => v.trim());
                   return (
                     <>
