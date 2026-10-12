@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "@/components/enlace";
 import { toast } from "sonner";
-import { Check, ChevronDown, CircleDashed, OctagonAlert } from "lucide-react";
+import { Check, ChevronDown, CircleDashed, OctagonAlert, Search, X } from "lucide-react";
 import { AprobarPedidoBoton } from "@/components/crm/aprobar-pedido-boton";
 import { cn } from "@/lib/utils";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
@@ -69,9 +69,27 @@ const FASES = [
   { numero: 3 as const, titulo: "③ Puesta en marcha y cierre", corto: "Puesta en marcha y cierre" },
 ];
 
-export function TableroControl({ pedidos }: { pedidos: TarjetaControl[] }) {
+/** Sin tildes ni mayúsculas: «ingenieria» encuentra «INGENIERÍA». */
+function normalizar(t: string) {
+  return t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
+export function TableroControl({ pedidos: todos }: { pedidos: TarjetaControl[] }) {
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const [columnaActiva, setColumnaActiva] = useState<number | null>(null);
+  // EL BUSCADOR DEL TABLERO (Gabriela/PV2, 12-10): con 138 pedidos en las tres
+  // fases, encontrar una empresa era bajar a puro scroll, y el buscador de
+  // arriba busca en toda la cuenta. Este solo mira las tarjetas de este
+  // tablero y filtra al escribir, sin recargar.
+  const [busqueda, setBusqueda] = useState("");
+  const palabras = normalizar(busqueda).split(/\s+/).filter(Boolean);
+  const pedidos =
+    palabras.length === 0
+      ? todos
+      : todos.filter((p) => {
+          const texto = normalizar(`${p.cliente} ${p.equipo}`);
+          return palabras.every((w) => texto.includes(w));
+        });
 
   function soltar(faseDestino: 1 | 2 | 3) {
     setColumnaActiva(null);
@@ -100,6 +118,40 @@ export function TableroControl({ pedidos }: { pedidos: TarjetaControl[] }) {
   }
 
   return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="relative w-full max-w-md">
+          <span className="sr-only">Buscar en el control de pedidos</span>
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setBusqueda("");
+            }}
+            placeholder="Buscar empresa o equipo en estos pedidos…"
+            className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-8 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/60 [&::-webkit-search-cancel-button]:hidden"
+          />
+          {busqueda && (
+            <button
+              type="button"
+              onClick={() => setBusqueda("")}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label="Limpiar la búsqueda"
+            >
+              <X className="size-3.5" aria-hidden />
+            </button>
+          )}
+        </label>
+        {palabras.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {pedidos.length === 0
+              ? `Ningún pedido en curso coincide con «${busqueda.trim()}». Si ya se cerró, búsquelo en «Cerrados».`
+              : `${pedidos.length} de ${todos.length} pedidos`}
+          </span>
+        )}
+      </div>
     <div className="grid gap-4 lg:grid-cols-3">
       {FASES.map((fase) => {
         const lista = pedidos.filter((p) => p.fase === fase.numero);
@@ -131,7 +183,7 @@ export function TableroControl({ pedidos }: { pedidos: TarjetaControl[] }) {
             </div>
 
             {lista.length === 0 ? (
-              <p className="px-1 py-4 text-center text-xs text-muted-foreground/70">Nada en esta fase</p>
+              <p className="px-1 py-4 text-center text-xs text-muted-foreground/70">{palabras.length > 0 ? "Nada que coincida en esta fase" : "Nada en esta fase"}</p>
             ) : (
               <div className="space-y-2">
                 {lista.map((p) => (
@@ -151,6 +203,7 @@ export function TableroControl({ pedidos }: { pedidos: TarjetaControl[] }) {
           </div>
         );
       })}
+    </div>
     </div>
   );
 }
