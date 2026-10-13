@@ -87,7 +87,8 @@ export async function ElDiaDelArea() {
   const abiertos = vivos.filter((s) => !motivoHistoria(s, ahora));
   const delExcel = vivos.length - abiertos.length;
   const cuenta = contarElDia(abiertos, hoy);
-  const total = cuenta.reduce((t, x) => t + x.cuantos, 0);
+  // Todos los abiertos, no la suma de los casilleros: un pedido puede no caer en ninguno (el de «Pedidos» dice lo mismo).
+  const total = abiertos.length;
 
   return (
     <div className="space-y-3">
