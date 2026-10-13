@@ -49,6 +49,17 @@ export async function GET(request: NextRequest) {
   for (const f of filas) porComercial.set(f.asignado_a, [...(porComercial.get(f.asignado_a) ?? []), f]);
   if (soloContar) return NextResponse.json({ chats: filas.length, comerciales: Object.fromEntries([...porComercial].map(([k, v]) => [k, v.length])) });
 
+  // El aviso es un resumen de AHORA, no una pila (Ariana/C9 13-10: 23 avisos
+  // de «Santiago» seguían sin leer en la campana tres días después de la
+  // última alerta, como si siguiera sonando). Si ya nadie le espera, sus
+  // avisos sin leer se dan por vistos; si sí, el nuevo reemplaza a los viejos.
+  const sinChats = admin
+    .from("notificaciones")
+    .update({ leida_at: ahora.toISOString() })
+    .eq("tipo", "whatsapp_sin_respuesta")
+    .is("leida_at", null);
+  await (porComercial.size ? sinChats.not("user_id", "in", `(${[...porComercial.keys()].join(",")})`) : sinChats);
+
   const desde = new Date(ahora.getTime() - CADA_MINUTOS * 60_000).toISOString();
   const avisados: { comercial: string; chats: number }[] = [];
   for (const [comercial, chats] of porComercial) {
@@ -61,6 +72,12 @@ export async function GET(request: NextRequest) {
     if ((count ?? 0) > 0) continue;
     // Los que más esperan, primero (la función ya los trae así).
     const primeros = chats.slice(0, 3).map((c) => `${c.cliente} (hace ${hace(c.esperando_desde, ahora.getTime())})`);
+    await admin
+      .from("notificaciones")
+      .update({ leida_at: ahora.toISOString() })
+      .eq("user_id", comercial)
+      .eq("tipo", "whatsapp_sin_respuesta")
+      .is("leida_at", null);
     await notificar({
       userId: comercial,
       tipo: "whatsapp_sin_respuesta",
