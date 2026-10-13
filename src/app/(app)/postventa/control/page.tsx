@@ -3,7 +3,8 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import Link from "@/components/enlace";
 import { TableroControl, type TarjetaControl } from "@/components/crm/tablero-control";
-import { TablaPorPaso, type FilaTabla } from "@/components/crm/tabla-por-paso";
+import { TablaPorPaso } from "@/components/crm/tabla-por-paso";
+import { complementarFilas, filaDe, type FilaTabla } from "@/lib/pedidos-por-paso";
 import { cn } from "@/lib/utils";
 import { FileText } from "lucide-react";
 import { fechaLima } from "@/lib/fechas";
@@ -11,9 +12,7 @@ import { ColaDespachos } from "@/components/crm/cola-despachos";
 import {
   avancePedido,
   bloquesPedido,
-  estadoPago,
   etiquetaResponsable,
-  pedidoSinCobro,
   puedeVerPrecios,
   queLoFrena,
   sinPrecios,
@@ -48,7 +47,7 @@ function faseActual(bloques: ReturnType<typeof bloquesPedido>): 1 | 2 | 3 {
 export default async function ControlPedidosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vista?: string; falta?: string; q?: string; estado?: string }>;
+  searchParams: Promise<{ vista?: string; falta?: string; q?: string; estado?: string; ver?: string }>;
 }) {
   // Dos vistas del mismo control (Carlos, 02-09): el tablero de fases —lo que
   // diseñó Santos— y la tabla POR PASO, para «¿a quiénes no les he enviado el
@@ -113,7 +112,7 @@ export default async function ControlPedidosPage({
         })
       : [];
 
-  const pedidos: (TarjetaControl & { pasosTabla: FilaTabla["pasos"]; pagoParcial: boolean })[] = ((data ?? []) as unknown as ServicioPostventa[]).map((crudo) => {
+  const pedidos: TarjetaControl[] = ((data ?? []) as unknown as ServicioPostventa[]).map((crudo) => {
     const s = verPrecios ? crudo : sinPrecios(crudo);
     const bloques = bloquesPedido(s);
     const fase = faseActual(bloques);
@@ -154,64 +153,17 @@ export default async function ControlPedidosPage({
         })),
       })),
       faltantesHasta,
-      // Buzón, Ariana 13-10: el filtro «Pago parcial» de la tabla por paso.
-      pagoParcial: estadoPago(s) === "parcial" && !pedidoSinCobro(s),
-      pasosTabla: bloques.flatMap((b) =>
-        b.pasos.map((p) => ({
-          clave: p.clave,
-          etiqueta: p.etiqueta,
-          hecho: p.hecho,
-          cuando: p.cuando,
-          trabado: p.trabado ?? null,
-          dueno: etiquetaResponsable(p.responsable),
-        })),
-      ),
     };
   });
 
   // La tabla por paso trabaja sobre los mismos pedidos: todos los pasos de
-  // las tres fases, en orden, con su fecha y su responsable.
-  // Sin stock y por qué (0378): las máquinas sin serie de cada pedido. En
-  // tandas de 100: un .in() con 250 ids revienta la URL (502 del nginx).
-  const sinStockPor = new Map<string, (string | null)[]>();
-  // El informe técnico enviado al cliente (reunión 02-10): de las llamadas
-  // derivadas del pedido. Solo aparece en los pedidos que tienen alguna.
-  const informePor = new Map<string, { enviada: string | null; conConstancia: boolean; listas: number }>();
-  if (vista === "paso") {
-    const ids = pedidos.map((t) => t.id);
-    for (let i = 0; i < ids.length; i += 100) {
-      const { data: ap } = await supabase
-        .from("aperturas_llamada")
-        .select("servicio_id, informe_at, enviada_cliente_at, constancia_envio_path")
-        .in("servicio_id", ids.slice(i, i + 100))
-        .is("anulada_at", null);
-      for (const x of (ap ?? []) as { servicio_id: string; informe_at: string | null; enviada_cliente_at: string | null; constancia_envio_path: string | null }[]) {
-        const v = informePor.get(x.servicio_id) ?? { enviada: null, conConstancia: false, listas: 0 };
-        if (x.informe_at) v.listas++;
-        if (x.enviada_cliente_at && (!v.enviada || x.enviada_cliente_at > v.enviada)) v.enviada = x.enviada_cliente_at;
-        if (x.constancia_envio_path) v.conConstancia = true;
-        informePor.set(x.servicio_id, v);
-      }
-      const { data: eq } = await supabase
-        .from("pedido_equipos")
-        .select("servicio_id, sin_stock_motivo")
-        .in("servicio_id", ids.slice(i, i + 100))
-        .is("serie", null)
-        .is("parte_de", null);
-      for (const x of (eq ?? []) as { servicio_id: string; sin_stock_motivo: string | null }[]) {
-        sinStockPor.set(x.servicio_id, [...(sinStockPor.get(x.servicio_id) ?? []), x.sin_stock_motivo]);
-      }
-    }
-  }
-  const filas: FilaTabla[] = pedidos.map((t) => ({
-    id: t.id,
-    cliente: t.cliente,
-    cuentaId: t.cuentaId,
-    equipo: t.equipo,
-    pasos: conInforme(t.pasosTabla, informePor.get(t.id)),
-    sinStock: sinStockPor.get(t.id),
-    pagoParcial: t.pagoParcial,
-  }));
+  // las tres fases, en orden, con su fecha y su responsable, más las máquinas
+  // sin stock y el informe enviado (lib/pedidos-por-paso, igual que la agenda).
+  const hoy = new Date();
+  const filas: FilaTabla[] =
+    vista === "paso" ? await complementarFilas(supabase, ((data ?? []) as unknown as ServicioPostventa[]).map((s) => filaDe(s, verPrecios, hoy))) : [];
+  // Reunión 13-10: «Abiertos» (lo que está en curso) por defecto; «Todos» suma la historia del Excel.
+  const ver = sp.ver === "todos" ? "todos" : "abiertos";
 
   return (
     <SeccionPanel
@@ -334,7 +286,7 @@ export default async function ControlPedidosPage({
       ) : pedidos.length === 0 ? (
         <p className="text-sm text-muted-foreground">No hay pedidos del flujo en curso ahora mismo.</p>
       ) : vista === "paso" ? (
-        <TablaPorPaso filas={filas} falta={falta} base="/postventa/control" q={(sp.q ?? "").trim()} />
+        <TablaPorPaso filas={filas} falta={falta} base="/postventa/control" q={(sp.q ?? "").trim()} ver={ver} />
       ) : (
         <TableroControl pedidos={pedidos} />
       )}
@@ -344,23 +296,4 @@ export default async function ControlPedidosPage({
       </p>
     </SeccionPanel>
   );
-}
-
-/** Mete el paso «Informe enviado» antes del cierre del pedido (reunión 02-10). */
-function conInforme(pasos: FilaTabla["pasos"], inf: { enviada: string | null; conConstancia: boolean; listas: number } | undefined): FilaTabla["pasos"] {
-  if (!inf) return pasos;
-  const paso = {
-    clave: "informe",
-    etiqueta: inf.enviada
-      ? `Informe técnico enviado al cliente${inf.conConstancia ? " (con constancia)" : " (sin constancia, marcado antes del 02-10)"}`
-      : inf.listas > 0
-        ? "Informe técnico del almacén listo: falta enviarlo al cliente"
-        : "Informe técnico: el almacén todavía no lo sube",
-    hecho: Boolean(inf.enviada),
-    cuando: inf.enviada,
-    trabado: null,
-    dueno: inf.listas > 0 ? "Postventa" : "Almacén",
-  };
-  const i = pasos.findIndex((p) => p.clave === "cerrado");
-  return i < 0 ? [...pasos, paso] : [...pasos.slice(0, i), paso, ...pasos.slice(i)];
 }

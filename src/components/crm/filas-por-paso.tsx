@@ -69,10 +69,12 @@ export function FilasPorPaso({
           <Fragment key={g.cliente}>
             <tr className={cn("cursor-pointer border-b border-border hover:bg-accent/40", abierto && "bg-secondary/30")} onClick={() => alternar(g.cliente)}>
               <td className="sticky left-0 bg-card px-2 py-1.5">
-                <span className="flex min-w-44 max-w-64 items-start gap-1.5">
+                {/* Reunión 13-10: el nombre de la empresa no se cortaba en una línea de 16 rem
+                    («Corporación Ingeniería…»). Columna más ancha y hasta dos líneas. */}
+                <span className="flex min-w-56 max-w-80 items-start gap-1.5">
                   {abierto ? <ChevronDown className="mt-0.5 size-4 shrink-0 text-primary" /> : <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />}
                   <span className="min-w-0">
-                    <span className="line-clamp-1 break-words font-semibold text-foreground" title={g.cliente}>
+                    <span className="line-clamp-2 break-words font-semibold leading-snug text-foreground" title={g.cliente}>
                       <NombreAFicha cuentaId={g.pedidos[0].cuentaId}>{g.cliente}</NombreAFicha>
                     </span>
                     <span className="text-[11px] text-muted-foreground">
@@ -101,7 +103,7 @@ export function FilasPorPaso({
                   {g.pedidos.length > 1 && (
                     <tr className="border-b border-border/60 bg-secondary/20">
                       <td className="sticky left-0 bg-secondary/20 py-1.5 pl-8 pr-2">
-                        <Link href={`/postventa/pedidos/${f.id}`} className="block min-w-44 max-w-64 text-[11px] font-medium text-foreground hover:underline" onClick={(e) => e.stopPropagation()}>
+                        <Link href={`/postventa/pedidos/${f.id}`} className="block min-w-56 max-w-80 text-[11px] font-medium text-foreground hover:underline" onClick={(e) => e.stopPropagation()}>
                           <span className="line-clamp-1">{f.equipo.split("\n")[0]}</span>
                         </Link>
                       </td>
@@ -115,6 +117,7 @@ export function FilasPorPaso({
                     <td colSpan={columnas.length + 1} className="py-2 pl-8 pr-3">
                       <div className="sticky left-8 max-w-3xl space-y-1.5">
                         <p className="whitespace-pre-line text-[11px] leading-relaxed text-foreground">{f.equipo}</p>
+                        {f.historia && <p className="text-[11px] font-medium text-muted-foreground">{f.historia} · no suma en «Abiertos».</p>}
                         <p className="text-[11px] text-muted-foreground">
                           <b className="font-semibold text-foreground">Falta:</b> {f.pasos.filter((p) => !p.hecho).map((p) => p.etiqueta).join(" · ") || "nada"}
                         </p>
