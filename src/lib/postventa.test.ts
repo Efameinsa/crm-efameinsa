@@ -498,7 +498,7 @@ describe("sin cobro: garantía desde un caso (Rubí, 12-10)", () => {
 });
 
 describe("orden a Finanzas para facturar (0460, reunión 13-10)", () => {
-  const base = { cerrado_at: null, completado: false, origen: null, pago_confirmado_at: null } as unknown as Parameters<typeof llevaOrdenFacturar>[0];
+  const base = { cerrado_at: null, completado: false, origen: null, pago_confirmado_at: null, pago_estado: "parcial" } as unknown as Parameters<typeof llevaOrdenFacturar>[0];
   it("aparece a crédito o con saldo después del despacho", () => {
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 0 })).toBe(true);
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 50 })).toBe(true);
@@ -507,6 +507,9 @@ describe("orden a Finanzas para facturar (0460, reunión 13-10)", () => {
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 100 })).toBe(false);
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: null })).toBe(false);
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 0, cerrado_at: "2026-10-01T00:00:00Z" })).toBe(false);
+  });
+  it("no aparece si ya está pagado completo", () => {
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 0, pago_estado: "completo" })).toBe(false);
   });
   it("una vez dada, se queda a la vista", () => {
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 100, orden_facturar_at: "2026-10-13T20:00:00Z" })).toBe(true);
