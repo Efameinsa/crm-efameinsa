@@ -16,6 +16,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
+import { LoQueFaltaPorPaso } from "@/components/crm/lo-que-falta-por-paso";
 
 export const dynamic = "force-dynamic";
 
@@ -152,6 +153,10 @@ export default async function AgendaPostventaPage({
           despachos programados, despachos pendientes, puesta en marcha
           pendiente, entregas pendientes». Y el porqué: «siguen trabajando en el
           board… llenando información repetida que ya está acá». */}
+      {/* LOS PEDIDOS ABIERTOS, PRIMERO (Santos, 13-10: «dice 81 abiertos… eso debe aparecer
+          en su agenda»). La lista «Lo que falta» vivía solo en el menú de la propuesta. */}
+      <LoQueFaltaPorPaso />
+
       <SeccionPanel titulo="El día del área">
         <ElDiaDelArea />
       </SeccionPanel>

@@ -6,6 +6,8 @@ import { BloqueIndicadoresPdf } from "@/lib/pdf/indicadores-pdf";
 import { PanelPostventaPdf, COLOR_LINEA } from "@/lib/pdf/panel-postventa-pdf";
 import { LINEAS, type Linea, type PanelPostventa } from "@/lib/panel-postventa";
 import { PanoramaPendientesPdf } from "@/lib/pdf/panorama-pendientes-pdf";
+import { LoQueFaltaPdf } from "@/lib/pdf/lo-que-falta-pdf";
+import type { SeccionQueFalta } from "@/lib/lo-que-falta-por-paso";
 import type { PanoramaPendientes } from "@/lib/panorama-pendientes";
 
 // Reporte diario de gestión del comercial. Reemplaza la agenda que hoy se
@@ -119,6 +121,8 @@ export interface ReporteDiarioProps {
   panelPostventa?: PanelPostventa;
   /** «Lo que falta gestionar» (Santos, 13-10): su hoja, después del panel. */
   panorama?: PanoramaPendientes;
+  /** Los pedidos abiertos del área por paso, con detalle (Santos, 13-10): su hoja, después de «Lo que falta gestionar». */
+  loQueFalta?: { abiertos: number; historia: number; secciones: SeccionQueFalta[] };
   indicadores?: IndicadoresDocumento & {
     /** Las marcas de un botón en los chats: salen de la lista de seguimientos y van aparte. */
     marcas: { hora: string | null; cliente: string; nota: string | null }[];
@@ -280,7 +284,7 @@ export function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: str
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, fechaCorta, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
-  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa, panorama,
+  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa, panorama, loQueFalta,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -344,6 +348,13 @@ export function ReporteDiarioPdf({
         <Page size="A4" style={e.pagina}>
           {cabecera(fechaCorta && fechaCorta < hoyIso() ? "LO QUE FALTABA GESTIONAR AL CIERRE" : "LO QUE FALTA GESTIONAR")}
           <PanoramaPendientesPdf p={panorama} esHoy={!fechaCorta || fechaCorta >= hoyIso()} />
+          {pie}
+        </Page>
+      )}
+      {loQueFalta && (
+        <Page size="A4" style={e.pagina}>
+          {cabecera("PEDIDOS ABIERTOS · LO QUE FALTA, PASO POR PASO")}
+          <LoQueFaltaPdf abiertos={loQueFalta.abiertos} historia={loQueFalta.historia} secciones={loQueFalta.secciones} />
           {pie}
         </Page>
       )}

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { type ServicioPostventa } from "@/lib/postventa";
 import { hoyLima } from "@/lib/periodo";
 import { fechaLima } from "@/lib/fechas";
+import { motivoHistoria } from "@/lib/pedidos-por-paso";
 import {
   contarElDia,
   ETIQUETA_CASILLERO,
@@ -54,7 +55,7 @@ export async function ElDiaDelArea() {
   // al lado daba otro.
   const q = supabase
     .from("servicios_postventa")
-    .select("id, cliente_texto, completado, cerrado_at, despachado_at, puesta_en_marcha, apertura_despacho_at, fecha_despacho")
+    .select("*")
     .eq("completado", false)
     .is("cerrado_at", null)
     .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
@@ -79,7 +80,13 @@ export async function ElDiaDelArea() {
       .is("tomada_at", null),
   ]);
 
-  const cuenta = contarElDia((pedidos ?? []) as unknown as ServicioPostventa[], hoy);
+  // Sin la historia del Excel (reunión 13-10, Carlos: «solamente que sume lo que está abierto»):
+  // los «56 despachos programados, 55 con la fecha ya pasada» eran casi todos de ahí.
+  const ahora = new Date();
+  const vivos = (pedidos ?? []) as unknown as ServicioPostventa[];
+  const abiertos = vivos.filter((s) => !motivoHistoria(s, ahora));
+  const delExcel = vivos.length - abiertos.length;
+  const cuenta = contarElDia(abiertos, hoy);
   const total = cuenta.reduce((t, x) => t + x.cuantos, 0);
 
   return (
@@ -124,7 +131,15 @@ export async function ElDiaDelArea() {
           {sinTomar ?? 0} {sinTomar === 1 ? "caso sin tomar" : "casos sin tomar"} en la bandeja
         </Link>
         <span className="text-muted-foreground">
-          {total} {total === 1 ? "pedido vivo" : "pedidos vivos"} en total
+          {total} {total === 1 ? "pedido abierto" : "pedidos abiertos"} en total
+          {delExcel > 0 && (
+            <>
+              {" "}· no suman{" "}
+              <Link href="/postventa/control?vista=paso&ver=todos&falta=historia" className="underline">
+                {delExcel} del Excel de antes del CRM
+              </Link>
+            </>
+          )}
         </span>
       </div>
 
