@@ -3,8 +3,8 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import Link from "@/components/enlace";
 import { TableroControl, type TarjetaControl } from "@/components/crm/tablero-control";
-import { TablaPorPaso } from "@/components/crm/tabla-por-paso";
-import { complementarFilas, filaDe, type FilaTabla } from "@/lib/pedidos-por-paso";
+import { FiltroAbiertos, TablaPorPaso } from "@/components/crm/tabla-por-paso";
+import { complementarFilas, filaDe, motivoHistoria, type FilaTabla } from "@/lib/pedidos-por-paso";
 import { cn } from "@/lib/utils";
 import { FileText } from "lucide-react";
 import { fechaLima } from "@/lib/fechas";
@@ -53,8 +53,10 @@ export default async function ControlPedidosPage({
   // diseñó Santos— y la tabla POR PASO, para «¿a quiénes no les he enviado el
   // plano?» cuando hay veinte pedidos. `falta` deja solo los que deben ese paso.
   const sp = await searchParams;
+  // Abre en «Por paso» (Santos, 13-10: «paso a paso con filtro abiertos / todos… no se ve»):
+  // es la vista que pidió la reunión; el tablero queda a un toque.
   const vista =
-    sp.vista === "paso" ? "paso" : sp.vista === "despachos" ? "despachos" : sp.vista === "cerrados" ? "cerrados" : "tablero";
+    sp.vista === "tablero" ? "tablero" : sp.vista === "despachos" ? "despachos" : sp.vista === "cerrados" ? "cerrados" : "paso";
   const falta = /^[a-z_]+$/.test(sp.falta ?? "") ? (sp.falta as string) : null;
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -112,7 +114,15 @@ export default async function ControlPedidosPage({
         })
       : [];
 
-  const pedidos: TarjetaControl[] = ((data ?? []) as unknown as ServicioPostventa[]).map((crudo) => {
+  // Reunión 13-10: «Abiertos» (lo que está en curso) por defecto; «Todos» suma la historia del Excel.
+  // Vale para el contador de arriba y para el tablero, no solo para la tabla.
+  const ver = sp.ver === "todos" ? "todos" : "abiertos";
+  const hoy = new Date();
+  const vivos = (data ?? []) as unknown as ServicioPostventa[];
+  const delExcel = vivos.filter((s) => motivoHistoria(s, hoy)).length;
+  const abiertos = vivos.length - delExcel;
+
+  const pedidos: TarjetaControl[] = vivos.filter((s) => ver === "todos" || !motivoHistoria(s, hoy)).map((crudo) => {
     const s = verPrecios ? crudo : sinPrecios(crudo);
     const bloques = bloquesPedido(s);
     const fase = faseActual(bloques);
@@ -159,11 +169,7 @@ export default async function ControlPedidosPage({
   // La tabla por paso trabaja sobre los mismos pedidos: todos los pasos de
   // las tres fases, en orden, con su fecha y su responsable, más las máquinas
   // sin stock y el informe enviado (lib/pedidos-por-paso, igual que la agenda).
-  const hoy = new Date();
-  const filas: FilaTabla[] =
-    vista === "paso" ? await complementarFilas(supabase, ((data ?? []) as unknown as ServicioPostventa[]).map((s) => filaDe(s, verPrecios, hoy))) : [];
-  // Reunión 13-10: «Abiertos» (lo que está en curso) por defecto; «Todos» suma la historia del Excel.
-  const ver = sp.ver === "todos" ? "todos" : "abiertos";
+  const filas: FilaTabla[] = vista === "paso" ? await complementarFilas(supabase, vivos.map((s) => filaDe(s, verPrecios, hoy))) : [];
 
   return (
     <SeccionPanel
@@ -172,8 +178,11 @@ export default async function ControlPedidosPage({
         // flex-wrap: en el celular (412 px) las pestañas «Tablero · Por paso · Cola del Excel» se
         // salían por la derecha y quedaban cortadas (hallazgo de la prueba de la app, 01-10-2026).
         <span className="flex flex-wrap items-center justify-end gap-2">
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground">
-            {pedidos.length} en curso
+          <span
+            className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground"
+            title={delExcel > 0 ? `Más ${delExcel} del Excel de antes del CRM, que no suman (se ven en «Todos»).` : undefined}
+          >
+            {abiertos} en curso{ver === "todos" && delExcel > 0 ? ` + ${delExcel} del Excel` : ""}
           </span>
           <a
             href="/postventa/control/reporte"
@@ -187,13 +196,13 @@ export default async function ControlPedidosPage({
           </a>
           <span className="inline-flex overflow-hidden rounded-md border border-border text-xs font-medium">
             <Link
-              href="/postventa/control"
+              href={`/postventa/control?vista=tablero${ver === "todos" ? "&ver=todos" : ""}`}
               className={cn("px-2.5 py-1", vista === "tablero" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}
             >
               Tablero
             </Link>
             <Link
-              href="/postventa/control?vista=paso"
+              href={`/postventa/control?vista=paso${ver === "todos" ? "&ver=todos" : ""}`}
               className={cn("px-2.5 py-1", vista === "paso" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}
             >
               Por paso
@@ -288,7 +297,10 @@ export default async function ControlPedidosPage({
       ) : vista === "paso" ? (
         <TablaPorPaso filas={filas} falta={falta} base="/postventa/control" q={(sp.q ?? "").trim()} ver={ver} />
       ) : (
-        <TableroControl pedidos={pedidos} />
+        <div className="space-y-3">
+          <FiltroAbiertos ver={ver} abiertos={abiertos} delExcel={delExcel} enlace={(v) => `/postventa/control?vista=tablero${v === "todos" ? "&ver=todos" : ""}`} historia="/postventa/control?vista=paso&ver=todos&falta=historia" />
+          <TableroControl pedidos={pedidos} />
+        </div>
       )}
 
       <p className="mt-3 text-[11px] text-muted-foreground">
