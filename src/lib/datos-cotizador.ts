@@ -216,7 +216,8 @@ export interface DecisionGerencia {
   nota: string | null;
   /** Número de la cotización sobre la que se decidió (null si era borrador). */
   codigo: string | null;
-  rechazados: { descripcion: string | null; precio: number | null; lista: number | null }[];
+  /** Con `nota` (0458): renglones que gerencia devolvió para corregir, cada uno con su comentario. */
+  rechazados: { descripcion: string | null; precio: number | null; lista: number | null; nota?: string | null }[];
 }
 
 /**
@@ -237,7 +238,7 @@ export async function decisionesDeGerencia(
   const { data } = await q;
   return ((data ?? []) as unknown as {
     id: string; decidido_at: string; resultado: string; nota: string | null;
-    rechazados: { descripcion: string | null; precio: number | null; lista: number | null }[] | null;
+    rechazados: { descripcion: string | null; precio: number | null; lista: number | null; nota?: string | null }[] | null;
     cotizaciones: { codigo: string | null } | null; perfiles: { nombre: string } | null;
   }[]).map((d) => ({
     id: d.id,

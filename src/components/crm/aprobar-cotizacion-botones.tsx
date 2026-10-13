@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { resolverAprobacionCotizacion } from "@/lib/acciones/cotizaciones";
+import { devolverCotizacionPorItems, resolverAprobacionCotizacion } from "@/lib/acciones/cotizaciones";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,6 +38,8 @@ export interface ItemAprobacion {
   fotoPath?: string | null;
   /** Piezas del kit cuya cantidad se cambió en esta cotización: «DUCTO FLEXIBLE 4": 3 → 10 METROS» (0405). */
   kitCambiado?: string[];
+  /** Gerencia ya lo aprobó en una vuelta anterior y no cambió (0458): sale marcado «Aprobar». */
+  aprobadoAntes?: boolean;
 }
 
 /**
@@ -75,13 +77,23 @@ export function AprobarCotizacionBotones({
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [nota, setNota] = useState("");
-  const [decisiones, setDecisiones] = useState<Record<string, boolean>>({});
+  // true = aprobado, false = a corregir. Lo ya aprobado en una vuelta anterior
+  // (y que no cambió) llega marcado: gerencia solo mira lo corregido (0458).
+  const [decisiones, setDecisiones] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(items.filter((i) => i.requiereAprobacion && i.aprobadoAntes).map((i) => [i.id, true])),
+  );
+  const [notasItem, setNotasItem] = useState<Record<string, string>>({});
+  // Rechazar la cotización ENTERA como histórico (0237, Carlos 15-09) sigue
+  // existiendo, pero ya no es lo que pasa por defecto: se devuelven los
+  // renglones marcados y el borrador queda (reunión de postventa 13-10).
+  const [rechazarToda, setRechazarToda] = useState(false);
   const [enviando, startTransition] = useTransition();
 
   const porDecidir = useMemo(() => items.filter((i) => i.requiereAprobacion), [items]);
   const sinDecidir = porDecidir.filter((i) => !(i.id in decisiones));
   const rechazados = porDecidir.filter((i) => decisiones[i.id] === false);
-  const faltaNota = rechazados.length > 0 && !nota.trim();
+  const sinComentario = rechazarToda ? [] : rechazados.filter((i) => (notasItem[i.id] ?? "").trim().length < 3);
+  const faltaNota = rechazados.length > 0 && (rechazarToda ? !nota.trim() : sinComentario.length > 0);
 
   function decidir(id: string, aprobado: boolean) {
     setDecisiones((d) => ({ ...d, [id]: aprobado }));
@@ -89,24 +101,35 @@ export function AprobarCotizacionBotones({
 
   function guardar() {
     if (sinDecidir.length > 0) {
-      toast.error(`Falta decidir ${sinDecidir.length} equipo(s)`);
+      toast.error(`Falta decidir ${sinDecidir.length} renglón(es)`);
       return;
     }
+    const aprobados = porDecidir.filter((i) => decisiones[i.id]).map((i) => i.id);
+    const devolver = rechazados.length > 0 && !rechazarToda;
     startTransition(async () => {
-      const r = await resolverAprobacionCotizacion({
-        cotizacionId,
-        aprobados: porDecidir.filter((i) => decisiones[i.id]).map((i) => i.id),
-        rechazados: rechazados.map((i) => i.id),
-        nota,
-      });
+      const r = devolver
+        ? await devolverCotizacionPorItems({
+            cotizacionId,
+            aprobados,
+            corregir: rechazados.map((i) => ({ id: i.id, nota: notasItem[i.id] ?? "" })),
+            nota,
+          })
+        : await resolverAprobacionCotizacion({
+            cotizacionId,
+            aprobados,
+            rechazados: rechazados.map((i) => i.id),
+            nota,
+          });
       if (r.error) {
         toast.error(r.error);
         return;
       }
       toast.success(
-        rechazados.length > 0
-          ? `Se rechazaron ${rechazados.length} equipo(s)`
-          : "Precios aprobados — el comercial ya puede enviarla",
+        devolver
+          ? `Devuelta para corregir ${rechazados.length} renglón(es): el borrador se conserva`
+          : rechazados.length > 0
+            ? "Cotización rechazada: queda como histórico"
+            : "Precios aprobados — el comercial ya puede enviarla",
       );
       setAbierto(false);
       router.refresh();
@@ -120,7 +143,7 @@ export function AprobarCotizacionBotones({
       <DialogTrigger render={<Button size="sm">Revisar</Button>} />
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Revisar precios equipo por equipo</DialogTitle>
+          <DialogTitle>Revisar renglón por renglón</DialogTitle>
           <DialogDescription>
             {porCapacitacion ? (
               <>
@@ -131,7 +154,7 @@ export function AprobarCotizacionBotones({
               <>
                 Tiene <b>líneas escritas a mano con precio</b> (servicios u otros conceptos fuera del
                 catálogo): no hay precio de lista contra el que medirlas, así que pasan por gerencia antes de
-                que la comercial la confirme y le ponga número. Apruebe, rechace u observe cada renglón.
+                que la comercial la confirme y le ponga número. Apruebe o mande a corregir cada renglón.
               </>
             ) : (
               <>
@@ -260,13 +283,29 @@ export function AprobarCotizacionBotones({
                       variant={decision === false ? "destructive" : "outline"}
                       onClick={() => decidir(i.id, false)}
                     >
-                      Rechazar
+                      Corregir
                     </Button>
+                    {i.aprobadoAntes && decision === true && (
+                      <span className="text-[11px] text-muted-foreground">ya aprobado en la vuelta anterior</span>
+                    )}
                   </div>
                 ) : (
                   <p className="mt-1.5 text-[11px] text-muted-foreground">
                     Al precio de referencia o por encima — no necesita su aprobación
                   </p>
+                )}
+                {i.requiereAprobacion && decision === false && !rechazarToda && (
+                  <Textarea
+                    aria-label={`Qué corregir en ${i.nombre}`}
+                    value={notasItem[i.id] ?? ""}
+                    onChange={(e) => setNotasItem((n) => ({ ...n, [i.id]: e.target.value }))}
+                    rows={2}
+                    placeholder="Qué corregir en este renglón. Ej.: corregir el precio, se puede bajar hasta 3800."
+                    className={cn(
+                      "mt-2 bg-card",
+                      (notasItem[i.id] ?? "").trim().length < 3 && "border-destructive focus-visible:border-destructive",
+                    )}
+                  />
                 )}
                 </div>
                 </div>
@@ -276,17 +315,31 @@ export function AprobarCotizacionBotones({
         </div>
 
         <div className="space-y-2">
+          {rechazados.length > 0 && (
+            <label className="flex items-start gap-2 rounded-md border border-border p-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={rechazarToda}
+                onChange={(e) => setRechazarToda(e.target.checked)}
+              />
+              <span>
+                <b className="text-foreground">Rechazar la cotización entera</b> (queda como histórico y hay que hacer
+                otra). Sin marcar, se devuelven solo los renglones a corregir y el borrador se conserva.
+              </span>
+            </label>
+          )}
           <Label htmlFor="nota">
-            Nota {rechazados.length > 0 ? "(obligatoria al rechazar)" : "(opcional)"}
+            {rechazarToda && rechazados.length > 0 ? "Nota (obligatoria al rechazar)" : "Nota general (opcional)"}
           </Label>
           <Textarea
             id="nota"
             value={nota}
             onChange={(e) => setNota(e.target.value)}
             placeholder={
-              rechazados.length > 0
+              rechazados.length > 0 && rechazarToda
                 ? "Por qué se rechaza. Ej.: se puede bajar hasta 3800 por unidad, no más."
-                : "ej. Se puede bajar hasta 3800 por unidad, no más."
+                : "Opcional: un comentario para toda la cotización."
             }
             rows={2}
             // Rechazar sin decir por qué no sirve de nada: el comercial vuelve
@@ -299,15 +352,19 @@ export function AprobarCotizacionBotones({
         <DialogFooter>
           <span className="mr-auto self-center text-xs text-muted-foreground">
             {sinDecidir.length > 0
-              ? `Falta decidir ${sinDecidir.length} equipo(s)`
+              ? `Falta decidir ${sinDecidir.length} renglón(es)`
               : faltaNota
-                ? "Escriba por qué se rechaza"
+                ? rechazarToda
+                  ? "Escriba por qué se rechaza"
+                  : "Escriba qué corregir en cada renglón marcado"
                 : rechazados.length > 0
-                  ? `${rechazados.length} rechazado(s)`
+                  ? rechazarToda
+                    ? "Se rechaza entera"
+                    : `${rechazados.length} por corregir · el borrador se conserva`
                   : "Todo aprobado"}
           </span>
           <Button disabled={enviando || sinDecidir.length > 0 || faltaNota} onClick={guardar}>
-            Guardar decisión
+            {rechazados.length > 0 && !rechazarToda ? "Devolver para corregir" : "Guardar decisión"}
           </Button>
         </DialogFooter>
       </DialogContent>
