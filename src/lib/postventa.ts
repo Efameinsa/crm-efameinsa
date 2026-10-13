@@ -286,6 +286,9 @@ export function llevaOrdenFacturar(s: ServicioPostventa): boolean {
   if (pedidoSinCobro(s)) return false;
   if (s.cerrado_at != null || s.completado) return false;
   if (s.pct_antes_despacho == null) return false;
+  // Ya pagado completo: no queda nada que cobrar (AGROCASAGRANDE, venta a
+  // crédito ya cancelada; su 2.ª visita es otro pedido de servicio).
+  if (estadoPago(s) === "completo") return false;
   return Number(s.pct_antes_despacho) < 100;
 }
 
