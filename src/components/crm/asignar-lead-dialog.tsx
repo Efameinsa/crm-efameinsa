@@ -571,6 +571,11 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
                 <SelectItem value="repuesto">Repuesto</SelectItem>
                 <SelectItem value="mantenimiento">Mantenimiento preventivo</SelectItem>
                 <SelectItem value="mantenimiento_correctivo">Mantenimiento correctivo — reparar algo que ya falló</SelectItem>
+                {/* Reunión de postventa 13-10 (0456): los tipos que faltaban; el
+                    caso nace con ese título y postventa lo corrige si vino mal. */}
+                <SelectItem value="revision_garantia">Revisión por garantía — revisar una máquina en garantía</SelectItem>
+                <SelectItem value="capacitacion">Refuerzo de capacitación — volver a enseñarle al personal</SelectItem>
+                <SelectItem value="otro">Otro — ninguno de los anteriores (se lee en lo que solicita)</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">

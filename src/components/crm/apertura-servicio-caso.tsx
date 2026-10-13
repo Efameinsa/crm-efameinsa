@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { abrirAperturaDesdeCaso, buscarRepuestosParaGarantia, equiposParaAperturaDeCaso, type EquipoParaApertura } from "@/lib/acciones/postventa";
-import { GUIAS_APERTURA } from "@/lib/apertura-servicio";
+import { formatoDelCaso, GUIAS_APERTURA } from "@/lib/apertura-servicio";
+import { CambiarTipoAtencion } from "@/components/crm/cambiar-tipo-atencion";
+import { tituloDelTipo } from "@/lib/atenciones";
 import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
 /**
@@ -29,10 +31,18 @@ import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnico
 type TipoServicioApertura = "garantia" | "revision" | "mantenimiento";
 
 /** Formatos de la apertura desde un caso. «Repuestos por garantía»: buzón Rubí 12-10 (0441). */
-type FormatoCaso = "mantenimiento" | "puesta_marcha" | "entrega_garantia";
+type FormatoCaso = "mantenimiento" | "puesta_marcha" | "entrega_garantia" | "servicio_tecnico" | "revision_garantia" | "capacitacion";
 type Repuesto = { cantidad: string; descripcion: string; sku: string | null };
 
-export type CasoParaApertura = { id: string; etiqueta: string; enGarantia: boolean; tecnico: string | null };
+export type CasoParaApertura = {
+  id: string;
+  etiqueta: string;
+  enGarantia: boolean;
+  tecnico: string | null;
+  /** El tipo del caso (reunión 13-10): de ahí sale el encabezado de la apertura. */
+  tipo?: string | null;
+  tipoDetalle?: string | null;
+};
 
 export function AperturaServicioCaso({
   atencionId: atencionFija,
@@ -40,21 +50,38 @@ export function AperturaServicioCaso({
   direccionSugerida,
   tecnicoSugerido,
   casos,
+  tipoCaso: tipoFijo,
+  tipoDetalle: detalleFijo,
 }: {
   atencionId?: string;
   enGarantia?: boolean;
   direccionSugerida?: string | null;
   tecnicoSugerido?: string | null;
   casos?: CasoParaApertura[];
+  tipoCaso?: string | null;
+  tipoDetalle?: string | null;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [atencionId, setAtencionId] = useState(atencionFija ?? casos?.[0]?.id ?? "");
   const enGarantia = garantiaFija ?? casos?.find((c) => c.id === atencionId)?.enGarantia ?? false;
   const tecnicoDelCaso = tecnicoSugerido ?? casos?.find((c) => c.id === atencionId)?.tecnico;
+  const tipoCaso = tipoFijo ?? casos?.find((c) => c.id === atencionId)?.tipo ?? null;
+  const detalleCaso = detalleFijo ?? casos?.find((c) => c.id === atencionId)?.tipoDetalle ?? null;
   const [pendiente, startTransition] = useTransition();
   const [tipoPedido, setTipoPedido] = useState<TipoServicioApertura>(enGarantia ? "garantia" : "mantenimiento");
-  const [formato, setFormato] = useState<FormatoCaso>("mantenimiento");
+  const [formato, setFormato] = useState<FormatoCaso>(formatoDelCaso(tipoCaso));
+  // EL ENCABEZADO SALE DEL TIPO DEL CASO (reunión 13-10): al abrir, al cambiar de
+  // caso o al corregir el tipo, la apertura propone el formato que le toca.
+  useEffect(() => {
+    if (!abierto) return;
+    const f = formatoDelCaso(tipoCaso);
+    setFormato(f);
+    if (f === "revision_garantia") setTipoPedido("garantia");
+    else if (f === "mantenimiento") setTipoPedido(enGarantia ? "garantia" : "mantenimiento");
+    else setTipoPedido(enGarantia ? "garantia" : "revision");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierto, atencionId, tipoCaso]);
   const esGarantia = formato === "entrega_garantia";
   const [repuestos, setRepuestos] = useState<Repuesto[]>([]);
   const [busca, setBusca] = useState("");
@@ -154,6 +181,7 @@ export function AperturaServicioCaso({
   const elegirFormato = (f: FormatoCaso) => {
     setFormato(f);
     // Por garantía: el servicio es «Garantía» y la guía, la de repuestos.
+    if (f === "revision_garantia") setTipoPedido("garantia");
     if (f === "entrega_garantia") {
       setTipoPedido("garantia");
       if (!guia) setGuia("repuestos");
@@ -213,6 +241,15 @@ export function AperturaServicioCaso({
               </select>
             </div>
           )}
+          {/* EL TIPO DEL CASO, CORREGIBLE ACÁ MISMO (reunión 13-10, Agrocasagrande: salía
+              «puesta en marcha» y no se podía cambiar). */}
+          {tipoCaso && atencionId && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs sm:col-span-2">
+              <span className="text-muted-foreground">Tipo de caso:</span>
+              <b className="text-foreground">{tituloDelTipo(tipoCaso, detalleCaso)}</b>
+              <CambiarTipoAtencion atencionId={atencionId} tipo={tipoCaso} detalle={detalleCaso} rotulo="Corregir el tipo" />
+            </div>
+          )}
           {/* Rubí, 09-10: «la opción de escoger con qué empresa realizar la apertura». Sin cierre no
               hay serie de la que tomarla (0421). */}
           <div className="grid gap-1 sm:col-span-2">
@@ -233,8 +270,11 @@ export function AperturaServicioCaso({
           <div className="grid gap-1">
             <Label className="text-xs">Formato de la apertura</Label>
             <select className={select} value={formato} onChange={(e) => elegirFormato(e.target.value as FormatoCaso)}>
-              <option value="mantenimiento">Servicio técnico / mantenimiento</option>
+              <option value="servicio_tecnico">Servicio técnico</option>
+              <option value="revision_garantia">Revisión por garantía</option>
+              <option value="mantenimiento">Mantenimiento</option>
               <option value="puesta_marcha">Puesta en marcha</option>
+              <option value="capacitacion">Refuerzo de capacitación</option>
               <option value="entrega_garantia">Entrega de repuestos por garantía</option>
             </select>
           </div>

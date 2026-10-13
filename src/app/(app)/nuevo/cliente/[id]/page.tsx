@@ -38,7 +38,7 @@ import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
 import { cierresDePostventa } from "@/lib/precios-postventa";
 import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
-import { ETIQUETA_TIPO_ATENCION, type TipoAtencion } from "@/lib/atenciones";
+import { tituloDelTipo, type TipoAtencion } from "@/lib/atenciones";
 import { AperturaServicioCaso, type CasoParaApertura } from "@/components/crm/apertura-servicio-caso";
 
 export const dynamic = "force-dynamic";
@@ -117,7 +117,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
     // Casos abiertos sin apertura de servicio (0407): de ellos sale la de la cabecera.
     supabase
       .from("atenciones")
-      .select("id, tipo, equipo_texto, detalle, en_garantia, tecnico, solicitado_at")
+      .select("id, tipo, tipo_detalle, equipo_texto, detalle, en_garantia, tecnico, solicitado_at")
       .eq("cuenta_id", id)
       .is("cerrado_at", null)
       .is("servicio_id", null)
@@ -140,11 +140,14 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
     id: c.id as string,
     etiqueta: [
       c.solicitado_at ? fechaLima(c.solicitado_at as string) : null,
-      (c.equipo_texto as string | null) || ETIQUETA_TIPO_ATENCION[c.tipo as TipoAtencion] || (c.tipo as string | null),
+      tituloDelTipo(c.tipo as TipoAtencion, c.tipo_detalle as string | null),
+      (c.equipo_texto as string | null) || null,
       ((c.detalle as string | null) ?? "").slice(0, 70) || null,
     ].filter(Boolean).join(" · "),
     enGarantia: Boolean(c.en_garantia),
     tecnico: (c.tecnico as string | null) ?? null,
+    tipo: (c.tipo as string | null) ?? null,
+    tipoDetalle: (c.tipo_detalle as string | null) ?? null,
   }));
 
   const chips: { etiqueta: string; valor: string; tab: string; alerta?: boolean }[] = [

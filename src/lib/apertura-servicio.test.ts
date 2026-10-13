@@ -329,7 +329,16 @@ describe("el correo listo para pegar", () => {
   });
 
   it("hay un formato por cada caso: los tres de Lesly y la puesta en marcha sola de Rubí (05-10)", () => {
-    expect(TIPOS_APERTURA.map((t) => t.clave)).toEqual(["entrega", "entrega_puesta_marcha", "puesta_marcha", "mantenimiento", "entrega_garantia"]);
+    expect(TIPOS_APERTURA.map((t) => t.clave)).toEqual([
+      "entrega",
+      "entrega_puesta_marcha",
+      "puesta_marcha",
+      "mantenimiento",
+      "entrega_garantia",
+      "servicio_tecnico",
+      "revision_garantia",
+      "capacitacion",
+    ]);
   });
 });
 

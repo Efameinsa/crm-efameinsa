@@ -389,8 +389,21 @@ export async function asignarLead(
   // que lee el trigger que abre la atención (0132). Desde la 0317 el
   // expediente también se llama «puesta en marcha».
   const esPuestaEnMarcha = tipoPostventa === "puesta_en_marcha";
-  if (esPuestaEnMarcha) {
-    const { error: eTipo } = await supabase.from("leads").update({ sugerido_atencion: "puesta_en_marcha" }).eq("id", leadId);
+  // LOS TIPOS DE CASO DE LA REUNIÓN 13-10 (0456): el expediente sigue siendo de
+  // una clase que ya existe y el caso técnico nace con el tipo fino, que viaja en
+  // `sugerido_atencion` como la puesta en marcha.
+  const TIPO_FINO: Record<string, { expediente: string; atencion: string }> = {
+    revision_garantia: { expediente: "garantia", atencion: "revision_garantia" },
+    capacitacion: { expediente: "soporte_tecnico", atencion: "capacitacion" },
+    otro: { expediente: "garantia", atencion: "otro" },
+  };
+  const fino = tipoPostventa ? TIPO_FINO[tipoPostventa] : undefined;
+  if (fino) tipoPostventa = fino.expediente;
+  if (esPuestaEnMarcha || fino) {
+    const { error: eTipo } = await supabase
+      .from("leads")
+      .update({ sugerido_atencion: fino ? fino.atencion : "puesta_en_marcha" })
+      .eq("id", leadId);
     if (eTipo) return { error: eTipo.message };
   }
   const { data: oportunidadId, error } = await supabase.rpc("asignar_lead_con_pin", {

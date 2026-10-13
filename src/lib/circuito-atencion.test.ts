@@ -21,9 +21,9 @@ import {
 const TIPOS = Object.keys(ETIQUETA_TIPO_ATENCION) as TipoAtencion[];
 
 describe("circuito por tipo", () => {
-  it("los cinco tipos tienen circuito, incluido soporte técnico", () => {
+  it("los ocho tipos tienen circuito (soporte técnico y los de la reunión 13-10)", () => {
     expect(TIPOS.sort()).toEqual(
-      ["problema_tecnico", "puesta_en_marcha", "solicitud_mantenimiento", "solicitud_repuesto", "soporte_tecnico"].sort(),
+      ["problema_tecnico", "puesta_en_marcha", "solicitud_mantenimiento", "solicitud_repuesto", "soporte_tecnico", "revision_garantia", "capacitacion", "otro"].sort(),
     );
     for (const t of TIPOS) expect(Object.keys(CIRCUITO_POR_TIPO[t]).sort()).toEqual([...ETAPAS_ATENCION].sort());
   });

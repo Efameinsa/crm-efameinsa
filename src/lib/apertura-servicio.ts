@@ -20,7 +20,15 @@ import { fechaCalendario } from "@/lib/fechas";
  * ya está en el sistema y se llena solo.
  */
 
-export type TipoApertura = "entrega" | "entrega_puesta_marcha" | "puesta_marcha" | "mantenimiento" | "entrega_garantia";
+export type TipoApertura =
+  | "entrega"
+  | "entrega_puesta_marcha"
+  | "puesta_marcha"
+  | "mantenimiento"
+  | "entrega_garantia"
+  | "servicio_tecnico"
+  | "revision_garantia"
+  | "capacitacion";
 
 export const TIPOS_APERTURA: { clave: TipoApertura; titulo: string; ayuda: string }[] = [
   {
@@ -52,7 +60,45 @@ export const TIPOS_APERTURA: { clave: TipoApertura; titulo: string; ayuda: strin
     titulo: "ENTREGA DE REPUESTOS POR GARANTÍA:",
     ayuda: "Repuestos que salen por garantía, sin cobro. Puede no ir técnico.",
   },
+  // LO QUE HACE EL TÉCNICO, EN EL ENCABEZADO (reunión de postventa 13-10, 0456):
+  // «¿hace una entrega? ¿entrega y puesta en marcha? ¿mantenimiento preventivo?
+  // ¿o va a hacer una revisión por garantía? Esos títulos van a tu apertura».
+  {
+    clave: "servicio_tecnico",
+    titulo: "SERVICIO TÉCNICO DE:",
+    ayuda: "El técnico va a ver una falla o un problema del equipo.",
+  },
+  {
+    clave: "revision_garantia",
+    titulo: "REVISIÓN POR GARANTÍA DE:",
+    ayuda: "El técnico revisa una máquina que está en garantía.",
+  },
+  {
+    clave: "capacitacion",
+    titulo: "REFUERZO DE CAPACITACIÓN DE:",
+    ayuda: "El técnico vuelve a capacitar al personal del cliente en el equipo.",
+  },
 ];
+
+/**
+ * El formato que corresponde al TIPO DEL CASO (reunión 13-10): el caso ya dice
+ * qué pidió el cliente, así que la apertura arranca con ese encabezado. Se
+ * propone; postventa lo cambia si el caso es otro.
+ */
+export function formatoDelCaso(tipo: string | null | undefined): "mantenimiento" | "puesta_marcha" | "servicio_tecnico" | "revision_garantia" | "capacitacion" {
+  switch (tipo) {
+    case "puesta_en_marcha":
+      return "puesta_marcha";
+    case "revision_garantia":
+      return "revision_garantia";
+    case "capacitacion":
+      return "capacitacion";
+    case "solicitud_mantenimiento":
+      return "mantenimiento";
+    default:
+      return "servicio_tecnico";
+  }
+}
 
 export function tituloDe(tipo: TipoApertura | null | undefined): string {
   return TIPOS_APERTURA.find((t) => t.clave === tipo)?.titulo ?? TIPOS_APERTURA[1].titulo;

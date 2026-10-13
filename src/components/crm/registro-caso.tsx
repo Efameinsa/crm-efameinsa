@@ -6,7 +6,10 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   Cpu,
+  GraduationCap,
   Headset,
+  HelpCircle,
+  ShieldAlert,
   Loader2,
   Phone,
   Search,
@@ -52,7 +55,7 @@ import { cn } from "@/lib/utils";
  * aplica el proceso regular de clasificación y etapas de un gestor comercial».
  */
 const TIPOS = [
-  { valor: "problema_tecnico", etiqueta: "Problema técnico", icono: AlertTriangle, ayuda: "La máquina falla" },
+  { valor: "problema_tecnico", etiqueta: "Problema técnico", icono: AlertTriangle, ayuda: "La máquina falla: servicio técnico" },
   // Santos, 28-09: «otra pestañita que diga soporte técnico» (0321). Y la
   // reunión de gerencia de ese día decidió que lleva el circuito técnico
   // completo (0324): es un tipo de caso técnico más.
@@ -60,6 +63,12 @@ const TIPOS = [
   { valor: "puesta_en_marcha", etiqueta: "Puesta en marcha", icono: ShieldCheck, ayuda: "Instalación y arranque" },
   { valor: "solicitud_repuesto", etiqueta: "Repuesto", icono: Cpu, ayuda: "Pide una pieza" },
   { valor: "solicitud_mantenimiento", etiqueta: "Mantenimiento", icono: Truck, ayuda: "Preventivo o correctivo" },
+  // REUNIÓN DE POSTVENTA 13-10 (0456): «primero el tipo, después el texto…
+  // problema técnico, servicio técnico, puesta en marcha, refuerzo de
+  // capacitación… ¿y si hay un problema que no hemos mapeado? Otro, libre».
+  { valor: "revision_garantia", etiqueta: "Revisión por garantía", icono: ShieldAlert, ayuda: "Revisar una máquina que está en garantía" },
+  { valor: "capacitacion", etiqueta: "Refuerzo de capacitación", icono: GraduationCap, ayuda: "Volver a enseñarle al personal del cliente" },
+  { valor: "otro", etiqueta: "Otro", icono: HelpCircle, ayuda: "Ninguno de los anteriores: escriba qué es" },
 ] as const;
 
 type Tipo = (typeof TIPOS)[number]["valor"];
@@ -71,7 +80,15 @@ const TIPO_VIEJO: Record<Tipo, "garantia" | "repuesto" | "mantenimiento" | "sopo
   puesta_en_marcha: "garantia",
   solicitud_repuesto: "repuesto",
   solicitud_mantenimiento: "mantenimiento",
+  revision_garantia: "garantia",
+  capacitacion: "soporte_tecnico",
+  otro: "garantia",
 };
+
+/** «Otro» viaja como primera línea del pedido; la base la lee para el título del caso (0457). */
+function conElTipo(tipo: Tipo, otro: string, problema: string): string {
+  return tipo === "otro" && otro.trim() ? `Otro: ${otro.trim()}\n${problema.trim()}` : problema;
+}
 
 export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: string; razonSocial: string } | null }) {
   const router = useRouter();
@@ -93,6 +110,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
   const [cuenta, setCuenta] = useState<{ id: string; razonSocial: string } | null>(cuentaInicial);
 
   const [tipo, setTipo] = useState<Tipo>("problema_tecnico");
+  const [tipoOtro, setTipoOtro] = useState("");
   const [problema, setProblema] = useState("");
   const [codigoError, setCodigoError] = useState("");
   /**
@@ -137,6 +155,10 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
       toast.error("Falta el cliente: Central no puede derivar un caso sin cliente");
       return;
     }
+    if (tipo === "otro" && !tipoOtro.trim()) {
+      toast.error("Con «Otro», escriba qué es: es el título del caso");
+      return;
+    }
     startTransition(async () => {
       // Las fotos primero: si una subida falla se avisa y NO se registra el
       // caso. Mejor reintentar que dejarlo sin la foto que identifica el
@@ -151,7 +173,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
         // Desde la 0324 soporte técnico es un tipo de caso técnico: viaja como
         // tal y la base le pone el mismo nombre al expediente.
         tipo,
-        detalle: problema,
+        detalle: conElTipo(tipo, tipoOtro, problema),
         equipoId: ficha?.equipoId ?? null,
         serie: ficha?.serie ?? serie.trim() ?? null,
         seriesAdicionales: otrasSeries,
@@ -216,7 +238,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
         // en vez de migrarlo: lo usan la derivación de Central (0080, 0107) y
         // la ruta de mantenimiento, y cambiarlo hoy es apagar el CRM.
         tipo: TIPO_VIEJO[tipo],
-        problema,
+        problema: conElTipo(tipo, tipoOtro, problema),
         codigoError: codigoError || null,
         equipoId: ficha?.equipoId ?? null,
         serieTexto: ficha?.serie ?? serie.trim() ?? null,
@@ -413,6 +435,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
 
       {/* ── 2 · ¿QUÉ PASA? ───────────────────────────────────────────────── */}
       <Paso numero={2} titulo="¿Qué pasa?">
+        <p className="mb-1 text-[11px] text-muted-foreground">Primero el tipo de caso; después, lo que dice el cliente.</p>
         <div className="mb-2 flex flex-wrap gap-1.5">
           {TIPOS.map((t) => {
             const Icono = t.icono;
@@ -435,6 +458,15 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
             );
           })}
         </div>
+        {tipo === "otro" && (
+          <input
+            value={tipoOtro}
+            onChange={(e) => setTipoOtro(e.target.value)}
+            maxLength={120}
+            placeholder="¿Qué es? Ej.: cambio de voltaje, traslado de la máquina a otra sede"
+            className="mb-2 w-full rounded-md border border-primary/40 bg-background px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
+          />
+        )}
         <textarea
           value={problema}
           onChange={(e) => setProblema(e.target.value)}
