@@ -12,6 +12,7 @@ import { cotizacionesDeCierres, documentosDeFinanzas } from "@/lib/documentos-fi
 import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
 import { SubirLiquidacion } from "@/components/crm/subir-liquidacion";
 import { EmpresaDelPedido } from "@/components/crm/empresa-del-pedido";
+import { AtenderOrdenFacturar } from "@/components/crm/orden-facturar";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,19 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
             {p.urgenciaN > 1 ? `, ${p.urgenciaN}.º aviso` : ""}): {p.urgenciaMotivo ?? "el cliente está esperando."}
           </span>
         </p>
+      )}
+
+      {/* La orden de postventa para facturar y cobrar (0460, reunión 13-10). */}
+      {p.ordenFacturarAt && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+          <span>
+            <b>{p.ordenFacturarAtendidaAt ? "Orden de facturar atendida" : "Postventa terminó y pide facturar y cobrar"}</b> (
+            {new Date(p.ordenFacturarAt).toLocaleString("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" })}): por cobrar{" "}
+            <b>{formatoMonto(p.moneda, p.saldo)}</b>
+            {p.ordenFacturarNota ? ` · ${p.ordenFacturarNota}` : ""}
+          </span>
+          {!p.ordenFacturarAtendidaAt && <AtenderOrdenFacturar servicioId={p.id} />}
+        </div>
       )}
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

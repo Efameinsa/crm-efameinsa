@@ -7,7 +7,8 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Kpi } from "@/components/crm/kpi";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { AccionesFinanzas } from "@/components/crm/acciones-finanzas";
-import { avisosDeCentral, cuentasPorCobrar, diasEntre, formatoMonto, pedidosPorConfirmar, type PedidoFinanzas } from "@/lib/pagos-finanzas";
+import { avisosDeCentral, cuentasPorCobrar, diasEntre, formatoMonto, ordenesDeFacturar, pedidosPorConfirmar, type PedidoFinanzas } from "@/lib/pagos-finanzas";
+import { AtenderOrdenFacturar } from "@/components/crm/orden-facturar";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export default async function FinanzasPage() {
   await requerirPerfil();
   const supabase = await createClient();
   const hoy = hoyLima();
-  const [pedidos, cobrar, avisos] = await Promise.all([pedidosPorConfirmar(supabase), cuentasPorCobrar(supabase), avisosDeCentral(supabase)]);
+  const [pedidos, cobrar, avisos, ordenes] = await Promise.all([pedidosPorConfirmar(supabase), cuentasPorCobrar(supabase), avisosDeCentral(supabase), ordenesDeFacturar(supabase)]);
 
   const urgentes = pedidos.filter((p) => p.fechaDespacho && diasEntre(hoy, p.fechaDespacho) <= 3);
   const sirenas = pedidos.filter((p) => p.urgenciaAt);
@@ -41,6 +42,30 @@ export default async function FinanzasPage() {
         <Kpi etiqueta="Observados" valor={observados.length} sub="Esperan respuesta del comercial" />
         <Kpi etiqueta="Cobros vencidos" valor={vencidos.length} sub="Ya pasó el plazo de crédito" alerta={vencidos.length > 0} href="/finanzas/cobrar" />
       </div>
+
+      {/* Reunión 13-10 (0460): postventa terminó y pide facturar y cobrar. */}
+      {ordenes.length > 0 && (
+        <SeccionPanel titulo={`Órdenes de facturar y cobrar · ${ordenes.length}`}>
+          <ul className="space-y-2">
+            {ordenes.map((o) => (
+              <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 p-2.5">
+                <div className="min-w-0">
+                  <Link href={`/finanzas/pedidos/${o.id}`} className="text-sm font-semibold text-foreground hover:underline">
+                    {o.cliente}
+                  </Link>
+                  <p className="text-xs text-muted-foreground">
+                    {o.codigoCierre ? `Cierre ${o.codigoCierre}` : "Sin cierre"}
+                    {o.numeroErp ? ` · Pedido ${o.numeroErp}` : ""} · por cobrar <b className="text-foreground">{formatoMonto(o.moneda, o.saldo)}</b>
+                    {o.ordenFacturarAt ? ` · pedida el ${new Date(o.ordenFacturarAt).toLocaleString("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" })}` : ""}
+                  </p>
+                  {o.ordenFacturarNota && <p className="text-xs text-foreground">{o.ordenFacturarNota}</p>}
+                </div>
+                <AtenderOrdenFacturar servicioId={o.id} />
+              </li>
+            ))}
+          </ul>
+        </SeccionPanel>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-[1fr_20rem]">
         <SeccionPanel titulo={`Pagos por confirmar · ${pedidos.length}`}>

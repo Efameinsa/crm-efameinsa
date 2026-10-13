@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  llevaOrdenFacturar,
   seriesDeTexto,
   estadoGarantia,
   slaCaso,
@@ -493,5 +494,21 @@ describe("sin cobro: garantía desde un caso (Rubí, 12-10)", () => {
     const s = pedido({ monto: 10000, monto_pagado: 0 });
     expect(pedidoSinCobro(s)).toBe(false);
     expect(pago(s).hecho).toBe(false);
+  });
+});
+
+describe("orden a Finanzas para facturar (0460, reunión 13-10)", () => {
+  const base = { cerrado_at: null, completado: false, origen: null, pago_confirmado_at: null } as unknown as Parameters<typeof llevaOrdenFacturar>[0];
+  it("aparece a crédito o con saldo después del despacho", () => {
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 0 })).toBe(true);
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 50 })).toBe(true);
+  });
+  it("no aparece al contado, sin condición ni en lo ya cerrado", () => {
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 100 })).toBe(false);
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: null })).toBe(false);
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 0, cerrado_at: "2026-10-01T00:00:00Z" })).toBe(false);
+  });
+  it("una vez dada, se queda a la vista", () => {
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 100, orden_facturar_at: "2026-10-13T20:00:00Z" })).toBe(true);
   });
 });

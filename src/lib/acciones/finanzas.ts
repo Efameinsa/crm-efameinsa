@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
-import { notificar, notificarAlmacen, notificarFinanzas } from "@/lib/notificaciones";
+import { notificar, notificarAlmacen, notificarFacturacion, notificarFinanzas } from "@/lib/notificaciones";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { enlaceApp } from "@/lib/url-app";
 import { correoAlArea } from "@/lib/correo-al-area";
-import { evaluarPagoParaDespacho, textoComprobante, type ServicioPostventa } from "@/lib/postventa";
+import { evaluarPagoParaDespacho, textoComprobante, textoCondicionPago, type ServicioPostventa } from "@/lib/postventa";
 
 /**
  * Lo que Finanzas escribe en el CRM (0279). Solo dos cosas, y las dos por
@@ -264,6 +266,97 @@ export async function confirmarGuia(
   revalidatePath("/facturacion/aperturas");
   revalidatePath("/almacen/aperturas-postventa");
   revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  return { error: null };
+}
+
+/**
+ * LA ORDEN A FINANZAS PARA FACTURAR Y COBRAR (0460; reunión 13-10 11:20,
+ * Carlos con AGROCASAGRANDE). En los pedidos a crédito o con saldo después
+ * del despacho, postventa termina el servicio, envía el informe y le dice a
+ * Finanzas «ahora sí factura y cobra». Antes era un correo a Contabilidad sin
+ * más detalle: ahora le llega con el cliente, el cierre, lo que falta cobrar
+ * y el enlace al pedido, en la campana y en el correo del área.
+ */
+export async function ordenarFacturar(servicioId: string, nota: string): Promise<Resultado> {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("postventa_orden_facturar", { p_servicio: servicioId, p_nota: nota.trim() || null });
+  if (error) return { error: limpiar(error.message) };
+
+  // Postventa no ve cifras; Finanzas sí: el mensaje se arma con la llave de servicio.
+  const admin = createAdminClient();
+  const { data: s } = await admin
+    .from("servicios_postventa")
+    .select("cliente_texto, numero_pedido_erp, es_prueba, monto, monto_pagado, moneda, pct_antes_despacho, credito_dias, informe_cierre_id")
+    .eq("id", servicioId)
+    .maybeSingle();
+  const { data: inf } = s?.informe_cierre_id
+    ? await admin.from("informes_cierre").select("codigo").eq("id", s.informe_cierre_id).maybeSingle()
+    : { data: null };
+  const { data: informes } = await admin.from("informes_servicio").select("id, tipo, equipo_texto, created_at").eq("servicio_id", servicioId).order("created_at");
+  const cliente = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+  const moneda = s?.moneda ?? "USD";
+  const total = s?.monto == null ? null : Number(s.monto);
+  const pagado = Number(s?.monto_pagado ?? 0);
+  const saldo = total == null ? null : Math.max(0, Number((total - pagado).toFixed(2)));
+  const dinero = (n: number) => `${moneda} ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const condicion = textoCondicionPago({ pct_antes_despacho: s?.pct_antes_despacho ?? null, credito_dias: s?.credito_dias ?? null });
+  const quien = perfil.nombre ?? "Postventa";
+  const titulo = `Facturar y cobrar · ${cliente}`;
+  const cuerpo = `${quien} terminó${s?.numero_pedido_erp ? ` el pedido ${s.numero_pedido_erp}` : " el pedido"}${inf?.codigo ? ` (cierre ${inf.codigo})` : ""} y pide facturar y cobrar${saldo != null ? ` el saldo de ${dinero(saldo)}` : ""}.${nota.trim() ? ` Nota: ${nota.trim()}` : ""}`;
+  const esPrueba = s?.es_prueba === true;
+  await notificarFinanzas({ titulo, cuerpo, url: `/finanzas/pedidos/${servicioId}`, esPrueba });
+  await notificarFacturacion({ titulo, cuerpo, url: "/facturacion", esPrueba });
+  await correoAlArea({
+    areas: ["finanzas"],
+    servicioId,
+    titulo,
+    cuerpo,
+    url: `/finanzas/pedidos/${servicioId}`,
+    esPrueba,
+    datos: [
+      ...(inf?.codigo ? [{ etiqueta: "Cierre", valor: String(inf.codigo) }] : []),
+      ...(total != null ? [{ etiqueta: "Total de la venta", valor: dinero(total) }, { etiqueta: "Ya pagado", valor: dinero(pagado) }] : []),
+      ...(saldo != null ? [{ etiqueta: "Por facturar y cobrar", valor: dinero(saldo) }] : []),
+      ...(condicion ? [{ etiqueta: "Condición de pago", valor: condicion }] : []),
+      ...(informes?.length
+        ? [
+            {
+              etiqueta: "Informes del servicio",
+              valor: informes
+                .map((i) => `${String(i.tipo ?? "informe").replace(/_/g, " ")} del ${new Date(i.created_at as string).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}${i.equipo_texto ? ` (${String(i.equipo_texto).slice(0, 60)})` : ""}`)
+                .join(" · "),
+            },
+          ]
+        : [{ etiqueta: "Informes del servicio", valor: "Todavía no hay informe registrado en el CRM" }]),
+      { etiqueta: "Ver el pedido", valor: enlaceApp(`/finanzas/pedidos/${servicioId}`) },
+      { etiqueta: "Pedido por", valor: quien },
+    ],
+  });
+  revalidatePath("/finanzas");
+  revalidatePath(`/finanzas/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  return { error: null };
+}
+
+/** Finanzas marca atendida la orden de facturar (0460): postventa lo ve en el pedido. */
+export async function atenderOrdenFacturar(servicioId: string): Promise<Resultado> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("finanzas_atender_orden_facturar", { p_servicio: servicioId });
+  if (error) return { error: limpiar(error.message) };
+  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, orden_facturar_por").eq("id", servicioId).maybeSingle();
+  if (s?.orden_facturar_por) {
+    await notificar({
+      userId: s.orden_facturar_por as string,
+      tipo: "finanzas",
+      titulo: `Finanzas atendió la orden de facturar · ${(s.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")}`,
+      url: `/postventa/pedidos/${servicioId}`,
+    });
+  }
+  revalidatePath("/finanzas");
+  revalidatePath(`/finanzas/pedidos/${servicioId}`);
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   return { error: null };
 }

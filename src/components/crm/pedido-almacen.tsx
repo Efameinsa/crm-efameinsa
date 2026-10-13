@@ -61,6 +61,9 @@ export function PedidoAlmacen({
   // «Servicio técnico» se veía como una máquina sin protocolo y el pedido no
   // pasaba de «pendiente de prueba», aunque el servicio ya se había hecho.
   const esServicio = circuitoDe(servicio).esServicio;
+  // Reunión 13-10: el repuesto no se prueba, pero se deja embalado y listo con su foto.
+  const esRepuesto = circuitoDe(servicio).esRepuesto;
+  const tituloPrueba = esRepuesto ? "Preparar y embalar" : "Probar y embalar";
   const probado = esServicio || servicio.prueba_lista_at != null || String(servicio.prueba_embalaje ?? "").toUpperCase() === "SI";
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   // EL DOBLE FILTRO (Carlos, 22-09): «tú programas el despacho, pero de nada
@@ -185,7 +188,7 @@ export function PedidoAlmacen({
           dónde. Queda el formulario de un solo protocolo para los pedidos
           que no tienen lista. */}
       {!probado && porEquipo && (
-        <Tarjeta icono={FileCheck2} titulo="Probar y embalar" tono={servicio.prueba_solicitada_at ? "activa" : "normal"}>
+        <Tarjeta icono={FileCheck2} titulo={tituloPrueba} tono={servicio.prueba_solicitada_at ? "activa" : "normal"}>
           <p className="text-xs text-muted-foreground">
             {servicio.prueba_solicitada_at ? "Postventa pidió la prueba. " : "Postventa todavía no pidió la prueba; se puede adelantar. "}
             Cada máquina tiene su protocolo: pruébelas una por una en <b>Equipos de este pedido</b> (a la derecha). Cuando estén todas las que van, el pedido queda probado y embalado solo.
@@ -193,10 +196,12 @@ export function PedidoAlmacen({
         </Tarjeta>
       )}
       {!probado && !porEquipo && (
-        <Tarjeta icono={FileCheck2} titulo="Probar y embalar" tono={servicio.prueba_solicitada_at ? "activa" : "normal"}>
+        <Tarjeta icono={FileCheck2} titulo={tituloPrueba} tono={servicio.prueba_solicitada_at ? "activa" : "normal"}>
           <p className="text-xs text-muted-foreground">
             {servicio.prueba_solicitada_at
-              ? "Postventa pidió la prueba. Pruebe la máquina, suba el protocolo (foto o PDF) y marque."
+              ? esRepuesto
+                ? "Postventa pidió prepararlo. Es un repuesto: no se prueba, pero déjelo embalado y listo para cuando lo recojan; suba la foto y marque."
+                : "Postventa pidió la prueba. Pruebe la máquina, suba el protocolo (foto o PDF) y marque."
               : "Postventa todavía no pidió la prueba; se puede adelantar."}
           </p>
           <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
