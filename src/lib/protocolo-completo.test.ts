@@ -52,6 +52,18 @@ describe("faltaParaProbar", () => {
     expect(faltaParaProbar(m, []).join()).toContain("1 casilla sin marcar");
   });
 
+  it("«N/A» cuenta como respondida (0465, COFACO sin quemador ni carga)", () => {
+    const conNa = Object.fromEntries(Object.keys(todoMarcado).map((k, i) => [k, i % 2 ? "na" : "ok"])) as typeof todoMarcado;
+    const m: MaquinaParaProbar = {
+      ...cofaco,
+      protocolo_ref: "P",
+      protocolo_fotos: [{ path: "a.jpg", tipo: "image/jpeg" }, { path: "b.pdf", tipo: "application/pdf" }],
+      protocolo_datos: { principal: { modelo: "M", tecnico: "T" } },
+      protocolo_chequeo: { principal: { marcas: conNa } },
+    };
+    expect(faltaParaProbar(m, [])).toEqual([]);
+  });
+
   it("el repuesto solo pide protocolo, fotos y técnico", () => {
     const r: MaquinaParaProbar = { ...cofaco, descripcion: "FAJA DE TAMBOR", protocolo_ref: "R1", protocolo_fotos: [{ path: "a.jpg", tipo: "image/jpeg" }], protocolo_datos: { principal: { tecnico: "T" } } };
     expect(faltaParaProbar(r, [], { repuesto: true })).toEqual([]);

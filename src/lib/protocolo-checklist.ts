@@ -14,13 +14,14 @@
  * plantilla, sin tocar la pantalla).
  */
 
-export type Resultado = "ok" | "falla";
+/** «na» = no aplica a esta máquina (sin quemador, prueba sin carga…): cuenta como respondida (0465). */
+export type Resultado = "ok" | "falla" | "na";
 
 export type Chequeo = {
   plantilla: string;
   /** Datos de cabecera: marca, voltaje, capacidad, horas… */
   datos: Record<string, string>;
-  /** Resultado de cada renglón: «ok» = ✓, «falla» = ✗. */
+  /** Resultado de cada renglón: «ok» = ✓, «falla» = ✗, «na» = N/A. */
   marcas: Record<string, Resultado>;
   /** Observación por renglón (estructura y componentes). */
   obs: Record<string, string>;

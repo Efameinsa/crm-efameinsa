@@ -63,6 +63,7 @@ export function HojaChequeoProtocolo({
   const todas = useMemo(() => renglonesConMarca(plantilla), [plantilla]);
   const faltan = todas.filter((k) => !ch.marcas[k]).length;
   const fallas = todas.filter((k) => ch.marcas[k] === "falla").length;
+  const noAplica = todas.filter((k) => ch.marcas[k] === "na").length;
 
   const cambiar = (f: (c: Chequeo) => Chequeo) => {
     if (!editable) return;
@@ -78,6 +79,8 @@ export function HojaChequeoProtocolo({
     });
   const todoBien = (claves: string[]) =>
     cambiar((c) => ({ ...c, marcas: { ...c.marcas, ...Object.fromEntries(claves.filter((k) => !c.marcas[k]).map((k) => [k, "ok" as const])) } }));
+  const restoNoAplica = (claves: string[]) =>
+    cambiar((c) => ({ ...c, marcas: { ...c.marcas, ...Object.fromEntries(claves.filter((k) => !c.marcas[k]).map((k) => [k, "na" as const])) } }));
 
   // Lo que viene del informe también se corrige aquí mismo. Modelo, serie y
   // fecha se guardan en la hoja del informe (0417) para que las dos digan lo
@@ -128,28 +131,71 @@ export function HojaChequeoProtocolo({
     return dato(clave, ayuda);
   };
 
+  // «N/A»: el renglón no aplica a esta máquina (sin quemador, prueba solo con
+  // agua…; Lesly, COFACO 13-10). Ocupa las dos casillas; tocarlo lo deja vacío.
   const casillas = (k: string) =>
-    (["ok", "falla"] as const).map((r) => (
-      <td key={r} className={`${td} p-0 text-center`}>
+    ch.marcas[k] === "na" ? (
+      <td className={`${td} p-0 text-center`} colSpan={2}>
         <button
           type="button"
           disabled={!editable}
-          aria-label={r === "ok" ? "Conforme" : "Con falla"}
-          onClick={() => marcar(k, r)}
-          className={`marca flex h-9 w-full items-center justify-center text-[16px] font-bold ${
-            ch.marcas[k] === r ? (r === "ok" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700") : ""
-          } ${editable ? "cursor-pointer hover:bg-neutral-100" : ""}`}
+          aria-label="No aplica"
+          onClick={() => marcar(k, "na")}
+          className={`marca flex h-9 w-full items-center justify-center bg-neutral-100 text-[11px] font-bold text-neutral-600 ${editable ? "cursor-pointer hover:bg-neutral-200" : ""}`}
         >
-          {ch.marcas[k] === r ? (r === "ok" ? "✓" : "✗") : ""}
+          N/A
         </button>
       </td>
-    ));
+    ) : (
+      (["ok", "falla"] as const).map((r) => (
+        <td key={r} className={`${td} p-0 text-center`}>
+          <button
+            type="button"
+            disabled={!editable}
+            aria-label={r === "ok" ? "Conforme" : "Con falla"}
+            onClick={() => marcar(k, r)}
+            className={`marca flex h-9 w-full items-center justify-center text-[16px] font-bold ${
+              ch.marcas[k] === r ? (r === "ok" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700") : ""
+            } ${editable ? "cursor-pointer hover:bg-neutral-100" : ""}`}
+          >
+            {ch.marcas[k] === r ? (r === "ok" ? "✓" : "✗") : ""}
+          </button>
+        </td>
+      ))
+    );
+
+  /** El nombre del renglón, con «N/A» al lado mientras esté vacío (no se imprime). */
+  const renglon = (k: string, r: string) => (
+    <td className={`${td} uppercase`}>
+      <span className="flex items-center justify-between gap-1">
+        <span>{r}</span>
+        {editable && !ch.marcas[k] && (
+          <button
+            type="button"
+            onClick={() => marcar(k, "na")}
+            className="no-imprimir shrink-0 rounded border border-neutral-400 px-1 text-[10px] font-semibold normal-case text-neutral-600 hover:bg-neutral-100"
+          >
+            N/A
+          </button>
+        )}
+      </span>
+    </td>
+  );
 
   const botonTodo = (claves: string[]) =>
     editable && claves.some((k) => !ch.marcas[k]) ? (
-      <button type="button" onClick={() => todoBien(claves)} className="no-imprimir ml-2 rounded bg-emerald-700 px-2 py-0.5 text-[11px] font-semibold normal-case text-white">
-        Todo ✓
-      </button>
+      <>
+        <button type="button" onClick={() => todoBien(claves)} className="no-imprimir ml-2 rounded bg-emerald-700 px-2 py-0.5 text-[11px] font-semibold normal-case text-white">
+          Todo ✓
+        </button>
+        <button
+          type="button"
+          onClick={() => restoNoAplica(claves)}
+          className="no-imprimir ml-1 rounded border border-neutral-500 px-2 py-0.5 text-[11px] font-semibold normal-case text-neutral-700"
+        >
+          Lo que falta N/A
+        </button>
+      </>
     ) : null;
 
   const prog = (k: string) => escrito(ch.prog[k], (v) => cambiar((c) => ({ ...c, prog: { ...c.prog, [k]: v } })), { max: 10, centro: true });
@@ -255,7 +301,7 @@ export function HojaChequeoProtocolo({
                   const k = claves[i];
                   return (
                     <tr key={k}>
-                      <td className={`${td} uppercase`}>{r}</td>
+                      {renglon(k, r)}
                       <td className={`${td} p-0 px-1`}>{escrito(ch.obs[k], (v) => cambiar((c) => ({ ...c, obs: { ...c.obs, [k]: v } })))}</td>
                       {casillas(k)}
                     </tr>
@@ -287,7 +333,7 @@ export function HojaChequeoProtocolo({
             <tr key={r}>
               {(["vacio", "carga"] as const).map((modo) => (
                 <Fragment key={modo}>
-                  <td className={`${td} uppercase`}>{r}</td>
+                  {renglon(claveRenglon(modo, r), r)}
                   {casillas(claveRenglon(modo, r))}
                 </Fragment>
               ))}
@@ -359,6 +405,7 @@ export function HojaChequeoProtocolo({
           <span className="text-[12px] text-neutral-700">
             {faltan === 0 ? "Todas las casillas marcadas" : `Faltan ${faltan} de ${todas.length} casillas`}
             {fallas > 0 && <b className="ml-2 text-red-700">· {fallas} con falla ✗</b>}
+            {noAplica > 0 && <span className="ml-2 text-neutral-500">· {noAplica} N/A</span>}
           </span>
           {cambiado ? (
             <span className="text-[12px] text-amber-700">Hay cambios sin guardar</span>

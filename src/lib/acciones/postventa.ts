@@ -922,7 +922,7 @@ export interface EquipoDelPedido {
   protocolo_fecha?: string | null;
   protocolo_datos?: Record<string, { tecnico?: string; fecha_ejecucion?: string; modelo?: string; serie?: string; equipo?: string }> | null;
   /** La hoja de chequeo de cada máquina (0452): sin todas sus casillas no se marca probada. */
-  protocolo_chequeo?: Record<string, { plantilla?: string; marcas?: Record<string, "ok" | "falla"> }> | null;
+  protocolo_chequeo?: Record<string, { plantilla?: string; marcas?: Record<string, "ok" | "falla" | "na"> }> | null;
   /** Lleva el código del modelo, no una serie de placa (coches, carros; 0302). */
   sin_serie?: boolean | null;
   /** Sin serie todavía, y por qué (0378): importación, compra local o fabricación. */
