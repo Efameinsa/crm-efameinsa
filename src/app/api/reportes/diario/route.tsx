@@ -18,6 +18,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { pendientesPropios, presupuestosPropios, ventasPropias } from "@/lib/trabajo-propio";
 import { pendientesAnotados, bloquesPendientesAnotados } from "@/lib/pendientes-anotados";
 import { cargarPanelPostventa, type PanelPostventa } from "@/lib/panel-postventa";
+import { cargarPanorama, type PanoramaPendientes } from "@/lib/panorama-pendientes";
+import type { PendienteAnotado } from "@/lib/pendientes-anotados";
 
 // PDF del cierre del día del comercial. La autorización real la hace la
 // función SQL (el propio comercial o backoffice); acá solo se comprueba que
@@ -107,6 +109,7 @@ export async function GET(request: Request) {
   let pendientesAnotadosPdf: { titulo: string; filas: { cliente: string; detalle: string | null }[] }[] | undefined;
   let movimientoDelArea: { titulo: string; hora: string | null }[] | undefined;
   let panelPostventa: PanelPostventa | undefined;
+  let panorama: PanoramaPendientes | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
@@ -189,8 +192,10 @@ export async function GET(request: Request) {
       // reporte de hoy, porque de un día pasado no se sabe cuáles seguían abiertos.
       // En su propio apartado, uno por tipo, antes de lo del área (buzón, Rubí
       // 12-10: «que se diferencie cada apartado y que aparezca solo mi gestión»).
+      let anotadosCrudos: PendienteAnotado[] = [];
       if (fecha >= hoyLima()) {
-        const anotados = bloquesPendientesAnotados(await pendientesAnotados(createAdminClient(), comercialId).catch(() => []));
+        anotadosCrudos = await pendientesAnotados(createAdminClient(), comercialId).catch(() => []);
+        const anotados = bloquesPendientesAnotados(anotadosCrudos);
         if (anotados.length > 0) pendientesAnotadosPdf = anotados;
       }
       // LAS PROGRAMADAS, POR DÍA (Carlos, 23-09: «videollamadas de
@@ -274,6 +279,14 @@ export async function GET(request: Request) {
       r.agenda = { ...r.agenda, manana: r.planificacion_manana.gestiones.length + r.planificacion_manana.tareas.length };
       // LA HOJA DE GRÁFICOS (Santos, 13-10): solo lo suyo, por línea. Si
       // falla, el reporte sale igual sin ella.
+      // LO QUE LE FALTA GESTIONAR (Santos, 13-10): el panorama completo en
+      // su propia hoja. Si se pudo armar, reemplaza a «5b» (que cortaba en
+      // diez por bloque) y el cuadro de pendientes del panel sale de ahí.
+      try {
+        panorama = await cargarPanorama(createAdminClient(), comercialId, fecha, hoyLima(), anotadosCrudos);
+      } catch {
+        panorama = undefined;
+      }
       try {
         const admin = createAdminClient();
         const { data: tcFila } = await admin.from("parametros").select("valor").eq("clave", "tc_usd_pen").maybeSingle();
@@ -283,7 +296,14 @@ export async function GET(request: Request) {
           fecha,
           r.seguimientos as (typeof r.seguimientos[number] & { oportunidad_id?: string })[],
           r.cotizaciones,
-          [...(pendientesPostventa ?? []), ...(pendientesAnotadosPdf ?? [])],
+          panorama
+            ? [
+                { titulo: "Seguimientos que se pasaron de fecha", filas: panorama.seguimientos.filter((x) => x.atraso > 0) },
+                { titulo: "Seguimientos programados para el día", filas: panorama.seguimientos.filter((x) => x.atraso === 0) },
+                { titulo: "Presupuestos que todavía no salieron", filas: panorama.presupuestos },
+                ...(pendientesAnotadosPdf ?? []),
+              ]
+            : [...(pendientesPostventa ?? []), ...(pendientesAnotadosPdf ?? [])],
           Number(tcFila?.valor) || 3.75,
         );
         const lineas = panelPostventa.lineaDeOportunidad;
@@ -293,6 +313,10 @@ export async function GET(request: Request) {
         }));
       } catch {
         panelPostventa = undefined;
+      }
+      if (panorama) {
+        pendientesPostventa = undefined;
+        pendientesAnotadosPdf = undefined;
       }
       // Los dos cuadros por ruta son de Ariana (0431); Gabriela pidió solo lo
       // suyo pero con sus seguimientos en la tabla de siempre (0437).
@@ -330,6 +354,7 @@ export async function GET(request: Request) {
       rutasPostventa={rutasPostventa}
       indicadores={indicadores}
       panelPostventa={panelPostventa}
+      panorama={panorama}
     />,
   );
 

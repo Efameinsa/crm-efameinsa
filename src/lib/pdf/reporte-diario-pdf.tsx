@@ -5,6 +5,8 @@ import type { IndicadoresDocumento } from "@/lib/indicadores-comerciales";
 import { BloqueIndicadoresPdf } from "@/lib/pdf/indicadores-pdf";
 import { PanelPostventaPdf, COLOR_LINEA } from "@/lib/pdf/panel-postventa-pdf";
 import { LINEAS, type Linea, type PanelPostventa } from "@/lib/panel-postventa";
+import { PanoramaPendientesPdf } from "@/lib/pdf/panorama-pendientes-pdf";
+import type { PanoramaPendientes } from "@/lib/panorama-pendientes";
 
 // Reporte diario de gestión del comercial. Reemplaza la agenda que hoy se
 // arma a mano en Excel y se exporta a PDF (ejemplo del ing. Carlos:
@@ -115,6 +117,8 @@ export interface ReporteDiarioProps {
    */
   /** La hoja de gráficos de postventa (Santos, 13-10). Si llega, va primero. */
   panelPostventa?: PanelPostventa;
+  /** «Lo que falta gestionar» (Santos, 13-10): su hoja, después del panel. */
+  panorama?: PanoramaPendientes;
   indicadores?: IndicadoresDocumento & {
     /** Las marcas de un botón en los chats: salen de la lista de seguimientos y van aparte. */
     marcas: { hora: string | null; cliente: string; nota: string | null }[];
@@ -175,6 +179,8 @@ export const e = StyleSheet.create({
   pie: { position: "absolute", bottom: 26, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 0.5, borderTopColor: BORDE, paddingTop: 5 },
   pieTexto: { fontSize: 6.5, color: GRIS },
 });
+
+const hoyIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
 export const TIPO: Record<string, string> = {
   llamada: "Llamada", whatsapp: "WhatsApp", email: "Correo", visita: "Visita", showroom: "Visita a planta",
@@ -274,7 +280,7 @@ export function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: str
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, fechaCorta, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
-  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa,
+  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa, panorama,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -331,6 +337,13 @@ export function ReporteDiarioPdf({
         <Page size="A4" style={e.pagina}>
           {cabecera("PANEL DEL DÍA · SU GESTIÓN")}
           <PanelPostventaPdf panel={panelPostventa} resumen={resumen} />
+          {pie}
+        </Page>
+      )}
+      {panorama && (
+        <Page size="A4" style={e.pagina}>
+          {cabecera(fechaCorta && fechaCorta < hoyIso() ? "LO QUE FALTABA GESTIONAR AL CIERRE" : "LO QUE FALTA GESTIONAR")}
+          <PanoramaPendientesPdf p={panorama} esHoy={!fechaCorta || fechaCorta >= hoyIso()} />
           {pie}
         </Page>
       )}
