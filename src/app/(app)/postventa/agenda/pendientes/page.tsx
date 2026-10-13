@@ -41,6 +41,7 @@ const PASOS: { clave: string; titulo: string; ayuda: string }[] = [
   { clave: "verificado", titulo: "Falta verificar el despacho", ayuda: "Revisar las fotos y la guía que subió el almacén." },
   { clave: "puesta", titulo: "Falta la puesta en marcha o el servicio", ayuda: "Incluye mantenimientos, revisiones y repuestos con instalación." },
   { clave: "informe", titulo: "Falta enviar el informe técnico al cliente", ayuda: "Marcar el envío en el pedido, con su constancia." },
+  { clave: "facturar", titulo: "Falta la orden a Finanzas para facturar y cobrar", ayuda: "Pedidos a crédito o con saldo: al terminar, se le pide a Finanzas que facture." },
   { clave: "listo_cerrar", titulo: "Listos para cerrar", ayuda: "Todo hecho: solo falta cerrar el pedido." },
 ];
 
