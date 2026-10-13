@@ -50,6 +50,61 @@ const CORTO: Record<string, string> = {
   cerrado: "Cerrado",
 };
 
+/**
+ * «ABIERTOS / TODOS», QUE SE VEA (Santos, 13-10: «las cifras estaban infladas,
+ * dice 63 viejas del Excel… no se ve, mejora la UI/UX»). El primer filtro salía
+ * del mismo tamaño que los chips de abajo y la explicación en letra de 11 px:
+ * nadie notaba que los números ya no estaban inflados. Ahora son dos botones
+ * grandes con su número y, aparte, un aviso de los del Excel que no suman.
+ */
+export function FiltroAbiertos({
+  ver,
+  abiertos,
+  delExcel,
+  enlace,
+  historia,
+}: {
+  ver: "abiertos" | "todos";
+  abiertos: number;
+  delExcel: number;
+  enlace: (v: "abiertos" | "todos") => string;
+  historia: string;
+}) {
+  const boton = (v: "abiertos" | "todos", titulo: string, numero: number, ayuda: string) => (
+    <Link
+      href={enlace(v)}
+      aria-current={ver === v ? "page" : undefined}
+      className={cn(
+        "flex min-w-40 flex-col rounded-lg border-2 px-4 py-2 text-left transition-colors",
+        ver === v ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground hover:bg-accent",
+      )}
+    >
+      <span className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{titulo}</span>
+      <span className="text-2xl font-bold leading-tight tabular-nums">{numero}</span>
+      <span className="text-[11px] opacity-80">{ayuda}</span>
+    </Link>
+  );
+  return (
+    <div className="flex flex-wrap items-stretch gap-2">
+      {boton("abiertos", "Abiertos", abiertos, "en curso: lo que hay que mover")}
+      {boton("todos", "Todos", abiertos + delExcel, delExcel > 0 ? `incluye ${delExcel} del Excel` : "no hay del Excel")}
+      {delExcel > 0 && (
+        <div className="flex min-w-0 max-w-xl flex-1 items-start gap-2 rounded-lg border border-amber-400/60 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+          <OctagonAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <p>
+            <b>{delExcel} pedidos del Excel de antes del CRM {ver === "abiertos" ? "no suman" : "están sumados"}.</b> Ya salieron hace más de {DIAS_HISTORIA} días o nadie
+            los movió desde que se importaron, así que no son trabajo pendiente.{" "}
+            <Link href={historia} className="font-semibold underline">
+              Ver los {delExcel}
+            </Link>
+            . Si alguno sigue pendiente de verdad, marque su paso en la ficha y vuelve a contar.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TablaPorPaso({
   filas: todas,
   falta,
@@ -106,25 +161,13 @@ export function TablaPorPaso({
         {buscado && <Link href={`${base}?vista=paso${conVer(ver)}${falta ? `&falta=${falta}` : ""}`} className="text-xs text-muted-foreground underline">Quitar búsqueda</Link>}
       </form>
       {/* El filtro principal (reunión 13-10): abiertos por defecto. */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex overflow-hidden rounded-md border border-border text-xs font-semibold">
-          <Link href={enlaceVer("abiertos")} className={cn("px-3 py-1", ver === "abiertos" && falta !== "historia" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}>
-            Abiertos · en curso ({todas.length - historia})
-          </Link>
-          <Link href={enlaceVer("todos")} className={cn("px-3 py-1", ver === "todos" || falta === "historia" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}>
-            Todos ({todas.length})
-          </Link>
-        </span>
-        {historia > 0 && (
-          <span className="text-[11px] text-muted-foreground">
-            {ver === "abiertos" && falta !== "historia" ? "No suman " : "Incluye "}
-            <Link href={`${base}?vista=paso&ver=todos&falta=historia`} className="font-medium text-foreground underline">
-              {historia} del Excel de antes del CRM
-            </Link>
-            : ya salieron hace más de {DIAS_HISTORIA} días o nadie los movió desde que se importaron. Si alguno sigue pendiente, marque su paso en la ficha y vuelve a contar.
-          </span>
-        )}
-      </div>
+      <FiltroAbiertos
+        ver={ver === "todos" || falta === "historia" ? "todos" : "abiertos"}
+        abiertos={todas.length - historia}
+        delExcel={historia}
+        enlace={enlaceVer}
+        historia={`${base}?vista=paso&ver=todos&falta=historia`}
+      />
       {/* Los pendientes por paso, de un toque. Es la pregunta de Carlos hecha botón. */}
       <div className="flex flex-wrap items-center gap-1.5">
         <Link
