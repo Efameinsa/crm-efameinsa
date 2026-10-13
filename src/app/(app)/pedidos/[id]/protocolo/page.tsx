@@ -6,7 +6,9 @@ import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { DatosHojaProtocolo } from "@/components/crm/datos-hoja-protocolo";
 import { CandadoProtocolo } from "@/components/crm/candado-protocolo";
+import { HojaChequeoProtocolo } from "@/components/crm/hoja-chequeo-protocolo";
 import { esTorre } from "@/lib/torres";
+import { cabeceraDeLaDescripcion, chequeoVacio, plantillaPara, type Chequeo } from "@/lib/protocolo-checklist";
 import { fechaCorta, fechaLarga, propuestaDeHoja, type DatosHoja, type Maquina } from "@/lib/protocolo-hoja";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +49,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
   if (!s) notFound();
   const { data: equiposData } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, serie, prueba_lista_at, prueba_lista_por, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, protocolo_datos, parte_de, parte_nombre")
+    .select("id, orden, descripcion, serie, prueba_lista_at, prueba_lista_por, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, protocolo_datos, protocolo_chequeo, parte_de, parte_nombre")
     .eq("servicio_id", id)
     .order("orden");
   const equipos = (equiposData ?? []) as {
@@ -62,6 +64,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
     protocolo_fotos: Archivo[] | null;
     protocolo_fecha: string | null;
     protocolo_datos: Record<string, DatosHoja> | null;
+    protocolo_chequeo: Record<string, Chequeo & { guardado_at?: string }> | null;
     parte_de: string | null;
     parte_nombre: string | null;
   }[];
@@ -246,6 +249,39 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
           </section>
         );
       })}
+
+      {/* La hoja de chequeo de cada máquina, al final del informe (0452; Ariana, 13-10). */}
+      {!deRepuestos &&
+        hojas.map((h) => {
+          const e = h.item;
+          const plantilla = plantillaPara(h.datos.equipo);
+          if (!e || !plantilla) return null;
+          const guardado = (e.protocolo_chequeo ?? {})[h.maquina];
+          const capacidad = (h.datos.equipo ?? "").match(/(\d+(?:\.\d+)?)\s*(KG|LB)(?![A-Z])/i);
+          const inicial: Chequeo = guardado?.plantilla
+            ? { ...chequeoVacio(plantilla.clave), ...guardado }
+            : {
+                ...chequeoVacio(plantilla.clave),
+                datos: {
+                  ...cabeceraDeLaDescripcion(e.descripcion ?? ""),
+                  ...(capacidad ? { capacidad: `${capacidad[1]} ${capacidad[2].toUpperCase() === "KG" ? "Kg" : "Lb"}` } : {}),
+                  ...(h.datos.tecnico ? { tecnico_electricista: h.datos.tecnico } : {}),
+                },
+              };
+          return (
+            <HojaChequeoProtocolo
+              key={`chequeo-${h.clave}`}
+              itemId={e.id}
+              servicioId={id}
+              maquina={h.maquina}
+              plantilla={plantilla}
+              fijos={{ cliente, modelo: h.datos.modelo, serie: h.datos.serie, fecha: h.datos.fecha_ejecucion }}
+              inicial={inicial}
+              editable={puedeEditar && !cerrada(e)}
+              guardadoAt={guardado?.guardado_at ?? null}
+            />
+          );
+        })}
 
       <style>{`
         @media print {

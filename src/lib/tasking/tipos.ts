@@ -1,4 +1,5 @@
-export type EstadoCompromiso = 'pendiente' | 'en_curso' | 'hecho' | 'anulado';
+// «pausado» (Santos 13-10): no avisa nada ni entra en la agenda ni en los reportes, hasta que se reanuda.
+export type EstadoCompromiso = 'pendiente' | 'en_curso' | 'hecho' | 'anulado' | 'pausado';
 
 export interface Persona {
   id: string;

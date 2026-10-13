@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar } from "@/lib/notificaciones";
 import type { FotoAlmacen } from "@/lib/postventa";
+import type { Chequeo } from "@/lib/protocolo-checklist";
 
 /**
  * Lo que el almacén marca del pedido (0246), en el orden en que pasa:
@@ -190,6 +191,20 @@ export async function datosDelProtocolo(
   if (error) return { error: limpiar(error.message) };
   revalidatePath(`/pedidos/${servicioId}/protocolo`);
   revalidatePath(`/almacen/pedidos/${servicioId}`);
+  return { error: null };
+}
+
+/**
+ * LA HOJA DE CHEQUEO DEL PROTOCOLO (0452; Ariana, 13-10: el papel «PROTOCOLO
+ * DE LAVADORA» con casillas para marcar desde la tablet). Va al final del
+ * informe de la máquina.
+ */
+export async function chequeoDelProtocolo(itemId: string, servicioId: string, maquina: "principal" | "secadora", chequeo: Chequeo) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("chequeo_del_protocolo", { p_item: itemId, p_maquina: maquina, p_chequeo: chequeo });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath(`/pedidos/${servicioId}/protocolo`);
   return { error: null };
 }
 

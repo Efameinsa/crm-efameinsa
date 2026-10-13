@@ -6,10 +6,10 @@ export async function personasActivas() {
   return (data ?? []) as Persona[];
 }
 
-/** Abiertos + hechos de los últimos `diasHechos` días (lo que muestra el tablero). */
-export async function compromisosTablero(o: { personaId?: string; diasHechos?: number } = {}) {
+/** Abiertos (y en pausa, si `conPausados`) + hechos de los últimos `diasHechos` días (lo que muestra el tablero). */
+export async function compromisosTablero(o: { personaId?: string; diasHechos?: number; conPausados?: boolean } = {}) {
   const desde = new Date(Date.now() - (o.diasHechos ?? 14) * 86400_000).toISOString();
-  let abiertos = db().from('compromisos').select('*').in('estado', ['pendiente', 'en_curso']);
+  let abiertos = db().from('compromisos').select('*').in('estado', o.conPausados ? ['pendiente', 'en_curso', 'pausado'] : ['pendiente', 'en_curso']);
   let hechos = db().from('compromisos').select('*').eq('estado', 'hecho').gte('hecho_en', desde);
   if (o.personaId) {
     abiertos = abiertos.eq('persona_id', o.personaId);

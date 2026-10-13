@@ -66,6 +66,7 @@ export default function TarjetaCompromiso({
   persona,
   reunion,
   puedeEditar,
+  admin,
   cambiar,
   ocupado,
 }: {
@@ -73,12 +74,15 @@ export default function TarjetaCompromiso({
   persona?: PersonaMin;
   reunion?: { titulo: string };
   puedeEditar: boolean;
+  /** Solo el administrador pausa y reanuda. */
+  admin?: boolean;
   cambiar: (id: string, e: EstadoCompromiso) => void;
   ocupado: boolean;
 }) {
   const vencido = estaVencido(c);
+  const pausado = c.estado === 'pausado';
   return (
-    <article className={`tk-tarjeta p-3.5 ${vencido ? 'border-red-200' : ''} ${ocupado ? 'opacity-60' : ''}`}>
+    <article className={`tk-tarjeta p-3.5 ${vencido ? 'border-red-200' : ''} ${pausado ? 'border-violet-200 bg-violet-50/40' : ''} ${ocupado ? 'opacity-60' : ''}`}>
       <div className="flex items-start gap-2.5">
         {persona ? <Avatar nombre={persona.nombre} id={persona.id} /> : <Avatar nombre="?" id="x" />}
         <div className="min-w-0 flex-1">
@@ -91,11 +95,22 @@ export default function TarjetaCompromiso({
             <ChipPlazo c={c} />
             {reunion && <span className="truncate text-[11px] text-slate-400">· {reunion.titulo}</span>}
           </div>
-          {puedeEditar && (
+          {pausado && <p className="mt-2 text-[11px] text-violet-700">En pausa: no se le envía nada a nadie hasta que se reanude.</p>}
+          {puedeEditar && (!pausado || admin) && (
             <div className="mt-2.5 flex flex-wrap gap-1.5">
               {c.estado === 'pendiente' && (
                 <button disabled={ocupado} onClick={() => cambiar(c.id, 'en_curso')} className="tk-btn-claro tk-btn-chico">
                   Empezar
+                </button>
+              )}
+              {pausado && (
+                <button disabled={ocupado} onClick={() => cambiar(c.id, 'pendiente')} className="tk-btn-claro tk-btn-chico" title="Vuelve a pendiente y se reprograman sus recordatorios">
+                  ▶ Reanudar
+                </button>
+              )}
+              {admin && (c.estado === 'pendiente' || c.estado === 'en_curso') && (
+                <button disabled={ocupado} onClick={() => cambiar(c.id, 'pausado')} className="tk-btn-claro tk-btn-chico" title="No se le enviará nada a nadie hasta que lo reanudes">
+                  ⏸ Pausar
                 </button>
               )}
               {c.estado !== 'hecho' && (
