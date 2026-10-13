@@ -1598,6 +1598,33 @@ export async function traerPedidoAntiguo(datos: {
  * un pedido»). Nace un pedido de servicio con la apertura ya emitida y le
  * llega a Finanzas (autoriza la guía) y al almacén, igual que la de un pedido.
  */
+export type EquipoParaApertura = { id: string; serie: string | null; modelo: string };
+
+/**
+ * Los equipos de la ficha del caso, para marcar cuáles atiende la apertura de
+ * servicio (0453, Santos 13-10). `delCaso` es el que el caso ya tenía anotado:
+ * sale marcado.
+ */
+export async function equiposParaAperturaDeCaso(atencionId: string): Promise<{ equipos: EquipoParaApertura[]; delCaso: string | null }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data: a } = await supabase.from("atenciones").select("cuenta_id, equipo_id").eq("id", atencionId).maybeSingle();
+  if (!a?.cuenta_id) return { equipos: [], delCaso: null };
+  const { data } = await supabase
+    .from("equipos_instalados")
+    .select("id, serie, modelo_texto")
+    .eq("cuenta_id", a.cuenta_id)
+    .order("modelo_texto")
+    .limit(100);
+  const equipos = ((data ?? []) as { id: string; serie: string | null; modelo_texto: string | null }[]).map((e) => ({
+    id: e.id,
+    serie: e.serie,
+    // La serie va aparte: en el texto del modelo sobra.
+    modelo: (e.modelo_texto ?? "Equipo").replace(/\s*\/?\s*Serie:\s*[^/]*/gi, "").replace(/\s*\/\s*$/, "").trim() || "Equipo",
+  }));
+  return { equipos, delCaso: (a.equipo_id as string | null) ?? null };
+}
+
 export async function abrirAperturaDesdeCaso(
   atencionId: string,
   datos: {
@@ -1627,6 +1654,8 @@ export async function abrirAperturaDesdeCaso(
     entregaModo?: "domicilio" | "agencia" | "planta";
     agencia?: string;
     agenciaDireccion?: string;
+    /** Los equipos de la ficha que atiende el técnico (0453, Santos 13-10): una fila por equipo, con su serie. */
+    equipos?: string[];
   },
 ): Promise<{ error: string | null; servicioId?: string }> {
   const perfil = await requerirPerfil();
@@ -1678,6 +1707,13 @@ export async function abrirAperturaDesdeCaso(
   if (Object.values(extras).some((v) => v !== null)) {
     const { error: e2 } = await supabase.from("servicios_postventa").update(extras).eq("id", id);
     if (e2) console.error("apertura desde caso: no se guardaron las filas de la hoja", e2.message);
+  }
+  // LOS EQUIPOS QUE ATIENDE (0453, Santos 13-10: AGROCASAGRANDE tiene dos
+  // secadoras y la hoja llevaba una sola serie). También antes de los avisos.
+  const equipos = [...new Set((datos.equipos ?? []).filter(Boolean))];
+  if (!esGarantia && equipos.length > 0) {
+    const { error: e3 } = await supabase.rpc("apertura_equipos_del_caso", { p_servicio: id, p_equipos: equipos });
+    if (e3) console.error("apertura desde caso: no se pusieron los equipos", e3.message);
   }
   const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", id).maybeSingle();
   const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
