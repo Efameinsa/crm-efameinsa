@@ -33,7 +33,13 @@ export type Plantilla = {
   titulo: string;
   /** Tipos de máquina (en mayúsculas, como en la hoja) que usan esta plantilla. */
   tipos: string[];
-  cabecera: { clave: string; etiqueta: string; ayuda?: string; tipo?: "time" }[];
+  /**
+   * La cabecera como el papel: filas de una grilla de 6 columnas, cada celda
+   * es etiqueta + valor (el valor ocupa `span` columnas). Clave con «#» = dato
+   * que ya trae el informe (#cliente, #modelo, #serie, #fecha, #protocolo);
+   * «voltaje+fases» = dos datos en la misma casilla; «vacio» deja el hueco.
+   */
+  cabecera: ({ etiqueta: string; clave: string; span: number; ayuda?: string } | { vacio: number; texto?: string })[][];
   /** Bloques con observación por renglón. */
   conObservacion: { clave: string; titulo: string; renglones: string[] }[];
   /** Funcionamiento: la misma lista en vacío y con carga. */
@@ -48,16 +54,13 @@ const LAVADORA: Plantilla = {
   titulo: "PROTOCOLO DE LAVADORA",
   tipos: ["LAVADORA"],
   cabecera: [
-    { clave: "marca", etiqueta: "Marca" },
-    { clave: "pot_kw", etiqueta: "Pot. (Kw)" },
-    { clave: "voltaje", etiqueta: "V (volt.)", ayuda: "220 V" },
-    { clave: "fases", etiqueta: "Fases", ayuda: "Monofásico / Trifásico" },
-    { clave: "frecuencia", etiqueta: "Frec. (Hz)", ayuda: "60 Hz" },
-    { clave: "corriente", etiqueta: "Corriente (Amp.)" },
-    { clave: "capacidad", etiqueta: "Cap. (Kg)", ayuda: "17 Kg" },
-    { clave: "pot_term", etiqueta: "Pot. Term. (HP)" },
-    { clave: "hora_inicio", etiqueta: "Hora de inicio", tipo: "time" },
-    { clave: "hora_final", etiqueta: "Hora final", tipo: "time" },
+    [{ etiqueta: "CLIENTE:", clave: "#cliente", span: 5 }],
+    [{ etiqueta: "MARCA:", clave: "marca", span: 2 }, { etiqueta: "N° PROTOCOLO:", clave: "#protocolo", span: 2 }],
+    [{ etiqueta: "MODELO:", clave: "#modelo", span: 2 }, { etiqueta: "N° SERIE:", clave: "#serie", span: 2 }],
+    [{ etiqueta: "FECHA:", clave: "#fecha", span: 1 }, { etiqueta: "Hora de inicio:", clave: "hora_inicio", span: 1, ayuda: "hh:mm" }, { etiqueta: "Hora final:", clave: "hora_final", span: 1, ayuda: "hh:mm" }],
+    [{ etiqueta: "Pot. (Kw):", clave: "pot_kw", span: 1 }, { etiqueta: "Corriente (Amp.):", clave: "corriente", span: 1 }, { vacio: 2 }],
+    [{ etiqueta: "V (volt.):", clave: "voltaje+fases", span: 1, ayuda: "220 V" }, { etiqueta: "Cap. (Kg):", clave: "capacidad", span: 1, ayuda: "17 Kg" }, { vacio: 2 }],
+    [{ etiqueta: "Frec. (Hz):", clave: "frecuencia", span: 1, ayuda: "60 Hz" }, { etiqueta: "Pot. Term. (HP):", clave: "pot_term", span: 1 }, { vacio: 2, texto: "RESULTADOS" }],
   ],
   conObservacion: [
     { clave: "estructura", titulo: "ESTRUCTURA", renglones: ["Dimensiones", "Presentación de forros", "Ajuste de niplería", "Presentación de niplería"] },

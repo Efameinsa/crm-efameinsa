@@ -215,6 +215,7 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
             emitidoApertura={(emisor as { nombre: string } | null)?.nombre ?? null}
             aperturas={aperturas}
             equiposTexto={equiposTexto}
+            equiposLista={listaEquipos.filter((e) => !e.parte_de).map((e) => ({ equipoId: e.equipo_id, serie: e.serie, descripcion: e.descripcion }))}
           />
         </div>
         <aside className="space-y-4">

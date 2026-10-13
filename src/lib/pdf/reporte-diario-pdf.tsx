@@ -3,6 +3,10 @@ import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/render
 import type { ProyeccionSemana } from "@/lib/potenciales-semana";
 import type { IndicadoresDocumento } from "@/lib/indicadores-comerciales";
 import { BloqueIndicadoresPdf } from "@/lib/pdf/indicadores-pdf";
+import { PanelPostventaPdf, COLOR_LINEA } from "@/lib/pdf/panel-postventa-pdf";
+import { LINEAS, type Linea, type PanelPostventa } from "@/lib/panel-postventa";
+import { PanoramaPendientesPdf } from "@/lib/pdf/panorama-pendientes-pdf";
+import type { PanoramaPendientes } from "@/lib/panorama-pendientes";
 
 // Reporte diario de gestión del comercial. Reemplaza la agenda que hoy se
 // arma a mano en Excel y se exporta a PDF (ejemplo del ing. Carlos:
@@ -58,6 +62,8 @@ export interface ReporteDiarioProps {
     nota: string | null;
     resultado: string | null;
     efectivo: boolean;
+    /** Postventa (13-10): la línea del expediente, para agrupar la sección 1. */
+    linea?: Linea;
   }[];
   /** `estado_texto` lo trae postventa (12-10): «En gerencia», «Observado por gerencia»… */
   cotizaciones: { codigo: string | null; cliente: string; total: number; moneda: string; enviada: boolean; aprobacion: string; estado_texto?: string }[];
@@ -109,6 +115,10 @@ export interface ReporteDiarioProps {
    * dos puntos tienen que estar en su reporte diario»). Opcional: si no se
    * pudo calcular, el reporte sale igual.
    */
+  /** La hoja de gráficos de postventa (Santos, 13-10). Si llega, va primero. */
+  panelPostventa?: PanelPostventa;
+  /** «Lo que falta gestionar» (Santos, 13-10): su hoja, después del panel. */
+  panorama?: PanoramaPendientes;
   indicadores?: IndicadoresDocumento & {
     /** Las marcas de un botón en los chats: salen de la lista de seguimientos y van aparte. */
     marcas: { hora: string | null; cliente: string; nota: string | null }[];
@@ -169,6 +179,8 @@ export const e = StyleSheet.create({
   pie: { position: "absolute", bottom: 26, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 0.5, borderTopColor: BORDE, paddingTop: 5 },
   pieTexto: { fontSize: 6.5, color: GRIS },
 });
+
+const hoyIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 
 export const TIPO: Record<string, string> = {
   llamada: "Llamada", whatsapp: "WhatsApp", email: "Correo", visita: "Visita", showroom: "Visita a planta",
@@ -268,28 +280,75 @@ export function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: str
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, fechaCorta, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
-  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores,
+  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa, panorama,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
     : 0;
   const cumple = resumen.seguimientos_efectivos >= resumen.meta_seguimientos;
+  const cabecera = (titulo: string) => (
+    <View style={e.cabecera}>
+      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
+      <Image style={e.logo} src={logoBuffer} />
+      <View style={e.tituloBloque}>
+        <Text style={e.titulo}>{titulo}</Text>
+        <Text style={e.subtitulo}>{fecha}</Text>
+        <Text style={e.comercial}>
+          {comercial.codigo ? `${comercial.codigo} · ` : ""}
+          {comercial.nombre}
+        </Text>
+      </View>
+    </View>
+  );
+  // Pie fijo sin «Página X de Y»: con el número dinámico (`render`)
+  // react-pdf lo desacomodaba en reportes de varias páginas (el del
+  // viernes 09-10 de Gabriela: sin pie en 1-4 y arriba en 5-6).
+  const pie = (
+    <View style={e.pie} fixed>
+      <Text style={e.pieTexto}>Generado automáticamente por el CRM de Efameinsa</Text>
+      <Text style={e.pieTexto}>
+        {comercial.codigo ? `${comercial.codigo} · ` : ""}
+        {fechaCorta ? `${fechaCorta.slice(8, 10)}/${fechaCorta.slice(5, 7)}/${fechaCorta.slice(0, 4)}` : fecha}
+      </Text>
+    </View>
+  );
+  const filaSeguimiento = (s: ReporteDiarioProps["seguimientos"][number], i: number) => (
+    <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+      <Text style={{ width: "7%" }}>{s.hora ?? "—"}</Text>
+      <Text style={{ width: "27%", paddingRight: 6 }}>{corta(s.cliente, 70)}</Text>
+      <Text style={{ width: "10%" }}>{TIPO[s.tipo] ?? s.tipo}</Text>
+      <Text style={{ width: "17%", color: s.efectivo ? CARBON : GRIS }}>
+        {s.resultado ?? (s.efectivo ? "Contactado" : "No contestó")}
+      </Text>
+      {/* 400 y no 120: el reporte se usa para LEER la gestión, no
+          solo para contarla («no se puede ver lo que sigue»,
+          25-08). Ahora que la fila crece y la sección salta de
+          página, la nota entra completa en la práctica. */}
+      <Text style={{ width: "39%", color: GRIS }}>{corta(s.nota, 400)}</Text>
+    </View>
+  );
+  const porLinea = seguimientos.some((s) => s.linea);
 
   return (
     <Document title={`Reporte diario ${comercial.codigo ?? ""} ${fecha}`} author="CRM Efameinsa">
+      {/* POSTVENTA: la hoja de gráficos primero, para ver de una vista cómo va
+          cada gestión (Santos, 13-10); el detalle sigue en la hoja siguiente. */}
+      {panelPostventa && (
+        <Page size="A4" style={e.pagina}>
+          {cabecera("PANEL DEL DÍA · SU GESTIÓN")}
+          <PanelPostventaPdf panel={panelPostventa} resumen={resumen} />
+          {pie}
+        </Page>
+      )}
+      {panorama && (
+        <Page size="A4" style={e.pagina}>
+          {cabecera(fechaCorta && fechaCorta < hoyIso() ? "LO QUE FALTABA GESTIONAR AL CIERRE" : "LO QUE FALTA GESTIONAR")}
+          <PanoramaPendientesPdf p={panorama} esHoy={!fechaCorta || fechaCorta >= hoyIso()} />
+          {pie}
+        </Page>
+      )}
       <Page size="A4" style={e.pagina}>
-        <View style={e.cabecera}>
-          {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf, no <img> HTML */}
-          <Image style={e.logo} src={logoBuffer} />
-          <View style={e.tituloBloque}>
-            <Text style={e.titulo}>REPORTE DIARIO DE GESTIÓN</Text>
-            <Text style={e.subtitulo}>{fecha}</Text>
-            <Text style={e.comercial}>
-              {comercial.codigo ? `${comercial.codigo} · ` : ""}
-              {comercial.nombre}
-            </Text>
-          </View>
-        </View>
+        {cabecera(panelPostventa ? "REPORTE DIARIO · DETALLE" : "REPORTE DIARIO DE GESTIÓN")}
 
         {/* Avance hacia la meta: lo primero que se ve. */}
         <View style={e.metaCaja}>
@@ -386,22 +445,23 @@ export function ReporteDiarioPdf({
           </View>
           {seguimientos.length === 0 ? (
             <Text style={e.vacio}>Sin seguimientos registrados este día.</Text>
+          ) : porLinea ? (
+            // Postventa: un bloque por línea (repuestos, mantenimiento…), con su color.
+            LINEAS.map((l) => {
+              const filas = seguimientos.filter((s) => (s.linea ?? "otros") === l.clave);
+              if (filas.length === 0) return null;
+              return (
+                <View key={l.clave}>
+                  <View style={[e.subtitulo2, { flexDirection: "row", alignItems: "center" }]} minPresenceAhead={30}>
+                    <View style={{ width: 6, height: 6, borderRadius: 1, backgroundColor: COLOR_LINEA[l.clave], marginRight: 4 }} />
+                    <Text style={e.subtitulo2Texto}>{l.titulo.toUpperCase()} ({filas.length})</Text>
+                  </View>
+                  {filas.map(filaSeguimiento)}
+                </View>
+              );
+            })
           ) : (
-            seguimientos.map((s, i) => (
-              <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
-                <Text style={{ width: "7%" }}>{s.hora ?? "—"}</Text>
-                <Text style={{ width: "27%", paddingRight: 6 }}>{corta(s.cliente, 70)}</Text>
-                <Text style={{ width: "10%" }}>{TIPO[s.tipo] ?? s.tipo}</Text>
-                <Text style={{ width: "17%", color: s.efectivo ? CARBON : GRIS }}>
-                  {s.resultado ?? (s.efectivo ? "Contactado" : "No contestó")}
-                </Text>
-                {/* 400 y no 120: el reporte se usa para LEER la gestión, no
-                    solo para contarla («no se puede ver lo que sigue»,
-                    25-08). Ahora que la fila crece y la sección salta de
-                    página, la nota entra completa en la práctica. */}
-                <Text style={{ width: "39%", color: GRIS }}>{corta(s.nota, 400)}</Text>
-              </View>
-            ))
+            seguimientos.map(filaSeguimiento)
           )}
         </Seccion>
         )}
@@ -637,16 +697,7 @@ export function ReporteDiarioPdf({
           </Seccion>
         )}
 
-        {/* Pie fijo sin «Página X de Y»: con el número dinámico (`render`)
-            react-pdf lo desacomodaba en reportes de varias páginas (el del
-            viernes 09-10 de Gabriela: sin pie en 1-4 y arriba en 5-6). */}
-        <View style={e.pie} fixed>
-          <Text style={e.pieTexto}>Generado automáticamente por el CRM de Efameinsa</Text>
-          <Text style={e.pieTexto}>
-            {comercial.codigo ? `${comercial.codigo} · ` : ""}
-            {fechaCorta ? `${fechaCorta.slice(8, 10)}/${fechaCorta.slice(5, 7)}/${fechaCorta.slice(0, 4)}` : fecha}
-          </Text>
-        </View>
+        {pie}
       </Page>
     </Document>
   );

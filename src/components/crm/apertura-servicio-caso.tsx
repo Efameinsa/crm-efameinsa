@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardList, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { abrirAperturaDesdeCaso, buscarRepuestosParaGarantia } from "@/lib/acciones/postventa";
+import { abrirAperturaDesdeCaso, buscarRepuestosParaGarantia, equiposParaAperturaDeCaso, type EquipoParaApertura } from "@/lib/acciones/postventa";
 import { GUIAS_APERTURA } from "@/lib/apertura-servicio";
 import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
 
@@ -83,10 +83,29 @@ export function AperturaServicioCaso({
   const [recibeDoc, setRecibeDoc] = useState("");
   const [coordinaContabilidad, setCoordinaContabilidad] = useState("");
   const [coordinaLogistica, setCoordinaLogistica] = useState("");
+  // LOS EQUIPOS DEL CLIENTE (0453, Santos 13-10: «debe permitir jalar los
+  // equipos del cliente»). Se cargan al abrir y al cambiar de caso; el del caso
+  // sale marcado y se marcan los demás que atiende el técnico.
+  const [equiposCliente, setEquiposCliente] = useState<EquipoParaApertura[] | null>(null);
+  const [equiposElegidos, setEquiposElegidos] = useState<string[]>([]);
+  useEffect(() => {
+    if (!abierto || !atencionId) return;
+    let vivo = true;
+    equiposParaAperturaDeCaso(atencionId).then((r) => {
+      if (!vivo) return;
+      setEquiposCliente(r.equipos);
+      setEquiposElegidos(r.delCaso && r.equipos.some((e) => e.id === r.delCaso) ? [r.delCaso] : r.equipos.length === 1 ? [r.equipos[0].id] : []);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [abierto, atencionId]);
+  const alternarEquipo = (id: string) => setEquiposElegidos((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
 
   const repuestosListos = repuestos.filter((x) => x.descripcion.trim());
   const falta = [
     !atencionId && "el caso",
+    !esGarantia && (equiposCliente?.length ?? 0) > 0 && equiposElegidos.length === 0 && "los equipos que atiende",
     esGarantia && repuestosListos.length === 0 && "los repuestos",
     !fecha && "el día",
     !esGarantia && !tecnico.trim() && "el técnico",
@@ -120,6 +139,7 @@ export function AperturaServicioCaso({
         coordinaLogistica,
         destinoObservacion,
         ...(esGarantia ? { entregaModo, agencia, agenciaDireccion } : {}),
+        equipos: esGarantia ? undefined : equiposElegidos,
         repuestos: esGarantia
           ? repuestosListos.map((x) => ({ cantidad: Math.max(1, Number(x.cantidad) || 1), descripcion: x.descripcion, sku: x.sku }))
           : undefined,
@@ -218,6 +238,48 @@ export function AperturaServicioCaso({
               <option value="entrega_garantia">Entrega de repuestos por garantía</option>
             </select>
           </div>
+          {!esGarantia && equiposCliente && equiposCliente.length > 0 && (
+            <div className="grid gap-1.5 rounded-md border border-border p-3 sm:col-span-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs">
+                  Equipos que atiende <span className="text-destructive">*</span>
+                </Label>
+                {equiposCliente.length > 1 && (
+                  <button
+                    type="button"
+                    className="text-[11px] font-medium text-primary hover:underline"
+                    onClick={() => setEquiposElegidos(equiposElegidos.length === equiposCliente.length ? [] : equiposCliente.map((e) => e.id))}
+                  >
+                    {equiposElegidos.length === equiposCliente.length ? "Quitar todos" : "Marcar todos"}
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Los equipos de la ficha del cliente. Marque todos los que ve el técnico: cada uno sale en la hoja con su serie.
+              </p>
+              <div className="grid gap-1">
+                {equiposCliente.map((eq) => (
+                  <label key={eq.id} className="flex cursor-pointer items-start gap-2 rounded-md border border-border px-2 py-1.5 text-xs hover:bg-accent">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 size-3.5 accent-primary"
+                      checked={equiposElegidos.includes(eq.id)}
+                      onChange={() => alternarEquipo(eq.id)}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="font-medium">{eq.serie ? `Serie ${eq.serie}` : "Sin serie"}</span>
+                      <span className="block truncate text-muted-foreground" title={eq.modelo}>{eq.modelo}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          {!esGarantia && equiposCliente && equiposCliente.length === 0 && (
+            <p className="rounded-md border border-dashed border-border p-2 text-[11px] text-muted-foreground sm:col-span-2">
+              La ficha de este cliente no tiene equipos registrados: la hoja sale con el equipo anotado en el caso.
+            </p>
+          )}
           {esGarantia && (
             <div className="grid gap-2 rounded-md border border-border p-3 sm:col-span-2">
               <div>
