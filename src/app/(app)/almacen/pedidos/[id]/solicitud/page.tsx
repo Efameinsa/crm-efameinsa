@@ -26,6 +26,7 @@ type Unidad = {
   serie: string | null;
   sin_serie: boolean | null;
   procedencia: string | null;
+  sin_stock_motivo: string | null;
   serie_registrada_at: string | null;
   perfiles: Perfil;
 };
@@ -74,7 +75,7 @@ export default async function SolicitudDeCodigoPage({
   };
   const { data: filas } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, parte_de, parte_nombre, descripcion, serie, sin_serie, procedencia, serie_registrada_at, perfiles!pedido_equipos_serie_registrada_por_fkey(nombre, codigo_comercial)")
+    .select("id, orden, parte_de, parte_nombre, descripcion, serie, sin_serie, procedencia, sin_stock_motivo, serie_registrada_at, perfiles!pedido_equipos_serie_registrada_por_fkey(nombre, codigo_comercial)")
     .eq("servicio_id", id)
     .order("orden");
   const todas = (filas ?? []) as unknown as Unidad[];
@@ -90,6 +91,11 @@ export default async function SolicitudDeCodigoPage({
     ];
   };
   const respondidas = unidades.filter((u) => lineasDe(u).every((l) => l.fila?.serie)).length;
+  // 0464 (Lesly, 13-10): el código se da aunque la pieza no haya llegado; la hoja lo dice.
+  const sinStock = unidades.filter((u) => !u.serie || u.sin_stock_motivo).length;
+  const MOTIVO: Record<string, string> = { importacion: "por importar", compra_local: "compra local", fabricacion: "en fabricación" };
+  const stockDe = (u: Unidad) =>
+    u.serie && !u.sin_stock_motivo ? "Hay stock" : `Sin stock${u.sin_stock_motivo ? ` · ${MOTIVO[u.sin_stock_motivo] ?? u.sin_stock_motivo}` : ""}`;
   const hoy = new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima" });
   const cierre = pedido.informes_cierre;
   const titulo = respuesta ? "Respuesta del almacén · series y códigos" : "Solicitud de código al almacén";
@@ -125,6 +131,11 @@ export default async function SolicitudDeCodigoPage({
                 {respondidas === unidades.length
                   ? `Respondida: ${unidades.length} unidad${unidades.length === 1 ? "" : "es"} con serie o código`
                   : `${respondidas} de ${unidades.length} unidades respondidas · faltan ${unidades.length - respondidas}`}
+                {sinStock > 0 && (
+                  <b className="block">
+                    {sinStock === unidades.length ? (unidades.length === 1 ? "Sin stock" : "Ninguna tiene stock") : `${sinStock} de ${unidades.length} sin stock`}
+                  </b>
+                )}
               </td>
             </tr>
           )}
@@ -138,6 +149,7 @@ export default async function SolicitudDeCodigoPage({
             <th className={cabecera}>Artículo</th>
             <th className={`${cabecera} w-48`}>Serie o código</th>
             <th className={`${cabecera} w-32`}>Procedencia</th>
+            {respuesta && <th className={`${cabecera} w-28`}>Stock</th>}
             {respuesta && <th className={`${cabecera} w-48`}>Registró</th>}
           </tr>
         </thead>
@@ -171,6 +183,7 @@ export default async function SolicitudDeCodigoPage({
                 <td className={`${celda} text-[10.5px] leading-tight`}>
                   <CasillasProcedencia marcada={u.procedencia} />
                 </td>
+                {respuesta && <td className={`${celda} font-semibold`}>{stockDe(u)}</td>}
                 {respuesta && (
                   <td className={celda}>
                     {varias
