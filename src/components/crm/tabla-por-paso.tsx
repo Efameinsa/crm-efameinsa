@@ -2,6 +2,7 @@ import Link from "@/components/enlace";
 import { Check, CircleDashed, FileText, OctagonAlert } from "lucide-react";
 import { FilasPorPaso } from "@/components/crm/filas-por-paso";
 import { cn } from "@/lib/utils";
+import { debeElPaso, DIAS_HISTORIA, type FilaTabla } from "@/lib/pedidos-por-paso";
 
 /**
  * El control de pedidos visto POR PASO: una fila por pedido, una columna por
@@ -22,26 +23,9 @@ import { cn } from "@/lib/utils";
  * fila se abre en la ficha del pedido, que es donde se marca cada paso.
  */
 
-export interface PasoTabla {
-  clave: string;
-  etiqueta: string;
-  hecho: boolean;
-  cuando: string | null;
-  trabado: string | null;
-  dueno: string;
-}
-
-export interface FilaTabla {
-  id: string;
-  cliente: string;
-  cuentaId?: string | null;
-  equipo: string;
-  pasos: PasoTabla[];
-  /** Máquinas sin serie, con el motivo que marcó el almacén (null: sin motivo). 0378. */
-  sinStock?: (string | null)[];
-  /** Pagó una parte y debe el saldo (estadoPago «parcial»), confirmado o no por Finanzas. */
-  pagoParcial?: boolean;
-}
+// Los tipos y la regla de «qué debe cada pedido» viven en lib/pedidos-por-paso:
+// la agenda de postventa («Lo que falta») cuenta con la misma regla.
+export type { FilaTabla, PasoTabla } from "@/lib/pedidos-por-paso";
 
 const MOTIVOS_SIN_STOCK: { clave: string; etiqueta: string }[] = [
   { clave: "importacion", etiqueta: "por importar" },
@@ -66,10 +50,28 @@ const CORTO: Record<string, string> = {
   cerrado: "Cerrado",
 };
 
-export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: FilaTabla[]; falta: string | null; base: string; q?: string }) {
+export function TablaPorPaso({
+  filas: todas,
+  falta,
+  base,
+  q = "",
+  ver = "abiertos",
+}: {
+  filas: FilaTabla[];
+  falta: string | null;
+  base: string;
+  q?: string;
+  /** Reunión 13-10: el filtro principal. «abiertos» deja afuera la historia del Excel. */
+  ver?: "abiertos" | "todos";
+}) {
+  // EL FILTRO PRINCIPAL (Carlos, 13-10): «lo que ya está cerrado ya no debería
+  // sumarse… solamente que sume lo que está abierto». Todos los demás filtros
+  // cuentan encima de este. La historia del Excel se ve en «Todos».
+  const historia = todas.filter((f) => f.historia).length;
+  const enCurso = ver === "todos" || falta === "historia" ? todas : todas.filter((f) => !f.historia);
   // Reunión 02-10: buscar al cliente por nombre en vez de Ctrl+F.
   const buscado = q.trim().toLowerCase();
-  const filas = buscado ? todas.filter((f) => f.cliente.toLowerCase().includes(buscado) || f.equipo.toLowerCase().includes(buscado)) : todas;
+  const filas = buscado ? enCurso.filter((f) => f.cliente.toLowerCase().includes(buscado) || f.equipo.toLowerCase().includes(buscado)) : enCurso;
   // Las columnas salen de los pasos que existen en los pedidos, en su orden.
   const columnas: { clave: string; etiqueta: string }[] = [];
   for (const f of filas) for (const p of f.pasos) if (!columnas.some((c) => c.clave === p.clave)) columnas.push({ clave: p.clave, etiqueta: CORTO[p.clave] ?? p.etiqueta });
@@ -79,30 +81,20 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
   const lugar = (c: string) => (orden.includes(c) ? orden.indexOf(c) : orden.length - 1);
   columnas.sort((a, b) => lugar(a.clave) - lugar(b.clave));
 
-  // «prueba_sin_pedir» no es un paso: es la prueba pendiente que nadie le
-  // pidió al almacén (el paso sin hacer y sin el «solicitado, sin respuesta»).
-  // Reunión 23-09: la que se olvidó con Hortifrut.
-  // Reunión 02-10: «¿por qué no despachas? Porque no tienes el producto».
-  // Buzón, Ariana 13-10: «pago_parcial» tampoco es un paso: deja los pedidos
-  // con un pago parcial registrado, para ubicar a quién le falta el saldo.
-  const debe = (f: FilaTabla, clave: string): boolean =>
-    clave === "pago_parcial"
-      ? f.pagoParcial === true
-      : clave === "sin_stock"
-      ? (f.sinStock?.length ?? 0) > 0
-      : clave.startsWith("sin_stock:")
-        ? (f.sinStock ?? []).some((m) => (m ?? "sin_motivo") === clave.slice(10))
-        : clave === "prueba_sin_pedir"
-      ? f.pasos.some((p) => p.clave === "prueba" && !p.hecho && !p.trabado) && !f.pasos.some((p) => p.clave === "despacho" && p.hecho)
-      : f.pasos.some((p) => p.clave === clave && !p.hecho);
+  // Los filtros que no son pasos (prueba sin pedir, pago parcial, sin stock,
+  // historia) los resuelve debeElPaso, la misma regla que usa la agenda.
+  const debe = debeElPaso;
   const pendientesPor = (clave: string) => filas.filter((f) => debe(f, clave)).length;
   const visibles = falta ? filas.filter((f) => debe(f, falta)) : filas;
-  const enlace = (clave: string | null) => `${base}?vista=paso${clave ? `&falta=${clave}` : ""}${buscado ? `&q=${encodeURIComponent(q.trim())}` : ""}`;
+  const conVer = (v: "abiertos" | "todos") => (v === "todos" ? "&ver=todos" : "");
+  const enlace = (clave: string | null) => `${base}?vista=paso${conVer(ver)}${clave ? `&falta=${clave}` : ""}${buscado ? `&q=${encodeURIComponent(q.trim())}` : ""}`;
+  const enlaceVer = (v: "abiertos" | "todos") => `${base}?vista=paso${conVer(v)}${falta && falta !== "historia" ? `&falta=${falta}` : ""}${buscado ? `&q=${encodeURIComponent(q.trim())}` : ""}`;
 
   return (
     <div className="space-y-3">
       <form action={base} className="flex flex-wrap items-center gap-2">
         <input type="hidden" name="vista" value="paso" />
+        {ver === "todos" && <input type="hidden" name="ver" value="todos" />}
         {falta && <input type="hidden" name="falta" value={falta} />}
         <input
           name="q"
@@ -111,8 +103,28 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
           className="h-8 w-64 rounded-md border border-border bg-background px-2 text-sm"
         />
         <button type="submit" className="h-8 rounded-md border border-border px-3 text-xs font-medium hover:bg-accent">Buscar</button>
-        {buscado && <Link href={`${base}?vista=paso${falta ? `&falta=${falta}` : ""}`} className="text-xs text-muted-foreground underline">Quitar búsqueda</Link>}
+        {buscado && <Link href={`${base}?vista=paso${conVer(ver)}${falta ? `&falta=${falta}` : ""}`} className="text-xs text-muted-foreground underline">Quitar búsqueda</Link>}
       </form>
+      {/* El filtro principal (reunión 13-10): abiertos por defecto. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex overflow-hidden rounded-md border border-border text-xs font-semibold">
+          <Link href={enlaceVer("abiertos")} className={cn("px-3 py-1", ver === "abiertos" && falta !== "historia" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}>
+            Abiertos · en curso ({todas.length - historia})
+          </Link>
+          <Link href={enlaceVer("todos")} className={cn("px-3 py-1", ver === "todos" || falta === "historia" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}>
+            Todos ({todas.length})
+          </Link>
+        </span>
+        {historia > 0 && (
+          <span className="text-[11px] text-muted-foreground">
+            {ver === "abiertos" && falta !== "historia" ? "No suman " : "Incluye "}
+            <Link href={`${base}?vista=paso&ver=todos&falta=historia`} className="font-medium text-foreground underline">
+              {historia} del Excel de antes del CRM
+            </Link>
+            : ya salieron hace más de {DIAS_HISTORIA} días o nadie los movió desde que se importaron. Si alguno sigue pendiente, marque su paso en la ficha y vuelve a contar.
+          </span>
+        )}
+      </div>
       {/* Los pendientes por paso, de un toque. Es la pregunta de Carlos hecha botón. */}
       <div className="flex flex-wrap items-center gap-1.5">
         <Link
@@ -208,6 +220,18 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
               {m.etiqueta} ({pendientesPor(`sin_stock:${m.clave}`)})
             </Link>
           ))}
+        {(ver === "todos" || falta === "historia") && historia > 0 && (
+          <Link
+            href={enlace("historia")}
+            className={cn(
+              "rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors",
+              falta === "historia" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-secondary text-muted-foreground hover:bg-accent",
+            )}
+            title="Pedidos del Excel de despachos de antes del CRM que ya salieron o que nadie movió: para depurarlos"
+          >
+            Historia del Excel ({historia})
+          </Link>
+        )}
       </div>
 
       {visibles.length === 0 ? (

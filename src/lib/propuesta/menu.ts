@@ -397,9 +397,12 @@ export const SECCIONES: Record<string, Seccion> = {
   },
   "postventa/agenda": {
     titulo: "Agenda",
-    ayuda: "Despachos, atenciones y visitas a planta en un solo calendario.",
+    ayuda: "Lo que falta en cada pedido abierto, paso por paso, y el calendario de despachos, atenciones y visitas a planta.",
     pestanas: [
-      { clave: "", etiqueta: "Calendario", pagina: "postventa/agenda" },
+      // Reunión 13-10 (Carlos): la agenda arroja todo lo que está abierto del
+      // paso a paso, con cada cliente, para no buscar pedido por pedido.
+      { clave: "", etiqueta: "Lo que falta", pagina: "postventa/agenda/pendientes" },
+      { clave: "calendario", etiqueta: "Calendario", pagina: "postventa/agenda" },
       { clave: "visitas", etiqueta: "Visitas a planta", pagina: "postventa/visitas" },
     ],
   },
@@ -439,6 +442,7 @@ export const SECCIONES: Record<string, Seccion> = {
       { clave: "pedidos", etiqueta: "Pedidos", pagina: "postventa/control" },
       { clave: "llamadas", etiqueta: "Derivación de llamadas", pagina: "postventa/aperturas" },
       { clave: "agenda", etiqueta: "Agenda", pagina: "postventa/agenda" },
+      { clave: "lo-que-falta", etiqueta: "Lo que falta", pagina: "postventa/agenda/pendientes" },
       { clave: "visitas", etiqueta: "Visitas a planta", pagina: "postventa/visitas" },
       { clave: "preventivos", etiqueta: "Ruta de mantenimiento", pagina: "comercial/ruta" },
       // Lesly (29-09): «en la vista de postventa con mi usuario no puedo ver los
