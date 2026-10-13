@@ -137,7 +137,7 @@ export async function complementarFilas(supabase: SupabaseClient, filas: FilaTab
     const tanda = ids.slice(i, i + 100);
     const [{ data: ap }, { data: eq }] = await Promise.all([
       supabase.from("aperturas_llamada").select("servicio_id, informe_at, enviada_cliente_at, constancia_envio_path").in("servicio_id", tanda).is("anulada_at", null),
-      supabase.from("pedido_equipos").select("servicio_id, sin_stock_motivo").in("servicio_id", tanda).is("serie", null).is("parte_de", null),
+      supabase.from("pedido_equipos").select("servicio_id, sin_stock_motivo").in("servicio_id", tanda).or("serie.is.null,sin_stock_motivo.not.is.null").is("parte_de", null),
     ]);
     for (const x of (ap ?? []) as { servicio_id: string; informe_at: string | null; enviada_cliente_at: string | null; constancia_envio_path: string | null }[]) {
       const v = informePor.get(x.servicio_id) ?? { enviada: null, conConstancia: false, listas: 0 };

@@ -16,7 +16,7 @@ export const PASOS_QUE_FALTAN: { clave: string; titulo: string; ayuda: string }[
   { clave: "pago_parcial", titulo: "Pago parcial: falta el saldo", ayuda: "Pagaron una parte; ubicar quién debe el saldo." },
   { clave: "prueba_sin_pedir", titulo: "Prueba y embalaje sin pedir al almacén", ayuda: "Nadie le pidió todavía al almacén que lo pruebe y embale." },
   { clave: "prueba", titulo: "Falta probar y embalar", ayuda: "Lo hace el almacén; incluye los repuestos por embalar." },
-  { clave: "sin_stock", titulo: "Sin stock (máquinas sin serie)", ayuda: "Por importar, en compra local, en fabricación o sin motivo marcado." },
+  { clave: "sin_stock", titulo: "Sin stock (sin serie o marcadas sin stock)", ayuda: "Por importar, en compra local, en fabricación o sin motivo marcado." },
   { clave: "plano", titulo: "Falta enviar el plano de preinstalación", ayuda: "Va en paralelo: cuanto antes, mejor." },
   { clave: "direccion", titulo: "Falta verificar la dirección y quién recibe", ayuda: "Se llama antes de despachar." },
   { clave: "apertura", titulo: "Falta emitir la apertura", ayuda: "Sin apertura no sale nada del almacén ni el técnico." },
@@ -48,7 +48,7 @@ export type SeccionQueFalta = (typeof PASOS_QUE_FALTAN)[number] & { filas: FilaQ
 export function detalleDelPaso(clave: string, f: FilaTabla): { texto: string; tono: TonoDetalle } | null {
   if (clave === "sin_stock") {
     const motivos = (f.sinStock ?? []).map((m) => MOTIVO_SIN_STOCK[m ?? "sin_motivo"] ?? m ?? "sin motivo marcado");
-    return { texto: `${motivos.length} máquina${motivos.length === 1 ? "" : "s"} sin serie: ${[...new Set(motivos)].join(", ")}`, tono: "stock" };
+    return { texto: `${motivos.length} máquina${motivos.length === 1 ? "" : "s"} sin stock: ${[...new Set(motivos)].join(", ")}`, tono: "stock" };
   }
   if (clave === "pago_parcial") return { texto: f.pasos.find((x) => x.clave === "pago")?.etiqueta ?? "Pago parcial", tono: "pendiente" };
   if (clave === "listo_cerrar") return { texto: "Todos los pasos hechos: falta cerrarlo.", tono: "listo" };
