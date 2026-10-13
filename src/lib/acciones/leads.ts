@@ -939,7 +939,8 @@ export async function preguntarSeguimiento(
         tipo: "consulta_seguimiento",
         titulo: n === 1 ? `Central pregunta por el seguimiento de ${nombres[0]}` : `Central pregunta por el seguimiento de ${n} contactos`,
         cuerpo: `Llevan más de 7 días sin una gestión registrada: ${nombres.join(", ")}${resto}. Registre lo que hizo (llamada, WhatsApp, cotización) o cierre el expediente si ya no procede.`,
-        url: unico ? `/comercial/oportunidades/${unico}` : "/comercial/oportunidades",
+        // Con varios, a la lista con todos (buzón, Ariana 13-10: el aviso decía «y 74 más» y no había dónde verlos).
+        url: unico ? `/comercial/oportunidades/${unico}` : "/comercial/seguimiento",
       });
     }),
   );

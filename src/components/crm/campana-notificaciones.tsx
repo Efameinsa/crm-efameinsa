@@ -119,7 +119,7 @@ const ESTILO_AVISO: Record<
   // Central pregunta por derivados quietos más de 7 días (0446, buzón Central 12-10).
   consulta_seguimiento: {
     encabezado: "Central pregunta por su seguimiento",
-    accion: "Ver mis expedientes",
+    accion: "Ver la lista",
     duracion: 14000,
     tono: "warning",
   },
