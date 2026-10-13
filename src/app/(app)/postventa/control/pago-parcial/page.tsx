@@ -44,8 +44,8 @@ export default async function InformePagoParcialPage() {
 
       <h1 className="text-center text-base font-bold uppercase">Clientes con pago parcial</h1>
       <p className="mt-1 text-center text-[11px]">
-        Al {fechaHoy} · {filas.length} pedido{filas.length === 1 ? "" : "s"} en curso de {empresas} cliente{empresas === 1 ? "" : "s"} que
-        pagaron una parte y deben el saldo · Preparado por {perfil.nombre}
+        Al {fechaHoy} · {filas.length} pedido{filas.length === 1 ? "" : "s"} en curso de {empresas} cliente{empresas === 1 ? "" : "s"} con
+        saldo por cobrar (pagaron una parte o aún no tienen abono registrado) · Preparado por {perfil.nombre}
       </p>
 
       {filas.length === 0 ? (
