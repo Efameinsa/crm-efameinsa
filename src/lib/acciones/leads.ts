@@ -938,7 +938,7 @@ export async function preguntarSeguimiento(
         userId: g.comercial_id,
         tipo: "consulta_seguimiento",
         titulo: n === 1 ? `Central pregunta por el seguimiento de ${nombres[0]}` : `Central pregunta por el seguimiento de ${n} contactos`,
-        cuerpo: `Llevan más de 7 días sin una gestión registrada: ${nombres.join(", ")}${resto}. Registre lo que hizo (llamada, WhatsApp, cotización) o cierre el expediente si ya no procede.`,
+        cuerpo: `Llevan más de 7 días sin una gestión registrada: ${nombres.join(", ")}${resto}. Registre lo que hizo (llamada, WhatsApp, cotización) con su próxima acción; si es compra a futuro, déjela agendada para la fecha en que lo retomará. Ciérrelo solo si ya no procede.`,
         // Con varios, a la lista con todos (buzón, Ariana 13-10: el aviso decía «y 74 más» y no había dónde verlos).
         url: unico ? `/comercial/oportunidades/${unico}` : "/comercial/seguimiento",
       });

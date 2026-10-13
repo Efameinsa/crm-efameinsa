@@ -238,9 +238,12 @@ function clasificar(
   const etapa = fila.oportunidad?.etapa;
   if (etapa === "venta" || etapa === "rechazada" || etapa === "derivada") return { foco: "cerrado", alerta: null };
 
-  const diasQuieto = horasDesde(fila.ultimaGestion?.fecha ?? null, ahora) / 24;
+  // Con la próxima acción agendada de hoy en adelante no está quieto: espera
+  // la fecha. Buzón, Brenda 13-10: «Compra a futuro» el 05-10 con «Volver a
+  // llamar» el 01-01 y a Central igual le salía para preguntar por él.
+  const frio = horasDesde(fila.ultimaGestion?.fecha ?? null, ahora) / 24 > DIAS_SIN_MOVER && !agendadoAFuturo(fila, ahora);
   if (fila.cotizaciones.length > 0)
-    return { foco: "cotizado", alerta: diasQuieto > DIAS_SIN_MOVER ? "frio" : null };
+    return { foco: "cotizado", alerta: frio ? "frio" : null };
 
   if (fila.gestiones === 0)
     return {
@@ -248,7 +251,18 @@ function clasificar(
       alerta: horasDesde(fila.asignadoAt, ahora) > HORAS_SIN_ATENDER ? "demora" : null,
     };
 
-  return { foco: "en_gestion", alerta: diasQuieto > DIAS_SIN_MOVER ? "frio" : null };
+  return { foco: "en_gestion", alerta: frio ? "frio" : null };
+}
+
+/** 'YYYY-MM-DD' en Lima (UTC-5, sin horario de verano). */
+function fechaLimaDe(ms: number): string {
+  return new Date(ms - 5 * 3_600_000).toISOString().slice(0, 10);
+}
+
+/** El comercial dejó la próxima acción para hoy o más adelante (compra a futuro, volver a llamar…). */
+export function agendadoAFuturo(fila: Pick<DerivadoFila, "oportunidad">, ahora = Date.now()): boolean {
+  const f = fila.oportunidad?.proxima_accion_at;
+  return !!f && f.slice(0, 10) >= fechaLimaDe(ahora);
 }
 
 /**
