@@ -25,8 +25,8 @@ import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { demora, ETIQUETA_CANAL, ETIQUETA_MOTIVO } from "@/lib/derivados-central";
 import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import {
-  ETIQUETA_TIPO_ATENCION,
   PISTA_DE_TIPO,
+  tituloDelTipo,
   faltaLaMaquina,
   relojAtencion,
   type Atencion,
@@ -50,7 +50,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   const { data } = await supabase
     .from("atenciones")
     .select(
-      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, seguimiento_nota, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, etapas_omitidas, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, servicio_id, servicios_postventa(id, equipo, despachado_at, fecha_despacho, puesta_en_marcha), cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial), recibido_por, recibidoPor:recibido_por(nombre, codigo_comercial)",
+      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, tipo_detalle, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, seguimiento_nota, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, etapas_omitidas, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, servicio_id, servicios_postventa(id, equipo, despachado_at, fecha_despacho, puesta_en_marcha), cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial), recibido_por, recibidoPor:recibido_por(nombre, codigo_comercial)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -260,11 +260,11 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <Wrench className="size-3.5" />
-                {ETIQUETA_TIPO_ATENCION[a.tipo]}
+                {tituloDelTipo(a.tipo, a.tipo_detalle)}
                 <span className="rounded-full bg-secondary px-1.5 text-[10px] font-semibold">
                   pista {PISTA_DE_TIPO[a.tipo]}
                 </span>
-                <CambiarTipoAtencion atencionId={a.id} tipo={a.tipo} cerrada={Boolean(a.cerrado_at)} />
+                <CambiarTipoAtencion atencionId={a.id} tipo={a.tipo} detalle={a.tipo_detalle} cerrada={Boolean(a.cerrado_at)} />
               </span>
               {/* LA PUESTA EN MARCHA ES DEL PEDIDO (Carlos, 15-09; 0244): «tiene que
                   ser relacionado con el cliente máster». Se engancha sola al
@@ -375,7 +375,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
                     Ver su apertura de servicio
                   </Link>
                 ) : (
-                  <AperturaServicioCaso atencionId={a.id} enGarantia={Boolean(a.en_garantia)} tecnicoSugerido={a.tecnico} />
+                  <AperturaServicioCaso atencionId={a.id} enGarantia={Boolean(a.en_garantia)} tecnicoSugerido={a.tecnico} tipoCaso={a.tipo} tipoDetalle={a.tipo_detalle} />
                 )}
                 <AperturaLlamadaBoton
                   cuentaId={a.cuenta_id}

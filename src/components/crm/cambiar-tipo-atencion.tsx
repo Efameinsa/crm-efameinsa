@@ -30,7 +30,17 @@ import {
  * acomoda el caso al cambiar; por eso ya no hace falta limitarlo a antes de
  * planificar. Soporte técnico entra como un tipo más.
  */
-const TIPOS: TipoAtencion[] = ["problema_tecnico", "soporte_tecnico", "puesta_en_marcha", "solicitud_mantenimiento", "solicitud_repuesto"];
+// Reunión de postventa 13-10 (0456): revisión por garantía, refuerzo de capacitación y «Otro».
+const TIPOS: TipoAtencion[] = [
+  "problema_tecnico",
+  "soporte_tecnico",
+  "puesta_en_marcha",
+  "revision_garantia",
+  "capacitacion",
+  "solicitud_mantenimiento",
+  "solicitud_repuesto",
+  "otro",
+];
 
 /** Lo que cambia en el circuito, en una frase, para el aviso. */
 function resumenDelCircuito(tipo: TipoAtencion): string {
@@ -47,29 +57,74 @@ function resumenDelCircuito(tipo: TipoAtencion): string {
 export function CambiarTipoAtencion({
   atencionId,
   tipo,
+  detalle = null,
   cerrada = false,
+  rotulo = "En realidad es otra cosa…",
 }: {
   atencionId: string;
   tipo: string;
+  /** El texto actual de «Otro». */
+  detalle?: string | null;
   /** Una atención cerrada ya no cambia de tipo. */
   cerrada?: boolean;
+  rotulo?: string;
 }) {
   const router = useRouter();
   const [enviando, startTransition] = useTransition();
   const [abierto, setAbierto] = useState(false);
+  // «Otro» pide el texto antes de cambiar: es el título del caso.
+  const [escribiendoOtro, setEscribiendoOtro] = useState(false);
+  const [textoOtro, setTextoOtro] = useState(detalle ?? "");
   if (cerrada) return null;
 
   function cambiar(otro: TipoAtencion) {
+    if (otro === "otro" && !textoOtro.trim()) {
+      setEscribiendoOtro(true);
+      return;
+    }
     startTransition(async () => {
-      const r = await cambiarTipoAtencion({ atencionId, tipo: otro });
+      const r = await cambiarTipoAtencion({ atencionId, tipo: otro, detalle: otro === "otro" ? textoOtro : null });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
       }
       toast.success(`Queda como ${ETIQUETA_TIPO_ATENCION[otro].toLowerCase()}: ${resumenDelCircuito(otro)}.`, { duration: 7000 });
       setAbierto(false);
+      setEscribiendoOtro(false);
       router.refresh();
     });
+  }
+
+  if (abierto && escribiendoOtro) {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1">
+        <input
+          autoFocus
+          value={textoOtro}
+          onChange={(e) => setTextoOtro(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (textoOtro.trim()) cambiar("otro");
+            }
+          }}
+          maxLength={120}
+          placeholder="¿Qué es? (el título del caso)"
+          className="h-6 w-56 rounded-md border border-border bg-background px-2 text-[11px] outline-none"
+        />
+        <button
+          type="button"
+          disabled={enviando || !textoOtro.trim()}
+          onClick={() => cambiar("otro")}
+          className="rounded-full border border-primary px-2 py-0.5 text-[11px] font-medium text-primary disabled:opacity-50"
+        >
+          {enviando ? "Cambiando…" : "Guardar"}
+        </button>
+        <button type="button" onClick={() => setEscribiendoOtro(false)} className="text-[11px] text-muted-foreground hover:underline">
+          Volver
+        </button>
+      </span>
+    );
   }
 
   if (!abierto) {
@@ -82,14 +137,14 @@ export function CambiarTipoAtencion({
         title="Central lo registró con este tipo; si el cliente pidió otra cosa, corríjalo acá y el circuito cambia con él"
       >
         <ArrowLeftRight className="size-3" />
-        En realidad es otra cosa…
+        {rotulo}
       </button>
     );
   }
 
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
-      {TIPOS.filter((t) => t !== tipo).map((valor) => (
+      {TIPOS.filter((t) => t !== tipo || t === "otro").map((valor) => (
         <button
           key={valor}
           type="button"
@@ -98,7 +153,7 @@ export function CambiarTipoAtencion({
           title={`${AYUDA_TIPO_ATENCION[valor]} · ${resumenDelCircuito(valor)}`}
           className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-foreground hover:border-primary hover:text-primary disabled:opacity-50"
         >
-          {enviando ? "Cambiando…" : ETIQUETA_TIPO_ATENCION[valor]}
+          {enviando ? "Cambiando…" : valor === "otro" && tipo === "otro" ? "Corregir el texto de «Otro»" : ETIQUETA_TIPO_ATENCION[valor]}
         </button>
       ))}
       <button type="button" onClick={() => setAbierto(false)} className="text-[11px] text-muted-foreground hover:underline">

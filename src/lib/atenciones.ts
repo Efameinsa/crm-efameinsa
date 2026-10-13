@@ -32,7 +32,14 @@ export type TipoAtencion =
    *  (reunión 28-09: «en soporte técnico está bien todo el circuito»). */
   | "soporte_tecnico"
   | "solicitud_repuesto"
-  | "solicitud_mantenimiento";
+  | "solicitud_mantenimiento"
+  /** Reunión de postventa 13-10 (0456): «primero el tipo, después el texto».
+   *  La revisión por garantía y «otro» son casos técnicos con el circuito
+   *  completo; la capacitación, un soporte. «Otro» lleva su texto en
+   *  `tipo_detalle`, que sale como título del caso. */
+  | "revision_garantia"
+  | "capacitacion"
+  | "otro";
 export type ClasificacionAtencion = "garantia" | "preventivo" | "correctivo" | "facturable" | "revision";
 
 /**
@@ -124,7 +131,19 @@ export const ETIQUETA_TIPO_ATENCION: Record<TipoAtencion, string> = {
   soporte_tecnico: "Soporte técnico",
   solicitud_repuesto: "Repuesto",
   solicitud_mantenimiento: "Mantenimiento",
+  revision_garantia: "Revisión por garantía",
+  capacitacion: "Refuerzo de capacitación",
+  otro: "Otro",
 };
+
+/**
+ * EL TÍTULO DEL CASO (reunión 13-10): el tipo, y si es «Otro», el texto que se
+ * escribió («Otro · Cambio de voltaje»).
+ */
+export function tituloDelTipo(tipo: TipoAtencion | string, detalle?: string | null): string {
+  const base = ETIQUETA_TIPO_ATENCION[tipo as TipoAtencion] ?? String(tipo);
+  return tipo === "otro" && detalle?.trim() ? `Otro · ${detalle.trim()}` : base;
+}
 
 /** Una línea por tipo, para quien elige o reclasifica sin saberse el vocabulario. */
 export const AYUDA_TIPO_ATENCION: Record<TipoAtencion, string> = {
@@ -133,6 +152,9 @@ export const AYUDA_TIPO_ATENCION: Record<TipoAtencion, string> = {
   soporte_tecnico: "orientar, capacitar o asistir sin avería",
   solicitud_repuesto: "pide una pieza",
   solicitud_mantenimiento: "preventivo o correctivo",
+  revision_garantia: "revisar una máquina que está en garantía",
+  capacitacion: "volver a enseñarle al personal del cliente a usar la máquina",
+  otro: "ninguno de los anteriores: se escribe qué es",
 };
 
 /**
@@ -147,6 +169,9 @@ export const PISTA_DE_TIPO: Record<TipoAtencion, "tecnica" | "comercial"> = {
   soporte_tecnico: "tecnica",
   solicitud_repuesto: "comercial",
   solicitud_mantenimiento: "comercial",
+  revision_garantia: "tecnica",
+  capacitacion: "tecnica",
+  otro: "tecnica",
 };
 
 /**
@@ -195,6 +220,9 @@ export const CIRCUITO_POR_TIPO: Record<TipoAtencion, Record<EtapaAtencion, Regla
   solicitud_mantenimiento: COMPLETO,
   puesta_en_marcha: { ...COMPLETO, diagnostico: "opcional", atencion: "opcional" },
   solicitud_repuesto: { ...COMPLETO, diagnostico: "opcional", pruebas: "no_corresponde", conformidad: "no_corresponde" },
+  revision_garantia: COMPLETO,
+  capacitacion: COMPLETO,
+  otro: COMPLETO,
 };
 
 /** La regla de una etapa en el circuito del tipo. Un tipo desconocido lleva el circuito completo. */
@@ -270,6 +298,8 @@ export const COLOR_CLASIFICACION: Record<ClasificacionAtencion, string> = {
 export interface Atencion {
   id: string;
   cuenta_id: string | null;
+  /** El texto del tipo «Otro» (0456). */
+  tipo_detalle?: string | null;
   equipo_id: string | null;
   cliente_texto: string | null;
   equipo_texto: string | null;
@@ -418,6 +448,10 @@ const HORAS_LIMITE: Record<TipoAtencion, number> = {
   puesta_en_marcha: 24,
   solicitud_repuesto: 24,
   solicitud_mantenimiento: 24,
+  // Una máquina en garantía que falla es un equipo parado.
+  revision_garantia: 2,
+  capacitacion: 24,
+  otro: 24,
 };
 
 export function relojAtencion(a: Atencion): { estado: "verde" | "ambar" | "rojo"; horas: number; limite: number } {

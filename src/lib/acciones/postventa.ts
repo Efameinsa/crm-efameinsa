@@ -1370,7 +1370,10 @@ export async function guardarAperturaServicio(
   const supabase = await createClient();
 
   const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
-  if (datos.tipo && !["entrega", "entrega_puesta_marcha", "puesta_marcha", "mantenimiento", "entrega_garantia"].includes(datos.tipo)) {
+  if (
+    datos.tipo &&
+    !["entrega", "entrega_puesta_marcha", "puesta_marcha", "mantenimiento", "entrega_garantia", "servicio_tecnico", "revision_garantia", "capacitacion"].includes(datos.tipo)
+  ) {
     return falla("Ese no es uno de los formatos de apertura");
   }
   if (datos.guia && !["traslado", "materiales", "repuestos", "ambas"].includes(datos.guia)) {
@@ -1382,7 +1385,7 @@ export async function guardarAperturaServicio(
   // Con la apertura emitida, lo que cambie de esto va a Finanzas y al almacén (0406).
   const { data: antes } = await supabase
     .from("servicios_postventa")
-    .select("apertura_despacho_at, apertura_fecha, apertura_hora, direccion_final, destino_nota, apertura_obs_filas, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa")
+    .select("apertura_despacho_at, apertura_tipo, apertura_fecha, apertura_hora, direccion_final, destino_nota, apertura_obs_filas, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa")
     .eq("id", servicioId)
     .maybeSingle();
   const mismasObs = (a: Record<string, string> | null, b: Record<string, string> | null) =>
@@ -1391,6 +1394,8 @@ export async function guardarAperturaServicio(
   const cambios = antes?.apertura_despacho_at
     ? (
         [
+          // Corregir el encabezado (lo que hace el técnico) también se avisa (reunión 13-10).
+          ["el encabezado (lo que hace el técnico)", antes.apertura_tipo, datos.tipo],
           ["la fecha", antes.apertura_fecha, datos.fecha],
           ["la hora", String(antes.apertura_hora ?? "").slice(0, 5), (datos.hora ?? "").slice(0, 5)],
           ["la dirección final", antes.direccion_final, datos.direccionFinal],
@@ -1646,7 +1651,7 @@ export async function abrirAperturaDesdeCaso(
   atencionId: string,
   datos: {
     tipoPedido: "garantia" | "revision" | "mantenimiento";
-    formato: "mantenimiento" | "puesta_marcha" | "entrega_garantia";
+    formato: "mantenimiento" | "puesta_marcha" | "entrega_garantia" | "servicio_tecnico" | "revision_garantia" | "capacitacion";
     fecha: string;
     hora: string;
     tecnico: string;

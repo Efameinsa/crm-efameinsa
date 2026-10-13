@@ -829,9 +829,15 @@ export async function avisarVentaDeLaAtencion(datos: {
 export async function cambiarTipoAtencion(datos: {
   atencionId: string;
   tipo: TipoAtencion;
+  /** El texto de «Otro» (0457): es el título del caso. */
+  detalle?: string | null;
 }): Promise<{ error: string | null }> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("cambiar_tipo_atencion", { p_atencion: datos.atencionId, p_tipo: datos.tipo });
+  const { error } = await supabase.rpc("cambiar_tipo_atencion", {
+    p_atencion: datos.atencionId,
+    p_tipo: datos.tipo,
+    p_detalle: datos.detalle?.trim() || null,
+  });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
   refrescar(datos.atencionId);
   return { error: null };
