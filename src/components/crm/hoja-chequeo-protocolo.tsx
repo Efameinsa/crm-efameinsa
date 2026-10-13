@@ -299,8 +299,8 @@ export function HojaChequeoProtocolo({
             {(["vacio", "carga"] as const).map((modo) => (
               <Fragment key={modo}>
                 <td className={`${td} titulo-prog py-2 font-bold`}>{modo === "vacio" ? "PROGRAMACIÓN EN VACIO (CARGA 0)" : "PROGRAMACIÓN CON CARGA"}</td>
-                <td className={`${td} px-0 text-center text-[10px] font-bold print:text-[inherit]`}>CANT.</td>
-                <td className={`${td} px-0 text-center text-[10px] font-bold print:text-[inherit]`}>MIN.</td>
+                <td className={`${td} px-0 text-center text-[10px] font-bold print:text-[8.5px]`}>CANT.</td>
+                <td className={`${td} px-0 text-center text-[10px] font-bold print:text-[8.5px]`}>MIN.</td>
               </Fragment>
             ))}
           </tr>
