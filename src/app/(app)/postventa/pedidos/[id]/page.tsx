@@ -214,6 +214,8 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
   const contacto = informe?.contacto_despacho as { nombre?: string; telefono?: string } | null;
   const telefono = contacto?.telefono?.replace(/\D/g, "");
 
+  // La máquina probada ya está guardada: sumarle archivos pide el código de Lesly (0450).
+  const { data: candadoProtocolo } = await supabase.rpc("protocolo_con_candado", { p_servicio: id });
   return (
     <div className="space-y-4">
       <Link
@@ -416,7 +418,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
         <div className="space-y-4">
           {/* Todos los informes del pedido, cada uno abre su detalle (reunión 28-09). */}
           <InformesDelPedido servicio={servicio} equiposTexto={equiposTexto} />
-          <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={(servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")} />
+          <EquiposDelPedido candado={candadoProtocolo === true} servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={(servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")} />
           {/* Lo que subió el almacén: protocolo, salida, guía (0246). */}
           {galeriaAlmacen.length > 0 && (
             <div id="fotos-almacen" className="scroll-mt-4">

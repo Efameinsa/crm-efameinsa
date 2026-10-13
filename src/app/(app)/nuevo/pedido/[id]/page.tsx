@@ -107,6 +107,8 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
     ? `${servicio.recibe_nombre}${servicio.recibe_telefono ? ` · ${servicio.recibe_telefono}` : ""}`
     : recibe;
 
+  // La máquina probada ya está guardada: sumarle archivos pide el código de Lesly (0450).
+  const { data: candadoProtocolo } = await supabase.rpc("protocolo_con_candado", { p_servicio: id });
   return (
     <div className="space-y-4">
       <Link href="/nuevo/pedidos" className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground">
@@ -243,7 +245,7 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
             </p>
             {servicio.fecha_confirmacion && <p className="mt-1 text-xs text-muted-foreground">Venta del {fechaCalendario(servicio.fecha_confirmacion)}</p>}
           </div>
-          <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={cliente} />
+          <EquiposDelPedido candado={candadoProtocolo === true} servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={cliente} />
           {exp.galeria.length > 0 && <GaleriaAlmacen fotos={exp.galeria} />}
           <DocumentosExpedientePedido
             adjuntos={exp.adjuntos}

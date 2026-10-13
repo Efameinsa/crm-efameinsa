@@ -5,6 +5,7 @@ import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { DatosHojaProtocolo } from "@/components/crm/datos-hoja-protocolo";
+import { CandadoProtocolo } from "@/components/crm/candado-protocolo";
 import { esTorre } from "@/lib/torres";
 import { fechaCorta, fechaLarga, propuestaDeHoja, type DatosHoja, type Maquina } from "@/lib/protocolo-hoja";
 
@@ -39,7 +40,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
   const { data: s } = await supabase
     .from("servicios_postventa")
     .select(
-      "id, cliente_texto, numero_pedido_erp, tipo_pedido, prueba_embalaje, prueba_solicitada_at, prueba_lista_at, prueba_lista_por, protocolo_prueba_ref, protocolo_fotos, informes_cierre!servicios_postventa_informe_cierre_id_fkey(codigo, serie)",
+      "id, cliente_texto, numero_pedido_erp, tipo_pedido, prueba_embalaje, prueba_solicitada_at, prueba_lista_at, prueba_lista_por, protocolo_prueba_ref, protocolo_fotos, protocolo_abierto_hasta, informes_cierre!servicios_postventa_informe_cierre_id_fkey(codigo, serie)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -85,6 +86,10 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
   // Quién puede completar la hoja: los mismos que suben sus archivos (0416, 0417).
   const permisos = await Promise.all(["es_almacen", "puede_postventa", "es_backoffice", "es_operaciones"].map((f) => supabase.rpc(f)));
   const puedeEditar = permisos.some((r) => r.data === true);
+  // La máquina ya probada y embalada queda guardada: corregirla pide el código de Lesly (0450).
+  const { data: conCandado } = puedeEditar ? await supabase.rpc("protocolo_con_candado", { p_servicio: id }) : { data: false };
+  const abiertoConCodigo = Boolean(s.protocolo_abierto_hasta && new Date(s.protocolo_abierto_hasta) > new Date());
+  const cerrada = (e: { prueba_lista_at: string | null }) => conCandado === true && Boolean(e.prueba_lista_at);
   // Borrador: alguna máquina sin marcar como probada (Ariana, 07-10: revisar el informe antes de finalizar).
   const borrador = equipos.length > 0 ? equipos.some((e) => !e.prueba_lista_at) : !s.prueba_lista_at;
   const hoy = diaLima(new Date().toISOString())!;
@@ -162,6 +167,9 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
           Borrador · falta marcar {equipos.filter((e) => !e.prueba_lista_at).length > 1 ? "las máquinas" : "la máquina"} como probada y embalada
         </p>
       )}
+      {puedeEditar && (equipos.some(cerrada) || (abiertoConCodigo && equipos.some((e) => e.prueba_lista_at))) && (
+        <CandadoProtocolo servicioId={id} abiertoHasta={s.protocolo_abierto_hasta} />
+      )}
       {hojas.length > 1 && (
         <p className="no-imprimir mb-3 text-[11px] text-neutral-600">
           {hojas.length} hojas, una por {deRepuestos ? "repuesto" : "máquina"}, como el formato de protocolo de siempre. Al imprimir, cada una sale en su página.
@@ -198,7 +206,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
               ))}
             </div>
 
-            {e && puedeEditar && <DatosHojaProtocolo itemId={e.id} servicioId={id} maquina={h.maquina} valores={h.datos} faltan={h.faltan} repuesto={deRepuestos} />}
+            {e && puedeEditar && !cerrada(e) && <DatosHojaProtocolo itemId={e.id} servicioId={id} maquina={h.maquina} valores={h.datos} faltan={h.faltan} repuesto={deRepuestos} />}
 
             {h.maquina === "principal" && e?.protocolo_nota && (
               <p className="mt-3 text-[12px]">

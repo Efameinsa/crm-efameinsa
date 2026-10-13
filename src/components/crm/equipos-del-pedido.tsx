@@ -50,6 +50,7 @@ export function EquiposDelPedido({
   despachado,
   cliente,
   enlaceEquipo = "/postventa/equipos",
+  candado = false,
 }: {
   servicioId: string;
   equipos: EquipoDelPedido[];
@@ -63,6 +64,8 @@ export function EquiposDelPedido({
   cliente: string;
   /** null: la serie va sin enlace (Central no entra a la ficha de la máquina). */
   enlaceEquipo?: string | null;
+  /** La máquina probada ya está guardada: sumarle archivos pide el código de Lesly en el informe (0450). */
+  candado?: boolean;
 }) {
   // La secadora de una torre (0359) va dentro de su unidad, no es otro equipo.
   const equipos = todos.filter((e) => !e.parte_de);
@@ -148,6 +151,7 @@ export function EquiposDelPedido({
               enlaceEquipo={enlaceEquipo}
               unidad={{ k: grupo.indexOf(e) + 1, n: grupo.length, sinCodigo: grupo.filter((x) => !x.serie).length }}
               partes={partesDe(e.id)}
+              candado={candado}
             />
           );
         })}
@@ -165,6 +169,7 @@ function Fila({
   enlaceEquipo,
   unidad,
   partes,
+  candado,
 }: {
   e: EquipoDelPedido;
   servicioId: string;
@@ -176,6 +181,7 @@ function Fila({
   unidad: { k: number; n: number; sinCodigo: number };
   /** Las otras máquinas de esta unidad, cada una con su serie (torre: la secadora; 0359). */
   partes: EquipoDelPedido[];
+  candado: boolean;
 }) {
   const router = useRouter();
   const [abrirParte, setAbrirParte] = useState(false);
@@ -432,7 +438,7 @@ function Fila({
               )}
               {puedeSubirFotos && <BotonAgregarFotos archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} />}
               {e.prueba_lista_at && p.protocolo_ref && <span className="text-muted-foreground">· protocolo {p.protocolo_ref}</span>}
-              {modo !== "central" && <ArchivosDeParte p={p} servicioId={servicioId} probada={Boolean(e.prueba_lista_at)} />}
+              {modo !== "central" && <ArchivosDeParte p={p} servicioId={servicioId} probada={Boolean(e.prueba_lista_at)} candado={candado} />}
             </div>
           ))}
           {/* La secadora de la torre sin serie todavía: su renglón igual se ve (Rubí, 06-10). */}
@@ -732,7 +738,9 @@ function Fila({
               ))}
             </ul>
           )}
-          {e.prueba_lista_at &&
+          {e.prueba_lista_at && candado ? (
+            <ConCodigoEnElInforme servicioId={servicioId} />
+          ) : e.prueba_lista_at &&
             (sumando ? (
               <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
                 <TomarOSubirVarias titulo="Más fotos de esta máquina" archivos={fotos} onChange={setFotos} maximo={20} />
@@ -775,7 +783,20 @@ function Fila({
 }
 
 /** Lo que se subió de la otra máquina de la torre, y sumar más después (0389, Lesly 03-10). */
-function ArchivosDeParte({ p, servicioId, probada }: { p: EquipoDelPedido; servicioId: string; probada: boolean }) {
+/** La máquina probada ya está guardada (0450; Ariana, 13-10): sumar o corregir se abre con el código de Lesly desde el informe. */
+function ConCodigoEnElInforme({ servicioId }: { servicioId: string }) {
+  return (
+    <p className="text-[11px] text-muted-foreground">
+      🔒 Guardado. Para agregar o corregir,{" "}
+      <Link href={`/pedidos/${servicioId}/protocolo`} className="font-medium text-primary hover:underline">
+        ábralo con el código de Lesly en el informe
+      </Link>
+      .
+    </p>
+  );
+}
+
+function ArchivosDeParte({ p, servicioId, probada, candado }: { p: EquipoDelPedido; servicioId: string; probada: boolean; candado: boolean }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [abierto, setAbierto] = useState(false);
@@ -829,7 +850,9 @@ function ArchivosDeParte({ p, servicioId, probada }: { p: EquipoDelPedido; servi
           ))}
         </ul>
       )}
-      {probada &&
+      {probada && candado ? (
+        <ConCodigoEnElInforme servicioId={servicioId} />
+      ) : probada &&
         (abierto ? (
           <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
             <TomarOSubirVarias titulo={`Fotos de la ${nombre}`} archivos={fotos} onChange={setFotos} maximo={20} />
