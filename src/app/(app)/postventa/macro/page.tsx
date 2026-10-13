@@ -111,7 +111,8 @@ export default async function MacroPostventaPage() {
       .from("pedido_equipos")
       .select("servicio_id, sin_stock_motivo")
       .in("servicio_id", sinDespachar.slice(i, i + 100))
-      .is("serie", null)
+      // 0464: también las que ya tienen código pero están marcadas sin stock.
+      .or("serie.is.null,sin_stock_motivo.not.is.null")
       .is("parte_de", null);
     for (const x of (eq ?? []) as { servicio_id: string; sin_stock_motivo: string | null }[]) {
       motivosSinStock.set(x.servicio_id, (motivosSinStock.get(x.servicio_id) ?? new Set()).add(x.sin_stock_motivo ?? "sin_motivo"));

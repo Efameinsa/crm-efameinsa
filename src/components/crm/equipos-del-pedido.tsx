@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
 import { corregirSerie } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -114,7 +114,7 @@ export function EquiposDelPedido({
             ? sinSerie > 0
               ? `El pedido ya salió y ${sinSerie === 1 ? "una máquina está" : `${sinSerie} máquinas están`} sin serie: sin ella postventa no puede atender un caso.`
               : "Todas las máquinas que salieron están registradas con su serie."
-            : `Con serie = hay stock. ${
+            : `Con serie = hay stock, salvo que diga «sin stock». ${
                 modo === "postventa"
                   ? "Marque cuál va en este despacho; lo demás espera."
                   : modo === "central"
@@ -371,7 +371,12 @@ function Fila({
             {torre && !e.sin_serie && (
               <span className="font-semibold text-foreground">{(e.serie ?? "").includes("/") ? "Lavadora / Secadora:" : "1. Lavadora:"}</span>
             )}
-            {e.serie && e.sin_serie ? (
+            {e.serie && e.sin_stock_motivo ? (
+              // 0464: ya tiene código, pero todavía no llega (Lesly, 13-10: «sí o sí me pide serie»).
+              <span className="rounded-full bg-orange-500/15 px-2 py-0.5 font-mono font-semibold text-orange-800 whitespace-nowrap">
+                {e.sin_serie ? "Código" : "Serie"} {e.serie} · sin stock · {MOTIVO_SIN_STOCK[e.sin_stock_motivo] ?? e.sin_stock_motivo}
+              </span>
+            ) : e.serie && e.sin_serie ? (
               <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] whitespace-nowrap">Código {e.serie} · sin serie</span>
             ) : e.serie ? (
               e.equipo_id && enlaceEquipo ? (
@@ -431,6 +436,29 @@ function Fila({
                   </button>
                 );
               })
+            )}
+            {/* SIN STOCK AUNQUE YA TENGA CÓDIGO (0464): el código se da apenas Central
+                lo pide; si la pieza aún no llega, se marca aquí y se desmarca al llegar. */}
+            {e.serie && !despachado && modo !== "central" && (
+              <button
+                type="button"
+                disabled={pendiente}
+                onClick={() =>
+                  correr(
+                    () => marcarSinStock(e.id, e.sin_stock_motivo ? null : (e.procedencia ?? "importacion")),
+                    e.sin_stock_motivo ? "Marcado: ya llegó, hay stock" : "Marcado: sin stock, todavía no llega",
+                  )
+                }
+                className={cn(
+                  "ml-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium transition-colors",
+                  e.sin_stock_motivo
+                    ? "border-[#1E7F4F]/40 text-[#1E7F4F] hover:bg-[#1E7F4F]/5"
+                    : "border-orange-500/50 text-orange-800 hover:bg-orange-500/10",
+                )}
+                title={e.sin_stock_motivo ? "La pieza ya está en el almacén" : "Tiene código, pero todavía no llega al almacén"}
+              >
+                {e.sin_stock_motivo ? "Ya llegó · hay stock" : "Sin stock"}
+              </button>
             )}
           </div>
           {/* LA OTRA MÁQUINA DE LA TORRE (Lesly, 30-09; 0359): su serie y su ficha en el parque. */}
