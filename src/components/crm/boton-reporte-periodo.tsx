@@ -24,7 +24,7 @@ const ATAJOS: { valor: Atajo; texto: string }[] = [
   { valor: "mes_anterior", texto: "Mes pasado" },
   { valor: "hoy", texto: "Hoy" },
   { valor: "ayer", texto: "Ayer" },
-  { valor: "otras", texto: "Otras fechas…" },
+  { valor: "otras", texto: "De una fecha a otra" },
 ];
 
 function restarDia(iso: string): string {
@@ -37,7 +37,7 @@ function rangoDe(atajo: Atajo, hoy: string): { desde: string; hasta: string } {
   if (atajo === "hoy") return { desde: hoy, hasta: hoy };
   if (atajo === "ayer") return { desde: restarDia(hoy), hasta: restarDia(hoy) };
   if (atajo === "otras") return { desde: hoy, hasta: hoy };
-  const p = periodoPreset(atajo, hoy);
+    const p = periodoPreset(atajo, hoy);
   // La semana pasada llega hasta el domingo; el reporte no pasa de hoy.
   return { desde: p.desde, hasta: p.hasta > hoy ? hoy : p.hasta };
 }
@@ -62,6 +62,7 @@ export function BotonReportePeriodo({
 
   function elegir(a: Atajo) {
     setAtajo(a);
+    // «Otras fechas» deja las fechas como están para cambiarlas a mano.
     if (a !== "otras") {
       const r = rangoDe(a, hoy);
       setDesde(r.desde);
@@ -110,28 +111,36 @@ export function BotonReportePeriodo({
           </option>
         ))}
       </select>
-      {atajo === "otras" && (
-        <>
-          <input
-            type="date"
-            aria-label="Desde"
-            value={desde}
-            max={hoy}
-            onChange={(ev) => setDesde(ev.target.value)}
-            className={control}
-          />
-          <span className="text-[11px] text-muted-foreground">al</span>
-          <input
-            type="date"
-            aria-label="Hasta"
-            value={hasta}
-            min={desde}
-            max={hoy}
-            onChange={(ev) => setHasta(ev.target.value)}
-            className={control}
-          />
-        </>
-      )}
+      {/* Las dos fechas siempre a la vista (reunión 13-10, Rubí: «ayer me salía de
+          tal fecha a tal fecha y ya no lo tengo»). Antes solo aparecían con
+          «Otras fechas…» y volvían a esconderse al elegir un atajo. Cambiar una
+          fecha a mano pasa el atajo a «Otras fechas». */}
+      <input
+        type="date"
+        aria-label="Desde"
+        value={desde}
+        max={hoy}
+        onChange={(ev) => {
+          setDesde(ev.target.value);
+          setAtajo("otras");
+        }}
+        className={control}
+        title="Desde qué día"
+      />
+      <span className="text-[11px] text-muted-foreground">al</span>
+      <input
+        type="date"
+        aria-label="Hasta"
+        value={hasta}
+        min={desde}
+        max={hoy}
+        onChange={(ev) => {
+          setHasta(ev.target.value);
+          setAtajo("otras");
+        }}
+        className={control}
+        title="Hasta qué día"
+      />
       <button
         type="button"
         onClick={abrir}
