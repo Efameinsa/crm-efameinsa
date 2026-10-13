@@ -36,7 +36,9 @@ export function HistorialDecisionesGerencia({
           const observada = d.resultado === "observada";
           const respondida = d.resultado === "respondida";
           const Icono = observada ? MessageCircleQuestion : respondida ? Reply : rechazo ? X : Check;
-          const etiqueta = observada ? "Observada" : respondida ? "Respuesta de la comercial" : rechazo ? "Rechazada" : "Aprobada";
+          // 0458: renglones devueltos para corregir, cada uno con su comentario.
+          const porCorregir = d.rechazados.filter((r) => r.nota);
+          const etiqueta = observada && porCorregir.length > 0 ? "Devuelta para corregir" : observada ? "Observada" : respondida ? "Respuesta de la comercial" : rechazo ? "Rechazada" : "Aprobada";
           return (
             <li key={d.id} className="px-3 py-2">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
@@ -61,7 +63,21 @@ export function HistorialDecisionesGerencia({
                   {d.decididoPor ? ` · ${d.decididoPor}` : ""}
                 </span>
               </p>
-              {d.rechazados.length > 0 && (
+              {porCorregir.length > 0 && (
+                <ul className="mt-1.5 space-y-1">
+                  {porCorregir.map((r, n) => (
+                    <li key={n} className="rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1 text-xs">
+                      <span className="font-semibold text-destructive">Corregir: </span>
+                      <span className="text-foreground">
+                        {r.descripcion ?? "renglón"}
+                        {r.precio != null ? ` a ${dinero(r.precio)}` : ""}
+                      </span>
+                      <span className="block text-foreground">&ldquo;{r.nota}&rdquo;</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {d.rechazados.length > 0 && porCorregir.length === 0 && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   {d.rechazados
                     .map((r) => `${r.descripcion ?? "equipo"}${r.precio != null ? ` a ${dinero(r.precio)}` : ""}${r.lista != null ? ` (lista ${dinero(r.lista)})` : ""}`)

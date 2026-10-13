@@ -28,6 +28,9 @@ export function ObservacionDeGerencia({
   const [texto, setTexto] = useState("");
   const [enviando, startTransition] = useTransition();
   if (!estado && conversacion.length === 0) return null;
+  // La última devolución por renglones (0458): lo que hay que corregir, bien a la vista.
+  const ultima = conversacion.find((d) => d.resultado === "observada");
+  const porCorregir = estado === "observada" ? (ultima?.rechazados.filter((r) => r.nota) ?? []) : [];
 
   function responder() {
     startTransition(async () => {
@@ -48,8 +51,24 @@ export function ObservacionDeGerencia({
         <CircleAlert className="size-3.5" />
         {estado === "respondida"
           ? "Respondió a la observación de gerencia: espera su decisión"
-          : "Gerencia observó esta cotización (no la rechazó)"}
+          : porCorregir.length > 0
+            ? `Gerencia devolvió ${porCorregir.length} ${porCorregir.length === 1 ? "renglón" : "renglones"} para corregir — el borrador se conserva`
+            : "Gerencia observó esta cotización (no la rechazó)"}
       </p>
+      {porCorregir.length > 0 && (
+        <div className="space-y-1.5">
+          {porCorregir.map((r, n) => (
+            <div key={n} className="rounded-md border-2 border-destructive/60 bg-destructive/5 px-3 py-2">
+              <p className="text-sm font-bold text-destructive">Corregir: {r.descripcion ?? "renglón"}</p>
+              <p className="text-sm text-foreground">&ldquo;{r.nota}&rdquo;</p>
+            </div>
+          ))}
+          <p className="text-xs text-muted-foreground">
+            Los demás renglones ya están aprobados y se mantienen si no los cambia. Corrija solo lo marcado aquí abajo,
+            guarde y responda a gerencia para que lo vuelva a revisar.
+          </p>
+        </div>
+      )}
       <HistorialDecisionesGerencia decisiones={conversacion} titulo="Conversación con gerencia" compacto />
       {estado && (
         <div className="space-y-1.5">

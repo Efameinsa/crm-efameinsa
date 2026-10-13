@@ -658,6 +658,51 @@ export async function resolverAprobacionCotizacion(datos: {
 }
 
 /**
+ * Gerencia DEVUELVE renglones para corregir sin borrar la cotización (0458,
+ * reunión de postventa 13-10): «el ítem 1 rechazado bien grande con el
+ * comentario, el ítem 2 aprobado… que solamente aparezca en el borrador».
+ *
+ * La cotización sigue esperando a gerencia y editable (como la observada de la
+ * 0415): quien la armó corrige solo lo marcado, responde y vuelve a gerencia.
+ * Lo aprobado se conserva al editar mientras no cambie.
+ */
+export async function devolverCotizacionPorItems(datos: {
+  cotizacionId: string;
+  aprobados: string[];
+  corregir: { id: string; nota: string }[];
+  nota: string;
+}): Promise<{ error: string | null }> {
+  if (datos.corregir.length === 0) return { error: "Marque al menos un renglón para corregir" };
+  if (datos.corregir.some((c) => c.nota.trim().length < 3)) {
+    return { error: "Escriba qué hay que corregir en cada renglón marcado" };
+  }
+  const supabase = await createClient();
+  const { comercialId, codigo, oportunidadId, cliente } = await comercialDeCotizacion(supabase, datos.cotizacionId);
+  const { error } = await supabase.rpc("devolver_cotizacion_por_items", {
+    p_cotizacion_id: datos.cotizacionId,
+    p_aprobados: datos.aprobados,
+    p_corregir: datos.corregir.map((c) => ({ id: c.id, nota: c.nota.trim() })),
+    p_nota: datos.nota.trim() || null,
+  });
+  if (error) return { error: limpiarError(error.message) };
+
+  if (comercialId) {
+    const cual = [codigo ? `la cotización ${codigo}` : "su cotización", cliente].filter(Boolean).join(" · ");
+    const n = datos.corregir.length;
+    await notificar({
+      userId: comercialId,
+      tipo: "cotizacion_observada",
+      titulo: `Gerencia devolvió ${cual}: ${n} ${n === 1 ? "renglón" : "renglones"} por corregir`,
+      cuerpo: `${datos.corregir.map((c) => c.nota.trim()).join(" · ")} — No se borró: corrija lo marcado en la misma cotización y responda a gerencia.`,
+      url: oportunidadId ? `/comercial/oportunidades/${oportunidadId}/cotizar/${datos.cotizacionId}` : "/comercial/oportunidades",
+    });
+  }
+  revalidatePath("/gerencia/aprobaciones");
+  revalidatePath("/comercial", "layout");
+  return { error: null };
+}
+
+/**
  * Gerencia OBSERVA una cotización sin rechazarla (0415, pedido de Brenda 07-10).
  *
  * La cotización sigue esperando a gerencia y la comercial puede editarla y
