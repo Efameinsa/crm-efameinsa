@@ -19,6 +19,8 @@ import { pendientesPropios, presupuestosPropios, ventasPropias } from "@/lib/tra
 import { pendientesAnotados, bloquesPendientesAnotados } from "@/lib/pendientes-anotados";
 import { cargarPanelPostventa, type PanelPostventa } from "@/lib/panel-postventa";
 import { cargarPanorama, type PanoramaPendientes } from "@/lib/panorama-pendientes";
+import { cargarFilasPorPaso } from "@/lib/pedidos-por-paso";
+import { loQueFaltaPorPaso } from "@/lib/lo-que-falta-por-paso";
 import type { PendienteAnotado } from "@/lib/pendientes-anotados";
 
 // PDF del cierre del día del comercial. La autorización real la hace la
@@ -110,6 +112,7 @@ export async function GET(request: Request) {
   let movimientoDelArea: { titulo: string; hora: string | null }[] | undefined;
   let panelPostventa: PanelPostventa | undefined;
   let panorama: PanoramaPendientes | undefined;
+  let loQueFalta: ReturnType<typeof loQueFaltaPorPaso> | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
@@ -282,6 +285,14 @@ export async function GET(request: Request) {
       // LO QUE LE FALTA GESTIONAR (Santos, 13-10): el panorama completo en
       // su propia hoja. Si se pudo armar, reemplaza a «5b» (que cortaba en
       // diez por bloque) y el cuadro de pendientes del panel sale de ahí.
+      // LOS PEDIDOS ABIERTOS, PASO POR PASO (Santos, 13-10: «dice 81 abiertos… eso
+      // debe aparecer… exportado en su PDF de su reporte con detalle»). Es la lista
+      // de la agenda, del área entera; si falla, el reporte sale sin esa hoja.
+      try {
+        loQueFalta = loQueFaltaPorPaso(await cargarFilasPorPaso(supabase, false));
+      } catch {
+        loQueFalta = undefined;
+      }
       try {
         panorama = await cargarPanorama(createAdminClient(), comercialId, fecha, hoyLima(), anotadosCrudos);
       } catch {
@@ -355,6 +366,7 @@ export async function GET(request: Request) {
       indicadores={indicadores}
       panelPostventa={panelPostventa}
       panorama={panorama}
+      loQueFalta={loQueFalta}
     />,
   );
 
