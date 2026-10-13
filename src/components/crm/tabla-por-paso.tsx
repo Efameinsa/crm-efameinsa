@@ -39,6 +39,8 @@ export interface FilaTabla {
   pasos: PasoTabla[];
   /** Máquinas sin serie, con el motivo que marcó el almacén (null: sin motivo). 0378. */
   sinStock?: (string | null)[];
+  /** Pagó una parte y debe el saldo (estadoPago «parcial»), confirmado o no por Finanzas. */
+  pagoParcial?: boolean;
 }
 
 const MOTIVOS_SIN_STOCK: { clave: string; etiqueta: string }[] = [
@@ -80,8 +82,12 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
   // pidió al almacén (el paso sin hacer y sin el «solicitado, sin respuesta»).
   // Reunión 23-09: la que se olvidó con Hortifrut.
   // Reunión 02-10: «¿por qué no despachas? Porque no tienes el producto».
+  // Buzón, Ariana 13-10: «pago_parcial» tampoco es un paso: deja los pedidos
+  // con un pago parcial registrado, para ubicar a quién le falta el saldo.
   const debe = (f: FilaTabla, clave: string): boolean =>
-    clave === "sin_stock"
+    clave === "pago_parcial"
+      ? f.pagoParcial === true
+      : clave === "sin_stock"
       ? (f.sinStock?.length ?? 0) > 0
       : clave.startsWith("sin_stock:")
         ? (f.sinStock ?? []).some((m) => (m ?? "sin_motivo") === clave.slice(10))
@@ -138,6 +144,17 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
               </Link>
             );
           })}
+        <Link
+          href={enlace("pago_parcial")}
+          className={cn(
+            "rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors",
+            falta === "pago_parcial"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-amber-500/50 bg-amber-100 text-amber-800 hover:bg-amber-200",
+          )}
+        >
+          Pago parcial ({pendientesPor("pago_parcial")})
+        </Link>
         {columnas.some((c) => c.clave === "prueba") && (
           <Link
             href={enlace("prueba_sin_pedir")}
@@ -180,7 +197,7 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
       </div>
 
       {visibles.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{buscado ? `Ningún pedido de «${q.trim()}»${falta ? " con ese paso pendiente" : ""}.` : "Ningún pedido tiene ese paso pendiente."}</p>
+        <p className="text-sm text-muted-foreground">{buscado ? `Ningún pedido de «${q.trim()}»${falta === "pago_parcial" ? " con pago parcial" : falta ? " con ese paso pendiente" : ""}.` : falta === "pago_parcial" ? "Ningún pedido tiene un pago parcial registrado." : "Ningún pedido tiene ese paso pendiente."}</p>
       ) : (
         // EL CLIENTE NO ENSANCHA LA TABLA (Carlos, 16-09: «hay una barra
         // horizontal que se va mucho a la derecha… horrible»). El nombre y el
@@ -194,7 +211,20 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
               <tr className="border-b border-border bg-secondary/40 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
                 <th className="sticky left-0 z-30 bg-secondary px-2 py-2 font-medium">Pedido</th>
                 {columnas.map((c) => (
-                  <th key={c.clave} className={cn("px-2 py-2 text-center font-medium", falta === c.clave && "text-primary")}>
+                  <th key={c.clave} className={cn("px-2 py-2 text-center font-medium", (falta === c.clave || (c.clave === "pago" && falta === "pago_parcial")) && "text-primary")}>
+                    {/* Buzón, Ariana 13-10: el filtro de pago parcial encima de «Finanzas». */}
+                    {c.clave === "pago" && (
+                      <Link
+                        href={enlace(falta === "pago_parcial" ? null : "pago_parcial")}
+                        title={falta === "pago_parcial" ? "Quitar el filtro y ver todos los pedidos" : "Ver solo los pedidos con pago parcial"}
+                        className={cn(
+                          "mb-1 block whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal transition-colors",
+                          falta === "pago_parcial" ? "border-primary bg-primary text-primary-foreground" : "border-amber-500/50 bg-amber-100 text-amber-800 hover:bg-amber-200",
+                        )}
+                      >
+                        Pago parcial ({pendientesPor("pago_parcial")})
+                      </Link>
+                    )}
                     {c.etiqueta}
                   </th>
                 ))}

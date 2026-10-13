@@ -89,7 +89,7 @@ export function FilasPorPaso({
               </td>
               {columnas.map((c) =>
                 g.pedidos.length === 1 ? (
-                  <Celda key={c.clave} p={g.pedidos[0].pasos.find((x) => x.clave === c.clave)} siguiente={g.pedidos[0].pasos.find((x) => !x.hecho)?.clave === c.clave} marcada={falta === c.clave} />
+                  <Celda key={c.clave} p={g.pedidos[0].pasos.find((x) => x.clave === c.clave)} parcial={g.pedidos[0].pagoParcial} siguiente={g.pedidos[0].pasos.find((x) => !x.hecho)?.clave === c.clave} marcada={falta === c.clave} />
                 ) : (
                   <CeldaResumen key={c.clave} pasos={g.pedidos.map((f) => f.pasos.find((x) => x.clave === c.clave)).filter(Boolean) as PasoTabla[]} marcada={falta === c.clave} />
                 ),
@@ -106,7 +106,7 @@ export function FilasPorPaso({
                         </Link>
                       </td>
                       {columnas.map((c) => (
-                        <Celda key={c.clave} p={f.pasos.find((x) => x.clave === c.clave)} siguiente={f.pasos.find((x) => !x.hecho)?.clave === c.clave} marcada={falta === c.clave} />
+                        <Celda key={c.clave} p={f.pasos.find((x) => x.clave === c.clave)} parcial={f.pagoParcial} siguiente={f.pasos.find((x) => !x.hecho)?.clave === c.clave} marcada={falta === c.clave} />
                       ))}
                     </tr>
                   )}
@@ -133,14 +133,20 @@ export function FilasPorPaso({
   );
 }
 
-function Celda({ p, siguiente, marcada }: { p: PasoTabla | undefined; siguiente: boolean; marcada: boolean }) {
+function Celda({ p, parcial, siguiente, marcada }: { p: PasoTabla | undefined; parcial?: boolean; siguiente: boolean; marcada: boolean }) {
   if (!p) return <td className="px-2 py-1.5 text-center text-muted-foreground/40">·</td>;
   return (
     <td
       className={cn("px-2 py-1.5 text-center align-middle", marcada && !p.hecho && "bg-primary/5")}
       title={p.hecho ? `${p.etiqueta} · ${p.cuando ? fechaLimaCorta(p.cuando) : "hecho"}` : p.trabado ? `${p.etiqueta} · ${p.trabado}` : `${p.etiqueta} · le toca a ${p.dueno}`}
     >
-      {p.hecho && p.clave === "pago" && /parcial/i.test(p.etiqueta) ? (
+      {p.clave === "pago" && parcial && !p.hecho ? (
+        // Buzón, Ariana 13-10: pagó una parte y Finanzas aún no lo confirma.
+        <span className="inline-flex flex-col items-center text-amber-700">
+          <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold">Parcial</span>
+          <span className="text-[10px] font-medium">{p.dueno}</span>
+        </span>
+      ) : p.hecho && p.clave === "pago" && (parcial || /parcial/i.test(p.etiqueta)) ? (
         // Reunión 02-10: un pago parcial no es un visto verde como el completo.
         <span className="inline-flex flex-col items-center text-amber-700">
           <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold">Parcial</span>
