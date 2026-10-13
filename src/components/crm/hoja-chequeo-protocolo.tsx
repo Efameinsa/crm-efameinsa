@@ -222,7 +222,7 @@ export function HojaChequeoProtocolo({
                   </td>
                 ) : (
                   <Fragment key={i}>
-                    <td className={`${td} whitespace-nowrap ${c.etiqueta === c.etiqueta.toUpperCase() ? "font-bold" : ""}`}>{c.etiqueta}</td>
+                    <td className={`${td} print:whitespace-nowrap ${c.etiqueta === c.etiqueta.toUpperCase() ? "font-bold" : ""}`}>{c.etiqueta}</td>
                     <td className={`${td} ${gris} p-0 px-1`} colSpan={c.span}>
                       {valorCabecera(c.clave, c.ayuda)}
                     </td>
