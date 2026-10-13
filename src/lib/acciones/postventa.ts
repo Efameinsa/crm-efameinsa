@@ -152,6 +152,19 @@ export async function aprobarPedido(servicioId: string) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("aprobar_pedido_postventa", { p_servicio_id: servicioId });
   if (error) return falla(error.message);
+  // EL REPUESTO TAMBIÉN VA AL ALMACÉN (reunión 13-10 11:20, Carlos con el
+  // variador de PERUVIAN NATURE): «al margen de que no lo pruebes, tiene que
+  // estar embalado; si no, el cliente viene y ¿qué va a recoger?». Aprobado el
+  // repuesto, la orden de prepararlo y embalarlo sale sola: nadie tiene que
+  // acordarse de pedirla.
+  const { data: s } = await supabase
+    .from("servicios_postventa")
+    .select("tipo_pedido, prueba_solicitada_at, prueba_lista_at, prueba_embalaje")
+    .eq("id", servicioId)
+    .maybeSingle();
+  if (s && ["repuesto", "accesorio", "embalaje"].includes(s.tipo_pedido ?? "") && !s.prueba_solicitada_at && !s.prueba_lista_at && !s.prueba_embalaje) {
+    await marcarPaso(servicioId, "prueba_solicitada_at");
+  }
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   return ok();
 }
@@ -189,10 +202,14 @@ export async function marcarPaso(servicioId: string, campo: CampoPaso, nota?: st
   if (error) return falla(error.message);
   // «Prueba la máquina»: el almacén se entera en su bandeja (0246).
   if (campo === "prueba_solicitada_at") {
-    const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", servicioId).maybeSingle();
+    const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba, tipo_pedido").eq("id", servicioId).maybeSingle();
+    // Un repuesto no se prueba, pero se prepara y se embala con su foto (13-10).
+    const sinPrueba = ["repuesto", "accesorio", "embalaje"].includes(s?.tipo_pedido ?? "");
     await notificarAlmacen({
-      titulo: `Probar y embalar · ${(s?.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
-      cuerpo: `${s?.equipo ?? ""}. Postventa pide la prueba; al terminar, suba el protocolo y márquelo.`.trim(),
+      titulo: `${sinPrueba ? "Preparar y embalar" : "Probar y embalar"} · ${(s?.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
+      cuerpo: sinPrueba
+        ? `${s?.equipo ?? ""}. Es un repuesto: no se prueba, pero déjelo embalado y listo para cuando lo recojan; suba la foto y márquelo.`.trim()
+        : `${s?.equipo ?? ""}. Postventa pide la prueba; al terminar, suba el protocolo y márquelo.`.trim(),
       url: `/almacen/pedidos/${servicioId}`,
       esPrueba: s?.es_prueba === true,
     });

@@ -62,6 +62,7 @@ const CORTO: Record<string, string> = {
   despacho: "Despacho",
   puesta: "Puesta en marcha",
   informe: "Informe enviado",
+  facturar: "Orden de facturar",
   cerrado: "Cerrado",
 };
 

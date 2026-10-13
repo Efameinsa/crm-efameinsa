@@ -163,6 +163,11 @@ export interface ServicioPostventa {
    * la pantalla lo pregunta. Antes decía «completo» y el servidor rechazaba.
    */
   despacho_liberado?: boolean;
+  /** Postventa terminó y le ordenó a Finanzas facturar y cobrar el saldo (0460, reunión 13-10). */
+  orden_facturar_at?: string | null;
+  orden_facturar_por?: string | null;
+  orden_facturar_nota?: string | null;
+  orden_facturar_atendida_at?: string | null;
 }
 
 /**
@@ -269,6 +274,21 @@ export function saldoPendiente(s: ServicioPostventa): number {
  * o puesta en marcha — y no lleva monto. Ahí no hay pago que Finanzas
  * confirme (Rubí, 12-10: «es un traslado por garantía y no hay cobro»).
  */
+/**
+ * ¿LLEVA ORDEN A FINANZAS PARA FACTURAR? (reunión 13-10 11:20, Carlos con
+ * AGROCASAGRANDE). El 99 % paga antes y no la necesita. El resto —a crédito,
+ * o con un adelanto y el saldo después del despacho o del servicio— termina
+ * con postventa diciéndole a Finanzas «ya terminé, factura y cobra». Al
+ * contado no aparece. No es retroactivo: lo que ya cerró sin la orden no la pide.
+ */
+export function llevaOrdenFacturar(s: ServicioPostventa): boolean {
+  if (s.orden_facturar_at) return true;
+  if (pedidoSinCobro(s)) return false;
+  if (s.cerrado_at != null || s.completado) return false;
+  if (s.pct_antes_despacho == null) return false;
+  return Number(s.pct_antes_despacho) < 100;
+}
+
 export function pedidoSinCobro(s: Pick<ServicioPostventa, "origen" | "pago_confirmado_at">): boolean {
   return s.origen === "caso" && s.pago_confirmado_at == null;
 }
@@ -850,6 +870,24 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
             detalle: circuito.esEquipo ? (provincia ? "En provincia, normalmente por videollamada" : "In situ") : "El técnico sube el informe al terminar",
           },
         ]),
+    ...(llevaOrdenFacturar(s)
+      ? [
+          {
+            clave: "facturar",
+            etiqueta: s.orden_facturar_at
+              ? s.orden_facturar_atendida_at
+                ? "Finanzas atendió la orden de facturar"
+                : "Orden de facturar enviada a Finanzas"
+              : "Orden a Finanzas para facturar y cobrar",
+            responsable: "postventa" as ResponsablePaso,
+            hecho: s.orden_facturar_at != null,
+            cuando: s.orden_facturar_at ?? null,
+            detalle: s.orden_facturar_at
+              ? [s.orden_facturar_atendida_at ? null : "Esperando que Finanzas la atienda", s.orden_facturar_nota].filter(Boolean).join(" · ") || undefined
+              : `${condicion ?? "A crédito"}: al terminar ${circuito.esServicio ? "el servicio" : "la entrega"} y enviar el informe, se le avisa a Finanzas que facture y cobre`,
+          },
+        ]
+      : []),
     {
       clave: "cerrado",
       etiqueta: "Pedido cerrado",

@@ -37,6 +37,7 @@ import {
 import { verificarDespacho } from "@/lib/acciones/almacen";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 import { PedirConfirmacionPago } from "@/components/crm/pedir-confirmacion-pago";
+import { OrdenFacturar } from "@/components/crm/orden-facturar";
 import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -294,7 +295,8 @@ export function PedidoPostventa({
               correr(() => marcarPaso(servicio.id, "prueba_solicitada_at"), "Solicitud enviada al almacén. Queda registrada con fecha.", { prueba_solicitada_at: ahora() })
             }
           >
-            Solicitar al almacén
+            {/* Reunión 13-10: el repuesto no se prueba, pero el almacén lo deja embalado y listo. */}
+            {circuitoDe(servicioVisto).esRepuesto ? "Pedir al almacén que lo prepare y embale" : "Solicitar al almacén"}
           </BotonPaso>
         );
       case "plano":
@@ -414,6 +416,9 @@ export function PedidoPostventa({
             Verificar el despacho
           </BotonPaso>
         );
+      case "facturar":
+        // Reunión 13-10: a crédito o con saldo, al terminar se le ordena a Finanzas (0460).
+        return <OrdenFacturar servicioId={servicio.id} />;
       case "cerrado":
         return <BotonPaso onClick={() => setForm({ tipo: "cerrar" })}>Cerrar pedido</BotonPaso>;
       default:
