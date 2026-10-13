@@ -7,7 +7,7 @@ export default async function Inicio() {
   // El layout de /tasking ya exige rol admin.
   const admin = true;
   const persona = null as { id: string } | null;
-  const [compromisos, personas] = await Promise.all([compromisosTablero(), personasActivas()]);
+  const [compromisos, personas] = await Promise.all([compromisosTablero({ conPausados: true }), personasActivas()]);
   const reuniones = await titulosReuniones(compromisos.map((c) => c.reunion_id));
   return (
     <Tablero

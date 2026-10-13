@@ -15,6 +15,7 @@ function horaLima(iso: string) {
 const ESTADOS = [
   ['pendiente', 'Pendiente'],
   ['en_curso', 'En curso'],
+  ['pausado', 'En pausa'],
   ['hecho', 'Hecho'],
   ['anulado', 'Anulado'],
 ] as const;

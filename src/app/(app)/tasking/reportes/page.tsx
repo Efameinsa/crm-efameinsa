@@ -25,7 +25,7 @@ export default async function Pagina({ searchParams }: PageProps<'/tasking/repor
 
   const [personas, { data: delPeriodo }, { data: abiertos }] = await Promise.all([
     personasActivas(),
-    db().from('compromisos').select('*').gte('creado_en', desde).neq('estado', 'anulado'),
+    db().from('compromisos').select('*').gte('creado_en', desde).not('estado', 'in', '(anulado,pausado)'),
     db().from('compromisos').select('*').in('estado', ['pendiente', 'en_curso']),
   ]);
   const periodo = (delPeriodo ?? []) as Compromiso[];

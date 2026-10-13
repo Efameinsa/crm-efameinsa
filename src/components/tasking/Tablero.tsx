@@ -10,10 +10,11 @@ const COLUMNAS = [
   { clave: 'pendiente', titulo: 'Pendientes', punto: 'bg-slate-400', vacio: 'Sin pendientes.' },
   { clave: 'en_curso', titulo: 'En curso', punto: 'bg-amber-500', vacio: 'Nadie marcó «Empezar» todavía.' },
   { clave: 'hecho', titulo: 'Hechos (14 días)', punto: 'bg-emerald-500', vacio: 'Aún no hay cumplidos.' },
+  { clave: 'pausado', titulo: 'En pausa', punto: 'bg-violet-400', vacio: 'Nada en pausa.' },
 ] as const;
 
 function columnaDe(c: Compromiso) {
-  if (c.estado === 'hecho') return 'hecho';
+  if (c.estado === 'hecho' || c.estado === 'pausado') return c.estado;
   if (estaVencido(c)) return 'vencido';
   return c.estado;
 }
@@ -55,10 +56,13 @@ export default function Tablero({
   const kpi = {
     abiertos: visibles.filter((c) => c.estado === 'pendiente' || c.estado === 'en_curso').length,
     vencidos: visibles.filter((c) => estaVencido(c)).length,
-    hoy: visibles.filter((c) => c.estado !== 'hecho' && !estaVencido(c) && c.vence_en && fechaLima(c.vence_en) === hoy).length,
+    hoy: visibles.filter((c) => (c.estado === 'pendiente' || c.estado === 'en_curso') && !estaVencido(c) && c.vence_en && fechaLima(c.vence_en) === hoy).length,
     semana: visibles.filter((c) => c.estado === 'hecho' && (c.hecho_en ?? '') >= hace7).length,
   };
-  const sinResponsable = compromisos.filter((c) => !c.persona_id && c.estado !== 'hecho').length;
+  const sinResponsable = compromisos.filter((c) => !c.persona_id && c.estado !== 'hecho' && c.estado !== 'pausado').length;
+  const pausados = visibles.filter((c) => c.estado === 'pausado').length;
+  // La columna «En pausa» solo aparece cuando hay algo pausado
+  const columnas = COLUMNAS.filter((col) => col.clave !== 'pausado' || pausados > 0);
 
   return (
     <div className="space-y-5">
@@ -115,8 +119,8 @@ export default function Tablero({
           )}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {COLUMNAS.map((col) => {
+        <div className={`grid gap-4 md:grid-cols-2 ${columnas.length > 4 ? 'xl:grid-cols-3 2xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
+          {columnas.map((col) => {
             const items = visibles.filter((c) => columnaDe(c) === col.clave).sort(ordenar);
             return (
               <section key={col.clave} className="rounded-2xl bg-slate-100/70 p-2.5">
@@ -134,6 +138,7 @@ export default function Tablero({
                       persona={c.persona_id ? porId.get(c.persona_id) : undefined}
                       reunion={c.reunion_id ? reuniones[c.reunion_id] : undefined}
                       puedeEditar={admin || (!!yo && c.persona_id === yo)}
+                      admin={admin}
                       cambiar={cambiar}
                       ocupado={ocupado === c.id}
                     />

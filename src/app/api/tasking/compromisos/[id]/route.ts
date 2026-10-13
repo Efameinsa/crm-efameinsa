@@ -3,9 +3,9 @@ import { db } from '@/lib/tasking/db';
 import { fallo, json } from '@/lib/tasking/api';
 import { actualizarCompromiso, type CambioCompromiso } from '@/lib/tasking/compromisos';
 
-const ESTADOS = ['pendiente', 'en_curso', 'hecho', 'anulado'];
+const ESTADOS = ['pendiente', 'en_curso', 'hecho', 'anulado', 'pausado'];
 
-// El operador puede cambiar todo. El trabajador solo el estado de SUS compromisos (y no anularlos).
+// El operador puede cambiar todo. El trabajador solo el estado de SUS compromisos (ni anularlos ni pausarlos o reanudarlos).
 export async function PATCH(req: Request, ctx: RouteContext<'/api/tasking/compromisos/[id]'>) {
   const { id } = await ctx.params;
   const { admin, persona } = await sesion();
@@ -17,9 +17,10 @@ export async function PATCH(req: Request, ctx: RouteContext<'/api/tasking/compro
     cambio.estado = b.estado;
   }
   if (!admin) {
-    const { data: c } = await db().from('compromisos').select('persona_id').eq('id', id).maybeSingle();
+    const { data: c } = await db().from('compromisos').select('persona_id,estado').eq('id', id).maybeSingle();
     if (!c || c.persona_id !== persona!.id) return fallo('Ese compromiso no es tuyo.', 403);
     if (Object.keys(b).some((k) => k !== 'estado') || cambio.estado === 'anulado') return fallo('Solo puedes cambiar el estado.', 403);
+    if (cambio.estado === 'pausado' || c.estado === 'pausado') return fallo('Ese compromiso está en pausa: lo reanuda el administrador.', 403);
   } else {
     if (b.descripcion !== undefined) cambio.descripcion = String(b.descripcion).trim().slice(0, 300);
     if (b.persona_id !== undefined) cambio.persona_id = b.persona_id || null;
