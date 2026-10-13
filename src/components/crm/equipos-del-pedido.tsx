@@ -26,6 +26,7 @@ import { Documentos } from "@/components/crm/informe-soporte-apertura";
 import { agregarArchivosDelEquipo } from "@/lib/acciones/almacen";
 import { cn } from "@/lib/utils";
 import { esTorre, seriesDeLaDescripcion } from "@/lib/torres";
+import { faltaParaProbar, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
 
 /** Las tres opciones de la generación de código (0385), con el nombre que usa Lesly. */
 const PROCEDENCIA: Record<string, string> = {
@@ -51,6 +52,7 @@ export function EquiposDelPedido({
   cliente,
   enlaceEquipo = "/postventa/equipos",
   candado = false,
+  repuesto = false,
 }: {
   servicioId: string;
   equipos: EquipoDelPedido[];
@@ -66,6 +68,8 @@ export function EquiposDelPedido({
   enlaceEquipo?: string | null;
   /** La máquina probada ya está guardada: sumarle archivos pide el código de Lesly en el informe (0450). */
   candado?: boolean;
+  /** Pedido de repuestos: no lleva PDF de protocolo, modelo de placa ni hoja de chequeo. */
+  repuesto?: boolean;
 }) {
   // La secadora de una torre (0359) va dentro de su unidad, no es otro equipo.
   const equipos = todos.filter((e) => !e.parte_de);
@@ -152,6 +156,7 @@ export function EquiposDelPedido({
               unidad={{ k: grupo.indexOf(e) + 1, n: grupo.length, sinCodigo: grupo.filter((x) => !x.serie).length }}
               partes={partesDe(e.id)}
               candado={candado}
+              repuesto={repuesto}
             />
           );
         })}
@@ -170,6 +175,7 @@ function Fila({
   unidad,
   partes,
   candado,
+  repuesto,
 }: {
   e: EquipoDelPedido;
   servicioId: string;
@@ -182,6 +188,7 @@ function Fila({
   /** Las otras máquinas de esta unidad, cada una con su serie (torre: la secadora; 0359). */
   partes: EquipoDelPedido[];
   candado: boolean;
+  repuesto: boolean;
 }) {
   const router = useRouter();
   const [abrirParte, setAbrirParte] = useState(false);
@@ -287,6 +294,21 @@ function Fila({
   // Si deja la fecha de hoy y no había otra guardada, se toma la del día en que la marque probada.
   const fechaElegida = fechaProtocolo && (fechaGuardada || fechaProtocolo !== hoyLima()) ? fechaProtocolo : "";
   const datosCambiados = tecnico.trim() !== tecnicoGuardado || (fechaElegida !== "" && fechaElegida !== fechaGuardada);
+
+  // Lo que falta para marcarla probada y embalada (Santos, 13-10, COFACO): con lo
+  // que ya está guardado más lo elegido en pantalla. El servidor vuelve a mirarlo.
+  const comoArchivo = (documento: boolean) => (f: File): ArchivoProtocolo => ({ path: f.name, tipo: documento ? f.type || "application/pdf" : f.type || "image/jpeg" });
+  const falta = faltaParaProbar(e as MaquinaParaProbar, partes as MaquinaParaProbar[], {
+    repuesto,
+    nombre: `Máquina ${e.orden}`,
+    clic: {
+      protocoloRef: protocolo,
+      tecnico,
+      principal: [...fotos.map(comoArchivo(false)), ...docs.map(comoArchivo(true))],
+      secadora: [...fotosSec.map(comoArchivo(false)), ...docsSec.map(comoArchivo(true))],
+      partes: Object.fromEntries(partes.map((p) => [p.id, [...deParte(p.id).fotos.map(comoArchivo(false)), ...deParte(p.id).docs.map(comoArchivo(true))]])),
+    },
+  });
 
   /** El técnico y la fecha van a la hoja de cada máquina de la unidad (la secadora de la torre también). */
   function guardarTecnicoYFecha() {
@@ -688,10 +710,28 @@ function Fila({
           >
             📄 Ver el borrador del informe
           </Button>
+          {falta.length > 0 && (
+            <div className="rounded-md border border-amber-400/60 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-900">
+              <p className="font-semibold">Para marcarla probada y embalada falta:</p>
+              <ul className="ml-4 list-disc">
+                {falta.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+              <p className="mt-0.5">
+                La ficha (modelo de la placa) y la hoja de chequeo se llenan en{" "}
+                <a href={`/pedidos/${servicioId}/protocolo`} target="_blank" rel="noreferrer" className="font-semibold underline">
+                  el informe de prueba y embalaje
+                </a>
+                ; las fotos y el PDF, aquí arriba. Al volver, recargue la página.
+              </p>
+            </div>
+          )}
           <Button
             size="sm"
             className="h-8"
-            disabled={pendiente}
+            disabled={pendiente || falta.length > 0}
+            title={falta.length > 0 ? `Falta: ${falta.join(" · ")}` : undefined}
             onClick={() =>
               correr(async () => {
                 const t = await guardarTecnicoYFecha();

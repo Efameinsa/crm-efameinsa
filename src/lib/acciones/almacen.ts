@@ -6,6 +6,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { notificar } from "@/lib/notificaciones";
 import type { FotoAlmacen } from "@/lib/postventa";
 import type { Chequeo } from "@/lib/protocolo-checklist";
+import { faltaParaProbar, type MaquinaParaProbar } from "@/lib/protocolo-completo";
 
 /**
  * Lo que el almacén marca del pedido (0246), en el orden en que pasa:
@@ -48,6 +49,12 @@ async function avisarPostventa(titulo: string, cuerpo: string, url: string) {
 
 export async function marcarProbado(servicioId: string, datos: { protocoloRef?: string; fotos?: Foto[]; nota?: string; cliente: string }) {
   const supabase = await createClient();
+  // El pedido sin lista de máquinas tampoco se marca sin protocolo ni fotos
+  // (Santos, 13-10); el repuesto no se prueba, pero lleva su foto.
+  const { data: s } = await supabase.from("servicios_postventa").select("tipo_pedido").eq("id", servicioId).maybeSingle();
+  const repuesto = ["repuesto", "accesorio", "embalaje"].includes(s?.tipo_pedido ?? "");
+  const falta = [!repuesto && !datos.protocoloRef?.trim() && "N.º de protocolo", !(datos.fotos ?? []).length && (repuesto ? "la foto" : "el protocolo o las fotos de la prueba")].filter(Boolean);
+  if (falta.length > 0) return { error: `Todavía no se puede marcar ${repuesto ? "preparado" : "probado"} y embalado. Falta: ${falta.join(" y ")}.` };
   const { error } = await supabase.rpc("almacen_marcar_probado", {
     p_servicio: servicioId,
     p_protocolo_ref: datos.protocoloRef?.trim() || null,
@@ -84,6 +91,26 @@ export async function probarEquipoDelPedido(
   },
 ): Promise<{ error: string | null; pedidoListo?: boolean }> {
   const supabase = await createClient();
+  // Sin el protocolo completo no se marca (Santos, 13-10, COFACO): la ficha,
+  // las fotos, el PDF y la hoja de chequeo de cada máquina de la unidad.
+  const columnas = "id, descripcion, serie, sin_serie, parte_nombre, protocolo_ref, protocolo_fotos, protocolo_datos, protocolo_chequeo";
+  const [{ data: item }, { data: partes }, { data: servicio }] = await Promise.all([
+    supabase.from("pedido_equipos").select(columnas).eq("id", itemId).maybeSingle(),
+    supabase.from("pedido_equipos").select(columnas).eq("parte_de", itemId).order("orden"),
+    supabase.from("servicios_postventa").select("tipo_pedido").eq("id", servicioId).maybeSingle(),
+  ]);
+  if (!item) return { error: "Ese equipo no está en el pedido" };
+  const falta = faltaParaProbar(item as MaquinaParaProbar, (partes ?? []) as MaquinaParaProbar[], {
+    repuesto: servicio?.tipo_pedido === "repuesto",
+    clic: {
+      protocoloRef: datos.protocoloRef,
+      principal: datos.fotos ?? [],
+      partes: Object.fromEntries((datos.partes ?? []).map((p) => [p.id, p.fotos ?? []])),
+    },
+  });
+  if (falta.length > 0) {
+    return { error: `Todavía no se puede marcar probada y embalada. Falta: ${falta.join(" · ")}. Lo de la ficha y la hoja de chequeo se llena en «Ver el informe de prueba y embalaje».` };
+  }
   const { data, error } = await supabase.rpc("almacen_probar_equipo", {
     p_item: itemId,
     p_protocolo_ref: datos.protocoloRef?.trim() || null,

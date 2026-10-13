@@ -920,7 +920,9 @@ export interface EquipoDelPedido {
   protocolo_fotos: unknown;
   /** El día en que se hizo la prueba (0416) y los datos de la hoja del informe (0417). */
   protocolo_fecha?: string | null;
-  protocolo_datos?: Record<string, { tecnico?: string; fecha_ejecucion?: string }> | null;
+  protocolo_datos?: Record<string, { tecnico?: string; fecha_ejecucion?: string; modelo?: string; serie?: string; equipo?: string }> | null;
+  /** La hoja de chequeo de cada máquina (0452): sin todas sus casillas no se marca probada. */
+  protocolo_chequeo?: Record<string, { plantilla?: string; marcas?: Record<string, "ok" | "falla"> }> | null;
   /** Lleva el código del modelo, no una serie de placa (coches, carros; 0302). */
   sin_serie?: boolean | null;
   /** Sin serie todavía, y por qué (0378): importación, compra local o fabricación. */
@@ -936,7 +938,7 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   const supabase = await createClient();
   const { data } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, protocolo_datos, sin_serie, sin_stock_motivo, procedencia, parte_de, parte_nombre")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, protocolo_datos, protocolo_chequeo, sin_serie, sin_stock_motivo, procedencia, parte_de, parte_nombre")
     .eq("servicio_id", servicioId)
     .order("orden");
   if (data && data.length > 0) return data as EquipoDelPedido[];
@@ -948,7 +950,7 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   // de la primera consulta aunque la siembra ya estuviera en la base.
   const { data: sembrados } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, protocolo_datos, sin_serie, sin_stock_motivo, procedencia, parte_de, parte_nombre")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, protocolo_datos, protocolo_chequeo, sin_serie, sin_stock_motivo, procedencia, parte_de, parte_nombre")
     .eq("servicio_id", servicioId)
     .gte("orden", 1)
     .order("orden");
