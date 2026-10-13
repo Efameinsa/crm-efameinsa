@@ -1,7 +1,17 @@
 import * as XLSX from "xlsx";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fechaLima } from "@/lib/fechas";
-import { avancePedido, bloquesPedido, etiquetaResponsable, queLoFrena, sinPrecios, type ServicioPostventa } from "@/lib/postventa";
+import {
+  avancePedido,
+  bloquesPedido,
+  estadoPago,
+  etiquetaResponsable,
+  pedidoSinCobro,
+  queLoFrena,
+  saldoPendiente,
+  sinPrecios,
+  type ServicioPostventa,
+} from "@/lib/postventa";
 
 /**
  * EL REPORTE DE LOS PENDIENTES (Lesly, 30-09: «tenemos que tener la opción
@@ -73,6 +83,56 @@ export function filasPendientes(pedidos: ServicioPostventa[], hoy: string): { pe
     }
   }
   return { pedidos: filasPedidos, pasos: filasPasos };
+}
+
+/**
+ * LOS PEDIDOS CON PAGO PARCIAL (buzón, Ariana 13-10: «generar un informe con
+ * el listado de dichos clientes, listo para enviar a Gerencia»). Los mismos
+ * que deja el filtro «Pago parcial» de la tabla por paso: pagaron una parte
+ * (confirmado o no por Finanzas) y deben el saldo; los que no llevan cobro
+ * (garantía, 0441) no entran. Las cifras solo salen si quien lo arma puede
+ * verlas (`conCifras`): el área de postventa no las ve (puedeVerPrecios).
+ */
+export interface FilaPagoParcial {
+  pedido: string; cliente: string; ruc: string; equipo: string; formaPago: string; finanzas: string;
+  despacho: string; frena: string; moneda: string; total: number | null; pagado: number | null; saldo: number | null;
+}
+
+export function esPagoParcial(s: ServicioPostventa): boolean {
+  return estadoPago(s) === "parcial" && !pedidoSinCobro(s);
+}
+
+export function filasPagoParcial(pedidos: ServicioPostventa[], conCifras: boolean): FilaPagoParcial[] {
+  const dia = (iso: string | null | undefined) => (iso ? fechaLima(iso) : "");
+  return pedidos.filter(esPagoParcial).map((crudo) => {
+    const s = sinPrecios(crudo);
+    const frena = queLoFrena(s);
+    const finanzas = crudo.pago_confirmado_at
+      ? `Confirmó el abono el ${dia(crudo.pago_confirmado_at)}`
+      : crudo.pago_observado_at
+        ? `Observó el ${dia(crudo.pago_observado_at)}${crudo.pago_observado_motivo ? `: ${crudo.pago_observado_motivo}` : ""}`
+        : crudo.pago_solicitado_at
+          ? `Se le pidió el ${dia(crudo.pago_solicitado_at)}; aún no confirma`
+          : "Aún no se le pidió confirmar";
+    return {
+      pedido: crudo.numero_pedido_erp ?? "",
+      cliente: (crudo.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, ""),
+      ruc: (crudo.cliente_texto ?? "").match(/^(\d{8,11})\s*-/)?.[1] ?? "",
+      equipo: (crudo.equipo ?? "Sin equipo").replace(/\s+/g, " ").trim(),
+      formaPago: (crudo.forma_pago ?? "").trim(),
+      finanzas,
+      despacho: crudo.despachado_at
+        ? `Salió el ${dia(crudo.despachado_at)}`
+        : crudo.fecha_despacho
+          ? `Programado ${fechaLima(crudo.fecha_despacho)}`
+          : "Sin fecha",
+      frena: frena ? `${frena.texto} (${etiquetaResponsable(frena.responsable)})` : "",
+      moneda: crudo.moneda,
+      total: conCifras && crudo.monto != null ? Number(crudo.monto) : null,
+      pagado: conCifras && crudo.monto != null ? Number(crudo.monto_pagado ?? 0) : null,
+      saldo: conCifras && crudo.monto != null ? saldoPendiente(crudo) : null,
+    };
+  });
 }
 
 export function libroPendientes(pedidos: ServicioPostventa[], hoy: string, deAlmacen: boolean): Buffer {
