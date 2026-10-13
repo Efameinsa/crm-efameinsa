@@ -277,6 +277,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
               plantilla={plantilla}
               fijos={{ cliente, modelo: h.datos.modelo, serie: h.datos.serie, fecha: h.datos.fecha_ejecucion, protocolo: e.protocolo_ref }}
               inicial={inicial}
+              hoja={h.datos}
               editable={puedeEditar && !cerrada(e)}
               guardadoAt={guardado?.guardado_at ?? null}
             />

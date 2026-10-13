@@ -13,9 +13,9 @@ import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { chequeoDelProtocolo } from "@/lib/acciones/almacen";
+import { chequeoDelProtocolo, datosDelProtocolo } from "@/lib/acciones/almacen";
 import { claveRenglon, renglonesConMarca, type Chequeo, type Plantilla, type Resultado } from "@/lib/protocolo-checklist";
-import type { Maquina } from "@/lib/protocolo-hoja";
+import type { DatosHoja, Maquina } from "@/lib/protocolo-hoja";
 
 // Las columnas del papel, medidas sobre la foto (% del ancho de la hoja).
 const COLS_CABECERA = [23, 16, 23.5, 11, 15, 11.5];
@@ -40,6 +40,7 @@ export function HojaChequeoProtocolo({
   plantilla,
   fijos,
   inicial,
+  hoja,
   editable,
   guardadoAt,
 }: {
@@ -50,6 +51,8 @@ export function HojaChequeoProtocolo({
   /** Lo que ya dice el informe: no se escribe dos veces. */
   fijos: { cliente: string; modelo?: string; serie?: string; fecha?: string | null; protocolo?: string | null };
   inicial: Chequeo;
+  /** Los datos de la hoja del informe (0417): modelo, serie y fecha se corrigen aquí y allá a la vez. */
+  hoja: DatosHoja;
   editable: boolean;
   guardadoAt: string | null;
 }) {
@@ -76,13 +79,22 @@ export function HojaChequeoProtocolo({
   const todoBien = (claves: string[]) =>
     cambiar((c) => ({ ...c, marcas: { ...c.marcas, ...Object.fromEntries(claves.filter((k) => !c.marcas[k]).map((k) => [k, "ok" as const])) } }));
 
+  // Lo que viene del informe también se corrige aquí mismo. Modelo, serie y
+  // fecha se guardan en la hoja del informe (0417) para que las dos digan lo
+  // mismo; cliente y N° de protocolo quedan escritos solo en esta hoja.
   const cap = (fijos.fecha ?? "").slice(0, 10);
-  const fijo: Record<string, string> = {
-    "#cliente": fijos.cliente,
+  const inicialFijo: Record<string, string> = {
+    "#cliente": inicial.datos.cliente ?? fijos.cliente,
     "#modelo": fijos.modelo ?? "",
     "#serie": fijos.serie ?? "",
     "#fecha": cap ? `${cap.slice(8, 10)}-${cap.slice(5, 7)}-${cap.slice(0, 4)}` : "",
-    "#protocolo": fijos.protocolo ?? "",
+    "#protocolo": inicial.datos.protocolo ?? fijos.protocolo ?? "",
+  };
+  const [fijo, setFijo] = useState(inicialFijo);
+  const ponerFijo = (k: string, v: string) => {
+    if (!editable) return;
+    setFijo((f) => ({ ...f, [k]: v }));
+    setCambiado(true);
   };
 
   /** Un dato escrito: input en pantalla si se puede editar, texto si no. */
@@ -105,12 +117,12 @@ export function HojaChequeoProtocolo({
     escrito(ch.datos[k], (v) => cambiar((c) => ({ ...c, datos: { ...c.datos, [k]: v } })), { ayuda });
 
   const valorCabecera = (clave: string, ayuda?: string) => {
-    if (clave.startsWith("#")) return <span className="block">{fijo[clave]}</span>;
+    if (clave.startsWith("#")) return escrito(fijo[clave], (v) => ponerFijo(clave, v), { ayuda: clave === "#fecha" ? "dd-mm-aaaa" : undefined });
     if (clave === "voltaje+fases")
       return (
-        <div className="flex items-center gap-1">
-          <div className="w-1/2">{dato("voltaje", ayuda)}</div>
-          <div className="w-1/2">{dato("fases", "Monof./Trif.")}</div>
+        <div className="flex flex-col print:flex-row print:items-center print:gap-3">
+          <div className="w-full print:w-auto">{dato("voltaje", ayuda)}</div>
+          <div className="w-full border-t border-neutral-300 print:w-auto print:border-0">{dato("fases", "Monofásico / Trifásico")}</div>
         </div>
       );
     return dato(clave, ayuda);
@@ -154,7 +166,30 @@ export function HojaChequeoProtocolo({
 
   const guardar = () =>
     startTransition(async () => {
-      const r = await chequeoDelProtocolo(itemId, servicioId, maquina, ch);
+      // La fecha se escribe como en el papel (dd-mm-aaaa) y se guarda como fecha.
+      const f = fijo["#fecha"].trim();
+      const m = f.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+      if (f && !m) {
+        toast.error("Escriba la fecha como en el papel: dd-mm-aaaa (por ejemplo 10-06-2026)");
+        return;
+      }
+      const fecha = m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : undefined;
+      if (fijo["#modelo"] !== inicialFijo["#modelo"] || fijo["#serie"] !== inicialFijo["#serie"] || fijo["#fecha"] !== inicialFijo["#fecha"]) {
+        const d = await datosDelProtocolo(itemId, servicioId, maquina, {
+          ...(hoja as Record<string, string>),
+          modelo: fijo["#modelo"],
+          serie: fijo["#serie"],
+          fecha_ejecucion: fecha ?? "",
+        });
+        if (d.error) {
+          toast.error(d.error, { duration: 9000 });
+          return;
+        }
+      }
+      const r = await chequeoDelProtocolo(itemId, servicioId, maquina, {
+        ...ch,
+        datos: { ...ch.datos, cliente: fijo["#cliente"], protocolo: fijo["#protocolo"] },
+      });
       if (r.error) {
         toast.error(r.error, { duration: 9000 });
         return;
@@ -264,8 +299,8 @@ export function HojaChequeoProtocolo({
             {(["vacio", "carga"] as const).map((modo) => (
               <Fragment key={modo}>
                 <td className={`${td} titulo-prog py-2 font-bold`}>{modo === "vacio" ? "PROGRAMACIÓN EN VACIO (CARGA 0)" : "PROGRAMACIÓN CON CARGA"}</td>
-                <td className={`${td} text-center font-bold`}>CANT.</td>
-                <td className={`${td} text-center font-bold`}>MIN.</td>
+                <td className={`${td} px-0 text-center text-[10px] font-bold print:text-[inherit]`}>CANT.</td>
+                <td className={`${td} px-0 text-center text-[10px] font-bold print:text-[inherit]`}>MIN.</td>
               </Fragment>
             ))}
           </tr>
