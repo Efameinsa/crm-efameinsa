@@ -11,7 +11,9 @@ import { ColaDespachos } from "@/components/crm/cola-despachos";
 import {
   avancePedido,
   bloquesPedido,
+  estadoPago,
   etiquetaResponsable,
+  pedidoSinCobro,
   puedeVerPrecios,
   queLoFrena,
   sinPrecios,
@@ -111,7 +113,7 @@ export default async function ControlPedidosPage({
         })
       : [];
 
-  const pedidos: (TarjetaControl & { pasosTabla: FilaTabla["pasos"] })[] = ((data ?? []) as unknown as ServicioPostventa[]).map((crudo) => {
+  const pedidos: (TarjetaControl & { pasosTabla: FilaTabla["pasos"]; pagoParcial: boolean })[] = ((data ?? []) as unknown as ServicioPostventa[]).map((crudo) => {
     const s = verPrecios ? crudo : sinPrecios(crudo);
     const bloques = bloquesPedido(s);
     const fase = faseActual(bloques);
@@ -152,6 +154,8 @@ export default async function ControlPedidosPage({
         })),
       })),
       faltantesHasta,
+      // Buzón, Ariana 13-10: el filtro «Pago parcial» de la tabla por paso.
+      pagoParcial: estadoPago(s) === "parcial" && !pedidoSinCobro(s),
       pasosTabla: bloques.flatMap((b) =>
         b.pasos.map((p) => ({
           clave: p.clave,
@@ -206,6 +210,7 @@ export default async function ControlPedidosPage({
     equipo: t.equipo,
     pasos: conInforme(t.pasosTabla, informePor.get(t.id)),
     sinStock: sinStockPor.get(t.id),
+    pagoParcial: t.pagoParcial,
   }));
 
   return (
