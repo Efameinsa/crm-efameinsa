@@ -346,7 +346,7 @@ export function HojaChequeoProtocolo({
           .hoja-chequeo .entrada::placeholder { color: transparent; }
           .hoja-chequeo .bg-neutral-200 { background: #d9d9d9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .hoja-chequeo .observaciones { min-height: 32mm; }
-          .hoja-chequeo textarea { resize: none; border: 0; overflow: hidden; }
+          .hoja-chequeo textarea { resize: none; border: 0; overflow: hidden; padding: 0 3px !important; }
         }
       `}</style>
     </section>
