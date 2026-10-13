@@ -49,8 +49,10 @@ export default async function OrdenAperturaPage({
   // La misma regla de empresa que la hoja para el cliente: la del cierre del pedido, o la del último cierre del cliente.
   let serieEmpresa: "EFAMEINSA" | "OPEN" | null = null;
   if (a.servicio_id) {
-    const { data: s } = await supabase.from("servicios_postventa").select("informes_cierre!servicios_postventa_informe_cierre_id_fkey(serie)").eq("id", a.servicio_id).maybeSingle();
-    serieEmpresa = ((s?.informes_cierre as unknown as { serie: string } | null)?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? null;
+    const { data: s } = await supabase.from("servicios_postventa").select("apertura_empresa, informes_cierre!servicios_postventa_informe_cierre_id_fkey(serie)").eq("id", a.servicio_id).maybeSingle();
+    // Sin cierre en el CRM (pedido del Excel), la empresa anotada en el pedido:
+    // lo que empezó en OPEN termina en OPEN, igual que el informe (Rubí, 13-10, 023-2026).
+    serieEmpresa = ((s?.informes_cierre as unknown as { serie: string } | null)?.serie as "EFAMEINSA" | "OPEN" | undefined) ?? ((s?.apertura_empresa as "EFAMEINSA" | "OPEN" | null) ?? null);
   }
   if (!serieEmpresa) {
     const { data: ult } = await supabase.from("informes_cierre").select("serie").eq("cuenta_id", a.cuenta_id).is("anulado_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
