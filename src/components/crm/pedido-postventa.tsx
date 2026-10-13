@@ -53,6 +53,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TipoPedidoSelector } from "@/components/crm/tipo-pedido-selector";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
+import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 
 /**
  * La ficha del pedido: los diez pasos del circuito, agrupados de a tres.
@@ -102,6 +103,8 @@ export function PedidoPostventa({
   aperturas = [],
   /** Los equipos del pedido, uno por línea y con su serie, para la apertura. */
   equiposTexto = "",
+  /** Los mismos, uno por uno: el informe de puesta en marcha elige de cuál es (Santos 13-10). */
+  equiposLista = [],
   /** Los informes y papeles que prueban cada paso, por clave de paso (Santos, 02-10). */
   documentos = {},
 }: {
@@ -112,6 +115,7 @@ export function PedidoPostventa({
   emitidoApertura?: string | null;
   aperturas?: { id: string; tipo: string; programada_para: string; estado: string; abierta: boolean }[];
   equiposTexto?: string;
+  equiposLista?: { equipoId: string | null; serie: string | null; descripcion: string }[];
   documentos?: DocumentosPorPaso;
 }) {
   const router = useRouter();
@@ -119,6 +123,8 @@ export function PedidoPostventa({
   const [form, setForm] = useState<Formulario>(null);
   // Los equipos que van en la apertura: el texto del pedido, con la serie si ya la tiene.
   const equiposDeLaApertura = equiposTexto || (servicio.equipo ?? "");
+  // Las máquinas del pedido de a una (la secadora de una torre va con su lavadora).
+  const equiposConSerie = equiposLista;
 
   // OPTIMISTIC UI (Santos, 02-09): los pasos del pedido son muchos clics
   // seguidos. El check se pinta en el instante en que se toca, con la fecha
@@ -239,14 +245,20 @@ export function PedidoPostventa({
     // su informe, en «Informes del pedido».
     if (paso.hecho && (paso.clave === "preinstalacion" || paso.clave === "puesta") && servicio.cuenta_id) {
       return (
-        <AperturaLlamadaBoton
-          cuentaId={servicio.cuenta_id}
-          servicioId={servicio.id}
-          equipos={equiposDeLaApertura}
-          tipo={paso.clave === "preinstalacion" ? "videollamada_preinstalacion" : "soporte_videollamada"}
-          etiqueta="Otra videollamada"
-          compacto
-        />
+        <span className="flex flex-wrap items-center gap-1.5">
+          <AperturaLlamadaBoton
+            cuentaId={servicio.cuenta_id}
+            servicioId={servicio.id}
+            equipos={equiposDeLaApertura}
+            tipo={paso.clave === "preinstalacion" ? "videollamada_preinstalacion" : "soporte_videollamada"}
+            etiqueta="Otra videollamada"
+            compacto
+          />
+          {/* UN INFORME POR EQUIPO (Santos 13-10, AGROCASAGRANDE: dos secadoras).
+              Hecho el primero, el paso queda en ✓ pero se puede llenar el del
+              otro equipo, y otro más: cada uno elige su serie. */}
+          {paso.clave === "puesta" && <BotonPaso onClick={() => setForm({ tipo: "puesta" })}>Otro informe</BotonPaso>}
+        </span>
       );
     }
     // Verificada la dirección, se puede corregir (Rubí, 30-09: «falta liberar
@@ -885,15 +897,14 @@ export function PedidoPostventa({
         descripcion="Instalación y capacitación. La lectura de ciclos es el kilometraje del equipo: es lo que después permite decirle al cliente cuánto lo usó."
         boton="Guardar el informe"
         pendiente={pendiente}
-        onEnviar={(datos, archivos) => {
+        onEnviar={(datos, _archivos, varias) => {
           startTransition(async () => {
             // Las fotos del trabajo (reunión 23-09: «tendría que subir la opción
             // para subir las fotos»). Se suben primero; el informe guarda la ruta
-            // y su hoja imprimible ya las pone en «Registro fotográfico».
+            // y su hoja imprimible ya las pone en «Registro fotográfico». Todas
+            // las que hagan falta (Santos 13-10: «a veces piden 7 o más»).
             const fotos: { path: string; nombre: string; tipo: string; tamano: number }[] = [];
-            for (const clave of ["foto1", "foto2", "foto3", "foto4"]) {
-              const f = archivos[clave];
-              if (!f) continue;
+            for (const f of varias.fotos ?? []) {
               const path = `informes/${servicio.id}/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
               const { error } = await createClient().storage.from("adjuntos").upload(path, f, { contentType: f.type || "image/jpeg" });
               if (error) {
@@ -902,12 +913,17 @@ export function PedidoPostventa({
               }
               fotos.push({ path, nombre: f.name, tipo: f.type, tamano: f.size });
             }
+            // De qué equipo es: el elegido, con su serie; «todos» = el pedido entero.
+            const elegido = datos.equipo && datos.equipo !== "todos" ? equiposConSerie[Number(datos.equipo)] : null;
             const r = await guardarInformeServicio({
               fotos,
               servicioId: servicio.id,
               cuentaId: servicio.cuenta_id,
               clienteTexto: servicio.cliente_texto,
-              equipoTexto: servicio.equipo,
+              equipoId: elegido?.equipoId ?? null,
+              equipoTexto: elegido
+                ? `${elegido.descripcion}${elegido.serie ? ` · serie ${elegido.serie}` : ""}`
+                : equiposTexto || servicio.equipo,
               tipo: "puesta_en_marcha",
               modalidad: servicio.modalidad === "provincia" ? "videollamada" : "in_situ",
               ejecutadoAt: new Date(`${datos.fecha}T${datos.hora || "12:00"}:00-05:00`).toISOString(),
@@ -923,12 +939,29 @@ export function PedidoPostventa({
               toast.error(r.error, { duration: 8000 });
               return;
             }
-            toast.success("Informe guardado y puesta en marcha registrada");
+            toast.success(elegido?.serie ? `Informe de la serie ${elegido.serie} guardado` : "Informe guardado y puesta en marcha registrada");
             setForm(null);
             router.refresh();
           });
         }}
         campos={[
+          ...(equiposConSerie.length > 1
+            ? [
+                {
+                  nombre: "equipo",
+                  etiqueta: "¿De qué equipo es este informe?",
+                  requerido: true,
+                  inicial: "0",
+                  opciones: [
+                    ...equiposConSerie.map((e, i) => ({
+                      valor: String(i),
+                      etiqueta: `${e.serie ? `Serie ${e.serie}` : `Equipo ${i + 1} (sin serie)`} · ${e.descripcion.split("\n")[0].slice(0, 60)}`,
+                    })),
+                    { valor: "todos", etiqueta: "Todos los equipos del pedido (un solo informe)" },
+                  ],
+                },
+              ]
+            : []),
           { nombre: "fecha", etiqueta: "Fecha de ejecución", tipo: "date", inicial: hoy, requerido: true },
           { nombre: "hora", etiqueta: "Hora", tipo: "time", requerido: false },
           { nombre: "tecnico", etiqueta: "Técnico a cargo", requerido: false },
@@ -937,10 +970,7 @@ export function PedidoPostventa({
           { nombre: "observaciones", etiqueta: "Observaciones y recomendaciones", area: true, requerido: false },
           { nombre: "conforme", etiqueta: "Cliente que da conformidad", requerido: false },
           { nombre: "conformeDoc", etiqueta: "Su DNI", requerido: false },
-          { nombre: "foto1", etiqueta: "Foto del trabajo 1", archivo: true },
-          { nombre: "foto2", etiqueta: "Foto 2", archivo: true },
-          { nombre: "foto3", etiqueta: "Foto 3", archivo: true },
-          { nombre: "foto4", etiqueta: "Foto 4 (el informe firmado, si lo hay)", archivo: true },
+          { nombre: "fotos", etiqueta: "Fotos del trabajo (todas las que hagan falta; también el informe firmado)", varias: true },
         ]}
       />
 
@@ -985,6 +1015,8 @@ interface Campo {
   area?: boolean;
   /** Un archivo (foto, pantallazo, PDF) en vez de texto: llega en el segundo argumento de onEnviar. */
   archivo?: boolean;
+  /** Varias fotos (tomar o subir, hasta 100): llegan en el tercer argumento de onEnviar. */
+  varias?: boolean;
   inicial?: string;
   /** Texto gris dentro del campo vacío: un ejemplo de qué se escribe ahí. */
   ejemplo?: string;
@@ -1020,11 +1052,12 @@ function Cuadro({
   descripcion: string;
   boton: string;
   campos: Campo[];
-  onEnviar: (datos: Record<string, string>, archivos: Record<string, File>) => void;
+  onEnviar: (datos: Record<string, string>, archivos: Record<string, File>, varias: Record<string, File[]>) => void;
   pendiente: boolean;
 }) {
   const [valores, setValores] = useState<Record<string, string>>({});
   const [archivos, setArchivos] = useState<Record<string, File>>({});
+  const [varias, setVarias] = useState<Record<string, File[]>>({});
 
   function elegirArchivo(nombre: string, f: File | null) {
     if (f && f.size > MAX_ARCHIVO) {
@@ -1074,7 +1107,7 @@ function Cuadro({
       toast.error(falta.codigo ? "Falta el código de 4 números" : `Falta: ${falta.etiqueta.toLowerCase()}`);
       return;
     }
-    onEnviar(datos, archivos);
+    onEnviar(datos, archivos, varias);
   }
 
   return (
@@ -1084,6 +1117,7 @@ function Cuadro({
         if (!v) {
           setValores({});
           setArchivos({});
+          setVarias({});
           cerrar();
         }
       }}
@@ -1106,6 +1140,15 @@ function Cuadro({
                   tono="amber"
                   valor={datos[c.nombre]}
                   onChange={(v) => setValores((x) => ({ ...x, [c.nombre]: v }))}
+                />
+              </div>
+            ) : c.varias ? (
+              <div key={c.nombre} className="grid gap-1.5 rounded-md border border-border p-2.5">
+                <TomarOSubirVarias
+                  titulo={c.etiqueta}
+                  archivos={varias[c.nombre] ?? []}
+                  onChange={(f) => setVarias((x) => ({ ...x, [c.nombre]: f.filter((a) => a.size <= MAX_ARCHIVO) }))}
+                  maximo={100}
                 />
               </div>
             ) : (

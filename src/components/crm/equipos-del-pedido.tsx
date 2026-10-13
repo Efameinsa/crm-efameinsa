@@ -618,13 +618,13 @@ function Fila({
             </label>
             <span>(salen en el informe; si deja la fecha de hoy, queda la de hoy)</span>
           </div>
-          <TomarOSubirVarias titulo={partes.length ? "Fotos de la primera máquina" : "Fotos de esta máquina"} archivos={fotos} onChange={setFotos} maximo={20} />
+          <TomarOSubirVarias titulo={partes.length ? "Fotos de la primera máquina" : "Fotos de esta máquina"} archivos={fotos} onChange={setFotos} maximo={100} />
           <Documentos archivos={docs} onChange={setDocs} titulo={partes.length ? "Protocolo o informe de la primera máquina (PDF o Word, varios)" : "Protocolo o informe de esta máquina (PDF o Word, varios)"} />
           {/* La torre cuya secadora aún no tiene su renglón (sin stock): sus fotos y su informe igual se suben (Ariana, 07-10). */}
           {torre && partes.length === 0 && (
             <div className="space-y-1.5 border-t border-border pt-1.5">
               <p className="text-[11px] font-semibold text-foreground">Secadora de la torre</p>
-              <TomarOSubirVarias titulo="Fotos de la secadora" archivos={fotosSec} onChange={setFotosSec} maximo={20} />
+              <TomarOSubirVarias titulo="Fotos de la secadora" archivos={fotosSec} onChange={setFotosSec} maximo={100} />
               <Documentos archivos={docsSec} onChange={setDocsSec} titulo="Protocolo o informe de la secadora (PDF o Word, varios)" />
             </div>
           )}
@@ -639,7 +639,7 @@ function Fila({
                 placeholder={`N.º de protocolo (${(p.parte_nombre ?? "otra máquina").toLowerCase()}); vacío = el mismo de arriba`}
                 className="h-8 text-sm"
               />
-              <TomarOSubirVarias titulo={`Fotos de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`} archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} maximo={20} />
+              <TomarOSubirVarias titulo={`Fotos de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`} archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} maximo={100} />
               <Documentos archivos={deParte(p.id).docs} onChange={(d) => cambiarParte(p.id, { docs: d })} titulo={`Protocolo o informe de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()} (PDF o Word, varios)`} />
             </div>
           ))}
@@ -743,7 +743,7 @@ function Fila({
           ) : e.prueba_lista_at &&
             (sumando ? (
               <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
-                <TomarOSubirVarias titulo="Más fotos de esta máquina" archivos={fotos} onChange={setFotos} maximo={20} />
+                <TomarOSubirVarias titulo="Más fotos de esta máquina" archivos={fotos} onChange={setFotos} maximo={100} />
                 <Documentos archivos={docs} onChange={setDocs} titulo="Más documentos (PDF o Word)" />
                 <div className="flex gap-1.5">
                   <Button
@@ -855,7 +855,7 @@ function ArchivosDeParte({ p, servicioId, probada, candado }: { p: EquipoDelPedi
       ) : probada &&
         (abierto ? (
           <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
-            <TomarOSubirVarias titulo={`Fotos de la ${nombre}`} archivos={fotos} onChange={setFotos} maximo={20} />
+            <TomarOSubirVarias titulo={`Fotos de la ${nombre}`} archivos={fotos} onChange={setFotos} maximo={100} />
             <Documentos archivos={docs} onChange={setDocs} titulo={`Protocolo o informe de la ${nombre} (PDF o Word)`} />
             <div className="flex gap-1.5">
               <Button size="sm" className="h-8" disabled={pendiente || fotos.length + docs.length === 0} onClick={guardar}>
