@@ -345,7 +345,7 @@ export function AprobarCotizacionBotones({
             // Rechazar sin decir por qué no sirve de nada: el comercial vuelve
             // a cotizar a ciegas. Se marca el campo en vez de dejar que el
             // botón falle después (29-08).
-            className={cn(faltaNota && "border-destructive focus-visible:border-destructive")}
+            className={cn(faltaNota && rechazarToda && "border-destructive focus-visible:border-destructive")}
           />
         </div>
 
