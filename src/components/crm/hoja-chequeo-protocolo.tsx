@@ -187,7 +187,7 @@ export function HojaChequeoProtocolo({
                   </td>
                 ) : (
                   <Fragment key={i}>
-                    <td className={`${td} ${c.etiqueta === c.etiqueta.toUpperCase() ? "font-bold" : ""}`}>{c.etiqueta}</td>
+                    <td className={`${td} whitespace-nowrap ${c.etiqueta === c.etiqueta.toUpperCase() ? "font-bold" : ""}`}>{c.etiqueta}</td>
                     <td className={`${td} ${gris} p-0 px-1`} colSpan={c.span}>
                       {valorCabecera(c.clave, c.ayuda)}
                     </td>
@@ -288,7 +288,7 @@ export function HojaChequeoProtocolo({
 
       {/* OBSERVACIONES */}
       <div className="observaciones -mt-px flex min-h-36 items-start gap-2 border border-black px-1 py-2">
-        <span className="mt-10 shrink-0 font-bold">OBSERVACIONES:</span>
+        <span className="mt-1 shrink-0 font-bold">OBSERVACIONES:</span>
         {editable ? (
           <textarea
             rows={5}
@@ -297,7 +297,7 @@ export function HojaChequeoProtocolo({
             className="entrada block w-full resize-y bg-amber-50/60 px-1 py-1 text-[13px] outline-none focus:bg-amber-100"
           />
         ) : (
-          <p className="mt-10 whitespace-pre-wrap">{ch.datos.observaciones ?? ""}</p>
+          <p className="mt-1 whitespace-pre-wrap">{ch.datos.observaciones ?? ""}</p>
         )}
       </div>
 
@@ -339,14 +339,14 @@ export function HojaChequeoProtocolo({
       <style>{`
         @media print {
           .hoja-chequeo { break-inside: avoid; font-size: 8.5px; line-height: 1.15; }
-          .hoja-chequeo .cc { height: 4.1mm; padding-top: 0; padding-bottom: 0; }
+          .hoja-chequeo .cc { height: 4.4mm; padding-top: 0; padding-bottom: 0; }
           .hoja-chequeo .titulo-prog { height: 7mm; }
           .hoja-chequeo .entrada, .hoja-chequeo .marca { height: auto; min-height: 0; background: transparent !important; font-size: 8.5px; padding: 0; color: #000; }
           .hoja-chequeo .marca { font-size: 10px; }
           .hoja-chequeo .entrada::placeholder { color: transparent; }
           .hoja-chequeo .bg-neutral-200 { background: #d9d9d9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .hoja-chequeo .observaciones { min-height: 32mm; }
-          .hoja-chequeo textarea { resize: none; border: 0; }
+          .hoja-chequeo textarea { resize: none; border: 0; overflow: hidden; }
         }
       `}</style>
     </section>

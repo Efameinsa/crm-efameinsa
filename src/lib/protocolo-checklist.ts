@@ -55,7 +55,7 @@ const LAVADORA: Plantilla = {
   tipos: ["LAVADORA"],
   cabecera: [
     [{ etiqueta: "CLIENTE:", clave: "#cliente", span: 5 }],
-    [{ etiqueta: "MARCA:", clave: "marca", span: 2 }, { etiqueta: "N° PROTOCOLO :", clave: "#protocolo", span: 2 }],
+    [{ etiqueta: "MARCA:", clave: "marca", span: 2 }, { etiqueta: "N° PROTOCOLO:", clave: "#protocolo", span: 2 }],
     [{ etiqueta: "MODELO:", clave: "#modelo", span: 2 }, { etiqueta: "N° SERIE:", clave: "#serie", span: 2 }],
     [{ etiqueta: "FECHA:", clave: "#fecha", span: 1 }, { etiqueta: "Hora de inicio:", clave: "hora_inicio", span: 1, ayuda: "09:00" }, { etiqueta: "Hora final:", clave: "hora_final", span: 1, ayuda: "10:15" }],
     [{ etiqueta: "Pot. (Kw):", clave: "pot_kw", span: 1 }, { etiqueta: "Corriente (Amp.):", clave: "corriente", span: 1 }, { vacio: 2 }],
