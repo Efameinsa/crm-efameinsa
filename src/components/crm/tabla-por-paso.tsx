@@ -1,5 +1,5 @@
 import Link from "@/components/enlace";
-import { Check, CircleDashed, OctagonAlert } from "lucide-react";
+import { Check, CircleDashed, FileText, OctagonAlert } from "lucide-react";
 import { FilasPorPaso } from "@/components/crm/filas-por-paso";
 import { cn } from "@/lib/utils";
 
@@ -155,6 +155,19 @@ export function TablaPorPaso({ filas: todas, falta, base, q = "" }: { filas: Fil
         >
           Pago parcial ({pendientesPor("pago_parcial")})
         </Link>
+        {/* Buzón, Ariana 13-10: el listado, en un documento listo para Gerencia. */}
+        {falta === "pago_parcial" && (
+          <a
+            href="/postventa/control/pago-parcial"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-accent"
+            title="Los clientes con pago parcial en una hoja para imprimir o guardar en PDF y enviar a Gerencia"
+          >
+            <FileText className="size-3.5" aria-hidden />
+            Informe para Gerencia (PDF)
+          </a>
+        )}
         {columnas.some((c) => c.clave === "prueba") && (
           <Link
             href={enlace("prueba_sin_pedir")}
