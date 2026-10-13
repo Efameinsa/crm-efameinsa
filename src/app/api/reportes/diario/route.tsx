@@ -17,6 +17,7 @@ import { gestionesPorRuta, type RutaPostventa } from "@/lib/reporte-postventa-ru
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pendientesPropios, presupuestosPropios, ventasPropias } from "@/lib/trabajo-propio";
 import { pendientesAnotados, bloquesPendientesAnotados } from "@/lib/pendientes-anotados";
+import { cargarPanelPostventa, type PanelPostventa } from "@/lib/panel-postventa";
 
 // PDF del cierre del día del comercial. La autorización real la hace la
 // función SQL (el propio comercial o backoffice); acá solo se comprueba que
@@ -105,6 +106,7 @@ export async function GET(request: Request) {
   let tituloPendientes: string | undefined;
   let pendientesAnotadosPdf: { titulo: string; filas: { cliente: string; detalle: string | null }[] }[] | undefined;
   let movimientoDelArea: { titulo: string; hora: string | null }[] | undefined;
+  let panelPostventa: PanelPostventa | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
@@ -116,8 +118,11 @@ export async function GET(request: Request) {
       // SOLO LO PROPIO (buzón, Ariana PV3, 10-10: «el reporte debe reflejar
       // únicamente las gestiones que está realizando Postventa 3»). Sin lo
       // del área ni sus pendientes, que son de las compañeras, y lo que hizo
-      // en dos cuadros por ruta. Rubí y Gabriela siguen como pidió Carlos.
-      const soloPropio = Boolean(perfil.reporte_solo_lo_propio);
+      // en dos cuadros por ruta. Desde el 13-10 vale para TODAS (Santos:
+      // «cada usuario debe poder ver solo lo suyo y no las acciones de otros,
+      // para poder hacer sus mediciones»; Rubí lo había pedido el 12-10). La
+      // marca `reporte_solo_lo_propio` ya no decide.
+      const soloPropio = true;
       // PRESUPUESTOS Y VENTAS POR QUIEN LOS HIZO (buzón, Gabriela PV2, 12-10:
       // «en ventas cerradas no le está jalando nada»). La función SQL los
       // cuenta por el dueño del cliente y postventa cotiza y cierra sobre
@@ -267,6 +272,28 @@ export async function GET(request: Request) {
         ],
       };
       r.agenda = { ...r.agenda, manana: r.planificacion_manana.gestiones.length + r.planificacion_manana.tareas.length };
+      // LA HOJA DE GRÁFICOS (Santos, 13-10): solo lo suyo, por línea. Si
+      // falla, el reporte sale igual sin ella.
+      try {
+        const admin = createAdminClient();
+        const { data: tcFila } = await admin.from("parametros").select("valor").eq("clave", "tc_usd_pen").maybeSingle();
+        panelPostventa = await cargarPanelPostventa(
+          admin,
+          comercialId,
+          fecha,
+          r.seguimientos as (typeof r.seguimientos[number] & { oportunidad_id?: string })[],
+          r.cotizaciones,
+          [...(pendientesPostventa ?? []), ...(pendientesAnotadosPdf ?? [])],
+          Number(tcFila?.valor) || 3.75,
+        );
+        const lineas = panelPostventa.lineaDeOportunidad;
+        r.seguimientos = r.seguimientos.map((s) => ({
+          ...s,
+          linea: lineas[(s as { oportunidad_id?: string }).oportunidad_id ?? ""] ?? "otros",
+        }));
+      } catch {
+        panelPostventa = undefined;
+      }
       // Los dos cuadros por ruta son de Ariana (0431); Gabriela pidió solo lo
       // suyo pero con sus seguimientos en la tabla de siempre (0437).
       if (soloPropio && perfil.reporte_por_rutas) rutasPostventa = await gestionesPorRuta(supabase, comercialId, fecha, r.seguimientos);
@@ -302,6 +329,7 @@ export async function GET(request: Request) {
       movimientoDelArea={movimientoDelArea}
       rutasPostventa={rutasPostventa}
       indicadores={indicadores}
+      panelPostventa={panelPostventa}
     />,
   );
 
