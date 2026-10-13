@@ -60,6 +60,8 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
       ];
     });
 
+  // La máquina probada ya está guardada: sumarle archivos pide el código de Lesly (0450).
+  const { data: candadoProtocolo } = await supabase.rpc("protocolo_con_candado", { p_servicio: id });
   return (
     <div className="space-y-4">
       <Link href="/almacen/pedidos" className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground">
@@ -154,7 +156,7 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
           {/* Máquina por máquina, cada una con su protocolo (0260): va ancho, que acá se trabaja. */}
           {/* En un servicio el renglón es el servicio, no una máquina que probar (Lesly, 09-10). */}
           {!circuito.esServicio && (
-            <EquiposDelPedido servicioId={servicio.id} equipos={listaEquipos} modo="almacen" despachado={Boolean(servicio.despachado_at)} cliente={cliente} enlaceEquipo="/almacen/informes/equipos" />
+            <EquiposDelPedido candado={candadoProtocolo === true} servicioId={servicio.id} equipos={listaEquipos} modo="almacen" despachado={Boolean(servicio.despachado_at)} cliente={cliente} enlaceEquipo="/almacen/informes/equipos" />
           )}
         </div>
 

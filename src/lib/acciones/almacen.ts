@@ -194,6 +194,24 @@ export async function datosDelProtocolo(
 }
 
 /**
+ * EL PROTOCOLO GUARDADO SE CORRIGE CON CÓDIGO (0450; Ariana, 13-10: «el
+ * sistema deberá solicitar un PIN de autorización proporcionado por Lesly»).
+ * Con el código de operaciones y el motivo, el informe del pedido queda
+ * abierto 30 minutos.
+ */
+export async function abrirProtocoloConCodigo(servicioId: string, pin: string, motivo: string) {
+  await requerirPerfil();
+  if (motivo.trim().length < 5) return { error: "Diga qué hay que corregir" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("abrir_protocolo_con_codigo", { p_servicio: servicioId, p_pin: pin, p_motivo: motivo.trim() });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath(`/pedidos/${servicioId}/protocolo`);
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  return { error: null };
+}
+
+/**
  * EL TÉCNICO Y LA FECHA DE LA PRUEBA AL SUBIR EL PROTOCOLO (Lesly, 09-10:
  * «técnico que realizó la prueba y fecha de prueba del equipo, ya que muchas
  * veces no es la fecha que se sube el protocolo o se ejecuta el informe»).
