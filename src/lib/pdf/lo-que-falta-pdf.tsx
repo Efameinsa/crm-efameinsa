@@ -29,7 +29,8 @@ export function LoQueFaltaPdf({ abiertos, historia, secciones }: { abiertos: num
   return (
     <View>
       <View style={{ flexDirection: "row", alignItems: "flex-end", marginBottom: 6 }}>
-        <Text style={{ fontSize: 22, fontFamily: "Helvetica-Bold", color: GRANATE, marginRight: 6 }}>{abiertos}</Text>
+        {/* lineHeight y alto fijos: el interlineado de la hoja del reporte lo montaba sobre el texto de abajo. */}
+        <Text style={{ fontSize: 22, lineHeight: 1, height: 24, fontFamily: "Helvetica-Bold", color: GRANATE, marginRight: 6 }}>{abiertos}</Text>
         <Text style={{ fontSize: 9, color: CARBON, marginBottom: 3 }}>pedidos abiertos en el área, en curso</Text>
       </View>
       <Text style={{ fontSize: 7, color: GRIS, marginBottom: 8 }}>
