@@ -9,7 +9,7 @@ import { propuestaDeHoja, type DatosHoja, type Maquina } from "@/lib/protocolo-h
  * estar todo, tanto la ficha como el informe de protocolo, y si hay que
  * modificar que pida PIN»). El PIN después de guardado ya lo pone la 0450;
  * esto es lo de antes: la máquina no se marca hasta tener, por cada máquina
- * de la unidad (la secadora de la torre también), su N.º de protocolo, sus
+ * de la unidad (la secadora de la torre también), sus
  * fotos, el protocolo o informe en PDF/Word, la ficha del informe (modelo de
  * la placa, serie y técnico) y, si tiene hoja de chequeo, que no esté vacía.
  *
@@ -105,7 +105,7 @@ export function faltaParaProbar(
   const tecnico = clic.tecnico ?? "";
   const nombre = opciones.nombre ?? "La máquina";
   const falta: string[] = [];
-  if (!(clic.protocoloRef?.trim() || e.protocolo_ref?.trim())) falta.push(`${nombre}: N.º de protocolo`);
+  // El N.º de protocolo no va en el documento (Santos, 14-10, Beneficencia de Huancayo): no se exige (0480).
 
   const propios = [...lista(e.protocolo_fotos), ...lista(clic.principal)];
   const deSecadora = propios.filter((a) => /-secadora-/.test(a.path ?? ""));

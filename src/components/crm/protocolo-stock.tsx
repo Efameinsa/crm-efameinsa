@@ -78,7 +78,7 @@ export function NuevoProtocoloDeStock() {
           <Input value={d.serie} onChange={poner("serie")} className="mt-0.5 h-8 font-mono text-sm uppercase" />
         </label>
         <label className="text-xs font-medium">
-          N.º de protocolo
+          N.º de protocolo (opcional)
           <Input value={d.protocoloRef} onChange={poner("protocoloRef")} className="mt-0.5 h-8 text-sm" />
         </label>
         <label className="text-xs font-medium">
@@ -164,7 +164,7 @@ export function PanelProtocoloDeStock({
   return (
     <div className="no-imprimir mb-4 space-y-2 rounded border border-neutral-300 bg-neutral-50 p-3 text-[12px]">
       <div className="grid gap-2 sm:grid-cols-[11rem_1fr]">
-        <Input value={ref} onChange={(x) => setRef(x.target.value)} placeholder="N.º de protocolo" className="h-8 bg-white text-sm" />
+        <Input value={ref} onChange={(x) => setRef(x.target.value)} placeholder="N.º de protocolo (opcional)" className="h-8 bg-white text-sm" />
         <Input value={texto} onChange={(x) => setTexto(x.target.value)} placeholder="Nota: probada con carga…" className="h-8 bg-white text-sm" />
       </div>
       <TomarOSubirVarias titulo="Fotos de la prueba" archivos={fotos} onChange={setFotos} maximo={100} />

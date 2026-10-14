@@ -662,7 +662,7 @@ function Fila({
       {modo === "almacen" && e.en_este_despacho && !e.prueba_lista_at && (
         <div className="mt-2 space-y-1.5 rounded-md bg-muted/40 p-2">
           <div className="grid gap-1.5 sm:grid-cols-[11rem_1fr]">
-            <Input value={protocolo} onChange={(x) => setProtocolo(x.target.value)} placeholder={`N.º de protocolo (máquina ${e.orden})`} className="h-8 text-sm" />
+            <Input value={protocolo} onChange={(x) => setProtocolo(x.target.value)} placeholder={`N.º de protocolo (opcional)`} className="h-8 text-sm" />
             <Input value={nota} onChange={(x) => setNota(x.target.value)} placeholder="Nota: probada con carga, embalada en pallet…" className="h-8 text-sm" />
           </div>
           {/* La fecha en que de verdad se hizo (Ariana, 07-10): el protocolo pudo hacerse antes de registrarlo en el CRM.
@@ -697,7 +697,7 @@ function Fila({
               <Input
                 value={deParte(p.id).protocolo}
                 onChange={(x) => cambiarParte(p.id, { protocolo: x.target.value })}
-                placeholder={`N.º de protocolo (${(p.parte_nombre ?? "otra máquina").toLowerCase()}); vacío = el mismo de arriba`}
+                placeholder={`N.º de protocolo de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()} (opcional)`}
                 className="h-8 text-sm"
               />
               <TomarOSubirVarias titulo={`Fotos de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`} archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} maximo={100} />

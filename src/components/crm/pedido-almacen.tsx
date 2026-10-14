@@ -213,7 +213,7 @@ export function PedidoAlmacen({
           </p>
           <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
             <div className="grid gap-1">
-              <Label className="text-xs">N.º de protocolo</Label>
+              <Label className="text-xs">N.º de protocolo (opcional)</Label>
               <Input value={protocolo} onChange={(e) => setProtocolo(e.target.value)} placeholder="ej. PROT-2026-045" />
             </div>
             <div className="grid gap-1">

@@ -54,7 +54,7 @@ export async function marcarProbado(servicioId: string, datos: { protocoloRef?: 
   // (Santos, 13-10); el repuesto no se prueba, pero lleva su foto.
   const { data: s } = await supabase.from("servicios_postventa").select("tipo_pedido").eq("id", servicioId).maybeSingle();
   const repuesto = ["repuesto", "accesorio", "embalaje"].includes(s?.tipo_pedido ?? "");
-  const falta = [!repuesto && !datos.protocoloRef?.trim() && "N.º de protocolo", !(datos.fotos ?? []).length && (repuesto ? "la foto" : "el protocolo o las fotos de la prueba")].filter(Boolean);
+  const falta = [!(datos.fotos ?? []).length && (repuesto ? "la foto" : "el protocolo o las fotos de la prueba")].filter(Boolean);
   if (falta.length > 0) return { error: `Todavía no se puede marcar ${repuesto ? "preparado" : "probado"} y embalado. Falta: ${falta.join(" y ")}.` };
   const { error } = await supabase.rpc("almacen_marcar_probado", {
     p_servicio: servicioId,

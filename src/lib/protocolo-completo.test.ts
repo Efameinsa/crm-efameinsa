@@ -18,7 +18,8 @@ const todoMarcado = Object.fromEntries(renglonesConMarca(PLANTILLAS[0]).map((k) 
 describe("faltaParaProbar", () => {
   it("sin nada no se puede marcar: dice todo lo que falta", () => {
     const falta = faltaParaProbar(cofaco, []).join(" | ");
-    for (const f of ["N.º de protocolo", "fotos", "modelo de la placa", "técnico", "PROTOCOLO DE LAVADORA"]) expect(falta).toContain(f);
+    expect(falta).not.toContain("N.º de protocolo");
+    for (const f of ["fotos", "modelo de la placa", "técnico", "PROTOCOLO DE LAVADORA"]) expect(falta).toContain(f);
   });
 
   it("con hoja de chequeo no pide Word/PDF: el informe lo genera el sistema (Lesly, 13-10)", () => {
