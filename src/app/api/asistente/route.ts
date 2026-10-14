@@ -41,7 +41,7 @@ type Evento =
   | { t: "conversacion"; id: string }
   | { t: "consulta"; texto: string }
   | { t: "texto"; d: string }
-  | { t: "fin"; evidencias: Evidencia[]; ms: number }
+  | { t: "fin"; evidencias: { texto: string; resumen: string }[]; ms: number }
   | { t: "error"; mensaje: string };
 
 export async function POST(request: Request) {
@@ -277,7 +277,13 @@ export async function POST(request: Request) {
           respuesta = "No pude armar una respuesta. Pruebe a preguntarlo de otra manera.";
           enviar({ t: "texto", d: respuesta });
         }
-        enviar({ t: "fin", evidencias, ms: Date.now() - inicio });
+        // Al navegador va en palabras —qué revisó y qué encontró—, sin el
+        // nombre interno de la consulta ni los datos crudos.
+        enviar({
+          t: "fin",
+          evidencias: evidencias.map((e) => ({ texto: avisoDe(e.herramienta, e.argumentos), resumen: e.resumen })),
+          ms: Date.now() - inicio,
+        });
       } catch (e) {
         const abortada = request.signal.aborted;
         estado = abortada ? "corte" : "error";

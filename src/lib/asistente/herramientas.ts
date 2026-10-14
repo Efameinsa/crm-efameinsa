@@ -108,7 +108,9 @@ function fechaLima(iso: string | null | undefined): string | null {
 }
 
 /** Quita de un patrón de búsqueda lo que rompe el filtro `or` de PostgREST. */
-const patronSeguro = (s: string) => `%${s.replace(/[%,()*]/g, " ").trim()}%`;
+// Las palabras se buscan en orden pero no pegadas: «Beneficencia Huancayo»
+// encuentra «SOCIEDAD DE BENEFICENCIA DE HUANCAYO» (14-10, pregunta de Ariana).
+const patronSeguro = (s: string) => `%${s.replace(/[%,()*]/g, " ").trim().split(/\s+/).join("%")}%`;
 
 const ETAPA_COTIZACION: Record<string, string> = {
   borrador: "en borrador (todavía no se envió al cliente)",

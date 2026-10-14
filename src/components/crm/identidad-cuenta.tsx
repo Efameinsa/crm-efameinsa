@@ -56,6 +56,7 @@ export function IdentidadCuenta({
   rubroId = null,
   rubros = [],
   soloLectura = false,
+  abrirAlEntrar = false,
 }: {
   cuentaId: string;
   tipoDoc: TipoDocumento;
@@ -63,13 +64,20 @@ export function IdentidadCuenta({
   razonSocial: string;
   /** Central mira la ficha, no la corrige: sin el botón (0219). La base lo vuelve a impedir igual. */
   soloLectura?: boolean;
+  /**
+   * Llega ya en modo edición. Es para el «Corregir nombre o RUC» de la
+   * cabecera de la ficha (Rubí, 14-10): escribió mal el nombre del HOSPITAL
+   * CHANKA en la apertura y no encontraba dónde corregirlo, porque el botón
+   * vivía en la pestaña «Datos y contactos» y, sin RUC, decía «Vincular RUC».
+   */
+  abrirAlEntrar?: boolean;
   /** Rubro actual de la cuenta; null = todavía sin clasificar. */
   rubroId?: number | null;
   /** Catálogo activo (catalogo_rubros). Vacío esconde el desplegable. */
   rubros?: { id: number; nombre: string }[];
 }) {
   const router = useRouter();
-  const [editando, setEditando] = useState(false);
+  const [editando, setEditando] = useState(abrirAlEntrar && !soloLectura);
   const [campos, setCampos] = useState({
     tipoDoc,
     numDoc: numDoc ?? "",
@@ -116,7 +124,7 @@ export function IdentidadCuenta({
 
   if (!editando) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3">
+      <div id="datos-del-cliente" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">{razonSocial}</p>
           <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
@@ -140,10 +148,12 @@ export function IdentidadCuenta({
             </p>
           )}
         </div>
+        {/* Sin documento decía solo «Vincular RUC», y quien quería corregir el
+            NOMBRE no lo tomaba como su botón (Rubí, 14-10). Acá se edita todo. */}
         {!soloLectura && (
           <Button size="sm" variant="ghost" onClick={abrir}>
             <Pencil className="size-3.5" />
-            {tipoDoc === "SIN_DOC" ? "Vincular RUC" : "Corregir"}
+            {tipoDoc === "SIN_DOC" ? "Corregir nombre o vincular RUC" : "Corregir nombre o RUC"}
           </Button>
         )}
       </div>
@@ -151,7 +161,7 @@ export function IdentidadCuenta({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
+    <div id="datos-del-cliente" className="space-y-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
       <div className="space-y-1.5">
         <Label htmlFor="ic-razon" className="text-xs">
           Razón social

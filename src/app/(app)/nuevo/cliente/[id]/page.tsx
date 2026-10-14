@@ -1,7 +1,7 @@
 import { VolverALaLista } from "@/components/crm/volver-a-la-lista";
 import Link from "@/components/enlace";
 import { notFound } from "next/navigation";
-import { ArrowRight, Building2, ClipboardList, FileText, MapPin, UserRound } from "lucide-react";
+import { ArrowRight, Building2, ClipboardList, FileText, MapPin, Pencil, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios, veTodoPostventa } from "@/lib/postventa";
@@ -63,9 +63,9 @@ const PESTANAS = [
  * equipos) y las acciones del día; el contenido va en pestañas, y la de
  * entrada —Resumen— es solo lo que pide acción y lo último que pasó.
  */
-export default async function Ficha360Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
+export default async function Ficha360Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; corregir?: string }> }) {
   const { id } = await params;
-  const { tab } = await searchParams;
+  const { tab, corregir } = await searchParams;
   const pestana = PESTANAS.find((p) => p.clave === tab)?.clave ?? "resumen";
   const perfil = await requerirPerfil();
   guardaFichaCliente(perfil);
@@ -169,16 +169,34 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <Building2 className="size-3.5" /> Cliente · cartera de {dueno ? `${dueno.codigo_comercial ?? ""} ${dueno.nombre}`.trim() : "nadie"}
             </p>
-            <h1 className="truncate text-xl font-bold text-foreground">{cuenta.razon_social}</h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="truncate text-xl font-bold text-foreground">{cuenta.razon_social}</h1>
+              {/* DONDE SE LEE EL NOMBRE, SE CORRIGE (Rubí, 14-10): escribió mal
+                  el nombre del HOSPITAL CHANKA en la apertura y no encontraba
+                  cómo arreglarlo — el botón estaba dos pestañas más allá y, sin
+                  RUC, decía «Vincular RUC». Lleva al bloque ya abierto para
+                  editar; la base sigue decidiendo quién puede guardar. */}
+              <Link
+                href={`?tab=contactos&corregir=1#datos-del-cliente`}
+                className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium text-primary hover:underline"
+                title="Corregir la razón social, el tipo y número de documento o el rubro"
+              >
+                <Pencil className="size-3" /> Corregir nombre o RUC
+              </Link>
+            </div>
             {comoGerencia && (
               <div className="mt-1">
                 <ReasignarCarteraBoton cuentaId={cuenta.id} razonSocial={cuenta.razon_social} comercialActual={cuenta.comercial_id as string | null} comerciales={comerciales ?? []} />
               </div>
             )}
             <p className="mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              {cuenta.num_doc && (
+              {cuenta.num_doc ? (
                 <span className="inline-flex items-center gap-1">
                   <FileText className="size-3.5" /> {cuenta.tipo_doc} {cuenta.num_doc}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 font-medium text-amber-700" title="La cotización y el informe salen sin RUC hasta que se vincule">
+                  <FileText className="size-3.5" /> Sin RUC
                 </span>
               )}
               {cuenta.direccion && (
@@ -351,6 +369,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                 razonSocial={cuenta.razon_social}
                 rubroId={(cuenta.rubro_id as number | null) ?? null}
                 rubros={(rubros ?? []) as { id: number; nombre: string }[]}
+                abrirAlEntrar={corregir === "1"}
               />
               {(rubros ?? []).length > 0 && (
                 <CambiarRubro
