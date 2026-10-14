@@ -16,7 +16,7 @@ import { TITULO_PREVENTIVOS_POR_OFRECER } from "@/lib/preventivo";
 import { gestionesPorRuta, type RutaPostventa } from "@/lib/reporte-postventa-rutas";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pendientesPropios, presupuestosPropios, ventasPropias } from "@/lib/trabajo-propio";
-import { pendientesAnotados, bloquesPendientesAnotados } from "@/lib/pendientes-anotados";
+import { pendientesAnotados, bloquesPendientesAnotados, tareasPendientesDelCalendario } from "@/lib/pendientes-anotados";
 import { cargarPanelPostventa, type PanelPostventa } from "@/lib/panel-postventa";
 import { cargarPanorama, type PanoramaPendientes } from "@/lib/panorama-pendientes";
 import { cargarFilasPorPaso } from "@/lib/pedidos-por-paso";
@@ -196,8 +196,11 @@ export async function GET(request: Request) {
       // En su propio apartado, uno por tipo, antes de lo del área (buzón, Rubí
       // 12-10: «que se diferencie cada apartado y que aparezca solo mi gestión»).
       let anotadosCrudos: PendienteAnotado[] = [];
+      // Y las tareas comunes del calendario sin hacer (Santos 14-10): van al panorama, con las anotadas.
+      let tareasSinHacer: Awaited<ReturnType<typeof tareasPendientesDelCalendario>> = [];
       if (fecha >= hoyLima()) {
         anotadosCrudos = await pendientesAnotados(createAdminClient(), comercialId).catch(() => []);
+        tareasSinHacer = await tareasPendientesDelCalendario(createAdminClient(), comercialId).catch(() => []);
         const anotados = bloquesPendientesAnotados(anotadosCrudos);
         if (anotados.length > 0) pendientesAnotadosPdf = anotados;
       }
@@ -297,7 +300,7 @@ export async function GET(request: Request) {
         loQueFalta = undefined;
       }
       try {
-        panorama = await cargarPanorama(createAdminClient(), comercialId, fecha, hoyLima(), anotadosCrudos);
+        panorama = await cargarPanorama(createAdminClient(), comercialId, fecha, hoyLima(), anotadosCrudos, tareasSinHacer);
       } catch {
         panorama = undefined;
       }
