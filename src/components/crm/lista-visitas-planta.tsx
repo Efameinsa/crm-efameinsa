@@ -100,10 +100,11 @@ export function ListaVisitasPlanta({
     );
   }
 
-  function imprimir(v: VisitaFila) {
+  function imprimir(v: VisitaFila, marcarImpresa = true) {
     setImprimiendo(v);
     setTimeout(() => {
       window.print();
+      if (!marcarImpresa) return;
       startTransition(async () => {
         const r = await marcarVisitaImpresa(v.id);
         if (r.error) toast.error(r.error);
@@ -305,6 +306,19 @@ export function ListaVisitasPlanta({
                       className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive disabled:opacity-50"
                     >
                       <Ban className="size-3.5" /> Cancelar
+                    </button>
+                  </div>
+                )}
+                {/* Rubí, 14-10: «quiero que tenga la opción de imprimir». La misma
+                    hoja de Central, pero sin marcarla impresa: eso es de Central. */}
+                {!v.cancelada_at && modo !== "central" && (
+                  <div className="flex flex-none items-center">
+                    <button
+                      type="button"
+                      onClick={() => imprimir(v, false)}
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                    >
+                      <Printer className="size-3.5" /> Imprimir
                     </button>
                   </div>
                 )}
