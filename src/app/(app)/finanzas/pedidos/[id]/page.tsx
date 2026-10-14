@@ -14,6 +14,7 @@ import { SubirLiquidacion } from "@/components/crm/subir-liquidacion";
 import { EmpresaDelPedido } from "@/components/crm/empresa-del-pedido";
 import { AtenderOrdenFacturar } from "@/components/crm/orden-facturar";
 import { VistoBuenoSalida } from "@/components/crm/visto-bueno-salida";
+import { LetrasDelPedido } from "@/components/crm/letras-del-pedido";
 import { pideVistoBuenoFinanzas, type EstadoLetras, type ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +39,7 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
     supabase
       .from("servicios_postventa")
       .select(
-        "forma_pago, pct_antes_despacho, origen, tipo_pedido, moneda, letras_cantidad, letras_estado, letras_firmadas_at, finanzas_vb_at, finanzas_vb_nota, finanzas_vb_comision, salida_autorizada_at, salida_autorizada_motivo, despachado_at, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero",
+        "forma_pago, pct_antes_despacho, origen, tipo_pedido, moneda, letras_cantidad, letras_estado, letras_firmadas_at, finanzas_vb_at, finanzas_vb_nota, finanzas_vb_comision, salida_autorizada_at, salida_autorizada_motivo, despachado_at, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, letras_recibidas_almacen_at, letras_entregadas_at, letras_entregadas_a",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -105,6 +106,8 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
           }}
         />
       )}
+
+      {vb && <LetrasDelPedido s={{ id, ...vb, letras_estado: vb.letras_estado as EstadoLetras | null }} cliente={p.cliente} />}
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">

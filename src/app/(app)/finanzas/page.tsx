@@ -66,7 +66,7 @@ export default async function FinanzasPage() {
       )}
 
       {letras.length > 0 && (
-        <SeccionPanel titulo={`Letras por volver firmadas · ${letras.length}`}>
+        <SeccionPanel titulo={`Letras de crédito: en camino o por volver firmadas · ${letras.length}`}>
           <ListaSalidas filas={letras} letras />
         </SeccionPanel>
       )}
@@ -283,7 +283,15 @@ function ListaSalidas({ filas, letras = false }: { filas: SalidaACredito[]; letr
             <p className="text-xs text-muted-foreground">
               {f.formaPago ?? "Sin forma de pago"}
               {letras
-                ? ` · ${f.letrasCantidad ?? ""} letra${f.letrasCantidad === 1 ? "" : "s"} ${f.letrasEstado === "van_con_el_equipo" ? "fueron con el equipo" : "las tiene el cliente"}`
+                ? ` · ${f.letrasCantidad ?? ""} letra${f.letrasCantidad === 1 ? "" : "s"} ${
+                    f.letrasEstado === "entregadas"
+                      ? `entregadas${f.letrasEntregadasA ? ` a ${f.letrasEntregadasA}` : ""}${f.letrasEntregadasAt ? ` el ${new Date(f.letrasEntregadasAt).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}` : ""}: falta que vuelvan firmadas`
+                      : f.despachadoAt
+                        ? "salieron con el equipo y NADIE confirmó la entrega"
+                        : f.letrasRecibidasAlmacen
+                          ? "ya están con el almacén, van con el equipo"
+                          : "van con el equipo: el almacén todavía no las recoge"
+                  }`
                 : f.listo
                   ? " · probado y embalado"
                   : f.aperturaPedida

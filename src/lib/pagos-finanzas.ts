@@ -400,6 +400,9 @@ export interface SalidaACredito {
   letrasEstado: string | null;
   letrasCantidad: number | null;
   despachadoAt: string | null;
+  letrasEntregadasA: string | null;
+  letrasEntregadasAt: string | null;
+  letrasRecibidasAlmacen: boolean;
 }
 
 function aSalida(f: Fila): SalidaACredito {
@@ -415,11 +418,14 @@ function aSalida(f: Fila): SalidaACredito {
     letrasEstado: (f.letras_estado as string | null) ?? null,
     letrasCantidad: (f.letras_cantidad as number | null) ?? null,
     despachadoAt: (f.despachado_at as string | null) ?? null,
+    letrasEntregadasA: (f.letras_entregadas_a as string | null) ?? null,
+    letrasEntregadasAt: (f.letras_entregadas_at as string | null) ?? null,
+    letrasRecibidasAlmacen: f.letras_recibidas_almacen_at != null,
   };
 }
 
 const COLUMNAS_SALIDA =
-  "id, cliente_texto, forma_pago, equipo, prueba_lista_at, prueba_embalaje, apertura_despacho_at, direccion_verificada_at, fecha_despacho, letras_estado, letras_cantidad, despachado_at";
+  "id, cliente_texto, forma_pago, equipo, prueba_lista_at, prueba_embalaje, apertura_despacho_at, direccion_verificada_at, fecha_despacho, letras_estado, letras_cantidad, despachado_at, letras_entregadas_a, letras_entregadas_at, letras_recibidas_almacen_at";
 
 /**
  * VENTAS A CRÉDITO QUE ESPERAN EL VISTO BUENO DE FINANZAS (0469, COFACO

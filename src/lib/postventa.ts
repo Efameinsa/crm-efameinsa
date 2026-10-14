@@ -68,6 +68,12 @@ export interface ServicioPostventa {
   letras_cantidad?: number | null;
   letras_estado?: EstadoLetras | null;
   letras_firmadas_at?: string | null;
+  /** Las letras que viajan con el equipo (0470): el almacén las tiene, y a quién se entregaron. */
+  letras_recibidas_almacen_at?: string | null;
+  letras_entregadas_at?: string | null;
+  letras_entregadas_a?: string | null;
+  letras_entregadas_fotos?: FotoAlmacen[] | null;
+  letras_entregadas_nota?: string | null;
   agencia_at?: string | null;
   agencia_fotos?: FotoAlmacen[] | null;
   protocolo_fotos?: FotoAlmacen[] | null;
@@ -317,6 +323,23 @@ export function faltaVistoBuenoFinanzas(
 /** Las letras salieron (con el equipo o ya las tiene el cliente) y todavía no vuelven firmadas. */
 export function letrasPorFirmar(s: Pick<ServicioPostventa, "letras_estado">): boolean {
   return s.letras_estado === "van_con_el_equipo" || s.letras_estado === "entregadas";
+}
+
+/**
+ * LAS LETRAS QUE VIAJAN CON EL EQUIPO (0470; Santos 14-10: «pueden salir con
+ * venta a crédito pero tienen que llevar sus letras… tiene que avisar que ya
+ * se entregó»). El equipo sale con ellas; falta que el almacén las tenga antes
+ * de salir y que alguien confirme a quién se entregaron.
+ */
+export function letrasViajan(s: Pick<ServicioPostventa, "letras_estado" | "letras_recibidas_almacen_at" | "letras_entregadas_at">): boolean {
+  return s.letras_estado === "van_con_el_equipo" || s.letras_recibidas_almacen_at != null || s.letras_entregadas_at != null;
+}
+
+/** El almacén todavía no tiene las letras y el equipo no salió: no se registra la salida. */
+export function faltanLetrasEnAlmacen(
+  s: Pick<ServicioPostventa, "letras_estado" | "letras_recibidas_almacen_at" | "salida_autorizada_at" | "despachado_at">,
+): boolean {
+  return s.letras_estado === "van_con_el_equipo" && !s.letras_recibidas_almacen_at && !s.salida_autorizada_at && !s.despachado_at;
 }
 
 export function saldoPendiente(s: ServicioPostventa): number {
@@ -910,6 +933,35 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
               ? "Es provincia y el cliente todavía no confirmó la preinstalación: conviene tenerla antes de que salga el camión"
               : undefined,
     },
+    // LAS LETRAS QUE VIAJAN CON EL EQUIPO (0470): se entregan y se avisa.
+    ...(letrasViajan(s)
+      ? [
+          {
+            clave: "letras",
+            etiqueta:
+              s.letras_estado === "van_con_el_equipo"
+                ? `Letras de crédito${s.letras_cantidad ? ` (${s.letras_cantidad})` : ""}: falta confirmar que se entregaron al cliente`
+                : `Letras de crédito entregadas al cliente${s.letras_cantidad ? ` (${s.letras_cantidad})` : ""}`,
+            responsable: "almacen" as ResponsablePaso,
+            hecho: s.letras_estado === "entregadas" || s.letras_estado === "firmadas",
+            cuando: s.letras_entregadas_at ?? null,
+            detalle:
+              [
+                s.letras_recibidas_almacen_at ? "El almacén las recibió de Finanzas" : null,
+                s.letras_entregadas_a ? `Las recibió ${s.letras_entregadas_a}` : null,
+                s.letras_estado === "firmadas" ? "Ya volvieron firmadas a Finanzas" : s.letras_estado === "entregadas" ? "Falta que vuelvan firmadas a Finanzas" : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || undefined,
+            trabado:
+              s.letras_estado === "van_con_el_equipo" && s.despachado_at
+                ? "El equipo salió con las letras: confirme a quién se entregaron. Sin eso no se da el doble check del despacho"
+                : faltanLetrasEnAlmacen(s)
+                  ? "El almacén tiene que recoger las letras en Finanzas antes de que salga"
+                  : undefined,
+          },
+        ]
+      : []),
     // EL DOBLE CHECK DE POSTVENTA (Carlos, 16-09): «almacén sube la
     // información, pero postventa da el doble check con verificar que se ha
     // hecho correcto el envío». Solo aparece cuando fue almacén quien registró

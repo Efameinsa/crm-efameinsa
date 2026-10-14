@@ -390,7 +390,7 @@ export async function darVistoBuenoSalida(datos: {
   const cliente = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   const letras =
     datos.letras === "van_con_el_equipo"
-      ? ` Las ${datos.letrasCantidad ?? ""} letras van con el equipo: entréguelas al cliente con la guía y traiga la constancia.`.replace("  ", " ")
+      ? ` Las ${datos.letrasCantidad ?? ""} letras van con el equipo: recójalas en Finanzas y marque «Recibí las letras» (sin eso no se registra la salida); al entregarlas, confirme quién las recibió.`.replace("  ", " ")
       : datos.letras === "entregadas"
         ? " El cliente ya tiene las letras."
         : datos.letras === "firmadas"
