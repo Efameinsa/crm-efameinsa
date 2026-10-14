@@ -76,16 +76,18 @@ describe("faltaParaProbar", () => {
     expect(falta).toEqual([]);
   });
 
-  it("una casilla sin marcar frena", () => {
-    const { [Object.keys(todoMarcado)[0]]: _, ...casi } = todoMarcado;
-    const m: MaquinaParaProbar = {
+  it("no hace falta marcar todas las casillas: basta una (Ariana, 14-10)", () => {
+    const [primera] = Object.keys(todoMarcado);
+    const base: MaquinaParaProbar = {
       ...cofaco,
       protocolo_ref: "P",
-      protocolo_fotos: [{ path: "a.jpg", tipo: "image/jpeg" }, { path: "b.pdf", tipo: "application/pdf" }],
+      protocolo_fotos: [{ path: "a.jpg", tipo: "image/jpeg" }],
       protocolo_datos: { principal: { modelo: "M", tecnico: "T" } },
-      protocolo_chequeo: { principal: { marcas: casi } },
     };
-    expect(faltaParaProbar(m, []).join()).toContain("1 casilla sin marcar");
+    const una = { ...base, protocolo_chequeo: { principal: { marcas: { [primera]: "ok" } } } } as MaquinaParaProbar;
+    expect(faltaParaProbar(una, [])).toEqual([]);
+    const vacia = { ...base, protocolo_chequeo: { principal: { marcas: {} } } };
+    expect(faltaParaProbar(vacia, []).join()).toContain("ninguna casilla marcada");
   });
 
   it("«N/A» cuenta como respondida (0465, COFACO sin quemador ni carga)", () => {

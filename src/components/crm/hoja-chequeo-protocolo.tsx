@@ -240,7 +240,7 @@ export function HojaChequeoProtocolo({
         toast.error(r.error, { duration: 9000 });
         return;
       }
-      toast.success(faltan ? `Protocolo guardado · faltan ${faltan} casillas` : "Protocolo guardado completo");
+      toast.success(`Protocolo guardado · ${todas.length - faltan} de ${todas.length} casillas marcadas`);
       setCambiado(false);
       router.refresh();
     });
@@ -403,7 +403,7 @@ export function HojaChequeoProtocolo({
             {pendiente ? <Loader2 className="inline size-4 animate-spin" /> : "Guardar protocolo"}
           </button>
           <span className="text-[12px] text-neutral-700">
-            {faltan === 0 ? "Todas las casillas marcadas" : `Faltan ${faltan} de ${todas.length} casillas`}
+            {faltan === todas.length ? "Ninguna casilla marcada (marque al menos una)" : `${todas.length - faltan} de ${todas.length} casillas marcadas · solo las que correspondan`}
             {fallas > 0 && <b className="ml-2 text-red-700">· {fallas} con falla ✗</b>}
             {noAplica > 0 && <span className="ml-2 text-neutral-500">· {noAplica} N/A</span>}
           </span>
