@@ -127,7 +127,7 @@ export function PedidoPostventa({
   const [form, setForm] = useState<Formulario>(null);
   // Los equipos que van en la apertura: el texto del pedido, con la serie si ya la tiene.
   const equiposDeLaApertura = equiposTexto || (servicio.equipo ?? "");
-  // Las máquinas del pedido de a una (la secadora de una torre va con su lavadora).
+  // Las máquinas del pedido de a una serie: la secadora de una torre tiene su propio informe (Rubí 14-10).
   const equiposConSerie = equiposLista;
 
   // OPTIMISTIC UI (Santos, 02-09): los pasos del pedido son muchos clics

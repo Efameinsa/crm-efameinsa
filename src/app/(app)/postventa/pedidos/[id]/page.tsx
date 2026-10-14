@@ -22,6 +22,7 @@ import {
   saldoPendiente,
   avancePedido,
   etiquetaResponsable,
+  maquinasPorSerie,
   puedeVerPrecios,
   sinPrecios,
   estadoPago,
@@ -417,7 +418,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
           emitidoApertura={emisor?.nombre ?? null}
           aperturas={aperturas}
           equiposTexto={equiposTexto}
-          equiposLista={listaEquipos.filter((e) => !e.parte_de).map((e) => ({ equipoId: e.equipo_id, serie: e.serie, descripcion: e.descripcion }))}
+          equiposLista={maquinasPorSerie(listaEquipos)}
           documentos={documentos}
           nombres={await nombresDelPedido(crudo)}
         />
