@@ -55,6 +55,8 @@ export type TipoNotificacion =
   // Lo que ya existía sin tipo propio: la anulación (0237) y la visita (0238).
   | "cierre_anulado"
   | "visita_planta"
+  // Al almacén, cada visita que se registra, en el mensaje grande (Central, buzón 14-10).
+  | "visita_nueva"
   // El cliente tocó un botón en una ficha mandada por WhatsApp (0250).
   | "whatsapp"
   // El cliente escribió en un chat que ya existía (02-10): uno por chat.
@@ -192,7 +194,7 @@ export async function notificarAlmacen(datos: {
   url?: string;
   esPrueba?: boolean;
   /** «urgencia_almacen» (0358) es la sirena de Central: no se cierra sola y suena la campanada. */
-  tipo?: "almacen" | "urgencia_almacen";
+  tipo?: "almacen" | "urgencia_almacen" | "visita_nueva";
 }): Promise<void> {
   const admin = createAdminClient();
   const { data } = await admin

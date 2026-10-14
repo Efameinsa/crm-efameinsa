@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 14-10-2026 (tarde). Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 14-10-2026 (16:30). Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -17,6 +17,13 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 ---
 
 ## Cronología de reuniones y decisiones
+
+### 14-10 15:05 · Llamada con el ingeniero: cierre del servicio de AGROCASAGRANDE (Santos, Ariana)
+- **Qué se decidió:** la puesta en marcha de las 2 secadoras UNIMAC UT075 de AGROCASAGRANDE (series 2505034118 y 2505050812) se vendió como **servicio aparte**. Se cotizó (Presu_2345-26, aprobada por gerencia el 14-10) y **postventa hace el cierre de ese servicio** para que Finanzas facture y el cliente pague.
+- **Por qué:** el cliente ya aprobó esos equipos desde su cierre inicial. El informe de servicio no se hizo entonces porque no se sabía si haría falta. No se espera otra aprobación del cliente: solo falta el cierre. Sea crédito o contado, a estos clientes **primero se les factura y después pagan**.
+- **Tropiezo:** Ariana decía que el cierre no la dejaba seguir sin voucher (comprobante de pago), aunque la venta es a crédito 30 días. Se había hablado con Katerine. El ingeniero pidió verificarlo: un cierre a crédito no debe exigir voucher.
+- **Resultado:** Ariana emitió el cierre **EFAMEINSA 010-2026** el 14-10 a las 15:12 (crédito 30 días, factura, garantía 36 meses, sin voucher). Sigue el procedimiento regular: Central genera el pedido y Finanzas factura.
+- Antes era: la puesta en marcha iba dentro del cierre de venta (EFAMEINSA 005-2026 REG). Este servicio es una venta nueva.
 
 ### 14-10 · Ajustes de almacén, Finanzas y cotizaciones (Santos con Lesly, Ariana, Katerine y Jhon)
 - **Crédito con letras: sin visto bueno de Finanzas no sale nada** (orden de Santos, a raíz de COFACO).
@@ -522,12 +529,13 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - Se dejó de pedir el número de protocolo.
 - El cierre del pedido pasa por «Orden a Finanzas para facturar y cobrar».
 
-**AGROCASAGRANDE (29-09 al 13-10): el cierre que solo existía en Word.**
+**AGROCASAGRANDE (29-09 al 14-10): el cierre que solo existía en Word.**
 - Rubí no podía registrar la puesta en marcha porque no había cierre ni pedido en el CRM.
 - Nacieron los cierres «REG» (05-10) y el registro que engancha la máquina por su serie (29-09).
 - En el piloto, Central generó el pedido sin series, y por eso un REG ya no se genera sin series.
 - La apertura salía con una sola de las 2 secadoras, y por eso se marcan los equipos del cliente (13-10).
 - La garantía de sus secadoras quedó en 36 meses, como dice su cierre.
+- El 14-10 se vendió aparte el servicio de puesta en marcha: cierre EFAMEINSA 010-2026 (Ariana), para facturar y que paguen.
 - Pendiente: tiene 3 fichas sin unir.
 
 **Lavadora no apilable (12-10): el código sin descripción.**
