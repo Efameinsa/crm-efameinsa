@@ -32,6 +32,51 @@ export interface AdjuntoEvento {
   nombre: string;
   url: string; // URL firmada de Storage (bucket privado 'adjuntos'), vence en 1 h
 }
+const ES_IMAGEN = /\.(png|jpe?g|webp)$/i;
+
+/**
+ * LAS CAPTURAS SE VEN SIN ABRIRLAS (Moisés, 14-10). Las del filtrado —el chat
+ * donde el prospecto dice que factura con RUC 20, no como persona— son la
+ * prueba de por qué cambió el expediente; con solo el nombre del archivo
+ * («Captura de pantalla 2026-10-13 161403.png») había que abrir una por una.
+ * Las imágenes van en miniatura; lo demás (PDF, Word, video) sigue en chip.
+ */
+export function AdjuntosDelEvento({ adjuntos }: { adjuntos?: AdjuntoEvento[] }) {
+  if (!adjuntos?.length) return null;
+  const imagenes = adjuntos.filter((ad) => ES_IMAGEN.test(ad.nombre));
+  const otros = adjuntos.filter((ad) => !ES_IMAGEN.test(ad.nombre));
+  return (
+    <div className="mt-1 flex flex-wrap items-end gap-2">
+      {imagenes.map((ad, i) => (
+        <a
+          key={`i${i}`}
+          href={ad.url}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          title={ad.nombre}
+          className="block overflow-hidden rounded-md border border-border bg-secondary hover:ring-2 hover:ring-primary/40"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada que vence en 1 h: no pasa por el optimizador */}
+          <img src={ad.url} alt={ad.nombre} loading="lazy" className="h-16 w-auto max-w-[8rem] object-cover" />
+        </a>
+      ))}
+      {otros.map((ad, i) => (
+        <a
+          key={`o${i}`}
+          href={ad.url}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+        >
+          📎 {ad.nombre}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 /**
  * A QUÉ EXPEDIENTE PERTENECE CADA FILA (gerencia, 28-09). «El cliente es uno
  * solo… pero hay un caso de cotización, hay un caso de problema técnico. Eso sí
@@ -219,22 +264,7 @@ export function CuerpoSolicitud({ evento }: { evento: EventoSolicitud }) {
       )}
       <MarcaEditado cambios={evento.cambios ?? []} />
       {evento.dejo && <p className="mt-1 text-xs text-muted-foreground">Dejó: {evento.dejo}</p>}
-      {(evento.adjuntos ?? []).length > 0 && (
-        <p className="mt-1 flex flex-wrap gap-2">
-          {evento.adjuntos!.map((ad, i) => (
-            <a
-              key={i}
-              href={ad.url}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
-            >
-              📎 {ad.nombre}
-            </a>
-          ))}
-        </p>
-      )}
+      <AdjuntosDelEvento adjuntos={evento.adjuntos} />
     </div>
   );
 }
@@ -337,22 +367,7 @@ function EventoFila({ evento, oportunidadActualId }: { evento: EventoTimeline; o
             </span>
           </p>
         )}
-        {evento.tipo === "actividad" && (evento.adjuntos ?? []).length > 0 && (
-          <p className="mt-1 flex flex-wrap gap-2">
-            {evento.adjuntos!.map((ad, i) => (
-              <a
-                key={i}
-                href={ad.url}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
-              >
-                📎 {ad.nombre}
-              </a>
-            ))}
-          </p>
-        )}
+        {evento.tipo === "actividad" && <AdjuntosDelEvento adjuntos={evento.adjuntos} />}
         {evento.tipo !== "actividad" && evento.pdfUrl && (
           <p className="mt-1">
             <a

@@ -8,6 +8,7 @@ import {
   ETIQUETA_ACTIVIDAD,
   COLOR_COTIZACION,
   CuerpoSolicitud,
+  AdjuntosDelEvento,
   type EventoTimeline,
 } from "@/components/crm/linea-tiempo-cuenta";
 import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
@@ -360,22 +361,7 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento:
                 )}
               </p>
             )}
-            {(evento.adjuntos ?? []).length > 0 && (
-              <p className="mt-1 flex flex-wrap gap-2">
-                {evento.adjuntos!.map((ad, i) => (
-                  <a
-                    key={i}
-                    href={ad.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
-                  >
-                    📎 {ad.nombre}
-                  </a>
-                ))}
-              </p>
-            )}
+            <AdjuntosDelEvento adjuntos={evento.adjuntos} />
           </>
         )}
         {evento.tipo === "cotizacion" && (

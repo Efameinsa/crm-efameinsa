@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type ClipboardEvent } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { registrarActividad, registrarGestionYRechazar, registrarGestionYDerivar } from "@/lib/acciones/oportunidades";
@@ -222,6 +222,33 @@ export function RegistroRapido({
     }
   }
 
+  function agregarArchivos(nuevos: File[], pegados = false) {
+    // Las capturas pegadas llegan todas como «image.png»: se les pone la hora
+    // para que en el historial no salgan cinco archivos con el mismo nombre.
+    const hora = new Date().toTimeString().slice(0, 8).replace(/:/g, "-");
+    const conNombre = pegados
+      ? nuevos.map((f, i) => new File([f], `captura-${hora}${nuevos.length > 1 ? `-${i + 1}` : ""}.${f.type.split("/")[1] || "png"}`, { type: f.type }))
+      : nuevos;
+    const pasa = (f: File) => f.size > (tipoDeArchivo(f)?.startsWith("video/") ? MAX_TAMANO_VIDEO : MAX_TAMANO);
+    const grandes = conNombre.filter(pasa);
+    if (grandes.length) toast.error(`Máximo 10 MB por archivo (videos 25 MB): ${grandes.map((f) => f.name).join(", ")}`);
+    const juntos = [...archivos, ...conNombre.filter((f) => !pasa(f))];
+    if (juntos.length > 5) toast.error("Máximo 5 archivos por gestión");
+    setArchivos(juntos.slice(0, 5));
+    setExpandido(true);
+  }
+
+  // PEGAR LA CAPTURA (Moisés, 14-10). Él ya adjuntaba capturas del chat a sus
+  // llamadas —173 gestiones—, pero cada una era recortar, guardar en el disco y
+  // buscarla con «Adjuntar». Como en el formulario de Central y en el buzón, un
+  // Ctrl+V en cualquier parte del registro la suma; el texto pegado sigue igual.
+  function alPegar(e: ClipboardEvent) {
+    const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+    e.preventDefault();
+    agregarArchivos(files, true);
+  }
+
   function registrar() {
     if (esRechazo && !motivoId) {
       toast.error("Seleccione el motivo del rechazo");
@@ -353,7 +380,7 @@ export function RegistroRapido({
   }
 
   return (
-    <div ref={refRaiz} className="scroll-mt-24 space-y-4 rounded-md border border-border p-4">
+    <div ref={refRaiz} onPaste={alPegar} className="scroll-mt-24 space-y-4 rounded-md border border-border p-4">
       <Paso n="1" titulo="¿Qué hiciste?" atenuado={faltaQueHacer}>
         <div className="flex flex-wrap gap-2">
           {TIPOS_CONTACTO.map(([valor, etiqueta]) => (
@@ -379,6 +406,12 @@ export function RegistroRapido({
       </Paso>
 
       <Paso n="2" titulo="¿Qué pasó?" atenuado={faltaQueHacer}>
+        {tipo === "filtro" && (
+          <p className="mb-1.5 text-[11px] text-muted-foreground">
+            Pegue (Ctrl+V) o adjunte las capturas del filtrado —por ejemplo, el chat donde dice que factura con RUC 20—. Con
+            solo las capturas basta.
+          </p>
+        )}
         <Textarea
           placeholder="ej.: tiene 20 lavanderías, presupuesto US$ 100 mil, su crédito sale el 15/09…"
           value={nota}
@@ -388,7 +421,7 @@ export function RegistroRapido({
         />
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <label className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-accent">
-            <Paperclip className="size-3" /> Adjuntar (PDF, Word, foto, video)
+            <Paperclip className="size-3" /> Adjuntar (PDF, Word, foto, video) · o pegue una captura con Ctrl+V
             {/* Videos (Rubí, postventa 07-10): el bucket ya los aceptaba hasta
                 25 MB desde la 0337; acá el seguimiento solo dejaba fotos y
                 documentos. Mismas reglas que el formulario de Central. */}
@@ -398,12 +431,7 @@ export function RegistroRapido({
               accept={ACEPTA_ADJUNTOS}
               className="hidden"
               onChange={(e) => {
-                const nuevos = Array.from(e.target.files ?? []);
-                const pasa = (f: File) => f.size > (tipoDeArchivo(f)?.startsWith("video/") ? MAX_TAMANO_VIDEO : MAX_TAMANO);
-                const grandes = nuevos.filter(pasa);
-                if (grandes.length) toast.error(`Máximo 10 MB por archivo (videos 25 MB): ${grandes.map((f) => f.name).join(", ")}`);
-                setArchivos((prev) => [...prev, ...nuevos.filter((f) => !pasa(f))].slice(0, 5));
-                setExpandido(true);
+                agregarArchivos(Array.from(e.target.files ?? []));
                 e.target.value = "";
               }}
             />
