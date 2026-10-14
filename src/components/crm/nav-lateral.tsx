@@ -39,6 +39,7 @@ import {
   Truck,
   MessageSquareWarning,
   ListChecks,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
@@ -166,6 +167,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // palabra (Santos, 02-09).
     { href: "/admin/catalogos", etiqueta: "Listas del sistema", icono: BookMarked },
     { href: "/observaciones", etiqueta: "Observaciones del sistema", icono: MessageSquareWarning },
+    // Lo que el personal le pregunta al asistente (0479, Santos 14-10).
+    { href: "/admin/asistente", etiqueta: "Auditoría del asistente", icono: Sparkles },
     { href: "/tasking", etiqueta: "Tasking", icono: ListChecks },
   ],
 };

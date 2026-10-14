@@ -1,5 +1,6 @@
 import { requerirRol } from "@/lib/auth";
 import { AsistenteChat } from "@/components/crm/asistente-chat";
+import { sugerenciasPara } from "@/lib/asistente/sugerencias";
 
 export const dynamic = "force-dynamic";
 
@@ -15,5 +16,5 @@ export const dynamic = "force-dynamic";
  */
 export default async function AsistentePage() {
   const perfil = await requerirRol(["gerencia", "admin"]);
-  return <AsistenteChat nombre={perfil.nombre} />;
+  return <AsistenteChat nombre={perfil.nombre} sugerencias={sugerenciasPara(perfil)} />;
 }

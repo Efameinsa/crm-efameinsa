@@ -242,6 +242,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Listas del sistema", href: "/admin/catalogos", icono: "listas", coincide: ["/admin/catalogos"] },
     // Lo que el personal reporta desde el 💡 (Santos, 06-10): admin lo atiende, gerencia lo ve.
     { etiqueta: "Observaciones", href: "/observaciones", icono: "observaciones", coincide: ["/observaciones", "/sugerencias"] },
+    // Lo que el personal le pregunta al asistente (0479, Santos 14-10).
+    { etiqueta: "Auditoría del asistente", href: "/admin/asistente", icono: "observaciones", coincide: ["/admin/asistente"] },
     // TASKING (Santos, 09-10): actas de reunión, compromisos por WhatsApp y aviso de sugerencias resueltas.
     { etiqueta: "Tasking", href: "/tasking", icono: "tasking", coincide: ["/tasking"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.

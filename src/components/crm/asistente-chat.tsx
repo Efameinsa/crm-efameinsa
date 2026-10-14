@@ -27,6 +27,11 @@ import { cn } from "@/lib/utils";
  * De paso, el autoscroll dejó de usar `scrollIntoView`, que empuja también a
  * los contenedores de arriba: ahora se mueve solo esta caja.
  *
+ * LA RESPUESTA SE VE MIENTRAS SE ESCRIBE (14-10, con Claude). Con el Gemini
+ * gratuito se miraban tres puntitos durante 40 segundos. Ahora el servidor
+ * manda la respuesta por pedazos y avisa qué está consultando («Revisando el
+ * pedido 420-26…»), así que la espera se entiende y se acorta.
+ *
  * LO QUE SANTOS PIDIÓ QUITAR (07-09): la nota al pie sobre el piloto y el
  * párrafo explicativo del estado vacío. Tenía razón: la pantalla se explicaba
  * a sí misma tres veces. Lo que la letra chica decía —que solo consulta— está
@@ -46,37 +51,49 @@ interface Mensaje {
   mio: boolean;
   evidencias?: Evidencia[];
   error?: boolean;
+  /** Mientras se escribe: qué está consultando ahora («Revisando el pedido…»). */
+  consultando?: string | null;
+  escribiendo?: boolean;
 }
 
-const SUGERENCIAS = [
-  "¿Cuánto vendió Katerine esta semana?",
+/** Lo que llega del servidor, una línea JSON por evento (api/asistente). */
+type Evento =
+  | { t: "conversacion"; id: string }
+  | { t: "consulta"; texto: string }
+  | { t: "texto"; d: string }
+  | { t: "fin"; evidencias: Evidencia[]; ms: number }
+  | { t: "error"; mensaje: string };
+
+const SUGERENCIAS_GENERALES = [
+  "¿Cómo funciona la aprobación de una cotización?",
+  "¿Qué pasa con un pedido después del cierre?",
   "¿De quién es el cliente Sierra Travel?",
-  "¿Qué perdimos la semana pasada y por qué?",
-  "¿Qué lavadoras de 30 kg tenemos y a cuánto?",
+  "¿Qué lavadoras de 30 kg tenemos?",
 ];
 
 export function AsistenteChat({
   nombre,
   claseContenedor = "mx-auto h-[calc(100vh-9rem)] w-full max-w-3xl rounded-xl border border-border shadow-sm",
   onCerrar,
+  sugerencias = SUGERENCIAS_GENERALES,
 }: {
   nombre: string;
   /** El marco cambia según dónde viva: pantalla completa o burbuja flotante. */
   claseContenedor?: string;
   onCerrar?: () => void;
+  /** Las preguntas de ejemplo, según el área de quien mira. */
+  sugerencias?: string[];
 }) {
   const [entrada, setEntrada] = useState("");
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [pensando, setPensando] = useState(false);
   const [enfocado, setEnfocado] = useState(false);
   const listaRef = useRef<HTMLDivElement>(null);
-  // EL HILO VIVE EN GOOGLE. Acá solo guardamos el id de la última interacción y
-  // lo mandamos de vuelta; así «¿y de Katerine?» sabe de qué veníamos hablando
-  // sin reenviar toda la conversación en cada pregunta.
+  // EL HILO VIVE EN EL SERVIDOR (0479). Acá solo se guarda el id de la
+  // conversación y se manda de vuelta; así «¿y el de Katerine?» sabe de qué
+  // veníamos hablando. El servidor comprueba que la conversación sea de quien
+  // pregunta y rearma el historial desde la base.
   const hilo = useRef<string | null>(null);
-  // Qué modelo viene atendiendo el hilo: si Google nos pasó al de respaldo por
-  // falta de cuota, el id anterior ya no le sirve.
-  const modelo = useRef<string | null>(null);
 
   // Bajar solo ESTA caja, sin arrastrar la pantalla de atrás.
   useEffect(() => {
@@ -88,62 +105,97 @@ export function AsistenteChat({
     const pregunta = texto.trim();
     if (!pregunta || pensando) return;
 
-    setMensajes((prev) => [...prev, { texto: pregunta, mio: true }]);
+    // La respuesta es la última burbuja y se va llenando mientras llega.
+    setMensajes((prev) => [
+      ...prev,
+      { texto: pregunta, mio: true },
+      { texto: "", mio: false, escribiendo: true, consultando: null },
+    ]);
     setEntrada("");
     setPensando(true);
 
-    // Si el servidor se pasa del tiempo, la plataforma lo corta y devuelve una
-    // página de error, no JSON. Sin esto el gerente veía «no carga» y nada más.
+    const actualizar = (cambio: (m: Mensaje) => Mensaje) =>
+      setMensajes((prev) => {
+        const copia = [...prev];
+        copia[copia.length - 1] = cambio(copia[copia.length - 1]);
+        return copia;
+      });
+
+    // Un tope por si algo queda colgado en el camino: el servidor corta solo a
+    // los 100 s, así que pasado esto es la red, no la consulta.
     const corte = new AbortController();
-    const alarma = setTimeout(() => corte.abort(), 75_000);
+    const alarma = setTimeout(() => corte.abort(), 150_000);
 
     try {
       const r = await fetch("/api/asistente", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pregunta, anterior: hilo.current, modelo: modelo.current }),
+        body: JSON.stringify({ pregunta, conversacion: hilo.current }),
         signal: corte.signal,
       });
 
-      // Puede no ser JSON: un 504 de la plataforma llega como HTML.
-      const d = await r.json().catch(() => null);
-      if (!d) {
-        setMensajes((prev) => [
-          ...prev,
-          {
-            texto:
-              r.status === 504 || r.status === 502
-                ? "La consulta tardó demasiado y se cortó. Pruebe con algo más concreto: un comercial, una semana o un número de documento."
-                : `El servidor respondió mal (código ${r.status}).`,
-            mio: false,
-            error: true,
-          },
-        ]);
+      if (!r.ok || !r.body) {
+        // Los rechazos de entrada (sin sesión, apagado, conversación larga)
+        // vienen en JSON; un error de la plataforma puede venir en HTML.
+        const d = (await r.json().catch(() => null)) as { error?: string } | null;
+        actualizar(() => ({
+          texto: d?.error ?? `El servidor respondió mal (código ${r.status}). Vuelva a intentar.`,
+          mio: false,
+          error: true,
+        }));
         return;
       }
 
-      if (r.ok && d.interaccion) {
-        hilo.current = d.interaccion;
-        modelo.current = d.modelo ?? null;
+      const lector = r.body.getReader();
+      const decodificar = new TextDecoder();
+      let pendiente = "";
+      let terminado = false;
+      while (!terminado) {
+        const { value, done } = await lector.read();
+        if (done) break;
+        pendiente += decodificar.decode(value, { stream: true });
+        const lineas = pendiente.split("\n");
+        pendiente = lineas.pop() ?? "";
+        for (const linea of lineas) {
+          if (!linea.trim()) continue;
+          const e = JSON.parse(linea) as Evento;
+          if (e.t === "conversacion") hilo.current = e.id;
+          else if (e.t === "consulta") actualizar((m) => ({ ...m, consultando: e.texto }));
+          else if (e.t === "texto") actualizar((m) => ({ ...m, texto: m.texto + e.d, consultando: null }));
+          else if (e.t === "fin") {
+            actualizar((m) => ({ ...m, evidencias: e.evidencias, escribiendo: false, consultando: null }));
+            terminado = true;
+          } else if (e.t === "error") {
+            actualizar((m) => ({
+              texto: m.texto ? `${m.texto}\n\n${e.mensaje}` : e.mensaje,
+              mio: false,
+              error: true,
+            }));
+            terminado = true;
+          }
+        }
       }
-      setMensajes((prev) => [
-        ...prev,
-        r.ok
-          ? { texto: d.respuesta, mio: false, evidencias: d.evidencias }
-          : { texto: d.error ?? "No se pudo consultar.", mio: false, error: true },
-      ]);
+      // Si la conexión se cortó sin «fin», se deja lo que llegó y se avisa.
+      actualizar((m) =>
+        m.escribiendo
+          ? {
+              ...m,
+              escribiendo: false,
+              consultando: null,
+              texto: m.texto || "Se cortó la conexión antes de terminar. Vuelva a preguntar.",
+              error: !m.texto,
+            }
+          : m,
+      );
     } catch (e) {
       const abortada = e instanceof DOMException && e.name === "AbortError";
-      setMensajes((prev) => [
-        ...prev,
-        {
-          texto: abortada
-            ? "La consulta tardó demasiado y la corté. Pruebe con algo más concreto: un comercial, una semana o un número de documento."
-            : "No se pudo conectar con el asistente.",
-          mio: false,
-          error: true,
-        },
-      ]);
+      actualizar((m) => ({
+        texto: abortada
+          ? "La consulta tardó demasiado y la corté. Pruebe con algo más concreto: un número de documento, un cliente o un pedido."
+          : m.texto || "No se pudo conectar con el asistente.",
+        mio: false,
+        error: !(m.texto && !abortada),
+      }));
     } finally {
       clearTimeout(alarma);
       setPensando(false);
@@ -165,7 +217,6 @@ export function AsistenteChat({
               onClick={() => {
                 setMensajes([]);
                 hilo.current = null;
-                modelo.current = null;
               }}
               title="Empezar de nuevo"
               className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -197,7 +248,7 @@ export function AsistenteChat({
               ¿Qué necesita saber, {nombre.split(" ")[0]}?
             </h3>
             <div className="grid w-full max-w-sm gap-1.5">
-              {SUGERENCIAS.map((s, i) => (
+              {sugerencias.map((s, i) => (
                 <button
                   key={s}
                   type="button"
@@ -224,7 +275,19 @@ export function AsistenteChat({
                         : "rounded-bl-sm border border-border/70 bg-secondary/40 text-foreground",
                   )}
                 >
-                  <p className="whitespace-pre-line">{m.texto}</p>
+                  {m.texto && <p className="whitespace-pre-line">{m.texto}</p>}
+
+                  {/* Mientras trabaja: qué está mirando, o los puntitos. */}
+                  {m.escribiendo && (m.consultando || !m.texto) && (
+                    <div className={cn("flex items-center gap-2", m.texto && "mt-1.5")}>
+                      <span className="flex gap-1">
+                        <span className="animar-punto size-1.5 rounded-full bg-primary" />
+                        <span className="animar-punto size-1.5 rounded-full bg-primary [animation-delay:.15s]" />
+                        <span className="animar-punto size-1.5 rounded-full bg-primary [animation-delay:.3s]" />
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">{m.consultando ? `${m.consultando}…` : "pensando…"}</span>
+                    </div>
+                  )}
 
                   {/* De dónde salió. Nunca una cifra sin respaldo. */}
                   {m.evidencias && m.evidencias.length > 0 && (
@@ -251,18 +314,6 @@ export function AsistenteChat({
               </div>
             ))}
 
-            {pensando && (
-              <div className="flex justify-start">
-                <div className="animar-entrada flex items-center gap-2 rounded-2xl rounded-bl-sm border border-border/70 bg-secondary/40 px-3 py-2.5">
-                  <span className="flex gap-1">
-                    <span className="animar-punto size-1.5 rounded-full bg-primary" />
-                    <span className="animar-punto size-1.5 rounded-full bg-primary [animation-delay:.15s]" />
-                    <span className="animar-punto size-1.5 rounded-full bg-primary [animation-delay:.3s]" />
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">consultando el CRM…</span>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
