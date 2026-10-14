@@ -26,7 +26,7 @@ import { Documentos } from "@/components/crm/informe-soporte-apertura";
 import { agregarArchivosDelEquipo } from "@/lib/acciones/almacen";
 import { cn } from "@/lib/utils";
 import { esTorre, seriesDeLaDescripcion } from "@/lib/torres";
-import { faltaParaProbar, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
+import { faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
 
 /** Las tres opciones de la generación de código (0385), con el nombre que usa Lesly. */
 const PROCEDENCIA: Record<string, string> = {
@@ -309,6 +309,11 @@ function Fila({
       partes: Object.fromEntries(partes.map((p) => [p.id, [...deParte(p.id).fotos.map(comoArchivo(false)), ...deParte(p.id).docs.map(comoArchivo(true))]])),
     },
   });
+  // Con hoja de chequeo en el sistema el informe lo genera el CRM: el Word/PDF es opcional (Lesly, 13-10).
+  const tituloDocs = (maquina: MaquinaParaProbar, cual: "principal" | "secadora", de: string) =>
+    hojaDelSistema(maquina, cual, repuesto)
+      ? `Otro protocolo o informe de ${de} (PDF o Word, opcional: el informe lo genera el sistema con la hoja de chequeo)`
+      : `Protocolo o informe de ${de} (PDF o Word, varios)`;
 
   /** El técnico y la fecha van a la hoja de cada máquina de la unidad (la secadora de la torre también). */
   function guardarTecnicoYFecha() {
@@ -669,13 +674,13 @@ function Fila({
             <span>(salen en el informe; si deja la fecha de hoy, queda la de hoy)</span>
           </div>
           <TomarOSubirVarias titulo={partes.length ? "Fotos de la primera máquina" : "Fotos de esta máquina"} archivos={fotos} onChange={setFotos} maximo={100} />
-          <Documentos archivos={docs} onChange={setDocs} titulo={partes.length ? "Protocolo o informe de la primera máquina (PDF o Word, varios)" : "Protocolo o informe de esta máquina (PDF o Word, varios)"} />
+          <Documentos archivos={docs} onChange={setDocs} titulo={tituloDocs(e as MaquinaParaProbar, "principal", partes.length ? "la primera máquina" : "esta máquina")} />
           {/* La torre cuya secadora aún no tiene su renglón (sin stock): sus fotos y su informe igual se suben (Ariana, 07-10). */}
           {torre && partes.length === 0 && (
             <div className="space-y-1.5 border-t border-border pt-1.5">
               <p className="text-[11px] font-semibold text-foreground">Secadora de la torre</p>
               <TomarOSubirVarias titulo="Fotos de la secadora" archivos={fotosSec} onChange={setFotosSec} maximo={100} />
-              <Documentos archivos={docsSec} onChange={setDocsSec} titulo="Protocolo o informe de la secadora (PDF o Word, varios)" />
+              <Documentos archivos={docsSec} onChange={setDocsSec} titulo={tituloDocs(e as MaquinaParaProbar, "secadora", "la secadora")} />
             </div>
           )}
           {partes.map((p) => (
@@ -690,7 +695,7 @@ function Fila({
                 className="h-8 text-sm"
               />
               <TomarOSubirVarias titulo={`Fotos de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`} archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} maximo={100} />
-              <Documentos archivos={deParte(p.id).docs} onChange={(d) => cambiarParte(p.id, { docs: d })} titulo={`Protocolo o informe de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()} (PDF o Word, varios)`} />
+              <Documentos archivos={deParte(p.id).docs} onChange={(d) => cambiarParte(p.id, { docs: d })} titulo={tituloDocs(p as MaquinaParaProbar, "principal", `la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`)} />
             </div>
           ))}
           {/* GUARDAR LAS FOTOS SIN MARCAR LA MÁQUINA COMO PROBADA (Ariana, 07-10: «ni bien subo las
