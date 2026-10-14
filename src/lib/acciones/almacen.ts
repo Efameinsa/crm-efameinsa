@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar } from "@/lib/notificaciones";
+import { avisarFinanzasSiFaltaVistoBueno } from "@/lib/aviso-visto-bueno";
 import type { FotoAlmacen } from "@/lib/postventa";
 import type { Chequeo } from "@/lib/protocolo-checklist";
 import { faltaParaProbar, type MaquinaParaProbar } from "@/lib/protocolo-completo";
@@ -67,6 +68,7 @@ export async function marcarProbado(servicioId: string, datos: { protocoloRef?: 
     `El almacén ya probó y embaló el equipo${datos.protocoloRef ? ` (protocolo ${datos.protocoloRef})` : ""}. Se puede programar el despacho.`,
     `/postventa/pedidos/${servicioId}`,
   );
+  await avisarFinanzasSiFaltaVistoBueno(servicioId, "listo");
   return ok(servicioId);
 }
 
@@ -132,6 +134,7 @@ export async function probarEquipoDelPedido(
       `El almacén ya probó y embaló todo lo que va en este despacho${datos.protocoloRef ? ` (último protocolo ${datos.protocoloRef})` : ""}. Se puede programar el despacho.`,
       `/postventa/pedidos/${servicioId}`,
     );
+    await avisarFinanzasSiFaltaVistoBueno(servicioId, "listo");
   }
   return { ...ok(servicioId), pedidoListo };
 }

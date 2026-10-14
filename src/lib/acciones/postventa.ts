@@ -7,7 +7,8 @@ import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { notificar, notificarAlmacen, notificarCentral, notificarFacturacion, notificarFinanzas } from "@/lib/notificaciones";
 import { correoAlArea } from "@/lib/correo-al-area";
-import { bloquesPedido, evaluarPagoParaDespacho, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, evaluarPagoParaDespacho, faltaVistoBuenoFinanzas, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
+import { avisarFinanzasSiFaltaVistoBueno } from "@/lib/aviso-visto-bueno";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
 import { limpiarObsFilas, lineasGuia, type GuiaApertura } from "@/lib/apertura-servicio";
@@ -368,7 +369,11 @@ export async function emitirAperturaDespacho(servicioId: string) {
   const trabado = bloquesPedido(s)
     .flatMap((b) => b.pasos)
     .find((p) => p.clave === "apertura")?.trabado;
-  if (trabado) return falla(trabado);
+  if (trabado) {
+    // Si lo que falta es el visto bueno de Finanzas (0469), Finanzas se entera ya.
+    if (faltaVistoBuenoFinanzas(s)) await avisarFinanzasSiFaltaVistoBueno(servicioId, "apertura");
+    return falla(trabado);
+  }
 
   const { error } = await supabase
     .from("servicios_postventa")

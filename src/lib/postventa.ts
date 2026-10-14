@@ -60,6 +60,14 @@ export interface ServicioPostventa {
   guia_comprobante_numero?: string | null;
   salida_autorizada_motivo?: string | null;
   despacho_autorizado_por?: string | null;
+  /** Visto bueno de Finanzas para que salga una venta a crédito (0469). */
+  finanzas_vb_at?: string | null;
+  finanzas_vb_por?: string | null;
+  finanzas_vb_nota?: string | null;
+  finanzas_vb_comision?: number | null;
+  letras_cantidad?: number | null;
+  letras_estado?: EstadoLetras | null;
+  letras_firmadas_at?: string | null;
   agencia_at?: string | null;
   agencia_fotos?: FotoAlmacen[] | null;
   protocolo_fotos?: FotoAlmacen[] | null;
@@ -261,6 +269,54 @@ function marcadoEnExcel(texto: string | null): boolean {
   if (!texto) return false;
   const t = texto.trim().toUpperCase();
   return t === "SI" || t === "SÍ" || t === "OK" || t === "LISTO" || t === "X";
+}
+
+export type EstadoLetras = "no_lleva" | "van_con_el_equipo" | "entregadas" | "firmadas";
+
+export const ETIQUETA_LETRAS: Record<EstadoLetras, string> = {
+  no_lleva: "No lleva letras",
+  van_con_el_equipo: "Las letras van con el equipo",
+  entregadas: "El cliente tiene las letras, falta que las firme",
+  firmadas: "Letras firmadas",
+};
+
+/**
+ * ¿Esta venta necesita el visto bueno de Finanzas para salir? (0469)
+ *
+ * Caso COFACO (14-10): «50 % adelanto + 50 % saldo en 3 letras», del Excel
+ * con «abono: SI». El CRM lo leyó como pagado y el equipo salió sin que
+ * Finanzas entregara las letras. Toda venta con saldo a crédito pasa por
+ * Finanzas antes de salir. Misma regla que `pide_visto_bueno_finanzas` en la
+ * base, que es la que de verdad frena (trigger).
+ */
+type DatosCredito = {
+  forma_pago?: string | null;
+  pct_antes_despacho?: number | null;
+  origen?: string | null;
+  letras_cantidad?: number | null;
+  tipo_pedido?: TipoPedido | null;
+};
+
+export function pideVistoBuenoFinanzas(s: DatosCredito): boolean {
+  if (s.tipo_pedido === "revision" || s.tipo_pedido === "mantenimiento") return false;
+  if (s.origen === "caso") return false;
+  return (
+    (s.pct_antes_despacho != null && Number(s.pct_antes_despacho) < 100) ||
+    /(letra|cr[eé]dito|financ)/i.test(s.forma_pago ?? "") ||
+    Number(s.letras_cantidad ?? 0) > 0
+  );
+}
+
+/** Falta el visto bueno y nadie autorizó la salida con código: el equipo no sale. */
+export function faltaVistoBuenoFinanzas(
+  s: DatosCredito & { finanzas_vb_at?: string | null; salida_autorizada_at?: string | null; despachado_at?: string | null },
+): boolean {
+  return pideVistoBuenoFinanzas(s) && !s.finanzas_vb_at && !s.salida_autorizada_at && !s.despachado_at;
+}
+
+/** Las letras salieron (con el equipo o ya las tiene el cliente) y todavía no vuelven firmadas. */
+export function letrasPorFirmar(s: Pick<ServicioPostventa, "letras_estado">): boolean {
+  return s.letras_estado === "van_con_el_equipo" || s.letras_estado === "entregadas";
 }
 
 export function saldoPendiente(s: ServicioPostventa): number {
@@ -556,6 +612,8 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   const condicion = textoCondicionPago(s);
   const liberado = s.despacho_liberado ?? evaluarPagoParaDespacho(s).cubierto;
   const adelantoCubierto = !pagado && liberado && s.pct_antes_despacho != null && Number(s.pct_antes_despacho) < 100;
+  const pideVB = pideVistoBuenoFinanzas(s);
+  const pruebaListaAntes = s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje);
 
   const preparacion: PasoPedido[] = [
     {
@@ -590,6 +648,39 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
       ...(s.pago_observado_at && !pagoConfirmado ? { trabado: `Finanzas observó el pago: ${s.pago_observado_motivo ?? "sin detalle"}` } : {}),
       ...(s.pago_observado_at && pagoConfirmado ? { detalle: `Finanzas observó: ${s.pago_observado_motivo ?? "sin detalle"}` } : {}),
     },
+    // VENTA A CRÉDITO: FINANZAS DA EL VISTO BUENO ANTES DE QUE SALGA (0469,
+    // caso COFACO 14-10). Letras, adelanto y comisiones; la base frena la
+    // apertura, la guía y la salida hasta que esté.
+    ...(pideVB
+      ? [
+          {
+            clave: "vb_finanzas",
+            etiqueta: s.finanzas_vb_at
+              ? "Finanzas dio el visto bueno para la salida"
+              : s.salida_autorizada_at
+                ? "Salida autorizada con código, sin visto bueno de Finanzas"
+                : "Visto bueno de Finanzas para la salida (venta a crédito)",
+            responsable: "finanzas" as ResponsablePaso,
+            hecho: Boolean(s.finanzas_vb_at || s.salida_autorizada_at || s.despachado_at),
+            cuando: s.finanzas_vb_at ?? s.salida_autorizada_at ?? null,
+            detalle:
+              [
+                s.forma_pago ? `Forma de pago: ${s.forma_pago}` : null,
+                s.letras_estado
+                  ? `${ETIQUETA_LETRAS[s.letras_estado]}${s.letras_cantidad ? ` (${s.letras_cantidad})` : ""}`
+                  : null,
+                s.finanzas_vb_comision ? `Comisión descontada: ${s.finanzas_vb_comision}` : null,
+                s.finanzas_vb_nota,
+              ]
+                .filter(Boolean)
+                .join(" · ") || undefined,
+            trabado:
+              faltaVistoBuenoFinanzas(s) && pruebaListaAntes
+                ? "El equipo está listo pero no sale: Finanzas revisa adelanto, letras y comisiones y da el visto bueno"
+                : undefined,
+          },
+        ]
+      : []),
     {
       clave: "aprobado",
       etiqueta: "Pedido aprobado por postventa",
@@ -665,6 +756,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   const planoEnviado = s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion);
   const faltaParaApertura = [
     !(pagoConfirmado || pagoDesconocido || despachoAutorizadoConSaldo) ? "la confirmación de Finanzas" : null,
+    faltaVistoBuenoFinanzas(s) ? "el visto bueno de Finanzas (venta a crédito: letras, adelanto y comisiones)" : null,
     s.direccion_verificada_at == null ? (circuito.esServicio ? "dónde se hace el servicio, verificado" : "la dirección verificada") : null,
     !circuito.esServicio && !pruebaLista
       ? circuito.esEmbalaje

@@ -1,5 +1,5 @@
 import Link from "@/components/enlace";
-import { AlertTriangle, CalendarClock, MessageSquareText, Siren } from "lucide-react";
+import { AlertTriangle, CalendarClock, FileSignature, MessageSquareText, ShieldAlert, Siren } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
@@ -7,7 +7,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Kpi } from "@/components/crm/kpi";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { AccionesFinanzas } from "@/components/crm/acciones-finanzas";
-import { avisosDeCentral, cuentasPorCobrar, diasEntre, formatoMonto, ordenesDeFacturar, pedidosPorConfirmar, type PedidoFinanzas } from "@/lib/pagos-finanzas";
+import { avisosDeCentral, cuentasPorCobrar, diasEntre, formatoMonto, letrasPorFirmar, ordenesDeFacturar, pedidosPorConfirmar, salidasPorAutorizar, type PedidoFinanzas, type SalidaACredito } from "@/lib/pagos-finanzas";
 import { AtenderOrdenFacturar } from "@/components/crm/orden-facturar";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +27,15 @@ export default async function FinanzasPage() {
   await requerirPerfil();
   const supabase = await createClient();
   const hoy = hoyLima();
-  const [pedidos, cobrar, avisos, ordenes] = await Promise.all([pedidosPorConfirmar(supabase), cuentasPorCobrar(supabase), avisosDeCentral(supabase), ordenesDeFacturar(supabase)]);
+  const [pedidos, cobrar, avisos, ordenes, salidas, letras] = await Promise.all([
+    pedidosPorConfirmar(supabase),
+    cuentasPorCobrar(supabase),
+    avisosDeCentral(supabase),
+    ordenesDeFacturar(supabase),
+    salidasPorAutorizar(supabase),
+    letrasPorFirmar(supabase),
+  ]);
+  const salidasListas = salidas.filter((x) => x.listo || x.aperturaPedida);
 
   const urgentes = pedidos.filter((p) => p.fechaDespacho && diasEntre(hoy, p.fechaDespacho) <= 3);
   const sirenas = pedidos.filter((p) => p.urgenciaAt);
@@ -42,6 +50,26 @@ export default async function FinanzasPage() {
         <Kpi etiqueta="Observados" valor={observados.length} sub="Esperan respuesta del comercial" />
         <Kpi etiqueta="Cobros vencidos" valor={vencidos.length} sub="Ya pasó el plazo de crédito" alerta={vencidos.length > 0} href="/finanzas/cobrar" />
       </div>
+
+      {/* Caso COFACO 14-10 (0469): la venta a crédito no sale sin su visto
+          bueno. Arriba las que ya están embaladas o con apertura pedida. */}
+      {salidas.length > 0 && (
+        <SeccionPanel titulo={`Ventas a crédito que esperan su visto bueno para salir · ${salidas.length}`}>
+          {salidasListas.length > 0 && (
+            <p className="mb-2 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm font-semibold text-destructive">
+              <ShieldAlert className="size-4 flex-none" />
+              {salidasListas.length === 1 ? "1 equipo ya está listo" : `${salidasListas.length} equipos ya están listos`} y no sale sin usted: revise adelanto, letras y comisiones.
+            </p>
+          )}
+          <ListaSalidas filas={salidas} />
+        </SeccionPanel>
+      )}
+
+      {letras.length > 0 && (
+        <SeccionPanel titulo={`Letras por volver firmadas · ${letras.length}`}>
+          <ListaSalidas filas={letras} letras />
+        </SeccionPanel>
+      )}
 
       {/* Reunión 13-10 (0460): postventa terminó y pide facturar y cobrar. */}
       {ordenes.length > 0 && (
@@ -234,5 +262,43 @@ function FilaPedido({ p, hoy }: { p: PedidoFinanzas; hoy: string }) {
         )}
       </div>
     </li>
+  );
+}
+
+function ListaSalidas({ filas, letras = false }: { filas: SalidaACredito[]; letras?: boolean }) {
+  return (
+    <ul className="space-y-1.5">
+      {filas.map((f) => (
+        <li
+          key={f.id}
+          className={cn(
+            "flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2.5",
+            !letras && (f.listo || f.aperturaPedida) ? "border-destructive/40 bg-destructive/5" : "border-border bg-card",
+          )}
+        >
+          <div className="min-w-0">
+            <Link href={`/finanzas/pedidos/${f.id}`} className="text-sm font-semibold text-foreground hover:underline">
+              {f.cliente}
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              {f.formaPago ?? "Sin forma de pago"}
+              {letras
+                ? ` · ${f.letrasCantidad ?? ""} letra${f.letrasCantidad === 1 ? "" : "s"} ${f.letrasEstado === "van_con_el_equipo" ? "fueron con el equipo" : "las tiene el cliente"}`
+                : f.listo
+                  ? " · probado y embalado"
+                  : f.aperturaPedida
+                    ? " · postventa ya prepara la salida"
+                    : ""}
+              {!letras && f.fechaDespacho ? ` · sale el ${f.fechaDespacho}` : ""}
+              {letras && f.despachadoAt ? ` · salió el ${new Date(f.despachadoAt).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}` : ""}
+            </p>
+          </div>
+          <Link href={`/finanzas/pedidos/${f.id}`} className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/5 px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10">
+            {letras ? <FileSignature className="size-3.5" /> : <ShieldAlert className="size-3.5" />}
+            {letras ? "Marcar firmadas" : "Revisar y dar visto bueno"}
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

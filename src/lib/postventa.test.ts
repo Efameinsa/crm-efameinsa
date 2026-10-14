@@ -12,6 +12,8 @@ import {
   textoCondicionPago,
   textoPlanoNoEnviado,
   pedidoSinCobro,
+  pideVistoBuenoFinanzas,
+  faltaVistoBuenoFinanzas,
   type ServicioPostventa,
 } from "./postventa";
 
@@ -513,5 +515,40 @@ describe("orden a Finanzas para facturar (0460, reunión 13-10)", () => {
   });
   it("una vez dada, se queda a la vista", () => {
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 100, orden_facturar_at: "2026-10-13T20:00:00Z" })).toBe(true);
+  });
+});
+
+describe("visto bueno de Finanzas para la salida (0469, COFACO 14-10)", () => {
+  const cofaco = { forma_pago: "50% ADELANTO + 50% SALDO EN 3 LETRAS", pct_antes_despacho: null, origen: "excel", letras_cantidad: null, tipo_pedido: "equipo" as const };
+
+  it("pide visto bueno a las ventas con letras, crédito o condición < 100 %", () => {
+    expect(pideVistoBuenoFinanzas(cofaco)).toBe(true);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "Crédito 30 días" })).toBe(true);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO", pct_antes_despacho: 50 })).toBe(true);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO" })).toBe(false);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO", pct_antes_despacho: 100 })).toBe(false);
+  });
+
+  it("no lo pide a servicios ni a lo abierto desde un caso", () => {
+    expect(pideVistoBuenoFinanzas({ ...cofaco, tipo_pedido: "mantenimiento" })).toBe(false);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, origen: "caso" })).toBe(false);
+  });
+
+  it("deja de faltar con el visto bueno, la autorización con código o si ya salió", () => {
+    const base = { ...cofaco, finanzas_vb_at: null, salida_autorizada_at: null, despachado_at: null };
+    expect(faltaVistoBuenoFinanzas(base)).toBe(true);
+    expect(faltaVistoBuenoFinanzas({ ...base, finanzas_vb_at: "2026-10-14T10:00:00Z" })).toBe(false);
+    expect(faltaVistoBuenoFinanzas({ ...base, salida_autorizada_at: "2026-10-14T10:00:00Z" })).toBe(false);
+    expect(faltaVistoBuenoFinanzas({ ...base, despachado_at: "2026-10-14T10:00:00Z" })).toBe(false);
+  });
+
+  it("el pedido del Excel con «abono: SI» ya no emite la apertura sin el visto bueno", () => {
+    const s = pedido({ ...cofaco, confirmacion_abono: "SI", prueba_embalaje: "SI", planos_preinstalacion: "SI", direccion_verificada_at: "2026-10-14T13:31:00Z", informe_cierre_id: null });
+    const pasos = bloquesPedido(s).flatMap((b) => b.pasos);
+    expect(pasos.find((p) => p.clave === "vb_finanzas")?.hecho).toBe(false);
+    expect(pasos.find((p) => p.clave === "apertura")?.trabado).toMatch(/visto bueno de Finanzas/);
+    const conVB = bloquesPedido({ ...s, finanzas_vb_at: "2026-10-14T13:00:00Z", letras_estado: "van_con_el_equipo", letras_cantidad: 3 }).flatMap((b) => b.pasos);
+    expect(conVB.find((p) => p.clave === "apertura")?.trabado).toBeUndefined();
+    expect(conVB.find((p) => p.clave === "vb_finanzas")?.detalle).toMatch(/van con el equipo \(3\)/);
   });
 });

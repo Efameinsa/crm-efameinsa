@@ -360,3 +360,90 @@ export async function atenderOrdenFacturar(servicioId: string): Promise<Resultad
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   return { error: null };
 }
+
+/**
+ * EL VISTO BUENO DE FINANZAS PARA LA SALIDA (0469, caso COFACO 14-10).
+ *
+ * Una venta a crédito no sale sin que Finanzas diga qué pasa con las letras
+ * (no lleva, van con el equipo, ya las tiene el cliente, ya firmadas) y, si la
+ * hubo, cuánto descontó el banco de comisión interplaza. Al darlo, el almacén
+ * y postventa reciben el aviso de que ya puede salir.
+ */
+export async function darVistoBuenoSalida(datos: {
+  servicioId: string;
+  letras: "no_lleva" | "van_con_el_equipo" | "entregadas" | "firmadas";
+  letrasCantidad?: number | null;
+  comision?: number | null;
+  nota?: string;
+}): Promise<Resultado> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("finanzas_visto_bueno_salida", {
+    p_servicio: datos.servicioId,
+    p_letras: datos.letras,
+    p_letras_cantidad: datos.letras === "no_lleva" ? null : (datos.letrasCantidad ?? null),
+    p_comision: datos.comision ?? null,
+    p_nota: datos.nota?.trim() || null,
+  });
+  if (error) return { error: limpiar(error.message) };
+  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, es_prueba").eq("id", datos.servicioId).maybeSingle();
+  const cliente = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+  const letras =
+    datos.letras === "van_con_el_equipo"
+      ? ` Las ${datos.letrasCantidad ?? ""} letras van con el equipo: entréguelas al cliente con la guía y traiga la constancia.`.replace("  ", " ")
+      : datos.letras === "entregadas"
+        ? " El cliente ya tiene las letras."
+        : datos.letras === "firmadas"
+          ? " Las letras ya están firmadas."
+          : "";
+  await Promise.all([
+    notificarAlmacen({
+      titulo: `Finanzas dio el visto bueno · ${cliente}`,
+      cuerpo: `Ya puede salir.${letras}`,
+      url: `/almacen/pedidos/${datos.servicioId}`,
+      esPrueba: s?.es_prueba === true,
+    }),
+    avisarInteresados(
+      datos.servicioId,
+      ({ cliente: c }) => ({
+        titulo: `Finanzas dio el visto bueno para la salida · ${c}`,
+        cuerpoPostventa: `Ya se puede emitir la apertura y despachar.${letras}`,
+        cuerpoComercial: `Finanzas revisó el crédito y el equipo ya puede salir.${letras}`,
+      }),
+      { comercial: false, postventa: true },
+    ),
+  ]);
+  revalidatePath("/finanzas");
+  revalidatePath(`/finanzas/pedidos/${datos.servicioId}`);
+  revalidatePath(`/postventa/pedidos/${datos.servicioId}`);
+  revalidatePath(`/almacen/pedidos/${datos.servicioId}`);
+  return { error: null };
+}
+
+/** Las letras volvieron firmadas (0469). */
+export async function marcarLetrasFirmadas(servicioId: string, nota?: string): Promise<Resultado> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("finanzas_letras_firmadas", { p_servicio: servicioId, p_nota: nota?.trim() || null });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath("/finanzas");
+  revalidatePath(`/finanzas/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  return { error: null };
+}
+
+/**
+ * La guía salió «sin comprobante todavía» y el comprobante igual se le da al
+ * cliente (Jhon, 14-10): Contabilidad o Finanzas anota cuál fue (0469).
+ */
+export async function anotarComprobanteDeLaGuia(servicioId: string, tipo: "factura" | "boleta", numero: string): Promise<Resultado> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("anotar_comprobante_de_la_guia", { p_servicio: servicioId, p_tipo: tipo, p_numero: numero.trim() });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath(`/finanzas/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath("/finanzas/aperturas");
+  revalidatePath("/facturacion/aperturas");
+  return { error: null };
+}

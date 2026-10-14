@@ -13,7 +13,8 @@ import { debeElPaso, type FilaTabla } from "@/lib/pedidos-por-paso";
 export const PASOS_QUE_FALTAN: { clave: string; titulo: string; ayuda: string }[] = [
   { clave: "aprobado", titulo: "Falta aprobar el pedido", ayuda: "Postventa revisa el cierre y lo aprueba." },
   { clave: "pago", titulo: "Falta la confirmación de Finanzas", ayuda: "Finanzas confirma que el dinero está acreditado." },
-  { clave: "pago_parcial", titulo: "Pago parcial: falta el saldo", ayuda: "Pagaron una parte; ubicar quién debe el saldo." },
+  { clave: "vb_finanzas", titulo: "Venta a crédito sin el visto bueno de Finanzas", ayuda: "Finanzas revisa adelanto, letras y comisiones; sin eso el equipo no sale (0469)." },
+  { clave: "pago_parcial",titulo: "Pago parcial: falta el saldo", ayuda: "Pagaron una parte; ubicar quién debe el saldo." },
   { clave: "prueba_sin_pedir", titulo: "Prueba y embalaje sin pedir al almacén", ayuda: "Nadie le pidió todavía al almacén que lo pruebe y embale." },
   { clave: "prueba", titulo: "Falta probar y embalar", ayuda: "Lo hace el almacén; incluye los repuestos por embalar." },
   { clave: "sin_stock", titulo: "Sin stock (sin serie o marcadas sin stock)", ayuda: "Por importar, en compra local, en fabricación o sin motivo marcado." },
