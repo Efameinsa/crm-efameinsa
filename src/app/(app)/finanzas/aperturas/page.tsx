@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 type FilaAp = {
   id: string;
-  apertura_despacho_at: string;
+  apertura_despacho_at: string | null;
   apertura_enviada_almacen_at: string | null;
   fecha_despacho: string | null;
   guia_confirmada_at: string | null;
@@ -61,16 +61,32 @@ export default async function AperturasPorConfirmarPage() {
   // el pago acá mismo, sin el enlace al pedido de Finanzas (buzón, Jhon 12-10).
   const conPedido = perfil.rol !== "facturacion";
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("servicios_postventa")
-    .select(
-      "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, despachado_at, forma_pago, pct_antes_despacho, origen, tipo_pedido, letras_cantidad, confirmacion_abono, informe_cierre_id, pago_confirmado_at, finanzas_vb_at, finanzas_vb_por, finanzas_vb_nota, finanzas_vb_comision, letras_estado, letras_firmadas_at, salida_autorizada_at, salida_autorizada_motivo, moneda",
-    )
-    .not("apertura_despacho_at", "is", null)
-    .is("cerrado_at", null)
-    .order("apertura_despacho_at", { ascending: false })
-    .limit(150);
-  const filas = (data ?? []) as FilaAp[];
+  const columnas =
+    "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, despachado_at, forma_pago, pct_antes_despacho, origen, tipo_pedido, letras_cantidad, confirmacion_abono, informe_cierre_id, pago_confirmado_at, finanzas_vb_at, finanzas_vb_por, finanzas_vb_nota, finanzas_vb_comision, letras_estado, letras_firmadas_at, salida_autorizada_at, salida_autorizada_motivo, moneda";
+  const [{ data }, { data: sinEmitir }] = await Promise.all([
+    supabase
+      .from("servicios_postventa")
+      .select(columnas)
+      .not("apertura_despacho_at", "is", null)
+      .is("cerrado_at", null)
+      .order("apertura_despacho_at", { ascending: false })
+      .limit(150),
+    // La apertura que postventa ya mandó al almacén pero que la base no dejó
+    // emitir porque falta el visto bueno del crédito (0469): el aviso «Apertura
+    // por confirmar» trae a Finanzas acá y tiene que encontrarla (Jhon 14-10,
+    // Beneficencia de Huancayo).
+    supabase
+      .from("servicios_postventa")
+      .select(columnas)
+      .is("apertura_despacho_at", null)
+      .not("apertura_enviada_almacen_at", "is", null)
+      .is("guia_confirmada_at", null)
+      .is("despachado_at", null)
+      .is("cerrado_at", null)
+      .order("apertura_enviada_almacen_at", { ascending: false })
+      .limit(50),
+  ]);
+  const filas = [...((sinEmitir ?? []) as FilaAp[]), ...((data ?? []) as FilaAp[])];
   const porConfirmar = filas.filter(
     (f) => !f.guia_confirmada_at && !f.despachado_at,
   );
@@ -156,8 +172,10 @@ function FilaApertura({
           {p?.cliente ?? "Pedido"}
         </p>
         <p className="text-xs text-muted-foreground">
-          {p?.numeroErp ? `Pedido ${p.numeroErp} · ` : ""}Apertura del{" "}
-          {fechaHoraLima(f.apertura_despacho_at)}
+          {p?.numeroErp ? `Pedido ${p.numeroErp} · ` : ""}
+          {f.apertura_despacho_at
+            ? `Apertura del ${fechaHoraLima(f.apertura_despacho_at)}`
+            : `Enviada al almacén el ${fechaHoraLima(f.apertura_enviada_almacen_at)}; postventa todavía no la emite`}
           {f.fecha_despacho ? ` · sale el ${f.fecha_despacho}` : ""}
         </p>
         {p && p.total != null && (
@@ -284,7 +302,7 @@ function FilaApertura({
           />
         </ValidarCreditoApertura>
       )}
-      {!f.guia_confirmada_at && !faltaVb && (
+      {!f.guia_confirmada_at && !faltaVb && f.apertura_despacho_at && (
         <ConfirmarGuiaBoton
           servicioId={f.id}
           cliente={p?.cliente ?? "Pedido"}
