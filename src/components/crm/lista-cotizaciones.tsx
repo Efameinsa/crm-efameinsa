@@ -4,9 +4,9 @@ import { useState, useTransition } from "react";
 import { montoCotizacion } from "@/lib/monto-cotizacion";
 import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
-import { CircleCheckBig, Copy, FileDown, Pencil, Plus, Trash2 } from "lucide-react";
+import { CircleCheckBig, Copy, FileDown, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { duplicarCotizacion, eliminarCotizacion, registrarVenta } from "@/lib/acciones/cotizaciones";
+import { actualizarClienteDeCotizacion, duplicarCotizacion, eliminarCotizacion, registrarVenta } from "@/lib/acciones/cotizaciones";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { fechaHoraLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,8 @@ export interface CotizacionResumen {
   version?: number;
   /** Las archivadas, con quién corrigió, quién autorizó y por qué. */
   versionesAnteriores?: VersionAnterior[];
+  /** 0472: lo que imprime el PDF no es lo que dice hoy la ficha (nombre o RUC). */
+  clienteDesactualizado?: { sale: string; ficha: string } | null;
 }
 
 const ESTADO_APROBACION: Record<string, { etiqueta: string; clases: string }> = {
@@ -150,6 +152,32 @@ export function ListaCotizaciones({
         toast.success(
           `Copia de ${r.codigoViejo ?? "la cotización"} creada como borrador — recibe su número al confirmarla`,
         );
+        router.refresh();
+      }
+    });
+  }
+
+  function onActualizarCliente(c: CotizacionResumen) {
+    if (!c.clienteDesactualizado) return;
+    if (
+      !confirm(
+        `¿Poner en ${c.codigo ?? "esta cotización"} los datos que tiene hoy la ficha?
+
+Sale: ${c.clienteDesactualizado.sale}
+Ficha: ${c.clienteDesactualizado.ficha}
+
+El número, los equipos, los precios y las condiciones no cambian.`,
+      )
+    ) {
+      return;
+    }
+    startTransition(async () => {
+      const r = await actualizarClienteDeCotizacion(c.id);
+      if (r.error) toast.error(r.error);
+      else {
+        toast.success(`${c.codigo ?? "La cotización"} ya sale con los datos de la ficha`, {
+          description: "Descargue el PDF de nuevo y mándeselo al cliente si ya tenía el anterior.",
+        });
         router.refresh();
       }
     });
@@ -403,6 +431,27 @@ export function ListaCotizaciones({
                       ))}
                   </ul>
                 </details>
+              )}
+
+              {/* Moisés, 14-10: corrigió la ficha y el PDF seguía con el nombre
+                  viejo. La cotización guarda los datos del cliente con los que
+                  salió; si la ficha cambió después, se ve acá y se pone al día
+                  sin código (solo nombre, documento y dirección, 0472). */}
+              {c.clienteDesactualizado && (
+                <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-800 dark:text-amber-300">
+                  <p className="font-semibold">El PDF no tiene los datos que dice hoy la ficha</p>
+                  <p>Sale a nombre de: {c.clienteDesactualizado.sale}</p>
+                  <p>La ficha dice: {c.clienteDesactualizado.ficha}</p>
+                  <button
+                    type="button"
+                    disabled={ocupado}
+                    onClick={() => onActualizarCliente(c)}
+                    className="mt-1 inline-flex items-center gap-1 font-semibold text-foreground hover:underline"
+                  >
+                    <RefreshCw className="size-3" />
+                    Poner los datos de la ficha
+                  </button>
+                </div>
               )}
 
               {c.nota_gerencia && (

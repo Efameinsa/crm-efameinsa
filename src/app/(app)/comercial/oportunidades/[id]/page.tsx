@@ -109,7 +109,7 @@ export default async function OportunidadDetallePage({
       supabase
         .from("cotizaciones")
         .select(
-          "id, codigo, serie, estado, estado_aprobacion, observacion_estado, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at, entrega_lugar, version, anulada_at, anulada_motivo",
+          "id, codigo, serie, estado, estado_aprobacion, observacion_estado, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at, entrega_lugar, version, anulada_at, anulada_motivo, cliente_snapshot, facturar_a_cuenta_id",
         )
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),
@@ -287,12 +287,36 @@ export default async function OportunidadDetallePage({
     versionesAnteriores(supabase, corregidas),
     totalesConIgvExactos(supabase, (cotizaciones ?? []).map((c) => c.id as string)),
   ]);
-  const cotizacionesConVersion = (cotizaciones ?? []).map((c) => ({
-    ...c,
-    total_con_igv: conIgvExacto.get(c.id as string) ?? null,
-    version: Number(c.version ?? 1),
-    versionesAnteriores: anteriores.get(c.id as string) ?? [],
-  }));
+  // Moisés, 14-10: corrigió la ficha (nombre y RUC) y la cotización ya
+  // confirmada seguía saliendo con el nombre del WhatsApp. Si lo que imprime
+  // no es lo que dice hoy la ficha, la tarjeta lo avisa y ofrece ponerla al
+  // día (0472). Solo la que sale a nombre del propio cliente: la de otra
+  // empresa del grupo (0310) lleva los datos de esa otra.
+  const docTexto = (tipo: string | null | undefined, num: string | null | undefined) =>
+    num ? `${tipo && tipo !== "SIN_DOC" ? tipo : "Doc."} ${num}` : "sin RUC ni DNI";
+  const cotizacionesConVersion = (cotizaciones ?? []).map(({ cliente_snapshot, facturar_a_cuenta_id, ...c }) => {
+    const snap = (cliente_snapshot ?? {}) as { razon_social?: string | null; tipo_doc?: string | null; num_doc?: string | null };
+    const desactualizado =
+      cuenta &&
+      !facturar_a_cuenta_id &&
+      c.estado !== "borrador" &&
+      !c.anulada_at &&
+      ((snap.razon_social ?? "") !== (cuenta.razon_social ?? "") ||
+        (snap.num_doc ?? null) !== (cuenta.num_doc ?? null) ||
+        (snap.tipo_doc ?? null) !== (cuenta.tipo_doc ?? null));
+    return {
+      ...c,
+      total_con_igv: conIgvExacto.get(c.id as string) ?? null,
+      version: Number(c.version ?? 1),
+      versionesAnteriores: anteriores.get(c.id as string) ?? [],
+      clienteDesactualizado: desactualizado
+        ? {
+            sale: `${snap.razon_social ?? "sin nombre"} · ${docTexto(snap.tipo_doc, snap.num_doc)}`,
+            ficha: `${cuenta.razon_social} · ${docTexto(cuenta.tipo_doc, cuenta.num_doc)}`,
+          }
+        : null,
+    };
+  });
 
   // LAS COTIZACIONES DE OTRO EXPEDIENTE DEL MISMO CLIENTE (Ariana, 21-09:
   // «¿por qué no me sale del prospecto Dance su cotización en el lado

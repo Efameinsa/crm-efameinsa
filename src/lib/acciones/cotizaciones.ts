@@ -509,6 +509,23 @@ export async function enviarCotizacion(
  * devuelve ese aviso para que el comercial lo vea en el momento, no en el
  * informe del día.
  */
+/**
+ * Pone los datos del cliente de una cotización ya confirmada al día con su
+ * ficha (0472). Moisés, 14-10: corrigió el nombre y el RUC en la ficha y el
+ * PDF seguía saliendo con el nombre que dejó Central desde WhatsApp. Solo
+ * nombre, documento y dirección: el número, los equipos y los precios no se
+ * tocan. La base decide quién puede (el mismo permiso que para cotizar).
+ */
+export async function actualizarClienteDeCotizacion(cotizacionId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("actualizar_cliente_de_cotizacion", { p_cotizacion: cotizacionId });
+  if (error) return { error: error.message };
+  const { data: cot } = await supabase.from("cotizaciones").select("oportunidad_id").eq("id", cotizacionId).maybeSingle();
+  if (cot?.oportunidad_id) revalidatePath(`/comercial/oportunidades/${cot.oportunidad_id}`);
+  if ((data as { cambio?: boolean } | null)?.cambio === false) return { error: "Ya tenía los datos de la ficha" };
+  return { error: null };
+}
+
 export async function registrarVenta(
   cotizacionId: string,
 ): Promise<{ error: string | null; aviso?: string }> {
