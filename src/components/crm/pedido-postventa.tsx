@@ -108,6 +108,8 @@ export function PedidoPostventa({
   equiposLista = [],
   /** Los informes y papeles que prueban cada paso, por clave de paso (Santos, 02-10). */
   documentos = {},
+  /** Quién movió cada etapa (0473): id → nombre. */
+  nombres = {},
 }: {
   servicio: ServicioPostventa;
   atencionPuesta?: { id: string; etapa: string; programada_at: string | null; tecnico: string | null; cerrado_at: string | null } | null;
@@ -118,6 +120,7 @@ export function PedidoPostventa({
   equiposTexto?: string;
   equiposLista?: { equipoId: string | null; serie: string | null; descripcion: string }[];
   documentos?: DocumentosPorPaso;
+  nombres?: Record<string, string>;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -137,7 +140,7 @@ export function PedidoPostventa({
   );
   const ahora = () => new Date().toISOString();
 
-  const bloques = bloquesPedido(servicioVisto);
+  const bloques = bloquesPedido(servicioVisto, nombres);
   const saldo = saldoPendiente(servicioVisto);
   // «No se despacha con saldo pendiente sin autorización». Con las cifras
   // tapadas no hay saldo que mirar —`monto` viene en null y restar daría
@@ -557,9 +560,10 @@ export function PedidoPostventa({
                     <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 pb-3">
                       <p className="text-xs text-muted-foreground">{paso.etiqueta}</p>
                       {detalleDePaso(paso) && <span className="text-[11px] text-muted-foreground/70">{detalleDePaso(paso)}</span>}
-                      {paso.cuando && (
+                      {(paso.cuando || paso.quien) && (
                         <span className="ml-auto whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground/70">
-                          {fechaHoraLima(paso.cuando)}
+                          {paso.cuando ? fechaHoraLima(paso.cuando) : ""}
+                          {paso.quien && <span className="ml-1.5 font-sans font-medium text-foreground/70">· {paso.quien}</span>}
                         </span>
                       )}
                       {/* Un paso hecho puede seguir aceptando acción: el pago
@@ -855,8 +859,8 @@ export function PedidoPostventa({
         descripcion={
           pagoIncompleto
             ? condicion
-              ? `Ojo: la condición es «${condicion}» y lo confirmado por Finanzas no cubre lo acordado antes del despacho${verPrecios ? ` (quedan ${servicio.moneda} ${saldo.toLocaleString("es-PE")} por cobrar)` : ""}. Para despachar igual hay que decir quién lo autorizó.`
-              : `Ojo: este pedido no tiene condición de pago cargada, así que se exige el pago completo${verPrecios ? ` (quedan ${servicio.moneda} ${saldo.toLocaleString("es-PE")})` : ""}. Pida a operaciones o gerencia que la defina, o diga quién autorizó despachar así.`
+              ? `Ojo: la condición es «${condicion}» y lo confirmado por Finanzas no cubre lo acordado antes del despacho${verPrecios ? ` (quedan ${servicio.moneda} ${saldo.toLocaleString("es-PE")} por cobrar)` : ""}. Para despachar igual, gerencia u operaciones autoriza con su código.`
+              : `Ojo: este pedido no tiene condición de pago cargada, así que se exige el pago completo${verPrecios ? ` (quedan ${servicio.moneda} ${saldo.toLocaleString("es-PE")})` : ""}. Pida a operaciones o gerencia que la defina, o que autorice con su código.`
             : hayAdelantoAcordado
               ? `El adelanto acordado está confirmado; el saldo queda como cuenta por cobrar${servicioVisto.credito_dias != null ? ` a ${servicioVisto.credito_dias} días desde esta fecha` : ""}. En provincia, la garantía empieza a correr con esta fecha.`
               : "En provincia, la garantía del equipo empieza a correr con esta fecha."
@@ -875,6 +879,7 @@ export function PedidoPostventa({
                 recibeDoc: datos.doc,
                 recibeTelefono: datos.telefono,
                 motivoSinCancelar: datos.motivo,
+                pin: datos.pin,
               }),
             "Despacho registrado",
           )
@@ -890,7 +895,11 @@ export function PedidoPostventa({
           { nombre: "doc", etiqueta: "DNI de quien recibe", inicial: servicio.recibe_doc ?? "", requerido: false },
           { nombre: "telefono", etiqueta: "Su teléfono", inicial: servicio.recibe_telefono ?? "", requerido: false },
           ...(pagoIncompleto
-            ? [{ nombre: "motivo", etiqueta: "Quién autorizó despachar con saldo, y por qué", area: true, requerido: true }]
+            ? [
+                { nombre: "motivo", etiqueta: "Por qué sale con saldo", area: true, requerido: true },
+                // 0473: el motivo solo ya no basta; quien autoriza dicta su código y queda su nombre.
+                { nombre: "pin", etiqueta: "Código de 4 números de gerencia u operaciones (quien autoriza)", codigo: true, requerido: true },
+              ]
             : []),
         ]}
       />

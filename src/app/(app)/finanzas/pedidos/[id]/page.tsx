@@ -39,7 +39,7 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
     supabase
       .from("servicios_postventa")
       .select(
-        "forma_pago, pct_antes_despacho, origen, tipo_pedido, moneda, letras_cantidad, letras_estado, letras_firmadas_at, finanzas_vb_at, finanzas_vb_nota, finanzas_vb_comision, salida_autorizada_at, salida_autorizada_motivo, despachado_at, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, letras_recibidas_almacen_at, letras_entregadas_at, letras_entregadas_a",
+        "forma_pago, pct_antes_despacho, origen, tipo_pedido, confirmacion_abono, informe_cierre_id, pago_confirmado_at, moneda, letras_cantidad, letras_estado, letras_firmadas_at, finanzas_vb_at, finanzas_vb_nota, finanzas_vb_comision, salida_autorizada_at, salida_autorizada_motivo, despachado_at, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, letras_recibidas_almacen_at, letras_entregadas_at, letras_entregadas_a",
       )
       .eq("id", id)
       .maybeSingle(),

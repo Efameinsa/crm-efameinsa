@@ -78,7 +78,7 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
         <div className="space-y-2">
           <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
             {d.vbAt ? <BadgeCheck className="size-4 text-[#1E7F4F]" /> : <ShieldAlert className="size-4 text-destructive" />}
-            Visto bueno para la salida · venta a crédito
+            Visto bueno para la salida · crédito o pago sin confirmar
           </p>
           {d.formaPago && (
             <p className="text-xs text-muted-foreground">

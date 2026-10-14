@@ -520,7 +520,7 @@ describe("orden a Finanzas para facturar (0460, reunión 13-10)", () => {
 });
 
 describe("visto bueno de Finanzas para la salida (0469, COFACO 14-10)", () => {
-  const cofaco = { forma_pago: "50% ADELANTO + 50% SALDO EN 3 LETRAS", pct_antes_despacho: null, origen: "excel", letras_cantidad: null, tipo_pedido: "equipo" as const };
+  const cofaco = { forma_pago: "50% ADELANTO + 50% SALDO EN 3 LETRAS", pct_antes_despacho: null, origen: "excel", letras_cantidad: null, tipo_pedido: "equipo" as const, confirmacion_abono: "SI" };
 
   it("pide visto bueno a las ventas con letras, crédito o condición < 100 %", () => {
     expect(pideVistoBuenoFinanzas(cofaco)).toBe(true);
@@ -528,6 +528,12 @@ describe("visto bueno de Finanzas para la salida (0469, COFACO 14-10)", () => {
     expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO", pct_antes_despacho: 50 })).toBe(true);
     expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO" })).toBe(false);
     expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO", pct_antes_despacho: 100 })).toBe(false);
+    // 0473: el plazo escrito, el crédito anotado en el abono y el Excel sin un «SI» limpio.
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "ADELANTO 60% SALDO 40% (FACTURA A 30 DIAS)" })).toBe(true);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "ADELANTO 60%", confirmacion_abono: "credito" })).toBe(true);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO", confirmacion_abono: "Pendiente" })).toBe(true);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO", confirmacion_abono: "SI PENDIENTE UNA COMISION" })).toBe(true);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO", confirmacion_abono: null, informe_cierre_id: "inf", pago_confirmado_at: null })).toBe(false);
   });
 
   it("no lo pide a servicios ni a lo abierto desde un caso", () => {
@@ -575,5 +581,23 @@ describe("letras que viajan con el equipo (0470)", () => {
 
   it("sin letras no aparece el paso", () => {
     expect(bloquesPedido(pedido({ forma_pago: "CONTADO" })).flatMap((b) => b.pasos).some((p) => p.clave === "letras")).toBe(false);
+  });
+});
+
+describe("quién hizo cada etapa (0473)", () => {
+  it("el paso hecho trae el nombre de quien lo hizo y la guía dice quién la autorizó", () => {
+    const s = pedido({
+      aprobado_at: "2026-10-14T13:00:00Z",
+      aprobado_por: "u-ariana",
+      apertura_despacho_at: "2026-10-14T13:34:00Z",
+      apertura_despacho_por: "u-ariana",
+      guia_confirmada_at: "2026-10-14T13:51:00Z",
+      guia_confirmada_por: "u-fact",
+    } as Partial<ServicioPostventa>);
+    const pasos = bloquesPedido(s, { "u-ariana": "Ariana", "u-fact": "Facturación 1" }).flatMap((b) => b.pasos);
+    expect(pasos.find((p) => p.clave === "aprobado")?.quien).toBe("Ariana");
+    expect(pasos.find((p) => p.clave === "apertura")?.detalle).toMatch(/guía autorizada por Facturación 1/);
+    // Lo que no está hecho no lleva nombre.
+    expect(pasos.find((p) => p.clave === "cerrado")?.quien ?? null).toBeNull();
   });
 });

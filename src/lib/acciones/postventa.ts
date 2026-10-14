@@ -702,6 +702,8 @@ export async function registrarDespacho(
     recibeDoc?: string;
     recibeTelefono?: string;
     motivoSinCancelar?: string;
+    /** Código de gerencia u operaciones para salir con saldo (0473). */
+    pin?: string;
   },
 ) {
   const perfil = await requerirPerfil();
@@ -736,6 +738,17 @@ export async function registrarDespacho(
   // autorización con nombre y motivo queda para cuando se despacha con menos
   // de lo acordado. Las filas del Excel sin cifras siguen sin trabarse.
   const pago = evaluarPagoParaDespacho(servicio);
+  // CON SALDO, EL MOTIVO SOLO YA NO ALCANZA (0473). Cristo Rey (30-09) y
+  // V Y P ICE (08-09) salieron con saldo porque postventa escribió un motivo;
+  // el almacén, en cambio, ya pedía el código (0297). Ahora los dos igual:
+  // quien autoriza dicta su código y queda su nombre.
+  let autorizo: string | null = null;
+  if (!pago.cubierto && datos.motivoSinCancelar?.trim()) {
+    if (!datos.pin?.trim()) return falla("Para despachar con saldo hace falta el código de gerencia u operaciones de quien lo autoriza.");
+    const { data: quien, error: ePin } = await supabase.rpc("validar_codigo_autorizacion", { p_pin: datos.pin.trim(), p_ambito: "operaciones" });
+    if (ePin) return falla(ePin.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+    autorizo = (quien as string | null) ?? null;
+  }
   if (!pago.cubierto && !datos.motivoSinCancelar?.trim()) {
     const moneda = servicio.moneda ?? "USD";
     const cifras = puedeVerPrecios(perfil)
@@ -759,8 +772,11 @@ export async function registrarDespacho(
       recibe_nombre: datos.recibeNombre?.trim() || null,
       recibe_doc: datos.recibeDoc?.trim() || null,
       recibe_telefono: datos.recibeTelefono?.trim() || null,
-      despacho_sin_cancelar_motivo: datos.motivoSinCancelar?.trim() || null,
-      despacho_autorizado_por: datos.motivoSinCancelar?.trim() ? perfil.id : null,
+      despacho_sin_cancelar_motivo: autorizo ? datos.motivoSinCancelar?.trim() || null : null,
+      despacho_autorizado_por: autorizo,
+      ...(autorizo
+        ? { salida_autorizada_at: new Date().toISOString(), salida_autorizada_por: autorizo, salida_autorizada_motivo: datos.motivoSinCancelar?.trim() || null }
+        : {}),
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);

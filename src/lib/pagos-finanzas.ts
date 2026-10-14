@@ -456,3 +456,15 @@ export async function letrasPorFirmar(supabase: SupabaseClient): Promise<SalidaA
     .limit(200);
   return ((data ?? []) as Fila[]).map(aSalida);
 }
+
+/** Guías autorizadas «sin comprobante todavía»: el comprobante se le debe al cliente igual (0473). */
+export async function guiasSinComprobante(supabase: SupabaseClient): Promise<SalidaACredito[]> {
+  const { data } = await supabase
+    .from("servicios_postventa")
+    .select(COLUMNAS_SALIDA)
+    .eq("guia_comprobante_tipo", "sin_comprobante")
+    .not("guia_confirmada_at", "is", null)
+    .order("guia_confirmada_at", { ascending: true })
+    .limit(100);
+  return ((data ?? []) as Fila[]).map(aSalida);
+}

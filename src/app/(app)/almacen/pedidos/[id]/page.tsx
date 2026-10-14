@@ -1,4 +1,5 @@
 import Link from "@/components/enlace";
+import { nombresDelPedido } from "@/lib/nombres-del-pedido";
 import { ArrowLeft, MapPin, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
@@ -26,7 +27,9 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
   const { data } = await supabase.from("servicios_postventa").select("*").eq("id", id).maybeSingle();
   if (!data) return <RegistroNoDisponible volverHref="/almacen/pedidos" volverTexto="Volver a los pedidos" />;
   const servicio = sinPrecios(data as unknown as ServicioPostventa);
-  const bloques = bloquesPedido(servicio);
+  // Quién hizo cada etapa y a qué hora (0473).
+  const nombres = await nombresDelPedido(data as unknown as ServicioPostventa);
+  const bloques = bloquesPedido(servicio, nombres);
   const circuito = circuitoDe(servicio);
   const cliente = (servicio.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 
@@ -175,6 +178,13 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
                       <span className={cn("mt-0.5 inline-block size-3 flex-none rounded-full border", p.hecho ? "border-[#1E7F4F] bg-[#1E7F4F]" : "border-border")} />
                       <span>
                         {p.etiqueta}
+                        {p.hecho && (p.cuando || p.quien) && (
+                          <span className="block text-[10px] tabular-nums text-muted-foreground/80">
+                            {p.cuando ? fechaHoraLima(p.cuando) : ""}
+                            {p.cuando && p.quien ? " · " : ""}
+                            {p.quien ?? ""}
+                          </span>
+                        )}
                         {p.trabado && !p.hecho && <span className="block text-[11px] text-destructive">{p.trabado}</span>}
                       </span>
                     </li>

@@ -7,7 +7,7 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Kpi } from "@/components/crm/kpi";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { AccionesFinanzas } from "@/components/crm/acciones-finanzas";
-import { avisosDeCentral, cuentasPorCobrar, diasEntre, formatoMonto, letrasPorFirmar, ordenesDeFacturar, pedidosPorConfirmar, salidasPorAutorizar, type PedidoFinanzas, type SalidaACredito } from "@/lib/pagos-finanzas";
+import { avisosDeCentral, cuentasPorCobrar, diasEntre, formatoMonto, guiasSinComprobante, letrasPorFirmar, ordenesDeFacturar, pedidosPorConfirmar, salidasPorAutorizar, type PedidoFinanzas, type SalidaACredito } from "@/lib/pagos-finanzas";
 import { AtenderOrdenFacturar } from "@/components/crm/orden-facturar";
 import { cn } from "@/lib/utils";
 
@@ -27,13 +27,14 @@ export default async function FinanzasPage() {
   await requerirPerfil();
   const supabase = await createClient();
   const hoy = hoyLima();
-  const [pedidos, cobrar, avisos, ordenes, salidas, letras] = await Promise.all([
+  const [pedidos, cobrar, avisos, ordenes, salidas, letras, sinComprobante] = await Promise.all([
     pedidosPorConfirmar(supabase),
     cuentasPorCobrar(supabase),
     avisosDeCentral(supabase),
     ordenesDeFacturar(supabase),
     salidasPorAutorizar(supabase),
     letrasPorFirmar(supabase),
+    guiasSinComprobante(supabase),
   ]);
   const salidasListas = salidas.filter((x) => x.listo || x.aperturaPedida);
 
@@ -54,7 +55,7 @@ export default async function FinanzasPage() {
       {/* Caso COFACO 14-10 (0469): la venta a crédito no sale sin su visto
           bueno. Arriba las que ya están embaladas o con apertura pedida. */}
       {salidas.length > 0 && (
-        <SeccionPanel titulo={`Ventas a crédito que esperan su visto bueno para salir · ${salidas.length}`}>
+        <SeccionPanel titulo={`Ventas a crédito o con pago sin confirmar que esperan su visto bueno para salir · ${salidas.length}`}>
           {salidasListas.length > 0 && (
             <p className="mb-2 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm font-semibold text-destructive">
               <ShieldAlert className="size-4 flex-none" />
@@ -68,6 +69,25 @@ export default async function FinanzasPage() {
       {letras.length > 0 && (
         <SeccionPanel titulo={`Letras de crédito: en camino o por volver firmadas · ${letras.length}`}>
           <ListaSalidas filas={letras} letras />
+        </SeccionPanel>
+      )}
+
+      {/* 0473: la guía salió sin comprobante; el comprobante se le debe al cliente igual. */}
+      {sinComprobante.length > 0 && (
+        <SeccionPanel titulo={`Guías autorizadas sin comprobante · ${sinComprobante.length}`}>
+          <p className="mb-2 text-xs text-muted-foreground">El comprobante se le entrega al cliente igual: emítalo y anótelo en el pedido.</p>
+          <ul className="space-y-1.5">
+            {sinComprobante.map((f) => (
+              <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card p-2.5">
+                <Link href={`/finanzas/pedidos/${f.id}`} className="text-sm font-semibold text-foreground hover:underline">
+                  {f.cliente}
+                </Link>
+                <span className="text-xs text-muted-foreground">
+                  {f.despachadoAt ? `Salió el ${new Date(f.despachadoAt).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}` : "Todavía no sale"} · {f.formaPago ?? "sin forma de pago"}
+                </span>
+              </li>
+            ))}
+          </ul>
         </SeccionPanel>
       )}
 

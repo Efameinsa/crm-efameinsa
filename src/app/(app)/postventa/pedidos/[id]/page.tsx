@@ -12,6 +12,7 @@ import type { FotoAlmacen } from "@/lib/postventa";
 import { requerirPerfil } from "@/lib/auth";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
 import { LetrasDelPedido } from "@/components/crm/letras-del-pedido";
+import { nombresDelPedido } from "@/lib/nombres-del-pedido";
 import { InformesDelPedido } from "@/components/crm/informes-del-pedido";
 import { ETIQUETA_ESTADO_APERTURA, aperturaAbierta, estadoApertura } from "@/lib/aperturas-llamada";
 import { EquipoConSeries } from "@/components/crm/equipo-con-series";
@@ -418,6 +419,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
           equiposTexto={equiposTexto}
           equiposLista={listaEquipos.filter((e) => !e.parte_de).map((e) => ({ equipoId: e.equipo_id, serie: e.serie, descripcion: e.descripcion }))}
           documentos={documentos}
+          nombres={await nombresDelPedido(crudo)}
         />
 
         <div className="space-y-4">

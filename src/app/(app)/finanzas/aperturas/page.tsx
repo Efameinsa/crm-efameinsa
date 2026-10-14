@@ -29,6 +29,9 @@ type FilaAp = {
   origen: string | null;
   tipo_pedido: TipoPedido | null;
   letras_cantidad: number | null;
+  confirmacion_abono: string | null;
+  informe_cierre_id: string | null;
+  pago_confirmado_at: string | null;
   finanzas_vb_at: string | null;
   salida_autorizada_at: string | null;
 };
@@ -50,7 +53,7 @@ export default async function AperturasPorConfirmarPage() {
   const { data } = await supabase
     .from("servicios_postventa")
     .select(
-      "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, despachado_at, forma_pago, pct_antes_despacho, origen, tipo_pedido, letras_cantidad, finanzas_vb_at, salida_autorizada_at",
+      "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, despachado_at, forma_pago, pct_antes_despacho, origen, tipo_pedido, letras_cantidad, confirmacion_abono, informe_cierre_id, pago_confirmado_at, finanzas_vb_at, salida_autorizada_at",
     )
     .not("apertura_despacho_at", "is", null)
     .is("cerrado_at", null)
@@ -157,7 +160,7 @@ function FilaApertura({ f, p, conPedido }: { f: FilaAp; p: PedidoFinanzas | unde
       {/* Venta a crédito sin el visto bueno de Finanzas (0469, COFACO 14-10): la base no deja autorizar la guía. */}
       {!f.guia_confirmada_at && faltaVistoBuenoFinanzas(f) && (
         <p className="w-full rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1 text-[11px] font-semibold text-destructive">
-          Venta a crédito{f.forma_pago ? ` (${f.forma_pago})` : ""}: falta el visto bueno de Finanzas (letras, adelanto, comisiones). No se autoriza la guía hasta que lo dé.
+          Falta el visto bueno de Finanzas{f.forma_pago ? ` (forma de pago: ${f.forma_pago})` : ""}: crédito o pago sin confirmar. No se autoriza la guía hasta que lo dé.
         </p>
       )}
       {!f.guia_confirmada_at && !faltaVistoBuenoFinanzas(f) && (
