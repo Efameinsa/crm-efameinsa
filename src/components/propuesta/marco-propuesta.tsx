@@ -7,6 +7,7 @@ import { BarraProgreso } from "@/components/propuesta/barra-progreso";
 import { GuardaDemo } from "@/components/propuesta/guarda-demo";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
 import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
+import { BotonCotizarCabecera } from "@/components/propuesta/boton-cotizar-cabecera";
 import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { SelectorFechaHora } from "@/components/propuesta/selector-fecha-hora";
 import { TemaEnElCuerpo } from "@/components/propuesta/tema-en-el-cuerpo";
@@ -128,7 +129,10 @@ export async function MarcoPropuesta({
               autoComplete="off"
             />
           </form>
-          {NUEVO[tipo] && (
+          {/* «Cotizar», dentro de un expediente, cotiza a ese cliente (Moisés, 14-10). */}
+          {NUEVO[tipo] && (tipo === "comercial" || tipo === "preventivo") ? (
+            <BotonCotizarCabecera etiqueta={NUEVO[tipo].etiqueta} hrefFuera={NUEVO[tipo].href} />
+          ) : NUEVO[tipo] ? (
             <Link
               href={NUEVO[tipo].href}
               className="group inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md"
@@ -136,7 +140,7 @@ export async function MarcoPropuesta({
               <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
               <span className="max-[380px]:hidden">{NUEVO[tipo].etiqueta}</span>
             </Link>
-          )}
+          ) : null}
           {pasaContactos && (
             <span className="pasar-a-central">
               <PasarContactoCentral contexto={tipo === "postventa" ? "postventa" : tipo === "almacen" ? "almacen" : "comercial"} campaniasWhatsapp={campanias} />
