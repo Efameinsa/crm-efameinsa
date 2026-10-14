@@ -70,6 +70,11 @@ export function VisitaPlantaBoton({
   // Los equipos de la ficha que recoge en planta (0467; Rubí, 13-10).
   const [equiposFicha, setEquiposFicha] = useState<EquipoDeLaFicha[] | null>(null);
   const [recoge, setRecoge] = useState<string[]>([]);
+  // El transporte que llega a la planta (0468; Rubí, 13-10): RUC, marca, placa, MTC, chofer y brevete.
+  const transporteVacio = { ruc: "", marca: "", placa: "", mtc: "", chofer: "", brevete: "" };
+  const [conTransporte, setConTransporte] = useState(false);
+  const [transporte, setTransporte] = useState(transporteVacio);
+  const campoTransporte = (k: keyof typeof transporteVacio) => ({ value: transporte[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setTransporte((x) => ({ ...x, [k]: e.target.value })) });
   useEffect(() => {
     setRecoge([]);
     if (!abierto || !cuentaElegida) {
@@ -112,12 +117,17 @@ export function VisitaPlantaBoton({
       toast.error("Para quitarle el film escriba las características de la máquina (voltaje, fase, capacidad…): almacén las necesita.");
       return;
     }
+    if (conTransporte && !videollamada && !transporte.placa.trim()) {
+      toast.error("Escriba la placa del vehículo: vigilancia la pide en la puerta. Si no viene vehículo, desmarque «Llega con vehículo».");
+      return;
+    }
     const resumen = lista
       .map((m) => `${m.maquina.trim()}${m.caracteristicas.trim() ? ` — ${m.caracteristicas.trim()}` : ""} (${[m.moverAPrueba && "al área de prueba", m.quitarFilm && "quitar el film"].filter(Boolean).join(" y ")})`)
       .join("; ");
     startTransition(async () => {
       const r = await registrarVisitaPlanta({ cuentaId: cuentaElegida, oportunidadId, ...f, showroom: showroom || videollamada, prenderTv, infocorp, cotizacionRef: cotizacion, videollamada,
-        acompanantes: videollamada ? [] : acompanantes, maquinas: lista, equiposRecoge: videollamada ? [] : recoge });
+        acompanantes: videollamada ? [] : acompanantes, maquinas: lista, equiposRecoge: videollamada ? [] : recoge,
+        transporte: conTransporte && !videollamada ? transporte : null });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
@@ -137,6 +147,8 @@ export function VisitaPlantaBoton({
       setMaquinas([]);
       setAcompanantes([]);
       setRecoge([]);
+      setConTransporte(false);
+      setTransporte(transporteVacio);
       router.refresh();
     });
   }
@@ -314,6 +326,42 @@ export function VisitaPlantaBoton({
                     </span>
                   </label>
                 ))
+              )}
+            </div>
+          )}
+          {!videollamada && (
+            <div className="grid gap-1.5 rounded-md border border-border p-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={conTransporte} onChange={(e) => setConTransporte(e.target.checked)} className="size-4" />
+                Llega con vehículo (camión, furgón, auto)
+              </label>
+              {conTransporte && (
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Placa <span className="text-destructive">*</span></Label>
+                    <Input {...campoTransporte("placa")} placeholder="ej. ABC-123" className="uppercase" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Marca</Label>
+                    <Input {...campoTransporte("marca")} placeholder="ej. Hyundai" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">RUC del transporte</Label>
+                    <Input {...campoTransporte("ruc")} inputMode="numeric" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">MTC</Label>
+                    <Input {...campoTransporte("mtc")} placeholder="Registro o certificado MTC" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Chofer</Label>
+                    <Input {...campoTransporte("chofer")} placeholder="Nombre y apellido" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Brevete</Label>
+                    <Input {...campoTransporte("brevete")} placeholder="N.º de licencia" className="uppercase" />
+                  </div>
+                </div>
               )}
             </div>
           )}

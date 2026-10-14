@@ -47,6 +47,8 @@ export async function registrarVisitaPlanta(datos: {
   videollamada?: boolean;
   /** Los equipos de la ficha que el cliente recoge en planta (0467; Rubí, 13-10). */
   equiposRecoge?: string[];
+  /** El transporte que llega a la planta (0468; Rubí, 13-10). */
+  transporte?: TransporteVisita | null;
 }): Promise<{ error: string | null; id?: string; correoEnviado?: boolean }> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -69,6 +71,7 @@ export async function registrarVisitaPlanta(datos: {
   const equiposRecoge = datos.cuentaId && !datos.proveedor && !datos.videollamada ? (datos.equiposRecoge ?? []).slice(0, 100) : [];
   const recoge = equiposRecoge.length ? (await equiposDeLaFichaParaVisita(datos.cuentaId!)).filter((e) => equiposRecoge.includes(e.id)) : [];
   const recogeTexto = (e: EquipoDeLaFicha) => `${e.modelo}${e.serie ? ` · serie ${e.serie}` : ""}`;
+  const transporte = datos.proveedor || datos.videollamada ? null : limpiarTransporte(datos.transporte);
   const queHacer = (m: (typeof maquinas)[number]) => [m.moverAPrueba && "llevar al área de prueba", m.quitarFilm && "quitar el film"].filter(Boolean).join(" y ");
   const { data, error } = await supabase.rpc("registrar_visita_planta", {
     p_cuenta: datos.cuentaId,
@@ -91,6 +94,7 @@ export async function registrarVisitaPlanta(datos: {
     p_tipo: datos.proveedor ? "proveedor" : datos.videollamada ? "videollamada" : "cliente",
     p_maquinas: maquinas.map((m) => ({ maquina: m.maquina, caracteristicas: m.caracteristicas, mover_a_prueba: m.moverAPrueba, quitar_film: m.quitarFilm })),
     p_equipos_recoge: recoge.map((e) => e.id),
+    p_transporte: transporte,
   });
   if (error) return { error: limpiar(error.message) };
   revalidatePath("/central/visitas");
@@ -101,6 +105,7 @@ export async function registrarVisitaPlanta(datos: {
     titulo: `${datos.videollamada ? "Videollamada" : "Visita"} ${datos.proveedor ? "de proveedor" : datos.videollamada ? "· abrir lavandería" : datos.showroom ? "al showroom" : "a planta"} el ${datos.fecha}${datos.hora ? ` ${datos.hora.slice(0, 5)}` : ""} · ${datos.empresa.trim()}`,
     cuerpo:
       `${datos.persona.trim()}${datos.dni ? ` (DNI ${datos.dni})` : ""}. ${datos.motivo.trim()}` +
+      (transporte ? ` Llega en transporte: ${transporteTexto(transporte)}.` : "") +
       (recoge.length ? ` Recoge: ${recoge.map(recogeTexto).join("; ")}.` : "") +
       (maquinas.length ? ` Preparar máquinas: ${maquinas.map((m) => `${m.maquina} (${queHacer(m)})`).join("; ")}.` : ""),
     url: "/almacen/visitas",
@@ -142,6 +147,13 @@ export async function registrarVisitaPlanta(datos: {
           `<br><b>${esc(datos.empresa)}</b>${datos.telefono ? `<br>Tel. ${esc(datos.telefono)}` : ""}`)}` +
         `${td(cotizacionRef ? `N° ${esc(cotizacionRef)}` : "—")}${td(esc(datos.motivo))}</tr></table>` +
         `<p>` +
+        (transporte
+          ? `<b>Transporte que llega:</b><br>` +
+            ([["Placa", transporte.placa], ["Marca", transporte.marca], ["RUC", transporte.ruc], ["MTC", transporte.mtc], ["Chofer", transporte.chofer], ["Brevete", transporte.brevete]] as const)
+              .filter(([, v]) => v)
+              .map(([k, v]) => `• ${k}: ${k === "Placa" ? `<span style="background:#ffff00"><b>${esc(v)}</b></span>` : esc(v)}<br>`)
+              .join("")
+          : "") +
         (recoge.length
           ? `<b>Equipos que recoge:</b><br>` + recoge.map((e) => `• <span style="background:#ffff00">${esc(recogeTexto(e))}</span><br>`).join("")
           : "") +
@@ -252,6 +264,23 @@ export async function reprogramarVisitaPlanta(visitaId: string, fecha: string, h
  * fichas que quien registra puede leer; si no aparece, se escribe a mano y va
  * como cliente nuevo.
  */
+export type TransporteVisita = { ruc?: string | null; marca?: string | null; placa?: string | null; mtc?: string | null; chofer?: string | null; brevete?: string | null };
+
+/** Solo los campos escritos; null si no viene vehículo (0468). */
+function limpiarTransporte(t: TransporteVisita | null | undefined): TransporteVisita | null {
+  if (!t) return null;
+  const x = (v: string | null | undefined, n: number, mayus = false) => {
+    const s = (v ?? "").trim().slice(0, n);
+    return s ? (mayus ? s.toUpperCase() : s) : null;
+  };
+  const r = { placa: x(t.placa, 20, true), marca: x(t.marca, 80), ruc: x(t.ruc, 20), mtc: x(t.mtc, 40), chofer: x(t.chofer, 120), brevete: x(t.brevete, 20, true) };
+  return Object.values(r).some(Boolean) ? r : null;
+}
+
+function transporteTexto(t: TransporteVisita): string {
+  return [t.placa && `placa ${t.placa}`, t.marca && `marca ${t.marca}`, t.ruc && `RUC ${t.ruc}`, t.mtc && `MTC ${t.mtc}`, t.chofer && `chofer ${t.chofer}`, t.brevete && `brevete ${t.brevete}`].filter(Boolean).join(", ");
+}
+
 export type EquipoDeLaFicha = { id: string; modelo: string; serie: string | null };
 
 /**
