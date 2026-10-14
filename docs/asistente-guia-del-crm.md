@@ -112,7 +112,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Qué entra:** el cierre emitido.
 - **Pasos en la tarjeta del cierre:**
   1. **«Series de los equipos».** Central pide las series al almacén en el mismo acto, o elige «Las escribo yo» (siempre en los REG). Con serie hay stock; sin serie, no hay.
-  2. **«Generar el pedido».** Nace el pedido **PED-NNNN-AAAA**. Puede generarse aunque falten series: la hoja dirá «serie pendiente». En un REG, no se puede generar si alguna fila de equipo no tiene serie.
+  2. **«Generar el pedido».** Nace el pedido **PED-NNNN-AAAA**. Puede generarse aunque falten series: la hoja dirá «serie pendiente». En un REG, no se puede generar si alguna fila de equipo no tiene serie (salvo el REG «por entregar», cuyo equipo sigue en almacén).
   3. **«Liquidación de Finanzas».** Finanzas sube el PDF y Central lo acepta o lo rechaza con motivo. «Aceptar» exige el PDF.
   4. **«Pedido ejecutado».** Es el check que **libera** el pedido: desde ahí lo ven postventa, almacén y Finanzas. Sin liquidación, solo se libera con código de gerencia u operaciones.
 - **Herramientas de Central en este tramo:**
@@ -588,6 +588,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **No suman a la venta** (la venta ya está registrada desde el Excel maestro) ni cuentan en la supervisión.
 - Pasan por todo el circuito desde Central, para que postventa tenga la realidad completa. **Central escribe las series ella misma** («Las escribo yo»), porque el almacén ya entregó. No se puede generar un pedido REG con filas de equipo sin serie.
 - El pedido REG nace con los pasos previos marcados como hechos en la fecha de entrega.
+- **REG «por entregar» (desde el 14-10):** para una venta anterior al CRM cuyo equipo **sigue en el almacén** (por ejemplo, se entrega cuando el cliente termine de pagar). Central lo ve como «REG · por entregar»: no nace con los pasos dados por hechos, sigue el circuito normal (pedir series al almacén, visto bueno y pagos de Finanzas, apertura, guía y salida) y no exige series para generar el pedido. Regla práctica: si el equipo ya salió, REG normal; si sigue en almacén, REG por entregar. Caso: Seventh Heaven.
 - Central los ve en la pestaña «Regularizados (REG)».
 - **Un Word hecho después del CRM no es REG.** Se carga como cierre normal, con sus documentos adjuntos antes de emitir, y sigue el circuito normal. Un repuesto aún no entregado tampoco es REG.
 
@@ -995,7 +996,7 @@ Si el pedido todavía tiene ese paso pendiente, no es un caso técnico: cierre l
 Porque desde el 05-10 toda cotización hecha por postventa pide aprobación, a cualquier precio, mientras dure la capacitación del área. No es un error. (3.4)
 
 **35. ¿Qué es un cierre REG y por qué no suma a mi venta?**
-Es un cierre de Word anterior al CRM que se regulariza. Recibe el correlativo siguiente y pasa por el circuito para que postventa tenga la historia completa. No suma porque esa venta ya está registrada desde el Excel. Un Word hecho después del CRM no es REG: se carga como cierre normal. (3.5)
+Es un cierre de Word anterior al CRM que se regulariza. Recibe el correlativo siguiente y pasa por el circuito para que postventa tenga la historia completa. No suma porque esa venta ya está registrada desde el Excel. Un Word hecho después del CRM no es REG: se carga como cierre normal. Si el equipo de esa venta antigua todavía está en el almacén, se carga como «REG por entregar» y sigue el circuito normal hasta la salida (desde el 14-10). (3.5)
 
 **36. ¿Por qué la venta registrada no coincide con mi cotización?**
 Porque la venta se registra por lo que dice el informe de cierre, sin IGV, no por lo cotizado. Si vendió parte de lo cotizado, la venta es esa parte. Revise las notas de la venta. (3.3, 3.5)

@@ -35,7 +35,8 @@ Vigente al 14-10-2026 (tarde). Para Finanzas (Jhon) y Contabilidad/Facturación.
 - **Salir con saldo pendiente pide código también a postventa.** Antes bastaba que postventa escribiera un motivo. Casos: Cristo Rey y V y P ICE.
 - **Cada etapa del pedido muestra quién la hizo y a qué hora.** Lo marcado antes del 14-10 queda sin nombre.
 - **Las cotizaciones de EFAMEINSA traen sus cuentas bancarias** (aviso de Katerine). Antes solo las de OPEN las traían. Son cuatro cuentas (dos bancos, soles y dólares) y salen en el PDF de equipos y en el de postventa.
-- **Pendientes que quedaron:** visto bueno tardío de COFACO; Excel de 58 pedidos por regularizar; decisión de Carlos sobre el alcance del visto bueno (ver «Pendientes»).
+- **«REG por entregar»: la venta antigua con equipo en almacén pasa por Finanzas.** Caso: Seventh Heaven (Cusco), calandria vendida en noviembre de 2025 con cierre en Word, adelanto y pagos por partes en 2026; se entrega cuando termine de pagar. El REG normal da el pedido por entregado y se habría saltado el visto bueno de Finanzas; el REG «por entregar» sigue el circuito normal. Se cargó como cierre EFAMEINSA 009-2026 con el comprobante del adelanto. **Pendiente de Finanzas:** confirmar cuánto se ha pagado, una vez que Central genere el pedido.
+- **Pendientes que quedaron:** visto bueno tardío de COFACO; pagos de Seventh Heaven; Excel de 58 pedidos por regularizar; decisión de Carlos sobre el alcance del visto bueno (ver «Pendientes»).
 
 ### 13-10 · Reunión de postventa (Carlos, Santos, Rubí, Ariana, Lesly)
 - **«Orden a Finanzas para facturar y cobrar»** como último paso antes de «Pedido cerrado», en todo pedido ejecutado sin cobrar el 100 % antes del despacho (crédito o saldo). La da postventa; a Finanzas y a Facturación les llega campana y correo del área con el cierre, lo pagado, el saldo y la condición. Finanzas la marca «atendida» y se avisa a quien la dio.
