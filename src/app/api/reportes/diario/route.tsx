@@ -251,12 +251,15 @@ export async function GET(request: Request) {
       // complementarias»; lo del circuito del área (despachado, visitado…) va
       // en su apartado, «para conocimiento» (buzón, Rubí 12-10: «que aparezca
       // solo de mi gestión realizada»). Quien pidió solo lo suyo no lo recibe.
+      // Las tareas del calendario NO se toman de acá: la función SQL ya trae
+      // las COMPLETADAS del día en `r.complementarias` (abajo). Tomarlas también
+      // del calendario las repetía y metía las pendientes como hechas (Santos
+      // 14-10: Ariana PV3, 3 tareas → «TOTAL: 5»). Las pendientes siguen en la agenda.
       const deHoy = eventosDelDia(eventos, fecha);
       r.complementarias = [
-        ...deHoy.filter(propio).map((e) => ({
-          hora: e.hora,
-          titulo: e.origen === "tarea" ? e.titulo : `${etiquetaEvento(e.tipo)} · ${e.cliente} · ${e.titulo}`,
-        })),
+        ...deHoy
+          .filter((e) => propio(e) && e.origen !== "tarea")
+          .map((e) => ({ hora: e.hora, titulo: `${etiquetaEvento(e.tipo)} · ${e.cliente} · ${e.titulo}` })),
         ...(bitacora ?? []).map((b) => ({ hora: null, titulo: b.texto })),
         ...r.complementarias,
       ];
