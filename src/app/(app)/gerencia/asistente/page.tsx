@@ -16,5 +16,5 @@ export const dynamic = "force-dynamic";
  */
 export default async function AsistentePage() {
   const perfil = await requerirRol(["gerencia", "admin"]);
-  return <AsistenteChat nombre={perfil.nombre} sugerencias={sugerenciasPara(perfil)} />;
+  return <AsistenteChat nombre={perfil.nombre} sugerencias={sugerenciasPara(perfil)} grande />;
 }
