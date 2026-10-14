@@ -262,7 +262,7 @@ export function AsistenteChat({
       <div className="flex shrink-0 items-center justify-between border-b border-border bg-secondary/30 px-3.5 py-2.5">
         <div className="flex items-center gap-2">
           <Sparkles className="size-3.5 text-primary" />
-          <h2 className="text-[13px] font-semibold tracking-tight text-foreground">Asistente</h2>
+          <h2 className="text-[13px] font-semibold tracking-tight text-foreground">Asistente Efameinsa</h2>
         </div>
         <div className="flex items-center gap-2.5">
           {mensajes.length > 0 && (
