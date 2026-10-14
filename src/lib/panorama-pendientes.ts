@@ -58,6 +58,8 @@ export async function cargarPanorama(
   dia: string,
   hoy: string,
   anotados: PendienteAnotado[],
+  /** Las tareas sin tipo del calendario que siguen sin hacer (Santos 14-10). */
+  tareas: { titulo: string; fecha: string; hora: string | null }[] = [],
 ): Promise<PanoramaPendientes> {
   const pasado = dia < hoy;
   const hasta = sumarDias(dia, 7);
@@ -144,8 +146,11 @@ export async function cargarPanorama(
     dia,
     seguimientos,
     presupuestos,
-    anotados: anotados
-      .map((p) => ({ tipo: ETIQUETA_TIPO_PENDIENTE[p.tipo], titulo: p.titulo, fecha: p.fecha, hora: p.hora, atraso: dias(p.fecha, dia) }))
+    anotados: [
+      ...anotados.map((p) => ({ tipo: ETIQUETA_TIPO_PENDIENTE[p.tipo], titulo: p.titulo, fecha: p.fecha, hora: p.hora })),
+      ...tareas.map((t) => ({ tipo: "Tarea del calendario", ...t })),
+    ]
+      .map((p) => ({ ...p, atraso: dias(p.fecha, dia) }))
       .sort((a, b) => b.atraso - a.atraso),
   };
 }
