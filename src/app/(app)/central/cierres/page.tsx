@@ -77,6 +77,7 @@ interface FilaInforme {
   anulado_at: string | null;
   anulado_motivo: string | null;
   regularizado: boolean;
+  reg_por_entregar: boolean;
   perfiles: { nombre: string; codigo_comercial: string | null } | null;
   cotizaciones: { id: string; codigo: string } | null;
 }
@@ -114,7 +115,7 @@ export default async function CierresCentralPage({
   let consulta = supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, regularizado, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
+      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, regularizado, reg_por_entregar, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
     )
     .not("emitido_at", "is", null);
   if (busqueda) {
@@ -466,10 +467,14 @@ export default async function CierresCentralPage({
                       )}
                       {f.regularizado && (
                         <span
-                          title="Pedido regularizado: cierre en Word anterior al CRM. No suma venta y el almacén ya entregó: las series las escribe Central."
+                          title={
+                            f.reg_por_entregar
+                              ? "Pedido regularizado: cierre hecho fuera del CRM con el equipo todavía en el almacén. No suma venta; sigue el circuito normal (series del almacén, apertura, guía y salida con su pago)."
+                              : "Pedido regularizado: cierre en Word anterior al CRM. No suma venta y el almacén ya entregó: las series las escribe Central."
+                          }
                           className="rounded-full bg-[#7A5C00]/10 px-2 py-0.5 text-[10px] font-bold text-[#7A5C00]"
                         >
-                          REG
+                          {f.reg_por_entregar ? "REG · por entregar" : "REG"}
                         </span>
                       )}
                       {f.urgente && !yaLiberado && !estaAnulado && (
@@ -593,7 +598,7 @@ export default async function CierresCentralPage({
                   return (
                     <PasosPedidoCentral
                       informeId={f.id}
-                      regularizado={f.regularizado}
+                      regularizado={f.regularizado && !f.reg_por_entregar}
                       servicioId={(pedido?.id as string | undefined) ?? null}
                       numeroPedido={(pedido?.numero_pedido_erp as string | null) ?? null}
                       seriesPedidasAt={(pedido?.series_pedidas_at as string | null) ?? null}
