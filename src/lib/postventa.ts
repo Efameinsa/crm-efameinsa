@@ -718,12 +718,19 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
   const liberado = s.despacho_liberado ?? evaluarPagoParaDespacho(s).cubierto;
   const adelantoCubierto = !pagado && liberado && s.pct_antes_despacho != null && Number(s.pct_antes_despacho) < 100;
   const pideVB = pideVistoBuenoFinanzas(s);
+  // CRÉDITO SIN ADELANTO (Santos, 14-10, Beneficencia de Huancayo: todo a crédito,
+  // 0 % antes del despacho). No hay abono que confirmar: el visto bueno de Finanzas
+  // del crédito (0469) es su confirmación y destraba la apertura.
+  const creditoSinAdelantoAprobado =
+    pideVB && s.pct_antes_despacho != null && Number(s.pct_antes_despacho) === 0 && s.finanzas_vb_at != null && Number(s.monto_pagado ?? 0) === 0;
   const pruebaListaAntes = s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje);
 
   const preparacion: PasoPedido[] = [
     {
       clave: "pago",
-      etiqueta: pagoConfirmado
+      etiqueta: creditoSinAdelantoAprobado && !pagoConfirmado
+        ? "Crédito sin adelanto: Finanzas dio el visto bueno"
+        : pagoConfirmado
         ? pagado
           ? "Finanzas confirmó el pago"
           : adelantoCubierto
@@ -737,9 +744,11 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
             ? "Cobrado del todo, falta la confirmación de Finanzas"
             : `Confirmación de Finanzas${s.monto ? ` · faltan ${s.moneda} ${saldo.toLocaleString("es-PE")}` : ""}`,
       responsable: "finanzas",
-      hecho: pagoConfirmado || pedidoSinCobro(s),
-      cuando: s.pago_confirmado_at,
-      detalle: pedidoSinCobro(s)
+      hecho: pagoConfirmado || pedidoSinCobro(s) || creditoSinAdelantoAprobado,
+      cuando: s.pago_confirmado_at ?? (creditoSinAdelantoAprobado ? (s.finanzas_vb_at ?? null) : null),
+      detalle: creditoSinAdelantoAprobado && !pagoConfirmado
+        ? "No hay abono antes del despacho: se cobra después, según la condición de pago"
+        : pedidoSinCobro(s)
         ? "No pasa por Finanzas: no hay pago que confirmar"
         : pagoConfirmado
         ? [s.pago_confirmado_detalle, condicion ? `Condición: ${condicion}` : null].filter(Boolean).join(" · ") || undefined
@@ -860,7 +869,7 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
   const pruebaLista = s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje);
   const planoEnviado = s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion);
   const faltaParaApertura = [
-    !(pagoConfirmado || pagoDesconocido || despachoAutorizadoConSaldo) ? "la confirmación de Finanzas" : null,
+    !(pagoConfirmado || pagoDesconocido || despachoAutorizadoConSaldo || creditoSinAdelantoAprobado) ? "la confirmación de Finanzas" : null,
     faltaVistoBuenoFinanzas(s) ? "el visto bueno de Finanzas (crédito o pago sin confirmar: pago, letras y comisiones)" : null,
     s.direccion_verificada_at == null ? (circuito.esServicio ? "dónde se hace el servicio, verificado" : "la dirección verificada") : null,
     !circuito.esServicio && !pruebaLista
