@@ -125,11 +125,27 @@ export async function actualizarIdentidadCuenta(datos: {
     }
     cambios.rubro_id = datos.rubroId;
   }
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("cuentas")
     .update(cambios)
     .eq("id", datos.cuentaId)
     .select("id");
+  // Postventa no tiene cartera (28-09): los clientes que atiende quedan sin
+  // dueño y la política de arriba no la deja tocar nada. Si el cliente no es
+  // de ningún comercial, corrige su identidad por la 0482 (Rubí, 14-10,
+  // HOSPITAL CHANKA sin RUC en la apertura).
+  if (!error && (!data || data.length === 0)) {
+    const r = await supabase.rpc("postventa_corregir_identidad_cuenta", {
+      p_cuenta: datos.cuentaId,
+      p_tipo_doc: datos.tipoDoc,
+      p_num_doc: numDoc ?? "",
+      p_razon_social: razonSocial,
+      p_rubro_id: datos.rubroId ?? null,
+      p_tocar_rubro: datos.rubroId !== undefined,
+    });
+    error = r.error;
+    if (r.data === true) data = [{ id: datos.cuentaId }];
+  }
   if (error) {
     // 02-09 (Santos): Katerine quiso poner el RUC 20326700321 y el sistema le
     // contestó «duplicate key value violates unique constraint uq_cuentas_doc».
