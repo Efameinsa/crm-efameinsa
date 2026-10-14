@@ -23,7 +23,16 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
  * pregunte qué pasó con su cierre. Y recién al final el código del supervisor,
  * que dura diez minutos: quien se equivocó no anula lo suyo.
  */
-export function AnularCierreBoton({ informeId, codigo }: { informeId: string; codigo: string }) {
+export function AnularCierreBoton({
+  informeId,
+  codigo,
+  propio = false,
+}: {
+  informeId: string;
+  codigo: string;
+  /** Lo abre quien emitió el cierre (0490): anula solo con el código de admin, gerencia o Lesly. */
+  propio?: boolean;
+}) {
   const [abierto, setAbierto] = useState(false);
   const [enJuego, setEnJuego] = useState<CierreEnJuego | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -58,10 +67,17 @@ export function AnularCierreBoton({ informeId, codigo }: { informeId: string; co
     <Dialog open={abierto} onOpenChange={abrir}>
       <DialogTrigger
         render={
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
-            <Ban className="size-3.5" />
-            Anular
-          </Button>
+          propio ? (
+            <Button variant="outline" size="lg" className="h-11 px-5 text-sm font-semibold text-destructive hover:text-destructive">
+              <Ban className="size-4" />
+              Anular con código
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
+              <Ban className="size-3.5" />
+              Anular
+            </Button>
+          )
         }
       />
       <DialogContent className="sm:max-w-lg">
@@ -120,7 +136,7 @@ export function AnularCierreBoton({ informeId, codigo }: { informeId: string; co
             </span>
             <CampoCodigo valor={pin} onChange={setPin} tono="amber" />
             <span className="block text-[11px] text-amber-900/80">
-              Se lo pide a gerencia: lo tiene en su pantalla y dura diez minutos.
+              Se lo pide al administrador, a gerencia o a Lesly: lo tienen en su pantalla y dura diez minutos.
             </span>
           </label>
         </div>
