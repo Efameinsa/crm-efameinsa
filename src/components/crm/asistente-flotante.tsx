@@ -40,6 +40,15 @@ import { cn } from "@/lib/utils";
  * recuerda en este navegador y por persona, en proporción a la pantalla (así
  * sobrevive a cambiar el tamaño de la ventana). La ventana del chat se abre
  * junto a la bolita, del lado donde hay espacio.
+ *
+ * MINIMIZAR (Santos, 14-10: «si le dan en "x" se cierra y todo empieza de
+ * nuevo»). El botón «—» de la cabecera encoge la ventana hacia la bolita sin
+ * desmontarla: la conversación, lo escrito y hasta la respuesta en camino
+ * siguen ahí. Tocar la bolita la devuelve. Minimizada, la bolita avisa: un
+ * anillo que gira mientras Efamein responde, un punto verde que late cuando
+ * ya respondió y uno ámbar si la conversación solo está esperando. Por eso
+ * la bolita, Escape y el velo del celular ahora minimizan: solo la X termina
+ * la conversación.
  */
 const CLAVE_TAMANO = "crm:asistente-grande";
 const claveLugar = (nombre: string) => `crm:asistente-lugar:${nombre}`;
@@ -99,7 +108,25 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
   const [lugar, setLugar] = useState<Punto | null>(null);
   const [pantalla, setPantalla] = useState({ ancho: 0, alto: 0, escritorio: false });
   const [agarrada, setAgarrada] = useState(false);
+  // Minimizada: la ventana sigue montada (y la conversación viva), solo
+  // encogida hacia la bolita. La X es la única que la termina.
+  const [minimizado, setMinimizado] = useState(false);
+  const [actividad, setActividad] = useState({ mensajes: 0, pensando: false });
+  // Llegó una respuesta mientras estaba minimizada: la bolita lo avisa.
+  const [novedad, setNovedad] = useState(false);
   const boton = useRef<HTMLButtonElement>(null);
+
+  const minimizadoRef = useRef(false);
+  useEffect(() => {
+    minimizadoRef.current = minimizado;
+  }, [minimizado]);
+  const pensabaRef = useRef(false);
+
+  const alCambiarActividad = useCallback((a: { mensajes: number; pensando: boolean }) => {
+    if (pensabaRef.current && !a.pensando && a.mensajes > 0 && minimizadoRef.current) setNovedad(true);
+    pensabaRef.current = a.pensando;
+    setActividad(a);
+  }, []);
 
   // La física vive en refs y mueve el DOM directo: sesenta cuadros por segundo
   // sin un solo render de React.
@@ -204,6 +231,7 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
         });
         f.pos = { ...p };
         f.meta = { ...p };
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- el lugar guardado solo existe en el navegador
         setLugar(p);
       }
     } catch {
@@ -286,6 +314,24 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
     setAbierto((v) => !v);
   }
 
+  // La bolita, con la ventana abierta, ya no la cierra (se perdía la
+  // conversación): la minimiza, y minimizada la devuelve.
+  function tocarLaBolita() {
+    if (!abierto) {
+      setMinimizado(false);
+      abrirOCerrar();
+    } else {
+      setMinimizado((m) => !m);
+    }
+    setNovedad(false);
+  }
+
+  function cerrarDelTodo() {
+    setAbierto(false);
+    setMinimizado(false);
+    setNovedad(false);
+  }
+
   function alternarTamano() {
     setGrande((g) => {
       try {
@@ -297,19 +343,21 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
     });
   }
 
-  // Escape: si está grande, vuelve a normal; si no, cierra.
+  // Escape: si está grande, vuelve a normal; si no, minimiza (no cierra: un
+  // Escape distraído no debe borrar la conversación).
   useEffect(() => {
-    if (!abierto) return;
+    if (!abierto || minimizado) return;
     const alTeclear = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (grande) alternarTamano();
-      else setAbierto(false);
+      else setMinimizado(true);
     };
     window.addEventListener("keydown", alTeclear);
     return () => window.removeEventListener("keydown", alTeclear);
-  }, [abierto, grande]);
+  }, [abierto, grande, minimizado]);
 
   const ventanaJuntoALaBolita = !grande && lugar && pantalla.escritorio;
+  const enEspera = abierto && minimizado;
 
   return (
     <>
@@ -325,22 +373,40 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
             fis.current.movio = false;
             return;
           }
-          abrirOCerrar();
+          tocarLaBolita();
         }}
         onPointerDown={alBajar}
         onPointerMove={alMover}
         onPointerUp={alSoltar}
         onPointerCancel={alSoltar}
-        aria-label={abierto ? "Cerrar el Asistente Efamein" : "Abrir el Asistente Efamein"}
-        title="Asistente Efamein · arrástrelo para ponerlo donde no le estorbe"
-        aria-expanded={abierto}
+        aria-label={
+          !abierto
+            ? "Abrir el Asistente Efamein"
+            : minimizado
+              ? "Volver a la conversación con el Asistente Efamein"
+              : "Minimizar el Asistente Efamein"
+        }
+        title={
+          enEspera
+            ? actividad.pensando
+              ? "Efamein está respondiendo · toque para ver"
+              : novedad
+                ? "Efamein ya respondió · toque para ver"
+                : "Conversación minimizada · toque para volver"
+            : "Asistente Efamein · arrástrelo para ponerlo donde no le estorbe"
+        }
+        aria-expanded={abierto && !minimizado}
         className={cn(
           "group fixed z-50 size-13 touch-none select-none rounded-full focus-visible:outline-none print:hidden",
           lugar ? "left-0 top-0 will-change-transform" : "bottom-20 right-4 md:bottom-5 md:right-5",
           agarrada ? "cursor-grabbing" : "cursor-grab",
-          abierto && grande && "sm:hidden",
+          abierto && grande && !minimizado && "sm:hidden",
         )}
       >
+        {/* Minimizada y pensando: un anillo que gira alrededor de la bolita. */}
+        {enEspera && actividad.pensando && (
+          <span className="pointer-events-none absolute -inset-1.5 animate-spin rounded-full border-2 border-primary/60 border-t-transparent [animation-duration:1.1s]" aria-hidden="true" />
+        )}
         <span
           className={cn(
             "flex size-full items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-lg shadow-primary/25 ring-4 ring-primary/10 transition-[transform,box-shadow] duration-300 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)] group-hover:scale-105 group-focus-visible:ring-primary/40",
@@ -349,21 +415,41 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
         >
           <Sparkles className="size-5" />
         </span>
+        {/* Minimizada: un punto dice que la conversación sigue ahí; verde y
+            latiendo si llegó la respuesta mientras no se veía. */}
+        {enEspera && !actividad.pensando && (actividad.mensajes > 0 || novedad) && (
+          <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex size-3.5" aria-hidden="true">
+            {novedad && <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/70" />}
+            <span
+              className={cn(
+                "relative size-3.5 rounded-full border-2 border-background",
+                novedad ? "bg-emerald-500" : "bg-amber-400",
+              )}
+            />
+          </span>
+        )}
       </button>
 
       {abierto && (
         <>
-          {/* El velo: en el celular siempre (cierra); en escritorio solo
+          {/* El velo: en el celular siempre (minimiza); en escritorio solo
               agrandado (vuelve a normal). En normal no hay velo: molesta
               perder el chat por un clic distraído en la pantalla de atrás. */}
+          {!minimizado && (
+            <div
+              className={cn("animar-velo fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]", grande ? "" : "sm:hidden")}
+              onClick={() => (grande ? alternarTamano() : setMinimizado(true))}
+              aria-hidden="true"
+            />
+          )}
+          {/* Minimizada, la ventana NO se desmonta: se encoge hacia la bolita
+              y se vuelve invisible, con la conversación intacta adentro. */}
           <div
-            className={cn("animar-velo fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]", grande ? "" : "sm:hidden")}
-            onClick={() => (grande ? alternarTamano() : setAbierto(false))}
-            aria-hidden="true"
-          />
-          <div
+            aria-hidden={minimizado || undefined}
+            inert={minimizado || undefined}
             className={cn(
-              "fixed inset-3 z-50 transition-[width,height,top,left,right,bottom] duration-200 ease-out",
+              "fixed inset-3 z-50 transition-[width,height,top,left,right,bottom,opacity,transform,visibility] duration-200 ease-out",
+              minimizado && "pointer-events-none",
               grande
                 ? "sm:inset-auto sm:bottom-4 sm:right-4 sm:top-4 sm:w-[min(1100px,calc(100vw-2rem))]"
                 : ventanaJuntoALaBolita
@@ -371,14 +457,22 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
                   : "sm:inset-auto sm:bottom-20 sm:right-5 sm:h-[min(680px,calc(100vh-7rem))] sm:w-[440px]",
             )}
             // Movida la bolita, la ventana se abre a su lado.
-            style={ventanaJuntoALaBolita ? lugarDeLaVentana(lugar, pantalla.ancho, pantalla.alto) : undefined}
+            style={{
+              ...(ventanaJuntoALaBolita ? lugarDeLaVentana(lugar, pantalla.ancho, pantalla.alto) : {}),
+              transformOrigin: "var(--origen, bottom right)",
+              ...(minimizado
+                ? { opacity: 0, transform: "scale(.25)", visibility: "hidden" as const }
+                : { opacity: 1, transform: "none", visibility: "visible" as const }),
+            }}
           >
             <AsistenteChat
               nombre={nombre}
               sugerencias={sugerencias}
               grande={grande}
               onAlternarTamano={alternarTamano}
-              onCerrar={() => setAbierto(false)}
+              onMinimizar={() => setMinimizado(true)}
+              onActividad={alCambiarActividad}
+              onCerrar={cerrarDelTodo}
               claseContenedor="animar-burbuja h-full w-full rounded-2xl border border-border/80 shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35),0_2px_6px_rgba(15,23,42,0.06)]"
             />
           </div>
