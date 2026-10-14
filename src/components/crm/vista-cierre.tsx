@@ -11,6 +11,7 @@ import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
 import { CompendioGestion } from "@/components/crm/compendio-gestion";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { PedirAnulacionBoton } from "@/components/crm/pedir-anulacion-boton";
+import { AnularCierreBoton } from "@/components/crm/anular-cierre-boton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -210,6 +211,7 @@ export function VistaCierre({
   correccionAbierta,
   editarBorradorHref = null,
   puedePedirAnulacion = false,
+  puedeAnularConCodigo = false,
 }: {
   informe: InformeVista;
   adjuntos: AdjuntoCierreFirmado[];
@@ -223,6 +225,8 @@ export function VistaCierre({
   editarBorradorHref?: string | null;
   /** Emitido, no anulado y de quien mira: puede pedir que operaciones lo anule (0170). */
   puedePedirAnulacion?: boolean;
+  /** Quien lo emitió también lo anula, con el código de admin, gerencia o Lesly (0490, Santos 14-10). */
+  puedeAnularConCodigo?: boolean;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -410,6 +414,9 @@ export function VistaCierre({
               operaciones lo ejecuta con su código (Carlos, 04-09 14:30). */}
           {puedePedirAnulacion && !editando && (
             <PedirAnulacionBoton informeId={informe.id} codigo={informe.codigo} />
+          )}
+          {puedeAnularConCodigo && !editando && informe.codigo && (
+            <AnularCierreBoton informeId={informe.id} codigo={informe.codigo} propio />
           )}
           <VerPdfEnLaApp
             url={`/api/informes/${informe.id}/pdf`}

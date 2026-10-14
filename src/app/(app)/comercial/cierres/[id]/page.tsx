@@ -171,6 +171,8 @@ export default async function CierrePage({
           informe.anulado_at == null &&
           (esDeQuienMira || ["gerencia", "admin"].includes(perfil.rol))
         }
+        // 0490 (Santos 14-10): quien lo emitió lo anula con el código de admin, gerencia o Lesly.
+        puedeAnularConCodigo={informe.emitido_at != null && informe.anulado_at == null && informe.creado_por === perfil.id}
       />
     </div>
   );
