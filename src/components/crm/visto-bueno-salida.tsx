@@ -7,6 +7,8 @@ import { BadgeCheck, FileSignature, Loader2, Receipt, ShieldAlert } from "lucide
 import { anotarComprobanteDeLaGuia, darVistoBuenoSalida, marcarLetrasFirmadas } from "@/lib/acciones/finanzas";
 import { ETIQUETA_LETRAS, type EstadoLetras } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export interface DatosVistoBueno {
   servicioId: string;
@@ -55,6 +57,8 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
   const [notaFirmadas, setNotaFirmadas] = useState("");
   const [compTipo, setCompTipo] = useState<"factura" | "boleta">("factura");
   const [compNumero, setCompNumero] = useState("");
+  // Una ventana más antes de dar el visto bueno (buzón, Jhon 14-10).
+  const [confirmar, setConfirmar] = useState(false);
 
   function correr(fn: () => Promise<{ error: string | null }>, exito: string) {
     startTransition(async () => {
@@ -85,6 +89,12 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
           {d.formaPago && (
             <p className="text-xs text-muted-foreground">
               Forma de pago: <b className="text-foreground">{d.formaPago}</b>
+            </p>
+          )}
+          {!d.vbAt && (
+            <p className="text-[11px] text-muted-foreground">
+              No es la apertura: es la confirmación de Finanzas de que la condición de pago está en orden (crédito, o contado
+              con el abono aún sin confirmar) para que el equipo pueda salir. La apertura la emite postventa.
             </p>
           )}
 
@@ -162,24 +172,69 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
               <button
                 type="button"
                 disabled={pendiente || (letras !== "no_lleva" && !cantidad)}
-                onClick={() =>
-                  correr(
-                    () =>
-                      darVistoBuenoSalida({
-                        servicioId: d.servicioId,
-                        letras,
-                        letrasCantidad: cantidad ? Number(cantidad) : null,
-                        comision: comision ? Number(comision) : null,
-                        nota,
-                      }),
-                    "Visto bueno dado: el almacén y postventa ya recibieron el aviso",
-                  )
-                }
+                onClick={() => setConfirmar(true)}
                 className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
               >
                 {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <BadgeCheck className="size-3.5" />}
                 Dar el visto bueno para la salida
               </button>
+
+              <Dialog open={confirmar} onOpenChange={(v) => !pendiente && setConfirmar(v)}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>¿Dar el visto bueno para la salida?</DialogTitle>
+                    <DialogDescription>
+                      {d.despachadoAt
+                        ? "El equipo ya salió: queda registrado lo que pasa con las letras y la comisión."
+                        : "Con esto postventa puede emitir la apertura, Contabilidad autoriza la guía y el almacén despacha el equipo."}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 rounded-md border border-border bg-muted/40 p-3 text-xs">
+                    <dt className="text-muted-foreground">Forma de pago</dt>
+                    <dd className="font-medium">{d.formaPago || "sin dato"}</dd>
+                    <dt className="text-muted-foreground">Letras</dt>
+                    <dd className="font-medium">
+                      {ETIQUETA_LETRAS[letras]}
+                      {letras !== "no_lleva" && cantidad ? ` (${cantidad})` : ""}
+                    </dd>
+                    <dt className="text-muted-foreground">Comisión</dt>
+                    <dd className="font-medium">{comision ? `${d.moneda ?? ""} ${comision}` : "ninguna"}</dd>
+                    {nota.trim() && (
+                      <>
+                        <dt className="text-muted-foreground">Nota</dt>
+                        <dd className="font-medium">{nota.trim()}</dd>
+                      </>
+                    )}
+                  </dl>
+                  <p className="text-[11px] text-muted-foreground">Revise que el adelanto acordado esté acreditado. Una vez dado, no se quita desde aquí.</p>
+                  <DialogFooter>
+                    <Button variant="ghost" onClick={() => setConfirmar(false)} disabled={pendiente}>
+                      Volver a revisar
+                    </Button>
+                    <Button
+                      disabled={pendiente}
+                      onClick={() =>
+                        startTransition(async () => {
+                          const r = await darVistoBuenoSalida({
+                            servicioId: d.servicioId,
+                            letras,
+                            letrasCantidad: cantidad ? Number(cantidad) : null,
+                            comision: comision ? Number(comision) : null,
+                            nota,
+                          });
+                          if (r.error) return void toast.error(r.error, { duration: 10000 });
+                          setConfirmar(false);
+                          toast.success("Visto bueno dado: el almacén y postventa ya recibieron el aviso");
+                          router.refresh();
+                        })
+                      }
+                    >
+                      {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <BadgeCheck className="size-3.5" />}
+                      Sí, dar el visto bueno
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </div>
