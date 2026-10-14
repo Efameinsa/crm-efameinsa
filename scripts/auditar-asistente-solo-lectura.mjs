@@ -23,6 +23,10 @@ const LIBRERIAS = [
   "src/lib/asistente/instrucciones.ts",
   "src/lib/asistente/claude.ts",
   "src/lib/asistente/sugerencias.ts",
+  "src/lib/asistente/enlaces.ts",
+  // Sube copias de los adjuntos al almacenamiento (carpeta asistente/) y a la
+  // API de archivos de Anthropic; ninguna tabla del CRM.
+  "src/lib/asistente/adjuntos.ts",
   "src/lib/historial-cuenta.ts",
   "src/lib/postventa.ts",
   "src/lib/nombres-del-pedido.ts",
