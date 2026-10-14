@@ -186,6 +186,16 @@ const ESTILO_AVISO: Record<
     duracion: 14000,
     tono: "info",
   },
+  // Alguien registró una visita: el almacén tiene que preparar la máquina, el
+  // film, la lavandería o el equipo que se recoge (0246). Hasta el 14-10 le
+  // llegaba como un «Aviso nuevo» de 8 segundos que nadie abría; ahora es el
+  // mensaje grande del centro (ver `esVisitaGrande`).
+  visita_nueva: {
+    encabezado: "🚪 Visita a la planta — preparar en el almacén",
+    accion: "Ver las visitas",
+    duracion: Infinity,
+    tono: "warning",
+  },
   // El cliente respondió a una ficha por WhatsApp (0250): no se va sola, como la urgencia.
   whatsapp: {
     encabezado: "💬 WhatsApp — el cliente respondió",
@@ -305,6 +315,25 @@ function porQueSinDestino(n: Notificacion): string | null {
   return null;
 }
 
+/**
+ * Las visitas se anuncian con un MENSAJE GRANDE en el centro de la pantalla,
+ * no con la ventanita del costado (Central, buzón 14-10: «que temas de visita
+ * lleguen en mensaje grande en la pantalla para avisar rápido a almacén»).
+ * Central tiene que imprimir para vigilancia y avisar al almacén; el almacén,
+ * preparar. La ventanita de 14 s se perdía si estaban en otra cosa.
+ *
+ * Es la excepción a «no interrumpe» (ver `avisar`): una visita tiene hora y
+ * alguien en la puerta. Solo la que llega a Central al registrarse (la de los
+ * comerciales —«Llegó su visita», «film retirado»— sigue siendo ventanita) y
+ * la del almacén.
+ */
+function esVisitaGrande(n: Notificacion, rol?: RolUsuario): boolean {
+  return n.tipo === "visita_nueva" || (n.tipo === "visita_planta" && rol === "central");
+}
+
+/** Las visitas sin leer de las últimas 12 h se muestran al abrir el CRM: la pestaña pudo estar cerrada cuando llegaron. */
+const VISITA_VIGENTE_MS = 12 * 3600_000;
+
 function tiempoRelativo(iso: string): string {
   const minutos = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (minutos < 1) return "ahora";
@@ -327,6 +356,9 @@ export function CampanaNotificaciones({
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   /** El aviso abierto en su ventana de detalle (solo los que no llevan a un sitio concreto). */
   const [detalle, setDetalle] = useState<Notificacion | null>(null);
+  /** Las visitas que esperan en el mensaje grande, la más antigua primero. */
+  const [visitas, setVisitas] = useState<Notificacion[]>([]);
+  const visitaGrande = visitas[0] ?? null;
   // Lectura perezosa: en el servidor no hay localStorage y `alertaSilenciada`
   // devuelve false sin romperse. No hay desajuste de hidratación porque el
   // desplegable solo se dibuja al abrirlo.
@@ -379,6 +411,11 @@ export function CampanaNotificaciones({
     );
     if (n.tipo === "whatsapp_mensaje") {
       avisarWhatsapp(n);
+      return;
+    }
+    if (esVisitaGrande(n, rol)) {
+      sonarCampanada(n.id);
+      setVisitas((prev) => (prev.some((v) => v.id === n.id) ? prev : [...prev, n]));
       return;
     }
     // La campanada triple suena EN TODAS LAS CUENTAS cuando el aviso exige
@@ -478,6 +515,8 @@ export function CampanaNotificaciones({
           ...prev.filter((n) => !vistos.has(n.id)).map((n) => (n.leida_at ? n : { ...n, leida_at: ahora })),
         ]);
         setSinLeerTotal(pendientes.count ?? sinLeer.length);
+        // La visita que ya se atendió en otra pestaña deja de estar en el centro.
+        setVisitas((prev) => prev.filter((v) => vistos.has(v.id)));
         if (conocidasRef.current !== null) {
           const nuevas = sinLeer.filter((n) => !conocidasRef.current!.has(n.id));
           for (const n of sinLeer) conocidasRef.current.add(n.id);
@@ -520,8 +559,15 @@ export function CampanaNotificaciones({
       // sin-leer desconocido es nuevo de verdad. Tope de 3 por repaso para
       // que una cola larga no se vuelva un concierto.
       const todas = [...sinLeer, ...leidas];
+      if (pendientes.data) setVisitas((prev) => prev.filter((v) => vistos.has(v.id)));
       if (conocidasRef.current === null) {
         conocidasRef.current = new Set(todas.map((n) => n.id));
+        // La excepción: una visita sin leer de hoy sí se muestra al entrar,
+        // sin sonar (si la pestaña estaba cerrada, nadie la vio).
+        const recientes = sinLeer
+          .filter((n) => esVisitaGrande(n, rol) && Date.now() - new Date(n.created_at).getTime() < VISITA_VIGENTE_MS)
+          .reverse();
+        if (recientes.length) setVisitas(recientes);
       } else {
         const nuevas = sinLeer.filter((n) => !conocidasRef.current!.has(n.id));
         for (const n of todas) conocidasRef.current.add(n.id);
@@ -794,6 +840,17 @@ export function CampanaNotificaciones({
     setDetalle(n);
   }
 
+  /** «Entendido» o ir a la visita: el mensaje grande se da por leído y pasa al siguiente. */
+  async function atenderVisita(n: Notificacion, ir: boolean) {
+    setVisitas((prev) => prev.filter((v) => v.id !== n.id));
+    setNotificaciones((prev) =>
+      prev.map((x) => (x.id === n.id ? { ...x, leida_at: x.leida_at ?? new Date().toISOString() } : x)),
+    );
+    if (!n.leida_at) setSinLeerTotal((v) => Math.max(0, v - 1));
+    if (ir && n.url) router.push(n.url);
+    await marcarNotificacionLeida(n.id);
+  }
+
   async function alMarcarTodas() {
     setNotificaciones((prev) =>
       prev.map((x) => ({
@@ -980,6 +1037,42 @@ export function CampanaNotificaciones({
                 </Button>
               </div>
             )}
+          </DialogContent>
+        )}
+      </Dialog>
+      {/* EL MENSAJE GRANDE DE LA VISITA (Central, 14-10). No se cierra solo ni
+          tocando afuera: hay que decir «Entendido» o ir a la visita. */}
+      <Dialog open={visitaGrande !== null}>
+        {visitaGrande && (
+          <DialogContent
+            showCloseButton={false}
+            className="border-4 border-amber-500 sm:max-w-xl"
+          >
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold leading-tight text-amber-700 dark:text-amber-400">
+                {(ESTILO_AVISO[visitaGrande.tipo] ?? ESTILO_AVISO.otro).encabezado}
+              </DialogTitle>
+              <DialogDescription>
+                {fechaHoraLima(visitaGrande.created_at)}
+                {visitas.length > 1 ? ` · y ${visitas.length - 1} visita${visitas.length > 2 ? "s" : ""} más` : ""}
+              </DialogDescription>
+            </DialogHeader>
+            <p className="text-xl font-semibold leading-snug text-foreground">{visitaGrande.titulo}</p>
+            {visitaGrande.cuerpo && (
+              <p className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap rounded-md border border-amber-300 bg-amber-50 p-3 text-base leading-relaxed text-foreground dark:border-amber-700 dark:bg-amber-500/10">
+                {visitaGrande.cuerpo}
+              </p>
+            )}
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-3">
+              <Button variant="outline" size="lg" onClick={() => atenderVisita(visitaGrande, false)}>
+                Entendido
+              </Button>
+              {visitaGrande.url && (
+                <Button size="lg" onClick={() => atenderVisita(visitaGrande, true)}>
+                  {(ESTILO_AVISO[visitaGrande.tipo] ?? ESTILO_AVISO.otro).accion} <ArrowRight className="size-4" />
+                </Button>
+              )}
+            </div>
           </DialogContent>
         )}
       </Dialog>

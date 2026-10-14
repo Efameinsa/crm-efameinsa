@@ -101,7 +101,9 @@ export async function registrarVisitaPlanta(datos: {
   revalidatePath("/postventa/agenda");
   revalidatePath("/almacen/visitas");
   // El almacén también se entera en su bandeja: viene alguien a recoger (0246).
+  // Con el mensaje grande en el centro de la pantalla (Central, buzón 14-10).
   await notificarAlmacen({
+    tipo: "visita_nueva",
     titulo: `${datos.videollamada ? "Videollamada" : "Visita"} ${datos.proveedor ? "de proveedor" : datos.videollamada ? "· abrir lavandería" : datos.showroom ? "al showroom" : "a planta"} el ${datos.fecha}${datos.hora ? ` ${datos.hora.slice(0, 5)}` : ""} · ${datos.empresa.trim()}`,
     cuerpo:
       `${datos.persona.trim()}${datos.dni ? ` (DNI ${datos.dni})` : ""}. ${datos.motivo.trim()}` +
