@@ -37,6 +37,8 @@ export interface VisitaFila {
   maquinas_preparar?: { maquina: string; caracteristicas?: string | null; mover_a_prueba?: boolean; quitar_film?: boolean }[] | null;
   /** Los equipos de la ficha que recoge (0467). */
   equipos_recoge?: { equipo_id: string; modelo: string; serie?: string | null }[] | null;
+  /** El transporte que llega a la planta (0468). */
+  transporte?: { ruc?: string | null; marca?: string | null; placa?: string | null; mtc?: string | null; chofer?: string | null; brevete?: string | null } | null;
   infocorp_enviado_at?: string | null;
   showroom_listo_at?: string | null;
   film_retirado_at?: string | null;
@@ -191,6 +193,12 @@ export function ListaVisitasPlanta({
                     {!v.maquinas_preparar?.length && v.equipo_a_ver && <span className="ml-1 font-medium text-foreground">· viene a ver: {v.equipo_a_ver}</span>}
                     {!v.maquinas_preparar?.length && v.quitar_film && <span className="ml-1 rounded-full bg-yellow-300/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-yellow-950">Quitar el film</span>}
                   </p>
+                  {v.transporte && (
+                    <p className="mt-0.5 text-xs">
+                      <span className="font-medium text-foreground">Transporte:</span>{" "}
+                      {[v.transporte.placa && `placa ${v.transporte.placa}`, v.transporte.marca, v.transporte.ruc && `RUC ${v.transporte.ruc}`, v.transporte.mtc && `MTC ${v.transporte.mtc}`, v.transporte.chofer && `chofer ${v.transporte.chofer}`, v.transporte.brevete && `brevete ${v.transporte.brevete}`].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
                   {(v.equipos_recoge?.length ?? 0) > 0 && (
                     <div className="mt-0.5 text-xs">
                       <p className="font-medium text-foreground">Recoge:</p>
@@ -324,6 +332,17 @@ export function ListaVisitasPlanta({
               {(imprimiendo.equipos_recoge ?? []).map((e) => (
                 <tr key={e.equipo_id}><th>Recoge</th><td>{e.modelo}{e.serie ? ` · Serie ${e.serie}` : ""}</td></tr>
               ))}
+              {imprimiendo.transporte && (
+                <tr>
+                  <th>Vehículo</th>
+                  <td>
+                    {[imprimiendo.transporte.placa && `Placa ${imprimiendo.transporte.placa}`, imprimiendo.transporte.marca && `Marca ${imprimiendo.transporte.marca}`, imprimiendo.transporte.ruc && `RUC ${imprimiendo.transporte.ruc}`, imprimiendo.transporte.mtc && `MTC ${imprimiendo.transporte.mtc}`].filter(Boolean).join(" · ")}
+                  </td>
+                </tr>
+              )}
+              {(imprimiendo.transporte?.chofer || imprimiendo.transporte?.brevete) && (
+                <tr><th>Chofer</th><td>{[imprimiendo.transporte.chofer, imprimiendo.transporte.brevete && `Brevete ${imprimiendo.transporte.brevete}`].filter(Boolean).join(" · ")}</td></tr>
+              )}
               <tr><th>Registró</th><td>{imprimiendo.registradoPor}</td></tr>
             </tbody>
           </table>
