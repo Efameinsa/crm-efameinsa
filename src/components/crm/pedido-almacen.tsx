@@ -292,7 +292,7 @@ export function PedidoAlmacen({
             <div className="space-y-2 rounded-md border border-amber-500/50 bg-amber-50 p-3 dark:bg-amber-500/10">
               <p className="text-xs font-semibold text-amber-900 dark:text-amber-300">
                 {faltaVB
-                  ? "NO DESPACHAR: es una venta a crédito y Finanzas todavía no da el visto bueno (letras, adelanto y comisiones)."
+                  ? "NO DESPACHAR: Finanzas todavía no da el visto bueno (venta a crédito o pago sin confirmar: pago, letras y comisiones)."
                   : "Este pedido tiene saldo pendiente: la máquina no sale hasta que gerencia u operaciones lo autorice."}
               </p>
               {faltaVB && servicio.forma_pago && (

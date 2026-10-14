@@ -68,6 +68,18 @@ export interface ServicioPostventa {
   letras_cantidad?: number | null;
   letras_estado?: EstadoLetras | null;
   letras_firmadas_at?: string | null;
+  /** Quién hizo cada etapa (0473): las que solo guardaban la hora. */
+  prueba_solicitada_por?: string | null;
+  plano_enviado_por?: string | null;
+  direccion_verificada_por?: string | null;
+  preinstalacion_ok_por?: string | null;
+  apertura_enviada_almacen_por?: string | null;
+  apertura_enviada_cliente_por?: string | null;
+  despachado_por?: string | null;
+  cerrado_por?: string | null;
+  letras_recibidas_almacen_por?: string | null;
+  letras_entregadas_por?: string | null;
+  letras_firmadas_por?: string | null;
   /** Las letras que viajan con el equipo (0470): el almacén las tiene, y a quién se entregaron. */
   letras_recibidas_almacen_at?: string | null;
   letras_entregadas_at?: string | null;
@@ -233,6 +245,9 @@ export interface PasoPedido {
   /** Por qué no se puede avanzar todavía. */
   trabado?: string;
   detalle?: string;
+  /** Quién lo hizo o lo aprobó (0473): el id, y el nombre si quien llama pasó los nombres. */
+  por?: string | null;
+  quien?: string | null;
 }
 
 export interface BloquePedido {
@@ -301,15 +316,26 @@ type DatosCredito = {
   origen?: string | null;
   letras_cantidad?: number | null;
   tipo_pedido?: TipoPedido | null;
+  confirmacion_abono?: string | null;
+  informe_cierre_id?: string | null;
+  pago_confirmado_at?: string | null;
 };
 
+/**
+ * 0473 suma dos casos que la 0469 no veía: el crédito escrito como plazo
+ * («FACTURA A 30 DIAS») o anotado en el abono («credito»), y el pedido del
+ * Excel sin un «SI» limpio ni confirmación en el CRM («Pendiente», vacío,
+ * «SI PENDIENTE UNA COMISION»): ahí nadie sabe si se pagó.
+ */
 export function pideVistoBuenoFinanzas(s: DatosCredito): boolean {
   if (s.tipo_pedido === "revision" || s.tipo_pedido === "mantenimiento") return false;
   if (s.origen === "caso") return false;
   return (
     (s.pct_antes_despacho != null && Number(s.pct_antes_despacho) < 100) ||
-    /(letra|cr[eé]dito|financ)/i.test(s.forma_pago ?? "") ||
-    Number(s.letras_cantidad ?? 0) > 0
+    /(letra|cr[eé]dito|financ|a\s*\d+\s*d[ií]as)/i.test(s.forma_pago ?? "") ||
+    /cr[eé]dito/i.test(s.confirmacion_abono ?? "") ||
+    Number(s.letras_cantidad ?? 0) > 0 ||
+    (s.informe_cierre_id == null && s.pago_confirmado_at == null && !marcadoEnExcel(s.confirmacion_abono ?? null))
   );
 }
 
@@ -610,7 +636,63 @@ export function circuitoDe(s: ServicioPostventa): {
   };
 }
 
-export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
+/**
+ * QUIÉN HIZO CADA ETAPA (0473; Santos 14-10: «en cada etapa tiene que verse a
+ * qué hora se hace, quién lo aprueba… para que visualmente podamos hacer
+ * seguimiento»). El id sale del pedido; el nombre, del mapa que pasa la
+ * pantalla (`nombresDelPedido`). Lo anterior a la 0473 en las etapas que solo
+ * guardaban la hora queda sin nombre: no había dónde anotarlo.
+ */
+function porDelPaso(s: ServicioPostventa, clave: string): string | null {
+  const x = s as unknown as Record<string, string | null | undefined>;
+  const de: Record<string, (string | null | undefined)[]> = {
+    pago: [x.pago_confirmado_por],
+    vb_finanzas: [x.finanzas_vb_por, x.salida_autorizada_por],
+    aprobado: [x.aprobado_por],
+    prueba: [x.prueba_lista_por],
+    plano: [x.plano_enviado_por],
+    direccion: [x.direccion_verificada_por],
+    apertura: [x.apertura_despacho_por],
+    preinstalacion: [x.preinstalacion_ok_por],
+    despacho: [x.despachado_por, x.agencia_por, x.despacho_autorizado_por],
+    letras: [x.letras_entregadas_por],
+    verificado: [x.despacho_verificado_por],
+    facturar: [x.orden_facturar_por],
+    cerrado: [x.cerrado_por],
+  };
+  return (de[clave] ?? []).find((v) => typeof v === "string" && v.length > 0) ?? null;
+}
+
+/** Todos los ids de personas que aparecen en el pedido, para pedir sus nombres de una vez. */
+export function idsDePersonasDelPedido(s: Partial<ServicioPostventa>): string[] {
+  const x = s as unknown as Record<string, unknown>;
+  return [...new Set(Object.entries(x).filter(([k, v]) => k.endsWith("_por") && typeof v === "string" && v.length > 0).map(([, v]) => v as string))];
+}
+
+export function bloquesPedido(s: ServicioPostventa, nombres?: Record<string, string>): BloquePedido[] {
+  const bloques = bloquesPedidoSinNombres(s);
+  const x = s as unknown as Record<string, string | null | undefined>;
+  const nombre = (id: string | null | undefined) => (id && nombres?.[id]) || null;
+  for (const b of bloques) {
+    for (const p of b.pasos) {
+      p.por = p.hecho ? porDelPaso(s, p.clave) : null;
+      p.quien = nombre(p.por);
+      // Dos aprobaciones que viven dentro de otro paso: la guía (Contabilidad) y la salida con código.
+      if (p.clave === "apertura" && x.guia_confirmada_at && nombre(x.guia_confirmada_por)) {
+        p.detalle = `${p.detalle ?? ""} · guía autorizada por ${nombre(x.guia_confirmada_por)}`.replace(/^ · /, "");
+      }
+      if (p.clave === "despacho" && x.salida_autorizada_at && nombre(x.salida_autorizada_por)) {
+        p.detalle = `${p.detalle ?? ""} · salida con saldo autorizada por ${nombre(x.salida_autorizada_por)}`.replace(/^ · /, "");
+      }
+      if (p.clave === "letras" && x.letras_recibidas_almacen_por && nombre(x.letras_recibidas_almacen_por)) {
+        p.detalle = `${p.detalle ?? ""} · las recogió del almacén ${nombre(x.letras_recibidas_almacen_por)}`.replace(/^ · /, "");
+      }
+    }
+  }
+  return bloques;
+}
+
+function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
   const saldo = saldoPendiente(s);
   const provincia = esProvincia(s);
   const circuito = circuitoDe(s);
@@ -682,7 +764,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
               ? "Finanzas dio el visto bueno para la salida"
               : s.salida_autorizada_at
                 ? "Salida autorizada con código, sin visto bueno de Finanzas"
-                : "Visto bueno de Finanzas para la salida (venta a crédito)",
+                : "Visto bueno de Finanzas para la salida (crédito o pago sin confirmar)",
             responsable: "finanzas" as ResponsablePaso,
             hecho: Boolean(s.finanzas_vb_at || s.salida_autorizada_at || s.despachado_at),
             cuando: s.finanzas_vb_at ?? s.salida_autorizada_at ?? null,
@@ -699,7 +781,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
                 .join(" · ") || undefined,
             trabado:
               faltaVistoBuenoFinanzas(s) && pruebaListaAntes
-                ? "El equipo está listo pero no sale: Finanzas revisa adelanto, letras y comisiones y da el visto bueno"
+                ? "El equipo está listo pero no sale: Finanzas revisa el pago, las letras y las comisiones y da el visto bueno"
                 : undefined,
           },
         ]
@@ -779,7 +861,7 @@ export function bloquesPedido(s: ServicioPostventa): BloquePedido[] {
   const planoEnviado = s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion);
   const faltaParaApertura = [
     !(pagoConfirmado || pagoDesconocido || despachoAutorizadoConSaldo) ? "la confirmación de Finanzas" : null,
-    faltaVistoBuenoFinanzas(s) ? "el visto bueno de Finanzas (venta a crédito: letras, adelanto y comisiones)" : null,
+    faltaVistoBuenoFinanzas(s) ? "el visto bueno de Finanzas (crédito o pago sin confirmar: pago, letras y comisiones)" : null,
     s.direccion_verificada_at == null ? (circuito.esServicio ? "dónde se hace el servicio, verificado" : "la dirección verificada") : null,
     !circuito.esServicio && !pruebaLista
       ? circuito.esEmbalaje

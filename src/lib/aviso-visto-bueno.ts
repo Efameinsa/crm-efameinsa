@@ -15,7 +15,7 @@ export async function avisarFinanzasSiFaltaVistoBueno(servicioId: string, motivo
   const admin = createAdminClient();
   const { data } = await admin
     .from("servicios_postventa")
-    .select("cliente_texto, forma_pago, pct_antes_despacho, origen, letras_cantidad, tipo_pedido, finanzas_vb_at, salida_autorizada_at, despachado_at, es_prueba")
+    .select("cliente_texto, forma_pago, pct_antes_despacho, origen, letras_cantidad, tipo_pedido, confirmacion_abono, informe_cierre_id, pago_confirmado_at, finanzas_vb_at, salida_autorizada_at, despachado_at, es_prueba")
     .eq("id", servicioId)
     .maybeSingle();
   if (!data) return;
@@ -23,7 +23,7 @@ export async function avisarFinanzasSiFaltaVistoBueno(servicioId: string, motivo
   if (!faltaVistoBuenoFinanzas(s)) return;
   const cliente = (s.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   const titulo = `Falta su visto bueno para la salida · ${cliente}`;
-  const cuerpo = `${motivo === "listo" ? "El equipo ya está probado y embalado" : "Postventa quiere emitir la apertura de despacho"}, pero es una venta a crédito${
+  const cuerpo = `${motivo === "listo" ? "El equipo ya está probado y embalado" : "Postventa quiere emitir la apertura de despacho"}, pero es una venta a crédito o con el pago sin confirmar${
     s.forma_pago ? ` (${s.forma_pago})` : ""
   }. Revise adelanto, letras y comisiones y dé el visto bueno: sin él no sale.`;
   await Promise.all([
