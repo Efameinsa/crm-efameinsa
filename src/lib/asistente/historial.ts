@@ -52,6 +52,43 @@ export async function cargarHilo(conversacionId: string, usuarioId: string): Pro
   };
 }
 
+export interface PreguntaGuardada {
+  pregunta: string;
+  adjuntos: string[];
+  respuesta: string | null;
+  estado: string;
+  error: string | null;
+  consultas: { herramienta: string; argumentos: Record<string, unknown>; resumen: string }[];
+}
+
+/**
+ * Lo que la ventana necesita para volver a mostrar una conversación después
+ * de recargar la página (Santos, 14-10: «cada vez que se actualiza se pierde el
+ * historial»). Solo si es de quien la pide; si no, null.
+ */
+export async function preguntasDe(conversacionId: string, usuarioId: string): Promise<PreguntaGuardada[] | null> {
+  const db = createAdminClient();
+  const { data: conv } = await db
+    .from("asistente_conversaciones")
+    .select("id, usuario_id")
+    .eq("id", conversacionId)
+    .maybeSingle();
+  if (!conv || conv.usuario_id !== usuarioId) return null;
+  const { data: filas } = await db
+    .from("asistente_mensajes")
+    .select("pregunta, adjuntos, respuesta, estado, error, consultas")
+    .eq("conversacion_id", conversacionId)
+    .order("id", { ascending: true });
+  return (filas ?? []).map((f) => ({
+    pregunta: f.pregunta as string,
+    adjuntos: ((f.adjuntos as AdjuntoGuardado[] | null) ?? []).map((a) => a.nombre),
+    respuesta: f.respuesta as string | null,
+    estado: f.estado as string,
+    error: f.error as string | null,
+    consultas: (f.consultas as PreguntaGuardada["consultas"] | null) ?? [],
+  }));
+}
+
 export async function crearConversacion(usuarioId: string, titulo: string): Promise<string> {
   const db = createAdminClient();
   const { data, error } = await db

@@ -109,6 +109,9 @@ type Evento =
   | { t: "fin"; evidencias: Evidencia[]; ms: number }
   | { t: "error"; mensaje: string };
 
+/** Dónde recuerda el navegador la conversación abierta. */
+const CLAVE_HILO = "crm:asistente-conversacion";
+
 const SUGERENCIAS_GENERALES = [
   "¿Cómo funciona la aprobación de una cotización?",
   "¿Qué pasa con un pedido después del cierre?",
@@ -164,6 +167,45 @@ export function AsistenteChat({
   // veníamos hablando. El servidor comprueba que la conversación sea de quien
   // pregunta y rearma el historial desde la base.
   const hilo = useRef<string | null>(null);
+
+  // LA CONVERSACIÓN SOBREVIVE A LA RECARGA (Santos, 14-10: «cada vez que se
+  // actualiza se pierde el historial»). El id se recuerda en el navegador y,
+  // al abrir, se vuelve a traer del servidor lo ya conversado. Si no es de
+  // quien entró (otra persona en la misma PC), el servidor dice 404 y se
+  // empieza de cero. Solo «Nueva conversación» la olvida.
+  const recordarHilo = (id: string | null) => {
+    hilo.current = id;
+    try {
+      if (id) localStorage.setItem(CLAVE_HILO, id);
+      else localStorage.removeItem(CLAVE_HILO);
+    } catch {}
+  };
+  useEffect(() => {
+    let id: string | null = null;
+    try {
+      id = localStorage.getItem(CLAVE_HILO);
+    } catch {}
+    if (!id) return;
+    let vigente = true;
+    fetch(`/api/asistente?conversacion=${encodeURIComponent(id)}`)
+      .then(async (r) => {
+        if (!vigente) return;
+        if (r.status === 404 || r.status === 400) {
+          recordarHilo(null);
+          return;
+        }
+        if (!r.ok) return;
+        const d = (await r.json()) as { mensajes?: Mensaje[] };
+        if (!vigente || !d.mensajes?.length) return;
+        hilo.current = id;
+        // Si ya preguntó algo mientras cargaba, no se le pisa.
+        setMensajes((prev) => (prev.length ? prev : d.mensajes!));
+      })
+      .catch(() => {});
+    return () => {
+      vigente = false;
+    };
+  }, []);
 
   // La burbuja necesita saber si hay conversación y si está pensando, para
   // mostrarlo en la bolita mientras la ventana está minimizada.
@@ -261,7 +303,7 @@ export function AsistenteChat({
         for (const linea of lineas) {
           if (!linea.trim()) continue;
           const e = JSON.parse(linea) as Evento;
-          if (e.t === "conversacion") hilo.current = e.id;
+          if (e.t === "conversacion") recordarHilo(e.id);
           else if (e.t === "consulta") actualizar((m) => ({ ...m, consultando: e.texto }));
           else if (e.t === "texto") actualizar((m) => ({ ...m, texto: m.texto + e.d, consultando: null }));
           else if (e.t === "fin") {
@@ -337,7 +379,7 @@ export function AsistenteChat({
               titulo="Nueva conversación"
               onClick={() => {
                 setMensajes([]);
-                hilo.current = null;
+                recordarHilo(null);
               }}
             >
               <SquarePen className="size-4" />

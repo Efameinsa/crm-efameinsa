@@ -6,7 +6,7 @@ import { avisoDe, ejecutarHerramienta, herramientasPara, type Evidencia } from "
 import { bitacorasDe, instruccionesDe, instruccionesFijas } from "@/lib/asistente/instrucciones";
 import { alcanceDe, type Quien } from "@/lib/asistente/permisos";
 import { AdjuntoInvalido, prepararAdjuntos, revisarAdjuntos } from "@/lib/asistente/adjuntos";
-import { cargarHilo, crearConversacion, MAX_PREGUNTAS, registrar, type Registro, type Turno } from "@/lib/asistente/historial";
+import { cargarHilo, crearConversacion, MAX_PREGUNTAS, preguntasDe, registrar, type Registro, type Turno } from "@/lib/asistente/historial";
 
 /**
  * EL ASISTENTE DEL CRM — para todo el personal, con Claude (14-10-2026).
@@ -43,6 +43,37 @@ type Evento =
   | { t: "texto"; d: string }
   | { t: "fin"; evidencias: { texto: string; resumen: string }[]; ms: number }
   | { t: "error"; mensaje: string };
+
+/**
+ * GET ?conversacion=<id>: devuelve la conversación ya hecha, para que la
+ * ventana la vuelva a mostrar al recargar la página o tras un despliegue
+ * (Santos, 14-10). Solo la de quien la pide; si no es suya, 404.
+ */
+export async function GET(request: Request) {
+  const id = new URL(request.url).searchParams.get("conversacion") ?? "";
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: "Conversación inválida" }, { status: 400 });
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  const preguntas = await preguntasDe(id, user.id);
+  if (!preguntas) return NextResponse.json({ error: "No existe" }, { status: 404 });
+  return NextResponse.json({
+    mensajes: preguntas.flatMap((p) => [
+      { texto: p.pregunta, mio: true, adjuntos: p.adjuntos },
+      p.estado === "ok" || p.estado === "corte"
+        ? {
+            texto: p.respuesta ?? "",
+            mio: false,
+            evidencias: p.consultas
+              .filter((c) => !c.resumen.startsWith("falló"))
+              .map((c) => ({ texto: avisoDe(c.herramienta, c.argumentos), resumen: c.resumen })),
+          }
+        : { texto: p.respuesta || p.error || "Esta pregunta no tuvo respuesta.", mio: false, error: true },
+    ]),
+  });
+}
 
 export async function POST(request: Request) {
   const inicio = Date.now();
