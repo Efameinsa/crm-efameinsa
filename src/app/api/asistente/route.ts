@@ -3,8 +3,9 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { asistenteEncendido, clienteClaude, costoUsd, errorEnCastellano, ESFUERZO, MODELO } from "@/lib/asistente/claude";
 import { avisoDe, ejecutarHerramienta, herramientasPara, type Evidencia } from "@/lib/asistente/herramientas";
-import { INSTRUCCIONES_FIJAS, instruccionesDe } from "@/lib/asistente/instrucciones";
+import { instruccionesDe, instruccionesFijas } from "@/lib/asistente/instrucciones";
 import { alcanceDe, type Quien } from "@/lib/asistente/permisos";
+import { AdjuntoInvalido, prepararAdjuntos, revisarAdjuntos } from "@/lib/asistente/adjuntos";
 import { cargarHilo, crearConversacion, MAX_PREGUNTAS, registrar, type Registro, type Turno } from "@/lib/asistente/historial";
 
 /**
@@ -69,9 +70,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "El asistente está apagado en este momento." }, { status: 503 });
   }
 
-  const cuerpo = (await request.json().catch(() => null)) as { pregunta?: string; conversacion?: string | null } | null;
-  const pregunta = (cuerpo?.pregunta ?? "").trim().slice(0, 2000);
-  if (!pregunta) return NextResponse.json({ error: "Escriba una pregunta" }, { status: 400 });
+  // La pregunta llega como formulario cuando trae archivos, y como JSON si no.
+  let cuerpo: { pregunta?: string; conversacion?: string | null } | null = null;
+  let archivos: File[] = [];
+  if ((request.headers.get("content-type") ?? "").includes("multipart/form-data")) {
+    const form = await request.formData().catch(() => null);
+    if (!form) return NextResponse.json({ error: "No se pudo leer lo que envió. Vuelva a intentar." }, { status: 400 });
+    cuerpo = { pregunta: String(form.get("pregunta") ?? ""), conversacion: (form.get("conversacion") as string | null) || null };
+    archivos = form.getAll("archivos").filter((a): a is File => typeof a !== "string" && a.size > 0);
+  } else {
+    cuerpo = (await request.json().catch(() => null)) as typeof cuerpo;
+  }
+  let pregunta = (cuerpo?.pregunta ?? "").trim().slice(0, 2000);
+  if (!pregunta && archivos.length === 0) return NextResponse.json({ error: "Escriba una pregunta" }, { status: 400 });
+  if (!pregunta) pregunta = archivos.length === 1 ? "¿Qué me puede decir de este archivo?" : "¿Qué me puede decir de estos archivos?";
+  try {
+    revisarAdjuntos(archivos);
+  } catch (e) {
+    if (e instanceof AdjuntoInvalido) return NextResponse.json({ error: e.message }, { status: 400 });
+    throw e;
+  }
 
   // 2. El hilo: solo si es de esta persona. Si no, se empieza uno nuevo.
   let hilo = cuerpo?.conversacion ? await cargarHilo(cuerpo.conversacion, quien.id) : null;
@@ -84,9 +102,22 @@ export async function POST(request: Request) {
   const conversacionId = hilo?.id ?? (await crearConversacion(quien.id, pregunta));
   hilo ??= { id: conversacionId, turnos: [], preguntas: 0 };
 
+  // Los archivos, antes de abrir el flujo: si uno no se puede leer, se avisa
+  // con un mensaje claro y no se gasta una pregunta.
+  let adjuntos: Awaited<ReturnType<typeof prepararAdjuntos>> = { bloques: [], guardados: [] };
+  if (archivos.length) {
+    try {
+      adjuntos = await prepararAdjuntos(archivos, quien.id, conversacionId);
+    } catch (e) {
+      if (e instanceof AdjuntoInvalido) return NextResponse.json({ error: e.message }, { status: 400 });
+      console.error("asistente: adjuntos:", e instanceof Error ? e.message : e);
+      return NextResponse.json({ error: "No se pudieron subir los archivos. Vuelva a intentar." }, { status: 502 });
+    }
+  }
+
   const herramientas = herramientasPara(quien);
   const sistema: Anthropic.Beta.BetaTextBlockParam[] = [
-    { type: "text", text: INSTRUCCIONES_FIJAS, cache_control: { type: "ephemeral" } },
+    { type: "text", text: instruccionesFijas(), cache_control: { type: "ephemeral" } },
     { type: "text", text: instruccionesDe(quien) },
   ];
 
@@ -102,7 +133,13 @@ export async function POST(request: Request) {
       };
       enviar({ t: "conversacion", id: conversacionId });
 
-      const turno: Turno = [{ role: "user", content: pregunta }];
+      // Los archivos van antes del texto: así se lee «mire esto» con el archivo delante.
+      const turno: Turno = [
+        {
+          role: "user",
+          content: adjuntos.bloques.length ? [...adjuntos.bloques, { type: "text", text: pregunta }] : pregunta,
+        },
+      ];
       const mensajes: Anthropic.Beta.BetaMessageParam[] = [...hilo.turnos, ...turno];
       const evidencias: Evidencia[] = [];
       const consultas: Registro["consultas"] = [];
@@ -259,6 +296,7 @@ export async function POST(request: Request) {
           rol: String(quien.rol),
           alcance: alcanceDe(quien),
           pregunta,
+          adjuntos: adjuntos.guardados,
           respuesta: respuesta || null,
           estado,
           error,

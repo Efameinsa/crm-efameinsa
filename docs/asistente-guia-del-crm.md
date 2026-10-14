@@ -1,6 +1,6 @@
 # Base de conocimiento del CRM Efameinsa
 
-Vigente al 14-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
+Vigente al 14-10-2026 (tarde). Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
 
 ## 0. Cómo usar este documento
 
@@ -640,16 +640,18 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 - **Un protocolo por máquina**, no uno por pedido.
 - **«Probada y embalada» exige, por cada máquina de la unidad** (incluida la secadora de una torre):
-  - número de protocolo;
   - al menos una foto;
   - el protocolo o informe en PDF o Word;
   - la ficha (modelo de la placa, serie, técnico);
-  - todas las casillas de la hoja de chequeo, si hay plantilla.
+  - en la hoja de chequeo, si hay plantilla, al menos una casilla marcada (desde el 14-10 no se exigen todas: se marca solo lo que corresponde).
+- **El N.º de protocolo ya no se exige** (Santos, 14-10: «en ese documento no va el número de protocolo»). Es opcional.
 - **Excepciones:**
   - Las máquinas con hoja de chequeo en el sistema (hoy, la lavadora) no exigen PDF ni Word, porque el sistema ya lo genera.
   - Calandria, secadora y prensa sí lo exigen hasta que tengan su plantilla (pendiente).
   - El repuesto solo pide protocolo, foto y técnico.
-- **Hoja «PROTOCOLO DE LAVADORA»:** replica el papel, casilla por casilla. Cada renglón se marca ✓, ✗ o **«N/A»**, que cuenta como respondido. Los vacíos frenan.
+- **Hoja «PROTOCOLO DE LAVADORA»:** replica el papel, casilla por casilla. Cada renglón se marca ✓, ✗ o **«N/A»**. Desde el 14-10 basta con marcar lo que corresponde (al menos una casilla); los vacíos ya no frenan.
+- **Protocolo de equipo en stock** (desde el 14-10, pedido de Lesly): en Almacén → pestaña **«Protocolos»** se puede hacer el protocolo de una máquina que todavía no tiene pedido, por su serie, con la misma hoja (ficha, fotos, video, PDF y hoja de chequeo). Al darlo por terminado pasa solo a la máquina del pedido que tenga esa serie, y en el pedido solo falta marcar «Probada y embalada». Desde que pasó al pedido, se corrige en el pedido.
+- **Pestaña «Protocolos»** (Almacén): lista todos los protocolos, de pedidos y de stock, con N.º, serie, técnico, fecha y estado; tiene buscador y filtros.
 - **El video de la prueba es opcional** y no reemplaza al protocolo.
 - **Por qué existe esta regla** (13-10): se marcó una máquina como probada sin una sola foto ni documento. «Tiene que estar todo… y si hay que modificar, que pida el código».
 - **Modificar una máquina ya «probada y embalada»** (protocolo, hoja, fotos) pide el código de operaciones, con motivo.
@@ -955,7 +957,7 @@ Por orden de gerencia del 09-10: Central no deriva a postventa sin autorización
 «Corregir la derivación» pide el código del supervisor. Si fue un aviso a otras áreas, use «Revertir» en «Lo que derivé», también con código. Si lo que está mal es el texto o el cliente de la solicitud, use el lápiz de «Inicio · lo que solicitó el cliente». (3.10)
 
 **25. ¿Por qué el almacén no puede marcar «Probada y embalada»?**
-Porque falta algo del protocolo de alguna máquina: el número, una foto, el PDF o Word (salvo la lavadora con hoja en el sistema), la ficha con modelo, serie y técnico, o casillas de la hoja de chequeo sin marcar. Use «N/A» en lo que no aplica. El botón lista lo que falta. (3.7)
+Porque falta algo del protocolo de alguna máquina: una foto, el PDF o Word (salvo la lavadora con hoja en el sistema), la ficha con modelo, serie y técnico, o la hoja de chequeo sin ninguna casilla marcada. El N.º de protocolo ya no se pide (desde el 14-10). El botón lista lo que falta; para un pedido concreto, consulte qué le falta a cada máquina. (3.7)
 
 **26. Ya marcamos «probada y embalada» pero hay que cambiar algo.**
 Hace falta el código de operaciones (Lesly) y un motivo. Lo marcado como probado queda bloqueado a propósito. (3.7)

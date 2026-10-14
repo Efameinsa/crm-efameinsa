@@ -1,8 +1,34 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Trash2, Loader2, ChevronDown, Database, X } from "lucide-react";
+import { Send, Sparkles, Trash2, Loader2, ChevronDown, Database, X, Paperclip, FileText, Image as IconoImagen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TextoAsistente } from "@/components/crm/texto-asistente";
+
+/** Lo mismo que acepta el servidor (lib/asistente/adjuntos.ts). */
+const ACEPTA = "image/jpeg,image/png,image/webp,image/gif,application/pdf,.docx,.xlsx,.xls,.csv,.txt";
+const MAX_ARCHIVOS = 5;
+
+/**
+ * Una foto de celular pesa 4-6 MB y el internet de la oficina es lento: se
+ * achica en el navegador antes de subirla (el servidor igual la deja en 2000
+ * px). Si el navegador no la puede abrir (HEIC en Windows), va como está.
+ */
+async function achicarFoto(a: File): Promise<File> {
+  if (!a.type.startsWith("image/") || a.type === "image/gif" || a.size < 1_500_000) return a;
+  try {
+    const bmp = await createImageBitmap(a);
+    const escala = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round(bmp.width * escala);
+    lienzo.height = Math.round(bmp.height * escala);
+    lienzo.getContext("2d")!.drawImage(bmp, 0, 0, lienzo.width, lienzo.height);
+    const blob = await new Promise<Blob | null>((r) => lienzo.toBlob(r, "image/jpeg", 0.85));
+    return blob ? new File([blob], a.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : a;
+  } catch {
+    return a;
+  }
+}
 
 /**
  * El asistente de gerencia, en pantalla.
@@ -49,6 +75,8 @@ interface Evidencia {
 interface Mensaje {
   texto: string;
   mio: boolean;
+  /** Los nombres de lo que adjuntó, en la burbuja de la pregunta. */
+  adjuntos?: string[];
   evidencias?: Evidencia[];
   error?: boolean;
   /** Mientras se escribe: qué está consultando ahora («Revisando el pedido…»). */
@@ -85,6 +113,19 @@ export function AsistenteChat({
   sugerencias?: string[];
 }) {
   const [entrada, setEntrada] = useState("");
+  const [archivos, setArchivos] = useState<File[]>([]);
+  const [avisoArchivos, setAvisoArchivos] = useState<string | null>(null);
+  const elegirRef = useRef<HTMLInputElement>(null);
+
+  function sumarArchivos(nuevos: File[]) {
+    if (!nuevos.length) return;
+    setAvisoArchivos(null);
+    setArchivos((prev) => {
+      const todos = [...prev, ...nuevos];
+      if (todos.length > MAX_ARCHIVOS) setAvisoArchivos(`Puede adjuntar hasta ${MAX_ARCHIVOS} archivos por pregunta.`);
+      return todos.slice(0, MAX_ARCHIVOS);
+    });
+  }
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [pensando, setPensando] = useState(false);
   const [enfocado, setEnfocado] = useState(false);
@@ -103,15 +144,18 @@ export function AsistenteChat({
 
   async function preguntar(texto: string) {
     const pregunta = texto.trim();
-    if (!pregunta || pensando) return;
+    const enviados = archivos;
+    if ((!pregunta && enviados.length === 0) || pensando) return;
 
     // La respuesta es la última burbuja y se va llenando mientras llega.
     setMensajes((prev) => [
       ...prev,
-      { texto: pregunta, mio: true },
+      { texto: pregunta, mio: true, adjuntos: enviados.map((a) => a.name) },
       { texto: "", mio: false, escribiendo: true, consultando: null },
     ]);
     setEntrada("");
+    setArchivos([]);
+    setAvisoArchivos(null);
     setPensando(true);
 
     const actualizar = (cambio: (m: Mensaje) => Mensaje) =>
@@ -127,12 +171,22 @@ export function AsistenteChat({
     const alarma = setTimeout(() => corte.abort(), 150_000);
 
     try {
-      const r = await fetch("/api/asistente", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pregunta, conversacion: hilo.current }),
-        signal: corte.signal,
-      });
+      // Con archivos va como formulario; sin archivos, como siempre.
+      let r: Response;
+      if (enviados.length) {
+        const form = new FormData();
+        form.set("pregunta", pregunta);
+        if (hilo.current) form.set("conversacion", hilo.current);
+        for (const a of await Promise.all(enviados.map(achicarFoto))) form.append("archivos", a);
+        r = await fetch("/api/asistente", { method: "POST", body: form, signal: corte.signal });
+      } else {
+        r = await fetch("/api/asistente", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pregunta, conversacion: hilo.current }),
+          signal: corte.signal,
+        });
+      }
 
       if (!r.ok || !r.body) {
         // Los rechazos de entrada (sin sesión, apagado, conversación larga)
@@ -275,7 +329,18 @@ export function AsistenteChat({
                         : "rounded-bl-sm border border-border/70 bg-secondary/40 text-foreground",
                   )}
                 >
-                  {m.texto && <p className="whitespace-pre-line">{m.texto}</p>}
+                  {m.adjuntos && m.adjuntos.length > 0 && (
+                    <div className="mb-1 flex flex-wrap gap-1">
+                      {m.adjuntos.map((n, k) => (
+                        <span key={k} className="inline-flex items-center gap-1 rounded-md bg-primary-foreground/15 px-1.5 py-0.5 text-[11px]">
+                          <Paperclip className="size-3" />
+                          {n}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {m.texto &&
+                    (m.mio || m.error ? <p className="whitespace-pre-line">{m.texto}</p> : <TextoAsistente texto={m.texto} />)}
 
                   {/* Mientras trabaja: qué está mirando, o los puntitos. */}
                   {m.escribiendo && (m.consultando || !m.texto) && (
@@ -324,13 +389,65 @@ export function AsistenteChat({
           e.preventDefault();
           preguntar(entrada);
         }}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          sumarArchivos([...e.dataTransfer.files]);
+        }}
         className={cn(
           "shrink-0 border-t px-3 py-2.5 transition-colors",
           enfocado ? "border-primary/40 bg-secondary/25" : "border-border bg-background",
         )}
       >
-        <div className="relative flex items-center">
+        {(archivos.length > 0 || avisoArchivos) && (
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            {archivos.map((a, i) => (
+              <span key={i} className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-secondary/40 px-1.5 py-0.5 text-[11px] text-foreground">
+                {a.type.startsWith("image/") ? <IconoImagen className="size-3 shrink-0" /> : <FileText className="size-3 shrink-0" />}
+                <span className="truncate">{a.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setArchivos((prev) => prev.filter((_, k) => k !== i))}
+                  aria-label={`Quitar ${a.name}`}
+                  className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+            {avisoArchivos && <span className="text-[11px] text-destructive">{avisoArchivos}</span>}
+          </div>
+        )}
+        <div className="relative flex items-center gap-1.5">
           <input
+            ref={elegirRef}
+            type="file"
+            multiple
+            accept={ACEPTA}
+            className="hidden"
+            onChange={(e) => {
+              sumarArchivos([...(e.target.files ?? [])]);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => elegirRef.current?.click()}
+            disabled={pensando}
+            aria-label="Adjuntar fotos, PDF, Word o Excel"
+            title="Adjuntar fotos, PDF, Word o Excel"
+            className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+          >
+            <Paperclip className="size-4" />
+          </button>
+          <input
+            onPaste={(e) => {
+              const pegados = [...e.clipboardData.files];
+              if (pegados.length) {
+                e.preventDefault();
+                sumarArchivos(pegados);
+              }
+            }}
             value={entrada}
             onChange={(e) => setEntrada(e.target.value)}
             onFocus={() => setEnfocado(true)}
@@ -340,11 +457,11 @@ export function AsistenteChat({
           />
           <button
             type="submit"
-            disabled={entrada.trim() === "" || pensando}
+            disabled={(entrada.trim() === "" && archivos.length === 0) || pensando}
             aria-label="Preguntar"
             className={cn(
               "absolute right-1 rounded-full p-1.5 transition-all",
-              entrada.trim() === "" || pensando
+              (entrada.trim() === "" && archivos.length === 0) || pensando
                 ? "scale-95 cursor-not-allowed bg-muted text-muted-foreground"
                 : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95",
             )}

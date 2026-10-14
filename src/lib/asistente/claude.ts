@@ -27,11 +27,15 @@ export const MODELO = process.env.ASISTENTE_MODELO || "claude-opus-5-5";
 export const ESFUERZO = (process.env.ASISTENTE_ESFUERZO || "medium") as "low" | "medium" | "high";
 
 /**
- * Precios de Opus 5.5 en US$ por millón de tokens (lista de Anthropic,
- * 10-2026). Solo sirven para la columna «costo» de la auditoría: la factura
- * real es la de Claude Console.
+ * Precios en US$ por millón de tokens (lista de Anthropic, 10-2026). Solo
+ * sirven para la columna «costo» de la auditoría: la factura real es la de
+ * Claude Console.
  */
-const PRECIO = { entrada: 4, salida: 20, cacheLectura: 0.2, cacheEscritura: 5 };
+const PRECIOS: Record<string, { entrada: number; salida: number; cacheLectura: number; cacheEscritura: number }> = {
+  "claude-opus-5-5": { entrada: 4, salida: 20, cacheLectura: 0.2, cacheEscritura: 5 },
+  "claude-sonnet-5-5": { entrada: 2, salida: 10, cacheLectura: 0.2, cacheEscritura: 2.5 },
+};
+const PRECIO = PRECIOS[MODELO] ?? PRECIOS["claude-opus-5-5"];
 
 export function costoUsd(u: {
   input_tokens: number;

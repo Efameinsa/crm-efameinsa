@@ -1,5 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { AdjuntoGuardado } from "@/lib/asistente/adjuntos";
 
 /**
  * EL HISTORIAL DEL ASISTENTE (0479): lo que se guarda para auditar y lo que
@@ -68,6 +69,8 @@ export interface Registro {
   rol: string;
   alcance: string;
   pregunta: string;
+  /** Lo que adjuntó (0485): nombre, tipo y dónde quedó la copia. */
+  adjuntos: AdjuntoGuardado[];
   respuesta: string | null;
   estado: "ok" | "error" | "rechazo" | "corte";
   error?: string | null;
@@ -92,6 +95,7 @@ export async function registrar(r: Registro): Promise<void> {
       rol: r.rol,
       alcance: r.alcance,
       pregunta: r.pregunta,
+      adjuntos: r.adjuntos,
       respuesta: r.respuesta,
       estado: r.estado,
       error: r.error ?? null,

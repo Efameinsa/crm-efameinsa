@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { TextoAsistente } from "@/components/crm/texto-asistente";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,7 @@ interface Fila {
   estado: string;
   error: string | null;
   consultas: { herramienta: string; resumen: string; ms: number }[] | null;
+  adjuntos: { nombre: string; ruta: string | null; como: string }[] | null;
   tokens_entrada: number | null;
   tokens_salida: number | null;
   tokens_cache_lectura: number | null;
@@ -67,7 +70,7 @@ export default async function AuditoriaAsistentePage({
   let consulta = supabase
     .from("asistente_mensajes")
     .select(
-      "id, conversacion_id, usuario_id, rol, alcance, pregunta, respuesta, estado, error, consultas, tokens_entrada, tokens_salida, tokens_cache_lectura, costo_usd, ms_primer_texto, ms_total, created_at, perfiles(nombre, codigo_comercial)",
+      "id, conversacion_id, usuario_id, rol, alcance, pregunta, respuesta, estado, error, consultas, adjuntos, tokens_entrada, tokens_salida, tokens_cache_lectura, costo_usd, ms_primer_texto, ms_total, created_at, perfiles(nombre, codigo_comercial)",
     )
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
@@ -84,6 +87,17 @@ export default async function AuditoriaAsistentePage({
     supabase.from("perfiles").select("id, nombre, codigo_comercial").eq("activo", true).order("nombre"),
   ]);
   const filas = (data ?? []) as unknown as Fila[];
+
+  // Los adjuntos se abren con un enlace firmado de una hora. Se firman con la
+  // llave de servicio porque las copias del asistente (carpeta asistente/ del
+  // bucket «adjuntos») no tienen política para nadie: esta pantalla ya pasó
+  // requerirRol(["admin"]) y solo firma rutas de esa carpeta.
+  const rutas = filas.flatMap((f) => (f.adjuntos ?? []).map((a) => a.ruta)).filter((r): r is string => Boolean(r?.startsWith("asistente/")));
+  const firmadas = new Map<string, string>();
+  if (rutas.length) {
+    const { data: urls } = await createAdminClient().storage.from("adjuntos").createSignedUrls(rutas, 3600);
+    for (const u of urls ?? []) if (u.path && u.signedUrl) firmadas.set(u.path, u.signedUrl);
+  }
 
   const costo = filas.reduce((s, f) => s + Number(f.costo_usd ?? 0), 0);
   const conPrimerTexto = filas.filter((f) => f.ms_primer_texto != null);
@@ -191,14 +205,38 @@ export default async function AuditoriaAsistentePage({
                           {f.perfiles?.codigo_comercial ? `${f.perfiles.codigo_comercial} · ` : ""}
                           {f.perfiles?.nombre ?? "—"} · {f.alcance ?? f.rol} · {fechaHoraLima(f.created_at)} · {segundos(f.ms_total)}
                           {f.consultas?.length ? ` · ${f.consultas.length} consulta${f.consultas.length === 1 ? "" : "s"}` : ""}
+                          {f.adjuntos?.length ? ` · 📎 ${f.adjuntos.length}` : ""}
                         </p>
                       </div>
                       <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold", e.clase)}>{e.texto}</span>
                     </summary>
                     <div className="ml-6 mt-2 space-y-2 text-[13px]">
+                      <div className="rounded-lg border border-border/70 p-3">
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pregunta</p>
+                        <p className="whitespace-pre-line text-foreground">{f.pregunta}</p>
+                        {f.adjuntos && f.adjuntos.length > 0 && (
+                          <ul className="mt-2 flex flex-wrap gap-1.5 text-[12px]">
+                            {f.adjuntos.map((a, i) => {
+                              const url = a.ruta ? firmadas.get(a.ruta) : null;
+                              return (
+                                <li key={i} className="rounded-md border border-border bg-secondary/40 px-2 py-0.5">
+                                  📎{" "}
+                                  {url ? (
+                                    <a href={url} target="_blank" rel="noreferrer" className="underline hover:text-foreground">
+                                      {a.nombre}
+                                    </a>
+                                  ) : (
+                                    <span title="No quedó copia de este archivo">{a.nombre}</span>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
                       <div className="rounded-lg border border-border/70 bg-secondary/30 p-3">
                         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Respuesta</p>
-                        <p className="whitespace-pre-line text-foreground">{f.respuesta ?? "—"}</p>
+                        {f.respuesta ? <TextoAsistente texto={f.respuesta} /> : <p>—</p>}
                         {f.error && <p className="mt-2 font-mono text-[11px] text-destructive">{f.error}</p>}
                       </div>
                       {f.consultas && f.consultas.length > 0 && (

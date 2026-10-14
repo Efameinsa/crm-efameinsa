@@ -16,10 +16,14 @@ import {
   ETIQUETA_ESTADO_PAGO,
   etiquetaResponsable,
   queLoFrena,
-  sinPrecios,
+  evaluarPagoParaDespacho,
+  faltaVistoBuenoFinanzas,
+  faltanLetrasEnAlmacen,
+  pideVistoBuenoFinanzas,
   type ServicioPostventa,
 } from "@/lib/postventa";
 import { nombresDelPedido } from "@/lib/nombres-del-pedido";
+import { enlaceDelCliente, enlacesDeCotizacion, enlacesDelPedido } from "@/lib/asistente/enlaces";
 import { esComercialDeVenta, esGerencia, taparMontos, verMontos, verPreciosCatalogo, type Quien } from "@/lib/asistente/permisos";
 
 /**
@@ -201,6 +205,7 @@ export const HERRAMIENTAS: Herramienta[] = [
         documento: c.num_doc ? `${c.tipo_doc ?? "DOC"} ${c.num_doc}` : null,
         cartera_de: c.perfiles ? `${c.perfiles.codigo_comercial ?? ""} ${c.perfiles.nombre}`.trim() : "sin comercial asignado",
         ultima_venta: fechaLima(c.ultima_venta_at),
+        enlace: enlaceDelCliente(quien, c.id),
       });
       if (lista.length === 0) {
         return {
@@ -323,7 +328,7 @@ export const HERRAMIENTAS: Herramienta[] = [
       const { data } = await supabase
         .from("cotizaciones")
         .select(
-          "id, codigo, serie, estado, estado_aprobacion, total, moneda, created_at, enviada_at, aprobada_at, nota_gerencia, observacion_estado, revision_pedida_at, anulada_at, anulada_motivo, forma_pago, tiempo_entrega, version, creada:perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial), aprobo:perfiles!cotizaciones_aprobada_por_fkey(nombre), oportunidades!cotizaciones_oportunidad_id_fkey(etapa, tipo_postventa, cuentas(razon_social)), cotizacion_items(cantidad, descripcion, nombre_impreso, precio_unitario, precio_lista, bajo_lista, requiere_aprobacion, aprobado, productos(marca, modelo, nombre))",
+          "id, oportunidad_id, codigo, serie, estado, estado_aprobacion, total, moneda, created_at, enviada_at, aprobada_at, nota_gerencia, observacion_estado, revision_pedida_at, anulada_at, anulada_motivo, forma_pago, tiempo_entrega, version, creada:perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial), aprobo:perfiles!cotizaciones_aprobada_por_fkey(nombre), oportunidades!cotizaciones_oportunidad_id_fkey(etapa, tipo_postventa, cuentas(razon_social)), cotizacion_items(cantidad, descripcion, nombre_impreso, precio_unitario, precio_lista, bajo_lista, requiere_aprobacion, aprobado, productos(marca, modelo, nombre))",
         )
         .ilike("codigo", `%${n.replace(/[%,()]/g, "")}%`)
         .order("created_at", { ascending: false })
@@ -361,6 +366,7 @@ export const HERRAMIENTAS: Herramienta[] = [
           forma_pago: c.forma_pago,
           tiempo_entrega: c.tiempo_entrega,
           version: c.version,
+          enlaces: enlacesDeCotizacion(quien, String(c.id), (c.oportunidad_id as string | null) ?? null),
           total: c.total,
           moneda: c.moneda,
           renglones: items.map((i) => {
@@ -389,7 +395,7 @@ export const HERRAMIENTAS: Herramienta[] = [
     definicion: {
       name: "estado_de_pedido",
       description:
-        "El estado de un pedido (lo que pasa después del cierre de venta: aprobación de postventa, almacén, prueba, pago, despacho, instalación, puesta en marcha). Devuelve los pasos hechos y pendientes con quién los hizo, qué lo frena y a quién le toca. Busca por número de pedido del ERP, por cliente o por código de cierre. Úsala para «¿en qué va el pedido de X?», «¿por qué no se despacha?», «¿a quién le toca?».",
+        "El estado de un pedido (lo que pasa después del cierre de venta: aprobación de postventa, almacén, prueba, pago, despacho, instalación, puesta en marcha). Devuelve los pasos hechos y pendientes con quién los hizo, qué lo frena y a quién le toca, QUÉ LE FALTA EXACTAMENTE A CADA MÁQUINA para «Probada y embalada» (la misma verificación del botón), si la salida está trabada por pago, visto bueno de Finanzas o letras, y los enlaces a sus pantallas. Busca por número de pedido (PED-0024-2026 o ERP), por cliente o por código de cierre. Úsala para «¿en qué va el pedido de X?», «¿por qué no puedo marcar probada y embalada?», «¿por qué no se despacha?», «¿a quién le toca?».",
       input_schema: {
         type: "object",
         properties: {
@@ -435,16 +441,17 @@ export const HERRAMIENTAS: Herramienta[] = [
             equipo: s.equipo,
             terminado: Boolean(s.completado || s.cerrado_at),
             que_sigue: frena ? `${frena.texto} (le toca a ${etiquetaResponsable(frena.responsable)})` : null,
+            enlaces: enlacesDelPedido(quien, s.id, s.cuenta_id),
           };
         });
         return { resumen: `${filas.length} pedidos con «${q}»`, datos: { varios: conCifras ? lista : taparMontos(lista) } };
       }
-      const crudo = abiertos.length === 1 && filas.length > 1 ? abiertos[0] : filas[0];
-      // El estado del pago se calcula antes de tapar: postventa no ve el
-      // monto, pero sí si está pagado (Carlos, 27-08).
-      const pago = ETIQUETA_ESTADO_PAGO[estadoPago(crudo)];
-      const s = conCifras ? crudo : sinPrecios(crudo);
-      const nombres = await nombresDelPedido(crudo);
+      const s = abiertos.length === 1 && filas.length > 1 ? abiertos[0] : filas[0];
+      // Todo se calcula con el pedido COMPLETO, igual que los botones (el pago
+      // decide si la apertura está trabada); las cifras se tapan recién en lo
+      // que se le entrega al modelo.
+      const pago = ETIQUETA_ESTADO_PAGO[estadoPago(s)];
+      const nombres = await nombresDelPedido(s);
       const frena = queLoFrena(s);
       const circuito = circuitoDe(s);
       const bloques = bloquesPedido(s, nombres).map((b) => ({
@@ -460,6 +467,51 @@ export const HERRAMIENTAS: Herramienta[] = [
           detalle: p.detalle ?? null,
         })),
       }));
+
+      // QUÉ LE FALTA A CADA MÁQUINA PARA «PROBADA Y EMBALADA» (14-10). Se le
+      // pregunta a la base con la MISMA función que frena el botón
+      // (protocolo_falta_para_probar), así la respuesta es exacta para este
+      // pedido y no cambia cuando cambia la regla (0475, 0480 del mismo día).
+      const { data: equiposCrudos } = await supabase
+        .from("pedido_equipos")
+        .select("id, orden, descripcion, serie, en_este_despacho, prueba_lista_at, parte_de, parte_nombre")
+        .eq("servicio_id", s.id)
+        .order("orden", { ascending: true });
+      const equipos = (equiposCrudos ?? []) as {
+        id: string;
+        descripcion: string | null;
+        serie: string | null;
+        en_este_despacho: boolean | null;
+        prueba_lista_at: string | null;
+        parte_de: string | null;
+        parte_nombre: string | null;
+      }[];
+      const maquinas = await Promise.all(
+        equipos
+          .filter((e) => !e.parte_de)
+          .map(async (e) => {
+            const pendiente = e.en_este_despacho !== false && !e.prueba_lista_at;
+            let falta: string[] | null = null;
+            if (pendiente) {
+              const { data: f } = await supabase.rpc("protocolo_falta_para_probar", {
+                p_item: e.id,
+                p_protocolo_ref: null,
+                p_fotos: [],
+                p_partes: [],
+              });
+              falta = (f as string[] | null) ?? [];
+            }
+            return {
+              maquina: e.descripcion,
+              serie: e.serie,
+              va_en_este_despacho: e.en_este_despacho !== false,
+              probada_y_embalada: e.prueba_lista_at ? fechaLima(e.prueba_lista_at) : null,
+              le_falta_para_probada_y_embalada: falta,
+            };
+          }),
+      );
+
+      const pagoDespacho = evaluarPagoParaDespacho(s);
       const datos = {
         pedido_erp: s.numero_pedido_erp ?? null,
         tipo: circuito.esAccesorio
@@ -477,7 +529,18 @@ export const HERRAMIENTAS: Herramienta[] = [
         forma_de_pago: s.forma_pago,
         monto: s.monto,
         moneda: s.moneda,
+        // Lo que frena la salida por plata, sin cifras: postventa y almacén
+        // tienen que saber SI está trabado y por qué, no cuánto.
+        bloqueos_de_salida: {
+          pago_cubre_lo_pactado_antes_del_despacho: pagoDespacho.cubierto,
+          salida_autorizada_con_saldo: Boolean(s.salida_autorizada_at),
+          pide_visto_bueno_de_finanzas: pideVistoBuenoFinanzas(s),
+          falta_visto_bueno_de_finanzas: faltaVistoBuenoFinanzas(s),
+          letras_viajan_con_el_equipo_y_almacen_no_las_recibio: faltanLetrasEnAlmacen(s),
+        },
+        maquinas,
         etapas: bloques,
+        enlaces: enlacesDelPedido(quien, s.id, s.cuenta_id),
         otros_pedidos_con_ese_texto: filas.length - 1,
       };
       return { resumen: `Pedido ${s.numero_pedido_erp ?? s.cliente_texto ?? ""}`.trim(), datos: conCifras ? datos : taparMontos(datos) };
