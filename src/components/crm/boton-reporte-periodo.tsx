@@ -78,12 +78,17 @@ export function BotonReportePeriodo({
     const params = new URLSearchParams({ desde, hasta });
     if (comercialId) params.set("comercial", comercialId);
     setGenerando(true);
-    const ventana = window.open(`/api/reportes/periodo?${params.toString()}`, "_blank", "noopener");
+    // SIN «noopener» EN LAS OPCIONES: con él, window.open devuelve SIEMPRE
+    // null aunque la pestaña se abra, y este aviso salía en cada clic
+    // (Santos, 14-10, en comercial4 / la app instalada). Se corta el
+    // vínculo a mano después de comprobar que abrió.
+    const ventana = window.open(`/api/reportes/periodo?${params.toString()}`, "_blank");
     if (!ventana) {
       setGenerando(false);
       toast.error("El navegador bloqueó la ventana del reporte. Permita las ventanas emergentes de este sitio.");
       return;
     }
+    ventana.opener = null;
     toast.success("Generando el reporte…");
     setTimeout(() => setGenerando(false), 2500);
   }

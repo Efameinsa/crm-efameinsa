@@ -52,12 +52,17 @@ export function BotonReporteMensual({
     // NADA visible: ni ventana, ni descarga, ni error. El informe de UX del
     // 08-09 lo reportó como «no produjo nada al primer ni al segundo clic».
     // Un botón que genera un documento tiene que decir qué pasó.
-    const ventana = window.open(url, "_blank", "noopener");
+    // SIN «noopener» EN LAS OPCIONES: con él, window.open devuelve SIEMPRE
+    // null aunque la pestaña se abra, y este aviso salía en cada clic
+    // (Santos, 14-10, en comercial4 / la app instalada). Se corta el
+    // vínculo a mano después de comprobar que abrió.
+    const ventana = window.open(url, "_blank");
     if (!ventana) {
       setGenerando(false);
       toast.error("El navegador bloqueó la ventana del reporte. Permita las ventanas emergentes de este sitio.");
       return;
     }
+    ventana.opener = null;
     toast.success("Generando el reporte del mes…");
     // El PDF se arma en el servidor y la pestaña nueva no avisa cuando está
     // lista; el botón se libera tras un momento razonable.
