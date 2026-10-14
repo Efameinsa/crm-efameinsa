@@ -225,7 +225,7 @@ El número, los equipos, los precios y las condiciones no cambian.`,
           otras condiciones: era un documento nuevo). Si el expediente ya tiene
           un borrador, el botón primero lo ofrece. */}
       {borradorVivo && !preguntaNueva ? (
-        <Button size="lg" className="w-full" onClick={() => setPreguntaNueva(true)}>
+        <Button size="lg" className="w-full" data-nueva-cotizacion onClick={() => setPreguntaNueva(true)}>
           <Plus className="size-4" />
           Nueva cotización
         </Button>
@@ -235,7 +235,7 @@ El número, los equipos, los precios y las condiciones no cambian.`,
           className="w-full"
           nativeButton={false}
           render={
-            <Link href={rutaCotizar}>
+            <Link href={rutaCotizar} data-nueva-cotizacion>
               <Plus className="size-4" />
               Nueva cotización
             </Link>
