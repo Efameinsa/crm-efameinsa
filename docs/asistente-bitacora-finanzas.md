@@ -1,6 +1,6 @@
 # Bitácora de Finanzas y Contabilidad: lo que se decidió alrededor del dinero
 
-Vigente al 14-10-2026 (tarde). Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
+Vigente al 14-10-2026 (16:30). Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
 
 ## Cómo leer esto
 
@@ -11,6 +11,12 @@ Vigente al 14-10-2026 (tarde). Para Finanzas (Jhon) y Contabilidad/Facturación.
 ---
 
 ## Cronología de decisiones que tocan su trabajo
+
+### 14-10 15:05 · AGROCASAGRANDE: facturar el servicio de puesta en marcha (llamada con el ingeniero)
+- Se vendió aparte el servicio de instalación, puesta en marcha y capacitación de sus 2 secadoras: cotización Presu_2345-26, US$ 450 + IGV (US$ 531), crédito 30 días, aprobada por gerencia.
+- Postventa (Ariana) emitió el cierre **EFAMEINSA 010-2026** a las 15:12, con factura y transferencia a 30 días. El cliente necesita la factura para poder pagar: **primero se factura, después cobra** (vale igual si fuera contado).
+- Un cierre a crédito no debe pedir voucher. Ariana reportó que se lo pedía; el ingeniero pidió verificarlo.
+- Pendiente: Central genera el pedido y Finanzas emite la factura.
 
 ### 14-10 · Crédito con letras, visto bueno de Finanzas y motivo de la guía
 - **Ninguna venta a crédito o con letras sale sin el visto bueno de Finanzas.**
