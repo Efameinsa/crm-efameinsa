@@ -11,6 +11,7 @@ import {
   cotizacionesDeCierres,
   documentosDeFinanzas,
   etiquetaEstadoPago,
+  liquidacionPorFacturar,
   type Congruencia,
   type DocumentosDeFinanzas,
 } from "@/lib/documentos-finanzas";
@@ -39,7 +40,12 @@ export default async function PorFacturarPage() {
     cotizacionesDeCierres(supabase, pedidos.map((p) => p.informeId ?? "")),
     congruenciaDeCierres(supabase, pedidos.map((p) => p.informeId ?? "")),
   ]);
-  const sinFactura = pedidos.filter((p) => (docs.get(p.id)?.facturas.length ?? 0) === 0);
+  // Sin factura, o con un anticipo nuevo (otra liquidación con «factura
+  // pendiente» subida después de la última factura).
+  const sinFactura = pedidos.filter((p) => {
+    const d = docs.get(p.id);
+    return (d?.facturas.length ?? 0) === 0 || liquidacionPorFacturar(d) != null;
+  });
   const observados = sinFactura.filter((p) => p.facturacionObservadaAt);
   // Lo más viejo primero: es lo que lleva más tiempo esperando la factura.
   const porFacturar = sinFactura.filter((p) => !p.facturacionObservadaAt).reverse();
@@ -67,7 +73,8 @@ export default async function PorFacturarPage() {
       <SeccionPanel titulo={`Por facturar · ${porFacturar.length}`}>
         <p className="mb-2 text-xs text-muted-foreground">
           Finanzas ya subió la liquidación. Abra el expediente —cotización, orden de compra, cierre y pedido—, revise que estén alineados y registre la
-          factura. Si algo no cuadra, obsérvelo: le llega a Central con el motivo.
+          factura. Si algo no cuadra, obsérvelo: le llega a Central con el motivo. También vuelven acá los pedidos que ya tienen factura cuando entra
+          otro pago a cuenta y Finanzas sube una liquidación nueva con factura pendiente (el siguiente anticipo).
         </p>
         {porFacturar.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground">No hay pedidos esperando factura.</p>
@@ -91,6 +98,8 @@ function FilaPorFacturar({
   congruencia: Congruencia | undefined;
 }) {
   const vigente = docs?.liquidaciones[0];
+  const facturas = docs?.facturas ?? [];
+  const nuevoAnticipo = facturas.length > 0 ? liquidacionPorFacturar(docs) : null;
   const empresa = p.serie === "OPEN" ? "Open" : "Efameinsa";
   return (
     <li className="space-y-2 px-4 py-3">
@@ -129,6 +138,16 @@ function FilaPorFacturar({
                   <span key={l.id} className="text-muted-foreground">{rotulo} ({detalle}) · sin archivo</span>
                 );
               })}
+            </p>
+          )}
+          {nuevoAnticipo && (
+            <p className="mt-1 flex items-start gap-1 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-900">
+              <AlertTriangle className="mt-0.5 size-3.5 flex-none" />
+              <span>
+                Nuevo anticipo por facturar: ya tiene {facturas.length === 1 ? "la factura" : "las facturas"} {facturas.map((f) => f.numero).join(", ")}, y
+                Finanzas subió el {fechaHoraLima(nuevoAnticipo.subidaAt)} una liquidación nueva con factura pendiente
+                {nuevoAnticipo.nota ? ` («${nuevoAnticipo.nota}»)` : ""}. Facture este pago y regístrelo.
+              </span>
             </p>
           )}
           {p.facturacionObservadaAt && (

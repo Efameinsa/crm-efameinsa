@@ -382,6 +382,20 @@ export function FormularioInforme({
   const [otroTelefono, setOtroTelefono] = useState(otroGuardado ? (b?.contactoDespacho.telefono ?? "") : "");
 
   const [incluye, setIncluye] = useState<string[]>(b ? b.incluye : INCLUYE_POR_DEFECTO);
+  // Los beneficios por defecto son de VENTA DE EQUIPO (manuales, planos,
+  // puesta en marcha). Central, 14-10, OPEN 030-2026 de Yawar Inka: un kit de
+  // polea salió con «Juego de manuales de operación…» y lo copió el pedido.
+  // En un repuesto o un servicio la lista arranca vacía; si se vuelve a equipo,
+  // regresa. Lo que el comercial escribió a mano no se toca.
+  const tipoEfectivo = tipoPedido ?? tipoDeducido;
+  const tipoAnterior = useRef(tipoEfectivo);
+  useEffect(() => {
+    const esDefecto = (xs: string[]) => xs.filter((x) => x.trim()).join("\n") === INCLUYE_POR_DEFECTO.join("\n");
+    if (tipoEfectivo !== "equipo") setIncluye((xs) => (esDefecto(xs) ? [] : xs));
+    // Solo al CAMBIAR a equipo: un borrador de equipo que se guardó sin lista la respeta.
+    else if (tipoAnterior.current !== "equipo") setIncluye((xs) => (xs.every((x) => !x.trim()) ? INCLUYE_POR_DEFECTO : xs));
+    tipoAnterior.current = tipoEfectivo;
+  }, [tipoEfectivo]);
   const [gratis, setGratis] = useState(b?.gratis ?? "");
   const [notaFinal, setNotaFinal] = useState(b?.notaFinal ?? "");
 
