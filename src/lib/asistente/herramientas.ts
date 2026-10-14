@@ -25,7 +25,7 @@ import {
 import { nombresDelPedido } from "@/lib/nombres-del-pedido";
 import { enlaceDelCliente, enlacesDeCotizacion, enlacesDelPedido } from "@/lib/asistente/enlaces";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { esComercialDeVenta, esGerencia, taparMontos, veComoGerencia, verMontos, verPreciosCatalogo, type Quien } from "@/lib/asistente/permisos";
+import { esComercialDeVenta, esGerencia, nivelDeContexto, taparMontos, veComoGerencia, verMontos, verPreciosCatalogo, type Quien } from "@/lib/asistente/permisos";
 
 /**
  * LO QUE EL ASISTENTE PUEDE PREGUNTARLE AL CRM. Y nada más.
@@ -611,6 +611,170 @@ export const HERRAMIENTAS: Herramienta[] = [
             "Hay dos cifras de stock y son distintas: «en_almacen» es el conteo del almacén del CRM (null = ese modelo todavía no se cargó al almacén) y «stock_del_maestro» es la foto del maestro del día en que se cargó el catálogo, no un conteo de hoy. Al responder por disponibilidad, diga de cuál habla y que conviene confirmarla con Operaciones." +
             (conCifras ? "" : " Los precios no se muestran a esta área."),
         },
+      };
+    },
+  },
+
+  // ── Reuniones, actas y compromisos (Tasking) ─────────────────────────────
+  {
+    definicion: {
+      name: "reuniones_y_acuerdos",
+      description:
+        "Las reuniones grabadas y procesadas en el CRM (Tasking): fecha, quiénes estuvieron, resumen, temas, acuerdos generales y los compromisos de cada persona con su plazo y estado (pendiente, en curso, hecho, en pausa). Es lo más fresco: una reunión aparece aquí apenas se procesa. Úsala para «¿qué se acordó en la reunión de ayer?», «¿qué me toca hacer?», «¿qué quedó pendiente con postventa?», «¿quién quedó en enviar la cotización corregida?». Filtra por tema o desde una fecha.",
+      input_schema: {
+        type: "object",
+        properties: {
+          tema: { type: "string", description: "Palabra o frase a buscar en el título, resumen, temas o acuerdos (opcional)." },
+          desde: { type: "string", description: "Desde qué fecha, 2026-10-01 (opcional). Por defecto, las más recientes." },
+          solo_mis_compromisos: { type: "boolean", description: "true para traer solo los compromisos de quien pregunta." },
+        },
+        required: [],
+      },
+    },
+    para: todos,
+    aviso: (a) => (texto(a.tema) ? `Buscando «${texto(a.tema)}» en las reuniones` : "Revisando las reuniones y sus acuerdos"),
+    ejecutar: async (args, quien) => {
+      // Las tablas de Tasking son solo de admin (0426). Se leen con la llave de
+      // servicio y el filtro lo pone ESTA consulta según el nivel de quien
+      // pregunta: gerencia, Central y operaciones ven todas las reuniones
+      // (Santos, 14-10: «Central debe tener mucho más contexto, igual que
+      // gerencia, e igual que Lesly»); los demás, solo las reuniones en las que
+      // estuvieron. Nunca viaja la transcripción: solo resumen y acuerdos.
+      const db = createAdminClient();
+      const nivel = nivelDeContexto(quien);
+      const { data: misFichas } = await db.from("tasking_personas").select("id").eq("perfil_id", quien.id);
+      const yo = new Set((misFichas ?? []).map((p) => p.id as string));
+      const desde = /^\d{4}-\d{2}-\d{2}$/.test(texto(args.desde)) ? texto(args.desde) : null;
+      let consulta = db
+        .from("tasking_reuniones")
+        .select("id, titulo, inicio, participantes, resumen, temas, acuerdos_generales")
+        .eq("estado", "lista")
+        .order("inicio", { ascending: false })
+        .limit(30);
+      if (desde) consulta = consulta.gte("inicio", desde);
+      const { data: reuniones } = await consulta;
+      const tema = texto(args.tema).toLowerCase();
+      const visibles = ((reuniones ?? []) as {
+        id: string;
+        titulo: string | null;
+        inicio: string | null;
+        participantes: string[] | null;
+        resumen: string | null;
+        temas: unknown;
+        acuerdos_generales: unknown;
+      }[])
+        .filter((r) => nivel === "gerencia" || nivel === "amplio" || (r.participantes ?? []).some((p) => yo.has(p)))
+        .filter((r) => !tema || JSON.stringify([r.titulo, r.resumen, r.temas, r.acuerdos_generales]).toLowerCase().includes(tema))
+        .slice(0, 6);
+      if (visibles.length === 0) {
+        return {
+          resumen: "Ninguna reunión visible",
+          datos: {
+            nota:
+              nivel === "gerencia" || nivel === "amplio"
+                ? "No hay reuniones procesadas con ese filtro."
+                : "No hay reuniones procesadas en las que usted haya participado con ese filtro. Las reuniones se ven si usted estuvo en ellas.",
+          },
+        };
+      }
+      const ids = visibles.map((r) => r.id);
+      const { data: comps } = await db
+        .from("tasking_compromisos")
+        .select("reunion_id, persona_id, responsable_texto, descripcion, vence_en, estado, hecho_en, tasking_personas(nombre)")
+        .in("reunion_id", ids)
+        .order("vence_en", { ascending: true });
+      const todosNombres = new Map<string, string>();
+      const { data: personas } = await db.from("tasking_personas").select("id, nombre");
+      for (const p of personas ?? []) todosNombres.set(p.id as string, p.nombre as string);
+      const ESTADO: Record<string, string> = { pendiente: "pendiente", en_curso: "en curso", hecho: "hecho", pausado: "en pausa", cancelado: "cancelado" };
+      const datos = visibles.map((r) => ({
+        reunion: r.titulo,
+        fecha: fechaLima(r.inicio),
+        estuvieron: (r.participantes ?? []).map((p) => todosNombres.get(p) ?? "—"),
+        resumen: r.resumen,
+        temas: r.temas,
+        acuerdos_generales: r.acuerdos_generales,
+        compromisos: ((comps ?? []) as unknown as {
+          reunion_id: string;
+          persona_id: string | null;
+          responsable_texto: string | null;
+          descripcion: string;
+          vence_en: string | null;
+          estado: string;
+          hecho_en: string | null;
+          tasking_personas: { nombre: string } | null;
+        }[])
+          .filter((c) => c.reunion_id === r.id)
+          .filter((c) => !args.solo_mis_compromisos || (c.persona_id != null && yo.has(c.persona_id)))
+          .map((c) => ({
+            responsable: c.tasking_personas?.nombre ?? c.responsable_texto,
+            es_de_quien_pregunta: c.persona_id != null && yo.has(c.persona_id),
+            compromiso: c.descripcion,
+            plazo: fechaLima(c.vence_en),
+            estado: ESTADO[c.estado] ?? c.estado,
+            hecho_el: fechaLima(c.hecho_en),
+          })),
+      }));
+      return { resumen: `${visibles.length} reunión(es)`, datos };
+    },
+  },
+
+  // ── El buzón: lo que el personal reporta y en qué quedó ──────────────────
+  {
+    definicion: {
+      name: "observaciones_del_buzon",
+      description:
+        "Las observaciones y sugerencias que el personal sube al buzón del CRM (el foquito 💡): qué se reportó, cuándo, en qué estado está (nueva, revisando, hecha, descartada) y qué se respondió o cambió. Por defecto trae las de quien pregunta; gerencia, Central y operaciones pueden pedir las de todos. Úsala para «¿qué pasó con lo que reporté?», «¿ya arreglaron lo del protocolo?», «¿qué reportó almacén esta semana?».",
+      input_schema: {
+        type: "object",
+        properties: {
+          tema: { type: "string", description: "Palabra a buscar en el título, detalle o respuesta (opcional)." },
+          de_todos: { type: "boolean", description: "true para ver las de todo el personal (solo gerencia, Central y operaciones)." },
+        },
+        required: [],
+      },
+    },
+    para: todos,
+    aviso: (a) => (texto(a.tema) ? `Buscando «${texto(a.tema)}» en el buzón` : "Revisando el buzón de observaciones"),
+    ejecutar: async (args, quien) => {
+      const deTodos = args.de_todos === true && veComoGerencia(quien);
+      // Las propias se leen con la sesión (la base las abre a su autor); las de
+      // todos, con la llave de servicio y solo para quien ve como gerencia.
+      const db = deTodos && !esGerencia(quien) ? (createAdminClient() as unknown as Conexion) : await createClient();
+      let consulta = db
+        .from("sugerencias")
+        .select("titulo, detalle, tipo, pantalla, estado, respuesta, created_at, respondida_at, perfiles!sugerencias_autor_id_fkey(nombre, codigo_comercial)")
+        .order("created_at", { ascending: false })
+        .limit(15);
+      if (!deTodos) consulta = consulta.eq("autor_id", quien.id);
+      const t = texto(args.tema).replace(/[%,()]/g, " ").trim();
+      if (t) consulta = consulta.or(`titulo.ilike.%${t}%,detalle.ilike.%${t}%,respuesta.ilike.%${t}%`);
+      const { data, error } = await consulta;
+      if (error) return { resumen: "No se pudo leer el buzón", datos: { nota: "No se pudo consultar el buzón ahora." } };
+      const filas = (data ?? []) as unknown as {
+        titulo: string | null;
+        detalle: string | null;
+        tipo: string | null;
+        pantalla: string | null;
+        estado: string;
+        respuesta: string | null;
+        created_at: string;
+        respondida_at: string | null;
+        perfiles: { nombre: string; codigo_comercial: string | null } | null;
+      }[];
+      return {
+        resumen: `${filas.length} observación(es)${deTodos ? " del personal" : " suyas"}`,
+        datos: filas.map((s) => ({
+          quien: deTodos ? (s.perfiles ? `${s.perfiles.codigo_comercial ?? ""} ${s.perfiles.nombre}`.trim() : null) : "usted",
+          titulo: s.titulo,
+          detalle: (s.detalle ?? "").slice(0, 400),
+          tipo: s.tipo,
+          pantalla: s.pantalla,
+          estado: s.estado,
+          respuesta: (s.respuesta ?? "").slice(0, 600) || null,
+          reportada: fechaLima(s.created_at),
+          respondida: fechaLima(s.respondida_at),
+        })),
       };
     },
   },
