@@ -63,7 +63,7 @@ as $$
        or coalesce(s.letras_cantidad, 0) > 0
      )
 $$;
-grant execute on function public.pide_visto_bueno_finanzas(public.servicios_postventa) to authenticated;
+grant execute on function public.pide_visto_bueno_finanzas(public.servicios_postventa) to authenticated, service_role;
 
 create or replace function public.frenar_salida_sin_visto_bueno()
 returns trigger
