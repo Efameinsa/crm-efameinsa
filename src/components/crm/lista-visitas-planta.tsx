@@ -35,6 +35,8 @@ export interface VisitaFila {
   quitar_film?: boolean;
   /** Preparación de máquinas para visita de clientes (0422). */
   maquinas_preparar?: { maquina: string; caracteristicas?: string | null; mover_a_prueba?: boolean; quitar_film?: boolean }[] | null;
+  /** Los equipos de la ficha que recoge (0467). */
+  equipos_recoge?: { equipo_id: string; modelo: string; serie?: string | null }[] | null;
   infocorp_enviado_at?: string | null;
   showroom_listo_at?: string | null;
   film_retirado_at?: string | null;
@@ -189,6 +191,19 @@ export function ListaVisitasPlanta({
                     {!v.maquinas_preparar?.length && v.equipo_a_ver && <span className="ml-1 font-medium text-foreground">· viene a ver: {v.equipo_a_ver}</span>}
                     {!v.maquinas_preparar?.length && v.quitar_film && <span className="ml-1 rounded-full bg-yellow-300/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-yellow-950">Quitar el film</span>}
                   </p>
+                  {(v.equipos_recoge?.length ?? 0) > 0 && (
+                    <div className="mt-0.5 text-xs">
+                      <p className="font-medium text-foreground">Recoge:</p>
+                      <ul className="ml-3 list-disc">
+                        {v.equipos_recoge!.map((e) => (
+                          <li key={e.equipo_id}>
+                            <span className="font-medium text-foreground">{e.modelo}</span>
+                            {e.serie && <span className="ml-1 font-mono text-[11px] text-muted-foreground">· serie {e.serie}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {(v.maquinas_preparar?.length ?? 0) > 0 && (
                     <div className="mt-0.5 text-xs">
                       <p className="font-medium text-foreground">Preparación de máquinas para visita de clientes:</p>
@@ -306,6 +321,9 @@ export function ListaVisitasPlanta({
               {imprimiendo.telefono && <tr><th>Teléfono</th><td>{imprimiendo.telefono}</td></tr>}
               {imprimiendo.cotizacion_ref && <tr><th>N° cotización</th><td>{imprimiendo.cotizacion_ref}</td></tr>}
               <tr><th>Motivo</th><td>{imprimiendo.motivo}{imprimiendo.equipo_a_ver ? ` · Viene a ver: ${imprimiendo.equipo_a_ver}` : ""}{imprimiendo.showroom ? " · Abrir lavandería (showroom)" : ""}{imprimiendo.prender_tv ? " · Prender TV" : ""}</td></tr>
+              {(imprimiendo.equipos_recoge ?? []).map((e) => (
+                <tr key={e.equipo_id}><th>Recoge</th><td>{e.modelo}{e.serie ? ` · Serie ${e.serie}` : ""}</td></tr>
+              ))}
               <tr><th>Registró</th><td>{imprimiendo.registradoPor}</td></tr>
             </tbody>
           </table>

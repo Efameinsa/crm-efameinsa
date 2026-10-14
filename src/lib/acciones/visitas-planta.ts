@@ -45,6 +45,8 @@ export async function registrarVisitaPlanta(datos: {
   proveedor?: boolean;
   /** Una videollamada con un cliente (0413; Brenda, 07-10): no entra a la planta, solo hay que abrir la lavandería. */
   videollamada?: boolean;
+  /** Los equipos de la ficha que el cliente recoge en planta (0467; Rubí, 13-10). */
+  equiposRecoge?: string[];
 }): Promise<{ error: string | null; id?: string; correoEnviado?: boolean }> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -64,6 +66,9 @@ export async function registrarVisitaPlanta(datos: {
   const maquinas = (datos.maquinas ?? [])
     .filter((m) => m.maquina?.trim())
     .map((m) => ({ maquina: m.maquina.trim().slice(0, 160), caracteristicas: m.caracteristicas?.trim().slice(0, 200) || null, moverAPrueba: m.moverAPrueba === true, quitarFilm: m.quitarFilm === true }));
+  const equiposRecoge = datos.cuentaId && !datos.proveedor && !datos.videollamada ? (datos.equiposRecoge ?? []).slice(0, 100) : [];
+  const recoge = equiposRecoge.length ? (await equiposDeLaFichaParaVisita(datos.cuentaId!)).filter((e) => equiposRecoge.includes(e.id)) : [];
+  const recogeTexto = (e: EquipoDeLaFicha) => `${e.modelo}${e.serie ? ` · serie ${e.serie}` : ""}`;
   const queHacer = (m: (typeof maquinas)[number]) => [m.moverAPrueba && "llevar al área de prueba", m.quitarFilm && "quitar el film"].filter(Boolean).join(" y ");
   const { data, error } = await supabase.rpc("registrar_visita_planta", {
     p_cuenta: datos.cuentaId,
@@ -85,6 +90,7 @@ export async function registrarVisitaPlanta(datos: {
     p_quitar_film: datos.quitarFilm === true,
     p_tipo: datos.proveedor ? "proveedor" : datos.videollamada ? "videollamada" : "cliente",
     p_maquinas: maquinas.map((m) => ({ maquina: m.maquina, caracteristicas: m.caracteristicas, mover_a_prueba: m.moverAPrueba, quitar_film: m.quitarFilm })),
+    p_equipos_recoge: recoge.map((e) => e.id),
   });
   if (error) return { error: limpiar(error.message) };
   revalidatePath("/central/visitas");
@@ -95,6 +101,7 @@ export async function registrarVisitaPlanta(datos: {
     titulo: `${datos.videollamada ? "Videollamada" : "Visita"} ${datos.proveedor ? "de proveedor" : datos.videollamada ? "· abrir lavandería" : datos.showroom ? "al showroom" : "a planta"} el ${datos.fecha}${datos.hora ? ` ${datos.hora.slice(0, 5)}` : ""} · ${datos.empresa.trim()}`,
     cuerpo:
       `${datos.persona.trim()}${datos.dni ? ` (DNI ${datos.dni})` : ""}. ${datos.motivo.trim()}` +
+      (recoge.length ? ` Recoge: ${recoge.map(recogeTexto).join("; ")}.` : "") +
       (maquinas.length ? ` Preparar máquinas: ${maquinas.map((m) => `${m.maquina} (${queHacer(m)})`).join("; ")}.` : ""),
     url: "/almacen/visitas",
     esPrueba: perfil.es_prueba === true,
@@ -135,6 +142,9 @@ export async function registrarVisitaPlanta(datos: {
           `<br><b>${esc(datos.empresa)}</b>${datos.telefono ? `<br>Tel. ${esc(datos.telefono)}` : ""}`)}` +
         `${td(cotizacionRef ? `N° ${esc(cotizacionRef)}` : "—")}${td(esc(datos.motivo))}</tr></table>` +
         `<p>` +
+        (recoge.length
+          ? `<b>Equipos que recoge:</b><br>` + recoge.map((e) => `• <span style="background:#ffff00">${esc(recogeTexto(e))}</span><br>`).join("")
+          : "") +
         (datos.equipoAVer ? `Viene a ver: <b>${esc(datos.equipoAVer)}</b>${datos.quitarFilm ? ` — <span style="background:#ffff00">quitar el film</span>` : ""}<br>` : "") +
         (maquinas.length
           ? `<b>Preparación de máquinas para visita de clientes:</b><br>` +
@@ -242,6 +252,24 @@ export async function reprogramarVisitaPlanta(visitaId: string, fecha: string, h
  * fichas que quien registra puede leer; si no aparece, se escribe a mano y va
  * como cliente nuevo.
  */
+export type EquipoDeLaFicha = { id: string; modelo: string; serie: string | null };
+
+/**
+ * Los equipos de la ficha, para marcar cuáles recoge el cliente en planta
+ * (0467; Rubí, 13-10: «seleccionar cuál de sus equipos recogerá acá en planta»).
+ */
+export async function equiposDeLaFichaParaVisita(cuentaId: string): Promise<EquipoDeLaFicha[]> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data } = await supabase.from("equipos_instalados").select("id, serie, modelo_texto").eq("cuenta_id", cuentaId).order("modelo_texto").limit(100);
+  return ((data ?? []) as { id: string; serie: string | null; modelo_texto: string | null }[]).map((e) => ({
+    id: e.id,
+    serie: e.serie,
+    // La serie va aparte: en el texto del modelo sobra.
+    modelo: (e.modelo_texto ?? "Equipo").replace(/\s*\/?\s*Serie:\s*[^/]*/gi, "").replace(/\s*\/\s*$/, "").trim() || "Equipo",
+  }));
+}
+
 export async function buscarEmpresaParaVisita(q: string): Promise<{ id: string; razon_social: string; num_doc: string | null }[]> {
   await requerirPerfil();
   const limpio = q.replace(/[,()%*\\]/g, " ").trim();
