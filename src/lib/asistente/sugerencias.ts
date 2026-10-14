@@ -10,14 +10,14 @@ export function sugerenciasPara(q: Quien): string[] {
     return [
       "¿Cuánto vendió Katerine esta semana?",
       "¿Qué perdimos la semana pasada y por qué?",
-      "¿Por qué la cotización 562 está pendiente?",
+      "¿Qué quedó pendiente de la última reunión?",
       "¿En qué va el pedido de Sierra Travel?",
     ];
   }
   if (q.es_almacen || q.es_importaciones) {
     return [
       "¿Qué falta para despachar el pedido 420-26?",
-      "¿Cuándo se puede marcar «probada y embalada»?",
+      "¿Qué se decidió sobre los protocolos de prueba?",
       "¿Qué pasa con un pedido después de que almacén lo prueba?",
       "¿Hay stock de lavadoras de 30 kg?",
     ];
@@ -26,7 +26,7 @@ export function sugerenciasPara(q: Quien): string[] {
     return [
       "¿En qué va el pedido de Sierra Travel?",
       "¿Qué equipos le vendimos a Hotel Route 66?",
-      "¿Cómo abro un caso de garantía?",
+      "¿Qué se acordó en la última reunión de postventa?",
       "¿Por qué no puedo ver los precios?",
     ];
   }
@@ -34,7 +34,7 @@ export function sugerenciasPara(q: Quien): string[] {
     return [
       "¿Cómo voy esta semana?",
       "¿Por qué mi cotización está pendiente de gerencia?",
-      "¿Qué le falta a mi cierre para emitirlo?",
+      "¿Qué se decidió sobre las cotizaciones con línea a mano?",
       "¿En qué va el pedido de mi cliente?",
     ];
   }
@@ -42,16 +42,16 @@ export function sugerenciasPara(q: Quien): string[] {
     return [
       "¿Qué pasa cuando doy el visto bueno a un crédito?",
       "¿En qué va el pedido 420-26?",
-      "¿Cuándo se puede facturar un repuesto?",
+      "¿Qué se decidió sobre el crédito con letras?",
       "¿Quién marcó el pago del pedido 420-26?",
     ];
   }
   if (q.rol === "central") {
     return [
       "¿De quién es el cliente Sierra Travel?",
-      "¿Cómo corrijo una derivación?",
+      "¿Cómo va el equipo comercial este mes?",
       "¿Qué pasa cuando marco los dos checks del cierre?",
-      "¿Qué pasa con un pedido después del cierre?",
+      "¿Qué quedó pendiente de la última reunión?",
     ];
   }
   return [

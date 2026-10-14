@@ -24,7 +24,8 @@ import {
 } from "@/lib/postventa";
 import { nombresDelPedido } from "@/lib/nombres-del-pedido";
 import { enlaceDelCliente, enlacesDeCotizacion, enlacesDelPedido } from "@/lib/asistente/enlaces";
-import { esComercialDeVenta, esGerencia, taparMontos, verMontos, verPreciosCatalogo, type Quien } from "@/lib/asistente/permisos";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { esComercialDeVenta, esGerencia, taparMontos, veComoGerencia, verMontos, verPreciosCatalogo, type Quien } from "@/lib/asistente/permisos";
 
 /**
  * LO QUE EL ASISTENTE PUEDE PREGUNTARLE AL CRM. Y nada más.
@@ -91,6 +92,20 @@ async function buscarComercial(quien: string) {
     .limit(1)
     .maybeSingle();
   return data;
+}
+
+type Conexion = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * La conexión para las cifras de gerencia. La base las abre solo a gerencia y
+ * admin (resumen_gerencia exige es_backoffice). Santos decidió el 14-10 que
+ * Central y operaciones vean lo mismo que gerencia: para ellos estas cuatro
+ * consultas corren con la llave de servicio. Solo estas cuatro, solo de
+ * lectura, y solo si la herramienta ya pasó «para: veComoGerencia».
+ */
+async function conexionCifras(quien: Quien): Promise<Conexion> {
+  if (esGerencia(quien)) return createClient();
+  return createAdminClient() as unknown as Conexion;
 }
 
 /** Fecha corta en hora de Lima, para que el modelo no tenga que convertir. */
@@ -618,7 +633,7 @@ export const HERRAMIENTAS: Herramienta[] = [
     aviso: () => "Revisando su semana",
     // El comercial no elige de quién: siempre es él. Así no hay forma de
     // pedirle al asistente los números de un compañero.
-    ejecutar: async (args, quien) => resumenSemana(quien.id, quien.nombre, quien.codigo_comercial, texto(args.lunes)),
+    ejecutar: async (args, quien) => resumenSemana(quien.id, quien.nombre, quien.codigo_comercial, texto(args.lunes), await createClient()),
   },
 
   // ── 7. Gerencia: el cierre de la semana de cualquiera ───────────────────
@@ -636,12 +651,12 @@ export const HERRAMIENTAS: Herramienta[] = [
         required: ["comercial"],
       },
     },
-    para: esGerencia,
+    para: veComoGerencia,
     aviso: (a) => `Revisando la semana de ${texto(a.comercial)}`,
-    ejecutar: async (args) => {
+    ejecutar: async (args, quien) => {
       const p = await buscarComercial(texto(args.comercial));
       if (!p) return { resumen: "No se encontró ese comercial", datos: null };
-      return resumenSemana(p.id, p.nombre, p.codigo_comercial, texto(args.lunes));
+      return resumenSemana(p.id, p.nombre, p.codigo_comercial, texto(args.lunes), await conexionCifras(quien));
     },
   },
 
@@ -660,14 +675,14 @@ export const HERRAMIENTAS: Herramienta[] = [
         required: ["comercial"],
       },
     },
-    para: esGerencia,
+    para: veComoGerencia,
     aviso: (a) => `Sacando las cifras de ${texto(a.comercial)}`,
-    ejecutar: async (args) => {
+    ejecutar: async (args, quien) => {
       const p = await buscarComercial(texto(args.comercial));
       if (!p) return { resumen: "No se encontró ese comercial", datos: null };
       const preset = (texto(args.periodo) || "mes") as Parameters<typeof periodoPreset>[0];
       const periodo = periodoPreset(preset);
-      const supabase = await createClient();
+      const supabase = await conexionCifras(quien);
       const r = await cargarResumenGerencia(supabase, { ...periodo, preset, comercialId: p.id });
       const k = r?.kpis;
       const yo = r?.por_comercial?.[0];
@@ -700,12 +715,12 @@ export const HERRAMIENTAS: Herramienta[] = [
         required: ["comercial"],
       },
     },
-    para: esGerencia,
+    para: veComoGerencia,
     aviso: (a) => `Revisando las últimas semanas de ${texto(a.comercial)}`,
-    ejecutar: async (args) => {
+    ejecutar: async (args, quien) => {
       const p = await buscarComercial(texto(args.comercial));
       if (!p) return { resumen: "No se encontró ese comercial", datos: null };
-      const semanas = await cargarHistorialSemanas(p.id);
+      const semanas = await cargarHistorialSemanas(p.id, await conexionCifras(quien));
       return {
         resumen: `${p.codigo_comercial} · últimas ${semanas.length} semanas`,
         datos: semanas.map((s) => ({
@@ -737,12 +752,12 @@ export const HERRAMIENTAS: Herramienta[] = [
         required: [],
       },
     },
-    para: esGerencia,
+    para: veComoGerencia,
     aviso: () => "Comparando al equipo comercial",
-    ejecutar: async (args) => {
+    ejecutar: async (args, quien) => {
       const preset = (texto(args.periodo) || "mes") as Parameters<typeof periodoPreset>[0];
       const periodo = periodoPreset(preset);
-      const supabase = await createClient();
+      const supabase = await conexionCifras(quien);
       const r = await cargarResumenGerencia(supabase, { ...periodo, preset });
       return {
         resumen: `Equipo comercial · ${periodo.desde} a ${periodo.hasta}`,
@@ -757,9 +772,9 @@ export const HERRAMIENTAS: Herramienta[] = [
   },
 ];
 
-async function resumenSemana(id: string, nombre: string, codigo: string | null, lunesTexto: string) {
+async function resumenSemana(id: string, nombre: string, codigo: string | null, lunesTexto: string, conexion: Conexion) {
   const lunes = lunesSemana(lunesTexto || undefined);
-  const c = await cargarCierreSemanal(lunes, id);
+  const c = await cargarCierreSemanal(lunes, id, conexion);
   return {
     resumen: `${codigo ?? ""} · semana del ${c.lunes} al ${c.sabado}`.trim(),
     datos: {

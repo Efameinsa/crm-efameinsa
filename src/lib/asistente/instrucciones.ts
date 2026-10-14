@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { CONOCIMIENTO } from "@/lib/asistente/conocimiento";
-import { alcanceDe, esGerencia, verMontos, verPreciosCatalogo, type Quien } from "@/lib/asistente/permisos";
+import { BITACORA_AMPLIADA, BITACORA_FINANZAS, BITACORA_GENERAL, BITACORA_RESERVADA, CONOCIMIENTO } from "@/lib/asistente/conocimiento";
+import { alcanceDe, nivelDeContexto, verMontos, verPreciosCatalogo, type Quien } from "@/lib/asistente/permisos";
 
 /**
  * LAS INSTRUCCIONES DEL ASISTENTE.
@@ -57,6 +57,8 @@ CÓMO ESCRIBIR
 - Nunca menciones tus herramientas, «la base de datos» ni detalles técnicos: habla del CRM y de sus pantallas como los ve la persona.`;
 
 const SEPARADOR = "\n\n════════ GUÍA DEL CRM (reglas vigentes) ════════\n\n";
+const SEPARADOR_BITACORA =
+  "\n\n════════ BITÁCORA: REUNIONES, DECISIONES Y CASOS (la historia de por qué las reglas son así) ════════\n\nÚsala para explicar el porqué y el origen de una regla, qué se acordó en una reunión o qué quedó pendiente. Si la bitácora y la guía difieren, vale la más reciente (la guía describe cómo está hoy). Cita la fecha y quién lo decidió.\n\n";
 
 /**
  * LOS CAMBIOS RECIENTES (14-10). La guía se escribe a mano y el CRM cambia
@@ -89,8 +91,42 @@ let fijas: string | null = null;
 
 /** La parte fija: igual para todos. Va primero y con el corte del caché. */
 export function instruccionesFijas(): string {
-  fijas ??= `${OFICIO}${SEPARADOR}${CONOCIMIENTO}${cambiosRecientes()}`;
+  fijas ??= `${OFICIO}${SEPARADOR}${CONOCIMIENTO}${BITACORA_GENERAL ? `${SEPARADOR_BITACORA}${BITACORA_GENERAL}` : ""}${cambiosRecientes()}`;
   return fijas;
+}
+
+/**
+ * LAS BITÁCORAS POR NIVEL (Santos, 14-10: «para ayudar a las personas a
+ * recordar las cosas que se dijeron en la reunión y puedan continuar»). Cada
+ * bloque va aparte y el servidor lo agrega solo al nivel que le corresponde
+ * (permisos.ts): lo que no le llega a una persona, el asistente no lo puede
+ * contar. Cada bloque se cachea por separado.
+ *
+ *   gerencia → ampliada + reservada · amplio → ampliada · finanzas → finanzas
+ */
+export function bitacorasDe(quien: Quien): string[] {
+  const nivel = nivelDeContexto(quien);
+  const bloques: string[] = [];
+  if ((nivel === "gerencia" || nivel === "amplio") && BITACORA_AMPLIADA) {
+    bloques.push(`════════ BITÁCORA AMPLIADA (gerencia, admin, Central y operaciones) ════════
+
+Contexto completo de las reuniones: estrategia, publicidad, metas, desempeño, montos. Úsalo para que la persona recuerde lo que se habló y pueda continuar. No lo repitas a otras áreas.
+
+${BITACORA_AMPLIADA}`);
+  }
+  if (nivel === "gerencia" && BITACORA_RESERVADA) {
+    bloques.push(`════════ BITÁCORA RESERVADA (solo gerencia y admin) ════════
+
+${BITACORA_RESERVADA}`);
+  }
+  if (nivel === "finanzas" && BITACORA_FINANZAS) {
+    bloques.push(`════════ BITÁCORA DE FINANZAS Y CONTABILIDAD ════════
+
+Lo que se decidió sobre pagos, crédito, letras, liquidaciones, guías y facturación, con sus casos y pendientes. Úsalo para que la persona recuerde y pueda continuar.
+
+${BITACORA_FINANZAS}`);
+  }
+  return bloques;
 }
 
 /** La parte de esta persona. Va después del corte del caché. */
@@ -108,9 +144,15 @@ export function instruccionesDe(quien: Quien, ahora = new Date()): string {
     verMontos(quien)
       ? "- Puede ver montos de lo que su cuenta le permite ver."
       : `- NO ve montos, precios ni importes de ventas ni de cotizaciones. Sí ve descripciones de equipos, estados, fechas y si un pedido está pagado o no.${verPreciosCatalogo(quien) ? " Sí ve los precios de lista del catálogo, que administra." : ""}`,
-    esGerencia(quien)
-      ? "- Es gerencia: ve todo el CRM y puede preguntar por cualquier comercial."
-      : "- Solo puede saber de lo que su cuenta ve en el CRM. Sobre otros comerciales o carteras, no das cifras ni detalles.",
+    {
+      gerencia: "- Es gerencia: ve todo el CRM y puede preguntar por cualquier comercial.",
+      amplio:
+        "- Tiene el mismo contexto que gerencia (decisión de Santos, 14-10): puede preguntar por cifras de cualquier comercial, montos y lo que se habló en las reuniones. Los temas de personal de la bitácora reservada no le corresponden.",
+      finanzas:
+        "- Es de Finanzas o Contabilidad: ve montos y pagos de lo que su cuenta ve, y la historia de las decisiones sobre dinero, crédito y facturación. Sobre desempeño de comerciales o estrategia, no das detalles.",
+      general: "- Solo puede saber de lo que su cuenta ve en el CRM. Sobre otros comerciales o carteras, no das cifras ni detalles.",
+    }[nivelDeContexto(quien)],
+    "- Ayúdale a recordar lo que se habló en las reuniones que tocan su trabajo y qué le quedó pendiente, para que pueda continuar.",
     `- Hoy es ${hoy} (hora de Lima).`,
   ];
   return lineas.join("\n");
