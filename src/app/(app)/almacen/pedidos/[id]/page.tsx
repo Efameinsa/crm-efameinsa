@@ -126,7 +126,7 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
               {" · "}
               <b className={servicio.guia_confirmada_at ? "text-[#1E7F4F]" : "text-amber-700"}>
                 {servicio.guia_confirmada_at
-                  ? `Finanzas confirmó la guía el ${fechaHoraLima(servicio.guia_confirmada_at)}${servicio.guia_comprobante_tipo ? ` · ${textoComprobante(servicio.guia_comprobante_tipo, servicio.guia_comprobante_numero)}` : ""}${textoMotivoGuia(servicio.guia_motivo) ? ` · ${textoMotivoGuia(servicio.guia_motivo)}` : ""}`
+                  ? `Finanzas confirmó la guía el ${fechaHoraLima(servicio.guia_confirmada_at)}${servicio.guia_comprobante_tipo ? ` · ${textoComprobante(servicio.guia_comprobante_tipo, servicio.guia_comprobante_numero)}` : ""}${textoMotivoGuia(servicio.guia_motivo, servicio.guia_motivo_detalle) ? ` · ${textoMotivoGuia(servicio.guia_motivo, servicio.guia_motivo_detalle)}` : ""}`
                   : "falta que Finanzas confirme la guía"}
               </b>
             </p>

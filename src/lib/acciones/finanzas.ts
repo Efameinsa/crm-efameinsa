@@ -211,6 +211,8 @@ export async function confirmarGuia(
   comprobante: { tipo: "factura" | "boleta" | "sin_comprobante" | null; numero: string },
   /** Motivo de la guía: lo define Contabilidad (0486, audio del 14-10). */
   motivo: MotivoGuia | null = null,
+  /** Si el motivo es «otro» (0487): cuál. */
+  motivoDetalle = "",
 ) {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -220,11 +222,12 @@ export async function confirmarGuia(
     p_comprobante_tipo: comprobante.tipo,
     p_comprobante_numero: comprobante.numero.trim() || null,
     p_motivo: motivo,
+    p_motivo_detalle: motivoDetalle.trim() || null,
   });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
   const { data: s } = await supabase.from("servicios_postventa").select("*").eq("id", servicioId).maybeSingle();
   const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
-  const conQue = [textoMotivoGuia(motivo), textoComprobante(comprobante.tipo, comprobante.numero.trim() || null)].filter(Boolean).join(" · ");
+  const conQue = [textoMotivoGuia(motivo, motivoDetalle), textoComprobante(comprobante.tipo, comprobante.numero.trim() || null)].filter(Boolean).join(" · ");
   // A crédito (o con saldo), Contabilidad factura cuando postventa confirme que el
   // cliente recibió el equipo y está conforme: desde ahí corren los días de
   // crédito (audio de Contabilidad, 14-10). Se le recuerda a postventa ahora.

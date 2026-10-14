@@ -28,6 +28,7 @@ type FilaAp = {
   guia_comprobante_tipo: string | null;
   guia_comprobante_numero: string | null;
   guia_motivo: string | null;
+  guia_motivo_detalle: string | null;
   despachado_at: string | null;
   forma_pago: string | null;
   pct_antes_despacho: number | null;
@@ -63,7 +64,7 @@ export default async function AperturasPorConfirmarPage() {
   const conPedido = perfil.rol !== "facturacion";
   const supabase = await createClient();
   const columnas =
-    "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, guia_motivo, despachado_at, forma_pago, pct_antes_despacho, origen, tipo_pedido, letras_cantidad, confirmacion_abono, informe_cierre_id, pago_confirmado_at, finanzas_vb_at, finanzas_vb_por, finanzas_vb_nota, finanzas_vb_comision, letras_estado, letras_firmadas_at, salida_autorizada_at, salida_autorizada_motivo, moneda";
+    "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, guia_motivo, guia_motivo_detalle, despachado_at, forma_pago, pct_antes_despacho, origen, tipo_pedido, letras_cantidad, confirmacion_abono, informe_cierre_id, pago_confirmado_at, finanzas_vb_at, finanzas_vb_por, finanzas_vb_nota, finanzas_vb_comision, letras_estado, letras_firmadas_at, salida_autorizada_at, salida_autorizada_motivo, moneda";
   const [{ data }, { data: sinEmitir }] = await Promise.all([
     supabase
       .from("servicios_postventa")
@@ -203,7 +204,7 @@ function FilaApertura({
             <CheckCircle2 className="size-3.5" /> Guía confirmada el{" "}
             {fechaHoraLima(f.guia_confirmada_at)}
             {f.guia_comprobante_tipo ? ` · ${textoComprobante(f.guia_comprobante_tipo, f.guia_comprobante_numero)}` : ""}
-            {textoMotivoGuia(f.guia_motivo) ? ` · ${textoMotivoGuia(f.guia_motivo)}` : ""}
+            {textoMotivoGuia(f.guia_motivo, f.guia_motivo_detalle) ? ` · ${textoMotivoGuia(f.guia_motivo, f.guia_motivo_detalle)}` : ""}
             {f.guia_confirmada_nota ? ` · ${f.guia_confirmada_nota}` : ""}
           </p>
         )}

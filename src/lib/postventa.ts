@@ -60,6 +60,8 @@ export interface ServicioPostventa {
   guia_comprobante_numero?: string | null;
   /** Motivo de la guía que define Contabilidad al autorizarla (0486): venta, traslado o consignacion. */
   guia_motivo?: string | null;
+  /** Cuando el motivo es «otro» (0487): cuál. */
+  guia_motivo_detalle?: string | null;
   salida_autorizada_motivo?: string | null;
   despacho_autorizado_por?: string | null;
   /** Visto bueno de Finanzas para que salga una venta a crédito (0469). */
@@ -975,7 +977,7 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
         ? s.guia_confirmada_at
           ? `✓ Guía autorizada el ${new Date(s.guia_confirmada_at).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}${
               textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero) ? ` · ${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero)}` : ""
-            }${textoMotivoGuia(s.guia_motivo) ? ` · ${textoMotivoGuia(s.guia_motivo)}` : ""}`
+            }${textoMotivoGuia(s.guia_motivo, s.guia_motivo_detalle) ? ` · ${textoMotivoGuia(s.guia_motivo, s.guia_motivo_detalle)}` : ""}`
           : s.despachado_at
             ? circuito.esServicio
               ? "Con este documento el técnico sale con todo definido"
@@ -1379,11 +1381,14 @@ export const MOTIVOS_GUIA = [
   { valor: "venta", etiqueta: "Venta", ayuda: "sale el equipo vendido" },
   { valor: "traslado", etiqueta: "Traslado", ayuda: "servicio: se devuelve o se recoge un equipo" },
   { valor: "consignacion", etiqueta: "Consignación", ayuda: "sale por posible venta" },
+  // Hay más motivos de guía (0487): se escribe cuál.
+  { valor: "otro", etiqueta: "Otro", ayuda: "escriba cuál es el motivo" },
 ] as const;
 export type MotivoGuia = (typeof MOTIVOS_GUIA)[number]["valor"];
 
-/** «Guía por VENTA»; vacío si todavía no lo definió Contabilidad. */
-export function textoMotivoGuia(motivo: string | null | undefined): string {
+/** «Guía por VENTA» (o por lo escrito, si es «otro»); vacío si todavía no lo definió Contabilidad. */
+export function textoMotivoGuia(motivo: string | null | undefined, detalle?: string | null): string {
+  if (motivo === "otro") return `Guía por ${(detalle?.trim() || "otro motivo").toUpperCase()}`;
   const m = MOTIVOS_GUIA.find((x) => x.valor === motivo);
   return m ? `Guía por ${m.etiqueta.toUpperCase()}` : "";
 }

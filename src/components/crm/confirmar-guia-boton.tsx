@@ -53,14 +53,16 @@ export function ConfirmarGuiaBoton({
   const [tipo, setTipo] = useState<Comprobante | null>(null);
   const [numero, setNumero] = useState("");
   const [motivo, setMotivo] = useState<MotivoGuia>(motivoSugerido);
+  const [motivoOtro, setMotivoOtro] = useState("");
   const pideNumero = tipo === "factura" || tipo === "boleta";
-  const listo = tipo !== null && (!pideNumero || numero.trim().length > 0);
+  const listo = tipo !== null && (!pideNumero || numero.trim().length > 0) && (motivo !== "otro" || motivoOtro.trim().length > 0);
 
   function enviar() {
     if (!tipo) return void toast.error("Elija con qué comprobante sale: factura, boleta o sin comprobante todavía");
     if (pideNumero && !numero.trim()) return void toast.error(`Escriba el número de la ${tipo}`);
+    if (motivo === "otro" && !motivoOtro.trim()) return void toast.error("Escriba cuál es el otro motivo de la guía");
     startTransition(async () => {
-      const r = await confirmarGuia(servicioId, nota, { tipo, numero: pideNumero ? numero : "" }, motivo);
+      const r = await confirmarGuia(servicioId, nota, { tipo, numero: pideNumero ? numero : "" }, motivo, motivo === "otro" ? motivoOtro : "");
       if (r.error) return void toast.error(r.error);
       toast.success("Confirmado: el almacén ya puede emitir la guía");
       setAbierto(false);
@@ -111,7 +113,11 @@ export function ConfirmarGuiaBoton({
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-muted-foreground">{MOTIVOS_GUIA.find((m) => m.valor === motivo)?.ayuda}. El almacén emite la guía con este motivo.</p>
+            {motivo === "otro" ? (
+              <Input value={motivoOtro} onChange={(e) => setMotivoOtro(e.target.value)} placeholder="¿Cuál? Ej.: devolución, importación, emisor itinerante…" autoFocus />
+            ) : (
+              <p className="text-[11px] text-muted-foreground">{MOTIVOS_GUIA.find((m) => m.valor === motivo)?.ayuda}. El almacén emite la guía con este motivo.</p>
+            )}
           </div>
           <div className="grid gap-1.5">
             <Label className="text-xs">¿Con qué comprobante sale?</Label>
