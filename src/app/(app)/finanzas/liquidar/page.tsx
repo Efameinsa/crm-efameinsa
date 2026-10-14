@@ -6,7 +6,7 @@ import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
 import { fechaHoraLima } from "@/lib/fechas";
 import { pedidosConLiquidacion, pedidosPorId } from "@/lib/pagos-finanzas";
-import { cotizacionesDeCierres, documentosDeFinanzas, etiquetaEstadoPago } from "@/lib/documentos-finanzas";
+import { cotizacionesDeCierres, documentosDeFinanzas, etiquetaEstadoPago, liquidacionPorFacturar } from "@/lib/documentos-finanzas";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +65,9 @@ export default async function PedidosPorLiquidarPage() {
   const completo = new Map(completos.map((p) => [p.id, p]));
   const porActualizar = conLiquidacion.filter((p) => {
     const d = docs.get(p.id);
-    return d && d.facturas.length > 0 && d.liquidaciones.length > 0 && !d.liquidaciones[0].facturaNumero;
+    // Si la liquidación es de un anticipo nuevo (subida después de la última
+    // factura), todavía le toca a Facturación: no hay número que poner.
+    return d && d.facturas.length > 0 && d.liquidaciones.length > 0 && !d.liquidaciones[0].facturaNumero && !liquidacionPorFacturar(d);
   });
 
   const Expediente = ({ id }: { id: string }) => {

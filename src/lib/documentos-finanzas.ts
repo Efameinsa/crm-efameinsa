@@ -48,6 +48,24 @@ export interface DocumentosDeFinanzas {
   facturas: FacturaFirmada[];
 }
 
+/**
+ * ¿HAY UN ANTICIPO NUEVO POR FACTURAR? (Jhon 14-10, PRODECO PED-0010-2026).
+ * Un pedido con pagos a cuenta se factura por partes: el 1.er adelanto con su
+ * factura y, cuando entra otro pago, Finanzas sube una liquidación nueva con
+ * «factura pendiente». Antes «Por facturar» solo miraba si el pedido tenía
+ * alguna factura, así que el 2.º anticipo no le aparecía a Facturación.
+ * Devuelve la liquidación vigente cuando dice «factura pendiente» y se subió
+ * después de la última factura registrada (o no hay ninguna).
+ */
+export function liquidacionPorFacturar(d: DocumentosDeFinanzas | undefined): LiquidacionFirmada | null {
+  const vigente = d?.liquidaciones[0];
+  if (!vigente) return null;
+  if (d.facturas.length === 0) return vigente;
+  if (vigente.facturaNumero) return null;
+  const ultima = Math.max(...d.facturas.map((f) => Date.parse(f.registradaAt)));
+  return Date.parse(vigente.subidaAt) > ultima ? vigente : null;
+}
+
 type Fila = Record<string, unknown>;
 
 /**

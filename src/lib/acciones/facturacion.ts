@@ -40,6 +40,10 @@ export async function registrarLiquidacion(datos: {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
   const antes = await datosDelPedido(datos.servicioId);
+  // Si el pedido ya tiene factura, esta liquidación con «factura pendiente» es
+  // otro anticipo (Jhon 14-10, PRODECO): Facturación tiene que saberlo.
+  const { data: yaFacturadas } = await supabase.from("facturas_pedido").select("numero").eq("servicio_id", datos.servicioId);
+  const numeros = ((yaFacturadas ?? []) as { numero: string }[]).map((f) => f.numero);
   const { error } = await supabase.rpc("finanzas_registrar_liquidacion", {
     p_servicio: datos.servicioId,
     p_path: datos.path,
@@ -64,8 +68,10 @@ export async function registrarLiquidacion(datos: {
     // Si todavía no hay número de factura, el pedido espera a Facturación.
     !datos.factura
       ? notificarFacturacion({
-          titulo: `Por facturar · ${quien}`,
-          cuerpo: `Finanzas subió la liquidación${pedido} con factura pendiente. Revise el expediente y facture.`,
+          titulo: numeros.length ? `Nuevo anticipo por facturar · ${quien}` : `Por facturar · ${quien}`,
+          cuerpo: numeros.length
+            ? `Entró otro pago a cuenta${pedido}: ya tiene ${numeros.length === 1 ? "la factura" : "las facturas"} ${numeros.join(", ")} y Finanzas subió una liquidación nueva con factura pendiente${datos.nota?.trim() ? ` («${datos.nota.trim()}»)` : ""}. Facture este anticipo.`
+            : `Finanzas subió la liquidación${pedido} con factura pendiente. Revise el expediente y facture.`,
           url: "/facturacion",
           esPrueba,
         })
