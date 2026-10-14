@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2, Loader2 } from "lucide-react";
-import { buscarEmpresaParaVisita, registrarVisitaPlanta } from "@/lib/acciones/visitas-planta";
+import { buscarEmpresaParaVisita, equiposDeLaFichaParaVisita, registrarVisitaPlanta, type EquipoDeLaFicha } from "@/lib/acciones/visitas-planta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +67,21 @@ export function VisitaPlantaBoton({
   const [cuentaElegida, setCuentaElegida] = useState<string | null>(cuentaId);
   const [sugerencias, setSugerencias] = useState<{ id: string; razon_social: string; num_doc: string | null }[]>([]);
   const [buscado, setBuscado] = useState(false);
+  // Los equipos de la ficha que recoge en planta (0467; Rubí, 13-10).
+  const [equiposFicha, setEquiposFicha] = useState<EquipoDeLaFicha[] | null>(null);
+  const [recoge, setRecoge] = useState<string[]>([]);
+  useEffect(() => {
+    setRecoge([]);
+    if (!abierto || !cuentaElegida) {
+      setEquiposFicha(null);
+      return;
+    }
+    let vigente = true;
+    equiposDeLaFichaParaVisita(cuentaElegida).then((r) => vigente && setEquiposFicha(r));
+    return () => {
+      vigente = false;
+    };
+  }, [abierto, cuentaElegida]);
   useEffect(() => {
     if (cuentaId || cuentaElegida || !abierto) return;
     const q = f.ruc.trim().length >= 8 ? f.ruc.trim() : f.empresa.trim();
@@ -102,7 +117,7 @@ export function VisitaPlantaBoton({
       .join("; ");
     startTransition(async () => {
       const r = await registrarVisitaPlanta({ cuentaId: cuentaElegida, oportunidadId, ...f, showroom: showroom || videollamada, prenderTv, infocorp, cotizacionRef: cotizacion, videollamada,
-        acompanantes: videollamada ? [] : acompanantes, maquinas: lista });
+        acompanantes: videollamada ? [] : acompanantes, maquinas: lista, equiposRecoge: videollamada ? [] : recoge });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
         return;
@@ -121,6 +136,7 @@ export function VisitaPlantaBoton({
       // Que la próxima visita no herede la máquina ni el film de ésta.
       setMaquinas([]);
       setAcompanantes([]);
+      setRecoge([]);
       router.refresh();
     });
   }
@@ -275,6 +291,32 @@ export function VisitaPlantaBoton({
               + Máquina a preparar
             </button>
           </div>
+          {!videollamada && cuentaElegida && equiposFicha && (
+            <div className="grid gap-1.5 rounded-md border border-border p-2">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">¿Viene a recoger equipos suyos?</p>
+                <p className="text-[11px] text-muted-foreground">Marque cuáles se lleva: van con su serie en el aviso, el correo y la hoja de vigilancia.</p>
+              </div>
+              {equiposFicha.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">Esta ficha no tiene equipos registrados con serie: escriba cuál recoge en «Para qué viene».</p>
+              ) : (
+                equiposFicha.map((e) => (
+                  <label key={e.id} className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={recoge.includes(e.id)}
+                      onChange={(ev) => setRecoge((xs) => (ev.target.checked ? [...xs, e.id] : xs.filter((x) => x !== e.id)))}
+                      className="mt-0.5 size-4 shrink-0"
+                    />
+                    <span>
+                      {e.modelo}
+                      {e.serie && <span className="ml-1 font-mono text-[11px] text-muted-foreground">· serie {e.serie}</span>}
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+          )}
           <div className="grid gap-1">
             <Label className="text-xs">
               {videollamada ? "Para qué es" : "Para qué viene"} <span className="text-destructive">*</span>
