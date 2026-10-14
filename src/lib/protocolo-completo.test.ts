@@ -43,6 +43,20 @@ describe("faltaParaProbar", () => {
     expect(faltaParaProbar(calandria, []).join()).toContain("PDF o Word");
   });
 
+  it("el video de la prueba no reemplaza al Word/PDF (Ariana, 14-10)", () => {
+    const calandria: MaquinaParaProbar = {
+      ...cofaco,
+      descripcion: "CALANDRIA INDUSTRIAL MARCA GMP MODELO 160.30A",
+      protocolo_ref: "P-7",
+      protocolo_fotos: [
+        { path: "a.jpg", tipo: "image/jpeg" },
+        { path: "prueba.mp4", tipo: "video/mp4", etiqueta: "video" },
+      ],
+      protocolo_datos: { principal: { modelo: "160.30A", tecnico: "T" } },
+    };
+    expect(faltaParaProbar(calandria, []).join()).toContain("PDF o Word");
+  });
+
   it("con la ficha, fotos, PDF y la hoja completa se puede", () => {
     const lista: MaquinaParaProbar = {
       ...cofaco,

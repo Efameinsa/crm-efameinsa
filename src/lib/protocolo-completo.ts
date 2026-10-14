@@ -49,6 +49,10 @@ export type LoQueVaConElClic = {
 const esImagen = (a: NonNullable<ArchivoProtocolo>) =>
   (a.tipo ?? "").startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/i.test(a.path ?? "");
 
+// El video de la prueba (14-10) no es el protocolo PDF/Word: no lo reemplaza.
+const esVideo = (a: NonNullable<ArchivoProtocolo>) =>
+  (a.tipo ?? "").startsWith("video/") || a.etiqueta === "video" || /\.(mp4|mov|webm|3gp)$/i.test(a.path ?? "");
+
 const lista = (x: unknown): NonNullable<ArchivoProtocolo>[] => (Array.isArray(x) ? x.filter((a): a is NonNullable<ArchivoProtocolo> => Boolean(a)) : []);
 
 /** La hoja de chequeo que el sistema llena para esta máquina (null = no hay plantilla: se sube el Word/PDF). */
@@ -71,7 +75,7 @@ function faltaEnLaHoja(
   const plantilla = hojaDelSistema(e, maquina, repuesto);
   const falta: string[] = [];
   if (!archivos.some(esImagen)) falta.push("fotos");
-  if (!repuesto && !plantilla && !archivos.some((a) => !esImagen(a))) falta.push("protocolo o informe (PDF o Word)");
+  if (!repuesto && !plantilla && !archivos.some((a) => !esImagen(a) && !esVideo(a))) falta.push("protocolo o informe (PDF o Word)");
   if (!repuesto && !guardado.modelo?.trim()) falta.push("modelo de la placa (en la ficha del informe)");
   if (!repuesto && !(guardado.serie ?? propuesta.serie ?? e.serie)?.trim()) falta.push("serie");
   if (!(tecnicoEnPantalla.trim() || guardado.tecnico?.trim())) falta.push("técnico que hizo la prueba");
