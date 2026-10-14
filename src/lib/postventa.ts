@@ -1404,3 +1404,24 @@ export function textoComprobante(tipo: string | null | undefined, numero: string
   if (tipo === "sin_comprobante") return "Sin comprobante todavía";
   return "";
 }
+
+/**
+ * Las máquinas del pedido de a una serie, como las ve el almacén (Lesly,
+ * 10-10): la secadora de una torre va después de su lavadora. Rubí, 14-10:
+ * «que se separe por serie, ya que se tiene que subir un informe por cada
+ * equipo» — el informe de puesta en marcha se elige de esta lista.
+ */
+export function maquinasPorSerie(
+  lista: { id: string; equipo_id: string | null; serie: string | null; descripcion: string; parte_de?: string | null; parte_nombre?: string | null }[],
+): { equipoId: string | null; serie: string | null; descripcion: string }[] {
+  return lista
+    .filter((e) => !e.parte_de)
+    .flatMap((e) => {
+      const partes = lista.filter((p) => p.parte_de === e.id);
+      const enTorre = partes.some((p) => /secadora/i.test(p.parte_nombre ?? ""));
+      return [
+        { equipoId: e.equipo_id, serie: e.serie, descripcion: `${enTorre ? "Lavadora · " : ""}${e.descripcion}` },
+        ...partes.map((p) => ({ equipoId: p.equipo_id, serie: p.serie, descripcion: p.descripcion })),
+      ];
+    });
+}

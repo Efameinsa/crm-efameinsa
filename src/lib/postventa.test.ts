@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  maquinasPorSerie,
   llevaOrdenFacturar,
   seriesDeTexto,
   estadoGarantia,
@@ -599,5 +600,19 @@ describe("quién hizo cada etapa (0473)", () => {
     expect(pasos.find((p) => p.clave === "apertura")?.detalle).toMatch(/guía autorizada por Facturación 1/);
     // Lo que no está hecho no lleva nombre.
     expect(pasos.find((p) => p.clave === "cerrado")?.quien ?? null).toBeNull();
+  });
+});
+
+describe("maquinasPorSerie (Rubí 14-10: un informe de puesta en marcha por serie)", () => {
+  it("la secadora de la torre sale con su serie, después de su lavadora", () => {
+    // El pedido real de la foto de Rubí: una lavadora sola y una torre LG Giant C Max.
+    const lista = [
+      { id: "a", equipo_id: "e1", serie: "604KWNM5N407", descripcion: "LAVADORA CENTRIFUGA SEMI INDUSTRIAL OPL – APILABLE", parte_de: null, parte_nombre: null },
+      { id: "b", equipo_id: "e2", serie: "604KWJU5N412", descripcion: "LAVADORA – SECADORA SEMI INDUSTRIAL", parte_de: null, parte_nombre: null },
+      { id: "c", equipo_id: "e3", serie: "304KWUC0V206", descripcion: "Secadora · LAVADORA – SECADORA SEMI INDUSTRIAL", parte_de: "b", parte_nombre: "Secadora" },
+    ];
+    expect(maquinasPorSerie(lista).map((m) => m.serie)).toEqual(["604KWNM5N407", "604KWJU5N412", "304KWUC0V206"]);
+    expect(maquinasPorSerie(lista)[1].descripcion).toMatch(/^Lavadora · /);
+    expect(maquinasPorSerie(lista)[2]).toMatchObject({ equipoId: "e3", descripcion: "Secadora · LAVADORA – SECADORA SEMI INDUSTRIAL" });
   });
 });

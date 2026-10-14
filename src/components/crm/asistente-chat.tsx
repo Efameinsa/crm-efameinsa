@@ -11,6 +11,7 @@ import {
   Loader2,
   Maximize2,
   Minimize2,
+  Minus,
   Paperclip,
   Sparkles,
   SquarePen,
@@ -122,6 +123,8 @@ export function AsistenteChat({
   sugerencias = SUGERENCIAS_GENERALES,
   grande = false,
   onAlternarTamano,
+  onMinimizar,
+  onActividad,
 }: {
   nombre: string;
   /** El marco cambia según dónde viva: pantalla completa o burbuja flotante. */
@@ -131,6 +134,10 @@ export function AsistenteChat({
   grande?: boolean;
   /** Si existe, la cabecera ofrece agrandar y volver al tamaño normal. */
   onAlternarTamano?: () => void;
+  /** Si existe, la cabecera ofrece encoger la ventana a la bolita sin perder la conversación. */
+  onMinimizar?: () => void;
+  /** Avisa cuántos mensajes hay y si está pensando (la bolita lo muestra minimizada). */
+  onActividad?: (a: { mensajes: number; pensando: boolean }) => void;
   /** Las preguntas de ejemplo, según el área de quien mira. */
   sugerencias?: string[];
 }) {
@@ -157,6 +164,12 @@ export function AsistenteChat({
   // veníamos hablando. El servidor comprueba que la conversación sea de quien
   // pregunta y rearma el historial desde la base.
   const hilo = useRef<string | null>(null);
+
+  // La burbuja necesita saber si hay conversación y si está pensando, para
+  // mostrarlo en la bolita mientras la ventana está minimizada.
+  useEffect(() => {
+    onActividad?.({ mensajes: mensajes.length, pensando });
+  }, [mensajes.length, pensando, onActividad]);
 
   // EL DESPLAZAMIENTO (14-10). Se mueve solo ESTA caja, sin arrastrar la
   // pantalla de atrás. Al preguntar, baja para mostrar la pregunta y el
@@ -330,13 +343,22 @@ export function AsistenteChat({
               <SquarePen className="size-4" />
             </BotonVentana>
           )}
+          {/* Minimizar (Santos, 14-10: «si le dan en "x" se cierra y todo
+              empieza de nuevo»). Encoge la ventana a la bolita; la
+              conversación sigue ahí, incluso la respuesta que se está
+              escribiendo. */}
+          {onMinimizar && (
+            <BotonVentana titulo="Minimizar (la conversación se guarda)" onClick={onMinimizar}>
+              <Minus className="size-4" />
+            </BotonVentana>
+          )}
           {onAlternarTamano && (
             <BotonVentana titulo={grande ? "Volver al tamaño normal" : "Agrandar"} onClick={onAlternarTamano} className="hidden sm:inline-flex">
               {grande ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
             </BotonVentana>
           )}
           {onCerrar && (
-            <BotonVentana titulo="Cerrar" onClick={onCerrar}>
+            <BotonVentana titulo={mensajes.length > 0 ? "Cerrar y terminar esta conversación" : "Cerrar"} onClick={onCerrar}>
               <X className="size-4" />
             </BotonVentana>
           )}
