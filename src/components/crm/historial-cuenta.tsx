@@ -36,7 +36,7 @@ function textoBuscable(evento: EventoTimeline): string {
   }
   if (evento.tipo === "solicitud") return ["solicitud inicio", evento.mensaje ?? "", evento.codigo ?? "", evento.quien ?? ""].join(" ").toLowerCase();
   if (evento.tipo === "servicio") return [evento.titulo, evento.detalle ?? ""].join(" ").toLowerCase();
-  return "venta cerrada";
+  return evento.anulada ? "venta anulada" : "venta cerrada";
 }
 
 // La vista por defecto de la ficha del cliente: el vendedor que recibe una
@@ -376,8 +376,11 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento:
           </p>
         )}
         {evento.tipo === "venta" && (
-          <p className="text-sm font-semibold text-[#1E7F4F]">
-            Venta cerrada{evento.monto != null ? ` — ${evento.moneda} ${evento.monto.toLocaleString("es-PE")}` : ""}
+          // Anulada: queda en la historia porque pasó, pero tachada, como en la
+          // línea de tiempo (Ariana 14-10, Agrocasagrande 2345-26: «no es una venta cerrada»).
+          <p className={cn("text-sm font-semibold", evento.anulada ? "text-muted-foreground line-through" : "text-[#1E7F4F]")}>
+            {evento.anulada ? "Venta anulada" : "Venta cerrada"}
+            {evento.monto != null ? ` — ${evento.moneda} ${evento.monto.toLocaleString("es-PE")}` : ""}
             {evento.presupuesto && (
               <span className="font-normal text-muted-foreground"> · presupuesto {evento.presupuesto}</span>
             )}
@@ -413,8 +416,13 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento:
           </span>
         )}
         {evento.tipo === "venta" && (
-          <span className="inline-flex rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 text-[11px] font-semibold text-[#1E7F4F]">
-            Venta
+          <span
+            className={cn(
+              "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
+              evento.anulada ? "bg-foreground/10 text-muted-foreground" : "bg-[#1E7F4F]/10 text-[#1E7F4F]",
+            )}
+          >
+            {evento.anulada ? "Anulada" : "Venta"}
           </span>
         )}
         {evento.tipo === "solicitud" && (
