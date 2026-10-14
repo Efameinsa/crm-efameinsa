@@ -154,6 +154,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   4. **Preinstalación.** En Lima, videollamada **antes** del despacho. En provincia, confirmación del cliente **después**, con fotos de agua, desagüe y energía.
   5. **Dirección y quién recibe, verificados con el cliente.** El campo **«Destino del equipo»** (Lima o provincia) es obligatorio, y el DNI de quien recibe también. Por qué: nueve de cada diez veces cambia la dirección, el teléfono o quien recibe. Además, la modalidad cambia la preinstalación, la puesta en marcha y la garantía.
   6. **«Emitir apertura»** (de despacho o de servicio). Pide confirmación antes de emitir. La apertura es la orden de trabajo para el almacén y el técnico. Ver 3.8.
+     - El botón «Emitir» está en el paso «Apertura» del pedido, no en la hoja de la apertura. En la hoja, «Enviar al almacén y a Finanzas» solo funciona si la apertura ya está emitida (desde el 14-10). Antes se podía marcar «enviada» sin emitirla, y el almacén no la veía (caso Beneficencia de Huancayo).
+     - La apertura pide «guía de salida del equipo» (desde el 14-10). El **motivo** de la guía no lo pone postventa: lo define Contabilidad al autorizarla (ver 1.10).
 - **Qué sale:** una apertura emitida que llega sola al almacén y a Finanzas/Contabilidad.
 - **«Terminado»:** apertura emitida y guía autorizada.
 - **Bloqueos típicos y por qué:**
@@ -163,8 +165,11 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 ### 1.10 Contabilidad autoriza la guía
 
 - **Dueño:** Contabilidad (la cuenta de Facturación). Si Contabilidad no está, Finanzas.
-- **Qué hace:** confirma la apertura e indica el comprobante (factura, boleta o sin comprobante) y su número, que es obligatorio si hay factura o boleta.
-- **Qué sale:** «Finanzas autorizó la guía». Postventa recibe aviso. El almacén ve el pedido en «Guías autorizadas por Finanzas».
+- **Qué hace:** confirma la apertura e indica:
+  - el **motivo de la guía** (obligatorio desde el 14-10, audio de Contabilidad): **venta** (sale el equipo vendido), **traslado** (servicios: se devuelve o se recoge un equipo), **consignación** (sale por posible venta) u **«Otro»**, con el motivo escrito (por ejemplo, devolución). El CRM propone venta si hay cierre y no es servicio, y traslado en lo demás; decide Contabilidad. Rige de ahí en adelante: las guías autorizadas antes no tienen motivo y no se frenan;
+  - el comprobante (factura, boleta o sin comprobante) y su número, que es obligatorio si hay factura o boleta.
+- **Flujo de la guía:** postventa ordena la salida (apertura) → Contabilidad aprueba la guía y dice el motivo → el almacén emite la guía con ese motivo y despacha.
+- **Qué sale:** «Finanzas autorizó la guía», con el motivo («Guía por VENTA»). Postventa recibe aviso; si la venta es a crédito o con saldo, el aviso le recuerda dar la «Orden a Finanzas para facturar y cobrar» cuando el cliente confirme que recibió el equipo y está conforme. El almacén ve el pedido en «Guías autorizadas por Finanzas».
 - **Bloqueo típico:** en ventas a crédito, sin visto bueno de Finanzas no se autoriza la guía.
 
 ### 1.11 Almacén: prueba, embalaje y despacho
@@ -285,6 +290,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - la historia del cliente con el autor de cada gestión, **sin montos**;
   - la OC, el voucher y los PDF del expediente, **con los montos tapados** (decisión del 23-09; PDF tapados desde el 28-09);
   - el **estado** del pago («Pagado completo», «Pago parcial», «Pago sin registrar»), pero no la cifra.
+- **Corrige nombre, RUC y rubro de clientes sin dueño** (desde el 14-10, caso Hospital Chanka): botón «Corregir nombre o RUC» junto al nombre del cliente. Como postventa no tiene cartera, sus clientes suelen quedar sin dueño. Si el cliente es de un comercial, lo corrige el comercial.
 - **No ve:** precios de venta ni cifras de ventas de los comerciales. Esto incluye las cotizaciones antiguas: ve las descripciones, no los precios.
 - **Puede:**
   - cotizar servicios y repuestos, y corregir las cotizaciones del área aunque las haya hecho otra compañera;
@@ -320,7 +326,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - asignar y registrar series (avisa si el largo no es el típico de la marca; corregir una serie ya registrada pide código);
   - marcar «Sin stock» con motivo;
   - subir protocolos y marcar «Probada y embalada»;
-  - «Estamos listos», despachar, subir la guía;
+  - «Estamos listos», despachar, subir la guía (la guía se emite con el motivo que indicó Contabilidad al autorizarla: venta, traslado, consignación u otro);
   - subir informes de llamadas;
   - cambiar el técnico mientras no haya informe;
   - registrar visitas de proveedor;
@@ -346,7 +352,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - «Observados», con revisión automática de congruencia: empresa, RUC, moneda, monto con IGV y OC adjunta;
   - «Facturados»;
   - «Enviada al cliente».
-- **Autoriza las guías** de las aperturas (desde el 12-10) indicando el comprobante.
+- **Autoriza las guías** de las aperturas (desde el 12-10) indicando el motivo de la guía (desde el 14-10) y el comprobante.
+- **A crédito factura cuando postventa da la orden** (14-10): los días de crédito corren desde la factura, así que se espera a que el cliente confirme que el equipo llegó y está conforme.
 
 ### 2.8 Importaciones
 
@@ -626,6 +633,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 **Orden a Finanzas para facturar y cobrar** (desde el 13-10)
 - Es el último paso antes de «Pedido cerrado» cuando se ejecutó sin cobrar el 100 %.
 - La da postventa. Avisa a Finanzas y Facturación por campana y por correo.
+- **Cuándo darla en una venta a crédito** (Contabilidad, 14-10): cuando el cliente confirme que el equipo llegó, está instalado y conforme. Los días de crédito corren desde la factura; si se factura con el equipo todavía en tránsito a provincia, el cliente reclama con razón.
 - Por qué: «el 99 % me paga primero; el 1 % voy, viajo, invierto y luego te cobro».
 
 **Otras reglas del pedido**
@@ -975,7 +983,7 @@ Porque las letras que iban con el equipo no figuran como entregadas al cliente. 
 Porque «cerrado» no es «entregado». Un pedido se cierra solo cuando su informe de cierre se anula. Revise si el cierre fue anulado y si hay un pedido nuevo. (1.12)
 
 **31. ¿Quién autoriza la guía?**
-Contabilidad (la cuenta Facturación), desde el 12-10. Si no está, lo hace Finanzas. Al autorizar se indica el comprobante. Si postventa corrige la apertura después, la autorización se anula y hay que volver a aprobar. (1.10)
+Contabilidad (la cuenta Facturación), desde el 12-10. Si no está, lo hace Finanzas. Al autorizar se indica el motivo de la guía (venta, traslado, consignación u otro, desde el 14-10) y el comprobante. Si postventa corrige la apertura después, la autorización se anula y hay que volver a aprobar. (1.10)
 
 **32. ¿Desde cuándo corre la garantía?**
 Desde la guía de remisión de venta, es decir, desde que la máquina sale de la empresa. Son 24 meses por defecto. Una guía de devolución después de un servicio no da garantía. (3.8)
