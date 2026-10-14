@@ -58,6 +58,31 @@ export async function pendientesAnotados(supabase: SupabaseClient, perfilId: str
   );
 }
 
+/**
+ * Las tareas comunes del calendario que siguen sin hacer (sin tipo de
+ * pendiente). Santos, 14-10: «que figuren como tareas pendientes, para ver esa
+ * agenda como un macro de todo lo que tienen por hacer». Las con tipo ya salen
+ * en pendientesAnotados; estas no salían en ningún lado del reporte.
+ */
+export async function tareasPendientesDelCalendario(
+  supabase: SupabaseClient,
+  perfilId: string,
+): Promise<{ titulo: string; fecha: string; hora: string | null }[]> {
+  const { data } = await supabase
+    .from("tareas_agenda")
+    .select("titulo, fecha, hora")
+    .eq("comercial_id", perfilId)
+    .is("tipo_pendiente", null)
+    .eq("completada", false)
+    .order("fecha")
+    .limit(200);
+  return ((data ?? []) as { titulo: string; fecha: string; hora: string | null }[]).map((t) => ({
+    titulo: t.titulo,
+    fecha: t.fecha,
+    hora: t.hora ? t.hora.slice(0, 5) : null,
+  }));
+}
+
 /** Uno por tipo, en el orden de TIPOS_PENDIENTE, solo los que tienen algo. */
 export function pendientesPorTipo(lista: PendienteAnotado[]): { tipo: TipoPendiente; lista: PendienteAnotado[] }[] {
   return TIPOS_PENDIENTE.map((tipo) => ({ tipo, lista: lista.filter((p) => p.tipo === tipo) })).filter(

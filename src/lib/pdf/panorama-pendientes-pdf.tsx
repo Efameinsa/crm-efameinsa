@@ -161,7 +161,7 @@ export function PanoramaPendientesPdf({ p, esHoy }: { p: PanoramaPendientes; esH
         <Kpi etiqueta={esHoy ? "Para hoy" : "Para ese día"} valor={delDia.length} sub="seguimientos programados" color={AMBAR} />
         <Kpi etiqueta="Próximos 7 días" valor={proximos.length} sub="ya agendados" color={AZUL} />
         <Kpi etiqueta="Por salir" valor={p.presupuestos.length} sub="presupuestos armados sin enviar" color="#1baf7a" />
-        <Kpi etiqueta="Anotados" valor={p.anotados.length} sub={anotVencidos > 0 ? `${anotVencidos} con fecha pasada` : esHoy ? "abiertos" : "solo en el reporte de hoy"} color="#e87ba4" />
+        <Kpi etiqueta="Anotados y tareas" valor={p.anotados.length} sub={anotVencidos > 0 ? `${anotVencidos} con fecha pasada` : esHoy ? "abiertos" : "solo en el reporte de hoy"} color="#e87ba4" />
       </View>
 
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
@@ -284,7 +284,7 @@ export function PanoramaPendientesPdf({ p, esHoy }: { p: PanoramaPendientes; esH
 
       {p.anotados.length > 0 && (
         <>
-          <Cabecera titulo="LO QUE ANOTÓ A MANO (IMPORTACIÓN, STOCK, CIERRE…)" total={p.anotados.length} />
+          <Cabecera titulo="SUS PENDIENTES: LO QUE ANOTÓ (IMPORTACIÓN, STOCK, CIERRE…) Y LAS TAREAS DE SU CALENDARIO" total={p.anotados.length} />
           <Th cols={[["Tipo", "20%"], ["Qué es", "55%"], ["Para el", "13%"], ["Atraso", "12%", "right"]]} />
           {p.anotados.map((a, i) => (
             <View key={i} wrap={false} style={fila(i)}>
