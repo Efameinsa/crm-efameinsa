@@ -186,7 +186,9 @@ export interface DatosApertura {
 export type GuiaApertura = "traslado" | "materiales" | "repuestos" | "ambas";
 
 export const GUIAS_APERTURA: { clave: GuiaApertura; etiqueta: string }[] = [
-  { clave: "traslado", etiqueta: "Guía para el traslado del equipo" },
+  // 14-10 (Contabilidad): «traslado» es un MOTIVO de guía (servicios); el motivo
+  // lo define Contabilidad al autorizarla (0486). Postventa solo pide la guía de salida.
+  { clave: "traslado", etiqueta: "Guía de salida del equipo" },
   { clave: "materiales", etiqueta: "Guía adicional para llevar materiales" },
   // Santos, 05-10: el técnico de mantenimiento lleva un manómetro para posible venta.
   { clave: "repuestos", etiqueta: "Guía para llevar repuestos" },
@@ -197,11 +199,11 @@ export const GUIAS_APERTURA: { clave: GuiaApertura; etiqueta: string }[] = [
 export function lineasGuia(guia: GuiaApertura | null | undefined, detalle?: string | null): string[] {
   if (!guia) return [];
   const extra = detalle?.trim() ? `: ${detalle.trim().toUpperCase()}` : "";
-  const traslado = "SE SOLICITA GUÍA PARA EL TRASLADO DEL EQUIPO";
+  const traslado = "SE SOLICITA GUÍA DE SALIDA DEL EQUIPO";
   const materiales = `SE SOLICITA GUÍA ADICIONAL PARA LLEVAR MATERIALES${extra}`;
   if (guia === "traslado") return [`${traslado}${extra}`];
   if (guia === "materiales") return [materiales];
-  if (guia === "repuestos") return [`SE SOLICITA GUÍA PARA EL TRASLADO DE REPUESTOS${extra}`];
+  if (guia === "repuestos") return [`SE SOLICITA GUÍA DE SALIDA DE REPUESTOS${extra}`];
   return [traslado, materiales];
 }
 

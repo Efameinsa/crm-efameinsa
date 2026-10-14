@@ -3,7 +3,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { asistenteEncendido, clienteClaude, costoUsd, errorEnCastellano, ESFUERZO, MODELO } from "@/lib/asistente/claude";
 import { avisoDe, ejecutarHerramienta, herramientasPara, type Evidencia } from "@/lib/asistente/herramientas";
-import { instruccionesDe, instruccionesFijas } from "@/lib/asistente/instrucciones";
+import { bitacorasDe, instruccionesDe, instruccionesFijas } from "@/lib/asistente/instrucciones";
 import { alcanceDe, type Quien } from "@/lib/asistente/permisos";
 import { AdjuntoInvalido, prepararAdjuntos, revisarAdjuntos } from "@/lib/asistente/adjuntos";
 import { cargarHilo, crearConversacion, MAX_PREGUNTAS, registrar, type Registro, type Turno } from "@/lib/asistente/historial";
@@ -118,8 +118,10 @@ export async function POST(request: Request) {
   const herramientas = herramientasPara(quien);
   const sistema: Anthropic.Beta.BetaTextBlockParam[] = [
     { type: "text", text: instruccionesFijas(), cache_control: { type: "ephemeral" } },
-    { type: "text", text: instruccionesDe(quien) },
   ];
+  // Las bitácoras de su nivel, cada una en su bloque (permisos.ts).
+  for (const bloque of bitacorasDe(quien)) sistema.push({ type: "text", text: bloque, cache_control: { type: "ephemeral" } });
+  sistema.push({ type: "text", text: instruccionesDe(quien) });
 
   const codificar = new TextEncoder();
   const flujo = new ReadableStream<Uint8Array>({

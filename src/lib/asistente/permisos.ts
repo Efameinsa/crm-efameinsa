@@ -42,8 +42,40 @@ export function esGerencia(q: Quien): boolean {
   return q.rol === "gerencia" || q.rol === "admin";
 }
 
+/**
+ * NIVELES DE CONTEXTO (Santos, 14-10): «todo esto es para ayudar a las
+ * personas a recordar las cosas que se dijeron en la reunión y puedan
+ * continuar… el de contabilidad tenga cierto contexto… Central debe tener
+ * mucho más contexto que todos, igual que gerencia, e igual que Lesly: pueden
+ * ver estados, montos, dinero».
+ *
+ *   gerencia  gerencia y admin: todo, incluida la bitácora reservada (temas de
+ *             personal y control de compañeros).
+ *   amplio    Central y operaciones (Lesly): lo mismo que gerencia —cifras de
+ *             comerciales, estrategia, montos— menos la bitácora reservada.
+ *   finanzas  Finanzas y Contabilidad: la bitácora de su flujo de dinero.
+ *   general   el resto: reglas, reuniones y pendientes de su trabajo.
+ */
+export type NivelContexto = "gerencia" | "amplio" | "finanzas" | "general";
+
+export function nivelDeContexto(q: Quien): NivelContexto {
+  if (esGerencia(q)) return "gerencia";
+  if (q.rol === "central" || q.rol === "operaciones") return "amplio";
+  if (q.rol === "finanzas" || q.rol === "facturacion") return "finanzas";
+  return "general";
+}
+
+/** Gerencia, Central y operaciones: ven cifras de todos como gerencia. */
+export function veComoGerencia(q: Quien): boolean {
+  const n = nivelDeContexto(q);
+  return n === "gerencia" || n === "amplio";
+}
+
 export function verMontos(q: Quien): boolean {
   if (esGerencia(q)) return true;
+  // Lesly tiene la marca de postventa, pero Santos la quiere viendo montos y
+  // dinero como gerencia (14-10). Va antes de la regla de postventa.
+  if (q.rol === "operaciones") return true;
   if (q.es_postventa || q.es_almacen || q.es_importaciones) return false;
   return true;
 }

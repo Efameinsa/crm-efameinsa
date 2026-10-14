@@ -48,7 +48,7 @@ describe("correoDeApertura", () => {
     expect(c.html).not.toMatch(/US\$|S\/\s?\d|IGV/);
   });
   it("la guía pedida sale en las notas", () => {
-    expect(c.html).toContain("SE SOLICITA GUÍA PARA EL TRASLADO DEL EQUIPO");
+    expect(c.html).toContain("SE SOLICITA GUÍA DE SALIDA DEL EQUIPO");
   });
   it("es HTML de correo (sin <style> ni flex)", () => {
     expect(c.html).not.toMatch(/<style|display:\s*(flex|grid)/i);

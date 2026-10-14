@@ -1,7 +1,21 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Trash2, Loader2, ChevronDown, Database, X, Paperclip, FileText, Image as IconoImagen } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowUpRight,
+  ChevronDown,
+  Database,
+  FileText,
+  Image as IconoImagen,
+  Loader2,
+  Maximize2,
+  Minimize2,
+  Paperclip,
+  Sparkles,
+  SquarePen,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TextoAsistente } from "@/components/crm/texto-asistente";
 
@@ -103,14 +117,20 @@ const SUGERENCIAS_GENERALES = [
 
 export function AsistenteChat({
   nombre,
-  claseContenedor = "mx-auto h-[calc(100vh-9rem)] w-full max-w-3xl rounded-xl border border-border shadow-sm",
+  claseContenedor = "mx-auto h-[calc(100vh-9rem)] w-full max-w-4xl rounded-2xl border border-border/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-16px_rgba(15,23,42,0.16)]",
   onCerrar,
   sugerencias = SUGERENCIAS_GENERALES,
+  grande = false,
+  onAlternarTamano,
 }: {
   nombre: string;
   /** El marco cambia según dónde viva: pantalla completa o burbuja flotante. */
   claseContenedor?: string;
   onCerrar?: () => void;
+  /** Ventana agrandada: el texto se centra a lo ancho de lectura cómoda. */
+  grande?: boolean;
+  /** Si existe, la cabecera ofrece agrandar y volver al tamaño normal. */
+  onAlternarTamano?: () => void;
   /** Las preguntas de ejemplo, según el área de quien mira. */
   sugerencias?: string[];
 }) {
@@ -138,11 +158,24 @@ export function AsistenteChat({
   // pregunta y rearma el historial desde la base.
   const hilo = useRef<string | null>(null);
 
-  // Bajar solo ESTA caja, sin arrastrar la pantalla de atrás.
+  // EL DESPLAZAMIENTO (14-10). Se mueve solo ESTA caja, sin arrastrar la
+  // pantalla de atrás. Al preguntar, baja para mostrar la pregunta y el
+  // «pensando». Al terminar, deja la pregunta ARRIBA: una respuesta larga se
+  // lee de arriba hacia abajo, y antes quedaba mostrando su final (Santos:
+  // «a veces hay mucha información»).
+  const ultimaPregunta = useRef<HTMLDivElement>(null);
+  const cantidad = mensajes.length;
+  const escribiendo = mensajes[mensajes.length - 1]?.escribiendo ?? false;
   useEffect(() => {
     const caja = listaRef.current;
-    if (caja) caja.scrollTo({ top: caja.scrollHeight, behavior: "smooth" });
-  }, [mensajes, pensando]);
+    if (!caja) return;
+    const p = ultimaPregunta.current;
+    if (!escribiendo && p) {
+      caja.scrollTo({ top: Math.max(0, p.offsetTop - 16), behavior: "smooth" });
+    } else {
+      caja.scrollTo({ top: caja.scrollHeight, behavior: "smooth" });
+    }
+  }, [cantidad, escribiendo]);
 
   async function preguntar(texto: string) {
     const pregunta = texto.trim();
@@ -258,125 +291,152 @@ export function AsistenteChat({
     }
   }
 
+  // La caja de texto crece con lo que se escribe, hasta un tope.
+  const textoRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const t = textoRef.current;
+    if (!t) return;
+    t.style.height = "auto";
+    t.style.height = `${Math.min(t.scrollHeight, grande ? 200 : 140)}px`;
+  }, [entrada, grande]);
+
+  const ancho = grande ? "mx-auto w-full max-w-3xl" : "w-full";
+  const puedeEnviar = (entrada.trim() !== "" || archivos.length > 0) && !pensando;
+
   return (
-    <div className={cn("flex min-h-0 flex-col overflow-hidden bg-card", claseContenedor)}>
-      {/* Cabecera */}
-      <div className="flex shrink-0 items-center justify-between border-b border-border bg-secondary/30 px-3.5 py-2.5">
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-3.5 text-primary" />
-          <h2 className="text-[13px] font-semibold tracking-tight text-foreground">Asistente Efamein</h2>
+    <div className={cn("flex min-h-0 flex-col overflow-hidden bg-card text-foreground", claseContenedor)}>
+      {/* Cabecera: quién es, y los tres controles de la ventana. */}
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-gradient-to-b from-secondary/50 to-card px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm ring-2 ring-primary/15">
+            <Sparkles className="size-4" />
+          </span>
+          <div className="min-w-0 leading-tight">
+            <h2 className="truncate text-[14px] font-bold tracking-tight">Asistente Efamein</h2>
+            <p className="truncate text-[11.5px] text-muted-foreground">
+              {pensando ? "Consultando el CRM…" : "Responde con los datos del CRM y sus permisos"}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex shrink-0 items-center gap-0.5">
           {mensajes.length > 0 && (
-            <button
-              type="button"
+            <BotonVentana
+              titulo="Nueva conversación"
               onClick={() => {
                 setMensajes([]);
                 hilo.current = null;
               }}
-              title="Empezar de nuevo"
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
-              <Trash2 className="size-3.5" />
-            </button>
+              <SquarePen className="size-4" />
+            </BotonVentana>
+          )}
+          {onAlternarTamano && (
+            <BotonVentana titulo={grande ? "Volver al tamaño normal" : "Agrandar"} onClick={onAlternarTamano} className="hidden sm:inline-flex">
+              {grande ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            </BotonVentana>
           )}
           {onCerrar && (
-            <button
-              type="button"
-              onClick={onCerrar}
-              aria-label="Cerrar el asistente"
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <X className="size-3.5" />
-            </button>
+            <BotonVentana titulo="Cerrar" onClick={onCerrar}>
+              <X className="size-4" />
+            </BotonVentana>
           )}
         </div>
       </div>
 
       {/* Conversación. `min-h-0` es lo que hace que esto se desplace de verdad. */}
-      <div ref={listaRef} className="barra-fina min-h-0 flex-1 overflow-y-auto px-3.5 py-3">
+      <div ref={listaRef} className="barra-fina relative min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {mensajes.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 px-2 text-center">
-            <div className="animar-latido flex size-11 items-center justify-center rounded-full bg-primary/10">
-              <Sparkles className="size-5 text-primary" />
+          <div className={cn("flex h-full flex-col items-center justify-center gap-5 px-1 text-center", ancho)}>
+            <span className="animar-latido flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20">
+              <Sparkles className="size-6" />
+            </span>
+            <div>
+              <h3 className="text-[18px] font-bold tracking-tight">Hola, {nombre.split(" ")[0]}. ¿En qué le ayudo?</h3>
+              <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground">
+                Pregunte por un pedido, una cotización, un cliente, cómo funciona algo o qué se acordó en una reunión. También puede adjuntar fotos, PDF, Word o Excel.
+              </p>
             </div>
-            <h3 className="text-[15px] font-semibold tracking-tight text-foreground">
-              ¿Qué necesita saber, {nombre.split(" ")[0]}?
-            </h3>
-            <div className="grid w-full max-w-sm gap-1.5">
+            <div className={cn("grid w-full gap-2", grande ? "max-w-2xl sm:grid-cols-2" : "max-w-sm")}>
               {sugerencias.map((s, i) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => preguntar(s)}
                   style={{ animationDelay: `${i * 55}ms` }}
-                  className="animar-entrada rounded-lg border border-border/70 bg-background px-3 py-2 text-left text-[12px] leading-snug text-muted-foreground transition-all hover:-translate-y-px hover:border-primary/40 hover:bg-accent hover:text-foreground"
+                  className="animar-entrada group flex items-center justify-between gap-2 rounded-xl border border-border/80 bg-card px-3.5 py-2.5 text-left text-[13px] leading-snug text-foreground/80 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:-translate-y-px hover:border-primary/40 hover:text-foreground hover:shadow-md"
                 >
                   {s}
+                  <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
                 </button>
               ))}
             </div>
           </div>
         ) : (
-          <div className="space-y-2.5">
-            {mensajes.map((m, i) => (
-              <div key={i} className={cn("flex", m.mio ? "justify-end" : "justify-start")}>
-                <div
-                  className={cn(
-                    "animar-entrada max-w-[88%] rounded-2xl px-3 py-2 text-[13px] leading-[1.55]",
-                    m.mio
-                      ? "rounded-br-sm bg-primary text-primary-foreground"
-                      : m.error
-                        ? "rounded-bl-sm border border-destructive/40 bg-destructive/5 text-destructive"
-                        : "rounded-bl-sm border border-border/70 bg-secondary/40 text-foreground",
-                  )}
-                >
-                  {m.adjuntos && m.adjuntos.length > 0 && (
-                    <div className="mb-1 flex flex-wrap gap-1">
-                      {m.adjuntos.map((n, k) => (
-                        <span key={k} className="inline-flex items-center gap-1 rounded-md bg-primary-foreground/15 px-1.5 py-0.5 text-[11px]">
-                          <Paperclip className="size-3" />
-                          {n}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {m.texto &&
-                    (m.mio || m.error ? <p className="whitespace-pre-line">{m.texto}</p> : <TextoAsistente texto={m.texto} />)}
-
-                  {/* Mientras trabaja: qué está mirando, o los puntitos. */}
-                  {m.escribiendo && (m.consultando || !m.texto) && (
-                    <div className={cn("flex items-center gap-2", m.texto && "mt-1.5")}>
-                      <span className="flex gap-1">
-                        <span className="animar-punto size-1.5 rounded-full bg-primary" />
-                        <span className="animar-punto size-1.5 rounded-full bg-primary [animation-delay:.15s]" />
-                        <span className="animar-punto size-1.5 rounded-full bg-primary [animation-delay:.3s]" />
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">{m.consultando ? `${m.consultando}…` : "pensando…"}</span>
-                    </div>
-                  )}
-
-                  {/* De dónde salió. Nunca una cifra sin respaldo. */}
-                  {m.evidencias && m.evidencias.length > 0 && (
-                    <details className="group mt-2 border-t border-border/60 pt-1.5">
-                      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground">
-                        <Database className="size-3" />
-                        De dónde lo sacó
-                        <ChevronDown className="size-3 transition-transform duration-200 group-open:rotate-180" />
-                      </summary>
-                      <ul className="mt-1.5 space-y-1 text-[11px]">
-                        {m.evidencias.map((e, k) => (
-                          <li key={k} className="animar-entrada text-muted-foreground">
-                            <span className="text-foreground">{e.texto}</span> → {e.resumen}
-                          </li>
+          <div className={cn("space-y-5", ancho)}>
+            {mensajes.map((m, i) =>
+              m.mio ? (
+                <div key={i} ref={i === mensajes.length - 2 ? ultimaPregunta : undefined} className="animar-entrada flex justify-end">
+                  <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-3.5 py-2.5 text-[14px] leading-relaxed text-primary-foreground shadow-sm">
+                    {m.adjuntos && m.adjuntos.length > 0 && (
+                      <div className="mb-1.5 flex flex-wrap gap-1">
+                        {m.adjuntos.map((n, k) => (
+                          <span key={k} className="inline-flex max-w-full items-center gap-1 rounded-md bg-primary-foreground/15 px-1.5 py-0.5 text-[11.5px]">
+                            <Paperclip className="size-3 shrink-0" />
+                            <span className="truncate">{n}</span>
+                          </span>
                         ))}
-                      </ul>
-                    </details>
-                  )}
+                      </div>
+                    )}
+                    {m.texto && <p className="whitespace-pre-line">{m.texto}</p>}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ) : (
+                <div key={i} className="animar-entrada flex gap-3">
+                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
+                    <Sparkles className="size-3.5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {m.error ? (
+                      <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-2.5 text-[14px] text-destructive">
+                        <p className="whitespace-pre-line">{m.texto}</p>
+                      </div>
+                    ) : (
+                      m.texto && <TextoAsistente texto={m.texto} className={cn("text-foreground", grande ? "text-[15px]" : "text-[14px]")} />
+                    )}
 
+                    {/* Mientras trabaja: qué está mirando, o que está pensando. */}
+                    {m.escribiendo && (m.consultando || !m.texto) && (
+                      <div className={cn("inline-flex items-center gap-2 rounded-full border border-border/70 bg-secondary/40 px-3 py-1.5", m.texto && "mt-2")}>
+                        <span className="flex gap-1">
+                          <span className="animar-punto size-1.5 rounded-full bg-primary" />
+                          <span className="animar-punto size-1.5 rounded-full bg-primary [animation-delay:.15s]" />
+                          <span className="animar-punto size-1.5 rounded-full bg-primary [animation-delay:.3s]" />
+                        </span>
+                        <span className="text-[12px] text-muted-foreground">{m.consultando ? `${m.consultando}…` : "Pensando…"}</span>
+                      </div>
+                    )}
+
+                    {/* De dónde salió. Nunca una cifra sin respaldo. */}
+                    {m.evidencias && m.evidencias.length > 0 && (
+                      <details className="group mt-3">
+                        <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-border/70 px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground">
+                          <Database className="size-3" />
+                          De dónde lo sacó
+                          <ChevronDown className="size-3 transition-transform duration-200 group-open:rotate-180" />
+                        </summary>
+                        <ul className="mt-2 space-y-1 border-l-2 border-border pl-3 text-[12px]">
+                          {m.evidencias.map((e, k) => (
+                            <li key={k} className="text-muted-foreground">
+                              <span className="text-foreground">{e.texto}</span> → {e.resumen}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              ),
+            )}
           </div>
         )}
       </div>
@@ -392,80 +452,101 @@ export function AsistenteChat({
           e.preventDefault();
           sumarArchivos([...e.dataTransfer.files]);
         }}
-        className={cn(
-          "shrink-0 border-t px-3 py-2.5 transition-colors",
-          enfocado ? "border-primary/40 bg-secondary/25" : "border-border bg-background",
-        )}
+        className="shrink-0 border-t border-border/70 bg-card px-4 pb-3 pt-3"
       >
-        {(archivos.length > 0 || avisoArchivos) && (
-          <div className="mb-2 flex flex-wrap items-center gap-1.5">
-            {archivos.map((a, i) => (
-              <span key={i} className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-secondary/40 px-1.5 py-0.5 text-[11px] text-foreground">
-                {a.type.startsWith("image/") ? <IconoImagen className="size-3 shrink-0" /> : <FileText className="size-3 shrink-0" />}
-                <span className="truncate">{a.name}</span>
-                <button
-                  type="button"
-                  onClick={() => setArchivos((prev) => prev.filter((_, k) => k !== i))}
-                  aria-label={`Quitar ${a.name}`}
-                  className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            ))}
-            {avisoArchivos && <span className="text-[11px] text-destructive">{avisoArchivos}</span>}
-          </div>
-        )}
-        <div className="relative flex items-center gap-1.5">
-          <input
-            ref={elegirRef}
-            type="file"
-            multiple
-            accept={ACEPTA}
-            className="hidden"
-            onChange={(e) => {
-              sumarArchivos([...(e.target.files ?? [])]);
-              e.target.value = "";
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => elegirRef.current?.click()}
-            disabled={pensando}
-            aria-label="Adjuntar fotos, PDF, Word o Excel"
-            title="Adjuntar fotos, PDF, Word o Excel"
-            className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
-          >
-            <Paperclip className="size-4" />
-          </button>
-          <input
-            onPaste={(e) => {
-              const pegados = [...e.clipboardData.files];
-              if (pegados.length) {
-                e.preventDefault();
-                sumarArchivos(pegados);
-              }
-            }}
-            value={entrada}
-            onChange={(e) => setEntrada(e.target.value)}
-            onFocus={() => setEnfocado(true)}
-            onBlur={() => setEnfocado(false)}
-            placeholder="¿Qué necesita saber?"
-            className="w-full rounded-full border border-input bg-background py-2 pl-3.5 pr-10 text-[13px] text-foreground outline-none transition-shadow placeholder:text-muted-foreground/70 focus:border-primary/40 focus:ring-2 focus:ring-primary/25"
-          />
-          <button
-            type="submit"
-            disabled={(entrada.trim() === "" && archivos.length === 0) || pensando}
-            aria-label="Preguntar"
+        <div className={ancho}>
+          <div
             className={cn(
-              "absolute right-1 rounded-full p-1.5 transition-all",
-              (entrada.trim() === "" && archivos.length === 0) || pensando
-                ? "scale-95 cursor-not-allowed bg-muted text-muted-foreground"
-                : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95",
+              "rounded-2xl border bg-background shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all",
+              enfocado ? "border-primary/50 ring-4 ring-primary/10" : "border-border",
             )}
           >
-            {pensando ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
-          </button>
+            {(archivos.length > 0 || avisoArchivos) && (
+              <div className="flex flex-wrap items-center gap-1.5 px-3 pt-2.5">
+                {archivos.map((a, i) => (
+                  <span key={i} className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border bg-secondary/50 py-1 pl-2 pr-1 text-[12px]">
+                    {a.type.startsWith("image/") ? <IconoImagen className="size-3.5 shrink-0 text-primary" /> : <FileText className="size-3.5 shrink-0 text-primary" />}
+                    <span className="max-w-[180px] truncate">{a.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setArchivos((prev) => prev.filter((_, k) => k !== i))}
+                      aria-label={`Quitar ${a.name}`}
+                      className="rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                ))}
+                {avisoArchivos && <span className="text-[12px] text-destructive">{avisoArchivos}</span>}
+              </div>
+            )}
+            <textarea
+              ref={textoRef}
+              rows={1}
+              value={entrada}
+              onChange={(e) => setEntrada(e.target.value)}
+              onKeyDown={(e) => {
+                // Enter envía; Shift+Enter baja de línea (lo que la mano espera de un chat).
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  preguntar(entrada);
+                }
+              }}
+              onPaste={(e) => {
+                const pegados = [...e.clipboardData.files];
+                if (pegados.length) {
+                  e.preventDefault();
+                  sumarArchivos(pegados);
+                }
+              }}
+              onFocus={() => setEnfocado(true)}
+              onBlur={() => setEnfocado(false)}
+              placeholder="Escriba su pregunta…"
+              className="block w-full resize-none border-0 bg-transparent px-3.5 pb-1 pt-2.5 text-[14px] leading-relaxed text-foreground shadow-none outline-none ring-0 placeholder:text-muted-foreground/70 focus-visible:border-transparent! focus-visible:shadow-none! focus-visible:outline-none"
+            />
+            <div className="flex items-center justify-between gap-2 px-2 pb-2">
+              <div className="flex items-center gap-1">
+                <input
+                  ref={elegirRef}
+                  type="file"
+                  multiple
+                  accept={ACEPTA}
+                  className="hidden"
+                  onChange={(e) => {
+                    sumarArchivos([...(e.target.files ?? [])]);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => elegirRef.current?.click()}
+                  disabled={pensando}
+                  title="Adjuntar fotos, PDF, Word o Excel"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                >
+                  <Paperclip className="size-4" />
+                  <span className={cn(!grande && "sr-only")}>Adjuntar</span>
+                </button>
+                <span className="hidden text-[11px] text-muted-foreground/70 lg:inline">Enter envía · Shift+Enter, nueva línea</span>
+              </div>
+              <button
+                type="submit"
+                disabled={!puedeEnviar}
+                aria-label="Preguntar"
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-full transition-all",
+                  puedeEnviar
+                    ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md active:scale-95"
+                    : "cursor-not-allowed bg-muted text-muted-foreground",
+                )}
+              >
+                {pensando ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
+              </button>
+            </div>
+          </div>
+          <p className="mt-1.5 text-center text-[10.5px] text-muted-foreground/70">
+            Solo consulta: no cambia nada en el CRM. Verifique lo importante en su pantalla.
+          </p>
         </div>
       </form>
 
@@ -474,7 +555,7 @@ export function AsistenteChat({
         .animar-entrada { animation: entrada .28s cubic-bezier(.16,1,.3,1) both; }
         @keyframes punto { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
         .animar-punto { animation: punto 1.1s ease-in-out infinite; }
-        @keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+        @keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         .animar-latido { animation: latido 2.8s ease-in-out infinite; }
         .barra-fina { scrollbar-width: thin; scrollbar-color: color-mix(in oklab, currentColor 22%, transparent) transparent; }
         .barra-fina::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -485,5 +566,33 @@ export function AsistenteChat({
         }
       `}</style>
     </div>
+  );
+}
+
+/** Un botón de la cabecera: cuadrado, con su nombre al pasar el mouse. */
+function BotonVentana({
+  titulo,
+  onClick,
+  className,
+  children,
+}: {
+  titulo: string;
+  onClick: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={titulo}
+      aria-label={titulo}
+      className={cn(
+        "inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        className,
+      )}
+    >
+      {children}
+    </button>
   );
 }

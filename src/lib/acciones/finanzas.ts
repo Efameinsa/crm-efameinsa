@@ -7,7 +7,7 @@ import { notificar, notificarAlmacen, notificarFacturacion, notificarFinanzas } 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { enlaceApp } from "@/lib/url-app";
 import { correoAlArea } from "@/lib/correo-al-area";
-import { evaluarPagoParaDespacho, textoComprobante, textoCondicionPago, type ServicioPostventa } from "@/lib/postventa";
+import { evaluarPagoParaDespacho, llevaOrdenFacturar, textoComprobante, textoCondicionPago, textoMotivoGuia, type MotivoGuia, type ServicioPostventa } from "@/lib/postventa";
 
 /**
  * Lo que Finanzas escribe en el CRM (0279). Solo dos cosas, y las dos por
@@ -209,6 +209,10 @@ export async function confirmarGuia(
   nota: string,
   /** Con qué comprobante sale (0384; Lesly, 02-10: «si tiene factura o boleta, nos pongan los números»). */
   comprobante: { tipo: "factura" | "boleta" | "sin_comprobante" | null; numero: string },
+  /** Motivo de la guía: lo define Contabilidad (0486, audio del 14-10). */
+  motivo: MotivoGuia | null = null,
+  /** Si el motivo es «otro» (0487): cuál. */
+  motivoDetalle = "",
 ) {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -217,11 +221,19 @@ export async function confirmarGuia(
     p_nota: nota.trim() || null,
     p_comprobante_tipo: comprobante.tipo,
     p_comprobante_numero: comprobante.numero.trim() || null,
+    p_motivo: motivo,
+    p_motivo_detalle: motivoDetalle.trim() || null,
   });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
-  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp, apertura_despacho_por").eq("id", servicioId).maybeSingle();
+  const { data: s } = await supabase.from("servicios_postventa").select("*").eq("id", servicioId).maybeSingle();
   const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
-  const conQue = textoComprobante(comprobante.tipo, comprobante.numero.trim() || null);
+  const conQue = [textoMotivoGuia(motivo, motivoDetalle), textoComprobante(comprobante.tipo, comprobante.numero.trim() || null)].filter(Boolean).join(" · ");
+  // A crédito (o con saldo), Contabilidad factura cuando postventa confirme que el
+  // cliente recibió el equipo y está conforme: desde ahí corren los días de
+  // crédito (audio de Contabilidad, 14-10). Se le recuerda a postventa ahora.
+  const credito = s && llevaOrdenFacturar(s as unknown as ServicioPostventa)
+    ? " Es a crédito: cuando el cliente confirme que recibió el equipo y está conforme, dé la orden a Finanzas para facturar («Ordenar a Finanzas facturar»); recién ahí corren los días de crédito."
+    : "";
   // La autoriza Contabilidad (la cuenta de Facturación) y, si no está, Finanzas
   // (buzón, Jhon 12-10; 0439): el aviso dice quién fue.
   const area = perfil.rol === "facturacion" ? "Contabilidad" : "Finanzas";
@@ -232,7 +244,7 @@ export async function confirmarGuia(
       userId: s.apertura_despacho_por as string,
       tipo: "finanzas",
       titulo: `Guía autorizada · ${quien}`,
-      cuerpo: `${area} autorizó la guía${s.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: el almacén ya puede emitirla.${conQue ? ` ${conQue}.` : ""}`,
+      cuerpo: `${area} autorizó la guía${s.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : ""}: el almacén ya puede emitirla.${conQue ? ` ${conQue}.` : ""}${credito}`,
       url: `/postventa/pedidos/${servicioId}`,
     });
   }
@@ -249,7 +261,7 @@ export async function confirmarGuia(
       areas: ["postventa"],
       servicioId,
       titulo: `Guía autorizada · ${quien}`,
-      cuerpo: `${area} autorizó la guía${delPedido}: el almacén ya puede emitirla.${conQue ? ` ${conQue}.` : ""}`,
+      cuerpo: `${area} autorizó la guía${delPedido}: el almacén ya puede emitirla.${conQue ? ` ${conQue}.` : ""}${credito}`,
       url: `/postventa/pedidos/${servicioId}`,
       esPrueba: perfil.es_prueba === true,
     }),

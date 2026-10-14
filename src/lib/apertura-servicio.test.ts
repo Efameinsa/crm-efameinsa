@@ -150,19 +150,19 @@ describe("las filas llevan lo que el correo lleva", () => {
   it("la guía tiene su propio campo y sale primero en NOTAS (Lesly, 02-10)", () => {
     const base = { ...PERU_VACATION, nota: null };
     expect(filasApertura(base)[0].notas).toEqual([]);
-    expect(filasApertura({ ...base, guia: "traslado" })[0].notas).toEqual(["SE SOLICITA GUÍA PARA EL TRASLADO DEL EQUIPO"]);
+    expect(filasApertura({ ...base, guia: "traslado" })[0].notas).toEqual(["SE SOLICITA GUÍA DE SALIDA DEL EQUIPO"]);
     expect(filasApertura({ ...base, guia: "materiales", guiaDetalle: "tubería de cobre" })[0].notas).toEqual([
       "SE SOLICITA GUÍA ADICIONAL PARA LLEVAR MATERIALES: TUBERÍA DE COBRE",
     ]);
     expect(filasApertura({ ...base, guia: "ambas", nota: "llamar antes" })[0].notas).toEqual([
-      "SE SOLICITA GUÍA PARA EL TRASLADO DEL EQUIPO",
+      "SE SOLICITA GUÍA DE SALIDA DEL EQUIPO",
       "SE SOLICITA GUÍA ADICIONAL PARA LLEVAR MATERIALES",
       "llamar antes",
     ]);
     expect(filasApertura({ ...base, guia: "repuestos", guiaDetalle: "manómetro (posible venta)" })[0].notas).toEqual([
-      "SE SOLICITA GUÍA PARA EL TRASLADO DE REPUESTOS: MANÓMETRO (POSIBLE VENTA)",
+      "SE SOLICITA GUÍA DE SALIDA DE REPUESTOS: MANÓMETRO (POSIBLE VENTA)",
     ]);
-    expect(cuerpoApertura({ ...base, guia: "traslado" })).toContain("NOTAS:\n   - SE SOLICITA GUÍA PARA EL TRASLADO DEL EQUIPO");
+    expect(cuerpoApertura({ ...base, guia: "traslado" })).toContain("NOTAS:\n   - SE SOLICITA GUÍA DE SALIDA DEL EQUIPO");
   });
 
   it("el cliente va con su RUC", () => {

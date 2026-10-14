@@ -5,7 +5,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
-import { ETIQUETA_TIPO_PEDIDO, circuitoDe, faltanFotosDeCarga, textoComprobante, type ServicioPostventa } from "@/lib/postventa";
+import { ETIQUETA_TIPO_PEDIDO, circuitoDe, faltanFotosDeCarga, textoComprobante, textoMotivoGuia, type ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import { torresSinSegundaSerie } from "@/lib/torres";
 
@@ -61,7 +61,7 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
   const porSeries = ver === "series";
   let consulta = supabase
     .from("servicios_postventa")
-    .select("id, cliente_texto, equipo, ubicacion, direccion_entrega, modalidad, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, protocolo_prueba_ref, almacen_listo_at, agencia_at, guia, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, transportista, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en, entrega_modo, con_instalacion, despacho_nota, updated_at, series_pedidas_at");
+    .select("id, cliente_texto, equipo, ubicacion, direccion_entrega, modalidad, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, protocolo_prueba_ref, almacen_listo_at, agencia_at, guia, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, guia_motivo, guia_motivo_detalle, transportista, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en, entrega_modo, con_instalacion, despacho_nota, updated_at, series_pedidas_at");
   // Las series las pide Central ANTES de lanzar el pedido: esa cola no pasa por
   // el filtro de «ya lanzado» que usan las demás.
   consulta = porSeries ? consulta.not("series_pedidas_at", "is", null) : consulta.or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null");
@@ -172,7 +172,7 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
     if (s.fecha_despacho && !s.apertura_despacho_at) return { texto: `Programado para el ${s.fecha_despacho} · postventa no ha cumplido`, tono: "text-destructive" };
     if (s.fecha_despacho) return { texto: `Programado para el ${s.fecha_despacho} · confirmar que está listo`, tono: (s.fecha_despacho as string) < hoy ? "text-destructive" : "text-amber-700" };
     if (s.apertura_despacho_at && s.guia_confirmada_at)
-      return { texto: `Guía autorizada${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero) ? ` · ${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero)}` : ""} · esperando fecha`, tono: "text-[#1E7F4F]" };
+      return { texto: `Guía autorizada${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero) ? ` · ${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero)}` : ""}${textoMotivoGuia(s.guia_motivo, s.guia_motivo_detalle) ? ` · ${textoMotivoGuia(s.guia_motivo, s.guia_motivo_detalle)}` : ""} · esperando fecha`, tono: "text-[#1E7F4F]" };
     if (s.apertura_despacho_at) return { texto: "Con apertura · esperando fecha y que Finanzas autorice la guía", tono: "text-foreground" };
     if (probado(s)) return { texto: `Probado y embalado${s.protocolo_prueba_ref ? ` · protocolo ${s.protocolo_prueba_ref}` : ""}`, tono: "text-foreground" };
     if (s.prueba_solicitada_at) return { texto: "Postventa pidió la prueba", tono: "text-destructive" };
