@@ -464,6 +464,8 @@ export async function guiasSinComprobante(supabase: SupabaseClient): Promise<Sal
     .select(COLUMNAS_SALIDA)
     .eq("guia_comprobante_tipo", "sin_comprobante")
     .not("guia_confirmada_at", "is", null)
+    // Las garantías y los servicios abiertos desde un caso no llevan comprobante de venta.
+    .neq("origen", "caso")
     .order("guia_confirmada_at", { ascending: true })
     .limit(100);
   return ((data ?? []) as Fila[]).map(aSalida);
