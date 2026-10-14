@@ -14,6 +14,7 @@
 import { revalidatePath } from "next/cache";
 import { enviarEventoMeta } from "@/lib/meta-capi";
 import { createClient } from "@/lib/supabase/server";
+import { traerPorLotes } from "@/lib/lotes";
 import type { TipificacionWhatsapp } from "@/lib/whatsapp-marketing";
 import { INTENCION_COMPRA } from "@/lib/catalogos-ui";
 import type { Oportunidad } from "@/types/database";
@@ -299,15 +300,24 @@ export interface TipificacionActual {
   registrado_at: string;
 }
 
-/** El estado vigente (el más reciente) de una lista de leads, en un solo viaje. */
+/**
+ * El estado vigente (el más reciente) de una lista de leads. Por lotes de 100
+ * (Moisés, 14-10): con 237 chats en «Mías» el `.in` de una sola vez era una URL
+ * que Kong rechaza (414) y la lista entera salía «sin marcar», aunque el chat
+ * abierto dijera «Cotizado».
+ */
 export async function tipificacionesActuales(leadIds: string[]): Promise<TipificacionActual[]> {
-  if (leadIds.length === 0) return [];
+  const ids = [...new Set(leadIds)];
+  if (ids.length === 0) return [];
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("tipificacion_whatsapp_actual")
-    .select("lead_id, estado, nota, registrado_por, registrado_at, perfiles(nombre)")
-    .in("lead_id", leadIds);
-  return (data ?? []).map((f) => ({
+  const { data, error } = await traerPorLotes(ids, (lote) =>
+    supabase
+      .from("tipificacion_whatsapp_actual")
+      .select("lead_id, estado, nota, registrado_por, registrado_at, perfiles(nombre)")
+      .in("lead_id", lote),
+  );
+  if (error) console.error("tipificacionesActuales:", error);
+  return data.map((f) => ({
     lead_id: f.lead_id as string,
     estado: f.estado as TipificacionWhatsapp,
     nota: f.nota as string | null,
