@@ -15,13 +15,13 @@ import { AsistenteChat } from "@/components/crm/asistente-chat";
  * encima, sin moverlo de donde está.
  *
  * DÓNDE VIVE. Montado en el layout, así que está en todas las pantallas del
- * CRM. Solo para gerencia y admin: el layout ni siquiera lo dibuja para los
- * demás, y aunque alguien llegara al endpoint, éste vuelve a comprobar el rol.
+ * CRM. Desde el 14-10 lo ve todo el personal; lo que cada uno puede saber lo
+ * decide el servidor con los permisos de su cuenta (lib/asistente/permisos.ts).
  *
  * EN EL CELULAR ocupa la pantalla entera. Un panel de 400 px flotando sobre un
  * teléfono no se puede escribir.
  */
-export function AsistenteFlotante({ nombre }: { nombre: string }) {
+export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sugerencias?: string[] }) {
   const [abierto, setAbierto] = useState(false);
 
   // Escape cierra. Es lo que la mano ya hace sin pensarlo.
@@ -61,6 +61,7 @@ export function AsistenteFlotante({ nombre }: { nombre: string }) {
           <div className="fixed inset-3 z-50 sm:inset-auto sm:bottom-20 sm:right-5 sm:h-[min(620px,calc(100vh-7rem))] sm:w-[420px]">
             <AsistenteChat
               nombre={nombre}
+              sugerencias={sugerencias}
               onCerrar={() => setAbierto(false)}
               claseContenedor="animar-burbuja h-full w-full rounded-xl border border-border shadow-2xl"
             />

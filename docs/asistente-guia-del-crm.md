@@ -1,0 +1,1016 @@
+# Base de conocimiento del CRM Efameinsa
+
+Vigente al 14-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
+
+## 0. Cómo usar este documento
+
+- **La última decisión manda.** En Efameinsa, cada reunión de gerencia deroga lo que contradiga de las anteriores. Aquí se escribe solo la regla vigente. Cuando ayuda a entender, se dice «antes era X; desde <fecha> es Y».
+- **Los datos vivos no están aquí.** Precios, montos, clientes concretos, quién tiene qué cliente o en qué paso va un pedido se consultan en el CRM con los permisos de la persona que pregunta. Este documento solo explica reglas.
+- **Los códigos nunca se dicen.** El CRM pide en varios sitios un «código de autorización» (código del supervisor, de operaciones o de gerencia). Se explica quién lo da y para qué, pero el valor no se comparte jamás. Lo dicta la persona autorizada en el momento.
+- **«(por confirmar)»** marca reglas anunciadas o construidas cuyo estado actual no está verificado. En esos casos, recomiende consultar con Santos (CRM) o con operaciones.
+- **Los cambios al CRM se piden por el Buzón de sugerencias** (botón de la bombilla en la barra), no a Lesly ni de palabra. Así lo ordenó gerencia el 07-10 y lo reafirmó el 13-10.
+
+### Principios que explican casi todo
+
+1. **Anular, no borrar.** Lo que ya salió a un cliente (cotización numerada, informe de cierre) no se borra. Se anula: conserva su número, queda visible y deja de contar. Los números no se reutilizan ni se rellenan. Si hay un hueco en la numeración, se marca como anulado.
+2. **Todo cambio deja rastro.** Corregir algo emitido pide motivo y código. Queda registrado quién lo pidió, quién autorizó, cuándo y por qué. Gerencia lo explicó con la caja del supermercado: nada se corrige en silencio, «si no, no vamos a poder medir».
+3. **Cada quien ve lo suyo.** El comercial ve su cartera. Postventa y almacén no ven precios. Gerencia ve todo.
+4. **La serie es el eje de la trazabilidad.** La serie de cada máquina viaja del almacén al cliente y de ahí al registro de equipos instalados, con su garantía. Sin serie no hay garantía verificable.
+5. **Quien se entera avisa; quien puede decide.** Si un comercial o postventa recibe algo que es de otra área, lo pasa a Central («Pasar contacto a Central»). No lo resuelve por su cuenta.
+6. **Lo que empieza en OPEN termina en OPEN.** Cada cadena de documentos (cotización → cierre → pedido → apertura → informes) mantiene la razón social con la que empezó.
+7. **El circuito falla en los traspasos, no dentro de las etapas.** Por eso cada traspaso tiene un acuse (un «check») y un responsable visible.
+8. **Las reglas importantes están en el sistema, no solo en la pantalla.** Si un botón está gris, normalmente el sistema tampoco dejará hacerlo por otra vía. Lo que corresponde es cumplir lo que falta o pedir la autorización.
+
+---
+
+## 1. El circuito de punta a punta
+
+En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas confirma, postventa ejecuta con el almacén, y la máquina instalada vuelve a vender sola (mantenimiento y repuestos).**
+
+### 1.1 Entrada del contacto
+
+- **Dueño:** Central (Alondra).
+- **Qué entra:** todo contacto: llamadas, correos, formularios web y de Google Ads, visitas y WhatsApp. Más o menos la mitad no es comercial: servicio técnico, postventa, RR. HH., proveedores, facturas, Finanzas.
+- **Excepciones que no pasan por Central:**
+  - Los **WhatsApp de anuncios** van directo al comercial (ver 3.9).
+  - Desde el 09-10, los **formularios de Meta** van al comercial dueño de la campaña.
+- **Qué sale:** un contacto registrado con su número **PRO-#####**, su vía (llamada, WhatsApp, correo…) y su área de destino.
+- **«Terminado»:** el contacto quedó derivado a un área o persona, unido a un cliente que ya existe, cerrado como repetido o descartado.
+- **Bloqueos típicos:**
+  - La **vía de contacto es obligatoria** desde el 09-10. Antes venía «WhatsApp» marcado por defecto y eso falseaba la medición.
+  - El CRM avisa si el mismo usuario registra dos veces el mismo teléfono en 24 horas. También vigila lo derivado en las últimas 2 horas, para que no haya duplicados.
+
+### 1.2 Derivación de Central
+
+- **Dueño:** Central.
+- **Qué hace:** antes de derivar, el CRM busca coincidencias por RUC/DNI, celular (aunque esté mal tipeado), correo y dominio del correo. Si el contacto ya es de un cliente con dueño, propone a ese comercial.
+- **Qué sale:** un expediente (oportunidad) asignado a un comercial, o un caso de postventa, o un aviso a otra área.
+- **«Terminado»:** el comercial o el área lo recibió. A partir de ahí corre el reloj de quien lo recibe.
+- **Bloqueos típicos y por qué:**
+  - **«Cliente nuevo» con coincidencias pide escribir una razón** (desde el 11-09). Sin ella se duplicaban fichas.
+  - **Derivar a postventa pide código** de gerencia, administración u operaciones (desde el 09-10). Por qué: gerencia pidió «que no derive unilateralmente, nos está metiendo en problemas». No piden código ni el aviso a postventa sin derivar, ni el caso que postventa registra ella misma.
+  - **Corregir una derivación ya hecha pide código del supervisor.** Central no se corrige sola.
+  - **Derivar no cambia la cartera.** Si el cliente es de otro comercial, el CRM avisa. Mover un cliente de cartera es decisión de gerencia.
+
+### 1.3 Gestión del comercial (expediente)
+
+- **Dueño:** el comercial al que se le derivó.
+- **Qué entra:** el expediente con lo que pidió el cliente («Inicio · lo que solicitó el cliente»).
+- **Qué hace:** registra gestiones (llamada, WhatsApp, correo, visita, videollamada) con resultado y **próxima acción**, califica el interés de compra y cotiza.
+- **«Terminado»:** se llega a venta («Registrar venta» sobre una cotización) o a rechazo con motivo.
+- **Bloqueos típicos y por qué:**
+  - **Sin próxima acción**, la cabecera muestra en ámbar «Sin próxima acción». Es lo que mira la supervisión diaria.
+  - **Un derivado sin atender genera alerta a las 4 horas** (antes 24 horas; cambió el 22-09). Gerencia: «no días, horas».
+  - **El estado de un derivado se mide por las gestiones y cotizaciones, no por la etapa.** Al derivar, la oportunidad nace «asignada», y uno abandonado se vería igual que uno recién llegado.
+
+### 1.4 Cotización
+
+- **Dueño:** el comercial. En servicios y repuestos, cualquiera de postventa.
+- **Qué entra:** el expediente y el catálogo, que gestiona Lesly (operaciones).
+- **Qué sale:** una cotización numerada **Presu_####-26** de la serie EFAMEINSA u OPEN, con su PDF.
+- **«Terminado»:** la cotización está «Confirmada», es decir, tiene número. El envío al cliente se hace por fuera (correo o WhatsApp con el PDF). **El CRM no envía la cotización al cliente.**
+- **Bloqueos típicos y por qué:**
+  - **Sin RUC o DNI en la ficha no se emite** (el borrador sí se puede armar). Regla de gerencia del 02-09.
+  - **Si necesita visto bueno**, el botón final dice **«Pedir aprobación a gerencia»** en lugar de «Confirmar cotización». Mientras espera, sigue como borrador y no gasta número (ver 1.5).
+  - Si una línea del catálogo no aparece en el buscador, puede estar retirada o no tener código. Eso se resuelve con Lesly.
+
+### 1.5 Aprobación de gerencia
+
+- **Dueño:** gerencia, en la pantalla **Aprobaciones**. Se firma como «Gerencia Comercial».
+- **Qué entra:** cotizaciones en estado **«Espera a gerencia»**.
+- **Por qué llega una cotización a gerencia:**
+  1. Algún renglón queda por debajo del precio de lista.
+  2. Tiene una **línea escrita a mano con precio** (desde el 12-10). Las líneas a mano en cero, como bonos o «instalación gratuita», no piden nada.
+  3. La hizo **alguien de postventa**. Desde el 05-10, todas las de postventa pasan por gerencia, a cualquier precio, «mientras dure la capacitación».
+  4. Es un **kit con cantidades cambiadas** (desde el 06-10). Va sin código.
+- **Qué sale:** aprobada, devuelta para corregir por renglón, observada o rechazada entera.
+- **«Terminado»:** aprobada. Entonces el autor pulsa «Confirmar» y recién ahí se asigna el número.
+- **Bloqueos típicos:** la cotización no avanza hasta que gerencia decida. Una aprobación de palabra no sirve: tiene que darse en Aprobaciones.
+
+### 1.6 Venta e informe de cierre
+
+- **Dueño:** el comercial. En ventas de servicios, quien de postventa la haya hecho.
+- **Qué entra:** la cotización aceptada por el cliente, o un acuerdo sin cotización del CRM, que también vale.
+- **Qué hace:** registra la venta («Registrar venta» o «Venta ejecutada» desde el expediente) y arma el **informe de cierre**. Lleva:
+  - qué se vende (equipo, repuesto, mantenimiento u otro servicio);
+  - a quién se factura;
+  - condición de pago (porcentaje antes del despacho y días de crédito);
+  - lugar, fecha y hora de entrega;
+  - la cotización enlazada («¿De qué presupuesto copio los equipos?»);
+  - la orden de compra y los vouchers.
+- **Qué sale:** el cierre emitido, con número **NNN-AAAA** de su serie (por ejemplo, «OPEN 014-2026»).
+- **«Terminado»:** emitido y visible para Central en «Cierres de venta».
+- **Bloqueos típicos y por qué:**
+  - No se emite sin lugar de entrega ni sin condición de pago.
+  - Si el RUC o la razón social del cierre no coinciden con la ficha, el CRM avisa arriba. Un mismo cliente llegó a estar en tres fichas de tres carteras.
+  - Una venta a crédito no tiene voucher: se declara así.
+  - Una vez emitido, el cierre queda sellado. Ver 3.4.
+
+### 1.7 Central verifica y convierte el cierre en pedido (los «checks» de Central)
+
+- **Dueño:** Central.
+- **Qué entra:** el cierre emitido.
+- **Pasos en la tarjeta del cierre:**
+  1. **«Series de los equipos».** Central pide las series al almacén en el mismo acto, o elige «Las escribo yo» (siempre en los REG). Con serie hay stock; sin serie, no hay.
+  2. **«Generar el pedido».** Nace el pedido **PED-NNNN-AAAA**. Puede generarse aunque falten series: la hoja dirá «serie pendiente». En un REG, no se puede generar si alguna fila de equipo no tiene serie.
+  3. **«Liquidación de Finanzas».** Finanzas sube el PDF y Central lo acepta o lo rechaza con motivo. «Aceptar» exige el PDF.
+  4. **«Pedido ejecutado».** Es el check que **libera** el pedido: desde ahí lo ven postventa, almacén y Finanzas. Sin liquidación, solo se libera con código de gerencia u operaciones.
+- **Herramientas de Central en este tramo:**
+  - «Apurar al almacén»: cuando ya se pidieron las series y falta alguna.
+  - «Apurar a Finanzas»: cuando falta la liquidación.
+  - Ambos admiten un aviso cada 10 minutos por área. Desde el segundo, también se entera gerencia.
+  - «Urgencia a Finanzas»: cuando el cliente necesita factura o quiere despachar ya.
+- **Qué sale:** un pedido liberado. A postventa le llega como «Nuevo pedido» con campanada.
+- **«Terminado»:** pedido ejecutado.
+- **Bloqueos típicos y por qué:**
+  - **Postventa no ve el pedido hasta que Central lo libera.**
+  - **Central puede devolver un cierre mal hecho**, con motivo. Devolver no es anular. Si el proceso ya avanzó (series pedidas o pedido en Finanzas), devolverlo pide código, porque almacén y Finanzas ya trabajan sobre él. Un número de pedido por sí solo no cuenta como avance.
+  - **Desde el 12-10, Central debe comparar el código del producto con el cierre.** Se despachó una lavadora equivocada porque el código no mostraba la descripción. Que el código traiga siempre su descripción depende de los datos del catálogo (por confirmar si ya está completo).
+
+### 1.8 Finanzas: pago, liquidación y visto bueno
+
+- **Dueño:** Finanzas (Jhon).
+- **Qué entra:** pedidos liberados, aperturas emitidas y pedidos de confirmación de pago.
+- **Qué hace:**
+  - Confirma los abonos: «Por confirmar» → «Confirmados». Puede **observar** un pago.
+  - Sube liquidaciones con su estado de pago (pendiente, a cuenta o cancelado) y la factura, o «factura pendiente».
+  - Da el **visto bueno de Finanzas** a las ventas con crédito o letras.
+  - Atiende las «Órdenes de facturar y cobrar».
+- **Qué sale:** el pago confirmado, la liquidación vigente y el visto bueno con el estado de las letras.
+- **«Terminado»:** pago confirmado según lo acordado, o visto bueno dado.
+- **Bloqueos típicos y por qué:**
+  - **El pago se confirma con Finanzas aunque el voucher esté adjunto.** Hay vouchers falsos y depósitos con comisión descontada.
+  - **Venta a crédito sin visto bueno de Finanzas no sale** (desde el 14-10). Ver 3.6.
+  - Un pedido sin número de pedido no aparece en «Liquidar».
+
+### 1.9 Postventa recibe y prepara el pedido
+
+- **Dueño:** postventa (PV1 Rubí, PV2 Gabriela, PV3 Ariana).
+- **Qué entra:** el pedido liberado.
+- **Pasos (varían según el tipo de pedido: equipo, repuesto, accesorio, embalaje, mantenimiento o servicio):**
+  1. **«Pedido aprobado por postventa».** Es el acuse. Desde ahí corre el reloj del área.
+  2. **Pedir la prueba al almacén** («Probado y embalado»). En repuestos, la orden es «Preparar y embalar»: no se prueba; se fotografía y se embala.
+  3. **Plano de preinstalación.** Tres salidas: «Marcar enviado», «No lleva plano» (con motivo; los repuestos no llevan) o «No se le envió» (con motivo y responsable). Esta última no esconde el paso: queda registrado que no se envió.
+  4. **Preinstalación.** En Lima, videollamada **antes** del despacho. En provincia, confirmación del cliente **después**, con fotos de agua, desagüe y energía.
+  5. **Dirección y quién recibe, verificados con el cliente.** El campo **«Destino del equipo»** (Lima o provincia) es obligatorio, y el DNI de quien recibe también. Por qué: nueve de cada diez veces cambia la dirección, el teléfono o quien recibe. Además, la modalidad cambia la preinstalación, la puesta en marcha y la garantía.
+  6. **«Emitir apertura»** (de despacho o de servicio). Pide confirmación antes de emitir. La apertura es la orden de trabajo para el almacén y el técnico. Ver 3.8.
+- **Qué sale:** una apertura emitida que llega sola al almacén y a Finanzas/Contabilidad.
+- **«Terminado»:** apertura emitida y guía autorizada.
+- **Bloqueos típicos y por qué:**
+  - **Cambiar algo impreso de una apertura emitida pide código** de operaciones o gerencia, pero solo si cambia algo que sale impreso (fecha u hora ya fijadas, dirección, quién recibe, destino). Si se corrige, la autorización de la guía se anula y Finanzas y el almacén deben volver a aprobar.
+  - **Venta a crédito sin visto bueno de Finanzas: no se emite la apertura.**
+
+### 1.10 Contabilidad autoriza la guía
+
+- **Dueño:** Contabilidad (la cuenta de Facturación). Si Contabilidad no está, Finanzas.
+- **Qué hace:** confirma la apertura e indica el comprobante (factura, boleta o sin comprobante) y su número, que es obligatorio si hay factura o boleta.
+- **Qué sale:** «Finanzas autorizó la guía». Postventa recibe aviso. El almacén ve el pedido en «Guías autorizadas por Finanzas».
+- **Bloqueo típico:** en ventas a crédito, sin visto bueno de Finanzas no se autoriza la guía.
+
+### 1.11 Almacén: prueba, embalaje y despacho
+
+- **Dueño:** almacén (Jeysson, cuenta ALM; Ariana, cuenta ALM2). Lesly supervisa desde operaciones.
+- **Qué entra:** las solicitudes de serie y código, las pruebas pedidas y las aperturas emitidas.
+- **Pasos:**
+  1. Asigna la serie a cada unidad (una fila por máquina; las torres llevan dos series).
+  2. Prueba **cada máquina**, sube el protocolo y marca **«Probada y embalada»**.
+  3. Cuando postventa programa, confirma con **«Estamos listos»**.
+  4. Despacha con fotos de la salida y video.
+  5. Sube la guía y marca **«Despacho concluido»** (o «Entregado en planta»).
+- **«Terminado»:** despacho concluido con guía.
+- **Bloqueos típicos y por qué:**
+  - **«Probada y embalada» exige el protocolo completo** de cada máquina (ver 3.7). El botón se pone gris y dice qué falta.
+  - **«Sin apertura de despacho no sale nada del almacén.»** Si postventa programó sin cumplir los pasos, el almacén ve el despacho en rojo, con lo que falta, y no puede prepararlo ni sacarlo.
+  - **Con saldo pendiente, la salida queda trabada** hasta que se autorice. Se compara lo pagado con lo **acordado antes del despacho** (el porcentaje del cierre), no con el total.
+  - **Si las letras «van con el equipo»**, el almacén debe marcar que recibió las letras. Sin eso, no sale.
+
+### 1.12 Entrega, puesta en marcha y cierre del pedido
+
+- **Dueño:** postventa, con el técnico.
+- **Pasos:**
+  1. **«Despacho verificado por postventa».** Es el doble check. No se da si las letras siguen pendientes de entrega, y **el código de gerencia no lo salta**.
+  2. **«Letras entregadas al cliente»**, con fotos y con quién las recibió.
+  3. **Puesta en marcha** con su informe por equipo («¿De qué equipo es este informe?»), fotos y lectura de ciclos. En repuestos: «Repuesto instalado». En servicios: «Mantenimiento/Revisión ejecutado, con informe».
+  4. **«Informe enviado» al cliente.** Para marcarlo hay que subir una constancia.
+  5. **«Orden a Finanzas para facturar y cobrar».** Aparece cuando se pagó menos del 100 % antes del despacho (crédito o saldo). Finanzas la marca «atendida».
+  6. **«Pedido cerrado».**
+- **Qué sale:** la máquina entra al **registro de equipos instalados** (parque instalado) con su serie y garantía.
+- **Desde el 14-10, cada etapa muestra quién la hizo y a qué hora.** Lo marcado antes de esa fecha queda sin nombre.
+- **Ojo: «pedido cerrado» no es «entregado».** Un pedido también se cierra solo cuando su informe de cierre se anula. Antes de decir que algo se entregó, revise si el cierre fue anulado y si hubo despacho.
+
+### 1.13 Después de la venta: postventa continua
+
+- **Dueño:** postventa.
+- **Qué incluye:**
+  - casos técnicos (problemas, garantía, repuestos, mantenimientos);
+  - venta de mantenimiento preventivo sobre los equipos instalados («Ruta de mantenimiento» y «Ventas de la empresa»);
+  - repuestos;
+  - informes.
+- **Preventivo:** cada 4 meses, con alerta a los 3 meses para ofrecerlo antes (gerencia, 23-09). La Ruta de mantenimiento mantiene a propósito su criterio de 6 meses para marcar un preventivo «vencido» (ver la sección de dudas).
+- **Cómo se miden:** postventa no se mide en soles. Se mide en tiempos:
+  - de pedido aprobado a despacho (separando lo detenido por pago);
+  - de despacho a puesta en marcha;
+  - porcentaje de informes cargados;
+  - porcentaje de direcciones verificadas;
+  - primera respuesta de los casos.
+
+---
+
+## 2. Qué ve y qué puede hacer cada rol
+
+### 2.1 Comercial (C1–C10)
+
+- **Ve:** su cartera (sus fichas y sus expedientes). En la ficha de cada cliente de su cartera ve todo el historial, incluidas las cotizaciones históricas, aunque las haya firmado otro comercial. Por qué: así no cotiza por debajo de lo que otro ya ofreció al mismo cliente (regla del 20-08).
+- **No ve:**
+  - fichas, cotizaciones ni cierres de otra cartera (el buscador no las encuentra; el PDF de una cotización ajena da «no encontrado»);
+  - datos o metas de otros comerciales (gerencia, 24-08);
+  - si pierde un cliente por traspaso, los datos de postventa de ese cliente (los ve el nuevo dueño).
+- **Puede:**
+  - registrar gestiones, cotizar, emitir cierres de sus clientes;
+  - **pedir la anulación** de su cierre («Pedir la anulación», con motivo);
+  - pedir expedientes o clientes ajenos con código (ver 3.1);
+  - pasar contactos a Central;
+  - **pedir Infocorp** desde el expediente (desde el 12-10: Central lo obtiene y lo sube, con visibilidad restringida);
+  - pedir files.
+- **No puede:**
+  - corregir lo ya numerado sin código;
+  - crear rubros nuevos (solo elige de la lista);
+  - anular un cierre él mismo;
+  - crear cierres en cartera ajena.
+- **WhatsApp:** trabaja en la bandeja del CRM. La línea personal está cerrada salvo excepción (ver 3.9).
+- **Acceso:** solo desde la oficina (gerencia, 23-09). Excepción: los perfiles de **trabajo de campo** (piloto de C1 desde el 01-10), con ubicación del celular y consentimiento escrito.
+
+### 2.2 Central
+
+- **Ve:**
+  - la bandeja de contactos;
+  - «Lo que derivé» (cómo va cada derivado: sin atender, en gestión, cotizado, cerrado) y el historial de gestión del comercial en solo lectura;
+  - **Clientes**, que muestra la cartera completa en solo lectura (de quién es cada cliente);
+  - «Ver la historia de la empresa»;
+  - Presupuestos: cantidades por comercial y buscador por cliente y serie, incluido el archivo de Word;
+  - todos los informes de cierre («Cierres de venta») y «Sus pedidos».
+- **No entra** a las pantallas del comercial. Del pedido ve la versión imprimible («Ver pedido PED-…»).
+- **Puede:**
+  - registrar, derivar, unir a una ficha existente, avisar al dueño, descartar;
+  - revisar, devolver y liberar cierres;
+  - registrar series («Las escribo yo»);
+  - generar pedidos, aceptar o rechazar liquidaciones, marcar «Pedido ejecutado»;
+  - apurar al almacén y a Finanzas, mandar urgencias;
+  - manejar los files;
+  - registrar visitas a planta;
+  - gestionar los REG;
+  - mandar «Avisar a…» (Finanzas, postventa y comercial dueño) y revertir avisos mal enviados (con código);
+  - subir Infocorp.
+- **Necesita código para:**
+  - corregir una derivación;
+  - derivar a postventa;
+  - unir un contacto ya derivado a una ficha de otro comercial;
+  - devolver un cierre con el proceso avanzado;
+  - liberar un pedido sin liquidación;
+  - anular cierres;
+  - corregir una solicitud con cotización o venta;
+  - revertir avisos.
+- **No decide cartera.** Unir un contacto a una ficha y cambiar la cartera completa son dos pasos distintos con código, a propósito, para que Central no decida de quién es el cliente.
+
+### 2.3 Postventa (PV, PV1, PV2, PV3)
+
+- **PV es el área; PV1, PV2 y PV3 son las personas** (gerencia, 29-09). La cuenta PV del área no tiene ingreso de usuario: su buzón de correo es el que conocen los clientes.
+  - Un aviso dirigido a PV se reparte entre todas las personas de postventa activas.
+  - Un caso del área pasa a ser de quien lo gestiona primero.
+  - Central, al derivar, elige «Postventa (área)».
+- **PV1, PV2 y PV3 tienen permisos idénticos y no tienen cartera propia** (28-09 y 29-09). Nunca se asigna cartera a un perfil de postventa. Postventa atiende clientes de cualquier cartera sin quitárselos a nadie.
+- **Ve:**
+  - todas las fichas (el buscador no le limita la cartera);
+  - el registro de equipos instalados, los casos, los pedidos liberados, el calendario, la ruta;
+  - la historia del cliente con el autor de cada gestión, **sin montos**;
+  - la OC, el voucher y los PDF del expediente, **con los montos tapados** (decisión del 23-09; PDF tapados desde el 28-09);
+  - el **estado** del pago («Pagado completo», «Pago parcial», «Pago sin registrar»), pero no la cifra.
+- **No ve:** precios de venta ni cifras de ventas de los comerciales. Esto incluye las cotizaciones antiguas: ve las descripciones, no los precios.
+- **Puede:**
+  - cotizar servicios y repuestos, y corregir las cotizaciones del área aunque las haya hecho otra compañera;
+  - emitir cierres de servicios en cualquier cartera (ese cierre es de quien lo creó; el dueño de la cartera lo sigue viendo);
+  - registrar casos (también autoderivados), seguimientos sin abrir caso, aperturas e informes;
+  - agregar y corregir contactos en clientes donde tiene un caso (borrar sigue siendo del dueño);
+  - corregir la serie de una máquina.
+- **Restricciones vigentes:**
+  - **toda cotización de postventa pasa por gerencia** (desde el 05-10, mientras dure la capacitación);
+  - borrar una cotización de postventa pide código;
+  - enviar con saldo pendiente pide código (desde el 14-10).
+
+### 2.4 Operaciones (Lesly)
+
+- **Rol propio** («operaciones»): no es comercial, ni almacén, ni gerencia.
+- **Hace:**
+  - **dicta el código de operaciones** para anular cierres, corregir derivaciones, corregir documentos numerados, cambiar una apertura emitida, modificar una máquina ya «probada y embalada», corregir informes y unir fichas;
+  - mantiene el **catálogo** (productos, servicios, repuestos, precios, fichas, códigos, stock);
+  - reparte permisos temporales (por ejemplo, la llave para ver y cotizar mantenimiento);
+  - edita el Directorio y la lista de técnicos;
+  - supervisa postventa, almacén, Central y Finanzas desde «Hoy»;
+  - tiene su sección de almacén («Por hacer», «Generación de código», «Calendario»).
+- **No hace:**
+  - traspasar cartera (es decisión de gerencia: «es plata de alguien»);
+  - ver paneles, comisiones ni números de la empresa.
+- Su regla de cotizaciones: las de operaciones **no** entran en la regla «toda cotización de postventa va a gerencia».
+
+### 2.5 Almacén (ALM, ALM2)
+
+- **Ve:** pedidos y aperturas, llamadas de postventa (derivación de llamadas), aperturas urgentes, generación de código y series, calendario de despachos, visitas, letras y «Guías autorizadas por Finanzas».
+- **No ve:** precios. Tampoco ve el precio en el cuadro de repuestos del informe de videollamada.
+- **Puede:**
+  - asignar y registrar series (avisa si el largo no es el típico de la marca; corregir una serie ya registrada pide código);
+  - marcar «Sin stock» con motivo;
+  - subir protocolos y marcar «Probada y embalada»;
+  - «Estamos listos», despachar, subir la guía;
+  - subir informes de llamadas;
+  - cambiar el técnico mientras no haya informe;
+  - registrar visitas de proveedor;
+  - emitir el «Reporte del almacén».
+
+### 2.6 Finanzas (Jhon)
+
+- **Ve:** el expediente completo de lo que liquida, en solo lectura (cotización enlazada, OC, cierre, pedido, vouchers). Los vouchers de Finanzas solo los ven Finanzas y gerencia.
+- **Puede:**
+  - confirmar u observar pagos;
+  - subir liquidaciones;
+  - dar el visto bueno a créditos y letras;
+  - autorizar guías si Contabilidad no está;
+  - atender órdenes de facturar;
+  - ver cuentas por cobrar.
+- **No entra** a los informes técnicos de postventa: el correo de la orden de facturar los describe, pero no los enlaza.
+
+### 2.7 Contabilidad / Facturación
+
+- Es la misma cuenta (Facturación 1).
+- **Pantallas:**
+  - «Por facturar»;
+  - «Observados», con revisión automática de congruencia: empresa, RUC, moneda, monto con IGV y OC adjunta;
+  - «Facturados»;
+  - «Enviada al cliente».
+- **Autoriza las guías** de las aperturas (desde el 12-10) indicando el comprobante.
+
+### 2.8 Importaciones
+
+- Perfil propio desde el 06-10, con un solo menú: **«Por importar»**. Ahí están las máquinas sin serie de pedidos abiertos no despachados, con pestañas por motivo.
+- Anota la fecha estimada de llegada y una nota.
+- **No ve clientes ni precios.** Mostrar esa fecha a postventa dentro del pedido está pendiente (por confirmar).
+
+### 2.9 Gerencia
+
+- **Ve todo.** Aprobaciones, Supervisión diaria por comercial (incluye postventa), «Cierre del día» (quién no cerró su reporte), visitas del equipo, metas, cartera liberable, finanzas y cuentas por cobrar, marketing y WhatsApp (turnos y dueños de campaña), accesos y equipos, y alertas de conducta.
+- **Decide:**
+  - traspasos de cartera y fichas en disputa entre comerciales;
+  - precios bajo lista;
+  - devoluciones con proceso avanzado;
+  - reglas nuevas.
+- **Dicta el código del supervisor.** Es rotativo, dura pocos minutos y se quema al usarse. Puede levantar el código por un día, pero el motivo sigue siendo obligatorio.
+
+### 2.10 Administración
+
+- Gestiona usuarios. Solo puede borrar los que no tienen historial; a los demás los desactiva.
+- Atiende el buzón de sugerencias («Observaciones del sistema»). Gerencia lo lee; cada persona ve solo las suyas.
+
+### 2.11 Cuentas de práctica
+
+- Las cuentas de práctica (C0, PV0, ALM0, etc.) ven datos de ejemplo, no los reales.
+- Numeran con prefijo **PRUEBA** («PRUEBA_…», «PRUEBA-9xx»), sin gastar la serie real, y no cuentan en ningún indicador.
+- No envían correos ni hacen sonar avisos reales.
+- Por qué: unas pruebas internas gastaron números reales y una comercial reclamó un salto.
+
+### 2.12 Controles que aplican a todos
+
+- **Accesos y equipos:** gerencia ve quién entró, desde qué equipo y desde qué zona aproximada. Las laptops son de la empresa y el seguimiento figura en el contrato. Solo se mira, no se bloquea.
+- **Conducta sospechosa** (desde el 02-10): el CRM detecta capturas de pantalla, copias de texto, descargas e impresiones, y avisa a gerencia. Por qué: hay información delicada, como los teléfonos de los contactos. Solo detecta y alerta; no bloquea.
+- **«Salir»** cierra la sesión en ese equipo (por confirmar si ya rige; antes cerraba en todos).
+
+---
+
+## 3. Reglas por tema
+
+### 3.1 Cartera, fichas y expedientes
+
+**Ficha, expediente y cartera**
+- **Ficha** es el cliente (RUC o DNI). **Expediente** es un negocio concreto con ese cliente (la oportunidad). **Cartera** son las fichas de un comercial.
+- **El cliente es del comercial que lo atendió.** Si llega un lead de un cliente existente, se propone a su dueño.
+- **El RUC manda.** No se puede registrar un cliente que ya existe con ese documento. Para deduplicar, se busca por RUC/DNI, luego teléfono, luego correo; nunca por nombre.
+
+**Cartera liberable**
+- Un cliente **sin venta en 3 meses** es liberable, y la cartera se redistribuye cada 3 meses (gerencia, 23-09). Antes eran 6 meses.
+- La pantalla «Cartera liberable» de gerencia solo señala qué se puede mover. **Moverlo lo decide gerencia, nunca es automático.**
+- Anunciado el 01-10 y **no implementado**: el lead nuevo de campaña sería del comercial por 15 días, el cliente de compra continua por 6 meses y el que trae el propio comercial de forma permanente.
+
+**Derivar no mueve la cartera**
+- Ni una derivación a otro comercial ni una a postventa cambian al dueño de la ficha. Por qué: antes quien contestaba el teléfono cambiaba la cartera con un clic, sin saberlo.
+
+**Un expediente por cliente y por comercial**
+- Si el cliente vuelve a escribir y ya tiene un expediente abierto con ese comercial, se suma ahí («El cliente volvió a escribir por…»). Gerencia lo comparó con una historia clínica.
+- En postventa, un caso nuevo se suma al expediente de postventa del mismo cliente y del mismo tipo si sigue abierto y se movió en los últimos 30 días. Si no, abre uno propio. Nunca se funde con uno comercial.
+
+**Pedir un expediente que es de otro** (botón «Pedir el expediente»)
+- Lo usa quien atiende un expediente ajeno y tiene motivo para trabajarlo.
+- Pide el código del supervisor y un motivo. Queda nota y se avisa al dueño anterior.
+- **No mueve la cartera del cliente.**
+- No sirve para expedientes con venta o cierre emitido; esos los mueve gerencia.
+
+**Pedir el cliente para su cartera** (botón «Pedir este cliente para su cartera»)
+- Cuando el RUC ya está en la cartera de otro.
+- Pide código (lo dicta gerencia, así que gerencia decide en el momento) y motivo.
+- Pasa la ficha con todos sus expedientes.
+- **Las ventas viejas se quedan con quien las hizo**, porque afectan comisiones.
+- No aplica a instituciones con sedes que comparten RUC.
+- Quien pierde el cliente recibe aviso con el motivo.
+
+**Fichas duplicadas**
+- **«Es un cliente que ya tenemos» / «Unir a esta ficha».** Une un contacto o prospecto a la ficha existente. Busca por nombre, RUC, correo o dominio del correo; el dominio solo sirve si no es un correo personal y apunta a una única ficha. La ficha conserva su comercial. Solo pide código si el contacto ya estaba derivado a otro comercial.
+- **«¿Es el mismo cliente?»** El CRM sugiere fichas parecidas. Unir pide código de operaciones y nunca es automático.
+  - **Si las fichas son de carteras distintas, decide gerencia.**
+  - Entre dos fichas con RUC (persona natural y empresa) se queda la de la empresa que factura.
+- **Ficha «cascarón».** Los formularios de Google Ads solo traen nombre, teléfono y ciudad, y abren una ficha sin RUC. Si coinciden teléfono y correo, el CRM la reconoce como el mismo cliente.
+- **Teléfono mal tipeado.** El CRM extrae el celular aunque haya dígitos de más o dos números juntos.
+- **Si el RUC y el teléfono apuntan a fichas distintas**, el diálogo de asignar avisa en ámbar.
+- **«No me aparece el seguimiento».** Casi siempre está en otra ficha del mismo cliente (nombre comercial o razón social, o una ficha sin RUC). Busque por RUC y por parte del nombre.
+
+**Grupo económico y sedes**
+- **Mismo cliente con otra razón social:** no se fusiona. Va como ficha aparte enlazada a la ficha madre (grupo económico); la cotización imprime el RUC de la ficha.
+- Si el cliente pide cotizar con otro RUC de su grupo: en el cotizador, «A nombre de» → «Otra empresa del grupo». La empresa hija queda en la cartera del mismo comercial.
+- **Sedes de un mismo RUC:** solo ESSALUD, Marina de Guerra y MINSA funcionan como «institución madre + sedes». Central elige la sede o crea «Otra sede (nueva)», y cada sede puede tener otro dueño. Para cualquier otra empresa el RUC es único. Agregar una institución a esta lista lo decide gerencia.
+
+**Historial y gestiones**
+- **Historia archivada.** Un expediente nuevo muestra su propia historia. Arriba aparece el recuadro gris «Así se quedó», con lo último de los expedientes históricos. Lo histórico se consulta y **no cuenta como trabajo**.
+- **Gestión en otra ficha.** Si el cliente fue atendido en otra ficha, no se acusa a nadie de «sin gestión»: la ficha dice dónde está la atención. Las notas del sistema y las gestiones importadas del Excel no cuentan como contacto.
+- **«La base del Excel».** Al pie de «Mi día» están las oportunidades importadas que nadie ha tocado, con el botón **«Retomar»**. Retomar no es lo mismo que «Potencial».
+
+**Rubros y códigos de comercial**
+- **Rubros:** cualquiera puede cambiar el rubro de un cliente («Cambiar rubro»). **Solo operaciones, gerencia y administración crean rubros nuevos** (desde el 04-09: «nos van a llenar de 30 rubros»).
+- **Los códigos C1–C10 son posiciones, no personas.** Al irse alguien, el código queda libre. El código anterior de una persona se muestra como «antes Cx». Un comercial nuevo reutiliza la posición, que ya trae su cartera.
+
+### 3.2 Gestión comercial, metas y reportes
+
+**Etapas e interés de compra**
+- **Etapas:** Asignada → Filtrada → Cotizada → Seguimiento → Potencial → Venta / Rechazada.
+  - «Cotizada» la pone el cotizador.
+  - «Venta» solo nace de «Registrar venta» o «Venta ejecutada», nunca a mano. Así se protegen las cifras y la última venta del cliente, que alimenta la regla de cartera.
+  - **«Potencial» significa «lo que voy a cerrar esta semana».**
+- **Rechazar exige motivo.** «Busca lavadora doméstica (no industrial)» es un motivo propio: no es spam, porque el motivo se informa a Google y Meta y sirve para afinar los anuncios. «Compra a futuro» va antes que el rechazo.
+- **Salidas que no son pérdida:** «Ya no es mío — pasó a otra área» y «Duplicado o ya no corresponde — archivar».
+- **Interés de compra, 5 niveles:**
+  - **Alto potencial:** espera la OC o el depósito, o ya hace planos.
+  - **Medio-alto:** tiene local o fecha.
+  - **Medio:** busca ubicación.
+  - **Medio-bajo:** busca financiamiento.
+  - **Bajo:** «quiero saber».
+  - Al marcar «Interesado», el CRM pide calificar en el mismo clic, porque «interesado» no dice qué nivel es.
+- **«Corresponde cerrar»:** un prospecto sin respuesta en 1 mes, o una cotización sin respuesta en 3 meses, aparece en «Mi día» para que la persona decida. **El CRM no lo cierra solo.**
+
+**Qué cuenta como gestión**
+- Cuentan como contacto real: llamada, correo, visita y videollamada.
+- **Desde el 30-09, la gestión por WhatsApp no suma a la meta de gestiones** porque inflaba el indicador. Se cuenta aparte.
+- Visitas y videollamadas son indicadores propios.
+- Un **seguimiento efectivo** es un contacto con resultado distinto de «No contestó».
+- La meta diaria de seguimientos efectivos la fija gerencia en «Metas». La propuesta nueva de metas sigue pendiente de aprobación.
+
+**Reportes del comercial**
+- **Reporte diario:** queda grabado en el CRM. Gerencia ve en «Cierre del día» quién no cerró su día.
+- **Cierre semanal** (en «Mi agenda»):
+  - el sábado, desde el mediodía, el botón se pone granate;
+  - muestra proyectado contra vendido;
+  - pide «¿Qué vas a hacer para mejorar tus ventas?» y «¿Qué necesitas?»;
+  - al declararlo queda congelado como histórico.
+
+### 3.3 Cotizaciones
+
+**Número, serie y empresa**
+- **Borrador sin número.** La cotización nace como borrador con el primer equipo y se guarda sola. El número se asigna al **«Confirmar cotización»**, y solo si no necesita aprobación o ya la tiene. Pedir aprobación nunca gasta número. Por qué: antes se asignaba al crear y se perdían números.
+- **Correlativo:** Presu_####-AA. Hay una serie anual por empresa (EFAMEINSA y OPEN), que reinicia en enero. Es de la empresa, no del comercial: por eso un comercial ve «saltos» entre sus números. Comerciales y postventa comparten la serie.
+- **Qué empresa usar:** **Open Investments es la primera opción** (gerencia, 23-09). Los clientes nuevos van con OPEN. Para elegir EFAMEINSA, el CRM pide un motivo. Si un cliente antiguo insiste en EFAMEINSA, se acepta como excepción.
+- **Emitida = inmutable.** Para cambiarla hay que corregirla con código o duplicarla. «Duplicar» crea una cotización nueva con número nuevo.
+
+**Precios**
+- **No hay un porcentaje de descuento libre ni un piso fijo.** Todo lo que quede bajo el precio de lista va a gerencia.
+- Antes de cotizar:
+  - a un cliente nuevo, se miran costo y margen;
+  - a un cliente existente, su historial y los presupuestos anteriores del mismo equipo, para no dar precios distintos sin razón.
+- **Los servicios que se renuevan cada año suben como mínimo un 10 %** sobre el año anterior, salvo una justificación aprobada.
+- **Los repuestos no tienen precio mínimo:** se considera antigüedad, stock, importación, costo, historial y margen.
+- **Precio de referencia congelado:** cada renglón guarda el precio de lista del día en que se agregó. Una cotización emitida nunca se vuelve a medir contra la lista. Si Lesly corrige un precio, solo se vuelven a medir los borradores.
+- **Catálogo:** lo gestiona Lesly dentro del CRM (desde el 10-09). Si un Word viejo y el CRM difieren, **manda el CRM**. Nunca se elige la cifra más baja. El stock del buscador se actualiza cada semana con el Excel de Importaciones; «stock s/d» significa que no hay dato.
+
+**IGV y moneda**
+- **IGV:** los montos se guardan sin IGV y el PDF suma el 18 %. Los servicios del catálogo se cargan sin IGV.
+- **Check «incluye IGV» por renglón:** solo al final, cuando la venta ya se cerró en una cifra redonda (gerencia: «cotizar neto como siempre»).
+- **Moneda:** el CRM guarda en dólares y puede cotizar en soles; lo escrito en soles se respeta tal cual. El tipo de cambio lo fija gerencia, no el comercial. El cierre hereda la moneda de la cotización, y corregir un cierre no cambia su moneda.
+- **Forma de pago:** se elige de una lista y trae su saldo (por ejemplo, Contado = 100 %). Si la forma y el saldo se contradicen, sale un aviso ámbar.
+
+**Líneas y contenido del PDF**
+- **Línea escrita a mano:**
+  - se usa para lo que no está en el catálogo, y debe tener descripción;
+  - **con precio mayor que cero, en cotizaciones de comerciales, pide aprobación de gerencia** (desde el 12-10);
+  - en cero (bonos, instalación gratuita) no pide nada.
+  - Por qué: no tiene lista con qué compararse y salía «auto aprobada». Gerencia rechazó la alternativa de avisar después de confirmar: siempre aprobación previa.
+- **Kit:** solo se editan las cantidades de sus componentes. El cambio va a gerencia sin código y no crea un producto nuevo.
+- **Ficha técnica en la cotización:** formato fijo, tal cual la ficha del catálogo. El comercial no agrega fotos ni resaltados en el CRM; si quiere destacar algo, lo manda aparte.
+- **Postventa en su cotización:**
+  - «Editar nombre» del renglón y «Detalle» bajo el renglón (por ejemplo, la serie de la máquina a la que va el repuesto);
+  - «Nota del PDF», editable solo en borrador;
+  - «Sin garantía» no se imprime.
+- **Cuentas bancarias:** desde el 14-10, el PDF de EFAMEINSA también imprime sus cuentas bancarias (antes solo OPEN).
+
+**Corregir una cotización numerada** (botón «Corregir esta cotización»)
+- Corrige quien la hizo (en postventa, cualquiera del área).
+- Primero escribe el motivo (15 caracteres como mínimo) y después pide el código de operaciones o gerencia. El código abre una ventana de unos 30 minutos.
+- **Se conservan** el número, la serie, el cliente y la fecha. La versión anterior queda archivada.
+- **El PDF dice «v2», «v3»…** (gerencia, 23-09), y toda corrección debe estar sustentada.
+- Por qué existe: ese número ya lo tiene el cliente o el banco, por ejemplo en un leasing.
+- **Frenos:**
+  - si tiene un cierre emitido vivo, primero se anula el cierre;
+  - no se puede ahondar un descuento.
+- **Defecto conocido (12-10):** la pantalla de corrección apaga «Guardar» si algún precio está bajo lista, aunque gerencia ya lo haya aprobado. Si le pasa, repórtelo por el buzón.
+
+**Anular una cotización** (botón «Anular cotización», desde el 10-10)
+- Pide motivo (15 caracteres como mínimo) y código de operaciones o gerencia.
+- No se puede si la cotización no es suya, si es un borrador, si ya está anulada o si tiene un cierre emitido o una venta vivos.
+- La anulada queda tachada, con su motivo, y no cuenta en ninguna cifra. Central la ve «Anulada».
+- Por qué: los números no se borran ni se rellenan. Marcarla «perdida» o «vencida» mentiría en los reportes.
+
+**Otras reglas**
+- **Venta parcial:** el CRM no hace cierres parciales. **La venta se registra por lo que dice el informe de cierre**, no por el total cotizado. Lo recomendado es duplicar la cotización con solo lo vendido.
+- **Estados que verá:**
+  - de envío: Borrador, Confirmada, Aceptada, Perdida, Vencida, Anulada. Central y gerencia dicen «Enviada al cliente» donde el comercial ve «Confirmada»;
+  - de aprobación: Aprobada, Espera a gerencia, Aprobada por gerencia, Rechazada, más la marca «observada».
+
+### 3.4 Aprobación de gerencia
+
+- **Qué ve gerencia en Aprobaciones:** quién creó la cotización, las gestiones de ese expediente y, desde el 05-10, las del mismo cliente en otros expedientes de los últimos 90 días. Por qué: una vez se rechazó por «no hay gestión» cuando la llamada estaba en otro expediente.
+- **Lo que puede hacer gerencia:**
+  - **«Aprobar».**
+  - **«Observar sin rechazar»** (desde el 07-10): la cotización sigue editable. El autor corrige y responde, y vuelve a gerencia.
+  - **«Revisar renglón por renglón»** (desde el 13-10): cada renglón se aprueba o se marca «Corregir» con un comentario, y luego «Devolver para corregir». **El borrador no se borra.** Los renglones aprobados siguen aprobados si no se tocan. El autor ve tarjetas rojas «Corregir: <equipo>», corrige y responde.
+  - **«Rechazar la cotización entera»:** queda como histórico y hay que hacer otra. Antes del 13-10 esta era la única opción; ahora es la excepción.
+- **La aprobación sobrevive a la edición:** queda pegada al par equipo + precio. Si se cambia el precio, se vuelve a pedir.
+- **El autor se entera por la campana**, con la nota de gerencia. Postventa ve en «Mis cotizaciones» la sección «Lo que pasó por gerencia» (últimos 60 días).
+- **Postventa en capacitación:** Aprobaciones muestra «Postventa en capacitación · N de M por aprobar». No hay fecha de fin.
+
+### 3.5 Cierres (informe de cierre de venta)
+
+**Qué es y cómo se arma**
+- **Qué es:** el documento con lo que la empresa necesita para **ejecutar** la venta: qué se vende, a quién se factura, dirección y transporte, quién recibe, condición de pago y observaciones. La cotización es lo que se ofrece; el cierre es lo que se ejecuta. Su formato es fijo porque Central busca cada dato siempre en el mismo sitio.
+- **Borrador sin número.** «Guardar borrador» se puede editar sin código. **«Emitir»** asigna el correlativo una sola vez. Hasta entonces, el PDF dice BORRADOR.
+- **Numeración:** NNN-AAAA, una serie anual por empresa (EFAMEINSA y OPEN). Lo emitido no se renumera. Lo anulado conserva su número. Puede haber números reservados (por ejemplo, para cierres antiguos en Word de postventa); quien emite no tiene que hacer nada especial con ellos.
+- **Cada renglón tiene tipo** (equipo, repuesto o servicio). Se puede «Pegar una lista» desde Excel. **Las líneas de servicio no piden serie.** Un mantenimiento genera un pedido de tipo mantenimiento.
+- **«Se le factura a»** se edita en su propio cuadro, solo para ese documento; no cambia la ficha. Avisa si el RUC es distinto.
+- **Condición de pago obligatoria:** porcentaje antes del despacho y días de crédito. Las pastillas Contado, Crédito y 50 % adelanto la proponen. La política general de la empresa es un adelanto más el saldo antes del despacho, aunque la venta a crédito es normal en la casa.
+- **Documentos:** voucher(s), OC y otros acuerdos. Si se eligió «¿De qué presupuesto copio los equipos?», la cotización enlazada ya cuenta como documento y no hace falta adjuntarla.
+- **Al emitir, el cierre se ata a su venta.** La venta se registra sin IGV y con el importe del cierre. Si el cierre llega después, la venta se corrige y la diferencia queda anotada.
+
+**Después de emitido**
+- **Emitido = sellado.** Agregar documentos o corregir pide motivo y código de operaciones o gerencia (ventana de unos 30 minutos). Se crea una versión nueva, la anterior se archiva y se recalcula la venta. No cambian ni el número, ni la serie, ni la fecha, ni el cliente, ni la moneda.
+- **Devolución de Central:** el cierre aparece arriba en «Mis cierres» del comercial, con el motivo. El comercial corrige y responde «ya lo corregí». Cada vuelta queda registrada.
+
+**Anular un cierre**
+- El comercial **pide la anulación** desde la vista de su cierre, con motivo. Llega a operaciones y gerencia, y en Central aparece arriba en un recuadro amarillo.
+- **Operaciones, Central o gerencia anulan con código.**
+- **Qué pasa al anular:**
+  - la venta cae y el pedido se cierra solo;
+  - si era un duplicado, la venta pasa al cierre que lo reemplaza;
+  - el comercial recibe aviso con el motivo;
+  - después se rehace lo que corresponda (cotización y cierre nuevos, con aprobación si baja de lista).
+- Gerencia: «no se anuló una venta, se anuló un papel».
+
+**Cierres REG (regularizados), desde el 05-10**
+- Son cierres hechos en Word **antes** de que existiera el CRM.
+- Se suben con el **correlativo siguiente** de la serie del CRM (no con su número de Word), marcados «REG».
+- **No suman a la venta** (la venta ya está registrada desde el Excel maestro) ni cuentan en la supervisión.
+- Pasan por todo el circuito desde Central, para que postventa tenga la realidad completa. **Central escribe las series ella misma** («Las escribo yo»), porque el almacén ya entregó. No se puede generar un pedido REG con filas de equipo sin serie.
+- El pedido REG nace con los pasos previos marcados como hechos en la fecha de entrega.
+- Central los ve en la pestaña «Regularizados (REG)».
+- **Un Word hecho después del CRM no es REG.** Se carga como cierre normal, con sus documentos adjuntos antes de emitir, y sigue el circuito normal. Un repuesto aún no entregado tampoco es REG.
+
+**Ventas antiguas sin cierre**
+- Para traer una venta antigua al circuito se usa «Traer a preparación» desde la ficha, o se crea su cierre en el CRM enlazado a la venta existente, a nombre de quien vendió.
+- Si el equipo ya se entregó, hay que confirmarlo con postventa u operaciones antes de mover nada en almacén.
+
+### 3.6 Pedidos, pagos, crédito y letras
+
+**Número y tipos de pedido**
+- **Número:** PED-NNNN-AAAA. Lo genera Central.
+- **Tipos y recorrido:** equipo; repuesto (entrega en planta, por agencia o en el local del cliente, con o sin instalación); accesorio (coches y carros, sin instalación); embalaje; mantenimiento preventivo o correctivo; servicio de revisión.
+- **Si un pedido pide pasos que no le tocan, casi siempre el tipo está mal puesto.** Se corrige con el selector de tipo del pedido.
+
+**Filas, series y stock**
+- **Una fila por máquina, con su serie.** Si un renglón trae varias series, se separa en filas.
+- En un repuesto, la «SERIE:» del renglón es la de la máquina a la que va la pieza. Central debe pulsar «Pedir al almacén».
+- **«No va en este despacho»** marca un despacho parcial.
+- **Sin stock:** una fila sin serie o con código pero sin mercadería se marca «Sin stock» con motivo (importación, compra local o fabricación). Se limpia sola cuando se registra la serie real.
+- Las series escritas como «NO HAY STOCK» o «PENDIENTE» son un truco viejo que ya no se usa.
+
+**Condición de pago y saldo**
+- **La condición de pago manda en el despacho.** Se compara lo pagado con lo acordado antes del despacho, no con el total. Solo se pide «quién autorizó y por qué» si entró menos de lo acordado.
+- Gerencia, operaciones y administración pueden definir la condición de pago de un pedido.
+- **Salir con saldo pendiente** pide código. Desde el 14-10, postventa también necesita código; ya no basta un motivo.
+
+**Visto bueno de Finanzas para ventas a crédito** (desde el 14-10)
+- **Cuándo se necesita:** toda **venta** (no los servicios ni los casos) en la que:
+  - el pago antes del despacho sea menor al 100 %; o
+  - la forma de pago sea letras, crédito, financiamiento o a plazo («factura a 30 días»); o
+  - el abono esté a crédito o sin confirmar.
+- **Qué frena mientras no esté:** la apertura del despacho, la autorización de la guía y la salida del almacén.
+- **Qué indica Finanzas:** el estado de las letras: «No lleva letras», «Las letras van con el equipo», «El cliente tiene las letras, falta que las firme» o «Letras firmadas». También la cantidad y la comisión interplaza o bancaria, si la hubo.
+- **Salida de emergencia:** el código de gerencia u operaciones, que queda registrado como «Salida autorizada con código, sin visto bueno de Finanzas».
+- **Por qué:** un equipo salió a crédito sin sus letras porque el Excel decía «SI» al adelanto y el CRM lo leyó como pagado completo.
+
+**Letras que viajan con el equipo** (desde el 14-10)
+1. El almacén marca «recibí las letras». Sin eso, no sale.
+2. Al entregarlas, almacén, postventa o Finanzas registran «letras entregadas», con fotos y con quién las recibió. Se avisa a Finanzas y a postventa.
+3. **Sin letras entregadas no hay «Despacho verificado»**, y el código no lo salta.
+4. Finanzas marca «firmadas» cuando vuelven.
+
+**Orden a Finanzas para facturar y cobrar** (desde el 13-10)
+- Es el último paso antes de «Pedido cerrado» cuando se ejecutó sin cobrar el 100 %.
+- La da postventa. Avisa a Finanzas y Facturación por campana y por correo.
+- Por qué: «el 99 % me paga primero; el 1 % voy, viajo, invierto y luego te cobro».
+
+**Otras reglas del pedido**
+- **Urgencias y apuros:**
+  - «Urgencia a Finanzas» pone el pedido primero y en rojo en «Pagos por confirmar»;
+  - desde el segundo aviso por el mismo pedido, gerencia se entera.
+- **Empresa del documento:** los documentos de un pedido salen con la empresa de su cierre. Sin cierre, con la empresa anotada en la apertura, y si no hay nada, EFAMEINSA. Si un informe sale con el membrete equivocado, revise si el pedido tiene cierre o empresa anotada.
+- **Documentos en cada paso:** en el pedido, cada paso muestra sus documentos (pago, cierre, protocolo, apertura, guía, fotos, informes) a un clic.
+- **«Abiertos / Todos»:** Control de pedidos abre en «Abiertos». Los pedidos viejos del Excel sin movimiento («historia del Excel») no suman. Vuelven a «Abiertos» si alguien les marca un paso.
+
+### 3.7 Almacén: series, protocolo y «Probada y embalada»
+
+- **Un protocolo por máquina**, no uno por pedido.
+- **«Probada y embalada» exige, por cada máquina de la unidad** (incluida la secadora de una torre):
+  - número de protocolo;
+  - al menos una foto;
+  - el protocolo o informe en PDF o Word;
+  - la ficha (modelo de la placa, serie, técnico);
+  - todas las casillas de la hoja de chequeo, si hay plantilla.
+- **Excepciones:**
+  - Las máquinas con hoja de chequeo en el sistema (hoy, la lavadora) no exigen PDF ni Word, porque el sistema ya lo genera.
+  - Calandria, secadora y prensa sí lo exigen hasta que tengan su plantilla (pendiente).
+  - El repuesto solo pide protocolo, foto y técnico.
+- **Hoja «PROTOCOLO DE LAVADORA»:** replica el papel, casilla por casilla. Cada renglón se marca ✓, ✗ o **«N/A»**, que cuenta como respondido. Los vacíos frenan.
+- **El video de la prueba es opcional** y no reemplaza al protocolo.
+- **Por qué existe esta regla** (13-10): se marcó una máquina como probada sin una sola foto ni documento. «Tiene que estar todo… y si hay que modificar, que pida el código».
+- **Modificar una máquina ya «probada y embalada»** (protocolo, hoja, fotos) pide el código de operaciones, con motivo.
+- **Torres:** llevan dos series («+ Otra serie en esta unidad»). La secadora viaja con su unidad y no suma en la cantidad de la apertura.
+- **Serie:** el CRM avisa si el largo no es el típico de la marca; es solo un aviso. Corregir una serie registrada pide código.
+
+### 3.8 Postventa
+
+**Tipo de caso primero** (desde el 13-10)
+- Al registrar, primero se elige el tipo, que pasa a ser el título de la apertura, y después se escribe el detalle.
+- **Tipos:** Puesta en marcha, Problema técnico, Soporte técnico, Repuesto, Mantenimiento, Revisión por garantía, Refuerzo de capacitación y Otro (con texto libre).
+- El tipo se corrige con «Cambiar tipo».
+- «Servicio técnico» no es un tipo de caso: es un encabezado de apertura.
+
+**Cómo entra un caso**
+- Llega derivado por Central (que necesita código para derivar a postventa) o lo registra postventa ella misma como autoderivado.
+- También se puede registrar un **seguimiento** en el cliente sin abrir caso.
+
+**Serie y garantía**
+- **La serie va primero.** Con la serie, el CRM muestra el equipo, la garantía, los ciclos y el último preventivo. «NUNCA» indica que nunca tuvo preventivo: es una oportunidad de venta. Sin serie, el caso queda como «equipo sin identificar».
+- **Garantía:** 24 meses por defecto, **desde la guía de remisión de venta** (desde que sale de la empresa, no desde que llega).
+  - Una guía que devuelve una máquina después de un servicio no fecha garantía: darla desde una reparación regalaría años.
+  - Consignación, devolución y repuestos con serie no cuentan.
+  - Nunca se crea una ficha de cliente desde una guía.
+  - Si la garantía del cierre es distinta de 24 meses, vea la sección de dudas.
+- **Máquina que no vendimos:** «¿La vendimos nosotros?» → no: se registra como equipo del cliente, sin garantía.
+
+**Si el problema es en realidad un paso pendiente del pedido**
+- Por ejemplo, falta la puesta en marcha. La atención se cierra como **derivado → pedidos** y se sigue en el pedido.
+- Si el pedido está completo, el caso se reclasifica (por ejemplo, como refuerzo de capacitación).
+- Una llamada sobre un pedido en curso no abre un caso suelto.
+
+**Cerrar una atención**
+- Exige elegir un resultado: resuelto, no procede o derivado. No viene marcado por defecto.
+- Cada gestión de la atención queda como nota, con autor y hora, en el expediente y en la ficha.
+
+**Apertura** (orden de trabajo)
+- **Tipos:** Entrega, Entrega y puesta en marcha, Mantenimiento, Solo puesta en marcha (el técnico va sin equipo) y aperturas de servicio con su encabezado.
+- **Apertura desde un caso sin pedido** (garantía o servicio a un cliente antiguo): botón **«Apertura de servicio»**. Crea un pedido de origen «caso». Desde el 13-10 lista los equipos del cliente para marcar todos los que van.
+- **Contenido:** modelo de 11 filas de operaciones: servicio, cliente, primer destino, destino final, programación, quién recibe con DNI, personal, transporte, viáticos, coordinación con logística, etc.
+- **El cliente de la apertura es el del cierre.** Si no hay cierre, se toma de la ficha.
+- **«A quién llama el almacén»** empieza vacío y es obligatorio, porque puede ser un técnico del cliente que no está en la ficha.
+- **Técnico obligatorio.** Se elige de la lista de técnicos (se imprime con su DNI) o se escribe uno externo.
+- **Solicitud de guía:** traslado de equipo, materiales, equipo y materiales, o repuestos.
+- Si cambia el encabezado de una apertura emitida, se avisa a Finanzas y al almacén.
+- **Correos:** los avisos salen según la empresa del pedido, a las áreas del Directorio. El botón «Enviar por correo» solo envía a direcciones internas.
+
+**Derivar llamada al almacén** (apertura de llamada)
+- Postventa pide una revisión o videollamada. El pie del formulario dice qué falta para poder enviar.
+- El almacén sube el informe (versión 1) con lo que le falta al cliente para cotizar, y postventa arma la versión para el cliente.
+- Una vez enviado, el formato no se edita: se anula y se rehace.
+- Anular una llamada derivada: postventa necesita código; operaciones y gerencia no.
+
+**Informes**
+- Se corrigen con «Corregir informe», con código de operaciones y motivo, y queda el historial «Correcciones».
+- Para marcar un informe como enviado al cliente hay que subir una constancia.
+
+**Agenda y reportes de postventa**
+- **Agenda** (desde el 13-10): abre en «Lo que falta, paso por paso», solo con pedidos abiertos, y cada pendiente enlaza a su pedido. El calendario está en otra pestaña. El PDF del reporte diario incluye esa misma hoja.
+- **Reportes por autor** (desde el 13-10): cada persona de postventa ve solo lo suyo, separado por línea (repuestos, mantenimiento y correctivo, garantía y soporte, despacho y puesta en marcha, seguimiento).
+  - Un presupuesto es de quien lo armó.
+  - Una venta es del autor de su cotización.
+  - Los comerciales siguen midiéndose por cartera.
+
+**Preventivos y Ruta de mantenimiento**
+- Alerta de preventivo a los 3 meses («Preventivos por ofrecer»).
+- En la **Ruta de mantenimiento**: rojo = NUNCA tuvo preventivo; ámbar = vencido (6 meses o más); verde = al día; gris = sin registro.
+- «Nunca» y «sin registro» no son lo mismo: solo «nunca» se puede afirmar en una llamada.
+
+**Repuestos**
+- Un repuesto aprobado manda una orden «Preparar y embalar» al almacén.
+- En crédito o pago parcial, el último paso es la «Orden a Finanzas».
+
+### 3.9 WhatsApp y leads
+
+**A quién llega un WhatsApp** (en este orden)
+1. Si el número ya es de un cliente de otro comercial activo, va **al dueño de la cartera** (desde el 05-10; antes quedaba retenido en Central). Solo se retiene en Central si ese dueño ya no está activo.
+2. Si no, va al **dueño de la campaña** del anuncio.
+3. Si la campaña no tiene dueño, va al **comercial de turno del día**, que gerencia configura.
+
+**Ventanas de respuesta y línea personal**
+- Se puede escribir mientras esté abierta alguna de dos ventanas: 24 horas desde el último mensaje del cliente o 72 horas desde el clic en el anuncio. Pasado eso, se llama. **Nunca se usan plantillas pagadas.**
+- **La línea personal está cerrada** (06-10). La comunicación con clientes va por la bandeja del CRM. Si de verdad hace falta la línea personal, **el cliente escribe primero**, con un enlace desde el CRM. Nunca se le escribe en frío.
+- Por qué: una línea personal quedó restringida como spam por mensajes repetidos. Tampoco se usan bots ni métodos que parafraseen mensajes.
+
+**Tipificación**
+- El resultado se marca el mismo día. Se usa «No contesta» (no «Sin respuesta»).
+- Lo positivo se informa a Meta y Google para mejorar los anuncios: interesado, cotizado y compra (al emitir el cierre). Lo negativo queda solo en el CRM.
+- Tipificar e informar los leads es **obligatorio** (plazo de regularización: 09-10).
+
+**Avisos**
+- Cada mensaje entrante avisa al dueño del chat con sonido propio. La pestaña «No leídos» va primero.
+- La alerta «WhatsApp sin respuesta» llega como máximo una vez por hora, con los 3 chats que más esperan. No avisa si después del último mensaje hubo una gestión o una cotización.
+
+**Casos especiales**
+- **Cliente rechazado que vuelve a escribir:** el chat pasa al dueño de la ficha, que usa «Volvió a escribir: abrir seguimiento».
+- **Clientes con @usuario** (ocultan su número): se les puede responder, pero no llamar. Si escriben un celular que es de otro comercial, el CRM avisa.
+- **El público no ve productos ni precios** en el perfil de WhatsApp.
+
+### 3.10 Central: triaje, derivación y correcciones
+
+**Al registrar y asignar**
+- La captura detecta duplicados en vivo. Mientras el contacto no se derive, se puede usar «Corregir los datos».
+- El diálogo de asignar muestra las coincidencias. Al hacer clic en una, el contacto se une a esa ficha antes de derivar.
+
+**Cliente que ya atiende alguien y vuelve a escribir**
+- La cinta ámbar dice «Ya lo está viendo C# · Nombre» y ofrece **«Avisarle a C#»**.
+- Ese botón anota una nota en su expediente (no cuenta como gestión), le manda «Su cliente volvió a escribir» y cierra el contacto como repetido.
+- **«Descartar» significa «el contacto no procedía»**: se lee literal en marketing y afecta el costo por lead. Nunca se usa para algo repetido.
+
+**Otras herramientas**
+- **«Ver la historia de la empresa»:** busca por razón social, palabras, dominio y siglas. Solo mira: no une ni deriva.
+- **Seguimiento a comerciales:**
+  - los derivados quietos más de 7 días aparecen como «Preguntar a Cx por el seguimiento»;
+  - la urgencia al comercial le llega en vivo, y desde la segunda por el mismo contacto se entera gerencia.
+- **«Avisar a…»:** Finanzas, postventa y el comercial dueño, en una sola acción. Se deshace con «Revertir» (con código), y el contacto vuelve a triaje.
+
+**Corregir lo que pidió el cliente** (lápiz en «Inicio · lo que solicitó el cliente»)
+- Pueden el autor, Central y gerencia.
+- Es libre si el contacto sigue en la bandeja o tiene menos de 15 minutos. Después pide motivo, y si ya hay cotización o venta, también código.
+- Queda el historial con lo anterior tachado.
+- No se puede mudar a otra ficha si ya tiene cotización, venta, cierre o servicio.
+
+**Files y visitas**
+- **Files (archivadores físicos):**
+  - se piden en «Files», marcando OPEN, EFAMEINSA o ambos, y solo de lo que está en el inventario;
+  - recorrido: solicitado → entregado → «Recibí» → «Terminé» (avisa a Central para recogerlo) → devuelto;
+  - Central puede entregar el file a postventa enlazado al pedido;
+  - por qué: antes se usaba un cuaderno de cargos, «cero control»;
+  - los cierres nuevos pueden no estar aún en el inventario (por confirmar cómo pedirlos).
+- **Visitas a planta:** «Viene a la planta» avisa a Central, almacén y logística, y genera la hoja para vigilancia. También existe «Registrar visita de proveedor».
+
+### 3.11 Códigos de autorización (cómo funcionan, sin valores)
+
+- **Código del supervisor:**
+  - lo dictan gerencia, administración y operaciones;
+  - cambia cada pocos minutos (el anterior también vale un rato, porque se dicta por teléfono);
+  - **se quema al usarse**;
+  - siempre exige un motivo;
+  - quien lo tiene no se lo pide a sí mismo;
+  - los intentos fallidos quedan registrados;
+  - dos correcciones seguidas necesitan supervisores distintos.
+- **Código de operaciones (Lesly):** para correcciones operativas (aperturas emitidas, protocolos, informes, series, fichas, destino).
+- **Código de gerencia:** para lo que tiene impacto económico (devolver un cierre con el proceso avanzado, liberar un pedido sin liquidación, una salida con saldo o sin visto bueno).
+- **Por orden directa de Santos (gerencia)** se puede hacer una operación sin el código de operaciones, dejando rastro: «por orden de Santos (gerencia)». No aplica a pedidos que lleguen por otra vía.
+- **El asistente nunca da ni pide códigos.** Indica quién los dicta.
+
+---
+
+## 4. Glosario y directorio
+
+### 4.1 Glosario
+
+- **PRO-#####:** número de un contacto o lead registrado en Central. Su serie viene del histórico de Central.
+- **Presu_####-26:** número de una cotización (número-año), de la serie EFAMEINSA u OPEN. También se ve como «OPEN 500-26».
+- **NNN-AAAA (por ejemplo, 014-2026):** número de un informe de cierre de venta, con su serie («EFAMEINSA 005-2026»).
+- **PED-NNNN-AAAA:** número de un pedido.
+- **REG:** cierre regularizado, es decir, un cierre de Word anterior al CRM subido con el correlativo siguiente. No suma a la venta.
+- **PRUEBA…:** documentos de cuentas de práctica. No cuentan.
+- **EFAMEINSA / OPEN (Open Investments):** las dos razones sociales con las que factura la empresa. Cada una tiene su serie de cotizaciones y de cierres. OPEN es la primera opción.
+- **C1…C10:** posiciones de comercial (no personas).
+- **PV:** el área de postventa. **PV1, PV2, PV3:** las personas de postventa.
+- **ALM, ALM2:** cuentas de almacén. **IMP:** cuenta de Importaciones.
+- **Ficha:** el cliente (RUC o DNI) con sus contactos, equipos e historia.
+- **Expediente:** un negocio con un cliente (la oportunidad). En postventa, el expediente del caso.
+- **Cartera:** las fichas de un comercial. **Liberable:** cliente sin venta en 3 meses.
+- **Ficha cascarón:** ficha sin RUC creada por un lead de anuncios.
+- **Grupo económico:** fichas madre e hijas de empresas relacionadas, enlazadas sin fusionar.
+- **Caso / atención:** solicitud de postventa, con su tipo y sus etapas.
+- **Pedido:** la venta en ejecución, desde que Central la libera hasta «Pedido cerrado».
+- **Pedido ejecutado / liberar:** el check de Central que entrega el pedido a postventa, almacén y Finanzas.
+- **Liquidación:** el documento de Finanzas que Central acepta.
+- **Apertura:** la orden de trabajo de postventa al almacén o al técnico (de despacho, de servicio o de llamada). Para almacén y postventa, «apertura» equivale a despacho.
+- **Protocolo:** el registro de la prueba de cada máquina.
+- **Probada y embalada:** el paso del almacén que exige el protocolo completo.
+- **Visto bueno de Finanzas:** autorización de salida para ventas a crédito o con letras.
+- **Letras:** letras de cambio de una venta a crédito. Estados: no lleva, van con el equipo, entregadas, firmadas.
+- **Guía (de remisión):** el documento de salida. Fecha la garantía si es de venta.
+- **Parque instalado / equipos instalados:** las máquinas vendidas, con su serie y su garantía. En textos para clientes se prefiere decir «equipos instalados».
+- **Ciclos:** el «kilometraje» de la máquina. Se anotan en la puesta en marcha y en cada informe.
+- **Ruta de mantenimiento:** la campaña para vender preventivos sobre los equipos instalados.
+- **Historia del Excel / La base del Excel / Histórico:** datos importados de antes del CRM, que se consultan pero no cuentan como trabajo.
+- **Próxima acción:** la siguiente tarea agendada en un expediente.
+- **Potencial:** lo que el comercial promete cerrar esta semana.
+- **Corresponde cerrar:** expedientes sin respuesta (prospecto 1 mes, cotización 3 meses) que una persona debe revisar.
+- **Código (del supervisor, de operaciones, de gerencia):** autorización de un solo uso, con motivo. Nunca se comparte.
+- **Files:** archivadores físicos de los clientes.
+- **Directorio:** la pantalla con los correos internos de cada persona (OPEN y EFAMEINSA) y la lista de técnicos.
+- **Crece:** la plataforma interna de capacitación y puntos. El CRM le envía puntos por gestiones, cotizaciones, cierres, leads y sugerencias.
+
+### 4.2 Directorio de personas y códigos (solo nombres y funciones)
+
+**Gerencia y CRM**
+- **Carlos (ing.):** gerente general. Decide las reglas de negocio, los precios bajo lista y los traspasos de cartera.
+- **Karen:** gerencia (finanzas, RR. HH. y marketing).
+- **Santos:** gestión, marketing y CRM. Construye el CRM y tiene rango de gerencia en el sistema. Los cambios al CRM se le piden por el buzón.
+
+**Central y operaciones**
+- **Central:** Alondra.
+- **Operaciones:** Lesly (catálogo, códigos, permisos, almacén y supervisión de áreas).
+
+**Comerciales**
+
+| Código | Persona |
+|---|---|
+| C1 | Brenda Taboada (antes C8; piloto de trabajo de campo) |
+| C2 | Moisés Baldeón |
+| C3 | vacante |
+| C4 | Ariana Flores |
+| C5 | Katherine Tello |
+| C6 | Abel Abad (desde octubre) |
+| C9 | Desiree Salinas |
+| C7, C8, C10 | sin persona asignada (por confirmar) |
+
+**Postventa**
+- PV1: Rubí.
+- PV2: Gabriela Palacios.
+- PV3: Ariana Flores.
+
+**Otras áreas**
+- **Almacén:** Jeysson Alania (ALM) y Ariana Flores (ALM2).
+- **Finanzas:** Jhon Calsin.
+- **Contabilidad / Facturación:** cuenta Facturación.
+- **Importaciones:** cuenta IMP (por confirmar quién la usa; ver dudas).
+- **RR. HH.:** Yasmin Cuéllar (sin cuenta en el CRM por ahora).
+- **Sistemas:** Juan Carlos (JC).
+- **Técnicos:** lista con DNI en el Directorio.
+
+---
+
+## 5. Preguntas frecuentes
+
+**1. ¿Por qué mi cotización está «Espera a gerencia»?**
+Porque necesita visto bueno. Pasa cuando algún precio queda bajo lista, cuando tiene una línea escrita a mano con precio, cuando es de postventa (todas, durante la capacitación) o cuando es un kit con cantidades cambiadas. Mientras espera, sigue como borrador y no tiene número. Cuando gerencia apruebe, le llega un aviso y pulsa «Confirmar». (3.3, 3.4)
+
+**2. Gerencia me devolvió la cotización. ¿Tengo que hacer otra?**
+No, salvo que la haya rechazado entera. Si la devolvió renglón por renglón, verá tarjetas rojas «Corregir: <equipo>» en el cotizador. Corrija esos renglones, guarde y responda. Lo aprobado se mantiene si no lo toca. Si la observó sin rechazar, también corrige y responde. (3.4)
+
+**3. ¿Por qué no puedo confirmar la cotización?**
+Las causas habituales son tres: la ficha no tiene RUC ni DNI; necesita aprobación de gerencia (el botón dirá «Pedir aprobación a gerencia»); o una línea a mano no tiene descripción. Si la pantalla dice «No se pudo guardar», el motivo suele estar en los datos, no en la conexión. (1.4, 3.3)
+
+**4. ¿Por qué los números de mis cotizaciones saltan?**
+Porque la numeración es de la empresa (una serie EFAMEINSA y una OPEN por año), no de cada comercial. Entre sus números hay cotizaciones de otros compañeros y de postventa. Nunca se pierde nada: los huecos se anulan, no se rellenan. (3.3)
+
+**5. ¿Puedo cambiar una cotización que ya mandé al cliente?**
+Sí, con «Corregir esta cotización». Escriba el motivo (15 caracteres como mínimo) y pida el código a operaciones o gerencia. Se conserva el número y la fecha, y el PDF sale como «v2». Si ya tiene un cierre emitido, primero hay que anular el cierre. Si prefiere un número nuevo, use «Duplicar». (3.3)
+
+**6. ¿Cómo anulo una cotización?**
+Con el botón «Anular cotización», que existe desde el 10-10. Escriba el motivo y pida el código a operaciones o gerencia. No se puede si tiene un cierre o una venta vivos. La anulada queda tachada y no cuenta. (3.3)
+
+**7. ¿Cotizo con OPEN o con EFAMEINSA?**
+OPEN es la primera opción (gerencia, 23-09). Para elegir EFAMEINSA, el CRM le pedirá un motivo; por ejemplo, un cliente antiguo que insiste en facturar con EFAMEINSA. Toda la cadena de documentos seguirá con la empresa que elija. (3.3, 0)
+
+**8. ¿Por qué no puedo emitir este cierre?**
+Revise que tenga lugar de entrega, condición de pago (porcentaje antes del despacho y días de crédito), a quién se factura y los documentos (voucher u OC; la cotización enlazada ya cuenta). Si es a crédito, declárelo: no lleva voucher. Si el RUC no coincide con la ficha, el CRM lo avisa arriba. (1.6, 3.5)
+
+**9. Me equivoqué en un cierre ya emitido. ¿Qué hago?**
+Un cierre emitido está sellado. Para corregirlo o agregarle documentos hace falta motivo y código de operaciones o gerencia; se crea una versión nueva. Si la venta se cayó, pida la anulación desde la vista de su cierre. Anular lo hacen operaciones, Central o gerencia con código. (3.5)
+
+**10. Central me devolvió el cierre. ¿Lo perdí?**
+No. Devolver no es anular: el número se conserva. Lo verá arriba en «Mis cierres» con el motivo. Corríjalo y responda «ya lo corregí» para que vuelva a Central. (3.5)
+
+**11. ¿Qué pasa después de que Central marca los checks?**
+Central registra o pide las series, genera el pedido PED-…, acepta la liquidación de Finanzas y marca «Pedido ejecutado». Desde ese momento el pedido aparece en postventa como «Nuevo pedido» y también lo ven almacén y Finanzas. Postventa lo aprueba (acuse), pide la prueba, verifica dirección y quién recibe, emite la apertura, y el almacén despacha cuando la guía está autorizada. (1.7–1.12)
+
+**12. Soy de postventa: ¿por qué no veo el pedido que vendió el comercial?**
+Porque Central todavía no lo liberó («Pedido ejecutado»). Postventa ve los pedidos solo después de ese check. Pregunte en Central en qué paso está: series, generar pedido o liquidación. (1.7)
+
+**13. ¿Por qué no veo precios?**
+Si es de postventa, almacén o Importaciones, es una política de gerencia: esas áreas no ven precios ni montos. Ve el estado del pago («Pagado completo», «Pago parcial») y los documentos con los montos tapados. Si es comercial y no ve una cotización, es porque es de otra cartera. (2.3, 2.5, 2.8)
+
+**14. ¿Cómo pido un expediente que es de otro comercial?**
+Si le toca atender a un cliente cuyo expediente es de otra persona, use «Pedir el expediente». Escriba el motivo y pida el código del supervisor. El expediente pasa a usted, el dueño anterior recibe aviso y la cartera del cliente no se mueve. Si el expediente ya tiene venta o cierre emitido, lo mueve gerencia. (3.1)
+
+**15. ¿Y si quiero el cliente entero para mi cartera?**
+Use «Pedir este cliente para su cartera», con motivo y el código que dicta gerencia. Pasa la ficha con sus expedientes, pero las ventas antiguas siguen siendo de quien las hizo. No aplica a instituciones con sedes, como ESSALUD, Marina o MINSA. (3.1)
+
+**16. ¿Cuándo se libera un cliente de otro comercial?**
+Cuando pasa 3 meses sin venta (regla del 23-09; antes eran 6). Aun así no se mueve solo: gerencia revisa la cartera liberable y redistribuye cada 3 meses. (3.1)
+
+**17. El cliente aparece dos veces. ¿Cómo uno las fichas?**
+Desde el aviso «¿Es el mismo cliente?», con «Unir a esta ficha», que pide código de operaciones. Si las dos fichas son de carteras distintas, decide gerencia. Nunca se borra una ficha: se une. Si el cliente compra con otra razón social, no se une: va como empresa del grupo. (3.1)
+
+**18. «No me aparece el seguimiento que hice.» ¿Dónde está?**
+Casi siempre está en otra ficha o en otro expediente del mismo cliente: nombre comercial o razón social, o una ficha sin RUC de un anuncio. Busque por RUC y por parte del nombre. La ficha también le indica si el cliente fue atendido en otra ficha. (3.1)
+
+**19. ¿Por qué mis gestiones de WhatsApp no suman a la meta?**
+Desde el 30-09 la gestión por WhatsApp se cuenta aparte, porque inflaba el indicador. Para la meta cuentan las llamadas, correos, visitas y videollamadas con contacto real. (3.2)
+
+**20. ¿Puedo atender a un cliente por mi WhatsApp personal?**
+Por regla, no. La comunicación va por la bandeja del CRM. Solo como excepción, y siempre que el cliente le escriba primero con el enlace del CRM. Nunca escriba en frío desde su línea. (3.9)
+
+**21. ¿Por qué me llegó un WhatsApp de un cliente que no es mío, o por qué no me llegó uno?**
+Los chats llegan en este orden: al dueño de la cartera si el número ya es de un cliente; si no, al dueño de la campaña; si no, al comercial de turno. Si el anuncio no está enlazado en el CRM, el chat cae al turno. (3.9)
+
+**22. Soy de Central: el cliente ya es de un comercial y volvió a escribir. ¿Lo derivo de nuevo?**
+No. Use «Avisarle a C#»: le anota una nota en su expediente, le avisa y cierra el contacto como repetido. No use «Descartar», que significa que el contacto no procedía y afecta la medición de marketing. (3.10)
+
+**23. Soy de Central: ¿por qué me pide código para derivar a postventa?**
+Por orden de gerencia del 09-10: Central no deriva a postventa sin autorización. Pida el código a gerencia, administración u operaciones. El aviso a postventa sin derivar no pide código. (1.2)
+
+**24. Me equivoqué al derivar. ¿Cómo lo corrijo?**
+«Corregir la derivación» pide el código del supervisor. Si fue un aviso a otras áreas, use «Revertir» en «Lo que derivé», también con código. Si lo que está mal es el texto o el cliente de la solicitud, use el lápiz de «Inicio · lo que solicitó el cliente». (3.10)
+
+**25. ¿Por qué el almacén no puede marcar «Probada y embalada»?**
+Porque falta algo del protocolo de alguna máquina: el número, una foto, el PDF o Word (salvo la lavadora con hoja en el sistema), la ficha con modelo, serie y técnico, o casillas de la hoja de chequeo sin marcar. Use «N/A» en lo que no aplica. El botón lista lo que falta. (3.7)
+
+**26. Ya marcamos «probada y embalada» pero hay que cambiar algo.**
+Hace falta el código de operaciones (Lesly) y un motivo. Lo marcado como probado queda bloqueado a propósito. (3.7)
+
+**27. ¿Por qué el almacén ve el despacho en rojo?**
+Porque postventa lo programó sin cumplir todo: falta la apertura emitida, la guía autorizada, el visto bueno de Finanzas (en ventas a crédito) o la recepción de las letras. Sin apertura de despacho no sale nada. (1.11)
+
+**28. ¿Por qué no se puede despachar una venta a crédito?**
+Desde el 14-10, toda venta con menos del 100 % pagado antes del despacho, o con letras o crédito, necesita el visto bueno de Finanzas. Hasta que lo dé, se frenan la apertura, la guía y la salida. Si las letras «van con el equipo», el almacén debe marcar que las recibió. (3.6)
+
+**29. Ya despachamos. ¿Por qué no puedo dar el «Despacho verificado»?**
+Porque las letras que iban con el equipo no figuran como entregadas al cliente. Registre «letras entregadas» con fotos y con quién las recibió. Ese paso no se salta con código. (3.6)
+
+**30. ¿Por qué el pedido dice «cerrado» si el cliente no recibió nada?**
+Porque «cerrado» no es «entregado». Un pedido se cierra solo cuando su informe de cierre se anula. Revise si el cierre fue anulado y si hay un pedido nuevo. (1.12)
+
+**31. ¿Quién autoriza la guía?**
+Contabilidad (la cuenta Facturación), desde el 12-10. Si no está, lo hace Finanzas. Al autorizar se indica el comprobante. Si postventa corrige la apertura después, la autorización se anula y hay que volver a aprobar. (1.10)
+
+**32. ¿Desde cuándo corre la garantía?**
+Desde la guía de remisión de venta, es decir, desde que la máquina sale de la empresa. Son 24 meses por defecto. Una guía de devolución después de un servicio no da garantía. (3.8)
+
+**33. Soy de postventa: un cliente reclama la puesta en marcha. ¿Abro un caso?**
+Si el pedido todavía tiene ese paso pendiente, no es un caso técnico: cierre la atención como «derivado → pedidos» y sígalo en el pedido. Si el pedido está completo, reclasifíquelo (por ejemplo, como refuerzo de capacitación). (3.8)
+
+**34. ¿Por qué mi cotización de postventa siempre va a gerencia?**
+Porque desde el 05-10 toda cotización hecha por postventa pide aprobación, a cualquier precio, mientras dure la capacitación del área. No es un error. (3.4)
+
+**35. ¿Qué es un cierre REG y por qué no suma a mi venta?**
+Es un cierre de Word anterior al CRM que se regulariza. Recibe el correlativo siguiente y pasa por el circuito para que postventa tenga la historia completa. No suma porque esa venta ya está registrada desde el Excel. Un Word hecho después del CRM no es REG: se carga como cierre normal. (3.5)
+
+**36. ¿Por qué la venta registrada no coincide con mi cotización?**
+Porque la venta se registra por lo que dice el informe de cierre, sin IGV, no por lo cotizado. Si vendió parte de lo cotizado, la venta es esa parte. Revise las notas de la venta. (3.3, 3.5)
+
+**37. ¿Puedo crear un rubro nuevo?**
+No. Desde el 04-09 solo operaciones, gerencia y administración crean rubros. Usted puede cambiar el rubro de su cliente eligiendo uno de la lista. Si falta uno, pídalo por el buzón o a operaciones. (3.1)
+
+**38. ¿Por qué no puedo entrar al CRM desde mi casa?**
+Por regla de gerencia (23-09), el acceso es solo desde la oficina. La excepción son los perfiles de trabajo de campo autorizados. (2.1)
+
+**39. ¿Cómo pido un archivador (file) del cliente?**
+En «Files»: elija el cliente y la empresa (OPEN, EFAMEINSA o ambas) del inventario. Central lo entrega, usted firma «Recibí» y, al terminar, pulsa «Terminé» para que Central lo recoja. (3.10)
+
+**40. Quiero que el CRM haga algo distinto. ¿A quién se lo digo?**
+Por el Buzón de sugerencias (la bombilla de la barra), con captura si puede. Cuando se resuelva, verá un aviso al entrar. Las sugerencias suman puntos en Crece. (0)
+
+---
+
+## 6. Puntos abiertos (no los afirme como reglas cerradas)
+
+- **Garantía:** el registro de series pone 24 meses aunque el cierre diga otra cosa (por ejemplo, 36). Gerencia no ha decidido cuál manda.
+- **Preventivo:** la alerta es a los 4 meses (aviso a los 3), pero la Ruta de mantenimiento marca «vencido» a los 6. La diferencia es deliberada, pero gerencia no la ha ratificado.
+- **«Dueño del prospecto»** (15 días, 6 meses, permanente): está anunciado, no implementado.
+- **Tipificación de WhatsApp en tres opciones:** pendiente de gerencia.
+- **Numeración propia para las cotizaciones de postventa:** sin decidir. Hoy comparten serie con los comerciales.
+- **Fin de la «postventa en capacitación»:** sin fecha.
+- **Que el código de producto muestre siempre su descripción:** depende de los datos del catálogo (por confirmar).
+- **Pasar un expediente a la ficha correcta sin código** («misma persona por otra puerta»): construido, pero no consta que esté en uso.

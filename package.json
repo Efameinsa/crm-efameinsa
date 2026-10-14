@@ -19,6 +19,7 @@
     "db:auditar-asistente": "node --env-file=.env.local scripts/auditar-asistente-solo-lectura.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@aws-sdk/client-s3": "^3.1115.0",
     "@aws-sdk/s3-request-presigner": "^3.1115.0",
     "@base-ui/react": "^1.7.0",

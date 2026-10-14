@@ -15,8 +15,17 @@
 import { readFileSync } from "node:fs";
 import { Client } from "pg";
 
+// historial.ts NO está en la lista a propósito: es lo único que escribe, y solo
+// en las dos tablas del historial del asistente (0479), nunca en las del CRM.
 const LIBRERIAS = [
   "src/lib/asistente/herramientas.ts",
+  "src/lib/asistente/permisos.ts",
+  "src/lib/asistente/instrucciones.ts",
+  "src/lib/asistente/claude.ts",
+  "src/lib/asistente/sugerencias.ts",
+  "src/lib/historial-cuenta.ts",
+  "src/lib/postventa.ts",
+  "src/lib/nombres-del-pedido.ts",
   "src/lib/buscar-en-todo.ts",
   "src/lib/cierre-semanal.ts",
   "src/lib/historial-semanas.ts",

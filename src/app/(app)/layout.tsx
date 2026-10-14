@@ -18,7 +18,8 @@ import { VigilanteDeCuenta } from "@/components/crm/vigilante-de-cuenta";
 import { AsistenteFlotante } from "@/components/crm/asistente-flotante";
 import { ComunicadoDeGerencia, type ComunicadoPendiente } from "@/components/crm/comunicado-de-gerencia";
 import { AvisoSugerenciaResuelta, type SugerenciaResuelta } from "@/components/crm/aviso-sugerencia-resuelta";
-import { asistenteEncendido } from "@/lib/asistente/herramientas";
+import { asistenteEncendido } from "@/lib/asistente/claude";
+import { sugerenciasPara } from "@/lib/asistente/sugerencias";
 import { cookies, headers } from "next/headers";
 import { COOKIE_AUDITORIA, decodificarInfoAuditoria, ranuraDeHost } from "@/lib/auditoria";
 import { CABECERA_DEMO, COOKIE_VISTA } from "@/lib/solo-lectura";
@@ -140,7 +141,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {!demo && !ranuraAuditoria && <VigilanteDeCuenta userId={perfil.id} nombre={perfil.nombre} />}
       {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && <ComunicadoDeGerencia comunicado={comunicado} />}
       {avisoResueltas}
-      {["gerencia", "admin"].includes(perfil.rol) && asistenteEncendido() && <AsistenteFlotante nombre={perfil.nombre} />}
+      {asistenteEncendido() && !demo && !ranuraAuditoria && (
+        <AsistenteFlotante nombre={perfil.nombre} sugerencias={sugerenciasPara(perfil)} />
+      )}
     </>
   );
 
@@ -246,17 +249,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <ComunicadoDeGerencia comunicado={comunicado} />
         )}
         {avisoResueltas}
-        {/* El asistente, en todas las pantallas y solo para gerencia: la
-            pregunta nace de lo que se está mirando, así que no puede vivir en
-            otra sección. Para los demás roles ni se dibuja.
+        {/* El asistente, en todas las pantallas: la pregunta nace de lo que
+            se está mirando, así que no puede vivir en otra sección. Desde el
+            14-10 es de TODO el personal (Santos), cada uno con lo que su cuenta
+            puede ver: los permisos los pone el servidor, no el botón.
 
-            Y no se dibuja tampoco si falta la llave de Google. Un botón que al
-            abrirse dice «no está conectado» es peor que no tenerlo: gerencia lo
-            prueba una vez, no funciona, y no vuelve. Con esto el código puede
-            estar desplegado y la función se enciende sola el día que la llave
-            entra en las variables de Vercel. */}
-        {["gerencia", "admin"].includes(perfil.rol) && asistenteEncendido() && (
-          <AsistenteFlotante nombre={perfil.nombre} />
+            No se dibuja si falta la llave de Claude: un botón que al abrirse
+            dice «no está conectado» se prueba una vez y no se vuelve a usar.
+            Tampoco en una cuenta de demostración ni mirando como otra persona
+            (auditoría): ahí la sesión no es de quien está frente a la pantalla
+            y el historial quedaría a nombre de otro. */}
+        {asistenteEncendido() && !demo && !ranuraAuditoria && (
+          <AsistenteFlotante nombre={perfil.nombre} sugerencias={sugerenciasPara(perfil)} />
         )}
       </div>
     </div>
