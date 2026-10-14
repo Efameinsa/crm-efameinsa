@@ -21,7 +21,7 @@ import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BotonAgregarFotos, TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
+import { BotonAgregarFotos, TomarOSubirVarias, VideosDeLaPrueba } from "@/components/crm/tomar-o-subir";
 import { Documentos } from "@/components/crm/informe-soporte-apertura";
 import { agregarArchivosDelEquipo } from "@/lib/acciones/almacen";
 import { cn } from "@/lib/utils";
@@ -216,6 +216,8 @@ function Fila({
   const [fechaProtocolo, setFechaProtocolo] = useState(() => fechaGuardada ?? hoyLima());
   const [tecnico, setTecnico] = useState(tecnicoGuardado);
   const [fotos, setFotos] = useState<File[]>([]);
+  // El video de la prueba (Ariana, almacén 14-10): va con las fotos de la máquina, etiqueta «video».
+  const [videos, setVideos] = useState<File[]>([]);
   // Varios PDF o Word por máquina (0297): el protocolo o el informe completo.
   const [docs, setDocs] = useState<File[]>([]);
   const [sumando, setSumando] = useState(false);
@@ -279,17 +281,18 @@ function Fila({
     const salida: FotoAlmacen[] = [];
     for (const file of [...archivos, ...documentos]) {
       const path = `pedidos/${servicioId}/almacen/protocolo-${e.orden}${sufijo}-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
-      const { error } = await storage.upload(path, file, { contentType: file.type || "image/jpeg" });
+      const tipo = file.type || tipoDeVideo(file.name) || "image/jpeg";
+      const { error } = await storage.upload(path, file, { contentType: tipo });
       if (error) {
         toast.error(`No se pudo subir «${file.name}»: ${error.message}`);
         return null;
       }
-      salida.push({ path, nombre: file.name.slice(0, 120), tipo: file.type.slice(0, 100), etiqueta: documentos.includes(file) ? "documento" : "protocolo" });
+      salida.push({ path, nombre: file.name.slice(0, 120), tipo: tipo.slice(0, 100), etiqueta: documentos.includes(file) ? "documento" : tipo.startsWith("video/") ? "video" : "protocolo" });
     }
     return salida;
   }
 
-  const porGuardar = fotos.length + docs.length + fotosSec.length + docsSec.length + partes.reduce((n, p) => n + deParte(p.id).fotos.length + deParte(p.id).docs.length, 0);
+  const porGuardar = fotos.length + videos.length + docs.length + fotosSec.length + docsSec.length + partes.reduce((n, p) => n + deParte(p.id).fotos.length + deParte(p.id).docs.length, 0);
 
   // Si deja la fecha de hoy y no había otra guardada, se toma la del día en que la marque probada.
   const fechaElegida = fechaProtocolo && (fechaGuardada || fechaProtocolo !== hoyLima()) ? fechaProtocolo : "";
@@ -330,8 +333,8 @@ function Fila({
   async function guardarFotos(): Promise<{ error: string | null }> {
     const t = await guardarTecnicoYFecha();
     if (t.error) return t;
-    const propias = [...(await subir(fotos, docs) ?? [])];
-    if (fotos.length + docs.length > 0 && propias.length === 0) return { error: "No se subieron los archivos" };
+    const propias = [...(await subir([...fotos, ...videos], docs) ?? [])];
+    if (fotos.length + videos.length + docs.length > 0 && propias.length === 0) return { error: "No se subieron los archivos" };
     if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
       const deSecadora = await subir(fotosSec, docsSec, "-secadora");
       if (!deSecadora) return { error: "No se subieron los archivos" };
@@ -350,6 +353,7 @@ function Fila({
       if (r.error) return r;
     }
     setFotos([]);
+    setVideos([]);
     setDocs([]);
     setFotosSec([]);
     setDocsSec([]);
@@ -674,6 +678,7 @@ function Fila({
             <span>(salen en el informe; si deja la fecha de hoy, queda la de hoy)</span>
           </div>
           <TomarOSubirVarias titulo={partes.length ? "Fotos de la primera máquina" : "Fotos de esta máquina"} archivos={fotos} onChange={setFotos} maximo={100} />
+          <VideosDeLaPrueba titulo="Video de la prueba (opcional)" archivos={videos} onChange={setVideos} />
           <Documentos archivos={docs} onChange={setDocs} titulo={tituloDocs(e as MaquinaParaProbar, "principal", partes.length ? "la primera máquina" : "esta máquina")} />
           {/* La torre cuya secadora aún no tiene su renglón (sin stock): sus fotos y su informe igual se suben (Ariana, 07-10). */}
           {torre && partes.length === 0 && (
@@ -769,7 +774,7 @@ function Fila({
               correr(async () => {
                 const t = await guardarTecnicoYFecha();
                 if (t.error) return t;
-                const subidas = await subir(fotos, docs);
+                const subidas = await subir([...fotos, ...videos], docs);
                 if (!subidas) return { error: "No se subieron los archivos" };
                 if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
                   const deSecadora = await subir(fotosSec, docsSec, "-secadora");
@@ -805,7 +810,7 @@ function Fila({
                     className="inline-flex max-w-56 items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
                     title={a.nombre}
                   >
-                    {a.etiqueta === "documento" || /pdf|word|document/i.test(a.tipo ?? "") ? "📄" : "🖼️"} <span className="truncate">{a.nombre}</span>
+                    {a.etiqueta === "documento" || /pdf|word|document/i.test(a.tipo ?? "") ? "📄" : (a.tipo ?? "").startsWith("video/") ? "🎬" : "🖼️"} <span className="truncate">{a.nombre}</span>
                   </button>
                 </li>
               ))}
@@ -817,19 +822,21 @@ function Fila({
             (sumando ? (
               <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
                 <TomarOSubirVarias titulo="Más fotos de esta máquina" archivos={fotos} onChange={setFotos} maximo={100} />
+                <VideosDeLaPrueba titulo="Video de la prueba" archivos={videos} onChange={setVideos} />
                 <Documentos archivos={docs} onChange={setDocs} titulo="Más documentos (PDF o Word)" />
                 <div className="flex gap-1.5">
                   <Button
                     size="sm"
                     className="h-8"
-                    disabled={pendiente || fotos.length + docs.length === 0}
+                    disabled={pendiente || fotos.length + videos.length + docs.length === 0}
                     onClick={() =>
                       correr(async () => {
-                        const subidas = await subir(fotos, docs);
+                        const subidas = await subir([...fotos, ...videos], docs);
                         if (!subidas) return { error: "No se subieron los archivos" };
                         const r = await agregarArchivosDelEquipo(e.id, servicioId, subidas);
                         if (!r.error) {
                           setFotos([]);
+                          setVideos([]);
                           setDocs([]);
                           setSumando(false);
                         }
@@ -846,7 +853,7 @@ function Fila({
               </div>
             ) : (
               <button type="button" className="text-[11px] font-medium text-primary hover:underline" onClick={() => setSumando(true)}>
-                + Agregar fotos o documentos
+                + Agregar fotos, video o documentos
               </button>
             ))}
         </div>
@@ -857,6 +864,12 @@ function Fila({
 
 /** Lo que se subió de la otra máquina de la torre, y sumar más después (0389, Lesly 03-10). */
 /** La máquina probada ya está guardada (0450; Ariana, 13-10): sumar o corregir se abre con el código de Lesly desde el informe. */
+/** Windows a veces no le pone tipo al .mov o .mp4; el bucket lo exige (0337). */
+function tipoDeVideo(nombre: string): string | null {
+  const ext = nombre.split(".").pop()?.toLowerCase();
+  return ext === "mp4" ? "video/mp4" : ext === "mov" ? "video/quicktime" : ext === "webm" ? "video/webm" : ext === "3gp" ? "video/3gpp" : null;
+}
+
 function ConCodigoEnElInforme({ servicioId }: { servicioId: string }) {
   return (
     <p className="text-[11px] text-muted-foreground">
@@ -917,7 +930,7 @@ function ArchivosDeParte({ p, servicioId, probada, candado }: { p: EquipoDelPedi
                 className="inline-flex max-w-56 items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
                 title={a.nombre}
               >
-                {a.etiqueta === "documento" || /pdf|word|document/i.test(a.tipo ?? "") ? "📄" : "🖼️"} <span className="truncate">{a.nombre}</span>
+                {a.etiqueta === "documento" || /pdf|word|document/i.test(a.tipo ?? "") ? "📄" : (a.tipo ?? "").startsWith("video/") ? "🎬" : "🖼️"} <span className="truncate">{a.nombre}</span>
               </button>
             </li>
           ))}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Camera, Upload, X } from "lucide-react";
+import { Camera, Upload, Video, X } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 /**
@@ -146,6 +147,58 @@ export function TomarOSubirVarias({
           {archivos.map((f, i) => (
             <span key={i} className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] text-foreground">
               {f.name.length > 24 ? f.name.slice(0, 21) + "…" : f.name}
+              <button type="button" onClick={() => onChange(archivos.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-destructive" aria-label={`Quitar ${f.name}`}>
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** El tope del bucket «adjuntos» para videos (0337). */
+export const MAX_VIDEO_MB = 25;
+
+/**
+ * El video de la prueba de la máquina (Ariana, almacén 14-10: «que se pueda
+ * subir video del protocolo que se realiza»). Se graba con la tablet o se sube
+ * el que ya se tomó; pasado el tope del bucket se avisa antes de intentar.
+ */
+export function VideosDeLaPrueba({ titulo, archivos, onChange, maximo = 5 }: { titulo: string; archivos: File[]; onChange: (f: File[]) => void; maximo?: number }) {
+  const conCamara = useConCamara();
+  const agregar = (lista: FileList | null) => {
+    const nuevos = Array.from(lista ?? []);
+    const grandes = nuevos.filter((f) => f.size > MAX_VIDEO_MB * 1024 * 1024);
+    if (grandes.length > 0)
+      toast.error(
+        `«${grandes[0].name}» pesa ${Math.round(grandes[0].size / 1024 / 1024)} MB y el tope es ${MAX_VIDEO_MB} MB. Grabe un video más corto (1 a 2 minutos) o en menor calidad (720p).`,
+        { duration: 10000 },
+      );
+    onChange([...archivos, ...nuevos.filter((f) => !grandes.includes(f))].slice(0, maximo));
+  };
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs text-muted-foreground">{titulo}</span>
+        {conCamara && (
+          <label className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+            <Video className="size-3.5" /> Grabar video
+            <input type="file" accept="video/*" capture="environment" className="hidden" onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
+          </label>
+        )}
+        <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-accent">
+          <Upload className="size-3.5" /> Subir video
+          <input type="file" accept="video/mp4,video/quicktime,video/webm,video/3gpp,.mp4,.mov,.webm,.3gp" multiple className="hidden" onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
+        </label>
+        <span className="text-[11px] text-muted-foreground">(hasta {MAX_VIDEO_MB} MB cada uno)</span>
+      </div>
+      {archivos.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {archivos.map((f, i) => (
+            <span key={i} className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] text-foreground">
+              🎬 {f.name.length > 24 ? f.name.slice(0, 21) + "…" : f.name}
               <button type="button" onClick={() => onChange(archivos.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-destructive" aria-label={`Quitar ${f.name}`}>
                 <X className="size-3" />
               </button>

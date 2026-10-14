@@ -16,6 +16,8 @@ export const dynamic = "force-dynamic";
 type Archivo = { path: string; nombre?: string | null; tipo?: string | null; etiqueta?: string | null } | null;
 
 const esImagen = (a: { path: string; tipo?: string | null }) => (a.tipo ?? "").startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(a.path);
+// El video de la prueba (Ariana, almacén 14-10) se ve en pantalla; en el papel queda su nombre.
+const esVideo = (a: { path: string; tipo?: string | null }) => (a.tipo ?? "").startsWith("video/") || /\.(mp4|mov|webm|3gp)$/i.test(a.path);
 const diaLima = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" }) : undefined);
 
 /**
@@ -181,7 +183,8 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
 
       {hojas.map((h, n) => {
         const e = h.item;
-        const docs = h.indices.filter((i) => !esImagen(archivos[i]));
+        const docs = h.indices.filter((i) => !esImagen(archivos[i]) && !esVideo(archivos[i]));
+        const videos = h.indices.filter((i) => esVideo(archivos[i]));
         const fotos = h.indices.filter((i) => esImagen(archivos[i]) && url(i));
         const modelo = deRepuestos ? h.datos.modelo : [h.datos.modelo, h.datos.serie].filter(Boolean).join(" /");
         const filas: [string, string | null | undefined][] = [
@@ -227,6 +230,22 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
                         {archivos[i].nombre ?? archivos[i].path.split("/").pop()}
                       </a>
                     </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {videos.length > 0 && (
+              <div className="mt-3 text-[12px]">
+                <p className="font-semibold">Video de la prueba:</p>
+                <div className="no-imprimir mt-1.5 grid grid-cols-2 gap-3">
+                  {videos.map((i) =>
+                    url(i) ? <video key={archivos[i].path} src={url(i)!} controls preload="metadata" className="h-64 w-full bg-black object-contain" /> : null,
+                  )}
+                </div>
+                <ul className="ml-5 hidden list-disc print:block">
+                  {videos.map((i) => (
+                    <li key={archivos[i].path}>{archivos[i].nombre ?? archivos[i].path.split("/").pop()} (en el CRM)</li>
                   ))}
                 </ul>
               </div>
