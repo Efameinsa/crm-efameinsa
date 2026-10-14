@@ -19,6 +19,8 @@ import { fechaCalendario, fechaLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { CerrarPedidoAnterior } from "@/components/crm/cerrar-pedido-anterior";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
+import { LetrasDelPedido } from "@/components/crm/letras-del-pedido";
+import { nombresDelPedido } from "@/lib/nombres-del-pedido";
 import { InformesDelPedido } from "@/components/crm/informes-del-pedido";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { guardaFichaPedido } from "@/lib/propuesta/guardas";
@@ -75,7 +77,9 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
   }));
   const equiposTexto = listaEquipos.map((e) => `${e.descripcion}${e.serie ? ` · serie ${e.serie}` : ""}`).join("\n");
 
-  const bloques = bloquesPedido(servicio);
+  // Quién hizo cada etapa y a qué hora (0473).
+  const nombres = await nombresDelPedido(data as unknown as ServicioPostventa);
+  const bloques = bloquesPedido(servicio, nombres);
   const pasos = bloques.flatMap((b) => b.pasos);
   const siguiente = pasos.find((p) => !p.hecho) ?? null;
   const frena = queLoFrena(servicio);
@@ -172,7 +176,7 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
                 {b.pasos.map((p) => (
                   <span
                     key={p.clave}
-                    title={`${p.etiqueta}${p.hecho ? ` · hecho${p.cuando ? ` el ${fechaLima(p.cuando)}` : ""}` : p.trabado ? ` · ${p.trabado}` : ` · le toca a ${etiquetaResponsable(p.responsable)}`}`}
+                    title={`${p.etiqueta}${p.hecho ? ` · hecho${p.cuando ? ` el ${fechaLima(p.cuando)}` : ""}${p.quien ? ` por ${p.quien}` : ""}` : p.trabado ? ` · ${p.trabado}` : ` · le toca a ${etiquetaResponsable(p.responsable)}`}`}
                     className={cn(
                       "rounded-full px-2 py-0.5 text-[10px] font-medium",
                       p.hecho ? "bg-[#1E7F4F]/15 text-[#1E7F4F]" : p === siguiente ? "bg-primary text-primary-foreground" : p.trabado ? "bg-amber-100 text-amber-900" : "bg-secondary text-muted-foreground",
@@ -206,7 +210,9 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
       )}
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div id="pasos" className="scroll-mt-4">
+        <div id="pasos" className="scroll-mt-4 space-y-3">
+          {/* Las letras de crédito que viajan con el equipo (0470). */}
+          <LetrasDelPedido s={servicio} cliente={cliente} />
           <PedidoPostventa
             servicio={servicio}
             atencionPuesta={atencionPuesta as { id: string; etapa: string; programada_at: string | null; tecnico: string | null; cerrado_at: string | null } | null}
@@ -216,6 +222,7 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
             aperturas={aperturas}
             equiposTexto={equiposTexto}
             equiposLista={listaEquipos.filter((e) => !e.parte_de).map((e) => ({ equipoId: e.equipo_id, serie: e.serie, descripcion: e.descripcion }))}
+            nombres={nombres}
           />
         </div>
         <aside className="space-y-4">
