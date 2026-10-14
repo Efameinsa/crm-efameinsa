@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 14-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 14-10-2026 (tarde). Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -38,7 +38,13 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Cotizaciones de EFAMEINSA con cuentas bancarias** (aviso de Katerine). Antes solo las de OPEN las traían.
 - **Postventa puede corregir nombre, RUC y rubro de clientes sin dueño.** Caso: Hospital Chanka, de Rubí. Si el cliente tiene comercial, lo corrige su comercial.
 - **Asistente Efamein abierto a todo el personal** (Santos). Antes era solo para gerencia. Solo consulta, con permisos por área.
+- **Nuevo «REG por entregar»** (caso de Rubí, transmitido por Santos).
+  - Caso: Seventh Heaven (Cusco), venta de una calandria de noviembre de 2025 con cierre en Word, sin pedido en el CRM. El equipo sigue embalado en almacén y se entrega cuando el cliente termine de pagar.
+  - El REG normal (del 05-10) da el pedido por entregado y se habría saltado el visto bueno de Finanzas. Por eso el REG «por entregar» sigue el circuito normal: series del almacén, Finanzas, apertura, guía y salida.
+  - Regla práctica: si el equipo ya salió, REG normal; si sigue en almacén, REG por entregar.
+  - Se cargó como cierre EFAMEINSA 009-2026, con el informe, la cotización y el comprobante del adelanto. Las dos fichas del cliente se unieron en una (Central no veía nada porque miraba la ficha sin RUC).
 - **Pendientes:**
+  - Seventh Heaven: Central genera el pedido; Finanzas confirma lo pagado; después, apertura y salida.
   - Jhon da el visto bueno tardío de COFACO.
   - Carlos decide si el visto bueno de Finanzas aplica a todo crédito o solo a letras.
   - Hay 58 pedidos por regularizar.
@@ -86,7 +92,8 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
   - Se piden: el reporte por rango de fechas, los rangos vacíos de numeración y una columna de empresa más ancha.
   - Estas tareas dependen de esas entregas; no deben darse por atrasadas en el CRM mientras no lleguen.
 
-### 12-10 · Carlos con Santos (almacén, campañas, correos)
+### 12-10 · Reunión del lunes con el equipo (gerencia con Lesly, Central, postventa, almacén, Finanzas, marketing y comerciales)
+- **Acuerdo general: los errores del CRM se reportan por los canales oficiales** (buzón), para ajustar productos e inventario. Postventa y almacén deben darse retroalimentación sobre los despachos.
 - **«Punto uno» de almacén: el código debe traer la descripción.**
   - Hace unas semanas se despachó una lavadora no apilable en vez de una apilable (Callao). Se puso el código y el CRM no mostró la descripción, así que nadie vio la diferencia con el cierre.
   - Carlos pidió que el código traiga la descripción, que salte el error y que Central pueda comparar.
@@ -100,7 +107,7 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Contabilidad confirma la guía de la apertura**, y Finanzas si Contabilidad no está (pedido de Jhon por el buzón).
 - **La nota del destino final de la apertura es editable** (pedido de Rubí por el buzón).
 - **Caravedo:** se unieron las fichas de Brenda. Queda una tercera ficha en otra cartera, que decide gerencia.
-- **Corrección de una cotización a la Beneficencia de Huancayo:** se hizo por orden de Santos, como excepción. La pantalla frenaba un precio bajo lista que gerencia ya había aprobado. El error de pantalla sigue pendiente.
+- **Corrección de una cotización a la Beneficencia de Huancayo:** se hizo por orden de Santos, como excepción. La pantalla frenaba un precio bajo lista que gerencia ya había aprobado. El error de pantalla sigue pendiente. En la reunión se autorizó cambiar la condición de pago a crédito; Katerine quedó en enviar la cotización corregida.
 
 ### 10-10 y 09-10 · Ajustes del buzón y de Central
 - **Cotizaciones: botón «Anular»** (pedido de Rubí; lo ordenó Santos).

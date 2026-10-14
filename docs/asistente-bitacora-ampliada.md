@@ -1,6 +1,6 @@
 # Bitácora ampliada (gerencia, administración, Central y operaciones)
 
-Vigente al 14-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
+Vigente al 14-10-2026 (tarde). Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
 - estrategia, presupuestos de publicidad y marketing;
 - web y campañas;
 - desempeño por comercial y metas;
@@ -44,7 +44,10 @@ Vigente al 14-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
   - Después de verificar todo se decide si se retira la cuenta anterior.
 - **Correo masivo:** se pasa a Amazon (unos US$ 0,10 por cada 1.000 correos), porque el plan gratuito anterior solo permitía 100 al día. Santos crea la cuenta.
 
-### 12-10 · Carlos con Santos (campañas, video, correos, web)
+### 12-10 · Reunión del lunes con el equipo (campañas, video, correos, web)
+- Participó el equipo completo (gerencia, Lesly, Central, postventa, almacén, Finanzas, marketing y comerciales). Acuerdos: campaña de prueba en Meta con presupuesto chico antes de escalar; contenido orgánico estático en paralelo mientras se busca la imagen para los videos; compra de micrófono y luces.
+- **Compromisos de Abel** (guiones de los videos para revisión, ficha de compra del micrófono y las luces, plantilla del primer correo masivo para aprobación), con plazo 13-10: figuran **en pausa** en Tasking. Hay que reasignarlos (por confirmar a quién).
+- **Beneficencia de Huancayo:** se autorizó cambiar la condición de pago a crédito; Katerine envía la cotización corregida (en pausa en Tasking).
 - **Campaña chica ya:** unos S/ 15 con el video hecho con IA, «para salir de apuro con Abel».
   - En paralelo, contenido orgánico estático.
   - Probar los públicos personalizados y parecidos de Meta.
