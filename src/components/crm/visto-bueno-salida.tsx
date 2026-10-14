@@ -13,6 +13,8 @@ export interface DatosVistoBueno {
   formaPago: string | null;
   pide: boolean;
   vbAt: string | null;
+  /** Quién lo dio, para la segunda revisión (buzón, Jhon 14-10). */
+  vbPorNombre?: string | null;
   vbNota: string | null;
   vbComision: number | null;
   letrasEstado: EstadoLetras | null;
@@ -89,6 +91,7 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
           {d.vbAt ? (
             <p className="text-xs text-[#1E7F4F]">
               Dado el {fecha(d.vbAt)}
+              {d.vbPorNombre ? ` por ${d.vbPorNombre}` : ""}
               {d.letrasEstado ? ` · ${ETIQUETA_LETRAS[d.letrasEstado]}${d.letrasCantidad ? ` (${d.letrasCantidad})` : ""}` : ""}
               {d.vbComision ? ` · comisión descontada ${d.moneda ?? ""} ${d.vbComision}` : ""}
               {d.vbNota ? ` · ${d.vbNota}` : ""}

@@ -7,7 +7,9 @@ import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { Kpi } from "@/components/crm/kpi";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { AccionesFinanzas } from "@/components/crm/acciones-finanzas";
-import { avisosDeCentral, cuentasPorCobrar, diasEntre, formatoMonto, guiasSinComprobante, letrasPorFirmar, ordenesDeFacturar, pedidosPorConfirmar, salidasPorAutorizar, type PedidoFinanzas, type SalidaACredito } from "@/lib/pagos-finanzas";
+import { avisosDeCentral, creditosValidados, cuentasPorCobrar, diasEntre, formatoMonto, guiasSinComprobante, letrasPorFirmar, ordenesDeFacturar, pedidosPorConfirmar, salidasPorAutorizar, type PedidoFinanzas, type SalidaACredito } from "@/lib/pagos-finanzas";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ETIQUETA_LETRAS, type EstadoLetras } from "@/lib/postventa";
 import { AtenderOrdenFacturar } from "@/components/crm/orden-facturar";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +29,7 @@ export default async function FinanzasPage() {
   await requerirPerfil();
   const supabase = await createClient();
   const hoy = hoyLima();
-  const [pedidos, cobrar, avisos, ordenes, salidas, letras, sinComprobante] = await Promise.all([
+  const [pedidos, cobrar, avisos, ordenes, salidas, letras, sinComprobante, validados] = await Promise.all([
     pedidosPorConfirmar(supabase),
     cuentasPorCobrar(supabase),
     avisosDeCentral(supabase),
@@ -35,7 +37,15 @@ export default async function FinanzasPage() {
     salidasPorAutorizar(supabase),
     letrasPorFirmar(supabase),
     guiasSinComprobante(supabase),
+    creditosValidados(supabase),
   ]);
+  // Quién dio cada visto bueno (buzón, Jhon 14-10).
+  const idsVb = [...new Set(validados.map((v) => v.vbPor).filter((x): x is string => Boolean(x)))];
+  const nombresVb = new Map<string, string>(
+    idsVb.length
+      ? ((await createAdminClient().from("perfiles").select("id, nombre").in("id", idsVb)).data ?? []).map((x) => [x.id as string, String(x.nombre ?? "")])
+      : [],
+  );
   const salidasListas = salidas.filter((x) => x.listo || x.aperturaPedida);
 
   const urgentes = pedidos.filter((p) => p.fechaDespacho && diasEntre(hoy, p.fechaDespacho) <= 3);
@@ -69,6 +79,42 @@ export default async function FinanzasPage() {
       {letras.length > 0 && (
         <SeccionPanel titulo={`Letras de crédito: en camino o por volver firmadas · ${letras.length}`}>
           <ListaSalidas filas={letras} letras />
+        </SeccionPanel>
+      )}
+
+      {/* Buzón, Jhon 14-10: lo ya validado se puede volver a revisar. */}
+      {validados.length > 0 && (
+        <SeccionPanel titulo={`Créditos ya validados · últimos ${validados.length}`}>
+          <details>
+            <summary className="cursor-pointer text-xs font-semibold text-primary">
+              Ver cómo se aprobó cada uno (quién, cuándo, letras, comisión y nota)
+            </summary>
+            <ul className="mt-2 space-y-1.5">
+              {validados.map((v) => (
+                <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card p-2.5">
+                  <div className="min-w-0">
+                    <Link href={`/finanzas/pedidos/${v.id}`} className="text-sm font-semibold text-foreground hover:underline">
+                      {v.cliente}
+                    </Link>
+                    <p className="text-xs text-muted-foreground">
+                      Validado el {new Date(v.vbAt).toLocaleString("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" })}
+                      {v.vbPor && nombresVb.get(v.vbPor) ? ` por ${nombresVb.get(v.vbPor)}` : ""} · {v.formaPago ?? "sin forma de pago"}
+                    </p>
+                    <p className="text-xs text-foreground">
+                      {v.letrasEstado ? ETIQUETA_LETRAS[v.letrasEstado as EstadoLetras] ?? v.letrasEstado : "Letras: sin dato"}
+                      {v.letrasCantidad ? ` (${v.letrasCantidad})` : ""}
+                      {v.vbComision ? ` · comisión descontada ${v.moneda ?? ""} ${v.vbComision}` : ""}
+                      {v.vbNota ? ` · ${v.vbNota}` : ""}
+                      {v.despachadoAt ? ` · salió el ${new Date(v.despachadoAt).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}` : " · todavía no sale"}
+                    </p>
+                  </div>
+                  <Link href={`/finanzas/pedidos/${v.id}`} className="rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-accent">
+                    Revisar el pedido
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
         </SeccionPanel>
       )}
 

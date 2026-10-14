@@ -470,3 +470,45 @@ export async function guiasSinComprobante(supabase: SupabaseClient): Promise<Sal
     .limit(100);
   return ((data ?? []) as Fila[]).map(aSalida);
 }
+
+export interface CreditoValidado {
+  id: string;
+  cliente: string;
+  formaPago: string | null;
+  vbAt: string;
+  vbPor: string | null;
+  vbNota: string | null;
+  vbComision: number | null;
+  moneda: string | null;
+  letrasEstado: string | null;
+  letrasCantidad: number | null;
+  despachadoAt: string | null;
+}
+
+/**
+ * LOS CRÉDITOS QUE FINANZAS YA VALIDÓ (buzón, Jhon 14-10): «cuando se hizo la
+ * confirmación no puedo ver nuevamente cómo se hizo la aprobación». Los
+ * últimos visto buenos, con quién, cuándo, letras, comisión y nota, para una
+ * segunda revisión; también los de pedidos ya cerrados.
+ */
+export async function creditosValidados(supabase: SupabaseClient, limite = 40): Promise<CreditoValidado[]> {
+  const { data } = await supabase
+    .from("servicios_postventa")
+    .select("id, cliente_texto, forma_pago, finanzas_vb_at, finanzas_vb_por, finanzas_vb_nota, finanzas_vb_comision, moneda, letras_estado, letras_cantidad, despachado_at")
+    .not("finanzas_vb_at", "is", null)
+    .order("finanzas_vb_at", { ascending: false })
+    .limit(limite);
+  return ((data ?? []) as Fila[]).map((f) => ({
+    id: f.id as string,
+    cliente: String(f.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, ""),
+    formaPago: (f.forma_pago as string | null) ?? null,
+    vbAt: f.finanzas_vb_at as string,
+    vbPor: (f.finanzas_vb_por as string | null) ?? null,
+    vbNota: (f.finanzas_vb_nota as string | null) ?? null,
+    vbComision: f.finanzas_vb_comision == null ? null : Number(f.finanzas_vb_comision),
+    moneda: (f.moneda as string | null) ?? null,
+    letrasEstado: (f.letras_estado as string | null) ?? null,
+    letrasCantidad: (f.letras_cantidad as number | null) ?? null,
+    despachadoAt: (f.despachado_at as string | null) ?? null,
+  }));
+}
