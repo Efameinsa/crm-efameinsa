@@ -515,7 +515,7 @@ async function cargarCambiosDeSolicitudes(
       .in("lead_id", ids.slice(i, i + 40))
       .order("hecho_at", { ascending: false });
     for (const c of (data ?? []) as unknown as {
-      lead_id: string; tipo: "texto" | "ficha"; antes: string | null; despues: string | null; motivo: string | null;
+      lead_id: string; tipo: "texto" | "ficha" | "adjunto"; antes: string | null; despues: string | null; motivo: string | null;
       hecho_at: string; autorizo: string | null; quien: { nombre: string; codigo_comercial: string | null } | null;
     }[]) {
       const lista = porLead.get(c.lead_id) ?? [];

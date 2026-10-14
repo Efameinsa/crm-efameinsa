@@ -3,8 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { PencilLine } from "lucide-react";
-import { corregirSolicitudLead, firmaParaCorregirSolicitud } from "@/lib/acciones/leads";
+import { PencilLine, Paperclip, Undo2, X } from "lucide-react";
+import { corregirSolicitudLead, firmaParaCorregirSolicitud, quitarAdjuntoLead } from "@/lib/acciones/leads";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -46,6 +46,11 @@ import { CampoAdjuntos, useAdjuntos } from "@/components/crm/campo-adjuntos";
  * lavadora. Acá se le pegan al contacto que ya está en la bandeja — la
  * alternativa era registrar un segundo contacto, o sea una ficha repetida.
  * Mismo campo y mismo Ctrl+V que la captura de Central.
+ *
+ * Y SE QUITA LO QUE SE ACOPLÓ POR ERROR (0481). Central, 14-10: a PRO-11004
+ * se le fue un video de otro chat junto con el del cliente, y acá solo se
+ * podía sumar. Cada archivo que ya tiene se puede marcar «Quitar»; pide la
+ * misma firma que cambiar el texto y queda en el historial.
  */
 export function EditarSolicitudBoton({
   leadId,
@@ -53,6 +58,7 @@ export function EditarSolicitudBoton({
   mensaje,
   campania,
   adjuntosQueTiene = 0,
+  archivos = [],
 }: {
   leadId: string;
   contacto: string;
@@ -61,6 +67,8 @@ export function EditarSolicitudBoton({
   campania?: string | null;
   /** Cuántos archivos ya tiene el contacto: para decir «se suman a los N que ya tiene». */
   adjuntosQueTiene?: number;
+  /** Los archivos que ya tiene, para poder quitar el que se acopló por error (0481). */
+  archivos?: { path: string; nombre: string }[];
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -72,6 +80,7 @@ export function EditarSolicitudBoton({
   const [firma, setFirma] = useState<"libre" | "motivo" | "codigo" | null>(null);
   const [motivo, setMotivo] = useState("");
   const [pin, setPin] = useState("");
+  const [quitar, setQuitar] = useState<Set<string>>(new Set());
   useEffect(() => {
     if (abierto) firmaParaCorregirSolicitud(leadId).then(setFirma);
   }, [abierto, leadId]);
@@ -83,14 +92,17 @@ export function EditarSolicitudBoton({
   const esDeFormulario = Boolean(mensaje && /·/.test(mensaje) && /:/.test(mensaje));
   const textoCambio = texto.trim().length >= 5 && texto.trim() !== (mensaje ?? "").trim();
   const hayFotos = adjuntos.archivos.length > 0;
+  const hayQueQuitar = quitar.size > 0;
   // Se guarda si cambió el texto O si hay algo que adjuntar: pegar las fotos
-  // sin reescribir lo que pide es el caso que motivó esto.
-  const pideMotivo = textoCambio && (firma === "motivo" || firma === "codigo");
-  const pideCodigo = textoCambio && firma === "codigo";
+  // sin reescribir lo que pide es el caso que motivó esto. Quitar un archivo
+  // pide la misma firma que cambiar el texto (0481).
+  const reescribe = textoCambio || hayQueQuitar;
+  const pideMotivo = reescribe && (firma === "motivo" || firma === "codigo");
+  const pideCodigo = reescribe && firma === "codigo";
   const firmaLista =
-    !textoCambio ||
+    !reescribe ||
     (firma !== null && (!pideMotivo || motivo.trim().length >= 5) && (!pideCodigo || pin.replace(/\D/g, "").length === 4));
-  const listo = (textoCambio || hayFotos) && firmaLista;
+  const listo = (textoCambio || hayFotos || hayQueQuitar) && firmaLista;
 
   function abrir(v: boolean) {
     setAbierto(v);
@@ -101,7 +113,17 @@ export function EditarSolicitudBoton({
       adjuntos.limpiar();
       setMotivo("");
       setPin("");
+      setQuitar(new Set());
     }
+  }
+
+  function alternarQuitar(path: string) {
+    setQuitar((antes) => {
+      const s = new Set(antes);
+      if (s.has(path)) s.delete(path);
+      else s.add(path);
+      return s;
+    });
   }
 
   function guardar() {
@@ -114,20 +136,36 @@ export function EditarSolicitudBoton({
         toast.error(subida.error);
         return;
       }
-      const r = await corregirSolicitudLead(leadId, textoCambio ? texto : null, subida.adjuntos, { motivo, pin });
-      if (r.error) {
-        toast.error(r.error, { duration: 8000 });
-        setPin("");
-        return;
+      if (textoCambio || hayFotos) {
+        const r = await corregirSolicitudLead(leadId, textoCambio ? texto : null, subida.adjuntos, { motivo, pin });
+        if (r.error) {
+          toast.error(r.error, { duration: 8000 });
+          setPin("");
+          return;
+        }
+      }
+      for (const path of quitar) {
+        const r = await quitarAdjuntoLead(leadId, path, { motivo, pin });
+        if (r.error) {
+          toast.error(r.error, { duration: 8000 });
+          setPin("");
+          router.refresh();
+          return;
+        }
       }
       toast.success(
-        hayFotos && !textoCambio
+        hayQueQuitar && !textoCambio && !hayFotos
+          ? quitar.size === 1
+            ? "Archivo quitado del contacto"
+            : `${quitar.size} archivos quitados del contacto`
+          : hayFotos && !textoCambio
           ? `${subida.adjuntos.length === 1 ? "Archivo acoplado" : `${subida.adjuntos.length} archivos acoplados`} al contacto`
           : hayFotos
             ? "Queda anotado lo que pide, con sus archivos"
             : "Queda anotado lo que pide el cliente",
       );
       adjuntos.limpiar();
+      setQuitar(new Set());
       setAbierto(false);
       router.refresh();
     });
@@ -190,10 +228,14 @@ export function EditarSolicitudBoton({
 
         {pideMotivo && (
           <div className="space-y-1.5">
-            <Label htmlFor="solicita-motivo">Por qué lo corrige</Label>
+            <Label htmlFor="solicita-motivo">{textoCambio ? "Por qué lo corrige" : "Por qué quita el archivo"}</Label>
             <Input
               id="solicita-motivo"
-              placeholder="ej.: el cliente volvió a llamar y agregó la secadora"
+              placeholder={
+                textoCambio
+                  ? "ej.: el cliente volvió a llamar y agregó la secadora"
+                  : "ej.: el video era de otro cliente, se acopló por error"
+              }
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
             />
@@ -209,6 +251,48 @@ export function EditarSolicitudBoton({
               El expediente ya tiene cotización o venta: cambiar lo que pidió el cliente lo autoriza gerencia u operaciones.
             </p>
             <CampoCodigo id="solicita-pin" valor={pin} onChange={setPin} tono="amber" enmascarar />
+          </div>
+        )}
+
+        {/* Lo que ya tiene, con «Quitar» para el que se acopló por error
+            (0481). Solo se marca: se quita al guardar. */}
+        {archivos.length > 0 && (
+          <div className="space-y-1.5">
+            <Label>Archivos que ya tiene</Label>
+            <ul className="space-y-1">
+              {archivos.map((a) => {
+                const marcado = quitar.has(a.path);
+                return (
+                  <li key={a.path} className="flex items-center gap-2 rounded-md border border-border px-2 py-1 text-xs">
+                    <Paperclip className="size-3 shrink-0 text-muted-foreground" />
+                    <span
+                      className={
+                        marcado ? "min-w-0 flex-1 truncate text-muted-foreground line-through" : "min-w-0 flex-1 truncate"
+                      }
+                      title={a.nombre}
+                    >
+                      {a.nombre}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 gap-1 px-1.5 text-[11px]"
+                      onClick={() => alternarQuitar(a.path)}
+                    >
+                      {marcado ? <Undo2 className="size-3" /> : <X className="size-3" />}
+                      {marcado ? "Dejarlo" : "Quitar"}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+            {hayQueQuitar && (
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                Se quita al guardar. Queda anotado en el historial del contacto
+                {firma !== "libre" ? " y se le avisa a quien lo atiende" : ""}.
+              </p>
+            )}
           </div>
         )}
 
@@ -230,7 +314,7 @@ export function EditarSolicitudBoton({
         <DialogFooter className="sm:flex-col sm:items-stretch sm:gap-2">
           {!listo && (
             <p className="text-[11px] text-muted-foreground">
-              {texto.trim().length < 5
+              {texto.trim().length < 5 && !hayQueQuitar
                 ? "Escriba qué solicita, o adjunte lo que mandó — con una de las dos alcanza."
                 : !firmaLista
                   ? pideCodigo && motivo.trim().length >= 5
@@ -244,9 +328,13 @@ export function EditarSolicitudBoton({
               ? adjuntos.progreso
                 ? `Subiendo ${adjuntos.progreso.hecho + 1} de ${adjuntos.progreso.total}…`
                 : "Guardando…"
-              : hayFotos && !textoCambio
-                ? "Acoplar al contacto"
-                : "Guardar lo que pide"}
+              : hayQueQuitar && !textoCambio && !hayFotos
+                ? quitar.size === 1
+                  ? "Quitar el archivo"
+                  : `Quitar ${quitar.size} archivos`
+                : hayFotos && !textoCambio
+                  ? "Acoplar al contacto"
+                  : "Guardar lo que pide"}
           </Button>
         </DialogFooter>
       </DialogContent>
