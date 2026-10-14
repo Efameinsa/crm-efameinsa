@@ -10,7 +10,11 @@ import {
   type PedidoFinanzas,
 } from "@/lib/pagos-finanzas";
 import { fechaHoraLima } from "@/lib/fechas";
-import { faltaVistoBuenoFinanzas, textoComprobante, type TipoPedido } from "@/lib/postventa";
+import { faltaVistoBuenoFinanzas, pideVistoBuenoFinanzas, textoComprobante, type EstadoLetras, type TipoPedido } from "@/lib/postventa";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
+import { VistoBuenoSalida } from "@/components/crm/visto-bueno-salida";
+import { ValidarCreditoApertura } from "@/components/crm/validar-credito-apertura";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +37,14 @@ type FilaAp = {
   informe_cierre_id: string | null;
   pago_confirmado_at: string | null;
   finanzas_vb_at: string | null;
+  finanzas_vb_por: string | null;
+  finanzas_vb_nota: string | null;
+  finanzas_vb_comision: number | null;
+  letras_estado: EstadoLetras | null;
+  letras_firmadas_at: string | null;
   salida_autorizada_at: string | null;
+  salida_autorizada_motivo: string | null;
+  moneda: string | null;
 };
 
 /**
@@ -53,7 +64,7 @@ export default async function AperturasPorConfirmarPage() {
   const { data } = await supabase
     .from("servicios_postventa")
     .select(
-      "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, despachado_at, forma_pago, pct_antes_despacho, origen, tipo_pedido, letras_cantidad, confirmacion_abono, informe_cierre_id, pago_confirmado_at, finanzas_vb_at, salida_autorizada_at",
+      "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, despachado_at, forma_pago, pct_antes_despacho, origen, tipo_pedido, letras_cantidad, confirmacion_abono, informe_cierre_id, pago_confirmado_at, finanzas_vb_at, finanzas_vb_por, finanzas_vb_nota, finanzas_vb_comision, letras_estado, letras_firmadas_at, salida_autorizada_at, salida_autorizada_motivo, moneda",
     )
     .not("apertura_despacho_at", "is", null)
     .is("cerrado_at", null)
@@ -72,6 +83,24 @@ export default async function AperturasPorConfirmarPage() {
       )
     ).map((p) => [p.id, p]),
   );
+  // Quién validó el crédito, para la segunda revisión (buzón, Jhon 14-10).
+  const idsVb = [...new Set([...porConfirmar, ...confirmadas].map((f) => f.finanzas_vb_por).filter((x): x is string => Boolean(x)))];
+  const nombres = new Map<string, string>(
+    idsVb.length
+      ? ((await createAdminClient().from("perfiles").select("id, nombre").in("id", idsVb)).data ?? []).map((x) => [x.id as string, String(x.nombre ?? "")])
+      : [],
+  );
+  const puedeValidar = ["finanzas", "gerencia", "admin"].includes(perfil.rol);
+  const fila = (f: FilaAp) => (
+    <FilaApertura
+      key={f.id}
+      f={f}
+      p={pedidos.get(f.id)}
+      conPedido={conPedido}
+      puedeValidar={puedeValidar}
+      vbPorNombre={f.finanzas_vb_por ? (nombres.get(f.finanzas_vb_por) ?? null) : null}
+    />
+  );
 
   return (
     <div className="space-y-4">
@@ -87,18 +116,14 @@ export default async function AperturasPorConfirmarPage() {
           </p>
         ) : (
           <ul className="divide-y divide-border rounded-lg border border-border">
-            {porConfirmar.map((f) => (
-              <FilaApertura key={f.id} f={f} p={pedidos.get(f.id)} conPedido={conPedido} />
-            ))}
+            {porConfirmar.map(fila)}
           </ul>
         )}
       </SeccionPanel>
       {confirmadas.length > 0 && (
         <SeccionPanel titulo={`Confirmadas · ${confirmadas.length}`}>
           <ul className="divide-y divide-border rounded-lg border border-border">
-            {confirmadas.map((f) => (
-              <FilaApertura key={f.id} f={f} p={pedidos.get(f.id)} conPedido={conPedido} />
-            ))}
+            {confirmadas.map(fila)}
           </ul>
         </SeccionPanel>
       )}
@@ -106,8 +131,24 @@ export default async function AperturasPorConfirmarPage() {
   );
 }
 
-function FilaApertura({ f, p, conPedido }: { f: FilaAp; p: PedidoFinanzas | undefined; conPedido: boolean }) {
+function FilaApertura({
+  f,
+  p,
+  conPedido,
+  puedeValidar,
+  vbPorNombre,
+}: {
+  f: FilaAp;
+  p: PedidoFinanzas | undefined;
+  conPedido: boolean;
+  puedeValidar: boolean;
+  vbPorNombre: string | null;
+}) {
   const falta = p ? (p.despachadoAt ? p.saldo : p.falta) : 0;
+  const pide = pideVistoBuenoFinanzas(f);
+  const faltaVb = faltaVistoBuenoFinanzas(f);
+  // El segundo botón (buzón, Jhon 14-10): validar el crédito ahí mismo o, ya validado, volver a verlo.
+  const conValidacion = pide && (Boolean(f.finanzas_vb_at) || (faltaVb && puedeValidar));
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
@@ -130,6 +171,12 @@ function FilaApertura({ f, p, conPedido }: { f: FilaAp; p: PedidoFinanzas | unde
             ) : (
               <b className="text-[#1E7F4F]">pago cubierto</b>
             )}
+          </p>
+        )}
+        {pide && f.finanzas_vb_at && (
+          <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-[#1E7F4F]">
+            <CheckCircle2 className="size-3.5" /> Crédito validado por Finanzas el {fechaHoraLima(f.finanzas_vb_at)}
+            {vbPorNombre ? ` por ${vbPorNombre}` : ""}
           </p>
         )}
         {f.guia_confirmada_at && (
@@ -158,12 +205,86 @@ function FilaApertura({ f, p, conPedido }: { f: FilaAp; p: PedidoFinanzas | unde
         </Link>
       )}
       {/* Venta a crédito sin el visto bueno de Finanzas (0469, COFACO 14-10): la base no deja autorizar la guía. */}
-      {!f.guia_confirmada_at && faltaVistoBuenoFinanzas(f) && (
+      {!f.guia_confirmada_at && faltaVb && (
         <p className="w-full rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1 text-[11px] font-semibold text-destructive">
-          Falta el visto bueno de Finanzas{f.forma_pago ? ` (forma de pago: ${f.forma_pago})` : ""}: crédito o pago sin confirmar. No se autoriza la guía hasta que lo dé.
+          Falta el visto bueno de Finanzas{f.forma_pago ? ` (forma de pago: ${f.forma_pago})` : ""}: crédito o pago sin confirmar. No se autoriza la guía hasta que lo dé
+          {puedeValidar ? ": pulse «Validar el crédito»." : "."}
         </p>
       )}
-      {!f.guia_confirmada_at && !faltaVistoBuenoFinanzas(f) && (
+      {conValidacion && (
+        <ValidarCreditoApertura validado={Boolean(f.finanzas_vb_at)}>
+          <div className="rounded-lg border border-border bg-secondary/30 p-3 text-xs">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">El expediente</p>
+            <p className="mt-1 font-semibold text-foreground">
+              {p?.cliente ?? "Pedido"}
+              {p?.clienteDoc ? ` · ${p.clienteDoc}` : ""}
+            </p>
+            <p className="text-muted-foreground">
+              {[p?.codigoCierre ? `Cierre ${p.codigoCierre}` : null, p?.numeroErp ? `Pedido ${p.numeroErp}` : null, p?.comercialNombre ?? null]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            {p?.equipo && <p className="mt-0.5 text-muted-foreground">{p.equipo.replace(/\s+/g, " ")}</p>}
+            <p className="mt-1">
+              Forma de pago: <b>{f.forma_pago ?? "sin dato"}</b>
+              {p?.condicion ? ` · antes del despacho: ${p.condicion}` : ""}
+            </p>
+            {p && p.total != null && (
+              <p className="mt-0.5">
+                Total {formatoMonto(p.moneda, p.total)} · confirmado {formatoMonto(p.moneda, p.pagado)} · antes del despacho{" "}
+                {formatoMonto(p.moneda, p.requerido)} · saldo {formatoMonto(p.moneda, p.saldo)}
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {p?.informeId && p.codigoCierre && (
+                <ExpedienteCierre
+                  informeId={p.informeId}
+                  codigo={p.codigoCierre}
+                  cliente={p.cliente}
+                  clienteDoc={p.clienteDoc}
+                  serie={p.serie ?? "EFAMEINSA"}
+                  monto={p.total ?? 0}
+                  moneda={p.moneda}
+                  modalidadPago={p.modalidadPago}
+                  entregaLugar={p.entregaLugar}
+                  entregaFecha={p.entregaFecha}
+                  adjuntos={p.adjuntos}
+                  compendio={null}
+                  pedidoId={f.id}
+                  soloLectura
+                />
+              )}
+              {conPedido && (
+                <Link href={`/finanzas/pedidos/${f.id}`} className="text-[11px] font-semibold text-primary hover:underline">
+                  Abrir el pedido completo (abonos y liquidaciones)
+                </Link>
+              )}
+            </div>
+          </div>
+          <VistoBuenoSalida
+            d={{
+              servicioId: f.id,
+              formaPago: f.forma_pago,
+              pide,
+              vbAt: f.finanzas_vb_at,
+              vbPorNombre,
+              vbNota: f.finanzas_vb_nota,
+              vbComision: f.finanzas_vb_comision == null ? null : Number(f.finanzas_vb_comision),
+              letrasEstado: f.letras_estado,
+              letrasCantidad: f.letras_cantidad,
+              letrasFirmadasAt: f.letras_firmadas_at,
+              salidaAutorizadaAt: f.salida_autorizada_at,
+              salidaAutorizadaMotivo: f.salida_autorizada_motivo,
+              despachadoAt: f.despachado_at,
+              guiaConfirmadaAt: f.guia_confirmada_at,
+              guiaComprobanteTipo: f.guia_comprobante_tipo,
+              guiaComprobanteNumero: f.guia_comprobante_numero,
+              moneda: f.moneda,
+            }}
+          />
+        </ValidarCreditoApertura>
+      )}
+      {!f.guia_confirmada_at && !faltaVb && (
         <ConfirmarGuiaBoton
           servicioId={f.id}
           cliente={p?.cliente ?? "Pedido"}

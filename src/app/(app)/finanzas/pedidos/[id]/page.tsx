@@ -2,6 +2,7 @@ import Link from "@/components/enlace";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeft, BadgeCheck, Siren } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
@@ -39,7 +40,7 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
     supabase
       .from("servicios_postventa")
       .select(
-        "forma_pago, pct_antes_despacho, origen, tipo_pedido, confirmacion_abono, informe_cierre_id, pago_confirmado_at, moneda, letras_cantidad, letras_estado, letras_firmadas_at, finanzas_vb_at, finanzas_vb_nota, finanzas_vb_comision, salida_autorizada_at, salida_autorizada_motivo, despachado_at, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, letras_recibidas_almacen_at, letras_entregadas_at, letras_entregadas_a",
+        "forma_pago, pct_antes_despacho, origen, tipo_pedido, confirmacion_abono, informe_cierre_id, pago_confirmado_at, moneda, letras_cantidad, letras_estado, letras_firmadas_at, finanzas_vb_at, finanzas_vb_por, finanzas_vb_nota, finanzas_vb_comision, salida_autorizada_at, salida_autorizada_motivo, despachado_at, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, letras_recibidas_almacen_at, letras_entregadas_at, letras_entregadas_a",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -47,6 +48,10 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
   const misDocs = docs.get(id);
   const evidenciaObs = p.observadoAdjunto
     ? ((await supabase.storage.from("adjuntos").createSignedUrl(p.observadoAdjunto, 3600)).data?.signedUrl ?? null)
+    : null;
+  // Quién validó el crédito, para la segunda revisión (buzón, Jhon 14-10).
+  const vbPor = vb?.finanzas_vb_por
+    ? ((await createAdminClient().from("perfiles").select("nombre").eq("id", vb.finanzas_vb_por).maybeSingle()).data?.nombre as string | undefined) ?? null
     : null;
   const cuenta = p.serie === "OPEN" ? "Open Investments" : p.serie === "EFAMEINSA" ? "Efameinsa" : null;
   const sugerido = p.despachadoAt ? p.saldo : p.falta > 0 ? p.falta : p.saldo;
@@ -91,6 +96,7 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
             formaPago: vb.forma_pago,
             pide: pideVistoBuenoFinanzas(vb as unknown as ServicioPostventa),
             vbAt: vb.finanzas_vb_at,
+            vbPorNombre: vbPor,
             vbNota: vb.finanzas_vb_nota,
             vbComision: vb.finanzas_vb_comision == null ? null : Number(vb.finanzas_vb_comision),
             letrasEstado: vb.letras_estado as EstadoLetras | null,
