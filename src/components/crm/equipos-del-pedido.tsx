@@ -282,7 +282,8 @@ function Fila({
     for (const file of [...archivos, ...documentos]) {
       const path = `pedidos/${servicioId}/almacen/protocolo-${e.orden}${sufijo}-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
       const tipo = file.type || tipoDeVideo(file.name) || "image/jpeg";
-      const { error } = await storage.upload(path, file, { contentType: tipo });
+      // Sin tipo, el archivo viaja como octet-stream y el bucket lo rechaza: se le pone el suyo.
+      const { error } = await storage.upload(path, file.type ? file : new File([file], file.name, { type: tipo }), { contentType: tipo });
       if (error) {
         toast.error(`No se pudo subir «${file.name}»: ${error.message}`);
         return null;
