@@ -21,7 +21,8 @@ type Fila = {
   cliente_texto: string | null;
   equipo: string | null;
   numero_pedido_erp: string | null;
-  apertura_despacho_at: string;
+  /** null: postventa la envió pero no la emitió (la base la frenó, p. ej. el visto bueno del crédito). */
+  apertura_despacho_at: string | null;
   apertura_enviada_almacen_at: string | null;
   fecha_despacho: string | null;
   despacho_hora: string | null;
@@ -54,9 +55,11 @@ export default async function AperturasDePostventaPage() {
     .select(
       "id, cliente_texto, equipo, numero_pedido_erp, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, despacho_hora, despachado_at, almacen_listo_at, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, perfiles!servicios_postventa_apertura_despacho_por_fkey(nombre)",
     )
-    .not("apertura_despacho_at", "is", null)
+    // También la que postventa envió sin emitir (Ariana, 14-10, Beneficencia de Huancayo):
+    // el aviso llegaba y la apertura no estaba en la lista.
+    .or("apertura_despacho_at.not.is.null,apertura_enviada_almacen_at.not.is.null")
     .is("cerrado_at", null)
-    .order("apertura_despacho_at", { ascending: false })
+    .order("apertura_despacho_at", { ascending: false, nullsFirst: true })
     .limit(200);
   const filas = (data ?? []) as unknown as Fila[];
   const porSalir = filas.filter((f) => !f.despachado_at);
@@ -101,7 +104,7 @@ function Lista({ lista, ahora }: { lista: Fila[]; ahora: number }) {
         const nueva =
           !f.despachado_at &&
           !f.almacen_listo_at &&
-          ahora - new Date(f.apertura_despacho_at).getTime() < 24 * 3600 * 1000;
+          ahora - new Date(f.apertura_despacho_at ?? f.apertura_enviada_almacen_at ?? 0).getTime() < 24 * 3600 * 1000;
         return (
           <li
             key={f.id}
@@ -120,8 +123,16 @@ function Lista({ lista, ahora }: { lista: Fila[]; ahora: number }) {
                 {primeraLinea(f.equipo)}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Emitida el {fechaHoraLima(f.apertura_despacho_at)}
-                {f.perfiles?.nombre ? ` por ${f.perfiles.nombre}` : ""}
+                {f.apertura_despacho_at ? (
+                  <>
+                    Emitida el {fechaHoraLima(f.apertura_despacho_at)}
+                    {f.perfiles?.nombre ? ` por ${f.perfiles.nombre}` : ""}
+                  </>
+                ) : (
+                  <span className="font-semibold text-amber-700">
+                    Enviada el {fechaHoraLima(f.apertura_enviada_almacen_at)} · postventa todavía no la emite
+                  </span>
+                )}
                 {f.numero_pedido_erp ? ` · Pedido ${f.numero_pedido_erp}` : ""}
                 {" · "}
                 <span

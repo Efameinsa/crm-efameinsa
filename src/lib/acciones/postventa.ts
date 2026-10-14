@@ -1480,6 +1480,11 @@ export async function marcarAperturaEnviada(servicioId: string, destino: "almace
   const supabase = await createClient();
 
   const campo = destino === "almacen" ? "apertura_enviada_almacen_at" : "apertura_enviada_cliente_at";
+  // Sin emitir no se manda (Ariana, 14-10, Beneficencia de Huancayo): la base frenó la
+  // emisión por el visto bueno del crédito, pero el aviso salía igual y el almacén
+  // no la encontraba.
+  const { data: emitida } = await supabase.from("servicios_postventa").select("apertura_despacho_at").eq("id", servicioId).maybeSingle();
+  if (!emitida?.apertura_despacho_at) return falla("Primero emita la apertura: todavía no está emitida, así que el almacén no la vería.");
   const { error } = await supabase
     .from("servicios_postventa")
     .update({ [campo]: new Date().toISOString() })
