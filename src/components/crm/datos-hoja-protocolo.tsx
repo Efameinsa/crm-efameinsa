@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { datosDelProtocolo } from "@/lib/acciones/almacen";
+import { datosDelProtocoloDeStock } from "@/lib/acciones/protocolo-stock";
 import type { DatosHoja, Maquina } from "@/lib/protocolo-hoja";
 
 const CAMPOS: { clave: keyof DatosHoja; etiqueta: string; tipo?: "date"; ayuda?: string }[] = [
@@ -29,6 +30,7 @@ export function DatosHojaProtocolo({
   valores,
   faltan,
   repuesto = false,
+  stockId,
 }: {
   itemId: string;
   servicioId: string;
@@ -38,6 +40,8 @@ export function DatosHojaProtocolo({
   faltan: string[];
   /** Pedido de repuestos (0441): la hoja lleva el nombre del repuesto y su código, sin modelo de placa. */
   repuesto?: boolean;
+  /** Protocolo de un equipo en stock (0474): se guarda ahí, no en un pedido. */
+  stockId?: string;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -88,7 +92,9 @@ export function DatosHojaProtocolo({
           className="rounded bg-[#8B1510] px-3 py-1 text-[12px] font-semibold text-white disabled:opacity-50"
           onClick={() =>
             startTransition(async () => {
-              const r = await datosDelProtocolo(itemId, servicioId, maquina, datos as Record<string, string>);
+              const r = stockId
+                ? await datosDelProtocoloDeStock(stockId, datos as Record<string, string>)
+                : await datosDelProtocolo(itemId, servicioId, maquina, datos as Record<string, string>);
               if (r.error) {
                 toast.error(r.error, { duration: 9000 });
                 return;

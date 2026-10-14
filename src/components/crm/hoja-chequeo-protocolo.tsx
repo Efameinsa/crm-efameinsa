@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { chequeoDelProtocolo, datosDelProtocolo } from "@/lib/acciones/almacen";
+import { chequeoDelProtocoloDeStock, datosDelProtocoloDeStock } from "@/lib/acciones/protocolo-stock";
 import { claveRenglon, renglonesConMarca, type Chequeo, type Plantilla, type Resultado } from "@/lib/protocolo-checklist";
 import type { DatosHoja, Maquina } from "@/lib/protocolo-hoja";
 
@@ -43,6 +44,7 @@ export function HojaChequeoProtocolo({
   hoja,
   editable,
   guardadoAt,
+  stockId,
 }: {
   itemId: string;
   servicioId: string;
@@ -55,6 +57,8 @@ export function HojaChequeoProtocolo({
   hoja: DatosHoja;
   editable: boolean;
   guardadoAt: string | null;
+  /** Protocolo de un equipo en stock (0474): se guarda ahí, no en un pedido. */
+  stockId?: string;
 }) {
   const router = useRouter();
   const [ch, setCh] = useState<Chequeo>(inicial);
@@ -210,6 +214,10 @@ export function HojaChequeoProtocolo({
     })),
   ]);
 
+  // En stock (0474) se guarda en el protocolo de stock; si no, en la máquina del pedido.
+  const guardarDatos = (x: Record<string, string>) => (stockId ? datosDelProtocoloDeStock(stockId, x) : datosDelProtocolo(itemId, servicioId, maquina, x));
+  const guardarChequeo = (x: Chequeo) => (stockId ? chequeoDelProtocoloDeStock(stockId, x) : chequeoDelProtocolo(itemId, servicioId, maquina, x));
+
   const guardar = () =>
     startTransition(async () => {
       // La fecha se escribe como en el papel (dd-mm-aaaa) y se guarda como fecha.
@@ -221,7 +229,7 @@ export function HojaChequeoProtocolo({
       }
       const fecha = m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : undefined;
       if (fijo["#modelo"] !== inicialFijo["#modelo"] || fijo["#serie"] !== inicialFijo["#serie"] || fijo["#fecha"] !== inicialFijo["#fecha"]) {
-        const d = await datosDelProtocolo(itemId, servicioId, maquina, {
+        const d = await guardarDatos({
           ...(hoja as Record<string, string>),
           modelo: fijo["#modelo"],
           serie: fijo["#serie"],
@@ -232,7 +240,7 @@ export function HojaChequeoProtocolo({
           return;
         }
       }
-      const r = await chequeoDelProtocolo(itemId, servicioId, maquina, {
+      const r = await guardarChequeo({
         ...ch,
         datos: { ...ch.datos, cliente: fijo["#cliente"], protocolo: fijo["#protocolo"] },
       });
