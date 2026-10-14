@@ -13,6 +13,11 @@ import { propuestaDeHoja, type DatosHoja, type Maquina } from "@/lib/protocolo-h
  * fotos, el protocolo o informe en PDF/Word, la ficha del informe (modelo de
  * la placa, serie y técnico) y, si tiene hoja de chequeo, todas sus casillas.
  *
+ * El PDF/Word solo se pide a la máquina SIN hoja de chequeo en el sistema
+ * (Lesly, 13-10: «ya no debería solicitar subir Word porque el sistema ya lo
+ * genera»): si la tiene, el informe de prueba y embalaje con la hoja completa
+ * es el protocolo. Subir el Word sigue pudiéndose, ya no frena.
+ *
  * Función pura: la usa el botón (para decir qué falta antes de pulsar) y el
  * servidor (que es quien de verdad frena).
  */
@@ -46,6 +51,13 @@ const esImagen = (a: NonNullable<ArchivoProtocolo>) =>
 
 const lista = (x: unknown): NonNullable<ArchivoProtocolo>[] => (Array.isArray(x) ? x.filter((a): a is NonNullable<ArchivoProtocolo> => Boolean(a)) : []);
 
+/** La hoja de chequeo que el sistema llena para esta máquina (null = no hay plantilla: se sube el Word/PDF). */
+export function hojaDelSistema(e: MaquinaParaProbar, maquina: Maquina, repuesto = false) {
+  if (repuesto) return null;
+  const guardado = (e.protocolo_datos ?? {})[maquina] ?? {};
+  return plantillaPara(guardado.equipo ?? propuestaDeHoja({ descripcion: e.descripcion, serie: e.serie, parte_nombre: e.parte_nombre ?? null }, maquina, repuesto).equipo);
+}
+
 function faltaEnLaHoja(
   e: MaquinaParaProbar,
   maquina: Maquina,
@@ -56,13 +68,13 @@ function faltaEnLaHoja(
 ): string[] {
   const guardado = (e.protocolo_datos ?? {})[maquina] ?? {};
   const propuesta = propuestaDeHoja({ descripcion: e.descripcion, serie: e.serie, parte_nombre: e.parte_nombre ?? null }, maquina, repuesto);
+  const plantilla = hojaDelSistema(e, maquina, repuesto);
   const falta: string[] = [];
   if (!archivos.some(esImagen)) falta.push("fotos");
-  if (!repuesto && !archivos.some((a) => !esImagen(a))) falta.push("protocolo o informe (PDF o Word)");
+  if (!repuesto && !plantilla && !archivos.some((a) => !esImagen(a))) falta.push("protocolo o informe (PDF o Word)");
   if (!repuesto && !guardado.modelo?.trim()) falta.push("modelo de la placa (en la ficha del informe)");
   if (!repuesto && !(guardado.serie ?? propuesta.serie ?? e.serie)?.trim()) falta.push("serie");
   if (!(tecnicoEnPantalla.trim() || guardado.tecnico?.trim())) falta.push("técnico que hizo la prueba");
-  const plantilla = repuesto ? null : plantillaPara(guardado.equipo ?? propuesta.equipo);
   if (plantilla) {
     const marcas = (e.protocolo_chequeo ?? {})[maquina]?.marcas ?? {};
     const sinMarcar = renglonesConMarca(plantilla).filter((k) => !marcas[k]).length;

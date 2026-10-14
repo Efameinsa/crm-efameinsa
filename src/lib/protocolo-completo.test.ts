@@ -18,7 +18,29 @@ const todoMarcado = Object.fromEntries(renglonesConMarca(PLANTILLAS[0]).map((k) 
 describe("faltaParaProbar", () => {
   it("sin nada no se puede marcar: dice todo lo que falta", () => {
     const falta = faltaParaProbar(cofaco, []).join(" | ");
-    for (const f of ["N.º de protocolo", "fotos", "PDF o Word", "modelo de la placa", "técnico", "PROTOCOLO DE LAVADORA"]) expect(falta).toContain(f);
+    for (const f of ["N.º de protocolo", "fotos", "modelo de la placa", "técnico", "PROTOCOLO DE LAVADORA"]) expect(falta).toContain(f);
+  });
+
+  it("con hoja de chequeo no pide Word/PDF: el informe lo genera el sistema (Lesly, 13-10)", () => {
+    const sinWord: MaquinaParaProbar = {
+      ...cofaco,
+      protocolo_ref: "P-100",
+      protocolo_fotos: [{ path: "x/protocolo-1-a.jpg", tipo: "image/jpeg" }],
+      protocolo_datos: { principal: { modelo: "EFALTM10", tecnico: "Juan" } },
+      protocolo_chequeo: { principal: { plantilla: "lavadora", marcas: todoMarcado } },
+    };
+    expect(faltaParaProbar(sinWord, [])).toEqual([]);
+  });
+
+  it("sin hoja de chequeo en el sistema (calandria) sigue pidiendo el Word/PDF", () => {
+    const calandria: MaquinaParaProbar = {
+      ...cofaco,
+      descripcion: "CALANDRIA INDUSTRIAL MARCA GMP MODELO 160.30A",
+      protocolo_ref: "P-7",
+      protocolo_fotos: [{ path: "a.jpg", tipo: "image/jpeg" }],
+      protocolo_datos: { principal: { modelo: "160.30A", tecnico: "T" } },
+    };
+    expect(faltaParaProbar(calandria, []).join()).toContain("PDF o Word");
   });
 
   it("con la ficha, fotos, PDF y la hoja completa se puede", () => {
