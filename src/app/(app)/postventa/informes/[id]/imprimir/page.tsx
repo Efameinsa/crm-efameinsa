@@ -139,6 +139,7 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
   // Las secciones editables del informe de soporte técnico (0297): si las hay,
   // mandan; cada línea sale como viñeta.
   const editables = ((data.secciones ?? []) as { titulo: string; texto: string }[]).filter((x) => x.texto?.trim());
+  const ciclosTrasPuesta = data.ciclos != null && editables.some((x) => x.titulo === "Puesta en marcha");
   const documentos = (data.documentos ?? []) as { path: string; nombre: string }[];
   const { data: docsFirmados } = documentos.length
     ? await supabase.storage.from("adjuntos").createSignedUrls(documentos.map((d) => d.path), 3600)
@@ -196,12 +197,15 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
           <ul className="ml-5 list-disc">
             {x.texto
               .split("\n")
-              .map((l) => l.trim())
+              // Quien escribe «- Se conectó…» ya pone su guion: la viñeta basta.
+              .map((l) => l.trim().replace(/^[-•*]\s*/, ""))
               .filter(Boolean)
               .map((l, j) => (
                 <li key={j}>{l}</li>
               ))}
           </ul>
+          {/* En la puesta en marcha el contador va justo después (Rubí 14-10). */}
+          {ciclosTrasPuesta && x.titulo === "Puesta en marcha" && <CiclosLinea ciclos={data.ciclos as number} />}
         </section>
       ))}
       {secciones
@@ -229,11 +233,7 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
         </section>
       )}
 
-      {data.ciclos != null && (
-        <p className="mt-3">
-          <b>Contador de ciclos:</b> {Number(data.ciclos).toLocaleString("es-PE")}
-        </p>
-      )}
+      {data.ciclos != null && !ciclosTrasPuesta && <CiclosLinea ciclos={data.ciclos as number} />}
 
       {repuestos.length > 0 && (
         <section className="mt-3">
@@ -332,5 +332,13 @@ export default async function ImprimirInformePage({ params }: { params: Promise<
         }
       `}</style>
     </div>
+  );
+}
+
+function CiclosLinea({ ciclos }: { ciclos: number }) {
+  return (
+    <p className="mt-3">
+      <b>Contador de ciclos:</b> {Number(ciclos).toLocaleString("es-PE")}
+    </p>
   );
 }

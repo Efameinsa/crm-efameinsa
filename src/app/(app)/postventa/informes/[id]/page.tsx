@@ -201,7 +201,10 @@ export default async function InformeServicioPage({ params }: { params: Promise<
             {secciones.map((x, i) => (
               <Bloque key={i} titulo={x.titulo || "Sin título"}>{x.texto || null}</Bloque>
             ))}
-            <Bloque titulo="Trabajo realizado">{data.detalle as string | null}</Bloque>
+            {/* La puesta en marcha (Rubí 14-10) guarda el trabajo realizado en su sección y en «detalle»: una vez basta. */}
+            <Bloque titulo="Trabajo realizado">
+              {secciones.some((x) => x.texto?.trim() === (data.detalle as string | null)?.trim()) ? null : (data.detalle as string | null)}
+            </Bloque>
             <Bloque titulo="Verificación">{data.verificacion as string | null}</Bloque>
             <Bloque titulo="Accesorios necesarios para la instalación">{data.accesorios as string | null}</Bloque>
             <Bloque titulo="Observaciones y recomendaciones">{data.observaciones as string | null}</Bloque>
