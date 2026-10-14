@@ -29,7 +29,19 @@ export const IDENTIDAD_SERIE: Record<"EFAMEINSA" | "OPEN", IdentidadSerie> = {
       "Av. Los Cisnes Mz. H-2 Lt. 18 Urb. Club de Huachipa",
       "Teléfono: (511) 504-1695  Telefax: (511) 371-0502",
     ],
-    cuentasBancarias: null,
+    // La tabla del formato de EFAMEINSA que mandó Katerine (C5, 14-10): la
+    // cotización de EFAMEINSA salía sin cuentas y la de OPEN sí. Los cuatro
+    // CCI pasan los dígitos de control y coinciden con su cuenta corriente.
+    cuentasBancarias: {
+      titular: "CORPORACION EFAMEINSA E INGENIERIA S.A.",
+      ruc: "20418933381",
+      cuentas: [
+        { banco: "BCP", moneda: "SOLES", corriente: "191-1085198-0-94", cci: "002-191-001085198094-55" },
+        { banco: "BCP", moneda: "DOLARES", corriente: "191-1072388-1-10", cci: "002-191-001072388110-57" },
+        { banco: "SCOTIABANK", moneda: "SOLES", corriente: "000-5656737", cci: "009-229-000005656737-63" },
+        { banco: "SCOTIABANK", moneda: "DOLARES", corriente: "000-1619901", cci: "009-229-000001619901-60" },
+      ],
+    },
   },
   OPEN: {
     nombreLegal: "OPEN INVESTMENTS S.A.C",

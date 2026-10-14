@@ -15,7 +15,7 @@ Font.registerHyphenationCallback((palabra) => [palabra]);
 // Estructura calcada de las cotizaciones reales de ambas razones sociales
 // (Descargas/PROYECTO CRM EFAMEINSA/modelos de cotizacion): carta formal con
 // membrete por serie, bloque del cliente, tabla de ítems con desglose de IGV,
-// ficha técnica por equipo, condiciones, cuentas bancarias (OPEN),
+// ficha técnica por equipo, condiciones, cuentas bancarias de la serie,
 // "Importante:"/"Nota:" y firma del comercial.
 // Helvetica = fuente base de @react-pdf sin incrustar TTF (equivalente a Arial).
 
@@ -518,7 +518,7 @@ export function crearEstilos(acento: string) {
     listaTexto: { flex: 1, textAlign: "justify" },
     notaTexto: { flex: 1, fontSize: 8.5, textAlign: "justify", color: GRIS },
 
-    /* Cuentas bancarias (OPEN) */
+    /* Cuentas bancarias */
     cuentasTitulo: { textAlign: "center", fontSize: 11, fontFamily: "Helvetica-Bold", textDecoration: "underline", marginTop: 18, marginBottom: 10 },
     bancoTh: { fontSize: 8.5, fontFamily: "Helvetica-Bold", paddingVertical: 4, paddingHorizontal: 5, backgroundColor: FILA_GRIS, textAlign: "center" },
     bancoTd: { fontSize: 8.5, paddingVertical: 4, paddingHorizontal: 5 },
@@ -1267,7 +1267,7 @@ export function CotizacionPdf({
 
         <Text style={estilos.validez}>VALIDEZ DE LA COTIZACION: {vigenciaDias} DIAS</Text>
 
-        {/* ── Cuentas bancarias (solo OPEN) ── */}
+        {/* ── Cuentas bancarias de la serie ── */}
         {identidad.cuentasBancarias && (
           <View wrap={false}>
             <Text style={estilos.cuentasTitulo}>NÚMEROS DE CUENTA BANCARIA</Text>

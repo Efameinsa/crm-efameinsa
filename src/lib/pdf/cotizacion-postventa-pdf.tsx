@@ -238,9 +238,8 @@ export function CotizacionPostventaPdf({
       </View>
     ));
 
-  // Nombre y RUC de la cuenta, y la tabla de bancos de la serie. EFAMEINSA no
-  // tiene cuentas cargadas (series.ts): ahí no se imprime nada, igual que en
-  // el PDF de equipos.
+  // Nombre y RUC de la cuenta, y la tabla de bancos de la serie (series.ts),
+  // igual que en el PDF de equipos.
   const cuentas = identidad.cuentasBancarias && (
     <View wrap={false} style={{ marginTop: 10 }}>
       <Text style={pv.empresa}>NOMBRE: {identidad.cuentasBancarias.titular}</Text>
