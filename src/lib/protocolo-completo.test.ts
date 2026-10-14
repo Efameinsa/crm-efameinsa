@@ -33,21 +33,21 @@ describe("faltaParaProbar", () => {
     expect(faltaParaProbar(sinWord, [])).toEqual([]);
   });
 
-  it("sin hoja de chequeo en el sistema (calandria) sigue pidiendo el Word/PDF", () => {
-    const calandria: MaquinaParaProbar = {
+  it("sin hoja de chequeo en el sistema (centrífuga) sigue pidiendo el Word/PDF", () => {
+    const centrifuga: MaquinaParaProbar = {
       ...cofaco,
-      descripcion: "CALANDRIA INDUSTRIAL MARCA GMP MODELO 160.30A",
+      descripcion: "CENTRIFUGA INDUSTRIAL MARCA GMP MODELO 160.30A",
       protocolo_ref: "P-7",
       protocolo_fotos: [{ path: "a.jpg", tipo: "image/jpeg" }],
       protocolo_datos: { principal: { modelo: "160.30A", tecnico: "T" } },
     };
-    expect(faltaParaProbar(calandria, []).join()).toContain("PDF o Word");
+    expect(faltaParaProbar(centrifuga, []).join()).toContain("PDF o Word");
   });
 
   it("el video de la prueba no reemplaza al Word/PDF (Ariana, 14-10)", () => {
-    const calandria: MaquinaParaProbar = {
+    const centrifuga: MaquinaParaProbar = {
       ...cofaco,
-      descripcion: "CALANDRIA INDUSTRIAL MARCA GMP MODELO 160.30A",
+      descripcion: "CENTRIFUGA INDUSTRIAL MARCA GMP MODELO 160.30A",
       protocolo_ref: "P-7",
       protocolo_fotos: [
         { path: "a.jpg", tipo: "image/jpeg" },
@@ -55,7 +55,7 @@ describe("faltaParaProbar", () => {
       ],
       protocolo_datos: { principal: { modelo: "160.30A", tecnico: "T" } },
     };
-    expect(faltaParaProbar(calandria, []).join()).toContain("PDF o Word");
+    expect(faltaParaProbar(centrifuga, []).join()).toContain("PDF o Word");
   });
 
   it("con la ficha, fotos, PDF y la hoja completa se puede", () => {
