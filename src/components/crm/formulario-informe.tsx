@@ -38,6 +38,7 @@ import {
 import { ChipAdjunto, PastillasAdjuntar, subirArchivosCierre, type AdjuntoPendiente } from "@/components/crm/adjuntos-cierre";
 import { MAX_ADJUNTOS, type TipoAdjunto } from "@/lib/adjuntos-cierre";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
@@ -340,6 +341,8 @@ export function FormularioInforme({
     b?.pctAntesDespacho != null ? String(b.pctAntesDespacho) : b?.modalidadPago[0] && esPreset(b.modalidadPago[0]) ? String(PCT_POR_MODALIDAD[b.modalidadPago[0] as (typeof MODALIDADES)[number]]) : "",
   );
   const [creditoDias, setCreditoDias] = useState<string>(() => (b?.creditoDias != null ? String(b.creditoDias) : "30"));
+  // Los papeles que le faltan al expediente al pulsar «Emitir» (null: sin aviso abierto).
+  const [avisoFaltantes, setAvisoFaltantes] = useState<{ tipo: string; nombre: string }[] | null>(null);
   function elegirModalidad(m: (typeof MODALIDADES)[number]) {
     setModalidad((xs) => (xs[0] === m ? [] : [m]));
     setPctAntesDespacho(String(PCT_POR_MODALIDAD[m]));
@@ -784,19 +787,18 @@ export function FormularioInforme({
     const hayCotizacionElegida = Boolean(presupuesto) || (!presupuestoId && Boolean(b?.cotizacionId || b?.presupuestoRef));
     if (hayCotizacionElegida) presentes.add("cotizacion");
     const faltantes = TIPOS_ESPERADOS.filter(([tipo]) => !presentes.has(tipo));
+    // 14-10 (Ariana con Agrocasagrande, audio del ing. Carlos): el confirm del
+    // navegador se leía como un bloqueo y el cierre a crédito no se emitía. Ahora
+    // es una ventana propia que dice primero que SÍ se puede seguir.
     if (faltantes.length > 0) {
-      const lista = faltantes.map(([, nombre]) => `· Falta ${nombre}`).join("\n");
-      if (
-        !confirm(
-          `Al expediente de este cierre le falta:\n\n${lista}\n\n` +
-            "Central y postventa trabajan con estos documentos. Se pueden agregar después de emitido, " +
-            "pero ya con el código de autorización de operaciones.\n\n¿Emitir igual?",
-        )
-      ) {
-        return;
-      }
+      setAvisoFaltantes(faltantes.map(([tipo, nombre]) => ({ tipo, nombre })));
+      return;
     }
+    await emitirYa();
+  }
 
+  async function emitirYa() {
+    setAvisoFaltantes(null);
     const id = await guardar();
     if (!id) return;
     startTransition(async () => {
@@ -826,9 +828,48 @@ export function FormularioInforme({
   }
 
   const faltan = prellenado.camposTotales - prellenado.camposResueltos;
+  const esCredito =
+    /cr[eé]dito/i.test([modalidad[0] ?? "", modalidadOtra].join(" ")) ||
+    (pctAntesDespacho.trim() !== "" && Number(pctAntesDespacho) < 100);
+  const faltaVoucher = (avisoFaltantes ?? []).some((f) => f.tipo === "voucher");
 
   return (
     <div className="space-y-5">
+      <Dialog open={avisoFaltantes !== null} onOpenChange={(abierta) => !abierta && setAvisoFaltantes(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Check className="size-4 text-[#1E7F4F]" /> Puede emitir el cierre
+            </DialogTitle>
+            <DialogDescription>
+              Solo le avisamos que al expediente todavía le falta{" "}
+              {(avisoFaltantes ?? []).map((f) => f.nombre).join(" y ")}. No es obligatorio para emitir.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            {faltaVoucher && (
+              <p className="rounded-lg bg-[#1E7F4F]/10 px-3 py-2 text-foreground">
+                {esCredito
+                  ? "Es una venta a crédito: lo normal es que el voucher llegue cuando el cliente pague, después de la factura. Emita el cierre ahora."
+                  : "Si el cliente todavía no pagó (primero se le factura y luego paga), emita el cierre igual: el voucher se agrega cuando llegue."}
+              </p>
+            )}
+            <p className="text-muted-foreground">
+              {(avisoFaltantes ?? []).length === 1
+                ? "Cuando llegue, se agrega al expediente desde el cierre con el código de operaciones (Lesly). Si ya lo tiene a la mano, mejor adjúntelo antes de emitir."
+                : "Cuando lleguen, se agregan al expediente desde el cierre con el código de operaciones (Lesly). Si ya los tiene a la mano, mejor adjúntelos antes de emitir."}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setAvisoFaltantes(null)}>
+              Primero adjunto
+            </Button>
+            <Button type="button" onClick={() => void emitirYa()} disabled={guardando}>
+              Emitir el cierre
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {recuperable && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3.5 py-2.5">
           <p className="flex items-start gap-2 text-sm text-foreground">
