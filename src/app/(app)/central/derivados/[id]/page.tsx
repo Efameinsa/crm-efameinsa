@@ -464,6 +464,7 @@ export default async function DerivadoPage({ params }: { params: Promise<{ id: s
                 leadId={fila.id}
                 contacto={contacto}
                 mensaje={fila.mensaje}
+                archivos={(leadCrudo?.adjuntos as { path: string; nombre: string }[] | null) ?? []}
               />
             }
           >

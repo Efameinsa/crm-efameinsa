@@ -164,8 +164,8 @@ export interface EventoSolicitud extends DelExpediente {
 
 /** Una corrección de lo que pidió el cliente, o su mudanza de ficha (0354). */
 export interface CambioSolicitud {
-  tipo: "texto" | "ficha";
-  /** Texto de antes, o en una mudanza la ficha de origen. */
+  tipo: "texto" | "ficha" | "adjunto";
+  /** Texto de antes, en una mudanza la ficha de origen, o el archivo quitado (0481). */
   antes: string | null;
   despues: string | null;
   motivo: string | null;

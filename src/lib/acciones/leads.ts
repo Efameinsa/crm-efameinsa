@@ -1080,6 +1080,32 @@ export async function corregirSolicitudLead(
   return { error: null };
 }
 
+/**
+ * QUITAR UN ARCHIVO ACOPLADO POR ERROR (0481). Central, 14-10: al acoplarle a
+ * PRO-11004 lo que mandó el cliente se le fue un video de otro chat, y
+ * «Editar lo que pide» solo sumaba. Misma firma que corregir el texto; queda
+ * en el historial y el archivo no se borra del almacenamiento.
+ */
+export async function quitarAdjuntoLead(
+  leadId: string,
+  path: string,
+  firma: { motivo?: string | null; pin?: string | null } = {},
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("quitar_adjunto_lead", {
+    p_lead_id: leadId,
+    p_path: path,
+    p_motivo: firma.motivo?.trim() || null,
+    p_pin: firma.pin?.trim() || null,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  revalidatePath("/", "layout");
+  revalidatePath("/central");
+  revalidatePath("/central/derivados");
+  revalidatePath(`/central/derivados/${leadId}`);
+  return { error: null };
+}
+
 /** Qué firma pide HOY corregir el texto: «libre», «motivo» o «codigo» (0354). */
 export async function firmaParaCorregirSolicitud(leadId: string): Promise<"libre" | "motivo" | "codigo"> {
   const supabase = await createClient();

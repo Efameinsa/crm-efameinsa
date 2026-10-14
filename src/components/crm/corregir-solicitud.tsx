@@ -89,7 +89,7 @@ export function MarcaEditado({ cambios }: { cambios: CambioSolicitud[] }) {
         >
           <History className="size-3" />
           <span>
-            {ultimo.tipo === "ficha" ? "mudada" : "editado"} · {ultimo.quien ?? "—"} · {fechaConHora(ultimo.at)}
+            {ultimo.tipo === "ficha" ? "mudada" : ultimo.tipo === "adjunto" ? "quitaron un archivo" : "editado"} · {ultimo.quien ?? "—"} · {fechaConHora(ultimo.at)}
           </span>
           <span className="font-medium text-foreground">
             · {abierto ? "ocultar" : `ver ${cambios.length === 1 ? "el cambio" : `${cambios.length} cambios`}`}
@@ -112,6 +112,10 @@ export function MarcaEditado({ cambios }: { cambios: CambioSolicitud[] }) {
                 {c.tipo === "ficha" ? (
                   <p className="text-foreground">
                     La mudó de <b>{c.antes ?? "otra ficha"}</b> a <b>{c.despues ?? "esta ficha"}</b>.
+                  </p>
+                ) : c.tipo === "adjunto" ? (
+                  <p className="text-foreground">
+                    Quitó el archivo <b>{c.antes ?? "—"}</b>, acoplado por error.
                   </p>
                 ) : (
                   <>

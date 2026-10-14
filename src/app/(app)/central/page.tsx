@@ -448,6 +448,7 @@ export default async function CentralPage() {
                     contacto={lead.nombre_contacto ?? lead.codigo ?? "el contacto"}
                     mensaje={lead.mensaje}
                     campania={lead.utm_campaign}
+                    archivos={(lead.adjuntos as { path: string; nombre: string }[] | null) ?? []}
                   />
                   {/* Y los datos con los que se deriva —nombre, empresa,
                       teléfono, correo, documento— (Central, 11-09: puso
