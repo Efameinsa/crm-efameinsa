@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
-import { notificar } from "@/lib/notificaciones";
+import { notificar, notificarFinanzas } from "@/lib/notificaciones";
+import { avisarFinanzasSiFaltaVistoBueno } from "@/lib/aviso-visto-bueno";
 import type { FotoAlmacen } from "@/lib/postventa";
 import type { Chequeo } from "@/lib/protocolo-checklist";
 import { faltaParaProbar, type MaquinaParaProbar } from "@/lib/protocolo-completo";
@@ -67,6 +68,7 @@ export async function marcarProbado(servicioId: string, datos: { protocoloRef?: 
     `El almacén ya probó y embaló el equipo${datos.protocoloRef ? ` (protocolo ${datos.protocoloRef})` : ""}. Se puede programar el despacho.`,
     `/postventa/pedidos/${servicioId}`,
   );
+  await avisarFinanzasSiFaltaVistoBueno(servicioId, "listo");
   return ok(servicioId);
 }
 
@@ -132,6 +134,7 @@ export async function probarEquipoDelPedido(
       `El almacén ya probó y embaló todo lo que va en este despacho${datos.protocoloRef ? ` (último protocolo ${datos.protocoloRef})` : ""}. Se puede programar el despacho.`,
       `/postventa/pedidos/${servicioId}`,
     );
+    await avisarFinanzasSiFaltaVistoBueno(servicioId, "listo");
   }
   return { ...ok(servicioId), pedidoListo };
 }
@@ -420,4 +423,43 @@ export async function deQuePuedeSerElInforme(): Promise<{ pedidos: PedidoParaInf
       equipoId: a.equipo_id,
     })),
   };
+}
+
+/**
+ * LAS LETRAS QUE VIAJAN CON EL EQUIPO (0470). Primero el almacén confirma que
+ * las tiene (sin eso no se registra la salida); después, quien las entrega
+ * dice a quién. Finanzas y postventa se enteran de cada paso.
+ */
+export async function recibiLetras(servicioId: string, cliente: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("almacen_recibio_letras", { p_servicio: servicioId });
+  if (error) return { error: limpiar(error.message) };
+  const perfil = await requerirPerfil();
+  await notificarFinanzas({
+    titulo: `El almacén recogió las letras · ${cliente}`,
+    cuerpo: "Las letras de crédito ya están con el almacén y van con el equipo.",
+    url: `/finanzas/pedidos/${servicioId}`,
+    esPrueba: perfil.es_prueba === true,
+  });
+  return ok(servicioId);
+}
+
+export async function entregarLetras(servicioId: string, datos: { recibio: string; fotos: Foto[]; nota?: string; cliente: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("letras_entregadas_al_cliente", {
+    p_servicio: servicioId,
+    p_recibio: datos.recibio.trim(),
+    p_fotos: datos.fotos,
+    p_nota: datos.nota?.trim() || null,
+  });
+  if (error) return { error: limpiar(error.message) };
+  const perfil = await requerirPerfil();
+  const cuerpo = `Las recibió ${datos.recibio.trim()}${datos.fotos.length ? ", con foto del cargo" : ""}. Falta que vuelvan firmadas a Finanzas.`;
+  await Promise.all([
+    notificarFinanzas({ titulo: `Letras entregadas al cliente · ${datos.cliente}`, cuerpo, url: `/finanzas/pedidos/${servicioId}`, esPrueba: perfil.es_prueba === true }),
+    avisarPostventa(`Letras entregadas al cliente · ${datos.cliente}`, cuerpo, `/postventa/pedidos/${servicioId}`),
+  ]);
+  revalidatePath(`/finanzas/pedidos/${servicioId}`);
+  revalidatePath("/finanzas");
+  return ok(servicioId);
 }

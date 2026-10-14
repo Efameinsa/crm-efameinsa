@@ -12,6 +12,9 @@ import {
   textoCondicionPago,
   textoPlanoNoEnviado,
   pedidoSinCobro,
+  pideVistoBuenoFinanzas,
+  faltaVistoBuenoFinanzas,
+  faltanLetrasEnAlmacen,
   type ServicioPostventa,
 } from "./postventa";
 
@@ -513,5 +516,64 @@ describe("orden a Finanzas para facturar (0460, reunión 13-10)", () => {
   });
   it("una vez dada, se queda a la vista", () => {
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 100, orden_facturar_at: "2026-10-13T20:00:00Z" })).toBe(true);
+  });
+});
+
+describe("visto bueno de Finanzas para la salida (0469, COFACO 14-10)", () => {
+  const cofaco = { forma_pago: "50% ADELANTO + 50% SALDO EN 3 LETRAS", pct_antes_despacho: null, origen: "excel", letras_cantidad: null, tipo_pedido: "equipo" as const };
+
+  it("pide visto bueno a las ventas con letras, crédito o condición < 100 %", () => {
+    expect(pideVistoBuenoFinanzas(cofaco)).toBe(true);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "Crédito 30 días" })).toBe(true);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO", pct_antes_despacho: 50 })).toBe(true);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO" })).toBe(false);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, forma_pago: "CONTADO", pct_antes_despacho: 100 })).toBe(false);
+  });
+
+  it("no lo pide a servicios ni a lo abierto desde un caso", () => {
+    expect(pideVistoBuenoFinanzas({ ...cofaco, tipo_pedido: "mantenimiento" })).toBe(false);
+    expect(pideVistoBuenoFinanzas({ ...cofaco, origen: "caso" })).toBe(false);
+  });
+
+  it("deja de faltar con el visto bueno, la autorización con código o si ya salió", () => {
+    const base = { ...cofaco, finanzas_vb_at: null, salida_autorizada_at: null, despachado_at: null };
+    expect(faltaVistoBuenoFinanzas(base)).toBe(true);
+    expect(faltaVistoBuenoFinanzas({ ...base, finanzas_vb_at: "2026-10-14T10:00:00Z" })).toBe(false);
+    expect(faltaVistoBuenoFinanzas({ ...base, salida_autorizada_at: "2026-10-14T10:00:00Z" })).toBe(false);
+    expect(faltaVistoBuenoFinanzas({ ...base, despachado_at: "2026-10-14T10:00:00Z" })).toBe(false);
+  });
+
+  it("el pedido del Excel con «abono: SI» ya no emite la apertura sin el visto bueno", () => {
+    const s = pedido({ ...cofaco, confirmacion_abono: "SI", prueba_embalaje: "SI", planos_preinstalacion: "SI", direccion_verificada_at: "2026-10-14T13:31:00Z", informe_cierre_id: null });
+    const pasos = bloquesPedido(s).flatMap((b) => b.pasos);
+    expect(pasos.find((p) => p.clave === "vb_finanzas")?.hecho).toBe(false);
+    expect(pasos.find((p) => p.clave === "apertura")?.trabado).toMatch(/visto bueno de Finanzas/);
+    const conVB = bloquesPedido({ ...s, finanzas_vb_at: "2026-10-14T13:00:00Z", letras_estado: "van_con_el_equipo", letras_cantidad: 3 }).flatMap((b) => b.pasos);
+    expect(conVB.find((p) => p.clave === "apertura")?.trabado).toBeUndefined();
+    expect(conVB.find((p) => p.clave === "vb_finanzas")?.detalle).toMatch(/van con el equipo \(3\)/);
+  });
+});
+
+describe("letras que viajan con el equipo (0470)", () => {
+  const base = { forma_pago: "50% ADELANTO + 50% SALDO EN 3 LETRAS", origen: "excel", confirmacion_abono: "SI", prueba_embalaje: "SI", planos_preinstalacion: "SI", informe_cierre_id: null, finanzas_vb_at: "2026-10-14T13:00:00Z", letras_estado: "van_con_el_equipo" as const, letras_cantidad: 3 };
+
+  it("el almacén tiene que tener las letras antes de salir, salvo autorización con código", () => {
+    expect(faltanLetrasEnAlmacen({ ...base, letras_recibidas_almacen_at: null, salida_autorizada_at: null, despachado_at: null })).toBe(true);
+    expect(faltanLetrasEnAlmacen({ ...base, letras_recibidas_almacen_at: "2026-10-14T14:00:00Z", salida_autorizada_at: null, despachado_at: null })).toBe(false);
+    expect(faltanLetrasEnAlmacen({ ...base, letras_recibidas_almacen_at: null, salida_autorizada_at: "2026-10-14T14:00:00Z", despachado_at: null })).toBe(false);
+  });
+
+  it("después de salir, el paso de las letras queda trabado hasta confirmar la entrega", () => {
+    const salio = pedido({ ...base, letras_recibidas_almacen_at: "2026-10-14T14:00:00Z", despachado_at: "2026-10-14T15:00:00Z" });
+    const paso = bloquesPedido(salio).flatMap((b) => b.pasos).find((p) => p.clave === "letras");
+    expect(paso?.hecho).toBe(false);
+    expect(paso?.trabado).toMatch(/confirme a quién se entregaron/);
+    const entregadas = bloquesPedido({ ...salio, letras_estado: "entregadas", letras_entregadas_a: "Edinson García" }).flatMap((b) => b.pasos).find((p) => p.clave === "letras");
+    expect(entregadas?.hecho).toBe(true);
+    expect(entregadas?.detalle).toMatch(/Edinson García/);
+  });
+
+  it("sin letras no aparece el paso", () => {
+    expect(bloquesPedido(pedido({ forma_pago: "CONTADO" })).flatMap((b) => b.pasos).some((p) => p.clave === "letras")).toBe(false);
   });
 });

@@ -13,6 +13,9 @@ import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-li
 import { SubirLiquidacion } from "@/components/crm/subir-liquidacion";
 import { EmpresaDelPedido } from "@/components/crm/empresa-del-pedido";
 import { AtenderOrdenFacturar } from "@/components/crm/orden-facturar";
+import { VistoBuenoSalida } from "@/components/crm/visto-bueno-salida";
+import { LetrasDelPedido } from "@/components/crm/letras-del-pedido";
+import { pideVistoBuenoFinanzas, type EstadoLetras, type ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -28,10 +31,18 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const p = await unPedido(supabase, id);
   if (!p) notFound();
-  const [lista, docs, cotizaciones] = await Promise.all([
+  const [lista, docs, cotizaciones, { data: vb }] = await Promise.all([
     abonos(supabase, { servicioId: id, limite: 50 }),
     documentosDeFinanzas(supabase, [id]),
     cotizacionesDeCierres(supabase, p.informeId ? [p.informeId] : []),
+    // El visto bueno para la salida de una venta a crédito (0469).
+    supabase
+      .from("servicios_postventa")
+      .select(
+        "forma_pago, pct_antes_despacho, origen, tipo_pedido, moneda, letras_cantidad, letras_estado, letras_firmadas_at, finanzas_vb_at, finanzas_vb_nota, finanzas_vb_comision, salida_autorizada_at, salida_autorizada_motivo, despachado_at, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, letras_recibidas_almacen_at, letras_entregadas_at, letras_entregadas_a",
+      )
+      .eq("id", id)
+      .maybeSingle(),
   ]);
   const misDocs = docs.get(id);
   const evidenciaObs = p.observadoAdjunto
@@ -72,6 +83,31 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
           {!p.ordenFacturarAtendidaAt && <AtenderOrdenFacturar servicioId={p.id} />}
         </div>
       )}
+
+      {vb && (
+        <VistoBuenoSalida
+          d={{
+            servicioId: id,
+            formaPago: vb.forma_pago,
+            pide: pideVistoBuenoFinanzas(vb as unknown as ServicioPostventa),
+            vbAt: vb.finanzas_vb_at,
+            vbNota: vb.finanzas_vb_nota,
+            vbComision: vb.finanzas_vb_comision == null ? null : Number(vb.finanzas_vb_comision),
+            letrasEstado: vb.letras_estado as EstadoLetras | null,
+            letrasCantidad: vb.letras_cantidad,
+            letrasFirmadasAt: vb.letras_firmadas_at,
+            salidaAutorizadaAt: vb.salida_autorizada_at,
+            salidaAutorizadaMotivo: vb.salida_autorizada_motivo,
+            despachadoAt: vb.despachado_at,
+            guiaConfirmadaAt: vb.guia_confirmada_at,
+            guiaComprobanteTipo: vb.guia_comprobante_tipo,
+            guiaComprobanteNumero: vb.guia_comprobante_numero,
+            moneda: vb.moneda,
+          }}
+        />
+      )}
+
+      {vb && <LetrasDelPedido s={{ id, ...vb, letras_estado: vb.letras_estado as EstadoLetras | null }} cliente={p.cliente} />}
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">

@@ -7,12 +7,13 @@ import { Check, Loader2, PackageCheck, Truck, FileCheck2, Warehouse } from "luci
 import { createClient } from "@/lib/supabase/client";
 import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia, autorizarSalidaConSaldo } from "@/lib/acciones/almacen";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
-import { bloquesPedido, circuitoDe, esProvincia, faltanFotosDeCarga, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, circuitoDe, esProvincia, faltanFotosDeCarga, faltanLetrasEnAlmacen, faltaVistoBuenoFinanzas, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { TomarOSubir, TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
+import { LetrasDelPedido } from "@/components/crm/letras-del-pedido";
 
 /**
  * Lo que el almacén hace con un pedido, en el orden en que pasa (0246).
@@ -169,7 +170,10 @@ export function PedidoAlmacen({
   // montos: `despacho_liberado` ya lo resolvió el servidor antes de taparlos.
   const conSaldo = servicio.despacho_liberado === false && !servicio.despachado_at;
   const salidaAutorizada = Boolean(servicio.salida_autorizada_at || servicio.despacho_autorizado_por);
-  const trabadaPorSaldo = puedeSalir && conSaldo && !salidaAutorizada;
+  // VENTA A CRÉDITO SIN EL VISTO BUENO DE FINANZAS (0469, COFACO 14-10): el
+  // almacén se entera acá de que faltan las letras, no por teléfono.
+  const faltaVB = faltaVistoBuenoFinanzas(servicio);
+  const trabadaPorSaldo = puedeSalir && ((conSaldo && !salidaAutorizada) || faltaVB);
   const [pinSalida, setPinSalida] = useState("");
   const [motivoSalida, setMotivoSalida] = useState("");
   // POSTVENTA YA MARCÓ LA SALIDA, PERO FALTAN LAS FOTOS DE LA CARGA (23-09).
@@ -180,9 +184,12 @@ export function PedidoAlmacen({
   // correspondientes a la carga una vez que esta ha sido colocada en el
   // transporte». La base ya lo admite (suma las fotos y respeta la fecha).
   const faltanFotosCarga = faltanFotosDeCarga(servicio);
+  // Las letras van con el equipo y el almacén todavía no las tiene (0470).
+  const faltanLetras = !trabadaPorSaldo && faltanLetrasEnAlmacen(servicio);
 
   return (
     <div className="space-y-3">
+      <LetrasDelPedido s={servicio} cliente={cliente} puedeRecibir />
       {/* 1 · Probar y embalar. Desde la 0260 va máquina por máquina, cada una
           con su protocolo, en la lista de la derecha; esta tarjeta solo dice
           dónde. Queda el formulario de un solo protocolo para los pedidos
@@ -277,15 +284,30 @@ export function PedidoAlmacen({
         >
           {!puedeSalir ? (
             <p className="text-xs text-destructive">Sin apertura de despacho no sale nada del almacén. Pídasela a postventa.</p>
+          ) : faltanLetras ? (
+            <p className="text-xs font-semibold text-amber-900 dark:text-amber-300">
+              Este equipo sale con letras de crédito: primero recójalas en Finanzas y marque arriba «Recibí las letras».
+            </p>
           ) : trabadaPorSaldo ? (
             <div className="space-y-2 rounded-md border border-amber-500/50 bg-amber-50 p-3 dark:bg-amber-500/10">
               <p className="text-xs font-semibold text-amber-900 dark:text-amber-300">
-                Este pedido tiene saldo pendiente: la máquina no sale hasta que gerencia u operaciones lo autorice.
+                {faltaVB
+                  ? "NO DESPACHAR: es una venta a crédito y Finanzas todavía no da el visto bueno (letras, adelanto y comisiones)."
+                  : "Este pedido tiene saldo pendiente: la máquina no sale hasta que gerencia u operaciones lo autorice."}
               </p>
+              {faltaVB && servicio.forma_pago && (
+                <p className="text-[11px] text-amber-900/80 dark:text-amber-300/80">Forma de pago: {servicio.forma_pago}</p>
+              )}
               <p className="text-[11px] text-amber-900/80 dark:text-amber-300/80">
-                Quien autoriza le dicta su código. Queda escrito quién autorizó y por qué, y postventa recibe el aviso.
+                {faltaVB
+                  ? "Finanzas ya recibió el aviso. Cuando dé el visto bueno, este recuadro se abre solo. Solo si hay apuro, gerencia u operaciones autoriza aquí con su código y queda escrito por qué."
+                  : "Quien autoriza le dicta su código. Queda escrito quién autorizó y por qué, y postventa recibe el aviso."}
               </p>
-              <Input value={motivoSalida} onChange={(e) => setMotivoSalida(e.target.value)} placeholder="Por qué sale con saldo (ej. el cliente paga el saldo contra entrega)" />
+              <Input
+                value={motivoSalida}
+                onChange={(e) => setMotivoSalida(e.target.value)}
+                placeholder={faltaVB ? "Por qué sale sin el visto bueno (ej. las letras van con el chofer, lo dijo gerencia)" : "Por qué sale con saldo (ej. el cliente paga el saldo contra entrega)"}
+              />
               <CampoCodigo valor={pinSalida} onChange={setPinSalida} tono="amber" id={`pin-salida-${servicio.id}`} />
               <Button
                 size="sm"
@@ -315,7 +337,7 @@ export function PedidoAlmacen({
           {servicio.salida_autorizada_at && conSaldo && (
             <p className="text-[11px] font-medium text-[#1E7F4F]">Salida con saldo autorizada: {servicio.salida_autorizada_motivo}</p>
           )}
-          {!trabadaPorSaldo && (
+          {!trabadaPorSaldo && !faltanLetras && (
           <>
           {porMaquina ? (
             <FotosPorMaquina maquinas={maquinas} angulos={angulos} setAngulos={setAngulos} claveFoto={claveFoto} fotosDe={fotosDe} />

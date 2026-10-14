@@ -387,3 +387,72 @@ export const MEDIOS_DE_PAGO = ["BCP", "BBVA", "Interbank", "Scotiabank", "Banco 
 export function formatoMonto(moneda: string, n: number): string {
   return `${moneda === "PEN" ? "S/" : "US$"} ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+/** Una venta a crédito vista desde el visto bueno de la salida (0469). */
+export interface SalidaACredito {
+  id: string;
+  cliente: string;
+  formaPago: string | null;
+  equipo: string | null;
+  listo: boolean;
+  aperturaPedida: boolean;
+  fechaDespacho: string | null;
+  letrasEstado: string | null;
+  letrasCantidad: number | null;
+  despachadoAt: string | null;
+  letrasEntregadasA: string | null;
+  letrasEntregadasAt: string | null;
+  letrasRecibidasAlmacen: boolean;
+}
+
+function aSalida(f: Fila): SalidaACredito {
+  const marcado = (t: unknown) => /^(si|sí|ok|listo|x)$/i.test(String(t ?? "").trim());
+  return {
+    id: f.id as string,
+    cliente: String(f.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, ""),
+    formaPago: (f.forma_pago as string | null) ?? null,
+    equipo: (f.equipo as string | null) ?? null,
+    listo: f.prueba_lista_at != null || marcado(f.prueba_embalaje),
+    aperturaPedida: f.apertura_despacho_at != null || f.direccion_verificada_at != null,
+    fechaDespacho: (f.fecha_despacho as string | null) ?? null,
+    letrasEstado: (f.letras_estado as string | null) ?? null,
+    letrasCantidad: (f.letras_cantidad as number | null) ?? null,
+    despachadoAt: (f.despachado_at as string | null) ?? null,
+    letrasEntregadasA: (f.letras_entregadas_a as string | null) ?? null,
+    letrasEntregadasAt: (f.letras_entregadas_at as string | null) ?? null,
+    letrasRecibidasAlmacen: f.letras_recibidas_almacen_at != null,
+  };
+}
+
+const COLUMNAS_SALIDA =
+  "id, cliente_texto, forma_pago, equipo, prueba_lista_at, prueba_embalaje, apertura_despacho_at, direccion_verificada_at, fecha_despacho, letras_estado, letras_cantidad, despachado_at, letras_entregadas_a, letras_entregadas_at, letras_recibidas_almacen_at";
+
+/**
+ * VENTAS A CRÉDITO QUE ESPERAN EL VISTO BUENO DE FINANZAS (0469, COFACO
+ * 14-10). Primero las que ya están probadas y embaladas: esas son las que
+ * tienen el camión esperando.
+ */
+export async function salidasPorAutorizar(supabase: SupabaseClient): Promise<SalidaACredito[]> {
+  const { data } = await supabase
+    .from("servicios_postventa")
+    .select(COLUMNAS_SALIDA)
+    .eq("pide_visto_bueno_finanzas", true)
+    .is("finanzas_vb_at", null)
+    .is("salida_autorizada_at", null)
+    .is("despachado_at", null)
+    .is("cerrado_at", null)
+    .order("created_at", { ascending: true })
+    .limit(200);
+  return ((data ?? []) as Fila[]).map(aSalida).sort((a, b) => Number(b.listo) - Number(a.listo) || Number(b.aperturaPedida) - Number(a.aperturaPedida));
+}
+
+/** Las letras que salieron y todavía no vuelven firmadas (0469). */
+export async function letrasPorFirmar(supabase: SupabaseClient): Promise<SalidaACredito[]> {
+  const { data } = await supabase
+    .from("servicios_postventa")
+    .select(COLUMNAS_SALIDA)
+    .in("letras_estado", ["van_con_el_equipo", "entregadas"])
+    .order("finanzas_vb_at", { ascending: true })
+    .limit(200);
+  return ((data ?? []) as Fila[]).map(aSalida);
+}
