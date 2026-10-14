@@ -942,8 +942,12 @@ export function PedidoPostventa({
               modalidad: servicio.modalidad === "provincia" ? "videollamada" : "in_situ",
               ejecutadoAt: new Date(`${datos.fecha}T${datos.hora || "12:00"}:00-05:00`).toISOString(),
               tecnico: datos.tecnico,
+              // Cada parte en su propio bloque (Rubí 14-10: «quiero que esté
+              // separado»): van como secciones, que la hoja imprimible ya pone
+              // una debajo de otra con su título. «detalle» se queda con el
+              // trabajo realizado para los resúmenes de las listas.
               detalle: datos.detalle,
-              observaciones: datos.observaciones,
+              secciones: SECCIONES_PUESTA.map((s) => ({ titulo: s.titulo, texto: datos[s.nombre] ?? "" })),
               ciclos: datos.ciclos ? Number(datos.ciclos) : null,
               capacitacion: { uso: true, cuidado: true, mantenimiento_diario: true },
               conformeNombre: datos.conforme,
@@ -979,9 +983,9 @@ export function PedidoPostventa({
           { nombre: "fecha", etiqueta: "Fecha de ejecución", tipo: "date", inicial: hoy, requerido: true },
           { nombre: "hora", etiqueta: "Hora", tipo: "time", requerido: false },
           { nombre: "tecnico", etiqueta: "Técnico a cargo", requerido: false },
-          { nombre: "ciclos", etiqueta: "Ciclos con que queda el equipo", tipo: "number", inicial: "5", requerido: false },
-          { nombre: "detalle", etiqueta: "Trabajo realizado", area: true, requerido: false },
-          { nombre: "observaciones", etiqueta: "Observaciones y recomendaciones", area: true, requerido: false },
+          ...SECCIONES_PUESTA.slice(0, 2).map((s) => ({ nombre: s.nombre, etiqueta: s.titulo, area: true, requerido: false })),
+          { nombre: "ciclos", etiqueta: "Contador de ciclos (con los que queda el equipo)", tipo: "number", inicial: "5", requerido: false },
+          ...SECCIONES_PUESTA.slice(2).map((s) => ({ nombre: s.nombre, etiqueta: s.titulo, area: true, requerido: false })),
           { nombre: "conforme", etiqueta: "Cliente que da conformidad", requerido: false },
           { nombre: "conformeDoc", etiqueta: "Su DNI", requerido: false },
           { nombre: "fotos", etiqueta: "Fotos del trabajo (todas las que hagan falta; también el informe firmado)", varias: true },
@@ -1013,6 +1017,15 @@ export function PedidoPostventa({
     </div>
   );
 }
+
+/** Los bloques del informe de puesta en marcha, en el orden en que Rubí los llena (14-10). */
+const SECCIONES_PUESTA = [
+  { nombre: "detalle", titulo: "Detalle del trabajo realizado" },
+  { nombre: "puesta", titulo: "Puesta en marcha" },
+  { nombre: "observaciones", titulo: "Observaciones" },
+  { nombre: "solucion", titulo: "Solución" },
+  { nombre: "recomendaciones", titulo: "Recomendaciones" },
+] as const;
 
 function BotonPaso({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (

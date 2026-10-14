@@ -15,13 +15,15 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { chequeoDelProtocolo, datosDelProtocolo } from "@/lib/acciones/almacen";
 import { chequeoDelProtocoloDeStock, datosDelProtocoloDeStock } from "@/lib/acciones/protocolo-stock";
-import { claveRenglon, renglonesConMarca, type Chequeo, type Plantilla, type Resultado } from "@/lib/protocolo-checklist";
+import { claveEnergia, claveRenglon, renglonesConMarca, type Chequeo, type Plantilla, type Resultado } from "@/lib/protocolo-checklist";
 import type { DatosHoja, Maquina } from "@/lib/protocolo-hoja";
 
 // Las columnas del papel, medidas sobre la foto (% del ancho de la hoja).
 const COLS_CABECERA = [23, 16, 23.5, 11, 15, 11.5];
 const COLS_OBSERVACION = [39, 50.5, 5.5, 5];
 const COLS_MITADES = [40, 5.8, 6.5, 38.3, 4.5, 4.9];
+// Prensa, rodillo y calderín: componente, ✓/✗ por GAS, ELÉCTRICO y VAPOR, observación.
+const COLS_ENERGIA = [33, 6.5, 6.5, 6.5, 6.5, 6.5, 6.5, 28];
 
 const td = "cc border border-black px-1 align-middle";
 const gris = "bg-neutral-200";
@@ -207,7 +209,7 @@ export function HojaChequeoProtocolo({
   // La programación: de fábrica y de prueba, cada una con sus fases y el tiempo total (cantidad en gris, como el papel).
   const filasProgramacion = (["fabrica", "prueba"] as const).flatMap((tipo) => [
     { titulo: `PROGRAMACIÓN DE ${tipo === "fabrica" ? "FABRICA" : "PRUEBA"}`, k: null as string | null, total: false },
-    ...[...plantilla.programacion.fases, "Tiempo total del ciclo"].map((f, i, todasF) => ({
+    ...[...(plantilla.programacion?.fases ?? []), "Tiempo total del ciclo"].map((f, i, todasF) => ({
       titulo: f,
       k: claveRenglon(`TIPO.${tipo}`, f),
       total: i === todasF.length - 1,
@@ -321,7 +323,62 @@ export function HojaChequeoProtocolo({
         </tbody>
       </table>
 
-      {/* FUNCIONAMIENTO: EN VACÍO A LA IZQUIERDA, CON CARGA A LA DERECHA */}
+      {/* COMPONENTES POR ENERGÍA (prensa, rodillo, calderín): se marca la columna que corresponde. */}
+      {plantilla.porEnergia && (() => {
+        const b = plantilla.porEnergia;
+        return (
+          <table className={`${tabla} -mt-px`}>
+            <Columnas anchos={COLS_ENERGIA} />
+            <tbody>
+              <tr>
+                <td className={`${td} text-center font-bold`} rowSpan={2}>
+                  {b.titulo}
+                </td>
+                {b.energias.map((en) => (
+                  <td key={en} className={`${td} text-center font-bold`} colSpan={2}>
+                    {en === "ELECTRICO" ? "ELÉCTRICO" : en}
+                    {editable && b.renglones.some((r) => !ch.marcas[claveEnergia(b.clave, r, en)]) && (
+                      <button
+                        type="button"
+                        onClick={() => todoBien(b.renglones.map((r) => claveEnergia(b.clave, r, en)))}
+                        className="no-imprimir mt-0.5 block w-full rounded bg-emerald-700 px-1 py-0.5 text-[10px] font-semibold text-white"
+                      >
+                        Todo ✓
+                      </button>
+                    )}
+                  </td>
+                ))}
+                <td className={`${td} text-center font-bold`} rowSpan={2}>
+                  OBSERVACIONES
+                </td>
+              </tr>
+              <tr>
+                {b.energias.map((en) => (
+                  <Fragment key={en}>
+                    <td className={`${td} text-center font-bold`}>✓</td>
+                    <td className={`${td} text-center font-bold`}>✗</td>
+                  </Fragment>
+                ))}
+              </tr>
+              {b.renglones.map((r) => {
+                const k = claveRenglon(b.clave, r);
+                return (
+                  <tr key={k}>
+                    <td className={`${td} uppercase`}>{r}</td>
+                    {b.energias.map((en) => (
+                      <Fragment key={en}>{casillas(claveEnergia(b.clave, r, en))}</Fragment>
+                    ))}
+                    <td className={`${td} p-0 px-1`}>{escrito(ch.obs[k], (v) => cambiar((c) => ({ ...c, obs: { ...c.obs, [k]: v } })))}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        );
+      })()}
+
+      {/* FUNCIONAMIENTO: EN VACÍO A LA IZQUIERDA, CON CARGA A LA DERECHA (no todos los papeles lo tienen) */}
+      {plantilla.funcionamiento.length > 0 && (
       <table className={`${tabla} -mt-px`}>
         <Columnas anchos={COLS_MITADES} />
         <tbody>
@@ -329,7 +386,7 @@ export function HojaChequeoProtocolo({
             {(["vacio", "carga"] as const).map((modo) => (
               <Fragment key={modo}>
                 <td className={`${td} font-bold`}>
-                  {modo === "vacio" ? "FUNCIONAMIENTO EN VACIO (CARGA 0)" : "FUNCIONAMIENTO CON CARGA"}
+                  {plantilla.modos?.[modo] ?? (modo === "vacio" ? "FUNCIONAMIENTO EN VACIO (CARGA 0)" : "FUNCIONAMIENTO CON CARGA")}
                   {botonTodo(plantilla.funcionamiento.map((r) => claveRenglon(modo, r)))}
                 </td>
                 <td className={`${td} text-center font-bold`}>✓</td>
@@ -348,7 +405,9 @@ export function HojaChequeoProtocolo({
             </tr>
           ))}
 
-          {/* PROGRAMACIÓN */}
+          {/* PROGRAMACIÓN (solo el papel de la lavadora la tiene) */}
+          {plantilla.programacion && (
+          <>
           <tr>
             {(["vacio", "carga"] as const).map((modo) => (
               <Fragment key={modo}>
@@ -372,8 +431,11 @@ export function HojaChequeoProtocolo({
               })}
             </tr>
           ))}
+          </>
+          )}
         </tbody>
       </table>
+      )}
 
       {/* OBSERVACIONES */}
       <div className="observaciones -mt-px flex min-h-36 items-start gap-2 border border-black px-1 py-2">
