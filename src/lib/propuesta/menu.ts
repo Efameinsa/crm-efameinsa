@@ -322,6 +322,8 @@ export const SECCIONES: Record<string, Seccion> = {
       { clave: "", etiqueta: "Por hacer", pagina: "vista:almacen-pedidos" },
       { clave: "series", etiqueta: "Generación de código", pagina: "vista:almacen-series" },
       { clave: "todos", etiqueta: "Todos los pedidos", pagina: "almacen/pedidos" },
+      // Lesly, 14-10: los protocolos juntos, también los de los equipos en stock (0474).
+      { clave: "protocolos", etiqueta: "Protocolos", pagina: "almacen/protocolos" },
     ],
   },
   "finanzas/pagos": {
@@ -464,6 +466,8 @@ export const SECCIONES: Record<string, Seccion> = {
       { clave: "por-hacer", etiqueta: "Por hacer", pagina: "vista:almacen-pedidos" },
       { clave: "series", etiqueta: "Generación de código", pagina: "vista:almacen-series" },
       { clave: "pedidos", etiqueta: "Todos los pedidos", pagina: "almacen/pedidos" },
+      // Lesly, 14-10: «que en la vista de almacén estén los protocolos», también los de stock (0474).
+      { clave: "protocolos", etiqueta: "Protocolos", pagina: "almacen/protocolos" },
       { clave: "aperturas", etiqueta: "Aperturas de postventa", pagina: "almacen/aperturas-postventa" },
       { clave: "llamadas", etiqueta: "Llamadas de postventa", pagina: "almacen/aperturas" },
       { clave: "calendario", etiqueta: "Calendario", pagina: "almacen/agenda" },

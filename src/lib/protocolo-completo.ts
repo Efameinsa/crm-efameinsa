@@ -9,9 +9,13 @@ import { propuestaDeHoja, type DatosHoja, type Maquina } from "@/lib/protocolo-h
  * estar todo, tanto la ficha como el informe de protocolo, y si hay que
  * modificar que pida PIN»). El PIN después de guardado ya lo pone la 0450;
  * esto es lo de antes: la máquina no se marca hasta tener, por cada máquina
- * de la unidad (la secadora de la torre también), su N.º de protocolo, sus
+ * de la unidad (la secadora de la torre también), sus
  * fotos, el protocolo o informe en PDF/Word, la ficha del informe (modelo de
- * la placa, serie y técnico) y, si tiene hoja de chequeo, todas sus casillas.
+ * la placa, serie y técnico) y, si tiene hoja de chequeo, que no esté vacía.
+ *
+ * Las casillas NO son todas obligatorias (Ariana, 14-10, con la lavadora de la
+ * Beneficencia de Huancayo: «solo debe marcarse lo que uno considere, no deben
+ * ser obligatorios todos los checks y las X»): basta con una marcada.
  *
  * El PDF/Word solo se pide a la máquina SIN hoja de chequeo en el sistema
  * (Lesly, 13-10: «ya no debería solicitar subir Word porque el sistema ya lo
@@ -81,8 +85,7 @@ function faltaEnLaHoja(
   if (!(tecnicoEnPantalla.trim() || guardado.tecnico?.trim())) falta.push("técnico que hizo la prueba");
   if (plantilla) {
     const marcas = (e.protocolo_chequeo ?? {})[maquina]?.marcas ?? {};
-    const sinMarcar = renglonesConMarca(plantilla).filter((k) => !marcas[k]).length;
-    if (sinMarcar > 0) falta.push(`hoja «${plantilla.titulo}»: ${sinMarcar} casilla${sinMarcar === 1 ? "" : "s"} sin marcar`);
+    if (!renglonesConMarca(plantilla).some((k) => marcas[k])) falta.push(`hoja «${plantilla.titulo}»: ninguna casilla marcada`);
   }
   return falta.map((f) => `${nombre}: ${f}`);
 }
@@ -102,7 +105,7 @@ export function faltaParaProbar(
   const tecnico = clic.tecnico ?? "";
   const nombre = opciones.nombre ?? "La máquina";
   const falta: string[] = [];
-  if (!(clic.protocoloRef?.trim() || e.protocolo_ref?.trim())) falta.push(`${nombre}: N.º de protocolo`);
+  // El N.º de protocolo no va en el documento (Santos, 14-10, Beneficencia de Huancayo): no se exige (0480).
 
   const propios = [...lista(e.protocolo_fotos), ...lista(clic.principal)];
   const deSecadora = propios.filter((a) => /-secadora-/.test(a.path ?? ""));
