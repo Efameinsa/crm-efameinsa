@@ -42,8 +42,11 @@ async function achicarFoto(a: File): Promise<File> {
  *
  * 2. CADA RESPUESTA MUESTRA DE DÓNDE SALIÓ. Un chat que solo devuelve una cifra
  *    es peligroso en una reunión: si se equivoca, se equivoca con seguridad y
- *    nadie lo nota. Debajo de cada respuesta va «Con qué lo consultó», que se
- *    despliega y enseña la consulta y las filas exactas que se usaron.
+ *    nadie lo nota. Debajo de cada respuesta va «De dónde lo sacó»: qué revisó
+ *    en el CRM y qué encontró, en palabras. Hasta el 14-10 enseñaba el nombre
+ *    interno de la consulta y los datos crudos; Santos lo vio con una pregunta
+ *    de Ariana y no le dice nada a quien pregunta. El detalle completo quedó
+ *    en la auditoría de admin.
  *
  * EL ERROR DE LA BARRA DE DESPLAZAMIENTO (07-09). El área de mensajes era
  * `flex-1 overflow-y-auto` y no se podía bajar bien. Faltaba `min-h-0`: en una
@@ -65,11 +68,10 @@ async function achicarFoto(a: File): Promise<File> {
  * lee dos veces.
  */
 
+/** Qué revisó en el CRM y qué encontró, ya en palabras (api/asistente). */
 interface Evidencia {
-  herramienta: string;
-  argumentos: Record<string, unknown>;
+  texto: string;
   resumen: string;
-  datos: unknown;
 }
 
 interface Mensaje {
@@ -359,20 +361,16 @@ export function AsistenteChat({
                     <details className="group mt-2 border-t border-border/60 pt-1.5">
                       <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground">
                         <Database className="size-3" />
-                        Con qué lo consultó ({m.evidencias.length})
+                        De dónde lo sacó
                         <ChevronDown className="size-3 transition-transform duration-200 group-open:rotate-180" />
                       </summary>
-                      <div className="mt-1.5 space-y-1.5">
+                      <ul className="mt-1.5 space-y-1 text-[11px]">
                         {m.evidencias.map((e, k) => (
-                          <div key={k} className="animar-entrada rounded-md border border-border/70 bg-background p-2">
-                            <p className="font-mono text-[10px] font-semibold text-primary">{e.herramienta}</p>
-                            <p className="mt-0.5 text-[11px] text-muted-foreground">{e.resumen}</p>
-                            <pre className="barra-fina mt-1.5 max-h-44 overflow-auto rounded bg-muted p-2 text-[10px] leading-relaxed text-foreground">
-                              {JSON.stringify(e.datos, null, 2)}
-                            </pre>
-                          </div>
+                          <li key={k} className="animar-entrada text-muted-foreground">
+                            <span className="text-foreground">{e.texto}</span> → {e.resumen}
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     </details>
                   )}
                 </div>
