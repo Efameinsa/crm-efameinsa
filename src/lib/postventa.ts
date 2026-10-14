@@ -58,6 +58,8 @@ export interface ServicioPostventa {
   /** Con qué comprobante autorizó Finanzas la guía (0384). */
   guia_comprobante_tipo?: "factura" | "boleta" | "sin_comprobante" | null;
   guia_comprobante_numero?: string | null;
+  /** Motivo de la guía que define Contabilidad al autorizarla (0486): venta, traslado o consignacion. */
+  guia_motivo?: string | null;
   salida_autorizada_motivo?: string | null;
   despacho_autorizado_por?: string | null;
   /** Visto bueno de Finanzas para que salga una venta a crédito (0469). */
@@ -973,7 +975,7 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
         ? s.guia_confirmada_at
           ? `✓ Guía autorizada el ${new Date(s.guia_confirmada_at).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}${
               textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero) ? ` · ${textoComprobante(s.guia_comprobante_tipo, s.guia_comprobante_numero)}` : ""
-            }`
+            }${textoMotivoGuia(s.guia_motivo) ? ` · ${textoMotivoGuia(s.guia_motivo)}` : ""}`
           : s.despachado_at
             ? circuito.esServicio
               ? "Con este documento el técnico sale con todo definido"
@@ -1367,6 +1369,30 @@ export function estadoGarantia(hasta: string | null): {
  * El comprobante con que Finanzas autorizó la guía (0384), en una frase:
  * «Factura F001-1234», «Boleta B001-55», «Sin comprobante todavía».
  */
+/**
+ * El motivo de la guía lo define Contabilidad al autorizarla (0486, audio del
+ * 14-10): «venta» cuando sale el equipo vendido, «traslado» en los servicios
+ * (se devuelve o se recoge un equipo), «consignación» cuando sale por posible
+ * venta. El almacén emite la guía con ese motivo.
+ */
+export const MOTIVOS_GUIA = [
+  { valor: "venta", etiqueta: "Venta", ayuda: "sale el equipo vendido" },
+  { valor: "traslado", etiqueta: "Traslado", ayuda: "servicio: se devuelve o se recoge un equipo" },
+  { valor: "consignacion", etiqueta: "Consignación", ayuda: "sale por posible venta" },
+] as const;
+export type MotivoGuia = (typeof MOTIVOS_GUIA)[number]["valor"];
+
+/** «Guía por VENTA»; vacío si todavía no lo definió Contabilidad. */
+export function textoMotivoGuia(motivo: string | null | undefined): string {
+  const m = MOTIVOS_GUIA.find((x) => x.valor === motivo);
+  return m ? `Guía por ${m.etiqueta.toUpperCase()}` : "";
+}
+
+/** Lo que se sugiere al autorizar: con venta detrás, «venta»; si no (servicio), «traslado». Contabilidad decide. */
+export function motivoGuiaSugerido(s: { informe_cierre_id?: string | null; tipo_pedido?: string | null }): MotivoGuia {
+  return s.informe_cierre_id && s.tipo_pedido !== "servicio" ? "venta" : "traslado";
+}
+
 export function textoComprobante(tipo: string | null | undefined, numero: string | null | undefined): string {
   if (tipo === "factura") return `Factura ${numero ?? ""}`.trim();
   if (tipo === "boleta") return `Boleta ${numero ?? ""}`.trim();

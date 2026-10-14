@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { MOTIVOS_GUIA, type MotivoGuia } from "@/lib/postventa";
 
 type Comprobante = "factura" | "boleta" | "sin_comprobante";
 const OPCIONES: { valor: Comprobante; etiqueta: string }[] = [
@@ -26,14 +27,32 @@ const OPCIONES: { valor: Comprobante; etiqueta: string }[] = [
  * Y con qué comprobante sale (0384; reunión del 02-10 18:21: «digan sí, procede
  * con la emisión de la guía, y si tiene factura o boleta, nos pongan los
  * números»). El almacén lo lee en la apertura y en el pedido.
+ *
+ * Y el MOTIVO de la guía (0486, audio de Contabilidad 14-10): venta, traslado o
+ * consignación. Lo define Contabilidad, no postventa; viene sugerido según el
+ * pedido, pero hay que confirmarlo.
  */
-export function ConfirmarGuiaBoton({ servicioId, cliente, conSaldo }: { servicioId: string; cliente: string; conSaldo: boolean }) {
+export function ConfirmarGuiaBoton({
+  servicioId,
+  cliente,
+  conSaldo,
+  motivoSugerido,
+  aCredito = false,
+}: {
+  servicioId: string;
+  cliente: string;
+  conSaldo: boolean;
+  motivoSugerido: MotivoGuia;
+  /** Venta a crédito o con saldo: se factura cuando postventa dé la orden (0460). */
+  aCredito?: boolean;
+}) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [pendiente, startTransition] = useTransition();
   const [nota, setNota] = useState("");
   const [tipo, setTipo] = useState<Comprobante | null>(null);
   const [numero, setNumero] = useState("");
+  const [motivo, setMotivo] = useState<MotivoGuia>(motivoSugerido);
   const pideNumero = tipo === "factura" || tipo === "boleta";
   const listo = tipo !== null && (!pideNumero || numero.trim().length > 0);
 
@@ -41,7 +60,7 @@ export function ConfirmarGuiaBoton({ servicioId, cliente, conSaldo }: { servicio
     if (!tipo) return void toast.error("Elija con qué comprobante sale: factura, boleta o sin comprobante todavía");
     if (pideNumero && !numero.trim()) return void toast.error(`Escriba el número de la ${tipo}`);
     startTransition(async () => {
-      const r = await confirmarGuia(servicioId, nota, { tipo, numero: pideNumero ? numero : "" });
+      const r = await confirmarGuia(servicioId, nota, { tipo, numero: pideNumero ? numero : "" }, motivo);
       if (r.error) return void toast.error(r.error);
       toast.success("Confirmado: el almacén ya puede emitir la guía");
       setAbierto(false);
@@ -68,9 +87,32 @@ export function ConfirmarGuiaBoton({ servicioId, cliente, conSaldo }: { servicio
           <DialogDescription>
             {cliente}. El almacén recibe el aviso y emite la guía.
             {conSaldo ? " Ojo: el pedido todavía tiene saldo antes del despacho; para que salga, gerencia u operaciones autoriza con su código." : ""}
+            {aCredito ? " Es a crédito: se factura cuando postventa confirme que el cliente recibió el equipo y está conforme (ahí empiezan los días de crédito)." : ""}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Motivo de la guía</Label>
+            <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Motivo de la guía">
+              {MOTIVOS_GUIA.map((m) => (
+                <button
+                  key={m.valor}
+                  type="button"
+                  role="radio"
+                  aria-checked={motivo === m.valor}
+                  title={m.ayuda}
+                  onClick={() => setMotivo(m.valor)}
+                  className={cn(
+                    "rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
+                    motivo === m.valor ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-accent",
+                  )}
+                >
+                  {m.etiqueta}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground">{MOTIVOS_GUIA.find((m) => m.valor === motivo)?.ayuda}. El almacén emite la guía con este motivo.</p>
+          </div>
           <div className="grid gap-1.5">
             <Label className="text-xs">¿Con qué comprobante sale?</Label>
             <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Comprobante">
