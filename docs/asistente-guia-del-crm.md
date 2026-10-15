@@ -832,6 +832,10 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - Central puede entregar el file a postventa enlazado al pedido;
   - por qué: antes se usaba un cuaderno de cargos, «cero control»;
   - los cierres nuevos pueden no estar aún en el inventario (por confirmar cómo pedirlos).
+  - **Cliente que está en los Excel antiguos o en el inventario de files, pero no figura en el CRM** (regla del ingeniero Carlos, 15-10):
+    1. se le pide a Santos que lo cargue (por el buzón de observaciones o directamente);
+    2. cuando ya está en el CRM, el comercial o el área que lo gestiona pide el file en «Files»;
+    3. Central entrega el file con el registro del CRM, no por fuera del sistema.
 - **Visitas a planta:** «Viene a la planta» avisa a Central, almacén y logística, y genera la hoja para vigilancia. Desde el 14-10 a Central y al almacén les sale un **mensaje grande** al centro de la pantalla, con campanada, que se queda hasta pulsar «Entendido» (o «Imprimir para vigilancia» / «Ver las visitas»); si el CRM estaba cerrado, aparece al entrar. También existe «Registrar visita de proveedor».
 
 ### 3.11 Códigos de autorización (cómo funcionan, sin valores)
@@ -1052,6 +1056,9 @@ Por regla de gerencia (23-09), el acceso es solo desde la oficina. La excepción
 
 **39. ¿Cómo pido un archivador (file) del cliente?**
 En «Files»: elija el cliente y la empresa (OPEN, EFAMEINSA o ambas) del inventario. Central lo entrega, usted firma «Recibí» y, al terminar, pulsa «Terminé» para que Central lo recoja. (3.10)
+
+**39 b. El cliente está en los Excel antiguos (o tiene file), pero no figura en el CRM. ¿Qué hago?**
+Pídale a Santos que lo cargue al CRM. Cuando ya esté, quien lo gestiona pide el file en «Files» y Central lo entrega desde ahí (regla del ingeniero Carlos, 15-10). Antes de pedirlo, busque también por el celular del contacto: a veces la persona ya está en otra ficha del mismo grupo. (3.10)
 
 **40. Quiero que el CRM haga algo distinto. ¿A quién se lo digo?**
 Por el Buzón de sugerencias (la bombilla de la barra), con captura si puede. Cuando se resuelva, verá un aviso al entrar. Las sugerencias suman puntos en Crece. (0)
