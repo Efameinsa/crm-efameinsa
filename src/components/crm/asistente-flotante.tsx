@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as EventoPuntero } from "react";
-import { Sparkles } from "lucide-react";
+import { LogoEEfameinsa } from "@/components/crm/logo-e-efameinsa";
 import { AsistenteChat } from "@/components/crm/asistente-chat";
 import { cn } from "@/lib/utils";
 
@@ -358,6 +358,9 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
 
   const ventanaJuntoALaBolita = !grande && lugar && pantalla.escritorio;
   const enEspera = abierto && minimizado;
+  // La nube «¿Te ayudo en algo?» sale hacia el lado con más espacio: si la
+  // bolita quedó en la mitad izquierda de la pantalla, a su derecha.
+  const nubeALaDerecha = Boolean(lugar && pantalla.ancho && lugar.x + LADO / 2 < pantalla.ancho / 2);
 
   return (
     <>
@@ -407,14 +410,35 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
         {enEspera && actividad.pensando && (
           <span className="pointer-events-none absolute -inset-1.5 animate-spin rounded-full border-2 border-primary/60 border-t-transparent [animation-duration:1.1s]" aria-hidden="true" />
         )}
+        {/* LA «e» DE EFAMEINSA, SIN EL CÍRCULO, Y UNA NUBE QUE OFRECE AYUDA
+            (Santos, 15-10: «para que sea más amigable»). La bolita es blanca
+            para que el logo se vea en sus colores. */}
         <span
           className={cn(
-            "flex size-full items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-lg shadow-primary/25 ring-4 ring-primary/10 transition-[transform,box-shadow] duration-300 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)] group-hover:scale-105 group-focus-visible:ring-primary/40",
-            agarrada && "scale-110 shadow-xl shadow-primary/35 group-hover:scale-110",
+            "flex size-full items-center justify-center rounded-full bg-white shadow-lg shadow-black/15 ring-1 ring-black/5 transition-[transform,box-shadow] duration-300 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)] group-hover:scale-105 group-focus-visible:ring-2 group-focus-visible:ring-primary/50",
+            agarrada && "scale-110 shadow-xl shadow-black/25 group-hover:scale-110",
           )}
         >
-          <Sparkles className="size-5" />
+          <LogoEEfameinsa className="size-8 transition-transform duration-300 group-hover:-rotate-6" />
         </span>
+        {!abierto && !agarrada && (
+          <span
+            aria-hidden="true"
+            className={cn(
+              "nube-efamein pointer-events-none absolute top-1/2 hidden whitespace-nowrap rounded-2xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-md min-[360px]:block",
+              nubeALaDerecha ? "left-full ml-2.5" : "right-full mr-2.5",
+            )}
+          >
+            ¿Te ayudo en algo?
+            {/* La colita de la nube, hacia la bolita. */}
+            <span
+              className={cn(
+                "absolute top-1/2 size-2.5 -translate-y-1/2 rotate-45 border-border bg-background",
+                nubeALaDerecha ? "-left-[5px] border-b border-l" : "-right-[5px] border-r border-t",
+              )}
+            />
+          </span>
+        )}
         {/* Minimizada: un punto dice que la conversación sigue ahí; verde y
             latiendo si llegó la respuesta mientras no se veía. */}
         {enEspera && !actividad.pensando && (actividad.mensajes > 0 || novedad) && (
@@ -429,6 +453,11 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
           </span>
         )}
       </button>
+      <style>{`
+        .nube-efamein { animation: nube-efamein .35s cubic-bezier(.34,1.56,.64,1) .4s both; transform: translateY(-50%); }
+        @keyframes nube-efamein { from { opacity: 0; transform: translateY(-50%) scale(.85); } to { opacity: 1; transform: translateY(-50%) scale(1); } }
+        @media (prefers-reduced-motion: reduce) { .nube-efamein { animation: none; } }
+      `}</style>
 
       {abierto && (
         <>
