@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as EventoPuntero } from "react";
-import { LogoEEfameinsa } from "@/components/crm/logo-e-efameinsa";
+import { AvatarEfamein } from "@/components/crm/avatar-efamein";
 import { AsistenteChat } from "@/components/crm/asistente-chat";
 import { cn } from "@/lib/utils";
 
@@ -384,10 +384,10 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
         onPointerCancel={alSoltar}
         aria-label={
           !abierto
-            ? "Abrir el Asistente Efamein"
+            ? "Abrir Efamein"
             : minimizado
-              ? "Volver a la conversación con el Asistente Efamein"
-              : "Minimizar el Asistente Efamein"
+              ? "Volver a la conversación con Efamein"
+              : "Minimizar Efamein"
         }
         title={
           enEspera
@@ -396,7 +396,7 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
               : novedad
                 ? "Efamein ya respondió · toque para ver"
                 : "Conversación minimizada · toque para volver"
-            : "Asistente Efamein · arrástrelo para ponerlo donde no le estorbe"
+            : "Efamein · arrástrelo para ponerlo donde no le estorbe"
         }
         aria-expanded={abierto && !minimizado}
         className={cn(
@@ -410,16 +410,16 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
         {enEspera && actividad.pensando && (
           <span className="pointer-events-none absolute -inset-1.5 animate-spin rounded-full border-2 border-primary/60 border-t-transparent [animation-duration:1.1s]" aria-hidden="true" />
         )}
-        {/* LA «e» DE EFAMEINSA, SIN EL CÍRCULO, Y UNA NUBE QUE OFRECE AYUDA
-            (Santos, 15-10: «para que sea más amigable»). La bolita es blanca
-            para que el logo se vea en sus colores. */}
+        {/* LA CARA DE EFAMEIN (Santos, 15-10): vidrio oscuro como la barra
+            lateral, la «e» de EFAMEINSA en blanco, sin el círculo, y una
+            sonrisa de vez en cuando. Al lado, una nube que ofrece ayuda. */}
         <span
           className={cn(
-            "flex size-full items-center justify-center rounded-full bg-white shadow-lg shadow-black/15 ring-1 ring-black/5 transition-[transform,box-shadow] duration-300 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)] group-hover:scale-105 group-focus-visible:ring-2 group-focus-visible:ring-primary/50",
-            agarrada && "scale-110 shadow-xl shadow-black/25 group-hover:scale-110",
+            "block size-full rounded-full transition-transform duration-300 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)] group-hover:scale-105 group-focus-visible:ring-2 group-focus-visible:ring-primary/60 group-focus-visible:rounded-full",
+            agarrada && "scale-110 group-hover:scale-110",
           )}
         >
-          <LogoEEfameinsa className="size-8 transition-transform duration-300 group-hover:-rotate-6" />
+          <AvatarEfamein className="size-full shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-10px_18px_-8px_rgba(126,18,16,0.6),0_10px_24px_-8px_rgba(18,19,22,0.6)]" />
         </span>
         {!abierto && !agarrada && (
           <span
