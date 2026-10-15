@@ -707,6 +707,25 @@ export function bloquesPedido(s: ServicioPostventa, nombres?: Record<string, str
 }
 
 /**
+ * CONTADO EN EL NÚMERO, SALDO EN EL TEXTO (reunión 15-10, caso Wong Lu Vega).
+ *
+ * El cierre decía «20 % ADELANTO // 80 % FINALES DE MES» y a la vez «100 %
+ * antes del despacho». El 100 % es lo que mira postventa para despachar; con
+ * el adelanto confirmado, el pedido se leyó como pagado. Devuelve true cuando
+ * la forma de pago escrita describe un saldo posterior (o un adelanto que no
+ * dice «antes del despacho») y el porcentaje exige el total: es el aviso que
+ * ve el comercial al emitir. No bloquea: hay ventas de contado con adelanto.
+ */
+export function condicionContadoConSaldo(textoCondicion: string, pctAntesDespacho: number | null): boolean {
+  if (pctAntesDespacho == null || pctAntesDespacho < 100) return false;
+  const t = textoCondicion ?? "";
+  return (
+    /saldo|cuota|letra|financ|contra ?entrega|despu[eé]s|luego|fin(al)?(es)? de mes|semana|d[ií]as/i.test(t) ||
+    (/adelant|a cuenta/i.test(t) && !/antes del despacho/i.test(t))
+  );
+}
+
+/**
  * EL PAGO PARCIAL QUE NO CUBRE LO ACORDADO (reunión 15-10, 12:51).
  *
  * Finanzas confirmó un abono, pero lo pagado no llega a lo que la condición
