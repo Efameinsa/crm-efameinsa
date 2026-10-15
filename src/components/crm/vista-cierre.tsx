@@ -80,6 +80,7 @@ export interface InformeVista {
   modalidad_pago: string[];
   forma_pago: string | null;
   numero_operacion: string | null;
+  tipo_cambio: number | null;
   comprobante: string | null;
   nota_condiciones: string | null;
   entrega_fecha: string | null;
@@ -135,6 +136,7 @@ interface Borrador {
   modalidad_pago: string;
   forma_pago: string;
   numero_operacion: string;
+  tipo_cambio: string;
   comprobante: string;
   nota_condiciones: string;
   entrega_fecha: string;
@@ -173,6 +175,7 @@ function aBorrador(i: InformeVista): Borrador {
     modalidad_pago: i.modalidad_pago.join("\n"),
     forma_pago: i.forma_pago ?? "",
     numero_operacion: i.numero_operacion ?? "",
+    tipo_cambio: i.tipo_cambio == null ? "" : String(i.tipo_cambio),
     comprobante: i.comprobante ?? "",
     nota_condiciones: i.nota_condiciones ?? "",
     entrega_fecha: i.entrega_fecha ?? "",
@@ -659,6 +662,28 @@ export function VistaCierre({
             </p>
             {editando && subtotal * (1 + IGV) !== Number(informe.monto_total) && (
               <p className="text-[11px] text-amber-700">antes {dinero(Number(informe.monto_total))}</p>
+            )}
+            {/* Tipo de cambio en letra chica bajo el total (Ariana 15-10). */}
+            {editando ? (
+              <label className="mt-1 flex items-center justify-end gap-1.5 text-[11px] text-muted-foreground">
+                Tipo de cambio S/
+                <Input
+                  value={b.tipo_cambio}
+                  onChange={(e) => set("tipo_cambio", e.target.value)}
+                  inputMode="decimal"
+                  placeholder="3.750"
+                  className="h-7 w-20 text-right font-mono text-xs"
+                />
+              </label>
+            ) : (
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Tipo de cambio:{" "}
+                {informe.tipo_cambio ? (
+                  <span className="select-all font-mono text-foreground">S/ {informe.tipo_cambio.toFixed(3)}</span>
+                ) : (
+                  "sin anotar"
+                )}
+              </p>
             )}
           </div>
 

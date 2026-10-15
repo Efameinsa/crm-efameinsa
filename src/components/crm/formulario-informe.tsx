@@ -151,6 +151,7 @@ function aCorreccion(d: DatosInforme): Record<string, unknown> {
     modalidad_pago: d.modalidadPago,
     forma_pago: d.formaPago ?? "",
     numero_operacion: d.numeroOperacion ?? "",
+    tipo_cambio: d.tipoCambio == null ? "" : String(d.tipoCambio),
     comprobante: d.comprobante,
     nota_condiciones: d.notaCondiciones ?? "",
     entrega_fecha: d.entregaFecha ?? "",
@@ -337,6 +338,13 @@ export function FormularioInforme({
   const [modalidadOtra, setModalidadOtra] = useState(() => b?.modalidadPago.find((m) => !esPreset(m)) ?? "");
   const [formaPago, setFormaPago] = useState<"transferencia" | "deposito" | null>(b ? b.formaPago : "transferencia");
   const [numeroOperacion, setNumeroOperacion] = useState(b?.numeroOperacion ?? "");
+  // Tipo de cambio bajo el total (Ariana 15-10). Si la cotización salió en
+  // soles, arranca con el que se usó para convertirla.
+  const [tipoCambio, setTipoCambio] = useState(() => {
+    const tc = b ? b.tipoCambio : presupuestos[0]?.tipoCambio;
+    return tc ? String(tc) : "";
+  });
+  const tipoCambioNum = Number(tipoCambio.trim().replace(",", "."));
   const [notaCondiciones, setNotaCondiciones] = useState(b?.notaCondiciones ?? "");
   // Qué % del total debe estar pagado antes del despacho y a cuántos días va
   // el saldo (0232). Arranca con lo que propone la pastilla elegida.
@@ -453,6 +461,7 @@ export function FormularioInforme({
       setItems(equiposDe(p));
       // Los precios llegan en la moneda en que se imprimió la cotización.
       if (p.moneda) setMoneda(p.moneda);
+      if (p.tipoCambio && !tipoCambio.trim()) setTipoCambio(String(p.tipoCambio));
     }
   }
 
@@ -491,6 +500,7 @@ export function FormularioInforme({
       modalidadPago: modalidadOtra.trim() ? [...modalidad, modalidadOtra.trim()] : modalidad,
       formaPago,
       numeroOperacion: numeroOperacion.trim() || null,
+      tipoCambio: tipoCambioNum > 0 ? tipoCambioNum : null,
       moneda,
       notaCondiciones: notaCondiciones || null,
       pctAntesDespacho: pctAntesDespacho.trim() === "" ? null : Number(pctAntesDespacho),
@@ -608,6 +618,7 @@ export function FormularioInforme({
     setModalidadOtra(d.modalidadPago.find((m) => !esPreset(m)) ?? "");
     setFormaPago(d.formaPago);
     setNumeroOperacion(d.numeroOperacion ?? "");
+    setTipoCambio(d.tipoCambio ? String(d.tipoCambio) : "");
     setNotaCondiciones(d.notaCondiciones ?? "");
     setPctAntesDespacho(d.pctAntesDespacho == null ? "" : String(d.pctAntesDespacho));
     setCreditoDias(d.creditoDias == null ? "" : String(d.creditoDias));
@@ -1412,6 +1423,29 @@ export function FormularioInforme({
               Total {simbolo} {totales.total.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
             </b>
           </p>
+          {/* TIPO DE CAMBIO (Ariana 15-10): en letra chica bajo el total, igual
+              que en el PDF. Opcional: si queda vacío, el PDF deja la línea
+              para escribirlo a mano. */}
+          <div className="mt-1 flex flex-wrap items-center justify-end gap-1.5 text-[11px] text-muted-foreground">
+            <label htmlFor="tipo-cambio-cierre">Tipo de cambio S/</label>
+            <Input
+              id="tipo-cambio-cierre"
+              value={tipoCambio}
+              onChange={(e) => setTipoCambio(e.target.value.replace(/[^\d.,]/g, ""))}
+              inputMode="decimal"
+              placeholder="3.750"
+              className="h-7 w-20 text-right font-mono text-xs"
+              maxLength={8}
+            />
+            {tipoCambioNum > 0 && totales.total > 0 && (
+              <span className="tabular-nums">
+                ≈{" "}
+                {moneda === "PEN"
+                  ? `US$ ${(totales.total / tipoCambioNum).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : `S/ ${(totales.total * tipoCambioNum).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* QUÉ SE VENDE (Rubí, buzón 12-10; 0436). El circuito del pedido en

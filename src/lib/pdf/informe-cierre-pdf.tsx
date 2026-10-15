@@ -79,6 +79,8 @@ export interface InformeCierrePdfProps {
   formaPago: "transferencia" | "deposito" | null;
   /** N.º de operación del pago, si ya pagó (0493). */
   numeroOperacion?: string | null;
+  /** Tipo de cambio (soles por dólar), debajo del monto total; vacío = línea para llenarlo a mano. */
+  tipoCambio?: number | null;
   moneda: string;
   notaCondiciones: string | null;
   /** La condición como dato (0232): % pagado antes del despacho y días del saldo. */
@@ -222,6 +224,10 @@ function crearEstilos(acento: string) {
     pagoMarca: { flex: 1, fontSize: 8.5, fontFamily: "Helvetica-Bold", textAlign: "center", paddingVertical: 3, borderLeftWidth: 0.8, borderLeftColor: CARBON },
 
     montoTotal: { fontSize: 10.5, fontFamily: "Helvetica-Bold", marginTop: 4, marginBottom: 8 },
+    /* Debajo del monto, en letra chica (Ariana 15-10). */
+    tipoCambioFila: { flexDirection: "row", alignItems: "flex-end", width: 200, marginTop: -6, marginBottom: 8 },
+    tipoCambioLinea: { width: 80, borderBottomWidth: 0.6, borderBottomColor: BORDE, marginLeft: 4, marginBottom: 1.5 },
+    tipoCambio: { fontSize: 7.5, color: GRIS },
     /* Los cuatro campos que Central llena a mano cuando entra el pago. */
     blancoAviso: { fontSize: 7, color: GRIS, marginTop: 4, marginBottom: 2 },
     blancoFila: { flexDirection: "row", gap: 26, marginBottom: 3 },
@@ -344,7 +350,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
   const {
     logoBuffer, serie, codigo, fecha, referencia, asunto, presupuestoRef,
     comprobante, clienteNuevo, cliente, contactoVenta, contactoContabilidad, contactoDespacho,
-    modalidadPago, formaPago, numeroOperacion, moneda, notaCondiciones, pctAntesDespacho, creditoDias, garantia, entrega, notaDespacho, urgente,
+    modalidadPago, formaPago, numeroOperacion, tipoCambio, moneda, notaCondiciones, pctAntesDespacho, creditoDias, garantia, entrega, notaDespacho, urgente,
     incluye, gratis, notaFinal, items, itemsGratuitos, adjuntos, compendio, firma, sinMontos = false,
   } = props;
   const monto = (v: number) => cifra(v, sinMontos);
@@ -517,6 +523,23 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
           </View>
         )}
         <Text style={estilos.montoTotal}>{`MONTO TOTAL VENTA ${simbolo} ${monto(totalVenta)}`}</Text>
+        {/* TIPO DE CAMBIO (Ariana 15-10): en letra chica bajo el monto. Si el
+            comercial no lo escribió queda la línea para ponerlo a mano. Con
+            las cifras tapadas (postventa) no sale. */}
+        {!sinMontos && (
+          <View style={estilos.tipoCambioFila}>
+            {tipoCambio ? (
+              <Text style={estilos.tipoCambio}>
+                {`Tipo de cambio: S/ ${tipoCambio.toLocaleString("es-PE", { minimumFractionDigits: 3, maximumFractionDigits: 4 })}`}
+              </Text>
+            ) : (
+              <>
+                <Text style={estilos.tipoCambio}>Tipo de cambio:</Text>
+                <View style={estilos.tipoCambioLinea} />
+              </>
+            )}
+          </View>
+        )}
         {/* Estas cuatro casillas quedan en blanco a propósito: las llena
             Central cuando el pago entra. El rótulo se agregó el 24-08 porque
             sin él parecían campos que el CRM había dejado de imprimir —
