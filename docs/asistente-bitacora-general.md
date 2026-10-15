@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 (tarde) · Rubí: «no me aparece el pedido de Portal del Marqués»
+- **Qué pasó:** Central generó el pedido del repuesto de Portal del Marqués (OPEN 060-2026, un manómetro para Cajamarca) y apuró a Finanzas, pero el pedido no aparecía en la bandeja de postventa.
+- **Por qué:** no era un error. Generar el pedido es un paso intermedio de Central: falta que Finanzas confirme el pago y suba la liquidación, que Central la acepte y marque «Pedido ejecutado». Recién ahí postventa lo ve (regla de Carlos, 15-09: primero la liquidación, después el pedido ejecutado).
+- **Pendiente:** Finanzas confirma el pago y sube la liquidación; Central la acepta. Si urge despacharlo antes, gerencia u operaciones lo ejecutan con su código.
+
 ### 15-10 (tarde) · Rubí: la secadora de ECOLAV necesita su propio circuito
 - **Qué pasó:** ECOLAV SORELA compró una lavadora y una secadora en una sola venta, y quedaron en un solo pedido. La lavadora salió el 21-09 a Moquegua y completó el circuito; la secadora no tenía stock y recién se despacha ahora. Rubí: «necesito que se haga otro circuito para ese equipo». El CRM solo permitía marcar «No va en este despacho», pero lo que se quedaba no tenía camino propio y al cerrar el pedido se iba con él. Además, la secadora figuraba como probada sin serie ni protocolo.
 - **Qué se hizo el mismo día:** postventa puede abrirle su propio circuito al equipo que no salió (ver la guía, «Pedidos»). La secadora de ECOLAV ya tiene su pedido: viene con el pago confirmado y la aprobación, y su siguiente paso es solicitar la prueba y embalaje al almacén. La marca de «probada» se borró porque no tenía respaldo.
