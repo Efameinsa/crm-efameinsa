@@ -14,6 +14,7 @@ import {
   textoPlanoNoEnviado,
   pedidoSinCobro,
   pagoParcialSinCubrir,
+  condicionContadoConSaldo,
   pideVistoBuenoFinanzas,
   faltaVistoBuenoFinanzas,
   faltanLetrasEnAlmacen,
@@ -648,11 +649,35 @@ describe("pagoParcialSinCubrir: el abono confirmado que no cubre lo acordado (re
     expect(r?.largo).toContain("La condición es 50 % antes del despacho y todavía no se llega");
   });
 
+  it("la apertura queda trabada: es lo mismo que mira el servidor al emitirla", () => {
+    for (const s of [pedido(wong), sinPrecios(pedido(wong))]) {
+      const apertura = bloquesPedido(s).flatMap((b) => b.pasos).find((p) => p.clave === "apertura");
+      expect(apertura?.hecho).toBe(false);
+      expect(apertura?.trabado).toBeTruthy();
+    }
+    const pagado = bloquesPedido(pedido({ monto: 7900, monto_pagado: 7900, pct_antes_despacho: 100, pago_confirmado_at: "2026-10-07T15:40:00Z" })).flatMap((b) => b.pasos).find((p) => p.clave === "apertura");
+    expect(pagado?.trabado ?? "").not.toMatch(/saldo|pago/i);
+  });
+
   it("no aplica cuando el adelanto acordado está cubierto, cuando falta la confirmación, ni con salida autorizada", () => {
     expect(pagoParcialSinCubrir(pedido({ monto: 10000, monto_pagado: 5000, pct_antes_despacho: 50, pago_confirmado_at: "2026-10-01T15:00:00Z" }))).toBeNull();
     expect(pagoParcialSinCubrir(pedido({ ...wong, pago_confirmado_at: null }))).toBeNull();
     expect(pagoParcialSinCubrir(pedido({ ...wong, salida_autorizada_at: "2026-10-08T15:00:00Z" }))).toBeNull();
     expect(pagoParcialSinCubrir(pedido({ ...wong, despachado_at: "2026-10-08T15:00:00Z" }))).toBeNull();
     expect(bloquesPedido(pedido({ monto: 7900, monto_pagado: 7900, pct_antes_despacho: 100, pago_confirmado_at: "2026-10-07T15:40:00Z" })).flatMap((b) => b.pasos).find((p) => p.clave === "pago")?.alerta).toBeUndefined();
+  });
+});
+
+describe("condicionContadoConSaldo: el aviso del cierre cuando dice contado pero describe un saldo (15-10)", () => {
+  it("Wong Lu Vega: 20 % adelanto // 80 % a fin de mes con 100 % antes del despacho", () => {
+    expect(condicionContadoConSaldo("20% ADELANTO // 80% FINALES DE MES O PRIMERA SEMANA DE NOVIEMBRE", 100)).toBe(true);
+    expect(condicionContadoConSaldo("CONTADO 50% adelanto y saldo contra entrega", 100)).toBe(true);
+    expect(condicionContadoConSaldo("CREDITO 30 dias", 100)).toBe(true);
+  });
+  it("no avisa cuando el porcentaje ya refleja el adelanto, ni cuando todo se paga antes del despacho", () => {
+    expect(condicionContadoConSaldo("20% ADELANTO // 80% FINALES DE MES", 20)).toBe(false);
+    expect(condicionContadoConSaldo("30% ADELANTO + 70% ANTES DEL DESPACHO", 100)).toBe(false);
+    expect(condicionContadoConSaldo("CONTADO", 100)).toBe(false);
+    expect(condicionContadoConSaldo("CONTADO", null)).toBe(false);
   });
 });

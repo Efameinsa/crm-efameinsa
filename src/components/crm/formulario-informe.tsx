@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { condicionContadoConSaldo } from "@/lib/postventa";
 import Link from "@/components/enlace";
 import { netoDeBruto, redondear2, totalesConIgv } from "@/lib/igv";
 import { useRouter } from "next/navigation";
@@ -858,10 +859,10 @@ export function FormularioInforme({
   // «100 % antes del despacho». El 100 % es lo que mira postventa, y con el
   // adelanto confirmado el pedido se leyó como pagado. Se avisa acá, donde se
   // escribe, sin bloquear: hay ventas de contado con adelanto previo.
-  const textoCondicion = [modalidad[0] ?? "", modalidadOtra, notaCondiciones].join(" ");
-  const formaDescribeSaldo =
-    /saldo|cuota|letra|financ|contra ?entrega|despu[eé]s|luego|fin(al)?(es)? de mes|semana|d[ií]as/i.test(textoCondicion) ||
-    (/adelant|a cuenta/i.test(textoCondicion) && !/antes del despacho/i.test(textoCondicion));
+  const formaDescribeSaldo = condicionContadoConSaldo(
+    [modalidad[0] ?? "", modalidadOtra, notaCondiciones].join(" "),
+    pctAntesDespacho.trim() === "" ? null : Number(pctAntesDespacho),
+  );
 
   return (
     <div className="space-y-5">
@@ -1516,7 +1517,7 @@ export function FormularioInforme({
                   ? `Todo a crédito: el equipo sale sin pago previo y el total vence a ${creditoDias || "?"} días del despacho.`
                   : `Con el ${pctAntesDespacho} % confirmado por Finanzas el equipo sale; el ${100 - Number(pctAntesDespacho)} % restante vence a ${creditoDias || "?"} días del despacho.`}
             </p>
-            {Number(pctAntesDespacho) >= 100 && formaDescribeSaldo && (
+            {formaDescribeSaldo && (
               <p className="mt-1 rounded-md border border-amber-400/60 bg-amber-500/10 px-2 py-1.5 text-[11px] font-medium text-amber-800">
                 Ojo: la forma de pago describe un adelanto con saldo posterior, pero acá dice que el 100 % debe estar pagado antes del
                 despacho (contado). Si el equipo sale con el adelanto, escriba ese porcentaje y los días del saldo; si sale recién con
