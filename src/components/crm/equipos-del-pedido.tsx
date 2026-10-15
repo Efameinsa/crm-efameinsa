@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
 import { corregirSerie } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -161,6 +161,69 @@ export function EquiposDelPedido({
           );
         })}
       </ol>
+      {modo === "postventa" && equipos.length > 1 && (despachado || parcial) && (
+        <OtroCircuito servicioId={servicioId} equipos={despachado ? equipos : equipos.filter((e) => !e.en_este_despacho)} despachado={despachado} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * OTRO CIRCUITO PARA LO QUE NO SALIÓ (Rubí, 15-10, ECOLAV; 0501): la secadora
+ * que no viajó con la lavadora pasa a un pedido propio, con el pago ya hecho,
+ * y recorre su prueba, apertura y despacho sin arrastrar el pedido que ya salió.
+ */
+function OtroCircuito({ servicioId, equipos, despachado }: { servicioId: string; equipos: EquipoDelPedido[]; despachado: boolean }) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [marcados, setMarcados] = useState<string[]>([]);
+  const [motivo, setMotivo] = useState("");
+  const [pendiente, startTransition] = useTransition();
+  if (equipos.length === 0) return null;
+  const alternar = (id: string) => setMarcados((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
+  const abrir = () =>
+    startTransition(async () => {
+      const r = await abrirOtroCircuito(servicioId, marcados, motivo);
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success("Listo: el equipo tiene su propio circuito");
+      router.push(`/postventa/pedidos/${r.nuevoId}`);
+    });
+  return (
+    <div className="mt-3 rounded-md border border-dashed border-border p-2.5">
+      {!abierto ? (
+        <button type="button" onClick={() => setAbierto(true)} className="text-xs font-semibold text-primary hover:underline">
+          {despachado ? "¿Algún equipo no salió en este despacho? Abrirle su propio circuito" : "Abrirle su propio circuito a lo que no va en este despacho"}
+        </button>
+      ) : (
+        <div className="space-y-2 text-xs">
+          <p className="font-semibold text-foreground">¿Qué equipo sale aparte?</p>
+          <p className="text-muted-foreground">
+            Pasa a un pedido nuevo del mismo cierre, con el pago y la aprobación ya hechos. Ahí empieza de nuevo: prueba y embalaje, dirección,
+            apertura, salida y despacho. Este pedido sigue con lo que ya salió.
+          </p>
+          {equipos.map((e) => (
+            <label key={e.id} className="flex items-start gap-2">
+              <input type="checkbox" className="mt-0.5" checked={marcados.includes(e.id)} onChange={() => alternar(e.id)} />
+              <span>
+                {e.descripcion.split("\n")[0]}
+                {e.serie ? <span className="text-muted-foreground"> · serie {e.serie}</span> : <span className="text-muted-foreground"> · sin serie</span>}
+              </span>
+            </label>
+          ))}
+          <Input value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Por qué sale aparte (ej. la secadora llegó después)" className="h-8 text-xs" />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={abrir} disabled={pendiente || marcados.length === 0 || !motivo.trim()}>
+              {pendiente && <Loader2 className="size-3 animate-spin" />} Abrir su circuito
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setAbierto(false)} disabled={pendiente}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1136,6 +1136,24 @@ export async function equipoVaEnEsteDespacho(itemId: string, servicioId: string,
 }
 
 /**
+ * OTRO CIRCUITO PARA LO QUE NO SALIÓ (Rubí, 15-10, ECOLAV; 0501). Los equipos
+ * elegidos se mudan a un pedido nuevo del mismo cierre, con el pago y la
+ * aprobación ya hechos, y empiezan su propia prueba, apertura y despacho.
+ */
+export async function abrirOtroCircuito(servicioId: string, itemIds: string[], motivo: string): Promise<{ error: string | null; nuevoId?: string }> {
+  if (itemIds.length === 0) return { error: "Marque el equipo que sale aparte" };
+  if (!motivo.trim()) return { error: "Escriba por qué sale aparte (ej. «la secadora llegó después»)" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("abrir_otro_circuito", { p_servicio: servicioId, p_items: itemIds, p_motivo: motivo.trim() });
+  if (error) return falla(enCastellano(error.message));
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath("/postventa/control");
+  revalidatePath("/almacen/pedidos");
+  return { error: null, nuevoId: data as string };
+}
+
+/**
  * El informe de puesta en marcha (anexo 3 del manual), con lo que de verdad
  * sirve después: fotos, ciclos y conformidad del cliente.
  *
