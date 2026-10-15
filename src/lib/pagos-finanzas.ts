@@ -17,6 +17,9 @@ export interface PedidoFinanzas {
   cuentaId: string | null;
   cliente: string;
   clienteDoc: string | null;
+  /** Correo y N.º de operación del cierre, para copiarlos (0493, Gabriela 15-10). */
+  clienteCorreo: string | null;
+  numeroOperacion: string | null;
   equipo: string | null;
   moneda: string;
   total: number | null;
@@ -95,7 +98,7 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
   for (let i = 0; i < idsInforme.length; i += 50) {
     const { data } = await supabase
       .from("informes_cierre")
-      .select("id, codigo, serie, comprobante, modalidad_pago, entrega_lugar, entrega_fecha, cliente_doc, creado_por, adjuntos, anulado_at")
+      .select("id, codigo, serie, comprobante, modalidad_pago, entrega_lugar, entrega_fecha, cliente_doc, cliente_correo, numero_operacion, creado_por, adjuntos, anulado_at")
       .in("id", idsInforme.slice(i, i + 50));
     informes.push(...((data ?? []) as Fila[]));
   }
@@ -127,6 +130,8 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
         cuentaId: (f.cuenta_id as string | null) ?? null,
         cliente: limpiarCliente(f.cliente_texto as string | null),
         clienteDoc: (inf?.cliente_doc as string | null) ?? null,
+        clienteCorreo: (inf?.cliente_correo as string | null) ?? null,
+        numeroOperacion: (inf?.numero_operacion as string | null) ?? null,
         equipo: (f.equipo as string | null) ?? null,
         moneda: (f.moneda as string | null) ?? "USD",
         total,

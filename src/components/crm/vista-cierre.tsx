@@ -79,6 +79,7 @@ export interface InformeVista {
   orden_compra: string | null;
   modalidad_pago: string[];
   forma_pago: string | null;
+  numero_operacion: string | null;
   comprobante: string | null;
   nota_condiciones: string | null;
   entrega_fecha: string | null;
@@ -133,6 +134,7 @@ interface Borrador {
   urgente: boolean;
   modalidad_pago: string;
   forma_pago: string;
+  numero_operacion: string;
   comprobante: string;
   nota_condiciones: string;
   entrega_fecha: string;
@@ -170,6 +172,7 @@ function aBorrador(i: InformeVista): Borrador {
     urgente: i.urgente,
     modalidad_pago: i.modalidad_pago.join("\n"),
     forma_pago: i.forma_pago ?? "",
+    numero_operacion: i.numero_operacion ?? "",
     comprobante: i.comprobante ?? "",
     nota_condiciones: i.nota_condiciones ?? "",
     entrega_fecha: i.entrega_fecha ?? "",
@@ -488,7 +491,7 @@ export function VistaCierre({
                   <p className="text-xs text-muted-foreground">
                     {informe.cliente_doc && <span className="font-mono">{informe.cliente_doc}</span>}
                     {informe.cliente_doc && informe.cliente_correo && " · "}
-                    {informe.cliente_correo}
+                    {informe.cliente_correo && <span className="select-all">{informe.cliente_correo}</span>}
                   </p>
                   {informe.cliente_direccion && <p className="text-xs text-muted-foreground">{informe.cliente_direccion}</p>}
                 </div>
@@ -667,6 +670,9 @@ export function VistaCierre({
                 <Campo etiqueta="Forma">
                   <Selector value={b.forma_pago} onChange={(v) => set("forma_pago", v)} opciones={FORMA_PAGO} />
                 </Campo>
+                <Campo etiqueta="N.º de operación">
+                  <Input value={b.numero_operacion} onChange={(e) => set("numero_operacion", e.target.value)} className="font-mono" />
+                </Campo>
                 <Campo etiqueta="Comprobante">
                   <Selector value={b.comprobante} onChange={(v) => set("comprobante", v)} opciones={COMPROBANTE} />
                 </Campo>
@@ -690,6 +696,11 @@ export function VistaCierre({
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
+                {informe.numero_operacion && (
+                  <p className="text-xs text-muted-foreground">
+                    N.º de operación: <span className="select-all font-mono text-foreground">{informe.numero_operacion}</span>
+                  </p>
+                )}
                 {informe.nota_condiciones && <p className="text-xs text-muted-foreground">{informe.nota_condiciones}</p>}
               </div>
             )}

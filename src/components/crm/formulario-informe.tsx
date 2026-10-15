@@ -149,6 +149,7 @@ function aCorreccion(d: DatosInforme): Record<string, unknown> {
     urgente: d.urgente,
     modalidad_pago: d.modalidadPago,
     forma_pago: d.formaPago ?? "",
+    numero_operacion: d.numeroOperacion ?? "",
     comprobante: d.comprobante,
     nota_condiciones: d.notaCondiciones ?? "",
     entrega_fecha: d.entregaFecha ?? "",
@@ -334,6 +335,7 @@ export function FormularioInforme({
   // nunca la va a cubrir toda.
   const [modalidadOtra, setModalidadOtra] = useState(() => b?.modalidadPago.find((m) => !esPreset(m)) ?? "");
   const [formaPago, setFormaPago] = useState<"transferencia" | "deposito" | null>(b ? b.formaPago : "transferencia");
+  const [numeroOperacion, setNumeroOperacion] = useState(b?.numeroOperacion ?? "");
   const [notaCondiciones, setNotaCondiciones] = useState(b?.notaCondiciones ?? "");
   // Qué % del total debe estar pagado antes del despacho y a cuántos días va
   // el saldo (0232). Arranca con lo que propone la pastilla elegida.
@@ -487,6 +489,7 @@ export function FormularioInforme({
       contactoDespacho,
       modalidadPago: modalidadOtra.trim() ? [...modalidad, modalidadOtra.trim()] : modalidad,
       formaPago,
+      numeroOperacion: numeroOperacion.trim() || null,
       moneda,
       notaCondiciones: notaCondiciones || null,
       pctAntesDespacho: pctAntesDespacho.trim() === "" ? null : Number(pctAntesDespacho),
@@ -603,6 +606,7 @@ export function FormularioInforme({
     setModalidad(d.modalidadPago.filter(esPreset).slice(0, 1));
     setModalidadOtra(d.modalidadPago.find((m) => !esPreset(m)) ?? "");
     setFormaPago(d.formaPago);
+    setNumeroOperacion(d.numeroOperacion ?? "");
     setNotaCondiciones(d.notaCondiciones ?? "");
     setPctAntesDespacho(d.pctAntesDespacho == null ? "" : String(d.pctAntesDespacho));
     setCreditoDias(d.creditoDias == null ? "" : String(d.creditoDias));
@@ -1025,6 +1029,17 @@ export function FormularioInforme({
                   />
                 </Campo>
               </div>
+              {/* El correo a la vista (Gabriela, 15-10): Finanzas lo copia
+                  para mandar la factura. Antes solo estaba en la sección
+                  plegada «Ver y editar lo prellenado». */}
+              <Campo etiqueta="Correo" pista="adonde Finanzas manda la factura">
+                <Input
+                  type="email"
+                  value={clienteCorreo}
+                  onChange={(e) => setClienteCorreo(e.target.value)}
+                  placeholder="correo@empresa.com"
+                />
+              </Campo>
               {(clienteNombre !== cuenta.razon_social || clienteDoc !== (cuenta.num_doc ?? "")) && (
                 <button
                   type="button"
@@ -1055,6 +1070,13 @@ export function FormularioInforme({
                   clienteDireccion
                 ) : (
                   <span className="text-amber-700">sin dirección — pulse «Editar» para escribirla</span>
+                )}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {clienteCorreo.trim() ? (
+                  <>Correo: {clienteCorreo}</>
+                ) : (
+                  <span className="text-amber-700">sin correo — pulse «Editar» para que Finanzas sepa adónde mandar la factura</span>
                 )}
               </p>
             </>
@@ -1499,6 +1521,19 @@ export function FormularioInforme({
           </div>
         </Campo>
 
+        {/* N.º DE OPERACIÓN (0493, Gabriela 15-10): si el cliente ya pagó, el
+            número del voucher va escrito para que Finanzas lo copie y ubique
+            el abono sin abrir el adjunto. */}
+        <Campo etiqueta="N.º de operación" pista="si ya pagó: el número del voucher, para que Finanzas lo ubique">
+          <Input
+            value={numeroOperacion}
+            onChange={(e) => setNumeroOperacion(e.target.value)}
+            placeholder="Ej. 00123456 · déjelo vacío si todavía no paga"
+            className="max-w-xs font-mono"
+            maxLength={80}
+          />
+        </Campo>
+
         {/* GARANTÍA (28-08). Va acá, con el resto de las condiciones de venta y
             a la vista, porque de este plazo salen dos cosas: lo que Central le
             confirma al cliente y el `garantia_hasta` con el que postventa
@@ -1753,10 +1788,6 @@ export function FormularioInforme({
               <Input value={ordenCompra} onChange={(e) => setOrdenCompra(e.target.value)} />
             </Campo>
           </div>
-          <Campo etiqueta="Correo electrónico">
-            <Input value={clienteCorreo} onChange={(e) => setClienteCorreo(e.target.value)} />
-          </Campo>
-
           <Campo etiqueta="Incluye" pista="una línea por beneficio; se puede cambiar por cliente">
             <Textarea rows={5} value={incluye.join("\n")} onChange={(e) => setIncluye(e.target.value.split("\n"))} />
           </Campo>

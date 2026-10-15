@@ -66,6 +66,8 @@ export interface DatosInforme {
   contactoDespacho: ContactoEntrada;
   modalidadPago: string[];
   formaPago: "transferencia" | "deposito" | null;
+  /** N.º de operación del pago, si ya pagó (0493, Gabriela 15-10): Finanzas lo copia. */
+  numeroOperacion?: string | null;
   moneda: string;
   notaCondiciones: string | null;
   /**
@@ -364,6 +366,7 @@ function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
     contacto_despacho: d.contactoDespacho,
     modalidad_pago: d.modalidadPago,
     forma_pago: d.formaPago,
+    numero_operacion: d.numeroOperacion?.trim() || null,
     moneda: d.moneda === "PEN" ? "PEN" : "USD",
     // El total con IGV, que es lo que se cobra. Se calcula acá y no en el
     // navegador: el importe del documento no puede depender de lo que
@@ -860,6 +863,7 @@ export interface BorradorInforme {
   contactoDespacho: ContactoEntrada;
   modalidadPago: string[];
   formaPago: "transferencia" | "deposito" | null;
+  numeroOperacion: string;
   notaCondiciones: string;
   pctAntesDespacho: number | null;
   creditoDias: number | null;
@@ -933,6 +937,7 @@ export async function cargarBorradorInforme(
       contactoDespacho: contacto(i.contacto_despacho),
       modalidadPago: ((i.modalidad_pago ?? []) as string[]).filter(Boolean),
       formaPago: i.forma_pago === "transferencia" || i.forma_pago === "deposito" ? i.forma_pago : null,
+      numeroOperacion: texto(i.numero_operacion),
       notaCondiciones: texto(i.nota_condiciones),
       pctAntesDespacho: i.pct_antes_despacho == null ? null : Number(i.pct_antes_despacho),
       creditoDias: i.credito_dias == null ? null : Number(i.credito_dias),

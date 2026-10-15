@@ -53,6 +53,7 @@ export const esquemaCorreccionInforme = z
     urgente: z.boolean().optional(),
     modalidad_pago: z.array(z.string().trim().max(240)).max(12).optional(),
     forma_pago: z.enum(["transferencia", "deposito", ""]).optional(),
+    numero_operacion: z.string().trim().max(80).optional(),
     comprobante: z.enum(["factura", "boleta_ruc", "boleta_dni", ""]).optional(),
     nota_condiciones: z.string().trim().max(1000).optional(),
     entrega_fecha: z.string().trim().max(60).optional(),

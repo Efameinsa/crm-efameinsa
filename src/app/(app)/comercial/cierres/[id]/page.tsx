@@ -87,6 +87,7 @@ export default async function CierrePage({
     orden_compra: informe.orden_compra,
     modalidad_pago: (informe.modalidad_pago ?? []) as string[],
     forma_pago: informe.forma_pago,
+    numero_operacion: informe.numero_operacion ?? null,
     comprobante: informe.comprobante,
     nota_condiciones: informe.nota_condiciones,
     entrega_fecha: informe.entrega_fecha,

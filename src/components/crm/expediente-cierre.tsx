@@ -31,6 +31,8 @@ export function ExpedienteCierre({
   codigo,
   cliente,
   clienteDoc,
+  clienteCorreo = null,
+  numeroOperacion = null,
   serie,
   monto,
   moneda,
@@ -48,6 +50,9 @@ export function ExpedienteCierre({
   codigo: string;
   cliente: string;
   clienteDoc: string | null;
+  /** Para copiarlos al facturar y al ubicar el abono (0493, Gabriela 15-10). */
+  clienteCorreo?: string | null;
+  numeroOperacion?: string | null;
   serie: string;
   monto: number;
   moneda: string;
@@ -102,6 +107,16 @@ export function ExpedienteCierre({
             <div className="min-w-[220px]">
               <p className="text-base font-semibold leading-tight text-foreground">{cliente}</p>
               {clienteDoc && <p className="font-mono text-xs text-muted-foreground">{clienteDoc}</p>}
+              {clienteCorreo && (
+                <p className="text-xs text-muted-foreground">
+                  Correo: <span className="select-all text-foreground">{clienteCorreo}</span>
+                </p>
+              )}
+              {numeroOperacion && (
+                <p className="text-xs text-muted-foreground">
+                  N.º de operación: <span className="select-all font-mono text-foreground">{numeroOperacion}</span>
+                </p>
+              )}
             </div>
             <VerPdfEnLaApp
               url={`/api/informes/${informeId}/pdf`}

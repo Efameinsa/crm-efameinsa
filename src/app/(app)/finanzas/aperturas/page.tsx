@@ -263,6 +263,8 @@ function FilaApertura({
                   codigo={p.codigoCierre}
                   cliente={p.cliente}
                   clienteDoc={p.clienteDoc}
+                  clienteCorreo={p.clienteCorreo}
+                  numeroOperacion={p.numeroOperacion}
                   serie={p.serie ?? "EFAMEINSA"}
                   monto={p.total ?? 0}
                   moneda={p.moneda}
