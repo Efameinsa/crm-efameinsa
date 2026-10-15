@@ -40,6 +40,7 @@ import { cierresDePostventa } from "@/lib/precios-postventa";
 import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
 import { tituloDelTipo, type TipoAtencion } from "@/lib/atenciones";
 import { AperturaServicioCaso, type CasoParaApertura } from "@/components/crm/apertura-servicio-caso";
+import { CorreosDeCampana, HistorialCorreosDeCampana } from "@/components/crm/correos-de-campana";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,7 @@ const PESTANAS = [
   { clave: "equipos", etiqueta: "Equipos" },
   { clave: "ventas", etiqueta: "Ventas" },
   { clave: "historial", etiqueta: "Historial" },
+  { clave: "correos", etiqueta: "Correos de campaña" },
   { clave: "documentos", etiqueta: "Documentos y sedes" },
   { clave: "contactos", etiqueta: "Datos y contactos" },
 ] as const;
@@ -310,6 +312,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
             <div className="space-y-4">
               <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />
               <InformesTecnicosDelCliente cuentaId={cuenta.id} conEnlace={abreInformes} />
+              <CorreosDeCampana cuentaId={cuenta.id} verTodo={`/nuevo/cliente/${cuenta.id}?tab=correos`} />
             </div>
           </div>
         )}
@@ -357,6 +360,8 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
         )}
 
         {pestana === "historial" && <HistorialCompleto cuentaId={cuenta.id} verPrecios={verPrecios} />}
+
+        {pestana === "correos" && <HistorialCorreosDeCampana cuentaId={cuenta.id} />}
 
         {pestana === "contactos" && (
           <div className="grid max-w-5xl gap-4 lg:grid-cols-2">

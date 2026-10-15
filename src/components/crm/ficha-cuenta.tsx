@@ -29,6 +29,7 @@ import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimient
 import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
 import { TraerPedidoAntiguoBoton } from "@/components/crm/traer-pedido-antiguo-boton";
 import { PendientesDelCliente } from "@/components/crm/pendientes-del-cliente";
+import { CorreosDeCampana } from "@/components/crm/correos-de-campana";
 import { UltimosCierres } from "@/components/crm/ultimos-cierres";
 import { EquiposDelCliente } from "@/components/crm/equipos-del-cliente";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
@@ -378,6 +379,8 @@ export async function FichaCuenta({
           conEnlace={(Boolean(perfilQueMira.es_postventa) && !perfilQueMira.solo_preventivo) || Boolean(perfilQueMira.es_almacen) || ["gerencia", "admin"].includes(perfilQueMira.rol)}
         />
         <EquiposDelCliente cuentaId={cuenta.id} />
+        {/* 15-10: los correos de campaña que recibió y qué hizo con ellos (0496). */}
+        <CorreosDeCampana cuentaId={cuenta.id} />
         <SeccionPanel titulo={`Cliente y contactos (${contactos.length})`}>
           {/* Editables: es lo que se imprime en la cotización (24-08). El RUC y la
               razón social salen del bloque del cliente; el contacto principal, del
